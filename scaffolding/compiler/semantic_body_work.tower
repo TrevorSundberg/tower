@@ -138,6 +138,22 @@ struct SemanticBodyScope {
     flow_dependencies: vector(void*);
 }
 
+enum SemanticBodyBlockKind: u32 {
+    Lexical, IfThen, IfElse, Loop
+}
+
+struct SemanticBodyBlock {
+    cursor: SemanticBlockCursor;
+    subject: void*;
+    kind: SemanticBodyBlockKind;
+    flow: u32;
+}
+
+struct SemanticBodyBoundary {
+    subject: void*;
+    header: bool;
+}
+
 struct SemanticBodyWork {
     cloning: SemanticGenericBodyWork;
     kernel: CompilerKernel;
@@ -158,9 +174,11 @@ struct SemanticBodyWork {
     error_offset: usize;
     resumed: bool;
     done: bool;
-    stop: usize;
+    stop: void*;
+    boundary: usize;
     preparation: usize;
-    boundaries: vector(usize);
+    boundaries: vector(SemanticBodyBoundary);
+    blocks: vector(SemanticBodyBlock);
     allocations: vector(void*);
     lists: vector(void*);
     cursor: SemanticBlockCursor;
@@ -259,10 +277,16 @@ fn sem_body_tree(c: SemanticContext*, source: void*, nodes: vector(void*)*): boo
     return true;
 }
 
+fn sem_body_boundary(result: SemanticBodyWork*, subject: void*, header: bool): void {
+    sem_require(vector_reserve(&result.boundaries, result.boundaries.length + 1));
+    var entry = &result.boundaries.data[result.boundaries.length++];
+    entry.subject = subject;
+    entry.header = header;
+}
+
 // Admission is decided from original syntax before any checking mutates nodes.
-// A structural top-level statement is a continuation boundary, not a reason to
-// run the entire preceding body on the coordinator. Nested blocks retain one
-// boundary until their checking cursors also become resumable.
+// Structural statements suspend their containing lexical/control frame, not
+// its whole enclosing function. Surface loop/match/defer handlers remain whole.
 fn sem_body_sources(c: SemanticContext*, result: SemanticBodyWork*): void {
     var scope = c.scope;
     c.scope = null;
@@ -273,14 +297,44 @@ fn sem_body_sources(c: SemanticContext*, result: SemanticBodyWork*): void {
     var scan: vector(void*);
     vector_init(&scan);
     defer vector_dispose(&scan);
-    for(var i: usize = 0; i < sem_child_count(body); i++) {
-        var statement = sem_child(body, i);
-        if !sem_is(statement, "Statement") {
-            continue;
-        }
-        scan.length = 0;
-        if !sem_body_tree(c, statement, &scan) {
-            sem_require(vector_push(&result.boundaries, i));
+    var pending: vector(void*) = default;
+    defer vector_dispose(&pending);
+    sem_push(&pending, body);
+    while pending.length != 0 {
+        var source = pending.data[--pending.length];
+        var node = sem_is(source, "Statement") ? sem_unwrap(source): source;
+        if sem_is(node, "CoreBlock") {
+            // Enter lexical blocks in their existing source/checking order.
+            for(var i = sem_child_count(node); i != 0;) {
+                var child = sem_child(node, --i);
+                if sem_is(child, "Statement") {
+                    sem_push(&pending, child);
+                }
+            }
+        } else {
+            scan.length = 0;
+            // Header construction precedes either branch, but does not check
+            // their statements. Resume those bodies through the same frames.
+            if sem_is(node, "CoreIf") && sem_member(node, "condition") != null && sem_is(sem_member(node, "body"), "CoreBlock")
+            &&(sem_member(node, "otherwise") == null || sem_is(sem_member(node, "otherwise"), "CoreBlock")) {
+                if !sem_body_tree(c, sem_member(node, "condition"), &scan) {
+                    sem_body_boundary(result, source, true);
+                }
+                var other = sem_member(node, "otherwise");
+                if other != null {
+                    sem_push(&pending, other);
+                }
+                sem_push(&pending, sem_member(node, "body"));
+                continue;
+            }
+            if sem_is(node, "CoreLoop") && sem_is(sem_member(node, "body"), "CoreBlock") {
+                sem_push(&pending, sem_member(node, "body"));
+                continue;
+            }
+            scan.length = 0;
+            if !sem_body_tree(c, source, &scan) {
+                sem_body_boundary(result, source, false);
+            }
         }
     }
     sem_push(&result.nodes, result.subject);
@@ -293,14 +347,99 @@ fn sem_body_sources(c: SemanticContext*, result: SemanticBodyWork*): void {
     }
 }
 
-fn sem_body_stop(result: SemanticBodyWork*): usize {
-    var next = result.resumed ? result.cursor.next: 0;
-    foreach(var boundary in &result.boundaries) {
-        if boundary >= next {
-            return boundary;
+fn sem_body_stop(result: SemanticBodyWork*): void* {
+    return result.boundary < result.boundaries.length ? result.boundaries.data[result.boundary].subject: null;
+}
+
+fn sem_body_cursor(result: SemanticBodyWork*): SemanticBlockCursor* {
+    return result.blocks.length == 0 ? &result.cursor: &result.blocks.data[result.blocks.length -1].cursor;
+}
+
+fn sem_body_close_block(c: SemanticContext*, result: SemanticBodyWork*): void {
+    var frame = &result.blocks.data[result.blocks.length -1];
+    var subject = frame.subject;
+    var flow = sem_block_finish(c, &frame.cursor);
+    if frame.kind == SemanticBodyBlockKind.IfThen {
+        var other = sem_get(subject).otherwise;
+        if other != null && sem_ok(c) {
+            frame.kind = SemanticBodyBlockKind.IfElse;
+            frame.flow = flow;
+            var depth = frame.cursor.depth;
+            sem_require(sem_block_begin(c, other, depth, &frame.cursor));
+            return;
+        }
+        flow = sem_if_finish(c, subject, flow, FlowNext());
+    } else {
+        if frame.kind == SemanticBodyBlockKind.IfElse {
+            flow = sem_if_finish(c, subject, frame.flow, flow);
+        } else {
+            if frame.kind == SemanticBodyBlockKind.Loop {
+                c.loops--;
+                flow = sem_loop_finish(flow);
+            }
         }
     }
-    return sem_child_count(sem_member(result.subject, "body"));
+    result.blocks.length--;
+    sem_block_accept(c, sem_body_cursor(result), subject, sem_statement_complete(c, subject, flow));
+}
+
+fn sem_body_enter(c: SemanticContext*, result: SemanticBodyWork*, node: void*): bool {
+    var cursor = sem_body_cursor(result);
+    var lexical = node != null && sem_is(node, "CoreBlock");
+    var branch = node != null && sem_is(node, "CoreIf") && sem_member(node, "condition") != null && sem_is(sem_member(node, "body"), "CoreBlock")
+    &&(sem_member(node, "otherwise") == null || sem_is(sem_member(node, "otherwise"), "CoreBlock"));
+    var looping = node != null && sem_is(node, "CoreLoop") && sem_is(sem_member(node, "body"), "CoreBlock");
+    if !(lexical || branch || looping) || cursor.depth >= 128 {
+        return false;
+    }
+
+    var depth = cursor.depth + 1;
+    cursor.next++;
+    // Growing the stack can move frames. Save the parent before reserve
+    // and reacquire it only after finishing/popping the child.
+    sem_require(vector_reserve(&result.blocks, result.blocks.length + 1));
+    var frame = &result.blocks.data[result.blocks.length++];
+    *frame = default;
+    frame.subject = node;
+    var body = node;
+    if branch {
+        frame.kind = SemanticBodyBlockKind.IfThen;
+        sem_require(sem_if_begin(c, node));
+        body = sem_get(node).body;
+    } else {
+        if looping {
+            frame.kind = SemanticBodyBlockKind.Loop;
+            var value = sem_node(c, node, KLoop());
+            value.body = sem_member(node, "body");
+            body = value.body;
+            c.loops++;
+        }
+    }
+    sem_require(sem_block_begin(c, body, depth, &frame.cursor));
+    return true;
+}
+
+// The work component retains lexical/control cursors across worker/preparation
+// boundaries. No previously checked statement or condition is retried.
+fn sem_body_run(c: SemanticContext*, result: SemanticBodyWork*): void {
+    while sem_ok(c) {
+        var cursor = sem_body_cursor(result);
+        if cursor.next == sem_child_count(cursor.subject) {
+            if result.blocks.length == 0 {
+                return;
+            }
+            sem_body_close_block(c, result);
+            continue;
+        }
+        var source = sem_child(cursor.subject, cursor.next);
+        if source == result.stop {
+            return;
+        }
+        var node = sem_is(source, "Statement") ? sem_unwrap(source): null;
+        if !sem_body_enter(c, result, node) {
+            sem_block_step(c, cursor);
+        }
+    }
 }
 
 fn sem_body_save(c: SemanticContext*, local: SemanticBodyScope*): void {
@@ -366,7 +505,7 @@ query: u32, ticket: WorkTicket*): usize {
 // consumers before taking any preparation: their immutable type-index claims
 // would otherwise conflict with structural publication by an earlier function.
 fn sem_body_suspend(c: SemanticContext*, result: SemanticBodyWork*): void {
-    var id = work_request(&c.queries, result.subject, BodyPrepareQuery(), convert(u64, result.cursor.next + 1));
+    var id = work_request(&c.queries, result.subject, BodyPrepareQuery(), convert(u64, result.boundary + 1));
     sem_require(id != 0);
     sem_require(work_access(&c.queries, id, 1, 7, result.ordinal, 1, WorkAccessMode.Write));
     sem_require(work_access(&c.queries, id, 1, 9, 0, ~convert(usize, 0), WorkAccessMode.Write));
@@ -381,7 +520,16 @@ fn sem_body_prepare(c: SemanticContext*, result: SemanticBodyWork*): void {
     var saved: SemanticBodyScope;
     sem_body_save(c, &saved);
     sem_body_restore(c, &result.lexical);
-    sem_block_step(c, &result.cursor);
+    var cursor = sem_body_cursor(result);
+    if result.boundaries.data[result.boundary].header {
+        var node = sem_unwrap(sem_child(cursor.subject, cursor.next));
+        if !sem_body_enter(c, result, node) {
+            sem_block_step(c, cursor);
+        }
+    } else {
+        sem_block_step(c, cursor);
+    }
+    result.boundary++;
     sem_body_save(c, &result.lexical);
     sem_body_restore(c, &saved);
     sem_layout_all(c);
@@ -425,11 +573,14 @@ fn semantic_body_kernel(result: SemanticBodyWork*): void {
         sem_require(sem_function_begin(&context, result.subject, &result.cursor));
         result.resumed = true;
     }
-    while result.cursor.next < result.stop && sem_ok(&context) {
-        sem_block_step(&context, &result.cursor);
-    }
-    result.done = !sem_ok(&context) || result.cursor.next == sem_child_count(result.cursor.subject);
+    sem_body_run(&context, result);
+    result.done = !sem_ok(&context) ||(result.blocks.length == 0 && result.cursor.next == sem_child_count(result.cursor.subject));
     if result.done {
+        // Error unwinding restores lexical scope ownership without emitting
+        // deferred effects. sem_block_finish already checks sem_ok for emission.
+        while result.blocks.length != 0 {
+            sem_body_close_block(&context, result);
+        }
         sem_function_finish(&context, result.subject, &result.cursor);
         fill(&result.lexical, 0, sizeof(SemanticBodyScope));
     } else {
@@ -482,6 +633,7 @@ fn sem_body_clear(result: SemanticBodyWork*): void {
     result.context = null;
     vector_dispose(&result.nodes);
     vector_dispose(&result.boundaries);
+    vector_dispose(&result.blocks);
     vector_dispose(&result.allocations);
     vector_dispose(&result.lists);
     vector_dispose(&result.calls);

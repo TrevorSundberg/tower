@@ -30590,3 +30590,184 @@ while/for/match/defer handlers remain whole. Added branch/loop cleanup, continue
 break, staged definite-return and earlier-error fixtures. This extension is not
 yet compiled or validated; do not confuse it with the nested lexical-block overlap
 proof or the LALR checkpoint being published.
+
+Published LALR source checkpoint 07f8e6249a43e512db47f2e7a5926547cfed06f2.
+The required rebase was unchanged; post-rebase native frontend and production
+LR/unit/editor/body checks passed 2/2 in 182.24 seconds (lr-links-post-rebase.log).
+Normal main and gh-pages pushes succeeded. Pages commit
+0dbc5f7e29fcf2a0a677b2e26b6d7d9cd46e0589 descends from e7a225ae; action
+44916422759 is queued. Hosted verification remains pending. Freeze dist until it
+finishes, and avoid competing compiler builds during the full hosted verifier.
+
+The control-body draft compiles and passes the full instrumented frontend plus
+production LR/unit/editor/body harness (control-bodies-draft.log), including
+4/8-byte targets, 1/2/4/8 workers, exact cleanup, canonical recompilation, staged
+flow and resumed-error ordering. Its dedicated GDB fixture places three ordinary
+runs and two generic construction boundaries inside an if branch inside a loop.
+It observed four simultaneous workers and the same cursor's W/C/W/C/W positions
+0/241/242/482/483 at depth two, then exited normally with HOST_WORLD=0 and
+LEGACY_ALLOCATE=0 (control-overlap.log). No speedup is claimed. Differential CLI
+behavior/diagnostics, successor and formatting checks are still running. This
+source remains isolated; it is not part of the pushed LALR checkpoint.
+
+The control draft matches the published compiler's stdout, stderr and exit status
+for 96 CLI cases: staging/decltype, language control, for/defer and invalid match
+fixtures across wasm32 and native x64 target descriptions (control-differential.log).
+Its native semantic compiler reproduces itself and matches reference compilation
+byte-for-byte, SHA-256
+64e10cf224112a34f429b7da51aa022e54743ae80d7957b4e76678f33a553784
+(control-selfhost.log; reference/successor compiles 31.58/31.43 seconds).
+All four files pass Tower formatting, structure checks and idempotence.
+
+A further header_bodies_draft removes the whole-if preparation restriction.
+Immutable boundary records distinguish a structural condition from a whole leaf
+statement. Its existing BodyPrepareQuery enters the shared if header exactly once,
+opens the branch cursor and publishes any new layouts; the suspended body then
+resumes that branch on a worker. Branch contents never replay the condition.
+The same sem_body_enter helper serves worker and coordinator entry. Boundary
+records and cursors remain derived scheduling data on the existing ECS work
+component, with ordinary Foundation entities as the only program semantics.
+Surface while/for/match/defer handlers and individual structural leaves are still
+whole; this refinement does not finish compiler-wide threading.
+
+The first header draft passes the instrumented frontend matrix
+(header-bodies-draft.log). A dedicated fixture with a generic call in its if
+condition, nested inside a loop, passes the same four-worker depth-two W/C/W/C/W
+probe with zero default-world and legacy-allocation calls (header-overlap.log).
+The modified staged definite-return fixture uses comptime(identity(true)), thus
+requiring both generic header preparation and the ordinary evaluation dependency.
+The changed files pass formatting. Extra unknown-condition and cyclic-layout
+header tests, including earlier-body diagnostic precedence, are now formatted
+and running separately with serial exact-allocation and real-worker transports.
+These last test additions were made after the initial draft tree was copied;
+they are not covered by that first frontend pass. Full header production,
+differential and successor checks remain in progress.
+
+LALR Pages action 44916422759 succeeded. Hosted verification remains pending until
+these compiler runs complete; keep the already-published dist unchanged.
+
+The first extra-header-error harness failed before executing tests: its generated
+root entry explicitly imported its shadow tower.tower while imported test modules
+found the ordinary configured library tower.tower. These are distinct lexical
+module identities, so duplicate grammar extensions correctly produced a
+reduce/reduce conflict (header-errors-initial.log). Remove the redundant root
+import, matching the existing direct-link overlap/semantic-unit harnesses; let
+the imported test modules provide their normal grammar. The corrected harness
+is rerunning. This was a harness import-identity error, not a compiler workaround.
+
+The corrected extra-header harness passes both the serial instrumented transport
+with exact buffer-count restoration and the production native worker transport
+(header-errors.log). Each exercises unknown-condition failure, cyclic condition
+layout and earlier-body diagnostic precedence at 1/2/4/8 budgets. The full initial
+header production LR/unit/editor/body harness also passes
+(header-bodies-draft.log). Final CLI differential and semantic successor checks
+are still running before integration. No new C++ or host evaluator was added.
+
+The final header draft matches all 96 reference CLI behavior/diagnostic cases
+(header-differential.log). Its native semantic compiler reproduces itself and
+matches the reference object byte-for-byte, SHA-256
+51555938bfe96a3c82a3131ac43aaaa433c2aec9f9a211aad71a30ae4fd95324
+(header-selfhost.log; reference/successor compiles 33.29/28.59 seconds).
+All four final files are formatted, including the separately validated header
+failure/cycle additions. They are now integrated with the language-plan audit
+updated to describe the remaining surface-control/type-construction work.
+
+All draft compiler/probe/formatter runs have finished. Full hosted verification
+of the unchanged LALR distribution is now running without competing builds
+(lr-links-hosted.log). Do not replace dist or begin the integrated continuation
+checkpoint's native/browser builds until that verifier completes. Its full
+default-bootstrap, browser, generation and deployment checks remain outstanding;
+the draft experiments alone are not the release validation.
+
+During quiet hosted verification, prepared an uncompiled surface_bodies_draft for
+while/for continuations. It splits the existing handlers into shared header and
+completion phases, retains loop/header scope state on body work frames, and keeps
+for initialization/condition/update checking before its body. Planned checks cover
+generic headers/body leaves, deferred continue/break cleanup, staged definite
+returns, invalid loop headers and cyclic for-condition layouts. This draft is
+separate from the integrated lexical/if/Foundation-loop checkpoint, has not been
+compiled, and must not be included in that checkpoint's validation claims.
+
+LALR hosted verification completed successfully: all 77 assets plus the complete
+desktop/mobile/native-download/Linux-default workflow
+(lr-links-hosted.log / lr-links-hosted-report.json). Source 07f8e62 and Pages
+0dbc5f7e are now both pushed and fully verified. The next integrated continuation
+checkpoint's sources are frozen for default-bootstrap native (two build jobs),
+portable Wasm and shared-memory Wasm (one job each) builds. LLVM/cross packaging,
+regressions, successor generations and deployment validation follow.
+
+Integrated continuation default-bootstrap builds completed for the native compiler,
+portable Wasm and shared-memory Wasm (header-bodies-native/portable/threads.log).
+The complete native test suite is running, and LLVM/cross packaging has started;
+wait for all artifacts before browser regressions. Native build inputs are now
+stable, so the separate surface-loop draft is being compiled and run through
+instrumented/production tests without modifying the frozen checkpoint sources.
+
+Integrated continuation validation passes all eight default-bootstrap native
+CTest cases in 277.09 seconds plus backend API checks (header-bodies-native.log).
+Portable/shared Wasm and LLVM/cross packaging also completed. The combined
+compile-time, invocation, Wasm and 1/2/4/8-worker browser regression run is now
+running with one test-file process at a time (header-bodies-regressions.log).
+
+The separate surface-loop draft compiles and passes its expanded instrumented
+frontend matrix, including while/for headers, defer/continue/break, staged return,
+unknown headers and cyclic condition layouts with exact cleanup. Its production
+LR/unit/editor/body harness is still running (surface-bodies-draft.log). The
+integrated checkpoint remains unchanged; surface-loop formatting, differential,
+successor and explicit overlap proof are still outstanding.
+
+Integrated browser regressions pass 66/66 in 70.76 seconds with no skips
+(header-bodies-regressions.log). Edited browser compiler generations and the
+integrated native semantic successor comparison are running. Additional existing
+for/defer scope, flow, negative and raw/optimized LLVM checks are running too.
+
+The surface-loop draft also passes the full production LR/unit/editor/body harness
+(surface-bodies-draft.log). Its explicit mixed while/for overlap fixture and
+ordinary Tower formatting checks are in progress. Surface changes remain isolated
+and are not packaged in the integrated continuation checkpoint.
+
+Additional integrated for/defer browser checks pass 11/11 in 57.39 seconds with
+no skips (header-bodies-control-regressions.log), covering graph/fast interpreters,
+Foundation reconstruction, lexical/error cases and raw/optimized LLVM/Wasm.
+The integrated native semantic successor matches the default-bootstrap object,
+SHA-256 0ee691f3235fca9d6a804c0bc6df8d1f7bad063bd0c4b1d8599e4603721161c6
+(header-bodies-successor.log). Edited browser generations are still running.
+
+The mixed surface-loop GDB fixture exits normally with four simultaneous workers,
+a depth-nested W/C/W/C/W sequence and zero default-world/legacy-allocation calls
+(surface-overlap.log). Its first probe stopped after one such sequence, so it
+alone does not distinguish which surface loop supplied that cursor. A second
+probe now requires both depth three (while) and depth four (for) sequences from
+the fixture before disabling observation (surface-overlap-both.log). Never edit
+a live GDB command file; this is a separate script. Formatting remains in progress.
+
+Edited browser compiler generations for the integrated continuation checkpoint
+pass and match all three artifacts byte-for-byte (120.69/92.74 seconds), sizes
+1082290/52381217/63938645. Hashes (header-bodies-generation1/2.json):
+ tower 6cba17d325ae73c5c7197675b3511b2aa8f133effcd35676329313e974dfef38,
+ LLVM 47075c9be67d641da8cca3f80a4515fe73972bab4986e7adfe15712527eac591,
+ cross e6403848415bcad7339262f79ab8442ae3ce0c8949188649247c327782f1d70e.
+
+The second surface-loop probe proves both while (depth three) and for (depth four)
+W/C/W/C/W resumptions with four worker threads and zero default-world or legacy
+allocation calls (surface-overlap-both.log). Its four changed draft files pass
+formatting. Review then found a missing explicit lease for a while's generated
+guard block: after a suspension it is published, absent from the original syntax
+list, and its items are appended during loop completion. It is logically owned
+by that one body, but pinning alone is not a payload ownership contract. Added
+coordinator leases for retained generated loop blocks before the next dispatch.
+This last draft-only refinement still needs formatting and validation. Neither
+surface version is integrated or published. Preserve the five-file
+surface_bodies_base snapshot when reconciling this draft after future rebases.
+
+All compiler/probe/formatter runs have finished. Build the integrated checkpoint's
+distribution and run full local verification without competing compiler work.
+
+Full integrated continuation local deployment verification passes all 77 asset
+hashes, desktop/mobile execution and editing, native builds/downloads, persistence
+and actual Linux defaults (header-bodies-local.log / header-bodies-local-report.json).
+All source-reading builds, probes, formatters and verifiers have finished. Commit,
+perform the required rebase, repeat appropriate native checks and publish this
+checkpoint. Source implementation remains Tower; no C/C++ or todo.txt changes.
+The separate surface-loop draft's added generated-block lease remains unvalidated
+and must not be integrated without its remaining checks.

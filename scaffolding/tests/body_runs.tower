@@ -85,6 +85,54 @@ fn body_runs_cycle(budget: usize, bedrock: u8*, foundation: u8*, root: u8*, earl
     }
 }
 
+fn body_runs_nested_error(budget: usize, bedrock: u8*, foundation: u8*, root: u8*): void {
+    var batch = frontend_units_create(1, budget, 8, 84, 23, bedrock, foundation, root);
+    units_check(batch is not null, "Nested error batch");
+    defer frontend_units_close(batch);
+    var source: u8* = "import tower; fn id(T:type,x:T):T{return x;} fn first():i32 {var a:i32=1; {var b=id(a); b++; {var c=id(b); return unknownNested;}}} fn later():i32{return unknownSecond;}";
+    units_check(frontend_units_source(batch, 1, "nested_error.tower", source, strlen(source)), "Nested error source");
+    while !frontend_units_step(batch, true) {}
+    var error = frontend_units_error(batch);
+    units_check(frontend_units_failed(batch) == 1 && strstr(error, "unknownNested") is not null && strstr(error, "unknownSecond") is null, "Earlier nested error wins across resumptions");
+}
+
+fn body_runs_control_error(budget: usize, bedrock: u8*, foundation: u8*, root: u8*): void {
+    var batch = frontend_units_create(1, budget, 8, 85, 23, bedrock, foundation, root);
+    units_check(batch is not null, "Control error batch");
+    defer frontend_units_close(batch);
+    var source: u8* = "import tower; fn id(T:type,x:T):T{return x;} fn first():i32 {loop {var a=id(1); if a>0 {var b=id(a); {var c=id(b); return unknownControl;}} break;} return 0;} fn later():i32{return unknownSecond;}";
+    units_check(frontend_units_source(batch, 1, "control_error.tower", source, strlen(source)), "Control error source");
+    while !frontend_units_step(batch, true) {}
+    var error = frontend_units_error(batch);
+    units_check(frontend_units_failed(batch) == 1 && strstr(error, "unknownControl") is not null && strstr(error, "unknownSecond") is null, "Earlier control-body error wins across resumptions");
+}
+
+fn body_runs_header_error(budget: usize, bedrock: u8*, foundation: u8*, root: u8*): void {
+    var batch = frontend_units_create(1, budget, 8, 86, 23, bedrock, foundation, root);
+    units_check(batch is not null, "Header error batch");
+    defer frontend_units_close(batch);
+    var source: u8* = "import tower; fn id(T:type,x:T):T{return x;} fn first():i32 {var a=id(1); if id(unknownHeader)>0 {return a;} return 0;} fn later():i32{return unknownSecond;}";
+    units_check(frontend_units_source(batch, 1, "header_error.tower", source, strlen(source)), "Header error source");
+    while !frontend_units_step(batch, true) {}
+    var error = frontend_units_error(batch);
+    units_check(frontend_units_failed(batch) == 1 && strstr(error, "unknownHeader") is not null && strstr(error, "unknownSecond") is null, "Failed header preparation releases its lexical state and preserves error order");
+}
+
+fn body_runs_header_cycle(budget: usize, bedrock: u8*, foundation: u8*, root: u8*, earlier_fails: bool): void {
+    var batch = frontend_units_create(1, budget, 8, 87, 23, bedrock, foundation, root);
+    units_check(batch is not null, "Header cycle batch");
+    defer frontend_units_close(batch);
+    var source: u8* = "import tower; fn id(T:type,x:T):T{return x;} fn bad(T:type):type{struct Recursive{value:Recursive;}return Recursive;} fn first():i32{var a=id(1);a++;var b=id(a);return b;} fn later():i32{if sizeof(bad(i32))>0{return 1;}return 0;}";
+    if earlier_fails {
+        source = "import tower; fn id(T:type,x:T):T{return x;} fn bad(T:type):type{struct Recursive{value:Recursive;}return Recursive;} fn first():i32{var a=id(1);a++;var b=id(a);return unknownFirst;} fn later():i32{if sizeof(bad(i32))>0{return 1;}return 0;}";
+    }
+    units_check(frontend_units_source(batch, 1, "header_cycle.tower", source, strlen(source)), "Header cycle source");
+    while !frontend_units_step(batch, true) {}
+    var error = frontend_units_error(batch);
+    units_check(frontend_units_failed(batch) == 1, "Header construction cycle fails");
+    units_check(strstr(error, earlier_fails ? "unknownFirst": "Recursive by-value layout") is not null, "Header dependency cycles retain deterministic diagnostics");
+}
+
 fn body_runs_tests(root: u8*): void {
     var bedrock: vector(u8) = default;
     var foundation: vector(u8) = default;
@@ -114,6 +162,11 @@ fn body_runs_tests(root: u8*): void {
         }
     }
     for(var budget: usize = 1; budget <= 8; budget *= 2) {
+        body_runs_header_error(budget, bedrock.data, foundation.data, root);
+        body_runs_header_cycle(budget, bedrock.data, foundation.data, root, false);
+        body_runs_header_cycle(budget, bedrock.data, foundation.data, root, true);
+        body_runs_control_error(budget, bedrock.data, foundation.data, root);
+        body_runs_nested_error(budget, bedrock.data, foundation.data, root);
         body_runs_diagnostic(budget, bedrock.data, foundation.data, root, false);
         body_runs_diagnostic(budget, bedrock.data, foundation.data, root, true);
         body_runs_cycle(budget, bedrock.data, foundation.data, root, false);

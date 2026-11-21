@@ -178,12 +178,14 @@ read/write claims, dynamic suspension/yield, stale dispatch rejection and cycle
 paths. The 1,024-entry module inference/decltype chains no longer use recursive
 inference. Function signatures and record fields participate in declaration
 ordering. Eligible body checking and expression lowering now have worker kernels.
-Ordinary top-level statement runs now resume on workers around structural
-construction queries. The body query suspends on each construction receipt;
-lexical scopes, defer state and scratch ownership survive on its existing ECS
-work component, and source-window diagnostics remain independent of worker count.
-Nested structural blocks, type interning and within-world editor observation
-remain coordinator work. Explicit-world completion/inspection services now run
+Ordinary statement runs now resume on workers across nested lexical blocks,
+if/else branches and Foundation loop bodies. The body query suspends on each
+construction receipt; a structural if condition prepares only its header before
+its branches resume. Lexical/control cursors, defer state and scratch ownership
+survive on the existing ECS work component, and source-window diagnostics remain
+independent of worker count. Surface while/for/foreach/match/defer handlers,
+individual structural expressions, type interning and within-world editor
+observation still need further continuation work. Explicit-world completion/inspection services now run
 as independent native unit jobs with the same ECS recipes, joins and budget
 policy. This is not yet a fully parallel semantic pipeline.
 
@@ -801,7 +803,7 @@ Current migration audit (after the isolated compiler-worker milestone):
 | --- | --- | --- |
 | Entities | Stable payloads, dense per-type pointer indexes, explicit worlds, pinned views, exclusive attachment leases and staged canonical creation | Complete host-world isolation and non-racing reference ownership |
 | Syntax/grammar | Shared entities; world-bound module/session/baseline/revision/cache ownership; worker-owned FIRST/nullable frontiers, LR(0) transitions, LR(1) kernel closures, dependency-link construction, wide lookahead frontiers, LALR actions and runtime action/direct-index/goto rows | Native CLI project recipes, runtime sequence specialization and source/effect order; link/seed merging and row interning publish after joins |
-| Semantics/layout | Shared query graph; parallel dependency discovery, layouts, eligible ordinary/instantiated-generic body checking and expression lowering | Nested statement/type-construction continuations, precise body layout dependencies, within-world editor observation and structural publication |
+| Semantics/layout | Shared query graph; parallel dependency discovery, layouts, eligible ordinary/instantiated-generic body checking and expression lowering | Surface loop/match/defer and expression/type-construction continuations, precise body layout dependencies, within-world editor observation and structural publication |
 | Interpreter/staging | Per-invocation contexts over shared Foundation; ECS preparation/lowering dependencies, threaded lazy scalar evaluation and private execution caches | General ordinary-value execution, explicit effects/inputs and invalidation; no separate folding evaluator |
 | LLVM | Shared Foundation inputs; one mutable LLVM context/module per compiler instance | Function/query boundaries that do not concurrently mutate one LLVM module; preserve target legality |
 | Link/publication | Tower plans/artifacts plus upstream LLD and filesystem interfaces | Keep LLD globals and fixed temporary names isolated/serialized; publish a candidate only after its checks |

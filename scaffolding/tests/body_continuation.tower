@@ -130,4 +130,180 @@ tail_structural(2);
 if effects != 50 {
     failures++;
 }
+
+fn nested_runs(input: i32): i32 {
+    var total = input;
+    defer {
+        effects += 1;
+    }
+    {
+        var local = total + 1;
+        defer {
+            effects += local;
+        }
+        var first = identity(local);
+        total += first;
+        {
+            var local = identity(first + 2);
+            defer {
+                effects += local;
+            }
+            var second = identity(local + 3);
+            total += second;
+            local++;
+        }
+        total += identity(local);
+    }
+    return total;
+}
+
+fn nested_exit(input: i32): i32 {
+    defer {
+        effects += 100;
+    }
+    {
+        var local = identity(input);
+        defer {
+            effects += local;
+        }
+        {
+            var other = identity(local + 1);
+            if input > 0 {
+                return other;
+            }
+        }
+    }
+    return 0;
+}
+
+fn nested_stack(): i32 {
+    var total: i32 = 0;
+    {
+        {
+            {
+                {
+                    {
+                        {
+                            {
+                                {
+                                    {
+                                        {
+                                            {
+                                                {
+                                                    var values: i32[2];
+                                                    values[0] = identity(3);
+                                                    values[1] = identity(4);
+                                                    total += values[0] + values[1];
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return total;
+}
+
+if nested_runs(2) != 16 || effects != 60 {
+    failures++;
+}
+if nested_exit(2) != 3 || effects != 162 {
+    failures++;
+}
+if nested_stack() != 7 || comptime(nested_stack()) != 7 {
+    failures++;
+}
+
+fn branch_runs(input: i32): i32 {
+    var result: i32 = 0;
+    if input > 0 {
+        var first = identity(input);
+        {
+            var second = identity(first + 1);
+            defer {
+                effects += second;
+            }
+            result += second;
+        }
+        var last = identity(result);
+        result += last;
+    } else {
+        var first = identity(10 -input);
+        defer {
+            effects += first;
+        }
+        result = first;
+        var last = identity(first + 2);
+        result += last;
+    }
+    return result;
+}
+
+fn loop_runs(input: i32): i32 {
+    var result: i32 = 0;
+    var i: i32 = 0;
+    loop {
+        i++;
+        defer {
+            effects += i;
+        }
+        var value = identity(i);
+        {
+            var values: i32[2];
+            values[0] = value;
+            values[1] = identity(2);
+            if i == 2 {
+                continue;
+            }
+            result += values[0] + values[1];
+        }
+        if i == input {
+            break;
+        }
+    }
+    return result;
+}
+
+fn staged_branch(): i32 {
+    if comptime(identity(true)) {
+        var first = identity(3);
+        return identity(first + 2);
+    }
+}
+
+fn loop_return(): i32 {
+    loop {
+        var first = identity(7);
+        return identity(first + 2);
+    }
+}
+
+fn structural_condition(input: i32): i32 {
+    if identity(input) > 0 {
+        var first = identity(input + 1);
+        return identity(first + 2);
+    }
+    return 0;
+}
+
+if loop_runs(4) != 14 || effects != 172 {
+    failures++;
+}
+if branch_runs(2) != 6 || branch_runs(-1) != 24 || effects != 186 {
+    failures++;
+}
+if staged_branch() != 5 || comptime(staged_branch()) != 5 {
+    failures++;
+}
+if loop_return() != 9 || comptime(loop_return()) != 9 {
+    failures++;
+}
+if structural_condition(2) != 5 || structural_condition(-1) != 0 {
+    failures++;
+}
 print(failures);
