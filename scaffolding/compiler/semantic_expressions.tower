@@ -73,7 +73,7 @@ fn sem_surface_expected(c: SemanticContext*, n: void*, expected_type: Foundation
     return n;
 }
 
-// Aggregate defaults belong to complete initializers/resets, never temporaries.
+// Aggregate defaults initialize destination storage, including value temporaries.
 fn sem_default(c: SemanticContext*, n: void*, expected_type: FoundationType*, destination: bool): void* {
     var value = sem_node(c, n, KOperand());
     var type = expected_type;
@@ -355,6 +355,10 @@ fn sem_surface_binary(c: SemanticContext*, n: void*, left: void*, right: void*, 
     if !sem_ok(c) {
         return n;
     }
+    if semantic_aggregate(input) {
+        sem_fail(c, n, "Binary operators require scalar or pointer operands");
+        return n;
+    }
     var offset = input.pointers != 0;
     if offset {
         offset = op == OAdd();
@@ -394,28 +398,34 @@ fn sem_surface_binary(c: SemanticContext*, n: void*, left: void*, right: void*, 
     return sem_surface_expected(c, n, expected_type);
 }
 
+fn sem_surface_addressable(n: void*): bool {
+    var value = sem_get(n);
+    if value == null { return false; }
+    if value.kind == KOperand() { return value.binding != null && !value.constant; }
+    if value.kind == KLoad() { return true; }
+    if value.kind == KField() || value.kind == KIndex() {
+        return value.indirect || sem_surface_addressable(value.left);
+    }
+    return false;
+}
+
 fn sem_surface_place(c: SemanticContext*, n: void*): void* {
     n = sem_surface_unwrap(n);
-    if sem_is(n, "CoreLocation") {
-        return sem_location(c, n, 0);
-    }
     var value: void* = null;
     var dereference = sem_is(n, "TowerExpression") && sem_member(n, "left") == null
     && sem_member(n, "right") != null && sem_equal(sem_tokens(c, sem_child(n, 0)), "*");
-    if dereference {
+    if sem_is(n, "CoreLocation") {
+        value = sem_location(c, n, 0);
+    } else { if dereference {
         value = sem_surface(c, n, null);
     }
     else {
         value = sem_operand(c, n, null);
-    }
+    } }
     if !sem_ok(c) {
         return value;
     }
-    var data = sem_get(value);
-    var place = data.kind == KLoad();
-    place ||= data.kind == KField();
-    place ||= data.kind == KIndex();
-    if !place {
+    if !sem_surface_addressable(value) {
         sem_fail(c, n, "Operator requires an addressable location");
     }
     return value;

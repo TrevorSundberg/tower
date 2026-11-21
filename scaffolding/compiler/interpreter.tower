@@ -16,6 +16,13 @@ fn ix_ok(m: IMExecution*): bool {
 extern fn entity_component_get(node: void*, type: void*): void*;
 extern fn entity_component_data(component: void*): void*;
 
+fn ix_value_input(m: IMExecution*, n: FoundationNode*): void* {
+    if m.context == null || m.context.value_inputs == null || n.kind != KOperand() || n.binding == null { return null; }
+    var input = bits(IMValueInput*, entity_component_data(entity_component_get(n.binding, m.context.value_inputs)));
+    if input == null || input.owner != null && m.state.frames.length != 0 && im_frame(m.state).function == input.owner { return null; }
+    return input.producer;
+}
+
 fn ix_pending(m: IMExecution*, node: void*): bool {
     if node == null { return false; }
     var component = entity_component_get(node, m.context.dependency_kind);
@@ -32,6 +39,8 @@ fn ix_pending(m: IMExecution*, node: void*): bool {
         }
     }
     var n = im_cached_node(m.state, node);
+    var input = ix_value_input(m, n);
+    if input != null && ix_pending(m, input) { return true; }
     if ix_pending(m, n.value) || ix_pending(m, n.left) || ix_pending(m, n.right) || ix_pending(m, n.target) {
         return true;
     }
@@ -66,6 +75,7 @@ fn ix_strict_node(m: IMExecution*, n: FoundationNode*, offset: usize): bool {
         global ||= im_cached_node(m.state, n.binding).global;
     }
     if global {
+        if ix_value_input(m, n) != null { return true; }
         ix_fail(m, "Compile-time evaluation requires explicit inputs instead of global storage", offset);
         return false;
     }
@@ -404,6 +414,8 @@ fn ix_read_uncached(m: IMExecution*, node: void*, n: FoundationNode*, offset: us
     if n.constant {
         return n.bits;
     }
+    var input = ix_value_input(m, n);
+    if input != null { return im_cached_node(m.state, input).bits; }
     var address = ix_address_component(m, node, n, offset);
     if ix_ok(m) {
         return ix_load(m, address, &n.type, offset);

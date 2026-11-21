@@ -1,0 +1,60 @@
+import tower;
+
+var failures = 0;
+fn check(ok: bool, message: u8*): void { if !ok { print(message); failures++; } }
+var Limit: usize = 64;
+var Flag: u32 = 1 << 5;
+var Mask: u32 = Flag | 3;
+var Highest: u64 = 18446744073709551615;
+var Minimum: i64 = -9223372036854775808;
+fn calculate(seed: i32): i32 {
+    // Mutable execution at compile time is ordinary Tower execution.
+    var result = seed;
+    for(var i = 0; i < 4; i++) { result += i; }
+    return result;
+}
+var Answer = calculate(36);
+fn answer(): i32 { return Answer; }
+check(Limit == 64 && Flag == 32 && Mask == 35, "named numeric values");
+check(Highest > 0 && Minimum < 0, "literal widths");
+check(comptime(answer()) == 42, "inferred immutable input to staged call");
+check(comptime(Mask) == 35, "inferred dependency chain");
+
+var mutable = comptime(calculate(1));
+mutable++;
+check(mutable == 8, "compile-time value in mutable storage");
+var calls = 0;
+fn effect(): i32 { calls++; return 9; }
+var runtime_fixed = effect();
+check(runtime_fixed == 9 && calls == 1, "immutable runtime result retains effects");
+var exposed = 3;
+var pointer = &exposed;
+*pointer = 5;
+check(exposed == 5, "address exposure prevents fixed-value inference");
+
+fn local_values(): i32 {
+    var Fixed = calculate(4);
+    var Computed = Fixed + 2;
+    return comptime(Computed);
+}
+check(local_values() == 12, "local inferred immutable values");
+fn dynamic(value: i32): i32 { var saved = value + 1; return saved; }
+check(dynamic(10) == 11 && dynamic(20) == 21, "immutable local with runtime input");
+fn staged_locals(value: i32): i32 { var saved = value + 2; return saved; }
+check(comptime(staged_locals(7)) == 9, "staged calls retain their own local storage");
+
+// Observe the earlier value before its declaration's initializer. Raw storage
+// ordering remains unchanged; no constant may be substituted for that read.
+var before: i32;
+before = 2;
+var observed = before;
+before = 10;
+check(observed == 2, "runtime observation order");
+var changed = 1;
+fn change(): i32 { changed = 6; return changed; }
+check(change() == 6 && changed == 6, "interprocedural mutation");
+
+// Failed automatic staging is not an eager runtime failure in an unused branch.
+fn skipped(): i32 { if false { var invalid = 1 / 0; return invalid; } return 7; }
+check(skipped() == 7, "speculative staging failure preserves lazy execution");
+print(failures);

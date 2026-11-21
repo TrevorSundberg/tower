@@ -72,6 +72,13 @@ Do NOT modify todo.txt
 
 ## Writing Tower code
 
+- Use ordinary struct values for independent shallow copies and by-value Tower
+  calls/returns. Prefer `var copy = source;` and `copy = source;` over raw byte
+  copies of complete typed values. Pointer fields keep their addresses; copying
+  does not clone, move, dispose or transfer ownership. Preserve explicit borrows
+  and library ownership operations. External/exported aggregate signatures still
+  require explicit pointer ABIs. See docs/struct-values-and-bindings.md; publish
+  the compatible bootstrap before adopting these forms in compiler sources.
 - Prefer named-field initialization for complete struct construction, e.g.
   `var point: Point = { x: 1, y: 2 };`, or `init(Point) { x: 1, y: 2 }`
   when inference needs an explicit type. Use a final `..default` only when a
@@ -148,8 +155,22 @@ Do NOT modify todo.txt
   fallback. Do not pretend an absent scalar is zero or invent nullable scalar
   storage. `is null`/`is not null` are available; `.` handles struct pointers,
   and Tower has no `->` operator. `>>>`/`>>>=` perform logical right shift.
-- Use named constants for operation tags, flags and sentinels. Prefer a typed
-  complement such as `~convert(u64, 0)` when expressing an all-ones mask. Do not
+- ALWAYS use named constants or nominal enum members for magic numbers: operation
+  tags, flags, sentinels, test-case IDs, limits, sizes with semantic meaning and
+  protocol values. Do not introduce unexplained numeric literals or repeat their
+  numeric spellings across dispatch, diagnostics and tests. Replace existing magic
+  numbers encountered in the code being changed; preserve stable external values
+  explicitly in the named declaration. Use enums for closed sets and named `var`
+  bindings for quantities/masks. Immutability and compile-time availability are
+  independent facts: only a binding proved immutable with a compile-time-known
+  value is a constant. Use the ordinary interpreter/dependency graph for staging,
+  including mutable computations within it; never introduce a separate folding
+  evaluator. `comptime(...)` explicitly requests supported staged evaluation.
+  Do not add or use a `const` keyword or disguise named values as zero-argument
+  functions. Preserve initialization/effect order and invalidate proofs on writes
+  or escapes. Reuse Foundation's `var` grammar and the shared declaration nodes.
+  Ordinary zero/one counters and actual numeric fixture data are not magic IDs.
+  Prefer a typed complement such as `~convert(u64, 0)` for an all-ones mask. Do not
   replace meaningful numeric data or stable external ABI values blindly.
 - Operators retain Tower's exact typing, left-to-right evaluation, wrapping
   arithmetic and explicit conversions. Shift counts are masked by width minus
@@ -381,8 +402,10 @@ Do NOT modify todo.txt
 - Keep built-ins and user structs in one type-object registry. Resolve ordinary
   type names semantically; struct and field metadata enrich the shared parse nodes.
   Preserve nominal identity and deterministic layout for an explicit target
-  through formatting, interpretation and LLVM lowering. Current structs pass by
-  pointer; aggregate copies/by-value calls need defined semantics before adding them.
+  through formatting, interpretation and LLVM lowering. Tower struct values use
+  defined shallow fieldwise copies; their internal Foundation calls lower to
+  pointers with independent value storage. External aggregate ABIs need separate
+  explicit target contracts.
 - Make reflected layouts and actual value storage agree under the selected target
   profile, including raw pointer size/alignment and struct field offsets. Retire
   the prototype's checked-cell representation and 24-byte checked-pointer layout.

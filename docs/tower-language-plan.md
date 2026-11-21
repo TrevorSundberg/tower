@@ -77,8 +77,9 @@ for all remaining stages, including parallel execution at large project sizes.
    socket and waiting; record those responses as build inputs with replay and
    invalidation policies. See the arbitrary-value staging contract below.
    Materialize results as Foundation values with relocation-aware owned storage;
-   a host address cannot become a constant. Current `const Name()` remains an
-   ordinary function until this replacement is complete and migration is tested.
+   a host address cannot become a constant. Ordinary scalar `var` bindings now
+   infer fixed compile-time values through these same queries; the former
+   `const Name()` function shorthand is retired. Broader values remain future work.
 6. **Ownership, initialization and iterator protocol.** Specify move/borrow/drop
    before implicit container transfers. Owning values should transfer ownership;
    copying requires an explicit clone. Moved-from state, self-move, replacement,
@@ -131,8 +132,9 @@ not features added by this assessment.
 
 The existing `var name = initializer` inference, nominal enums, match/while,
 parenthesized type specialization and vector/stack/queue libraries already work.
-`const Name: T = value;` still expands to a function called as `Name()`; it is not
-a staged constant. `examples/foreach.tower` demonstrates grammar captures and
+The former `const Name: T = value;` function shorthand is superseded by ordinary
+`var` binding inference; see [value semantics](struct-values-and-bindings.md).
+`examples/foreach.tower` demonstrates grammar captures and
 local grammar replacement, not executable collection iteration.
 
 ### 1. Unevaluated type queries and shared dependency resolution
@@ -281,8 +283,8 @@ callback alone does not make a function eligible for staging. Full parser/sessio
 and semantic ownership migration remains a primary objective alongside staging.
 
 Cache only completed eligible evaluations under their complete dependencies and
-profile. `const Name()` retains its present ordinary-function meaning until an
-explicitly tested migration exists. No native evaluator, special arithmetic folder,
+profile. Ordinary fixed scalar bindings use this same interpreter and dependency
+graph; mutation and staging are independent facts. No native evaluator, special arithmetic folder,
 JIT requirement, public instruction ABI or interpreter-cache metadata is needed.
 Floats remain future language work and need a defined strict numeric profile;
 using host floating-point or merely executing Wasm cannot establish determinism.

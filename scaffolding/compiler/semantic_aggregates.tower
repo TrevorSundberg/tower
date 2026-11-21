@@ -1,0 +1,222 @@
+import tower;
+import foundation_tags;
+import foundation_types;
+import semantic_context;
+import semantic_control;
+import semantic_definitions;
+import semantic_support;
+import semantic_types;
+import semantic_expressions;
+import semantic_expression_lowering;
+
+// Source signature metadata stays on the function entity. The executable
+// signature uses only ordinary Foundation pointer parameters and void returns.
+// All signature publication finishes before any lowering worker reads it.
+struct SemanticAggregateSignature {
+    result_type: FoundationType;
+    result_parameter: void*;
+}
+
+fn sem_aggregate_signature(c: SemanticContext*, subject: void*): SemanticAggregateSignature* {
+    if c.aggregate_signatures == null { return null; }
+    return bits(SemanticAggregateSignature*, entity_component_data(entity_component_get(subject, c.aggregate_signatures)));
+}
+
+fn sem_aggregate_parameter(c: SemanticContext*, subject: void*, type: FoundationType*): void* {
+    var parameter = sem_control_node(c, subject, KParameter());
+    var value = sem_get(parameter);
+    sem_set_name(value, sem_control_name(c));
+    sem_set_type(&value.type, type);
+    value.type.pointers++;
+    sem_add_local(c, parameter);
+    return parameter;
+}
+
+fn sem_aggregate_prepare(c: SemanticContext*): void {
+    if !sem_ok(c) { return; }
+    var saved = c.current;
+    for(var i: usize = 1; i < c.program.functions.length; i++) {
+        var subject = c.program.functions.data[i];
+        var function = sem_get(subject);
+        var returns = semantic_aggregate(&function.type);
+        var needed = returns;
+        foreach(var parameter in &function.parameters) { needed ||= semantic_aggregate(&sem_get(parameter).type); }
+        if !needed { continue; }
+        if returns && function.parameters.length == FoundationParameterLimit() {
+            sem_fail(c, subject, "A struct return requires one internal result parameter; at most 63 source parameters are supported");
+            break;
+        }
+        if c.aggregate_signatures == null {
+            c.aggregate_signatures = sem_create(c.program.root);
+            sem_require(entity_register(c.aggregate_signatures, sizeof(SemanticAggregateSignature), alignof(SemanticAggregateSignature), 0));
+        }
+        var metadata = bits(SemanticAggregateSignature*, entity_component_data(entity_component_add(subject, c.aggregate_signatures)));
+        sem_require(metadata != null);
+        fill(metadata, 0, sizeof(SemanticAggregateSignature));
+        sem_set_type(&metadata.result_type, &function.type);
+        c.current = subject;
+        var prelude = sem_control_node(c, subject, KBlock());
+        for(var j: usize = 0; j < function.parameters.length; j++) {
+            var original = function.parameters.data[j];
+            var parameter = sem_get(original);
+            if !semantic_aggregate(&parameter.type) { continue; }
+            var incoming = sem_aggregate_parameter(c, subject, &parameter.type);
+            function.parameters.data[j] = incoming;
+            // Retain the source binding as an independent local, never a borrow
+            // of the caller's storage. Its existing frame slot remains valid.
+            parameter.kind = KDeclare();
+            var load = sem_control_node(c, original, KLoad());
+            sem_set_type(&sem_get(load).type, &parameter.type);
+            sem_get(load).value = sem_control_read(c, load, incoming);
+            parameter.value = load;
+            sem_push(&sem_get(prelude).items, original);
+            sem_push(&sem_get(prelude).locals, original);
+        }
+        if returns {
+            metadata.result_parameter = sem_aggregate_parameter(c, subject, &function.type);
+            sem_push(&function.parameters, metadata.result_parameter);
+            sem_set_type(&function.type, sem_type_new(c, SVoid(), 0, null));
+        }
+        if function.body != null {
+            sem_push(&sem_get(prelude).items, function.body);
+            function.body = prelude;
+        }
+        c.surface_expressions = true;
+    }
+    c.current = saved;
+}
+
+fn sem_aggregate_local(c: SemanticContext*, block: void*, type: FoundationType*): void* {
+    var local = sem_control_node(c, block, KDeclare());
+    var value = sem_get(local);
+    sem_set_name(value, sem_control_name(c));
+    sem_set_type(&value.type, type);
+    sem_add_local(c, local);
+    if block != c.current { sem_push(&sem_get(block).locals, local); }
+    value.global = block == c.program.root;
+    sem_lift_append(block, local);
+    return sem_control_read(c, block, local);
+}
+
+fn sem_aggregate_load(c: SemanticContext*, block: void*, pointer: void*, type: FoundationType*): void* {
+    var place = sem_control_node(c, block, KLoad());
+    sem_get(place).value = pointer;
+    sem_set_type(&sem_get(place).type, type);
+    return place;
+}
+
+fn sem_aggregate_field(c: SemanticContext*, block: void*, pointer: void*, field: void*): void* {
+    var place = sem_control_node(c, block, KField());
+    var value = sem_get(place);
+    var declaration = sem_get(field);
+    value.left = pointer;
+    value.indirect = true;
+    value.binding = field;
+    value.byte_offset = declaration.byte_offset;
+    sem_set_type(&value.type, &declaration.type);
+    sem_set_name(value, sem_name(declaration));
+    return sem_get(sem_lift_target(c, block, place)).value;
+}
+
+fn sem_aggregate_element(c: SemanticContext*, block: void*, pointer: void*, index: void*, type: FoundationType*): void* {
+    var cast = sem_control_node(c, block, KBits());
+    sem_get(cast).value = pointer;
+    sem_set_type(&sem_get(cast).type, type);
+    sem_get(cast).type.pointers++;
+    var place = sem_control_node(c, block, KIndex());
+    sem_get(place).left = sem_lift_snapshot(c, block, cast);
+    sem_get(place).right = index;
+    sem_get(place).indirect = true;
+    sem_set_type(&sem_get(place).type, type);
+    return sem_get(sem_lift_target(c, block, place)).value;
+}
+
+// Copy field values, not padding or pointed-to storage. The caller supplies an
+// independent source snapshot whenever destination/source might overlap. Array
+// fields use ordinary counted loops rather than expanding one node per element.
+// Ordinary loads/stores also work under the strict compile-time interpreter.
+fn sem_aggregate_transfer(c: SemanticContext*, block: void*, destination: void*, source: void*, type: FoundationType*): void {
+    if !semantic_aggregate(type) {
+        var loaded = sem_lift_snapshot(c, block, sem_aggregate_load(c, block, source, type));
+        sem_lift_store(c, block, sem_aggregate_load(c, block, destination, type), loaded);
+        return;
+    }
+    var record = sem_get(type.record);
+    if type.scalar == SStruct() {
+        foreach(var field in &record.items) {
+            var to = sem_aggregate_field(c, block, destination, field);
+            var from = sem_aggregate_field(c, block, source, field);
+            sem_aggregate_transfer(c, block, to, from, &sem_get(field).type);
+        }
+        return;
+    }
+    var integer = sem_type_new(c, SUSize(), 0, null);
+    var index = sem_control_local(c, block, sem_surface_constant(c, block, integer, 0));
+    var loop_node = sem_control_node(c, block, KLoop());
+    var body = sem_control_node(c, loop_node, KBlock());
+    sem_get(loop_node).body = body;
+    sem_lift_append(block, loop_node);
+    var current = sem_control_read(c, body, index);
+    var stop = sem_lift_binary(c, body, OEq(), current,
+        sem_surface_constant(c, body, integer, convert(u64, record.length)), sem_type_new(c, SBool(), 0, null));
+    var yes = sem_control_node(c, body, KBlock());
+    sem_lift_append(yes, sem_control_node(c, yes, KBreak()));
+    sem_control_branch(c, body, stop, yes);
+    var to = sem_aggregate_element(c, body, destination, current, &record.element);
+    var from = sem_aggregate_element(c, body, source, current, &record.element);
+    sem_aggregate_transfer(c, body, to, from, &record.element);
+    var next = sem_lift_binary(c, body, OAdd(), current, sem_surface_constant(c, body, integer, 1), integer);
+    sem_lift_store(c, body, sem_control_read(c, body, index), next);
+}
+
+fn sem_aggregate_copy(c: SemanticContext*, block: void*, target: void*, source: void*): void {
+    var to = sem_lift_target(c, block, target);
+    var from = sem_lift_target(c, block, source);
+    sem_aggregate_transfer(c, block, sem_get(to).value, sem_get(from).value, &sem_get(to).type);
+}
+
+fn sem_aggregate_arguments(c: SemanticContext*, block: void*, call: void*): void {
+    var value = sem_get(call);
+    foreach(var &argument in &value.items) {
+        var aggregate = semantic_aggregate(&sem_get(*argument).type);
+        *argument = sem_lift_value(c, block, *argument);
+        if aggregate { *argument = sem_get(sem_lift_target(c, block, *argument)).value; }
+    }
+}
+
+fn sem_aggregate_value(c: SemanticContext*, block: void*, n: void*): void* {
+    var value = sem_get(n);
+    var type = sem_type_copy(c, &value.type);
+    if value.kind == SurfaceComma() {
+        sem_lift_value(c, block, value.left);
+        return sem_lift_result(n, sem_lift_value(c, block, value.right));
+    }
+    if value.kind == SurfaceAssign() {
+        var target = sem_lift_target(c, block, value.target);
+        var source = sem_lift_value(c, block, value.value);
+        sem_aggregate_copy(c, block, target, source);
+        return sem_lift_result(n, source);
+    }
+    var result = sem_aggregate_local(c, block, type);
+    if value.kind == SurfaceDefault() || value.kind == SurfaceInitializer() {
+        sem_lift_initialization(c, block, result, n);
+        return result;
+    }
+    if value.kind == SurfaceSelect() {
+        var condition = sem_lift_value(c, block, value.value);
+        var yes = sem_control_node(c, block, KBlock());
+        var no = sem_control_branch(c, block, condition, yes);
+        sem_aggregate_copy(c, yes, result, sem_lift_value(c, yes, value.left));
+        sem_aggregate_copy(c, no, result, sem_lift_value(c, no, value.right));
+        return sem_lift_result(n, result);
+    }
+    if value.kind == KCall() {
+        sem_aggregate_arguments(c, block, n);
+        sem_push(&value.items, sem_get(sem_lift_target(c, block, result)).value);
+        sem_set_type(&value.type, sem_type_new(c, SVoid(), 0, null));
+        sem_lift_append(block, n);
+        return result;
+    }
+    sem_aggregate_copy(c, block, result, sem_lift_place(c, block, n));
+    return result;
+}

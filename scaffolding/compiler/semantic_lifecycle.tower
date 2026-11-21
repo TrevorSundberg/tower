@@ -12,6 +12,7 @@ import semantic_layout;
 import semantic_evaluation;
 import semantic_flow;
 import semantic_declarations;
+import semantic_known_bindings;
 import .library.stack;
 import .library.vector;
 import .library.work_graph;
@@ -130,9 +131,11 @@ export fn semantic_compile_budget(program: SemanticProgram*, roots: void**, base
     }
     sem_run(c);
     sem_defer_hygiene(c);
+    sem_known_infer(c);
     sem_lower_expressions(c);
     sem_defer_validate(c);
     sem_evaluations(c);
+    sem_known_publish(c);
     sem_flows(c);
     sem_context_dispose(c);
 }

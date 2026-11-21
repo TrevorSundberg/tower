@@ -16,6 +16,8 @@ catch (error) { if (error.code !== 'ENOENT') throw error; }
 const cases = [
   ['named field initialization', (await read('scaffolding/tests/named_initialization.tower')).toString(), '0\n'],
   ['resumable control bodies', (await read('scaffolding/tests/body_continuation.tower')).toString(), '0\n'],
+  ['struct values', (await read('scaffolding/tests/struct_values.tower')).toString(), '0\n'],
+  ['known bindings', (await read('scaffolding/tests/known_bindings.tower')).toString(), '0\n'],
   ...JSON.parse((await read('scaffolding/tests/llvm-scalar-idioms.json')).toString()).map(([name,source,expected])=>[name,source,expected]),
   ['more than 256 functions', Array.from({length:300},(_,i)=>`fn unit${i}(): i32 { return ${i}; }`).join('\n')+'\nprint(unit299()); print(unit0());', '299\n0\n'],
   ['quoted names preserve bindings', 'fn `add-one`(`odd name`: i32): i32 { var `var`: i32 = `odd name` + 1; return `var`; } var `x-y`: i32 = `add-one`(41); var p: i32* = &`x-y`; var equal: bool = p == p; print(equal); print(`x-y`);', 'true\n42\n'],

@@ -5,6 +5,8 @@ import semantic_support;
 // Shared semantic spellings and arities for Foundation checking and formatting.
 // Numeric tags are defined in foundation_tags on the shared component model,
 // not a public instruction encoding; coordinate any renumbering.
+const FoundationParameterLimit: usize = 64;
+
 export fn semantic_scalar_name(scalar: u32): u8* {
     if scalar == SI32() {
         return "i32";

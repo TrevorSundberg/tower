@@ -6,6 +6,7 @@ import foundation_types;
 import semantic_context;
 import semantic_control;
 import semantic_evaluation;
+import semantic_aggregates;
 import semantic_support;
 import .library.vector;
 import .library.work_graph;
@@ -166,6 +167,8 @@ fn sem_flows(c: SemanticContext*): void {
             var result = jobs.data[next + i];
             var function = sem_get(result.subject);
             var returns = function.type.pointers != 0 || function.type.scalar != SVoid();
+            var signature = sem_aggregate_signature(c, result.subject);
+            returns ||= signature != null && signature.result_parameter != null;
             var missing = returns && (result.flow & FlowNext()) != 0;
             if result.invalid_label != null {
                 sem_fail(c, result.invalid_label, "A labeled block must end with jump or return before the next label");

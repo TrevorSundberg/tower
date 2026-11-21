@@ -34,6 +34,8 @@ struct SemanticEvaluation {
     invocation: IMInvocation;
     requested: bool;
     started: bool;
+    inferred: bool;
+    unavailable: bool;
     aliases: vector(void*);
 }
 
@@ -155,14 +157,18 @@ fn sem_evaluation_prepare(c: SemanticContext*, result: SemanticEvaluation*): voi
         var value = sem_get(entity);
         if value == null { continue; }
         if value.kind == KOperand() && value.binding != null && !value.constant {
-            sem_fail(c, entity, "Compile-time expression cannot capture runtime storage; pass explicit compile-time arguments");
-            return;
+            var input = c.value_inputs == null ? null : entity_component_get(value.binding, c.value_inputs);
+            if input == null {
+                if result.inferred { result.unavailable = true; }
+                else { sem_fail(c, entity, "Compile-time expression cannot capture runtime storage; pass explicit compile-time arguments"); }
+                return;
+            }
         }
         if value.left != null { sem_push(scan, value.left); }
         if value.right != null { sem_push(scan, value.right); }
         if value.value != null { sem_push(scan, value.value); }
         if value.target != null { sem_push(scan, value.target); }
-        if value.kind == KCall() {
+        if value.kind == KCall() || value.kind == SurfaceInitializer() {
             var index: usize = 0;
             while index < value.items.length {
                 sem_push(scan, value.items.data[index]);
@@ -227,9 +233,16 @@ fn sem_evaluations(c: SemanticContext*): void {
             var result = sem_evaluation_get(c, task.subject);
             sem_require(result != null);
             copy(&result.ticket, &ticket, sizeof(WorkTicket));
+            if result.unavailable {
+                result.ready.failed = true;
+                result.ready.ready = true;
+                sem_require(work_finish(&c.queries, &result.ticket, true));
+                continue;
+            }
             if !result.started {
                 interpreter_invocation_init(&result.invocation, result.function, convert(usize, c.program.pointer_bytes), null, 0, true, EvaluationFuel());
                 result.invocation.context.dependency_kind = c.evaluation_ready;
+                result.invocation.context.value_inputs = c.value_inputs;
                 result.started = true;
             }
             batch[count] = result;
@@ -249,8 +262,8 @@ fn sem_evaluations(c: SemanticContext*): void {
             if invocation.state.failed {
                 result.ready.failed = true;
                 result.ready.ready = true;
-                sem_fail(c, result.subject, invocation.context.error.data);
-                sem_require(work_finish(&c.queries, &result.ticket, false));
+                if !result.inferred { sem_fail(c, result.subject, invocation.context.error.data); }
+                sem_require(work_finish(&c.queries, &result.ticket, result.inferred));
                 interpreter_invocation_dispose(invocation);
             } else {
                 if invocation.state.done {
@@ -281,7 +294,11 @@ fn sem_evaluations(c: SemanticContext*): void {
     while index < c.queries.tasks.length && sem_ok(c) {
         var task = work_task(&c.queries, index + 1);
         if task.query == EvaluationQuery() && task.demanded && task.state != WorkState.Succeeded {
-            sem_evaluation_cycle(c, index + 1);
+            var result = sem_evaluation_get(c, task.subject);
+            if result != null && result.inferred {
+                result.ready.failed = true;
+                result.ready.ready = true;
+            } else { sem_evaluation_cycle(c, index + 1); }
         }
         index++;
     }

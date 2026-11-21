@@ -96,6 +96,9 @@ struct SemanticContext {
     declaration_jobs: vector(void*);
     declaration_subjects: vector(void*)*;
     prepared_calls: void*;
+    aggregate_signatures: void*;
+    known_bindings: void*;
+    value_inputs: void*;
     body_demands: void*;
     body_seen: SemanticTable*;
     defer_type_fields: bool;

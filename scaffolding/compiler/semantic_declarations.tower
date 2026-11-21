@@ -242,6 +242,22 @@ fn sem_declaration_location(c: SemanticContext*, node: void*, waiting: usize*, l
 
 fn sem_declaration_waiting(c: SemanticContext*, subject: void*, layout: void**): usize {
     *layout = null;
+    if sem_function_syntax(subject) {
+        // Value parameters need frame storage while their header is checked.
+        // Record this layout dependency before dispatching a pinned worker.
+        foreach(var parameter in &sem_get(subject).parameters) {
+            var type = &sem_get(parameter).type;
+            if semantic_aggregate(type) {
+                var waiting = sem_declaration_layout_waiting(c, type.record);
+                if waiting != 0 { return waiting; }
+                var query = work_find(&c.queries, type.record, LayoutQuery(), 0);
+                if query == 0 || work_task(&c.queries, query).state != WorkState.Succeeded {
+                    *layout = type.record;
+                    return 0;
+                }
+            }
+        }
+    }
     var scan: vector(DeclarationScan);
     vector_init(DeclarationScan, &scan);
     sem_declaration_roots(c, subject, &scan);

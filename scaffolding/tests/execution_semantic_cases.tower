@@ -1,4 +1,5 @@
 import tower;
+enum SemanticInvalidCase: u32 { StructPrint = 39 }
 // Fixtures retained from the native semantic port oracle.
 fn execution_semantic_valid(index: usize): u8* {
     if index == 0 { return "             \n\n// Forward module bindings and effects retain source order.\nlater = 0;\nvar result = twice(later);\nvar later: i32 = 21;\nprint(result);\nprint(twice(later));\n\nfn twice(value: i32): i32 {\n    var doubled = value + value;\n    return doubled;\n}\n\n// Layout is explicit for the selected pointer width.\nstruct Record {\n    tag: u8;\n    pointer: i32*;\n    values: i32[3];\n}\n\nvar record: Record;\nrecord.tag = 7;\nrecord.values[2] = 42;\nprint(record.tag);\nprint(record.values[2]);\nprint(sizeof(Record));\nprint(alignof(Record));\n\n// Type constructors preserve nominal instance identity and recursive pointers.\nfn box(T: type): type {\n    struct Box {\n        value: T;\n        next: Box*;\n    }\n    return Box;\n}\n\nfn identity(T: type, value: T): T {\n    return value;\n}\n\nvar item: box(i32);\nitem.value = identity(i32, 42);\nitem.next = null;\nprint(item.value);\n\n// Lexical scopes, early returns, loop control and signed literal bounds.\nfn choose(value: i32): i32 {\n    loop {\n        var positive = value > 0;\n        if positive {\n            return value;\n        }\n        break;\n    }\n    return -2147483648;\n}\n\nprint(choose(3));\nprint(choose(0));\n"; }
@@ -55,7 +56,7 @@ fn execution_semantic_invalid(index: usize): u8* {
     if index == 36 { return "print(bits(bool, true));"; }
     if index == 37 { return "var a: void*; a = a + 1;"; }
     if index == 38 { return "var a: bool = true; var b = a + a;"; }
-    if index == 39 { return "struct A { a: i32; } var a: A; print(a);"; }
+    if index == convert(usize, SemanticInvalidCase.StructPrint) { return "struct A { a: i32; } var a: A; print(a);"; }
     if index == 40 { return "fn f(): void { return 1; }"; }
     if index == 41 { return "fn f(): i32 { return; }"; }
     if index == 42 { return "fn f(): void { fn g(): void {} }"; }
@@ -115,7 +116,7 @@ fn execution_semantic_message(index: usize): u8* {
     if index == 36 { return "bits requires equal-width integers or pointers"; }
     if index == 37 { return "Cannot offset a void pointer"; }
     if index == 38 { return "This operation requires integer operands"; }
-    if index == 39 { return "Struct values require field access or a pointer; aggregate copies are not implemented"; }
+    if index == convert(usize, SemanticInvalidCase.StructPrint) { return "print requires a scalar or pointer value"; }
     if index == 40 { return "A void function cannot return a value"; }
     if index == 41 { return "A non-void function must return a value"; }
     if index == 42 { return "Functions must be declared at top level"; }
@@ -174,7 +175,7 @@ fn execution_semantic_offset(index: usize): usize {
     if index == 36 { return 6; }
     if index == 37 { return 18; }
     if index == 38 { return 28; }
-    if index == 39 { return 37; }
+    if index == convert(usize, SemanticInvalidCase.StructPrint) { return 37; }
     if index == 40 { return 15; }
     if index == 41 { return 14; }
     if index == 42 { return 15; }

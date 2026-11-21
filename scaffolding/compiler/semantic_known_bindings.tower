@@ -1,0 +1,224 @@
+import tower;
+import foundation_tags;
+import foundation_types;
+import semantic_context;
+import semantic_control;
+import semantic_defer;
+import semantic_evaluation;
+import semantic_support;
+import semantic_types;
+import semantic_expressions;
+import interpreter_context_types;
+import compiler_kernel;
+import .library.vector;
+
+// Independent facts: mutation/escape analysis proves a fixed binding; ordinary
+// interpreter execution may then prove its value. Neither fact implies the other.
+struct SemanticKnownBinding {
+    owner: void*;
+    ordinal: usize;
+    immutable: bool;
+    ordered: bool;
+    evaluation: void*;
+}
+
+fn sem_known_binding(c: SemanticContext*, declaration: void*): SemanticKnownBinding* {
+    if declaration == null || c.known_bindings == null { return null; }
+    return bits(SemanticKnownBinding*, entity_component_data(entity_component_get(declaration, c.known_bindings)));
+}
+
+// Only owned executable edges; never follow declaration/type back references.
+fn sem_known_edges(pending: vector(void*)*, node: FoundationNode*): void {
+    if node.kind == KFunction() || node.kind == KType() || node.kind == KLabel() { return; }
+    sem_push(pending, node.left);
+    sem_push(pending, node.right);
+    sem_push(pending, node.value);
+    sem_push(pending, node.target);
+    sem_push(pending, node.body);
+    sem_push(pending, node.otherwise);
+    foreach(var item in &node.items) { sem_push(pending, item); }
+}
+
+fn sem_known_mutation(c: SemanticContext*, place: void*): void {
+    if place == null { return; }
+    var value = sem_get(place);
+    if value == null { return; }
+    if value.kind == KOperand() {
+        var binding = sem_known_binding(c, value.binding);
+        if binding != null { binding.immutable = false; }
+    }
+    if (value.kind == KField() || value.kind == KIndex()) && !value.indirect {
+        sem_known_mutation(c, value.left);
+    }
+}
+
+fn sem_known_register(c: SemanticContext*, subject: void*, owner: void*, ordinal: usize): void {
+    var value = sem_get(subject);
+    if value == null || value.kind != KDeclare() || value.value == null
+        || !sem_known_surface(sem_member(subject, "value")) || value.type.pointers != 0
+        || semantic_aggregate(&value.type) || semantic_enum(&value.type) { return; }
+    if c.known_bindings == null {
+        c.known_bindings = sem_create(c.program.root);
+        sem_require(entity_register(c.known_bindings, sizeof(SemanticKnownBinding), alignof(SemanticKnownBinding), 0));
+        c.value_inputs = sem_create(c.program.root);
+        sem_require(entity_register(c.value_inputs, sizeof(IMValueInput), alignof(IMValueInput), 0));
+    }
+    var binding = bits(SemanticKnownBinding*, entity_component_data(entity_component_add(subject, c.known_bindings)));
+    sem_require(binding != null);
+    fill(binding, 0, sizeof(SemanticKnownBinding));
+    binding.owner = owner;
+    binding.ordinal = ordinal;
+    binding.immutable = true;
+    binding.ordered = true;
+}
+
+// Reuse Foundation's declaration rule. The initializer's existing surface
+// expression metadata identifies Tower analysis without another var grammar or
+// treating canonical Foundation reconstruction as a fresh surface optimization.
+fn sem_known_surface(node: void*): bool {
+    while node != null {
+        if sem_is(node, "TowerExpression") { return true; }
+        if sem_child_count(node) != 1 { return false; }
+        node = sem_child(node, 0);
+    }
+    return false;
+}
+
+// A source-order walk includes callees of executable module statements. A read
+// before initialization keeps runtime storage semantics; inference cannot hoist
+// an initializer across that observation. Function declarations execute nothing.
+fn sem_known_order(c: SemanticContext*, subject: void*, ordinal: usize): void {
+    var pending = sem_list(c);
+    var seen = sem_table(c);
+    sem_push(pending, subject);
+    for(var index: usize = 0; index < pending.length; index++) {
+        var node = pending.data[index];
+        if node == null { continue; }
+        var visit = sem_state(c, seen, node);
+        if visit.number != 0 { continue; }
+        visit.number = 1;
+        var value = sem_get(node);
+        if value == null { continue; }
+        if value.kind == KOperand() && !value.constant {
+            var binding = sem_known_binding(c, value.binding);
+            if binding != null && binding.owner == null && binding.ordinal >= ordinal { binding.ordered = false; }
+        }
+        if value.kind == KCall() && value.binding != null { sem_push(pending, sem_get(value.binding).body); }
+        sem_known_edges(pending, value);
+    }
+}
+
+fn sem_known_infer(c: SemanticContext*): void {
+    if !sem_ok(c) || c.editor != null { return; }
+    var nodes = sem_list(c);
+    var root = sem_get(c.program.root);
+    for(var index: usize = 0; index < root.items.length; index++) {
+        sem_known_register(c, root.items.data[index], null, index);
+    }
+    for(var index: usize = 0; index < c.program.functions.length; index++) {
+        var function = c.program.functions.data[index];
+        var pending = sem_list(c);
+        sem_push(pending, index == 0 ? function : sem_get(function).body);
+        var seen = sem_table(c);
+        for(var at: usize = 0; at < pending.length; at++) {
+            var node = pending.data[at];
+            if node == null { continue; }
+            var visited = sem_state(c, seen, node);
+            if visited.number != 0 { continue; }
+            visited.number = 1;
+            var value = sem_get(node);
+            if value == null { continue; }
+            if index != 0 { sem_known_register(c, node, function, at); }
+            sem_push(nodes, node);
+            sem_known_edges(pending, value);
+        }
+    }
+    if c.known_bindings == null { return; }
+    var staged = sem_list(c);
+    var stages_seen = sem_table(c);
+    foreach(var job in &c.evaluation_jobs) { sem_push(staged, bits(SemanticEvaluation*, job).expression); }
+    for(var at: usize = 0; at < staged.length; at++) {
+        var node = staged.data[at];
+        if node == null { continue; }
+        var visit = sem_state(c, stages_seen, node);
+        if visit.number != 0 { continue; }
+        visit.number = 1;
+        var value = sem_get(node);
+        if value == null { continue; }
+        sem_push(nodes, node);
+        sem_known_edges(staged, value);
+    }
+    foreach(var node in nodes) {
+        var value = sem_get(node);
+        if value.kind == KAddress() { sem_known_mutation(c, value.value); }
+        if value.kind == KAssign() || value.kind == SurfaceAssign() || value.kind == SurfaceModify()
+            || value.kind == SurfaceDefaultStore() || value.kind == SurfaceInitializerStore() {
+            sem_known_mutation(c, value.target);
+        }
+    }
+    for(var index: usize = 0; index < root.items.length; index++) { sem_known_order(c, root.items.data[index], index); }
+    foreach(var node in nodes) {
+        var binding = sem_known_binding(c, node);
+        if binding == null || !binding.immutable || !binding.ordered { continue; }
+        sem_evaluation_begin(c);
+        var subject = sem_control_node(c, node, KOperand());
+        var literal = sem_get(subject);
+        sem_set_type(&literal.type, &sem_get(node).type);
+        literal.constant = true;
+        var result = bits(SemanticEvaluation*, entity_component_data(entity_component_add(subject, c.evaluation_results)));
+        sem_require(result != null);
+        fill(result, 0, sizeof(SemanticEvaluation));
+        result.subject = subject;
+        result.literal = subject;
+        result.requested = true;
+        result.inferred = true;
+        result.ready = bits(IMDependency*, entity_component_data(entity_component_add(subject, c.evaluation_ready)));
+        sem_require(result.ready != null);
+        fill(result.ready, 0, sizeof(IMDependency));
+        result.ready.subject = subject;
+        result.kernel.kind = CompilerKernelKind.Evaluate;
+        result.kernel.payload = bits(void*, &result.invocation);
+        sem_push(&c.evaluation_jobs, bits(void*, result));
+        sem_evaluation_request(c, result);
+        binding.evaluation = subject;
+        var input = bits(IMValueInput*, entity_component_data(entity_component_add(node, c.value_inputs)));
+        sem_require(input != null);
+        input.producer = subject;
+        input.owner = binding.owner;
+        // Clone the checked expression on the same entity model. Its ordinary
+        // runtime initializer and the stage own disjoint lowering outputs.
+        result.expression = sem_defer_clone(c, subject, sem_get(node).value, sem_table(c), sem_list(c));
+        c.surface_expressions = true;
+    }
+}
+
+fn sem_known_publish(c: SemanticContext*): void {
+    if !sem_ok(c) || c.known_bindings == null { return; }
+    var pending = sem_list(c);
+    var seen = sem_table(c);
+    for(var index: usize = 0; index < c.program.functions.length; index++) {
+        var function = c.program.functions.data[index];
+        sem_push(pending, index == 0 ? function : sem_get(function).body);
+    }
+    for(var index: usize = 0; index < pending.length; index++) {
+        var node = pending.data[index];
+        if node == null { continue; }
+        var visit = sem_state(c, seen, node);
+        if visit.number != 0 { continue; }
+        visit.number = 1;
+        var value = sem_get(node);
+        if value == null { continue; }
+        sem_known_edges(pending, value);
+        var declaration = value.kind == KDeclare();
+        var binding = sem_known_binding(c, declaration ? node : value.kind == KOperand() ? value.binding : null);
+        if binding == null || binding.evaluation == null { continue; }
+        var result = sem_evaluation_get(c, binding.evaluation);
+        if !result.ready.ready || result.ready.failed { continue; }
+        if declaration { value.value = result.literal; }
+        else {
+            value.constant = true;
+            value.bits = sem_get(result.literal).bits;
+            value.binding = null;
+        }
+    }
+}

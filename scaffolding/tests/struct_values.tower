@@ -1,0 +1,111 @@
+import tower;
+
+struct Point { x: i32; y: i32; }
+struct Box { point: Point; values: i32[3]; owner: i32*; }
+struct Empty {}
+enum Kind: u8 { Ready = 7 }
+struct Tagged { tag: Kind; wide: u64; }
+fn identity(T: type, value: T): T { return value; }
+
+fn make(x: i32, y: i32): Point { return { x: x, y: y }; }
+fn local_return(): Point { var p: Point = { x: 3, y: 4 }; return p; }
+fn mutate(p: Point): Point { p.x += 10; return p; }
+fn chain(count: i32): Point {
+    if count == 0 { return make(5, 6); }
+    var p = chain(count - 1);
+    p.x++;
+    return p;
+}
+fn capture_before_cleanup(): Point {
+    var p = make(7, 8);
+    defer p.x = 99;
+    return p;
+}
+fn from_pointer(p: Point*): Point { return *p; }
+fn empty(value: Empty): Empty { return value; }
+fn zero(): Point { return default; }
+fn consume(p: Point): i32 { return p.x + p.y; }
+fn staged(): i32 {
+    var p = make(11, 12);
+    var q = mutate(p);
+    return p.x + q.x + capture_before_cleanup().x;
+}
+
+var failures = 0;
+fn check(ok: bool, message: u8*): void { if !ok { print(message); failures++; } }
+var p = local_return();
+var q = p;
+q.x = 20;
+check(p.x == 3 && q.x == 20, "independent initialization");
+q = p;
+check(q.x == 3 && q.y == 4, "assignment");
+p = p;
+var r = mutate(p);
+check(p.x == 3 && r.x == 13 && r.y == 4, "parameter copy");
+check(chain(3).x == 8 && capture_before_cleanup().x == 7, "recursive and deferred returns");
+check(from_pointer(&p).y == 4 && consume({ x: 2, y: 3 }) == 5, "loads and initializer arguments");
+var all_zero = zero();
+check(all_zero.x == 0 && all_zero.y == 0, "default return");
+var empty_value = empty(init(Empty) {});
+var generic = identity(p);
+generic.y = 19;
+check(p.y == 4 && generic.y == 19, "generic value call");
+check(comptime(staged()) == 39, "staged aggregate computation");
+
+var shared = 0;
+fn change(): i32 { shared++; p.x = 100; return 9; }
+fn ordered(first: Point, second: i32): i32 { return first.x + second; }
+p.x = 3;
+check(ordered(p, change()) == 12 && p.x == 100 && shared == 1, "argument order");
+fn touch(passed: Point, original: Point*): i32 {
+    original.y = 77;
+    passed.x = 88;
+    return passed.y;
+}
+p = make(3, 4);
+check(touch(p, &p) == 4 && p.x == 3 && p.y == 77, "parameter and pointer alias");
+
+var owner = 6;
+var box: Box = { point: { x: 1, y: 2 }, values: default, owner: &owner };
+box.values[1] = 8;
+var copied = box;
+copied.point.x = 10;
+copied.values[1] = 80;
+*copied.owner = 9;
+check(box.point.x == 1 && box.values[1] == 8 && owner == 9 && copied.owner == box.owner, "nested arrays and shallow pointers");
+fn box_value(value: Box): Box { value.values[2] = 31; return value; }
+var other = box_value(box);
+check(other.values[2] == 31 && box.values[2] == 0, "array fields in parameters");
+var tagged: Tagged = { tag: Kind.Ready, wide: 18446744073709551615 };
+var tag_copy = identity(tagged);
+check(tag_copy.tag == Kind.Ready && tag_copy.wide == tagged.wide, "enum and full-width fields");
+
+var slots: Point[3] = default;
+var target_calls = 0;
+fn destination(): Point* { target_calls++; return &slots[0]; }
+var at = 0;
+destination()[at++] = make(15, 16);
+check(target_calls == 1 && at == 1 && slots[0].x == 15, "destination evaluated once");
+var chain_copy = (slots[1] = slots[2] = slots[0]);
+slots[0].x = 99;
+check(slots[1].x == 15 && slots[2].x == 15 && chain_copy.x == 15, "chained assignment snapshot");
+var chosen = true ? make(17, 18) : make(change(), 0);
+check(chosen.x == 17 && shared == 1, "lazy struct selection");
+var comma_value = (change(), make(21, 22));
+check(comma_value.x == 21 && shared == 2, "comma sequencing");
+var nested: Box = { point: make(23, 24), ..default };
+check(nested.point.y == 24, "named field from returned value");
+var partial: Point;
+partial.x = 25;
+partial.y = 26;
+var completed = partial;
+check(completed.x == 25 && completed.y == 26, "copy after separate initialization");
+
+// A return expression is evaluated before both inner and outer cleanups.
+fn deferred_nested(): Point {
+    var value = make(27, 28);
+    defer value.y = 2;
+    { defer value.x = 1; return value; }
+}
+check(deferred_nested().x == 27 && deferred_nested().y == 28, "nested cleanup return capture");
+print(failures);

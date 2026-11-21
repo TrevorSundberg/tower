@@ -31,9 +31,9 @@ For example, `point = { x: point.y + 1, ..default };` reads the newly zeroed `y`
 and sets `x` to 1. Preserve this ordering when migrating existing assignments.
 
 Declarations, dereferenced pointers, indexed destinations and nested fields are
-supported. Reset expressions have void type. Aggregate values, copies, arguments,
-returns and chained construction are not introduced by this feature. Pass a
-pointer and initialize its destination when a helper needs to construct a struct.
+supported. Reset expressions have void type. The subsequent
+[struct-value feature](struct-values-and-bindings.md) adds copies, by-value
+arguments/returns and named construction in those value contexts.
 Arrays can use `default` as a field value; named array elements are not supported.
 
 There are no implicit constructors, allocation, disposal, move or clone operations.

@@ -1,4 +1,5 @@
 import tower;
 struct Item { value:u64; }
 var original:Item;
-var copy=original;
+struct Other { value:u64; }
+var copy:Other=original;

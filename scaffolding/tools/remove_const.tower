@@ -1,0 +1,166 @@
+import tower;
+import .library.vector;
+
+// One-time, bounded migration of the retired named-value shorthand. Reads the
+// explicit file arguments, inventories declarations first, then changes only
+// language tokens. Quoted text, comments and foreign declarations stay intact.
+extern fn fopen(path: u8*, mode: u8*): void*;
+extern fn fgetc(file: void*): i32;
+extern fn ferror(file: void*): i32;
+extern fn fclose(file: void*): i32;
+extern fn fwrite(data: u8*, size: usize, count: usize, file: void*): usize;
+extern fn strlen(text: u8*): usize;
+extern fn memcmp(a: u8*, b: u8*, count: usize): i32;
+
+enum LexByte: u8 {
+    Tab = 9, LF = 10, CR = 13, Space = 32, Quote = 34, Apostrophe = 39,
+    Open = 40, Close = 41, Star = 42, Slash = 47, DigitFirst = 48,
+    DigitLast = 57, UpperFirst = 65, UpperLast = 90, Escape = 92,
+    Underscore = 95, Backtick = 96, LowerFirst = 97, LowerLast = 122
+}
+enum FileStatus: i32 { End = -1 }
+enum MigrationPass: i32 { Inventory, Validate, Write, Count }
+
+fn space(value: u8): bool {
+    return value == convert(u8, LexByte.Space) || value == convert(u8, LexByte.Tab)
+        || value == convert(u8, LexByte.CR) || value == convert(u8, LexByte.LF);
+}
+fn identifier(value: u8): bool {
+    return value >= convert(u8, LexByte.LowerFirst) && value <= convert(u8, LexByte.LowerLast)
+        || value >= convert(u8, LexByte.UpperFirst) && value <= convert(u8, LexByte.UpperLast)
+        || value >= convert(u8, LexByte.DigitFirst) && value <= convert(u8, LexByte.DigitLast)
+        || value == convert(u8, LexByte.Underscore);
+}
+fn matches(data: u8*, begin: usize, end: usize, text: u8*): bool {
+    return end - begin == strlen(text) && memcmp(data + begin, text, end - begin) == 0;
+}
+fn append(out: vector(u8)*, source: u8*, count: usize): bool {
+    if !vector_reserve(out, out.length + count) { return false; }
+    copy(out.data + out.length, source, count);
+    out.length += count;
+    return true;
+}
+fn named(names: vector(u8*)*, data: u8*, begin: usize, end: usize): bool {
+    foreach(var name in names) { if matches(data, begin, end, name) { return true; } }
+    return false;
+}
+fn read(path: u8*, out: vector(u8)*): bool {
+    var file = fopen(path, "rb");
+    if file == null { return false; }
+    defer fclose(file);
+    loop {
+        var next = fgetc(file);
+        if next == convert(i32, FileStatus.End) { return ferror(file) == 0; }
+        if !vector_push(out, convert(u8, next)) { return false; }
+    }
+}
+fn rewrite(source: vector(u8)*, names: vector(u8*)*, out: vector(u8)*, count: usize*): bool {
+    var data = source.data;
+    var at: usize = 0;
+    var copied: usize = 0;
+    var declaration = false;
+    var function = false;
+    while at < source.length {
+        var byte = data[at];
+        if byte == convert(u8, LexByte.Quote) || byte == convert(u8, LexByte.Apostrophe) || byte == convert(u8, LexByte.Backtick) {
+            var quote = byte;
+            at++;
+            while at < source.length {
+                byte = data[at];
+                at++;
+                if byte == convert(u8, LexByte.Escape) && at < source.length { at++; }
+                else { if byte == quote { break; } }
+            }
+            continue;
+        }
+        if byte == convert(u8, LexByte.Slash) && at + 1 < source.length {
+            if data[at + 1] == convert(u8, LexByte.Slash) {
+                while at < source.length && data[at] != convert(u8, LexByte.LF) { at++; }
+                continue;
+            }
+            if data[at + 1] == convert(u8, LexByte.Star) {
+                at += 2;
+                while at + 1 < source.length {
+                    if data[at] == convert(u8, LexByte.Star) && data[at + 1] == convert(u8, LexByte.Slash) { at += 2; break; }
+                    at++;
+                }
+                continue;
+            }
+        }
+        if !identifier(byte) { at++; continue; }
+        var begin = at;
+        while at < source.length && identifier(data[at]) { at++; }
+        if declaration {
+            declaration = false;
+            if out == null && !named(names, data, begin, at) {
+                var name = alloc(u8, at - begin + 1);
+                if name == null { return false; }
+                copy(name, data + begin, at - begin);
+                name[at - begin] = 0;
+                if !vector_push(names, name) { free(name); return false; }
+            }
+            if out != null { *count += 1; }
+            continue;
+        }
+        if matches(data, begin, at, "const") {
+            declaration = true;
+            if out != null {
+                if !append(out, data + copied, begin - copied) || !append(out, "var", strlen("var")) { return false; }
+                copied = at;
+            }
+            continue;
+        }
+        if out != null && matches(data, begin, at, "export") {
+            var next = at;
+            while next < source.length && space(data[next]) { next++; }
+            var end = next;
+            while end < source.length && identifier(data[end]) { end++; }
+            if matches(data, next, end, "const") {
+                if !append(out, data + copied, begin - copied) { return false; }
+                copied = next;
+            }
+        }
+        if out != null && named(names, data, begin, at) {
+            if function { print("Name also declares an ordinary function; inspect before migrating"); return false; }
+            var next = at;
+            while next < source.length && space(data[next]) { next++; }
+            if next < source.length && data[next] == convert(u8, LexByte.Open) {
+                var end = next + 1;
+                while end < source.length && space(data[end]) { end++; }
+                if end < source.length && data[end] == convert(u8, LexByte.Close) {
+                    if !append(out, data + copied, at - copied) { return false; }
+                    at = end + 1;
+                    copied = at;
+                }
+            }
+        }
+        function = matches(data, begin, at, "fn");
+    }
+    return out == null || append(out, data + copied, source.length - copied);
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    var names: vector(u8*) = default;
+    defer { foreach(var name in &names) { free(name); } vector_dispose(&names); }
+    for(var pass = convert(i32, MigrationPass.Inventory); pass < convert(i32, MigrationPass.Count); pass++) {
+        for(var index = 1; index < argc; index++) {
+            var input: vector(u8) = default;
+            var output: vector(u8) = default;
+            defer vector_dispose(&input);
+            defer vector_dispose(&output);
+            if !read(argv[index], &input) { print(argv[index]); return 1; }
+            var count: usize = 0;
+            if !rewrite(&input, &names, pass == convert(i32, MigrationPass.Inventory) ? null : &output, &count) { print(argv[index]); return 1; }
+            if pass == convert(i32, MigrationPass.Write) && (output.length != input.length || memcmp(output.data, input.data, input.length) != 0) {
+                var file = fopen(argv[index], "wb");
+                if file == null { print(argv[index]); return 1; }
+                var ok = fwrite(output.data, 1, output.length, file) == output.length;
+                ok = fclose(file) == 0 && ok;
+                if !ok { print(argv[index]); return 1; }
+                print(argv[index]);
+                print(count);
+            }
+        }
+    }
+    return 0;
+}

@@ -9,6 +9,7 @@ import semantic_support;
 import semantic_types;
 import .library.vector;
 import semantic_lowering_work;
+import semantic_aggregates;
 
 // Expressions are normalized on the shared ECS entities into ordinary bound
 // locals, calls, loads/stores and control flow. No backend sees surface tags.
@@ -74,6 +75,10 @@ fn sem_lift_store(c: SemanticContext*, block: void*, target: void*, value: void*
 
 fn sem_lift_place(c: SemanticContext*, block: void*, n: void*): void* {
     var value = sem_get(n);
+    if semantic_aggregate(&value.type) && value.kind != KOperand() && value.kind != KLoad()
+        && value.kind != KField() && value.kind != KIndex() {
+        return sem_lift_value(c, block, n);
+    }
     if value.kind == KLoad() {
         value.value = sem_lift_value(c, block, value.value);
         return n;
@@ -316,6 +321,12 @@ fn sem_lift_default(c: SemanticContext*, block: void*, target: void*): void* {
 // source node becomes its ordinary bound assignment, retaining provenance.
 fn sem_lift_initialization(c: SemanticContext*, block: void*, target: void*, n: void*): void {
     var initial = sem_get(n);
+    if initial.kind != SurfaceDefault() && initial.kind != SurfaceInitializer() {
+        target = sem_lift_target(c, block, target);
+        var source = sem_lift_value(c, block, n);
+        sem_aggregate_copy(c, block, target, source);
+        return;
+    }
     if initial.kind == SurfaceDefault() {
         sem_lift_default(c, block, target);
     } else {
@@ -360,6 +371,9 @@ fn sem_lift_value(c: SemanticContext*, block: void*, n: void*): void* {
     var value = sem_get(n);
     if value.constant {
         return n;
+    }
+    if semantic_aggregate(&value.type) {
+        return sem_aggregate_value(c, block, n);
     }
     if value.kind == SurfaceInitializerStore() {
         sem_lift_initialization(c, block, value.target, value.value);
@@ -515,9 +529,7 @@ fn sem_lift_value(c: SemanticContext*, block: void*, n: void*): void* {
         }
     }
     if value.kind == KCall() {
-        foreach(var & item in &value.items) {
-            *item = sem_lift_value(c, block, *item);
-        }
+        sem_aggregate_arguments(c, block, n);
     }
     var discarded = value.type.pointers == 0;
     discarded &&= value.type.scalar == SVoid();
@@ -569,8 +581,7 @@ fn sem_lift_block(c: SemanticContext*, block: void*): void {
             }
         }
         var declaration = statement.kind == KDeclare();
-        if declaration && statement.value != null
-            && (sem_get(statement.value).kind == SurfaceDefault() || sem_get(statement.value).kind == SurfaceInitializer()) {
+        if declaration && statement.value != null && semantic_aggregate(&statement.type) {
             var initial = statement.value;
             statement.value = null;
             sem_lift_append(block, n);
@@ -579,6 +590,22 @@ fn sem_lift_block(c: SemanticContext*, block: void*): void {
         }
         var assignment = statement.kind == KAssign();
         var returned = statement.kind == KReturn();
+        if assignment && semantic_aggregate(&sem_get(statement.target).type) {
+            sem_lift_initialization(c, block, statement.target, statement.value);
+            statement.kind = KBlock();
+            statement.target = null;
+            statement.value = null;
+            continue;
+        }
+        if returned && statement.value != null && semantic_aggregate(&sem_get(statement.value).type) {
+            var signature = sem_aggregate_signature(c, c.current);
+            sem_require(signature != null && signature.result_parameter != null);
+            var source = sem_lift_value(c, block, statement.value);
+            var destination = sem_control_read(c, block, signature.result_parameter);
+            var from = sem_get(sem_lift_target(c, block, source)).value;
+            sem_aggregate_transfer(c, block, destination, from, &signature.result_type);
+            statement.value = null;
+        }
         if assignment {
             statement.target = sem_lift_target(c, block, statement.target);
         }
@@ -607,5 +634,6 @@ fn sem_lift_block(c: SemanticContext*, block: void*): void {
 }
 
 fn sem_lower_expressions(c: SemanticContext*): void {
+    sem_aggregate_prepare(c);
     sem_lower_parallel(c);
 }

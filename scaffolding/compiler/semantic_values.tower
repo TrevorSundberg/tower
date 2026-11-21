@@ -241,8 +241,8 @@ fn sem_operand_impl(c: SemanticContext*, n: void*, expected_type: FoundationType
     }
     n = sem_surface_unwrap(n);
     if sem_is(n, "TowerComptime") { return sem_comptime(c, n, expected_type); }
-    if sem_is(n, "TowerDefault") { return sem_default(c, n, expected_type, false); }
-    if sem_is(n, "TowerInitializer") { return sem_named_initialization(c, n, expected_type, false); }
+    if sem_is(n, "TowerDefault") { return sem_default(c, n, expected_type, true); }
+    if sem_is(n, "TowerInitializer") { return sem_named_initialization(c, n, expected_type, true); }
     if sem_is(n, "TowerNullAccess") {
         var result = sem_surface_nullable(c, n, expected_type);
         if sem_ok(c) {
@@ -261,9 +261,7 @@ fn sem_operand_impl(c: SemanticContext*, n: void*, expected_type: FoundationType
         var result = sem_surface(c, n, expected_type);
         if sem_ok(c) {
             var value = sem_get(result);
-            if semantic_aggregate(&value.type) && !sem_type_place(c, result, value) {
-                sem_fail(c, n, "Struct values require field access or a pointer; aggregate copies are not implemented");
-            }
+            sem_value_aggregate(c, result, value);
         }
         return result;
     }
@@ -476,9 +474,7 @@ fn sem_operand_leaf(c: SemanticContext*, n: void*, expected_type: FoundationType
             }
         }
     }
-    if semantic_aggregate(&value.type) && !sem_type_place(c, n, value) {
-        sem_fail(c, n, "Struct values require field access or a pointer; aggregate copies are not implemented");
-    }
+    sem_value_aggregate(c, n, value);
     if expected_type != null && !semantic_type_equal(&value.type, expected_type) {
         var step113 = sem_type_name(c, expected_type);
         var step114 = sem_cat(c, "Expected ", step113);
@@ -588,6 +584,9 @@ fn sem_builtin(c: SemanticContext*, n: void*, kind: u32, args: vector(void*)*): 
     if kind == KPrint() {
         var step14 = sem_operand(c, args.data[0], null);
         value.value = step14;
+        if sem_ok(c) && semantic_aggregate(&sem_get(step14).type) {
+            sem_fail(c, step14, "print requires a scalar or pointer value");
+        }
     } else {
         if kind == KFree() || kind == KCopy() || kind == KFill() {
             var step21 = sem_operand(c, args.data[0], null);
@@ -656,7 +655,7 @@ fn sem_builtin(c: SemanticContext*, n: void*, kind: u32, args: vector(void*)*): 
                         }
                         var step62 = sem_get(value.value);
                         var source: FoundationType* = &step62.type;
-                        if semantic_aggregate(&value.type) || value.type.pointers == 0 && value.type.scalar == SVoid() {
+                        if semantic_aggregate(source) || semantic_aggregate(&value.type) || value.type.pointers == 0 && value.type.scalar == SVoid() {
                             sem_fail(c, n, "Conversion requires scalar values");
                         }
                         if kind == KConvert() &&(value.type.pointers != 0 || source.pointers != 0) {
@@ -914,6 +913,10 @@ fn sem_expression(c: SemanticContext*, n: void*, expected_type: FoundationType*)
             }
             var step55 = sem_operand(c, left, input);
             value.left = step55;
+            if semantic_aggregate(input) {
+                sem_fail(c, n, "Binary operators require scalar or pointer operands");
+                return n;
+            }
             var nominal = input.pointers == 0;
             nominal &&= semantic_enum(input);
             if nominal {
@@ -976,9 +979,7 @@ fn sem_expression(c: SemanticContext*, n: void*, expected_type: FoundationType*)
     if value == null {
         return n;
     }
-    if semantic_aggregate(&value.type) {
-        sem_fail(c, n, "Struct values require field access or a pointer; aggregate copies are not implemented");
-    }
+    sem_value_aggregate(c, n, value);
     if expected_type != null && !semantic_type_equal(&value.type, expected_type) {
         var step91 = sem_type_name(c, expected_type);
         var step93 = sem_cat(c, sem_cat(c, "Expected ", step91), ", got ");
@@ -986,4 +987,14 @@ fn sem_expression(c: SemanticContext*, n: void*, expected_type: FoundationType*)
         sem_fail(c, n, sem_cat(c, step93, step94));
     }
     return n;
+}
+
+// Struct values are shallow snapshots. Arrays remain places, except when copied
+// recursively as fields of a struct. Layout is requested by declaration/body
+// admission and lowering uses the same published field entities.
+fn sem_value_aggregate(c: SemanticContext*, n: void*, value: FoundationNode*): void {
+    if !semantic_aggregate(&value.type) { return; }
+    if value.type.scalar == SArray() && !sem_type_place(c, n, value) {
+        sem_fail(c, n, "Array values require indexing or a pointer; wrap an array in a struct for copying");
+    } else { c.surface_expressions = true; }
 }

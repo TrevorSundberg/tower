@@ -32052,3 +32052,81 @@ build identity and those assets. The normal Pages publisher and served-byte
 verification complete publication, with receipts in published-pages.json and
 control-batch publication logs. This remains about 70% of the scoped conversion;
 the remaining boundaries and next layout-dependency work above are still open.
+
+### 2026-11-21 — Struct values and ordinary named binding inference
+
+The user requested C-style struct values, then rejected the existing `const`
+shorthand after discovering that it generated zero-argument functions. The final
+direction is ordinary `var` bindings, separate immutability and staging proofs,
+and named values/enums instead of magic numbers. Foundation's existing declaration
+rule is reused. An initial Tower declaration override merely marked candidates;
+it was removed after review because the initializer already carries Tower surface
+metadata. No Foundation/Bedrock grammar extension is required. All implementation,
+fixtures and the migration tool are Tower; existing browser test transport only
+loads the added Tower fixtures. No new C++/Python implementation was introduced.
+
+Struct checking now admits same-nominal-type initialization, assignment, arguments
+and returns, including inferred locals, generic calls, nested arrays, empty structs
+and named/default construction in value contexts. Signature metadata stays on the
+function entity. Coordinator publication rewrites internal executable signatures
+to existing Foundation pointer arguments/result parameters before independent
+lowering workers run. Fieldwise snapshots preserve left-to-right argument order,
+single destination evaluation, aliases/self-assignment and return-before-defer.
+Copies preserve pointer addresses, not pointed-to ownership or padding bytes.
+Extern/export aggregate signatures require an explicit pointer ABI; standalone
+array values remain unsupported. No platform struct ABI or copy-elision promise.
+
+The first aggregate trial aborted when a body worker discovered an unprepared
+by-value layout under a pinned view. Declaration/header dependencies now prepare
+those layouts before admission. A legacy print-struct negative fixture also
+exposed a diagnostic-offset regression; restored the operand source span while
+updating its message. Aggregate return-flow validation retains the source result
+type after executable signatures become void. Temporary fields are readable but
+cannot be assigned/addressed as durable source locations. New test failures use
+descriptive messages rather than unexplained numeric IDs; the touched semantic
+oracle case uses a named enum member and the parameter limit is named.
+
+`SemanticKnownBinding` records owner, source ordinal, immutability and observation
+ordering on the declaration entity. Writes, modifications and address exposure
+invalidate fixed-binding eligibility. A conservative source-order walk includes
+callees and prevents substitution across earlier global observations. Eligible
+integer/bool candidates create ordinary evaluation jobs, with cloned initializer
+entities owning their lowering output. Interpreter inputs reference those jobs;
+reads suspend on dependencies, while a called function's own locals retain their
+actual frame storage. Optional failure leaves runtime code intact; explicit
+`comptime` still diagnoses unsupported captures/effects. Publication follows joins
+and writes typed literals into canonical Foundation. There is no alternate math
+evaluator. Mutable locals inside staged calls work normally. Pointer/aggregate
+constant materialization and general tracked effects are still future work.
+
+An initial implementation allocated metadata kinds even for Foundation-only
+programs, changing recorded entity graph fingerprints despite no candidate values.
+Creating kinds lazily on the first Tower candidate restored the oracle. Temporary
+hash-debug output then exposed that the native execution test transport does not
+link Tower's guest print adapter; removed that temporary instrumentation. Rebased
+onto 459b199, preserving the baseline native retirement and resumable control-body
+work; resolved the browser fixture-list conflict by retaining both sides.
+
+Native development environment: Docker `tower-c-validation`, `/work` checkout,
+LLVM/Clang 19, build `/cache/struct-values`, documented pinned predecessor
+961952b73e4e9e1d9d08556c3a7f651ae8457c76cbc4c70d7f72d80f5c857742.
+`cmake --build /cache/struct-values --target towerc tower-execution-tests -j3`
+followed by `tower-execution-tests /work/scaffolding` passed the new suites, both
+target widths, canonical round trips, worker counts 1/2/4/8, negative diagnostics
+and all recorded semantic oracle fixtures (`build/known-values-integrated.log`).
+Earlier struct native graph/fast/LLVM execution also printed 0. A final affected
+run includes the temporary-location rejection and descriptive fixture messages;
+its receipt and release validation follow below.
+
+Inventory found 263 old declarations in 64 Tower files, including 11 exported
+foreign-profile accessor shorthands used by Tower callers. The Tower-written
+`scaffolding/tools/remove_const.tower` inventories tokens, validates ordinary
+function-name collisions before writing, then replaces declarations and empty
+calls while preserving comments/strings. Its isolated trial changed `Limit()`
+and `Mask()` to variables without changing embedded source text. The tool builds
+as a library object plus the existing guest host library (using executable mode
+would introduce a duplicate main wrapper). Review embedded fixtures/docs and
+binding-sensitive diffs separately. Publish and validate the complete compatible
+development bootstrap before migrating compiler sources; do not repeat the earlier
+unsupported-source bootstrap break. This remains a hybrid Linux x64 development
+package, not the planned portable pure-Tower release. `todo.txt` is untouched.

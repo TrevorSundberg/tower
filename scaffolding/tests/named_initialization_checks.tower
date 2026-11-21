@@ -110,10 +110,9 @@ fn named_initialization_tests(modules: void*, root: u8*): void {
     named_initialization_reject(modules, "import tower;var p={x:1};", "requires a target type");
     named_initialization_reject(modules, "import tower;var p=init(i32){x:1};", "requires a struct type");
     named_initialization_reject(modules, "import tower;struct P{x:i32;}struct Q{x:i32;}var p:P=init(Q){x:1};", "Expected P");
-    named_initialization_reject(modules, "import tower;struct P{x:i32;}print(init(P){x:1});", "requires a complete declaration initializer");
+    named_initialization_reject(modules, "import tower;struct P{x:i32;}print(init(P){x:1});", "scalar or pointer");
     named_initialization_reject(modules, "import tower;struct P{x:i32;}var p:P=default;var q=(p={x:1});", "void");
     named_initialization_reject(modules, "import tower;struct P{x:i32;}var p:P=default;p+={x:1};", "integer");
-    named_initialization_reject(modules, "import tower;struct P{x:i32;}struct Q{p:P;}var p:P=default;var q:Q={p:p};", "aggregate copies");
     named_initialization_reject(modules, "import tower;struct P{x:i32;y:i32;}fn staged():i32{var p:P={x:1,..default};return p.x;}print(comptime(staged()));", "storage or value capability");
     puts("Named initialization: execution, Foundation round trips, worker counts and diagnostics pass.");
 }

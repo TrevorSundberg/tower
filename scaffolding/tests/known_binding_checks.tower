@@ -1,0 +1,48 @@
+import tower;
+import body_runs;
+import frontend_units;
+import execution_support;
+import execution_core;
+import struct_value_checks;
+import named_initialization_checks;
+import .compiler.execution_session;
+import .library.vector;
+
+fn known_binding_tests(modules: void*, root: u8*): void {
+    var source: vector(u8) = default;
+    var bedrock: vector(u8) = default;
+    var foundation: vector(u8) = default;
+    defer vector_dispose(&source);
+    defer vector_dispose(&bedrock);
+    defer vector_dispose(&foundation);
+    units_read(root, "/tests/known_bindings.tower", &source);
+    units_read(root, "/bedrock.tower", &bedrock);
+    units_read(root, "/foundation.tower", &foundation);
+    for(var width: u32 = 4; width <= 8; width += 4) {
+        var graph: ExecutionSession = default;
+        var fast: ExecutionSession = default;
+        execution_compile(&graph, source.data, width, modules);
+        execution_compile(&fast, source.data, width, modules);
+        execution_check(execution_session_start(&graph) && execution_session_fast(&fast), "Known binding engines start");
+        execution_run(&graph, 1000, 100000);
+        execution_run(&fast, 1000, 100000);
+        execution_same(&graph, &fast);
+        execution_check(graph.machine.done && graph.error.length == 0 && execution_text(&graph.output, "0\n"), "Known binding execution");
+        execution_roundtrip(&graph, modules, false);
+        execution_session_close(&graph);
+        execution_session_close(&fast);
+        var canonical: vector(u8) = default;
+        defer vector_dispose(&canonical);
+        for(var workers: usize = 1; workers <= 8; workers *= 2) {
+            body_runs_trial(source.data, workers, width, bedrock.data, foundation.data, root, &canonical);
+        }
+    }
+    struct_value_reject(modules, "import tower;var value=1;value++;print(comptime(value));", "cannot capture runtime storage");
+    struct_value_reject(modules, "import tower;var value=1;var pointer=&value;print(comptime(value));", "cannot capture runtime storage");
+    struct_value_reject(modules, "import tower;var value=1;fn change():void{value=2;}print(comptime(value));", "cannot capture runtime storage");
+    struct_value_reject(modules, "import tower;var count=0;fn effect():i32{count++;return 4;}var fixed=effect();print(comptime(fixed));", "Compile-time input failed");
+    struct_value_reject(modules, "import tower;fn read():i32{return later;}var earlier=read();var later=7;print(comptime(later));", "cannot capture runtime storage");
+    struct_value_reject(modules, "import tower;var a:i32=comptime(b);var b:i32=a;print(a);", "dependency cycle");
+    named_initialization_diagnostic("import tower;var value=1;value++;fn first():i32{return comptime(value);}fn later():i32{return 2;}", "cannot capture runtime storage", bedrock.data, foundation.data, root);
+    puts("Known bindings: separate immutability/staging, effects, Foundation and worker determinism pass.");
+}

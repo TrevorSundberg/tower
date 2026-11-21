@@ -100,7 +100,7 @@ fn sem_parameters(c: SemanticContext*, n: void*, definition: void*): SemanticSco
         sem_declaration_state(c, p).scope = state.scope;
         sem_push(&function_node.parameters, p);
     }
-    if function_node.parameters.length > 64 {
+    if function_node.parameters.length > FoundationParameterLimit() {
         sem_fail(c, n, "Foundation parameter limit is 64");
     }
     return state.scope;
@@ -130,9 +130,16 @@ fn sem_header(c: SemanticContext*, n: void*, name: u8*, definition: void*): void
         if !sem_declaration_type(c, p) {
             break;
         }
-        if semantic_aggregate(&sem_get(p).type) {
-            sem_fail(c, p, "Struct parameters require a pointer; by-value arguments are not implemented");
+        if sem_get(p).type.pointers == 0 && sem_get(p).type.scalar == SArray() {
+            sem_fail(c, p, "Array parameters require a pointer; wrap an array in a struct for value passing");
             break;
+        }
+        if semantic_aggregate(&sem_get(p).type) {
+            c.surface_expressions = true;
+            if external || function_node.exported {
+                sem_fail(c, p, "Foreign/exported aggregate signatures require an explicit pointer ABI");
+                break;
+            }
         }
         sem_add_local(c, p);
     }
@@ -143,7 +150,13 @@ fn sem_header(c: SemanticContext*, n: void*, name: u8*, definition: void*): void
             sem_fail(c, n, sem_cat(c, "Function name '", sem_cat(c, name, "' already names a foundation builtin")));
         }
         if semantic_aggregate(&function_node.type) {
-            sem_fail(c, n, "Struct returns require a pointer; by-value returns are not implemented");
+            c.surface_expressions = true;
+            if function_node.type.scalar == SArray() {
+                sem_fail(c, n, "Array returns require a pointer; wrap an array in a struct for value returning");
+            }
+            if external || function_node.exported {
+                sem_fail(c, n, "Foreign/exported aggregate signatures require an explicit pointer ABI");
+            }
         }
     }
     function_node.external = external;
@@ -530,8 +543,8 @@ fn sem_statement_impl(c: SemanticContext*, n: void*, depth: u32): u32 {
                 sem_set_type(&dest.type, expected_type);
                 value.target = target;
             }
-            if semantic_aggregate(expected_type) {
-                sem_fail(c, target, "Struct values require field access or a pointer; aggregate copies are not implemented");
+            if expected_type.pointers == 0 && expected_type.scalar == SArray() {
+                sem_fail(c, target, "Array values require indexing or a pointer; wrap an array in a struct for copying");
             }
             var step55 = sem_expression(c, sem_member(n, "value"), expected_type);
             value.value = step55;
@@ -561,7 +574,7 @@ fn sem_statement_impl(c: SemanticContext*, n: void*, depth: u32): u32 {
                         } else {
                             var operands = sem_collect(c, returned, "CoreOperand");
                             if operands.length == 1 {
-                                value.value = sem_operand(c, operands.data[0], &function.type);
+                                value.value = sem_initial_value(c, operands.data[0], &function.type);
                             }
                             else {
                                 sem_fail(c, n, "A return value must contain one Foundation operand");

@@ -1,0 +1,78 @@
+import tower;
+import body_runs;
+import frontend_units;
+import execution_support;
+import execution_core;
+import named_initialization_checks;
+import .compiler.execution_session;
+import .compiler.format_types;
+import .library.vector;
+
+fn struct_value_reject(modules: void*, source: u8*, wanted: u8*): void {
+    var session: ExecutionSession = default;
+    defer execution_session_close(&session);
+    var accepted = execution_session_compile(&session, source, strlen(source), 8, modules);
+    if accepted { puts(source); }
+    execution_check(!accepted, "Invalid struct value rejected");
+    if strstr(session.error.data, wanted) == null { puts(session.error.data); }
+    execution_check(strstr(session.error.data, wanted) != null, wanted);
+}
+
+fn struct_value_tests(modules: void*, root: u8*): void {
+    var source: vector(u8) = default;
+    var bedrock: vector(u8) = default;
+    var foundation: vector(u8) = default;
+    defer vector_dispose(&source);
+    defer vector_dispose(&bedrock);
+    defer vector_dispose(&foundation);
+    units_read(root, "/tests/struct_values.tower", &source);
+    units_read(root, "/bedrock.tower", &bedrock);
+    units_read(root, "/foundation.tower", &foundation);
+    var formatted: FormatResult = default;
+    var again: FormatResult = default;
+    defer format_dispose(&formatted);
+    defer format_dispose(&again);
+    named_initialization_format(source.data, &formatted);
+    named_initialization_format(formatted.text.data, &again);
+    execution_check(formatted.text.length == again.text.length
+        && memcmp(formatted.text.data, again.text.data, formatted.text.length) == 0, "Struct value source format is idempotent");
+    for(var width: u32 = 4; width <= 8; width += 4) {
+        var graph: ExecutionSession = default;
+        var fast: ExecutionSession = default;
+        execution_compile(&graph, source.data, width, modules);
+        execution_compile(&fast, source.data, width, modules);
+        execution_check(execution_session_start(&graph) && execution_session_fast(&fast), "Struct value engines start");
+        execution_run(&graph, 1000, 100000);
+        execution_run(&fast, 1000, 100000);
+        execution_same(&graph, &fast);
+        execution_check(graph.machine.done && graph.error.length == 0 && execution_text(&graph.output, "0\n"), "Struct value execution");
+        execution_roundtrip(&graph, modules, false);
+        execution_session_close(&graph);
+        execution_session_close(&fast);
+        execution_compile(&graph, formatted.text.data, width, modules);
+        execution_check(execution_session_start(&graph), "Formatted struct value execution starts");
+        execution_run(&graph, 1000, 100000);
+        execution_check(graph.machine.done && graph.error.length == 0 && execution_text(&graph.output, "0\n"), "Formatted struct value behavior");
+        execution_session_close(&graph);
+        var canonical: vector(u8) = default;
+        defer vector_dispose(&canonical);
+        for(var workers: usize = 1; workers <= 8; workers *= 2) {
+            body_runs_trial(source.data, workers, width, bedrock.data, foundation.data, root, &canonical);
+        }
+    }
+    struct_value_reject(modules, "import tower;struct P{x:i32;}struct Q{x:i32;}var p:P=default;var q:Q=p;", "Expected Q");
+    struct_value_reject(modules, "import tower;struct P{x:i32;}struct Q{x:i32;}fn f(p:P):void{}var q:Q=default;f(q);", "Expected P");
+    struct_value_reject(modules, "import tower;struct P{x:i32;}struct Q{x:i32;}fn f():P{return init(Q){x:1};}", "Expected P");
+    struct_value_reject(modules, "import tower;struct P{x:i32;}var p:P=default;print(p==p);", "scalar or pointer");
+    struct_value_reject(modules, "import tower;struct P{x:i32;}var p:P=default;print(convert(i32,p));", "scalar");
+    struct_value_reject(modules, "import tower;var a:i32[2]=default;var b=a;", "Array values");
+    struct_value_reject(modules, "import tower;struct P{x:i32;}extern fn f():P;", "explicit pointer ABI");
+    struct_value_reject(modules, "import tower;struct P{x:i32;}export fn f(p:P):void{}", "explicit pointer ABI");
+    struct_value_reject(modules, "import tower;struct P{x:i32;}fn make():P{return {x:1};}var p=&make().x;", "addressable location");
+    struct_value_reject(modules, "import tower;struct P{x:i32;}fn make():P{return {x:1};}make().x=2;", "addressable location");
+    struct_value_reject(modules, "import tower;struct P{x:i32;}fn flag():bool{return false;}fn missing():P{if comptime(flag()){return {x:1};}}", "can finish without returning");
+    struct_value_reject(modules, "import tower;struct P{x:i32;}fn read(p:P):i32{return p.x;}var runtime=7;runtime++;print(comptime(read({x:runtime})));", "cannot capture runtime storage");
+    named_initialization_diagnostic("import tower;struct P{x:i32;}fn first():P{return {unknown:1};}fn later():i32{return missing;}", "Unknown initializer field", bedrock.data, foundation.data, root);
+    named_initialization_diagnostic("import tower;struct P{x:i32;}struct Q{x:i32;}fn first(p:P):P{var q:Q=p;return p;}", "Expected Q", bedrock.data, foundation.data, root);
+    puts("Struct values: shallow copies, calls, returns, sequencing, Foundation and workers pass.");
+}
