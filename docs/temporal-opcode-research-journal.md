@@ -24930,3 +24930,15 @@ collection libraries with the newly cleaned libraries. Repeating with identical
 inputs passes (expression-equivalence.log). Fetched upstream through 7737acb;
 its ownership, formatter and lexer migrations must now be integrated before
 publication, followed by default-bootstrap rebuilds and relevant regressions.
+
+Integrated validation passes at 8fe02e3. The append-only journal conflict keeps
+both histories; the only code conflict keeps upstream's FrontendCacheLimit()
+constant while applying the direct condition. A second empty native cache
+(/cache/expression-rebased), with the documented bootstrap and no private
+override, builds all 55 steps. Native CTests pass 5/5 in 16.74 seconds and backend
+API checks pass. Parser, LLVM and cross reactors are rebuilt and their compiler
+project repackaged. The rebased Node run excludes the duplicated repository-wide
+format sweep and passes all 163 selected tests in 152.9 seconds. The 13-program
+canonical Foundation differential passes again against this successor. Logs use
+the expression-rebased-* prefix. Complete deployment assets are prepared from
+this exact integrated source, retaining the prior audit metadata and target packs.
