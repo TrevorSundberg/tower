@@ -102,3 +102,35 @@ fn vector_move(T: type, destination: vector(T)*, source: vector(T)*): void {
     destination.capacity = source.capacity;
     vector_init(source);
 }
+
+// Finite borrowed traversal. Structural mutation, disposal, or growth of the
+// owner invalidates the view; element writes through a borrow are permitted.
+// State is ordinary local storage and iteration performs no allocation.
+fn vector_iteration(T: type): type {
+    struct Result {
+        data: T*;
+        length: usize;
+        index: usize;
+    }
+    return Result;
+}
+
+fn vector_iterate_begin(T: type, source: vector(T)*, state: vector_iteration(T)*): void {
+    state.data = source.data;
+    state.length = source.length;
+    state.index = 0;
+}
+
+fn vector_iterate_next(T: type, source: vector(T)*, state: vector_iteration(T)*): bool {
+    if state.index == state.length {
+        return false;
+    }
+    state.index++;
+    return true;
+}
+
+fn vector_iterate_element(T: type, source: vector(T)*, state: vector_iteration(T)*): T* {
+    return &state.data[state.index -1];
+}
+
+fn vector_iterate_end(T: type, source: vector(T)*, state: vector_iteration(T)*): void {}
