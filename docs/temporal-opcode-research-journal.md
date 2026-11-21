@@ -32281,3 +32281,12 @@ Cycle integration passes the full native execution suite and semantic oracles
 the negative CLI fixture reports the fixed-initializer diagnostic at its source
 declaration. Added the direct `semantic_modules` lifecycle import after the first
 build diagnosed the newly invoked validator as outside that file's import scope.
+
+Rebased onto upstream 054466c, preserving both journal append histories and its
+new editor/Linguist materials. Its changes do not modify compiler inputs. Repacked
+against reachable implementation d1b0d01 (discarding the premature rebase-time
+package metadata), archive SHA-256
+6d064a5852535255184b0096f33d22060b040499bed69f188d04272fb0cd9c84.
+A fresh documented-pin successor in `/cache/cyclic-binding-clean` passes all 53
+steps; its cyclic-module and named-binding libraries compile, and the latter
+links/runs with exit 0. Evidence: `cyclic-binding-clean.log`.
