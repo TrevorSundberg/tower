@@ -11,6 +11,8 @@ import .compiler.foundation_types;
 import .library.vector;
 import .library.float_bits;
 
+var LLVMFloatingNegateOpcode: u32 = 66;
+
 fn bi_edge(c: BackendImport*, from: void*, to: void*): void {
     var copies: vector(BackendAssociation);
     vector_init(&copies);
@@ -545,6 +547,7 @@ fn bi_instruction(c: BackendImport*, instruction: void*, block: void*): void* {
     if selected {
         supported_shape = true;
     }
+    if op == LLVMFloatingNegateOpcode { supported_shape = true; }
     if !supported_shape {
         backend_fail(c.backend, "Unsupported LLVM instruction in foundation return path: ");
         backend_decimal(&c.backend.error, convert(u64, op));
@@ -552,6 +555,13 @@ fn bi_instruction(c: BackendImport*, instruction: void*, block: void*): void* {
     }
     var a_value = LLVMGetOperand(instruction, 0);
     var a = bi_value(c, a_value);
+    if op == LLVMFloatingNegateOpcode {
+        var integer = scalar == SF32 ? SU32 : SU64;
+        var sign = scalar == SF32 ? Float32Sign : Float64Sign;
+        var raw = bi_cast(c, a, integer, true);
+        raw = bi_binary(c, OXor, raw, bi_const(c, integer, sign), integer);
+        return bi_cast(c, raw, scalar, true);
+    }
     selected = op == 68;
     if selected {
         return a;

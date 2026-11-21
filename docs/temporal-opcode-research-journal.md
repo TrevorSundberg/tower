@@ -35999,3 +35999,21 @@ Tower and crosses the browser print boundary as bytes. Browser foreign-call
 transport now carries the return type and converts f32/f64 representations with
 DataView; compiled Wasm already supplies host Number arguments. New assertions
 live in floating_foreign.tower. Browser build/execution validation remains next.
+
+Browser integration follow-up: the browser LLVM optimizer produces FNeg (LLVM
+opcode 66) for sign-bit negation where native LLVM 19 retained the bitwise form.
+The optimized Foundation importer now reconstructs that operation as an exact
+integer bitcast/sign XOR/bitcast, preserving signed zero and NaN payloads. The
+foreign fixture also needed its import before declarations in the combined test
+source. The focused browser run now passes all three selected floating/foreign
+checks (build/float-browser-focused.log). These are backend reconstruction and
+test transport corrections, not a second arithmetic implementation.
+
+Rebased onto cfea9b5, retaining the upstream ECS/editor/cache ownership changes
+and Tower archive/installer tooling. The full native suite had already passed
+after the earlier b24847b integration. The Tower bootstrap packager rejected a
+candidate on the Windows-mounted /work output; the same inputs packaged
+successfully under container-local /cache/float_bootstrap_probe. The exact failed
+stage is not established; do not infer compiler failure from that generic tool
+diagnostic. Use a new container-local candidate directory for final packaging,
+then independently verify relocation and the default clean successor build.
