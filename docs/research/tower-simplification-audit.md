@@ -321,3 +321,26 @@ the same 51 files. The remaining selected loop was replaced upstream by a layout
 kernel that coordinates field/output indices, so it stays counted. Parameter
 traversal now belongs to the new body query; implicit foreach protocol construction
 uses its structural coordinator path and generated locals use ECS declaration state.
+
+## Named-field adoption (2026-11-21)
+
+After publishing the compatible bootstrap, reviewed all 39 immediate typed-local
+field-write runs from the 572-file inventory. Converted 35 construction sites in
+23 production files: parser tables and lexer records, syntax emission/template
+inputs, diagnostics, generic inference, interpreter frames, backend/formatter
+contexts and scheduler receipts. Existing `default` baselines become explicit
+`..default`; complete scalar/pointer field lists retain their exact write order.
+The production diff removes 123 source lines before the added regression test.
+
+Four partial setups remain explicit: three FormatEngine views whose remaining
+fields are outside that path, and GenericAnalysis fields supplied per iteration.
+The broader 227-run inventory includes in-place updates, ownership transfers,
+construction interleaved with helper calls, and borrowed-context saves/restores;
+these are not automatically complete construction. No implicit aggregate copy or
+constructor contract is assumed. Foundation-only and negative fixtures stay intact.
+
+One candidate exposed a real bug: LR completion incremented an uninitialized
+child depth. Its new complete initializer uses the captured parent depth plus one.
+A Tower regression forces greedy completion to fail and checks the two-token
+breadth-first alternative, capacity rejection and the output sentinel. This is
+an explicit behavior correction alongside the otherwise equivalent conversions.

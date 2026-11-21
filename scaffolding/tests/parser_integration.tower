@@ -93,6 +93,8 @@ extern fn lr_completion_destroy(completion: void*): void;
 
 extern fn lr_completion_runtime(completion: void*): void*;
 
+extern fn lr_completion_suffix(completion: void*, ids: u32*, count: usize, result: usize*, capacity: usize): usize;
+
 extern fn tower_memory_get_allocated_count(): usize;
 
 extern fn tower_memory_free(memory: void*): void;
@@ -602,6 +604,32 @@ fn parser_incremental_fixture(): void {
     parser_fixture_dispose(&f);
 }
 
+// The greedy 'a' path cannot finish in two tokens. Breadth-first completion must
+// initialize each child's depth from its parent and return the alternate 'bc'.
+fn parser_suffix_depth_fixture(): void {
+    var f: ParserFixture;
+    parser_fixture_init(&f);
+    defer parser_fixture_dispose(&f);
+    var rule = grammar_builder_rule(&f.builder, "Root", false);
+    grammar_builder_literal(&f.builder, rule, "aaaa");
+    rule = grammar_builder_rule(&f.builder, "Root", false);
+    grammar_builder_literal(&f.builder, rule, "bc");
+    parser_fixture_table(&f, false, true);
+    parser_fixture_begin(&f, "", false);
+    parser_recognizer_capture_completion(f.request);
+    parser_finish(f.request, false);
+    var completion = parser_recognizer_take_completion(f.request);
+    parser_check(completion != null, 610);
+    defer lr_completion_destroy(completion);
+    var ids: u32[3];
+    ids[0] = 97; ids[1] = 98; ids[2] = 99;
+    var suffix: usize[3];
+    suffix[2] = 123;
+    parser_check(lr_completion_suffix(completion, &ids[0], 3, &suffix[0], 1) == ~convert(usize, 0), 611);
+    parser_check(lr_completion_suffix(completion, &ids[0], 3, &suffix[0], 2) == 2, 612);
+    parser_check(suffix[0] == 1 && suffix[1] == 2 && suffix[2] == 123, 613);
+}
+
 export fn parser_tests(): void {
     var baseline = tower_memory_get_allocated_count();
     var prefix: bool = false;
@@ -631,6 +659,7 @@ export fn parser_tests(): void {
     parser_bad_grammar_fixture();
     parser_buffered_fixture();
     parser_incremental_fixture();
+    parser_suffix_depth_fixture();
     var ok = tower_memory_get_allocated_count() == baseline;
     parser_check(ok, 501);
     puts("Tower parser integration checks passed");

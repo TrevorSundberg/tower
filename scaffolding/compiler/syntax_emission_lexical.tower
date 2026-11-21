@@ -91,10 +91,7 @@ fn emission_lexical_rows(value: SyntaxEmission*, ordered: SyntaxEmissionEntry**)
             out.keyword_starts &&= word;
         }
         if entry.literal != convert(u32, SyntaxTokenId.End) {
-            var row: SyntaxEmissionLiteral;
-            row.text = entry.text.data;
-            row.length = entry.text.length;
-            row.id = entry.literal;
+            var row: SyntaxEmissionLiteral = { text: entry.text.data, length: entry.text.length, id: entry.literal };
             copy(&out.literals[out.literal_count], &row, sizeof(SyntaxEmissionLiteral));
             ++out.literal_count;
             ok &&= vector_push(&out.ids, entry.literal);

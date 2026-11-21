@@ -1002,10 +1002,10 @@ fn module_read_import(reader: SyntaxReader*, node: void*): bool {
 }
 
 export fn frontend_module_import(module: FrontendModule*, node: void*, source: SyntaxSource*): bool {
-    var reader: SyntaxReader = default;
-    reader.source = source;
-    reader.match_kind = compiler_world_type(module.graph.world, CompilerParserMatch());
-    reader.syntax_kind = compiler_world_type(module.graph.world, CompilerSyntax());
+    var reader: SyntaxReader = {
+        source: source, match_kind: compiler_world_type(module.graph.world, CompilerParserMatch()),
+        syntax_kind: compiler_world_type(module.graph.world, CompilerSyntax()), ..default
+    };
     var ok = module_read_import(&reader, node);
     var value = frontend_syntax(node, reader.syntax_kind);
     var aliased = syntax_reader_member(node, "alias") != null;
@@ -1488,10 +1488,10 @@ fn module_clone(graph: ModuleGraph*, source: FrontendModule*): FrontendModule* {
         var declaration = compiler_clone_tree(source.imports.data[i], ModuleMaximumSourceBytes(), &copied);
         var present = declaration != null;
         module_require(present);
-        var reader: SyntaxReader = default;
-        reader.source = result.source;
-        reader.match_kind = compiler_world_type(graph.world, CompilerParserMatch());
-        reader.syntax_kind = compiler_world_type(graph.world, CompilerSyntax());
+        var reader: SyntaxReader = {
+            source: result.source, match_kind: compiler_world_type(graph.world, CompilerParserMatch()),
+            syntax_kind: compiler_world_type(graph.world, CompilerSyntax()), ..default
+        };
         module_require(module_read_import(&reader, declaration));
         module_require(vector_push(&result.imports, declaration));
         i++;

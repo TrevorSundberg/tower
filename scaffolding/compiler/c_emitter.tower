@@ -1153,11 +1153,7 @@ fn ce_body(c: CEmitter*, entity: void*, program: bool): void {
 }
 
 export fn c_emit(text: vector(u8)*, error: vector(u8)*, root: void*, pointer_bytes: u32, comments: bool): void {
-    var c: CEmitter = default;
-    c.text = text;
-    c.error = error;
-    c.pointer_bytes = pointer_bytes;
-    c.comments = comments;
+    var c: CEmitter = { text: text, error: error, pointer_bytes: pointer_bytes, comments: comments, ..default };
     ce_collect(&c, root, root);
     ce_reachable(&c, root);
     ce_text(&c, "/* Tower generated C. Compile: cc -std=c89 -pedantic -Wall -Wextra -O2 program.c */\n");

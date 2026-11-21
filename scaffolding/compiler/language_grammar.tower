@@ -65,10 +65,7 @@ fn language_match_snapshot(q: CompletionQuery*, node: void*, session: void*, dep
     }
     var target = syntax_inspection_match(session, node);
     if target != null {
-        var entry: LanguageGrammar = default;
-        entry.node = node;
-        entry.matched = true;
-        entry.total = 1;
+        var entry: LanguageGrammar = { node: node, matched: true, total: 1, ..default };
         language_grammar_keep(&entry, target);
         var needed = q.grammar.length + 1;
         sem_require(vector_reserve(&q.grammar, needed));

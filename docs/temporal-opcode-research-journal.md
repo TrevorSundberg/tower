@@ -31719,3 +31719,18 @@ and both feature entries through the rebase. Compiler/build inputs and bootstrap
 bytes are unchanged, so the clean-build evidence remains applicable. Regenerated
 the package provenance against the rebased reachable implementation revision
 f5b07a6 rather than leaving the old pre-rebase revision as its source base.
+
+Implementation and bootstrap are published at abf427e. Only then adopted named
+initialization in production sources. A fresh default build in
+/cache/named-fields-adoption completes all 55 steps using the published pin,
+with no private override. The first audit converts 34 complete construction sites
+in 22 files, preserving prior default baselines and write order. Inspecting the
+remaining five candidates exposed an actual LR completion bug: next.depth++ reads
+the new path's uninitialized depth rather than the captured parent's depth.
+Corrected that site with `depth: depth + 1` and added a Tower regression that forces
+the breadth-first fallback (`aaaa | bc`, candidates a/b/c, capacity 2) and checks
+the suffix indices, capacity-1 rejection and an untouched sentinel. Final adoption
+is 35 sites / 23 production files / 123 fewer production lines; four deliberately
+partial contexts remain explicit. Broader field-write runs include updates and
+ownership/borrow operations and were not rewritten as complete construction.
+The parser correction requires validation in the final browser/native milestone.

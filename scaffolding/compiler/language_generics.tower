@@ -208,10 +208,7 @@ fn language_generic_documentation(q: CompletionQuery*, declaration: void*): void
 }
 
 fn language_generic_format(q: CompletionQuery*, info: GenericInfo*, formatted: FormatResult*, signature: bool): void {
-    var a: GenericAnalysis = default;
-    a.context = &q.context;
-    a.component = q.generic_info;
-    a.budget = InspectionNodeLimit();
+    var a: GenericAnalysis = { context: &q.context, component: q.generic_info, budget: InspectionNodeLimit(), ..default };
     var substitutions = generic_format_substitutions(&a, info.annotation, info.bindings, 0);
     if a.truncated {
         q.truncated = true;

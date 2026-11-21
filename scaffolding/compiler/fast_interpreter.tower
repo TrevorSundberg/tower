@@ -248,18 +248,13 @@ fn fm_function(f: FMState*, node: void*): usize {
         }
     }
     var n = im_node(node);
-    var function: FMFunction = default;
-    function.node = node;
-    function.external = n.external;
-    function.frame_size = im_align(n.frame_size);
-    function.parameters = f.parameters.length;
-    function.parameter_count = n.parameters.length;
+    var function: FMFunction = {
+        node: node, external: n.external, frame_size: im_align(n.frame_size),
+        parameters: f.parameters.length, parameter_count: n.parameters.length, ..default
+    };
     foreach(var & parameter in &n.parameters) {
         var param = im_node(*parameter);
-        var value: FMParameter;
-        value.offset = param.byte_offset;
-        value.size = im_type_size(&param.type);
-        value.register_slot = 0;
+        var value: FMParameter = { offset: param.byte_offset, size: im_type_size(&param.type), register_slot: 0 };
         fm_push(FMParameter, &f.parameters, &value);
     }
     fm_push(FMFunction, &f.functions, &function);
@@ -1133,12 +1128,7 @@ fn fm_call(m: IMState*, f: FMState*, dest: usize, index: usize, first: usize, of
         im_fail(m, "Tower call stack limit exceeded", offset);
         return;
     }
-    var frame: FMFrame;
-    frame.pc = f.pc;
-    frame.base = f.base;
-    frame.registers = f.register_base;
-    frame.result = dest;
-    frame.count = f.register_count;
+    var frame: FMFrame = { pc: f.pc, base: f.base, registers: f.register_base, result: dest, count: f.register_count };
     fm_push(FMFrame, &f.frames, &frame);
     var register_base = f.register_base + f.register_count;
     var needed = register_base + function.registers;

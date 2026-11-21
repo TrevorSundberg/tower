@@ -166,11 +166,7 @@ export fn syntax_revision_declare(base: FrontendRevision*, entity: void*, kind: 
         for(var i: usize = 0; i < node.items.length; ++i) {
             alternatives.data[before + i] = node.items.data[i];
         }
-        var rule: SyntaxRuleView;
-        rule.name = node.name.data;
-        rule.name_length = node.name.length;
-        rule.alternatives = alternatives.data;
-        rule.count = total;
+        var rule: SyntaxRuleView = { name: node.name.data, name_length: node.name.length, alternatives: alternatives.data, count: total };
         result = syntax_revision_overlay(base, &rule, 1, null, 0, kind);
     }
     vector_dispose(&alternatives);

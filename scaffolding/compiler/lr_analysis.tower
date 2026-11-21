@@ -419,11 +419,7 @@ export fn lr_items_close(value: LRAnalysis*, items: LRItems*, lookahead: bool): 
             if done {
                 break;
             }
-            var key: LRItem;
-            key.rule = symbol.nonterminal;
-            key.position = 0;
-            key.first = ranges.data[range].first;
-            key.last = ranges.data[range].last;
+            var key: LRItem = { rule: symbol.nonterminal, position: 0, first: ranges.data[range].first, last: ranges.data[range].last };
             range++;
             var previous = expanded.values.length;
             ok = lr_items_insert(&expanded, &key);
@@ -442,11 +438,7 @@ export fn lr_items_close(value: LRAnalysis*, items: LRItems*, lookahead: bool): 
                 if done {
                     break;
                 }
-                var next: LRItem;
-                next.rule = productions.data[production];
-                next.position = 0;
-                next.first = key.first;
-                next.last = key.last;
+                var next: LRItem = { rule: productions.data[production], position: 0, first: key.first, last: key.last };
                 ok = lr_items_insert(items, &next);
                 if !ok {
                     break;

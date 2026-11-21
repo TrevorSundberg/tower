@@ -86,11 +86,9 @@ extern fn im_append(host: IMState*, text: u8*, count: usize): void;
 extern fn im_foreign(host: IMState*, node: void*, args: u64*, count: usize): u64;
 
 fn im_pointee_size(type: FoundationType*): usize {
-    var element: FoundationType;
-    element.scalar = type.scalar;
-    element.pointers = type.pointers - 1;
-    element.record = type.record;
-    element.pointer_bytes = type.pointer_bytes;
+    var element: FoundationType = {
+        scalar: type.scalar, pointers: type.pointers - 1, record: type.record, pointer_bytes: type.pointer_bytes
+    };
     return semantic_size(&element);
 }
 

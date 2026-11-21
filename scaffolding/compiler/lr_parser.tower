@@ -672,11 +672,7 @@ export fn lr_completion_suffix(c: LRCompletion*, ids: u32*, count: usize, result
                 }
                 status = lr_probe_step(probe, ids[i], &before);
                 if status == 1 {
-                    var next: LRCompletionPath;
-                    next.probe = probe;
-                    next.parent = at;
-                    next.choice = i;
-                    next.depth++;
+                    var next: LRCompletionPath = { probe: probe, parent: at, choice: i, depth: depth + 1 };
                     added = lr_append(LRCompletionPath, &paths, &next);
                     failed = !added;
                     if failed {

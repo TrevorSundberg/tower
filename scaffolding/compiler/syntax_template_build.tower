@@ -116,11 +116,7 @@ export fn syntax_replacement_attempt(context: void*, category: u8*): u32 {
         entry.wrapper = syntax_emission_wrapper(emission, template_build_text(&template_build_node(capture.source, version).text));
         captures.length++;
     }
-    var input: SyntaxTemplateInput;
-    input.session = session;
-    input.base = replacement.start;
-    input.captures = bits(void*, captures.data);
-    input.count = captures.length;
+    var input: SyntaxTemplateInput = { session: session, base: replacement.start, captures: bits(void*, captures.data), count: captures.length };
     var holes: SyntaxTemplateGrammar = default;
     holes.emission.root = grammar.rules;
     holes.emission.syntax_kind = grammar.kinds.syntax;
@@ -181,16 +177,12 @@ export fn syntax_replacement_attempt(context: void*, category: u8*): u32 {
     }
     uses.length = captures.length;
     fill(uses.data, 0, uses.length * sizeof(usize));
-    var remap: SyntaxTemplateRemap = default;
-    remap.root = body;
-    remap.match_kind = version.kinds.`match`;
-    remap.source = syntax_emission_productions(emission);
-    remap.source_count = syntax_emission_production_count(emission);
-    remap.destination = syntax_emission_productions(destination);
-    remap.destination_count = syntax_emission_production_count(destination);
-    remap.grammar = parser_table_grammar(version.table);
-    remap.uses = uses.data;
-    remap.count = uses.length;
+    var remap: SyntaxTemplateRemap = {
+        root: body, match_kind: version.kinds.`match`, source: syntax_emission_productions(emission),
+        source_count: syntax_emission_production_count(emission), destination: syntax_emission_productions(destination),
+        destination_count: syntax_emission_production_count(destination), grammar: parser_table_grammar(version.table),
+        uses: uses.data, count: uses.length, ..default
+    };
     if !syntax_template_remap_revisions(&remap, emission, destination) {
         return template_build_error(owner, "Unable to allocate replacement template mapping");
     }

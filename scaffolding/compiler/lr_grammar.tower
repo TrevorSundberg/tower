@@ -299,10 +299,7 @@ fn lr_grammar_rules(value: LRGrammar*, root: void*, kind: void*): bool {
 }
 
 fn lr_grammar_symbols(value: LRGrammar*, reference_kind: void*, string_kind: void*, range_kind: void*): bool {
-    var symbol: LRSymbol;
-    symbol.first = LRTokenEnd();
-    symbol.last = LRTokenEnd();
-    symbol.nonterminal = 1;
+    var symbol: LRSymbol = { first: LRTokenEnd(), last: LRTokenEnd(), nonterminal: 1 };
     var present = value.names.length > 1;
     if present {
         var ok = lr_grammar_add_symbol(value, &symbol, null, "");

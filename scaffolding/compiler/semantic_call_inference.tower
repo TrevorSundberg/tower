@@ -217,14 +217,10 @@ fn sem_infer_types(c: SemanticContext*, definition: void*, use: void*, values: v
     for(var i: usize = 0; i < parameters.length; i++) {
         sem_push(bindings, null);
     }
-    var inference: SemanticCallInference;
-    inference.context = c;
-    inference.definition = definition;
-    inference.use = use;
-    inference.parameters = parameters;
-    inference.bindings = bindings;
-    inference.intern = intern;
-    inference.order = order;
+    var inference: SemanticCallInference = {
+        context: c, definition: definition, use: use, parameters: parameters,
+        bindings: bindings, intern: intern, order: order
+    };
     // Analyze typed arguments first, without evaluating runtime code. The call's
     // item list is still emitted in source order, exactly once per argument.
     var value_index: usize = 0;

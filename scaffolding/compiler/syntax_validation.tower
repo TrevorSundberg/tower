@@ -707,16 +707,10 @@ fn syntax_validation_productive(value: SyntaxValidation*): bool {
 }
 
 export fn syntax_validate(rules: SyntaxRuleView*, count: usize, tokens: void**, token_count: usize, kind: void*, error: vector(u8)*, offset: usize*, pending: void**): bool {
-    var value: SyntaxValidation = default;
-    value.rules = rules;
-    value.count = count;
-    value.tokens = tokens;
-    value.token_count = token_count;
-    value.kind = kind;
-    value.error = error;
-    value.offset = offset;
-    value.pending = pending;
-    value.allocated = true;
+    var value: SyntaxValidation = {
+        rules: rules, count: count, tokens: tokens, token_count: token_count, kind: kind,
+        error: error, offset: offset, pending: pending, allocated: true, ..default
+    };
     var index: usize = 0;
     for(; index != count; index++) {
         pending[index] = null;

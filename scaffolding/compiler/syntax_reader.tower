@@ -627,10 +627,7 @@ fn syntax_reader_rule(reader: SyntaxReader*, node: void*): bool {
 }
 
 export fn syntax_read_rule(node: void*, source: SyntaxSource*, match_kind: void*, syntax_kind: void*, error: vector(u8)*): bool {
-    var reader: SyntaxReader = default;
-    reader.source = source;
-    reader.match_kind = match_kind;
-    reader.syntax_kind = syntax_kind;
+    var reader: SyntaxReader = { source: source, match_kind: match_kind, syntax_kind: syntax_kind, ..default };
     syntax_reader_rule(&reader, node);
     return syntax_reader_finish(&reader, error);
 }
@@ -706,10 +703,7 @@ fn syntax_reader_token(reader: SyntaxReader*, node: void*, skipped: bool): bool 
 }
 
 export fn syntax_read_token(node: void*, source: SyntaxSource*, match_kind: void*, syntax_kind: void*, skipped: bool, error: vector(u8)*): bool {
-    var reader: SyntaxReader = default;
-    reader.source = source;
-    reader.match_kind = match_kind;
-    reader.syntax_kind = syntax_kind;
+    var reader: SyntaxReader = { source: source, match_kind: match_kind, syntax_kind: syntax_kind, ..default };
     syntax_reader_token(&reader, node, skipped);
     return syntax_reader_finish(&reader, error);
 }

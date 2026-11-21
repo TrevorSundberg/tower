@@ -123,23 +123,14 @@ export fn lexicon_destroy(value: SyntaxLexicon*): void {
 }
 
 export fn lexicon_token(value: SyntaxLexicon*, table: LexerTable*, id: u32, style: u8*, skipped: bool, contextual: bool, identifier: bool): bool {
-    var entry: LexiconToken;
-    entry.table = table;
-    entry.id = id;
-    entry.style = style;
-    entry.skipped = skipped;
-    entry.contextual = contextual;
-    entry.identifier = identifier;
+    var entry: LexiconToken = {
+        table: table, id: id, style: style, skipped: skipped, contextual: contextual, identifier: identifier
+    };
     return lr_append(LexiconToken, &value.tokens, &entry);
 }
 
 export fn lexicon_literal(value: SyntaxLexicon*, text: u8*, length: usize, id: u32, declaration: bool): bool {
-    var literal: LexiconLiteral;
-    literal.text = text;
-    literal.length = length;
-    literal.id = id;
-    literal.word = lexicon_word(text, length);
-    literal.declaration = declaration;
+    var literal: LexiconLiteral = { text: text, length: length, id: id, word: lexicon_word(text, length), declaration: declaration };
     return lr_append(LexiconLiteral, &value.literals, &literal);
 }
 

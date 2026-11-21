@@ -8,11 +8,7 @@ import lr_types;
 // Grammar order determines indices, never conflict priority or a shift bias.
 fn lr_lalr_index(value: LRStates*, state_index: usize, item: LRItem*): usize {
     var state = value.states.data[state_index];
-    var key: LRItem;
-    key.rule = item.rule;
-    key.position = item.position;
-    key.first = 0;
-    key.last = 0;
+    var key: LRItem = { rule: item.rule, position: item.position, first: 0, last: 0 };
     var low: usize = 0;
     var high = state.items.values.length;
     loop {
@@ -67,11 +63,7 @@ fn lr_lalr_link(value: LRStates*, output: LRLinkOutput*, source: usize, state: u
     if destination == lr_none() {
         return false;
     }
-    var link: LRPropagationLink;
-    link.source = source;
-    link.destination = destination;
-    link.first = item.first;
-    link.last = item.last;
+    var link: LRPropagationLink = { source: source, destination: destination, first: item.first, last: item.last };
     if output.links != null {
         return lr_append(output.links, &link);
     }
@@ -287,11 +279,7 @@ actions: vector(LRAction)*): bool {
     foreach(var & edge in &state.edges) {
         var symbol = &value.analysis.symbols[edge.symbol];
         if symbol.nonterminal == lr_none() {
-            var action: LRAction;
-            action.first = symbol.first;
-            action.last = symbol.last;
-            action.rule = lr_none();
-            action.state = edge.state;
+            var action: LRAction = { first: symbol.first, last: symbol.last, rule: lr_none(), state: edge.state };
             if !lr_append(actions, &action) {
                 return false;
             }
@@ -302,11 +290,7 @@ actions: vector(LRAction)*): bool {
         if item.position == value.analysis.rules[item.rule].count {
             var ranges = &graph.nodes[state.base + index].ranges;
             foreach(var & range in ranges) {
-                var action: LRAction;
-                action.first = range.first;
-                action.last = range.last;
-                action.rule = item.rule;
-                action.state = lr_none();
+                var action: LRAction = { first: range.first, last: range.last, rule: item.rule, state: lr_none() };
                 if !lr_append(actions, &action) {
                     return false;
                 }

@@ -432,10 +432,7 @@ fn emission_provenance(value: SyntaxEmission*, name: usize, source: void*, captu
     if value.failed {
         return;
     }
-    var item: SyntaxEmissionHelper;
-    item.name = emission_text(value, name);
-    item.source = source;
-    item.capture = capture;
+    var item: SyntaxEmissionHelper = { name: emission_text(value, name), source: source, capture: capture };
     value.names.data[name].provenance = value.helpers.length;
     if !lr_append(SyntaxEmissionHelper, &value.helpers, &item) {
         value.failed = true;
@@ -593,10 +590,9 @@ fn emission_sequence(value: SyntaxEmission*, name: usize, entity: void*, alterna
     if value.failed {
         return;
     }
-    var entry: SyntaxEmissionProduction;
-    entry.name = emission_text(value, name);
-    entry.alternative = alternative;
-    entry.index = entity_child_count(value.input.root);
+    var entry: SyntaxEmissionProduction = {
+        name: emission_text(value, name), alternative: alternative, index: entity_child_count(value.input.root)
+    };
     if !lr_append(SyntaxEmissionProduction, &value.productions, &entry) {
         value.failed = true;
         return;

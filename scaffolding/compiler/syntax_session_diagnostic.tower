@@ -27,23 +27,16 @@ export fn syntax_session_diagnostic(value: SyntaxSession*, recognizer: ParserReq
         null, 0, value.pins.version.kinds.syntax);
     defer frontend_revision_release(definitions);
     var emission = bits(SyntaxEmission*, value.pins.version.emission);
-    var input: SyntaxDiagnosticInput;
-    input.source = value.source;
-    input.size = value.source_length;
-    input.cursor = value.cursor;
-    input.offset = diagnostic.offset;
-    input.insertion_offset = diagnostic.insertion_offset;
-    input.original = parser_recognizer_get_error(bits(void*, recognizer));
-    input.options = diagnostic.options.data;
-    input.count = diagnostic.options.length;
-    input.literals = syntax_emission_literal_ids(emission);
-    input.literal_count = syntax_emission_literal_count(emission);
-    input.productions = syntax_emission_productions(emission);
-    input.production_count = syntax_emission_production_count(emission);
-    input.repairs = repairs;
-    input.complete = diagnostic.complete;
-    input.at_start = diagnostic.at_start;
-    input.statements = syntax_revision_rule(definitions, "Statement", 9) is not null;
+    var input: SyntaxDiagnosticInput = {
+        source: value.source, size: value.source_length, cursor: value.cursor,
+        offset: diagnostic.offset, insertion_offset: diagnostic.insertion_offset,
+        original: parser_recognizer_get_error(bits(void*, recognizer)),
+        options: diagnostic.options.data, count: diagnostic.options.length,
+        literals: syntax_emission_literal_ids(emission), literal_count: syntax_emission_literal_count(emission),
+        productions: syntax_emission_productions(emission), production_count: syntax_emission_production_count(emission),
+        repairs: repairs, complete: diagnostic.complete, at_start: diagnostic.at_start,
+        statements: syntax_revision_rule(definitions, "Statement", 9) is not null
+    };
     var output: SyntaxDiagnosticText = default;
     format_syntax_diagnostic(&input, &output);
     if output.insertion {

@@ -69,20 +69,13 @@ export fn syntax_version_seed(value: SyntaxVersion*, definitions: FrontendRevisi
     for (var i: usize = 0; i < syntax_pending_count(pending); ++i) {
         if !vector_push(&reserved, syntax_pending_name(pending, i)) { return false; }
     }
-    var input: SyntaxEmissionInput = default;
-    input.rules = definitions.rules.data;
-    input.count = definitions.rules.length;
-    input.tokens = definitions.tokens.data;
-    input.token_count = definitions.tokens.length;
-    input.reserved = reserved.data;
-    input.reserved_count = reserved.length;
-    input.category = category;
-    input.root = value.rules;
-    input.syntax_kind = value.kinds.syntax;
-    input.rule_kind = value.kinds.rule;
-    input.reference_kind = value.kinds.reference;
-    input.string_kind = value.kinds.string;
-    input.range_kind = value.kinds.range;
+    var input: SyntaxEmissionInput = {
+        rules: definitions.rules.data, count: definitions.rules.length,
+        tokens: definitions.tokens.data, token_count: definitions.tokens.length,
+        reserved: reserved.data, reserved_count: reserved.length, category: category,
+        root: value.rules, syntax_kind: value.kinds.syntax, rule_kind: value.kinds.rule,
+        reference_kind: value.kinds.reference, string_kind: value.kinds.string, range_kind: value.kinds.range, ..default
+    };
     value.emission = bits(void*, syntax_emit_inherit(&input, parent));
     return value.emission is not null;
 }
@@ -97,12 +90,10 @@ fn syntax_version_replacements(value: SyntaxVersion*, diagnostic: SyntaxVersionD
     var owner = syntax_replacement_owner_create(bits(void*, value), bits(SyntaxEmission*, value.emission), value.kinds.syntax, value.kinds.`match`);
     if owner is null { return false; }
     value.replacements = bits(void*, owner);
-    var plan: SyntaxReplacementPlan = default;
-    plan.rules = value.grammar.rules.data;
-    plan.count = value.grammar.rules.length;
-    plan.kind = value.kinds.syntax;
-    plan.host = bits(void*, owner);
-    plan.offset = lr_none();
+    var plan: SyntaxReplacementPlan = {
+        rules: value.grammar.rules.data, count: value.grammar.rules.length,
+        kind: value.kinds.syntax, host: bits(void*, owner), offset: lr_none(), ..default
+    };
     defer syntax_replacements_dispose(&plan);
     if syntax_replacements_prepare(&plan) && syntax_replacement_freeze(owner) { return true; }
     value.replacement_error_offset = plan.offset;

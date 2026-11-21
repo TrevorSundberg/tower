@@ -114,11 +114,7 @@ fn bi_function(c: BackendImport*, function: void*): void {
 }
 
 export fn backend_import_foundation(b: Backend*, root: void*): bool {
-    var c: BackendImport = default;
-    c.backend = b;
-    c.root = root;
-    c.block = root;
-    c.declarations = root;
+    var c: BackendImport = { backend: b, root: root, block: root, declarations: root, ..default };
     var program = sem_attach(root, 0);
     semantic_collect_comments(b.source_root, root);
     program.type.scalar = 3;
