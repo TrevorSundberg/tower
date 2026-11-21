@@ -1,5 +1,5 @@
 {
-    "sourceCommit":  "27abf36452fb349368c6f3c471643c7827e12dd4",
+    "sourceCommit":  "76711f1822e6a0dd82b288ceb70771b743f7f497",
     "buildSourceCommit":  "f4c78cc3f576c0d9a580e5f47af788ce69a16d7a",
     "bootstrapSha256":  "24fa5adb794d245001369d5dda93acb58a662e5ec1d6f0e6ad672272dad0ae71",
     "previousDeployment":  "66f5aa1b511f93b1405c407fd49d35bad75e063f",
@@ -172,10 +172,10 @@
     "bootstrapExecutableSha256":  "7ef1e6da14b9de1c5e06df2cc75ff8cb1058fb6ea5bd4c57a0a0f243ca28dc16",
     "publishedBootstrapSha256":  "1a5b58879eb247e0c2e3ab33804d965b8b157f170af49f71b53a611b7762d8bb",
     "wasmLinkerPort":  {
-                           "sourceCommit":  "27abf36452fb349368c6f3c471643c7827e12dd4",
+                           "sourceCommit":  "76711f1822e6a0dd82b288ceb70771b743f7f497",
                            "implementationCommit":  "44f233a",
                            "status":  "Experimental static Wasm linker implemented entirely in Tower; production LLD dispatch retained.",
-                           "validation":  "Native and WASI linker checks pass; raw/optimized real objects execute; portable and LLVM compiler reactors relink and run. Recorded stale baseline test expectations remain. Latest direct bootstrap recompile checked.",
+                           "validation":  "Native and WASI linker checks pass with the latest direct bootstrap, including parsed shared-input rejection; raw/optimized real objects execute; portable and LLVM compiler reactors relink and run. Recorded stale baseline test expectations remain.",
                            "remaining":  "Lazy archives, shared-memory/TLS, debug/profile coverage, parallel relocation, browser self-build generations and production cutover.",
                            "runtimeAssetsChanged":  false
                        }
