@@ -26700,3 +26700,51 @@ Reuse the closure pool rather than opening another pool for this phase. FIRST
 and propagation fixed points, generic/iteration protocol construction and native
 session/backend orchestration remain open; this is not an entire-compiler
 threading completion claim.
+Coordinator-provided evidence, recorded during Agent1 combined release preparation; the following draft is outside this release and these focused observations were run by the coordinator.
+
+### 2026-11-20: Coordinator-reported external emission oracle preparation
+
+After pushing fcc389c's 151-line utility retirement, the coordinator prepared
+the next independent oracle in external emission-reference-port/tests. The
+246-line syntax-emission-seed.cpp stays in Git until the next integration slot;
+this draft is deliberately excluded from Agent1's current combined release.
+
+The Tower oracle directly translates the reference algorithm: lexical definition
+ordering, reserved/generated-name collisions, literal IDs, template wrappers,
+repetition/capture provenance, singleton terminal-set productions, declaration
+reachability and iterative nullable/FIRST sets. It consumes/emits existing ECS
+syntax/parser entities, owns all scratch/name/result buffers and retains input
+entities for the result lifetime. No second semantic grammar, global mutable
+registry, native shim or production algorithm change. Public names preserve
+lexical enumeration; helper results preserve repetitions-then-captures, each in
+lexical order. Linear independent indexes intentionally differ from production
+hash/work indexes. The permanent test draft changes imports/prototypes only.
+
+Using published 25765446 bootstrap with fcc389c/eea0037 source, Clang19 and SDK34:
+unchanged legacy oracle and candidate Tower oracle both pass the same fixed,
+400 generated, template, failure-injection and lifetime fixtures on native and
+WASI. The dual-oracle probe retains the old object and compares each to production;
+the replacement-only probes link and run WITHOUT the native reference archive.
+All original assertions and failure bounds remain. Repeating the complete fixture
+after warmup leaves buffer and entity counts unchanged. Native baseline and
+replacement use the exact same two-pass entry. Three observations with
+`/usr/bin/time -f %e`: legacy 0.79/0.75/0.72 s, Tower 0.27/0.26/0.27 s. These are
+focused fixture timings, not a whole-compiler benchmark or a parallelism claim.
+
+Trials corrected in the external draft: `token` is a grammar keyword, `else`
+requires a braced body, vector_push accepts scalar/pointer elements rather than
+aggregate copies, entity retain/release return usize, and pointer-to-void returns
+require bits. The temporary printf declaration uses its exact fixed argument list.
+The first replacement probe imported the original fixture through syntax_template,
+causing a duplicate export; copying that unmodified fixture into the external
+dependency closure fixed its module identity. No compiler or assertion workaround.
+
+Evidence outside Git: emission-reference-port/{native-final,wasi-final,
+native-replacement,wasi-replacement,native-baseline}.log, corresponding build logs,
+six timing logs, both candidate/parser entry sources and executables. Next: after
+the current publication freeze, integrate tests/syntax_emission_oracle.tower,
+mechanically remove the native reference target/link dependencies, build the
+current published-bootstrap successor and aggregate native/WASI tests, then
+publish/deploy. No deletion is claimed for this prepared slice yet.
+
+After upstream2452c10/current public bcc76755 landed, the coordinator adapted five proven-stable traversals in the external oracle to foreach, preserved index/dynamic traversals and retained legacy null destruction. Both replacement units were recompiled with the new default against49ed3c3. Coordinator reports replacement-only native/WASI RUN PASS, including repeated buffer/entity baselines (native-current.log, wasi-current.log). Final integrated successor remains next-slot work; the draft remains excluded from this release.
