@@ -54,8 +54,6 @@ def package(builds, destination):
     files = {p.relative_to(SOURCES).as_posix(): p.read_text() for folder in ['compiler','host','backend','library']
              for p in (SOURCES/folder).rglob('*.tower')}
     files.update({n+'.tower': (SOURCES/(n+'.tower')).read_text() for n in ['bedrock','foundation','tower']})
-    # The browser self-test now links the production-export Tower parser fixture.
-    files['tests/parser_integration.tower'] = (SOURCES/'tests/parser_integration.tower').read_text()
     units, reactors = {}, {}
     for name, build, target, binary in builds:
         command = next(line for line in reversed(run(['ninja','-t','commands',target], build).splitlines()) if ' -o ' + binary + ' ' in line)
@@ -87,6 +85,17 @@ def package(builds, destination):
                 native.append(arg)
         names = []
         for obj in tower_objects:
+            # Use the compiler's actual import closure, including production
+            # self-test fixtures outside the usual source folders. Do not keep a
+            # second import resolver or a hand-maintained list of test modules.
+            dependencies = obj.with_suffix(obj.suffix+'.d').read_text()
+            _, separator, dependencies = dependencies.partition(': ')
+            if not separator: raise ValueError('Invalid Tower depfile for '+str(obj))
+            for dependency in shlex.split(dependencies.replace('\\\n', ' ')):
+                path = Path(dependency.replace('$$', '$'))
+                if not path.is_absolute(): path = build/path
+                if path.is_relative_to(SOURCES) and path.suffix == '.tower':
+                    files[path.relative_to(SOURCES).as_posix()] = path.read_text()
             key = obj.stem.removeprefix('tower-')
             entry = 'units/'+key.replace('-', '_')+'.tower'
             if obj.name in UNIT_SOURCES:

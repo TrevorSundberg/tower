@@ -26667,3 +26667,36 @@ values and canonical comparisons at 1/2/4/8 workers. Extend the concise AGENTS
 rule to require admission auditing for implicit protocol construction. Foreach
 host tests also close shared transports. These changes do not claim protocol
 construction is already threaded; full compiler ECS migration remains active.
+
+### 2026-11-20 - Published ECS/compile-time checkpoint and package closure repair
+
+Source checkpoint ba1884d is now on origin/main (normal fast-forward push after
+integrating 49ed3c3's test-only retirement). The final production Tower/bootstrap
+inputs match the settled clean build. The documented bcc76755 development
+bootstrap, with no private override, builds the native successor; acceptance
+passes 2/2 (1.86 s), and that successor rebuilds its parser object byte-identically.
+Matching graph/fast/LLVM compile-time, inference and foreach tests pass 34/34
+(88.20 s); shared 1/2/4/8-capacity and iteration checks pass 10/10 (78.60 s).
+Desktop/mobile isolated-worker, reload and portable fallback checks pass 4/4
+(35.6 s). Complete local deployment validation verifies all 77 assets and passes
+both desktop and mobile, including imported projects and native exports.
+
+The separate browser two-generation compiler-project check then exposed a real
+packaging omission: units/compiler_interpreter.tower imports
+ tests/interpreter_invocation, but the packaged project carried only the manually
+listed parser_integration fixture. semantic_world is another production fixture.
+Replace that hard-coded list with each linked Tower object's compiler-generated
+.o.d import closure, preserving project-relative paths. This uses the compiler's
+resolution rather than duplicating Tower import rules in Python, and follows
+future test-oracle retirements automatically. Existing compiler/library sources
+remain available for editing. Repack and two-generation validation are pending;
+the browser deployment has not yet been published by this lane. Evidence is in
+build/language-next-audit/release-{local-deployment,self-build,package-fixed}.log.
+
+Next bounded threading slice is independent LALR action-table construction after
+lookahead resolution: ECS range jobs read immutable states/propagation results,
+write private action vectors, then publish in state order after all jobs join.
+Reuse the closure pool rather than opening another pool for this phase. FIRST
+and propagation fixed points, generic/iteration protocol construction and native
+session/backend orchestration remain open; this is not an entire-compiler
+threading completion claim.
