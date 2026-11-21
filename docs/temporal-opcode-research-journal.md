@@ -25440,3 +25440,13 @@ repackaged at source 1e55315 as
 (with no source patch). Another previously empty /cache/iteration-public-clean
 build passed all 55 steps with the new pin and no private override. This supersedes
 the unpublished package and preserves reachable source provenance for publication.
+
+A second publication rebase incorporated 0f63985's Tower reader/validation oracle
+migrations and native seed removal. Preserved all source and journal history.
+Fresh /cache/iteration-reader-clean built the merged source, then rebuilt it with
+the newly packaged default bootstrap (40 steps, no override). The compiler archive
+is byte-identical after that successor rebuild. Corrected shell argument transport
+which initially truncated the recorded build command; the final manifest contains
+the complete command. Final pin bcc76755fbf9cb0959828e2e35a6868974cd740328d58bc3366bf247f524dc51
+names source da56ae6 and supersedes the unpublished dffdeac candidate. Validation
+logs are iteration-reader-clean.log and iteration-reader-pin-check.log.
