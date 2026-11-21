@@ -22881,3 +22881,77 @@ CTest records are in agent-1-native-current/Testing/Temporary/LastTest.log.
 Sanitizers and broad formatting sweeps remain skipped as requested. Browser
 reactors, publication and hosted verification are still pending coordination.
 
+### 2026-11-20 - Agent 2: shared Tower execution requests and native core harness retirement
+
+Scope: extracted the existing CLI execution owner into `compiler/execution_session.tower`
+and canonical package orchestration into `compiler/execution_package.tower`. The CLI now
+uses these services for graph/cache lifetime, source compilation, error/output storage,
+and `.towerbc` encode/reconstruction. They retain `SemanticProgram` and Foundation ECS
+entities; no additional semantic IR, interpreter, public opcode ABI or native helper was
+introduced. The module environment is explicitly borrowed during compilation. The old
+157-line `scaffolding/core-tests.cpp` was deleted after its functional contracts passed
+in Tower. Agent 3 approved the narrow parser source-list/main changes; its remaining
+native semantic differential tests still run directly from the native main.
+
+The new `TOWER_EXECUTION_TESTS` opt-in builds `tower-execution-tests` from Tower test
+sources and production compiler objects. It covers all 26 old interpreter fixtures at
+both 4/8-byte target widths and budgets 1/7/1000 (156 graph/fast trials), foreign pointer
+mutation, callback-driven relocation, foreign failure text/offset, suspension, exact
+final output/diagnostic/memory agreement, raw allocation ordering/coalescing and failed
+reallocation. The core cases retain positive/negative type checks, recursive calls,
+module binding/inference, quoted names, generic nominal identity, target layout,
+canonical text and structural round trips, and foreign calls. Package tests check
+byte-identical reconstruction/re-encoding and reject checksum corruption/truncation.
+
+Debugging and rejected assumptions:
+- Ordinary GitHub pull failed DNS; the task-documented command-local
+  `-c http.curloptResolve=github.com:443:140.82.113.4` succeeded with TLS unchanged.
+- Upstream advanced from 8d8b4aa to 8290fd2 during implementation. Rebased with
+  `--autostash`, preserved stash 23601dd, and resolved the driver_execution formatting
+  overlap while retaining the new shared owner. Reinstalled through the documented
+  bootstrap path: current Linux development bootstrap cache hash is
+  9bbb2eb8fa039442303d231fd35b5b4ac416df21f19c80f0d5f9dbf6bb01f395. This is a
+  platform-specific development bootstrap, not a portable release claim.
+- The first harness compiles exposed the reserved `expected` identifier, nontransitive
+  module imports, and library-mode rejection of top-level storage. The tests now use
+  explicit imports and local ownership, without adding native storage or shims.
+- Directly feeding a formatter buffer to the frontend failed with `No token rule
+  matches source`: the remaining frontend root API reads NUL-terminated text despite
+  `FrontendSource.length`. The reusable service copies each bounded input into an
+  owned terminated snapshot before calling that boundary, and releases it afterward.
+  Package source remains bounded and is checked for embedded NUL before reconstruction.
+- The graph and cache count different execution units. A 12,000-step endless-print
+  trial did not truncate both; 120,000 bounded steps exercise both output caps without
+  claiming equal instruction counts or speed. All bounded results agree byte-for-byte.
+- Structural round-trip checks reproduce the old harness's semantic type-name
+  comparison. Unused/default type fields do not necessarily retain pointer-width
+  metadata; selected target widths are checked on inferred locals and actual layouts.
+  Generic declarations normalize into concrete specializations, so their retained
+  contract is nominal identity, canonical stability and execution, as in the old test.
+- A total-world entity count across grammar-edit fixtures is not a request lifetime
+  invariant: observed counts rose 5258 -> 5906 after a local grammar extension and
+  to 6507 after an invalid grammar fixture, with cache retirement later reducing the
+  count. The borrowed world's grammar caches retain entities. Instead, tests retain
+  each exclusively owned semantic root, close the request, require exactly one
+  remaining reference, release it, check cleared storage, and require stable entity
+  counts across 16 repeated requests after cache warmup. No cache ownership changes
+  were made in this lane.
+
+Reproduction (WSL Ubuntu, clang 21, LLVM 19, four jobs, isolated cache):
+```
+env -u TOWER_BOOTSTRAP_COMPILER TOWER_NATIVE_BUILD=/home/trevo/.cache/tower/agent-2-native TOWER_BUILD_JOBS=4 bash playground/scripts/build-native.sh
+cmake -S . -B /home/trevo/.cache/tower/agent-2-native -DTOWER_EXECUTION_TESTS=ON -DTOWER_DRIVER_TESTS=ON -DTOWER_BACKEND_TESTS=ON
+cmake --build /home/trevo/.cache/tower/agent-2-native --target towerc tower-execution-tests tower-frontend-tests tower-driver-tests --parallel 4
+ctest --test-dir /home/trevo/.cache/tower/agent-2-native -R '^tower-(execution|frontend|driver)$' --output-on-failure
+```
+
+Validation: the rebuilt CLI, Tower execution suite and focused frontend/driver checks
+passed before publication preparation. The full native parser aggregate, sanitizer
+and broad formatter sweeps were intentionally not run. Legacy `CoreProgram`/
+`CoreMachine` and the native standalone interpreter reference remain because other
+native test consumers and the old WASI host-runtime runner still use them. They are
+not production CLI/browser execution. Next: migrate those callers, then remove their
+adapters and the obsolete native ABI assertions. Agent 2 owns source commit/rebase/
+clean-successor validation/push; the coordinator explicitly accepted the combined
+current-source browser deployment and hosted verification. Publication status follows
+in a later entry; this entry does not claim deployment success.

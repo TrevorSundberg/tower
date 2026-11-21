@@ -258,12 +258,23 @@ conflicting actions; internal assertions still guard unsupported table invariant
 
 ## Typed core interpreter
 
-The native runner also loads `foundation.tower` and runs `core-tests.cpp` under the same
-sanitizer configuration. It checks typed assignments, pointer aliases, expired
-local lifetimes, type rejection before execution, loop exits and bounded stepping
-of infinite loops. The browser/WASM suite in `playground/tests/execution.test.mjs`
-additionally exercises numeric conversions and traps, all binary operation
-families, nested control flow and scopes, repeated slot lifetimes, output limits,
+The Tower execution suite (`execution_main.tower`) replaces the native
+`core-tests.cpp` harness. Enable `TOWER_EXECUTION_TESTS=ON` in the documented native
+build, build `tower-execution-tests`, then run `ctest --test-dir <native-build>
+-R '^tower-execution$' --output-on-failure`. The test passes the repository grammar
+resource directory explicitly.
+
+It checks 156 graph/fast interpreter trials (26 fixtures, two target pointer
+widths, three step budgets), exact error text/offset agreement, guest memory,
+foreign calls and relocation, allocation/reallocation, output limits and
+cancellation. Core fixtures preserve graph structure and bindings through
+canonical Foundation round trips, generic identity, target layouts, quoted names,
+and request ownership. Package trials reconstruct checked Foundation, verify its
+execution cache, reproduce identical bytes, and reject checksum corruption and
+truncated envelopes. These tests use the production Tower execution session used
+by the CLI. The legacy native interpreter reference harness remains temporarily
+for the WASI host-runtime test path until that caller is migrated.
+
+The browser/WASM suite in `playground/tests/execution.test.mjs` additionally
+exercises numeric conversions and traps, binary operations, control flow,
 replacement source provenance, semantic ABI syntax changes and grammar reuse.
-The core tests require `foundation.tower` in the
-working directory; `run.ps1` copies both automatically.

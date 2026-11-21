@@ -1,0 +1,124 @@
+import tower;
+import interpreter_types;
+import semantic_program_types;
+import foundation_types;
+import format_types;
+import .library.bytes_types;
+import .library.bytes_interface;
+
+// One request owns its checked Foundation entities, derived execution cache and
+// guest storage. The module environment is borrowed only during compilation.
+// Hosts supply the existing im_* callbacks; this service has no CLI/IDE transport.
+struct ExecutionSession {
+    machine: IMState;
+    program: SemanticProgram;
+    fast: void*;
+    error: ByteBuffer;
+    output: ByteBuffer;
+    started: bool;
+}
+
+extern fn tower_node_create(): void*;
+extern fn entity_release(node: void*): usize;
+extern fn semantic_initialize(program: SemanticProgram*, root: void*, width: u32): void;
+extern fn semantic_program_dispose(program: SemanticProgram*): void;
+extern fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendSource*, count: usize, environment: void*): void;
+extern fn interpreter_init(machine: IMState*): void;
+extern fn interpreter_storage_dispose(machine: IMState*): void;
+extern fn interpreter_step(machine: IMState*, budget: usize): void;
+extern fn fast_interpreter_create(machine: IMState*): void*;
+extern fn fast_interpreter_dispose(fast: void*): void;
+extern fn fast_interpreter_step(machine: IMState*, fast: void*, budget: usize): void;
+extern fn strlen(text: u8*): usize;
+extern fn abort(): void;
+extern fn bytes_assign_text(out: ByteBuffer*, text: u8*, length: usize): bool;
+
+fn execution_session_close(execution: ExecutionSession*): void {
+    if execution.fast != null { fast_interpreter_dispose(execution.fast); }
+    interpreter_storage_dispose(&execution.machine);
+    var root = execution.program.root;
+    semantic_program_dispose(&execution.program);
+    if root != null { entity_release(root); }
+    bytes_dispose(&execution.error);
+    bytes_dispose(&execution.output);
+    fill(execution, 0, sizeof(ExecutionSession));
+}
+
+fn execution_session_fail(execution: ExecutionSession*, text: u8*, offset: usize): void {
+    if execution.error.length == 0 {
+        if !bytes_assign_text(&execution.error, text, strlen(text)) { abort(); }
+        execution.machine.failed = true;
+        execution.machine.error_offset = offset;
+    }
+}
+
+fn execution_session_compile_sources(execution: ExecutionSession*, sources: FrontendSource*, count: usize, width: u32, modules: void*): bool {
+    execution_session_close(execution);
+    semantic_initialize(&execution.program, tower_node_create(), width);
+    // The remaining frontend boundary reads NUL-terminated source. Preserve the
+    // request's explicit bounds even for formatter buffers and package sections.
+    var inputs = alloc(FrontendSource, count);
+    var snapshots = alloc(ByteBuffer, count);
+    if count != 0 && (inputs == null || snapshots == null) {
+        free(inputs); free(snapshots);
+        execution_session_fail(execution, "Unable to allocate compiler input storage", 0);
+        execution.machine.done = true;
+        return false;
+    }
+    fill(snapshots, 0, count * sizeof(ByteBuffer));
+    var copied = true;
+    for (var i: usize = 0; i < count; i++) {
+        if !bytes_assign_text(&snapshots[i], sources[i].data, sources[i].length) { copied = false; break; }
+        inputs[i].data = snapshots[i].data;
+        inputs[i].length = snapshots[i].length;
+    }
+    if copied { frontend_compile_sources(&execution.program, inputs, count, modules); }
+    for (var i: usize = 0; i < count; i++) { bytes_dispose(&snapshots[i]); }
+    free(snapshots); free(inputs);
+    if !copied {
+        execution_session_fail(execution, "Unable to allocate compiler input storage", 0);
+        execution.machine.done = true;
+        return false;
+    }
+    if !bytes_assign_text(&execution.error, execution.program.error.data, execution.program.error.length) {
+        execution_session_fail(execution, "Unable to allocate compiler diagnostic", execution.program.error_offset);
+    }
+    execution.machine.error_offset = execution.program.error_offset;
+    execution.machine.failed = execution.error.length != 0;
+    execution.machine.done = execution.machine.failed;
+    execution.machine.stack = 16;
+    execution.machine.heap = 4194304;
+    return !execution.machine.failed;
+}
+
+fn execution_session_compile(execution: ExecutionSession*, text: u8*, length: usize, width: u32, modules: void*): bool {
+    var input: FrontendSource;
+    input.data = text;
+    input.length = length;
+    return execution_session_compile_sources(execution, &input, 1, width, modules);
+}
+
+fn execution_session_start(execution: ExecutionSession*): bool {
+    if !execution.started {
+        execution.started = true;
+        interpreter_init(&execution.machine);
+    }
+    return !execution.machine.failed;
+}
+
+fn execution_session_fast(execution: ExecutionSession*): bool {
+    if execution.machine.steps != 0 || !execution_session_start(execution) { return false; }
+    if execution.fast == null { execution.fast = fast_interpreter_create(&execution.machine); }
+    return execution.fast != null;
+}
+
+fn execution_session_step(execution: ExecutionSession*, budget: usize): void {
+    if !execution_session_start(execution) { return; }
+    if execution.fast != null { fast_interpreter_step(&execution.machine, execution.fast, budget); }
+    else { interpreter_step(&execution.machine, budget); }
+}
+
+fn execution_session_append(execution: ExecutionSession*, text: u8*, count: usize): void {
+    if !bytes_append(&execution.output, text, count) { abort(); }
+    execution.machine.output_bytes += count;
+}

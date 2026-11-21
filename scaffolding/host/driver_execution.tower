@@ -1,5 +1,6 @@
 import tower;
 import driver_api;
+import .compiler.execution_session;
 import driver_support;
 import driver_platform;
 import .library.bytes_interface;
@@ -8,95 +9,25 @@ import .compiler.interpreter_types;
 import .compiler.semantic_program_types;
 import .compiler.foundation_types;
 
-// The interpreter's host prefix and its semantic graph have one explicit owner.
-// Both engines consume these same Foundation entities and existing guest memory.
-struct DriverExecution {
-    machine: IMState;
-    program: SemanticProgram;
-    fast: void*;
-    error: ByteBuffer;
-    output: ByteBuffer;
-    started: bool;
+// Shared request ownership; only platform transport remains in this host.
+fn driver_execution_close(execution: ExecutionSession*): void { execution_session_close(execution); }
+fn driver_execution_compile(execution: ExecutionSession*, text: u8*, length: usize, width: u32, modules: void*): bool {
+    return execution_session_compile(execution, text, length, width, modules);
 }
-
-fn driver_execution_close(execution: DriverExecution*): void {
-    if execution.fast != null {
-        fast_interpreter_dispose(execution.fast);
-    }
-    interpreter_storage_dispose(&execution.machine);
-    if execution.program.root != null {
-        var root = execution.program.root;
-        semantic_program_dispose(&execution.program);
-        entity_release(root);
-    }
-    bytes_dispose(&execution.error);
-    bytes_dispose(&execution.output);
-    fill(execution, 0, sizeof(DriverExecution));
-}
-
-fn driver_execution_compile(execution: DriverExecution*, text: u8*, length: usize, width: u32, modules: void*): bool {
-    driver_execution_close(execution);
-    semantic_initialize(&execution.program, tower_node_create(), width);
-    var input: FrontendSource;
-    input.data = text;
-    input.length = length;
-    frontend_compile_sources(&execution.program, &input, 1, modules);
-    if !bytes_assign_text(&execution.error, execution.program.error.data, execution.program.error.length) {
-        driver_error("Unable to allocate compiler diagnostic", "");
-        return false;
-    }
-    execution.machine.error_offset = execution.program.error_offset;
-    execution.machine.failed = execution.error.length != 0;
-    execution.machine.done = execution.machine.failed;
-    execution.machine.stack = 16;
-    execution.machine.heap = 4194304;
-    return !execution.machine.failed;
-}
-
-fn driver_execution_start(execution: DriverExecution*): bool {
-    if !execution.started {
-        execution.started = true;
-        interpreter_init(&execution.machine);
-    }
-    return !execution.machine.failed;
-}
-
-fn driver_execution_fast(execution: DriverExecution*): bool {
-    if !driver_execution_start(execution) {
-        return false;
-    }
-    if execution.fast == null {
-        execution.fast = fast_interpreter_create(&execution.machine);
-    }
-    return execution.fast != null;
-}
-
-fn driver_execution_flush(execution: DriverExecution*): void {
+fn driver_execution_start(execution: ExecutionSession*): bool { return execution_session_start(execution); }
+fn driver_execution_fast(execution: ExecutionSession*): bool { return execution_session_fast(execution); }
+fn driver_execution_flush(execution: ExecutionSession*): void {
     driver_platform_write(1, execution.output.data, execution.output.length);
     execution.output.length = 0;
 }
 
 export fn im_pointer_bytes(machine: IMState*): usize {
-    return convert(usize, bits(DriverExecution*, machine).program.pointer_bytes);
+    return convert(usize, bits(ExecutionSession*, machine).program.pointer_bytes);
 }
-
-export fn im_root(machine: IMState*): void* {
-    return bits(DriverExecution*, machine).program.root;
-}
-
-export fn im_has_foreign(machine: IMState*): bool {
-    return true;
-}
-
+export fn im_root(machine: IMState*): void* { return bits(ExecutionSession*, machine).program.root; }
+export fn im_has_foreign(machine: IMState*): bool { return true; }
 export fn im_fail(machine: IMState*, text: u8*, offset: usize): void {
-    var execution = bits(DriverExecution*, machine);
-    if execution.error.length == 0 {
-        if !bytes_assign_text(&execution.error, text, strlen(text)) {
-            abort();
-        }
-        machine.failed = true;
-        machine.error_offset = offset;
-    }
+    execution_session_fail(bits(ExecutionSession*, machine), text, offset);
 }
 
 extern fn abort(): void;
@@ -114,11 +45,7 @@ export fn im_missing_foreign(machine: IMState*, node: void*, offset: usize): voi
 }
 
 export fn im_append(machine: IMState*, text: u8*, count: usize): void {
-    var execution = bits(DriverExecution*, machine);
-    if !bytes_append(&execution.output, text, count) {
-        abort();
-    }
-    machine.output_bytes += count;
+    execution_session_append(bits(ExecutionSession*, machine), text, count);
 }
 
 extern fn memcmp(left: u8*, right: u8*, count: usize): i32;
@@ -142,12 +69,8 @@ export fn im_foreign(machine: IMState*, node: void*, args: u64*, count: usize): 
         return ~convert(u64, 0);
     }
     var data = interpreter_bytes(machine, args[1], convert(usize, args[2]), 0);
-    if data == null {
-        return ~convert(u64, 0);
-    }
-    driver_execution_flush(bits(DriverExecution*, machine));
-    if driver_platform_write_result(convert(i32, args[0]), data, convert(usize, args[2])) {
-        return args[2];
-    }
+    if data == null { return ~convert(u64, 0); }
+    driver_execution_flush(bits(ExecutionSession*, machine));
+    if driver_platform_write_result(convert(i32, args[0]), data, convert(usize, args[2])) { return args[2]; }
     return ~convert(u64, 0);
 }

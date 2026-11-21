@@ -3,7 +3,7 @@
 #include "../syntax.hpp"
 #include "../compiler-syntax-emission.hpp"
 #include <cassert>
-void core_tests();
+void semantic_port_tests();
 extern "C" int host_runtime_tests();
 void formatter_tests();
 void compiler_storage_tests();
@@ -81,7 +81,7 @@ int main(int argc, char** argv) {
   tower_tests();
   parser_tests();
   syntax_tests();
-  core_tests();
+  semantic_port_tests();
   formatter_tests();
   compiler_storage_tests();
   lexer_table_tests();

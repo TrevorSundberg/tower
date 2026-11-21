@@ -1,0 +1,126 @@
+import tower;
+import .host.driver_types;
+import .library.bytes_interface;
+import .library.bytes_types;
+
+import .compiler.format_types;
+import .compiler.foundation_types;
+import .compiler.semantic_program_types;
+import .compiler.interpreter_types;
+import .compiler.execution_session;
+import .compiler.execution_package;
+import .compiler.foundation_tags;
+import .host.driver_api;
+import .host.driver_request;
+import .host.driver_support;
+
+extern fn exit(status: i32): void;
+extern fn puts(text: u8*): i32;
+extern fn memcmp(left: u8*, right: u8*, size: usize): i32;
+extern fn strstr(text: u8*, pattern: u8*): u8*;
+extern fn interpreter_bytes(machine: IMState*, address: u64, count: usize, offset: usize): u8*;
+extern fn interpreter_load(machine: IMState*, address: u64, type: FoundationType*, offset: usize): u64;
+extern fn interpreter_write(machine: IMState*, address: u64, value: u64, type: FoundationType*, offset: usize): void;
+extern fn interpreter_allocate(machine: IMState*, size: usize): u64;
+extern fn interpreter_reallocate(machine: IMState*, address: u64, size: usize): u64;
+extern fn interpreter_deallocate(machine: IMState*, address: u64): void;
+extern fn entity_store_count(store: void*): usize;
+extern fn compiler_world_store(world: void*): void*;
+extern fn compiler_host_world(): void*;
+extern fn entity_retain(node: void*): usize;
+extern fn entity_references(node: void*): usize;
+
+fn execution_close_checked(session: ExecutionSession*): void {
+    var root = session.program.root;
+    execution_check(root != null && entity_references(root) == 1, "request exclusively owns semantic root");
+    entity_retain(root);
+    execution_session_close(session);
+    execution_check(entity_references(root) == 1, "close releases request root exactly once");
+    entity_release(root);
+    execution_check(session.machine.memory.data == null && session.fast == null && session.program.root == null
+        && session.error.data == null && session.output.data == null, "close clears owned storage");
+    execution_session_close(session);
+}
+
+
+
+
+
+fn execution_check(ok: bool, message: u8*): void {
+    if !ok {
+        driver_error("Execution test: ", message);
+
+
+        exit(1);
+    }
+}
+
+fn execution_equal(left: ByteBuffer*, right: ByteBuffer*): bool {
+    return left.length == right.length && (left.length == 0 || memcmp(left.data, right.data, left.length) == 0);
+}
+
+fn execution_text(text: ByteBuffer*, wanted: u8*): bool {
+    return text.length == strlen(wanted) && (text.length == 0 || memcmp(text.data, wanted, text.length) == 0);
+}
+
+fn execution_compile(session: ExecutionSession*, text: u8*, width: u32, modules: void*): void {
+    var ok = execution_session_compile(session, text, strlen(text), width, modules);
+    if !ok { driver_error("Compilation: ", session.error.data ?? "allocation failure"); }
+    execution_check(ok, "fixture compiles");
+}
+
+fn execution_run(session: ExecutionSession*, budget: usize, limit: usize): void {
+    var used: usize = 0;
+    while !session.machine.done && used < limit { execution_session_step(session, budget); used += budget; }
+}
+
+fn execution_same(graph: ExecutionSession*, fast: ExecutionSession*): void {
+    execution_check(graph.machine.done == fast.machine.done, "completion agrees");
+    execution_check(execution_equal(&graph.output, &fast.output), "output agrees");
+    execution_check(execution_equal(&graph.error, &fast.error), "exact diagnostic agrees");
+    execution_check(graph.machine.error_offset == fast.machine.error_offset, "diagnostic source offset agrees");
+    execution_check(graph.machine.output_truncated == fast.machine.output_truncated, "output limit agrees");
+    execution_check(graph.machine.memory.length == fast.machine.memory.length, "memory size agrees");
+    execution_check(memcmp(graph.machine.memory.data, fast.machine.memory.data, graph.machine.memory.length) == 0, "target memory bytes agree");
+}
+
+export fn im_pointer_bytes(machine: IMState*): usize { return convert(usize, bits(ExecutionSession*, machine).program.pointer_bytes); }
+export fn im_root(machine: IMState*): void* { return bits(ExecutionSession*, machine).program.root; }
+export fn im_has_foreign(machine: IMState*): bool { return true; }
+export fn im_fail(machine: IMState*, text: u8*, offset: usize): void { execution_session_fail(bits(ExecutionSession*, machine), text, offset); }
+export fn im_append(machine: IMState*, text: u8*, count: usize): void { execution_session_append(bits(ExecutionSession*, machine), text, count); }
+export fn im_missing_foreign(machine: IMState*, node: void*, offset: usize): void {
+    var text: ByteBuffer;
+    fill(&text, 0, sizeof(ByteBuffer));
+    var function = sem_get(node);
+    execution_check(driver_text(&text, "No interpreter implementation registered for external function '")
+        && bytes_append(&text, function.name.data, function.name.length)
+        && driver_text(&text, "'") && host_text_terminate(&text), "foreign diagnostic allocation");
+    im_fail(machine, text.data, offset);
+    bytes_dispose(&text);
+}
+
+export fn im_foreign(machine: IMState*, node: void*, args: u64*, count: usize): u64 {
+    var function = sem_get(node);
+    if function.name.length == 9 && memcmp(function.name.data, "increment", 9) == 0 {
+        execution_check(count == 1, "foreign argument count");
+        var type: FoundationType;
+        fill(&type, 0, sizeof(FoundationType));
+        type.scalar = SI32(); type.pointer_bytes = convert(u32, im_pointer_bytes(machine));
+        var value = interpreter_load(machine, args[0], &type, 0) + 1;
+        interpreter_write(machine, args[0], value, &type, 0);
+        return value;
+    }
+    if function.name.length == 7 && memcmp(function.name.data, "failure", 7) == 0 {
+        im_fail(machine, "foreign failure", 17); return 0;
+    }
+    if function.name.length == 8 && memcmp(function.name.data, "relocate", 8) == 0 {
+        var address = interpreter_allocate(machine, 1024);
+        interpreter_bytes(machine, address, 1024, 0)[0] = 93;
+        address = interpreter_reallocate(machine, address, 8192);
+        var value = interpreter_bytes(machine, address, 1, 0)[0];
+        interpreter_deallocate(machine, address);
+        return convert(u64, value);
+    }
+    im_missing_foreign(machine, node, 0); return 0;
+}
