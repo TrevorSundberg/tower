@@ -38184,3 +38184,40 @@ crashes (no successful artifact claimed). --no-stack-first matches the declared
 fixture layout; the same shared-instance assertions then pass with LLD. Keep
 that option explicit in reproduction instructions. Native expanded reader suite
 passes; final multi-segment WASI, successor and browser gates follow.
+
+Final-source validation before publication: rebase to f652866 includes the other
+lane's IDE/frontend/UI updates through 0d722c1. Repeat a clean public-bootstrap
+successor under coordinator-wasm-linker/successor-shared-final, no private seed;
+all native build steps and backend API pass. That successor builds/runs the
+expanded linker suite. Matching reader-shared-wasm.o linked by static-shared runs
+through host-wasi and passes, including the new profile cases. Real multi-segment
+concurrent cold/warm fixture checks pass for both Tower and SDK34 LLD. The native
+successor SHA-256 remains 6945a6e187f87cc22b66f5784cc4c7f2be9c0fa8b0abd685d07afbeee83636d9.
+
+Frozen LLVM-reactor benchmark, no overlapping builds: three previous/current
+pairs in seconds are 0.49/0.44, 0.43/0.43, 0.42/0.44. Medians 0.43/0.44;
+RSS stays approximately 351640 KiB. No speedup claim; the one-centisecond median
+difference is small relative to these timings. Before/after images compare
+identical. Commands use the same wasm_link_memory_benchmark_args.json, prior
+static-profile-final and new static-shared, with /usr/bin/time and cmp.
+
+Next dependency slice is TLS: aligned template/base/size, __wasm_init_tls and
+per-instance __tls_base, TLS relocation lowering and explicit static/main-thread
+versus allocated worker ranges. Retain templates needed for later thread startup;
+ordinary data.drop must not discard TLS. Then schedule eligible linker phases
+over pinned input components with private buffers and deterministic joins. Keep
+production LLD selection until those actual runtime/parallel gates are validated.
+
+Merged browser validation: rebuild portable/LLVM/cross units after the source
+rebase, package into build/compiler-project-shared-final, and select tower-wasm-ld
+with lazy archives in its recipe metadata. Existing test-compiler-project runs
+two edited generations with two/four workers: 48.82/30.37 seconds (functional
+gate timings, not a scaling benchmark). Both pass with identical hashes:
+portable 151eb5dba2b398b20e852e998aed942f93801e854e7ebae5f52fc6dec79e92be,
+LLVM e9a478deabf268550a9c97d78aedae33c7d97acb9282554ca31eb0e0bc39ebdd,
+cross d2291a82030bd7754d062b8637dfafee3869557e195d1db1099f0e7b3538dd20.
+Their sizes are 1195618/53629544/65285303 bytes. Inputs and per-generation objects
+remain under build/compiler-workbench-shared-final; the frozen bootstrap reactor
+is build/wasm_link_shared_seed.wasm. todo.txt still hashes
+045d1e620edf7c67b653fec19df850b370246b1d. Publish a source/API receipt, preserving
+the other lane's newer hosted runtime 797f54a and its complete assets/provenance.
