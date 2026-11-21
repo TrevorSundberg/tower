@@ -37522,3 +37522,16 @@ and retains the separately published final bootstrap 0d752e7d. Preserve the new
 86 asset hashes and all other release notes. The approximately 70% estimate
 still applies: release integration improved during the audit, but native CLI
 unit wiring, structural semantics and broader query/value work remain open.
+Publication receipt: main 258f324 publishes the complete final 0d752e7d pin;
+Pages 1a9650d publishes the integrated runtime matching production source 6c03edd.
+The last source rebase contained journal-only updates, so compiler evidence
+remains valid. The new Tower driver module-path CTest also passes against the
+clean final-pin successor. Source and Pages pushes succeeded without force; an
+initial Pages DNS failure resolved on retry. Hosted verification at
+https://tower-lang.org/ exits zero: every one of 86 asset hashes matches and both
+desktop/mobile execution, target downloads, completion, highlighting, persistence
+and UI flows pass. Logs: build/narrow-{publication-wait,hosted-verification}.log.
+The following documentation receipt deployment preserves these exact runtime
+bytes, their build-source identity and predecessor/final-pin hashes. todo.txt
+and pre-existing stashes are untouched. First-class function values and indirect
+calls remain the next substantial C-level language milestone.
