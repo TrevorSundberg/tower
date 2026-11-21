@@ -22955,3 +22955,14 @@ adapters and the obsolete native ABI assertions. Agent 2 owns source commit/reba
 clean-successor validation/push; the coordinator explicitly accepted the combined
 current-source browser deployment and hosted verification. Publication status follows
 in a later entry; this entry does not claim deployment success.
+
+Publication validation follow-up: rebased onto d78e5d4 (agent 3 utility tests and
+agent 1 syntax revisions), preserving both concurrent journal additions. A fresh
+`agent-2-successor-d78e` cache completed the documented native build with
+`TOWER_BOOTSTRAP_COMPILER` unset. Rebuilt the opted-in test targets there and ran
+the anchored execution/frontend/driver set: 3/3 passed in 15.63 seconds (execution
+0.36s, driver15.23s). Full gh-pages history fetch was stopped in this agent's own
+fetch process tree because it pulled archived binary history; a depth-1 fetch of
+the latest gh-pages succeeded. Source publication is prepared under agent 2's
+exclusive lock. The coordinator will perform the combined deployment after this
+source push; hosted success remains unclaimed here.
