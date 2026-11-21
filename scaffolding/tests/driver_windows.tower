@@ -1,4 +1,9 @@
 import tower;
+import .host.driver_support;
+import .host.driver_windows_arguments;
+import .library.bytes_types;
+import .library.bytes_interface;
+import .library.vector;
 
 extern fn _fileno(file: void*): i32;
 
@@ -11,6 +16,36 @@ extern fn _close(fd: i32): i32;
 extern fn _mkdir(path: u8*): i32;
 extern fn _rmdir(path: u8*): i32;
 extern fn CreateSymbolicLinkA(path: u8*, target: u8*, flags: u32): u8;
+extern fn _spawnv(mode: i32, path: u8*, argv: u8**): i64;
+extern fn WaitForSingleObject(handle: void*, milliseconds: u32): u32;
+extern fn GetExitCodeProcess(handle: void*, code: u32*): i32;
+extern fn TerminateProcess(handle: void*, code: u32): i32;
+extern fn CloseHandle(handle: void*): i32;
+
+export fn driver_test_run_status(argv: u8**): i64 {
+    var start_child: i32 = 1; var transport_failure: i64 = -256;
+    var quoted: DriverArguments = default; driver_arguments_init(&quoted);
+    defer driver_arguments_dispose(&quoted);
+    for(var i: usize = 0; argv[i] != null; i++) {
+        var text: ByteBuffer = default;
+        if !driver_windows_quote(&text, argv[i]) || !vector_push(&quoted.values, text.data) {
+            bytes_dispose(&text); return transport_failure;
+        }
+    }
+    if !vector_push(&quoted.values, null) { return transport_failure; }
+    var child = _spawnv(start_child, argv[0], quoted.values.data);
+    if child < 0 { return transport_failure; }
+    var handle = bits(void*, child);
+    defer CloseHandle(handle);
+    var deadline_ms: u32 = 30000; var finished: u32 = 0;
+    if WaitForSingleObject(handle, deadline_ms) != finished {
+        var deadline_exit: u32 = 124; var infinite: u32 = ~convert(u32, 0);
+        TerminateProcess(handle, deadline_exit); WaitForSingleObject(handle, infinite);
+        return transport_failure;
+    }
+    var code: u32 = 0;
+    return GetExitCodeProcess(handle, &code) != 0 ? convert(i64, code) : transport_failure;
+}
 
 export fn driver_test_directory(path: u8*): bool { return _mkdir(path) == 0; }
 export fn driver_test_remove_directory(path: u8*): void { _rmdir(path); }

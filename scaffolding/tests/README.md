@@ -1,5 +1,33 @@
 # Parser tree construction and debug output
 
+## Native CLI execution and package comparisons
+
+Configure the native build with `-DTOWER_DRIVER_TESTS=ON` and build
+`tower-driver-tests`. The existing runner also provides:
+
+- `ctest --test-dir <native-build> -R '^tower-driver-native-differential$' --output-on-failure`
+  compares eight real native programs with the graph interpreter, with both
+  optimized and unoptimized compilation.
+- `ctest --test-dir <native-build> -R '^tower-driver-package-differential$' --output-on-failure`
+  compares graph/fast execution, file package loads, Foundation reconstruction,
+  optimization profiles and repeated package bytes on 32/64-bit targets. It
+  includes scalar idioms, conversion boundaries and imported-file diagnostics
+  and dependencies.
+
+Direct commands are `tower-driver-tests --native-differential COMPILER SCAFFOLDING`
+and `tower-driver-tests --package-differential COMPILER SCAFFOLDING`; append a case
+name such as `print`, `factorial` or `modules` to focus a run. Use explicit paths
+and a writable working directory. Each CTest has a separate output directory;
+direct runs retain sources, binaries and capture logs there for inspection.
+Unknown filters fail. Child exit statuses are preserved, including abnormal
+termination, with a 30-second child limit and a 20-minute CTest limit.
+
+The shared scalar-idiom JSON remains browser test data. The Tower runner reads
+only its ASCII string/null table format and rejects unsupported values/escapes;
+it does not duplicate that fixture corpus or require a general JSON library.
+
+## Experimental Wasm linker
+
 The experimental static Wasm linker lives in `backend/wasm_link.tower`.
 Its API accepts a fresh, stable `WasmLink`, explicit options, and borrowed object
 bytes through its owned ECS world. Keep those input allocations immutable and

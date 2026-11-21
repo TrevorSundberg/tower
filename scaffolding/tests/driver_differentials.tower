@@ -1,0 +1,185 @@
+import tower;
+import driver;
+import driver_execution_cases;
+import fixture_json_rows;
+import .host.driver_support;
+import .host.driver_platform;
+import .library.bytes_types;
+import .library.bytes_interface;
+
+extern fn memcmp(left: u8*, right: u8*, count: usize): i32;
+
+struct DriverDifferentials { compiler: u8*; grammar: u8*; filter: u8*; native: bool; checks: usize; }
+struct DriverExecutionResult { code: i64; output: ByteBuffer; error: ByteBuffer; }
+var DriverExecutionSuccess: i64 = 0;
+var DriverExecutionFailure: i64 = 1;
+var DriverOptimizationVariants: usize = 2;
+var DriverFailureVariants: usize = 2;
+var DriverDifferentialStdout: i32 = 1;
+
+fn driver_execution_close(result: DriverExecutionResult*): void {
+    bytes_dispose(&result.output); bytes_dispose(&result.error);
+}
+
+fn driver_execution_equal(left: ByteBuffer*, right: ByteBuffer*): bool {
+    return left.length == right.length && (left.length == 0 || memcmp(left.data, right.data, left.length) == 0);
+}
+
+fn driver_execution_capture(args: DriverArguments*): DriverExecutionResult {
+    var result: DriverExecutionResult = default;
+    result.code = driver_test_capture_status(args);
+    driver_check(driver_read_file("driver stdout.txt", &result.output)
+        && driver_read_file("driver stderr.txt", &result.error), "read differential logs");
+    return result;
+}
+
+fn driver_execution_command(context: DriverDifferentials*, source: u8*, target: u8*, mode: u8*, kind: u8*,
+    destination: u8*, optimize: bool, depfile: u8*): DriverExecutionResult {
+    var args: DriverArguments = default; driver_arguments_init(&args);
+    defer driver_arguments_dispose(&args);
+    driver_argument(&args, "", context.compiler); driver_argument(&args, "", source);
+    driver_argument(&args, "", "--foundation"); driver_argument(&args, context.grammar, "/foundation.tower");
+    driver_argument(&args, "", "--bedrock"); driver_argument(&args, context.grammar, "/bedrock.tower");
+    if target != null { driver_argument(&args, "", "--target"); driver_argument(&args, "", target); }
+    if mode != null { driver_argument(&args, "", mode); }
+    if kind != null { driver_argument(&args, "", kind); }
+    if destination != null { driver_argument(&args, "", "-o"); driver_argument(&args, "", destination); }
+    if !optimize { driver_argument(&args, "", "--no-optimize"); }
+    if depfile != null { driver_argument(&args, "", "--depfile"); driver_argument(&args, "", depfile); }
+    return driver_execution_capture(&args);
+}
+
+fn driver_execution_same(actual: DriverExecutionResult*, reference: DriverExecutionResult*, diagnostics: bool): void {
+    driver_check(actual.code == reference.code, "exact differential exit status");
+    driver_check(driver_execution_equal(&actual.output, &reference.output), "differential stdout bytes");
+    if diagnostics { driver_check(driver_execution_equal(&actual.error, &reference.error), "differential diagnostic bytes"); }
+}
+
+fn driver_execution_native(context: DriverDifferentials*): void {
+    var source = "execution_case.tower"; var executable = "./execution_program";
+    var reference = driver_execution_command(context, source, null, "--interpret", null, null, true, null);
+    defer driver_execution_close(&reference);
+    driver_check(reference.code == DriverExecutionSuccess, "native reference execution");
+    for(var option: usize = 0; option < DriverOptimizationVariants; option++) {
+        driver_platform_remove(executable);
+        var compiled = driver_execution_command(context, source, null, null, null, executable, option != 0, null);
+        defer driver_execution_close(&compiled);
+        driver_check(compiled.code == DriverExecutionSuccess, "native differential compilation");
+        var args: DriverArguments = default; driver_arguments_init(&args);
+        defer driver_arguments_dispose(&args);
+        driver_argument(&args, "", executable);
+        var actual = driver_execution_capture(&args);
+        defer driver_execution_close(&actual);
+        driver_execution_same(&actual, &reference, false);
+        context.checks++;
+    }
+}
+
+fn driver_package_profile(bytes: ByteBuffer*, optimize: bool): void {
+    var profile_offset: usize = 24; var word_bytes: usize = 4;
+    var header_bytes: usize = 56; var optimized_profile: u8 = 1; var debug_profile: u8 = 2;
+    driver_check(bytes.length >= header_bytes, "complete package header");
+    driver_check(bytes.data[profile_offset] == (optimize ? optimized_profile : debug_profile), "package optimization profile");
+    for(var i: usize = 1; i < word_bytes; i++) {
+        driver_check(bytes.data[profile_offset + i] == 0, "little-endian profile word");
+    }
+}
+
+fn driver_execution_package(context: DriverDifferentials*, source: u8*, target: u8*, fails: bool, dependency: u8*): void {
+    var package = "execution_case.towerbc"; var reconstructed = "execution_reconstructed.tower";
+    var depfile: u8* = dependency == null ? null : "execution_dependencies.d";
+    var reference = driver_execution_command(context, source, target, "--interpret", null, null, true, null);
+    defer driver_execution_close(&reference);
+    driver_check(reference.code == (fails ? DriverExecutionFailure : DriverExecutionSuccess), "expected reference exit status");
+    for(var option: usize = 0; option < DriverOptimizationVariants; option++) {
+        var optimize = option != 0;
+        var actual = driver_execution_command(context, source, target, "--interpret-fast", null, null, optimize, null);
+        defer driver_execution_close(&actual);
+        driver_execution_same(&actual, &reference, fails || dependency != null);
+        driver_platform_remove(package);
+        var encoded = driver_execution_command(context, source, target, "--emit", "bytecode", package, optimize, depfile);
+        defer driver_execution_close(&encoded);
+        driver_check(encoded.code == DriverExecutionSuccess, "package emission");
+        var bytes: ByteBuffer = default; var repeated: ByteBuffer = default;
+        defer bytes_dispose(&bytes); defer bytes_dispose(&repeated);
+        driver_check(driver_read_file(package, &bytes), "read emitted package");
+        driver_package_profile(&bytes, optimize);
+        if dependency != null { driver_test_read(depfile, dependency, false); }
+        var loaded = driver_execution_command(context, package, null, null, null, null, true, null);
+        defer driver_execution_close(&loaded);
+        driver_execution_same(&loaded, &reference, false);
+        driver_platform_remove(reconstructed);
+        var formatted = driver_execution_command(context, package, null, "--emit", "foundation", reconstructed, true, null);
+        defer driver_execution_close(&formatted);
+        driver_check(formatted.code == DriverExecutionSuccess, "package Foundation reconstruction");
+        var graph = driver_execution_command(context, reconstructed, target, "--interpret", null, null, true, null);
+        defer driver_execution_close(&graph);
+        driver_execution_same(&graph, &reference, false);
+        driver_platform_remove(package);
+        var again = driver_execution_command(context, source, target, "--emit", "bytecode", package, optimize, null);
+        defer driver_execution_close(&again);
+        driver_check(again.code == DriverExecutionSuccess && driver_read_file(package, &repeated), "repeat package emission");
+        driver_check(driver_execution_equal(&bytes, &repeated), "byte-identical repeated package");
+        context.checks++;
+    }
+}
+
+fn driver_execution_case(context: DriverDifferentials*, name: u8*, source: u8*, native: bool, fails32: bool, fails64: bool): void {
+    if (context.native && !native) || (context.filter != null && !driver_same(context.filter, name)) { return; }
+    driver_message(DriverDifferentialStdout, "Differential case: ", name, true);
+    driver_check(driver_write_file("execution_case.tower", source, strlen(source)), "write differential source");
+    if context.native { driver_execution_native(context); }
+    else {
+        driver_execution_package(context, "execution_case.tower", "wasm32-unknown-unknown", fails32, null);
+        driver_execution_package(context, "execution_case.tower", "wasm64-unknown-unknown", fails64, null);
+    }
+}
+
+fn driver_execution_idioms(context: DriverDifferentials*): void {
+    var file: ByteBuffer = default; var data: ByteBuffer = default;
+    var name: ByteBuffer = default; var source: ByteBuffer = default;
+    var output: ByteBuffer = default; var intrinsic: ByteBuffer = default;
+    defer bytes_dispose(&file); defer bytes_dispose(&data); defer bytes_dispose(&name);
+    defer bytes_dispose(&source); defer bytes_dispose(&output); defer bytes_dispose(&intrinsic);
+    driver_check(driver_text(&file, context.grammar) && driver_text(&file, "/tests/llvm-scalar-idioms.json")
+        && host_text_terminate(&file) && driver_read_file(file.data, &data), "read shared scalar idioms");
+    var input: FixtureJson = { data: data.data, length: data.length, at: 0 };
+    driver_check(fixture_json_take(&input, "["), "fixture table starts");
+    loop {
+        driver_check(fixture_json_take(&input, "[") && fixture_json_string(&input, &name)
+            && fixture_json_take(&input, ",") && fixture_json_string(&input, &source)
+            && fixture_json_take(&input, ",") && fixture_json_string(&input, &output)
+            && fixture_json_take(&input, ",")
+            && (fixture_json_null(&input) || fixture_json_string(&input, &intrinsic))
+            && fixture_json_take(&input, "]"), "complete scalar fixture row");
+        driver_execution_case(context, name.data, source.data, false, false, false);
+        if fixture_json_take(&input, "]") { break; }
+        driver_check(fixture_json_take(&input, ","), "fixture row delimiter");
+    }
+    driver_check(fixture_json_end(&input), "fixture table consumes complete input");
+}
+
+fn driver_execution_modules(context: DriverDifferentials*): void {
+    if context.filter != null && !driver_same(context.filter, "modules") { return; }
+    var source = "import \"module_helper.tower\"; print(answer());";
+    driver_check(driver_write_file("module_main.tower", source, strlen(source)), "write module entry");
+    for(var failing: usize = 0; failing < DriverFailureVariants; failing++) {
+        var helper = failing != 0 ? "import foundation;\nfn answer(): i32 {\nvar zero = 0;\nvar result = 42 / zero;\nreturn result;\n}"
+            : "import foundation;\nfn answer(): i32 { return 42; }";
+        driver_check(driver_write_file("module_helper.tower", helper, strlen(helper)), "write module dependency");
+        driver_execution_package(context, "module_main.tower", "wasm32-unknown-unknown", failing != 0, "module_helper.tower");
+        driver_execution_package(context, "module_main.tower", "wasm64-unknown-unknown", failing != 0, "module_helper.tower");
+    }
+}
+
+fn driver_test_differentials(compiler: u8*, grammar: u8*, filter: u8*, native: bool): i32 {
+    var context: DriverDifferentials = { compiler: compiler, grammar: grammar, filter: filter, native: native, checks: 0 };
+    driver_execution_cases(&context);
+    if !native {
+        driver_check(fixture_json_checks(), "fixture string decoder bounds and escapes");
+        driver_execution_idioms(&context); driver_execution_modules(&context);
+    }
+    driver_check(context.checks != 0, "differential filter selects a case");
+    print(context.checks);
+    return 0;
+}

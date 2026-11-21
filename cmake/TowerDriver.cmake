@@ -102,6 +102,13 @@ function(tower_driver_integrate)
       "$<TARGET_FILE:towerc>" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")
     set_tests_properties(tower-driver-module-paths PROPERTIES
       WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/tower-module-path-checks")
+    foreach(check IN ITEMS native package)
+      file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/tower-${check}-differential-checks")
+      add_test(NAME tower-driver-${check}-differential COMMAND tower-driver-tests --${check}-differential
+        "$<TARGET_FILE:towerc>" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")
+      set_tests_properties(tower-driver-${check}-differential PROPERTIES TIMEOUT 1200
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/tower-${check}-differential-checks")
+    endforeach()
     include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/TowerDriverRequestTests.cmake")
     cmake_language(DEFER CALL tower_driver_request_tests)
   endif()

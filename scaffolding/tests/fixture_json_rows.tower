@@ -1,0 +1,83 @@
+import tower;
+import .library.bytes_types;
+import .library.bytes_interface;
+import .host.driver_support;
+
+// Reader for the existing ASCII string/null fixture table. Reject unsupported
+// JSON values/escapes; this is not a second general-purpose JSON framework.
+struct FixtureJson { data: u8*; length: usize; at: usize; }
+var FixtureJsonInvalidEscape: u8 = 0;
+
+fn fixture_json_escape(byte: u8): u8 {
+    if byte == *"n" { return *"\n"; }
+    if byte == *"r" { return *"\r"; }
+    if byte == *"t" { return *"\t"; }
+    if byte == *"b" { var backspace: u8 = 8; return backspace; }
+    if byte == *"f" { var form_feed: u8 = 12; return form_feed; }
+    if byte == *"\"" || byte == *"\\" || byte == *"/" { return byte; }
+    return FixtureJsonInvalidEscape;
+}
+
+fn fixture_json_space(input: FixtureJson*): void {
+    while input.at < input.length {
+        var byte = input.data[input.at];
+        if byte != *" " && byte != *"\t" && byte != *"\r" && byte != *"\n" { break; }
+        input.at++;
+    }
+}
+
+fn fixture_json_take(input: FixtureJson*, delimiter: u8*): bool {
+    fixture_json_space(input);
+    if input.at == input.length || input.data[input.at] != *delimiter { return false; }
+    input.at++; return true;
+}
+
+fn fixture_json_string(input: FixtureJson*, out: ByteBuffer*): bool {
+    out.length = 0;
+    if !fixture_json_take(input, "\"") { return false; }
+    var first_printable: u8 = 32; var ascii_limit: u8 = 128;
+    while input.at < input.length {
+        var byte = input.data[input.at++];
+        if byte == *"\"" { return host_text_terminate(out); }
+        if byte < first_printable || byte >= ascii_limit { return false; }
+        if byte == *"\\" {
+            if input.at == input.length { return false; }
+            byte = fixture_json_escape(input.data[input.at++]);
+            if byte == FixtureJsonInvalidEscape { return false; }
+        }
+        if !bytes_push(out, byte) { return false; }
+    }
+    return false;
+}
+
+fn fixture_json_null(input: FixtureJson*): bool {
+    fixture_json_space(input);
+    var null_length: usize = 4;
+    if input.length - input.at < null_length { return false; }
+    var text = "null";
+    for(var i: usize = 0; i < null_length; i++) {
+        if input.data[input.at + i] != text[i] { return false; }
+    }
+    input.at += null_length; return true;
+}
+
+fn fixture_json_end(input: FixtureJson*): bool {
+    fixture_json_space(input); return input.at == input.length;
+}
+
+fn fixture_json_checks(): bool {
+    var out: ByteBuffer = default; defer bytes_dispose(&out);
+    var valid = "\"a\\n\\\"\\\\\\/\\t\"";
+    var input: FixtureJson = { data: valid, length: strlen(valid), at: 0 };
+    if !fixture_json_string(&input, &out) || !fixture_json_end(&input)
+        || !driver_same(out.data, "a\n\"\\/\t") { return false; }
+    var truncated = "\"unfinished\\";
+    input = init(FixtureJson) { data: truncated, length: strlen(truncated), at: 0 };
+    if fixture_json_string(&input, &out) { return false; }
+    var unsupported = "\"\\u0041\"";
+    input = init(FixtureJson) { data: unsupported, length: strlen(unsupported), at: 0 };
+    if fixture_json_string(&input, &out) { return false; }
+    var control = "\"unescaped\n\"";
+    input = init(FixtureJson) { data: control, length: strlen(control), at: 0 };
+    return !fixture_json_string(&input, &out);
+}

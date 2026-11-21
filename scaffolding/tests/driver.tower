@@ -1,6 +1,7 @@
 import tower;
 import .library.bytes_types;
 import .library.bytes_interface;
+import .library.vector;
 import .host.driver_support;
 import .host.driver_timing;
 import .host.driver_link;
@@ -9,6 +10,7 @@ import .host.driver_windows_arguments;
 import driver_platform_api;
 import driver_compilation;
 import driver_module_paths;
+import driver_differentials;
 
 extern fn strstr(text: u8*, part: u8*): u8*;
 
@@ -131,6 +133,13 @@ fn driver_test_process(self: u8*): void {
     var check3 = driver_command(&args) == 0;
     driver_check(check3, "argv boundary and shell-free execution");
     driver_arguments_dispose(&args);
+
+    driver_arguments_init(&args);
+    driver_argument(&args, "", self);
+    driver_argument(&args, "", "--failure");
+    var explicit_failure: i64 = 127;
+    driver_check(driver_test_capture_status(&args) == explicit_failure, "raw child exit status is retained");
+    driver_arguments_dispose(&args);
     driver_arguments_init(&args);
     driver_argument(&args, "", self);
     driver_argument(&args, "", "--failure");
@@ -190,7 +199,7 @@ fn driver_test_read(path: u8*, wanted: u8*, exact: bool): void {
     bytes_dispose(&out);
 }
 
-fn driver_test_capture(args: DriverArguments*): i32 {
+fn driver_test_capture_result(args: DriverArguments*, raw: bool): i64 {
     fflush(null);
     var output = fopen("driver stdout.txt", "wb");
     var error = fopen("driver stderr.txt", "wb");
@@ -204,7 +213,14 @@ fn driver_test_capture(args: DriverArguments*): i32 {
     driver_check(ok, "saved output descriptors");
     driver_test_dup2(driver_test_file(output), 1);
     driver_test_dup2(driver_test_file(error), 2);
-    var result = driver_command(args);
+    var transport_failure: i64 = -256;
+    var result = transport_failure;
+    if raw {
+        if args.ok && vector_push(&args.values, null) {
+            result = driver_test_run_status(args.values.data);
+            args.values.length--;
+        }
+    } else { result = convert(i64, driver_command(args)); }
     fflush(null);
     driver_test_dup2(saved_output, 1);
     driver_test_dup2(saved_error, 2);
@@ -213,6 +229,14 @@ fn driver_test_capture(args: DriverArguments*): i32 {
     fclose(output);
     fclose(error);
     return result;
+}
+
+fn driver_test_capture(args: DriverArguments*): i32 {
+    return convert(i32, driver_test_capture_result(args, false));
+}
+
+fn driver_test_capture_status(args: DriverArguments*): i64 {
+    return driver_test_capture_result(args, true);
 }
 
 fn driver_test_same_file(left: u8*, right: u8*): void {
@@ -412,6 +436,12 @@ fn driver_test_cli(compiler: u8*): void {
 
 export fn driver_tests(argc: i32, argv: u8**): i32 {
     if argc > 1 {
+        if driver_same(argv[1], "--native-differential") || driver_same(argv[1], "--package-differential") {
+            var required_arguments: i32 = 4; var filtered_arguments: i32 = 5; var usage: i32 = 2;
+            if argc != required_arguments && argc != filtered_arguments { return usage; }
+            var filter: u8* = argc == filtered_arguments ? argv[4] : null;
+            return driver_test_differentials(argv[2], argv[3], filter, driver_same(argv[1], "--native-differential"));
+        }
         if driver_same(argv[1], "--module-paths") {
             var module_arguments: i32 = 4;
             var usage: i32 = 2; var failure: i32 = 1;

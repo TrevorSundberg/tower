@@ -1,6 +1,7 @@
 import tower;
 import .host.driver_support;
 import .host.driver_platform;
+import .host.driver_posix_api;
 import driver;
 import .library.bytes_types;
 import .library.bytes_interface;
@@ -26,6 +27,31 @@ var DriverTestPrivateMode: u32 = 448;
 export fn driver_test_directory(path: u8*): bool { return mkdir(path, DriverTestPrivateMode) == 0; }
 export fn driver_test_remove_directory(path: u8*): void { rmdir(path); }
 export fn driver_test_symlink(target: u8*, path: u8*): bool { return symlink(target, path) == 0; }
+
+extern fn fork(): i32;
+extern fn execv(path: u8*, argv: u8**): i32;
+extern fn _exit(code: i32): void;
+extern fn waitpid(pid: i32, status: i32*, flags: i32): i32;
+extern fn alarm(seconds: u32): u32;
+
+export fn driver_test_run_status(argv: u8**): i64 {
+    var exec_failure: i32 = 127; var interrupted: i32 = 4;
+    var signal_mask: i32 = 127; var exit_mask: i32 = 255; var exit_shift: i32 = 8;
+    var transport_failure: i64 = -256;
+    var pid = fork();
+    if pid < 0 { return transport_failure; }
+    if pid == 0 {
+        var deadline_seconds: u32 = 30;
+        alarm(deadline_seconds); execv(argv[0], argv); _exit(exec_failure);
+    }
+    var status: i32 = 0;
+    loop {
+        if waitpid(pid, &status, 0) == pid { break; }
+        if *driver_errno() != interrupted { return transport_failure; }
+    }
+    var signal = status & signal_mask;
+    return signal != 0 ? -convert(i64, signal) : convert(i64, (status >> exit_shift) & exit_mask);
+}
 
 extern fn driver_resource_root(out: ByteBuffer*, executable: u8*): bool;
 

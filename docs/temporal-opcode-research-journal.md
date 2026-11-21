@@ -37631,3 +37631,73 @@ buffers, drain on cancellation, and publish errors/bytes in input order. Add rea
 overlap and serial-equivalence fixtures and measure grain sizes before enabling
 parallel defaults. These are planned gates, not implemented behavior in this
 milestone. Existing production LLD and hosted runtime remain unchanged.
+
+### 2026-11-21: retire Python native/bytecode differential drivers
+
+Audit interpreter-llvm.py and bytecode-llvm.py before translation. They have no
+current repository callers beyond their usage strings, but in-memory execution
+tests do not replace their subprocess/native-output/package-file contracts.
+Reuse the existing Tower driver executable, capture paths and CTest integration.
+Merge overlapping fixtures into driver_execution_cases.tower: equivalent
+factorial cases share one source, and the native-only loop case now also runs
+through package comparisons. Keep all conversion boundaries and the shared
+scalar-idiom JSON. A small ASCII string/null table reader rejects unsupported
+values/escapes, avoiding a second corpus or a general JSON object framework.
+
+driver_differentials.tower runs 16 native comparisons (eight sources, optimized
+and unoptimized) and 184 package comparisons: both pointer widths/profiles,
+graph/fast output and failure diagnostics, serialized package execution,
+Foundation reconstruction and repeated binary bytes, including eight imported
+module dependency/diagnostic combinations. Compare complete length/memcmp,
+including embedded NUL, rather than the existing text helper. Remove destinations
+before emission to reject stale artifacts. Each CTest retains sources, binaries
+and capture logs in a separate working directory. Named filters support focused
+runs; unmatched filters fail.
+
+Production-driver transport deliberately normalizes child failure to one; that
+could disguise a crashed test child as an expected runtime failure. Add a
+test-only raw-status boundary while retaining the normalized path/assertion.
+POSIX fork/execv/waitpid preserves exits, negative signals and a distinct
+transport failure, with a 30-second child alarm. Windows reuses argv quoting,
+starts asynchronously, waits 30 seconds and reads the actual DWORD exit status;
+it terminates/joins unfinished children and closes owned handles. These use
+existing platform APIs, not new implementation libraries. Reference contracts:
+[_spawnv process handles](https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/spawnv-wspawnv),
+[WaitForSingleObject](https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitforsingleobject),
+[GetExitCodeProcess](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getexitcodeprocess),
+[TerminateProcess and joining](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-terminateprocess).
+CTest has a separate 1,200-second outer limit. These fixtures do not override
+their alarm signal; this watchdog is not containment of adversarial programs or
+a general process-tree supervisor.
+
+Compile the smallest changed units first with public bootstrap 1a5b588 and
+frozen inputs. Two preflight failures were tooling mistakes: token is reserved,
+and the public grammar requires braces after else. Rename the parameter to
+delimiter and use an escape-decoding helper with early returns. Preflight then
+passes; no syntax change/private bootstrap is needed. Copy changed test inputs
+into the own /cache/import_driver_narrow_checkout snapshot and build the existing
+driver target at /cache/import_driver_narrow_native. Its unchanged compiler
+sources match 6c03edd. Three incremental build steps pass without Python. A
+focused print trial passes four profile/width combinations before the full run.
+
+On tower_build / Clang-LLVM 19 / Linux x64 with /usr/bin/python3.12 unavailable,
+the original full driver suite passes in 10.97 seconds, native comparisons in
+6.86 seconds, and all 184 package comparisons in 138.10 seconds. Records are in
+/cache/import_driver_narrow_native/Testing/Temporary. The raw regression retains
+exit 127 while the ordinary path still returns one. Decoder checks cover valid
+escapes, truncation, unsupported Unicode escapes and raw control characters.
+Windows x64/macOS ARM64 test bindings compile to objects; linked execution there
+is not claimed.
+
+A two-line Tower infinite-loop fixture in ignored build/tooling_audit probes
+the watchdog. /usr/bin/time is absent, so that initial invocation did not run
+the child and is not evidence. Rerun using Bash time and require exit one: the
+runner rejects the child after real 30.00 seconds (user 29.95), reporting native
+reference failure. No new shell/Python/JavaScript helper, sanitizer, broad format
+sweep or browser runtime rebuild is introduced.
+
+Remove the two Python files (32 and 96 lines). Tracked Python is now eight files
+and 594 lines, down 1,395 lines (70.1%) from 1,989. Inline reductions remain
+separate. Compiler/runtime/bootstrap sources and todo.txt are unchanged by this
+milestone. Continue auditing the remaining C-output, benchmark and packaging
+tools before translating their smallest required behavior.
