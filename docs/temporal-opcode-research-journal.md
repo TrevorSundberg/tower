@@ -27795,3 +27795,70 @@ Final browser checks pass44/44 with no skips:15 portable parser/self-test checks
 Local release verification passes all77 exact assets plus desktop/mobile backend agreement, editable grammar/project persistence/completion, cancellation and native target builds/downloads. Refreshed the Pages predecessor from9a829ba to newer7010a92/source791fbdb, which is an ancestor of frozen178a0fa. Preserve its independent simplification-audit metadata. Only deployment-parent metadata/JSON line endings changed after local UI verification; compiler/UI asset hashes remain those verified. Pages948a6a5 is prepared and ordinary push is in progress; hosted action/UI verification is not yet claimed.
 
 Agent3 acknowledged the final handoff and preserved its uncommitted alternative broad four-fixture unit split. That rejected attempt failed on native and WASI links because imported modules brought strong production exports such as node_payload_size/node_payload_init into multiple objects. No production/test code was removed to mask it. The validated oracle-only split avoids those imported implementation roots and supersedes that private attempt. Other checkouts and drafts remain preserved; no force-push, private bootstrap, sanitizer or broad formatter sweep was used. todo.txt remains96a9e58964d7f01e4a97819f259448db81ef5e40.
+Preparation source checkpoint791fbdb is pushed after an unchanged final pull.
+Its browser bundle is frozen and edited two-generation checks are running;
+FIRST hosted verification had already read/hash-checked the preceding dist
+before that bundle refresh. Preserve FIRST's published manifest separately.
+
+### 2026-11-20 - Actual declaration types in dependency-ready workers
+
+The next working-tree slice resolves ordinary named/pointer parameter/global
+types and function return signatures in declaration workers. Discovery and
+readiness retain the existing graph; function queries already depend on their
+parameter queries. Each eligible job owns its subject's type/state/locals payload,
+private inference scratch and diagnostic, and reads frozen name/type registries.
+The coordinator no longer repeats a successful worker check. Arrays, type
+applications, decltype/inferred expressions, struct/enum fields and editor
+observation still take the structural path. This conservative admission does
+not speculate, intern types or edit shared query indexes under a pin.
+
+Added16 ordinary signatures with two parameters (including nominal pointers)
+and ordered unknown-type diagnostics to the worker-capacity fixture. Rebuilding
+the shared compiler before validation; actual admission and clean bootstrap
+proof remain pending. All feature implementation stays in Tower.
+
+Declaration validation and ownership audit (continued):
+
+- Initial shared capacity/compile-time/inference suite passed 30/30 in 70.27s.
+  Fresh `compiletime-declaration-types-clean` public-bootstrap build passed 56/56,
+  and its actual successor regenerated `tower-compiler-semantics.o` byte-for-byte.
+- GDB at `work_kernel_execute`, private DeclarationType tag 12, observed 49 jobs
+  on eight worker threads for 16 two-parameter functions and one typed global;
+  preparation checkpoint 791fbdb dispatched zero tag-12 jobs. Both processes
+  exited normally. This proves admission to native workers, not a speedup or
+  simultaneous progress. Logs/scripts: `build/language-next-audit/declaration-type-*`.
+- Inspection found an existing readiness race opportunity: the coordinator
+  dispatched a worker before completing later Ready -> Running transitions in
+  the same batch, while workers can read states for newly discovered field edges.
+  No failing execution was observed. Both declaration waves now finish admission
+  before dispatch; the graph is immutable until all jobs join. Header access
+  claims also include writes to parameter frame slots, in addition to waiting
+  for parameter type receipts. Rebuilding/revalidating these ownership changes.
+- FIRST release 9a829ba passed hosted verification: all 77 asset hashes plus
+  desktop/mobile backends, completion, persistence, downloads and target defaults.
+- Preparation release 791fbdb passed two edited browser successor generations
+  (117.58s / 90.45s), with identical parser/LLVM/cross hashes and sizes
+  1,016,181 / 52,271,905 / 63,829,359 bytes. Reports copied to
+  `evaluation-prepare-generation{1,2}.json`; its frozen bundle's full local
+  deployment verification is still running. It has not been published yet.
+
+Stable declaration batch validation:
+
+- Public-bootstrap native rebuild and all acceptance targets passed; 8/8 native
+  checks in 42.60s and backend API checks passed. The actual successor semantic
+  object remained byte-identical after the batch/parameter-ownership correction.
+- Shared capacity/compile-time/inference tests passed 30/30 in 67.90s after that
+  correction. The earlier/native before-and-after admission fixture also emits
+  identical canonical Foundation text (`cmp` exit 0).
+- Preparation release 791fbdb passed all local deployment checks and was normally
+  pushed as Pages 7010a92bf311c51faecb2f8cfdf7cfcb528ad77f, preserving predecessor
+  9a829ba. GitHub Pages run 44865299152 succeeded. Full hosted verification is
+  now running; publication itself is not yet the hosted-check result.
+
+Matching portable/LLVM/cross artifacts and dependency-closed compiler package
+finished rebuilding; the compile-time, inferred-generic, parser and precedence
+backend suite passed 48/48. This checkpoint implements ordinary declaration type
+resolution in workers, with explicit parameter writes and stable graph admission.
+Expression-based decltype/inference, structural type/generic construction and
+editor observations still retain their coordinator paths. No C++ was added;
+`todo.txt` remains at 96a9e58964d7f01e4a97819f259448db81ef5e40.

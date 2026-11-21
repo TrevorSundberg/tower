@@ -30,6 +30,8 @@ struct SemanticDeclaration {
     scope: SemanticScope*;
     subject: void*;
     discover: bool;
+    worker_check: bool;
+    checked: bool;
     waiting: usize;
     dependencies: vector(usize);
     error: vector(u8);
@@ -288,9 +290,29 @@ fn sem_declaration_input(result: SemanticDeclaration*, input: usize): void {
     sem_require(vector_push(usize, &result.dependencies, input));
 }
 
-// Each worker borrows immutable scope/graph indexes and owns all scan scratch
-// and diagnostics. No entity registration, structural mutation or publication
-// is permitted while these jobs hold the coordinator's pinned entity view.
+// Named types and pointer spellings only read the published type/name registry.
+// Type applications, array construction and expression-based types retain the
+// structural coordinator path until their continuations can request ownership.
+fn sem_declaration_worker(c: SemanticContext*, subject: void*): bool {
+    if c.editor != null || c.type_uses != null { return false; }
+    if !sem_is(subject, "CoreDeclare") && !sem_is(subject, "CoreParameter") && !sem_function_syntax(subject) { return false; }
+    var annotation = sem_member(subject, "type");
+    if annotation == null { return false; }
+    var pending = sem_list(c);
+    sem_push(pending, annotation);
+    for(var i: usize = 0; i < pending.length; i++) {
+        var node = pending.data[i];
+        if sem_is(node, "TowerDecltype") || sem_is(node, "CoreCall") || sem_is(node, "CoreArrayCount") { return false; }
+        if sem_member(node, "args") != null || sem_member(node, "count") != null || sem_member(node, "index") != null { return false; }
+        for(var j: usize = 0; j < sem_child_count(node); j++) { sem_push(pending, sem_child(node, j)); }
+    }
+    return true;
+}
+
+// Workers borrow immutable scope/graph indexes and own scratch/diagnostics.
+// Ready ordinary type queries may write their declared subject payload. Function
+// headers wait for all parameter receipts and only read those published types;
+// no registration, type interning or shared index mutation occurs under the pin.
 fn semantic_declaration_kernel(result: SemanticDeclaration*): void {
     var context: SemanticContext;
     var program: SemanticProgram;
@@ -301,15 +323,25 @@ fn semantic_declaration_kernel(result: SemanticDeclaration*): void {
     context.scope = result.scope;
     vector_init(void*, &context.allocations);
     vector_init(void*, &context.lists);
+    vector_init(&context.inferring);
     vector_init(u8, &context.token_text);
     fill(&context.scan, 0, sizeof(stack(void*)));
     vector_init(u8, &program.error);
+    result.checked = false;
     if result.discover { sem_declaration_dependencies(&context, result.subject, result); }
-    else { result.waiting = sem_declaration_waiting(&context, result.subject); }
+    else {
+        result.waiting = sem_declaration_waiting(&context, result.subject);
+        if result.worker_check && result.waiting == 0 && sem_ok(&context) {
+            result.checked = true;
+            if sem_function_syntax(result.subject) { sem_header(&context, result.subject, "", null); }
+            else { sem_declaration_type(&context, result.subject); }
+        }
+    }
     copy(&result.error, &program.error, sizeof(vector(u8)));
     result.error_offset = program.error_offset;
     stack_dispose(void*, &context.scan);
     vector_dispose(u8, &context.token_text);
+    vector_dispose(&context.inferring);
     var index: usize = 0;
     while index < context.lists.length {
         vector_dispose(void*, bits(vector(void*)*, context.lists.data[index]));
@@ -386,6 +418,7 @@ fn sem_declarations(c: SemanticContext*, statements: vector(void*)*): void {
             result.kernel.kind = CompilerKernelKind.Declaration;
             result.kernel.payload = bits(void*, result);
             result.discover = true;
+            result.worker_check = sem_declaration_worker(c, node);
             sem_require(vector_push(void*, &c.declaration_jobs, bits(void*, result)));
             sem_require(work_access(&c.queries, id, 1, 4, id, 1, WorkAccessMode.Write));
             result.discovery = work_request(&c.queries, node, DeclarationDiscoveryQuery(), 0);
@@ -414,8 +447,10 @@ fn sem_declarations(c: SemanticContext*, statements: vector(void*)*): void {
             var result = sem_declaration_state(c, work_task(&c.queries, ticket.task).subject);
             copy(&result.ticket, &ticket, sizeof(WorkTicket));
             batch[count] = result;
-            sem_require(work_pool_submit(&c.workers, bits(void*, &result.kernel)));
             count++;
+        }
+        for(var i: usize = 0; i < count; i++) {
+            sem_require(work_pool_submit(&c.workers, bits(void*, &batch[i].kernel)));
         }
         index = 0;
         while index < count { sem_require(work_pool_receive(&c.workers, true) != null); index++; }
@@ -430,7 +465,13 @@ fn sem_declarations(c: SemanticContext*, statements: vector(void*)*): void {
             while edge < result.dependencies.length {
                 var input = result.dependencies.data[edge];
                 sem_require(work_depend(&c.queries, result.query, input));
-                sem_require(work_access(&c.queries, result.query, 1, 4, input, 1, WorkAccessMode.Read));
+                var access = WorkAccessMode.Read;
+                // Header checking assigns each parameter's frame slot after
+                // its type receipt. Claim those payload writes as well.
+                if sem_function_syntax(result.subject) && sem_is(work_task(&c.queries, input).subject, "CoreParameter") {
+                    access = WorkAccessMode.Write;
+                }
+                sem_require(work_access(&c.queries, result.query, 1, 4, input, 1, access));
                 edge++;
             }
             sem_require(work_depend(&c.queries, result.query, result.discovery));
@@ -456,9 +497,15 @@ fn sem_declarations(c: SemanticContext*, statements: vector(void*)*): void {
         while count < c.workers.count && work_take_query(&c.queries, &ticket, DeclarationQuery()) {
             var result = sem_declaration_state(c, work_task(&c.queries, ticket.task).subject);
             copy(&result.ticket, &ticket, sizeof(WorkTicket));
+            result.kernel.kind = result.worker_check ? CompilerKernelKind.DeclarationType : CompilerKernelKind.Declaration;
             batch[count] = result;
-            sem_require(work_pool_submit(&c.workers, bits(void*, &result.kernel)));
             count++;
+        }
+        // Readiness checks inspect graph states, including newly discovered
+        // field dependencies. Finish every Ready -> Running transition before
+        // dispatch so workers read an immutable graph throughout this wave.
+        for(var i: usize = 0; i < count; i++) {
+            sem_require(work_pool_submit(&c.workers, bits(void*, &batch[i].kernel)));
         }
         index = 0;
         while index < count { sem_require(work_pool_receive(&c.workers, true) != null); index++; }
@@ -472,7 +519,7 @@ fn sem_declarations(c: SemanticContext*, statements: vector(void*)*): void {
             if success && result.waiting != 0 {
                 sem_require(work_suspend(&c.queries, &result.ticket, result.waiting));
             } else {
-                if success {
+                if success && !result.checked {
                     var saved_scope = c.scope;
                     c.scope = result.scope;
                     if sem_is(node, "CoreDeclare") || sem_is(node, "CoreParameter") { success = sem_declaration_type(c, node); }

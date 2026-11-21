@@ -27,7 +27,7 @@ export fn work_kernel_execute(payload: void*): void {
         interpreter_invocation_step(bits(IMInvocation*, kernel.payload), 1024);
         return;
     }
-    if kernel.kind == CompilerKernelKind.Declaration {
+    if kernel.kind == CompilerKernelKind.Declaration || kernel.kind == CompilerKernelKind.DeclarationType {
         semantic_declaration_kernel(bits(SemanticDeclaration*, kernel.payload));
         return;
     }

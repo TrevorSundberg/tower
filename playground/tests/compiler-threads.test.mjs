@@ -58,14 +58,17 @@ fn f${i}(value: decltype(seed)): decltype(value) {
  for(var j: u64 = 0; j < 3; j++) { result += j + ${i}; }
  if comptime(true) { return result; }
 }`);
- const source = 'import tower;\nstruct Shared { value: u64; }\nfn identity(T:type, value:T):T { return value; }\n' + functions.join('\n') +
+ const typedFunctions = Array.from({length:16}, (_,i) => `
+fn typed${i}(value:Shared*, extra:u64):u64 { return value.value + extra + ${i}; }`);
+ const source = 'import tower;\nstruct Shared { value: u64; }\nfn identity(T:type, value:T):T { return value; }\n' + functions.join('\n') + typedFunctions.join('\n') +
   '\nvar seed: u64 = 0;\nvar `control value 1.0`: u64 = 7;\n' +
   'var inferredType: decltype(identity(seed));\n' +
   'var total = comptime(identity(' + functions.map((_,i) => `f${i}(0)`).join(' + ') + '));\n' +
   'print(total); print(`control value 1.0`);' +
   'print(comptime(comptime(10) + comptime(comptime(20) + 12)));' +
   'print(comptime(false ? comptime(1 / 0) : comptime(42)));' +
-  'print(comptime(false && comptime(1 / 0 == 0)) ? 1 : 0);';
+  'print(comptime(false && comptime(1 / 0 == 0)) ? 1 : 0);' +
+  'var typed:Shared; typed.value=1; print(' + typedFunctions.map((_,i)=>`typed${i}(&typed,0)`).join('+') + ');';
  const canonical = new Map();
  let iterationCanonical;
  const genericCanonical = new Map();
@@ -100,7 +103,7 @@ print(record_value(&record));`;
      let output = '', result;
      do { result = tower.execute(handle, 10000); output += result.output; } while (result.status === 'executing');
      assert.equal(result.status, 'done', result.error);
-     assert.equal(output, '504\n7\n42\n42\n0\n');
+     assert.equal(output, '504\n7\n42\n42\n0\n136\n');
      const text = tower.foundation(handle).source;
      if (!canonical.has(pointerBytes)) canonical.set(pointerBytes, text);
      assert.equal(text, canonical.get(pointerBytes), `workers=${capacity}, width=${pointerBytes}, repeat=${repeat}`);
@@ -158,6 +161,15 @@ print(badFirst(1)); print(badSecond(2));`);
     assert.match(result.error, /unknownFirst/);
     assert.doesNotMatch(result.error, /unknownSecond/);
    } finally { tower.destroyExecution(genericInvalid); }
+   const typeInvalid = tower.compile(`import tower;
+fn badFirst(value:MissingFirst):void {}
+fn badSecond(value:MissingSecond):void {}`);
+   try {
+    const result = tower.execute(typeInvalid);
+    assert.equal(result.status, 'error');
+    assert.match(result.error, /Unknown type 'MissingFirst'/);
+    assert.doesNotMatch(result.error, /MissingSecond/);
+   } finally { tower.destroyExecution(typeInvalid); }
   } finally { tower.close(); }
   assert.throws(() => tower.compile('print(1);'), /compiler is closed/);
   assert.doesNotThrow(() => tower.destroyExecution(0));
