@@ -71,6 +71,7 @@ const source = await fetch(new URL('functions.tower',url)).then(response=>{
 const timeout = Number(process.env.TOWER_PROFILE_TIMEOUT ?? 180000);
 const repeats = Number(process.env.TOWER_PROFILE_REPEATS ?? 3);
 const report = {url, at:new Date().toISOString(), units:'milliseconds', profiles:[],
+  browserCpuSampling:!!process.env.TOWER_PROFILE_BROWSER_CPU,
   measurement:'Browser action to DOM result; frame markers are animation callbacks, not physical display latency.'};
 report.manifest = await fetch(new URL('deployment-manifest.json',url)).then(response=>response.json());
 let browser;
@@ -178,6 +179,10 @@ try {
     }
     await start('project','42\n22\n7\n',{file:'structs.tower'});
     await selectDocument(page,'structs.tower'); await finish();
+    // Optional main-thread sampling is a separate diagnostic run, never part
+    // of the uninstrumented before/after latency comparison.
+    const cpu = process.env.TOWER_PROFILE_BROWSER_CPU ? await context.newCDPSession(page) : undefined;
+    if (cpu) { await cpu.send('Profiler.enable'); await cpu.send('Profiler.start'); }
     for (let i=0;i<repeats;i++) {
       await editor.press('ControlOrMeta+Home');
       await page.locator('#editor .cm-line').filter({hasText:/^\s*pair\.first = (20|200);$/}).click();
@@ -186,12 +191,20 @@ try {
       if (i % 2) await editor.press('Backspace'); else await page.keyboard.insertText('0');
       await finish();
     }
+    if (cpu) {
+      const {profile} = await cpu.send('Profiler.stop');
+      await writeFile(destination + '.' + name + '.cpuprofile', JSON.stringify(profile));
+      await cpu.detach();
+    }
     await page.locator('#auto-execute').uncheck();
     for (let i=0;i<repeats;i++) {
       await editor.press('ControlOrMeta+End');
       await start('typing',undefined,{file:'structs.tower'}); await page.keyboard.insertText(' '); await finish();
     }
     const measured = await page.evaluate(() => ({...window.__performanceProbe,
+      outputs:[...document.querySelectorAll('.code-output')].map(element=>({id:element.id,
+        characters:element.querySelector('.cm-content')?.cmView?.rootView?.view.state.doc.length ?? 0,
+        renderedLines:element.querySelectorAll('.cm-line').length})),
       isolated:crossOriginIsolated, resources:performance.getEntriesByType('resource').map(r=>r.toJSON()),
       measures:performance.getEntriesByType('measure').map(r=>r.toJSON())}));
     report.profiles.push({name,...measured,errors});

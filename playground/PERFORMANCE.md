@@ -67,6 +67,49 @@ real shared-memory overlap/growth/failure tests and 1/2/4/8-worker determinism p
 Browser transport checks confirm one producer and two Foundation consumers, warm
 worker retention, stale permit rejection and cancellation/recovery on both devices.
 
+## Rebuilt release and output viewport
+
+The rebuilt release also exposed an independent UI bottleneck: replacing a whole
+offscreen CodeMirror document mapped its viewport onto the entire native output.
+Desktop Structs edits rendered all 3,564 disassembly lines and delayed already
+compiled results. Main-thread sampling identified DOM synchronization and forced
+layout through scroll snapshots. Offscreen output now resets the derived view
+state and restores its scroll anchor; the same 92,798-character document renders
+36 lines. Its complete text remains immediately available for copying and
+inspection. Visible panes retain their existing update path.
+
+The final uninstrumented confirmation uses freshly rebuilt native/portable/
+threaded/LLVM/cross assets from snapshot `797f54a` and the final UI, with no
+concurrent builds/tests. Public build inputs can be reconstructed from `7425a14`
+plus `git diff 8c05a96 033efb3 -- scaffolding`; the editable recipe contains the
+exact compiled sources. Later experimental-linker/tooling changes on main are
+not included in those runtime bytes. A fresh public-bootstrap native successor
+after rebasing to `dc3a7ed` also builds and executes both interpreters correctly.
+
+One fresh browser per device, ten repetitions per warm action; milliseconds:
+
+| Complete output | Desktop | Mobile emulation |
+| --- | ---: | ---: |
+| Cold, single observation | 3092.5 | 2658.1 |
+| Warm Execute, median | 74.0 | 67.3 |
+| New project, median | 108.3 | 86.8 |
+| Memory edit, median | 135.6 | 110.7 |
+| Structs 20/200 edit, median | 115.1 | 68.9 |
+
+This is an integration confirmation, not a replacement for the controlled paired
+comparison. All 110 actions completed with expected outputs and no page errors.
+Evidence: `build/pipeline_viewport_profile.json`. The preceding release probe
+(`pipeline_publish_profile.json`) caught the desktop offscreen regression at
+246.5 ms median. `TOWER_PROFILE_BROWSER_CPU=1` records a separate main-thread
+profile around value edits; instrumented runs are marked and excluded from
+latency comparisons. Output document and rendered-line counts accompany reports.
+
+Release checks pass: 79 runtime/LLVM/package checks, eight threaded package/worker
+checks, two edited browser compiler generations, four final worker-reuse/permit
+checks, and ten output/viewport checks across desktop and mobile. The latter
+include actual numeric-edit/recompile frame captures, preserved scroll/geometry,
+and replacement of a multi-megabyte offscreen document with bounded rendered DOM.
+
 # Cold and warm profiling passes — 2026-11-21
 
 The published threaded browser path still spends seconds before its first result.

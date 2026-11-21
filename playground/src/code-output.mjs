@@ -37,12 +37,21 @@ export class CodeOutput {
         keymap.of(defaultKeymap), this.syntax === 'tower' ? highlighting : [languages.get(this.syntax), styles],
         EditorView.theme({ '&': { color: '#d4e0e2', backgroundColor: '#121a1e' } }, { dark: true }),
       ] }) });
-    } else this.view.dispatch({
-      changes: { from: 0, to: this.view.state.doc.length, insert: text },
-      // Generated output is replaced as a whole. Keep its viewport anchor rather
-      // than letting that replacement scroll the reader back to the beginning.
-      effects: this.view.scrollSnapshot(),
-    });
+    } else {
+      const update = {
+        changes: { from: 0, to: this.view.state.doc.length, insert: text },
+        // Generated output is replaced as a whole. Keep its viewport anchor.
+        effects: this.view.scrollSnapshot(),
+      };
+      if (this.view.inView) this.view.dispatch(update);
+      else {
+        // Mapping a whole-document replacement expands an offscreen viewport to
+        // the entire document. CodeMirror only trims that viewport when visible.
+        // Reset its derived view state, then restore the reader's scroll anchor.
+        this.view.setState(this.view.state.update(update).state);
+        this.view.dispatch({effects:update.effects});
+      }
+    }
     if (this.syntax === 'tower') {
       const view = this.view;
       highlightFoundation(text, this).then(spans => {

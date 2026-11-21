@@ -55,5 +55,19 @@ test('multi-megabyte output virtualizes, stays read-only, and highlights after s
   await expect(page.locator('.cm-line').filter({hasText:'%v49999'})).toBeVisible();
   await expect(page.locator('.tw-keyword').filter({hasText:'add'}).last()).toBeVisible();
   expect(await page.locator('.cm-line').count()).toBeLessThan(200);
+  // Native output can sit outside the horizontally scrolling result grid.
+  // Replacing it there must not expand the DOM to the entire generated program.
+  await page.evaluate(()=>{
+    window.output.view.contentDOM.blur();
+    window.output.parent.style.transform='translateX(200vw)';
+    window.output.view.requestMeasure();
+  });
+  await expect.poll(()=>page.evaluate(()=>window.output.view.inView)).toBe(false);
+  await page.evaluate(()=>window.output.setText(window.output.text.replace('%v0 = add i32 0, 42','%v0 = add i32 0, 200')));
+  expect(await page.evaluate(()=>window.output.view.state.doc.toString().includes('%v0 = add i32 0, 200'))).toBe(true);
+  expect(await page.locator('.cm-line').count()).toBeLessThan(200);
+  await page.evaluate(()=>{window.output.parent.style.transform='';});
+  await expect(page.locator('.cm-line').filter({hasText:'%v49999'})).toBeVisible();
+  await expect(page.locator('.tw-keyword').filter({hasText:'add'}).last()).toBeVisible();
   await info.attach('output-rendering',{body:JSON.stringify({...result,renderedLines:await page.locator('.cm-line').count()}),contentType:'application/json'});
 });

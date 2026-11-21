@@ -38008,3 +38008,31 @@ pipeline_release_thread_tests.log and pipeline_release_generations.log.
 Deferred frontend requests snapshot mutable project files at admission; immutable
 installed compiler/link bytes remain borrowed until postMessage. Worker failure
 clears pending dispatch, and revision checks still reject obsolete replies.
+
+Final integration probe found a distinct output-rendering regression: the freshly
+rebuilt native disassembly had 3,564 lines, and replacing an offscreen CodeMirror
+document mapped its viewport over all of them. CPU sampling shows DOM sync and
+scrollSnapshot layout reads delaying ready worker replies. Reset only offscreen
+derived view state, preserve the scroll anchor, and keep the complete document
+available. The same 92,798 characters now render 36 lines. A CSS containment probe
+did not improve the delay and was reverted. Browser CPU sampling and output-size
+receipts were added to the existing browser profiling boundary, not compiler logic.
+
+The first offscreen test fixture retained focus and did not force a fresh viewport
+measurement after transforming its pane, so it failed before exercising replacement.
+Blurring and requesting measurement makes the fixture exercise an actual offscreen
+view. Both desktop/mobile multi-megabyte checks then pass, including full document
+content, bounded DOM, restored last-line viewport and highlighting. Eight other
+output/frame checks already passed, including four numeric-edit/recompile captures.
+Logs: pipeline_viewport_checks.log, pipeline_offscreen_checks.log; captures are
+build/pipeline_viewport{,_recompile}_{desktop,mobile}. Final timing confirmation is
+pipeline_viewport_profile.json (110 actions, no page errors): desktop/mobile cold
+3092.5/2658.1 ms; median Execute 74.0/67.3, Memory edit 135.6/110.7, Structs value edit
+115.1/68.9 ms. Single cold observations are not percentile or paired speedup claims.
+
+After rebasing to dc3a7ed, a second clean public-bootstrap native successor build
+passed all 54 steps; ordinary and fast Structs interpretation both print 42/22/7.
+Browser runtime build identity remains frozen 797f54a; reconstruct its build inputs
+from public 7425a14 plus git diff 8c05a96 033efb3 -- scaffolding. The compiler tree
+matches public 033efb3. The final UI and provenance explicitly distinguish later
+experimental-linker/tooling source changes from these tested runtime bytes.
