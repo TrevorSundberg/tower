@@ -15,6 +15,7 @@ import semantic_iteration;
 import semantic_evaluation;
 import semantic_flow;
 import semantic_generic_body_work;
+import semantic_work_ids;
 import .library.vector;
 import .library.stack;
 import .library.work_graph;
@@ -177,6 +178,7 @@ struct SemanticBodyWork {
     captures: vector(void*);
     flow_dependencies: vector(void*);
     error: vector(u8);
+    query_reads: vector(usize);
     error_offset: usize;
     resumed: bool;
     done: bool;
@@ -213,27 +215,6 @@ fn sem_body_type_structure(c: SemanticContext*, n: void*): bool {
         }
     }
     return false;
-}
-
-fn sem_body_layouts(c: SemanticContext*, consumer: usize): bool {
-    // Root initializers and earlier structural bodies can introduce types after
-    // the initial layout barrier. Keep their first consumers on the coordinator
-    // until every existing nominal/array layout is ready. This is conservative
-    // admission, not eager evaluation of otherwise unused types. A worker must
-    // never discover/mutate a layout query through its shallow context copy.
-    foreach(var type in &c.program.types) {
-        if sem_get(type).type.record == null {
-            continue;
-        }
-        var query = work_find(&c.queries, type, LayoutQuery(), 0);
-        if query == 0 || work_task(&c.queries, query).state != WorkState.Succeeded {
-            return false;
-        }
-        if consumer != 0 && !work_depend(&c.queries, consumer, query) {
-            return false;
-        }
-    }
-    return true;
 }
 
 // Structural construction still belongs to the coordinator. This scan only
@@ -623,6 +604,8 @@ query: u32, ticket: WorkTicket*): usize {
     var id = work_request(&c.queries, subject, query, 0);
     sem_require(id != 0);
     sem_generic_body_dependency(c, subject, id);
+    var declaration = work_find(&c.queries, subject, convert(u32, SemanticQuery.Declaration), 0);
+    if declaration != 0 { sem_require(work_depend(&c.queries, id, declaration)); }
     sem_require(work_access(&c.queries, id, 1, 7, ordinal, 1, WorkAccessMode.Write));
     sem_require(work_access(&c.queries, id, 1, 9, 0, ~convert(usize, 0), WorkAccessMode.Write));
     sem_require(work_seal(&c.queries, id) && work_demand(&c.queries, id));
@@ -647,6 +630,8 @@ fn sem_body_suspend(c: SemanticContext*, result: SemanticBodyWork*): void {
 fn sem_body_prepare(c: SemanticContext*, result: SemanticBodyWork*): void {
     var ticket: WorkTicket;
     sem_require(work_take_task(&c.queries, &ticket, result.preparation));
+    var saved_reads = c.query_reads;
+    c.query_reads = &result.query_reads;
     var saved: SemanticBodyScope;
     sem_body_save(c, &saved);
     sem_body_restore(c, &result.lexical);
@@ -663,9 +648,15 @@ fn sem_body_prepare(c: SemanticContext*, result: SemanticBodyWork*): void {
     sem_body_save(c, &result.lexical);
     sem_body_restore(c, &saved);
     sem_layout_all(c);
+    c.query_reads = saved_reads;
+    sem_query_observe(c, &ticket, &result.query_reads);
     var ok = sem_ok(c);
     sem_require(work_finish(&c.queries, &ticket, ok));
     if !ok {
+        // This failed continuation owns its newly constructed types. Continue
+        // earlier bodies for diagnostic ordering without admitting those types
+        // again as unrelated global work. An actual use still calls sem_layout.
+        c.layout_checked = c.program.types.length;
         sem_body_hold_error(c, result);
         result.done = true;
     }
@@ -680,6 +671,7 @@ fn semantic_body_kernel(result: SemanticBodyWork*): void {
     context.program = &program;
     context.current = result.subject;
     context.entity_stage = result.stage;
+    context.query_reads = &result.query_reads;
     context.count = 0;
     context.node_limit = result.context.count < context.node_limit
     ? context.node_limit - result.context.count: 0;
@@ -770,6 +762,7 @@ fn sem_body_clear(result: SemanticBodyWork*): void {
     vector_dispose(&result.evaluations);
     vector_dispose(&result.captures);
     vector_dispose(&result.flow_dependencies);
+    vector_dispose(&result.query_reads);
     vector_dispose(&result.error);
     vector_dispose(&result.lexical.flow_dependencies);
     fill(&result.lexical, 0, sizeof(SemanticBodyScope));
@@ -788,6 +781,7 @@ fn sem_body_publish(c: SemanticContext*, result: SemanticBodyWork*): void {
     // All stages in this worker batch have already published. Continuations
     // exclusively own their lexical payloads between dispatches; the compilation
     // owns their storage and reclaims it once checking completes.
+    sem_query_observe(c, &result.ticket, &result.query_reads);
     foreach(var allocation in &result.allocations) {
         sem_push(&c.allocations, allocation);
     }
@@ -889,8 +883,12 @@ fn sem_bodies(c: SemanticContext*): void {
             || !sem_is(sem_member(subject, "body"), "CoreBlock") {
                 var ticket: WorkTicket;
                 sem_body_structural_take(c, subject, next, BodyQuery(), &ticket);
+                var saved_reads = c.query_reads;
+                c.query_reads = &result.query_reads;
                 sem_function_body(c, subject);
                 sem_layout_all(c);
+                c.query_reads = saved_reads;
+                sem_query_observe(c, &ticket, &result.query_reads);
                 sem_require(work_finish(&c.queries, &ticket, sem_ok(c)));
                 next++;
                 if !sem_ok(c) {
@@ -905,7 +903,8 @@ fn sem_bodies(c: SemanticContext*): void {
             var id = work_request(&c.queries, subject, BodyQuery(), 0);
             sem_require(id != 0);
             sem_generic_body_dependency(c, subject, id);
-            sem_require(sem_body_layouts(c, id));
+            var declaration = work_find(&c.queries, subject, convert(u32, SemanticQuery.Declaration), 0);
+            if declaration != 0 { sem_require(work_depend(&c.queries, id, declaration)); }
             sem_require(work_access(&c.queries, id, 1, 7, next, 1, WorkAccessMode.Write));
             sem_require(work_access(&c.queries, id, 1, 1, 0, ~convert(usize, 0), WorkAccessMode.Read));
             sem_require(work_access(&c.queries, id, 1, 9, 0, ~convert(usize, 0), WorkAccessMode.Read));

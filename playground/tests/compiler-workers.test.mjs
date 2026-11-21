@@ -66,6 +66,18 @@ test('compiler cancellation terminates children and cannot publish partial artif
   assert.ok(recovered.inputs[recipe.units[0].object].length);
 });
 
+test('inferred staged dependencies are isolated across compiler worlds',async () => {
+  const staged = structuredClone(files);
+  const source = (await read('scaffolding/tests/known_parallel_unit.tower')).toString();
+  for (const unit of recipe.units) staged.find(file => file.path === unit.entry).text = source;
+  const serial = await compileUnits({compiler,recipe,files:staged});
+  for (const workers of [2,4]) {
+    const parallel = await compileUnits({compiler,recipe,files:staged,workers,createWorker});
+    assert.deepEqual(parallel.inputs,serial.inputs);
+    assert.equal(parallel.stats.peak,workers);
+  }
+});
+
 test('parallel diagnostics select source order and publish no failed build objects',async () => {
   const broken = structuredClone(files), published = [];
   broken.find(file => file.path===recipe.units[0].entry).text = (await read('scaffolding/tests/semantic_invalid/enum_number.tower')).toString();

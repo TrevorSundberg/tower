@@ -1,0 +1,15 @@
+import tower;
+
+fn calculate(value: i32): i32 {
+    var result = value;
+    for(var index = 0; index < 4; index++) { result += index; }
+    return result;
+}
+
+export fn kernel(input: i32): i32 {
+    var Fixed = calculate(36);
+    var Dependent: decltype(Fixed) = Fixed + 1;
+    var Staged = comptime(Dependent);
+    var dynamic = input + Staged;
+    return dynamic;
+}

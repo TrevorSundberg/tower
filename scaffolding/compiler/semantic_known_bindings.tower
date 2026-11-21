@@ -10,7 +10,10 @@ import semantic_types;
 import semantic_expressions;
 import interpreter_context_types;
 import compiler_kernel;
+import semantic_known_work;
+import semantic_work_ids;
 import .library.vector;
+import .library.work_graph;
 
 // Independent facts: mutation/escape analysis proves a fixed binding; ordinary
 // interpreter execution may then prove its value. Neither fact implies the other.
@@ -42,24 +45,8 @@ fn sem_known_edges(pending: vector(void*)*, node: FoundationNode*): void {
     foreach(var item in &node.items) { sem_push(pending, item); }
 }
 
-fn sem_known_mutation(c: SemanticContext*, place: void*): void {
-    if place == null { return; }
-    var value = sem_get(place);
-    if value == null { return; }
-    if value.kind == KOperand() {
-        var binding = sem_known_binding(c, value.binding);
-        if binding != null { binding.immutable = false; }
-    }
-    if (value.kind == KField() || value.kind == KIndex()) && !value.indirect {
-        sem_known_mutation(c, value.left);
-    }
-}
-
 fn sem_known_register(c: SemanticContext*, subject: void*, owner: void*, ordinal: usize): void {
-    var value = sem_get(subject);
-    if value == null || value.kind != KDeclare() || value.value == null
-        || !sem_known_surface(sem_member(subject, "value")) || value.type.pointers != 0
-        || semantic_aggregate(&value.type) || semantic_enum(&value.type) { return; }
+    if !sem_known_candidate(subject) { return; }
     if c.known_bindings == null {
         c.known_bindings = sem_create(c.program.root);
         sem_require(entity_register(c.known_bindings, sizeof(SemanticKnownBinding), alignof(SemanticKnownBinding), 0));
@@ -87,30 +74,6 @@ fn sem_known_surface(node: void*): bool {
     return false;
 }
 
-// A source-order walk includes callees of executable module statements. A read
-// before initialization keeps runtime storage semantics; inference cannot hoist
-// an initializer across that observation. Function declarations execute nothing.
-fn sem_known_order(c: SemanticContext*, subject: void*, ordinal: usize): void {
-    var pending = sem_list(c);
-    var seen = sem_table(c);
-    sem_push(pending, subject);
-    for(var index: usize = 0; index < pending.length; index++) {
-        var node = pending.data[index];
-        if node == null { continue; }
-        var visit = sem_state(c, seen, node);
-        if visit.number != 0 { continue; }
-        visit.number = 1;
-        var value = sem_get(node);
-        if value == null { continue; }
-        if value.kind == KOperand() && !value.constant {
-            var binding = sem_known_binding(c, value.binding);
-            if binding != null && binding.owner == null && binding.ordinal >= ordinal { binding.ordered = false; }
-        }
-        if value.kind == KCall() && value.binding != null { sem_push(pending, sem_get(value.binding).body); }
-        sem_known_edges(pending, value);
-    }
-}
-
 // Refuse obvious runtime captures before allocating cloned expressions or jobs.
 // This is an eligibility check, never an evaluator: calls and arithmetic still
 // execute only through ordinary staged interpreter work. Inputs with unresolved
@@ -133,55 +96,60 @@ fn sem_known_inputs(c: SemanticContext*, expression: void*, pending: vector(void
 }
 
 fn sem_known_infer(c: SemanticContext*): void {
-    if !sem_ok(c) || c.editor != null { return; }
+    if !sem_ok(c) || c.editor != null || !sem_known_needed(c) { return; }
+    // Absence of writes is a whole-program fact. One joined proof query records
+    // that prerequisite without a functions-times-bindings dependency cross product.
+    var proof = work_request(&c.queries, c.program.root, convert(u32, SemanticQuery.KnownProof), 0);
+    sem_require(proof != 0);
     var nodes = sem_list(c);
     var root = sem_get(c.program.root);
     for(var index: usize = 0; index < root.items.length; index++) {
         sem_known_register(c, root.items.data[index], null, index);
     }
+    var kind = sem_known_kind(c);
+    var count: usize = 0;
     for(var index: usize = 0; index < c.program.functions.length; index++) {
         var function = c.program.functions.data[index];
-        var pending = sem_list(c);
-        sem_push(pending, index == 0 ? function : sem_get(function).body);
-        var seen = sem_table(c);
-        for(var at: usize = 0; at < pending.length; at++) {
-            var node = pending.data[at];
-            if node == null { continue; }
-            var visited = sem_state(c, seen, node);
-            if visited.number != 0 { continue; }
-            visited.number = 1;
-            var value = sem_get(node);
-            if value == null { continue; }
-            if index != 0 { sem_known_register(c, node, function, at); }
-            sem_push(nodes, node);
-            sem_known_edges(pending, value);
+        var block = index == 0 ? function : sem_get(function).body;
+        if block != null { sem_known_job(c, kind, function, block, index == 0 ? null : function, count++, SemanticKnownAction.Scan); }
+    }
+    foreach(var job in &c.evaluation_jobs) {
+        var evaluation = bits(SemanticEvaluation*, job);
+        sem_known_job(c, kind, evaluation.subject, evaluation.expression, null, count++, SemanticKnownAction.Scan);
+    }
+    var scans = sem_known_jobs(c, kind, count, SemanticQuery.KnownScan);
+    foreach(var job in &scans) {
+        foreach(var &candidate in &job.candidates) {
+            if job.owner != null { sem_known_register(c, candidate.subject, job.owner, candidate.ordinal); }
+            sem_push(nodes, candidate.subject);
         }
     }
+    foreach(var job in &scans) {
+        foreach(var declaration in &job.mutations) {
+            var binding = sem_known_binding(c, declaration);
+            if binding != null { binding.immutable = false; }
+        }
+    }
+    sem_known_jobs_dispose(&scans);
     if c.known_bindings == null { return; }
-    var staged = sem_list(c);
-    var stages_seen = sem_table(c);
-    foreach(var job in &c.evaluation_jobs) { sem_push(staged, bits(SemanticEvaluation*, job).expression); }
-    for(var at: usize = 0; at < staged.length; at++) {
-        var node = staged.data[at];
-        if node == null { continue; }
-        var visit = sem_state(c, stages_seen, node);
-        if visit.number != 0 { continue; }
-        visit.number = 1;
-        var value = sem_get(node);
-        if value == null { continue; }
-        sem_push(nodes, node);
-        sem_known_edges(staged, value);
+    kind = sem_known_kind(c);
+    count = 0;
+    for(var index: usize = 0; index < root.items.length; index++) {
+        var subject = root.items.data[index];
+        var value = sem_get(subject);
+        if value == null || value.kind == KFunction() || value.kind == KType() || value.kind == KLabel() { continue; }
+        var job = sem_known_job(c, kind, subject, subject, null, count++, SemanticKnownAction.Order);
+        job.source_ordinal = index;
     }
-    foreach(var node in nodes) {
-        var value = sem_get(node);
-        if value.kind == KAddress() { sem_known_mutation(c, value.value); }
-        if value.kind == KAssign() || value.kind == SurfaceAssign() || value.kind == SurfaceModify()
-            || value.kind == SurfaceDefaultStore() || value.kind == SurfaceInitializerStore() {
-            sem_known_mutation(c, value.target);
-        }
+    var orders = sem_known_jobs(c, kind, count, SemanticQuery.KnownOrder);
+    foreach(var job in &orders) {
+        foreach(var declaration in &job.mutations) { sem_known_binding(c, declaration).ordered = false; }
     }
-    for(var index: usize = 0; index < root.items.length; index++) { sem_known_order(c, root.items.data[index], index); }
     var inputs = sem_list(c);
+    sem_known_jobs_dispose(&orders);
+    sem_require(work_seal(&c.queries, proof) && work_demand(&c.queries, proof));
+    var proof_ticket: WorkTicket = default;
+    sem_require(work_take_task(&c.queries, &proof_ticket, proof));
     foreach(var node in nodes) {
         var binding = sem_known_binding(c, node);
         if binding == null || !binding.immutable || !binding.ordered { continue; }
@@ -195,6 +163,7 @@ fn sem_known_infer(c: SemanticContext*): void {
         sem_require(result != null);
         fill(result, 0, sizeof(SemanticEvaluation));
         result.subject = subject;
+        result.owner = binding.owner == null ? c.program.root : binding.owner;
         result.literal = subject;
         result.requested = true;
         result.inferred = true;
@@ -216,88 +185,30 @@ fn sem_known_infer(c: SemanticContext*): void {
         result.expression = sem_defer_clone(c, subject, sem_get(node).value, sem_table(c), sem_list(c));
         c.surface_expressions = true;
     }
+    sem_require(work_finish(&c.queries, &proof_ticket, sem_ok(c)));
 }
 
 fn sem_known_publish(c: SemanticContext*): void {
     if !sem_ok(c) || c.known_bindings == null { return; }
-    var pending = sem_list(c);
-    var seen = sem_table(c);
+    var kind = sem_known_kind(c);
+    var count: usize = 0;
     for(var index: usize = 0; index < c.program.functions.length; index++) {
         var function = c.program.functions.data[index];
-        sem_push(pending, function);
-        if index != 0 { sem_push(pending, sem_get(function).body); }
+        var block = index == 0 ? function : sem_get(function).body;
+        if block != null { sem_known_job(c, kind, function, block, function, count++, SemanticKnownAction.Publish); }
     }
-    for(var index: usize = 0; index < pending.length; index++) {
-        var node = pending.data[index];
-        if node == null { continue; }
-        var visit = sem_state(c, seen, node);
-        if visit.number != 0 { continue; }
-        visit.number = 1;
-        var value = sem_get(node);
-        if value == null { continue; }
-        sem_known_edges(pending, value);
-        var declaration = value.kind == KDeclare();
-        var binding = sem_known_binding(c, declaration ? node : value.kind == KOperand() ? value.binding : null);
-        if binding == null || binding.evaluation == null { continue; }
-        var result = sem_evaluation_get(c, binding.evaluation);
-        if !result.ready.ready || result.ready.failed { continue; }
-        if declaration { value.value = result.literal; }
-        else {
-            value.constant = true;
-            value.bits = sem_get(result.literal).bits;
-            value.binding = null;
-        }
-    }
-    // Every read is now a literal. Remove the successful binding's complete
-    // runtime initializer, including lowered calls/temporaries. Strict execution
-    // proved it has no observable runtime effects; rejected candidates stay put.
-    // Mark ranges first, then compact, preserving the indices of other bindings.
-    var removed = sem_table(c);
-    var dead = sem_list(c);
-    foreach(var node in pending) {
-        if node == null || sem_get(node) == null || sem_get(node).kind != KDeclare() { continue; }
-        var binding = sem_known_binding(c, node);
-        if binding == null || binding.evaluation == null || binding.block == null { continue; }
-        var result = sem_evaluation_get(c, binding.evaluation);
-        if !result.ready.ready || result.ready.failed { continue; }
-        var block = sem_get(binding.block);
-        for(var at = binding.begin; at < binding.end; at++) {
-            var item = block.items.data[at];
-            if item != null { sem_push(dead, item); }
-            block.items.data[at] = null;
-        }
-    }
-    for(var index: usize = 0; index < dead.length; index++) {
-        var node = dead.data[index];
-        if node == null { continue; }
-        var mark = sem_state(c, removed, node);
-        if mark.number != 0 { continue; }
-        mark.number = 1;
-        var value = sem_get(node);
-        if value != null { sem_known_edges(dead, value); }
-    }
-    // Local lists are derived storage indexes. Drop removed declarations while
-    // retaining published offsets of surviving storage for this compilation.
-    foreach(var node in pending) {
-        if node == null { continue; }
-        var value = sem_get(node);
-        if value == null { continue; }
-        if value.kind == KProgram() || value.kind == KFunction() || value.kind == KBlock() {
-            var kept: usize = 0;
-            foreach(var item in &value.items) {
-                if item != null { value.items.data[kept] = item; kept++; }
-            }
-            value.items.length = kept;
-            kept = 0;
-            foreach(var local in &value.locals) {
-                if sem_state(c, removed, local).number == 0 { value.locals.data[kept] = local; kept++; }
-            }
-            value.locals.length = kept;
-            if value.kind == KProgram() || value.kind == KFunction() {
-                for(var index: usize = 0; index < value.locals.length; index++) {
-                    sem_get(value.locals.data[index]).index = index;
-                }
+    var jobs = sem_known_jobs(c, kind, count, SemanticQuery.KnownPublish);
+    foreach(var job in &jobs) {
+        foreach(var &patch in &job.patches) {
+            var value = sem_get(patch.subject);
+            if patch.declaration { value.value = patch.literal; }
+            else {
+                value.constant = true;
+                value.bits = sem_get(patch.literal).bits;
+                value.binding = null;
             }
         }
     }
+    foreach(var job in &jobs) { sem_known_storage_publish(job); }
+    sem_known_jobs_dispose(&jobs);
 }

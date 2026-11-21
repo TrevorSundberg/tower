@@ -8,6 +8,7 @@ import semantic_body_work;
 import semantic_flow;
 import semantic_evaluation_work;
 import semantic_generic_body_work;
+import semantic_known_work;
 import interpreter_context_types;
 
 extern fn interpreter_invocation_step(invocation: IMInvocation*, budget: usize): void;
@@ -92,6 +93,10 @@ export fn work_kernel_execute(payload: void*): void {
     }
     if kernel.kind == CompilerKernelKind.LRLink {
         compiler_lr_link_kernel(kernel.payload);
+        return;
+    }
+    if kernel.kind == CompilerKernelKind.KnownBinding {
+        semantic_known_kernel(bits(SemanticKnownWork*, kernel.payload));
         return;
     }
     trap("Invalid compiler kernel", 0);

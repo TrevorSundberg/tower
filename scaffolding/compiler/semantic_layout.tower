@@ -5,29 +5,28 @@ import semantic_context;
 import semantic_support;
 import semantic_types;
 import semantic_layout_kernel;
+import semantic_work_ids;
 import compiler_kernel;
 import .library.vector;
 import .library.work_graph;
 import .library.work_pool;
-
-const LayoutQuery: u32 = 1;
 
 extern fn entity_view_open(anchor: void*): void*;
 extern fn entity_view_close(view: void*): void;
 
 fn sem_layout_dependency(c: SemanticContext*, consumer: usize, type: FoundationType*): void {
     if semantic_aggregate(type) {
-        var dependency = work_request(&c.queries, type.record, LayoutQuery(), 0);
+        var dependency = work_request(&c.queries, type.record, convert(u32, SemanticQuery.Layout), 0);
         sem_require(dependency != 0);
         sem_require(work_depend(&c.queries, consumer, dependency));
-        sem_require(work_access(&c.queries, consumer, 1, 1, dependency, 1, WorkAccessMode.Read));
+        sem_require(work_access(&c.queries, consumer, convert(u64, SemanticWorkDomain.Compiler), convert(u64, SemanticAccess.Layout), dependency, 1, WorkAccessMode.Read));
     }
 }
 
 fn sem_layout_discover(c: SemanticContext*, n: void*): usize {
     var graph = &c.queries;
     var first = graph.tasks.length;
-    var root = work_request(graph, n, LayoutQuery(), 0);
+    var root = work_request(graph, n, convert(u32, SemanticQuery.Layout), 0);
     sem_require(root != 0);
     if c.layout_results == null {
         c.layout_results = sem_create(c.program.root);
@@ -51,7 +50,7 @@ fn sem_layout_discover(c: SemanticContext*, n: void*): usize {
             result.offsets.length = type.items.length;
         }
         sem_require(vector_push(void*, &c.layout_jobs, bits(void*, result)));
-        sem_require(work_access(graph, id, 1, 1, id, 1, WorkAccessMode.Write));
+        sem_require(work_access(graph, id, convert(u64, SemanticWorkDomain.Compiler), convert(u64, SemanticAccess.Layout), id, 1, WorkAccessMode.Write));
         if type.type.scalar == SArray() {
             sem_layout_dependency(c, id, &type.element);
         } else {
@@ -98,17 +97,19 @@ fn sem_layout_execute(c: SemanticContext*): void {
     // entity mutation or uses the coordinator's semantic scratch/diagnostics.
     var view = entity_view_open(c.program.root);
     sem_require(view != null);
-    var batch: SemanticLayoutWork*[256];
+    var batch: vector(SemanticLayoutWork*) = default;
+    defer vector_dispose(&batch);
+    sem_require(vector_reserve(&batch, c.workers.count));
     loop {
         var count: usize = 0;
         var ticket: WorkTicket;
-        while count < c.workers.count && work_take_query(&c.queries, &ticket, LayoutQuery()) {
+        while count < c.workers.count && work_take_query(&c.queries, &ticket, convert(u32, SemanticQuery.Layout)) {
             var task = work_task(&c.queries, ticket.task);
-            sem_require(task.query == LayoutQuery());
+            sem_require(task.query == convert(u32, SemanticQuery.Layout));
             var component = entity_component_get(task.subject, c.layout_results);
             var result = bits(SemanticLayoutWork*, entity_component_data(component));
             copy(&result.ticket, &ticket, sizeof(WorkTicket));
-            batch[count] = result;
+            batch.data[count] = result;
             sem_require(work_pool_submit(&c.workers, bits(void*, &result.kernel)));
             count++;
         }
@@ -122,7 +123,7 @@ fn sem_layout_execute(c: SemanticContext*): void {
         }
         index = 0;
         while index < count {
-            var result = batch[index];
+            var result = batch.data[index];
             var success = result.error == null;
             if success {
                 var type = sem_get(result.subject);
@@ -148,31 +149,45 @@ fn sem_layout(c: SemanticContext*, n: void*): void {
     if !sem_ok(c) { return; }
     // Body workers only consume completed layouts. Avoid touching the shared
     // demand scratch/index for an already-published result.
-    var known = work_find(&c.queries, n, LayoutQuery(), 0);
-    if known != 0 && work_task(&c.queries, known).state == WorkState.Succeeded { return; }
+    var known = work_find(&c.queries, n, convert(u32, SemanticQuery.Layout), 0);
+    if known != 0 && work_task(&c.queries, known).state == WorkState.Succeeded {
+        sem_query_read(c, known);
+        return;
+    }
+    // A worker can only consume a published layout. Structural construction
+    // belongs to its coordinator continuation, including failed-type retries.
+    sem_require(c.entity_stage == null);
     var root = sem_layout_discover(c, n);
-    if work_task(&c.queries, root).state == WorkState.Succeeded { return; }
+    if work_task(&c.queries, root).state == WorkState.Succeeded {
+        sem_query_read(c, root);
+        return;
+    }
     sem_layout_execute(c);
     if sem_ok(c) { sem_layout_cycle(c, root); }
+    if sem_ok(c) { sem_query_read(c, root); }
 }
 
 fn sem_layout_all(c: SemanticContext*): void {
     if !sem_ok(c) { return; }
-    var first = c.queries.tasks.length;
-    var index: usize = 8;
+    // The registry is append-only within a compilation. Inspect each new type
+    // once, including queries discovered earlier by declarations. This is an
+    // admission frontier, never a cross-revision/type-identity cache.
+    var pending: vector(usize) = default;
+    defer vector_dispose(&pending);
+    var index = c.layout_checked;
     while index < c.program.types.length {
-        sem_layout_discover(c, c.program.types.data[index]);
-        index++;
-    }
-    if c.queries.tasks.length == first { return; }
-    sem_layout_execute(c);
-    index = first;
-    while sem_ok(c) && index < c.queries.tasks.length {
-        if work_task(&c.queries, index + 1).query == LayoutQuery() {
-            sem_layout_cycle(c, index + 1);
+        var type = c.program.types.data[index];
+        if sem_get(type).type.record != null {
+            var query = sem_layout_discover(c, type);
+            if work_task(&c.queries, query).state != WorkState.Succeeded {
+                sem_require(vector_push(&pending, query));
+            }
         }
         index++;
     }
+    if pending.length != 0 { sem_layout_execute(c); }
+    foreach(var query in &pending) { if sem_ok(c) { sem_layout_cycle(c, query); } }
+    if sem_ok(c) { c.layout_checked = index; }
 }
 
 fn sem_layout_dispose(c: SemanticContext*): void {

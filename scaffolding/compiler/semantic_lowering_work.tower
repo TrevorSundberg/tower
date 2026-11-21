@@ -5,6 +5,7 @@ import semantic_program_types;
 import semantic_control;
 import semantic_support;
 import semantic_expression_lowering;
+import semantic_work_ids;
 import .library.vector;
 import .library.stack;
 import .library.work_graph;
@@ -23,6 +24,7 @@ struct SemanticLowering {
     count: usize;
     error: vector(u8);
     error_offset: usize;
+    query_reads: vector(usize);
 }
 
 extern fn entity_view_open(anchor: void*): void*;
@@ -37,6 +39,7 @@ fn semantic_lowering_kernel(result: SemanticLowering*): void {
     context.editor = null;
     context.current = result.subject;
     context.entity_stage = result.stage;
+    context.query_reads = &result.query_reads;
     context.control_reserved = context.control_names;
     context.control_names = null;
     context.count = 0;
@@ -84,6 +87,8 @@ fn sem_lower_parallel(c: SemanticContext*): void {
         result.kernel.payload = bits(void*, result);
         var id = work_request(&c.queries, subject, LoweringQuery(), 0);
         sem_require(id != 0);
+        var body = work_find(&c.queries, subject, convert(u32, SemanticQuery.Body), 0);
+        if body != 0 { sem_require(work_depend(&c.queries, id, body)); }
         // Disjoint function payload ranges; layout/type inputs are immutable.
         // Generated entities remain private until the publication barrier.
         sem_require(work_access(&c.queries, id, 1, 6, i, 1, WorkAccessMode.Write));
@@ -117,6 +122,7 @@ fn sem_lower_parallel(c: SemanticContext*): void {
         entity_view_close(view);
         for(var i: usize = 0; i < count; ++i) {
             var result = batch[i];
+            sem_query_observe(c, &result.ticket, &result.query_reads);
             // Even a failed function owns its generated nodes until the failed
             // program is destroyed. Publish them so ordinary lifecycle cleanup
             // handles all canonical links without dangling staged references.
@@ -133,6 +139,7 @@ fn sem_lower_parallel(c: SemanticContext*): void {
             var success = result.error.length == 0 && c.count <= c.node_limit;
             sem_require(work_finish(&c.queries, &result.ticket, success));
             vector_dispose(u8, &result.error);
+            vector_dispose(&result.query_reads);
         }
     }
     for(var i: usize = 0; i < c.program.functions.length; ++i) {

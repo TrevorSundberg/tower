@@ -10,6 +10,7 @@ import semantic_support;
 import semantic_values;
 import semantic_expressions;
 import semantic_declarations;
+import semantic_work_ids;
 import .library.vector;
 import .library.work_graph;
 
@@ -630,6 +631,7 @@ fn sem_declaration_type(c: SemanticContext*, n: void*): bool {
         step4 = step6;
     }
     if step4 {
+        sem_query_input(c, n, convert(u32, SemanticQuery.Declaration));
         return true;
     }
     if state.number == 1 {

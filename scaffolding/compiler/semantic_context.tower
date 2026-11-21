@@ -131,6 +131,10 @@ struct SemanticContext {
     workers: WorkPool;
     layout_results: void*;
     layout_jobs: vector(void*);
+    // Types append during this compilation; published layouts never mutate.
+    // Readiness is distinct from the precise layout inputs of each query.
+    layout_checked: usize;
+    query_reads: vector(usize)*;
     evaluation_results: void*;
     evaluation_ready: void*;
     evaluation_jobs: vector(void*);
@@ -140,6 +144,27 @@ struct SemanticContext {
     flow_results: void*;
     flow_count: usize;
     flow_dependencies: vector(void*);
+}
+
+// Each dispatched work component owns this read log. Only the coordinator
+// updates the dependency graph, after joining readers of its immutable indexes.
+fn sem_query_read(c: SemanticContext*, query: usize): void {
+    if c.query_reads == null { return; }
+    var reads = c.query_reads;
+    if reads.length == 0 || reads.data[reads.length - 1] != query {
+        sem_require(vector_push(reads, query));
+    }
+}
+
+fn sem_query_input(c: SemanticContext*, subject: void*, query: u32): void {
+    if c.query_reads == null { return; }
+    var id = work_find(&c.queries, subject, query, 0);
+    if id != 0 && work_task(&c.queries, id).state == WorkState.Succeeded { sem_query_read(c, id); }
+}
+
+fn sem_query_observe(c: SemanticContext*, ticket: WorkTicket*, reads: vector(usize)*): void {
+    foreach(var query in reads) { sem_require(work_observe(&c.queries, ticket, query)); }
+    reads.length = 0;
 }
 
 fn sem_editor_contains(c: SemanticContext*, n: void*): bool {

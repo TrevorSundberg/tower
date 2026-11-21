@@ -1,4 +1,5 @@
 import tower;
+import semantic_work_ids;
 import foundation_tags;
 import foundation_types;
 import semantic_context;
@@ -820,6 +821,7 @@ fn sem_call(c: SemanticContext*, n: void*): void* {
         var value: FoundationNode* = sem_node(c, n, KCall());
         var callee: FoundationNode* = sem_get(instance);
         value.binding = instance;
+        sem_query_input(c, instance, convert(u32, SemanticQuery.Declaration));
         sem_set_type(&value.type, &callee.type);
         for(var i: usize = 0; i < values.length && sem_ok(c); i++) {
             sem_push(&value.items, sem_operand(c, values.data[i], &sem_get(callee.parameters.data[i]).type));
@@ -836,6 +838,7 @@ fn sem_call(c: SemanticContext*, n: void*): void* {
         return n;
     }
     var callee: FoundationNode* = sem_get(value.binding);
+    sem_query_input(c, value.binding, convert(u32, SemanticQuery.Declaration));
     sem_set_type(&value.type, &callee.type);
     var step54 = args.length != callee.parameters.length;
     // A completion snapshot may end before later arguments have been written.

@@ -22,6 +22,7 @@ struct SemanticEvaluationWork {
     count: usize;
     error: vector(u8);
     error_offset: usize;
+    query_reads: vector(usize);
 }
 
 // Each stage expression owns its checked semantic tree. Nested stages share
@@ -36,6 +37,7 @@ fn semantic_evaluation_prepare_kernel(result: SemanticEvaluationWork*): void {
     context.program = &program;
     context.editor = null;
     context.entity_stage = result.stage;
+    context.query_reads = &result.query_reads;
     context.control_reserved = context.control_names;
     context.control_names = null;
     context.count = 0;
@@ -109,6 +111,7 @@ fn sem_evaluation_prepare_all(c: SemanticContext*): void {
         entity_view_close(view);
         for(var i: usize = 0; i < count; i++) {
             var result = batch[i];
+            sem_query_observe(c, &result.ticket, &result.query_reads);
             // Failed preparations can still own generated nodes. Publish after
             // every worker joins so normal program cleanup owns all references.
             sem_require(entity_stage_publish(result.stage));
@@ -123,6 +126,7 @@ fn sem_evaluation_prepare_all(c: SemanticContext*): void {
             if c.count > c.node_limit { sem_fail(c, result.evaluation.subject, "Foundation component memory budget exceeded"); }
             sem_require(work_finish(&c.queries, &result.ticket, result.error.length == 0 && c.count <= c.node_limit));
             vector_dispose(&result.error);
+            vector_dispose(&result.query_reads);
         }
     }
     foreach(var job in &c.evaluation_jobs) {

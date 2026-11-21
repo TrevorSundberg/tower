@@ -33796,3 +33796,100 @@ metadata, while the new runtime retains buildSourceCommit 92da0a8. Main advanced
 with subsequent inference improvements and a newer Tower-only pin; preserve those
 changes and validate their default successor rather than overwriting the newer pin.
 They are not silently claimed as part of the already-tested browser runtime.
+### 2026-11-21 — precise query reads and remaining inference scheduling
+
+Continued the compiler-wide ECS/threading work after pulling main from 459b199
+through a07884e. This also brings in struct values and ordinary binding inference;
+their new serial analysis/publication passes are included in the remaining work.
+No claim of full migration or an end-to-end speedup is warranted yet.
+
+Body admission previously scanned every registered type and attached every layout
+to every body, including unrelated layouts. The draft separates admission readiness
+from dependency provenance: an append-only per-compilation layout frontier checks
+new types, while worker-owned read logs record layouts actually consumed. After
+joining workers, the coordinator adds completed-input observations without yielding
+the consumer, releasing its access claims or replaying the producer. Revision,
+profile and dispatch tickets remain checked. Body structural continuations,
+declaration checking and lowering use the same generic read-log mechanism.
+Unavailable producers still require suspension; observation cannot make them ready.
+
+A new Tower work_observe fixture checks duplicate reads, pending/self dependencies,
+stale revision/profile/dispatch tickets, retained exclusive claims and unused lazy
+queries. With the documented 512ae564 bootstrap it prints 8192, 256, 0: a synthetic
+32-layout/256-body graph has 8192 indiscriminate edges versus 256 actual-read edges,
+and zero assertion failures. This is an edge-count experiment, not timing evidence.
+Reproduction: invoke the pinned towerc on scaffolding/tests/work_observe.tower with
+--interpret. Output: build/language-next-audit/query-observe-bootstrap.log.
+
+A clean native successor build in Docker tower-parser-retirement, LLVM/Clang 19,
+cache /tmp/tower-home/.cache/tower/query-admission-clean, initially rejected new
+initialized identifiers inside the mutually importing semantic modules. Moved these
+identifiers into an acyclic semantic_work_ids module; no const keyword or fake
+zero-argument constant functions were added. An earlier local design using a named
+binding as an array bound was rejected before building: general inferred values in
+type arguments are not implemented yet. Layout batches instead use a private vector
+sized to the worker budget. These limitations remain explicit follow-up work.
+
+Correction to the identifier trial above: moving initialized variables out of an
+import cycle was insufficient for a library unit, which forbids top-level runtime
+initialization. These closed scheduler identifiers now use nominal enums, with
+explicit conversion at the WorkGraph boundary. The fresh native compiler builds
+from the public 512ae564 pin; its work_observe run also prints 8192, 256, 0.
+
+Known-binding traversal now has Tower-written Scan, Order and Publish kernels.
+Work components own candidate, mutation, substitution and dependency-read buffers;
+workers use private traversal tables under pinned entity views. Jobs are discovered
+from ECS table columns and reordered by their recorded source ordinal. Coordinator
+publication attaches metadata/applies patches only after all readers join. Staged
+expressions participate in mutation analysis; call walks preserve the earlier
+observation rule. Actual values still come exclusively from ordinary interpreter
+jobs. A declaration-index eligibility check avoids new analysis components for
+Foundation-only reconstructions. The successor's known_bindings fixture prints 0.
+Inferred expression cloning and proof publication remain coordinator operations;
+this change does not claim that every remaining compiler operation is threaded.
+
+The production native build passes with the pinned bootstrap. Enabling the large
+LR test import in the parser library exceeds that bootstrap's 64 MiB semantic
+component budget before tests can execute. The non-test parser unit builds. Rather
+than repeatedly rebuilding the oversized test unit, the existing execution test
+entry now accepts focused 'known' and 'body-smoke' selections and uses production
+compiler objects without injecting LR fixtures. This retains the existing Tower
+assertions and real worker worlds; the default 'all' suite remains available.
+The large LR fixture build-budget issue remains to resolve before claiming that
+full release configuration passes. Logs: known-work-build.log,
+known-work-tests-build.log, known-work-values.log under build/language-next-audit.
+
+The focused 'known' native suite passes both interpreters, target widths, canonical
+Foundation reconstruction, explicit/inferred dependency cycles, mutation/escape and
+source-order rejection, and workers 1/2/4/8. Body smoke then aborted in the existing
+header-cycle ordering regression. GDB traced it through sem_run while an earlier
+body resumed after a later header constructed a recursive layout. The new global
+layout-readiness assertion was too strong: the later failing continuation's type
+must not prevent an unrelated earlier body from reporting its own error. Removed
+that global assertion, advance the inspection frontier past a failed continuation's
+private construction, and require every actual worker layout read to be published.
+The existing two header-cycle tests cover both a successful and failing earlier
+body. Rebuild and affected rerun are recorded in query-proof-focused.log.
+
+Dependency provenance now includes successful declaration/signature reads, each
+body's signature, lowering's body, and each evaluation preparation's owning body.
+Evaluation preparation uses the same private read log. Inference has one joined
+KnownProof query depending on all scan/order jobs; inferred preparations depend on
+that proof. This represents the whole-program absence-of-writes requirement without
+an all-functions/all-bindings edge cross product. It does not pretend that negative
+immutability proofs are purely local. The proof publishes before any inferred
+preparation can run. General persisted incremental invalidation remains future work.
+
+After the ordering fix and proof dependencies, the focused native execution target
+passes both 'body-smoke' and 'known' in query-proof-focused.log. The final native
+compiler was built with the documented public bootstrap, with no private compiler
+override (query-proof-build.log). Added the Tower observation fixture to the existing
+browser fixture transport, and a Tower staged-local/decltype fixture for independent
+compiler-world object comparisons. Browser/release results follow after rebuilding.
+
+The browser-threaded build was also including the native-only LR comparison fixture
+in its production parser unit. ComposeParserNodes now includes that fixture only
+when both native and worker-test flags are set. Browser pool/overlap tests retain
+their separate Tower reactor. This avoids compiling and shipping unused native test
+code; it does not disable their native coverage or claim the native oversized test
+unit has been repaired. todo.txt remains byte-identical.

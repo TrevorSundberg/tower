@@ -1,0 +1,103 @@
+import tower;
+import .library.work_graph;
+import .library.vector;
+
+enum ProbeQuery: u32 { Layout = 1, Body = 2 }
+enum ProbeSubject: u64 { Input = 1, Consumer, Pending, Rival }
+var ProbeRevision: u64 = 41;
+var ProbeProfile: u64 = 17;
+var ProbeDomain: u64 = 1;
+var ProbeComponent: u64 = 1;
+var FixtureTypes: usize = 32;
+var FixtureBodies: usize = 256;
+var failures: u32 = 0;
+
+fn verify(ok: bool, message: u8*): void {
+    if !ok { print(message); failures++; }
+}
+
+fn probe_request(graph: WorkGraph*, subject: ProbeSubject): usize {
+    var id = work_request(graph, null, convert(u32, ProbeQuery.Body), convert(u64, subject));
+    verify(id != 0, "observation query allocation");
+    return id;
+}
+
+fn observe_contract(): void {
+    var graph: WorkGraph = default;
+    work_init(&graph, ProbeRevision, ProbeProfile);
+    defer work_dispose(&graph);
+    var input = probe_request(&graph, ProbeSubject.Input);
+    var consumer = probe_request(&graph, ProbeSubject.Consumer);
+    var pending = probe_request(&graph, ProbeSubject.Pending);
+    var rival = probe_request(&graph, ProbeSubject.Rival);
+    verify(work_seal(&graph, input) && work_demand(&graph, input), "publish input admission");
+    var ticket: WorkTicket = default;
+    verify(work_take_task(&graph, &ticket, input) && work_finish(&graph, &ticket, true), "publish input completion");
+    verify(work_access(&graph, consumer, ProbeDomain, ProbeComponent, 0, 1, WorkAccessMode.Write), "consumer access");
+    verify(work_access(&graph, rival, ProbeDomain, ProbeComponent, 0, 1, WorkAccessMode.Write), "rival access");
+    verify(work_seal(&graph, consumer) && work_demand(&graph, consumer), "consumer admission");
+    verify(work_seal(&graph, rival) && work_demand(&graph, rival), "rival admission");
+    verify(work_take_task(&graph, &ticket, consumer), "consumer dispatch");
+    var before = ticket;
+    verify(!work_observe(&graph, &ticket, pending), "unpublished inputs require suspension");
+    verify(!work_observe(&graph, &ticket, consumer), "a running query cannot observe itself");
+    verify(work_observe(&graph, &ticket, input), "record completed input");
+    verify(work_observe(&graph, &ticket, input), "repeat observation");
+    verify(graph.edges.length == 1 && graph.running == 1, "observations deduplicate without releasing the running query");
+    verify(work_ticket_valid(&graph, &before), "observation preserves the dispatch receipt");
+    var spare: WorkTicket = default;
+    verify(!work_take_task(&graph, &spare, rival), "observation retains exclusive access claims");
+    var stale = ticket;
+    stale.revision++;
+    verify(!work_observe(&graph, &stale, input), "reject stale revision");
+    stale = ticket;
+    stale.profile++;
+    verify(!work_observe(&graph, &stale, input), "reject another semantic profile");
+    verify(work_yield(&graph, &ticket), "yield after observation");
+    verify(work_take_task(&graph, &ticket, consumer), "readmit observed consumer");
+    verify(!work_observe(&graph, &before, input), "reject superseded dispatch");
+    verify(work_finish(&graph, &ticket, true), "complete observed consumer");
+    verify(work_take_task(&graph, &ticket, rival), "completion releases access claims");
+    verify(work_finish(&graph, &ticket, true), "complete rival");
+    verify(!work_observe(&graph, &ticket, input), "reject completed consumer receipt");
+    verify(!work_task(&graph, pending).demanded && work_ok(&graph), "observation never demands unused work");
+}
+
+// Same published layouts and bodies: compare all-layout admission with actual
+// one-layout reads. This measures graph edges, not end-to-end compiler speed.
+fn observed_edges(broad: bool): usize {
+    var graph: WorkGraph = default;
+    work_init(&graph, ProbeRevision, ProbeProfile);
+    defer work_dispose(&graph);
+    var layouts: vector(usize) = default;
+    defer vector_dispose(&layouts);
+    var ticket: WorkTicket = default;
+    for(var i: usize = 0; i < FixtureTypes; i++) {
+        var id = work_request(&graph, null, convert(u32, ProbeQuery.Layout), convert(u64, i));
+        verify(vector_push(&layouts, id), "layout fixture allocation");
+        verify(work_seal(&graph, id) && work_demand(&graph, id), "layout fixture admission");
+        verify(work_take_task(&graph, &ticket, id) && work_finish(&graph, &ticket, true), "layout fixture publication");
+    }
+    for(var i: usize = 0; i < FixtureBodies; i++) {
+        var body = work_request(&graph, null, convert(u32, ProbeQuery.Body), convert(u64, i));
+        if broad { foreach(var layout in &layouts) { verify(work_depend(&graph, body, layout), "broad dependency"); } }
+        verify(work_seal(&graph, body) && work_demand(&graph, body), "body fixture admission");
+        verify(work_take_task(&graph, &ticket, body), "body fixture dispatch");
+        if !broad {
+            var layout = layouts.data[i % layouts.length];
+            verify(work_observe(&graph, &ticket, layout), "actual layout read");
+            verify(work_observe(&graph, &ticket, layout), "repeated actual layout read");
+        }
+        verify(work_finish(&graph, &ticket, true), "body fixture completion");
+    }
+    return graph.edges.length;
+}
+
+observe_contract();
+var broad = observed_edges(true);
+var precise = observed_edges(false);
+verify(broad == FixtureTypes * FixtureBodies, "broad admission scales with bodies times layouts");
+verify(precise == FixtureBodies, "observed dependencies scale with actual reads");
+print(broad);
+print(precise);
+print(failures);

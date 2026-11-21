@@ -1,0 +1,15 @@
+import tower;
+
+// Stable scheduler identifiers; declarations have no module initialization effect.
+enum SemanticQuery: u32 {
+    Layout = 1, Evaluation, Declaration, DeclarationDiscovery, Lowering, Body,
+    Flow, EvaluationPrepare, BodyPrepare, GenericBody, KnownScan, KnownOrder,
+    KnownPublish, KnownProof
+}
+
+enum SemanticWorkDomain: u64 { Compiler = 1 }
+
+enum SemanticAccess: u64 {
+    Layout = 1, Evaluation, Expression, Declaration, Discovery, Lowering, Body,
+    Flow, TypeIndex, GenericBody, KnownAnalysis, KnownBinding
+}

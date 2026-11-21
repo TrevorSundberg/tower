@@ -1,0 +1,329 @@
+import tower;
+import compiler_kernel;
+import foundation_tags;
+import foundation_types;
+import semantic_context;
+import semantic_evaluation;
+import semantic_expressions;
+import semantic_known_bindings;
+import semantic_support;
+import semantic_work_ids;
+import .library.vector;
+import .library.work_graph;
+import .library.work_pool;
+
+enum SemanticKnownAction: u32 { Scan, Order, Publish }
+
+struct SemanticKnownCandidate { subject: void*; ordinal: usize; }
+struct SemanticKnownPatch { subject: void*; literal: void*; declaration: bool; }
+
+struct SemanticKnownStorage {
+    subject: void*;
+    items: vector(void*);
+    locals: vector(void*);
+    replace_items: bool;
+    replace_locals: bool;
+}
+
+// Facts belong to the query's ECS component. Workers read a pinned graph and
+// own their traversal scratch; only the coordinator attaches binding metadata
+// or applies the returned patches, after every reader has joined.
+struct SemanticKnownWork {
+    kernel: CompilerKernel;
+    ticket: WorkTicket;
+    context: SemanticContext*;
+    subject: void*;
+    root: void*;
+    owner: void*;
+    ordinal: usize;
+    source_ordinal: usize;
+    action: SemanticKnownAction;
+    candidates: vector(SemanticKnownCandidate);
+    mutations: vector(void*);
+    patches: vector(SemanticKnownPatch);
+    query_reads: vector(usize);
+    storage: vector(SemanticKnownStorage);
+}
+
+extern fn entity_view_tables(view: void*, terms: void**, count: usize): void*;
+extern fn entity_table_query_count(query: void*): usize;
+extern fn entity_table_query_ranges(query: void*): usize;
+extern fn entity_table_query_range_count(query: void*, index: usize): usize;
+extern fn entity_table_query_column(query: void*, index: usize, term: usize): void**;
+
+fn sem_known_candidate(subject: void*): bool {
+    var value = sem_get(subject);
+    return value != null && value.kind == KDeclare() && value.value != null
+        && value.type.pointers == 0 && !semantic_aggregate(&value.type)
+        && !semantic_enum(&value.type) && sem_known_surface(sem_member(subject, "value"));
+}
+
+// Avoid attaching analysis metadata to Foundation-only reconstructions. The
+// existing declaration index suffices for this short-circuit eligibility check.
+fn sem_known_needed(c: SemanticContext*): bool {
+    foreach(var node in &sem_get(c.program.root).items) {
+        if sem_known_candidate(node) { return true; }
+    }
+    foreach(var function in &c.program.functions) {
+        foreach(var node in &sem_get(function).locals) {
+            if sem_known_candidate(node) { return true; }
+        }
+    }
+    return false;
+}
+
+fn sem_known_write(result: SemanticKnownWork*, place: void*): void {
+    while place != null {
+        var value = sem_get(place);
+        if value == null { return; }
+        if value.kind == KOperand() {
+            if value.binding != null { sem_push(&result.mutations, value.binding); }
+            return;
+        }
+        if (value.kind != KField() && value.kind != KIndex()) || value.indirect { return; }
+        place = value.left;
+    }
+}
+
+fn semantic_known_kernel(result: SemanticKnownWork*): void {
+    var context = *result.context;
+    context.allocations = default;
+    context.lists = default;
+    context.query_reads = &result.query_reads;
+    var pending = sem_list(&context);
+    var seen = sem_table(&context);
+    if result.action == SemanticKnownAction.Publish { sem_push(pending, result.subject); }
+    sem_push(pending, result.root);
+    for(var at: usize = 0; at < pending.length; at++) {
+        var subject = pending.data[at];
+        if subject == null { continue; }
+        var visit = sem_state(&context, seen, subject);
+        if visit.number != 0 { continue; }
+        visit.number = 1;
+        var value = sem_get(subject);
+        if value == null { continue; }
+        sem_known_edges(pending, value);
+        if result.action == SemanticKnownAction.Scan {
+            if result.owner != null ? sem_known_candidate(subject) : sem_known_binding(&context, subject) != null {
+                var candidate: SemanticKnownCandidate = default;
+                candidate.subject = subject;
+                candidate.ordinal = at;
+                sem_require(vector_push(&result.candidates, candidate));
+            }
+            if value.kind == KAddress() { sem_known_write(result, value.value); }
+            if value.kind == KAssign() || value.kind == SurfaceAssign() || value.kind == SurfaceModify()
+                || value.kind == SurfaceDefaultStore() || value.kind == SurfaceInitializerStore() {
+                sem_known_write(result, value.target);
+            }
+        }
+        if result.action == SemanticKnownAction.Order {
+            if value.kind == KOperand() && !value.constant {
+                var binding = sem_known_binding(&context, value.binding);
+                if binding != null && binding.owner == null && binding.ordinal >= result.source_ordinal {
+                    sem_push(&result.mutations, value.binding);
+                }
+            }
+            if value.kind == KCall() && value.binding != null {
+                sem_query_input(&context, value.binding, convert(u32, SemanticQuery.Body));
+                sem_push(pending, sem_get(value.binding).body);
+            }
+        }
+        if result.action == SemanticKnownAction.Publish {
+            var declaration = value.kind == KDeclare();
+            var binding = sem_known_binding(&context, declaration ? subject : value.kind == KOperand() ? value.binding : null);
+            if binding == null || binding.evaluation == null { continue; }
+            var evaluation = sem_evaluation_get(&context, binding.evaluation);
+            sem_query_input(&context, binding.evaluation, convert(u32, SemanticQuery.Evaluation));
+            if !evaluation.ready.ready || evaluation.ready.failed { continue; }
+            var patch: SemanticKnownPatch = default;
+            patch.subject = subject;
+            patch.literal = evaluation.literal;
+            patch.declaration = declaration;
+            sem_require(vector_push(&result.patches, patch));
+        }
+    }
+    if result.action == SemanticKnownAction.Publish { sem_known_storage(&context, result, pending); }
+    foreach(var list in &context.lists) { vector_dispose(bits(vector(void*)*, list)); }
+    vector_dispose(&context.lists);
+    foreach(var allocation in &context.allocations) { free(allocation); }
+    vector_dispose(&context.allocations);
+}
+
+// A successful ordinary interpreter result permits removal of its runtime
+// initializer. Build compacted indexes privately, keeping every lowered range
+// intact until all ranges have been inspected. Rejected/effectful candidates
+// retain their storage and execution order.
+fn sem_known_storage(c: SemanticContext*, result: SemanticKnownWork*, nodes: vector(void*)*): void {
+    var dropped = sem_table(c);
+    var removed = sem_table(c);
+    var dead = sem_list(c);
+    foreach(var &patch in &result.patches) {
+        if !patch.declaration { continue; }
+        var binding = sem_known_binding(c, patch.subject);
+        if binding.block == null { continue; }
+        var block = sem_get(binding.block);
+        for(var at = binding.begin; at < binding.end; at++) {
+            var item = block.items.data[at];
+            if item != null {
+                sem_state(c, dropped, item).number = 1;
+                sem_push(dead, item);
+            }
+        }
+    }
+    for(var at: usize = 0; at < dead.length; at++) {
+        var node = dead.data[at];
+        if node == null { continue; }
+        var mark = sem_state(c, removed, node);
+        if mark.number != 0 { continue; }
+        mark.number = 1;
+        var value = sem_get(node);
+        if value != null { sem_known_edges(dead, value); }
+    }
+    var containers = sem_table(c);
+    foreach(var node in nodes) {
+        if node == null { continue; }
+        var value = sem_get(node);
+        if value == null || (value.kind != KProgram() && value.kind != KFunction() && value.kind != KBlock()) { continue; }
+        var visit = sem_state(c, containers, node);
+        if visit.number != 0 { continue; }
+        visit.number = 1;
+        var update: SemanticKnownStorage = default;
+        update.subject = node;
+        foreach(var item in &value.items) {
+            update.replace_items ||= item == null || sem_find(dropped, null, item) != null;
+        }
+        foreach(var local in &value.locals) { update.replace_locals ||= sem_find(removed, null, local) != null; }
+        if update.replace_items {
+            foreach(var item in &value.items) {
+                if item != null && sem_find(dropped, null, item) == null { sem_push(&update.items, item); }
+            }
+        }
+        if update.replace_locals {
+            foreach(var local in &value.locals) {
+                if sem_find(removed, null, local) == null { sem_push(&update.locals, local); }
+            }
+        }
+        if update.replace_items || update.replace_locals { sem_require(vector_push(&result.storage, update)); }
+    }
+}
+
+fn sem_known_storage_publish(result: SemanticKnownWork*): void {
+    foreach(var &update in &result.storage) {
+        var value = sem_get(update.subject);
+        if update.replace_items {
+            vector_dispose(&value.items);
+            value.items = update.items;
+            update.items = default;
+        }
+        if update.replace_locals {
+            vector_dispose(&value.locals);
+            value.locals = update.locals;
+            update.locals = default;
+            if value.kind == KProgram() || value.kind == KFunction() {
+                for(var at: usize = 0; at < value.locals.length; at++) { sem_get(value.locals.data[at]).index = at; }
+            }
+        }
+    }
+}
+
+fn sem_known_kind(c: SemanticContext*): void* {
+    var kind = sem_create(c.program.root);
+    sem_require(entity_register(kind, sizeof(SemanticKnownWork), alignof(SemanticKnownWork), 0));
+    return kind;
+}
+
+fn sem_known_job(c: SemanticContext*, kind: void*, subject: void*, root: void*, owner: void*, ordinal: usize,
+    action: SemanticKnownAction): SemanticKnownWork* {
+    var result = bits(SemanticKnownWork*, entity_component_data(entity_component_add(subject, kind)));
+    sem_require(result != null);
+    *result = default;
+    result.context = c;
+    result.subject = subject;
+    result.root = root;
+    result.owner = owner;
+    result.ordinal = ordinal;
+    result.action = action;
+    result.kernel.kind = CompilerKernelKind.KnownBinding;
+    result.kernel.payload = bits(void*, result);
+    return result;
+}
+
+fn sem_known_jobs(c: SemanticContext*, kind: void*, count: usize, query_kind: SemanticQuery): vector(SemanticKnownWork*) {
+    var jobs: vector(SemanticKnownWork*) = default;
+    sem_require(vector_reserve(&jobs, count));
+    jobs.length = count;
+    fill(jobs.data, 0, count * sizeof(SemanticKnownWork*));
+    var view = entity_view_open(c.program.root);
+    sem_require(view != null);
+    var query = entity_view_tables(view, &kind, 1);
+    sem_require(query != null && entity_table_query_count(query) == count);
+    for(var index: usize = 0; index < entity_table_query_ranges(query); index++) {
+        var column = entity_table_query_column(query, index, 0);
+        for(var row: usize = 0; row < entity_table_query_range_count(query, index); row++) {
+            var result = bits(SemanticKnownWork*, entity_component_data(column[row]));
+            sem_require(result.ordinal < count && jobs.data[result.ordinal] == null);
+            jobs.data[result.ordinal] = result;
+        }
+    }
+    entity_view_close(view);
+    if count != 0 && c.workers.count == 0 { sem_require(sem_workers_open(c)); }
+    foreach(var result in &jobs) {
+        var id = work_request(&c.queries, result.subject, convert(u32, query_kind), 0);
+        sem_require(id != 0);
+        if query_kind != SemanticQuery.KnownPublish {
+            var proof = work_find(&c.queries, c.program.root, convert(u32, SemanticQuery.KnownProof), 0);
+            sem_require(proof != 0 && work_depend(&c.queries, proof, id));
+        }
+        var input_kind = query_kind == SemanticQuery.KnownPublish ? SemanticQuery.Lowering : SemanticQuery.Body;
+        var input = work_find(&c.queries, result.subject, convert(u32, input_kind), 0);
+        if input != 0 { sem_require(work_depend(&c.queries, id, input)); }
+        sem_require(work_access(&c.queries, id, convert(u64, SemanticWorkDomain.Compiler),
+            convert(u64, SemanticAccess.KnownAnalysis), result.ordinal, 1, WorkAccessMode.Write));
+        sem_require(work_access(&c.queries, id, convert(u64, SemanticWorkDomain.Compiler),
+            convert(u64, SemanticAccess.Body), 0, ~convert(usize, 0), WorkAccessMode.Read));
+        sem_require(work_access(&c.queries, id, convert(u64, SemanticWorkDomain.Compiler),
+            convert(u64, SemanticAccess.KnownBinding), 0, ~convert(usize, 0), WorkAccessMode.Read));
+        sem_require(work_access(&c.queries, id, convert(u64, SemanticWorkDomain.Compiler),
+            convert(u64, SemanticAccess.Expression), 0, ~convert(usize, 0), WorkAccessMode.Read));
+        sem_require(work_access(&c.queries, id, convert(u64, SemanticWorkDomain.Compiler),
+            convert(u64, SemanticAccess.Evaluation), 0, ~convert(usize, 0), WorkAccessMode.Read));
+        sem_require(work_seal(&c.queries, id) && work_demand(&c.queries, id));
+    }
+    for(var next: usize = 0; next < count;) {
+        var active = count - next;
+        if active > c.workers.count { active = c.workers.count; }
+        view = entity_view_open(c.program.root);
+        sem_require(view != null);
+        for(var index: usize = 0; index < active; index++) {
+            var result = jobs.data[next + index];
+            sem_require(work_take_task(&c.queries, &result.ticket,
+                work_find(&c.queries, result.subject, convert(u32, query_kind), 0)));
+            sem_require(work_pool_submit(&c.workers, bits(void*, &result.kernel)));
+        }
+        for(var index: usize = 0; index < active; index++) { sem_require(work_pool_receive(&c.workers, true) != null); }
+        entity_view_close(view);
+        for(var index: usize = 0; index < active; index++) {
+            var result = jobs.data[next + index];
+            sem_query_observe(c, &result.ticket, &result.query_reads);
+            sem_require(work_finish(&c.queries, &result.ticket, true));
+        }
+        next += active;
+    }
+    return jobs;
+}
+
+fn sem_known_jobs_dispose(jobs: vector(SemanticKnownWork*)*): void {
+    foreach(var job in jobs) {
+        vector_dispose(&job.candidates);
+        vector_dispose(&job.mutations);
+        vector_dispose(&job.patches);
+        vector_dispose(&job.query_reads);
+        foreach(var &update in &job.storage) {
+            vector_dispose(&update.items);
+            vector_dispose(&update.locals);
+        }
+        vector_dispose(&job.storage);
+        job.context = null;
+    }
+    vector_dispose(jobs);
+}

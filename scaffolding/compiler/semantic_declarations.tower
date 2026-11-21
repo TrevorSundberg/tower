@@ -1,4 +1,5 @@
 import tower;
+import semantic_work_ids;
 import foundation_tags;
 import foundation_types;
 import semantic_context;
@@ -52,6 +53,7 @@ struct SemanticDeclaration {
     waiting: usize;
     layout: void*;
     dependencies: vector(usize);
+    query_reads: vector(usize);
     error: vector(u8);
     error_offset: usize;
 }
@@ -224,7 +226,7 @@ fn sem_declaration_location(c: SemanticContext*, node: void*, waiting: usize*, l
         *waiting = query;
         return null;
     }
-    var ready = work_find(&c.queries, type.record, LayoutQuery(), 0);
+    var ready = work_find(&c.queries, type.record, convert(u32, SemanticQuery.Layout), 0);
     if ready == 0 || work_task(&c.queries, ready).state != WorkState.Succeeded {
         *layout = type.record;
         return null;
@@ -250,7 +252,7 @@ fn sem_declaration_waiting(c: SemanticContext*, subject: void*, layout: void**):
             if semantic_aggregate(type) {
                 var waiting = sem_declaration_layout_waiting(c, type.record);
                 if waiting != 0 { return waiting; }
-                var query = work_find(&c.queries, type.record, LayoutQuery(), 0);
+                var query = work_find(&c.queries, type.record, convert(u32, SemanticQuery.Layout), 0);
                 if query == 0 || work_task(&c.queries, query).state != WorkState.Succeeded {
                     *layout = type.record;
                     return 0;
@@ -275,7 +277,7 @@ fn sem_declaration_waiting(c: SemanticContext*, subject: void*, layout: void**):
             var destination = sem_declaration_location(c, sem_member(node, "left"), &waiting, layout, 0);
             if waiting == 0 && *layout == null && destination != null && semantic_aggregate(destination) {
                 waiting = sem_declaration_layout_waiting(c, destination.record);
-                var query = work_find(&c.queries, destination.record, LayoutQuery(), 0);
+                var query = work_find(&c.queries, destination.record, convert(u32, SemanticQuery.Layout), 0);
                 if waiting == 0 && (query == 0 || work_task(&c.queries, query).state != WorkState.Succeeded) { *layout = destination.record; }
             }
         }
@@ -285,7 +287,7 @@ fn sem_declaration_waiting(c: SemanticContext*, subject: void*, layout: void**):
                 var nominal = annotation == null ? null : sem_resolve(c, c.types, annotation, sem_identifier(c, annotation));
                 if nominal != null {
                     waiting = sem_declaration_layout_waiting(c, nominal);
-                    var query = work_find(&c.queries, nominal, LayoutQuery(), 0);
+                    var query = work_find(&c.queries, nominal, convert(u32, SemanticQuery.Layout), 0);
                     if waiting == 0 && (query == 0 || work_task(&c.queries, query).state != WorkState.Succeeded) { *layout = nominal; }
                 }
                 sem_declaration_scan_push(&scan, sem_member(node, "fields"), false);
@@ -711,6 +713,7 @@ fn semantic_declaration_kernel(result: SemanticDeclaration*): void {
     context.editor = null;
     context.scope = result.scope;
     context.entity_stage = result.stage;
+    context.query_reads = &result.query_reads;
     context.count = 0;
     context.node_limit -= result.context.count;
     vector_init(void*, &context.allocations);
@@ -787,6 +790,7 @@ fn sem_declaration_dispose(c: SemanticContext*): void {
         for(var i: usize = 0; i < entity_query_count(c.declaration_state); ++i) {
             var result = bits(SemanticDeclaration*, entity_component_data(entity_query_at(c.declaration_state, i)));
             vector_dispose(usize, &result.dependencies);
+            vector_dispose(&result.query_reads);
             vector_dispose(&result.nodes);
             vector_dispose(&result.calls);
             vector_dispose(&result.evaluations);
@@ -980,6 +984,7 @@ fn sem_declaration_discover(c: SemanticContext*): void {
         while index < count {
             var result = batch[index];
             var success = !sem_declaration_error(c, result);
+            sem_query_observe(c, &result.ticket, &result.query_reads);
             sem_require(work_finish(&c.queries, &result.ticket, success));
             var edge: usize = 0;
             while edge < result.dependencies.length {
@@ -1092,6 +1097,8 @@ fn sem_declarations(c: SemanticContext*, statements: vector(void*)*): void {
             if c.count > c.node_limit { sem_fail(c, node, "Foundation component memory budget exceeded"); }
             var success = !sem_declaration_error(c, result) && sem_ok(c);
             var readmit = false;
+            var saved_reads = c.query_reads;
+            c.query_reads = &result.query_reads;
             if success && !result.checked && result.waiting == 0 && result.layout == null {
                 var saved_scope = c.scope;
                 c.scope = result.scope;
@@ -1117,6 +1124,8 @@ fn sem_declarations(c: SemanticContext*, statements: vector(void*)*): void {
                 success = sem_ok(c);
                 c.scope = saved_scope;
             }
+            c.query_reads = saved_reads;
+            sem_query_observe(c, &result.ticket, &result.query_reads);
             if success && result.layout != null {
                 result.waiting = sem_layout_discover(c, result.layout);
                 sem_require(vector_push(&layouts, result.waiting));

@@ -8,6 +8,7 @@ import semantic_control;
 import semantic_expression_lowering;
 import semantic_evaluation_work;
 import compiler_kernel;
+import semantic_work_ids;
 import foundation_tags;
 import foundation_types;
 import interpreter_context_types;
@@ -27,6 +28,7 @@ struct SemanticEvaluation {
     kernel: CompilerKernel;
     ticket: WorkTicket;
     subject: void*;
+    owner: void*;
     literal: void*;
     expression: void*;
     function: void*;
@@ -81,6 +83,12 @@ fn sem_evaluation_request(c: SemanticContext*, result: SemanticEvaluation*): voi
     sem_require(id != 0);
     var preparation = work_request(&c.queries, result.subject, EvaluationPrepareQuery(), 0);
     sem_require(preparation != 0 && work_depend(&c.queries, id, preparation));
+    var body = work_find(&c.queries, result.owner, convert(u32, SemanticQuery.Body), 0);
+    if body != 0 { sem_require(work_depend(&c.queries, preparation, body)); }
+    if result.inferred {
+        var proof = work_find(&c.queries, c.program.root, convert(u32, SemanticQuery.KnownProof), 0);
+        sem_require(proof != 0 && work_depend(&c.queries, preparation, proof));
+    }
     sem_require(work_access(&c.queries, id, 1, 2, id, 1, WorkAccessMode.Write));
     sem_require(work_access(&c.queries, id, 1, 3, 0, ~convert(usize, 0), WorkAccessMode.Read));
     sem_require(work_seal(&c.queries, id));
@@ -119,6 +127,7 @@ fn sem_comptime(c: SemanticContext*, n: void*, expected_type: FoundationType*): 
     sem_require(result != null);
     fill(result, 0, sizeof(SemanticEvaluation));
     result.subject = n;
+    result.owner = c.current;
     result.literal = literal;
     result.expression = expression;
     result.requested = c.evaluation_depth == 0;
