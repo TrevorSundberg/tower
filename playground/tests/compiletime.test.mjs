@@ -21,7 +21,7 @@ function execute(source, pointerBytes, fast) {
  } finally { tower.destroyExecution(handle); }
 }
 
-for (const name of ['decltype', 'decltype_headers', 'decltype_layout', 'decltype_generic_headers', 'comptime', 'comptime_flow']) {
+for (const name of ['decltype', 'decltype_headers', 'decltype_layout', 'decltype_generic_headers', 'decltype_type_fields', 'comptime', 'comptime_flow']) {
  test(`${name} preserves types and behavior through Foundation, interpreters and LLVM`, async () => {
   tower.configureModules({entry: `.tower/tests/${name}.tower`});
   const source = await readFile(`scaffolding/tests/${name}.tower`, 'utf8');
@@ -46,6 +46,7 @@ for (const [name, message] of [
  ['decltype_field_cycle', /initializer dependency cycle/],
  ['decltype_generic_header_cycle', /initializer dependency cycle/],
  ['decltype_layout_cycle', /Recursive by-value layout: Recursive -> Recursive/],
+ ['decltype_type_field_cycle', /initializer dependency cycle/],
  ['decltype_unknown', /Unknown local/],
  ['comptime_cycle', /Compile-time dependency cycle/],
  ['comptime_defer_cycle', /Compile-time dependency cycle/],
@@ -112,4 +113,14 @@ test('inferred generic call arguments retain forward declaration dependencies an
   assert.equal(result.status, 'error');
   assert.match(result.error, /initializer dependency cycle a -> b -> a/);
  } finally { tower.destroyExecution(handle); }
+});
+
+test('parameterized fields await long forward type chains without recursive checking', async () => {
+ const original = await readFile('scaffolding/tests/decltype_type_fields.tower', 'utf8');
+ const chain = Array.from({length:244}, (_,i) => `var seed${i+12}:decltype(seed${i+13});`);
+ const source = original.replace('var seed12:u64=0;', chain.join('\n')+'\nvar seed256:u64=0;');
+ for (const width of [4,8]) for (const fast of [false,true]) execute(source, width, fast);
+ const compiled = llvm.compile(source);
+ assert.equal(compiled.status,'compiled',compiled.error);
+ assert.equal((await executeWasm(compiled)).output,'0\n');
 });

@@ -1,0 +1,4 @@
+import tower;
+fn box(T:type):type { struct Item { value:decltype(seed); other:T; } return Item; }
+var item:box(u64);
+var seed:decltype(item.value);

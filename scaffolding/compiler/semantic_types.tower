@@ -11,6 +11,7 @@ import semantic_values;
 import semantic_expressions;
 import semantic_declarations;
 import .library.vector;
+import .library.work_graph;
 
 // Semantic compiler over shared Foundation components.
 // Temporary indexes and scratch allocations are scoped to one compilation.
@@ -186,7 +187,28 @@ fn sem_register_template(c: SemanticContext*, n: void*): void {
     sem_push(&c.template_nodes, n);
 }
 
+// Only a registered declaration's type annotation may publish a nominal
+// identity before its fields. An expression may immediately inspect its result,
+// so type spellings inside runtime calls retain ordinary synchronous checking.
+fn sem_type_declaration_context(c: SemanticContext*, node: void*): bool {
+    if c.declaration_subjects == null || !sem_is(node, "CoreType") { return false; }
+    var annotation = node;
+    var parent = sem_parent(annotation);
+    while sem_is(parent, "CoreType") {
+        annotation = parent;
+        parent = sem_parent(annotation);
+    }
+    if parent == null || sem_member(parent, "type") != annotation { return false; }
+    if sem_is(parent, "CoreField") {
+        while parent != null && !sem_is(parent, "CoreStruct") { parent = sem_parent(parent); }
+    }
+    return sem_declaration_query(c, parent) != 0;
+}
+
 fn sem_type_call(c: SemanticContext*, n: void*): FoundationType* {
+    var previous_defer = c.defer_type_fields;
+    c.defer_type_fields ||= sem_type_declaration_context(c, n);
+    defer { c.defer_type_fields = previous_defer; }
     var step1 = sem_member(n, "name");
     var name: u8* = sem_identifier(c, step1);
     var definition: void* = sem_resolve(c, c.type_functions, step1, name);
@@ -270,7 +292,12 @@ fn sem_type_call(c: SemanticContext*, n: void*): FoundationType* {
         var step63 = bits(void*, t);
         entry.value = step63;
         sem_push(&c.generated, result);
-        sem_type_fields(c, result);
+        if c.defer_type_fields {
+            sem_require(c.declaration_subjects != null);
+            sem_declaration_add(c, result);
+            sem_declaration_discover(c);
+            if sem_ok(c) { sem_require(work_demand(&c.queries, sem_declaration_query(c, result))); }
+        } else { sem_type_fields(c, result); }
         entry.number = 0;
         return t;
     }
@@ -301,6 +328,9 @@ fn sem_type_impl(c: SemanticContext*, n: void*): FoundationType* {
         query = sem_child(query, 0);
     }
     if sem_is(query, "TowerDecltype") {
+        var deferred_fields = c.defer_type_fields;
+        c.defer_type_fields = false;
+        defer { c.defer_type_fields = deferred_fields; }
         var previous = c.unevaluated;
         c.unevaluated = true;
         var expression = sem_operand(c, sem_member(query, "value"), null);

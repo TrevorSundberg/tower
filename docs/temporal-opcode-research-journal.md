@@ -28203,3 +28203,47 @@ actual successor byte comparison and actual worker header proof are recorded
 above. Builds use the documented public bootstrap, with no private override.
 No C++ or todo.txt changes. Preparing the final pull and normal source push;
 parameterized-type field scheduling remains the next reproduced dependency gap.
+
+Layout-query source969fba5 is pushed after an unchanged final pull. Its frozen
+release passes local77-asset plus desktop/mobile/default verification and edited
+browser generations124.35s/86.36s. Successive sizes1,014,265/52,314,347/63,871,809
+and hashes are identical: parser b9230d302a2e1ac8d02fab3c0a8dcdfc471f46ff60522397d34125d0f5305ba0;
+LLVM e9d0d7220b1dce7438ede3f166ab3ebc92a08578bfd2f362ed7305788f0c05d4;
+cross 53d36be77a1a4e5e58c5b44066457daac07fe6f67b1542ca382d09db4d5229e6.
+Pages106d0f7a8f147dd2e3434aaff86420848205d3d1 is published normally on4063788;
+GitHub action44872168445 succeeds. Hosted checks are now running.
+
+### 2026-11-20 - Parameterized struct field declarations join the query graph
+
+Eligible type annotations now publish their existing nominal struct header and
+register generated fields through the same declaration discovery/demand path.
+A context flag carries this through ordinary type aliases/arguments and resets
+at decltype expression boundaries. Eligibility requires an already registered
+declaration (including a field's owning record), preventing a synchronous type
+constructor nested inside an expression from accidentally deferring its children.
+Expressions may inspect those children immediately. This preserves the current
+bootstrap type-constructor semantics; it is not a new type evaluator or an
+implementation of unrestricted first-class compile-time type execution.
+
+The256-link parameterized-field reproducer now prints16 in all four target-width
+and interpreter combinations. A generated-field cycle reports
+seed -> box(u64) -> seed. The initial broader fixture incorrectly tried taking
+decltype of aggregate values, which the current operand checker still rejects
+as an aggregate copy; changed its size checks to explicit type spellings. This
+aggregate decltype limitation remains a separate follow-up, not a claimed fix.
+Expanded fixtures cover aliases, nested factories, arrays, recursive pointers,
+expression-local nested construction, generic field access and256-link chains.
+Capacity/overlap/canonical/cycle checks pass3/3 in39.12s. Bootstrap/backends remain
+under validation; no source push for this slice yet. All implementation is Tower.
+
+Parameterized-field validation completes: matching backends55/55 pass35.79s;
+expanded capacity/module/canonical checks3/3 pass48.84s. Imported factories with
+same-spelled names and private marker types retain distinct8/16-byte layouts.
+Native8/8 pass49.95s, backend API and actual successor semantic-object cmp0 pass.
+Direct sem_type_fields tracing on16 factories moves from16 checks on coordinator
+thread1 to16 checks across worker threads4..11, with identical Foundation text.
+Logs use type-constructor-query. All builds use the published bootstrap; this
+slice extends no bootstrap syntax and introduces no C++ or todo.txt changes.
+Preparing its final pull and normal source push. Expression-local construction,
+non-nominal type aliases requiring execution, and structural body statements
+still need broader continuations before claiming universal threading.

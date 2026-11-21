@@ -92,6 +92,7 @@ struct SemanticContext {
     declaration_jobs: vector(void*);
     declaration_subjects: vector(void*)*;
     prepared_calls: void*;
+    defer_type_fields: bool;
     control_names: SemanticTable*;
     control_reserved: SemanticTable*;
     control_prefix: u8*;

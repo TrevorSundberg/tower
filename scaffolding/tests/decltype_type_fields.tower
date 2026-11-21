@@ -1,0 +1,51 @@
+import tower;
+
+fn box(T:type):type {
+    struct Item { seed:decltype(seed0); value:T; }
+    return Item;
+}
+fn alias(T:type):type { return box(T); }
+fn outer(T:type):type {
+    struct Item { inner:alias(T); tail:u64; }
+    return Item;
+}
+fn node(T:type):type {
+    struct Item { value:T; next:node(T)*; }
+    return Item;
+}
+fn simple(T:type):type { struct Item { value:T; } return Item; }
+fn nested(T:type):type { struct Item { inner:simple(T); } return Item; }
+
+var small:box(u32);
+var large:alias(u64);
+var wrapped:outer(u64);
+var array:box(u64)[2];
+var recursive:node(u64);
+// A type constructed inside an expression can be inspected immediately. Its
+// nested fields must not be deferred merely because they have type annotations.
+var direct:decltype(alloc(nested(u32),1).inner.value);
+fn read(T:type, item:T*):decltype(item.inner.value) { return item.inner.value; }
+var selected:decltype(read(&wrapped));
+
+var seed0:decltype(seed1);
+var seed1:decltype(seed2);
+var seed2:decltype(seed3);
+var seed3:decltype(seed4);
+var seed4:decltype(seed5);
+var seed5:decltype(seed6);
+var seed6:decltype(seed7);
+var seed7:decltype(seed8);
+var seed8:decltype(seed9);
+var seed9:decltype(seed10);
+var seed10:decltype(seed11);
+var seed11:decltype(seed12);
+var seed12:u64=0;
+
+var failures:i32=0;
+small.value=7; large.value=11; wrapped.inner.value=13;
+recursive.next=&recursive;
+if small.value!=7 || large.value!=11 || read(&wrapped)!=13 { failures++; }
+if sizeof(box(u32))!=16 || sizeof(alias(u64))!=16 { failures++; }
+if sizeof(outer(u64))!=24 || sizeof(box(u64)[2])!=32 { failures++; }
+if recursive.next!=&recursive || sizeof(decltype(direct))!=4 || sizeof(decltype(selected))!=8 { failures++; }
+print(failures);

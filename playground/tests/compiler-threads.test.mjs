@@ -47,6 +47,8 @@ test('declaration, body checking, lowering and staging are deterministic at 1/2/
  const foundation = await readFile('scaffolding/foundation.tower', 'utf8');
  const delayedLayout = await readFile('scaffolding/tests/decltype_layout.tower', 'utf8');
  const genericHeaders = await readFile('scaffolding/tests/decltype_generic_headers.tower', 'utf8');
+ const typeFields = (await readFile('scaffolding/tests/decltype_type_fields.tower', 'utf8')).replace('var seed12:u64=0;',
+  Array.from({length:244},(_,i)=>`var seed${i+12}:decltype(seed${i+13});`).join('\n')+'\nvar seed256:u64=0;');
  const dependencyCanonical = new Map();
  let genericCycleDiagnostic;
  const functions = Array.from({length:16}, (_, i) => `
@@ -199,7 +201,7 @@ fn badSecond(value:MissingSecond):void {}`);
     assert.match(result.error, /duplicate field 'first'/);
     assert.doesNotMatch(result.error, /duplicate field 'second'/);
    } finally { tower.destroyExecution(fieldsInvalid); }
-   for (const fixture of [delayedLayout, genericHeaders])
+   for (const fixture of [delayedLayout, genericHeaders, typeFields])
    for (const pointerBytes of [4,8]) for (let fast=0; fast<2; fast++) {
     const handle=tower.compile(fixture,{pointerBytes});
     try {
@@ -228,9 +230,15 @@ fn badSecond(value:MissingSecond):void {}`);
     assert.equal(result.status,'error');
     assert.match(result.error,/Recursive by-value layout: Recursive -> Recursive/);
    } finally { tower.destroyExecution(layoutCycle); }
+   const typeCycle=tower.compile(await readFile('scaffolding/tests/semantic_invalid/decltype_type_field_cycle.tower','utf8'));
+   try {
+    const result=tower.execute(typeCycle);
+    assert.equal(result.status,'error');
+    assert.match(result.error,/initializer dependency cycle/);
+   } finally { tower.destroyExecution(typeCycle); }
    tower.configureModules({entry:'main.tower', files:[
-    {path:'left.tower', text:'import tower; var seed:u64=3; struct Item { value:decltype(seed); next:Item*; } fn read(T:type,item:T*):decltype(item.value) { return item.value; }'},
-    {path:'right.tower', text:'import tower; var seed:u64=7; struct Item { value:decltype(seed); next:Item*; }'},
+    {path:'left.tower', text:'import tower; var seed:u64=3; var marker:u32=11; struct Item { value:decltype(seed); next:Item*; } fn read(T:type,item:T*):decltype(item.value) { return item.value; } fn box(T:type):type { struct Box { value:T; stamp:decltype(marker); } return Box; }'},
+    {path:'right.tower', text:'import tower; var seed:u64=7; var marker:u64=13; struct Item { value:decltype(seed); next:Item*; } fn box(T:type):type { struct Box { value:T; stamp:decltype(marker); } return Box; }'},
    ]});
    const modules = `import tower; import left as l; import right as r;
 struct Pair { first:decltype(l.seed); second:decltype(r.seed); }
@@ -240,7 +248,10 @@ var pair:Pair; pair.first=from_left; pair.second=from_right;
 // dependencies, so admission must use the signature's actual lexical scope.
 fn shadow(l:r.Item*):decltype(l.value) { return l.value; }
 var returned:decltype(l.read(&item));
-var item:r.Item; item.value=9; print(shadow(&item)); print(pair.first+pair.second);`;
+var item:r.Item; item.value=9; print(shadow(&item)); print(pair.first+pair.second);
+var left_box:l.box(u32); var right_box:r.box(u64);
+left_box.value=1; left_box.stamp=l.marker; right_box.value=2; right_box.stamp=r.marker;
+print(sizeof(l.box(u32))); print(sizeof(r.box(u64)));`;
    for (const pointerBytes of [4,8]) for (let fast=0; fast<2; fast++) {
     const handle=tower.compile(modules,{pointerBytes});
     try {
@@ -248,7 +259,7 @@ var item:r.Item; item.value=9; print(shadow(&item)); print(pair.first+pair.secon
      let result, output='';
      do { result=tower.execute(handle,10000); output+=result.output; } while(result.status==='executing');
      assert.equal(result.status,'done',result.error);
-     assert.equal(output,'9\n10\n');
+     assert.equal(output,'9\n10\n8\n16\n');
      const text=tower.foundation(handle).source;
      if (!moduleCanonical.has(pointerBytes)) moduleCanonical.set(pointerBytes,text);
      assert.equal(text,moduleCanonical.get(pointerBytes),`imported queries: workers=${capacity}, width=${pointerBytes}, fast=${fast}`);
