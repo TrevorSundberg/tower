@@ -36048,3 +36048,27 @@ authoritative. The focused browser package checks pass four tests, with its
 optional package-ownership fixture absent from the production reactor and skipped
 (float-browser-bytecode.log). The full native package suite remains the evidence
 for the Tower implementation. Site publication and hosted verification follow.
+
+Final integration supersedes the preceding candidate: the publication pull added
+8831909's native backend graph jobs, frozen worker descriptors and bounded ready
+work refill. Rebuilt native, portable/shared browser and LLVM/cross artifacts
+from integrated checkpoint 1325ed72513a2e0f9bf107d7672adc505ec7cc1c. The full native
+execution suite and the native backend unit fixture pass, including deterministic
+objects/errors and cancellation. Browser worker/LLVM/raw-memory/package checks
+pass 85 tests, with only the optional production-excluded package fixture skipped.
+Two further browser compiler generations produce identical bytes and preserve the
+deliberately edited diagnostic. Logs: float-integrated-{build,execution,
+backend-units,browser-tests,generation}.log. The first worker-test target request
+omitted TOWER_WORK_TESTS; enabling it alongside TOWER_BACKEND_TESTS and
+TOWER_EXECUTION_TESTS created the intended fixture and the checks passed.
+
+Packaged that integrated compiler with the Tower tool. The replacement archive is
+814b1f882c99fce3d16dccb3183208ad04fdb4fa6097cc5f5c3de08ef2bca372, with exact source
+base 1325ed7 and no source patch. Independent member verification and relocated
+compact/native floating execution pass. A new default build in
+/cache/float-final-successor passes all 54 steps and its floating fixture prints
+zero failures, without a private compiler override. Logs:
+float-integrated-relocated-execution.log, float-final-successor-build.log and
+float-final-successor-execution.log. A normal main push was rejected because
+upstream advanced again; preserve the validated source checkpoint for bootstrap
+provenance, rebase normally, and repeat only checks affected by further changes.
