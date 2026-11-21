@@ -33965,3 +33965,22 @@ ordered diagnostics and cycles (known-clone-focused.log). The compiled successor
 interprets comptime.tower with result 0 (known-clone-comptime.log). These checks
 cover the new clone and alias publication paths; browser release validation still
 remains. No separate value-folding implementation was introduced.
+
+Publication synchronization rebased onto 1a4fcf3. Preserved upstream's bounded
+runtime-input preflight and relocation-independent inferred interpreter policy,
+including its new address-observation regressions. The preflight avoids creating
+obviously ineligible jobs; admitted clones still use KnownProof/KnownClone and
+private alias publication. Preserved all appended journal history. Upstream also
+changed todo.txt; this work did not edit it, and its checkout blob matches
+origin/main (045d1e620edf7c67b653fec19df850b370246b1d). The public bootstrap is now
+e886c65dff84c83b8647d516eaa1de6754f58f04932022238680f8d1489f9e32.
+A fresh default-pin successor is building in ecs-inference-publish; its result
+and the affected merged checks follow before source publication.
+
+The fresh e886c65d default-pin successor passes all 53 build steps, followed by
+the merged known-binding and body-smoke suites (ecs-inference-publish-build.log,
+ecs-inference-publish-focused.log). Address-dependent inferred values remain
+runtime values, explicit dependency failures/cycles diagnose correctly, and
+serial/worker canonical output and source-ordered errors agree. The concurrently
+published 6443f6d changes documentation only; it does not invalidate these compiler
+results or require another identical build.
