@@ -37072,3 +37072,10 @@ frontend suites. Native/WASI linker suites also pass. Added explicit byte-plan
 replay rejection with zero output, closing the same stale-artifact case already
 covered by wasm_link_run. Publication is a source/validation receipt only; it
 preserves runtime 85c8a13 and all 84 assets from the other lanes' verified release.
+
+Publication verified: source 4bbb2b9 is pushed. Pages a317282c3b0f2aa0d5536b5c00e445b7251a1a34
+and action 44956761443 succeeded; the hosted receipt exactly matches the prepared
+manifest, SHA-256 b641e676fbd0d2d7218f6e1bf30c0ebeb4bb698c062d6102cb280ef4c4f791b8.
+It preserves runtime build 85c8a138e098f2dd84706d3f9d6e7bbcfa592887, all 84 asset
+entries and concurrent UI/tooling/profiling notes. This is explicitly an experimental
+source/API receipt, not a hosted linker cutover. The publication lock is released.
