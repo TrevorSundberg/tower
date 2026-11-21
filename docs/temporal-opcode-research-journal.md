@@ -23333,3 +23333,15 @@ checkout/executable no longer matched. No complete native parser/formatter pass
 is claimed. Repeat the relevant native/frontend/backend and browser checks on
 the combined source and refresh the pin before publication. The 4230a7c5 archive
 and 5358968 revision above are superseded release candidates after this rebase.
+
+Combined release bootstrap:
+fb1ab1f9e44dad9e8302472ee2c0d7c54471e4c555ce72c355e29a44aacc4628,
+built from e517d64 with complete resources, exact source hashes and no patch.
+Both the default predecessor build (/cache/defer-release-clean) and fresh pinned
+successor (/cache/defer-release-successor) pass all 55 targets with no private
+bootstrap override. Relocation again passes all eight fixture/engine checks.
+Native backend API checks and all four frontend/driver/execution/request CTests
+pass against the combined source (build/defer-release-native-tests.log).
+Browser parser/LLVM/cross builds and compiler-project packaging have completed;
+consumers start only after packaging finishes. The cleanup inventory remains
+59/126 after this integration. Final browser/deployment results follow below.
