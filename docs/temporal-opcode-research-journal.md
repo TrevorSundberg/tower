@@ -36409,3 +36409,34 @@ Inline Python in build-llvm.sh and test-bootstrap.sh remains separate. Wider
 shell/CMake/JavaScript migration is still active; this is not an overall language
 percentage. Docs describe the simplified invocation, fresh logs and platform scope.
 No todo.txt, compiler semantics, runtime binary or browser asset changes.
+
+Verifier final rebase/publication receipt: upstream cb1f340 includes floating,
+unary-negation and static-Wasm work plus a newer checked-in public bootstrap.
+Preserve that pin; do not reuse pre-rebase bootstrap evidence as final evidence.
+From a fresh Git clone of 7aa2e56 at /cache/verifier_rebased_checkout, with Python
+unavailable and no private bootstrap override, the documented native build passes
+all 54 steps at /cache/verifier_rebased_native. Its SHA-256
+1a5b58879eb247e0c2e3ab33804d965b8b157f170af49f71b53a611b7762d8bb is identical to
+the current public pin. The fresh selected-tool build passes all five steps at
+/cache/verifier_rebased_tools, followed by all 16 development relocation checks
+and the explicit restricted missing-Clang check. Reports are under the clone's
+build/distribution/relocation.mHPrut. Recompile/run the binary stdout/stderr process
+suite with the new pin: PASS. The clone's tracked tree remains clean.
+
+Source7aa2e56 was pushed after these checks. Pages
+97f68c62f6edca89152d1d3ef12307692051ae73 directly descends from
+873c2d5557ea873a1af7cecddfd351edbd8ad0ef and changes only deployment-manifest.json.
+It preserves the newest runtime build source f4c78cc and all 84 asset hashes,
+including the other lanes' floating/static-linker notes. Action44952932950 passes;
+hosted and prepared manifest bytes match, SHA-256
+d1e623d8cf5b2d5478a039c56bfb79e0270a0d94d905e28912973ef1af6e3100.
+
+Next removal-first audit: pinned LLVM's llvm/cmake/config-ix.cmake unconditionally
+calls get_host_triple before setting LLVM_HOST_TRIPLE. GetHostTriple.cmake runs
+config.guess on Linux. Thus merely supplying the host triple does not justify
+deleting build-llvm.sh's temporary CRLF workaround. The default Git-archive
+source snapshot should already provide LF bytes; investigate that path and actual
+explicit-source override callers before deciding whether normalization can be
+eliminated, scoped to a required boundary or minimally translated. Do not port the
+backup/restore machinery automatically. The real filesystem import tests still
+need their OS behavior covered beyond the in-memory case-matching fixture.
