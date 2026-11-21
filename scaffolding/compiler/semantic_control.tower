@@ -109,11 +109,13 @@ fn sem_control_literal(c: SemanticContext*, parent: void*, bit: u64): void* {
 
 fn sem_control_local(c: SemanticContext*, block: void*, initial: void*): void* {
     var initializer = sem_get(initial);
-    if initializer.kind == KConvert && initializer.type.pointers == 0 && semantic_enum(&initializer.type) {
+    var explicit_source = initializer.kind == KBits ||
+        initializer.kind == KConvert && initializer.type.pointers == 0 && semantic_enum(&initializer.type);
+    if explicit_source {
         var operand = sem_get(initializer.value);
         if operand != null && operand.constant {
-            // Keep the source literal's exact type in compilable Foundation,
-            // including u64 values that cannot use the default i32 context.
+            // Keep a bitcast/enum conversion's source literal type in compilable
+            // Foundation, including magnitudes that cannot default to i32.
             var source = sem_control_local(c, block, initializer.value);
             initializer.value = sem_control_read(c, initial, source);
         }

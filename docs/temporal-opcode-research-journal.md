@@ -36102,3 +36102,13 @@ first isolated compile caught an unimported digit helper, then confirmed single
 quotes are strings in Tower; the digit range now uses named byte constants. The
 isolated semantic_expressions unit compiles with the public predecessor. Runtime
 and successor validation follow; no separate constant folder was added.
+
+The negation fixture executed correctly immediately, but canonical reconstruction
+exposed a missing source-type context: `bits(i64, 9223372036854775808)` reparsed
+its operand as default i32. Extended the existing typed-temporary handling for
+enum conversions to literal bitcasts. Foundation now declares the unsigned
+magnitude explicitly before the bitcast and subtraction; it preserves the same
+ordinary operations without evaluating minus in the checker. The focused
+integer_negation suite passes both pointer widths, graph/compact execution,
+staging, range diagnostics and stable Foundation reconstruction
+(build/integer-negation-checks.log).
