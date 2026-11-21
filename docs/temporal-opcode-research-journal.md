@@ -23312,3 +23312,15 @@ override unset (build/defer-published-clean.log, defer-published-relocated.log).
 This remains the documented Linux development bootstrap, not a portable release.
 The frozen-source native aggregate and final browser/deployment checks are still
 running at this checkpoint; final results follow below.
+
+Final combined browser regressions pass 148/148, including the termination-flow
+correction and module cleanup reconstruction (build/defer-final-regressions.log).
+Local deployment verification passes completely: all 70 asset hashes plus both
+desktop/mobile execution, completion, grammar editing, native downloads, module
+projects and compiler-project cancellation (build/defer-deployment-local.log).
+
+Reran the cleanup inventory after the final upstream integration: 59 functions /
+126 extra copies. The two new candidates are intentional: execution-session input
+storage is released before diagnostic allocation, and byte-buffer tests check
+distinct lifetimes plus repeated-disposal idempotence. Preserved both; the reviewed
+migration still removes 21 copies. See build/defer-audit-final.json and the audit.

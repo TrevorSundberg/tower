@@ -38,6 +38,12 @@ and 23 source lines before canonical formatting. The inventory falls to 57
 functions / 121 extra copies. Counts exclude feature implementation, tests and
 documentation. Explicit ownership-transfer assignments remain visible.
 
+After integrating upstream through d79e449, the inventory is 59 functions / 126
+copies. The two added candidates were reviewed too: `execution_session_compile_sources`
+releases input storage before allocating diagnostics, while the new byte-buffer
+tests deliberately exercise separate lifetimes and repeated disposal. Their
+explicit calls remain. This does not change the migration's 21-copy reduction.
+
 ## Intentional exceptions
 
 - `format_parser_host_text` cleans up before `abort`; defer does not unwind abort
