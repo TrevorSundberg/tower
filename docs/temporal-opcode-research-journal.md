@@ -25366,3 +25366,16 @@ Tower successor is still a separate unvalidated draft. Publication is queued
 behind the coordinator's utility references, followed by Agent2's LR batch.
 Agent1 explicitly owns the combined deployment and hosted verification; these
 new commits are not yet claimed deployed.
+
+Final source-slot merge includes fcc389c's utility-reference retirement. Resolved
+only append-history and overlapping CMake reference-list removals, preserving
+both lanes. A second empty build agent-3-native-successor-fcc389c passed with
+the documented25765446 bootstrap and no private environment override. The
+merged reader/validation CTests pass0.10s/0.15s; native focused4/4 pass16.72s;
+WASI reader/validation/formatter execute successfully and both aggregate links
+pass. The actual eea0037 successor also compiled the current parser closure for
+Wasm successfully after native cmp0. The later utility change adds only a UTF8
+contract comment to production Tower sources; its new oracle fixtures remain
+separate. git diff --check passes and todo.txt is untouched. Agent3 holds the
+source lock for this push, then hands it to Agent2; Agent1 remains responsible
+for the combined deployment, which is still pending.
