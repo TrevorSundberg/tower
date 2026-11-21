@@ -38221,3 +38221,18 @@ remain under build/compiler-workbench-shared-final; the frozen bootstrap reactor
 is build/wasm_link_shared_seed.wasm. todo.txt still hashes
 045d1e620edf7c67b653fec19df850b370246b1d. Publish a source/API receipt, preserving
 the other lane's newer hosted runtime 797f54a and its complete assets/provenance.
+
+Publication completion: final rebase includes the tooling lane's measurement
+migration through 824af12; implementation is b3d22fc and validation 092b408,
+both pushed. Repeat the clean public successor once more under
+coordinator-wasm-linker/successor-shared-published; all build steps and backend
+API pass. Those last incoming files change test/measurement tools, so the frozen
+browser compiler source inputs and generation evidence remain unchanged. Git's
+transient DNS failure is resolved with Resolve-DnsName plus per-command
+http.curloptResolve, preserving ordinary HTTPS verification and non-force push.
+Wait for the measurement agent to release publish.lock, then lease the current
+manifest and preserve its new measurement receipt, runtime 797f54a and 86 assets.
+Pages 32c7b089f7db3cb8535070ac29bd156b4a797eb5 / action 44962497981 succeeds;
+hosted/prepared SHA-256 both equal
+1a80115ef25508348c95ad476d9d74f39ec43ac1c24575744b5477b46cf99ea7.
+This publishes the source/API validation receipt, not a production LLD cutover.
