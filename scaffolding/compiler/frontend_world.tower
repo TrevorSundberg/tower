@@ -8,6 +8,7 @@ import frontend_pattern;
 import lr_tree;
 import syntax_types;
 import syntax_baselines;
+import syntax_session_inputs;
 
 extern fn compiler_host_world(): void*;
 

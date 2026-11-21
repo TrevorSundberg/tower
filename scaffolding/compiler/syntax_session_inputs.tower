@@ -1,0 +1,84 @@
+import tower;
+import component_kinds;
+import frontend_modules;
+import frontend_revision_types;
+import lr_tree;
+import parser_nodes;
+import syntax_nodes;
+import syntax_reader;
+import syntax_session_types;
+import syntax_source;
+import syntax_tags;
+import syntax_types;
+import syntax_validation;
+
+extern fn compiler_world_store(world: void*): void*;
+extern fn compiler_world_component(world: void*, entity: void*, kind: u32): void*;
+extern fn entity_create(store: void*): void*;
+
+export fn syntax_session_inputs_dispose(value: SyntaxSessionInputs*): void {
+    if value.owns_module { frontend_module_destroy(bits(FrontendModule*, value.module)); }
+    syntax_source_release(value.source);
+    if value.document is not null { entity_release(value.document); }
+    fill(value, 0, sizeof(SyntaxSessionInputs));
+}
+
+export fn syntax_session_inputs_module(value: SyntaxSessionInputs*, source: u8*, module: FrontendModule*): void {
+    if value.module is not null { return; }
+    if module is not null {
+        value.module = bits(void*, module);
+        value.owns_module = false;
+    } else {
+        value.module = bits(void*, frontend_module_root(source, bits(ModuleEnvironment*, value.environment)));
+        value.owns_module = true;
+    }
+}
+
+export fn syntax_session_inputs_source(value: SyntaxSessionInputs*, source: u8*, length: usize, name: u8*): bool {
+    var prepared = syntax_source_create(name, source, length);
+    if prepared is null { return false; }
+    syntax_source_release(value.source);
+    value.source = prepared;
+    return true;
+}
+
+// Source allocation precedes rebuilding the owned module. A failed attempt
+// leaves enough ownership state for the next reset to rebuild that graph; no
+// failed reset may silently reuse its recorded declarations on the next parse.
+export fn syntax_session_inputs_reset(value: SyntaxSessionInputs*, source: u8*, length: usize,
+mode: u32, module: FrontendModule*): bool {
+    var selected = module ?? bits(FrontendModule*, value.module);
+    var name = mode == SyntaxSeedBaseline() ? "bedrock.tower" : mode == SyntaxBedrockBaseline() ? "foundation.tower" : "this file";
+    if selected is not null { name = frontend_module_name(selected); }
+    var prepared = syntax_source_create(name, source, length);
+    if prepared is null { return false; }
+    var document = entity_create(compiler_world_store(value.world));
+    var node = document is null ? null : bits(SyntaxNode*, compiler_world_component(value.world, document, CompilerSyntax()));
+    if node is null {
+        if document is not null { entity_release(document); }
+        syntax_source_release(prepared);
+        return false;
+    }
+    node.kind = SyntaxDocument();
+    var replace_owned = value.owns_module && value.source is not null;
+    if module is not null && bits(void*, module) != value.module {
+        if value.owns_module { frontend_module_destroy(bits(FrontendModule*, value.module)); }
+        value.module = bits(void*, module);
+        value.owns_module = false;
+        replace_owned = false;
+    }
+    var ready: bool = true;
+    if replace_owned {
+        frontend_module_destroy(bits(FrontendModule*, value.module));
+        value.module = bits(void*, frontend_module_root(prepared.text.data, bits(ModuleEnvironment*, value.environment)));
+        name = frontend_module_name(bits(FrontendModule*, value.module));
+        if syntax_bytes_compare(prepared.name.data, prepared.name.length, name, syntax_text_length(name)) != 0 {
+            ready = node_text_set(&prepared.name, name);
+        }
+    }
+    syntax_source_release(value.source);
+    value.source = prepared;
+    if value.document is not null { entity_release(value.document); }
+    value.document = document;
+    return ready;
+}

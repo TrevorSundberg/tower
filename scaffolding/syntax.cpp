@@ -193,10 +193,8 @@ std::string read_declaration(TowerNode* node, const SyntaxSource* source, Syntax
 }
 
 struct SyntaxSession {
-  FrontendModule* module = nullptr;
-  bool owns_module = false;
-  std::string_view source; // Borrowed from source_info, retained by source nodes.
-  SyntaxSourceRef source_info;
+  SyntaxSessionInputs inputs{compiler_host_world(), syntax_modules};
+  std::string_view source; // Borrowed from the Tower-owned source snapshot.
   size_t cursor = 0;
   size_t revision = 0;
   Revision grammar, baseline;
@@ -213,23 +211,15 @@ struct SyntaxSession {
   std::shared_ptr<Version> version;
   FrontendCache cache{};
   std::array<std::shared_ptr<Version>, SYNTAX_MAX_CACHED_GRAMMARS> versions;
-  ~SyntaxSession() { frontend_cache_dispose(&cache); if (owns_module) frontend_module_destroy(module); }
+  ~SyntaxSession() { frontend_cache_dispose(&cache); syntax_session_inputs_dispose(&inputs); }
   SyntaxExpansionStats expansion_stats;
   std::string error;
   size_t error_offset = 0;
   bool error_insertion = false;
   std::vector<SyntaxHighlight> highlights;
-  TowerNodeRef document;
 };
 
 namespace {
-bool set_source(SyntaxSession& session, std::string_view text, const char* name) {
-  auto source = SyntaxSourceRef::adopt(syntax_source_create(name, text.data(), text.size()));
-  if (!source) return false;
-  session.source_info = std::move(source);
-  session.source = session.source_info->text.view();
-  return true;
-}
 std::string syntax_diagnostic(SyntaxSession& session, Recognizer* recognizer, bool repairs = true) {
   const std::unique_ptr<ParserDiagnostic, decltype(&parser_diagnostic_destroy)> diagnostic(
     parser_recognizer_diagnostic(recognizer, repairs ? ParserDiagnosticReader::Syntax : ParserDiagnosticReader::None, &session), parser_diagnostic_destroy);
@@ -346,9 +336,11 @@ bool compile_template(Version& version, const Revision& defs, const Sequence& se
   }
   TemplateInput input;
   input.base = replacement.start;
-  if (!set_source(input.session, semantic(semantic(seq).replacement).text, "replacement")) {
+  const auto& text = semantic(semantic(seq).replacement).text;
+  if (!syntax_session_inputs_source(&input.session.inputs, text.data(), text.size(), "replacement")) {
     error = "Unable to allocate replacement source text"; return false;
   }
+  input.session.source = input.session.inputs.source->text.view();
   input.session.grammar = defs;
   input.session.bedrock = version.bedrock;
   input.session.version = grammar;
@@ -511,8 +503,7 @@ size_t syntax_expansion_test_entry() {
 
 SyntaxSession* syntax_create(const char* source, FrontendModule* module) {
   auto session = std::make_unique<SyntaxSession>();
-  session->module = module ? module : frontend_module_root(source, syntax_modules);
-  session->owns_module = !module;
+  syntax_session_inputs_module(&session->inputs, source, module);
   if (const auto* grammar = module ? frontend_module_grammar(module) : nullptr) {
     session->baseline = Revision(syntax_revision_create(grammar->rules.data, grammar->rules.length,
       grammar->tokens.data, grammar->tokens.length), frontend_revision_release);
@@ -550,19 +541,9 @@ SyntaxSession* syntax_create_bedrock(const char* source) {
 }
 
 void syntax_reset(SyntaxSession* session, const char* source, FrontendModule* module) {
-  if (module) session->module = module;
-  // Preserve the recoverable source-allocation boundary before module rebuilding.
-  // A failed reset clears version, but the next successful reset must still
-  // replace the old module graph rather than reuse its recorded declarations.
-  const bool replace_module = session->owns_module && session->source_info;
-  bool source_ready = set_source(*session, source,
-    session->module ? frontend_module_name(session->module) : session->building_bedrock ? "bedrock.tower" : session->bootstrapping ? "foundation.tower" : "this file");
-  if (source_ready && replace_module) {
-    frontend_module_destroy(session->module);
-    session->module = frontend_module_root(session->source_info->text.c_str(), syntax_modules);
-    const auto* name = frontend_module_name(session->module);
-    if (session->source_info->name.view() != name) source_ready = set_source(*session, session->source, name);
-  }
+  const bool source_ready = syntax_session_inputs_reset(&session->inputs, source, std::strlen(source),
+    session->building_bedrock ? SyntaxBaselineMode::Seed : session->bootstrapping ? SyntaxBaselineMode::Bedrock : SyntaxBaselineMode::Foundation, module);
+  session->source = session->inputs.source ? session->inputs.source->text.view() : std::string_view{};
   session->cursor = session->revision = session->error_offset = 0;
   session->error_insertion = false;
   session->cache.builds = session->cache.hits = 0;
@@ -570,8 +551,6 @@ void syntax_reset(SyntaxSession* session, const char* source, FrontendModule* mo
   session->finalized = false; session->declarations_only = true; session->comment_cursor = 0;
   session->error.clear(); session->highlights.clear(); session->grammar = session->baseline;
   session->declaration = false;
-  session->document = TowerNodeRef::adopt(tower_node_create());
-  syntax_attach(session->document.get(), SyntaxKind::Document);
   if (!source_ready) { session->error = "Unable to allocate source text"; session->version.reset(); return; }
   session->version = compiled(*session, session->grammar, session->error);
 }
@@ -585,7 +564,7 @@ size_t syntax_get_revision(SyntaxSession* session) { return session->revision; }
 size_t syntax_get_offset(SyntaxSession* session) { return session->cursor; }
 size_t syntax_get_error_offset(SyntaxSession* session) { return session->error_offset; }
 bool syntax_get_error_insertion(SyntaxSession* session) { return session->error_insertion; }
-TowerNode* syntax_document(SyntaxSession* session) { return session->document.get(); }
+TowerNode* syntax_document(SyntaxSession* session) { return session->inputs.document; }
 bool syntax_can_format(SyntaxSession* session) {
   return session->error.empty() && session->finalized;
 }
@@ -660,7 +639,7 @@ TowerNode* syntax_next(SyntaxSession* session) {
       session->completion_version = session->version;
     }
     if (!session->finalized) {
-      preserve_comments(*session, semantic(session->document), session->cursor);
+      preserve_comments(*session, semantic(session->inputs.document), session->cursor);
       if (syntax_pending_count(session->version->pending.get()))
         session->error = syntax_pending_message(session->version->pending.get(), &session->error_offset);
       if (session->building_bedrock && session->error.empty()) {
@@ -718,9 +697,9 @@ TowerNode* syntax_next(SyntaxSession* session) {
     TowerNode* construct = child(root.get(), 0);
     const std::string construct_kind = parser_match_get_label(match(construct));
     if (construct_kind == "ImportDeclaration") {
-      if (!session->module) { session->module = frontend_module_root(session->source_info->text.c_str(), syntax_modules); session->owns_module = true; }
-      if (!frontend_module_import(session->module, construct, session->source_info.get())) return fail(frontend_module_error(session->module));
-      const auto* grammar = frontend_module_grammar(session->module);
+      syntax_session_inputs_module(&session->inputs, session->inputs.source->text.c_str(), nullptr);
+      if (!frontend_module_import(session->inputs.module, construct, session->inputs.source)) return fail(frontend_module_error(session->inputs.module));
+      const auto* grammar = frontend_module_grammar(session->inputs.module);
       Revision candidate(syntax_revision_create(grammar->rules.data, grammar->rules.length,
         grammar->tokens.data, grammar->tokens.length), frontend_revision_release);
       std::string error;
@@ -732,7 +711,7 @@ TowerNode* syntax_next(SyntaxSession* session) {
     }
     if (construct_kind == "GrammarTokenDeclaration" || construct_kind == "GrammarSkipDeclaration") {
       session->error_offset = construct_start;
-      auto error = read_declaration(construct, session->source_info.get(),
+      auto error = read_declaration(construct, session->inputs.source,
         construct_kind == "GrammarSkipDeclaration" ? SyntaxKind::Skip : SyntaxKind::Token);
       if (!error.empty()) return fail(error);
       auto& token = syntax_node(construct);
@@ -754,7 +733,7 @@ TowerNode* syntax_next(SyntaxSession* session) {
     }
     if (construct_kind == "GrammarDeclaration") {
       session->error_offset = construct_start;
-      auto error = read_declaration(construct, session->source_info.get(), SyntaxKind::Rule);
+      auto error = read_declaration(construct, session->inputs.source, SyntaxKind::Rule);
       if (!error.empty()) return fail(error);
       TowerByteBuffer edit_error{};
       Revision candidate(syntax_revision_declare(session->grammar.get(), construct, syntax_component_type(), &edit_error), frontend_revision_release);
@@ -771,8 +750,8 @@ TowerNode* syntax_next(SyntaxSession* session) {
       auto& declaration = syntax_node(construct);
       declaration.start = construct_start; declaration.end = session->cursor;
       preserve_comments(*session, declaration, session->cursor);
-      tower_node_attach(root.get(), session->document.get());
-      semantic(session->document).items.push_back(construct);
+      tower_node_attach(root.get(), session->inputs.document);
+      semantic(session->inputs.document).items.push_back(construct);
       // Grammar roles apply only to grammar names/references and captures.
       // Imports and `as style` values are ordinary identifiers, not rule names.
       // Patterns, quoted paths and replacement bodies keep their token styles.
@@ -799,7 +778,7 @@ TowerNode* syntax_next(SyntaxSession* session) {
       }
       session->comment_cursor = session->cursor;
     }
-    if (session->module && !session->formatting) frontend_module_record(session->module, root.get(), session->declaration);
+    if (session->inputs.module && !session->formatting) frontend_module_record(session->inputs.module, root.get(), session->declaration);
     return root.release();
   }
 }
@@ -858,7 +837,7 @@ std::string syntax_set_bedrock(const char* source) {
   std::unique_ptr<SyntaxSession> session(syntax_create_bedrock(source));
   while (auto* root = syntax_next(session.get())) tower_node_release_ref(root);
   if (!session->error.empty()) return session->error;
-  if (!syntax_world_publish(compiler_host_world(), source, std::strlen(source), session->document.get(), session->grammar.get(), false))
+  if (!syntax_world_publish(compiler_host_world(), source, std::strlen(source), session->inputs.document, session->grammar.get(), false))
     return "Unable to allocate grammar baseline";
   frontend_modules_reset_compilation(syntax_modules);
   // Foundation must be reloaded under the new bedrock. Existing syntax sessions
@@ -874,7 +853,7 @@ std::string syntax_set_bootstrap(const char* source) {
   if (session->grammar->tokens.length == 0) return "Bootstrap must define at least one token or skip rule";
   // Baselines reference the same semantic declaration entities. Existing
   // sessions retain their baseline; a new module affects only new sessions.
-  if (!syntax_world_publish(compiler_host_world(), source, std::strlen(source), session->document.get(), session->grammar.get(), true))
+  if (!syntax_world_publish(compiler_host_world(), source, std::strlen(source), session->inputs.document, session->grammar.get(), true))
     return "Unable to allocate grammar baseline";
   frontend_modules_reset_compilation(syntax_modules);
   return {};
@@ -906,7 +885,7 @@ extern "C" SyntaxSession* syntax_completion_create(const char* source, unsigned 
   return mode == 2 ? syntax_create_bedrock(source) : mode == 1 ? syntax_create_foundation(source) : syntax_create(source);
 }
 extern "C" void syntax_completion_enable(SyntaxSession* session) { session->completing = true; }
-extern "C" FrontendModule* syntax_completion_module(SyntaxSession* session) { return session->module; }
+extern "C" FrontendModule* syntax_completion_module(SyntaxSession* session) { return session->inputs.module; }
 // Read-only migration bridges to the current derived grammar tables. Tower
 // retains the returned shared entities before the next declaration can replace
 // or evict this version. No parser or presentation policy is duplicated here.

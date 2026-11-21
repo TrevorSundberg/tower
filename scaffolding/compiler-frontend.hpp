@@ -64,12 +64,24 @@ struct FrontendRevision {
 };
 enum class SyntaxBaselineMode : uint32_t { Foundation, Bedrock, Seed };
 struct CompilerWorld;
+struct SyntaxSessionInputs {
+  CompilerWorld* world;
+  ModuleEnvironment* environment;
+  FrontendModule* module;
+  const SyntaxSource* source;
+  TowerNode* document;
+  bool owns_module;
+};
 struct FrontendCache {
   struct { FrontendRevision** data; size_t length, capacity; } entries;
   size_t builds, hits;
 };
 extern "C" {
 CompilerWorld* compiler_host_world();
+void syntax_session_inputs_dispose(SyntaxSessionInputs*);
+void syntax_session_inputs_module(SyntaxSessionInputs*, const char*, FrontendModule*);
+bool syntax_session_inputs_source(SyntaxSessionInputs*, const char*, size_t, const char*);
+bool syntax_session_inputs_reset(SyntaxSessionInputs*, const char*, size_t, SyntaxBaselineMode, FrontendModule*);
 const FrontendRevision* syntax_world_revision(CompilerWorld*, SyntaxBaselineMode);
 bool syntax_world_matches(CompilerWorld*, const char*, size_t, bool);
 bool syntax_world_publish(CompilerWorld*, const char*, size_t, TowerNode*, const FrontendRevision*, bool);

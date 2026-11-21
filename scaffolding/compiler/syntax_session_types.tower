@@ -1,0 +1,13 @@
+import tower;
+import syntax_types;
+
+// Session-owned input leases. World/environment and a supplied module are
+// borrowed; an internally opened module, source snapshot and document are owned.
+struct SyntaxSessionInputs {
+    world: void*;
+    environment: void*;
+    module: void*;
+    source: SyntaxSource*;
+    document: void*;
+    owns_module: bool;
+}

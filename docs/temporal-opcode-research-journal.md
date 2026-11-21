@@ -23434,3 +23434,56 @@ relocated fixture checks and clean default compiler builds. A future aggregate
 run should use an immutable validation checkout so concurrent main updates cannot
 invalidate its long repository-wide formatting pass. No full-aggregate pass is
 claimed by this publication.
+
+
+
+
+
+### 2026-11-20 - Tower-owned session input leases (agent 1, next slice)
+
+While the coordinator holds the combined-publication lock, moved the next bounded
+ownership unit into syntax_session_inputs.tower: source snapshots, declaration
+documents, owned versus borrowed module leases, and reset/disposal. The native
+SyntaxSession now embeds the plain ABI view and calls Tower operations; its
+set_source implementation and native source/document ownership are removed.
+The environment/world are explicit borrowed inputs. Module construction still
+uses its existing host-world API; this does not claim arbitrary-world module
+parsing, complete SyntaxSession retirement or within-unit concurrency.
+
+Reset prepares a source snapshot and shared-entity declaration document before
+publishing them. Failure in either preparation retains the prior owned inputs;
+the native caller clears its executable version and reports the error. A retry
+still rebuilds an owned module graph instead of reusing its recorded declarations.
+Replacing an owned module with a supplied borrowed module releases the owned graph
+and keeps the supplied graph alive after session disposal. Template readers use
+the same source snapshot operation. Existing source/tree pins survive the owner.
+
+New Tower tests exercise length-delimited snapshot text, Bedrock/Foundation/user
+source names, every source/document preparation allocation failure, pinned-view
+reset rejection, source-only template replacement, retained-source/document
+lifetimes after owner disposal, idempotent disposal, owned module reset after
+failure, and owned-to-borrowed module transition. The initial frontend abort was
+in the test's final host-world allocation-count assertion: warming only a module
+had not warmed the persistent syntax-component storage used by documents. Warming
+a complete owner before that baseline makes the same lifetime check pass; explicit
+world tests still require complete disposal back to their original buffer count.
+Temporary print tracing first failed to link because this focused library target
+does not link tower_print. Used temporary libc puts/fflush to locate the assertion,
+then removed all tracing and reran. No new native tests or implementation were added.
+
+Current default-pin native build succeeds; anchored frontend/driver checks pass
+2/2 (16.95 s), including the new tests. The actual compiler passes module_paths.py.
+Logs: C:/Sandbox/build/codex-agents/agent-1-session-inputs-{build,module-paths}.log.
+This slice remains local until the coordinator completes the current publication;
+a fresh clean successor after its final source rebase is still required.
+
+The current combined browser checks found a separate regression in the pushed
+revision milestone: cached parser tables can retain earlier source entities even
+when identical grammar moves after comments. syntax_diagnostic had incorrectly
+used Version.grammar, whereas the old code described productions through current
+session definitions over Bedrock. Sent and reviewed a narrow correction for the
+coordinator's frozen checkout: use syntax_revision_overlay of current session
+rules over its Bedrock pin for diagnostic lookup, preserving cached versions.
+The existing diagnostics.test.mjs reset fixture is the relevant check; native
+build/object agreement had not covered that interaction. The coordinator owns
+that correction and its browser verification. Preserve it on the next pull.
