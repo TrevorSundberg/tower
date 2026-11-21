@@ -269,6 +269,44 @@ fn reset_tests(): void {
     work_dispose(&graph);
 }
 
+fn selected_tests(): void {
+    var graph: WorkGraph;
+    work_init(&graph, 41, 29);
+    defer work_dispose(&graph);
+    var first=request(&graph, 1);
+    var second=request(&graph, 2);
+    var blocked=request(&graph, 3);
+    check(work_access(&graph, first, 1, 1, 0, 1, WorkAccessMode.Write));
+    check(work_access(&graph, second, 1, 1, 0, 1, WorkAccessMode.Read));
+    check(work_depend(&graph, blocked, first));
+    check(work_seal(&graph, first));
+    check(work_seal(&graph, second));
+    check(work_seal(&graph, blocked));
+    check(work_demand(&graph, first));
+    check(work_demand(&graph, second));
+    check(work_demand(&graph, blocked));
+    var selected: WorkTicket;
+    var spare: WorkTicket;
+    fill(&spare, 0, sizeof(WorkTicket));
+    check(!work_take_task(&graph, &spare, 0));
+    check(!work_take_task(&graph, &spare, 999));
+    check(!work_take_task(&graph, &spare, blocked));
+    check(spare.task==0);
+    check(work_take_task(&graph, &selected, second));
+    check(selected.task==second);
+    check(!work_take_task(&graph, &spare, first));
+    check(spare.task==0);
+    check(work_finish(&graph, &selected, true));
+    check(!work_take_task(&graph, &spare, second));
+    check(work_take(&graph, &spare));
+    check(spare.task==first);
+    check(work_finish(&graph, &spare, true));
+    check(work_take_task(&graph, &spare, blocked));
+    check(work_finish(&graph, &spare, true));
+    check(!work_take(&graph, &spare));
+    check(graph.running==0 && work_ok(&graph));
+}
+
 resume_tests();
 diamond_tests();
 discovered_access_tests();
@@ -276,4 +314,5 @@ failure_tests();
 cycle_tests();
 filtered_tests();
 reset_tests();
+selected_tests();
 print(failures);

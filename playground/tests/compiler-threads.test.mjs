@@ -52,6 +52,12 @@ test('declaration, body checking, lowering and staging are deterministic at 1/2/
  const typeFields = (await readFile('scaffolding/tests/decltype_type_fields.tower', 'utf8')).replace('var seed12:u64=0;',
   Array.from({length:244},(_,i)=>`var seed${i+12}:decltype(seed${i+13});`).join('\n')+'\nvar seed256:u64=0;');
  const dependencyCanonical = new Map();
+ let windowCanonical;
+ const windowFunctions = Array.from({length:260},(_,i)=>
+  `fn window${i}():i32 { var value=identity(${i}); return value+1; }`);
+ const windowSource = 'import tower; fn identity(T:type,value:T):T { return value; }\n'
+  + windowFunctions.join('\n') + '\nvar total:i32=0;\n'
+  + windowFunctions.map((_,i)=>`total+=window${i}();`).join('\n') + '\nprint(total);';
  let genericCycleDiagnostic;
  const functions = Array.from({length:16}, (_, i) => `
 fn f${i}(value: decltype(seed)): decltype(value) {
@@ -145,6 +151,28 @@ fn later():i32 { var value=identity(unknownSecond); return value; }`);
      assert.doesNotMatch(result.error,/unknownSecond/);
     } finally { tower.destroyExecution(broken); }
    }
+   for (const firstFails of [false,true]) {
+    const broken = tower.compile(`import tower;
+fn identity(T:type,value:T):T { return value; }
+fn first():i32 { var value=identity(1); return ${firstFails ? 'unknownFirst' : 'value'}; }
+fn later():i32 { return identity(unknownSecond); }`);
+    try {
+     const result=tower.execute(broken);
+     assert.equal(result.status,'error');
+     assert.match(result.error,firstFails ? /unknownFirst/ : /unknownSecond/);
+     if (firstFails) assert.doesNotMatch(result.error,/unknownSecond/);
+    } finally { tower.destroyExecution(broken); }
+   }
+   const window = tower.compile(windowSource);
+   try {
+    let result, output='';
+    do { result=tower.execute(window,100000); output+=result.output; } while(result.status==='executing');
+    assert.equal(result.status,'done',result.error);
+    assert.equal(output,'33930\n');
+    const source=tower.foundation(window).source;
+    windowCanonical ??= source;
+    assert.equal(source,windowCanonical,`body preparation windows at ${capacity} workers`);
+   } finally { tower.destroyExecution(window); }
    // The body alone has no written generic call or parameterized local type.
    // foreach still instantiates its implicit nominal protocol functions.
    const iteration = tower.compile(`import tower; import library.vector;

@@ -19,6 +19,7 @@ import .library.work_pool;
 
 const BodyQuery: u32 = 6;
 const BodyPrepareQuery: u32 = 9;
+const BodyPreparationWindow: usize = 256;
 
 struct SemanticBodyScope {
     current: void*;
@@ -213,7 +214,7 @@ fn sem_body_structural_take(c: SemanticContext*, subject: void*, ordinal: usize,
     sem_require(work_access(&c.queries, id, 1, 7, ordinal, 1, WorkAccessMode.Write));
     sem_require(work_access(&c.queries, id, 1, 9, 0, ~convert(usize, 0), WorkAccessMode.Write));
     sem_require(work_seal(&c.queries, id) && work_demand(&c.queries, id));
-    sem_require(work_take_query(&c.queries, ticket, query));
+    sem_require(work_take_task(&c.queries, ticket, id));
     sem_require(ticket.task == id);
     return id;
 }
@@ -256,7 +257,8 @@ fn semantic_body_kernel(result: SemanticBodyWork*): void {
     context.current = result.subject;
     context.entity_stage = result.stage;
     context.count = 0;
-    context.node_limit -= result.context.count;
+    context.node_limit = result.context.count < context.node_limit
+        ? context.node_limit - result.context.count : 0;
     vector_init(void*, &context.allocations);
     vector_init(void*, &context.lists);
     vector_init(void*, &context.inferring);
@@ -307,6 +309,64 @@ fn semantic_body_kernel(result: SemanticBodyWork*): void {
     vector_dispose(void*, &context.allocations);
 }
 
+fn sem_body_clear(result: SemanticBodyWork*): void {
+    result.context = null;
+    vector_dispose(&result.nodes);
+    vector_dispose(&result.evaluations);
+    vector_dispose(&result.captures);
+    vector_dispose(&result.flow_dependencies);
+    vector_dispose(&result.error);
+    vector_dispose(&result.lexical.flow_dependencies);
+    fill(&result.lexical, 0, sizeof(SemanticBodyScope));
+}
+
+fn sem_body_hold_error(c: SemanticContext*, result: SemanticBodyWork*): void {
+    // Preparation is source ordered, but an earlier continuation may still
+    // diagnose an error. Transfer this diagnostic and drain those jobs first.
+    copy(&result.error, &c.program.error, sizeof(vector(u8)));
+    result.error_offset = c.program.error_offset;
+    fill(&c.program.error, 0, sizeof(vector(u8)));
+    c.program.error_offset = 0;
+}
+
+fn sem_body_publish(c: SemanticContext*, result: SemanticBodyWork*): void {
+    sem_require(entity_stage_publish(result.stage));
+    result.stage = null;
+    result.context = null;
+    c.count += result.count;
+    c.surface_expressions ||= result.surface;
+    c.has_defer ||= result.has_defer;
+    for(var j: usize = 0; j < result.captures.length; j++) {
+        if c.defer_bindings == null {
+            c.defer_bindings = sem_table(c);
+            c.defer_order = sem_list(c);
+        }
+        var captured = result.captures.data[j];
+        var entry = sem_state(c, c.defer_bindings, captured);
+        if entry.value == null {
+            entry.value = captured;
+            sem_push(c.defer_order, captured);
+        }
+    }
+    for(var j: usize = 0; j < result.evaluations.length; j++) {
+        var evaluation = bits(SemanticEvaluation*, result.evaluations.data[j]);
+        sem_push(&c.evaluation_jobs, bits(void*, evaluation));
+        sem_evaluation_request(c, evaluation);
+    }
+    if result.flow_dependencies.length != 0 {
+        sem_flow_request(c, result.subject, &result.flow_dependencies);
+    }
+    if result.error.length != 0 && sem_ok(c) {
+        sem_require(vector_reserve(u8, &c.program.error, result.error.length + 1));
+        copy(c.program.error.data, result.error.data, result.error.length + 1);
+        c.program.error.length = result.error.length;
+        c.program.error_offset = result.error_offset;
+    }
+    if c.count > c.node_limit { sem_fail(c, result.subject, "Foundation component memory budget exceeded"); }
+    sem_require(work_finish(&c.queries, &result.ticket, result.error.length == 0 && c.count <= c.node_limit));
+    sem_body_clear(result);
+}
+
 fn sem_bodies(c: SemanticContext*): void {
     if !sem_ok(c) { return; }
     sem_control_names(c);
@@ -318,27 +378,15 @@ fn sem_bodies(c: SemanticContext*): void {
         if c.workers.count == 0 { sem_require(work_pool_open(&c.workers, work_thread_capacity())); }
         var batch: SemanticBodyWork*[256];
         var count: usize = 0;
-        while next < c.program.functions.length && count < c.workers.count {
+        var prepared: usize = 0;
+        var failed: SemanticBodyWork* = null;
+        // Bound retained scopes/leases by a source window, independently of
+        // worker capacity. Construction and diagnostic order cannot depend on
+        // how many threads this host provides. No worker runs during preparation.
+        while next < c.program.functions.length && prepared < BodyPreparationWindow() {
+            prepared++;
             var subject = c.program.functions.data[next];
             if sem_get(subject).external { next++; continue; }
-            var nodes: vector(void*);
-            vector_init(void*, &nodes);
-            var cutoff: usize = 0;
-            if !sem_body_sources(c, subject, &nodes) {
-                // Finish earlier source ordinals before a structural body can
-                // mutate shared type/template indexes or select a diagnostic.
-                if count != 0 { vector_dispose(&nodes); break; }
-                cutoff = sem_body_suffix(c, subject);
-                if cutoff == 0 {
-                    vector_dispose(&nodes);
-                    var ticket: WorkTicket;
-                    sem_body_structural_take(c, subject, next, BodyQuery(), &ticket);
-                    sem_function_body(c, subject);
-                    sem_require(work_finish(&c.queries, &ticket, sem_ok(c)));
-                    next++;
-                    break;
-                }
-            }
             var result = bits(SemanticBodyWork*, entity_component_data(entity_component_add(subject, kind)));
             sem_require(result != null);
             fill(result, 0, sizeof(SemanticBodyWork));
@@ -347,14 +395,27 @@ fn sem_bodies(c: SemanticContext*): void {
             result.ordinal = next;
             result.kernel.kind = CompilerKernelKind.Body;
             result.kernel.payload = bits(void*, result);
-            copy(&result.nodes, &nodes, sizeof(vector(void*)));
-            if cutoff != 0 {
+            if !sem_body_sources(c, subject, &result.nodes) {
+                var cutoff = sem_body_suffix(c, subject);
+                if cutoff == 0 {
+                    var ticket: WorkTicket;
+                    sem_body_structural_take(c, subject, next, BodyQuery(), &ticket);
+                    sem_function_body(c, subject);
+                    sem_layout_all(c);
+                    sem_require(work_finish(&c.queries, &ticket, sem_ok(c)));
+                    next++;
+                    if !sem_ok(c) {
+                        failed = result;
+                        sem_body_hold_error(c, failed);
+                        break;
+                    }
+                    sem_body_clear(result);
+                    continue;
+                }
                 sem_body_prefix(c, result, cutoff);
                 if !sem_ok(c) {
-                    result.context = null;
-                    vector_dispose(&result.nodes);
-                    vector_dispose(&result.lexical.flow_dependencies);
-                    fill(&result.lexical, 0, sizeof(SemanticBodyScope));
+                    failed = result;
+                    sem_body_hold_error(c, failed);
                     break;
                 }
             }
@@ -373,65 +434,37 @@ fn sem_bodies(c: SemanticContext*): void {
             count++;
             next++;
         }
-        if count == 0 { continue; }
-        for(var i: usize = 0; i < count; i++) {
-            var result = batch[i];
-            sem_require(work_take_query(&c.queries, &result.ticket, BodyQuery()));
-            sem_require(work_task(&c.queries, result.ticket.task).subject == result.subject);
-            result.stage = entity_stage_open(c.program.root);
-            sem_require(result.stage != null);
-            for(var j: usize = 0; j < result.nodes.length; j++) {
-                sem_require(entity_stage_lease(result.stage, result.nodes.data[j]));
+        var first: usize = 0;
+        while first < count {
+            var end = first + c.workers.count;
+            if end > count { end = count; }
+            for(var i = first; i < end; i++) {
+                var result = batch[i];
+                sem_require(work_take_query(&c.queries, &result.ticket, BodyQuery()));
+                sem_require(work_task(&c.queries, result.ticket.task).subject == result.subject);
+                result.stage = entity_stage_open(c.program.root);
+                sem_require(result.stage != null);
+                foreach(var node in &result.nodes) { sem_require(entity_stage_lease(result.stage, node)); }
             }
+            var view = entity_view_open(c.program.root);
+            sem_require(view != null);
+            for(var i = first; i < end; i++) {
+                sem_require(work_pool_submit(&c.workers, bits(void*, &batch[i].kernel)));
+            }
+            for(var i = first; i < end; i++) { sem_require(work_pool_receive(&c.workers, true) != null); }
+            entity_view_close(view);
+            // Drain every prepared continuation even if an earlier one failed.
+            // Each owns canonical nodes and private scope state until publication.
+            for(var i = first; i < end; i++) { sem_body_publish(c, batch[i]); }
+            first = end;
         }
-        var view = entity_view_open(c.program.root);
-        sem_require(view != null);
-        for(var i: usize = 0; i < count; i++) {
-            sem_require(work_pool_submit(&c.workers, bits(void*, &batch[i].kernel)));
-        }
-        for(var i: usize = 0; i < count; i++) { sem_require(work_pool_receive(&c.workers, true) != null); }
-        entity_view_close(view);
-        for(var i: usize = 0; i < count; i++) {
-            var result = batch[i];
-            sem_require(entity_stage_publish(result.stage));
-            result.stage = null;
-            result.context = null;
-            c.count += result.count;
-            c.surface_expressions ||= result.surface;
-            c.has_defer ||= result.has_defer;
-            for(var j: usize = 0; j < result.captures.length; j++) {
-                if c.defer_bindings == null {
-                    c.defer_bindings = sem_table(c);
-                    c.defer_order = sem_list(c);
-                }
-                var captured = result.captures.data[j];
-                var entry = sem_state(c, c.defer_bindings, captured);
-                if entry.value == null {
-                    entry.value = captured;
-                    sem_push(c.defer_order, captured);
-                }
+        if failed != null {
+            if sem_ok(c) {
+                copy(&c.program.error, &failed.error, sizeof(vector(u8)));
+                fill(&failed.error, 0, sizeof(vector(u8)));
+                c.program.error_offset = failed.error_offset;
             }
-            for(var j: usize = 0; j < result.evaluations.length; j++) {
-                var evaluation = bits(SemanticEvaluation*, result.evaluations.data[j]);
-                sem_push(&c.evaluation_jobs, bits(void*, evaluation));
-                sem_evaluation_request(c, evaluation);
-            }
-            if result.flow_dependencies.length != 0 {
-                sem_flow_request(c, result.subject, &result.flow_dependencies);
-            }
-            if result.error.length != 0 && sem_ok(c) {
-                sem_require(vector_reserve(u8, &c.program.error, result.error.length + 1));
-                copy(c.program.error.data, result.error.data, result.error.length + 1);
-                c.program.error.length = result.error.length;
-                c.program.error_offset = result.error_offset;
-            }
-            if c.count > c.node_limit { sem_fail(c, result.subject, "Foundation component memory budget exceeded"); }
-            sem_require(work_finish(&c.queries, &result.ticket, result.error.length == 0 && c.count <= c.node_limit));
-            vector_dispose(void*, &result.nodes);
-            vector_dispose(void*, &result.evaluations);
-            vector_dispose(void*, &result.captures);
-            vector_dispose(void*, &result.flow_dependencies);
-            vector_dispose(u8, &result.error);
+            sem_body_clear(failed);
         }
     }
 }

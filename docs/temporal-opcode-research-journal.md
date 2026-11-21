@@ -28379,3 +28379,63 @@ precedence, defer, for/foreach, backend and shared semantic/library graph cases.
 Together with the final cleanup capacity/native/successor checks above, this
 completes the checkpoint validation. Preparing the final pull and source push;
 no C++ or todo.txt edits. Browser publication will use the frozen matching build.
+
+### 2026-11-20 - Preparing adjacent body continuations in deterministic windows
+
+Continuation source 05ad028 is pushed after an unchanged final pull. Its frozen
+browser release is being verified while the next scheduling change is developed.
+
+Body preparation now uses a fixed 256-function source window, independent of
+worker capacity. Structural checks and interning remain coordinator-owned and
+source ordered; ready continuations are dispatched in pool-sized batches only
+after that window is prepared. A later preparation error is retained on its body
+work component while earlier continuations drain, allowing their earlier source
+diagnostic to win. Every prepared worker owns and publishes its canonical nodes
+and transfers/disposes its scope scratch even after a peer fails. Clamp remaining
+component budget at zero rather than underflowing when a buffered preparation
+already exceeded the budget. This is broader suffix batching, not general
+statement-by-statement or nested operand suspension.
+
+Added work_take_task to the ordinary graph admission path: selecting a coordinator
+job must not accidentally take an earlier ready body with the same query kind.
+Selection preserves readiness, access exclusion, revision/profile/dispatch tickets
+and pending queue entries. The Tower fixture covers non-head selection, blocked
+and completed tasks, invalid IDs, unchanged output on failure, conflicting access
+and subsequent ordinary FIFO admission. It prints 0 through both interpreters at
+both widths. Initial capacity/canonical checks pass 3/3 in 53.26s. Expanded tests
+now cross the 256-function boundary with 260 generic-prefix functions and test
+buffered errors from both partial prefixes and entirely structural later bodies.
+Those expanded checks and new bootstrap builds are running; no push for this
+window extension yet. All feature implementation is Tower.
+
+Window batching validation completes: expanded capacity/window/error tests pass
+3/3 in 68.64s; backend/library tests pass 92/92 in 241.75s; editor tests pass 28/28
+in 89.24s. Native 8/8 pass in 48.70s, backend API and actual successor semantic
+object cmp0 pass. The adjacent-body probe now dispatches and actually checks
+statements across all eight worker threads 4..11. Coordinator statement count
+remains 17; the 33 worker statements are spread across those eight threads.
+Canonical Foundation compares byte-identically to the single-suffix batches.
+This demonstrates increased usable parallelism, not a measured speedup promise.
+No C++ or todo.txt changes. Preparing the final pull and normal source push.
+
+The preceding 05ad028 release is Pages 2c11139ee79d254524143bd56f2024e7fada1133
+on parent 7e4f967. Action 44875730107 succeeds. Local deployment checks pass all
+77 hashes and desktop/mobile/default workflows; hosted checks are running.
+Two edited browser generations pass in 125.83s/93.44s with identical sizes
+1,018,828/52,318,915/63,876,379 and hashes:
+parser 01904ed4058628829ddaf25837a8440956c99e4a19a62695cc6b9312db4877e5;
+LLVM 4c6ef792125d2b4d6fa695890088891b18b8d782dd04d275d5ab0a2dc0711fae;
+cross d852391c28426bb3e8d7067c3c8079f9c9af4655fc396ccd0646084a4fcdc826.
+
+Next laziness gap is reproduced in decltype-signature-only.tower: a template with
+an explicit return type T and an invalid body is instantiated solely under
+`decltype(signature_only(1))`, yet reports Unknown local 'missing_body_value' in
+both interpreters and widths. The signature already supplies the requested type.
+Separate signature availability from body demand; real runtime/compile-time calls
+must still demand and diagnose the body. Discovering demand from canonical calls
+and stage expressions after joins avoids worker mutation of shared indexes and
+excludes unevaluated type-query syntax. Previously skipped instances can become
+needed later, including via another body's call, so a one-pass function cursor
+alone is insufficient. Preserve ordinary recursive calls without inventing type
+cycles, and omit unused signature-only instances from executable Foundation output.
+This is a proposed next step and reproducer, not implemented support.
