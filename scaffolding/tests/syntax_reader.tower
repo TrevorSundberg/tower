@@ -9,16 +9,13 @@ import .library.vector;
 import storage_api;
 import utility_checks;
 import mt19937;
+import reader_oracle;
 
 extern fn syntax_read_rule(node: void*, source: SyntaxSource*, match_kind: void*, syntax_kind: void*, error: ByteBuffer*): bool;
 extern fn syntax_read_token(node: void*, source: SyntaxSource*, match_kind: void*, syntax_kind: void*, skipped: bool, error: ByteBuffer*): bool;
 extern fn syntax_identifier_decode(source: u8*, length: usize, out: ByteBuffer*): bool;
 extern fn syntax_identifier_decode_in_place(source: u8*, length: usize): usize;
 extern fn syntax_literal_check(source: u8*, length: usize): u32;
-extern fn reference_syntax_read_rule(node: void*, source: SyntaxSource*, match_kind: void*, syntax_kind: void*, error: ByteBuffer*): bool;
-extern fn reference_syntax_read_token(node: void*, source: SyntaxSource*, match_kind: void*, syntax_kind: void*, skipped: bool, error: ByteBuffer*): bool;
-extern fn reference_syntax_identifier_decode(source: u8*, length: usize, out: ByteBuffer*): bool;
-extern fn reference_syntax_literal_check(source: u8*, length: usize): u32;
 extern fn syntax_equal(left: void*, right: void*, locations: bool): bool;
 
 fn reader_test_buffer_equal(left: ByteBuffer*, right: ByteBuffer*): bool {
@@ -32,12 +29,21 @@ fn reader_test_clone(source: void*): void* {
     utility_check(result is not null, "Reader fixture tree clone"); return result;
 }
 fn reader_test_read(node: void*, source: SyntaxSource*, kind: SyntaxKind, error: ByteBuffer*, reference: bool): bool {
-    if kind == SyntaxKind.Rule {
-        if reference { return reference_syntax_read_rule(node, source, parser_match_get_type(), syntax_component_type(), error); }
-        return syntax_read_rule(node, source, parser_match_get_type(), syntax_component_type(), error);
-    }
-    if reference { return reference_syntax_read_token(node, source, parser_match_get_type(), syntax_component_type(), kind == SyntaxKind.Skip, error); }
+    if reference { return reader_oracle_read(node, source, parser_match_get_type(), kind, error); }
+    if kind == SyntaxKind.Rule { return syntax_read_rule(node, source, parser_match_get_type(), syntax_component_type(), error); }
     return syntax_read_token(node, source, parser_match_get_type(), syntax_component_type(), kind == SyntaxKind.Skip, error);
+}
+fn reader_test_oracle_provenance(left: void*, right: void*): void {
+    var pending: vector(void*); vector_init(void*, &pending); defer vector_dispose(void*, &pending);
+    utility_check(vector_push(void*, &pending, left) && vector_push(void*, &pending, right), "Oracle provenance pair");
+    while pending.length != 0 {
+        var b = syntax_get(pending.data[--pending.length]); var a = syntax_get(pending.data[--pending.length]);
+        utility_check(a.source == b.source && a.start == b.start && a.end == b.end, "Production/reference exact source provenance");
+        for (var index: usize = 0; index < a.items.length; ++index) {
+            utility_check(vector_push(void*, &pending, a.items.data[index]) && vector_push(void*, &pending, b.items.data[index]), "Oracle child provenance pair");
+        }
+        if a.replacement is not null { utility_check(vector_push(void*, &pending, a.replacement) && vector_push(void*, &pending, b.replacement), "Oracle replacement provenance pair"); }
+    }
 }
 fn reader_test_compare(input: void*, source: SyntaxSource*, kind: SyntaxKind, success: bool, message: u8*): void {
     var a = reader_test_clone(input); defer tower_node_release_ref(a);
@@ -50,6 +56,7 @@ fn reader_test_compare(input: void*, source: SyntaxSource*, kind: SyntaxKind, su
     if message is not null { utility_check(reader_test_message(&x, message), "Reader exact malformed-tree diagnostic"); }
     if success {
         utility_check(syntax_equal(a, b, true), "Reader/reference complete syntax structure and locations");
+        reader_test_oracle_provenance(a, b);
         var left: FormatResult; fill(&left, 0, sizeof(FormatResult)); defer format_dispose(&left);
         var right: FormatResult; fill(&right, 0, sizeof(FormatResult)); defer format_dispose(&right);
         format_entity(&left, a, syntax_component_type(), null, parser_match_get_type());
@@ -125,12 +132,12 @@ fn reader_test_identifiers(): void {
         if trial % 2 != 0 { text[count++] = 96; }
         var a: ByteBuffer; fill(&a, 0, sizeof(ByteBuffer)); defer bytes_dispose(&a);
         var b: ByteBuffer; fill(&b, 0, sizeof(ByteBuffer)); defer bytes_dispose(&b);
-        utility_check(syntax_identifier_decode(&text[0], count, &a) && reference_syntax_identifier_decode(&text[0], count, &b), "Identifier decode success");
-        utility_check(reader_test_buffer_equal(&a, &b), "1000 identifier bytes match native reference");
+        utility_check(syntax_identifier_decode(&text[0], count, &a) && reader_oracle_identifier(&text[0], count, &b), "Identifier decode success");
+        utility_check(reader_test_buffer_equal(&a, &b), "1000 identifier bytes match independent Tower reference");
         var in_place: u8[42]; copy(&in_place[0], &text[0], count);
         var size = syntax_identifier_decode_in_place(&in_place[0], count);
         utility_check(size == b.length && utility_equal(&in_place[0], b.data, size), "In-place identifier matches independent reference");
-        utility_check(syntax_literal_check(&text[0], count) == reference_syntax_literal_check(&text[0], count), "Literal validation matches independent reference");
+        utility_check(syntax_literal_check(&text[0], count) == reader_oracle_literal(&text[0], count), "Literal validation matches independent reference");
     }
     var value: ByteBuffer; fill(&value, 0, sizeof(ByteBuffer)); defer bytes_dispose(&value);
     var source: u8* = "prefix`a\\nb\\t\\`c`";
@@ -159,5 +166,5 @@ export fn syntax_reader_tests(): void {
         utility_check(!ok && error.length == 0 && error.data is null, "Reader missing capture and error-message allocation failure");
         reader_test_compare(node, source, SyntaxKind.Rule, false, "Malformed bedrock tree: missing capture 'name'");
     }
-    puts("Syntax reader: 1000 byte fixtures, exact native reference trees/errors, malformed spans and allocation failures passed.");
+    puts("Syntax reader: 1000 byte fixtures, exact independent Tower reference trees/errors, malformed spans and allocation failures passed.");
 }

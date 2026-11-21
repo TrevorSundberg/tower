@@ -56,8 +56,8 @@ source/pattern/replacement ownership, 64-child comparisons and allocation-failur
 atomicity. The parser aggregate calls the same Tower cases. Run the native binary
 or pass the WASI binary to `host-wasi.mjs`.
 
-`tower-reader-tests` runs declaration-reader coverage in Tower against the retained
-native reference. It preserves all 1,000 seeded identifier/literal byte cases,
+`tower-reader-tests` runs declaration-reader coverage against an independent Tower
+oracle verified against the retired native reference. It preserves all 1,000 seeded identifier/literal byte cases,
 in-place/aliased decoding, eight declaration fixtures, exact malformed-tree
 diagnostics, shared source provenance, canonical declaration output and allocation
 failures. Native CTest sets its working directory to the grammar resources;

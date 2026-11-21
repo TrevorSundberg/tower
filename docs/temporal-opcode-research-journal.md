@@ -25302,3 +25302,37 @@ These reader/validation commits remain private during agent2's frozen dafeb20
 combined deployment. Coordinator has taken lexer-table/UTF8/byte reference lanes;
 agent2 takes LR analysis/grammar references and harnesses after publication. Agent3
 continues reader/validation reference successors and remaining syntax harnesses.
+
+### 2026-11-20 - Agent 3: independent declaration-reader oracle in Tower
+
+Translated the unchanged syntax-reader-seed.cpp policy into reader_oracle.tower,
+keeping its direct capture-tree traversal, quoted-literal/identifier decoding,
+ASCII literal rules, malformed-span diagnostics and replacement attachment order.
+The native seed SHA-256 was
+4734b69b38a9fe5cc42de11567e0e030bdcb5ea31afb60a7e1cc9d2b72323641.
+This is an independent test oracle translated from that seed, not a call into
+production syntax_reader or a newly exposed compiler ABI. It uses the same shared
+entities and existing byte-container/source-retain primitives as the native seed.
+Quoted text preserves the native CoreName terminator via foundation_name_append;
+raw text comparisons remain length-delimited and include embedded NUL.
+
+Before retirement, ran a three-way comparison: production reader, unchanged
+native oracle, and Tower oracle on separate cloned parse trees. The original1000
+random identifier/literal inputs and8 declaration fixtures all matched on native
+Linux and WASI, including exact success/error bytes, syntax structure and every
+source/start/end value in descendants/replacements. Native CTest passed1/1 in
+0.09seconds; WASI host-wasi execution passed. The temporary three-way proof harness
+is retained outside Git as agent_3_reader_oracle_proof.tower in the coordination
+folder. The permanent test now additionally compares all production/oracle source
+ranges, rather than only Template locations through syntax_equal.
+
+Removed the old native seed, archive, compile-options entry and all callers only
+after both proof runs. Rebuilt and ran again without the native seed: native
+PASS1/1 (0.10seconds), WASI PASS. Existing production failure-injection sweeps,
+expected diagnostics, complete provenance and canonical output checks remain.
+An initial post-removal configuration correctly rejected a stale reference target
+in the shared -fno-exceptions list; removed that final manifest reference and
+reran both complete focused checks. Bootstrap provenance remains historical and
+unchanged. This private successor joins the already-validated reader/validation
+fixture commits for the next serialized source slot; validation's native oracle
+is still retained pending its own translation/proof.

@@ -1,0 +1,186 @@
+import tower;
+import .compiler.syntax_types;
+import .compiler.parser_types;
+import .library.vector;
+import .library.bytes_types;
+import .library.bytes_interface;
+import storage_api;
+import utility_checks;
+
+// Independent reference translated from syntax-reader-seed.cpp, not the
+// production reader. Shared entities, ownership and byte containers stay common.
+struct ReaderOracle { source: SyntaxSource*; match_kind: void*; error: ByteBuffer; }
+extern fn syntax_component_attach(node: void*, kind: u32): SyntaxNode*;
+extern fn syntax_node_source(node: SyntaxNode*, source: SyntaxSource*): void;
+extern fn syntax_node_replacement(node: SyntaxNode*, replacement: void*): void;
+extern fn tower_node_get_child_count(node: void*): usize;
+
+fn reader_oracle_letter(byte: u8): bool { return (byte >= 97 && byte <= 122) || (byte >= 65 && byte <= 90) || byte == 95; }
+fn reader_oracle_digit(byte: u8): bool { return byte >= 48 && byte <= 57; }
+fn reader_oracle_literal(text: u8*, length: usize): u32 {
+    if length == 0 { return 1; }
+    var word = reader_oracle_letter(text[0]); var letters = false;
+    for (var index: usize = 0; index < length; ++index) {
+        var c = text[index]; if c == 0 || c == 32 || c == 9 || c == 13 || c == 10 || c == 39 || c == 34 { return 2; }
+        var alpha = reader_oracle_letter(c) || reader_oracle_digit(c); word &&= alpha; letters ||= alpha;
+    }
+    return (letters && !word) || (length >= 2 && text[0] == 47 && (text[1] == 47 || text[1] == 42)) ? convert(u32, 2) : convert(u32, 0);
+}
+fn reader_oracle_identifier(text: u8*, length: usize, output: ByteBuffer*): bool {
+    var decoded: ByteBuffer; fill(&decoded, 0, sizeof(ByteBuffer)); defer bytes_dispose(&decoded);
+    if length < 2 || text[0] != 96 || text[length - 1] != 96 { return bytes_assign_text(output, text, length); }
+    for (var index: usize = 1; index + 1 < length; ++index) {
+        var c = text[index];
+        if c == 92 && index + 2 < length {
+            c = text[++index]; if c == 110 { c = 10; } else { if c == 114 { c = 13; } else { if c == 116 { c = 9; } } }
+        }
+        if !bytes_push(&decoded, c) { return false; }
+    }
+    return bytes_assign_text(output, decoded.data, decoded.length);
+}
+fn reader_oracle_error(r: ReaderOracle*, prefix: u8*, detail: u8*, length: usize, suffix: u8*): void {
+    if r.error.length != 0 { return; }
+    utility_check(bytes_append(&r.error, prefix, strlen(prefix)) && bytes_append(&r.error, detail, length) && bytes_append(&r.error, suffix, strlen(suffix)), "Reference reader diagnostic storage");
+}
+fn reader_oracle_fail(r: ReaderOracle*, message: u8*): void { reader_oracle_error(r, message, null, 0, ""); }
+fn reader_oracle_member(node: void*, name: u8*): void* { return node is null ? null : tower_node_get_child_member(node, name); }
+fn reader_oracle_required(r: ReaderOracle*, node: void*, name: u8*): void* {
+    var result = reader_oracle_member(node, name);
+    if result is null { reader_oracle_error(r, "Malformed bedrock tree: missing capture '", name, strlen(name), "'"); }
+    return result;
+}
+fn reader_oracle_span(r: ReaderOracle*, node: void*): ParserMatchData* {
+    var span = node is null ? null : bits(ParserMatchData*, tower_node_get_component_userdata(node, r.match_kind));
+    if span is null { reader_oracle_fail(r, "Malformed bedrock tree: missing source span"); return null; }
+    if span.start > r.source.text.length || span.length > r.source.text.length - span.start {
+        reader_oracle_fail(r, "Malformed bedrock tree: source span outside source"); return null;
+    }
+    return span;
+}
+fn reader_oracle_attach(r: ReaderOracle*, node: void*, kind: SyntaxKind): SyntaxNode* {
+    var value = syntax_component_attach(node, convert(u32, kind)); var span = reader_oracle_span(r, node);
+    if span is null { return null; }
+    value.start = span.start; value.end = span.start + span.length; syntax_node_source(value, r.source); return value;
+}
+fn reader_oracle_name(r: ReaderOracle*, node: void*, output: vector(u8)*): bool {
+    var span = reader_oracle_span(r, node); if r.error.length != 0 { return false; }
+    if !reader_oracle_identifier(r.source.text.data + span.start, span.length, bits(ByteBuffer*, output)) { reader_oracle_fail(r, "Unable to allocate grammar declaration"); }
+    return r.error.length == 0;
+}
+fn reader_oracle_quoted(r: ReaderOracle*, node: void*, output: vector(u8)*): bool {
+    var span = reader_oracle_span(r, node); if span is null { return false; }
+    var at = span.start; var input = &r.source.text;
+    if at == input.length { reader_oracle_fail(r, "Unterminated quoted literal"); return false; }
+    var quote = input.data[at++];
+    while at < input.length {
+        var c = input.data[at++]; if c == quote { return true; }
+        if c == 10 || c == 13 { reader_oracle_fail(r, "Newline in quoted literal"); return false; }
+        if c == 92 {
+            if at == input.length { break; } c = input.data[at++];
+            if c == 110 { c = 10; } else { if c == 114 { c = 13; } else { if c == 116 { c = 9; }
+                else { if c != 92 && c != 39 && c != 34 { reader_oracle_fail(r, "Unsupported literal escape"); return false; } } } }
+        }
+        utility_check(foundation_name_append(output, c), "Reference quoted literal storage");
+    }
+    reader_oracle_fail(r, "Unterminated quoted literal"); return false;
+}
+fn reader_oracle_reverse(items: vector(void*)*): void {
+    for (var index: usize = 0; index < items.length / 2; ++index) { var last = items.length - index - 1; var temp = items.data[index]; items.data[index] = items.data[last]; items.data[last] = temp; }
+}
+fn reader_oracle_term(r: ReaderOracle*, node: void*): bool {
+    var value = reader_oracle_attach(r, node, SyntaxKind.Term); if value is null { return false; }
+    var atom = reader_oracle_required(r, node, "atom"); var suffix = reader_oracle_required(r, node, "suffix"); if r.error.length != 0 { return false; }
+    var literal = reader_oracle_member(atom, "literal"); var reference = reader_oracle_member(atom, "reference"); var capture = reader_oracle_member(atom, "capture");
+    var exclusions = reader_oracle_member(atom, "set");
+    if exclusions is not null {
+        value.terminal_set = true;
+        while exclusions is not null && tower_node_get_child_count(exclusions) != 0 {
+            var item = reader_oracle_required(r, exclusions, "literal"); if item is null { return false; }
+            var exclusion = reader_oracle_attach(r, item, SyntaxKind.Term); if exclusion is null { return false; }
+            exclusion.literal = true; if !reader_oracle_quoted(r, item, &exclusion.text) { return false; }
+            var status = reader_oracle_literal(exclusion.text.data, exclusion.text.length);
+            if status != 0 {
+                if status == 1 { reader_oracle_fail(r, "Token literal is empty. Expected at least one character between the quotes."); }
+                else { reader_oracle_error(r, "Unsupported token literal: ", exclusion.text.data, exclusion.text.length, ""); }
+                return false;
+            }
+            utility_check(vector_push(void*, &value.items, item), "Reference exclusion list"); exclusions = reader_oracle_member(exclusions, "previous");
+        }
+        reader_oracle_reverse(&value.items);
+    } else {
+        if literal is not null { value.literal = true; if !reader_oracle_quoted(r, literal, &value.text) { return false; } }
+        else {
+            if reference is not null || capture is not null {
+                if !reader_oracle_name(r, reference ?? capture, &value.text) { return false; }
+                if capture is not null && !reader_oracle_name(r, capture, &value.capture) { return false; }
+            } else { reader_oracle_fail(r, "Malformed bedrock atom: expected literal, reference or capture"); return false; }
+        }
+    }
+    var repetition = reader_oracle_span(r, suffix); if r.error.length != 0 { return false; }
+    if repetition.length != 0 {
+        var first = r.source.text.data[repetition.start];
+        if repetition.length != 1 || (first != 42 && first != 43 && first != 63) { reader_oracle_error(r, "Unknown grammar repetition: ", r.source.text.data + repetition.start, repetition.length, ""); return false; }
+        value.repetition = first;
+    }
+    return true;
+}
+fn reader_oracle_sequence(r: ReaderOracle*, node: void*): bool {
+    var value = reader_oracle_attach(r, node, SyntaxKind.Alternative); if value is null { return false; }
+    while tower_node_get_child_count(node) != 0 {
+        var item = reader_oracle_required(r, node, "term"); var previous = reader_oracle_required(r, node, "previous");
+        if r.error.length != 0 || !reader_oracle_term(r, item) { return false; }
+        utility_check(vector_push(void*, &value.items, item), "Reference sequence list"); node = previous;
+    }
+    reader_oracle_reverse(&value.items); return true;
+}
+fn reader_oracle_rule(r: ReaderOracle*, node: void*): bool {
+    var label = reader_oracle_required(r, node, "name"); var assignment = reader_oracle_required(r, node, "op");
+    var alternatives = reader_oracle_required(r, node, "alternatives"); var replacement = reader_oracle_required(r, node, "replacement");
+    if r.error.length != 0 { return false; }
+    var value = reader_oracle_attach(r, node, SyntaxKind.Rule); if value is null || !reader_oracle_name(r, label, &value.name) { return false; }
+    if value.name.length == 0 { reader_oracle_fail(r, "Rule name cannot be empty"); return false; }
+    var op = reader_oracle_span(r, assignment); if r.error.length != 0 { return false; }
+    var text = r.source.text.data + op.start; var replace_definition = op.length == 1 && text[0] == 61; var append = op.length == 2 && text[0] == 124 && text[1] == 61;
+    if !replace_definition && !append { reader_oracle_error(r, "Unknown grammar assignment: ", text, op.length, ""); return false; }
+    value.append = append;
+    while alternatives is not null {
+        var item = reader_oracle_required(r, alternatives, "sequence"); if item is null || !reader_oracle_sequence(r, item) { return false; }
+        utility_check(vector_push(void*, &value.items, item), "Reference rule alternatives"); alternatives = reader_oracle_member(alternatives, "previous");
+    }
+    reader_oracle_reverse(&value.items);
+    var body = reader_oracle_member(replacement, "body");
+    if body is not null {
+        var span = reader_oracle_span(r, body); if span is null { return false; }
+        if span.length < 2 { reader_oracle_fail(r, "Replacement body must contain opening and closing delimiters"); return false; }
+        var result = reader_oracle_attach(r, body, SyntaxKind.Template); if result is null { return false; }
+        result.start = span.start + 1; var length = span.length - 2; result.end = result.start + length;
+        utility_check(storage_assign(&result.text, r.source.text.data + result.start, length), "Reference replacement body bytes");
+        syntax_node_replacement(value, body);
+        for (var index: usize = 0; index < value.items.length; ++index) { syntax_node_replacement(syntax_get(value.items.data[index]), body); }
+    }
+    return true;
+}
+fn reader_oracle_token(r: ReaderOracle*, node: void*, skipped: bool): bool {
+    var label = reader_oracle_required(r, node, "name"); var pattern = reader_oracle_required(r, node, "pattern"); var style = reader_oracle_required(r, node, "style");
+    if r.error.length != 0 { return false; }
+    var value = reader_oracle_attach(r, node, skipped ? SyntaxKind.Skip : SyntaxKind.Token);
+    if value is null || !reader_oracle_name(r, label, &value.name) { return false; }
+    if value.name.length == 0 { reader_oracle_fail(r, "Token name cannot be empty"); return false; }
+    var kind = reader_oracle_member(style, "kind");
+    if kind is not null { if !reader_oracle_name(r, kind, &value.style) { return false; } }
+    else { utility_check(storage_assign(&value.style, skipped ? "" : "identifier", skipped ? convert(usize, 0) : convert(usize, 10)), "Reference default token style"); }
+    var envelope = reader_oracle_span(r, pattern); if r.error.length != 0 { return false; }
+    if envelope.length < 2 { reader_oracle_fail(r, "Token pattern must contain opening and closing delimiters"); return false; }
+    utility_check(storage_assign(&value.text, r.source.text.data + envelope.start + 1, envelope.length - 2), "Reference token pattern bytes");
+    var mode = reader_oracle_member(node, "mode");
+    if mode is not null { var span = reader_oracle_span(r, mode); if span is not null { value.contextual = span.length != 0; } }
+    if r.error.length != 0 { return false; }
+    if value.contextual && skipped { reader_oracle_fail(r, "Skip rules cannot be contextual"); return false; }
+    return true;
+}
+fn reader_oracle_read(node: void*, source: SyntaxSource*, match_kind: void*, kind: SyntaxKind, error: ByteBuffer*): bool {
+    var reader: ReaderOracle; fill(&reader, 0, sizeof(ReaderOracle)); reader.source = source; reader.match_kind = match_kind; defer bytes_dispose(&reader.error);
+    if kind == SyntaxKind.Rule { reader_oracle_rule(&reader, node); } else { reader_oracle_token(&reader, node, kind == SyntaxKind.Skip); }
+    if reader.error.length == 0 { return true; }
+    if !bytes_assign_text(error, reader.error.data, reader.error.length) { bytes_dispose(error); } return false;
+}
