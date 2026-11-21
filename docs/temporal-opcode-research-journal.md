@@ -24323,3 +24323,31 @@ validation does not validate this new slice; the next publication is still pendi
 Next independent coordinator lane: port the contextual lexer reference/harness,
 preserving longest match, keyword/identifier priority, parser-context selection,
 Unicode and allocation-failure coverage against existing Tower production selection.
+
+
+
+### 2026-11-20 - Tower-owned compiled syntax version lifetime (agent 1, private follow-up)
+
+Replaced the native Version struct/destructor and nested ownership containers with
+syntax_version_types.tower and syntax_version.tower. The factory creates its rules
+root in an explicit world, retains the grammar/Bedrock revisions, and rejects
+allocation or pinned-world mutation failure without changing input pins. Final
+release destroys lexicon/table consumers, replacement and pending owners, emission
+indexes and rules, then source pins. Native shared_ptr values remain transport
+leases on this Tower owner until the remaining session coordinator is translated;
+this is not a claim that construction/session algorithms are already all Tower.
+The C++ header is a mechanical view, and existing field uses/creation sites were
+rewired without adding a native implementation or test.
+
+The focused Tower fixture covers factory allocation failure, pinned-world
+rejection, aliasing grammar/Bedrock pins, retained owner leases, source/world-cache
+clear with a live version, a fully populated emission/lexicon/pending/replacement
+owner, and partial parser-table construction. Complete disposal must return to
+the original buffer count. Importing parser_table's implementation initially
+pulled lr_api's opaque foreign declarations into the parser-node implementation
+unit and conflicted with concrete lr_grammar_create. Kept that existing unit
+boundary and called the established parser_table_destroy C ABI instead. The
+native build then passed; frontend/driver/execution CTests pass 3/3 (15.64 s).
+Build log: C:/Sandbox/build/codex-agents/agent-1-version-build.log. No new bootstrap
+is required; all validation uses documented fb1ab1. This follow-up is private
+while Agent 2 integrates the already-pushed session/replacement batch for Pages.

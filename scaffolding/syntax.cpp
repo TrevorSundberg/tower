@@ -4,6 +4,7 @@
 #include "compiler-syntax-emission.hpp"
 #include "compiler-syntax-expansion.hpp"
 #include "compiler-syntax-replacements.hpp"
+#include "compiler-syntax-version.hpp"
 #include "compiler-syntax-template.hpp"
 #include "compiler-syntax-scan.hpp"
 #include "compiler-frontend.hpp"
@@ -37,18 +38,7 @@ using PendingRules = std::unique_ptr<SyntaxPendingRevision, decltype(&syntax_pen
 SyntaxNode& semantic(const TowerNodeRef& node) { return syntax_node(node.get()); }
 SyntaxNode& semantic(TowerNode* node) { return syntax_node(node); }
 
-struct Version {
-  Revision grammar; // pinned shared source entities and immutable lookup views
-  Node rules = owned(tower_node_create());
-  Table* table = nullptr;
-  SyntaxLexicon* lexicon = nullptr;
-  std::unique_ptr<SyntaxEmission, decltype(&syntax_emission_destroy)> emission{nullptr, syntax_emission_destroy};
-  PendingRules pending{nullptr, syntax_pending_destroy};
-  Revision bedrock;
-  std::unique_ptr<SyntaxReplacementOwner, decltype(&syntax_replacement_owner_destroy)> replacements{nullptr, syntax_replacement_owner_destroy};
-  size_t replacement_error_offset = TOWER_INVALID_INDEX;
-  ~Version() { lexicon_destroy(lexicon); parser_table_destroy(table); }
-};
+using Version = SyntaxVersion;
 
 char* copy_string(const std::string& text) {
   auto* result = (char*)tower_memory_allocate(text.size() + 1);
@@ -56,10 +46,10 @@ char* copy_string(const std::string& text) {
   return result;
 }
 
-std::string describe_production(const Version& version, const Revision& definitions, size_t index, bool name_only = false) {
-  auto* found = syntax_emission_find_index(version.emission.get(), index);
+std::string describe_production(const Version& version, const FrontendRevision* definitions, size_t index, bool name_only = false) {
+  auto* found = syntax_emission_find_index(version.emission, index);
   if (!found) return {};
-  auto* rule = syntax_revision_rule(definitions.get(), found->name, std::strlen(found->name));
+  auto* rule = syntax_revision_rule(definitions, found->name, std::strlen(found->name));
   if (!rule || found->alternative >= rule->count) return {};
   auto* text = syntax_description_text(rule->alternatives[name_only ? 0 : found->alternative], found->name, name_only,
     syntax_component_type(), parser_match_get_type());
@@ -70,10 +60,10 @@ extern "C" char* syntax_parser_describe(void* context, size_t index) {
   // Generated repetition/capture rules refer back to the user's term.
   auto text = describe_production(v, v.grammar, index);
   if (!text.empty()) return copy_string(text);
-  auto* node = index ? tower_node_get_child(v.rules.get(), index - 1) : nullptr;
+  auto* node = index ? tower_node_get_child(v.rules, index - 1) : nullptr;
   if (!node) return copy_string("start of input");
   auto* rule = static_cast<Rule*>(tower_node_get_component_userdata(node, parser_rule_get_type()));
-  const auto* helper = syntax_emission_find_helper(v.emission.get(), parser_rule_get_name(rule));
+  const auto* helper = syntax_emission_find_helper(v.emission, parser_rule_get_name(rule));
   if (helper) return syntax_origin_text(helper->source, helper->capture ? "capture " : "repetition ",
     syntax_component_type(), parser_match_get_type());
   return copy_string("start of a statement or grammar declaration");
@@ -81,30 +71,29 @@ extern "C" char* syntax_parser_describe(void* context, size_t index) {
 
 bool build_lexicon(Version& version) {
   assert(!version.lexicon);
-  version.lexicon = syntax_emission_lexicon(version.emission.get());
+  version.lexicon = syntax_emission_lexicon(version.emission);
   return version.lexicon != nullptr;
 }
 extern "C" uint32_t syntax_parser_resolve(void* context, const char* name) {
-  return syntax_emission_terminal(((Version*)context)->emission.get(), name);
+  return syntax_emission_terminal(((Version*)context)->emission, name);
 }
 
 extern "C" char* syntax_parser_token_name(void* context, uint32_t id) {
   auto& version = *(Version*)context;
-  return syntax_emission_token_text(version.emission.get(), id);
+  return syntax_emission_token_text(version.emission, id);
 }
 
 // Borrowed source views; Tower owns the derived revision indexes.
 bool seed(Version& version, const Revision& definitions, const char* category = nullptr, const SyntaxEmission* parent = nullptr) {
   std::vector<const char*> reserved;
-  for (size_t i = 0; i < syntax_pending_count(version.pending.get()); ++i)
-    reserved.push_back(syntax_pending_name(version.pending.get(), i));
+  for (size_t i = 0; i < syntax_pending_count(version.pending); ++i)
+    reserved.push_back(syntax_pending_name(version.pending, i));
   SyntaxEmissionInput input{definitions->rules.data, definitions->rules.length, definitions->tokens.data, definitions->tokens.length,
     reserved.data(), reserved.size(), nullptr, 0, category,
-    version.rules.get(), syntax_component_type(), parser_rule_get_type(), parser_reference_get_type(),
+    version.rules, syntax_component_type(), parser_rule_get_type(), parser_reference_get_type(),
     parser_string_get_type(), parser_range_get_type()};
-  auto& emitted = version.emission;
-  emitted.reset(syntax_emit_inherit(&input, parent));
-  return emitted != nullptr;
+  version.emission = syntax_emit_inherit(&input, parent);
+  return version.emission != nullptr;
 }
 
 std::string validate(Revision& defs, size_t* error_offset, PendingRules& pending) {
@@ -130,7 +119,7 @@ std::string validate(Revision& defs, size_t* error_offset, PendingRules& pending
 }
 
 bool prepare_replacements(Version& version, const Revision& defs, std::string& message);
-std::unique_ptr<Version> build(const Revision& defs,
+std::shared_ptr<Version> build(const Revision& defs,
     Revision bedrock, std::string& message, size_t* error_offset) {
   // Import by reference: both readers and downstream grammars use the original
   // semantic entities until a local declaration replaces or extends a binding.
@@ -140,13 +129,12 @@ std::unique_ptr<Version> build(const Revision& defs,
   PendingRules pending{nullptr, syntax_pending_destroy};
   message = validate(definitions, error_offset, pending);
   if (!message.empty()) return nullptr;
-  auto v = std::make_unique<Version>();
-  v->grammar = definitions;
-  v->pending = std::move(pending);
-  v->bedrock = std::move(bedrock);
+  std::shared_ptr<Version> v(syntax_version_create(compiler_host_world(), definitions.get(), bedrock.get()), syntax_version_release);
+  if (!v) { message = "Unable to allocate grammar construction"; return nullptr; }
+  v->pending = pending.release();
   if (!seed(*v, definitions)) { message = "Unable to allocate grammar construction"; return nullptr; }
   char* error = nullptr;
-  v->table = parser_table_create(v->rules.get(), v.get(), ParserPresentation::Syntax, &error, ParserTableMode::Constructs);
+  v->table = parser_table_create(v->rules, v.get(), ParserPresentation::Syntax, &error, ParserTableMode::Constructs);
   if (!v->table) {
     message = error ? error : "Unable to build grammar";
     tower_memory_free(error);
@@ -216,13 +204,13 @@ std::string syntax_diagnostic(SyntaxSession& session, Recognizer* recognizer, bo
   const SyntaxDiagnosticInput input{session.source.data(), session.source.size(), session.cursor,
     diagnostic->offset, diagnostic->insertion_offset, parser_recognizer_get_error(recognizer),
     diagnostic->options.data, diagnostic->options.length,
-    syntax_emission_literal_ids(session.version->emission.get()), syntax_emission_literal_count(session.version->emission.get()),
-    syntax_emission_productions(session.version->emission.get()), syntax_emission_production_count(session.version->emission.get()),
+    syntax_emission_literal_ids(session.version->emission), syntax_emission_literal_count(session.version->emission),
+    syntax_emission_productions(session.version->emission), syntax_emission_production_count(session.version->emission),
     repairs, diagnostic->complete, diagnostic->at_start, syntax_revision_rule(definitions.get(), "Statement", 9) != nullptr};
   SyntaxDiagnosticText output{};
   format_syntax_diagnostic(&input, &output);
   if (output.insertion) { session.error_offset = diagnostic->insertion_offset; session.error_insertion = true; }
-  const auto description = describe_production(*session.version, definitions, output.production, output.multiple);
+  const auto description = describe_production(*session.version, definitions.get(), output.production, output.multiple);
   auto* text = syntax_diagnostic_text_finish(&output, description.c_str());
   std::string result(text); tower_memory_free(text); return result;
 }
@@ -252,7 +240,7 @@ SyntaxScanInput scan_input(const SyntaxSession& session, size_t pos, std::vector
   input.cursor = pos; input.revision = session.revision;
   input.declaration = session.declaration; input.bootstrapping = session.bootstrapping;
   input.runtime = context.runtime; input.state = context.state; input.highlights = highlights;
-  input.context = session.version->rules.get(); input.match_kind = parser_match_get_type();
+  input.context = session.version->rules; input.match_kind = parser_match_get_type();
   return input;
 }
 extern "C" bool syntax_parser_diagnostic_read(void* context, size_t* pos, const ParserLookahead* expected, uint32_t* id) {
@@ -311,10 +299,9 @@ extern "C" TowerNode* syntax_parser_template_read(Stream* stream, void* userdata
 bool compile_template(Version& version, const Revision& defs, TowerNode* seq,
     SyntaxReplacementOwner* owner, SyntaxReplacement& replacement, std::string& error, bool& grammar_error) {
   grammar_error = false;
-  auto grammar = std::make_shared<Version>();
-  grammar->grammar = defs;
-  grammar->bedrock = version.bedrock;
-  if (!seed(*grammar, defs, replacement.category.c_str(), version.emission.get())) {
+  std::shared_ptr<Version> grammar(syntax_version_create(compiler_host_world(), defs.get(), version.bedrock), syntax_version_release);
+  if (!grammar) { error = "Unable to allocate replacement grammar"; return false; }
+  if (!seed(*grammar, defs, replacement.category.c_str(), version.emission)) {
     error = "Unable to allocate replacement grammar"; return false;
   }
   TemplateInput input;
@@ -325,25 +312,25 @@ bool compile_template(Version& version, const Revision& defs, TowerNode* seq,
   }
   input.session.source = input.session.inputs.source->text.view();
   input.session.grammar = defs;
-  input.session.bedrock = version.bedrock;
+  input.session.bedrock = Revision(frontend_revision_retain(version.bedrock), frontend_revision_release);
   input.session.version = grammar;
   std::vector<SyntaxTemplateCapture> captures;
   for (size_t i = 0; i < replacement.captures.length; ++i) {
     const auto& capture = replacement.captures.data[i];
     const auto& term = semantic(capture.source);
-    captures.push_back({capture.name.c_str(), capture.source, syntax_emission_wrapper(grammar->emission.get(), term.text.c_str())});
+    captures.push_back({capture.name.c_str(), capture.source, syntax_emission_wrapper(grammar->emission, term.text.c_str())});
   }
   input.captures = captures.data(); input.count = captures.size();
   SyntaxTemplateGrammar holes{};
-  holes.emission.root = grammar->rules.get(); holes.emission.syntax_kind = syntax_component_type();
+  holes.emission.root = grammar->rules; holes.emission.syntax_kind = syntax_component_type();
   holes.emission.rule_kind = parser_rule_get_type(); holes.emission.reference_kind = parser_reference_get_type();
   holes.emission.string_kind = parser_string_get_type();
   holes.captures = captures.data(); holes.count = captures.size();
-  holes.repetitions = syntax_emission_repetitions(grammar->emission.get());
-  holes.repetition_count = syntax_emission_repetition_count(grammar->emission.get());
-  if (!syntax_template_holes_revision(&holes, grammar->emission.get())) { error = "Unable to allocate replacement hole productions"; return false; }
+  holes.repetitions = syntax_emission_repetitions(grammar->emission);
+  holes.repetition_count = syntax_emission_repetition_count(grammar->emission);
+  if (!syntax_template_holes_revision(&holes, grammar->emission)) { error = "Unable to allocate replacement hole productions"; return false; }
   char* diagnostic = nullptr;
-  grammar->table = parser_table_create(grammar->rules.get(), grammar.get(), ParserPresentation::Syntax, &diagnostic,
+  grammar->table = parser_table_create(grammar->rules, grammar.get(), ParserPresentation::Syntax, &diagnostic,
     ParserTableMode::WholeInput);
   if (!grammar->table) {
     grammar_error = true;
@@ -372,11 +359,11 @@ bool compile_template(Version& version, const Revision& defs, TowerNode* seq,
   tower_node_add_ref(body); tower_node_detach(body); syntax_replacement_tree(owner, body);
   std::vector<size_t> uses(captures.size());
   SyntaxTemplateRemap remap{body, parser_match_get_type(),
-    syntax_emission_productions(grammar->emission.get()), syntax_emission_production_count(grammar->emission.get()),
-    syntax_emission_productions(version.emission.get()), syntax_emission_production_count(version.emission.get()),
+    syntax_emission_productions(grammar->emission), syntax_emission_production_count(grammar->emission),
+    syntax_emission_productions(version.emission), syntax_emission_production_count(version.emission),
     nullptr, 0, nullptr, 0,
     parser_table_grammar(version.table), uses.data(), uses.size()};
-  if (!syntax_template_remap_revisions(&remap, grammar->emission.get(), version.emission.get())) { error = "Unable to allocate replacement template mapping"; return false; }
+  if (!syntax_template_remap_revisions(&remap, grammar->emission, version.emission)) { error = "Unable to allocate replacement template mapping"; return false; }
   for (size_t i = 0; i < captures.size(); ++i) replacement.captures.data[i].uses = uses[i];
   return true;
 }
@@ -388,10 +375,10 @@ struct ReplacementPlanHost {
 
 bool prepare_replacements(Version& version, const Revision& defs, std::string& message) {
   ReplacementPlanHost host{version, defs};
-  version.replacements.reset(syntax_replacement_owner_create(&host, version.emission.get(), syntax_component_type(), parser_match_get_type()));
+  version.replacements = syntax_replacement_owner_create(&host, version.emission, syntax_component_type(), parser_match_get_type());
   if (!version.replacements) { message = "Unable to allocate replacement preparation storage"; return false; }
-  SyntaxReplacementPlan plan{defs->rules.data, defs->rules.length, syntax_component_type(), version.replacements.get(), {}, TOWER_INVALID_INDEX};
-  const bool ok = syntax_replacements_prepare(&plan) && syntax_replacement_freeze(version.replacements.get());
+  SyntaxReplacementPlan plan{defs->rules.data, defs->rules.length, syntax_component_type(), version.replacements, {}, TOWER_INVALID_INDEX};
+  const bool ok = syntax_replacements_prepare(&plan) && syntax_replacement_freeze(version.replacements);
   if (!ok) {
     version.replacement_error_offset = plan.offset;
     message = plan.error.length ? std::string(reinterpret_cast<const char*>(plan.error.data), plan.error.length)
@@ -405,7 +392,7 @@ bool expand(SyntaxSession& session, Node& root) {
   SyntaxExpansionResult result{root.release(), session.expansion_stats.replacements,
     session.expansion_stats.generated_nodes, session.expansion_stats.copied_nodes,
     session.error_offset, {}};
-  const bool ok = syntax_expand(syntax_replacement_input(session.version->replacements.get()), &result);
+  const bool ok = syntax_expand(syntax_replacement_input(session.version->replacements), &result);
   root = owned(result.root);
   session.expansion_stats = {result.replacements, result.generated_nodes, result.copied_nodes};
   session.error_offset = result.error_offset;
@@ -581,14 +568,14 @@ TowerNode* syntax_next(SyntaxSession* session) {
     }
     if (!session->finalized) {
       preserve_comments(*session, semantic(session->inputs.document), session->cursor);
-      if (syntax_pending_count(session->version->pending.get()))
-        session->error = syntax_pending_message(session->version->pending.get(), &session->error_offset);
+      if (syntax_pending_count(session->version->pending))
+        session->error = syntax_pending_message(session->version->pending, &session->error_offset);
       if (session->building_bedrock && session->error.empty()) {
         const auto& module = session->grammar;
         session->error = validate_bedrock(module, session->error_offset);
         if (session->error.empty()) {
           auto version = build({}, module, session->error, &session->error_offset);
-          if (version && !syntax_emission_keyword_starts(version->emission.get()))
+          if (version && !syntax_emission_keyword_starts(version->emission))
             session->error = "Bedrock declarations must begin with literal keywords";
         }
       }
@@ -714,7 +701,7 @@ TowerNode* syntax_next(SyntaxSession* session) {
       }
     } else {
       session->declarations_only = false;
-      if (!session->formatting && syntax_replacement_count(session->version->replacements.get())) {
+      if (!session->formatting && syntax_replacement_count(session->version->replacements)) {
         if (!expand(*session, root)) return nullptr;
       }
       session->comment_cursor = session->cursor;
@@ -835,7 +822,7 @@ extern "C" TowerNode* syntax_inspection_reference(SyntaxSession* session, const 
   *count = 0;
   if (!session->version) return nullptr;
   const auto& version = *session->version;
-  return syntax_revision_reference(version.grammar.get(), text, length, index, count, syntax_component_type());
+  return syntax_revision_reference(version.grammar, text, length, index, count, syntax_component_type());
 }
 extern "C" TowerNode* syntax_inspection_match(SyntaxSession* session, TowerNode* node) {
   if (!session->version) return nullptr;
@@ -843,9 +830,9 @@ extern "C" TowerNode* syntax_inspection_match(SyntaxSession* session, TowerNode*
   if (!span) return nullptr;
   const auto& version = *session->version;
   const std::string name = parser_match_get_label(span);
-  auto* production = syntax_emission_find_index(version.emission.get(), parser_match_get_rule_index(span));
+  auto* production = syntax_emission_find_index(version.emission, parser_match_get_rule_index(span));
   if (production && production->name == name) {
-    auto* found = syntax_revision_rule(version.grammar.get(), production->name, std::strlen(production->name));
+    auto* found = syntax_revision_rule(version.grammar, production->name, std::strlen(production->name));
     if (found && production->alternative < found->count)
       return found->alternatives[production->alternative];
   }
@@ -854,7 +841,7 @@ extern "C" TowerNode* syntax_inspection_match(SyntaxSession* session, TowerNode*
 static const SyntaxReplacement* inspection_replacement(SyntaxSession* session, TowerNode* body) {
   if (!session->version) return nullptr;
   const auto& version = *session->version;
-  return syntax_replacement_inspect(version.replacements.get(), version.grammar.get(), body);
+  return syntax_replacement_inspect(version.replacements, version.grammar, body);
 }
 extern "C" TowerNode* syntax_inspection_template(SyntaxSession* session, TowerNode* body,
                                                 const char** category, size_t* captures) {
@@ -888,26 +875,26 @@ extern "C" bool syntax_completion_accepts(SyntaxSession* session, const char* te
   if (!session->completion) return false;
   uint32_t id = PARSER_ID_EOF;
   if (literal) {
-    id = syntax_emission_literal(session->completion_version->emission.get(), text);
+    id = syntax_emission_literal(session->completion_version->emission, text);
     if (id == PARSER_ID_EOF) return false;
   } else id = completion_token(session, text);
   return lr_completion_accepts(session->completion.get(), id);
 }
 extern "C" bool syntax_completion_callable(SyntaxSession* session) {
   if (!session->completion) return false;
-  auto id = syntax_emission_literal(session->completion_version->emission.get(), "(");
+  auto id = syntax_emission_literal(session->completion_version->emission, "(");
   return id != PARSER_ID_EOF && lr_completion_follows(session->completion.get(), MetaName, id);
 }
 extern "C" const char* syntax_completion_close(SyntaxSession* session, const char* type_name) {
   if (!session->completion) return nullptr;
   session->completion_suffix.reset(syntax_emission_completion_close(
-    session->completion_version->emission.get(), session->completion.get(), type_name));
+    session->completion_version->emission, session->completion.get(), type_name));
   return session->completion_suffix.get();
 }
 std::vector<std::string> syntax_get_keywords(SyntaxSession* session) {
   std::vector<std::string> result;
-  if (session->version) for (size_t i = 0; i < syntax_emission_keyword_count(session->version->emission.get()); ++i)
-    result.emplace_back(syntax_emission_keywords(session->version->emission.get())[i]);
+  if (session->version) for (size_t i = 0; i < syntax_emission_keyword_count(session->version->emission); ++i)
+    result.emplace_back(syntax_emission_keywords(session->version->emission)[i]);
   return result;
 }
 
@@ -922,7 +909,7 @@ std::vector<SyntaxRuleInfo> syntax_get_rules(SyntaxSession* session) {
       definition += part.empty() ? "ε" : part;
     }
     result.push_back({std::string(rule.name, rule.name_length), definition,
-      session->version && syntax_pending_contains(session->version->pending.get(), rule.name)});
+      session->version && syntax_pending_contains(session->version->pending, rule.name)});
   }
   return result;
 }

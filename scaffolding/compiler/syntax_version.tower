@@ -1,0 +1,49 @@
+import tower;
+import frontend_cache;
+import lr_tree;
+import syntax_emission;
+import syntax_lexer;
+import syntax_nodes;
+import syntax_pending;
+import syntax_replacement_owner;
+import syntax_version_types;
+import frontend_revision_types;
+
+extern fn compiler_world_store(world: void*): void*;
+extern fn entity_create(store: void*): void*;
+extern fn parser_table_destroy(table: void*): void;
+
+export fn syntax_version_create(world: void*, grammar: FrontendRevision*, bedrock: FrontendRevision*): SyntaxVersion* {
+    var value = alloc(SyntaxVersion, 1);
+    if value is null { return null; }
+    fill(value, 0, sizeof(SyntaxVersion));
+    value.rules = entity_create(compiler_world_store(world));
+    if value.rules is null { free(value); return null; }
+    value.references = 1;
+    value.grammar = frontend_revision_retain(grammar);
+    value.bedrock = frontend_revision_retain(bedrock);
+    value.replacement_error_offset = ~convert(usize, 0);
+    return value;
+}
+
+export fn syntax_version_retain(value: SyntaxVersion*): SyntaxVersion* {
+    if value is not null { value.references++; }
+    return value;
+}
+
+export fn syntax_version_release(value: SyntaxVersion*): void {
+    if value is null { return; }
+    value.references--;
+    if value.references != 0 { return; }
+    // Readers and parser userdata are already gone. Release consumers before
+    // the source pins and lookup allocations they borrow, even on partial build.
+    lexicon_destroy(bits(SyntaxLexicon*, value.lexicon));
+    parser_table_destroy(value.table);
+    syntax_replacement_owner_destroy(bits(SyntaxReplacementOwner*, value.replacements));
+    frontend_revision_release(value.bedrock);
+    syntax_pending_destroy(bits(SyntaxPendingRevision*, value.pending));
+    syntax_emission_destroy(bits(SyntaxEmission*, value.emission));
+    entity_release(value.rules);
+    frontend_revision_release(value.grammar);
+    free(value);
+}

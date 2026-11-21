@@ -10,6 +10,7 @@ import syntax_types;
 import syntax_baselines;
 import syntax_session_inputs;
 import syntax_replacement_owner;
+import syntax_version;
 
 extern fn compiler_host_world(): void*;
 
