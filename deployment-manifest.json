@@ -107,9 +107,9 @@
                                  "report":  "docs/temporal-opcode-research-journal.md",
                                  "existingTodoContentPreserved":  true
                              },
-    "previousDeployment":  "24daf70e46f049a82c40e7eda0176baf2272ad34",
-    "buildNote":  "Runtime rebuilt at 6443f6d with the latest e886 Tower-only bootstrap; preserves complete source checkpoint and audit metadata. Native default successor and Docker CLI verified; browser publication validates these exact assets.",
+    "previousDeployment":  "5ee830621e0cc936615f8da9c4bb1527358c863d",
+    "buildNote":  "Documentation-only verified release receipt. Runtime bytes remain built at 6443f6d and verified locally and at 5ee8306 on the hosted site (77 assets, desktop/mobile). Newer ECS inference/tooling source checkpoints are preserved on main for the next runtime release.",
     "buildSourceCommit":  "6443f6d20499baa9847e4c19782b89db4e9876a7",
-    "sourceCommit":  "6443f6d20499baa9847e4c19782b89db4e9876a7",
+    "sourceCommit":  "669a6ad484f83cd2616ff7366cdda5dd61bb8e41",
     "scope":  "Tower-only compiler and shared entity lifecycle, with bounded relocation-independent inferred values"
 }
