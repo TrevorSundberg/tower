@@ -76,6 +76,15 @@ before removing the native seed; the permanent tests keep the independent
 reference comparison. Its sorted borrowed views and reference dependency scan
 do not reuse the production validator's indexes or checking policy.
 
+`tower-live-syntax-tests` runs the migrated live-session suite independently on
+native and WASI: sequential grammar installation, replacement provenance and
+ownership, LR boundaries, rejected edits, cache reuse and lexical definitions.
+Its separate Tower object also supplies `syntax_tests` through the existing
+parser interface. The aggregate entry and `--trace`, `--host-only`, `--parse`
+dispatch live in `parser_main.tower`; the command preserves failure exit codes
+and grammar revision/tree output. Native callback coverage in `nodes.cpp`
+remains until actual function addresses are supported by the Tower compiler.
+
 The isolated `cmake/TowerDriver.cmake` fragment adds CLI checks with
 `-DTOWER_DRIVER_TESTS=ON` to a native compiler configuration. Build `towerc` and
 `tower-driver-tests`, then run `ctest --test-dir <build> -R tower-driver

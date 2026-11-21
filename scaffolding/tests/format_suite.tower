@@ -26,13 +26,14 @@ fn format_test_source(input: u8*, out: FormatResult*): void {
     if error[0] != 0 { puts(error); }
     utility_check(ready && error[0] == 0, "Formatter shared source result has no error");
 }
-fn format_test_compile(input: u8*, program: SemanticProgram*): void {
+fn format_test_compile_bytes(input: u8*, length: usize, program: SemanticProgram*): void {
     semantic_initialize(program, tower_node_create(), 4);
-    var source: FrontendSource; source.data = input; source.length = strlen(input);
+    var source: FrontendSource; source.data = input; source.length = length;
     frontend_compile_sources(program, &source, 1, null);
     if program.error.length != 0 { puts(program.error.data); }
     utility_check(program.error.length == 0, "Formatter Foundation fixture compiles");
 }
+fn format_test_compile(input: u8*, program: SemanticProgram*): void { format_test_compile_bytes(input, strlen(input), program); }
 fn format_test_program_dispose(program: SemanticProgram*): void {
     semantic_program_dispose(program); tower_node_release_ref(program.root);
 }
@@ -64,7 +65,7 @@ fn format_test_foundation_fixture(id: usize, input: u8*): void {
     format_test_entity(&actual, program.root);
     format_fixture_check(id, &actual);
     utility_check(vector_push(u8, &actual.text, 0), "Formatter Foundation terminator"); --actual.text.length;
-    var rebuilt: SemanticProgram; format_test_compile(actual.text.data, &rebuilt); defer format_test_program_dispose(&rebuilt);
+    var rebuilt: SemanticProgram; format_test_compile_bytes(actual.text.data, actual.text.length, &rebuilt); defer format_test_program_dispose(&rebuilt);
     var again: FormatResult; fill(&again, 0, sizeof(FormatResult)); defer format_dispose(&again);
     format_test_entity(&again, rebuilt.root);
     format_test_equal(&actual, &again, false);

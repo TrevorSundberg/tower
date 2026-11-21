@@ -1,0 +1,28 @@
+# Program entry and CLI orchestration are Tower. The remaining native node and
+# LR fixtures keep their existing symbols until their independent replacements.
+get_property(main_triple GLOBAL PROPERTY TOWER_COMPILER_TRIPLE)
+set(main_entry main)
+set(main_bedrock _Z18syntax_set_bedrockB5cxx11PKc)
+set(main_foundation _Z20syntax_set_bootstrapB5cxx11PKc)
+if(main_triple MATCHES "^wasm32-")
+  set(main_entry __main_argc_argv)
+  set(main_bedrock _Z18syntax_set_bedrockPKc)
+  set(main_foundation _Z20syntax_set_bootstrapPKc)
+endif()
+set(main_input "${CMAKE_CURRENT_BINARY_DIR}/tower_parser_main.tower")
+set(main_prologue "")
+set(main_setup "")
+if(MSVC)
+  # Preserve the old harness's CRT failure reporting settings.
+  set(main_prologue "extern fn _set_abort_behavior(flags: u32, mask: u32): u32;\n")
+  set(main_setup "_set_abort_behavior(0, 3); ")
+  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    string(APPEND main_prologue "extern fn _CrtSetReportMode(kind: i32, mode: i32): i32;\nextern fn _CrtSetReportFile(kind: i32, file: void*): void*;\n")
+    string(APPEND main_setup "_CrtSetReportMode(2, 1); _CrtSetReportFile(2, bits(void*, convert(usize, 0) - 5)); ")
+  endif()
+endif()
+file(GENERATE OUTPUT "${main_input}" CONTENT "import tower;\nimport tests.parser_main;\n${main_prologue}export fn ${main_entry}(argc: i32, argv: u8**): i32 { ${main_setup}return parser_main(argc, argv); }\n")
+tower_runtime_object(parser-main "${main_input}" "${main_triple}"
+  --declare fixture_bedrock ${main_bedrock} --declare fixture_foundation ${main_foundation}
+  --declare driver_syntax_delete _ZdlPv)
+target_sources(tower-parser-tests PRIVATE "${parser-main_OBJECT}")

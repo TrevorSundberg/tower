@@ -25,6 +25,7 @@ extern fn format_entity(out: FormatResult*, node: void*, syntax: void*, foundati
 extern fn format_dispose(out: FormatResult*): void;
 extern fn syntax_format_into(session: void*, out: FormatResult*, error: u8**): bool;
 extern fn strstr(text: u8*, part: u8*): u8*;
+extern fn host_text_terminate(out: ByteBuffer*): bool;
 
 struct LiveAllocations { nodes: usize; components: usize; memory: usize; }
 fn live_allocations(value: LiveAllocations*): void {
@@ -82,6 +83,9 @@ fn live_find(root: void*, label: u8*): void* {
 fn live_text(value: vector(u8)*, text: u8*): bool { return value.length == strlen(text) && utility_equal(value.data, text, value.length); }
 fn live_format(out: FormatResult*, root: void*): void {
     format_entity(out, root, syntax_component_type(), null, parser_match_get_type()); utility_check(!out.failed, "Live shared syntax formatting");
+    // FormatResult is length-delimited; legacy source/string APIs need an
+    // explicit terminator. A reused allocation may contain nonzero suffix data.
+    utility_check(host_text_terminate(bits(ByteBuffer*, &out.text)), "Terminate live formatted source for legacy string APIs");
 }
 fn live_format_equal(a: FormatResult*, b: FormatResult*): void { utility_check(a.text.length == b.text.length && utility_equal(a.text.data, b.text.data, a.text.length), "Live syntax canonical text equality"); }
 fn live_dump_contains(node: void*, text: u8*): void {

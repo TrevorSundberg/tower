@@ -141,7 +141,7 @@ if(TOWER_PARSER_ONLY)
   tower_compiler_parser_nodes()
   target_compile_definitions(tower-compiler-memory PRIVATE TOWER_COMPILER_MEMORY_TESTS=1)
   tower_compiler_interpreter()
-  add_executable(tower-parser-tests scaffolding/tests/main.cpp
+  add_executable(tower-parser-tests
     scaffolding/tower.cpp scaffolding/tests/nodes.cpp
     scaffolding/syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/format.cpp scaffolding/lex-pattern.cpp scaffolding/lex-pattern-common.cpp)
   target_compile_features(tower-parser-tests PRIVATE cxx_std_20)
@@ -149,6 +149,7 @@ if(TOWER_PARSER_ONLY)
   if(CMAKE_CXX_COMPILER_TARGET MATCHES "^wasm")
     target_compile_options(tower-parser-tests PRIVATE "-ffile-prefix-map=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding=source")
   endif()
+  include(cmake/TowerParserMain.cmake)
   target_link_libraries(tower-parser-tests PRIVATE tower-compiler-parser-nodes tower-compiler-semantics tower-compiler-entities tower-compiler-utilities tower-compiler-memory)
   if(MSVC)
     string(REPLACE "/EHsc" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")

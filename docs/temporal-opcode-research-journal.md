@@ -27694,3 +27694,47 @@ broad formatter sweeps remain skipped. Current Agent1 deployment is frozen;
 this slice and the validation oracle are not part of it. The aggregate runner
 migration is next; native node callback coverage is still retained because Tower
 cannot yet express the required actual function address.
+
+### 2026-11-20 - Agent 3: Tower parser runner and formatter byte boundary
+
+Ported tests/main.cpp (SHA-256
+bb7f792ec50e15b57eaf52ae519db35e7df4d59e603148f2131e9de204bd0b94)
+to parser_main.tower. Preserved host-test-first ordering, grammar installation,
+CLI flags/usage, missing-input exit1, retained parse-tree printing/revision output,
+all existing suite calls and exact expansion-test setup. An isolated CMake
+fragment supplies the native/WASI entry and existing legacy ABI symbol bindings.
+The remaining native LR symbol binding is transitional until Agent2's separately
+validated retirement arrives. The existing Windows CRT reporting settings are
+selected mechanically in the generated entry; Windows execution is unverified.
+The shared parser fixture setup now has a failure-returning path so CLI resource
+failures retain exit1 instead of becoming test assertions.
+
+Native --host-only and the existing tower-foreach-example CTest pass; unknown
+option, missing --parse argument and nonexistent file each emit the original
+message and exit1. WASI --host-only and --parse examples/foreach.tower pass using
+Node22's built-in WASI runner with the source directory preopened and explicit
+argv. The project's portable host intentionally supplies no argv, so it was
+retained unchanged. A direct PowerShell node -e attempt lost quotes; the corrected
+here-string-to-node-stdin invocation worked. CLI progress writes now flush libc
+before the platform write, preserving ordering with buffered tree output.
+
+The first full aggregate exposed a real port defect hidden by standalone runs:
+format_entity returns a length-delimited buffer, whereas the old std::string
+provided a NUL terminator. Passing the raw result to the legacy Bedrock source
+API consumed a reused allocation suffix and failed with 'Bedrock may contain
+only token, skip and parse declarations'. Recompiled the unchanged frozen C++
+syntax suite as a temporary local reference under the same aggregate; it passed
+this point. The Tower helper now explicitly terminates source consumed by string
+APIs, and the formatter Foundation round trip passes its byte length directly.
+No formatter production contract changed. Removed all temporary native reference
+sources/build wiring after the diagnosis.
+
+Both full native and portable-WASI aggregates now pass the migrated suites and
+reach the already-known native LR action-reference assertion at lr-analysis.cpp:143.
+The unchanged C++ syntax reference reached that same LR failure. This is not a
+full aggregate PASS; Agent2 owns the proven independent LR reference successor.
+Post-fix live CTest passes0.35s, foreach CLI CTest0.15s, WASI live and exactformatter
+execute successfully. Native main.cpp removed after these executable checks.
+Next: rebase onto the latest public bootstrap/threading profile and Agent2 LR
+retirement, run the complete merged checks and publish the ready batch. Native
+node callback tests remain intact; no production test-dispatch IDs were added.

@@ -29,6 +29,7 @@ fn live_seed_tests(): void {
             var declaration = tower_node_get_child(root, 0);
             utility_check(syntax_get(declaration) is not null, "Parsed Bedrock declaration has shared syntax component"); live_match(declaration); tower_node_release_ref(root);
         }
+        if *syntax_get_error(bits(void*, session)) != 0 { puts(syntax_get_error(bits(void*, session))); }
         utility_check(*syntax_get_error(bits(void*, session)) == 0, "Canonical Bedrock parses");
         var document = session.inputs.document; tower_node_add_ref(document); defer tower_node_release_ref(document);
         utility_check(syntax_equal(document, syntax_native_bedrock(), false), "Parsed Bedrock equals immutable shared seed");

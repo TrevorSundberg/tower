@@ -1,0 +1,104 @@
+import tower;
+import .compiler.syntax_emission_types;
+import .compiler.syntax_expansion_types;
+import .compiler.syntax_session_types;
+import .compiler.grammar_types;
+import .library.bytes_types;
+import .library.bytes_interface;
+import parser_fixture_setup;
+import storage_api;
+import utility_checks;
+
+extern fn host_runtime_tests(): i32;
+extern fn host_support_tests(): i32;
+extern fn interpreter_storage_tests(): i32;
+extern fn tower_tests(): void;
+extern fn parser_tests(): void;
+extern fn syntax_tests(): void;
+extern fn formatter_tests(): void;
+extern fn compiler_storage_tests(): void;
+extern fn regex_tests(): void;
+extern fn syntax_lexer_tests(): void;
+extern fn syntax_nodes_tests(): void;
+extern fn syntax_reader_tests(): void;
+extern fn syntax_validation_tests(): void;
+extern fn lr_analysis_tests(): void;
+extern fn shared_entity_tests(): void;
+extern fn entity_registry_tests(): void;
+extern fn syntax_native_bedrock(): void*;
+extern fn syntax_component_type(): void*;
+extern fn syntax_emission_tests(input: SyntaxEmissionInput*): usize;
+extern fn syntax_expansion_tests(input: SyntaxExpansionInput*, root: void*): usize;
+extern fn frontend_bedrock_tests(kinds: FrontendKinds*): usize;
+extern fn frontend_modules_tests(): usize;
+extern fn parser_set_debug_trace(enabled: bool): void;
+extern fn parser_tree_debug_print(root: void*): void;
+extern fn parser_match_get_label(value: void*): u8*;
+extern fn syntax_get_revision(session: void*): usize;
+extern fn host_json_unsigned(out: ByteBuffer*, value: u64): bool;
+extern fn platform_write(stream: u32, data: u8*, length: usize): i64;
+extern fn fflush(file: void*): i32;
+
+fn parser_main_write(stream: u32, text: u8*, length: usize): void {
+    fflush(null);
+    while length != 0 { var count = platform_write(stream, text, length); if count <= 0 { return; } var written = convert(usize, count); if written > length { return; } text += written; length -= written; }
+}
+fn parser_main_error(message: u8*, detail: u8*): void {
+    parser_main_write(2, message, strlen(message)); parser_main_write(2, detail, strlen(detail)); parser_main_write(2, "\n", 1);
+}
+fn parser_main_failure(message: u8*, failure: i64): void {
+    var text: ByteBuffer; fill(&text, 0, sizeof(ByteBuffer)); defer bytes_dispose(&text);
+    utility_check(bytes_assign_text(&text, message, strlen(message)), "Parser failure diagnostic allocation");
+    var magnitude = bits(u64, failure);
+    if failure < 0 { utility_check(bytes_push(&text, 45), "Parser failure sign"); magnitude = convert(u64, 0) - magnitude; }
+    utility_check(host_json_unsigned(&text, magnitude) && bytes_push(&text, 10), "Parser failure numeric diagnostic"); parser_main_write(2, text.data, text.length);
+}
+fn parser_main_parse(path: u8*): i32 {
+    var input: ByteBuffer; fill(&input, 0, sizeof(ByteBuffer)); defer bytes_dispose(&input);
+    if !driver_read_file(path, &input) || !host_text_terminate(&input) { parser_main_error("Cannot read ", path); return 1; }
+    var session = syntax_create(input.data, null); defer syntax_destroy(session);
+    loop {
+        var root = syntax_next(session); if root is null { break; } defer tower_node_release_ref(root);
+        var construct = tower_node_get_child(root, 0); var span = tower_node_get_component_userdata(construct, parser_match_get_type());
+        if strcmp(parser_match_get_label(span), "GrammarDeclaration") == 0 {
+            var line: ByteBuffer; fill(&line, 0, sizeof(ByteBuffer)); defer bytes_dispose(&line);
+            utility_check(bytes_assign_text(&line, "Installed grammar revision ", 27) && host_json_unsigned(&line, convert(u64, syntax_get_revision(session))) && bytes_append(&line, "; next byte ", 12) && host_json_unsigned(&line, convert(u64, bits(SyntaxSession*, session).cursor)) && bytes_push(&line, 10), "Parser revision output allocation");
+            parser_main_write(1, line.data, line.length);
+        } else { parser_tree_debug_print(construct); }
+    }
+    var failed = *syntax_get_error(session) != 0; if failed { parser_main_error(syntax_get_error(session), ""); } return failed ? 1 : 0;
+}
+fn parser_main_expansion(): usize {
+    var kinds: FrontendKinds;
+    kinds.rule = parser_rule_get_type(); kinds.reference = parser_reference_get_type(); kinds.string = parser_string_get_type();
+    kinds.range = parser_range_get_type(); kinds.`match` = parser_match_get_type(); kinds.syntax = syntax_component_type();
+    var status = frontend_bedrock_tests(&kinds); if status != 0 { return status; }
+    status = frontend_modules_tests(); if status != 0 { return status; }
+    var input: SyntaxExpansionInput; fill(&input, 0, sizeof(SyntaxExpansionInput)); input.match_kind = parser_match_get_type();
+    return syntax_expansion_tests(&input, syntax_native_bedrock());
+}
+fn parser_main(argc: i32, argv: u8**): i32 {
+    var status = host_runtime_tests(); if status != 0 { parser_main_failure("Tower host test failed: ", convert(i64, status)); return 1; }
+    if !parser_fixture_try_baseline("bedrock.tower", true) || !parser_fixture_try_baseline("foundation.tower", false) { return 1; }
+    var path: u8* = null; var host_only = false;
+    for (var index: i32 = 1; index < argc; ++index) {
+        if strcmp(argv[index], "--trace") == 0 { parser_set_debug_trace(true); }
+        else { if strcmp(argv[index], "--host-only") == 0 { host_only = true; }
+        else { if strcmp(argv[index], "--parse") == 0 && index + 1 < argc { path = argv[++index]; }
+        else { parser_main_error("Usage: tower-parser-tests [--trace] [--host-only] [--parse file.tower]", ""); return 1; } } }
+    }
+    if path is not null { return parser_main_parse(path); }
+    status = host_support_tests(); if status != 0 { parser_main_failure("Tower transport test failed: ", convert(i64, status)); return 1; }
+    status = interpreter_storage_tests(); if status != 0 { parser_main_failure("Tower interpreter storage test failed: ", convert(i64, status)); return 1; }
+    if host_only { puts("Tower host and interpreter storage tests passed."); return 0; }
+    tower_tests(); parser_tests(); syntax_tests(); formatter_tests(); compiler_storage_tests(); regex_tests(); syntax_lexer_tests(); syntax_nodes_tests(); syntax_reader_tests(); syntax_validation_tests();
+    var emission: SyntaxEmissionInput; fill(&emission, 0, sizeof(SyntaxEmissionInput));
+    emission.root = syntax_native_bedrock(); emission.syntax_kind = syntax_component_type(); emission.rule_kind = parser_rule_get_type();
+    emission.reference_kind = parser_reference_get_type(); emission.string_kind = parser_string_get_type(); emission.range_kind = parser_range_get_type();
+    var failure = syntax_emission_tests(&emission);
+    if failure != 0 { parser_main_failure("Tower grammar emission test failed: ", convert(i64, failure)); }
+    utility_check(failure == 0, "Tower grammar emission test"); failure = parser_main_expansion();
+    if failure != 0 { parser_main_failure("Tower replacement expansion test failed: ", convert(i64, failure)); }
+    utility_check(failure == 0, "Tower replacement expansion test");
+    lr_analysis_tests(); shared_entity_tests(); entity_registry_tests(); puts("Tower and parser tests passed."); return 0;
+}
