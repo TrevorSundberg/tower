@@ -38248,3 +38248,21 @@ Release the owned lock after verification. The 219-line count is tracked .py
 source: build-llvm.sh also still has two inline Python CRLF backup/restore blocks
 (17 lines), counted separately. Remove those dependencies with the final
 packaging/build-path work before claiming Python has been entirely eliminated.
+
+Receipt rebase then incorporates b3d22fc/092b408 shared-memory linker sources.
+Repeat the clean default public-bootstrap build in
+/cache/measurement_final_checkout and /cache/measurement_final_native: all
+54 native plus three driver steps pass, successor SHA-256 remains exactly the
+public 0d752e7 value, full driver passes in 10.13 seconds and the structs32 paired
+measurement passes. The earlier metadata-only publication remains verified;
+this is integration validation, not a linker/runtime repin by the tooling lane.
+
+Further packager audit finds reusable capabilities already present:
+library/deflate.tower is a fixed-Huffman/LZ77 encoder with stored-block fallback,
+not merely a decoder. Together with crc32.tower it can support a small deterministic
+gzip envelope without another codec/library. The Wasm archive/object readers can
+potentially replace text parsing of llvm-nm output; evaluate their required
+symbol/weak/reference behavior before selecting that path. Compression cannot
+simply disappear: compiler-build strips the .gz suffix, browser fetchBytes
+decompresses gzip, and native browser-generation probes explicitly gunzip support
+assets. Reuse these existing Tower primitives before adding implementation.
