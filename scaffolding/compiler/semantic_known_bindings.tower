@@ -111,6 +111,27 @@ fn sem_known_order(c: SemanticContext*, subject: void*, ordinal: usize): void {
     }
 }
 
+// Refuse obvious runtime captures before allocating cloned expressions or jobs.
+// This is an eligibility check, never an evaluator: calls and arithmetic still
+// execute only through ordinary staged interpreter work. Inputs with unresolved
+// eligible producers remain dependencies for that work to discover.
+fn sem_known_inputs(c: SemanticContext*, expression: void*, pending: vector(void*)*): bool {
+    pending.length = 0;
+    sem_push(pending, expression);
+    for(var index: usize = 0; index < pending.length; index++) {
+        var node = pending.data[index];
+        if node == null { continue; }
+        var value = sem_get(node);
+        if value == null { continue; }
+        if value.kind == KOperand() && value.binding != null && !value.constant {
+            var input = sem_known_binding(c, value.binding);
+            if input == null || !input.immutable || !input.ordered { return false; }
+        }
+        sem_known_edges(pending, value);
+    }
+    return true;
+}
+
 fn sem_known_infer(c: SemanticContext*): void {
     if !sem_ok(c) || c.editor != null { return; }
     var nodes = sem_list(c);
@@ -160,9 +181,11 @@ fn sem_known_infer(c: SemanticContext*): void {
         }
     }
     for(var index: usize = 0; index < root.items.length; index++) { sem_known_order(c, root.items.data[index], index); }
+    var inputs = sem_list(c);
     foreach(var node in nodes) {
         var binding = sem_known_binding(c, node);
         if binding == null || !binding.immutable || !binding.ordered { continue; }
+        if !sem_known_inputs(c, sem_get(node).value, inputs) { continue; }
         sem_evaluation_begin(c);
         var subject = sem_control_node(c, node, KOperand());
         var literal = sem_get(subject);

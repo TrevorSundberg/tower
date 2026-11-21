@@ -32641,3 +32641,30 @@ claim. Commands use /usr/bin/time -p and towerc scaffolding/tests/defer_scopes.t
 --emit object; retirement-benchmark-before/after-1/2/3.txt record each sample.
 No sanitizer or broad formatter sweep was run. Hosted publication and its final
 verification receipt follow separately; they are not claimed complete here.
+
+
+#### Bounded inferred evaluation before final migration
+
+With the cycle-aware pin, the actual compiler migration builds natively through
+the default bootstrap (`value-bindings-migrated.log`). Updated 263 declarations
+and callers across 177 Tower files, removed the two constant grammar rules,
+updated embedded module examples, and began replacing complete typed worker/type
+copies with ordinary struct assignments. These changes remain local until the
+release checks pass. The native suite's retired-syntax test assumed an
+"Unexpected" parser diagnostic; the actual useful message is "Missing '?' before
+'old'" after `const` becomes an ordinary identifier. Corrected that assertion.
+
+The single-thread browser build succeeded, but the larger threaded parser compiler
+exceeded the existing Foundation component budget while instantiating
+`vector_reserve` from `lr_append`. Automatic inference was cloning initializers and
+allocating evaluation work even when their inputs were known runtime parameters
+or mutable/address-exposed bindings. Added a read-only eligibility scan before
+those allocations. It uses the existing immutability/order facts and does no
+arithmetic, call execution or folding. Eligible unresolved inputs still go through
+the ordinary interpreter/dependency graph. The resource limit is unchanged.
+Stashed the complete migration while rebuilding/publishing this reader improvement;
+the published old-spelling compiler remains buildable throughout.
+
+The native execution suite passes with eligibility filtering, including explicit
+capture/effect failures, dependency cycles, both target widths, worker determinism
+and prior semantic oracles (`binding-budget-tests.log`).
