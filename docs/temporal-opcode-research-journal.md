@@ -36593,3 +36593,23 @@ before/after PNGs, frame_NNN.jpg compositor frames and frames.json with animatio
 frame geometry and scroll positions. Optional TOWER_UI_URL selects a hosted build.
 The final CSS retains readable storage/link failure messages rather than clipping
 them to hide a genuine error. The successful edit/recompile layout stays fixed.
+
+Final CSS/frame/storage checks pass all six cases. Publication synchronization
+pulled d5412d0's local-query and tooling work without UI conflicts. Its upstream
+receipt records clean successor validation with the direct pin; this UI change
+does not require another compiler build. Updated only the retained runtime assets
+to gh-pages 09a46e0, preserving that manifest's compiler/bootstrap/recipe identity.
+Re-ran the four frame captures against this integrated package: all pass.
+Desktop edit/recompile record 12/13 compositor frames and 27/19 geometry samples;
+mobile records 10/12 frames and 35/23 samples. Instructions stay at scrollTop 100;
+editor heights are constant at 396 px desktop and 195.09375 px mobile. Logs and
+captures are build/ui-stability-integrated-frames.log and build/ui_integrated_*.
+The UI implementation is public c9521cf; only app.js, its source map, index.html
+and style.css differ from the published runtime package.
+
+The exact integrated local deployment passes all 84 asset hashes plus full
+desktop/mobile backend, grammar, completions/highlighting, persistence, default
+selection and native-download verification (build/ui-stability-local-deployment.log).
+The source rebase changed no UI inputs, so the verified app bundle remains tied
+to public c9521cf. Publish these four UI assets over the retained runtime package;
+record the UI source separately from compiler build identity in the manifest.
