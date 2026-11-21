@@ -1,3 +1,4 @@
+import .compiler.syntax_template_types;
 import .compiler.syntax_emission_types;
 import tower;
 import .compiler.regex_lowering;

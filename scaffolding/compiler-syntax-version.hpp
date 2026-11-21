@@ -5,8 +5,6 @@ struct SyntaxEmission;
 struct SyntaxPendingRevision;
 struct SyntaxReplacementOwner;
 struct SyntaxLexicon;
-// Mechanical view of the Tower owner. Native shared_ptr leases currently carry
-// its single transport reference; construction and final release are Tower code.
 struct SyntaxVersion {
   size_t references;
   const FrontendRevision* grammar;

@@ -1,3 +1,4 @@
+import syntax_template_types;
 import tower;
 import frontend_modules;
 import lr_parser;
@@ -42,7 +43,7 @@ lookahead: ParserRequestLookahead*, input: SyntaxScanInput*): void {
     input.state = context.state;
     input.highlights = bits(void*, highlights);
     input.context = value.pins.version.rules;
-    input.match_kind = parser_match_get_type();
+    input.match_kind = value.pins.version.kinds.`match`;
 }
 
 export fn syntax_parser_diagnostic_read(opaque: void*, position: usize*, lookahead: ParserRequestLookahead*, id: u32*): bool {

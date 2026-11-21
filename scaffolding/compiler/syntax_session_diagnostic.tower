@@ -10,12 +10,10 @@ import syntax_revision;
 import syntax_session_types;
 import syntax_version_presentation;
 
-extern fn syntax_component_type(): void*;
 extern fn format_syntax_diagnostic(input: SyntaxDiagnosticInput*, output: SyntaxDiagnosticText*): void;
 extern fn syntax_diagnostic_text_finish(output: SyntaxDiagnosticText*, description: u8*): u8*;
 extern fn tower_memory_free(memory: void*): void;
 
-// External draft for the next source slice; not imported, built or published.
 // The caller receives the existing host-text allocation and releases it with
 // tower_memory_free. Grammar/candidate views remain pinned until formatting ends.
 export fn syntax_session_diagnostic(value: SyntaxSession*, recognizer: ParserRequest*, repairs: bool): u8* {
@@ -26,7 +24,7 @@ export fn syntax_session_diagnostic(value: SyntaxSession*, recognizer: ParserReq
     // current source revision, including edits that only move comments.
     var definitions = syntax_revision_overlay(value.pins.bedrock,
         value.pins.grammar ?. rules.data, value.pins.grammar ?. rules.length ?? 0,
-        null, 0, syntax_component_type());
+        null, 0, value.pins.version.kinds.syntax);
     defer frontend_revision_release(definitions);
     var emission = bits(SyntaxEmission*, value.pins.version.emission);
     var input: SyntaxDiagnosticInput;

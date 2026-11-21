@@ -1,0 +1,45 @@
+import tower;
+import syntax_emission_types;
+
+// Typed capture holes add ordinary generated productions to the template table.
+// Remapping restores active production identities on the same parse entities.
+struct SyntaxTemplateCapture {
+    name: u8*;
+    source: void*;
+    wrapper: u8*;
+}
+
+struct SyntaxTemplateGrammar {
+    emission: SyntaxEmissionInput;
+    captures: SyntaxTemplateCapture*;
+    count: usize;
+    repetitions: SyntaxEmissionHelper*;
+    repetition_count: usize;
+}
+
+struct SyntaxTemplateAlias {
+    name: u8*;
+    target: u8*;
+}
+
+struct SyntaxTemplateName {
+    name: u8*;
+    index: usize;
+}
+
+struct SyntaxTemplateRemap {
+    root: void*;
+    match_kind: void*;
+    source: SyntaxEmissionProduction*;
+    source_count: usize;
+    destination: SyntaxEmissionProduction*;
+    destination_count: usize;
+    aliases: SyntaxTemplateAlias*;
+    alias_count: usize;
+    names: SyntaxTemplateName*;
+    name_count: usize;
+    grammar: void*;
+    uses: usize*;
+    count: usize;
+}
+

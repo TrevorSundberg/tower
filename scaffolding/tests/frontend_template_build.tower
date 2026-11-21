@@ -1,0 +1,121 @@
+import utility_checks;
+import tower;
+import .library.vector;
+import .compiler.syntax_types;
+import .compiler.syntax_view;
+import .compiler.syntax_replacement_types;
+import .compiler.syntax_version_types;
+import .compiler.frontend_revision_types;
+import .compiler.syntax_session_types;
+import frontend_world;
+import frontend_format;
+import frontend_syntax_preview;
+import frontend_revision;
+import frontend_syntax_version;
+import frontend_replacement_owner;
+import frontend_baselines;
+
+extern fn syntax_replacement_attempt(owner: void*, category: u8*): u32;
+extern fn compiler_node_world(node: void*): void*;
+extern fn bytes_assign_text(value: vector(u8)*, text: u8*, length: usize): bool;
+extern fn syntax_inspection_match(session: SyntaxSession*, node: void*): void*;
+extern fn syntax_inspection_reference(session: SyntaxSession*, text: u8*, length: usize, index: usize, count: usize*): void*;
+extern fn syntax_inspection_template(session: SyntaxSession*, body: void*, category: u8**, captures: usize*): void*;
+extern fn syntax_inspection_capture(session: SyntaxSession*, body: void*, index: usize): void*;
+
+// A standalone grammar world exercises the actual production callback, without
+// installing a host baseline. Typed captures and diagnostics must use its kinds.
+fn frontend_template_world_tests(world: void*): void {
+    var store = compiler_world_store(world);
+    var source = entity_create(store);
+    defer entity_release(source);
+    var alternatives: void*[2];
+    var rules: SyntaxRuleView[2];
+    var capture: void* = null;
+    for (var i: usize = 0; i < 2; ++i) {
+        alternatives[i] = frontend_format_child(store, source, null);
+        var sequence = preview_syntax(world, alternatives[i]);
+        sequence.kind = convert(u32, SyntaxKind.Alternative);
+        var node = frontend_format_child(store, alternatives[i], null);
+        var term = preview_syntax(world, node);
+        term.kind = convert(u32, SyntaxKind.Term);
+        term.literal = i == 1;
+        utility_check(bytes_assign_text(&term.text, i == 0 ? "Atom" : "x", i == 0 ? 4 : 1), "template grammar term");
+        utility_check(vector_push(&sequence.items, node), "template grammar sequence");
+        if i == 0 { capture = node; }
+        rules[i].name = i == 0 ? "Statement" : "Atom";
+        rules[i].name_length = i == 0 ? 9 : 4;
+        rules[i].alternatives = &alternatives[i];
+        rules[i].count = 1;
+    }
+    var revision = syntax_revision_create(&rules[0], 2, null, 0);
+    defer frontend_revision_release(revision);
+    var bedrock = syntax_world_revision(world, SyntaxSeedBaseline());
+    defer frontend_revision_release(bedrock);
+    var diagnostic: SyntaxVersionDiagnostic;
+    fill(&diagnostic, 0, sizeof(SyntaxVersionDiagnostic));
+    defer syntax_version_diagnostic_dispose(&diagnostic);
+    var version = syntax_version_build(world, revision, bedrock, &diagnostic);
+    utility_check(version is not null, "isolated template host version");
+    defer syntax_version_release(version);
+    var body = frontend_format_child(store, source, null);
+    entity_retain(body);
+    preview_syntax(world, alternatives[0]).replacement = body;
+    var text = &preview_syntax(world, body).text;
+    var owner = syntax_replacement_owner_create(bits(void*, version), version.emission, version.kinds.syntax, version.kinds.`match`);
+    utility_check(owner is not null, "isolated template owner");
+    defer syntax_replacement_owner_destroy(owner);
+    syntax_replacement_begin(owner, "Statement", alternatives[0], 120, 140);
+    syntax_replacement_capture(owner, "value", capture);
+    var candidate = syntax_replacement_candidate(owner, "Statement");
+    utility_check(candidate is not null, "template candidate");
+    utility_check(bytes_append(text, "$value", 6), "typed capture source");
+    utility_check(syntax_replacement_attempt(owner, "Statement") == 1, syntax_replacement_diagnostic(owner));
+    utility_check(candidate.tree is not null && compiler_node_world(candidate.tree) == world, "capture tree stays in its world");
+    var session: SyntaxSession;
+    fill(&session, 0, sizeof(SyntaxSession));
+    session.pins.version = version;
+    utility_check(syntax_inspection_match(&session, candidate.tree) == alternatives[0], "inspection finds the owning world's source alternative");
+    var count: usize = 0;
+    utility_check(syntax_inspection_reference(&session, "Atom", 4, 0, &count) == alternatives[1] && count == 1, "inspection resolves the referenced rule in its world");
+    utility_check(candidate.captures.length == 1 && candidate.captures.data[0].uses == 1, "capture use count");
+    utility_check(entity_component_get(candidate.tree, version.kinds.`match`) is not null, "tree has world match component");
+    frontend_format_text(syntax_replacement_diagnostic(owner), "");
+    text.length = 0;
+    utility_check(bytes_append(text, "$missing", 8), "invalid capture source");
+    utility_check(syntax_replacement_attempt(owner, "Statement") == 0, "invalid capture rejected");
+    utility_check(syntax_replacement_offset(owner) >= 120, "diagnostic offset retains source base");
+    utility_check(syntax_replacement_diagnostic(owner)[0] != 0, "invalid capture diagnostic");
+    // Recovery replaces the earlier owned tree and resets the capture-use row.
+    text.length = 0;
+    utility_check(bytes_append(text, "x", 1), "recovery literal source");
+    utility_check(syntax_replacement_attempt(owner, "Statement") == 1, "literal template recovery");
+    utility_check(candidate.tree is not null && compiler_node_world(candidate.tree) == world, "recovery tree stays in its world");
+    utility_check(candidate.captures.data[0].uses == 0, "recovery clears capture uses");
+    frontend_format_text(syntax_replacement_diagnostic(owner), "");
+    syntax_replacement_select(owner);
+    syntax_replacement_commit(owner, 0);
+    utility_check(syntax_replacement_freeze(owner), "publish inspected template");
+    var previous = version.replacements;
+    version.replacements = owner;
+    defer { version.replacements = previous; }
+    var category: u8* = null;
+    count = 0;
+    var inspected = syntax_inspection_template(&session, body, &category, &count);
+    utility_check(inspected is not null && compiler_node_world(inspected) == world && count == 1, "template inspection borrows the published world tree");
+    frontend_format_text(category, "Statement");
+    utility_check(syntax_inspection_capture(&session, body, 0) == capture, "inspection returns retained capture source");
+    utility_check(syntax_inspection_capture(&session, body, 1) is null, "inspection rejects capture past end");
+}
+
+fn frontend_template_build_tests(): void {
+    var baseline = tower_test_buffer_count();
+    var first = compiler_world_create();
+    var second = compiler_world_create();
+    utility_check(first is not null && second is not null, "two independent worlds");
+    frontend_template_world_tests(first);
+    frontend_template_world_tests(second);
+    utility_check(frontend_world_clear(first) && compiler_world_dispose(first), "first world releases all leases");
+    utility_check(frontend_world_clear(second) && compiler_world_dispose(second), "second world releases all leases");
+    utility_check(tower_test_buffer_count() == baseline, "all template allocations released");
+}

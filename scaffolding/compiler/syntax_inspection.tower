@@ -1,0 +1,60 @@
+import tower;
+import frontend_revision_types;
+import parser_types;
+import syntax_emission_types;
+import syntax_replacement_types;
+import syntax_session_types;
+import syntax_view;
+
+extern fn entity_component_get(node: void*, kind: void*): void*;
+extern fn entity_component_data(component: void*): void*;
+extern fn syntax_revision_reference(revision: FrontendRevision*, text: u8*, length: usize, index: usize, count: usize*, kind: void*): void*;
+extern fn syntax_revision_rule(revision: FrontendRevision*, name: u8*, length: usize): SyntaxRuleView*;
+extern fn syntax_emission_find_index(emission: void*, index: usize): SyntaxEmissionProduction*;
+extern fn syntax_replacement_inspect(owner: void*, grammar: FrontendRevision*, body: void*): SyntaxReplacement*;
+
+// Read-only borrowed views. The caller keeps the session revision pinned and
+// retains returned entities before advancing or destroying that session.
+export fn syntax_inspection_reference(session: SyntaxSession*, text: u8*, length: usize, index: usize, count: usize*): void* {
+    *count = 0;
+    var version = session.pins.version;
+    if version is null { return null; }
+    return syntax_revision_reference(version.grammar, text, length, index, count, version.kinds.syntax);
+}
+
+export fn syntax_inspection_match(session: SyntaxSession*, node: void*): void* {
+    var version = session.pins.version;
+    if version is null { return null; }
+    var span = bits(ParserMatchData*, entity_component_data(entity_component_get(node, version.kinds.`match`)));
+    if span is null { return null; }
+    var production = syntax_emission_find_index(version.emission, span.rule);
+    if production is null { return null; }
+    var length: usize = 0;
+    while production.name[length] != 0 {
+        if length >= span.label.length || production.name[length] != span.label.data[length] { return null; }
+        ++length;
+    }
+    if length != span.label.length { return null; }
+    var found = syntax_revision_rule(version.grammar, production.name, length);
+    return found is not null && production.alternative < found.count ? found.alternatives[production.alternative] : null;
+}
+
+fn inspection_replacement(session: SyntaxSession*, body: void*): SyntaxReplacement* {
+    var version = session.pins.version;
+    return version is null ? null : syntax_replacement_inspect(version.replacements, version.grammar, body);
+}
+
+export fn syntax_inspection_template(session: SyntaxSession*, body: void*, category: u8**, captures: usize*): void* {
+    *category = "";
+    *captures = 0;
+    var replacement = inspection_replacement(session, body);
+    if replacement is null { return null; }
+    *category = replacement.category.data ?? "";
+    *captures = replacement.captures.length;
+    return replacement.tree;
+}
+
+export fn syntax_inspection_capture(session: SyntaxSession*, body: void*, index: usize): void* {
+    var replacement = inspection_replacement(session, body);
+    return replacement is null || index >= replacement.captures.length ? null : replacement.captures.data[index].source;
+}

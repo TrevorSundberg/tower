@@ -163,6 +163,7 @@ function(tower_compiler_parser_nodes)
   include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/TowerSyntaxTests.cmake")
   include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/TowerParserFormatting.cmake")
   include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/TowerParserIntegration.cmake")
+  include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/TowerTemplateBuild.cmake")
   include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/TowerFrontendTests.cmake")
 endfunction()
 

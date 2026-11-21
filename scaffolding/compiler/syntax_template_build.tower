@@ -1,0 +1,201 @@
+import tower;
+import frontend_revision_types;
+import grammar_types;
+import parser_markers;
+import parser_table_types;
+import syntax_emission_types;
+import syntax_replacement_types;
+import syntax_session_types;
+import syntax_template_types;
+import syntax_types;
+import syntax_version_types;
+import .library.vector;
+
+extern fn compiler_node_world(node: void*): void*;
+extern fn entity_component_get(node: void*, kind: void*): void*;
+extern fn entity_component_data(component: void*): void*;
+extern fn entity_member_index(node: void*, name: u8*): usize;
+extern fn entity_child_at(node: void*, index: usize): void*;
+extern fn entity_attach(node: void*, parent: void*, name: u8*): bool;
+extern fn entity_retain(node: void*): usize;
+extern fn entity_release(node: void*): usize;
+extern fn tower_memory_free(memory: void*): void;
+extern fn frontend_revision_retain(value: FrontendRevision*): FrontendRevision*;
+extern fn frontend_revision_release(value: FrontendRevision*): void;
+extern fn syntax_version_create(world: void*, grammar: FrontendRevision*, bedrock: FrontendRevision*): SyntaxVersion*;
+extern fn syntax_version_release(value: SyntaxVersion*): void;
+extern fn syntax_version_seed(value: SyntaxVersion*, definitions: FrontendRevision*, category: u8*, parent: void*): bool;
+extern fn syntax_version_lexicon(value: SyntaxVersion*): bool;
+extern fn syntax_replacement_candidate(owner: void*, category: u8*): SyntaxReplacement*;
+extern fn syntax_replacement_host(owner: void*): void*;
+extern fn syntax_replacement_sequence(owner: void*): void*;
+extern fn syntax_replacement_tree(owner: void*, tree: void*): void;
+extern fn syntax_replacement_error(owner: void*, error: u8*): void;
+extern fn syntax_session_allocate(world: void*, environment: void*): SyntaxSession*;
+extern fn syntax_destroy(session: void*): void;
+extern fn syntax_session_inputs_source(value: SyntaxSessionInputs*, source: u8*, length: usize, name: u8*): bool;
+extern fn syntax_session_progress(value: SyntaxSession*): void;
+extern fn syntax_session_pin_revision(destination: FrontendRevision**, source: FrontendRevision*): void;
+extern fn syntax_session_pin_version(destination: SyntaxVersion**, source: SyntaxVersion*): void;
+extern fn syntax_session_diagnostic(value: SyntaxSession*, recognizer: void*, repairs: bool): u8*;
+extern fn syntax_emission_wrapper(value: void*, name: u8*): u8*;
+extern fn syntax_emission_repetitions(value: void*): SyntaxEmissionHelper*;
+extern fn syntax_emission_repetition_count(value: void*): usize;
+extern fn syntax_emission_productions(value: void*): SyntaxEmissionProduction*;
+extern fn syntax_emission_production_count(value: void*): usize;
+extern fn syntax_template_holes_revision(input: SyntaxTemplateGrammar*, emission: void*): bool;
+extern fn syntax_template_remap_revisions(input: SyntaxTemplateRemap*, source: void*, destination: void*): bool;
+extern fn parser_table_open(root: void*, kinds: FrontendKinds*, userdata: void*, presentation: ParserPresentation, mode: u32): ParserHostTable*;
+extern fn parser_table_finish(table: ParserHostTable*, error: u8**, specialize: bool): void*;
+extern fn parser_table_grammar(table: void*): void*;
+extern fn parser_stream_create(bytes: usize, service: ParserInputService): void*;
+extern fn parser_stream_get_userdata(stream: void*): void*;
+extern fn parser_stream_destroy(stream: void*): void;
+extern fn parser_recognizer_create(table: void*, stream: void*): void*;
+extern fn parser_recognizer_destroy(recognizer: void*): void;
+extern fn parser_recognizer_step(recognizer: void*, running: bool*): void*;
+
+fn template_build_text(text: vector(u8)*): u8* { return text.data ?? ""; }
+
+const TemplateAttemptFailed: u32 = 0;
+const TemplateAttemptReady: u32 = 1;
+const TemplateAttemptGrammarConflict: u32 = 2;
+
+fn template_build_error(owner: void*, message: u8*): u32 {
+    syntax_replacement_error(owner, message);
+    return TemplateAttemptFailed();
+}
+
+fn template_build_node(node: void*, version: SyntaxVersion*): SyntaxNode* {
+    return bits(SyntaxNode*, entity_component_data(entity_component_get(node, version.kinds.syntax)));
+}
+
+// The coordinator owns the candidate and its grammar revision throughout this
+// attempt. Capture rows are borrowed only until the recognizer is destroyed;
+// the adopted tree remains on the original world's shared entities.
+export fn syntax_replacement_attempt(context: void*, category: u8*): u32 {
+    var owner = context;
+    var replacement = syntax_replacement_candidate(owner, category);
+    if replacement is null { return TemplateAttemptFailed(); }
+    var version = bits(SyntaxVersion*, syntax_replacement_host(owner));
+    var definitions = frontend_revision_retain(version.grammar);
+    defer frontend_revision_release(definitions);
+    var world = compiler_node_world(version.rules);
+    var grammar = syntax_version_create(world, definitions, version.bedrock);
+    if grammar is null { return template_build_error(owner, "Unable to allocate replacement grammar"); }
+    defer syntax_version_release(grammar);
+    var destination = version.emission;
+    if !syntax_version_seed(grammar, definitions, template_build_text(&replacement.category), destination) {
+        return template_build_error(owner, "Unable to allocate replacement grammar");
+    }
+    // A template parses captured source, not an imported module. No module
+    // environment or process-global default world is needed for this session.
+    var session = syntax_session_allocate(world, null);
+    if session is null { return template_build_error(owner, "Unable to allocate replacement session"); }
+    defer syntax_destroy(bits(void*, session));
+    var sequence = template_build_node(syntax_replacement_sequence(owner), version);
+    var text = &template_build_node(sequence.replacement, version).text;
+    if !syntax_session_inputs_source(&session.inputs, text.data, text.length, "replacement") {
+        return template_build_error(owner, "Unable to allocate replacement source text");
+    }
+    syntax_session_progress(session);
+    syntax_session_pin_revision(&session.pins.grammar, definitions);
+    syntax_session_pin_revision(&session.pins.bedrock, version.bedrock);
+    syntax_session_pin_version(&session.pins.version, grammar);
+    var emission = grammar.emission;
+    var captures: vector(SyntaxTemplateCapture);
+    vector_init(&captures);
+    defer vector_dispose(&captures);
+    if !vector_reserve(&captures, replacement.captures.length) {
+        return template_build_error(owner, "Unable to allocate replacement capture storage");
+    }
+    foreach (var &capture in &replacement.captures) {
+        var entry = &captures.data[captures.length];
+        entry.name = template_build_text(&capture.name);
+        entry.source = capture.source;
+        entry.wrapper = syntax_emission_wrapper(emission, template_build_text(&template_build_node(capture.source, version).text));
+        captures.length++;
+    }
+    var input: SyntaxTemplateInput;
+    input.session = session;
+    input.base = replacement.start;
+    input.captures = bits(void*, captures.data);
+    input.count = captures.length;
+    var holes: SyntaxTemplateGrammar;
+    fill(&holes, 0, sizeof(SyntaxTemplateGrammar));
+    holes.emission.root = grammar.rules;
+    holes.emission.syntax_kind = grammar.kinds.syntax;
+    holes.emission.rule_kind = grammar.kinds.rule;
+    holes.emission.reference_kind = grammar.kinds.reference;
+    holes.emission.string_kind = grammar.kinds.string;
+    holes.captures = captures.data;
+    holes.count = captures.length;
+    holes.repetitions = syntax_emission_repetitions(emission);
+    holes.repetition_count = syntax_emission_repetition_count(emission);
+    if !syntax_template_holes_revision(&holes, emission) {
+        return template_build_error(owner, "Unable to allocate replacement hole productions");
+    }
+    var diagnostic: u8* = null;
+    defer tower_memory_free(bits(void*, diagnostic));
+    var table = parser_table_open(grammar.rules, &grammar.kinds, bits(void*, grammar), ParserPresentation.Syntax, convert(u32, ParserReadMode.WholeInput));
+    if table is not null { table.trace = entity_member_index(grammar.kinds.`match`, "parser.trace") != ~convert(usize, 0); }
+    grammar.table = bits(void*, parser_table_finish(table, &diagnostic, true));
+    if grammar.table is null {
+        syntax_replacement_error(owner, diagnostic ?? "Cannot build replacement parser");
+        return TemplateAttemptGrammarConflict();
+    }
+    if !syntax_version_lexicon(grammar) {
+        return template_build_error(owner, "Unable to allocate replacement lexical indexes");
+    }
+    var stream = parser_stream_create(sizeof(SyntaxTemplateInput*), ParserInputService.Template);
+    if stream is null { return template_build_error(owner, "Unable to allocate replacement input stream"); }
+    defer parser_stream_destroy(stream);
+    *bits(SyntaxTemplateInput**, parser_stream_get_userdata(stream)) = &input;
+    var recognizer = parser_recognizer_create(grammar.table, stream);
+    if recognizer is null { return template_build_error(owner, "Unable to allocate replacement recognizer"); }
+    defer parser_recognizer_destroy(recognizer);
+    session.recognizer = bits(void*, recognizer);
+    var root: void* = null;
+    defer { if root is not null { entity_release(root); } }
+    var running = true;
+    while running {
+        if root is not null { entity_release(root); }
+        root = parser_recognizer_step(recognizer, &running);
+    }
+    if root is null {
+        replacement.error_offset = replacement.start + session.error_offset;
+        // Typed holes cannot safely use ordinary token insertion repairs.
+        var error = syntax_session_diagnostic(session, recognizer, false);
+        defer tower_memory_free(bits(void*, error));
+        return template_build_error(owner, error);
+    }
+    var body = entity_child_at(root, 0);
+    if body is null { return template_build_error(owner, "Replacement must produce one syntax tree"); }
+    entity_retain(body);
+    entity_attach(body, null, null);
+    syntax_replacement_tree(owner, body);
+    var uses: vector(usize);
+    vector_init(&uses);
+    defer vector_dispose(&uses);
+    if !vector_reserve(&uses, captures.length) {
+        return template_build_error(owner, "Unable to allocate replacement template mapping");
+    }
+    uses.length = captures.length;
+    fill(uses.data, 0, uses.length * sizeof(usize));
+    var remap: SyntaxTemplateRemap;
+    fill(&remap, 0, sizeof(SyntaxTemplateRemap));
+    remap.root = body;
+    remap.match_kind = version.kinds.`match`;
+    remap.source = syntax_emission_productions(emission);
+    remap.source_count = syntax_emission_production_count(emission);
+    remap.destination = syntax_emission_productions(destination);
+    remap.destination_count = syntax_emission_production_count(destination);
+    remap.grammar = parser_table_grammar(version.table);
+    remap.uses = uses.data;
+    remap.count = uses.length;
+    if !syntax_template_remap_revisions(&remap, emission, destination) {
+        return template_build_error(owner, "Unable to allocate replacement template mapping");
+    }
+    for (var i: usize = 0; i < captures.length; ++i) { replacement.captures.data[i].uses = uses.data[i]; }
+    return TemplateAttemptReady();
+}

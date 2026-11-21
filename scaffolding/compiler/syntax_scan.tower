@@ -1,3 +1,4 @@
+import syntax_template_types;
 import tower;
 import lr_analysis;
 import lr_runtime;
