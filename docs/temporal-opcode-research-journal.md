@@ -31765,3 +31765,21 @@ execution harness passes with those checks (build/named-fields-diagnostics.log).
 This test-only addition does not alter the packaged compiler unit inputs.
 Final Foundation/Bedrock and todo.txt diffs are empty. Source-format checks cover
 the feature fixture; no repository-wide formatting or sanitizer pass was run.
+
+Publication complete: main fb0a4db includes the implementation, published bootstrap,
+35-site adoption and worker diagnostic tests. Pages 5c1eabe publishes the integrated
+compiler and grammar. The normal Pages push took about two minutes but completed;
+no force push or upload workaround was needed. The hosted manifest matches.
+Both `node playground/scripts/verify-local.mjs` and
+`node playground/scripts/verify-deployment.mjs https://tower-lang.org/` pass all 77
+asset hashes and complete desktop/mobile workflows: editing, grammar revisions,
+completion, formatting, backend agreement, persistence, native builds/downloads
+and target defaults. Evidence: build/named-fields-local-report.json,
+named-fields-hosted-report.json and their corresponding verification logs.
+
+This final journal-only publication preserves those verified runtime bytes and
+buildSourceCommit fb0a4db; update only the source/publication metadata rather than
+rebuild or repeat the browser suite. The main checkout and Pages worktree are
+clean after publication; unrelated stash 30babcc remains preserved. Remaining
+language work is aggregate value/return and ownership contracts plus the future
+Stronghold validation policy, not an implicit part of named-field construction.
