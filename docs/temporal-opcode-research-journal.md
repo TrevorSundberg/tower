@@ -34154,3 +34154,37 @@ corpus is byte-identical to the independently decoded corpus above. The final
 tool's dynamic dependencies still list only libc. Runtime Pages deployment is
 still blocked by the coordinator's live release ownership; no deployment by
 this lane is claimed.
+
+The final runtime was subsequently refreshed to 6443f6d, rather than leaving the
+new inference safeguards absent from the browser. Preserved upstream's newer
+e886c65dff84c83b8647d516eaa1de6754f58f04932022238680f8d1489f9e32 pin.
+The clean public build (no private compiler override) passed all 54 steps in
+coordinator-retirement-current-clean; the full native execution/Foundation/package
+suite passed after enabling TOWER_EXECUTION_TESTS explicitly. An initial ctest
+invocation on the default cache found no registered tests and is not counted as
+validation. The current pin also passed Docker version, fast known-binding and
+linked struct-value executable checks. These logs use the retirement-current-
+prefix in the same external evidence directory.
+
+Rebuilt all browser reactors and their 17-unit editable package from this current
+source. Worker/thread/parser tests passed 25/25 (38.19s); selected LLVM differential
+and promotion checks passed 5/5 (59.28s), with zero skips. Two edited-source browser
+self-rebuild generations passed at 2/4 workers and produced identical hashes:
+Tower a24307a5ae9f0186129d02d0d24249f88f7b6818525f313324e6e5d886483eb5,
+LLVM b478fb818e83ee49b235954c366635dd847005d42cf2dcb73c3e4f8d9662236f,
+cross c87e29d8f884bfa405f79d59a386c7eb85e5b6c20ed6fc67e2062897031f2bc3.
+86.94/63.87s under concurrent verification, not a scaling claim. Saved generation
+JSON files retain exact byte sizes and timings. Local verification passed all 77
+assets and complete desktop/mobile flows, including native output downloads and
+compiler-project editing. Final hosted verification follows the Pages upload.
+
+Correction to the earlier unchanged-todo observation: the incoming upstream
+research checkpoint 1a4fcf3 includes todo.txt edits. This lane has not edited that
+file and preserves the incoming work. Its current Git blob is
+045d1e620edf7c67b653fec19df850b370246b1d, superseding the prior inventory hash.
+
+The e886 packaged executable is 24fa5adb794d245001369d5dda93acb58a662e5ec1d6f0e6ad672272dad0ae71;
+this WSL successor is a4d20cbd0fa7eff0b54d9b84cec23301025c7e84e206443368e63446619ac38d.
+These upstream/container and WSL builds are recorded separately, not claimed
+byte-identical across environments. The earlier fd536 same-environment native
+equality and both browser-generation equalities remain the determinism evidence.
