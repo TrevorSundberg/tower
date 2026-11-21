@@ -1,4 +1,7 @@
 import tower;
+// The browser prestarts a bounded set of JS workers. Return each pthread slot
+// after a joined phase so the next world/semantic pool can acquire that set.
+export fn work_thread_retention(): bool { return false; }
 
 // WASI Preview 1 threads ABI from wasi-sdk 34: pthread_t is a wasm32
 // pointer; sem_t is four 32-bit words. The host supplies only thread spawning

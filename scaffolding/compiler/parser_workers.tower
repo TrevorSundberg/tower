@@ -46,6 +46,7 @@ fn parser_workers_close(lease: ParserWorkers*): void {
     if lease.cache == null {
         work_pool_close(lease.pool);
     } else {
+        if !work_thread_retention() { work_pool_close(lease.pool); }
         lease.cache.workers_busy = false;
     }
     lease.pool = null;

@@ -1,4 +1,5 @@
 import tower;
+export fn work_thread_retention(): bool { return true; }
 
 // Windows x64/arm64: WINAPI uses the platform calling convention. DWORD/BOOL
 // remain 32 bits and HANDLE/SIZE_T are native words on both supported targets.

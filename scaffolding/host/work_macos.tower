@@ -1,4 +1,5 @@
 import tower;
+export fn work_thread_retention(): bool { return true; }
 
 // Darwin x86_64/arm64 pthread handles and libdispatch's intptr_t are 64 bits.
 // Dispatch owns semaphore storage; macOS does not support unnamed POSIX sem_init.

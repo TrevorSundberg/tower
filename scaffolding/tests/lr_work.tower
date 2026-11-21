@@ -32,19 +32,25 @@ fn lr_worker_lifetime(): bool {
     if root == null || second == null { return false; }
     defer entity_release(root);
     defer entity_release(second);
+    var capacity = work_thread_capacity();
+    if capacity > 4 { capacity = 4; }
+    var retained = work_thread_retention();
     var lease: ParserWorkers;
-    if !parser_workers_open(&lease, root, 4) { return false; }
+    if !parser_workers_open(&lease, root, capacity) { return false; }
     defer parser_workers_close(&lease);
     var slots = lease.pool.slots;
     var thread = slots[0].thread;
+    var first_pool = lease.pool;
     var rejected: ParserWorkers;
-    if parser_workers_open(&rejected, root, 4) { parser_workers_close(&rejected); return false; }
+    if parser_workers_open(&rejected, root, capacity) { parser_workers_close(&rejected); return false; }
     if frontend_world_clear(world) || compiler_world_dispose(world) { return false; }
+    if !retained { parser_workers_close(&lease); }
     var independent: ParserWorkers;
-    if !parser_workers_open(&independent, second, 4) { return false; }
+    if !parser_workers_open(&independent, second, capacity) { return false; }
     defer parser_workers_close(&independent);
-    if independent.pool == lease.pool || independent.pool.slots == slots { return false; }
+    if independent.pool == first_pool || (retained && independent.pool.slots == slots) { return false; }
     parser_workers_close(&independent);
+    if !retained && !parser_workers_open(&lease, root, capacity) { return false; }
 
     var rule: LRProduction;
     fill(&rule, 0, sizeof(LRProduction));
@@ -74,15 +80,15 @@ fn lr_worker_lifetime(): bool {
     entity_view_close(view);
     var ok = submitted && task.success && closure != null;
     lr_kernel_closure_destroy(closure);
-    if !ok || !parser_workers_open(&lease, root, 4) { return false; }
-    if lease.pool.slots != slots || lease.pool.slots[0].thread != thread
-        || lease.pool.running != 0 { return false; }
+    if !ok || !parser_workers_open(&lease, root, capacity) { return false; }
+    if retained && (lease.pool.slots != slots || lease.pool.slots[0].thread != thread) { return false; }
+    if lease.pool.running != 0 { return false; }
     parser_workers_close(&lease);
     if !frontend_world_clear(world) || compiler_world_grammar(world).workers.count != 0 { return false; }
-    if !parser_workers_open(&lease, root, 4) { return false; }
+    if !parser_workers_open(&lease, root, capacity) { return false; }
     parser_workers_close(&lease);
     // A non-world caller keeps a local pool and closes it at the same boundary.
-    if !parser_workers_open(&lease, null, 2) { return false; }
+    if !parser_workers_open(&lease, null, capacity) { return false; }
     if lease.cache != null { return false; }
     parser_workers_close(&lease);
     return lease.local.count == 0;

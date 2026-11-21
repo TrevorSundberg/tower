@@ -1,4 +1,5 @@
 import tower;
+export fn work_thread_retention(): bool { return true; }
 
 // Explicit Linux glibc x86_64/AArch64 ABI: pthread_t is one native word;
 // sem_t is 32 bytes, aligned to eight. No host layout enters Tower constants.

@@ -5,6 +5,9 @@ import tower;
 // coordinator owns busy/count; workers only access a slot between handoffs.
 extern fn work_thread_available(): bool;
 extern fn work_thread_capacity(): usize;
+// True only when keeping idle threads cannot exhaust a fixed host worker set
+// needed by another world or phase. This controls lifetime, not job semantics.
+extern fn work_thread_retention(): bool;
 extern fn work_thread_open(argument: void*): void*;
 extern fn work_thread_close(thread: void*): void;
 extern fn work_signal_open(): void*;
