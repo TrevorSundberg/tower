@@ -115,11 +115,10 @@ original annotation entities. `inspection_policy.tower` names query limits
 and the `LanguagePresentation` priority enum. The browser still only renders the
 returned data and uses its cached position index for mouse movement.
 
-This is an incremental library boundary, not a claim that the whole compiler is
-already pure Tower or independently concurrent. Legacy host adapters and backend
-publication still need migration. Explicit compiler worlds, module environments
-and editor jobs now have independent ownership. No new AST, symbol table, instruction
-ABI, or host-dependent type resolver is introduced by these IDE services.
+These Tower services have explicit compiler worlds, module environments and editor
+job ownership. Remaining default-world compatibility entry points and structural
+semantic preparation still require ordered ownership. They use the existing AST,
+symbol lookup and Foundation graph rather than defining another semantic model.
 
 
 ## Concurrent compilation units
@@ -165,11 +164,23 @@ No failed or cancelled batch exposes programs. Keep the batch alive while using
 its programs, entities or text. `frontend_units_cancel` drains admitted work;
 `frontend_units_close` cancels if needed, joins, and releases all owned worlds.
 
-This service currently finishes at checked Foundation programs. Native CLI
-project-recipe wiring and parallel LLVM/LLD execution remain separate work;
-backend target initialization and linker globals must retain explicit ownership.
-The outer executor does not remove remaining structural coordinator phases inside
-one unit.
+Native `backend/units.tower` extends a successful frontend batch with backend
+components and queries on those same unit entities. Call
+`backend_units_create(frontend, count, budget, triple, library, optimize)` and step
+with `backend_units_step(batch, wait)`. Each job owns its LLVM context/module/target
+machine and borrows pinned Foundation input. Slots refill as jobs complete;
+`backend_units_result(batch, ordinal)` exposes borrowed backend results only after
+whole-batch success. Check `backend_units_failed`, `backend_units_error` and
+`backend_units_cancelled`; cancellation drains admitted work before releasing views.
+Close the backend batch before its frontend owner. A second backend batch cannot
+acquire that frontend while the first still holds its lease. Failed target queries
+settle without discarding completed frontend queries; explicit cancellation makes
+the graph terminal. See [backend API](../scaffolding/backend/README.md).
+
+Target registration uses native platform once primitives. Browser backends use
+isolated reactors. Native CLI project-recipe wiring remains separate work, and
+linking retains exclusive ownership. The outer executor does not remove remaining
+structural coordinator phases inside one unit.
 
 Compiler-owned parser/diagnostic buffers use `compiler_buffer_allocate/free` and
 the ordinary compiler allocator. Their private header records allocator and

@@ -35804,3 +35804,24 @@ upstream validation evidence instead of rebuilding the same source again. These
 new scheduling sources remain on main; this documentation-only deployment keeps
 the independently measured and hosted-verified b24847b browser runtime. Preserve
 888cfef's direct-bootstrap provenance metadata and all runtime asset hashes.
+Rebased the milestone onto cfea9b5, including the new Tower bootstrap installer
+libraries, without conflicts or compiler-source differences; pushed as 8831909.
+The publication lane uses one heavy build at a time. Its public-bootstrap clean
+native successor, portable/shared builds and all three shared-memory checks pass
+(zero skips, 44.36 seconds). The LLVM/cross build and two browser generations also
+pass with identical bytes: tower 1,143,386; LLVM 52,487,955; cross 64,045,336.
+Logs are ecs-backend-release-*. The isolated declaration-frontier draft compiles
+successfully without changing the publication snapshot; it remains subsequent
+work. Compiler-services documentation now describes the native backend lease and
+correctly distinguishes it from pending CLI project wiring and exclusive linking.
+
+Next structural step: local declarations need an explicit retained continuation
+between name binding, type/initializer queries and frame-slot publication. Bind
+once and preserve lexical visibility; do not pre-analyze an initializer before its
+own declaration has entered scope, or rerun it after resumption. Shared generic
+signature failures also need per-query diagnostics before body continuations can
+use the declaration executor: its current global first-error path cannot preserve
+the existing earliest-body diagnostic contract across independent suspended bodies.
+Reuse the shared query/components and ordinary interpreter; do not paper over this
+with recursive worker waits or replaying statements. This is a design constraint
+for the next implementation, not completed structural threading.
