@@ -1,0 +1,73 @@
+import tower;
+import utility_checks;
+import .library.json_reader;
+import .library.bytes;
+import .library.bytes_types;
+import .tools.tool_streams_posix;
+import .tools.tool_files_posix;
+
+fn json_fixture(text: u8*, wanted: JsonError): void {
+    var document: JsonDocument = default; defer json_dispose(&document);
+    var limits: JsonLimits = { nodes: 4096, depth: 128, string_bytes: 1048576 };
+    var result = json_parse(text, strlen(text), limits, &document);
+    if result.error != wanted { puts(text); print(convert(i32, result.error)); }
+    utility_check(result.error == wanted, "JSON grammar/profile fixture");
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    var arguments: i32 = 2; var usage: i32 = 2;
+    if argc != arguments { puts("Supply the current bootstrap manifest"); return usage; }
+    json_fixture("null", JsonError.Ok); json_fixture("true", JsonError.Ok); json_fixture("false", JsonError.Ok);
+    json_fixture("[0,-0,1,-1,12345678901234567890,1.2,1e10,-1.23E-20,0e+1]", JsonError.Ok);
+    json_fixture("{\"a\":[],\"b\":{},\"c\":[true,false,null,\"text\"]}", JsonError.Ok);
+    json_fixture("\"\\\"\\\\\\/\\b\\f\\n\\r\\t\\u0000\\u03C0\\uD834\\uDD1E\"", JsonError.Ok);
+    json_fixture("", JsonError.Syntax); json_fixture("[", JsonError.Syntax); json_fixture("{", JsonError.Syntax);
+    json_fixture("[1,]", JsonError.Syntax); json_fixture("{\"a\":0,}", JsonError.Syntax);
+    json_fixture("{\"a\" 0}", JsonError.Syntax); json_fixture("{a:0}", JsonError.Syntax);
+    json_fixture("[1 2]", JsonError.Syntax); json_fixture("true false", JsonError.Syntax);
+    json_fixture("True", JsonError.Syntax); json_fixture("NaN", JsonError.Syntax); json_fixture("Infinity", JsonError.Syntax);
+    json_fixture("+1", JsonError.Syntax); json_fixture("01", JsonError.Syntax); json_fixture("-01", JsonError.Syntax);
+    json_fixture(".1", JsonError.Syntax); json_fixture("1.", JsonError.Syntax); json_fixture("1e", JsonError.Syntax);
+    json_fixture("1e+", JsonError.Syntax); json_fixture("--1", JsonError.Syntax); json_fixture("-", JsonError.Syntax);
+    json_fixture("\"unterminated", JsonError.Syntax); json_fixture("\"line\nbreak\"", JsonError.Syntax);
+    json_fixture("\"\\q\"", JsonError.Syntax); json_fixture("\"\\u00x0\"", JsonError.Syntax);
+    json_fixture("\"\\uDD1E\"", JsonError.Unicode); json_fixture("\"\\uD834a\"", JsonError.Unicode);
+    json_fixture("\"\\uD834\\u0000\"", JsonError.Unicode);
+    json_fixture("{\"a\":0,\"a\":1}", JsonError.DuplicateKey);
+    json_fixture("{\"a\":0,\"\\u0061\":1}", JsonError.DuplicateKey);
+    json_fixture("{\"a\":{\"a\":1},\"b\":{\"a\":2}}", JsonError.Ok);
+    var text = "{\"max\":18446744073709551615,\"overflow\":18446744073709551616,\"fraction\":1.0,\"negative\":-1,\"unicode\":\"\\u03C0\\uD834\\uDD1E\\u0000\"}";
+    var limits: JsonLimits = { nodes: 4096, depth: 128, string_bytes: 1048576 };
+    var document: JsonDocument = default; defer json_dispose(&document);
+    utility_check(json_parse(text, strlen(text), limits, &document).error == JsonError.Ok, "typed number fixture");
+    var value: u64 = 7;
+    utility_check(json_u64(&document, json_find(&document, 0, "max", 3), &value) && value == ~convert(u64, 0), "exact u64 maximum");
+    utility_check(!json_u64(&document, json_find(&document, 0, "overflow", 8), &value)
+        && !json_u64(&document, json_find(&document, 0, "fraction", 8), &value)
+        && !json_u64(&document, json_find(&document, 0, "negative", 8), &value) && value == ~convert(u64, 0), "explicit conversion rejection");
+    var unicode = &document.nodes.data[json_find(&document, 0, "unicode", 7)];
+    var wanted: u8[7]; wanted[0] = 207; wanted[1] = 128; wanted[2] = 240; wanted[3] = 157;
+    wanted[4] = 132; wanted[5] = 158; wanted[6] = 0;
+    utility_check(unicode.text_length == 7 && utility_equal(document.strings.data + unicode.text, &wanted[0], 7), "surrogates and embedded NUL decode exactly");
+    var saved = document.nodes.data; var count = document.nodes.length;
+    utility_check(json_parse("[0,]", 4, limits, &document).error == JsonError.Syntax
+        && document.nodes.data == saved && document.nodes.length == count, "failed parse preserves owned document");
+    var bounded = limits; bounded.nodes = 1;
+    utility_check(json_parse("[0]", 3, bounded, &document).error == JsonError.Limit, "node count bound");
+    bounded = limits; bounded.depth = 0;
+    utility_check(json_parse("[0]", 3, bounded, &document).error == JsonError.Limit, "nesting bound");
+    bounded = limits; bounded.string_bytes = 3;
+    utility_check(json_parse("\"abc\"", 5, bounded, &document).error == JsonError.Limit, "decoded storage includes terminator");
+    bounded.string_bytes++;
+    utility_check(json_parse("\"abc\"", 5, bounded, &document).error == JsonError.Ok, "exact decoded storage bound");
+    var invalid_utf8: u8[4]; invalid_utf8[0] = 34; invalid_utf8[1] = 192; invalid_utf8[2] = 128; invalid_utf8[3] = 34;
+    utility_check(json_parse(&invalid_utf8[0], 4, limits, &document).error == JsonError.Utf8, "overlong UTF-8 rejected");
+    var manifest: ByteBuffer = default; defer bytes_dispose(&manifest);
+    utility_check(tool_read_file(argv[1], limits.string_bytes, &manifest)
+        && json_parse(manifest.data, manifest.length, limits, &document).error == JsonError.Ok, "real bootstrap manifest");
+    var schema: u64 = 0;
+    utility_check(json_u64(&document, json_find(&document, 0, "schema", 6), &schema) && schema == 1
+        && json_find(&document, 0, "files", 5) != JsonNoNode, "manifest schema and members");
+    puts("Tower JSON reader checks passed");
+    return 0;
+}

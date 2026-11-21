@@ -35442,3 +35442,100 @@ semantic ready-queue refill and synchronized backend target registration.
 Integrate it and repeat the clean successor/affected release checks before
 publishing. The timing table above explicitly identifies its measured checkpoint;
 it does not claim those newer sources have already been measured.
+
+## 2026-11-21: Tower bootstrap installer implementation and reader validation
+
+The next Python-first milestone implements `install_bootstrap.tower` and shared
+JSON/DEFLATE/gzip/ustar readers. This implementation checkpoint deliberately
+precedes publishing its executable and switching the live wrapper: a fresh
+checkout needs a Tower-built installer before it can unpack the compiler used
+to build tools. The checked-in compiler archive remains the public 2292bd8 pin.
+
+The new raw DEFLATE reader handles stored, fixed and dynamic Huffman blocks,
+overlapping matches, the 32 KiB distance window and cross-block history. It
+checks input extents, tree oversubscription/incompleteness, repeat counts, EOB,
+reserved codes, backward distances and an explicit output bound. Gzip checks
+optional headers/header CRC, trailer CRC/size and concatenated members, rejecting
+trailing garbage. Output and consumed extent publish only after success. These
+are buffered readers, not a streaming codec or a new zlib dependency. The
+implementation follows format facts in [RFC 1951](https://www.rfc-editor.org/rfc/rfc1951)
+and [RFC 1952](https://www.rfc-editor.org/rfc/rfc1952), without importing a native
+codec implementation.
+
+The JSON reader follows [RFC 8259](https://www.rfc-editor.org/rfc/rfc8259) with an
+explicit strict profile: UTF-8 scalar strings, paired surrogate escapes and
+unique decoded object keys. Nodes retain exact numeric source spans; unsigned
+integer conversion is explicit and checked, never rounded through floating
+point. Nodes/string storage/nesting have caller limits. Documents borrow their
+immutable source and own decoded strings/nodes; parse failure leaves the prior
+document intact. The regular-file ustar reader checks header checksum, member
+bounds, portable UTF-8 paths, duplicates/file-parent collisions and zero end
+blocks. Links, PAX/GNU extensions and base-256 numbers are explicitly unsupported.
+The current pinned archive is within this supported format.
+
+The installer reads schema 1 and the existing Linux x64 host profile, verifies
+the compressed archive SHA-256, then matches every decoded member's name, size
+and SHA-256 to the manifest before writing. It creates a private staging
+directory, sets 0755 for towerc/0644 for resources, verifies the written files
+and publishes with no-replace rename. A concurrent completed install is reused
+only after verification. Cache verification opens each path component relative
+to retained directory descriptors with O_NOFOLLOW, rejecting parent symlinks
+as well as file symlinks. O_NONBLOCK prevents a substituted FIFO from hanging
+before its non-regular type is rejected. The chosen cache root itself may be
+resolved by the caller; member traversal never escapes it through symlinks.
+Stage cleanup removes only validated member paths inside its own private
+mkdtemp directory. No global recursive cleanup is used.
+
+Limits are explicit: 1 GiB expanded data, compressed input allowance covering
+the Tower writer's maximum stored-block overhead, 16 MiB manifest/string data,
+65536 JSON nodes, depth 128 and 8192 members. The installer verifies expected
+cache members; it does not claim an audit of unrelated extra cache files or
+protection against concurrent mutation of the repository's source inputs.
+The executable is Linux x64 and uses libc platform calls only.
+
+Focused validation in the existing linux/amd64 `tower_build` Docker image and
+private `tower_agent1_tooling` volume:
+
+- `archive_decode_checks` compares 144 streams (four patterns, twelve boundary
+  sizes, Tower output plus system gzip levels 1/9) against exact original bytes.
+  It independently decompresses the actual checked-in pin with `/usr/bin/gzip`
+  and compares the entire tar. All pass, including aliased inputs, output
+  limits, every truncated short/dynamic prefix, checksum/size/header corruption,
+  concatenation, reserved blocks, invalid backward distance, a one-symbol EOB
+  with no distance alphabet, repeat-before-first and oversubscribed trees.
+- `json_reader_checks` passes syntax/number/Unicode fixtures, escaped duplicate
+  keys, u64 maximum/overflow, raw invalid UTF-8, document preservation and all
+  resource limits, then parses the current real manifest. The initial test
+  parameter name `expected` collided with Bedrock's token-mode keyword; renamed
+  the test binding without changing compiler grammar or semantics.
+- `tar_read_checks` passes regular-file reads, member limits, checksum/path/
+  duplicate rejection, nonzero trailing data and explicit unsupported link and
+  base-256 cases. Actual pin installation validates the real member set too.
+- `bootstrap_install_checks` copies inputs into an isolated directory and
+  passes fresh/repeated install, cache byte corruption, removed execute bit,
+  equal-hash file and parent symlinks, FIFO, escaping archive symlink, damaged
+  archive, invalid manifest and destination-symlink rejection. Rejected calls
+  preserve the output path and a restored valid cache remains usable.
+- Two concurrent installer invocations against a fresh shared cache both return
+  the same verified path. This exercises concurrent use, without asserting both
+  processes necessarily reached the publication rename simultaneously. The
+  unchanged Python installer independently accepts that cache and its hashes.
+
+Build checks use the public 2292bd8 compiler with `--library --target
+x86_64-unknown-linux-gnu --bedrock scaffolding/bedrock.tower --foundation
+scaffolding/foundation.tower`, then clang-19 and `guest-host-library.o` as before.
+`TOWER_TOOLS_BUILD=/cache/installer_tools_public bash
+playground/scripts/build-bootstrap.sh --tools` completed all five clean steps
+and builds four tools. The resulting installer is 54304 bytes, SHA-256
+`ec29285c727ef3fc770889efa57a3f599903d6efe7aa72960a9ad61c87a9a62b`;
+`ldd` reports only libc/loader/vDSO. It installs the unchanged public pin into
+`/cache/Tower installed bootstrap` and handles reuse. Its installed compiler
+runs struct_values in the fast interpreter with zero failures. An attempted
+known_bindings run correctly exposed that the old public pin does not implement
+the newest executed-capture fixture; that behavior belongs to the newly built
+successor, not to installation. No pin downgrade or semantic workaround was made.
+
+Next in this same milestone: publish the complete installer executable with
+source/build/hash provenance, switch the minimal bootstrap shell boundary to it,
+remove install.py, and validate a fresh documented default build with Python
+unavailable to that path. Wider Python entry points remain the next priority.

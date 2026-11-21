@@ -1,0 +1,106 @@
+import tower;
+import bytes;
+import bytes_types;
+import vector;
+import tar_archive;
+import zip_archive;
+import archive_decode;
+import .compiler.utf8;
+
+// Bounded regular-file ustar view. Member names are owned; member data borrows
+// immutable archive bytes until disposal. No extraction or filesystem access.
+struct TarMember { name: ByteBuffer; data: u8*; length: usize; mode: u32; }
+struct TarContents { members: vector(TarMember); }
+
+fn tar_read_dispose(contents: TarContents*): void {
+    foreach (var &member in &contents.members) { bytes_dispose(&member.name); }
+    vector_dispose(&contents.members);
+}
+fn tar_zero(data: u8*, count: usize): bool {
+    for (var at: usize = 0; at < count; at++) { if data[at] != 0 { return false; } }
+    return true;
+}
+fn tar_same(data: u8*, text: u8*, count: usize): bool {
+    for (var at: usize = 0; at < count; at++) { if data[at] != text[at] { return false; } }
+    return true;
+}
+fn tar_read_octal(data: u8*, width: usize, value: u64*): bool {
+    var zero: u8 = 48; var seven: u8 = 55; var space: u8 = 32; var radix: u64 = 8;
+    var at: usize = 0; var parsed: u64 = 0; var maximum = ~convert(u64, 0);
+    while at < width && data[at] == space { at++; }
+    while at < width && data[at] >= zero && data[at] <= seven {
+        var digit = convert(u64, data[at] - zero);
+        if parsed > (maximum - digit) / radix { return false; }
+        parsed = parsed * radix + digit; at++;
+    }
+    while at < width { if data[at] != 0 && data[at] != space { return false; } at++; }
+    *value = parsed; return true;
+}
+fn tar_text_width(data: u8*, width: usize): usize {
+    var at: usize = 0; while at < width && data[at] != 0 { at++; }
+    return at;
+}
+
+// Strict subset used by compiler distribution: ustar regular files, portable
+// UTF-8 paths and two zero end blocks. Rejects links, PAX/GNU extensions,
+// base-256 numbers, duplicate/file-parent names and nonzero trailing data.
+// Input must be disjoint from contents' owned name storage. Failure preserves it.
+fn tar_read(data: u8*, length: usize, member_limit: usize, contents: TarContents*): ArchiveDecodeResult {
+    if data == null || length < TarBlockBytes * TarEndBlocks || length % TarBlockBytes != 0 { return ArchiveDecodeResult.Truncated; }
+    var next: TarContents = default; defer tar_read_dispose(&next);
+    var at: usize = 0; var magic_bytes: usize = 6; var version_bytes: usize = 2;
+    var regular: u8 = 48; var space: u8 = 32; var slash: u8 = 47; var numeric_extension: u8 = 128;
+    while length - at >= TarBlockBytes {
+        var header = data + at;
+        if tar_zero(header, TarBlockBytes) {
+            if length - at < TarBlockBytes * TarEndBlocks { return ArchiveDecodeResult.Truncated; }
+            if !tar_zero(header, length - at) { return ArchiveDecodeResult.InvalidHeader; }
+            tar_read_dispose(contents); *contents = next; next = default;
+            return ArchiveDecodeResult.Ok;
+        }
+        if !tar_same(header + convert(usize, TarField.Magic), "ustar", magic_bytes)
+            || !tar_same(header + convert(usize, TarField.Version), "00", version_bytes) { return ArchiveDecodeResult.Unsupported; }
+        var kind = header[convert(usize, TarField.Type)];
+        if kind != 0 && kind != regular { return ArchiveDecodeResult.Unsupported; }
+        var checksum_start = convert(usize, TarField.Checksum); var checksum: u64 = 0; var recorded: u64 = 0;
+        if !tar_read_octal(header + checksum_start, TarShortFieldBytes, &recorded) { return ArchiveDecodeResult.InvalidHeader; }
+        for (var byte: usize = 0; byte < TarBlockBytes; byte++) {
+            checksum += convert(u64, byte >= checksum_start && byte < checksum_start + TarShortFieldBytes ? space : header[byte]);
+        }
+        if checksum != recorded { return ArchiveDecodeResult.Checksum; }
+        var mode: u64 = 0; var size: u64 = 0;
+        if (header[convert(usize, TarField.Size)] & numeric_extension) != 0 { return ArchiveDecodeResult.Unsupported; }
+        if !tar_read_octal(header + convert(usize, TarField.Mode), TarShortFieldBytes, &mode)
+            || !tar_read_octal(header + convert(usize, TarField.Size), TarLongFieldBytes, &size)
+            || mode > convert(u64, TarModeLimit) { return ArchiveDecodeResult.InvalidHeader; }
+        at += TarBlockBytes;
+        if size > convert(u64, length - at) { return ArchiveDecodeResult.Truncated; }
+        var count = convert(usize, size);
+        var padding = (TarBlockBytes - count % TarBlockBytes) % TarBlockBytes;
+        if padding > length - at - count { return ArchiveDecodeResult.Truncated; }
+        if next.members.length == member_limit { return ArchiveDecodeResult.Limit; }
+        var member: TarMember = { data: data + at, length: count, mode: convert(u32, mode), ..default };
+        defer bytes_dispose(&member.name);
+        var name = header + convert(usize, TarField.Name); var prefix = header + convert(usize, TarField.Prefix);
+        var name_length = tar_text_width(name, TarNameBytes); var prefix_length = tar_text_width(prefix, TarPrefixBytes);
+        if name_length == 0 || !tar_zero(name + name_length, TarNameBytes - name_length)
+            || !tar_zero(prefix + prefix_length, TarPrefixBytes - prefix_length) { return ArchiveDecodeResult.InvalidName; }
+        if prefix_length != 0 && (!bytes_append(&member.name, prefix, prefix_length) || !bytes_push(&member.name, slash)) {
+            return ArchiveDecodeResult.AllocationFailure;
+        }
+        if !bytes_append(&member.name, name, name_length) { return ArchiveDecodeResult.AllocationFailure; }
+        if !zip_name_valid(member.name.data, member.name.length) || tower_utf8_validate(member.name.data, member.name.length, 1) == 0 {
+            return ArchiveDecodeResult.InvalidName;
+        }
+        var candidate: TarEntry = { name: member.name.data, name_length: member.name.length, ..default };
+        foreach (var &previous in &next.members) {
+            var existing: TarEntry = { name: previous.name.data, name_length: previous.name.length, ..default };
+            if tar_name_conflict(&candidate, &existing) { return ArchiveDecodeResult.DuplicateName; }
+        }
+        if !bytes_push(&member.name, 0) || !vector_reserve(&next.members, next.members.length + 1) { return ArchiveDecodeResult.AllocationFailure; }
+        member.name.length--;
+        next.members.data[next.members.length] = member; next.members.length++; member.name = default;
+        at += count + padding;
+    }
+    return ArchiveDecodeResult.Truncated;
+}

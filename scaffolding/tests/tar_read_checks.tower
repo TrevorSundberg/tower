@@ -1,0 +1,51 @@
+import tower;
+import utility_checks;
+import .library.bytes;
+import .library.bytes_types;
+import .library.tar_archive;
+import .library.tar_read;
+import .library.archive_decode;
+
+fn tar_fixture_checksum(data: u8*): void {
+    var start = convert(usize, TarField.Checksum); var space: u8 = 32;
+    fill(data + start, space, TarShortFieldBytes); var sum: u64 = 0;
+    for (var at: usize = 0; at < TarBlockBytes; at++) { sum += convert(u64, data[at]); }
+    tar_octal(data + start, TarShortFieldBytes - 1, sum); data[start + TarShortFieldBytes - 1] = space;
+}
+export fn main(): i32 {
+    var entry: TarEntry = { name: "dir/file", name_length: 8, data: "abc", length: 3, mode: 420 };
+    var archive: ByteBuffer = default; var contents: TarContents = default;
+    defer bytes_dispose(&archive); defer tar_read_dispose(&contents);
+    var limit: usize = 1048576; var member_limit: usize = 16;
+    utility_check(tar_write(&entry, 1, limit, &archive) == TarResult.Ok
+        && tar_read(archive.data, archive.length, member_limit, &contents) == ArchiveDecodeResult.Ok
+        && contents.members.length == 1 && contents.members.data[0].length == entry.length
+        && utility_equal(contents.members.data[0].data, entry.data, entry.length), "ustar regular file read");
+    var saved = contents.members.data;
+    utility_check(tar_read(archive.data, archive.length, 0, &contents) == ArchiveDecodeResult.Limit
+        && contents.members.data == saved, "member bound preserves contents");
+    utility_check(tar_read(archive.data, TarBlockBytes, member_limit, &contents) == ArchiveDecodeResult.Truncated, "truncated tar payload");
+    archive.data[0] ^= 1;
+    utility_check(tar_read(archive.data, archive.length, member_limit, &contents) == ArchiveDecodeResult.Checksum, "header checksum rejection");
+    archive.data[0] ^= 1;
+    var kind = convert(usize, TarField.Type); var regular = archive.data[kind]; var symlink: u8 = 50;
+    archive.data[kind] = symlink; tar_fixture_checksum(archive.data);
+    utility_check(tar_read(archive.data, archive.length, member_limit, &contents) == ArchiveDecodeResult.Unsupported, "link member rejected");
+    archive.data[kind] = regular;
+    copy(archive.data, "../file", 8); tar_fixture_checksum(archive.data);
+    utility_check(tar_read(archive.data, archive.length, member_limit, &contents) == ArchiveDecodeResult.InvalidName, "traversal member rejected");
+    copy(archive.data, entry.name, entry.name_length); tar_fixture_checksum(archive.data);
+    copy(archive.data + TarBlockBytes * 2, archive.data, TarBlockBytes * 2);
+    utility_check(tar_read(archive.data, archive.length, member_limit, &contents) == ArchiveDecodeResult.DuplicateName, "duplicate member rejected");
+    fill(archive.data + TarBlockBytes * 2, 0, TarBlockBytes * 2);
+    archive.data[archive.length - 1] = 1;
+    utility_check(tar_read(archive.data, archive.length, member_limit, &contents) == ArchiveDecodeResult.InvalidHeader, "nonzero trailing data rejected");
+    archive.data[archive.length - 1] = 0;
+    var numeric_extension: u8 = 128; var size = convert(usize, TarField.Size); var original = archive.data[size];
+    archive.data[size] = numeric_extension; tar_fixture_checksum(archive.data);
+    utility_check(tar_read(archive.data, archive.length, member_limit, &contents) == ArchiveDecodeResult.Unsupported, "base-256 extension explicit rejection");
+    archive.data[size] = original; tar_fixture_checksum(archive.data);
+    utility_check(tar_read(archive.data, archive.length, member_limit, &contents) == ArchiveDecodeResult.Ok, "restored archive accepted");
+    puts("Tower tar reader checks passed");
+    return 0;
+}
