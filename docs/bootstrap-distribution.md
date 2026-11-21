@@ -1,7 +1,7 @@
 # Compiler hosts and bootstrap distribution
 
 All project-owned compiler/runtime implementation and functional fixtures are
-Tower. The last 469 C/C++ lines were retired in f745254; there is no owned native
+Tower. The last 469 C/C++ lines were retired in c53a077; there is no owned native
 seed or callback adapter left. A hash-pinned, Tower-built Linux x64 development
 compiler is checked in under `bootstrap/` and selected automatically by the
 Docker build. LLVM/lld and platform libraries remain third-party dependencies.

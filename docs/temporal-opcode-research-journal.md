@@ -33780,3 +33780,19 @@ this checkpoint. The deployment reuses the previously verified gh-pages asset se
 retains buildSourceCommit 8e09a3c552ffda6ffa19da56ccbee85f6b504115, and updates only
 publication metadata. Final synchronization, Pages status and hosted metadata are
 verified during publication; no repeated compiler/browser matrix is warranted.
+Final local verification passed all 77 asset hashes and full desktop/mobile
+flows, including native downloads, editable compiler imports and completion
+(`retirement-sealed-local-corrected.log`, saved local report). A fresh Docker
+container also completed the entire default-bootstrap native successor build
+from fd536ba, with no private override, then ran its version, struct-value LLVM
+executable and fast known-binding checks successfully (53 build steps;
+`retirement-docker-sealed-successor.log`). This supplements the earlier installed-pin
+Docker smoke check and the separate WSL identical-successor observation.
+
+Publication encountered a transient GitHub DNS failure and then a concurrent
+documentation-only Pages checkpoint at 3682ded. The rejected push did not replace
+that checkpoint. Rebase preserves its localNotesCheckpoint and all prior audit
+metadata, while the new runtime retains buildSourceCommit 92da0a8. Main advanced
+with subsequent inference improvements and a newer Tower-only pin; preserve those
+changes and validate their default successor rather than overwriting the newer pin.
+They are not silently claimed as part of the already-tested browser runtime.
