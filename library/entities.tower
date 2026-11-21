@@ -74,7 +74,7 @@ extern fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, d
 export fn entity_store_create(): EntityStore* {
     var store = alloc(EntityStore, 1);
     if store != null {
-        fill(store, 0, sizeof(EntityStore));
+        *store = default;
     }
     return store;
 }
@@ -113,7 +113,7 @@ export fn entity_create(store: EntityStore*): Entity* {
     if entity == null {
         return null;
     }
-    fill(entity, 0, sizeof(Entity));
+    *entity = default;
     entity.store = store;
     entity.id = store.next_id;
     entity.references = 1;

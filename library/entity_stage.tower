@@ -23,7 +23,7 @@ struct EntityStageCount {
 }
 
 fn entity_stage_init(stage: EntityStage*, anchor: Entity*): bool {
-    fill(stage, 0, sizeof(EntityStage));
+    *stage = default;
     if anchor == null || anchor.stage != null { return false; }
     stage.anchor = anchor;
     entity_retain(anchor);
@@ -63,7 +63,7 @@ export fn entity_stage_create(stage: EntityStage*, parent: Entity*): Entity* {
     if !vector_reserve(Entity*, &stage.nodes, stage.nodes.length + 1) { return null; }
     var node = alloc(Entity, 1);
     if node == null { return null; }
-    fill(node, 0, sizeof(Entity));
+    *node = default;
     node.store = parent.store;
     node.references = 1;
     node.parent = parent; // Borrowed for provenance, not yet parent containment.

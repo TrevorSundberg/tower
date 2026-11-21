@@ -89,6 +89,9 @@ parse CoreType |= TowerDecltype;
 parse TowerExpression |= TowerDecltype;
 parse TowerComptime = 'comptime' '(' $value:TowerExpression ')';
 parse TowerExpression |= TowerComptime;
+// Contextual zero value. Aggregate defaults initialize their destination in place.
+parse TowerDefault = 'default' | 'default' '(' $type:CoreType ')';
+parse TowerExpression |= TowerDefault;
 parse TowerExpressionStatement = $value:TowerComma ';';
 parse TowerDefer = 'defer' $body:TowerExpressionStatement | 'defer' $body:CoreBlock;
 // A scoped initializer, a bool test before each iteration, and an update after

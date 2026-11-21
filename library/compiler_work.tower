@@ -35,7 +35,7 @@ export fn compiler_work_create(units: usize, workers: usize, revision: u64, prof
     if work == null {
         return null;
     }
-    fill(work, 0, sizeof(CompilerWork));
+    *work = default;
     work_init(&work.graph, revision, profile);
     work.units = units;
     work.workers = workers;
