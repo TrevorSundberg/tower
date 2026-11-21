@@ -41,7 +41,7 @@ fn backend_world_close(fixture: BackendWorldFixture*): bool {
 // bytes it uses for ordinary compiler instances. No current-world switch occurs.
 export fn backend_source_world_tests(bedrock: u8*, foundation: u8*): i32 {
     var fixtures: BackendWorldFixture[2] = default;
-    defer { foreach(var &fixture in &fixtures) { backend_world_close(fixture); } }
+    defer { for(var index: usize = 0; index < 2; index++) { backend_world_close(&fixtures[index]); } }
     var diagnostic: SyntaxVersionDiagnostic = default;
     defer syntax_version_diagnostic_dispose(&diagnostic);
     for(var index: usize = 0; index < 2; index++) {
@@ -57,7 +57,8 @@ export fn backend_source_world_tests(bedrock: u8*, foundation: u8*): i32 {
         }
     }
     var source: u8* = "fn answer():i32{return 42;}print(answer());";
-    foreach(var &fixture in &fixtures) {
+    for(var index: usize = 0; index < 2; index++) {
+        var fixture = &fixtures[index];
         var result = backend_source_compile(fixture.source, source, strlen(source), BackendSourceImport, fixture.modules, null);
         if !backend_source_test_has(result, "\"format\":\"foundation\"")
             || !backend_source_test_has(backend_source_foundation(fixture.source), "42") {

@@ -225,6 +225,9 @@ Do NOT modify todo.txt
   on their work components; transfer scratch ownership at joins and never replay
   checked statements or effects after resumption. Known-value evaluation uses
   the ordinary Tower interpreter, never a separate pre-LLVM folding evaluator.
+  Discover staged captures/dependencies through executed control flow; untaken
+  branches must not introduce storage errors or cycles. Validate captured local
+  identity against its owning frame, never just a coincident byte offset.
 - Declare component read/write ranges and exclusive ownership before dispatch.
   A pinned view is not a payload lock. Publish structural changes, type interning,
   shared indexes and reference ownership on the coordinator after joins, using

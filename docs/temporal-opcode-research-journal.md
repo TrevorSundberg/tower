@@ -34908,3 +34908,12 @@ Foundation recompilation, mismatched/missing worlds, retained text and disposal
 of one world while the other stays usable. The browser test is byte transport;
 assertions are Tower. This prepares backend jobs for isolation; it does not yet
 make LLVM's global target registration or LLD publication concurrently safe.
+
+The merged editor fixture passes at workers 1/2/4/8
+(ecs-lazy-capture-editor.log), and both portable and shared-memory frontend builds
+pass. Backend fixture compilation found an invalid test assumption: foreach is
+currently for nominal collection protocols, not raw arrays. Replaced the two raw
+array traversals with counted loops and restarted only the affected backend build.
+This was a fixture syntax failure, not a failed world-ownership assertion.
+Added concise AGENTS guidance preserving executed-control-flow capture discovery
+and exact local identity checks for future staged features.
