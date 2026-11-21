@@ -203,8 +203,6 @@ def package(builds, destination):
                     '// The running compiler builds the next compiler generation from these files.\n'
                     '// Rebuild compiler compiles each import unit and links fresh Wasm reactors.\n'
                     '// New compiler generations are tested before use; Reset compiler recovers the original.\n'
-                    '// Transitional native support still supplies adapters/runtime and upstream LLVM/LLD.\n'
-                    '// Continue adding ports to Compose*.cmake and removing their native target sources.\n'
                     '// The endpoint is all project-owned code in Tower with standalone build recipes.\n\n'+files[entry])
     recipe = {'version':1,'entry':entry,'units':list(units.values()),'reactors':reactors,
               'files':[{'path':entry,'text':files.pop(entry)}]+[{'path':p,'text':t} for p,t in sorted(files.items())]}

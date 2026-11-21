@@ -1,33 +1,29 @@
 # Compiler hosts and bootstrap distribution
 
-The compiler is still a **hybrid development bootstrap**. A hash-pinned Linux x64
-development package is checked in under `bootstrap/` and selected automatically by
-the standard Docker build; no portable compiler release is checked in. Its semantic compiler and LLVM backend algorithms are
-Tower code, while frontend/session lifecycle, remaining browser transports
-and portable bootstrap distribution still need migration and integration. The tooling
-below keeps those release gates explicit; a module comparison does not establish
-complete compiler self-hosting.
+All project-owned compiler/runtime implementation and functional fixtures are
+Tower. The last 469 C/C++ lines were retired in f745254; there is no owned native
+seed or callback adapter left. A hash-pinned, Tower-built Linux x64 development
+compiler is checked in under `bootstrap/` and selected automatically by the
+Docker build. LLVM/lld and platform libraries remain third-party dependencies.
+
+The current policy is one Linux x64 bootstrap and a documented Docker build,
+usable from Windows/macOS/Linux. Native CLI packages for those hosts remain
+distribution goals; separate bootstrap chains for every OS are not required now.
+The existing build/install/package scripts still need translation to Tower and
+the external dependency closure is not bundled as a standalone portable release.
+See [the development bootstrap](../bootstrap/README.md) for runnable commands.
 
 The retirement inventory and reproducible validation are recorded in the ongoing
 project journal. Counts include blank lines and comments and exclude third-party
 dependencies; they are a source inventory, not a completion percentage.
-Syntax sessions, remaining native transports and portable bootstrap/distribution
-remain meaningful retirement work. The native browser
-entry point has been removed in favor of Tower IDE services.
-Tower now owns generic registry lifetime, module compilation-session leasing and
-CompilerWorld stores with parser/syntax/Foundation/provenance type registries.
-The native parser-nodes.cpp and compiler-syntax.cpp adapters are retired.
-Expansion histories and generic metadata access now execute in Tower, with
-session-independent references and deferred reclamation under pinned views.
-Tower also owns mutable parser streams and recognizer requests: copied input,
-buffered lookahead, completion snapshots, work accounting and teardown. The
-existing native callback invocation and table-specific diagnostics remain bridges.
-Native SyntaxSession/grammar state and the legacy default-world handle remain.
-Portable compiler release gates below are still required. The obsolete native
-seed/stage1 targets and twelve unused implementation fragments have been removed.
-Still-used native differential references remain. Builds use the bundled,
-operator-capable Tower host binary unless explicitly overridden; this is not a
-source-only bootstrap. See [the development bootstrap](../bootstrap/README.md).
+World-owned registries, sessions, syntax baselines, grammar/recognizer state,
+diagnostics, formatting, host transports and node lifecycle now execute in Tower.
+The legacy default-world/allocation adapter is Tower too, but remains confined
+to a single coordinator. Workers use explicit worlds, pinned inputs and owned
+scratch; structural publication occurs after joins. Native differential references
+have been translated or retired, and historical C/C++ research is recoverable in
+Git history. Builds still need the initial bundled executable; this is not a
+source-only bootstrap. Portable release gates below remain explicit future work.
 
 ## Implemented host migration
 
@@ -42,26 +38,22 @@ write/close failure; a partial output is not a successful artifact.
 `driver_execution.tower` now own the complete CLI path: grammar setup, pinned
 input/module lifetimes, compilation, optimization, both interpreters, canonical
 Foundation and bytecode reconstruction, output files, dependency files and linking.
-`scaffolding/driver.cpp` is retired. The production native CLI no longer links
-`core.cpp`, `core-nodes.cpp`, `core-machine.cpp` or `llvm-engine.cpp`; other
-consumers and reference tests still use those adapters.
+`scaffolding/driver.cpp`, `core.cpp`, `core-nodes.cpp`, `core-machine.cpp` and
+`llvm-engine.cpp` are retired from every consumer.
 
-The remaining native syntax baseline is connected by ordinary foreign calls.
-The Tower-written private artifact builder binds its module slot and installs
-the selected C++ string return ABI, including `sret` on declarations and calls.
-Supported profiles are Linux libstdc++ C++11, native Darwin libc++ (including
-its alternate string layout), and release MSVC x64/ARM64. Darwin configuration
-reads the selected compiler's libc++ macro. These profiles must match the native
-syntax library; they are not portable C++ object layouts. Syntax baseline mutation
-still requires serialized use. Each CLI request restores the borrowed module slot
-and releases its own execution/cache/buffer storage on every normal exit.
+`host/syntax_baseline.tower` stores baseline transport on the owning world's
+syntax component. It uses ordinary C-callable Tower APIs and the shared formatter;
+no owned C++ string layouts or sret adapters remain. Each CLI request restores its
+borrowed module slot and releases execution/cache/buffer storage on normal exit.
+`host/legacy.tower` owns the default-world compatibility policy; the Tower runtime
+artifact tool emits its small initialized target storage through LLVM C APIs.
 
 `ide_protocol.tower` exports `tw_abi_version`, `tw_alloc` and `tw_free`,
 validates IDE source, and serializes execution status/error/output/steps.
 The other `host/ide_*.tower` modules own session lifetimes, grammar/tree/type
 serialization, completion integration, execution and downloadable artifacts on
-the existing shared entities and compiler APIs. `ide_syntax_wasi.tower` binds the
-remaining native syntax inspection interfaces without a native IDE wrapper.
+the existing shared entities and compiler APIs. `ide_selftest.tower` calls the
+Tower node/parser/syntax fixtures through the same services.
 Worker cancellation, edit/restart behavior and stale-result handling remain the
 existing worker implementation; compiler services do not depend on this transport.
 
@@ -84,7 +76,7 @@ driver's resource policy. Debug/source metadata elsewhere is a separate concern.
 
 The constant-return `scaffolding/main.cpp` experiment and its old default CMake
 target have been removed. Real Tower compilation/linking/execution tests exercise
-LLVM. Active bootstrap references remain until their Tower successors pass.
+LLVM. No project-owned native bootstrap reference remains.
 
 ## Validation and measurement
 
@@ -104,7 +96,7 @@ startup/compilation/execution timings, exit codes and output, and compares three
 object emissions. Reports go to `build/distribution/relocated-{development,restricted}/`.
 
 The development run permits installed tools. The restricted run searches only
-the package root and its `tools` directory; the current hybrid must fail at
+the package root and its `tools` directory; the development package must fail at
 linking with `Cannot find tool: clang`. The transitional shell check asserts
 that earlier checks succeeded and this is the specific failure. The restricted
 verification itself is **not passed**. Retire this expected failure when the
@@ -130,10 +122,11 @@ symbol only for the Windows host module; it does not establish a linked runtime.
 ## Three-generation whole-compiler recipe
 
 `self-build-compiler.py` prepares a candidate from an explicit, reviewed recipe.
-There is deliberately no usable production recipe yet: the missing Tower
-frontend/backend/runtime/host entry points must be supplied first. The script's
-validation/rejection paths are exercised; complete successor execution remains
-an integration gate.
+This older strict standalone-package recipe is not the current Docker build.
+The Tower frontend/backend/runtime/host implementations now exist and the actual
+CMake/browser successor paths are validated. A complete declared portable
+dependency closure and editable runtime-artifact build stage still need integration
+before this separate standalone release gate can pass.
 
 ```sh
 python3 playground/scripts/self-build-compiler.py /inputs/recipe.json \
@@ -186,12 +179,12 @@ host fixtures alone cannot establish compiler correctness.
 
 ## Remaining ownership and release gates
 
-| Owner | Required integration before retirement |
+| Area | Remaining distribution work |
 | --- | --- |
-| Frontend | Tower parser/session/bootstrap lifecycle and shared-node access replacing native `SyntaxSession` and seed registration. |
-| Backend | Tower LLVM lowering/emission/linker API, explicit target contracts and third-party closure. |
-| Runtime | Tower allocator/lifecycle/foreign services, raw memory semantics, platform startup and target runtimes replacing `runtime.c`. |
-| Host/distribution | Complete CLI/browser orchestration over those APIs, remaining serialization, Tower test runner, composition recipes, repeated full self-build, platform execution and packaged artifacts. |
+| Compiler | Preserve shared-node contracts and deterministic serial/worker behavior as the Tower language grows. Owned C/C++ retirement is complete. |
+| Backend | Bundle and validate the upstream LLVM/linker closure for each native host release. |
+| Runtime | Make the existing Tower-generated ABI artifacts rebuildable in the browser package recipe. |
+| Host/distribution | Translate existing external build/package tooling to Tower; produce and execute native host packages when native distribution is prioritized. Keep the Linux/Docker pin usable meanwhile. |
 
 The shared-runtime cutover at `dfdf95b` supplies `TowerSharedRuntime.cmake`,
 explicit semantic-component queries, `host/guest_memory.tower` and
@@ -217,8 +210,8 @@ in target LLVM output, verifies the module, and produces ordinary target objects
 This private artifact step does not change canonical Foundation storage or allow
 reserved-symbol definitions in ordinary user programs. Browser compiler packages
 retain these generated ABI objects as prebuilt support while rebuilding their
-Tower host policies. Browser compiler-result transport, complete syntax-session
-ownership and an editable runtime-object build stage still need retirement.
+Tower host policies. Browser compiler-result transport and syntax-session
+ownership are Tower; an editable runtime-object build stage remains work.
 
 Generate the native artifact inventory:
 
@@ -228,11 +221,11 @@ Generate the native artifact inventory:
   --output build/distribution/native-inventory.json
 ```
 
-This inventories tracked project native artifacts, including `docs/research`,
-and optional Ninja inputs including bootstrap dependencies. Third-party sources
-are excluded. Research prototypes need explicit archival or translation; they
-are not replacement compiler code. Native functional tests must move to Tower
-before retirement; references stay until their comparisons can be preserved.
+This inventories tracked project native artifacts and optional Ninja inputs,
+including bootstrap dependencies. Third-party sources are excluded. The current
+tracked owned C/C++ source count is zero; historical research prototypes and
+native reference fixtures have been removed after preserving their results and
+replacement tests. Git history remains their archive.
 
 Candidate execution profiles: Linux x64/ARM64 (`x86_64-unknown-linux-gnu`,
 `aarch64-unknown-linux-gnu`), Windows x64 (`x86_64-pc-windows-msvc`), macOS

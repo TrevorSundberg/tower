@@ -32505,3 +32505,46 @@ committed Linux development bootstrap still needs replacement, native packages
 for other hosts need production/validation, and existing Python/shell packaging
 must move to Tower. Next take those distribution/bootstrap boundaries in that
 order, retaining provenance/hashes and never calling an untested host portable.
+
+Final retirement validation now includes a fresh default-bootstrap native build,
+WASI parser aggregate and execution/Foundation/package contracts, 15/15 native
+parser checks, 12/12 expanded native checks (173.42s), and the standalone backend
+API fixture. Native selection includes real worker overlap, serial instrumentation,
+frontend/body continuation checks, compiler/editor units, driver, storage, formatter,
+LR worker equivalence and both execution paths. Optional backend-test configuration
+exposed two build-graph issues: with no native source, SOURCES can be unset before
+deferred driver attachment; and frontend_main requires lr_work_tests even when the
+separate worker-test option is off. Handle the empty source property and include
+that existing Tower fixture for backend tests explicitly. No algorithm changes.
+
+The first replacement bootstrap candidate built from f745254 produced identical
+successor native binaries, SHA256 115cb40c648c09dfe909c19c1953811f299d9596904ebe1ceda69478f45999f9.
+The real browser package now has 17 editable Tower units; two generations at 2/4
+workers passed edited semantic behavior and identical outputs: Tower b5836eb2b4e3423145e272045ff4cfb71634cceb2c4cb826c44210f04f8c4cb2,
+LLVM a476a185f3ddce663acb8ccedd671909526b7dea63197b8d7cfa14277d557148,
+cross 628fc02f68c09599fefb1c94a0bea383a1eac43fd966bbc6bfa93111e1e72c1f.
+77.81/45.41s under concurrent validation load, not a scaling benchmark.
+Local verification passed all 77 asset hashes and complete desktop/mobile flows.
+The broad browser milestone suite continues; publication remains pending.
+
+User confirmed the single Linux x64 pin/Docker approach for now. Preserve native
+CLI host profiles and future packages, but do not require separate per-OS bootstrap
+chains. Docker Desktop was initially stopped; started it hidden, built the existing
+Dockerfile from scratch (image 06e0a5e312f0b84796b35b90f95e7999126ce507b95db1f78c786cca4cb29d2e),
+and built all 53 native successor steps in a fresh container using the new packaged
+bootstrap. Container CLI graph/fast/native-executable checks all print0. Its Clang
+is Ubuntu19.1.1 (1ubuntu1~24.04.2). The Docker executable hash bab4202d574af3f1638d8eba9255c9f2710373b2e069a1f126ea8388132e818d
+is recorded separately; different build roots/environment are not claimed to yield
+identical native binaries. The WSL same-environment generation equality above is
+the determinism observation. Docker commands/logs are retirement-docker-{image,
+bootstrap,cli}.log in the same evidence directory.
+
+Clean up current guidance that still described deleted native seeds, callbacks,
+C++ sessions/string layouts, and the initial pre-archetype store. AGENTS now records
+the agreed bootstrap policy; playground/distribution docs describe the actual
+shared entities, table indexes, stage ownership and remaining packaging boundaries.
+Delete obsolete native-adapter comments from the existing packager; no new Python
+logic. Update the Tower CLI's obsolete hybrid version label before making the final
+bootstrap pin. Only its description changes; it still explicitly says development,
+external LLVM, and not a portable release. Repackage/validate that exact successor
+and preserve the runtime candidate's original build-source identity.

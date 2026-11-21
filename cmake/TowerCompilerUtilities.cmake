@@ -131,6 +131,7 @@ function(tower_compiler_parser_nodes)
       -DEXPANSION_TESTS=${expansion_tests}
       -DMODULE_TESTS=${TOWER_MODULE_TESTS}
       -DWORK_TESTS=${TOWER_WORK_TESTS}
+      -DBACKEND_TESTS=${TOWER_BACKEND_TESTS}
       -DREPLACEMENT_TESTS=${replacement_tests}
       -DFORMAT_DIR=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler
       -DOUTPUT=${input} -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/ComposeParserNodes.cmake"

@@ -1,7 +1,7 @@
 # Tower browser playground
 
 The real Tower node runtime, LALR parser, grammar bootstrap and lexer run in
-`tower.wasm`, compiled with **Clang / WASI SDK and `-fno-exceptions`**. CodeMirror 6
+`tower.wasm`, compiled from Tower and linked with the WASI SDK. CodeMirror 6
 provides the temporary desktop/mobile editor. The JavaScript UI receives parse
 trees, grammar snapshots, diagnostics and highlight spans from Tower.
 Autocomplete appears while typing; Ctrl+Space opens it explicitly, arrows select,
@@ -17,8 +17,8 @@ inferred receiver types, chained member access and generic specialization can
 limit suggestions. Completion is advisory, not a substitute for type checking.
 Reusable IDE sessions, handle ownership, transport, query integration and execution
 now live in `scaffolding/host/ide_*.tower`. Query decisions, scope filtering,
-prefix matching and result construction execute in Tower. The syntax owner still
-supplies some native inspection interfaces through the isolated WASI binding.
+prefix matching and result construction execute in Tower, including syntax
+inspection and world-owned baseline transport.
 
 Completion runs in a separate worker, coalesces edits, rejects stale replies and
 has a ten-second termination limit. Browser positions are translated between
@@ -27,11 +27,11 @@ Tower instruction and reconstructed Foundation panes use the same Tower lexer
 and decoration engine as the source editor, with the bundled canonical grammar
 for generated Foundation. They no longer maintain a separate JS keyword/type
 classifier; LLVM and machine disassembly retain their own display lexers.
-The immutable C++ seed initializes `bedrock.tower`; its result initializes
+The immutable Tower seed initializes `bedrock.tower`; its result initializes
 `foundation.tower`, which initializes user source. Every file applies declarations
 incrementally to its own active grammar. Both modules are loaded at runtime.
-C++ retains the pattern engine, pattern/template scanners, literal decoding and
-the implementations of grammar installation and foundation operations.
+The pattern engine, scanners, literal decoding, grammar installation and
+Foundation implementations are Tower modules on the shared entities.
 
 ## Try the built page
 
@@ -259,10 +259,10 @@ compiled foundation operations, never a copy of the grammar declarations being
 edited. Grammar declarations use the same formatter as executable foundation
 nodes through the formatting API. Grammar declarations,
 alternatives, terms and replacement templates carry semantic components on their
-actual parse nodes. The native seed uses this same entity model; its formatter
+actual parse nodes. The declaration seed uses this same entity model; its formatter
 output is the bundled bedrock file. Declaration order, `=` versus `|=`, token
 styles, captures, replacement bodies and comments survive formatting/reloading.
-Canonical declaration text uses the native/default bedrock spelling, even if an
+Canonical declaration text uses the default bedrock spelling, even if an
 edited input bedrock renames keywords. Templates retain their source language.
 Comments within a declaration may move before it; template comments stay inside.
 
@@ -412,12 +412,12 @@ shown as a mismatch. Matching truncated output is explicitly labelled as capture
 results, not a comparison of text beyond the output limit.
 
 `scaffolding/foundation.tower` defines the shared editable module. Examples inherit
-it without a generated grammar prefix. The C++ compiler consumes the expanded
+it without a generated grammar prefix. The Tower compiler consumes the expanded
 trees directly, attaches typed semantic components to those same nodes, and uses
 them for interpretation and LLVM lowering. It never executes the debug token reconstruction. The current bootstrap semantic ABI recognizes the
 `Core*` rule labels and their named captures. Renaming a keyword while retaining
 those trees works; introducing an entirely new semantic operation still needs a
-native handler or a replacement into existing operations.
+Tower compiler handler or a replacement into existing operations.
 
 The current subset supports `i32`, `u32`, `u8`, `i64`, `u64`, `usize`, `bool`, raw typed pointers, lexical blocks,
 mutable declarations, one-operation assignments, comparisons, arithmetic and bit
@@ -690,7 +690,7 @@ the decoded output scalar must not overlap its input buffer.
 `scaffolding/library/bytes.tower` now owns the compiler's source-text storage.
 Parsing, replacement templates, raw UTF-8 streams and retained grammar provenance
 use its byte buffers; parsing and provenance share one immutable source snapshot.
-The temporary C++ `CompilerText` adapter only manages ownership and exposes views.
+Tower host services manage ownership and expose borrowed views.
 Growth, self-copying, NUL termination and disposal are Tower functions, with narrow
 host `realloc`/`free` bindings (wasi-libc in browser compilers). No host services
 are invoked from the editor thread. Source buffers remain alive while any grammar
@@ -702,70 +702,67 @@ self-slices. `bytes_append` supports self-append across moving reallocation.
 Failed growth/overflow/invalid self-slices leave all existing state unchanged.
 Callers still own raw pointer validity, initialization and disposal. Do not duplicate
 ownership by copying the struct; metadata must be separate from input/data storage.
-The arena/map helpers remain in `library/storage.tower`; until imports exist,
-concatenate both library files before `tests/storage.tower`, or link their objects
-with matching declarations. The compiler currently uses the byte buffer, not those
-arena/map helpers.
+The arena/map helpers remain in `library/storage.tower`; import the required
+Tower modules or link their objects through matching declarations.
 
 `scaffolding/library/entities.tower` now implements the compiler's actual shared
-entity/component store. `TowerNode*` and `TowerComponent*` are opaque C++ views of
-those same Tower allocations. Creation, reference ownership, ordered/named child
+entity/component store. Creation, reference ownership, ordered/named child
 relationships, component registration, lookup/removal and type-based query indexes
-run in Tower. Stable component payloads accommodate existing C++ semantic objects;
+run in Tower. Component payloads have stable addresses;
 query indexes grow independently and use swap removal. Structural edits invalidate
 query positions, and removal/destruction invalidates borrowed payload pointers.
-This first store is single-threaded and uses sparse stable payloads, not archetype
-columns, safe handles, access scopes or jobs. Ownership cycles remain invalid.
+Store-owned pools and archetype table columns provide derived query indexes.
+Workers borrow pinned inputs, own scratch and staged payloads, and declare access
+ranges; coordinators publish structural changes after joins. A pin is not a
+payload lock. Legacy default-world adapters remain coordinator-only. Ownership
+cycles remain invalid; these low-level APIs do not provide automatic safe handles.
 
 `scaffolding/compiler/parse_tree.tower` implements parser forest concatenation,
 lazy capture wrappers, generated-node flattening and ownership transfer into those
 entities. It preserves O(1) fragment concatenation and visits each flattened
-fragment once. CMake temporarily composes it after `entities.tower`; this is not a
-new import syntax. `compiler/generics.tower` uses the same entities for type-function
+fragment once. Build manifests use ordinary Tower imports.
+`compiler/generics.tower` uses the same entities for type-function
 specialization, bindings, provenance and iterative syntax cloning.
 
 `compiler/parser_nodes.tower` owns rule, reference, token-string, range and match
-payloads, including their text and arrays through `vector(T)`. Native consumers
-borrow opaque payloads through accessors; they do not mirror their field layouts.
+payloads, including their text and arrays through `vector(T)`. Separate units
+borrow payloads through the shared APIs and authoritative Tower layouts.
 `compiler/lexer_table.tower` owns flat DFA transition rows and performs Unicode
 maximal-prefix matching. These tables are derived caches. Regex notation is now
 defined in `compiler/regex_grammar.tower` using the ordinary grammar components
 and parsed by the same LR engine over Unicode scalars. Its parse tree stays on
-shared entities. NFA/DFA lowering, the LALR table builder, recognizer control loop, higher-level grammar/foundation
-payloads, formatter and backends still contain C++ to migrate.
+shared entities. NFA/DFA lowering, LALR construction, recognition, grammar and
+Foundation payloads, formatting and backend integration are all Tower.
 
-The remaining native node adapter binds allocation and existing C++ component
-destructors. Its lifecycle registry lasts as long as static compiler caches; the
-Tower store retains each type until its payload destructor has finished. Ordinary
+The Tower store retains each type until its payload finalizer has finished. Ordinary
 Tower clients can use plain components with lifecycle zero, or supply the declared
 `tower_entity_finalize` dispatch through the existing external-call mechanism.
 
-The transitional native build first makes `towerc-seed` using the independent
-C++ references in `scaffolding/bootstrap/`. The seed compiles the entity store,
-parse-forest routines and Tower specializer. `towerc-stage1` links those components
-and can then compile generic parser/lexer components using `vector(T)`; the final
-compiler links those as well. The seed algorithms
-are absent from normal compiler targets; tests retain them as references.
+The native build installs the hash-pinned Linux x64 Tower compiler from
+`bootstrap/`, compiles all owned implementation from `.tower`, and links with
+upstream LLVM and platform libraries. No project-owned C/C++ seed, adapter or
+fixture remains. Docker supplies the canonical build environment across hosts.
 Generated objects stay in ignored build directories, and dependencies include
 the compiler executable, utility source, Bedrock and Foundation.
 
-The build scripts prepare the intermediate compiler automatically, currently requiring host Clang,
+The build scripts prepare the pinned compiler automatically, currently requiring host Clang,
 CMake/Ninja and LLVM 19 development libraries (`LLVM_CONFIG` can override the
 config tool). Set `TOWER_BOOTSTRAP_COMPILER` to an existing host compiler to bypass
-building those stages; it must support type functions/templates. Direct CMake
+using that pin; it must support the current language. Direct CMake
 builds accept the same cache option. Bootstrap
 commands pass `--bedrock file --foundation file` explicitly so an external compiler
 uses this checkout's grammar modules. These driver options are also available
 for normal builds; they are host loading controls, not language imports. The native
-build produces `build/native/towerc`, `towerc-seed` and `towerc-stage1`.
-Move the adjacent `build/native/share/tower` resource directory with these
-executables. Grammar/runtime lookup is relative to the running compiler, with
+build produces `build/native/towerc`.
+Move the adjacent `build/native/share/tower` resource directory with the
+executable. Grammar/runtime lookup is relative to the running compiler, with
 explicit grammar flags still supported. `--version` identifies the current
-hybrid development bootstrap. See [bootstrap distribution](../docs/bootstrap-distribution.md)
+Tower-built development compiler. See [bootstrap distribution](../docs/bootstrap-distribution.md)
 for Tower host policies, relocation checks, self-build recipes and release gates.
-The eventual distribution will include self-contained bootstrap Tower compiler
-binaries for Windows/macOS/Linux in the repository; those binaries are not shipped
-yet. General module imports and the rest of the compiler migration remain future work.
+Native CLI packages for Windows/macOS/Linux remain distribution goals. For now,
+one Linux x64 pin and Docker support bootstrapping; separate native pins are not
+required. Existing build/package tooling and complete dependency bundling remain
+work beyond the completed owned C/C++ source retirement.
 
 ```sh
 bash playground/scripts/test-bootstrap.sh
@@ -775,19 +772,17 @@ node --test playground/tests/compiler-bytes.test.mjs
 node --test playground/tests/compiler-entities.test.mjs
 ```
 
-The bootstrap check compares earlier-stage and final-compiler optimized LLVM
-and object bytes for Linux, Windows, macOS and Wasm. The generic parser/lexer
-components use stage1 as their reference builder. UTF-8 has no runtime dependencies;
+The bootstrap check compares the pinned and successor compiler's optimized LLVM
+and object bytes for Linux, Windows, macOS and Wasm. UTF-8 has no runtime dependencies;
 byte buffers allow only allocation/copy primitives and the Wasm stack-pointer symbol.
 The entity/parser module also permits the allocation and component-lifecycle
-bridges. This verifies the migrated compiler pieces, not a fully self-hosted compiler.
+interfaces. These module checks are distinct from the whole-compiler successor tests.
 Parser payload tests cover ownership, aliasing, growth, default metadata and failed
-allocations. Lexer tests compare the Tower matcher with the seed on 500 randomized
+allocations. Lexer tests compare the Tower matcher with its Tower oracle on 500 randomized
 automata, Unicode/invalid UTF-8, every input offset and partial allocation failure.
 Native tests cover every Unicode scalar, every one/two-byte input,
-random malformed buffers and inaccessible-page boundaries. The C++ host/tests run
-under sanitizers; generated Tower objects currently do not carry sanitizer
-instrumentation. Wasm tests also compare the codec with TextEncoder/TextDecoder,
+random malformed buffers and inaccessible-page boundaries. The migration checks
+do not run sanitizers or broad formatter sweeps. Wasm tests also compare the codec with TextEncoder/TextDecoder,
 interpret it at both pointer widths and compile its canonical Foundation output.
 Buffer tests force allocation movement/failure, check guards and unchanged state,
 compare 20,000 operation sequences, retain source nodes across resets/destruction,
@@ -824,7 +819,7 @@ both reactors in one cache without repeatedly rebuilding LLVM for different targ
 files, standard streams, clocks and entropy. It replaces the external browser
 shim. It implements our modules' import subset, not a general WASI runtime or
 OS. No host filesystem/network/environment access is exposed to WASM. Unsupported
-operations fail. Files are limited to 64 MiB apiece. Tower's C++ WASI adapter also
+operations fail. Files are limited to 64 MiB apiece. Tower's WASI backend integration also
 provides LLD a heap-backed output buffer (WASI has no mmap) and substitutes worker
 termination for unavailable signal-based crash recovery.
 
@@ -923,7 +918,7 @@ send visitors directly to GitHub Pages, which continues to host the static site
 and manage its certificate. DNS propagation and certificate issuance may delay
 the final HTTPS checks. The build command does not push or publish.
 
-The WASM suite runs the existing C++ runtime/parser/syntax tests in the module,
+The WASM suite runs the Tower runtime/parser/syntax tests in the module,
 then checks the ABI, revision-aware highlights, strings/comments, Unicode spans,
 invalid grammars, atomic installation and session cleanup. Playwright checks the
 actual static page in desktop and Android mobile emulation. Device emulation
@@ -1069,20 +1064,21 @@ compiler without deleting source edits. Reload also restores the original;
 compiler binaries are session state, while project source persists in IndexedDB
 and project ZIPs.
 
-This is a hybrid rebuild: the project-owned native adapters/runtime and upstream
-LLVM/LLD are supplied as prebuilt link support. It is not yet standalone Tower
-self-hosting. Large compiler builds download additional support on demand and
+Compiler algorithms and host policies rebuild from Tower. Upstream LLVM/LLD,
+platform libraries and small runtime ABI artifacts generated by Tower tools
+remain prebuilt link support. Rebuilding those runtime artifacts in the browser
+and replacing the external packaging scripts remain release work. Large compiler
+builds download additional support on demand and
 may take substantially longer than an ordinary program. LLVM workers permit up
 to 2 GiB of linear memory for compiler linking; actual allocation grows as needed.
 
-When porting another C++ component, add its Tower imports to the owning
-`cmake/Compose*.cmake` manifest and remove the replaced native target sources
-once validated. `scripts/package-compiler-project.py` follows those actual build
+When adding compiler modules, add their Tower imports to the owning
+`cmake/Compose*.cmake` manifest. `scripts/package-compiler-project.py` follows those actual build
 units, exposes new `.tower` files automatically, and excludes rebuilt Tower
 objects from the support packs. Existing files with browser edits are preserved
 when the bundled project updates; untouched files and new ports are refreshed.
 The comments in the project entry and unit manifests record this migration path.
-Standalone release recipes and retirement of all project-owned native support
+Standalone release recipes and editable production of the runtime ABI artifacts
 remain required; see `docs/bootstrap-distribution.md`.
 
 A full browser build now packages the workbench after the parser and LLVM builds:

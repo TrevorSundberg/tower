@@ -318,7 +318,7 @@ Do NOT modify todo.txt
   separate authoritative grammar model. Preserve declaration order and the
   distinction between replacing a definition (`=`) and extending it (`|=`).
 - Every file starts from a grammar baseline and applies declarations incrementally
-  after their terminating boundary, including Bedrock. The immutable C++ seed is
+  after their terminating boundary, including Bedrock. The immutable Tower seed is
   Bedrock's initial baseline; local overrides affect all following declarations
   and tokens without mutating that seed. Use the same update path for all files.
   Explicit modules start from the declaration seed and import the grammar they
@@ -343,11 +343,13 @@ Do NOT modify todo.txt
 - Treat the compiler and runtime as one Tower programming environment. Compilation
   is an explicit execution stage with dependencies, not a separate metaprogramming
   language. Keep a portable interpreted path for compiler code as well.
-- The migration endpoint is pure Tower source for all project-owned compiler and
-  runtime code, including bootstrap code, plus checked-in portable Tower compiler
-  binaries for Windows/macOS/Linux. Only third-party implementations such as
-  LLVM/SPIR-V tooling remain external/native until their separate translation.
-  Retire each native seed/adapter after a validated Tower-built successor exists.
+- All project-owned compiler/runtime implementations and their fixtures are Tower;
+  do not reintroduce native seeds or adapters. Only third-party implementations
+  such as LLVM/SPIR-V tooling remain external/native until their separate translation.
+  Keep the checked-in Linux x64 Tower compiler and Docker build as the canonical
+  bootstrap path for now. Native CLI packages for Windows/macOS/Linux remain
+  distribution goals, not separate required bootstrap chains. Preserve host/target
+  profiles and validate actual execution before claiming a portable release.
 - Types should become first-class values on the shared entity/component model.
   Parameterized types use ordinary parenthesized application, e.g. vector(i32),
   with Tower functions accepting and producing types. Templates/generics should
@@ -374,7 +376,7 @@ Do NOT modify todo.txt
 - Support future local type inference as `var name = initializer`; resolve it
   during type checking with explicit numeric literal defaults and range rules.
 - Prioritize working language features before replacement-chain optimizations.
-- Keep the native parser/bootstrap and core syntax small and instruction-like:
+- Keep the initial parser/bootstrap and core syntax small and instruction-like:
   simple operands and three-address operations such as `a = b + c;`.
 - Do not put a precedence hierarchy, Term/Factor rules, or a general expression
   language in the base rules. Richer syntax belongs in Tower rules/replacements.

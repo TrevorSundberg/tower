@@ -23,7 +23,7 @@ export fn driver_help(): u8* {
 }
 
 export fn driver_version(): u8* {
-    return "Tower development (hybrid bootstrap; not a portable release)\n";
+    return "Tower development (Tower-built compiler; external LLVM; not a portable release)\n";
 }
 
 export fn driver_dispose(options: DriverOptions*): void {
