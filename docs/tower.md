@@ -7,9 +7,9 @@ values, result types and ownership rules.
 
 ## Type queries and scalar compile-time execution
 
-The current implementation accepts `decltype(expression)` and `comptime(expression)`
-above Foundation. These additions are under validation; this section does not
-claim that a published compiler binary already includes them.
+The published compiler accepts `decltype(expression)` and `comptime(expression)`
+above Foundation. This is the scalar staging implementation described below;
+general compile-time values and compiler-wide threading remain incomplete.
 
 ```tower
 import tower;
@@ -38,7 +38,7 @@ it needs no `decltype` or `comptime` syntax. Declaration dependency discovery,
 layout, eligible body checking, expression lowering, evaluation and dependent
 return-path validation use Tower ECS queries and worker pools. Deferred cleanup
 copies retain their staged-value dependencies. Generic/type construction,
-compiler-session isolation and remaining parser/backend phases still need work;
+legacy session adapters and remaining parser/backend phases still need work;
 these features do not imply a completely threaded compiler yet.
 
 ## Compile-time value goals

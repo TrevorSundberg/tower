@@ -22,6 +22,14 @@ Do NOT modify todo.txt
   distinguish a platform-specific development bootstrap from a portable release.
   Repeat that clean successor build after rebasing onto source changes; a bootstrap
   validated before a rebase may not support newly merged import or syntax changes.
+- Batch related compiler changes into coherent milestones. During implementation,
+  run focused affected checks; reserve full bootstrap/browser-generation/release
+  matrices for milestone publication or changes that invalidate prior evidence.
+  Do not repeat passing checks or overlap probes without a relevant change/failure.
+- Do not run sanitizer, broad cleanup/sanitization or repository-wide formatting
+  sweeps. Keep edits and formatting scoped to the requested implementation.
+  Documentation-only deployment reuses verified runtime assets and preserves
+  their build-source identity; do not rebuild identical compiler binaries.
 
 ## Module names and imports
 

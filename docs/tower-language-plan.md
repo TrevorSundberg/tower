@@ -681,9 +681,11 @@ containers. Benchmark representative compiler workloads before migrating them.
   exclusive leases permit body workers to attach components to their own source
   entities while typed query indexes stay pinned. Ordinary indexed value access,
   local inference, decltype, stage registration and defer use this path. Bodies
-  requiring generic/type construction now use resumable top-level statement runs,
-  suspending on source-keyed preparation receipts and resuming on workers. Nested
-  structural statements and editor observation retain a coordinator path.
+  requiring generic/type construction now use resumable statement runs across
+  nested lexical blocks, if/else branches and Foundation loops, suspending on
+  source-keyed preparation receipts and resuming on workers. Structural if headers
+  prepare separately from their branches. Surface while/for/foreach/match/defer,
+  individual structural expressions and editor observation still need continuations.
   Already-instantiated generic bodies now use body workers when their immutable
   bindings and existing layouts are ready;
   conservative admission retains first consumers of pending layouts on the

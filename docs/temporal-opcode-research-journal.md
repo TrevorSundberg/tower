@@ -30771,3 +30771,198 @@ perform the required rebase, repeat appropriate native checks and publish this
 checkpoint. Source implementation remains Tower; no C/C++ or todo.txt changes.
 The separate surface-loop draft's added generated-block lease remains unvalidated
 and must not be integrated without its remaining checks.
+
+Published nested-body/header checkpoint: source
+6fcad397a10797b879011755a838e8a9c916779f, Pages
+6aaa550888708b0810ad9cc16e8089158f8d890a (parent 0dbc5f7e).
+The required rebase was unchanged; native frontend and production LR/unit/editor/
+body checks passed 2/2 in 207.88 seconds (header-bodies-post-rebase.log). Main and
+Pages pushes succeeded and Pages action 44920245980 succeeded. Hosted verification
+remains pending until the separate surface-loop compiler/probes finish; dist is
+frozen. Do not call the published checkpoint fully verified live yet.
+
+The surface draft's lease refinement passes formatting. An ordinary Tower
+interpreter helper could not import both the compiler's opaque foreign entity
+interfaces and the concrete entity exports into one unit: their existing typed
+foreign declarations differ (loop-lease-offsets-initial.log). Separate ordinary
+Tower probes obtain the native target offsets instead: SemanticContext.entity_stage
+520 and Entity.stage 144 (context-lease-offset.log / entity-lease-offset.log).
+The loop cursor's third pointer field is at offset 16. No C++ helper is added.
+
+A negative ownership probe on the saved pre-fix binary reports four resumed while
+completions with null entity-stage ownership despite an active body stage
+(LEASE_CHECKS=4 UNLEASED=4, surface-leases-before.log). Its nonzero GDB exit is the
+expected rejection. The first trial overlapped reconstruction of its input shadow
+and is archived as surface-leases-before-overlapped.log; the reported trial uses
+separate immutable copies of Bedrock/Foundation/Tower to remove that ambiguity.
+This establishes the missing lease, not an observed data race. The fixed draft's
+instrumented/production checks and positive ownership/overlap probes are running.
+
+
+### 2026-11-21 — Whole-conversation delivery audit and remaining completion gates
+
+The user requested an audit after roughly twelve hours of continued migration:
+what shipped since the original language-feature question, why the work took so
+long, and what remains. Reviewed the available conversation/context, the original
+audit at line 25595, subsequent implementation/release entries, current source,
+main/Pages history and saved validation logs. Earlier compacted dialogue is
+reconstructed from those records; this is not a claim of rereading an unavailable
+verbatim assistant transcript. This turn performs an audit and documentation
+correction, not another compiler feature slice. Initial pull/rebase with autostash
+was unchanged; no active source-reading build was running.
+
+Scope and attribution:
+
+- The initial request was to choose the next simplifying language feature after
+  expressions, then explicitly focused on compile-time execution and decltype.
+  Later instructions made entire-compiler ECS/threading an equally primary goal,
+  required Tower implementation, lazy dependency discovery/cycles and ordinary
+  interpreter execution rather than a separate pre-LLVM folding pass.
+- Expressions/precedence predated this lane. For/foreach, defer, generic-call
+  inference, default initialization and much of the native-to-Tower retirement
+  arrived through other concurrent work. This lane integrated and accommodated
+  them; they must not all be attributed to its ECS/compile-time implementation.
+- Parser/regex specialization, constant grammar data, JSON benchmarking and
+  interpreted-to-native execution tiers were recorded as future guidance. Those
+  experiments have not been implemented here. General inferred compile-time
+  execution for unchanged locals is also still a goal, not shipped behavior.
+
+Shipped implementation at 6fcad397a10797b879011755a838e8a9c916779f:
+
+1. Unevaluated decltype and interpreter-backed scalar comptime, including forward
+   declarations/signatures/fields, nested demanded stages, cycle diagnostics,
+   strict initialized/live local reads, fuel and explicit target data. Ordinary
+   runtime and stage execution share operation semantics. General aggregate/type
+   values, heap/file/network capabilities and inferred execution are not included.
+2. Shared ECS dependency suspension/yield, fresh dispatch tickets, stale-result
+   rejection, failure/cancellation handling and declared access ranges. Layout,
+   evaluation, declaration and body preparation use this machinery. Graphs remain
+   per-compilation; this is not persistent incremental dependency caching.
+3. Real bounded native Linux and shared-memory Wasm worker execution, portable
+   fallback, joined publication and deterministic diagnostics. Windows/macOS
+   transports were object-compiled; execution on those hosts has not been verified.
+4. Stable component payload pages, exact-signature archetype membership, published
+   component pointer columns and pinned cached multi-component queries. Syntax,
+   grammar and Foundation use the shared entity lookup; worker stages create
+   canonical entities and carry explicit leases. These are not relocated packed
+   SoA payloads, and table membership alone does not make every compiler path safe.
+5. Parallel layout, declaration discovery/readiness and eligible declaration type
+   checking, including fields, signatures, operators, calls and generic deduction.
+   Generic signatures no longer force unused bodies; demanded generic bodies are
+   cloned and checked through worker queries. Type interning/construction still
+   has coordinator work.
+6. Ordinary body checking/lowering and staged flow checks on workers. Persistent
+   lexical/control cursors resume across construction dependencies through nested
+   blocks, if/else and Foundation loops without replaying earlier statements.
+   Surface handlers and individual structural expressions are not all converted.
+7. Worker kernels for FIRST/nullable, LR state/kernel closures, LALR dependency
+   links, lookahead propagation, actions and runtime table rows. Shared interning,
+   graph/result merging and grammar activation retain ordered publication.
+8. Explicit compiler worlds for module/syntax/execution sessions and native CLI
+   requests; callable native multi-unit compiler services with exclusive worlds
+   and bounded nested workers. Mixed compile/editor-inspection units run through
+   ECS jobs. This is not finished native CLI project orchestration or internally
+   threaded editor observation within one world.
+9. AGENTS.md contribution rules for the shared graph, ownership/access, dependency
+   continuations, ordinary interpreter evaluation, deterministic publication and
+   actual overlap/cancellation/lifetime validation. todo.txt is unchanged.
+
+Publication and validation evidence:
+
+The first implementation commit bf024a1 is dated 2026-11-20 18:02:53 -0800; the
+latest compiler commit 6fcad39 is dated 2026-11-21 07:33:11 -0800. That is about
+13.5 hours between those commits, not a measured accounting of active coding time.
+There are 31 Pages commits titled "Publish ECS compile-time checkpoint from ..."
+descending from the initial feature on the current Pages history. This count is
+publication activity, not a performance or completion metric. The changes are not
+sitting unpublished for that whole interval.
+
+Latest compiler validation: eight native CTest cases plus backend API, 66 core
+browser cases and 11 for/defer cases, actual native semantic successor object
+identity and two edited browser generations matching all three compiler artifacts.
+Full local deployment passed all 77 assets and desktop/mobile/Linux workflows.
+Source 6fcad39 and Pages 6aaa550 are pushed; its previously pending full hosted
+verification is now running quietly (header-bodies-hosted.log). Do not equate the
+initial asset-hash line with completion of browser/native-download checks.
+
+The isolated while/for continuation draft now passes the complete instrumented
+frontend and production LR/unit/editor/body harness after the generated-block
+lease fix (surface-bodies-leased.log). The final ownership probe reports four
+checks and zero missing leases; the earlier immutable-input negative probe reports
+four missing leases. Four-worker resumptions for both surface loop kinds are
+observed, with no default-world or legacy allocator calls in that fixture. This
+is real but unpublished work. Differential CLI, successor, integrated browser and
+release checks remain outstanding; it is not part of the latest shipped compiler.
+
+Remaining gates for the requested endpoint:
+
+- Integrate/validate the surface loop draft; add foreach/protocol, match, defer
+  and individual expression/type-construction continuations. Replace conservative
+  global layout barriers with precise consumer dependencies.
+- Complete legacy world/reference ownership and within-world editor observation.
+  Wire the native unit service into CLI project recipes and schedule backend
+  units with isolated LLVM state. Model shared target registration and LLD globals
+  as owned/exclusive resources; replace conflicting fixed temporary paths.
+- Finish reusable query identities and invalidation for revisions, full explicit
+  target/semantics, inputs/effects and cross-unit result ownership/deduplication.
+  Current revision-1/pointer-width graph identity is not that full contract.
+- Extend ordinary interpreter staging to arbitrary owned values and first-class
+  type values, with tracked effects and inferred available values. Preserve the
+  user's prohibition on a separate folding/propagation evaluator.
+- Prove whole-pipeline serial/parallel equivalence, cancellation and ownership
+  coverage, execute unverified native platform transports, and measure end-to-end
+  scaling. Overlap probes do not establish overall speedup or maximal parallelism.
+
+Why time accumulated and process correction:
+
+The underlying work crossed several mutable ownership boundaries, not one pool
+addition. Real blockers included shared-Wasm memory growth/failure delivery,
+legacy allocation-counter races between units, worker transport oversubscription,
+implicit generic/protocol construction under pinned reads, and preserving lexical,
+defer and error order across suspended bodies. Concurrent upstream language and
+bootstrap changes also required integration and rebuilt validation.
+
+There was avoidable overhead too: too many small full release cycles, repeated
+validation of near-adjacent drafts, harness/import/formatting mistakes, and builds
+competing with browser verification before the quiet-verifier rule. Existing
+performance work even had to correct excessively fine worker dispatch. The records
+do not permit an honest percentage breakdown of elapsed time. A clear end-to-end
+completion ledger should have been maintained and surfaced sooner, instead of
+letting checkpoint detail stand in for an answer about the overall endpoint.
+Batch related implementation before release, retain focused ownership/differential
+checks, and reserve full successor/browser/deployment runs for coherent milestones.
+
+Completion means all independent eligible compiler work has explicit ECS ownership
+and dependency scheduling, with required source/effect order and structural commits
+represented by deliberate barriers. It does not mean eliminating synchronization.
+There are still substantial workstreams, so no defensible "almost 100%" or universal
+Flecs/threading completion claim follows from the shipped milestones.
+
+Corrected stale public documentation that still described scalar staging as
+unpublished and body resumptions as top-level only. Compiler sources/artifacts are
+unchanged by this audit; retain the verified build's source identity when publishing
+this documentation checkpoint rather than rebuilding identical binaries.
+
+
+The user explicitly requested less validation and no sanitization passes while
+this audit was underway. Apply that preference immediately: no sanitizer, broad
+cleanup or repository-wide formatting sweeps; focused affected checks during
+implementation; larger coherent compiler milestones before full bootstrap,
+browser-generation and release matrices. Repeat overlap probes only when a
+relevant ownership/scheduling change or failure invalidates their evidence.
+Record this concisely in AGENTS.md. No sanitizer sweep was active in this audit.
+Keep the already-running hosted check, but do not repeat its full browser suite
+for the documentation-only publication; verify the preserved assets and updated
+manifest instead. Required rebase/bootstrap compatibility rules remain in force.
+Prioritize a finite inventory of remaining ownership/scheduling boundaries,
+reuse the shared continuation mechanism across related constructs, and keep
+future parser specialization, SIMD and unrelated cleanup out of this migration.
+
+
+The pending header-body hosted verification completed successfully: all 77 assets,
+complete desktop/mobile workflows and the actual Linux default-target check
+(header-bodies-hosted.log / header-bodies-hosted-report.json). Compiler source
+6fcad39 and Pages 6aaa550 are now fully verified live. The audit's only changes
+are documentation/contributor guidance; git diff --check passes and todo.txt
+retains blob 96a9e58964d7f01e4a97819f259448db81ef5e40. Publish these documentation
+changes by preserving the exact verified assets and buildSourceCommit 6fcad39.
