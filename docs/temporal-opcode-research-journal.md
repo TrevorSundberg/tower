@@ -26748,3 +26748,110 @@ current published-bootstrap successor and aggregate native/WASI tests, then
 publish/deploy. No deletion is claimed for this prepared slice yet.
 
 After upstream2452c10/current public bcc76755 landed, the coordinator adapted five proven-stable traversals in the external oracle to foreach, preserved index/dynamic traversals and retained legacy null destruction. Both replacement units were recompiled with the new default against49ed3c3. Coordinator reports replacement-only native/WASI RUN PASS, including repeated buffer/entity baselines (native-current.log, wasi-current.log). Final integrated successor remains next-slot work; the draft remains excluded from this release.
+
+### 2026-11-20: Session migration combined release and separate ECS integration findings
+
+Agent1 completed the coordinated release of source
+49ed3c3616cbf4ae7772d775a239c882b60f8427. It includes the published session
+lifetime, source-formatting, baseline setup and scanner ownership migrations,
+Agent3's reader/validation fixtures and reader oracle, the coordinator's utility
+oracles, Agent2's LR grammar fixture/oracle retirement, and upstream generic
+inference/borrowed iteration. The latest session batch replaces 298 lines in
+syntax.cpp with 63 adapter lines (235 net lines retired); incremental parsing,
+replacement-template orchestration and remaining legacy query adapters are still
+native. External next-parser and oracle drafts are not part of this release.
+
+The fresh /home/trevo/.cache/tower/agent-1-combined-final-release build used the
+documented build-native.sh, TOWER_BOOTSTRAP_COMPILER unset, TOWER_BUILD_JOBS=4,
+Clang/LLVM19 and public development bootstrap
+bcc76755fbf9cb0959828e2e35a6868974cd740328d58bc3366bf247f524dc51. This is a
+Linux development bootstrap, not a portable release. Native frontend, driver,
+storage, formatter, execution and request tests passed 6/6 in19.23s; backend API
+checks passed. The actual successor compiled the current generated parser unit
+byte-identically to the bootstrap native object (cmp0), and compiled that unit
+for wasm32-wasip1. The earlier independent2452c10 clean build also passed6/6,
+backend and both successor checks; it is not a substitute for the final49ed run.
+
+Under Agent1's exclusive external publish.lock, the authorized root deployment
+checkout integrated only published main and rebuilt the portable parser, LLVM
+and cross reactors with SDK34 and the existing shared backend cache. The normal
+root pull hit GitHub DNS failure; command-local http.curloptResolve with TLS
+preserved succeeded. build-llvm.sh was not run and shared upstream sources were
+not patched. Five stale root runtime objects were discovered before packaging;
+all seven target support assets were restored from latest Pages999df00 and
+verified against its manifest. Existing audit metadata and predecessor history
+were preserved.
+
+Release validation, recorded under C:/Sandbox/build/codex-agents:
+- All46 current top-level Node test files except the requested broad formatter
+  sweep passed432/432, no skips/failures,193.5946s. Nested Roku tests were excluded.
+- test-compiler-project.mjs passed both edited compiler generations using2 then4
+  workers; all resulting reactor hashes were identical between generations.
+- verify-local.mjs passed70 asset hashes and desktop/mobile behavior, completion,
+  editable grammar, persistence, native downloads and compiler workbench checks.
+- All71 staged and committed Pages blobs matched the exact tested dist bytes,
+  including the manifest and .nojekyll; no obsolete files required deletion.
+- Pages0ce80c36a7be1d899a7721c1c61a2b3bcd37ee79 was pushed normally over
+  999df00c83d92a090541f7b4cdf69e4aa6ba34f5. Exact-SHA action44857630813
+  succeeded: https://github.com/TrevorSundberg/tower/actions/runs/44857630813.
+- verify-deployment.mjs https://tower-lang.org/ passed the same70 asset hashes
+  and desktop/mobile checks. HTTP apex, HTTPS www and the old GitHub Pages URL
+  each redirected to HTTPS apex with finalHTTP200.
+
+Before publication, upstream advanced to ba1884d with119 files of ECS worker and
+compile-time evaluation changes. Agent1 initially started another integration
+build, but the coordinator explicitly kept the agreed release frozen at tested
+49ed3c3. Its dist remained untouched throughout; latest remote Pages was checked
+again and still999df00 before publishing. Neither the new main nor its threaded
+frontend is claimed browser-tested or deployed by this release. Archived49ed3c3-
+prefixed logs/reports preserve all old build evidence; agent-1-session-publication-
+local/hosted reports and action JSON identify the exact hosted result.
+
+Separate newer-main validation used a fresh agent-1-combined-ecs-release cache,
+the same documented default bootstrap and current ba188 sources. The native
+compiler built, and its actual successor produced an identical native parser
+object and a successful Wasm object. Portable/threaded/LLVM/cross reactor builds
+and packaging also completed, but those newer outputs stayed in ignored build
+directories and were not copied into the tested dist or published.
+
+Native frontend/backend/request test links initially failed with undefined
+interpreter_invocation_init/dispose/step. Their CMake composition intentionally
+removed the full interpreter, but new semantic evaluation now needs the existing
+compile-only invocation implementation. With coordinator/Agent2 ownership
+approval, TowerBackend.cmake and TowerDriverRequestTests.cmake now initialize and
+link the existing tower-compiler-evaluation target. This is four mechanical
+CMake lines, no new native implementation or alternate interpreter. Agent2 owns
+the analogous parser-only standalone test wiring in its next separate slice.
+
+After the link correction, the current native run passed6/7 in132.10s: worker
+overlap, driver, storage, format, execution and request passed; frontend aborted.
+Backend API checks separately passed. This is NOT an all-passing current-main
+result. GDB and temporary Tower-only stage probes located inconsistent failures
+in frontend_baseline_tests/frontend_baseline_failure_tests. A precise probe of
+frontend_baselines.tower:71 observed14 buffers where15 were expected. The legacy
+instrumented allocator documents single-owner state, while host/memory.tower
+updates shared live_buffers/allocation_calls/fail_after without synchronization;
+new native LR workers now enter that fixture. Agent2 independently observed the
+same final-buffer failure in native regex checks while its serial WASI checks
+passed. These findings support a shared test-allocation counter race, rather
+than proving a production allocation leak or excusing the assertion.
+
+All temporary probe source edits were restored byte-for-byte and rebuilt; copied
+backup timestamps initially left the diagnostic object newer than restored
+source, so source mtimes were refreshed and the real original unit rebuilt.
+A GDB-only experiment returning1 from work_thread_capacity then passed the
+unchanged frontend/parser/regex/contextual checks. This is diagnostic evidence,
+not a permanent fallback, not a parallel test pass and not a weakened lifetime
+check. No production threading policy changed. Next: define a deterministic
+fault-injection ownership profile or synchronized instrumentation, retaining the
+existing ownership/OOM assertions and separate real worker-overlap coverage.
+Evidence: agent-1-ba188-missing-evaluation-link.log, agent-1-combined-native-tests.log,
+agent-1-baseline-count-probe.log, agent-1-frontend-one-worker-diagnostic.log,
+agent-1-ecs-backend-test.log and successor logs. Broad formatter sweeps and
+sanitizers remain skipped as requested; todo.txt was not changed.
+
+Coordinator's external emission preparation also now has a permanent standalone
+Tower entry that compiled/linked/ran natively and on WASI without the native
+reference (native-entry.log, wasi-entry.log). Its isolated CMake fragment remains
+unintegrated and must be validated in the next source slot. This is prepared
+work, not an additional retirement or deployment claim.
