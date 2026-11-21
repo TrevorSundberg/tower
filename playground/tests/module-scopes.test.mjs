@@ -93,6 +93,28 @@ test('aliases preserve canonical identity, dependency order and diamond initiali
     '1\n2\n3\n40\n40\n42\n');
 });
 
+test('module cleanup retains dependency bindings and runs once after program statements', () => {
+  const files = [
+    file('shared.tower', 'import tower; var value = 1; print(10); defer print(value);'),
+    file('left.tower', 'import tower; import shared as common; print(20); defer print(2); fn change(): void { common.value = 9; }'),
+    file('right.tower', 'import tower; import shared; print(30); defer print(3);'),
+  ];
+  const source = 'import tower; import left; import right; print(40); change(); defer print(4);';
+  const expected = '10\n20\n30\n40\n4\n3\n2\n9\n';
+  succeeds(source, files, expected);
+  configure(files);
+  const handle = compiler.compile(source);
+  try {
+    const canonical = compiler.foundation(handle).source;
+    const round = compiler.compileFoundation(canonical);
+    try {
+      const result = compiler.execute(round, 100000);
+      assert.equal(result.status, 'done', result.error);
+      assert.equal(result.output, expected);
+    } finally { compiler.destroyExecution(round); }
+  } finally { compiler.destroyExecution(handle); }
+});
+
 test('qualified templates resolve their own dependencies and keep concrete type identity', () => {
   const files = [file('types.tower', `import tower;
 fn Box(T: type): type { struct Result { value: T; } return Result; }

@@ -18,104 +18,173 @@ import .compiler.foundation_tags;
 import .library.vector;
 
 extern fn semantic_format_type(type: FoundationType*, text: vector(u8)*): void;
+
 extern fn entity_component_get(node: void*, kind: void*): void*;
 
 fn execution_type_same(a: FoundationType*, b: FoundationType*): bool {
-    var left: ByteBuffer; var right: ByteBuffer;
-    fill(&left, 0, sizeof(ByteBuffer)); fill(&right, 0, sizeof(ByteBuffer));
+    var left: ByteBuffer;
+    var right: ByteBuffer;
+    fill(&left, 0, sizeof(ByteBuffer));
+    fill(&right, 0, sizeof(ByteBuffer));
     semantic_format_type(a, bits(vector(u8)*, &left));
     semantic_format_type(b, bits(vector(u8)*, &right));
     var same = execution_equal(&left, &right);
-    bytes_dispose(&left); bytes_dispose(&right);
+    bytes_dispose(&left);
+    bytes_dispose(&right);
     return same;
 }
 
 fn execution_name_same(a: FoundationNode*, b: FoundationNode*): bool {
-    return a.name.length == b.name.length && (a.name.length == 0 || memcmp(a.name.data, b.name.data, a.name.length) == 0);
+    return a.name.length == b.name.length &&(a.name.length == 0 || memcmp(a.name.data, b.name.data, a.name.length) == 0);
 }
 
 fn execution_structure(a: void*, b: void*): bool {
-    if a == null || b == null { return a == b; }
-    var left = sem_get(a); var right = sem_get(b);
+    if a == null || b == null {
+        return a == b;
+    }
+    var left = sem_get(a);
+    var right = sem_get(b);
     if left.kind != right.kind || left.op != right.op || !execution_type_same(&left.type, &right.type)
-        || !execution_type_same(&left.element, &right.element) || !execution_name_same(left, right)
-        || left.constant != right.constant || left.indirect != right.indirect || left.bits != right.bits
-        || left.length != right.length || left.external != right.external || left.exported != right.exported
-        || left.global != right.global { return false; }
+    || !execution_type_same(&left.element, &right.element) || !execution_name_same(left, right)
+    || left.constant != right.constant || left.indirect != right.indirect || left.bits != right.bits
+    || left.length != right.length || left.external != right.external || left.exported != right.exported
+    || left.global != right.global {
+        return false;
+    }
     if left.binding == null || right.binding == null {
-        if left.binding != right.binding { return false; }
+        if left.binding != right.binding {
+            return false;
+        }
     } else {
-        var x = sem_get(left.binding); var y = sem_get(right.binding);
-        if x.kind != y.kind || x.index != y.index || !execution_name_same(x, y) { return false; }
+        var x = sem_get(left.binding);
+        var y = sem_get(right.binding);
+        if x.kind != y.kind || x.index != y.index || !execution_name_same(x, y) {
+            return false;
+        }
     }
     if !execution_structure(left.left, right.left) || !execution_structure(left.right, right.right)
-        || !execution_structure(left.value, right.value) || !execution_structure(left.target, right.target)
-        || !execution_structure(left.body, right.body) || !execution_structure(left.otherwise, right.otherwise)
-        || left.parameters.length != right.parameters.length || left.items.length != right.items.length { return false; }
-    for (var i: usize = 0; i < left.parameters.length; i++) {
-        if !execution_structure(left.parameters.data[i], right.parameters.data[i]) { return false; }
+    || !execution_structure(left.value, right.value) || !execution_structure(left.target, right.target)
+    || !execution_structure(left.body, right.body) || !execution_structure(left.otherwise, right.otherwise)
+    || left.parameters.length != right.parameters.length || left.items.length != right.items.length {
+        return false;
     }
-    for (var i: usize = 0; i < left.items.length; i++) {
-        if !execution_structure(left.items.data[i], right.items.data[i]) { return false; }
+    for(var i: usize = 0; i < left.parameters.length; i++) {
+        if !execution_structure(left.parameters.data[i], right.parameters.data[i]) {
+            return false;
+        }
+    }
+    for(var i: usize = 0; i < left.items.length; i++) {
+        if !execution_structure(left.items.data[i], right.items.data[i]) {
+            return false;
+        }
     }
     return true;
 }
 
 fn execution_roundtrip(original: ExecutionSession*, modules: void*, structural: bool): void {
-    var text: FormatResult; var again: FormatResult;
-    fill(&text, 0, sizeof(FormatResult)); fill(&again, 0, sizeof(FormatResult));
+    var text: FormatResult;
+    var again: FormatResult;
+    fill(&text, 0, sizeof(FormatResult));
+    fill(&again, 0, sizeof(FormatResult));
     format_entity(&text, original.program.root, syntax_component_type(), null, parser_match_get_type());
     execution_check(!text.failed && text.text.length != 0, "Foundation formats");
     var round: ExecutionSession;
     fill(&round, 0, sizeof(ExecutionSession));
     execution_check(execution_session_compile(&round, text.text.data, text.text.length, original.program.pointer_bytes, modules), "Foundation recompiles");
-    if structural { execution_check(execution_structure(original.program.root, round.program.root), "Foundation preserves graph structure/types/bindings"); }
+    if structural {
+        execution_check(execution_structure(original.program.root, round.program.root), "Foundation preserves graph structure/types/bindings");
+    }
     format_entity(&again, round.program.root, syntax_component_type(), null, parser_match_get_type());
     execution_check(!again.failed && text.text.length == again.text.length
-        && memcmp(text.text.data, again.text.data, text.text.length) == 0, "canonical text is stable");
+    && memcmp(text.text.data, again.text.data, text.text.length) == 0, "canonical text is stable");
     var root = sem_get(round.program.root);
-    for (var i: usize = 0; i < root.items.length; i++) {
+    for(var i: usize = 0; i < root.items.length; i++) {
         var item = root.items.data[i];
         execution_check(sem_get(item) != null && entity_component_get(item, parser_match_get_type()) != null, "semantics enrich original parser entities");
     }
     execution_run(&round, 7, 10000);
     execution_check(execution_equal(&original.output, &round.output) && execution_equal(&original.error, &round.error), "round trip preserves execution");
     execution_session_close(&round);
-    format_dispose(&text); format_dispose(&again);
+    format_dispose(&text);
+    format_dispose(&again);
 }
 
 fn execution_core_output(index: usize): u8* {
-    if index == 0 { return "1\n"; }
-    if index == 1 { return "3\n"; }
-    if index == 2 { return "42\n"; }
-    if index == 4 { return "4\n"; }
-    if index == 6 { return "1\n3\n"; }
-    if index == 7 { return "720\n"; }
-    if index == 10 { return "4\n"; }
-    if index == 11 { return "2\n3\n"; }
-    if index == 12 { return "42\n73\n"; }
-    if index == 13 { return "9\n4\n"; }
-    if index == 14 { return "42\n7\n"; }
-    if index == 17 { return "42\n"; }
-    if index == 18 { return ""; }
-    if index == 19 { return "7\n9\n"; }
+    if index == 0 {
+        return "1\n";
+    }
+    if index == 1 {
+        return "3\n";
+    }
+    if index == 2 {
+        return "42\n";
+    }
+    if index == 4 {
+        return "4\n";
+    }
+    if index == 6 {
+        return "1\n3\n";
+    }
+    if index == 7 {
+        return "720\n";
+    }
+    if index == 10 {
+        return "4\n";
+    }
+    if index == 11 {
+        return "2\n3\n";
+    }
+    if index == 12 {
+        return "42\n73\n";
+    }
+    if index == 13 {
+        return "9\n4\n";
+    }
+    if index == 14 {
+        return "42\n7\n";
+    }
+    if index == 17 {
+        return "42\n";
+    }
+    if index == 18 {
+        return "";
+    }
+    if index == 19 {
+        return "7\n9\n";
+    }
     return null;
 }
 
 fn execution_core_error(index: usize): u8* {
-    if index == 3 { return "Expected i32, got u32"; }
-    if index == 8 { return "without returning"; }
-    if index == 9 { return "Expected i32, got bool"; }
-    if index == 15 { return "initializer dependency cycle a -> b -> a"; }
-    if index == 16 { return "Unknown"; }
-    if index == 20 { return "Recursive by-value"; }
-    if index == 21 { return "missing capture"; }
+    if index == 3 {
+        return "Expected i32, got u32";
+    }
+    if index == 8 {
+        return "without returning";
+    }
+    if index == 9 {
+        return "Expected i32, got bool";
+    }
+    if index == 15 {
+        return "initializer dependency cycle a -> b -> a";
+    }
+    if index == 16 {
+        return "Unknown";
+    }
+    if index == 20 {
+        return "Recursive by-value";
+    }
+    if index == 21 {
+        return "missing capture";
+    }
     return null;
 }
 
 fn execution_core_layout(session: ExecutionSession*, index: usize): void {
-    if index != 17 && index != 18 { return; }
-    var type = session.program.types.data[session.program.types.length - 1];
+    if index != 17 && index != 18 {
+        return;
+    }
+    var type = session.program.types.data[session.program.types.length -1];
     var record = sem_get(type);
     execution_check(entity_component_get(type, parser_match_get_type()) != null, "record retains parser component");
     if index == 17 {
@@ -123,7 +192,7 @@ fn execution_core_layout(session: ExecutionSession*, index: usize): void {
         execution_check(sem_get(record.items.data[0]).byte_offset == 0 && sem_get(record.items.data[1]).byte_offset == 4, "Pair layout");
     } else {
         execution_check(record.size == 20 && record.alignment == 4
-            && sem_get(record.items.data[record.items.length - 1]).byte_offset == 16, "nested raw-pointer layout");
+        && sem_get(record.items.data[record.items.length -1]).byte_offset == 16, "nested raw-pointer layout");
     }
 }
 
@@ -132,12 +201,17 @@ fn execution_generic_tests(modules: void*): void {
     fill(&session, 0, sizeof(ExecutionSession));
     execution_compile(&session, "fn box(T: type): type { struct S { value: T; next: S*; } return S; } fn id(T: type, v: T): T { return v; } var a: box(i32); var b: box(i32); a.value = id(i32, 42); b.value = a.value; print(b.value);", 4, modules);
     var root = sem_get(session.program.root);
-    var a: FoundationNode* = null; var b: FoundationNode* = null;
-    for (var i: usize = 0; i < root.items.length; i++) {
+    var a: FoundationNode* = null;
+    var b: FoundationNode* = null;
+    for(var i: usize = 0; i < root.items.length; i++) {
         var item = sem_get(root.items.data[i]);
         if item.kind == KDeclare() && item.name.length == 1 {
-            if item.name.data[0] == 97 { a = item; }
-            if item.name.data[0] == 98 { b = item; }
+            if item.name.data[0] == 97 {
+                a = item;
+            }
+            if item.name.data[0] == 98 {
+                b = item;
+            }
         }
     }
     execution_check(a != null && b != null && a.type.record == b.type.record, "same specialization retains nominal identity");
@@ -152,25 +226,25 @@ fn execution_generic_tests(modules: void*): void {
     execution_session_close(&session);
     var source = "fn broken(T: type): type { struct S { value: broken(T); } return S; } var x: broken(i32);";
     execution_check(!execution_session_compile(&session, source, strlen(source), 4, modules)
-        && strstr(session.error.data, "Recursive by-value") != null, "recursive specialization diagnostic");
+    && strstr(session.error.data, "Recursive by-value") != null, "recursive specialization diagnostic");
     execution_session_close(&session);
 }
 
 fn execution_target_tests(modules: void*): void {
     puts("Explicit target round trips");
-    for (var width: u32 = 4; width <= 8; width += 4) {
+    for(var width: u32 = 4; width <= 8; width += 4) {
         var session: ExecutionSession;
         fill(&session, 0, sizeof(ExecutionSession));
         execution_compile(&session, "struct P { tag: u8; ptr: i32*; } var size: usize = sizeof(P); print(size);", width, modules);
-        var record = sem_get(session.program.types.data[session.program.types.length - 1]);
-        execution_check(record.size == convert(usize, width) * 2 && record.alignment == convert(usize, width)
-            && sem_get(record.items.data[record.items.length - 1]).byte_offset == convert(usize, width), "explicit target struct layout");
+        var record = sem_get(session.program.types.data[session.program.types.length -1]);
+        execution_check(record.size == convert(usize, width) *2 && record.alignment == convert(usize, width)
+        && sem_get(record.items.data[record.items.length -1]).byte_offset == convert(usize, width), "explicit target struct layout");
         execution_run(&session, 7, 10000);
-        execution_check(execution_text(&session.output, width == 4 ? "8\n" : "16\n"), "target sizeof execution");
+        execution_check(execution_text(&session.output, width == 4 ? "8\n": "16\n"), "target sizeof execution");
         execution_session_close(&session);
         execution_compile(&session, "var value = 41; var p = &value; var flag = value == 41; var bp = &flag; var address = bits(usize, p); *p = 42; *bp = false; print(value); print(flag);", width, modules);
         var root = sem_get(session.program.root);
-        for (var i: usize = 0; i < root.locals.length; i++) {
+        for(var i: usize = 0; i < root.locals.length; i++) {
             execution_check(sem_get(root.locals.data[i]).type.pointer_bytes == width, "inferred locals retain selected target");
         }
         execution_run(&session, 7, 10000);
@@ -186,7 +260,7 @@ fn execution_core_tests(modules: void*): void {
     execution_compile(&session, "print(1);", 4, modules);
     execution_session_close(&session);
     var store = compiler_world_store(compiler_host_world());
-    for (var i: usize = 0; execution_core_source(i) != null; i++) {
+    for(var i: usize = 0; execution_core_source(i) != null; i++) {
         var source = execution_core_source(i);
         puts(source);
         var ok = execution_session_compile(&session, source, strlen(source), 4, modules);
@@ -225,7 +299,7 @@ fn execution_core_tests(modules: void*): void {
     // Grammar-edit trials populate the borrowed world's immutable grammar cache.
     // Check request destruction independently, then verify steady-state node use.
     var baseline = entity_store_count(store);
-    for (var i: usize = 0; i < 16; i++) {
+    for(var i: usize = 0; i < 16; i++) {
         execution_compile(&session, "print(1);", 4, modules);
         execution_run(&session, 7, 10000);
         execution_close_checked(&session);

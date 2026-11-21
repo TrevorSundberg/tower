@@ -44,7 +44,9 @@ export fn frontend_revision_release(revision: FrontendRevision*): void {
 }
 
 export fn frontend_revision_retain(revision: FrontendRevision*): FrontendRevision* {
-    if revision is not null { ++revision.references; }
+    if revision is not null {
+        ++revision.references;
+    }
     return revision;
 }
 

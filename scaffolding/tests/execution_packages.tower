@@ -16,30 +16,41 @@ import execution_support;
 
 fn execution_package_tests(modules: void*): void {
     puts("Canonical .towerbc reconstruction");
-    for (var width: u32 = 4; width <= 8; width += 4) {
-
-        var original: ExecutionSession; var decoded: ExecutionSession;
-        fill(&original, 0, sizeof(ExecutionSession)); fill(&decoded, 0, sizeof(ExecutionSession));
+    for(var width: u32 = 4; width <= 8; width += 4) {
+        var original: ExecutionSession;
+        var decoded: ExecutionSession;
+        fill(&original, 0, sizeof(ExecutionSession));
+        fill(&decoded, 0, sizeof(ExecutionSession));
         execution_compile(&original, "var p = alloc(i32, 2); p[0] = 42; print(p[0]); print(sizeof(usize)); free(p);", width, modules);
-        var bytes: ByteBuffer; var repeated: ByteBuffer; var error: ByteBuffer;
-        fill(&bytes, 0, sizeof(ByteBuffer)); fill(&repeated, 0, sizeof(ByteBuffer)); fill(&error, 0, sizeof(ByteBuffer));
+        var bytes: ByteBuffer;
+        var repeated: ByteBuffer;
+        var error: ByteBuffer;
+        fill(&bytes, 0, sizeof(ByteBuffer));
+        fill(&repeated, 0, sizeof(ByteBuffer));
+        fill(&error, 0, sizeof(ByteBuffer));
         var encoded = execution_package_encode(&original.program, modules, 0, &bytes, &error);
-        if !encoded { driver_error("Package: ", error.data ?? "no diagnostic"); }
+        if !encoded {
+            driver_error("Package: ", error.data ?? "no diagnostic");
+        }
         execution_check(encoded, "package encodes");
         execution_check(bytes.length >= 56, "complete envelope");
         execution_check(execution_package_load(&decoded, bytes.data, bytes.length, modules), "package reconstructs checked graph");
         execution_check(decoded.program.pointer_bytes == width, "target width retained");
         execution_check(execution_package_encode(&decoded.program, modules, 0, &repeated, &error), "reconstructed package re-encodes");
         execution_check(execution_equal(&bytes, &repeated), "byte-identical canonical re-encoding");
-        execution_run(&original, 7, 10000); execution_run(&decoded, 7, 10000);
+        execution_run(&original, 7, 10000);
+        execution_run(&decoded, 7, 10000);
         execution_same(&original, &decoded);
-        bytes.data[bytes.length - 1] ^= 1;
+        bytes.data[bytes.length -1] ^= 1;
         execution_check(!execution_package_load(&decoded, bytes.data, bytes.length, modules), "corrupt cache rejected");
         execution_check(execution_text(&decoded.error, ".towerbc checksum mismatch"), "exact checksum diagnostic");
         execution_check(decoded.fast == null && decoded.program.root == null, "invalid package never publishes executable state");
         execution_check(!execution_package_load(&decoded, bytes.data, 55, modules), "truncated header rejected");
-        execution_session_close(&original); execution_session_close(&decoded);
-        bytes_dispose(&bytes); bytes_dispose(&repeated); bytes_dispose(&error);
+        execution_session_close(&original);
+        execution_session_close(&decoded);
+        bytes_dispose(&bytes);
+        bytes_dispose(&repeated);
+        bytes_dispose(&error);
 
     }
 }

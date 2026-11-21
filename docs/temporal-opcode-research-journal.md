@@ -23249,3 +23249,27 @@ inventory becomes 57 functions / 121 copies. Interpreter argument cleanup uses
 an inner block to preserve release before entering the called frame; parser
 state ownership transfers explicitly clear their local owners. Detailed
 exceptions and reproduction are in docs/research/tower-cleanup-audit.md.
+
+Rebased onto 726767d, preserving the upstream Tower syntax revisions, byte/UTF-8
+test ports and shared execution sessions. Only the append-only journal conflicted;
+both histories were retained. The pre-rebase implementation hash above is a trial
+identifier; the final distributed bootstrap is regenerated from the reachable
+combined revision below. Fresh /cache/defer-rebased-clean passed all 55 default
+native targets with TOWER_BOOTSTRAP_COMPILER unset, and browser/LLVM/cross builds
+passed against the pinned successor. Production syntax/semantic code for defer
+remains entirely Tower; upstream native removals/adapter edits are separate work.
+
+The first integrated CTest invocation built execution/frontend/driver but omitted
+the enabled driver-request executable: 3/3 built suites passed, with the fourth
+reported Not Run. Build that target and rerun the complete four-suite set. The
+parser aggregate was stopped shortly after its first two passing suites because
+newly merged Tower files were not canonically formatted. Format only the incoming
+files, preserving parse equivalence/idempotence, then run the aggregate against
+frozen source. Neither interrupted run is recorded as a complete pass.
+
+Combined regressions pass 129/129 across defer, for, operators, precedence,
+inference, completion, semantic ports, projects, raw memory, module paths and
+resolution, and the fast interpreter (build/defer-rebased-tests.log). All four
+integrated native suites now pass: frontend, driver, execution and driver-request
+(build/defer-driver-request.log). The execution suite includes the upstream
+156 graph/fast trials, Foundation round trips and package contracts.

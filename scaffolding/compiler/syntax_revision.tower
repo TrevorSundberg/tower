@@ -23,16 +23,20 @@ fn syntax_revision_node(entity: void*, kind: void*): SyntaxNode* {
 
 export fn syntax_revision_create(rules: SyntaxRuleView*, count: usize, tokens: void**, token_count: usize): FrontendRevision* {
     var revision = frontend_revision_create(rules, count, tokens, token_count);
-    if revision is null { return null; }
+    if revision is null {
+        return null;
+    }
     // Module traversal supplies declaration order; consumers require name order.
     // Move only views: their names/alternatives already have stable allocations.
-    for (var i: usize = 1; i < count; ++i) {
+    for(var i: usize = 1; i < count; ++i) {
         var item: SyntaxRuleView;
         copy(&item, &revision.rules.data[i], sizeof(SyntaxRuleView));
         var at = i;
         while at != 0 {
-            var previous = &revision.rules.data[at - 1];
-            if syntax_bytes_compare(previous.name, previous.name_length, item.name, item.name_length) <= 0 { break; }
+            var previous = &revision.rules.data[at -1];
+            if syntax_bytes_compare(previous.name, previous.name_length, item.name, item.name_length) <= 0 {
+                break;
+            }
             copy(&revision.rules.data[at], previous, sizeof(SyntaxRuleView));
             --at;
         }
@@ -42,15 +46,19 @@ export fn syntax_revision_create(rules: SyntaxRuleView*, count: usize, tokens: v
 }
 
 export fn syntax_revision_rule(revision: FrontendRevision*, name: u8*, length: usize): SyntaxRuleView* {
-    if revision is null { return null; }
+    if revision is null {
+        return null;
+    }
     var index = syntax_rule_find(revision.rules.data, revision.rules.length, name, length);
-    return index == lr_none() ? null : &revision.rules.data[index];
+    return index == lr_none() ? null: &revision.rules.data[index];
 }
 
 fn syntax_revision_token(tokens: void**, count: usize, name: u8*, length: usize, kind: void*): usize {
-    for (var i: usize = 0; i < count; ++i) {
+    for(var i: usize = 0; i < count; ++i) {
         var node = syntax_revision_node(tokens[i], kind);
-        if syntax_bytes_compare(node.name.data, node.name.length, name, length) == 0 { return i; }
+        if syntax_bytes_compare(node.name.data, node.name.length, name, length) == 0 {
+            return i;
+        }
     }
     return count;
 }
@@ -60,46 +68,56 @@ fn syntax_revision_token(tokens: void**, count: usize, name: u8*, length: usize,
 // even if allocation fails at any point. No temporary vector owns entities.
 export fn syntax_revision_overlay(base: FrontendRevision*, rules: SyntaxRuleView*, count: usize,
 tokens: void**, token_count: usize, kind: void*): FrontendRevision* {
-    if count == 0 && token_count == 0 && base is not null { return frontend_revision_retain(base); }
+    if count == 0 && token_count == 0 && base is not null {
+        return frontend_revision_retain(base);
+    }
     var selected: vector(SyntaxRuleView);
     var lexical: vector(void*);
     vector_init(SyntaxRuleView, &selected);
     vector_init(void*, &lexical);
-    var before = base?.rules.length ?? 0;
-    var before_tokens = base?.tokens.length ?? 0;
+    var before = base ?. rules.length ?? 0;
+    var before_tokens = base ?. tokens.length ?? 0;
     var total = before + count;
     var total_tokens = before_tokens + token_count;
     var ok = total >= before && total_tokens >= before_tokens;
     ok &&= vector_reserve(SyntaxRuleView, &selected, total);
     ok &&= vector_reserve(void*, &lexical, total_tokens);
     if ok {
-        for (var i: usize = 0; i < before; ++i) {
+        for(var i: usize = 0; i < before; ++i) {
             copy(&selected.data[i], &base.rules.data[i], sizeof(SyntaxRuleView));
         }
         selected.length = before;
-        for (var i: usize = 0; i < count; ++i) {
+        for(var i: usize = 0; i < count; ++i) {
             var at: usize = 0;
             while at < selected.length {
                 var old = &selected.data[at];
-                if syntax_bytes_compare(old.name, old.name_length, rules[i].name, rules[i].name_length) == 0 { break; }
+                if syntax_bytes_compare(old.name, old.name_length, rules[i].name, rules[i].name_length) == 0 {
+                    break;
+                }
                 ++at;
             }
-            if at == selected.length { ++selected.length; }
+            if at == selected.length {
+                ++selected.length;
+            }
             copy(&selected.data[at], &rules[i], sizeof(SyntaxRuleView));
         }
-        for (var i: usize = 0; i < before_tokens; ++i) {
+        for(var i: usize = 0; i < before_tokens; ++i) {
             lexical.data[i] = base.tokens.data[i];
         }
         lexical.length = before_tokens;
-        for (var i: usize = 0; i < token_count; ++i) {
+        for(var i: usize = 0; i < token_count; ++i) {
             var node = syntax_revision_node(tokens[i], kind);
             var at = syntax_revision_token(lexical.data, lexical.length, node.name.data, node.name.length, kind);
-            if at == lexical.length { ++lexical.length; }
+            if at == lexical.length {
+                ++lexical.length;
+            }
             lexical.data[at] = tokens[i];
         }
     }
     var revision: FrontendRevision* = null;
-    if ok { revision = syntax_revision_create(selected.data, selected.length, lexical.data, lexical.length); }
+    if ok {
+        revision = syntax_revision_create(selected.data, selected.length, lexical.data, lexical.length);
+    }
     vector_dispose(SyntaxRuleView, &selected);
     vector_dispose(void*, &lexical);
     return revision;
@@ -107,7 +125,9 @@ tokens: void**, token_count: usize, kind: void*): FrontendRevision* {
 
 fn syntax_revision_error(error: vector(u8)*, message: u8*, name: u8*, length: usize): void {
     error.length = 0;
-    if !bytes_append(error, message, syntax_text_length(message)) || !bytes_append(error, name, length) { error.length = 0; }
+    if !bytes_append(error, message, syntax_text_length(message)) || !bytes_append(error, name, length) {
+        error.length = 0;
+    }
 }
 
 // A caller publishes the candidate only after validation/table construction.
@@ -121,8 +141,8 @@ export fn syntax_revision_declare(base: FrontendRevision*, entity: void*, kind: 
             syntax_revision_error(error, "Name already defines a parse rule: ", node.name.data, node.name.length);
             return null;
         }
-        var count = base?.tokens.length ?? 0;
-        var tokens = base?.tokens.data;
+        var count = base ?. tokens.length ?? 0;
+        var tokens = base ?. tokens.data;
         if count >= SyntaxRevisionTokenLimit() && syntax_revision_token(tokens, count, node.name.data, node.name.length, kind) == count {
             syntax_revision_error(error, "Token rule limit is 64", null, 0);
             return null;
@@ -135,13 +155,17 @@ export fn syntax_revision_declare(base: FrontendRevision*, entity: void*, kind: 
     }
     var alternatives: vector(void*);
     vector_init(void*, &alternatives);
-    var before = node.append ? previous.count : 0;
+    var before = node.append ? previous.count: 0;
     var total = before + node.items.length;
     var ok = total >= before && vector_reserve(void*, &alternatives, total);
     var result: FrontendRevision* = null;
     if ok {
-        for (var i: usize = 0; i < before; ++i) { alternatives.data[i] = previous.alternatives[i]; }
-        for (var i: usize = 0; i < node.items.length; ++i) { alternatives.data[before + i] = node.items.data[i]; }
+        for(var i: usize = 0; i < before; ++i) {
+            alternatives.data[i] = previous.alternatives[i];
+        }
+        for(var i: usize = 0; i < node.items.length; ++i) {
+            alternatives.data[before + i] = node.items.data[i];
+        }
         var rule: SyntaxRuleView;
         rule.name = node.name.data;
         rule.name_length = node.name.length;
@@ -155,13 +179,19 @@ export fn syntax_revision_declare(base: FrontendRevision*, entity: void*, kind: 
 
 export fn syntax_revision_ready(base: FrontendRevision*, waiting: void**): FrontendRevision* {
     var count: usize = 0;
-    for (var i: usize = 0; i < base.rules.length; ++i) { if waiting[i] is null { ++count; } }
-    if count == base.rules.length { return frontend_revision_retain(base); }
+    for(var i: usize = 0; i < base.rules.length; ++i) {
+        if waiting[i] is null {
+            ++count;
+        }
+    }
+    if count == base.rules.length {
+        return frontend_revision_retain(base);
+    }
     var rules: vector(SyntaxRuleView);
     vector_init(SyntaxRuleView, &rules);
     var result: FrontendRevision* = null;
     if vector_reserve(SyntaxRuleView, &rules, count) {
-        for (var i: usize = 0; i < base.rules.length; ++i) {
+        for(var i: usize = 0; i < base.rules.length; ++i) {
             if waiting[i] is null {
                 copy(&rules.data[rules.length], &base.rules.data[i], sizeof(SyntaxRuleView));
                 ++rules.length;
@@ -192,20 +222,24 @@ export fn syntax_revision_document(document: void*, kind: void*): FrontendRevisi
 export fn syntax_revision_reference(revision: FrontendRevision*, name: u8*, length: usize,
 index: usize, count: usize*, kind: void*): void* {
     *count = 0;
-    if revision is null { return null; }
+    if revision is null {
+        return null;
+    }
     var rule = syntax_revision_rule(revision, name, length);
     if rule is not null {
         *count = rule.count;
-        return index < rule.count ? rule.alternatives[index] : null;
+        return index < rule.count ? rule.alternatives[index]: null;
     }
     var at = syntax_revision_token(revision.tokens.data, revision.tokens.length, name, length, kind);
-    if at == revision.tokens.length { return null; }
+    if at == revision.tokens.length {
+        return null;
+    }
     *count = 1;
-    return index == 0 ? revision.tokens.data[at] : null;
+    return index == 0 ? revision.tokens.data[at]: null;
 }
 
 export fn syntax_revision_bedrock_error(revision: FrontendRevision*, kind: void*): u8* {
-    for (var i: usize = 0; i < revision.alternatives.length; ++i) {
+    for(var i: usize = 0; i < revision.alternatives.length; ++i) {
         if syntax_revision_node(revision.alternatives.data[i], kind).replacement is not null {
             return "Bedrock declaration rules cannot use replacement handlers yet";
         }

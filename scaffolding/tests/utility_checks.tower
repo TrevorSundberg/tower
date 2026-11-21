@@ -1,15 +1,21 @@
 import tower;
 
 extern fn puts(text: u8*): i32;
+
 extern fn abort(): void;
 
 fn utility_check(ok: bool, message: u8*): void {
-    if !ok { puts(message); abort(); }
+    if !ok {
+        puts(message);
+        abort();
+    }
 }
 
 fn utility_equal(left: u8*, right: u8*, count: usize): bool {
-    for (var index: usize = 0; index < count; ++index) {
-        if left[index] != right[index] { return false; }
+    for(var index: usize = 0; index < count; ++index) {
+        if left[index] != right[index] {
+            return false;
+        }
     }
     return true;
 }

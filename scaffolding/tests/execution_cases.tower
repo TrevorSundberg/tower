@@ -1,31 +1,84 @@
 import tower;
+
 // Fixtures retained from the retired native interpreter differential harness.
 fn execution_cases(index: usize): u8* {
-    if index == 0 { return "print(1); print(true); print(false);"; }
-    if index == 1 { return "var p: u8* = \"Tower\"; print(p[0]); print(p[4]); print(p[5]); var q = p; var same = p == q; print(same); var empty: u8* = \"\"; print(empty[0]);"; }
-    if index == 2 { return "var p = alloc(u8, 16); p[0] = 1; p[1] = 2; p[2] = 3; var q = p + 1; copy(q, p, 3); print(p[3]); q = p + 2; var negative: i32 = -1; print(q[negative]); p = realloc(u8, p, 0); print(p);"; }
-    if index == 3 { return "var x: i32 = f(7); print(x); fn f(n: i32): i32 { var b = n <= 1; if b { return 1; } var p = n - 1; p = f(p); p = p * n; return p; }"; }
-    if index == 4 { return "var n: i32 = 0; fn next(): i32 { n = n + 1; return n; } fn add(a: i32, b: i32): i32 { var result = a + b; return result; } print(add(next(), add(next(), next()))); print(n);"; }
-    if index == 5 { return "var a: i32[3]; var index: i32 = 0; fn change(): i32 { index = 1; return 42; } a[index] = change(); print(a[0]); print(a[1]);"; }
-    if index == 6 { return "var n: i32 = 0; loop { n = n + 1; var omitted = n < 3; if omitted { continue; } loop { print(n); break; } var stop = n == 5; if stop { break; } }"; }
-    if index == 7 { return "struct Pair { a: u8; b: i32; p: void*; } var pair: Pair; print(sizeof(Pair)); print(alignof(Pair)); print(sizeof(usize)); var p = &pair.b; *p = 42; print(pair.b); print(bits(usize, p)); print(p);"; }
-    if index == 8 { return "var a: i32[4]; a[2] = 31; var p = &a[2]; p = p - 1; p = p + 1; print(*p); var raw = bits(usize, p); var q = bits(i32*, raw); print(*q);"; }
-    if index == 9 { return "var p = alloc(u8, 1); fill(p, 9, 1); p = realloc(u8, p, 80); print(p[0]); var q = alloc(u8, 80); copy(q, p, 80); print(q[0]); free(p); free(q); var r = alloc(u8, 96); print(r); free(r);"; }
-    if index == 10 { return "extern fn increment(p: i32*): i32; extern fn relocate(): i32; var a: i32 = 40; var sum = increment(&a) + increment(&a); print(sum); print(a); print(relocate());"; }
-    if index == 11 { return "extern fn failure(): i32; print(failure());"; }
-    if index == 12 { return "var x: u32 = 4294967295; x = x + 1; print(x); var y: i32 = -2147483648; y = y - 1; print(y); var z: u64 = 18446744073709551615; z = z + 1; print(z); var high: u64 = 9223372036854775808; print(bits(i64, high));"; }
-    if index == 13 { return "var x: i64 = -9223372036854775808; var y: i64 = -1; var r = x / y; print(r);"; }
-    if index == 14 { return "var x: i32 = -2147483648; var r = x % -1; print(r);"; }
-    if index == 15 { return "var x: u32 = 1; var r = x / 0; print(r);"; }
-    if index == 16 { return "var x: i32 = -1; print(convert(u32, x));"; }
-    if index == 17 { return "var x: u64 = 18446744073709551615; print(convert(i64, x));"; }
-    if index == 18 { return "var x: i64 = -9223372036854775808; print(convert(i64, x)); print(convert(bool, x));"; }
-    if index == 19 { return "fn recurse(): void { recurse(); } recurse();"; }
-    if index == 20 { return "var p = bits(u8*, convert(usize, 268435456)); print(*p);"; }
-    if index == 21 { return "free(bits(u8*, convert(usize, 17)));"; }
-    if index == 22 { return "var p = realloc(u8, bits(u8*, convert(usize, 17)), 32);"; }
-    if index == 23 { return "var count: usize = 0; count = count - 1; var p = alloc(u64, count); print(p);"; }
-    if index == 24 { return "loop { print(1234567890); }"; }
-    if index == 25 { return "loop { continue; }"; }
+    if index == 0 {
+        return "print(1); print(true); print(false);";
+    }
+    if index == 1 {
+        return "var p: u8* = \"Tower\"; print(p[0]); print(p[4]); print(p[5]); var q = p; var same = p == q; print(same); var empty: u8* = \"\"; print(empty[0]);";
+    }
+    if index == 2 {
+        return "var p = alloc(u8, 16); p[0] = 1; p[1] = 2; p[2] = 3; var q = p + 1; copy(q, p, 3); print(p[3]); q = p + 2; var negative: i32 = -1; print(q[negative]); p = realloc(u8, p, 0); print(p);";
+    }
+    if index == 3 {
+        return "var x: i32 = f(7); print(x); fn f(n: i32): i32 { var b = n <= 1; if b { return 1; } var p = n - 1; p = f(p); p = p * n; return p; }";
+    }
+    if index == 4 {
+        return "var n: i32 = 0; fn next(): i32 { n = n + 1; return n; } fn add(a: i32, b: i32): i32 { var result = a + b; return result; } print(add(next(), add(next(), next()))); print(n);";
+    }
+    if index == 5 {
+        return "var a: i32[3]; var index: i32 = 0; fn change(): i32 { index = 1; return 42; } a[index] = change(); print(a[0]); print(a[1]);";
+    }
+    if index == 6 {
+        return "var n: i32 = 0; loop { n = n + 1; var omitted = n < 3; if omitted { continue; } loop { print(n); break; } var stop = n == 5; if stop { break; } }";
+    }
+    if index == 7 {
+        return "struct Pair { a: u8; b: i32; p: void*; } var pair: Pair; print(sizeof(Pair)); print(alignof(Pair)); print(sizeof(usize)); var p = &pair.b; *p = 42; print(pair.b); print(bits(usize, p)); print(p);";
+    }
+    if index == 8 {
+        return "var a: i32[4]; a[2] = 31; var p = &a[2]; p = p - 1; p = p + 1; print(*p); var raw = bits(usize, p); var q = bits(i32*, raw); print(*q);";
+    }
+    if index == 9 {
+        return "var p = alloc(u8, 1); fill(p, 9, 1); p = realloc(u8, p, 80); print(p[0]); var q = alloc(u8, 80); copy(q, p, 80); print(q[0]); free(p); free(q); var r = alloc(u8, 96); print(r); free(r);";
+    }
+    if index == 10 {
+        return "extern fn increment(p: i32*): i32; extern fn relocate(): i32; var a: i32 = 40; var sum = increment(&a) + increment(&a); print(sum); print(a); print(relocate());";
+    }
+    if index == 11 {
+        return "extern fn failure(): i32; print(failure());";
+    }
+    if index == 12 {
+        return "var x: u32 = 4294967295; x = x + 1; print(x); var y: i32 = -2147483648; y = y - 1; print(y); var z: u64 = 18446744073709551615; z = z + 1; print(z); var high: u64 = 9223372036854775808; print(bits(i64, high));";
+    }
+    if index == 13 {
+        return "var x: i64 = -9223372036854775808; var y: i64 = -1; var r = x / y; print(r);";
+    }
+    if index == 14 {
+        return "var x: i32 = -2147483648; var r = x % -1; print(r);";
+    }
+    if index == 15 {
+        return "var x: u32 = 1; var r = x / 0; print(r);";
+    }
+    if index == 16 {
+        return "var x: i32 = -1; print(convert(u32, x));";
+    }
+    if index == 17 {
+        return "var x: u64 = 18446744073709551615; print(convert(i64, x));";
+    }
+    if index == 18 {
+        return "var x: i64 = -9223372036854775808; print(convert(i64, x)); print(convert(bool, x));";
+    }
+    if index == 19 {
+        return "fn recurse(): void { recurse(); } recurse();";
+    }
+    if index == 20 {
+        return "var p = bits(u8*, convert(usize, 268435456)); print(*p);";
+    }
+    if index == 21 {
+        return "free(bits(u8*, convert(usize, 17)));";
+    }
+    if index == 22 {
+        return "var p = realloc(u8, bits(u8*, convert(usize, 17)), 32);";
+    }
+    if index == 23 {
+        return "var count: usize = 0; count = count - 1; var p = alloc(u64, count); print(p);";
+    }
+    if index == 24 {
+        return "loop { print(1234567890); }";
+    }
+    if index == 25 {
+        return "loop { continue; }";
+    }
     return null;
 }

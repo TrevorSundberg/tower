@@ -134,7 +134,8 @@ current lexical scope. Reached registrations run in reverse order on ordinary
 fallthrough, `return`, `break` and `continue`. A return value is evaluated once
 before cleanup. Loop-body cleanup runs before a `for` update; breaking an inner
 loop leaves outer-scope registrations pending. Module-scope cleanup runs after
-ordinary module execution finishes.
+all top-level program statements finish, in reverse registration order across
+the entry module and its dependencies. A shared imported module registers once.
 
 Names resolve at the registration, including locals, parameters and globals.
 Values and call arguments are read when cleanup executes. Assigning a new pointer

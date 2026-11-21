@@ -3,9 +3,13 @@ import utf8;
 import utility_checks;
 
 extern fn getpagesize(): i32;
+
 extern fn mmap(address: void*, length: usize, protection: i32, flags: i32, descriptor: i32, offset: i64): void*;
+
 extern fn mprotect(address: void*, length: usize, protection: i32): i32;
+
 extern fn munmap(address: void*, length: usize): i32;
+
 const Utf8ReadWrite: i32 = 3;
 const Utf8Private: i32 = 2;
 
@@ -13,21 +17,30 @@ const Utf8Private: i32 = 2;
 // during compilation. The inaccessible page detects generated-code overreads.
 fn utf8_boundary_tests(anonymous: i32, initial_state: u32): void {
     var page = convert(usize, getpagesize());
-    var memory = bits(u8*, mmap(null, page * 2, Utf8ReadWrite(), Utf8Private() | anonymous, -1, 0));
+    var memory = bits(u8*, mmap(null, page *2, Utf8ReadWrite(), Utf8Private() | anonymous, -1, 0));
     utility_check(bits(usize, memory) != ~convert(usize, 0), "UTF-8 mmap");
     utility_check(mprotect(bits(void*, memory + page), page, 0) == 0, "UTF-8 protect boundary");
     var scalars: u32[10];
-    scalars[0] = 0; scalars[1] = 127; scalars[2] = 128; scalars[3] = 2047;
-    scalars[4] = 2048; scalars[5] = 55296; scalars[6] = 65535;
-    scalars[7] = 65536; scalars[8] = 1114111; scalars[9] = 1114112;
+    scalars[0] = 0;
+    scalars[1] = 127;
+    scalars[2] = 128;
+    scalars[3] = 2047;
+    scalars[4] = 2048;
+    scalars[5] = 55296;
+    scalars[6] = 65535;
+    scalars[7] = 65536;
+    scalars[8] = 1114111;
+    scalars[9] = 1114112;
     var state = initial_state;
-    for (var size: usize = 0; size <= 4; ++size) {
-        var data = memory + page - size;
-        for (var trial: usize = 0; trial < 10000; ++trial) {
-            for (var index: usize = 0; index < size; ++index) { data[index] = convert(u8, utility_random(&state) & 255); }
+    for(var size: usize = 0; size <= 4; ++size) {
+        var data = memory + page -size;
+        for(var trial: usize = 0; trial < 10000; ++trial) {
+            for(var index: usize = 0; index < size; ++index) {
+                data[index] = convert(u8, utility_random(&state) &255);
+            }
             utf8_check(data, size);
         }
-        for (var index: usize = 0; index < 10; ++index) {
+        for(var index: usize = 0; index < 10; ++index) {
             fill(data, 165, size);
             var oracle: u8[4];
             fill(&oracle[0], 165, 4);
@@ -35,5 +48,5 @@ fn utf8_boundary_tests(anonymous: i32, initial_state: u32): void {
             utility_check(utility_equal(data, &oracle[0], size), "UTF-8 boundary encode bytes");
         }
     }
-    utility_check(munmap(bits(void*, memory), page * 2) == 0, "UTF-8 unmap");
+    utility_check(munmap(bits(void*, memory), page *2) == 0, "UTF-8 unmap");
 }

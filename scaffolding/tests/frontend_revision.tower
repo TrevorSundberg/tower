@@ -10,12 +10,19 @@ import frontend_format;
 import frontend_syntax_preview;
 
 extern fn syntax_revision_create(rules: SyntaxRuleView*, count: usize, tokens: void**, token_count: usize): FrontendRevision*;
+
 extern fn frontend_revision_release(revision: FrontendRevision*): void;
+
 extern fn frontend_revision_retain(revision: FrontendRevision*): FrontendRevision*;
+
 extern fn syntax_revision_declare(base: FrontendRevision*, node: void*, kind: void*, error: vector(u8)*): FrontendRevision*;
+
 extern fn syntax_revision_overlay(base: FrontendRevision*, rules: SyntaxRuleView*, count: usize, tokens: void**, token_count: usize, kind: void*): FrontendRevision*;
+
 extern fn syntax_revision_ready(base: FrontendRevision*, waiting: void**): FrontendRevision*;
+
 extern fn syntax_revision_rule(base: FrontendRevision*, name: u8*, length: usize): SyntaxRuleView*;
+
 extern fn syntax_revision_reference(base: FrontendRevision*, name: u8*, length: usize, index: usize, count: usize*, kind: void*): void*;
 
 fn revision_test_node(world: void*, parent: void*, name: u8*, length: usize, tag: u32): void* {
@@ -44,7 +51,7 @@ fn frontend_revision_tests(): void {
     var alternatives: void*[3];
     var rules: SyntaxRuleView[3];
     var waiting: void*[3];
-    for (var i: usize = 0; i < 3; ++i) {
+    for(var i: usize = 0; i < 3; ++i) {
         alternatives[i] = revision_test_node(world, source, "", 0, convert(u32, SyntaxKind.Alternative));
         rules[i].name = &names[i];
         rules[i].name_length = 1;
@@ -72,7 +79,7 @@ fn frontend_revision_tests(): void {
     vector_init(u8, &error);
     var allocations = tower_test_buffer_allocations();
     var edited = syntax_revision_declare(revision, declaration, kinds.syntax, &error);
-    var construction = tower_test_buffer_allocations() - allocations;
+    var construction = tower_test_buffer_allocations() -allocations;
     frontend_world_check(edited is not null && error.length == 0);
     var rule = syntax_revision_rule(edited, "A", 1);
     frontend_world_check(rule.count == 2 && rule.alternatives[0] == alternatives[1] && rule.alternatives[1] == alternatives[0]);
@@ -80,7 +87,7 @@ fn frontend_revision_tests(): void {
     frontend_revision_release(edited);
     var buffers = tower_test_buffer_count();
     var references = entity_references(alternatives[0]);
-    for (var i: usize = 0; i < construction; ++i) {
+    for(var i: usize = 0; i < construction; ++i) {
         tower_test_buffer_fail_after(i);
         edited = syntax_revision_declare(revision, declaration, kinds.syntax, &error);
         tower_test_buffer_fail_after(frontend_world_unlimited());
@@ -117,7 +124,7 @@ fn frontend_revision_tests(): void {
     frontend_world_check(revision.tokens.length == 2 && revision.tokens.data[0] == tokens[0]);
     frontend_revision_release(edited);
     buffers = tower_test_buffer_count();
-    for (var i: usize = 0; i < construction; ++i) {
+    for(var i: usize = 0; i < construction; ++i) {
         tower_test_buffer_fail_after(i);
         edited = syntax_revision_overlay(revision, null, 0, &overlay[0], 2, kinds.syntax);
         tower_test_buffer_fail_after(frontend_world_unlimited());
@@ -141,7 +148,7 @@ fn frontend_revision_tests(): void {
     frontend_world_check(syntax_revision_rule(revision, "M", 1) is not null);
     frontend_revision_release(ready);
     buffers = tower_test_buffer_count();
-    for (var i: usize = 0; i < construction; ++i) {
+    for(var i: usize = 0; i < construction; ++i) {
         tower_test_buffer_fail_after(i);
         ready = syntax_revision_ready(revision, &waiting[0]);
         tower_test_buffer_fail_after(frontend_world_unlimited());
@@ -150,7 +157,7 @@ fn frontend_revision_tests(): void {
     }
 
     var full_tokens: void*[64];
-    for (var i: usize = 0; i < 64; ++i) {
+    for(var i: usize = 0; i < 64; ++i) {
         var name: u8[1];
         name[0] = convert(u8, i + 32);
         full_tokens[i] = revision_test_node(world, source, &name[0], 1, convert(u32, SyntaxKind.Token));
@@ -172,7 +179,7 @@ fn frontend_revision_tests(): void {
     frontend_format_text(pin.rules.data[0].name, "A");
     buffers = tower_test_buffer_count();
     allocations = tower_test_buffer_allocations();
-    for (var i: usize = 0; i < 64; ++i) {
+    for(var i: usize = 0; i < 64; ++i) {
         var count: usize = 0;
         frontend_world_check(syntax_revision_reference(pin, "A", 1, 0, &count, kinds.syntax) == alternatives[1] && count == 1);
         frontend_world_check(syntax_revision_reference(pin, "First", 5, 0, &count, kinds.syntax) == tokens[0] && count == 1);

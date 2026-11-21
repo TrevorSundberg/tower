@@ -6,15 +6,25 @@ import .library.bytes_types;
 import .library.bytes_interface;
 
 extern fn syntax_component_type(): void*;
+
 extern fn parser_match_get_type(): void*;
+
 extern fn format_entity(out: FormatResult*, root: void*, syntax: void*, foundation: void*, match_kind: void*): void;
+
 extern fn format_dispose(out: FormatResult*): void;
+
 extern fn bytecode_validate(data: u8*, size: usize): u32;
+
 extern fn bytecode_error(code: u32): u8*;
+
 extern fn bytecode_source_size(data: u8*): usize;
+
 extern fn bytecode_pointer_bytes(data: u8*): usize;
+
 extern fn bytecode_encode(fast: void*, source: u8*, size: usize, width: usize, profile: u32, length: usize*): u8*;
+
 extern fn bytecode_matches(fast: void*, data: u8*): bool;
+
 extern fn bytecode_free(data: u8*): void;
 
 // The caller installs the canonical bundled grammar before reconstruction.
@@ -23,22 +33,32 @@ extern fn bytecode_free(data: u8*): void;
 fn execution_package_load(execution: ExecutionSession*, data: u8*, size: usize, modules: void*): bool {
     execution_session_close(execution);
     var invalid = bytecode_validate(data, size);
-    if invalid != 0 { execution_session_fail(execution, bytecode_error(invalid), 0); return false; }
+    if invalid != 0 {
+        execution_session_fail(execution, bytecode_error(invalid), 0);
+        return false;
+    }
     var length = bytecode_source_size(data);
     var source = data + 56;
-    for (var i: usize = 0; i < length; i++) {
-        if source[i] == 0 { execution_session_fail(execution, "NUL in .towerbc Foundation source", 0); return false; }
+    for(var i: usize = 0; i < length; i++) {
+        if source[i] == 0 {
+            execution_session_fail(execution, "NUL in .towerbc Foundation source", 0);
+            return false;
+        }
     }
     var text: ByteBuffer;
     fill(&text, 0, sizeof(ByteBuffer));
     if !bytes_assign_text(&text, source, length) {
-        execution_session_fail(execution, "Unable to allocate .towerbc Foundation source", 0); return false;
+        execution_session_fail(execution, "Unable to allocate .towerbc Foundation source", 0);
+        return false;
     }
     var ok = execution_session_compile(execution, text.data, text.length, convert(u32, bytecode_pointer_bytes(data)), modules);
     bytes_dispose(&text);
-    if !ok { return false; }
+    if !ok {
+        return false;
+    }
     if !execution_session_fast(execution) || !bytecode_matches(execution.fast, data) {
-        execution_session_fail(execution, bytecode_error(9), 0); return false;
+        execution_session_fail(execution, bytecode_error(9), 0);
+        return false;
     }
     return true;
 }
@@ -49,7 +69,9 @@ fn execution_package_encode(program: SemanticProgram*, modules: void*, profile: 
     output.length = 0;
     error.length = 0;
     if program.error.length != 0 {
-        if !bytes_assign_text(error, program.error.data, program.error.length) { abort(); }
+        if !bytes_assign_text(error, program.error.data, program.error.length) {
+            abort();
+        }
         return false;
     }
     var formatted: FormatResult;
@@ -58,20 +80,33 @@ fn execution_package_encode(program: SemanticProgram*, modules: void*, profile: 
     var canonical: ExecutionSession;
     fill(&canonical, 0, sizeof(ExecutionSession));
     var ok = !formatted.failed;
-    if !ok { execution_session_fail(&canonical, "Unable to allocate canonical formatted source", 0); }
-    if ok { ok = execution_session_compile(&canonical, formatted.text.data, formatted.text.length, program.pointer_bytes, modules); }
+    if !ok {
+        execution_session_fail(&canonical, "Unable to allocate canonical formatted source", 0);
+    }
+    if ok {
+        ok = execution_session_compile(&canonical, formatted.text.data, formatted.text.length, program.pointer_bytes, modules);
+    }
     if ok {
         ok = execution_session_fast(&canonical);
-        if !ok { execution_session_fail(&canonical, "Unable to allocate interpreter cache", 0); }
+        if !ok {
+            execution_session_fail(&canonical, "Unable to allocate interpreter cache", 0);
+        }
     }
     if ok {
         var size: usize = 0;
         var data = bytecode_encode(canonical.fast, formatted.text.data, formatted.text.length, convert(usize, program.pointer_bytes), profile, &size);
         ok = data != null;
-        if ok { ok = bytes_append(output, data, size); bytecode_free(data); }
-        if !ok { execution_session_fail(&canonical, "Cannot allocate .towerbc package", 0); }
+        if ok {
+            ok = bytes_append(output, data, size);
+            bytecode_free(data);
+        }
+        if !ok {
+            execution_session_fail(&canonical, "Cannot allocate .towerbc package", 0);
+        }
     }
-    if !ok && !bytes_assign_text(error, canonical.error.data, canonical.error.length) { abort(); }
+    if !ok && !bytes_assign_text(error, canonical.error.data, canonical.error.length) {
+        abort();
+    }
     execution_session_close(&canonical);
     format_dispose(&formatted);
     return ok;
