@@ -37976,3 +37976,35 @@ pipeline_threads_checks.log, pipeline_heap_checks.log and pipeline_browser.log.
 The existing browser config/work-fixture transport accepts explicit frozen inputs
 so verification need not depend on mutable default build outputs. No sanitizer,
 broad formatting sweep, new C++/Python code or compiler syntax migration.
+
+The next pull rebased the implementation to 797f54a atop 7425a14, including the
+published narrow-integer compiler/resources (bootstrap SHA-256
+0d752e7dc35a0a8951872cf52d96873bb1e1cab2b3fe63d9b147e64e5deecca8).
+The isolated before/after numbers above remain the pre-rebase controlled pair,
+not a measurement of those incoming language changes. A fresh archive of 797f54a
+is the release input; no private bootstrap override is set.
+
+Twelve additional browser diagnostics/import/warmup checks passed. The inference
+display check failed on both candidate and unchanged baseline because current
+shared-node lowering names intermediate values instead of retaining a direct
+call/address initializer. Updated only its UI assertions to require explicit
+inferred scalar/pointer types while preserving the matching execution/cycle/error
+checks. Both devices then pass (pipeline_inference_fixed.log). Baseline failure
+evidence is pipeline_inference_baseline.log; initial additional checks are
+pipeline_diagnostics.log. This was a stale expected text shape, not relaxed
+compiler or package validation.
+
+Release validation for frozen compiler input 797f54a: a clean native successor,
+portable and shared-memory reactors, LLVM/cross reactors, complete native target
+support packs and the editable compiler recipe were built using the checked-in
+public bootstrap above, with TOWER_BOOTSTRAP_COMPILER unset. Runtime/package/LLVM
+checks passed 79/79; shared-memory package/overlap/failure/determinism checks passed
+8/8. Two successive editable browser compiler generations passed with two then
+four workers and edited semantic behavior. Logs: build/pipeline_release_native.log,
+pipeline_release_wasm.log, pipeline_release_threads.log, pipeline_release_llvm.log,
+pipeline_release_targets.log, pipeline_release_runtime_tests.log,
+pipeline_release_thread_tests.log and pipeline_release_generations.log.
+
+Deferred frontend requests snapshot mutable project files at admission; immutable
+installed compiler/link bytes remain borrowed until postMessage. Worker failure
+clears pending dispatch, and revision checks still reject obsolete replies.

@@ -415,7 +415,7 @@ function execute() {
     if (id !== executionId) return;
     for (const backend of backends) {
       const runner = runners[backend];
-      if (!runner?.request) continue;
+      if (!runner?.request || !runner.worker) continue;
       runner.worker.postMessage({...runner.request,formatted});
       runner.request = null;
     }
@@ -426,6 +426,7 @@ function execute() {
     const runner = runners[backend] = { id, worker, output: '', timings: {} };
     setPhase(backend,'Loading…');
     const finish = () => {
+      runner.request = null;
       // If frontend production failed, let waiting backends report their own
       // diagnostic through the ordinary request path instead of stranding them.
       if (backend === frontendBackend) dispatchDependents();
@@ -492,7 +493,10 @@ function execute() {
     };
     const request = {compiler:compilerSelection(), library:project.library ?? '.tower',  id, source: text, foundation, bedrock, backend, files:editingModule ? undefined : projectSources(project), drive:project.files, builtins:project.builtins, entry:editingModule ? activePath : projectSources(project)[0]?.path, pointerBytes:selectedTargets.wasm || !selectedNativeKeys().length ? 4 : 8, inputs:linkInputsForTarget(linkInputs,'wasm') ,optimize:$('optimize').checked,comments:$('preserve-comments').checked};
     if (backend === frontendBackend) worker.postMessage(request);
-    else runner.request = request;
+    // Editing mutates project sources before the next compilation is admitted.
+    // Installed reactor/link buffers are immutable; keep those borrowed until
+    // postMessage rather than copying large compiler binaries an extra time.
+    else runner.request = {...request,...structuredClone({files:request.files,drive:request.drive,builtins:request.builtins})};
   }
   if(buildKeys().length) compileNative(id,text);
   updateComparison();
