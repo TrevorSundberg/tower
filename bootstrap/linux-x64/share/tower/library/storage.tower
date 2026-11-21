@@ -1,0 +1,155 @@
+import bytes;
+import tower;
+
+// Concrete arena and map helpers; byte buffers live in bytes.tower.
+// Callers initialize these structs, check allocation results, and own disposal.
+// A byte arena with 16-byte allocation alignment. Reset invalidates its views.
+struct ByteArena {
+    data: u8*;
+    used: usize;
+    capacity: usize;
+}
+
+export fn arena_init(arena: ByteArena*, capacity: usize): bool {
+    arena.data = alloc(u8, capacity);
+    arena.used = 0;
+    arena.capacity = capacity;
+    var ok: bool = arena.data != null;
+    return ok;
+}
+
+export fn arena_take(arena: ByteArena*, count: usize): u8* {
+    if arena.data == null {
+        return null;
+    }
+    var rounded: usize = count + 15;
+    if rounded < count {
+        return null;
+    }
+    rounded = rounded / 16;
+    rounded = rounded * 16;
+    var left: usize = arena.capacity -arena.used;
+    if rounded > left {
+        return null;
+    }
+    var result: u8* = arena.data + arena.used;
+    arena.used = arena.used + rounded;
+    return result;
+}
+
+export fn arena_reset(arena: ByteArena*): void {
+    arena.used = 0;
+}
+
+export fn arena_dispose(arena: ByteArena*): void {
+    free(arena.data);
+    arena.data = null;
+    arena.used = 0;
+    arena.capacity = 0;
+}
+
+// Concrete u32 -> i32 open-addressed map. All u32 keys are available; no deletes.
+struct IntMapSlot {
+    key: u32;
+    value: i32;
+    occupied: bool;
+}
+
+struct IntMap {
+    slots: IntMapSlot*;
+    count: usize;
+    capacity: usize;
+}
+
+export fn map_init(map: IntMap*): void {
+    map.slots = null;
+    map.count = 0;
+    map.capacity = 0;
+}
+
+fn map_index(key: u32, capacity: usize): usize {
+    var hash: u32 = key *2654435761;
+    var wide: usize = convert(usize, hash);
+    wide = wide % capacity;
+    return wide;
+}
+
+fn map_insert(map: IntMap*, key: u32, value: i32): void {
+    var index: usize = map_index(key, map.capacity);
+    loop {
+        if !map.slots[index].occupied {
+            map.slots[index].key = key;
+            map.slots[index].value = value;
+            map.slots[index].occupied = true;
+            map.count++;
+            return;
+        }
+        if map.slots[index].key == key {
+            map.slots[index].value = value;
+            return;
+        }
+        index++;
+        index = index % map.capacity;
+    }
+}
+
+export fn map_set(map: IntMap*, key: u32, value: i32): bool {
+    var half: usize = map.capacity / 2;
+    if map.count >= half {
+        var capacity: usize = map.capacity *2;
+        if capacity < map.capacity {
+            return false;
+        }
+        if capacity == 0 {
+            capacity = 8;
+        }
+        var slots: IntMapSlot* = alloc(IntMapSlot, capacity);
+        if slots == null {
+            return false;
+        }
+        var size: usize = sizeof(IntMapSlot);
+        var bytes: usize = capacity *size;
+        fill(slots, 0, bytes);
+        var old: IntMapSlot* = map.slots;
+        var length: usize = map.capacity;
+        map.slots = slots;
+        map.capacity = capacity;
+        map.count = 0;
+        var i: usize = 0;
+        loop {
+            if i == length {
+                break;
+            }
+            if old[i].occupied {
+                map_insert(map, old[i].key, old[i].value);
+            }
+            i++;
+        }
+        free(old);
+    }
+    map_insert(map, key, value);
+    return true;
+}
+
+export fn map_get(map: IntMap*, key: u32, result: i32*): bool {
+    if map.capacity == 0 {
+        return false;
+    }
+    var index: usize = map_index(key, map.capacity);
+    loop {
+        if !map.slots[index].occupied {
+            return false;
+        }
+        if map.slots[index].key == key {
+            *result = map.slots[index].value;
+            return true;
+        }
+        index++;
+        index = index % map.capacity;
+    }
+}
+
+export fn map_dispose(map: IntMap*): void {
+    free(map.slots);
+    map_init(map);
+}

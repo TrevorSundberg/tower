@@ -34,6 +34,10 @@ Do NOT modify todo.txt
 
 ## Implementation language
 
+- Before translating any script or tool, audit its callers and first consider
+  removing the step or simplifying it with existing capabilities. Write Tower
+  only for the smallest remaining required behavior; do not preserve unnecessary
+  tooling merely to port it.
 - Write all new project-owned code in Tower (`.tower`). This includes compiler
   and runtime code, tests, experiments, samples, drivers, benchmarks, audits,
   migration/generation tools and validation helpers. Temporary, ignored and

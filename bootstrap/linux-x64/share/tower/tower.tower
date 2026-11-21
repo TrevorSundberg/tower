@@ -1,0 +1,117 @@
+import foundation;
+
+// This is an ordinary source module supplying Tower's surface language.
+// `import tower;` resolves this file, not the compiler or its Wasm binary.
+// An existing compiler reads these rules while compiling its successor;
+// the successor does not need to run before its own source can be compiled.
+// Calls may omit all `type` parameters when their exact types can be deduced
+// from runtime operands. This reuses ordinary call syntax and shared-node
+// specialization; explicit type arguments remain supported for ambiguity.
+// Ordinary Foundation var declarations carry named values. Mutation/escape
+// analysis and ordinary staged execution infer fixed compile-time bindings;
+// no extra declaration rule, keyword or accessor function is needed.
+
+parse CoreEnumMember |= $name:Identifier;
+
+// Structured surface control flow. Tower semantic lowering attaches only existing
+// Foundation operations to these shared nodes; every body is a lexical block.
+parse TowerMatchLiteral = Number | '-' Number | 'true' | 'false' | CoreLocation;
+parse TowerMatchPatterns = TowerMatchLiteral | TowerMatchPatterns '|' TowerMatchLiteral;
+parse TowerMatchArm = $patterns:TowerMatchPatterns '=>' $body:CoreBlock ','?;
+parse TowerMatchDefault = '_' '=>' $body:CoreBlock ','?;
+parse TowerMatch = 'match' $value:CoreValue '{' $arms:TowerMatchArm* $fallback:TowerMatchDefault '}';
+parse TowerWhile = 'while' $condition:CoreValue $body:CoreBlock;
+parse Statement |= TowerMatch | TowerWhile;
+
+// Higher-level expression grammar; Foundation itself keeps its small operands.
+parse Statement = ';';
+parse TowerExpression = CoreLocation | CoreCall | Number | String | 'true' | 'false' | 'null'
+                       | '(' $value:TowerComma ')';
+parse TowerPostfixOperator = '++' | '--' @ 150 left;
+parse TowerExpression |= $left:TowerExpression TowerPostfixOperator @ 150 left;
+parse TowerPrefixOperator = '+' | '-' | '!' | '~' | '&' | '++' | '--' | 'not' | 'compl' | 'bitand' @ 140 right;
+parse TowerExpression |= TowerPrefixOperator $right:TowerExpression | '*' $right:TowerExpression @ 140 right;
+parse TowerExpression |= '*' @ 140 right;
+parse TowerExpression |= $left:TowerExpression '*' @ 130 left;
+parse TowerProductOperator = '/' | '%' @ 130 left;
+parse TowerExpression |= $left:TowerExpression '*' $right:TowerExpression
+                        | $left:TowerExpression TowerProductOperator $right:TowerExpression @ 130 left;
+parse TowerAdditiveOperator = '+' | '-' @ 120 left;
+parse TowerExpression |= $left:TowerExpression TowerAdditiveOperator $right:TowerExpression @ 120 left;
+parse TowerShiftOperator = '<<' | '>>' | '>>>' @ 110 left;
+parse TowerExpression |= $left:TowerExpression TowerShiftOperator $right:TowerExpression @ 110 left;
+parse TowerExpression |= $left:TowerExpression '<=>' $right:TowerExpression @ 100 left;
+parse TowerRelationalOperator = '<' | '<=' | '>' | '>=' @ 90 left;
+parse TowerExpression |= $left:TowerExpression TowerRelationalOperator $right:TowerExpression @ 90 left;
+parse TowerExpression |= $left:TowerExpression 'is' 'null' @ 90 left
+    => replace { $left == null };
+parse TowerExpression |= $left:TowerExpression 'is' 'not' 'null' @ 90 left
+    => replace { $left != null };
+parse TowerEqualityOperator = '==' | '!=' | 'not_eq' @ 80 left;
+parse TowerExpression |= $left:TowerExpression TowerEqualityOperator $right:TowerExpression @ 80 left;
+parse TowerBitAndOperator = '&' | 'bitand' @ 70 left;
+parse TowerExpression |= $left:TowerExpression TowerBitAndOperator $right:TowerExpression @ 70 left;
+parse TowerBitXorOperator = '^' | 'xor' @ 60 left;
+parse TowerExpression |= $left:TowerExpression TowerBitXorOperator $right:TowerExpression @ 60 left;
+parse TowerBitOrOperator = '|' | 'bitor' @ 50 left;
+parse TowerExpression |= $left:TowerExpression TowerBitOrOperator $right:TowerExpression @ 50 left;
+parse TowerAndOperator = '&&' | 'and' @ 40 left;
+parse TowerExpression |= $left:TowerExpression TowerAndOperator $right:TowerExpression @ 40 left;
+parse TowerOrOperator = '||' | 'or' @ 30 left;
+parse TowerExpression |= $left:TowerExpression TowerOrOperator $right:TowerExpression @ 30 left;
+parse TowerExpression |= $left:TowerExpression '??' $right:TowerExpression @ 20 right;
+parse TowerExpression |= $condition:TowerExpression '?' $body:TowerComma ':' $otherwise:TowerExpression @ 10 right;
+parse TowerAssignmentOperator = '=' | '+=' | '-=' | '*=' | '/=' | '%=' | '<<=' | '>>=' | '>>>=' | '&=' | '^='
+                               | '|=' | '&&=' | '||=' | '??=' | 'and_eq' | 'xor_eq' | 'or_eq' @ 10 right;
+parse TowerExpression |= $left:TowerExpression TowerAssignmentOperator $right:TowerExpression @ 10 right;
+parse TowerComma = TowerExpression | $left:TowerComma ',' $right:TowerExpression;
+parse TowerNullAccess = $base:TowerExpression '?.' $field:Identifier
+                       | $base:TowerExpression '?[' $index:TowerExpression ']' @ 150 left;
+parse TowerNullAccess |= $base:TowerNullAccess '.' $field:Identifier
+                        | $base:TowerNullAccess '[' $index:TowerExpression ']' @ 150 left;
+parse TowerExpression |= TowerNullAccess;
+parse CoreLocation |= '(' $base:TowerComma ')' '.' $field:Identifier
+                     | '(' $base:TowerComma ')' '[' $index:TowerExpression ']'
+                     | $base:CoreCall '.' $field:Identifier | $base:CoreCall '[' $index:TowerExpression ']';
+// Disable the Foundation binary alternative before activating nested operands.
+parse CoreValue = CoreOperand;
+parse CoreCallArgument = CoreOperand;
+parse CoreOperand = TowerExpression;
+// Unevaluated type query. Semantic resolution uses ordinary bindings/types;
+// canonical Foundation spells the resolved type, with no runtime query call.
+parse TowerDecltype = 'decltype' '(' $value:TowerExpression ')';
+parse CoreType |= TowerDecltype;
+parse TowerExpression |= TowerDecltype;
+parse TowerComptime = 'comptime' '(' $value:TowerExpression ')';
+parse TowerExpression |= TowerComptime;
+// Contextual zero value. Aggregate defaults initialize their destination in place.
+parse TowerDefault = 'default' | 'default' '(' $type:CoreType ')';
+parse TowerExpression |= TowerDefault;
+// Named construction initializes destination storage, including value temporaries.
+// Bare braces require an entry so an empty statement block stays unambiguous.
+parse TowerInitializerDefault = '..' 'default';
+parse TowerInitializerField = $name:Identifier ':' $value:CoreValue;
+parse TowerInitializerEntry = TowerInitializerField | TowerInitializerDefault;
+parse TowerInitializerEntries = TowerInitializerEntry | TowerInitializerEntries ',' TowerInitializerEntry;
+parse TowerInitializerFields = TowerInitializerEntries ','?;
+// A nonempty block starts with its first statement rather than reducing an
+// empty Statement* before that token. This lets ':' distinguish named fields.
+parse CoreBlock = '{' '}' | '{' Statement Statement* '}';
+parse TowerInitializer = '{' $fields:TowerInitializerFields '}'
+    | 'init' '(' $type:CoreType ')' '{' $fields:TowerInitializerFields? '}' @ 160 right;
+parse TowerExpression |= TowerInitializer;
+parse TowerExpressionStatement = $value:TowerComma ';';
+parse TowerDefer = 'defer' $body:TowerExpressionStatement | 'defer' $body:CoreBlock;
+// A scoped initializer, a bool test before each iteration, and an update after
+// the body (including continue). Empty clauses mean no initialization/test/update.
+// Borrowed finite traversal resolves ordinary functions on the nominal owner.
+parse TowerIterationBorrow = '&';
+parse TowerForeach = 'foreach' '(' 'var' $borrow:TowerIterationBorrow? $name:Identifier 'in' $source:CoreValue ')' $body:CoreBlock;
+parse TowerForInitial = CoreDeclare | TowerExpressionStatement | ';';
+parse TowerForCondition = TowerComma?;
+parse TowerForStep = TowerComma?;
+parse TowerFor = 'for' '(' $initial:TowerForInitial $condition:TowerForCondition ';' $step:TowerForStep ')' $body:CoreBlock;
+parse Statement = CoreDeclare | CoreBlock | CoreIf | CoreLoop | CoreBreak | CoreContinue | CoreFunction
+                 | CoreReturn | CoreStruct | CoreEnum | CoreExternal | CoreExport
+                 | TowerMatch | TowerWhile | TowerFor | TowerForeach | TowerDefer
+                 | TowerExpressionStatement;

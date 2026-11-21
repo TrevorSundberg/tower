@@ -35655,3 +35655,88 @@ also emits actual Linux x64 and Wasm objects for known_parallel_unit.tower
 (ecs-backend-known-{build,tests,check}.log). No sanitizer sweep or full browser
 matrix was repeated during these edits. The next publication needs regenerated
 frontend artifacts because the shared pool/semantic code changed.
+
+## 2026-11-21: Superseding the installer with directly runnable bootstrap files
+
+User steering changed the implementation decision: for **every** Python or
+other-language script, first ask whether the step can disappear or be simplified
+with existing capabilities; translate only the smallest required remainder.
+Added that concise rule to AGENTS.md. The just-validated Tower installer is an
+example of code we can avoid, so it is retired instead of becoming a new
+bootstrap requirement. Its implementation and trials remain at 619b885 and in
+the preceding journal entry. The initial installer executable was never pushed.
+
+Caller audit found the default bootstrap wrapper was the only active installer
+caller. The compiler already locates adjacent resources and runs from a relocated
+directory. Therefore unpacking into a hash-addressed cache on every new machine
+is unnecessary: check in that complete compiler directory and execute it there.
+This preserves the single Linux x64/Docker bootstrap route without installation,
+archive decoding, JSON parsing at startup, cache races or staging cleanup.
+
+Final layout and retained contracts:
+
+- `bootstrap/linux-x64/towerc` and its 30 accompanying resources/license are
+  unpacked byte-for-byte from the existing 2292bd8 archive. Executable SHA-256
+  remains `7ef1e6da14b9de1c5e06df2cc75ff8cb1058fb6ea5bd4c57a0a0f243ca28dc16`.
+  The archive is removed; there is no new compiler build or semantic migration
+  in this pin. Git records towerc as executable. Frozen resource attributes
+  preserve exact bytes on Windows and identify them as generated distribution
+  artifacts, not newly authored Tower/LLVM source for language-percentage claims.
+- The existing shell boundary runs platform `sha256sum --check --status` over
+  the 31-member SHA256SUMS file, checks the executable bit and returns the
+  checked-in compiler path. It creates no bootstrap cache and invokes no Python.
+  The explicit development compiler override still works. Broader upstream
+  tools and CMake/shell entry points remain separate migration work.
+- `development.json` schema 2 describes directory/executable/checksum-list
+  paths; its top-level sha256 is the compiler hash. Existing member hashes,
+  sizes, build/source/predecessor provenance and source patch remain unchanged.
+  `archive_origin` records the previous archive hash/path as history. No other
+  active repository caller depended on the old schema/installer. The README
+  documents the new pin update procedure and distinguishes platform scope.
+- The infrequent publishing tool still needs to snapshot complete resources,
+  source provenance and checksums. `package_bootstrap` now writes a directly
+  runnable candidate directory, plain SHA256SUMS and schema-2 manifest using
+  the existing Tower SHA-256, file and process capabilities. It retains atomic
+  no-replace publication, mode setting, input bounds and a source patch. It
+  rejects control/backslash/path-traversal names so checksum records cannot be
+  injected. Normal builds do not require running this publishing tool.
+
+Removed install.py (83 lines), the experimental Tower installer/JSON/archive
+readers and their dedicated tests, and the now-unused bootstrap tar/gzip writers
+and archive test. Keep only the live Roku ZIP/CRC/DEFLATE implementation and
+SHA-256/file/process helpers actually used by the remaining tools. The removed
+Tower files total 1586 lines; shared packager edits are separate from that count.
+This is a simplification of the required behavior, not just language translation.
+Eighteen tracked Python files remain, plus inline Python identified above.
+
+Validation before publication:
+
+- All 31 directly checked-in members pass the independent SHA256SUMS check
+  against the original manifest. No member bytes were normalized. Git's generic
+  whitespace check reports only the original upstream LLVM license's trailing
+  blank line; preserve that exact licensed artifact/hash. The scoped check for
+  the remaining changes passes.
+- After integrating upstream b24847b, the earlier Tower-installer route built
+  all 54 native steps with `/usr/bin/python3.12` unavailable in its disposable
+  Docker container, and its three-tool/installer build passed. This evidence
+  belongs to the superseded route, not the final design.
+- The direct route was then tested in fresh `/cache/direct_bootstrap_successor`
+  and `/cache/direct_bootstrap_tools` directories, again with Python unavailable
+  and no private compiler override. Documented build-native.sh passes all 54
+  steps; build-bootstrap.sh --tools passes all five steps and builds the three
+  required tools. Successor SHA-256 is
+  `138eb52384e7a2995889de64c62b5833a202d9fb202cf24029c730d95a509858`, identical
+  to the successor built through the temporary installer route. Graph and fast
+  known_bindings each print zero failures.
+- The revised packager writes `/cache/direct_bootstrap_candidate` and
+  `/cache/direct_bootstrap_repeat`; recursive byte comparison of both complete
+  directories passes. Every candidate member passes system sha256sum; towerc
+  is byte-identical to the supplied successor and mode 755. From unrelated cwd
+  `/tmp`, that candidate compiles struct_values and its native executable prints
+  zero failures. Attempting to overwrite the candidate fails and leaves both
+  directories byte-identical. No archive or installer participates in these tests.
+
+Before the final push, verify a clean Git checkout's executable/resource bytes
+and the checksum guard. Then publish metadata while preserving the current
+verified runtime. Continue the Python-first audit by eliminating unnecessary
+steps before considering the smallest required Tower replacements.

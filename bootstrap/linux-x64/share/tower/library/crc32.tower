@@ -1,0 +1,17 @@
+import tower;
+
+// IEEE CRC-32, reflected polynomial, with the ZIP/zlib initial/final complement.
+// Pass zero for the first chunk and the preceding result for subsequent chunks.
+// Explicit bytes and fixed-width integer operations make this host independent.
+fn crc32_update(previous: u32, data: u8*, length: usize): u32 {
+    var polynomial: u32 = 3988292384; // reflected IEEE polynomial 0xedb88320
+    var bits_per_byte: u32 = 8;
+    var state = ~previous;
+    for (var at: usize = 0; at < length; at++) {
+        state ^= convert(u32, data[at]);
+        for (var bit: u32 = 0; bit < bits_per_byte; bit++) {
+            state = (state >> 1) ^ ((state & 1) != 0 ? polynomial : 0);
+        }
+    }
+    return ~state;
+}

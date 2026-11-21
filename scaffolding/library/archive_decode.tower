@@ -1,8 +1,0 @@
-import tower;
-
-// Shared bounded archive-reader outcomes. Failure never publishes partial data.
-enum ArchiveDecodeResult: i32 {
-    Ok, Truncated, InvalidHeader, InvalidBlock, InvalidTree, InvalidCode,
-    InvalidDistance, InvalidName, DuplicateName, Unsupported, Checksum,
-    Limit, AllocationFailure
-}

@@ -1,5 +1,4 @@
 {
-  "archive": "linux-x64/towerc.tar.gz",
   "build": {
     "command": "playground/scripts/build-native.sh",
     "compiler": "Clang 19.1.1",
@@ -154,8 +153,8 @@
     }
   },
   "host": "linux-x64-ubuntu24-llvm19",
-  "schema": 1,
-  "sha256": "2292bd8abc4761ba0e62f6c2fb8fee2f482c5273f2a267402fe09d5d34d9913a",
+  "schema": 2,
+  "sha256": "7ef1e6da14b9de1c5e06df2cc75ff8cb1058fb6ea5bd4c57a0a0f243ca28dc16",
   "source_base_revision": "9736da81447d3508c3be2d40c49176648eade937",
   "source_files": {
     "CMakeLists.txt": "d8e127a9650b1e9d36db4d59c77b259965cec188e0a5f8fbc6ef5896c08a2e40",
@@ -848,5 +847,13 @@
     "scaffolding/tools/tool_files_posix.tower": "cb9b46ef84e9bd9d198a3690b47b21eb58daa658c21d1902c77d6ccb43814e54",
     "scaffolding/tower.tower": "b19a573581194c4081715872da396cc9bd89b54afc44873a1fdf130e58566123"
   },
-  "source_identity": "Exact source_files hashes include the working changes accompanying this bootstrap update."
+  "source_identity": "Exact source_files hashes include the working changes accompanying this bootstrap update.",
+  "directory": "linux-x64",
+  "executable": "linux-x64/towerc",
+  "checksums": "linux-x64/SHA256SUMS",
+  "archive_origin": {
+    "sha256": "2292bd8abc4761ba0e62f6c2fb8fee2f482c5273f2a267402fe09d5d34d9913a",
+    "path": "linux-x64/towerc.tar.gz",
+    "note": "Compiler and every resource unpacked byte-for-byte from the previous checked-in archive; no rebuild or semantic change."
+  }
 }

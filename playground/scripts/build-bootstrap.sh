@@ -6,12 +6,14 @@ if [ "$#" -gt 1 ] || { [ "$#" -eq 1 ] && [ "$1" != --tools ]; }; then
   exit 2
 fi
 # An explicit compiler remains useful for predecessor/successor comparisons.
-# Otherwise install the checked-in, hash-pinned development bootstrap.
+# Otherwise verify and run the checked-in compiler/resources directly.
 if [ -n "${TOWER_BOOTSTRAP_COMPILER:-}" ]; then
   test -x "$TOWER_BOOTSTRAP_COMPILER"
   bootstrap="$TOWER_BOOTSTRAP_COMPILER"
 else
-  bootstrap="$(python3 "$repo/bootstrap/install.py")"
+  (cd "$repo/bootstrap/linux-x64" && sha256sum --check --status SHA256SUMS)
+  bootstrap="$repo/bootstrap/linux-x64/towerc"
+  test -x "$bootstrap"
 fi
 if [ "${1:-}" = --tools ]; then
   config="${LLVM_CONFIG:-llvm-config-19}"

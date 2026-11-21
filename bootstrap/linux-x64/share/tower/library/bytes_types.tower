@@ -1,0 +1,9 @@
+import tower;
+
+// Raw byte-buffer ownership. Initialize once, dispose once; structs are not copied.
+// Growth may move data. Failure preserves the pointer, length, capacity and bytes.
+struct ByteBuffer {
+    data: u8*;
+    length: usize;
+    capacity: usize;
+}

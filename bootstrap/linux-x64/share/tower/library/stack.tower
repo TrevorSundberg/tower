@@ -1,0 +1,27 @@
+import vector;
+import tower;
+
+// A stack is a vector policy, sharing its storage and allocation contract.
+fn stack(T: type): type {
+    return vector(T);
+}
+
+fn stack_init(T: type, value: stack(T)*): void {
+    vector_init(value);
+}
+
+fn stack_push(T: type, value: stack(T)*, element: T): bool {
+    return vector_push(value, element);
+}
+
+fn stack_pop(T: type, value: stack(T)*, output: T*): bool {
+    return vector_pop(value, output);
+}
+
+fn stack_move(T: type, destination: stack(T)*, source: stack(T)*): void {
+    vector_move(destination, source);
+}
+
+fn stack_dispose(T: type, value: stack(T)*): void {
+    vector_dispose(value);
+}

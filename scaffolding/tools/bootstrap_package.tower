@@ -8,15 +8,14 @@ import .library.vector;
 import .library.bytes;
 import .library.bytes_types;
 import .library.sha256;
-import .library.tar_archive;
-import .library.gzip_archive;
+import .library.zip_archive;
 import .compiler.host_text;
 import .compiler.utf8;
 import .host.driver_files;
 
 var BootstrapCaptureLimit: usize = 67108864;
-var BootstrapArchiveLimit: usize = 1073741824;
-var BootstrapSchema: u64 = 1;
+var BootstrapInputLimit: usize = 1073741824;
+var BootstrapSchema: u64 = 2;
 var BootstrapHexBytes: usize = 64;
 var BootstrapRegularMode: u32 = 420;
 var BootstrapExecutableMode: u32 = 493;
@@ -32,6 +31,8 @@ struct BootstrapInputs {
     ldd: u8*;
 }
 
+extern fn chmod(path: u8*, mode: u32): i32;
+
 fn bootstrap_text(out: ByteBuffer*, text: u8*): bool { return bytes_append(out, text, strlen(text)); }
 fn bootstrap_string(out: ByteBuffer*, text: u8*, length: usize): bool {
     return tower_utf8_validate(text, length, 0) != 0 && host_json_quote(out, text, length);
@@ -42,6 +43,17 @@ fn bootstrap_hash(out: ByteBuffer*, data: u8*, length: usize): bool {
     var digest = sha256_finish(&state); var hex: u8[65];
     sha256_hex(&digest, &hex[0]);
     return host_json_quote(out, &hex[0], BootstrapHexBytes);
+}
+
+// Plain sha256sum records cannot encode newlines/backslashes unambiguously.
+// Resource names also retain the existing portable relative-path policy.
+fn bootstrap_member_name(name: u8*, length: usize): bool {
+    if !zip_name_valid(name, length) || tower_utf8_validate(name, length, 1) == 0 { return false; }
+    var first_printable: u8 = 32; var delete_character: u8 = 127;
+    for (var at: usize = 0; at < length; at++) {
+        if name[at] < first_printable || name[at] == delete_character { return false; }
+    }
+    return true;
 }
 
 fn bootstrap_files_dispose(files: vector(BootstrapFile*)*): void {
@@ -56,8 +68,8 @@ fn bootstrap_file_add(files: vector(BootstrapFile*)*, name: u8*, path: u8*, tota
     var retained = false;
     defer { if !retained { bytes_dispose(&file.name); bytes_dispose(&file.data); free(file); } }
     if tool_file_kind(path, true) != ToolFileKind.Regular || !bytes_assign_text(&file.name, name, strlen(name))
-        || tower_utf8_validate(file.name.data, file.name.length, 1) == 0
-        || !tool_read_file(path, BootstrapArchiveLimit - *total, &file.data) { return false; }
+        || !bootstrap_member_name(file.name.data, file.name.length)
+        || !tool_read_file(path, BootstrapInputLimit - *total, &file.data) { return false; }
     if !vector_push(files, file) { return false; }
     *total += file.data.length;
     retained = true;
@@ -155,7 +167,7 @@ fn bootstrap_source_hashes(input: BootstrapInputs*, out: ByteBuffer*): bool {
         var end = start;
         while names.data[end] != 0 { end++; }
         if end == start || !tool_join(&path, input.repository, names.data + start)
-            || !tool_read_file(path.data, BootstrapArchiveLimit, &source) { return false; }
+            || !tool_read_file(path.data, BootstrapInputLimit, &source) { return false; }
         if start != 0 && !bootstrap_text(out, ",") { return false; }
         if !bootstrap_string(out, names.data + start, end - start) || !bootstrap_text(out, ":")
             || !bootstrap_hash(out, source.data, source.length) { return false; }
@@ -164,14 +176,14 @@ fn bootstrap_source_hashes(input: BootstrapInputs*, out: ByteBuffer*): bool {
     return bootstrap_text(out, "}");
 }
 
-fn bootstrap_manifest(input: BootstrapInputs*, files: vector(BootstrapFile*)*, archive: ByteBuffer*,
+fn bootstrap_manifest(input: BootstrapInputs*, files: vector(BootstrapFile*)*,
     patch: ByteBuffer*, out: ByteBuffer*): bool {
     var predecessor: ByteBuffer = default; var revision: ByteBuffer = default;
     defer bytes_dispose(&predecessor); defer bytes_dispose(&revision);
-    if !tool_read_file(input.predecessor, BootstrapArchiveLimit, &predecessor) || !bootstrap_git(input, "revision", &revision) { return false; }
+    if !tool_read_file(input.predecessor, BootstrapInputLimit, &predecessor) || !bootstrap_git(input, "revision", &revision) { return false; }
     var lf: u8 = 10; var cr: u8 = 13;
     while revision.length != 0 && (revision.data[revision.length - 1] == lf || revision.data[revision.length - 1] == cr) { revision.length--; }
-    if revision.length == 0 || !bootstrap_text(out, "{\n  \"archive\":\"linux-x64/towerc.tar.gz\",\n  \"build\":{\"command\":")
+    if revision.length == 0 || !bootstrap_text(out, "{\n  \"directory\":\"linux-x64\",\n  \"executable\":\"linux-x64/towerc\",\n  \"checksums\":\"linux-x64/SHA256SUMS\",\n  \"build\":{\"command\":")
         || !bootstrap_string(out, input.command, strlen(input.command))
         || !bootstrap_text(out, ",\"compiler\":\"Clang 19.1.1\",\"configuration\":\"Release\",\"llvm\":\"19.1.1\",\"predecessor_sha256\":")
         || !bootstrap_hash(out, predecessor.data, predecessor.length)
@@ -185,9 +197,11 @@ fn bootstrap_manifest(input: BootstrapInputs*, files: vector(BootstrapFile*)*, a
             || !host_json_unsigned(out, convert(u64, file.data.length)) || !bootstrap_text(out, "}") { return false; }
         first = false;
     }
-    if !bootstrap_text(out, "},\n  \"host\":\"linux-x64-ubuntu24-llvm19\",\n  \"schema\":")
+    var compiler = files.data[files.length - 1];
+    if strcmp(compiler.name.data, "towerc") != 0
+        || !bootstrap_text(out, "},\n  \"host\":\"linux-x64-ubuntu24-llvm19\",\n  \"schema\":")
         || !host_json_unsigned(out, BootstrapSchema) || !bootstrap_text(out, ",\n  \"sha256\":")
-        || !bootstrap_hash(out, archive.data, archive.length) || !bootstrap_text(out, ",\n  \"source_base_revision\":")
+        || !bootstrap_hash(out, compiler.data.data, compiler.data.length) || !bootstrap_text(out, ",\n  \"source_base_revision\":")
         || !bootstrap_string(out, revision.data, revision.length) || !bootstrap_text(out, ",\n  \"source_files\":")
         || !bootstrap_source_hashes(input, out)
         || !bootstrap_text(out, ",\n  \"source_identity\":\"Exact source_files hashes include the working changes accompanying this bootstrap update.\"") { return false; }
@@ -198,54 +212,61 @@ fn bootstrap_manifest(input: BootstrapInputs*, files: vector(BootstrapFile*)*, a
     return bootstrap_text(out, "\n}\n");
 }
 
-// Write only a new candidate directory. The active repository pin is a separate
-// release decision after clean successor/relocation tests. Publish the whole
-// candidate atomically; a failed attempt leaves no partial authoritative pin.
-fn bootstrap_publish(input: BootstrapInputs*, archive: ByteBuffer*, manifest: ByteBuffer*, patch: ByteBuffer*): bool {
+// Write only a new, directly runnable compiler directory. The repository pin
+// changes only after relocation and clean-successor validation.
+fn bootstrap_stage_dispose(stage: u8*, files: vector(BootstrapFile*)*): void {
+    var root: ByteBuffer = default; var path: ByteBuffer = default;
+    defer bytes_dispose(&root); defer bytes_dispose(&path);
+    if tool_join(&root, stage, "linux-x64") {
+        foreach (var file in files) { if tool_join(&path, root.data, file.name.data) { remove(path.data); } }
+        if tool_join(&path, root.data, "SHA256SUMS") { remove(path.data); }
+        var slash: u8 = 47;
+        foreach (var file in files) {
+            if !tool_join(&path, root.data, file.name.data) { continue; }
+            for (var at = path.length; at > root.length; at--) {
+                if path.data[at - 1] == slash { path.data[at - 1] = 0; rmdir(path.data); }
+            }
+        }
+        rmdir(root.data);
+    }
+    if tool_join(&path, stage, "development.json") { remove(path.data); }
+    if tool_join(&path, stage, "source-changes.patch") { remove(path.data); }
+    rmdir(stage);
+}
+
+fn bootstrap_publish(input: BootstrapInputs*, files: vector(BootstrapFile*)*, manifest: ByteBuffer*, patch: ByteBuffer*): bool {
     if tool_file_kind(input.output, false) != ToolFileKind.Missing { return false; }
-    var stage: ByteBuffer = default; var path: ByteBuffer = default;
-    var archive_path: ByteBuffer = default; var manifest_path: ByteBuffer = default; var patch_path: ByteBuffer = default;
-    defer bytes_dispose(&stage); defer bytes_dispose(&path); defer bytes_dispose(&archive_path);
-    defer bytes_dispose(&manifest_path); defer bytes_dispose(&patch_path);
+    var stage: ByteBuffer = default; var root: ByteBuffer = default; var path: ByteBuffer = default;
+    var checksums: ByteBuffer = default;
+    defer bytes_dispose(&stage); defer bytes_dispose(&root); defer bytes_dispose(&path); defer bytes_dispose(&checksums);
     if !bootstrap_text(&stage, input.output) || !bootstrap_text(&stage, ".stage_XXXXXX") || !host_text_terminate(&stage)
         || !tool_output_parents(stage.data) || mkdtemp(stage.data) == null { return false; }
     var published = false;
-    defer {
-        if !published {
-            if archive_path.data != null { remove(archive_path.data); }
-            if manifest_path.data != null { remove(manifest_path.data); }
-            if patch_path.data != null { remove(patch_path.data); }
-            if path.data != null { rmdir(path.data); }
-            rmdir(stage.data);
-        }
+    defer { if !published { bootstrap_stage_dispose(stage.data, files); } }
+    if !tool_join(&root, stage.data, "linux-x64") { return false; }
+    foreach (var file in files) {
+        var mode = strcmp(file.name.data, "towerc") == 0 ? BootstrapExecutableMode : BootstrapRegularMode;
+        var state: Sha256 = default; sha256_init(&state);
+        if !sha256_update(&state, file.data.data, file.data.length) { return false; }
+        var digest = sha256_finish(&state); var hex: u8[65]; sha256_hex(&digest, &hex[0]);
+        if !bytes_append(&checksums, &hex[0], BootstrapHexBytes) || !bootstrap_text(&checksums, "  ")
+            || !bootstrap_text(&checksums, file.name.data) || !bootstrap_text(&checksums, "\n")
+            || !tool_join(&path, root.data, file.name.data) || !tool_output_parents(path.data)
+            || !driver_write_file(path.data, file.data.data, file.data.length) || chmod(path.data, mode) != 0 { return false; }
     }
-    if !tool_join(&path, stage.data, "linux-x64")
-        || !tool_join(&archive_path, stage.data, "linux-x64/towerc.tar.gz")
-        || !tool_join(&manifest_path, stage.data, "development.json")
-        || !tool_join(&patch_path, stage.data, "source-changes.patch")
-        || !tool_output_parents(archive_path.data)
-        || !driver_write_file(archive_path.data, archive.data, archive.length)
-        || !driver_write_file(manifest_path.data, manifest.data, manifest.length) { return false; }
-    if patch.length != 0 && !driver_write_file(patch_path.data, patch.data, patch.length) { return false; }
+    if !tool_join(&path, root.data, "SHA256SUMS") || !driver_write_file(path.data, checksums.data, checksums.length)
+        || !tool_join(&path, stage.data, "development.json") || !driver_write_file(path.data, manifest.data, manifest.length) { return false; }
+    if patch.length != 0 && (!tool_join(&path, stage.data, "source-changes.patch")
+        || !driver_write_file(path.data, patch.data, patch.length)) { return false; }
     published = tool_publish_directory(stage.data, input.output);
     return published;
 }
 
 fn bootstrap_package(input: BootstrapInputs*): bool {
-    var files: vector(BootstrapFile*) = default; var entries: vector(TarEntry) = default;
-    var tar: ByteBuffer = default; var archive: ByteBuffer = default; var manifest: ByteBuffer = default; var patch: ByteBuffer = default;
-    defer bootstrap_files_dispose(&files); defer vector_dispose(&entries);
-    defer bytes_dispose(&tar); defer bytes_dispose(&archive); defer bytes_dispose(&manifest); defer bytes_dispose(&patch);
-    if tool_file_kind(input.output, false) != ToolFileKind.Missing || !bootstrap_collect(input, &files)
-        || !vector_reserve(&entries, files.length) { return false; }
-    foreach (var file in &files) {
-        entries.data[entries.length] = init(TarEntry) { name: file.name.data, name_length: file.name.length,
-            data: file.data.data, length: file.data.length,
-            mode: strcmp(file.name.data, "towerc") == 0 ? BootstrapExecutableMode : BootstrapRegularMode };
-        entries.length++;
-    }
-    return tar_write(entries.data, entries.length, BootstrapArchiveLimit, &tar) == TarResult.Ok
-        && gzip_compress(tar.data, tar.length, &archive) && bootstrap_git(input, "patch", &patch)
-        && bootstrap_manifest(input, &files, &archive, &patch, &manifest)
-        && bootstrap_publish(input, &archive, &manifest, &patch);
+    var files: vector(BootstrapFile*) = default;
+    var manifest: ByteBuffer = default; var patch: ByteBuffer = default;
+    defer bootstrap_files_dispose(&files); defer bytes_dispose(&manifest); defer bytes_dispose(&patch);
+    return tool_file_kind(input.output, false) == ToolFileKind.Missing && bootstrap_collect(input, &files)
+        && bootstrap_git(input, "patch", &patch) && bootstrap_manifest(input, &files, &patch, &manifest)
+        && bootstrap_publish(input, &files, &manifest, &patch);
 }

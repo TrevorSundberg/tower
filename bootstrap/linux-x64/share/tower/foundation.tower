@@ -1,0 +1,65 @@
+import bedrock;
+
+// Shares Whitespace, LineComment, BlockComment, Identifier and String from bedrock.tower.
+// The import applies Bedrock declarations before Foundation adds executable syntax.
+token Number = /[0-9]+/ as number;
+
+// Bootstrap semantic ABI: these Core* tree labels and captures name typed ops.
+// No precedence hierarchy: a binary value has two operands and one operator.
+parse CoreTypeName = $name:Identifier | $base:CoreTypeName '.' $field:Identifier;
+parse CoreType = $name:CoreTypeName | $base:CoreType '*' | $base:CoreType '[' $count:CoreArrayCount ']'
+                | $name:CoreTypeName '(' $args:CoreTypeArguments? ')';
+parse CoreArrayCount = Number | Identifier | '-' Number;
+parse CoreTypeArgument = CoreType | Number | '-' Number;
+parse CoreTypeArguments = CoreTypeArgument | CoreTypeArguments ',' CoreTypeArgument;
+parse CoreLocation = $name:Identifier | $base:CoreLocation '.' $field:Identifier;
+parse CoreOperand = CoreLocation | Number | '-' Number | 'true' | 'false' | 'null' | String;
+parse CoreLocation |= $base:CoreLocation '[' $index:CoreOperand ']';
+parse CoreOperator = '+' | '-' | '*' | '/' | '%' | '&' | '|' | '^' | '==' | '!=' | '<' | '<=' | '>' | '>=';
+parse CoreBinary = $left:CoreOperand $op:CoreOperator $right:CoreOperand;
+parse CoreAddress = '&' $name:CoreLocation;
+parse CoreLoad = '*' $name:CoreLocation;
+parse CoreValue = CoreOperand | CoreBinary;
+parse CoreTarget = $name:CoreLocation | '*' $name:CoreLocation;
+parse CoreDeclare = 'var' $name:Identifier ':' $type:CoreType ';'
+                   | 'var' $name:Identifier ':' $type:CoreType '=' $value:CoreValue ';'
+                   | 'var' $name:Identifier '=' $value:CoreValue ';';
+parse CoreAssign = $target:CoreTarget '=' $value:CoreValue ';';
+parse Statement = CoreDeclare | CoreAssign;
+parse CoreBlock = '{' Statement* '}';
+parse CoreIf = 'if' $condition:CoreOperand $body:CoreBlock
+              | 'if' $condition:CoreOperand $body:CoreBlock 'else' $otherwise:CoreBlock;
+parse CoreLoop = 'loop' $body:CoreBlock;
+parse CoreBreak = 'break' ';';
+parse CoreContinue = 'continue' ';';
+parse Statement |= CoreBlock | CoreIf | CoreLoop | CoreBreak | CoreContinue;
+
+parse CoreParameter = $name:Identifier ':' $type:CoreType;
+parse CoreParameters = CoreParameter | CoreParameters ',' CoreParameter;
+// Calls share one argument grammar. Type arguments are resolved semantically.
+parse CoreCallArgument = CoreOperand | CorePointerArgument;
+parse CorePointerArgument = $base:CoreCallArgument '*' | $base:CorePointerArgument '[' $index:CoreOperand ']';
+parse CoreArguments = CoreCallArgument | CoreArguments ',' CoreCallArgument;
+parse CoreCall = $name:CoreLocation '(' $args:CoreArguments? ')';
+parse CoreOperand |= CoreCall | CoreAddress | CoreLoad;
+parse CoreFunction = 'fn' $name:Identifier '(' $params:CoreParameters? ')' ':' $type:CoreType $body:CoreBlock;
+parse CoreReturn = 'return' $value:CoreOperand? ';';
+parse CoreCallStatement = $call:CoreCall ';';
+parse Statement |= CoreFunction | CoreReturn | CoreCallStatement;
+
+parse CoreField = $name:Identifier ':' $type:CoreType ';';
+parse CoreStruct = 'struct' $name:Identifier '{' $fields:CoreField* '}';
+parse Statement |= CoreStruct;
+
+// Nominal integer representations and members survive Foundation round trips.
+// Tower may add automatic discriminants; canonical Foundation makes each explicit.
+parse CoreEnumInteger = Number | '-' Number;
+parse CoreEnumMember = $name:Identifier '=' $value:CoreEnumInteger;
+parse CoreEnumMembers = CoreEnumMember | CoreEnumMembers ',' CoreEnumMember;
+parse CoreEnum = 'enum' $name:Identifier ':' $type:CoreType '{' $fields:CoreEnumMembers ','? '}';
+parse Statement |= CoreEnum;
+
+// Raw memory and external symbols; safety policies can be layered above these.
+parse CoreExternal = 'extern' 'fn' $name:Identifier '(' $params:CoreParameters? ')' ':' $type:CoreType ';';
+parse CoreExport = 'export' 'fn' $name:Identifier '(' $params:CoreParameters? ')' ':' $type:CoreType $body:CoreBlock;
+parse Statement |= CoreExternal | CoreExport;

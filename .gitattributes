@@ -11,7 +11,9 @@ docs/temporal-opcode-research-journal.md merge=union
 
 # Dependency sources and compiled distribution artifacts are not authored source.
 third_party/** linguist-vendored=true
-bootstrap/**/*.tar.gz linguist-generated=true
+bootstrap/linux-x64/towerc binary linguist-generated=true
+bootstrap/linux-x64/** -text linguist-generated=true
+bootstrap/linux-x64/SHA256SUMS text eol=lf
 playground/dist/** linguist-generated=true
 
 # Scope-test fixtures are editor tests, not upstream classifier samples.

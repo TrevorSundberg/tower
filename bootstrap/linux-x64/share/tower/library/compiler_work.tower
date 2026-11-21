@@ -1,0 +1,204 @@
+import tower;
+import work_graph;
+import entities;
+
+// Coordinator metadata on ordinary ECS entities. Worker recipe/result components
+// attach to this same subject. Program graphs remain in each unit's exclusive
+// compiler world; the coordinator never reads them during an active dispatch.
+struct CompilerWorkUnit { ordinal: usize; task: usize; }
+
+enum CompilerQuery: u32 {
+    Unit, Join
+}
+
+// Transport-independent coordinator for isolated compilation contexts. Unit
+// ordinals are stable recipe/source order. The host transports sources and owned
+// artifacts; it never shares entity pointers or LLVM contexts between workers.
+struct CompilerWork {
+    graph: WorkGraph;
+    store: EntityStore*;
+    owner: Entity*;
+    kind: Entity*;
+    units: usize;
+    workers: usize;
+    completed: usize;
+    settled: usize;
+    failed: usize;
+    peak: usize;
+}
+
+export fn compiler_work_close(work: CompilerWork*): void {
+    if work != null {
+        work_dispose(&work.graph);
+        if work.owner is not null { entity_release(work.owner); }
+        if work.kind is not null { entity_release(work.kind); }
+        if work.store is not null && !entity_store_dispose(work.store) { trap("Compiler unit store still borrowed", 0); }
+        free(work);
+    }
+}
+
+export fn compiler_work_create(units: usize, workers: usize, revision: u64, profile: u64): CompilerWork* {
+    var invalid = units == 0;
+    invalid ||= workers == 0;
+    if invalid {
+        return null;
+    }
+    var work = alloc(CompilerWork, 1);
+    if work == null {
+        return null;
+    }
+    *work = default;
+    work_init(&work.graph, revision, profile);
+    work.store = entity_store_create();
+    if work.store is null { compiler_work_close(work); return null; }
+    work.owner = entity_create(work.store);
+    work.kind = entity_create(work.store);
+    if work.owner is null || work.kind is null
+        || !entity_register(work.kind, sizeof(CompilerWorkUnit), alignof(CompilerWorkUnit), 0) {
+        compiler_work_close(work);
+        return null;
+    }
+    work.units = units;
+    work.workers = workers;
+    var i: usize = 0;
+    for(; i < units; i++) {
+        var node = entity_create(work.store);
+        if node is null { compiler_work_close(work); return null; }
+        var attached = entity_attach(node, work.owner, null);
+        entity_release(node);
+        if !attached { compiler_work_close(work); return null; }
+        var unit = bits(CompilerWorkUnit*, entity_component_data(entity_component_add(node, work.kind)));
+        if unit is null { compiler_work_close(work); return null; }
+        unit.ordinal = i + 1;
+        var task = work_request(&work.graph, bits(void*, node), convert(u32, CompilerQuery.Unit), convert(u64, i));
+        unit.task = task;
+        // One exclusive unit recipe/result range, shared by native and isolated
+        // transports. The join reads every completed range after dependencies.
+        if !work_access(&work.graph, task, 1, 1, i, 1, WorkAccessMode.Write)
+            || !work_seal(&work.graph, task) {
+            compiler_work_close(work);
+            return null;
+        }
+    }
+    var join = work_request(&work.graph, bits(void*, work.owner), convert(u32, CompilerQuery.Join), 0);
+    i = 0;
+    for(; i < units; i++) {
+        var task = compiler_work_unit(work, i + 1).task;
+        if !work_depend(&work.graph, join, task) {
+            compiler_work_close(work);
+            return null;
+        }
+    }
+    var valid = work_access(&work.graph, join, 1, 1, 0, units, WorkAccessMode.Read);
+    valid &&= work_seal(&work.graph, join);
+    valid &&= work_demand(&work.graph, join);
+    if !valid {
+        compiler_work_close(work);
+        return null;
+    }
+    return work;
+}
+
+// Borrowed stable entity, valid until close. Callers attach recipes/results before
+// dispatch and pin this store while workers borrow those component payloads.
+export fn compiler_work_anchor(work: CompilerWork*): Entity* {
+    return work.owner;
+}
+
+export fn compiler_work_subject(work: CompilerWork*, ordinal: usize): Entity* {
+    if ordinal == 0 || ordinal > work.units { return null; }
+    return entity_child_at(work.owner, ordinal - 1);
+}
+
+fn compiler_work_unit(work: CompilerWork*, ordinal: usize): CompilerWorkUnit* {
+    var subject = compiler_work_subject(work, ordinal);
+    if subject is null { return null; }
+    return bits(CompilerWorkUnit*, entity_component_data(entity_component_get(subject, work.kind)));
+}
+
+export fn compiler_work_next(work: CompilerWork*): usize {
+    // Tickets are admitted in source order. After a failure, every earlier
+    // ordinal has already been admitted; settle those, never start later work.
+    var failed = work.failed != 0;
+    if failed {
+        return 0;
+    }
+    if work.graph.running >= work.workers {
+        return 0;
+    }
+    var ticket: WorkTicket;
+    if work_take(&work.graph, &ticket) {
+        var task = work_task(&work.graph, ticket.task);
+        if task.subject == bits(void*, work.owner) {
+            work_finish(&work.graph, &ticket, true);
+            return 0;
+        }
+        if work.graph.running > work.peak {
+            work.peak = work.graph.running;
+        }
+        return bits(CompilerWorkUnit*, entity_component_data(entity_component_get(bits(Entity*, task.subject), work.kind))).ordinal;
+    }
+    return 0;
+}
+
+export fn compiler_work_accept(work: CompilerWork*, unit: usize, revision: u64, profile: u64, success: bool): bool {
+    var invalid = unit == 0;
+    invalid ||= unit > work.units;
+    if invalid {
+        return false;
+    }
+    // Unit transport dispatches each unit once. Resumable query transports must
+    // carry the actual dispatch generation instead of reconstructing a receipt.
+    var ticket: WorkTicket = { task: compiler_work_unit(work, unit).task, revision: revision, profile: profile, dispatch: 1 };
+    if !work_finish(&work.graph, &ticket, success) {
+        return false;
+    }
+    work.completed++;
+    // Advance a dense completion prefix once per unit, rather than rescanning
+    // every earlier task for every out-of-order receipt in a large project.
+    while work.settled < work.units {
+        var next = work.settled + 1;
+        var task = work_task(&work.graph, compiler_work_unit(work, next).task);
+        var settled = task.state == WorkState.Succeeded;
+        settled ||= task.state == WorkState.Failed;
+        if !settled {
+            break;
+        }
+        work.settled = next;
+    }
+    if !success {
+        var earlier = work.failed == 0;
+        earlier ||= unit < work.failed;
+        if earlier {
+            work.failed = unit;
+        }
+    }
+    return true;
+}
+
+export fn compiler_work_done(work: CompilerWork*): bool {
+    var done = work.completed == work.units;
+    var failed = work.failed != 0;
+    if failed {
+        // A later unit cannot change the first diagnostic. Do not wait for a
+        // large unrelated compilation before reporting an earlier failure.
+        done = work.settled >= work.failed;
+    }
+    done &&= work_ok(&work.graph);
+    return done;
+}
+
+// Failures are decided after all earlier work settles. The executor must then
+// cancel/drain later workers before closing the coordinator. No failed-build
+// artifact is published, independent of completion order.
+export fn compiler_work_failed(work: CompilerWork*): usize {
+    return work.failed;
+}
+
+export fn compiler_work_peak(work: CompilerWork*): usize {
+    return work.peak;
+}
+
+export fn compiler_work_cancel(work: CompilerWork*): void {
+    work_cancel(&work.graph);
+}

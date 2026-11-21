@@ -25,29 +25,14 @@ when string literals are passed directly to inferred generic calls.
 `sha256_checks.tower` checks standard SHA-256 vectors, all chunk splits, a million
 `a` bytes, non-consuming finalization and rejected input. Pass a writable fixture
 directory, then independently verify its 260 binary fixtures with
-`sha256sum --quiet -c <directory>/checksums.txt`. `bootstrap_archive_checks.tower`
-checks tar/gzip output, long UTF-8 names, modes, aliasing, limits and rejection;
-pass a fixture directory, extract `fixture.tar.gz` with GNU tar, compare with
-`expected`, check `bin/runner` mode 755, and run `gzip -t` on `empty.gz`.
+`sha256sum --quiet -c <directory>/checksums.txt`.
 `tool_files_checks.tower` takes a new fixture directory and checks bounded reads,
 resource traversal, file/directory symlink policy and atomic publication refusing
-file, directory and dangling-symlink collisions. All three build as library
+file, directory and dangling-symlink collisions. Both build as library
 objects linked with `guest-host-library.o`. The journal records the independent
-Python packager comparison and unchanged installer's verification of a real
-Tower-produced compiler candidate; no new Python test helper is required.
-
-`archive_decode_checks.tower` takes a fixture directory, the pinned `.tar.gz`
-and an explicit system `gzip` executable. It compares 144 generated streams
-(Tower plus gzip levels 1 and 9) and the actual pin against independent bytes,
-then checks malformed streams, concatenation, optional headers, checksum/size,
-output bounds and aliasing. `tar_read_checks.tower` checks the regular-file ustar
-reader's checksums, paths, duplicate members, bounds and unsupported extensions.
-`json_reader_checks.tower` takes the current manifest and checks JSON syntax,
-Unicode, duplicate decoded keys, exact integers and bounded atomic publication.
-`bootstrap_install_checks.tower` takes the bootstrap directory and a new isolated
-fixture directory; it exercises fresh/cache installation, corruption, permission
-loss, file/parent symlinks, FIFO rejection and archive containment. These entries
-build as library objects linked with `guest-host-library.o` using the public pin.
+Python packager comparison and subsequent removal of the bootstrap archive/
+installer layer in favor of directly runnable checked-in files. Reader/installer
+experiments are preserved in Git history; they are not required build tooling.
 
 The same runtime/parser now also runs in the [static WASM playground](../../playground/README.md).
 Native and WASM parser builds use explicit error returns with C++ exceptions disabled.

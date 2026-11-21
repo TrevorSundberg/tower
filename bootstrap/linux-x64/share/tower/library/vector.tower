@@ -1,0 +1,136 @@
+import tower;
+
+// Raw, explicitly owned storage. Initialize/dispose once; growth invalidates
+// element pointers. Push currently accepts scalar/pointer elements, not copies
+// of aggregate values. Type construction and specialization use shared nodes.
+fn vector(T: type): type {
+    struct Result {
+        data: T*;
+        length: usize;
+        capacity: usize;
+    }
+    return Result;
+}
+
+fn vector_init(T: type, value: vector(T)*): void {
+    value.data = null;
+    value.length = 0;
+    value.capacity = 0;
+}
+
+fn vector_reserve(T: type, value: vector(T)*, needed: usize): bool {
+    if needed <= value.capacity {
+        return true;
+    }
+    var maximum: usize = 0;
+    maximum--;
+    var size = sizeof(T);
+    if size == 0 {
+        return false;
+    }
+    var limit = maximum / size;
+    if needed > limit {
+        return false;
+    }
+    var capacity = value.capacity *2;
+    if capacity < value.capacity {
+        capacity = needed;
+    }
+    var small = capacity < 8;
+    if small {
+        capacity = 8;
+    }
+    small = capacity < needed;
+    if small {
+        capacity = needed;
+    }
+    if capacity > limit {
+        capacity = needed;
+    }
+    var next = realloc(T, value.data, capacity);
+    if next == null {
+        return false;
+    }
+    value.data = next;
+    value.capacity = capacity;
+    return true;
+}
+
+fn vector_push(T: type, value: vector(T)*, element: T): bool {
+    var needed = value.length + 1;
+    if needed == 0 {
+        return false;
+    }
+    var ok = vector_reserve(value, needed);
+    if ok {
+        value.data[value.length] = element;
+        value.length = needed;
+    }
+    return ok;
+}
+
+fn vector_dispose(T: type, value: vector(T)*): void {
+    free(value.data);
+    vector_init(value);
+}
+
+// Empty/null-output failure preserves both storage and the output value.
+// Output must be valid T storage outside the remaining live elements.
+fn vector_pop(T: type, value: vector(T)*, output: T*): bool {
+    if value.length == 0 {
+        return false;
+    }
+    if output == null {
+        return false;
+    }
+    var last = value.length -1;
+    *output = value.data[last];
+    value.length = last;
+    return true;
+}
+
+// Both values must be initialized independent owners (or the same owner).
+// Transfer replaces/disposes destination storage and empties the source.
+// Scalar/pointer elements have no implicit destruction or deep ownership here.
+fn vector_move(T: type, destination: vector(T)*, source: vector(T)*): void {
+    if destination == source {
+        return;
+    }
+    vector_dispose(destination);
+    destination.data = source.data;
+    destination.length = source.length;
+    destination.capacity = source.capacity;
+    vector_init(source);
+}
+
+// Finite borrowed traversal. Structural mutation, disposal, or growth of the
+// owner invalidates the view; element writes through a borrow are permitted.
+// State is ordinary local storage and iteration performs no allocation.
+fn vector_iteration(T: type): type {
+    struct Result {
+        data: T*;
+        length: usize;
+        index: usize;
+    }
+    return Result;
+}
+
+fn vector_iterate_begin(T: type, source: vector(T)*, state: vector_iteration(T)*): void {
+    state.data = source.data;
+    state.length = source.length;
+    state.index = 0;
+}
+
+fn vector_iterate_next(T: type, source: vector(T)*, state: vector_iteration(T)*): bool {
+    if state.index == state.length {
+        return false;
+    }
+    state.index++;
+    return true;
+}
+
+fn vector_iterate_element(T: type, source: vector(T)*, state: vector_iteration(T)*): T* {
+    return &state.data[state.index -1];
+}
+
+fn vector_iterate_end(T: type, source: vector(T)*, state: vector_iteration(T)*): void {}
