@@ -25450,3 +25450,37 @@ which initially truncated the recorded build command; the final manifest contain
 the complete command. Final pin bcc76755fbf9cb0959828e2e35a6868974cd740328d58bc3366bf247f524dc51
 names source da56ae6 and supersedes the unpublished dffdeac candidate. Validation
 logs are iteration-reader-clean.log and iteration-reader-pin-check.log.
+### 2026-11-20 - Agent 2: final core retirement deployed and verified
+
+Published combined source dafeb208afdf5618d00759d57c6ad8fba2e11e69 and Pages
+ df6e5c53e3028a8c9724cad133c3f1fb01b7f311. All three browser reactors rebuilt
+from the clean published root using the documented fb1 development bootstrap;
+packaging waited for completed builds. Seven predecessor target assets and CNAME
+hashes were preserved, along with simplificationAudit metadata. The manifest
+records the actual source/build commit and ec60a942 as its predecessor.
+
+Final validation: native6/6 (17.13s) plus backend API; WASI execution, host/storage,
+formatter, syntax payload, regex and contextual lexer; top-level Node416/416 with
+zero failures/cancellations/skips (191.50s); two browser compiler generations
+with2then4independent workers, edited semantic behavior and identical bytes.
+Generation2 sizes: Tower899315, LLVM52137255, cross63694623. Local and hosted
+verification both passed70asset hashes and desktop/mobile compilation, execution,
+completion, highlighting, persistence and native downloads. All71committed files
+matched tested bytes and Git blob hashes. HTTPapex, HTTPSwww and oldGitHubPages
+all redirected to https://tower-lang.org/ with200. Exact-SHA Pages run44852551683
+succeeded: https://github.com/TrevorSundberg/tower/actions/runs/44852551683.
+
+Logs and separate JSON reports are C:/Sandbox/build/codex-agents/
+agent-2-final-publication-*. Root and Pages were clean, all builds had completed,
+and Agent2 explicitly released its publication lock and exclusive root/cache
+handoff after hosted verification. Agent2-owned/transferred retirement totals
+2223native lines (157+1890+176), with no new native implementation. Sanitizers,
+full known-broken parser aggregate execution and broad formatter sweep stayed
+skipped. Native parser aggregate linkage and focused entries were checked.
+
+Coordinator assigned the next independent lane only after this release: LR
+analysis/grammar native fixture and reference retirement, using Tower tests and
+private derived reference indexes over the existing shared grammar model. The
+new pull also received bb7967d's Tower simplification changes; a fresh documented
+successor must be repeated before the next source publication. This new source
+is later than the verified dafeb20 deployment and is not claimed deployed here.
