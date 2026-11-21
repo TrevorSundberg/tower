@@ -14,6 +14,7 @@ try { llvm = await loadLLVM(await read('build/browser-wasi-llvm/tower-llvm.wasm'
 catch (error) { if (error.code !== 'ENOENT') throw error; }
 
 const cases = [
+  ['integer negation', (await read('scaffolding/tests/integer_negation.tower')).toString(), '0\n'],
   ['floating values', (await read('scaffolding/tests/floating_point.tower')).toString(), '0\n'],
   ['floating output', (await read('scaffolding/tests/floating_output.tower')).toString(), '1.00000001e-1\n1.0000000000000001e-1\n1.5\n-0.0\ninf\n-inf\nnan\n4.9406564584124654e-324\n1.7976931348623157e308\n'],
   ['named field initialization', (await read('scaffolding/tests/named_initialization.tower')).toString(), '0\n'],

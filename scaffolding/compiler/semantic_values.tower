@@ -474,7 +474,9 @@ fn sem_operand_leaf(c: SemanticContext*, n: void*, expected_type: FoundationType
                             limit++;
                         }
                     }
-                    if number > limit || negative && !signed {
+                    // Foundation signed literal spelling still denotes a value;
+                    // integer zero has no negative representation.
+                    if number > limit || negative && !signed && number != 0 {
                         var step104 = sem_type_name(c, &value.type);
                         var step105 = sem_cat(c, "Integer literal out of range for ", step104);
                         sem_fail(c, n, step105);

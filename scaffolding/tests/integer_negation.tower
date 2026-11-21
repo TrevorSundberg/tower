@@ -1,0 +1,30 @@
+import tower;
+
+var failures: u32 = 0;
+fn check(value: bool): void { if !value { failures++; } }
+fn zero(): usize { return -0; }
+fn minimum(): i64 { return -(9223372036854775808); }
+fn negate(value: u64): u64 { return -value; }
+struct StackCount { count: usize; }
+var values: StackCount;
+values.count = -0;
+check(values.count == 0);
+var byte: u8 = -0;
+var word: u32 = -(0);
+var wide: u64 = (-0);
+check(byte == 0 && word == 0 && wide == 0);
+check(comptime(zero()) == 0);
+var inferred = -7;
+check(inferred == 0 - 7);
+var low32: i32 = -(2147483648);
+var low64: i64 = -9223372036854775808;
+check(bits(u32, low32) == 2147483648);
+check(bits(u64, low64) == 9223372036854775808);
+check(comptime(minimum()) == low64);
+var wrapped: u64 = -1;
+var grouped: u64 = -(1);
+check(wrapped == ~convert(u64, 0) && grouped == wrapped);
+check(comptime(negate(1)) == wrapped);
+var negative_zero: f64 = -0;
+check(bits(u64, negative_zero) == 9223372036854775808);
+print(failures);

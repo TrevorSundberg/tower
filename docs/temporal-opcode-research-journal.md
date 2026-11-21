@@ -36072,3 +36072,33 @@ float-integrated-relocated-execution.log, float-final-successor-build.log and
 float-final-successor-execution.log. A normal main push was rejected because
 upstream advanced again; preserve the validated source checkpoint for bootstrap
 provenance, rebase normally, and repeat only checks affected by further changes.
+
+The next upstream rebase retired archive installation entirely (261fab2): the
+bootstrap is now a directly runnable compiler/resources directory with schema-2
+provenance and SHA256SUMS. Resolved the old archive-pin conflicts by preserving
+that upstream layout and retirement, rather than restoring the installer or
+codec libraries. The preceding compressed candidates remain historical trials;
+the final floating release must use the direct-directory Tower packager.
+
+The user then reproduced `values.count = -0` failing for usize. Root cause: Tower
+unary-minus checking recognized a digit-only operand and sent the entire signed
+spelling to the Foundation literal reader. Its unsigned sign check rejected zero
+and bypassed the ordinary negation operation. Removed that shortcut. Tower minus
+now lowers to the existing subtraction/sign-bit operations; compile-time results
+come from ordinary dependency-graph interpreter execution. For signed minima,
+literal checking retains the positive magnitude in an equal-width unsigned value,
+checks the signed negative range, and uses a Foundation bits conversion before
+ordinary wrapping subtraction. Parentheses are transparent to this check. Other
+signed magnitudes retain their positive signed operand type. Unsigned unary minus
+now consistently wraps, including `-1` and `-(1)`, as its existing runtime operation
+already did. This supersedes the inconsistent direct-literal rejection.
+
+Foundation's instruction-like signed literal spelling still checks its numeric
+range; unsigned negative nonzero literals there remain invalid, while `-0` denotes
+zero. New integer_negation.tower/checks cover the field-assignment reproduction,
+all implemented unsigned widths, grouping, signed minima/overflow, staged calls,
+unsigned wrapping, floating negative zero and Foundation reconstruction. The
+first isolated compile caught an unimported digit helper, then confirmed single
+quotes are strings in Tower; the digit range now uses named byte constants. The
+isolated semantic_expressions unit compiles with the public predecessor. Runtime
+and successor validation follow; no separate constant folder was added.

@@ -31,6 +31,8 @@ var SurfaceShiftLeft: u32 = 14;
 var SurfaceShiftRight: u32 = 15;
 var SurfaceShiftUnsigned: u32 = 16;
 var SurfaceSet: u32 = 4294967295;
+var SurfaceFirstDigit: u8 = 48;
+var SurfaceLastDigit: u8 = 57;
 
 fn sem_surface_unwrap(n: void*): void* {
     loop {
@@ -661,23 +663,41 @@ fn sem_surface(c: SemanticContext*, n: void*, expected_type: FoundationType*): v
         if negate {
             input = sem_type_new(c, SBool, 0, null);
         }
-        // Preserve the existing signed minimum literal/range contract.
+        var operand: void* = null;
+        // The signed minimum's positive magnitude needs unsigned storage while
+        // checking the literal. Negation itself remains an ordinary operation;
+        // neither this path nor the literal reader evaluates the unary minus.
         if sem_equal(op, "-") {
-            var text = sem_tokens(c, right);
-            var literal = text[0] != 0;
-            for(var index: usize = 0; !(text[index] == 0); index++) {
-                var digit = text[index] >= 48;
-                digit &&= text[index] <= 57;
-                if !digit {
-                    literal = false;
-                    break;
+            var type = input ?? sem_type_new(c, SI32, 0, null);
+            if semantic_signed(type) && !semantic_enum(type) {
+                var text = sem_tokens(c, sem_surface_unwrap(right));
+                var literal = text[0] != 0;
+                for(var index: usize = 0; text[index] != 0; index++) {
+                    if text[index] < SurfaceFirstDigit || text[index] > SurfaceLastDigit { literal = false; break; }
+                }
+                if literal {
+                    var storage = sem_type_new(c, type.scalar == SI32 ? SU32 : SU64, 0, null);
+                    var magnitude = sem_operand(c, right, storage);
+                    if !sem_ok(c) { return n; }
+                    var maximum = semantic_mask(type) >> 1;
+                    if sem_get(magnitude).bits > maximum + 1 {
+                        sem_fail(c, n, sem_cat(c, "Integer literal out of range for ", sem_type_name(c, type)));
+                        return n;
+                    }
+                    if sem_get(magnitude).bits <= maximum {
+                        sem_set_type(&sem_get(magnitude).type, type);
+                        operand = magnitude;
+                    } else {
+                        operand = sem_surface_constant(c, n, type, 0);
+                        var cast = sem_get(operand);
+                        cast.kind = KBits;
+                        cast.constant = false;
+                        cast.value = magnitude;
+                    }
                 }
             }
-            if literal {
-                return sem_operand_leaf(c, n, expected_type);
-            }
         }
-        var operand = sem_operand(c, right, input);
+        if operand == null { operand = sem_operand(c, right, input); }
         if !sem_ok(c) {
             return n;
         }
