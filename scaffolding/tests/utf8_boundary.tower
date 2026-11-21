@@ -1,5 +1,6 @@
 import tower;
 import utf8;
+import utf8_oracle;
 import utility_checks;
 
 extern fn getpagesize(): i32;

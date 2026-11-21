@@ -1,0 +1,75 @@
+import tower;
+import .library.vector;
+import utility_checks;
+
+// Independent test reference translated from lexer-table-seed.cpp. Keep nested
+// rows so this can catch indexing errors in the production flat DFA cache.
+// Neither this table nor the production cache replaces grammar entities.
+struct OracleLexerRow { transitions: vector(i32); accepting: bool; }
+struct OracleLexerTable { alphabet: vector(u32); rows: vector(OracleLexerRow); }
+
+extern fn tower_utf8_decode(source: u8*, length: usize, value: u32*): usize;
+
+fn reference_lex_table_create(): OracleLexerTable* {
+    var table = alloc(OracleLexerTable, 1);
+    utility_check(table is not null, "Lexer oracle table allocation");
+    fill(table, 0, sizeof(OracleLexerTable));
+    return table;
+}
+
+fn reference_lex_table_destroy(table: OracleLexerTable*): void {
+    for (var index: usize = 0; index < table.rows.length; ++index) {
+        vector_dispose(i32, &table.rows.data[index].transitions);
+    }
+    vector_dispose(OracleLexerRow, &table.rows);
+    vector_dispose(u32, &table.alphabet);
+    free(table);
+}
+
+fn reference_lex_table_set_alphabet(table: OracleLexerTable*, values: u32*, count: usize): bool {
+    if count < 2 || table.rows.length != 0 { return false; }
+    utility_check(vector_reserve(u32, &table.alphabet, count), "Lexer oracle alphabet allocation");
+    copy(table.alphabet.data, values, count * sizeof(u32));
+    table.alphabet.length = count;
+    return true;
+}
+
+fn reference_lex_table_append(table: OracleLexerTable*, values: i32*, count: usize, accepting: bool): bool {
+    if table.alphabet.length < 2 || count != table.alphabet.length - 1 { return false; }
+    utility_check(vector_reserve(OracleLexerRow, &table.rows, table.rows.length + 1), "Lexer oracle row allocation");
+    var row = &table.rows.data[table.rows.length++];
+    fill(row, 0, sizeof(OracleLexerRow));
+    utility_check(vector_reserve(i32, &row.transitions, count), "Lexer oracle transition allocation");
+    copy(row.transitions.data, values, count * sizeof(i32));
+    row.transitions.length = count;
+    row.accepting = accepting;
+    return true;
+}
+
+fn reference_lex_table_match(table: OracleLexerTable*, source: u8*, length: usize, start: usize): usize {
+    var position = start;
+    var longest: usize = 0;
+    var state: i32 = 0;
+    while position < length {
+        var scalar: u32;
+        var bytes = tower_utf8_decode(&source[position], length - position, &scalar);
+        if bytes == 0 { break; }
+        // Equivalent to the reference's upper_bound, independent of the
+        // production matcher and its flat row-offset calculations.
+        var first: usize = 0;
+        var last = table.alphabet.length;
+        while first < last {
+            var middle = first + (last - first) / 2;
+            if scalar < table.alphabet.data[middle] { last = middle; }
+            else { first = middle + 1; }
+        }
+        utility_check(first != 0 && first < table.alphabet.length, "Lexer oracle scalar belongs to fixture alphabet");
+        utility_check(state >= 0 && convert(usize, state) < table.rows.length, "Lexer oracle fixture state bounds");
+        state = table.rows.data[convert(usize, state)].transitions.data[first - 1];
+        if state < 0 { break; }
+        position += bytes;
+        utility_check(convert(usize, state) < table.rows.length, "Lexer oracle fixture transition bounds");
+        if table.rows.data[convert(usize, state)].accepting { longest = position - start; }
+    }
+    return longest;
+}

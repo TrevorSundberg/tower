@@ -1,6 +1,7 @@
 import tower;
 import .library.bytes_types;
 import utility_checks;
+import bytes_oracle;
 
 extern fn bytes_init(buffer: ByteBuffer*): void;
 
@@ -13,18 +14,6 @@ extern fn bytes_push(buffer: ByteBuffer*, byte: u8): bool;
 extern fn bytes_assign_text(buffer: ByteBuffer*, data: u8*, count: usize): bool;
 
 extern fn bytes_dispose(buffer: ByteBuffer*): void;
-
-extern fn reference_bytes_init(buffer: ByteBuffer*): void;
-
-extern fn reference_bytes_reserve(buffer: ByteBuffer*, count: usize): bool;
-
-extern fn reference_bytes_append(buffer: ByteBuffer*, data: u8*, count: usize): bool;
-
-extern fn reference_bytes_push(buffer: ByteBuffer*, byte: u8): bool;
-
-extern fn reference_bytes_assign_text(buffer: ByteBuffer*, data: u8*, count: usize): bool;
-
-extern fn reference_bytes_dispose(buffer: ByteBuffer*): void;
 
 extern fn malloc(size: usize): void*;
 

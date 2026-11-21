@@ -1,17 +1,12 @@
 import tower;
 import utility_checks;
+import utf8_oracle;
 
 extern fn tower_utf8_decode(data: u8*, size: usize, value: u32*): usize;
 
 extern fn tower_utf8_encode(value: u32, data: u8*, capacity: usize): usize;
 
 extern fn tower_utf8_validate(data: u8*, size: usize, policy: u32): u32;
-
-extern fn reference_utf8_decode(data: u8*, size: usize, value: u32*): usize;
-
-extern fn reference_utf8_encode(value: u32, data: u8*, capacity: usize): usize;
-
-extern fn reference_utf8_validate(data: u8*, size: usize, policy: u32): u32;
 
 fn utf8_check(data: u8*, size: usize): void {
     var actual: u32 = 3735928559;

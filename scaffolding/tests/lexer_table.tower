@@ -3,13 +3,9 @@ import .compiler.automaton;
 import .compiler.lexer_table;
 import .compiler.syntax_types;
 import utility_checks;
+import lexer_table_oracle;
 import mt19937;
 
-extern fn reference_lex_table_create(): void*;
-extern fn reference_lex_table_destroy(table: void*): void;
-extern fn reference_lex_table_set_alphabet(table: void*, alphabet: u32*, count: usize): bool;
-extern fn reference_lex_table_append(table: void*, row: i32*, count: usize, accepting: bool): bool;
-extern fn reference_lex_table_match(table: void*, source: u8*, count: usize, start: usize): usize;
 extern fn tower_test_buffer_count(): usize;
 extern fn tower_test_buffer_fail_next(): void;
 extern fn tower_test_buffer_fail_after(count: usize): void;

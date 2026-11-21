@@ -1,5 +1,4 @@
-# Functional coverage and test allocator are Tower. Native seeds remain isolated
-# reference oracles until independent Tower differential successors replace them.
+# Functional coverage, test allocator and independent reference oracles are Tower.
 get_property(utility_triple GLOBAL PROPERTY TOWER_COMPILER_TRIPLE)
 get_property(utility_trap GLOBAL PROPERTY TOWER_RUNTIME_TRAP_OBJECT)
 set(utf8_input "${CMAKE_CURRENT_BINARY_DIR}/tower_utf8_tests.tower")
@@ -29,11 +28,12 @@ add_custom_command(OUTPUT "${utf8_object}"
     -o "${utf8_object}" --depfile "${utf8_object}.d"
   DEPFILE "${utf8_object}.d"
   DEPENDS "${utf8_input}" "${TOWER_BOOTSTRAP_COMPILER}"
-    scaffolding/tests/utf8.tower scaffolding/tests/utf8_boundary.tower scaffolding/tests/utility_checks.tower VERBATIM)
+    scaffolding/tests/utf8.tower scaffolding/tests/utf8_oracle.tower
+    scaffolding/tests/utf8_boundary.tower scaffolding/tests/utility_checks.tower VERBATIM)
 set_source_files_properties("${utf8_object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
 add_executable(tower-utf8-tests "${utf8_object}" "${utility_trap}")
 set_target_properties(tower-utf8-tests PROPERTIES LINKER_LANGUAGE CXX)
-target_link_libraries(tower-utf8-tests PRIVATE tower-compiler-utilities tower-compiler-memory tower-utf8-reference)
+target_link_libraries(tower-utf8-tests PRIVATE tower-compiler-utilities tower-compiler-memory)
 add_test(NAME tower-utf8-tests COMMAND tower-utf8-tests)
 
 # Use the established LLVM symbol binding tool for reserved allocator exports.
@@ -51,10 +51,10 @@ add_custom_command(OUTPUT "${bytes_object}"
     byte_test_reallocate tower_reallocate byte_test_deallocate tower_deallocate ${utility_entry_binding}
   COMMAND "${CMAKE_C_COMPILER}" --target=${utility_triple} -O2 -c "${bytes_bound}" -o "${bytes_object}"
   DEPFILE "${bytes_ir}.d"
-  DEPENDS scaffolding/tests/bytes.tower scaffolding/tests/utility_checks.tower
+  DEPENDS scaffolding/tests/bytes.tower scaffolding/tests/bytes_oracle.tower scaffolding/tests/utility_checks.tower
     "${TOWER_BOOTSTRAP_COMPILER}" "${utility_bind}" VERBATIM)
 set_source_files_properties("${bytes_object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
 add_executable(tower-bytes-tests "${bytes_object}" "${utility_trap}")
 set_target_properties(tower-bytes-tests PROPERTIES LINKER_LANGUAGE CXX)
-target_link_libraries(tower-bytes-tests PRIVATE tower-compiler-utilities tower-bytes-reference)
+target_link_libraries(tower-bytes-tests PRIVATE tower-compiler-utilities)
 add_test(NAME tower-bytes-tests COMMAND tower-bytes-tests)

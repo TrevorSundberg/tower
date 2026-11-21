@@ -1,0 +1,66 @@
+import tower;
+import .library.bytes_types;
+
+// Independent test reference translated from bootstrap/bytes-seed.cpp. It uses
+// the same moving/failing test allocator as production, preserving allocation
+// counts, growth policy and failure atomicity comparisons.
+extern fn memmove(destination: void*, source: void*, count: usize): void*;
+const OracleByteMinimumCapacity: usize = 16;
+
+fn reference_bytes_init(buffer: ByteBuffer*): void {
+    buffer.data = null;
+    buffer.length = 0;
+    buffer.capacity = 0;
+}
+
+fn reference_bytes_reserve(buffer: ByteBuffer*, needed: usize): bool {
+    if needed <= buffer.capacity { return true; }
+    var capacity = buffer.capacity <= ~convert(usize, 0) / 2 ? buffer.capacity * 2 : needed;
+    if capacity < needed { capacity = needed; }
+    if capacity < OracleByteMinimumCapacity() { capacity = OracleByteMinimumCapacity(); }
+    var data = realloc(u8, buffer.data, capacity);
+    if data is null { return false; }
+    buffer.data = data;
+    buffer.capacity = capacity;
+    return true;
+}
+
+fn reference_bytes_alias(buffer: ByteBuffer*, source: u8*, count: usize, offset: usize*, inside: bool*): bool {
+    *offset = bits(usize, source) - bits(usize, buffer.data);
+    *inside = *offset < buffer.capacity;
+    return !*inside || (*offset <= buffer.length && count <= buffer.length - *offset);
+}
+
+fn reference_bytes_append(buffer: ByteBuffer*, source: u8*, count: usize): bool {
+    if count == 0 { return true; }
+    if count > ~convert(usize, 0) - buffer.length { return false; }
+    var offset: usize;
+    var inside: bool;
+    if !reference_bytes_alias(buffer, source, count, &offset, &inside)
+        || !reference_bytes_reserve(buffer, buffer.length + count) { return false; }
+    if inside { source = buffer.data + offset; }
+    memmove(bits(void*, buffer.data + buffer.length), bits(void*, source), count);
+    buffer.length += count;
+    return true;
+}
+
+fn reference_bytes_push(buffer: ByteBuffer*, value: u8): bool {
+    return reference_bytes_append(buffer, &value, 1);
+}
+
+fn reference_bytes_assign_text(buffer: ByteBuffer*, source: u8*, count: usize): bool {
+    if count == ~convert(usize, 0) { return false; }
+    var offset: usize;
+    var inside: bool;
+    if !reference_bytes_alias(buffer, source, count, &offset, &inside)
+        || !reference_bytes_reserve(buffer, count + 1) { return false; }
+    if count != 0 { memmove(bits(void*, buffer.data), bits(void*, inside ? buffer.data + offset : source), count); }
+    buffer.data[count] = 0;
+    buffer.length = count;
+    return true;
+}
+
+fn reference_bytes_dispose(buffer: ByteBuffer*): void {
+    free(buffer.data);
+    reference_bytes_init(buffer);
+}

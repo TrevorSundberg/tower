@@ -16,11 +16,12 @@ add_custom_command(OUTPUT "${lexer_object}"
     -o "${lexer_object}" --depfile "${lexer_object}.d"
   DEPFILE "${lexer_object}.d"
   DEPENDS "${lexer_input}" "${TOWER_BOOTSTRAP_COMPILER}"
-    scaffolding/tests/lexer_table.tower scaffolding/tests/mt19937.tower scaffolding/tests/utility_checks.tower VERBATIM)
+    scaffolding/tests/lexer_table.tower scaffolding/tests/lexer_table_oracle.tower
+    scaffolding/tests/mt19937.tower scaffolding/tests/utility_checks.tower VERBATIM)
 set_source_files_properties("${lexer_object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
 add_executable(tower-lexer-tests "${lexer_object}")
 set_target_properties(tower-lexer-tests PROPERTIES LINKER_LANGUAGE CXX)
-target_link_libraries(tower-lexer-tests PRIVATE tower-compiler-memory tower-compiler-utilities tower-lexer-reference)
+target_link_libraries(tower-lexer-tests PRIVATE tower-compiler-memory tower-compiler-utilities)
 add_test(NAME tower-lexer-tests COMMAND tower-lexer-tests)
 
 set(entity_input "${CMAKE_CURRENT_BINARY_DIR}/tower_entity_tests.tower")

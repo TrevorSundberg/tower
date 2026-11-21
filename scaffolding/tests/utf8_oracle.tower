@@ -1,0 +1,73 @@
+import tower;
+
+// Independent test reference translated from bootstrap/utf8-seed.cpp.
+// Do not call production decode/encode/validate from these routines.
+const OracleUnicodeMaximum: u32 = 1114111;
+const OracleSurrogateFirst: u32 = 55296;
+const OracleSurrogateLast: u32 = 57343;
+
+fn reference_utf8_decode(data: u8*, size: usize, value: u32*): usize {
+    *value = 0;
+    if size == 0 { return 0; }
+    var character = convert(u32, data[0]);
+    if character < 128 { *value = character; return 1; }
+    var count: usize;
+    var scalar: u32;
+    var minimum: u32;
+    if character >= 194 && character <= 223 {
+        count = 2; scalar = character & 31; minimum = 128;
+    } else {
+        if character >= 224 && character <= 239 {
+            count = 3; scalar = character & 15; minimum = 2048;
+        } else {
+            if character >= 240 && character <= 244 {
+                count = 4; scalar = character & 7; minimum = 65536;
+            } else { return 0; }
+        }
+    }
+    if size < count { return 0; }
+    for (var index: usize = 1; index < count; ++index) {
+        character = convert(u32, data[index]);
+        if (character & 192) != 128 { return 0; }
+        scalar = (scalar << 6) | (character & 63);
+    }
+    if scalar < minimum || scalar > OracleUnicodeMaximum()
+        || (scalar >= OracleSurrogateFirst() && scalar <= OracleSurrogateLast()) { return 0; }
+    *value = scalar;
+    return count;
+}
+
+fn reference_utf8_encode(scalar: u32, output: u8*, capacity: usize): usize {
+    if scalar > OracleUnicodeMaximum() || (scalar >= OracleSurrogateFirst() && scalar <= OracleSurrogateLast()) { return 0; }
+    var count: usize = scalar <= 127 ? 1 : scalar <= 2047 ? 2 : scalar <= 65535 ? 3 : 4;
+    if output is null { return count; }
+    if capacity < count { return 0; }
+    if count == 1 { output[0] = convert(u8, scalar); }
+    if count == 2 {
+        output[0] = convert(u8, 192 | (scalar >> 6));
+        output[1] = convert(u8, 128 | (scalar & 63));
+    }
+    if count == 3 {
+        output[0] = convert(u8, 224 | (scalar >> 12));
+        output[1] = convert(u8, 128 | ((scalar >> 6) & 63));
+        output[2] = convert(u8, 128 | (scalar & 63));
+    }
+    if count == 4 {
+        output[0] = convert(u8, 240 | (scalar >> 18));
+        output[1] = convert(u8, 128 | ((scalar >> 12) & 63));
+        output[2] = convert(u8, 128 | ((scalar >> 6) & 63));
+        output[3] = convert(u8, 128 | (scalar & 63));
+    }
+    return count;
+}
+
+fn reference_utf8_validate(data: u8*, size: usize, reject_nul: u32): u32 {
+    var offset: usize = 0;
+    while offset < size {
+        var value: u32;
+        var count = reference_utf8_decode(&data[offset], size - offset, &value);
+        if count == 0 || (reject_nul != 0 && value == 0) { return 0; }
+        offset += count;
+    }
+    return 1;
+}

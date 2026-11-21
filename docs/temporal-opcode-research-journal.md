@@ -25134,3 +25134,97 @@ value resolution instead. Changed that arity fixture to f(), retaining its call
 offset and expected diagnostic. Native CTests now pass 5/5 in 16.58 seconds and
 backend API checks pass (inference-migrated-native-recheck.log). No C++ feature
 code, Foundation/Bedrock grammar changes or todo.txt edits were introduced.
+### Retire utility reference implementations in Tower (2026-11-20)
+
+Coordinator follows the verified regex/contextual lexer ports with the remaining
+DFA-table, UTF-8 and byte-buffer reference implementations. Agent1 owns Session
+and shared source-format APIs, Agent3 reader/validation fixtures and oracles,
+Agent2 LR analysis/grammar. Drafts stayed outside root in the existing
+lexer-table-port and new utility-reference-port coordination directories while
+those source slots ran. No production algorithm or graph representation changes.
+
+The DFA oracle prepared previously retains independently indexed nested rows and
+its own upper-bound traversal, with the unchanged 500 random DFA tests and 150
+integer-symbol NFA/direct-simulation cases. The UTF-8 oracle is a direct Tower
+translation of the old reference's lead/continuation/range checks and encoder;
+it never calls production decode/encode/validate. Preserves exhaustive Unicode
+scalars (including invalid surrogate/range cases), all byte pairs, 100,000 seeded
+malformed byte trials, NUL policies, short-buffer write atomicity and native
+protected-page boundaries. Byte-buffer reference preserves independent growth,
+source-alias checks, overflow-before-allocation checks and libc memmove, with
+Foundation realloc/free connected to the SAME existing moving/failing Tower test
+allocator as the prior C++ oracle. Retains all 20,000 generated operations, guard
+bytes, capacity comparisons, allocation counts, cleanup and failure atomicity.
+
+Before retirement, configured /home/trevo/.cache/tower/coordinator-utility-native-baseline
+with TOWER_PARSER_ONLY=ON, published fb1ab1f9 bootstrap, Clang19, Release. Built
+and ran tower-utf8-tests, tower-bytes-tests, tower-lexer-tests: 3/3 PASS in 0.11s.
+A separate coordinator-utility-wasi-baseline cache with WASI SDK34's
+wasi-sdk-p1.cmake built those same unchanged native references and Tower fixtures;
+all three execute PASS through interpreter-wasi.mjs. No native code was added.
+
+External replacement fixtures then PASS native and WASI without the old reference
+objects. Native UTF-8 retains mmap/mprotect boundary checks; WASI uses the existing
+portable exhaustive/malformed suite without inventing protected-page support.
+Native byte tests reuse the established runtime_bind tool to bind the test-local
+allocator; the standalone executable links no production allocator. The new table
+oracle was also validated against unmodified native reference/harness previously.
+
+Trials: the UTF-8 boundary module needed an explicit import of utf8_oracle after
+its extern prototype moved to a normal Tower function; temporary probe entries
+also needed their own utility_checks import for puts. Fixed imports, not compiler
+name lookup. A manual WASI link used deprecated --target=wasm32-wasi and failed to
+find SDK34 crt1.o/libc; corrected to the established wasm32-wasip1 toolchain target.
+The failed attempt is retained in wasi-new.log; wasi-final.log records both PASS.
+No new shim, host import substitute, assertion removal or compiler limit change.
+
+Reference consumers audited with rg: the old SymbolSequence/step/accepts reference
+exports have no remaining callers. compiler-utf8.hpp is used only by the two
+retiring reference seeds and can be removed too (11 lines); production Tower UTF-8
+exports remain unchanged. Intended removal is 140 reference implementation lines
+plus 11 dead header lines. Production DFA tables remain derived from the shared
+syntax entities. No parallel semantic graph, exceptions or garbage collector is
+introduced; these independent test oracles do not become production implementations.
+
+Next: integrate after Agent3 source release; remove only reference targets/deps
+from existing isolated CMake test fragments, build a fresh documented successor,
+execute native/WASI fixtures and aggregate link, compare fixture timing, then
+commit/pull-rebase/push. Agent1 owns combined browser deployment after the ready
+source slots. Sanitizer and broad repository formatting remain skipped.
+
+Utility-reference integration results: all three permanent native CMake targets
+pass, now 0.10s total versus the unchanged native-reference baseline's 0.11s
+(single observations, not a general compiler-performance benchmark). They build
+14 Ninja steps instead of the previous 20; three native reference libraries are
+removed. Actual-root WASI targets utf8/bytes/lexer all execute PASS and the native
+parser aggregate links for WASI after removing these reference dependencies.
+
+A fresh empty /home/trevo/.cache/tower/coordinator-utilities-final-clean built the
+current successor via `env -u TOWER_BOOTSTRAP_COMPILER TOWER_NATIVE_BUILD=...
+TOWER_BUILD_JOBS=4 bash playground/scripts/build-native.sh`: published fb1ab1f9,
+Clang/LLVM19, no private compiler override. TOWER_BACKEND_TESTS then built and ran
+frontend/parser/world/session ownership/regex/contextual checks and backend API:
+all PASS. No production implementation changes; the disjoint-output requirement
+from the removed UTF-8 header is preserved as a comment on its Tower export.
+Logs: utility-reference-port/final-{successor,native,wasi,api}.log outside Git.
+
+The intended queue had Agent3 first, but its ready source slot remained unclaimed;
+coordinator atomically took the free publish.lock, notified all agents, pulled
+0333904 and integrated the already-validated utility slice. This avoids holding
+ready work behind an idle source slot. All earlier journal entries and todo.txt
+were preserved. Next source slots and Agent1's combined deployment remain
+coordinated through the external inbox/lock; this new slice is not yet deployed.
+
+Final rebase received 1ee45e5's published inference bootstrap and eea0037's inferred
+collection-call migration. Preserved both journal appends and all upstream source.
+Repeated clean default successor twice as required: coordinator-utilities-inference-clean
+for 1ee45e5 and coordinator-utilities-inferred-clean for eea0037, using published
+257654461fa38f9febb0a56492ba3999713bab5f458dfbb5f4bf6d310232bb3a,
+Clang19, no override: PASS. On the final merge, frontend ownership/parser/regex/
+contextual checks and backend API PASS; all three native and WASI utility suites
+rebuild and execute PASS. Logs: utility-reference-port/inferred-{successor,api,
+native,wasi}.log. WSL had no node in PATH; copied the resulting Wasm binaries to
+the external evidence directory and ran the existing runner with Windows Node.
+No implementation change was needed. Syntax-emission reference translation now
+has an external Tower draft; it is unvalidated and excluded from this release.
+Agent3 then Agent2 own the next ready source slots; Agent1 owns combined deployment.

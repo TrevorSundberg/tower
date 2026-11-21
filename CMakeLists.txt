@@ -147,16 +147,6 @@ if(TOWER_PARSER_ONLY)
     target_compile_options(tower-parser-tests PRIVATE -UNDEBUG -fno-exceptions)
   endif()
   enable_testing()
-  add_library(tower-lexer-reference STATIC scaffolding/bootstrap/lexer-table-seed.cpp)
-  target_compile_features(tower-lexer-reference PRIVATE cxx_std_20)
-  target_compile_definitions(tower-lexer-reference PRIVATE LexerTable=ReferenceLexerTable
-    SymbolSequence=ReferenceSymbolSequence symbol_sequence_create=reference_symbol_sequence_create
-    symbol_sequence_destroy=reference_symbol_sequence_destroy symbol_sequence_set=reference_symbol_sequence_set
-    symbol_sequence_accepts=reference_symbol_sequence_accepts
-    lex_table_create=reference_lex_table_create lex_table_destroy=reference_lex_table_destroy
-    lex_table_set_alphabet=reference_lex_table_set_alphabet lex_table_append=reference_lex_table_append
-    lex_table_match=reference_lex_table_match lex_table_step=reference_lex_table_step lex_table_accepts=reference_lex_table_accepts)
-  target_link_libraries(tower-parser-tests PRIVATE tower-lexer-reference)
   add_library(tower-syntax-reader-reference STATIC scaffolding/bootstrap/syntax-reader-seed.cpp)
   target_compile_features(tower-syntax-reader-reference PRIVATE cxx_std_20)
   foreach(name IN ITEMS read_rule read_token identifier_decode identifier_decode_in_place literal_check)
@@ -192,16 +182,6 @@ if(TOWER_PARSER_ONLY)
     target_compile_definitions(tower-lr-reference PRIVATE lr_${name}=reference_lr_${name})
   endforeach()
   target_link_libraries(tower-parser-tests PRIVATE tower-lr-reference)
-  add_library(tower-utf8-reference STATIC scaffolding/bootstrap/utf8-seed.cpp)
-  target_compile_definitions(tower-utf8-reference PRIVATE
-    tower_utf8_decode=reference_utf8_decode tower_utf8_encode=reference_utf8_encode
-    tower_utf8_validate=reference_utf8_validate)
-  add_library(tower-bytes-reference STATIC scaffolding/bootstrap/bytes-seed.cpp)
-  target_compile_features(tower-bytes-reference PRIVATE cxx_std_20)
-  target_compile_definitions(tower-bytes-reference PRIVATE
-    bytes_init=reference_bytes_init bytes_reserve=reference_bytes_reserve
-    bytes_append=reference_bytes_append bytes_push=reference_bytes_push
-    bytes_assign_text=reference_bytes_assign_text bytes_dispose=reference_bytes_dispose)
   include(cmake/TowerUtilityTests.cmake)
   include(cmake/TowerParserServiceTests.cmake)
   include(cmake/TowerParserFormatTests.cmake)
@@ -214,10 +194,8 @@ if(TOWER_PARSER_ONLY)
   include(cmake/TowerRegexTests.cmake)
   include(cmake/TowerLexiconTests.cmake)
   include(cmake/TowerInterpreterTests.cmake)
-  foreach(reference IN ITEMS tower-lexer-reference
-      tower-syntax-reader-reference tower-syntax-validation-reference
-      tower-syntax-emission-reference tower-lr-reference
-      tower-utf8-reference tower-bytes-reference)
+  foreach(reference IN ITEMS tower-syntax-reader-reference tower-syntax-validation-reference
+      tower-syntax-emission-reference tower-lr-reference)
     if(MSVC)
       target_compile_definitions(${reference} PRIVATE _HAS_EXCEPTIONS=0)
     else()
