@@ -25,19 +25,19 @@ extern fn syntax_source_release(source: SyntaxSource*): void;
 extern fn syntax_node_source(node: SyntaxNode*, source: SyntaxSource*): void;
 
 fn preview_syntax(world: void*, entity: void*): SyntaxNode* {
-    return bits(SyntaxNode*, compiler_world_component(world, entity, CompilerSyntax()));
+    return bits(SyntaxNode*, compiler_world_component(world, entity, CompilerSyntax));
 }
 
 fn preview_match(world: void*, entity: void*): ParserMatchData* {
-    return bits(ParserMatchData*, compiler_world_component(world, entity, CompilerParserMatch()));
+    return bits(ParserMatchData*, compiler_world_component(world, entity, CompilerParserMatch));
 }
 
 fn preview_description_tests(): void {
     var baseline = tower_test_buffer_count();
     var world = compiler_world_create();
     var store = compiler_world_store(world);
-    var syntax = compiler_world_type(world, CompilerSyntax());
-    var kind = compiler_world_type(world, CompilerParserMatch());
+    var syntax = compiler_world_type(world, CompilerSyntax);
+    var kind = compiler_world_type(world, CompilerParserMatch);
     var root = entity_create(store);
     var sequence = preview_syntax(world, root);
     sequence.kind = convert(u32, SyntaxKind.Alternative);
@@ -117,8 +117,8 @@ fn preview_tree_tests(): void {
     var baseline = tower_test_buffer_count();
     var world = compiler_world_create();
     var store = compiler_world_store(world);
-    var syntax = compiler_world_type(world, CompilerSyntax());
-    var kind = compiler_world_type(world, CompilerParserMatch());
+    var syntax = compiler_world_type(world, CompilerSyntax);
+    var kind = compiler_world_type(world, CompilerParserMatch);
     var a = entity_create(store);
     var b = entity_create(store);
     var x = preview_match(world, a);

@@ -299,7 +299,7 @@ fn lr_grammar_rules(value: LRGrammar*, root: void*, kind: void*): bool {
 }
 
 fn lr_grammar_symbols(value: LRGrammar*, reference_kind: void*, string_kind: void*, range_kind: void*): bool {
-    var symbol: LRSymbol = { first: LRTokenEnd(), last: LRTokenEnd(), nonterminal: 1 };
+    var symbol: LRSymbol = { first: LRTokenEnd, last: LRTokenEnd, nonterminal: 1 };
     var present = value.names.length > 1;
     if present {
         var ok = lr_grammar_add_symbol(value, &symbol, null, "");
@@ -332,8 +332,8 @@ fn lr_grammar_symbols(value: LRGrammar*, reference_kind: void*, string_kind: voi
                 var name = node_reference_name(reference);
                 var hash = lr_name_hash(name);
                 symbol.nonterminal = lr_grammar_lookup(value, name, hash);
-                symbol.first = LRTokenEnd();
-                symbol.last = LRTokenEnd();
+                symbol.first = LRTokenEnd;
+                symbol.last = LRTokenEnd;
                 var unresolved = symbol.nonterminal == lr_none();
                 if unresolved {
                     var pending: LRUnresolved;
@@ -467,7 +467,7 @@ export fn lr_grammar_resolve(value: LRGrammar*, index: usize, id: u32): bool {
     if invalid {
         return false;
     }
-    invalid = id == LRTokenEnd();
+    invalid = id == LRTokenEnd;
     if invalid {
         return false;
     }
@@ -481,7 +481,7 @@ export fn lr_grammar_resolve(value: LRGrammar*, index: usize, id: u32): bool {
 export fn lr_grammar_pending(value: LRGrammar*): usize {
     for(var index: usize = 0; index < value.unresolved.length; index++) {
         var symbol = value.unresolved.data[index].symbol;
-        if value.symbols.data[symbol].first == LRTokenEnd() {
+        if value.symbols.data[symbol].first == LRTokenEnd {
             return index;
         }
     }

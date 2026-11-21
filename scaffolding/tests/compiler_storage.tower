@@ -7,7 +7,7 @@ import .library.vector;
 import storage_api;
 import utility_checks;
 
-const StorageParserEof: u32 = 4294967294;
+var StorageParserEof: u32 = 4294967294;
 
 // Releases inside these fixtures are deliberately immediate: subsequent checks
 // observe exact ownership transitions and allocation counts before returning.
@@ -79,14 +79,14 @@ fn storage_foundation_tests(): void {
     var baseline = tower_test_buffer_count();
     storage_foundation_layout();
     var owner = tower_node_create(); var child = tower_node_create();
-    var value = semantic_component_attach(owner, kind, KFunction());
+    var value = semantic_component_attach(owner, kind, KFunction);
     utility_check(value.type.pointer_bytes == 4 && value.element.pointer_bytes == 4 && value.alignment == 1, "Foundation initial target layout");
     utility_check(value.name.length == 0 && value.items.length == 0 && value.locals.length == 0 && value.parameters.length == 0, "Foundation initial owned storage");
     utility_check(value.binding is null && value.body is null && value.bits == 0 && !value.external && !value.global, "Foundation initial fields");
     var text: u8[5]; text[0] = 97; text[1] = 0; text[2] = 98; text[3] = 99; text[4] = 100;
     utility_check(storage_assign(&value.name, &text[0], 4) && foundation_name_append(&value.name, 100), "Foundation embedded NUL name");
     utility_check(value.name.length == 5 && utility_equal(value.name.data, &text[0], 5) && value.name.data[5] == 0, "Foundation name terminator");
-    var other = semantic_component_attach(child, kind, KParameter());
+    var other = semantic_component_attach(child, kind, KParameter);
     utility_check(storage_assign(&other.name, value.name.data, value.name.length), "Foundation independent name copy");
     utility_check(other.name.length == value.name.length && utility_equal(other.name.data, value.name.data, value.name.length) && other.name.data != value.name.data, "Foundation name deep-copy identity");
     utility_check(storage_assign(&value.name, value.name.data + 2, value.name.length - 2), "Foundation name suffix alias");
@@ -119,11 +119,11 @@ fn storage_foundation_tests(): void {
     utility_check(!foundation_nodes_prepend(&value.items, value.items.data + value.items.length - 1, 2) && !foundation_nodes_prepend(&value.items, value.items.data, ~convert(usize, 0)), "Foundation prepend alias bounds/overflow");
     utility_check(foundation_nodes_push(&value.locals, child) && foundation_nodes_push(&value.parameters, child), "Foundation borrowed locals/parameters");
     value.binding = child;
-    utility_check(semantic_component_attach(owner, kind, KBlock()) == value && value.kind == KBlock(), "Foundation reattach preserves payload identity");
+    utility_check(semantic_component_attach(owner, kind, KBlock) == value && value.kind == KBlock, "Foundation reattach preserves payload identity");
     utility_check(value.binding == child && value.locals.length == 1 && value.name.length == saved.length && utility_equal(value.name.data, saved.data, saved.length), "Foundation reattach preserves data");
     utility_check(tower_node_remove_component(owner, kind), "Foundation remove owned payload");
     utility_check(semantic_component_get(child, kind) == other && other.name.length == 5 && utility_equal(other.name.data, &text[0], 5), "Foundation removal does not release borrowed edges");
-    var fresh = semantic_component_attach(owner, kind, KOperand());
+    var fresh = semantic_component_attach(owner, kind, KOperand);
     utility_check(fresh.name.length == 0 && fresh.items.length == 0 && fresh.locals.length == 0 && fresh.parameters.length == 0, "Foundation replacement starts empty");
     utility_check(foundation_nodes_prepend(&fresh.items, null, 0) && foundation_nodes_erase(&fresh.items, 0, 0), "Foundation empty list operations");
     vector_dispose(u8, &saved); tower_node_release_ref(owner); tower_node_release_ref(child);
@@ -147,7 +147,7 @@ fn storage_parser_tests(): void {
     var range = parser_range_create(owner);
     utility_check(range.start == 0 && range.end == 0, "Parser range defaults");
     var matched = parser_match_create(owner);
-    utility_check(matched.id == StorageParserEof() && matched.rule == ~convert(usize, 0) && matched.start == 0 && matched.length == 0 && matched.label.length == 0, "Parser match defaults");
+    utility_check(matched.id == StorageParserEof && matched.rule == ~convert(usize, 0) && matched.start == 0 && matched.length == 0 && matched.label.length == 0, "Parser match defaults");
     utility_check(node_match_set_label(matched, "retained"), "Parser match label");
     fill(&large[0], 109, 4096);
     tower_test_buffer_fail_next();
@@ -158,7 +158,7 @@ fn storage_parser_tests(): void {
     utility_check(string.ids.length == 3 && string.ids.data[0] == 65 && string.ids.data[1] == 233 && string.ids.data[2] == 127984, "Parser UTF-8 scalar storage");
     utility_check(node_string_resize(string, 1) && node_string_set(string, 4, 90), "Parser sparse string resize");
     utility_check(string.ids.length == 5 && string.ids.data[4] == 90, "Parser sparse string tail");
-    for (var index: usize = 1; index < 4; ++index) { utility_check(string.ids.data[index] == StorageParserEof(), "Parser string gap sentinel"); }
+    for (var index: usize = 1; index < 4; ++index) { utility_check(string.ids.data[index] == StorageParserEof, "Parser string gap sentinel"); }
     utility_check(!node_string_resize(string, ~convert(usize, 0)) && !node_string_set(string, ~convert(usize, 0), 88), "Parser string overflow");
     tower_test_buffer_fail_next();
     utility_check(!node_string_resize(string, 4096) && string.ids.length == 5 && string.ids.data[4] == 90, "Parser string allocation atomicity");
@@ -259,7 +259,7 @@ fn storage_stream_tests(): void {
     tower_test_buffer_fail_after(1); stream = parser_stream_utf8_null_terminated_create("a");
     utility_check(stream is not null, "UTF-8 stream source allocation fixture");
     parser_stream_read(stream, &id, &start, &length);
-    utility_check(id == StorageParserEof() && strcmp(parser_stream_get_error(stream), "Unable to allocate UTF-8 stream source") == 0, "UTF-8 stream allocation diagnostic");
+    utility_check(id == StorageParserEof && strcmp(parser_stream_get_error(stream), "Unable to allocate UTF-8 stream source") == 0, "UTF-8 stream allocation diagnostic");
     parser_stream_destroy(stream);
     utility_check(tower_test_buffer_count() == baseline, "UTF-8 stream cleanup");
 }
@@ -268,7 +268,7 @@ export fn compiler_storage_tests(): void {
     // The aggregate used to warm these persistent host type indexes in earlier
     // suites. Initialize them explicitly before measuring request allocations.
     var warm = tower_node_create();
-    semantic_component_attach(warm, core_component_type(), KOperand());
+    semantic_component_attach(warm, core_component_type(), KOperand);
     parser_rule_create(warm); parser_reference_create(warm); parser_range_create(warm);
     parser_match_create(warm); parser_string_create(warm);
     tower_node_release_ref(warm);

@@ -1,10 +1,10 @@
 import tower;
 
 var failures: u32 = 0;
-const PopulationPairs: u64 = 6148914691236517205;
-const PopulationQuads: u64 = 3689348814741910323;
-const PopulationBytes: u64 = 1085102592571150095;
-const PopulationByteSum: u64 = 72340172838076673;
+var PopulationPairs: u64 = 6148914691236517205;
+var PopulationQuads: u64 = 3689348814741910323;
+var PopulationBytes: u64 = 1085102592571150095;
+var PopulationByteSum: u64 = 72340172838076673;
 
 fn population_mask(T: type, value: u64): T {
     var maximum: u64 = 0;
@@ -20,16 +20,16 @@ fn population_mask(T: type, value: u64): T {
 // defined count for zero, full-width unsigned values and partial bit patterns.
 fn population(T: type, value: T): T {
     var high = value / 2;
-    high = high & population_mask(T, PopulationPairs());
+    high = high & population_mask(T, PopulationPairs);
     value = value - high;
     high = value / 4;
-    high = high & population_mask(T, PopulationQuads());
-    value = value & population_mask(T, PopulationQuads());
+    high = high & population_mask(T, PopulationQuads);
+    value = value & population_mask(T, PopulationQuads);
     value = value + high;
     high = value / 16;
     value = value + high;
-    value = value & population_mask(T, PopulationBytes());
-    value = value * population_mask(T, PopulationByteSum());
+    value = value & population_mask(T, PopulationBytes);
+    value = value * population_mask(T, PopulationByteSum);
     var shift = sizeof(T) *8;
     shift = shift - 8;
     var divisor: T = 1;

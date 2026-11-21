@@ -18,7 +18,7 @@ extern fn syntax_validate(rules: SyntaxRuleView*, count: usize, tokens: void**, 
 struct ValidationRule { name: vector(u8); alternatives: vector(void*); }
 struct ValidationFixture { rules: vector(ValidationRule*); tokens: vector(void*); }
 struct ValidationView { rules: vector(SyntaxRuleView); pending: vector(void*); }
-const ValidationNoOffset: usize = ~convert(usize, 0);
+var ValidationNoOffset: usize = ~convert(usize, 0);
 
 fn validation_bytes_compare(a: u8*, an: usize, b: u8*, bn: usize): i32 {
     for (var index: usize = 0; index < an && index < bn; ++index) {
@@ -85,7 +85,7 @@ fn validation_term_bytes(text: u8*, length: usize, literal: bool, repetition: u8
 fn validation_term(text: u8*, literal: bool, repetition: u8, capture: u8*, offset: usize): void* {
     return validation_term_bytes(text, strlen(text), literal, repetition, capture, strlen(capture), offset);
 }
-fn validation_plain(text: u8*): void* { return validation_term(text, false, 0, "", ValidationNoOffset()); }
+fn validation_plain(text: u8*): void* { return validation_term(text, false, 0, "", ValidationNoOffset); }
 // Consumes each supplied term reference after attaching it to the shared sequence.
 fn validation_sequence(terms: void**, count: usize, offset: usize): void* {
     var node = validation_node(SyntaxKind.Alternative); var data = syntax_get(node); data.start = offset;
@@ -101,11 +101,11 @@ fn validation_replace_bytes(f: ValidationFixture*, name: u8*, length: usize, ter
 fn validation_replace(f: ValidationFixture*, name: u8*, terms: void**, count: usize, offset: usize): void {
     validation_replace_bytes(f, name, strlen(name), terms, count, offset);
 }
-fn validation_one(f: ValidationFixture*, name: u8*, term: void*): void { validation_replace(f, name, &term, 1, ValidationNoOffset()); }
+fn validation_one(f: ValidationFixture*, name: u8*, term: void*): void { validation_replace(f, name, &term, 1, ValidationNoOffset); }
 fn validation_two(f: ValidationFixture*, name: u8*, left: void*, right: void*): void {
-    var terms: void*[2]; terms[0] = left; terms[1] = right; validation_replace(f, name, &terms[0], 2, ValidationNoOffset());
+    var terms: void*[2]; terms[0] = left; terms[1] = right; validation_replace(f, name, &terms[0], 2, ValidationNoOffset);
 }
-fn validation_empty(f: ValidationFixture*, name: u8*): void { validation_replace(f, name, null, 0, ValidationNoOffset()); }
+fn validation_empty(f: ValidationFixture*, name: u8*): void { validation_replace(f, name, null, 0, ValidationNoOffset); }
 fn validation_view_init(view: ValidationView*, f: ValidationFixture*): void {
     fill(view, 0, sizeof(ValidationView));
     utility_check(vector_reserve(SyntaxRuleView, &view.rules, f.rules.length) && vector_reserve(void*, &view.pending, f.rules.length), "Validation borrowed view allocation");
@@ -130,13 +130,13 @@ fn validation_compare(f: ValidationFixture*, message: u8*, wanted_offset: usize)
     utility_check(actual == reference && a.length == b.length && utility_equal(a.data, b.data, a.length) && ax == bx, "Validation exact independent reference result, message and offset");
     for (var index: usize = 0; index < x.pending.length; ++index) { utility_check(x.pending.data[index] == y.pending.data[index], "Validation exact pending term identity/order"); }
     if message is not null { utility_check(validation_message(&a, message) && actual == (a.length == 0), "Validation fixed expected diagnostic/result"); }
-    if wanted_offset != ValidationNoOffset() { utility_check(ax == wanted_offset, "Validation fixed source offset"); }
+    if wanted_offset != ValidationNoOffset { utility_check(ax == wanted_offset, "Validation fixed source offset"); }
     var failed = a.length != 0; bytes_dispose(&a); bytes_dispose(&b);
     utility_check(tower_test_buffer_count() == buffers && tower_node_get_allocated_count() == nodes, "Validation temporary cleanup"); return failed;
 }
-fn validation_expect(f: ValidationFixture*, message: u8*): void { validation_compare(f, message, ValidationNoOffset()); }
+fn validation_expect(f: ValidationFixture*, message: u8*): void { validation_compare(f, message, ValidationNoOffset); }
 fn validation_failures(f: ValidationFixture*): void {
-    validation_compare(f, null, ValidationNoOffset());
+    validation_compare(f, null, ValidationNoOffset);
     var view: ValidationView; validation_view_init(&view, f); defer validation_view_dispose(&view);
     var oracle: ByteBuffer; fill(&oracle, 0, sizeof(ByteBuffer)); defer bytes_dispose(&oracle); var offset: usize = 777777;
     var wanted = syntax_validate(view.rules.data, view.rules.length, f.tokens.data, f.tokens.length, syntax_component_type(), &oracle, &offset, view.pending.data);

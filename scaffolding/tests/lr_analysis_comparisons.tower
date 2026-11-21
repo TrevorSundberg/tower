@@ -27,7 +27,7 @@ fn lr_analysis_comparison_tests(current_contract: bool): void {
         var symbols: vector(LRSymbol); vector_init(&symbols); defer vector_dispose(&symbols);
         lr_fixture_rule(&rules, 0, 0, 1); lr_fixture_rule(&rules, 1, 1, 1); lr_fixture_rule(&rules, 1, 2, 1);
         lr_fixture_symbol(&symbols, 1, 0, 0); lr_fixture_symbol(&symbols, oracle_none(), 4294967280, ~convert(u32, 0));
-        lr_fixture_symbol(&symbols, oracle_none(), LRTokenEnd(), LRTokenEnd());
+        lr_fixture_symbol(&symbols, oracle_none(), LRTokenEnd, LRTokenEnd);
         lr_check_graph(&rules, &symbols, 2, current_contract);
     }
     {

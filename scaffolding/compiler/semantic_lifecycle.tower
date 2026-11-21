@@ -31,7 +31,7 @@ fn sem_context_init(c: SemanticContext*, program: SemanticProgram*): void {
     fill(c, 0, step1);
     c.program = program;
     c.current = program.root;
-    c.node_limit = SemanticComponentBudgetBytes() / sizeof(FoundationNode);
+    c.node_limit = SemanticComponentBudgetBytes / sizeof(FoundationNode);
     var step2 = sem_table(c);
     c.functions = step2;
     var step3 = sem_table(c);
@@ -91,20 +91,20 @@ export fn semantic_initialize(program: SemanticProgram*, root: void*, width: u32
     fill(program, 0, step1);
     program.pointer_bytes = width;
     program.root = root;
-    var n: FoundationNode* = sem_attach(root, KProgram());
-    n.type.scalar = SVoid();
+    var n: FoundationNode* = sem_attach(root, KProgram);
+    n.type.scalar = SVoid;
     sem_push(&program.functions, root);
     var scalar: u32 = 0;
     loop {
-        if !(scalar <= SUSize()) {
+        if !(scalar <= SUSize) {
             break;
         }
-        if scalar == SStruct() {
+        if scalar == SStruct {
             scalar++;
             continue;
         }
         var entity: void* = sem_create(root);
-        var t: FoundationNode* = sem_attach(entity, KType());
+        var t: FoundationNode* = sem_attach(entity, KType);
         t.type.scalar = scalar;
         t.type.pointer_bytes = width;
         var step8 = semantic_scalar_name(scalar);
@@ -143,7 +143,7 @@ export fn semantic_compile_budget(program: SemanticProgram*, roots: void**, base
 }
 
 export fn semantic_compile(program: SemanticProgram*, roots: void**, bases: usize*, count: usize, source: u8*): void {
-    semantic_compile_budget(program, roots, bases, count, source, SemanticComponentBudgetBytes());
+    semantic_compile_budget(program, roots, bases, count, source, SemanticComponentBudgetBytes);
 }
 
 export fn semantic_program_dispose(program: SemanticProgram*): void {

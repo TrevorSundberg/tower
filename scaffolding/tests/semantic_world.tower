@@ -48,24 +48,24 @@ export fn semantic_world_tests(width: u32): u32 {
         var expected_count = index + 1 < available ? index + 1 : available;
         if policy.workers.count != (work_thread_available() ? expected_count : 1) { failures++; }
         work_pool_close(&policy.workers);
-        sem_attach(roots[index], KProgram());
-        var parsed = compiler_world_component(worlds[index], roots[index], CompilerParserMatch());
+        sem_attach(roots[index], KProgram);
+        var parsed = compiler_world_component(worlds[index], roots[index], CompilerParserMatch);
         if bits(void*, sem_match(roots[index])) != parsed { failures++; }
         var kind = sem_create(roots[index]);
         if !entity_register(kind, sizeof(WorldInvocation), alignof(WorldInvocation), 0) { return 99; }
         var item: usize = 0;
         while item < 2 {
             var function = sem_create(roots[index]);
-            var definition = sem_attach(function, KFunction());
-            definition.type.scalar = SI32();
+            var definition = sem_attach(function, KFunction);
+            definition.type.scalar = SI32;
             definition.type.pointer_bytes = width;
             definition.body = sem_create(function);
-            var body = sem_attach(definition.body, KBlock());
+            var body = sem_attach(definition.body, KBlock);
             var returned = sem_create(definition.body);
-            var result = sem_attach(returned, KReturn());
+            var result = sem_attach(returned, KReturn);
             result.value = sem_create(returned);
-            var literal = sem_attach(result.value, KOperand());
-            literal.type.scalar = SI32();
+            var literal = sem_attach(result.value, KOperand);
+            literal.type.scalar = SI32;
             literal.type.pointer_bytes = width;
             literal.constant = true;
             literal.bits = convert(u64, index * 10 + item + 1);
@@ -124,9 +124,9 @@ export fn semantic_stage_tests(): u32 {
     var world = compiler_world_create();
     var store = compiler_world_store(world);
     var root = entity_create(store);
-    sem_attach(root, KProgram());
+    sem_attach(root, KProgram);
     var parent = sem_create(root);
-    var kind = compiler_node_type(root, CompilerFoundation());
+    var kind = compiler_node_type(root, CompilerFoundation);
     var count = entity_query_count(kind);
     var entities = entity_store_count(store);
     var components = entity_store_component_count(store);
@@ -136,10 +136,10 @@ export fn semantic_stage_tests(): u32 {
     var a = entity_stage_create(first, parent);
     var a_child = entity_stage_create(first, a);
     var b = entity_stage_create(second, parent);
-    var data = sem_attach(a, KOperand());
+    var data = sem_attach(a, KOperand);
     data.bits = 17;
-    sem_attach(a_child, KBlock());
-    sem_attach(b, KOperand()).bits = 23;
+    sem_attach(a_child, KBlock);
+    sem_attach(b, KOperand).bits = 23;
     var failures: u32 = 0;
     if entity_stage_create(second, a) != null { failures++; }
     if entity_child_count(parent) != 0 || entity_child_count(a) != 0 { failures++; }
@@ -162,7 +162,7 @@ export fn semantic_stage_tests(): u32 {
     if !entity_stage_lease(leased, parent) || entity_stage_lease(competing, parent) { return 94; }
     view = entity_view_open(root);
     if entity_stage_lease(competing, root) { failures++; }
-    var attached = sem_attach(parent, KOperand());
+    var attached = sem_attach(parent, KOperand);
     attached.bits = 31;
     if entity_query_count(kind) != count + 3 || entity_store_component_count(store) != components + 3 { failures++; }
     entity_view_close(view);
@@ -171,7 +171,7 @@ export fn semantic_stage_tests(): u32 {
     entity_stage_discard(competing);
     var discarded = entity_stage_open(root);
     var unused = entity_stage_create(discarded, parent);
-    var value = sem_attach(unused, KOperand());
+    var value = sem_attach(unused, KOperand);
     // The ordinary Foundation finalizer must release private vector storage.
     if !vector_push(u8, &value.name, 120) { return 93; }
     entity_stage_discard(discarded);
@@ -179,7 +179,7 @@ export fn semantic_stage_tests(): u32 {
     var rollback = entity_stage_open(root);
     var extra = sem_create(root);
     if !entity_stage_lease(rollback, extra) { return 96; }
-    sem_attach(extra, KOperand());
+    sem_attach(extra, KOperand);
     entity_stage_discard(rollback);
     if sem_get(extra) != null || entity_query_count(kind) != count + 4 { failures++; }
     entity_release(root);

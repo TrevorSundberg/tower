@@ -133,7 +133,7 @@ export fn im_foreign(machine: IMState*, node: void*, args: u64*, count: usize): 
         execution_check(count == 1, "foreign argument count");
         var type: FoundationType;
         fill(&type, 0, sizeof(FoundationType));
-        type.scalar = SI32();
+        type.scalar = SI32;
         type.pointer_bytes = convert(u32, im_pointer_bytes(machine));
         var value = interpreter_load(machine, args[0], &type, 0) + 1;
         interpreter_write(machine, args[0], value, &type, 0);

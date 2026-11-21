@@ -14,12 +14,12 @@ extern fn lex_table_set_alphabet(table: LexerTable*, alphabet: u32*, count: usiz
 extern fn lex_table_append(table: LexerTable*, row: i32*, count: usize, accepting: bool): bool;
 
 enum OracleRegexKind: u32 { Character, Split, Accept }
-const OracleRegexBytes: usize = 4096;
-const OracleRegexDepth: usize = 64;
-const OracleRegexStates: usize = 512;
-const OracleRegexSubsets: usize = 1024;
-const OracleRegexCells: usize = 262144;
-const OracleUnicodeLimit: u32 = 1114112;
+var OracleRegexBytes: usize = 4096;
+var OracleRegexDepth: usize = 64;
+var OracleRegexStates: usize = 512;
+var OracleRegexSubsets: usize = 1024;
+var OracleRegexCells: usize = 262144;
+var OracleUnicodeLimit: u32 = 1114112;
 
 struct OracleRegexRange { first: u32; last: u32; }
 struct OracleRegexState {
@@ -68,7 +68,7 @@ fn oracle_regex_contains(characters: u8*, character: u8): bool {
 }
 
 fn oracle_regex_add(c: OracleRegexCompiler*, kind: OracleRegexKind, out: i32, other: i32): i32 {
-    if c.states.length >= OracleRegexStates() {
+    if c.states.length >= OracleRegexStates {
         oracle_regex_fail(c, "Token pattern exceeds 512 NFA states");
         return -1;
     }
@@ -133,7 +133,7 @@ fn oracle_regex_character(c: OracleRegexCompiler*): u32 {
                 value = value * 16 + convert(u32, digit);
             }
             if digits == 0 || (!braces && digits != 2) || (braces && !oracle_regex_take(c, 125))
-            || value >= OracleUnicodeLimit() || (value >= 55296 && value <= 57343) {
+            || value >= OracleUnicodeLimit || (value >= 55296 && value <= 57343) {
                 oracle_regex_fail(c, "Invalid Unicode scalar escape");
             }
             return value;
@@ -152,7 +152,7 @@ fn oracle_regex_character(c: OracleRegexCompiler*): u32 {
 fn oracle_regex_atom(c: OracleRegexCompiler*, result: OracleRegexFragment*): void {
     result.start = -1;
     if oracle_regex_take(c, 40) {
-        if ++c.depth > OracleRegexDepth() { oracle_regex_fail(c, "Token pattern nesting exceeds 64"); return; }
+        if ++c.depth > OracleRegexDepth { oracle_regex_fail(c, "Token pattern nesting exceeds 64"); return; }
         oracle_regex_expression(c, result);
         --c.depth;
         if !oracle_regex_take(c, 41) { oracle_regex_fail(c, "Expected closing parenthesis"); }
@@ -279,7 +279,7 @@ fn oracle_regex_closure(c: OracleRegexCompiler*, seeds: vector(i32)*, result: ve
 
 fn oracle_regex_alphabet(c: OracleRegexCompiler*, alphabet: vector(u32)*): void {
     utility_check(vector_push(u32, alphabet, 0), "Regex oracle alphabet start");
-    utility_check(vector_push(u32, alphabet, OracleUnicodeLimit()), "Regex oracle alphabet end");
+    utility_check(vector_push(u32, alphabet, OracleUnicodeLimit), "Regex oracle alphabet end");
     for (var index: usize = 0; index < c.states.length; ++index) {
         var ranges = &c.states.data[index].ranges;
         for (var range: usize = 0; range < ranges.length; ++range) {
@@ -385,7 +385,7 @@ fn oracle_regex_dfa(c: OracleRegexCompiler*, start: i32, accept: i32): LexerTabl
             if closed.length != 0 {
                 next = oracle_regex_subset(&subsets, &closed);
                 if next < 0 {
-                    if subsets.length >= OracleRegexSubsets() || (subsets.length + 1) * alphabet.length > OracleRegexCells() {
+                    if subsets.length >= OracleRegexSubsets || (subsets.length + 1) * alphabet.length > OracleRegexCells {
                         oracle_regex_fail(c, "Token pattern exceeds DFA complexity limit");
                         return null;
                     }
@@ -406,7 +406,7 @@ fn oracle_regex_compile(source: u8*, length: usize, diagnostic: u8**): LexerTabl
     compiler.source = source;
     compiler.length = length;
     defer oracle_regex_dispose(&compiler);
-    if length > OracleRegexBytes() { *diagnostic = "Token pattern exceeds 4096 bytes"; return null; }
+    if length > OracleRegexBytes { *diagnostic = "Token pattern exceeds 4096 bytes"; return null; }
     var fragment: OracleRegexFragment;
     fill(&fragment, 0, sizeof(OracleRegexFragment));
     defer vector_dispose(OracleRegexPatch, &fragment.ends);

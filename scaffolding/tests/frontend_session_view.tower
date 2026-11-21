@@ -60,9 +60,9 @@ fn frontend_session_view_tests(): void {
     utility_check(syntax_baseline_install(second, null, "parse Statement = 'base';", true, &diagnostic), "second world baseline");
     syntax_version_diagnostic_dispose(&diagnostic);
     var source: u8* = "token Mark = /x/ when expected as identifier; parse Choice = | 'y'; parse Statement = Mark ';'; x;";
-    var a = syntax_session_open(first, null, source, null, SyntaxFoundationBaseline());
-    var b = syntax_session_open(second, null, "parse Statement = 'other' ';'; other;", null, SyntaxFoundationBaseline());
-    var pending = syntax_session_open(first, null, "parse Waiting = Missing;", null, SyntaxFoundationBaseline());
+    var a = syntax_session_open(first, null, source, null, SyntaxFoundationBaseline);
+    var b = syntax_session_open(second, null, "parse Statement = 'other' ';'; other;", null, SyntaxFoundationBaseline);
+    var pending = syntax_session_open(first, null, "parse Waiting = Missing;", null, SyntaxFoundationBaseline);
     var declaration = syntax_next(bits(void*, pending));
     utility_check(declaration is not null && syntax_session_rule_pending(pending, session_view_rule(pending, "Waiting")), "pending rule metadata before activation");
     entity_release(declaration);

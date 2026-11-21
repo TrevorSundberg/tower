@@ -50,7 +50,7 @@ fn frontend_template_world_tests(world: void*): void {
     }
     var revision = syntax_revision_create(&rules[0], 2, null, 0);
     defer frontend_revision_release(revision);
-    var bedrock = syntax_world_revision(world, SyntaxSeedBaseline());
+    var bedrock = syntax_world_revision(world, SyntaxSeedBaseline);
     defer frontend_revision_release(bedrock);
     var diagnostic: SyntaxVersionDiagnostic;
     fill(&diagnostic, 0, sizeof(SyntaxVersionDiagnostic));

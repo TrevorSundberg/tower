@@ -16,7 +16,7 @@ extern fn compiler_node_get(node: void*, kind: u32): void*;
 
 fn format_syntax(f: FormatEngine*, entity: void*): SyntaxNode* {
     if f.syntax_kind is null {
-        return bits(SyntaxNode*, compiler_node_get(entity, CompilerSyntax()));
+        return bits(SyntaxNode*, compiler_node_get(entity, CompilerSyntax));
     }
     var component = entity_component_get(entity, f.syntax_kind);
     return bits(SyntaxNode*, entity_component_data(component));
@@ -26,7 +26,7 @@ fn format_foundation(f: FormatEngine*, entity: void*): FoundationNode* {
     if f.foundation_kind == null {
         // Formatting is a read-only query. Do not register a type or consult
         // the legacy host world when the caller leaves this kind implicit.
-        return bits(FoundationNode*, compiler_node_get(entity, CompilerFoundation()));
+        return bits(FoundationNode*, compiler_node_get(entity, CompilerFoundation));
     }
     var component = entity_component_get(entity, f.foundation_kind);
     return bits(FoundationNode*, entity_component_data(component));
@@ -34,7 +34,7 @@ fn format_foundation(f: FormatEngine*, entity: void*): FoundationNode* {
 
 export fn format_match(f: FormatEngine*, entity: void*): ParserMatchData* {
     if f.match_kind is null {
-        return bits(ParserMatchData*, compiler_node_get(entity, CompilerParserMatch()));
+        return bits(ParserMatchData*, compiler_node_get(entity, CompilerParserMatch));
     }
     var component = entity_component_get(entity, f.match_kind);
     return bits(ParserMatchData*, entity_component_data(component));

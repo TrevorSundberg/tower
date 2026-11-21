@@ -31,8 +31,8 @@ export fn main(argc: i32, argv: u8**): i32 {
     driver_request_bind(&request, syntax_host_environment(compiler_host_world()));
     var result: SyntaxVersionDiagnostic = default;
     defer syntax_version_diagnostic_dispose(&result);
-    utility_check(syntax_host_install(compiler_host_world(), request.text[DriverBedrockText()].data, false, &result), "install Bedrock" );
-    utility_check(syntax_host_install(compiler_host_world(), request.text[DriverFoundationText()].data, true, &result), "install Foundation" );
+    utility_check(syntax_host_install(compiler_host_world(), request.text[DriverBedrockText].data, false, &result), "install Bedrock" );
+    utility_check(syntax_host_install(compiler_host_world(), request.text[DriverFoundationText].data, true, &result), "install Foundation" );
     // These session fixtures have no imports, matching the old parser harness.
     // Keep the resource request owned, without lending its module cache.
     *request.slot = null;

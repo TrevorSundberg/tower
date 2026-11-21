@@ -14,7 +14,7 @@ import .library.vector;
 extern fn syntax_identifier_decode_in_place(text: u8*, length: usize): usize;
 
 export fn sem_match(node: Entity*): ParserMatchData* {
-    return bits(ParserMatchData*, compiler_node_get(node, CompilerParserMatch()));
+    return bits(ParserMatchData*, compiler_node_get(node, CompilerParserMatch));
 }
 
 fn metadata_text_equal(left: u8*, right: u8*): bool {
@@ -159,7 +159,7 @@ export fn compiler_node_copy_metadata_staged(source: Entity*, destination: Entit
         || destination.stage != bits(void*, stage) || destination.id != 0 { return false; }
     var span = sem_match(source);
     if span != null {
-        var target = bits(ParserMatchData*, compiler_world_component(world, destination, CompilerParserMatch()));
+        var target = bits(ParserMatchData*, compiler_world_component(world, destination, CompilerParserMatch));
         if target == null { return false; }
         target.id = span.id;
         target.start = span.start;

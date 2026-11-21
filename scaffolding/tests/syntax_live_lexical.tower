@@ -29,7 +29,7 @@ fn live_cache_tests(): void {
         var length: usize = 4; if index >= 10 { word[length++] = convert(u8, 48 + index / 10); } word[length++] = convert(u8, 48 + index % 10); word[length] = 0;
         live_join(&prefix, "parse Statement = '", &word[0], "' ';';"); live_join(&source, prefix.data, &word[0], ";");
         syntax_reset(bits(void*, session), source.data, null); live_consume(session);
-        utility_check(*syntax_get_error(bits(void*, session)) == 0 && session.cache.index.entries.length <= FrontendCacheLimit(), "Grammar cache stays within configured bound");
+        utility_check(*syntax_get_error(bits(void*, session)) == 0 && session.cache.index.entries.length <= FrontendCacheLimit, "Grammar cache stays within configured bound");
     }
     live_join(&source, live_base(), live_feature(), "for(z in zs){}"); syntax_reset(bits(void*, session), source.data, null); live_consume(session);
     utility_check(*syntax_get_error(bits(void*, session)) == 0 && session.revision == 5, "Session recovers original grammar after cache churn");

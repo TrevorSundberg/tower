@@ -53,8 +53,8 @@ struct LanguageCandidate {
 }
 
 fn language_quote(q: CompletionQuery*, text: u8*, size: usize): void {
-    if size > HoverPreviewByteLimit() {
-        size = HoverPreviewByteLimit();
+    if size > HoverPreviewByteLimit {
+        size = HoverPreviewByteLimit;
         loop {
             var byte = text[size] &192;
             if byte != 128 {
@@ -323,7 +323,7 @@ fn language_leaf(q: CompletionQuery*, leaf: void*, candidate: LanguageCandidate*
         language_number(q, "binding", entity_id(subject));
         language_number(q, "size", semantic_size(&value.type));
         language_number(q, "alignment", semantic_alignment(&value.type));
-        if value.kind == KFieldDeclaration() {
+        if value.kind == KFieldDeclaration {
             language_number(q, "offset", value.byte_offset);
         }
         if sem_source_base(&q.context, subject) == 0 {
@@ -339,7 +339,7 @@ fn language_leaf(q: CompletionQuery*, leaf: void*, candidate: LanguageCandidate*
 }
 
 fn language_walk(q: CompletionQuery*, node: void*, inherited: LanguageCandidate*, checked: bool, depth: usize, budget: usize*): void {
-    if depth == InspectionDepthLimit() {
+    if depth == InspectionDepthLimit {
         q.truncated = true;
         return;
     }
@@ -357,7 +357,7 @@ fn language_walk(q: CompletionQuery*, node: void*, inherited: LanguageCandidate*
     var count = sem_child_count(node);
     var syntax = language_syntax(node);
     if syntax != null {
-        if syntax.kind == SyntaxTemplate() {
+        if syntax.kind == SyntaxTemplate {
             var template = language_grammar_find(q, node);
             if template != null && template.targets.length != 0 {
                 language_leaf(q, sem_child(node, 0), &current);
@@ -401,7 +401,7 @@ export fn language_document_world(world: void*, environment: void*, source: u8*,
     if !valid_width {
         return null;
     }
-    if length > InspectionSourceByteLimit() {
+    if length > InspectionSourceByteLimit {
         return null;
     }
     if mode > 2 {
@@ -458,7 +458,7 @@ export fn language_document_world(world: void*, environment: void*, source: u8*,
     q.count = 0;
     completion_text(&q.output, "{\"entries\":[");
     var empty: LanguageCandidate = default;
-    var budget = InspectionNodeLimit();
+    var budget = InspectionNodeLimit;
     i = 0;
     for(; i != q.roots.length; i++) {
         if q.bases.data[i] == 0 {

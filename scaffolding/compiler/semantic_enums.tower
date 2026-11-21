@@ -78,7 +78,7 @@ fn sem_enum_fields(c: SemanticContext*, n: void*): void {
             sem_fail(c, member, "Duplicate enum discriminant");
             return;
         }
-        var value = sem_node(c, member, KOperand());
+        var value = sem_node(c, member, KOperand);
         sem_set_name(value, name);
         sem_set_type(&value.type, &type.type);
         value.constant = true;
@@ -128,7 +128,7 @@ fn sem_enum_operand(c: SemanticContext*, n: void*): bool {
     if shadowed {
         return false;
     }
-    if sem_editor_capture(c, field, EditorEnumMembers(), &type.type) {
+    if sem_editor_capture(c, field, EditorEnumMembers, &type.type) {
         return true;
     }
     var member_name = sem_identifier(c, field);
@@ -141,7 +141,7 @@ fn sem_enum_operand(c: SemanticContext*, n: void*): bool {
         return true;
     }
     var item = sem_get(member);
-    var value = sem_node(c, n, KOperand());
+    var value = sem_node(c, n, KOperand);
     value.binding = member;
     value.constant = true;
     value.bits = item.bits;

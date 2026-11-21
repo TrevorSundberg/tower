@@ -105,7 +105,7 @@ fn generic_info_dependent(node: void*, component: void*, depth: usize): bool {
     if node == null {
         return false;
     }
-    if depth == InspectionDepthLimit() {
+    if depth == InspectionDepthLimit {
         return true;
     }
     var meaning = generic_info(node, component);
@@ -158,7 +158,7 @@ fn generic_info_walk(a: GenericAnalysis*, node: void*, values: SemanticScope*, t
     if node == null {
         return;
     }
-    if depth == InspectionDepthLimit() {
+    if depth == InspectionDepthLimit {
         a.truncated = true;
         return;
     }
@@ -272,7 +272,7 @@ fn sem_generic_inspect(c: SemanticContext*, resolve_types: bool, truncated: bool
     a.context = c;
     a.component = component;
     a.resolve_types = resolve_types;
-    a.budget = InspectionNodeLimit();
+    a.budget = InspectionNodeLimit;
     a.truncated = false;
     var i: usize = 0;
     for(; i < c.template_nodes.length; i++) {

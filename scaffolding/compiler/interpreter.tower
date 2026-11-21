@@ -17,7 +17,7 @@ extern fn entity_component_get(node: void*, type: void*): void*;
 extern fn entity_component_data(component: void*): void*;
 
 fn ix_value_input(m: IMExecution*, n: FoundationNode*): void* {
-    if m.context == null || m.context.value_inputs == null || n.kind != KOperand() || n.binding == null { return null; }
+    if m.context == null || m.context.value_inputs == null || n.kind != KOperand || n.binding == null { return null; }
     var input = bits(IMValueInput*, entity_component_data(entity_component_get(n.binding, m.context.value_inputs)));
     if input == null || input.owner != null && m.state.frames.length != 0 && im_frame(m.state).function == input.owner { return null; }
     return input.producer;
@@ -44,7 +44,7 @@ fn ix_pending(m: IMExecution*, node: void*): bool {
     if ix_pending(m, n.value) || ix_pending(m, n.left) || ix_pending(m, n.right) || ix_pending(m, n.target) {
         return true;
     }
-    if n.kind == KCall() {
+    if n.kind == KCall {
         var i: usize = 0;
         while i < n.items.length {
             if ix_pending(m, n.items.data[i]) { return true; }
@@ -65,11 +65,11 @@ fn ix_strict_node(m: IMExecution*, n: FoundationNode*, offset: usize): bool {
     // Explicit stages retain their existing target-address execution policy.
     if m.context.require_relocatable {
         var address_value = false;
-        if n.kind == KBits() || n.kind == KConvert() {
+        if n.kind == KBits || n.kind == KConvert {
             var source = im_cached_node(m.state, n.value);
             address_value = (source.type.pointers != 0) != (n.type.pointers != 0);
         }
-        if n.kind == KBinary() && n.type.pointers == 0 {
+        if n.kind == KBinary && n.type.pointers == 0 {
             address_value ||= im_cached_node(m.state, n.left).type.pointers != 0;
             address_value ||= im_cached_node(m.state, n.right).type.pointers != 0;
         }
@@ -81,15 +81,15 @@ fn ix_strict_node(m: IMExecution*, n: FoundationNode*, offset: usize): bool {
     // Ordinary lowering captures places with local addresses, including scalar
     // compound assignments. Strict stack addresses use the same target-byte
     // representation and initialization checks; they never expose host memory.
-    var unsupported = n.kind == KString();
-    unsupported ||= n.kind == KAllocate() || n.kind == KReallocate() || n.kind == KFree();
-    unsupported ||= n.kind == KCopy() || n.kind == KFill();
+    var unsupported = n.kind == KString;
+    unsupported ||= n.kind == KAllocate || n.kind == KReallocate || n.kind == KFree;
+    unsupported ||= n.kind == KCopy || n.kind == KFill;
     if unsupported {
         ix_fail(m, "This operation needs a compile-time storage or value capability", offset);
         return false;
     }
     var global = n.global;
-    if n.binding != null && n.kind == KOperand() {
+    if n.binding != null && n.kind == KOperand {
         global ||= im_cached_node(m.state, n.binding).global;
     }
     if global {
@@ -97,7 +97,7 @@ fn ix_strict_node(m: IMExecution*, n: FoundationNode*, offset: usize): bool {
         ix_fail(m, "Compile-time evaluation requires explicit inputs instead of global storage", offset);
         return false;
     }
-    if n.kind == KPrint() {
+    if n.kind == KPrint {
         ix_fail(m, "Compile-time output requires an explicit effect capability", offset);
         return false;
     }
@@ -395,20 +395,20 @@ fn ix_read_uncached(m: IMExecution*, node: void*, n: FoundationNode*, offset: us
     }
     var found = false;
     var cached: u64 = 0;
-    if n.kind == KAddress() {
+    if n.kind == KAddress {
         return ix_address(m, n.value, offset);
     }
-    var direct = n.kind == KOperand();
-    var test = n.kind == KString();
+    var direct = n.kind == KOperand;
+    var test = n.kind == KString;
     direct = im_or(direct, test);
-    test = n.kind == KField();
+    test = n.kind == KField;
     direct = im_or(direct, test);
-    test = n.kind == KIndex();
+    test = n.kind == KIndex;
     direct = im_or(direct, test);
     if !direct {
         return ix_evaluate(m, node, offset);
     }
-    if n.kind == KString() {
+    if n.kind == KString {
         cached = im_strings_get(m.state, im_key(node), &found);
         if found {
             return cached;
@@ -468,11 +468,11 @@ fn ix_address_component(m: IMExecution*, node: void*, n: FoundationNode*, offset
 }
 
 fn ix_address_uncached(m: IMExecution*, node: void*, n: FoundationNode*, offset: usize): u64 {
-    if n.kind == KLoad() {
+    if n.kind == KLoad {
         return ix_read(m, n.value, offset);
     }
-    var place = n.kind == KField();
-    var test = n.kind == KIndex();
+    var place = n.kind == KField;
+    var test = n.kind == KIndex;
     place = im_or(place, test);
     if place {
         var pointer: u64 = 0;
@@ -481,7 +481,7 @@ fn ix_address_uncached(m: IMExecution*, node: void*, n: FoundationNode*, offset:
         } else {
             pointer = ix_address(m, n.left, offset);
         }
-        if n.kind == KField() {
+        if n.kind == KField {
             pointer = pointer + convert(u64, n.byte_offset);
         }
         else {
@@ -527,30 +527,30 @@ fn ix_evaluate_uncached(m: IMExecution*, node: void*, n: FoundationNode*, offset
     if !ix_strict_node(m, n, offset) {
         return 0;
     }
-    if n.kind == KCall() {
+    if n.kind == KCall {
         ix_fail(m, "Missing suspended call result", offset);
         return 0;
     }
-    var direct = n.kind == KOperand();
-    var test = n.kind == KString();
+    var direct = n.kind == KOperand;
+    var test = n.kind == KString;
     direct = im_or(direct, test);
-    test = n.kind == KField();
+    test = n.kind == KField;
     direct = im_or(direct, test);
-    test = n.kind == KIndex();
+    test = n.kind == KIndex;
     direct = im_or(direct, test);
-    test = n.kind == KAddress();
+    test = n.kind == KAddress;
     direct = im_or(direct, test);
     if direct {
         return ix_read_uncached(m, node, n, offset);
     }
-    if n.kind == KSizeOf() {
+    if n.kind == KSizeOf {
         return convert(u64, im_type_size(&n.element));
     }
-    if n.kind == KAlignOf() {
+    if n.kind == KAlignOf {
         return convert(u64, im_type_alignment(&n.element));
     }
-    var allocation = n.kind == KAllocate();
-    test = n.kind == KReallocate();
+    var allocation = n.kind == KAllocate;
+    test = n.kind == KReallocate;
     allocation = im_or(allocation, test);
     if allocation {
         var p: u64 = 0;
@@ -574,13 +574,13 @@ fn ix_evaluate_uncached(m: IMExecution*, node: void*, n: FoundationNode*, offset
             return 0;
         }
         count = count * size;
-        if n.kind == KAllocate() {
+        if n.kind == KAllocate {
             return ix_allocate(m, convert(usize, count));
         }
         return ix_reallocate(m, p, convert(usize, count));
     }
     var input_node = n.value;
-    if n.kind == KBinary() {
+    if n.kind == KBinary {
         input_node = n.left;
     }
     var a = ix_evaluate(m, input_node, offset);
@@ -588,14 +588,14 @@ fn ix_evaluate_uncached(m: IMExecution*, node: void*, n: FoundationNode*, offset
     if ix_ok(m) == false {
         return result;
     }
-    if n.kind == KLoad() {
+    if n.kind == KLoad {
         return ix_load(m, a, &n.type, offset);
     }
-    if n.kind == KConvert() {
+    if n.kind == KConvert {
         var input = im_cached_node(m.state, n.value);
         result = ix_convert_value(m, a, &input.type, &n.type, offset);
     } else {
-        if n.kind == KBinary() {
+        if n.kind == KBinary {
             result = ix_binary(m, n, a, offset);
         }
     }
@@ -603,7 +603,7 @@ fn ix_evaluate_uncached(m: IMExecution*, node: void*, n: FoundationNode*, offset
 }
 
 fn ix_convert_value(m: IMExecution*, a: u64, input: FoundationType*, type: FoundationType*, offset: usize): u64 {
-    var boolean = type.scalar == SBool();
+    var boolean = type.scalar == SBool;
     if boolean {
         var nonzero = a != 0;
         return convert(u64, nonzero);
@@ -654,8 +654,8 @@ fn ix_binary(m: IMExecution*, n: FoundationNode*, x: u64, offset: usize): u64 {
 }
 
 fn ix_binary_values(m: IMExecution*, op: u32, x: u64, y: u64, type: FoundationType*, right_type: FoundationType*, offset: usize): u64 {
-    var arithmetic = op == OAdd();
-    var test = op == OSub();
+    var arithmetic = op == OAdd;
+    var test = op == OSub;
     arithmetic = im_or(arithmetic, test);
     if type.pointers != 0 {
         if arithmetic {
@@ -670,17 +670,17 @@ fn ix_binary_values(m: IMExecution*, op: u32, x: u64, y: u64, type: FoundationTy
 
 // Shared scalar semantics for graph evaluation and compact instruction dispatch.
 fn ix_binary_scalar(m: IMExecution*, op: u32, x: u64, y: u64, mask: u64, signed: bool, offset: usize): u64 {
-    if op == OAdd() {
+    if op == OAdd {
         return x + y;
     }
-    if op == OSub() {
+    if op == OSub {
         return x -y;
     }
-    if op == OMul() {
+    if op == OMul {
         return x *y;
     }
-    var division = op == ODiv();
-    var test = op == ORem();
+    var division = op == ODiv;
+    var test = op == ORem;
     division = im_or(division, test);
     if division {
         if y == 0 {
@@ -699,60 +699,60 @@ fn ix_binary_scalar(m: IMExecution*, op: u32, x: u64, y: u64, mask: u64, signed:
             var sx = im_sign_mask(x, mask);
             var sy = im_sign_mask(y, mask);
             var signed_result: i64 = 0;
-            if op == ODiv() {
+            if op == ODiv {
                 signed_result = sx / sy;
             } else {
                 signed_result = sx % sy;
             }
             return bits(u64, signed_result);
         }
-        if op == ODiv() {
+        if op == ODiv {
             return x / y;
         }
         return x % y;
     }
-    if op == OAnd() {
+    if op == OAnd {
         return x &y;
     }
-    if op == OOr() {
+    if op == OOr {
         return x | y;
     }
-    if op == OXor() {
+    if op == OXor {
         return x ^ y;
     }
     var result = false;
-    if op == OEq() {
+    if op == OEq {
         result = x == y;
     }
-    if op == ONe() {
+    if op == ONe {
         result = x != y;
     }
     if signed {
         var sx = im_sign_mask(x, mask);
         var sy = im_sign_mask(y, mask);
-        if op == OLt() {
+        if op == OLt {
             result = sx < sy;
         }
-        if op == OLe() {
+        if op == OLe {
             result = sx <= sy;
         }
-        if op == OGt() {
+        if op == OGt {
             result = sx > sy;
         }
-        if op == OGe() {
+        if op == OGe {
             result = sx >= sy;
         }
     } else {
-        if op == OLt() {
+        if op == OLt {
             result = x < y;
         }
-        if op == OLe() {
+        if op == OLe {
             result = x <= y;
         }
-        if op == OGt() {
+        if op == OGt {
             result = x > y;
         }
-        if op == OGe() {
+        if op == OGe {
             result = x >= y;
         }
     }
@@ -780,8 +780,8 @@ fn ix_enter(m: IMExecution*, node: void*): void {
         i--;
         var child = n.items.data[i];
         var c = im_cached_node(m.state, child);
-        var omitted = c.kind == KFunction();
-        var test = c.kind == KType();
+        var omitted = c.kind == KFunction;
+        var test = c.kind == KType;
         omitted = im_or(omitted, test);
         if !omitted {
             im_task_push(m.state, child, false, 0, 0);
@@ -892,10 +892,10 @@ fn ix_needs(m: IMExecution*, node: void*): bool {
         return cached != 0;
     }
     var n = im_cached_node(m.state, node);
-    var result = n.kind == KCall();
-    var test = n.kind == KAllocate();
+    var result = n.kind == KCall;
+    var test = n.kind == KAllocate;
     result = im_or(result, test);
-    test = n.kind == KReallocate();
+    test = n.kind == KReallocate;
     result = im_or(result, test);
     result = im_or(result, ix_needs(m, n.left));
     result = im_or(result, ix_needs(m, n.right));
@@ -938,7 +938,7 @@ export fn ix_init(m: IMExecution*): void {
     if !ix_initialize_frame(m, base, size) {
         return;
     }
-    if n.kind == KFunction() {
+    if n.kind == KFunction {
         ix_enter(m, n.body);
     } else {
         ix_enter(m, root);
@@ -976,7 +976,7 @@ fn ix_print_value(m: IMExecution*, value: u64, type: FoundationType*): void {
             length++;
         }
     } else {
-        if type.scalar == SBool() {
+        if type.scalar == SBool {
             if value != 0 {
                 copy(&text[0], "true", 4);
                 length = 4;
@@ -1082,23 +1082,23 @@ export fn ix_step(m: IMExecution*, budget: usize): void {
             if ix_needs(m, task.node) {
                 var resume = task.loop_resume != 0;
                 im_task_push(m.state, task.node, resume, 1, n.start);
-                var assign = n.kind == KDeclare();
-                var test = n.kind == KAssign();
+                var assign = n.kind == KDeclare;
+                var test = n.kind == KAssign;
                 assign = im_or(assign, test);
-                var unary = n.kind == KPrint();
-                test = n.kind == KReturn();
+                var unary = n.kind == KPrint;
+                test = n.kind == KReturn;
                 unary = im_or(unary, test);
-                test = n.kind == KIf();
+                test = n.kind == KIf;
                 unary = im_or(unary, test);
-                var memory = n.kind == KCopy();
-                var trapping = n.kind == KTrap();
+                var memory = n.kind == KCopy;
+                var trapping = n.kind == KTrap;
                 memory = im_or(memory, trapping);
-                test = n.kind == KFill();
+                test = n.kind == KFill;
                 memory = im_or(memory, test);
                 if assign {
                     ix_queue(m, n.value, 2, offset);
                     var target = n.target;
-                    if n.kind == KDeclare() {
+                    if n.kind == KDeclare {
                         target = task.node;
                     }
                     ix_queue(m, target, 3, offset);
@@ -1107,7 +1107,7 @@ export fn ix_step(m: IMExecution*, budget: usize): void {
                         ix_queue(m, n.value, 2, offset);
                     }
                     else {
-                        if n.kind == KFree() {
+                        if n.kind == KFree {
                             ix_queue(m, n.left, 2, offset);
                         }
                         else {
@@ -1132,7 +1132,7 @@ export fn ix_step(m: IMExecution*, budget: usize): void {
                     continue;
                 }
                 ix_queue(m, task.node, 4, offset);
-                if n.kind == KCall() {
+                if n.kind == KCall {
                     var i = n.items.length;
                     loop {
                         if i == 0 {
@@ -1142,14 +1142,14 @@ export fn ix_step(m: IMExecution*, budget: usize): void {
                         ix_queue(m, n.items.data[i], 2, offset);
                     }
                 } else {
-                    if n.kind == KAddress() {
+                    if n.kind == KAddress {
                         ix_queue(m, n.value, 3, offset);
                     }
                     else {
-                        var place = n.kind == KField();
-                        var test = n.kind == KIndex();
+                        var place = n.kind == KField;
+                        var test = n.kind == KIndex;
                         place = im_or(place, test);
-                        if n.kind == KOperand() {
+                        if n.kind == KOperand {
                             if !n.constant {
                                 place = true;
                             }
@@ -1173,15 +1173,15 @@ export fn ix_step(m: IMExecution*, budget: usize): void {
                         continue;
                     }
                     ix_queue(m, task.node, 5, offset);
-                    if n.kind == KLoad() {
+                    if n.kind == KLoad {
                         ix_queue(m, n.value, 2, offset);
                     }
                     else {
-                        var place = n.kind == KField();
-                        var test = n.kind == KIndex();
+                        var place = n.kind == KField;
+                        var test = n.kind == KIndex;
                         place = im_or(place, test);
                         if place {
-                            if n.kind == KIndex() {
+                            if n.kind == KIndex {
                                 ix_queue(m, n.right, 2, offset);
                             }
                             var phase: usize = 3;
@@ -1199,7 +1199,7 @@ export fn ix_step(m: IMExecution*, budget: usize): void {
                         continue;
                     } else {
                         if task.phase == 4 {
-                            if n.kind == KCall() {
+                            if n.kind == KCall {
                                 ix_call(m, task.node, task.offset);
                             }
                             else {
@@ -1223,11 +1223,11 @@ export fn ix_step(m: IMExecution*, budget: usize): void {
 }
 
 fn ix_statement(m: IMExecution*, task: IMTask*, n: FoundationNode*): void {
-    if n.kind == KBlock() {
+    if n.kind == KBlock {
         ix_enter(m, task.node);
         return;
     }
-    if n.kind == KDeclare() {
+    if n.kind == KDeclare {
         if !ix_initialize_frame(m, im_base(m.state) + n.byte_offset, im_type_size(&n.type)) {
             return;
         }
@@ -1236,45 +1236,45 @@ fn ix_statement(m: IMExecution*, task: IMTask*, n: FoundationNode*): void {
         }
         return;
     }
-    if n.kind == KAssign() {
+    if n.kind == KAssign {
         ix_store(m, n.target, ix_evaluate(m, n.value, n.start), n.start);
         return;
     }
-    if n.kind == KFree() {
+    if n.kind == KFree {
         ix_deallocate(m, ix_read(m, n.left, n.start));
         return;
     }
-    var memory = n.kind == KCopy();
-    var test = n.kind == KFill();
+    var memory = n.kind == KCopy;
+    var test = n.kind == KFill;
     memory = im_or(memory, test);
     if memory {
         var dest = ix_read(m, n.left, n.start);
         var source = ix_read(m, n.right, n.start);
         var size = ix_read(m, n.value, n.start);
-        var fm_condition_0 = n.kind == KCopy();
+        var fm_condition_0 = n.kind == KCopy;
 
         ix_copy_values(m, dest, source, size, fm_condition_0, n.start);
         return;
     }
-    if n.kind == KCall() {
+    if n.kind == KCall {
         return;
     }
-    var expression = n.kind == KAllocate();
-    test = n.kind == KReallocate();
+    var expression = n.kind == KAllocate;
+    test = n.kind == KReallocate;
     expression = im_or(expression, test);
-    test = n.kind == KSizeOf();
+    test = n.kind == KSizeOf;
     expression = im_or(expression, test);
-    test = n.kind == KAlignOf();
+    test = n.kind == KAlignOf;
     expression = im_or(expression, test);
-    test = n.kind == KConvert();
+    test = n.kind == KConvert;
     expression = im_or(expression, test);
-    test = n.kind == KBits();
+    test = n.kind == KBits;
     expression = im_or(expression, test);
     if expression {
         ix_evaluate(m, task.node, n.start);
         return;
     }
-    if n.kind == KReturn() {
+    if n.kind == KReturn {
         var result: u64 = 0;
         if n.value != null {
             result = ix_read(m, n.value, n.start);
@@ -1282,7 +1282,7 @@ fn ix_statement(m: IMExecution*, task: IMTask*, n: FoundationNode*): void {
         ix_returned(m, result);
         return;
     }
-    if n.kind == KIf() {
+    if n.kind == KIf {
         var condition = ix_read(m, n.value, n.start);
         if condition != 0 {
             ix_enter(m, n.body);
@@ -1293,13 +1293,13 @@ fn ix_statement(m: IMExecution*, task: IMTask*, n: FoundationNode*): void {
         }
         return;
     }
-    if n.kind == KLoop() {
+    if n.kind == KLoop {
         im_task_push(m.state, task.node, true, 0, 0);
         ix_enter(m, n.body);
         return;
     }
-    var jump = n.kind == KBreak();
-    test = n.kind == KContinue();
+    var jump = n.kind == KBreak;
+    test = n.kind == KContinue;
     jump = im_or(jump, test);
     if jump {
         loop {
@@ -1309,7 +1309,7 @@ fn ix_statement(m: IMExecution*, task: IMTask*, n: FoundationNode*): void {
             var at: IMTask;
             im_task_pop(m.state, &at);
             if at.loop_resume != 0 {
-                if n.kind == KContinue() {
+                if n.kind == KContinue {
                     im_task_push(m.state, at.node, true, at.phase, at.offset);
                 }
                 break;
@@ -1317,21 +1317,21 @@ fn ix_statement(m: IMExecution*, task: IMTask*, n: FoundationNode*): void {
         }
         return;
     }
-    if n.kind == KPrint() {
+    if n.kind == KPrint {
         ix_print(m, n.value, n.start);
         return;
     }
-    var trapping = n.kind == KTrap();
+    var trapping = n.kind == KTrap;
     if trapping {
         var message = ix_read(m, n.left, n.start);
         var offset = ix_read(m, n.right, n.start);
         ix_raise(m, message, offset);
         return;
     }
-    if n.kind == KLabel() {
+    if n.kind == KLabel {
         return;
     }
-    if n.kind == KJump() {
+    if n.kind == KJump {
         var discard: IMTask;
         loop {
             var empty = m.state.task_count == 0;
@@ -1429,7 +1429,7 @@ export fn interpreter_invocation_init(invocation: IMInvocation*, function: void*
         ix_fail(&execution, "Evaluation target differs from the checked function target", definition.start);
         return false;
     }
-    if definition.kind != KFunction() || definition.external || definition.body == null {
+    if definition.kind != KFunction || definition.external || definition.body == null {
         ix_fail(&execution, "Evaluation requires a checked ordinary function body", definition.start);
         return false;
     }
@@ -1444,7 +1444,7 @@ export fn interpreter_invocation_init(invocation: IMInvocation*, function: void*
     var i: usize = 0;
     while i < count && ix_ok(&execution) {
         var parameter = im_cached_node(&invocation.state, definition.parameters.data[i]);
-        if strict && (parameter.type.pointers != 0 || parameter.type.scalar == SStruct() || parameter.type.scalar == SArray()) {
+        if strict && (parameter.type.pointers != 0 || parameter.type.scalar == SStruct || parameter.type.scalar == SArray) {
             ix_fail(&execution, "Evaluation inputs require explicit scalar values", parameter.start);
             return false;
         }

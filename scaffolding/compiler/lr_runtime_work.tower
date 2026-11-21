@@ -30,7 +30,7 @@ struct LRRuntimeTask {
     success: bool;
 }
 
-const LRRuntimeGrain: usize = 128;
+var LRRuntimeGrain: usize = 128;
 
 export fn compiler_lr_runtime_kernel(payload: void*): void {
     var task = bits(LRRuntimeTask*, payload);
@@ -60,7 +60,7 @@ export fn compiler_lr_runtime_kernel(payload: void*): void {
 // checks, direct lookup indexes and goto construction all use private workers.
 export fn lr_runtime_create_parallel(source: LRStates*, anchor: void*): LRRuntime* {
     var capacity = compiler_worker_capacity(anchor);
-    var count = source.states.length / LRRuntimeGrain();
+    var count = source.states.length / LRRuntimeGrain;
     if count > capacity { count = capacity; }
     if count < 2 || anchor == null { return lr_runtime_create(source); }
     return lr_runtime_create_work(source, anchor, count);

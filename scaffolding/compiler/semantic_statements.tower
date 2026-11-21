@@ -29,7 +29,7 @@ fn sem_function_declare(c: SemanticContext*, n: void*, name: u8*): void {
     if !external && !sem_shape(c, n, "body") {
         return;
     }
-    var function_node: FoundationNode* = sem_node(c, n, KFunction());
+    var function_node: FoundationNode* = sem_node(c, n, KFunction);
     if name[0] == 0 {
         var step15 = sem_member(n, "name");
         name = sem_identifier(c, step15);
@@ -90,7 +90,7 @@ fn sem_parameters(c: SemanticContext*, n: void*, definition: void*): SemanticSco
         if !sem_shape(c, p, "name") || !sem_shape(c, p, "type") {
             break;
         }
-        var param = sem_node(c, p, KParameter());
+        var param = sem_node(c, p, KParameter);
         var name = sem_identifier(c, sem_member(p, "name"));
         sem_set_name(param, name);
         if name[0] == 0 || !sem_put(c, state.scope.names, name, p) {
@@ -100,7 +100,7 @@ fn sem_parameters(c: SemanticContext*, n: void*, definition: void*): SemanticSco
         sem_declaration_state(c, p).scope = state.scope;
         sem_push(&function_node.parameters, p);
     }
-    if function_node.parameters.length > FoundationParameterLimit() {
+    if function_node.parameters.length > FoundationParameterLimit {
         sem_fail(c, n, "Foundation parameter limit is 64");
     }
     return state.scope;
@@ -130,7 +130,7 @@ fn sem_header(c: SemanticContext*, n: void*, name: u8*, definition: void*): void
         if !sem_declaration_type(c, p) {
             break;
         }
-        if sem_get(p).type.pointers == 0 && sem_get(p).type.scalar == SArray() {
+        if sem_get(p).type.pointers == 0 && sem_get(p).type.scalar == SArray {
             sem_fail(c, p, "Array parameters require a pointer; wrap an array in a struct for value passing");
             break;
         }
@@ -151,7 +151,7 @@ fn sem_header(c: SemanticContext*, n: void*, name: u8*, definition: void*): void
         }
         if semantic_aggregate(&function_node.type) {
             c.surface_expressions = true;
-            if function_node.type.scalar == SArray() {
+            if function_node.type.scalar == SArray {
                 sem_fail(c, n, "Array returns require a pointer; wrap an array in a struct for value returning");
             }
             if external || function_node.exported {
@@ -277,7 +277,7 @@ fn sem_labels(c: SemanticContext*, body: void*): void {
             item = sem_unwrap(item);
             var call = sem_control_call(c, item, "label");
             if call != null {
-                var label = sem_node(c, call, KLabel());
+                var label = sem_node(c, call, KLabel);
                 var name = sem_label_name(c, call);
                 sem_set_name(label, name);
                 label.body = body;
@@ -307,13 +307,13 @@ fn sem_block_begin(c: SemanticContext*, n: void*, depth: u32, cursor: SemanticBl
     *cursor = default;
     cursor.subject = n;
     cursor.depth = depth;
-    cursor.flow = FlowNext();
+    cursor.flow = FlowNext;
     cursor.deferred = c.deferred;
     if n == null || !sem_is(n, "CoreBlock") {
         sem_fail(c, n, "Expected a CoreBlock tree");
         return false;
     }
-    sem_node(c, n, KBlock());
+    sem_node(c, n, KBlock);
     c.scope = sem_scope(c, c.scope);
     return true;
 }
@@ -331,8 +331,8 @@ fn sem_block_accept(c: SemanticContext*, cursor: SemanticBlockCursor*, at: void*
         at = control;
     }
     sem_push(&sem_get(cursor.subject).items, at);
-    if(cursor.flow &FlowNext()) != 0 {
-        cursor.flow =(cursor.flow & ~FlowNext()) | next;
+    if(cursor.flow &FlowNext) != 0 {
+        cursor.flow =(cursor.flow & ~FlowNext) | next;
     }
 }
 
@@ -344,12 +344,12 @@ fn sem_block_step(c: SemanticContext*, cursor: SemanticBlockCursor*): void {
         var label_call = sem_control_call(c, at, "label");
         if label_call != null {
             if cursor.labeled {
-                if(cursor.flow &FlowNext()) != 0 && c.flow_dependencies.length == 0 {
+                if(cursor.flow &FlowNext) != 0 && c.flow_dependencies.length == 0 {
                     sem_fail(c, at, "A labeled block must end with jump or return before the next label");
                 }
             }
             cursor.labeled = true;
-            cursor.flow = FlowNext();
+            cursor.flow = FlowNext;
         }
         var next = sem_statement(c, at, cursor.depth + 1);
         sem_block_accept(c, cursor, at, next);
@@ -363,8 +363,8 @@ fn sem_block_step(c: SemanticContext*, cursor: SemanticBlockCursor*): void {
 fn sem_block_finish(c: SemanticContext*, cursor: SemanticBlockCursor*): u32 {
     var value = sem_get(cursor.subject);
     sem_scope_locals(c, c.scope, &value.locals);
-    if(cursor.flow &FlowNext()) != 0 && c.deferred != cursor.deferred && sem_ok(c) {
-        cursor.flow =(cursor.flow & ~FlowNext()) | sem_defer_emit(c, cursor.subject, cursor.deferred, 0);
+    if(cursor.flow &FlowNext) != 0 && c.deferred != cursor.deferred && sem_ok(c) {
+        cursor.flow =(cursor.flow & ~FlowNext) | sem_defer_emit(c, cursor.subject, cursor.deferred, 0);
     }
     c.deferred = cursor.deferred;
     c.scope = c.scope.parent;
@@ -374,7 +374,7 @@ fn sem_block_finish(c: SemanticContext*, cursor: SemanticBlockCursor*): u32 {
 fn sem_block(c: SemanticContext*, n: void*, depth: u32): u32 {
     var cursor: SemanticBlockCursor;
     if !sem_block_begin(c, n, depth, &cursor) {
-        return FlowNext();
+        return FlowNext;
     }
     while cursor.next < sem_child_count(n) && sem_ok(c) {
         sem_block_step(c, &cursor);
@@ -388,8 +388,8 @@ fn sem_if_begin(c: SemanticContext*, n: void*): bool {
     if !sem_shape(c, n, "condition") || !sem_shape(c, n, "body") {
         return false;
     }
-    var value = sem_node(c, n, KIf());
-    value.value = sem_operand(c, sem_member(n, "condition"), sem_type_new(c, SBool(), 0, null));
+    var value = sem_node(c, n, KIf);
+    value.value = sem_operand(c, sem_member(n, "condition"), sem_type_new(c, SBool, 0, null));
     value.body = sem_member(n, "body");
     value.otherwise = sem_member(n, "otherwise");
     return true;
@@ -405,13 +405,13 @@ fn sem_if_finish(c: SemanticContext*, n: void*, yes: u32, no: u32): u32 {
 }
 
 fn sem_loop_finish(flow: u32): u32 {
-    return(flow &FlowReturn()) |((flow &FlowBreak()) != 0 ? FlowNext(): 0);
+    return(flow &FlowReturn) |((flow &FlowBreak) != 0 ? FlowNext: 0);
 }
 
 fn sem_statement(c: SemanticContext*, n: void*, depth: u32): u32 {
     if c.deferring != 0 && sem_control_call(c, n, "jump") != null {
         sem_fail(c, n, "A deferred cleanup cannot jump out of its scope");
-        return FlowNext();
+        return FlowNext;
     }
     return sem_statement_complete(c, n, sem_statement_impl(c, n, depth));
 }
@@ -438,7 +438,7 @@ fn sem_statement_impl(c: SemanticContext*, n: void*, depth: u32): u32 {
     }
     var jump_call = sem_control_call(c, n, "jump");
     if jump_call != null {
-        var value = sem_node(c, jump_call, KJump());
+        var value = sem_node(c, jump_call, KJump);
         var name = sem_label_name(c, jump_call);
         sem_set_name(value, name);
         var labels = c.labels != null;
@@ -475,26 +475,26 @@ fn sem_statement_impl(c: SemanticContext*, n: void*, depth: u32): u32 {
     if sem_is(n, "TowerExpressionStatement") {
         c.surface_expressions = true;
         var expression = sem_surface_unwrap(sem_member(n, "value"));
-        var value = sem_node(c, n, SurfaceDiscard());
+        var value = sem_node(c, n, SurfaceDiscard);
         value.value = sem_surface_discard(c, expression);
         if sem_ok(c) {
             var operation = sem_get(value.value);
-            if operation.kind == KTrap() {
+            if operation.kind == KTrap {
                 return 0;
             }
         }
-        return FlowNext();
+        return FlowNext;
     }
     if sem_is(n, "CoreEnum") {
         sem_fail(c, n, "Enum types must be declared at top level");
-        return FlowNext();
+        return FlowNext;
     }
     var kind: u8* = sem_label(n);
     if sem_equal(kind, "CoreDeclare") {
         if !sem_shape(c, n, "name") {
             return 1;
         }
-        var value: FoundationNode* = sem_node(c, n, KDeclare());
+        var value: FoundationNode* = sem_node(c, n, KDeclare);
         var name: u8* = sem_identifier(c, sem_member(n, "name"));
         if !value.global {
             sem_set_name(value, name);
@@ -523,7 +523,7 @@ fn sem_statement_impl(c: SemanticContext*, n: void*, depth: u32): u32 {
             if !sem_shape(c, n, "target") || !sem_shape(c, n, "value") || !sem_shape(c, sem_member(n, "target"), "name") {
                 return 1;
             }
-            var value: FoundationNode* = sem_node(c, n, KAssign());
+            var value: FoundationNode* = sem_node(c, n, KAssign);
             var target: void* = sem_member(n, "target");
             var step43 = sem_location(c, sem_member(target, "name"), 0);
             value.target = step43;
@@ -533,7 +533,7 @@ fn sem_statement_impl(c: SemanticContext*, n: void*, depth: u32): u32 {
             var step46 = sem_get(value.target);
             var expected_type: FoundationType* = sem_type_copy(c, &step46.type);
             if sem_equal(sem_tokens(c, sem_child(target, 0)), "*") {
-                var dest: FoundationNode* = sem_node(c, target, KLoad());
+                var dest: FoundationNode* = sem_node(c, target, KLoad);
                 dest.value = value.target;
                 if expected_type.pointers == 0 {
                     sem_fail(c, target, "Store requires a pointer");
@@ -543,7 +543,7 @@ fn sem_statement_impl(c: SemanticContext*, n: void*, depth: u32): u32 {
                 sem_set_type(&dest.type, expected_type);
                 value.target = target;
             }
-            if expected_type.pointers == 0 && expected_type.scalar == SArray() {
+            if expected_type.pointers == 0 && expected_type.scalar == SArray {
                 sem_fail(c, target, "Array values require indexing or a pointer; wrap an array in a struct for copying");
             }
             var step55 = sem_expression(c, sem_member(n, "value"), expected_type);
@@ -560,11 +560,11 @@ fn sem_statement_impl(c: SemanticContext*, n: void*, depth: u32): u32 {
                 }
             } else {
                 if sem_equal(kind, "CoreReturn") {
-                    var value: FoundationNode* = sem_node(c, n, KReturn());
+                    var value: FoundationNode* = sem_node(c, n, KReturn);
                     var returned: void* = sem_member(n, "value");
                     var present: bool = sem_length(sem_tokens(c, returned)) != 0;
                     var function: FoundationNode* = sem_get(c.current);
-                    if function.type.pointers == 0 && function.type.scalar == SVoid() {
+                    if function.type.pointers == 0 && function.type.scalar == SVoid {
                         if present {
                             sem_fail(c, n, "A void function cannot return a value");
                         }
@@ -594,18 +594,18 @@ fn sem_statement_impl(c: SemanticContext*, n: void*, depth: u32): u32 {
                             } else {
                                 if sem_equal(kind, "CoreIf") {
                                     if !sem_if_begin(c, n) {
-                                        return FlowNext();
+                                        return FlowNext;
                                     }
                                     var value = sem_get(n);
                                     var yes = sem_block(c, value.body, depth);
-                                    var no = FlowNext();
+                                    var no = FlowNext;
                                     if value.otherwise != null {
                                         no = sem_block(c, value.otherwise, depth);
                                     }
                                     return sem_if_finish(c, n, yes, no);
                                 } else {
                                     if sem_equal(kind, "CoreLoop") {
-                                        var value: FoundationNode* = sem_node(c, n, KLoop());
+                                        var value: FoundationNode* = sem_node(c, n, KLoop);
                                         var step99 = sem_member(n, "body");
                                         value.body = step99;
                                         c.loops++;
@@ -674,7 +674,7 @@ fn sem_function_finish(c: SemanticContext*, n: void*, cursor: SemanticBlockCurso
         }
         return;
     }
-    if(function_node.type.pointers != 0 || function_node.type.scalar != SVoid()) &&(flow &1) != 0 {
+    if(function_node.type.pointers != 0 || function_node.type.scalar != SVoid) &&(flow &1) != 0 {
         sem_fail(c, n, sem_cat(c, "Function '", sem_cat(c, sem_name(function_node),
         "' can finish without returning a value")));
     }
@@ -748,7 +748,7 @@ fn sem_run(c: SemanticContext*): void {
             if !sem_shape(c, n, "name") {
                 break;
             }
-            var value: FoundationNode* = sem_node(c, n, KDeclare());
+            var value: FoundationNode* = sem_node(c, n, KDeclare);
             value.global = true;
             var step42 = sem_member(n, "name");
             var name: u8* = sem_identifier(c, step42);

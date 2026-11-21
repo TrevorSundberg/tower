@@ -47,13 +47,13 @@ fn parser_text_plain(table: ParserHostTable*, kind: ParserFormatKind, first: usi
 
 fn parser_text_callbacks(): void {
     var baseline = tower_test_buffer_count();
-    parser_text_plain(null, ParserFormatKind.Scalar, convert(usize, ParserStreamEnd()), 0, "$");
-    parser_text_plain(null, ParserFormatKind.Scalar, convert(usize, ParserLookahead()), 0, "#");
+    parser_text_plain(null, ParserFormatKind.Scalar, convert(usize, ParserStreamEnd), 0, "$");
+    parser_text_plain(null, ParserFormatKind.Scalar, convert(usize, ParserLookahead), 0, "#");
     parser_text_plain(null, ParserFormatKind.Scalar, 4294967295, 0, "4294967295");
     parser_text_plain(null, ParserFormatKind.Range, 65, 90, "[65-90]");
     parser_text_plain(null, ParserFormatKind.Range, 65, 65, "65");
-    parser_text_plain(null, ParserFormatKind.Expected, convert(usize, ParserStreamEnd()), 0, "end of input");
-    parser_text_plain(null, ParserFormatKind.Unexpected, convert(usize, ParserStreamEnd()), 0, "Unexpected end of input.");
+    parser_text_plain(null, ParserFormatKind.Expected, convert(usize, ParserStreamEnd), 0, "end of input");
+    parser_text_plain(null, ParserFormatKind.Unexpected, convert(usize, ParserStreamEnd), 0, "Unexpected end of input.");
     parser_text_plain(null, ParserFormatKind.Unexpected, 65, 0, "Unexpected 65.");
     var request = parser_format_create(null, ParserFormatKind.Range, 65, 90, true, false);
     var ok = parser_format_next(request) == ParserFormatNeed.Name;

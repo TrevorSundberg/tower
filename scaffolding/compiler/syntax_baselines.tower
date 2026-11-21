@@ -57,17 +57,17 @@ fn syntax_baselines_owner(world: void*, create: bool): SyntaxBaselines* {
 // Returns an owned revision pin. Existing snapshots can be read under an ECS
 // view, but first construction/publication/reset requires the coordinator.
 export fn syntax_world_revision(world: void*, mode: u32): FrontendRevision* {
-    if mode > SyntaxSeedBaseline() {
+    if mode > SyntaxSeedBaseline {
         return null;
     }
-    var owner = syntax_baselines_owner(world, mode != SyntaxFoundationBaseline());
+    var owner = syntax_baselines_owner(world, mode != SyntaxFoundationBaseline);
     if owner is null {
         return null;
     }
-    if mode == SyntaxFoundationBaseline() {
+    if mode == SyntaxFoundationBaseline {
         return frontend_revision_retain(owner.foundation.revision);
     }
-    if mode == SyntaxBedrockBaseline() && owner.bedrock.revision is not null {
+    if mode == SyntaxBedrockBaseline && owner.bedrock.revision is not null {
         return frontend_revision_retain(owner.bedrock.revision);
     }
     if owner.seed is null {
@@ -78,7 +78,7 @@ export fn syntax_world_revision(world: void*, mode: u32): FrontendRevision* {
         if document is null {
             return null;
         }
-        owner.seed = syntax_revision_document(document, compiler_world_type(world, CompilerSyntax()));
+        owner.seed = syntax_revision_document(document, compiler_world_type(world, CompilerSyntax));
     }
     return frontend_revision_retain(owner.seed);
 }
@@ -98,16 +98,16 @@ export fn syntax_world_publish(world: void*, source: u8*, length: usize, documen
     if revision is null || document is null || compiler_world_pinned(world) {
         return false;
     }
-    if compiler_world_get(world, document, CompilerSyntax()) is null {
+    if compiler_world_get(world, document, CompilerSyntax) is null {
         return false;
     }
     foreach(var & alternative in &revision.alternatives) {
-        if compiler_world_get(world, *alternative, CompilerSyntax()) is null {
+        if compiler_world_get(world, *alternative, CompilerSyntax) is null {
             return false;
         }
     }
     foreach(var & lexeme in &revision.tokens) {
-        if compiler_world_get(world, *lexeme, CompilerSyntax()) is null {
+        if compiler_world_get(world, *lexeme, CompilerSyntax) is null {
             return false;
         }
     }

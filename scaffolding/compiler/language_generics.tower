@@ -132,14 +132,14 @@ fn language_generic_present(q: CompletionQuery*, node: void*, candidate: Languag
 fn language_generic_space(text: u8*, first: usize, last: usize): bool {
     for(; first < last; first++) {
         var byte = text[first];
-        var space = byte == TriviaSpace();
-        if byte == TriviaTab() {
+        var space = byte == TriviaSpace;
+        if byte == TriviaTab {
             space = true;
         }
-        if byte == TriviaNewline() {
+        if byte == TriviaNewline {
             space = true;
         }
-        if byte == TriviaCarriageReturn() {
+        if byte == TriviaCarriageReturn {
             space = true;
         }
         if !space {
@@ -208,7 +208,7 @@ fn language_generic_documentation(q: CompletionQuery*, declaration: void*): void
 }
 
 fn language_generic_format(q: CompletionQuery*, info: GenericInfo*, formatted: FormatResult*, signature: bool): void {
-    var a: GenericAnalysis = { context: &q.context, component: q.generic_info, budget: InspectionNodeLimit(), ..default };
+    var a: GenericAnalysis = { context: &q.context, component: q.generic_info, budget: InspectionNodeLimit, ..default };
     var substitutions = generic_format_substitutions(&a, info.annotation, info.bindings, 0);
     if a.truncated {
         q.truncated = true;

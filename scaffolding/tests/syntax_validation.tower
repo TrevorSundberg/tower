@@ -20,25 +20,25 @@ fn validation_dependency_tests(): void {
         validation_expect(&f, ""); validation_failures(&f);
         validation_one(&f, "Statement", validation_term("A", false, 0, "", 30));
         validation_compare(&f, "Cannot activate incomplete grammar: Statement -> A -> B -> Missing (undefined rule 'Missing')", 20); validation_failures(&f);
-        validation_one(&f, "Missing", validation_term("ok", true, 0, "", ValidationNoOffset())); validation_expect(&f, "");
+        validation_one(&f, "Missing", validation_term("ok", true, 0, "", ValidationNoOffset)); validation_expect(&f, "");
         validation_empty(&f, "Missing"); validation_expect(&f, "Statement must consume input");
     }
     {
         var f: ValidationFixture; validation_fixture_init(&f); defer validation_fixture_dispose(&f);
         validation_one(&f, "A", validation_plain("B")); validation_one(&f, "B", validation_plain("A"));
         validation_expect(&f, "Unproductive grammar rule: A");
-        var term = validation_term("x", true, 0, "", ValidationNoOffset());
+        var term = validation_term("x", true, 0, "", ValidationNoOffset);
         var rule = validation_find(&f, "B", 1, false);
-        utility_check(vector_push(void*, &rule.alternatives, validation_sequence(&term, 1, ValidationNoOffset())), "Productive alternate branch"); validation_expect(&f, "");
-        validation_empty(&f, "B"); validation_one(&f, "A", validation_term("B", false, 43, "", ValidationNoOffset())); validation_expect(&f, "Cannot repeat nullable rule: B");
-        validation_one(&f, "A", validation_term("B", false, 63, "", ValidationNoOffset())); validation_expect(&f, "");
+        utility_check(vector_push(void*, &rule.alternatives, validation_sequence(&term, 1, ValidationNoOffset)), "Productive alternate branch"); validation_expect(&f, "");
+        validation_empty(&f, "B"); validation_one(&f, "A", validation_term("B", false, 43, "", ValidationNoOffset)); validation_expect(&f, "Cannot repeat nullable rule: B");
+        validation_one(&f, "A", validation_term("B", false, 63, "", ValidationNoOffset)); validation_expect(&f, "");
     }
     {
         var f: ValidationFixture; validation_fixture_init(&f); defer validation_fixture_dispose(&f);
         validation_one(&f, "A", validation_plain("Whitespace")); validation_expect(&f, "");
         validation_one(&f, "Statement", validation_plain("A")); validation_expect(&f, "Cannot activate incomplete grammar: Statement -> A -> Whitespace (undefined rule 'Whitespace')");
         validation_one(&f, "Statement", validation_plain("Identifier")); validation_expect(&f, "");
-        validation_one(&f, "Identifier", validation_term("x", true, 0, "", ValidationNoOffset())); validation_expect(&f, "Name already defines a token or skip rule: Identifier");
+        validation_one(&f, "Identifier", validation_term("x", true, 0, "", ValidationNoOffset)); validation_expect(&f, "Name already defines a token or skip rule: Identifier");
     }
 }
 fn validation_capture_tests(): void {
@@ -46,18 +46,18 @@ fn validation_capture_tests(): void {
     for (var index: usize = 0; index < 5; ++index) {
         var f: ValidationFixture; validation_fixture_init(&f); defer validation_fixture_dispose(&f);
         validation_one(&f, "A", validation_term(literals[index], true, 0, "", 5));
-        utility_check(validation_compare(&f, null, ValidationNoOffset()), "Invalid grammar literal rejected"); validation_failures(&f);
+        utility_check(validation_compare(&f, null, ValidationNoOffset), "Invalid grammar literal rejected"); validation_failures(&f);
     }
     {
         var f: ValidationFixture; validation_fixture_init(&f); defer validation_fixture_dispose(&f);
-        validation_two(&f, "A", validation_term("a", true, 0, "name", ValidationNoOffset()), validation_term("b", true, 0, "name", ValidationNoOffset()));
+        validation_two(&f, "A", validation_term("a", true, 0, "name", ValidationNoOffset), validation_term("b", true, 0, "name", ValidationNoOffset));
         validation_expect(&f, "Duplicate capture: name"); validation_failures(&f);
         var capture_a: u8[3]; capture_a[0] = 97; capture_a[1] = 0; capture_a[2] = 98;
         var capture_b: u8[3]; capture_b[0] = 97; capture_b[1] = 0; capture_b[2] = 99;
-        validation_two(&f, "A", validation_term_bytes("a", 1, true, 0, &capture_a[0], 3, ValidationNoOffset()), validation_term_bytes("b", 1, true, 0, &capture_b[0], 3, ValidationNoOffset())); validation_expect(&f, "");
+        validation_two(&f, "A", validation_term_bytes("a", 1, true, 0, &capture_a[0], 3, ValidationNoOffset), validation_term_bytes("b", 1, true, 0, &capture_b[0], 3, ValidationNoOffset)); validation_expect(&f, "");
         var name: u8[3]; name[0] = 65; name[1] = 0; name[2] = 120; var term = validation_plain("Identifier");
-        validation_replace_bytes(&f, &name[0], 3, &term, 1, ValidationNoOffset()); validation_expect(&f, "");
-        validation_one(&f, "Statement", validation_term_bytes(&name[0], 3, false, 0, "", 0, ValidationNoOffset())); validation_expect(&f, "");
+        validation_replace_bytes(&f, &name[0], 3, &term, 1, ValidationNoOffset); validation_expect(&f, "");
+        validation_one(&f, "Statement", validation_term_bytes(&name[0], 3, false, 0, "", 0, ValidationNoOffset)); validation_expect(&f, "");
         var wildcard = validation_plain(""); syntax_get(wildcard).terminal_set = true;
         validation_one(&f, "A", wildcard); validation_expect(&f, "");
     }
@@ -69,15 +69,15 @@ fn validation_declaration_tests(): void {
     names[8] = "GrammarSuffix"; names[9] = "GrammarTerm"; names[10] = "GrammarTokenDeclaration";
     for (var index: usize = 0; index < 11; ++index) {
         var f: ValidationFixture; validation_fixture_init(&f); defer validation_fixture_dispose(&f);
-        validation_erase(&f, names[index]); utility_check(validation_compare(&f, null, ValidationNoOffset()), "Active declaration dependency cannot be missing");
-        var term = validation_term("x", true, 0, "", ValidationNoOffset()); validation_replace(&f, names[index], &term, 1, 93);
-        validation_compare(&f, null, ValidationNoOffset());
+        validation_erase(&f, names[index]); utility_check(validation_compare(&f, null, ValidationNoOffset), "Active declaration dependency cannot be missing");
+        var term = validation_term("x", true, 0, "", ValidationNoOffset); validation_replace(&f, names[index], &term, 1, 93);
+        validation_compare(&f, null, ValidationNoOffset);
     }
     {
         var f: ValidationFixture; validation_fixture_init(&f); defer validation_fixture_dispose(&f);
-        var term = validation_term("x", true, 0, "name", ValidationNoOffset()); validation_replace(&f, "GrammarDeclaration", &term, 1, 81);
+        var term = validation_term("x", true, 0, "name", ValidationNoOffset); validation_replace(&f, "GrammarDeclaration", &term, 1, 81);
         validation_compare(&f, "Declaration rule GrammarDeclaration must preserve capture 'op'", 81); validation_failures(&f);
-        validation_one(&f, "GrammarAtom", validation_term("x", true, 0, "", ValidationNoOffset()));
+        validation_one(&f, "GrammarAtom", validation_term("x", true, 0, "", ValidationNoOffset));
         validation_expect(&f, "GrammarAtom must capture a literal, reference or capture name");
     }
 }
@@ -93,9 +93,9 @@ fn validation_large_capture_tests(): void {
     var capture: ByteBuffer; fill(&capture, 0, sizeof(ByteBuffer)); defer bytes_dispose(&capture);
     for (var index: usize = 0; index < 1500; ++index) {
         validation_number_name(&capture, "capture", index);
-        utility_check(vector_push(void*, &terms, validation_term("a", true, 0, capture.data, ValidationNoOffset())), "Large capture fixture term");
+        utility_check(vector_push(void*, &terms, validation_term("a", true, 0, capture.data, ValidationNoOffset)), "Large capture fixture term");
     }
-    validation_replace(&f, "A", terms.data, terms.length, ValidationNoOffset()); validation_expect(&f, "");
+    validation_replace(&f, "A", terms.data, terms.length, ValidationNoOffset); validation_expect(&f, "");
     utility_check(storage_assign(&syntax_get(terms.data[terms.length - 1]).capture, "capture0", 8), "Duplicate last of 1500 captures");
     validation_expect(&f, "Duplicate capture: capture0");
 }
@@ -120,11 +120,11 @@ fn validation_random_tests(): void {
                     if kind == 5 { syntax_get(term).terminal_set = true; }
                     utility_check(vector_push(void*, &terms, term), "Random dependency term");
                 }
-                utility_check(vector_push(void*, &rule.alternatives, validation_sequence(terms.data, terms.length, ValidationNoOffset())), "Random grammar alternative");
+                utility_check(vector_push(void*, &rule.alternatives, validation_sequence(terms.data, terms.length, ValidationNoOffset)), "Random grammar alternative");
             }
         }
         if trial % 2 != 0 { validation_one(&f, "Statement", validation_plain("R0")); }
-        validation_compare(&f, null, ValidationNoOffset());
+        validation_compare(&f, null, ValidationNoOffset);
     }
 }
 export fn syntax_validation_tests(): void {

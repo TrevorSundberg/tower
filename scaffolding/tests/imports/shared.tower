@@ -1,7 +1,7 @@
 import tower;
 
-const SharedAnswer: i32 = 40;
+var SharedAnswer: i32 = 40;
 
 fn shared_answer(): i32 {
-    return SharedAnswer();
+    return SharedAnswer;
 }

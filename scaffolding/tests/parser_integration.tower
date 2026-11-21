@@ -153,11 +153,11 @@ fn parser_equal(a: u8*, b: u8*): bool {
 fn parser_fixture_init(f: ParserFixture*): void {
     fill(f, 0, sizeof(ParserFixture));
     f.world = compiler_world_create();
-    f.kinds.rule = compiler_world_type(f.world, CompilerParserRule());
-    f.kinds.reference = compiler_world_type(f.world, CompilerParserReference());
-    f.kinds.string = compiler_world_type(f.world, CompilerParserString());
-    f.kinds.range = compiler_world_type(f.world, CompilerParserRange());
-    f.kinds.`match` = compiler_world_type(f.world, CompilerParserMatch());
+    f.kinds.rule = compiler_world_type(f.world, CompilerParserRule);
+    f.kinds.reference = compiler_world_type(f.world, CompilerParserReference);
+    f.kinds.string = compiler_world_type(f.world, CompilerParserString);
+    f.kinds.range = compiler_world_type(f.world, CompilerParserRange);
+    f.kinds.`match` = compiler_world_type(f.world, CompilerParserMatch);
     grammar_builder_init(&f.builder, &f.kinds);
 }
 
@@ -580,7 +580,7 @@ fn parser_incremental_fixture(): void {
         var length: usize = 1;
         var end = position == 2;
         if end {
-            id = ParserStreamEnd();
+            id = ParserStreamEnd;
             length = 0;
         }
         var node: void* = null;

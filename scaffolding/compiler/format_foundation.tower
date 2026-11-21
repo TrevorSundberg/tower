@@ -23,157 +23,157 @@ extern fn semantic_signed(t: FoundationType*): bool;
 extern fn semantic_mask(t: FoundationType*): u64;
 
 fn format_is_Program(n: FoundationNode*): bool {
-    var selected = n.kind == KProgram();
+    var selected = n.kind == KProgram;
     return selected;
 }
 
 fn format_is_Function(n: FoundationNode*): bool {
-    var selected = n.kind == KFunction();
+    var selected = n.kind == KFunction;
     return selected;
 }
 
 fn format_is_Parameter(n: FoundationNode*): bool {
-    var selected = n.kind == KParameter();
+    var selected = n.kind == KParameter;
     return selected;
 }
 
 fn format_is_Declare(n: FoundationNode*): bool {
-    var selected = n.kind == KDeclare();
+    var selected = n.kind == KDeclare;
     return selected;
 }
 
 fn format_is_Assign(n: FoundationNode*): bool {
-    var selected = n.kind == KAssign();
+    var selected = n.kind == KAssign;
     return selected;
 }
 
 fn format_is_Operand(n: FoundationNode*): bool {
-    var selected = n.kind == KOperand();
+    var selected = n.kind == KOperand;
     return selected;
 }
 
 fn format_is_Binary(n: FoundationNode*): bool {
-    var selected = n.kind == KBinary();
+    var selected = n.kind == KBinary;
     return selected;
 }
 
 fn format_is_Address(n: FoundationNode*): bool {
-    var selected = n.kind == KAddress();
+    var selected = n.kind == KAddress;
     return selected;
 }
 
 fn format_is_Load(n: FoundationNode*): bool {
-    var selected = n.kind == KLoad();
+    var selected = n.kind == KLoad;
     return selected;
 }
 
 fn format_is_Convert(n: FoundationNode*): bool {
-    var selected = n.kind == KConvert();
+    var selected = n.kind == KConvert;
     return selected;
 }
 
 fn format_is_Bits(n: FoundationNode*): bool {
-    var selected = n.kind == KBits();
+    var selected = n.kind == KBits;
     return selected;
 }
 
 fn format_is_Call(n: FoundationNode*): bool {
-    var selected = n.kind == KCall();
+    var selected = n.kind == KCall;
     return selected;
 }
 
 fn format_is_Block(n: FoundationNode*): bool {
-    var selected = n.kind == KBlock();
+    var selected = n.kind == KBlock;
     return selected;
 }
 
 fn format_is_If(n: FoundationNode*): bool {
-    var selected = n.kind == KIf();
+    var selected = n.kind == KIf;
     return selected;
 }
 
 fn format_is_Loop(n: FoundationNode*): bool {
-    var selected = n.kind == KLoop();
+    var selected = n.kind == KLoop;
     return selected;
 }
 
 fn format_is_Break(n: FoundationNode*): bool {
-    var selected = n.kind == KBreak();
+    var selected = n.kind == KBreak;
     return selected;
 }
 
 fn format_is_Continue(n: FoundationNode*): bool {
-    var selected = n.kind == KContinue();
+    var selected = n.kind == KContinue;
     return selected;
 }
 
 fn format_is_Print(n: FoundationNode*): bool {
-    var selected = n.kind == KPrint();
+    var selected = n.kind == KPrint;
     return selected;
 }
 
 fn format_is_Return(n: FoundationNode*): bool {
-    var selected = n.kind == KReturn();
+    var selected = n.kind == KReturn;
     return selected;
 }
 
 fn format_is_Type(n: FoundationNode*): bool {
-    var selected = n.kind == KType();
+    var selected = n.kind == KType;
     return selected;
 }
 
 fn format_is_FieldDeclaration(n: FoundationNode*): bool {
-    var selected = n.kind == KFieldDeclaration();
+    var selected = n.kind == KFieldDeclaration;
     return selected;
 }
 
 fn format_is_Field(n: FoundationNode*): bool {
-    var selected = n.kind == KField();
+    var selected = n.kind == KField;
     return selected;
 }
 
 fn format_is_Index(n: FoundationNode*): bool {
-    var selected = n.kind == KIndex();
+    var selected = n.kind == KIndex;
     return selected;
 }
 
 fn format_is_String(n: FoundationNode*): bool {
-    var selected = n.kind == KString();
+    var selected = n.kind == KString;
     return selected;
 }
 
 fn format_is_SizeOf(n: FoundationNode*): bool {
-    var selected = n.kind == KSizeOf();
+    var selected = n.kind == KSizeOf;
     return selected;
 }
 
 fn format_is_AlignOf(n: FoundationNode*): bool {
-    var selected = n.kind == KAlignOf();
+    var selected = n.kind == KAlignOf;
     return selected;
 }
 
 fn format_is_Allocate(n: FoundationNode*): bool {
-    var selected = n.kind == KAllocate();
+    var selected = n.kind == KAllocate;
     return selected;
 }
 
 fn format_is_Reallocate(n: FoundationNode*): bool {
-    var selected = n.kind == KReallocate();
+    var selected = n.kind == KReallocate;
     return selected;
 }
 
 fn format_is_Free(n: FoundationNode*): bool {
-    var selected = n.kind == KFree();
+    var selected = n.kind == KFree;
     return selected;
 }
 
 fn format_is_Copy(n: FoundationNode*): bool {
-    var selected = n.kind == KCopy();
+    var selected = n.kind == KCopy;
     return selected;
 }
 
 fn format_is_Fill(n: FoundationNode*): bool {
-    var selected = n.kind == KFill();
+    var selected = n.kind == KFill;
     return selected;
 }
 
@@ -191,12 +191,12 @@ fn format_scalar_name(t: FoundationType*, output: vector(u8)*): bool {
 }
 
 fn format_array(t: FoundationType*): bool {
-    var selected = t.scalar == SArray();
+    var selected = t.scalar == SArray;
     return selected;
 }
 
 fn format_record(t: FoundationType*): bool {
-    var selected = t.scalar == SStruct();
+    var selected = t.scalar == SStruct;
     if semantic_enum(t) {
         selected = true;
     }
@@ -204,7 +204,7 @@ fn format_record(t: FoundationType*): bool {
 }
 
 fn format_boolean(t: FoundationType*): bool {
-    var selected = t.scalar == SBool();
+    var selected = t.scalar == SBool;
     return selected;
 }
 
@@ -538,7 +538,7 @@ export fn format_summary(result: FormatResult*, entity: void*, syntax: void*, fo
     if format_is_Parameter(n) {
         named = true;
     }
-    if n.kind == KFieldDeclaration() {
+    if n.kind == KFieldDeclaration {
         named = true;
     }
     if named {

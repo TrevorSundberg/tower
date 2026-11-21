@@ -56,8 +56,8 @@ import tower;
 import library.vector;
 import lib.answer;
 
-const Expected: i32 = 42;
-print(Expected());
+var Expected: i32 = 42;
+print(Expected);
 ```
 
 Project-owned Tower files and directories use identifier names with underscores,
@@ -114,8 +114,8 @@ grammar it needs. Dependencies run once in dependency-first order; sibling
 dependencies follow import order. A diamond imports its shared dependency once.
 Declarations bind across their own file and its direct imports; effects retain
 that order. Two files may define the same name. Imports do not imply separate
-object compilation. Declaration-only cycles are supported; a cycle containing
-grammar updates or initialization effects is rejected because those operations
+object compilation. Declaration-only cycles, including proved fixed compile-time
+`var` bindings, are supported; a cycle containing grammar updates or runtime initialization effects is rejected because those operations
 require an unambiguous dependency-first order. Self imports remain errors.
 
 Grammar updates are local to the file being parsed. Importing a module applies
@@ -124,13 +124,13 @@ Overriding a rule in one sibling does not change the grammar used to parse anoth
 sibling. Files without explicit imports retain the installed Foundation baseline
 for compatibility. Small grammar examples can import Bedrock alone.
 
-`const Name: Type = value;` is a Tower rule that expands into an ordinary
-zero-argument function. Read it with `Name()`. `export const` exports that
-function. This supplies named values without adding a special constant evaluator,
-memoization contract or new Foundation operation. It is not enum syntax, implicit
-expression substitution, or a promise that every call is folded. The same
-ordinary Tower execution semantics apply. Foundation kind/opcode/scalar tags and
-foreign ABI profiles now use these named values.
+Use `var Name: Type = value;` and read `Name` for named values. The former `const`
+function shorthand is removed. Independent mutation/escape analysis and ordinary
+interpreter staging can prove a fixed compile-time scalar value; libraries and
+eligible import cycles need no runtime initializer for those bindings. Runtime
+effects and mutable storage retain their ordinary semantics. Foundation kind,
+operation and scalar tags and foreign ABI profiles use these named bindings.
+See [struct values and bindings](struct-values-and-bindings.md).
 
 ## Compiler API and dependencies
 

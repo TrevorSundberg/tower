@@ -252,7 +252,7 @@ fn frontend_syntax_construction_tests(): void {
         rules[i].count = 1;
     }
     var revision = syntax_revision_create(&rules[0], 2, null, 0);
-    var bedrock = syntax_world_revision(world, SyntaxSeedBaseline());
+    var bedrock = syntax_world_revision(world, SyntaxSeedBaseline);
     frontend_world_check(revision is not null && bedrock is not null);
     var diagnostic: SyntaxVersionDiagnostic;
     fill(&diagnostic, 0, sizeof(SyntaxVersionDiagnostic));

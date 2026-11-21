@@ -21,9 +21,9 @@ import .library.stack;
 import .library.work_graph;
 import .library.work_pool;
 
-const BodyQuery: u32 = 6;
-const BodyPrepareQuery: u32 = 9;
-const BodyPreparationWindow: usize = 256;
+var BodyQuery: u32 = 6;
+var BodyPrepareQuery: u32 = 9;
+var BodyPreparationWindow: usize = 256;
 
 // A signature can exist for an unevaluated query without demanding its body.
 fn sem_body_needed(c: SemanticContext*, subject: void*): bool {
@@ -45,8 +45,8 @@ fn sem_body_collect(c: SemanticContext*, root: void*, calls: vector(void*)*): vo
             continue;
         }
         var value = sem_get(node);
-        if value == null || value.kind == KFunction() || value.kind == KType()
-        || value.kind == KLabel() {
+        if value == null || value.kind == KFunction || value.kind == KType
+        || value.kind == KLabel {
             continue;
         }
         var seen = sem_state(c, c.body_seen, node);
@@ -54,7 +54,7 @@ fn sem_body_collect(c: SemanticContext*, root: void*, calls: vector(void*)*): vo
             continue;
         }
         seen.number = 1;
-        if value.kind == KCall() && value.binding != null {
+        if value.kind == KCall && value.binding != null {
             sem_push(calls, node);
         }
         // Traverse owned canonical operation edges, never syntax children or
@@ -95,7 +95,7 @@ fn sem_body_pending(c: SemanticContext*, subject: void*): bool {
     if sem_get(subject).external || !sem_body_needed(c, subject) {
         return false;
     }
-    var query = work_find(&c.queries, subject, BodyQuery(), 0);
+    var query = work_find(&c.queries, subject, BodyQuery, 0);
     return query == 0;
 }
 
@@ -116,7 +116,7 @@ fn sem_body_prune(c: SemanticContext*): void {
     c.program.functions.length = count;
     count = 0;
     foreach(var subject in &c.generated) {
-        if sem_get(subject).kind == KFunction() && !sem_body_needed(c, subject) {
+        if sem_get(subject).kind == KFunction && !sem_body_needed(c, subject) {
             continue;
         }
         c.generated.data[count] = subject;
@@ -424,7 +424,7 @@ fn sem_body_close_block(c: SemanticContext*, result: SemanticBodyWork*): void {
             sem_require(sem_block_begin(c, other, depth, &frame.cursor));
             return;
         }
-        flow = sem_if_finish(c, subject, flow, FlowNext());
+        flow = sem_if_finish(c, subject, flow, FlowNext);
     } else {
         if frame.kind == SemanticBodyBlockKind.IfElse {
             flow = sem_if_finish(c, subject, frame.flow, flow);
@@ -477,7 +477,7 @@ fn sem_body_enter(c: SemanticContext*, result: SemanticBodyWork*, node: void*): 
         frame.kind = SemanticBodyBlockKind.Match;
         if !sem_control_match_begin(c, node, depth, &frame.match_state) {
             result.blocks.length--;
-            sem_block_accept(c, sem_body_cursor(result), node, FlowNext());
+            sem_block_accept(c, sem_body_cursor(result), node, FlowNext);
             return true;
         }
         body = frame.match_state.body;
@@ -490,7 +490,7 @@ fn sem_body_enter(c: SemanticContext*, result: SemanticBodyWork*, node: void*): 
     } else {
         if looping {
             frame.kind = SemanticBodyBlockKind.Loop;
-            var value = sem_node(c, node, KLoop());
+            var value = sem_node(c, node, KLoop);
             value.body = sem_member(node, "body");
             body = value.body;
             c.loops++;
@@ -521,7 +521,7 @@ fn sem_body_enter(c: SemanticContext*, result: SemanticBodyWork*, node: void*): 
         }
         if !begun {
             result.blocks.length--;
-            sem_block_accept(c, sem_body_cursor(result), node, FlowNext());
+            sem_block_accept(c, sem_body_cursor(result), node, FlowNext);
             return true;
         }
         body = sem_member(node, "body");
@@ -619,7 +619,7 @@ query: u32, ticket: WorkTicket*): usize {
 // consumers before taking any preparation: their immutable type-index claims
 // would otherwise conflict with structural publication by an earlier function.
 fn sem_body_suspend(c: SemanticContext*, result: SemanticBodyWork*): void {
-    var id = work_request(&c.queries, result.subject, BodyPrepareQuery(), convert(u64, result.boundary + 1));
+    var id = work_request(&c.queries, result.subject, BodyPrepareQuery, convert(u64, result.boundary + 1));
     sem_require(id != 0);
     sem_require(work_access(&c.queries, id, 1, 7, result.ordinal, 1, WorkAccessMode.Write));
     sem_require(work_access(&c.queries, id, 1, 9, 0, ~convert(usize, 0), WorkAccessMode.Write));
@@ -867,7 +867,7 @@ fn sem_bodies(c: SemanticContext*): void {
         // Source windows and continuation rounds do not depend on pool width.
         // Hold diagnostics until every earlier body finishes, including errors
         // found in a later structural boundary after a later body has failed.
-        while next < c.program.functions.length && prepared < BodyPreparationWindow() {
+        while next < c.program.functions.length && prepared < BodyPreparationWindow {
             prepared++;
             var subject = c.program.functions.data[next];
             if !sem_body_pending(c, subject) {
@@ -886,7 +886,7 @@ fn sem_bodies(c: SemanticContext*): void {
             if c.editor != null || c.type_uses != null
             || !sem_is(sem_member(subject, "body"), "CoreBlock") {
                 var ticket: WorkTicket;
-                sem_body_structural_take(c, subject, next, BodyQuery(), &ticket);
+                sem_body_structural_take(c, subject, next, BodyQuery, &ticket);
                 var saved_reads = c.query_reads;
                 c.query_reads = &result.query_reads;
                 sem_function_body(c, subject);
@@ -904,7 +904,7 @@ fn sem_bodies(c: SemanticContext*): void {
                 continue;
             }
             sem_body_sources(c, result);
-            var id = work_request(&c.queries, subject, BodyQuery(), 0);
+            var id = work_request(&c.queries, subject, BodyQuery, 0);
             sem_require(id != 0);
             sem_generic_body_dependency(c, subject, id);
             var declaration = work_find(&c.queries, subject, convert(u32, SemanticQuery.Declaration), 0);
@@ -929,7 +929,7 @@ fn sem_bodies(c: SemanticContext*): void {
                         continue;
                     }
                     sem_require(work_take_task(&c.queries, &result.ticket,
-                    work_find(&c.queries, result.subject, BodyQuery(), 0)));
+                    work_find(&c.queries, result.subject, BodyQuery, 0)));
                     result.stop = sem_body_stop(result);
                     result.stage = entity_stage_open(c.program.root);
                     sem_require(result.stage != null);

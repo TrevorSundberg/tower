@@ -60,18 +60,18 @@ extern fn fwrite(data: u8*, size: usize, count: usize, file: void*): usize;
 
 extern fn abort(): void;
 
-const ModuleLoading: u32 = 1;
-const ModuleLoaded: u32 = 2;
-const ModuleMaximumDepth: usize = 128;
-const ModuleMaximumSourceBytes: usize = 8388608;
-const ModuleReadBlockBytes: usize = 16384;
-const ModuleCacheEntries: usize = 16;
-const ModuleMissing: u32 = 0;
-const ModuleReady: u32 = 1;
-const ModuleInvalidSource: u32 = 2;
-const ModuleReadFailure: u32 = 3;
-const ModuleSourceLimit: u32 = 4;
-const ModulePathCase: u32 = 5;
+var ModuleLoading: u32 = 1;
+var ModuleLoaded: u32 = 2;
+var ModuleMaximumDepth: usize = 128;
+var ModuleMaximumSourceBytes: usize = 8388608;
+var ModuleReadBlockBytes: usize = 16384;
+var ModuleCacheEntries: usize = 16;
+var ModuleMissing: u32 = 0;
+var ModuleReady: u32 = 1;
+var ModuleInvalidSource: u32 = 2;
+var ModuleReadFailure: u32 = 3;
+var ModuleSourceLimit: u32 = 4;
+var ModulePathCase: u32 = 5;
 
 struct ModuleInput {
     name: vector(u8);
@@ -335,7 +335,7 @@ export fn frontend_modules_clear(environment: ModuleEnvironment*): void {
 }
 
 export fn frontend_modules_source(environment: ModuleEnvironment*, name: u8*, text: u8*, length: usize): bool {
-    var valid = length <= ModuleMaximumSourceBytes();
+    var valid = length <= ModuleMaximumSourceBytes;
     valid &&= tower_utf8_validate(text, length, 1) != 0;
     if !valid {
         return false;
@@ -372,40 +372,40 @@ fn module_read(environment: ModuleEnvironment*, path: u8*, text: vector(u8)*): u
     foreach(var & input in &environment.inputs) {
         if module_equal(path, input.name.data) {
             module_require(bytes_assign_text(text, input.text.data, input.text.length));
-            return ModuleReady();
+            return ModuleReady;
         }
     }
     var file = fopen(path, "rb");
     if file == null {
-        return ModuleMissing();
+        return ModuleMissing;
     }
     if !module_file_case_matches(path) {
         fclose(file);
-        return ModulePathCase();
+        return ModulePathCase;
     }
-    var buffer = alloc(u8, ModuleReadBlockBytes());
+    var buffer = alloc(u8, ModuleReadBlockBytes);
     var allocated1 = buffer != null;
     module_require(allocated1);
-    var status = ModuleReady();
+    var status = ModuleReady;
     loop {
-        var count = fread(buffer, 1, ModuleReadBlockBytes(), file);
+        var count = fread(buffer, 1, ModuleReadBlockBytes, file);
         if count == 0 {
             break;
         }
         module_require(bytes_append(text, buffer, count));
-        if text.length > ModuleMaximumSourceBytes() {
-            status = ModuleSourceLimit();
+        if text.length > ModuleMaximumSourceBytes {
+            status = ModuleSourceLimit;
             break;
         }
     }
     if ferror(file) != 0 {
-        status = ModuleReadFailure();
+        status = ModuleReadFailure;
     }
     fclose(file);
     free(buffer);
-    if status == ModuleReady() {
+    if status == ModuleReady {
         if !(tower_utf8_validate(text.data, text.length, 1) != 0) {
-            return ModuleInvalidSource();
+            return ModuleInvalidSource;
         }
         module_require(vector_push(text, 0));
         text.length--;
@@ -448,7 +448,7 @@ fn module_new(graph: ModuleGraph*, name: u8*, text: u8*): FrontendModule* {
     var allocated4 = value.source != null;
     module_require(allocated4);
     module_require(vector_push(&graph.entities, entity));
-    value.state = ModuleLoading();
+    value.state = ModuleLoading;
     if graph.tracked {
         var length = syntax_text_length(name);
         var needed = length + 1;
@@ -548,8 +548,8 @@ fn module_grammar_clear(grammar: ModuleGrammar*): void {
 }
 
 fn module_grammar_add(grammar: ModuleGrammar*, entity: void*): void {
-    var value = bits(SyntaxNode*, compiler_node_get(entity, CompilerSyntax()));
-    var rule = value.kind == SyntaxRule();
+    var value = bits(SyntaxNode*, compiler_node_get(entity, CompilerSyntax));
+    var rule = value.kind == SyntaxRule;
     var i: usize = 0;
     if rule {
         for(; i != grammar.rules.length; i++) {
@@ -589,13 +589,13 @@ fn module_grammar_add(grammar: ModuleGrammar*, entity: void*): void {
         target.alternatives = alternatives;
         target.count = count;
     } else {
-        var lexical = value.kind == SyntaxToken();
-        lexical ||= value.kind == SyntaxSkip();
+        var lexical = value.kind == SyntaxToken;
+        lexical ||= value.kind == SyntaxSkip;
         if !lexical {
             return;
         }
         for(; i != grammar.tokens.length; i++) {
-            var old = bits(SyntaxNode*, compiler_node_get(grammar.tokens.data[i], CompilerSyntax()));
+            var old = bits(SyntaxNode*, compiler_node_get(grammar.tokens.data[i], CompilerSyntax));
             var same = module_equal(old.name.data, value.name.data);
             if same {
                 grammar.tokens.data[i] = entity;
@@ -629,7 +629,7 @@ export fn frontend_module_grammar(module: FrontendModule*): ModuleGrammar* {
         return null;
     }
     module_grammar_clear(&module.grammar);
-    var seed = bits(SyntaxNode*, compiler_node_get(frontend_world_bedrock(module.graph.world), CompilerSyntax()));
+    var seed = bits(SyntaxNode*, compiler_node_get(frontend_world_bedrock(module.graph.world), CompilerSyntax));
     foreach(var & item in &seed.items) {
         module_grammar_add(&module.grammar, *item);
     }
@@ -713,7 +713,7 @@ fn module_resolve(parent: FrontendModule*, name: u8*, literal: bool, path: vecto
     }
     module_require(bytes_assign_text(&base, parent.source.name.data, length));
     var ok = module_candidate(base.data, name, literal, path);
-    var status = ModuleMissing();
+    var status = ModuleMissing;
     if ok {
         status = module_read(parent.graph.environment, path.data, text);
     }
@@ -730,14 +730,14 @@ fn module_resolve(parent: FrontendModule*, name: u8*, literal: bool, path: vecto
     var case_path: vector(u8);
     vector_init(&case_path);
     loop {
-        var wrong_case = status == ModulePathCase();
+        var wrong_case = status == ModulePathCase;
         if wrong_case {
             module_require(node_text_set(&case_path, path.data));
         }
         if relative {
             break;
         }
-        var missing = status == ModuleMissing();
+        var missing = status == ModuleMissing;
         missing ||= wrong_case;
         if !missing {
             break;
@@ -765,10 +765,10 @@ fn module_resolve(parent: FrontendModule*, name: u8*, literal: bool, path: vecto
             status = module_read(parent.graph.environment, path.data, text);
         }
     }
-    var missing = status == ModuleMissing();
+    var missing = status == ModuleMissing;
     if missing {
         if case_path.length != 0 {
-            status = ModulePathCase();
+            status = ModulePathCase;
             module_require(node_text_set(path, case_path.data));
         }
     }
@@ -784,7 +784,7 @@ fn module_load(parent: FrontendModule*, name: u8*, literal: bool): FrontendModul
     vector_init(&text);
     var status = module_resolve(parent, name, literal, &path, &text);
     var result: FrontendModule* = null;
-    if status == ModuleReady() {
+    if status == ModuleReady {
         foreach(var & entitie in &parent.graph.entities) {
             var old = module_node(parent.graph, *entitie);
             if module_equal(path.data, old.source.name.data) {
@@ -793,7 +793,7 @@ fn module_load(parent: FrontendModule*, name: u8*, literal: bool): FrontendModul
             }
         }
         if result != null {
-            if result.state == ModuleLoading() {
+            if result.state == ModuleLoading {
                 if result == parent {
                     module_fail(parent, "Import cycle through ", path.data);
                     result = null;
@@ -807,7 +807,7 @@ fn module_load(parent: FrontendModule*, name: u8*, literal: bool): FrontendModul
                 result = module_clone(parent.graph, cached);
             }
             else {
-                if parent.graph.depth >= ModuleMaximumDepth() {
+                if parent.graph.depth >= ModuleMaximumDepth {
                     module_fail(parent, "Import depth exceeds 128: ", path.data);
                 }
                 else {
@@ -817,7 +817,7 @@ fn module_load(parent: FrontendModule*, name: u8*, literal: bool): FrontendModul
                     var session = parent.graph.import_session;
                     parent.graph.import_session = null;
                     if session == null {
-                        session = bits(void*, syntax_session_open(parent.graph.world, bits(void*, parent.graph.environment), result.source.text.data, result, SyntaxFoundationBaseline()));
+                        session = bits(void*, syntax_session_open(parent.graph.world, bits(void*, parent.graph.environment), result.source.text.data, result, SyntaxFoundationBaseline));
                     }
                     else {
                         syntax_reset(session, result.source.text.data, result);
@@ -840,7 +840,7 @@ fn module_load(parent: FrontendModule*, name: u8*, literal: bool): FrontendModul
                     }
                     parent.graph.import_session = session;
                     parent.graph.depth--;
-                    result.state = ModuleLoaded();
+                    result.state = ModuleLoaded;
                     module_require(vector_push(&parent.graph.order, result));
                     module_validate_cycles(result.graph);
                     if parent.graph.error.length == 0 {
@@ -850,15 +850,15 @@ fn module_load(parent: FrontendModule*, name: u8*, literal: bool): FrontendModul
             }
         }
     } else {
-        if status == ModuleInvalidSource() {
+        if status == ModuleInvalidSource {
             module_fail(parent, "Imported source must be UTF-8 without NUL bytes: ", name);
         }
         else {
-            if status == ModuleSourceLimit() {
+            if status == ModuleSourceLimit {
                 module_fail(parent, "Imported source exceeds 8 MiB: ", name);
             }
             else {
-                if status == ModulePathCase() {
+                if status == ModulePathCase {
                     module_fail(parent, "Import path case must match the filesystem exactly: ", path.data);
                 } else {
                     module_fail(parent, "Cannot read imported module: ", name);
@@ -898,7 +898,7 @@ fn module_import_name(reader: SyntaxReader*, node: void*, value: SyntaxNode*): b
             if done {
                 break;
             }
-            var prefix = syntax_reader_attach(reader, node, SyntaxTerm());
+            var prefix = syntax_reader_attach(reader, node, SyntaxTerm);
             if prefix == null {
                 return false;
             }
@@ -926,7 +926,7 @@ fn module_import_name(reader: SyntaxReader*, node: void*, value: SyntaxNode*): b
                 if missing {
                     return false;
                 }
-                var part = syntax_reader_attach(reader, segment, SyntaxTerm());
+                var part = syntax_reader_attach(reader, segment, SyntaxTerm);
                 missing = part == null;
                 if missing {
                     return false;
@@ -984,13 +984,13 @@ fn module_import_name(reader: SyntaxReader*, node: void*, value: SyntaxNode*): b
 }
 
 fn module_read_import(reader: SyntaxReader*, node: void*): bool {
-    var value = syntax_reader_attach(reader, node, SyntaxImport());
+    var value = syntax_reader_attach(reader, node, SyntaxImport);
     var name = syntax_reader_required(reader, node, "name");
     var ok = reader.error == null;
     ok &&= module_import_name(reader, name, value);
     var alias = syntax_reader_member(node, "alias");
     if alias != null {
-        var part = syntax_reader_attach(reader, alias, SyntaxTerm());
+        var part = syntax_reader_attach(reader, alias, SyntaxTerm);
         ok = part != null;
         ok &&= syntax_reader_name(reader, alias, &value.capture);
         if ok {
@@ -1003,8 +1003,8 @@ fn module_read_import(reader: SyntaxReader*, node: void*): bool {
 
 export fn frontend_module_import(module: FrontendModule*, node: void*, source: SyntaxSource*): bool {
     var reader: SyntaxReader = {
-        source: source, match_kind: compiler_world_type(module.graph.world, CompilerParserMatch()),
-        syntax_kind: compiler_world_type(module.graph.world, CompilerSyntax()), ..default
+        source: source, match_kind: compiler_world_type(module.graph.world, CompilerParserMatch),
+        syntax_kind: compiler_world_type(module.graph.world, CompilerSyntax), ..default
     };
     var ok = module_read_import(&reader, node);
     var value = frontend_syntax(node, reader.syntax_kind);
@@ -1043,8 +1043,8 @@ export fn frontend_module_import(module: FrontendModule*, node: void*, source: S
 export fn frontend_module_record(module: FrontendModule*, root: void*, declaration: bool): void {
     var node = entity_child_at(root, 0);
     if declaration {
-        var value = bits(SyntaxNode*, compiler_node_get(node, CompilerSyntax()));
-        if value.kind == SyntaxImport() {
+        var value = bits(SyntaxNode*, compiler_node_get(node, CompilerSyntax));
+        if value.kind == SyntaxImport {
             return;
         }
         entity_retain(node);
@@ -1057,7 +1057,7 @@ export fn frontend_module_record(module: FrontendModule*, root: void*, declarati
 }
 
 export fn frontend_module_finish(module: FrontendModule*): void {
-    module.state = ModuleLoaded();
+    module.state = ModuleLoaded;
     module_require(vector_push(&module.graph.order, module));
     module_validate_cycles(module.graph);
 }
@@ -1113,14 +1113,14 @@ fn module_validate_cycles(graph: ModuleGraph*): void {
     var i: usize = 0;
     for(; i < graph.entities.length; i++) {
         var current = module_node(graph, graph.entities.data[i]);
-        if current.state == ModuleLoaded() {
+        if current.state == ModuleLoaded {
             if module_reaches(current, current) {
                 var invalid = current.declarations.length != 0;
                 invalid ||= current.roots.length == 0;
                 foreach(var & root in &current.roots) {
                     var node = entity_child_at(*root, 0);
                     var reader: SyntaxReader = default;
-                    reader.match_kind = compiler_world_type(graph.world, CompilerParserMatch());
+                    reader.match_kind = compiler_world_type(graph.world, CompilerParserMatch);
                     var span = syntax_reader_span(&reader, node);
                     if module_equal(span.label.data, "Statement") {
                         node = entity_child_at(node, 0);
@@ -1202,7 +1202,7 @@ export fn frontend_module_dependency_at(module: FrontendModule*, index: usize): 
 }
 
 export fn frontend_module_alias(module: FrontendModule*, index: usize): u8* {
-    var value = bits(SyntaxNode*, compiler_node_get(module.imports.data[index], CompilerSyntax()));
+    var value = bits(SyntaxNode*, compiler_node_get(module.imports.data[index], CompilerSyntax));
     return module_text(&value.capture);
 }
 
@@ -1316,7 +1316,7 @@ export fn frontend_module_session(module: FrontendModule*): void* {
     var session = environment.compilation_session;
     environment.compilation_session = null;
     if session == null {
-        session = bits(void*, syntax_session_open(module.graph.world, bits(void*, environment), module.source.text.data, module, SyntaxFoundationBaseline()));
+        session = bits(void*, syntax_session_open(module.graph.world, bits(void*, environment), module.source.text.data, module, SyntaxFoundationBaseline));
     }
     else {
         syntax_reset(session, module.source.text.data, module);
@@ -1390,7 +1390,7 @@ fn module_cacheable(module: FrontendModule*): bool {
     if module.graph.cycles {
         return false;
     }
-    if module.state != ModuleLoaded() {
+    if module.state != ModuleLoaded {
         return false;
     }
     if module.roots.length != 0 {
@@ -1412,7 +1412,7 @@ fn module_cache_valid(environment: ModuleEnvironment*, module: FrontendModule*):
     var text: vector(u8);
     vector_init(&text);
     var status = module_read(environment, module.source.name.data, &text);
-    var ok = status == ModuleReady();
+    var ok = status == ModuleReady;
     ok &&= module_equal(text.data, module.source.text.data);
     vector_dispose(&text);
     if !ok {
@@ -1426,9 +1426,9 @@ fn module_cache_valid(environment: ModuleEnvironment*, module: FrontendModule*):
         var path: vector(u8);
         vector_init(&path);
         vector_init(&text);
-        var declaration = bits(SyntaxNode*, compiler_node_get(module.imports.data[i], CompilerSyntax()));
+        var declaration = bits(SyntaxNode*, compiler_node_get(module.imports.data[i], CompilerSyntax));
         status = module_resolve(module, declaration.name.data, declaration.literal, &path, &text);
-        ok = status == ModuleReady();
+        ok = status == ModuleReady;
         ok &&= module_equal(path.data, module.dependencies.data[i].source.name.data);
         vector_dispose(&path);
         vector_dispose(&text);
@@ -1462,7 +1462,7 @@ fn module_clone(graph: ModuleGraph*, source: FrontendModule*): FrontendModule* {
     for(; i != graph.entities.length; i++) {
         var old = module_node(graph, graph.entities.data[i]);
         if module_equal(old.source.name.data, source.source.name.data) {
-            if old.state == ModuleLoading() {
+            if old.state == ModuleLoading {
                 module_fail(old, "Import cycle through ", old.source.name.data);
                 return null;
             }
@@ -1493,19 +1493,19 @@ fn module_clone(graph: ModuleGraph*, source: FrontendModule*): FrontendModule* {
         // Cached grammar is immutable. Each request gets fresh import syntax
         // entities before attaching compilation-specific ownership/bindings.
         var copied: usize = 0;
-        var declaration = compiler_clone_tree(source.imports.data[i], ModuleMaximumSourceBytes(), &copied);
+        var declaration = compiler_clone_tree(source.imports.data[i], ModuleMaximumSourceBytes, &copied);
         var present = declaration != null;
         module_require(present);
         var reader: SyntaxReader = {
-            source: result.source, match_kind: compiler_world_type(graph.world, CompilerParserMatch()),
-            syntax_kind: compiler_world_type(graph.world, CompilerSyntax()), ..default
+            source: result.source, match_kind: compiler_world_type(graph.world, CompilerParserMatch),
+            syntax_kind: compiler_world_type(graph.world, CompilerSyntax), ..default
         };
         module_require(module_read_import(&reader, declaration));
         module_require(vector_push(&result.imports, declaration));
         i++;
     }
     result.body = true;
-    result.state = ModuleLoaded();
+    result.state = ModuleLoaded;
     module_require(vector_push(&graph.order, result));
     return result;
 }
@@ -1522,7 +1522,7 @@ fn module_cache_store(module: FrontendModule*): void {
     graph.world = module.graph.world;
     graph.environment = environment;
     var snapshot = module_clone(graph, module);
-    if environment.cache.length == ModuleCacheEntries() {
+    if environment.cache.length == ModuleCacheEntries {
         frontend_module_destroy(environment.cache.data[0]);
         for(var i: usize = 1; i != environment.cache.length; i++) {
             var previous = i -1;

@@ -11,6 +11,7 @@ extern fn fclose(file: void*): i32;
 extern fn fwrite(data: u8*, size: usize, count: usize, file: void*): usize;
 extern fn strlen(text: u8*): usize;
 extern fn memcmp(a: u8*, b: u8*, count: usize): i32;
+extern fn puts(text: u8*): i32;
 
 enum LexByte: u8 {
     Tab = 9, LF = 10, CR = 13, Space = 32, Quote = 34, Apostrophe = 39,
@@ -148,16 +149,16 @@ export fn main(argc: i32, argv: u8**): i32 {
             var output: vector(u8) = default;
             defer vector_dispose(&input);
             defer vector_dispose(&output);
-            if !read(argv[index], &input) { print(argv[index]); return 1; }
+            if !read(argv[index], &input) { puts(argv[index]); return 1; }
             var count: usize = 0;
-            if !rewrite(&input, &names, pass == convert(i32, MigrationPass.Inventory) ? null : &output, &count) { print(argv[index]); return 1; }
+            if !rewrite(&input, &names, pass == convert(i32, MigrationPass.Inventory) ? null : &output, &count) { puts(argv[index]); return 1; }
             if pass == convert(i32, MigrationPass.Write) && (output.length != input.length || memcmp(output.data, input.data, input.length) != 0) {
                 var file = fopen(argv[index], "wb");
-                if file == null { print(argv[index]); return 1; }
+                if file == null { puts(argv[index]); return 1; }
                 var ok = fwrite(output.data, 1, output.length, file) == output.length;
                 ok = fclose(file) == 0 && ok;
-                if !ok { print(argv[index]); return 1; }
-                print(argv[index]);
+                if !ok { puts(argv[index]); return 1; }
+                puts(argv[index]);
                 print(count);
             }
         }

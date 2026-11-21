@@ -94,7 +94,7 @@ fn sem_module_position(program: SemanticProgram*, module: void*, base: usize): v
 fn sem_module_initializers(c: SemanticContext*): void {
     if !sem_ok(c) || c.program.modules == null { return; }
     foreach(var node in &sem_get(c.program.root).items) {
-        if sem_get(node).kind != KDeclare() { continue; }
+        if sem_get(node).kind != KDeclare { continue; }
         var owner = sem_owner(c, node);
         if owner == null { continue; }
         var link = bits(SemanticModuleLink*, entity_component_data(entity_component_get(owner, c.program.modules.owner_kind)));
@@ -306,7 +306,7 @@ fn sem_foreign_same_name(left: void*, right: void*): bool {
     var a = sem_get(left);
     var b = sem_get(right);
     if a == null || b == null { return false; }
-    return a.kind == KFunction() && b.kind == KFunction()
+    return a.kind == KFunction && b.kind == KFunction
         && (a.external || a.exported) && (b.external || b.exported)
         && sem_equal(sem_name(a), sem_name(b));
 }
@@ -609,7 +609,7 @@ fn sem_link_functions(c: SemanticContext*): void {
         var node = root.items.data[i];
         var value = sem_get(node);
         var duplicate = value != null;
-        duplicate &&= value.kind == KFunction();
+        duplicate &&= value.kind == KFunction;
         duplicate &&= value.binding != null;
         if !duplicate {
             root.items.data[count] = node;
@@ -625,7 +625,7 @@ fn sem_link_functions(c: SemanticContext*): void {
         pending.length--;
         var node = pending.data[pending.length];
         var value = sem_get(node);
-        if value != null && value.kind == KCall() && value.binding != null {
+        if value != null && value.kind == KCall && value.binding != null {
             var function = sem_get(value.binding);
             while function.binding != null {
                 value.binding = function.binding;

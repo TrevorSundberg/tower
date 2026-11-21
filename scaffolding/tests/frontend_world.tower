@@ -176,12 +176,12 @@ fn frontend_constructor_tests(): void {
 }
 
 fn frontend_world_test_kinds(world: void*, kinds: FrontendKinds*): bool {
-    kinds.rule = compiler_world_type(world, CompilerParserRule());
-    kinds.reference = compiler_world_type(world, CompilerParserReference());
-    kinds.string = compiler_world_type(world, CompilerParserString());
-    kinds.range = compiler_world_type(world, CompilerParserRange());
-    kinds.`match` = compiler_world_type(world, CompilerParserMatch());
-    kinds.syntax = compiler_world_type(world, CompilerSyntax());
+    kinds.rule = compiler_world_type(world, CompilerParserRule);
+    kinds.reference = compiler_world_type(world, CompilerParserReference);
+    kinds.string = compiler_world_type(world, CompilerParserString);
+    kinds.range = compiler_world_type(world, CompilerParserRange);
+    kinds.`match` = compiler_world_type(world, CompilerParserMatch);
+    kinds.syntax = compiler_world_type(world, CompilerSyntax);
     var ready = kinds.syntax != null;
     return ready;
 }

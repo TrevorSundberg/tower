@@ -105,7 +105,7 @@ fn syntax_version_replacements(value: SyntaxVersion*, diagnostic: SyntaxVersionD
 export fn syntax_version_build(world: void*, source: FrontendRevision*, bedrock: FrontendRevision*, diagnostic: SyntaxVersionDiagnostic*): SyntaxVersion* {
     diagnostic.text.length = 0;
     diagnostic.fallback = "Unable to allocate grammar revision";
-    var kind = compiler_world_type(world, CompilerSyntax());
+    var kind = compiler_world_type(world, CompilerSyntax);
     if kind is null { return null; }
     var definitions = syntax_revision_overlay(bedrock, source ?. rules.data, source ?. rules.length ?? 0,
         source ?. tokens.data, source ?. tokens.length ?? 0, kind);

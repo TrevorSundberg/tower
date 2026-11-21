@@ -2,8 +2,8 @@ import tower;
 
 // Transitional parser token sentinels shared by table construction and runtime.
 // These are table indexes, not Foundation program instructions.
-const LRTokenEnd: u32 = 4294967294;
-const LRTokenPropagation: u32 = 4294967293;
+var LRTokenEnd: u32 = 4294967294;
+var LRTokenPropagation: u32 = 4294967293;
 
 // Shared disposable LR index records, never a separate semantic graph.
 struct SymbolRange {

@@ -366,7 +366,7 @@ export fn backend_link_plan(link: BackendLink*, triple: u8*, functions: void**, 
         // normal Tower-call wrapper or disable probes to silence a link error.
         var archive: vector(u8);
         vector_init(&archive);
-        ok = coff_import_archive(&archive, CoffMachineAmd64(), "__chkstk", "kernelbase.dll");
+        ok = coff_import_archive(&archive, CoffMachineAmd64, "__chkstk", "kernelbase.dll");
         if ok {
             ok = backend_write_file(link, "tower-stack-probe.lib", archive.data, archive.length);
         } else {

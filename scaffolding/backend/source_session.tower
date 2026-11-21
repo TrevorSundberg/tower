@@ -13,8 +13,8 @@ struct BackendSource {
     foundation: vector(u8);
 }
 
-const BackendSourceImport: u32 = 4;
-const BackendSourceUnoptimized: u32 = 8;
+var BackendSourceImport: u32 = 4;
+var BackendSourceUnoptimized: u32 = 8;
 
 export fn backend_source_create(runtime: u8*, length: usize): BackendSource* {
     var source = alloc(BackendSource, 1);
@@ -126,9 +126,9 @@ export fn backend_source_compile(source: BackendSource*, text: u8*, length: usiz
         if source.foundation.data != null {
             source.foundation.data[0] = 0;
         }
-        if(flags &BackendSourceImport()) != 0 {
+        if(flags &BackendSourceImport) != 0 {
             result = backend_source_import(source, &program, width,
-            (flags &BackendSourceUnoptimized()) == 0, environment);
+            (flags &BackendSourceUnoptimized) == 0, environment);
         } else {
             result = backend_session_compile(backend, program.root, program.functions.data,
             program.functions.length, width, flags);

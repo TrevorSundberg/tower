@@ -73,13 +73,13 @@ fn format_test_foundation_fixture(id: usize, input: u8*): void {
 fn format_test_generated(): void {
     var entity = tower_node_create(); defer tower_node_release_ref(entity);
     var value = tower_node_create(); defer tower_node_release_ref(value);
-    var declaration = semantic_component_attach(entity, core_component_type(), KDeclare());
-    var literal = semantic_component_attach(value, core_component_type(), KString());
+    var declaration = semantic_component_attach(entity, core_component_type(), KDeclare);
+    var literal = semantic_component_attach(value, core_component_type(), KString);
     var name: u8[9]; name[0] = 97; name[1] = 0; name[2] = 10; name[3] = 13; name[4] = 9; name[5] = 96; name[6] = 92; name[7] = 195; name[8] = 169;
     utility_check(storage_assign(&declaration.name, &name[0], 9), "Generated name including NUL/backtick/UTF-8");
     var text: u8[11]; copy(&text[0], "quote'\\\n\r\t", 10); text[10] = 0;
     utility_check(storage_assign(&literal.name, &text[0], 11), "Generated literal including NUL/quote/backslash");
-    declaration.type.scalar = SU8(); declaration.type.pointers = 1; declaration.value = value;
+    declaration.type.scalar = SU8; declaration.type.pointers = 1; declaration.value = value;
     var actual: FormatResult; fill(&actual, 0, sizeof(FormatResult)); defer format_dispose(&actual);
     format_test_entity(&actual, entity);
     utility_check(!actual.failed && actual.spans.length == 1, "Generated entities need no fabricated provenance");

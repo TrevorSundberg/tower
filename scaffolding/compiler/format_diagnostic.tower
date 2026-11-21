@@ -6,8 +6,8 @@ import parser_markers;
 import format_diagnostic_types;
 import syntax_emission_types;
 
-const SyntaxDiagnosticTokenLimit: usize = 48;
-const SyntaxDiagnosticChoiceLimit: usize = 6;
+var SyntaxDiagnosticTokenLimit: usize = 48;
+var SyntaxDiagnosticChoiceLimit: usize = 6;
 
 fn format_diagnostic_actual(f: FormatEngine*, input: SyntaxDiagnosticInput*): void {
     if input.offset >= input.size {
@@ -15,8 +15,8 @@ fn format_diagnostic_actual(f: FormatEngine*, input: SyntaxDiagnosticInput*): vo
         return;
     }
     var remaining = input.size -input.offset;
-    if remaining > SyntaxDiagnosticTokenLimit() {
-        remaining = SyntaxDiagnosticTokenLimit();
+    if remaining > SyntaxDiagnosticTokenLimit {
+        remaining = SyntaxDiagnosticTokenLimit;
     }
     var end = input.offset + remaining;
     if input.cursor < end {
@@ -251,9 +251,9 @@ export fn format_syntax_diagnostic(input: SyntaxDiagnosticInput*, output: Syntax
             format_text(&f, " Expected a valid continuation such as ");
         }
         var count = input.count;
-        var limited = count > SyntaxDiagnosticChoiceLimit();
+        var limited = count > SyntaxDiagnosticChoiceLimit;
         if limited {
-            count = SyntaxDiagnosticChoiceLimit();
+            count = SyntaxDiagnosticChoiceLimit;
         }
         i = 0;
         for(; i < count; i++) {

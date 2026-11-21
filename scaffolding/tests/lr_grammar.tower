@@ -11,11 +11,11 @@ import .compiler.grammar_types;
 import .compiler.parser_types;
 
 fn lr_grammar_test_string(world: void*, node: void*, text: u8*): void {
-    var data = bits(ParserStringData*, compiler_world_component(world, node, CompilerParserString()));
+    var data = bits(ParserStringData*, compiler_world_component(world, node, CompilerParserString));
     utility_check(data is not null && node_string_append(data, text, strlen(text)), "LR grammar fixture UTF8 string");
 }
 fn lr_grammar_test_range(world: void*, node: void*, first: u32, last: u32): void {
-    var data = bits(ParserRangeData*, compiler_world_component(world, node, CompilerParserRange()));
+    var data = bits(ParserRangeData*, compiler_world_component(world, node, CompilerParserRange));
     utility_check(data is not null, "LR grammar fixture range"); data.start = first; data.end = last;
 }
 fn lr_grammar_test_name(index: usize): u8* {
@@ -89,7 +89,7 @@ fn lr_grammar_test_compare(root: void*, kinds: FrontendKinds*): void {
         for (var index: usize = 0; index < oracle.missing.length; ++index) {
             utility_check(strcmp(lr_grammar_missing_name(actual, index), oracle_grammar_text(&oracle.missing.data[index].name)) == 0,
                 "LR grammar unresolved name order");
-            utility_check(!lr_grammar_resolve(actual, index, LRTokenEnd()), "LR grammar rejects EOF resolution");
+            utility_check(!lr_grammar_resolve(actual, index, LRTokenEnd), "LR grammar rejects EOF resolution");
             var id = 2097152 + convert(u32, index);
             utility_check(lr_grammar_resolve(actual, index, id) && oracle_grammar_resolve(&oracle, index, id), "LR grammar external resolution");
         }

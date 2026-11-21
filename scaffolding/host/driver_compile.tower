@@ -42,7 +42,7 @@ fn driver_install_grammar(request: DriverRequest*, canonical: bool): bool {
         return false;
     }
     if canonical { driver_request_stage(request); }
-    var first = canonical ? DriverCanonicalBedrockText() : DriverBedrockText();
+    var first = canonical ? DriverCanonicalBedrockText : DriverBedrockText;
     var diagnostic: SyntaxVersionDiagnostic = default;
     defer syntax_version_diagnostic_dispose(&diagnostic);
     var modules = driver_request_modules(request);
@@ -55,8 +55,8 @@ fn driver_install_grammar(request: DriverRequest*, canonical: bool): bool {
 fn driver_compile_report(state: DriverCompilation*, error: u8*, offset: usize): void {
     var request = state.request;
     // Original inputs remain pinned even after optimization replaces the source.
-    driver_report(error, offset, request.text[DriverSourceText()].data,
-    request.text[DriverSourceText()].length, request.options.source, request.modules);
+    driver_report(error, offset, request.text[DriverSourceText].data,
+    request.text[DriverSourceText].length, request.options.source, request.modules);
 }
 
 fn driver_compile_program(state: DriverCompilation*): bool {
@@ -90,8 +90,8 @@ fn driver_backend_failed(state: DriverCompilation*): bool {
 
 fn driver_compile_format(state: DriverCompilation*, root: void*, out: ByteBuffer*): bool {
     var formatted: FormatResult = default;
-    format_entity(&formatted, root, compiler_node_type(root, CompilerSyntax()), null,
-    compiler_node_type(root, CompilerParserMatch()));
+    format_entity(&formatted, root, compiler_node_type(root, CompilerSyntax), null,
+    compiler_node_type(root, CompilerParserMatch));
     var ok = !formatted.failed && bytes_assign_text(out, formatted.text.data, formatted.text.length);
     format_dispose(&formatted);
     if !ok {
@@ -355,8 +355,8 @@ extern fn driver_output_name(emit: u8*, wasm: bool, windows: bool): u8*;
 
 fn driver_compile_run(state: DriverCompilation*): i32 {
     var options = state.request.options;
-    state.text = state.request.text[DriverSourceText()].data;
-    state.length = state.request.text[DriverSourceText()].length;
+    state.text = state.request.text[DriverSourceText].data;
+    state.length = state.request.text[DriverSourceText].length;
     state.packaged = driver_same(options.source + driver_extension(options.source), ".towerbc");
     if state.packaged {
         if !driver_compile_package(state) {

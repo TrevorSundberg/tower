@@ -22,8 +22,8 @@ struct LRStateTask {
     success: bool;
 }
 
-const LRStateGrain: usize = 128;
-const LRStateFanout: usize = 4;
+var LRStateGrain: usize = 128;
+var LRStateFanout: usize = 4;
 
 export fn compiler_lr_state_kernel(payload: void*): void {
     var task = bits(LRStateTask*, payload);
@@ -89,7 +89,7 @@ export fn lr_states_create_parallel(analysis: LRAnalysis*, anchor: void*): LRSta
         // A single outgoing edge exposes no parallel work; tiny closures cost
         // less than the handoff. Keep the same transition algorithm in both
         // paths and start platform threads only for a useful ready batch.
-        if state.symbols.length < LRStateFanout() || state.items.values.length < LRStateGrain() {
+        if state.symbols.length < LRStateFanout || state.items.values.length < LRStateGrain {
             for(var i: usize = 0; i < state.symbols.length && ok; i++) {
                 ok = lr_state_transition(value, state, state.symbols.data[i]);
             }

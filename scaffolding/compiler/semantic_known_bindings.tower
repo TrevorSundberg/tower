@@ -36,7 +36,7 @@ fn sem_known_binding(c: SemanticContext*, declaration: void*): SemanticKnownBind
 
 // Only owned executable edges; never follow declaration/type back references.
 fn sem_known_edges(pending: vector(void*)*, node: FoundationNode*): void {
-    if node.kind == KFunction() || node.kind == KType() || node.kind == KLabel() { return; }
+    if node.kind == KFunction || node.kind == KType || node.kind == KLabel { return; }
     sem_push(pending, node.left);
     sem_push(pending, node.right);
     sem_push(pending, node.value);
@@ -87,7 +87,7 @@ fn sem_known_inputs(c: SemanticContext*, expression: void*, pending: vector(void
         if node == null { continue; }
         var value = sem_get(node);
         if value == null { continue; }
-        if value.kind == KOperand() && value.binding != null && !value.constant {
+        if value.kind == KOperand && value.binding != null && !value.constant {
             var input = sem_known_binding(c, value.binding);
             if input == null || !input.immutable || !input.ordered { return false; }
         }
@@ -138,7 +138,7 @@ fn sem_known_infer(c: SemanticContext*): void {
     for(var index: usize = 0; index < root.items.length; index++) {
         var subject = root.items.data[index];
         var value = sem_get(subject);
-        if value == null || value.kind == KFunction() || value.kind == KType() || value.kind == KLabel() { continue; }
+        if value == null || value.kind == KFunction || value.kind == KType || value.kind == KLabel { continue; }
         var job = sem_known_job(c, kind, subject, subject, null, count++, SemanticKnownAction.Order);
         job.source_ordinal = index;
     }
@@ -156,7 +156,7 @@ fn sem_known_infer(c: SemanticContext*): void {
         if binding == null || !binding.immutable || !binding.ordered { continue; }
         if !sem_known_inputs(c, sem_get(node).value, inputs) { continue; }
         sem_evaluation_begin(c);
-        var subject = sem_control_node(c, node, KOperand());
+        var subject = sem_control_node(c, node, KOperand);
         var literal = sem_get(subject);
         sem_set_type(&literal.type, &sem_get(node).type);
         literal.constant = true;

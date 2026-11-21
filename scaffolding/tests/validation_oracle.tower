@@ -18,7 +18,7 @@ struct ValidationOracle {
     rules: vector(ValidationOracleRule*); tokens: void**; token_count: usize;
     error: ByteBuffer*; offset: usize*;
 }
-const ValidationOracleNoIndex: usize = ~convert(usize, 0);
+var ValidationOracleNoIndex: usize = ~convert(usize, 0);
 fn validation_oracle_equal(a: u8*, an: usize, b: u8*, bn: usize): bool {
     return an == bn && utility_equal(a, b, an);
 }
@@ -49,7 +49,7 @@ fn validation_oracle_error(v: ValidationOracle*, prefix: u8*, text: u8*, length:
     validation_oracle_text(v, prefix); validation_oracle_append(v, text, length); return false;
 }
 fn validation_oracle_offset(v: ValidationOracle*, offset: usize): void {
-    if v.offset is not null && offset != ValidationOracleNoIndex() { *v.offset = offset; }
+    if v.offset is not null && offset != ValidationOracleNoIndex { *v.offset = offset; }
 }
 fn validation_oracle_capture(sequence: SyntaxNode*, name: u8*): bool {
     for (var index: usize = 0; index < sequence.items.length; ++index) {

@@ -4,7 +4,7 @@ import context;
 
 // Pass-by-pass verification is a debugging policy. Production still verifies
 // lowering and the complete optimized module at the stage boundaries.
-const BackendVerifyEach: i32 = 0;
+var BackendVerifyEach: i32 = 0;
 
 fn backend_verify(b: Backend*): bool {
     var message: u8* = null;
@@ -25,7 +25,7 @@ export fn backend_optimize(b: Backend*, optimize: bool): bool {
     }
     if optimize {
         var options = LLVMCreatePassBuilderOptions();
-        LLVMPassBuilderOptionsSetVerifyEach(options, BackendVerifyEach());
+        LLVMPassBuilderOptionsSetVerifyEach(options, BackendVerifyEach);
         var error = LLVMRunPasses(b.module, "function(sroa,mem2reg,instcombine<no-verify-fixpoint>,simplifycfg),default<O2>", b.machine, options);
         LLVMDisposePassBuilderOptions(options);
         failed = error != null;

@@ -109,8 +109,8 @@ fn units_trial(budget: usize, width: u32, bedrock: u8*, foundation: u8*, root: u
         units_check(!invocation.state.failed && invocation.context.result == convert(u64, 41 + i), "unit compiletime/decltype executes");
         interpreter_invocation_dispose(&invocation);
         var formatted: FormatResult = default;
-        format_entity(&formatted, program.root, compiler_node_type(program.root, CompilerSyntax()),
-            compiler_node_type(program.root, CompilerFoundation()), compiler_node_type(program.root, CompilerParserMatch()));
+        format_entity(&formatted, program.root, compiler_node_type(program.root, CompilerSyntax),
+            compiler_node_type(program.root, CompilerFoundation), compiler_node_type(program.root, CompilerParserMatch));
         units_check(!formatted.failed, "unit Foundation format");
         foreach(var byte in &formatted.text) { units_check(vector_push(out, byte), "unit canonical snapshot"); }
         format_dispose(&formatted);

@@ -55,7 +55,7 @@ fn sem_iteration_function(c: SemanticContext*, module: void*, name: u8*, use: vo
 }
 
 fn sem_iteration_address(c: SemanticContext*, parent: void*, local: void*): void* {
-    var result = sem_control_node(c, parent, KAddress());
+    var result = sem_control_node(c, parent, KAddress);
     var value = sem_get(result);
     value.value = sem_control_read(c, result, local);
     sem_set_type(&value.type, &sem_get(local).type);
@@ -64,7 +64,7 @@ fn sem_iteration_address(c: SemanticContext*, parent: void*, local: void*): void
 }
 
 fn sem_iteration_call(c: SemanticContext*, parent: void*, function: void*, source: void*, state: void*): void* {
-    var result = sem_control_node(c, parent, KCall());
+    var result = sem_control_node(c, parent, KCall);
     var value = sem_get(result);
     var signature = sem_get(function);
     value.binding = function;
@@ -101,7 +101,7 @@ fn sem_iteration_begin(c: SemanticContext*, n: void*, depth: u32, cursor: Semant
         return false;
     }
     var type = &sem_get(initial).type;
-    if type.scalar != SStruct() || type.pointers != 1 {
+    if type.scalar != SStruct || type.pointers != 1 {
         sem_fail(c, n, "foreach requires a pointer to a nominal collection; use &collection");
         return false;
     }
@@ -125,12 +125,12 @@ fn sem_iteration_begin(c: SemanticContext*, n: void*, depth: u32, cursor: Semant
         return false;
     }
     state_type.pointers--;
-    var nothing = sem_type_new(c, SVoid(), 0, null);
-    var boolean = sem_type_new(c, SBool(), 0, null);
+    var nothing = sem_type_new(c, SVoid, 0, null);
+    var boolean = sem_type_new(c, SBool, 0, null);
     if !semantic_type_equal(&sem_get(begin).type, nothing) || !semantic_type_equal(&sem_get(end).type, nothing) ||
     !semantic_type_equal(&sem_get(next).type, boolean) || sem_get(element).type.pointers == 0 ||
-    (sem_get(element).type.pointers == 1 && sem_get(element).type.scalar == SVoid()) ||
-    (state_type.pointers == 0 && state_type.scalar == SVoid()) {
+    (sem_get(element).type.pointers == 1 && sem_get(element).type.scalar == SVoid) ||
+    (state_type.pointers == 0 && state_type.scalar == SVoid) {
         sem_fail(c, n, "Iteration requires begin/end: void, next: bool, element: pointer, and concrete state storage");
         return false;
     }
@@ -140,16 +140,16 @@ fn sem_iteration_begin(c: SemanticContext*, n: void*, depth: u32, cursor: Semant
     if !sem_ok(c) {
         return false;
     }
-    var value = sem_node(c, n, KBlock());
+    var value = sem_node(c, n, KBlock);
     var source = sem_control_local(c, n, initial);
-    var state = sem_control_node(c, n, KDeclare());
+    var state = sem_control_node(c, n, KDeclare);
     sem_set_name(sem_get(state), sem_control_name(c));
     sem_set_type(&sem_get(state).type, state_type);
     sem_add_local(c, state);
     sem_push(&value.locals, state);
     sem_push(&value.items, state);
     sem_push(&value.items, sem_iteration_call(c, n, begin, source, state));
-    var cleanup = sem_control_node(c, n, KBlock());
+    var cleanup = sem_control_node(c, n, KBlock);
     sem_push(&sem_get(cleanup).items, sem_iteration_call(c, cleanup, end, source, state));
     if !sem_ok(c) {
         return false;
@@ -159,23 +159,23 @@ fn sem_iteration_begin(c: SemanticContext*, n: void*, depth: u32, cursor: Semant
     pending.previous = bits(SemanticDeferred*, saved);
     pending.body = cleanup;
     pending.loops = c.loops;
-    pending.flow = FlowNext();
+    pending.flow = FlowNext;
     c.deferred = bits(void*, pending);
     c.has_defer = true;
 
-    var loop_node = sem_control_node(c, n, KLoop());
-    var loop_body = sem_control_node(c, loop_node, KBlock());
+    var loop_node = sem_control_node(c, n, KLoop);
+    var loop_body = sem_control_node(c, loop_node, KBlock);
     sem_get(loop_node).body = loop_body;
     sem_push(&value.items, loop_node);
     var test = sem_iteration_call(c, loop_body, next, source, state);
     var condition = sem_control_read(c, loop_body, sem_control_local(c, loop_body, test));
-    var iteration = sem_control_node(c, loop_body, KBlock());
+    var iteration = sem_control_node(c, loop_body, KBlock);
     var otherwise = sem_control_branch(c, loop_body, condition, iteration);
-    sem_push(&sem_get(otherwise).items, sem_control_node(c, otherwise, KBreak()));
+    sem_push(&sem_get(otherwise).items, sem_control_node(c, otherwise, KBreak));
     var address = sem_iteration_call(c, iteration, element, source, state);
     var initializer = address;
     if sem_tokens(c, sem_member(n, "borrow"))[0] == 0 {
-        initializer = sem_control_node(c, iteration, KLoad());
+        initializer = sem_control_node(c, iteration, KLoad);
         sem_get(initializer).value = address;
         sem_set_type(&sem_get(initializer).type, &sem_get(address).type);
         sem_get(initializer).type.pointers--;
@@ -207,12 +207,12 @@ fn sem_iteration_finish(c: SemanticContext*, n: void*, cursor: SemanticIteration
     c.deferred = cursor.deferred;
     sem_push(&sem_get(cursor.iteration).items, sem_member(n, "body"));
     sem_push(&sem_get(n).items, cursor.cleanup);
-    return FlowNext() |(flow &FlowReturn());
+    return FlowNext |(flow &FlowReturn);
 }
 
 fn sem_iteration(c: SemanticContext*, n: void*, depth: u32): u32 {
     var cursor: SemanticIterationCursor;
-    if !sem_iteration_begin(c, n, depth, &cursor) { return FlowNext(); }
+    if !sem_iteration_begin(c, n, depth, &cursor) { return FlowNext; }
     c.loops++;
     var flow = sem_block(c, sem_member(n, "body"), depth + 3);
     c.loops--;

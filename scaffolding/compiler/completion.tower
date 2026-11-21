@@ -321,7 +321,7 @@ export fn completion_analyze(q: CompletionQuery*, active: void*, mode: u32, file
             }
             entity_release(root);
         }
-        var suffix = syntax_completion_close(probe, semantic_scalar_name(SVoid()));
+        var suffix = syntax_completion_close(probe, semantic_scalar_name(SVoid));
         if suffix == null {
             syntax_destroy(probe);
             vector_dispose(&text);
@@ -698,7 +698,7 @@ export fn completion_offer(q: CompletionQuery*, name: u8*, kind: u8*, detail: u8
                     boolean = true;
                 }
                 if boolean {
-                    if q.editor.type.scalar != SBool() {
+                    if q.editor.type.scalar != SBool {
                         return;
                     }
                     if q.editor.type.pointers != 0 {
@@ -730,7 +730,7 @@ export fn completion_offer(q: CompletionQuery*, name: u8*, kind: u8*, detail: u8
                 mode = 1;
             }
             var editor_condition17 = q.editor.kind == 3;
-            if q.editor.kind == EditorEnumMembers() {
+            if q.editor.kind == EditorEnumMembers {
                 editor_condition17 = true;
             }
             if editor_condition17 {
@@ -823,7 +823,7 @@ fn completion_semantic_node(q: CompletionQuery*, node: void*, kind: u8*, categor
     if category != 1 {
         if q.editor.value_required {
             if value.type.pointers == 0 {
-                if value.type.scalar == SVoid() {
+                if value.type.scalar == SVoid {
                     return;
                 }
             }
@@ -898,7 +898,7 @@ fn completion_templates(q: CompletionQuery*, table: SemanticTable*, kind: u8*, d
             q.program.error.length = 0;
             if known {
                 if q.editor.value_required {
-                    var is_void = result.scalar == SVoid();
+                    var is_void = result.scalar == SVoid;
                     is_void &&= result.pointers == 0;
                     if is_void {
                         eligible = false;
@@ -947,12 +947,12 @@ export fn completion_symbols(q: CompletionQuery*): void {
         return;
     }
     var editor_condition25 = q.editor.kind == 3;
-    var enum_members = q.editor.kind == EditorEnumMembers();
+    var enum_members = q.editor.kind == EditorEnumMembers;
     if enum_members {
         editor_condition25 = true;
     }
     if editor_condition25 {
-        var editor_condition26 = q.editor.receiver.scalar != SStruct();
+        var editor_condition26 = q.editor.receiver.scalar != SStruct;
         if enum_members {
             editor_condition26 = semantic_enum(&q.editor.receiver) == false;
         }
@@ -1000,64 +1000,64 @@ export fn completion_symbols(q: CompletionQuery*): void {
         }
         var eligible: bool = true;
         if q.editor.value_required {
-            if builtin == KPrint() {
+            if builtin == KPrint {
                 eligible = false;
             }
-            if builtin == KFree() {
+            if builtin == KFree {
                 eligible = false;
             }
-            if builtin == KCopy() {
+            if builtin == KCopy {
                 eligible = false;
             }
-            if builtin == KFill() {
+            if builtin == KFill {
                 eligible = false;
             }
         }
         if q.editor.require_pointer {
-            eligible = builtin == KAllocate();
-            if builtin == KReallocate() {
+            eligible = builtin == KAllocate;
+            if builtin == KReallocate {
                 eligible = true;
             }
-            if builtin == KBits() {
+            if builtin == KBits {
                 eligible = true;
             }
         }
         if q.editor.has_expected {
             // Void operations cannot supply a required value. Polymorphic
             // operations retain their normal semantic checks after insertion.
-            if builtin == KPrint() {
+            if builtin == KPrint {
                 eligible = false;
             }
-            if builtin == KFree() {
+            if builtin == KFree {
                 eligible = false;
             }
-            if builtin == KCopy() {
+            if builtin == KCopy {
                 eligible = false;
             }
-            if builtin == KFill() {
+            if builtin == KFill {
                 eligible = false;
             }
-            if builtin == KSizeOf() {
-                eligible = q.editor.type.scalar == SUSize();
+            if builtin == KSizeOf {
+                eligible = q.editor.type.scalar == SUSize;
                 if q.editor.type.pointers != 0 {
                     eligible = false;
                 }
             }
-            if builtin == KAlignOf() {
-                eligible = q.editor.type.scalar == SUSize();
+            if builtin == KAlignOf {
+                eligible = q.editor.type.scalar == SUSize;
                 if q.editor.type.pointers != 0 {
                     eligible = false;
                 }
             }
-            if builtin == KAllocate() {
+            if builtin == KAllocate {
                 eligible = q.editor.type.pointers != 0;
             }
-            if builtin == KReallocate() {
+            if builtin == KReallocate {
                 eligible = q.editor.type.pointers != 0;
             }
         }
-        var label = builtin == KLabel();
-        var jump = builtin == KJump();
+        var label = builtin == KLabel;
+        var jump = builtin == KJump;
         var control = label;
         if jump {
             control = true;
@@ -1082,7 +1082,7 @@ export fn completion_symbols(q: CompletionQuery*): void {
             }
         }
         var no_value = control;
-        if builtin == KTrap() {
+        if builtin == KTrap {
             no_value = true;
         }
         if no_value {

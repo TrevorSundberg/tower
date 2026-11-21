@@ -4,11 +4,11 @@ import tower;
 // signed error sentinel; no C++ stream or locale is involved in trap reporting.
 extern fn write(fd: i32, data: u8*, length: usize): usize;
 
-const CompilerErrorStream: i32 = 2;
+var CompilerErrorStream: i32 = 2;
 
 export fn compiler_runtime_write(data: u8*, length: usize): void {
     while length != 0 {
-        var count = write(CompilerErrorStream(), data, length);
+        var count = write(CompilerErrorStream, data, length);
         if count == 0 {
             return;
         }

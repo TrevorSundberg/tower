@@ -41,7 +41,7 @@ fn language_syntax(node: void*): SyntaxNode* {
     if node == null {
         return null;
     }
-    return bits(SyntaxNode*, compiler_node_get(node, CompilerSyntax()));
+    return bits(SyntaxNode*, compiler_node_get(node, CompilerSyntax));
 }
 
 fn language_grammar_keep(entry: LanguageGrammar*, node: void*): void {
@@ -163,14 +163,14 @@ fn language_snapshot(q: CompletionQuery*, node: void*, session: void*, depth: us
     var syntax = language_syntax(node);
     if syntax != null {
         // Import path terms are names, not grammar references.
-        if syntax.kind == SyntaxImport() {
+        if syntax.kind == SyntaxImport {
             return;
         }
         var entry: LanguageGrammar = default;
         entry.node = node;
-        var reference = syntax.kind == SyntaxRule();
+        var reference = syntax.kind == SyntaxRule;
         var text = &syntax.name;
-        if syntax.kind == SyntaxTerm() {
+        if syntax.kind == SyntaxTerm {
             text = &syntax.text;
             reference = !syntax.literal;
             if syntax.terminal_set {
@@ -188,7 +188,7 @@ fn language_snapshot(q: CompletionQuery*, node: void*, session: void*, depth: us
             }
         }
         var grammar_condition12 = entry.targets.length != 0;
-        if syntax.kind == SyntaxTemplate() {
+        if syntax.kind == SyntaxTemplate {
             grammar_condition12 = true;
         }
         if grammar_condition12 {
@@ -434,7 +434,7 @@ fn language_grammar_details(q: CompletionQuery*, leaf: void*, node: void*): void
     var description: u8* = "Defines syntax for subsequent source after the terminating semicolon.";
     var reference = false;
     var docs = true;
-    if syntax.kind == SyntaxRule() {
+    if syntax.kind == SyntaxRule {
         kind = "parse rule";
         description = "Defines how to write this part of the language.";
         if syntax.append {
@@ -458,11 +458,11 @@ fn language_grammar_details(q: CompletionQuery*, leaf: void*, node: void*): void
             description = "Separates alternative sequences accepted by this rule; order is not silent conflict priority.";
         }
     }
-    if syntax.kind == SyntaxAlternative() {
+    if syntax.kind == SyntaxAlternative {
         kind = "alternative";
         description = "Matches this ordered sequence of grammar terms.";
     }
-    if syntax.kind == SyntaxTerm() {
+    if syntax.kind == SyntaxTerm {
         kind = "grammar reference";
         description = "Matches this category using the grammar active at this declaration.";
         reference = true;
@@ -507,14 +507,14 @@ fn language_grammar_details(q: CompletionQuery*, leaf: void*, node: void*): void
             language_string(q, "category", syntax.text.data);
         }
     }
-    var lexical = syntax.kind == SyntaxToken();
-    if syntax.kind == SyntaxSkip() {
+    var lexical = syntax.kind == SyntaxToken;
+    if syntax.kind == SyntaxSkip {
         lexical = true;
     }
     if lexical {
         kind = "token declaration";
         description = "Recognizes a token using this lexical pattern.";
-        if syntax.kind == SyntaxSkip() {
+        if syntax.kind == SyntaxSkip {
             kind = "skip declaration";
             description = "Consumes matching text as trivia instead of passing a token to the parser.";
         }
@@ -531,7 +531,7 @@ fn language_grammar_details(q: CompletionQuery*, leaf: void*, node: void*): void
             description = "Controls syntax highlighting only; it does not declare a semantic type.";
         }
     }
-    if syntax.kind == SyntaxTemplate() {
+    if syntax.kind == SyntaxTemplate {
         kind = "replacement template";
         description = "Parsed using the destination grammar when this rule becomes reachable; capture types are checked after substitution.";
     }

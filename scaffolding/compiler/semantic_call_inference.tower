@@ -110,7 +110,7 @@ fn sem_infer_match(inference: SemanticCallInference*, annotation: void*, actual:
             count = sem_member(annotation, "index");
         }
         if count != null {
-            if actual.pointers == 0 && actual.scalar == SArray() {
+            if actual.pointers == 0 && actual.scalar == SArray {
                 sem_infer_match(inference, base, &sem_get(actual.record).element, substitutions, depth + 1);
             }
         } else {
@@ -162,7 +162,7 @@ fn sem_infer_match(inference: SemanticCallInference*, annotation: void*, actual:
         }
         // Nominal instances retain their constructor and canonical arguments as
         // shared components. Validate the whole substituted type at the call.
-        if actual.pointers != 0 || actual.scalar != SStruct() {
+        if actual.pointers != 0 || actual.scalar != SStruct {
             return;
         }
         var instance = generic_specialization(c.generics, actual.record);

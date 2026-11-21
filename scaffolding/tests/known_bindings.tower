@@ -3,6 +3,7 @@ import tower;
 var failures = 0;
 fn check(ok: bool, message: u8*): void { if !ok { print(message); failures++; } }
 var Limit: usize = 64;
+var const = 2;
 var Flag: u32 = 1 << 5;
 var Mask: u32 = Flag | 3;
 var Highest: u64 = 18446744073709551615;
@@ -16,6 +17,7 @@ fn calculate(seed: i32): i32 {
 var Answer = calculate(36);
 fn answer(): i32 { return Answer; }
 check(Limit == 64 && Flag == 32 && Mask == 35, "named numeric values");
+check(const == 2, "const is an ordinary identifier");
 check(Highest > 0 && Minimum < 0, "literal widths");
 check(comptime(answer()) == 42, "inferred immutable input to staged call");
 check(comptime(Mask) == 35, "inferred dependency chain");

@@ -87,11 +87,11 @@ export fn compiler_world_pinned(world: CompilerWorld*): bool {
 }
 
 export fn compiler_world_type_existing(world: CompilerWorld*, kind: u32): Entity* {
-    return kind < CompilerComponentCount() ? world.types[kind] : null;
+    return kind < CompilerComponentCount ? world.types[kind] : null;
 }
 
 export fn compiler_world_type(world: CompilerWorld*, kind: u32): Entity* {
-    if kind >= CompilerComponentCount() {
+    if kind >= CompilerComponentCount {
         return null;
     }
     var type = world.types[kind];
@@ -101,40 +101,40 @@ export fn compiler_world_type(world: CompilerWorld*, kind: u32): Entity* {
     var size = sizeof(FoundationNode);
     var alignment = alignof(FoundationNode);
     var lifecycle = compiler_foundation_lifecycle();
-    if kind == CompilerSyntax() {
+    if kind == CompilerSyntax {
         size = sizeof(SyntaxNode);
         alignment = alignof(SyntaxNode);
         lifecycle = compiler_syntax_lifecycle();
     }
-    if kind <= CompilerParserMatch() {
+    if kind <= CompilerParserMatch {
         lifecycle = compiler_parser_lifecycle(kind);
-        if kind == CompilerParserRule() {
+        if kind == CompilerParserRule {
             size = sizeof(ParserRuleData);
             alignment = alignof(ParserRuleData);
         }
-        if kind == CompilerParserReference() {
+        if kind == CompilerParserReference {
             size = sizeof(ParserReferenceData);
             alignment = alignof(ParserReferenceData);
         }
-        if kind == CompilerParserString() {
+        if kind == CompilerParserString {
             size = sizeof(ParserStringData);
             alignment = alignof(ParserStringData);
         }
-        if kind == CompilerParserRange() {
+        if kind == CompilerParserRange {
             size = sizeof(ParserRangeData);
             alignment = alignof(ParserRangeData);
         }
-        if kind == CompilerParserMatch() {
+        if kind == CompilerParserMatch {
             size = sizeof(ParserMatchData);
             alignment = alignof(ParserMatchData);
         }
     }
-    if kind == CompilerSyntaxOrigin() {
+    if kind == CompilerSyntaxOrigin {
         size = sizeof(SyntaxOrigin);
         alignment = alignof(SyntaxOrigin);
         lifecycle = compiler_origin_lifecycle();
     }
-    if kind == CompilerSyntaxExpansion() {
+    if kind == CompilerSyntaxExpansion {
         size = sizeof(SyntaxExpansion);
         alignment = alignof(SyntaxExpansion);
         lifecycle = compiler_expansion_lifecycle();
@@ -161,7 +161,7 @@ export fn compiler_world_get(world: CompilerWorld*, owner: Entity*, kind: u32): 
     if owner.store != world.store {
         return null;
     }
-    if kind >= CompilerComponentCount() {
+    if kind >= CompilerComponentCount {
         return null;
     }
     var type = world.types[kind];
@@ -193,19 +193,19 @@ export fn compiler_world_component(world: CompilerWorld*, owner: Entity*, kind: 
     if data == null {
         return null;
     }
-    if kind <= CompilerParserMatch() {
+    if kind <= CompilerParserMatch {
         node_payload_init(kind, data);
     }
-    if kind == CompilerSyntax() {
+    if kind == CompilerSyntax {
         syntax_node_init(bits(SyntaxNode*, data));
     }
-    if kind == CompilerFoundation() {
+    if kind == CompilerFoundation {
         foundation_node_init(bits(FoundationNode*, data));
     }
-    if kind == CompilerSyntaxOrigin() {
+    if kind == CompilerSyntaxOrigin {
         fill(data, 0, sizeof(SyntaxOrigin));
     }
-    if kind == CompilerSyntaxExpansion() {
+    if kind == CompilerSyntaxExpansion {
         fill(data, 0, sizeof(SyntaxExpansion));
     }
     return data;
@@ -236,7 +236,7 @@ export fn compiler_world_dispose(world: CompilerWorld*): bool {
         return false;
     }
     var index: u32 = 0;
-    for(; index < CompilerComponentCount(); index++) {
+    for(; index < CompilerComponentCount; index++) {
         var type = world.types[index];
         var present = type != null;
         if present {
@@ -247,7 +247,7 @@ export fn compiler_world_dispose(world: CompilerWorld*): bool {
     }
     index = 0;
     work_pool_close(&world.grammar.workers);
-    for(; index < CompilerComponentCount(); index++) {
+    for(; index < CompilerComponentCount; index++) {
         var type = world.types[index];
         var present = type != null;
         if present {

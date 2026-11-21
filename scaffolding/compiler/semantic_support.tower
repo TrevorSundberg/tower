@@ -17,7 +17,7 @@ export fn semantic_type_equal(a: FoundationType*, b: FoundationType*): bool {
     if a.scalar != b.scalar || a.pointers != b.pointers || a.record != b.record {
         return false;
     }
-    if a.pointers != 0 || a.scalar == SUSize() {
+    if a.pointers != 0 || a.scalar == SUSize {
         return a.pointer_bytes == b.pointer_bytes;
     }
     return true;
@@ -27,46 +27,46 @@ export fn semantic_type_equal(a: FoundationType*, b: FoundationType*): bool {
 // identity too. Built-in scalars have no record, aggregates have their own tags.
 export fn semantic_enum(t: FoundationType*): bool {
     var nominal = t.record != null;
-    nominal &&= t.scalar != SStruct();
-    nominal &&= t.scalar != SArray();
+    nominal &&= t.scalar != SStruct;
+    nominal &&= t.scalar != SArray;
     return nominal;
 }
 
 export fn semantic_aggregate(t: FoundationType*): bool {
-    return t.pointers == 0 &&(t.scalar == SStruct() || t.scalar == SArray());
+    return t.pointers == 0 &&(t.scalar == SStruct || t.scalar == SArray);
 }
 
 export fn semantic_integer(t: FoundationType*): bool {
-    var step2 = t.pointers == 0 &&(t.scalar == SI32() || t.scalar == SU32() || t.scalar == SU8() || t.scalar == SI64() || t.scalar == SU64() || t.scalar == SUSize());
+    var step2 = t.pointers == 0 &&(t.scalar == SI32 || t.scalar == SU32 || t.scalar == SU8 || t.scalar == SI64 || t.scalar == SU64 || t.scalar == SUSize);
     return step2;
 }
 
 export fn semantic_signed(t: FoundationType*): bool {
-    return t.pointers == 0 &&(t.scalar == SI32() || t.scalar == SI64());
+    return t.pointers == 0 &&(t.scalar == SI32 || t.scalar == SI64);
 }
 
 export fn semantic_size(t: FoundationType*): usize {
-    if t.pointers != 0 || t.scalar == SUSize() {
+    if t.pointers != 0 || t.scalar == SUSize {
         return convert(usize, t.pointer_bytes);
     }
     if semantic_aggregate(t) {
         var step7 = sem_get(t.record);
         return step7.size;
     }
-    if t.scalar == SVoid() {
+    if t.scalar == SVoid {
         return 0;
     }
-    if t.scalar == SBool() || t.scalar == SU8() {
+    if t.scalar == SBool || t.scalar == SU8 {
         return 1;
     }
-    if t.scalar == SI64() || t.scalar == SU64() {
+    if t.scalar == SI64 || t.scalar == SU64 {
         return 8;
     }
     return 4;
 }
 
 export fn semantic_alignment(t: FoundationType*): usize {
-    if t.pointers != 0 || t.scalar == SUSize() {
+    if t.pointers != 0 || t.scalar == SUSize {
         return convert(usize, t.pointer_bytes);
     }
     if semantic_aggregate(t) {
@@ -173,24 +173,24 @@ fn sem_type_new(c: SemanticContext*, scalar: u32, pointers: u32, record: void*):
 }
 
 fn sem_type_copy(c: SemanticContext*, t: FoundationType*): FoundationType* {
-    var result: FoundationType* = sem_type_new(c, SI32(), 0, null);
-    copy(result, t, sizeof(FoundationType));
+    var result: FoundationType* = sem_type_new(c, SI32, 0, null);
+    *result = *t;
     return result;
 }
 
 fn sem_set_type(out: FoundationType*, t: FoundationType*): void {
-    copy(out, t, sizeof(FoundationType));
+    *out = *t;
 }
 
 fn sem_type_name(c: SemanticContext*, t: FoundationType*): u8* {
     var name: u8* = "";
-    if t.scalar == SArray() {
+    if t.scalar == SArray {
         var a: FoundationNode* = sem_get(t.record);
         var step4 = sem_cat(c, sem_type_name(c, &a.element), "[");
         var step6 = sem_decimal(c, convert(u64, a.length));
         name = sem_cat(c, sem_cat(c, step4, step6), "]");
     } else {
-        var step9 = t.scalar == SStruct();
+        var step9 = t.scalar == SStruct;
         if semantic_enum(t) {
             step9 = true;
         }

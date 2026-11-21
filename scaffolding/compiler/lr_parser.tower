@@ -79,7 +79,7 @@ fn lr_parser_sequence_step(value: LRParser*, ready: bool, id: u32, error: bool, 
     result.rule = runtime.sequence_rule;
     if complete {
         if needs_input {
-            if id != LRTokenEnd() {
+            if id != LRTokenEnd {
                 return 4;
             }
             if error {
@@ -129,7 +129,7 @@ fn lr_parser_decide(value: LRParser*, ready: bool, id: u32, error: bool, result:
             }
         }
         if value.finishing {
-            id = LRTokenEnd();
+            id = LRTokenEnd;
             error = false;
         }
         if !error {
@@ -141,10 +141,10 @@ fn lr_parser_decide(value: LRParser*, ready: bool, id: u32, error: bool, result:
                 if value.shifted {
                     if !value.finishing {
                         value.work.actions++;
-                        found = lr_runtime_action(value.runtime, state, LRTokenEnd(), &action);
+                        found = lr_runtime_action(value.runtime, state, LRTokenEnd, &action);
                         if found {
                             value.finishing = true;
-                            id = LRTokenEnd();
+                            id = LRTokenEnd;
                         }
                     }
                 }

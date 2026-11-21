@@ -5,8 +5,8 @@ import utility_checks;
 extern fn tower_test_buffer_count(): usize;
 extern fn strcmp(left: u8*, right: u8*): i32;
 
-const TestEntityByteLifecycle: usize = 1;
-const TestEntityCountLifecycle: usize = 2;
+var TestEntityByteLifecycle: usize = 1;
+var TestEntityCountLifecycle: usize = 2;
 
 // Ordinary Tower dispatch for this test-owned store. The compiler's lifecycle
 // bridge is not linked here and no native callback wrapper is required.
@@ -14,10 +14,10 @@ export fn tower_entity_finalize(kind: usize, component: EntityComponent*, data: 
     utility_check(entity_component_data(component) == data, "Entity finalizer payload identity");
     utility_check(entity_component_from_data(data) == component, "Entity finalizer reverse identity");
     utility_check(entity_component_owner(component) is not null && entity_component_type(component) is not null, "Entity finalizer owner/type lifetime");
-    if kind == TestEntityByteLifecycle() {
+    if kind == TestEntityByteLifecycle {
         utility_check(data[0] == 123, "Entity finalizer payload value");
     } else {
-        utility_check(kind == TestEntityCountLifecycle(), "Entity finalizer lifecycle identity");
+        utility_check(kind == TestEntityCountLifecycle, "Entity finalizer lifecycle identity");
         var counter = *bits(usize**, data);
         ++*counter;
     }
@@ -110,7 +110,7 @@ export fn entity_store_tests(): void {
         var type = entity_create(store);
         utility_check(entity_references(type) == 1 && entity_component_count(owner) == 0 && entity_component_at(owner, 0) is null, "Entity component initial state");
         utility_check(entity_component_data(null) is null && entity_component_from_data(null) is null, "Entity null component access");
-        utility_check(entity_register(type, 1, 1, TestEntityByteLifecycle()), "Entity register byte payload");
+        utility_check(entity_register(type, 1, 1, TestEntityByteLifecycle), "Entity register byte payload");
         var component = entity_component_add(owner, type);
         utility_check(entity_store_count(store) == 2 && entity_store_component_count(store) == 1, "Entity component allocation counts");
         utility_check(entity_references(type) == 2 && entity_references(owner) == 1, "Entity component retains type");
@@ -131,7 +131,7 @@ export fn entity_store_tests(): void {
         var destroyed: usize = 0;
         var type = entity_create(store);
         var owner = entity_create(store);
-        utility_check(entity_register(type, 16, alignof(usize*), TestEntityCountLifecycle()), "Entity register counted payload");
+        utility_check(entity_register(type, 16, alignof(usize*), TestEntityCountLifecycle), "Entity register counted payload");
         var component = entity_component_add(owner, type);
         *bits(usize**, entity_component_data(component)) = &destroyed;
         utility_check(entity_query_count(type) == 1 && entity_query_at(type, 0) == component, "Entity component query identity");

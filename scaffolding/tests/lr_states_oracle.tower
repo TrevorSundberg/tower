@@ -97,7 +97,7 @@ fn oracle_state_item_index(value: OracleStates*, state: usize, item: LRItem*): u
 fn oracle_state_link(value: OracleStates*, graph: OraclePropagation*, source: usize, state: usize, item: LRItem*): bool {
     var destination = oracle_state_item_index(value, state, item);
     if destination == oracle_none() { return false; }
-    if item.first == LRTokenPropagation() { oracle_propagation_edge(graph, source, destination); }
+    if item.first == LRTokenPropagation { oracle_propagation_edge(graph, source, destination); }
     else { oracle_propagation_seed(graph, destination, item.first, item.last); }
     return true;
 }
@@ -110,7 +110,7 @@ fn oracle_states_lalr(value: OracleStates*, constructs: bool): bool {
     var first: LRItem; fill(&first, 0, sizeof(LRItem));
     var start = oracle_state_item_index(value, 0, &first);
     if start == oracle_none() { return false; }
-    oracle_propagation_seed(graph, start, LRTokenEnd(), LRTokenEnd());
+    oracle_propagation_seed(graph, start, LRTokenEnd, LRTokenEnd);
     if constructs {
         var name = analysis.names.data[analysis.rules[0].owner];
         foreach (var &range in &name.first) {
@@ -124,7 +124,7 @@ fn oracle_states_lalr(value: OracleStates*, constructs: bool): bool {
             if !oracle_kernel(analysis, item) { continue; }
             var source = oracle_state_item_index(value, state_index, item);
             var closure: OracleItems; fill(&closure, 0, sizeof(OracleItems)); defer vector_dispose(&closure.values);
-            var seed: LRItem; copy(&seed, item, sizeof(LRItem)); seed.first = LRTokenPropagation(); seed.last = LRTokenPropagation();
+            var seed: LRItem; copy(&seed, item, sizeof(LRItem)); seed.first = LRTokenPropagation; seed.last = LRTokenPropagation;
             oracle_append(&closure.values, &seed); oracle_items_close(analysis, &closure, true);
             for (var closed: usize = 0; closed < closure.values.length; ++closed) {
                 var entry = &closure.values.data[closed];

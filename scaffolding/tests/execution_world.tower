@@ -20,8 +20,8 @@ fn execution_world_prepare(world: void*, modules: void*, request: DriverRequest*
     frontend_modules_configure(modules, "world_unit.tower", request.root);
     var diagnostic: SyntaxVersionDiagnostic = default;
     defer syntax_version_diagnostic_dispose(&diagnostic);
-    var ready = syntax_baseline_install(world, modules, request.text[DriverBedrockText()].data, false, &diagnostic);
-    ready &&= syntax_baseline_install(world, modules, request.text[DriverFoundationText()].data, true, &diagnostic);
+    var ready = syntax_baseline_install(world, modules, request.text[DriverBedrockText].data, false, &diagnostic);
+    ready &&= syntax_baseline_install(world, modules, request.text[DriverFoundationText].data, true, &diagnostic);
     if !ready { puts(syntax_version_diagnostic_text(&diagnostic)); }
     execution_check(ready, "install independent world baselines");
 }

@@ -73,8 +73,8 @@ fn execution_package_encode(program: SemanticProgram*, modules: void*, profile: 
         return false;
     }
     var formatted: FormatResult = default;
-    format_entity(&formatted, program.root, compiler_node_type(program.root, CompilerSyntax()), null,
-    compiler_node_type(program.root, CompilerParserMatch()));
+    format_entity(&formatted, program.root, compiler_node_type(program.root, CompilerSyntax), null,
+    compiler_node_type(program.root, CompilerParserMatch));
     var canonical: ExecutionSession = default;
     var ok = !formatted.failed;
     if !ok {

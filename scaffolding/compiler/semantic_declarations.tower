@@ -21,8 +21,8 @@ import .library.work_pool;
 import .library.stack;
 import compiler_kernel;
 
-const DeclarationQuery: u32 = 3;
-const DeclarationDiscoveryQuery: u32 = 4;
+var DeclarationQuery: u32 = 3;
+var DeclarationDiscoveryQuery: u32 = 4;
 
 struct SemanticDeclaration {
     number: usize;
@@ -134,7 +134,7 @@ fn sem_declaration_layout_waiting(c: SemanticContext*, record: void*): usize {
         var query = sem_declaration_query(c, node);
         if query != 0 && work_task(&c.queries, query).state != WorkState.Succeeded { return query; }
         var value = sem_get(node);
-        if value.type.scalar == SArray() {
+        if value.type.scalar == SArray {
             if semantic_aggregate(&value.element) && !sem_has(pending, value.element.record) {
                 sem_push(pending, value.element.record);
             }
@@ -215,10 +215,10 @@ fn sem_declaration_location(c: SemanticContext*, node: void*, waiting: usize*, l
             element.pointers--;
             return element;
         }
-        if type.scalar == SArray() { return &sem_get(type.record).element; }
+        if type.scalar == SArray { return &sem_get(type.record).element; }
         return null;
     }
-    if type.scalar != SStruct() || type.record == null { return null; }
+    if type.scalar != SStruct || type.record == null { return null; }
     // Field offsets consume the entire containing layout, including by-value
     // records beyond the selected field. Never cache their unfinished headers.
     var query = sem_declaration_layout_waiting(c, type.record);
@@ -379,7 +379,7 @@ fn sem_declaration_dependencies(c: SemanticContext*, subject: void*, result: Sem
                 if input != 0 { sem_declaration_input(result, input); }
             }
             var args = sem_collect(c, sem_member(node, "args"), "CoreCallArgument");
-            if args.length != 0 && (builtin == KSizeOf() || builtin == KAlignOf()) {
+            if args.length != 0 && (builtin == KSizeOf || builtin == KAlignOf) {
                 var argument = sem_surface_unwrap(args.data[0]);
                 var nominal = sem_resolve(c, c.types, argument, sem_identifier(c, argument));
                 if nominal != null {
@@ -940,7 +940,7 @@ fn sem_declaration_add(c: SemanticContext*, node: void*): void {
     var result = sem_declaration_state(c, node);
     if result.query != 0 { return; }
     sem_push(c.declaration_subjects, node);
-    var id = work_request(&c.queries, node, DeclarationQuery(), 0);
+    var id = work_request(&c.queries, node, DeclarationQuery, 0);
     sem_require(id != 0);
     result.query = id;
     result.context = c;
@@ -951,7 +951,7 @@ fn sem_declaration_add(c: SemanticContext*, node: void*): void {
     result.worker_check = sem_declaration_worker(c, result);
     sem_require(vector_push(&c.declaration_jobs, bits(void*, result)));
     sem_require(work_access(&c.queries, id, 1, 4, id, 1, WorkAccessMode.Write));
-    result.discovery = work_request(&c.queries, node, DeclarationDiscoveryQuery(), 0);
+    result.discovery = work_request(&c.queries, node, DeclarationDiscoveryQuery, 0);
     sem_require(work_access(&c.queries, result.discovery, 1, 5, id, 1, WorkAccessMode.Write));
     sem_require(work_access(&c.queries, result.discovery, 1, 3, 0, ~convert(usize, 0), WorkAccessMode.Read));
     sem_require(work_seal(&c.queries, result.discovery));
@@ -967,7 +967,7 @@ fn sem_declaration_discover(c: SemanticContext*): void {
         sem_require(view != null);
         var count: usize = 0;
         var ticket: WorkTicket;
-        while count < c.workers.count && work_take_query(&c.queries, &ticket, DeclarationDiscoveryQuery()) {
+        while count < c.workers.count && work_take_query(&c.queries, &ticket, DeclarationDiscoveryQuery) {
             var result = sem_declaration_state(c, work_task(&c.queries, ticket.task).subject);
             copy(&result.ticket, &ticket, sizeof(WorkTicket));
             batch[count] = result;
@@ -1045,7 +1045,7 @@ fn sem_declarations(c: SemanticContext*, statements: vector(void*)*): void {
         if !sem_ok(c) { break; }
         var count: usize = 0;
         var ticket: WorkTicket;
-        while count < c.workers.count && work_take_query(&c.queries, &ticket, DeclarationQuery()) {
+        while count < c.workers.count && work_take_query(&c.queries, &ticket, DeclarationQuery) {
             var result = sem_declaration_state(c, work_task(&c.queries, ticket.task).subject);
             copy(&result.ticket, &ticket, sizeof(WorkTicket));
             result.kernel.kind = result.worker_check ? CompilerKernelKind.DeclarationType : CompilerKernelKind.Declaration;

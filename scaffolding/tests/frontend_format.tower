@@ -119,7 +119,7 @@ fn frontend_format_scalars(): void {
 
 fn frontend_format_trees(): void {
     var host = compiler_host_world();
-    var host_kind = compiler_world_type(host, CompilerParserMatch());
+    var host_kind = compiler_world_type(host, CompilerParserMatch);
     var host_nodes = entity_store_count(compiler_world_store(host));
     var allocations = tower_memory_get_allocated_count();
     var text = parser_tree_debug_string(null);
@@ -127,23 +127,23 @@ fn frontend_format_trees(): void {
     tower_memory_free(bits(void*, text));
     var world = compiler_world_create();
     var store = compiler_world_store(world);
-    var kind = compiler_world_type(world, CompilerParserMatch());
+    var kind = compiler_world_type(world, CompilerParserMatch);
     var root = entity_create(store);
     var rule = frontend_format_child(store, root, "left");
-    var span = bits(ParserMatchData*, compiler_world_component(world, rule, CompilerParserMatch()));
+    var span = bits(ParserMatchData*, compiler_world_component(world, rule, CompilerParserMatch));
     span.id = 1;
     span.start = 2;
     span.length = 9;
     span.rule = 7;
     frontend_world_check(node_match_set_label(span, "Sum"));
     var leaf = frontend_format_child(store, rule, null);
-    span = bits(ParserMatchData*, compiler_world_component(world, leaf, CompilerParserMatch()));
+    span = bits(ParserMatchData*, compiler_world_component(world, leaf, CompilerParserMatch));
     span.id = 233;
     span.start = 2;
     span.length = 2;
     frontend_world_check(node_match_set_label(span, "'é'"));
     var eof = frontend_format_child(store, root, null);
-    span = bits(ParserMatchData*, compiler_world_component(world, eof, CompilerParserMatch()));
+    span = bits(ParserMatchData*, compiler_world_component(world, eof, CompilerParserMatch));
     span.id = 4294967294;
     span.start = 11;
     var wanted: u8* = "node\n  left: rule Sum #7 [2, 11)\n    token 'é' [2, 4)\n  token 4294967294 [11, 11)\n";
@@ -201,7 +201,7 @@ fn frontend_format_deep(): void {
     var baseline = tower_test_buffer_count();
     var world = compiler_world_create();
     var store = compiler_world_store(world);
-    var kind = compiler_world_type(world, CompilerParserMatch());
+    var kind = compiler_world_type(world, CompilerParserMatch);
     var root = entity_create(store);
     var node = root;
     var depth: usize = 0;

@@ -1,10 +1,10 @@
 import left;
 import right;
 
-const ExpectedAnswer: i32 = 42;
+var ExpectedAnswer: i32 = 42;
 var left = left_answer();
 var right = right_answer();
-var anticipated = ExpectedAnswer();
+var anticipated = ExpectedAnswer;
 var correct = right == anticipated;
 print(left);
 print(right);

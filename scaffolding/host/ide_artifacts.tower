@@ -181,9 +181,9 @@ export fn tw_exec_foundation(handle: u32): u8* {
             ide_text(out, "{\"name\":");
             ide_quote_bytes(out, type.name.data, type.name.length);
             var kind: u8* = "scalar";
-            var array = type.type.scalar == SArray();
-            var record = type.type.scalar == SStruct();
-            var empty = type.type.scalar == SVoid();
+            var array = type.type.scalar == SArray;
+            var record = type.type.scalar == SStruct;
+            var empty = type.type.scalar == SVoid;
             if array {
                 kind = "array";
             }

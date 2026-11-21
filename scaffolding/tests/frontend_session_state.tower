@@ -79,8 +79,8 @@ fn frontend_session_state_tests(): void {
     syntax_destroy(null);
     value = syntax_session_allocate(world, null);
     frontend_world_check(value is not null && value.inputs.world == world && value.declarations_only);
-    frontend_world_check(syntax_session_inputs_reset(&value.inputs, "abc", 3, SyntaxSeedBaseline(), null));
-    value.pins.baseline = syntax_world_revision(world, SyntaxSeedBaseline());
+    frontend_world_check(syntax_session_inputs_reset(&value.inputs, "abc", 3, SyntaxSeedBaseline, null));
+    value.pins.baseline = syntax_world_revision(world, SyntaxSeedBaseline);
     frontend_world_check(value.pins.baseline is not null);
     frontend_world_check(vector_push(u8, &value.error, 65));
     frontend_world_check(syntax_highlights_push(&value.highlights, 0, 1, 0, "comment", 3, true));

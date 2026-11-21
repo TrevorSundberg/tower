@@ -89,8 +89,8 @@ print(a--);
 print(a);
 print(true ? a: b = 99);
 print(b);
-const Flag: u32 = 1 << 5;
-print(Flag());
+var Flag: u32 = 1 << 5;
+print(Flag);
 var iterations: i32 = 0;
 while iterations++ < 3 {
     if iterations == 2 {

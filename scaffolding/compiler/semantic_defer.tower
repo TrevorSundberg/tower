@@ -70,7 +70,7 @@ fn sem_defer_clone(c: SemanticContext*, parent: void*, original: void*, clones: 
     foreach(var & parameter in &source.parameters) {
         sem_push(&value.parameters, sem_defer_clone(c, entity, *parameter, clones, to));
     }
-    if value.kind == KDeclare() {
+    if value.kind == KDeclare {
         sem_add_local(c, entity);
     }
     return entity;
@@ -78,7 +78,7 @@ fn sem_defer_clone(c: SemanticContext*, parent: void*, original: void*, clones: 
 
 fn sem_defer_emit(c: SemanticContext*, block: void*, stop: void*, loops: usize): u32 {
     var pending = bits(SemanticDeferred*, c.deferred);
-    var flow = FlowNext();
+    var flow = FlowNext;
     while pending != bits(SemanticDeferred*, stop) && sem_ok(c) {
         if pending == null || pending.loops < loops {
             break;
@@ -94,7 +94,7 @@ fn sem_defer_emit(c: SemanticContext*, block: void*, stop: void*, loops: usize):
                     value.binding = local.value;
                 } else {
                     var binding = sem_get(value.binding);
-                    if binding.kind == KDeclare() || binding.kind == KParameter() {
+                    if binding.kind == KDeclare || binding.kind == KParameter {
                         if c.defer_bindings == null {
                             c.defer_bindings = sem_table(c);
                             c.defer_order = sem_list(c);
@@ -109,8 +109,8 @@ fn sem_defer_emit(c: SemanticContext*, block: void*, stop: void*, loops: usize):
             }
         }
         sem_push(&sem_get(block).items, body);
-        if(flow &FlowNext()) != 0 {
-            flow =(flow & ~FlowNext()) | pending.flow;
+        if(flow &FlowNext) != 0 {
+            flow =(flow & ~FlowNext) | pending.flow;
         }
         pending = pending.previous;
     }
@@ -149,7 +149,7 @@ fn sem_defer_begin(c: SemanticContext*, n: void*, depth: u32, state: SemanticDef
         sem_fail(c, n, "defer cannot be combined with explicit function labels or jumps");
         return false;
     }
-    sem_node(c, n, KBlock());
+    sem_node(c, n, KBlock);
     c.has_defer = true;
     var function = sem_get(c.current);
     state.deferred = c.deferred;
@@ -172,7 +172,7 @@ fn sem_defer_finish(c: SemanticContext*, n: void*, state: SemanticDeferCursor*, 
     function.locals.length = state.locals;
     function.frame_size = state.frame_size;
     if !sem_ok(c) {
-        return FlowNext();
+        return FlowNext;
     }
     var pending = bits(SemanticDeferred*, sem_allocate(c, sizeof(SemanticDeferred)));
     pending.previous = bits(SemanticDeferred*, state.deferred);
@@ -180,12 +180,12 @@ fn sem_defer_finish(c: SemanticContext*, n: void*, state: SemanticDeferCursor*, 
     pending.loops = state.loops;
     pending.flow = flow;
     c.deferred = bits(void*, pending);
-    return FlowNext();
+    return FlowNext;
 }
 
 fn sem_defer_register(c: SemanticContext*, n: void*, depth: u32): u32 {
     var state: SemanticDeferCursor;
-    if !sem_defer_begin(c, n, depth, &state) { return FlowNext(); }
+    if !sem_defer_begin(c, n, depth, &state) { return FlowNext; }
     var flow = sem_statement(c, sem_member(n, "body"), depth + 1);
     return sem_defer_finish(c, n, &state, flow);
 }
@@ -195,12 +195,12 @@ fn sem_defer_exit(c: SemanticContext*, n: void*, flow: u32): u32 {
     if value == null {
         return flow;
     }
-    var returned = value.kind == KReturn();
+    var returned = value.kind == KReturn;
     if returned && c.deferring != 0 {
         sem_fail(c, n, "A deferred cleanup cannot return from its enclosing function");
         return flow;
     }
-    if !returned && value.kind != KBreak() && value.kind != KContinue() {
+    if !returned && value.kind != KBreak && value.kind != KContinue {
         return flow;
     }
     var pending = bits(SemanticDeferred*, c.deferred);
@@ -216,7 +216,7 @@ fn sem_defer_exit(c: SemanticContext*, n: void*, flow: u32): u32 {
     }
     var kind = value.kind;
     var result = value.value;
-    value.kind = KBlock();
+    value.kind = KBlock;
     value.value = null;
     // Evaluate a return value once before any cleanup can mutate its operands.
     if result != null {
@@ -226,7 +226,7 @@ fn sem_defer_exit(c: SemanticContext*, n: void*, flow: u32): u32 {
     var terminal = sem_control_node(c, n, kind);
     sem_get(terminal).value = result;
     sem_push(&value.items, terminal);
-    if(cleanup &FlowNext()) == 0 {
+    if(cleanup &FlowNext) == 0 {
         return 0;
     }
     return flow;
@@ -244,16 +244,16 @@ fn sem_defer_depth(c: SemanticContext*, n: void*, depth: u32): void {
     if value == null {
         return;
     }
-    if value.kind == KBlock() || value.kind == KProgram() {
+    if value.kind == KBlock || value.kind == KProgram {
         var child_depth = depth;
-        if value.kind == KBlock() {
+        if value.kind == KBlock {
             child_depth++;
         }
         for(var i: usize = 0; i < value.items.length && sem_ok(c); i++) {
             sem_defer_depth(c, value.items.data[i], child_depth);
         }
     }
-    if value.kind == KIf() || value.kind == KLoop() {
+    if value.kind == KIf || value.kind == KLoop {
         sem_defer_depth(c, value.body, depth);
         sem_defer_depth(c, value.otherwise, depth);
     }

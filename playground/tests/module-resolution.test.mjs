@@ -25,7 +25,7 @@ test('Tower, Foundation and Bedrock work under ordinary renamed paths',async () 
     file('syntax/core.tower',grammar.foundation.replace('import bedrock;','import "declarations.tower";')),
     file('syntax/language.tower',grammar.tower.replace('import foundation;','import "core.tower";')),
   ];
-  const result = run(compiler,'import "syntax/language.tower"; const Answer: i32 = 42; print(Answer());',files);
+  const result = run(compiler,'import "syntax/language.tower"; var Answer: i32 = 42; print(Answer);',files);
   assert.equal(result.status,'done',result.error);
   assert.equal(result.output,'42\n');
   assert.deepEqual(new Set(result.dependencies),new Set(['units/main.tower',...files.map(f=>f.path)]));
@@ -36,7 +36,7 @@ test('tower uses ordinary nearest-file lookup and invalidates cached resolutions
   const root = files.find(f=>f.path==='tower.tower');
   // Keep these modules declaration-only so they qualify for grammar caching.
   root.text += "\nparse Statement |= 'marker' ';' => replace { print(1); };";
-  const source = 'import tower; const Answer: i32 = 42; print(Answer()); marker;';
+  const source = 'import tower; var Answer: i32 = 42; print(Answer); marker;';
   assert.equal(run(compiler,source,files).output,'42\n1\n');
   const local = file('units/tower.tower',grammar.tower+"\nparse Statement |= 'marker' ';' => replace { print(2); };");
   files.push(local);

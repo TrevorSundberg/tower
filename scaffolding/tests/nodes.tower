@@ -3,7 +3,7 @@ import tower;
 // Translation of the former native node self-test. All assertions use the same
 // production entities, table transitions and lifecycle dispatch as the compiler.
 // The fixture lifecycle is a Tower dispatch ID, not a fabricated function address.
-const NodeFixtureLifecycle: usize = 1;
+var NodeFixtureLifecycle: usize = 1;
 
 extern fn abort(): void;
 extern fn puts(text: u8*): i32;
@@ -76,7 +76,7 @@ fn node_component_fixture(owner: void*, type: void*): void {
     node_check(tower_node_get_component_by_index(owner, 0) is null);
     node_check(tower_component_get_userdata(null) is null);
     node_check(tower_component_from_userdata(null) is null);
-    node_check(entity_register(type, sizeof(NodeFixturePayload), alignof(NodeFixturePayload), NodeFixtureLifecycle()));
+    node_check(entity_register(type, sizeof(NodeFixturePayload), alignof(NodeFixturePayload), NodeFixtureLifecycle));
     var component = entity_component_add(owner, type);
     node_check(component is not null);
     node_check(tower_node_get_ref_count(type) == 2 && tower_node_get_ref_count(owner) == 1);
@@ -90,7 +90,7 @@ fn node_component_fixture(owner: void*, type: void*): void {
     var data = bits(NodeFixturePayload*, tower_component_get_userdata(component));
     *data = { value: 123, owner: owner, type: type, calls: &calls };
     node_check(tower_component_from_userdata(bits(void*, data)) == component);
-    node_check(entity_register(type, sizeof(NodeFixturePayload), alignof(NodeFixturePayload), NodeFixtureLifecycle()));
+    node_check(entity_register(type, sizeof(NodeFixturePayload), alignof(NodeFixturePayload), NodeFixtureLifecycle));
     node_check(entity_component_add(owner, type) == component);
     node_check(calls == 0);
     node_check(tower_node_release_ref(owner) == 0);

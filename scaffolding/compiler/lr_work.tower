@@ -63,7 +63,7 @@ export fn compiler_lr_action_kernel(payload: void*): void {
 
 // Scheduling grain only, not a grammar or semantic limit. A job amortizes its
 // ECS/query/semaphore handoff over a contiguous set of dotted productions.
-const LRClosureGrain: usize = 512;
+var LRClosureGrain: usize = 512;
 
 // Only immutable grammar/FIRST data are shared. LRAnalysis.failed is private:
 // the ordinary closure routines may set it on allocation failure.
@@ -527,10 +527,10 @@ export fn lr_states_lalr_parallel(value: LRStates*, constructs: bool, anchor: vo
         return lr_states_lalr(value, constructs);
     }
     var count = value.analysis.symbol_count + value.analysis.rule_count;
-    if count < 2 *LRClosureGrain() && value.states.length < 256 {
+    if count < 2 *LRClosureGrain && value.states.length < 256 {
         return lr_states_lalr(value, constructs);
     }
-    var batches = count / LRClosureGrain();
+    var batches = count / LRClosureGrain;
     if batches == 0 {
         batches = 1;
     }

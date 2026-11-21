@@ -35,7 +35,7 @@ no new parser-side semantic lookup or bootstrap grammar change.
 The standalone API returns an owned `ForeignName*`:
 
 ```tower
-var result = cpp_name(foreign_wasi(), "bool lld::wasm::link(llvm::ArrayRef<char const*>, llvm::raw_ostream&, llvm::raw_ostream&, bool, bool)");
+var result = cpp_name(foreign_wasi, "bool lld::wasm::link(llvm::ArrayRef<char const*>, llvm::raw_ostream&, llvm::raw_ostream&, bool, bool)");
 // Inspect foreign_name_error(result), then foreign_name_text(result).
 foreign_name_close(result);
 ```
@@ -48,22 +48,22 @@ tags. LLVM lowering propagates the selected calling convention to declarations
 and calls. Name generation does not infer C++ record layout, inheritance,
 aggregate classification, hidden arguments, or library compatibility.
 
-| Profile function | Numeric value | Naming/data model |
+| Named profile | Numeric value | Naming/data model |
 | --- | ---: | --- |
-| `foreign_wasi()` | 1 | Itanium, wasm32, ILP32 |
-| `foreign_linux_x64()` | 2 | Itanium, ELF, LP64 |
-| `foreign_macos_x64()` | 3 | Itanium, Mach-O, LP64 |
-| `foreign_macos_arm64()` | 4 | Itanium, Mach-O, LP64 |
-| `foreign_windows_x64()` | 5 | Microsoft, COFF, LLP64 |
-| `foreign_windows_x86()` | 6 | Microsoft, COFF, ILP32 |
-| `foreign_mingw_x64()` | 7 | Itanium, COFF, LLP64 |
-| `foreign_linux_arm64()` | 8 | Itanium, ELF, LP64 |
-| `foreign_linux_x86()` | 9 | Itanium, ELF, ILP32 |
-| `foreign_windows_arm64()` | 10 | Microsoft, COFF, LLP64 |
-| `foreign_windows_arm64ec()` | 11 | Microsoft plus ARM64EC object decoration |
+| `foreign_wasi` | 1 | Itanium, wasm32, ILP32 |
+| `foreign_linux_x64` | 2 | Itanium, ELF, LP64 |
+| `foreign_macos_x64` | 3 | Itanium, Mach-O, LP64 |
+| `foreign_macos_arm64` | 4 | Itanium, Mach-O, LP64 |
+| `foreign_windows_x64` | 5 | Microsoft, COFF, LLP64 |
+| `foreign_windows_x86` | 6 | Microsoft, COFF, ILP32 |
+| `foreign_mingw_x64` | 7 | Itanium, COFF, LLP64 |
+| `foreign_linux_arm64` | 8 | Itanium, ELF, LP64 |
+| `foreign_linux_x86` | 9 | Itanium, ELF, ILP32 |
+| `foreign_windows_arm64` | 10 | Microsoft, COFF, LLP64 |
+| `foreign_windows_arm64ec` | 11 | Microsoft plus ARM64EC object decoration |
 
-These are explicit enum-like constants exposed as functions under the current
-Foundation. The ability to generate an x86/ARM64EC name does not expand the
+These are ordinary named `var` bindings inferred as fixed compile-time values.
+The ability to generate an x86/ARM64EC name does not expand the
 backend's existing target-layout or execution support.
 
 Declarations support scalar types, qualified names, concrete type templates,

@@ -48,7 +48,7 @@ export fn main(argc: i32, argv: u8**): i32 {
     request_check(fresh, "request owns a distinct module environment");
     request_check(driver_request_canonical(&request), "canonical grammar snapshot");
     request_check(driver_write_file(source, "changed", 7), "edit source after pinning");
-    var snapshot = driver_request_text(&request, DriverSourceText());
+    var snapshot = driver_request_text(&request, DriverSourceText);
     request_check(driver_same(snapshot.data, text), "pinned source remains stable");
     driver_request_stage(&request);
     fresh = slot != original;

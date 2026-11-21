@@ -12,21 +12,21 @@ extern fn guest_linux_map_number(): i64;
 
 extern fn guest_linux_unmap_number(): i64;
 
-const GuestLinuxReadWrite: i64 = 3;
-const GuestLinuxPrivateAnonymous: i64 = 34;
-const GuestLinuxHeaderBytes: usize = 16;
+var GuestLinuxReadWrite: i64 = 3;
+var GuestLinuxPrivateAnonymous: i64 = 34;
+var GuestLinuxHeaderBytes: usize = 16;
 
 // Existing freestanding mmap-per-allocation policy, now expressed in Tower.
 // The prefix is allocator metadata, not a checked Foundation pointer handle.
 export fn guest_host_allocate(bytes: usize): void* {
     var maximum: usize = 0;
     --maximum;
-    var limit = maximum -GuestLinuxHeaderBytes();
+    var limit = maximum -GuestLinuxHeaderBytes;
     if bytes > limit {
         return null;
     }
-    var total = bytes + GuestLinuxHeaderBytes();
-    var result = system_call(guest_linux_map_number(), 0, bits(i64, total), GuestLinuxReadWrite(), GuestLinuxPrivateAnonymous(), -1, 0);
+    var total = bytes + GuestLinuxHeaderBytes;
+    var result = system_call(guest_linux_map_number(), 0, bits(i64, total), GuestLinuxReadWrite, GuestLinuxPrivateAnonymous, -1, 0);
     var address = bits(u64, result);
     if address >= 18446744073709547521 {
         return null;
@@ -34,7 +34,7 @@ export fn guest_host_allocate(bytes: usize): void* {
     var header = bits(usize*, result);
     header[0] = total;
     var data = bits(u8*, header);
-    data = data + GuestLinuxHeaderBytes();
+    data = data + GuestLinuxHeaderBytes;
     return bits(void*, data);
 }
 
@@ -43,7 +43,7 @@ export fn guest_host_free(pointer: void*): void {
         return;
     }
     var base = bits(u8*, pointer);
-    base = base - GuestLinuxHeaderBytes();
+    base = base - GuestLinuxHeaderBytes;
     var header = bits(usize*, base);
     system_call(guest_linux_unmap_number(), bits(i64, base), bits(i64, header[0]), 0, 0, 0, 0);
 }
@@ -57,9 +57,9 @@ export fn guest_host_reallocate(pointer: void*, bytes: usize): void* {
         return null;
     }
     var base = bits(u8*, pointer);
-    base = base - GuestLinuxHeaderBytes();
+    base = base - GuestLinuxHeaderBytes;
     var header = bits(usize*, base);
-    var old = header[0] -GuestLinuxHeaderBytes();
+    var old = header[0] -GuestLinuxHeaderBytes;
     var result = guest_host_allocate(bytes);
     if result != null {
         if bytes < old {

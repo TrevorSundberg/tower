@@ -15,7 +15,7 @@ fn ce_reach(c: CEmitter*, entity: void*): void {
         c.active.data[index] = true;
         c.changed = true;
     }
-    if n.kind == KIf() {
+    if n.kind == KIf {
         var condition = sem_get(n.value);
         if condition.constant {
             if condition.bits != 0 {
@@ -29,19 +29,19 @@ fn ce_reach(c: CEmitter*, entity: void*): void {
         }
         return;
     }
-    if n.kind == KLoop() {
+    if n.kind == KLoop {
         ce_reach(c, n.body);
         return;
     }
-    var list = n.kind == KBlock();
-    if n.kind == KProgram() {
+    var list = n.kind == KBlock;
+    if n.kind == KProgram {
         list = true;
     }
     if list {
         var falls = true;
         foreach(var child in &n.items) {
             var item = sem_get(child);
-            if item.kind == KLabel() {
+            if item.kind == KLabel {
                 if ce_label_used(c, child) {
                     falls = true;
                 }
@@ -60,7 +60,7 @@ fn ce_reach_pass(c: CEmitter*, root: void*): void {
         ce_reach(c, root);
         foreach(var & node in &c.nodes) {
             var n = sem_get(*node);
-            if n.kind == KFunction() {
+            if n.kind == KFunction {
                 ce_reach(c, n.body);
             }
         }
@@ -85,7 +85,7 @@ fn ce_reachable(c: CEmitter*, root: void*): void {
         for(; i != c.nodes.length; i++) {
             var entity = c.nodes.data[i];
             var n = sem_get(entity);
-            var function = n.kind == KFunction();
+            var function = n.kind == KFunction;
             if n.external {
                 function = false;
             }
@@ -94,7 +94,7 @@ fn ce_reachable(c: CEmitter*, root: void*): void {
                 for(var j: usize = 0; j != c.nodes.length; j++) {
                     if c.owners.data[j] == entity {
                         var item = sem_get(c.nodes.data[j]);
-                        var returning = item.kind == KReturn();
+                        var returning = item.kind == KReturn;
                         if returning {
                             if c.active.data[j] {
                                 returns = true;
@@ -121,20 +121,20 @@ fn ce_notes(c: CEmitter*, entity: void*): void {
     if n == null {
         return;
     }
-    if n.kind == KFunction() {
+    if n.kind == KFunction {
         return;
     }
     ce_comments(c, n);
-    if n.kind == KIf() {
+    if n.kind == KIf {
         ce_notes(c, n.body);
         ce_notes(c, n.otherwise);
         return;
     }
-    if n.kind == KLoop() {
+    if n.kind == KLoop {
         ce_notes(c, n.body);
         return;
     }
-    if n.kind == KBlock() {
+    if n.kind == KBlock {
         foreach(var & item in &n.items) {
             ce_notes(c, *item);
         }
@@ -150,7 +150,7 @@ fn ce_label_used(c: CEmitter*, entity: void*): bool {
             return false;
         }
         var n = sem_get(c.nodes.data[i]);
-        var jump = n.kind == KJump();
+        var jump = n.kind == KJump;
         jump &&= c.active.data[i];
         if jump {
             if n.binding == entity {
@@ -170,19 +170,19 @@ fn ce_breaks(c: CEmitter*, entity: void*): bool {
     if c.active.data[index] == false {
         return false;
     }
-    if n.kind == KBreak() {
+    if n.kind == KBreak {
         return true;
     }
-    if n.kind == KLoop() {
+    if n.kind == KLoop {
         return false;
     }
-    if n.kind == KIf() {
+    if n.kind == KIf {
         if ce_breaks(c, n.body) {
             return true;
         }
         return ce_breaks(c, n.otherwise);
     }
-    if n.kind == KBlock() {
+    if n.kind == KBlock {
         foreach(var & item in &n.items) {
             if ce_breaks(c, *item) {
                 return true;
@@ -197,27 +197,27 @@ fn ce_falls(c: CEmitter*, entity: void*): bool {
     if n == null {
         return true;
     }
-    if n.kind == KCall() {
+    if n.kind == KCall {
         var index = ce_id(c, n.binding);
         return c.returning.data[index];
     }
-    var terminal = n.kind == KReturn();
-    if n.kind == KJump() {
+    var terminal = n.kind == KReturn;
+    if n.kind == KJump {
         terminal = true;
     }
-    if n.kind == KTrap() {
+    if n.kind == KTrap {
         terminal = true;
     }
-    if n.kind == KBreak() {
+    if n.kind == KBreak {
         terminal = true;
     }
-    if n.kind == KContinue() {
+    if n.kind == KContinue {
         terminal = true;
     }
     if terminal {
         return false;
     }
-    if n.kind == KIf() {
+    if n.kind == KIf {
         var condition = sem_get(n.value);
         if condition.constant {
             if condition.bits != 0 {
@@ -230,11 +230,11 @@ fn ce_falls(c: CEmitter*, entity: void*): bool {
         }
         return ce_falls(c, n.otherwise);
     }
-    if n.kind == KLoop() {
+    if n.kind == KLoop {
         return ce_breaks(c, n.body);
     }
-    var list = n.kind == KBlock();
-    if n.kind == KProgram() {
+    var list = n.kind == KBlock;
+    if n.kind == KProgram {
         list = true;
     }
     if list {
@@ -246,7 +246,7 @@ fn ce_falls(c: CEmitter*, entity: void*): bool {
             }
             var child = n.items.data[i];
             var item = sem_get(child);
-            if item.kind == KLabel() {
+            if item.kind == KLabel {
                 if ce_label_used(c, child) {
                     falls = true;
                 }

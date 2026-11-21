@@ -14,9 +14,9 @@ extern fn WriteFile(file: void*, bytes: u8*, count: u32, written: u32*, overlapp
 
 extern fn ExitProcess(status: u32): void;
 
-const GuestWindowsStdout: u32 = 4294967285;
-const GuestWindowsStderr: u32 = 4294967284;
-const GuestWindowsWriteLimit: usize = 4294967295;
+var GuestWindowsStdout: u32 = 4294967285;
+var GuestWindowsStderr: u32 = 4294967284;
+var GuestWindowsWriteLimit: usize = 4294967295;
 
 export fn guest_host_allocate(bytes: usize): void* {
     if bytes == 0 {
@@ -43,9 +43,9 @@ export fn guest_host_reallocate(pointer: void*, bytes: usize): void* {
 }
 
 export fn platform_write(stream: u32, bytes: u8*, count: usize): i64 {
-    var id = GuestWindowsStdout();
+    var id = GuestWindowsStdout;
     if stream == 2 {
-        id = GuestWindowsStderr();
+        id = GuestWindowsStderr;
     }
     else {
         if !(stream == 1) {
@@ -55,8 +55,8 @@ export fn platform_write(stream: u32, bytes: u8*, count: usize): i64 {
     var total: usize = 0;
     while total < count {
         var remaining = count -total;
-        if remaining > GuestWindowsWriteLimit() {
-            remaining = GuestWindowsWriteLimit();
+        if remaining > GuestWindowsWriteLimit {
+            remaining = GuestWindowsWriteLimit;
         }
         var written: u32 = 0;
         var ok = WriteFile(GetStdHandle(id), &bytes[total], convert(u32, remaining), &written, null);

@@ -37,8 +37,8 @@ enum GenericKind: u32 {
     Ordinary, Function, TypeConstructor
 }
 
-const GenericInstanceLimit: usize = 512;
-const GenericNodeLimit: usize = 65536;
+var GenericInstanceLimit: usize = 512;
+var GenericNodeLimit: usize = 65536;
 
 struct GenericTemplate {
     parameters: Entity*[64];

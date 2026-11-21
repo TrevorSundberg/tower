@@ -64,7 +64,7 @@ fn oracle_lexicon_accepts(runtime: void*, state: usize, id: u32, choice: TestLex
 
 fn oracle_lexicon_reset(choice: TestLexiconChoice*): void {
     fill(choice, 0, sizeof(TestLexiconChoice));
-    choice.id = LRTokenEnd();
+    choice.id = LRTokenEnd;
     choice.style = "";
 }
 

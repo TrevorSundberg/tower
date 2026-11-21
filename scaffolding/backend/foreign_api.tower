@@ -7,9 +7,9 @@ import text;
 // Returns owned text/error views; release with foreign_name_close. The profile
 // describes the foreign compiler, never the host running this Tower function.
 fn foreign_profile(m: ForeignName*, profile: u32): void {
-    if profile == foreign_windows_arm64ec() {
-        foreign_profile(m, foreign_windows_arm64());
-        m.profile = foreign_windows_arm64ec();
+    if profile == foreign_windows_arm64ec {
+        foreign_profile(m, foreign_windows_arm64);
+        m.profile = foreign_windows_arm64ec;
         return;
     }
     m.profile = profile;
@@ -17,43 +17,43 @@ fn foreign_profile(m: ForeignName*, profile: u32): void {
     m.pointer_bytes = 8;
     m.long_bytes = 8;
     m.arch = 2;
-    if profile == foreign_wasi() {
+    if profile == foreign_wasi {
         m.pointer_bytes = 4;
         m.long_bytes = 4;
         m.arch = 0;
     }
-    if profile == foreign_macos_x64() {
+    if profile == foreign_macos_x64 {
         m.object_format = 1;
     }
-    if profile == foreign_macos_arm64() {
+    if profile == foreign_macos_arm64 {
         m.object_format = 1;
         m.arch = 3;
     }
-    if profile == foreign_windows_x64() {
+    if profile == foreign_windows_x64 {
         m.object_format = 2;
         m.long_bytes = 4;
         m.abi = 2;
     }
-    if profile == foreign_windows_x86() {
+    if profile == foreign_windows_x86 {
         m.object_format = 2;
         m.long_bytes = 4;
         m.pointer_bytes = 4;
         m.arch = 1;
         m.abi = 2;
     }
-    if profile == foreign_mingw_x64() {
+    if profile == foreign_mingw_x64 {
         m.object_format = 2;
         m.long_bytes = 4;
     }
-    if profile == foreign_linux_arm64() {
+    if profile == foreign_linux_arm64 {
         m.arch = 3;
     }
-    if profile == foreign_linux_x86() {
+    if profile == foreign_linux_x86 {
         m.pointer_bytes = 4;
         m.long_bytes = 4;
         m.arch = 1;
     }
-    if profile == foreign_windows_arm64() {
+    if profile == foreign_windows_arm64 {
         m.object_format = 2;
         m.long_bytes = 4;
         m.arch = 3;
@@ -62,7 +62,7 @@ fn foreign_profile(m: ForeignName*, profile: u32): void {
     if profile == 0 {
         foreign_fail(m, "Unknown foreign ABI profile");
     }
-    if profile > foreign_windows_arm64ec() {
+    if profile > foreign_windows_arm64ec {
         foreign_fail(m, "Unknown foreign ABI profile");
     }
 }
@@ -142,7 +142,7 @@ fn foreign_c(m: ForeignName*, object: bool): void {
         counted = false;
     }
     if object {
-        if m.profile == foreign_windows_arm64ec() {
+        if m.profile == foreign_windows_arm64ec {
             backend_text(&m.text, "#");
         }
         if m.object_format == 1 {

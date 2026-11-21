@@ -45,7 +45,7 @@ extern fn read(fd: i32, data: u8*, length: usize): i64;
 
 extern fn pipe2(descriptors: i32*, flags: i32): i32;
 
-const DriverCloseOnExec: i32 = 524288;
+var DriverCloseOnExec: i32 = 524288;
 
 extern fn fork(): i32;
 
@@ -59,7 +59,7 @@ export fn driver_posix_execute(executable: u8*, argv: u8**): i32 {
     // A close-on-exec pipe distinguishes exec failure from a tool returning 127.
     // The child only invokes libc async-signal-safe operations before exec/_exit.
     var descriptors: i32[2];
-    if pipe2(&descriptors[0], DriverCloseOnExec()) != 0 {
+    if pipe2(&descriptors[0], DriverCloseOnExec) != 0 {
         driver_error("Cannot start tool: ", strerror(driver_error_code()));
         return 1;
     }

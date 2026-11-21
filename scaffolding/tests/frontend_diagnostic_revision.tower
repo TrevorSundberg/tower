@@ -43,7 +43,7 @@ fn frontend_diagnostic_revision_tests(): void {
     // This standalone harness has no installed Foundation. The declaration seed
     // is sufficient for this fixture's own token and Statement definitions.
     var world = compiler_host_world();
-    var seed = syntax_world_revision(world, SyntaxSeedBaseline());
+    var seed = syntax_world_revision(world, SyntaxSeedBaseline);
     frontend_world_check(seed is not null);
     frontend_world_check(syntax_world_publish(world, "diagnostic fixture", 18, frontend_world_bedrock(world), seed, true));
     frontend_revision_release(seed);

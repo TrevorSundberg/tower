@@ -21,21 +21,21 @@ fn frontend_baseline_tests(): void {
     var other_kinds: FrontendKinds;
     frontend_world_check(frontend_world_test_kinds(world, &kinds));
     frontend_world_check(frontend_world_test_kinds(other, &other_kinds));
-    frontend_world_check(syntax_world_revision(world, SyntaxFoundationBaseline()) is null);
-    var seed = syntax_world_revision(world, SyntaxSeedBaseline());
-    var second = syntax_world_revision(other, SyntaxSeedBaseline());
+    frontend_world_check(syntax_world_revision(world, SyntaxFoundationBaseline) is null);
+    var seed = syntax_world_revision(world, SyntaxSeedBaseline);
+    var second = syntax_world_revision(other, SyntaxSeedBaseline);
     frontend_world_check(seed is not null && second is not null && seed != second);
     var document = frontend_world_bedrock(world);
     frontend_world_check(!syntax_world_publish(other, "foreign", 7, document, seed, false));
     frontend_world_check(syntax_world_publish(world, "old", 3, document, seed, true));
-    var prior = syntax_world_revision(world, SyntaxFoundationBaseline());
+    var prior = syntax_world_revision(world, SyntaxFoundationBaseline);
     frontend_world_check(prior == seed);
     frontend_world_check(syntax_world_matches(world, "old!", 3, true));
     frontend_world_check(!syntax_world_matches(world, "old!", 4, true));
     var allocations = tower_test_buffer_allocations();
     frontend_world_check(syntax_world_publish(world, "new", 3, document, seed, false));
     var construction = tower_test_buffer_allocations() -allocations;
-    frontend_world_check(syntax_world_revision(world, SyntaxFoundationBaseline()) is null);
+    frontend_world_check(syntax_world_revision(world, SyntaxFoundationBaseline) is null);
     frontend_world_check(syntax_world_matches(world, "new", 3, false));
     frontend_world_check(!syntax_world_matches(other, "new", 3, false));
     frontend_world_check(syntax_revision_rule(prior, "GrammarDeclaration", 18) is not null);
@@ -55,7 +55,7 @@ fn frontend_baseline_tests(): void {
     frontend_world_check(!syntax_world_publish(world, "pinned", 6, document, seed, false));
     frontend_world_check(!frontend_world_clear(world));
     allocations = tower_test_buffer_allocations();
-    var pinned = syntax_world_revision(world, SyntaxBedrockBaseline());
+    var pinned = syntax_world_revision(world, SyntaxBedrockBaseline);
     frontend_world_check(pinned == seed && tower_test_buffer_allocations() == allocations);
     frontend_revision_release(pinned);
     entity_view_close(view);
@@ -81,7 +81,7 @@ fn frontend_baseline_failure_tests(): void {
     var document = frontend_world_bedrock(world);
     entity_retain(document);
     var allocations = tower_test_buffer_allocations();
-    var seed = syntax_world_revision(world, SyntaxSeedBaseline());
+    var seed = syntax_world_revision(world, SyntaxSeedBaseline);
     var construction = tower_test_buffer_allocations() -allocations;
     frontend_world_check(seed is not null);
     frontend_revision_release(seed);
@@ -94,7 +94,7 @@ fn frontend_baseline_failure_tests(): void {
     var buffers = tower_test_buffer_count();
     for(var i: usize = 0; i < construction; ++i) {
         tower_test_buffer_fail_after(i);
-        seed = syntax_world_revision(world, SyntaxSeedBaseline());
+        seed = syntax_world_revision(world, SyntaxSeedBaseline);
         tower_test_buffer_fail_after(frontend_world_unlimited());
         frontend_world_check(seed is null);
         frontend_world_check(frontend_world_clear(world));
@@ -102,7 +102,7 @@ fn frontend_baseline_failure_tests(): void {
         entity_retain(document);
         frontend_world_check(tower_test_buffer_count() == buffers);
     }
-    seed = syntax_world_revision(world, SyntaxSeedBaseline());
+    seed = syntax_world_revision(world, SyntaxSeedBaseline);
     frontend_world_check(seed is not null);
     frontend_revision_release(seed);
     frontend_world_check(frontend_world_clear(world));

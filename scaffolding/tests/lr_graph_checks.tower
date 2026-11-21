@@ -42,7 +42,7 @@ fn lr_check_graph(rules: vector(LRProduction)*, symbols: vector(LRSymbol)*, name
         for (var rule: usize = 0; rule < rules.length; ++rule) {
             for (var position: usize = 0; position <= rules.data[rule].count; position += 2) {
                 var item: LRItem; item.rule = rule; item.position = position;
-                item.first = mode != 0 ? LRTokenPropagation() - convert(u32, rule) : convert(u32, 0); item.last = item.first;
+                item.first = mode != 0 ? LRTokenPropagation - convert(u32, rule) : convert(u32, 0); item.last = item.first;
                 utility_check(lr_items_insert(left, &item), "LR closure seed insertion"); oracle_item_insert(&right.values, &item);
             }
         }

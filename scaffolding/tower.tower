@@ -7,14 +7,9 @@ import foundation;
 // Calls may omit all `type` parameters when their exact types can be deduced
 // from runtime operands. This reuses ordinary call syntax and shared-node
 // specialization; explicit type arguments remain supported for ambiguity.
-// Named values are ordinary zero-argument Tower functions. Calling Name()
-// evaluates the initializer under the same execution contract as any function.
-// They do not imply memoization or a separate constant-expression evaluator.
-parse TowerConstant = 'const' $name:Identifier ':' $type:CoreType '=' $value:CoreValue ';'
-    => replace { fn $name(): $type { var result: $type = $value; return result; } };
-parse TowerExportedConstant = 'export' 'const' $name:Identifier ':' $type:CoreType '=' $value:CoreValue ';'
-    => replace { export fn $name(): $type { var result: $type = $value; return result; } };
-parse Statement |= TowerConstant | TowerExportedConstant;
+// Ordinary Foundation var declarations carry named values. Mutation/escape
+// analysis and ordinary staged execution infer fixed compile-time bindings;
+// no extra declaration rule, keyword or accessor function is needed.
 
 parse CoreEnumMember |= $name:Identifier;
 
@@ -92,7 +87,7 @@ parse TowerExpression |= TowerComptime;
 // Contextual zero value. Aggregate defaults initialize their destination in place.
 parse TowerDefault = 'default' | 'default' '(' $type:CoreType ')';
 parse TowerExpression |= TowerDefault;
-// Named construction has a destination, not an implicit aggregate copy.
+// Named construction initializes destination storage, including value temporaries.
 // Bare braces require an entry so an empty statement block stays unambiguous.
 parse TowerInitializerDefault = '..' 'default';
 parse TowerInitializerField = $name:Identifier ':' $value:CoreValue;
@@ -117,6 +112,6 @@ parse TowerForCondition = TowerComma?;
 parse TowerForStep = TowerComma?;
 parse TowerFor = 'for' '(' $initial:TowerForInitial $condition:TowerForCondition ';' $step:TowerForStep ')' $body:CoreBlock;
 parse Statement = CoreDeclare | CoreBlock | CoreIf | CoreLoop | CoreBreak | CoreContinue | CoreFunction
-                 | CoreReturn | CoreStruct | CoreEnum | CoreExternal | CoreExport | TowerConstant
-                 | TowerExportedConstant | TowerMatch | TowerWhile | TowerFor | TowerForeach | TowerDefer
+                 | CoreReturn | CoreStruct | CoreEnum | CoreExternal | CoreExport
+                 | TowerMatch | TowerWhile | TowerFor | TowerForeach | TowerDefer
                  | TowerExpressionStatement;

@@ -101,7 +101,7 @@ export fn parser_request_create(runtime: LRRuntime*, context: void*, stream: Par
     request.stream = stream;
     request.table = bits(ParserHostTable*, context);
     request.runtime = runtime;
-    request.read_id = ParserStreamEnd();
+    request.read_id = ParserStreamEnd;
     request.prefix = prefix;
     request.forest = parse_forest_create();
     request.control = lr_parser_create(runtime, prefix, specialize);
@@ -134,9 +134,9 @@ export fn parser_recognizer_read_id(request: ParserRequest*): void {
     parser_state_require(empty);
     request.work.reads++;
     request.read_node_or_null = parser_stream_read(request.stream, &request.read_id, &request.read_start, &request.read_length);
-    var end = request.read_id == ParserStreamEnd();
+    var end = request.read_id == ParserStreamEnd;
     if end {
-        var gap = request.read_start == convert(usize, ParserStreamEnd());
+        var gap = request.read_start == convert(usize, ParserStreamEnd);
         gap ||= request.read_start == lr_none();
         if gap {
             request.read_start = lr_parser_consumed(request.control);
@@ -438,7 +438,7 @@ export fn parser_recognizer_diagnostic(request: ParserRequest*, reader: ParserDi
             frontend_diagnostic_contexts(probe, positions.data, positions.length);
         } else {
             var position = frontend_diagnostic_position(probe);
-            var id = ParserStreamEnd();
+            var id = ParserStreamEnd;
             var valid: bool = false;
             var context: ParserRequestLookahead;
             context.runtime = request.runtime;

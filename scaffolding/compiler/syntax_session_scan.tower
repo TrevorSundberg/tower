@@ -141,7 +141,7 @@ export fn syntax_session_lexemes(value: SyntaxSession*, output: SyntaxHighlights
         if index >= value.pins.grammar.tokens.length {
             continue;
         }
-        var definition = bits(SyntaxNode*, compiler_node_get(value.pins.grammar.tokens.data[index], CompilerSyntax()));
+        var definition = bits(SyntaxNode*, compiler_node_get(value.pins.grammar.tokens.data[index], CompilerSyntax));
         row.opaque ||= syntax_bytes_compare(definition.name.data, definition.name.length, "GrammarPattern", 14) == 0;
     }
     return true;

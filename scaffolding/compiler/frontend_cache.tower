@@ -251,7 +251,7 @@ tokens: void**, token_count: usize): usize {
     if revision == null {
         return lr_none();
     }
-    if cache.entries.length == FrontendCacheLimit() {
+    if cache.entries.length == FrontendCacheLimit {
         revision.slot = cache.entries.data[0].slot;
         frontend_revision_release(cache.entries.data[0]);
         cache.entries.data[0] = revision;

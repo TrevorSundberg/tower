@@ -2,9 +2,9 @@ import tower;
 
 // Independent test reference translated from bootstrap/utf8-seed.cpp.
 // Do not call production decode/encode/validate from these routines.
-const OracleUnicodeMaximum: u32 = 1114111;
-const OracleSurrogateFirst: u32 = 55296;
-const OracleSurrogateLast: u32 = 57343;
+var OracleUnicodeMaximum: u32 = 1114111;
+var OracleSurrogateFirst: u32 = 55296;
+var OracleSurrogateLast: u32 = 57343;
 
 fn reference_utf8_decode(data: u8*, size: usize, value: u32*): usize {
     *value = 0;
@@ -31,14 +31,14 @@ fn reference_utf8_decode(data: u8*, size: usize, value: u32*): usize {
         if (character & 192) != 128 { return 0; }
         scalar = (scalar << 6) | (character & 63);
     }
-    if scalar < minimum || scalar > OracleUnicodeMaximum()
-        || (scalar >= OracleSurrogateFirst() && scalar <= OracleSurrogateLast()) { return 0; }
+    if scalar < minimum || scalar > OracleUnicodeMaximum
+        || (scalar >= OracleSurrogateFirst && scalar <= OracleSurrogateLast) { return 0; }
     *value = scalar;
     return count;
 }
 
 fn reference_utf8_encode(scalar: u32, output: u8*, capacity: usize): usize {
-    if scalar > OracleUnicodeMaximum() || (scalar >= OracleSurrogateFirst() && scalar <= OracleSurrogateLast()) { return 0; }
+    if scalar > OracleUnicodeMaximum || (scalar >= OracleSurrogateFirst && scalar <= OracleSurrogateLast) { return 0; }
     var count: usize = scalar <= 127 ? 1 : scalar <= 2047 ? 2 : scalar <= 65535 ? 3 : 4;
     if output is null { return count; }
     if capacity < count { return 0; }

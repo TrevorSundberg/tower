@@ -10,7 +10,7 @@ import .library.vector;
 
 extern fn parser_table_rule_next(table: ParserHostTable*, owner: usize, begin: usize): usize;
 
-const ParserConflictAlternatives: usize = 3;
+var ParserConflictAlternatives: usize = 3;
 
 fn parser_format_push(request: ParserFormat*, kind: ParserFormatTask, a: usize, b: usize, c: usize, text: u8*): void {
     if request.result.failed {
@@ -70,8 +70,8 @@ fn parser_format_frame(request: ParserFormat*, frame: ParserFormatFrame*): void 
         }
         ParserFormatTask.Scalar => {
             var id = convert(u32, frame.a);
-            var end = id == ParserStreamEnd();
-            var lookahead = id == ParserLookahead();
+            var end = id == ParserStreamEnd;
+            var lookahead = id == ParserLookahead;
             if end {
                 format_text(&f, "$");
             }
@@ -346,7 +346,7 @@ fn parser_format_frame(request: ParserFormat*, frame: ParserFormatFrame*): void 
                         format_text(&f, " or ");
                     }
                     var count = frame.c + 1;
-                    if count < ParserConflictAlternatives() {
+                    if count < ParserConflictAlternatives {
                         parser_format_push(request, ParserFormatTask.Continue, frame.a, index, count, null);
                     }
                     parser_format_push(request, ParserFormatTask.Describe, item.production, 0, 0, null);
@@ -355,7 +355,7 @@ fn parser_format_frame(request: ParserFormat*, frame: ParserFormatFrame*): void 
             }
         }
         ParserFormatTask.Expected => {
-            var end = frame.a == convert(usize, ParserStreamEnd());
+            var end = frame.a == convert(usize, ParserStreamEnd);
             if end {
                 format_text(&f, "end of input");
             }

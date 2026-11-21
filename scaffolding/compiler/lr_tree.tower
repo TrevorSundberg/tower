@@ -44,7 +44,7 @@ fn lr_tree_match(node: void*, kind: void*): ParserMatchData* {
 fn lr_tree_create_match(node: void*, kind: void*): ParserMatchData* {
     var data = entity_component_data(entity_component_add(node, kind));
     if data != null {
-        node_payload_init(CompilerParserMatch(), data);
+        node_payload_init(CompilerParserMatch, data);
     }
     return bits(ParserMatchData*, data);
 }

@@ -29,7 +29,7 @@ fn format_dependent_tokens(f: FormatEngine*, entity: void*, text: vector(u8)*, d
     if entity == null {
         return;
     }
-    if depth == InspectionDepthLimit() {
+    if depth == InspectionDepthLimit {
         f.result.failed = true;
         return;
     }
@@ -63,7 +63,7 @@ fn format_dependent_list(f: FormatEngine*, entity: void*, label: u8*, separator:
     if entity == null {
         return;
     }
-    if depth == InspectionDepthLimit() {
+    if depth == InspectionDepthLimit {
         f.result.failed = true;
         return;
     }
@@ -85,7 +85,7 @@ fn format_dependent(f: FormatEngine*, entity: void*, depth: usize): void {
     if entity == null {
         return;
     }
-    if depth == InspectionDepthLimit() {
+    if depth == InspectionDepthLimit {
         f.result.failed = true;
         return;
     }

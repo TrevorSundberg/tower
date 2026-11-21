@@ -5,11 +5,11 @@ import .library.vector;
 // contains no owned machine-code implementation: upstream LLD builds the import
 // thunk and Windows supplies the function. The archive makes the import lazy.
 // PE/COFF specification: archive linker member and import library header.
-const CoffArchiveMagicBytes: usize = 8;
-const CoffArchiveHeaderBytes: usize = 60;
-const CoffShortImportHeaderBytes: usize = 20;
-const CoffMachineAmd64: u32 = 34404;
-const CoffImportCodeByName: u32 = 4;
+var CoffArchiveMagicBytes: usize = 8;
+var CoffArchiveHeaderBytes: usize = 60;
+var CoffShortImportHeaderBytes: usize = 20;
+var CoffMachineAmd64: u32 = 34404;
+var CoffImportCodeByName: u32 = 4;
 
 fn coff_unsigned(data: u8*, number: u32, count: usize, big: bool): void {
     var i: usize = 0;
@@ -26,7 +26,7 @@ fn coff_unsigned(data: u8*, number: u32, count: usize, big: bool): void {
 }
 
 fn coff_archive_header(data: u8*, name: u8*, name_size: usize, size: usize): void {
-    fill(data, 32, CoffArchiveHeaderBytes());
+    fill(data, 32, CoffArchiveHeaderBytes);
     copy(data, name, name_size);
     // Fixed-width ASCII date, owner, group and mode. Timestamp zero is stable.
     data[16] = 48;
@@ -73,12 +73,12 @@ fn coff_import_archive(out: vector(u8)*, machine: u32, symbol: u8*, dll: u8*): b
     // Big-endian symbol count and member offset, then the NUL-terminated name.
     var linker_size = 8 + symbol_size;
     var padding = linker_size &1;
-    var member = CoffArchiveMagicBytes() + CoffArchiveHeaderBytes();
+    var member = CoffArchiveMagicBytes + CoffArchiveHeaderBytes;
     member = member + linker_size;
     member = member + padding;
     var data_size = symbol_size + dll_size;
-    var object_size = CoffShortImportHeaderBytes() + data_size;
-    var total = member + CoffArchiveHeaderBytes();
+    var object_size = CoffShortImportHeaderBytes + data_size;
+    var total = member + CoffArchiveHeaderBytes;
     total = total + object_size;
     padding = object_size & 1;
     total = total + padding;
@@ -87,10 +87,10 @@ fn coff_import_archive(out: vector(u8)*, machine: u32, symbol: u8*, dll: u8*): b
     }
     out.length = total;
     fill(out.data, 0, total);
-    copy(out.data, "!<arch>\n", CoffArchiveMagicBytes());
-    var header = &out.data[CoffArchiveMagicBytes()];
+    copy(out.data, "!<arch>\n", CoffArchiveMagicBytes);
+    var header = &out.data[CoffArchiveMagicBytes];
     coff_archive_header(header, "/", 1, linker_size);
-    var data = header + CoffArchiveHeaderBytes();
+    var data = header + CoffArchiveHeaderBytes;
     coff_unsigned(data, 1, 4, true);
     coff_unsigned(&data[4], convert(u32, member), 4, true);
     copy(&data[8], symbol, symbol_size);
@@ -101,14 +101,14 @@ fn coff_import_archive(out: vector(u8)*, machine: u32, symbol: u8*, dll: u8*): b
     }
     header = &out.data[member];
     coff_archive_header(header, "import.obj/", 11, object_size);
-    data = header + CoffArchiveHeaderBytes();
+    data = header + CoffArchiveHeaderBytes;
     // IMPORT_OBJECT_HEADER: signature, version, machine, timestamp, payload
     // length, hint, and IMPORT_CODE | (IMPORT_NAME << 2). All little endian.
     coff_unsigned(&data[2], 65535, 2, false);
     coff_unsigned(&data[6], machine, 2, false);
     coff_unsigned(&data[12], convert(u32, data_size), 4, false);
-    coff_unsigned(&data[18], CoffImportCodeByName(), 2, false);
-    data = data + CoffShortImportHeaderBytes();
+    coff_unsigned(&data[18], CoffImportCodeByName, 2, false);
+    data = data + CoffShortImportHeaderBytes;
     copy(data, symbol, symbol_size);
     copy(&data[symbol_size], dll, dll_size);
     padded = padding != 0;

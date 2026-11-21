@@ -79,7 +79,7 @@ export fn parser_table_finish(table: ParserHostTable*, error: u8**, specialize: 
         var index: usize = 0;
         while index < count {
             var name = lr_grammar_missing_name(table.grammar, index);
-            var id = ParserStreamEnd();
+            var id = ParserStreamEnd;
             match table.presentation {
                 ParserPresentation.NonTerminal => {
                     id = parser_table_non_terminal_resolve_reference(table.userdata, name);

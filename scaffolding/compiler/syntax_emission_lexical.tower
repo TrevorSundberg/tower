@@ -13,8 +13,8 @@ import lr_parser;
 import format_types;
 import format_api;
 
-const SyntaxSuffixPriorityCount: usize = 9;
-const SyntaxSuffixCapacity: usize = 24;
+var SyntaxSuffixPriorityCount: usize = 9;
+var SyntaxSuffixCapacity: usize = 24;
 
 // Revision-owned derived views. Source entities remain authoritative and pinned.
 // Construction is exclusive; published queries never insert or change refs.
@@ -382,7 +382,7 @@ fn emission_suffix_candidates(value: SyntaxEmission*, words: vector(u8*)*, ids: 
     priorities[8] = "null";
     var index: usize = 0;
     var ok = true;
-    while index < SyntaxSuffixPriorityCount() {
+    while index < SyntaxSuffixPriorityCount {
         var id = syntax_emission_literal(value, priorities[index]);
         if id != convert(u32, SyntaxTokenId.End) {
             ok = vector_push(words, priorities[index]);
@@ -396,7 +396,7 @@ fn emission_suffix_candidates(value: SyntaxEmission*, words: vector(u8*)*, ids: 
     index = 0;
     while index < value.lexical.literal_count {
         var row = &value.lexical.literals[index];
-        var excluded = emission_suffix_priority(row.text, &priorities[0], SyntaxSuffixPriorityCount());
+        var excluded = emission_suffix_priority(row.text, &priorities[0], SyntaxSuffixPriorityCount);
         excluded ||= lr_name_equal(row.text, "(") || lr_name_equal(row.text, "[")
         || lr_name_equal(row.text, ".") || lr_name_equal(row.text, ",");
         if !excluded {
@@ -430,7 +430,7 @@ export fn syntax_emission_completion_close(value: SyntaxEmission*, completion: L
     if ok {
         // Preserve the established bounded LR suffix-search policy.
         var path: usize[24];
-        var size = lr_completion_suffix(completion, ids.data, ids.length, &path[0], SyntaxSuffixCapacity());
+        var size = lr_completion_suffix(completion, ids.data, ids.length, &path[0], SyntaxSuffixCapacity);
         ok = size != lr_none();
         if ok {
             var index: usize = 0;

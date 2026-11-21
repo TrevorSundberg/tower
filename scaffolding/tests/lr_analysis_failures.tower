@@ -24,7 +24,7 @@ fn lr_analysis_allocation_trial(): bool {
     if analysis is null { return false; }
     var input = lr_items_create(); var output = lr_items_create();
     defer { lr_items_destroy(input); lr_items_destroy(output); lr_analysis_destroy(analysis); }
-    var seed: LRItem; seed.rule = 0; seed.position = 0; seed.first = LRTokenEnd(); seed.last = LRTokenEnd();
+    var seed: LRItem; seed.rule = 0; seed.position = 0; seed.first = LRTokenEnd; seed.last = LRTokenEnd;
     var ok = input is not null && output is not null && lr_analysis_compute(analysis) && lr_items_insert(input, &seed)
         && lr_items_close(analysis, input, true) && lr_items_goto(analysis, input, &symbols[0], output, true);
     {
@@ -64,7 +64,7 @@ fn lr_control_allocation_trial(specialize: bool): bool {
     if ok {
         for (var position: usize = 0; position < 16; ++position) {
             var step: LRStep; var kind = lr_parser_step(parser, true, 32 + convert(u32, position), false, position, 1, &step);
-            utility_check(kind == LRShift() || kind == LRSequenceShift(), "LR allocation parser shift kind");
+            utility_check(kind == LRShift || kind == LRSequenceShift, "LR allocation parser shift kind");
             ok = lr_parser_commit(parser, &step, position, position); if !ok { break; }
         }
     }
@@ -78,7 +78,7 @@ fn lr_control_allocation_trial(specialize: bool): bool {
     }
     if ok {
         var step: LRStep; var kind = lr_parser_step(parser, true, 4294967294, false, 16, 0, &step);
-        utility_check(kind == LRReduce() || kind == LRSequenceReduce(), "LR allocation parser reduction kind");
+        utility_check(kind == LRReduce || kind == LRSequenceReduce, "LR allocation parser reduction kind");
         ok = lr_parser_commit(parser, &step, 16, 16);
     }
     return ok && (!specialize || specialized);

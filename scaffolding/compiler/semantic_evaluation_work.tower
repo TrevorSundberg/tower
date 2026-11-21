@@ -11,7 +11,7 @@ import .library.stack;
 import .library.work_graph;
 import .library.work_pool;
 
-const EvaluationPrepareQuery: u32 = 8;
+var EvaluationPrepareQuery: u32 = 8;
 
 struct SemanticEvaluationWork {
     kernel: CompilerKernel;
@@ -33,10 +33,8 @@ struct SemanticEvaluationWork {
 // hidden producer expressions belong to different jobs. Enum conversions belong
 // to the consuming expression and lower around those same pending literals.
 fn semantic_evaluation_prepare_kernel(result: SemanticEvaluationWork*): void {
-    var context: SemanticContext;
-    var program: SemanticProgram;
-    copy(&context, result.context, sizeof(SemanticContext));
-    copy(&program, context.program, sizeof(SemanticProgram));
+    var context = *result.context;
+    var program = *context.program;
     context.program = &program;
     context.editor = null;
     context.entity_stage = result.stage;
@@ -56,7 +54,7 @@ fn semantic_evaluation_prepare_kernel(result: SemanticEvaluationWork*): void {
     if result.cloning { sem_evaluation_clone_expression(&context, result.evaluation); }
     else { sem_evaluation_prepare(&context, result.evaluation); }
     result.count = context.count;
-    copy(&result.error, &program.error, sizeof(vector(u8)));
+    result.error = program.error;
     result.error_offset = program.error_offset;
     stack_dispose(&context.scan);
     vector_dispose(&context.token_text);
@@ -123,7 +121,7 @@ fn sem_evaluation_work_all(c: SemanticContext*, cloning: bool): void {
         while count < c.workers.count && work_take_query(&c.queries, &ticket, query_kind) {
             var subject = work_task(&c.queries, ticket.task).subject;
             var result = bits(SemanticEvaluationWork*, entity_component_data(entity_component_get(subject, kind)));
-            copy(&result.ticket, &ticket, sizeof(WorkTicket));
+            result.ticket = ticket;
             result.stage = entity_stage_open(c.program.root);
             sem_require(result.stage != null);
             sem_require(entity_stage_lease(result.stage, result.evaluation.subject));

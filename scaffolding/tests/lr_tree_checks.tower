@@ -24,7 +24,7 @@ fn lr_tree_assembly_trial(specialize: bool, fail_after_transfer: bool): void {
     var world = compiler_world_create(); utility_check(world is not null, "LR tree explicit world");
     defer utility_check(compiler_world_dispose(world), "LR tree world has no remaining owners");
     var kinds: FrontendKinds; lr_grammar_test_kinds(world, &kinds);
-    var match_kind = compiler_world_type(world, CompilerParserMatch());
+    var match_kind = compiler_world_type(world, CompilerParserMatch);
     utility_check(match_kind is not null, "LR tree match kind");
     var source = entity_create(compiler_world_store(world)); utility_check(source is not null, "LR tree source");
     var rule = lr_grammar_test_rule(world, source, "Root", true);
@@ -54,7 +54,7 @@ fn lr_tree_assembly_trial(specialize: bool, fail_after_transfer: bool): void {
     utility_check(parser is not null && forest is not null, "LR tree parser and forest");
     defer { parse_forest_destroy(forest); lr_parser_destroy(parser); }
     var step: LRStep;
-    utility_check(lr_parser_step(parser, true, 97, false, 10, 1, &step) == (specialize ? LRSequenceShift() : LRShift()), "LR tree first shift");
+    utility_check(lr_parser_step(parser, true, 97, false, 10, 1, &step) == (specialize ? LRSequenceShift : LRShift), "LR tree first shift");
     var parent = entity_create(compiler_world_store(world)); var attached = entity_create(compiler_world_store(world));
     utility_check(parent is not null && attached is not null && entity_attach(attached, parent, null), "LR tree attached input fixture");
     var input: void* = attached;
@@ -62,7 +62,7 @@ fn lr_tree_assembly_trial(specialize: bool, fail_after_transfer: bool): void {
         "LR tree rejects an attached input without ownership transfer");
     entity_release(attached); entity_release(parent);
     var first = entity_create(compiler_world_store(world)); utility_check(first is not null, "LR tree existing input");
-    var data = bits(ParserMatchData*, compiler_world_component(world, first, CompilerParserMatch()));
+    var data = bits(ParserMatchData*, compiler_world_component(world, first, CompilerParserMatch));
     utility_check(data is not null, "LR tree existing match payload");
     data.id = 1234; data.start = 77; data.length = 5;
     utility_check(node_match_set_label(data, "existing stream payload"), "LR tree existing label"); input = first;
@@ -79,18 +79,18 @@ fn lr_tree_assembly_trial(specialize: bool, fail_after_transfer: bool): void {
         tower_test_buffer_fail_after(oracle_none());
     } else {
         utility_check(lr_tree_shift(parser, forest, grammar, match_kind, &step, &input, "unused") == 1 && input is null, "LR tree first transfer");
-        utility_check(lr_parser_step(parser, true, 98, false, 13, 1, &step) == (specialize ? LRSequenceShift() : LRShift()), "LR tree second shift");
+        utility_check(lr_parser_step(parser, true, 98, false, 13, 1, &step) == (specialize ? LRSequenceShift : LRShift), "LR tree second shift");
         utility_check(lr_tree_shift(parser, forest, grammar, match_kind, &step, &input, "second token") == 1 && input is null, "LR tree generated second input");
-        var reduction = lr_parser_step(parser, true, LRTokenEnd(), false, 14, 0, &step);
-        utility_check(reduction == (specialize ? LRSequenceReduce() : LRReduce()), "LR tree reduction kind");
+        var reduction = lr_parser_step(parser, true, LRTokenEnd, false, 14, 0, &step);
+        utility_check(reduction == (specialize ? LRSequenceReduce : LRReduce), "LR tree reduction kind");
         var result: void* = null;
         utility_check(lr_tree_reduce_kind(parser, forest, grammar, match_kind, &step, &result), "LR tree shared entity reduction");
         if !specialize {
-            utility_check(result is null && lr_parser_step(parser, true, LRTokenEnd(), false, 14, 0, &step) == LRAccept(), "LR tree ordinary acceptance");
+            utility_check(result is null && lr_parser_step(parser, true, LRTokenEnd, false, 14, 0, &step) == LRAccept, "LR tree ordinary acceptance");
             result = lr_tree_accept(parser, forest);
         }
         utility_check(result is not null && entity_child_count(result) == 2, "LR tree two-child root");
-        var root_data = bits(ParserMatchData*, compiler_world_component(world, result, CompilerParserMatch()));
+        var root_data = bits(ParserMatchData*, compiler_world_component(world, result, CompilerParserMatch));
         utility_check(root_data is not null && strcmp(root_data.label.data, "Root") == 0 && root_data.start == 10 && root_data.length == 4,
             "LR tree root label and source gap span");
         utility_check(tower_node_get_child_member(result, "first") == first

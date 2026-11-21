@@ -18,7 +18,7 @@ extern fn entity_table_query_ranges(query: void*): usize;
 extern fn entity_table_query_range_count(query: void*, index: usize): usize;
 extern fn entity_table_query_column(query: void*, index: usize, term: usize): void**;
 
-const FlowQuery: u32 = 7;
+var FlowQuery: u32 = 7;
 
 struct SemanticFlow {
     kernel: CompilerKernel;
@@ -58,10 +58,10 @@ fn sem_flow_request(c: SemanticContext*, subject: void*, dependencies: vector(vo
     result.ordinal = c.flow_count;
     result.kernel.kind = CompilerKernelKind.Flow;
     result.kernel.payload = bits(void*, result);
-    var query = work_request(&c.queries, subject, FlowQuery(), 0);
+    var query = work_request(&c.queries, subject, FlowQuery, 0);
     sem_require(query != 0);
     for(var i: usize = 0; i < dependencies.length; i++) {
-        var dependency = work_find(&c.queries, dependencies.data[i], EvaluationQuery(), 0);
+        var dependency = work_find(&c.queries, dependencies.data[i], EvaluationQuery, 0);
         sem_require(dependency != 0 && work_depend(&c.queries, query, dependency));
     }
     sem_require(work_access(&c.queries, query, 1, 8, c.flow_count, 1, WorkAccessMode.Write));
@@ -74,44 +74,44 @@ fn sem_flow_request(c: SemanticContext*, subject: void*, dependencies: vector(vo
 // tree. It neither rewrites nodes nor computes expression values. Labels and
 // loop exits retain the same flow contract as the initial body checker.
 fn sem_flow_node(result: SemanticFlow*, node: void*, depth: usize): u32 {
-    if node == null { return FlowNext(); }
-    if depth > 1024 { result.excessive_depth = node; return FlowNext(); }
+    if node == null { return FlowNext; }
+    if depth > 1024 { result.excessive_depth = node; return FlowNext; }
     var value = sem_get(node);
-    if value == null { return FlowNext(); }
-    if value.kind == KReturn() { return FlowReturn(); }
-    if value.kind == KBreak() { return FlowBreak(); }
-    if value.kind == KContinue() { return FlowContinue(); }
-    if value.kind == KTrap() || value.kind == KJump() { return 0; }
-    if value.kind == KBlock() || value.kind == KProgram() {
-        var flow = FlowNext();
+    if value == null { return FlowNext; }
+    if value.kind == KReturn { return FlowReturn; }
+    if value.kind == KBreak { return FlowBreak; }
+    if value.kind == KContinue { return FlowContinue; }
+    if value.kind == KTrap || value.kind == KJump { return 0; }
+    if value.kind == KBlock || value.kind == KProgram {
+        var flow = FlowNext;
         var labeled = false;
         for(var i: usize = 0; i < value.items.length; i++) {
             var item = value.items.data[i];
             var child = sem_get(item);
-            if child != null && child.kind == KLabel() {
-                if labeled && (flow & FlowNext()) != 0 && result.invalid_label == null {
+            if child != null && child.kind == KLabel {
+                if labeled && (flow & FlowNext) != 0 && result.invalid_label == null {
                     result.invalid_label = item;
                 }
                 labeled = true;
-                flow = FlowNext();
+                flow = FlowNext;
             }
             var next = sem_flow_node(result, item, depth + 1);
-            if (flow & FlowNext()) != 0 { flow = (flow & ~FlowNext()) | next; }
+            if (flow & FlowNext) != 0 { flow = (flow & ~FlowNext) | next; }
         }
         return flow;
     }
-    if value.kind == KIf() {
+    if value.kind == KIf {
         var yes = sem_flow_node(result, value.body, depth + 1);
         var no = sem_flow_node(result, value.otherwise, depth + 1);
         var condition = sem_get(value.value);
         if condition != null && condition.constant { return condition.bits != 0 ? yes : no; }
         return yes | no;
     }
-    if value.kind == KLoop() {
+    if value.kind == KLoop {
         var body = sem_flow_node(result, value.body, depth + 1);
-        return (body & FlowReturn()) | ((body & FlowBreak()) != 0 ? FlowNext() : 0);
+        return (body & FlowReturn) | ((body & FlowBreak) != 0 ? FlowNext : 0);
     }
-    return FlowNext();
+    return FlowNext;
 }
 
 fn semantic_flow_kernel(result: SemanticFlow*): void {
@@ -127,7 +127,7 @@ fn sem_flows(c: SemanticContext*): void {
     // Discover jobs from their canonical Foundation and flow components. The
     // cached table plan is immutable under this pin, including across workers.
     var terms: void*[2];
-    terms[0] = compiler_node_type(c.program.root, CompilerFoundation());
+    terms[0] = compiler_node_type(c.program.root, CompilerFoundation);
     terms[1] = c.flow_results;
     var query = entity_view_tables(view, &terms[0], 2);
     sem_require(query != null && entity_table_query_count(query) == c.flow_count);
@@ -150,7 +150,7 @@ fn sem_flows(c: SemanticContext*): void {
     // retain the source ordinal recorded when each dependency query was created.
     for(var i: usize = 0; i < c.flow_count; i++) {
         var result = jobs.data[i];
-        sem_require(work_demand(&c.queries, work_find(&c.queries, result.subject, FlowQuery(), 0)));
+        sem_require(work_demand(&c.queries, work_find(&c.queries, result.subject, FlowQuery, 0)));
     }
     var next: usize = 0;
     while next < c.flow_count {
@@ -158,7 +158,7 @@ fn sem_flows(c: SemanticContext*): void {
         if count > c.workers.count { count = c.workers.count; }
         for(var i: usize = 0; i < count; i++) {
             var result = jobs.data[next + i];
-            sem_require(work_take_query(&c.queries, &result.ticket, FlowQuery()));
+            sem_require(work_take_query(&c.queries, &result.ticket, FlowQuery));
             sem_require(work_task(&c.queries, result.ticket.task).subject == result.subject);
             sem_require(work_pool_submit(&c.workers, bits(void*, &result.kernel)));
         }
@@ -166,10 +166,10 @@ fn sem_flows(c: SemanticContext*): void {
         for(var i: usize = 0; i < count; i++) {
             var result = jobs.data[next + i];
             var function = sem_get(result.subject);
-            var returns = function.type.pointers != 0 || function.type.scalar != SVoid();
+            var returns = function.type.pointers != 0 || function.type.scalar != SVoid;
             var signature = sem_aggregate_signature(c, result.subject);
             returns ||= signature != null && signature.result_parameter != null;
-            var missing = returns && (result.flow & FlowNext()) != 0;
+            var missing = returns && (result.flow & FlowNext) != 0;
             if result.invalid_label != null {
                 sem_fail(c, result.invalid_label, "A labeled block must end with jump or return before the next label");
             } else {

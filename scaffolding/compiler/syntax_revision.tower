@@ -15,7 +15,7 @@ import .library.vector;
 // Retained, immutable indexes over shared declaration entities. Construction and
 // publication belong to the session coordinator. Readers borrow views only while
 // their owner is pinned; neither lookup nor filtering mutates an existing owner.
-const SyntaxRevisionTokenLimit: usize = 64;
+var SyntaxRevisionTokenLimit: usize = 64;
 
 fn syntax_revision_node(entity: void*, kind: void*): SyntaxNode* {
     return bits(SyntaxNode*, entity_component_data(entity_component_get(entity, kind)));
@@ -136,14 +136,14 @@ fn syntax_revision_error(error: vector(u8)*, message: u8*, name: u8*, length: us
 export fn syntax_revision_declare(base: FrontendRevision*, entity: void*, kind: void*, error: vector(u8)*): FrontendRevision* {
     var node = syntax_revision_node(entity, kind);
     var previous = syntax_revision_rule(base, node.name.data, node.name.length);
-    if node.kind != SyntaxRule() {
+    if node.kind != SyntaxRule {
         if previous is not null {
             syntax_revision_error(error, "Name already defines a parse rule: ", node.name.data, node.name.length);
             return null;
         }
         var count = base ?. tokens.length ?? 0;
         var tokens = base ?. tokens.data;
-        if count >= SyntaxRevisionTokenLimit() && syntax_revision_token(tokens, count, node.name.data, node.name.length, kind) == count {
+        if count >= SyntaxRevisionTokenLimit && syntax_revision_token(tokens, count, node.name.data, node.name.length, kind) == count {
             syntax_revision_error(error, "Token rule limit is 64", null, 0);
             return null;
         }
@@ -241,7 +241,7 @@ export fn syntax_revision_bedrock_error(revision: FrontendRevision*, kind: void*
         }
     }
     var index = syntax_revision_token(revision.tokens.data, revision.tokens.length, "Identifier", 10, kind);
-    if index == revision.tokens.length || syntax_revision_node(revision.tokens.data[index], kind).kind != SyntaxToken() {
+    if index == revision.tokens.length || syntax_revision_node(revision.tokens.data[index], kind).kind != SyntaxToken {
         return "Bedrock must define token Identifier";
     }
     return "";

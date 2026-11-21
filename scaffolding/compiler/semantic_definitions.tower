@@ -5,80 +5,80 @@ import semantic_support;
 // Shared semantic spellings and arities for Foundation checking and formatting.
 // Numeric tags are defined in foundation_tags on the shared component model,
 // not a public instruction encoding; coordinate any renumbering.
-const FoundationParameterLimit: usize = 64;
+var FoundationParameterLimit: usize = 64;
 
 export fn semantic_scalar_name(scalar: u32): u8* {
-    if scalar == SI32() {
+    if scalar == SI32 {
         return "i32";
     }
-    if scalar == SU32() {
+    if scalar == SU32 {
         return "u32";
     }
-    if scalar == SBool() {
+    if scalar == SBool {
         return "bool";
     }
-    if scalar == SVoid() {
+    if scalar == SVoid {
         return "void";
     }
-    if scalar == SStruct() {
+    if scalar == SStruct {
         return "";
     }
-    if scalar == SU8() {
+    if scalar == SU8 {
         return "u8";
     }
-    if scalar == SI64() {
+    if scalar == SI64 {
         return "i64";
     }
-    if scalar == SU64() {
+    if scalar == SU64 {
         return "u64";
     }
-    if scalar == SUSize() {
+    if scalar == SUSize {
         return "usize";
     }
     return "";
 }
 
 export fn semantic_operator(op: u32): u8* {
-    if op == OAdd() {
+    if op == OAdd {
         return "+";
     }
-    if op == OSub() {
+    if op == OSub {
         return "-";
     }
-    if op == OMul() {
+    if op == OMul {
         return "*";
     }
-    if op == ODiv() {
+    if op == ODiv {
         return "/";
     }
-    if op == ORem() {
+    if op == ORem {
         return "%";
     }
-    if op == OAnd() {
+    if op == OAnd {
         return "&";
     }
-    if op == OOr() {
+    if op == OOr {
         return "|";
     }
-    if op == OXor() {
+    if op == OXor {
         return "^";
     }
-    if op == OEq() {
+    if op == OEq {
         return "==";
     }
-    if op == ONe() {
+    if op == ONe {
         return "!=";
     }
-    if op == OLt() {
+    if op == OLt {
         return "<";
     }
-    if op == OLe() {
+    if op == OLe {
         return "<=";
     }
-    if op == OGt() {
+    if op == OGt {
         return ">";
     }
-    if op == OGe() {
+    if op == OGe {
         return ">=";
     }
     return "";
@@ -94,34 +94,34 @@ export fn semantic_builtin_name(kind: u32): u8* {
     if kind == 33 {
         return "trap";
     }
-    if kind == KPrint() {
+    if kind == KPrint {
         return "print";
     }
-    if kind == KAllocate() {
+    if kind == KAllocate {
         return "alloc";
     }
-    if kind == KReallocate() {
+    if kind == KReallocate {
         return "realloc";
     }
-    if kind == KFree() {
+    if kind == KFree {
         return "free";
     }
-    if kind == KCopy() {
+    if kind == KCopy {
         return "copy";
     }
-    if kind == KFill() {
+    if kind == KFill {
         return "fill";
     }
-    if kind == KSizeOf() {
+    if kind == KSizeOf {
         return "sizeof";
     }
-    if kind == KAlignOf() {
+    if kind == KAlignOf {
         return "alignof";
     }
-    if kind == KConvert() {
+    if kind == KConvert {
         return "convert";
     }
-    if kind == KBits() {
+    if kind == KBits {
         return "bits";
     }
     return null;
@@ -137,42 +137,42 @@ export fn semantic_builtin_arity(kind: u32): usize {
     if kind == 33 {
         return 2;
     }
-    if kind == KPrint() {
+    if kind == KPrint {
         return 1;
     }
-    if kind == KAllocate() {
+    if kind == KAllocate {
         return 2;
     }
-    if kind == KReallocate() {
+    if kind == KReallocate {
         return 3;
     }
-    if kind == KFree() {
+    if kind == KFree {
         return 1;
     }
-    if kind == KCopy() {
+    if kind == KCopy {
         return 3;
     }
-    if kind == KFill() {
+    if kind == KFill {
         return 3;
     }
-    if kind == KSizeOf() {
+    if kind == KSizeOf {
         return 1;
     }
-    if kind == KAlignOf() {
+    if kind == KAlignOf {
         return 1;
     }
-    if kind == KConvert() {
+    if kind == KConvert {
         return 2;
     }
-    if kind == KBits() {
+    if kind == KBits {
         return 2;
     }
     return 0;
 }
 
 fn semantic_builtin_type_argument(kind: u32, index: usize): bool {
-    return index == 0 && (kind == KSizeOf() || kind == KAlignOf()
-        || kind == KConvert() || kind == KBits() || kind == KAllocate() || kind == KReallocate());
+    return index == 0 && (kind == KSizeOf || kind == KAlignOf
+        || kind == KConvert || kind == KBits || kind == KAllocate || kind == KReallocate);
 }
 
 export fn semantic_builtin_kind(name: u8*): u32 {

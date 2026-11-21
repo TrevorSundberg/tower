@@ -123,7 +123,7 @@ fn regex_test_compare(world: void*, source: u8*, length: usize, random: TestRand
         return;
     }
     utility_check(actual.grammar is not null && error.text.length == 0 && reference_error is null, "Regex success retains grammar and no error");
-    var kind = compiler_world_type(world, CompilerParserMatch());
+    var kind = compiler_world_type(world, CompilerParserMatch);
     var root = bits(ParserMatchData*, entity_component_data(entity_component_get(actual.grammar, kind)));
     utility_check(root is not null && root.start == 0 && root.length == length, "Regex shared-entity source span");
     regex_test_inputs(actual.table, reference, random);
@@ -137,7 +137,7 @@ fn regex_test_scratch_failures(world: void*): void {
     var parsed = frontend_world_pattern(world, source, strlen(source), &error);
     utility_check(parsed is not null, "Regex allocation fixture parses");
     defer syntax_pattern_release(parsed);
-    var kind = compiler_world_type(world, CompilerParserMatch());
+    var kind = compiler_world_type(world, CompilerParserMatch);
     var before: FormatResult;
     fill(&before, 0, sizeof(FormatResult));
     defer format_dispose(&before);
@@ -200,17 +200,17 @@ fn regex_test_limits(world: void*): void {
     var source: vector(u8);
     vector_init(u8, &source);
     defer vector_dispose(u8, &source);
-    utility_check(vector_reserve(u8, &source, OracleRegexBytes() + 1), "Regex source limit allocation");
-    fill(source.data, 97, OracleRegexBytes() + 1);
-    source.length = OracleRegexBytes() + 1;
+    utility_check(vector_reserve(u8, &source, OracleRegexBytes + 1), "Regex source limit allocation");
+    fill(source.data, 97, OracleRegexBytes + 1);
+    source.length = OracleRegexBytes + 1;
     regex_test_reject(world, &source);
     // The mandatory accepting state also counts against the NFA limit.
-    source.length = OracleRegexStates();
+    source.length = OracleRegexStates;
     regex_test_reject(world, &source);
     source.length = 0;
-    for (var index: usize = 0; index <= OracleRegexDepth(); ++index) { regex_test_text(&source, "("); }
+    for (var index: usize = 0; index <= OracleRegexDepth; ++index) { regex_test_text(&source, "("); }
     regex_test_text(&source, "a");
-    for (var index: usize = 0; index <= OracleRegexDepth(); ++index) { regex_test_text(&source, ")"); }
+    for (var index: usize = 0; index <= OracleRegexDepth; ++index) { regex_test_text(&source, ")"); }
     regex_test_reject(world, &source);
     source.length = 0;
     regex_test_text(&source, "(a|b)*a");

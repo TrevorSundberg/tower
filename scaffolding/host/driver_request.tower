@@ -25,11 +25,11 @@ extern fn fopen(path: u8*, mode: u8*): void*;
 
 extern fn fclose(file: void*): i32;
 
-const DriverBedrockText: usize = 0;
-const DriverFoundationText: usize = 1;
-const DriverSourceText: usize = 2;
-const DriverCanonicalBedrockText: usize = 3;
-const DriverCanonicalFoundationText: usize = 4;
+var DriverBedrockText: usize = 0;
+var DriverFoundationText: usize = 1;
+var DriverSourceText: usize = 2;
+var DriverCanonicalBedrockText: usize = 3;
+var DriverCanonicalFoundationText: usize = 4;
 
 // Each invocation owns its snapshots, environments and compiler world. The
 // legacy slot is borrowed only by the explicit compatibility bind entry point.
@@ -117,13 +117,13 @@ export fn driver_request_open(request: DriverRequest*, options: DriverOptions*, 
     if !(driver_request_check_grammar(request, request.foundation_path.data)) {
         return false;
     }
-    if !(driver_request_read(request, request.bedrock_path.data, DriverBedrockText())) {
+    if !(driver_request_read(request, request.bedrock_path.data, DriverBedrockText)) {
         return false;
     }
-    if !(driver_request_read(request, request.foundation_path.data, DriverFoundationText())) {
+    if !(driver_request_read(request, request.foundation_path.data, DriverFoundationText)) {
         return false;
     }
-    if !(driver_request_read(request, options.source, DriverSourceText())) {
+    if !(driver_request_read(request, options.source, DriverSourceText)) {
         return false;
     }
     return true;
@@ -141,10 +141,10 @@ export fn driver_request_canonical(request: DriverRequest*): bool {
     }
     var path: ByteBuffer = default;
     var ok = driver_request_path(&path, "", request.root, "bedrock.tower");
-    ok &&= driver_request_read(request, path.data, DriverCanonicalBedrockText());
+    ok &&= driver_request_read(request, path.data, DriverCanonicalBedrockText);
     path.length = 0;
     ok &&= driver_request_path(&path, "", request.root, "foundation.tower");
-    ok &&= driver_request_read(request, path.data, DriverCanonicalFoundationText());
+    ok &&= driver_request_read(request, path.data, DriverCanonicalFoundationText);
     bytes_dispose(&path);
     request.canonical = ok;
     return ok;

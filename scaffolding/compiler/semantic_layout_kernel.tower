@@ -10,7 +10,7 @@ extern fn semantic_size(type: FoundationType*): usize;
 extern fn semantic_alignment(type: FoundationType*): usize;
 extern fn semantic_enum(type: FoundationType*): bool;
 
-const LayoutMaximumBytes: usize = 4194304;
+var LayoutMaximumBytes: usize = 4194304;
 
 // A derived pending result component on the same type entity. FoundationNode
 // remains authoritative; the coordinator publishes this result before releasing
@@ -42,13 +42,13 @@ fn semantic_layout_kernel(result: SemanticLayoutWork*): void {
         result.alignment = semantic_alignment(&type.element);
         return;
     }
-    if type.type.scalar == SArray() {
+    if type.type.scalar == SArray {
         var size = semantic_size(&type.element);
         if type.length == 0 {
             result.error = "An array needs a positive length";
             return;
         }
-        if size > LayoutMaximumBytes() / type.length {
+        if size > LayoutMaximumBytes / type.length {
             result.error = "Array storage exceeds 4 MiB";
             return;
         }
@@ -63,7 +63,7 @@ fn semantic_layout_kernel(result: SemanticLayoutWork*): void {
         if alignment > result.alignment { result.alignment = alignment; }
         var offset = layout_round(result.size, alignment);
         var size = semantic_size(&field.type);
-        if offset > LayoutMaximumBytes() || size > LayoutMaximumBytes() - offset {
+        if offset > LayoutMaximumBytes || size > LayoutMaximumBytes - offset {
             result.error = "Foundation struct storage exceeds 4 MiB";
             result.error_node = type.items.data[index];
             return;

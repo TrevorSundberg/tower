@@ -230,11 +230,11 @@ export fn generic_instantiate(context: GenericContext*, definition: Entity*, use
         }
         current = current.next;
     }
-    if context.count == GenericInstanceLimit() {
+    if context.count == GenericInstanceLimit {
         context.error = "Template specialization limit exceeded (512 instances); check recursive type arguments";
         return null;
     }
-    var remaining = GenericNodeLimit() -context.copied;
+    var remaining = GenericNodeLimit -context.copied;
     var before = remaining;
     // Preserve the body root's shape/provenance for the signature. Descendants
     // are copied only when execution demands this function's body.
@@ -386,7 +386,7 @@ export fn generic_body_pending(context: GenericContext*, node: Entity*): bool {
 }
 
 export fn generic_body_limit(context: GenericContext*): usize {
-    return GenericNodeLimit() - context.copied;
+    return GenericNodeLimit - context.copied;
 }
 
 // The coordinator calls this only after successful structural publication.

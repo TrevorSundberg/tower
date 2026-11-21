@@ -31,12 +31,12 @@ extern fn compiler_world_pinned(world: void*): bool;
 extern fn syntax_host_clear(world: void*): bool;
 
 fn frontend_world_kinds(world: void*, kinds: FrontendKinds*): bool {
-    kinds.rule = compiler_world_type(world, CompilerParserRule());
-    kinds.reference = compiler_world_type(world, CompilerParserReference());
-    kinds.string = compiler_world_type(world, CompilerParserString());
-    kinds.range = compiler_world_type(world, CompilerParserRange());
-    kinds.`match` = compiler_world_type(world, CompilerParserMatch());
-    kinds.syntax = compiler_world_type(world, CompilerSyntax());
+    kinds.rule = compiler_world_type(world, CompilerParserRule);
+    kinds.reference = compiler_world_type(world, CompilerParserReference);
+    kinds.string = compiler_world_type(world, CompilerParserString);
+    kinds.range = compiler_world_type(world, CompilerParserRange);
+    kinds.`match` = compiler_world_type(world, CompilerParserMatch);
+    kinds.syntax = compiler_world_type(world, CompilerSyntax);
     var missing = kinds.rule == null;
     if missing {
         return false;

@@ -20,13 +20,13 @@ extern fn syntax_nodes_equal(left: void*, right: void*, kind: void*, locations: 
 
 // Diagnostic previews borrow the same components as canonical formatting.
 // They are presentation only; never serialized as grammar or foundation source.
-const SyntaxPreviewLimit: usize = 120;
+var SyntaxPreviewLimit: usize = 120;
 
 extern fn compiler_node_get(node: void*, kind: u32): void*;
 
 fn format_preview_node(node: void*, kind: void*): SyntaxNode* {
     if kind is null {
-        return bits(SyntaxNode*, compiler_node_get(node, CompilerSyntax()));
+        return bits(SyntaxNode*, compiler_node_get(node, CompilerSyntax));
     }
     return bits(SyntaxNode*, entity_component_data(entity_component_get(node, kind)));
 }
@@ -82,8 +82,8 @@ name_only: bool, syntax: void*, kind: void*): void {
                 break;
             }
             var length = result.text.length -begin;
-            if length > SyntaxPreviewLimit() {
-                var end = begin + SyntaxPreviewLimit();
+            if length > SyntaxPreviewLimit {
+                var end = begin + SyntaxPreviewLimit;
                 for(; end > begin; end--) {
                     var prefix = result.text.data[end] &192;
                     if !(prefix == 128) {

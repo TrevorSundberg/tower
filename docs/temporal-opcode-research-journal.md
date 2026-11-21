@@ -34215,3 +34215,40 @@ pushed; after the publication lock is released it can connect its validated Towe
 LLD/archive tools to live build/package entry points. No sanitizer or broad
 formatter run, new native shim, hidden third-party implementation, or local
 todo.txt edit was introduced by this retirement lane.
+#### Final ordinary-binding migration and release checks
+
+Published reader/bootstrap 89fe018 before restoring the source migration. Preserved
+upstream's 128 MiB policy when resolving the migration conflict. The inventory is
+now 264 declarations (including the new Tower node-fixture lifecycle ID). Removed
+the old `TowerConstant`/`TowerExportedConstant` rules and replaced declaration/call
+tokens with ordinary `var` bindings/reads. The complete migration affects 182
+Tower files, plus module/foreign-profile documentation and two existing browser
+transport source strings. Foreign profile numeric values are unchanged; project
+consumers use the named bindings, with no remaining accessor callers found.
+`const` is tested as an ordinary identifier; its retired declaration form fails.
+Historical journal examples and quoted C/C++ declarations remain intact.
+
+Audited complete typed copies in the touched implementation: evaluation/lowering
+workers now initialize their context/program snapshots by value and assign error
+vectors/work tickets directly. Foundation type snapshots also use typed assignment.
+These are shallow copies preserving the prior borrowed/owned resource handling;
+dynamic byte operations and explicit lifetime cleanup remain. The migration tool
+uses `puts` for dynamic path diagnostics because guest `print(pointer)` displays
+an address. No new C++, Python or JavaScript logic was introduced.
+
+A fresh default-bootstrap build in `/cache/values-migrated-final` passes, followed
+by the complete native execution suite (`values-migrated-final.log` and
+`values-migrated-final-tests.log`). Single-threaded, threaded and LLVM/cross browser
+builds all pass (`values-final-browser.log`), packaging 17 Tower compiler units.
+The prior threaded-parser component-budget failure is resolved on the integrated
+policy with the eligibility filter. This is not a measured performance guarantee.
+
+Browser validation: all 15 compiler-thread/module-resolution checks pass, including
+real pool overlap and serial/parallel semantic determinism (`values-browser-tests.log`).
+The three affected LLVM/Wasm fixtures (struct values, known bindings and upstream
+resumable control bodies) pass (`values-llvm-tests.log`). Two successive real browser
+compiler generations at 2/4 unit workers pass, including edited semantic behavior
+and stable successive bytes: Tower 1,099,395; LLVM 52,430,138; cross 63,987,560
+(`values-generations.log`). Final distribution/hosted publication follows. The
+protected `todo.txt` has not been modified. Floating point is next after publication,
+following the C-level sequence recorded in the language roadmap.

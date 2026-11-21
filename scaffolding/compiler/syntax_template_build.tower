@@ -57,13 +57,13 @@ extern fn parser_recognizer_step(recognizer: void*, running: bool*): void*;
 
 fn template_build_text(text: vector(u8)*): u8* { return text.data ?? ""; }
 
-const TemplateAttemptFailed: u32 = 0;
-const TemplateAttemptReady: u32 = 1;
-const TemplateAttemptGrammarConflict: u32 = 2;
+var TemplateAttemptFailed: u32 = 0;
+var TemplateAttemptReady: u32 = 1;
+var TemplateAttemptGrammarConflict: u32 = 2;
 
 fn template_build_error(owner: void*, message: u8*): u32 {
     syntax_replacement_error(owner, message);
-    return TemplateAttemptFailed();
+    return TemplateAttemptFailed;
 }
 
 fn template_build_node(node: void*, version: SyntaxVersion*): SyntaxNode* {
@@ -76,7 +76,7 @@ fn template_build_node(node: void*, version: SyntaxVersion*): SyntaxNode* {
 export fn syntax_replacement_attempt(context: void*, category: u8*): u32 {
     var owner = context;
     var replacement = syntax_replacement_candidate(owner, category);
-    if replacement is null { return TemplateAttemptFailed(); }
+    if replacement is null { return TemplateAttemptFailed; }
     var version = bits(SyntaxVersion*, syntax_replacement_host(owner));
     var definitions = frontend_revision_retain(version.grammar);
     defer frontend_revision_release(definitions);
@@ -137,7 +137,7 @@ export fn syntax_replacement_attempt(context: void*, category: u8*): u32 {
     grammar.table = bits(void*, parser_table_finish(table, &diagnostic, true));
     if grammar.table is null {
         syntax_replacement_error(owner, diagnostic ?? "Cannot build replacement parser");
-        return TemplateAttemptGrammarConflict();
+        return TemplateAttemptGrammarConflict;
     }
     if !syntax_version_lexicon(grammar) {
         return template_build_error(owner, "Unable to allocate replacement lexical indexes");
@@ -187,5 +187,5 @@ export fn syntax_replacement_attempt(context: void*, category: u8*): u32 {
         return template_build_error(owner, "Unable to allocate replacement template mapping");
     }
     for (var i: usize = 0; i < captures.length; ++i) { replacement.captures.data[i].uses = uses.data[i]; }
-    return TemplateAttemptReady();
+    return TemplateAttemptReady;
 }

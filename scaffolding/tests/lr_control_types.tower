@@ -1,11 +1,11 @@
 import tower;
 
-const LRNeedInput: u32 = 0;
-const LRShift: u32 = 1;
-const LRReduce: u32 = 2;
-const LRAccept: u32 = 3;
-const LRUnexpected: u32 = 4;
-const LREmptyPrefix: u32 = 5;
-const LRSequenceShift: u32 = 6;
-const LRSequenceReduce: u32 = 7;
-const LRInvalid: u32 = 8;
+var LRNeedInput: u32 = 0;
+var LRShift: u32 = 1;
+var LRReduce: u32 = 2;
+var LRAccept: u32 = 3;
+var LRUnexpected: u32 = 4;
+var LREmptyPrefix: u32 = 5;
+var LRSequenceShift: u32 = 6;
+var LRSequenceReduce: u32 = 7;
+var LRInvalid: u32 = 8;

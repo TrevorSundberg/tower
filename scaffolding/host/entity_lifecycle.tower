@@ -16,7 +16,7 @@ extern fn syntax_origin_dispose(data: void*): void;
 extern fn syntax_trace_dispose(data: void*): void;
 
 export fn tower_entity_finalize(kind: usize, component: void*, data: void*): void {
-    if kind == NodeFixtureLifecycle() {
+    if kind == NodeFixtureLifecycle {
         node_fixture_finalize(component, data);
         return;
     }
@@ -36,8 +36,8 @@ export fn tower_entity_finalize(kind: usize, component: void*, data: void*): voi
         syntax_node_dispose(data);
         return;
     }
-    if kind >= compiler_parser_lifecycle(CompilerParserMatch()) {
-        var parser_kind = compiler_parser_lifecycle(CompilerParserRule()) -kind;
+    if kind >= compiler_parser_lifecycle(CompilerParserMatch) {
+        var parser_kind = compiler_parser_lifecycle(CompilerParserRule) -kind;
         node_payload_dispose(convert(u32, parser_kind), data);
         return;
     }

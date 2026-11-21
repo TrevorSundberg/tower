@@ -2,9 +2,9 @@ import tower;
 import syntax_view;
 import .library.vector;
 
-const SyntaxFoundationBaseline: u32 = 0;
-const SyntaxBedrockBaseline: u32 = 1;
-const SyntaxSeedBaseline: u32 = 2;
+var SyntaxFoundationBaseline: u32 = 0;
+var SyntaxBedrockBaseline: u32 = 1;
+var SyntaxSeedBaseline: u32 = 2;
 
 // Immutable revision indexes pin the original shared grammar entities. The
 // coordinator owns reference/slot mutation; pinned readers only borrow views.
@@ -17,7 +17,7 @@ struct FrontendRevision {
     tokens: vector(void*);
 }
 
-const FrontendCacheLimit: usize = 64;
+var FrontendCacheLimit: usize = 64;
 struct FrontendCache {
     entries: vector(FrontendRevision*);
     builds: usize;

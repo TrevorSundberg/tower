@@ -16,8 +16,8 @@ export fn compiler_host_world_create(): CompilerWorld* {
     if world == null {
         return null;
     }
-    var origin = compiler_world_type(world, CompilerSyntaxOrigin());
-    var trace = compiler_world_type(world, CompilerSyntaxExpansion());
+    var origin = compiler_world_type(world, CompilerSyntaxOrigin);
+    var trace = compiler_world_type(world, CompilerSyntaxExpansion);
     var failed = origin == null;
     failed ||= trace == null;
     if failed {

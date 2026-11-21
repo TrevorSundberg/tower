@@ -16,7 +16,7 @@ fn lr_check_frame(a: LRFrame*, b: LRFrame*): void {
 }
 fn lr_check_probes(actual: void*, oracle: OracleParser*): void {
     var allowances: usize[4]; allowances[0] = 0; allowances[1] = 1; allowances[2] = 128; allowances[3] = 8192;
-    var ids: u32[5]; ids[0] = 0; ids[1] = 32; ids[2] = 2097152; ids[3] = LRTokenEnd(); ids[4] = ~convert(u32, 0);
+    var ids: u32[5]; ids[0] = 0; ids[1] = 32; ids[2] = 2097152; ids[3] = LRTokenEnd; ids[4] = ~convert(u32, 0);
     for (var index: usize = 0; index < 4; ++index) {
         var left_budget: LRProbeBudget; left_budget.remaining = allowances[index]; left_budget.complete = true;
         var right_budget: LRProbeBudget; copy(&right_budget, &left_budget, sizeof(LRProbeBudget));
@@ -47,7 +47,7 @@ fn lr_check_control(actual: void*, oracle: OracleRuntime*, tokens: vector(u32)*,
     var right = oracle_parser_create(oracle, prefix, specialize); defer oracle_parser_destroy(right);
     var position: usize = 0; var ready = false;
     for (var iteration: usize = 0; iteration < 512; ++iteration) {
-        var id = position < tokens.length ? tokens.data[position] : LRTokenEnd();
+        var id = position < tokens.length ? tokens.data[position] : LRTokenEnd;
         var length = position < tokens.length && position % 3 != 0 ? convert(usize, 2) : convert(usize, 0);
         var x: LRStep; var y: LRStep;
         var kind = lr_parser_step(left, ready, id, position == error_at, 10 + position * 3, length, &x);
@@ -66,13 +66,13 @@ fn lr_check_control(actual: void*, oracle: OracleRuntime*, tokens: vector(u32)*,
         var forest: LRFrame; lr_parser_sequence_forest(left, &forest);
         utility_check(forest.first == right.forest.first && forest.last == right.forest.last
             && forest.start == right.forest.start && forest.length == right.forest.length, "LR sequence forest evidence");
-        if kind == LRNeedInput() { utility_check(!ready, "LR input request happens only without a ready token"); ready = true; continue; }
-        if kind == LRShift() || kind == LRSequenceShift() || kind == LRReduce() || kind == LRSequenceReduce() {
+        if kind == LRNeedInput { utility_check(!ready, "LR input request happens only without a ready token"); ready = true; continue; }
+        if kind == LRShift || kind == LRSequenceShift || kind == LRReduce || kind == LRSequenceReduce {
             utility_check(lr_parser_commit(left, &x, iteration, iteration), "LR parser commit");
             oracle_parser_commit(right, &y, iteration, iteration);
-            if kind == LRSequenceReduce() { break; }
-            if kind == LRShift() || kind == LRSequenceShift() { ++position; ready = false; }
-        } else { utility_check(kind != LRInvalid(), "LR parser control stays valid"); break; }
+            if kind == LRSequenceReduce { break; }
+            if kind == LRShift || kind == LRSequenceShift { ++position; ready = false; }
+        } else { utility_check(kind != LRInvalid, "LR parser control stays valid"); break; }
     }
     lr_check_probes(left, right);
 }
@@ -93,7 +93,7 @@ fn lr_check_runtime(actual: void*, oracle: OracleStates*, nonterminals: usize, c
         var count = lr_runtime_action_count(left, state); var actions = lr_runtime_actions(left, state);
         utility_check(count == row.actions.length, "LR normalized action count");
         var probes: vector(u32); vector_init(&probes); defer vector_dispose(&probes);
-        utility_check(vector_push(&probes, 0) && vector_push(&probes, LRTokenPropagation()) && vector_push(&probes, LRTokenEnd())
+        utility_check(vector_push(&probes, 0) && vector_push(&probes, LRTokenPropagation) && vector_push(&probes, LRTokenEnd)
             && vector_push(&probes, ~convert(u32, 0)) && vector_push(&probes, 2097152) && vector_push(&probes, 32), "LR runtime probe inputs");
         for (var index: usize = 0; index < count; ++index) {
             lr_check_action(&actions[index], &row.actions.data[index]);

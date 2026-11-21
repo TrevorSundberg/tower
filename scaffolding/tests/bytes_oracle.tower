@@ -5,7 +5,7 @@ import .library.bytes_types;
 // the same moving/failing test allocator as production, preserving allocation
 // counts, growth policy and failure atomicity comparisons.
 extern fn memmove(destination: void*, source: void*, count: usize): void*;
-const OracleByteMinimumCapacity: usize = 16;
+var OracleByteMinimumCapacity: usize = 16;
 
 fn reference_bytes_init(buffer: ByteBuffer*): void {
     buffer.data = null;
@@ -17,7 +17,7 @@ fn reference_bytes_reserve(buffer: ByteBuffer*, needed: usize): bool {
     if needed <= buffer.capacity { return true; }
     var capacity = buffer.capacity <= ~convert(usize, 0) / 2 ? buffer.capacity * 2 : needed;
     if capacity < needed { capacity = needed; }
-    if capacity < OracleByteMinimumCapacity() { capacity = OracleByteMinimumCapacity(); }
+    if capacity < OracleByteMinimumCapacity { capacity = OracleByteMinimumCapacity; }
     var data = realloc(u8, buffer.data, capacity);
     if data is null { return false; }
     buffer.data = data;

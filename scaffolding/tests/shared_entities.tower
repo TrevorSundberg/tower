@@ -325,10 +325,10 @@ fn shared_provenance_tests(): void {
     var source = entity_create(store);
     var destination = entity_create(store);
     var foreign = entity_create(compiler_world_store(other));
-    var span = bits(ParserMatchData*, compiler_world_component(world, invocation, CompilerParserMatch()));
+    var span = bits(ParserMatchData*, compiler_world_component(world, invocation, CompilerParserMatch));
     span.start = 12;
     span.length = 7;
-    span = bits(ParserMatchData*, compiler_world_component(world, source, CompilerParserMatch()));
+    span = bits(ParserMatchData*, compiler_world_component(world, source, CompilerParserMatch));
     span.start = 40;
     span.length = 9;
     var trace = syntax_trace_create(world, invocation, "Expression", 30, 60);
@@ -406,7 +406,7 @@ fn shared_provenance_tests(): void {
     world = compiler_world_create();
     store = compiler_world_store(world);
     invocation = entity_create(store);
-    span = bits(ParserMatchData*, compiler_world_component(world, invocation, CompilerParserMatch()));
+    span = bits(ParserMatchData*, compiler_world_component(world, invocation, CompilerParserMatch));
     span.start = 5;
     span.length = 3;
     for(var index: usize = 0; index < 10000; index++) {
@@ -416,7 +416,7 @@ fn shared_provenance_tests(): void {
         shared_check(syntax_origin_mark(world, trace, invocation, invocation, true));
         syntax_trace_release(trace);
     }
-    var type = compiler_world_type(world, CompilerSyntaxExpansion());
+    var type = compiler_world_type(world, CompilerSyntaxExpansion);
     ok = entity_query_count(type) == 10000;
     shared_check(ok);
     origin = syntax_origin_get(world, invocation);
@@ -454,7 +454,7 @@ extern fn compiler_node_copy_metadata(source: void*, destination: void*): void;
 
 fn shared_metadata_leaf(world: void*, label: u8*): void* {
     var node = entity_create(compiler_world_store(world));
-    var span = bits(ParserMatchData*, compiler_world_component(world, node, CompilerParserMatch()));
+    var span = bits(ParserMatchData*, compiler_world_component(world, node, CompilerParserMatch));
     var invalid: usize = 0;
     span.rule = invalid - 1;
     parser_match_set_label(span, label);
@@ -481,7 +481,7 @@ fn shared_metadata_tests(): void {
     shared_check(compiler_name_is(wrapper, "typeName"));
     ok = compiler_name_equal(wrapper, quoted) == false;
     shared_check(ok);
-    var span = bits(ParserMatchData*, compiler_world_get(world, quoted, CompilerParserMatch()));
+    var span = bits(ParserMatchData*, compiler_world_get(world, quoted, CompilerParserMatch));
     span.id = 37;
     span.start = 21;
     span.length = 6;
@@ -490,7 +490,7 @@ fn shared_metadata_tests(): void {
     syntax_trace_release(trace);
     compiler_node_copy_metadata(quoted, copy);
     compiler_node_copy_metadata(copy, copy);
-    var cloned = bits(ParserMatchData*, compiler_world_get(world, copy, CompilerParserMatch()));
+    var cloned = bits(ParserMatchData*, compiler_world_get(world, copy, CompilerParserMatch));
     ok = cloned.id == 37;
     shared_check(ok);
     ok = cloned.start == 21;
@@ -528,16 +528,16 @@ export fn shared_world_tests(): void {
         shared_check(ok);
         var node = entity_create(store);
         var other = entity_create(other_store);
-        var invalid = CompilerComponentCount();
+        var invalid = CompilerComponentCount;
         ok = compiler_world_type(first, invalid) == null;
         shared_check(ok);
-        ok = compiler_world_component(first, other, CompilerParserRule()) == null;
+        ok = compiler_world_component(first, other, CompilerParserRule) == null;
         shared_check(ok);
-        ok = compiler_world_component(first, null, CompilerParserRule()) == null;
+        ok = compiler_world_component(first, null, CompilerParserRule) == null;
         shared_check(ok);
         ok = entity_store_count(store) == 1;
         shared_check(ok);
-        for(var kind: u32 = 0; kind < CompilerComponentCount(); kind++) {
+        for(var kind: u32 = 0; kind < CompilerComponentCount; kind++) {
             var type = compiler_world_type(first, kind);
             var other_type = compiler_world_type(second, kind);
             ok = type != other_type;
@@ -563,14 +563,14 @@ export fn shared_world_tests(): void {
             ok = entity_component_owner(entity_query_at(type, 0)) == node;
             shared_check(ok);
         }
-        var rule = bits(ParserRuleData*, compiler_world_get(first, node, CompilerParserRule()));
+        var rule = bits(ParserRuleData*, compiler_world_get(first, node, CompilerParserRule));
         shared_check(vector_push(u8, &rule.name, 65));
-        var reference = bits(ParserReferenceData*, compiler_world_get(first, node, CompilerParserReference()));
+        var reference = bits(ParserReferenceData*, compiler_world_get(first, node, CompilerParserReference));
         shared_check(vector_push(u8, &reference.name, 66));
         shared_check(vector_push(u8, &reference.capture, 67));
-        var string = bits(ParserStringData*, compiler_world_get(first, node, CompilerParserString()));
+        var string = bits(ParserStringData*, compiler_world_get(first, node, CompilerParserString));
         shared_check(vector_push(u32, &string.ids, 68));
-        var parsed = bits(ParserMatchData*, compiler_world_get(first, node, CompilerParserMatch()));
+        var parsed = bits(ParserMatchData*, compiler_world_get(first, node, CompilerParserMatch));
         ok = parsed.id == 4294967294;
         shared_check(ok);
         var missing: usize = 0;
@@ -578,7 +578,7 @@ export fn shared_world_tests(): void {
         ok = parsed.rule == missing;
         shared_check(ok);
         shared_check(vector_push(u8, &parsed.label, 69));
-        var syntax = bits(SyntaxNode*, compiler_world_get(first, node, CompilerSyntax()));
+        var syntax = bits(SyntaxNode*, compiler_world_get(first, node, CompilerSyntax));
         ok = syntax.start == missing;
         shared_check(ok);
         shared_check(vector_push(u8, &syntax.name, 70));
@@ -589,7 +589,7 @@ export fn shared_world_tests(): void {
         var replacement = entity_create(store);
         syntax_node_replacement(syntax, replacement);
         entity_release(replacement);
-        var foundation = bits(FoundationNode*, compiler_world_get(first, node, CompilerFoundation()));
+        var foundation = bits(FoundationNode*, compiler_world_get(first, node, CompilerFoundation));
         ok = foundation.type.pointer_bytes == 4;
         shared_check(ok);
         ok = foundation.alignment == 1;
@@ -600,7 +600,7 @@ export fn shared_world_tests(): void {
         shared_check(vector_push(void*, &foundation.parameters, node));
         ok = compiler_world_dispose(first) == false;
         shared_check(ok);
-        var held_type = compiler_world_type(first, CompilerParserRule());
+        var held_type = compiler_world_type(first, CompilerParserRule);
         entity_retain(held_type);
         var view = entity_view_open(node);
         entity_release(node);
@@ -613,14 +613,14 @@ export fn shared_world_tests(): void {
         shared_check(ok);
         ok = entity_store_component_count(store) == 0;
         shared_check(ok);
-        ok = entity_store_count(store) == convert(usize, CompilerComponentCount());
+        ok = entity_store_count(store) == convert(usize, CompilerComponentCount);
         shared_check(ok);
         ok = compiler_world_dispose(first) == false;
         shared_check(ok);
         entity_release(held_type);
         shared_check(compiler_world_dispose(first));
         // The second world remains usable after the first is reclaimed.
-        var data = compiler_world_component(second, other, CompilerParserRule());
+        var data = compiler_world_component(second, other, CompilerParserRule);
         ok = data != null;
         shared_check(ok);
         entity_release(other);
@@ -629,9 +629,9 @@ export fn shared_world_tests(): void {
         shared_check(ok);
     }
     var empty = compiler_world_create();
-    var type = compiler_world_type(empty, CompilerParserRule());
+    var type = compiler_world_type(empty, CompilerParserRule);
     var view = entity_view_open(type);
-    var ok = compiler_world_type(empty, CompilerParserReference()) == null;
+    var ok = compiler_world_type(empty, CompilerParserReference) == null;
     shared_check(ok);
     ok = compiler_world_dispose(empty) == false;
     shared_check(ok);

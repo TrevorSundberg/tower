@@ -33,10 +33,8 @@ extern fn entity_view_open(anchor: void*): void*;
 extern fn entity_view_close(view: void*): void;
 
 fn semantic_lowering_kernel(result: SemanticLowering*): void {
-    var context: SemanticContext;
-    var program: SemanticProgram;
-    copy(&context, result.context, sizeof(SemanticContext));
-    copy(&program, context.program, sizeof(SemanticProgram));
+    var context = *result.context;
+    var program = *context.program;
     context.program = &program;
     context.editor = null;
     context.current = result.subject;
@@ -57,7 +55,7 @@ fn semantic_lowering_kernel(result: SemanticLowering*): void {
     if result.signature { sem_aggregate_function(&context, result.subject); }
     else { sem_lift_block(&context, result.block); }
     result.count = context.count;
-    copy(&result.error, &program.error, sizeof(vector(u8)));
+    result.error = program.error;
     result.error_offset = program.error_offset;
     stack_dispose(void*, &context.scan);
     vector_dispose(u8, &context.token_text);
@@ -141,7 +139,7 @@ fn sem_lower_transform(c: SemanticContext*, signature: bool): void {
         while count < c.workers.count && work_take_query(&c.queries, &ticket, query_kind) {
             var subject = work_task(&c.queries, ticket.task).subject;
             var result = bits(SemanticLowering*, entity_component_data(entity_component_get(subject, kind)));
-            copy(&result.ticket, &ticket, sizeof(WorkTicket));
+            result.ticket = ticket;
             // The immutable work-kind entity anchors this wave. The program
             // root can itself be leased by its own lowering job.
             result.stage = entity_stage_open(kind);

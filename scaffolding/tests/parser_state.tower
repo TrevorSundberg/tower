@@ -49,11 +49,11 @@ fn parser_test_streams(): usize {
     ok &&= start == 3;
     ok &&= length == 4;
     parser_stream_read(stream, &id, &start, &length);
-    ok &&= id == ParserStreamEnd();
-    ok &&= start == convert(usize, ParserStreamEnd());
+    ok &&= id == ParserStreamEnd;
+    ok &&= start == convert(usize, ParserStreamEnd);
     ok &&= length == 0;
     parser_stream_read(stream, &id, &start, &length);
-    ok &&= id == ParserStreamEnd();
+    ok &&= id == ParserStreamEnd;
     var data = parser_stream_get_userdata(stream);
     ok &&= parser_stream_from_userdata(data) == stream;
     parser_stream_destroy(stream);
@@ -73,7 +73,7 @@ fn parser_test_streams(): usize {
     tower_test_buffer_fail_after(lr_none());
     if stream is null { return 800; }
     parser_stream_read(stream, &id, &start, &length);
-    ok &&= id == ParserStreamEnd();
+    ok &&= id == ParserStreamEnd;
     ok &&= format_name_is(&stream.error, "Unable to allocate UTF-8 stream source");
     parser_stream_destroy(stream);
     // Invalid/truncated input remains stable EOF, matching the existing decoder.
@@ -81,7 +81,7 @@ fn parser_test_streams(): usize {
     end = begin + 1;
     stream = parser_stream_utf8_create(begin, end);
     parser_stream_read(stream, &id, &start, &length);
-    ok &&= id == ParserStreamEnd();
+    ok &&= id == ParserStreamEnd;
     ok &&= length == 0;
     parser_stream_destroy(stream);
     ok &&= tower_test_buffer_count() == before;

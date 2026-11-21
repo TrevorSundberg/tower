@@ -109,7 +109,7 @@ fn oracle_grammar_init(value: OracleGrammar*, root: void*, kinds: FrontendKinds*
         }
     }
     if value.names.length > 1 {
-        oracle_grammar_symbol(value, 1, LRTokenEnd(), LRTokenEnd(), null, "");
+        oracle_grammar_symbol(value, 1, LRTokenEnd, LRTokenEnd, null, "");
         value.rules.data[0].production.count = 1;
     }
     for (var index: usize = 1; index < value.rules.length; ++index) {
@@ -121,7 +121,7 @@ fn oracle_grammar_init(value: OracleGrammar*, root: void*, kinds: FrontendKinds*
                 var name = oracle_grammar_text(&reference.name);
                 var owner = oracle_grammar_lookup(value, name);
                 if owner == ~convert(usize, 0) { oracle_grammar_unresolved(value, name); }
-                oracle_grammar_symbol(value, owner, LRTokenEnd(), LRTokenEnd(), node, oracle_grammar_text(&reference.capture));
+                oracle_grammar_symbol(value, owner, LRTokenEnd, LRTokenEnd, node, oracle_grammar_text(&reference.capture));
             }
             var text = bits(ParserStringData*, oracle_grammar_payload(node, kinds.string));
             if text is not null {
@@ -139,7 +139,7 @@ fn oracle_grammar_init(value: OracleGrammar*, root: void*, kinds: FrontendKinds*
     }
 }
 fn oracle_grammar_resolve(value: OracleGrammar*, index: usize, id: u32): bool {
-    if index >= value.missing.length || id == LRTokenEnd() { return false; }
+    if index >= value.missing.length || id == LRTokenEnd { return false; }
     var symbol = &value.symbols.data[value.missing.data[index].symbol].symbol;
     symbol.first = id; symbol.last = id;
     return true;

@@ -17,21 +17,21 @@ fn source_comment_targets(entity: void*, base: usize, limit: usize, targets: vec
     if inside {
         sem_require(vector_push(targets, entity));
     }
-    var function = n.kind == KFunction();
-    if n.kind == KLoop() {
+    var function = n.kind == KFunction;
+    if n.kind == KLoop {
         function = true;
     }
     if function {
         source_comment_targets(n.body, base, limit, targets);
         return;
     }
-    if n.kind == KIf() {
+    if n.kind == KIf {
         source_comment_targets(n.body, base, limit, targets);
         source_comment_targets(n.otherwise, base, limit, targets);
         return;
     }
-    var list = n.kind == KProgram();
-    if n.kind == KBlock() {
+    var list = n.kind == KProgram;
+    if n.kind == KBlock {
         list = true;
     }
     if list {
@@ -206,21 +206,21 @@ fn source_comments_walk(entity: void*, target: vector(u8)*, strip: bool): void {
     else {
         sem_require(bytes_append(target, n.comments.data, n.comments.length));
     }
-    if n.kind == KFunction() {
+    if n.kind == KFunction {
         source_comments_walk(n.body, target, strip);
         return;
     }
-    if n.kind == KIf() {
+    if n.kind == KIf {
         source_comments_walk(n.body, target, strip);
         source_comments_walk(n.otherwise, target, strip);
         return;
     }
-    if n.kind == KLoop() {
+    if n.kind == KLoop {
         source_comments_walk(n.body, target, strip);
         return;
     }
-    var list = n.kind == KProgram();
-    if n.kind == KBlock() {
+    var list = n.kind == KProgram;
+    if n.kind == KBlock {
         list = true;
     }
     if list {

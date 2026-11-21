@@ -76,7 +76,7 @@ export fn parser_stream_create(bytes: usize, kind: ParserInputService): ParserSt
     }
     fill(stream, 0, sizeof(ParserStream));
     stream.kind = kind;
-    stream.buffered_id = ParserStreamEnd();
+    stream.buffered_id = ParserStreamEnd;
     return stream;
 }
 
@@ -175,8 +175,8 @@ export fn parser_stream_poll(stream: ParserStream*, id: u32*, start: usize*, len
     if stream.kind == ParserInputService.Empty {
         return false;
     }
-    *id = ParserStreamEnd();
-    *start = convert(usize, ParserStreamEnd());
+    *id = ParserStreamEnd;
+    *start = convert(usize, ParserStreamEnd);
     *length = 0;
     if stream.kind == ParserInputService.Utf8 {
         var data = bits(ParserUtf8Stream*, parser_stream_get_userdata(stream));
@@ -192,7 +192,7 @@ export fn parser_stream_poll(stream: ParserStream*, id: u32*, start: usize*, len
             *length = read;
             data.cursor = data.cursor + read;
         } else {
-            *id = ParserStreamEnd();
+            *id = ParserStreamEnd;
         }
         return true;
     }
@@ -255,8 +255,8 @@ extern fn syntax_parser_template_read(stream: ParserStream*, data: void*, id: u3
 export fn parser_stream_read(stream: ParserStream*, id: u32*, start: usize*, length: usize*): void* {
     var node: void* = null;
     if !parser_stream_poll(stream, id, start, length, &node) {
-        *id = ParserStreamEnd();
-        *start = convert(usize, ParserStreamEnd());
+        *id = ParserStreamEnd;
+        *start = convert(usize, ParserStreamEnd);
         *length = 0;
     }
     return node;

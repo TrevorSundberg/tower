@@ -33,7 +33,7 @@ fn entity_stage_fault_trial(phase: usize, failure: usize): usize {
     var store = compiler_world_store(world);
     var root = entity_create(store);
     var source = entity_create(store);
-    var span = bits(ParserMatchData*, compiler_world_component(world, source, CompilerParserMatch()));
+    var span = bits(ParserMatchData*, compiler_world_component(world, source, CompilerParserMatch));
     span.start = 12; span.length = 7;
     var trace = syntax_trace_create(world, source, "Staged", 30, 60);
     utility_check(trace != null, "Staged trace creation");

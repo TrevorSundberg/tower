@@ -11,14 +11,14 @@ extern fn mprotect(address: void*, length: usize, protection: i32): i32;
 
 extern fn munmap(address: void*, length: usize): i32;
 
-const Utf8ReadWrite: i32 = 3;
-const Utf8Private: i32 = 2;
+var Utf8ReadWrite: i32 = 3;
+var Utf8Private: i32 = 2;
 
 // The manifest selects explicit OS ABI constants; these are not host queries
 // during compilation. The inaccessible page detects generated-code overreads.
 fn utf8_boundary_tests(anonymous: i32, initial_state: u32): void {
     var page = convert(usize, getpagesize());
-    var memory = bits(u8*, mmap(null, page *2, Utf8ReadWrite(), Utf8Private() | anonymous, -1, 0));
+    var memory = bits(u8*, mmap(null, page *2, Utf8ReadWrite, Utf8Private | anonymous, -1, 0));
     utility_check(bits(usize, memory) != ~convert(usize, 0), "UTF-8 mmap");
     utility_check(mprotect(bits(void*, memory + page), page, 0) == 0, "UTF-8 protect boundary");
     var scalars: u32[10];

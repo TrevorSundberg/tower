@@ -90,8 +90,8 @@ export fn syntax_format_into(opaque: void*, output: FormatResult*, error: u8**):
         comments.data[comments.length].start = row.start;
         comments.data[comments.length++].end = row.end;
     }
-    var syntax = compiler_world_type(source.inputs.world, CompilerSyntax());
-    var match_kind = compiler_world_type(source.inputs.world, CompilerParserMatch());
+    var syntax = compiler_world_type(source.inputs.world, CompilerSyntax);
+    var match_kind = compiler_world_type(source.inputs.world, CompilerParserMatch);
     format_source(output, roots.data, roots.length, source.source, source.source_length,
     comments.data, comments.length, syntax, null, match_kind);
     if !output.failed {

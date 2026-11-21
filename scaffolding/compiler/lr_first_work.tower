@@ -28,7 +28,7 @@ struct LRFirstTask {
 }
 
 // Scheduling grain, not a grammar limit. Narrow waves retain the serial solver.
-const LRFirstGrain: usize = 64;
+var LRFirstGrain: usize = 64;
 
 // Each nonterminal owns its output. References always read the preceding
 // joined snapshot, including self references and nullable cycles.
@@ -127,7 +127,7 @@ fn lr_analysis_work(value: LRAnalysis*, anchor: void*, capacity: usize): bool {
     defer parser_workers_close(&workers);
     var pool = workers.pool;
     while frontier.length != 0 {
-        var count = frontier.length / LRFirstGrain();
+        var count = frontier.length / LRFirstGrain;
         // A retained world pool may be wider than this analysis's job array.
         if count > capacity { count = capacity; }
         if count > pool.count { count = pool.count; }
@@ -192,8 +192,8 @@ fn lr_analysis_work(value: LRAnalysis*, anchor: void*, capacity: usize): bool {
 
 export fn lr_analysis_compute_parallel(value: LRAnalysis*, anchor: void*): bool {
     var capacity = compiler_worker_capacity(anchor);
-    if capacity < 2 || anchor == null || value.nonterminal_count < 2 * LRFirstGrain() { return lr_analysis_compute(value); }
-    var useful = value.nonterminal_count / LRFirstGrain();
+    if capacity < 2 || anchor == null || value.nonterminal_count < 2 * LRFirstGrain { return lr_analysis_compute(value); }
+    var useful = value.nonterminal_count / LRFirstGrain;
     if capacity > useful { capacity = useful; }
     var ok = lr_analysis_work(value, anchor, capacity);
     if !ok { value.failed = true; }

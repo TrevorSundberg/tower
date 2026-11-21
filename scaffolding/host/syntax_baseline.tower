@@ -42,7 +42,7 @@ struct SyntaxHost {
 // The registry component is transport state, not another semantic graph. Only
 // the owning coordinator mutates it; independent worlds never share its buffers.
 fn syntax_host_state(world: void*): SyntaxHost* {
-    var owner = compiler_world_type(world, CompilerSyntax());
+    var owner = compiler_world_type(world, CompilerSyntax);
     if owner is null { abort(); }
     var slot = entity_member_index(owner, "syntax.transport");
     if slot != ~convert(usize, 0) {
@@ -64,7 +64,7 @@ fn syntax_host_state(world: void*): SyntaxHost* {
 // Called before frontend caches are cleared, after all readers/workers join.
 // A failed component transition leaves the buffers and borrowed context intact.
 export fn syntax_host_clear(world: void*): bool {
-    var owner = compiler_world_type_existing(world, CompilerSyntax());
+    var owner = compiler_world_type_existing(world, CompilerSyntax);
     if owner is null { return true; }
     var slot = entity_member_index(owner, "syntax.transport");
     if slot == ~convert(usize, 0) { return true; }
@@ -123,15 +123,15 @@ export fn syntax_host_seed(world: void*): u8* {
 
 export fn syntax_create(source: u8*, module: void*): SyntaxSession* {
     var world = compiler_host_world();
-    return syntax_session_open(world, syntax_host_state(world).environment, source, module, SyntaxFoundationBaseline());
+    return syntax_session_open(world, syntax_host_state(world).environment, source, module, SyntaxFoundationBaseline);
 }
 export fn syntax_create_foundation(source: u8*): SyntaxSession* {
     var world = compiler_host_world();
-    return syntax_session_open(world, syntax_host_state(world).environment, source, null, SyntaxBedrockBaseline());
+    return syntax_session_open(world, syntax_host_state(world).environment, source, null, SyntaxBedrockBaseline);
 }
 export fn syntax_create_bedrock(source: u8*): SyntaxSession* {
     var world = compiler_host_world();
-    return syntax_session_open(world, syntax_host_state(world).environment, source, null, SyntaxSeedBaseline());
+    return syntax_session_open(world, syntax_host_state(world).environment, source, null, SyntaxSeedBaseline);
 }
 export fn syntax_completion_create(source: u8*, mode: u32): SyntaxSession* {
     return mode == 2 ? syntax_create_bedrock(source) : mode == 1 ? syntax_create_foundation(source) : syntax_create(source, null);

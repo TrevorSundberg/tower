@@ -37,17 +37,17 @@ fn oracle_parser_decide(value: OracleParser*, ready: bool, id: u32, error: bool,
     if value.sequence {
         var position = value.evidence.length; var complete = position == runtime.sequence.length;
         var needs_input = !complete || !value.prefix;
-        if needs_input && !ready { return LRNeedInput(); }
+        if needs_input && !ready { return LRNeedInput; }
         ++value.work.actions; result.rule = runtime.sequence_rule;
         if complete {
-            if needs_input && (id != LRTokenEnd() || error) { return LRUnexpected(); }
+            if needs_input && (id != LRTokenEnd || error) { return LRUnexpected; }
             result.next = oracle_runtime_goto(runtime, 0, runtime.rules.data[result.rule].owner);
             result.start = value.forest.start; result.end = value.forest.start + value.forest.length;
-            return LRSequenceReduce();
+            return LRSequenceReduce;
         }
         var range = &runtime.sequence.data[position];
-        if error || id < range.first || id > range.last { return LRUnexpected(); }
-        result.next = runtime.sequence_states.data[position + 1]; result.pop = position; return LRSequenceShift();
+        if error || id < range.first || id > range.last { return LRUnexpected; }
+        result.next = runtime.sequence_states.data[position + 1]; result.pop = position; return LRSequenceShift;
     }
     var state = value.stack.data[value.stack.length - 1].state;
     var action: LRAction; fill(&action, 0, sizeof(LRAction)); action.rule = oracle_none(); action.state = oracle_none();
@@ -55,20 +55,20 @@ fn oracle_parser_decide(value: OracleParser*, ready: bool, id: u32, error: bool,
     if value.prefix && !ready { action.rule = runtime.states.data[state].reduction; found = action.rule != oracle_none(); }
     if found { ++value.work.actions; }
     else {
-        if !ready && !value.finishing { return LRNeedInput(); }
-        if value.finishing { id = LRTokenEnd(); error = false; }
+        if !ready && !value.finishing { return LRNeedInput; }
+        if value.finishing { id = LRTokenEnd; error = false; }
         if !error { ++value.work.actions; found = oracle_runtime_action(runtime, state, id, &action); }
         if !found && value.prefix && value.shifted && !value.finishing {
-            ++value.work.actions; found = oracle_runtime_action(runtime, state, LRTokenEnd(), &action);
-            if found { value.finishing = true; id = LRTokenEnd(); }
+            ++value.work.actions; found = oracle_runtime_action(runtime, state, LRTokenEnd, &action);
+            if found { value.finishing = true; id = LRTokenEnd; }
         }
     }
-    if !found { return LRUnexpected(); }
+    if !found { return LRUnexpected; }
     result.id = id; result.rule = action.rule; result.next = action.state;
-    if action.state != oracle_none() { return LRShift(); }
-    if action.rule == 0 { return value.prefix && !value.shifted ? LREmptyPrefix() : LRAccept(); }
+    if action.state != oracle_none() { return LRShift; }
+    if action.rule == 0 { return value.prefix && !value.shifted ? LREmptyPrefix : LRAccept; }
     var rule = &runtime.rules.data[action.rule];
-    if rule.count >= value.stack.length { return LRInvalid(); }
+    if rule.count >= value.stack.length { return LRInvalid; }
     result.pop = rule.count;
     if !ready || value.finishing { result.start = value.consumed; }
     result.end = result.start;
@@ -81,7 +81,7 @@ fn oracle_parser_decide(value: OracleParser*, ready: bool, id: u32, error: bool,
         }
     }
     result.next = oracle_runtime_goto(runtime, value.stack.data[begin - 1].state, rule.owner);
-    return result.next == oracle_none() ? LRInvalid() : LRReduce();
+    return result.next == oracle_none() ? LRInvalid : LRReduce;
 }
 fn oracle_parser_step(value: OracleParser*, ready: bool, id: u32, error: bool, start: usize, length: usize, result: LRStep*): u32 {
     fill(result, 0, sizeof(LRStep)); result.rule = oracle_none(); result.next = oracle_none();
@@ -90,7 +90,7 @@ fn oracle_parser_step(value: OracleParser*, ready: bool, id: u32, error: bool, s
     return result.kind;
 }
 fn oracle_parser_commit(value: OracleParser*, step: LRStep*, first: usize, last: usize): void {
-    if step.kind == LRSequenceShift() {
+    if step.kind == LRSequenceShift {
         utility_check(vector_push(&value.evidence, step.end != step.start), "LR oracle sequence evidence");
         var end = value.forest.start + value.forest.length;
         if step.end > end { end = step.end; }
@@ -102,7 +102,7 @@ fn oracle_parser_commit(value: OracleParser*, step: LRStep*, first: usize, last:
     var frame: LRFrame; frame.state = step.next; frame.first = first; frame.last = last;
     frame.start = step.start; frame.length = step.end - step.start;
     oracle_append(&value.stack, &frame);
-    if step.kind == LRShift() { value.consumed = step.end; value.shifted = true; ++value.work.shifts; }
+    if step.kind == LRShift { value.consumed = step.end; value.shifted = true; ++value.work.shifts; }
     else { ++value.work.reductions; value.work.popped += step.pop; value.sequence = false; }
 }
 fn oracle_parser_frame_count(value: OracleParser*): usize { return value.sequence ? value.evidence.length + 1 : value.stack.length; }

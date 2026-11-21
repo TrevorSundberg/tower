@@ -57,7 +57,7 @@ fn grammar_builder_child(builder: GrammarBuilder*, parent: void*, type: void*, k
 }
 
 export fn grammar_builder_rule(builder: GrammarBuilder*, name: u8*, generated: bool): void* {
-    var node = grammar_builder_child(builder, builder.root, builder.kinds.rule, CompilerParserRule());
+    var node = grammar_builder_child(builder, builder.root, builder.kinds.rule, CompilerParserRule);
     if builder.failed {
         return null;
     }
@@ -68,7 +68,7 @@ export fn grammar_builder_rule(builder: GrammarBuilder*, name: u8*, generated: b
 }
 
 export fn grammar_builder_reference(builder: GrammarBuilder*, parent: void*, name: u8*, capture: u8*): void {
-    var node = grammar_builder_child(builder, parent, builder.kinds.reference, CompilerParserReference());
+    var node = grammar_builder_child(builder, parent, builder.kinds.reference, CompilerParserReference);
     if builder.failed {
         return;
     }
@@ -79,7 +79,7 @@ export fn grammar_builder_reference(builder: GrammarBuilder*, parent: void*, nam
 }
 
 export fn grammar_builder_literal(builder: GrammarBuilder*, parent: void*, text: u8*): void {
-    var node = grammar_builder_child(builder, parent, builder.kinds.string, CompilerParserString());
+    var node = grammar_builder_child(builder, parent, builder.kinds.string, CompilerParserString);
     if builder.failed {
         return;
     }
@@ -88,7 +88,7 @@ export fn grammar_builder_literal(builder: GrammarBuilder*, parent: void*, text:
 }
 
 export fn grammar_builder_range(builder: GrammarBuilder*, parent: void*, first: u32, last: u32): void {
-    var node = grammar_builder_child(builder, parent, builder.kinds.range, CompilerParserRange());
+    var node = grammar_builder_child(builder, parent, builder.kinds.range, CompilerParserRange);
     if builder.failed {
         return;
     }

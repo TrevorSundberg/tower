@@ -15,7 +15,7 @@ import .library.vector;
 extern fn compiler_clone_tree(source: void*, limit: usize, copied: usize*): void*;
 
 fn generic_step(a: GenericAnalysis*, depth: usize): bool {
-    if depth >= InspectionDepthLimit() {
+    if depth >= InspectionDepthLimit {
         a.truncated = true;
         return false;
     }
@@ -215,7 +215,7 @@ fn generic_primitive(a: GenericAnalysis*, node: void*): void* {
     if value == null {
         return null;
     }
-    var primitive = value.kind == KType();
+    var primitive = value.kind == KType;
     primitive &&= value.type.record == null;
     if primitive {
         return found;
@@ -402,7 +402,7 @@ fn generic_element(a: GenericAnalysis*, info: GenericInfo*, source: GenericInfo*
         if !indexing {
             return;
         }
-        if type.scalar != SArray() {
+        if type.scalar != SArray {
             return;
         }
         var array = sem_get(type.record);
@@ -429,7 +429,7 @@ fn generic_expression_seed(a: GenericAnalysis*, source: void*, copy: void*, dept
         if info.resolved == null {
             return false;
         }
-        var value = sem_attach(copy, KOperand());
+        var value = sem_attach(copy, KOperand);
         var resolved = sem_get(info.resolved);
         sem_set_type(&value.type, &resolved.type);
         return true;

@@ -286,28 +286,28 @@ export fn format_grammar_preview(result: FormatResult*, entity: void*, syntax: v
     if n == null {
         return;
     }
-    if n.kind == SyntaxAlternative() {
+    if n.kind == SyntaxAlternative {
         format_alternative(&f, entity);
         format_precedence(&f, n);
         return;
     }
-    if n.kind == SyntaxTerm() {
+    if n.kind == SyntaxTerm {
         format_grammar_term(&f, entity);
         return;
     }
-    if n.kind == SyntaxToken() {
+    if n.kind == SyntaxToken {
         format_text(&f, "token ");
     }
-    if n.kind == SyntaxSkip() {
+    if n.kind == SyntaxSkip {
         format_text(&f, "skip ");
     }
     format_identifier(&f, &n.name);
-    if n.kind == SyntaxToken() {
+    if n.kind == SyntaxToken {
         format_text(&f, " = /");
         format_bytes(&f, &n.text);
         format_text(&f, "/");
     }
-    if n.kind == SyntaxSkip() {
+    if n.kind == SyntaxSkip {
         format_text(&f, " = /");
         format_bytes(&f, &n.text);
         format_text(&f, "/");

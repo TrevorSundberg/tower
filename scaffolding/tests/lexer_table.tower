@@ -10,14 +10,14 @@ extern fn tower_test_buffer_count(): usize;
 extern fn tower_test_buffer_fail_next(): void;
 extern fn tower_test_buffer_fail_after(count: usize): void;
 
-const TestNfaRange: u32 = 0;
-const TestNfaSplit: u32 = 1;
-const TestNfaAccept: u32 = 2;
-const TestAutomatonSuccess: u32 = 0;
-const TestAutomatonAllocation: u32 = 2;
-const TestAutomatonLimit: u32 = 3;
-const TestSymbolBase: u32 = 2097152;
-const TestSymbolLimit: u32 = 2097168;
+var TestNfaRange: u32 = 0;
+var TestNfaSplit: u32 = 1;
+var TestNfaAccept: u32 = 2;
+var TestAutomatonSuccess: u32 = 0;
+var TestAutomatonAllocation: u32 = 2;
+var TestAutomatonLimit: u32 = 3;
+var TestSymbolBase: u32 = 2097152;
+var TestSymbolLimit: u32 = 2097168;
 
 struct TestNfaState { kind: u32; first: u32; last: u32; out: i32; other: i32; negated: bool; }
 
@@ -36,7 +36,7 @@ fn test_nfa_closure(states: TestNfaState*, seeds: i32*, seed_count: usize, count
         utility_check(index < count, "NFA oracle state bounds");
         if visited[index] { continue; }
         visited[index] = true;
-        if states[index].kind == TestNfaSplit() {
+        if states[index].kind == TestNfaSplit {
             utility_check(remaining + 2 <= 96, "NFA oracle work bounds");
             pending[remaining++] = states[index].out;
             pending[remaining++] = states[index].other;
@@ -55,14 +55,14 @@ fn automaton_tests(): void {
     for (var failure: usize = 0; failure < 64 && !success; ++failure) {
         var nfa = automaton_create(128);
         var table = lex_table_create();
-        utility_check(automaton_add(nfa, TestNfaRange(), 1, -1, false) == 0, "NFA add range");
+        utility_check(automaton_add(nfa, TestNfaRange, 1, -1, false) == 0, "NFA add range");
         utility_check(automaton_range(nfa, 0, 97, 122), "NFA range bounds");
-        utility_check(automaton_add(nfa, TestNfaAccept(), -1, -1, false) == 1, "NFA add accept");
+        utility_check(automaton_add(nfa, TestNfaAccept, -1, -1, false) == 1, "NFA add accept");
         tower_test_buffer_fail_after(failure);
         var status = automaton_compile(nfa, 0, 1, table, true);
         tower_test_buffer_fail_after(~convert(usize, 0));
-        utility_check(status == TestAutomatonSuccess() || status == TestAutomatonAllocation(), "NFA compile failure status");
-        success = status == TestAutomatonSuccess();
+        utility_check(status == TestAutomatonSuccess || status == TestAutomatonAllocation, "NFA compile failure status");
+        success = status == TestAutomatonSuccess;
         lex_table_destroy(table);
         automaton_destroy(nfa);
         utility_check(tower_test_buffer_count() == baseline, "NFA compile failure cleanup");
@@ -73,24 +73,24 @@ fn automaton_tests(): void {
     for (var trial: usize = 0; trial < 150; ++trial) {
         var count = 2 + test_random(&random) % 30;
         var states: TestNfaState[32];
-        var nfa = automaton_create(TestSymbolLimit());
+        var nfa = automaton_create(TestSymbolLimit);
         var table = lex_table_create();
         for (var index: u32 = 0; index < count; ++index) {
             var state = &states[index];
             state.kind = test_random(&random) % 2;
-            state.first = TestSymbolBase() + test_random(&random) % 16;
+            state.first = TestSymbolBase + test_random(&random) % 16;
             state.out = convert(i32, test_random(&random) % count);
             state.other = convert(i32, test_random(&random) % count);
             state.negated = test_random(&random) % 2 != 0;
-            if index == count - 1 { state.kind = TestNfaAccept(); }
+            if index == count - 1 { state.kind = TestNfaAccept; }
             var last = state.first + test_random(&random) % 4;
-            state.last = last < TestSymbolLimit() - 1 ? last : TestSymbolLimit() - 1;
+            state.last = last < TestSymbolLimit - 1 ? last : TestSymbolLimit - 1;
             utility_check(automaton_add(nfa, state.kind, state.out, state.other, state.negated) == convert(i32, index), "NFA random add");
-            if state.kind == TestNfaRange() { utility_check(automaton_range(nfa, convert(i32, index), state.first, state.last), "NFA random range"); }
+            if state.kind == TestNfaRange { utility_check(automaton_range(nfa, convert(i32, index), state.first, state.last), "NFA random range"); }
         }
         var status = automaton_compile(nfa, 0, convert(usize, count - 1), table, false);
-        utility_check(status == TestAutomatonSuccess() || status == TestAutomatonLimit(), "NFA random compile status");
-        if status == TestAutomatonSuccess() {
+        utility_check(status == TestAutomatonSuccess || status == TestAutomatonLimit, "NFA random compile status");
+        if status == TestAutomatonSuccess {
             for (var sample: usize = 0; sample < 25; ++sample) {
                 var active: bool[32];
                 var seeds: i32[32];
@@ -99,11 +99,11 @@ fn automaton_tests(): void {
                 var state: i32 = 0;
                 utility_check(lex_table_accepts(table, 0) == active[count - 1], "NFA initial acceptance");
                 for (var step: usize = 0; step < 20; ++step) {
-                    var symbol = sample % 2 != 0 ? TestSymbolBase() + test_random(&random) % 16 : test_random(&random) % 32;
+                    var symbol = sample % 2 != 0 ? TestSymbolBase + test_random(&random) % 16 : test_random(&random) % 32;
                     var seed_count: usize = 0;
                     for (var index: u32 = 0; index < count; ++index) {
                         var item = &states[index];
-                        if active[index] && item.kind == TestNfaRange() && ((symbol >= item.first && symbol <= item.last) != item.negated) { seeds[seed_count++] = item.out; }
+                        if active[index] && item.kind == TestNfaRange && ((symbol >= item.first && symbol <= item.last) != item.negated) { seeds[seed_count++] = item.out; }
                     }
                     test_nfa_closure(&states[0], &seeds[0], seed_count, convert(usize, count), &active[0]);
                     if state >= 0 { state = lex_table_step(table, convert(usize, state), symbol); }
@@ -112,7 +112,7 @@ fn automaton_tests(): void {
                     utility_check((state < 0) == empty, "NFA direct transition comparison");
                     utility_check(lex_table_accepts(table, state < 0 ? ~convert(usize, 0) : convert(usize, state)) == active[count - 1], "NFA direct acceptance comparison");
                 }
-                utility_check(lex_table_step(table, 0, TestSymbolLimit()) == -1, "NFA rejects symbol beyond alphabet");
+                utility_check(lex_table_step(table, 0, TestSymbolLimit) == -1, "NFA rejects symbol beyond alphabet");
             }
         }
         lex_table_destroy(table);

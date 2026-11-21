@@ -324,7 +324,7 @@ fn lr_row_index(row: LRRow*): bool {
         var single = action.first == action.last;
         if single {
             singles++;
-            if action.first == LRTokenEnd() {
+            if action.first == LRTokenEnd {
                 row.reduction = action.rule;
             }
         }
@@ -659,7 +659,7 @@ export fn lr_runtime_specialize(value: LRRuntime*, source: LRStates*): void {
         if invalid {
             return;
         }
-        invalid = symbol.last >= LRTokenPropagation();
+        invalid = symbol.last >= LRTokenPropagation;
         if invalid {
             return;
         }

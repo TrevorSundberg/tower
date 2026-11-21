@@ -4,7 +4,7 @@ import utility_checks;
 // Reproduce the retired std::mt19937 fixtures exactly, including draw order.
 // This is test input generation, independent of the lexer/automaton services.
 struct TestRandom { words: u32[624]; index: usize; }
-const TestRandomTwist: u32 = 2567483615;
+var TestRandomTwist: u32 = 2567483615;
 
 fn test_random_init(state: TestRandom*, seed: u32): void {
     state.words[0] = seed;
@@ -19,7 +19,7 @@ fn test_random(state: TestRandom*): u32 {
     if state.index == 624 {
         for (var index: usize = 0; index < 624; ++index) {
             var mixed = (state.words[index] & 2147483648) | (state.words[(index + 1) % 624] & 2147483647);
-            state.words[index] = state.words[(index + 397) % 624] ^ (mixed >> 1) ^ ((mixed & 1) != 0 ? TestRandomTwist() : convert(u32, 0));
+            state.words[index] = state.words[(index + 397) % 624] ^ (mixed >> 1) ^ ((mixed & 1) != 0 ? TestRandomTwist : convert(u32, 0));
         }
         state.index = 0;
     }

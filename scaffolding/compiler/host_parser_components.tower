@@ -8,43 +8,43 @@ import .library.entities;
 // Compatibility symbols over the world-owned Tower parser components.
 
 export fn parser_rule_get_type(): Entity* {
-    return compiler_host_type(CompilerParserRule());
+    return compiler_host_type(CompilerParserRule);
 }
 
 export fn parser_rule_create(owner: Entity*): ParserRuleData* {
-    return bits(ParserRuleData*, compiler_host_component(owner, CompilerParserRule()));
+    return bits(ParserRuleData*, compiler_host_component(owner, CompilerParserRule));
 }
 
 export fn parser_reference_get_type(): Entity* {
-    return compiler_host_type(CompilerParserReference());
+    return compiler_host_type(CompilerParserReference);
 }
 
 export fn parser_reference_create(owner: Entity*): ParserReferenceData* {
-    return bits(ParserReferenceData*, compiler_host_component(owner, CompilerParserReference()));
+    return bits(ParserReferenceData*, compiler_host_component(owner, CompilerParserReference));
 }
 
 export fn parser_string_get_type(): Entity* {
-    return compiler_host_type(CompilerParserString());
+    return compiler_host_type(CompilerParserString);
 }
 
 export fn parser_string_create(owner: Entity*): ParserStringData* {
-    return bits(ParserStringData*, compiler_host_component(owner, CompilerParserString()));
+    return bits(ParserStringData*, compiler_host_component(owner, CompilerParserString));
 }
 
 export fn parser_range_get_type(): Entity* {
-    return compiler_host_type(CompilerParserRange());
+    return compiler_host_type(CompilerParserRange);
 }
 
 export fn parser_range_create(owner: Entity*): ParserRangeData* {
-    return bits(ParserRangeData*, compiler_host_component(owner, CompilerParserRange()));
+    return bits(ParserRangeData*, compiler_host_component(owner, CompilerParserRange));
 }
 
 export fn parser_match_get_type(): Entity* {
-    return compiler_host_type(CompilerParserMatch());
+    return compiler_host_type(CompilerParserMatch);
 }
 
 export fn parser_match_create(owner: Entity*): ParserMatchData* {
-    return bits(ParserMatchData*, compiler_host_component(owner, CompilerParserMatch()));
+    return bits(ParserMatchData*, compiler_host_component(owner, CompilerParserMatch));
 }
 
 extern fn node_rule_name(value: ParserRuleData*): u8*;

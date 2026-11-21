@@ -89,7 +89,7 @@ fn world_session_install(world: void*, env: void*, text: u8*, foundation: bool):
 fn world_session_prepare(world: void*, env: void*): void {
     var out: FormatResult = default;
     defer format_dispose(&out);
-    format_entity(&out, frontend_world_bedrock(world), compiler_world_type(world, CompilerSyntax()), null, compiler_world_type(world, CompilerParserMatch()));
+    format_entity(&out, frontend_world_bedrock(world), compiler_world_type(world, CompilerSyntax), null, compiler_world_type(world, CompilerParserMatch));
     world_session_check(!out.failed, "seed formatting");
     world_session_install(world, env, out.text.data, false);
     world_session_install(world, env, "parse Statement = 'base';", true);
@@ -167,7 +167,7 @@ fn frontend_session_world_tests(): void {
     var old = sa.inputs.source;
     syntax_reset(bits(void*, sa), "bad", mb);
     world_session_check(sa.inputs.source == old && syntax_get_error(bits(void*, sa))[0] != 0, "foreign reset isolation");
-    var bad = syntax_session_open(b, first, "bad", null, SyntaxFoundationBaseline());
+    var bad = syntax_session_open(b, first, "bad", null, SyntaxFoundationBaseline);
     world_session_check(syntax_get_error(bits(void*, bad))[0] != 0, "foreign session rejection");
     syntax_destroy(bits(void*, bad));
     frontend_module_destroy(ma);

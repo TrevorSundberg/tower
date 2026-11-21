@@ -227,10 +227,10 @@ fn bi_call(c: BackendImport*, instruction: void*): void* {
                 }
                 bit = bit * 2;
             }
-            var low = bi_binary(c, OAnd(), value, bi_const(c, scalar, mask), scalar);
-            var high = bi_binary(c, ODiv(), value, bi_const(c, scalar, bi_pow2(group)), scalar);
-            high = bi_binary(c, OAnd(), high, bi_const(c, scalar, mask), scalar);
-            value = bi_binary(c, OAdd(), low, high, scalar);
+            var low = bi_binary(c, OAnd, value, bi_const(c, scalar, mask), scalar);
+            var high = bi_binary(c, ODiv, value, bi_const(c, scalar, bi_pow2(group)), scalar);
+            high = bi_binary(c, OAnd, high, bi_const(c, scalar, mask), scalar);
+            value = bi_binary(c, OAdd, low, high, scalar);
             group = group * 2;
         }
         return value;

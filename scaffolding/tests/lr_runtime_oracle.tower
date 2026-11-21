@@ -113,7 +113,7 @@ fn oracle_runtime_create(source: OracleStates*, current_contract: bool): OracleR
         }
         if !shared { ++rows; }
         foreach (var &action in &state.actions) {
-            if action.first == LRTokenEnd() && action.last == LRTokenEnd() { state.reduction = action.rule; }
+            if action.first == LRTokenEnd && action.last == LRTokenEnd { state.reduction = action.rule; }
         }
         foreach (var &action in &state.actions) {
             if action.rule != state.reduction { state.reduction = oracle_none(); }
@@ -171,7 +171,7 @@ fn oracle_runtime_specialize(value: OracleRuntime*, source: OracleStates*): void
     if rule.count == 0 || rule.count > 4096 { return; }
     for (var index: usize = 0; index < rule.count; ++index) {
         var symbol = &source.analysis.symbols[rule.begin + index];
-        if symbol.nonterminal != oracle_none() || symbol.last >= LRTokenPropagation() { return; }
+        if symbol.nonterminal != oracle_none() || symbol.last >= LRTokenPropagation { return; }
     }
     var sequence: vector(SymbolRange); vector_init(&sequence); defer vector_dispose(&sequence);
     var states: vector(usize); vector_init(&states); defer vector_dispose(&states);

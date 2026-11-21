@@ -382,7 +382,7 @@ fn foreign_microsoft(m: ForeignName*): void {
         foreign_ms_name(m, m.name);
     }
     if m.object_symbol {
-        if m.profile == foreign_windows_arm64ec() {
+        if m.profile == foreign_windows_arm64ec {
             backend_text(&m.text, "$$h");
         }
     }

@@ -23,7 +23,7 @@ extern fn entity_component_type(component: void*): void*;
 // Explain the concept using checked metadata, without repeating the signature.
 fn language_function_description(value: FoundationNode*): u8* {
     var inputs = value.parameters.length != 0;
-    var no_result = value.type.scalar == SVoid();
+    var no_result = value.type.scalar == SVoid;
     no_result &&= value.type.pointers == 0;
     if inputs {
         if no_result {
@@ -38,23 +38,23 @@ fn language_function_description(value: FoundationNode*): u8* {
 }
 
 fn language_declaration_description(value: FoundationNode*): u8* {
-    var selected = value.kind == KFunction();
+    var selected = value.kind == KFunction;
     if selected {
         return language_function_description(value);
     }
-    selected = value.kind == KDeclare();
+    selected = value.kind == KDeclare;
     if selected {
         return "A named place to store a value. You can read it or change it later by assigning a new value.";
     }
-    selected = value.kind == KParameter();
+    selected = value.kind == KParameter;
     if selected {
         return "A named input to the function. Each call supplies a value for this parameter; the function uses this name to read that value.";
     }
-    selected = value.kind == KFieldDeclaration();
+    selected = value.kind == KFieldDeclaration;
     if selected {
         return "A named part of a struct. Each value of that struct has its own copy of this field, which you access with a dot.";
     }
-    selected = value.kind == KType();
+    selected = value.kind == KType;
     if selected {
         return language_type_description(value);
     }
@@ -75,12 +75,12 @@ fn language_foundation_present(node: void*, candidate: LanguageCandidate*): void
         }
     }
     var kind = value.kind;
-    var selected = kind == KProgram();
+    var selected = kind == KProgram;
     if selected {
         candidate.structural = true;
         candidate.description = "Top-level code defines names for the file. Statements outside functions run in source order.";
     }
-    selected = kind == KAssign();
+    selected = kind == KAssign;
     if selected {
         candidate.subject = value.target;
         var target = sem_get(value.target);
@@ -91,7 +91,7 @@ fn language_foundation_present(node: void*, candidate: LanguageCandidate*): void
         }
         candidate.description = "Changes the value on the left to the value on the right. The previous value is overwritten.";
     }
-    selected = kind == KLoad();
+    selected = kind == KLoad;
     if selected {
         candidate.description = "A pointer holds a memory address. This reads the value stored at that address.";
         var owner = sem_get(sem_parent(node));
@@ -101,11 +101,11 @@ fn language_foundation_present(node: void*, candidate: LanguageCandidate*): void
             candidate.description = "A pointer holds a memory address. This changes the value at that address, not the address held by the pointer.";
         }
     }
-    selected = kind == KAddress();
+    selected = kind == KAddress;
     if selected {
         candidate.description = "Produces a pointer: the memory address of this value. Other code can use that address to read or change the value.";
     }
-    selected = kind == KReturn();
+    selected = kind == KReturn;
     if selected {
         candidate.structural = true;
         candidate.description = "Ends this function call and goes back to the code that called it.";
@@ -119,7 +119,7 @@ fn language_foundation_present(node: void*, candidate: LanguageCandidate*): void
             }
             var owner = sem_get(ancestor);
             var function = owner != null;
-            function &&= owner.kind == KFunction();
+            function &&= owner.kind == KFunction;
             if function {
                 candidate.subject = ancestor;
                 candidate.structural = false;
@@ -128,14 +128,14 @@ fn language_foundation_present(node: void*, candidate: LanguageCandidate*): void
             ancestor = sem_parent(ancestor);
         }
     }
-    selected = kind == KBlock();
+    selected = kind == KBlock;
     if selected {
         candidate.structural = true;
         candidate.description = "Groups statements together. Names declared inside this block can be used here, but not outside it.";
         var parent = sem_parent(node);
         var owner = sem_get(parent);
         var body = owner != null;
-        body &&= owner.kind == KFunction();
+        body &&= owner.kind == KFunction;
         body &&= owner.body == node;
         if body {
             candidate.subject = parent;
@@ -143,36 +143,36 @@ fn language_foundation_present(node: void*, candidate: LanguageCandidate*): void
             candidate.description = "Contains the statements run when this function is called. Variables created here belong to this call.";
         }
     }
-    selected = kind == KCall();
+    selected = kind == KCall;
     if selected {
         candidate.description = "Runs the function's code. Values supplied in parentheses become its inputs; when it finishes, execution continues here.";
     }
-    selected = kind == KIf();
+    selected = kind == KIf;
     if selected {
         candidate.structural = true;
         candidate.description = "Uses a true/false condition to choose which block runs. The else block, if present, runs when the condition is false.";
     }
-    selected = kind == KLoop();
+    selected = kind == KLoop;
     if selected {
         candidate.structural = true;
         candidate.description = "Runs this block repeatedly. break leaves the loop; continue starts its next repetition.";
     }
-    selected = kind == KBreak();
+    selected = kind == KBreak;
     if selected {
         candidate.structural = true;
         candidate.description = "Stops the nearest loop and continues with the code after it.";
     }
-    selected = kind == KContinue();
+    selected = kind == KContinue;
     if selected {
         candidate.structural = true;
         candidate.description = "Skips the rest of the nearest loop's current repetition and starts the next one.";
     }
-    selected = kind == KLabel();
+    selected = kind == KLabel;
     if selected {
         candidate.structural = true;
         candidate.description = "Marks a place in this function that jump can continue from.";
     }
-    selected = kind == KJump();
+    selected = kind == KJump;
     if selected {
         candidate.structural = true;
         candidate.description = "Continues at the named label instead of running the next statement.";
@@ -183,7 +183,7 @@ fn language_type_description(value: FoundationNode*): u8* {
     if value.type.pointers != 0 {
         return "A memory address that can be used to access a value.";
     }
-    if value.type.scalar == SBool() {
+    if value.type.scalar == SBool {
         return "A true or false value.";
     }
     if semantic_integer(&value.type) {
@@ -192,10 +192,10 @@ fn language_type_description(value: FoundationNode*): u8* {
         }
         return "A whole number that is zero or positive.";
     }
-    if value.type.scalar == SStruct() {
+    if value.type.scalar == SStruct {
         return "A type that groups named fields.";
     }
-    if value.type.scalar == SArray() {
+    if value.type.scalar == SArray {
         return "A fixed number of elements stored next to each other.";
     }
     return "No value; used for functions that return no result.";
@@ -233,14 +233,14 @@ fn language_component_present(q: CompletionQuery*, node: void*, component: void*
         return LanguagePresentation.Generic;
     }
     var data = entity_component_data(component);
-    if data is not null && data == compiler_node_get(node, CompilerFoundation()) {
+    if data is not null && data == compiler_node_get(node, CompilerFoundation) {
         if checked {
             language_foundation_present(node, candidate);
             return LanguagePresentation.Foundation;
         }
         return LanguagePresentation.None;
     }
-    var grammar = data is not null && data == compiler_node_get(node, CompilerSyntax());
+    var grammar = data is not null && data == compiler_node_get(node, CompilerSyntax);
     if grammar {
         candidate.grammar = true;
         return LanguagePresentation.Grammar;
@@ -252,55 +252,55 @@ fn language_kind(value: FoundationNode*): u8* {
     if value == null {
         return "syntax";
     }
-    if value.kind == SurfaceSelect() {
+    if value.kind == SurfaceSelect {
         return "conditional expression";
     }
-    if value.kind == SurfaceAnd() || value.kind == SurfaceOr() {
+    if value.kind == SurfaceAnd || value.kind == SurfaceOr {
         return "logical expression";
     }
-    if value.kind == SurfaceAssign() {
+    if value.kind == SurfaceAssign {
         return "assignment";
     }
-    if value.kind == SurfaceModify() {
+    if value.kind == SurfaceModify {
         return "increment or decrement";
     }
-    if value.kind == SurfaceComma() {
+    if value.kind == SurfaceComma {
         return "comma expression";
     }
-    if value.kind == SurfaceShift() {
+    if value.kind == SurfaceShift {
         return "shift";
     }
-    if value.kind == SurfaceCompare() {
+    if value.kind == SurfaceCompare {
         return "three-way comparison";
     }
-    if value.kind == SurfaceCoalesce() {
+    if value.kind == SurfaceCoalesce {
         return "null coalescing";
     }
     if sem_surface_optional(value) {
         return "null-conditional access";
     }
-    if value.kind == KFunction() {
+    if value.kind == KFunction {
         return "function";
     }
-    if value.kind == KParameter() {
+    if value.kind == KParameter {
         return "parameter";
     }
-    if value.kind == KDeclare() {
+    if value.kind == KDeclare {
         if value.global {
             return "global variable";
         }
         return "local variable";
     }
-    if value.kind == KFieldDeclaration() {
+    if value.kind == KFieldDeclaration {
         return "field";
     }
-    if value.kind == KType() {
+    if value.kind == KType {
         return "type";
     }
-    if value.kind == KCall() {
+    if value.kind == KCall {
         return "call";
     }
-    if value.kind == KOperand() {
+    if value.kind == KOperand {
         var member = value.constant;
         member &&= value.type.pointers == 0;
         member &&= semantic_enum(&value.type);
@@ -309,16 +309,16 @@ fn language_kind(value: FoundationNode*): u8* {
         }
         return "value";
     }
-    if value.kind == KField() {
+    if value.kind == KField {
         return "field access";
     }
-    if value.kind == KIndex() {
+    if value.kind == KIndex {
         return "index";
     }
-    if value.kind == KLoad() {
+    if value.kind == KLoad {
         return "pointer dereference";
     }
-    if value.kind == KAddress() {
+    if value.kind == KAddress {
         return "address of";
     }
     return "foundation operation";

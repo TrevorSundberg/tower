@@ -22,8 +22,8 @@ extern fn interpreter_invocation_dispose(invocation: IMInvocation*): void;
 extern fn entity_view_open(anchor: void*): void*;
 extern fn entity_view_close(view: void*): void;
 
-const EvaluationQuery: u32 = 2;
-const EvaluationFuel: u64 = 1000000;
+var EvaluationQuery: u32 = 2;
+var EvaluationFuel: u64 = 1000000;
 
 struct SemanticEvaluation {
     kernel: CompilerKernel;
@@ -97,9 +97,9 @@ fn sem_evaluation_begin(c: SemanticContext*): void {
 }
 
 fn sem_evaluation_request(c: SemanticContext*, result: SemanticEvaluation*): void {
-    var id = work_request(&c.queries, result.subject, EvaluationQuery(), 0);
+    var id = work_request(&c.queries, result.subject, EvaluationQuery, 0);
     sem_require(id != 0);
-    var preparation = work_request(&c.queries, result.subject, EvaluationPrepareQuery(), 0);
+    var preparation = work_request(&c.queries, result.subject, EvaluationPrepareQuery, 0);
     sem_require(preparation != 0 && work_depend(&c.queries, id, preparation));
     var body = work_find(&c.queries, result.owner, convert(u32, SemanticQuery.Body), 0);
     if body != 0 { sem_require(work_depend(&c.queries, preparation, body)); }
@@ -122,7 +122,7 @@ fn sem_comptime(c: SemanticContext*, n: void*, expected_type: FoundationType*): 
     c.evaluation_depth--;
     if !sem_ok(c) || expression == null { return n; }
     var input = sem_get(expression);
-    var value = sem_node(c, n, KOperand());
+    var value = sem_node(c, n, KOperand);
     sem_set_type(&value.type, &input.type);
     value.constant = true;
     // This typed placeholder cannot leave compilation. The query result replaces
@@ -133,12 +133,12 @@ fn sem_comptime(c: SemanticContext*, n: void*, expected_type: FoundationType*): 
         var underlying = sem_type_copy(c, &input.type);
         underlying.record = null;
         literal = sem_surface_constant(c, n, underlying, 0);
-        value.kind = KConvert();
+        value.kind = KConvert;
         value.constant = false;
         value.value = literal;
     }
     if c.unevaluated { return n; }
-    if input.type.pointers != 0 || semantic_aggregate(&input.type) || input.type.scalar == SVoid() {
+    if input.type.pointers != 0 || semantic_aggregate(&input.type) || input.type.scalar == SVoid {
         sem_fail(c, n, "Compile-time results currently require an integer or bool value");
         return n;
     }
@@ -187,7 +187,7 @@ fn sem_evaluation_available(c: SemanticContext*, result: SemanticEvaluation*): b
         var entity = scan.data[scan.length];
         var value = sem_get(entity);
         if value == null { continue; }
-        if value.kind == KOperand() && value.binding != null && !value.constant {
+        if value.kind == KOperand && value.binding != null && !value.constant {
             var input = c.value_inputs == null ? null : entity_component_get(value.binding, c.value_inputs);
             if input == null {
                 if result.inferred { result.unavailable = true; }
@@ -199,7 +199,7 @@ fn sem_evaluation_available(c: SemanticContext*, result: SemanticEvaluation*): b
         if value.right != null { sem_push(scan, value.right); }
         if value.value != null { sem_push(scan, value.value); }
         if value.target != null { sem_push(scan, value.target); }
-        if value.kind == KCall() || value.kind == SurfaceInitializer() {
+        if value.kind == KCall || value.kind == SurfaceInitializer {
             var index: usize = 0;
             while index < value.items.length {
                 sem_push(scan, value.items.data[index]);
@@ -213,7 +213,7 @@ fn sem_evaluation_available(c: SemanticContext*, result: SemanticEvaluation*): b
 
 fn sem_evaluation_function(c: SemanticContext*, result: SemanticEvaluation*): void* {
     if result.function == null {
-        result.function = sem_control_node(c, result.subject, KFunction());
+        result.function = sem_control_node(c, result.subject, KFunction);
         sem_set_type(&sem_get(result.function).type, &sem_get(result.subject).type);
     }
     return result.function;
@@ -244,8 +244,8 @@ fn sem_evaluation_prepare(c: SemanticContext*, result: SemanticEvaluation*): voi
     if !sem_evaluation_available(c, result) { return; }
     var function = sem_evaluation_function(c, result);
     var definition = sem_get(function);
-    definition.body = sem_control_node(c, function, KBlock());
-    var returned = sem_control_node(c, definition.body, KReturn());
+    definition.body = sem_control_node(c, function, KBlock);
+    var returned = sem_control_node(c, definition.body, KReturn);
     sem_get(returned).value = result.expression;
     sem_push(&sem_get(definition.body).items, returned);
     var previous = c.current;
@@ -279,7 +279,7 @@ fn sem_evaluations(c: SemanticContext*): void {
     while index < c.evaluation_jobs.length && sem_ok(c) {
         var result = bits(SemanticEvaluation*, c.evaluation_jobs.data[index]);
         if result.requested {
-            sem_require(work_demand(&c.queries, work_request(&c.queries, result.subject, EvaluationQuery(), 0)));
+            sem_require(work_demand(&c.queries, work_request(&c.queries, result.subject, EvaluationQuery, 0)));
         }
         index++;
     }
@@ -291,12 +291,12 @@ fn sem_evaluations(c: SemanticContext*): void {
     loop {
         var count: usize = 0;
         var ticket: WorkTicket;
-        while count < c.workers.count && work_take_query(&c.queries, &ticket, EvaluationQuery()) {
+        while count < c.workers.count && work_take_query(&c.queries, &ticket, EvaluationQuery) {
             var task = work_task(&c.queries, ticket.task);
-            sem_require(task.query == EvaluationQuery());
+            sem_require(task.query == EvaluationQuery);
             var result = sem_evaluation_get(c, task.subject);
             sem_require(result != null);
-            copy(&result.ticket, &ticket, sizeof(WorkTicket));
+            result.ticket = ticket;
             if result.unavailable {
                 result.ready.failed = true;
                 result.ready.ready = true;
@@ -304,7 +304,7 @@ fn sem_evaluations(c: SemanticContext*): void {
                 continue;
             }
             if !result.started {
-                interpreter_invocation_init(&result.invocation, result.function, convert(usize, c.program.pointer_bytes), null, 0, true, EvaluationFuel());
+                interpreter_invocation_init(&result.invocation, result.function, convert(usize, c.program.pointer_bytes), null, 0, true, EvaluationFuel);
                 result.invocation.context.dependency_kind = c.evaluation_ready;
                 result.invocation.context.value_inputs = c.value_inputs;
                 result.invocation.context.require_relocatable = result.inferred;
@@ -343,7 +343,7 @@ fn sem_evaluations(c: SemanticContext*): void {
                 } else {
                     var waiting = invocation.context.waiting;
                     if waiting != null {
-                        var dependency = work_request(&c.queries, waiting, EvaluationQuery(), 0);
+                        var dependency = work_request(&c.queries, waiting, EvaluationQuery, 0);
                         sem_require(work_suspend(&c.queries, &result.ticket, dependency));
                     } else {
                         sem_require(work_yield(&c.queries, &result.ticket));
@@ -358,7 +358,7 @@ fn sem_evaluations(c: SemanticContext*): void {
     index = 0;
     while index < c.queries.tasks.length && sem_ok(c) {
         var task = work_task(&c.queries, index + 1);
-        if task.query == EvaluationQuery() && task.demanded && task.state != WorkState.Succeeded {
+        if task.query == EvaluationQuery && task.demanded && task.state != WorkState.Succeeded {
             var result = sem_evaluation_get(c, task.subject);
             if result != null && result.inferred {
                 result.ready.failed = true;

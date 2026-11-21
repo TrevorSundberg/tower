@@ -32,14 +32,14 @@ extern fn tower_test_buffer_fail_after(count: usize): void;
 extern fn strlen(text: u8*): usize;
 extern fn strcmp(left: u8*, right: u8*): i32;
 
-const TestIdentifier: u32 = 10;
-const TestContextual: u32 = 11;
-const TestContextualTrivia: u32 = 13;
-const TestFor: u32 = 20;
-const TestFn: u32 = 21;
-const TestPlus: u32 = 22;
-const TestPlusPlus: u32 = 23;
-const TestSnow: u32 = 24;
+var TestIdentifier: u32 = 10;
+var TestContextual: u32 = 11;
+var TestContextualTrivia: u32 = 13;
+var TestFor: u32 = 20;
+var TestFn: u32 = 21;
+var TestPlus: u32 = 22;
+var TestPlusPlus: u32 = 23;
+var TestSnow: u32 = 24;
 
 fn lexicon_test_runtime(accepted: u32*, count: usize): void* {
     utility_check(count <= 3, "Lexicon fixture rule capacity");
@@ -134,7 +134,7 @@ fn lexicon_test_differential(world: void*): void {
         utility_check(patterns[index] is not null, "Lexicon fixture regex compiles");
         var skipped = index == 2 || index == 3;
         var contextual = index == 1 || index == 3;
-        var id = TestIdentifier() + convert(u32, index);
+        var id = TestIdentifier + convert(u32, index);
         utility_check(lexicon_token(actual, patterns[index].table, id, styles[index], skipped, contextual, index == 0), "Lexicon token registration");
         oracle_lexicon_token(&reference, patterns[index].table, id, styles[index], skipped, contextual, index == 0);
     }
@@ -148,7 +148,7 @@ fn lexicon_test_differential(world: void*): void {
     literals[3] = "++"; literals[4] = "雪";
     for (var index: usize = 0; index < 5; ++index) {
         var length = strlen(literals[index]);
-        var id = TestFor() + convert(u32, index);
+        var id = TestFor + convert(u32, index);
         utility_check(lexicon_literal(actual, literals[index], length, id, index == 0), "Lexicon literal registration");
         oracle_lexicon_literal(&reference, literals[index], length, id, index == 0);
         if index < 2 {
@@ -160,11 +160,11 @@ fn lexicon_test_differential(world: void*): void {
     fill(&contexts[0], 0, sizeof(void*) * 6);
     defer lexicon_test_contexts_release(&contexts[0]);
     var accepted: u32[3];
-    accepted[0] = TestIdentifier(); contexts[1] = lexicon_test_runtime(&accepted[0], 1);
-    accepted[0] = TestContextual(); contexts[2] = lexicon_test_runtime(&accepted[0], 1);
-    accepted[0] = TestIdentifier(); accepted[1] = TestContextual(); contexts[3] = lexicon_test_runtime(&accepted[0], 2);
-    accepted[0] = TestContextualTrivia(); accepted[1] = TestPlus(); contexts[4] = lexicon_test_runtime(&accepted[0], 2);
-    accepted[0] = TestFn(); accepted[1] = TestPlusPlus(); accepted[2] = TestSnow(); contexts[5] = lexicon_test_runtime(&accepted[0], 3);
+    accepted[0] = TestIdentifier; contexts[1] = lexicon_test_runtime(&accepted[0], 1);
+    accepted[0] = TestContextual; contexts[2] = lexicon_test_runtime(&accepted[0], 1);
+    accepted[0] = TestIdentifier; accepted[1] = TestContextual; contexts[3] = lexicon_test_runtime(&accepted[0], 2);
+    accepted[0] = TestContextualTrivia; accepted[1] = TestPlus; contexts[4] = lexicon_test_runtime(&accepted[0], 2);
+    accepted[0] = TestFn; accepted[1] = TestPlusPlus; accepted[2] = TestSnow; contexts[5] = lexicon_test_runtime(&accepted[0], 3);
     var inputs: u8*[15];
     inputs[0] = ""; inputs[1] = "for"; inputs[2] = "forage"; inputs[3] = "fn";
     inputs[4] = "fn_name"; inputs[5] = "name"; inputs[6] = "name_"; inputs[7] = "123";
@@ -187,17 +187,17 @@ fn lexicon_test_differential(world: void*): void {
     }
     var choice: TestLexiconChoice;
     lexicon_choose(actual, "forage", 6, 0, false, null, 0, &choice);
-    utility_check(choice.id == TestIdentifier() && choice.length == 6, "Lexicon longest identifier wins over keyword prefix");
+    utility_check(choice.id == TestIdentifier && choice.length == 6, "Lexicon longest identifier wins over keyword prefix");
     lexicon_choose(actual, "name", 4, 0, false, contexts[2], 0, &choice);
-    utility_check(choice.id == TestContextual(), "Lexicon accepted contextual token wins tie");
+    utility_check(choice.id == TestContextual, "Lexicon accepted contextual token wins tie");
     lexicon_choose(actual, "name", 4, 0, false, contexts[3], 0, &choice);
-    utility_check(choice.id == TestIdentifier(), "Lexicon accepted token retains declaration priority");
+    utility_check(choice.id == TestIdentifier, "Lexicon accepted token retains declaration priority");
     lexicon_choose(actual, "for", 3, 0, true, null, 0, &choice);
-    utility_check(choice.id == TestFor() && strcmp(choice.style, "keyword") == 0, "Lexicon declaration keyword wins tie");
+    utility_check(choice.id == TestFor && strcmp(choice.style, "keyword") == 0, "Lexicon declaration keyword wins tie");
     lexicon_choose(actual, "fn", 2, 0, true, null, 0, &choice);
-    utility_check(choice.id == TestIdentifier(), "Lexicon ordinary literal needs declaration context");
+    utility_check(choice.id == TestIdentifier, "Lexicon ordinary literal needs declaration context");
     lexicon_choose(actual, "fn", 2, 0, true, contexts[5], 0, &choice);
-    utility_check(choice.id == TestFn(), "Lexicon accepted declaration literal wins tie");
+    utility_check(choice.id == TestFn, "Lexicon accepted declaration literal wins tie");
     utility_check(lexicon_declaration(actual, "for", 3, 0) && !lexicon_declaration(actual, "forage", 6, 0), "Lexicon declaration word boundary");
     utility_check(entity_store_count(compiler_world_store(world)) == nodes, "Lexicon selection preserves pinned grammar entities");
     utility_check(tower_test_buffer_count() == buffers, "Lexicon selection allocates no scratch buffers");
@@ -212,19 +212,19 @@ fn lexicon_test_failures(table: LexerTable*): void {
     utility_check(value is not null, "Lexicon failure fixture creation");
     defer lexicon_destroy(value);
     tower_test_buffer_fail_after(0);
-    var entry = lexicon_token(value, table, TestIdentifier(), "token", false, false, true);
+    var entry = lexicon_token(value, table, TestIdentifier, "token", false, false, true);
     tower_test_buffer_fail_after(~convert(usize, 0));
     utility_check(!entry, "Lexicon token allocation failure");
     var choice: TestLexiconChoice;
     lexicon_choose(value, "a", 1, 0, false, null, 0, &choice);
-    utility_check(choice.length == 0 && choice.id == LRTokenEnd(), "Failed token insertion leaves lexicon empty");
-    utility_check(lexicon_token(value, table, TestIdentifier(), "token", false, false, true), "Lexicon token insertion retry");
+    utility_check(choice.length == 0 && choice.id == LRTokenEnd, "Failed token insertion leaves lexicon empty");
+    utility_check(lexicon_token(value, table, TestIdentifier, "token", false, false, true), "Lexicon token insertion retry");
     tower_test_buffer_fail_after(0);
-    var literal = lexicon_literal(value, "a", 1, TestFor(), true);
+    var literal = lexicon_literal(value, "a", 1, TestFor, true);
     tower_test_buffer_fail_after(~convert(usize, 0));
     utility_check(!literal, "Lexicon literal allocation failure");
     lexicon_choose(value, "a", 1, 0, false, null, 0, &choice);
-    utility_check(choice.id == TestIdentifier() && choice.length == 1, "Failed literal insertion preserves previous token");
+    utility_check(choice.id == TestIdentifier && choice.length == 1, "Failed literal insertion preserves previous token");
     tower_test_buffer_fail_after(0);
     var start = lexicon_start(value, "a", 1);
     tower_test_buffer_fail_after(~convert(usize, 0));

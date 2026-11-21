@@ -79,8 +79,8 @@ extern fn strlen(text: u8*): usize;
 
 extern fn puts(text: u8*): i32;
 
-const RuntimePrivateLinkage: u32 = 9;
-const RuntimeFunctionAttributes: u32 = 4294967295;
+var RuntimePrivateLinkage: u32 = 9;
+var RuntimeFunctionAttributes: u32 = 4294967295;
 
 fn runtime_platform_declaration(module: void*, name: u8*, type: void*): void* {
     var function = LLVMGetNamedFunction(module, name);
@@ -128,7 +128,7 @@ fn runtime_platform_wasm(context: void*, module: void*): bool {
     // ordinary Tower globals retain their existing initialization semantics.
     var layout = LLVMArrayType2(LLVMInt32TypeInContext(context), 3);
     var storage = LLVMAddGlobal(module, layout, "tower.runtime.wasm.heap");
-    LLVMSetLinkage(storage, RuntimePrivateLinkage());
+    LLVMSetLinkage(storage, RuntimePrivateLinkage);
     LLVMSetAlignment(storage, 4);
     LLVMSetInitializer(storage, LLVMConstNull(layout));
     runtime_platform_return(context, state, storage);
@@ -158,7 +158,7 @@ export fn runtime_test_state(context: void*, module: void*): bool {
     values[1] = values[0];
     values[2] = LLVMConstAllOnes(integer);
     var global = LLVMAddGlobal(module, LLVMArrayType2(integer, 3), "tower.runtime.compiler.test");
-    LLVMSetLinkage(global, RuntimePrivateLinkage());
+    LLVMSetLinkage(global, RuntimePrivateLinkage);
     LLVMSetAlignment(global, width);
     LLVMSetInitializer(global, LLVMConstArray2(integer, &values[0], 3));
     runtime_platform_return(context, function, global);
@@ -183,7 +183,7 @@ export fn runtime_host_state(context: void*, module: void*, diagnostic: bool): b
     values[1] = values[0];
     values[2] = LLVMConstInt(integer, diagnostic ? 1 : 0, 0);
     var global = LLVMAddGlobal(module, LLVMArrayType2(integer, 3), "tower.runtime.compiler.host");
-    LLVMSetLinkage(global, RuntimePrivateLinkage());
+    LLVMSetLinkage(global, RuntimePrivateLinkage);
     LLVMSetAlignment(global, width);
     LLVMSetInitializer(global, LLVMConstArray2(integer, &values[0], 3));
     runtime_platform_return(context, function, global);
@@ -229,7 +229,7 @@ fn runtime_platform_linux(context: void*, module: void*, arm: bool): bool {
     signature = LLVMFunctionType(LLVMVoidTypeInContext(context), null, 0, 0);
     function = LLVMAddFunction(module, "_start", signature);
     var kind = LLVMGetEnumAttributeKindForName("naked", 5);
-    LLVMAddAttributeAtIndex(function, RuntimeFunctionAttributes(), LLVMCreateEnumAttribute(context, kind, 0));
+    LLVMAddAttributeAtIndex(function, RuntimeFunctionAttributes, LLVMCreateEnumAttribute(context, kind, 0));
     LLVMPositionBuilderAtEnd(builder, LLVMAppendBasicBlockInContext(context, function, "entry"));
     assembly = "xor %rbp, %rbp\n\tand $$-16, %rsp\n\tcall tower_start";
     constraints = "~{dirflag},~{fpsr},~{flags}";

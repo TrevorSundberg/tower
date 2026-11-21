@@ -201,7 +201,7 @@ fn execution_generic_tests(modules: void*): void {
     var b: FoundationNode* = null;
     for(var i: usize = 0; i < root.items.length; i++) {
         var item = sem_get(root.items.data[i]);
-        if item.kind == KDeclare() && item.name.length == 1 {
+        if item.kind == KDeclare && item.name.length == 1 {
             if item.name.data[0] == 97 {
                 a = item;
             }

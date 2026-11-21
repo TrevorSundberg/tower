@@ -16,13 +16,13 @@ fn frontend_host_baseline_tests(): void {
     var first = compiler_world_create();
     var second = compiler_world_create();
     var fresh = compiler_world_create();
-    utility_check(frontend_world_clear(fresh) && compiler_world_type_existing(fresh, CompilerSyntax()) is null,
+    utility_check(frontend_world_clear(fresh) && compiler_world_type_existing(fresh, CompilerSyntax) is null,
         "clearing a fresh world does not register syntax transport");
     utility_check(compiler_world_dispose(fresh), "dispose empty world");
     var seed = syntax_host_seed(first);
     var other_seed = syntax_host_seed(second);
     utility_check(seed != other_seed && strcmp(seed, other_seed) == 0, "seed text has independent world ownership");
-    utility_check(compiler_world_type_existing(first, CompilerFoundation()) is null, "seed formatting does not register Foundation");
+    utility_check(compiler_world_type_existing(first, CompilerFoundation) is null, "seed formatting does not register Foundation");
     var formatted: FormatResult = default;
     format_entity(&formatted, frontend_world_bedrock(first), null, null, null);
     utility_check(!formatted.failed && strlen(seed) == formatted.text.length && memcmp(seed, formatted.text.data, formatted.text.length) == 0,

@@ -52,7 +52,7 @@ struct LRLinkOutput {
 }
 
 fn lr_lalr_apply(graph: LRPropagation*, link: LRPropagationLink*): bool {
-    if link.first == LRTokenPropagation() {
+    if link.first == LRTokenPropagation {
         return lr_propagation_edge(graph, link.source, link.destination);
     }
     return lr_propagation_seed(graph, link.destination, link.first, link.last);
@@ -134,8 +134,8 @@ fn lr_kernel_closure(analysis: LRAnalysis*, kernel: LRItem*): LRKernelClosure* {
     }
     var seed: LRItem;
     copy(&seed, kernel, sizeof(LRItem));
-    seed.first = LRTokenPropagation();
-    seed.last = LRTokenPropagation();
+    seed.first = LRTokenPropagation;
+    seed.last = LRTokenPropagation;
     var ok = lr_items_insert(closure.items, &seed);
     ok &&= lr_items_close(analysis, closure.items, true);
     var index: usize = 0;
@@ -315,7 +315,7 @@ fn lr_lalr_seed(value: LRStates*, graph: LRPropagation*, constructs: bool): bool
     if start == lr_none() {
         return false;
     }
-    var ok = lr_propagation_seed(graph, start, LRTokenEnd(), LRTokenEnd());
+    var ok = lr_propagation_seed(graph, start, LRTokenEnd, LRTokenEnd);
     if !ok {
         return false;
     }

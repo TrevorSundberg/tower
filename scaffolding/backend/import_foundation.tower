@@ -151,7 +151,7 @@ fn bi_result(c: BackendImport*, destination: void*, value: void*, first_local: u
     var result = sem_get(value);
     var declarations = sem_get(c.declarations);
     var block = sem_get(c.block);
-    var candidate = result.kind == KOperand();
+    var candidate = result.kind == KOperand;
     if result.constant {
         candidate = false;
     }
@@ -168,10 +168,10 @@ fn bi_result(c: BackendImport*, destination: void*, value: void*, first_local: u
         if matches {
             var last_statement = block.items.length -1;
             var assignment = sem_get(block.items.data[last_statement]);
-            matches = assignment.kind == KAssign();
+            matches = assignment.kind == KAssign;
             if matches {
                 var target = sem_get(assignment.target);
-                matches = target.kind == KOperand();
+                matches = target.kind == KOperand;
                 matches &&= target.binding == local;
                 var original = sem_get(destination);
                 matches &&= semantic_type_equal(&original.type, &result.type);

@@ -284,12 +284,12 @@ fn fm_collect_addresses(f: FMState*, node: void*): void {
         return;
     }
     var n = im_node(node);
-    if n.kind == KAddress() {
+    if n.kind == KAddress {
         var place = n.value;
         loop {
             var target = im_node(place);
-            var compound = target.kind == KField();
-            var indexed = target.kind == KIndex();
+            var compound = target.kind == KField;
+            var indexed = target.kind == KIndex;
             compound = im_or(compound, indexed);
             if compound {
                 // Addressing through a pointer does not expose the local that
@@ -307,19 +307,19 @@ fn fm_collect_addresses(f: FMState*, node: void*): void {
             break;
         }
     }
-    var leaf = n.kind == KLabel();
+    var leaf = n.kind == KLabel;
     if leaf {
         return;
     }
-    leaf = n.kind == KJump();
+    leaf = n.kind == KJump;
     if leaf {
         return;
     }
-    leaf = n.kind == KFunction();
+    leaf = n.kind == KFunction;
     if leaf {
         return;
     }
-    leaf = n.kind == KType();
+    leaf = n.kind == KType;
     if leaf {
         return;
     }
@@ -348,7 +348,7 @@ fn fm_pin_locals(f: FMState*, index: usize, body: void*): void {
     var i: usize = 0;
     for(; i != block.items.length; i++) {
         var n = im_node(block.items.data[i]);
-        if n.kind == KLabel() {
+        if n.kind == KLabel {
             labeled = true;
         }
     }
@@ -410,11 +410,11 @@ fn fm_pin_locals(f: FMState*, index: usize, body: void*): void {
 
 fn fm_address(f: FMState*, node: void*): usize {
     var n = im_node(node);
-    if n.kind == KLoad() {
+    if n.kind == KLoad {
         return fm_value(f, n.value);
     }
-    var fm_condition_8 = n.kind == KField();
-    var fm_condition_9 = n.kind == KIndex();
+    var fm_condition_8 = n.kind == KField;
+    var fm_condition_9 = n.kind == KIndex;
 
     if im_or(fm_condition_8, fm_condition_9) {
         var base: usize = 0;
@@ -425,7 +425,7 @@ fn fm_address(f: FMState*, node: void*): usize {
             base = fm_address(f, n.left);
         }
         var delta: usize = 0;
-        if n.kind == KField() {
+        if n.kind == KField {
             delta = fm_constant(f, convert(u64, n.byte_offset));
         }
         else {
@@ -468,32 +468,32 @@ fn fm_value(f: FMState*, node: void*): usize {
         return fm_constant(f, 0);
     }
     var n = im_node(node);
-    var fm_condition_10 = n.kind == KOperand();
+    var fm_condition_10 = n.kind == KOperand;
 
     var constant = im_and(fm_condition_10, n.constant);
     if constant {
         return fm_constant(f, n.bits);
     }
-    var address = n.kind == KAddress();
+    var address = n.kind == KAddress;
     if address {
         return fm_address(f, n.value);
     }
-    var query = n.kind == KSizeOf();
+    var query = n.kind == KSizeOf;
     if query {
         return fm_constant(f, convert(u64, im_type_size(&n.element)));
     }
-    query = n.kind == KAlignOf();
+    query = n.kind == KAlignOf;
     if query {
         return fm_constant(f, convert(u64, im_type_alignment(&n.element)));
     }
-    if n.kind == KString() {
+    if n.kind == KString {
         var index = f.strings.length;
         im_storage_require(vector_push(&f.strings, node));
         var result = fm_register(f);
         fm_emit(f, 18, result, index, 0);
         return result;
     }
-    if n.kind == KOperand() {
+    if n.kind == KOperand {
         var slot = fm_local(f, node);
         if slot != 0 {
             slot--;
@@ -511,11 +511,11 @@ fn fm_value(f: FMState*, node: void*): usize {
         fm_emit(f, op, result, binding.byte_offset, im_type_size(&n.type));
         return result;
     }
-    var fm_condition_11 = n.kind == KField();
-    var fm_condition_12 = n.kind == KIndex();
+    var fm_condition_11 = n.kind == KField;
+    var fm_condition_12 = n.kind == KIndex;
 
     var place = im_or(fm_condition_11, fm_condition_12);
-    var fm_condition_13 = n.kind == KLoad();
+    var fm_condition_13 = n.kind == KLoad;
 
     place = im_or(place, fm_condition_13);
     if place {
@@ -524,7 +524,7 @@ fn fm_value(f: FMState*, node: void*): usize {
         fm_emit(f, 4, result, address, im_type_size(&n.type));
         return result;
     }
-    if n.kind == KCall() {
+    if n.kind == KCall {
         var result = fm_register(f);
         var first = f.next_register;
         var i: usize = 0;
@@ -540,8 +540,8 @@ fn fm_value(f: FMState*, node: void*): usize {
         fm_emit(f, 15, result, fm_function(f, n.binding), first);
         return result;
     }
-    var fm_condition_14 = n.kind == KAllocate();
-    var fm_condition_15 = n.kind == KReallocate();
+    var fm_condition_14 = n.kind == KAllocate;
+    var fm_condition_15 = n.kind == KReallocate;
 
     if im_or(fm_condition_14, fm_condition_15) {
         var pointer = fm_value(f, n.left);
@@ -549,19 +549,19 @@ fn fm_value(f: FMState*, node: void*): usize {
         var result = fm_register(f);
         fm_emit(f, 1, result, pointer, 0);
         var op: usize = 8;
-        if n.kind == KReallocate() {
+        if n.kind == KReallocate {
             op = 9;
         }
         fm_emit(f, op, result, count, im_type_size(&n.element));
         return result;
     }
-    if n.kind == KBinary() {
+    if n.kind == KBinary {
         var left = fm_value(f, n.left);
         var right = fm_value(f, n.right);
         var input = im_node(n.left);
         var pointer = input.type.pointers != 0;
-        var fm_condition_16 = n.op == OAdd();
-        var fm_condition_17 = n.op == OSub();
+        var fm_condition_16 = n.op == OAdd;
+        var fm_condition_17 = n.op == OSub;
 
         var arithmetic = im_or(fm_condition_16, fm_condition_17);
         pointer = im_and(pointer, arithmetic);
@@ -584,7 +584,7 @@ fn fm_value(f: FMState*, node: void*): usize {
         return result;
     }
     var value = fm_value(f, n.value);
-    if n.kind == KConvert() {
+    if n.kind == KConvert {
         var input = im_node(n.value);
         var descriptor: FMConversion;
         descriptor.from = &input.type;
@@ -603,14 +603,14 @@ fn fm_statement(f: FMState*, node: void*, breaks: vector(usize)*, continue_pc: u
     var n = im_node(node);
     f.current_offset = n.start;
     f.next_register = f.pinned;
-    if n.kind == KLabel() {
+    if n.kind == KLabel {
         var entry: IMEntry;
         entry.key = im_key(node);
         entry.value = convert(u64, f.words.length);
         fm_push(IMEntry, &f.labels, &entry);
         return;
     }
-    if n.kind == KJump() {
+    if n.kind == KJump {
         var entry: IMEntry;
         entry.key = im_key(n.binding);
         var at = fm_emit(f, 13, 0, 0, 0);
@@ -618,14 +618,14 @@ fn fm_statement(f: FMState*, node: void*, breaks: vector(usize)*, continue_pc: u
         fm_push(IMEntry, &f.jumps, &entry);
         return;
     }
-    if n.kind == KTrap() {
+    if n.kind == KTrap {
         var message = fm_value(f, n.left);
         var offset = fm_value(f, n.right);
         fm_emit(f, 22, message, offset, 0);
         return;
     }
-    var fm_condition_18 = n.kind == KBlock();
-    var fm_condition_19 = n.kind == KProgram();
+    var fm_condition_18 = n.kind == KBlock;
+    var fm_condition_19 = n.kind == KProgram;
 
     if im_or(fm_condition_18, fm_condition_19) {
         foreach(var & item in &n.items) {
@@ -633,14 +633,14 @@ fn fm_statement(f: FMState*, node: void*, breaks: vector(usize)*, continue_pc: u
         }
         return;
     }
-    var fm_condition_20 = n.kind == KFunction();
-    var fm_condition_21 = n.kind == KType();
+    var fm_condition_20 = n.kind == KFunction;
+    var fm_condition_21 = n.kind == KType;
 
     if im_or(fm_condition_20, fm_condition_21) {
         return;
     }
-    var declaration = n.kind == KDeclare();
-    var fm_condition_22 = n.kind == KAssign();
+    var declaration = n.kind == KDeclare;
+    var fm_condition_22 = n.kind == KAssign;
 
     if im_or(declaration, fm_condition_22) {
         if n.value != null {
@@ -662,7 +662,7 @@ fn fm_statement(f: FMState*, node: void*, breaks: vector(usize)*, continue_pc: u
         }
         return;
     }
-    if n.kind == KIf() {
+    if n.kind == KIf {
         var value = fm_value(f, n.value);
         var branch = fm_emit(f, 14, value, 0, 0);
         fm_statement(f, n.body, breaks, continue_pc);
@@ -674,7 +674,7 @@ fn fm_statement(f: FMState*, node: void*, breaks: vector(usize)*, continue_pc: u
         fm_patch(f, jump, 2, f.words.length);
         return;
     }
-    if n.kind == KLoop() {
+    if n.kind == KLoop {
         var local_breaks: vector(usize);
         vector_init(&local_breaks);
         var start = f.words.length;
@@ -686,38 +686,38 @@ fn fm_statement(f: FMState*, node: void*, breaks: vector(usize)*, continue_pc: u
         vector_dispose(&local_breaks);
         return;
     }
-    if n.kind == KBreak() {
+    if n.kind == KBreak {
         var at = fm_emit(f, 13, 0, 0, 0);
         im_storage_require(vector_push(breaks, at));
         return;
     }
-    if n.kind == KContinue() {
+    if n.kind == KContinue {
         fm_emit(f, 13, continue_pc, 0, 0);
         return;
     }
-    if n.kind == KReturn() {
+    if n.kind == KReturn {
         fm_emit(f, 16, fm_value(f, n.value), 0, 0);
         return;
     }
-    if n.kind == KPrint() {
+    if n.kind == KPrint {
         var value = fm_value(f, n.value);
         var input = im_node(n.value);
         fm_emit(f, 17, value, fm_type(f, &input.type), 0);
         return;
     }
-    if n.kind == KFree() {
+    if n.kind == KFree {
         fm_emit(f, 10, fm_value(f, n.left), 0, 0);
         return;
     }
-    var fm_condition_23 = n.kind == KCopy();
-    var fm_condition_24 = n.kind == KFill();
+    var fm_condition_23 = n.kind == KCopy;
+    var fm_condition_24 = n.kind == KFill;
 
     if im_or(fm_condition_23, fm_condition_24) {
         var left = fm_value(f, n.left);
         var right = fm_value(f, n.right);
         var count = fm_value(f, n.value);
         var op: usize = 11;
-        if n.kind == KFill() {
+        if n.kind == KFill {
             op = 12;
         }
         fm_emit(f, op, left, right, count);

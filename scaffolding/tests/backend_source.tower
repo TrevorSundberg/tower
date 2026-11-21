@@ -13,7 +13,7 @@ extern fn strstr(text: u8*, part: u8*): u8*;
 
 extern fn strcmp(left: u8*, right: u8*): i32;
 
-const BackendSourceObjectOutput: u32 = 1;
+var BackendSourceObjectOutput: u32 = 1;
 
 fn backend_source_test_has(text: u8*, wanted: u8*): bool {
     return text != null && strstr(text, wanted) != null;
@@ -30,7 +30,7 @@ export fn backend_source_tests(): i32 {
     var failure: i32 = 0;
     var first: u8* = "var answer: i32 = 42; print(answer);";
     var second: u8* = "var answer: i32 = 99; print(answer);";
-    var result = backend_source_compile(left, first, strlen(first), BackendSourceImport(), null, null);
+    var result = backend_source_compile(left, first, strlen(first), BackendSourceImport, null, null);
     if !backend_source_test_has(result, "\"format\":\"foundation\"") {
         failure = 2;
     }
@@ -45,7 +45,7 @@ export fn backend_source_tests(): i32 {
         return 4;
     }
     copy(saved, original, strlen(original) + 1);
-    result = backend_source_compile(right, second, strlen(second), BackendSourceImport() | BackendSourceUnoptimized(), null, null);
+    result = backend_source_compile(right, second, strlen(second), BackendSourceImport | BackendSourceUnoptimized, null, null);
     if !backend_source_test_has(result, "\"optimizationProfile\":2") {
         failure = 5;
     }
@@ -80,7 +80,7 @@ export fn backend_source_tests(): i32 {
     // The caller's span is followed by invalid syntax and has no terminator at
     // its boundary. Compilation must consume exactly the supplied byte count.
     var clipped: u8* = "print(42);?";
-    result = backend_source_compile(left, clipped, strlen(clipped) -1, BackendSourceObjectOutput() | BackendSourceUnoptimized(), null, null);
+    result = backend_source_compile(left, clipped, strlen(clipped) -1, BackendSourceObjectOutput | BackendSourceUnoptimized, null, null);
     if !backend_source_test_has(result, "\"status\":\"compiled\"") {
         failure = 13;
     }

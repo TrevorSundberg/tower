@@ -52,8 +52,8 @@ export fn main(argc: i32, argv: u8**): i32 {
     driver_request_bind(&request, syntax_host_environment(compiler_host_world()));
     var result: SyntaxVersionDiagnostic = default;
     defer syntax_version_diagnostic_dispose(&result);
-    execution_check(syntax_host_install(compiler_host_world(), request.text[DriverBedrockText()].data, false, &result), "install Bedrock" );
-    execution_check(syntax_host_install(compiler_host_world(), request.text[DriverFoundationText()].data, true, &result), "install Foundation" );
+    execution_check(syntax_host_install(compiler_host_world(), request.text[DriverBedrockText].data, false, &result), "install Bedrock" );
+    execution_check(syntax_host_install(compiler_host_world(), request.text[DriverFoundationText].data, true, &result), "install Foundation" );
     frontend_modules_configure(request.modules, "named_initialization_input.tower", argv[1]);
     if all {
         named_initialization_tests(request.modules, argv[1]);

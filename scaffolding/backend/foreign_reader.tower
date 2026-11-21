@@ -58,27 +58,27 @@ struct ForeignName {
 }
 
 // Profile constants are functions until Foundation supports enum values.
-export const foreign_windows_arm64ec: u32 = 11;
+var foreign_windows_arm64ec: u32 = 11;
 
-export const foreign_wasi: u32 = 1;
+var foreign_wasi: u32 = 1;
 
-export const foreign_linux_x64: u32 = 2;
+var foreign_linux_x64: u32 = 2;
 
-export const foreign_macos_x64: u32 = 3;
+var foreign_macos_x64: u32 = 3;
 
-export const foreign_macos_arm64: u32 = 4;
+var foreign_macos_arm64: u32 = 4;
 
-export const foreign_windows_x64: u32 = 5;
+var foreign_windows_x64: u32 = 5;
 
-export const foreign_windows_x86: u32 = 6;
+var foreign_windows_x86: u32 = 6;
 
-export const foreign_mingw_x64: u32 = 7;
+var foreign_mingw_x64: u32 = 7;
 
-export const foreign_linux_arm64: u32 = 8;
+var foreign_linux_arm64: u32 = 8;
 
-export const foreign_linux_x86: u32 = 9;
+var foreign_linux_x86: u32 = 9;
 
-export const foreign_windows_arm64: u32 = 10;
+var foreign_windows_arm64: u32 = 10;
 
 fn foreign_fail(m: ForeignName*, text: u8*): void {
     if m.error.length == 0 {

@@ -11,22 +11,22 @@ import syntax_types;
 import .library.entities;
 
 export fn core_component_type(): Entity* {
-    return compiler_host_type(CompilerFoundation());
+    return compiler_host_type(CompilerFoundation);
 }
 
 export fn syntax_component_type(): Entity* {
-    return compiler_host_type(CompilerSyntax());
+    return compiler_host_type(CompilerSyntax);
 }
 
 export fn syntax_get(owner: Entity*): SyntaxNode* {
     if owner == null {
         return null;
     }
-    return bits(SyntaxNode*, compiler_node_get(owner, CompilerSyntax()));
+    return bits(SyntaxNode*, compiler_node_get(owner, CompilerSyntax));
 }
 
 export fn syntax_component_attach(owner: Entity*, kind: u32): SyntaxNode* {
-    var value = bits(SyntaxNode*, compiler_host_component(owner, CompilerSyntax()));
+    var value = bits(SyntaxNode*, compiler_host_component(owner, CompilerSyntax));
     value.kind = kind;
     return value;
 }
@@ -34,7 +34,7 @@ export fn syntax_component_attach(owner: Entity*, kind: u32): SyntaxNode* {
 extern fn syntax_nodes_equal(left: Entity*, right: Entity*, type: Entity*, locations: bool): i32;
 
 export fn syntax_equal(left: Entity*, right: Entity*, locations: bool): bool {
-    var result = syntax_nodes_equal(left, right, compiler_node_type(left, CompilerSyntax()), locations);
+    var result = syntax_nodes_equal(left, right, compiler_node_type(left, CompilerSyntax), locations);
     var valid = result >= 0;
     compiler_entity_require(valid);
     var equal = result != 0;
