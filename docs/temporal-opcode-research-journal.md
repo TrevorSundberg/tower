@@ -37138,3 +37138,14 @@ Tracked Python is now 10 files / 722 lines, down 1,267 lines (63.7%) from the
 23-file / 1,989-line baseline. The separate inline-Python reduction from the
 preceding milestone is unchanged. Continue auditing remaining subprocess,
 benchmark and browser-packaging coverage before removing or porting it.
+
+Publication rebase includes 564972f's for-header continuations and the new
+experimental linker sources through 4830eec; preserve all incoming work. From a
+fresh clone of rebased 81d4600 at /cache/import_driver_checkout, run the normal
+build-native.sh with TOWER_NATIVE_BUILD=/cache/import_driver_native and no
+private bootstrap override. With Python unavailable, all 54 native build steps
+and three driver-test build steps pass. The fresh successor SHA-256 is
+86c314e71f96f53dcaa7130c933d8e4ad234b8851e1c920cdd7a226cc08dc858;
+the checked-in bootstrap remains 1a5b588. CTest tower-driver passes in 9.85 seconds
+and tower-driver-module-paths in 3.07 seconds against this successor. Reuse the
+earlier platform-object and fixture-cleanup checks, whose inputs are unchanged.
