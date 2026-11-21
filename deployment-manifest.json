@@ -1,8 +1,17 @@
 {
-  "sourceCommit": "d20583c372b3bed39ff27608dbc17386ebb65524",
+  "sourceCommit": "8a26cb7c1a1b5a3ace66ce63863215dfb0cb1f28",
   "buildSourceCommit": "85c8a138e098f2dd84706d3f9d6e7bbcfa592887",
   "bootstrapSha256": "24fa5adb794d245001369d5dda93acb58a662e5ec1d6f0e6ad672272dad0ae71",
-  "previousDeployment": "c4ae2174586b9a039dc1facecd11c2aa82f612ff",
+  "previousDeployment": "16b39d0d3382ff7537de6201c95da3fc78906b9d",
+  "coldWarmProfiling": {
+    "sourceCommit": "8a26cb7c1a1b5a3ace66ce63863215dfb0cb1f28",
+    "report": "playground/PERFORMANCE.md",
+    "measuredDeployment": "c4ae2174586b9a039dc1facecd11c2aa82f612ff",
+    "measuredBuildSource": "85c8a138e098f2dd84706d3f9d6e7bbcfa592887",
+    "validation": "Five cold samples and 50 warm actions per device; three alternating portable/threaded desktop pairs; separate CPU and deterministic LLVM object probes; final fresh-process transport validation passes.",
+    "findings": "Small-program shared-memory/worker overhead, repeated frontend compilation and fast package reconstruction; warm ECS entities compilation remains frontend dominated. Detailed scope and limitations are in the report.",
+    "runtimeAssetsChanged": false
+  },
   "buildNote": "Frozen 85c8a13 compiler snapshot built with the public predecessor 7ef1e6d; clean native, portable/shared/LLVM/cross builds and two identical browser generations passed. Full body 1/2/4/8-worker, known-binding, floating/negation and backend unit checks passed. Rebase to public 2776318 changes no retained compiler inputs; the new direct bootstrap 1a5b588 also built a clean 54-step successor and ran the continuation fixture with zero failures.",
   "scope": "Shared-graph structural local declaration queries and bounded declaration scheduling, including integrated floating-point and ordinary unary-negation semantics.",
   "toolingMigration": {
