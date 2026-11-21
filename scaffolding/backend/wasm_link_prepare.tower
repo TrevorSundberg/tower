@@ -69,7 +69,10 @@ fn wasm_link_type(link: WasmLink*, type: WasmFunctionTypeRecord*): u32 {
 
 fn wasm_link_prepare(link: WasmLink*): bool {
     if link.layout_type != null { return wasm_link_fail(link, WasmLinkError.Input, wasm_text_bytes("link request already prepared")); }
-    if link.shared_memory || link.import_memory { return wasm_link_fail(link, WasmLinkError.Unsupported, wasm_text_bytes("shared or imported memory")); }
+    if link.shared_memory { return wasm_link_fail(link, WasmLinkError.Unsupported, wasm_text_bytes("shared memory requires atomic initialization and TLS")); }
+    if link.import_memory && (!wasm_bytes_utf8(link.memory_module) || !wasm_bytes_utf8(link.memory_name)) {
+        return wasm_link_fail(link, WasmLinkError.Input, wasm_text_bytes("memory import names require UTF-8"));
+    }
     if !wasm_link_collect_errors(&link.world) { return wasm_link_fail(link, WasmLinkError.Input, link.world.error_input); }
     link.layout_type = entity_create(link.world.store);
     if link.layout_type == null || !entity_register(link.layout_type, sizeof(WasmObjectLayout), alignof(WasmObjectLayout), 0) {

@@ -18,8 +18,15 @@ fn wasm_emit_i32_expression(output: ByteBuffer*, value: u64): bool {
         && bytes_push(output, convert(u8, WasmOpcode.End));
 }
 
+fn wasm_emit_memory_limits(link: WasmLink*, section: ByteBuffer*): bool {
+    var flags: u64 = link.maximum_memory != 0 ? convert(u64, WasmLimitFlag.Maximum) : 0;
+    return wasm_write_uleb(section, flags) && wasm_write_uleb(section, link.initial_memory / WasmPageBytes)
+        && (link.maximum_memory == 0 || wasm_write_uleb(section, link.maximum_memory / WasmPageBytes));
+}
+
 fn wasm_emit_imports(link: WasmLink*, section: ByteBuffer*): bool {
     var count = convert(u64, link.imported_functions) + convert(u64, link.imported_globals);
+    if link.import_memory { count++; }
     if count == 0 { return true; }
     if !wasm_write_uleb(section, count) { return false; }
     for (var at: usize = 0; at < convert(usize, link.imported_functions); at++) {
@@ -35,6 +42,8 @@ fn wasm_emit_imports(link: WasmLink*, section: ByteBuffer*): bool {
             || !bytes_push(section, convert(u8, WasmExternal.Global)) || !bytes_push(section, global.type)
             || !bytes_push(section, global.mutable ? 1 : 0) { return false; }
     }
+    if link.import_memory && (!wasm_write_name(section, link.memory_module) || !wasm_write_name(section, link.memory_name)
+        || !bytes_push(section, convert(u8, WasmExternal.Memory)) || !wasm_emit_memory_limits(link, section)) { return false; }
     return true;
 }
 
@@ -167,10 +176,9 @@ fn wasm_link_emit_sections(link: WasmLink*, output: ByteBuffer*): bool {
             || !wasm_write_uleb(&section, 1) || !wasm_write_uleb(&section, count) || !wasm_write_uleb(&section, count)
             || !wasm_emit_section(output, WasmSection.Table, &section) { return false; }
     }
-    if !wasm_write_uleb(&section, 1) || !wasm_write_uleb(&section, link.maximum_memory != 0 ? 1 : 0)
-        || !wasm_write_uleb(&section, link.initial_memory / WasmPageBytes) { return false; }
-    if link.maximum_memory != 0 && !wasm_write_uleb(&section, link.maximum_memory / WasmPageBytes) { return false; }
-    if !wasm_emit_section(output, WasmSection.Memory, &section) || !wasm_emit_globals(link, &section)
+    if !link.import_memory && (!wasm_write_uleb(&section, 1) || !wasm_emit_memory_limits(link, &section)
+        || !wasm_emit_section(output, WasmSection.Memory, &section)) { return false; }
+    if !wasm_emit_globals(link, &section)
         || !wasm_emit_section(output, WasmSection.Global, &section) { return false; }
     if link.output_exports.length != 0 {
         if !wasm_write_uleb(&section, convert(u64, link.output_exports.length)) { return false; }

@@ -14,7 +14,9 @@ variants versus address-only declarations, relocation bit patterns, import/weak
 policies, rejected shared-memory requests and failure without partial output.
 It also checks lazy GNU archive extraction, backward references, recursive member
 dependencies, cycles, weak references, exports, COMDAT alternatives, unused
-malformed members, byte-only plans and deterministic retry cleanup.
+malformed members, byte-only plans and deterministic retry cleanup. Memory-profile
+cases cover defined/imported memory, default/custom/empty UTF-8 names, optional
+maximum limits, memory re-exports and invalid requests without partial output.
 Build it with the public bootstrap's `--library`, then link the object with the
 existing `guest-host-library.o` using clang. `wasm_link_reader_wasi.tower` adds
 the existing Tower allocator and a WASI `_start`; compile it for
@@ -25,12 +27,12 @@ run with `node scaffolding/tests/host-wasi.mjs OUTPUT.wasm`.
 `tools/wasm_link_audit.tower` reads and optionally resolves real support archives.
 Both build as library objects with the same native runtime. The static tool
 supports explicit `--whole-archive`, `--export=`, `--export-if-defined=`, `--wrap=`,
-allow-undefined lists, stack/memory limits and `-o`. Its optional
+allow-undefined lists, stack/memory limits, `--import-memory[=module,name]` and `-o`. Its optional
 `--export-if-defined-list=FILE` reads one export name per line to avoid host
 command-line limits; `--debug-names` retains symbolic Wasm stack traces.
 Indexed GNU archives are lazy by default; `--whole-archive` requests every member.
 Thin/BSD-index archives remain unsupported. Shared-memory/TLS, memory64, tags, referential global initializers,
-imported memory, dynamic/relocatable output and DWARF/custom-section preservation
+dynamic/relocatable output and DWARF/custom-section preservation
 are not implemented. Requests for currently recognized unsupported profiles
 fail explicitly; this is not a complete drop-in `wasm-ld` CLI.
 
@@ -42,6 +44,11 @@ Both this linker and upstream LLD must execute through `host-wasi.mjs` and print
 `TOWER_TEST_WASM` and `TOWER_TEST_LLVM_WASM` with the existing test fixture loaders
 without replacing the active build artifacts. The journal records exact local
 commands, the current gates and baseline test-expectation failures.
+
+To execute an imported-memory fixture, provide `TOWER_TEST_MEMORY_MODULE`,
+`TOWER_TEST_MEMORY_NAME`, `TOWER_TEST_MEMORY_INITIAL` and
+`TOWER_TEST_MEMORY_MAXIMUM` to the same host runner. Sizes are Wasm pages. This
+only supplies the host memory; assertions and linking remain Tower code.
 
 `backend/wasm_link_plan.tower` accepts length-delimited arguments and explicitly
 named input bytes, including allow/export lists. Its keys need no NUL terminator.
@@ -55,8 +62,16 @@ The default `wasm-ld` recipe continues to select upstream LLD.
 backend/compiler units and support archives. It checks explicit Tower dispatch,
 absence of a temporary output file, unsupported-option failure without fallback,
 and byte-identical retry output. Run it through the same `host-wasi.mjs` binding.
-This verifies the byte service in Wasm; two edited browser self-build generations
-with the new linker and shared-memory/TLS support remain production cutover gates.
+The existing `playground/scripts/test-compiler-project.mjs` transport accepts
+`TOWER_TEST_COMPILER_PROJECT` and `TOWER_TEST_COMPILER_WORKBENCH` directory URLs
+(relative to the repository, with trailing `/`) plus `TOWER_TEST_LLVM_WASM`.
+Package current compiler units with the existing packager into an isolated
+directory, set each reactor recipe's argument zero to `tower-wasm-ld`, and select
+those paths. Two generations with two/four workers now pass for both whole and
+lazy archives, including edited semantic behavior, executable compiler checks
+and identical successor hashes. Shared-memory/TLS and actual parallel linker
+jobs remain production cutover gates; compilation workers do not establish
+parallel execution inside one link request.
 
 The isolated tooling check `lld_compat_checks.tower` validates the Tower LLD
 compatibility patcher against exact output and rejection fixtures, including

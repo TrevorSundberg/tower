@@ -132,11 +132,20 @@ borrows immutable input bytes until close. `wasm_link_plan` accepts argument/inp
 byte spans; `backend_link_tower_wasm` adapts ordinary `BackendLink` storage without
 files or a native linker. Reactor recipes explicitly select this path by naming
 `tower-wasm-ld` in argument zero. Unsupported options fail without fallback.
-The default upstream path below is retained until the self-build, shared-memory,
-TLS and worker gates pass. See [linker checks](../tests/README.md) for supported
+Two edited browser self-build generations pass with both whole and lazy archives,
+including identical successor bytes across two/four compilation workers. The
+default upstream path below is retained pending shared-memory/TLS and linker-worker
+gates. See [linker checks](../tests/README.md) for supported
 profiles and executable fixtures. Link requests are single use; the BackendLink
 adapter creates a fresh world for each invocation. Finish or join readers before
 closing input owners; a pinned view prevents structural mutation and disposal.
+
+Static wasm32 output may define memory or import it with `--import-memory`
+(`env.memory`) or `--import-memory=module,name`. Both paths preserve explicit
+initial/maximum limits and optional memory export. Imported memory does not make
+the image relocatable: the host must dedicate its assigned static/stack ranges,
+and active data segments initialize them on every instantiation. It is not the
+shared-memory worker profile, which still requires atomic initialization and TLS.
 
 Entity layouts live in `library/entity_types.tower`; separately compiled linker
 clients use the typed `entity_api.tower` declarations and link the existing Tower

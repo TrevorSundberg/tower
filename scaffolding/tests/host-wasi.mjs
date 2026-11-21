@@ -18,9 +18,14 @@ const host = new TowerWASI({log: text => process.stdout.write(text + '\n')});
 const files = await sources();
 host.mountFiles([...files.map(file => ({...file, path:'source/' + file.path})),
   ...files.filter(file => file.path === 'bedrock.tower' || file.path === 'foundation.tower')]);
-const {instance} = await WebAssembly.instantiate(await readFile(process.argv[2]), {
-  wasi_snapshot_preview1: host.wasiImport,
-});
+const imports = {wasi_snapshot_preview1: host.wasiImport};
+// Explicit host-memory transport for linker fixtures; assertions stay in Tower.
+if (process.env.TOWER_TEST_MEMORY_MODULE !== undefined) {
+  const memory = new WebAssembly.Memory({initial:Number(process.env.TOWER_TEST_MEMORY_INITIAL),
+    maximum:Number(process.env.TOWER_TEST_MEMORY_MAXIMUM)});
+  imports[process.env.TOWER_TEST_MEMORY_MODULE] = {[process.env.TOWER_TEST_MEMORY_NAME ?? 'memory']:memory};
+}
+const {instance} = await WebAssembly.instantiate(await readFile(process.argv[2]), imports);
 host.initialize(instance);
 try { instance.exports._start(); }
 catch (error) { if (error instanceof WASIExit) process.exitCode = error.code; else throw error; }

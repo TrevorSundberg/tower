@@ -37535,3 +37535,57 @@ The following documentation receipt deployment preserves these exact runtime
 bytes, their build-source identity and predecessor/final-pin hashes. todo.txt
 and pre-existing stashes are untouched. First-class function values and indirect
 calls remain the next substantial C-level language milestone.
+
+### 2026-11-21: complete browser self-builds through the Tower linker
+
+Plan: freeze the pulled a36a853 source inputs, rebuild every native/browser
+compiler unit with the checked-in public compiler, and package the real browser
+units and support closure into an isolated recipe. Select tower-wasm-ld in that
+recipe and run the existing two-generation worker transport with 2 then 4 workers.
+Preserve the existing semantic-edit, interpreter, target-output and exact-byte
+successor checks. Any linker failures get Tower fixtures and implementation fixes.
+Only input/output path selection is added to the existing Node transport; linker
+policy stays in the recipe and Tower API. Production selection stays unchanged
+until the supported profile passes. Next gates are explicit shared-memory/TLS
+initialization and real parallel linker work with private stages and deterministic
+joins; neither is established by independent compiler-unit worker counts.
+
+All current-source units built with public bootstrap 1a5b588: native successor
+at coordinator-wasm-linker/successor-generations, portable build/browser-wasi,
+and LLVM/cross backend-wasi. Native backend API and real work-pool/continuation
+checks pass. The isolated package is build/compiler-project-tower-linker;
+TOWER_TEST_LLVM_WASM=build/wasm_link_generation_seed.wasm selects the new seed.
+The existing generation runner passes both whole-archive builds (35.51/25.44 s)
+and lazy-archive builds (46.62/35.31 s; concurrent work means these are not scaling
+benchmarks). Each run edits a semantic diagnostic, compiles with two then four
+workers, links all three reactors through tower-wasm-ld, executes the existing
+compiler checks and requires identical hashes. Whole output sizes:
+1,194,944 / 53,619,091 / 65,279,620 bytes (portable/LLVM/cross); lazy sizes:
+1,194,986 / 53,623,187 / 65,278,947. Lazy LLVM successor SHA-256 is recorded in
+build/compiler-workbench-tower-lazy/generation2.json:
+540e061ad51ce1b2e0611610abca052d6273694ac15f056044f0a2ab6ed5af3e. Different member order
+between whole/lazy affects layout; only successive generations of one recipe
+are expected to match. No linker worker overlap is claimed.
+
+Next implemented step is explicit nonshared imported memory. Reuse one limit
+emitter for memory definitions/imports, retain memory index zero and exports,
+and borrow configured UTF-8 module/field names. Share UTF-8 validation with the
+object reader. Match the pinned upstream Driver.cpp import-memory convention:
+--import-memory uses env.memory; --import-memory=module,name supplies names.
+Empty UTF-8 names are valid Wasm; missing/extra separators fail explicitly.
+Static addresses and active data initialization are unchanged. Hosts must reserve
+the image's static/stack region; this is not dynamic relocation or shared-memory
+initialization. Shared inputs/requests still fail before emission, with a more
+specific atomic-init/TLS diagnostic. No implicit upstream fallback was added.
+
+Focused native and WASI suites pass, including bounds, re-export, optional
+maximum, invalid UTF-8/name syntax and too-small initial memory. The first small
+compile caught one extra closing parenthesis in the memory-section condition;
+corrected before running tests. Actual optimized cross-object Tower fixture links
+with --import-memory=host,linear --initial-memory=131072 --max-memory=262144,
+then passes through host-wasi.mjs with an explicitly supplied two-page/four-page
+maximum WebAssembly.Memory. Upstream SDK34 wasm-ld produces the same execution
+result. Host memories with initial=1 or maximum=5 fail at Wasm instantiation as
+expected. Only environment-selected memory provisioning was added to the existing
+JS host; all new linker and functional assertion code is Tower. No new native,
+Python, shell implementation, sanitizer or broad formatter run.

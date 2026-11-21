@@ -90,6 +90,8 @@ struct WasmLink {
     export_table: bool;
     emit_names: bool;
     import_memory: bool;
+    memory_module: WasmBytes;
+    memory_name: WasmBytes;
     shared_memory: bool;
     allow_undefined: bool;
     garbage_collect: bool;
@@ -120,6 +122,8 @@ fn wasm_link_init(link: WasmLink*): bool {
     link.maximum_memory = WasmDefaultMaximumBytes;
     link.export_memory = true;
     link.garbage_collect = true;
+    link.memory_module = wasm_text_bytes("env");
+    link.memory_name = wasm_text_bytes("memory");
     if !wasm_link_world_open(&link.world) { return wasm_link_fail(link, WasmLinkError.Allocation, default(WasmBytes)); }
     return true;
 }

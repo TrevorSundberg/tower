@@ -605,12 +605,75 @@ fn wasm_test_archive_comdat_fallback(): void {
         && wasm_link_run(&link) && link.world.objects.length == 0, "empty symbol index is distinct from missing index");
 }
 
+enum WasmMemoryCase: u8 { Defined, DefaultImport, NamedImport, UnlimitedImport, EmptyNames, MissingSeparator, ExtraSeparator, InvalidUtf8, TooSmall, Count }
+
+fn wasm_test_memory_imports(): void {
+    var object: ByteBuffer = default;
+    defer bytes_dispose(&object);
+    wasm_test_named_object(&object, "answer", 0);
+    var source: WasmLinkInputBytes = { name: wasm_text_bytes("unit.o"), bytes: { data: object.data, length: object.length } };
+    for (var mode = WasmMemoryCase.Defined; mode != WasmMemoryCase.Count; mode = convert(WasmMemoryCase, convert(u8, mode) + 1)) {
+        var link: WasmLink = default;
+        defer wasm_link_close(&link);
+        utility_check(wasm_link_init(&link), "memory profile world");
+        var argument_count: usize = 3;
+        var arguments: WasmBytes[3];
+        arguments[0] = wasm_text_bytes("--export=answer"); arguments[1] = source.name;
+        arguments[2] = wasm_text_bytes("--import-memory");
+        var expected_module = wasm_text_bytes("env"); var expected_name = wasm_text_bytes("memory");
+        var invalid_utf8: u8 = 255;
+        match mode {
+            WasmMemoryCase.Defined => { argument_count--; }
+            WasmMemoryCase.NamedImport => {
+                arguments[2] = wasm_text_bytes("--import-memory=host,linear");
+                expected_module = wasm_text_bytes("host"); expected_name = wasm_text_bytes("linear");
+            }
+            WasmMemoryCase.UnlimitedImport => { link.maximum_memory = 0; }
+            WasmMemoryCase.EmptyNames => {
+                arguments[2] = wasm_text_bytes("--import-memory=,");
+                expected_module = default; expected_name = default;
+            }
+            WasmMemoryCase.MissingSeparator => { arguments[2] = wasm_text_bytes("--import-memory=host"); }
+            WasmMemoryCase.ExtraSeparator => { arguments[2] = wasm_text_bytes("--import-memory=host,linear,other"); }
+            WasmMemoryCase.InvalidUtf8 => {
+                // Byte plans can contain arbitrary bytes, unlike ordinary source literals.
+                argument_count--; link.import_memory = true;
+                link.memory_name = init(WasmBytes) { data: &invalid_utf8, length: 1 };
+            }
+            WasmMemoryCase.TooSmall => { link.initial_memory = WasmPageBytes; link.stack_size = WasmPageBytes * 2; }
+            _ => { }
+        }
+        var ok = wasm_link_plan(&link, &arguments[0], argument_count, &source, 1);
+        if mode == WasmMemoryCase.MissingSeparator || mode == WasmMemoryCase.ExtraSeparator || mode == WasmMemoryCase.InvalidUtf8 || mode == WasmMemoryCase.TooSmall {
+            utility_check(!ok && link.output.length == 0 && link.error == (mode == WasmMemoryCase.TooSmall ? WasmLinkError.Layout : WasmLinkError.Input), "invalid memory request publishes no output");
+            continue;
+        }
+        utility_check(ok, "memory profile links");
+        var output: WasmObject = default;
+        defer wasm_object_dispose(&output);
+        var reader: WasmReader = { bytes: { data: link.output.data, length: link.output.length }, ..default };
+        wasm_object_sections(&output, &reader);
+        utility_check(reader.error == WasmReadError.None && output.memories.length == 1, "one valid output memory");
+        var memory = &output.memories.data[0];
+        utility_check(memory.imported == (mode != WasmMemoryCase.Defined), "defined and imported memory are distinct");
+        utility_check(memory.limits.minimum == link.initial_memory / WasmPageBytes && memory.limits.maximum == link.maximum_memory / WasmPageBytes
+            && memory.limits.flags == (link.maximum_memory == 0 ? 0 : convert(u32, WasmLimitFlag.Maximum)), "memory limits retained in either section");
+        if memory.imported { utility_check(wasm_bytes_equal(memory.module, expected_module) && wasm_bytes_equal(memory.name, expected_name), "memory import module and field preserved"); }
+        var exports: usize = 0;
+        foreach (var & item in &output.exports) {
+            if item.kind == convert(u8, WasmExternal.Memory) { exports++; utility_check(item.index == 0 && wasm_bytes_text(item.name, "memory"), "memory re-export preserves index zero"); }
+        }
+        utility_check(exports == 1, "requested memory export retained");
+    }
+}
+
 export fn main(): i32 {
     wasm_test_leb(); wasm_test_objects(); wasm_test_archives(); wasm_test_names(); wasm_test_resolution();
     wasm_test_variants(); wasm_test_relocation_patches(); wasm_test_import_policy();
     wasm_test_lazy_archives();
     wasm_test_byte_plans();
     wasm_test_archive_comdat_fallback();
+    wasm_test_memory_imports();
     puts("Wasm linker reader and world checks passed");
     return 0;
 }

@@ -110,18 +110,20 @@ fn wasm_read_sleb(reader: WasmReader*, width: u64): i64 {
 
 fn wasm_read_index(reader: WasmReader*): u32 { return convert(u32, wasm_read_uleb(reader, 32)); }
 
-fn wasm_read_name(reader: WasmReader*): WasmBytes {
-    var size = wasm_read_index(reader);
-    var name = wasm_read_bytes(reader, convert(usize, size));
+fn wasm_bytes_utf8(name: WasmBytes): bool {
     for (var at: usize = 0; at < name.length;) {
         var scalar: u32 = 0;
         var length = tower_utf8_decode(name.data + at, name.length - at, &scalar);
-        if length == 0 {
-            wasm_read_fail(reader, WasmReadError.Utf8);
-            break;
-        }
+        if length == 0 { return false; }
         at += length;
     }
+    return true;
+}
+
+fn wasm_read_name(reader: WasmReader*): WasmBytes {
+    var size = wasm_read_index(reader);
+    var name = wasm_read_bytes(reader, convert(usize, size));
+    if !wasm_bytes_utf8(name) { wasm_read_fail(reader, WasmReadError.Utf8); }
     return name;
 }
 
