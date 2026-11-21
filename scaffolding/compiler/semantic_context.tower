@@ -46,7 +46,10 @@ const EditorEnumMembers: u32 = 5;
 // Default resource policy for attached semantic payloads, not a language/node
 // index limit or a bound on the entire process heap. Callers may supply another
 // explicit budget through semantic_compile_budget.
-const SemanticComponentBudgetBytes: usize = 67108864;
+// The compiler's threaded parser/fixture unit exceeds 64 MiB after aggregate
+// value lowering. This is a lazy payload allowance, not an up-front allocation;
+// hosts with a tighter policy still use semantic_compile_budget explicitly.
+const SemanticComponentBudgetBytes: usize = 134217728;
 
 // Optional editor observation of ordinary resolution. The hole is identified by
 // source coordinates, never by a reserved identifier or an independent AST.

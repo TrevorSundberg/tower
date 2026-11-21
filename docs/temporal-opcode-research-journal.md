@@ -32548,3 +32548,36 @@ logic. Update the Tower CLI's obsolete hybrid version label before making the fi
 bootstrap pin. Only its description changes; it still explicitly says development,
 external LLVM, and not a portable release. Repackage/validate that exact successor
 and preserve the runtime candidate's original build-source identity.
+
+The final publication pull brought in f50b79d/a07884e (struct values and known
+bindings), then 2b65c3e/dfe6ce3 (library initializer cleanup/new pin), plus 054466c
+editor documentation. Preserved both journal histories and all new compiler
+features. The earlier 122/122 browser milestone (834.23s, no skips) describes the
+pre-merge retirement candidate; it is not relabeled as validation of those new
+features. The first merged 512ae/42e17 candidate built identical native successor
+bytes but crashed on struct-value LLVM emission; 2b65c3e's already-published slot
+renumbering/library cleanup fixes that reproducer. Kept upstream 083b7da while
+building a replacement; never publish our older feature-incomplete pin over it.
+
+Both 512ae and 083b7da fail the existing threaded parser/worker fixture unit with
+"Foundation component memory budget exceeded" at vector_reserve(&state.frames,
+needed), vector.tower:21. The unit now needs more than the provisional 64 MiB
+semantic-payload allowance after aggregate lowering. Increase the named default
+policy to 128 MiB; it does not allocate that memory eagerly or limit language
+indices. semantic_compile_budget retains its explicit caller-selected budget and
+all enforcement paths. This is separate from interpreter memory limits and total
+process memory. The identical unit now compiles with the Tower-built successor:
+19.39s wall, 616684 KiB maximum RSS, exit0 (`retirement-parser-budget-128.log`).
+The old-policy failure is retained in retirement-parser-budget-083.log. No fixture,
+assertion, parallel transport or production import was dropped to pass this gate.
+Native struct-value LLVM emission/execution now prints0 too. Fresh packaged
+successor, affected browser checks and final publication follow this correction.
+
+Per the user's explicit request, launched independent Codex in visible PowerShell
+PID13580 (Codex10332), checkout C:/Sandbox/tower-agent-1, after a clean main pull.
+Assignment C:/Sandbox/build/codex-agents/agent_1_tooling_task.txt starts with unused
+tooling removal, then required Python/shell/CMake-to-Tower ports and reusable JS
+compiler/IDE-service logic. It owns separate caches and respects the coordinator's
+bootstrap/publication lock. The agent acknowledged and began an independent
+prepare_lld_compat Tower port. Coordinator continues native retirement/bootstrap;
+the broad tooling goal is delegated, not claimed complete here.
