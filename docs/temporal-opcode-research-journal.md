@@ -34543,3 +34543,46 @@ entry point passes all 53 steps in `/cache/values-tooling-clean`; the successor'
 fixed-binding library links/runs with status 0 and enum graph execution prints 0
 (values-tooling-clean.log, values-tooling-enums.log). Preserve the newer Pages
 toolingMigration metadata from 645eefc along with the verified runtime assets.
+
+#### Proposed next third-party port: WebAssembly linking
+
+User asked which third-party dependency should follow the owned C/C++ retirement.
+Recommendation, not an implementation or new active port: start with the LLD
+WebAssembly functionality required by Tower's real programs and browser compiler
+self-builds. Current backend/linker.tower owns the plans, but linker_wasi.tower
+and linker_wasi_wasm.tower still bind lld::wasm::link and CommonLinkerContext via
+the C++ ABI. Native cross-linking additionally uses ELF/COFF/Mach-O implementations.
+LLD is several format-specific linkers and depends on LLVM object/support/LTO
+machinery; translating its driver alone would not remove those dependencies.
+
+First audit actual object/archive inputs, relocations and flags; implement a
+bounded Wasm object and ar archive reader, symbol/type resolution, archive member
+selection, relocation/layout and module writing in Tower. Preserve imports,
+exports, initializers, tables, memory limits/alignment, weak/duplicate/COMDAT rules,
+feature checks and diagnostics as exercised by those inputs. Shared-memory/TLS
+requirements of existing threaded builds need an explicit gate, not an assumed
+consequence of linking a tiny unthreaded example. Dead-section elimination is
+link-time reachability, unrelated to a runtime garbage collector. No new public
+semantic IR: linker section/symbol indexes describe platform objects and should
+use shared world ownership where useful, with dense records for bulk processing.
+
+Parallelize independent input decoding and relocation over disjoint output
+ranges; coordinate deterministic symbol selection/layout and publish after joins.
+Use upstream wasm-ld as the differential reference until real programs, both
+serial/shared-worker compiler packages and two compiler generations pass. Compare
+execution, imports/exports, diagnostics, determinism, time and memory; equivalent
+linkers need not produce byte-identical layouts. Reject unsupported inputs clearly.
+The first useful release excludes general LTO/dynamic-linker compatibility unless
+the audited production inputs require it. Native ELF linking for the Linux/Docker
+bootstrap is the next candidate, followed by required COFF/Mach-O coverage. LLVM
+code generation remains external; removing wasm-ld alone does not make the compiler
+free of native third-party implementation or establish a measured bundle speedup.
+
+Sources reviewed: https://lld.llvm.org/ (separate linkers, LLVM object/LTO dependency),
+https://lld.llvm.org/WebAssembly.html (link behavior and exports/imports),
+https://github.com/WebAssembly/tool-conventions/blob/main/Linking.md (object,
+symbol, relocation and target-feature contracts), and the pinned LLVM19.1.1 driver
+https://github.com/llvm/llvm-project/blob/llvmorg-19.1.1/lld/wasm/Driver.cpp.
+Current upstream documentation is design context, not an automatic upgrade of the
+pinned LLVM contract. This entry changes no compiler implementation or bootstrap;
+the existing tooling agent remains independent and todo.txt is untouched.
