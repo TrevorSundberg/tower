@@ -1,0 +1,188 @@
+import tower;
+import .library.bytes;
+import .library.bytes_types;
+import .compiler.utf8;
+
+// Borrowed immutable object bytes. The owning link request pins their allocation
+// until all input readers and relocation jobs have joined.
+struct WasmBytes { data: u8*; length: usize; }
+enum WasmReadError: u32 {
+    None = 0, Truncated = 1, Integer = 2, Encoding = 3, Utf8 = 4,
+    Unsupported = 5, Allocation = 6, Index = 7, Duplicate = 8
+}
+struct WasmReader {
+    bytes: WasmBytes;
+    at: usize;
+    error: WasmReadError;
+    error_offset: usize;
+}
+var WasmLebPayloadBits: u64 = 7;
+var WasmLebContinuation: u8 = 128;
+var WasmLebPayloadMask: u8 = 127;
+var WasmLebSignBit: u8 = 64;
+var WasmHashOffset: u32 = 2166136261;
+var WasmHashPrime: u32 = 16777619;
+
+fn wasm_read_fail(reader: WasmReader*, error: WasmReadError): void {
+    if reader.error == WasmReadError.None {
+        reader.error = error;
+        reader.error_offset = reader.at;
+    }
+}
+
+fn wasm_read_byte(reader: WasmReader*): u8 {
+    if reader.error != WasmReadError.None { return 0; }
+    if reader.at >= reader.bytes.length || reader.bytes.data == null {
+        wasm_read_fail(reader, WasmReadError.Truncated);
+        return 0;
+    }
+    return reader.bytes.data[reader.at++];
+}
+
+fn wasm_read_bytes(reader: WasmReader*, length: usize): WasmBytes {
+    var result: WasmBytes = default;
+    if reader.error != WasmReadError.None { return result; }
+    if reader.at > reader.bytes.length || length > reader.bytes.length - reader.at
+        || (length != 0 && reader.bytes.data == null) {
+        wasm_read_fail(reader, WasmReadError.Truncated);
+        return result;
+    }
+    result.length = length;
+    if reader.bytes.data != null { result.data = reader.bytes.data + reader.at; }
+    reader.at += length;
+    return result;
+}
+
+// Accept canonical and maximally padded encodings used by relocatable objects.
+// Reject excess width, invalid unused bits and truncated continuations.
+fn wasm_read_uleb(reader: WasmReader*, width: u64): u64 {
+    if width == 0 || width > 64 {
+        wasm_read_fail(reader, WasmReadError.Integer);
+        return 0;
+    }
+    var value: u64 = 0;
+    for (var shift: u64 = 0; shift < width; shift += WasmLebPayloadBits) {
+        var byte = wasm_read_byte(reader);
+        if reader.error != WasmReadError.None { return 0; }
+        var payload = convert(u64, byte & WasmLebPayloadMask);
+        var remaining = width - shift;
+        if remaining < WasmLebPayloadBits && payload >= (convert(u64, 1) << remaining) {
+            wasm_read_fail(reader, WasmReadError.Integer);
+            return 0;
+        }
+        value |= payload << shift;
+        if (byte & WasmLebContinuation) == 0 { return value; }
+    }
+    wasm_read_fail(reader, WasmReadError.Integer);
+    return 0;
+}
+
+fn wasm_read_sleb(reader: WasmReader*, width: u64): i64 {
+    if width == 0 || width > 64 {
+        wasm_read_fail(reader, WasmReadError.Integer);
+        return 0;
+    }
+    var value: u64 = 0;
+    for (var shift: u64 = 0; shift < width; shift += WasmLebPayloadBits) {
+        var byte = wasm_read_byte(reader);
+        if reader.error != WasmReadError.None { return 0; }
+        var payload = convert(u64, byte & WasmLebPayloadMask);
+        var remaining = width - shift;
+        if remaining < WasmLebPayloadBits {
+            var low_mask = (convert(u64, 1) << remaining) - 1;
+            var high = payload & (convert(u64, WasmLebPayloadMask) ^ low_mask);
+            var negative = (payload & (convert(u64, 1) << (remaining - 1))) != 0;
+            if (!negative && high != 0) || (negative && high != (convert(u64, WasmLebPayloadMask) ^ low_mask)) {
+                wasm_read_fail(reader, WasmReadError.Integer);
+                return 0;
+            }
+        }
+        value |= payload << shift;
+        if (byte & WasmLebContinuation) == 0 {
+            var next = shift + WasmLebPayloadBits;
+            if (byte & WasmLebSignBit) != 0 && next < 64 { value |= ~convert(u64, 0) << next; }
+            return bits(i64, value);
+        }
+    }
+    wasm_read_fail(reader, WasmReadError.Integer);
+    return 0;
+}
+
+fn wasm_read_index(reader: WasmReader*): u32 { return convert(u32, wasm_read_uleb(reader, 32)); }
+
+fn wasm_read_name(reader: WasmReader*): WasmBytes {
+    var size = wasm_read_index(reader);
+    var name = wasm_read_bytes(reader, convert(usize, size));
+    for (var at: usize = 0; at < name.length;) {
+        var scalar: u32 = 0;
+        var length = tower_utf8_decode(name.data + at, name.length - at, &scalar);
+        if length == 0 {
+            wasm_read_fail(reader, WasmReadError.Utf8);
+            break;
+        }
+        at += length;
+    }
+    return name;
+}
+
+fn wasm_bytes_equal(left: WasmBytes, right: WasmBytes): bool {
+    if left.length != right.length { return false; }
+    for (var at: usize = 0; at < left.length; at++) {
+        if left.data[at] != right.data[at] { return false; }
+    }
+    return true;
+}
+
+fn wasm_text_bytes(text: u8*): WasmBytes {
+    var result: WasmBytes = { data: text, ..default };
+    if text != null { while text[result.length] != 0 { result.length++; } }
+    return result;
+}
+
+fn wasm_bytes_text(value: WasmBytes, text: u8*): bool { return wasm_bytes_equal(value, wasm_text_bytes(text)); }
+
+fn wasm_bytes_hash(value: WasmBytes): u32 {
+    var hash = WasmHashOffset;
+    for (var at: usize = 0; at < value.length; at++) { hash = (hash ^ convert(u32, value.data[at])) * WasmHashPrime; }
+    return hash;
+}
+
+fn wasm_write_uleb(output: ByteBuffer*, value: u64): bool {
+    loop {
+        var byte = convert(u8, value & convert(u64, WasmLebPayloadMask));
+        value >>= WasmLebPayloadBits;
+        if value != 0 { byte |= WasmLebContinuation; }
+        if !bytes_push(output, byte) { return false; }
+        if value == 0 { return true; }
+    }
+}
+
+fn wasm_write_sleb(output: ByteBuffer*, value: i64): bool {
+    loop {
+        var byte = convert(u8, bits(u64, value) & convert(u64, WasmLebPayloadMask));
+        value >>= convert(i64, WasmLebPayloadBits);
+        var done = (value == 0 && (byte & WasmLebSignBit) == 0) || (value == -1 && (byte & WasmLebSignBit) != 0);
+        if !done { byte |= WasmLebContinuation; }
+        if !bytes_push(output, byte) { return false; }
+        if done { return true; }
+    }
+}
+
+fn wasm_write_name(output: ByteBuffer*, name: WasmBytes): bool {
+    return wasm_write_uleb(output, convert(u64, name.length)) && bytes_append(output, name.data, name.length);
+}
+
+fn wasm_read_message(error: WasmReadError): u8* {
+    match error {
+        WasmReadError.None => { return "success"; }
+        WasmReadError.Truncated => { return "truncated Wasm input"; }
+        WasmReadError.Integer => { return "invalid Wasm integer encoding"; }
+        WasmReadError.Encoding => { return "invalid Wasm object encoding"; }
+        WasmReadError.Utf8 => { return "invalid UTF-8 Wasm name"; }
+        WasmReadError.Unsupported => { return "unsupported Wasm object feature"; }
+        WasmReadError.Allocation => { return "Wasm linker allocation failed"; }
+        WasmReadError.Index => { return "Wasm object index out of range"; }
+        WasmReadError.Duplicate => { return "duplicate Wasm object metadata"; }
+        _ => { return "unknown Wasm input error"; }
+    }
+}

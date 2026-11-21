@@ -1,0 +1,5 @@
+import tower;
+import wasm_link_reader;
+import .host.memory;
+
+export fn _start(): void { main(); }

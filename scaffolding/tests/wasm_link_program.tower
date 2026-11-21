@@ -1,0 +1,16 @@
+import tower;
+
+// A real compiler-produced relocatable object. Runtime assertion and all test
+// logic stay in Tower; host-wasi.mjs only instantiates and invokes _start.
+extern fn abort(): void;
+extern fn puts(message: u8*): i32;
+extern fn wasm_link_fixture_add(value: i32): i32;
+extern fn wasm_link_fixture_message(): u8*;
+
+export fn _start(): void {
+    var result = wasm_link_fixture_add(31);
+    if result != 42 { abort(); }
+    var message = wasm_link_fixture_message();
+    if message[0] != 84 || message[5] != 32 { abort(); }
+    if puts(message) < 0 { abort(); }
+}

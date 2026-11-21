@@ -1,0 +1,355 @@
+import tower;
+import utility_checks;
+import .backend.wasm_bytes;
+import .backend.wasm_object;
+import .backend.wasm_object_types;
+import .backend.wasm_link_world;
+import .backend.wasm_archive;
+import .backend.wasm_names;
+import .backend.wasm_link_types;
+import .backend.wasm_link_prepare;
+import .backend.wasm_link_symbols;
+import .backend.wasm_link;
+import .backend.wasm_link_relocate;
+import .backend.wasm_object_linking;
+import .library.bytes;
+import .library.bytes_types;
+import .library.entities;
+
+export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, data: u8*): void { abort(); }
+
+fn wasm_test_leb(): void {
+    var buffer: ByteBuffer = default;
+    defer bytes_dispose(&buffer);
+    var seed: u32 = 1729;
+    for (var sample: usize = 0; sample < 1000; sample++) {
+        var value = (convert(u64, utility_random(&seed)) << 32) | convert(u64, utility_random(&seed));
+        if sample == 0 { value = 0; }
+        if sample == 1 { value = ~convert(u64, 0); }
+        if sample == 2 { value = convert(u64, 1) << 63; }
+        buffer.length = 0;
+        utility_check(wasm_write_uleb(&buffer, value), "write unsigned LEB");
+        var reader: WasmReader = { bytes: { data: buffer.data, length: buffer.length }, ..default };
+        utility_check(wasm_read_uleb(&reader, 64) == value && reader.error == WasmReadError.None && reader.at == buffer.length, "unsigned LEB round trip");
+        buffer.length = 0;
+        utility_check(wasm_write_sleb(&buffer, bits(i64, value)), "write signed LEB");
+        reader = init(WasmReader) { bytes: { data: buffer.data, length: buffer.length }, ..default };
+        utility_check(wasm_read_sleb(&reader, 64) == bits(i64, value) && reader.error == WasmReadError.None && reader.at == buffer.length, "signed LEB round trip");
+    }
+    buffer.length = 0;
+    for (var at: usize = 0; at < 5; at++) { utility_check(bytes_push(&buffer, at == 4 ? 15 : 255), "padded LEB fixture"); }
+    var reader: WasmReader = { bytes: { data: buffer.data, length: buffer.length }, ..default };
+    utility_check(wasm_read_uleb(&reader, 32) == 4294967295 && reader.error == WasmReadError.None, "maximum padded u32");
+    reader.at = 0;
+    wasm_read_sleb(&reader, 32);
+    utility_check(reader.error == WasmReadError.Integer, "signed unused bits checked");
+    buffer.data[4] = 127;
+    reader = init(WasmReader) { bytes: { data: buffer.data, length: buffer.length }, ..default };
+    utility_check(wasm_read_sleb(&reader, 32) == -1 && reader.error == WasmReadError.None, "padded negative i32");
+    reader.at = 0;
+    wasm_read_uleb(&reader, 32);
+    utility_check(reader.error == WasmReadError.Integer, "unsigned unused bits checked");
+    buffer.data[4] = 128;
+    reader = init(WasmReader) { bytes: { data: buffer.data, length: buffer.length }, ..default };
+    wasm_read_uleb(&reader, 32);
+    utility_check(reader.error == WasmReadError.Integer, "overlong continuation checked");
+    reader = init(WasmReader) { bytes: { data: buffer.data, length: 1 }, ..default };
+    wasm_read_uleb(&reader, 64);
+    utility_check(reader.error == WasmReadError.Truncated, "truncated continuation checked");
+    reader = default;
+    wasm_read_bytes(&reader, ~convert(usize, 0));
+    utility_check(reader.error == WasmReadError.Truncated, "span overflow rejected before dereference");
+    buffer.length = 0;
+    utility_check(bytes_push(&buffer, 1) && bytes_push(&buffer, 255), "invalid UTF-8 fixture");
+    reader = init(WasmReader) { bytes: { data: buffer.data, length: buffer.length }, ..default };
+    wasm_read_name(&reader);
+    utility_check(reader.error == WasmReadError.Utf8, "invalid UTF-8 name rejected");
+}
+
+fn wasm_test_byte(output: ByteBuffer*, value: u8): void { utility_check(bytes_push(output, value), "fixture byte allocation"); }
+fn wasm_test_index(output: ByteBuffer*, value: u64): void { utility_check(wasm_write_uleb(output, value), "fixture index allocation"); }
+fn wasm_test_name(output: ByteBuffer*, value: u8*): void { utility_check(wasm_write_name(output, wasm_text_bytes(value)), "fixture name allocation"); }
+fn wasm_test_section(output: ByteBuffer*, kind: WasmSection, data: ByteBuffer*): void {
+    wasm_test_byte(output, convert(u8, kind));
+    wasm_test_index(output, convert(u64, data.length));
+    utility_check(bytes_append(output, data.data, data.length), "fixture section allocation");
+    data.length = 0;
+}
+
+fn wasm_test_named_object(output: ByteBuffer*, name: u8*, flags: u32): void {
+    var header: u8[8] = default;
+    header[1] = 97; header[2] = 115; header[3] = 109; header[4] = 1;
+    utility_check(bytes_append(output, &header[0], 8), "fixture header");
+    var section: ByteBuffer = default;
+    var symbols: ByteBuffer = default;
+    defer bytes_dispose(&section); defer bytes_dispose(&symbols);
+    wasm_test_index(&section, 1); wasm_test_byte(&section, WasmFunctionType);
+    wasm_test_index(&section, 0); wasm_test_index(&section, 1); wasm_test_byte(&section, convert(u8, WasmValueType.I32));
+    wasm_test_section(output, WasmSection.Type, &section);
+    wasm_test_index(&section, 1); wasm_test_index(&section, 0);
+    wasm_test_section(output, WasmSection.Function, &section);
+    wasm_test_index(&section, 1); wasm_test_index(&section, 4); wasm_test_index(&section, 0);
+    wasm_test_byte(&section, convert(u8, WasmOpcode.I32Const)); wasm_test_byte(&section, 42); wasm_test_byte(&section, convert(u8, WasmOpcode.End));
+    wasm_test_section(output, WasmSection.Code, &section);
+    wasm_test_index(&symbols, 1); wasm_test_byte(&symbols, convert(u8, WasmSymbolKind.Function));
+    wasm_test_index(&symbols, convert(u64, flags)); wasm_test_index(&symbols, 0); wasm_test_name(&symbols, name);
+    wasm_test_name(&section, "linking"); wasm_test_index(&section, convert(u64, WasmLinkingVersion));
+    wasm_test_byte(&section, convert(u8, WasmLinkingSection.Symbols)); wasm_test_index(&section, convert(u64, symbols.length));
+    utility_check(bytes_append(&section, symbols.data, symbols.length), "fixture symbols");
+    wasm_test_section(output, WasmSection.Custom, &section);
+}
+
+fn wasm_test_object(output: ByteBuffer*): void { wasm_test_named_object(output, "answer", convert(u32, WasmSymbolFlag.Exported)); }
+
+fn wasm_test_import_object(output: ByteBuffer*, result: WasmValueType, flags: u32, direct: bool): void {
+    var header: u8[8] = default;
+    header[1] = 97; header[2] = 115; header[3] = 109; header[4] = 1;
+    utility_check(bytes_append(output, &header[0], 8), "import fixture header");
+    var section: ByteBuffer = default;
+    var symbols: ByteBuffer = default;
+    defer bytes_dispose(&section); defer bytes_dispose(&symbols);
+    wasm_test_index(&section, 1); wasm_test_byte(&section, WasmFunctionType);
+    wasm_test_index(&section, 0); wasm_test_index(&section, 1); wasm_test_byte(&section, convert(u8, result));
+    wasm_test_section(output, WasmSection.Type, &section);
+    wasm_test_index(&section, 1); wasm_test_name(&section, "env"); wasm_test_name(&section, "answer");
+    wasm_test_byte(&section, convert(u8, WasmExternal.Function)); wasm_test_index(&section, 0);
+    wasm_test_section(output, WasmSection.Import, &section);
+    if direct {
+        wasm_test_index(&section, 1); wasm_test_index(&section, 0);
+        wasm_test_section(output, WasmSection.Function, &section);
+        var call_opcode: u8 = 16;
+        var body_bytes: u64 = 8;
+        var padded_index: usize = 5;
+        wasm_test_index(&section, 1); wasm_test_index(&section, body_bytes); wasm_test_index(&section, 0);
+        wasm_test_byte(&section, call_opcode);
+        for (var at: usize = 0; at < padded_index; at++) { wasm_test_byte(&section, at + 1 < padded_index ? WasmLebContinuation : 0); }
+        wasm_test_byte(&section, convert(u8, WasmOpcode.End));
+        wasm_test_section(output, WasmSection.Code, &section);
+    }
+    wasm_test_index(&symbols, 1); wasm_test_byte(&symbols, convert(u8, WasmSymbolKind.Function));
+    wasm_test_index(&symbols, convert(u64, flags | convert(u32, WasmSymbolFlag.Undefined))); wasm_test_index(&symbols, 0);
+    if (flags & convert(u32, WasmSymbolFlag.ExplicitName)) != 0 { wasm_test_name(&symbols, "answer"); }
+    wasm_test_name(&section, "linking"); wasm_test_index(&section, convert(u64, WasmLinkingVersion));
+    wasm_test_byte(&section, convert(u8, WasmLinkingSection.Symbols)); wasm_test_index(&section, convert(u64, symbols.length));
+    utility_check(bytes_append(&section, symbols.data, symbols.length), "import fixture symbols");
+    wasm_test_section(output, WasmSection.Custom, &section);
+    if direct {
+        var code_section_index: u64 = 3;
+        var call_operand_offset: u64 = 4;
+        wasm_test_name(&section, "reloc.CODE"); wasm_test_index(&section, code_section_index);
+        wasm_test_index(&section, 1); wasm_test_index(&section, convert(u64, WasmRelocation.FunctionIndexLeb));
+        wasm_test_index(&section, call_operand_offset); wasm_test_index(&section, 0);
+        wasm_test_section(output, WasmSection.Custom, &section);
+    }
+}
+
+fn wasm_test_variants(): void {
+    var strong: ByteBuffer = default;
+    var first: ByteBuffer = default;
+    var second: ByteBuffer = default;
+    var address: ByteBuffer = default;
+    defer bytes_dispose(&strong); defer bytes_dispose(&first); defer bytes_dispose(&second); defer bytes_dispose(&address);
+    wasm_test_object(&strong);
+    wasm_test_import_object(&first, WasmValueType.I32, 0, true);
+    wasm_test_import_object(&second, WasmValueType.I64, 0, true);
+    wasm_test_import_object(&address, WasmValueType.I64, 0, false);
+    for (var defined: u32 = 0; defined < 3; defined++) {
+        var link: WasmLink = default;
+        utility_check(wasm_link_init(&link), "variant world");
+        var a: WasmBytes = defined != 0 ? init(WasmBytes) { data: strong.data, length: strong.length } : init(WasmBytes) { data: first.data, length: first.length };
+        var b: WasmBytes = defined == 2 ? init(WasmBytes) { data: address.data, length: address.length } : init(WasmBytes) { data: second.data, length: second.length };
+        utility_check(wasm_link_read_object(&link.world, wasm_text_bytes("definition.o"), a)
+            && wasm_link_read_object(&link.world, wasm_text_bytes("declaration.o"), b)
+            && wasm_link_prepare(&link) && wasm_link_symbols(&link), "variant inputs");
+        var ok = wasm_link_variants(&link);
+        if defined == 0 { utility_check(!ok && link.error == WasmLinkError.Signature, "incompatible unresolved imports diagnosed"); }
+        else { if defined == 2 {
+            utility_check(ok && link.warnings.length == 0 && link.layouts.data[1].symbols.data[0] == link.layouts.data[0].symbols.data[0], "address-only declaration retains the real function and table address");
+        } else {
+            var variant = link.layouts.data[1].symbols.data[0];
+            var symbol = &link.symbols.data[convert(usize, variant)];
+            utility_check(ok && link.warnings.length == 1 && variant != link.layouts.data[0].symbols.data[0]
+                && symbol.synthetic == WasmSynthetic.SignatureTrap && symbol.table_index == 0, "typed trap variant preserves null function address");
+        } }
+        utility_check(wasm_link_close(&link), "variant cleanup");
+    }
+}
+
+fn wasm_test_relocation_patches(): void {
+    var bytes: u8[10] = default;
+    var link: WasmLink = default;
+    var padded32: usize = 5;
+    var padded64: usize = 10;
+    var rounds: usize = 3;
+    for (var round: usize = 0; round < rounds; round++) {
+        var wide = round == 2;
+        var width = wide ? padded64 : padded32;
+        for (var at: usize = 0; at < width; at++) { bytes[at] = at + 1 < width ? WasmLebContinuation : 0; }
+        var value: u64 = round == 0 ? 2147483648 : ~convert(u64, 0);
+        var kind = wide ? WasmRelocation.MemoryAddressSleb64 : WasmRelocation.MemoryAddressSleb;
+        var target: WasmBytes = { data: &bytes[0], length: width };
+        utility_check(wasm_link_patch(&link, kind, target, value), "signed relocation patch");
+        var reader: WasmReader = { bytes: target, ..default };
+        var decoded = wasm_read_sleb(&reader, wide ? 64 : 32);
+        utility_check(reader.error == WasmReadError.None && decoded == (round == 0 ? -2147483648 : -1), "signed padded relocation preserves high bits");
+    }
+    var target: WasmBytes = { data: &bytes[0], length: padded32 };
+    utility_check(!wasm_link_patch(&link, WasmRelocation.MemoryAddressLeb, target, WasmMemory32Limit)
+        && link.error == WasmLinkError.Layout, "relocation overflow diagnosed");
+}
+
+enum WasmImportCase: u32 { Unused = 0, Missing = 1, Explicit = 2, Weak = 3 }
+
+fn wasm_test_import_policy(): void {
+    for (var mode: u32 = 0; mode <= convert(u32, WasmImportCase.Weak); mode++) {
+        var scenario = convert(WasmImportCase, mode);
+        var flags: u32 = scenario == WasmImportCase.Unused ? 0 : convert(u32, WasmSymbolFlag.NoStrip);
+        if scenario == WasmImportCase.Explicit { flags |= convert(u32, WasmSymbolFlag.ExplicitName); }
+        if scenario == WasmImportCase.Weak { flags |= convert(u32, WasmSymbolFlag.Weak); }
+        var input: ByteBuffer = default;
+        wasm_test_import_object(&input, WasmValueType.I32, flags, false);
+        var link: WasmLink = default;
+        utility_check(wasm_link_init(&link) && wasm_link_read_object(&link.world, wasm_text_bytes("import.o"), init(WasmBytes) { data: input.data, length: input.length }), "import policy input");
+        utility_check(bytes_append(&link.output, "keep", 4), "previous output fixture");
+        var ok = wasm_link_run(&link);
+        if scenario == WasmImportCase.Missing {
+            utility_check(!ok && link.error == WasmLinkError.Undefined && wasm_bytes_text(init(WasmBytes) { data: link.output.data, length: link.output.length }, "keep"), "undefined reference fails without publishing partial output");
+        } else {
+            utility_check(ok, "unused, explicit and weak import policies");
+            if scenario == WasmImportCase.Unused { utility_check(link.functions.length == 0, "unused undefined declaration is collected"); }
+            if scenario == WasmImportCase.Explicit { utility_check(link.imported_functions == 1, "explicit host import retains its signature and name"); }
+            if scenario == WasmImportCase.Weak { utility_check(link.imported_functions == 0 && link.functions.length == 1 && link.symbols.data[0].table_index == 0, "weak undefined function gets a typed null-address trap"); }
+        }
+        utility_check(wasm_link_close(&link), "import policy cleanup"); bytes_dispose(&input);
+    }
+    var unsupported: WasmLink = default;
+    utility_check(wasm_link_init(&unsupported), "unsupported profile world"); unsupported.shared_memory = true;
+    utility_check(!wasm_link_run(&unsupported) && unsupported.error == WasmLinkError.Unsupported && unsupported.output.length == 0, "shared memory is rejected until TLS initialization is implemented");
+    utility_check(wasm_link_close(&unsupported), "unsupported profile cleanup");
+}
+
+fn wasm_test_names(): void {
+    var keys: u8[512] = default;
+    var map: WasmNameMap = default;
+    defer wasm_names_dispose(&map);
+    for (var at: usize = 0; at < 256; at++) {
+        keys[at * 2] = convert(u8, at);
+        keys[at * 2 + 1] = convert(u8, at ^ 123);
+        utility_check(wasm_names_set(&map, init(WasmBytes) { data: &keys[at * 2], length: 2 }, convert(u32, at)), "name collision/growth insertion");
+    }
+    var capacity = map.capacity;
+    for (var at: usize = 0; at < 256; at++) {
+        var key: WasmBytes = { data: &keys[at * 2], length: 2 };
+        utility_check(wasm_names_get(&map, key) == convert(u32, at), "name collision/growth lookup");
+        utility_check(wasm_names_set(&map, key, convert(u32, at + 1)), "existing name update");
+        utility_check(wasm_names_get(&map, key) == convert(u32, at + 1), "updated name lookup");
+    }
+    utility_check(map.count == 256 && map.capacity == capacity, "updating names does not grow or duplicate rows");
+    utility_check(wasm_names_get(&map, wasm_text_bytes("absent")) == WasmNoIndex, "missing name sentinel");
+}
+
+fn wasm_test_resolution(): void {
+    var strong: ByteBuffer = default;
+    var weak: ByteBuffer = default;
+    var wrapper: ByteBuffer = default;
+    defer bytes_dispose(&strong); defer bytes_dispose(&weak); defer bytes_dispose(&wrapper);
+    wasm_test_named_object(&strong, "answer", 0);
+    wasm_test_named_object(&weak, "answer", convert(u32, WasmSymbolFlag.Weak));
+    wasm_test_named_object(&wrapper, "__wrap_answer", 0);
+    var first: WasmBytes = { data: strong.data, length: strong.length };
+    var second: WasmBytes = { data: weak.data, length: weak.length };
+    for (var mode: u32 = 0; mode < 4; mode++) {
+        var link: WasmLink = default;
+        utility_check(wasm_link_init(&link), "resolution world");
+        var a = mode == 1 || mode == 3 ? second : first;
+        var b = mode == 0 || mode == 1 ? first : second;
+        utility_check(wasm_link_read_object(&link.world, wasm_text_bytes("a.o"), a)
+            && wasm_link_read_object(&link.world, wasm_text_bytes("b.o"), b), "resolution input objects");
+        utility_check(wasm_link_prepare(&link), "resolution types and layout rows");
+        var ok = wasm_link_symbols(&link);
+        if mode == 0 { utility_check(!ok && link.error == WasmLinkError.Duplicate, "duplicate strong definition diagnosed"); }
+        else {
+            utility_check(ok && link.symbols.length == 1 && link.types.length == 1, "coalesced symbol and function type");
+            var selected: u32 = mode == 1 ? 1 : 0;
+            utility_check(link.symbols.data[0].definition.object == selected, "strong overrides weak; first weak wins deterministically");
+        }
+        utility_check(wasm_link_close(&link), "resolution cleanup after success or error");
+    }
+    var link: WasmLink = default;
+    utility_check(wasm_link_init(&link), "wrap world");
+    utility_check(wasm_link_read_object(&link.world, wasm_text_bytes("a.o"), first)
+        && wasm_link_read_object(&link.world, wasm_text_bytes("wrapper.o"), init(WasmBytes) { data: wrapper.data, length: wrapper.length })
+        && wasm_link_prepare(&link) && wasm_link_symbols(&link), "wrap inputs");
+    var wrap: WasmWrapRequest = { name: wasm_text_bytes("answer"), wrapper: wasm_text_bytes("__wrap_answer"), real: wasm_text_bytes("__real_answer") };
+    utility_check(wasm_link_push(&link, &link.wraps, wrap) && wasm_link_apply_wraps(&link), "wrap bindings");
+    utility_check(link.layouts.data[0].symbols.data[0] == link.layouts.data[1].symbols.data[0]
+        && link.symbols.data[0].definition.object == 0, "reference wrapping preserves actual definition");
+    utility_check(wasm_link_close(&link), "wrap cleanup");
+}
+
+fn wasm_test_objects(): void {
+    var bytes: ByteBuffer = default;
+    defer bytes_dispose(&bytes);
+    wasm_test_object(&bytes);
+    var input: WasmBytes = { data: bytes.data, length: bytes.length };
+    var object: WasmObject = default;
+    utility_check(wasm_object_read(&object, input), "minimal relocatable function parses");
+    utility_check(object.types.length == 1 && object.functions.length == 1 && object.symbols.length == 1
+        && wasm_bytes_text(object.symbols.data[0].name, "answer"), "function and symbol metadata preserved");
+    var type_index = object.sections.data[1].bytes.data + 1;
+    wasm_object_dispose(&object);
+    for (var cut: usize = 0; cut < bytes.length; cut++) {
+        utility_check(!wasm_object_read(&object, init(WasmBytes) { data: bytes.data, length: cut }), "every truncated fixture rejected");
+        utility_check(object.error != WasmReadError.None && object.error_offset <= cut, "bounded original diagnostic offset");
+        wasm_object_dispose(&object);
+    }
+    *type_index = 1;
+    utility_check(!wasm_object_read(&object, input) && object.error == WasmReadError.Index, "invalid function type index rejected");
+    wasm_object_dispose(&object); *type_index = 0;
+    var left: WasmLinkWorld = default;
+    var right: WasmLinkWorld = default;
+    utility_check(wasm_link_world_open(&left) && wasm_link_world_open(&right), "independent link worlds");
+    utility_check(wasm_link_read_object(&left, wasm_text_bytes("left.o"), input)
+        && wasm_link_read_object(&right, wasm_text_bytes("right.o"), input), "world-owned object components");
+    utility_check(left.object_type != right.object_type && left.objects.data[0].node.store == left.store
+        && right.objects.data[0].node.store == right.store, "component identities never cross worlds");
+    utility_check(entity_query_count(left.object_type) == 1 && entity_query_count(right.object_type) == 1, "shared ECS query sees inputs");
+    var view = entity_view_open(left.object_type);
+    utility_check(view != null && !wasm_link_world_close(&left) && left.objects.length == 1, "pinned input prevents disposal");
+    entity_view_close(view);
+    utility_check(wasm_link_world_close(&left) && wasm_link_world_close(&right), "world and component cleanup");
+    var link: WasmLink = default;
+    utility_check(wasm_link_init(&link) && wasm_link_read_object(&link.world, wasm_text_bytes("answer.o"), input), "static output input");
+    utility_check(wasm_link_run(&link), "static image emission");
+    utility_check(link.output.length != 0 && link.functions.length == 1 && link.output_exports.length == 2, "live exported function and memory emitted");
+    utility_check(wasm_link_close(&link), "static output cleanup");
+}
+
+fn wasm_test_archives(): void {
+    var archive: WasmArchive = default;
+    var magic = wasm_text_bytes("!<arch>\n");
+    utility_check(wasm_archive_read(&archive, magic) && archive.members.length == 0, "empty ar archive");
+    wasm_archive_dispose(&archive);
+    utility_check(!wasm_archive_read(&archive, wasm_text_bytes("!<thin>\n")) && archive.error == WasmReadError.Unsupported, "thin archive cannot read implicit filesystem inputs");
+    wasm_archive_dispose(&archive);
+    var data: ByteBuffer = default;
+    defer bytes_dispose(&data);
+    utility_check(bytes_append(&data, magic.data, magic.length), "archive header");
+    var header: u8[60];
+    fill(&header[0], 32, WasmArchiveHeaderBytes);
+    header[0] = 97; header[1] = 47;
+    header[48] = 57; header[49] = 57; header[50] = 57;
+    header[58] = 96; header[59] = 10;
+    utility_check(bytes_append(&data, &header[0], WasmArchiveHeaderBytes), "truncated member fixture");
+    utility_check(!wasm_archive_read(&archive, init(WasmBytes) { data: data.data, length: data.length })
+        && archive.error == WasmReadError.Truncated, "archive member range validated");
+    wasm_archive_dispose(&archive);
+}
+
+export fn main(): i32 {
+    wasm_test_leb(); wasm_test_objects(); wasm_test_archives(); wasm_test_names(); wasm_test_resolution();
+    wasm_test_variants(); wasm_test_relocation_patches(); wasm_test_import_policy();
+    puts("Wasm linker reader and world checks passed");
+    return 0;
+}
+

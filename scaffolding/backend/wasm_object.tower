@@ -1,0 +1,217 @@
+import tower;
+import wasm_bytes;
+import wasm_object_types;
+import wasm_object_sections;
+import wasm_object_linking;
+
+fn wasm_section_order(kind: u8): u8 {
+    var section = convert(WasmSection, kind);
+    match section {
+        WasmSection.Tag => { return 6; }
+        WasmSection.Global => { return 7; }
+        WasmSection.Export => { return 8; }
+        WasmSection.Start => { return 9; }
+        WasmSection.Element => { return 10; }
+        WasmSection.DataCount => { return 11; }
+        WasmSection.Code => { return 12; }
+        WasmSection.Data => { return 13; }
+        _ => { return kind; }
+    }
+}
+
+fn wasm_object_sections(object: WasmObject*, reader: WasmReader*): void {
+    var magic = wasm_read_bytes(reader, 8);
+    if magic.length != 8 { return; }
+    if magic.data[0] != 0 || magic.data[1] != 97 || magic.data[2] != 115 || magic.data[3] != 109
+        || magic.data[4] != 1 || magic.data[5] != 0 || magic.data[6] != 0 || magic.data[7] != 0 {
+        wasm_read_fail(reader, WasmReadError.Encoding); return;
+    }
+    var order: u8 = 0;
+    while reader.at < reader.bytes.length && reader.error == WasmReadError.None {
+        var section: WasmObjectSection = { kind: wasm_read_byte(reader), ..default };
+        var size = wasm_read_index(reader);
+        section.file_offset = reader.at;
+        section.bytes = wasm_read_bytes(reader, convert(usize, size));
+        if reader.error != WasmReadError.None { return; }
+        if section.kind > convert(u8, WasmSection.Tag) { wasm_read_fail(reader, WasmReadError.Unsupported); return; }
+        var sub: WasmReader = { bytes: section.bytes, ..default };
+        if section.kind == convert(u8, WasmSection.Custom) {
+            section.name = wasm_read_name(&sub);
+            section.content_offset = sub.at;
+        } else {
+            var next = wasm_section_order(section.kind);
+            if next <= order { wasm_read_fail(reader, WasmReadError.Duplicate); return; }
+            order = next;
+            if section.kind == convert(u8, WasmSection.Code) { object.code_section = convert(u32, object.sections.length); }
+            if section.kind == convert(u8, WasmSection.Data) { object.data_section = convert(u32, object.sections.length); }
+            wasm_object_standard(object, &sub, section.kind);
+            if sub.error == WasmReadError.None && sub.at != sub.bytes.length { wasm_read_fail(&sub, WasmReadError.Encoding); }
+        }
+        if sub.error != WasmReadError.None {
+            reader.error = sub.error; reader.error_offset = section.file_offset + sub.error_offset; return;
+        }
+        wasm_object_push(reader, &object.sections, section);
+    }
+}
+
+// Chunk boundaries are monotonically ordered in each input. Lookup is derived
+// from those records, so validation is O(relocations * log(chunks)), not a scan
+// of all functions for every relocation in a large LLVM object.
+fn wasm_object_relocation_chunk(object: WasmObject*, relocation: WasmRelocationRecord*, width: usize): bool {
+    var first: usize = 0;
+    var last: usize = 0;
+    var code = relocation.section == object.code_section;
+    if code { first = convert(usize, object.imported_functions); last = object.functions.length; }
+    else {
+        if relocation.section != object.data_section { return false; }
+        last = object.data.length;
+    }
+    var begin = first;
+    while first < last {
+        var middle = first + (last - first) / 2;
+        var offset = code ? object.functions.data[middle].code_offset : object.data.data[middle].section_offset;
+        if offset <= relocation.offset { first = middle + 1; }
+        else { last = middle; }
+    }
+    if first == begin { return false; }
+    var index = first - 1;
+    var offset = code ? object.functions.data[index].code_offset : object.data.data[index].section_offset;
+    var length = code ? object.functions.data[index].code.length : object.data.data[index].bytes.length;
+    var local = convert(usize, relocation.offset - offset);
+    return local <= length && width <= length - local;
+}
+
+fn wasm_object_validate(object: WasmObject*, reader: WasmReader*): void {
+    if !object.linking { wasm_read_fail(reader, WasmReadError.Encoding); return; }
+    if object.data_count != WasmNoIndex && convert(usize, object.data_count) != object.data.length { wasm_read_fail(reader, WasmReadError.Encoding); return; }
+    foreach (var & function in &object.functions) {
+        if convert(usize, function.type_index) >= object.types.length || (!function.imported && function.code.length == 0) {
+            wasm_read_fail(reader, WasmReadError.Index); return;
+        }
+    }
+    foreach (var & tag in &object.tags) {
+        if convert(usize, tag.type_index) >= object.types.length { wasm_read_fail(reader, WasmReadError.Index); return; }
+    }
+    foreach (var & element in &object.elements) {
+        if convert(usize, element.function) >= object.functions.length || convert(usize, element.table) >= object.tables.length {
+            wasm_read_fail(reader, WasmReadError.Index); return;
+        }
+    }
+    foreach (var & exported in &object.exports) {
+        var limit: usize = 0;
+        var kind = convert(WasmExternal, exported.kind);
+        match kind {
+            WasmExternal.Function => { limit = object.functions.length; }
+            WasmExternal.Global => { limit = object.globals.length; }
+            WasmExternal.Memory => { limit = object.memories.length; }
+            WasmExternal.Table => { limit = object.tables.length; }
+            WasmExternal.Tag => { limit = object.tags.length; }
+            _ => { }
+        }
+        if convert(usize, exported.index) >= limit { wasm_read_fail(reader, WasmReadError.Index); return; }
+    }
+    foreach (var & entry in &object.comdat_entries) {
+        var kind = convert(WasmComdatKind, entry.kind);
+        var limit: usize = 0;
+        var imported = false;
+        var row = convert(usize, entry.index);
+        match kind {
+            WasmComdatKind.Data => { limit = object.data.length; }
+            WasmComdatKind.Function => { limit = object.functions.length; imported = row < convert(usize, object.imported_functions); }
+            WasmComdatKind.Global => { limit = object.globals.length; if row < limit { imported = object.globals.data[row].imported; } }
+            WasmComdatKind.Tag => { limit = object.tags.length; if row < limit { imported = object.tags.data[row].imported; } }
+            WasmComdatKind.Table => { limit = object.tables.length; if row < limit { imported = object.tables.data[row].imported; } }
+            WasmComdatKind.Section => { limit = object.sections.length; }
+            _ => { }
+        }
+        if row >= limit || imported { wasm_read_fail(reader, WasmReadError.Index); return; }
+    }
+    foreach (var & symbol in &object.symbols) {
+        var local = (symbol.flags & convert(u32, WasmSymbolFlag.Local)) != 0;
+        if local && (symbol.flags & (convert(u32, WasmSymbolFlag.Undefined) | convert(u32, WasmSymbolFlag.Exported))) != 0 {
+            wasm_read_fail(reader, WasmReadError.Encoding); return;
+        }
+        var kind = convert(WasmSymbolKind, symbol.kind);
+        var index = convert(usize, symbol.index);
+        var valid = false;
+        var imported = (symbol.flags & convert(u32, WasmSymbolFlag.Undefined)) != 0;
+        match kind {
+            WasmSymbolKind.Function => { valid = index < object.functions.length && object.functions.data[index].imported == imported; }
+            WasmSymbolKind.Global => { valid = index < object.globals.length && object.globals.data[index].imported == imported; }
+            WasmSymbolKind.Tag => { valid = index < object.tags.length && object.tags.data[index].imported == imported; }
+            WasmSymbolKind.Table => { valid = index < object.tables.length && object.tables.data[index].imported == imported; }
+            WasmSymbolKind.Section => { valid = index < object.sections.length; }
+            WasmSymbolKind.Data => {
+                if (symbol.flags & convert(u32, WasmSymbolFlag.Undefined)) != 0 { valid = true; }
+                else {
+                    if (symbol.flags & convert(u32, WasmSymbolFlag.Absolute)) != 0 { wasm_read_fail(reader, WasmReadError.Unsupported); return; }
+                    if index < object.data.length {
+                        var length = convert(u64, object.data.data[index].bytes.length);
+                        valid = symbol.offset <= length && symbol.size <= length - symbol.offset;
+                    }
+                }
+            }
+            _ => { }
+        }
+        if !valid { wasm_read_fail(reader, WasmReadError.Index); return; }
+    }
+    foreach (var & initializer in &object.initializers) {
+        var index = convert(usize, initializer.symbol);
+        if index >= object.symbols.length || object.symbols.data[index].kind != convert(u8, WasmSymbolKind.Function) {
+            wasm_read_fail(reader, WasmReadError.Index); return;
+        }
+        var function = &object.functions.data[convert(usize, object.symbols.data[index].index)];
+        var type = &object.types.data[convert(usize, function.type_index)];
+        if type.parameters != 0 || type.results != 0 { wasm_read_fail(reader, WasmReadError.Encoding); return; }
+    }
+    foreach (var & relocation in &object.relocations) {
+        var section = convert(usize, relocation.section);
+        if section >= object.sections.length { wasm_read_fail(reader, WasmReadError.Index); return; }
+        var kind = convert(WasmRelocation, relocation.kind);
+        var index = convert(usize, relocation.index);
+        if (kind == WasmRelocation.TypeIndexLeb && index >= object.types.length)
+            || (kind != WasmRelocation.TypeIndexLeb && index >= object.symbols.length) { wasm_read_fail(reader, WasmReadError.Index); return; }
+        if kind == WasmRelocation.FunctionIndexLeb { object.symbols.data[index].called_directly = true; }
+        var bytes = object.sections.data[section].bytes;
+        var offset = convert(usize, relocation.offset);
+        var width = convert(usize, wasm_relocation_width(kind));
+        if offset > bytes.length || width > bytes.length - offset { wasm_read_fail(reader, WasmReadError.Index); return; }
+        var contained = object.sections.data[section].kind == convert(u8, WasmSection.Custom);
+        if !contained { contained = wasm_object_relocation_chunk(object, relocation, width); }
+        if !contained { wasm_read_fail(reader, WasmReadError.Index); return; }
+    }
+}
+
+// Destination must be fresh/empty. Failure leaves owned partial vectors there
+// for wasm_object_dispose, with a stable error and offset in the original input.
+fn wasm_object_read(object: WasmObject*, bytes: WasmBytes): bool {
+    object.bytes = bytes;
+    object.start = WasmNoIndex;
+    object.data_count = WasmNoIndex;
+    object.code_section = WasmNoIndex;
+    object.data_section = WasmNoIndex;
+    var reader: WasmReader = { bytes: bytes, ..default };
+    wasm_object_sections(object, &reader);
+    wasm_object_error(object, &reader, 0);
+    if object.error != WasmReadError.None { return false; }
+    foreach (var & section in &object.sections) {
+        if section.kind != convert(u8, WasmSection.Custom) { continue; }
+        var sub: WasmReader = { bytes: section.bytes, at: section.content_offset, ..default };
+        if wasm_bytes_text(section.name, "linking") { wasm_object_linking(object, &sub); }
+        else {
+            if section.name.length >= 6 && section.name.data[0] == 114 && section.name.data[1] == 101
+                && section.name.data[2] == 108 && section.name.data[3] == 111 && section.name.data[4] == 99 && section.name.data[5] == 46 {
+                wasm_object_relocations(object, &sub);
+            } else {
+                if wasm_bytes_text(section.name, "target_features") { wasm_object_features(object, &sub); }
+                else { continue; }
+            }
+        }
+        if sub.error == WasmReadError.None && sub.at != sub.bytes.length { wasm_read_fail(&sub, WasmReadError.Encoding); }
+        wasm_object_error(object, &sub, section.file_offset);
+        if object.error != WasmReadError.None { return false; }
+    }
+    wasm_object_validate(object, &reader);
+    wasm_object_error(object, &reader, 0);
+    return object.error == WasmReadError.None;
+}

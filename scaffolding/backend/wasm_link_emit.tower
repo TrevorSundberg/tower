@@ -1,0 +1,210 @@
+import tower;
+import wasm_bytes;
+import wasm_object_types;
+import wasm_link_types;
+import wasm_link_relocate;
+import .library.bytes;
+import .library.bytes_types;
+
+fn wasm_emit_section(output: ByteBuffer*, kind: WasmSection, section: ByteBuffer*): bool {
+    if section.length == 0 { return true; }
+    var ok = bytes_push(output, convert(u8, kind)) && wasm_write_uleb(output, convert(u64, section.length)) && bytes_append(output, section.data, section.length);
+    section.length = 0;
+    return ok;
+}
+
+fn wasm_emit_i32_expression(output: ByteBuffer*, value: u64): bool {
+    return bytes_push(output, convert(u8, WasmOpcode.I32Const)) && wasm_write_sleb(output, convert(i64, bits(i32, convert(u32, value))))
+        && bytes_push(output, convert(u8, WasmOpcode.End));
+}
+
+fn wasm_emit_imports(link: WasmLink*, section: ByteBuffer*): bool {
+    var count = convert(u64, link.imported_functions) + convert(u64, link.imported_globals);
+    if count == 0 { return true; }
+    if !wasm_write_uleb(section, count) { return false; }
+    for (var at: usize = 0; at < convert(usize, link.imported_functions); at++) {
+        var output = &link.functions.data[at];
+        var function = &link.world.objects.data[convert(usize, output.object)].object.functions.data[convert(usize, output.function)];
+        if !wasm_write_name(section, function.module) || !wasm_write_name(section, function.name)
+            || !bytes_push(section, convert(u8, WasmExternal.Function)) || !wasm_write_uleb(section, convert(u64, output.type_index)) { return false; }
+    }
+    for (var at: usize = 0; at < convert(usize, link.imported_globals); at++) {
+        var output = &link.globals.data[at];
+        var global = &link.world.objects.data[convert(usize, output.object)].object.globals.data[convert(usize, output.global)];
+        if !wasm_write_name(section, global.module) || !wasm_write_name(section, global.name)
+            || !bytes_push(section, convert(u8, WasmExternal.Global)) || !bytes_push(section, global.type)
+            || !bytes_push(section, global.mutable ? 1 : 0) { return false; }
+    }
+    return true;
+}
+
+fn wasm_emit_globals(link: WasmLink*, section: ByteBuffer*): bool {
+    var count = link.globals.length - convert(usize, link.imported_globals);
+    if count == 0 { return true; }
+    if !wasm_write_uleb(section, convert(u64, count)) { return false; }
+    for (var at = convert(usize, link.imported_globals); at < link.globals.length; at++) {
+        var output = &link.globals.data[at];
+        if output.object == WasmNoIndex {
+            var symbol = &link.symbols.data[convert(usize, output.symbol)];
+            var value = symbol.kind == convert(u8, WasmSymbolKind.Function) ? convert(u64, symbol.table_index) : symbol.address;
+            var mutable = symbol.synthetic == WasmSynthetic.Stack || symbol.global_mutable;
+            if !bytes_push(section, convert(u8, WasmValueType.I32)) || !bytes_push(section, mutable ? 1 : 0)
+                || !wasm_emit_i32_expression(section, value) { return false; }
+        } else {
+            var global = &link.world.objects.data[convert(usize, output.object)].object.globals.data[convert(usize, output.global)];
+            if !bytes_push(section, global.type) || !bytes_push(section, global.mutable ? 1 : 0)
+                || !bytes_append(section, global.expression.data, global.expression.length) { return false; }
+        }
+    }
+    return true;
+}
+
+fn wasm_emit_synthetic(link: WasmLink*, output: WasmOutputFunction*, body: ByteBuffer*): bool {
+    var symbol = &link.symbols.data[convert(usize, output.symbol)];
+    var unreachable: u8 = 0;
+    var call: u8 = 16;
+    if !wasm_write_uleb(body, 0) { return false; }
+    if symbol.synthetic == WasmSynthetic.SignatureTrap {
+        if !bytes_push(body, unreachable) { return false; }
+    } else {
+        if symbol.synthetic != WasmSynthetic.Constructors { return wasm_link_fail(link, WasmLinkError.Unsupported, symbol.name); }
+        foreach (var & initializer in &link.initializers) {
+            var function = &link.symbols.data[convert(usize, initializer.symbol)];
+            if !bytes_push(body, call) || !wasm_write_uleb(body, convert(u64, function.output_index)) { return false; }
+        }
+    }
+    return bytes_push(body, convert(u8, WasmOpcode.End));
+}
+
+fn wasm_emit_code(link: WasmLink*, section: ByteBuffer*): bool {
+    var count = link.functions.length - convert(usize, link.imported_functions);
+    if count == 0 { return true; }
+    if !wasm_write_uleb(section, convert(u64, count)) { return false; }
+    var body: ByteBuffer = default;
+    defer bytes_dispose(&body);
+    for (var at = convert(usize, link.imported_functions); at < link.functions.length; at++) {
+        var output = &link.functions.data[at];
+        if output.object == WasmNoIndex {
+            body.length = 0;
+            if !wasm_emit_synthetic(link, output, &body) || !wasm_write_uleb(section, convert(u64, body.length))
+                || !bytes_append(section, body.data, body.length) { return false; }
+        } else {
+            var input = convert(usize, output.object);
+            var function = &link.world.objects.data[input].object.functions.data[convert(usize, output.function)];
+            var chunk = &link.layouts.data[input].functions.data[convert(usize, output.function)];
+            if !wasm_write_uleb(section, convert(u64, function.code.length)) { return false; }
+            chunk.output_offset = convert(u64, section.length);
+            if !bytes_append(section, function.code.data, function.code.length) { return false; }
+            if !wasm_link_relocate(link, input, chunk, function.code_offset,
+                init(WasmBytes) { data: section.data + convert(usize, chunk.output_offset), length: function.code.length }) { return false; }
+        }
+    }
+    return true;
+}
+
+fn wasm_emit_data(link: WasmLink*, section: ByteBuffer*): bool {
+    var count: usize = 0;
+    foreach (var layout in &link.layouts) { foreach (var & chunk in &layout.data) { if chunk.live { count++; } } }
+    if count == 0 { return true; }
+    if !wasm_write_uleb(section, convert(u64, count)) { return false; }
+    for (var input: usize = 0; input < link.world.objects.length; input++) {
+        var object = link.world.objects.data[input].object;
+        var layout = link.layouts.data[input];
+        for (var row: usize = 0; row < object.data.length; row++) {
+            var chunk = &layout.data.data[row];
+            if !chunk.live { continue; }
+            var data = &object.data.data[row];
+            if !wasm_write_uleb(section, 0) || !wasm_emit_i32_expression(section, chunk.address)
+                || !wasm_write_uleb(section, convert(u64, data.bytes.length)) { return false; }
+            chunk.output_offset = convert(u64, section.length);
+            if !bytes_append(section, data.bytes.data, data.bytes.length) { return false; }
+            if !wasm_link_relocate(link, input, chunk, data.section_offset,
+                init(WasmBytes) { data: section.data + convert(usize, chunk.output_offset), length: data.bytes.length }) { return false; }
+        }
+    }
+    return true;
+}
+
+fn wasm_emit_names(link: WasmLink*, section: ByteBuffer*): bool {
+    var names: ByteBuffer = default;
+    defer bytes_dispose(&names);
+    var count: usize = 0;
+    foreach (var & function in &link.functions) { if function.symbol != WasmNoIndex { count++; } }
+    if !wasm_write_uleb(&names, convert(u64, count)) { return false; }
+    for (var at: usize = 0; at < link.functions.length; at++) {
+        var function = &link.functions.data[at];
+        if function.symbol == WasmNoIndex { continue; }
+        if !wasm_write_uleb(&names, convert(u64, at)) || !wasm_write_name(&names, link.symbols.data[convert(usize, function.symbol)].name) { return false; }
+    }
+    var function_names: u8 = 1;
+    return wasm_write_name(section, wasm_text_bytes("name")) && bytes_push(section, function_names)
+        && wasm_write_uleb(section, convert(u64, names.length)) && bytes_append(section, names.data, names.length);
+}
+
+fn wasm_link_emit_sections(link: WasmLink*, output: ByteBuffer*): bool {
+    var header: u8[8] = default;
+    header[1] = 97; header[2] = 115; header[3] = 109; header[4] = 1;
+    if !bytes_append(output, &header[0], 8) { return false; }
+    var section: ByteBuffer = default;
+    defer bytes_dispose(&section);
+    if link.types.length != 0 {
+        if !wasm_write_uleb(&section, convert(u64, link.types.length)) { return false; }
+        foreach (var & type in &link.types) { if !bytes_append(&section, type.data, type.length) { return false; } }
+        if !wasm_emit_section(output, WasmSection.Type, &section) { return false; }
+    }
+    if !wasm_emit_imports(link, &section) || !wasm_emit_section(output, WasmSection.Import, &section) { return false; }
+    var definitions = link.functions.length - convert(usize, link.imported_functions);
+    if definitions != 0 {
+        if !wasm_write_uleb(&section, convert(u64, definitions)) { return false; }
+        for (var at = convert(usize, link.imported_functions); at < link.functions.length; at++) {
+            if !wasm_write_uleb(&section, convert(u64, link.functions.data[at].type_index)) { return false; }
+        }
+        if !wasm_emit_section(output, WasmSection.Function, &section) { return false; }
+    }
+    if link.table_live || link.export_table {
+        var count = convert(u64, link.table_functions.length) + convert(u64, WasmTableBase);
+        if !wasm_write_uleb(&section, 1) || !bytes_push(&section, convert(u8, WasmValueType.FuncRef))
+            || !wasm_write_uleb(&section, 1) || !wasm_write_uleb(&section, count) || !wasm_write_uleb(&section, count)
+            || !wasm_emit_section(output, WasmSection.Table, &section) { return false; }
+    }
+    if !wasm_write_uleb(&section, 1) || !wasm_write_uleb(&section, link.maximum_memory != 0 ? 1 : 0)
+        || !wasm_write_uleb(&section, link.initial_memory / WasmPageBytes) { return false; }
+    if link.maximum_memory != 0 && !wasm_write_uleb(&section, link.maximum_memory / WasmPageBytes) { return false; }
+    if !wasm_emit_section(output, WasmSection.Memory, &section) || !wasm_emit_globals(link, &section)
+        || !wasm_emit_section(output, WasmSection.Global, &section) { return false; }
+    if link.output_exports.length != 0 {
+        if !wasm_write_uleb(&section, convert(u64, link.output_exports.length)) { return false; }
+        foreach (var & exported in &link.output_exports) {
+            if !wasm_write_name(&section, exported.name) || !bytes_push(&section, exported.kind) || !wasm_write_uleb(&section, convert(u64, exported.index)) { return false; }
+        }
+        if !wasm_emit_section(output, WasmSection.Export, &section) { return false; }
+    }
+    if link.table_functions.length != 0 {
+        if !wasm_write_uleb(&section, 1) || !wasm_write_uleb(&section, 0) || !wasm_emit_i32_expression(&section, convert(u64, WasmTableBase))
+            || !wasm_write_uleb(&section, convert(u64, link.table_functions.length)) { return false; }
+        foreach (var function in &link.table_functions) { if !wasm_write_uleb(&section, convert(u64, function)) { return false; } }
+        if !wasm_emit_section(output, WasmSection.Element, &section) { return false; }
+    }
+    if !wasm_emit_code(link, &section) || !wasm_emit_section(output, WasmSection.Code, &section)
+        || !wasm_emit_data(link, &section) || !wasm_emit_section(output, WasmSection.Data, &section) { return false; }
+    if link.emit_names && (!wasm_emit_names(link, &section) || !wasm_emit_section(output, WasmSection.Custom, &section)) { return false; }
+    if link.features.length != 0 {
+        if !wasm_write_name(&section, wasm_text_bytes("target_features")) || !wasm_write_uleb(&section, convert(u64, link.features.length)) { return false; }
+        foreach (var & feature in &link.features) {
+            if !bytes_push(&section, feature.prefix) || !wasm_write_name(&section, feature.name) { return false; }
+        }
+        if !wasm_emit_section(output, WasmSection.Custom, &section) { return false; }
+    }
+    return true;
+}
+
+// Publish only a complete image. Failure retains the caller's previous output.
+fn wasm_link_emit(link: WasmLink*): bool {
+    var output: ByteBuffer = default;
+    if !wasm_link_emit_sections(link, &output) {
+        bytes_dispose(&output);
+        return wasm_link_fail(link, WasmLinkError.Allocation, default(WasmBytes));
+    }
+    bytes_dispose(&link.output); link.output = output;
+    return true;
+}

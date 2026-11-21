@@ -36137,3 +36137,152 @@ This replaces the historical compressed candidates above and retains upstream's
 installer/archive retirement. Logs: float-direct-relocated.log,
 float-direct-successor-{build,execution}.log. AGENTS.md additionally records that
 unary negation remains an ordinary operation evaluated by the shared interpreter.
+## 2026-11-21 - Tower static Wasm linker: first executable milestone
+
+The user approved the proposed third-party port after 3b2e2bf. This entry
+supersedes that entry's not-started status. LLVM code generation and production
+LLD dispatch remain external/reference implementations; no dependency retirement
+or full linker replacement is claimed yet. Pulled/rebased main through 6f73a74
+before this batch, preserving the other tooling and browser work. No todo.txt
+edits, new native code, sanitizer run or broad formatting sweep.
+
+Implemented the port in new backend/wasm_*.tower modules: bounded LEB/UTF-8,
+relocatable Wasm and GNU/BSD-name ar readers; symbol, COMDAT, target-feature and
+relocation records; canonical type interning; strong/weak/local resolution;
+reference wrapping; synthetic stack/memory/table/runtime symbols; root and
+relocation liveness; deterministic function/global/table/data layout; typed
+relocation patching; static module, export, element and constructor emission;
+optional function names for diagnostics. Function/data relocation indexes are
+CSR ranges, sorted only when necessary, with overlap rejection. Complete output
+publishes only after success. There is no native linker call in wasm_link_run.
+
+Each input and its layout are components on the same request-owned EntityStore.
+Byte spans borrow immutable caller-pinned inputs; dense object records and derived
+indexes describe platform objects, not another Tower semantic IR. World/type
+identities never cross requests; pinned views prevent disposal. Current phases
+are serial. The ownership and CSR layout prepare disjoint jobs, but are not
+proof of parallel execution; worker overlap/cancellation gates remain work.
+The standalone audit/static adapters and all new functional fixtures are Tower.
+The only existing JS edit is a byte-source override in compiler-fixtures.mjs,
+matching its existing TOWER_TEST_WASM override, to test an isolated LLVM reactor.
+
+Primary contracts: WebAssembly/tool-conventions Linking.md and pinned local
+LLVM/lld source at ~/.cache/tower/llvm-source-1e57ee22ca274b663eeb279fd86e7010a8441c99,
+especially wasm/InputFiles.cpp, SymbolTable.cpp, Writer.cpp and Driver.cpp.
+https://github.com/WebAssembly/tool-conventions/blob/main/Linking.md
+https://github.com/llvm/llvm-project/blob/llvmorg-19.1.1/lld/wasm/InputFiles.cpp
+https://lld.llvm.org/WebAssembly.html
+The local source includes the existing SDK34 __wasm_first_page_end compatibility
+patch. Optional runtime symbols preserve explicit target addresses; target layout
+never comes from host sizeof. Explicit import-name metadata permits host imports,
+including WASI, without broad allow-undefined. Ordinary unresolved strong
+references fail; weak callable references use typed traps with null addresses.
+
+Important rejected trial/correction: initial resolution produced eleven typed
+signature variants in the LLVM archives. Reading all of SymbolTable's variant
+code was insufficient: InputFiles first classifies FUNCTION_INDEX_LEB references
+as direct calls. Address-only declarations (C++ vtables in particular) may carry
+placeholder signatures and must keep the real definition/table address. The first
+Tower-linked LLVM reactor instantiated but trapped inside TargetLoweringBase's
+computeRegisterProperties when constructing the WebAssembly target. Added optional
+Wasm names to identify the call, traced this to the overly strict variant policy,
+and corrected it. The same archive inputs now require zero variants; direct-call
+mismatches still get typed traps and two incompatible direct imports still fail.
+New Tower fixtures distinguish these cases. Do not interpret the earlier eleven
+variants as a required compatibility behavior. The fixed reactor passes actual
+LLVM object/program generation and execution below.
+
+Other findings: SDK34's __memory_base declaration can be mutable while the
+published Tower compiler emits an immutable declaration. Static reserved base
+symbols accept that declaration difference, keeping an i32 global with mutability
+required by either input; unrelated global signatures remain checked. Strings and
+retain segment flags are legal without merging strings; TLS remains rejected.
+Padded signed relocation tests caught numeric convert on unsigned high bits;
+bit reinterpretation plus explicit truncation now preserves i32/i64 patterns.
+The public bootstrap silently rejects inline struct initializers passed directly
+to inferred generic wasm_link_push; named typed locals avoid it without changing
+the language. A temporary .tower bisection probe was removed. LLVM's object reader
+also expects the name custom section before target_features; emission now follows
+that order even though core Wasm permits custom sections more generally.
+
+Reproduction environment: Windows/Node22.23.4, WSL Ubuntu, clang/LLVM19, WASI SDK34.
+Documented build-bootstrap.sh selects the checked-in public2292bd8a compiler.
+Isolated outputs are under ~/.cache/tower/coordinator-wasm-linker. For example:
+
+    <public-bootstrap>/towerc scaffolding/tools/wasm_link_static.tower --library -o <cache>/wasm_link_static.o
+    clang-19 <cache>/wasm_link_static.o <existing-Tower-build>/guest-host-library.o -o <cache>/wasm_link_static
+    <public-bootstrap>/towerc scaffolding/tests/wasm_link_reader.tower --library -o <cache>/wasm_link_reader.o
+    clang-19 <cache>/wasm_link_reader.o <existing-Tower-build>/guest-host-library.o -o <cache>/wasm_link_reader
+    <cache>/wasm_link_reader
+
+The existing runtime used was coordinator-retirement-handoff-clean/guest-host-library.o.
+ldd on the resulting linker reports libc and the loader only: no LLVM or LLD.
+The support archives were decompressed from build/compiler-project/*.a.gz using
+the existing gzip tool, not regenerated by a new helper implementation.
+
+Validation so far:
+- Native Tower checks pass: 1000 seeded full-width LEB round trips, malformed and
+  truncated encodings, every truncation of a relocatable fixture, index/UTF-8/ar
+  bounds, name-map growth, component worlds/pins, duplicate/weak/wrapped symbols,
+  direct/address-only signature rules, signed relocation extremes/overflow,
+  undefined/explicit/weak imports, failure retaining old output, and explicit
+  shared-memory rejection.
+- wasm_link_reader_wasi.tower compiles with the same public compiler, links with
+  the new Tower linker and the real support-tower archive, and executes all
+  checks in the existing browser WASI host. Rebuild the WASI object after fixture
+  changes before claiming the final expanded suite; final check follows below.
+- Separate program/library Tower objects built raw and optimized both link and
+  execute successfully. Upstream LLD produces the same runtime success text.
+  Real cross-object calls, string data, stack globals, libc and WASI imports are
+  exercised. The linker is not simply returning a constant Wasm smoke image.
+- All five LLVM support archives parse and resolve; whole-archive/no-GC static
+  emission completes. The initial standalone support image reaches host-import
+  resolution but is not a standalone executable; its env imports are intentional.
+- Relinked the actual portable compiler's 17 build/browser-wasi objects, full
+  recipe export list and support archive into build/wasm_link_tower_reactor.wasm.
+  compiletime, invocation, module-scope and package suites: 68 pass, 3 fail, 1 skip.
+  All three failures reproduce against the existing LLD-linked compiler: stale
+  aggregate-copy diagnostic expectations and newly supported comptime capture.
+  Logs: build/wasm_link_reactor_tests.log and wasm_link_baseline_failures.log.
+- Relinked the actual LLVM compiler objects from ~/.cache/tower/backend-wasi,
+  all five support archives, full export list and the three existing --wrap
+  requests. After the address-only-signature fix, raw/optimized loop agreement
+  passes. The default/inferred-generic/for suite is 17 pass, 1 fail, no skips;
+  the remaining aggregate-copy prohibition also fails on the original compiler.
+  Logs: build/wasm_link_llvm_tests.log, wasm_link_default_baseline.log and the
+  corrected focused wasm_link_llvm_diagnostic.log. These are real compiler
+  executions; production transport still invokes its embedded upstream LLD.
+
+Benchmark correction: the first cold single trial favored Tower (0.69s/337992 KiB
+versus LLD 0.82s/380376 KiB), but repeated warmed measurements do not establish a
+speed win. Three paired whole-archive/no-GC trials after correctness fixes gave
+Tower 0.46/0.53/0.52s, RSS341264-341592 KiB, versus SDK LLD
+0.44/0.44/0.43s, RSS380208-380468 KiB. Removed repeated prefix-wide error scans,
+reuse already-interned canonical type bytes, and skip sorting ordered relocation
+ranges. The resulting bytes are identical (cmp); subsequent Tower samples are
+0.58/0.49/0.47s at341556/341560/341556 KiB. Median remains roughly11% slower than
+that upstream sample, with about10% less peak resident memory. The measurement
+is a native single-thread static-support link, not a browser/self-build benchmark.
+Do not advertise a speedup; actual per-phase profiling/parallel jobs and output
+size/string merging are still optimization work.
+
+Remaining gates before production cutover/removing wasm LLD: lazy archive
+extraction, shared-memory/TLS/bulk initialization, complete supported custom/debug
+sections and target profiles, relocatable/dynamic output policy, byte-based plan
+adapter for existing BackendLink, pinned worker dispatch/joins/cancellation,
+compiler self-build generations using the new linker inside the browser, and
+cross-target/link diagnostics/artifacts plus repeated performance comparisons.
+The first milestone intentionally retains upstream LLD as reference and active
+production implementation. ELF Linux/Docker, then COFF/Mach-O, remain later port
+phases. No additional native shim or hidden third_party implementation was added.
+
+Final focused rebuild uses the documented default public2292 bootstrap, with no
+private compiler override: native reader tests, WASI reader entry and both tools
+compile. Native checks PASS; the expanded WASI checks (including import policy,
+address-only signatures and unsupported-profile rejection) link with the Tower
+linker and PASS through host-wasi.mjs. Final five-archive audit reports159870
+resolved symbols,341 canonical signatures and ZERO variants. Final logs are
+build/wasm_link_audit_final.log and the isolated cache objects named *-final.o.
+This confirms the correction above and supersedes the initial eleven-variant
+audit. Deployment of this experimental standalone milestone preserves the latest
+verified runtime; no production dependency cutover is included.

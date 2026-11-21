@@ -1,0 +1,196 @@
+import tower;
+import wasm_bytes;
+import wasm_names;
+import wasm_object_types;
+import wasm_link_world;
+import wasm_link_types;
+import .library.vector;
+import .library.bytes;
+import .library.bytes_types;
+
+fn wasm_link_comdats(link: WasmLink*): bool {
+    for (var index: usize = 0; index < link.world.objects.length; index++) {
+        var object = link.world.objects.data[index].object;
+        var layout = link.layouts.data[index];
+        foreach (var & group in &object.comdats) {
+            if wasm_names_get(&link.comdat_names, group.name) == WasmNoIndex {
+                if !wasm_names_set(&link.comdat_names, group.name, convert(u32, index)) {
+                    return wasm_link_fail(link, WasmLinkError.Allocation, group.name);
+                }
+                continue;
+            }
+            for (var at: usize = 0; at < group.count; at++) {
+                var entry = &object.comdat_entries.data[group.first + at];
+                var kind = convert(WasmComdatKind, entry.kind);
+                var chunks: vector(WasmChunkLayout)* = null;
+                match kind {
+                    WasmComdatKind.Data => { chunks = &layout.data; }
+                    WasmComdatKind.Function => { chunks = &layout.functions; }
+                    WasmComdatKind.Global => { chunks = &layout.globals; }
+                    WasmComdatKind.Tag => { chunks = &layout.tags; }
+                    WasmComdatKind.Table => { chunks = &layout.tables; }
+                    WasmComdatKind.Section => { continue; }
+                    _ => { return wasm_link_fail(link, WasmLinkError.Input, group.name); }
+                }
+                if convert(usize, entry.index) >= chunks.length { return wasm_link_fail(link, WasmLinkError.Input, group.name); }
+                chunks.data[convert(usize, entry.index)].discarded = true;
+            }
+        }
+    }
+    return true;
+}
+
+fn wasm_link_symbol_chunk(link: WasmLink*, reference: WasmSymbolReference): WasmChunkLayout* {
+    if reference.object == WasmNoIndex { return null; }
+    var index = convert(usize, reference.object);
+    var object = link.world.objects.data[index].object;
+    var layout = link.layouts.data[index];
+    var symbol = &object.symbols.data[convert(usize, reference.symbol)];
+    if (symbol.flags & convert(u32, WasmSymbolFlag.Undefined)) != 0 { return null; }
+    var row = convert(usize, symbol.index);
+    var kind = convert(WasmSymbolKind, symbol.kind);
+    match kind {
+        WasmSymbolKind.Function => { return &layout.functions.data[row]; }
+        WasmSymbolKind.Global => { return &layout.globals.data[row]; }
+        WasmSymbolKind.Data => { return &layout.data.data[row]; }
+        WasmSymbolKind.Table => { return &layout.tables.data[row]; }
+        WasmSymbolKind.Tag => { return &layout.tags.data[row]; }
+        _ => { return null; }
+    }
+}
+
+fn wasm_link_signatures(link: WasmLink*, left: WasmSymbolReference, right: WasmSymbolReference): bool {
+    if left.object == WasmNoIndex || right.object == WasmNoIndex { return true; }
+    var a = link.world.objects.data[convert(usize, left.object)].object;
+    var b = link.world.objects.data[convert(usize, right.object)].object;
+    var x = &a.symbols.data[convert(usize, left.symbol)];
+    var y = &b.symbols.data[convert(usize, right.symbol)];
+    if x.kind != y.kind { return false; }
+    var kind = convert(WasmSymbolKind, x.kind);
+    match kind {
+        WasmSymbolKind.Function => {
+            var xt = a.functions.data[convert(usize, x.index)].type_index;
+            var yt = b.functions.data[convert(usize, y.index)].type_index;
+            return link.layouts.data[convert(usize, left.object)].types.data[convert(usize, xt)]
+                == link.layouts.data[convert(usize, right.object)].types.data[convert(usize, yt)];
+        }
+        WasmSymbolKind.Global => {
+            var ax = &a.globals.data[convert(usize, x.index)];
+            var by = &b.globals.data[convert(usize, y.index)];
+            var static_base = (wasm_bytes_text(x.name, "__memory_base") || wasm_bytes_text(x.name, "__table_base"))
+                && (x.flags & convert(u32, WasmSymbolFlag.Undefined)) != 0 && (y.flags & convert(u32, WasmSymbolFlag.Undefined)) != 0;
+            return ax.type == by.type && (ax.mutable == by.mutable || static_base);
+        }
+        WasmSymbolKind.Table => { return a.tables.data[convert(usize, x.index)].type == b.tables.data[convert(usize, y.index)].type; }
+        _ => { return true; }
+    }
+}
+
+fn wasm_link_symbols(link: WasmLink*): bool {
+    if !wasm_link_comdats(link) { return false; }
+    for (var input: usize = 0; input < link.world.objects.length; input++) {
+        var object = link.world.objects.data[input].object;
+        for (var row: usize = 0; row < object.symbols.length; row++) {
+            var symbol = &object.symbols.data[row];
+            var reference: WasmSymbolReference = { object: convert(u32, input), symbol: convert(u32, row) };
+            var local = (symbol.flags & convert(u32, WasmSymbolFlag.Local)) != 0 || symbol.kind == convert(u8, WasmSymbolKind.Section);
+            var weak = (symbol.flags & convert(u32, WasmSymbolFlag.Weak)) != 0;
+            var defined = (symbol.flags & convert(u32, WasmSymbolFlag.Undefined)) == 0;
+            var explicit_import = !defined && (symbol.flags & convert(u32, WasmSymbolFlag.ExplicitName)) != 0;
+            var chunk = wasm_link_symbol_chunk(link, reference);
+            if chunk != null && chunk.discarded { defined = false; }
+            var index = local ? WasmNoIndex : wasm_names_get(&link.names, symbol.name);
+            if index == WasmNoIndex {
+                if link.symbols.length >= convert(usize, WasmNoIndex) { return wasm_link_fail(link, WasmLinkError.Layout, symbol.name); }
+                index = convert(u32, link.symbols.length);
+                var next: WasmResolvedSymbol = { name: symbol.name, definition: reference, declaration: reference, import_declaration: reference,
+                    defined: defined, weak: weak, local: local, kind: symbol.kind, explicit_import: explicit_import,
+                    output_index: WasmNoIndex, got_index: WasmNoIndex, ..default };
+                if symbol.kind == convert(u8, WasmSymbolKind.Global) { next.global_mutable = object.globals.data[convert(usize, symbol.index)].mutable; }
+                if !wasm_link_push(link, &link.symbols, next) { return false; }
+                if !local && !wasm_names_set(&link.names, symbol.name, index) { return wasm_link_fail(link, WasmLinkError.Allocation, symbol.name); }
+            } else {
+                var previous = &link.symbols.data[convert(usize, index)];
+                if symbol.kind != previous.kind || (symbol.kind != convert(u8, WasmSymbolKind.Function)
+                    && !wasm_link_signatures(link, previous.declaration, reference)) { return wasm_link_fail(link, WasmLinkError.Signature, symbol.name); }
+                if symbol.kind == convert(u8, WasmSymbolKind.Global) { previous.global_mutable ||= object.globals.data[convert(usize, symbol.index)].mutable; }
+                if explicit_import && !previous.explicit_import { previous.import_declaration = reference; previous.explicit_import = true; }
+                if symbol.kind == convert(u8, WasmSymbolKind.Function) && symbol.called_directly {
+                    var declaration = &link.world.objects.data[convert(usize, previous.declaration.object)].object.symbols.data[convert(usize, previous.declaration.symbol)];
+                    if !declaration.called_directly { previous.declaration = reference; }
+                }
+                if defined && previous.defined && !weak && !previous.weak { return wasm_link_fail(link, WasmLinkError.Duplicate, symbol.name); }
+                if defined && (!previous.defined || (previous.weak && !weak)) {
+                    previous.definition = reference; previous.defined = true; previous.weak = weak;
+                } else {
+                    if !previous.defined { previous.weak = previous.weak && weak; }
+                }
+            }
+            if !wasm_link_push(link, &link.layouts.data[input].symbols, index) { return false; }
+        }
+    }
+    return true;
+}
+
+fn wasm_link_wrapped(link: WasmLink*, symbol: u32): u32 {
+    var name = link.symbols.data[convert(usize, symbol)].name;
+    if link.symbols.data[convert(usize, symbol)].local { return symbol; }
+    foreach (var & wrap in &link.wraps) {
+        if wasm_bytes_equal(name, wrap.name) { return wasm_names_get(&link.names, wrap.wrapper); }
+        if wasm_bytes_equal(name, wrap.real) { return wasm_names_get(&link.names, wrap.name); }
+    }
+    return symbol;
+}
+
+fn wasm_link_apply_wraps(link: WasmLink*): bool {
+    foreach (var layout in &link.layouts) {
+        foreach (var & index in &layout.symbols) {
+            var wrapped = wasm_link_wrapped(link, *index);
+            if wrapped == WasmNoIndex { return wasm_link_fail(link, WasmLinkError.Undefined, link.symbols.data[convert(usize, *index)].name); }
+            *index = wrapped;
+        }
+    }
+    return true;
+}
+
+// Only direct references impose the declaration's Wasm signature. Address-only
+// declarations may have placeholder types (notably C++ vtables); preserve the
+// selected definition and its real table address. A mismatched direct call gets
+// wasm-ld's typed trap variant, whose function-pointer address is null.
+fn wasm_link_variants(link: WasmLink*): bool {
+    for (var input: usize = 0; input < link.world.objects.length; input++) {
+        var object = link.world.objects.data[input].object;
+        var layout = link.layouts.data[input];
+        for (var row: usize = 0; row < object.symbols.length; row++) {
+            var symbol = &object.symbols.data[row];
+            if symbol.kind != convert(u8, WasmSymbolKind.Function) || !symbol.called_directly { continue; }
+            var index = layout.symbols.data[row];
+            var selected = &link.symbols.data[convert(usize, index)];
+            var reference: WasmSymbolReference = { object: convert(u32, input), symbol: convert(u32, row) };
+            var actual = selected.defined && selected.definition.object != WasmNoIndex ? selected.definition : selected.declaration;
+            if wasm_link_signatures(link, actual, reference) { continue; }
+            if !selected.defined { return wasm_link_fail(link, WasmLinkError.Signature, selected.name); }
+            var type = layout.types.data[convert(usize, object.functions.data[convert(usize, symbol.index)].type_index)];
+            var key: u8[8] = default;
+            var combined = (convert(u64, index) << 32) | convert(u64, type);
+            for (var at: usize = 0; at < 8; at++) { key[at] = convert(u8, (combined >> convert(u64, at * 8)) & 255); }
+            var name: WasmBytes = { data: &key[0], length: 8 };
+            var variant = wasm_names_get(&link.variants, name);
+            if variant == WasmNoIndex {
+                var stub: WasmResolvedSymbol = { name: selected.name, declaration: reference,
+                    definition: { object: WasmNoIndex, symbol: WasmNoIndex }, defined: true, local: true,
+                    kind: convert(u8, WasmSymbolKind.Function), synthetic: WasmSynthetic.SignatureTrap,
+                    output_index: WasmNoIndex, got_index: WasmNoIndex, ..default };
+                variant = convert(u32, link.symbols.length);
+                var owned: ByteBuffer = default;
+                if !bytes_append(&owned, name.data, name.length) { return wasm_link_fail(link, WasmLinkError.Allocation, stub.name); }
+                name.data = owned.data;
+                if !wasm_link_push(link, &link.owned, owned) { bytes_dispose(&owned); return false; }
+                if !wasm_link_push(link, &link.symbols, stub) || !wasm_link_push(link, &link.warnings, reference)
+                    || !wasm_names_set(&link.variants, name, variant) { return wasm_link_fail(link, WasmLinkError.Allocation, stub.name); }
+            }
+            layout.symbols.data[row] = variant;
+        }
+    }
+    return true;
+}

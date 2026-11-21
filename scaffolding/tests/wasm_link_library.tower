@@ -1,0 +1,5 @@
+import tower;
+
+// Compile separately to retain actual cross-object calls and data relocations.
+export fn wasm_link_fixture_add(value: i32): i32 { return value + 11; }
+export fn wasm_link_fixture_message(): u8* { return "Tower Wasm linker execution passed"; }

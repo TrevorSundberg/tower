@@ -1,0 +1,102 @@
+import tower;
+import wasm_bytes;
+import wasm_object_types;
+import wasm_object_linking;
+import wasm_link_types;
+
+fn wasm_link_relocation_value(link: WasmLink*, input: usize, relocation: WasmRelocationRecord*, place: u64): u64 {
+    var layout = link.layouts.data[input];
+    var kind = convert(WasmRelocation, relocation.kind);
+    if kind == WasmRelocation.TypeIndexLeb { return convert(u64, layout.types.data[convert(usize, relocation.index)]); }
+    var symbol = &link.symbols.data[convert(usize, layout.symbols.data[convert(usize, relocation.index)])];
+    var required_kind = WasmSymbolKind.Data;
+    var value: u64 = 0;
+    match kind {
+        WasmRelocation.FunctionIndexLeb | WasmRelocation.FunctionIndexI32 => {
+            required_kind = WasmSymbolKind.Function; value = convert(u64, symbol.output_index);
+        }
+        WasmRelocation.TableIndexSleb | WasmRelocation.TableIndexI32 | WasmRelocation.TableIndexSleb64 | WasmRelocation.TableIndexI64 => {
+            required_kind = WasmSymbolKind.Function; value = convert(u64, symbol.table_index);
+        }
+        WasmRelocation.TableIndexRelativeSleb | WasmRelocation.TableIndexRelativeSleb64 => {
+            required_kind = WasmSymbolKind.Function;
+            value = symbol.table_index == 0 ? 0 : convert(u64, symbol.table_index - WasmTableBase);
+        }
+        WasmRelocation.GlobalIndexLeb | WasmRelocation.GlobalIndexI32 => {
+            var index = symbol.kind == convert(u8, WasmSymbolKind.Global) ? symbol.output_index : symbol.got_index;
+            if index == WasmNoIndex { wasm_link_fail(link, WasmLinkError.Layout, symbol.name); }
+            return convert(u64, index);
+        }
+        WasmRelocation.TableNumberLeb => { required_kind = WasmSymbolKind.Table; value = convert(u64, symbol.output_index); }
+        WasmRelocation.MemoryAddressLeb | WasmRelocation.MemoryAddressSleb | WasmRelocation.MemoryAddressI32
+        | WasmRelocation.MemoryAddressRelativeSleb | WasmRelocation.MemoryAddressLeb64 | WasmRelocation.MemoryAddressSleb64
+        | WasmRelocation.MemoryAddressI64 | WasmRelocation.MemoryAddressRelativeSleb64 => {
+            // Static images have memory base zero, including PIC input chunks.
+            // Undefined weak data addresses stay null regardless of the addend.
+            value = symbol.defined ? symbol.address + bits(u64, relocation.addend) : 0;
+        }
+        WasmRelocation.MemoryAddressLocalRelativeI32 => { value = symbol.defined ? symbol.address + bits(u64, relocation.addend) - place : 0; }
+        _ => { wasm_link_fail(link, WasmLinkError.Unsupported, symbol.name); return 0; }
+    }
+    if symbol.kind != convert(u8, required_kind) { wasm_link_fail(link, WasmLinkError.Signature, symbol.name); }
+    return value;
+}
+
+fn wasm_link_relocation_signed(kind: WasmRelocation): bool {
+    return kind == WasmRelocation.TableIndexSleb || kind == WasmRelocation.MemoryAddressSleb
+        || kind == WasmRelocation.MemoryAddressRelativeSleb || kind == WasmRelocation.TableIndexRelativeSleb
+        || kind == WasmRelocation.MemoryAddressSleb64 || kind == WasmRelocation.MemoryAddressRelativeSleb64
+        || kind == WasmRelocation.TableIndexSleb64 || kind == WasmRelocation.TableIndexRelativeSleb64
+        || kind == WasmRelocation.MemoryAddressTlsSleb || kind == WasmRelocation.MemoryAddressTlsSleb64;
+}
+
+fn wasm_link_patch(link: WasmLink*, kind: WasmRelocation, target: WasmBytes, value: u64): bool {
+    var width = convert(usize, wasm_relocation_width(kind));
+    var fixed32: usize = 4;
+    var fixed64: usize = 8;
+    var leb32: usize = 5;
+    var byte_bits: u64 = 8;
+    var byte_mask: u64 = 255;
+    if target.length != width { return wasm_link_fail(link, WasmLinkError.Input, wasm_text_bytes("relocation destination")); }
+    if width == fixed32 || width == leb32 {
+        var signed_minimum = ~convert(u64, WasmNoIndex >> 1);
+        if value > convert(u64, WasmNoIndex) && value < signed_minimum {
+            return wasm_link_fail(link, WasmLinkError.Layout, wasm_text_bytes("32-bit relocation overflow"));
+        }
+    }
+    if width == fixed32 || width == fixed64 {
+        for (var at: usize = 0; at < width; at++) { target.data[at] = convert(u8, (value >> (convert(u64, at) * byte_bits)) & byte_mask); }
+        return true;
+    }
+    var signed = wasm_link_relocation_signed(kind);
+    var reader: WasmReader = { bytes: target, ..default };
+    var width_bits: u64 = width == leb32 ? 32 : 64;
+    if signed { wasm_read_sleb(&reader, width_bits); } else { wasm_read_uleb(&reader, width_bits); }
+    if reader.error != WasmReadError.None || reader.at != target.length {
+        return wasm_link_fail(link, WasmLinkError.Input, wasm_text_bytes("relocation requires a padded LEB operand"));
+    }
+    if width == leb32 { value &= convert(u64, WasmNoIndex); }
+    if signed && width == leb32 { value = bits(u64, convert(i64, bits(i32, convert(u32, value)))); }
+    for (var at: usize = 0; at < width; at++) {
+        var byte = convert(u8, value & convert(u64, WasmLebPayloadMask));
+        value = signed ? bits(u64, bits(i64, value) >> convert(i64, WasmLebPayloadBits)) : value >> WasmLebPayloadBits;
+        if at + 1 < width { byte |= WasmLebContinuation; }
+        target.data[at] = byte;
+    }
+    return true;
+}
+
+fn wasm_link_relocate(link: WasmLink*, input: usize, chunk: WasmChunkLayout*, original_offset: u32, output: WasmBytes): bool {
+    var object = link.world.objects.data[input].object;
+    var layout = link.layouts.data[input];
+    for (var at: usize = 0; at < chunk.relocation_count; at++) {
+        var relocation = &object.relocations.data[convert(usize, layout.relocations.data[chunk.relocation_first + at])];
+        var offset = convert(usize, relocation.offset - original_offset);
+        var kind = convert(WasmRelocation, relocation.kind);
+        var width = convert(usize, wasm_relocation_width(kind));
+        if offset > output.length || width > output.length - offset { return wasm_link_fail(link, WasmLinkError.Input, wasm_text_bytes("relocation range")); }
+        var value = wasm_link_relocation_value(link, input, relocation, chunk.address + convert(u64, offset));
+        if link.error != WasmLinkError.None || !wasm_link_patch(link, kind, init(WasmBytes) { data: output.data + offset, length: width }, value) { return false; }
+    }
+    return true;
+}

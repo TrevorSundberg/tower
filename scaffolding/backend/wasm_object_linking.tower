@@ -1,0 +1,170 @@
+import tower;
+import wasm_bytes;
+import wasm_object_types;
+
+enum WasmRelocation: u32 {
+    FunctionIndexLeb = 0, TableIndexSleb = 1, TableIndexI32 = 2,
+    MemoryAddressLeb = 3, MemoryAddressSleb = 4, MemoryAddressI32 = 5,
+    TypeIndexLeb = 6, GlobalIndexLeb = 7, FunctionOffsetI32 = 8,
+    SectionOffsetI32 = 9, TagIndexLeb = 10, MemoryAddressRelativeSleb = 11,
+    TableIndexRelativeSleb = 12, GlobalIndexI32 = 13, MemoryAddressLeb64 = 14,
+    MemoryAddressSleb64 = 15, MemoryAddressI64 = 16, MemoryAddressRelativeSleb64 = 17,
+    TableIndexSleb64 = 18, TableIndexI64 = 19, TableNumberLeb = 20,
+    MemoryAddressTlsSleb = 21, FunctionOffsetI64 = 22, MemoryAddressLocalRelativeI32 = 23,
+    TableIndexRelativeSleb64 = 24, MemoryAddressTlsSleb64 = 25, FunctionIndexI32 = 26
+}
+
+fn wasm_relocation_addend(kind: WasmRelocation): u64 {
+    match kind {
+        WasmRelocation.MemoryAddressLeb | WasmRelocation.MemoryAddressSleb | WasmRelocation.MemoryAddressI32
+        | WasmRelocation.FunctionOffsetI32 | WasmRelocation.SectionOffsetI32 | WasmRelocation.MemoryAddressRelativeSleb
+        | WasmRelocation.MemoryAddressTlsSleb | WasmRelocation.MemoryAddressLocalRelativeI32 => { return 32; }
+        WasmRelocation.MemoryAddressLeb64 | WasmRelocation.MemoryAddressSleb64 | WasmRelocation.MemoryAddressI64
+        | WasmRelocation.MemoryAddressRelativeSleb64 | WasmRelocation.FunctionOffsetI64 | WasmRelocation.MemoryAddressTlsSleb64 => { return 64; }
+        _ => { return 0; }
+    }
+}
+
+fn wasm_relocation_width(kind: WasmRelocation): u32 {
+    match kind {
+        WasmRelocation.TableIndexI32 | WasmRelocation.MemoryAddressI32 | WasmRelocation.FunctionOffsetI32
+        | WasmRelocation.SectionOffsetI32 | WasmRelocation.GlobalIndexI32 | WasmRelocation.MemoryAddressLocalRelativeI32
+        | WasmRelocation.FunctionIndexI32 => { return 4; }
+        WasmRelocation.MemoryAddressI64 | WasmRelocation.TableIndexI64 | WasmRelocation.FunctionOffsetI64 => { return 8; }
+        WasmRelocation.MemoryAddressLeb64 | WasmRelocation.MemoryAddressSleb64 | WasmRelocation.MemoryAddressRelativeSleb64
+        | WasmRelocation.TableIndexSleb64 | WasmRelocation.TableIndexRelativeSleb64 | WasmRelocation.MemoryAddressTlsSleb64 => { return 10; }
+        _ => { return 5; }
+    }
+}
+
+fn wasm_object_symbol_name(object: WasmObject*, reader: WasmReader*, symbol: WasmSymbolRecord*): void {
+    var index = convert(usize, symbol.index);
+    var kind = convert(WasmSymbolKind, symbol.kind);
+    match kind {
+        WasmSymbolKind.Function => {
+            if index >= object.functions.length { wasm_read_fail(reader, WasmReadError.Index); return; }
+            symbol.name = object.functions.data[index].name;
+        }
+        WasmSymbolKind.Global => {
+            if index >= object.globals.length { wasm_read_fail(reader, WasmReadError.Index); return; }
+            symbol.name = object.globals.data[index].name;
+        }
+        WasmSymbolKind.Tag => {
+            if index >= object.tags.length { wasm_read_fail(reader, WasmReadError.Index); return; }
+            symbol.name = object.tags.data[index].name;
+        }
+        WasmSymbolKind.Table => {
+            if index >= object.tables.length { wasm_read_fail(reader, WasmReadError.Index); return; }
+            symbol.name = object.tables.data[index].name;
+        }
+        _ => { wasm_read_fail(reader, WasmReadError.Encoding); }
+    }
+}
+
+fn wasm_object_symbols(object: WasmObject*, reader: WasmReader*): void {
+    var count = wasm_read_index(reader);
+    for (var at: u32 = 0; at < count && reader.error == WasmReadError.None; at++) {
+        var symbol: WasmSymbolRecord = { kind: wasm_read_byte(reader), flags: wasm_read_index(reader), ..default };
+        var undefined = (symbol.flags & convert(u32, WasmSymbolFlag.Undefined)) != 0;
+        var kind = convert(WasmSymbolKind, symbol.kind);
+        match kind {
+            WasmSymbolKind.Data => {
+                symbol.name = wasm_read_name(reader);
+                if !undefined {
+                    symbol.index = wasm_read_index(reader);
+                    symbol.offset = wasm_read_uleb(reader, 64);
+                    symbol.size = wasm_read_uleb(reader, 64);
+                }
+            }
+            WasmSymbolKind.Section => { symbol.index = wasm_read_index(reader); }
+            WasmSymbolKind.Function | WasmSymbolKind.Global | WasmSymbolKind.Tag | WasmSymbolKind.Table => {
+                symbol.index = wasm_read_index(reader);
+                if !undefined || (symbol.flags & convert(u32, WasmSymbolFlag.ExplicitName)) != 0 {
+                    symbol.name = wasm_read_name(reader);
+                } else { wasm_object_symbol_name(object, reader, &symbol); }
+            }
+            _ => { wasm_read_fail(reader, WasmReadError.Unsupported); }
+        }
+        wasm_object_push(reader, &object.symbols, symbol);
+    }
+}
+
+fn wasm_object_linking(object: WasmObject*, reader: WasmReader*): void {
+    if object.linking { wasm_read_fail(reader, WasmReadError.Duplicate); return; }
+    object.linking = true;
+    if wasm_read_index(reader) != WasmLinkingVersion { wasm_read_fail(reader, WasmReadError.Unsupported); return; }
+    while reader.at < reader.bytes.length && reader.error == WasmReadError.None {
+        var kind = wasm_read_byte(reader);
+        var size = wasm_read_index(reader);
+        var offset = reader.at;
+        var sub: WasmReader = { bytes: wasm_read_bytes(reader, convert(usize, size)), ..default };
+        if reader.error != WasmReadError.None { return; }
+        if kind >= convert(u8, WasmLinkingSection.Segments) && kind <= convert(u8, WasmLinkingSection.Symbols) {
+            var bit = convert(u32, 1) << convert(u32, kind);
+            if (object.linking_sections & bit) != 0 { wasm_read_fail(reader, WasmReadError.Duplicate); return; }
+            object.linking_sections |= bit;
+        }
+        var section = convert(WasmLinkingSection, kind);
+        if section == WasmLinkingSection.Symbols { wasm_object_symbols(object, &sub); }
+        else {
+            var count = wasm_read_index(&sub);
+            for (var at: u32 = 0; at < count && sub.error == WasmReadError.None; at++) {
+                match section {
+                    WasmLinkingSection.Segments => {
+                        if convert(usize, count) != object.data.length { wasm_read_fail(&sub, WasmReadError.Encoding); break; }
+                        var data = &object.data.data[convert(usize, at)];
+                        data.name = wasm_read_name(&sub);
+                        data.alignment = wasm_read_index(&sub);
+                        data.flags = wasm_read_index(&sub);
+                        if data.alignment > 63 { wasm_read_fail(&sub, WasmReadError.Integer); }
+                    }
+                    WasmLinkingSection.Initializers => {
+                        var initializer: WasmInitializerRecord = { priority: wasm_read_index(&sub), symbol: wasm_read_index(&sub) };
+                        wasm_object_push(&sub, &object.initializers, initializer);
+                    }
+                    WasmLinkingSection.Comdats => {
+                        var group: WasmComdatRecord = { name: wasm_read_name(&sub), first: object.comdat_entries.length, ..default };
+                        if wasm_read_index(&sub) != 0 { wasm_read_fail(&sub, WasmReadError.Encoding); }
+                        group.count = convert(usize, wasm_read_index(&sub));
+                        for (var entry: usize = 0; entry < group.count && sub.error == WasmReadError.None; entry++) {
+                            var value: WasmComdatEntry = { kind: wasm_read_byte(&sub), index: wasm_read_index(&sub) };
+                            wasm_object_push(&sub, &object.comdat_entries, value);
+                        }
+                        wasm_object_push(&sub, &object.comdats, group);
+                    }
+                    _ => { wasm_read_fail(&sub, WasmReadError.Unsupported); }
+                }
+            }
+        }
+        if sub.error == WasmReadError.None && sub.at != sub.bytes.length { wasm_read_fail(&sub, WasmReadError.Encoding); }
+        if sub.error != WasmReadError.None {
+            reader.error = sub.error; reader.error_offset = offset + sub.error_offset; return;
+        }
+    }
+}
+
+fn wasm_object_relocations(object: WasmObject*, reader: WasmReader*): void {
+    var section = wasm_read_index(reader);
+    var count = wasm_read_index(reader);
+    for (var at: u32 = 0; at < count && reader.error == WasmReadError.None; at++) {
+        var relocation: WasmRelocationRecord = { section: section, kind: wasm_read_index(reader), offset: wasm_read_index(reader), index: wasm_read_index(reader), ..default };
+        if relocation.kind > convert(u32, WasmRelocation.FunctionIndexI32) { wasm_read_fail(reader, WasmReadError.Unsupported); return; }
+        var width = wasm_relocation_addend(convert(WasmRelocation, relocation.kind));
+        if width != 0 { relocation.addend = wasm_read_sleb(reader, width); }
+        wasm_object_push(reader, &object.relocations, relocation);
+    }
+}
+
+fn wasm_object_features(object: WasmObject*, reader: WasmReader*): void {
+    var used: u8 = 43;
+    var disallowed: u8 = 45;
+    var required: u8 = 61;
+    var count = wasm_read_index(reader);
+    for (var at: u32 = 0; at < count && reader.error == WasmReadError.None; at++) {
+        var feature: WasmFeatureRecord = { prefix: wasm_read_byte(reader), name: wasm_read_name(reader) };
+        if feature.prefix != used && feature.prefix != disallowed && feature.prefix != required {
+            wasm_read_fail(reader, WasmReadError.Encoding);
+        }
+        wasm_object_push(reader, &object.features, feature);
+    }
+}

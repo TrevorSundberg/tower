@@ -1,0 +1,224 @@
+import tower;
+import wasm_bytes;
+import wasm_object_types;
+
+fn wasm_value_type(reader: WasmReader*): u8 {
+    var type = wasm_read_byte(reader);
+    if type != convert(u8, WasmValueType.I32) && type != convert(u8, WasmValueType.I64)
+        && type != convert(u8, WasmValueType.F32) && type != convert(u8, WasmValueType.F64)
+        && type != convert(u8, WasmValueType.V128) && type != convert(u8, WasmValueType.FuncRef)
+        && type != convert(u8, WasmValueType.ExternRef) { wasm_read_fail(reader, WasmReadError.Unsupported); }
+    return type;
+}
+
+fn wasm_object_limits(reader: WasmReader*): WasmLimits {
+    var limits: WasmLimits = default;
+    limits.flags = wasm_read_index(reader);
+    var has_maximum: u32 = 1;
+    var shared: u32 = 2;
+    var memory64: u32 = 4;
+    if (limits.flags & ~(has_maximum | shared | memory64)) != 0
+        || ((limits.flags & shared) != 0 && (limits.flags & has_maximum) == 0) {
+        wasm_read_fail(reader, WasmReadError.Unsupported);
+        return limits;
+    }
+    var width: u64 = (limits.flags & memory64) != 0 ? 64 : 32;
+    limits.minimum = wasm_read_uleb(reader, width);
+    if (limits.flags & has_maximum) != 0 {
+        limits.maximum = wasm_read_uleb(reader, width);
+        if limits.maximum < limits.minimum { wasm_read_fail(reader, WasmReadError.Encoding); }
+    }
+    return limits;
+}
+
+fn wasm_object_expression(reader: WasmReader*): WasmBytes {
+    var begin = reader.at;
+    var opcode = convert(WasmOpcode, wasm_read_byte(reader));
+    match opcode {
+        WasmOpcode.I32Const => { wasm_read_sleb(reader, 32); }
+        WasmOpcode.I64Const => { wasm_read_sleb(reader, 64); }
+        WasmOpcode.F32Const => { wasm_read_bytes(reader, 4); }
+        WasmOpcode.F64Const => { wasm_read_bytes(reader, 8); }
+        WasmOpcode.GlobalGet | WasmOpcode.RefFunc => { wasm_read_index(reader); }
+        WasmOpcode.RefNull => { wasm_read_sleb(reader, 33); }
+        _ => { wasm_read_fail(reader, WasmReadError.Unsupported); }
+    }
+    if wasm_read_byte(reader) != convert(u8, WasmOpcode.End) { wasm_read_fail(reader, WasmReadError.Encoding); }
+    return init(WasmBytes) { data: reader.bytes.data + begin, length: reader.at - begin };
+}
+
+fn wasm_object_offset(reader: WasmReader*): u64 {
+    var opcode = wasm_read_byte(reader);
+    var result: u64 = 0;
+    if opcode == convert(u8, WasmOpcode.I32Const) {
+        result = bits(u64, wasm_read_sleb(reader, 32)) & convert(u64, WasmNoIndex);
+    } else {
+        if opcode == convert(u8, WasmOpcode.I64Const) { result = bits(u64, wasm_read_sleb(reader, 64)); }
+        else { wasm_read_fail(reader, WasmReadError.Unsupported); }
+    }
+    if wasm_read_byte(reader) != convert(u8, WasmOpcode.End) { wasm_read_fail(reader, WasmReadError.Encoding); }
+    return result;
+}
+
+fn wasm_object_types(object: WasmObject*, reader: WasmReader*): void {
+    var count = wasm_read_index(reader);
+    for (var at: u32 = 0; at < count && reader.error == WasmReadError.None; at++) {
+        var begin = reader.at;
+        if wasm_read_byte(reader) != WasmFunctionType { wasm_read_fail(reader, WasmReadError.Unsupported); return; }
+        var type: WasmFunctionTypeRecord = default;
+        type.parameters = wasm_read_index(reader);
+        for (var parameter: u32 = 0; parameter < type.parameters && reader.error == WasmReadError.None; parameter++) { wasm_value_type(reader); }
+        type.results = wasm_read_index(reader);
+        for (var result: u32 = 0; result < type.results && reader.error == WasmReadError.None; result++) { wasm_value_type(reader); }
+        type.bytes = init(WasmBytes) { data: reader.bytes.data + begin, length: reader.at - begin };
+        wasm_object_push(reader, &object.types, type);
+    }
+}
+
+fn wasm_object_global(reader: WasmReader*): WasmGlobalRecord {
+    var global: WasmGlobalRecord = default;
+    global.type = wasm_value_type(reader);
+    var mutable = wasm_read_byte(reader);
+    if mutable > 1 { wasm_read_fail(reader, WasmReadError.Encoding); }
+    global.mutable = mutable != 0;
+    return global;
+}
+
+fn wasm_object_imports(object: WasmObject*, reader: WasmReader*): void {
+    var count = wasm_read_index(reader);
+    for (var at: u32 = 0; at < count && reader.error == WasmReadError.None; at++) {
+        var module = wasm_read_name(reader);
+        var name = wasm_read_name(reader);
+        var kind = convert(WasmExternal, wasm_read_byte(reader));
+        match kind {
+            WasmExternal.Function => {
+                var function: WasmFunctionRecord = { type_index: wasm_read_index(reader), imported: true, module: module, name: name, ..default };
+                wasm_object_push(reader, &object.functions, function);
+                object.imported_functions++;
+            }
+            WasmExternal.Table => {
+                var table: WasmTableRecord = { type: wasm_value_type(reader), limits: wasm_object_limits(reader), imported: true, module: module, name: name };
+                wasm_object_push(reader, &object.tables, table);
+            }
+            WasmExternal.Memory => {
+                var memory: WasmMemoryRecord = { limits: wasm_object_limits(reader), imported: true, module: module, name: name };
+                wasm_object_push(reader, &object.memories, memory);
+            }
+            WasmExternal.Global => {
+                var global = wasm_object_global(reader);
+                global.imported = true; global.module = module; global.name = name;
+                wasm_object_push(reader, &object.globals, global);
+            }
+            WasmExternal.Tag => {
+                if wasm_read_byte(reader) != 0 { wasm_read_fail(reader, WasmReadError.Encoding); }
+                var tag: WasmTagRecord = { type_index: wasm_read_index(reader), imported: true, module: module, name: name };
+                wasm_object_push(reader, &object.tags, tag);
+            }
+            _ => { wasm_read_fail(reader, WasmReadError.Unsupported); }
+        }
+    }
+}
+
+fn wasm_object_functions(object: WasmObject*, reader: WasmReader*): void {
+    var count = wasm_read_index(reader);
+    for (var at: u32 = 0; at < count && reader.error == WasmReadError.None; at++) {
+        var function: WasmFunctionRecord = { type_index: wasm_read_index(reader), ..default };
+        wasm_object_push(reader, &object.functions, function);
+    }
+}
+
+fn wasm_object_code(object: WasmObject*, reader: WasmReader*): void {
+    var count = wasm_read_index(reader);
+    if convert(usize, count) != object.functions.length - convert(usize, object.imported_functions) {
+        wasm_read_fail(reader, WasmReadError.Encoding); return;
+    }
+    for (var at: u32 = 0; at < count && reader.error == WasmReadError.None; at++) {
+        var size = wasm_read_index(reader);
+        var function = &object.functions.data[convert(usize, object.imported_functions) + convert(usize, at)];
+        function.code_offset = convert(u32, reader.at);
+        function.code = wasm_read_bytes(reader, convert(usize, size));
+        if function.code.length == 0 || function.code.data[function.code.length - 1] != convert(u8, WasmOpcode.End) {
+            wasm_read_fail(reader, WasmReadError.Encoding);
+        }
+    }
+}
+
+fn wasm_object_data(object: WasmObject*, reader: WasmReader*): void {
+    var count = wasm_read_index(reader);
+    for (var at: u32 = 0; at < count && reader.error == WasmReadError.None; at++) {
+        var data: WasmDataRecord = default;
+        var mode = wasm_read_index(reader);
+        if mode > 2 { wasm_read_fail(reader, WasmReadError.Unsupported); return; }
+        data.passive = mode == 1;
+        if mode == 2 { data.memory = wasm_read_index(reader); }
+        if !data.passive { data.initial_offset = wasm_object_offset(reader); }
+        var size = wasm_read_index(reader);
+        data.section_offset = convert(u32, reader.at);
+        data.bytes = wasm_read_bytes(reader, convert(usize, size));
+        wasm_object_push(reader, &object.data, data);
+    }
+}
+
+fn wasm_object_elements(object: WasmObject*, reader: WasmReader*): void {
+    var count = wasm_read_index(reader);
+    for (var at: u32 = 0; at < count && reader.error == WasmReadError.None; at++) {
+        var mode = wasm_read_index(reader);
+        // Relocatable LLVM objects describe active function-table slots.
+        // Passive/declarative reference expressions require a separate contract.
+        if mode != 0 && mode != 2 { wasm_read_fail(reader, WasmReadError.Unsupported); return; }
+        var table: u32 = 0;
+        if mode == 2 { table = wasm_read_index(reader); }
+        var offset = wasm_object_offset(reader);
+        if mode == 2 && wasm_read_byte(reader) != 0 { wasm_read_fail(reader, WasmReadError.Encoding); return; }
+        var functions = wasm_read_index(reader);
+        for (var function: u32 = 0; function < functions && reader.error == WasmReadError.None; function++) {
+            var entry: WasmElementRecord = { table: table, offset: offset + convert(u64, function), function: wasm_read_index(reader) };
+            if entry.offset < offset { wasm_read_fail(reader, WasmReadError.Integer); return; }
+            wasm_object_push(reader, &object.elements, entry);
+        }
+    }
+}
+
+fn wasm_object_standard(object: WasmObject*, reader: WasmReader*, kind: u8): void {
+    var section = convert(WasmSection, kind);
+    match section {
+        WasmSection.Type => { wasm_object_types(object, reader); }
+        WasmSection.Import => { wasm_object_imports(object, reader); }
+        WasmSection.Function => { wasm_object_functions(object, reader); }
+        WasmSection.Code => { wasm_object_code(object, reader); }
+        WasmSection.Data => { wasm_object_data(object, reader); }
+        WasmSection.Element => { wasm_object_elements(object, reader); }
+        WasmSection.Start => { object.start = wasm_read_index(reader); }
+        WasmSection.DataCount => { object.data_count = wasm_read_index(reader); }
+        _ => {
+            var count = wasm_read_index(reader);
+            for (var at: u32 = 0; at < count && reader.error == WasmReadError.None; at++) {
+                match section {
+                    WasmSection.Table => {
+                        var table: WasmTableRecord = { type: wasm_value_type(reader), limits: wasm_object_limits(reader), ..default };
+                        wasm_object_push(reader, &object.tables, table);
+                    }
+                    WasmSection.Memory => {
+                        var memory: WasmMemoryRecord = { limits: wasm_object_limits(reader), ..default };
+                        wasm_object_push(reader, &object.memories, memory);
+                    }
+                    WasmSection.Global => {
+                        var global = wasm_object_global(reader);
+                        global.expression = wasm_object_expression(reader);
+                        wasm_object_push(reader, &object.globals, global);
+                    }
+                    WasmSection.Tag => {
+                        if wasm_read_byte(reader) != 0 { wasm_read_fail(reader, WasmReadError.Encoding); }
+                        var tag: WasmTagRecord = { type_index: wasm_read_index(reader), ..default };
+                        wasm_object_push(reader, &object.tags, tag);
+                    }
+                    WasmSection.Export => {
+                        var exported: WasmExportRecord = { name: wasm_read_name(reader), kind: wasm_read_byte(reader), index: wasm_read_index(reader) };
+                        wasm_object_push(reader, &object.exports, exported);
+                    }
+                    _ => { wasm_read_fail(reader, WasmReadError.Unsupported); }
+                }
+            }
+        }
+    }
+}

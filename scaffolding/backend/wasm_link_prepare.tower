@@ -1,0 +1,139 @@
+import tower;
+import wasm_bytes;
+import wasm_names;
+import wasm_object_types;
+import wasm_link_world;
+import wasm_link_types;
+import .library.vector;
+import .library.bytes;
+import .library.bytes_types;
+import .library.entities;
+
+fn wasm_link_close(link: WasmLink*): bool {
+    if link.world.store != null && link.world.store.views != 0 { return false; }
+    foreach (var layout in &link.layouts) { wasm_link_object_layout_dispose(layout); }
+    vector_dispose(&link.layouts);
+    wasm_names_dispose(&link.names); wasm_names_dispose(&link.type_names);
+    wasm_names_dispose(&link.comdat_names); wasm_names_dispose(&link.allowed);
+    wasm_names_dispose(&link.variants); vector_dispose(&link.warnings);
+    wasm_names_dispose(&link.feature_names); vector_dispose(&link.features);
+    vector_dispose(&link.symbols); vector_dispose(&link.types);
+    vector_dispose(&link.exports); vector_dispose(&link.wraps);
+    vector_dispose(&link.functions); vector_dispose(&link.globals);
+    vector_dispose(&link.output_exports); vector_dispose(&link.table_functions);
+    vector_dispose(&link.pending); vector_dispose(&link.initializers);
+    bytes_dispose(&link.output);
+    if link.layout_type != null { entity_release(link.layout_type); link.layout_type = null; }
+    if !wasm_link_world_close(&link.world) { return false; }
+    foreach (var & owned in &link.owned) { bytes_dispose(owned); }
+    vector_dispose(&link.owned);
+    *link = default;
+    return true;
+}
+
+fn wasm_link_chunks(link: WasmLink*, chunks: vector(WasmChunkLayout)*, count: usize): bool {
+    if !vector_reserve(chunks, count) { return wasm_link_fail(link, WasmLinkError.Allocation, default(WasmBytes)); }
+    for (var at: usize = 0; at < count; at++) { chunks.data[at] = init(WasmChunkLayout) { output_index: WasmNoIndex, ..default }; }
+    chunks.length = count;
+    return true;
+}
+
+fn wasm_link_type(link: WasmLink*, type: WasmFunctionTypeRecord*): u32 {
+    // LLVM normally emits canonical counts. A known byte spelling can reuse
+    // the interned row without allocating and normalizing another temporary.
+    var index = wasm_names_get(&link.type_names, type.bytes);
+    if index != WasmNoIndex { return index; }
+    var source: WasmReader = { bytes: type.bytes, ..default };
+    var canonical: ByteBuffer = default;
+    defer bytes_dispose(&canonical);
+    var ok = bytes_push(&canonical, wasm_read_byte(&source));
+    var parameters = wasm_read_index(&source);
+    var values = wasm_read_bytes(&source, convert(usize, parameters));
+    ok &&= wasm_write_uleb(&canonical, convert(u64, parameters)) && bytes_append(&canonical, values.data, values.length);
+    var results = wasm_read_index(&source);
+    values = wasm_read_bytes(&source, convert(usize, results));
+    ok &&= wasm_write_uleb(&canonical, convert(u64, results)) && bytes_append(&canonical, values.data, values.length);
+    if !ok { wasm_link_fail(link, WasmLinkError.Allocation, default(WasmBytes)); return WasmNoIndex; }
+    var key: WasmBytes = { data: canonical.data, length: canonical.length };
+    index = wasm_names_get(&link.type_names, key);
+    if index != WasmNoIndex { return index; }
+    if link.types.length >= convert(usize, WasmNoIndex) { wasm_link_fail(link, WasmLinkError.Layout, key); return WasmNoIndex; }
+    index = convert(u32, link.types.length);
+    if !wasm_link_push(link, &link.owned, canonical) { return WasmNoIndex; }
+    canonical = default;
+    if !wasm_link_push(link, &link.types, key) || !wasm_names_set(&link.type_names, key, index) {
+        wasm_link_fail(link, WasmLinkError.Allocation, default(WasmBytes)); return WasmNoIndex;
+    }
+    return index;
+}
+
+fn wasm_link_prepare(link: WasmLink*): bool {
+    if link.layout_type != null { return wasm_link_fail(link, WasmLinkError.Input, wasm_text_bytes("link request already prepared")); }
+    if link.shared_memory || link.import_memory { return wasm_link_fail(link, WasmLinkError.Unsupported, wasm_text_bytes("shared or imported memory")); }
+    if !wasm_link_collect_errors(&link.world) { return wasm_link_fail(link, WasmLinkError.Input, link.world.error_input); }
+    link.layout_type = entity_create(link.world.store);
+    if link.layout_type == null || !entity_register(link.layout_type, sizeof(WasmObjectLayout), alignof(WasmObjectLayout), 0) {
+        return wasm_link_fail(link, WasmLinkError.Allocation, default(WasmBytes));
+    }
+    foreach (var & entry in &link.world.objects) {
+        var object = entry.object;
+        foreach (var & feature in &object.features) {
+            var index = wasm_names_get(&link.feature_names, feature.name);
+            if index == WasmNoIndex {
+                index = convert(u32, link.features.length);
+                if !wasm_names_set(&link.feature_names, feature.name, index) || !wasm_link_push(link, &link.features, *feature) {
+                    return wasm_link_fail(link, WasmLinkError.Allocation, feature.name);
+                }
+            } else {
+                var previous = &link.features.data[convert(usize, index)];
+                if previous.prefix != feature.prefix {
+                    if previous.prefix == convert(u8, WasmFeaturePrefix.Disallowed) || feature.prefix == convert(u8, WasmFeaturePrefix.Disallowed) {
+                        return wasm_link_fail(link, WasmLinkError.Input, feature.name);
+                    }
+                    previous.prefix = convert(u8, WasmFeaturePrefix.Required);
+                }
+            }
+        }
+        if object.memories.length > 1 || object.tables.length > 1 || object.tags.length != 0 || object.start != WasmNoIndex {
+            return wasm_link_fail(link, WasmLinkError.Unsupported, entry.name);
+        }
+        foreach (var & memory in &object.memories) {
+            var memory64: u32 = 4;
+            if (memory.limits.flags & memory64) != 0 { return wasm_link_fail(link, WasmLinkError.Unsupported, entry.name); }
+        }
+        foreach (var & data in &object.data) {
+            var supported_flags = convert(u32, WasmSegmentFlag.Strings) | convert(u32, WasmSegmentFlag.Retain);
+            if data.passive || (data.flags & ~supported_flags) != 0 || data.memory != 0 { return wasm_link_fail(link, WasmLinkError.Unsupported, entry.name); }
+        }
+        var component = entity_component_add(entry.node, link.layout_type);
+        if component == null { return wasm_link_fail(link, WasmLinkError.Allocation, entry.name); }
+        var layout = bits(WasmObjectLayout*, entity_component_data(component));
+        *layout = default;
+        if !wasm_link_push(link, &link.layouts, layout) { return false; }
+        var ok = wasm_link_chunks(link, &layout.functions, object.functions.length)
+            && wasm_link_chunks(link, &layout.globals, object.globals.length)
+            && wasm_link_chunks(link, &layout.tables, object.tables.length)
+            && wasm_link_chunks(link, &layout.tags, object.tags.length)
+            && wasm_link_chunks(link, &layout.data, object.data.length);
+        if !ok { return false; }
+        foreach (var & type in &object.types) {
+            var index = wasm_link_type(link, type);
+            if index == WasmNoIndex || !wasm_link_push(link, &layout.types, index) { return false; }
+        }
+    }
+    return true;
+}
+
+fn wasm_link_message(error: WasmLinkError): u8* {
+    match error {
+        WasmLinkError.None => { return "success"; }
+        WasmLinkError.Allocation => { return "Wasm linker allocation failed"; }
+        WasmLinkError.Duplicate => { return "duplicate Wasm symbol"; }
+        WasmLinkError.Signature => { return "incompatible Wasm symbol signatures"; }
+        WasmLinkError.Undefined => { return "undefined Wasm symbol"; }
+        WasmLinkError.Unsupported => { return "unsupported Wasm link feature"; }
+        WasmLinkError.Layout => { return "Wasm output layout exceeds target limits"; }
+        WasmLinkError.Input => { return "invalid Wasm linker input"; }
+        _ => { return "unknown Wasm linker error"; }
+    }
+}

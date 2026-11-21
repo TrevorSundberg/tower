@@ -1,0 +1,17 @@
+import tower;
+import wasm_link_types;
+import wasm_link_prepare;
+import wasm_link_symbols;
+import wasm_link_synthetic;
+import wasm_link_live;
+import wasm_link_layout;
+import wasm_link_emit;
+
+// Transport-independent static Wasm image construction. The request owns a
+// world and borrows pinned object/archive bytes until close. No filesystem,
+// process launching, native linker, CLI or browser objects enter this API.
+fn wasm_link_run(link: WasmLink*): bool {
+    return wasm_link_prepare(link) && wasm_link_symbols(link) && wasm_link_synthetics(link)
+        && wasm_link_apply_wraps(link) && wasm_link_variants(link) && wasm_link_liveness(link)
+        && wasm_link_layout(link) && wasm_link_emit(link);
+}

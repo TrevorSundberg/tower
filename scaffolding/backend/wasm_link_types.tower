@@ -1,0 +1,130 @@
+import tower;
+import wasm_bytes;
+import wasm_object_types;
+import wasm_link_world;
+import wasm_names;
+import .library.vector;
+import .library.bytes_types;
+import .library.entities;
+
+enum WasmLinkError: u32 { None = 0, Allocation = 1, Duplicate = 2, Signature = 3, Undefined = 4, Unsupported = 5, Layout = 6, Input = 7 }
+enum WasmSynthetic: u8 { None = 0, Stack = 1, HeapBase = 2, DataEnd = 3, MemoryBase = 4, TableBase = 5, Constructors = 6, IndirectTable = 7, DsoHandle = 8, StackLow = 9, StackHigh = 10, GlobalBase = 11, HeapEnd = 12, FirstPageEnd = 13, SignatureTrap = 14 }
+struct WasmSymbolReference { object: u32; symbol: u32; }
+struct WasmResolvedSymbol {
+    name: WasmBytes;
+    definition: WasmSymbolReference;
+    declaration: WasmSymbolReference;
+    import_declaration: WasmSymbolReference;
+    defined: bool;
+    weak: bool;
+    local: bool;
+    kind: u8;
+    synthetic: WasmSynthetic;
+    live: bool;
+    output_index: u32;
+    table_index: u32;
+    got_index: u32;
+    needs_table: bool;
+    needs_global: bool;
+    global_mutable: bool;
+    explicit_import: bool;
+    address: u64;
+}
+struct WasmChunkLayout { discarded: bool; live: bool; output_index: u32; table_index: u32; address: u64; output_offset: u64; relocation_first: usize; relocation_count: usize; }
+struct WasmChunkReference { object: u32; index: u32; kind: WasmSymbolKind; }
+struct WasmLinkInitializer { priority: u32; symbol: u32; }
+struct WasmObjectLayout {
+    types: vector(u32);
+    symbols: vector(u32);
+    functions: vector(WasmChunkLayout);
+    globals: vector(WasmChunkLayout);
+    tables: vector(WasmChunkLayout);
+    tags: vector(WasmChunkLayout);
+    data: vector(WasmChunkLayout);
+    relocations: vector(u32);
+}
+struct WasmExportRequest { name: WasmBytes; required: bool; }
+struct WasmWrapRequest { name: WasmBytes; wrapper: WasmBytes; real: WasmBytes; }
+struct WasmOutputFunction { object: u32; function: u32; symbol: u32; type_index: u32; }
+struct WasmOutputGlobal { object: u32; global: u32; symbol: u32; }
+struct WasmOutputExport { name: WasmBytes; kind: u8; index: u32; }
+struct WasmLink {
+    world: WasmLinkWorld;
+    layout_type: Entity*;
+    layouts: vector(WasmObjectLayout*);
+    names: WasmNameMap;
+    type_names: WasmNameMap;
+    comdat_names: WasmNameMap;
+    variants: WasmNameMap;
+    feature_names: WasmNameMap;
+    features: vector(WasmFeatureRecord);
+    warnings: vector(WasmSymbolReference);
+    symbols: vector(WasmResolvedSymbol);
+    types: vector(WasmBytes);
+    owned: vector(ByteBuffer);
+    exports: vector(WasmExportRequest);
+    wraps: vector(WasmWrapRequest);
+    allowed: WasmNameMap;
+    functions: vector(WasmOutputFunction);
+    globals: vector(WasmOutputGlobal);
+    output_exports: vector(WasmOutputExport);
+    table_functions: vector(u32);
+    pending: vector(WasmChunkReference);
+    initializers: vector(WasmLinkInitializer);
+    output: ByteBuffer;
+    error: WasmLinkError;
+    error_name: WasmBytes;
+    stack_size: u64;
+    initial_memory: u64;
+    maximum_memory: u64;
+    data_end: u64;
+    heap_base: u64;
+    global_base: u64;
+    stack_low: u64;
+    stack_high: u64;
+    stack_first: bool;
+    table_live: bool;
+    imported_functions: u32;
+    imported_globals: u32;
+    export_memory: bool;
+    export_table: bool;
+    emit_names: bool;
+    import_memory: bool;
+    shared_memory: bool;
+    allow_undefined: bool;
+    garbage_collect: bool;
+}
+
+var WasmStackAlignment: u64 = 16;
+var WasmDefaultStackBytes: u64 = 65536;
+var WasmDefaultMaximumBytes: u64 = 2147483648;
+var WasmDefaultGlobalBase: u64 = 1024;
+var WasmMemory32Limit: u64 = 4294967296;
+var WasmTableBase: u32 = 1;
+
+fn wasm_link_fail(link: WasmLink*, error: WasmLinkError, name: WasmBytes): bool {
+    if link.error == WasmLinkError.None { link.error = error; link.error_name = name; }
+    return false;
+}
+
+fn wasm_link_push(T: type, link: WasmLink*, list: vector(T)*, value: T): bool {
+    if link.error != WasmLinkError.None { return false; }
+    if list.length >= convert(usize, WasmNoIndex) { return wasm_link_fail(link, WasmLinkError.Layout, default(WasmBytes)); }
+    if !vector_push(list, value) { return wasm_link_fail(link, WasmLinkError.Allocation, default(WasmBytes)); }
+    return true;
+}
+
+fn wasm_link_init(link: WasmLink*): bool {
+    link.stack_size = WasmDefaultStackBytes;
+    link.maximum_memory = WasmDefaultMaximumBytes;
+    link.export_memory = true;
+    link.garbage_collect = true;
+    if !wasm_link_world_open(&link.world) { return wasm_link_fail(link, WasmLinkError.Allocation, default(WasmBytes)); }
+    return true;
+}
+
+fn wasm_link_object_layout_dispose(layout: WasmObjectLayout*): void {
+    vector_dispose(&layout.types); vector_dispose(&layout.symbols);
+    vector_dispose(&layout.functions); vector_dispose(&layout.globals);
+    vector_dispose(&layout.tables); vector_dispose(&layout.tags); vector_dispose(&layout.data); vector_dispose(&layout.relocations);
+}

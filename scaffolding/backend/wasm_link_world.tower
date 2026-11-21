@@ -1,0 +1,93 @@
+import tower;
+import wasm_bytes;
+import wasm_object;
+import wasm_object_types;
+import wasm_archive;
+import .library.vector;
+import .library.entities;
+
+struct WasmObjectEntry { node: Entity*; object: WasmObject*; name: WasmBytes; }
+struct WasmLinkWorld {
+    store: EntityStore*;
+    object_type: Entity*;
+    objects: vector(WasmObjectEntry);
+    error: WasmReadError;
+    error_input: WasmBytes;
+    error_offset: usize;
+}
+
+fn wasm_link_world_open(world: WasmLinkWorld*): bool {
+    world.store = entity_store_create();
+    if world.store == null { return false; }
+    if !entity_store_set_context(world.store, bits(void*, world)) { return false; }
+    world.object_type = entity_create(world.store);
+    if world.object_type == null { return false; }
+    return entity_register(world.object_type, sizeof(WasmObject), alignof(WasmObject), 0);
+}
+
+// Coordinator prepares nodes and component kinds before any worker dispatch.
+// Workers then own one stable object payload and private vectors. No structure,
+// refcounts, type identities or global symbol indexes are mutated by a reader.
+fn wasm_link_prepare_object(world: WasmLinkWorld*, name: WasmBytes, bytes: WasmBytes): WasmObject* {
+    if world.error != WasmReadError.None { return null; }
+    var node = entity_create(world.store);
+    if node == null { world.error = WasmReadError.Allocation; return null; }
+    var component = entity_component_add(node, world.object_type);
+    if component == null { entity_release(node); world.error = WasmReadError.Allocation; return null; }
+    var object = bits(WasmObject*, entity_component_data(component));
+    *object = default;
+    object.bytes = bytes;
+    var entry: WasmObjectEntry = { node: node, object: object, name: name };
+    if !vector_push(&world.objects, entry) { entity_release(node); world.error = WasmReadError.Allocation; return null; }
+    return object;
+}
+
+fn wasm_link_collect_errors(world: WasmLinkWorld*): bool {
+    if world.error != WasmReadError.None { return false; }
+    foreach (var & entry in &world.objects) {
+        if entry.object.error != WasmReadError.None {
+            world.error = entry.object.error; world.error_input = entry.name;
+            world.error_offset = entry.object.error_offset; return false;
+        }
+    }
+    return true;
+}
+
+fn wasm_link_read_object(world: WasmLinkWorld*, name: WasmBytes, bytes: WasmBytes): bool {
+    var object = wasm_link_prepare_object(world, name, bytes);
+    if object == null { return false; }
+    if !wasm_object_read(object, bytes) {
+        world.error = object.error; world.error_input = name; world.error_offset = object.error_offset;
+        return false;
+    }
+    return true;
+}
+
+// Read-all is the explicit whole-archive contract used by compiler self-builds.
+// Lazy archive extraction will consume the indexed archive symbols separately.
+fn wasm_link_read_archive(world: WasmLinkWorld*, name: WasmBytes, bytes: WasmBytes): bool {
+    var archive: WasmArchive = default;
+    defer wasm_archive_dispose(&archive);
+    if !wasm_archive_read(&archive, bytes) {
+        world.error = archive.error; world.error_offset = archive.error_offset;
+        world.error_input = name; return false;
+    }
+    foreach (var & member in &archive.members) {
+        if !member.special && !wasm_link_read_object(world, member.name, member.bytes) { return false; }
+    }
+    return true;
+}
+
+fn wasm_link_world_close(world: WasmLinkWorld*): bool {
+    if world.store == null { return true; }
+    if world.store.views != 0 { return false; }
+    foreach (var & entry in &world.objects) {
+        wasm_object_dispose(entry.object);
+        entity_release(entry.node);
+    }
+    vector_dispose(&world.objects);
+    if world.object_type != null { entity_release(world.object_type); world.object_type = null; }
+    if !entity_store_dispose(world.store) { return false; }
+    *world = default;
+    return true;
+}

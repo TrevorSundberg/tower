@@ -1,0 +1,151 @@
+import tower;
+import wasm_bytes;
+import .library.vector;
+
+var WasmArchiveHeaderBytes: usize = 60;
+var WasmArchiveNameBytes: usize = 16;
+var WasmArchiveSizeOffset: usize = 48;
+var WasmArchiveSizeBytes: usize = 10;
+struct WasmArchiveMember { name: WasmBytes; bytes: WasmBytes; header_offset: usize; special: bool; }
+struct WasmArchiveSymbol { name: WasmBytes; member: usize; }
+struct WasmArchive {
+    bytes: WasmBytes;
+    members: vector(WasmArchiveMember);
+    symbols: vector(WasmArchiveSymbol);
+    error: WasmReadError;
+    error_offset: usize;
+}
+
+fn wasm_archive_dispose(archive: WasmArchive*): void {
+    vector_dispose(&archive.members); vector_dispose(&archive.symbols);
+    *archive = default;
+}
+
+fn wasm_decimal(reader: WasmReader*, value: WasmBytes): usize {
+    var result: usize = 0;
+    var digit: usize = 0;
+    var maximum = ~convert(usize, 0);
+    while digit < value.length && value.data[digit] >= 48 && value.data[digit] <= 57 {
+        var next = convert(usize, value.data[digit] - 48);
+        if result > (maximum - next) / 10 { wasm_read_fail(reader, WasmReadError.Integer); return 0; }
+        result = result * 10 + next;
+        digit++;
+    }
+    if digit == 0 { wasm_read_fail(reader, WasmReadError.Encoding); return 0; }
+    while digit < value.length {
+        if value.data[digit++] != 32 { wasm_read_fail(reader, WasmReadError.Encoding); return 0; }
+    }
+    return result;
+}
+
+fn wasm_archive_header_member(archive: WasmArchive*, offset: usize): usize {
+    var first: usize = 0;
+    var last = archive.members.length;
+    while first < last {
+        var middle = first + (last - first) / 2;
+        if archive.members.data[middle].header_offset < offset { first = middle + 1; }
+        else { last = middle; }
+    }
+    if first < archive.members.length && archive.members.data[first].header_offset == offset { return first; }
+    return archive.members.length;
+}
+
+fn wasm_archive_integer(reader: WasmReader*, width: usize): u64 {
+    var result: u64 = 0;
+    for (var at: usize = 0; at < width && reader.error == WasmReadError.None; at++) {
+        result = (result << 8) | convert(u64, wasm_read_byte(reader));
+    }
+    return result;
+}
+
+fn wasm_archive_symbols(archive: WasmArchive*, reader: WasmReader*, width: usize): void {
+    var count = wasm_archive_integer(reader, width);
+    var remaining = reader.bytes.length - reader.at;
+    if count > convert(u64, remaining / width) { wasm_read_fail(reader, WasmReadError.Truncated); return; }
+    var offsets: WasmReader = { bytes: wasm_read_bytes(reader, convert(usize, count) * width), ..default };
+    for (var at: u64 = 0; at < count && reader.error == WasmReadError.None; at++) {
+        var offset = wasm_archive_integer(&offsets, width);
+        var index = archive.members.length;
+        if offset <= convert(u64, ~convert(usize, 0)) { index = wasm_archive_header_member(archive, convert(usize, offset)); }
+        if index == archive.members.length || archive.members.data[index].special { wasm_read_fail(reader, WasmReadError.Index); return; }
+        var begin = reader.at;
+        while reader.at < reader.bytes.length && reader.bytes.data[reader.at] != 0 { reader.at++; }
+        var symbol: WasmArchiveSymbol = { member: index, name: { data: reader.bytes.data + begin, length: reader.at - begin } };
+        if wasm_read_byte(reader) != 0 { wasm_read_fail(reader, WasmReadError.Encoding); return; }
+        if !vector_push(&archive.symbols, symbol) { wasm_read_fail(reader, WasmReadError.Allocation); return; }
+    }
+    // ar symbol tables may include alignment padding inside the member.
+    while reader.at < reader.bytes.length {
+        if wasm_read_byte(reader) != 0 { wasm_read_fail(reader, WasmReadError.Encoding); return; }
+    }
+}
+
+fn wasm_archive_read(archive: WasmArchive*, bytes: WasmBytes): bool {
+    archive.bytes = bytes;
+    var reader: WasmReader = { bytes: bytes, ..default };
+    var magic = wasm_read_bytes(&reader, 8);
+    if !wasm_bytes_text(magic, "!<arch>\n") { wasm_read_fail(&reader, WasmReadError.Unsupported); }
+    var names: WasmBytes = default;
+    while reader.at < reader.bytes.length && reader.error == WasmReadError.None {
+        var member: WasmArchiveMember = { header_offset: reader.at, ..default };
+        var header = wasm_read_bytes(&reader, WasmArchiveHeaderBytes);
+        if reader.error != WasmReadError.None { break; }
+        if header.data[WasmArchiveHeaderBytes - 2] != 96 || header.data[WasmArchiveHeaderBytes - 1] != 10 {
+            wasm_read_fail(&reader, WasmReadError.Encoding); break;
+        }
+        var size = wasm_decimal(&reader, init(WasmBytes) { data: header.data + WasmArchiveSizeOffset, length: WasmArchiveSizeBytes });
+        member.name = init(WasmBytes) { data: header.data, length: WasmArchiveNameBytes };
+        while member.name.length != 0 && member.name.data[member.name.length - 1] == 32 { member.name.length--; }
+        member.bytes = wasm_read_bytes(&reader, size);
+        if reader.error != WasmReadError.None { break; }
+        if (size & 1) != 0 && wasm_read_byte(&reader) != 10 { wasm_read_fail(&reader, WasmReadError.Encoding); break; }
+        member.special = wasm_bytes_text(member.name, "/") || wasm_bytes_text(member.name, "//") || wasm_bytes_text(member.name, "/SYM64/");
+        if wasm_bytes_text(member.name, "//") {
+            if names.data != null { wasm_read_fail(&reader, WasmReadError.Duplicate); break; }
+            names = member.bytes;
+        }
+        if !vector_push(&archive.members, member) { wasm_read_fail(&reader, WasmReadError.Allocation); break; }
+    }
+    if reader.error == WasmReadError.None {
+        foreach (var & member in &archive.members) {
+            if member.special { continue; }
+            if member.name.length > 1 && member.name.data[0] == 47 {
+                var offset = wasm_decimal(&reader, init(WasmBytes) { data: member.name.data + 1, length: member.name.length - 1 });
+                if reader.error != WasmReadError.None { break; }
+                if offset >= names.length { wasm_read_fail(&reader, WasmReadError.Index); break; }
+                var end = offset;
+                while end < names.length && names.data[end] != 10 { end++; }
+                if end == names.length || end == offset || names.data[end - 1] != 47 { wasm_read_fail(&reader, WasmReadError.Encoding); break; }
+                member.name = init(WasmBytes) { data: names.data + offset, length: end - offset - 1 };
+            } else {
+                if member.name.length >= 3 && member.name.data[0] == 35 && member.name.data[1] == 49 && member.name.data[2] == 47 {
+                    var length = wasm_decimal(&reader, init(WasmBytes) { data: member.name.data + 3, length: member.name.length - 3 });
+                    if reader.error != WasmReadError.None { break; }
+                    if length > member.bytes.length { wasm_read_fail(&reader, WasmReadError.Truncated); break; }
+                    member.name = init(WasmBytes) { data: member.bytes.data, length: length };
+                    member.bytes.data += length;
+                    member.bytes.length -= length;
+                    while member.name.length != 0 && member.name.data[member.name.length - 1] == 0 { member.name.length--; }
+                } else {
+                    if member.name.length != 0 && member.name.data[member.name.length - 1] == 47 { member.name.length--; }
+                }
+            }
+            // BSD symbol-table variants require their own indexed-reader path.
+            if wasm_bytes_text(member.name, "__.SYMDEF") || wasm_bytes_text(member.name, "__.SYMDEF SORTED")
+                || wasm_bytes_text(member.name, "__.SYMDEF_64") { wasm_read_fail(&reader, WasmReadError.Unsupported); break; }
+        }
+    }
+    if reader.error == WasmReadError.None {
+        foreach (var & member in &archive.members) {
+            var width: usize = wasm_bytes_text(member.name, "/") ? 4 : 8;
+            if !wasm_bytes_text(member.name, "/") && !wasm_bytes_text(member.name, "/SYM64/") { continue; }
+            var sub: WasmReader = { bytes: member.bytes, ..default };
+            wasm_archive_symbols(archive, &sub, width);
+            if sub.error != WasmReadError.None {
+                reader.error = sub.error; reader.error_offset = member.header_offset + WasmArchiveHeaderBytes + sub.error_offset; break;
+            }
+        }
+    }
+    archive.error = reader.error; archive.error_offset = reader.error_offset;
+    return reader.error == WasmReadError.None;
+}

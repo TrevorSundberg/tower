@@ -1,0 +1,226 @@
+import tower;
+import wasm_bytes;
+import wasm_names;
+import wasm_object_types;
+import wasm_link_types;
+import wasm_link_symbols;
+import wasm_link_synthetic;
+
+fn wasm_link_align(link: WasmLink*, address: u64, alignment: u64): u64 {
+    if alignment != 0 && alignment <= WasmMemory32Limit && address <= WasmMemory32Limit && (address & (alignment - 1)) == 0 { return address; }
+    if alignment == 0 || alignment > WasmMemory32Limit || address > WasmMemory32Limit - (alignment - 1) {
+        wasm_link_fail(link, WasmLinkError.Layout, wasm_text_bytes("linear memory alignment")); return 0;
+    }
+    return (address + alignment - 1) & ~(alignment - 1);
+}
+
+fn wasm_link_stack(link: WasmLink*, address: u64): u64 {
+    if link.stack_size % WasmStackAlignment != 0 || link.stack_size >= WasmMemory32Limit {
+        wasm_link_fail(link, WasmLinkError.Layout, wasm_text_bytes("stack size")); return 0;
+    }
+    link.stack_low = wasm_link_align(link, address, WasmStackAlignment);
+    if link.stack_low >= WasmMemory32Limit - link.stack_size {
+        wasm_link_fail(link, WasmLinkError.Layout, wasm_text_bytes("stack address")); return 0;
+    }
+    link.stack_high = link.stack_low + link.stack_size;
+    return link.stack_high;
+}
+
+fn wasm_link_memory_layout(link: WasmLink*): bool {
+    var address: u64 = link.stack_first ? wasm_link_stack(link, 0) : WasmDefaultGlobalBase;
+    link.global_base = address;
+    for (var input: usize = 0; input < link.world.objects.length; input++) {
+        var object = link.world.objects.data[input].object;
+        var layout = link.layouts.data[input];
+        for (var row: usize = 0; row < object.data.length; row++) {
+            var chunk = &layout.data.data[row];
+            if !chunk.live { continue; }
+            var data = &object.data.data[row];
+            if data.alignment >= 32 { return wasm_link_fail(link, WasmLinkError.Layout, data.name); }
+            address = wasm_link_align(link, address, convert(u64, 1) << convert(u64, data.alignment));
+            var length = convert(u64, data.bytes.length);
+            if address >= WasmMemory32Limit || length >= WasmMemory32Limit - address {
+                return wasm_link_fail(link, WasmLinkError.Layout, data.name);
+            }
+            chunk.address = address; address += length;
+        }
+    }
+    link.data_end = address;
+    if !link.stack_first { address = wasm_link_stack(link, address); }
+    link.heap_base = wasm_link_align(link, address, WasmStackAlignment);
+    address = link.heap_base;
+    if link.initial_memory != 0 {
+        if link.initial_memory % WasmPageBytes != 0 || address > link.initial_memory || link.initial_memory > WasmMemory32Limit {
+            return wasm_link_fail(link, WasmLinkError.Layout, wasm_text_bytes("initial memory"));
+        }
+        address = link.initial_memory;
+    }
+    link.initial_memory = wasm_link_align(link, address, WasmPageBytes);
+    if link.maximum_memory != 0 && (link.maximum_memory % WasmPageBytes != 0
+        || link.maximum_memory < link.initial_memory || link.maximum_memory > WasmMemory32Limit) {
+        return wasm_link_fail(link, WasmLinkError.Layout, wasm_text_bytes("maximum memory"));
+    }
+    foreach (var & symbol in &link.symbols) {
+        if !symbol.live { continue; }
+        match symbol.synthetic {
+            WasmSynthetic.Stack | WasmSynthetic.StackHigh => { symbol.address = link.stack_high; }
+            WasmSynthetic.StackLow => { symbol.address = link.stack_low; }
+            WasmSynthetic.HeapBase => { symbol.address = link.heap_base; }
+            WasmSynthetic.HeapEnd => { symbol.address = link.initial_memory; }
+            WasmSynthetic.DataEnd => { symbol.address = link.data_end; }
+            WasmSynthetic.DsoHandle | WasmSynthetic.GlobalBase => { symbol.address = link.global_base; }
+            WasmSynthetic.TableBase => { symbol.address = convert(u64, WasmTableBase); }
+            WasmSynthetic.FirstPageEnd => { symbol.address = WasmPageBytes; }
+            _ => { }
+        }
+        if symbol.kind == convert(u8, WasmSymbolKind.Data) && symbol.defined && symbol.definition.object != WasmNoIndex {
+            var input = link.world.objects.data[convert(usize, symbol.definition.object)].object;
+            var original = &input.symbols.data[convert(usize, symbol.definition.symbol)];
+            var chunk = wasm_link_symbol_chunk(link, symbol.definition);
+            symbol.address = chunk.address + original.offset;
+        }
+    }
+    return link.error == WasmLinkError.None;
+}
+
+fn wasm_link_function_layout(link: WasmLink*): bool {
+    // Imports precede all definitions in their own Wasm index spaces.
+    for (var row: usize = 0; row < link.symbols.length; row++) {
+        var symbol = &link.symbols.data[row];
+        if !symbol.live || symbol.defined || symbol.kind != convert(u8, WasmSymbolKind.Function) { continue; }
+        symbol.output_index = convert(u32, link.functions.length);
+        var reference = symbol.import_declaration;
+        var object = link.world.objects.data[convert(usize, reference.object)].object;
+        var original = &object.symbols.data[convert(usize, reference.symbol)];
+        var output: WasmOutputFunction = { object: reference.object, function: original.index,
+            symbol: convert(u32, row), type_index: wasm_link_function_type(link, convert(u32, row)) };
+        if !wasm_link_push(link, &link.functions, output) { return false; }
+    }
+    link.imported_functions = convert(u32, link.functions.length);
+    for (var input: usize = 0; input < link.world.objects.length; input++) {
+        var object = link.world.objects.data[input].object;
+        var layout = link.layouts.data[input];
+        for (var row = convert(usize, object.imported_functions); row < object.functions.length; row++) {
+            var chunk = &layout.functions.data[row];
+            if !chunk.live { continue; }
+            chunk.output_index = convert(u32, link.functions.length);
+            var output: WasmOutputFunction = { object: convert(u32, input), function: convert(u32, row), symbol: WasmNoIndex,
+                type_index: layout.types.data[convert(usize, object.functions.data[row].type_index)] };
+            if !wasm_link_push(link, &link.functions, output) { return false; }
+        }
+    }
+    for (var row: usize = 0; row < link.symbols.length; row++) {
+        var symbol = &link.symbols.data[row];
+        if !symbol.live || !symbol.defined || symbol.kind != convert(u8, WasmSymbolKind.Function) { continue; }
+        if symbol.definition.object != WasmNoIndex {
+            symbol.output_index = wasm_link_symbol_chunk(link, symbol.definition).output_index;
+            var output = &link.functions.data[convert(usize, symbol.output_index)];
+            if output.symbol == WasmNoIndex { output.symbol = convert(u32, row); }
+        }
+        else {
+            symbol.output_index = convert(u32, link.functions.length);
+            var output: WasmOutputFunction = { object: WasmNoIndex, function: WasmNoIndex, symbol: convert(u32, row),
+                type_index: wasm_link_function_type(link, convert(u32, row)) };
+            if !wasm_link_push(link, &link.functions, output) { return false; }
+        }
+    }
+    foreach (var & symbol in &link.symbols) {
+        if !symbol.live || !symbol.needs_table || symbol.synthetic == WasmSynthetic.SignatureTrap { continue; }
+        var chunk = symbol.defined ? wasm_link_symbol_chunk(link, symbol.definition) : null;
+        if chunk != null && chunk.table_index != 0 { symbol.table_index = chunk.table_index; continue; }
+        symbol.table_index = WasmTableBase + convert(u32, link.table_functions.length);
+        if !wasm_link_push(link, &link.table_functions, symbol.output_index) { return false; }
+        if chunk != null { chunk.table_index = symbol.table_index; }
+    }
+    return true;
+}
+
+fn wasm_link_global_layout(link: WasmLink*): bool {
+    foreach (var & request in &link.exports) {
+        var index = wasm_names_get(&link.names, request.name);
+        if index != WasmNoIndex {
+            var symbol = &link.symbols.data[convert(usize, index)];
+            if symbol.defined && symbol.kind == convert(u8, WasmSymbolKind.Data) { symbol.needs_global = true; }
+        }
+    }
+    for (var row: usize = 0; row < link.symbols.length; row++) {
+        var symbol = &link.symbols.data[row];
+        if !symbol.live || symbol.defined || symbol.kind != convert(u8, WasmSymbolKind.Global) { continue; }
+        symbol.output_index = convert(u32, link.globals.length);
+        var reference = symbol.import_declaration;
+        var object = link.world.objects.data[convert(usize, reference.object)].object;
+        var original = &object.symbols.data[convert(usize, reference.symbol)];
+        var output: WasmOutputGlobal = { object: reference.object, global: original.index, symbol: convert(u32, row) };
+        if !wasm_link_push(link, &link.globals, output) { return false; }
+    }
+    link.imported_globals = convert(u32, link.globals.length);
+    for (var input: usize = 0; input < link.world.objects.length; input++) {
+        var object = link.world.objects.data[input].object;
+        var layout = link.layouts.data[input];
+        for (var row: usize = 0; row < object.globals.length; row++) {
+            var chunk = &layout.globals.data[row];
+            if !chunk.live || object.globals.data[row].imported { continue; }
+            chunk.output_index = convert(u32, link.globals.length);
+            var output: WasmOutputGlobal = { object: convert(u32, input), global: convert(u32, row), symbol: WasmNoIndex };
+            if !wasm_link_push(link, &link.globals, output) { return false; }
+        }
+    }
+    for (var row: usize = 0; row < link.symbols.length; row++) {
+        var symbol = &link.symbols.data[row];
+        if !symbol.live { continue; }
+        var kind = convert(WasmSymbolKind, symbol.kind);
+        if kind == WasmSymbolKind.Table {
+            if symbol.synthetic != WasmSynthetic.IndirectTable { return wasm_link_fail(link, WasmLinkError.Unsupported, symbol.name); }
+            symbol.output_index = 0;
+        }
+        if kind == WasmSymbolKind.Global && symbol.defined && symbol.definition.object != WasmNoIndex {
+            symbol.output_index = wasm_link_symbol_chunk(link, symbol.definition).output_index;
+        }
+        var synthetic = kind == WasmSymbolKind.Global && symbol.defined && symbol.definition.object == WasmNoIndex;
+        if synthetic || symbol.needs_global {
+            var index = convert(u32, link.globals.length);
+            if synthetic { symbol.output_index = index; } else { symbol.got_index = index; }
+            var output: WasmOutputGlobal = { object: WasmNoIndex, global: WasmNoIndex, symbol: convert(u32, row) };
+            if !wasm_link_push(link, &link.globals, output) { return false; }
+        }
+    }
+    return true;
+}
+
+fn wasm_link_export_layout(link: WasmLink*): bool {
+    var names: WasmNameMap = default;
+    defer wasm_names_dispose(&names);
+    if link.export_memory {
+        var exported: WasmOutputExport = { name: wasm_text_bytes("memory"), kind: convert(u8, WasmExternal.Memory), index: 0 };
+        if !wasm_names_set(&names, exported.name, convert(u32, link.output_exports.length)) || !wasm_link_push(link, &link.output_exports, exported) { return false; }
+    }
+    foreach (var & request in &link.exports) {
+        var index = wasm_names_get(&link.names, request.name);
+        if index == WasmNoIndex || !link.symbols.data[convert(usize, index)].defined { continue; }
+        var symbol = &link.symbols.data[convert(usize, index)];
+        var exported: WasmOutputExport = { name: request.name, index: symbol.output_index, ..default };
+        var kind = convert(WasmSymbolKind, symbol.kind);
+        match kind {
+            WasmSymbolKind.Function => { exported.kind = convert(u8, WasmExternal.Function); }
+            WasmSymbolKind.Global => { exported.kind = convert(u8, WasmExternal.Global); }
+            WasmSymbolKind.Data => { exported.kind = convert(u8, WasmExternal.Global); exported.index = symbol.got_index; }
+            WasmSymbolKind.Table => { exported.kind = convert(u8, WasmExternal.Table); }
+            _ => { return wasm_link_fail(link, WasmLinkError.Unsupported, request.name); }
+        }
+        var previous = wasm_names_get(&names, request.name);
+        if previous != WasmNoIndex {
+            var old = &link.output_exports.data[convert(usize, previous)];
+            if old.kind != exported.kind || old.index != exported.index { return wasm_link_fail(link, WasmLinkError.Duplicate, request.name); }
+            continue;
+        }
+        if exported.index == WasmNoIndex { return wasm_link_fail(link, WasmLinkError.Layout, request.name); }
+        if !wasm_names_set(&names, request.name, convert(u32, link.output_exports.length)) || !wasm_link_push(link, &link.output_exports, exported) {
+            return wasm_link_fail(link, WasmLinkError.Allocation, request.name);
+        }
+    }
+    return true;
+}
+
+fn wasm_link_layout(link: WasmLink*): bool {
+    return wasm_link_memory_layout(link) && wasm_link_function_layout(link) && wasm_link_global_layout(link) && wasm_link_export_layout(link);
+}

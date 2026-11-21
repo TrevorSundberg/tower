@@ -1,0 +1,82 @@
+import tower;
+import .backend.wasm_bytes;
+import .backend.wasm_object_types;
+import .backend.wasm_link_world;
+import .backend.wasm_object_linking;
+import .backend.wasm_link_types;
+import .backend.wasm_link_prepare;
+import .backend.wasm_link_symbols;
+import .library.entities;
+import .library.bytes;
+import .library.bytes_types;
+import .host.driver_files;
+
+extern fn puts(text: u8*): i32;
+extern fn fflush(file: void*): i32;
+extern fn abort(): void;
+
+fn wasm_audit_label(text: u8*): void { puts(text); fflush(null); }
+
+// This standalone tool uses only lifecycle-zero components. Production compiler
+// integration supplies its existing lifecycle dispatcher instead of this entry.
+export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, data: u8*): void { abort(); }
+
+export fn main(argc: i32, argv: u8**): i32 {
+    if argc < 2 { puts("Usage: wasm_link_audit [--resolve] OBJECT_OR_ARCHIVE..."); return 2; }
+    var resolve = wasm_bytes_text(wasm_text_bytes(argv[1]), "--resolve");
+    if resolve && argc == 2 { puts("Provide at least one object or archive"); return 2; }
+    var link: WasmLink = default;
+    if !wasm_link_init(&link) { wasm_link_close(&link); puts("Cannot create linker audit world"); return 1; }
+    defer wasm_link_close(&link);
+    var world = &link.world;
+    for (var argument: i32 = resolve ? 2 : 1; argument < argc; argument++) {
+        var bytes: ByteBuffer = default;
+        defer bytes_dispose(&bytes);
+        if !driver_read_file(argv[argument], &bytes) { puts("Cannot read linker audit input"); puts(argv[argument]); return 1; }
+        var name = wasm_text_bytes(argv[argument]);
+        var input: WasmBytes = { data: bytes.data, length: bytes.length };
+        if !wasm_link_push(&link, &link.owned, bytes) { return 1; }
+        bytes = default;
+        var first = world.objects.length;
+        var ok = input.length >= 8 && input.data[0] == 33 ? wasm_link_read_archive(world, name, input) : wasm_link_read_object(world, name, input);
+        if !ok {
+            wasm_audit_label(argv[argument]); wasm_audit_label(wasm_read_message(world.error)); print(world.error_offset);
+            var failed_name: ByteBuffer = default;
+            if bytes_assign_text(&failed_name, world.error_input.data, world.error_input.length) { puts(failed_name.data); }
+            bytes_dispose(&failed_name);
+            return 1;
+        }
+        var functions: usize = 0;
+        var symbols: usize = 0;
+        var segments: usize = 0;
+        var comdats: usize = 0;
+        var constructors: usize = 0;
+        var relocations: usize = 0;
+        var kinds: u64[27] = default;
+        for (var object_index = first; object_index < world.objects.length; object_index++) {
+            var entry = &world.objects.data[object_index];
+            functions += entry.object.functions.length;
+            symbols += entry.object.symbols.length;
+            segments += entry.object.data.length;
+            comdats += entry.object.comdats.length;
+            constructors += entry.object.initializers.length;
+            relocations += entry.object.relocations.length;
+            foreach (var & relocation in &entry.object.relocations) { kinds[convert(usize, relocation.kind)]++; }
+        }
+        wasm_audit_label(argv[argument]); wasm_audit_label("objects/functions/symbols/data/comdats/constructors/relocations:");
+        print(world.objects.length - first); print(functions); print(symbols); print(segments); print(comdats); print(constructors); print(relocations);
+        wasm_audit_label("relocation kind/count:");
+        for (var kind: usize = 0; kind < 27; kind++) { if kinds[kind] != 0 { print(kind); print(kinds[kind]); } }
+    }
+    if resolve {
+        if !wasm_link_prepare(&link) || !wasm_link_symbols(&link) || !wasm_link_variants(&link) {
+            wasm_audit_label(wasm_link_message(link.error));
+            var failed_name: ByteBuffer = default;
+            if bytes_assign_text(&failed_name, link.error_name.data, link.error_name.length) { puts(failed_name.data); }
+            bytes_dispose(&failed_name); return 1;
+        }
+        wasm_audit_label("Symbol selection passed (not an output link); symbols/types/signature variants:");
+        print(link.symbols.length); print(link.types.length); print(link.warnings.length);
+    }
+    return 0;
+}

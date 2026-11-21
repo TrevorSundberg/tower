@@ -1,0 +1,105 @@
+import tower;
+import wasm_bytes;
+import .library.vector;
+
+enum WasmSection: u8 {
+    Custom = 0, Type = 1, Import = 2, Function = 3, Table = 4, Memory = 5,
+    Global = 6, Export = 7, Start = 8, Element = 9, Code = 10, Data = 11,
+    DataCount = 12, Tag = 13
+}
+enum WasmExternal: u8 { Function = 0, Table = 1, Memory = 2, Global = 3, Tag = 4 }
+enum WasmSymbolKind: u8 { Function = 0, Data = 1, Global = 2, Section = 3, Tag = 4, Table = 5 }
+enum WasmSymbolFlag: u32 {
+    Weak = 1, Local = 2, Hidden = 4, Undefined = 16, Exported = 32,
+    ExplicitName = 64, NoStrip = 128, ThreadLocal = 256, Absolute = 512
+}
+enum WasmLinkingSection: u8 { Segments = 5, Initializers = 6, Comdats = 7, Symbols = 8 }
+enum WasmSegmentFlag: u32 { Strings = 1, ThreadLocal = 2, Retain = 4 }
+enum WasmComdatKind: u8 { Data = 0, Function = 1, Global = 2, Tag = 3, Table = 4, Section = 5 }
+enum WasmFeaturePrefix: u8 { Used = 43, Disallowed = 45, Required = 61 }
+enum WasmOpcode: u8 { End = 11, GlobalGet = 35, I32Const = 65, I64Const = 66, F32Const = 67, F64Const = 68, RefNull = 208, RefFunc = 210 }
+enum WasmValueType: u8 { I32 = 127, I64 = 126, F32 = 125, F64 = 124, V128 = 123, FuncRef = 112, ExternRef = 111 }
+var WasmFunctionType: u8 = 96;
+var WasmNoIndex: u32 = 4294967295;
+var WasmLinkingVersion: u32 = 2;
+var WasmPageBytes: u64 = 65536;
+
+struct WasmObjectSection { kind: u8; bytes: WasmBytes; name: WasmBytes; file_offset: usize; content_offset: usize; }
+struct WasmFunctionTypeRecord { bytes: WasmBytes; parameters: u32; results: u32; }
+struct WasmFunctionRecord {
+    type_index: u32; imported: bool; module: WasmBytes; name: WasmBytes;
+    code: WasmBytes; code_offset: u32;
+}
+struct WasmLimits { flags: u32; minimum: u64; maximum: u64; }
+struct WasmTableRecord { type: u8; limits: WasmLimits; imported: bool; module: WasmBytes; name: WasmBytes; }
+struct WasmMemoryRecord { limits: WasmLimits; imported: bool; module: WasmBytes; name: WasmBytes; }
+struct WasmGlobalRecord { type: u8; mutable: bool; imported: bool; module: WasmBytes; name: WasmBytes; expression: WasmBytes; }
+struct WasmTagRecord { type_index: u32; imported: bool; module: WasmBytes; name: WasmBytes; }
+struct WasmExportRecord { kind: u8; index: u32; name: WasmBytes; }
+struct WasmElementRecord { table: u32; offset: u64; function: u32; }
+struct WasmDataRecord {
+    bytes: WasmBytes; name: WasmBytes; section_offset: u32;
+    memory: u32; initial_offset: u64; passive: bool; alignment: u32; flags: u32;
+}
+struct WasmSymbolRecord { kind: u8; flags: u32; name: WasmBytes; index: u32; offset: u64; size: u64; called_directly: bool; }
+struct WasmRelocationRecord { section: u32; kind: u32; offset: u32; index: u32; addend: i64; }
+struct WasmInitializerRecord { priority: u32; symbol: u32; }
+struct WasmComdatEntry { kind: u8; index: u32; }
+struct WasmComdatRecord { name: WasmBytes; first: usize; count: usize; }
+struct WasmFeatureRecord { prefix: u8; name: WasmBytes; }
+
+// One worker-owned input component. All spans borrow the same pinned input;
+// dense vectors are indexes of platform-object records, never a semantic IR.
+struct WasmObject {
+    bytes: WasmBytes;
+    sections: vector(WasmObjectSection);
+    types: vector(WasmFunctionTypeRecord);
+    functions: vector(WasmFunctionRecord);
+    tables: vector(WasmTableRecord);
+    memories: vector(WasmMemoryRecord);
+    globals: vector(WasmGlobalRecord);
+    tags: vector(WasmTagRecord);
+    exports: vector(WasmExportRecord);
+    elements: vector(WasmElementRecord);
+    data: vector(WasmDataRecord);
+    symbols: vector(WasmSymbolRecord);
+    relocations: vector(WasmRelocationRecord);
+    initializers: vector(WasmInitializerRecord);
+    comdats: vector(WasmComdatRecord);
+    comdat_entries: vector(WasmComdatEntry);
+    features: vector(WasmFeatureRecord);
+    imported_functions: u32;
+    code_section: u32;
+    data_section: u32;
+    start: u32;
+    data_count: u32;
+    linking: bool;
+    linking_sections: u32;
+    error: WasmReadError;
+    error_offset: usize;
+}
+
+fn wasm_object_dispose(object: WasmObject*): void {
+    vector_dispose(&object.sections); vector_dispose(&object.types);
+    vector_dispose(&object.functions); vector_dispose(&object.tables);
+    vector_dispose(&object.memories); vector_dispose(&object.globals);
+    vector_dispose(&object.tags); vector_dispose(&object.exports);
+    vector_dispose(&object.elements); vector_dispose(&object.data);
+    vector_dispose(&object.symbols); vector_dispose(&object.relocations);
+    vector_dispose(&object.initializers); vector_dispose(&object.comdats);
+    vector_dispose(&object.comdat_entries); vector_dispose(&object.features);
+    *object = default;
+}
+
+fn wasm_object_push(T: type, reader: WasmReader*, list: vector(T)*, value: T): bool {
+    if reader.error != WasmReadError.None { return false; }
+    if !vector_push(list, value) { wasm_read_fail(reader, WasmReadError.Allocation); return false; }
+    return true;
+}
+
+fn wasm_object_error(object: WasmObject*, reader: WasmReader*, base: usize): void {
+    if object.error == WasmReadError.None && reader.error != WasmReadError.None {
+        object.error = reader.error;
+        object.error_offset = base + reader.error_offset;
+    }
+}

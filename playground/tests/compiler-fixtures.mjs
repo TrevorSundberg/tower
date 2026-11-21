@@ -25,6 +25,7 @@ export async function loadTower(bytes, log, bootstrap, foundation, bedrock = bui
   return host;
 }
 export async function loadLLVM(bytes, log, bootstrap, foundation, bedrock = builtins.bedrock, options = {}) {
+  if (process.env.TOWER_TEST_LLVM_WASM) bytes = await readFile(process.env.TOWER_TEST_LLVM_WASM);
   const host = await createLLVM(bytes, log, bootstrap, foundation, bedrock, {tower:builtins.tower, ...options});
   host.configureModules({files});
   return host;

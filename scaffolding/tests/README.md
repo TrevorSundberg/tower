@@ -1,5 +1,44 @@
 # Parser tree construction and debug output
 
+The experimental static Wasm linker lives in `backend/wasm_link.tower`.
+Its API accepts a fresh, stable `WasmLink`, explicit options, and borrowed object
+bytes through its owned ECS world. Keep those input allocations immutable and
+alive until `wasm_link_close`; the request is not a shallow-copyable owner.
+`wasm_link_run` publishes a complete image only on success. It performs no file
+access or native linker calls. Production backend dispatch still uses upstream
+LLD while the remaining compatibility and worker gates are implemented.
+
+`wasm_link_reader.tower` checks bounded LEB/object/archive decoding, independent
+worlds and pinned disposal, symbol selection, wrapping, direct-call signature
+variants versus address-only declarations, relocation bit patterns, import/weak
+policies, rejected shared-memory requests and failure without partial output.
+Build it with the public bootstrap's `--library`, then link the object with the
+existing `guest-host-library.o` using clang. `wasm_link_reader_wasi.tower` adds
+the existing Tower allocator and a WASI `_start`; compile it for
+`wasm32-unknown-wasi`, link against the compiler project's support archive, and
+run with `node scaffolding/tests/host-wasi.mjs OUTPUT.wasm`.
+
+`tools/wasm_link_static.tower` is the standalone experimental linker adapter;
+`tools/wasm_link_audit.tower` reads and optionally resolves real support archives.
+Both build as library objects with the same native runtime. The static tool
+supports explicit `--whole-archive`, `--export=`, `--export-if-defined=`, `--wrap=`,
+allow-undefined lists, stack/memory limits and `-o`. Its optional
+`--export-if-defined-list=FILE` reads one export name per line to avoid host
+command-line limits; `--debug-names` retains symbolic Wasm stack traces.
+Lazy archives, shared-memory/TLS, memory64, tags, referential global initializers,
+imported memory, dynamic/relocatable output and DWARF/custom-section preservation
+are not implemented. Requests for currently recognized unsupported profiles
+fail explicitly; this is not a complete drop-in `wasm-ld` CLI.
+
+Compile `wasm_link_program.tower` and `wasm_link_library.tower` separately with
+and without `--no-optimize`. Link both objects with `--export=_start`,
+`--stack-first`, and the real `support-tower-0.a` under `--whole-archive`.
+Both this linker and upstream LLD must execute through `host-wasi.mjs` and print
+`Tower Wasm linker execution passed`. Compiler-sized relink checks can use
+`TOWER_TEST_WASM` and `TOWER_TEST_LLVM_WASM` with the existing test fixture loaders
+without replacing the active build artifacts. The journal records exact local
+commands, the current gates and baseline test-expectation failures.
+
 The isolated tooling check `lld_compat_checks.tower` validates the Tower LLD
 compatibility patcher against exact output and rejection fixtures, including
 real file I/O. Build it as a library object and link `guest-host-library.o`; pass
