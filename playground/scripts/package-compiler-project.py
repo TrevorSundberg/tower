@@ -74,7 +74,7 @@ def package(builds, destination):
                     # generated from Tower through the reserved-symbol binder,
                     # with the prebuilt support until that build step is editable.
                     for member in run([sdk/'llvm-ar','t',path], build).splitlines():
-                        if member == 'tower-compiler-host.o':
+                        if member in ('tower-compiler-host.o', 'tower_work_host.o'):
                             tower_objects.append(build/member)
                         else:
                             out = destination/(name+'-'+member)
