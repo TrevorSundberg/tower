@@ -37701,3 +37701,16 @@ and 594 lines, down 1,395 lines (70.1%) from 1,989. Inline reductions remain
 separate. Compiler/runtime/bootstrap sources and todo.txt are unchanged by this
 milestone. Continue auditing the remaining C-output, benchmark and packaging
 tools before translating their smallest required behavior.
+
+Final rebase includes the public narrow-integer bootstrap and linker updates
+through b9550ae. From a fresh clone of rebased 365a279 at
+/cache/differential_driver_checkout, use build-native.sh with
+TOWER_NATIVE_BUILD=/cache/differential_driver_native, no private bootstrap
+override and Python unavailable. All 54 native and three driver-test build
+steps pass. Successor and public bootstrap are byte-identical, SHA-256
+0d752e7dc35a0a8951872cf52d96873bb1e1cab2b3fe63d9b147e64e5deecca8.
+The ordinary driver test passes in 9.90 seconds, all 16 native comparisons in
+6.19 seconds, and all 184 package comparisons in 130.26 seconds. Windows/macOS
+test-binding objects also compile with the new public bootstrap. Preserve its
+complete resources/provenance; do not replace it with the earlier development
+compiler used during the first test run.
