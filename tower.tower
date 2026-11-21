@@ -65,6 +65,11 @@ parse TowerAssignmentOperator = '=' | '+=' | '-=' | '*=' | '/=' | '%=' | '<<=' |
                                | '|=' | '&&=' | '||=' | '??=' | 'and_eq' | 'xor_eq' | 'or_eq' @ 10 right;
 parse TowerExpression |= $left:TowerExpression TowerAssignmentOperator $right:TowerExpression @ 10 right;
 parse TowerComma = TowerExpression | $left:TowerComma ',' $right:TowerExpression;
+// Invoke computed function values without adding precedence to Foundation.
+parse TowerInvoke = '(' $callee:TowerComma ')' '(' $args:CoreArguments? ')'
+                  | $callee:CoreCall '(' $args:CoreArguments? ')'
+                  | $callee:TowerInvoke '(' $args:CoreArguments? ')';
+parse TowerExpression |= TowerInvoke;
 parse TowerNullAccess = $base:TowerExpression '?.' $field:Identifier
                        | $base:TowerExpression '?[' $index:TowerExpression ']' @ 150 left;
 parse TowerNullAccess |= $base:TowerNullAccess '.' $field:Identifier
@@ -73,6 +78,7 @@ parse TowerExpression |= TowerNullAccess;
 parse CoreLocation |= '(' $base:TowerComma ')' '.' $field:Identifier
                      | '(' $base:TowerComma ')' '[' $index:TowerExpression ']'
                      | $base:CoreCall '.' $field:Identifier | $base:CoreCall '[' $index:TowerExpression ']';
+parse CoreLocation |= $base:TowerInvoke '.' $field:Identifier | $base:TowerInvoke '[' $index:TowerExpression ']';
 // Disable the Foundation binary alternative before activating nested operands.
 parse CoreValue = CoreOperand;
 parse CoreCallArgument = CoreOperand;
