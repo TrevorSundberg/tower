@@ -110,9 +110,25 @@
                                  "report":  "docs/temporal-opcode-research-journal.md",
                                  "existingTodoContentPreserved":  true
                              },
-    "previousDeployment":  "e796a4c918b6e911dada8e62a04e312ce06dae61",
+    "previousDeployment":  "3c4865abb6d9b389f470b86b29a2bcd5f8fdcced",
     "buildNote":  "Built with the published Tower bootstrap. Clean successor, native execution, worker determinism, LLVM/Wasm comparisons, successive browser compiler generations, and desktop/mobile deployment checks passed; see the project journal.",
     "buildSourceCommit":  "dfee43cd15ece775e4d53e0d5378fd5b0476f04d",
-    "sourceCommit":  "5307c71825e203a0af3df8b41647c8fb707c768a",
-    "scope":  "Tower struct values, inferred immutable compile-time var bindings, removal of const shorthand, and ECS staged-enum ownership fix; compatible bootstrap validated."
+    "sourceCommit":  "a4ef899515d986626bb51165208dbabdd9d5bcf6",
+    "scope":  "Tower struct values, inferred immutable compile-time var bindings, removal of const shorthand, and ECS staged-enum ownership fix; compatible bootstrap validated.",
+    "toolingMigration": {
+        "sourceCommit": "d64b91d58c1ec8d7d1c0a544d5fcf4ea385fab02",
+        "validationCommit": "a4ef899515d986626bb51165208dbabdd9d5bcf6",
+        "report": "docs/temporal-opcode-research-journal.md",
+        "retired": [
+            "playground/scripts/prepare-lld-compat.py",
+            "playground/scripts/package-roku.py"
+        ],
+        "entryPoint": "playground/scripts/build-bootstrap.sh --tools",
+        "implementation": "Tower builder, Linux process runner, LLD patcher and in-house CRC/ZIP/DEFLATE Roku packager.",
+        "validation": "Fresh public 2292 bootstrap tool build and 53-step native successor; exact LLD output, deterministic ZIP and child-process checks pass on Linux x64.",
+        "policy": "Prefer practical in-house Tower libraries; grow minimal correct subsets. Aim for actual Tower source migration, with essential platform/browser binding shims.",
+        "remaining": "Bootstrap installation, wider shell/CMake and reusable JavaScript migration. Native Windows/macOS distribution remains future work.",
+        "runtimeAssetsChanged": false
+    }
 }
+
