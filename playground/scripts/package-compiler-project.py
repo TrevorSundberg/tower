@@ -21,6 +21,7 @@ UNIT_SOURCES = {
     'tower-compiler-utf8.o': 'compiler/utf8.tower',
     'tower-compiler-bytes.o': 'library/bytes.tower',
     'tower-shared-lifecycle.o': 'host/entity_lifecycle.tower',
+    'tower-syntax-live-cases.o': 'tests/syntax_live.tower',
 }
 
 def run(args, cwd):
