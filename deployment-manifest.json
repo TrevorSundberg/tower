@@ -78,11 +78,11 @@
                    "worker.js":  "39213347695a05edc08714b411230ae26f92e38f84858cda39b22b43bae8474b",
                    "worker.js.map":  "37af2546e2780f6a9cc2a510e06d31d6dd8a006705dc8bdfcdb9d0567bfbe296"
                },
-    "sourceCommit":  "797e0fc94d5d9fac5ef920e6d9e1875303b71219",
+    "sourceCommit":  "3c9a01c8d05b88872d56aaff11b029e7cb630aba",
     "buildSourceCommit":  "7a2f6fd15f63714a4f50a9ade064c8c02395493a",
-    "previousDeployment":  "6ec0c6aba7cb384ad77fa8885185c49275290398",
-    "scope":  "Tower session grammar views and formatting result transport",
-    "buildNote":  "Verified runtime built from 7a2f6fd; sourceCommit also includes the later documentation-only ECS/Stronghold assessment. Runtime sources are identical.",
+    "previousDeployment":  "7d1686cf769a1fd6e05c0a06fd110ecedbb1e386",
+    "scope":  "Stronghold design revision: static ECS safety, scoped direct access and safe owned allocations",
+    "buildNote":  "Documentation-only publication. Preserves all verified editor-view runtime assets and their buildSourceCommit 7a2f6fd; Stronghold remains a future design.",
     "simplificationAudit":  {
                                 "sourceCommit":  "f618cbb118b21721a137bdf04006599f02b0bb01",
                                 "baseline":  "6fcad397a10797b879011755a838e8a9c916779f",
@@ -95,8 +95,8 @@
                                          "scope":  "All new code, including tools, tests and experiments, uses Tower. No new C++ or Python; minimal necessary browser/UI JavaScript."
                                      },
     "ecsArchitectureAudit":  {
-                                 "scope":  "Retains the parallel documentation assessment and safety-design goals.",
-                                 "sourceCommit":  "797e0fc94d5d9fac5ef920e6d9e1875303b71219",
+                                 "scope":  "Static ownership/access proofs, scoped entity borrows, explicit dynamic checks and safe non-ECS storage; future design only.",
+                                 "sourceCommit":  "3c9a01c8d05b88872d56aaff11b029e7cb630aba",
                                  "report":  "docs/temporal-opcode-research-journal.md"
                              }
 }
