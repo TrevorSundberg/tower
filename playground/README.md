@@ -495,7 +495,14 @@ a non-cooperative compiled infinite loop. Output is batched and capped at
 The toolbar combines the brand and file controls. The page fits the
 viewport on desktop and mobile; editor, tree, output and instruction panes scroll
 internally when needed. On phones the equal-width result columns scroll horizontally.
-Steps and separate compilation/execution timings sit at the bottom. Interpreter
+The bottom **Details** disclosure contains parser status, steps and separate
+compilation/execution timings. It opens over the workspace without resizing it.
+During an edit, one **Updating…** status covers the run; each busy output heading
+has a small indicator with its detailed phase available on hover. Output headings
+stay on one line, and regenerated code retains its scroll anchor. Native output
+and download links are replaced when their new result arrives, instead of clearing
+every target as soon as the first one completes. Explicit failures still clear
+the affected target's obsolete artifact. Interpreter
 Execution, Fast interpreter and Wasm Execution have separate output columns. Wasm disassembly decodes
 the actual linked binary using LLVM, including linked runtime functions; its addresses
 are file offsets. Its download footer shares the native disassembly-column layout.
@@ -966,7 +973,7 @@ diagnostic visibility uses its separate delay policy. Package preparation retain
 the freshly reconstructed Foundation session after validating the envelope and
 matching its execution cache, so the fast runner does not parse its own package
 again. Imported packages still take the full untrusted reconstruction/check path.
-Status timings list each backend's stages in pipeline order (backends run in
+The Details timings list each backend's stages in pipeline order (backends run in
 parallel). A `(cached)` load reports the **current run's** measured reuse time,
 even when it rounds to 0.0 ms; it never substitutes an earlier cold-load measurement.
 Compiler loading

@@ -65,8 +65,8 @@ test('native targets compile automatically, display disassembly and download pla
   await selectDocument(page, file);
   await expect(page.locator('#mac-arm-downloads a')).toHaveAttribute('download',file.replace('.tower','-mac-arm.macho'));
   await expect(page.locator('#mac-arm-phase')).toBeHidden();
-  expect(page.workers().filter(w=>w.url().includes('target-worker'))).not.toEqual(workers);
-  expect(requests.some(url=>url.includes('tower-cross.wasm'))).toBe(true);
+  expect(page.workers().filter(w=>w.url().includes('target-worker'))).toEqual(workers);
+  expect(requests.some(url=>url.includes('tower-cross.wasm'))).toBe(false);
   page.off('request',record);
  }
  await reuse('functions.tower');

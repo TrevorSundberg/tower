@@ -205,10 +205,10 @@ function compileNative(id,text) {
   idleExecutionWorkers.delete('native');
   const runner = runners.native = {id,worker,keys,timings:{},failure:null,completed:new Set()};
   for (const key of keys) setPhase(key,'Loading…');
-  const beginDisplay = () => { if (!runner.displayStarted) { keys.forEach(clearNative); renderLLVM(); runner.displayStarted=true; } };
   const fail = (message,key) => {
     runner.failure=message;
     for (const target of key ? [key] : keys.filter(key=>!runner.completed.has(key))) {
+      clearNative(target);
       reportProblem(target+'-error',message);
       setPhase(target,'Failed'); runner.completed.add(target);
     }
@@ -218,15 +218,15 @@ function compileNative(id,text) {
     if (runner.failure) worker.terminate(); else { worker.cancelledCompilation=false; idleExecutionWorkers.set('native',worker); }
     runner.worker=null; showTimings(); updateComparison();
   };
-  worker.onerror = event => { event.preventDefault(); if(id!==executionId)return; beginDisplay(); fail(event.message); finish(); };
+  worker.onerror = event => { event.preventDefault(); if(id!==executionId)return; fail(event.message); renderLLVM(); finish(); };
   worker.onmessage = ({data}) => {
     if(id!==executionId || data.id!==id)return;
     if (data.foundation !== undefined && !selectedBackends().length) showCode('core-instructions',data.foundation);
     if(data.phase && !data.done) for (const key of data.target ? [data.target] : keys) setPhase(key,data.phase);
-    if(data.error || data.bytes || data.done) beginDisplay();
-    if(data.error) fail(data.error,data.target);
+    if(data.error) { fail(data.error,data.target); renderLLVM(); }
     if(data.bytes) {
       const target=targets[data.target] ?? sourceTargets[data.target];
+      reportProblem(data.target+'-error',null);
       if (data.before !== undefined) showLLVM(data.target,data.before,data.after);
       showCode(data.target+'-disassembly',data.disassembly);
       outputPanes.get(data.target+'-disassembly').setDownload(data.bytes, {label:data.target==='c'?'Download C':data.target==='roku'?'Download BrightScript':target.label, filename:downloadName(data.target,target.extension), type:target.mime??'application/octet-stream'});
@@ -281,19 +281,22 @@ function clearCompiled() {
   }
   $('fast-limit').hidden = $('output-limit').hidden = $('llvm-output-limit').hidden = true;
 }
+function setExecutionStatus(text) {
+  if ($('execution-status').textContent !== text) $('execution-status').textContent = text;
+}
 try { $('auto-execute').checked = localStorage.getItem('tower-auto-execute-v1') !== 'false'; } catch {}
 function scheduleAutoExecution() {
   clearTimeout(autoTimer); autoTimer = 0;
   if (project?.compilerProject) return;
   if (!$('auto-execute').checked || dirty || executedRevision === documentRevision) return;
-  if (result?.end?.status !== 'done' && (editingModule || activePath === projectSources(project)[0]?.path)) { $('execution-status').textContent = 'Waiting for valid source'; return; }
+  if (result?.end?.status !== 'done' && (editingModule || activePath === projectSources(project)[0]?.path)) { setExecutionStatus('Waiting for valid source'); return; }
   const entry = projectSources(project)[0]?.path;
   const importsProgram = !editingModule && (project.dependencies ?? []).some(path =>
     ![entry, '.tower/bedrock.tower', '.tower/foundation.tower', '.tower/tower.tower'].includes(path));
   if ((editingModule || activePath === entry) && !importsProgram && !result.events.some(event => event.status === 'statement' && event.nodes.some(item => item.production !== null && item.label.startsWith('Core')))) {
-    clearCompiled(); $('execution-status').textContent = 'Syntax only'; return;
+    clearCompiled(); setExecutionStatus('Syntax only'); return;
   }
-  $('execution-status').textContent = 'Waiting…';
+  setExecutionStatus('Updating…');
   const revision = documentRevision;
   autoTimer = setTimeout(() => {
     autoTimer = 0;
@@ -348,8 +351,9 @@ function stopExecution(message, preserveCompilation = false) {
     }
   }
   $('execute').disabled = !editor;
+  $('execution-panel').setAttribute('aria-busy', 'false');
   cancelState();
-  if (message) $('execution-status').textContent = message;
+  if (message) setExecutionStatus(message);
 }
 function executionDiagnostic(error) {
   reportProblem('editor', error ? {error,phase:'execution'} : null);
@@ -385,13 +389,16 @@ function updateComparison() {
   const a = active[0];
   const differences = complete && a ? active.slice(1).flatMap(runner => compareResults(a.result, runner.result)) : null;
   const nativeRunning = runners.native?.worker;
-  if (active.some(runner => runner?.failure)) $('execution-status').textContent = isExecuting() ? 'Comparison unavailable · running…' : 'Comparison unavailable';
+  $('execution-panel').setAttribute('aria-busy', String(isExecuting()));
+  let status;
+  if (isExecuting()) status = 'Updating…';
+  else if (active.some(runner => runner?.failure)) status = 'Comparison unavailable';
   else if (differences) {
-    $('execution-status').textContent = differences.length ? 'Backend mismatch · ' + [...new Set(differences)].join(', ') :
+    status = differences.length ? 'Backend mismatch · ' + [...new Set(differences)].join(', ') :
       (a.result.status === 'error' ? 'Failed' : 'Finished') + (active.length > 1 ? a.result.outputTruncated ? ' · captured results match (output limited)' : ' · backends match' : '');
-  } else $('execution-status').textContent = active.length ? 'Executing…' : nativeRunning ? 'Compiling…' : 'No execution targets selected';
-  if(nativeRunning) $('execution-status').textContent += ' · compiling targets…';
-  else if(runners.native?.failure) $('execution-status').textContent += ' · target build failed';
+  } else status = active.length ? 'Updating…' : 'No execution targets selected';
+  if(!nativeRunning && runners.native?.failure) status += ' · target build failed';
+  setExecutionStatus(status);
   $('execute').disabled = isExecuting();
   if (!isExecuting() && !executionError && result?.end?.status === 'done') executionDiagnostic(null);
   cancelState();
@@ -400,7 +407,7 @@ function execute() {
   if (project?.compilerProject) { rebuildCompiler(); return; }
   stopExecution(undefined,true); runners = {};
   executedRevision = documentRevision; executionError = null;
-  $('execution-status').textContent = 'Executing…';
+  setExecutionStatus('Updating…');
   $('execute').disabled = true; $('cancel-execution').disabled = false;
   const id = executionId, text = editor.state.doc.toString();
   for (const backend of selectedBackends()) {
@@ -694,8 +701,7 @@ function changed(deferDiagnostics = editor.hasFocus) {
   ++documentRevision;
   if (deferDiagnostics) diagnosticDelay.edit(documentRevision);
   else diagnosticDelay.reset(documentRevision);
-  const wasExecuting = isExecuting();
-  stopExecution(wasExecuting ? 'Cancelled by edit' : 'Ready',true);
+  stopExecution($('auto-execute').checked ? 'Updating…' : isExecuting() ? 'Cancelled by edit' : 'Ready',true);
   executionError = null; captureDocument();
   ++generation;
   dirty = true; controls();

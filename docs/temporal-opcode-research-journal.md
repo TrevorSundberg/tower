@@ -36535,3 +36535,61 @@ field/layout receipts without rechecking an already completed function header or
 initializer. Preserve ownership of partially inferred operands and type identities.
 An ignored prototype in body-frontier-next explores these changes but is incomplete,
 uncompiled and deliberately excluded from the current implementation/publication.
+
+## 2026-11-21 - Stable playground layout while editing and recompiling
+
+User reproduced visible shaking, phase-message churn and disappearing scrollbars
+when changing structs.tower's pair.first from 20 to 200. Pulled 76711f1 before
+working and retained todo.txt untouched. This is a browser presentation change;
+reuse the published 070c27b runtime/compiler recipe and its build-source identity.
+Do not rebuild compiler binaries for CSS, DOM and viewport preservation changes.
+
+Added a focused Playwright browser-boundary capture using the existing Tower
+structs example: real keyboard input, compositor JPEG frames and animation-frame
+rectangles/scroll positions, followed by a manual Execute case. No new compiler,
+language or benchmark logic is implemented in JavaScript. The first public capture
+saw a network change/fast-backend fetch failure and an unusually long test teardown;
+it still showed scroll reset, but is not the clean baseline. Reproduced against an
+exact local copy of the published assets with all backends successful.
+
+Clean before capture (build/ui_before_local_{desktop,mobile}/frames.json):
+desktop fast heading grows 16.5 px; instructions scrollTop changes from 100 to 0.
+Mobile workspace height changes by 13 px, editor height by 7.09375 px, and output
+scrollTop changes from 100 to 2. The footer's wrapping live timing fields resize
+the workspace; wrapping phase labels resize individual output headings. Whole-doc
+CodeMirror replacement resets the output reader's scroll anchor. Native result
+publication also cleared all target panes before replacing the first result.
+
+The UI now keeps one pending execution status, deduplicates identical status
+writes, shows per-pane activity as fixed-size dots (phase text in their accessible
+label/tooltip), keeps titles on one line, and reserves scrollbar gutters. A compact
+Details disclosure contains the parser counters/timings in an overlay; opening it
+cannot reflow the editor. Downloads update in place; successful native publication
+keeps each old result until that target has a replacement, while failure clears
+its obsolete artifact. CodeMirror's scrollSnapshot effect preserves the generated
+output viewport. No compilation scheduling or ECS/threading policy changed.
+
+The first after capture passes both configurations: desktop/mobile editor and
+workspace dimensions are constant, and instructions scrollTop remains exactly
+100. Frames: build/ui_after_{desktop,mobile}, with before/after PNGs and compositor
+JPEGs. The final regression additionally covers explicit recompilation, quiet
+pending/finished status, Details disclosure, cancellation/error recovery and
+native downloads. Follow-up validation results are recorded below.
+
+All 26 focused browser checks pass (build/ui-stability-final-validation.log),
+including desktop/mobile constant edit and manual recompile, Details opening,
+error recovery, infinite-loop cancellation and five native target downloads.
+The first wider trial was stopped after exposing stale test expectations: old
+Executing wording, download interception despite warmed workers, and native
+worker recreation after project switches. Updated those browser assertions to
+observe the actual request transport/current warm-worker contract. Restored
+explicit 'Cancelled by edit' feedback when auto-execution is disabled.
+Download elements still disappear on explicit clear/failure; successful refresh
+keeps their existing DOM and revokes only the replaced object URL.
+
+Reproduction: from playground, TOWER_UI_CAPTURE=ui_final npx playwright test
+ui_stability.spec.mjs --workers=1. Each desktop/mobile edit/recompile capture saves
+before/after PNGs, frame_NNN.jpg compositor frames and frames.json with animation-
+frame geometry and scroll positions. Optional TOWER_UI_URL selects a hosted build.
+The final CSS retains readable storage/link failure messages rather than clipping
+them to hide a genuine error. The successful edit/recompile layout stays fixed.

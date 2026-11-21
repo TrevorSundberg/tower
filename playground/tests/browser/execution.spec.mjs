@@ -95,7 +95,7 @@ test('extra semicolons have concise context and increment demonstrates both retu
   await expect(page.locator('#execution-status')).toHaveText('Finished \u00b7 backends match');
   await setSource(page,'fn forever(): i32 { loop {} } print(forever());');
   await expect.poll(()=>outputText(page,'core-instructions')).toContain('print(forever());');
-  await expect(page.locator('#execution-status')).toContainText('Executing');
+  await expect(page.locator('#execution-status')).toContainText('Updating');
   await page.locator('#cancel-execution').click();
   await expect(page.locator('#execution-status')).toHaveText('Cancelled');
   await setSource(page,'print(42);');
@@ -106,7 +106,7 @@ test('infinite execution stays responsive, cancels, and rejects results after ed
   await page.locator('#auto-execute').uncheck();
   await setSource(page, grammar + '\nloop { print(7); }');
   await page.locator('#execute').click();
-  await expect(page.locator('#execution-status')).toHaveText('Executing…');
+  await expect(page.locator('#execution-status')).toHaveText('Updating…');
   await expect(page.locator('#execution-output')).toContainText('7');
   await page.getByRole('tab', { name: 'Active grammar' }).click();
   await expect(page.locator('#grammar-pane')).toBeVisible();
@@ -144,17 +144,26 @@ test('compile and runtime errors appear inline and clear after editing', async (
 
 test('cancellation also stops compilation and loading', async ({ page }) => {
   await page.locator('#auto-execute').uncheck();
-  let release;
-  const gate = new Promise(resolve => { release = resolve; });
-  await page.route('**/execution-worker.js', async route => { await gate; await route.continue().catch(() => {}); });
+  // Warm workers may already exist. Hold their request transport rather than
+  // assuming a new script download occurs for every execution.
+  await page.evaluate(() => {
+    const post = Worker.prototype.postMessage, pending = [];
+    Worker.prototype.postMessage = function(data,...args) {
+      if (data.backend) pending.push(() => post.call(this,data,...args));
+      else return post.call(this,data,...args);
+    };
+    window.releaseExecutionRequests = () => {
+      Worker.prototype.postMessage = post;
+      for (const send of pending) send();
+    };
+  });
   await page.locator('#execute').click();
-  await expect(page.locator('#execution-status')).toHaveText('Executing…');
+  await expect(page.locator('#execution-status')).toHaveText('Updating…');
   await page.locator('#cancel-execution').click();
   await expect(page.locator('#execution-status')).toHaveText('Cancelled');
   await expect(page.locator('#execute')).toBeEnabled();
-  release();
+  await page.evaluate(() => window.releaseExecutionRequests());
   await setSource(page, grammar + '\nprint(2);');
-  await page.unroute('**/execution-worker.js');
   await page.locator('#execute').click();
   await expect(page.locator('#execution-output')).toHaveText('2\n');
 });
@@ -174,7 +183,7 @@ test('auto execution follows edits, waits for valid syntax, and recovers from in
   await expect(page.locator('#execution-output')).toHaveText('42\n');
   await expect.poll(()=>savedSource(page)).toBe(grammar + '\nprint(42);');
   await setSource(page, grammar + '\nloop { print(7); }');
-  await expect(page.locator('#execution-status')).toHaveText('Executing…');
+  await expect(page.locator('#execution-status')).toHaveText('Updating…');
   await expect(page.locator('#execution-output')).toContainText('7');
   await page.locator('#cancel-execution').click();
   await expect(page.locator('#execution-status')).toHaveText('Cancelled');
@@ -186,7 +195,7 @@ test('auto execution follows edits, waits for valid syntax, and recovers from in
   await setSource(page, grammar + '\nprint(43);');
   await expect(page.locator('#execution-output')).toHaveText('43\n');
   await setSource(page, grammar + '\nloop {}');
-  await expect(page.locator('#execution-status')).toHaveText('Executing…');
+  await expect(page.locator('#execution-status')).toHaveText('Updating…');
   await setSource(page, grammar + '\nprint(44);');
   await expect(page.locator('#execution-output')).toHaveText('44\n');
 });

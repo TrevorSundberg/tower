@@ -37,7 +37,12 @@ export class CodeOutput {
         keymap.of(defaultKeymap), this.syntax === 'tower' ? highlighting : [languages.get(this.syntax), styles],
         EditorView.theme({ '&': { color: '#d4e0e2', backgroundColor: '#121a1e' } }, { dark: true }),
       ] }) });
-    } else this.view.dispatch({ changes: { from: 0, to: this.view.state.doc.length, insert: text } });
+    } else this.view.dispatch({
+      changes: { from: 0, to: this.view.state.doc.length, insert: text },
+      // Generated output is replaced as a whole. Keep its viewport anchor rather
+      // than letting that replacement scroll the reader back to the beginning.
+      effects: this.view.scrollSnapshot(),
+    });
     if (this.syntax === 'tower') {
       const view = this.view;
       highlightFoundation(text, this).then(spans => {

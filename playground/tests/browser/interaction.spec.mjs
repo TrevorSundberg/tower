@@ -51,7 +51,7 @@ test('parse errors clear on successful analysis even while execution replies are
  });
  await edit(page,'print(42);\nvar answer: i32;');
  await expect(page.locator('#status')).toContainText('Complete');
- await expect(page.locator('#execution-status')).toContainText('Executing');
+ await expect(page.locator('#execution-status')).toContainText('Updating');
  await expect(page.locator('.tw-inline-error')).toHaveCount(0);
  await page.locator('#cancel-execution').click();
 });
@@ -61,7 +61,7 @@ test('old semantic errors clear after compilation while a new infinite loop is s
  await expect(page.locator('.tw-inline-error-message')).toContainText('Expected i32');
  await edit(page,'loop { }');
  await expect.poll(()=>outputText(page,'core-instructions')).toContain('loop {');
- await expect(page.locator('#execution-status')).toContainText('Executing');
+ await expect(page.locator('#execution-status')).toContainText('Updating');
  await expect(page.locator('.tw-inline-error')).toHaveCount(0);
  await page.locator('#cancel-execution').click();
 });
@@ -109,7 +109,12 @@ test('timings follow pipeline order and label current-run cached loads; controls
  // can both round to 0.0 ms; do not require different display strings.
  expect(first).toContain('(cached)');
  const labels=await page.locator('#timings span').evaluateAll(items=>items.map(item=>item.dataset.label));
- expect(labels).toEqual(['Tower load','Tower compile','Instructions','Graph run','Fast LLVM','Fast prepare','Bytecode package','Fast run','LLVM load','LLVM parse','LLVM raw','LLVM optimize','LLVM emit','Link','LLVM disassembly','LLVM compile total','LLVM run']);
+ expect(labels).toEqual(['Tower load','Tower compile','Instructions','Graph run','Fast LLVM','Fast reconstruction','Fast prepare','Bytecode package','Fast run','LLVM load','LLVM parse','LLVM raw','LLVM optimize','LLVM emit','Link','LLVM disassembly','LLVM compile total','LLVM run']);
+ await expect(page.locator('#timings')).toBeHidden();
+ const editorBox=await page.locator('#editor').boundingBox();
+ await page.locator('#timing-details > summary').click();
+ await expect(page.locator('#timings')).toBeVisible();
+ expect(await page.locator('#editor').boundingBox()).toEqual(editorBox);
  const gaps=await page.locator('.execution-controls,.file-controls,.export-controls').evaluateAll(items=>items.map(item=>getComputedStyle(item).columnGap));
  expect(gaps).toEqual(['8px','8px','8px']);
  await page.screenshot({path:`../build/timings-controls-${info.project.name}.png`});

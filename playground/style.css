@@ -138,3 +138,22 @@ main{display:flex;flex-direction:column;flex:1;min-height:0;min-width:0;gap:6px;
 #compiler-build-status { color: var(--accent); }
 #active-compiler { font-size: 1rem; }
 @media(max-width:680px) { .compiler-runtime-controls { justify-content: flex-end; } #compiler-controls { gap: 4px 8px; } #compiler-build-status { flex-basis: 100%; } }
+
+/* Background work must not resize the editor or the result viewports. */
+.cm-scroller,#tree-pane,#grammar-pane,.output-body{scrollbar-gutter:stable}
+.execution-column h2{flex:none;flex-wrap:nowrap;align-items:center;white-space:nowrap;overflow:hidden}
+.execution-column h2 .output-title{font:inherit;color:inherit;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.execution-column h2 .output-phase{flex:none;width:6px;height:6px;font-size:0;overflow:hidden;background:var(--muted);border-radius:50%}
+.execution-column h2 .output-phase[data-state=error]{background:var(--danger)}
+.target-downloads{flex-wrap:nowrap;white-space:nowrap;overflow:hidden;min-height:26px}
+.target-downloads span{min-width:0;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.target-downloads a{flex:none}
+#project-storage{min-height:23px}
+.statusbar{position:relative;flex-direction:row;align-items:center;gap:12px;height:24px;min-height:24px}
+.statusbar>a{margin-left:auto;color:var(--muted);flex:none}
+#timing-details{flex:none}
+#timing-details>summary{cursor:pointer;padding:2px 4px}
+.timing-popover{position:absolute;bottom:calc(100% + 5px);left:0;right:0;z-index:20;max-height:40vh;overflow:auto;padding:10px;background:var(--panel);border:1px solid var(--line);border-radius:4px;box-shadow:0 4px 20px #0008}
+.timing-popover .status-summary{margin-bottom:6px}
+.timings{font-variant-numeric:tabular-nums}
+#build-status{min-width:0;max-height:24px;overflow:auto}
