@@ -1,54 +1,133 @@
 import tower;
 
-fn identity(T:type, value:T):T { return value; }
-fn box(T:type):type { struct Box { value:T; } return Box; }
-var effects:i32=0;
-
-fn split(input:i32):i32 {
-    var seen:i32=0;
-    defer { seen += comptime(1); effects += seen; }
-    var record:box(i32);
-    record.value=identity(input);
-    var next:decltype(record.value)=record.value+1;
-    { var record=next+1; next=record; }
-    seen=next;
-    if comptime(true) { return next; }
+fn identity(T: type, value: T): T {
+    return value;
 }
 
-fn ordinary(input:i32):i32 { return input+1; }
+fn box(T: type): type {
+    struct Box {
+        value: T;
+    }
+    return Box;
+}
 
-fn labeled(input:i32):i32 {
-    var result=identity(input);
+var effects: i32 = 0;
+
+fn split(input: i32): i32 {
+    var seen: i32 = 0;
+    defer {
+        seen += comptime(1);
+        effects += seen;
+    }
+    var record: box(i32);
+    record.value = identity(input);
+    var next: decltype(record.value) = record.value + 1;
+    {
+        var record = next + 1;
+        next = record;
+    }
+    seen = next;
+    if comptime(true) {
+        return next;
+    }
+}
+
+fn ordinary(input: i32): i32 {
+    return input + 1;
+}
+
+fn labeled(input: i32): i32 {
+    var result = identity(input);
     label(entry);
-    result+=1;
+    result += 1;
     jump(exit);
     label(exit);
     return result;
 }
 
-fn early(input:i32):i32 {
-    defer { effects+=10; }
-    if input<0 { return 7; }
-    var value=identity(input);
-    for(var i:i32=0;i<4;i++) {
-        if i==1 { continue; }
-        if i==3 { break; }
-        value+=i;
+fn early(input: i32): i32 {
+    defer {
+        effects += 10;
+    }
+    if input < 0 {
+        return 7;
+    }
+    var value = identity(input);
+    for(var i: i32 = 0; i < 4; i++) {
+        if i == 1 {
+            continue;
+        }
+        if i == 3 {
+            break;
+        }
+        value += i;
     }
     return value;
 }
 
-fn arrays():i32 {
-    var values:i32[2];
-    values[0]=3; values[1]=5;
-    var sum=values[0]+values[1];
-    defer { effects+=sum; }
+fn arrays(): i32 {
+    var values: i32[2];
+    values[0] = 3;
+    values[1] = 5;
+    var sum = values[0] + values[1];
+    defer {
+        effects += sum;
+    }
     return sum;
 }
 
-var failures:i32=0;
-if split(3)!=5 || effects!=6 { failures++; }
-if ordinary(7)!=8 || labeled(11)!=12 { failures++; }
-if early(-1)!=7 || early(4)!=6 || effects!=26 { failures++; }
-if arrays()!=8 || effects!=34 { failures++; }
+var failures: i32 = 0;
+if split(3) != 5 || effects != 6 {
+    failures++;
+}
+if ordinary(7) != 8 || labeled(11) != 12 {
+    failures++;
+}
+if early(-1) != 7 || early(4) != 6 || effects != 26 {
+    failures++;
+}
+if arrays() != 8 || effects != 34 {
+    failures++;
+}
+
+fn alternating(input: i32): i32 {
+    var prior = input + 1;
+    defer {
+        effects += identity(prior);
+    }
+    var first = identity(prior);
+    prior += 2;
+    var second = identity(first + prior);
+    prior += 3;
+    var storage: i32[2];
+    storage[0] = second;
+    storage[1] = prior;
+    return storage[0] + storage[1];
+}
+
+fn all_structural(): i32 {
+    return identity(13);
+}
+
+fn tail_structural(input: i32): void {
+    var first = input;
+    defer {
+        effects += first;
+    }
+    first++;
+    var second = identity(first);
+    effects += second;
+    var late: box(i32);
+}
+
+if alternating(4) != 22 || effects != 44 {
+    failures++;
+}
+if all_structural() != 13 {
+    failures++;
+}
+tail_structural(2);
+if effects != 50 {
+    failures++;
+}
 print(failures);

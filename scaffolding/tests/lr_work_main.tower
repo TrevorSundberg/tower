@@ -1,6 +1,7 @@
 import tower;
 import frontend_units;
 import editor_units;
+import body_runs;
 import utility_checks;
 
 extern fn lr_work_tests(): u32;
@@ -14,5 +15,6 @@ export fn lr_work_test_main(argc: i32, argv: u8**): i32 {
     puts("Native production worker policy: serial/threaded LR graph and lifetime comparisons passed.");
     frontend_units_tests(argv[1]);
     editor_units_tests(argv[1]);
+    body_runs_tests(argv[1]);
     return 0;
 }

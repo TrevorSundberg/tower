@@ -1,0 +1,123 @@
+import tower;
+import frontend_units;
+import .library.vector;
+import .compiler.semantic_program_types;
+import .compiler.format_types;
+import .compiler.interpreter_context_types;
+
+extern fn ix_init(execution: IMExecution*): void;
+
+fn body_runs_trial(source: u8*, budget: usize, width: u32, bedrock: u8*, foundation: u8*, root: u8*, canonical: vector(u8)*): void {
+    var batch = frontend_units_create(1, budget, width, 81, 23, bedrock, foundation, root);
+    units_check(batch is not null, "Body continuation batch");
+    defer frontend_units_close(batch);
+    units_check(frontend_units_source(batch, 1, "continuations.tower", source, strlen(source)), "Body continuation source");
+    while !frontend_units_step(batch, true) {}
+    if frontend_units_failed(batch) != 0 {
+        puts(frontend_units_error(batch));
+    }
+    units_check(frontend_units_failed(batch) == 0, "Body continuation compilation");
+    var program = frontend_units_program(batch, 1);
+    var invocation: IMInvocation = default;
+    // The ordinary program entry includes module initialization. Function-only
+    // invocation intentionally omits it; use the shared interpreter context.
+    invocation.state.stack = 16;
+    invocation.state.heap = 4194304;
+    invocation.context.root = program.root;
+    invocation.context.pointer_bytes = convert(usize, width);
+    var execution: IMExecution = default;
+    execution.state = &invocation.state;
+    execution.context = &invocation.context;
+    ix_init(&execution);
+    while !invocation.state.done && !invocation.state.failed {
+        interpreter_invocation_step(&invocation, 7);
+    }
+    if invocation.state.failed {
+        puts(invocation.context.error.data);
+    }
+    units_check(!invocation.state.failed && invocation.context.output.length == 2 && invocation.context.output.data[0] == 48 && invocation.context.output.data[1] == 10, "Body continuation locals, flow and cleanup");
+    interpreter_invocation_dispose(&invocation);
+    var formatted: FormatResult = default;
+    format_entity(&formatted, program.root, null, null, null);
+    units_check(!formatted.failed, "Body continuation canonical output");
+    if canonical.length == 0 {
+        foreach(var byte in &formatted.text) {
+            units_check(vector_push(canonical, byte), "Body continuation baseline");
+        }
+    } else {
+        units_check(canonical.length == formatted.text.length, "Body continuation canonical length");
+        for(var i: usize = 0; i < canonical.length; i++) {
+            units_check(canonical.data[i] == formatted.text.data[i], "Body continuation canonical bytes");
+        }
+    }
+    format_dispose(&formatted);
+}
+
+fn body_runs_diagnostic(budget: usize, bedrock: u8*, foundation: u8*, root: u8*, structural: bool): void {
+    var batch = frontend_units_create(1, budget, 8, 82, 23, bedrock, foundation, root);
+    units_check(batch is not null, "Body diagnostic batch");
+    defer frontend_units_close(batch);
+    var source: u8* = "import tower; fn id(T:type,x:T):T{return x;} fn first():i32 {var a:i32=1; a++; var b=id(a); b++; var c=id(b); return unknownFirst;} fn later():i32 {return unknownSecond;}";
+    if structural {
+        source = "import tower; fn id(T:type,x:T):T{return x;} fn first():i32 {var a:i32=1; a++; var b=id(a); b++; return id(unknownFirst);} fn later():i32 {return unknownSecond;}";
+    }
+    units_check(frontend_units_source(batch, 1, "diagnostic.tower", source, strlen(source)), "Body diagnostic source");
+    while !frontend_units_step(batch, true) {}
+    units_check(frontend_units_failed(batch) == 1 && strstr(frontend_units_error(batch), "unknownFirst") is not null && strstr(frontend_units_error(batch), "unknownSecond") is null, "Earlier resumed body diagnostic wins");
+}
+
+fn body_runs_cycle(budget: usize, bedrock: u8*, foundation: u8*, root: u8*, earlier_fails: bool): void {
+    var batch = frontend_units_create(1, budget, 8, 83, 23, bedrock, foundation, root);
+    units_check(batch is not null, "Body layout-cycle batch");
+    defer frontend_units_close(batch);
+    var source: u8* = "import tower; fn id(T:type,x:T):T{return x;} fn bad(T:type):type{struct Recursive{value:Recursive;}return Recursive;} fn first():i32{var a=id(1);a++;var b=id(a);return b;} fn later():i32{var invalid:bad(i32);return 0;}";
+    if earlier_fails {
+        source = "import tower; fn id(T:type,x:T):T{return x;} fn bad(T:type):type{struct Recursive{value:Recursive;}return Recursive;} fn first():i32{var a=id(1);a++;var b=id(a);return unknownFirst;} fn later():i32{var invalid:bad(i32);return 0;}";
+    }
+    units_check(frontend_units_source(batch, 1, "cycle.tower", source, strlen(source)), "Body layout-cycle source");
+    while !frontend_units_step(batch, true) {}
+    var error = frontend_units_error(batch);
+    units_check(frontend_units_failed(batch) == 1, "Body layout-cycle failure");
+    if earlier_fails {
+        units_check(strstr(error, "unknownFirst") is not null, "Earlier resumed error precedes later construction cycle");
+    } else {
+        units_check(strstr(error, "Recursive by-value layout") is not null, "Resumed construction retains its layout-cycle diagnostic");
+    }
+}
+
+fn body_runs_tests(root: u8*): void {
+    var bedrock: vector(u8) = default;
+    var foundation: vector(u8) = default;
+    var source: vector(u8) = default;
+    defer vector_dispose(&source);
+    defer vector_dispose(&foundation);
+    defer vector_dispose(&bedrock);
+    units_read(root, "/bedrock.tower", &bedrock);
+    units_read(root, "/foundation.tower", &foundation);
+    units_read(root, "/tests/body_continuation.tower", &source);
+    for(var width: u32 = 4; width <= 8; width += 4) {
+        var canonical: vector(u8) = default;
+        defer vector_dispose(&canonical);
+        for(var budget: usize = 1; budget <= 8; budget *= 2) {
+            body_runs_trial(source.data, budget, width, bedrock.data, foundation.data, root, &canonical);
+        }
+        units_check(vector_reserve(&canonical, canonical.length + 1), "Body Foundation text terminator");
+        canonical.data[canonical.length] = 0;
+        body_runs_trial(canonical.data, 8, width, bedrock.data, foundation.data, root, &canonical);
+        var root_layout: vector(u8) = default;
+        defer vector_dispose(&root_layout);
+        // Foundation root operands can create an array after declaration
+        // layouts, even when the only function needs no structural preparation.
+        var root_source: u8* = "struct Item { value:i32; } var size:usize=sizeof(Item[2]); fn result():i32 { return 0; } print(result());";
+        for(var budget: usize = 1; budget <= 8; budget *= 2) {
+            body_runs_trial(root_source, budget, width, bedrock.data, foundation.data, root, &root_layout);
+        }
+    }
+    for(var budget: usize = 1; budget <= 8; budget *= 2) {
+        body_runs_diagnostic(budget, bedrock.data, foundation.data, root, false);
+        body_runs_diagnostic(budget, bedrock.data, foundation.data, root, true);
+        body_runs_cycle(budget, bedrock.data, foundation.data, root, false);
+        body_runs_cycle(budget, bedrock.data, foundation.data, root, true);
+    }
+    puts("Resumable bodies: locals/defer/flow, canonical output and diagnostic order pass at 1/2/4/8 workers.");
+}

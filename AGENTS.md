@@ -149,7 +149,9 @@ Do NOT modify todo.txt
 - Schedule compiler queries through the shared dependency graph. Request only
   needed type/body/layout/evaluation work; suspend on newly discovered dependencies
   rather than blocking a worker or recursively forcing completion. Diagnose cycles
-  and reject stale revision/profile/dispatch tickets. Known-value evaluation uses
+  and reject stale revision/profile/dispatch tickets. Keep lexical continuations
+  on their work components; transfer scratch ownership at joins and never replay
+  checked statements or effects after resumption. Known-value evaluation uses
   the ordinary Tower interpreter, never a separate pre-LLVM folding evaluator.
 - Declare component read/write ranges and exclusive ownership before dispatch.
   A pinned view is not a payload lock. Publish structural changes, type interning,

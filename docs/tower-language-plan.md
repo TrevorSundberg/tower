@@ -178,10 +178,14 @@ read/write claims, dynamic suspension/yield, stale dispatch rejection and cycle
 paths. The 1,024-entry module inference/decltype chains no longer use recursive
 inference. Function signatures and record fields participate in declaration
 ordering. Eligible body checking and expression lowering now have worker kernels.
-Structural type construction and within-world editor observation remain coordinator
-work. Explicit-world completion/inspection services now run as independent native
-unit jobs with the same ECS recipes, joins and budget policy. This is not yet a
-fully parallel semantic pipeline.
+Ordinary top-level statement runs now resume on workers around structural
+construction queries. The body query suspends on each construction receipt;
+lexical scopes, defer state and scratch ownership survive on its existing ECS
+work component, and source-window diagnostics remain independent of worker count.
+Nested structural blocks, type interning and within-world editor observation
+remain coordinator work. Explicit-world completion/inspection services now run
+as independent native unit jobs with the same ECS recipes, joins and budget
+policy. This is not yet a fully parallel semantic pipeline.
 
 The graph is still scoped to one compilation (revision `1`, pointer width as its
 initial profile). That is not a persistent incremental cache key. Reusable queries
@@ -673,9 +677,11 @@ containers. Benchmark representative compiler workloads before migrating them.
   exclusive leases permit body workers to attach components to their own source
   entities while typed query indexes stay pinned. Ordinary indexed value access,
   local inference, decltype, stage registration and defer use this path. Bodies
-  requiring generic/type construction and editor observation retain a coordinator
-  path pending explicit continuations. Already-instantiated generic bodies now
-  use body workers when their immutable bindings and existing layouts are ready;
+  requiring generic/type construction now use resumable top-level statement runs,
+  suspending on source-keyed preparation receipts and resuming on workers. Nested
+  structural statements and editor observation retain a coordinator path.
+  Already-instantiated generic bodies now use body workers when their immutable
+  bindings and existing layouts are ready;
   conservative admission retains first consumers of pending layouts on the
   coordinator and records completed layout dependencies on body queries.
   Generic function signatures now retain a body root without copying its
@@ -793,7 +799,7 @@ Current migration audit (after the isolated compiler-worker milestone):
 | --- | --- | --- |
 | Entities | Stable payloads, dense per-type pointer indexes, explicit worlds, pinned views, exclusive attachment leases and staged canonical creation | Complete host-world isolation and non-racing reference ownership |
 | Syntax/grammar | Shared entities; world-bound module/session/baseline/revision/cache ownership; worker-owned FIRST/nullable frontiers, LR(0) transitions, LR(1) kernel closures, wide lookahead frontiers, LALR actions and runtime action/direct-index/goto rows | Native CLI project recipes, propagation-edge construction, runtime sequence specialization and source/effect order; row interning publishes after joins |
-| Semantics/layout | Shared query graph; parallel dependency discovery, layouts, eligible ordinary/instantiated-generic body checking and expression lowering | Generic/type construction continuations, precise body layout dependencies, within-world editor observation and structural publication |
+| Semantics/layout | Shared query graph; parallel dependency discovery, layouts, eligible ordinary/instantiated-generic body checking and expression lowering | Nested statement/type-construction continuations, precise body layout dependencies, within-world editor observation and structural publication |
 | Interpreter/staging | Per-invocation contexts over shared Foundation; ECS preparation/lowering dependencies, threaded lazy scalar evaluation and private execution caches | General ordinary-value execution, explicit effects/inputs and invalidation; no separate folding evaluator |
 | LLVM | Shared Foundation inputs; one mutable LLVM context/module per compiler instance | Function/query boundaries that do not concurrently mutate one LLVM module; preserve target legality |
 | Link/publication | Tower plans/artifacts plus upstream LLD and filesystem interfaces | Keep LLD globals and fixed temporary names isolated/serialized; publish a candidate only after its checks |

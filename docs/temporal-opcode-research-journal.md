@@ -30301,3 +30301,154 @@ checkpoint, verify the hosted result, then integrate the independently validated
 body continuations. The compiler-wide migration remains incomplete; explicit
 world ownership and isolated inspection jobs do not remove the remaining
 within-world structural/editor phases, CLI project wiring or backend boundaries.
+
+Published editor checkpoint: source b57bca1ab82eabcf2be00b25092e246897d4ac84,
+Pages 4262917e61661111655f638c5a35475e2da8f5ec (parent 0826f407).
+The required post-commit pull/rebase was unchanged; repeated native frontend and
+production LR/unit/editor checks passed 2/2 in 61.39 seconds. Main and Pages pushes
+succeeded. Pages action 44910072950 is running; hosted verification is pending.
+Keep dist frozen for that verification while continuing source work.
+
+The formatted body-continuation draft is now integrated. One ECS body-work
+component owns its source boundaries, persistent block cursor and lexical state;
+BodyQuery suspends on construction receipts keyed by the next syntax child, then
+returns to the ordinary Tower worker kernel. Worker-created lexical allocations
+and lists transfer to compilation ownership after joining. Every stage in a batch
+publishes before coordinator metadata writes or structural preparation. Checked
+statements are never replayed. Error publication waits for earlier source bodies,
+including across multiple suspensions; unfinished later work is reclaimed after
+an earlier error. Editor/type-use observation and malformed-body diagnostics keep
+the coordinator path; failed observation clears the work component's borrowed
+context. Nested structural statements still require nested continuations.
+
+Native frontend and production worker fixtures now include the body-runs matrix,
+with exact buffer cleanup in the instrumented frontend fixture. The expanded
+body_continuation fixture exercises multiple generic/array boundaries, deferred
+generic calls, wholly structural returns and a final structural statement. Add
+layout-cycle cases to verify that a later construction cycle is preserved when
+appropriate, but cannot replace a later-discovered error in an earlier body.
+These new cycle cases still need validation. AGENTS.md now briefly requires
+continuation scratch ownership and forbids replaying checked statements/effects.
+
+Editor publication verification is complete: action 44910072950 succeeded, and
+the full hosted verifier passed all 77 asset hashes, desktop/mobile workflows
+and real Linux defaults (editor-world-hosted.log / editor-world-hosted-report.json).
+This supersedes the pending status above.
+
+The integrated, formatted body continuations pass the default-bootstrap native
+build, all eight CTest cases (176.90 seconds), and backend API checks
+(body-runs-native.log). This includes the new layout-cycle/error-order matrix
+and exact scratch cleanup. Shared/portable Wasm and LLVM/cross rebuilds completed;
+browser regressions, edited compiler generations and local deployment checks are
+running against those refreshed artifacts.
+
+An additional reused-type diagnostic trial (body-reused-cycle.log) found that
+both old/new compilers reject the same recursive by-value type, but its retained
+instantiation trace names the first call that interned that instance. Alternating
+body runs can change which call first constructs it (columns 161 versus 219 in
+the trial). Both versions also report a synthetic line 218 for that one-line
+input, an existing generic-provenance limitation. This is distinct from the
+source-order primary-error contract tested by the matrix. Do not claim trace
+provenance is already independent of construction order, or hide an earlier body
+error by attaching all unrelated later failed layouts to it.
+
+Browser regression found a real omission before publication: 63/66 passed, while
+declaration_operands, decltype_layout and the worker-count matrix trapped during
+canonical Foundation recompilation (body-runs-regressions.log). The original
+sources succeed natively, but their Foundation forms create array types in root
+operations after the declaration layout barrier. Removing the old coordinator
+prefix path also removed the incidental layout completion before a simple body.
+The new admission assertion correctly rejects an unfinished layout. A four-line
+Foundation reproducer (body-root-layout.tower) also aborts in the native compiler;
+this is not a Wasm-only or allocator failure. Resolve ordinary root-created
+layout queries before body admission, and extend native tests with this case at
+both target widths/all budgets and actual Foundation recompilation. The fix is
+in source; refreshed validation is pending.
+
+The pre-fix native successor object is byte-identical, and both edited browser
+generations also reproduce identical bytes (body-runs-successor.log and
+body-runs-generation1/2.json). A self-host fixed point does not imply all program
+inputs are correct. These results do not supersede the failing regression.
+The broad semantic-port run passed semantic/layout round trips and control,
+collections and enums, then was stopped while interpreting the large entity
+fixture. The remaining targeted diagnostic/deep-layout/parser checks run
+separately; the interrupted broad run is not a complete suite pass.
+
+The targeted diagnostic/deep-layout/parser checks pass 3/3 in 6.55 seconds
+(body-runs-semantics-selected.log). The pre-fix full local deployment workflows
+also passed; they did not exercise the failing Foundation input. After adding
+the root-layout barrier, the refreshed native compiler executes both the minimal
+reproducer and the previously failing canonical decltype_layout text to 0
+(body-runs-successor-final.log). Native cleanup/worker matrices and refreshed
+browser/backend/bootstrap checks remain in progress.
+
+Prepared a separate, unintegrated LALR link-construction draft in the ignored
+audit directory. Workers read immutable LR state bases/closures and produce
+ordered link/seed records on existing ECS work components; the coordinator
+publishes into the same derived propagation graph after joining every job.
+Serial and worker paths share link lookup and emission rules. Planned validation
+compares unsolved edges, seeds, pending order and queue flags as well as final
+actions/conflicts, and rejects a deliberately missing closure without worker
+cache mutation or partial publication. This is not yet validated or shipped.
+
+Final root-layout fix validation: default-bootstrap native checks pass all eight
+CTest cases in 195.19 seconds plus backend API checks
+(body-runs-native-final.log). The expanded frontend matrix includes exact scratch
+cleanup, 4/8-byte targets, budgets 1/2/4/8, canonical recompilation and the minimal
+root-created-layout reproducer. The native semantic successor object matches the
+reference byte-for-byte, SHA-256
+243d9b60e9999c21b87cf2778dc4f68cf77ca55870d2ff14aa0ee42eda728868
+(body-runs-successor-final.log). Browser artifacts and compiler project packaging
+are refreshed; final browser/generation/local-deployment checks are running.
+
+The initial LALR draft tried to pass a record by value to vector_push; Tower
+correctly rejects aggregate copies. Use the existing pointer-based lr_append
+helper instead (lr-links-draft.log versus lr-links-draft-fixed.log). The corrected
+draft's unsolved-graph, missing-input drain and table/conflict comparisons pass
+with real native workers. Full draft unit/editor/body fixtures and an overlap
+probe are still running. A later draft refinement keeps state/link/action lanes
+available when the closure cache alone is below its batching threshold; it adds
+a 256-terminal grammar case and has not yet been compiled or validated.
+
+Final browser regressions pass 66/66 in 122.69 seconds with no skips
+(body-runs-regressions-final.log), including both previously failing Foundation
+cases and the complete 1/2/4/8-worker matrix. This supersedes the pre-fix 63/66
+result. Final edited compiler generations and local deployment verification are
+still running.
+
+The first LALR overlap probe required a work_kernel_execute frame, but optimized
+extern dispatch tail-calls the exported kernel and removes that frame. It was
+interrupted; the host signal attempt lacked permission for the container-owned
+GDB process, so the signal was sent inside that container. Requiring only the
+exported link kernel correctly captures eight simultaneous worker threads
+(lr-links-overlap-fixed.log). Final zero-legacy/default-world counts await process
+completion. Do not edit a live GDB command file: changing the earlier file while
+it was paused invalidated its command-file offset after interruption. Use a
+separate script for subsequent probes. The corrected draft also passes its full
+native LR/unit/editor/body harness (lr-links-draft-fixed.log).
+
+The corrected LALR probe completed normally with eight simultaneous link kernels,
+HOST_WORLD=0 and LEGACY_ALLOCATE=0. Its WORKER_THREADS set records only the thread
+that first hit the breakpoint; the CONCURRENT line lists all eight actual kernel
+stacks at that stop. This is overlap evidence, not a speedup measurement. All
+five draft files, including the later closure-width refinement, now pass the
+ordinary Tower formatter's structure and idempotence checks (lr-links-format.log).
+That final refinement still needs compilation/tests before integration.
+
+Final body checkpoint self-hosting: edited browser generations pass and match
+byte-for-byte (200.43/107.49 seconds under concurrent verification), sizes
+1073278/52372192/63929623, hashes
+ tower 9dfe3b73a8470a71ba2e7e03349e0951f68299136c7a315e88ea5f3381f639c1,
+ LLVM 56d29e448116faf3c45817fe38721974fd5f00c3dc364cda3eebc09b551db43c,
+ cross 3ae36a3b0e9e25eec08f84a39112c427a3703140a005d7c2d1c6161859ad247d.
+Reports are body-runs-final-generation1/2.json. All implementation changes remain
+Tower; C/C++ and todo.txt are unchanged. Full local deployment verification is
+still running; commit/rebase and publish only after it completes.
+
+Full final local body-checkpoint deployment verification completed successfully:
+77 asset hashes, desktop/mobile execution and editing, native builds/downloads,
+completion/highlighting, persistence and real Linux defaults
+(body-runs-local-final.log / body-runs-local-final-report.json). No source-reading
+builds, tests or formatters remain active. Commit, perform the required rebase,
+repeat the native frontend/production-worker checks, and publish this checkpoint.
+The LALR link draft remains separate and unintegrated.
