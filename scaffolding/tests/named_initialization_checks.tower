@@ -35,6 +35,28 @@ fn named_initialization_reject(modules: void*, source: u8*, message: u8*): void 
     execution_check(strstr(session.error.data, message) != null, message);
 }
 
+fn named_initialization_diagnostic(source: u8*, wanted: u8*, bedrock: u8*, foundation: u8*, root: u8*): void {
+    var baseline: vector(u8) = default;
+    defer vector_dispose(&baseline);
+    for(var workers: usize = 1; workers <= 8; workers *= 2) {
+        var batch = frontend_units_create(1, workers, 8, 91, 23, bedrock, foundation, root);
+        execution_check(batch != null, "Named initializer diagnostic batch");
+        defer frontend_units_close(batch);
+        execution_check(frontend_units_source(batch, 1, "named_diagnostics.tower", source, strlen(source)), "Named initializer diagnostic source");
+        while !frontend_units_step(batch, true) {}
+        var error = frontend_units_error(batch);
+        execution_check(frontend_units_failed(batch) == 1 && strstr(error, wanted) != null, "Named initializer deterministic error selection");
+        var length = strlen(error);
+        if baseline.length == 0 {
+            for(var i: usize = 0; i < length; i++) {
+                execution_check(vector_push(&baseline, error[i]), "Named initializer diagnostic baseline");
+            }
+        } else {
+            execution_check(length == baseline.length && memcmp(error, baseline.data, length) == 0, "Named initializer exact diagnostic agrees across workers");
+        }
+    }
+}
+
 fn named_initialization_tests(modules: void*, root: u8*): void {
     var source: vector(u8) = default;
     var bedrock: vector(u8) = default;
@@ -45,6 +67,8 @@ fn named_initialization_tests(modules: void*, root: u8*): void {
     units_read(root, "/tests/named_initialization.tower", &source);
     units_read(root, "/bedrock.tower", &bedrock);
     units_read(root, "/foundation.tower", &foundation);
+    named_initialization_diagnostic("import tower;struct P{x:i32;}var p:P=default;var rejected=(p={x:1});", "void", bedrock.data, foundation.data, root);
+    named_initialization_diagnostic("import tower;struct P{x:i32;}fn first():i32{var p:P={unknown:1};return 0;}fn later():i32{return unknownLater;}", "Unknown initializer field", bedrock.data, foundation.data, root);
     var formatted: FormatResult = default;
     var again: FormatResult = default;
     defer format_dispose(&formatted);

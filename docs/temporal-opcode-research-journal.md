@@ -31734,3 +31734,34 @@ is 35 sites / 23 production files / 123 fewer production lines; four deliberatel
 partial contexts remain explicit. Broader field-write runs include updates and
 ownership/borrow operations and were not rewritten as complete construction.
 The parser correction requires validation in the final browser/native milestone.
+
+Final native build/execution checks pass after adoption. Browser single/threaded
+builds and the parser self-test pass, including the new completion depth fixture.
+The threaded transport's 1/2/4/8-worker matrix passes (25.4s), and the focused named
+initialization LLVM test passes raw/optimized Foundation, both interpreters,
+canonical round trips and optimized Wasm execution (5.7s). Logs are
+build/named-fields-final-native.log, named-fields-browser.log,
+named-fields-wasm-selftest.log, named-fields-threaded.log and
+named-fields-llvm-test.log. The bootstrap and all feature implementation remain
+Tower; existing packaging scripts are invoked unchanged.
+
+The first browser successor trial was started too early, before the LLVM build's
+packaging subprocess completed. It read the previous project.json at 09:14:14,
+then used freshly rewritten native support (package completed 09:14:25), producing
+an undefined old syntax_get_rules import on instantiation. The saved IDE object
+still referenced the removed native transport, while the finished source package
+contains only the new Tower session views. This was orchestration of mutable build
+outputs, not a named-initializer or compiler-query failure. Awaited the build's
+successful exit before rerunning the two-generation check against the completed
+package; never publish the mixed attempt.
+
+The completed package passes both browser successor generations at 2 then 4 unit
+workers, including edited semantic behavior and byte-identical successive
+reactors: tower 1,084,246 bytes, LLVM 52,391,542 bytes, cross 63,948,966 bytes
+(build/named-fields-generations-final.log). Added exact diagnostic comparisons
+at 1/2/4/8 workers for the inferred reset/layout failure and competing body errors;
+the earlier unknown initializer field wins deterministically. The final native
+execution harness passes with those checks (build/named-fields-diagnostics.log).
+This test-only addition does not alter the packaged compiler unit inputs.
+Final Foundation/Bedrock and todo.txt diffs are empty. Source-format checks cover
+the feature fixture; no repository-wide formatting or sanitizer pass was run.
