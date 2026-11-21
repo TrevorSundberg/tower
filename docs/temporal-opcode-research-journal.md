@@ -34973,3 +34973,14 @@ unavailable build identifier. Do not bypass that check by fabricating ancestry
 or disabling assertions. The next deployment must preserve the actual gh-pages
 commit ancestry, use a published/verifiable main source and verify its own exact
 artifact hashes; retain this correction to the previous metadata's limitation.
+
+The latency-merged public-bootstrap successor passes all 53 build steps
+(ecs-latency-merged-native.log). Its graph and fast execution of the extended
+known_bindings fixture and graph execution of enum_expressions each print zero
+failures (ecs-latency-merged-successor.log). The merged portable/shared frontend
+builds pass, and all three shared worker checks pass in 47.0 seconds with zero
+skips (ecs-latency-merged-shared.log). These checks cover the integrated LR change
+alongside the editor/lazy-capture work. Backend compiler-project packaging follows.
+For this in-flight rebase only, the same journal union attribute is also recorded
+in local .git/info/attributes so it remains effective before its introducing
+.gitattributes commit is replayed; no source merge driver is changed.
