@@ -1,0 +1,44 @@
+import tower;
+import utility_checks;
+
+// Reproduce the retired std::mt19937 fixtures exactly, including draw order.
+// This is test input generation, independent of the lexer/automaton services.
+struct TestRandom { words: u32[624]; index: usize; }
+const TestRandomTwist: u32 = 2567483615;
+
+fn test_random_init(state: TestRandom*, seed: u32): void {
+    state.words[0] = seed;
+    for (var index: usize = 1; index < 624; ++index) {
+        var previous = state.words[index - 1];
+        state.words[index] = 1812433253 * (previous ^ (previous >> 30)) + convert(u32, index);
+    }
+    state.index = 624;
+}
+
+fn test_random(state: TestRandom*): u32 {
+    if state.index == 624 {
+        for (var index: usize = 0; index < 624; ++index) {
+            var mixed = (state.words[index] & 2147483648) | (state.words[(index + 1) % 624] & 2147483647);
+            state.words[index] = state.words[(index + 397) % 624] ^ (mixed >> 1) ^ ((mixed & 1) != 0 ? TestRandomTwist() : convert(u32, 0));
+        }
+        state.index = 0;
+    }
+    var value = state.words[state.index++];
+    value ^= value >> 11;
+    value ^= (value << 7) & 2636928640;
+    value ^= (value << 15) & 4022730752;
+    value ^= value >> 18;
+    return value;
+}
+
+fn test_random_check(): void {
+    var state: TestRandom;
+    test_random_init(&state, 5489);
+    utility_check(test_random(&state) == 3499211612, "MT19937 first reference output");
+    utility_check(test_random(&state) == 581869302, "MT19937 second reference output");
+    utility_check(test_random(&state) == 3890346734, "MT19937 third reference output");
+    // Standard mt19937 validation value after 10,000 draws from its default seed.
+    var value: u32 = 0;
+    for (var index: usize = 3; index < 10000; ++index) { value = test_random(&state); }
+    utility_check(value == 4123659995, "MT19937 ten-thousandth reference output");
+}

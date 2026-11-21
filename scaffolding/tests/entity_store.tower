@@ -1,0 +1,150 @@
+import tower;
+import .library.entities;
+import utility_checks;
+
+extern fn tower_test_buffer_count(): usize;
+extern fn strcmp(left: u8*, right: u8*): i32;
+
+const TestEntityByteLifecycle: usize = 1;
+const TestEntityCountLifecycle: usize = 2;
+
+// Ordinary Tower dispatch for this test-owned store. The compiler's lifecycle
+// bridge is not linked here and no native callback wrapper is required.
+export fn tower_entity_finalize(kind: usize, component: EntityComponent*, data: u8*): void {
+    utility_check(entity_component_data(component) == data, "Entity finalizer payload identity");
+    utility_check(entity_component_from_data(data) == component, "Entity finalizer reverse identity");
+    utility_check(entity_component_owner(component) is not null && entity_component_type(component) is not null, "Entity finalizer owner/type lifetime");
+    if kind == TestEntityByteLifecycle() {
+        utility_check(data[0] == 123, "Entity finalizer payload value");
+    } else {
+        utility_check(kind == TestEntityCountLifecycle(), "Entity finalizer lifecycle identity");
+        var counter = *bits(usize**, data);
+        ++*counter;
+    }
+}
+
+fn entity_test_empty(store: EntityStore*, baseline: usize): void {
+    utility_check(entity_store_count(store) == 0, "Entity store leaked node");
+    utility_check(entity_store_component_count(store) == 0, "Entity store leaked component");
+    utility_check(tower_test_buffer_count() == baseline, "Entity store leaked allocation");
+}
+
+fn entity_test_parent_name(child: Entity*): u8* {
+    var parent = entity_parent(child);
+    if parent is null { return null; }
+    return entity_child_name(parent, entity_child_index(parent, child));
+}
+
+export fn entity_store_tests(): void {
+    var initial = tower_test_buffer_count();
+    var store = entity_store_create();
+    utility_check(store is not null, "Entity store create");
+    var baseline = tower_test_buffer_count();
+    {
+        var parent = entity_create(store);
+        utility_check(parent is not null && entity_store_count(store) == 1, "Entity create parent");
+        utility_check(entity_parent(parent) is null && entity_references(parent) == 1, "Entity initial parent/reference");
+        utility_check(entity_child_count(parent) == 0 && entity_component_count(parent) == 0, "Entity initial contents");
+        var child = entity_create(store);
+        utility_check(entity_store_count(store) == 2, "Entity create child");
+        utility_check(entity_attach(child, parent, null), "Entity attach");
+        utility_check(entity_references(parent) == 1 && entity_references(child) == 2, "Entity attach owns child");
+        utility_check(entity_id(child) > entity_id(parent), "Entity monotonic identity");
+        utility_check(entity_parent(child) == parent && entity_child_count(parent) == 1, "Entity attached relation");
+        utility_check(entity_child_at(parent, 0) == child && entity_child_index(parent, child) == 0, "Entity child index");
+        entity_release(child);
+        utility_check(entity_references(child) == 1 && entity_references(parent) == 1 && entity_store_count(store) == 2, "Entity containment retains child");
+        utility_check(entity_release(parent) == 0, "Entity releases contained subtree");
+    }
+    entity_test_empty(store, baseline);
+    {
+        var parent = entity_create(store);
+        var child = entity_create(store);
+        utility_check(entity_attach(child, parent, null), "Entity detach fixture attach");
+        utility_check(entity_references(parent) == 1 && entity_references(child) == 2, "Entity detach fixture references");
+        entity_release(child);
+        utility_check(entity_references(parent) == 1 && entity_references(child) == 1 && entity_store_count(store) == 2, "Entity detach fixture ownership");
+        utility_check(entity_attach(child, null, null), "Entity detach unretained child");
+        utility_check(entity_references(parent) == 1 && entity_store_count(store) == 1, "Entity detach destroys unretained child");
+        utility_check(entity_release(parent) == 0, "Entity detach parent release");
+    }
+    entity_test_empty(store, baseline);
+    {
+        var parent = entity_create(store);
+        var child = entity_create(store);
+        utility_check(entity_references(parent) == 1 && entity_references(child) == 1, "Entity retained detach initial refs");
+        utility_check(entity_attach(child, parent, null), "Entity retained detach attach");
+        utility_check(entity_references(parent) == 1 && entity_references(child) == 2, "Entity retained detach owned refs");
+        utility_check(entity_attach(child, null, null), "Entity retained detach");
+        utility_check(entity_references(child) == 1 && entity_store_count(store) == 2, "Entity retained detach preserves child");
+        utility_check(entity_release(parent) == 0 && entity_release(child) == 0, "Entity retained detach release");
+    }
+    entity_test_empty(store, baseline);
+    {
+        var parent = entity_create(store);
+        utility_check(entity_test_parent_name(parent) is null, "Entity root has no member name");
+        utility_check(entity_member_index(parent, "member1") == ~convert(usize, 0) && entity_member_index(parent, "member2") == ~convert(usize, 0), "Entity absent member sentinel");
+        var first = entity_create(store);
+        utility_check(entity_attach(first, parent, "member1"), "Entity first named attach");
+        utility_check(entity_references(parent) == 1 && entity_references(first) == 2, "Entity first named references");
+        utility_check(entity_parent(first) == parent && strcmp(entity_test_parent_name(first), "member1") == 0, "Entity first member name");
+        utility_check(entity_member_index(parent, "member1") == 0 && entity_child_at(parent, 0) == first && entity_child_index(parent, first) == 0, "Entity first member lookup");
+        var second = entity_create(store);
+        utility_check(entity_attach(second, parent, "member2"), "Entity second named attach");
+        utility_check(entity_references(parent) == 1 && entity_references(first) == 2 && entity_references(second) == 2 && entity_store_count(store) == 3, "Entity second named references");
+        utility_check(entity_parent(second) == parent && strcmp(entity_test_parent_name(second), "member2") == 0, "Entity second member name");
+        utility_check(entity_member_index(parent, "member2") == 1 && entity_child_at(parent, 1) == second && entity_child_index(parent, second) == 1, "Entity second member lookup");
+        utility_check(entity_attach(second, parent, "member1"), "Entity replace same named member");
+        utility_check(entity_references(parent) == 1 && entity_references(first) == 1 && entity_references(second) == 2 && entity_store_count(store) == 3, "Entity replacement reference transfer");
+        utility_check(entity_parent(first) is null && entity_test_parent_name(first) is null, "Entity displaced child detached");
+        utility_check(entity_parent(second) == parent && strcmp(entity_test_parent_name(second), "member1") == 0, "Entity replacement member name");
+        utility_check(entity_member_index(parent, "member1") == 0 && entity_child_at(parent, 0) == second && entity_member_index(parent, "member2") == ~convert(usize, 0), "Entity replacement lookup order");
+        utility_check(entity_release(parent) == 0, "Entity named parent release");
+        utility_check(entity_references(first) == 1 && entity_references(second) == 1 && entity_store_count(store) == 2, "Entity named children retained");
+        utility_check(entity_parent(first) is null && entity_parent(second) is null, "Entity named children orphaned");
+        utility_check(entity_release(first) == 0 && entity_release(second) == 0, "Entity named children release");
+    }
+    entity_test_empty(store, baseline);
+    {
+        var owner = entity_create(store);
+        var type = entity_create(store);
+        utility_check(entity_references(type) == 1 && entity_component_count(owner) == 0 && entity_component_at(owner, 0) is null, "Entity component initial state");
+        utility_check(entity_component_data(null) is null && entity_component_from_data(null) is null, "Entity null component access");
+        utility_check(entity_register(type, 1, 1, TestEntityByteLifecycle()), "Entity register byte payload");
+        var component = entity_component_add(owner, type);
+        utility_check(entity_store_count(store) == 2 && entity_store_component_count(store) == 1, "Entity component allocation counts");
+        utility_check(entity_references(type) == 2 && entity_references(owner) == 1, "Entity component retains type");
+        utility_check(entity_component_count(owner) == 1 && entity_component_at(owner, 0) == component && entity_component_at(owner, 1) is null, "Entity component enumeration");
+        utility_check(entity_component_get(owner, type) == component && entity_component_type(component) == type && entity_component_owner(component) == owner, "Entity component identity");
+        var data = entity_component_data(component);
+        data[0] = 123;
+        utility_check(entity_component_from_data(data) == component, "Entity component reverse lookup");
+        utility_check(entity_component_add(owner, type) == component, "Entity duplicate component preserves identity");
+        entity_release(owner);
+        utility_check(entity_store_count(store) == 1 && entity_store_component_count(store) == 0 && entity_references(type) == 1, "Entity component destruction releases type");
+        entity_release(type);
+    }
+    entity_test_empty(store, baseline);
+    {
+        // Native entities.cpp also counted removal/destruction callbacks while
+        // the component retains its type after the caller releases that type.
+        var destroyed: usize = 0;
+        var type = entity_create(store);
+        var owner = entity_create(store);
+        utility_check(entity_register(type, 16, alignof(usize*), TestEntityCountLifecycle()), "Entity register counted payload");
+        var component = entity_component_add(owner, type);
+        *bits(usize**, entity_component_data(component)) = &destroyed;
+        utility_check(entity_query_count(type) == 1 && entity_query_at(type, 0) == component, "Entity component query identity");
+        utility_check(entity_component_remove(owner, type), "Entity explicit component removal");
+        utility_check(destroyed == 1 && entity_query_count(type) == 0, "Entity removal callback and query cleanup");
+        component = entity_component_add(owner, type);
+        *bits(usize**, entity_component_data(component)) = &destroyed;
+        entity_release(type);
+        entity_release(owner);
+        utility_check(destroyed == 2, "Entity owner/type finalizer lifetime");
+    }
+    entity_test_empty(store, baseline);
+    utility_check(entity_store_dispose(store), "Entity store dispose");
+    utility_check(tower_test_buffer_count() == initial, "Entity store full allocation cleanup");
+    puts("Tower entities: containment, named replacement, component identity and finalizer lifetime passed.");
+}

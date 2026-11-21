@@ -13,6 +13,22 @@ and protected-page checks on Linux/macOS. Their native reference oracle seeds
 remain test-only. For WASI builds, run each executable with `host-wasi.mjs`;
 WASI exercises the byte guards but has no POSIX protected-page test.
 
+`tower-lexer-tests` and `tower-entity-tests` are separate Tower entries in the
+parser configuration, also executable through `host-wasi.mjs`. Lexer coverage
+preserves 150 seeded NFAs against direct simulation, 500 seeded lexer tables
+against the native reference, and allocation-failure sweeps. Entity coverage
+uses an explicitly owned store and Tower finalizers. The browser's existing
+native node self-test remains until its callback boundary can also be retired.
+
+Compiler storage and the compiled Foundation entity-registry checks now execute
+in Tower from the parser aggregate. For a focused native run, configure
+`-DTOWER_STORAGE_TESTS=ON`, build `tower-storage-tests`, and run
+`ctest --test-dir <build> -R '^tower-storage$' --output-on-failure`.
+This uses the same production parser/compiler services and an instrumented
+allocator; it covers UTF-8 source locations, deep copies and ownership transfers,
+Foundation payloads, borrowed edges, aliasing, failure atomicity, 600-level tree
+clones, 100 session resets and source provenance surviving session destruction.
+
 The isolated `cmake/TowerDriver.cmake` fragment adds CLI checks with
 `-DTOWER_DRIVER_TESTS=ON` to a native compiler configuration. Build `towerc` and
 `tower-driver-tests`, then run `ctest --test-dir <build> -R tower-driver

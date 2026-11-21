@@ -39,6 +39,7 @@ if(TOWER_NATIVE)
   target_link_libraries(towerc PRIVATE tower-compiler-parser-nodes tower-compiler-semantics tower-compiler-entities tower-compiler-utilities tower-compiler-memory)
   target_link_libraries(towerc PRIVATE LLVM tower-compiler-interpreter)
   include(cmake/TowerDriver.cmake)
+  include(cmake/TowerStorageTests.cmake)
   foreach(host IN ITEMS towerc)
     target_compile_options(${host} PRIVATE -fno-exceptions)
   endforeach()
@@ -137,7 +138,7 @@ if(TOWER_PARSER_ONLY)
   target_compile_definitions(tower-compiler-memory PRIVATE TOWER_COMPILER_MEMORY_TESTS=1)
   tower_compiler_interpreter()
   add_executable(tower-parser-tests scaffolding/tests/main.cpp
-    scaffolding/tests/compiler-storage.cpp scaffolding/tests/entities.cpp scaffolding/tests/lexer-table.cpp scaffolding/tests/regex.cpp scaffolding/tests/lr-analysis.cpp scaffolding/tests/lr-grammar.cpp scaffolding/tests/syntax-lexer.cpp scaffolding/tests/syntax-nodes.cpp scaffolding/tests/syntax-reader.cpp scaffolding/tests/syntax-validation.cpp
+    scaffolding/tests/regex.cpp scaffolding/tests/lr-analysis.cpp scaffolding/tests/lr-grammar.cpp scaffolding/tests/syntax-lexer.cpp scaffolding/tests/syntax-nodes.cpp scaffolding/tests/syntax-reader.cpp scaffolding/tests/syntax-validation.cpp
     scaffolding/core.cpp scaffolding/core-nodes.cpp scaffolding/core-machine.cpp
     scaffolding/tower.cpp scaffolding/tests/nodes.cpp
     scaffolding/syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/format.cpp scaffolding/lex-pattern.cpp scaffolding/lex-pattern-common.cpp scaffolding/syntax-tests.cpp)
@@ -230,6 +231,7 @@ if(TOWER_PARSER_ONLY)
     bytes_append=reference_bytes_append bytes_push=reference_bytes_push
     bytes_assign_text=reference_bytes_assign_text bytes_dispose=reference_bytes_dispose)
   include(cmake/TowerUtilityTests.cmake)
+  include(cmake/TowerParserServiceTests.cmake)
   add_test(NAME tower-parser-tests COMMAND tower-parser-tests)
   add_test(NAME tower-foreach-example COMMAND tower-parser-tests --parse
     "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/examples/foreach.tower")

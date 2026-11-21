@@ -23849,3 +23849,132 @@ parser/completion/diagnostic/import/project checks and the refreshed LLVM/cross
 package use `*-owners.log` in build/import-followup. The 100-test defer run and
 two-generation browser results above refer to the preceding integrated revision;
 the newer ownership paths receive their own affected checks before publication.
+### 2026-11-20 — Agent 3: lexer, entity registry and compiler-storage test ports
+
+Continued the assigned native-test lane after pushing utility milestone 27a50c8.
+Integrated agent1 revision/baseline ownership and agent2 execution ownership via
+rebase/autostash, then coordinator backend migration 781c4d5; all local edits were
+preserved. No todo changes, feature branches, native helper implementations or
+new language features. Native semantic-test ownership transferred explicitly to
+agent2 to unblock CoreMachine retirement.
+
+Implemented and executed:
+
+- `tests/lexer_table.tower` replaces the complete native lexer-table suite. It
+  retains the two allocation sweeps, failure atomicity,150 random integer-symbol
+  NFAs with epsilon cycles/complements and direct closure simulation, and 500
+  random lexer tables compared against the retained native reference. Samples,
+  lengths, UTF-8/NUL/malformed fragments and offset boundaries match the old
+  fixture. A Tower `mt19937.tower` reproduces std::mt19937 draw order, seeds and
+  generation; known first outputs plus the 10,000th default-seed output 4123659995
+  verify the generator. These scratch NFA arrays are test oracles, not a second
+  authoritative compiler graph or subset-construction implementation.
+- `tests/entity_store.tower` runs the former node containment/member replacement,
+  reference counts, component/type identity, finalizer payload and query cleanup
+  checks against an explicitly owned EntityStore. Its test-local Tower finalizer
+  dispatch also preserves entities.cpp's two destruction callbacks. Native and
+  WASI runs pass, including complete buffer/entity/component cleanup.
+- `tests/entity_registry.tower` compiles the original answer=42 fixture through
+  SemanticProgram/frontend_compile_sources and checks that the program root and
+  all queried Foundation payloads inhabit the same entity/component registry.
+  Ownership is explicit: dispose program indexes, then release the root. Native
+  execution passes without CoreProgram/CoreNode adapters.
+- `tests/compiler_storage.tower` ports all native compiler-storage groups:
+  immutable source snapshots, embedded NUL/UTF-8 coordinates and clamping,
+  allocation sweeps, exported Foundation layout offsets, name/list aliasing and
+  failure atomicity, borrowed edges, parser payload defaults and sparse sentinel
+  filling,601-node cloning and budget/failure cleanup, vector ownership moves,
+ 100 resets, immutable retained provenance, reset errors/recovery and copied
+  UTF-8 stream input. C++ RAII operations become explicit retains/releases and
+  the existing Tower vector_move service. Native runner passes.
+
+Build wiring: new isolated TowerParserServiceTests fragment builds lexer/entity
+entries separately, preserving the public bootstrap specialization cap. It also
+links storage/registry cases into the existing parser aggregate; main's entry
+changes are mechanical extern-C declarations/calls. TowerStorageTests provides
+an opt-in focused native entry using existing driver resource/bootstrap APIs,
+production compiler objects and the established allocator instrumentation. It
+adds no native test wrapper. Removed tests/{lexer-table,compiler-storage,entities}.cpp
+only after the replacement entries compiled and ran. Existing shared_entity_tests
+remain in the parser aggregate. The native lexer reference seed remains linked.
+
+Trials/root causes:
+
+- C++ byte escapes are not Tower String tokens; valid Unicode fixtures use UTF-8
+  literals and malformed byte sequences use explicit numeric byte arrays. The
+  initial oversized u32 conversion literal inferred i32; a typed constant retains
+  the exact MT twist value without out-of-range conversion.
+- The first entity-test link needed the existing compiler utilities library
+  because the instrumented host archive also references byte/UTF-8 services.
+- Composing storage tests with driver declarations rejected two declarations of
+  bytes_assign_text (vector(u8)* versus ByteBuffer*). The test uses the existing
+  public ByteBuffer signature and an explicit layout-compatible cast at its
+  vector fixture callsite; production APIs are unchanged.
+- Fresh standalone storage execution first reported a Foundation buffer-count
+  mismatch: the old aggregate's preceding suites had already warmed persistent
+  component-type instance indexes. The entry now explicitly creates/releases
+  one instance of each tested component before recording request baselines.
+- A later session cleanup had 26379 buffers before and 26378 after, with 4662
+  entities both times. This was an unrelated borrowed DriverRequest module cache
+  being changed by resets. The old parser harness had null syntax_modules.
+  The focused runner retains its resource request but unbinds that module cache
+  before import-free session fixtures. All exact allocation checks then pass;
+  no count tolerances or assertions were removed.
+
+Commands/environment: Ubuntu/clang 21/LLVM 19; default published 9bbb2e development
+bootstrap via build-bootstrap.sh. Build cache prefixes are agent-3-parser,
+agent-3-parser-wasi and agent-3-native, with four jobs. Build/run
+`tower-lexer-tests tower-entity-tests` in the parser configuration; both native
+executables and `node scaffolding/tests/host-wasi.mjs <WASI executable>` pass.
+Configure native with TOWER_STORAGE_TESTS=ON; build tower-storage-tests and run
+`ctest --test-dir /home/trevo/.cache/tower/agent-3-native -R tower-storage
+--output-on-failure`:1/1 pass on 781c4d5 (about 0.1s). Storage was compiled separately
+first, then linked/run against the actual production services. No sanitizer or
+broad repository formatter sweep was run.
+
+Remaining actual ABI dependency: browser tw_self_test still calls the native
+nodes.cpp tower_tests, whose native destructor callbacks cannot be represented
+by a Tower function address (a focused `bits(usize, &callback)` probe reports
+Unknown local). The new standalone entity suite owns its own finalizer export;
+linking it into the compiler would collide with production entity_lifecycle.
+Coordinator explicitly instructed retaining nodes.cpp/browser coverage rather
+than adding test-ID dispatch into production or dropping the self-test. This
+milestone therefore does not claim native node self-test retirement. Formatter
+reference coverage and the remaining parser/syntax suites are still native and
+remain the next lane. Combined deployment remains coordinator-owned; source
+pushes are serialized after that publication lock is released.
+
+Publication validation update: upstream ef5c5ff introduced defer and the published
+fb1ab1f9e44dad9e8302472ee2c0d7c54471e4c555ce72c355e29a44aacc4628 bootstrap.
+The earlier 9bbb bootstrap above describes the initial trial only. Rebased while
+preserving both journal histories. The resource runner now defers lexical
+cleanup; immediate releases inside lifetime assertions remain explicit. With the
+new pin, all four standalone bytes/UTF-8/lexer/entity entries rebuilt and passed
+on native Linux and WASI. The storage cases also compile for WASI; their full
+resource runner was executed only natively. A fresh documented build with
+TOWER_BOOTSTRAP_COMPILER unset passed in agent-3-native-successor-ef5c5ff;
+frontend, driver and storage CTests passed 3/3 (15.85 seconds). This is a Linux
+development successor, not a portable release. Agent3 takes the next serialized
+source slot after agent1 ba8aaca; agent2 explicitly owns combined browser
+publication and hosted verification for this batch. The prior a13c7de deployment
+and its newer c1b54ec descendant do not include this second agent3 milestone.
+
+Final source-slot validation: rebased onto agent1 ba8aaca, preserving its session
+input/replacement-owner changes and every concurrent journal entry. Built a new
+empty agent-3-native-successor-ba8aaca cache through build-native.sh with the
+private bootstrap variable unset and four jobs; complete default-pin successor
+passed. Rebuilt focused production services and frontend/driver/storage tests:
+3/3 passed in 16.17 seconds. No sanitizer or broad formatter sweep. Final push
+and the explicitly delegated combined deployment follow this validation.
+
+A further final pull brought external import audit0987aa5, including the semantic
+expression/completion correction and build-native.sh's matching LLVM/Clang
+selection. Preserved all new journal history. Its first clean configuration
+failed because /usr/lib/llvm-19/bin/clang and clang++ were absent; this environment
+previously used Clang21 with LLVM19. Installed missing Ubuntu clang-19 and its
+four dependencies (no existing packages replaced/upgraded) using WSL root apt-get.
+The documented build then passed in empty agent-3-native-successor-0987aa5-clang19
+with Clang19.1.7, LLVM19 and the default published fb1 bootstrap. No private
+bootstrap environment variable. Rebuilt affected services in the focused cache;
+frontend/driver/storage passed 3/3 in16.36seconds. Coordinator has taken ownership
+of the independent regex-test lane; agent3 continues the focused formatter port.

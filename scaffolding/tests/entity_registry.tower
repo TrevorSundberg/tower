@@ -1,0 +1,38 @@
+import tower;
+import .compiler.foundation_types;
+import .compiler.semantic_program_types;
+import storage_api;
+import utility_checks;
+
+extern fn semantic_initialize(program: SemanticProgram*, root: void*, width: u32): void;
+extern fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendSource*, count: usize, modules: void*): void;
+extern fn semantic_program_dispose(program: SemanticProgram*): void;
+extern fn tower_component_get_allocated_count(): usize;
+extern fn tower_component_type_count(type: void*): usize;
+extern fn tower_component_type_at(type: void*, index: usize): void*;
+extern fn tower_component_get_owner(component: void*): void*;
+extern fn tower_component_get_userdata(component: void*): void*;
+
+export fn entity_registry_tests(): void {
+    var kind = core_component_type();
+    var nodes = tower_node_get_allocated_count();
+    var components = tower_component_get_allocated_count();
+    var program: SemanticProgram;
+    semantic_initialize(&program, tower_node_create(), 4);
+    var source: FrontendSource;
+    source.data = "var answer: i32 = 42; print(answer);";
+    source.length = strlen(source.data);
+    frontend_compile_sources(&program, &source, 1, null);
+    utility_check(program.error.length == 0, "Entity registry fixture compiles");
+    var found = false;
+    for (var index: usize = 0; index < tower_component_type_count(kind); ++index) {
+        var component = tower_component_type_at(kind, index);
+        var owner = tower_component_get_owner(component);
+        utility_check(bits(void*, semantic_component_get(owner, kind)) == tower_component_get_userdata(component), "Foundation lookup and entity query share payload");
+        found ||= owner == program.root;
+    }
+    utility_check(found, "Compiled Foundation root inhabits shared entity registry");
+    semantic_program_dispose(&program);
+    tower_node_release_ref(program.root);
+    utility_check(tower_node_get_allocated_count() == nodes && tower_component_get_allocated_count() == components, "Compiled registry fixture releases entities/components");
+}

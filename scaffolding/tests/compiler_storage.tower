@@ -1,0 +1,275 @@
+import tower;
+import .compiler.syntax_types;
+import .compiler.parser_types;
+import .compiler.foundation_types;
+import .compiler.foundation_tags;
+import .library.vector;
+import storage_api;
+import utility_checks;
+
+const StorageParserEof: u32 = 4294967294;
+
+// Releases inside these fixtures are deliberately immediate: subsequent checks
+// observe exact ownership transitions and allocation counts before returning.
+
+fn storage_source_tests(): void {
+    var baseline = tower_test_buffer_count();
+    utility_check(syntax_source_size() == sizeof(SyntaxSource), "Source exported ABI size");
+    var name: u8[13]; copy(&name[0], "source.tower", 13);
+    var input: u8[9];
+    copy(&input[0], "aé\n雪", 7); input[7] = 0; input[8] = 122;
+    var source = syntax_source_create(&name[0], &input[0], 9);
+    utility_check(source is not null && source.references == 1, "Source owned snapshot");
+    name[0] = 88; input[0] = 88;
+    utility_check(strcmp(source.name.data, "source.tower") == 0 && source.text.length == 9 && utility_equal(source.text.data, "aé\n雪", 7)
+        && source.text.data[7] == 0 && source.text.data[8] == 122 && source.text.data[9] == 0, "Source deep copy, embedded NUL and terminator");
+    var columns: usize[10];
+    columns[0] = 1; columns[1] = 2; columns[2] = 3; columns[3] = 3;
+    columns[4] = 1; columns[5] = 2; columns[6] = 2; columns[7] = 2; columns[8] = 3; columns[9] = 4;
+    for (var offset: usize = 0; offset < 10; ++offset) {
+        var line: usize = 0; var column: usize = 0;
+        syntax_source_location(source, offset, &line, &column);
+        utility_check(line == (offset < 4 ? convert(usize, 1) : convert(usize, 2)) && column == columns[offset], "Source UTF-8 byte coordinates");
+    }
+    var line: usize = 0; var column: usize = 0;
+    syntax_source_location(source, ~convert(usize, 0), &line, &column);
+    utility_check(line == 2 && column == 4, "Source coordinate clamp");
+    syntax_source_retain(source);
+    var retained = source;
+    utility_check(source.references == 2, "Source explicit shared reference");
+    syntax_source_release(source); source = null;
+    utility_check(retained.references == 1 && strcmp(retained.name.data, "source.tower") == 0, "Source retained snapshot lifetime");
+    var empty = syntax_source_create("", null, 0);
+    utility_check(empty is not null && empty.name.length == 0 && empty.text.length == 0 && empty.text.data[0] == 0, "Source empty snapshot");
+    syntax_source_location(empty, ~convert(usize, 0), &line, &column);
+    utility_check(line == 1 && column == 1, "Source empty coordinates");
+    utility_check(syntax_source_create("overflow", null, ~convert(usize, 0)) is null, "Source overflow rejection");
+    syntax_source_release(empty); syntax_source_release(retained);
+    utility_check(tower_test_buffer_count() == baseline, "Source snapshot cleanup");
+    var success = false;
+    for (var failure: usize = 0; failure < 16 && !success; ++failure) {
+        tower_test_buffer_fail_after(failure);
+        source = syntax_source_create("failure.tower", "snapshot", 8);
+        tower_test_buffer_fail_after(~convert(usize, 0));
+        success = source is not null;
+        if success { utility_check(strcmp(source.name.data, "failure.tower") == 0 && strcmp(source.text.data, "snapshot") == 0, "Source allocation sweep snapshot"); }
+        syntax_source_release(source);
+        utility_check(tower_test_buffer_count() == baseline, "Source allocation sweep cleanup");
+    }
+    utility_check(success, "Source allocation sweep reaches success");
+}
+
+fn storage_foundation_layout(): void {
+    var value: FoundationNode;
+    var base = bits(usize, &value);
+    var offsets: usize[29];
+    offsets[0] = bits(usize, &value.kind); offsets[1] = bits(usize, &value.type); offsets[2] = bits(usize, &value.op); offsets[3] = bits(usize, &value.name);
+    offsets[4] = bits(usize, &value.binding); offsets[5] = bits(usize, &value.left); offsets[6] = bits(usize, &value.right); offsets[7] = bits(usize, &value.value);
+    offsets[8] = bits(usize, &value.target); offsets[9] = bits(usize, &value.body); offsets[10] = bits(usize, &value.otherwise); offsets[11] = bits(usize, &value.items);
+    offsets[12] = bits(usize, &value.locals); offsets[13] = bits(usize, &value.parameters); offsets[14] = bits(usize, &value.element); offsets[15] = bits(usize, &value.size);
+    offsets[16] = bits(usize, &value.alignment); offsets[17] = bits(usize, &value.length); offsets[18] = bits(usize, &value.byte_offset); offsets[19] = bits(usize, &value.frame_size);
+    offsets[20] = bits(usize, &value.index); offsets[21] = bits(usize, &value.start); offsets[22] = bits(usize, &value.end); offsets[23] = bits(usize, &value.bits);
+    offsets[24] = bits(usize, &value.constant); offsets[25] = bits(usize, &value.indirect); offsets[26] = bits(usize, &value.external); offsets[27] = bits(usize, &value.exported); offsets[28] = bits(usize, &value.global);
+    utility_check(foundation_node_size() == sizeof(FoundationNode), "Foundation exported ABI size");
+    for (var index: usize = 0; index < 29; ++index) { utility_check(foundation_node_offset(index) == offsets[index] - base, "Foundation exported field offset"); }
+}
+
+fn storage_foundation_tests(): void {
+    var kind = core_component_type();
+    var baseline = tower_test_buffer_count();
+    storage_foundation_layout();
+    var owner = tower_node_create(); var child = tower_node_create();
+    var value = semantic_component_attach(owner, kind, KFunction());
+    utility_check(value.type.pointer_bytes == 4 && value.element.pointer_bytes == 4 && value.alignment == 1, "Foundation initial target layout");
+    utility_check(value.name.length == 0 && value.items.length == 0 && value.locals.length == 0 && value.parameters.length == 0, "Foundation initial owned storage");
+    utility_check(value.binding is null && value.body is null && value.bits == 0 && !value.external && !value.global, "Foundation initial fields");
+    var text: u8[5]; text[0] = 97; text[1] = 0; text[2] = 98; text[3] = 99; text[4] = 100;
+    utility_check(storage_assign(&value.name, &text[0], 4) && foundation_name_append(&value.name, 100), "Foundation embedded NUL name");
+    utility_check(value.name.length == 5 && utility_equal(value.name.data, &text[0], 5) && value.name.data[5] == 0, "Foundation name terminator");
+    var other = semantic_component_attach(child, kind, KParameter());
+    utility_check(storage_assign(&other.name, value.name.data, value.name.length), "Foundation independent name copy");
+    utility_check(other.name.length == value.name.length && utility_equal(other.name.data, value.name.data, value.name.length) && other.name.data != value.name.data, "Foundation name deep-copy identity");
+    utility_check(storage_assign(&value.name, value.name.data + 2, value.name.length - 2), "Foundation name suffix alias");
+    utility_check(strcmp(value.name.data, "bcd") == 0 && utility_equal(other.name.data, &text[0], 5), "Foundation name copy survives alias assignment");
+    utility_check(storage_assign(&value.name, value.name.data, value.name.length) && strcmp(value.name.data, "bcd") == 0, "Foundation name self-assignment");
+    while value.name.length + 1 < value.name.capacity { utility_check(foundation_name_append(&value.name, 120), "Foundation fill name capacity"); }
+    var saved: vector(u8); fill(&saved, 0, sizeof(vector(u8)));
+    utility_check(storage_assign(&saved, value.name.data, value.name.length), "Foundation snapshot name");
+    var name_data = value.name.data; var name_capacity = value.name.capacity;
+    tower_test_buffer_fail_next();
+    utility_check(!foundation_name_append(&value.name, 121), "Foundation name allocation failure");
+    utility_check(value.name.data == name_data && value.name.capacity == name_capacity && value.name.length == saved.length && utility_equal(value.name.data, saved.data, saved.length), "Foundation name failure atomicity");
+    for (var index: usize = 0; index < 8; ++index) { utility_check(foundation_nodes_push(&value.items, (index & 1) != 0 ? owner : child), "Foundation push borrowed node"); }
+    var data = value.items.data; var capacity = value.items.capacity;
+    tower_test_buffer_fail_next();
+    utility_check(!foundation_nodes_push(&value.items, owner), "Foundation node list growth failure");
+    utility_check(value.items.data == data && value.items.length == 8 && value.items.capacity == capacity, "Foundation node list failure atomicity");
+    for (var index: usize = 8; index < 16; ++index) { utility_check(foundation_nodes_push(&value.items, (index & 1) != 0 ? owner : child), "Foundation node list grow"); }
+    var oracle: void*[21];
+    copy(&oracle[0], value.items.data, 16 * sizeof(void*));
+    tower_test_buffer_fail_next();
+    utility_check(!foundation_nodes_prepend(&value.items, value.items.data + 2, 5), "Foundation prepend allocation failure");
+    utility_check(value.items.length == 16 && utility_equal(bits(u8*, value.items.data), bits(u8*, &oracle[0]), 16 * sizeof(void*)), "Foundation prepend failure preserves bytes");
+    utility_check(foundation_nodes_prepend(&value.items, value.items.data + 2, 5), "Foundation prepend self-alias");
+    for (var index: usize = 0; index < 21; ++index) { utility_check(value.items.data[index] == oracle[index < 5 ? index + 2 : index - 5], "Foundation prepend exact order"); }
+    copy(&oracle[0], value.items.data, 21 * sizeof(void*));
+    utility_check(foundation_nodes_erase(&value.items, 1, 3) && value.items.length == 18, "Foundation erase borrowed edges");
+    for (var index: usize = 0; index < 18; ++index) { utility_check(value.items.data[index] == oracle[index == 0 ? index : index + 3], "Foundation erase exact order"); }
+    utility_check(!foundation_nodes_erase(&value.items, ~convert(usize, 0), 0) && !foundation_nodes_erase(&value.items, 1, ~convert(usize, 0)), "Foundation erase overflow");
+    utility_check(!foundation_nodes_prepend(&value.items, value.items.data + value.items.length - 1, 2) && !foundation_nodes_prepend(&value.items, value.items.data, ~convert(usize, 0)), "Foundation prepend alias bounds/overflow");
+    utility_check(foundation_nodes_push(&value.locals, child) && foundation_nodes_push(&value.parameters, child), "Foundation borrowed locals/parameters");
+    value.binding = child;
+    utility_check(semantic_component_attach(owner, kind, KBlock()) == value && value.kind == KBlock(), "Foundation reattach preserves payload identity");
+    utility_check(value.binding == child && value.locals.length == 1 && value.name.length == saved.length && utility_equal(value.name.data, saved.data, saved.length), "Foundation reattach preserves data");
+    utility_check(tower_node_remove_component(owner, kind), "Foundation remove owned payload");
+    utility_check(semantic_component_get(child, kind) == other && other.name.length == 5 && utility_equal(other.name.data, &text[0], 5), "Foundation removal does not release borrowed edges");
+    var fresh = semantic_component_attach(owner, kind, KOperand());
+    utility_check(fresh.name.length == 0 && fresh.items.length == 0 && fresh.locals.length == 0 && fresh.parameters.length == 0, "Foundation replacement starts empty");
+    utility_check(foundation_nodes_prepend(&fresh.items, null, 0) && foundation_nodes_erase(&fresh.items, 0, 0), "Foundation empty list operations");
+    vector_dispose(u8, &saved); tower_node_release_ref(owner); tower_node_release_ref(child);
+    utility_check(tower_test_buffer_count() == baseline, "Foundation storage cleanup");
+}
+
+fn storage_parser_tests(): void {
+    var baseline = tower_test_buffer_count();
+    var owner = tower_node_create();
+    var rule = parser_rule_create(owner);
+    utility_check(rule.name.length == 0 && !rule.generated, "Parser rule initial fields");
+    utility_check(node_rule_set_name(rule, "prefix-name") && node_rule_set_name(rule, rule.name.data + 7), "Parser rule alias name");
+    utility_check(strcmp(rule.name.data, "name") == 0 && parser_rule_create(owner) == rule && strcmp(rule.name.data, "name") == 0, "Parser rule stable identity");
+    var large: u8[4097]; fill(&large[0], 114, 4096); large[4096] = 0;
+    tower_test_buffer_fail_next();
+    utility_check(!node_rule_set_name(rule, &large[0]) && strcmp(rule.name.data, "name") == 0, "Parser rule name failure atomicity");
+    utility_check(node_rule_set_name(rule, "") && rule.name.data[0] == 0, "Parser empty name");
+    var reference = parser_reference_create(owner);
+    utility_check(reference.name.length == 0 && reference.capture.length == 0, "Parser reference defaults");
+    utility_check(node_reference_set_name(reference, "Rule") && node_reference_set_capture(reference, "argument") && strcmp(reference.capture.data, "argument") == 0, "Parser reference/capture storage");
+    var range = parser_range_create(owner);
+    utility_check(range.start == 0 && range.end == 0, "Parser range defaults");
+    var matched = parser_match_create(owner);
+    utility_check(matched.id == StorageParserEof() && matched.rule == ~convert(usize, 0) && matched.start == 0 && matched.length == 0 && matched.label.length == 0, "Parser match defaults");
+    utility_check(node_match_set_label(matched, "retained"), "Parser match label");
+    fill(&large[0], 109, 4096);
+    tower_test_buffer_fail_next();
+    utility_check(!node_match_set_label(matched, &large[0]) && strcmp(matched.label.data, "retained") == 0, "Parser label failure atomicity");
+    var string = parser_string_create(owner);
+    utility_check(string.ids.length == 0, "Parser string defaults");
+    parser_string_append_utf8_null_terminated(string, "Aé🏰");
+    utility_check(string.ids.length == 3 && string.ids.data[0] == 65 && string.ids.data[1] == 233 && string.ids.data[2] == 127984, "Parser UTF-8 scalar storage");
+    utility_check(node_string_resize(string, 1) && node_string_set(string, 4, 90), "Parser sparse string resize");
+    utility_check(string.ids.length == 5 && string.ids.data[4] == 90, "Parser sparse string tail");
+    for (var index: usize = 1; index < 4; ++index) { utility_check(string.ids.data[index] == StorageParserEof(), "Parser string gap sentinel"); }
+    utility_check(!node_string_resize(string, ~convert(usize, 0)) && !node_string_set(string, ~convert(usize, 0), 88), "Parser string overflow");
+    tower_test_buffer_fail_next();
+    utility_check(!node_string_resize(string, 4096) && string.ids.length == 5 && string.ids.data[4] == 90, "Parser string allocation atomicity");
+    utility_check(tower_node_remove_component(owner, parser_string_get_type()), "Parser string component removal");
+    string = parser_string_create(owner);
+    utility_check(string.ids.length == 0, "Parser string removal releases owned vector");
+    tower_node_release_ref(owner);
+    utility_check(tower_test_buffer_count() == baseline, "Parser payload storage cleanup");
+}
+
+fn storage_clone_tests(): void {
+    var baseline = tower_test_buffer_count();
+    var root = tower_node_create(); var at = root;
+    for (var index: usize = 0; index < 600; ++index) {
+        var child = tower_node_create(); var matched = parser_match_create(child);
+        matched.start = index; matched.length = 1;
+        utility_check(node_match_set_label(matched, "deep"), "Clone source label");
+        tower_node_attach_member(child, at, "next"); tower_node_release_ref(child); at = child;
+    }
+    var copied: usize = 0;
+    var clone = compiler_clone_tree(root, 601, &copied);
+    utility_check(clone is not null && copied == 601, "Clone deep tree node count");
+    at = clone;
+    for (var index: usize = 0; index < 600; ++index) {
+        at = tower_node_get_child_member(at, "next"); utility_check(at is not null, "Clone retains named path");
+        var matched = bits(ParserMatchData*, tower_node_get_component_userdata(at, parser_match_get_type()));
+        utility_check(matched is not null && matched.start == index && strcmp(matched.label.data, "deep") == 0, "Clone retains match provenance");
+    }
+    var live = tower_node_get_allocated_count();
+    utility_check(compiler_clone_tree(root, 300, &copied) is null && copied == 300 && tower_node_get_allocated_count() == live, "Clone budget failure cleanup");
+    tower_test_buffer_fail_next();
+    utility_check(compiler_clone_tree(root, 601, &copied) is null && copied == 0 && tower_node_get_allocated_count() == live, "Clone allocation failure cleanup");
+    tower_node_release_ref(clone); tower_node_release_ref(root);
+    utility_check(tower_test_buffer_count() == baseline, "Clone complete cleanup");
+}
+
+fn storage_move_tests(): void {
+    var baseline = tower_test_buffer_count();
+    var text: vector(u8); var moved: vector(u8); var other: vector(u8);
+    fill(&text, 0, sizeof(vector(u8))); fill(&moved, 0, sizeof(vector(u8))); fill(&other, 0, sizeof(vector(u8)));
+    utility_check(storage_assign(&text, "original", 8), "Text move fixture");
+    var original = text.data;
+    var large: u8[100]; fill(&large[0], 120, 100);
+    tower_test_buffer_fail_next();
+    utility_check(!storage_assign(&text, &large[0], 100) && text.data == original && strcmp(text.data, "original") == 0, "Text assignment failure atomicity");
+    vector_move(u8, &moved, &text);
+    utility_check(text.length == 0 && text.data is null && moved.data == original && strcmp(moved.data, "original") == 0, "Text ownership transfer");
+    utility_check(storage_assign(&other, "released", 8), "Text move occupied destination");
+    vector_move(u8, &other, &moved);
+    utility_check(moved.length == 0 && moved.data is null && other.data == original && strcmp(other.data, "original") == 0, "Text move releases previous destination");
+    vector_dispose(u8, &text); vector_dispose(u8, &moved); vector_dispose(u8, &other);
+    utility_check(tower_test_buffer_count() == baseline, "Text move cleanup");
+}
+
+fn storage_session_tests(): void {
+    var baseline = tower_test_buffer_count();
+    var source: u8[20]; copy(&source[0], "parse Keep = 'old';", 20);
+    var allocations = tower_test_buffer_allocations();
+    var session = syntax_create(&source[0], null);
+    utility_check(tower_test_buffer_allocations() > allocations, "Session owns source storage");
+    fill(&source[0], 120, 19);
+    var root = syntax_next(session); utility_check(root is not null, "Session source snapshot parses");
+    var semantic = syntax_get(tower_node_get_child(root, 0));
+    utility_check(semantic is not null && semantic.source is not null, "Session source provenance entity");
+    var retained = semantic.source; syntax_source_retain(retained);
+    utility_check(strcmp(retained.text.data, "parse Keep = 'old';") == 0, "Session source snapshot immutable");
+    var original = retained.text.data;
+    for (var index: usize = 0; index < 100; ++index) {
+        syntax_reset(session, "print(42);", null);
+        var item = syntax_next(session); utility_check(item is not null, "Session reset parses");
+        utility_check(syntax_next(session) is null && syntax_get_error(session)[0] == 0, "Session reset reaches EOF");
+        utility_check(retained.text.data == original && strcmp(retained.text.data, "parse Keep = 'old';") == 0, "Session reset preserves retained provenance");
+        tower_node_release_ref(item);
+    }
+    tower_test_buffer_fail_next(); syntax_reset(session, "print(99);", null);
+    utility_check(strcmp(syntax_get_error(session), "Unable to allocate source text") == 0 && syntax_next(session) is null, "Session reset allocation diagnostic");
+    syntax_reset(session, "print(7);", null);
+    var item = syntax_next(session); utility_check(item is not null, "Session reset recovers");
+    syntax_destroy(session);
+    utility_check(strcmp(retained.text.data, "parse Keep = 'old';") == 0, "Session destruction preserves retained source");
+    tower_node_release_ref(item); syntax_source_release(retained); tower_node_release_ref(root);
+    utility_check(tower_test_buffer_count() == baseline, "Session source retention cleanup");
+}
+
+fn storage_stream_tests(): void {
+    var baseline = tower_test_buffer_count();
+    var source: u8[500]; copy(&source[0], "aé", 3);
+    var stream = parser_stream_utf8_create(&source[0], &source[3]);
+    fill(&source[0], 120, 500);
+    var id: u32; var start: usize; var length: usize;
+    parser_stream_read(stream, &id, &start, &length);
+    utility_check(id == 97 && start == 0 && length == 1, "UTF-8 stream owns ASCII source");
+    parser_stream_read(stream, &id, &start, &length);
+    utility_check(id == 233 && start == 1 && length == 2, "UTF-8 stream owns multibyte source");
+    parser_stream_destroy(stream);
+    tower_test_buffer_fail_next(); stream = parser_stream_utf8_null_terminated_create("a");
+    parser_stream_read(stream, &id, &start, &length);
+    utility_check(id == StorageParserEof() && strcmp(parser_stream_get_error(stream), "Unable to allocate UTF-8 stream source") == 0, "UTF-8 stream allocation diagnostic");
+    parser_stream_destroy(stream);
+    utility_check(tower_test_buffer_count() == baseline, "UTF-8 stream cleanup");
+}
+
+export fn compiler_storage_tests(): void {
+    // The aggregate used to warm these persistent host type indexes in earlier
+    // suites. Initialize them explicitly before measuring request allocations.
+    var warm = tower_node_create();
+    semantic_component_attach(warm, core_component_type(), KOperand());
+    parser_rule_create(warm); parser_reference_create(warm); parser_range_create(warm);
+    parser_match_create(warm); parser_string_create(warm);
+    tower_node_release_ref(warm);
+    storage_source_tests(); storage_foundation_tests(); storage_parser_tests();
+    storage_clone_tests(); storage_move_tests(); storage_session_tests(); storage_stream_tests();
+    puts("Tower compiler storage: snapshots, payloads, aliases, deep clones and failure cleanup passed.");
+}

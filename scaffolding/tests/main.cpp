@@ -6,9 +6,9 @@
 void semantic_port_tests();
 extern "C" int host_runtime_tests();
 void formatter_tests();
-void compiler_storage_tests();
-void entity_store_tests();
-void lexer_table_tests();
+extern "C" void compiler_storage_tests();
+extern "C" void shared_entity_tests();
+extern "C" void entity_registry_tests();
 void regex_tests();
 void syntax_lexer_tests();
 void syntax_nodes_tests();
@@ -84,7 +84,6 @@ int main(int argc, char** argv) {
   semantic_port_tests();
   formatter_tests();
   compiler_storage_tests();
-  lexer_table_tests();
   regex_tests();
   syntax_lexer_tests();
   syntax_nodes_tests();
@@ -101,6 +100,7 @@ int main(int argc, char** argv) {
   if (expansion_failure) fprintf(stderr, "Tower replacement expansion test failed: %zu\n", expansion_failure);
   assert(!expansion_failure);
   lr_analysis_tests();
-  entity_store_tests();
+  shared_entity_tests();
+  entity_registry_tests();
   puts("Tower and parser tests passed.");
 }
