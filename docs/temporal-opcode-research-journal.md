@@ -24164,3 +24164,58 @@ deployment integration. The source is validated; combined reactor packaging,
 browser successor/integration checks and hosted publication follow this record.
 The final CoreProgram/CoreNode reference views still await Agent 3's focused
 formatter-oracle retirement; no completed removal of those files is claimed.
+
+### 2026-11-20: Next simplification audit after for and defer
+
+User requested an audit and recommendation for the next substantial reduction in
+old Tower code. Pulled main to 0987aa5 before inspecting all tracked project-owned
+.tower sources, tower.tower, the language plan, prior loop/cleanup audits and the
+relevant todo notes. No todo, compiler, grammar or runtime edit is part of this
+audit. New feature implementation remains entirely Tower when undertaken.
+
+Added read-only docs/research/audit_tower_simplification.py and the decision record
+docs/research/tower-simplification-audit.md. Reproduce with:
+`python3 docs/research/audit_tower_simplification.py --revision 0987aa5 --output audit.json`.
+The inventory covers 397 files / 77,128 lines; 379 directly import Tower. Historical
+and working-tree totals agree. Eight focused scanner sanity checks pass, covering
+comments/strings, shadowed names, category overlap, Foundation-only input and
+single/multiple indexed storage. Detailed local reports are
+build/tower-simplification-{audit,baseline}.json. Counts are lexical opportunities,
+not semantic rewrite proofs, guaranteed deleted lines or runtime speed estimates.
+
+The dominant opportunity is unfinished adoption of existing expressions: 2,977
+single-use locals feeding an immediate if and 1,206 single-use generated locals
+(1,183 with an adjacent use). Their union is 3,625 distinct candidate bindings,
+including 3,345 in production code. Additional overlapping signals are 143 guarded
+boolean assignments and 41 empty success branches. The first proposed batches are
+semantic_values/types/statements/support, completion and frontend_modules. Preserve
+evaluation order, unconditional effects, literal type constraints, address-taking
+and meaningful names; adjacent use alone does not make inlining safe. The report
+shows how sem_header's shape-check ladder can use existing lazy expressions.
+
+Recommend generic call-argument inference as the next language feature after that
+adoption pass: 862 vector/stack/queue calls repeat type arguments already constrained
+by their operands. Most remain one line, so this is clarity/type-resolution work,
+not a claim of 862 removed lines. It fits the roadmap's exact-call/type-value goals
+and prepares collection protocols. Deduce only agreeing exact constraints, retain
+explicit arguments, use shared specialization provenance, and do not invert arbitrary
+type constructors or add implicit conversions/overload rankings. Reuse existing
+Tower call grammar and Foundation calls; refresh the bootstrap before adopting the
+new checking behavior. The published fb1ab1f9 compiler runs the explicit vector
+probe (true) but rejects its omitted-type version with the template-arity diagnostic
+(build/audit-generic-{explicit,inferred}.log), confirming this is not already done.
+
+Borrowed foreach follows that protocol work: 400 counted loops index storage; 316
+use the counter only for indexing, 274 use one syntactic storage base, and only 58
+also have a fresh zero-based header and matching data/length shape. None of these
+counts proves absence of mutation/aliasing. The previous for migration already
+removed much of their line overhead. Preserve queue draining, growing worklists,
+multiple-array traversal and externally used counters. The notes near todo 1243
+favor static zero-allocation adaptation; near 4581 they explicitly raise vector
+invalidation. Define borrowed elements, source-once evaluation, bounds and cleanup
+through ordinary Tower operations instead of hardcoding container names.
+
+Also counted 190 field-assignment runs (766 assignments) and 280 zero-fill/sizeof
+calls. These include resets, output records and raw memory, so initializer sugar
+and result/option propagation require the planned construction/ownership contracts;
+they are not justified as automatic copy/drop shortcuts by this inventory.
