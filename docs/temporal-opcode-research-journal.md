@@ -27862,3 +27862,27 @@ resolution in workers, with explicit parameter writes and stable graph admission
 Expression-based decltype/inference, structural type/generic construction and
 editor observations still retain their coordinator paths. No C++ was added;
 `todo.txt` remains at 96a9e58964d7f01e4a97819f259448db81ef5e40.
+
+Rebased ordinary declaration workers onto upstream 178a0fa, including the Tower
+validation/live-syntax/parser test ports, deleted native adapters, and workbench
+worker-host/live-fixture source mappings. Only the append-only journal conflicted;
+removed its three markers and preserved both histories (68 added, zero deleted
+lines relative to upstream). AGENTS.md was unchanged. No source-reading build was
+running during the rebase.
+
+Fresh empty `compiletime-declaration-merged-clean`, documented bootstrap and no
+private override: compiler 55/55, acceptance targets 81/81, native 8/8 in47.66s
+and backend API pass. Shared capacity/compile-time/inference tests pass30/30 in
+81.92s. Matching backend package and browser checks are finishing; earlier tests
+are not substituted for the merged result.
+
+Preparation release7010a92 hosted checks finished successfully: all77 exact
+asset hashes, desktop/mobile backends, grammar, completions, persistence, native
+downloads and Linux defaults. Evidence evaluation-prepare-hosted-deployment.log.
+
+Merged backend/package validation completes: 48/48 portable/LLVM tests in29.71s,
+including the newly Tower-owned parser/syntax self-test aggregate. The merged
+native successor also reproduces its semantic object exactly. Release bundle and
+two edited browser generations have started from the frozen9ac5d80 compiler
+source; source bytes will remain associated with that commit even while the next
+staged declaration implementation proceeds.
