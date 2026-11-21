@@ -30966,3 +30966,41 @@ complete desktop/mobile workflows and the actual Linux default-target check
 are documentation/contributor guidance; git diff --check passes and todo.txt
 retains blob 96a9e58964d7f01e4a97819f259448db81ef5e40. Publish these documentation
 changes by preserving the exact verified assets and buildSourceCommit 6fcad39.
+
+### 2026-11-21 - Next language feature audit and Tower-only tooling policy
+
+Pulled/rebased from abaa0f5 to 6fcad397 before inspection, including the new ECS
+ownership, worker budgets and semantic continuations. Existing inventory command
+`python3 docs/research/audit_tower_simplification.py --output build/next-language-20261121.json`
+reports 572 files / 554 direct Tower importers. Production has 227 field-write
+runs / 972 assignments in 102 files. A supplemental lexical scan finds 39 runs /
+189 assignments immediately after a typed local declaration in 27 files, 1,087
+simple false/null return guards in 162 files, and 146 sizeof copy calls. These
+are opportunity signals, not semantic rewrite proofs. Reviewed diagnostic/emission
+input construction, inference records, CLI defaults, body save/restore and worker
+context copies; the latter examples make ownership and partial updates explicit.
+The recommendation in docs/research/tower-simplification-audit.md is named-field
+in-place initialization next, aggregate value/return contracts after that, and
+tagged result/option propagation once ownership and returns support it. No feature
+or source migration was implemented by this assessment; todo.txt remains untouched.
+
+The user challenged continued use of Python and explicitly required all new code,
+including tests, experiments, samples, drivers and tooling, to be Tower. Confirmed
+that Tower already supports compiled audit programs: driver_files.tower implements
+file reads/writes, library/bytes.tower and vector.tower provide storage, and the
+compiler's text and parser services are Tower. Native tools currently use explicit
+host bindings; this is not a claim that unrestricted file I/O is available in
+strict compile-time or portable interpreter execution. Python was a convenience,
+not necessary language capability. Removed this turn's ignored supplemental Python
+helper and added the repository-wide AGENTS.md rule: no new C++/Python, no temporary
+script exemption, and only necessary browser/UI JavaScript glue. Prefer moving
+reusable logic and tests to Tower when working in those areas. Preserve the normal
+bootstrap-first publication requirement for build tools too. Existing Python tools
+have not been broadly ported by this policy/documentation change.
+
+Rebased the documentation onto 43d7c12, retaining its focused-validation guidance
+and both journal entries. git diff --check passes; compiler/build/bootstrap and
+todo.txt inputs are unchanged from 6fcad39. Verified all 77 existing deployment
+asset hashes. This documentation publication preserves buildSourceCommit 6fcad39
+and those runtime bytes; validation is limited to the documentation diff and
+deployment manifest/assets, with no compiler rebuild or repeated browser suite.

@@ -1,5 +1,55 @@
 # Next simplification milestone
 
+## After default initialization (2026-11-21)
+
+Recommendation: **named-field struct initialization**, followed by aggregate
+value/return semantics and then `result(T, E)` / `option(T)` propagation. This
+extends the implemented in-place `default` initialization without making implicit
+owning copies part of the first slice.
+
+The inventory at `6fcad397a10797b879011755a838e8a9c916779f` covers 572 Tower files,
+554 importing Tower directly. Production compiler/backend/host/library code has
+227 consecutive field-assignment runs containing 972 assignments across 102
+files. Of these, 39 runs / 189 assignments in 27 files immediately follow a typed
+local declaration, optionally initialized with `default`. These are lexical
+opportunities, not verified rewrite counts or promised line savings. There are
+300 runs / 1,271 assignments when examples and tests are included.
+
+Concrete construction sites include `SyntaxDiagnosticInput` in
+`compiler/syntax_session_diagnostic.tower`, `SyntaxEmissionInput` in
+`compiler/syntax_version_build.tower`, and `SemanticCallInference` in
+`compiler/semantic_call_inference.tower`. Named fields would express each complete
+construction in one operation and diagnose missing, repeated or unknown fields.
+Allow omitted zero fields only through an explicit default policy. Preserve
+written evaluation order, exact field types, one destination evaluation and
+target layout; initially lower directly to existing Foundation storage and field
+writes on the shared ECS entities. Query dependencies, worker-local scratch and
+coordinator publication still follow the current compiler contracts.
+
+Do not blindly convert the larger runs: `sem_body_save/restore` transfer borrowed
+scope state and vector ownership, and `semantic_lowering_kernel` deliberately
+copies a context then replaces worker-local scratch. CLI option defaults are
+another initialization protocol, rather than evidence that arbitrary replacement
+of live records is safe. Readable initializers may keep one line per field; the
+benefit is less repeated destination/setup code and checked completeness, not
+necessarily hundreds of removed physical lines.
+
+Error propagation has a larger eventual reach: the supplemental lexical count
+finds 1,087 single-return false/null guards in 162 production files, and 146 copy
+calls containing sizeof. Those counts include legitimate absence, predicates,
+partial storage and explicit ownership transfers. They are not counts of valid
+`try` replacements or value copies. Stage 6 of the language plan correctly puts
+aggregate construction/returns and move/drop rules before tagged result values
+and propagation syntax. Method-call sugar would shorten spelling but would not
+remove these construction and failure protocols.
+
+The counts above were collected with the existing Python inventory and a
+disposable supplemental scanner before the user's Tower-only tooling direction.
+The supplemental scanner was removed. Future audit logic belongs in Tower;
+existing `.tower` file I/O, byte buffers, vectors and compiler services already
+support native audit tools. Missing standard-library convenience and a uniform
+small-tool runner are tooling work, not a reason to add new Python/C++ logic.
+
 ## Follow-up after iteration (2026-11-20)
 
 The new inventory at `c91bc8c` covers 538 Tower files (520 direct Tower importers).

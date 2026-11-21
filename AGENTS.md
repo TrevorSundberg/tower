@@ -31,6 +31,25 @@ Do NOT modify todo.txt
   Documentation-only deployment reuses verified runtime assets and preserves
   their build-source identity; do not rebuild identical compiler binaries.
 
+## Implementation language
+
+- Write all new project-owned code in Tower (`.tower`). This includes compiler
+  and runtime code, tests, experiments, samples, drivers, benchmarks, audits,
+  migration/generation tools and validation helpers. Temporary, ignored and
+  one-off scripts are not exceptions to this rule.
+- Do not introduce new C++ or Python code. Use Tower for new tooling as well as
+  language features; convenience or familiarity with another language is not a
+  reason to add another implementation language.
+- Keep JavaScript minimal and limited to necessary browser/UI integration and
+  transport. Put reusable logic, compiler behavior, test cases and assertions in
+  Tower wherever possible. Do not add JavaScript implementations of logic that
+  Tower can own. When working in an area, move existing JavaScript logic into
+  Tower where practical, retaining only the required browser/UI boundary.
+- Use existing build and execution entry points for Tower tools. Extend shared
+  Tower libraries when a helper needs missing functionality, preserving explicit
+  host/target and capability contracts. Publish a compatible bootstrap before
+  adopting new syntax in tools required by the build, just as for compiler code.
+
 ## Module names and imports
 
 - Project-owned Tower module, library, file and directory names use identifiers
