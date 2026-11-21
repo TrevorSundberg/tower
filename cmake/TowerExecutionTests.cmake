@@ -13,7 +13,7 @@ function(tower_execution_tests)
   set(bound "${CMAKE_CURRENT_BINARY_DIR}/tower-execution-tests.ll")
   set(object "${CMAKE_CURRENT_BINARY_DIR}/tower-execution-tests.o")
   file(GENERATE OUTPUT "${input}" CONTENT "${source}import tests.execution_main;\n")
-  add_custom_command(OUTPUT "${object}"
+  add_custom_command(OUTPUT "${ir}" "${bound}" "${object}"
     COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${input}" --library --target "${triple}"
       --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
       --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"

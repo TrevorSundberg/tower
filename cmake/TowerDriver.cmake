@@ -49,7 +49,7 @@ function(tower_driver_integrate)
   get_property(runtime_bind GLOBAL PROPERTY TOWER_RUNTIME_BIND)
   set(ir "${CMAKE_CURRENT_BINARY_DIR}/tower-driver-unbound.ll")
   set(bound "${CMAKE_CURRENT_BINARY_DIR}/tower-driver.ll")
-  add_custom_command(OUTPUT "${object}"
+  add_custom_command(OUTPUT "${ir}" "${bound}" "${object}"
     COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${input}" --library --target "${triple}"
       --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
       --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"

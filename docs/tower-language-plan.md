@@ -183,9 +183,12 @@ if/else branches and Foundation loop bodies. The body query suspends on each
 construction receipt; a structural if condition prepares only its header before
 its branches resume. Lexical/control cursors, defer state and scratch ownership
 survive on the existing ECS work component, and source-window diagnostics remain
-independent of worker count. Surface while/for/foreach/match/defer handlers,
-individual structural expressions, type interning and within-world editor
-observation still need further continuation work. Explicit-world completion/inspection services now run
+independent of worker count. Surface while/for/foreach bodies, ordinary match
+arms/fallbacks and deferred blocks use these continuations too. Structural loop
+headers and foreach protocols prepare once before body workers resume; match
+patterns remain ordered with their bodies. Individual structural expressions,
+type interning and within-world editor observation still need further continuation
+work. Explicit-world completion/inspection services now run
 as independent native unit jobs with the same ECS recipes, joins and budget
 policy. This is not yet a fully parallel semantic pipeline.
 
@@ -684,8 +687,11 @@ containers. Benchmark representative compiler workloads before migrating them.
   requiring generic/type construction now use resumable statement runs across
   nested lexical blocks, if/else branches and Foundation loops, suspending on
   source-keyed preparation receipts and resuming on workers. Structural if headers
-  prepare separately from their branches. Surface while/for/foreach/match/defer,
-  individual structural expressions and editor observation still need continuations.
+  prepare separately from their branches. Surface while/for/foreach bodies,
+  ordinary match arms/fallbacks and deferred blocks now share these continuations.
+  Generated loop/iteration/match blocks receive leases before resumed mutation.
+  Foreach protocol setup, structural headers, extended structural match patterns,
+  individual structural expressions and editor observation retain coordinator work.
   Already-instantiated generic bodies now use body workers when their immutable
   bindings and existing layouts are ready;
   conservative admission retains first consumers of pending layouts on the
@@ -812,7 +818,7 @@ Current migration audit (after the isolated compiler-worker milestone):
 | --- | --- | --- |
 | Entities | Stable payloads, dense per-type pointer indexes, explicit worlds, pinned views, exclusive attachment leases and staged canonical creation | Complete host-world isolation and non-racing reference ownership |
 | Syntax/grammar | Shared entities; world-bound module/session/baseline/revision/cache ownership; worker-owned FIRST/nullable frontiers, LR(0) transitions, LR(1) kernel closures, dependency-link construction, wide lookahead frontiers, LALR actions and runtime action/direct-index/goto rows | Native CLI project recipes, runtime sequence specialization and source/effect order; link/seed merging and row interning publish after joins |
-| Semantics/layout | Shared query graph; parallel dependency discovery, layouts, eligible ordinary/instantiated-generic body checking and expression lowering | Surface loop/match/defer and expression/type-construction continuations, precise body layout dependencies, within-world editor observation and structural publication |
+| Semantics/layout | Shared query graph; parallel dependency discovery, layouts, eligible ordinary/instantiated-generic bodies with loop/match/defer continuations, and expression lowering | Structural headers/protocols, expression/type-construction continuations, precise body layout dependencies, within-world editor observation and structural publication |
 | Interpreter/staging | Per-invocation contexts over shared Foundation; ECS preparation/lowering dependencies, threaded lazy scalar evaluation and private execution caches | General ordinary-value execution, explicit effects/inputs and invalidation; no separate folding evaluator |
 | LLVM | Shared Foundation inputs; one mutable LLVM context/module per compiler instance | Function/query boundaries that do not concurrently mutate one LLVM module; preserve target legality |
 | Link/publication | Tower plans/artifacts plus upstream LLD and filesystem interfaces | Keep LLD globals and fixed temporary names isolated/serialized; publish a candidate only after its checks |

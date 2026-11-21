@@ -79,23 +79,31 @@ fn sem_iteration_call(c: SemanticContext*, parent: void*, function: void*, sourc
     return result;
 }
 
-fn sem_iteration(c: SemanticContext*, n: void*, depth: u32): u32 {
+struct SemanticIterationCursor {
+    scope: SemanticScope*;
+    deferred: void*;
+    iteration: void*;
+    cleanup: void*;
+}
+
+fn sem_iteration_begin(c: SemanticContext*, n: void*, depth: u32, cursor: SemanticIterationCursor*): bool {
+    *cursor = default;
     if depth > 123 {
         sem_fail(c, n, "foreach lowering exceeds Foundation block nesting limit of 128");
-        return FlowNext();
+        return false;
     }
     if c.labels != null && c.labels.count != 0 {
         sem_fail(c, n, "foreach cleanup cannot be combined with explicit function labels or jumps");
-        return FlowNext();
+        return false;
     }
     var initial = sem_operand(c, sem_member(n, "source"), null);
     if !sem_ok(c) {
-        return FlowNext();
+        return false;
     }
     var type = &sem_get(initial).type;
     if type.scalar != SStruct() || type.pointers != 1 {
         sem_fail(c, n, "foreach requires a pointer to a nominal collection; use &collection");
-        return FlowNext();
+        return false;
     }
     var declaration = generic_specialization(c.generics, type.record);
     if declaration == null {
@@ -109,12 +117,12 @@ fn sem_iteration(c: SemanticContext*, n: void*, depth: u32): u32 {
     var element = sem_iteration_function(c, module, sem_cat(c, prefix, "element"), n, initial);
     var end = sem_iteration_function(c, module, sem_cat(c, prefix, "end"), n, initial);
     if !sem_ok(c) {
-        return FlowNext();
+        return false;
     }
     var state_type = sem_type_copy(c, &sem_get(sem_get(begin).parameters.data[1]).type);
     if state_type.pointers != 1 {
         sem_fail(c, n, "iterate_begin requires a pointer to its local iterator state");
-        return FlowNext();
+        return false;
     }
     state_type.pointers--;
     var nothing = sem_type_new(c, SVoid(), 0, null);
@@ -124,13 +132,13 @@ fn sem_iteration(c: SemanticContext*, n: void*, depth: u32): u32 {
     (sem_get(element).type.pointers == 1 && sem_get(element).type.scalar == SVoid()) ||
     (state_type.pointers == 0 && state_type.scalar == SVoid()) {
         sem_fail(c, n, "Iteration requires begin/end: void, next: bool, element: pointer, and concrete state storage");
-        return FlowNext();
+        return false;
     }
     if semantic_aggregate(state_type) {
         sem_layout(c, state_type.record);
     }
     if !sem_ok(c) {
-        return FlowNext();
+        return false;
     }
     var value = sem_node(c, n, KBlock());
     var source = sem_control_local(c, n, initial);
@@ -144,7 +152,7 @@ fn sem_iteration(c: SemanticContext*, n: void*, depth: u32): u32 {
     var cleanup = sem_control_node(c, n, KBlock());
     sem_push(&sem_get(cleanup).items, sem_iteration_call(c, cleanup, end, source, state));
     if !sem_ok(c) {
-        return FlowNext();
+        return false;
     }
     var saved = c.deferred;
     var pending = bits(SemanticDeferred*, sem_allocate(c, sizeof(SemanticDeferred)));
@@ -187,13 +195,26 @@ fn sem_iteration(c: SemanticContext*, n: void*, depth: u32): u32 {
     var scope = c.scope;
     c.scope = sem_scope(c, scope);
     sem_put(c, c.scope.names, name, item);
-    c.loops++;
-    var body = sem_member(n, "body");
-    var flow = sem_block(c, body, depth + 3);
-    c.loops--;
-    c.scope = scope;
-    c.deferred = saved;
-    sem_push(&sem_get(iteration).items, body);
-    sem_push(&value.items, cleanup);
+    cursor.scope = scope;
+    cursor.deferred = saved;
+    cursor.iteration = iteration;
+    cursor.cleanup = cleanup;
+    return true;
+}
+
+fn sem_iteration_finish(c: SemanticContext*, n: void*, cursor: SemanticIterationCursor*, flow: u32): u32 {
+    c.scope = cursor.scope;
+    c.deferred = cursor.deferred;
+    sem_push(&sem_get(cursor.iteration).items, sem_member(n, "body"));
+    sem_push(&sem_get(n).items, cursor.cleanup);
     return FlowNext() |(flow &FlowReturn());
+}
+
+fn sem_iteration(c: SemanticContext*, n: void*, depth: u32): u32 {
+    var cursor: SemanticIterationCursor;
+    if !sem_iteration_begin(c, n, depth, &cursor) { return FlowNext(); }
+    c.loops++;
+    var flow = sem_block(c, sem_member(n, "body"), depth + 3);
+    c.loops--;
+    return sem_iteration_finish(c, n, &cursor, flow);
 }

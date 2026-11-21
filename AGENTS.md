@@ -174,6 +174,10 @@ Do NOT modify todo.txt
 
 ## Compiler ECS and threading
 
+- The eventual compiler should be implemented in Stronghold, the planned safe
+  language above Tower, with enforced ownership/access contracts. Keep today's
+  Tower ECS and foundation low-level; make their contracts explicit for that
+  migration without imposing Stronghold safety overhead on all Tower programs.
 - Put syntax/AST/parse and semantic data on the same world-owned entities and
   components. Tables, queues and execution caches are derived indexes, never a
   second authoritative graph. Preserve compilable Foundation round trips.

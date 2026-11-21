@@ -21,7 +21,7 @@ function(tower_storage_tests)
   set(bound "${CMAKE_CURRENT_BINARY_DIR}/tower-storage-tests.ll")
   set(object "${CMAKE_CURRENT_BINARY_DIR}/tower-storage-tests.o")
   file(GENERATE OUTPUT "${input}" CONTENT "${source}import tests.storage_main;\n")
-  add_custom_command(OUTPUT "${object}"
+  add_custom_command(OUTPUT "${ir}" "${bound}" "${object}"
     COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${input}" --library --target "${triple}"
       --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
       --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"

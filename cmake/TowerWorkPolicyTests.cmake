@@ -49,7 +49,15 @@ function(tower_lr_work_policy_test)
   target_compile_features(tower-lr-work-tests PRIVATE cxx_std_20)
   target_compile_options(tower-lr-work-tests PRIVATE -fno-exceptions)
   target_link_libraries(tower-lr-work-tests PRIVATE ${libraries})
-  add_test(NAME tower-lr-worker-equivalence COMMAND tower-lr-work-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")
-  set_tests_properties(tower-lr-worker-equivalence PROPERTIES TIMEOUT 180)
+  # Keep release coverage, but permit focused development checks without running
+  # every independent compiler subsystem through the same test entry.
+  add_test(NAME tower-lr-worker-equivalence COMMAND tower-lr-work-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" lr)
+  add_test(NAME tower-native-units COMMAND tower-lr-work-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" units)
+  add_test(NAME tower-editor-units COMMAND tower-lr-work-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" editor)
+  add_test(NAME tower-body-continuations COMMAND tower-lr-work-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" bodies)
+  set_tests_properties(tower-lr-worker-equivalence tower-native-units tower-editor-units tower-body-continuations PROPERTIES TIMEOUT 180)
+  add_custom_target(tower-body-smoke
+    COMMAND "$<TARGET_FILE:tower-lr-work-tests>" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" body-smoke
+    DEPENDS tower-lr-work-tests USES_TERMINAL VERBATIM)
 endfunction()
 cmake_language(DEFER CALL tower_lr_work_policy_test)

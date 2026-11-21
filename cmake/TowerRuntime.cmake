@@ -15,7 +15,9 @@ function(tower_runtime_tools)
     OUTPUT_VARIABLE llvm_libname OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND_ERROR_IS_FATAL ANY)
   set(object "${CMAKE_CURRENT_BINARY_DIR}/runtime-bind.o")
   set(program "${CMAKE_CURRENT_BINARY_DIR}/runtime_bind${CMAKE_HOST_EXECUTABLE_SUFFIX}")
-  add_custom_command(OUTPUT "${program}"
+  # The primary output must match the compiler's depfile target. Otherwise Ninja
+  # rejects that depfile and rebuilds this tool and its consumers on every run.
+  add_custom_command(OUTPUT "${object}" "${program}"
     COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/host/runtime_bind.tower"
       --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
       --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
@@ -47,7 +49,7 @@ function(tower_runtime_object name input triple)
   set(ir "${CMAKE_CURRENT_BINARY_DIR}/${name}-unbound.ll")
   set(bound "${CMAKE_CURRENT_BINARY_DIR}/${name}.ll")
   set(object "${CMAKE_CURRENT_BINARY_DIR}/${name}.o")
-  add_custom_command(OUTPUT "${object}"
+  add_custom_command(OUTPUT "${ir}" "${bound}" "${object}"
     COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${input}" --library --target "${triple}"
       --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
       --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"

@@ -10,6 +10,8 @@ import semantic_types;
 import semantic_layout;
 import semantic_statements;
 import semantic_control;
+import semantic_defer;
+import semantic_iteration;
 import semantic_evaluation;
 import semantic_flow;
 import semantic_generic_body_work;
@@ -139,7 +141,7 @@ struct SemanticBodyScope {
 }
 
 enum SemanticBodyBlockKind: u32 {
-    Lexical, IfThen, IfElse, Loop
+    Lexical, IfThen, IfElse, Loop, While, For, Foreach, Defer, Match
 }
 
 struct SemanticBodyBlock {
@@ -147,6 +149,10 @@ struct SemanticBodyBlock {
     subject: void*;
     kind: SemanticBodyBlockKind;
     flow: u32;
+    loop_state: SemanticLoopCursor;
+    iteration_state: SemanticIterationCursor;
+    defer_state: SemanticDeferCursor;
+    match_state: SemanticMatchCursor;
 }
 
 struct SemanticBodyBoundary {
@@ -286,7 +292,7 @@ fn sem_body_boundary(result: SemanticBodyWork*, subject: void*, header: bool): v
 
 // Admission is decided from original syntax before any checking mutates nodes.
 // Structural statements suspend their containing lexical/control frame, not
-// its whole enclosing function. Surface loop/match/defer handlers remain whole.
+// its whole enclosing function. Expression-only defer remains a single leaf.
 fn sem_body_sources(c: SemanticContext*, result: SemanticBodyWork*): void {
     var scope = c.scope;
     c.scope = null;
@@ -313,6 +319,42 @@ fn sem_body_sources(c: SemanticContext*, result: SemanticBodyWork*): void {
             }
         } else {
             scan.length = 0;
+            if sem_is(node, "TowerMatch") {
+                var arms = sem_collect(c, sem_member(node, "arms"), "TowerMatchArm");
+                var fallback = sem_member(sem_member(node, "fallback"), "body");
+                var resumable = sem_is(fallback, "CoreBlock");
+                foreach(var arm in arms) {
+                    scan.length = 0;
+                    resumable &&= sem_is(sem_member(arm, "body"), "CoreBlock")
+                    && sem_body_tree(c, sem_member(arm, "patterns"), &scan);
+                }
+                if !resumable {
+                    // Unusual grammar extensions can construct types in a
+                    // pattern. Keep those ordered with the preceding bodies.
+                    sem_body_boundary(result, source, false);
+                    continue;
+                }
+                scan.length = 0;
+                if !sem_body_tree(c, sem_member(node, "value"), &scan) {
+                    sem_body_boundary(result, source, true);
+                }
+                sem_push(&pending, fallback);
+                for(var i = arms.length; i != 0;) {
+                    sem_push(&pending, sem_member(arms.data[--i], "body"));
+                }
+                continue;
+            }
+            if sem_is(node, "TowerDefer") && sem_is(sem_member(node, "body"), "CoreBlock") {
+                sem_push(&pending, sem_member(node, "body"));
+                continue;
+            }
+            if sem_is(node, "TowerForeach") && sem_is(sem_member(node, "body"), "CoreBlock") {
+                // The implicit protocol may construct generic signatures even
+                // when its written source is an ordinary typed local.
+                sem_body_boundary(result, source, true);
+                sem_push(&pending, sem_member(node, "body"));
+                continue;
+            }
             // Header construction precedes either branch, but does not check
             // their statements. Resume those bodies through the same frames.
             if sem_is(node, "CoreIf") && sem_member(node, "condition") != null && sem_is(sem_member(node, "body"), "CoreBlock")
@@ -323,6 +365,23 @@ fn sem_body_sources(c: SemanticContext*, result: SemanticBodyWork*): void {
                 var other = sem_member(node, "otherwise");
                 if other != null {
                     sem_push(&pending, other);
+                }
+                sem_push(&pending, sem_member(node, "body"));
+                continue;
+            }
+            var while_loop = sem_is(node, "TowerWhile");
+            var for_loop = sem_is(node, "TowerFor");
+            if(while_loop || for_loop) && sem_is(sem_member(node, "body"), "CoreBlock") {
+                scan.length = 0;
+                var ready = sem_body_tree(c, sem_member(node, "condition"), &scan);
+                if for_loop {
+                    scan.length = 0;
+                    ready &&= sem_body_tree(c, sem_member(node, "initial"), &scan);
+                    scan.length = 0;
+                    ready &&= sem_body_tree(c, sem_member(node, "step"), &scan);
+                }
+                if !ready {
+                    sem_body_boundary(result, source, true);
                 }
                 sem_push(&pending, sem_member(node, "body"));
                 continue;
@@ -359,6 +418,21 @@ fn sem_body_close_block(c: SemanticContext*, result: SemanticBodyWork*): void {
     var frame = &result.blocks.data[result.blocks.length -1];
     var subject = frame.subject;
     var flow = sem_block_finish(c, &frame.cursor);
+    if frame.kind == SemanticBodyBlockKind.Match {
+        if sem_control_match_advance(c, &frame.match_state, flow) {
+            var state = &frame.match_state;
+            sem_require(sem_block_begin(c, state.body, state.depth + convert(u32, state.index) + 1, &frame.cursor));
+            return;
+        }
+        flow = frame.match_state.flow;
+    }
+    if frame.kind == SemanticBodyBlockKind.Defer {
+        flow = sem_defer_finish(c, subject, &frame.defer_state, flow);
+    }
+    if frame.kind == SemanticBodyBlockKind.Foreach {
+        c.loops--;
+        flow = sem_iteration_finish(c, subject, &frame.iteration_state, flow);
+    }
     if frame.kind == SemanticBodyBlockKind.IfThen {
         var other = sem_get(subject).otherwise;
         if other != null && sem_ok(c) {
@@ -376,6 +450,16 @@ fn sem_body_close_block(c: SemanticContext*, result: SemanticBodyWork*): void {
             if frame.kind == SemanticBodyBlockKind.Loop {
                 c.loops--;
                 flow = sem_loop_finish(flow);
+            } else {
+                if frame.kind == SemanticBodyBlockKind.While {
+                    c.loops--;
+                    flow = sem_control_while_finish(c, subject, &frame.loop_state, flow);
+                } else {
+                    if frame.kind == SemanticBodyBlockKind.For {
+                        c.loops--;
+                        flow = sem_control_for_finish(c, subject, &frame.loop_state, flow);
+                    }
+                }
             }
         }
     }
@@ -389,7 +473,12 @@ fn sem_body_enter(c: SemanticContext*, result: SemanticBodyWork*, node: void*): 
     var branch = node != null && sem_is(node, "CoreIf") && sem_member(node, "condition") != null && sem_is(sem_member(node, "body"), "CoreBlock")
     &&(sem_member(node, "otherwise") == null || sem_is(sem_member(node, "otherwise"), "CoreBlock"));
     var looping = node != null && sem_is(node, "CoreLoop") && sem_is(sem_member(node, "body"), "CoreBlock");
-    if !(lexical || branch || looping) || cursor.depth >= 128 {
+    var while_loop = node != null && sem_is(node, "TowerWhile") && sem_is(sem_member(node, "body"), "CoreBlock");
+    var for_loop = node != null && sem_is(node, "TowerFor") && sem_is(sem_member(node, "body"), "CoreBlock");
+    var iteration = node != null && sem_is(node, "TowerForeach") && sem_is(sem_member(node, "body"), "CoreBlock");
+    var deferred_block = node != null && sem_is(node, "TowerDefer") && sem_is(sem_member(node, "body"), "CoreBlock");
+    var matching = node != null && sem_is(node, "TowerMatch");
+    if !(lexical || branch || looping || while_loop || for_loop || iteration || deferred_block || matching) || cursor.depth >= 128 {
         return false;
     }
 
@@ -402,6 +491,16 @@ fn sem_body_enter(c: SemanticContext*, result: SemanticBodyWork*, node: void*): 
     *frame = default;
     frame.subject = node;
     var body = node;
+    if matching {
+        frame.kind = SemanticBodyBlockKind.Match;
+        if !sem_control_match_begin(c, node, depth, &frame.match_state) {
+            result.blocks.length--;
+            sem_block_accept(c, sem_body_cursor(result), node, FlowNext());
+            return true;
+        }
+        body = frame.match_state.body;
+        depth++;
+    }
     if branch {
         frame.kind = SemanticBodyBlockKind.IfThen;
         sem_require(sem_if_begin(c, node));
@@ -414,6 +513,37 @@ fn sem_body_enter(c: SemanticContext*, result: SemanticBodyWork*, node: void*): 
             body = value.body;
             c.loops++;
         }
+    }
+    if while_loop || for_loop || iteration || deferred_block {
+        var begun = false;
+        if while_loop {
+            frame.kind = SemanticBodyBlockKind.While;
+            begun = sem_control_while_begin(c, node, &frame.loop_state);
+            depth++;
+        } else {
+            if for_loop {
+                frame.kind = SemanticBodyBlockKind.For;
+                begun = sem_control_for_begin(c, node, depth, &frame.loop_state);
+                depth += 2;
+            } else {
+                if iteration {
+                    frame.kind = SemanticBodyBlockKind.Foreach;
+                    begun = sem_iteration_begin(c, node, depth, &frame.iteration_state);
+                    depth += 3;
+                } else {
+                    frame.kind = SemanticBodyBlockKind.Defer;
+                    begun = sem_defer_begin(c, node, depth, &frame.defer_state);
+                    depth++;
+                }
+            }
+        }
+        if !begun {
+            result.blocks.length--;
+            sem_block_accept(c, sem_body_cursor(result), node, FlowNext());
+            return true;
+        }
+        body = sem_member(node, "body");
+        if !deferred_block { c.loops++; }
     }
     sem_require(sem_block_begin(c, body, depth, &frame.cursor));
     return true;
@@ -802,6 +932,20 @@ fn sem_bodies(c: SemanticContext*): void {
                     sem_require(result.stage != null);
                     foreach(var node in &result.nodes) {
                         sem_require(entity_stage_lease(result.stage, node));
+                    }
+                    // Retained generated blocks are absent from original syntax.
+                    // Completion appends to them after resumption; pinning alone
+                    // does not grant payload ownership.
+                    foreach(var & frame in &result.blocks) {
+                        if frame.loop_state.block != null {
+                            sem_require(entity_stage_lease(result.stage, frame.loop_state.block));
+                        }
+                        if frame.iteration_state.iteration != null {
+                            sem_require(entity_stage_lease(result.stage, frame.iteration_state.iteration));
+                        }
+                        if frame.match_state.block != null {
+                            sem_require(entity_stage_lease(result.stage, frame.match_state.block));
+                        }
                     }
                     running[active++] = result;
                 }

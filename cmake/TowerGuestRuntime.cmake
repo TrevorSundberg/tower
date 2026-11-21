@@ -52,7 +52,7 @@ function(tower_guest_runtime name triple profile entry)
     string(APPEND source "import host.${module};\n")
   endforeach()
   file(GENERATE OUTPUT "${input}" CONTENT "${source}")
-  add_custom_command(OUTPUT "${base}.ll"
+  add_custom_command(OUTPUT "${base}-unbound.ll" "${base}.ll"
     COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${input}" --library --target "${triple}"
       --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
       --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"

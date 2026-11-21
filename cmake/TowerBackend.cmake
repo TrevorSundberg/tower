@@ -48,14 +48,13 @@ function(tower_backend_integrate)
     COMMAND "${CMAKE_COMMAND}" -DROOT=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT=${foreign_source}
       -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/ComposeForeign.cmake"
     DEPENDS ${backend_sources} scaffolding/library/vector.tower cmake/ComposeForeign.cmake VERBATIM)
-  add_custom_command(OUTPUT "${foreign_tool}"
+  add_custom_command(OUTPUT "${foreign_object}" "${foreign_tool}"
     COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${foreign_source}" --library --target "${foreign_host_triple}"
       --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
       --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower" -o "${foreign_object}" --depfile "${foreign_object}.d"
     COMMAND "${TOWER_BACKEND_HOST_CC}" "${foreign_object}" "${foreign_runtime}" -o "${foreign_tool}"
     DEPFILE "${foreign_object}.d"
-    DEPENDS "${foreign_source}" "${TOWER_BOOTSTRAP_COMPILER}" "${foreign_runtime}"
-    BYPRODUCTS "${foreign_object}" VERBATIM)
+    DEPENDS "${foreign_source}" "${TOWER_BOOTSTRAP_COMPILER}" "${foreign_runtime}" VERBATIM)
   set(runtime_source "")
   if(TOWER_BROWSER_LLVM)
     set(embed_object "${CMAKE_CURRENT_BINARY_DIR}/tower-embed-runtime.o")

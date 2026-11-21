@@ -9,12 +9,29 @@ extern fn lr_work_tests(): u32;
 extern fn work_thread_available(): bool;
 
 export fn lr_work_test_main(argc: i32, argv: u8**): i32 {
-    utility_check(argc == 2, "Unit compiler resource directory");
+    if argc < 2 || argc > 3 {
+        puts("usage: tower-lr-work-tests RESOURCE_ROOT [all|lr|units|editor|bodies|body-smoke]");
+        return 1;
+    }
     utility_check(work_thread_available(), "LR comparison uses the uninstrumented native worker profile");
-    utility_check(lr_work_tests() == 0, "Real threaded LR and serial tables retain identical records, conflicts and world ownership");
-    puts("Native production worker policy: serial/threaded LR graph and lifetime comparisons passed.");
-    frontend_units_tests(argv[1]);
-    editor_units_tests(argv[1]);
-    body_runs_tests(argv[1]);
+    var suite: u8* = argc == 3 ? argv[2] : "all";
+    var all = strcmp(suite, "all") == 0;
+    var lr = strcmp(suite, "lr") == 0;
+    var units = strcmp(suite, "units") == 0;
+    var editor = strcmp(suite, "editor") == 0;
+    var bodies = strcmp(suite, "bodies") == 0;
+    var smoke = strcmp(suite, "body-smoke") == 0;
+    if !all && !lr && !units && !editor && !bodies && !smoke {
+        puts("Unknown worker test suite");
+        return 1;
+    }
+    if all || lr {
+        utility_check(lr_work_tests() == 0, "Real threaded LR and serial tables retain identical records, conflicts and world ownership");
+        puts("Native production worker policy: serial/threaded LR graph and lifetime comparisons passed.");
+    }
+    if all || units { frontend_units_tests(argv[1]); }
+    if all || editor { editor_units_tests(argv[1]); }
+    if all || bodies { body_runs_tests(argv[1]); }
+    if smoke { body_runs_smoke(argv[1]); }
     return 0;
 }

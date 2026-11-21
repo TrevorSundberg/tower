@@ -133,6 +133,73 @@ fn body_runs_header_cycle(budget: usize, bedrock: u8*, foundation: u8*, root: u8
     units_check(strstr(error, earlier_fails ? "unknownFirst": "Recursive by-value layout") is not null, "Header dependency cycles retain deterministic diagnostics");
 }
 
+fn body_runs_surface_error(budget: usize, bedrock: u8*, foundation: u8*, root: u8*, mode: u32): void {
+    var batch = frontend_units_create(1, budget, 8, 88, 23, bedrock, foundation, root);
+    units_check(batch is not null, "Loop header error batch");
+    defer frontend_units_close(batch);
+    var source: u8* = "import tower; fn id(T:type,x:T):T{return x;} fn first():i32 {while id(unknownLoop)>0 {return 1;} return 0;} fn later():i32{return unknownSecond;}";
+    if mode == 1 {
+        source = "import tower; fn id(T:type,x:T):T{return x;} fn first():i32 {for(var i=id(unknownLoop); i<1; i++) {return 1;} return 0;} fn later():i32{return unknownSecond;}";
+    }
+    if mode == 2 {
+        source = "import tower; fn bad(T:type):type{struct Recursive{value:Recursive;}return Recursive;} fn first():i32 {for(var i:i32=0; sizeof(bad(i32))>0; i++) {return 1;} return 0;} fn later():i32{return unknownSecond;}";
+    }
+    units_check(frontend_units_source(batch, 1, "loop_error.tower", source, strlen(source)), "Loop header error source");
+    while !frontend_units_step(batch, true) {}
+    var error = frontend_units_error(batch);
+    units_check(frontend_units_failed(batch) == 1 && strstr(error, mode == 2 ? "Recursive by-value layout": "unknownLoop") is not null && strstr(error, "unknownSecond") is null, "Loop header failure preserves scopes, cleanup and error order");
+}
+
+fn body_runs_arm_error(budget: usize, bedrock: u8*, foundation: u8*, root: u8*, mode: u32): void {
+    var batch = frontend_units_create(1, budget, 8, 89, 23, bedrock, foundation, root);
+    units_check(batch is not null, "Match/defer/iteration diagnostic batch");
+    defer frontend_units_close(batch);
+    var source: u8* = "import tower; fn id(T:type,x:T):T{return x;} fn first():i32 {match id(unknownMatch) {0=>{return id(1);} _=>{return 0;}}} fn later():i32{return unknownSecond;}";
+    if mode == 1 {
+        source = "import tower; fn id(T:type,x:T):T{return x;} fn first():i32 {match id(0) {0=>{var a=id(1);return unknownMatch;} 0=>{return 1;} _=>{return 0;}}} fn later():i32{return unknownSecond;}";
+    }
+    if mode == 2 {
+        source = "import tower; fn id(T:type,x:T):T{return x;} fn first():i32 {match id(0) {0=>{return id(1);} 0=>{return unknownMatch;} _=>{return 0;}}} fn later():i32{return unknownSecond;}";
+    }
+    if mode == 3 {
+        source = "import tower; fn id(T:type,x:T):T{return x;} fn first():i32 {defer {var a=id(1);var b=id(unknownMatch);} return 0;} fn later():i32{return unknownSecond;}";
+    }
+    if mode == 4 {
+        source = "import tower; import library.vector; fn id(T:type,x:T):T{return x;} fn first(values:vector(i32)*):i32 {foreach(var item in values) {var a=id(item);return unknownMatch;} return 0;} fn later():i32{return unknownSecond;}";
+    }
+    units_check(frontend_units_source(batch, 1, "arm_error.tower", source, strlen(source)), "Match/defer/iteration diagnostic source");
+    while !frontend_units_step(batch, true) {}
+    var error = frontend_units_error(batch);
+    units_check(frontend_units_failed(batch) == 1 && strstr(error, mode == 2 ? "Duplicate match pattern" : "unknownMatch") is not null && strstr(error, "unknownSecond") is null, "Resumed arm and cleanup failures preserve source diagnostic order");
+}
+
+// A short edit/build/run path uses the same fixture and assertions as the full
+// matrix. It is intentionally separate from the release coverage below.
+fn body_runs_smoke(root: u8*): void {
+    var bedrock: vector(u8) = default;
+    var foundation: vector(u8) = default;
+    var source: vector(u8) = default;
+    var canonical: vector(u8) = default;
+    defer vector_dispose(&canonical);
+    defer vector_dispose(&source);
+    defer vector_dispose(&foundation);
+    defer vector_dispose(&bedrock);
+    units_read(root, "/bedrock.tower", &bedrock);
+    units_read(root, "/foundation.tower", &foundation);
+    units_read(root, "/tests/body_continuation.tower", &source);
+    body_runs_trial(source.data, 1, 8, bedrock.data, foundation.data, root, &canonical);
+    body_runs_trial(source.data, 4, 8, bedrock.data, foundation.data, root, &canonical);
+    units_check(vector_reserve(&canonical, canonical.length + 1), "Body Foundation text terminator");
+    canonical.data[canonical.length] = 0;
+    body_runs_trial(canonical.data, 4, 8, bedrock.data, foundation.data, root, &canonical);
+    body_runs_header_error(4, bedrock.data, foundation.data, root);
+    body_runs_header_cycle(4, bedrock.data, foundation.data, root, false);
+    body_runs_header_cycle(4, bedrock.data, foundation.data, root, true);
+    body_runs_arm_error(4, bedrock.data, foundation.data, root, 1);
+    body_runs_arm_error(4, bedrock.data, foundation.data, root, 2);
+    puts("Body smoke: serial/worker canonical output, execution and ordered diagnostics/cycles passed.");
+}
+
 fn body_runs_tests(root: u8*): void {
     var bedrock: vector(u8) = default;
     var foundation: vector(u8) = default;
@@ -144,14 +211,17 @@ fn body_runs_tests(root: u8*): void {
     units_read(root, "/foundation.tower", &foundation);
     units_read(root, "/tests/body_continuation.tower", &source);
     for(var width: u32 = 4; width <= 8; width += 4) {
+        puts(width == 4 ? "Body continuation matrix: 32-bit target" : "Body continuation matrix: 64-bit target");
         var canonical: vector(u8) = default;
         defer vector_dispose(&canonical);
         for(var budget: usize = 1; budget <= 8; budget *= 2) {
             body_runs_trial(source.data, budget, width, bedrock.data, foundation.data, root, &canonical);
+            puts("Body source execution/canonical trial passed.");
         }
         units_check(vector_reserve(&canonical, canonical.length + 1), "Body Foundation text terminator");
         canonical.data[canonical.length] = 0;
         body_runs_trial(canonical.data, 8, width, bedrock.data, foundation.data, root, &canonical);
+        puts("Body canonical reparse passed.");
         var root_layout: vector(u8) = default;
         defer vector_dispose(&root_layout);
         // Foundation root operands can create an array after declaration
@@ -161,7 +231,17 @@ fn body_runs_tests(root: u8*): void {
             body_runs_trial(root_source, budget, width, bedrock.data, foundation.data, root, &root_layout);
         }
     }
-    for(var budget: usize = 1; budget <= 8; budget *= 2) {
+    puts("Body continuation matrix: diagnostic ordering and cycles");
+    // These small error fixtures need serial versus concurrent admission. The
+    // successful/canonical matrix above retains every 1/2/4/8-worker setting;
+    // avoid rebuilding each diagnostic's module graph at all four widths too.
+    for(var budget: usize = 1; budget <= 4; budget *= 4) {
+        for(var mode: u32 = 0; mode < 5; mode++) {
+            body_runs_arm_error(budget, bedrock.data, foundation.data, root, mode);
+        }
+        for(var mode: u32 = 0; mode < 3; mode++) {
+            body_runs_surface_error(budget, bedrock.data, foundation.data, root, mode);
+        }
         body_runs_header_error(budget, bedrock.data, foundation.data, root);
         body_runs_header_cycle(budget, bedrock.data, foundation.data, root, false);
         body_runs_header_cycle(budget, bedrock.data, foundation.data, root, true);
@@ -171,6 +251,7 @@ fn body_runs_tests(root: u8*): void {
         body_runs_diagnostic(budget, bedrock.data, foundation.data, root, true);
         body_runs_cycle(budget, bedrock.data, foundation.data, root, false);
         body_runs_cycle(budget, bedrock.data, foundation.data, root, true);
+        puts("Body diagnostic worker-width group passed.");
     }
-    puts("Resumable bodies: locals/defer/flow, canonical output and diagnostic order pass at 1/2/4/8 workers.");
+    puts("Resumable bodies: 1/2/4/8-worker canonical/execution and serial/parallel diagnostic order passed.");
 }

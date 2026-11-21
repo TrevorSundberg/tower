@@ -7,6 +7,7 @@ import semantic_support;
 import semantic_types;
 import semantic_values;
 import semantic_flow;
+import .library.vector;
 
 // Control-flow outcomes are a private analysis bit set, not program opcodes.
 const FlowNext: u32 = 1;
@@ -57,9 +58,15 @@ fn sem_control_names(c: SemanticContext*): void {
 }
 
 fn sem_control_name(c: SemanticContext*): u8* {
-    if c.control_reserved == null { sem_control_names(c); }
-    else { if c.control_names == null { c.control_names = sem_table(c); } }
-    var prefix = c.control_prefix == null ? "control value " : c.control_prefix;
+    if c.control_reserved == null {
+        sem_control_names(c);
+    }
+    else {
+        if c.control_names == null {
+            c.control_names = sem_table(c);
+        }
+    }
+    var prefix = c.control_prefix == null ? "control value ": c.control_prefix;
     var index = c.control_names.count;
     loop {
         var name = sem_cat(c, prefix, sem_decimal(c, convert(u64, index)));
@@ -76,7 +83,7 @@ fn sem_control_name(c: SemanticContext*): u8* {
 }
 
 fn sem_control_node(c: SemanticContext*, parent: void*, kind: u32): void* {
-    var entity = c.entity_stage == null ? sem_create(parent) : entity_stage_create(c.entity_stage, parent);
+    var entity = c.entity_stage == null ? sem_create(parent): entity_stage_create(c.entity_stage, parent);
     sem_require(entity != null);
     sem_node(c, entity, kind);
     return entity;
@@ -151,10 +158,82 @@ fn sem_control_equal(c: SemanticContext*, block: void*, subject: void*, pattern:
     return sem_control_read(c, block, local);
 }
 
-fn sem_control_match(c: SemanticContext*, n: void*, depth: u32): u32 {
+// Private checking state only. Arm operations remain on their Foundation nodes.
+// Prepare each pattern immediately before its body to preserve diagnostic order.
+struct SemanticMatchCursor {
+    arms: vector(void*)*;
+    patterns: vector(void*)*;
+    subject: void*;
+    fallback: void*;
+    block: void*;
+    condition: void*;
+    body: void*;
+    depth: u32;
+    index: usize;
+    flow: u32;
+}
+
+fn sem_control_match_arm(c: SemanticContext*, state: SemanticMatchCursor*): bool {
+    if state.index == state.arms.length {
+        state.body = sem_member(state.fallback, "body");
+        return true;
+    }
+    var arm = state.arms.data[state.index];
+    var choices = sem_collect(c, sem_member(arm, "patterns"), "TowerMatchLiteral");
+    if choices.length == 0 {
+        sem_fail(c, arm, "A match arm needs a literal pattern");
+        return false;
+    }
+    var block = state.block;
+    var type = &sem_get(state.subject).type;
+    var multiple = choices.length > 1;
+    var selected: void* = null;
+    if multiple {
+        selected = sem_control_local(c, block, sem_control_literal(c, block, 0));
+    }
+    var condition: void* = null;
+    for(var j: usize = 0; j < choices.length; j++) {
+        var syntax = choices.data[j];
+        if sem_child_count(syntax) == 1 {
+            syntax = sem_child(syntax, 0);
+        }
+        var pattern = sem_operand(c, syntax, type);
+        if !sem_ok(c) {
+            return false;
+        }
+        var literal = sem_get(pattern);
+        if !literal.constant {
+            sem_fail(c, syntax, "Match patterns must be literals or enum members");
+            return false;
+        }
+        foreach(var prior in state.patterns) {
+            if literal.bits == sem_get(prior).bits {
+                sem_fail(c, choices.data[j], "Duplicate match pattern");
+                return false;
+            }
+        }
+        sem_push(state.patterns, pattern);
+        condition = sem_control_equal(c, block, state.subject, pattern);
+        if multiple {
+            var hit = sem_control_node(c, block, KBlock());
+            var store = sem_control_node(c, hit, KAssign());
+            var assignment = sem_get(store);
+            assignment.target = sem_control_read(c, store, selected);
+            assignment.value = sem_control_literal(c, store, 1);
+            sem_push(&sem_get(hit).items, store);
+            sem_control_branch(c, block, condition, hit);
+        }
+    }
+    state.condition = multiple ? sem_control_read(c, block, selected) : condition;
+    state.body = sem_member(arm, "body");
+    return true;
+}
+
+fn sem_control_match_begin(c: SemanticContext*, n: void*, depth: u32, state: SemanticMatchCursor*): bool {
+    *state = default;
     var initial = sem_expression(c, sem_member(n, "value"), null);
     if !sem_ok(c) {
-        return FlowNext();
+        return false;
     }
     var initializer = sem_get(initial);
     var type = &initializer.type;
@@ -166,121 +245,81 @@ fn sem_control_match(c: SemanticContext*, n: void*, depth: u32): u32 {
     }
     if !eligible {
         sem_fail(c, n, "match requires an integer or bool subject");
-        return FlowNext();
+        return false;
     }
     var arms = sem_collect(c, sem_member(n, "arms"), "TowerMatchArm");
     if arms.length > MatchArmLimit() {
         sem_fail(c, n, "match supports at most 128 arms");
-        return FlowNext();
+        return false;
     }
     var lowered_depth = convert(usize, depth) + arms.length;
     lowered_depth = lowered_depth + 3;
     if lowered_depth > 128 {
         sem_fail(c, n, "match lowering exceeds Foundation block nesting limit of 128");
-        return FlowNext();
+        return false;
     }
     var fallback = sem_member(n, "fallback");
     if !sem_shape(c, fallback, "body") {
-        return FlowNext();
+        return false;
     }
     sem_node(c, n, KBlock());
-    var subject = sem_control_local(c, n, initial);
-    var patterns = sem_list(c);
-    var block = n;
-    var flow: u32 = 0;
-    var i: usize = 0;
-    loop {
-        var done = i == arms.length;
-        if done {
-            break;
-        }
-        var arm = arms.data[i];
-        var choices = sem_collect(c, sem_member(arm, "patterns"), "TowerMatchLiteral");
-        if choices.length == 0 {
-            sem_fail(c, arm, "A match arm needs a literal pattern");
-            return FlowNext();
-        }
-        var multiple = choices.length > 1;
-        var selected: void* = null;
-        if multiple {
-            selected = sem_control_local(c, block, sem_control_literal(c, block, 0));
-        }
-        var condition: void* = null;
-        var j: usize = 0;
-        loop {
-            done = j == choices.length;
-            if done {
-                break;
-            }
-            var syntax = choices.data[j];
-            if sem_child_count(syntax) == 1 {
-                syntax = sem_child(syntax, 0);
-            }
-            var pattern = sem_operand(c, syntax, type);
-            if !sem_ok(c) {
-                return FlowNext();
-            }
-            var literal = sem_get(pattern);
-            if !literal.constant {
-                sem_fail(c, syntax, "Match patterns must be literals or enum members");
-                return FlowNext();
-            }
-            var k: usize = 0;
-            loop {
-                done = k == patterns.length;
-                if done {
-                    break;
-                }
-                var literal = sem_get(pattern);
-                var previous = sem_get(patterns.data[k]);
-                if literal.bits == previous.bits {
-                    sem_fail(c, choices.data[j], "Duplicate match pattern");
-                    return FlowNext();
-                }
-                k++;
-            }
-            sem_push(patterns, pattern);
-            condition = sem_control_equal(c, block, subject, pattern);
-            if multiple {
-                var hit = sem_control_node(c, block, KBlock());
-                var store = sem_control_node(c, hit, KAssign());
-                var assignment = sem_get(store);
-                assignment.target = sem_control_read(c, store, selected);
-                assignment.value = sem_control_literal(c, store, 1);
-                var hit_node = sem_get(hit);
-                sem_push(&hit_node.items, store);
-                sem_control_branch(c, block, condition, hit);
-            }
-            j++;
-        }
-        if multiple {
-            condition = sem_control_read(c, block, selected);
-        }
-        var body = sem_member(arm, "body");
-        var arm_depth = depth + convert(u32, i);
-        arm_depth++;
-        var next = sem_block(c, body, arm_depth);
-        flow = flow | next;
-        if !sem_ok(c) {
-            return FlowNext();
-        }
-        block = sem_control_branch(c, block, condition, body);
-        i++;
-    }
-    var body = sem_member(fallback, "body");
-    var fallback_depth = depth + convert(u32, arms.length);
-    fallback_depth++;
-    var next = sem_block(c, body, fallback_depth);
-    flow = flow | next;
-    var tail = sem_get(block);
-    sem_push(&tail.items, body);
-    return flow;
+    state.arms = arms;
+    state.patterns = sem_list(c);
+    state.subject = sem_control_local(c, n, initial);
+    state.fallback = fallback;
+    state.block = n;
+    state.depth = depth;
+    return sem_control_match_arm(c, state);
 }
 
-fn sem_control_while(c: SemanticContext*, n: void*, depth: u32): u32 {
+fn sem_control_match_advance(c: SemanticContext*, state: SemanticMatchCursor*, flow: u32): bool {
+    state.flow |= flow;
+    if state.index == state.arms.length {
+        sem_push(&sem_get(state.block).items, state.body);
+        return false;
+    }
+    if !sem_ok(c) {
+        state.flow = FlowNext();
+        return false;
+    }
+    state.block = sem_control_branch(c, state.block, state.condition, state.body);
+    state.index++;
+    if !sem_control_match_arm(c, state) {
+        state.flow = FlowNext();
+        return false;
+    }
+    return true;
+}
+
+fn sem_control_match(c: SemanticContext*, n: void*, depth: u32): u32 {
+    var state: SemanticMatchCursor;
+    if !sem_control_match_begin(c, n, depth, &state) {
+        return FlowNext();
+    }
+    loop {
+        var flow = sem_block(c, state.body, state.depth + convert(u32, state.index) + 1);
+        if !sem_control_match_advance(c, &state, flow) {
+            return state.flow;
+        }
+    }
+}
+
+// Shared checking continuation for surface loops. The Foundation entities keep
+// the operations; this record retains header bindings across a body suspension.
+struct SemanticLoopCursor {
+    condition: void*;
+    update: void*;
+    block: void*;
+    guard: void*;
+    saved: SemanticScope*;
+    initial_flow: u32;
+}
+
+fn sem_control_while_begin(c: SemanticContext*, n: void*, state: SemanticLoopCursor*): bool {
+    *state = default;
     var condition = sem_expression(c, sem_member(n, "condition"), sem_type_new(c, SBool(), 0, null));
     if !sem_ok(c) {
-        return FlowNext();
+        return false;
     }
     var value = sem_node(c, n, KLoop());
     var block = sem_control_node(c, n, KBlock());
@@ -293,11 +332,18 @@ fn sem_control_while(c: SemanticContext*, n: void*, depth: u32): u32 {
         var local = sem_control_local(c, block, condition);
         guard = sem_control_read(c, block, local);
     }
+    state.condition = condition;
+    state.block = block;
+    state.guard = guard;
+    return true;
+}
+
+fn sem_control_while_finish(c: SemanticContext*, n: void*, state: SemanticLoopCursor*, flow: u32): u32 {
+    var condition = state.condition;
+    var known = sem_get(condition);
+    var block = state.block;
+    var guard = state.guard;
     var body = sem_member(n, "body");
-    c.loops++;
-    var body_depth = depth + 1;
-    var flow = sem_block(c, body, body_depth);
-    c.loops--;
     var otherwise = sem_control_branch(c, block, guard, body);
     var stop = sem_control_node(c, otherwise, KBreak());
     var failure = sem_get(otherwise);
@@ -318,15 +364,27 @@ fn sem_control_while(c: SemanticContext*, n: void*, depth: u32): u32 {
     return result;
 }
 
+fn sem_control_while(c: SemanticContext*, n: void*, depth: u32): u32 {
+    var state: SemanticLoopCursor;
+    if !sem_control_while_begin(c, n, &state) {
+        return FlowNext();
+    }
+    c.loops++;
+    var flow = sem_block(c, sem_member(n, "body"), depth + 1);
+    c.loops--;
+    return sem_control_while_finish(c, n, &state, flow);
+}
+
 // The header owns a scope; body locals never affect binding of the test/update.
 // Only existing Foundation nodes survive lowering. Most counted loops append the
 // update directly. A reachable continue requires moving it to the next loop head,
 // guarded on the first entry; this preserves effects without duplicating updates
 // or rewriting continues belonging to nested loops.
-fn sem_control_for(c: SemanticContext*, n: void*, depth: u32): u32 {
+fn sem_control_for_begin(c: SemanticContext*, n: void*, depth: u32, state: SemanticLoopCursor*): bool {
+    *state = default;
     if depth > 125 {
         sem_fail(c, n, "for lowering exceeds Foundation block nesting limit of 128");
-        return FlowNext();
+        return false;
     }
     var value = sem_node(c, n, KBlock());
     var saved = c.scope;
@@ -357,10 +415,20 @@ fn sem_control_for(c: SemanticContext*, n: void*, depth: u32): u32 {
         update = sem_control_node(c, n, SurfaceDiscard());
         sem_get(update).value = sem_surface_discard(c, sem_child(step_syntax, 0));
     }
+    state.saved = saved;
+    state.condition = condition;
+    state.update = update;
+    state.initial_flow = initial_flow;
+    return true;
+}
+
+fn sem_control_for_finish(c: SemanticContext*, n: void*, state: SemanticLoopCursor*, flow: u32): u32 {
+    var value = sem_get(n);
+    var saved = state.saved;
+    var condition = state.condition;
+    var update = state.update;
+    var initial_flow = state.initial_flow;
     var body = sem_member(n, "body");
-    c.loops++;
-    var flow = sem_block(c, body, depth + 2);
-    c.loops--;
     sem_scope_locals(c, c.scope, &value.locals);
     c.scope = saved;
     if !sem_ok(c) {
@@ -406,4 +474,15 @@ fn sem_control_for(c: SemanticContext*, n: void*, depth: u32): u32 {
         return result;
     }
     return result | FlowNext();
+}
+
+fn sem_control_for(c: SemanticContext*, n: void*, depth: u32): u32 {
+    var state: SemanticLoopCursor;
+    if !sem_control_for_begin(c, n, depth, &state) {
+        return FlowNext();
+    }
+    c.loops++;
+    var flow = sem_block(c, sem_member(n, "body"), depth + 2);
+    c.loops--;
+    return sem_control_for_finish(c, n, &state, flow);
 }

@@ -834,6 +834,25 @@ the small foundation module.
 
 ## Checks
 
+For compiler body/continuation development, use the existing Linux native build
+with `TOWER_WORK_TESTS=ON` and `TOWER_BACKEND_TESTS=ON`. This target incrementally
+builds the production worker runner and runs a short serial/four-worker check:
+
+```bash
+tower_native_build="${TOWER_NATIVE_BUILD:-$HOME/.cache/tower/native}"
+cmake --build "$tower_native_build" --target tower-body-smoke --parallel 2
+```
+
+It checks runtime behavior, canonical output/recompilation, header failure and
+cycle diagnostic order using the existing body fixture. It is a development
+subset; the full 1/2/4/8-worker and 32/64-bit body matrix remains available through
+`ctest --test-dir "$tower_native_build" -R '^tower-body-continuations$' --output-on-failure`.
+LR, native-unit and editor-unit checks can likewise be selected independently as
+`tower-lr-worker-equivalence`, `tower-native-units` and `tower-editor-units`.
+Run broader compiler/bootstrap/browser checks at coherent release milestones or
+when changed code invalidates their previous results. No sanitizer or repository
+formatting sweep is part of this development path.
+
 ```powershell
 npm test
 npx playwright install chromium

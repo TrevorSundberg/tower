@@ -42,7 +42,7 @@ get_property(utility_bind GLOBAL PROPERTY TOWER_RUNTIME_BIND)
 set(bytes_ir "${CMAKE_CURRENT_BINARY_DIR}/tower-bytes-tests-unbound.ll")
 set(bytes_bound "${CMAKE_CURRENT_BINARY_DIR}/tower-bytes-tests.ll")
 set(bytes_object "${CMAKE_CURRENT_BINARY_DIR}/tower-bytes-tests.o")
-add_custom_command(OUTPUT "${bytes_object}"
+add_custom_command(OUTPUT "${bytes_ir}" "${bytes_bound}" "${bytes_object}"
   COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/bytes.tower"
     --target "${utility_triple}" --emit llvm-optimized -o "${bytes_ir}" --depfile "${bytes_ir}.d"
     --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"

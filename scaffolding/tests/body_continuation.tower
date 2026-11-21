@@ -1,4 +1,5 @@
 import tower;
+import library.vector;
 
 fn identity(T: type, value: T): T {
     return value;
@@ -304,6 +305,146 @@ if loop_return() != 9 || comptime(loop_return()) != 9 {
     failures++;
 }
 if structural_condition(2) != 5 || structural_condition(-1) != 0 {
+    failures++;
+}
+
+fn while_runs(): i32 {
+    var i: i32 = 0;
+    var result: i32 = 0;
+    while identity(i) < 4 {
+        i++;
+        defer {
+            effects += i;
+        }
+        var value = identity(i);
+        if i == 2 {
+            continue;
+        }
+        if i == 4 {
+            break;
+        }
+        var storage: i32[1];
+        storage[0] = value;
+        result += storage[0];
+    }
+    return result;
+}
+
+fn for_runs(): i32 {
+    var result: i32 = 0;
+    for(var i = identity(0); i < identity(4); i = identity(i + 1)) {
+        defer {
+            effects += i;
+        }
+        var value = identity(i + 1);
+        if i == 1 {
+            continue;
+        }
+        if i == 3 {
+            break;
+        }
+        var storage: i32[1];
+        storage[0] = value;
+        result += storage[0];
+    }
+    return result;
+}
+
+fn staged_for(): i32 {
+    var result: i32 = 0;
+    for(var i = identity(0); i < comptime(identity(4)); i = identity(i + 1)) {
+        var value = identity(i);
+        result += value;
+    }
+    return result;
+}
+
+fn staged_while(): i32 {
+    while comptime(identity(true)) {
+        var value = identity(8);
+        return value;
+    }
+}
+
+if while_runs() != 4 || effects != 196 {
+    failures++;
+}
+if for_runs() != 4 || effects != 202 {
+    failures++;
+}
+if staged_for() != 6 || comptime(staged_for()) != 6 {
+    failures++;
+}
+if staged_while() != 8 || comptime(staged_while()) != 8 {
+    failures++;
+}
+fn foreach_values(values: vector(i32)*): i32 {
+    var result: i32 = 0;
+    foreach(var &item in values) {
+        var value = identity(*item);
+        defer {
+            var captured = identity(value);
+            result += captured;
+        }
+        if value == 2 { continue; }
+        result += identity(value);
+        if value == 3 { break; }
+    }
+    return result;
+}
+
+fn foreach_runs(): i32 {
+    var values: vector(i32) = default;
+    defer vector_dispose(&values);
+    vector_push(&values, 1);
+    vector_push(&values, 2);
+    vector_push(&values, 3);
+    return foreach_values(&values);
+}
+
+if foreach_runs() != 10 { failures++; }
+
+fn match_runs(input: i32): i32 {
+    var result: i32 = 0;
+    match identity(input) {
+        1 | 2 => {
+            var value = identity(input + 3);
+            defer {
+                result += identity(value);
+            }
+            var record: box(i32) = { value: identity(value + 1) };
+            result = record.value;
+        }
+        3 => {
+            var first = identity(10);
+            match first {
+                10 => {
+                    var values: i32[1];
+                    values[0] = identity(first + 2);
+                    return values[0];
+                }
+                _ => { return identity(0); }
+            }
+        }
+        _ => {
+            var value = identity(7);
+            var record: box(i32) = { value: identity(value + 1) };
+            result = identity(record.value);
+        }
+    }
+    return result;
+}
+
+fn match_default(): i32 {
+    match identity(0) {
+        _ => { return identity(13); }
+    }
+}
+
+if match_runs(1) != 9 || match_runs(2) != 11 || match_runs(3) != 12 || match_runs(9) != 8 {
+    failures++;
+}
+if comptime(match_runs(2)) != 11 || comptime(match_default()) != 13 {
     failures++;
 }
 print(failures);

@@ -31863,3 +31863,162 @@ Local deployment verification PASS: all 77 assets and full desktop/mobile editin
 Next-boundary audit narrows the earlier callback concern: tower_component_create/register and TowerComponentDestructor have no remaining Tower production consumers; their sole caller is tests/nodes.cpp. Production entities already use Tower lifecycle IDs through host/entity_lifecycle.tower. Before adding a new function-pointer language feature solely for migration, translate every node fixture assertion against that actual shared entity/lifecycle contract and explicitly retire the unused native callback interface. Do not emulate C++ addresses with fake pointers or drop callback userdata/owner/type and destruction-order assertions. The default-world handle and legacy allocation owner still have live IDE/test consumers and need real Tower-owned storage; explicit worlds must remain independent. This is the next implementation plan, not completed work.
 
 Final combined rebased browser regression selection PASS 121/121, zero failures/skips, 758.61s. This includes real shared-worker overlap/cancellation and worker-count determinism, completion queries, cross-target native executable/object/library linking and recoverable linker errors, raw/optimized LLVM execution, graph/fast interpreter agreement at both target widths, Foundation round trips, ECS entity pages/tables/stages and dependency/resumption/compiler-work fixtures. Command: `TOWER_REQUIRE_THREADS=1 node --test --test-concurrency=1` with compiler-threads, wasm, semantic-port, foundation-storage, compiler-workers, completion, completion-queries, cross-compilation and llvm-execution test files. Evidence baseline-rebased-browser-tests.log. A final fetch found e8661dd/896eb30 changing only this journal and Pages c607f92 changing only deployment metadata; preserve both appended records and reuse verified runtime bytes. Hosted release follows.
+### 2026-11-21 — Resume compiler ECS work; Stronghold is its eventual implementation layer
+
+The user directs implementation to continue with the future safety design as
+background. Tower's low-level ECS/foundation remain available without mandatory
+Stronghold enforcement. The compiler itself should eventually migrate to
+Stronghold so ownership, initialization and access rules become compiler-enforced
+contracts. Record that endpoint in AGENTS.md; it does not claim today's raw Tower
+code is memory-safe or require implementing Stronghold before the ECS migration.
+Safe versus low-level performance differences remain measurements, not assumptions.
+
+Pulled/rebased to abf427e, preserving local iteration/build fixes and the pending
+while/for/defer/foreach continuation batch. Integrated upstream named-field
+initialization and its publicly pinned development bootstrap. No new C++/Python
+or separate constant evaluator. Extend the same body-work component to match:
+retain subject, generated branch block, pattern set, arm cursor and flow across
+suspensions. The recursive checker and worker frames share begin/advance phases.
+Each arm's pattern is checked immediately before its body, preserving source
+diagnostics rather than prechecking later patterns before an earlier body fails.
+Retained generated branch blocks receive explicit stage leases on redispatch.
+
+Admission descends through ordinary match arm/fallback bodies and prepares a
+structural subject separately. Grammar extensions whose patterns themselves need
+structural construction conservatively retain whole-match coordinator ownership;
+this is an explicit remaining boundary, not fully parallel arbitrary expressions.
+Added execution/staging coverage for multi-pattern arms, nested/default-only
+matches, generic calls, deferred captures, arrays and upstream named initialization
+inside resumed bodies. The first integrated focused build/run is underway.
+
+The integrated smoke passes, then passes again with focused match pattern/body
+diagnostic-order checks (control-batch-smoke.log and control-batch-diagnostics.log).
+Added negative cases for structural subjects, an earlier body error before a
+later duplicate pattern, a duplicate before a later body error, deferred-block
+failure and foreach-body failure. The broader body matrix hit its 180s limit
+while native/portable/threaded builds were competing; no assertion failure was
+reported. This is not a passing result. Added sparse phase markers to the Tower
+test runner and will rerun it quietly to distinguish elapsed cost from a stall.
+
+The default no-private-override build completes all 55 steps in the fresh
+control-batch-clean cache, using public bootstrap archive 961952b73e4e9e1d9d08556c3a7f651ae8457c76cbc4c70d7f72d80f5c857742.
+Its compiler interprets the expanded control fixture and prints 0. An unchanged
+rebuild reports no work. Portable and shared-memory reactor builds pass too;
+native test targets and LLVM/cross packaging follow. The first LLVM build wrapper
+stopped on Git's ownership check for the bind-mounted llvm-project checkout;
+reran with command-scoped safe.directory entries for the known project and
+submodule, without a global Git policy change. All new feature/test code is Tower;
+the LLVM browser fixture list only transports the shared Tower control fixture.
+
+The quiet full body matrix passes in 165.286s, including both pointer widths,
+execution/canonical reparse at 1/2/4/8 workers, all four diagnostic groups and
+cycles (control-batch-bodies-quiet.log). The initial 180s timeout was elapsed cost
+under build contention, not a stalled continuation. Routine diagnostic coverage
+now uses serial/4-worker admission instead of rebuilding every small error module
+at all four worker counts; retain 1/2/4/8 for successful canonical/execution coverage.
+The passing superset validates those retained cases. Phase messages make future
+timeouts distinguishable. LLVM/cross reactors and the 15-unit compiler project
+package also build successfully. Remaining native/browser/release checks follow.
+
+The remaining ten native CTest cases pass in 304.29s, including frontend, driver,
+storage, parser workers, independent units, editor units, execution and request
+ownership (control-batch-native-tests.log). The full body matrix was already run
+separately. The next required pull advances abf427e to e8661dd: upstream adopts
+named initialization and corrects LR completion depth. Preserve both journal
+append histories from the autostash conflict. Because production sources changed,
+refresh native/portable/threaded/backend artifacts and use a new default-bootstrap
+native directory, control-batch-rebased-clean, before successor/publication checks.
+No checks or builds were running during that pull.
+
+### 2026-11-21 — Remaining ECS/threading scope and faster completion order
+
+The user requests a candid percentage and file/line estimate, and prioritizes
+finishing the actual pipeline over further broad audits. Estimate about 70%
+complete (roughly 65–75%, or 25–35% remaining) for the requested ECS/threading plus
+lazy decltype/comptime dependency conversion. This is engineering judgment, not
+measured coverage, elapsed-time prediction or a claim that 70% of source lines
+are parallel. It advances the earlier 60–70% estimate modestly for the control
+continuations; substantial structural, integration and staging work remains.
+Future Stronghold implementation, parser/regex specialization and translating
+upstream LLVM are outside this percentage.
+
+A bounded source inventory at e8661dd plus this pending batch counts 33 central
+files / 14,732 physical lines: 18 semantic files / 8,870 lines, four frontend
+files / 2,426, five host files / 1,166, four scheduler/stage files / 1,543 and two
+backend files / 727. Include entities.tower (1,165), semantic_lifecycle.tower
+(180), backend/session.tower (433), syntax_session_view.tower (64) and
+syntax_session_setup.tower (132) for 38 files / 16,706 lines surrounding the
+known boundaries. These files contain working implementations as well as remaining
+work; this is an inspection surface, not 16,706 lines requiring replacement or
+an exhaustive list of future edits. Expect changes across tens of files, plus
+focused Tower tests, rather than a handful of final wrappers. An exact remaining
+edit-line count is not knowable before implementing the boundaries.
+
+The initial 33-file set is semantic_{body_work,control,defer,iteration,declarations,
+expressions,expression_lowering,call_inference,generic_body_work,generic_values,
+generic_info,layout,evaluation,evaluation_work,types,values,context,lowering_work};
+frontend_{units,world,compilation,modules}; host/{driver_compile,driver_link,
+llvm_worker,runtime_driver,runtime_bind}; library/{compiler_work,work_graph,
+work_pool,entity_stage}; backend/{linker,import_module}. Counts use wc -l on the
+corresponding .tower files, excluding tests, third-party code and generated output.
+
+Completion order: publish this coherent control-continuation/iteration-speed
+batch; remove broad body layout readiness work; continue expression/type/generic
+construction suspension on the shared work components; integrate native CLI unit
+recipes and isolated backend jobs; finish world/reference and editor ownership;
+extend staging values, tracked effects and revision/target invalidation. Existing
+scalar comptime, unevaluated decltype, demand scheduling, cycle detection and
+real worker execution are implemented, but are not the full staging endpoint.
+Current archetypes index stable payload pointers; packed hot component columns
+and end-to-end scaling still need measured decisions. Thread every independent
+eligible job, while preserving required source/effect order and structural joins.
+
+Specific next candidate: sem_body_layouts scans c.program.types and adds every
+completed layout dependency for each body. Inspection establishes potentially
+functions-times-types traversal/edge growth, not a measured end-to-end bottleneck.
+Measure that count before changing it; preserve readiness/invalidation and
+cycle/diagnostic behavior. Do not simply remove dependency edges. Avoid broad
+cleanup, new tooling languages, repeat passing matrices and separate full releases
+for each small handler. Stronghold remains the future compiler language; today's
+raw Tower ECS contracts remain explicit and available.
+
+Post-pull clean native build passes all 55 steps with the public 961952b7
+bootstrap (control-batch-rebased-clean.log), and its CLI executes the expanded
+control fixture with output 0 (control-batch-rebased-cli.log). Enabled only the
+existing backend/work test targets in that cache and rebuilt the final Tower
+runner: serial/worker body smoke, canonical equality, execution and ordered
+diagnostics/cycles pass (control-batch-rebased-smoke.log). Do not repeat the
+already-passing full native matrix for the upstream construction-site adoption.
+
+Refreshed portable/shared-memory/LLVM/cross artifacts and the complete 15-unit
+compiler project package pass (control-batch-rebased-browser.log). The focused
+browser regression run passes all 66 cases in 92.118s: compiler workers, scalar
+staging/decltype dependencies and cycles, interpreter/world isolation and parser
+behavior (control-batch-browser-tests.log). Its 1/2/4/8 determinism case includes
+the expanded control fixture. Do not infer a compiler speedup from these results.
+For this compiler-only milestone, deployment verification will check the served
+manifest and compiler bytes after successful publication, rather than rerun the
+unchanged full desktop/mobile UI workflow. Local semantic and successor checks
+remain required; no sanitizer or broad formatting is introduced.
+
+Focused LLVM tests pass for named initialization and the expanded resumable
+control-body fixture (2/2, 26.921s). Both browser-built compiler generations then
+pass with 2 and 4 unit workers, including an edited semantic diagnostic and
+byte-identical successive reactors: Tower 1,094,099 bytes, LLVM 52,401,401 bytes,
+cross 63,958,806 bytes (control-batch-generations.log; generation times 142.767s
+and 79.717s). This is correctness/bootstrap evidence, not a controlled scaling
+benchmark. Static distribution generation with required threaded/backends flags
+also passes (control-batch-dist.log). Publication uses the established verified
+asset publisher; hosted verification follows. todo.txt retains blob
+96a9e58964d7f01e4a97819f259448db81ef5e40. All new compiler/test behavior is Tower.
+
+The final publication pull brought in 896eb30/cb35053/8ce92ae, including the
+world-owned Tower baseline/seed transport and removal of obsolete native files.
+Preserve both append histories and the automatic CMake merges. This changes
+production/build inputs, so the preceding checks describe the e8661dd integration;
+they are not silently relabeled as validation of the later port. Rebuild the
+integrated native successor from the documented bootstrap in a fresh
+control-batch-baseline-clean directory, then refresh browser artifacts and check
+the affected worker/baseline and successor boundaries. Source publication may
+proceed after the native successor/body checks, while browser release work
+continues. Do not repeat unrelated full suites or start another feature mid-release.
