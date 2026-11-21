@@ -37714,3 +37714,15 @@ The ordinary driver test passes in 9.90 seconds, all 16 native comparisons in
 test-binding objects also compile with the new public bootstrap. Preserve its
 complete resources/provenance; do not replace it with the earlier development
 compiler used during the first test run.
+
+Publication receipt: source 365a279 and validation afd25cf are pushed to main.
+Under the shared publication lock, update only deployment-manifest.json from
+Pages parent d6ae0f7 to 3e72149f6cea2eff572f648e62258078caa80aff. Preserve all
+86 runtime assets, buildSourceCommit 6c03edd97407d9fd11e39296f3f6ef89299c2a15
+and concurrent linker/UI/profiling notes. The manifest request exceeded Windows'
+command-line limit when passed as inline base64; that invocation did not run.
+Use gh api --input with a UTF-8 JSON request file instead. Pages action
+44959483072 succeeds; the hosted manifest matches the prepared bytes exactly,
+SHA-256 3045cfd3fba15766d4d076764795e2660284421e44dea6012c071c3721dab208.
+This metadata-only publication reuses the verified runtime and does not rebuild
+compiler/browser assets. Release the owned lock after hosted verification.
