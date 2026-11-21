@@ -1,0 +1,101 @@
+import tower;
+import syntax_live_support;
+import .library.bytes_types;
+import .library.bytes_interface;
+import storage_api;
+import utility_checks;
+
+fn live_boundary_tests(): void {
+    var allocations: LiveAllocations; live_allocations(&allocations); defer live_released(&allocations);
+    {
+        var case_allocations: LiveAllocations; live_allocations(&case_allocations); defer live_released(&case_allocations);
+        var source: ByteBuffer; fill(&source, 0, sizeof(ByteBuffer)); defer bytes_dispose(&source);
+        live_join(&source, live_base(), live_feature(), "parse Statement |= 'for';for(item in items){for for(child in children){child;} for}for /* lookahead trivia */ item;for token Identifier = /@[a-z]+/ as identifier;@item;for");
+        var session = live_open(source.data); defer syntax_destroy(bits(void*, session)); live_declarations(session, 6);
+        var result = live_next(session); defer tower_node_release_ref(result); var loop_node = live_find(result, "ForEach"); utility_check(loop_node is not null, "Shared-prefix LR loop");
+        utility_check(tower_node_get_child_count(tower_node_get_child_member(loop_node, "Statement")) == 3, "Nested shared-prefix loop statements");
+        live_next_source(session, source.data, "for"); live_next_source(session, source.data, "item;"); live_next_source(session, source.data, "for");
+        live_declarations(session, 1); utility_check(session.revision == 7, "Lexical override installs after boundary");
+        live_next_source(session, source.data, "@item;"); live_next_source(session, source.data, "for"); live_end(session);
+    }
+    var bad: u8*[4]; bad[0] = "for("; bad[1] = "for(x xs){}"; bad[2] = "for(x in xs){"; bad[3] = "for @";
+    for (var index: usize = 0; index < 4; ++index) {
+        var prefix: ByteBuffer; fill(&prefix, 0, sizeof(ByteBuffer)); defer bytes_dispose(&prefix); live_join(&prefix, live_base(), live_feature(), "parse Statement |= 'for';");
+        var source: ByteBuffer; fill(&source, 0, sizeof(ByteBuffer)); defer bytes_dispose(&source); live_join(&source, prefix.data, bad[index], "");
+        var session = live_open(source.data); defer syntax_destroy(bits(void*, session)); live_declarations(session, 6);
+        if index == 3 { live_next_source(session, source.data, "for"); }
+        live_failure(session);
+        if index == 3 { utility_check(session.error_offset == source.length - 1, "Invalid following lookahead keeps original error offset"); }
+    }
+    {
+        var case_allocations: LiveAllocations; live_allocations(&case_allocations); defer live_released(&case_allocations);
+        var session = live_open("parse Statement = 'x';parse Statement |= 'x' 'x';"); defer syntax_destroy(bits(void*, session)); live_declarations(session, 1); live_failure(session);
+        utility_check(strstr(syntax_get_error(bits(void*, session)), "Grammar conflict (shift/reduce)") is not null && session.revision == 1, "Ambiguous boundary fails atomic candidate publication");
+    }
+}
+fn live_revision_tests(): void {
+    var allocations: LiveAllocations; live_allocations(&allocations); defer live_released(&allocations);
+    {
+        var case_allocations: LiveAllocations; live_allocations(&case_allocations); defer live_released(&case_allocations);
+        var first = "for(item in items){item;for(child in children){child;}}";
+        var prefix: ByteBuffer; fill(&prefix, 0, sizeof(ByteBuffer)); defer bytes_dispose(&prefix); live_join(&prefix, live_base(), live_feature(), first);
+        var source: ByteBuffer; fill(&source, 0, sizeof(ByteBuffer)); defer bytes_dispose(&source);
+        live_join(&source, prefix.data, "parse ForEach = 'walk' '(' $Variable 'in' $Expression ')' '{' $Statement* '}';", "walk(x in xs){}");
+        var session = live_open(source.data); defer syntax_destroy(bits(void*, session));
+        for (var revision: usize = 1; revision <= 5; ++revision) {
+            var declaration = live_next(session); defer tower_node_release_ref(declaration); var span = live_match(declaration);
+            utility_check(session.revision == revision && session.cursor == span.start + span.length, "Revision and cursor publish at full declaration boundary");
+        }
+        var result = live_next(session); defer tower_node_release_ref(result); live_source(result, source.data, first);
+        var loop_node = live_find(result, "ForEach"); utility_check(loop_node is not null, "New grammar immediately lexes adjacent source");
+        live_source(tower_node_get_child_member(loop_node, "Variable"), source.data, "item"); live_source(tower_node_get_child_member(loop_node, "Expression"), source.data, "items");
+        var statements = tower_node_get_child_member(loop_node, "Statement");
+        utility_check(statements is not null && tower_node_get_child_count(statements) == 2 && live_find(tower_node_get_child(statements, 1), "ForEach") is not null, "Nested captured loop bodies");
+        var definition = live_next(session); defer tower_node_release_ref(definition); utility_check(session.revision == 6, "Replacing definition installs one revision");
+        var changed = live_next(session); defer tower_node_release_ref(changed); var changed_loop = live_find(changed, "ForEach");
+        utility_check(changed_loop is not null && tower_node_get_child_count(tower_node_get_child_member(changed_loop, "Statement")) == 0, "Replaced loop syntax accepts empty body"); live_end(session);
+        syntax_destroy(bits(void*, session)); session = null;
+        live_dump_contains(result, "Variable: rule Variable"); live_dump_contains(result, "Expression: rule Expression");
+    }
+    {
+        var case_allocations: LiveAllocations; live_allocations(&case_allocations); defer live_released(&case_allocations);
+        var source: ByteBuffer; fill(&source, 0, sizeof(ByteBuffer)); defer bytes_dispose(&source);
+        live_join(&source, live_base(), live_feature(), "format; // not the keyword for\nparse Many = 'many' '(' $Expression+ ')' ';';parse Statement |= Many;many(a 2 b);parse Maybe = 'maybe' $Expression? ';';parse Statement |= Maybe;maybe;maybe x;parse Arrow = '=>' $Expression ';';parse Statement |= Arrow;=> x;parse Expression |= String;\"a ; } // inside a string\";");
+        var session = live_open(source.data); defer syntax_destroy(bits(void*, session)); var count = live_consume(session);
+        utility_check(count == 18 && *syntax_get_error(bits(void*, session)) == 0, "Keyword boundaries, optional/repeated captures, punctuation and quoted trivia");
+    }
+}
+fn live_invalid_tests(): void {
+    var allocations: LiveAllocations; live_allocations(&allocations); defer live_released(&allocations);
+    var future: ByteBuffer; fill(&future, 0, sizeof(ByteBuffer)); defer bytes_dispose(&future); live_join(&future, "for(x in xs){}", live_feature(), "");
+    var bad: u8*[13]; bad[0] = future.data; bad[1] = "parse Statement |= Unknown;"; bad[2] = "parse Missing |= Expression;";
+    bad[3] = "parse Statement |= Expression ';';"; bad[4] = "parse Statement = ;"; bad[5] = "parse Empty = ;parse Bad = Empty*;";
+    bad[6] = "parse Cycle = Cycle;"; bad[7] = "parse Dup = $Expression $Expression;"; bad[8] = "parse Identifier = 'other';";
+    bad[9] = "parse Bad = 'unterminated"; bad[10] = "/* unterminated"; bad[11] = "parse Bad = 'two words';"; bad[12] = "parse Bad = 'x'";
+    for (var index: usize = 0; index < 13; ++index) {
+        var source: ByteBuffer; fill(&source, 0, sizeof(ByteBuffer)); defer bytes_dispose(&source); live_join(&source, live_base(), bad[index], "");
+        var session = live_open(source.data); defer syntax_destroy(bits(void*, session)); var first = live_next(session); defer tower_node_release_ref(first); live_declarations(session, 2);
+        var revision: usize = 3;
+        loop { var root = syntax_next(bits(void*, session)); if root is null { break; } revision = session.revision; tower_node_release_ref(root); }
+        utility_check(*syntax_get_error(bits(void*, session)) != 0 && session.revision == revision && syntax_next(bits(void*, session)) is null, "Invalid candidates preserve last successful revision and sticky failure");
+        live_dump_contains(first, "GrammarDeclaration");
+    }
+    var loops: u8*[4]; loops[0] = "for(x in xs){"; loops[1] = "for(x xs){}"; loops[2] = "for(x in xs){x}"; loops[3] = "for(x in xs){}@";
+    for (var index: usize = 0; index < 4; ++index) {
+        var prefix: ByteBuffer; fill(&prefix, 0, sizeof(ByteBuffer)); defer bytes_dispose(&prefix); live_join(&prefix, live_base(), live_feature(), "");
+        var source: ByteBuffer; fill(&source, 0, sizeof(ByteBuffer)); defer bytes_dispose(&source); live_join(&source, prefix.data, loops[index], "");
+        var session = live_open(source.data); defer syntax_destroy(bits(void*, session)); live_consume(session);
+        utility_check(*syntax_get_error(bits(void*, session)) != 0, "Malformed loop does not silently backtrack");
+    }
+    {
+        var case_allocations: LiveAllocations; live_allocations(&case_allocations); defer live_released(&case_allocations);
+        var source: ByteBuffer; fill(&source, 0, sizeof(ByteBuffer)); defer bytes_dispose(&source);
+        live_join(&source, live_base(), live_feature(), "parse ForEach = 'walk' '(' Variable 'in' Expression ')' '{' Statement* '}';for(x in xs){}");
+        var session = live_open(source.data); defer syntax_destroy(bits(void*, session)); live_declarations(session, 6); live_failure(session);
+        utility_check(session.revision == 6, "Replacing syntax removes old spelling");
+    }
+    {
+        var case_allocations: LiveAllocations; live_allocations(&case_allocations); defer live_released(&case_allocations);
+        var session = live_open(" // empty\n /* source */ "); defer syntax_destroy(bits(void*, session)); live_end(session);
+    }
+}

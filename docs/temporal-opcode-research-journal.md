@@ -27661,3 +27661,36 @@ inference bootstrap; no new compiler/bootstrap feature was introduced. No
 sanitizer or broad formatter sweep. This follow-up is private during the
 Agent1 combined release of0f63985 and the ready Agent2 LR batch; no deployment
 claim is made for it yet.
+
+### 2026-11-20 - Agent 3: live syntax-session functional suite in Tower
+
+Ported all420 nonblank lines of syntax-tests.cpp (frozen SHA-256
+c06c7e05d29970c8d91a4c73c299364bae0d809c10fa32244049e0900d39e194)
+to syntax_live/support/replacements/grammar/lexical Tower modules. Preserved
+shared Bedrock/token identity, canonical graph formatting after semantic edits,
+retained source/expansion provenance, replacement chains/forest copying/limits,
+LR lookahead boundaries, exact cursor/revision publication, rejected edits,
+24 cache-churn edits, lexical overrides,13 positive/17 negative regex cases and
+the excessive-DFA rejection. Node/component/memory counts remain checked after
+owned sessions/trees are released. Suite helpers use shared SyntaxSession,
+SyntaxOrigin, FormatResult and ParserMatchData layouts rather than C++ vector
+or string return adapters.
+
+Standalone native and WASI executions passed before native deletion, then both
+passed again after deleting the source and switching the existing syntax_tests
+entry to C linkage. Agent1 approved the mechanical header edit; coordinator
+approved source-list wiring. TowerSyntaxTests.cmake produces a separate object
+attached to the existing parser interface, which all native/browser/reactor
+consumers already use. No backend lowering or reactor implementation changed.
+Native tower-live-syntax CTest passed0.42s, WASI command passed, both aggregate
+runners link. Existing native frontend/driver/storage/format pass4/4 in18.19s.
+
+Compile corrections were explicit direct type imports (imports do not re-export
+all types), an explicit u8* to void* free argument and the puts declaration.
+Reviewed regex string byte lengths against the original fixture before execution.
+The public25765446 bootstrap builds this private slice; final publication must
+rebase and repeat using the newer default release now upstream. Sanitizers and
+broad formatter sweeps remain skipped. Current Agent1 deployment is frozen;
+this slice and the validation oracle are not part of it. The aggregate runner
+migration is next; native node callback coverage is still retained because Tower
+cannot yet express the required actual function address.

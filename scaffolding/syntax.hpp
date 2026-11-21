@@ -94,4 +94,4 @@ extern "C" void syntax_copy_origin(TowerNode* source, TowerNode* destination);
 struct SyntaxExpansionStats { size_t replacements = 0, generated_nodes = 0, copied_nodes = 0; };
 SyntaxExpansionStats syntax_get_expansion_stats(SyntaxSession* session);
 
-void syntax_tests();
+extern "C" void syntax_tests();

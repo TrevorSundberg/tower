@@ -1,0 +1,90 @@
+import tower;
+import .compiler.syntax_session_types;
+import .compiler.syntax_types;
+import .compiler.format_types;
+import .compiler.parser_types;
+import .library.vector;
+import .library.bytes_interface;
+import .library.bytes_types;
+import storage_api;
+import utility_checks;
+
+extern fn syntax_native_bedrock(): void*;
+extern fn syntax_completion_create(text: u8*, mode: u32): void*;
+extern fn syntax_component_type(): void*;
+extern fn syntax_equal(a: void*, b: void*, locations: bool): bool;
+extern fn tower_component_get_allocated_count(): usize;
+extern fn tower_memory_get_allocated_count(): usize;
+extern fn tower_memory_free(memory: void*): void;
+extern fn tower_node_get_child_count(node: void*): usize;
+extern fn tower_node_get_id(node: void*): usize;
+extern fn tower_node_add_ref(node: void*): usize;
+extern fn syntax_get_origin(node: void*): SyntaxOrigin*;
+extern fn parser_tree_debug_string(node: void*): u8*;
+extern fn format_entity(out: FormatResult*, node: void*, syntax: void*, foundation: void*, matches: void*): void;
+extern fn format_dispose(out: FormatResult*): void;
+extern fn syntax_format_into(session: void*, out: FormatResult*, error: u8**): bool;
+extern fn strstr(text: u8*, part: u8*): u8*;
+
+struct LiveAllocations { nodes: usize; components: usize; memory: usize; }
+fn live_allocations(value: LiveAllocations*): void {
+    value.nodes = tower_node_get_allocated_count(); value.components = tower_component_get_allocated_count(); value.memory = tower_memory_get_allocated_count();
+}
+fn live_released(value: LiveAllocations*): void {
+    utility_check(value.nodes == tower_node_get_allocated_count() && value.components == tower_component_get_allocated_count() && value.memory == tower_memory_get_allocated_count(), "Live syntax releases nodes, components and memory");
+}
+fn live_base(): u8* { return "parse Variable = Identifier;parse Expression = Identifier | Number;parse Statement = Expression ';';"; }
+fn live_feature(): u8* { return "parse ForEach = 'for' '(' $Variable 'in' $Expression ')' '{' $Statement* '}';parse Statement |= ForEach;"; }
+fn live_join(out: ByteBuffer*, a: u8*, b: u8*, c: u8*): void {
+    utility_check(bytes_assign_text(out, a, strlen(a)) && bytes_append(out, b, strlen(b)) && bytes_append(out, c, strlen(c)) && bytes_push(out, 0), "Live syntax fixture text allocation"); --out.length;
+}
+fn live_open(source: u8*): SyntaxSession* { var session = bits(SyntaxSession*, syntax_create(source, null)); utility_check(session is not null, "Create live syntax session"); return session; }
+fn live_next(session: SyntaxSession*): void* {
+    var node = syntax_next(bits(void*, session)); if node is null { puts(syntax_get_error(bits(void*, session))); }
+    utility_check(node is not null && *syntax_get_error(bits(void*, session)) == 0, "Next live syntax construct"); return node;
+}
+fn live_declarations(session: SyntaxSession*, count: usize): void {
+    for (var index: usize = 0; index < count; ++index) { tower_node_release_ref(live_next(session)); }
+}
+fn live_consume(session: SyntaxSession*): usize {
+    var count: usize = 0;
+    loop { var node = syntax_next(bits(void*, session)); if node is null { return count; } tower_node_release_ref(node); ++count; }
+}
+fn live_end(session: SyntaxSession*): void {
+    var node = syntax_next(bits(void*, session)); utility_check(node is null && *syntax_get_error(bits(void*, session)) == 0, "Live syntax clean end");
+}
+fn live_failure(session: SyntaxSession*): void {
+    utility_check(syntax_next(bits(void*, session)) is null && *syntax_get_error(bits(void*, session)) != 0, "Live syntax invalid construct rejected");
+}
+fn live_match(node: void*): ParserMatchData* {
+    utility_check(node is not null, "Live syntax expected tree");
+    var result = bits(ParserMatchData*, tower_node_get_component_userdata(node, parser_match_get_type()));
+    utility_check(result is not null, "Live syntax retains parser provenance"); return result;
+}
+fn live_span(source: u8*, start: usize, length: usize, text: u8*): bool {
+    utility_check(start <= strlen(source) && length <= strlen(source) - start, "Live syntax provenance range");
+    return length == strlen(text) && utility_equal(source + start, text, length);
+}
+fn live_source(node: void*, source: u8*, text: u8*): void {
+    var span = live_match(node); utility_check(live_span(source, span.start, span.length, text), "Live syntax exact original source span");
+}
+fn live_next_source(session: SyntaxSession*, source: u8*, text: u8*): void { var node = live_next(session); defer tower_node_release_ref(node); live_source(node, source, text); }
+fn live_find(root: void*, label: u8*): void* {
+    var stack: vector(void*); vector_init(&stack); defer vector_dispose(&stack);
+    utility_check(vector_push(&stack, root), "Live syntax search allocation");
+    while stack.length != 0 {
+        var node = stack.data[--stack.length]; var span = bits(ParserMatchData*, tower_node_get_component_userdata(node, parser_match_get_type()));
+        if span is not null && span.label.length == strlen(label) && utility_equal(span.label.data, label, span.label.length) { return node; }
+        for (var index: usize = 0; index < tower_node_get_child_count(node); ++index) { utility_check(vector_push(&stack, tower_node_get_child(node, index)), "Live syntax search stack"); }
+    }
+    return null;
+}
+fn live_text(value: vector(u8)*, text: u8*): bool { return value.length == strlen(text) && utility_equal(value.data, text, value.length); }
+fn live_format(out: FormatResult*, root: void*): void {
+    format_entity(out, root, syntax_component_type(), null, parser_match_get_type()); utility_check(!out.failed, "Live shared syntax formatting");
+}
+fn live_format_equal(a: FormatResult*, b: FormatResult*): void { utility_check(a.text.length == b.text.length && utility_equal(a.text.data, b.text.data, a.text.length), "Live syntax canonical text equality"); }
+fn live_dump_contains(node: void*, text: u8*): void {
+    var dump = parser_tree_debug_string(node); utility_check(dump is not null, "Live syntax debug output allocation"); defer tower_memory_free(bits(void*, dump));
+    utility_check(strstr(dump, text) is not null, "Retained syntax tree debug contents");
+}

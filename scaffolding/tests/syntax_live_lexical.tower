@@ -1,0 +1,82 @@
+import tower;
+import syntax_live_support;
+import .compiler.syntax_types;
+import .compiler.format_types;
+import .compiler.frontend_revision_types;
+import .library.bytes_types;
+import .library.bytes_interface;
+import storage_api;
+import utility_checks;
+
+extern fn compiler_host_world(): void*;
+extern fn frontend_world_pattern(world: void*, source: u8*, length: usize, error: FormatResult*): SyntaxPattern*;
+extern fn syntax_pattern_release(pattern: SyntaxPattern*): void;
+extern fn lex_table_match(table: LexerTable*, source: u8*, length: usize, start: usize): usize;
+
+fn live_cache_tests(): void {
+    var allocations: LiveAllocations; live_allocations(&allocations); defer live_released(&allocations);
+    var source: ByteBuffer; fill(&source, 0, sizeof(ByteBuffer)); defer bytes_dispose(&source); live_join(&source, live_base(), live_feature(), "for(x in xs){}");
+    var session = live_open(source.data); defer syntax_destroy(bits(void*, session)); live_consume(session);
+    utility_check(*syntax_get_error(bits(void*, session)) == 0 && session.cache.index.builds == 6, "Initial session builds six grammars");
+    var prefix: ByteBuffer; fill(&prefix, 0, sizeof(ByteBuffer)); defer bytes_dispose(&prefix); live_join(&prefix, live_base(), "for;", live_feature());
+    live_join(&source, prefix.data, "for(y in ys){}", ""); syntax_reset(bits(void*, session), source.data, null);
+    utility_check(session.revision == 0 && session.cursor == 0, "Reset clears revision and cursor"); live_consume(session);
+    utility_check(*syntax_get_error(bits(void*, session)) == 0 && session.cache.index.builds == 0 && session.cache.index.hits == 6, "Editing session reuses all six grammar revisions");
+    live_join(&source, live_base(), "parse Statement |= Expression ';';", ""); syntax_reset(bits(void*, session), source.data, null); live_consume(session);
+    utility_check(*syntax_get_error(bits(void*, session)) != 0 && session.revision == 3, "Invalid edit keeps last valid cached revision");
+    for (var index: usize = 0; index < 24; ++index) {
+        var word: u8[7]; word[0] = 119; word[1] = 111; word[2] = 114; word[3] = 100;
+        var length: usize = 4; if index >= 10 { word[length++] = convert(u8, 48 + index / 10); } word[length++] = convert(u8, 48 + index % 10); word[length] = 0;
+        live_join(&prefix, "parse Statement = '", &word[0], "' ';';"); live_join(&source, prefix.data, &word[0], ";");
+        syntax_reset(bits(void*, session), source.data, null); live_consume(session);
+        utility_check(*syntax_get_error(bits(void*, session)) == 0 && session.cache.index.entries.length <= FrontendCacheLimit(), "Grammar cache stays within configured bound");
+    }
+    live_join(&source, live_base(), live_feature(), "for(z in zs){}"); syntax_reset(bits(void*, session), source.data, null); live_consume(session);
+    utility_check(*syntax_get_error(bits(void*, session)) == 0 && session.revision == 5, "Session recovers original grammar after cache churn");
+}
+fn live_pattern_case(pattern_text: u8*, source: u8*, length: usize): void {
+    var error: FormatResult; fill(&error, 0, sizeof(FormatResult)); defer format_dispose(&error);
+    var pattern = frontend_world_pattern(compiler_host_world(), pattern_text, strlen(pattern_text), &error);
+    utility_check(pattern is not null && error.text.length == 0, "Compile live lexical pattern"); defer syntax_pattern_release(pattern);
+    utility_check(lex_table_match(pattern.table, source, strlen(source), 0) == length, "Live lexical longest-prefix byte length");
+}
+fn live_pattern_tests(): void {
+    live_pattern_case("a|ab", "abc", 2); live_pattern_case("ab?c", "ac!", 2); live_pattern_case("ab?c", "abc!", 3);
+    live_pattern_case("(ab|a)c", "abc!", 3); live_pattern_case("((ab)*c)+", "abcc!", 4); live_pattern_case("a(b?)*", "abbb!", 4);
+    live_pattern_case("[a-c]+", "cbad", 3); live_pattern_case("[^a-c]+", "xyzb", 3); live_pattern_case("[a-]+", "a--!", 3);
+    live_pattern_case("[\\u{80}-\\u{10ffff}]+", "雪🚀a", 7); live_pattern_case("\\x41\\u{1f680}", "A🚀!", 5);
+    live_pattern_case(".+", "hi\nthere", 2); live_pattern_case("[\\]\\-]+", "]-x", 2);
+    var invalid: u8*[17]; invalid[0] = ""; invalid[1] = "a*"; invalid[2] = "a?"; invalid[3] = "(a|)"; invalid[4] = "()*";
+    invalid[5] = "[z-a]"; invalid[6] = "[]"; invalid[7] = "[^]"; invalid[8] = "[abc"; invalid[9] = "(abc";
+    invalid[10] = "a**"; invalid[11] = "a{2}"; invalid[12] = "^a"; invalid[13] = "\\d"; invalid[14] = "\\1"; invalid[15] = "\\u{d800}"; invalid[16] = "\\x0";
+    for (var index: usize = 0; index < 17; ++index) {
+        var error: FormatResult; fill(&error, 0, sizeof(FormatResult)); defer format_dispose(&error);
+        var pattern = frontend_world_pattern(compiler_host_world(), invalid[index], strlen(invalid[index]), &error);
+        utility_check(pattern is null && error.text.length != 0, "Invalid lexical pattern diagnosed");
+    }
+    var excessive: ByteBuffer; fill(&excessive, 0, sizeof(ByteBuffer)); defer bytes_dispose(&excessive);
+    utility_check(bytes_assign_text(&excessive, "(a|b)*a", 7), "Excessive regex prefix");
+    for (var index: usize = 0; index < 12; ++index) { utility_check(bytes_append(&excessive, "(a|b)", 5), "Excessive regex suffix"); }
+    utility_check(bytes_push(&excessive, 0), "Excessive regex terminator"); --excessive.length;
+    var error: FormatResult; fill(&error, 0, sizeof(FormatResult)); defer format_dispose(&error);
+    utility_check(frontend_world_pattern(compiler_host_world(), excessive.data, excessive.length, &error) is null && strstr(error.text.data, "complexity limit") is not null, "Excessive lexical DFA complexity diagnosed");
+}
+fn live_lexical_tests(): void {
+    var allocations: LiveAllocations; live_allocations(&allocations); defer live_released(&allocations);
+    var source = "token Identifier = /[A-Za-z_][A-Za-z_0-9-]*/ as identifier;token Number = /[0-9]+(\\.[0-9]+)?/ as number;token Hex = /0x[0-9a-f]+/ as number;skip Hash = /#[^\\n]*/ as comment;parse Statement = Identifier Number String Hex ';';parse Extra = Identifier ';';parse Statement |= Extra;token String = /`[^`]*`/ as string;player-name 3.14 `hello` 0xff;\n# ignore me\ntoken Identifier = /@[a-z]+/ as identifier;@player;";
+    var session = live_open(source); defer syntax_destroy(bits(void*, session));
+    for (var pass: usize = 0; pass < 2; ++pass) {
+        if pass != 0 { syntax_reset(bits(void*, session), source, null); }
+        var count = live_consume(session);
+        utility_check(*syntax_get_error(bits(void*, session)) == 0 && count == 11 && session.revision == 9, "Live token/skip overrides parse complete fixture");
+        if pass != 0 { utility_check(session.cache.index.builds == 0, "Lexical revisions reused after reset"); }
+    }
+    var invalid: u8*[3]; invalid[0] = "token Identifier = /a*/;"; invalid[1] = "token Identifier = /[z-a]/;"; invalid[2] = "skip Identifier = /[a-z]+/;";
+    for (var index: usize = 0; index < 3; ++index) {
+        var input: ByteBuffer; fill(&input, 0, sizeof(ByteBuffer)); defer bytes_dispose(&input); live_join(&input, live_base(), invalid[index], "");
+        syntax_reset(bits(void*, session), input.data, null); live_consume(session);
+        utility_check(*syntax_get_error(bits(void*, session)) != 0 && session.revision == 3, "Invalid lexical override stays unpublished");
+        utility_check(session.pins.grammar.tokens.length > 3, "Inherited token list retained"); var identifier = syntax_get(session.pins.grammar.tokens.data[3]);
+        utility_check(live_text(&identifier.name, "Identifier") && identifier.text.length >= 22 && utility_equal(identifier.text.data, "[A-Za-z_][A-Za-z0-9_]*", 22), "Failed lexical candidate preserves Identifier definition");
+    }
+}
