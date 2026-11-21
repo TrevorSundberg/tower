@@ -29276,3 +29276,84 @@ two identical edited browser generations and complete local deployment checks.
 The remaining universal-threading work includes structural type construction,
 more expression/operand continuations and compiler-wide query migration; this is
 not a declaration that the whole compiler is threaded. todo.txt is unchanged.
+
+Generic-body source e9806af is committed and pushed after an unchanged final pull.
+Its frozen validated bundle is now publishing; hosted verification follows.
+
+### 2026-11-21 - Operator queries on declaration workers
+
+Extending existing declaration worker admission to composed operator expressions
+in inferred declarations and decltype operands. The scan accepts ordinary Tower
+operators and Foundation binary forms whose leaves are already eligible; calls,
+staging, indexed operands and type construction remain outside this admission.
+Existing discovery/readiness supplies declaration and field/layout dependencies.
+Each worker leases its expression syntax, uses private scratch and stages any
+generated child operations; ordinary checking/lowering semantics are unchanged.
+This is a scheduling change, not a constant-propagation or evaluation pass.
+The baseline 16-declaration trial performs all 32 binary checks on coordinator
+thread 1; the new build/debugger and deterministic backend fixtures will verify
+actual worker execution before any claim of success.
+
+The operator-admission build succeeds and its new mixed expression/decltype
+fixture prints 0. A native debugger now records four binary checks on each of
+threads 4 through 11, none on coordinator thread 1 (32 total), versus all 32
+on thread 1 before the change. Canonical Foundation compares byte-identically.
+Extending existing long-chain tests to 1,024 operator-based annotated/inferred
+dependencies, and adding deterministic operator-cycle checks across capacities.
+Native/fault/backend and browser builds follow on these frozen sources.
+
+The generic-body release publishes as Pages 5e078a737e38ee7b83bda7975dad27d61d1b8dca
+on c00e8a4; action 44888318455 succeeds. Hosted verification matches all 77 assets
+and continues desktop/mobile checks. Exact publication records use generic-body-*.
+
+Operator admission passes native 8/8 (50.67s), backend API and the focused mixed
+expression plus 1,024-link operator-chain tests (2/2, 7.30s; 35 other cases
+intentionally filtered). Extending this same checkpoint to ordinary calls that
+only consume already-published function signatures. Generic calls, builtins with
+type operands and type construction still need their structural preparation.
+The existing dependency scan supplies callee/argument receipts; the checker
+writes only leased call/operand nodes. Added nested ordinary calls with effects
+to distinguish unevaluated decltype from actual once-only runtime execution.
+All source-reading builds/tests finished before this extension was integrated.
+
+Hosted verification for e9806af completes all 77 assets and browser workflows;
+the saved report is generic-body-hosted-report.json. The ordinary-call extension
+builds and its nested effect/decltype fixture prints 0. Its separate baseline
+has 16 call-argument binary checks on coordinator thread 1; the revised debugger
+trial is checking their worker distribution. Full validation follows on frozen
+operator-plus-call sources, with the earlier generic-body release still live.
+
+Ordinary-call argument checking now records two checks each on threads 4 through
+11, coordinator zero, versus all 16 on the coordinator before admission. The
+sample's Foundation remains byte-identical. Combined operators/calls pass all
+native suites 8/8 (45.52s), including unchanged semantic graph fingerprints,
+allocation-failure cleanup and backend API checks. Portable/shared and LLVM/cross
+modules rebuild; full 107-case regressions, expanded worker-capacity checks,
+editor tests and actual successor comparisons now run against frozen sources.
+
+Capacity checks pass 3/3 (54.96s); editor checks pass 28/28 (120.75s).
+Actual native successor semantics and entities objects both compare byte-for-byte
+with their default-bootstrap-produced counterparts. Two edited browser compiler
+generations pass with identical module hashes at 2/4 isolated unit workers
+(139.89s / 95.24s), sizes 1036708, 52341811, 63899252. Records: declaration-calls-generation{1,2}.json.
+The next continuation audit reproduces a pre-existing laziness bug: inferred
+`var value=comptime(false ? identity(comptime(1/0)) : 42);` diagnoses division
+by zero. Generic preparation carries unevaluated state but loses enclosing
+evaluation depth, marking that nested evaluation eagerly requested. Preserve
+stage depth in the call continuation before expanding worker admission. The
+reproducer and baseline output are declaration_lazy_deduction.tower and
+declaration-lazy-before.log; a generic-call worker baseline separately records
+all 16 explicit-argument binary checks on the coordinator. These are next-work
+findings, not fixes included in this operator/ordinary-call checkpoint.
+
+Local publication verification completes: all 77 asset hashes, desktop/mobile
+execution and editor flows, native downloads, target defaults and detected Linux
+defaults pass. Saved report: declaration-calls-local-report.json. Sources remain
+frozen until the full backend/round-trip regression suite completes.
+
+The full frozen-source regression suite passes 107/107, zero skips/failures
+(567.20s): compiletime, generic inference, Wasm, precedence, defer, for/foreach,
+semantic cross-backend/round-trip storage/scheduler fixtures and default syntax.
+Command and complete TAP output: declaration-calls-regressions.log. Native
+8/8, backend API, object comparisons, two edited generations, capacity/editor
+checks and local deployment are all complete before the source publication.

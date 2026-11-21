@@ -679,6 +679,10 @@ containers. Benchmark representative compiler workloads before migrating them.
   and checking state share the existing body-work component. Stages own copied
   names and queue provenance references for coordinator transfer before unpinning.
   Type-constructor copying and structural checking still need continuations.
+  Eligible operator expressions and ordinary calls in inferred declarations and
+  decltype annotations are checked on workers after their declaration/signature
+  and layout dependencies publish. Generic preparation, type construction and
+  indexed declaration operands retain coordinator checking.
   Shared entities now use stable component pages, exact-signature archetype rows,
   published component columns and view-owned multi-component query plans.
   These index stable payload pointers; they do not relocate component data.

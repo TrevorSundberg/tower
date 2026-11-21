@@ -398,10 +398,55 @@ fn sem_declaration_leaf(c: SemanticContext*, node: void*): bool {
     return literal_shape && sem_literal(c, node);
 }
 
-// Named/pointer annotations are read-only. Place decltype and inferred values
+// Ordinary calls consume published signatures. Generic preparation, builtins
+// with type operands and type constructors still use structural continuations.
+fn sem_declaration_function(c: SemanticContext*, node: void*): bool {
+    var name_node = sem_member(node, "name");
+    if name_node == null { return false; }
+    var name = sem_identifier(c, name_node);
+    return semantic_builtin_kind(name) == 0
+        && sem_resolve(c, c.templates, name_node, name) == null
+        && sem_resolve(c, c.type_functions, name_node, name) == null
+        && sem_resolve(c, c.functions, name_node, name) != null;
+}
+
+// These expressions only enrich their leased syntax or create private children.
+// Their declaration/layout dependencies must be ready before execution. Generic
+// calls, staging and indexed/type construction still need structural continuations.
+fn sem_declaration_expression(c: SemanticContext*, root: void*): bool {
+    var pending = sem_list(c);
+    sem_push(pending, root);
+    for(var i: usize = 0; i < pending.length; i++) {
+        var node = sem_surface_unwrap(pending.data[i]);
+        if sem_declaration_leaf(c, node) { continue; }
+        if sem_is(node, "CoreCall") {
+            if !sem_declaration_function(c, node) { return false; }
+            var args = sem_collect(c, sem_member(node, "args"), "CoreCallArgument");
+            foreach(var argument in args) { sem_push(pending, argument); }
+            continue;
+        }
+        if !sem_is(node, "TowerExpression") && !sem_is(node, "TowerComma")
+            && !sem_is(node, "CoreBinary") { return false; }
+        var condition = sem_member(node, "condition");
+        if condition != null {
+            sem_push(pending, condition);
+            sem_push(pending, sem_member(node, "body"));
+            sem_push(pending, sem_member(node, "otherwise"));
+            continue;
+        }
+        var left = sem_member(node, "left");
+        var right = sem_member(node, "right");
+        if left == null && right == null { return false; }
+        if left != null { sem_push(pending, left); }
+        if right != null { sem_push(pending, right); }
+    }
+    return true;
+}
+
+// Named/pointer annotations are read-only. Eligible decltype and inferred values
 // attach only to their own syntax, with all referenced types dependency-ready.
 // Module-qualified leaves and ordinary struct fields use the same ownership.
-// Calls, indexing and type construction retain the coordinator.
+// Generic calls, indexing and type construction retain the coordinator.
 fn sem_declaration_worker(c: SemanticContext*, result: SemanticDeclaration*): bool {
     if c.editor != null || c.type_uses != null { return false; }
     var subject = result.subject;
@@ -414,18 +459,24 @@ fn sem_declaration_worker(c: SemanticContext*, result: SemanticDeclaration*): bo
     var staged = record || annotation == null;
     if annotation == null {
         annotation = sem_member(subject, "value");
-        if annotation == null || !sem_declaration_leaf(c, annotation) { return false; }
+        if annotation == null || !sem_declaration_expression(c, annotation) { return false; }
     }
     var pending = sem_list(c);
     sem_push(pending, annotation);
     for(var i: usize = 0; i < pending.length; i++) {
         var node = pending.data[i];
         if sem_is(node, "TowerDecltype") {
-            if !sem_declaration_leaf(c, sem_member(node, "value")) { return false; }
+            if !sem_declaration_expression(c, sem_member(node, "value")) { return false; }
             staged = true;
         }
-        if sem_is(node, "CoreCall") || sem_is(node, "CoreArrayCount") { return false; }
-        if sem_member(node, "args") != null || sem_member(node, "count") != null || sem_member(node, "index") != null { return false; }
+        var call = sem_is(node, "CoreCall");
+        if call {
+            if !sem_declaration_function(c, node) { return false; }
+            staged = true;
+        }
+        if sem_is(node, "CoreArrayCount") { return false; }
+        if (!call && sem_member(node, "args") != null)
+            || sem_member(node, "count") != null || sem_member(node, "index") != null { return false; }
         for(var j: usize = 0; j < sem_child_count(node); j++) { sem_push(pending, sem_child(node, j)); }
     }
     // A worker may update its own existing field-state entry, never grow the

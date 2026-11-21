@@ -51,7 +51,7 @@ test('demanded generic body copies retain the node budget and reject execution',
  assert.match(compiled.error, /Template expansion exceeds 65536 nodes/);
 });
 
-for (const name of ['decltype', 'decltype_headers', 'decltype_layout', 'decltype_generic_headers', 'decltype_type_fields', 'decltype_aggregate', 'decltype_lazy_body', 'body_continuation', 'comptime', 'comptime_flow']) {
+for (const name of ['decltype', 'decltype_expressions', 'decltype_headers', 'decltype_layout', 'decltype_generic_headers', 'decltype_type_fields', 'decltype_aggregate', 'decltype_lazy_body', 'body_continuation', 'comptime', 'comptime_flow']) {
  test(`${name} preserves types and behavior through Foundation, interpreters and LLVM`, async () => {
   tower.configureModules({entry: `.tower/tests/${name}.tower`});
   const source = await readFile(`scaffolding/tests/${name}.tower`, 'utf8');
@@ -119,19 +119,20 @@ for (const [name, message] of [
 }
 
 test('forward declaration queries resolve long annotated and inferred chains without recursive inference', () => {
- for (const inferred of [false, true]) {
+ for (const inferred of [false, true]) for (const operators of [false, true]) {
   const lines = ['import tower;'];
+  const suffix = operators ? ' + 1' : '';
   for (let index = 0; index < 1024; index++) {
-   lines.push(inferred ? `var value${index} = value${index + 1};` : `var value${index}: decltype(value${index + 1});`);
+   lines.push(inferred ? `var value${index} = value${index + 1}${suffix};` : `var value${index}: decltype(value${index + 1}${suffix});`);
   }
-  lines.push('var value1024: bool = false;');
+  lines.push(operators ? 'var value1024: u64 = 0;' : 'var value1024: bool = false;');
   const handle = tower.compile(lines.join('\n'));
   try {
    // Check type resolution/serialization without executing forward reads of
    // uninitialized runtime storage in the inference-only variant.
    const canonical = tower.foundation(handle);
    assert.equal(typeof canonical.source, 'string', canonical.error);
-   assert.match(canonical.source, /var value0: bool/);
+   assert.match(canonical.source, operators ? /var value0: u64/ : /var value0: bool/);
   } finally { tower.destroyExecution(handle); }
  }
 });

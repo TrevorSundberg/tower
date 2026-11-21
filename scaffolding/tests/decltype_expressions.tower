@@ -1,0 +1,30 @@
+import tower;
+var failures:i32=0;
+fn check(ok:bool):void { if !ok { failures++; } }
+var seed:i32=7;
+var mask:u32=9;
+var flag:bool=true;
+var a=seed+3*2;
+var b=(~mask&15)^3;
+var c=!flag || (a>=12 && seed!=0);
+var d=flag ? seed : 3;
+var p=&seed;
+var q=p+1;
+var same=p==p;
+var zero=seed<=>seed;
+var shifted=mask>>>2;
+var annotated:decltype(seed+3)=0;
+var conditional:decltype(flag ? mask : 2)=5;
+fn header(value:decltype(seed+3)):decltype(value*2) { return value*2; }
+check(a==13);check(b==5);check(c);check(d==7);check(same);check(zero==0);check(shifted==2);
+check(annotated==0);check(conditional==5);check(header(3)==6);
+var effects:i32=0;
+var no_effect:decltype(++effects)=0;
+check(effects==0 && no_effect==0);
+fn identity(value:i32):i32 { return value; }
+fn observed(value:i32):i32 { effects++; return value; }
+var type_call:decltype(observed(identity(seed+2)))=0;
+check(type_call==0 && effects==0);
+var actual=observed(identity(seed+1));
+check(actual==8 && effects==1);
+print(failures);
