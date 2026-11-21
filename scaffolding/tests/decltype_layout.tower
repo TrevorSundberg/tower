@@ -1,0 +1,35 @@
+import tower;
+
+// Outer is ready while Inner's field type waits on a long declaration chain.
+// Type inference must not publish an empty Inner layout in the meantime.
+struct Inner { first:decltype(seed0); second:u64; }
+struct Outer { inner:Inner; other:u64; }
+var early=sizeof(Outer);
+var array_size=sizeof(Inner[2]);
+var pointer=alloc(Inner,1);
+var offset=pointer+1;
+fn field(value:Outer*):decltype(value.inner.first) { return value.inner.first; }
+
+var seed0:decltype(seed1);
+var seed1:decltype(seed2);
+var seed2:decltype(seed3);
+var seed3:decltype(seed4);
+var seed4:decltype(seed5);
+var seed5:decltype(seed6);
+var seed6:decltype(seed7);
+var seed7:decltype(seed8);
+var seed8:decltype(seed9);
+var seed9:decltype(seed10);
+var seed10:decltype(seed11);
+var seed11:decltype(seed12);
+var seed12:u64=0;
+
+var failures:i32=0;
+defer free(pointer);
+if early!=24 || sizeof(Outer)!=24 || sizeof(Inner)!=16 || alignof(Inner)!=8 { failures++; }
+if array_size!=32 || bits(usize,offset)-bits(usize,pointer)!=16 { failures++; }
+var record:Outer;
+record.inner.first=11; record.inner.second=22; record.other=33;
+if field(&record)!=11 || record.inner.second!=22 || record.other!=33 { failures++; }
+if comptime(sizeof(Inner))!=16 { failures++; }
+print(failures);

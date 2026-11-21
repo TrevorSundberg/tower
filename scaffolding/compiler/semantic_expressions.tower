@@ -95,10 +95,8 @@ fn sem_surface_constant(c: SemanticContext*, parent: void*, type: FoundationType
 fn sem_surface_pointee(c: SemanticContext*, n: void*, pointer: FoundationType*): void {
     var element = sem_type_copy(c, pointer);
     element.pointers--;
-    if semantic_aggregate(element) {
-        sem_layout(c, element.record);
-    }
-    if semantic_size(element) == 0 {
+    // Pointee layout is an execution/lowering input, not an inference input.
+    if !semantic_aggregate(element) && semantic_size(element) == 0 {
         sem_fail(c, n, "Cannot offset a void pointer");
     }
 }
@@ -502,9 +500,6 @@ fn sem_surface(c: SemanticContext*, n: void*, expected_type: FoundationType*): v
                     value.type.pointers--;
                     if value.type.pointers == 0 && value.type.scalar == SVoid() {
                         sem_fail(c, n, "Cannot load a void pointer");
-                    }
-                    if semantic_aggregate(&value.type) {
-                        sem_layout(c, value.type.record);
                     }
                 }
             }

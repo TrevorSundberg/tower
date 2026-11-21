@@ -96,6 +96,32 @@ fn sem_declaration_roots(c: SemanticContext*, subject: void*, scan: vector(Decla
 // A member lookup needs the selected record's fields, but a mere reference or
 // pointer to that record needs only its nominal identity. Discover these edges
 // after the value's declaration type is ready, without mutating expression nodes.
+fn sem_declaration_layout_waiting(c: SemanticContext*, record: void*): usize {
+    var pending = sem_list(c);
+    sem_push(pending, record);
+    for(var i: usize = 0; i < pending.length; i++) {
+        var node = pending.data[i];
+        var query = sem_declaration_query(c, node);
+        if query != 0 && work_task(&c.queries, query).state != WorkState.Succeeded { return query; }
+        var value = sem_get(node);
+        if value.type.scalar == SArray() {
+            if semantic_aggregate(&value.element) && !sem_has(pending, value.element.record) {
+                sem_push(pending, value.element.record);
+            }
+        } else {
+            foreach(var item in &value.items) {
+                var field = sem_get(item);
+                if semantic_aggregate(&field.type) && !sem_has(pending, field.type.record) {
+                    sem_push(pending, field.type.record);
+                }
+            }
+        }
+    }
+    // Repeated by-value records are left to the ordinary LayoutQuery cycle
+    // diagnostic, once every participating declaration has published its fields.
+    return 0;
+}
+
 fn sem_declaration_location(c: SemanticContext*, node: void*, waiting: usize*, depth: usize): FoundationType* {
     if node == null || depth > 128 { return null; }
     node = sem_surface_unwrap(node);
@@ -135,8 +161,10 @@ fn sem_declaration_location(c: SemanticContext*, node: void*, waiting: usize*, d
         return &sem_get(type.record).element;
     }
     if type.scalar != SStruct() || type.record == null { return null; }
-    var query = sem_declaration_query(c, type.record);
-    if query != 0 && work_task(&c.queries, query).state != WorkState.Succeeded {
+    // Field offsets consume the entire containing layout, including by-value
+    // records beyond the selected field. Never cache their unfinished headers.
+    var query = sem_declaration_layout_waiting(c, type.record);
+    if query != 0 {
         *waiting = query;
         return null;
     }
@@ -298,7 +326,7 @@ fn sem_declaration_input(result: SemanticDeclaration*, input: usize): void {
 // ordinary checker still attaches canonical semantic components, under leases.
 fn sem_declaration_leaf(c: SemanticContext*, node: void*): bool {
     node = sem_surface_unwrap(node);
-    if sem_is(node, "CoreLocation") { return sem_member(node, "base") == null; }
+    if sem_is(node, "CoreLocation") { return sem_member(node, "base") == null || sem_namespace(c, node) != null; }
     var parsed = sem_match(node);
     var literal_shape = sem_is(node, "Number") || sem_is(node, "String")
         || sem_is(node, "CoreOperand") || sem_is(node, "TowerExpression");
@@ -308,14 +336,19 @@ fn sem_declaration_leaf(c: SemanticContext*, node: void*): bool {
 
 // Named/pointer annotations are read-only. Leaf decltype and inferred values
 // attach only to their own syntax, with all referenced types dependency-ready.
-// Calls, field/index access and type construction retain coordinator ownership.
+// Module-qualified leaves and ordinary struct fields use the same ownership.
+// Calls, value-field/index access and type construction retain the coordinator.
 fn sem_declaration_worker(c: SemanticContext*, result: SemanticDeclaration*): bool {
     if c.editor != null || c.type_uses != null { return false; }
     var subject = result.subject;
-    if !sem_is(subject, "CoreDeclare") && !sem_is(subject, "CoreParameter") && !sem_function_syntax(subject) { return false; }
-    var annotation = sem_member(subject, "type");
-    var staged = annotation == null;
-    if staged {
+    var record = sem_is(subject, "CoreStruct");
+    if !record && !sem_is(subject, "CoreDeclare") && !sem_is(subject, "CoreParameter") && !sem_function_syntax(subject) { return false; }
+    var previous_scope = c.scope;
+    c.scope = result.scope;
+    defer { c.scope = previous_scope; }
+    var annotation = sem_member(subject, record ? "fields" : "type");
+    var staged = record || annotation == null;
+    if annotation == null {
         annotation = sem_member(subject, "value");
         if annotation == null || !sem_declaration_leaf(c, annotation) { return false; }
     }
@@ -331,6 +364,9 @@ fn sem_declaration_worker(c: SemanticContext*, result: SemanticDeclaration*): bo
         if sem_member(node, "args") != null || sem_member(node, "count") != null || sem_member(node, "index") != null { return false; }
         for(var j: usize = 0; j < sem_child_count(node); j++) { sem_push(pending, sem_child(node, j)); }
     }
+    // A worker may update its own existing field-state entry, never grow the
+    // shared field index. Struct duplicate-name scratch does not escape the job.
+    if record { sem_state(c, c.fields_done, subject); }
     if staged {
         foreach(var node in pending) { sem_push(&result.nodes, node); }
     }
@@ -365,7 +401,10 @@ fn semantic_declaration_kernel(result: SemanticDeclaration*): void {
         if result.worker_check && result.waiting == 0 && sem_ok(&context) {
             result.checked = true;
             if sem_function_syntax(result.subject) { sem_header(&context, result.subject, "", null); }
-            else { sem_declaration_type(&context, result.subject); }
+            else {
+                if sem_is(result.subject, "CoreStruct") { sem_type_fields(&context, result.subject); }
+                else { sem_declaration_type(&context, result.subject); }
+            }
         }
     }
     result.count = context.count;

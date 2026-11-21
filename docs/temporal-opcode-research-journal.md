@@ -27969,3 +27969,84 @@ The two edited browser compiler generations pass53.20s/32.51s at2/4 workers, inc
 Inventory clarification:2311 native lines refers specifically to compiler scaffolding (621 implementation,1690 header). Four historical project-owned native research files remain under docs/research,774 lines total; they are not third-party dependencies and are not hidden in the compiler count. The next production port is replacement-template construction/attempt, then remaining text/container transport and true callback function-address support. Earlier Agent1/2 commits and Agent3's validated migrations are all verified in origin/main; Agent3's unsuccessful broad fixture split is preserved in a named local stash after its clean pull. No completed migration remains stranded only in an agent checkout.
 
 Incremental syntax release completes: Pages2e6c87e/source85a717c is pushed normally on top of db435d2 (external7ca9562, already included in this source). Exact GitHub action44867948641 succeeds. Both local and hosted verification pass all77 exact asset hashes and desktop/mobile backend agreement, live grammar/project editing, persistence, completion, cancellation and supported native-target builds/downloads. Saved session-85-{local,hosted}-ui-report.json and session-85-pages-success.json. Only deployment-parent metadata was refreshed after local UI checks; code/asset hashes stayed frozen. Main source and journal pushes use ordinary Git; a transient GitHub DNS failure was retried with command-local TLS hostname resolution, without changing repository/global settings or force-pushing. All agents' completed migrations are included and verified; private failed drafts remain preserved. todo.txt is unchanged. The next production slice is replacement-template construction and its attempt callback in syntax.cpp; callback ABI tests still require real Tower function-address support before removal.
+
+### 2026-11-20 - Staged ordinary struct fields and module-qualified leaves
+
+Leaf staging checkpoint76fac5f is pushed after an unchanged final pull; its
+release bundle and browser successor inputs are frozen. The next implementation
+admits ordinary struct field construction through DeclarationQuery. Field syntax
+is leased; Foundation field payloads and the record's item list are job-owned.
+The coordinator preallocates the existing fields_done entry, so workers only
+update their own entry and never grow the shared field index. Duplicate-name
+scratch stays private and does not escape, unlike enum member lookup indexes;
+enums and type applications remain coordinator work.
+
+Leaf operands now include module-qualified variables. Admission borrows the
+query's actual parameter scope, so a parameter shadowing an import alias cannot
+be misclassified as a module leaf and force field/layout work from a worker.
+Capacity coverage adds16 recursive-pointer records with forward decltype fields,
+ordered duplicate-field diagnostics, and two imported modules with same-spelled
+nominal types and values. Both interpreters/target widths check initialization,
+qualified inference, shadowed parameter fields and canonical determinism. This
+is source implementation awaiting validation, not yet a pushed/deployed claim.
+
+Field-worker audit found a reproducible pre-existing dependency bug. On the
+saved76fac5f shared reactor, declaration-layout-delayed.tower reports16/1/16 for
+Outer/Inner/Outer size with both interpreters and both target widths; Inner has
+one u64 and should be8 bytes. Its field declaration waits on12 forward decltype
+links while an earlier sizeof(Outer) query lays out the still-empty Inner header
+as a one-byte empty struct. The cached successful LayoutQuery is never revisited.
+This was reproduced before changing the layout paths, not inferred from timing.
+Evidence check-delayed-layout.mjs and declaration-layout-delayed-before-runtime.log.
+
+Correcting dependency ownership before pushing fields: sizeof/alignof, allocation,
+indexing and pointer-offset type checks no longer force aggregate layouts merely
+to learn their result type or reject void. Their canonical operations retain the
+same typed operands; existing layout queries publish before lowering/execution.
+Actual field-offset consumers now scan the containing record's transitive
+by-value declarations and suspend through the existing graph on the first
+unfinished input. Pointer-only edges do not request layouts; repeated by-value
+records retain the normal layout-cycle diagnostic. No second evaluator/folder.
+
+New decltype_layout.tower delays a two-u64 Inner, checks Outer24/Inner16/array32,
+allocation and pointer stride16, nested field offsets, and interpreter-based
+comptime(sizeof(Inner)). Added both-width/interpreter capacity coverage and
+Foundation/LLVM differential coverage. Initial field-only suite passed30/30 in
+68.43s; the dependency correction and added regression require new validation.
+
+The minimal pre-existing delayed-layout reproducer now prints16/8/16 with both
+interpreters and both widths (declaration-layout-delayed-after-runtime.log).
+Expanded field/module/layout capacity checks pass3/3 in38.50s; production overlap
+and trap/cancellation transport fixtures are included. Rebuilding native/backend
+consumers and checking existing struct/raw-memory diagnostics before publication.
+
+The76fac5f leaf-only bundle passed local deployment and two byte-identical edited
+browser generations (126.29s/72.14s; sizes1,004,462/52,303,837/63,861,291), but
+will be superseded by the layout correction for the next Pages publication rather
+than publishing another artifact with the now-known incomplete-layout bug.
+Its source remains pushed. Ordinary-declaration Pagesdb435d2 passed all77 hosted
+hashes and desktop/mobile/default checks (declaration-type-hosted-deployment.log).
+
+Field/layout validation completes native8/8 in42.95s plus backend API and actual
+successor semantic-object cmp0. Matching portable/LLVM differential suite passes
+49/49 in24.96s; shared compile-time/inference suite passes28/28 in25.81s. Native
+GDB dispatch on16 ordinary recursive-pointer structs goes from0 tag-12 jobs to16
+jobs across8 threads, both exit0 and identical Foundation text. Existing struct,
+raw-memory and module-scope compatibility checks are still running.
+
+Next concrete dependency gap is reproduced in declaration-generic-delayed.tower:
+a new generic signature returning decltype(value.inner.first), instantiated from
+an earlier declaration, sees Inner before its delayed fields publish and reports
+Unknown field 'first'. Both the old native declaration-types compiler and the
+new field/layout compiler fail identically (before/after logs). Direct signatures
+now await the field/layout closure; generic specialization still calls sem_header
+synchronously. This is a pre-existing limitation, not a fully-threaded claim.
+The next repair should schedule instantiated parameter/header queries and suspend
+the requesting declaration, retaining ordinary deduction/checking and canonical
+entities. Do not add a separate type evaluator or retry partially checked bodies.
+
+Existing struct, raw-memory and module-scope compatibility passes57/57 in282.76s,
+including void-pointer diagnostics, recursive layouts, nominal imports, editor
+queries and repeated ownership cleanup. This completes the field/layout source
+checkpoint's checks. The pending generic-signature reproducer above remains an
+explicit next task. No C++ changes and no todo.txt edits were made.

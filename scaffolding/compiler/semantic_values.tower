@@ -121,10 +121,9 @@ fn sem_location(c: SemanticContext*, n: void*, depth: u32): void* {
                 return n;
             }
         }
-        if semantic_aggregate(&value.type) {
-            sem_layout(c, value.type.record);
-        }
-        if semantic_size(&value.type) == 0 {
+        // Index scaling consumes the published layout during lowering/execution.
+        // Type checking needs only to reject void; aggregates always have storage.
+        if !semantic_aggregate(&value.type) && semantic_size(&value.type) == 0 {
             sem_fail(c, n, "Cannot index a void pointer");
             return n;
         }
@@ -612,18 +611,15 @@ fn sem_builtin(c: SemanticContext*, n: void*, kind: u32, args: vector(void*)*): 
             if kind == KSizeOf() || kind == KAlignOf() {
                 var step40 = sem_type(c, args.data[0]);
                 sem_set_type(&value.element, step40);
-                if semantic_aggregate(&value.element) {
-                    sem_layout(c, value.element.record);
-                }
+                // The result type is usize without consulting the operand's
+                // byte layout. Layout queries run after declarations publish;
+                // the ordinary interpreter/backend reads that result later.
                 sem_set_type(&value.type, size);
             } else {
                 if kind == KAllocate() || kind == KReallocate() {
                     var step46 = sem_type(c, args.data[0]);
                     sem_set_type(&value.element, step46);
-                    if semantic_aggregate(&value.element) {
-                        sem_layout(c, value.element.record);
-                    }
-                    if semantic_size(&value.element) == 0 {
+                    if !semantic_aggregate(&value.element) && semantic_size(&value.element) == 0 {
                         sem_fail(c, n, "Cannot allocate void elements");
                         return n;
                     }
@@ -884,10 +880,7 @@ fn sem_expression(c: SemanticContext*, n: void*, expected_type: FoundationType*)
                 }
                 var element: FoundationType* = sem_type_copy(c, input);
                 element.pointers--;
-                if semantic_aggregate(element) {
-                    sem_layout(c, element.record);
-                }
-                if semantic_size(element) == 0 {
+                if !semantic_aggregate(element) && semantic_size(element) == 0 {
                     sem_fail(c, n, "Cannot offset a void pointer");
                 }
             } else {

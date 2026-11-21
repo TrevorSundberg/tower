@@ -45,6 +45,7 @@ test('declaration, body checking, lowering and staging are deterministic at 1/2/
  const {loadTower} = await import('./compiler-fixtures.mjs');
  const compiler = await readFile('build/browser-wasi-threads/tower.wasm');
  const foundation = await readFile('scaffolding/foundation.tower', 'utf8');
+ const delayedLayout = await readFile('scaffolding/tests/decltype_layout.tower', 'utf8');
  const functions = Array.from({length:16}, (_, i) => `
 fn f${i}(value: decltype(seed)): decltype(value) {
  var state: Shared;
@@ -61,7 +62,8 @@ fn f${i}(value: decltype(seed)): decltype(value) {
  const typedFunctions = Array.from({length:16}, (_,i) => `
 fn typed${i}(value:Shared*, extra:u64):u64 { return value.value + extra + ${i}; }`);
  const leaves = Array.from({length:16}, (_,i) => `var leaf${i} = -(${i}); var copy${i} = leaf${i};`);
- const source = 'import tower;\nstruct Shared { value: u64; }\nfn identity(T:type, value:T):T { return value; }\n' + functions.join('\n') + typedFunctions.join('\n') +
+ const records = Array.from({length:16}, (_,i) => `struct Record${i} { value:decltype(seed); next:Record${i}*; }`);
+ const source = 'import tower;\nstruct Shared { value: u64; }\nfn identity(T:type, value:T):T { return value; }\n' + records.join('\n') + functions.join('\n') + typedFunctions.join('\n') +
   '\nvar seed: u64 = 0;\nvar `control value 1.0`: u64 = 7;\n' +
   'var inferredType: decltype(identity(seed));\n' +
   'var total = comptime(identity(' + functions.map((_,i) => `f${i}(0)`).join(' + ') + '));\n' +
@@ -73,6 +75,7 @@ fn typed${i}(value:Shared*, extra:u64):u64 { return value.value + extra + ${i}; 
   leaves.join('\n') + '\nprint(' + leaves.map((_,i)=>`copy${i}`).join('+') + ');' +
   'var smallest = -2147483648; var copied = smallest; var exact:decltype(copied)=copied; print(exact);';
  const canonical = new Map();
+ const moduleCanonical = new Map();
  let iterationCanonical;
  const genericCanonical = new Map();
  const genericFunctions = Array.from({length:16}, (_, i) => `
@@ -186,6 +189,48 @@ fn badSecond(value:MissingSecond):void {}`);
     assert.equal(result.status, 'error');
     assert.match(result.error, /initializer dependency cycle first -> second -> first/);
    } finally { tower.destroyExecution(leafCycle); }
+   const fieldsInvalid = tower.compile('import tower; struct First { first:i32; first:u64; } struct Second { second:i32; second:u64; }');
+   try {
+    const result = tower.execute(fieldsInvalid);
+    assert.equal(result.status, 'error');
+    assert.match(result.error, /duplicate field 'first'/);
+    assert.doesNotMatch(result.error, /duplicate field 'second'/);
+   } finally { tower.destroyExecution(fieldsInvalid); }
+   for (const pointerBytes of [4,8]) for (let fast=0; fast<2; fast++) {
+    const handle=tower.compile(delayedLayout,{pointerBytes});
+    try {
+     if (fast) tower.useFast(handle);
+     let result, output='';
+     do { result=tower.execute(handle,10000); output+=result.output; } while(result.status==='executing');
+     assert.equal(result.status,'done',result.error);
+     assert.equal(output,'0\n',`delayed layout: workers=${capacity}, width=${pointerBytes}, fast=${fast}`);
+    } finally { tower.destroyExecution(handle); }
+   }
+   tower.configureModules({entry:'main.tower', files:[
+    {path:'left.tower', text:'import tower; var seed:u64=3; struct Item { value:decltype(seed); next:Item*; }'},
+    {path:'right.tower', text:'import tower; var seed:u64=7; struct Item { value:decltype(seed); next:Item*; }'},
+   ]});
+   const modules = `import tower; import left as l; import right as r;
+struct Pair { first:decltype(l.seed); second:decltype(r.seed); }
+var from_left=l.seed; var from_right=r.seed;
+var pair:Pair; pair.first=from_left; pair.second=from_right;
+// Parameter l hides the module alias. This needs the record's field/layout
+// dependencies, so admission must use the signature's actual lexical scope.
+fn shadow(l:r.Item*):decltype(l.value) { return l.value; }
+var item:r.Item; item.value=9; print(shadow(&item)); print(pair.first+pair.second);`;
+   for (const pointerBytes of [4,8]) for (let fast=0; fast<2; fast++) {
+    const handle=tower.compile(modules,{pointerBytes});
+    try {
+     if (fast) tower.useFast(handle);
+     let result, output='';
+     do { result=tower.execute(handle,10000); output+=result.output; } while(result.status==='executing');
+     assert.equal(result.status,'done',result.error);
+     assert.equal(output,'9\n10\n');
+     const text=tower.foundation(handle).source;
+     if (!moduleCanonical.has(pointerBytes)) moduleCanonical.set(pointerBytes,text);
+     assert.equal(text,moduleCanonical.get(pointerBytes),`imported queries: workers=${capacity}, width=${pointerBytes}, fast=${fast}`);
+    } finally { tower.destroyExecution(handle); }
+   }
   } finally { tower.close(); }
   assert.throws(() => tower.compile('print(1);'), /compiler is closed/);
   assert.doesNotThrow(() => tower.destroyExecution(0));
