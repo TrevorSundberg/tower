@@ -3,6 +3,16 @@
 The same runtime/parser now also runs in the [static WASM playground](../../playground/README.md).
 Native and WASM parser builds use explicit error returns with C++ exceptions disabled.
 
+The standalone `tower-bytes-tests` and `tower-utf8-tests` targets now run Tower
+test entries. Build them in the parser configuration and run
+`ctest --test-dir <build> -R 'tower-(bytes|utf8)-tests' --output-on-failure`.
+The byte tests retain all 20,000 seeded reference comparisons, a Tower moving
+allocator with guards and failure injection, aliasing and overflow checks. UTF-8
+retains exhaustive scalar and one/two-byte comparisons, seeded malformed inputs,
+and protected-page checks on Linux/macOS. Their native reference oracle seeds
+remain test-only. For WASI builds, run each executable with `host-wasi.mjs`;
+WASI exercises the byte guards but has no POSIX protected-page test.
+
 The isolated `cmake/TowerDriver.cmake` fragment adds CLI checks with
 `-DTOWER_DRIVER_TESTS=ON` to a native compiler configuration. Build `towerc` and
 `tower-driver-tests`, then run `ctest --test-dir <build> -R tower-driver

@@ -232,30 +232,13 @@ if(TOWER_PARSER_ONLY)
   target_compile_definitions(tower-utf8-reference PRIVATE
     tower_utf8_decode=reference_utf8_decode tower_utf8_encode=reference_utf8_encode
     tower_utf8_validate=reference_utf8_validate)
-  add_executable(tower-utf8-tests scaffolding/tests/utf8.cpp)
-  target_compile_features(tower-utf8-tests PRIVATE cxx_std_20)
-  target_link_libraries(tower-utf8-tests PRIVATE tower-compiler-utilities tower-compiler-memory tower-utf8-reference)
-  if(MSVC)
-    target_compile_options(tower-utf8-tests PRIVATE /UNDEBUG)
-  else()
-    target_compile_options(tower-utf8-tests PRIVATE -UNDEBUG -fno-exceptions)
-  endif()
-  add_test(NAME tower-utf8-tests COMMAND tower-utf8-tests)
   add_library(tower-bytes-reference STATIC scaffolding/bootstrap/bytes-seed.cpp)
   target_compile_features(tower-bytes-reference PRIVATE cxx_std_20)
   target_compile_definitions(tower-bytes-reference PRIVATE
     bytes_init=reference_bytes_init bytes_reserve=reference_bytes_reserve
     bytes_append=reference_bytes_append bytes_push=reference_bytes_push
     bytes_assign_text=reference_bytes_assign_text bytes_dispose=reference_bytes_dispose)
-  add_executable(tower-bytes-tests scaffolding/tests/bytes.cpp)
-  target_compile_features(tower-bytes-tests PRIVATE cxx_std_20)
-  target_link_libraries(tower-bytes-tests PRIVATE tower-compiler-utilities tower-bytes-reference)
-  if(MSVC)
-    target_compile_options(tower-bytes-tests PRIVATE /UNDEBUG)
-  else()
-    target_compile_options(tower-bytes-tests PRIVATE -UNDEBUG -fno-exceptions)
-  endif()
-  add_test(NAME tower-bytes-tests COMMAND tower-bytes-tests)
+  include(cmake/TowerUtilityTests.cmake)
   add_test(NAME tower-parser-tests COMMAND tower-parser-tests)
   add_test(NAME tower-foreach-example COMMAND tower-parser-tests --parse
     "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/examples/foreach.tower")

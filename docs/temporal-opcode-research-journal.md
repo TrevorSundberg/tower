@@ -22771,3 +22771,66 @@ checks. A fresh default successor build in /cache/for-published-clean passes all
 for-published-relocated.log). The final native/parser/LLVM artifacts were rebuilt
 after formatting, and the complete deployment assets were repackaged. The native
 CTest aggregate is still running at this checkpoint; no complete pass is claimed.
+
+### 2026-11-20 � Agent 3: retire native byte-buffer and UTF-8 test drivers
+
+Assignment: migrate native parser/ECS functional coverage to executable Tower,
+keeping reference oracles and allocation/lifetime assertions. This first slice
+replaces `tests/bytes.cpp` and `tests/utf8.cpp` with Tower tests and an isolated
+`cmake/TowerUtilityTests.cmake`; production implementations are unchanged.
+
+The byte suite preserves the original xorshift seed, seven operations and 20,000
+trials, reference success/capacity/full-allocation-byte comparison, guard checks,
+failure atomicity, guaranteed moving growth, self-alias rebasing, terminator and
+size overflow rejection, ABI offsets and final empty allocation registry. The
+reference callback ABI has no context argument, so this single-process test owns
+explicitly initialized module state and a bounded eight-slot allocation registry
+(at most three buffers are live during a move). Snapshot memory uses libc directly
+and is released. This is test instrumentation, not Foundation pointer semantics.
+
+UTF-8 preserves every scalar through U+110000, surrogate/out-of-range rejection,
+all one/two-byte strings, 100,000 seeded mixed inputs, policy values 0/1/42,
+unchanged short destinations, and Linux/macOS inaccessible-page read/write
+boundaries. The original RNG state continues into the boundary trials. Existing
+native seeds are retained as differential oracles, not production fallbacks.
+
+Environment and reproducibility: WSL Ubuntu, clang 21.1.8, LLVM 19; initial main
+8d8b4aa advanced to 8290fd2 during this work. Initial GitHub DNS failure was
+resolved with command-local `-c http.curloptResolve=github.com:443:140.82.113.4`.
+`git pull --rebase --autostash` preserved the local source-list edit without
+conflicts. The newer documented `build-bootstrap.sh` installed pin 9bbb2eb8;
+all final validation uses that pin. No private bootstrap override is required.
+
+Build/test commands (repository path `/mnt/c/Sandbox/tower-agent-3`):
+
+- Configure `agent-3-parser` under `/home/trevo/.cache/tower` with Ninja,
+  `TOWER_PARSER_ONLY=ON`, `TOWER_BOOTSTRAP_COMPILER` set to the path returned by
+  `env -u TOWER_BOOTSTRAP_COMPILER bash playground/scripts/build-bootstrap.sh`,
+  Release and clang/clang++. Build `tower-utf8-tests tower-bytes-tests -j4`.
+  Both focused CTests pass (UTF-8 about 0.10s; bytes about 0.01s).
+- Configure `agent-3-parser-wasi` identically using the SDK 34
+  `share/cmake/wasi-sdk-p1.cmake` toolchain. Build the same targets and execute
+  each through `node scaffolding/tests/host-wasi.mjs <artifact>`: both pass.
+- `env -u TOWER_BOOTSTRAP_COMPILER
+  TOWER_NATIVE_BUILD=/home/trevo/.cache/tower/agent-3-native TOWER_BUILD_JOBS=4
+  bash playground/scripts/build-native.sh`: clean successor build passes after
+  the 8290fd2 source rebase. This remains a Linux development successor, not a
+  claim of portable release binaries.
+
+Trials/corrections: unquoted `expected` is a declaration-reader keyword, so the
+port calls reference values `oracle`. Pointer conversions remain explicit;
+random byte narrowing masks to 255 before `convert`, preserving C++ truncation
+without suppressing Tower range checks. Library output rejects module variables;
+the allocator test therefore uses ordinary program object output with an
+explicitly initialized `main`, and the existing Tower runtime binding tool maps
+only its allocator symbols. Local constants are functions and belong at module
+scope. The first WASI runs trapped in `undefined_weak:main`: wasi-libc requires
+`__main_argc_argv`, whereas Tower exports names literally. Selecting that entry
+in the manifest/binding fixes both tests; no native wrapper was added. An initial
+SDK toolchain filename was obsolete (`wasi-sdk.cmake`); SDK34 uses `wasi-sdk-p1`.
+
+No sanitizer or broad formatter sweep was run, as requested. Remaining native
+parser/ECS/semantic suites are not represented as migrated by this milestone.
+Coordinator explicitly owns the combined browser build/deployment/hosted checks;
+source publication is agent 3's responsibility. Deployment is pending until the
+coordinator reports the exact published SHA and verification.
