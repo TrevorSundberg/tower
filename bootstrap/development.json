@@ -1,31 +1,28 @@
 {
   "archive": "linux-x64/towerc.tar.gz",
   "build": {
-    "command": "playground/scripts/build-native.sh",
+    "command": "env -u TOWER_BOOTSTRAP_COMPILER TOWER_NATIVE_BUILD=/home/trevo/.cache/tower/coordinator-retirement-cycle-clean TOWER_BUILD_JOBS=4 bash playground/scripts/build-native.sh",
     "compiler": "Clang 19.1.1",
     "configuration": "Release",
     "llvm": "19.1.1",
-    "predecessor_sha256": "f57acd2254fa396b1e556cfa33ea6507b38e73e08910e94ed46995c697ac2a55"
+    "predecessor_sha256": "a3bf60344531e1a99fac05fa1c9aa13fe001066adf7df32f10f57ff1c103c3d8"
   },
   "dynamic_dependencies": [
-    "\tlinux-vdso.so.1 (0x0000731659528000)",
-    "\tlibLLVM.so.19.1 => /usr/lib/llvm-19/lib/libLLVM.so.19.1 (0x0000731651863000)",
-    "\tlibstdc++.so.6 => /lib/x86_64-linux-gnu/libstdc++.so.6 (0x00007316515e0000)",
-    "\tlibm.so.6 => /lib/x86_64-linux-gnu/libm.so.6 (0x00007316514f7000)",
-    "\tlibgcc_s.so.1 => /lib/x86_64-linux-gnu/libgcc_s.so.1 (0x00007316514c9000)",
-    "\tlibc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007316512b6000)",
-    "\tlibffi.so.8 => /lib/x86_64-linux-gnu/libffi.so.8 (0x00007316512a8000)",
-    "\tlibedit.so.2 => /lib/x86_64-linux-gnu/libedit.so.2 (0x000073165126e000)",
-    "\tlibz.so.1 => /lib/x86_64-linux-gnu/libz.so.1 (0x0000731651252000)",
-    "\tlibzstd.so.1 => /lib/x86_64-linux-gnu/libzstd.so.1 (0x0000731651198000)",
-    "\tlibxml2.so.2 => /lib/x86_64-linux-gnu/libxml2.so.2 (0x0000731650fb6000)",
-    "\t/lib64/ld-linux-x86-64.so.2 (0x000073165952a000)",
-    "\tlibtinfo.so.6 => /lib/x86_64-linux-gnu/libtinfo.so.6 (0x0000731650f80000)",
-    "\tlibbsd.so.0 => /lib/x86_64-linux-gnu/libbsd.so.0 (0x0000731650f6a000)",
-    "\tlibicuuc.so.74 => /lib/x86_64-linux-gnu/libicuuc.so.74 (0x0000731650d5d000)",
-    "\tliblzma.so.5 => /lib/x86_64-linux-gnu/liblzma.so.5 (0x0000731650d2b000)",
-    "\tlibmd.so.0 => /lib/x86_64-linux-gnu/libmd.so.0 (0x0000731650d1c000)",
-    "\tlibicudata.so.74 => /lib/x86_64-linux-gnu/libicudata.so.74 (0x000073164efba000)"
+    "\tlinux-vdso.so.1 (0x00007d0bedce9000)",
+    "\tlibLLVM.so.19.1 => /usr/lib/llvm-19/lib/libLLVM.so.19.1 (0x00007d0be6000000)",
+    "\tlibstdc++.so.6 => /usr/lib/x86_64-linux-gnu/libstdc++.so.6 (0x00007d0be5c00000)",
+    "\tlibm.so.6 => /usr/lib/x86_64-linux-gnu/libm.so.6 (0x00007d0be5eda000)",
+    "\tlibgcc_s.so.1 => /usr/lib/x86_64-linux-gnu/libgcc_s.so.1 (0x00007d0bedb85000)",
+    "\tlibc.so.6 => /usr/lib/x86_64-linux-gnu/libc.so.6 (0x00007d0be5800000)",
+    "\tlibffi.so.8 => /usr/lib/x86_64-linux-gnu/libffi.so.8 (0x00007d0bedb72000)",
+    "\tlibedit.so.2 => /usr/lib/x86_64-linux-gnu/libedit.so.2 (0x00007d0bedb38000)",
+    "\tlibz.so.1 => /usr/lib/x86_64-linux-gnu/libz.so.1 (0x00007d0bedb1a000)",
+    "\tlibzstd.so.1 => /usr/lib/x86_64-linux-gnu/libzstd.so.1 (0x00007d0be5b3d000)",
+    "\tlibxml2.so.16 => /usr/lib/x86_64-linux-gnu/libxml2.so.16 (0x00007d0be569d000)",
+    "\t/lib64/ld-linux-x86-64.so.2 (0x00007d0bedceb000)",
+    "\tlibtinfo.so.6 => /usr/lib/x86_64-linux-gnu/libtinfo.so.6 (0x00007d0be5ea5000)",
+    "\tlibbsd.so.0 => /usr/lib/x86_64-linux-gnu/libbsd.so.0 (0x00007d0be5b27000)",
+    "\tlibmd.so.0 => /usr/lib/x86_64-linux-gnu/libmd.so.0 (0x00007d0be5b18000)"
   ],
   "files": {
     "LLVM-LICENSE.txt": {
@@ -61,8 +58,8 @@
       "size": 7521
     },
     "share/tower/library/entities.tower": {
-      "sha256": "7b7b2c5b8ae0e37f5ab2a5a7bfde61a0cd371c1997270a8fd8ee7f4d90046f32",
-      "size": 38102
+      "sha256": "cdfafab03c0f4104e37089486512e85eaf4cc89ceda253a8c201516e9178c560",
+      "size": 38094
     },
     "share/tower/library/entity_stage.tower": {
       "sha256": "265dcdd04d13ae3ca59a3aa42e61d46e2a8fda6ccef19ad547cafb6648c80e14",
@@ -97,107 +94,108 @@
       "size": 5543
     },
     "share/tower/runtime-host-linux-arm64.ll": {
-      "sha256": "84db31b649417317d0078408d4931af4b2c7e95e7af75d89693ff2069408c3b3",
-      "size": 67360
+      "sha256": "cd6efec0c3af376def3d516509b7daf610d4c057e75fc2a9333559e1a73301e4",
+      "size": 67399
     },
     "share/tower/runtime-host-linux-x64.ll": {
-      "sha256": "6477c86ad571ee79863bfbd411ce9f3514c303f2087f3c9efc713b7cf1a6eb1f",
-      "size": 67380
+      "sha256": "f14e5481592c129453629d12ef3003252b76bff3f36d3c417d8f486deebac5b1",
+      "size": 67419
     },
     "share/tower/runtime-linux-arm64.ll": {
-      "sha256": "51e08b4a30d8140f33155a20493640f58436a95941ed773e5c38b5c7d5f63dfa",
-      "size": 103530
+      "sha256": "975fb7aa14950c36ded05ed29c241fa1b319d58ad0dcf91775e159a0195c66d2",
+      "size": 103569
     },
     "share/tower/runtime-linux-x64.ll": {
-      "sha256": "9e9c9d37871d8d3581457fd0d2b506fbac3153115be72086941a6d55390d7eff",
-      "size": 103661
+      "sha256": "9ba6c64c00b2de954d91c6cdf68845f693f811be3948a8c9555f8be3ff7710ce",
+      "size": 103700
     },
     "share/tower/runtime-macos-arm64.ll": {
-      "sha256": "d6e1dcb8815c80e8bde8ba2f9284dc2475da27861383d982d26191523100a5a7",
-      "size": 67331
+      "sha256": "3d5b57a0d83cf83d46a5048a36c878d02f8bfca59f97dcd5576f787b3c60ffc7",
+      "size": 67370
     },
     "share/tower/runtime-macos-x64.ll": {
-      "sha256": "2f660300aea94d860a58c65a3eb8003f6a8e230340cfa9ca221f19b2c007a354",
-      "size": 67371
+      "sha256": "46f6f0b2c9884a3d75dd004e21b1a76824fbd493aa74249e3600f8413159514d",
+      "size": 67410
     },
     "share/tower/runtime-wasm32.ll": {
-      "sha256": "3980d32e471dba190ddb7bc5b465e54f5798d314c794ede3fc38e49d079cddee",
-      "size": 148794
+      "sha256": "b38f0bc050285babbe487fdcbc35230966a7c808212d80b29364e8325ac9965d",
+      "size": 148833
     },
     "share/tower/runtime-windows-arm64.ll": {
-      "sha256": "61445b43a0f912bc9fe23e5b3e77452a9cb8e72ea1ca76b24ec6b45d1c6df198",
-      "size": 96203
+      "sha256": "15442d0e22e84d681238b771b75e576cbba9ca1e8457e3072fca0e53e4d4fb84",
+      "size": 96242
     },
     "share/tower/runtime-windows-x64.ll": {
-      "sha256": "396c38fbf73725c49123f114117c6b56b5772bbeee4d04b7f279c7c73f869f7d",
-      "size": 96226
+      "sha256": "26941e6e2cdf8e02e808cc9749ea7a8eaa825b55ac4341faed214763958901cf",
+      "size": 96265
     },
     "share/tower/tower.tower": {
       "sha256": "c2fe8dfb51afa7a846e9633e91e4ac36831d25abeebd098b62edd66109a97f99",
       "size": 8676
     },
     "towerc": {
-      "sha256": "a3bf60344531e1a99fac05fa1c9aa13fe001066adf7df32f10f57ff1c103c3d8",
-      "size": 1302104
+      "sha256": "30dc4eabd1484272f242c6dd2bbcc80a04c94fe8cc55d0c1a34d995d45a9ea58",
+      "size": 1301512
     }
   },
   "host": "linux-x64-ubuntu24-llvm19",
   "schema": 1,
-  "sha256": "6d064a5852535255184b0096f33d22060b040499bed69f188d04272fb0cd9c84",
-  "source_base_revision": "d1b0d01f72ec06f9f46aa238704c57cd02ed6bb5",
+  "sha256": "fd536ba1ae5cefe891e78690e23c06ef7fcd5d729c0e3395824d8977abf9a9b4",
+  "source_base_revision": "8e3d03c39183a3c88b5b99a77fc965198bd208b5",
   "source_files": {
-    "CMakeLists.txt": "34e219e850a3481619639762c135d47e7b47359488a4eb568d5fcebbc3e586fc",
+    "CMakeLists.txt": "d8e127a9650b1e9d36db4d59c77b259965cec188e0a5f8fbc6ef5896c08a2e40",
     "cmake/ComposeBackend.cmake": "e862abd5dcefc7f36418892c6b80a068c689dc98094d5770c3a5a51102394319",
     "cmake/ComposeEvaluation.cmake": "a9b97e0810765fdcfc626feaabdc1820b488f71c4aba96c5c926f73b03f5d82f",
     "cmake/ComposeForeign.cmake": "5480347094f0c46bbb88b652ffa0b70d347c01977ba17c01a74ed38f051a7946",
     "cmake/ComposeHost.cmake": "c7c25cbb731175536aeb4458d3000f0fcf086fb5ec11a8abeb1071466196523d",
     "cmake/ComposeInterpreter.cmake": "8994290c5981da7830379f54f21cd6a458788d774d024a705884db574442aa42",
-    "cmake/ComposeParserNodes.cmake": "7757bc41368d0b7824915453bdfff067127611108783c19c7d5dce890f77e8dd",
+    "cmake/ComposeParserNodes.cmake": "a4ac06f878c8074b6cbd32ac2b46397c3a663afe48984749900c0a36b957be97",
     "cmake/ComposeSemanticSources.cmake": "a941b0967ba215032bc7526ce2f504a16111cb90328a840a2b2ac395d19ef2ca",
     "cmake/ComposeSharedRuntimeTests.cmake": "87d5bb23e37c925ee3c47291d018f11dbe04fd8fa44b68ea7e3f6fac06cab2d6",
     "cmake/ComposeTowerSources.cmake": "77099963dc87cc47de449afda6f66302b42a25b024f3a4378629844913d6f2ca",
     "cmake/IdeImports.txt": "117f5859166d95bc3484f0b011d7fd29727e75d46e281586deb06c712a8e21ef",
     "cmake/TowerAllocatorTests.cmake": "d69c3c4d8a46a6794e34c4ed789fe59856cebc37980eae6d6e68ac8729f7f8e4",
-    "cmake/TowerBackend.cmake": "4f4ff16f7064abb85f85891eb133bd06adde2c0bcd1fe6aec08d8a0ef3b3147c",
-    "cmake/TowerCompilerUtilities.cmake": "513501f675765d1b4853f05e438dfff3a1338bea771eb402b406e3c98b2e98ea",
+    "cmake/TowerBackend.cmake": "de2d3ade8fc26d7ebb0f9589a0d9e54d51ee07ad7373c6edcae11882554e4deb",
+    "cmake/TowerCompilerUtilities.cmake": "6868978d0c24774d35b18b4afa9c9cf74538e458b6aa2b790c8c5c7e6f67d056",
     "cmake/TowerDriver.cmake": "e67203a32e7f1491c1a9612e693c4bc789c4cb0928f247ea33fb4c7047a288db",
-    "cmake/TowerDriverRequestTests.cmake": "0db634b84684f469815fea1cbcf4db6048e24a1b862ed232698dab53ddb1f81c",
-    "cmake/TowerExecutionTests.cmake": "6b30692395e24287b13b3f1021316471d8083c557f175a2554ac0dab5289a6be",
-    "cmake/TowerFormatTests.cmake": "c3b24003c3716fb63b96511c24863cf9312fa91af1d73e98cb9ed16247577914",
+    "cmake/TowerDriverRequestTests.cmake": "8f8a784a1f3eb8463feed8e5334adc34afcf5400bccd2c1932866c9a16e122db",
+    "cmake/TowerExecutionTests.cmake": "9e944609f0649b7d413e06c1dac4cccc4d23a43c94afa1401001111098f5298c",
+    "cmake/TowerFormatTests.cmake": "dda8622e165599edfdac489a60e57473eafbdaa58efd7388b43208dceef7bfc7",
     "cmake/TowerFrontend.cmake": "81a2e69a1bfd10725f86655c4fbffb4fb0a32e6e3ef9ba683fede8c61140b1fb",
-    "cmake/TowerFrontendFocused.cmake": "4094a515073e6ffb005570ba591f23b159b67939ad412ff595a3520317404d57",
+    "cmake/TowerFrontendFocused.cmake": "cc3d31515901b0f2e730c37d232874b0e8eaf7446e9654f1361b2a6590a8d648",
     "cmake/TowerFrontendTests.cmake": "758f43168959c5a9360c2cdf07a80d504e7be72adad3107a97f184dde6d68b35",
     "cmake/TowerGuestRuntime.cmake": "a12d2691b536321f59e6aa35abd7b7f6d0e0aaf863826bbc529e8fdc57bfef99",
     "cmake/TowerGuestRuntimeTests.cmake": "1243e95b3bbe4a0ad7e5e83d9238879cb151f01ca2a531316ad9043263ea005e",
     "cmake/TowerHost.cmake": "d49da1bc838d30549f38e41919de43fe33dc53bc1283c861697235db723c3553",
     "cmake/TowerIde.cmake": "d3da166add8e5afe8683ed3215fe3b8a363762c35fcb2b8189b43d2c91db4d82",
     "cmake/TowerInterpreter.cmake": "117f6830128c8189ab1b2c8ff284eaa6a5ade478616e58f90f443e25680fb575",
-    "cmake/TowerInterpreterTests.cmake": "3abaa54bdb85e69eb7a41f2dd8a87d25b2055f78651b18d3056b319b7791824a",
-    "cmake/TowerLRAnalysisTests.cmake": "166bd55899de8a916f08aac4d7143a666714b70d88a2a9fcf854439afc737882",
-    "cmake/TowerLRGrammarTests.cmake": "a0312fb40de92f402045e8a658afdf949e04ce506c3d1be9b392f57f942ebafc",
-    "cmake/TowerLexiconTests.cmake": "0c3c0ae21f42b461c56a68fe4b94a103a5149c63a44edb4a737f3c6c604d955b",
+    "cmake/TowerInterpreterTests.cmake": "595170a4fba46013550be46f25c606bb95beedd6bbb27089876d6add6410406b",
+    "cmake/TowerLRAnalysisTests.cmake": "0720cc7be703514ced4efdc5f7c2c80796113cbfc9db847543c957fec4ed6995",
+    "cmake/TowerLRGrammarTests.cmake": "2b394450290a32c91910c3ca4426d7371387e903e89977234fa85cdeba1a132b",
+    "cmake/TowerLegacyHost.cmake": "1252e4728a282b4581513e317a6a02d83e10d6a5cc95934ff8f780a23e984bf2",
+    "cmake/TowerLexiconTests.cmake": "cfcb7517f6416c976dae982b9bdd34e273761863a9d1e7e7af587fe402bf8c21",
     "cmake/TowerModule.cmake": "acd732e4236b33fdca9c1b8ea70188496a53b6ca508cb456b958a8c5c3fa7a63",
-    "cmake/TowerParserBenchmark.cmake": "260c1ec2b93fa2c84e0ad3d91ab0fb250655a2d3284fa9ab409aab62638c96c4",
+    "cmake/TowerParserBenchmark.cmake": "8fe2a6fd4c9f41ea0b72bcf5a6db5fad159f511f2c21281a143a5fb13b71792a",
     "cmake/TowerParserEvaluation.cmake": "9ecac167e53584cb0bb2c8ea55bb9435bc840f7937077c39166fbe0ad0b565b5",
-    "cmake/TowerParserFormatTests.cmake": "4edee3bb7c0a24566e59ee21160cd278f0794eabf5920ba125d79e94110514a1",
+    "cmake/TowerParserFormatTests.cmake": "791afd659091dd1d1e9a3c49e32222f5fbb3b86c54442b639a00c6968356e3fe",
     "cmake/TowerParserFormatting.cmake": "636a4d721e4f5a6e9ce1e6d946e747574a5ada22d6e725ec9a6913f149b03b3c",
     "cmake/TowerParserIntegration.cmake": "86e5820392ff628216e2ed253da83630840bb87471f7b9f35edac913108a2236",
-    "cmake/TowerParserMain.cmake": "5fdb1cc86be961a29933839f087dc598adc7477be684da29793432dfd9854ca6",
+    "cmake/TowerParserMain.cmake": "8c404d540972f8e4387a6829ee9fdd53522a9fb23966e5b138ef27b2a35d107a",
     "cmake/TowerParserServiceTests.cmake": "a3e555a353d88b6259dfc8a8bc701f9608bf5a488ab75c52e617a7b4dba5681d",
-    "cmake/TowerReaderTests.cmake": "b837364b09415dab5e8e21e528a113ae564b4df547f7728fa17ce0402fde5528",
-    "cmake/TowerRegexTests.cmake": "f7cb97047726c20318e16c53ad76c6df9b32b42d82adf93de4952456e84b3568",
+    "cmake/TowerReaderTests.cmake": "b8e16a0f4e8b974b1f47b1d491d1aad5ae6630747d5297385d80e271a19af851",
+    "cmake/TowerRegexTests.cmake": "aceeed6abb9b0ffda9cf056f0b448b8575a478608f0d0d9e508dbfba32c998c7",
     "cmake/TowerRuntime.cmake": "3e7b760726ed003b5170b186a83fa9a7f4ae5ef23332160e8e87c5f08440f485",
-    "cmake/TowerSharedRuntime.cmake": "2cc4d5ab5ecf06991dcd0c971e7100b0e3786f54cf95fe626cb253dbc1aa2193",
-    "cmake/TowerStorageTests.cmake": "8bd159be9462edaabc6af57a952f37943c3c284d56fb032e0e7693f33857b4b8",
-    "cmake/TowerSyntaxEmissionTests.cmake": "14816309c1c0a6d3ed069dffdd1333eb599d76d9108c7e5c976224159a4f9e76",
+    "cmake/TowerSharedRuntime.cmake": "4689657f97202519fab9acce4c7c4d7f84d6cfc0ebf42296703f21835ce72862",
+    "cmake/TowerStorageTests.cmake": "1766af885f151bcbf8a2b0889dbfb6af320765f36098ea63db53d61ebb2336c6",
+    "cmake/TowerSyntaxEmissionTests.cmake": "8226f44edb292fb971b770580b92c2d44be658168ddfe41341dd4e13c781022a",
     "cmake/TowerSyntaxHost.cmake": "ac8bfc88e324fc4f3838c578caf762ff40ea001f678cdc1aa09b1df38f970ac5",
-    "cmake/TowerSyntaxPayloadTests.cmake": "9bee2086d82f62eaa28d57b696d334d8173b1b3b5b1dffd26a4332c5e88c95c2",
-    "cmake/TowerSyntaxTests.cmake": "0fcd5916e9c9fed9a77d11d46d54e6a8bc34d55723f3beb9bc8ee5c9124c3626",
+    "cmake/TowerSyntaxPayloadTests.cmake": "60939e0646ab7fb0ddf469414e4ebb4e5e74440568e1e3e20b705c7358003395",
+    "cmake/TowerSyntaxTests.cmake": "f82821e0e04364c9134699c068e34d1f6aae82a015bb9487daaf2d4a2f9eb3ab",
     "cmake/TowerTemplateBuild.cmake": "f4584fa55756414f022c523e7ce16fbc4ad6f645244f6362823ac12f868f3399",
     "cmake/TowerUtilityTests.cmake": "4152ce35873789ab916747cbcee9c1b709ea7b429c5111299ca872cea2a2069e",
-    "cmake/TowerValidationTests.cmake": "040206d97448e447b444db0cacdc2fb98458c5f245993ca0b5802e9986b7cbe2",
+    "cmake/TowerValidationTests.cmake": "65b27db50238573046c587a424dceb10b3d66746d4ec0a656e2d2588b3cb7e1c",
     "cmake/TowerWorkHost.cmake": "5d1b3c6a882b7dc20947231520f24b4a815dc15461268686dbc7809ec3c36ac0",
-    "cmake/TowerWorkPolicyTests.cmake": "6101d54c729bc8ccad3ceb06b507a0d00d0c03a25d6f0e4114d3cf7ecfd65a50",
+    "cmake/TowerWorkPolicyTests.cmake": "6489f6f5127fc7aecf50bd5ac52fb879f1e34c3b4f7e35699a1ba681084b2cbb",
     "cmake/TowerWorkTests.cmake": "a8951d2b3dc6ff3c3a5cb0e523d6f09e6217bed4ef7563825de1986b4fe75f21",
     "cmake/WasiThreads.cmake": "d8027a5a49b1ed8c6fde9bfe53443ab60900a52683ca450712a39aae643937fe",
     "cmake/WorkImports.txt": "1fb59e24ae51d9575f9468f013517bd1fe8ecd9b6729fb54f1b0131c2c938fcb",
@@ -244,8 +242,6 @@
     "scaffolding/backend/text.tower": "99e8ba68f449d65dceb0105cd7e6df8266f047525447dff772d63e095235980a",
     "scaffolding/backend/wasi_support.tower": "c586d349d5f553738d16093e44259191edf041e07015a746cb7ee6f84947f3e7",
     "scaffolding/bedrock.tower": "13d36b8bfa7d47355b430ea461ed5e16759b7e63adcf79078e03154e2e89af09",
-    "scaffolding/compiler-entities.hpp": "b1dfdcefa1d1db6f03fd5a34cca6a94db0bec8af4e0b4651ee47dcb07fc2ec80",
-    "scaffolding/compiler-host.hpp": "c701e78625534e6e5d53b6251dbdea44767f922eb8487fc5af255c1e60e49b59",
     "scaffolding/compiler/automaton.tower": "df931447a0416512f2b803e40fef8f26bfaf20a0b2ffaec416c033dcad1b2c7b",
     "scaffolding/compiler/bytecode_package.tower": "87a09e773928ca4a72b8277b46667302b78547f3581546562d8d1d6c76106483",
     "scaffolding/compiler/c_control.tower": "62250870a8a97cdcc6d669048d75848c4563c66720731cb24765eac5daa75a84",
@@ -344,7 +340,7 @@
     "scaffolding/compiler/semantic_aggregates.tower": "ec674bd0c819724587b3916e53e3cc04af335fbed673af810c9cbb7193c0b315",
     "scaffolding/compiler/semantic_body_work.tower": "fc7039b7c22e281f1bbf9c166c7be756e91ad0f326acb4741d9a93776a633553",
     "scaffolding/compiler/semantic_call_inference.tower": "7a8cbe0a823e35cfade6dfebc5e0fe7a9db4fa34c01ac3c32f0ab1e0b1b7e7e2",
-    "scaffolding/compiler/semantic_context.tower": "2e475256728d96f32b8d3c043d63cb38496c4078ff15b20910bbf9b6fbe4a29a",
+    "scaffolding/compiler/semantic_context.tower": "271e34c41c91b8c967c6bd466bed91773b207610dcc3d66a16103a9f7cdbeee9",
     "scaffolding/compiler/semantic_control.tower": "41977fce2465d94a4bcf883e9ca35da1b4dcd6fd77eb6e76530d904655dcef8d",
     "scaffolding/compiler/semantic_declarations.tower": "0070f5192357f04ca89a6e2498652ec358104bcc832594fa39b1309b9bd7565c",
     "scaffolding/compiler/semantic_defer.tower": "6f426b94879536972c53b07b92022d23867c0eb2214565dcaa0898979b26481a",
@@ -437,7 +433,7 @@
     "scaffolding/host/driver_link.tower": "742b42414ac935e72a99e5a1f3e1df78655f98fb96391d864a857b24b873c77c",
     "scaffolding/host/driver_linux.tower": "09f7663c933bbb099805de72b430e62a3e0ab64a5cec0686f6f3f80d251cd5a8",
     "scaffolding/host/driver_macos.tower": "ac10b084c5ffe5efdded34abf3a137fc384ac2d8843d21288d452ee4fd9798c7",
-    "scaffolding/host/driver_options.tower": "cecbef948cbd9760bac763dea6dce76b72355aec5a067f113dd2a2a29798c20b",
+    "scaffolding/host/driver_options.tower": "3fdfceec06f160c4f37856c8f79c3f99e4d1bdc487e1aa35d5f7b4cf8656fb32",
     "scaffolding/host/driver_paths.tower": "1777ec792faea72eeb7b0294461c7ef8e474a43f874578ade62a965777c0883c",
     "scaffolding/host/driver_paths_posix.tower": "be014e1f1b8fd457b69ec3f83fffffb6629e3bff0301db9f4002e94a5ac05cc5",
     "scaffolding/host/driver_paths_windows.tower": "43f8f0edf723ddf9bc781c6a57eaf1e8c408109307b86cd35c08ad233703cd83",
@@ -455,7 +451,7 @@
     "scaffolding/host/driver_types.tower": "ad5efd55e3055e7109ee4dc2b8da9d07a2bda305ed4fd079fc185916d753ae46",
     "scaffolding/host/driver_windows.tower": "31e23c804d64c0a80262fa9b8256798bd7b0443625b25f38576eaa8678c6cc3a",
     "scaffolding/host/driver_windows_arguments.tower": "fa0dfd742ecc6c78ea0e49a8f3d4ac2033284ce48ee7c44689e2be2fb8cee6de",
-    "scaffolding/host/entity_lifecycle.tower": "2d096f27887e03811b027310282d3187bc94353741b5a40e61af92026ab56602",
+    "scaffolding/host/entity_lifecycle.tower": "47812b8d5202d6a4fb68f255fd49236d3f181a782db251c00c1ce76594eca826",
     "scaffolding/host/guest_bytes.tower": "b80d03d128350cd3c67dbd322e6015e1325f0b8925c19c95e531408fff2f5a0c",
     "scaffolding/host/guest_entry.tower": "2e284463ba21ca8f53981f8f729a7aa846e71aa148dd067533ee3aff0ab92a9f",
     "scaffolding/host/guest_libc.tower": "eff7b1bfc06ca1a287c000154b215914d63da1bcc38fbee1654144fdfdfef514",
@@ -482,6 +478,8 @@
     "scaffolding/host/ide_tree.tower": "7310022572f09f76e6b59cd6351c737c47e3c76e98fe5f4572d85e4cf9b95a12",
     "scaffolding/host/ide_types.tower": "3cc320c717a44bd44de4ce7d8f0e9597ba56b1358f8a669539abe3e57904580f",
     "scaffolding/host/invocation_execution.tower": "95353da86a17ded00dc2bc53e3b4b42e83a480f259b20416c4c89cfdcd4f769e",
+    "scaffolding/host/legacy.tower": "a19bf4b268e7b3995eb38890cee0c2c760fcad3bdc4c61301eac9a1d4eac2b81",
+    "scaffolding/host/legacy_storage.tower": "02921d3b5f158e0dd2c932d395c64524382c6510acb83e2659dc9248c252db4a",
     "scaffolding/host/llvm_worker.tower": "c06eba7355112055d4db7ccc48bb1fa17834f01dd75357c9961cb975bd5a1750",
     "scaffolding/host/memory.tower": "61b388929d901e7c399bccac597cf7e284c1b8ed652d2f858b91df8b7dc5507c",
     "scaffolding/host/memory_instrumented.tower": "18a17582b9e63c28322476aed4927baae36aa6eb175feb414f44ea49a4dd9737",
@@ -498,9 +496,9 @@
     "scaffolding/host/module_path_wasi.tower": "0f2ed78552c4d22ea5710723efc93eda416ec0a2934fef61b7ad9d3ffa500e52",
     "scaffolding/host/module_path_windows.tower": "d7f59e041b399db000c32cfddd9a9ae827a1ac8b2527de42892b256851fb62f8",
     "scaffolding/host/platform_output.tower": "a160520d888d1f6e47a9d7ebc3cbaaa5051edd2195347a2fa79c1c80b9dc814a",
-    "scaffolding/host/runtime_bind.tower": "6f60c94a36fd09bb2603890cd92809921a1dd763c8133b0031d8bf5a5ea9b500",
+    "scaffolding/host/runtime_bind.tower": "186153141f6f793e44631815a759fb8d8bf6ce94d28651f97a07cdac0f5bc2a0",
     "scaffolding/host/runtime_driver.tower": "cbb06d144a4ba3de2784232bac2ef990f99de9491aadd4305b4c6ca00860d0a0",
-    "scaffolding/host/runtime_platform.tower": "07e7c674cc157e4f8ffd8e6682e62493158fa61ee035eb65ac5855c98cabf652",
+    "scaffolding/host/runtime_platform.tower": "6abb7901a9fd8472fb2a62098a1a7b8383b7526c34a1f55f324d2bb62bc4598e",
     "scaffolding/host/syntax_baseline.tower": "a443737769211ee1accafe55954d238bac1d1c765ea6347d1f05be2367e8cfed",
     "scaffolding/host/syntax_baseline_api.tower": "8129d59f8ede86d8b4687b3f73b47aa7d7eef2e905d3f490b21ec64fdecddf4a",
     "scaffolding/host/work_dispatch.tower": "37a5ef1d520e9a91c905a240f3c22627f9bbad1d645282a2a71b1bed48fd0ea0",
@@ -514,7 +512,7 @@
     "scaffolding/library/bytes_interface.tower": "2af7f862478f9cba7d19c58280ef67a3b8e556134cb0219376164e712fbaf3a8",
     "scaffolding/library/bytes_types.tower": "877a2d3b97f1937045b172bc973716a34a45c739907d4aae2084ea025f3af496",
     "scaffolding/library/compiler_work.tower": "bc22af3cf6900e21993e7f5412ed458a81ce29b4395f33a3334ae9bc8e048ebd",
-    "scaffolding/library/entities.tower": "7b7b2c5b8ae0e37f5ab2a5a7bfde61a0cd371c1997270a8fd8ee7f4d90046f32",
+    "scaffolding/library/entities.tower": "cdfafab03c0f4104e37089486512e85eaf4cc89ceda253a8c201516e9178c560",
     "scaffolding/library/entity_stage.tower": "265dcdd04d13ae3ca59a3aa42e61d46e2a8fda6ccef19ad547cafb6648c80e14",
     "scaffolding/library/platform.tower": "7b8183c3f1ecc5f2f3c1a243da1d4f803c54987b9a87f5832c3cb04b94c5fa2c",
     "scaffolding/library/queue.tower": "d61ca3b9a861c42e7489d03cfd8a990d0bfcc999e528e05f18c597292a700280",
@@ -525,7 +523,7 @@
     "scaffolding/library/work_pool.tower": "b8c025171098fbdd5995164a5c9f82c1e5e58cc7cd4364b72fc03827598f6be7",
     "scaffolding/targets/kernel32.def": "92f51c88b298a0cea9793ca41824662eb653607f4b40ac04d39a031949483dbc",
     "scaffolding/targets/libSystem.tbd": "b38b11a1f50135d58f17a5436e255bd7a70ac68ef7380c5abab28612612c2009",
-    "scaffolding/tests/README.md": "bc60450961b7d4cfedcefb4e5684ff1bab83fd1cde69f04375f12df0d0990cea",
+    "scaffolding/tests/README.md": "3ef3ca427de81ae3150bff88bff1c19172017796316ba41d08323ee5db5a8631",
     "scaffolding/tests/allocator_glue.tower": "a1b52c7b463bd4784b8f6f6d8f1942f43814db8312dc0d151019bb55d1ac11d7",
     "scaffolding/tests/allocator_wasi_entry.tower": "133576f78e2fe3086dbb603ad53f61acc6ac233419f436ee4ae9ce6355a24ddb",
     "scaffolding/tests/allocator_wasm.tower": "0990ce9833d751e706a11c28f0cc8e7d9a41e631ae520b419166f8145b0bf192",
@@ -686,6 +684,7 @@
     "scaffolding/tests/lexer_table_oracle.tower": "161ca9e61889c8f8622597664b88937c8e66cfba8dcfc6e2b8bfbdf73df3e062",
     "scaffolding/tests/lexicon_oracle.tower": "2f637d4457b30ad64a0e672318f7528e065fe31aeddf52e4ef6a4cc1afeffd40",
     "scaffolding/tests/linking.tower": "87e30a0d8a047a17211b7cecafd91d7205ef0d221a2af4fead39d6062be378a9",
+    "scaffolding/tests/lld_compat_checks.tower": "c8d0bfae3061f51e2b091099c806bc2c8a697a1ef20c5c580fc350b96f7a4456",
     "scaffolding/tests/llvm-scalar-idioms.json": "66e6d3e1dccbd00ba6eeae3db7e570f7a7e5755edd5c46370e3981dc882ceb0b",
     "scaffolding/tests/llvm_c.tower": "9d2029d0515b59265312913be874c18c5f0994cef3d6b6f7f5cf0e0bdffba8c7",
     "scaffolding/tests/lr_analysis.tower": "1b74b96e6b0599b06f379156846a4be8688a363fb4353c5345a28b66f431c982",
@@ -713,7 +712,7 @@
     "scaffolding/tests/mt19937.tower": "04f90289b669f1ce6a6c346112194292ea432856ca64874ce72ce57c233b10e5",
     "scaffolding/tests/named_initialization.tower": "716ba924091d1b6b15bbb50d71151520d8edd10943bd477d590311dcce4150a9",
     "scaffolding/tests/named_initialization_checks.tower": "51cfcbebeaf894b742565379d04d9656a8949a6e0a0ce21e51c3bf84be287d17",
-    "scaffolding/tests/nodes.cpp": "69e138de37544f0d77d89d49d1ca4e90c8521ef13b02eaa752d800239c80f66d",
+    "scaffolding/tests/nodes.tower": "bf0f7a14b91f3d6324cfe5b5e8b51e931b907da7857864852add96e6a2dc7849",
     "scaffolding/tests/null_operators.expected.txt": "ad458999c213cfa89ae496639da6d9318a6efa2a5b87a710e8c7fae3baddd408",
     "scaffolding/tests/null_operators.tower": "1a3b48d2d830c6c6dfb5ef1e37c0f9ab42f3f5cdddfa9ac853a8f03a07d29420",
     "scaffolding/tests/operators.expected.txt": "cdea2863ccfe9b81228633d0c20a8971072c441b8d02d8bf1461b27b32d19708",
@@ -817,9 +816,9 @@
     "scaffolding/tests/work_instrumented.tower": "5f5d718e6e2c7a2524e9a1ca9be26b33a714980e34509761a04143fb2b053bb7",
     "scaffolding/tests/work_pool.tower": "cf6c9251e825a024889a96f9e3cb12b816d914bef872b942210b97a06567480e",
     "scaffolding/tests/work_resume.tower": "0cdc505697223e63e9bde6005b006d1785431f6266ef8064c37a10cecc9788bc",
+    "scaffolding/tools/lld_compat.tower": "18d289f4cdbdbe7f9c935211fa5541e872ded4e2450512bf700e7296decc6597",
+    "scaffolding/tools/prepare_lld_compat.tower": "0ec01bdea0e62845b9330bdafcba0d12d7539a65f151baae3dd30f88828feed6",
     "scaffolding/tools/remove_const.tower": "bc8025b48eff266799aa09deb7ef7fe5fad66152812a96a95b3e8a102970e101",
-    "scaffolding/tower.cpp": "f8027f304126569afbb3d59c11bb2997229c13faa6433b8ab0d273d22d08ae6e",
-    "scaffolding/tower.hpp": "428123470f4b59e64bb4ed561d4af007a1bea6e5d3b45543a800f4dd4b58557b",
     "scaffolding/tower.tower": "c2fe8dfb51afa7a846e9633e91e4ac36831d25abeebd098b62edd66109a97f99"
   },
   "source_identity": "Exact source_files hashes include the working changes accompanying this bootstrap update."
