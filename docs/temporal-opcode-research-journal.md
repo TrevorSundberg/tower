@@ -27421,3 +27421,58 @@ Rebased again onto9d1ea3d/97a6586 and preserved upstream propagation-frontier im
 Integrated Agent2 source1651d1a (1054 native LR/reference lines retired plus explicit test work profiles). Preserved all journal entries and removed the obsolete emission archive from its new LR test link too. Fresh default bootstrap successor completed in coordinator-worker-policy-clean. Native real overlap, deterministic instrumented allocator, LR serial/threaded equivalence+lifetime, frontend failure/format/regex suite and backend API all pass. Fresh standalone emission targets build without the deleted native archive and run unchanged fixed/400-generated/template/failure/lifetime assertions: native0.28s; WASI prints the full passed marker and exits0. Logs: emission-reference-port/integrated-{native,wasi}-{build,test}.log; worker-granularity/policy-*-test(s).log. All implementation and new functional checks are Tower; native edits remove the246-line reference only.
 
 Final diagnostic count is34 thread opens (457 capacity queries), down from14,624. Three interleaved tiny compile samples against pre-thread compiler: old0.86/0.83/0.83s, new0.79/0.82/0.78s; all six object files have one SHA-256. Larger256-export observation and previous5.00s regression are recorded above. No blanket thread disable, unsupported vectorization claim or universal speedup claim. User-requested broad sanitizer/formatter sweeps remain skipped; relevant functional checks retained. Coordinator owns the source/deployment lock for the now-ready Agent2+pool+emission snapshot; Agent3's separate ready work remains queued for its own source slot. Full browser packaging/publication is underway, not yet verified.
+
+Propagation source checkpoint is pushed through 9d1ea3d. Its matching bundle is
+built and frozen; hosted action-checkpoint verification had already loaded and
+checked all local asset bytes before dist was refreshed. Preserve that deployed
+manifest separately as lr-actions-published-manifest.json. Do not treat the
+following FIRST edits as part of either frozen browser release.
+
+### 2026-11-20 - FIRST/nullable queries on shared ECS jobs
+
+Added Tower LRFirst range jobs for nonterminal FIRST/nullable fixed points. A
+worker reads the preceding immutable snapshot, owns private ranges/nullability,
+and uses the same range insertion/merge operations as serial analysis. A derived
+reverse-reference index schedules affected nonterminals after publication;
+references beyond a non-nullable prefix are retained conservatively for future
+nullable changes. Invalid references are diagnosed only when reached, preserving
+the serial algorithm's behavior for unreachable tails. Duplicate/cyclic references
+are legal fixed-point inputs. Jobs and results live on the grammar's world, with
+pinned views, declared disjoint ranges, joined publication and receipt resets.
+Narrow frontiers use the ordinary serial algorithm, not an alternate language or
+constant evaluator. Frontend and ordinary parser table construction now call this
+path through Tower APIs. The initial shared build succeeds; expanded tests are
+rebuilding before validation. Existing table comparisons now use independently
+computed serial/threaded analyses. A new 512-nonterminal fixture covers seeded
+nullable cycles, an empty cycle, overlapping terminals, invalid reachable
+references, unreachable invalid tails and world cleanup at each worker count.
+
+The expanded FIRST/nullable capacity suite passes 3/3 (35.92 s), including exact
+serial table equivalence and cycle/reference cases at 1/2/4/8 workers. The fresh
+public-bootstrap native build, portable reactor and matching LLVM/cross rebuild
+are running; these are not yet validation results. All new compiler feature code
+remains Tower. FIRST reverse-reference indexing and propagation-edge construction
+still run on the coordinator, so this is not complete parser parallelization.
+
+Hosted verification of Pages3652113/source dd6eb85 completes: all 77 exact assets,
+desktop/mobile workflows and real Linux target defaults pass. The frozen pushed
+propagation snapshot9d1ea3d also passes two edited browser compiler generations
+(112.62 s / 76.54 s), with identical parser/LLVM/cross hashes respectively:
+986187aefca2e72cf7005c9d401ab3c834393497f5a113a7c772896f2034201d,
+fe03847b1719d52972f70b8b173b757eebdaff906274b98ace424cb7a1792e20,
+6adb49a12b8ad39426f9936cef691dfa2b47a2f70cdc8ad4461b022254fd682e.
+Its local desktop checks pass; mobile checks are still running before publication.
+
+FIRST validation before upstream integration: public-bootstrap clean native build
+completes 55/55, portable build 9/9, and the actual native successor reproduces
+the parser object byte-for-byte. Portable parser/precedence checks pass 21/21
+(15.73 s); shared compile-time/inference checks pass 27/27 (68.10 s), using the
+preceding LLVM artifact as reference. Matching LLVM/cross build and dependency
+packaging complete. Native acceptance is finishing. Logs use the lr-first prefix
+under build/language-next-audit; clean cache is compiletime-first-clean.
+
+Upstream has advanced through 5d691444, including reusable world-owned parser
+worker leases, larger closure batches, bounded-transport slot release and Tower
+LR/syntax-emission test migrations. Integrate after active source readers finish;
+adapt FIRST to those same pool leases and repeat a clean public-bootstrap build.
+Pre-integration results do not certify that merged source.

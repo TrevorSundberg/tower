@@ -2,6 +2,7 @@ import tower;
 import grammar_types;
 import grammar_builder;
 import lr_analysis;
+import lr_first_work;
 import lr_grammar;
 import lr_lalr;
 import lr_work;
@@ -51,7 +52,7 @@ export fn frontend_table_finish(table: FrontendTable*, constructs: bool, special
     for(var i: usize = 0; i < grammar.rule_metadata.length && anchor == null; ++i) {
         anchor = grammar.rule_metadata.data[i].node;
     }
-    var ok = lr_analysis_compute(analysis);
+    var ok = lr_analysis_compute_parallel(analysis, anchor);
     if ok {
         states = lr_states_create_parallel(analysis, anchor);
         ok = states != null;

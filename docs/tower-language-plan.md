@@ -662,7 +662,8 @@ containers. Benchmark representative compiler workloads before migrating them.
   are available in that shared scheduler. Native Tower worker pools and pinned layout/evaluation publication now exist.
   Declaration discovery/readiness (including signature parameters), eligible
   function body checking, expression lowering, LR transition/kernel closures and
-  LALR lookahead frontiers/action ranges run through that same pool. Canonical
+  FIRST/nullable frontiers and LALR lookahead frontiers/action ranges run through
+  the shared pool API. Canonical
   generated entities are staged privately and published after worker joins;
   exclusive leases permit body workers to attach components to their own source
   entities while typed query indexes stay pinned. Ordinary indexed value access,
@@ -674,7 +675,9 @@ containers. Benchmark representative compiler workloads before migrating them.
   Browser packaging now includes the shared reactor and nested worker; static
   hosting gains isolation headers through a service worker, with a portable
   fallback when isolation is unavailable. Local desktop loading/reload/fallback
-  tests pass; final publication verification remains outstanding. Full native unit
+  tests pass; the action-range checkpoint is published and hosted desktop/mobile
+  verification passes. Later parser phases receive their own release checks.
+  Full native unit
   orchestration, structural semantic phases, query/storage migration and measured
   SIMD remain open.
   Tower expressions, numeric grammar precedence, compound assignments and lazy
@@ -742,7 +745,7 @@ Current migration audit (after the isolated compiler-worker milestone):
 | Area | Authoritative/shared data and present storage | Concurrency work still required |
 | --- | --- | --- |
 | Entities | Stable payloads, dense per-type pointer indexes, explicit worlds, pinned views, exclusive attachment leases and staged canonical creation | Complete host-world isolation and non-racing reference ownership |
-| Syntax/grammar | Shared entities; Tower baseline/revision/cache records; worker-owned LR(0) transitions, LR(1) kernel closures, wide lookahead frontiers and private LALR action ranges | Remaining session orchestration, FIRST/nullable computation, propagation-edge construction and source/effect order |
+| Syntax/grammar | Shared entities; Tower baseline/revision/cache records; worker-owned FIRST/nullable frontiers, LR(0) transitions, LR(1) kernel closures, wide lookahead frontiers and private LALR action ranges | Remaining session orchestration, propagation-edge construction, runtime table partitioning and source/effect order |
 | Semantics/layout | Shared query graph; parallel dependency discovery, layouts, eligible body checking and expression lowering | Generic/type construction continuations, editor queries and structural publication |
 | Interpreter/staging | Per-invocation contexts over shared Foundation; threaded lazy scalar queries and private execution caches | General ordinary-value execution, explicit effects/inputs and invalidation; no separate folding evaluator |
 | LLVM | Shared Foundation inputs; one mutable LLVM context/module per compiler instance | Function/query boundaries that do not concurrently mutate one LLVM module; preserve target legality |

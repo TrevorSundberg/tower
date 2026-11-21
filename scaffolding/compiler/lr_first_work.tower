@@ -1,0 +1,193 @@
+import tower;
+import compiler_kernel;
+import lexer_table;
+import lr_analysis;
+import lr_types;
+import lr_work;
+import .library.vector;
+import .library.work_graph;
+import .library.work_pool;
+
+struct LRFirstResult {
+    ranges: vector(SymbolRange);
+    nullable: bool;
+    changed: bool;
+}
+
+struct LRFirstTask {
+    kernel: CompilerKernel;
+    ticket: WorkTicket;
+    analysis: LRAnalysis*;
+    frontier: usize*;
+    results: LRFirstResult*;
+    begin: usize;
+    count: usize;
+    success: bool;
+}
+
+// Each nonterminal owns its output. References always read the preceding
+// joined snapshot, including self references and nullable cycles.
+export fn compiler_lr_first_kernel(payload: void*): void {
+    var task = bits(LRFirstTask*, payload);
+    var value = task.analysis;
+    task.success = true;
+    for(var i = task.begin; i < task.begin + task.count; i++) {
+        var index = task.frontier[i];
+        var source = &value.nonterminals[index];
+        var result = &task.results[index];
+        result.ranges.length = 0;
+        result.nullable = source.nullable;
+        result.changed = false;
+        if !vector_reserve(&result.ranges, source.first.length) { task.success = false; return; }
+        if source.first.length != 0 { copy(result.ranges.data, source.first.data, source.first.length * sizeof(SymbolRange)); }
+        result.ranges.length = source.first.length;
+        foreach(var production in &source.productions) {
+            var rule = &value.rules[production];
+            var nullable = true;
+            for(var position: usize = 0; position < rule.count && nullable; position++) {
+                var symbol = &value.symbols[rule.begin + position];
+                if symbol.nonterminal == lr_none() {
+                    if !lr_range_insert(&result.ranges, symbol.first, symbol.last, &result.changed) { task.success = false; return; }
+                    nullable = false;
+                } else {
+                    if symbol.nonterminal >= value.nonterminal_count { task.success = false; return; }
+                    var referenced = &value.nonterminals[symbol.nonterminal];
+                    if !lr_range_merge(&result.ranges, &referenced.first, &result.changed) { task.success = false; return; }
+                    nullable = referenced.nullable;
+                }
+            }
+            if nullable && !result.nullable { result.nullable = true; result.changed = true; }
+        }
+    }
+}
+
+fn lr_analysis_work(value: LRAnalysis*, anchor: void*, capacity: usize): bool {
+    var owner = entity_create_related(anchor);
+    if owner == null { return false; }
+    defer entity_release(owner);
+    var results = alloc(LRFirstResult, value.nonterminal_count);
+    var dependents = alloc(vector(usize), value.nonterminal_count);
+    var queued = alloc(bool, value.nonterminal_count);
+    if results == null || dependents == null || queued == null {
+        free(results); free(dependents); free(queued); return false;
+    }
+    fill(results, 0, value.nonterminal_count * sizeof(LRFirstResult));
+    fill(dependents, 0, value.nonterminal_count * sizeof(vector(usize)));
+    defer {
+        for(var i: usize = 0; i < value.nonterminal_count; i++) {
+            vector_dispose(&results[i].ranges);
+            vector_dispose(&dependents[i]);
+        }
+        free(results); free(dependents); free(queued);
+    }
+    // Any reference can become relevant when an earlier prefix becomes nullable.
+    // Invalid references are diagnosed only if reached, just as in the serial
+    // algorithm; an unreachable tail must not change analysis behavior.
+    for(var i: usize = 0; i < value.rule_count; i++) {
+        var rule = &value.rules[i];
+        for(var j: usize = 0; j < rule.count; j++) {
+            var referenced = value.symbols[rule.begin + j].nonterminal;
+            if referenced < value.nonterminal_count && !vector_push(&dependents[referenced], rule.owner) { return false; }
+        }
+    }
+    var frontier: vector(usize);
+    var next: vector(usize);
+    vector_init(&frontier);
+    vector_init(&next);
+    defer { vector_dispose(&frontier); vector_dispose(&next); }
+    for(var i: usize = 0; i < value.nonterminal_count; i++) {
+        if !vector_push(&frontier, i) { return false; }
+    }
+    var kind = lr_work_node(owner);
+    if kind == null || !entity_register(kind, sizeof(LRFirstTask), alignof(LRFirstTask), 0) { return false; }
+    var nodes: void*[256];
+    var jobs: LRFirstTask*[256];
+    for(var i: usize = 0; i < capacity; i++) {
+        nodes[i] = lr_work_node(owner);
+        if nodes[i] == null { return false; }
+        var job = bits(LRFirstTask*, entity_component_data(entity_component_add(nodes[i], kind)));
+        if job == null { return false; }
+        fill(job, 0, sizeof(LRFirstTask));
+        job.kernel.kind = CompilerKernelKind.LRFirst;
+        job.kernel.payload = bits(void*, job);
+        job.analysis = value;
+        job.results = results;
+        jobs[i] = job;
+    }
+    var graph: WorkGraph;
+    work_init(&graph, 1, 0);
+    defer work_dispose(&graph);
+    var pool: WorkPool;
+    if !work_pool_open(&pool, capacity) { return false; }
+    defer work_pool_close(&pool);
+    while frontier.length != 0 {
+        var count = frontier.length / 16;
+        if count > pool.count { count = pool.count; }
+        if count < 2 { return lr_analysis_compute(value); }
+        if !work_reset(&graph, graph.revision + 1, graph.profile) { return false; }
+        var position: usize = 0;
+        for(var i: usize = 0; i < count; i++) {
+            var job = jobs[i];
+            job.frontier = frontier.data;
+            job.begin = position;
+            job.count = frontier.length / count + (i < frontier.length % count ? 1 : 0);
+            position += job.count;
+            var id = work_request(&graph, nodes[i], 1, convert(u64, job.begin));
+            var ok = id != 0;
+            ok &&= work_access(&graph, id, 1, 1, job.begin, job.count, WorkAccessMode.Write);
+            ok &&= work_access(&graph, id, 1, 2, 0, 1, WorkAccessMode.Read);
+            ok &&= work_seal(&graph, id);
+            ok &&= work_demand(&graph, id);
+            ok &&= work_take(&graph, &job.ticket);
+            if !ok { return false; }
+        }
+        var view = entity_view_open(owner);
+        if view == null { return false; }
+        var ok = true;
+        var admitted: usize = 0;
+        for(; admitted < count; admitted++) {
+            if !work_pool_submit(&pool, bits(void*, &jobs[admitted].kernel)) { ok = false; break; }
+        }
+        for(var i: usize = 0; i < admitted; i++) {
+            if work_pool_receive(&pool, true) == null { ok = false; }
+        }
+        entity_view_close(view);
+        for(var i: usize = 0; i < admitted; i++) {
+            if !work_finish(&graph, &jobs[i].ticket, jobs[i].success) || !jobs[i].success { ok = false; }
+        }
+        if !ok { return false; }
+        next.length = 0;
+        fill(queued, 0, value.nonterminal_count * sizeof(bool));
+        foreach(var index in &frontier) {
+            var result = &results[index];
+            if !result.changed { continue; }
+            var target = &value.nonterminals[index];
+            var previous: vector(SymbolRange);
+            copy(&previous, &target.first, sizeof(vector(SymbolRange)));
+            copy(&target.first, &result.ranges, sizeof(vector(SymbolRange)));
+            copy(&result.ranges, &previous, sizeof(vector(SymbolRange)));
+            target.nullable = result.nullable;
+            foreach(var dependent in &dependents[index]) {
+                if !queued[dependent] {
+                    if !vector_push(&next, dependent) { return false; }
+                    queued[dependent] = true;
+                }
+            }
+        }
+        var previous: vector(usize);
+        copy(&previous, &frontier, sizeof(vector(usize)));
+        copy(&frontier, &next, sizeof(vector(usize)));
+        copy(&next, &previous, sizeof(vector(usize)));
+    }
+    return true;
+}
+
+export fn lr_analysis_compute_parallel(value: LRAnalysis*, anchor: void*): bool {
+    var capacity = work_thread_capacity();
+    if capacity < 2 || anchor == null || value.nonterminal_count < 64 { return lr_analysis_compute(value); }
+    var useful = value.nonterminal_count / 16;
+    if capacity > useful { capacity = useful; }
+    var ok = lr_analysis_work(value, anchor, capacity);
+    if !ok { value.failed = true; }
+    return ok;
+}

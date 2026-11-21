@@ -9,6 +9,7 @@ import parser_markers;
 
 extern fn lr_states_lalr_parallel(states: void*, constructs: bool, anchor: void*): bool;
 extern fn lr_states_create_parallel(analysis: void*, anchor: void*): void*;
+extern fn lr_analysis_compute_parallel(analysis: void*, anchor: void*): bool;
 
 extern fn entity_child_count(root: void*): usize;
 
@@ -182,7 +183,7 @@ export fn parser_table_build(table: ParserHostTable*, specialize: bool): bool {
     for(var index: usize = 0; index < names; index++) {
         lr_analysis_order(analysis, index, lr_grammar_name_order(grammar, index));
     }
-    var ok = lr_analysis_compute(analysis);
+    var ok = lr_analysis_compute_parallel(analysis, table.match_kind);
     var states: void* = null;
     if ok {
         table.error = "Unable to construct LR parser tables";
