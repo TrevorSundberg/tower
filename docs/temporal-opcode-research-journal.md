@@ -37785,3 +37785,20 @@ cost about 6 MiB but remain about 6.6% below LLD. This supersedes the previous
 slowdown observation for this frozen workload, not every linker/profile/platform.
 Profiles tower-{baseline,indexes,final}.callgrind and all comparison images remain
 in the isolated cache. Final Wasm and compiler-generation validation follows.
+
+Final validation after rebase over afd25cf's independent Tower driver tests:
+fresh public-bootstrap successor-profile build and backend API pass; that
+successor builds/runs the expanded native linker fixtures, and the matching WASI
+suite passes through host-wasi. Whole-archive and lazy LLVM images both compare
+identical to their pre-optimization counterparts. The optimized-linker-produced
+reactor passes all 12 selected for-loop/inference graph/fast/raw/optimized checks.
+Rebuild the backend Wasm/cross units, package current sources into
+build/compiler-project-profile and select tower-wasm-ld with lazy archives.
+Two edited generations with two/four workers pass in 35.22/26.73 seconds, with
+identical hashes: portable 2fce8692291a98278a8bdb2a9c6274f0ea15b8ac3f790c7595a9cb23a20b71d0,
+LLVM c458a79650c86ec2dec473dcbf6d2906b6e88ae494e97a5dd98802dde080c7e5,
+cross 5e0ddc6207d50e34caa3e21e5eb172ae9fa7a49fb81b5c59ab69cac8f4697a18.
+This exercises the optimized Tower linker inside Wasm, not just native relinking.
+The functional and performance gates for this scoped optimization are complete;
+no shared-memory/TLS/parallel-linker feature work was started after the user's
+profiling request. Publication again preserves the verified hosted runtime.
