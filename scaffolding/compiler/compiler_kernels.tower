@@ -10,6 +10,7 @@ import interpreter_context_types;
 extern fn interpreter_invocation_step(invocation: IMInvocation*, budget: usize): void;
 extern fn compiler_lr_kernel(payload: void*): void;
 extern fn compiler_lr_state_kernel(payload: void*): void;
+extern fn compiler_lr_action_kernel(payload: void*): void;
 
 export fn work_kernel_execute(payload: void*): void {
     var kernel = bits(CompilerKernel*, payload);
@@ -45,6 +46,10 @@ export fn work_kernel_execute(payload: void*): void {
     }
     if kernel.kind == CompilerKernelKind.Flow {
         semantic_flow_kernel(bits(SemanticFlow*, kernel.payload));
+        return;
+    }
+    if kernel.kind == CompilerKernelKind.LRAction {
+        compiler_lr_action_kernel(kernel.payload);
         return;
     }
     trap("Invalid compiler kernel", 0);

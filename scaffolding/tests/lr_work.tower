@@ -103,33 +103,34 @@ export fn lr_work_tests(): u32 {
     rules[0].count = 512;
     if !lr_work_trial(root, &rules[0], 1, &symbols[0], 512, 1) { failures++; }
 
-    // Root -> List, List -> Item List | empty, Item -> 32 terminal
-    // alternatives. Duplicate/overlapping tokens deliberately retain conflicts.
+    // Root -> 256 terminals List, List -> Item List | empty, Item -> 32
+    // alternatives. The prefix forces multiple action ranges even for this
+    // small rule set. Duplicate/overlapping tokens deliberately retain conflicts.
     fill(&rules, 0, sizeof(LRProduction[36]));
-    rules[0].count = 1;
-    symbols[0].nonterminal = 1;
+    rules[0].count = 257;
+    symbols[256].nonterminal = 1;
     rules[1].owner = 1;
-    rules[1].begin = 1;
+    rules[1].begin = 257;
     rules[1].count = 2;
-    symbols[1].nonterminal = 2;
-    symbols[2].nonterminal = 1;
+    symbols[257].nonterminal = 2;
+    symbols[258].nonterminal = 1;
     rules[2].owner = 1;
-    rules[2].begin = 3;
+    rules[2].begin = 259;
     for(var i: usize = 0; i < 32; i++) {
         rules[i + 3].owner = 2;
-        rules[i + 3].begin = i + 3;
+        rules[i + 3].begin = i + 259;
         rules[i + 3].count = 1;
-        symbols[i + 3].first = convert(u32, i / 2 + 32);
-        symbols[i + 3].last = symbols[i + 3].first + convert(u32, i % 2);
+        symbols[i + 259].first = convert(u32, i / 2 + 32);
+        symbols[i + 259].last = symbols[i + 259].first + convert(u32, i % 2);
     }
-    if !lr_work_trial(root, &rules[0], 35, &symbols[0], 35, 3) { failures++; }
+    if !lr_work_trial(root, &rules[0], 35, &symbols[0], 291, 3) { failures++; }
     // A nullable cycle in the grammar is valid fixed-point input, distinct from
     // an impossible recursive by-value type or compile-time execution cycle.
     rules[35].owner = 2;
-    rules[35].begin = 35;
+    rules[35].begin = 291;
     rules[35].count = 1;
-    symbols[35].nonterminal = 1;
-    if !lr_work_trial(root, &rules[0], 36, &symbols[0], 36, 3) { failures++; }
+    symbols[291].nonterminal = 1;
+    if !lr_work_trial(root, &rules[0], 36, &symbols[0], 292, 3) { failures++; }
     if entity_store_count(store) != entities || entity_store_component_count(store) != components { failures++; }
     entity_release(root);
     if !compiler_world_dispose(world) { failures++; }

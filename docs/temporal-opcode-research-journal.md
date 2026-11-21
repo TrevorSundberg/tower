@@ -27006,3 +27006,53 @@ journal updates plus the same evaluation-library fix already tested here; dedupl
 that fix and preserve all journal entries. No additional compiler/runtime source
 changed in this final rebase. Source and Pages publication follow through normal
 fast-forward pushes, with hosted hash and browser verification required.
+
+The repaired package contains the compiler-observed interpreter_invocation,
+parser_integration and semantic_world fixtures. Two edited browser generations
+pass with two then four unit workers (96.69 s / 76.31 s), including changed
+semantic behavior and identical final reactor hashes across generations:
+tower 050f4bb595c0e6380cc91b2db7aeb79575f5d3e686d7bb0989e7722958ac1c54,
+LLVM bef7fa612c07204a2de4e4bd25b144f32997ffb1b579d2494f4475632552c79b,
+cross 1e4208362f4d9107c8cc638a63b061d2da6cbaffedfb41f5cf1bddee1a5384db.
+Packaging fix 58a0aaf is pushed. The tested bundle for that committed snapshot
+was published by normal fast-forward to Pages 2b74dc9, preserving the newer
+0ce80c3 deployment and its metadata. GitHub's build/deploy/status jobs succeeded;
+exact hosted verification is running. The bundle was frozen before the following
+parser changes, so its manifest correctly identifies 58a0aaf rather than the
+uncommitted working tree. Logs: release-{self-build-fixed,package-bundle,
+pages-publish,hosted-deployment}.log.
+
+### 2026-11-20 - ECS LALR action ranges
+
+Implemented an LRAction kernel in Tower using the existing shared compiler
+kernel dispatcher. Split the ordinary LALR algorithm at solved lookahead and
+reuse one ordered per-state action builder for serial and worker execution.
+The closure pool remains alive across the boundary. After closing the closure
+view, reset its fully joined WorkGraph with a new revision, attach transient
+range-job components, declare immutable input/disjoint result ranges, then pin
+and dispatch. Workers own private vectors; successful joins publish them in
+state order. Failure drains admitted work before releasing inputs or outputs
+and does not publish partial action tables. Grammar nodes remain authoritative;
+these tables and task indexes are derived analysis data. Use at least 128 states
+per task as an initial batching policy, not a measured speedup guarantee.
+
+Expanded the conflicting/nullable-cycle Tower LR fixture with a 256-terminal
+prefix so its action stage crosses the parallel threshold. Every item, transition,
+action, conflict and world entity/component count still matches serial behavior
+at 1/2/4/8 workers. Shared pool overlap/trap, staging and compile-time suites pass
+23/23 (47.64 s). The current shared reactor builds with the published bootstrap.
+A fresh compiletime-actions-clean native build and a controlled performance
+comparison remain in progress. FIRST/lookahead fixed points and structural
+semantic continuations remain coordinator work. No C++ feature code or todo.txt
+changes were introduced.
+
+The fresh native build completes 55/55 with the documented bcc76755 bootstrap,
+no private compiler override. Native overlap/execution acceptance passes 2/2
+(1.93 s); its actual successor rebuilds the parser object byte-identically.
+Portable parser/bootstrap/precedence tests pass 21/21 (12.42 s), in addition to
+the shared capacity/conflict/cycle checks above. Reproduction:
+TOWER_NATIVE_BUILD=/tmp/tower-home/.cache/tower/compiletime-actions-clean,
+build-native.sh; build tower-execution-tests and tower-work-tests; ctest -R
+ 'tower-(execution|work)'; successor towerc on its tower_compiler_parser_nodes.tower
+with --library --target x86_64-pc-linux-gnu, then cmp against the first-generation
+object. Logs: lr-actions-{clean-native,native-tests,successor-parser,parser-tests}.

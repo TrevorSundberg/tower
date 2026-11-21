@@ -228,69 +228,44 @@ kernel: LRItem*, cache: LRKernelClosure**): bool {
     }
 }
 
-fn lr_lalr_actions(value: LRStates*, graph: LRPropagation*): bool {
-    var state_index: usize = 0;
-    loop {
-        var done = state_index == value.states.length;
-        if done {
-            return true;
+// The same ordered algorithm serves serial construction and private worker output.
+fn lr_lalr_state_actions(value: LRStates*, graph: LRPropagation*, state_index: usize,
+                         actions: vector(LRAction)*): bool {
+    var state = value.states.data[state_index];
+    actions.length = 0;
+    foreach(var &edge in &state.edges) {
+        var symbol = &value.analysis.symbols[edge.symbol];
+        if symbol.nonterminal == lr_none() {
+            var action: LRAction;
+            action.first = symbol.first;
+            action.last = symbol.last;
+            action.rule = lr_none();
+            action.state = edge.state;
+            if !lr_append(actions, &action) { return false; }
         }
-        var state = value.states.data[state_index];
-        state.actions.length = 0;
-        var index: usize = 0;
-        loop {
-            done = index == state.edges.length;
-            if done {
-                break;
-            }
-            var edge = &state.edges.data[index];
-            var symbol = &value.analysis.symbols[edge.symbol];
-            if symbol.nonterminal == lr_none() {
-                var action: LRAction;
-                action.first = symbol.first;
-                action.last = symbol.last;
-                action.rule = lr_none();
-                action.state = edge.state;
-                var ok = lr_append(LRAction, &state.actions, &action);
-                if !ok {
-                    return false;
-                }
-            }
-            index++;
-        }
-        index = 0;
-        loop {
-            done = index == state.items.values.length;
-            if done {
-                break;
-            }
-            var item = &state.items.values.data[index];
-            if item.position == value.analysis.rules[item.rule].count {
-                var vertex = state.base + index;
-                var ranges = &graph.nodes[vertex].ranges;
-                var range_index: usize = 0;
-                loop {
-                    done = range_index == ranges.length;
-                    if done {
-                        break;
-                    }
-                    var range = &ranges.data[range_index];
-                    var action: LRAction;
-                    action.first = range.first;
-                    action.last = range.last;
-                    action.rule = item.rule;
-                    action.state = lr_none();
-                    var ok = lr_append(LRAction, &state.actions, &action);
-                    if !ok {
-                        return false;
-                    }
-                    range_index++;
-                }
-            }
-            index++;
-        }
-        state_index++;
     }
+    for(var index: usize = 0; index < state.items.values.length; index++) {
+        var item = &state.items.values.data[index];
+        if item.position == value.analysis.rules[item.rule].count {
+            var ranges = &graph.nodes[state.base + index].ranges;
+            foreach(var &range in ranges) {
+                var action: LRAction;
+                action.first = range.first;
+                action.last = range.last;
+                action.rule = item.rule;
+                action.state = lr_none();
+                if !lr_append(actions, &action) { return false; }
+            }
+        }
+    }
+    return true;
+}
+
+fn lr_lalr_actions(value: LRStates*, graph: LRPropagation*): bool {
+    for(var i: usize = 0; i < value.states.length; i++) {
+        if !lr_lalr_state_actions(value, graph, i, &value.states.data[i].actions) { return false; }
+    }
+    return true;
 }
 
 fn lr_lalr_seed(value: LRStates*, graph: LRPropagation*, constructs: bool): bool {
@@ -317,7 +292,7 @@ fn lr_lalr_seed(value: LRStates*, graph: LRPropagation*, constructs: bool): bool
     return true;
 }
 
-export fn lr_states_lalr_cached(value: LRStates*, constructs: bool, cache: LRKernelClosure**): bool {
+fn lr_states_lookahead_cached(value: LRStates*, constructs: bool, cache: LRKernelClosure**): LRPropagation* {
     var count: usize = 0;
     var index: usize = 0;
     for(; index != value.states.length; index++) {
@@ -328,7 +303,7 @@ export fn lr_states_lalr_cached(value: LRStates*, constructs: bool, cache: LRKer
     var graph = lr_propagation_create(count);
     var missing = graph == null;
     if missing {
-        return false;
+        return null;
     }
     var ok = lr_lalr_seed(value, graph, constructs);
     var state_index: usize = 0;
@@ -360,9 +335,15 @@ export fn lr_states_lalr_cached(value: LRStates*, constructs: bool, cache: LRKer
         state_index++;
     }
     ok &&= lr_propagation_solve(graph);
-    ok &&= lr_lalr_actions(value, graph);
-    lr_propagation_destroy(graph);
-    return ok;
+    if !ok { lr_propagation_destroy(graph); return null; }
+    return graph;
+}
+
+export fn lr_states_lalr_cached(value: LRStates*, constructs: bool, cache: LRKernelClosure**): bool {
+    var graph = lr_states_lookahead_cached(value, constructs, cache);
+    if graph == null { return false; }
+    defer lr_propagation_destroy(graph);
+    return lr_lalr_actions(value, graph);
 }
 
 export fn lr_states_lalr(value: LRStates*, constructs: bool): bool {

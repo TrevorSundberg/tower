@@ -26,6 +26,28 @@ struct LRClosureTask {
     key: usize;
 }
 
+struct LRActionTask {
+    kernel: CompilerKernel;
+    ticket: WorkTicket;
+    states: LRStates*;
+    lookahead: LRPropagation*;
+    results: vector(LRAction)*;
+    begin: usize;
+    count: usize;
+    success: bool;
+}
+
+export fn compiler_lr_action_kernel(payload: void*): void {
+    var task = bits(LRActionTask*, payload);
+    task.success = true;
+    for(var i = task.begin; i < task.begin + task.count; i++) {
+        if !lr_lalr_state_actions(task.states, task.lookahead, i, &task.results[i]) {
+            task.success = false;
+            return;
+        }
+    }
+}
+
 // Only immutable grammar/FIRST data are shared. LRAnalysis.failed is private:
 // the ordinary closure routines may set it on allocation failure.
 export fn compiler_lr_kernel(payload: void*): void {
@@ -41,6 +63,76 @@ fn lr_work_node(parent: void*): void* {
     if !entity_attach(node, parent, null) { entity_release(node); return null; }
     entity_release(node);
     return node;
+}
+
+// Lookahead has reached its fixed point before admission. Workers read those
+// immutable ranges and state inputs; each owns a contiguous range of private
+// vectors. Keep the existing closure pool alive across this phase boundary.
+fn lr_lalr_actions_parallel(value: LRStates*, lookahead: LRPropagation*, owner: void*,
+                             graph: WorkGraph*, pool: WorkPool*): bool {
+    var count = value.states.length / 128;
+    if count > pool.count { count = pool.count; }
+    if count < 2 { return lr_lalr_actions(value, lookahead); }
+    if !work_reset(graph, graph.revision + 1, graph.profile) { return false; }
+    var results = alloc(vector(LRAction), value.states.length);
+    if results == null { return false; }
+    fill(results, 0, value.states.length * sizeof(vector(LRAction)));
+    defer {
+        for(var i: usize = 0; i < value.states.length; i++) { vector_dispose(&results[i]); }
+        free(results);
+    }
+    var kind = lr_work_node(owner);
+    if kind == null || !entity_register(kind, sizeof(LRActionTask), alignof(LRActionTask), 0) { return false; }
+    var jobs: LRActionTask*[256];
+    var position: usize = 0;
+    for(var i: usize = 0; i < count; i++) {
+        var node = lr_work_node(owner);
+        if node == null { return false; }
+        var job = bits(LRActionTask*, entity_component_data(entity_component_add(node, kind)));
+        if job == null { return false; }
+        fill(job, 0, sizeof(LRActionTask));
+        job.kernel.kind = CompilerKernelKind.LRAction;
+        job.kernel.payload = bits(void*, job);
+        job.states = value;
+        job.lookahead = lookahead;
+        job.results = results;
+        job.begin = position;
+        job.count = value.states.length / count + (i < value.states.length % count ? 1 : 0);
+        position += job.count;
+        jobs[i] = job;
+        var id = work_request(graph, node, 2, convert(u64, job.begin));
+        var ok = id != 0;
+        ok &&= work_access(graph, id, 1, 3, job.begin, job.count, WorkAccessMode.Write);
+        ok &&= work_access(graph, id, 1, 2, 0, 1, WorkAccessMode.Read);
+        ok &&= work_seal(graph, id);
+        ok &&= work_demand(graph, id);
+        ok &&= work_take(graph, &job.ticket);
+        if !ok { return false; }
+    }
+    var view = entity_view_open(owner);
+    if view == null { return false; }
+    var ok = true;
+    var admitted: usize = 0;
+    for(; admitted < count; admitted++) {
+        if !work_pool_submit(pool, bits(void*, &jobs[admitted].kernel)) { ok = false; break; }
+    }
+    // Even partial admission or a failed result must join before releasing the
+    // view, private vectors or propagation graph. Never publish a partial table.
+    for(var i: usize = 0; i < admitted; i++) {
+        if work_pool_receive(pool, true) == null { ok = false; }
+    }
+    entity_view_close(view);
+    for(var i: usize = 0; i < admitted; i++) {
+        if !work_finish(graph, &jobs[i].ticket, jobs[i].success) || !jobs[i].success { ok = false; }
+    }
+    if !ok { return false; }
+    for(var i: usize = 0; i < value.states.length; i++) {
+        var actions = &value.states.data[i].actions;
+        vector_dispose(actions);
+        copy(actions, &results[i], sizeof(vector(LRAction)));
+        fill(&results[i], 0, sizeof(vector(LRAction)));
+    }
+    return true;
 }
 
 // The result components are transient analysis jobs on ordinary entities in the
@@ -124,9 +216,14 @@ export fn lr_states_lalr_parallel(value: LRStates*, constructs: bool, anchor: vo
             if !work_finish(&graph, &result.ticket, success) || !success { ok = false; }
         }
     }
-    work_pool_close(&pool);
     if view != null { entity_view_close(view); }
-    if ok { ok = lr_states_lalr_cached(value, constructs, cache); }
+    if ok {
+        var lookahead = lr_states_lookahead_cached(value, constructs, cache);
+        ok = lookahead != null;
+        if ok { ok = lr_lalr_actions_parallel(value, lookahead, owner, &graph, &pool); }
+        lr_propagation_destroy(lookahead);
+    }
+    work_pool_close(&pool);
     for(var i: usize = 0; i < count; ++i) { lr_kernel_closure_destroy(cache[i]); }
     vector_dispose(LRClosureTask*, &jobs);
     work_dispose(&graph);
