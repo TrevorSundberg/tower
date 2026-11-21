@@ -24735,3 +24735,66 @@ includes the final core adapters that Agent2 is about to remove. Regex plus
 contextual lexer slices together retired 450 native lines. Source handoff next is
 Agent2's final core deletion and combined deployment; hosted verification of this
 batch remains pending and will be recorded separately by its publication owner.
+### 2026-11-20 - Agent 2: execution/ownership batch published and verified
+
+The combined compiler build source is ebbd840. All three browser reactors were
+rebuilt from the clean published root checkout under the exclusive Agent 2 lock,
+using the documented fb1ab1f9 bootstrap and existing read-only LLVM/toolchain
+inputs. The generated runtime Tower unit remained in the compiler recipe.
+Packaging ran only after every reactor finished. Native source work stayed in
+the Agent 2 checkout; root was used only for clean pulls and generated artifacts.
+
+Validation completed:
+- Required top-level Node integration suite, excluding only formatting.test.mjs:
+  416/416 passed, no failures/cancellations/skips, 177.34s.
+- `node scripts/test-compiler-project.mjs`: both successor generations passed
+  with 2 then 4 independent unit workers, edited semantic behavior and identical
+  reactor bytes. Generation 2 sizes: Tower 900914, LLVM 52137836, cross 63695203.
+- `node scripts/verify-local.mjs`: 70 served assets and desktop/mobile checks
+  passed, including compilation/execution agreement, native downloads, completion,
+  highlighting, persistence and target defaults.
+- All 71 committed files (including manifest and .nojekyll) matched the tested
+  local bytes and Git blob IDs with asset staging's core.autocrlf=false.
+- Pages ec60a942d59a595cdbf6e12bdf1c44df92f444d9 succeeded in exact-SHA Actions run
+  https://github.com/TrevorSundberg/tower/actions/runs/44849731181.
+  `node scripts/verify-deployment.mjs https://tower-lang.org/` then passed all
+  70 served hashes and both desktop/mobile flows. HTTP apex, HTTPS www and the old
+  GitHub Pages address all redirect to https://tower-lang.org/ with HTTP 200.
+
+The final publication guard caught concurrent audit-only source 7175751/1e50000
+and Pages 440f142 before a stale push. Their compiler tree was unchanged. The
+publication was rebased onto 440f142, preserving simplificationAudit metadata;
+the manifest records sourceCommit 1e50000 and exact buildSourceCommit ebbd840.
+Current target packs were copied only after their predecessor hashes matched.
+No history was rewritten or older compiler artifacts substituted. The Pages
+worktree is detached, so publication explicitly used `HEAD:gh-pages`.
+
+Reproducibility/debugging notes: the first external deployment helper stopped
+because WSL lacks rg; its lock check uses grep. A redundant WSL git-status scan
+over the large LLVM submodule was stopped by verifying its exact helper/child
+PIDs; Windows Git had already checked the complete clean checkout. The helper's
+second tracked-source guard excludes submodule scans. A shallow Pages checkout
+initially refused a fast-forward; fetching three ancestor commits supplied the
+real ancestry and the normal fast-forward then succeeded. The attempted generic
+asset-sync command was rejected by automatic command review; inspection showed
+zero obsolete files, so literal copy operations completed the sync with no
+deletion needed. Ordinary source push DNS failed once; the documented command-
+local curloptResolve retry succeeded without changing TLS or permanent config.
+
+The initial Node file filter mishandled Windows backslashes and also selected
+the separate Roku suite. That unintended run was stopped by checking the exact
+owned Node parent/child PIDs; its incomplete log is retained and is not claimed
+as a pass. Selection was corrected with Split-Path parent equal to tests, yielding
+44 intended top-level files. The complete corrected run is the 416/416 result
+above. Sanitizer and broad formatter sweeps stayed skipped.
+
+Detailed build, package, test and deployment logs plus separate local/hosted JSON
+reports are `C:/Sandbox/build/codex-agents/agent-2-publication-*`. Root and Pages
+were clean and all owned builds completed before the lock/cache handoff. Next
+source order is coordinator regex, Agent 1 ownership, Agent 3 formatter, then
+Agent 2's final CoreProgram/CoreNode/header deletion; Agent 2 owns that next
+combined deployment. Agent 3 has proved its formatter replacement against the
+unchanged native oracle on Linux and WASI, but its source retirement must land
+before the remaining core views can be deleted. Current retirement totals are
+1890 native lines in this slice, plus the prior 157-line core test retirement;
+no new native implementation was introduced.
