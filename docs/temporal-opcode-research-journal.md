@@ -27056,3 +27056,38 @@ build-native.sh; build tower-execution-tests and tower-work-tests; ctest -R
  'tower-(execution|work)'; successor towerc on its tower_compiler_parser_nodes.tower
 with --library --target x86_64-pc-linux-gnu, then cmp against the first-generation
 object. Logs: lr-actions-{clean-native,native-tests,successor-parser,parser-tests}.
+
+Hosted verification of Pages 2b74dc9/source58a0aaf now passes all 77 exact assets
+and complete desktop/mobile flows. HTTP apex, HTTPS www and the old GitHub Pages
+URL each redirect to HTTPS tower-lang.org and return 200. This supersedes the
+publication-pending notes for that checkpoint; later action-table work is not
+part of that deployed snapshot.
+
+Controlled pre-integration comparison, with no other builds/browser tests active:
+Node 21.7.3, four shared workers, six alternating A/B/B/A/A/B cold instances,
+ordinary comptime(square(7)) source, exact output49 and canonical equality.
+Baseline compile times are 5910/5227/5123 ms; action-range times are
+4879/5458/5958 ms. The ranges overlap substantially: no end-to-end speedup is
+established. Hashes and load times are recorded by lr-actions-benchmark.mjs/.log;
+the action artifact was saved before rebuilding so upstream's unrelated foreach
+migration is not mixed into this comparison. Retain batching and treat this as
+correct parallel execution with unproven throughput improvement.
+
+Next pull brought bae9edc's 107 borrowed-foreach conversions, deterministic
+serial transport for allocation-failure injection, declaration-shape diagnostics
+and native evaluation test-link fixes. Preserved all upstream code and all journal
+entries (the conflict was append-only); action changes are now c1a4925. As required,
+start a new empty compiletime-actions-iteration-clean native cache with the public
+bootstrap and no override, plus refreshed portable/shared builds. Expanded native
+validation includes the relevant instrumented frontend/storage/request hosts,
+while real overlap continues to use the production allocator. Pre-rebase checks
+remain evidence for their original sources, not this merged build.
+
+The merged public-bootstrap clean native build succeeds 55/55. Its actual
+successor again rebuilds the parser object byte-identically. Expanded native
+build completes 71/71; frontend, driver, storage, execution, request and real
+worker-overlap tests pass 6/6 (70.13 s), with the standalone backend API checks
+also passing. Shared capacity/staging/foreach checks pass 30/30 (132.48 s);
+their LLVM comparisons use the preceding backend artifact as a reference while
+the matching backend rebuild runs. Current portable/shared reactors also build.
+Logs: lr-actions-iteration-{clean,native-tests,backend,successor,shared-tests}.
