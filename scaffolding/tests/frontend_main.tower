@@ -2,6 +2,7 @@ import tower;
 import frontend_world;
 import parser_failures;
 import frontend_diagnostic_revision;
+import regex;
 
 extern fn parser_tests(): void;
 
@@ -12,5 +13,6 @@ export fn main(argc: i32, argv: u8**): i32 {
     parser_tests();
     parser_failure_tests();
     frontend_diagnostic_revision_tests();
+    regex_tests();
     return 0;
 }

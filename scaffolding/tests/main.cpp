@@ -8,7 +8,7 @@ void formatter_tests();
 extern "C" void compiler_storage_tests();
 extern "C" void shared_entity_tests();
 extern "C" void entity_registry_tests();
-void regex_tests();
+extern "C" void regex_tests();
 void syntax_lexer_tests();
 void syntax_nodes_tests();
 void syntax_reader_tests();

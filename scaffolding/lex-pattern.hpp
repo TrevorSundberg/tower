@@ -35,5 +35,3 @@ public:
   explicit operator bool() const { return value != nullptr; }
 };
 LexPatternRef lex_pattern_compile(const std::string& pattern, std::string& error);
-// Returns bytes consumed, or zero for invalid/truncated UTF-8.
-size_t lex_codepoint(std::string_view source, size_t start, uint32_t& value);

@@ -24234,3 +24234,92 @@ The report is build/simplification-hosted-report.json. A transient GitHub DNS
 failure resolved on retry, and the initial hosted checks correctly waited for
 Pages to publish the new manifest. No feature implementation or source migration
 is claimed by this audit-only publication.
+
+### Regex reference and functional harness migration (2026-11-20)
+
+Next independent coordinator lane: replace tests/regex.cpp and
+bootstrap/lex-pattern-seed.cpp with Tower, preserve their differential coverage,
+then remove the now-unused lex_codepoint C++ wrapper/declaration. Agent3 confirmed
+ownership transfer and approved the narrow parser test source-list changes.
+Implementation drafts stayed outside the root checkout during Agent2's combined
+publication, in C:/Sandbox/build/codex-agents/regex-port. No shared deployment
+cache was reconfigured or source edited while that lock was held.
+
+Production regex behavior already uses Tower grammar/parser services, shared ECS
+parse entities, regex lowering, the common automaton builder and LexerTable.
+regex_oracle.tower translates the old test reference's separate recursive reader,
+Thompson states/patch lists and sorted subset construction. Its scratch structures
+are test-only derived matching data, not another compiler semantic IR. It emits
+our existing LexerTable and uses the same matcher, as the prior native reference
+did; its parser and subset algorithm remain independent of the production code.
+A linear search replaces the reference's std::map subset lookup while preserving
+sorted subset identity and insertion order. State/depth/source/DFA limits remain.
+Explicitly initialized vectors and scoped defer own all temporary buffers.
+
+regex.tower preserves the original 300 generated patterns, 500 arbitrary byte
+patterns, 19 edge cases and malformed/NUL input checks, including 60 random input
+samples for every accepted pattern and matching at every byte offset. Reuses
+Agent3's validated MT19937 generator. Also checks known longest-prefix results and
+source/depth/NFA/DFA complexity rejection boundaries. Production outputs retain
+parse components from an explicit compiler world; tests check complete source
+spans, stable parse-tree formatting after every failed scratch allocation,
+per-request lifetime stability and complete world/cache disposal.
+
+Before deleting anything, compiled and ran the UNMODIFIED existing native regex
+harness/reference with a temporary Tower-only entry invoking regex_tests through
+the existing cpp_name binding. It passed. No native wrapper or test was written.
+The Tower replacement also passes native and wasm32 WASI, using production objects
+and the existing interpreter-wasi.mjs runner. Scratch-failure sweep reaches success
+and both worlds/buffers return to their baselines. Native/WASI logs and original
+link commands are in the external regex-port directory.
+
+Trials: an initial test diagnostic attempted unsupported variadic extern syntax;
+removed it in favor of bounded text copies and existing puts. Initial aggregate
+locals were incorrectly assumed zero-initialized; explicit vector_init/fill fixed
+the first tree-formatting failure. These were fixture defects, not production
+changes. The first WASI cache selected had only utility objects built. Linking a
+partial set of a different cache's exported compiler objects exposed unresolved
+env imports; rejected that artifact, then used the complete established parser
+service link (without the unused interpreter object). The resulting module needs
+only the existing WASI host and executes the full suite. Isolated permanent CMake
+wiring and current-source successor verification follow before native retirement
+is committed. Sanitizer and broad formatter sweeps remain skipped.
+
+Regex integration results: the permanent isolated TowerRegexTests.cmake runner
+passed native and WASI in an external source snapshot before integration. After
+Agent2 released its successful ec60a94 publication, root pulled clean main 1e50000;
+all intended files were integrated without copying or overwriting another lane.
+Removed the old native harness/reference and the now-unreferenced UTF-8 wrapper:
+273 project-owned native lines retired. The only added native line is the existing
+regex_tests declaration changing to extern "C" for the Tower export.
+
+A fresh empty-cache successor build using the documented bootstrap completed:
+`wsl --exec env -u TOWER_BOOTSTRAP_COMPILER
+TOWER_NATIVE_BUILD=/home/trevo/.cache/tower/coordinator-regex-final-clean
+TOWER_BUILD_JOBS=4 bash /mnt/c/Sandbox/tower/playground/scripts/build-native.sh`.
+The build selected the published fb1ab1f9 bootstrap and Clang/LLVM 19.1.7. Enabled
+TOWER_BACKEND_TESTS in that cache and built tower-frontend-tests/tower-backend-tests.
+Direct execution from scaffolding passed production parser/world/failure/provenance
+checks plus the full new regex suite; backend API checks also passed. The first
+CTest invocation found no registered tests in this configuration, so it is NOT
+counted as a test pass; both actual executables were run and exited successfully.
+
+Configured a separate current-root TOWER_PARSER_ONLY WASI build at
+/home/trevo/.cache/tower/coordinator-regex-wasi-final with the same published
+bootstrap and WASI SDK 34 wasi-sdk-p1.cmake. Built tower-regex-tests and executed it
+with `node scaffolding/tests/interpreter-wasi.mjs`: full suite PASS. Also linked
+the aggregate tower-parser-tests after the reference deletion, checking the new
+C ABI test connection without running a broad formatter sweep. The scratch-failure
+fixture explicitly pins the shared input with entity_view_open throughout lowering
+and confirms identical formatted nodes afterward; this is a read/pin invariant,
+not a claim that within-regex compilation now runs in parallel. Logs are under
+C:/Sandbox/build/codex-agents/regex-port/final-*.log.
+
+Publication coordination: this source slot is followed by Agent1's ready Version/
+session changes, Agent3's formatter reference retirement, then Agent2's final core
+adapter removal. Agent2 accepted responsibility for one combined rebuild/deployment
+and exact-SHA hosted verification after those source pushes. Prior ec60a94 hosted
+validation does not validate this new slice; the next publication is still pending.
+Next independent coordinator lane: port the contextual lexer reference/harness,
+preserving longest match, keyword/identifier priority, parser-context selection,
+Unicode and allocation-failure coverage against existing Tower production selection.

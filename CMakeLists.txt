@@ -138,7 +138,7 @@ if(TOWER_PARSER_ONLY)
   target_compile_definitions(tower-compiler-memory PRIVATE TOWER_COMPILER_MEMORY_TESTS=1)
   tower_compiler_interpreter()
   add_executable(tower-parser-tests scaffolding/tests/main.cpp
-    scaffolding/tests/regex.cpp scaffolding/tests/lr-analysis.cpp scaffolding/tests/lr-grammar.cpp scaffolding/tests/syntax-lexer.cpp scaffolding/tests/syntax-nodes.cpp scaffolding/tests/syntax-reader.cpp scaffolding/tests/syntax-validation.cpp
+    scaffolding/tests/lr-analysis.cpp scaffolding/tests/lr-grammar.cpp scaffolding/tests/syntax-lexer.cpp scaffolding/tests/syntax-nodes.cpp scaffolding/tests/syntax-reader.cpp scaffolding/tests/syntax-validation.cpp
     scaffolding/core.cpp scaffolding/core-nodes.cpp
     scaffolding/tower.cpp scaffolding/tests/nodes.cpp
     scaffolding/syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/format.cpp scaffolding/lex-pattern.cpp scaffolding/lex-pattern-common.cpp scaffolding/syntax-tests.cpp)
@@ -192,10 +192,6 @@ if(TOWER_PARSER_ONLY)
     target_compile_definitions(tower-syntax-emission-reference PRIVATE syntax_emission_${name}=reference_syntax_emission_${name})
   endforeach()
   target_link_libraries(tower-parser-tests PRIVATE tower-syntax-emission-reference)
-  add_library(tower-regex-reference STATIC scaffolding/bootstrap/lex-pattern-seed.cpp)
-  target_compile_features(tower-regex-reference PRIVATE cxx_std_20)
-  target_compile_definitions(tower-regex-reference PRIVATE lex_pattern_compile=reference_lex_pattern_compile)
-  target_link_libraries(tower-parser-tests PRIVATE tower-regex-reference)
   add_library(tower-lr-reference STATIC scaffolding/bootstrap/lr-analysis-seed.cpp scaffolding/bootstrap/lr-grammar-seed.cpp)
   target_compile_features(tower-lr-reference PRIVATE cxx_std_20)
   foreach(name IN ITEMS analysis_create analysis_destroy analysis_compute analysis_failed analysis_nullable
@@ -231,10 +227,11 @@ if(TOWER_PARSER_ONLY)
     "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/examples/foreach.tower")
   set_tests_properties(tower-parser-tests tower-foreach-example PROPERTIES
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")
+  include(cmake/TowerRegexTests.cmake)
   include(cmake/TowerInterpreterTests.cmake)
   foreach(reference IN ITEMS tower-lexer-reference tower-syntax-lexer-reference
       tower-syntax-reader-reference tower-syntax-validation-reference
-      tower-syntax-emission-reference tower-regex-reference tower-lr-reference
+      tower-syntax-emission-reference tower-lr-reference
       tower-utf8-reference tower-bytes-reference)
     if(MSVC)
       target_compile_definitions(${reference} PRIVATE _HAS_EXCEPTIONS=0)

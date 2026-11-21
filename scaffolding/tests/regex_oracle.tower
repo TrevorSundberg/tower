@@ -1,0 +1,422 @@
+import tower;
+import .library.vector;
+import .compiler.syntax_types;
+import utility_checks;
+
+// Test-only translation of bootstrap/lex-pattern-seed.cpp. This reader builds
+// its own Thompson NFA and sorted DFA subsets; it never invokes the production
+// grammar reader, regex lowering or automaton subset builder. These are derived
+// matching tables, not another authoritative compiler syntax/semantic graph.
+extern fn tower_utf8_decode(source: u8*, length: usize, value: u32*): usize;
+extern fn lex_table_create(): LexerTable*;
+extern fn lex_table_destroy(table: LexerTable*): void;
+extern fn lex_table_set_alphabet(table: LexerTable*, alphabet: u32*, count: usize): bool;
+extern fn lex_table_append(table: LexerTable*, row: i32*, count: usize, accepting: bool): bool;
+
+enum OracleRegexKind: u32 { Character, Split, Accept }
+const OracleRegexBytes: usize = 4096;
+const OracleRegexDepth: usize = 64;
+const OracleRegexStates: usize = 512;
+const OracleRegexSubsets: usize = 1024;
+const OracleRegexCells: usize = 262144;
+const OracleUnicodeLimit: u32 = 1114112;
+
+struct OracleRegexRange { first: u32; last: u32; }
+struct OracleRegexState {
+    kind: OracleRegexKind;
+    out: i32;
+    other: i32;
+    ranges: vector(OracleRegexRange);
+    negated: bool;
+}
+struct OracleRegexPatch { state: i32; other: bool; }
+struct OracleRegexFragment { start: i32; ends: vector(OracleRegexPatch); }
+struct OracleRegexSubset { items: vector(i32); }
+struct OracleRegexCompiler {
+    source: u8*;
+    length: usize;
+    cursor: usize;
+    depth: usize;
+    error: u8*;
+    states: vector(OracleRegexState);
+}
+
+fn oracle_regex_dispose(c: OracleRegexCompiler*): void {
+    for (var index: usize = 0; index < c.states.length; ++index) {
+        vector_dispose(OracleRegexRange, &c.states.data[index].ranges);
+    }
+    vector_dispose(OracleRegexState, &c.states);
+}
+
+fn oracle_regex_fail(c: OracleRegexCompiler*, message: u8*): void {
+    if c.error is null { c.error = message; }
+}
+
+fn oracle_regex_take(c: OracleRegexCompiler*, character: u8): bool {
+    if c.cursor < c.length && c.source[c.cursor] == character {
+        ++c.cursor;
+        return true;
+    }
+    return false;
+}
+
+fn oracle_regex_contains(characters: u8*, character: u8): bool {
+    for (var index: usize = 0; characters[index] != 0; ++index) {
+        if characters[index] == character { return true; }
+    }
+    return false;
+}
+
+fn oracle_regex_add(c: OracleRegexCompiler*, kind: OracleRegexKind, out: i32, other: i32): i32 {
+    if c.states.length >= OracleRegexStates() {
+        oracle_regex_fail(c, "Token pattern exceeds 512 NFA states");
+        return -1;
+    }
+    utility_check(vector_reserve(OracleRegexState, &c.states, c.states.length + 1), "Regex oracle state allocation");
+    var index = c.states.length++;
+    var state = &c.states.data[index];
+    fill(state, 0, sizeof(OracleRegexState));
+    state.kind = kind;
+    state.out = out;
+    state.other = other;
+    return convert(i32, index);
+}
+
+fn oracle_regex_range(c: OracleRegexCompiler*, state: i32, first: u32, last: u32): void {
+    if state < 0 { return; }
+    var ranges = &c.states.data[state].ranges;
+    utility_check(vector_reserve(OracleRegexRange, ranges, ranges.length + 1), "Regex oracle range allocation");
+    var range = &ranges.data[ranges.length++];
+    range.first = first;
+    range.last = last;
+}
+
+fn oracle_regex_end(fragment: OracleRegexFragment*, state: i32, other: bool): void {
+    utility_check(vector_reserve(OracleRegexPatch, &fragment.ends, fragment.ends.length + 1), "Regex oracle patch allocation");
+    var patch = &fragment.ends.data[fragment.ends.length++];
+    patch.state = state;
+    patch.other = other;
+}
+
+fn oracle_regex_patch(c: OracleRegexCompiler*, fragment: OracleRegexFragment*, target: i32): void {
+    for (var index: usize = 0; index < fragment.ends.length; ++index) {
+        var patch = &fragment.ends.data[index];
+        if patch.state < 0 { continue; }
+        var state = &c.states.data[patch.state];
+        if patch.other { state.other = target; } else { state.out = target; }
+    }
+}
+
+fn oracle_regex_character(c: OracleRegexCompiler*): u32 {
+    if c.cursor == c.length { oracle_regex_fail(c, "Expected character"); return 0; }
+    if oracle_regex_take(c, 92) {
+        if c.cursor == c.length { oracle_regex_fail(c, "Incomplete escape"); return 0; }
+        var character = c.source[c.cursor++];
+        if character == 110 { return 10; }
+        if character == 114 { return 13; }
+        if character == 116 { return 9; }
+        if character == 117 || character == 120 {
+            var braces = character == 117;
+            if braces && !oracle_regex_take(c, 123) {
+                oracle_regex_fail(c, "Use Unicode braces for escapes");
+                return 0;
+            }
+            var value: u32 = 0;
+            var digits: usize = 0;
+            while c.cursor < c.length && (braces ? c.source[c.cursor] != 125 : digits < 2) {
+                var character = c.source[c.cursor++];
+                var digit: i32 = -1;
+                if character >= 48 && character <= 57 { digit = convert(i32, character) - 48; }
+                if character >= 97 && character <= 102 { digit = convert(i32, character) - 97 + 10; }
+                if character >= 65 && character <= 70 { digit = convert(i32, character) - 65 + 10; }
+                if digit < 0 || ++digits > 6 { oracle_regex_fail(c, "Invalid hexadecimal escape"); return 0; }
+                value = value * 16 + convert(u32, digit);
+            }
+            if digits == 0 || (!braces && digits != 2) || (braces && !oracle_regex_take(c, 125))
+            || value >= OracleUnicodeLimit() || (value >= 55296 && value <= 57343) {
+                oracle_regex_fail(c, "Invalid Unicode scalar escape");
+            }
+            return value;
+        }
+        if oracle_regex_contains("\\/[]()|*+?.^-{}$\"'", character) { return convert(u32, character); }
+        oracle_regex_fail(c, "Unsupported escape");
+        return 0;
+    }
+    var value: u32 = 0;
+    var count = tower_utf8_decode(&c.source[c.cursor], c.length - c.cursor, &value);
+    if count == 0 { oracle_regex_fail(c, "Invalid UTF-8"); return 0; }
+    c.cursor += count;
+    return value;
+}
+
+fn oracle_regex_atom(c: OracleRegexCompiler*, result: OracleRegexFragment*): void {
+    result.start = -1;
+    if oracle_regex_take(c, 40) {
+        if ++c.depth > OracleRegexDepth() { oracle_regex_fail(c, "Token pattern nesting exceeds 64"); return; }
+        oracle_regex_expression(c, result);
+        --c.depth;
+        if !oracle_regex_take(c, 41) { oracle_regex_fail(c, "Expected closing parenthesis"); }
+        return;
+    }
+    var index = oracle_regex_add(c, OracleRegexKind.Character, -1, -1);
+    if index < 0 { return; }
+    if oracle_regex_take(c, 91) {
+        c.states.data[index].negated = oracle_regex_take(c, 94);
+        while c.cursor < c.length && c.source[c.cursor] != 93 && c.error is null {
+            var first = oracle_regex_character(c);
+            var last = first;
+            if c.cursor + 1 < c.length && c.source[c.cursor] == 45 && c.source[c.cursor + 1] != 93 {
+                ++c.cursor;
+                last = oracle_regex_character(c);
+                if last < first { oracle_regex_fail(c, "Reversed character range"); }
+            }
+            oracle_regex_range(c, index, first, last);
+        }
+        if !oracle_regex_take(c, 93) { oracle_regex_fail(c, "Expected closing character bracket"); }
+        if c.states.data[index].ranges.length == 0 { oracle_regex_fail(c, "Empty character class"); }
+    } else {
+        if oracle_regex_take(c, 46) {
+            c.states.data[index].negated = true;
+            oracle_regex_range(c, index, 10, 10);
+            oracle_regex_range(c, index, 13, 13);
+        } else {
+            if c.cursor < c.length && oracle_regex_contains("*+?^${}", c.source[c.cursor]) {
+                oracle_regex_fail(c, "Unsupported or misplaced pattern operator");
+                return;
+            }
+            var value = oracle_regex_character(c);
+            oracle_regex_range(c, index, value, value);
+        }
+    }
+    result.start = index;
+    oracle_regex_end(result, index, false);
+}
+
+fn oracle_regex_repeat(c: OracleRegexCompiler*, result: OracleRegexFragment*): void {
+    oracle_regex_atom(c, result);
+    if c.error is not null || c.cursor == c.length { return; }
+    var character = c.source[c.cursor];
+    if oracle_regex_contains("*+?", character) {
+        ++c.cursor;
+        var split = oracle_regex_add(c, OracleRegexKind.Split, result.start, -1);
+        if character != 63 {
+            oracle_regex_patch(c, result, split);
+            result.ends.length = 0;
+        }
+        oracle_regex_end(result, split, true);
+        if character != 43 { result.start = split; }
+        if c.cursor < c.length && oracle_regex_contains("*+?", c.source[c.cursor]) {
+            oracle_regex_fail(c, "Repeated quantifier");
+        }
+    }
+}
+
+fn oracle_regex_sequence(c: OracleRegexCompiler*, result: OracleRegexFragment*): void {
+    result.start = -1;
+    while c.cursor < c.length && c.source[c.cursor] != 41 && c.source[c.cursor] != 124 && c.error is null {
+        var next: OracleRegexFragment;
+        fill(&next, 0, sizeof(OracleRegexFragment));
+        defer vector_dispose(OracleRegexPatch, &next.ends);
+        oracle_regex_repeat(c, &next);
+        if result.start < 0 { result.start = next.start; }
+        else { oracle_regex_patch(c, result, next.start); }
+        vector_move(OracleRegexPatch, &result.ends, &next.ends);
+    }
+    if result.start < 0 && c.error is null {
+        result.start = oracle_regex_add(c, OracleRegexKind.Split, -1, -1);
+        oracle_regex_end(result, result.start, false);
+    }
+}
+
+fn oracle_regex_expression(c: OracleRegexCompiler*, result: OracleRegexFragment*): void {
+    oracle_regex_sequence(c, result);
+    while c.error is null && oracle_regex_take(c, 124) {
+        var next: OracleRegexFragment;
+        fill(&next, 0, sizeof(OracleRegexFragment));
+        defer vector_dispose(OracleRegexPatch, &next.ends);
+        oracle_regex_sequence(c, &next);
+        result.start = oracle_regex_add(c, OracleRegexKind.Split, result.start, next.start);
+        for (var index: usize = 0; index < next.ends.length; ++index) {
+            var patch = &next.ends.data[index];
+            oracle_regex_end(result, patch.state, patch.other);
+        }
+    }
+}
+
+fn oracle_regex_closure(c: OracleRegexCompiler*, seeds: vector(i32)*, result: vector(i32)*): void {
+    var visited: vector(u8);
+    vector_init(u8, &visited);
+    var pending: vector(i32);
+    vector_init(i32, &pending);
+    defer vector_dispose(u8, &visited);
+    defer vector_dispose(i32, &pending);
+    utility_check(vector_reserve(u8, &visited, c.states.length), "Regex oracle visited allocation");
+    fill(visited.data, 0, c.states.length);
+    for (var index: usize = 0; index < seeds.length; ++index) {
+        utility_check(vector_push(i32, &pending, seeds.data[index]), "Regex oracle closure seed");
+    }
+    while pending.length != 0 {
+        var at = pending.data[--pending.length];
+        if at < 0 { continue; }
+        var index = convert(usize, at);
+        utility_check(index < c.states.length, "Regex oracle closure state bounds");
+        if visited.data[index] != 0 { continue; }
+        visited.data[index] = 1;
+        var state = &c.states.data[index];
+        if state.kind == OracleRegexKind.Split {
+            utility_check(vector_push(i32, &pending, state.out), "Regex oracle first closure edge");
+            utility_check(vector_push(i32, &pending, state.other), "Regex oracle second closure edge");
+        }
+    }
+    // Scanning in index order is the original closure's sorted set identity.
+    result.length = 0;
+    for (var index: usize = 0; index < c.states.length; ++index) {
+        if visited.data[index] != 0 && c.states.data[index].kind != OracleRegexKind.Split {
+            utility_check(vector_push(i32, result, convert(i32, index)), "Regex oracle closure result");
+        }
+    }
+}
+
+fn oracle_regex_alphabet(c: OracleRegexCompiler*, alphabet: vector(u32)*): void {
+    utility_check(vector_push(u32, alphabet, 0), "Regex oracle alphabet start");
+    utility_check(vector_push(u32, alphabet, OracleUnicodeLimit()), "Regex oracle alphabet end");
+    for (var index: usize = 0; index < c.states.length; ++index) {
+        var ranges = &c.states.data[index].ranges;
+        for (var range: usize = 0; range < ranges.length; ++range) {
+            utility_check(vector_push(u32, alphabet, ranges.data[range].first), "Regex oracle range start");
+            utility_check(vector_push(u32, alphabet, ranges.data[range].last + 1), "Regex oracle range end");
+        }
+    }
+    for (var index: usize = 1; index < alphabet.length; ++index) {
+        var value = alphabet.data[index];
+        var at = index;
+        while at != 0 && alphabet.data[at - 1] > value {
+            alphabet.data[at] = alphabet.data[at - 1];
+            --at;
+        }
+        alphabet.data[at] = value;
+    }
+    var count: usize = 0;
+    for (var index: usize = 0; index < alphabet.length; ++index) {
+        if count == 0 || alphabet.data[index] != alphabet.data[count - 1] { alphabet.data[count++] = alphabet.data[index]; }
+    }
+    alphabet.length = count;
+}
+
+fn oracle_regex_accepting(items: vector(i32)*, accept: i32): bool {
+    for (var index: usize = 0; index < items.length; ++index) {
+        if items.data[index] == accept { return true; }
+    }
+    return false;
+}
+
+fn oracle_regex_subset(subsets: vector(OracleRegexSubset)*, items: vector(i32)*): i32 {
+    for (var index: usize = 0; index < subsets.length; ++index) {
+        var candidate = &subsets.data[index].items;
+        if candidate.length != items.length { continue; }
+        var same = true;
+        for (var at: usize = 0; at < items.length; ++at) { same &&= candidate.data[at] == items.data[at]; }
+        if same { return convert(i32, index); }
+    }
+    return -1;
+}
+
+fn oracle_regex_insert(subsets: vector(OracleRegexSubset)*, items: vector(i32)*): i32 {
+    utility_check(vector_reserve(OracleRegexSubset, subsets, subsets.length + 1), "Regex oracle subset allocation");
+    var index = subsets.length++;
+    var slot = &subsets.data[index].items;
+    vector_init(i32, slot);
+    vector_move(i32, slot, items);
+    return convert(i32, index);
+}
+
+fn oracle_regex_subsets_dispose(subsets: vector(OracleRegexSubset)*): void {
+    for (var index: usize = 0; index < subsets.length; ++index) { vector_dispose(i32, &subsets.data[index].items); }
+    vector_dispose(OracleRegexSubset, subsets);
+}
+
+fn oracle_regex_dfa(c: OracleRegexCompiler*, start: i32, accept: i32): LexerTable* {
+    var alphabet: vector(u32);
+    vector_init(u32, &alphabet);
+    var subsets: vector(OracleRegexSubset);
+    vector_init(OracleRegexSubset, &subsets);
+    var seeds: vector(i32);
+    vector_init(i32, &seeds);
+    var closed: vector(i32);
+    vector_init(i32, &closed);
+    var row: vector(i32);
+    vector_init(i32, &row);
+    defer vector_dispose(u32, &alphabet);
+    defer oracle_regex_subsets_dispose(&subsets);
+    defer vector_dispose(i32, &seeds);
+    defer vector_dispose(i32, &closed);
+    defer vector_dispose(i32, &row);
+    var table = lex_table_create();
+    var transferred = false;
+    defer { if !transferred { lex_table_destroy(table); } }
+    utility_check(table is not null, "Regex oracle table allocation");
+    oracle_regex_alphabet(c, &alphabet);
+    utility_check(lex_table_set_alphabet(table, alphabet.data, alphabet.length), "Regex oracle table alphabet");
+    utility_check(vector_push(i32, &seeds, start), "Regex oracle initial seed");
+    oracle_regex_closure(c, &seeds, &closed);
+    if oracle_regex_accepting(&closed, accept) {
+        oracle_regex_fail(c, "Token pattern must not match empty input");
+        return null;
+    }
+    oracle_regex_insert(&subsets, &closed);
+    for (var index: usize = 0; index < subsets.length; ++index) {
+        var accepting = oracle_regex_accepting(&subsets.data[index].items, accept);
+        row.length = 0;
+        for (var column: usize = 0; column + 1 < alphabet.length; ++column) {
+            seeds.length = 0;
+            var items = &subsets.data[index].items;
+            for (var item: usize = 0; item < items.length; ++item) {
+                var state = &c.states.data[items.data[item]];
+                if state.kind != OracleRegexKind.Character { continue; }
+                var inside = false;
+                for (var range: usize = 0; range < state.ranges.length; ++range) {
+                    var interval = &state.ranges.data[range];
+                    inside ||= interval.first <= alphabet.data[column] && alphabet.data[column] <= interval.last;
+                }
+                if inside != state.negated { utility_check(vector_push(i32, &seeds, state.out), "Regex oracle transition seed"); }
+            }
+            oracle_regex_closure(c, &seeds, &closed);
+            var next: i32 = -1;
+            if closed.length != 0 {
+                next = oracle_regex_subset(&subsets, &closed);
+                if next < 0 {
+                    if subsets.length >= OracleRegexSubsets() || (subsets.length + 1) * alphabet.length > OracleRegexCells() {
+                        oracle_regex_fail(c, "Token pattern exceeds DFA complexity limit");
+                        return null;
+                    }
+                    next = oracle_regex_insert(&subsets, &closed);
+                }
+            }
+            utility_check(vector_push(i32, &row, next), "Regex oracle transition row");
+        }
+        utility_check(lex_table_append(table, row.data, row.length, accepting), "Regex oracle table transition");
+    }
+    transferred = true;
+    return table;
+}
+
+fn oracle_regex_compile(source: u8*, length: usize, diagnostic: u8**): LexerTable* {
+    var compiler: OracleRegexCompiler;
+    fill(&compiler, 0, sizeof(OracleRegexCompiler));
+    compiler.source = source;
+    compiler.length = length;
+    defer oracle_regex_dispose(&compiler);
+    if length > OracleRegexBytes() { *diagnostic = "Token pattern exceeds 4096 bytes"; return null; }
+    var fragment: OracleRegexFragment;
+    fill(&fragment, 0, sizeof(OracleRegexFragment));
+    defer vector_dispose(OracleRegexPatch, &fragment.ends);
+    oracle_regex_expression(&compiler, &fragment);
+    if compiler.cursor != length { oracle_regex_fail(&compiler, "Unexpected pattern character"); }
+    if compiler.error is not null { *diagnostic = compiler.error; return null; }
+    var accept = oracle_regex_add(&compiler, OracleRegexKind.Accept, -1, -1);
+    oracle_regex_patch(&compiler, &fragment, accept);
+    if compiler.error is not null { *diagnostic = compiler.error; return null; }
+    var result = oracle_regex_dfa(&compiler, fragment.start, accept);
+    *diagnostic = compiler.error;
+    return result;
+}
