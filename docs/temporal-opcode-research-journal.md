@@ -31021,3 +31021,357 @@ The rebuilt full aggregate found two stale allocation assumptions from earlier a
 Validation: native parser aggregate PASS; native parser CTest 15/15 PASS (3.05s); focused frontend/world/regex/lexer/body checks PASS; native actual worker overlap plus instrumented transport PASS and LR worker equivalence PASS; backend API PASS. Portable WASI parser aggregate, live syntax and emission entries all PASS. Rebuilt portable/shared/LLVM/cross reactors. Browser regression selection 47/47 PASS, zero skipped (696.93s; interpreted ECS examples dominate); completion/query selection 28/28 PASS (57.37s). Two actual browser-built compiler generations, 2 then 4 workers with the edited semantic behavior, PASS in 64.94s/43.24s. Their tower/llvm/cross hashes respectively match across generations: 5f937c607e3d535bfa8bc6a0c836a90ca5ec7944493ac41d6eb8274818cd3ec4, 85068ed728dcc4dca63a1cdeb4ae1664fde1c50660731851134e5480271bccf7, 1a59a808d6d94572cecf3ae21cea90f410f140e2e61a5751b3dff31f3e90aaea. Evidence: C:/Sandbox/build/codex-agents/worker-granularity/presentation-*; commands use the established build-native/build-wasm/build-threads/build-llvm scripts, parser-only CMake caches, host-wasi.mjs and test-compiler-project.mjs.
 
 Three interleaved defer_scopes object compiles against coordinator-template-default-clean measured before 1.04/0.95/0.90s, after 0.96/0.95/0.94s. Each before/after object matched SHA256 2d21ad368470475aa007e72060b0c7f572cde608fef12adb032402b0be148386. This is a local no-regression observation, not an isolated universal speedup. Initial benchmark invocations used the wrong fixture directory and then --library on a file with executable statements; those rejected invocations are excluded. Compiler native inventory is now 1909 physical lines: 143 production cpp, 234 callback-test cpp, 1532 headers; historical research remains 774 separately. todo.txt hash remains 96a9e58964d7f01e4a97819f259448db81ef5e40. Next: retire baseline installation/default-host compatibility and seed formatting, then actual callback-address contracts/tests. Source rebase/push and frozen release publication follow; this entry does not yet claim deployment success.
+
+### 2026-11-21 — Prioritize compiler development iteration speed
+
+The user asks to fix iteration bottlenecks first, reduce validation overhead,
+and continue the compiler-wide ECS work. Documentation audit 43d7c12 is pushed;
+Pages 06fd8f7 (action 44921631280) succeeded. Publication changes only the deployment
+manifest, retains all 77 runtime assets and build-source 6fcad39, and the served
+manifest exactly matches locally (audit-published-verification.json). No duplicate
+full deployment run or identical compiler rebuild was performed.
+
+Concrete iteration bottleneck: the previous supposedly focused post-rebase pair
+ran the full frontend suite (98.14s) plus one bundled LR/unit/editor/body suite
+(109.74s), totaling 207.88s before build time. A body-only edit could not select
+its production worker checks independently. Split the existing production runner
+into selectable lr/units/editor/bodies suites, preserving its default all behavior
+and registering the unchanged full suites separately in CTest. Add a body-smoke
+selection that reuses the same continuation fixture and existing execution,
+canonical-equality, header-error and cycle-order assertions at 1/4 workers.
+This is deliberately a development subset, not replacement release coverage.
+No new compiler algorithm, C++ or sanitizer pass. Incremental native target build
+and timed smoke are running. The container has no /usr/bin/time; use Python's
+monotonic clock rather than installing tools or treating that launch as a pass.
+
+
+The first focused run passes in 8.759s, versus the prior 207.88s bundled pair;
+these have intentionally different validation scope, not a compiler speedup.
+The incremental test rebuild took 23.374s. Added the single-command
+`cmake --build BUILD --target tower-body-smoke` entry and documented it. Its
+initial run took 35.925s because unchanged support objects rebuilt again.
+
+Ninja -d explain identifies a separate real incremental-build bug: dependency
+files name the compiler's intermediate .o or unbound .ll output, but the CMake
+custom command names only the eventual executable/bound object. Ninja reports
+"expected depfile ... to mention ... got ..." and regenerates runtime_bind,
+allocator/trap objects, guest runtime, foreign-name tool and downstream backend
+on every run. Declare the actual compiler intermediate first among the custom
+command outputs, plus the bound/final outputs. Apply the same correction to
+runtime, guest, backend tool, driver and affected native test compositions.
+The first configuration retained tower-foreign.o in both OUTPUT and BYPRODUCTS;
+Ninja rejected the duplicate. Remove its now-redundant BYPRODUCTS entry and
+regenerate directly with CMake. Repair/no-op checks are running. No dependency
+tracking is disabled and no new compiler option/bootstrap requirement is added.
+
+In response to the user's completion-percentage question, gave an explicit rough
+engineering estimate of 60–70% for overall ECS/threading conversion, not measured
+coverage or remaining time. The previously audited substantial ownership,
+structural-continuation, CLI/backend and invalidation gates remain. General
+arbitrary-value/inferred staging is additional unfinished language work.
+
+
+The corrected output/depfile declarations pass actual native compiler and worker
+runner builds. An unchanged worker build now takes 0.024s; the combined unchanged
+towerc/worker build takes 0.038s and reports no work. Touching (then restoring the
+mtime of) imported runtime_driver.tower triggers the correct dependent rebuild,
+so the fix preserves transitive invalidation. Its first dry-run probe stopped at
+CMake's glob verification; this Ninja lacks the attempted norebuild debug option.
+Use the actual timestamp-triggered build as evidence instead. Final single-command
+body smoke passes in 10.061s including the no-op build check, with no regenerated
+support objects. Logs: iteration-depfiles-results.json and iteration-final-*.log.
+The 8.759s direct smoke and this 10.061s target intentionally cover fewer cases than
+the old 207.88s bundled pair; no compiler execution speedup is inferred.
+
+Resume the previous compiler work using this fast path. Integrated the previously
+native-validated while/for continuation draft after byte-checking its base snapshot;
+preserved the newly added smoke entry. The generated while-block lease fix and
+its prior positive/negative ownership evidence are included. The pre-integration
+header compiler is retained as towerc-header-reference for focused differential
+checks. Next, batch related control/defer/protocol continuations rather than
+publishing a separate compiler distribution after each small handler change.
+
+
+### 2026-11-21 — ECS compiler architecture assessment
+
+The user asked whether universal ECS/archetypes plus threading is objectively a
+sound compiler design, particularly for dependency chains. Checked primary docs:
+https://rustc-dev-guide.rust-lang.org/query.html describes memoized, demand-driven
+queries and dynamically discovered dependencies. Its parallel-rustc page explicitly
+warns that historical implementation/default-status details are outdated, so do
+not use it to assert current shipping defaults. MLIR's operation-pass restrictions
+(https://mlir.llvm.org/docs/PassManagement/) isolate mutation and prohibit shared
+mutable pass globals. Flecs documents row slicing and staged structural publication
+(https://www.flecs.dev/flecs/Systems.html#threading). LLVM ORC documents context locks
+and separate contexts for increased compilation concurrency
+(https://llvm.org/docs/ORCv2.html#how-to-use-threadsafemodule-and-threadsafecontext).
+
+Assessment: shared entities/ownership, batched component queries and demand-driven
+ready-task scheduling are a sound combination. Flecs storage/pipelines alone do
+not discover semantic dependencies. Ready tasks should come from across the graph;
+a suspended query releases its worker rather than owning a thread for its whole
+chain. Shared producers should deduplicate, and genuine dependency chains still
+bound parallelism. Tiny tasks, unnecessary structural transitions, pointer chasing,
+shared interning and overbroad barriers can outweigh threading benefits. Universal
+semantic identity does not require one dispatch per AST operation or packed payload
+relocation everywhere. Keep profitable batching and stable payloads where needed.
+These are design judgments, not measured whole-compiler speedup claims. Measure
+elapsed time/scaling as well as utilization; busy cores can be doing redundant work.
+
+The integrated while/for fast path passes (surface-integrated-smoke.log). Shared
+begin/finish phases for deferred block registration and foreach protocol setup
+are now implemented locally, with cursors on SemanticBodyWork. Foreach preparation
+still constructs its implicit protocol on the coordinator; its body can suspend
+and resume on workers. Deferred block scopes retain their capture/loop/local-frame
+state across those same boundaries. Resumed iteration completion explicitly leases
+its retained generated iteration block. Initial existing-fixture smoke passes
+(iteration-defer-smoke.log). Added a typed-parameter foreach fixture with generic
+calls, nested deferred captures, continue and break; its focused run is underway.
+No claim of publication or complete structural-expression/type-construction work.
+
+The expanded foreach/defer fixture passes the focused production smoke after
+correcting its import to `import library.vector;`. The first attempt used a
+leading-dot import, but this harness loads the text with the synthetic filename
+continuations.tower, so it correctly failed to read ../library/vector. This was
+a fixture path error, not a continuation failure. Logs: iteration-defer-fixture-
+diagnostic.log and iteration-defer-fixture-retry.log. The successful command was
+`cmake --build /tmp/tower-home/.cache/tower/compiletime-unit-world-clean --target
+tower-body-smoke --parallel 2` in tower-parser-retirement. Broader milestone
+validation/publication of the local compiler changes remains pending.
+
+### 2026-11-21 — Stronghold: a future safe language above Tower
+
+The user asks whether the ECS/threading work could support Stronghold above
+tower.tower: no raw pointers or unsafe operations in application code, initialized
+values, safe ECS access, type-directed race prevention, and possibly an optional
+mode permitting races whose outcomes remain memory-safe. This entry is a design
+proposal, not implemented language behavior and not a change of the current
+compiler ECS/compile-time priority. All future project-owned implementation belongs
+in Tower. No Stronghold implementation is introduced by this entry.
+
+Existing intent and current foundation:
+
+No occurrence of Stronghold was found in the tracked project before this entry.
+Related ideas are already in todo.txt: around lines 3680–3745, weak parent handles,
+nullable access after deletion, alternative ownership models and a less restrictive
+feel than Rust; around 7555–7580, deferred tree changes/destruction while readers
+exist and safety added above the core; around 8856, explicitly building a C-like
+unsafe core with a safe layer on top. Other older notes discuss initialization,
+checked regions and pointer restrictions. todo.txt remains untouched. These are
+historical ideas, not evidence that their guarantees are implemented.
+
+Stronghold fits the present architecture. Tower foundation keeps raw target
+pointers and its explicit low-level semantics. Stronghold can supply surface rules,
+safe libraries, types and enforced semantic restrictions on the same entities and
+operations. Its lowering still has compilable foundation spellings and uses the
+same interpreter and backend path. It needs no separate public graph, instruction
+ABI or constant evaluator. Safe handles are additional abstractions, not a change
+back to the retired checked-foundation-pointer prototype.
+
+The boundary must be semantic:
+
+Removing pointer syntax from a grammar would be useful presentation, but would
+not enforce safety. Imports, replacements, reflection, compile-time code generation
+and foreign calls could otherwise recreate unchecked access. A Stronghold compile
+profile must check the expanded program and transitive calls, including generated
+code, before accepting it. Safe modules cannot forge handles, reinterpret bytes as
+references, perform unchecked address arithmetic, free borrowed storage, expose
+uninitialized values or invoke arbitrary unsafe Tower functions. Reflection must
+respect the same ownership and access capabilities as ordinary code.
+
+Implementations of safe containers and the scheduler may internally use raw
+foundation operations behind a small, explicit trusted boundary. Trust must be
+assigned by build/module policy, never by a user-forgeable annotation or a favorable
+function name. Public interfaces must protect their invariants even for hostile
+but well-typed callers. Foreign/native functions need trusted wrappers and effect,
+lifetime and threading contracts. Ordinary Stronghold modules need no unsafe
+escape hatch; explicitly trusted Tower modules are a distinct boundary. A safety
+claim depends on the compiler/runtime and those wrappers being correct, as it does
+for other safe languages. A Wasm sandbox alone does not protect one guest object
+from corruption by another object in the same linear memory.
+
+Keep memory safety, valid typed values, race freedom and determinism distinct.
+Preventing a dangling access does not guarantee the right entity was selected;
+preventing a data race does not establish a deterministic order of independent
+effects; and a valid integer can still encode a wrong application result.
+
+Handles, access and reclamation:
+
+- Persistent references should be opaque typed handles with a world identity,
+  slot and incarnation, or an equivalent non-forgeable identity scheme. Lookup
+  checks world, liveness, component presence and type. Wrong-world access and
+  stale IDs cannot accidentally resolve to an unrelated object. Component removal
+  needs an explicit contract too: an entity lookup asks for its current component,
+  while a handle to a particular component incarnation must not silently rebind
+  after remove/re-add. Persistent serialization needs explicit identity remapping.
+- A stale weak handle can produce an absent result. Slot-generation wrap must have
+  a real policy, such as retiring the slot before reuse would alias a live old
+  handle; being statistically unlikely is insufficient for a guarantee. World
+  destruction and world-ID reuse need equivalent protection. Bevy's Entity docs
+  explicitly distinguish an ID from an existing entity and warn about eventual
+  ID aliasing; this is a useful limit to account for rather than copy blindly.
+  [Bevy Entity](https://docs.rs/bevy_ecs/latest/bevy_ecs/entity/struct.Entity.html).
+- Checking the generation and then returning an unprotected address is unsound:
+  another job could destroy or relocate the component between the check and use.
+  Lookup must acquire protected access as part of one protocol. A successful
+  borrow remains valid for its entire permitted scope. It cannot spontaneously
+  become a dangling reference halfway through an expression.
+- Begin with scoped world/query views, exclusive mutation rights and staged
+  structural changes after readers join. Archetype movement, sparse component
+  removal, buffer growth, compaction and destruction all obey this rule. Stable
+  payload addresses simplify relocation but do not solve concurrent destruction.
+  If later measurements justify more overlap, locks, protected immutable snapshots,
+  hazard pointers or epoch reclamation are implementation choices. Crossbeam's
+  epoch documentation illustrates delayed destruction while readers are pinned;
+  a lifetime pin still does not grant permission to race on mutable payload data.
+  [Crossbeam epoch](https://docs.rs/crossbeam-epoch/latest/crossbeam_epoch/).
+- Persist handles or owned snapshots across job boundaries and suspension. A
+  short-lived component borrow cannot escape into a closure, global, suspended
+  continuation or another worker unless its type carries a supported lifetime and
+  access transfer. Reacquire access after resumption. Cancellation must release
+  borrows only after work drains; a cancelled task cannot leave a reader using
+  reclaimed memory. Bound long-lived pins so they do not indefinitely retain
+  entire worlds. Reentrant callbacks must follow these rules too.
+
+Typed ECS access and threading:
+
+Give queries and functions read, write, structural-mutation and effect requirements.
+Infer access through calls where possible and check declared contracts elsewhere.
+The scheduler can run compatible readers and disjoint writers concurrently;
+conflicting mutation requires ordering or exclusive access. Component type alone
+may be a conservative first access set. Proven entity ranges, partitions and query
+filters can later recover parallelism without weakening safety. Two parameters
+that may refer to the same entity still need an alias check or proof.
+
+Dynamic entity lookup is common in games and compiler graphs. It should remain
+usable through a checked borrow, safe synchronized operation, snapshot or exclusive
+context when a static proof is unavailable. An arbitrary callback cannot silently
+access data outside the system's declared capabilities. Custom query providers
+cannot lie about access. Bevy's SystemParam safety contract likewise requires
+complete access registration and conflict prevention; this supports the proposed
+direction, not a claim that Tower already implements equivalent enforcement.
+[Bevy SystemParam](https://docs.rs/bevy_ecs/latest/bevy_ecs/system/trait.SystemParam.html#safety).
+
+Dependency scheduling and access scheduling solve different constraints. A ready
+job still needs its data capabilities; a conflict-free job still waits for required
+results. Do not block workers while holding access that a dependency needs. For
+deterministic mode, publication and conflicting effects also require a specified
+order. Stronghold need not make every scalar or temporary an ECS entity: ordinary
+stack values, pure functions and uniquely owned containers remain useful. ECS is
+particularly attractive for shared world data, graph identity and coarse access
+lifetimes, where it can make the safe path convenient.
+
+Initialization, ownership and ordinary collections:
+
+Every observable value must be initialized and valid for its type. Require an
+initializer or a type-defined valid default, and check definite assignment before
+reads. Zeroed bytes are not automatically a valid non-null reference, enum,
+resource or invariant-bearing struct. Tower's existing zero/default mechanism is
+not by itself the Stronghold contract. Partially built objects stay private until
+complete; failed construction must neither publish invalid fields nor destroy
+fields that never acquired ownership. Define cleanup on ordinary returns, errors,
+cancellation and traps instead of assuming existing defer implies unwinding.
+
+Safe arrays and slices expose only their initialized length, preserve valid tags
+and reference representations, and check bounds and layout/address arithmetic.
+Allocator capacity is not initialized content. Growth cannot invalidate a live
+borrow. Static proofs may remove checks; otherwise checks remain in release builds.
+Older suggestions that release mode simply removes required safety checks do not
+fit Stronghold. This is language enforcement, not a request for sanitizer sweeps.
+
+World/arena ownership plus weak entity handles can avoid a mandatory tracing GC.
+Unique values and moves can cover local resources, with shared ownership only
+where useful. Reference counting is an optional technique, not an automatic cure
+for cycles. Define cycle/resource-leak policy separately; memory safety alone
+does not guarantee bounded memory consumption or prompt destruction. Avoid making
+every component access update a global reference count. Scoped query access can
+amortize checks over a whole batch, preserving dense traversal. Actual overhead
+must be measured; neither zero cost nor a fixed percentage loss is established.
+
+What the optional race-permitting mode could mean:
+
+Keep memory safety and type validity mandatory in every Stronghold profile.
+Relax only ordering/consistency requirements through defined operations. A useful
+default rejects or orders conflicting ordinary accesses. Optional shared cells,
+snapshots or concurrent collections could allow a well-defined old/new value,
+an absent entity, or an explicit update conflict. Lost updates may be an accepted
+logical race for a particular operation, but corruption and fabricated references
+are never accepted outcomes. This does not need to expose hardware data races.
+
+For example, if deletion wins before a weak lookup acquires access, lookup returns
+absent. If acquisition wins, the reader retains valid storage until release and
+deletion waits or retires the old storage. A conflicting write might serialize,
+use compare/exchange, reduce values, or report failure. Specify each operation's
+ordering and failure semantics rather than silently discarding writes or promising
+that every kind of race can somehow be converted to null.
+
+Compound values require particular care: independently atomic pointer and length
+fields can still form an invalid pair. Publish a protected immutable record,
+lock the record or use another protocol preserving the whole invariant. Go's memory
+model explicitly warns that racing multiword pointer/length or pointer/type pairs
+can cause memory corruption; it is a concrete counterexample to assuming ordinary
+typed access automatically makes races harmless.
+[Go memory model](https://go.dev/ref/mem).
+
+LLVM provides atomic operations, including unordered operations intended to
+support safe languages, but their ordering, widths and target support matter.
+Unordered atomicity alone does not publish an initialized object or protect its
+lifetime. The safe implementation must use the required synchronization, locks or
+snapshots and preserve it through lowering; ordinary unsynchronized access and
+optimistic alias promises are not substitutes. Unsupported operations need a
+defined fallback or a diagnostic, including on Wasm and GPU targets.
+[LLVM atomics](https://llvm.org/docs/Atomics.html#unordered).
+
+The memory/consistency profile belongs in compilation and cache identity. Strict
+compile-time execution still needs identical results for identical explicit inputs.
+Runtime scheduling nondeterminism cannot silently become a compile-time input:
+reject it in strict evaluation or provide a deterministic execution policy and
+explicit tracked inputs. Known-value evaluation continues to invoke ordinary
+Tower code with the same contracts, not an independent folding pass.
+
+What today's work contributes and what remains:
+
+Compiler worlds, shared entity identity, private worker scratch, component access
+claims, pinned views, staged publication, dependency continuations and drain-before-
+release rules are relevant implementation groundwork. They make the required
+ownership boundaries visible. They currently rely on manually correct Tower code
+and include raw pointers. A pinned view is not a payload lock. Completing the ECS
+conversion would not itself produce a safe user language, an enforced borrow/effect
+system, safe collections, or a specified optional concurrency model.
+
+A reasonable future sequence is: specify the safety/profile and trusted boundary;
+build scoped safe world/handle APIs and initialized owned containers in Tower;
+enforce non-escape, alias/access and transitive effect rules on shared nodes;
+connect those checked capabilities to the scheduler; then add narrowly specified
+concurrent operations where useful. Explicit initialization, typed absence/results,
+aggregate ownership/returns and access effects are useful language prerequisites.
+Compile-time generation can derive wrappers and access plans, but generated code
+must pass the same checks. No privileged syntax-only shortcut.
+
+Future focused tests should try stale/cross-world handles, generation exhaustion,
+remove/re-add, archetype movement during access, duplicate mutable access,
+partially initialized containers, escaping callbacks, concurrent removal,
+cancellation and generated/imported unsafe access. Compare interpreter and native
+behavior under the same profile and benchmark realistic traversal/update loads.
+These are proposed acceptance criteria, not tests run for this documentation turn.
+
+Conclusion of this assessment: a convenient memory-safe ECS-oriented language
+above Tower is credible and aligns with the earlier notes. The strongest fit is
+typed access plus scoped runtime protection, allowing static proofs to eliminate
+cost where possible. Optional logical races are feasible under explicit safe
+operations. Stronghold remains future work; current ECS/threading and ordinary
+interpreter compile-time execution remain the implementation priority.
+
+Integration note: pulled f618cbb with autostash, retained its Tower-only tooling
+policy and next-language-feature journal entry, and resolved the append-only
+journal conflict by preserving both histories. Existing compiler/build work is
+preserved locally. This documentation checkpoint does not publish those unfinished
+compiler changes or imply their broader validation has completed.
+
+The required final pull also brought upstream 7a2f6fd's Tower editor-view changes.
+Preserved that journal entry alongside this one when resolving the rebase. The
+local continuation smoke cited above predates those upstream source changes;
+integrated compiler/bootstrap validation is still required before publishing the
+local compiler milestone. This journal-only commit does not rebuild or replace
+the verified deployed runtime assets. Documentation diff checks pass; todo.txt
+retains blob 96a9e58964d7f01e4a97819f259448db81ef5e40.
