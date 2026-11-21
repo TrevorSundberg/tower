@@ -37333,3 +37333,192 @@ executables. Site now contains 86 assets due to the upstream library split.
 Final local/hosted verification and publication receipts follow; no prior passing
 run is used to claim verification of changed compiler inputs. Logs use
 build/narrow-final-*, narrow-published-successor.log and narrow-module-paths.log.
+
+The same failure-reuse review found two related type-cache cases. A later body
+can first construct a record with a MissingField, or a type alias returning
+MissingAlias; an earlier explicit sizeof initializer then reused the cached
+nominal/invalid type and continued to unknownFirst. Both focused Tower reproducers
+produced that wrong diagnostic with the 564972f successor (shared_type_failure.log
+and shared_alias_failure.log). Cached nominal identities now consult failed field
+receipts. Constructor failures before a field query exists retain their diagnostic
+on the instantiated entity's existing declaration-work component; later uses copy
+that owned error instead of accepting an invalid cached type or inventing a
+recursive-constructor error. The component's normal compilation teardown frees it.
+This adds failure retention to the current structural constructor path; it does
+not claim that type construction itself has become a worker query.
+
+The common diagnostic-copy helper now serves query failures and structural cache
+consumers without publishing scratch or mutating scheduler state. Constructor
+failure capture is coordinator-only, and preserves an already selected earlier
+error. Added SharedTypeInitializer and SharedTypeAlias regressions to body_runs.
+Small-unit compilation passed (type-failures-preflight.log); the focused native
+checks are running before publication. The intermediate 564972f shared-Wasm suite
+also passed all three tests (82.05 s, frontier-final-shared-tests.log), but its
+remaining publication lane was stopped to include these confirmed corrections.
+
+The direct record/alias cache regressions pass in the focused native suite.
+One further three-body reproducer showed why checking only the outer nominal
+receipt is insufficient: a wrapper's fields can finish using an inner nominal
+identity created by another producer, whose own fields later fail. The wrapper
+identity is complete while its by-value storage remains invalid. sizeof(wrapper)
+previously built a layout from the partial inner fields and reported unknownFirst.
+The structural sem_layout boundary now recovers an existing failed layout receipt
+or a failed transitive field receipt before admitting layout work. Completed
+layouts retain the worker-safe read-only fast path. Added SharedNestedType coverage
+for serial/four-worker admission. The isolated layout-unit compile passed; native
+checks follow (layout-failures-preflight.log, shared_nested_type_failure.log).
+
+Iteration correction: finish the focused failure-reuse review across signatures,
+types and transitive layouts before starting the publication lane. Beginning
+browser generations while that review was still open caused avoidable rebuilding
+here. Reuse the native support package only if the actual reactor units' external
+defined/undefined symbol sets, native inputs and link configuration are unchanged;
+refresh the edited Tower source entries and verify real successor generations.
+
+## 2026-11-21: Completion audit against production callers and remaining work
+
+Audit baseline: main a36a853b0a685eb11b185ff0cd02a9ab4adbe449, after
+`git pull --rebase --autostash`; all four unfinished Tower files and the journal
+were preserved. Reviewed the original compile-time audit, later ECS/body/query
+entries, docs/tower-language-plan.md, the relevant dependency/staging notes in
+todo.txt (unchanged), current production callers, tests and retained validation
+logs. Also reviewed the newly merged playground/PERFORMANCE.md measurements.
+This is a source/caller/evidence audit, not a fresh full-matrix certification.
+
+Revised engineering estimate: about 70%, with a rough 65–75% range, toward the
+current compiler's end-to-end ECS/dependency/threading conversion and scoped
+decltype/scalar-comptime milestone. This supersedes the earlier approximately
+85% estimate. The correction reflects undercounted integration, structural
+semantic work and release/performance gaps; it does not mean completed code was
+removed. There is no defensible completed-lines/total-lines percentage. Files
+contain both migrated and serial work, and future edits are not a known line
+count. This estimate excludes future Stronghold, LLVM translation, parser/regex
+specialization and general arbitrary-value staged execution; including that
+larger language vision would make completion lower, not higher.
+
+| Area | Implemented evidence | Remaining boundary |
+| --- | --- | --- |
+| Shared nodes and ECS storage | Entity/world-owned syntax, Foundation and semantic components; stable component pages; exact-signature archetype rows, component columns, pinned views and worker stages in library/entity_types.tower, entities.tower and entity_stage.tower | Columns index stable payload pointers, rather than placing every payload contiguously in an archetype. Actual table-query consumers include semantic_flow and semantic_known_work; APIs alone do not prove universal bulk traversal or SIMD. Keep stable sparse payloads where useful and profile dense hot data before migration. |
+| Dependency scheduler | work_graph has demand, dynamic edges, suspension/yield, access claims, stale tickets, cancellation and iterative cycle paths; work_pool has actual native/shared-Wasm executors | semantic_lifecycle initializes each semantic graph with revision 1 and pointer width as profile. This is compilation-local scheduling, not a complete persistent cache/invalidation identity. The pipeline still invokes separate phase executors. |
+| Parser | CompilerKernel dispatch includes FIRST, state/closure, links, lookahead/actions and runtime-table work; explicit worlds own parser caches/leases | Ordered input consumption and incremental grammar activation remain ordered by semantics. Runtime sequence specialization and structural merging retain coordinator work. A threaded table builder does not make every parser operation concurrent. |
+| Semantic checking/lowering | Declaration discovery/readiness, layouts, eligible ordinary/generic bodies, lexical/control continuations, flow, expression lowering and aggregate preparation have worker paths. Recent pushed work batches independent local declarations and for initializers while preserving scope/effect order. | semantic_body_work:sem_body_tree explicitly excludes foreach protocol construction, array counts, structural CoreType arguments and unprepared generic/type calls. These computations still need suspendable dependency queries; deterministic interning/publication itself can remain coordinated. |
+| decltype and staged values | Unevaluated type queries, scalar comptime and eligible inferred-known bindings use shared entities/dependencies and the ordinary interpreter. Lazy executed-read dependencies, cycles, captures and deterministic target-width behavior have focused tests. No independent arithmetic folder was added. | generics:generic_type_result_read still recognizes a limited optional-struct/return constructor instead of executing an arbitrary type-producing Tower function. sem_constant_argument still restricts integer arguments to literals/bound values. General aggregates/buffers/type values, tracked effects/file inputs and reusable dependency invalidation remain future implementation. |
+| Multiple compilation units/backend | frontend_units and backend/units provide tested isolated worlds, nested budgets, shared unit entities/graph, LLVM contexts, deterministic results and cancellation. Browser compiler-build uses compiler_work through llvm-host. | Repository caller search finds native frontend_units_create/backend_units_create consumers in tests, not native CLI production code. driver_compile still performs one program's compile/lower/optimize/emit directly. Unit jobs each compile their own import closure; they are not a cross-unit declaration-query deduplication service. |
+| Ownership/integration | World-bound stores, frozen dispatch descriptors, private scratch/interpreter contexts, stage leases and joined publication exist | Legacy host_world/default-world adapters remain. Scoped ownership is implemented, but this is not yet universal explicit-session production integration or Stronghold-enforced access safety. |
+| Release/performance | Historical overlap, canonical equivalence, cancellation and bootstrap/browser-generation checks exist for specific checkpoints | Latest local correction fails its new test; latest pushed batching/header milestones are absent from the deployed runtime. No whole-compiler scaling or maximum-core-utilization result is established. |
+
+Evidence distinguishing existence from production use:
+
+- `rg -n 'frontend_units_create|backend_units_create' scaffolding playground/src`
+  finds service definitions and native test consumers; no native CLI caller.
+  `scaffolding/host/driver_compile.tower:276` calls backend_lower,
+  backend_optimize and backend_emit sequentially for its program. Its frontend
+  still reaches the within-unit worker kernels; this is not a claim that the
+  entire CLI is single-threaded. Build-system process parallelism is separate.
+- `playground/src/llvm-host.mjs:30` calls compiler_work_create, and
+  compiler-build.mjs obtains/accepts Tower tickets across isolated workers.
+  The browser does use the common Tower coordinator. It must not be described
+  as an unrelated JavaScript dependency implementation.
+- `scaffolding/compiler/semantic_lifecycle.tower:54` supplies the current
+  compilation-local graph identity. Its compile entry still orders sem_run,
+  known inference, lowering, evaluations, known publication and flow phases.
+- `scaffolding/compiler/semantic_body_work.tower:216` is the concrete structural
+  worker-admission boundary; `generics.tower:321` explicitly diagnoses general
+  type-constructor execution as unimplemented. These are unfinished behavior,
+  not merely remaining naming or formatting work.
+
+Size inventory, not an estimate of lines needing replacement: wc -l across
+semantic_body_work, semantic_declarations, semantic_types, semantic_control,
+semantic_expressions, generics, semantic_evaluation, semantic_evaluation_work,
+semantic_known_work, semantic_lifecycle, frontend_units, host_world,
+host/driver_compile, host/driver_request, host/driver_options and backend/units
+reports 16 files / 7,788 lines. Most already contain working migrated code. Tests,
+parser integration, storage and transport code are additional adjacent surfaces;
+this inventory is neither a rewrite instruction nor an exhaustive remaining LOC
+denominator.
+
+Validation and publication state must remain distinct:
+
+- Pushed 5ca3c3d has the recorded native work-order/overlap, full body
+  32/64-bit and 1/2/4/8-worker canonical/execution/diagnostic checks and known
+  binding checks in body-frontier-ordered-native.log. Pushed 564972f adds
+  for-header continuations and failed-signature recovery; its focused native
+  check and three shared-Wasm tests passed (zero skips, 82.05 s in
+  frontier-final-shared-tests.log). These are checkpoint results, not validation
+  of every subsequently merged source combination.
+- Correction to the preceding transitive-layout entry: the new native body
+  smoke did NOT pass. layout-failures-native.log ends in an abort. A focused
+  GDB run locates the abort in the test body_runs_declaration_error, and an
+  unbuffered rerun reports `Unknown local 'unknownFirst'` followed by the
+  diagnostic assertion. The new SharedNestedType case still fails to retain
+  MissingField. This is an unresolved diagnostic failure, not evidence of a
+  production compiler memory-safety crash. Preserve the local .tower changes
+  for continuation; do not push/deploy them as a verified compiler milestone.
+  Reproduction: existing ecs-local-query-new-pin/tower-lr-work-tests with
+  `/home/deck/tower/scaffolding body-smoke` inside tower-parser-retirement;
+  output is build/language-next-audit/completion-audit-body-smoke.log. This
+  executable predates today's upstream merge; no merged-source rebuild was
+  performed for this documentation audit.
+- At audit time origin/gh-pages bb3a8b6 has runtime build 85c8a13, with equivalent
+  retained public compiler source 2776318, plus later UI/metadata changes.
+  Source commits 5ca3c3d/564972f being on main does not put their runtime changes
+  in the browser. Audit-only deployment must preserve those actual build
+  identities and all 84 asset hashes rather than label them a new compiler.
+
+Performance findings from playground/PERFORMANCE.md are material to completion.
+For its frozen 85c8a13 runtime, three paired desktop trials report median cold
+completion 2,289.6 ms portable versus 4,411.1 ms threaded; warm Memory edits
+112.2 versus 237.4 ms. The comparison includes different allocator/transports,
+not just worker-count changes, and is not a large-workload scaling result.
+Separate coordinator samples attribute 85/219 samples to heap-enter/leave;
+that is sampled attribution, not 39% of total elapsed time. work_memory_wasi
+serializes allocation and refreshes shared-memory views for its existing
+correctness contract. Investigate allocation traffic, job granularity, retained
+pools and repeated frontend work before claiming a speedup; do not simply remove
+the allocator lock. Newer batching was not in those measured bytes.
+
+Concrete completion gates for the current conversion:
+
+1. Close shared type/field/layout failure propagation, preserving original
+   producer diagnostics across source order and worker widths.
+2. Move independent structural expression/protocol/type preparation into the
+   existing query/continuation model. Retain ordered effects and coordinator
+   publication; do not create another semantic graph or evaluator.
+3. Connect native project/CLI frontend and backend recipes to the tested unit
+   services with one explicit budget, cancellation and deterministic outputs.
+   Define shared-import/query ownership rather than implying isolated closures
+   already deduplicate declaration work.
+4. Finish explicit ownership/admission coverage on production paths and profile
+   avoidable worker/allocator overhead with representative single-unit and
+   multi-unit workloads. Required source/effect ordering and small joined
+   structural commits are legitimate serial work; 100% does not mean every
+   instruction is simultaneously executable.
+5. Publish one coherent validated compiler checkpoint: public-bootstrap build,
+   affected native/shared checks, successor generations, and hosted artifact
+   identity. Reuse unaffected evidence; do not repeat full matrices for audit
+   prose. General staged type/value/effect capabilities remain a separately
+   identified language milestone, not hidden inside a claimed final few percent.
+
+Publication update during this audit: the required final pull advanced main to
+258f324 and Pages to 1a9650d9075c48ab7369346b4c8f8909f5196361. This supersedes
+the older deployed-runtime finding above. The new integrated narrow-integer
+release declares runtime source 6c03edd, which contains both 5ca3c3d and 564972f;
+the batched declarations/for-header work is now included in the publication.
+Pages run 44957687185 completed successfully. Its release journal records fresh
+native/bootstrap validation and two identical successor generations; those are
+the releasing lane's results, not newly rerun audit checks. The four unfinished
+Tower files remain outside that release, and their patch SHA-256 stayed
+03ff6c168d6eaa839e07eb14e49b4e222b5cfd8f8d91916622266b6e2fab5804 across rebase.
+
+The new manifest updated buildSourceCommit but retained stale 85c8a13/2776318
+published/editable/equivalent identities and its old publicationNote. Compared
+every tracked file in the packaged compiler/project.json against the Git blobs
+at 6c03edd: all 360 tracked files match, zero mismatch; the other 20 files are
+generated unit entry points and are not claimed as tracked-file comparisons.
+The audit's metadata-only deployment corrects those redundant source fields to
+6c03edd and compilerSourceTree to 357e417209318998a69c176d122570332bd3e9b8,
+aligns the executable-build predecessor with the release's recorded 057f0d46,
+and retains the separately published final bootstrap 0d752e7d. Preserve the new
+86 asset hashes and all other release notes. The approximately 70% estimate
+still applies: release integration improved during the audit, but native CLI
+unit wiring, structural semantics and broader query/value work remain open.
