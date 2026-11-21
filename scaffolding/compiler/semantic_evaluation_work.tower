@@ -5,6 +5,7 @@ import semantic_program_types;
 import semantic_evaluation;
 import semantic_control;
 import semantic_support;
+import semantic_work_ids;
 import .library.vector;
 import .library.stack;
 import .library.work_graph;
@@ -23,6 +24,8 @@ struct SemanticEvaluationWork {
     error: vector(u8);
     error_offset: usize;
     query_reads: vector(usize);
+    aliases: vector(SemanticEvaluationAlias);
+    cloning: bool;
 }
 
 // Each stage expression owns its checked semantic tree. Nested stages share
@@ -38,6 +41,7 @@ fn semantic_evaluation_prepare_kernel(result: SemanticEvaluationWork*): void {
     context.editor = null;
     context.entity_stage = result.stage;
     context.query_reads = &result.query_reads;
+    context.evaluation_aliases = &result.aliases;
     context.control_reserved = context.control_names;
     context.control_names = null;
     context.count = 0;
@@ -47,9 +51,10 @@ fn semantic_evaluation_prepare_kernel(result: SemanticEvaluationWork*): void {
     vector_init(&context.token_text);
     fill(&context.scan, 0, sizeof(stack(void*)));
     vector_init(&program.error);
-    context.control_prefix = sem_cat(&context, "control stage ",
+    context.control_prefix = sem_cat(&context, result.cloning ? "control clone " : "control stage ",
         sem_cat(&context, sem_decimal(&context, convert(u64, result.ordinal)), "."));
-    sem_evaluation_prepare(&context, result.evaluation);
+    if result.cloning { sem_evaluation_clone_expression(&context, result.evaluation); }
+    else { sem_evaluation_prepare(&context, result.evaluation); }
     result.count = context.count;
     copy(&result.error, &program.error, sizeof(vector(u8)));
     result.error_offset = program.error_offset;
@@ -62,11 +67,25 @@ fn semantic_evaluation_prepare_kernel(result: SemanticEvaluationWork*): void {
 }
 
 fn sem_evaluation_prepare_all(c: SemanticContext*): void {
+    sem_evaluation_work_all(c, false);
+}
+
+fn sem_evaluation_clone_all(c: SemanticContext*): void {
+    sem_evaluation_work_all(c, true);
+}
+
+fn sem_evaluation_work_all(c: SemanticContext*, cloning: bool): void {
+    if !sem_ok(c) { return; }
     sem_control_names(c);
-    var kind = sem_create(c.program.root);
-    sem_require(entity_register(kind, sizeof(SemanticEvaluationWork), alignof(SemanticEvaluationWork), 0));
+    var kind: void* = null;
+    var query_kind = convert(u32, cloning ? SemanticQuery.KnownClone : SemanticQuery.EvaluationPrepare);
     for(var i: usize = 0; i < c.evaluation_jobs.length; i++) {
         var evaluation = bits(SemanticEvaluation*, c.evaluation_jobs.data[i]);
+        if cloning && !evaluation.inferred { continue; }
+        if kind == null {
+            kind = sem_create(c.program.root);
+            sem_require(entity_register(kind, sizeof(SemanticEvaluationWork), alignof(SemanticEvaluationWork), 0));
+        }
         var component = entity_component_add(evaluation.subject, kind);
         var result = bits(SemanticEvaluationWork*, entity_component_data(component));
         sem_require(result != null);
@@ -74,48 +93,65 @@ fn sem_evaluation_prepare_all(c: SemanticContext*): void {
         result.context = c;
         result.evaluation = evaluation;
         result.ordinal = i;
+        result.cloning = cloning;
         result.kernel.kind = CompilerKernelKind.PrepareEvaluation;
         result.kernel.payload = bits(void*, result);
-        var id = work_find(&c.queries, evaluation.subject, EvaluationPrepareQuery(), 0);
+        var id = work_find(&c.queries, evaluation.subject, query_kind, 0);
         sem_require(id != 0);
         // Disjoint expression output, immutable types and nested placeholders.
         // Evaluation reads component 3 and writes component 2, so the graph
         // also excludes evaluation while a preparation wave owns these inputs.
-        sem_require(work_access(&c.queries, id, 1, 3, i, 1, WorkAccessMode.Write));
-        sem_require(work_access(&c.queries, id, 1, 1, 0, ~convert(usize, 0), WorkAccessMode.Read));
-        sem_require(work_access(&c.queries, id, 1, 2, 0, ~convert(usize, 0), WorkAccessMode.Read));
+        var domain = convert(u64, SemanticWorkDomain.Compiler);
+        sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Expression), i, 1, WorkAccessMode.Write));
+        sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Layout), 0, ~convert(usize, 0), WorkAccessMode.Read));
+        sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Evaluation), 0, ~convert(usize, 0), WorkAccessMode.Read));
+        sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.KnownBinding), 0, ~convert(usize, 0), WorkAccessMode.Read));
+        sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Body), 0, ~convert(usize, 0), WorkAccessMode.Read));
+        sem_require(work_access(&c.queries, id, domain,
+            convert(u64, SemanticAccess.Aggregate), 0, ~convert(usize, 0), WorkAccessMode.Read));
         sem_require(work_seal(&c.queries, id));
         sem_require(work_demand(&c.queries, id));
     }
+    if kind == null { return; }
     if c.workers.count == 0 { sem_require(sem_workers_open(c)); }
-    var batch: SemanticEvaluationWork*[256];
+    var batch: vector(SemanticEvaluationWork*) = default;
+    defer vector_dispose(&batch);
+    sem_require(vector_reserve(&batch, c.workers.count));
     while sem_ok(c) {
         var count: usize = 0;
         var ticket: WorkTicket;
-        while count < c.workers.count && work_take_query(&c.queries, &ticket, EvaluationPrepareQuery()) {
+        while count < c.workers.count && work_take_query(&c.queries, &ticket, query_kind) {
             var subject = work_task(&c.queries, ticket.task).subject;
             var result = bits(SemanticEvaluationWork*, entity_component_data(entity_component_get(subject, kind)));
             copy(&result.ticket, &ticket, sizeof(WorkTicket));
             result.stage = entity_stage_open(c.program.root);
             sem_require(result.stage != null);
-            batch[count] = result;
+            sem_require(entity_stage_lease(result.stage, result.evaluation.subject));
+            if result.evaluation.function != null {
+                sem_require(entity_stage_lease(result.stage, result.evaluation.function));
+            }
+            batch.data[count] = result;
             count++;
         }
         if count == 0 { break; }
         var view = entity_view_open(c.program.root);
         sem_require(view != null);
         for(var i: usize = 0; i < count; i++) {
-            sem_require(work_pool_submit(&c.workers, bits(void*, &batch[i].kernel)));
+            sem_require(work_pool_submit(&c.workers, bits(void*, &batch.data[i].kernel)));
         }
         for(var i: usize = 0; i < count; i++) { sem_require(work_pool_receive(&c.workers, true) != null); }
         entity_view_close(view);
         for(var i: usize = 0; i < count; i++) {
-            var result = batch[i];
-            sem_query_observe(c, &result.ticket, &result.query_reads);
+            var result = batch.data[i];
             // Failed preparations can still own generated nodes. Publish after
             // every worker joins so normal program cleanup owns all references.
             sem_require(entity_stage_publish(result.stage));
             result.stage = null;
+        }
+        for(var i: usize = 0; i < count; i++) {
+            var result = batch.data[i];
+            sem_query_observe(c, &result.ticket, &result.query_reads);
+            sem_evaluation_aliases(c, &result.aliases);
             c.count += result.count;
             if result.error.length != 0 && sem_ok(c) {
                 sem_require(vector_reserve(&c.program.error, result.error.length + 1));
@@ -127,6 +163,7 @@ fn sem_evaluation_prepare_all(c: SemanticContext*): void {
             sem_require(work_finish(&c.queries, &result.ticket, result.error.length == 0 && c.count <= c.node_limit));
             vector_dispose(&result.error);
             vector_dispose(&result.query_reads);
+            vector_dispose(&result.aliases);
         }
     }
     foreach(var job in &c.evaluation_jobs) {

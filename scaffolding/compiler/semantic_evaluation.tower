@@ -7,6 +7,7 @@ import semantic_expressions;
 import semantic_control;
 import semantic_expression_lowering;
 import semantic_evaluation_work;
+import semantic_defer;
 import compiler_kernel;
 import semantic_work_ids;
 import foundation_tags;
@@ -38,6 +39,7 @@ struct SemanticEvaluation {
     started: bool;
     inferred: bool;
     unavailable: bool;
+    capture_checked: bool;
     aliases: vector(void*);
 }
 
@@ -56,12 +58,28 @@ fn sem_evaluation_clone(c: SemanticContext*, original: void*, clone: void*): voi
     if dependency == null { return; }
     var result = sem_evaluation_get(c, dependency.subject);
     sem_require(result != null);
-    sem_push(&result.aliases, clone);
+    if c.evaluation_aliases != null {
+        var alias: SemanticEvaluationAlias = default;
+        alias.producer = dependency.subject;
+        alias.clone = clone;
+        sem_require(vector_push(c.evaluation_aliases, alias));
+    } else { sem_push(&result.aliases, clone); }
     var link = bits(IMDependency*, entity_component_data(entity_component_add(clone, c.evaluation_ready)));
     sem_require(link != null);
     fill(link, 0, sizeof(IMDependency));
     link.subject = clone;
     link.source = dependency;
+}
+
+// Workers never append to another producer's alias vector. Publish these links
+// only after every stage in the wave has released its component leases.
+fn sem_evaluation_aliases(c: SemanticContext*, aliases: vector(SemanticEvaluationAlias)*): void {
+    foreach(var &alias in aliases) {
+        var result = sem_evaluation_get(c, alias.producer);
+        sem_require(result != null);
+        sem_push(&result.aliases, alias.clone);
+    }
+    aliases.length = 0;
 }
 
 fn sem_evaluation_get(c: SemanticContext*, subject: void*): SemanticEvaluation* {
@@ -87,7 +105,9 @@ fn sem_evaluation_request(c: SemanticContext*, result: SemanticEvaluation*): voi
     if body != 0 { sem_require(work_depend(&c.queries, preparation, body)); }
     if result.inferred {
         var proof = work_find(&c.queries, c.program.root, convert(u32, SemanticQuery.KnownProof), 0);
-        sem_require(proof != 0 && work_depend(&c.queries, preparation, proof));
+        var clone = work_request(&c.queries, result.subject, convert(u32, SemanticQuery.KnownClone), 0);
+        sem_require(proof != 0 && clone != 0 && work_depend(&c.queries, clone, proof));
+        sem_require(work_depend(&c.queries, preparation, clone));
     }
     sem_require(work_access(&c.queries, id, 1, 2, id, 1, WorkAccessMode.Write));
     sem_require(work_access(&c.queries, id, 1, 3, 0, ~convert(usize, 0), WorkAccessMode.Read));
@@ -155,7 +175,9 @@ fn sem_comptime(c: SemanticContext*, n: void*, expected_type: FoundationType*): 
     return n;
 }
 
-fn sem_evaluation_prepare(c: SemanticContext*, result: SemanticEvaluation*): void {
+fn sem_evaluation_available(c: SemanticContext*, result: SemanticEvaluation*): bool {
+    if result.unavailable { return false; }
+    if result.capture_checked { return true; }
     // A stage expression has explicit arguments. Borrowing an ordinary local's
     // byte offset would accidentally read unrelated helper-frame storage.
     var scan = sem_list(c);
@@ -170,7 +192,7 @@ fn sem_evaluation_prepare(c: SemanticContext*, result: SemanticEvaluation*): voi
             if input == null {
                 if result.inferred { result.unavailable = true; }
                 else { sem_fail(c, entity, "Compile-time expression cannot capture runtime storage; pass explicit compile-time arguments"); }
-                return;
+                return false;
             }
         }
         if value.left != null { sem_push(scan, value.left); }
@@ -185,9 +207,43 @@ fn sem_evaluation_prepare(c: SemanticContext*, result: SemanticEvaluation*): voi
             }
         }
     }
-    var function = sem_control_node(c, result.subject, KFunction());
+    result.capture_checked = sem_ok(c);
+    return result.capture_checked;
+}
+
+fn sem_evaluation_function(c: SemanticContext*, result: SemanticEvaluation*): void* {
+    if result.function == null {
+        result.function = sem_control_node(c, result.subject, KFunction());
+        sem_set_type(&sem_get(result.function).type, &sem_get(result.subject).type);
+    }
+    return result.function;
+}
+
+fn sem_evaluation_clone_expression(c: SemanticContext*, result: SemanticEvaluation*): void {
+    // All value-input metadata is published before this read-only availability
+    // check. It computes no values; the ordinary interpreter still evaluates
+    // every eligible expression and dynamically suspends on its actual inputs.
+    if !sem_evaluation_available(c, result) { return; }
+    var function = sem_evaluation_function(c, result);
+    var previous = c.current;
+    c.current = function;
+    var clones = sem_table(c);
+    var nodes = sem_list(c);
+    result.expression = sem_defer_clone(c, function, result.expression, clones, nodes);
+    foreach(var node in nodes) {
+        var value = sem_get(node);
+        if value.binding != null {
+            var local = sem_find(clones, null, value.binding);
+            if local != null { value.binding = local.value; }
+        }
+    }
+    c.current = previous;
+}
+
+fn sem_evaluation_prepare(c: SemanticContext*, result: SemanticEvaluation*): void {
+    if !sem_evaluation_available(c, result) { return; }
+    var function = sem_evaluation_function(c, result);
     var definition = sem_get(function);
-    sem_set_type(&definition.type, &sem_get(result.subject).type);
     definition.body = sem_control_node(c, function, KBlock());
     var returned = sem_control_node(c, definition.body, KReturn());
     sem_get(returned).value = result.expression;
@@ -196,7 +252,6 @@ fn sem_evaluation_prepare(c: SemanticContext*, result: SemanticEvaluation*): voi
     c.current = function;
     sem_lift_block(c, definition.body);
     c.current = previous;
-    result.function = function;
 }
 
 fn sem_evaluation_cycle(c: SemanticContext*, id: usize): void {

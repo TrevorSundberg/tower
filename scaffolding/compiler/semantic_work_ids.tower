@@ -4,12 +4,12 @@ import tower;
 enum SemanticQuery: u32 {
     Layout = 1, Evaluation, Declaration, DeclarationDiscovery, Lowering, Body,
     Flow, EvaluationPrepare, BodyPrepare, GenericBody, KnownScan, KnownOrder,
-    KnownPublish, KnownProof
+    KnownPublish, KnownProof, AggregatePrepare, KnownClone
 }
 
 enum SemanticWorkDomain: u64 { Compiler = 1 }
 
 enum SemanticAccess: u64 {
     Layout = 1, Evaluation, Expression, Declaration, Discovery, Lowering, Body,
-    Flow, TypeIndex, GenericBody, KnownAnalysis, KnownBinding
+    Flow, TypeIndex, GenericBody, KnownAnalysis, KnownBinding, Aggregate
 }

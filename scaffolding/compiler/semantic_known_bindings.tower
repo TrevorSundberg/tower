@@ -5,6 +5,7 @@ import semantic_context;
 import semantic_control;
 import semantic_defer;
 import semantic_evaluation;
+import semantic_evaluation_work;
 import semantic_support;
 import semantic_types;
 import semantic_expressions;
@@ -180,12 +181,13 @@ fn sem_known_infer(c: SemanticContext*): void {
         sem_require(input != null);
         input.producer = subject;
         input.owner = binding.owner;
-        // Clone the checked expression on the same entity model. Its ordinary
-        // runtime initializer and the stage own disjoint lowering outputs.
-        result.expression = sem_defer_clone(c, subject, sem_get(node).value, sem_table(c), sem_list(c));
+        // Borrow until the clone wave joins. Runtime lowering starts only after
+        // every eligible stage owns its independent canonical expression.
+        result.expression = sem_get(node).value;
         c.surface_expressions = true;
     }
     sem_require(work_finish(&c.queries, &proof_ticket, sem_ok(c)));
+    sem_evaluation_clone_all(c);
 }
 
 fn sem_known_publish(c: SemanticContext*): void {

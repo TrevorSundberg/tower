@@ -5,13 +5,13 @@ import semantic_program_types;
 import semantic_control;
 import semantic_support;
 import semantic_expression_lowering;
+import semantic_aggregates;
+import semantic_evaluation;
 import semantic_work_ids;
 import .library.vector;
 import .library.stack;
 import .library.work_graph;
 import .library.work_pool;
-
-const LoweringQuery: u32 = 5;
 
 struct SemanticLowering {
     kernel: CompilerKernel;
@@ -25,6 +25,8 @@ struct SemanticLowering {
     error: vector(u8);
     error_offset: usize;
     query_reads: vector(usize);
+    signature: bool;
+    evaluation_aliases: vector(SemanticEvaluationAlias);
 }
 
 extern fn entity_view_open(anchor: void*): void*;
@@ -40,6 +42,7 @@ fn semantic_lowering_kernel(result: SemanticLowering*): void {
     context.current = result.subject;
     context.entity_stage = result.stage;
     context.query_reads = &result.query_reads;
+    context.evaluation_aliases = &result.evaluation_aliases;
     context.control_reserved = context.control_names;
     context.control_names = null;
     context.count = 0;
@@ -49,9 +52,10 @@ fn semantic_lowering_kernel(result: SemanticLowering*): void {
     vector_init(u8, &context.token_text);
     fill(&context.scan, 0, sizeof(stack(void*)));
     vector_init(u8, &program.error);
-    context.control_prefix = sem_cat(&context, "control value ",
+    context.control_prefix = sem_cat(&context, result.signature ? "aggregate value " : "control value ",
         sem_cat(&context, sem_decimal(&context, convert(u64, result.ordinal)), "."));
-    sem_lift_block(&context, result.block);
+    if result.signature { sem_aggregate_function(&context, result.subject); }
+    else { sem_lift_block(&context, result.block); }
     result.count = context.count;
     copy(&result.error, &program.error, sizeof(vector(u8)));
     result.error_offset = program.error_offset;
@@ -66,16 +70,34 @@ fn semantic_lowering_kernel(result: SemanticLowering*): void {
 }
 
 fn sem_lower_parallel(c: SemanticContext*): void {
-    if !c.surface_expressions || !sem_ok(c) { return; }
+    sem_lower_transform(c, false);
+}
+
+fn sem_lower_transform(c: SemanticContext*, signature: bool): void {
+    if !sem_ok(c) || (!signature && !c.surface_expressions) { return; }
     // Source spellings and names produced by earlier control lowering are frozen
     // before dispatch. Every function owns its generated-name table and prefix.
     sem_control_names(c);
-    var kind = sem_create(c.program.root);
-    sem_require(entity_register(kind, sizeof(SemanticLowering), alignof(SemanticLowering), 0));
+    var kind: void* = null;
+    var query_kind = convert(u32, signature ? SemanticQuery.AggregatePrepare : SemanticQuery.Lowering);
     for(var i: usize = 0; i < c.program.functions.length; ++i) {
         var subject = c.program.functions.data[i];
         var block = i == 0 ? subject : sem_get(subject).body;
         if block == null { continue; }
+        if signature && (i == 0 || !sem_aggregate_needed(subject)) { continue; }
+        if kind == null {
+            kind = sem_create(c.program.root);
+            sem_require(entity_register(kind, sizeof(SemanticLowering), alignof(SemanticLowering), 0));
+        }
+        if signature {
+            if c.aggregate_signatures == null {
+                c.aggregate_signatures = sem_create(c.program.root);
+                sem_require(entity_register(c.aggregate_signatures, sizeof(SemanticAggregateSignature), alignof(SemanticAggregateSignature), 0));
+            }
+            var metadata = bits(SemanticAggregateSignature*, entity_component_data(entity_component_add(subject, c.aggregate_signatures)));
+            sem_require(metadata != null);
+            *metadata = default;
+        }
         var result = bits(SemanticLowering*, entity_component_data(entity_component_add(subject, kind)));
         sem_require(result != null);
         fill(result, 0, sizeof(SemanticLowering));
@@ -83,51 +105,77 @@ fn sem_lower_parallel(c: SemanticContext*): void {
         result.subject = subject;
         result.block = block;
         result.ordinal = i;
+        result.signature = signature;
         result.kernel.kind = CompilerKernelKind.Lower;
         result.kernel.payload = bits(void*, result);
-        var id = work_request(&c.queries, subject, LoweringQuery(), 0);
+        var id = work_request(&c.queries, subject, query_kind, 0);
         sem_require(id != 0);
         var body = work_find(&c.queries, subject, convert(u32, SemanticQuery.Body), 0);
         if body != 0 { sem_require(work_depend(&c.queries, id, body)); }
+        if !signature {
+            var preparation = work_find(&c.queries, subject, convert(u32, SemanticQuery.AggregatePrepare), 0);
+            if preparation != 0 { sem_require(work_depend(&c.queries, id, preparation)); }
+        }
         // Disjoint function payload ranges; layout/type inputs are immutable.
         // Generated entities remain private until the publication barrier.
-        sem_require(work_access(&c.queries, id, 1, 6, i, 1, WorkAccessMode.Write));
-        sem_require(work_access(&c.queries, id, 1, 1, 0, ~convert(usize, 0), WorkAccessMode.Read));
+        var domain = convert(u64, SemanticWorkDomain.Compiler);
+        sem_require(work_access(&c.queries, id, domain,
+            convert(u64, signature ? SemanticAccess.Aggregate : SemanticAccess.Lowering), i, 1, WorkAccessMode.Write));
+        sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Body), i, 1, WorkAccessMode.Write));
+        sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Layout), 0, ~convert(usize, 0), WorkAccessMode.Read));
+        if !signature {
+            sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Aggregate), 0, ~convert(usize, 0), WorkAccessMode.Read));
+        }
         sem_require(work_seal(&c.queries, id));
         sem_require(work_demand(&c.queries, id));
     }
+    if kind == null { return; }
+    if signature { c.surface_expressions = true; }
     if c.workers.count == 0 { sem_require(sem_workers_open(c)); }
-    var batch: SemanticLowering*[256];
+    var batch: vector(SemanticLowering*) = default;
+    defer vector_dispose(&batch);
+    sem_require(vector_reserve(&batch, c.workers.count));
     while sem_ok(c) {
         var count: usize = 0;
         var ticket: WorkTicket;
-        while count < c.workers.count && work_take_query(&c.queries, &ticket, LoweringQuery()) {
+        while count < c.workers.count && work_take_query(&c.queries, &ticket, query_kind) {
             var subject = work_task(&c.queries, ticket.task).subject;
             var result = bits(SemanticLowering*, entity_component_data(entity_component_get(subject, kind)));
             copy(&result.ticket, &ticket, sizeof(WorkTicket));
-            result.stage = entity_stage_open(c.program.root);
+            // The immutable work-kind entity anchors this wave. The program
+            // root can itself be leased by its own lowering job.
+            result.stage = entity_stage_open(kind);
             sem_require(result.stage != null);
-            batch[count] = result;
+            sem_require(entity_stage_lease(result.stage, result.subject));
+            if signature {
+                foreach(var parameter in &sem_get(result.subject).parameters) {
+                    sem_require(entity_stage_lease(result.stage, parameter));
+                }
+            }
+            batch.data[count] = result;
             count++;
         }
         if count == 0 { break; }
-        var view = entity_view_open(c.program.root);
+        var view = entity_view_open(kind);
         sem_require(view != null);
         for(var i: usize = 0; i < count; ++i) {
-            sem_require(work_pool_submit(&c.workers, bits(void*, &batch[i].kernel)));
+            sem_require(work_pool_submit(&c.workers, bits(void*, &batch.data[i].kernel)));
         }
         for(var i: usize = 0; i < count; ++i) {
             sem_require(work_pool_receive(&c.workers, true) != null);
         }
         entity_view_close(view);
         for(var i: usize = 0; i < count; ++i) {
-            var result = batch[i];
+            sem_require(entity_stage_publish(batch.data[i].stage));
+            batch.data[i].stage = null;
+        }
+        for(var i: usize = 0; i < count; ++i) {
+            var result = batch.data[i];
             sem_query_observe(c, &result.ticket, &result.query_reads);
             // Even a failed function owns its generated nodes until the failed
             // program is destroyed. Publish them so ordinary lifecycle cleanup
             // handles all canonical links without dangling staged references.
-            sem_require(entity_stage_publish(result.stage));
-            result.stage = null;
+            sem_evaluation_aliases(c, &result.evaluation_aliases);
             c.count += result.count;
             if result.error.length != 0 && sem_ok(c) {
                 sem_require(vector_reserve(u8, &c.program.error, result.error.length + 1));
@@ -140,6 +188,7 @@ fn sem_lower_parallel(c: SemanticContext*): void {
             sem_require(work_finish(&c.queries, &result.ticket, success));
             vector_dispose(u8, &result.error);
             vector_dispose(&result.query_reads);
+            vector_dispose(&result.evaluation_aliases);
         }
     }
     for(var i: usize = 0; i < c.program.functions.length; ++i) {

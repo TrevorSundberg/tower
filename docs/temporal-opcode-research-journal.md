@@ -33917,3 +33917,51 @@ continues below. Browser artifacts have not yet been rebuilt or published for th
 checkpoint. The latest upstream journal also reports an external Windows-side
 publication lock for the native-retirement release; no ownership of that lock or
 completion of that deployment is assumed here.
+
+A second publication rebase brought in 92da0a8: the other workstream's completed
+project-owned native retirement, canonical Docker/Tower-only bootstrap, and the
+128 MiB semantic-payload policy needed by the large LR fixture. Those upstream
+changes supersede the recorded native fixture budget blocker. Preserved their
+backend-fixture inclusion and restricted unused browser-only worker-test inclusion
+without suppressing a requested backend fixture. The updated public archive is
+fd536ba1ae5cefe891e78690e23c06ef7fcd5d729c0e3395824d8977abf9a9b4.
+No source push or runtime deployment has succeeded for this checkpoint yet.
+
+Continued into aggregate signature preparation instead of treating that checkpoint
+as completion. Struct parameter/result rewriting now uses the existing lowering
+worker kernel with its own AggregatePrepare query. Jobs own private semantic
+scratch/name tables, lease their function and source parameter entities, and publish
+staged nodes before call consumers run. Actual signature reads join the generic
+query-read log. The work-kind entity anchors each wave so the program root itself
+can be leased by root lowering. Worker-sized vectors replace fixed lowering batch
+arrays. Function-body/layout and signature component ranges are explicit. This is
+under validation in aggregate-query-clean.log; no correctness or speedup claim is
+made before the affected struct/execution suites pass.
+
+The aggregate-query clean native build passes all 53 steps from the Tower-only
+public pin. struct_values.tower prints 0. The complete native execution suite then
+passes named initialization, struct copies/calls/returns/sequencing, worker-count
+comparisons, known/library/cyclic bindings, Foundation round trips, semantic oracles
+at both target widths, interpreter agreement and execution/package contracts.
+Evidence: aggregate-query-values.log and aggregate-query-execution.log. These results
+cover signature preparation, before the following inferred-clone changes.
+
+The next change moves inferred initializer cloning into the same staged preparation
+worker infrastructure, with a KnownClone query between KnownProof and evaluation
+preparation. All candidate value-input metadata is registered first. The existing
+runtime-capture eligibility walk now precedes cloning and its result is retained,
+avoiding duplicate traversal and copies for unavailable inferred stages. It neither
+calculates values nor replaces interpreter execution. Clones own a private helper
+function and remap internal local bindings. Runtime lowering starts after all clones
+join; later preparation lowers those private expressions under published signatures.
+Deferred/clone readiness aliases are queued in private worker buffers and appended
+to their producers only after all wave stages publish, including body and lowering
+workers. This removes cross-producer vector mutation from workers. New clone changes
+are under validation in known-clone-build.log, not covered by the preceding pass.
+
+The inferred-clone incremental native build now passes. The focused known-binding
+suite and body smoke both pass, including serial/worker canonical equivalence,
+ordered diagnostics and cycles (known-clone-focused.log). The compiled successor
+interprets comptime.tower with result 0 (known-clone-comptime.log). These checks
+cover the new clone and alias publication paths; browser release validation still
+remains. No separate value-folding implementation was introduced.

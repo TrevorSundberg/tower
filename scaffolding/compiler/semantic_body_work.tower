@@ -175,6 +175,7 @@ struct SemanticBodyWork {
     nodes: vector(void*);
     calls: vector(void*);
     evaluations: vector(void*);
+    evaluation_aliases: vector(SemanticEvaluationAlias);
     captures: vector(void*);
     flow_dependencies: vector(void*);
     error: vector(u8);
@@ -672,6 +673,7 @@ fn semantic_body_kernel(result: SemanticBodyWork*): void {
     context.current = result.subject;
     context.entity_stage = result.stage;
     context.query_reads = &result.query_reads;
+    context.evaluation_aliases = &result.evaluation_aliases;
     context.count = 0;
     context.node_limit = result.context.count < context.node_limit
     ? context.node_limit - result.context.count: 0;
@@ -752,6 +754,7 @@ fn semantic_body_kernel(result: SemanticBodyWork*): void {
 }
 
 fn sem_body_clear(result: SemanticBodyWork*): void {
+    vector_dispose(&result.evaluation_aliases);
     result.context = null;
     vector_dispose(&result.nodes);
     vector_dispose(&result.boundaries);
@@ -782,6 +785,7 @@ fn sem_body_publish(c: SemanticContext*, result: SemanticBodyWork*): void {
     // exclusively own their lexical payloads between dispatches; the compilation
     // owns their storage and reclaims it once checking completes.
     sem_query_observe(c, &result.ticket, &result.query_reads);
+    sem_evaluation_aliases(c, &result.evaluation_aliases);
     foreach(var allocation in &result.allocations) {
         sem_push(&c.allocations, allocation);
     }

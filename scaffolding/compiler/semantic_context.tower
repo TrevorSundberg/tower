@@ -10,8 +10,8 @@ import semantic_modules;
 import semantic_support;
 import .library.vector;
 
-// Transitional native boundary uses these exact layouts. Semantic results live
-// on FoundationNode components; lists below are derived indexes, never an IR.
+// Semantic results live on FoundationNode components. Compilation-local lists
+// and scratch below are derived indexes, never another semantic graph.
 import semantic_program_types;
 
 struct SemanticEntry {
@@ -40,6 +40,8 @@ struct SemanticTypeUse {
 
 // Scheduling provenance on a function entity, separate from its signature.
 struct SemanticBodyDemand { source: void*; }
+
+struct SemanticEvaluationAlias { producer: void*; clone: void*; }
 
 const EditorEnumMembers: u32 = 5;
 
@@ -138,6 +140,7 @@ struct SemanticContext {
     evaluation_results: void*;
     evaluation_ready: void*;
     evaluation_jobs: vector(void*);
+    evaluation_aliases: vector(SemanticEvaluationAlias)*;
     evaluation_depth: usize;
     unevaluated: bool;
     type_query_operand: void*;
