@@ -27275,3 +27275,63 @@ compiled the integrated LR suite byte-identically to the pinned bootstrap on
 both native and WASI (cmp0). Next: merge Agent1's published evaluation-link fixes,
 repeat the clean successor and complete focused native/browser-thread checks
 before publishing this batch. Coordinator owns separate worker granularity work.
+
+Latest-main integration: rebased onto bae9edc/b28f893 and Agent1's748d981,
+preserving all journal histories, dependency-closure packaging,107 upstream
+foreach adoptions and evaluation link fixes. That upstream independently added
+serial test wrappers for the same instrumentation race. The approved direct
+portable-host composition supersedes only those redundant wrapper definitions and
+link flags; their single-owner policy and new AGENTS requirement remain. The
+instrumented artifact identity now selects the existing transport without a
+linker-specific wrapper ABI. Production pool/dispatch source is unchanged.
+Coordinator explicitly owns subsequent pool reuse/granularity changes.
+
+Fresh documented bcc successor built from an empty agent-2-lr-final-bae9edc cache.
+Its LR analysis fixture objects match the bootstrap byte-for-byte on native and
+WASI again. Merged native parser fixtures PASS9/9 (0.69s); merged WASI grammar,
+analysis, reader, validation, regex, lexicon and exact formatter all PASS; both
+aggregates LINK. SDK34 threaded reactor and worker fixture built separately in
+agent-2-lr-threads-bae9edc. Node compiler-threads.test.mjs with
+TOWER_REQUIRE_THREADS=1 passes3/3 (11.92s): four distinct worker overlap with
+concurrent allocation, worker-trap cancellation, and canonical/diagnostic/LR
+lifetime agreement at1/2/4/8 workers. These are real threaded checks, separate
+from the deterministic fault-injection profile. Logs agent-2-lr-merged-*,
+agent-2-lr-threaded-node.log and agent-2-lr-threads-build.log.
+
+The removed native seed's trailing tree-reference helpers had no live reference
+callers; the existing tree assembly trials exercised production directly and are
+preserved in the Tower suite. No unused duplicate tree implementation was added.
+An initial new LR-work entry build omitted required runtime-bind name pairs and
+was rejected with usage; the final explicit lr_work_test_main-to-main binding
+uses the established Tower tool. No C++ helper or wrapper was introduced.
+
+Final native integration initially passed8/9 focused checks; the production driver
+passed in120.36s but storage hit its unchanged lifetime assertion. Root cause was
+CMake registration order: storage and formatter targets are created by later
+deferred callbacks, after the first instrumented-profile scan. Schedule the scan
+through one additional deferred callback so all target constructors precede it.
+Direct Tower storage/formatter entry assertions now require the single-owner
+transport, making this wiring regression deterministic instead of depending on
+a counter race. No allocator or lifetime assertion was relaxed.
+
+After that correction, the eight focused native checks (execution, frontend,
+storage, formatter, driver request, native worker overlap, instrumented work and
+native LR worker equivalence) PASS8/8 in5.61s; backend API executable exits0.
+The unchanged production driver result above completes the nine-test selection;
+this is cumulative validation, not a claim that one final9/9 invocation ran.
+After adding the explicit profile guards, storage/formatter rebuild and PASS2/2
+in0.22s. Logs: agent-2-lr-final-native.log,
+agent-2-work-profile-final-order-{build,tests}.log,
+agent-2-work-profile-guards-{build,tests}.log. The fresh documented successor and
+native/WASI byte comparisons were after the latest compiler-source rebase; these
+last changes affect only test composition/assertions. The measured production
+startup cost remains coordinator-owned work, not fixed by serial test selection.
+
+This analysis slice removes1054 C++ lines (498 test,556 reference seed), following
+219 LR grammar and2223 core/adapter lines already retired in published slices.
+No new native implementation, private bootstrap, sanitizer run, broad formatter
+sweep or full known-broken native parser aggregate execution is claimed. Source
+publication follows the serialized Agent2 -> Agent3 -> coordinator queue; the next
+combined deployment must include current dependency-closure packaging and preserve
+the newest Pages predecessor. Until its owner verifies hosted output, this analysis
+slice has only the native/WASI/local-threaded validation recorded above.

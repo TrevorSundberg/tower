@@ -11,7 +11,12 @@ import format_repository;
 
 import utility_checks;
 
+extern fn work_thread_available(): bool;
+extern fn work_thread_capacity(): usize;
+
 export fn main(argc: i32, argv: u8**): i32 {
+    utility_check(!work_thread_available() && work_thread_capacity() == 1,
+        "Formatter fault injection requires the single-owner work host");
     utility_check(argc == 2 || argc == 3, "Formatter test resource root and optional repository list");
     var path: ByteBuffer; fill(&path, 0, sizeof(ByteBuffer));
     defer bytes_dispose(&path);

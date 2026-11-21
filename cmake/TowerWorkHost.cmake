@@ -35,6 +35,12 @@ function(tower_compiler_work_host triple platform)
   if(TOWER_PARSER_ONLY)
     target_link_libraries(tower-compiler-memory INTERFACE tower-compiler-work-serial)
   endif()
+  cmake_language(DEFER CALL tower_defer_instrumented_work_profiles)
+endfunction()
+
+function(tower_defer_instrumented_work_profiles)
+  # Storage/format and other native fixtures are themselves registered by
+  # deferred calls. Append this pass after those target constructors have run.
   cmake_language(DEFER CALL tower_instrumented_work_profiles)
 endfunction()
 

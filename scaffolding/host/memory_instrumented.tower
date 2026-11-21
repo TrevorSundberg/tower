@@ -8,10 +8,8 @@ extern fn compiler_memory_deallocate(state: CompilerMemoryState*, pointer: void*
 extern fn compiler_test_state(): CompilerMemoryState*;
 
 // Fault-injection suites count a deterministic, single-owner allocation stream.
-// Their link recipe selects these wrappers; production and worker-overlap tests
-// retain the real platform transport and ordinary allocator.
-export fn __wrap_work_thread_available(): bool { return false; }
-export fn __wrap_work_thread_capacity(): usize { return 1; }
+// Their link recipe selects host.work_portable directly; production and
+// worker-overlap tests retain the platform transport and ordinary allocator.
 
 // Legacy test ABI only. Its single-owner state is explicitly initialized by the
 // runtime artifact builder; production compiler worlds never select this mode.
