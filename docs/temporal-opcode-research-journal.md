@@ -25261,3 +25261,44 @@ node scaffolding/tests/host-wasi.mjs <binary> PASS. Published fb1 bootstrap used
 no private compiler requirement. Native tests/syntax-reader.cpp removed only after
 both executions. No sanitizers or broad formatter sweep. This private follow-up
 is not part of the already-pushed042dcc9 or its pending combined deployment.
+
+### 2026-11-20 - Agent 3: grammar validation functional tests in Tower
+
+Rebased the reader milestone onto agent2 dafeb20, retaining its final native core
+adapter deletion and coordinator contextual lexer retirement; resolved the parser
+source row by preserving every retirement and retained all journal appends. Reader
+and new validation executables rebuilt against that source. The validation port
+uses an explicitly owned, name-sorted fixture index over shared alternative/term
+entities and the existing borrowed SyntaxRuleView ABI. The index is test setup,
+not another authoritative grammar representation. Independent native validation
+oracle remains unchanged and executable; no new C++ helper or semantic model.
+
+Translated the complete tests/syntax-validation.cpp suite into syntax_validation
+and syntax_validation_fixture Tower modules. Preserved exact success/error bytes,
+error offsets including unchanged777777 sentinel, every pending source-term
+identity/order, unreachable forward references versus activation, productivity,
+nullable repetition, skip/token conflicts, invalid literals, duplicate captures,
+embedded-NUL names and captures, wildcard sets, all11 required declaration-rule
+removals, preserved declaration captures and diagnostic offsets,1500 unique
+captures then a duplicate at the final position, and600 random dependency graphs.
+The random trials use the original mt19937 seed0x56414c49 and unchanged draw order
+for rule/alternative/term counts, symbol choices, repetition and activation.
+All allocation-failure loops retain the original1024 bound, exact final result,
+cleared pending pointers on allocation failure and exact node/buffer cleanup.
+
+Fixture term creation transfers an explicit owned reference into its sequence;
+parent ownership keeps borrowed item pointers valid. Baseline alternatives are
+retained independently and released with each fixture. All scopes release their
+vectors/entities deterministically, with immediate cleanup where count assertions
+observe it. The new Tower test compiled and RAN on both targets before deleting
+the old C++ functional test; reference seed is deliberately retained until its
+independent Tower successor is proved. The aggregate calls the same Tower export.
+
+Commands: native agent-3-parser target tower-validation-tests, ctest -R
+'^tower-validation$' --output-on-failure PASS1/1 (0.12seconds); WASI same target in
+agent-3-parser-wasi followed by host-wasi.mjs PASS. Existing published fb1 bootstrap
+and agent-specific caches, four jobs. No sanitizer or broad formatting sweep.
+These reader/validation commits remain private during agent2's frozen dafeb20
+combined deployment. Coordinator has taken lexer-table/UTF8/byte reference lanes;
+agent2 takes LR analysis/grammar references and harnesses after publication. Agent3
+continues reader/validation reference successors and remaining syntax harnesses.

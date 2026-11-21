@@ -1,0 +1,136 @@
+import tower;
+import .compiler.syntax_types;
+import .library.vector;
+import .library.bytes_types;
+import .library.bytes_interface;
+import storage_api;
+import utility_checks;
+import mt19937;
+import syntax_validation_fixture;
+
+fn validation_dependency_tests(): void {
+    {
+        var f: ValidationFixture; validation_fixture_init(&f); defer validation_fixture_dispose(&f);
+        validation_expect(&f, ""); validation_failures(&f);
+    }
+    {
+        var f: ValidationFixture; validation_fixture_init(&f); defer validation_fixture_dispose(&f);
+        validation_one(&f, "A", validation_term("B", false, 0, "", 10));
+        validation_one(&f, "B", validation_term("Missing", false, 0, "", 20));
+        validation_expect(&f, ""); validation_failures(&f);
+        validation_one(&f, "Statement", validation_term("A", false, 0, "", 30));
+        validation_compare(&f, "Cannot activate incomplete grammar: Statement -> A -> B -> Missing (undefined rule 'Missing')", 20); validation_failures(&f);
+        validation_one(&f, "Missing", validation_term("ok", true, 0, "", ValidationNoOffset())); validation_expect(&f, "");
+        validation_empty(&f, "Missing"); validation_expect(&f, "Statement must consume input");
+    }
+    {
+        var f: ValidationFixture; validation_fixture_init(&f); defer validation_fixture_dispose(&f);
+        validation_one(&f, "A", validation_plain("B")); validation_one(&f, "B", validation_plain("A"));
+        validation_expect(&f, "Unproductive grammar rule: A");
+        var term = validation_term("x", true, 0, "", ValidationNoOffset());
+        var rule = validation_find(&f, "B", 1, false);
+        utility_check(vector_push(void*, &rule.alternatives, validation_sequence(&term, 1, ValidationNoOffset())), "Productive alternate branch"); validation_expect(&f, "");
+        validation_empty(&f, "B"); validation_one(&f, "A", validation_term("B", false, 43, "", ValidationNoOffset())); validation_expect(&f, "Cannot repeat nullable rule: B");
+        validation_one(&f, "A", validation_term("B", false, 63, "", ValidationNoOffset())); validation_expect(&f, "");
+    }
+    {
+        var f: ValidationFixture; validation_fixture_init(&f); defer validation_fixture_dispose(&f);
+        validation_one(&f, "A", validation_plain("Whitespace")); validation_expect(&f, "");
+        validation_one(&f, "Statement", validation_plain("A")); validation_expect(&f, "Cannot activate incomplete grammar: Statement -> A -> Whitespace (undefined rule 'Whitespace')");
+        validation_one(&f, "Statement", validation_plain("Identifier")); validation_expect(&f, "");
+        validation_one(&f, "Identifier", validation_term("x", true, 0, "", ValidationNoOffset())); validation_expect(&f, "Name already defines a token or skip rule: Identifier");
+    }
+}
+fn validation_capture_tests(): void {
+    var literals: u8*[5]; literals[0] = ""; literals[1] = "a b"; literals[2] = "//"; literals[3] = "/*"; literals[4] = "a'";
+    for (var index: usize = 0; index < 5; ++index) {
+        var f: ValidationFixture; validation_fixture_init(&f); defer validation_fixture_dispose(&f);
+        validation_one(&f, "A", validation_term(literals[index], true, 0, "", 5));
+        utility_check(validation_compare(&f, null, ValidationNoOffset()), "Invalid grammar literal rejected"); validation_failures(&f);
+    }
+    {
+        var f: ValidationFixture; validation_fixture_init(&f); defer validation_fixture_dispose(&f);
+        validation_two(&f, "A", validation_term("a", true, 0, "name", ValidationNoOffset()), validation_term("b", true, 0, "name", ValidationNoOffset()));
+        validation_expect(&f, "Duplicate capture: name"); validation_failures(&f);
+        var capture_a: u8[3]; capture_a[0] = 97; capture_a[1] = 0; capture_a[2] = 98;
+        var capture_b: u8[3]; capture_b[0] = 97; capture_b[1] = 0; capture_b[2] = 99;
+        validation_two(&f, "A", validation_term_bytes("a", 1, true, 0, &capture_a[0], 3, ValidationNoOffset()), validation_term_bytes("b", 1, true, 0, &capture_b[0], 3, ValidationNoOffset())); validation_expect(&f, "");
+        var name: u8[3]; name[0] = 65; name[1] = 0; name[2] = 120; var term = validation_plain("Identifier");
+        validation_replace_bytes(&f, &name[0], 3, &term, 1, ValidationNoOffset()); validation_expect(&f, "");
+        validation_one(&f, "Statement", validation_term_bytes(&name[0], 3, false, 0, "", 0, ValidationNoOffset())); validation_expect(&f, "");
+        var wildcard = validation_plain(""); syntax_get(wildcard).terminal_set = true;
+        validation_one(&f, "A", wildcard); validation_expect(&f, "");
+    }
+}
+fn validation_declaration_tests(): void {
+    var names: u8*[11];
+    names[0] = "GrammarAlternatives"; names[1] = "GrammarAssignment"; names[2] = "GrammarAtom"; names[3] = "GrammarDeclaration";
+    names[4] = "GrammarReplacement"; names[5] = "GrammarSequence"; names[6] = "GrammarSkipDeclaration"; names[7] = "GrammarStyle";
+    names[8] = "GrammarSuffix"; names[9] = "GrammarTerm"; names[10] = "GrammarTokenDeclaration";
+    for (var index: usize = 0; index < 11; ++index) {
+        var f: ValidationFixture; validation_fixture_init(&f); defer validation_fixture_dispose(&f);
+        validation_erase(&f, names[index]); utility_check(validation_compare(&f, null, ValidationNoOffset()), "Active declaration dependency cannot be missing");
+        var term = validation_term("x", true, 0, "", ValidationNoOffset()); validation_replace(&f, names[index], &term, 1, 93);
+        validation_compare(&f, null, ValidationNoOffset());
+    }
+    {
+        var f: ValidationFixture; validation_fixture_init(&f); defer validation_fixture_dispose(&f);
+        var term = validation_term("x", true, 0, "name", ValidationNoOffset()); validation_replace(&f, "GrammarDeclaration", &term, 1, 81);
+        validation_compare(&f, "Declaration rule GrammarDeclaration must preserve capture 'op'", 81); validation_failures(&f);
+        validation_one(&f, "GrammarAtom", validation_term("x", true, 0, "", ValidationNoOffset()));
+        validation_expect(&f, "GrammarAtom must capture a literal, reference or capture name");
+    }
+}
+fn validation_number_name(out: ByteBuffer*, prefix: u8*, number: usize): void {
+    utility_check(bytes_assign_text(out, prefix, strlen(prefix)), "Validation fixture name prefix");
+    var digits: u8[24]; var at: usize = 24;
+    loop { digits[--at] = convert(u8, 48 + number % 10); number /= 10; if number == 0 { break; } }
+    utility_check(bytes_append(out, &digits[at], 24 - at) && bytes_push(out, 0), "Validation fixture decimal name"); --out.length;
+}
+fn validation_large_capture_tests(): void {
+    var f: ValidationFixture; validation_fixture_init(&f); defer validation_fixture_dispose(&f);
+    var terms: vector(void*); vector_init(void*, &terms); defer vector_dispose(void*, &terms);
+    var capture: ByteBuffer; fill(&capture, 0, sizeof(ByteBuffer)); defer bytes_dispose(&capture);
+    for (var index: usize = 0; index < 1500; ++index) {
+        validation_number_name(&capture, "capture", index);
+        utility_check(vector_push(void*, &terms, validation_term("a", true, 0, capture.data, ValidationNoOffset())), "Large capture fixture term");
+    }
+    validation_replace(&f, "A", terms.data, terms.length, ValidationNoOffset()); validation_expect(&f, "");
+    utility_check(storage_assign(&syntax_get(terms.data[terms.length - 1]).capture, "capture0", 8), "Duplicate last of 1500 captures");
+    validation_expect(&f, "Duplicate capture: capture0");
+}
+fn validation_random_tests(): void {
+    var random: TestRandom; test_random_init(&random, 1447119945);
+    var repeats: u8[4]; repeats[0] = 0; repeats[1] = 42; repeats[2] = 43; repeats[3] = 63;
+    for (var trial: usize = 0; trial < 600; ++trial) {
+        var f: ValidationFixture; validation_fixture_init(&f); defer validation_fixture_dispose(&f);
+        var count = 1 + convert(usize, test_random(&random) % 12);
+        var name: ByteBuffer; fill(&name, 0, sizeof(ByteBuffer)); defer bytes_dispose(&name);
+        for (var index: usize = 0; index < count; ++index) {
+            validation_number_name(&name, "R", index); var rule = validation_find(&f, name.data, name.length, true);
+            var alternatives = 1 + test_random(&random) % 3;
+            for (var alternative: u32 = 0; alternative < alternatives; ++alternative) {
+                var terms: vector(void*); vector_init(void*, &terms); defer vector_dispose(void*, &terms);
+                var term_count = test_random(&random) % 5;
+                for (var at: u32 = 0; at < term_count; ++at) {
+                    var kind = test_random(&random) % 6; var text: u8*;
+                    if kind == 0 { text = "literal"; }
+                    else { if kind == 1 { text = "Identifier"; } else { validation_number_name(&name, "R", convert(usize, test_random(&random)) % (count + 3)); text = name.data; } }
+                    var term = validation_term(text, kind == 0, repeats[test_random(&random) % 4], "", trial * 100 + convert(usize, at));
+                    if kind == 5 { syntax_get(term).terminal_set = true; }
+                    utility_check(vector_push(void*, &terms, term), "Random dependency term");
+                }
+                utility_check(vector_push(void*, &rule.alternatives, validation_sequence(terms.data, terms.length, ValidationNoOffset())), "Random grammar alternative");
+            }
+        }
+        if trial % 2 != 0 { validation_one(&f, "Statement", validation_plain("R0")); }
+        validation_compare(&f, null, ValidationNoOffset());
+    }
+}
+export fn syntax_validation_tests(): void {
+    syntax_native_bedrock(); syntax_component_type();
+    var buffers = tower_test_buffer_count(); var nodes = tower_node_get_allocated_count();
+    validation_dependency_tests(); validation_capture_tests(); validation_declaration_tests(); validation_large_capture_tests(); validation_random_tests();
+    utility_check(tower_test_buffer_count() == buffers && tower_node_get_allocated_count() == nodes, "All validation fixtures release entities and buffers");
+    puts("Syntax validation: exact native diagnostics/pending terms, 1500 captures, 600 dependency graphs and allocation failures passed.");
+}
