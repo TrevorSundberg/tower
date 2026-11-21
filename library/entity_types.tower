@@ -1,0 +1,127 @@
+import tower;
+
+// Shared compiler entities. Raw pointers are valid only while their owner lives.
+// Components keep stable addresses; type indexes support component-wise queries.
+struct EntityStore {
+    next_id: usize;
+    entity_count: usize;
+    component_count: usize;
+    views: usize;
+    deferred: Entity*;
+    reclaiming: usize;
+    // Borrowed owner context, installed before the first entity is created.
+    // The store does not interpret or destroy it; compiler worlds use it to
+    // resolve node-local component identities without an ambient singleton.
+    context: void*;
+    storage: EntityComponentPool;
+    tables: EntityTable*[256];
+}
+
+// Allocation indexes only. Canonical component identity/payloads stay on entities.
+// A coordinator owns the store pool; a worker owns its stage's separate pool.
+struct EntityComponentPool { first: EntityComponentPage*; }
+struct EntityComponentPage {
+    pool: EntityComponentPool*;
+    previous: EntityComponentPage*;
+    next: EntityComponentPage*;
+    type_id: usize;
+    used: usize;
+    live: usize;
+    capacity: usize;
+    stride: usize;
+    components: EntityComponent*;
+    data: u8*;
+}
+
+struct EntityChild {
+    entity: Entity*;
+    name: u8*;
+}
+
+struct Entity {
+    store: EntityStore*;
+    id: usize;
+    references: usize;
+    parent: Entity*;
+    children: EntityChild*;
+    child_count: usize;
+    child_capacity: usize;
+    components: EntityComponent**;
+    component_count: usize;
+    component_capacity: usize;
+    instances: EntityComponent**;
+    instance_count: usize;
+    instance_capacity: usize;
+    registered: bool;
+    queued: bool;
+    data_size: usize;
+    data_alignment: usize;
+    lifecycle: usize;
+    deferred: Entity*;
+    // A private new entity, or an existing entity exclusively leased to one
+    // stage. Component indexes publish after pinned readers join. A lease owns
+    // the owner's component list; unrelated readers may only use pinned indexes.
+    stage: void*;
+    storage: EntityComponentPool*;
+    table: EntityTable*;
+    table_row: usize;
+    pending_table: EntityTable*;
+}
+
+// The coordinator opens/closes views and owns refcounts. Workers borrow the
+// view and query ranges until they join; no worker mutates this bookkeeping.
+// Payload access still needs declared read/write permissions. A view pins
+// structure and lifetime, not arbitrary writes through Foundation raw pointers.
+struct EntityView {
+    store: EntityStore*;
+    queries: EntityTableQuery*;
+}
+
+struct EntityQuery {
+    data: EntityComponent**;
+    length: usize;
+}
+
+struct EntityComponent {
+    owner: Entity*;
+    type: Entity*;
+    allocation: u8*;
+    data: u8*;
+    type_index: usize;
+    page: EntityComponentPage*;
+}
+
+// Stable payload columns and dense entity rows keyed by an exact type signature.
+struct EntityTable {
+    store: EntityStore*;
+    next: EntityTable*;
+    hash: usize;
+    types: usize*;
+    arity: usize;
+    rows: Entity**;
+    columns: EntityComponent**;
+    length: usize;
+    capacity: usize;
+    pending: usize;
+}
+struct EntityTableMatch {
+    table: EntityTable*;
+    first: usize;
+    columns: usize*;
+}
+struct EntityTableQuery {
+    next: EntityTableQuery*;
+    types: usize*;
+    arity: usize;
+    matches: EntityTableMatch*;
+    columns: usize*;
+    count: usize;
+    length: usize;
+}
+struct EntityTableRange {
+    table: EntityTable*;
+    columns: usize*;
+    arity: usize;
+    first: usize;
+    length: usize;
+}
