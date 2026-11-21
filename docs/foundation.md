@@ -759,7 +759,7 @@ Tower; the native semantic implementation remains only as a bootstrap/reference.
 
 ## Semantic compiler implementation
 
-`scaffolding/compiler/semantic-*.tower` implements the semantic pass over the
+`scaffolding/compiler/semantic_*.tower` implements the semantic pass over the
 existing expanded parser entities. `semantic_types.tower` resolves module and
 local bindings, inference, types, target layouts and type constructors;
 `semantic_values.tower` checks locations, operands, operations and calls;
@@ -770,12 +770,13 @@ live in the other three modules.
 
 Resolved results are the same `FoundationNode` and `FoundationType` components
 consumed by interpretation, formatting and LLVM. Node layouts, kind/operator IDs,
-public C++ queries, source ordering, diagnostic offsets and nominal type identity
-are preserved. Hash tables and temporary lists contain indexes into those entities;
+source ordering, diagnostic offsets and nominal type identity are preserved.
+Hash tables and temporary lists contain indexes into those entities;
 there is no additional authoritative tree or program format. Foundation source
-remains the interchange format. Temporary native adapters in `core.cpp`,
-`core-nodes.cpp` and `compiler-semantic.hpp` load parser sessions, expose components,
-and marshal the existing query interfaces.
+remains the interchange format. The temporary CoreProgram/CoreNode native adapters
+and layout headers have been retired with their final native test consumers.
+Tower execution sessions own semantic roots, guest storage and derived caches;
+formatter and storage tests use the same Tower services and components directly.
 
 CMake compiles these ordinary Tower modules to the compiler host's target using
 explicit Tower imports and a supplied import-capable Tower bootstrap. The unused

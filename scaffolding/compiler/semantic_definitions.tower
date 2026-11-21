@@ -2,9 +2,9 @@ import tower;
 import foundation_tags;
 import semantic_support;
 
-// Shared semantic spellings and arities, consumed through the existing native queries.
-// Numeric tags retain the CoreKind/CoreOp/CoreScalar ABI in core.hpp. They are
-// component tags, not a public instruction encoding; coordinate any renumbering.
+// Shared semantic spellings and arities for Foundation checking and formatting.
+// Numeric tags are defined in foundation_tags on the shared component model,
+// not a public instruction encoding; coordinate any renumbering.
 export fn semantic_scalar_name(scalar: u32): u8* {
     var selected0 = scalar == SI32();
     if selected0 {

@@ -16,7 +16,9 @@ add_custom_command(OUTPUT "${execution_object}"
   DEPENDS scaffolding/tests/execution_wasi.tower "${TOWER_BOOTSTRAP_COMPILER}" VERBATIM)
 set_source_files_properties("${execution_object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
 get_target_property(interpreter_test_sources tower-parser-tests SOURCES)
-list(FILTER interpreter_test_sources EXCLUDE REGEX "scaffolding/tests/|scaffolding/core.*cpp")
+# Borrow only native service adapters. The parser target's independently compiled
+# fixture objects may carry host bindings that belong to their own test entry.
+list(FILTER interpreter_test_sources EXCLUDE REGEX "scaffolding/tests/|\\.(o|obj)$")
 list(APPEND interpreter_test_sources scaffolding/tests/nodes.cpp)
 add_executable(tower-interpreter-tests ${interpreter_test_sources} "${execution_object}")
 target_compile_features(tower-interpreter-tests PRIVATE cxx_std_20)

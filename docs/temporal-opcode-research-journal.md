@@ -24798,3 +24798,51 @@ unchanged native oracle on Linux and WASI, but its source retirement must land
 before the remaining core views can be deleted. Current retirement totals are
 1890 native lines in this slice, plus the prior 157-line core test retirement;
 no new native implementation was introduced.
+
+### 2026-11-20 - Agent 2: final CoreProgram/CoreNode adapter retirement
+
+Agent 3's coherent formatter retirement 4d97014 was fetched read-only from its
+local main to prepare the final dependency removal; its checkout was untouched,
+and this private predecessor is not published ahead of its assigned source slot.
+The formatter proof compares 16 exact text/span fixtures with the unchanged native
+oracle on Linux and WASI, then retains the captured results, canonical round trips,
+generated names and allocation-failure cleanup in Tower. Both journal additions
+were preserved when rebasing the prior deployment record onto that source.
+
+No live consumers remained after that formatter retirement. Removed core.cpp,
+core-nodes.cpp, core.hpp, compiler-semantic.hpp and compiler-foundation.hpp plus
+the parser target's last core source row. Agent 3 explicitly approved the narrow
+CMake deletion; coordinator had approved obsolete header retirement after the
+consumer audit. The remaining semantic tag comment and Foundation documentation
+now describe the Tower component definitions rather than the deleted native ABI.
+Historical bootstrap source hashes remain untouched. This final slice removes
+176 native lines with zero added: 2223 native lines across Agent 2's three slices,
+including the explicitly transferred semantic reference/harness retirement.
+
+Integration found a real test-composition issue: TowerInterpreterTests borrowed
+all parser SOURCES, including the new format-cases.o. Its driver_syntax_delete
+import name conflicted with the execution fixture's existing _ZdlPv symbol.
+Neither test needed the other's fixture object. The execution target now borrows
+only native service adapters, excluding independent generated .o/.obj fixture
+objects as well as parser test sources. The same correction excludes unused
+storage-cases.o; the actual storage and formatter targets remain independently
+linked and tested. The initial linker failure and corrected rebuild are recorded
+in agent-2-core-free-wasi.log; no ABI alias, native shim or assertion bypass was
+introduced to make the link succeed.
+
+Validation before the final published-source rebase:
+- Fresh empty agent-2-core-free-native cache, documented build-native.sh,
+  TOWER_BOOTSTRAP_COMPILER unset, default fb1ab1f9, Clang19/LLVM19, four jobs:
+  compiler and focused targets build successfully without all five native files.
+- Native frontend/driver/storage/format/execution/request CTests: 6/6 passed in
+  16.23s; backend API also passed.
+- Rebuilt WASI parser, execution and formatter targets link successfully; the
+  shared execution suite, parser --host-only storage checks and exact formatter
+  fixtures all pass. Source/build consumer searches find no remaining native
+  CoreProgram/CoreMachine/header references.
+- Sanitizers, full parser aggregate and broad formatter sweep remain skipped.
+
+The next required step is to replace the borrowed formatter predecessor with
+Agent 3's eventual published commit after coordinator regex and Agent 1's source
+slots, preserve their updates, and repeat the clean documented successor and
+focused integration checks before the final source push and combined deployment.
