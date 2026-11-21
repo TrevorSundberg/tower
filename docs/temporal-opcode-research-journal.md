@@ -26855,3 +26855,14 @@ Tower entry that compiled/linked/ran natively and on WASI without the native
 reference (native-entry.log, wasi-entry.log). Its isolated CMake fragment remains
 unintegrated and must be validated in the next source slot. This is prepared
 work, not an additional retirement or deployment claim.
+
+Final source rebase also integrated58a0aaf, a packaging-script/journal correction
+with no compiler, bootstrap or fixture-source changes. Both append-only journal
+histories were preserved. The newer native/compiler checks above therefore still
+cover the compiler inputs plus the four-line test-link fix. Its package closure
+repair was not folded into the frozen49ed release; ignored ba188 compiler-project
+outputs must be repackaged with the current script before any future publication.
+The coordinator explicitly assigned the instrumented allocator threading contract
+to Agent2 and accepted publication of the necessary link fix with the recorded
+6/7 newer-main result. Root/cache ownership returns after final source push; the
+original assertions and production worker defaults remain intact.
