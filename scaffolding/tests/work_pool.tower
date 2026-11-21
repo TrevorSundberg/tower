@@ -1,5 +1,6 @@
 import tower;
 import .library.work_pool;
+import work_order;
 
 extern fn pthread_self(): usize;
 
@@ -30,6 +31,7 @@ export fn work_kernel_execute(payload: void*): void {
 }
 
 export fn main(): i32 {
+    work_order_tests();
     // Native one-lane hosts cannot exercise overlap under their policy.
     // CTest records this explicitly as skipped, not a concurrency proof.
     var lanes = work_thread_capacity();

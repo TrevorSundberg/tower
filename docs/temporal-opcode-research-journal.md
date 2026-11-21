@@ -36625,3 +36625,77 @@ grammar, completion/highlighting, persistence, default-target and native-downloa
 flows (build/ui-stability-hosted-deployment.log). No compiler runtime was rebuilt
 or replaced by this UI publication. The final documentation/manifest receipt
 preserves the verified asset hashes and separate UI/runtime source identities.
+## 2026-11-21 - Independent body declaration frontiers and stable continuation order
+
+The earlier body-frontier-next prototype is now implemented in the compiler;
+this supersedes its uncompiled status in the local-query entry. Standalone local
+declarations from the current body window bind in source order, release their
+preparation claims, and enter one shared discovery/declaration executor. Each
+producer retains its complete lexical continuation (scope, frame, defer/control
+and flow state), so independent roots can advance through signature, inference,
+field and layout dependencies together. Worker scratch retained by those lexical
+continuations transfers to the coordinator after joining. The old one-body local
+declaration helper is removed; nested control/protocol preparation still has its
+separate structural continuation and remains unfinished migration work.
+
+Failures belong to their producing query until a consuming body selects them.
+The generic registry's sticky diagnostic is cleared only by the coordinator after
+retaining the producer's error. Newly constructed types are associated with the
+producer and contribute field/layout dependencies before that producer completes.
+An unrelated later body's invalid layout therefore cannot select an earlier
+body's error. Completed header/type checks are retained across readmission rather
+than allocating parameter slots or checking initializers again. Explicit local
+initializer finalization is still coordinator work where structural preparation
+is required; this milestone does not claim all expression checking is parallel.
+
+Review found another timing-sensitive boundary: layout workers continuously refill
+and release declaration consumers in completion order. Structural continuations
+can then register generated types/signatures. Added work_order_ready at this
+joined boundary to restore stable coordinator request-ID order across the entire
+ready frontier, including more than one admission window. It requires no running
+tickets, removes consumed entries, and uses an allocation-free heap sort only
+when the compacted queue is out of order. Ordinary scheduler dispatch stays FIFO;
+task identity, access claims and stale-receipt checks are unchanged. The new Tower
+work_order fixture completes 513 independent producers in reverse order, checks
+FIFO before explicit ordering, yields a consumer, checks every ordered consumer
+and stale receipt, and verifies exhausted-queue compaction. It runs through the
+existing native/shared-Wasm work_pool fixture, without a new test tool.
+
+Initial validation of the batched frontier passed the small-unit preflight,
+native body smoke, full 32/64-bit target and 1/2/4/8-worker canonical/execution
+matrix, Foundation reparse, ordered diagnostic/cycle cases and known-binding
+lazy/effect checks. Logs: build/language-next-audit/body-frontier-{preflight,
+native-smoke,matrix}.log. Two existing body failure cases were added to the short
+smoke path to cover producer-owned invalid layouts. The ordering fixture's first
+small-unit compile found a missing direct vector import; fixed before the larger
+native build. Ordering-integrated validation is recorded below when complete.
+
+Publication receipt for the preceding checkpoint: gh-pages 09a46e0941588309c283e960c40b04354cb4a417,
+Pages run 44953519981 succeeded. Hosted verification matched all 84 assets and
+manifest SHA-256 2f0dce0d50337b8916a03089f6a140e98e8ff0a93f762b33cc72eaa49ac4b164;
+desktop/mobile graph, fast and LLVM execution all returned 42. Evidence:
+build/language-next-audit/body-local-hosted-verification.log. Its frozen build
+source is local pre-rebase 85c8a13, equivalent retained compiler sources are public
+2776318, and its manifest distinguishes those identities. The new actual public
+bootstrap pin 1a5b58879eb247e0c2e3ab33804d965b8b157f170af49f71b53a611b7762d8bb
+also completed a fresh default 54-step native build in ecs-local-query-new-pin;
+that successor compiled and executed body_continuation with zero failures. Logs:
+body-local-query-new-pin-{native,execution}.log. The latest pull to e8b11f5 adds
+UI layout/scroll fixes only and preserves this unfinished compiler work.
+
+Progress remains an engineering estimate (about 85%), not a measured completion
+ratio or an end-to-end performance result. Remaining scope includes structural
+expression/control/protocol preparation, type-construction publication, native
+CLI project/unit integration and scheduling budgets across nested unit phases.
+
+Ordering-integrated native validation passed: the compiler and affected tests
+built with the actual checked-in bootstrap, the work graph regression and native
+worker-overlap barrier completed, and the full body matrix plus known-binding
+suite passed again after the scheduling change. Command: cmake --build
+/tmp/tower-home/.cache/tower/ecs-local-query-new-pin --target towerc tower-work-tests
+tower-lr-work-tests tower-execution-tests --parallel 2; then tower-work-tests,
+tower-lr-work-tests scaffolding bodies and tower-execution-tests scaffolding known
+inside tower-parser-retirement. Evidence: body-frontier-ordered-native.log.
+No sanitizers, new C++/Python/JavaScript tools, or unrelated test matrices were run.
+The rebuilt successor also compiled tests/body_continuation.tower to a native
+executable and ran it with zero failures (body-frontier-successor.log).

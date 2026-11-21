@@ -32,6 +32,24 @@ struct SemanticScope {
     names: SemanticTable*;
 }
 
+// Lexical continuation data borrowed exclusively by one body or its active
+// declaration producer. The shared entities still own all program semantics.
+struct SemanticBodyScope {
+    current: void*;
+    scope: SemanticScope*;
+    labels: SemanticTable*;
+    loops: usize;
+    deferred: void*;
+    deferring: usize;
+    defer_bindings: SemanticTable*;
+    defer_order: vector(void*)*;
+    has_defer: bool;
+    control_names: SemanticTable*;
+    control_reserved: SemanticTable*;
+    control_prefix: u8*;
+    flow_dependencies: vector(void*);
+}
+
 // Optional inspection metadata on the syntax entity used as a type. The target
 // is the ordinary reflected type entity, not another type representation.
 struct SemanticTypeUse {
@@ -108,6 +126,7 @@ struct SemanticContext {
     declaration_state: void*;
     declaration_jobs: vector(void*);
     declaration_subjects: vector(void*)*;
+    declaration_isolated: bool;
     prepared_calls: void*;
     aggregate_signatures: void*;
     known_bindings: void*;

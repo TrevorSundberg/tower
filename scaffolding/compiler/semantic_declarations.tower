@@ -14,6 +14,8 @@ import semantic_evaluation;
 import semantic_call_inference;
 import semantic_values;
 import semantic_statements;
+import semantic_body_work;
+import semantic_layout_kernel;
 import semantic_enums;
 import .library.vector;
 import .library.work_graph;
@@ -37,6 +39,8 @@ struct SemanticDeclaration {
     lists: vector(void*);
     scope: SemanticScope*;
     current: void*;
+    lexical: SemanticBodyScope;
+    constructed: vector(void*);
     subject: void*;
     discover: bool;
     worker_check: bool;
@@ -132,12 +136,16 @@ fn sem_declaration_roots(c: SemanticContext*, subject: void*, scan: vector(Decla
 // pointer to that record needs only its nominal identity. Discover these edges
 // after the value's declaration type is ready, without mutating expression nodes.
 fn sem_declaration_layout_waiting(c: SemanticContext*, record: void*): usize {
+    return sem_declaration_layout_waiting_except(c, record, 0);
+}
+
+fn sem_declaration_layout_waiting_except(c: SemanticContext*, record: void*, producer: usize): usize {
     var pending = sem_list(c);
     sem_push(pending, record);
     for(var i: usize = 0; i < pending.length; i++) {
         var node = pending.data[i];
         var query = sem_declaration_query(c, node);
-        if query != 0 && work_task(&c.queries, query).state != WorkState.Succeeded { return query; }
+        if query != 0 && query != producer && work_task(&c.queries, query).state != WorkState.Succeeded { return query; }
         var value = sem_get(node);
         if value.type.scalar == SArray {
             if semantic_aggregate(&value.element) && !sem_has(pending, value.element.record) {
@@ -722,6 +730,7 @@ fn semantic_declaration_kernel(result: SemanticDeclaration*): void {
     context.type_observations = &result.type_observations;
     context.scope = result.scope;
     context.current = result.current;
+    if result.current != null { sem_body_restore(&context, &result.lexical); }
     context.entity_stage = result.stage;
     context.query_reads = &result.query_reads;
     context.count = 0;
@@ -733,11 +742,10 @@ fn semantic_declaration_kernel(result: SemanticDeclaration*): void {
     vector_init(u8, &context.token_text);
     fill(&context.scan, 0, sizeof(stack(void*)));
     vector_init(u8, &program.error);
-    result.checked = false;
     if result.discover { sem_declaration_dependencies(&context, result.subject, result); }
     else {
         result.waiting = sem_declaration_waiting(&context, result.subject, &result.layout);
-        if result.waiting == 0 && result.layout == null && sem_ok(&context) {
+        if !result.checked && result.waiting == 0 && result.layout == null && sem_ok(&context) {
             if result.inference_pending { sem_declaration_infer(&context, result); }
             else {
                 if result.worker_check {
@@ -752,13 +760,14 @@ fn semantic_declaration_kernel(result: SemanticDeclaration*): void {
         }
     }
     result.count = context.count;
+    if result.current != null { sem_body_save(&context, &result.lexical); }
     result.surface = context.surface_expressions;
     copy(&result.evaluations, &context.evaluation_jobs, sizeof(vector(void*)));
     copy(&result.error, &program.error, sizeof(vector(u8)));
     result.error_offset = program.error_offset;
-    // Completion's lexical scope borrows these tables until query disposal.
-    // Ordinary jobs still reclaim scratch immediately after returning facts.
-    if context.editor != null && context.editor.found {
+    // Body continuations and completion may retain newly created lexical data.
+    // Transfer that ownership at publication; ordinary jobs reclaim scratch.
+    if result.current != null || context.editor != null && context.editor.found {
         result.allocations = context.allocations;
         result.lists = context.lists;
         context.allocations = default;
@@ -789,7 +798,7 @@ fn sem_declaration_error(c: SemanticContext*, result: SemanticDeclaration*): boo
     vector_dispose(&result.allocations);
     vector_dispose(&result.lists);
     if result.error.length == 0 { return false; }
-    if sem_ok(c) {
+    if sem_ok(c) && !c.declaration_isolated {
         sem_require(vector_reserve(u8, &c.program.error, result.error.length + 1));
         copy(c.program.error.data, result.error.data, result.error.length + 1);
         c.program.error.length = result.error.length;
@@ -825,6 +834,13 @@ fn sem_declaration_failure(c: SemanticContext*, id: usize): bool {
                 copy(c.program.error.data, result.error.data, result.error.length + 1);
                 c.program.error.length = result.error.length;
                 c.program.error_offset = result.error_offset;
+                return true;
+            }
+        }
+        if task.query == convert(u32, SemanticQuery.Layout) {
+            var layout = bits(SemanticLayoutWork*, entity_component_data(entity_component_get(task.subject, c.layout_results)));
+            if layout != null && layout.error != null {
+                sem_fail(c, layout.error_node, layout.error);
                 return true;
             }
         }
@@ -865,6 +881,7 @@ fn sem_declaration_dispose(c: SemanticContext*): void {
             vector_dispose(&result.evaluations);
             vector_dispose(&result.inference_types);
             vector_dispose(&result.inference_order);
+            vector_dispose(&result.constructed);
             result.inference_definition = null;
             result.inference_values = null;
             vector_dispose(u8, &result.error);
@@ -872,6 +889,7 @@ fn sem_declaration_dispose(c: SemanticContext*): void {
             result.context = null;
             result.scope = null;
             result.current = null;
+            result.lexical = default;
         }
     }
     vector_dispose(void*, &c.declaration_jobs);
@@ -1122,6 +1140,24 @@ fn sem_declarations(c: SemanticContext*, statements: vector(void*)*): void {
     sem_declarations_execute(c, c.declaration_subjects);
 }
 
+extern fn generic_error_clear(context: void*): void;
+
+// Types created by a producer belong to that producer's dependency frontier.
+// Checking every new type globally would let an unrelated later body choose
+// an earlier body's failure. Field receipts precede layout admission.
+fn sem_declaration_constructed(c: SemanticContext*, result: SemanticDeclaration*): usize {
+    foreach(var node in &result.constructed) {
+        var waiting = sem_declaration_layout_waiting_except(c, node, result.query);
+        if waiting != 0 { return waiting; }
+        var query = work_find(&c.queries, node, convert(u32, SemanticQuery.Layout), 0);
+        if query == 0 || work_task(&c.queries, query).state != WorkState.Succeeded {
+            result.layout = node;
+            return 0;
+        }
+    }
+    return 0;
+}
+
 fn sem_declarations_execute(c: SemanticContext*, statements: vector(void*)*): void {
     var batch: vector(SemanticDeclaration*) = default;
     sem_require(vector_reserve(&batch, SemanticPreparationWindow));
@@ -1178,6 +1214,7 @@ fn sem_declarations_execute(c: SemanticContext*, statements: vector(void*)*): vo
             var selected_error = c.program.error;
             var selected_offset = c.program.error_offset;
             c.program.error = default;
+            var type_first = c.program.types.length;
             foreach(var job in &result.evaluations) {
                 var evaluation = bits(SemanticEvaluation*, job);
                 sem_push(&c.evaluation_jobs, job);
@@ -1193,10 +1230,12 @@ fn sem_declarations_execute(c: SemanticContext*, statements: vector(void*)*): vo
             var saved_reads = c.query_reads;
             c.query_reads = &result.query_reads;
             if success && !result.checked && result.waiting == 0 && result.layout == null {
-                var saved_scope = c.scope;
-                var saved_current = c.current;
+                var saved_lexical: SemanticBodyScope;
+                sem_body_save(c, &saved_lexical);
                 c.scope = result.scope;
                 c.current = result.current;
+                if result.current != null { sem_body_restore(c, &result.lexical); }
+                if c.declaration_isolated { generic_error_clear(c.generics); }
                 result.waiting = sem_declaration_prepare(c, result);
                 if result.waiting == 0 && result.layout == null && sem_ok(c) {
                     if result.inference_pending { readmit = true; }
@@ -1213,12 +1252,22 @@ fn sem_declarations_execute(c: SemanticContext*, statements: vector(void*)*): vo
                                     else { sem_enum_fields(c, node); }
                                 }
                             }
+                            result.checked = sem_ok(c);
                         }
                     }
                 }
                 success = sem_ok(c);
-                c.scope = saved_scope;
-                c.current = saved_current;
+                if result.current != null { sem_body_save(c, &result.lexical); }
+                sem_body_restore(c, &saved_lexical);
+            }
+            if c.declaration_isolated {
+                for(var i = type_first; i < c.program.types.length; i++) {
+                    var node = c.program.types.data[i];
+                    if sem_get(node).type.record != null { sem_push(&result.constructed, node); }
+                }
+                if success && result.checked && result.waiting == 0 && result.layout == null {
+                    result.waiting = sem_declaration_constructed(c, result);
+                }
             }
             if !success { sem_declaration_capture_error(c, result); }
             c.query_reads = saved_reads;
@@ -1238,11 +1287,16 @@ fn sem_declarations_execute(c: SemanticContext*, statements: vector(void*)*): vo
                     else { sem_require(work_finish(&c.queries, &result.ticket, success)); }
                 }
             }
-            if selected_error.length != 0 {
+            if c.declaration_isolated {
                 vector_dispose(&c.program.error);
-                c.program.error = selected_error;
-                c.program.error_offset = selected_offset;
-            } else { vector_dispose(&selected_error); }
+                vector_dispose(&selected_error);
+            } else {
+                if selected_error.length != 0 {
+                    vector_dispose(&c.program.error);
+                    c.program.error = selected_error;
+                    c.program.error_offset = selected_offset;
+                } else { vector_dispose(&selected_error); }
+            }
             index++;
         }
         // Every declaration relinquishes its claims before this wave. Layout
@@ -1250,61 +1304,48 @@ fn sem_declarations_execute(c: SemanticContext*, statements: vector(void*)*): vo
         // same graph; no worker recursively forces layout completion.
         if layouts.length != 0 && sem_ok(c) {
             sem_layout_execute(c);
-            foreach(var query in &layouts) {
-                if sem_ok(c) { sem_layout_cycle(c, query); }
+            // Layouts refill workers as they finish. Structural continuations
+            // must publish types/signatures in stable request order afterwards.
+            sem_require(work_order_ready(&c.queries));
+            if c.declaration_isolated { vector_dispose(&c.program.error); }
+            else {
+                foreach(var query in &layouts) {
+                    if sem_ok(c) { sem_layout_cycle(c, query); }
+                }
             }
         }
     }
+    if c.declaration_isolated { return; }
     index = 0;
     while index < statements.length && sem_ok(c) {
         var node = statements.data[index];
-        if sem_declaration_subject(node) {
-            var id = sem_declaration_query(c, node);
-            if work_task(&c.queries, id).state != WorkState.Succeeded {
-                if sem_declaration_failure(c, id) { break; }
-                var cycle: vector(usize);
-                vector_init(usize, &cycle);
-                sem_require(work_cycle(&c.queries, id, &cycle));
-                var chain: u8* = "";
-                var edge: usize = 0;
-                while edge < cycle.length {
-                    if edge != 0 { chain = sem_cat(c, chain, " -> "); }
-                    chain = sem_cat(c, chain, sem_name(sem_get(work_task(&c.queries, cycle.data[edge]).subject)));
-                    edge++;
-                }
-                vector_dispose(usize, &cycle);
-                if sem_is(node, "CoreDeclare") && sem_member(node, "type") == null {
-                    sem_fail(c, node, sem_cat(c, "Cannot infer the type of '",
-                        sem_cat(c, sem_name(sem_get(node)), sem_cat(c, "': initializer dependency cycle ",
-                            sem_cat(c, chain, "; add an explicit type annotation")))));
-                } else {
-                    sem_fail(c, node, sem_cat(c, "Cannot resolve declaration type: initializer dependency cycle ", chain));
-                }
-            }
-        }
+        if sem_declaration_subject(node) { sem_declaration_report(c, node); }
         index++;
     }
 }
 
-// A structural body continuation has bound this declaration exactly once.
-// Release its body/type-index claims while ordinary declaration queries check
-// the initializer, deduce calls and resolve their signatures on workers.
-fn sem_declaration_local(c: SemanticContext*, node: void*, preparation: WorkTicket*): void {
-    var saved_subjects = c.declaration_subjects;
-    c.declaration_subjects = sem_list(c);
-    defer { c.declaration_subjects = saved_subjects; }
-    var result = sem_declaration_state(c, node);
-    result.scope = c.scope;
-    result.current = c.current;
-    sem_declaration_add(c, node);
-    sem_declaration_discover(c);
-    if !sem_ok(c) { return; }
-    var id = preparation.task;
-    sem_require(work_suspend(&c.queries, preparation, result.query));
-    sem_declarations_execute(c, c.declaration_subjects);
-    if sem_ok(c) { sem_require(work_take_task(&c.queries, preparation, id)); }
-    else {
-        sem_declaration_capture_error(c, result);
-        sem_require(work_fail(&c.queries, result.query));
+fn sem_declaration_report(c: SemanticContext*, node: void*): void {
+    var id = sem_declaration_query(c, node);
+    if work_task(&c.queries, id).state == WorkState.Succeeded || sem_declaration_failure(c, id) { return; }
+    var cycle: vector(usize) = default;
+    defer vector_dispose(&cycle);
+    sem_require(work_cycle(&c.queries, id, &cycle));
+    foreach(var query in &cycle) {
+        if work_task(&c.queries, query).query == convert(u32, SemanticQuery.Layout) {
+            sem_layout_cycle(c, query);
+            return;
+        }
+    }
+    var chain: u8* = "";
+    for(var i: usize = 0; i < cycle.length; i++) {
+        if i != 0 { chain = sem_cat(c, chain, " -> "); }
+        chain = sem_cat(c, chain, sem_name(sem_get(work_task(&c.queries, cycle.data[i]).subject)));
+    }
+    if sem_is(node, "CoreDeclare") && sem_member(node, "type") == null {
+        sem_fail(c, node, sem_cat(c, "Cannot infer the type of '",
+            sem_cat(c, sem_name(sem_get(node)), sem_cat(c, "': initializer dependency cycle ",
+                sem_cat(c, chain, "; add an explicit type annotation")))));
+    } else {
+        sem_fail(c, node, sem_cat(c, "Cannot resolve declaration type: initializer dependency cycle ", chain));
     }
 }

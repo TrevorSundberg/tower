@@ -223,6 +223,8 @@ fn body_runs_smoke(root: u8*): void {
     body_runs_arm_error(4, bedrock.data, foundation.data, root, 2);
     body_runs_declaration_error(1, bedrock.data, foundation.data, root, BodyDeclarationFailure.SelfReference);
     body_runs_declaration_error(4, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedSignature);
+    body_runs_cycle(4, bedrock.data, foundation.data, root, false);
+    body_runs_cycle(4, bedrock.data, foundation.data, root, true);
     puts("Body smoke: serial/worker canonical output, execution and ordered diagnostics/cycles passed.");
 }
 

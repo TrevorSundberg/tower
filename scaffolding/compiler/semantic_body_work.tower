@@ -129,22 +129,6 @@ fn sem_body_prune(c: SemanticContext*): void {
     c.generated.length = count;
 }
 
-struct SemanticBodyScope {
-    current: void*;
-    scope: SemanticScope*;
-    labels: SemanticTable*;
-    loops: usize;
-    deferred: void*;
-    deferring: usize;
-    defer_bindings: SemanticTable*;
-    defer_order: vector(void*)*;
-    has_defer: bool;
-    control_names: SemanticTable*;
-    control_reserved: SemanticTable*;
-    control_prefix: u8*;
-    flow_dependencies: vector(void*);
-}
-
 enum SemanticBodyBlockKind: u32 {
     Lexical, IfThen, IfElse, Loop, While, For, Foreach, Defer, Match
 }
@@ -192,6 +176,7 @@ struct SemanticBodyWork {
     stop: void*;
     boundary: usize;
     preparation: usize;
+    declaration: SemanticDeclaration*;
     boundaries: vector(SemanticBodyBoundary);
     blocks: vector(SemanticBodyBlock);
     allocations: vector(void*);
@@ -644,21 +629,14 @@ fn sem_body_prepare(c: SemanticContext*, result: SemanticBodyWork*): void {
     sem_body_restore(c, &result.lexical);
     var cursor = sem_body_cursor(result);
     var node = sem_unwrap(sem_child(cursor.subject, cursor.next));
-    if sem_is(node, "CoreDeclare") {
-        if sem_declaration_bind(c, node) {
-            sem_declaration_local(c, node, &ticket);
-            if sem_ok(c) { sem_declaration_finish(c, node); }
-        }
-        cursor.next++;
-        sem_block_accept(c, cursor, node, FlowNext);
-    } else {
-        if result.boundaries.data[result.boundary].header {
-            if !sem_body_enter(c, result, node) {
-                sem_block_step(c, cursor);
-            }
-        } else {
+    // Standalone local declarations were admitted together before this loop.
+    sem_require(!sem_is(node, "CoreDeclare"));
+    if result.boundaries.data[result.boundary].header {
+        if !sem_body_enter(c, result, node) {
             sem_block_step(c, cursor);
         }
+    } else {
+        sem_block_step(c, cursor);
     }
     result.boundary++;
     sem_body_save(c, &result.lexical);
@@ -682,6 +660,109 @@ fn sem_body_prepare(c: SemanticContext*, result: SemanticBodyWork*): void {
         result.done = true;
     }
     result.preparation = 0;
+}
+
+// Bind independent local roots in source order, then release every preparation
+// claim before discovery/checking. Each declaration exclusively borrows its
+// body's lexical descriptor until that producer and its dependencies settle.
+fn sem_body_declarations(c: SemanticContext*, batch: SemanticBodyWork**, count: usize, failed: usize): void {
+    var saved_subjects = c.declaration_subjects;
+    var saved_isolated = c.declaration_isolated;
+    c.declaration_subjects = sem_list(c);
+    c.declaration_isolated = true;
+    defer {
+        generic_error_clear(c.generics);
+        c.declaration_subjects = saved_subjects;
+        c.declaration_isolated = saved_isolated;
+    }
+    for(var i: usize = 0; i < count && i <= failed; i++) {
+        var result = batch[i];
+        if result.done { continue; }
+        var cursor = sem_body_cursor(result);
+        var node = sem_unwrap(sem_child(cursor.subject, cursor.next));
+        if !sem_is(node, "CoreDeclare") { continue; }
+        var ticket: WorkTicket;
+        sem_require(work_take_task(&c.queries, &ticket, result.preparation));
+        var saved: SemanticBodyScope;
+        sem_body_save(c, &saved);
+        sem_body_restore(c, &result.lexical);
+        if sem_declaration_bind(c, node) {
+            var declaration = sem_declaration_state(c, node);
+            declaration.scope = c.scope;
+            declaration.current = c.current;
+            sem_body_save(c, &declaration.lexical);
+            sem_declaration_add(c, node);
+            result.declaration = declaration;
+            // Discovery must seal the dependency before suspension can demand
+            // it. Yield now so another body's registration can take ownership.
+            sem_require(work_yield(&c.queries, &ticket));
+        } else {
+            sem_require(work_finish(&c.queries, &ticket, false));
+            sem_body_hold_error(c, result);
+            result.done = true;
+        }
+        sem_body_restore(c, &saved);
+    }
+    if c.declaration_subjects.length == 0 { return; }
+    sem_declaration_discover(c);
+    sem_require(sem_ok(c));
+    for(var i: usize = 0; i < count && i <= failed; i++) {
+        var result = batch[i];
+        if result.declaration == null { continue; }
+        var ticket: WorkTicket;
+        sem_require(work_take_task(&c.queries, &ticket, result.preparation));
+        sem_require(work_suspend(&c.queries, &ticket, result.declaration.query));
+    }
+    sem_declarations_execute(c, c.declaration_subjects);
+    sem_require(sem_ok(c));
+    // Every newly constructed type is now accounted for by its producer's
+    // field/layout queries, including failures retained for its own consumers.
+    c.layout_checked = c.program.types.length;
+    c.declaration_isolated = false;
+    for(var i: usize = 0; i < count && i <= failed; i++) {
+        var result = batch[i];
+        var declaration = result.declaration;
+        if declaration == null { continue; }
+        var node = declaration.subject;
+        var ticket: WorkTicket = default;
+        sem_declaration_report(c, node);
+        if sem_ok(c) { sem_require(work_take_task(&c.queries, &ticket, result.preparation)); }
+        else {
+            sem_declaration_capture_error(c, declaration);
+            sem_require(work_fail(&c.queries, declaration.query));
+        }
+        var saved: SemanticBodyScope;
+        sem_body_save(c, &saved);
+        sem_body_restore(c, &declaration.lexical);
+        var saved_reads = c.query_reads;
+        c.query_reads = &result.query_reads;
+        if sem_ok(c) {
+            generic_error_clear(c.generics);
+            sem_declaration_finish(c, node);
+        }
+        var cursor = sem_body_cursor(result);
+        cursor.next++;
+        sem_block_accept(c, cursor, node, FlowNext);
+        result.boundary++;
+        sem_body_save(c, &result.lexical);
+        sem_body_restore(c, &saved);
+        // Explicit initialization can still need structural preparation. Only
+        // types created during this finalizer are new to the layout frontier.
+        sem_layout_all(c);
+        c.query_reads = saved_reads;
+        var ok = sem_ok(c);
+        if ticket.task != 0 {
+            sem_query_observe(c, &ticket, &result.query_reads);
+            sem_require(work_finish(&c.queries, &ticket, ok));
+        } else { result.query_reads.length = 0; }
+        if !ok {
+            c.layout_checked = c.program.types.length;
+            sem_body_hold_error(c, result);
+            result.done = true;
+        }
+        result.preparation = 0;
+        result.declaration = null;
+    }
 }
 
 fn semantic_body_kernel(result: SemanticBodyWork*): void {
@@ -1016,12 +1097,14 @@ fn sem_bodies(c: SemanticContext*): void {
                     result.ticket.task = 0;
                 }
             }
+            sem_body_declarations(c, &batch[0], count, failed);
             for(var i: usize = 0; i < count && i <= failed; i++) {
                 var result = batch[i];
+                if result.error.length != 0 { failed = i; }
                 if result.done {
                     continue;
                 }
-                sem_body_prepare(c, result);
+                if result.preparation != 0 { sem_body_prepare(c, result); }
                 if result.error.length != 0 {
                     failed = i;
                 }

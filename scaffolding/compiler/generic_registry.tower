@@ -97,6 +97,12 @@ export fn generic_error(context: GenericContext*): u8* {
     return context.error;
 }
 
+// After a coordinator has retained a failed producer's diagnostic, independent
+// structural queries start with a fresh diagnostic slot. Never call on workers.
+export fn generic_error_clear(context: GenericContext*): void {
+    context.error = null;
+}
+
 export fn generic_origin(context: GenericContext*, node: Entity*): Entity* {
     var data = compiler_component_get(node, context.origin_type);
     if data != null {
