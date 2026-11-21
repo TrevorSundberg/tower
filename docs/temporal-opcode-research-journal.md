@@ -34692,3 +34692,35 @@ The LR additions now reference the migrated named values without function calls.
 Both journal histories are retained. Rebuild all affected release assets and a
 clean native successor from the new documented pin before publishing; earlier
 bootstrap validation is not evidence for these rebased compiler sources.
+
+Rebased release validation at 2f6ce16: clean native build in a fresh
+/root/.cache/tower/latency_rebased directory passed all 53 steps with
+env -u TOWER_BOOTSTRAP_COMPILER and the public 2292bd8a bootstrap. Its graph
+execution of enum_expressions and fast execution of known_bindings each print 0.
+Portable, threaded, LLVM and cross-target browser reactors rebuilt successfully;
+Tower tooling packaging was exercised through the updated build entry point.
+The LR oracle and real native LR worker-equivalence checks pass again, as do all
+28 portable host/module checks and all three threaded checks (1/2/4/8 workers).
+Two editable browser compiler generations pass, including the changed diagnostic
+and identical successor hashes; generation 1 took about 80 seconds. Logs are
+build/latency-rebased-{native,successor,wasm,threads,llvm,lr,native-workers,host-tests,thread-tests,generations}.log.
+
+The rebased browser validation passes 26 distinct desktop/mobile checks across
+the primary and follow-up runs. The broader import-highlight check exposed an
+old assertion expecting one math identifier despite two written imports. Correct
+it to two; module execution still runs once and both backends produce the expected
+results. Both desktop and mobile reruns pass. This was a fixture error, not a
+syntax migration regression. Evidence: latency-rebased-browser-tests.log and
+latency-rebased-browser-followup.log. A final isolated latency run and exact local
+and hosted asset verification follow; no further compiler changes are pending.
+
+Final isolated timings after rebasing/rebuilding are in
+build/latency-rebased-profile.json and supersede the candidate after numbers above.
+Desktop: cold highlight/graph/complete 1507/3797/4334 ms; new-project medians
+53/84/127 ms; project-switch medians 69/118/321 ms; typing-only highlight 47 ms.
+Mobile emulation: cold 1533/3024/3467 ms; new projects 53/69/94 ms; switches
+47/80/194 ms; typing 32 ms. This comparison includes the upstream source migration;
+the earlier same-source CPU trial isolates the LR change. Warm automatic-edit
+completion remains about 485 ms desktop and 420 ms mobile; no material improvement
+is claimed there. Full tables and reproduction instructions are updated in
+playground/PERFORMANCE.md. The runtime asset build-source identity is 2f6ce16.

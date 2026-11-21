@@ -133,7 +133,8 @@ test('dotted imports share file identity and import names look different from ke
   await page.locator('[data-path="main.tower"]').click();
   const source = page.locator('#editor .cm-content');
   await expect(source.locator('.tw-identifier').filter({hasText:/^tower$/})).toHaveCount(1);
-  await expect(source.locator('.tw-identifier').filter({hasText:/^math$/})).toHaveCount(1);
+  // Both written imports retain highlighting even though the module runs once.
+  await expect(source.locator('.tw-identifier').filter({hasText:/^math$/})).toHaveCount(2);
   await expect(source.locator('.tw-keyword').filter({hasText:/^import$/})).toHaveCount(3);
   await expect(source.locator('.tw-keyword,.tw-rule').filter({hasText:/^(tower|math|answer)$/})).toHaveCount(0);
   const colors = await source.evaluate(root => {

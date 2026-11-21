@@ -92,8 +92,8 @@ class Engine {
     }
     return new Promise((resolve, reject) => {
       const id = ++this.id;
-      // Parsing runs in a disposable worker. Stop and edits cancel it explicitly;
-      // a large valid grammar must not fail because of a wall-clock deadline.
+      // Stop and active project switches dispose the worker; edits coalesce.
+      // A large valid grammar must not fail because of a wall-clock deadline.
       this.pending = { id, resolve, reject };
       this.worker.postMessage({ compiler:compilerSelection(), library:project.library ?? '.tower', id, method, source, foundation, bedrock, editingModule, files:project.files, builtins:project.builtins, activePath, entry:projectSources(project)[0]?.path });
     });

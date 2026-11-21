@@ -19,8 +19,9 @@ dependency scheduling and deterministic publication remain authoritative.
 
 Windows, Ryzen 9 5900HX, Node 21.7.3, Playwright 1.65.1 Chromium. Both bundles were
 served from the same local origin, without concurrent builds or tests. The baseline
-is the previously published bundle (runtime source `8e09a3c`); the candidate includes
-upstream `d2d5633` and this change. Mobile is Pixel 7 emulation on the same computer,
+is the previously published bundle (runtime source `8e09a3c`); the final candidate
+is `2f6ce16`, including upstream `7d50641`, its published bootstrap/source migration
+and this change. Mobile is Pixel 7 emulation on the same computer,
 not a physical phone. Warm rows are medians of three actions; cold rows are one
 fresh browser context per bundle and include the isolation-service-worker reload.
 All times are milliseconds from the action to its observed DOM result. “Complete”
@@ -28,25 +29,25 @@ includes every selected execution/backend output, including LLVM optimization.
 
 | Desktop action | Highlight before → after | Graph result before → after | Complete before → after |
 | --- | ---: | ---: | ---: |
-| Cold navigation | 2465.8 → 2020.6 | 6253.6 → 5344.1 | 6706.6 → 5828.4 |
-| New project, already warm | 2643.7 → 50.9 | 6311.4 → 72.5 | 7092.6 → 114.0 |
-| Switch existing project | 2638.2 → 69.4 | 6301.8 → 111.2 | 7371.7 → 347.1 |
-| Edit with automatic execution | 252.2 → 46.9 | 285.1 → 285.7 | 454.7 → 490.2 |
-| Execute unchanged source | — | 54.1 → 53.0 | 125.7 → 122.3 |
-| Type with automatic execution off | 234.7 → 37.6 | — | — |
+| Cold navigation | 2465.8 → 1507.1 | 6253.6 → 3796.9 | 6706.6 → 4333.6 |
+| New project, already warm | 2643.7 → 53.0 | 6311.4 → 83.8 | 7092.6 → 127.4 |
+| Switch existing project | 2638.2 → 68.8 | 6301.8 → 118.2 | 7371.7 → 321.0 |
+| Edit with automatic execution | 252.2 → 48.9 | 285.1 → 281.0 | 454.7 → 485.1 |
+| Execute unchanged source | — | 54.1 → 53.7 | 125.7 → 119.5 |
+| Type with automatic execution off | 234.7 → 46.6 | — | — |
 
-The first Foundation instructions on new projects fell from 6311.1 to 71.7 ms;
-existing-project switches fell from 6301.3 to 110.6 ms. Warm edit execution did
+The first Foundation instructions on new projects fell from 6311.1 to 83.2 ms;
+existing-project switches fell from 6301.3 to 117.6 ms. Warm edit execution did
 **not** improve in this run; its debounce and backend work still determine completion.
 
 | Mobile emulation action | Highlight before → after | Graph result before → after | Complete before → after |
 | --- | ---: | ---: | ---: |
-| Cold navigation | 2386.3 → 2041.8 | 5275.9 → 4332.8 | 5930.1 → 4923.8 |
-| New project, already warm | 2600.5 → 54.1 | 5552.0 → 71.3 | 6152.4 → 105.8 |
-| Switch existing project | 2668.8 → 66.2 | 5667.1 → 100.1 | 6413.3 → 271.1 |
-| Edit with automatic execution | 246.3 → 60.2 | 278.3 → 266.1 | 413.8 → 444.7 |
-| Execute unchanged source | — | 50.0 → 50.0 | 109.8 → 108.0 |
-| Type with automatic execution off | 243.5 → 37.6 | — | — |
+| Cold navigation | 2386.3 → 1533.3 | 5275.9 → 3024.2 | 5930.1 → 3467.2 |
+| New project, already warm | 2600.5 → 53.1 | 5552.0 → 68.9 | 6152.4 → 93.8 |
+| Switch existing project | 2668.8 → 47.4 | 5667.1 → 79.5 | 6413.3 → 194.1 |
+| Edit with automatic execution | 246.3 → 38.2 | 278.3 → 253.6 | 413.8 → 420.2 |
+| Execute unchanged source | — | 50.0 → 58.8 | 109.8 → 99.7 |
+| Type with automatic execution off | 243.5 → 31.7 | — | — |
 
 Desktop and mobile select different native targets; compare before/after within
 each configuration. Cold startup still takes seconds: parser, graph execution and
@@ -63,8 +64,9 @@ Build and serve the complete bundle using the README entry points, then run
 The report captures worker lifetimes, transport phases, parser duration, first
 instructions, graph/fast/Wasm results, animation-frame markers, resource timing
 and the deployment manifest. Existing Tower examples supply the workloads.
-The local comparison reports are `build/latency-local-before.json` and
-`build/latency-local-after.json`; these generated artifacts are ignored.
+The final local comparison reports are `build/latency-local-before.json` and
+`build/latency-rebased-profile.json`. The intermediate `latency-local-after.json`
+predates the upstream source migration. These generated artifacts are ignored.
 
 Set `TOWER_PROFILE_REACTOR` to a reactor path for a separate Node inspector CPU
 sample. It writes phase timings and a `.cpuprofile`. With the same upstream
