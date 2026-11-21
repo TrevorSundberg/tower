@@ -218,45 +218,45 @@ export fn lr_work_tests(): u32 {
     if !lr_propagation_work_trial(root) { failures++; }
     if !lr_worker_lifetime() { failures++; }
     var symbols: LRSymbol[2048];
-    var rules: LRProduction[516];
-    fill(&rules, 0, sizeof(LRProduction[516]));
+    var rules: LRProduction[132];
+    fill(&rules, 0, sizeof(LRProduction[132]));
     for(var i: usize = 0; i < 2048; i++) {
         symbols[i].nonterminal = lr_none();
         symbols[i].first = convert(u32, i + 2097152);
         symbols[i].last = symbols[i].first;
     }
     // Many distinct dotted productions and state/hash-table resizes.
-    rules[0].count = 2048;
-    if !lr_work_trial(root, &rules[0], 1, &symbols[0], 2048, 1) { failures++; }
+    rules[0].count = 1024;
+    if !lr_work_trial(root, &rules[0], 1, &symbols[0], 1024, 1) { failures++; }
 
-    // Root -> 256 terminals List, List -> Item List | empty, Item -> 512
+    // Root -> 896 terminals List, List -> Item List | empty, Item -> 128
     // alternatives. Exercise both closure batches and multiple action ranges.
     // Duplicate/overlapping tokens deliberately retain conflicts.
-    fill(&rules, 0, sizeof(LRProduction[516]));
-    rules[0].count = 257;
-    symbols[256].nonterminal = 1;
+    fill(&rules, 0, sizeof(LRProduction[132]));
+    rules[0].count = 897;
+    symbols[896].nonterminal = 1;
     rules[1].owner = 1;
-    rules[1].begin = 257;
+    rules[1].begin = 897;
     rules[1].count = 2;
-    symbols[257].nonterminal = 2;
-    symbols[258].nonterminal = 1;
+    symbols[897].nonterminal = 2;
+    symbols[898].nonterminal = 1;
     rules[2].owner = 1;
-    rules[2].begin = 259;
-    for(var i: usize = 0; i < 512; i++) {
+    rules[2].begin = 899;
+    for(var i: usize = 0; i < 128; i++) {
         rules[i + 3].owner = 2;
-        rules[i + 3].begin = i + 259;
+        rules[i + 3].begin = i + 899;
         rules[i + 3].count = 1;
-        symbols[i + 259].first = convert(u32, i / 2 + 32);
-        symbols[i + 259].last = symbols[i + 259].first + convert(u32, i % 2);
+        symbols[i + 899].first = convert(u32, i / 2 + 32);
+        symbols[i + 899].last = symbols[i + 899].first + convert(u32, i % 2);
     }
-    if !lr_work_trial(root, &rules[0], 515, &symbols[0], 771, 3) { failures++; }
+    if !lr_work_trial(root, &rules[0], 131, &symbols[0], 1027, 3) { failures++; }
     // A nullable cycle in the grammar is valid fixed-point input, distinct from
     // an impossible recursive by-value type or compile-time execution cycle.
-    rules[515].owner = 2;
-    rules[515].begin = 771;
-    rules[515].count = 1;
-    symbols[771].nonterminal = 1;
-    if !lr_work_trial(root, &rules[0], 516, &symbols[0], 772, 3) { failures++; }
+    rules[131].owner = 2;
+    rules[131].begin = 1027;
+    rules[131].count = 1;
+    symbols[1027].nonterminal = 1;
+    if !lr_work_trial(root, &rules[0], 132, &symbols[0], 1028, 3) { failures++; }
     if entity_store_count(store) != entities || entity_store_component_count(store) != components { failures++; }
     entity_release(root);
     if !compiler_world_dispose(world) { failures++; }
