@@ -5,9 +5,12 @@ the current source. `build-bootstrap.sh` verifies every file and installs it in 
 hash-addressed cache. No download or privately saved compiler is required.
 `TOWER_BOOTSTRAP_COMPILER` remains an explicit override for development comparisons.
 
-This is a **hybrid Linux x64 development bootstrap**, built for Ubuntu 24.04 with
-the system LLVM 19 and C++ runtime. It is not the future standalone, pure-Tower
-Windows/macOS/Linux release. `docker/Dockerfile` supplies its dependencies; the
+This is a **Tower-built Linux x64 development bootstrap**, built for Ubuntu 24.04
+with system LLVM 19 and its C++ runtime dependencies. All project-owned compiler
+and runtime implementation in this pin is Tower; LLVM and platform libraries
+remain third-party. It is not a standalone Windows/macOS/Linux release, and the
+existing installation/build scripts have not yet all moved to Tower.
+`docker/Dockerfile` supplies its dependencies; the
 normal wrapper selects linux/amd64, including on Docker hosts using emulation:
 
 ```sh
@@ -20,6 +23,23 @@ From Windows PowerShell with Docker Desktop:
 docker build --platform linux/amd64 -t tower_build docker
 docker run --rm --platform linux/amd64 -v "${PWD}:/work" -w /work tower_build bash playground/scripts/build-native.sh
 ```
+
+On Windows with the documented Ubuntu/LLVM environment installed in WSL, the
+same build can run directly:
+
+```powershell
+wsl -d Ubuntu -- bash playground/scripts/build-native.sh
+```
+
+Run these commands from the repository root. They install the checked-in pin and
+build `build/native/towerc` plus its `share/tower` resources without compiling any
+project-owned C/C++ seed. Linux uses the command directly; Windows/macOS Docker
+hosts use the explicit Linux container above. The resulting executable is Linux
+x64, not a native Windows/macOS binary. Native per-host archives are still planned.
+The [browser compiler](https://tower-lang.org/) is another host-independent route
+for editing, rebuilding and downloading compiler output. An initial executable
+compiler/interpreter is always needed; separate native pins for every host are
+convenient distribution options, not a requirement for self-hosting.
 
 The package includes its complete `share/tower` grammar/library resources. The
 manifest records archive/member hashes, compiler dependencies, build provenance,
