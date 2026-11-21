@@ -47,6 +47,7 @@ test('declaration, body checking, lowering and staging are deterministic at 1/2/
  const foundation = await readFile('scaffolding/foundation.tower', 'utf8');
  const delayedLayout = await readFile('scaffolding/tests/decltype_layout.tower', 'utf8');
  const genericHeaders = await readFile('scaffolding/tests/decltype_generic_headers.tower', 'utf8');
+ const aggregateTypes = await readFile('scaffolding/tests/decltype_aggregate.tower', 'utf8');
  const typeFields = (await readFile('scaffolding/tests/decltype_type_fields.tower', 'utf8')).replace('var seed12:u64=0;',
   Array.from({length:244},(_,i)=>`var seed${i+12}:decltype(seed${i+13});`).join('\n')+'\nvar seed256:u64=0;');
  const dependencyCanonical = new Map();
@@ -201,7 +202,7 @@ fn badSecond(value:MissingSecond):void {}`);
     assert.match(result.error, /duplicate field 'first'/);
     assert.doesNotMatch(result.error, /duplicate field 'second'/);
    } finally { tower.destroyExecution(fieldsInvalid); }
-   for (const fixture of [delayedLayout, genericHeaders, typeFields])
+   for (const fixture of [delayedLayout, genericHeaders, typeFields, aggregateTypes])
    for (const pointerBytes of [4,8]) for (let fast=0; fast<2; fast++) {
     const handle=tower.compile(fixture,{pointerBytes});
     try {

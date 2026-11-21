@@ -28247,3 +28247,55 @@ slice extends no bootstrap syntax and introduces no C++ or todo.txt changes.
 Preparing its final pull and normal source push. Expression-local construction,
 non-nominal type aliases requiring execution, and structural body statements
 still need broader continuations before claiming universal threading.
+
+Layout-query Pages106d0f7/source969fba5 finishes hosted verification: all77 hashes
+and desktop/mobile/default checks pass (declaration-layout-query-hosted-deployment.log).
+Parameterized-field sourcec431163 is now pushed after an unchanged final pull;
+its own frozen browser release is being validated while work continues.
+
+### 2026-11-20 - Unevaluated aggregate places in decltype
+
+The ordinary operand checker now permits an aggregate place only as the complete
+operand of a decltype query. It borrows the existing canonical type without
+copying storage or evaluating the expression. Nested operators/call arguments
+retain ordinary value restrictions; a blanket aggregate allowance whenever
+`unevaluated` is set was rejected because it would admit invalid aggregate
+operators. The query root is private checking context, restored at nested query
+boundaries. No evaluator, propagation pass, C++ implementation or aggregate
+copy/call/return semantics were added.
+
+The fixture covers structs, arrays, nested array fields, indexed records, pointer
+loads, a typed null load and a call with an observable counter. The counter stays
+zero. A parameterized type argument exposed a pre-existing wrapper gap:
+CoreTypeArgument was unwrapped after decltype recognition, yielding Unknown type
+'decltype(original)'. Normalize that wrapper before query recognition. The first
+fixture also accidentally formed the '*=' token in a pointer declaration; spacing
+fixes the fixture without changing the grammar. Actual aggregate copies and
+aggregate equality inside decltype still fail. Ternary/comma aggregate values
+and aggregate compile-time execution remain outside this place-only change.
+
+Public-bootstrap builds pass without a private override. Shared capacity,
+canonical output, cycles and actual pool overlap pass 3/3 in 52.03s; matching
+compile-time/inference/precedence/backend tests pass 58/58 in 34.27s. Native 8/8
+pass in 54.68s, backend API checks pass, and the actual successor semantic object
+compares byte-identically. Logs are build/language-next-audit/decltype-aggregate-*
+using tower-parser-retirement and the documented bcc76755 development bootstrap.
+No todo.txt change. Preparing the final pull and normal source push.
+
+The preceding parameterized-field release is Pages
+9633055b5bec55f2697a4935cdcbbb8c1fac94e9, source c431163, parent 106d0f7.
+Action 44873127280 succeeds. Local deployment checks pass all 77 assets and
+all desktop/mobile/default workflows; hosted verification is in progress.
+Two edited browser generations pass in 123.72s/86.64s with identical sizes
+1,015,312/52,315,402/63,872,864 and hashes:
+parser 90dcf988ec8373d79ace0c355c554a7486d375daf4d36671bb885f0fc2bad566;
+LLVM 30c0b9e1554bb5647d6ec844a1620479078c5ef891860d42a52507346a61edc6;
+cross 15c3d583ec93480dd2ebca65374f8a7047b11c13cb4f35e56a3ff358b96e4bc6.
+
+Next implementation target is resumable function-body checking. Current admission
+rejects an entire body when any statement constructs a type or generic instance.
+A root-block cursor can retain lexical scope, flow, labels and pending cleanup,
+then hand a remaining structurally independent suffix to the normal leased worker.
+Structural prefixes must retain source order and finish before worker dispatch;
+no speculative retry of a partially checked AST. Nested structural statements and
+fully general operand continuations remain subsequent work, not claimed support.

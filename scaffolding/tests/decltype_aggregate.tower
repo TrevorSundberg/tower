@@ -1,0 +1,27 @@
+import tower;
+
+struct Item { value:decltype(seed); elements:u32[3]; }
+var original:Item;
+var same:decltype(original);
+var array:Item[2];
+var same_array:decltype(array);
+var nested:decltype(original.elements);
+var indexed:decltype(array[0]);
+var pointer:Item* = &original;
+var loaded:decltype(*pointer);
+var null_loaded:decltype(*bits(Item*,convert(usize,0)));
+var calls:i32=0;
+fn address():Item* { calls++; return &original; }
+var from_call:decltype(*address());
+fn box(T:type):type { struct Box { value:T; } return Box; }
+var boxed:box(decltype(original));
+var seed:u64=0;
+
+var failures:i32=0;
+same.value=7; indexed.value=11; loaded.value=13; null_loaded.value=17;
+from_call.value=19; same_array[1].value=23; nested[2]=29; boxed.value.value=31;
+if same.value!=7 || indexed.value!=11 || loaded.value!=13 || null_loaded.value!=17 { failures++; }
+if from_call.value!=19 || same_array[1].value!=23 || nested[2]!=29 || boxed.value.value!=31 { failures++; }
+if calls!=0 || sizeof(decltype(original))!=24 || sizeof(decltype(array))!=48 { failures++; }
+if sizeof(decltype(original.elements))!=12 || sizeof(decltype(*pointer))!=24 { failures++; }
+print(failures);

@@ -21,7 +21,7 @@ function execute(source, pointerBytes, fast) {
  } finally { tower.destroyExecution(handle); }
 }
 
-for (const name of ['decltype', 'decltype_headers', 'decltype_layout', 'decltype_generic_headers', 'decltype_type_fields', 'comptime', 'comptime_flow']) {
+for (const name of ['decltype', 'decltype_headers', 'decltype_layout', 'decltype_generic_headers', 'decltype_type_fields', 'decltype_aggregate', 'comptime', 'comptime_flow']) {
  test(`${name} preserves types and behavior through Foundation, interpreters and LLVM`, async () => {
   tower.configureModules({entry: `.tower/tests/${name}.tower`});
   const source = await readFile(`scaffolding/tests/${name}.tower`, 'utf8');
@@ -47,6 +47,8 @@ for (const [name, message] of [
  ['decltype_generic_header_cycle', /initializer dependency cycle/],
  ['decltype_layout_cycle', /Recursive by-value layout: Recursive -> Recursive/],
  ['decltype_type_field_cycle', /initializer dependency cycle/],
+ ['decltype_aggregate_operator', /aggregate copies are not implemented/],
+ ['aggregate_inferred_copy', /aggregate copies are not implemented/],
  ['decltype_unknown', /Unknown local/],
  ['comptime_cycle', /Compile-time dependency cycle/],
  ['comptime_defer_cycle', /Compile-time dependency cycle/],

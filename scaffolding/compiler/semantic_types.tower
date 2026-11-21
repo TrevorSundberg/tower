@@ -323,6 +323,9 @@ fn sem_type(c: SemanticContext*, n: void*): FoundationType* {
 
 fn sem_type_impl(c: SemanticContext*, n: void*): FoundationType* {
     n = sem_surface_unwrap(n);
+    while sem_is(n, "CoreTypeArgument") && sem_child_count(n) == 1 {
+        n = sem_surface_unwrap(sem_child(n, 0));
+    }
     var query = n;
     while sem_is(query, "CoreType") && sem_child_count(query) == 1 {
         query = sem_child(query, 0);
@@ -331,9 +334,12 @@ fn sem_type_impl(c: SemanticContext*, n: void*): FoundationType* {
         var deferred_fields = c.defer_type_fields;
         c.defer_type_fields = false;
         defer { c.defer_type_fields = deferred_fields; }
+        var previous_operand = c.type_query_operand;
+        c.type_query_operand = sem_surface_unwrap(sem_member(query, "value"));
+        defer { c.type_query_operand = previous_operand; }
         var previous = c.unevaluated;
         c.unevaluated = true;
-        var expression = sem_operand(c, sem_member(query, "value"), null);
+        var expression = sem_operand(c, c.type_query_operand, null);
         c.unevaluated = previous;
         if !sem_ok(c) || expression == null {
             return sem_type_new(c, SI32(), 0, null);

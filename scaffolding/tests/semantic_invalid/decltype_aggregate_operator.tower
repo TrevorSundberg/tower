@@ -1,0 +1,5 @@
+import tower;
+struct Item { value:u64; }
+var first:Item;
+var second:Item;
+var invalid:decltype(first == second);

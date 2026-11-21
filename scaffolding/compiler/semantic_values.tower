@@ -225,6 +225,15 @@ fn sem_operand(c: SemanticContext*, n: void*, expected_type: FoundationType*): v
     return result;
 }
 
+// A decltype place borrows its existing type; it does not copy aggregate storage.
+// Only the query's complete operand receives this allowance. An aggregate
+// nested inside an operator/call still passes the ordinary value restrictions.
+fn sem_type_place(c: SemanticContext*, node: void*, value: FoundationNode*): bool {
+    if !c.unevaluated || c.type_query_operand != node { return false; }
+    return value.kind == KOperand() || value.kind == KField()
+        || value.kind == KIndex() || value.kind == KLoad();
+}
+
 fn sem_operand_impl(c: SemanticContext*, n: void*, expected_type: FoundationType*): void* {
     if c.value_depth > 128 {
         sem_fail(c, n, "Foundation expression nesting limit is 128");
@@ -250,7 +259,7 @@ fn sem_operand_impl(c: SemanticContext*, n: void*, expected_type: FoundationType
         var result = sem_surface(c, n, expected_type);
         if sem_ok(c) {
             var value = sem_get(result);
-            if semantic_aggregate(&value.type) {
+            if semantic_aggregate(&value.type) && !sem_type_place(c, result, value) {
                 sem_fail(c, n, "Struct values require field access or a pointer; aggregate copies are not implemented");
             }
         }
@@ -465,7 +474,7 @@ fn sem_operand_leaf(c: SemanticContext*, n: void*, expected_type: FoundationType
             }
         }
     }
-    if semantic_aggregate(&value.type) {
+    if semantic_aggregate(&value.type) && !sem_type_place(c, n, value) {
         sem_fail(c, n, "Struct values require field access or a pointer; aggregate copies are not implemented");
     }
     if expected_type != null && !semantic_type_equal(&value.type, expected_type) {
