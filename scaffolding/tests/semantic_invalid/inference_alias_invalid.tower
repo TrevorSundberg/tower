@@ -1,0 +1,6 @@
+import tower;
+fn alias(T:type):type { var value:i32=1; return T; }
+fn read(T:type,value:alias(T)):T { return value; }
+var actual:i32=1;
+var first=read(actual);
+var second=read(actual);

@@ -315,7 +315,10 @@ export fn generic_lookup(context: GenericContext*, node: Entity*, name: Entity*)
 // Initial type-function evaluator: one optional struct declaration, then return
 // that struct or an existing type/type-producing call. General staged execution
 // will extend this instead of introducing a second template expression language.
-export fn generic_type_result(context: GenericContext*, instance: Entity*): Entity* {
+// Read-only inspection reports errors to caller-owned scratch. Worker deduction
+// never writes a shared GenericContext, including invalid alias diagnostics.
+export fn generic_type_result_read(instance: Entity*, error: u8**): Entity* {
+    *error = null;
     var body = compiler_node_member(instance, "body");
     var structure: Entity* = null;
     var returned: Entity* = null;
@@ -328,12 +331,12 @@ export fn generic_type_result(context: GenericContext*, instance: Entity*): Enti
             var is_struct = compiler_node_label(statement, "CoreStruct");
             var is_return = compiler_node_label(statement, "CoreReturn");
             if already_returned {
-                context.error = "A type constructor must end with its return";
+                *error = "A type constructor must end with its return";
                 return null;
             }
             if is_struct {
                 if structure != null {
-                    context.error = "A type constructor currently supports one local struct";
+                    *error = "A type constructor currently supports one local struct";
                     return null;
                 }
                 structure = statement;
@@ -341,14 +344,14 @@ export fn generic_type_result(context: GenericContext*, instance: Entity*): Enti
                 if is_return {
                     returned = compiler_node_member(statement, "value");
                 } else {
-                    context.error = "Type constructors currently support a struct and return; general compile-time execution is not implemented";
+                    *error = "Type constructors currently support a struct and return; general compile-time execution is not implemented";
                     return null;
                 }
             }
         }
     }
     if returned == null {
-        context.error = "A type constructor must return a type";
+        *error = "A type constructor must return a type";
         return null;
     }
     if structure != null {
@@ -356,7 +359,7 @@ export fn generic_type_result(context: GenericContext*, instance: Entity*): Enti
         if compiler_name_equal(name, returned) {
             return structure;
         }
-        context.error = "A type constructor with a local struct must return that struct";
+        *error = "A type constructor with a local struct must return that struct";
         return null;
     }
     loop {
@@ -367,6 +370,13 @@ export fn generic_type_result(context: GenericContext*, instance: Entity*): Enti
             return returned;
         }
     }
+}
+
+export fn generic_type_result(context: GenericContext*, instance: Entity*): Entity* {
+    var error: u8* = null;
+    var result = generic_type_result_read(instance, &error);
+    if error != null { context.error = error; }
+    return result;
 }
 
 

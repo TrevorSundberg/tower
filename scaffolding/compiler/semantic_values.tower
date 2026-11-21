@@ -742,14 +742,16 @@ fn sem_call_specialization(c: SemanticContext*, definition: void*, use: void*, a
 // The coordinator publishes a nominal instance and parameter scopes, then
 // requests their existing declaration queries. No return/parameter type is
 // forced here; the consumer suspends until the signature receipt is ready.
-fn sem_prepare_call(c: SemanticContext*, use: void*): SemanticPreparedCall* {
+fn sem_prepare_call(c: SemanticContext*, use: void*, arguments: vector(void*)*): SemanticPreparedCall* {
     var prepared = sem_prepared_call(c, use);
     if prepared != null { return prepared; }
     var name = sem_member(use, "name");
     var definition = sem_resolve(c, c.templates, name, sem_identifier(c, name));
     sem_require(definition != null && c.declaration_subjects != null);
     var values = sem_list(c);
-    var arguments = sem_call_arguments(c, definition, use, sem_collect(c, sem_member(use, "args"), "CoreCallArgument"), values);
+    var args = sem_collect(c, sem_member(use, "args"), "CoreCallArgument");
+    if arguments == null { arguments = sem_call_arguments(c, definition, use, args, values); }
+    else { foreach(var argument in args) { sem_push(values, argument); } }
     if !sem_ok(c) { return null; }
     var instance = sem_call_instance(c, definition, use, arguments);
     if instance == null { return null; }

@@ -684,9 +684,11 @@ containers. Benchmark representative compiler workloads before migrating them.
   checked on workers after declaration/signature and layout dependencies publish.
   Prepared consumers yield for worker readmission with explicit signature reads;
   worker-created evaluations publish into the same interpreter query graph.
-  Generic deduction/preparation, type construction and indexed declaration
-  operands retain coordinator checking. Call continuations preserve enclosing
-  evaluation depth so skipped nested stages remain lazy during deduction.
+  Eligible generic argument deduction also runs on workers with private type
+  constraints and alias diagnostics; the coordinator interns results and creates
+  signatures. Type construction and indexed declaration operands still retain
+  coordinator checking. Call continuations preserve enclosing evaluation depth
+  so skipped nested stages remain lazy during deduction.
   Shared entities now use stable component pages, exact-signature archetype rows,
   published component columns and view-owned multi-component query plans.
   These index stable payload pointers; they do not relocate component data.

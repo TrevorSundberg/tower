@@ -24,9 +24,10 @@ struct SemanticEvaluationWork {
     error_offset: usize;
 }
 
-// Each stage expression owns its checked semantic tree. A nested comptime node
-// is an immutable placeholder here; its hidden producer expression belongs to a
-// different job. Lowering never descends through that constant placeholder.
+// Each stage expression owns its checked semantic tree. Nested stages share
+// immutable type/readiness information and integer literal placeholders; their
+// hidden producer expressions belong to different jobs. Enum conversions belong
+// to the consuming expression and lower around those same pending literals.
 fn semantic_evaluation_prepare_kernel(result: SemanticEvaluationWork*): void {
     var context: SemanticContext;
     var program: SemanticProgram;

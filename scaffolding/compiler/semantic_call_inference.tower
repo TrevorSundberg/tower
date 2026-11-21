@@ -10,17 +10,18 @@ import semantic_modules;
 import semantic_generic_info;
 import .library.vector;
 
-// Query-local constraints refer to the existing parameter and canonical type
-// entities. Specialization still uses generic_instantiate and ordinary calls.
-// The owning compilation unit exclusively mutates its context/entity store.
-// CompilerWork can run independent units in workers; these scratch bindings and
-// entity pointers never cross worlds or become process-wide mutable caches.
+// Query-local constraints refer to existing parameters and FoundationType values.
+// Workers keep private type copies and diagnostics; the coordinator interns
+// published constraints before generic_instantiate and ordinary call checking.
+// Serial callers retain immediate interning. Bindings never cross worlds.
 struct SemanticCallInference {
     context: SemanticContext*;
     definition: void*;
     use: void*;
     parameters: vector(void*)*;
     bindings: vector(void*)*;
+    intern: bool;
+    order: vector(void*)*;
 }
 
 fn sem_infer_parameter(inference: SemanticCallInference*, annotation: void*): usize {
@@ -52,12 +53,19 @@ fn sem_infer_parameter(inference: SemanticCallInference*, annotation: void*): us
 fn sem_infer_bind(inference: SemanticCallInference*, index: usize, actual: FoundationType*): void {
     var c = inference.context;
     var old = inference.bindings.data[index];
-    if old != null && !semantic_type_equal(&sem_get(old).type, actual) {
+    if old != null && !semantic_type_equal(bits(FoundationType*, old), actual) {
         var name = sem_identifier(c, sem_member(inference.parameters.data[index], "name"));
         sem_fail(c, inference.use, sem_cat(c, "Conflicting inferred types for '", sem_cat(c, name, "'")));
         return;
     }
-    inference.bindings.data[index] = sem_type_entity(c, actual);
+    if old != null { return; }
+    if inference.intern {
+        inference.bindings.data[index] = bits(void*, &sem_get(sem_type_entity(c, actual)).type);
+    } else {
+        var type = bits(void*, sem_type_copy(c, actual));
+        inference.bindings.data[index] = type;
+        sem_push(inference.order, type);
+    }
 }
 
 fn sem_infer_match(inference: SemanticCallInference*, annotation: void*, actual: FoundationType*, substitutions: GenericBinding*, depth: u32): void {
@@ -130,8 +138,10 @@ fn sem_infer_match(inference: SemanticCallInference*, annotation: void*, actual:
         if arguments.length != parameters.length {
             return;
         }
-        var returned = generic_type_result(c.generics, definition);
-        if !sem_generic_ok(c, inference.use) {
+        var error: u8* = null;
+        var returned = generic_type_result_read(definition, &error);
+        if error != null {
+            sem_fail(c, inference.use, error);
             return;
         }
         // Follow the existing straight-return alias subset by substituting its
@@ -198,7 +208,9 @@ fn sem_infer_contextual(c: SemanticContext*, argument: void*): bool {
     return !sem_equal(text, "true") && !sem_equal(text, "false") && text[0] != 34 && text[0] != 39;
 }
 
-fn sem_infer_arguments(c: SemanticContext*, definition: void*, use: void*, values: vector(void*)*): vector(void*)* {
+// Bindings are ordinary FoundationType copies in query-local scratch. Serial
+// callers intern immediately; workers publish constraints for coordinator interning.
+fn sem_infer_types(c: SemanticContext*, definition: void*, use: void*, values: vector(void*)*, intern: bool, order: vector(void*)*): vector(void*)* {
     var parameters = sem_collect(c, sem_member(definition, "params"), "CoreParameter");
     var bindings = sem_list(c);
     var result = sem_list(c);
@@ -211,6 +223,8 @@ fn sem_infer_arguments(c: SemanticContext*, definition: void*, use: void*, value
     inference.use = use;
     inference.parameters = parameters;
     inference.bindings = bindings;
+    inference.intern = intern;
+    inference.order = order;
     // Analyze typed arguments first, without evaluating runtime code. The call's
     // item list is still emitted in source order, exactly once per argument.
     var value_index: usize = 0;
@@ -262,6 +276,15 @@ fn sem_infer_arguments(c: SemanticContext*, definition: void*, use: void*, value
             }
             sem_push(result, bindings.data[i]);
         }
+    }
+    return result;
+}
+
+fn sem_infer_arguments(c: SemanticContext*, definition: void*, use: void*, values: vector(void*)*): vector(void*)* {
+    var types = sem_infer_types(c, definition, use, values, true, null);
+    var result = sem_list(c);
+    if sem_ok(c) {
+        foreach(var type in types) { sem_push(result, sem_type_entity(c, bits(FoundationType*, type))); }
     }
     return result;
 }

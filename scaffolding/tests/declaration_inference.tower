@@ -1,0 +1,27 @@
+import tower;
+var failures:i32=0;
+fn check(ok:bool):void { if !ok { failures++; } }
+fn identity(T:type,value:T):T { return value; }
+fn choose(T:type,first:T,second:T):T { return first+second; }
+fn box(T:type):type { struct Item { value:T; } return Item; }
+fn alias(T:type):type { return box(T); }
+fn read(T:type,value:alias(T)*):T { return value.value; }
+fn pointer(L:type,R:type,right:R,left:L):R { return right; }
+var wide:u64=20;
+var small:i32=3;
+var picked=choose(2,identity(wide+20));
+var address=pointer(&wide,&small);
+var same=identity(&wide);
+var record:box(u64);record.value=42;
+var field=read(&record);
+check(picked==42 && *address==20 && same==address && field==42);
+var effects:i32=0;
+fn bump():i32 { effects++;return effects; }
+var ignored:decltype(choose(bump(),bump()))=0;
+check(effects==0 && ignored==0);
+var ordered=choose(bump(),bump());
+check(effects==2 && ordered==3);
+var stage=comptime(identity(comptime(20)+comptime(22)));
+var skipped=comptime(false ? identity(comptime(1/0)) : 42);
+check(stage==42 && skipped==42);
+print(failures);

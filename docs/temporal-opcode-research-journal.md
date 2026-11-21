@@ -29440,3 +29440,127 @@ the default bootstrap, but its semantics overlay exits 139 without a diagnostic.
 No inference draft is integrated or included in this release. Investigate that
 bootstrap crash before adopting it. The prospective inference fixture passes
 on the current validated compiler, and its debugger baseline remains thread 1.
+
+### 2026-11-21 — worker deduction and enum temporary correction (in progress)
+
+Continuation checkpoint bed68c5 is pushed and published as Pages
+8e5d72b4611105d5ce514648b91dead383f15c5e, action 44891212797 successful;
+hosted verification matches 77 assets and is finishing browser workflows.
+
+Correction to the draft crash attribution: unchanged semantics sources also
+crash during full Foundation formatting. The draft itself builds a native object
+with the documented default bootstrap. GDB shows formatting stopped at the enum
+conditional used to select DeclarationType/Declaration kernels. The lowered
+initial zero has an enum type but no named-member binding, which the formatter
+dereferences. Route internal enum constants through the existing ordinary
+conversion representation already used for enum default initialization. Added
+conditional/nested/coalesced enum round-trip coverage, including a zero that
+names no member. This is canonical literal construction, not a folding pass.
+
+The next deduction continuation is now integrated for validation. Eligible
+omitted-type calls yield the current declaration receipt, check operands and
+match constraints on workers under syntax leases, and publish private copies of
+FoundationType values. The coordinator interns first-binding-order types and
+constructs the signature; it still owns structural publication. Serial callers
+retain immediate interning. Type-alias inspection now has a read-only Tower
+entry point with caller-owned diagnostics, avoiding writes to shared generic
+error state. No new semantic graph or native feature code is introduced.
+
+Evidence: inference-{bootstrap,format}-crash.log, inference-baseline-format.log
+(exit 139), inference-draft-object.log (success), declaration-inference-before-debug.log
+(16 coordinator checks), declaration-inference-fixture-before.log (0). Actual
+worker dispatch and release validation follow; the inference code is not yet
+claimed validated or published.
+
+The first integrated inference build succeeds. Its fixture prints 0, and GDB
+moves all 16 inferred-argument checks from thread 1 to threads 4–11, two each;
+Foundation remains byte-identical. Full semantics now formats successfully to
+3.5 MiB of Foundation, unlike the baseline crash. Corrected fixture pointer
+spacing (`* =` rather than the compound `*=` token); enum expression round-trip
+then prints 0. Hosted bed68c5 verification finishes all assets and workflows;
+report: declaration-continuations-hosted-report.json.
+
+The enum audit also reproduces two adjacent canonicalization failures: enum
+pointer default formats an illegal pointer conversion, and comptime enum output
+crashes formatting with the same missing-member binding (exit 139). Keep pointer
+defaults as null, represent enum evaluation output as an ordinary conversion of
+a typed integer literal, and link that literal to the same evaluation receipt.
+Lowering materializes the integer with its exact type before conversion, so
+unnamed u64/i64 values remain valid Foundation and cannot capture a stale zero
+while an inner query is suspended. This uses ordinary interpreter results and
+ordinary Foundation operations, not a constant propagation/folding pass.
+Extended the enum fixture with nested/lazy stages, deferred aliases, null enum
+pointers, u64 maximum and i64 minimum values. Validation is restarting for these
+canonicalization corrections before any inference checkpoint publication.
+
+The expanded enum trial first exposed a separate pre-existing capture guard:
+it rejected a named enum constant because that constant has a binding to its
+member declaration. Exclude constant operands from runtime-storage capture
+rejection; ordinary local/global operands remain rejected. The negative alias
+fixture originally used untyped numeric literals, which correctly failed before
+alias matching with "Cannot infer type argument". Supply a typed operand so it
+actually exercises the new private alias diagnostic. These are trial corrections,
+not relaxed assertions. Rerun before broad validation.
+
+The corrected expanded enum fixture now formats, recompiles and prints 0,
+including nested enum dependencies, lazy skipped stages, deferred aliases and
+64-bit unnamed values. The typed alias fixture now reports the intended type-
+constructor diagnostic through private inference state. Freeze the combined
+worker-deduction and canonical-enum changes for native suites, all browser
+backends and release validation. No native feature implementation was added.
+
+Frozen inference/enum sources pass native 8/8 (45.21s) plus backend API,
+capacity 3/3 (69.90s) and editor 28/28 (159.74s). Actual native semantics and
+entities successor objects compare byte-for-byte. Full semantics Foundation now
+recompiles and is text-idempotent. Its object is not byte-identical to direct
+source: function ordering differs, and sem_control_match is 17 bytes larger.
+Do not equate canonical source with identical backend optimization decisions.
+A separately linked compiler using that Foundation-recompiled semantics object
+rebuilds the direct semantics source into the exact original object; this is an
+additional behavioral bootstrap check. Evidence: declaration-inference-{successor,
+canonical,canonical-successor}.log and saved Foundation/object/section/symbol files.
+The final cmp in successor.log intentionally records the direct-vs-Foundation
+object mismatch; the two actual successor-object comparisons before it passed.
+
+Next-work baseline confirms sixteen builtin-contained and sixteen indexed
+expression checks still execute entirely on coordinator thread 1; logs and
+Foundation snapshots are declaration-{builtin,index}-before*. Draft role-aware
+admission is kept outside frozen release sources. Its prospective fixture passes
+with the current compiler: indexed aggregate/field dependencies, builtin type
+arguments, lazy and unevaluated stages, ordinary inference, and effect order.
+The draft must retain structural exclusion for array/type construction even when
+its syntax occurs in a builtin argument or default expression.
+
+Both edited browser generations pass at 2/4 unit workers (174.57s / 101.01s),
+with identical bytes: tower 1,042,064; LLVM 52,347,157; cross 63,904,596.
+Hashes are saved in declaration-inference-generation{1,2}.json. Local deployment
+verifies all 77 hashes and desktop/mobile/editor/native-download/default-target
+workflows. The extended regression suite remains running.
+
+The next operand draft's first isolated compile failed because its wrapper
+imported a symlinked Tower grammar under a second lexical module identity; the
+compiler correctly diagnosed duplicate grammar alternatives. Removing the
+redundant wrapper import leaves the compiler units' ordinary imports authoritative;
+the default bootstrap then builds the draft object. The readiness audit also
+requires pointer-depth projection through address/dereference and indexing before
+selected-field layout dependencies. Computed bases with no read-only type
+projection remain conservatively excluded until they have continuations.
+
+The isolated operand draft passes graph/fast interpretation and a Foundation
+round trip (all print 0), including dereferenced pointer-to-array and address-of
+array field projections. Relocating the temporary executable initially left
+fast-mode embedded compilation without adjacent share/tower resources; running
+the same candidate beside the native build's resources resolves that harness
+failure. Both builtin/index debugger samples move from sixteen coordinator
+checks to two checks each on eight workers; before/after Foundation compares
+byte-for-byte. This remains next-work draft evidence, not part of the inference
+release artifact. Files: declaration-operands-draft-test{,-resources}.log and
+declaration-{builtin,index}-after-debug.log.
+
+Frozen inference/enum regressions pass 112/112, zero failures/skips (579.17s).
+All release checks are complete: native 8/8 plus backend API, capacity 3/3,
+editor 28/28, two identical native successor units, canonical Foundation
+idempotence and a Foundation-rebuilt compiler successor, two identical edited
+browser generations, and local deployment. Commit/pull/rebase and publication
+follow before integrating the separately tested operand draft. todo.txt remains
+unchanged (96a9e58964d7f01e4a97819f259448db81ef5e40).

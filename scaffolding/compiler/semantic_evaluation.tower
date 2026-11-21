@@ -27,6 +27,7 @@ struct SemanticEvaluation {
     kernel: CompilerKernel;
     ticket: WorkTicket;
     subject: void*;
+    literal: void*;
     expression: void*;
     function: void*;
     ready: IMDependency*;
@@ -97,6 +98,15 @@ fn sem_comptime(c: SemanticContext*, n: void*, expected_type: FoundationType*): 
     // This typed placeholder cannot leave compilation. The query result replaces
     // it before any formatter, runtime or backend can consume the checked graph.
     value.bits = 0;
+    var literal = n;
+    if input.type.pointers == 0 && semantic_enum(&input.type) {
+        var underlying = sem_type_copy(c, &input.type);
+        underlying.record = null;
+        literal = sem_surface_constant(c, n, underlying, 0);
+        value.kind = KConvert();
+        value.constant = false;
+        value.value = literal;
+    }
     if c.unevaluated { return n; }
     if input.type.pointers != 0 || semantic_aggregate(&input.type) || input.type.scalar == SVoid() {
         sem_fail(c, n, "Compile-time results currently require an integer or bool value");
@@ -107,12 +117,22 @@ fn sem_comptime(c: SemanticContext*, n: void*, expected_type: FoundationType*): 
     sem_require(result != null);
     fill(result, 0, sizeof(SemanticEvaluation));
     result.subject = n;
+    result.literal = literal;
     result.expression = expression;
     result.requested = c.evaluation_depth == 0;
     result.ready = bits(IMDependency*, entity_component_data(entity_component_add(n, c.evaluation_ready)));
     sem_require(result.ready != null);
     fill(result.ready, 0, sizeof(IMDependency));
     result.ready.subject = n;
+    if literal != n {
+        // Lowering may materialize the typed integer before its enum conversion.
+        // That initializer must suspend too, before it can capture a stale zero.
+        var link = bits(IMDependency*, entity_component_data(entity_component_add(literal, c.evaluation_ready)));
+        sem_require(link != null);
+        *link = default;
+        link.subject = literal;
+        link.source = result.ready;
+    }
     result.kernel.kind = CompilerKernelKind.Evaluate;
     result.kernel.payload = bits(void*, &result.invocation);
     sem_require(vector_push(void*, &c.evaluation_jobs, bits(void*, result)));
@@ -134,7 +154,7 @@ fn sem_evaluation_prepare(c: SemanticContext*, result: SemanticEvaluation*): voi
         var entity = scan.data[scan.length];
         var value = sem_get(entity);
         if value == null { continue; }
-        if value.kind == KOperand() && value.binding != null {
+        if value.kind == KOperand() && value.binding != null && !value.constant {
             sem_fail(c, entity, "Compile-time expression cannot capture runtime storage; pass explicit compile-time arguments");
             return;
         }
@@ -235,6 +255,7 @@ fn sem_evaluations(c: SemanticContext*): void {
             } else {
                 if invocation.state.done {
                     sem_get(result.subject).bits = invocation.context.result;
+                    sem_get(result.literal).bits = invocation.context.result;
                     for(var alias: usize = 0; alias < result.aliases.length; alias++) {
                         sem_get(result.aliases.data[alias]).bits = invocation.context.result;
                     }

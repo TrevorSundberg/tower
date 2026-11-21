@@ -337,6 +337,8 @@ extern fn generic_lookup(context: void*, node: void*, name: void*): void*;
 
 extern fn generic_type_result(context: void*, instance: void*): void*;
 
+extern fn generic_type_result_read(instance: void*, error: u8**): void*;
+
 extern fn generic_origin(context: void*, node: void*): void*;
 
 extern fn generic_definition(context: void*, node: void*): void*;

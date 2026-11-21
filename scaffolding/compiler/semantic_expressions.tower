@@ -95,7 +95,7 @@ fn sem_default(c: SemanticContext*, n: void*, expected_type: FoundationType*, de
         value.kind = SurfaceDefault();
         c.surface_expressions = true;
     } else {
-        if semantic_enum(type) {
+        if type.pointers == 0 && semantic_enum(type) {
             // Zero need not name an enum member. Preserve its ordinary compilable
             // conversion spelling instead of creating an unnamed enum constant.
             var underlying = sem_type_copy(c, type);
@@ -134,9 +134,18 @@ fn sem_surface_integer(c: SemanticContext*, n: void*): bool {
 fn sem_surface_constant(c: SemanticContext*, parent: void*, type: FoundationType*, bits_value: u64): void* {
     var n = sem_control_node(c, parent, KOperand());
     var value = sem_get(n);
-    value.constant = true;
-    value.bits = bits_value;
     sem_set_type(&value.type, type);
+    if type.pointers == 0 && semantic_enum(type) {
+        // Internal zero temporaries need not name a member. Use the same
+        // ordinary Foundation conversion as an enum default initializer.
+        var underlying = sem_type_copy(c, type);
+        underlying.record = null;
+        value.kind = KConvert();
+        value.value = sem_surface_constant(c, n, underlying, bits_value);
+    } else {
+        value.constant = true;
+        value.bits = bits_value;
+    }
     return n;
 }
 

@@ -1,0 +1,37 @@
+import tower;
+enum Choice:u8 { First=5, Second=7 }
+var failures:i32=0;
+var flag:bool=true;
+var first=flag ? Choice.First : Choice.Second;
+var second=false ? Choice.First : Choice.Second;
+var nested=flag ? (false ? Choice.Second : Choice.First) : Choice.Second;
+fn choose(value:bool):Choice { return value ? Choice.First : Choice.Second; }
+struct Item { value:Choice; }
+var item:Item;item.value=Choice.Second;
+var present:Item* = &item;
+var absent:Item* = null;
+var selected=present?.value ?? Choice.First;
+var fallback=absent?.value ?? Choice.First;
+var zero:Choice=default;
+var pointer:Choice* = default;
+var staged=comptime(choose(true));
+var compared=comptime(comptime(choose(true))==Choice.First);
+var skipped=comptime(false ? comptime(choose(true)) : Choice.Second);
+enum Wide:u64 { Small=1 }
+fn wide():Wide { var value:u64=18446744073709551615; return convert(Wide,value); }
+var high=comptime(wide());
+enum Signed:i64 { Small=3 }
+fn signed():Signed { var value:i64=-9223372036854775808; return convert(Signed,value); }
+var low=comptime(signed());
+fn cleanup():i32 {
+    var result:u8=0;
+    { defer { result=convert(u8,comptime(choose(true))); } }
+    return convert(i32,result);
+}
+if first!=Choice.First || second!=Choice.Second || nested!=Choice.First { failures++; }
+if choose(true)!=Choice.First || choose(false)!=Choice.Second { failures++; }
+if selected!=Choice.Second || fallback!=Choice.First || convert(u8,zero)!=0 { failures++; }
+if pointer!=null || staged!=Choice.First || !compared || skipped!=Choice.Second { failures++; }
+if convert(u64,high)!=18446744073709551615 || convert(i64,low)!=-9223372036854775808 { failures++; }
+if cleanup()!=5 { failures++; }
+print(failures);
