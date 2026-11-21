@@ -424,6 +424,15 @@ Do NOT modify todo.txt
   distribution goals, not separate required bootstrap chains. Preserve host/target
   profiles and validate actual execution before claiming a portable release.
 - Types should become first-class values on the shared entity/component model.
+  Prioritize dedicated Tower definitions for all standard named types and type
+  constructors before fixed vectors/vectorization. Concrete types such as i32
+  and f32 should have source modules; pointers, references, structs, arrays,
+  functions and other families use Tower implementations of a shared protocol.
+  Compiler special cases merely written in Tower do not satisfy this endpoint.
+  Foundation imports these definitions; Bedrock stays the grammar/bootstrap layer
+  and does not import the standard-type prelude. Preserve a small explicit
+  execution foundation, canonical Foundation spellings, ordinary staged semantics
+  and predecessor/successor bootstrapping. See docs/tower-language-plan.md.
   Parameterized types use ordinary parenthesized application, e.g. vector(i32),
   with Tower functions accepting and producing types. Templates/generics should
   grow from this model; explicit specialization is a bootstrap milestone, not a

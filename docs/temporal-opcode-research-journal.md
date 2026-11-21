@@ -38510,3 +38510,12 @@ The final rebase onto 04f4ec9 adds only journal receipts. Verified every pinned
 source-file SHA-256 against the rebased checkout, then updated the final pin's
 source base to published ancestor 51c038e; compiler inputs and validated binaries
 are unchanged. This corrects provenance after Git rewrote the local commit IDs.
+
+Publication receipt: main 2129066 and Pages ba49d1f were pushed successfully.
+The hosted manifest matched exactly, and verify-deployment against
+https://tower-lang.org/ passed all 86 asset hashes plus complete desktop/mobile
+execution, backend agreement, downloads, grammar, completion, highlighting and
+persistence checks. Evidence: build/functions-hosted-verification.log. Added the
+user's type-module/Foundation-before-vectors priority to AGENTS.md as ongoing
+guidance. This receipt/guidance update reuses the verified assets and retains
+their build-source identity; it does not implement the pending type migration.
