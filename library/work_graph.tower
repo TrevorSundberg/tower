@@ -417,9 +417,8 @@ fn work_access_available(g: WorkGraph*, task: WorkTask*): bool {
     while a != 0 {
         var ai = a -1;
         var access = &g.accesses.data[ai];
-        var i: usize = 0;
-        for(; i < g.executing.length; i++) {
-            var other = work_task(g, g.executing.data[i]);
+        foreach(var & executing_item in &g.executing) {
+            var other = work_task(g, *executing_item);
             var b = other.access;
             while b != 0 {
                 var bi = b -1;
@@ -710,9 +709,7 @@ fn work_cancel(g: WorkGraph*): void {
     g.ready.length = 0;
     g.head = 0;
     g.executing.length = 0;
-    var i: usize = 0;
-    for(; i < g.tasks.length; i++) {
-        var task = &g.tasks.data[i];
+    foreach(var & task in &g.tasks) {
         if task.state != WorkState.Succeeded {
             task.state = WorkState.Cancelled;
         }
@@ -748,8 +745,8 @@ fn work_cycle(g: WorkGraph*, root: usize, output: vector(usize)*): bool {
     }
     g.sweep++;
     if g.sweep == 0 {
-        for(var i: usize = 0; i < g.tasks.length; i++) {
-            g.tasks.data[i].visit = 0;
+        foreach(var & task in &g.tasks) {
+            (*task).visit = 0;
         }
         g.sweep = 1;
     }
