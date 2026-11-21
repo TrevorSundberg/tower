@@ -31696,3 +31696,26 @@ format, and execution of formatted output at widths 4/8. The full existing Tower
 execution/package harness passes after the new cases. Initial test-helper builds
 needed a direct format_types import and vector-byte comparison (FormatResult.text
 is vector(u8), not ByteBuffer); no compiler workaround was introduced.
+
+Rebased the feature onto 3c9a01c, including the Tower syntax-session/editor view
+migration and both Stronghold journal entries. Kept both sides of the append-only
+journal conflict. Rebuilt the integrated native compiler and reran the affected
+execution/formatter/worker harness successfully (build/named-fields-rebased.log).
+Packaged the clean implementation revision 12a94e2 through existing
+bootstrap/package.py: archive SHA-256
+961952b73e4e9e1d9d08556c3a7f651ae8457c76cbc4c70d7f72d80f5c857742.
+The complete resources match the source grammar. This remains the documented
+hybrid Linux x64 Ubuntu 24/LLVM 19 development bootstrap, not a portable release.
+
+The freshly hash-installed package executes the named-initialization fixture with
+its own resources (0), and the default no-override build in the new directory
+/cache/named-fields-clean completes all 55 steps (build/named-fields-clean.log).
+Publish this implementation/pin before converting compiler sources. Added the
+Tower fixture to the existing LLVM browser test transport as well; its functional
+cases and expected failure counter remain in Tower.
+
+The publication pull added f0bf760 (journal only); preserved its publication note
+and both feature entries through the rebase. Compiler/build inputs and bootstrap
+bytes are unchanged, so the clean-build evidence remains applicable. Regenerated
+the package provenance against the rebased reachable implementation revision
+f5b07a6 rather than leaving the old pre-rebase revision as its source base.

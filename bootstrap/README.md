@@ -28,7 +28,9 @@ the operator fixtures, and a clean successor build before updating this pin.
 Never migrate compiler source to unsupported syntax before the replacement
 bootstrap is committed and the default clean build path has passed.
 
-The current pin supports target-typed `default`/`default(Type)` initialization,
+The current pin supports named-field destination initialization (`{ x: 1 }`,
+`init(Type) { ... }`, nested fields and explicit `..default`),
+target-typed `default`/`default(Type)` initialization,
 expression operators, scoped `for`/`defer`, borrowed
 `foreach` with nominal iteration protocols, exact generic
 call-argument inference, identifier module paths, leading parent dots, and exact
