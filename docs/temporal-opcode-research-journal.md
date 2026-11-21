@@ -34950,3 +34950,26 @@ subjects. Keep every value computation in the interpreter and record each clone'
 eligibility-query dependency. This is a pending change, not an implemented phase.
 Structural type/generic/protocol work and native LLVM job/target-registration
 integration remain larger subsequent items; publication does not mark 100%.
+
+Publication integration encountered two normal push rejections while other work
+advanced main; no force push occurred. The first extra update was journal-only.
+The next was 736f8f1/2973483's real LR-closure and playground-latency change, so
+rebased it and started a fresh 2292bd8-bootstrap native successor plus affected
+browser rebuilds. The preceding two browser generations both passed, with equal
+successor hashes (ecs-lazy-capture-generations.log); those results describe the
+pre-latency snapshot and are retained as such, not relabeled as the merged build.
+The journal's repeated append-only merge conflicts were an iteration bottleneck.
+Added Git's built-in union merge attribute for this journal alone, matching the
+existing requirement to preserve prior entries and append corrections. It keeps
+both writers' appended records; source-code files retain ordinary conflict handling.
+
+Deployment provenance issue found independently: the current gh-pages manifest
+names runtime buildSourceCommit 2f6ce16c9e8e6d525215af60b2ba2eb1ecb89bdb, which
+is not a local object and cannot be fetched from origin ('not our ref'). Its
+sourceCommit 8df50ca is also not the advertised main checkpoint. The latency
+implementation itself is now present in main as 736f8f1/2973483. The older local
+publish-pages.py's strict predecessor-source ancestry check cannot validate the
+unavailable build identifier. Do not bypass that check by fabricating ancestry
+or disabling assertions. The next deployment must preserve the actual gh-pages
+commit ancestry, use a published/verifiable main source and verify its own exact
+artifact hashes; retain this correction to the previous metadata's limitation.
