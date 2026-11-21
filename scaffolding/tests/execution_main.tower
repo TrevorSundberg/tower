@@ -20,6 +20,8 @@ import execution_world;
 import named_initialization_checks;
 import struct_value_checks;
 import known_binding_checks;
+import floating_checks;
+import floating_oracle;
 import body_runs;
 import editor_observations;
 
@@ -32,9 +34,11 @@ export fn main(argc: i32, argv: u8**): i32 {
     var suite: u8* = argc == 3 ? argv[2] : "all";
     var all = strcmp(suite, "all") == 0;
     var known = strcmp(suite, "known") == 0;
+    var floating = strcmp(suite, "floating") == 0;
+    var oracle = strcmp(suite, "floating-oracle") == 0;
     var bodies = strcmp(suite, "body-smoke") == 0;
     var editor = strcmp(suite, "editor") == 0;
-    execution_check(all || known || bodies || editor, "known execution suite");
+    execution_check(all || known || bodies || editor || floating || oracle, "known execution suite");
     if all || editor { editor_observation_tests(argv[1]); }
     if editor { return 0; }
     if bodies {
@@ -59,10 +63,13 @@ export fn main(argc: i32, argv: u8**): i32 {
     execution_check(syntax_host_install(compiler_host_world(), request.text[DriverBedrockText].data, false, &result), "install Bedrock" );
     execution_check(syntax_host_install(compiler_host_world(), request.text[DriverFoundationText].data, true, &result), "install Foundation" );
     frontend_modules_configure(request.modules, "named_initialization_input.tower", argv[1]);
+    if oracle { floating_oracle_tests(request.modules); return 0; }
     if all {
         named_initialization_tests(request.modules, argv[1]);
         struct_value_tests(request.modules, argv[1]);
     }
+    if all || floating { floating_tests(request.modules, argv[1]); }
+    if floating { return 0; }
     known_binding_tests(request.modules, argv[1]);
     if !all { return 0; }
     frontend_modules_configure(request.modules, options.source, argv[1]);

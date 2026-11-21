@@ -8,6 +8,8 @@ import semantic_support;
 var FoundationParameterLimit: usize = 64;
 
 export fn semantic_scalar_name(scalar: u32): u8* {
+    if scalar == SF32 { return "f32"; }
+    if scalar == SF64 { return "f64"; }
     if scalar == SI32 {
         return "i32";
     }

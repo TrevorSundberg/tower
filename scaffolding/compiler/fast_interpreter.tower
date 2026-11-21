@@ -6,6 +6,10 @@ import interpreter_abi;
 import interpreter_storage;
 import interpreter;
 import .library.vector;
+import .library.float_bits;
+
+var FMFloat32BinaryBase: usize = 144;
+var FMFloat64BinaryBase: usize = 160;
 
 // Private, disposable execution cache of checked foundation nodes. This is not
 // an interchange format or a second semantic IR. No graph pointers or compiler
@@ -579,6 +583,9 @@ fn fm_value(f: FMState*, node: void*): usize {
         var op = convert(usize, n.op) *5;
         op = op + 64;
         op = op + fm_tag(&input.type);
+        if semantic_float(&input.type) {
+            op = convert(usize, n.op) + (input.type.scalar == SF32 ? FMFloat32BinaryBase : FMFloat64BinaryBase);
+        }
         var result = fm_register(f);
         fm_emit(f, op, result, left, right);
         return result;
@@ -859,6 +866,11 @@ fn fm_sign(value: u64, tag: usize): i64 {
 }
 
 fn fm_binary(m: IMState*, opcode: usize, x: u64, y: u64): u64 {
+    if opcode >= FMFloat32BinaryBase {
+        var wide = opcode >= FMFloat64BinaryBase;
+        var base = wide ? FMFloat64BinaryBase : FMFloat32BinaryBase;
+        return tower_float_binary(x, y, convert(u32, opcode - base), wide ? Float64Width : Float32Width);
+    }
     var instruction = opcode -64;
     var op = instruction / 5;
     var tag = instruction % 5;

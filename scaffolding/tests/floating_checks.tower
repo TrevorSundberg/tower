@@ -1,0 +1,110 @@
+import tower;
+import body_runs;
+import frontend_units;
+import execution_support;
+import execution_core;
+import struct_value_checks;
+import .compiler.execution_session;
+import .compiler.execution_package;
+import .library.vector;
+import .library.bytes_types;
+import .library.bytes_interface;
+
+fn floating_package(graph: ExecutionSession*, modules: void*): void {
+    var bytes: ByteBuffer = default;
+    var error: ByteBuffer = default;
+    var repeated: ByteBuffer = default;
+    var loaded: ExecutionSession = default;
+    defer bytes_dispose(&bytes);
+    defer bytes_dispose(&error);
+    defer bytes_dispose(&repeated);
+    defer execution_session_close(&loaded);
+    execution_check(execution_package_encode(&graph.program, modules, 0, &bytes, &error), "Floating package encodes");
+    execution_check(execution_package_load(&loaded, bytes.data, bytes.length, modules), "Floating package reconstructs and verifies cache");
+    execution_run(&loaded, 1000, 100000);
+    execution_check(loaded.machine.done && execution_equal(&graph.output, &loaded.output) &&
+        execution_equal(&graph.error, &loaded.error), "Floating package preserves execution");
+    // Canonical reconstruction can renumber dead generated frame slots. The
+    // package identity is its Foundation and verified cache, not those bytes.
+    execution_check(execution_package_encode(&loaded.program, modules, 0, &repeated, &error) &&
+        execution_equal(&bytes, &repeated), "Floating package re-encodes identically");
+}
+
+fn floating_trap(modules: void*, source: u8*): void {
+    var graph: ExecutionSession = default;
+    var fast: ExecutionSession = default;
+    defer execution_session_close(&graph);
+    defer execution_session_close(&fast);
+    execution_compile(&graph, source, 8, modules);
+    execution_compile(&fast, source, 8, modules);
+    execution_check(execution_session_start(&graph) && execution_session_fast(&fast), "Floating trap engines start");
+    execution_run(&graph, 1000, 100000);
+    execution_run(&fast, 1000, 100000);
+    execution_same(&graph, &fast);
+    execution_check(strstr(graph.error.data, "Numeric conversion out of range") != null, "Floating conversion traps before invalid integer result");
+}
+
+fn floating_tests(modules: void*, root: u8*): void {
+    var source: vector(u8) = default;
+    var bedrock: vector(u8) = default;
+    var foundation: vector(u8) = default;
+    var output: vector(u8) = default;
+    defer vector_dispose(&source);
+    defer vector_dispose(&bedrock);
+    defer vector_dispose(&foundation);
+    defer vector_dispose(&output);
+    units_read(root, "/tests/floating_point.tower", &source);
+    units_read(root, "/tests/floating_output.tower", &output);
+    units_read(root, "/bedrock.tower", &bedrock);
+    units_read(root, "/foundation.tower", &foundation);
+    for (var width: u32 = 4; width <= 8; width += 4) {
+        var graph: ExecutionSession = default;
+        var fast: ExecutionSession = default;
+        defer execution_session_close(&graph);
+        defer execution_session_close(&fast);
+        execution_compile(&graph, source.data, width, modules);
+        execution_compile(&fast, source.data, width, modules);
+        execution_check(execution_session_start(&graph) && execution_session_fast(&fast), "Floating engines start");
+        execution_run(&graph, 1000, 100000);
+        execution_run(&fast, 1000, 100000);
+        execution_same(&graph, &fast);
+        execution_check(graph.machine.done && graph.error.length == 0 && execution_text(&graph.output, "0\n"), "Floating execution");
+        floating_package(&graph, modules);
+        // Aggregate/collection lowering renumbers generated frame slots on
+        // reparse; require stable canonical text and behavior for this fixture.
+        execution_roundtrip(&graph, modules, false);
+        var canonical: vector(u8) = default;
+        defer vector_dispose(&canonical);
+        for (var workers: usize = 1; workers <= 8; workers *= 2) {
+            body_runs_trial(source.data, workers, width, bedrock.data, foundation.data, root, &canonical);
+        }
+        execution_session_close(&graph);
+        execution_session_close(&fast);
+        execution_compile(&graph, output.data, width, modules);
+        execution_compile(&fast, output.data, width, modules);
+        execution_check(execution_session_start(&graph) && execution_session_fast(&fast), "Floating output engines start");
+        execution_run(&graph, 1000, 100000);
+        execution_run(&fast, 1000, 100000);
+        execution_same(&graph, &fast);
+        execution_check(execution_text(&graph.output, "1.00000001e-1\n1.0000000000000001e-1\n1.5\n-0.0\ninf\n-inf\nnan\n4.9406564584124654e-324\n1.7976931348623157e308\n"), "Deterministic floating decimal output");
+        execution_roundtrip(&graph, modules, true);
+        execution_session_close(&graph);
+        execution_compile(&graph, "import tower;fn sign(x:f64):f64{return -x;}var zero:f64=0;zero+=0;var payload=bits(f64,9221120237041090626);print(bits(i64,sign(zero)));print(bits(i64,payload));", width, modules);
+        execution_check(execution_session_start(&graph), "Scalar Foundation fixture starts");
+        execution_run(&graph, 1000, 100000);
+        execution_roundtrip(&graph, modules, true);
+    }
+    struct_value_reject(modules, "var value:f32=1e39;", "Floating literal out of range");
+    struct_value_reject(modules, "var value:f64=1e309;", "Floating literal out of range");
+    struct_value_reject(modules, "var value:i32=1.5;", "floating literal needs");
+    struct_value_reject(modules, "import tower;var a:f32=1;var b:f64=1;print(a+b);", "explicit conversion");
+    struct_value_reject(modules, "import tower;var a:f64=1;print(a%2);", "integer operands");
+    struct_value_reject(modules, "import tower;var a:f64=1;a&=2;", "integer operands");
+    struct_value_reject(modules, "import tower;var a:f64=1;print(~a);", "integer operands");
+    struct_value_reject(modules, "import tower;var a:f64=1;print(a<<2);", "integer operands");
+    struct_value_reject(modules, "import tower;print(comptime(convert(i64,9223372036854775808.0)));", "Numeric conversion out of range");
+    floating_trap(modules, "import tower;var x=2147483648.0;x+=0;print(convert(i32,x));");
+    floating_trap(modules, "import tower;var x=18446744073709551616.0;x+=0;print(convert(u64,x));");
+    floating_trap(modules, "import tower;var x=0.0;x/=x;print(convert(i32,x));");
+    puts("Floating values: strict arithmetic, inference, staging, storage, output, round trips and worker determinism pass.");
+}

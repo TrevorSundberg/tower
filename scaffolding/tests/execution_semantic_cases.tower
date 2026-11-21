@@ -112,8 +112,8 @@ fn execution_semantic_message(index: usize): u8* {
     if index == 32 { return "Memory operations require a pointer"; }
     if index == 33 { return "copy requires source and destination pointers"; }
     if index == 34 { return "Pointer reinterpretation requires bits"; }
-    if index == 35 { return "bits requires equal-width integers or pointers"; }
-    if index == 36 { return "bits requires equal-width integers or pointers"; }
+    if index == 35 { return "bits requires equal-width numeric values, or integers and pointers"; }
+    if index == 36 { return "bits requires equal-width numeric values, or integers and pointers"; }
     if index == 37 { return "Cannot offset a void pointer"; }
     if index == 38 { return "This operation requires integer operands"; }
     if index == convert(usize, SemanticInvalidCase.StructPrint) { return "print requires a scalar or pointer value"; }
@@ -200,7 +200,7 @@ fn execution_semantic_offset(index: usize): usize {
 // Body-demand metadata adds one nonsemantic owned leaf. An audit matched every
 // previous field/edge fingerprint with exactly that leaf excluded before updating
 // these complete-tree values; normal assertions continue to include all nodes.
-fn execution_semantic_hash(index: usize, width: u32): u64 {
+fn execution_semantic_integer_hash(index: usize, width: u32): u64 {
     if index == 0 { return width == 4 ? 9907626596609923109 : 5755149552227688041; }
     if index == 1 { return width == 4 ? 13795788637318273057 : 9261907403721142581; }
     if index == 2 { return width == 4 ? 16828665200364049160 : 6485169487827537940; }
@@ -213,5 +213,24 @@ fn execution_semantic_hash(index: usize, width: u32): u64 {
     if index == 9 { return width == 4 ? 2902914094115701703 : 7856633767709365227; }
     if index == 10 { return width == 4 ? 3575171273152446599 : 6352894962340042243; }
     if index == 11 { return width == 4 ? 4110405034519070419 : 597253792722484995; }
+    return 0;
+}
+
+// The floating-oracle audit reproduced every preceding fingerprint after
+// excluding exactly the f32/f64 registry entries. These complete fingerprints
+// include both new entries and retain all semantic fields, bindings and order.
+fn execution_semantic_hash(index: usize, width: u32): u64 {
+    if index == 0 { return width == 4 ? 15340892500092396181 : 8083663960729913337; }
+    if index == 1 { return width == 4 ? 14298020940744023439 : 14781124476609120507; }
+    if index == 2 { return width == 4 ? 171869663777765144 : 433206745296736708; }
+    if index == 3 { return width == 4 ? 12554241162508998314 : 10760266788895711234; }
+    if index == 4 { return width == 4 ? 16311754207719468452 : 10155451859809015780; }
+    if index == 5 { return width == 4 ? 16422711361552663161 : 51506207471111973; }
+    if index == 6 { return width == 4 ? 5842387587432636607 : 1421852303877955487; }
+    if index == 7 { return width == 4 ? 8773484591421182461 : 56409783004856109; }
+    if index == 8 { return width == 4 ? 6455062134651263631 : 12425680864917238871; }
+    if index == 9 { return width == 4 ? 4600714848320353357 : 2186297522259895161; }
+    if index == 10 { return width == 4 ? 10108536397841907695 : 15113008673131018579; }
+    if index == 11 { return width == 4 ? 16289861219645668247 : 13283064529737934655; }
     return 0;
 }

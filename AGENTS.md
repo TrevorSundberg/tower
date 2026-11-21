@@ -84,6 +84,15 @@ Do NOT modify todo.txt
 
 ## Writing Tower code
 
+- Use the correct concrete type for values, parameters, returns and pointers.
+  Avoid `void*` when the pointee type is known; preserve type information through
+  helpers and containers instead of erasing it and repeatedly casting it back.
+  Keep `void*` only where an existing opaque handle, foreign ABI or genuinely
+  untyped memory boundary requires it, and convert to the concrete type at that
+  boundary. Do not invent a concrete pointee for an opaque external handle.
+  When touching old code, replace avoidable type erasure while preserving ABI,
+  ownership, lifetimes and ECS world/entity contracts. New APIs should expose
+  typed handles/views where practical rather than spread `void*` through callers.
 - Use ordinary struct values for independent shallow copies and by-value Tower
   calls/returns. Prefer `var copy = source;` and `copy = source;` over raw byte
   copies of complete typed values. Pointer fields keep their addresses; copying
@@ -193,6 +202,18 @@ Do NOT modify todo.txt
   Use the common operand-unwrapping helper for literal/type queries, while keeping
   source grouping and provenance for formatting. Typed peers constrain literals;
   incompatible typed values require explicit conversions.
+- Use `f32`/`f64` for floating values, with a contextual type or an explicit
+  conversion when choosing precision. An unconstrained decimal/exponent literal
+  defaults to f64; typed peers constrain literals without silently promoting
+  typed integers or mixing precisions. Use ordinary expressions, compound
+  assignments and compile-time evaluation; do not hand-encode floating bits for
+  ordinary numeric values. Reserve `bits` for intentional representation work.
+  Strict operations round to nearest/ties-to-even, preserve subnormals and signed
+  zero, and canonicalize arithmetic NaNs. Keep raw copying/negation distinct from
+  numeric conversion. Share the Tower numeric implementation across staging and
+  runtime; do not substitute host floating behavior or add a separate evaluator.
+  Publish a compatible bootstrap before adopting f32/f64 in compiler/build source.
+  See docs/floating-point.md for the current contract and target limitations.
 - Keep this syntax in `tower.tower` and its shared-node checking/lowering above
   Foundation. Numeric grammar annotations (`@ N left/right/nonassoc`, including
   `L>R`/`R<L`) resolve eligible conflicts during table construction; ordinary

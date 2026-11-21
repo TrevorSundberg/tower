@@ -1,0 +1,275 @@
+import tower;
+import float_bits;
+
+// Decimal conversion uses bounded, caller-local scratch, never the host's
+// locale, floating environment or strtod. The bound is a diagnostic resource
+// limit on a single literal, not a limit on representable floating values.
+var FloatDecimalDigitLimit: usize = 4096;
+var FloatDecimalExponentLimit: i32 = 100000;
+var FloatDecimalCertainRange: i32 = 350;
+fn float_big_storage(): type { return u32[512]; }
+fn float_text_buffer(): type { return u8[32]; }
+fn float_exact_decimal_storage(): type { return u8[1200]; }
+var FloatBigLimbs = sizeof(float_big_storage()) / sizeof(u32);
+var FloatTextCapacity = sizeof(float_text_buffer());
+var Float32DecimalDigits: usize = 9;
+var Float64DecimalDigits: usize = 17;
+var FloatDecimalBase: u32 = 10;
+var FloatDecimalOddFactor: u32 = 5;
+var FloatDecimalZero: u8 = 48;
+var FloatDecimalNine: u8 = 57;
+var FloatDecimalPoint: u8 = 46;
+var FloatDecimalMinus: u8 = 45;
+var FloatDecimalPlus: u8 = 43;
+var FloatDecimalExponent: u8 = 101;
+var FloatDecimalUpperExponent: u8 = 69;
+
+enum FloatParseStatus: u32 { Valid, Invalid, Overflow, DigitLimit }
+struct FloatBig { limbs: float_big_storage(); length: usize; }
+
+fn float_big_set(value: FloatBig*, number: u64): void {
+    value.length = number == 0 ? 0 : 1;
+    value.limbs[0] = convert(u32, number & FloatLimbMask);
+    if number > FloatLimbMask { value.limbs[1] = convert(u32, number >> FloatLimbBits); value.length = 2; }
+}
+
+fn float_big_multiply(value: FloatBig*, factor: u32, extra: u32): void {
+    var carry = convert(u64, extra);
+    for (var i: usize = 0; i < value.length; i++) {
+        var product = convert(u64, value.limbs[i]) * convert(u64, factor) + carry;
+        value.limbs[i] = convert(u32, product & FloatLimbMask);
+        carry = product >> FloatLimbBits;
+    }
+    if carry != 0 {
+        if value.length == FloatBigLimbs { trap("Floating decimal scratch limit", 0); }
+        value.limbs[value.length++] = convert(u32, carry);
+    }
+}
+
+fn float_big_bits(value: FloatBig*): u32 {
+    if value.length == 0 { return 0; }
+    var result = convert(u32, value.length - 1) * FloatLimbBits;
+    var top = value.limbs[value.length - 1];
+    while top != 0 { result++; top >>= 1; }
+    return result;
+}
+
+fn float_big_shift(value: FloatBig*, count: u32): void {
+    if value.length == 0 || count == 0 { return; }
+    var words = convert(usize, count / FloatLimbBits);
+    var bits_count = count % FloatLimbBits;
+    if value.length + words + 1 > FloatBigLimbs { trap("Floating decimal scratch limit", 0); }
+    var carry: u32 = 0;
+    for (var i: usize = 0; i < value.length; i++) {
+        var combined = (convert(u64, value.limbs[i]) << bits_count) | convert(u64, carry);
+        value.limbs[i] = convert(u32, combined & FloatLimbMask);
+        carry = convert(u32, combined >> FloatLimbBits);
+    }
+    if carry != 0 { value.limbs[value.length++] = carry; }
+    var index = value.length;
+    while index != 0 { index--; value.limbs[index + words] = value.limbs[index]; }
+    for (var i: usize = 0; i < words; i++) { value.limbs[i] = 0; }
+    value.length += words;
+}
+
+fn float_big_compare(a: FloatBig*, b: FloatBig*): i32 {
+    if a.length != b.length { return a.length < b.length ? -1 : 1; }
+    var i = a.length;
+    while i != 0 {
+        i--;
+        if a.limbs[i] != b.limbs[i] { return a.limbs[i] < b.limbs[i] ? -1 : 1; }
+    }
+    return 0;
+}
+
+fn float_big_subtract(a: FloatBig*, b: FloatBig*): void {
+    var borrow: u64 = 0;
+    for (var i: usize = 0; i < a.length; i++) {
+        var right = borrow + (i < b.length ? convert(u64, b.limbs[i]) : 0);
+        var left = convert(u64, a.limbs[i]);
+        a.limbs[i] = convert(u32, (left - right) & FloatLimbMask);
+        borrow = convert(u64, left < right);
+    }
+    while a.length != 0 && a.limbs[a.length - 1] == 0 { a.length--; }
+}
+
+fn float_big_half(value: FloatBig*): void {
+    var carry: u32 = 0;
+    var i = value.length;
+    while i != 0 {
+        i--;
+        var next = value.limbs[i] << (FloatLimbBits - 1);
+        value.limbs[i] = (value.limbs[i] >> 1) | carry;
+        carry = next;
+    }
+    if value.length != 0 && value.limbs[value.length - 1] == 0 { value.length--; }
+}
+
+fn float_big_decimal(value: FloatBig*): u8 {
+    var carry: u64 = 0;
+    var i = value.length;
+    while i != 0 {
+        i--;
+        var number = (carry << FloatLimbBits) | convert(u64, value.limbs[i]);
+        value.limbs[i] = convert(u32, number / convert(u64, FloatDecimalBase));
+        carry = number % convert(u64, FloatDecimalBase);
+    }
+    if value.length != 0 && value.limbs[value.length - 1] == 0 { value.length--; }
+    return FloatDecimalZero + convert(u8, carry);
+}
+
+fn float_decimal_digit(byte: u8): bool { return byte >= FloatDecimalZero && byte <= FloatDecimalNine; }
+
+fn float_parse(text: u8*, width: u32, status: FloatParseStatus*): u64 {
+    *status = FloatParseStatus.Invalid;
+    var layout = float_layout(width);
+    var index: usize = 0;
+    var negative = text[index] == FloatDecimalMinus;
+    if negative || text[index] == FloatDecimalPlus { index++; }
+    var numerator: FloatBig = default;
+    float_big_set(&numerator, 0);
+    var digits: usize = 0;
+    var any = false;
+    var point = false;
+    var fraction: i32 = 0;
+    loop {
+        var byte = text[index];
+        if byte == FloatDecimalPoint && !point { point = true; index++; continue; }
+        if !float_decimal_digit(byte) { break; }
+        any = true;
+        if point {
+            if fraction == FloatDecimalExponentLimit { *status = FloatParseStatus.DigitLimit; return 0; }
+            fraction++;
+        }
+        if numerator.length != 0 || byte != FloatDecimalZero {
+            if digits == FloatDecimalDigitLimit { *status = FloatParseStatus.DigitLimit; return 0; }
+            digits++;
+            float_big_multiply(&numerator, FloatDecimalBase, convert(u32, byte - FloatDecimalZero));
+        }
+        index++;
+    }
+    if !any { return 0; }
+    var exponent: i32 = 0;
+    if text[index] == FloatDecimalExponent || text[index] == FloatDecimalUpperExponent {
+        index++;
+        var minus = text[index] == FloatDecimalMinus;
+        if minus || text[index] == FloatDecimalPlus { index++; }
+        if !float_decimal_digit(text[index]) { return 0; }
+        while float_decimal_digit(text[index]) {
+            if exponent < FloatDecimalExponentLimit { exponent = exponent * convert(i32, FloatDecimalBase) + convert(i32, text[index] - FloatDecimalZero); }
+            index++;
+        }
+        if minus { exponent = -exponent; }
+    }
+    if text[index] != 0 { return 0; }
+    *status = FloatParseStatus.Valid;
+    if numerator.length == 0 { return float_signed(0, negative, layout); }
+    var power = exponent - fraction;
+    var order = convert(i32, digits) + power - 1;
+    if order > FloatDecimalCertainRange { *status = FloatParseStatus.Overflow; return 0; }
+    if order < -FloatDecimalCertainRange { return float_signed(0, negative, layout); }
+    var denominator: FloatBig = default;
+    float_big_set(&denominator, 1);
+    var count = power < 0 ? -power : power;
+    for (var i: i32 = 0; i < count; i++) {
+        if power < 0 { float_big_multiply(&denominator, FloatDecimalOddFactor, 0); }
+        else { float_big_multiply(&numerator, FloatDecimalOddFactor, 0); }
+    }
+    var difference = convert(i32, float_big_bits(&numerator)) - convert(i32, float_big_bits(&denominator));
+    var comparison = numerator;
+    var divisor = denominator;
+    if difference < 0 { float_big_shift(&comparison, convert(u32, -difference)); }
+    else { float_big_shift(&divisor, convert(u32, difference)); }
+    if float_big_compare(&comparison, &divisor) < 0 { difference--; }
+    var scale = convert(i32, layout.fraction + FloatGuardBits) - difference;
+    if scale >= 0 { float_big_shift(&numerator, convert(u32, scale)); }
+    else { float_big_shift(&denominator, convert(u32, -scale)); }
+    divisor = denominator;
+    var bit = layout.fraction + FloatGuardBits;
+    float_big_shift(&divisor, bit);
+    var quotient: u64 = 0;
+    loop {
+        if float_big_compare(&numerator, &divisor) >= 0 {
+            float_big_subtract(&numerator, &divisor);
+            quotient |= convert(u64, 1) << bit;
+        }
+        if bit == 0 { break; }
+        bit--; float_big_half(&divisor);
+    }
+    if numerator.length != 0 { quotient |= 1; }
+    var raw = float_pack(negative, difference + power, quotient, layout);
+    if (raw & layout.infinity) == layout.infinity { *status = FloatParseStatus.Overflow; }
+    return raw;
+}
+
+// Caller supplies FloatTextCapacity bytes. Scientific spelling always contains
+// a decimal point, so reparsing preserves floating literal inference.
+fn float_text_digits(output: u8*, digits: u8*, length: usize, exponent: i32, negative: bool): usize {
+    var end: usize = 0;
+    if negative { output[end++] = FloatDecimalMinus; }
+    output[end++] = digits[0];
+    output[end++] = FloatDecimalPoint;
+    if length == 1 { output[end++] = FloatDecimalZero; }
+    for (var i: usize = 1; i < length; i++) { output[end++] = digits[i]; }
+    if exponent != 0 {
+        output[end++] = FloatDecimalExponent;
+        if exponent < 0 { output[end++] = FloatDecimalMinus; exponent = -exponent; }
+        var start = end;
+        loop {
+            output[end++] = FloatDecimalZero + convert(u8, exponent % convert(i32, FloatDecimalBase));
+            exponent /= convert(i32, FloatDecimalBase);
+            if exponent == 0 { break; }
+        }
+        var i = start;
+        var j = end - 1;
+        while i < j { var byte = output[i]; output[i++] = output[j]; output[j--] = byte; }
+    }
+    output[end] = 0;
+    return end;
+}
+
+fn float_text(raw: u64, width: u32, output: u8*): usize {
+    var layout = float_layout(width);
+    var value = float_unpack(raw, layout);
+    if value.category == FloatClass.Zero { return float_text_digits(output, "0", 1, 0, value.negative); }
+    if value.category == FloatClass.NaN || value.category == FloatClass.Infinity {
+        var text = value.category == FloatClass.NaN ? "nan" : (value.negative ? "-inf" : "inf");
+        var end: usize = 0;
+        while text[end] != 0 { output[end] = text[end]; end++; }
+        output[end] = 0; return end;
+    }
+    var number: FloatBig;
+    float_big_set(&number, value.significand);
+    var binary_power = value.exponent - convert(i32, layout.fraction);
+    var scale: i32 = 0;
+    if binary_power >= 0 { float_big_shift(&number, convert(u32, binary_power)); }
+    else {
+        scale = -binary_power;
+        for (var i: i32 = 0; i < scale; i++) { float_big_multiply(&number, FloatDecimalOddFactor, 0); }
+    }
+    var exact: float_exact_decimal_storage();
+    var count: usize = 0;
+    loop { exact[count++] = float_big_decimal(&number); if number.length == 0 { break; } }
+    var exponent = value.category == FloatClass.Zero ? 0 : convert(i32, count) - scale - 1;
+    var limit = width == Float32Width ? Float32DecimalDigits : Float64DecimalDigits;
+    var length = count < limit ? count : limit;
+    var digits: float_text_buffer();
+    for (var i: usize = 0; i < length; i++) { digits[i] = exact[count - i - 1]; }
+    if count > length {
+        var last = count - length - 1;
+        var half = FloatDecimalZero + convert(u8, FloatDecimalBase / 2);
+        var up = exact[last] > half;
+        if exact[last] == half {
+            up = (digits[length - 1] & 1) != 0;
+            for (var i: usize = 0; i < last; i++) { up ||= exact[i] != FloatDecimalZero; }
+        }
+        if up {
+            var i = length;
+            while i != 0 && digits[i - 1] == FloatDecimalNine { digits[--i] = FloatDecimalZero; }
+            if i == 0 { digits[0] = FloatDecimalZero + 1; exponent++; }
+            else { digits[i - 1]++; }
+        }
+    }
+    while length > 1 && digits[length - 1] == FloatDecimalZero { length--; }
+    return float_text_digits(output, &digits[0], length, exponent, value.negative);
+}

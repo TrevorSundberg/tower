@@ -1,0 +1,11 @@
+import tower;
+
+// The browser transport binds both names to its existing host addition callback.
+// Assertions and numeric test cases remain Tower source.
+extern fn f32_add(a: f32, b: f32): f32;
+extern fn f64_add(a: f64, b: f64): f64;
+if f32_add(1.5, 2.25) != 3.75 { trap("f32 foreign parameters/return", 0); }
+if f64_add(1.5, 2.25) != 3.75 { trap("f64 foreign parameters/return", 0); }
+if f32_add(16777216.0, 1.0) != 16777216.0 { trap("f32 foreign return rounding", 0); }
+if bits(i32, f32_add(-0.0, -0.0)) != -2147483648 { trap("f32 foreign negative zero", 0); }
+if bits(i64, f64_add(-0.0, -0.0)) != -9223372036854775808 { trap("f64 foreign negative zero", 0); }

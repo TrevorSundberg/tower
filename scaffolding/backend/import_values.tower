@@ -3,6 +3,10 @@ import bindings;
 import context;
 import import_bindings;
 import import_foundation;
+import .compiler.foundation_tags;
+import .library.float_bits;
+
+var LLVMConstantFloatValueKind: u32 = 19;
 
 fn bi_pow2(width: u32): u64 {
     var result: u64 = 1;
@@ -171,6 +175,12 @@ fn bi_value(c: BackendImport*, value: void*): void* {
     }
     var type = LLVMTypeOf(value);
     var scalar = bi_scalar(c, type);
+    var kind = LLVMGetValueKind(value);
+    if kind == LLVMConstantFloatValueKind {
+        var width = scalar == SF32 ? Float32Width : Float64Width;
+        var raw = LLVMConstBitCast(value, LLVMIntTypeInContext(c.backend.context, width));
+        return bi_literal(c, value, scalar, LLVMConstIntGetZExtValue(raw));
+    }
     var zero = LLVMIsNull(value) != 0;
     if LLVMIsUndef(value) != 0 {
         zero = true;
@@ -181,7 +191,6 @@ fn bi_value(c: BackendImport*, value: void*): void* {
     if zero {
         return bi_literal(c, value, scalar, 0);
     }
-    var kind = LLVMGetValueKind(value);
     var integer = kind == 18;
     if integer {
         return bi_literal(c, value, scalar, LLVMConstIntGetZExtValue(value));
@@ -202,7 +211,7 @@ fn bi_value(c: BackendImport*, value: void*): void* {
         }
         if cast {
             var operand = bi_value(c, LLVMGetOperand(value, 0));
-            if scalar == 10 {
+            if scalar == BackendImportPointer {
                 var input = sem_get(operand);
                 var integer = input.type.pointers == 0;
                 if integer {

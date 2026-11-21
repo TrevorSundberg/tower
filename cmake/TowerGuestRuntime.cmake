@@ -12,6 +12,12 @@ function(tower_guest_runtime name triple profile entry)
   set(source "import tower;\n")
   set(modules guest_runtime)
   set(pairs guest_runtime_allocate tower_allocate guest_runtime_reallocate tower_reallocate guest_runtime_deallocate tower_deallocate)
+  list(APPEND pairs guest_runtime_float_binary tower_strict_float_binary
+    guest_runtime_float_convert tower_strict_float_convert
+    guest_runtime_float_from_integer tower_strict_float_from_integer
+    guest_runtime_float_to_integer tower_strict_float_to_integer
+    guest_runtime_float_print tower_strict_float_print
+    --declare guest_runtime_output tower_print)
   if(profile STREQUAL "windows")
     list(APPEND modules guest_windows guest_bytes)
   elseif(NOT profile MATCHES "^linux-" AND NOT profile STREQUAL "wasm")

@@ -1,4 +1,34 @@
 import tower;
+import .library.float_bits;
+import .library.float_text;
+import runtime_output_tags;
+
+extern fn guest_runtime_output(kind: u32, value: u64, extent: u32): void;
+
+export fn guest_runtime_float_print(raw: u64, width: u32): void {
+    var text: float_text_buffer();
+    var length = float_text(raw, width, &text[0]);
+    guest_runtime_output(RuntimePrintText, convert(u64, bits(usize, &text[0])), convert(u32, length));
+}
+
+export fn guest_runtime_float_binary(a: u64, b: u64, operation: u32, width: u32): u64 {
+    return tower_float_binary(a, b, operation, width);
+}
+
+export fn guest_runtime_float_convert(raw: u64, source_width: u32, width: u32): u64 {
+    return tower_float_convert(raw, source_width, width);
+}
+
+export fn guest_runtime_float_from_integer(raw: u64, integer_width: u32, signed: u32, width: u32): u64 {
+    return tower_float_from_integer(raw, integer_width, signed != 0, width);
+}
+
+export fn guest_runtime_float_to_integer(raw: u64, width: u32, integer_width: u32, signed: u32): u64 {
+    var ok: bool;
+    var result = tower_float_to_integer(raw, width, integer_width, signed != 0, &ok);
+    if !ok { trap("Numeric conversion out of range; use bits for bit reinterpretation", 0); }
+    return result;
+}
 
 extern fn guest_host_allocate(bytes: usize): void*;
 

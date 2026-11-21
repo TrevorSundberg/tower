@@ -15,6 +15,10 @@ extern fn LLVMCreateBuilderInContext(context: void*): void*;
 extern fn LLVMDisposeBuilder(builder: void*): void;
 
 extern fn LLVMIntTypeInContext(context: void*, bits: u32): void*;
+extern fn LLVMFloatTypeInContext(context: void*): void*;
+extern fn LLVMDoubleTypeInContext(context: void*): void*;
+extern fn LLVMConstBitCast(value: void*, type: void*): void*;
+extern fn LLVMBuildBitCast(builder: void*, value: void*, type: void*, name: u8*): void*;
 
 extern fn LLVMPointerTypeInContext(context: void*, space: u32): void*;
 

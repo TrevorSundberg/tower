@@ -93,7 +93,8 @@ test('external host implementations receive scalar values and actual byte views'
     mutate: (ctx, pointer, count) => { const data = new DataView(ctx.memory().buffer, ctx.memory().byteOffset); for (let i=0;i<count;i++) data.setInt32(pointer+i*4, 20+i*2, true); },
     wide: (_ctx, value) => value + 1n,
   };
-  const source = 'extern fn add(a: i32, b: i32): i32; extern fn mutate(p: i32*, n: usize): void; extern fn wide(x: u64): u64; var a: i32* = alloc(i32, 2); mutate(a, 2); var sum: i32 = add(a[0], a[1]); print(sum); var large: u64 = wide(18446744073709551614); print(large); free(a);';
+  imports.f32_add = imports.f64_add = imports.add;
+  const source = 'extern fn add(a: i32, b: i32): i32; extern fn mutate(p: i32*, n: usize): void; extern fn wide(x: u64): u64; var a: i32* = alloc(i32, 2); mutate(a, 2); var sum: i32 = add(a[0], a[1]); print(sum); var large: u64 = wide(18446744073709551614); print(large); free(a);' + (await read('scaffolding/tests/floating_foreign.tower')).toString();
   const interpreter = await loadTower(bytes, undefined, grammar, undefined, undefined, {imports});
   const h = interpreter.compile(source);
   try { assert.equal(interpreter.execute(h).output, '42\n18446744073709551615\n'); }

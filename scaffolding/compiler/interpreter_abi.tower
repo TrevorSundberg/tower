@@ -17,6 +17,8 @@ extern fn semantic_alignment(type: FoundationType*): usize;
 extern fn semantic_mask(type: FoundationType*): u64;
 
 extern fn semantic_signed(type: FoundationType*): bool;
+extern fn semantic_float(type: FoundationType*): bool;
+extern fn semantic_width(type: FoundationType*): u32;
 
 fn im_node(node: void*): FoundationNode* {
     return sem_get(node);

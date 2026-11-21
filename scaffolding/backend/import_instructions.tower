@@ -9,6 +9,7 @@ import text;
 import .compiler.foundation_tags;
 import .compiler.foundation_types;
 import .library.vector;
+import .library.float_bits;
 
 fn bi_edge(c: BackendImport*, from: void*, to: void*): void {
     var copies: vector(BackendAssociation);
@@ -56,10 +57,17 @@ fn bi_edge(c: BackendImport*, from: void*, to: void*): void {
 }
 
 fn bi_print(c: BackendImport*, value: void*, code: u32): void {
+    if code == SF32 || code == SF64 {
+        value = bi_float_unpack(c, value, code);
+        var printed = bi_node(c, KPrint, SVoid);
+        sem_get(printed).value = value;
+        bi_append(c, c.block, printed);
+        return;
+    }
     var scalar = code;
     if code == 3 {
         value = bi_cast(c, value, 8, false);
-        value = bi_cast(c, value, 10, true);
+        value = bi_cast(c, value, BackendImportPointer, true);
     } else {
         var signed = code == 0;
         if signed {
@@ -76,10 +84,82 @@ fn bi_print(c: BackendImport*, value: void*, code: u32): void {
     bi_append(c, c.block, entity);
 }
 
+fn bi_float_unpack(c: BackendImport*, value: void*, scalar: u32): void* {
+    value = bi_cast(c, value, scalar == SF32 ? SU32 : SU64, false);
+    return bi_cast(c, value, scalar, true);
+}
+
+fn bi_float_pack(c: BackendImport*, value: void*): void* {
+    var type = &sem_get(value).type;
+    if semantic_float(type) { value = bi_cast(c, value, type.scalar == SF32 ? SU32 : SU64, true); }
+    return bi_cast(c, value, SU64, false);
+}
+
+fn bi_float_parameter(c: BackendImport*, instruction: void*, index: u32): u32 {
+    var argument = LLVMGetOperand(instruction, index);
+    if LLVMGetValueKind(argument) != LLVMConstantIntegerValueKind {
+        backend_fail(c.backend, "Floating runtime descriptor must be constant");
+        return 0;
+    }
+    return convert(u32, LLVMConstIntGetZExtValue(argument));
+}
+
+fn bi_float_type(c: BackendImport*, width: u32): u32 {
+    if width == Float32Width { return SF32; }
+    if width == Float64Width { return SF64; }
+    backend_fail(c.backend, "Unsupported floating runtime width");
+    return SF64;
+}
+
+fn bi_float_integer_type(c: BackendImport*, width: u32, signed: bool): u32 {
+    if width == 8 && !signed { return SU8; }
+    if width == Float32Width { return signed ? SI32 : SU32; }
+    if width == Float64Width { return signed ? SI64 : SU64; }
+    backend_fail(c.backend, "Unsupported floating integer conversion width");
+    return SU64;
+}
+
+fn bi_float_call(c: BackendImport*, instruction: void*, name: u8*): void* {
+    var input = bi_value(c, LLVMGetOperand(instruction, 0));
+    if backend_equal(name, "tower_strict_float_binary") {
+        var op = bi_float_parameter(c, instruction, 2);
+        var scalar = bi_float_type(c, bi_float_parameter(c, instruction, 3));
+        input = bi_float_unpack(c, input, scalar);
+        var right = bi_float_unpack(c, bi_value(c, LLVMGetOperand(instruction, 1)), scalar);
+        var result = bi_binary(c, op, input, right, op >= OEq ? SBool : scalar);
+        return bi_float_pack(c, result);
+    }
+    var width = bi_float_parameter(c, instruction, 1);
+    if backend_equal(name, "tower_strict_float_print") {
+        bi_print(c, input, bi_float_type(c, width));
+        return null;
+    }
+    var result: void* = null;
+    if backend_equal(name, "tower_strict_float_from_integer") {
+        var integer = bi_float_integer_type(c, width, bi_float_parameter(c, instruction, 2) != 0);
+        var unsigned = integer == SI32 ? SU32 : (integer == SI64 ? SU64 : integer);
+        input = bi_cast(c, bi_cast(c, input, unsigned, false), integer, true);
+        var scalar = bi_float_type(c, bi_float_parameter(c, instruction, 3));
+        result = bi_cast(c, input, scalar, false);
+    } else {
+        input = bi_float_unpack(c, input, bi_float_type(c, width));
+        var destination = bi_float_parameter(c, instruction, 2);
+        if backend_equal(name, "tower_strict_float_convert") {
+            result = bi_cast(c, input, bi_float_type(c, destination), false);
+        } else {
+            var integer = bi_float_integer_type(c, destination, bi_float_parameter(c, instruction, 3) != 0);
+            result = bi_cast(c, input, integer, false);
+            if integer == SI32 || integer == SI64 { result = bi_cast(c, result, integer == SI32 ? SU32 : SU64, true); }
+        }
+    }
+    return bi_float_pack(c, result);
+}
+
 fn bi_call(c: BackendImport*, instruction: void*): void* {
     var callee = LLVMGetCalledValue(instruction);
     var length: usize = 0;
     var name = LLVMGetValueName2(callee, &length);
+    if backend_prefix(name, "tower_strict_float_") { return bi_float_call(c, instruction, name); }
     if backend_equal(name, "tower_print") {
         var code = LLVMGetOperand(instruction, 0);
         var value = bi_value(c, LLVMGetOperand(instruction, 1));
@@ -127,7 +207,7 @@ fn bi_call(c: BackendImport*, instruction: void*): void* {
         if deallocating {
             kind = 28;
         }
-        var entity = bi_node(c, kind, 10);
+        var entity = bi_node(c, kind, BackendImportPointer);
         var n = sem_get(entity);
         var offset: u32 = 0;
         n.element.scalar = 5;
@@ -153,11 +233,11 @@ fn bi_call(c: BackendImport*, instruction: void*): void* {
         var overflow = bi_binary(c, 9, restored, count, 2);
         var nonzero_size = bi_binary(c, 9, size, bi_const(c, 8, 0), 2);
         overflow = bi_binary(c, 5, overflow, nonzero_size, 2);
-        var result = bi_decl(c, 10);
+        var result = bi_decl(c, BackendImportPointer);
         var outer = c.block;
         var branch = sem_get(bi_if(c, overflow));
         c.block = branch.body;
-        bi_assign(c, bi_ref(c, result), bi_const(c, 10, 0));
+        bi_assign(c, bi_ref(c, result), bi_const(c, BackendImportPointer, 0));
         c.block = branch.otherwise;
         n.right = product;
         bi_assign(c, bi_ref(c, result), entity);
@@ -391,7 +471,7 @@ fn bi_instruction(c: BackendImport*, instruction: void*, block: void*): void* {
         // trap. Retain a deterministic diagnostic for corrupted/undefined input.
         var entity = bi_node(c, 33, 3);
         var n = sem_get(entity);
-        var message = bi_node(c, 23, 10);
+        var message = bi_node(c, KString, BackendImportPointer);
         var text = sem_get(message);
         backend_text(&text.name, "Reached unreachable LLVM block");
         n.left = message;
@@ -416,7 +496,7 @@ fn bi_instruction(c: BackendImport*, instruction: void*, block: void*): void* {
         var count = LLVMGetOperand(instruction, 0);
         if !(LLVMGetValueKind(count) == 18) {
             backend_fail(c.backend, "Dynamic LLVM alloca cannot be represented by a static foundation local");
-            return bi_const(c, 10, 0);
+            return bi_const(c, BackendImportPointer, 0);
         }
         var bytes = LLVMABISizeOfType(c.backend.layout, LLVMGetAllocatedType(instruction));
         bytes = bytes * LLVMConstIntGetZExtValue(count);
@@ -497,7 +577,7 @@ fn bi_instruction(c: BackendImport*, instruction: void*, block: void*): void* {
     selected = op == 40;
     if selected {
         a = bi_cast(c, a, 8, false);
-        return bi_cast(c, a, 10, true);
+        return bi_cast(c, a, BackendImportPointer, true);
     }
     selected = op == 41;
     if selected {

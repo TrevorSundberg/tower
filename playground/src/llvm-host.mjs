@@ -115,7 +115,10 @@ export async function executeWasm(compiled, update = () => {}, { imports = {} } 
     if (item.module !== 'env' || item.kind !== 'function' || !Object.hasOwn(compiled.signatures ?? {}, item.name))
       throw new Error(`Unexpected compiled program import: ${item.module}.${item.name}`);
     if (!Object.hasOwn(imports, item.name)) throw new Error(`No implementation registered for external function '${item.name}'`);
-    env[item.name] = imports[item.name]?.wasm ?? ((...args) => invokeForeign(imports, item.name, context, args.map((a, i) => foreignArgument(a, compiled.signatures[item.name][i]))));
+    env[item.name] = imports[item.name]?.wasm ?? ((...args) => invokeForeign(imports, item.name, context, args.map((a, i) => {
+      const type = compiled.signatures[item.name][i];
+      return type === 'f32' || type === 'f64' ? a : foreignArgument(a, type);
+    })));
   }
   const context = {
     memory: () => new Uint8Array(instance.exports.memory.buffer),
@@ -124,7 +127,9 @@ export async function executeWasm(compiled, update = () => {}, { imports = {} } 
   };
   const instance = await WebAssembly.instantiate(module, { env, tower: {
     print(kind, bits, pointerBytes) {
-      const value = kind === 3 ? '0x' + BigInt.asUintN(pointerBytes * 8, bits).toString(16).padStart(pointerBytes * 2, '0') :
+      const runtimePrintText = 12;
+      const value = kind === runtimePrintText ? decodeBytes(new TextDecoder(), context.memory().subarray(Number(bits), Number(bits) + pointerBytes)) :
+        kind === 3 ? '0x' + BigInt.asUintN(pointerBytes * 8, bits).toString(16).padStart(pointerBytes * 2, '0') :
         kind === 2 ? bits ? 'true' : 'false' : kind === 0 ? BigInt.asIntN(32, bits) : kind === 6 ? BigInt.asIntN(64, bits) : BigInt.asUintN(64, bits);
       const text = String(value) + '\n';
       const bytes = new TextEncoder().encode(text).length;

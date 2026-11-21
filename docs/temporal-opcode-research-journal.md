@@ -35908,3 +35908,94 @@ behavior and shared process/measurement plumbing before translating; do not
 remove meaningful assertions or recreate their incidental report machinery
 without a consumer. The actual filesystem import driver likewise covers case,
 relative paths and symlink behavior that in-memory tests alone cannot replace.
+### 2026-11-21 — scalar floating-point implementation, first arithmetic trials
+
+Proceeding with scalar f32/f64 before fixed vectors and indirect calls. All new
+implementation and tests are Tower. The ordinary integer-based functions in
+library/float_bits.tower implement binary32/binary64 add/subtract/multiply/divide,
+ordered/unordered comparisons, integer conversions and width conversion. Defined
+rounding is nearest, ties to even, with gradual underflow and signed zero. Binary
+arithmetic canonicalizes NaNs; copies/bit reinterpretation preserve payloads.
+Negation flips the sign bit, rather than subtracting from positive zero. These
+same functions serve staged evaluation, both interpreters and strict native/Wasm
+runtime helpers. Hardware acceleration remains a later implementation choice;
+this first strict path does not inherit ambient host rounding or flush-to-zero.
+
+Reference reading: [SoftFloat arithmetic contracts](https://www.jhauser.us/arithmetic/SoftFloat-3/doc/SoftFloat.html),
+[WebAssembly numeric execution](https://webassembly.github.io/spec/core/exec/numerics.html),
+and [LLVM floating environment requirements](https://llvm.org/docs/LangRef.html).
+No external arithmetic implementation or new native source was added. Ordinary
+LLVM floating arithmetic alone would not establish our stricter cross-host
+contract, particularly NaN payload policy and ambient native floating environment.
+
+Using the published predecessor through `/cache/values-tooling-clean/towerc` in
+the Ubuntu/LLVM19 Docker validation container: tests/float_bits.tower compiles
+and runs with zero failures. tests/float_reference.tower is a Tower generator of
+independent LLVM fadd/fsub/fmul/fdiv reference cases. Its 10,240 deterministic
+binary32/binary64 cases pass after NaN normalization (build/float-reference.log).
+The generated LLVM is a test artifact, not project-owned C/Python tooling.
+
+library/float_text.tower parses decimal significands as exact integer ratios and
+rounds once at the destination width; it does not pass through host strtod or
+binary64 for binary32 literals. Scratch is bounded local storage, with an explicit
+4096-significant-digit diagnostic budget. Decimal output rounds exact expansions
+to 9/17 significant digits for round trips. Initial halfway/subnormal/overflow
+cases and 1,024 sampled round trips pass (build/float-text-tests.log: 0).
+Two bootstrap limitations encountered: array type arguments currently accept
+literals/bound template parameters, not ordinary named known bindings; named
+storage type constructors now own the dimensions and sizeof supplies capacities.
+Also integer narrowing is checked: big-integer limbs must mask before convert,
+not rely on a truncating host cast. Initial tests exposed and corrected that.
+
+Frontend/interpreter integration is in progress, not yet a shipped language
+feature. Scalar kinds enrich existing shared entities; staging remains ordinary
+dependency-graph evaluation. Canonical Foundation operands spell exact bits with
+bits(f32/i64 equivalents), including negative zero and NaN payloads. New private
+cache operations require semantics/cache version 3; Foundation remains authority.
+The first native build exposed duplicate public helper symbols between compiler
+units: arithmetic library functions are now ordinary internal Tower functions,
+with dedicated exported guest-runtime wrappers. Still to validate: full source
+syntax, inference, canonical/optimized round trips, workers, native/Wasm execution
+and the compatible published bootstrap before source adoption.
+
+The numeric inventory currently includes u8 but not i8, i16 or u16. Record those
+missing signed-byte/short types as numeric-completeness work for C parity; do not
+describe them as implemented. They need the same layout, checked conversions,
+signed arithmetic/shifts, interpreter cache and external ABI treatment as the
+existing integer widths. The user also requested concrete pointer types wherever
+possible. AGENTS.md now requires avoiding void* for known pointees, confining
+necessary erasure to opaque/foreign/raw-memory boundaries, and preserving ECS
+ownership/handle contracts during opportunistic cleanup. Existing opaque LLVM
+and entity handles are not fictitious concrete object pointers.
+
+Integration results: the ordinary language fixture now passes graph/compact
+interpretation, native execution, raw/optimized Foundation reconstruction and
+native-compiled Wasm execution. It exercises both precisions, typed/untyped
+literal inference, unary signs, increments, compound updates, NaNs/infinities,
+subnormals, checked conversion, structs, arrays, generic vector containers and
+comptime calls. Worker trials produce identical canonical text at 1/2/4/8
+workers for both pointer widths. Scalar structural round trips preserve exact
+NaN payloads and negative zero. The aggregate/collection fixture changes derived
+generated-frame-slot indices on reconstruction, as earlier aggregate fixtures
+do; its canonical bytes and execution remain stable. No float semantic mismatch
+was hidden by that distinction.
+
+The shared built-in registry gained two entries. The floating-oracle Tower audit
+reproduces all twelve historical integer fingerprints plus the multifile fixture
+at both target widths when excluding exactly those two entries; no other field,
+edge, binding, position or ordering change is permitted. Only after that proof
+were complete fingerprints updated to include f32/f64. Expected diagnostics now
+describe equal-width numeric bits conversions. The full native execution suite
+passes, including semantic oracles, Foundation and package contracts:
+`cmake --build /cache/float-native --target tower-execution-tests --parallel 3`,
+`/cache/float-native/tower-execution-tests /work/scaffolding`.
+Logs: float-oracle.log, float-release-native-tests.log.
+
+Existing run-guest-runtime.mjs gained optional fixture/expected-file inputs only;
+all new functional assertions remain Tower. Both floating_point.tower and
+floating_output.tower pass its 32/64-bit interpretation, native and Wasm runs
+(float-wasm-language.log, float-wasm-output.log). Float output is formatted in
+Tower and crosses the browser print boundary as bytes. Browser foreign-call
+transport now carries the return type and converts f32/f64 representations with
+DataView; compiled Wasm already supplies host Number arguments. New assertions
+live in floating_foreign.tower. Browser build/execution validation remains next.

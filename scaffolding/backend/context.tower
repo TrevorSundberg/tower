@@ -18,6 +18,7 @@ extern fn semantic_alignment(type: FoundationType*): usize;
 extern fn semantic_width(type: FoundationType*): u32;
 
 extern fn semantic_signed(type: FoundationType*): bool;
+extern fn semantic_float(type: FoundationType*): bool;
 
 extern fn semantic_aggregate(type: FoundationType*): bool;
 

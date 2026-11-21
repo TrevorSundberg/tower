@@ -1,0 +1,43 @@
+import tower;
+import execution_support;
+import execution_graph;
+import execution_semantic_cases;
+import .compiler.execution_session;
+import .compiler.semantic_program_types;
+import .library.bytes_types;
+import .library.bytes_interface;
+
+extern fn host_json_unsigned(out: ByteBuffer*, value: u64): bool;
+
+fn floating_oracle_number(value: u64): void {
+    var text: ByteBuffer = default;
+    execution_check(host_json_unsigned(&text, value), "Oracle decimal text");
+    var nul: u8 = 0;
+    execution_check(bytes_append(&text, &nul, 1), "Oracle terminator");
+    puts(text.data);
+    bytes_dispose(&text);
+}
+
+fn floating_oracle_tests(modules: void*): void {
+    for (var width: u32 = 4; width <= 8; width += 4) {
+        floating_oracle_number(convert(u64, width));
+        for (var index: usize = 0; execution_semantic_valid(index) != null; index++) {
+            var session: ExecutionSession = default;
+            execution_compile(&session, execution_semantic_valid(index), width, modules);
+            execution_check(execution_graph_hash_projection(&session.program, true) == execution_semantic_integer_hash(index, width),
+                "Every previous integer graph field/edge is unchanged after excluding exactly the two new built-in type entries");
+            floating_oracle_number(execution_graph_hash(&session.program));
+            execution_session_close(&session);
+        }
+        var inputs: FrontendSource[2];
+        inputs[0].data = "b = 0; var a = b; fn f(): i32 { return a; }";
+        inputs[1].data = "var b: i32 = 42; print(f());";
+        inputs[0].length = strlen(inputs[0].data); inputs[1].length = strlen(inputs[1].data);
+        var session: ExecutionSession = default;
+        execution_check(execution_session_compile_sources(&session, &inputs[0], 2, width, modules), "Multifile oracle compilation");
+        var wanted: u64 = width == 4 ? 2510591834063832804 : 17056953736380698224;
+        execution_check(execution_graph_hash_projection(&session.program, true) == wanted, "Multifile integer graph unchanged");
+        floating_oracle_number(execution_graph_hash(&session.program));
+        execution_session_close(&session);
+    }
+}

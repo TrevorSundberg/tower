@@ -2,7 +2,7 @@ import { decodeBytes } from './host-bytes.mjs';
 import { compilerThreads } from './compiler-threads.mjs';
 import { TowerWASI } from './wasi-host.mjs';
 import { configureTower, configureFoundation, configureBedrock } from './bootstrap.mjs';
-import { foreignArgument, invokeForeign } from './foreign.mjs';
+import { foreignArgument, foreignResult, invokeForeign } from './foreign.mjs';
 import { platformImports } from './platform.mjs';
 import { moduleInputs, moduleDiagnostic } from './module-inputs.mjs';
 
@@ -13,7 +13,7 @@ export async function loadTower(bytes, log = () => {}, bootstrap, foundation, be
   const module = bytes instanceof WebAssembly.Module ? bytes : await WebAssembly.compile(bytes);
   const foreignCall = (handle, request) => {
       try {
-        const {name, args, types, pointerBytes} = JSON.parse(string(request));
+        const {name, args, types, pointerBytes, returnType} = JSON.parse(string(request));
         const context = {
           pointerBytes,
           memory: () => new Uint8Array(exports.memory.buffer, exports.tw_exec_memory(handle), exports.tw_exec_memory_size(handle)),
@@ -25,7 +25,7 @@ export async function loadTower(bytes, log = () => {}, bootstrap, foundation, be
             try{new Uint8Array(exports.memory.buffer).set(copy,pointer);exports.tw_exec_output(handle,pointer,copy.length);}finally{exports.tw_free(pointer);}
           },
         };
-        return BigInt(invokeForeign(available, name, context, args.map((a, i) => foreignArgument(a, types[i], pointerBytes))));
+        return foreignResult(invokeForeign(available, name, context, args.map((a, i) => foreignArgument(a, types[i], pointerBytes))), returnType);
       } catch (error) {
         withSource(error.message, (pointer, length) => { exports.tw_exec_fail(handle, pointer, length); return 1; }); return 0n;
       }

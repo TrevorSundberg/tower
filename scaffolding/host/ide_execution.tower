@@ -392,6 +392,10 @@ export fn im_foreign(machine: IMState*, node: void*, args: u64*, count: usize): 
     ide_field(&request, "pointerBytes", convert(usize, session.program.pointer_bytes));
     ide_text(&request, ",\"types\":[");
     var type: ByteBuffer = default;
+    // Return bits cross the same transport as argument bits. Floating host
+    // values require an explicit representation conversion at that boundary.
+    var result_type: ByteBuffer = default;
+    semantic_format_type(&function.type, bits(vector(u8)*, &result_type));
     var i: usize = 0;
     for(; i < function.parameters.length; i++) {
         var parameter = sem_get(function.parameters.data[i]);
@@ -408,7 +412,10 @@ export fn im_foreign(machine: IMState*, node: void*, args: u64*, count: usize): 
         ide_require(host_json_unsigned(&request, args[i]));
         ide_text(&request, "\"");
     }
-    ide_text(&request, "]}");
+    ide_text(&request, "],\"returnType\":");
+    ide_quote_bytes(&request, result_type.data, result_type.length);
+    bytes_dispose(&result_type);
+    ide_text(&request, "}");
     var result = tw_foreign_call(session.handle, ide_result(&request));
     bytes_dispose(&request);
     machine.failed = session.error.length != 0;

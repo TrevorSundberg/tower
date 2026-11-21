@@ -1,0 +1,73 @@
+import tower;
+import library.vector;
+
+var failures: u32 = 0;
+fn check(condition: bool, message: u8*): void { if !condition { print(message); failures++; } }
+fn add(a: f32, b: f32): f32 { return a + b; }
+fn widen(a: f32): f64 { return convert(f64, a); }
+fn canonical(a: f64): f64 { return convert(f64, a); }
+export fn floating_negate(a: f64): f64 { return -a; }
+var a: f32 = 1.5;
+var b: f64 = 2.25;
+check(add(a, 2.5) == 4.0, "f32 call");
+check(widen(a) + b == 3.75, "f64 conversion and add");
+var inferred = 1e2 + 0.5;
+check(inferred == 100.5, "floating inference");
+var mixed = 2 + 0.5;
+check(mixed == 2.5, "literal peer inference");
+var typed = 1 + a;
+check(typed == 2.5, "typed peer inference");
+var negative_zero = -0.0;
+var minimum_i64: i64 = -9223372036854775808;
+check(bits(i64, negative_zero) == minimum_i64, "negative zero");
+var zero: f64 = 0;
+check(bits(i64, -zero) == minimum_i64 && negative_zero == zero, "dynamic negative zero");
+check(bits(i64, floating_negate(zero)) == minimum_i64, "exported floating negation");
+check(bits(i64, -negative_zero) == 0, "double negation");
+var infinity = 1.0 / zero;
+var nan = zero / zero;
+check(infinity > 1e308, "infinity");
+check(nan != nan && !(nan == nan) && !(nan < zero) && !(nan >= zero), "unordered comparisons");
+var payload = bits(f64, 18444492273895866434);
+check(bits(i64, canonical(payload)) == 9221120237041090560, "numeric conversion canonicalizes NaN");
+check(bits(u64, -payload) == 9221120237041090626, "negation preserves NaN payload");
+check(!convert(bool, negative_zero) && convert(bool, nan), "float boolean conversion");
+check(convert(i32, -3.75) == -3 && convert(u32, -0.5) == 0, "integer truncation");
+var max_u64: u64 = 18446744073709551615;
+check(convert(f64, max_u64) == 18446744073709551616.0, "unsigned conversion rounding");
+var least: f64 = 5e-324;
+check(bits(i64, least) == 1 && least / 2 == zero, "subnormal rounding");
+var tie: f32 = 1.000000059604644775390625;
+check(tie == 1.0, "literal ties to even");
+var count: f32 = 1;
+check(count++ == 1 && ++count == 3 && count-- == 3 && --count == 1, "pre post modify");
+count *= 2.5;
+count += 0.5;
+count /= 2;
+count -= 0.5;
+check(count == 1, "compound arithmetic");
+struct Point { x: f32; y: f64; }
+fn make_point(x: f32): Point { return { x: x, y: convert(f64, x) }; }
+var point = make_point(1.25);
+var copy = point;
+point.x = 9;
+check(copy.x == 1.25 && copy.y == 1.25, "struct float copy");
+var values: f32[2];
+values[0] = 1.5;
+values[1] = 2.5;
+var sum: f32 = default;
+for (var i: usize = 0; i < 2; i++) { sum += values[i]; }
+check(sum == 4, "array iteration");
+var collection: vector(f32);
+vector_init(&collection);
+vector_push(&collection, 1.5);
+vector_push(&collection, 2.5);
+sum = 0;
+foreach (var item in &collection) { sum += item; }
+vector_dispose(&collection);
+check(sum == 4, "float collection iteration");
+var staged = comptime(add(0.5, 1.25));
+check(staged == 1.75, "staged float call");
+check(sizeof(f32) == 4 && sizeof(f64) == 8, "float layout");
+print(failures);
+if failures != 0 { trap("Floating language tests failed", failures); }

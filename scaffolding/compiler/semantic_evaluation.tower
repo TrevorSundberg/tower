@@ -137,7 +137,7 @@ fn sem_comptime(c: SemanticContext*, n: void*, expected_type: FoundationType*): 
     }
     if c.unevaluated { return n; }
     if input.type.pointers != 0 || semantic_aggregate(&input.type) || input.type.scalar == SVoid {
-        sem_fail(c, n, "Compile-time results currently require an integer or bool value");
+        sem_fail(c, n, "Compile-time results currently require a numeric or bool value");
         return n;
     }
     sem_evaluation_begin(c);

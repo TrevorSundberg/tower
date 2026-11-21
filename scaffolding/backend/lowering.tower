@@ -9,6 +9,7 @@ import text;
 import .compiler.foundation_tags;
 import .compiler.foundation_types;
 import .library.vector;
+import .library.float_bits;
 
 // LLVMAttributeFunctionIndex in the C API (the unsigned all-ones sentinel).
 var BackendFunctionAttributeIndex: u32 = ~convert(u32, 0);
@@ -23,6 +24,8 @@ fn backend_type(b: Backend*, t: FoundationType*): void* {
     if t.scalar == SVoid {
         return LLVMVoidTypeInContext(b.context);
     }
+    if t.scalar == SF32 { return LLVMFloatTypeInContext(b.context); }
+    if t.scalar == SF64 { return LLVMDoubleTypeInContext(b.context); }
     return LLVMIntTypeInContext(b.context, semantic_width(t));
 }
 
@@ -34,7 +37,64 @@ fn backend_constant(b: Backend*, t: FoundationType*, value: u64): void* {
     if t.pointers != 0 {
         return LLVMConstNull(b.pointer_type);
     }
+    if semantic_float(t) {
+        var raw = LLVMConstInt(LLVMIntTypeInContext(b.context, semantic_width(t)), value, 0);
+        return LLVMConstBitCast(raw, backend_type(b, t));
+    }
     return LLVMConstInt(backend_type(b, t), value, 0);
+}
+
+fn backend_float_bits(b: Backend*, value: void*, type: FoundationType*): void* {
+    if semantic_float(type) {
+        value = LLVMBuildBitCast(b.builder, value, LLVMIntTypeInContext(b.context, semantic_width(type)), "");
+    }
+    return LLVMBuildIntCast2(b.builder, value, b.i64, 0, "");
+}
+
+fn backend_float_value(b: Backend*, value: void*, type: FoundationType*): void* {
+    var integer = LLVMIntTypeInContext(b.context, semantic_width(type));
+    value = LLVMBuildIntCast2(b.builder, value, integer, 0, "");
+    if semantic_float(type) { return LLVMBuildBitCast(b.builder, value, backend_type(b, type), ""); }
+    return value;
+}
+
+fn backend_float_helper(b: Backend*, name: u8*, count: u32, binary: bool): void* {
+    var function = LLVMGetNamedFunction(b.module, name);
+    if function != null { return function; }
+    var types: void*[4];
+    types[0] = b.i64;
+    types[1] = binary ? b.i64 : b.i32;
+    types[2] = b.i32;
+    types[3] = b.i32;
+    return backend_runtime(b, name, b.i64, &types[0], count, null);
+}
+
+fn backend_float_conversion(b: Backend*, n: FoundationNode*, from: FoundationType*, value: void*): void* {
+    var raw = backend_float_bits(b, value, from);
+    if n.type.scalar == SBool {
+        var magnitude = (semantic_width(from) == Float32Width ? Float32Sign : Float64Sign) - 1;
+        raw = LLVMBuildAnd(b.builder, raw, LLVMConstInt(b.i64, magnitude, 0), "");
+        var nonzero = LLVMBuildICmp(b.builder, 33, raw, LLVMConstNull(b.i64), "");
+        return LLVMBuildZExt(b.builder, nonzero, b.i8, "");
+    }
+    var args: void*[4];
+    args[0] = raw;
+    args[1] = LLVMConstInt(b.i32, convert(u64, semantic_width(from)), 0);
+    args[2] = LLVMConstInt(b.i32, convert(u64, semantic_width(&n.type)), 0);
+    var name = "tower_strict_float_convert";
+    var count: u32 = 3;
+    if !semantic_float(from) {
+        name = "tower_strict_float_from_integer";
+        count = 4;
+        args[3] = args[2];
+        args[2] = LLVMConstInt(b.i32, convert(u64, semantic_signed(from)), 0);
+    } else { if !semantic_float(&n.type) {
+        name = "tower_strict_float_to_integer";
+        count = 4;
+        args[3] = LLVMConstInt(b.i32, convert(u64, semantic_signed(&n.type)), 0);
+    } }
+    raw = backend_call_values(b, backend_float_helper(b, name, count, false), &args[0], count);
+    return backend_float_value(b, raw, &n.type);
 }
 
 fn backend_narrow(t: FoundationType*): bool {
@@ -279,6 +339,7 @@ fn backend_call(b: Backend*, n: FoundationNode*): void* {
 }
 
 fn backend_conversion(b: Backend*, n: FoundationNode*, from: FoundationType*, value: void*): void* {
+    if semantic_float(from) || semantic_float(&n.type) { return backend_float_conversion(b, n, from, value); }
     if n.type.scalar == SBool {
         var nonzero = LLVMBuildICmp(b.builder, 33, value, LLVMConstNull(LLVMTypeOf(value)), "");
         return LLVMBuildZExt(b.builder, nonzero, b.i8, "");
@@ -384,6 +445,7 @@ fn backend_expression(b: Backend*, entity: void*): void* {
     var from = &source.type;
     `match` = n.kind == KBits;
     if `match` {
+        if semantic_float(from) || semantic_float(&n.type) { return LLVMBuildBitCast(b.builder, a, backend_type(b, &n.type), ""); }
         var pointer = n.type.pointers != 0;
         var source_pointer = from.pointers != 0;
         var both = pointer;
@@ -404,6 +466,15 @@ fn backend_expression(b: Backend*, entity: void*): void* {
         return backend_conversion(b, n, from, a);
     }
     var right = backend_expression(b, n.right);
+    if semantic_float(from) {
+        var args: void*[4];
+        args[0] = backend_float_bits(b, a, from);
+        args[1] = backend_float_bits(b, right, from);
+        args[2] = LLVMConstInt(b.i32, convert(u64, n.op), 0);
+        args[3] = LLVMConstInt(b.i32, convert(u64, semantic_width(from)), 0);
+        var result = backend_call_values(b, backend_float_helper(b, "tower_strict_float_binary", 4, true), &args[0], 4);
+        return backend_float_value(b, result, &n.type);
+    }
     var pointer = from.pointers != 0;
     var arithmetic = n.op <= OSub;
     arithmetic &&= pointer;
@@ -641,13 +712,27 @@ fn backend_statement(b: Backend*, entity: void*): void {
     if `match` {
         var source = sem_get(n.value);
         var value = backend_read(b, n.value);
+        if semantic_float(&source.type) {
+            var name = "tower_strict_float_print";
+            var function = LLVMGetNamedFunction(b.module, name);
+            if function == null {
+                var types: void*[2];
+                types[0] = b.i64; types[1] = b.i32;
+                function = backend_runtime(b, name, LLVMVoidTypeInContext(b.context), &types[0], 2, null);
+            }
+            var args: void*[2];
+            args[0] = backend_float_bits(b, value, &source.type);
+            args[1] = LLVMConstInt(b.i32, convert(u64, semantic_width(&source.type)), 0);
+            backend_call_values(b, function, &args[0], 2);
+            return;
+        }
         var tag = source.type.scalar;
         if source.type.pointers != 0 {
             value = LLVMBuildPtrToInt(b.builder, value, b.i64, "");
             tag = 3;
         }
         else {
-            value = LLVMBuildIntCast2(b.builder, value, b.i64, 0, "");
+            value = backend_float_bits(b, value, &source.type);
         }
         var args: void*[3];
         args[0] = LLVMConstInt(b.i32, convert(u64, tag), 0);
@@ -715,6 +800,9 @@ fn backend_statement(b: Backend*, entity: void*): void {
 }
 
 fn backend_reserved(name: u8*): bool {
+    if backend_equal(name, "tower_strict_float_binary") || backend_equal(name, "tower_strict_float_convert") ||
+        backend_equal(name, "tower_strict_float_from_integer") || backend_equal(name, "tower_strict_float_to_integer") ||
+        backend_equal(name, "tower_strict_float_print") { return true; }
     var found = backend_equal(name, "tower_main");
     if found {
         return true;

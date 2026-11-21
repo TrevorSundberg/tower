@@ -9,6 +9,10 @@ import .compiler.foundation_types;
 import .library.vector;
 
 // Disposable LLVM->entity associations only. There is no second Tower IR.
+var BackendImportPointer: u32 = 12;
+var LLVMFloatTypeKind: u32 = 2;
+var LLVMDoubleTypeKind: u32 = 3;
+var LLVMConstantIntegerValueKind: u32 = 18;
 struct BackendImport {
     backend: Backend*;
     root: void*;
@@ -26,7 +30,7 @@ fn bi_node(c: BackendImport*, kind: u32, scalar: u32): void* {
     var n = sem_attach(entity, kind);
     n.type.scalar = scalar;
     n.type.pointer_bytes = c.backend.pointer_bytes;
-    if scalar == 10 {
+    if scalar == BackendImportPointer {
         n.type.scalar = 5;
         n.type.pointers = 1;
     }
@@ -35,11 +39,13 @@ fn bi_node(c: BackendImport*, kind: u32, scalar: u32): void* {
 
 fn bi_scalar(c: BackendImport*, type: void*): u32 {
     var kind = LLVMGetTypeKind(type);
+    if kind == LLVMFloatTypeKind { return SF32; }
+    if kind == LLVMDoubleTypeKind { return SF64; }
     if kind == 0 {
         return 3;
     }
     if kind == 12 {
-        return 10;
+        return BackendImportPointer;
     }
     if kind == 8 {
         var width = LLVMGetIntTypeWidth(type);
@@ -209,11 +215,11 @@ fn bi_cast(c: BackendImport*, value: void*, scalar: u32, reinterpret: bool): voi
     var same = n.type.scalar == v.type.scalar;
     var pointers = n.type.pointers == v.type.pointers;
     if same {
-        if pointers {
+        if pointers && (reinterpret || !semantic_float(&n.type)) {
             return value;
         }
     }
-    if !reinterpret {
+    if !reinterpret && !semantic_float(&n.type) && !semantic_float(&v.type) {
         var width = semantic_width(&n.type);
         var source_width = semantic_width(&v.type);
         if width < source_width {
@@ -270,14 +276,14 @@ fn bi_cast_type(c: BackendImport*, value: void*, type: FoundationType*): void* {
 }
 
 fn bi_address(c: BackendImport*, object: void*): void* {
-    var entity = bi_node(c, 7, 10);
+    var entity = bi_node(c, KAddress, BackendImportPointer);
     var n = sem_get(entity);
     var v = sem_get(object);
     copy(&n.type, &v.type, sizeof(FoundationType));
     n.type.pointers++;
     n.value = object;
     // The address of this fixed storage is already a Foundation operand.
-    return bi_cast(c, entity, 10, true);
+    return bi_cast(c, entity, BackendImportPointer, true);
 }
 
 fn bi_storage(c: BackendImport*, bytes: u64, alignment: u32, global: bool): void* {
@@ -343,7 +349,7 @@ fn bi_store(c: BackendImport*, address: void*, value: void*): void {
     var v = sem_get(value);
     var scalar = v.type.scalar;
     if v.type.pointers != 0 {
-        scalar = 10;
+        scalar = BackendImportPointer;
     }
     var typed = bi_typed_pointer(c, address, scalar);
     var target = bi_node(c, 8, scalar);
@@ -356,7 +362,7 @@ fn bi_offset(c: BackendImport*, pointer: void*, bytes: void*): void* {
     var integer = bi_cast(c, pointer, 8, true);
     bytes = bi_cast(c, bytes, 8, false);
     integer = bi_binary(c, 0, integer, bytes, 8);
-    return bi_cast(c, integer, 10, true);
+    return bi_cast(c, integer, BackendImportPointer, true);
 }
 
 fn bi_if(c: BackendImport*, condition: void*): void* {

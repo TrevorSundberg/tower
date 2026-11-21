@@ -291,6 +291,18 @@ fn format_type(f: FormatEngine*, t: FoundationType*): void {
 }
 
 fn format_number(f: FormatEngine*, n: FoundationNode*): void {
+    if n.type.pointers == 0 && (n.type.scalar == SF32 || n.type.scalar == SF64) {
+        // Preserve every bit, including signed zero and NaN payloads, without
+        // depending on decimal conversion or a host floating environment.
+        format_text(f, "bits(");
+        format_type(f, &n.type);
+        format_text(f, ", ");
+        var raw = *n;
+        raw.type.scalar = n.type.scalar == SF32 ? SI32 : SI64;
+        format_number(f, &raw);
+        format_text(f, ")");
+        return;
+    }
     var mask = format_mask(&n.type);
     var value = n.bits &mask;
     if format_signed(&n.type) {

@@ -9,8 +9,8 @@ const compiler = process.argv[2];
 if (!compiler) throw Error('Supply a native Tower compiler');
 const out = new URL('../../build/shared-runtime/', import.meta.url);
 await mkdir(out, {recursive:true});
-const input = root + 'scaffolding/tests/guest_runtime.tower';
-const expected = 'Tower guest runtime passed\n';
+const input = process.argv[3] ?? root + 'scaffolding/tests/guest_runtime.tower';
+const expected = process.argv[4] ? await readFile(process.argv[4], 'utf8') : 'Tower guest runtime passed\n';
 const common = [input, '--bedrock', root + 'scaffolding/bedrock.tower', '--foundation', root + 'scaffolding/foundation.tower'];
 for (const triple of ['wasm32-unknown-unknown', 'x86_64-pc-linux-gnu']) {
   const interpreted = execFileSync(compiler, [...common, '--target', triple, '--interpret'], {encoding:'utf8'});

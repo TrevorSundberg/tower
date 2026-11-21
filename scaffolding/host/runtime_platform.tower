@@ -70,6 +70,7 @@ extern fn LLVMGetInlineAsm(type: void*, assembly: u8*, bytes: usize, constraints
 extern fn LLVMGetEnumAttributeKindForName(name: u8*, length: usize): u32;
 
 extern fn LLVMCreateEnumAttribute(context: void*, kind: u32, value: u64): void*;
+extern fn LLVMCreateStringAttribute(context: void*, key: u8*, key_length: u32, value: u8*, value_length: u32): void*;
 
 extern fn LLVMAddAttributeAtIndex(function: void*, index: u32, attribute: void*): void;
 
@@ -108,6 +109,11 @@ fn runtime_platform_return(context: void*, function: void*, value: void*): void 
 }
 
 fn runtime_platform_wasm(context: void*, module: void*): bool {
+    var output = LLVMGetNamedFunction(module, "tower_print");
+    if output != null {
+        LLVMAddAttributeAtIndex(output, RuntimeFunctionAttributes, LLVMCreateStringAttribute(context, "wasm-import-module", 18, "tower", 5));
+        LLVMAddAttributeAtIndex(output, RuntimeFunctionAttributes, LLVMCreateStringAttribute(context, "wasm-import-name", 16, "print", 5));
+    }
     var pointer = LLVMPointerTypeInContext(context, 0);
     var signature = LLVMFunctionType(pointer, null, 0, 0);
     var state = runtime_platform_declaration(module, "guest_wasm_context", signature);

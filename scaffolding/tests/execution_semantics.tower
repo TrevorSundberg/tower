@@ -33,7 +33,7 @@ fn execution_semantic_multifile(modules: void*, width: u32): void {
     var session: ExecutionSession;
     fill(&session, 0, sizeof(ExecutionSession));
     execution_check(execution_session_compile_sources(&session, &inputs[0], 2, width, modules), "ordered multifile compilation");
-    var wanted: u64 = width == 4 ? 2510591834063832804 : 17056953736380698224;
+    var wanted: u64 = width == 4 ? 6641099657036002744 : 10990785931555110124;
     execution_check(execution_graph_hash(&session.program) == wanted, "multifile semantic fields and bindings");
     execution_run(&session, 7, 100000);
     execution_check(execution_text(&session.output, "0\n"), "multifile effects retain source order");

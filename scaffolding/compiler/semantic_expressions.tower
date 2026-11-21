@@ -341,7 +341,7 @@ fn sem_surface_binary(c: SemanticContext*, n: void*, left: void*, right: void*, 
     if infer {
         var anchor = left;
         if sem_literal(c, left) {
-            if !sem_literal(c, right) {
+            if !sem_literal(c, right) || sem_float_literal(c, right) {
                 anchor = right;
             }
         }
@@ -391,7 +391,9 @@ fn sem_surface_binary(c: SemanticContext*, n: void*, left: void*, right: void*, 
             if semantic_enum(input) {
                 sem_fail(c, n, "Enum operations require equality or inequality");
             } else {
-                sem_surface_integer(c, value.left);
+                if !semantic_numeric_binary(input, op) {
+                    sem_surface_integer(c, value.left);
+                }
             }
         }
     }
@@ -600,9 +602,9 @@ fn sem_surface(c: SemanticContext*, n: void*, expected_type: FoundationType*): v
         if pointer {
             sem_surface_pointee(c, n, &value.type);
         }
-        else {
+        else { if !semantic_float(&value.type) {
             sem_surface_integer(c, value.target);
-        }
+        } }
         value.op = OAdd;
         if decrement {
             value.op = OSub;
@@ -678,6 +680,25 @@ fn sem_surface(c: SemanticContext*, n: void*, expected_type: FoundationType*): v
         var operand = sem_operand(c, right, input);
         if !sem_ok(c) {
             return n;
+        }
+        if semantic_float(&sem_get(operand).type) && (sem_equal(op, "-") || sem_equal(op, "+")) {
+            if sem_equal(op, "+") { return sem_surface_expected(c, operand, expected_type); }
+            var type = &sem_get(operand).type;
+            var storage = sem_type_new(c, type.scalar == SF32 ? SU32 : SU64, 0, null);
+            var raw = sem_surface_constant(c, n, storage, 0);
+            sem_get(raw).kind = KBits;
+            sem_get(raw).constant = false;
+            sem_get(raw).value = operand;
+            var toggle = sem_surface_constant(c, n, storage, 0);
+            sem_get(toggle).kind = KBinary;
+            sem_get(toggle).constant = false;
+            sem_get(toggle).op = OXor;
+            sem_get(toggle).left = raw;
+            sem_get(toggle).right = sem_surface_constant(c, n, storage, (semantic_mask(storage) >> 1) + 1);
+            var value = sem_node(c, n, KBits);
+            sem_set_type(&value.type, type);
+            value.value = toggle;
+            return sem_surface_expected(c, n, expected_type);
         }
         if !negate {
             sem_surface_integer(c, operand);
@@ -803,7 +824,9 @@ fn sem_surface(c: SemanticContext*, n: void*, expected_type: FoundationType*): v
                             sem_fail(c, n, "Only += and -= (or ??=) apply to pointers");
                         }
                     } else {
-                        sem_surface_integer(c, value.target);
+                        if !semantic_numeric_binary(input, code) || shift {
+                            sem_surface_integer(c, value.target);
+                        }
                     }
                     if shift {
                         input = null;

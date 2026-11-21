@@ -7,6 +7,8 @@ import interpreter_storage;
 import interpreter_context;
 import interpreter_context_types;
 import .library.vector;
+import .library.float_bits;
+import .library.float_text;
 
 fn ix_ok(m: IMExecution*): bool {
     var ok = !m.state.failed;
@@ -629,6 +631,16 @@ fn ix_evaluate_uncached(m: IMExecution*, node: void*, n: FoundationNode*, offset
 }
 
 fn ix_convert_value(m: IMExecution*, a: u64, input: FoundationType*, type: FoundationType*, offset: usize): u64 {
+    if semantic_float(input) {
+        var width = semantic_width(input);
+        if semantic_float(type) { return tower_float_convert(a, width, semantic_width(type)); }
+        if type.scalar == SBool { return convert(u64, (a & (float_layout(width).sign - 1)) != 0); }
+        var valid: bool;
+        var result = tower_float_to_integer(a, width, semantic_width(type), im_type_signed(type), &valid);
+        if !valid { ix_fail(m, "Numeric conversion out of range; use bits for bit reinterpretation", offset); }
+        return result;
+    }
+    if semantic_float(type) { return tower_float_from_integer(a, semantic_width(input), im_type_signed(input), semantic_width(type)); }
     var boolean = type.scalar == SBool;
     if boolean {
         var nonzero = a != 0;
@@ -680,6 +692,7 @@ fn ix_binary(m: IMExecution*, n: FoundationNode*, x: u64, offset: usize): u64 {
 }
 
 fn ix_binary_values(m: IMExecution*, op: u32, x: u64, y: u64, type: FoundationType*, right_type: FoundationType*, offset: usize): u64 {
+    if semantic_float(type) { return tower_float_binary(x, y, op, semantic_width(type)); }
     var arithmetic = op == OAdd;
     var test = op == OSub;
     arithmetic = im_or(arithmetic, test);
@@ -1002,7 +1015,9 @@ fn ix_print_value(m: IMExecution*, value: u64, type: FoundationType*): void {
             length++;
         }
     } else {
-        if type.scalar == SBool {
+        if semantic_float(type) {
+            length = float_text(value, semantic_width(type), &text[0]);
+        } else { if type.scalar == SBool {
             if value != 0 {
                 copy(&text[0], "true", 4);
                 length = 4;
@@ -1045,6 +1060,7 @@ fn ix_print_value(m: IMExecution*, value: u64, type: FoundationType*): void {
                 length++;
             }
         }
+    }
     }
     text[length] = 10;
     length++;

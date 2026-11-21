@@ -52,7 +52,9 @@ in Tower and use the shared ECS/dependency/worker architecture.
    foreign boundaries, callback conventions, data linkage and library coverage.
    Test each supported ABI with existing third-party toolchains; internal struct
    value lowering alone is not evidence of external ABI compatibility.
-5. **Completeness audit.** Inventory pointer ordering/difference, volatile accesses, static local storage,
+5. **Completeness audit.** Include missing i8, i16 and u16 scalar types (u8 exists),
+   with exact layouts, checked conversion boundaries, signed operations and
+   target ABI tests. Inventory pointer ordering/difference, volatile accesses, static local storage,
    initializer/string/character/numeric spellings, control-flow equivalents and
    standard-library facilities. Give every C89 capability an implemented,
    intentionally different, externally supplied or missing status with a test.
@@ -64,6 +66,14 @@ before compiler-source adoption. New Foundation value types/operations are allow
 where required by these capabilities; parser conveniences remain in Tower rules.
 
 #### Floating-point implementation entry point
+
+Implementation update (2026-11-21, publication pending): scalar f32/f64 now pass
+focused native checks for exact literals, shared strict arithmetic, conversions,
+staging, struct/container storage, canonical/optimized Foundation and 1/2/4/8
+worker determinism. Native-compiled Wasm language and output fixtures pass too.
+See [the implemented contract](floating-point.md) and the journal for remaining
+browser/release/bootstrap validation. The following paragraphs preserve the
+initial audit and its rationale; they no longer describe absent scalar support.
 
 The first source audit found no executable floating scalar kind: Foundation types,
 the interpreter value bits, and LLVM lowering currently handle integers/pointers.

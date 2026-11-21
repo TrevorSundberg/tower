@@ -2,6 +2,10 @@ import tower;
 import fast_interpreter;
 import interpreter;
 
+var BytecodeContainerVersion: u64 = 1;
+var BytecodeSemanticsVersion: u64 = 3;
+var BytecodeExecutionCacheVersion: u64 = 3;
+
 // .towerbc v1: portable, versioned distribution envelope. Canonical Foundation
 // is the semantic authority; packed words/constants are a verified execution
 // cache. A loader rebuilds the graph and checks the cache before any execution.
@@ -71,15 +75,15 @@ export fn bytecode_validate(data: u8*, length: usize): u32 {
             return 2;
         }
     }
-    var version = bc_read(data, 8, 4) != 1;
+    var version = bc_read(data, 8, 4) != BytecodeContainerVersion;
     if version {
         return 3;
     }
-    version = bc_read(data, 12, 4) != 2;
+    version = bc_read(data, 12, 4) != BytecodeSemanticsVersion;
     if version {
         return 4;
     }
-    version = bc_read(data, 16, 4) != 2;
+    version = bc_read(data, 16, 4) != BytecodeExecutionCacheVersion;
     if version {
         return 5;
     }
@@ -193,9 +197,9 @@ export fn bytecode_encode(f: FMState*, source: u8*, source_size: usize, width: u
     }
     fill(data, 0, 56);
     copy(data, "TOWERBC", 8);
-    bc_write(data, 8, 1, 4);
-    bc_write(data, 12, 2, 4);
-    bc_write(data, 16, 2, 4);
+    bc_write(data, 8, BytecodeContainerVersion, 4);
+    bc_write(data, 12, BytecodeSemanticsVersion, 4);
+    bc_write(data, 16, BytecodeExecutionCacheVersion, 4);
     bc_write(data, 20, convert(u64, width), 4);
     bc_write(data, 24, convert(u64, profile), 4);
     bc_write(data, 28, convert(u64, source_size), 4);

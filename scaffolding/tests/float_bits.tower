@@ -1,0 +1,63 @@
+import tower;
+import .library.float_bits;
+
+var failures: u32 = 0;
+fn check(ok: bool, message: u8*): void { if !ok { print(message); failures++; } }
+fn binary(a: u64, b: u64, op: FloatOperation, width: u32, wanted: u64, message: u8*): void {
+    var actual = tower_float_binary(a, b, convert(u32, op), width);
+    check(actual == wanted, message);
+    if actual != wanted { print(actual); print(wanted); }
+}
+
+// Independent IEEE bit-pattern boundary cases, including exact halfway ties.
+binary(1065353216, 1073741824, FloatOperation.Add, Float32Width, 1077936128, "f32 one plus two");
+binary(1065353216, 864026624, FloatOperation.Add, Float32Width, 1065353216, "f32 even lower midpoint");
+binary(1065353217, 864026624, FloatOperation.Add, Float32Width, 1065353218, "f32 odd lower midpoint");
+binary(1065353216, 1065353216, FloatOperation.Subtract, Float32Width, 0, "exact cancellation");
+binary(Float32Sign, Float32Sign, FloatOperation.Add, Float32Width, Float32Sign, "negative zeros add");
+binary(0, Float32Sign, FloatOperation.Add, Float32Width, 0, "opposite zeros add");
+binary(1, 1, FloatOperation.Add, Float32Width, 2, "smallest subnormals add");
+binary(8388607, 1, FloatOperation.Add, Float32Width, 8388608, "subnormal normal boundary");
+binary(8388608, 1, FloatOperation.Subtract, Float32Width, 8388607, "normal subnormal boundary");
+binary(2139095039, 2139095039, FloatOperation.Add, Float32Width, Float32Infinity, "f32 overflow");
+binary(1069547520, 1073741824, FloatOperation.Multiply, Float32Width, 1077936128, "f32 multiplication");
+binary(1, 1056964608, FloatOperation.Multiply, Float32Width, 0, "underflow tie to zero");
+binary(3, 1056964608, FloatOperation.Multiply, Float32Width, 2, "underflow tie to even subnormal");
+binary(Float32Sign | 1, 1056964608, FloatOperation.Multiply, Float32Width, Float32Sign, "negative underflow preserves sign");
+binary(1065353216, 1077936128, FloatOperation.Divide, Float32Width, 1051372203, "f32 one third");
+binary(1065353216, 0, FloatOperation.Divide, Float32Width, Float32Infinity, "finite over zero");
+binary(0, 0, FloatOperation.Divide, Float32Width, 2143289344, "zero over zero canonical NaN");
+binary(Float32Infinity, 0, FloatOperation.Multiply, Float32Width, 2143289344, "infinity times zero");
+binary(2139095041, 1065353216, FloatOperation.Add, Float32Width, 2143289344, "signaling NaN canonicalizes");
+binary(Float32Infinity, Float32Infinity, FloatOperation.Subtract, Float32Width, 2143289344, "infinities cancel to NaN");
+binary(Float32Sign, 0, FloatOperation.Equal, Float32Width, 1, "zero signs compare equal");
+binary(2143289344, 0, FloatOperation.NotEqual, Float32Width, 1, "NaN unequal");
+binary(2143289344, 0, FloatOperation.LessEqual, Float32Width, 0, "NaN unordered");
+binary(3212836864, 3221225472, FloatOperation.Greater, Float32Width, 1, "negative ordering");
+
+binary(4607182418800017408, 4611686018427387904, FloatOperation.Add, Float64Width, 4613937818241073152, "f64 one plus two");
+binary(4607182418800017408, 4368491638549381120, FloatOperation.Add, Float64Width, 4607182418800017408, "f64 midpoint even");
+binary(4607182418800017409, 4368491638549381120, FloatOperation.Add, Float64Width, 4607182418800017410, "f64 midpoint odd");
+binary(4607182418800017408, 4613937818241073152, FloatOperation.Divide, Float64Width, 4599676419421066581, "f64 one third");
+binary(4609434218613702656, 4611686018427387904, FloatOperation.Multiply, Float64Width, 4613937818241073152, "f64 multiplication");
+binary(4503599627370496, 1, FloatOperation.Subtract, Float64Width, 4503599627370495, "f64 normal boundary");
+binary(3, 4602678819172646912, FloatOperation.Divide, Float64Width, 6, "f64 tiny quotient");
+binary(3, 4611686018427387904, FloatOperation.Divide, Float64Width, 2, "f64 tiny quotient midpoint");
+binary(Float64Infinity, Float64Infinity, FloatOperation.Divide, Float64Width, 9221120237041090560, "f64 canonical NaN");
+
+check(tower_float_from_integer(16777217, Float32Width, false, Float32Width) == 1266679808, "integer midpoint to f32");
+check(tower_float_from_integer(~convert(u64, 0), Float64Width, false, Float64Width) == 4895412794951729152, "u64 max rounds to two to 64");
+check(tower_float_from_integer(Float64Sign, Float64Width, true, Float64Width) == 14114281232179134464, "i64 min exact");
+check(tower_float_convert(4607182418800017408, Float64Width, Float32Width) == 1065353216, "narrow one");
+check(tower_float_convert(1, Float32Width, Float64Width) == 3936146074321813504, "widen smallest subnormal");
+check(tower_float_convert(Float32Sign, Float32Width, Float64Width) == Float64Sign, "widen negative zero");
+var ok: bool = false;
+check(tower_float_to_integer(14114281232179134464, Float64Width, Float64Width, true, &ok) == Float64Sign && ok, "i64 min conversion");
+tower_float_to_integer(4895412794951729152, Float64Width, Float64Width, false, &ok);
+check(!ok, "u64 conversion overflow");
+check(tower_float_to_integer(3204448256, Float32Width, Float32Width, false, &ok) == 0 && ok, "negative fraction truncates to unsigned zero");
+tower_float_to_integer(3212836864, Float32Width, Float32Width, false, &ok);
+check(!ok, "negative unsigned conversion rejected");
+tower_float_to_integer(2143289344, Float32Width, Float32Width, true, &ok);
+check(!ok, "NaN integer conversion rejected");
+print(failures);

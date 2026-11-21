@@ -184,7 +184,7 @@ fn execution_core_layout(session: ExecutionSession*, index: usize): void {
     var record = sem_get(type);
     execution_check(entity_component_get(type, parser_match_get_type()) != null, "record retains parser component");
     if index == 17 {
-        execution_check(session.program.types.length == 9 && record.size == 8 && record.alignment == 4, "shared built-in/record registry");
+        execution_check(session.program.types.length == FoundationBuiltinScalarCount + 1 && record.size == 8 && record.alignment == 4, "shared built-in/record registry");
         execution_check(sem_get(record.items.data[0]).byte_offset == 0 && sem_get(record.items.data[1]).byte_offset == 4, "Pair layout");
     } else {
         execution_check(record.size == 20 && record.alignment == 4

@@ -1,0 +1,92 @@
+import tower;
+import .library.float_bits;
+
+// Tower-owned differential driver. It emits an independent LLVM arithmetic
+// oracle, then the existing Clang toolchain compiles that generated artifact.
+// noinline/optnone keep the reference arithmetic on runtime hardware operands.
+extern fn fopen(path: u8*, mode: u8*): void*;
+extern fn fwrite(data: u8*, size: usize, count: usize, file: void*): usize;
+extern fn fclose(file: void*): i32;
+extern fn strlen(text: u8*): usize;
+var DecimalStorage: usize = 21;
+var RandomSamples: usize = 1024;
+var RandomMultiplier: u64 = 6364136223846793005;
+var RandomIncrement: u64 = 1442695040888963407;
+
+struct ReferenceOutput { file: void*; failed: bool; random: u64; index: u64; }
+fn text(out: ReferenceOutput*, value: u8*): void {
+    var length = strlen(value);
+    out.failed ||= fwrite(value, 1, length, out.file) != length;
+}
+fn number(out: ReferenceOutput*, value: u64): void {
+    var buffer = alloc(u8, DecimalStorage);
+    defer free(buffer);
+    if buffer == null { out.failed = true; return; }
+    var at = DecimalStorage;
+    loop {
+        buffer[--at] = convert(u8, value % 10) + 48;
+        value /= 10;
+        if value == 0 { break; }
+    }
+    out.failed ||= fwrite(buffer + at, 1, DecimalStorage - at, out.file) != DecimalStorage - at;
+}
+fn random(out: ReferenceOutput*): u64 {
+    out.random = out.random * RandomMultiplier + RandomIncrement;
+    return out.random;
+}
+fn name(out: ReferenceOutput*, operation: u32, width: u32): void {
+    text(out, "@reference_"); number(out, convert(u64, operation)); text(out, "_"); number(out, convert(u64, width));
+}
+fn reference(out: ReferenceOutput*, operation: u32, width: u32): void {
+    var scalar = width == Float32Width ? "float" : "double";
+    var integer = width == Float32Width ? "i32" : "i64";
+    text(out, "define i64 "); name(out, operation, width);
+    text(out, "(i64 %left, i64 %right) noinline optnone {\n");
+    if width == Float32Width {
+        text(out, "%a = trunc i64 %left to i32\n%b = trunc i64 %right to i32\n%x = bitcast i32 %a to float\n%y = bitcast i32 %b to float\n");
+    } else { text(out, "%x = bitcast i64 %left to double\n%y = bitcast i64 %right to double\n"); }
+    text(out, "%z = ");
+    var op = convert(FloatOperation, operation);
+    if op == FloatOperation.Add { text(out, "fadd "); }
+    if op == FloatOperation.Subtract { text(out, "fsub "); }
+    if op == FloatOperation.Multiply { text(out, "fmul "); }
+    if op == FloatOperation.Divide { text(out, "fdiv "); }
+    text(out, scalar); text(out, " %x, %y\n%nan = fcmp uno "); text(out, scalar); text(out, " %z, %z\n%raw = bitcast ");
+    text(out, scalar); text(out, " %z to "); text(out, integer); text(out, "\n");
+    if width == Float32Width { text(out, "%wide = zext i32 %raw to i64\n"); }
+    text(out, "%result = select i1 %nan, i64 "); number(out, float_nan(float_layout(width)));
+    text(out, width == Float32Width ? ", i64 %wide\n" : ", i64 %raw\n");
+    text(out, "ret i64 %result\n}\n");
+}
+fn trial(out: ReferenceOutput*, a: u64, b: u64, operation: u32, width: u32): void {
+    text(out, "%result"); number(out, out.index); text(out, " = call i64 "); name(out, operation, width);
+    text(out, "(i64 "); number(out, a); text(out, ", i64 "); number(out, b); text(out, ")\n");
+    text(out, "call void @check(i64 %result"); number(out, out.index); text(out, ", i64 ");
+    number(out, tower_float_binary(a, b, operation, width)); text(out, ", i32 "); number(out, out.index); text(out, ")\n");
+    out.index++;
+}
+export fn main(argc: i32, argv: u8**): i32 {
+    if argc != 2 { return 2; }
+    var out: ReferenceOutput = { file: fopen(argv[1], "wb"), failed: false, random: 8675309, index: 0 };
+    if out.file == null { return 1; }
+    text(&out, "@errors = global i32 0\n@message = private constant [15 x i8] c\"float case %u\\0A\\00\"\ndeclare i32 @printf(ptr, ...)\n");
+    text(&out, "define void @check(i64 %actual, i64 %wanted, i32 %id) {\n%ok = icmp eq i64 %actual, %wanted\nbr i1 %ok, label %done, label %fail\nfail:\ncall i32 (ptr, ...) @printf(ptr @message, i32 %id)\n%old = load i32, ptr @errors\n%next = add i32 %old, 1\nstore i32 %next, ptr @errors\nbr label %done\ndone:\nret void\n}\n");
+    for(var width = Float32Width; width <= Float64Width; width += Float32Width) {
+        for(var op: u32 = 0; op <= convert(u32, FloatOperation.Divide); op++) { reference(&out, op, width); }
+    }
+    text(&out, "define i32 @main() {\n");
+    for(var width = Float32Width; width <= Float64Width; width += Float32Width) {
+        var layout = float_layout(width);
+        for(var i: usize = 0; i < RandomSamples; i++) {
+            var a = random(&out) & (layout.sign | (layout.sign - 1));
+            var b = random(&out) & (layout.sign | (layout.sign - 1));
+            for(var op: u32 = 0; op <= convert(u32, FloatOperation.Divide); op++) { trial(&out, a, b, op, width); }
+            // Nearby values exercise cancellation and exponent alignment often.
+            b = a ^ ((convert(u64, 1) << layout.fraction) - 1);
+            trial(&out, a, b, convert(u32, FloatOperation.Subtract), width);
+        }
+    }
+    text(&out, "%errors = load i32, ptr @errors\n%failed = icmp ne i32 %errors, 0\n%status = zext i1 %failed to i32\nret i32 %status\n}\n");
+    out.failed ||= fclose(out.file) != 0;
+    return out.failed ? 1 : 0;
+}

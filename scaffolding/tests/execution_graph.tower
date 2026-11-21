@@ -3,6 +3,7 @@ import execution_support;
 import .compiler.foundation_types;
 import .compiler.semantic_program_types;
 import .library.vector;
+import .compiler.foundation_tags;
 
 extern fn entity_child_count(node: void*): usize;
 extern fn entity_child_at(node: void*, index: usize): void*;
@@ -34,14 +35,23 @@ fn execution_graph_text(hash: u64*, text: u8*, length: usize): void {
     execution_graph_word(hash, convert(u64, length));
     for (var i: usize = 0; i < length; i++) { execution_graph_word(hash, convert(u64, text[i])); }
 }
-fn execution_graph_hash(program: SemanticProgram*): u64 {
+fn execution_graph_float_builtin(entity: void*): bool {
+    var node = sem_get(entity);
+    return node != null && node.kind == KType && node.type.pointers == 0 && node.type.record == null &&
+        (node.type.scalar == SF32 || node.type.scalar == SF64);
+}
+
+fn execution_graph_hash_projection(program: SemanticProgram*, omit_float_registry: bool): u64 {
     var nodes: vector(void*);
     vector_init(void*, &nodes);
     defer vector_dispose(void*, &nodes);
     execution_check(vector_push(void*, &nodes, program.root), "graph evidence storage");
     for (var i: usize = 0; i < nodes.length; i++) {
         for (var j: usize = 0; j < entity_child_count(nodes.data[i]); j++) {
-            execution_check(vector_push(void*, &nodes, entity_child_at(nodes.data[i], j)), "graph evidence storage");
+            var child = entity_child_at(nodes.data[i], j);
+            if !omit_float_registry || !execution_graph_float_builtin(child) {
+                execution_check(vector_push(&nodes, child), "graph evidence storage");
+            }
         }
     }
     var hash: u64 = 14695981039346656037;
@@ -49,7 +59,14 @@ fn execution_graph_hash(program: SemanticProgram*): u64 {
     execution_graph_word(&hash, convert(u64, program.error_offset));
     execution_graph_text(&hash, program.error.data, program.error.length);
     execution_graph_list(&hash, &nodes, &program.functions);
-    execution_graph_list(&hash, &nodes, &program.types);
+    var types: vector(void*) = default;
+    defer vector_dispose(&types);
+    foreach(var type in &program.types) {
+        if !omit_float_registry || !execution_graph_float_builtin(type) {
+            execution_check(vector_push(&types, type), "graph registry evidence storage");
+        }
+    }
+    execution_graph_list(&hash, &nodes, &types);
     for (var i: usize = 0; i < nodes.length; i++) {
         var node = sem_get(nodes.data[i]);
         if node == null { continue; }
@@ -85,4 +102,8 @@ fn execution_graph_hash(program: SemanticProgram*): u64 {
         execution_graph_word(&hash, convert(u64, node.global));
     }
     return hash;
+}
+
+fn execution_graph_hash(program: SemanticProgram*): u64 {
+    return execution_graph_hash_projection(program, false);
 }

@@ -1,0 +1,14 @@
+import tower;
+
+var single: f32 = 0.1;
+var double: f64 = 0.1;
+var zero: f64 = 0;
+print(single);
+print(double);
+print(1.5);
+print(-zero);
+print(1.0 / zero);
+print(-1.0 / zero);
+print(zero / zero);
+print(5e-324);
+print(1.7976931348623157e308);

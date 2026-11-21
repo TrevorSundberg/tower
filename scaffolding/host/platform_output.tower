@@ -1,10 +1,28 @@
 import tower;
+import .library.float_text;
+import .library.float_bits;
+import .compiler.foundation_tags;
+import runtime_output_tags;
 
 // Formatting shared by platform print and trap paths. No host locale, sprintf,
 // allocation or implicit host pointer width enters the result.
 export fn runtime_format_value(output: u8*, capacity: usize, kind: u32, value: u64, pointer_bytes: u32): usize {
     var buffer: u8[80];
     var length: usize = 0;
+    if kind == RuntimePrintText {
+        length = convert(usize, pointer_bytes);
+        if capacity <= length { return 0; }
+        copy(output, bits(u8*, convert(usize, value)), length);
+        output[length] = 10;
+        return length + 1;
+    }
+    if kind == SF32 || kind == SF64 {
+        length = float_text(value, kind == SF32 ? Float32Width : Float64Width, &buffer[0]);
+        buffer[length++] = 10;
+        if capacity < length { return 0; }
+        copy(output, &buffer[0], length);
+        return length;
+    }
     if kind == 2 {
         if value != 0 {
             copy(&buffer[0], "true\n", 5);
