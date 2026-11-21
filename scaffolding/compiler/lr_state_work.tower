@@ -4,6 +4,7 @@ import lr_analysis;
 import lr_states;
 import lr_types;
 import lr_work;
+import parser_workers;
 import .library.vector;
 import .library.work_graph;
 import .library.work_pool;
@@ -19,6 +20,9 @@ struct LRStateTask {
     count: usize;
     success: bool;
 }
+
+const LRStateGrain: usize = 128;
+const LRStateFanout: usize = 4;
 
 export fn compiler_lr_state_kernel(payload: void*): void {
     var task = bits(LRStateTask*, payload);
@@ -65,9 +69,9 @@ export fn lr_states_create_parallel(analysis: LRAnalysis*, anchor: void*): LRSta
         jobs[i].kernel.kind = CompilerKernelKind.LRState;
         jobs[i].kernel.payload = bits(void*, jobs[i]);
     }
-    var pool: WorkPool;
-    fill(&pool, 0, sizeof(WorkPool));
-    defer work_pool_close(&pool);
+    var workers: ParserWorkers;
+    fill(&workers, 0, sizeof(ParserWorkers));
+    defer parser_workers_close(&workers);
     var graph: WorkGraph;
     work_init(&graph, 1, 0);
     defer work_dispose(&graph);
@@ -85,13 +89,14 @@ export fn lr_states_create_parallel(analysis: LRAnalysis*, anchor: void*): LRSta
         // A single outgoing edge exposes no parallel work; tiny closures cost
         // less than the handoff. Keep the same transition algorithm in both
         // paths and start platform threads only for a useful ready batch.
-        if state.symbols.length < 2 || state.items.values.length < 16 {
+        if state.symbols.length < LRStateFanout() || state.items.values.length < LRStateGrain() {
             for(var i: usize = 0; i < state.symbols.length && ok; i++) {
                 ok = lr_state_transition(value, state, state.symbols.data[i]);
             }
             continue;
         }
-        if pool.count == 0 && !work_pool_open(&pool, capacity) { return null; }
+        if workers.pool == null && !parser_workers_open(&workers, anchor, capacity) { return null; }
+        var pool = workers.pool;
         if !vector_reserve(LRItems*, &results, state.symbols.length) { return null; }
         results.length = state.symbols.length;
         fill(results.data, 0, results.length * sizeof(LRItems*));
@@ -120,10 +125,10 @@ export fn lr_states_create_parallel(analysis: LRAnalysis*, anchor: void*): LRSta
         if view == null { return null; }
         var admitted: usize = 0;
         for(; admitted < count; admitted++) {
-            if !work_pool_submit(&pool, bits(void*, &jobs[admitted].kernel)) { ok = false; break; }
+            if !work_pool_submit(pool, bits(void*, &jobs[admitted].kernel)) { ok = false; break; }
         }
         for(var i: usize = 0; i < admitted; i++) {
-            if work_pool_receive(&pool, true) == null { ok = false; }
+            if work_pool_receive(pool, true) == null { ok = false; }
         }
         entity_view_close(view);
         for(var i: usize = 0; i < admitted; i++) {

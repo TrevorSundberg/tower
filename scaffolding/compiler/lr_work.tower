@@ -5,6 +5,7 @@ import lr_lalr;
 import lr_states;
 import lr_types;
 import lexer_table;
+import parser_workers;
 import .library.vector;
 import .library.work_graph;
 import .library.work_pool;
@@ -22,9 +23,12 @@ struct LRClosureTask {
     kernel: CompilerKernel;
     ticket: WorkTicket;
     analysis: LRAnalysis*;
-    item: LRItem;
-    closure: LRKernelClosure*;
-    key: usize;
+    items: LRItem*;
+    needed: u8*;
+    closures: LRKernelClosure**;
+    begin: usize;
+    count: usize;
+    success: bool;
 }
 
 struct LRActionTask {
@@ -48,6 +52,9 @@ export fn compiler_lr_action_kernel(payload: void*): void {
         }
     }
 }
+// Scheduling grain only, not a grammar or semantic limit. A job amortizes its
+// ECS/query/semaphore handoff over a contiguous set of dotted productions.
+const LRClosureGrain: usize = 512;
 
 // Only immutable grammar/FIRST data are shared. LRAnalysis.failed is private:
 // the ordinary closure routines may set it on allocation failure.
@@ -55,7 +62,12 @@ export fn compiler_lr_kernel(payload: void*): void {
     var task = bits(LRClosureTask*, payload);
     var analysis: LRAnalysis;
     copy(&analysis, task.analysis, sizeof(LRAnalysis));
-    task.closure = lr_kernel_closure(&analysis, &task.item);
+    task.success = true;
+    for(var i = task.begin; i < task.begin + task.count; i++) {
+        if task.needed[i] == 0 { continue; }
+        task.closures[i] = lr_kernel_closure(&analysis, &task.items[i]);
+        if task.closures[i] == null { task.success = false; return; }
+    }
 }
 
 fn lr_work_node(parent: void*): void* {
@@ -285,94 +297,102 @@ export fn lr_states_lalr_parallel(value: LRStates*, constructs: bool, anchor: vo
     var capacity = work_thread_capacity();
     if capacity <= 1 || anchor == null { return lr_states_lalr(value, constructs); }
     var count = value.analysis.symbol_count + value.analysis.rule_count;
-    // Tiny tables still use the same closure algorithm without pool startup.
-    if count < 32 { return lr_states_lalr(value, constructs); }
+    if count < 2 * LRClosureGrain() { return lr_states_lalr(value, constructs); }
+    var batches = count / LRClosureGrain();
+    if capacity > batches { capacity = batches; }
     var cache = alloc(LRKernelClosure*, count);
-    var tasks = alloc(LRClosureTask*, count);
-    if cache == null || tasks == null { free(cache); free(tasks); return false; }
+    var items = alloc(LRItem, count);
+    var needed = alloc(u8, count);
+    if cache == null || items == null || needed == null {
+        free(cache); free(items); free(needed); return false;
+    }
     fill(cache, 0, count * sizeof(LRKernelClosure*));
-    fill(tasks, 0, count * sizeof(LRClosureTask*));
+    fill(needed, 0, count);
     var owner = entity_create_related(anchor);
-    if owner == null { free(cache); free(tasks); return false; }
+    if owner == null { free(cache); free(items); free(needed); return false; }
     var kind = lr_work_node(owner);
     var ok = kind != null;
     if ok { ok = entity_register(kind, sizeof(LRClosureTask), alignof(LRClosureTask), 0); }
     var graph: WorkGraph;
     work_init(&graph, 1, 0);
-    var jobs: vector(LRClosureTask*);
-    vector_init(LRClosureTask*, &jobs);
+    var jobs: LRClosureTask*[256];
     for(var i: usize = 0; i < value.states.length && ok; ++i) {
-        var items = &value.states.data[i].items.values;
-        for(var j: usize = 0; j < items.length && ok; ++j) {
-            var item = &items.data[j];
+        var state_items = &value.states.data[i].items.values;
+        foreach(var &item in state_items) {
             if !lr_kernel(value.analysis, item) { continue; }
             var key = value.analysis.rules[item.rule].begin + item.rule + item.position;
-            if tasks[key] != null { continue; }
-            var node = lr_work_node(owner);
-            if node == null { ok = false; break; }
-            var result = bits(LRClosureTask*, entity_component_data(entity_component_add(node, kind)));
-            if result == null { ok = false; break; }
-            fill(result, 0, sizeof(LRClosureTask));
-            result.kernel.kind = CompilerKernelKind.LRClosure;
-            result.kernel.payload = bits(void*, result);
-            result.analysis = value.analysis;
-            copy(&result.item, item, sizeof(LRItem));
-            result.key = key;
-            tasks[key] = result;
-            ok = vector_push(LRClosureTask*, &jobs, result);
-            var query = work_request(&graph, node, 1, 0);
-            ok &&= query != 0;
-            ok &&= work_access(&graph, query, 1, 1, key, 1, WorkAccessMode.Write);
-            ok &&= work_access(&graph, query, 1, 2, 0, 1, WorkAccessMode.Read);
-            ok &&= work_seal(&graph, query);
-            ok &&= work_demand(&graph, query);
+            if needed[key] != 0 { continue; }
+            copy(&items[key], item, sizeof(LRItem));
+            needed[key] = 1;
         }
     }
-    var pool: WorkPool;
-    fill(&pool, 0, sizeof(WorkPool));
-    if capacity > jobs.length { capacity = jobs.length; }
-    if ok && capacity != 0 { ok = work_pool_open(&pool, capacity); }
+    var position: usize = 0;
+    for(var i: usize = 0; i < capacity && ok; i++) {
+        var node = lr_work_node(owner);
+        if node == null { ok = false; break; }
+        var result = bits(LRClosureTask*, entity_component_data(entity_component_add(node, kind)));
+        if result == null { ok = false; break; }
+        fill(result, 0, sizeof(LRClosureTask));
+        result.kernel.kind = CompilerKernelKind.LRClosure;
+        result.kernel.payload = bits(void*, result);
+        result.analysis = value.analysis;
+        result.items = items;
+        result.needed = needed;
+        result.closures = cache;
+        result.begin = position;
+        result.count = count / capacity + (i < count % capacity ? 1 : 0);
+        position += result.count;
+        jobs[i] = result;
+        var query = work_request(&graph, node, 1, 0);
+        ok = query != 0;
+        ok &&= work_access(&graph, query, 1, 1, result.begin, result.count, WorkAccessMode.Write);
+        ok &&= work_access(&graph, query, 1, 2, 0, 1, WorkAccessMode.Read);
+        ok &&= work_seal(&graph, query);
+        ok &&= work_demand(&graph, query);
+    }
+    var workers: ParserWorkers;
+    fill(&workers, 0, sizeof(ParserWorkers));
+    if ok && capacity != 0 { ok = parser_workers_open(&workers, anchor, capacity); }
+    var pool = workers.pool;
     var view: void* = null;
     if ok { view = entity_view_open(owner); ok = view != null; }
     var batch: LRClosureTask*[256];
     var next: usize = 0;
-    while ok && next < jobs.length {
+    while ok && next < capacity {
         var admitted: usize = 0;
         var ticket: WorkTicket;
         while admitted < pool.count && work_take(&graph, &ticket) {
             // Demand/admission order equals the immutable job index here.
-            var result = jobs.data[next];
+            var result = jobs[next];
             next++;
             copy(&result.ticket, &ticket, sizeof(WorkTicket));
             batch[admitted] = result;
-            if !work_pool_submit(&pool, bits(void*, &result.kernel)) { ok = false; break; }
+            if !work_pool_submit(pool, bits(void*, &result.kernel)) { ok = false; break; }
             admitted++;
         }
         if admitted == 0 { ok = false; break; }
         for(var i: usize = 0; i < admitted; ++i) {
-            if work_pool_receive(&pool, true) == null { ok = false; }
+            if work_pool_receive(pool, true) == null { ok = false; }
         }
         for(var i: usize = 0; i < admitted; ++i) {
             var result = batch[i];
-            var success = result.closure != null;
-            cache[result.key] = result.closure;
-            if !work_finish(&graph, &result.ticket, success) || !success { ok = false; }
+            if !work_finish(&graph, &result.ticket, result.success) || !result.success { ok = false; }
         }
     }
     if view != null { entity_view_close(view); }
     if ok {
         var lookahead = lr_states_propagation_cached(value, constructs, cache);
         ok = lookahead != null;
-        if ok { ok = lr_propagation_solve_parallel(lookahead, owner, &graph, &pool); }
-        if ok { ok = lr_lalr_actions_parallel(value, lookahead, owner, &graph, &pool); }
+        if ok { ok = lr_propagation_solve_parallel(lookahead, owner, &graph, pool); }
+        if ok { ok = lr_lalr_actions_parallel(value, lookahead, owner, &graph, pool); }
         lr_propagation_destroy(lookahead);
     }
-    work_pool_close(&pool);
+    parser_workers_close(&workers);
     for(var i: usize = 0; i < count; ++i) { lr_kernel_closure_destroy(cache[i]); }
-    vector_dispose(LRClosureTask*, &jobs);
     work_dispose(&graph);
     entity_release(owner);
-    free(tasks);
+    free(items);
+    free(needed);
     free(cache);
     return ok;
 }

@@ -1,0 +1,53 @@
+import tower;
+import grammar_types;
+import .library.work_pool;
+
+extern fn compiler_node_world(node: void*): void*;
+extern fn compiler_world_grammar(world: void*): CompilerGrammarCache*;
+
+// A coordinator lease, never shared by concurrently active parser requests.
+// The pool survives grammar revisions; jobs, views and scratch do not. A plain
+// entity store without a compiler world keeps the existing local lifetime.
+struct ParserWorkers {
+    pool: WorkPool*;
+    cache: CompilerGrammarCache*;
+    local: WorkPool;
+}
+
+fn parser_workers_open(lease: ParserWorkers*, anchor: void*, capacity: usize): bool {
+    fill(lease, 0, sizeof(ParserWorkers));
+    if capacity == 0 || capacity > 256 { return false; }
+    var world = compiler_node_world(anchor);
+    if world == null {
+        if !work_pool_open(&lease.local, capacity) { return false; }
+        lease.pool = &lease.local;
+        return true;
+    }
+    var cache = compiler_world_grammar(world);
+    if cache.workers_busy { return false; }
+    var pool = &cache.workers;
+    // Grow only between leases. Never move live thread slots or discard jobs.
+    // A serial transport keeps its one slot regardless of requested width.
+    if pool.count != 0 && pool.threaded && pool.count < capacity {
+        work_pool_close(pool);
+    }
+    if pool.count == 0 && !work_pool_open(pool, capacity) { return false; }
+    cache.workers_busy = true;
+    lease.cache = cache;
+    lease.pool = pool;
+    return true;
+}
+
+fn parser_workers_close(lease: ParserWorkers*): void {
+    if lease.pool == null { return; }
+    // Failure/cancellation must drain before the caller releases pinned inputs,
+    // result components or scratch, even though these threads remain reusable.
+    while lease.pool.running != 0 { work_pool_receive(lease.pool, true); }
+    if lease.cache == null {
+        work_pool_close(lease.pool);
+    } else {
+        lease.cache.workers_busy = false;
+    }
+    lease.pool = null;
+    lease.cache = null;
+}

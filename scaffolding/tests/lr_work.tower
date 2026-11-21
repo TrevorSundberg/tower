@@ -7,6 +7,8 @@ import .compiler.lr_lalr;
 import .compiler.lr_states;
 import .compiler.lr_types;
 import .library.work_graph;
+import .compiler.parser_workers;
+import .compiler.compiler_kernel;
 import .library.work_pool;
 
 extern fn compiler_world_create(): void*;
@@ -15,6 +17,76 @@ extern fn compiler_world_dispose(world: void*): bool;
 extern fn entity_create(store: void*): void*;
 extern fn entity_store_count(store: void*): usize;
 extern fn entity_store_component_count(store: void*): usize;
+extern fn frontend_world_clear(world: void*): bool;
+
+// Repeated grammar builds retain threads, never payloads or an active lease.
+// Check rejection/isolation and drain an actual closure before freeing its input.
+fn lr_worker_lifetime(): bool {
+    var world = compiler_world_create();
+    var other = compiler_world_create();
+    if world == null || other == null { return false; }
+    defer compiler_world_dispose(world);
+    defer compiler_world_dispose(other);
+    var root = entity_create(compiler_world_store(world));
+    var second = entity_create(compiler_world_store(other));
+    if root == null || second == null { return false; }
+    defer entity_release(root);
+    defer entity_release(second);
+    var lease: ParserWorkers;
+    if !parser_workers_open(&lease, root, 4) { return false; }
+    defer parser_workers_close(&lease);
+    var slots = lease.pool.slots;
+    var thread = slots[0].thread;
+    var rejected: ParserWorkers;
+    if parser_workers_open(&rejected, root, 4) { parser_workers_close(&rejected); return false; }
+    if frontend_world_clear(world) || compiler_world_dispose(world) { return false; }
+    var independent: ParserWorkers;
+    if !parser_workers_open(&independent, second, 4) { return false; }
+    defer parser_workers_close(&independent);
+    if independent.pool == lease.pool || independent.pool.slots == slots { return false; }
+    parser_workers_close(&independent);
+
+    var rule: LRProduction;
+    fill(&rule, 0, sizeof(LRProduction));
+    var analysis = lr_analysis_create(&rule, 1, null, 0, 1);
+    if analysis == null { return false; }
+    defer lr_analysis_destroy(analysis);
+    if !lr_analysis_compute(analysis) { return false; }
+    var task: LRClosureTask;
+    fill(&task, 0, sizeof(LRClosureTask));
+    var item: LRItem;
+    fill(&item, 0, sizeof(LRItem));
+    var needed: u8 = 1;
+    var closure: LRKernelClosure* = null;
+    task.analysis = analysis;
+    task.items = &item;
+    task.needed = &needed;
+    task.closures = &closure;
+    task.count = 1;
+    task.kernel.kind = CompilerKernelKind.LRClosure;
+    task.kernel.payload = bits(void*, &task);
+    var view = entity_view_open(root);
+    if view == null { return false; }
+    var submitted = work_pool_submit(lease.pool, bits(void*, &task.kernel));
+    parser_workers_close(&lease);
+    // Close is the cancellation/join boundary; the stack task and analysis can
+    // now be reclaimed even when no explicit receive occurred.
+    entity_view_close(view);
+    var ok = submitted && task.success && closure != null;
+    lr_kernel_closure_destroy(closure);
+    if !ok || !parser_workers_open(&lease, root, 4) { return false; }
+    if lease.pool.slots != slots || lease.pool.slots[0].thread != thread
+        || lease.pool.running != 0 { return false; }
+    parser_workers_close(&lease);
+    if !frontend_world_clear(world) || compiler_world_grammar(world).workers.count != 0 { return false; }
+    if !parser_workers_open(&lease, root, 4) { return false; }
+    parser_workers_close(&lease);
+    // A non-world caller keeps a local pool and closes it at the same boundary.
+    if !parser_workers_open(&lease, null, 2) { return false; }
+    if lease.cache != null { return false; }
+    parser_workers_close(&lease);
+    return lease.local.count == 0;
+}
 
 fn lr_work_equal(a: LRStates*, b: LRStates*): bool {
     if a.states.length != b.states.length { return false; }
@@ -144,22 +216,23 @@ export fn lr_work_tests(): u32 {
     var components = entity_store_component_count(store);
     var failures: u32 = 0;
     if !lr_propagation_work_trial(root) { failures++; }
-    var symbols: LRSymbol[512];
-    var rules: LRProduction[36];
-    fill(&rules, 0, sizeof(LRProduction[36]));
-    for(var i: usize = 0; i < 512; i++) {
+    if !lr_worker_lifetime() { failures++; }
+    var symbols: LRSymbol[2048];
+    var rules: LRProduction[516];
+    fill(&rules, 0, sizeof(LRProduction[516]));
+    for(var i: usize = 0; i < 2048; i++) {
         symbols[i].nonterminal = lr_none();
         symbols[i].first = convert(u32, i + 2097152);
         symbols[i].last = symbols[i].first;
     }
     // Many distinct dotted productions and state/hash-table resizes.
-    rules[0].count = 512;
-    if !lr_work_trial(root, &rules[0], 1, &symbols[0], 512, 1) { failures++; }
+    rules[0].count = 2048;
+    if !lr_work_trial(root, &rules[0], 1, &symbols[0], 2048, 1) { failures++; }
 
-    // Root -> 256 terminals List, List -> Item List | empty, Item -> 32
-    // alternatives. The prefix forces multiple action ranges even for this
-    // small rule set. Duplicate/overlapping tokens deliberately retain conflicts.
-    fill(&rules, 0, sizeof(LRProduction[36]));
+    // Root -> 256 terminals List, List -> Item List | empty, Item -> 512
+    // alternatives. Exercise both closure batches and multiple action ranges.
+    // Duplicate/overlapping tokens deliberately retain conflicts.
+    fill(&rules, 0, sizeof(LRProduction[516]));
     rules[0].count = 257;
     symbols[256].nonterminal = 1;
     rules[1].owner = 1;
@@ -169,21 +242,21 @@ export fn lr_work_tests(): u32 {
     symbols[258].nonterminal = 1;
     rules[2].owner = 1;
     rules[2].begin = 259;
-    for(var i: usize = 0; i < 32; i++) {
+    for(var i: usize = 0; i < 512; i++) {
         rules[i + 3].owner = 2;
         rules[i + 3].begin = i + 259;
         rules[i + 3].count = 1;
         symbols[i + 259].first = convert(u32, i / 2 + 32);
         symbols[i + 259].last = symbols[i + 259].first + convert(u32, i % 2);
     }
-    if !lr_work_trial(root, &rules[0], 35, &symbols[0], 291, 3) { failures++; }
+    if !lr_work_trial(root, &rules[0], 515, &symbols[0], 771, 3) { failures++; }
     // A nullable cycle in the grammar is valid fixed-point input, distinct from
     // an impossible recursive by-value type or compile-time execution cycle.
-    rules[35].owner = 2;
-    rules[35].begin = 291;
-    rules[35].count = 1;
-    symbols[291].nonterminal = 1;
-    if !lr_work_trial(root, &rules[0], 36, &symbols[0], 292, 3) { failures++; }
+    rules[515].owner = 2;
+    rules[515].begin = 771;
+    rules[515].count = 1;
+    symbols[771].nonterminal = 1;
+    if !lr_work_trial(root, &rules[0], 516, &symbols[0], 772, 3) { failures++; }
     if entity_store_count(store) != entities || entity_store_component_count(store) != components { failures++; }
     entity_release(root);
     if !compiler_world_dispose(world) { failures++; }

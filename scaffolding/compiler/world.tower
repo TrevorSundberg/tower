@@ -5,6 +5,7 @@ import parser_types;
 import syntax_types;
 import foundation_types;
 import grammar_types;
+import .library.work_pool;
 
 extern fn node_payload_init(kind: u32, data: void*): void;
 
@@ -195,6 +196,7 @@ export fn compiler_world_component(world: CompilerWorld*, owner: Entity*, kind: 
 
 // Failed disposal is non-mutating. All requests and views must drain first.
 export fn compiler_world_dispose(world: CompilerWorld*): bool {
+    if world.grammar.workers_busy { return false; }
     // Drain frontend caches explicitly, after their requests have joined.
     var cached = world.grammar.bedrock != null;
     if cached {
@@ -227,6 +229,7 @@ export fn compiler_world_dispose(world: CompilerWorld*): bool {
         }
     }
     index = 0;
+    work_pool_close(&world.grammar.workers);
     for(; index < CompilerComponentCount(); index++) {
         var type = world.types[index];
         var present = type != null;

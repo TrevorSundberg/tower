@@ -1,4 +1,5 @@
 import tower;
+import .library.work_pool;
 
 // Borrowed component identities from one world, shared by every grammar reader.
 struct FrontendKinds {
@@ -16,6 +17,8 @@ struct CompilerGrammarCache {
     bedrock: void*;
     patterns: void*;
     syntax: void*; // SyntaxBaselines, owned/reset by the world's coordinator
+    workers: WorkPool;
+    workers_busy: bool;
 }
 
 struct GrammarBuilder {

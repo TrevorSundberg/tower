@@ -1,5 +1,6 @@
 import tower;
 import grammar_types;
+import .library.work_pool;
 import component_kinds;
 import format_types;
 import frontend_bedrock;
@@ -92,6 +93,8 @@ export fn frontend_world_clear(world: void*): bool {
         return false;
     }
     var cache = compiler_world_grammar(world);
+    if cache.workers_busy { return false; }
+    work_pool_close(&cache.workers);
     syntax_baselines_clear(world);
     frontend_pattern_destroy(bits(FrontendPatternCompiler*, cache.patterns));
     cache.patterns = null;

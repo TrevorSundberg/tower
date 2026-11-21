@@ -27376,3 +27376,36 @@ checks in12.77s, with zero skipped tests. No production worker/allocator algorit
 was changed in this migration lane. The next combined release remains coordinated
 behind Agent3 and coordinator source slots; Agent1 acknowledgement is still pending.
 This final source checkpoint does not claim a new hosted analysis deployment.
+### Compiler worker granularity regression investigation (2026-11-20)
+
+After the verified 49ed3c3 migration release, newer ba1884d introduced native
+within-unit workers. The coordinator is addressing startup/granularity before
+integrating the already-proven emission reference; Agent2 owns the separate
+single-owner allocation-injection host policy and LR reference retirement.
+No production threading disable, native shim or assertion removal is authorized.
+
+Measured current ba1884d towerc from agent-1-combined-ecs-release compiling the
+unchanged tests/parallel_unit.tower (two exported scalar functions), same explicit
+Bedrock/Foundation and x86_64 target: 5.00 s wall, reported bootstrap1008 ms and
+parse3853 ms. Pre-threaded coordinator-utilities-inferred-clean towerc: 0.80 s,
+bootstrap68 ms and parse691 ms. GDB-only work_thread_capacity return1 diagnostic
+on the SAME new executable reports total996 ms, bootstrap124 ms, parse857 ms;
+the emitted object is byte-identical to its normal threaded result. Debugger
+numbers include debugger overhead and are diagnostic, not a deployment policy.
+Evidence: external worker-granularity/{baseline-parallel-unit,pre-threads-parallel-unit,
+serial-diagnostic}.log and timing logs. First GDB attempt needed an explicit
+(unsigned long) return cast because the optimized binary lacks type information.
+
+Plan: measure startup counts and useful ready batches; bound workers by admitted
+work and measured grain, preserving shared ECS inputs, worker-private outputs,
+join/publication order and exact serial/parallel results. Keep independent worlds
+and do not share mutable indexes across jobs. Use Tower implementation/fixtures;
+validate actual overlap on eligible large work as well as small-input latency,
+failures and cleanup. This is not yet an implemented optimization. All root work
+starts from pulled748d981; todo.txt remains unchanged. Emission and future source
+slots remain coordinated with the other agents, and no release is expanded after
+its frozen tests have passed.
+
+A debugger count on the unchanged new compiler recorded 457 pool capacity requests and 14,624 native thread opens for the two-function input (32 per request). Count-diagnostic timing is excluded from performance claims. The first optimization retains a coordinator-leased pool in each explicit CompilerWorld grammar cache; per-table ECS jobs, inputs, views and private scratch still end at their joins. No process-global pool or parallel structural publication. Reentrant leases reject, independent worlds retain separate pools, no-context anchors use the existing local lifetime, idle pools grow only between leases, reset/disposal joins and closes retained threads. Tests exercise reuse, isolation, rejection and cancellation/drain with a real LR closure. Root pulled bae9edc; upstream single-owner instrumentation wrappers are being consolidated by Agent2 into existing portable-host composition. This supersedes the investigation's starting revision only; measurements still describe ba1884d.
+
+Worker reuse alone reduced opens to64 and tiny compile to2.62s; byte-identical output. Native frontend/backend and real four-worker barrier passed. Remaining overhead came from very fine closure/state dispatch; closure jobs now cover contiguous output ranges with explicit WorkGraph access declarations and coordinator-only publication. First grain128 measured1.73s; grain512 plus state eligibility128 items/four edges measured0.73s (bootstrap68ms, parse628ms), versus pre-change5.00s and pre-thread0.80s. These are local observations, not a universal parallel speedup. The expanded equivalence fixture crosses both grain thresholds, keeps nullable cycles/conflicts and tests lease reuse/drain. Intermediate builds caught missing direct work_pool imports and the required callable spelling LRClosureGrain(); corrected before validation. GDB function-bypass trial initially lacked explicit C return types; its breakpoint/inferior-call timings are excluded. Root implementation/tests remain Tower-only. Upstream c1a4925 action-range jobs arrived during validation; preserve and integrate them before final validation/publication.
