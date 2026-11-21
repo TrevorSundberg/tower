@@ -1,0 +1,3 @@
+import tower;
+struct Record { value: decltype(read(null)); }
+fn read(record: Record*): decltype(record.value) { return record.value; }

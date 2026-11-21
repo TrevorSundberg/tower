@@ -8,6 +8,7 @@ import semantic_expressions;
 import semantic_support;
 import semantic_types;
 import .library.vector;
+import semantic_lowering_work;
 
 // Expressions are normalized on the shared ECS entities into ordinary bound
 // locals, calls, loads/stores and control flow. No backend sees surface tags.
@@ -518,26 +519,5 @@ fn sem_lift_block(c: SemanticContext*, block: void*): void {
 }
 
 fn sem_lower_expressions(c: SemanticContext*): void {
-    if !c.surface_expressions {
-        return;
-    }
-    if !sem_ok(c) {
-        return;
-    }
-    var index: usize = 0;
-    loop {
-        if index == c.program.functions.length {
-            return;
-        }
-        c.current = c.program.functions.data[index];
-        var function = sem_get(c.current);
-        var block = function.body;
-        if index == 0 {
-            block = c.current;
-        }
-        index++;
-        if block != null {
-            sem_lift_block(c, block);
-        }
-    }
+    sem_lower_parallel(c);
 }

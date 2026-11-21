@@ -10,11 +10,18 @@ const dist = path.join(root, 'dist');
 // dist is generated output. Never publish stale optional backends/target packs.
 await rm(dist, { recursive: true, force: true });
 await mkdir(dist, { recursive: true });
-await build({ absWorkingDir: root, entryPoints: ['src/app.mjs', 'src/worker.mjs', 'src/execution-worker.mjs', 'src/target-worker.mjs', 'src/language-worker.mjs', 'src/compiler-build-worker.mjs'],
+await build({ absWorkingDir: root, entryPoints: ['src/app.mjs', 'src/worker.mjs', 'src/execution-worker.mjs', 'src/target-worker.mjs', 'src/language-worker.mjs', 'src/compiler-build-worker.mjs', 'src/compiler-thread-worker.mjs', 'src/compiler-isolation-worker.mjs'],
   outdir: dist, bundle: true, format: 'esm', target: 'es2022', minify: true,
   sourcemap: true, outExtension: { '.js': '.js' }, legalComments: 'linked' });
 for (const file of ['index.html', 'style.css', 'CNAME']) await copyFile(path.join(root, file), path.join(dist, file));
 await copyFile(path.join(root, '../build/browser-wasi/tower.wasm'), path.join(dist, 'tower.wasm'));
+let threads = false;
+try {
+  await copyFile(path.join(root, '../build/browser-wasi-threads/tower.wasm'), path.join(dist, 'tower-threads.wasm'));
+  threads = true;
+} catch (error) { if (error.code !== 'ENOENT') throw error; }
+if (process.env.TOWER_REQUIRE_THREADS === '1' && !threads)
+  throw new Error('Threaded deployment requires build-threads.sh.');
 await copyFile(path.join(root, '../scaffolding/examples/foreach.tower'), path.join(dist, 'foreach.tower'));
 const builtinModules = ['bedrock', 'foundation', 'tower', ...(await readdir(path.join(root, '../scaffolding/library')))
   .filter(name => name.endsWith('.tower')).sort().map(name => 'library/' + name.slice(0, -6)), 'backend/foreign_grammar'];
@@ -50,7 +57,7 @@ if (crossBytes) {
   await writeFile(path.join(dist, 'tower-cross.wasm.gz'), gzipSync(crossBytes, {level:9}));
   cross = true;
 }
-await writeFile(path.join(dist, 'capabilities.json'), JSON.stringify({ llvm, cross }));
+await writeFile(path.join(dist, 'capabilities.json'), JSON.stringify({ llvm, cross, threads }));
 if (process.env.TOWER_REQUIRE_BACKENDS === '1' && (!llvm || !cross))
   throw new Error('Full deployment requires both LLVM reactors and target support packs.');
 // Produced from the actual native build manifests, including each new Tower port.

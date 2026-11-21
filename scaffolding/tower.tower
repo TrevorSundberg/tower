@@ -82,6 +82,13 @@ parse CoreLocation |= '(' $base:TowerComma ')' '.' $field:Identifier
 parse CoreValue = CoreOperand;
 parse CoreCallArgument = CoreOperand;
 parse CoreOperand = TowerExpression;
+// Unevaluated type query. Semantic resolution uses ordinary bindings/types;
+// canonical Foundation spells the resolved type, with no runtime query call.
+parse TowerDecltype = 'decltype' '(' $value:TowerExpression ')';
+parse CoreType |= TowerDecltype;
+parse TowerExpression |= TowerDecltype;
+parse TowerComptime = 'comptime' '(' $value:TowerExpression ')';
+parse TowerExpression |= TowerComptime;
 parse TowerExpressionStatement = $value:TowerComma ';';
 parse TowerDefer = 'defer' $body:TowerExpressionStatement | 'defer' $body:CoreBlock;
 // A scoped initializer, a bool test before each iteration, and an update after

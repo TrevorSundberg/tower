@@ -1,0 +1,137 @@
+import tower;
+import compiler_kernel;
+import lr_analysis;
+import lr_lalr;
+import lr_states;
+import lr_types;
+import .library.vector;
+import .library.work_graph;
+import .library.work_pool;
+
+extern fn entity_create_related(anchor: void*): void*;
+extern fn entity_attach(child: void*, parent: void*, name: u8*): bool;
+extern fn entity_release(entity: void*): usize;
+extern fn entity_register(type: void*, size: usize, alignment: usize, lifecycle: usize): bool;
+extern fn entity_component_add(node: void*, type: void*): void*;
+extern fn entity_component_data(component: void*): void*;
+extern fn entity_view_open(anchor: void*): void*;
+extern fn entity_view_close(view: void*): void;
+
+struct LRClosureTask {
+    kernel: CompilerKernel;
+    ticket: WorkTicket;
+    analysis: LRAnalysis*;
+    item: LRItem;
+    closure: LRKernelClosure*;
+    key: usize;
+}
+
+// Only immutable grammar/FIRST data are shared. LRAnalysis.failed is private:
+// the ordinary closure routines may set it on allocation failure.
+export fn compiler_lr_kernel(payload: void*): void {
+    var task = bits(LRClosureTask*, payload);
+    var analysis: LRAnalysis;
+    copy(&analysis, task.analysis, sizeof(LRAnalysis));
+    task.closure = lr_kernel_closure(&analysis, &task.item);
+}
+
+fn lr_work_node(parent: void*): void* {
+    var node = entity_create_related(parent);
+    if node == null { return null; }
+    if !entity_attach(node, parent, null) { entity_release(node); return null; }
+    entity_release(node);
+    return node;
+}
+
+// The result components are transient analysis jobs on ordinary entities in the
+// grammar's world. The grammar remains authoritative; closure/index objects are
+// private derived data. No grammar update is published from a worker.
+export fn lr_states_lalr_parallel(value: LRStates*, constructs: bool, anchor: void*): bool {
+    var capacity = work_thread_capacity();
+    if capacity <= 1 || anchor == null { return lr_states_lalr(value, constructs); }
+    var count = value.analysis.symbol_count + value.analysis.rule_count;
+    // Tiny tables still use the same closure algorithm without pool startup.
+    if count < 32 { return lr_states_lalr(value, constructs); }
+    var cache = alloc(LRKernelClosure*, count);
+    var tasks = alloc(LRClosureTask*, count);
+    if cache == null || tasks == null { free(cache); free(tasks); return false; }
+    fill(cache, 0, count * sizeof(LRKernelClosure*));
+    fill(tasks, 0, count * sizeof(LRClosureTask*));
+    var owner = entity_create_related(anchor);
+    if owner == null { free(cache); free(tasks); return false; }
+    var kind = lr_work_node(owner);
+    var ok = kind != null;
+    if ok { ok = entity_register(kind, sizeof(LRClosureTask), alignof(LRClosureTask), 0); }
+    var graph: WorkGraph;
+    work_init(&graph, 1, 0);
+    var jobs: vector(LRClosureTask*);
+    vector_init(LRClosureTask*, &jobs);
+    for(var i: usize = 0; i < value.states.length && ok; ++i) {
+        var items = &value.states.data[i].items.values;
+        for(var j: usize = 0; j < items.length && ok; ++j) {
+            var item = &items.data[j];
+            if !lr_kernel(value.analysis, item) { continue; }
+            var key = value.analysis.rules[item.rule].begin + item.rule + item.position;
+            if tasks[key] != null { continue; }
+            var node = lr_work_node(owner);
+            if node == null { ok = false; break; }
+            var result = bits(LRClosureTask*, entity_component_data(entity_component_add(node, kind)));
+            if result == null { ok = false; break; }
+            fill(result, 0, sizeof(LRClosureTask));
+            result.kernel.kind = CompilerKernelKind.LRClosure;
+            result.kernel.payload = bits(void*, result);
+            result.analysis = value.analysis;
+            copy(&result.item, item, sizeof(LRItem));
+            result.key = key;
+            tasks[key] = result;
+            ok = vector_push(LRClosureTask*, &jobs, result);
+            var query = work_request(&graph, node, 1, 0);
+            ok &&= query != 0;
+            ok &&= work_access(&graph, query, 1, 1, key, 1, WorkAccessMode.Write);
+            ok &&= work_access(&graph, query, 1, 2, 0, 1, WorkAccessMode.Read);
+            ok &&= work_seal(&graph, query);
+            ok &&= work_demand(&graph, query);
+        }
+    }
+    var pool: WorkPool;
+    fill(&pool, 0, sizeof(WorkPool));
+    if capacity > jobs.length { capacity = jobs.length; }
+    if ok && capacity != 0 { ok = work_pool_open(&pool, capacity); }
+    var view: void* = null;
+    if ok { view = entity_view_open(owner); ok = view != null; }
+    var batch: LRClosureTask*[256];
+    var next: usize = 0;
+    while ok && next < jobs.length {
+        var admitted: usize = 0;
+        var ticket: WorkTicket;
+        while admitted < pool.count && work_take(&graph, &ticket) {
+            // Demand/admission order equals the immutable job index here.
+            var result = jobs.data[next];
+            next++;
+            copy(&result.ticket, &ticket, sizeof(WorkTicket));
+            batch[admitted] = result;
+            if !work_pool_submit(&pool, bits(void*, &result.kernel)) { ok = false; break; }
+            admitted++;
+        }
+        if admitted == 0 { ok = false; break; }
+        for(var i: usize = 0; i < admitted; ++i) {
+            if work_pool_receive(&pool, true) == null { ok = false; }
+        }
+        for(var i: usize = 0; i < admitted; ++i) {
+            var result = batch[i];
+            var success = result.closure != null;
+            cache[result.key] = result.closure;
+            if !work_finish(&graph, &result.ticket, success) || !success { ok = false; }
+        }
+    }
+    work_pool_close(&pool);
+    if view != null { entity_view_close(view); }
+    if ok { ok = lr_states_lalr_cached(value, constructs, cache); }
+    for(var i: usize = 0; i < count; ++i) { lr_kernel_closure_destroy(cache[i]); }
+    vector_dispose(LRClosureTask*, &jobs);
+    work_dispose(&graph);
+    entity_release(owner);
+    free(tasks);
+    free(cache);
+    return ok;
+}

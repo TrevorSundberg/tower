@@ -1,0 +1,154 @@
+import tower;
+import compiler_kernel;
+import foundation_tags;
+import foundation_types;
+import semantic_context;
+import semantic_control;
+import semantic_evaluation;
+import semantic_support;
+import .library.vector;
+import .library.work_graph;
+import .library.work_pool;
+
+const FlowQuery: u32 = 7;
+
+struct SemanticFlow {
+    kernel: CompilerKernel;
+    ticket: WorkTicket;
+    subject: void*;
+    invalid_label: void*;
+    excessive_depth: void*;
+    flow: u32;
+}
+
+// This is a readiness check, not evaluation of a constant expression. Only the
+// ordinary interpreter publishes the producer's value. Conservative initial
+// flow keeps cleanup paths until the dependent result is available.
+fn sem_flow_known(c: SemanticContext*, node: void*): bool {
+    if !sem_get(node).constant { return false; }
+    var dependency = sem_evaluation_dependency(c, node);
+    if dependency != null && !dependency.ready {
+        if !sem_has(&c.flow_dependencies, dependency.subject) {
+            sem_push(&c.flow_dependencies, dependency.subject);
+        }
+        return false;
+    }
+    return true;
+}
+
+fn sem_flow_request(c: SemanticContext*, subject: void*, dependencies: vector(void*)*): void {
+    if !sem_ok(c) { return; }
+    if c.flow_results == null {
+        c.flow_results = sem_create(c.program.root);
+        sem_require(entity_register(c.flow_results, sizeof(SemanticFlow), alignof(SemanticFlow), 0));
+    }
+    var result = bits(SemanticFlow*, entity_component_data(entity_component_add(subject, c.flow_results)));
+    sem_require(result != null);
+    fill(result, 0, sizeof(SemanticFlow));
+    result.subject = subject;
+    result.kernel.kind = CompilerKernelKind.Flow;
+    result.kernel.payload = bits(void*, result);
+    var query = work_request(&c.queries, subject, FlowQuery(), 0);
+    sem_require(query != 0);
+    for(var i: usize = 0; i < dependencies.length; i++) {
+        var dependency = work_find(&c.queries, dependencies.data[i], EvaluationQuery(), 0);
+        sem_require(dependency != 0 && work_depend(&c.queries, query, dependency));
+    }
+    sem_require(work_access(&c.queries, query, 1, 8, c.flow_jobs.length, 1, WorkAccessMode.Write));
+    sem_require(work_access(&c.queries, query, 1, 3, 0, ~convert(usize, 0), WorkAccessMode.Read));
+    sem_require(work_seal(&c.queries, query));
+    sem_push(&c.flow_jobs, bits(void*, result));
+}
+
+// Read-only return/reachability validation of the already-lowered Foundation
+// tree. It neither rewrites nodes nor computes expression values. Labels and
+// loop exits retain the same flow contract as the initial body checker.
+fn sem_flow_node(result: SemanticFlow*, node: void*, depth: usize): u32 {
+    if node == null { return FlowNext(); }
+    if depth > 1024 { result.excessive_depth = node; return FlowNext(); }
+    var value = sem_get(node);
+    if value == null { return FlowNext(); }
+    if value.kind == KReturn() { return FlowReturn(); }
+    if value.kind == KBreak() { return FlowBreak(); }
+    if value.kind == KContinue() { return FlowContinue(); }
+    if value.kind == KTrap() || value.kind == KJump() { return 0; }
+    if value.kind == KBlock() || value.kind == KProgram() {
+        var flow = FlowNext();
+        var labeled = false;
+        for(var i: usize = 0; i < value.items.length; i++) {
+            var item = value.items.data[i];
+            var child = sem_get(item);
+            if child != null && child.kind == KLabel() {
+                if labeled && (flow & FlowNext()) != 0 && result.invalid_label == null {
+                    result.invalid_label = item;
+                }
+                labeled = true;
+                flow = FlowNext();
+            }
+            var next = sem_flow_node(result, item, depth + 1);
+            if (flow & FlowNext()) != 0 { flow = (flow & ~FlowNext()) | next; }
+        }
+        return flow;
+    }
+    if value.kind == KIf() {
+        var yes = sem_flow_node(result, value.body, depth + 1);
+        var no = sem_flow_node(result, value.otherwise, depth + 1);
+        var condition = sem_get(value.value);
+        if condition != null && condition.constant { return condition.bits != 0 ? yes : no; }
+        return yes | no;
+    }
+    if value.kind == KLoop() {
+        var body = sem_flow_node(result, value.body, depth + 1);
+        return (body & FlowReturn()) | ((body & FlowBreak()) != 0 ? FlowNext() : 0);
+    }
+    return FlowNext();
+}
+
+fn semantic_flow_kernel(result: SemanticFlow*): void {
+    result.flow = sem_flow_node(result, sem_get(result.subject).body, 0);
+}
+
+fn sem_flows(c: SemanticContext*): void {
+    if !sem_ok(c) || c.flow_jobs.length == 0 { return; }
+    if c.workers.count == 0 { sem_require(work_pool_open(&c.workers, work_thread_capacity())); }
+    for(var i: usize = 0; i < c.flow_jobs.length; i++) {
+        var result = bits(SemanticFlow*, c.flow_jobs.data[i]);
+        sem_require(work_demand(&c.queries, work_find(&c.queries, result.subject, FlowQuery(), 0)));
+    }
+    var view = entity_view_open(c.program.root);
+    sem_require(view != null);
+    var next: usize = 0;
+    while next < c.flow_jobs.length {
+        var count = c.flow_jobs.length - next;
+        if count > c.workers.count { count = c.workers.count; }
+        for(var i: usize = 0; i < count; i++) {
+            var result = bits(SemanticFlow*, c.flow_jobs.data[next + i]);
+            sem_require(work_take_query(&c.queries, &result.ticket, FlowQuery()));
+            sem_require(work_task(&c.queries, result.ticket.task).subject == result.subject);
+            sem_require(work_pool_submit(&c.workers, bits(void*, &result.kernel)));
+        }
+        for(var i: usize = 0; i < count; i++) { sem_require(work_pool_receive(&c.workers, true) != null); }
+        for(var i: usize = 0; i < count; i++) {
+            var result = bits(SemanticFlow*, c.flow_jobs.data[next + i]);
+            var function = sem_get(result.subject);
+            var returns = function.type.pointers != 0 || function.type.scalar != SVoid();
+            var missing = returns && (result.flow & FlowNext()) != 0;
+            if result.invalid_label != null {
+                sem_fail(c, result.invalid_label, "A labeled block must end with jump or return before the next label");
+            } else {
+                if result.excessive_depth != null {
+                    sem_fail(c, result.excessive_depth, "Foundation control-flow analysis nesting exceeds 1024");
+                } else {
+                    if missing {
+                        sem_fail(c, result.subject, sem_cat(c, "Function '", sem_cat(c, sem_name(function),
+                            "' can finish without returning a value")));
+                    }
+                }
+            }
+            sem_require(work_finish(&c.queries, &result.ticket,
+                !missing && result.invalid_label == null && result.excessive_depth == null));
+        }
+        next += count;
+    }
+    entity_view_close(view);
+}

@@ -2,8 +2,43 @@
 
 Use `import tower;` for the language above Foundation. Compiler code can use the
 same layer. The [development plan](tower-language-plan.md) distinguishes shipped
-features from upcoming overloads, compile-time
-execution, result types and ownership rules.
+features and implementation work from upcoming overloads, general compile-time
+values, result types and ownership rules.
+
+## Type queries and scalar compile-time execution
+
+The current implementation accepts `decltype(expression)` and `comptime(expression)`
+above Foundation. These additions are under validation; this section does not
+claim that a published compiler binary already includes them.
+
+```tower
+import tower;
+fn twice(value: u64): decltype(value) { return value * 2; }
+var answer: decltype(twice(21)) = comptime(twice(21));
+```
+
+`decltype` checks an expression's ordinary type without executing it. It supports
+locations, pointers, fields, calls and concrete type arguments. Module declarations
+and function signatures resolve through dependency queries, including forward
+references. Signature parameter names shadow module names; return annotations can
+inspect parameter types and fields. Cycles are reported as dependency paths.
+Block locals retain their ordinary lexical scope.
+
+`comptime` currently produces integer or bool values by invoking the ordinary
+Foundation interpreter with explicit target data. Evaluation may suspend on a
+pending staged value; nested values are demanded only when execution reaches them.
+It does not run module initialization. Runtime captures, global storage, heap
+allocation, output and foreign calls are rejected by the current strict execution
+policy. Local storage and loops work, with initialization/lifetime checks and an
+execution budget. This bounded scalar implementation precedes the general value
+and capability model below.
+
+Canonical Foundation contains the checked types and evaluated scalar constants;
+it needs no `decltype` or `comptime` syntax. Declaration dependency discovery,
+layout, expression lowering and evaluation use Tower ECS queries and worker pools.
+Full body checking, compiler-session isolation and browser deployment of shared
+threads remain in progress; these features do not imply a completely threaded
+compiler yet.
 
 ## Compile-time value goals
 
@@ -13,6 +48,13 @@ function pointers, as well as types and scalar values. Any of these can be an
 argument or result of ordinary staged code, including a type-producing function.
 They remain usable at runtime too. The templates example currently uses type and
 integer arguments because general value staging is still a bootstrap milestone.
+
+The intended default also infers available compile-time values without requiring
+a constant annotation. Results must come from ordinary execution through the
+shared interpreter, including literal and arithmetic operations, rather than a
+separate pre-LLVM folding pass. `comptime` requires evaluation at that stage;
+inferred execution preserves work and effects that must occur at runtime. This
+general inferred-execution facility is not yet implemented.
 
 Files and explicitly enabled network capabilities, including opening a socket
 and awaiting a response, can supply tracked compile-time inputs. Recorded inputs

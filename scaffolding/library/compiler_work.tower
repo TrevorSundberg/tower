@@ -99,6 +99,9 @@ export fn compiler_work_accept(work: CompilerWork*, unit: usize, revision: u64, 
     ticket.task = unit;
     ticket.revision = revision;
     ticket.profile = profile;
+    // Unit transport dispatches each unit once. Resumable query transports must
+    // carry the actual dispatch generation instead of reconstructing a receipt.
+    ticket.dispatch = 1;
     if !work_finish(&work.graph, &ticket, success) {
         return false;
     }

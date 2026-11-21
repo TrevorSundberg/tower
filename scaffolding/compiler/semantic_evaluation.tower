@@ -1,0 +1,274 @@
+import tower;
+import semantic_context;
+import semantic_support;
+import semantic_types;
+import semantic_values;
+import semantic_expressions;
+import semantic_control;
+import semantic_expression_lowering;
+import compiler_kernel;
+import foundation_tags;
+import foundation_types;
+import interpreter_context_types;
+import .library.vector;
+import .library.work_graph;
+import .library.work_pool;
+
+extern fn interpreter_invocation_init(invocation: IMInvocation*, function: void*, width: usize, arguments: u64*, count: usize, strict: bool, fuel: u64): bool;
+extern fn interpreter_invocation_dispose(invocation: IMInvocation*): void;
+extern fn entity_view_open(anchor: void*): void*;
+extern fn entity_view_close(view: void*): void;
+
+const EvaluationQuery: u32 = 2;
+const EvaluationFuel: u64 = 1000000;
+
+struct SemanticEvaluation {
+    kernel: CompilerKernel;
+    ticket: WorkTicket;
+    subject: void*;
+    expression: void*;
+    function: void*;
+    ready: IMDependency*;
+    invocation: IMInvocation;
+    requested: bool;
+    started: bool;
+    aliases: vector(void*);
+}
+
+fn sem_evaluation_dependency(c: SemanticContext*, node: void*): IMDependency* {
+    if c.evaluation_ready == null { return null; }
+    var dependency = bits(IMDependency*, entity_component_data(entity_component_get(node, c.evaluation_ready)));
+    if dependency != null && dependency.source != null { return dependency.source; }
+    return dependency;
+}
+
+// Deferred cleanup clones canonical operations before stages run. Keep their
+// literal results linked to the original producer instead of copying its zero
+// placeholder as if it were a completed compile-time value.
+fn sem_evaluation_clone(c: SemanticContext*, original: void*, clone: void*): void {
+    var dependency = sem_evaluation_dependency(c, original);
+    if dependency == null { return; }
+    var result = sem_evaluation_get(c, dependency.subject);
+    sem_require(result != null);
+    sem_push(&result.aliases, clone);
+    var link = bits(IMDependency*, entity_component_data(entity_component_add(clone, c.evaluation_ready)));
+    sem_require(link != null);
+    fill(link, 0, sizeof(IMDependency));
+    link.subject = clone;
+    link.source = dependency;
+}
+
+fn sem_evaluation_get(c: SemanticContext*, subject: void*): SemanticEvaluation* {
+    if c.evaluation_results == null { return null; }
+    var component = entity_component_get(subject, c.evaluation_results);
+    return bits(SemanticEvaluation*, entity_component_data(component));
+}
+
+fn sem_evaluation_begin(c: SemanticContext*): void {
+    if c.evaluation_results != null { return; }
+    c.evaluation_results = sem_create(c.program.root);
+    sem_require(entity_register(c.evaluation_results, sizeof(SemanticEvaluation), alignof(SemanticEvaluation), 0));
+    c.evaluation_ready = sem_create(c.program.root);
+    sem_require(entity_register(c.evaluation_ready, sizeof(IMDependency), alignof(IMDependency), 0));
+}
+
+fn sem_evaluation_request(c: SemanticContext*, result: SemanticEvaluation*): void {
+    var id = work_request(&c.queries, result.subject, EvaluationQuery(), 0);
+    sem_require(id != 0);
+    sem_require(work_access(&c.queries, id, 1, 2, id, 1, WorkAccessMode.Write));
+    sem_require(work_access(&c.queries, id, 1, 3, 0, ~convert(usize, 0), WorkAccessMode.Read));
+    sem_require(work_seal(&c.queries, id));
+}
+
+fn sem_comptime(c: SemanticContext*, n: void*, expected_type: FoundationType*): void* {
+    var existing = sem_get(n);
+    if existing != null { return sem_surface_expected(c, n, expected_type); }
+    c.evaluation_depth++;
+    var expression = sem_operand(c, sem_member(n, "value"), expected_type);
+    c.evaluation_depth--;
+    if !sem_ok(c) || expression == null { return n; }
+    var input = sem_get(expression);
+    var value = sem_node(c, n, KOperand());
+    sem_set_type(&value.type, &input.type);
+    value.constant = true;
+    // This typed placeholder cannot leave compilation. The query result replaces
+    // it before any formatter, runtime or backend can consume the checked graph.
+    value.bits = 0;
+    if c.unevaluated { return n; }
+    if input.type.pointers != 0 || semantic_aggregate(&input.type) || input.type.scalar == SVoid() {
+        sem_fail(c, n, "Compile-time results currently require an integer or bool value");
+        return n;
+    }
+    sem_evaluation_begin(c);
+    var result = bits(SemanticEvaluation*, entity_component_data(entity_component_add(n, c.evaluation_results)));
+    sem_require(result != null);
+    fill(result, 0, sizeof(SemanticEvaluation));
+    result.subject = n;
+    result.expression = expression;
+    result.requested = c.evaluation_depth == 0;
+    result.ready = bits(IMDependency*, entity_component_data(entity_component_add(n, c.evaluation_ready)));
+    sem_require(result.ready != null);
+    fill(result.ready, 0, sizeof(IMDependency));
+    result.ready.subject = n;
+    result.kernel.kind = CompilerKernelKind.Evaluate;
+    result.kernel.payload = bits(void*, &result.invocation);
+    sem_require(vector_push(void*, &c.evaluation_jobs, bits(void*, result)));
+    // Interpreter state is private to this subject; shared input entities are
+    // immutable for a dispatch wave and publication happens after all joins.
+    // Body workers attach canonical result components under their entity lease;
+    // the coordinator registers dependencies after publication at the barrier.
+    if c.entity_stage == null { sem_evaluation_request(c, result); }
+    return n;
+}
+
+fn sem_evaluation_prepare(c: SemanticContext*, result: SemanticEvaluation*): void {
+    // A stage expression has explicit arguments. Borrowing an ordinary local's
+    // byte offset would accidentally read unrelated helper-frame storage.
+    var scan = sem_list(c);
+    sem_push(scan, result.expression);
+    while scan.length != 0 && sem_ok(c) {
+        scan.length--;
+        var entity = scan.data[scan.length];
+        var value = sem_get(entity);
+        if value == null { continue; }
+        if value.kind == KOperand() && value.binding != null {
+            sem_fail(c, entity, "Compile-time expression cannot capture runtime storage; pass explicit compile-time arguments");
+            return;
+        }
+        if value.left != null { sem_push(scan, value.left); }
+        if value.right != null { sem_push(scan, value.right); }
+        if value.value != null { sem_push(scan, value.value); }
+        if value.target != null { sem_push(scan, value.target); }
+        if value.kind == KCall() {
+            var index: usize = 0;
+            while index < value.items.length {
+                sem_push(scan, value.items.data[index]);
+                index++;
+            }
+        }
+    }
+    var function = sem_control_node(c, result.subject, KFunction());
+    var definition = sem_get(function);
+    sem_set_type(&definition.type, &sem_get(result.subject).type);
+    definition.body = sem_control_node(c, function, KBlock());
+    var returned = sem_control_node(c, definition.body, KReturn());
+    sem_get(returned).value = result.expression;
+    sem_push(&sem_get(definition.body).items, returned);
+    var previous = c.current;
+    c.current = function;
+    sem_lift_block(c, definition.body);
+    c.current = previous;
+    result.function = function;
+}
+
+fn sem_evaluation_cycle(c: SemanticContext*, id: usize): void {
+    var cycle: vector(usize);
+    vector_init(usize, &cycle);
+    var found = work_cycle(&c.queries, id, &cycle);
+    sem_require(found);
+    var text: u8* = "Compile-time dependency cycle";
+    var index: usize = 0;
+    while index < cycle.length {
+        var task = work_task(&c.queries, cycle.data[index]);
+        text = sem_cat(c, text, index == 0 ? ": " : " -> ");
+        text = sem_cat(c, text, sem_decimal(c, convert(u64, sem_get(task.subject).start)));
+        index++;
+    }
+    vector_dispose(usize, &cycle);
+    sem_fail(c, work_task(&c.queries, id).subject, text);
+}
+
+fn sem_evaluations(c: SemanticContext*): void {
+    if !sem_ok(c) || c.evaluation_jobs.length == 0 { return; }
+    var index: usize = 0;
+    while index < c.evaluation_jobs.length && sem_ok(c) {
+        var result = bits(SemanticEvaluation*, c.evaluation_jobs.data[index]);
+        sem_evaluation_prepare(c, result);
+        if result.requested {
+            sem_require(work_demand(&c.queries, work_request(&c.queries, result.subject, EvaluationQuery(), 0)));
+        }
+        index++;
+    }
+    if !sem_ok(c) { return; }
+    if c.workers.count == 0 { sem_require(work_pool_open(&c.workers, work_thread_capacity())); }
+    var view = entity_view_open(c.program.root);
+    sem_require(view != null);
+    var batch: SemanticEvaluation*[256];
+    loop {
+        var count: usize = 0;
+        var ticket: WorkTicket;
+        while count < c.workers.count && work_take_query(&c.queries, &ticket, EvaluationQuery()) {
+            var task = work_task(&c.queries, ticket.task);
+            sem_require(task.query == EvaluationQuery());
+            var result = sem_evaluation_get(c, task.subject);
+            sem_require(result != null);
+            copy(&result.ticket, &ticket, sizeof(WorkTicket));
+            if !result.started {
+                interpreter_invocation_init(&result.invocation, result.function, convert(usize, c.program.pointer_bytes), null, 0, true, EvaluationFuel());
+                result.invocation.context.dependency_kind = c.evaluation_ready;
+                result.started = true;
+            }
+            batch[count] = result;
+            sem_require(work_pool_submit(&c.workers, bits(void*, &result.kernel)));
+            count++;
+        }
+        if count == 0 { break; }
+        index = 0;
+        while index < count {
+            sem_require(work_pool_receive(&c.workers, true) != null);
+            index++;
+        }
+        index = 0;
+        while index < count {
+            var result = batch[index];
+            var invocation = &result.invocation;
+            if invocation.state.failed {
+                result.ready.failed = true;
+                result.ready.ready = true;
+                sem_fail(c, result.subject, invocation.context.error.data);
+                sem_require(work_finish(&c.queries, &result.ticket, false));
+                interpreter_invocation_dispose(invocation);
+            } else {
+                if invocation.state.done {
+                    sem_get(result.subject).bits = invocation.context.result;
+                    for(var alias: usize = 0; alias < result.aliases.length; alias++) {
+                        sem_get(result.aliases.data[alias]).bits = invocation.context.result;
+                    }
+                    result.ready.ready = true;
+                    sem_require(work_finish(&c.queries, &result.ticket, true));
+                    interpreter_invocation_dispose(invocation);
+                } else {
+                    var waiting = invocation.context.waiting;
+                    if waiting != null {
+                        var dependency = work_request(&c.queries, waiting, EvaluationQuery(), 0);
+                        sem_require(work_suspend(&c.queries, &result.ticket, dependency));
+                    } else {
+                        sem_require(work_yield(&c.queries, &result.ticket));
+                    }
+                }
+            }
+            index++;
+        }
+        if !sem_ok(c) { break; }
+    }
+    entity_view_close(view);
+    index = 0;
+    while index < c.queries.tasks.length && sem_ok(c) {
+        var task = work_task(&c.queries, index + 1);
+        if task.query == EvaluationQuery() && task.demanded && task.state != WorkState.Succeeded {
+            sem_evaluation_cycle(c, index + 1);
+        }
+        index++;
+    }
+}
+
+fn sem_evaluation_dispose(c: SemanticContext*): void {
+    var index: usize = 0;
+    while index < c.evaluation_jobs.length {
+        var result = bits(SemanticEvaluation*, c.evaluation_jobs.data[index]);
+        interpreter_invocation_dispose(&result.invocation);
+        vector_dispose(void*, &result.aliases);
+        index++;
+    }
+    vector_dispose(void*, &c.evaluation_jobs);
+}

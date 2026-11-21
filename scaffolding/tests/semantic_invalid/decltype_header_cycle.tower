@@ -1,0 +1,3 @@
+import tower;
+fn first(): decltype(second()) { return 0; }
+fn second(): decltype(first()) { return 0; }

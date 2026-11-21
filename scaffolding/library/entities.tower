@@ -9,6 +9,10 @@ struct EntityStore {
     views: usize;
     deferred: Entity*;
     reclaiming: usize;
+    // Borrowed owner context, installed before the first entity is created.
+    // The store does not interpret or destroy it; compiler worlds use it to
+    // resolve node-local component identities without an ambient singleton.
+    context: void*;
 }
 
 struct EntityChild {
@@ -36,6 +40,10 @@ struct Entity {
     data_alignment: usize;
     lifecycle: usize;
     deferred: Entity*;
+    // A private new entity, or an existing entity exclusively leased to one
+    // stage. Component indexes publish after pinned readers join. A lease owns
+    // the owner's component list; unrelated readers may only use pinned indexes.
+    stage: void*;
 }
 
 // The coordinator opens/closes views and owns refcounts. Workers borrow the
@@ -71,6 +79,17 @@ export fn entity_store_create(): EntityStore* {
     return store;
 }
 
+export fn entity_store_set_context(store: EntityStore*, context: void*): bool {
+    if store.entity_count != 0 || store.views != 0 || store.context != null { return false; }
+    store.context = context;
+    return true;
+}
+
+export fn entity_context(node: Entity*): void* {
+    if node == null { return null; }
+    return node.store.context;
+}
+
 // The store is borrowed by its entities and cannot be disposed while any live.
 export fn entity_store_dispose(store: EntityStore*): bool {
     var occupied = store.entity_count != 0;
@@ -104,6 +123,7 @@ export fn entity_create(store: EntityStore*): Entity* {
 }
 
 export fn entity_retain(entity: Entity*): usize {
+    if entity.stage != null { return 0; }
     entity.references++;
     return entity.references;
 }
@@ -115,6 +135,7 @@ export fn entity_create_related(entity: Entity*): Entity* {
 
 // Ownership must be acyclic. Query cursors are invalidated by structural edits.
 export fn entity_release(entity: Entity*): usize {
+    if entity.stage != null { return 0; }
     entity.references--;
     var remaining = entity.references;
     if remaining != 0 {
@@ -164,6 +185,7 @@ export fn entity_view_open(anchor: Entity*): EntityView* {
     if missing {
         return null;
     }
+    if anchor.stage != null { return null; }
     var store = anchor.store;
     var reclaiming = store.reclaiming != 0;
     if reclaiming {
@@ -228,7 +250,9 @@ export fn entity_view_query(view: EntityView*, type: Entity*, first: usize, coun
 
 // Component types are ordinary entities with a consistent layout/lifecycle.
 export fn entity_register(type: Entity*, size: usize, alignment: usize, lifecycle: usize): bool {
-    if alignment == 0 {
+    if type.stage != null { return false; }
+    var zero = alignment == 0;
+    if zero {
         return false;
     }
     var mask = alignment -1;
@@ -292,18 +316,24 @@ export fn entity_component_add(owner: Entity*, type: Entity*): EntityComponent* 
     if present != null {
         return present;
     }
-    if owner.store.views != 0 {
+    var staged = owner.stage != null;
+    var pinned = owner.store.views != 0 && !staged;
+    if pinned {
         return null;
     }
     if owner.store != type.store {
         return null;
     }
-    if !type.registered {
+    var unregistered = !type.registered || type.stage != null;
+    if unregistered {
         return null;
     }
     var ok = entity_reserve_components(&owner.components, &owner.component_capacity, owner.component_count);
-    ok &&= entity_reserve_components(&type.instances, &type.instance_capacity, type.instance_count);
-    if !ok {
+    if !staged {
+        ok &&= entity_reserve_components(&type.instances, &type.instance_capacity, type.instance_count);
+    }
+    var reserve_failed = !ok;
+    if reserve_failed {
         return null;
     }
     var alignment = type.data_alignment;
@@ -347,13 +377,15 @@ export fn entity_component_add(owner: Entity*, type: Entity*): EntityComponent* 
     component.allocation = allocation;
     component.data = data;
     component.type_index = type.instance_count;
+    if staged { component.type_index = ~convert(usize, 0); }
     owner.components[owner.component_count] = component;
     owner.component_count++;
-    type.instances[type.instance_count] = component;
-    type.instance_count++;
-    entity_retain(type);
-    var store = owner.store;
-    store.component_count++;
+    if !staged {
+        type.instances[type.instance_count] = component;
+        type.instance_count++;
+        entity_retain(type);
+        owner.store.component_count++;
+    }
     return component;
 }
 
@@ -373,7 +405,9 @@ fn entity_component_dispose(component: EntityComponent*): void {
 }
 
 export fn entity_component_remove(owner: Entity*, type: Entity*): bool {
-    if owner.store.views != 0 {
+    if owner.stage != null { return false; }
+    var pinned = owner.store.views != 0;
+    if pinned {
         return false;
     }
     var i: usize = 0;
@@ -489,7 +523,9 @@ fn entity_unlink(child: Entity*): void {
 // Ordered, named containment owns children. Other semantic links remain borrowed.
 // Reserve/copy before changing ownership; a failed allocation leaves links intact.
 export fn entity_attach(child: Entity*, parent: Entity*, name: u8*): bool {
-    if child.store.views != 0 {
+    if child.stage != null || (parent != null && parent.stage != null) { return false; }
+    var pinned = child.store.views != 0;
+    if pinned {
         return false;
     }
     if child == parent {
@@ -563,7 +599,9 @@ export fn entity_attach(child: Entity*, parent: Entity*, name: u8*): bool {
 }
 
 export fn entity_replace_child(parent: Entity*, index: usize, replacement: Entity*): bool {
-    if parent.store.views != 0 {
+    if parent.stage != null || (replacement != null && replacement.stage != null) { return false; }
+    var pinned = parent.store.views != 0;
+    if pinned {
         return false;
     }
     var invalid = index >= parent.child_count;
@@ -592,7 +630,9 @@ export fn entity_replace_child(parent: Entity*, index: usize, replacement: Entit
 }
 
 export fn entity_take_last_child(parent: Entity*): Entity* {
-    if parent.store.views != 0 {
+    if parent.stage != null { return null; }
+    var pinned = parent.store.views != 0;
+    if pinned {
         return null;
     }
     if parent.child_count == 0 {

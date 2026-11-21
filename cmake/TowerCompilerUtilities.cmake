@@ -130,6 +130,7 @@ function(tower_compiler_parser_nodes)
       -DSCAN_TESTS=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/syntax_scan.tower
       -DEXPANSION_TESTS=${expansion_tests}
       -DMODULE_TESTS=${TOWER_MODULE_TESTS}
+      -DWORK_TESTS=${TOWER_WORK_TESTS}
       -DREPLACEMENT_TESTS=${replacement_tests}
       -DFORMAT_DIR=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler
       -DOUTPUT=${input} -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/ComposeParserNodes.cmake"
@@ -142,6 +143,7 @@ function(tower_compiler_parser_nodes)
     DEPENDS scaffolding/compiler/syntax_template.tower
     DEPENDS ${TOWER_FRONTEND_SOURCES} cmake/TowerFrontend.cmake
     DEPENDS scaffolding/tests/frontend_bedrock.tower scaffolding/tests/frontend_cache.tower
+    DEPENDS scaffolding/tests/lr_work.tower
     DEPENDS scaffolding/compiler/syntax_scan.tower
     DEPENDS scaffolding/tests/syntax_template.tower
     DEPENDS scaffolding/tests/syntax_scan.tower
@@ -183,7 +185,7 @@ function(tower_compiler_semantics)
   endforeach()
   add_custom_command(OUTPUT "${input}"
     COMMAND "${CMAKE_COMMAND}" -DROOT=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT=${input}
-      -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/ComposeSemanticSources.cmake"
+      -DBROWSER=${TOWER_BROWSER} -DTESTS=${TOWER_PARSER_ONLY} -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/ComposeSemanticSources.cmake"
     DEPENDS ${sources} cmake/ComposeSemanticSources.cmake VERBATIM)
   add_custom_command(OUTPUT "${object}"
     COMMAND "${bootstrap}" "${input}" --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
@@ -195,4 +197,18 @@ function(tower_compiler_semantics)
   set_source_files_properties("${object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
   add_library(tower-compiler-semantics INTERFACE)
   target_sources(tower-compiler-semantics INTERFACE "${object}")
+  if(triple MATCHES "linux")
+    find_package(Threads REQUIRED)
+    target_link_libraries(tower-compiler-semantics INTERFACE Threads::Threads ${CMAKE_DL_LIBS})
+    target_link_options(tower-compiler-semantics INTERFACE -Wl,--export-dynamic-symbol=work_thread_entry)
+  elseif(triple MATCHES "apple|darwin")
+    target_link_options(tower-compiler-semantics INTERFACE -Wl,-exported_symbol,_work_thread_entry)
+  elseif(triple MATCHES "windows")
+    target_link_libraries(tower-compiler-semantics INTERFACE kernel32)
+    if(MSVC)
+      target_link_options(tower-compiler-semantics INTERFACE /EXPORT:work_windows_entry)
+    else()
+      target_link_options(tower-compiler-semantics INTERFACE -Wl,--export-all-symbols)
+    endif()
+  endif()
 endfunction()

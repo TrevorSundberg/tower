@@ -1,0 +1,48 @@
+import tower;
+
+// Darwin x86_64/arm64 pthread handles and libdispatch's intptr_t are 64 bits.
+// Dispatch owns semaphore storage; macOS does not support unnamed POSIX sem_init.
+extern fn pthread_create(thread: usize*, attributes: void*, entry: void*, argument: void*): i32;
+extern fn pthread_join(thread: usize, result: void**): i32;
+extern fn dlsym(handle: void*, name: u8*): void*;
+extern fn dispatch_semaphore_create(value: i64): void*;
+extern fn dispatch_semaphore_wait(signal: void*, timeout: u64): i64;
+extern fn dispatch_semaphore_signal(signal: void*): i64;
+extern fn dispatch_release(object: void*): void;
+
+export fn work_thread_available(): bool { return true; }
+extern fn sysctlbyname(name: u8*, value: void*, size: usize*, input: void*, input_size: usize): i32;
+export fn work_thread_capacity(): usize {
+    var count: u32 = 1;
+    var size = sizeof(u32);
+    if sysctlbyname("hw.logicalcpu", bits(void*, &count), &size, null, 0) != 0 || count == 0 { return 1; }
+    return convert(usize, count > 256 ? 256 : count);
+}
+
+export fn work_thread_open(argument: void*): void* {
+    var entry = dlsym(bits(void*, ~convert(usize, 1)), "work_thread_entry");
+    if entry == null { return null; }
+    var thread = alloc(usize, 1);
+    if thread == null { return null; }
+    if pthread_create(thread, null, entry, argument) != 0 {
+        free(thread);
+        return null;
+    }
+    return bits(void*, thread);
+}
+
+export fn work_thread_close(thread: void*): void {
+    if thread == null { return; }
+    if pthread_join(*bits(usize*, thread), null) != 0 { trap("Cannot join compiler worker", 0); }
+    free(thread);
+}
+
+export fn work_signal_open(): void* { return dispatch_semaphore_create(0); }
+export fn work_signal_close(signal: void*): void {
+    if signal != null { dispatch_release(signal); }
+}
+export fn work_signal_post(signal: void*): void { dispatch_semaphore_signal(signal); }
+export fn work_signal_wait(signal: void*): void {
+    if dispatch_semaphore_wait(signal, ~convert(u64, 0)) != 0 { trap("Cannot wait for compiler work", 0); }
+}
+export fn work_signal_try(signal: void*): bool { return dispatch_semaphore_wait(signal, 0) == 0; }

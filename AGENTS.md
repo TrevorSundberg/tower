@@ -124,6 +124,28 @@ Do NOT modify todo.txt
   both interpreters and LLVM/Wasm. Audit eligible existing Tower code too, while
   preserving Foundation-only examples and intentionally invalid test fixtures.
 
+## Compiler ECS and threading
+
+- Put syntax/AST/parse and semantic data on the same world-owned entities and
+  components. Tables, queues and execution caches are derived indexes, never a
+  second authoritative graph. Preserve compilable Foundation round trips.
+- Pass world/session ownership explicitly; keep mutable globals and default-world
+  access confined to legacy adapters. Workers own their scratch, diagnostics and
+  interpreter state; shared inputs must remain immutable during dispatch.
+- Schedule compiler queries through the shared dependency graph. Request only
+  needed type/body/layout/evaluation work; suspend on newly discovered dependencies
+  rather than blocking a worker or recursively forcing completion. Diagnose cycles
+  and reject stale revision/profile/dispatch tickets. Known-value evaluation uses
+  the ordinary Tower interpreter, never a separate pre-LLVM folding evaluator.
+- Declare component read/write ranges and exclusive ownership before dispatch.
+  A pinned view is not a payload lock. Publish structural changes, type interning,
+  shared indexes and reference ownership on the coordinator after joins, using
+  stages/leases. Cancellation must drain work before releasing its inputs.
+- Validate relevant changes against serial execution: canonical output and
+  diagnostics must be deterministic across worker counts. Exercise real overlap,
+  dependency failures/cycles, cancellation and lifetime cleanup; queue width alone
+  is not proof of threading. Measure useful batch sizes before claiming speedups.
+
 ## Compiler direction
 
 - Call Tower's built-in primitives and bootstrap grammar its **foundation**.

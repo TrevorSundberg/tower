@@ -1,0 +1,49 @@
+import tower;
+
+// Windows x64/arm64: WINAPI uses the platform calling convention. DWORD/BOOL
+// remain 32 bits and HANDLE/SIZE_T are native words on both supported targets.
+extern fn GetModuleHandleW(name: u8*): void*;
+extern fn GetProcAddress(module: void*, name: u8*): void*;
+extern fn CreateThread(attributes: void*, stack: usize, entry: void*, argument: void*, flags: u32, id: u32*): void*;
+extern fn CreateSemaphoreW(attributes: void*, initial: i32, maximum: i32, name: u8*): void*;
+extern fn ReleaseSemaphore(signal: void*, count: i32, previous: i32*): i32;
+extern fn WaitForSingleObject(handle: void*, milliseconds: u32): u32;
+extern fn CloseHandle(handle: void*): i32;
+extern fn work_thread_entry(argument: void*): void*;
+
+export fn work_windows_entry(argument: void*): u32 { work_thread_entry(argument); return 0; }
+export fn work_thread_available(): bool { return true; }
+extern fn GetActiveProcessorCount(group: u32): u32;
+export fn work_thread_capacity(): usize {
+    var count = GetActiveProcessorCount(65535);
+    if count == 0 { return 1; }
+    return convert(usize, count > 256 ? 256 : count);
+}
+export fn work_thread_open(argument: void*): void* {
+    var module = GetModuleHandleW(null);
+    if module == null { return null; }
+    var entry = GetProcAddress(module, "work_windows_entry");
+    if entry == null { return null; }
+    return CreateThread(null, 0, entry, argument, 0, null);
+}
+export fn work_thread_close(thread: void*): void {
+    if thread == null { return; }
+    if WaitForSingleObject(thread, ~convert(u32, 0)) != 0 { trap("Cannot join compiler worker", 0); }
+    if CloseHandle(thread) == 0 { trap("Cannot release compiler worker", 0); }
+}
+export fn work_signal_open(): void* { return CreateSemaphoreW(null, 0, 2147483647, null); }
+export fn work_signal_close(signal: void*): void {
+    if signal != null && CloseHandle(signal) == 0 { trap("Cannot release compiler semaphore", 0); }
+}
+export fn work_signal_post(signal: void*): void {
+    if ReleaseSemaphore(signal, 1, null) == 0 { trap("Cannot publish compiler work", 0); }
+}
+export fn work_signal_wait(signal: void*): void {
+    if WaitForSingleObject(signal, ~convert(u32, 0)) != 0 { trap("Cannot wait for compiler work", 0); }
+}
+export fn work_signal_try(signal: void*): bool {
+    var status = WaitForSingleObject(signal, 0);
+    if status == 0 { return true; }
+    if status != 258 { trap("Cannot inspect compiler work", 0); }
+    return false;
+}

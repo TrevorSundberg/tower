@@ -1,0 +1,171 @@
+import tower;
+
+// The platform implements only thread and semaphore primitives. All admission,
+// ownership and dispatch are Tower. Jobs borrow pinned component payloads. The
+// coordinator owns busy/count; workers only access a slot between handoffs.
+extern fn work_thread_available(): bool;
+extern fn work_thread_capacity(): usize;
+extern fn work_thread_open(argument: void*): void*;
+extern fn work_thread_close(thread: void*): void;
+extern fn work_signal_open(): void*;
+extern fn work_signal_close(signal: void*): void;
+extern fn work_signal_post(signal: void*): void;
+extern fn work_signal_wait(signal: void*): void;
+extern fn work_signal_try(signal: void*): bool;
+extern fn work_kernel_execute(job: void*): void;
+
+struct WorkSlot {
+    thread: void*;
+    start: void*;
+    finished: void*;
+    completion: void*;
+    job: void*;
+    busy: bool;
+}
+
+struct WorkPool {
+    slots: WorkSlot*;
+    count: usize;
+    running: usize;
+    peak: usize;
+    completion: void*;
+    threaded: bool;
+}
+
+fn work_pool_entry(argument: void*): void* {
+    var slot = bits(WorkSlot*, argument);
+    loop {
+        work_signal_wait(slot.start);
+        var job = slot.job;
+        if job == null {
+            return null;
+        }
+        work_kernel_execute(job);
+        // finished publishes this slot's payload; completion wakes the owner.
+        // Never read job/busy again until the next start semaphore acquisition.
+        work_signal_post(slot.finished);
+        work_signal_post(slot.completion);
+    }
+}
+
+fn work_pool_open(pool: WorkPool*, capacity: usize): bool {
+    fill(pool, 0, sizeof(WorkPool));
+    if capacity == 0 || capacity > 256 {
+        return false;
+    }
+    pool.threaded = work_thread_available() && capacity > 1;
+    if !pool.threaded {
+        capacity = 1;
+    }
+    pool.slots = alloc(WorkSlot, capacity);
+    if pool.slots == null {
+        return false;
+    }
+    fill(pool.slots, 0, capacity * sizeof(WorkSlot));
+    if !pool.threaded {
+        pool.count = 1;
+        return true;
+    }
+    pool.completion = work_signal_open();
+    if pool.completion == null {
+        work_pool_close(pool);
+        return false;
+    }
+    while pool.count < capacity {
+        var slot = &pool.slots[pool.count];
+        slot.completion = pool.completion;
+        slot.start = work_signal_open();
+        slot.finished = work_signal_open();
+        pool.count++;
+        if slot.start == null || slot.finished == null {
+            work_pool_close(pool);
+            return false;
+        }
+        slot.thread = work_thread_open(bits(void*, slot));
+        if slot.thread == null {
+            work_pool_close(pool);
+            return false;
+        }
+    }
+    return true;
+}
+
+fn work_pool_submit(pool: WorkPool*, job: void*): bool {
+    if job == null || pool.running == pool.count {
+        return false;
+    }
+    var index: usize = 0;
+    while index < pool.count {
+        var slot = &pool.slots[index];
+        if !slot.busy {
+            slot.job = job;
+            slot.busy = true;
+            pool.running++;
+            if pool.running > pool.peak {
+                pool.peak = pool.running;
+            }
+            if pool.threaded {
+                work_signal_post(slot.start);
+            } else {
+                work_kernel_execute(job);
+            }
+            return true;
+        }
+        index++;
+    }
+    return false;
+}
+
+// Exactly one consumed completion token accounts for one returned result. A
+// worker may finish in any order; callers publish in semantic order if needed.
+fn work_pool_receive(pool: WorkPool*, wait: bool): void* {
+    if pool.running == 0 {
+        return null;
+    }
+    if pool.threaded {
+        if wait {
+            work_signal_wait(pool.completion);
+        } else {
+            if !work_signal_try(pool.completion) {
+                return null;
+            }
+        }
+    }
+    var index: usize = 0;
+    while index < pool.count {
+        var slot = &pool.slots[index];
+        if slot.busy && (!pool.threaded || work_signal_try(slot.finished)) {
+            var job = slot.job;
+            slot.job = null;
+            slot.busy = false;
+            pool.running--;
+            return job;
+        }
+        index++;
+    }
+    trap("Worker completion has no owning slot", 0);
+    return null;
+}
+
+fn work_pool_close(pool: WorkPool*): void {
+    // Cancellation drains already admitted finite kernels before reclaiming
+    // their views. It must not kill threads or free a payload still in use.
+    while pool.running != 0 {
+        work_pool_receive(pool, true);
+    }
+    var index: usize = 0;
+    while index < pool.count {
+        var slot = &pool.slots[index];
+        if slot.thread != null {
+            slot.job = null;
+            work_signal_post(slot.start);
+            work_thread_close(slot.thread);
+        }
+        work_signal_close(slot.start);
+        work_signal_close(slot.finished);
+        index++;
+    }
+    work_signal_close(pool.completion);
+    free(pool.slots);
+    fill(pool, 0, sizeof(WorkPool));
+}

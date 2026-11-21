@@ -1,0 +1,7 @@
+import tower;
+fn recursive(): i32 {
+    var result: i32 = 0;
+    defer { result += comptime(recursive()); }
+    return result;
+}
+print(comptime(recursive()));

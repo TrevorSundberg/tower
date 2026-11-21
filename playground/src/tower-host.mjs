@@ -1,3 +1,5 @@
+import { decodeBytes } from './host-bytes.mjs';
+import { compilerThreads } from './compiler-threads.mjs';
 import { TowerWASI } from './wasi-host.mjs';
 import { configureTower, configureFoundation, configureBedrock } from './bootstrap.mjs';
 import { foreignArgument, invokeForeign } from './foreign.mjs';
@@ -5,7 +7,7 @@ import { platformImports } from './platform.mjs';
 import { moduleInputs, moduleDiagnostic } from './module-inputs.mjs';
 
 /** The only module which knows about Wasm pointers and the C ABI. */
-export async function loadTower(bytes, log = () => {}, bootstrap, foundation, bedrock, { imports = {}, tower } = {}) {
+export async function loadTower(bytes, log = () => {}, bootstrap, foundation, bedrock, { imports = {}, tower, threads = {} } = {}) {
   const available = {...platformImports((_stream, data, context) => context.output(data)),...imports};
   const wasi = new TowerWASI({ log });
   const module = bytes instanceof WebAssembly.Module ? bytes : await WebAssembly.compile(bytes);
@@ -28,15 +30,23 @@ export async function loadTower(bytes, log = () => {}, bootstrap, foundation, be
         withSource(error.message, (pointer, length) => { exports.tw_exec_fail(handle, pointer, length); return 1; }); return 0n;
       }
     };
-  const instance = await WebAssembly.instantiate(module, { wasi_snapshot_preview1: wasi.wasiImport,
-    tower_host: {call: foreignCall}, env: {tw_foreign_call: foreignCall} });
-  wasi.initialize(instance);
+  const transport = await compilerThreads(module, threads);
+  let instance;
+  try {
+    instance = await WebAssembly.instantiate(module, { wasi_snapshot_preview1: wasi.wasiImport,
+      wasi: transport?.wasi, tower_host: {call: foreignCall}, env: {tw_foreign_call: foreignCall, ...transport?.env} });
+    transport?.attach(instance);
+    wasi.initialize(instance);
+  } catch (error) { transport?.close(); throw error; }
   const exports = instance.exports;
-  const modules = moduleInputs(exports, {bedrock, foundation:foundation ?? bootstrap, tower});
-  if (exports.tw_abi_version() !== 3) throw new Error('Unsupported Tower IDE ABI');
-  if (bedrock !== undefined) configureBedrock(exports, bedrock);
-  configureTower(exports, bootstrap, modules.environment);
-  if (foundation !== undefined) configureFoundation(exports, foundation);
+  let modules;
+  try {
+    modules = moduleInputs(exports, {bedrock, foundation:foundation ?? bootstrap, tower});
+    if (exports.tw_abi_version() !== 3) throw new Error('Unsupported Tower IDE ABI');
+    if (bedrock !== undefined) configureBedrock(exports, bedrock);
+    configureTower(exports, bootstrap, modules.environment);
+    if (foundation !== undefined) configureFoundation(exports, foundation);
+  } catch (error) { transport?.close(); throw error; }
   const decoder = new TextDecoder('utf-8', { fatal: true });
   const outputDecoders = new Map();
   const sourceMaps = new Map();
@@ -45,9 +55,10 @@ export async function loadTower(bytes, log = () => {}, bootstrap, foundation, be
     const memory = new Uint8Array(exports.memory.buffer);
     const end = memory.indexOf(0, pointer);
     if (!pointer || end === -1) throw new Error('Invalid response from Tower');
-    return decoder.decode(memory.subarray(pointer, end));
+    return decodeBytes(decoder, memory.subarray(pointer, end));
   }
   function withSource(source, action) {
+      transport?.check();
       const bytes = new TextEncoder().encode(source);
       if (bytes.length > 8 * 1024 * 1024) throw new Error('Compilation source limit is 8 MiB');
       const pointer = exports.tw_alloc(bytes.length + 1);
@@ -57,10 +68,21 @@ export async function loadTower(bytes, log = () => {}, bootstrap, foundation, be
         const result = action(pointer, bytes.length);
         if (!result) throw new Error(string(exports.tw_last_error()));
         return result;
-      } finally { exports.tw_free(pointer); }
+      } finally {
+        if (transport?.failed()) transport.close();
+        else exports.tw_free(pointer);
+      }
   }
-  return {
+  let closed = false;
+  const close = () => {
+    if (closed) return;
+    closed = true;
+    transport?.close();
+    outputDecoders.clear(); sourceMaps.clear();
+  };
+  const host = {
     exports,
+    close,
     configureModules: modules.configure,
     dependencies: modules.dependencies,
     mountFiles: files => wasi.mountFiles(files),
@@ -99,7 +121,7 @@ export async function loadTower(bytes, log = () => {}, bootstrap, foundation, be
       const result=JSON.parse(string(exports.tw_exec_step(handle,budget)));
       let outputDecoder=outputDecoders.get(handle);
       if(!outputDecoder){outputDecoder=new TextDecoder();outputDecoders.set(handle,outputDecoder);}
-      result.output=outputDecoder.decode(new Uint8Array(result.outputBytes??[]),{stream:result.status==='executing'});
+      result.output=decodeBytes(outputDecoder, new Uint8Array(result.outputBytes??[]),{stream:result.status==='executing'});
       delete result.outputBytes;
       if(result.status!=='executing')outputDecoders.delete(handle);
       return moduleDiagnostic(result, sourceMaps.get(handle));
@@ -139,6 +161,20 @@ export async function loadTower(bytes, log = () => {}, bootstrap, foundation, be
     },
     destroyExecution: handle => {sourceMaps.delete(handle);outputDecoders.delete(handle);exports.tw_exec_destroy(handle);},
   };
+  for (const [name, method] of Object.entries(host)) {
+    if (name === 'close' || typeof method !== 'function') continue;
+    host[name] = (...args) => {
+      // A fatal shared instance may have an interrupted allocator. Cleanup
+      // after abandonment must release the host reference, not reenter Wasm.
+      if ((name === 'destroy' || name === 'destroyExecution') && (closed || transport?.failed())) {
+        close(); return;
+      }
+      if (closed) throw new Error('Tower compiler is closed');
+      try { transport?.check(); return method(...args); }
+      catch (error) { if (transport?.failed()) close(); throw error; }
+    };
+  }
+  return host;
 }
 
 export function runToEnd(tower, handle, events = []) {

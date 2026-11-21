@@ -3,6 +3,7 @@ import foundation_tags;
 import foundation_types;
 import semantic_context;
 import semantic_control;
+import semantic_evaluation;
 import semantic_statements;
 import semantic_support;
 import semantic_types;
@@ -48,6 +49,7 @@ fn sem_defer_clone(c: SemanticContext*, parent: void*, original: void*, clones: 
     // Types and external bindings are shared references. Owned vectors and
     // operation edges are copied; a second pass remaps internal local bindings.
     copy(value, source, sizeof(FoundationNode));
+    sem_evaluation_clone(c, original, entity);
     sem_defer_copy_text(&value.name, &source.name);
     sem_defer_copy_text(&value.comments, &source.comments);
     fill(&value.items, 0, sizeof(vector(void*)));

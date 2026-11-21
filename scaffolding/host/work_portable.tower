@@ -1,0 +1,13 @@
+import tower;
+
+// Portable interpreted/WASI execution uses the same dispatcher and ownership
+// rules. A host without shared-memory threads reports that explicitly.
+export fn work_thread_available(): bool { return false; }
+export fn work_thread_capacity(): usize { return 1; }
+export fn work_thread_open(argument: void*): void* { return null; }
+export fn work_thread_close(thread: void*): void {}
+export fn work_signal_open(): void* { return null; }
+export fn work_signal_close(signal: void*): void {}
+export fn work_signal_post(signal: void*): void { trap("Thread transport unavailable", 0); }
+export fn work_signal_wait(signal: void*): void { trap("Thread transport unavailable", 0); }
+export fn work_signal_try(signal: void*): bool { return false; }

@@ -1,7 +1,9 @@
 import tower;
 import .library.work_graph;
+import .library.work_pool;
 import .library.stack;
 import foundation_types;
+import component_kinds;
 import parser_types;
 import semantic_modules;
 import semantic_support;
@@ -85,9 +87,13 @@ struct SemanticContext {
     source_bases: SemanticTable*;
     output_names: SemanticTable*;
     fields_done: SemanticTable*;
-    layout_work: WorkGraph;
-    declaration_state: SemanticTable*;
+    queries: WorkGraph;
+    declaration_state: void*;
+    declaration_jobs: vector(void*);
     control_names: SemanticTable*;
+    control_reserved: SemanticTable*;
+    control_prefix: u8*;
+    entity_stage: void*;
     scope: SemanticScope*;
     labels: SemanticTable*;
     type_arguments: vector(void*);
@@ -107,6 +113,17 @@ struct SemanticContext {
     defer_bindings: SemanticTable*;
     defer_order: vector(void*)*;
     has_defer: bool;
+    workers: WorkPool;
+    layout_results: void*;
+    layout_jobs: vector(void*);
+    evaluation_results: void*;
+    evaluation_ready: void*;
+    evaluation_jobs: vector(void*);
+    evaluation_depth: usize;
+    unevaluated: bool;
+    flow_results: void*;
+    flow_jobs: vector(void*);
+    flow_dependencies: vector(void*);
 }
 
 fn sem_editor_contains(c: SemanticContext*, n: void*): bool {
@@ -181,6 +198,13 @@ extern fn entity_component_add(node: void*, type: void*): void*;
 extern fn entity_register(type: void*, size: usize, alignment: usize, lifecycle: usize): bool;
 
 extern fn tower_node_create(): void*;
+extern fn entity_create_related(node: void*): void*;
+extern fn entity_stage_open(anchor: void*): void*;
+extern fn entity_stage_lease(stage: void*, node: void*): bool;
+extern fn entity_stage_create(stage: void*, parent: void*): void*;
+extern fn entity_stage_publish(stage: void*): bool;
+extern fn compiler_node_type(node: void*, kind: u32): void*;
+extern fn compiler_node_get(node: void*, kind: u32): void*;
 
 extern fn entity_attach(child: void*, parent: void*, name: u8*): bool;
 
@@ -232,18 +256,19 @@ export fn semantic_component_attach(node: void*, type: void*, kind: u32): Founda
 }
 
 export fn sem_get(node: void*): FoundationNode* {
-    return semantic_component_get(node, core_component_type());
+    return bits(FoundationNode*, compiler_node_get(node, CompilerFoundation()));
 }
 
 export fn sem_attach(node: void*, kind: u32): FoundationNode* {
-    var value = semantic_component_attach(node, core_component_type(), kind);
+    var value = semantic_component_attach(node, compiler_node_type(node, CompilerFoundation()), kind);
     var present = value != null;
     sem_require(present);
     return value;
 }
 
 export fn sem_create(parent: void*): void* {
-    var node = tower_node_create();
+    var node = entity_create_related(parent);
+    sem_require(node != null);
     sem_require(entity_attach(node, parent, null));
     entity_release(node);
     return node;

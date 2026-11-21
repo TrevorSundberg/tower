@@ -7,6 +7,9 @@ import frontend_diagnostic_types;
 import .library.vector;
 import parser_markers;
 
+extern fn lr_states_lalr_parallel(states: void*, constructs: bool, anchor: void*): bool;
+extern fn lr_states_create_parallel(analysis: void*, anchor: void*): void*;
+
 extern fn entity_child_count(root: void*): usize;
 
 extern fn tower_memory_allocate(size: usize): void*;
@@ -184,11 +187,11 @@ export fn parser_table_build(table: ParserHostTable*, specialize: bool): bool {
     var states: void* = null;
     if ok {
         table.error = "Unable to construct LR parser tables";
-        states = lr_states_create(analysis);
+        states = lr_states_create_parallel(analysis, table.match_kind);
         ok = states != null;
         if ok {
             var constructs = table.mode == convert(u32, ParserReadMode.Constructs);
-            ok = lr_states_lalr(states, constructs);
+            ok = lr_states_lalr_parallel(states, constructs, table.match_kind);
         }
     } else {
         table.error = "Unable to allocate LR grammar analysis";

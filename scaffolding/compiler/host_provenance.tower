@@ -1,20 +1,21 @@
 import tower;
 import host_world;
+import world;
 import syntax_provenance;
 import entity_require;
 import syntax_types;
 import .library.entities;
 
 export fn syntax_get_origin(node: Entity*): SyntaxOrigin* {
-    return syntax_origin_get(compiler_host_world(), node);
+    return syntax_origin_get(compiler_node_world(node), node);
 }
 
 export fn syntax_copy_origin(source: Entity*, destination: Entity*): void {
-    compiler_entity_require(syntax_origin_copy(compiler_host_world(), source, destination));
+    compiler_entity_require(syntax_origin_copy(compiler_node_world(source), source, destination));
 }
 
 export fn syntax_expansion_copy_origin(source: Entity*, destination: Entity*): bool {
-    return syntax_origin_copy(compiler_host_world(), source, destination);
+    return syntax_origin_copy(compiler_node_world(source), source, destination);
 }
 
 export fn syntax_expansion_history(node: Entity*): SyntaxExpansion* {
@@ -30,9 +31,9 @@ export fn syntax_expansion_previous(trace: SyntaxExpansion*): SyntaxExpansion* {
 }
 
 export fn syntax_expansion_trace(rule: u8*, start: usize, end: usize, invocation: Entity*): SyntaxExpansion* {
-    return syntax_trace_create(compiler_host_world(), invocation, rule, start, end);
+    return syntax_trace_create(compiler_node_world(invocation), invocation, rule, start, end);
 }
 
 export fn syntax_expansion_origin(trace: SyntaxExpansion*, node: Entity*, source: Entity*, generated: bool): bool {
-    return syntax_origin_mark(compiler_host_world(), trace, node, source, generated);
+    return syntax_origin_mark(compiler_node_world(node), trace, node, source, generated);
 }

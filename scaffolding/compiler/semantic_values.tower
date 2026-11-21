@@ -11,6 +11,7 @@ import semantic_support;
 import semantic_types;
 import semantic_expressions;
 import semantic_call_inference;
+import semantic_evaluation;
 import .library.vector;
 
 // Semantic compiler over shared Foundation components.
@@ -230,6 +231,7 @@ fn sem_operand_impl(c: SemanticContext*, n: void*, expected_type: FoundationType
         return n;
     }
     n = sem_surface_unwrap(n);
+    if sem_is(n, "TowerComptime") { return sem_comptime(c, n, expected_type); }
     if sem_is(n, "TowerNullAccess") {
         var result = sem_surface_nullable(c, n, expected_type);
         if sem_ok(c) {
@@ -360,7 +362,6 @@ fn sem_operand_leaf(c: SemanticContext*, n: void*, expected_type: FoundationType
         if sem_equal(text, "true") || sem_equal(text, "false") {
             var step55 = sem_type_new(c, SBool(), 0, null);
             sem_set_type(&value.type, step55);
-            value.type.pointer_bytes = 4;
             var step56 = sem_equal(text, "true");
             var step57 = convert(u64, step56);
             value.bits = step57;
@@ -412,7 +413,6 @@ fn sem_operand_leaf(c: SemanticContext*, n: void*, expected_type: FoundationType
                     } else {
                         var step80 = sem_type_new(c, SI32(), 0, null);
                         sem_set_type(&value.type, step80);
-                        value.type.pointer_bytes = 4;
                     }
                     if !semantic_integer(&value.type) {
                         sem_fail(c, n, "An integer literal needs an integer type");
@@ -494,32 +494,13 @@ fn sem_builtin(c: SemanticContext*, n: void*, kind: u32, args: vector(void*)*): 
     var value: FoundationNode* = sem_node(c, n, kind);
     var step2 = sem_type_new(c, SVoid(), 0, null);
     sem_set_type(&value.type, step2);
-    value.type.pointer_bytes = 4;
     // Observe the argument at the editor hole even when later arguments have
     // not been written. Resolution still uses the ordinary type/value helpers.
     if sem_editor_contains(c, n) {
         for(var index: usize = 0; index != args.length; index++) {
             var argument = args.data[index];
             if sem_editor_contains(c, argument) {
-                var type_argument = kind == KSizeOf();
-                if kind == KAlignOf() {
-                    type_argument = true;
-                }
-                if kind == KAllocate() {
-                    type_argument = true;
-                }
-                if kind == KReallocate() {
-                    type_argument = true;
-                }
-                if kind == KConvert() {
-                    type_argument = true;
-                }
-                if kind == KBits() {
-                    type_argument = true;
-                }
-                if index != 0 {
-                    type_argument = false;
-                }
+                var type_argument = semantic_builtin_type_argument(kind, index);
                 if type_argument {
                     sem_type(c, argument);
                 } else {
@@ -593,7 +574,6 @@ fn sem_builtin(c: SemanticContext*, n: void*, kind: u32, args: vector(void*)*): 
     }
     var size: FoundationType* = step11;
     var byte: FoundationType* = sem_type_new(c, SU8(), 0, null);
-    byte.pointer_bytes = 4;
     if kind == KPrint() {
         var step14 = sem_operand(c, args.data[0], null);
         value.value = step14;
@@ -841,7 +821,6 @@ fn sem_expression(c: SemanticContext*, n: void*, expected_type: FoundationType*)
                 sem_fail(c, n, "Unknown foundation binary operation");
             }
             var input: FoundationType* = sem_type_new(c, SI32(), 0, null);
-            input.pointer_bytes = 4;
             if expected_type != null {
                 input = expected_type;
             }
@@ -892,7 +871,6 @@ fn sem_expression(c: SemanticContext*, n: void*, expected_type: FoundationType*)
             if comparison {
                 var step69 = sem_type_new(c, SBool(), 0, null);
                 sem_set_type(&value.type, step69);
-                value.type.pointer_bytes = 4;
             } else {
                 sem_set_type(&value.type, input);
             }

@@ -1,0 +1,4 @@
+import tower;
+fn address(): i32* { var local: i32 = 7; return &local; }
+fn escaped(): i32 { var pointer = address(); return *pointer; }
+var result = comptime(escaped());

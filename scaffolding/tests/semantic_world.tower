@@ -1,0 +1,179 @@
+import tower;
+import .compiler.foundation_types;
+import .compiler.foundation_tags;
+import .compiler.component_kinds;
+import .compiler.parser_types;
+import .compiler.semantic_context;
+import .compiler.compiler_kernel;
+import .compiler.interpreter_context_types;
+import .library.vector;
+import .library.work_pool;
+
+extern fn compiler_world_create(): void*;
+extern fn compiler_world_store(world: void*): void*;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn compiler_world_component(world: void*, node: void*, kind: u32): void*;
+extern fn entity_create(store: void*): void*;
+extern fn entity_view_open(node: void*): void*;
+extern fn entity_view_close(view: void*): void;
+extern fn interpreter_invocation_init(invocation: IMInvocation*, function: void*, width: usize, arguments: u64*, count: usize, strict: bool, fuel: u64): bool;
+extern fn interpreter_invocation_dispose(invocation: IMInvocation*): void;
+
+struct WorldInvocation {
+    kernel: CompilerKernel;
+    invocation: IMInvocation;
+}
+
+// Production accessors and kernels must follow each node's store. These four
+// jobs share a worker pool but borrow two independent worlds with unrelated
+// Foundation/parser component identities. No ambient world is switched.
+export fn semantic_world_tests(width: u32): u32 {
+    var worlds: void*[2];
+    var roots: void*[2];
+    var views: void*[2];
+    var jobs: WorldInvocation*[4];
+    var failures: u32 = 0;
+    var index: usize = 0;
+    while index < 2 {
+        worlds[index] = compiler_world_create();
+        roots[index] = entity_create(compiler_world_store(worlds[index]));
+        sem_attach(roots[index], KProgram());
+        var parsed = compiler_world_component(worlds[index], roots[index], CompilerParserMatch());
+        if bits(void*, sem_match(roots[index])) != parsed { failures++; }
+        var kind = sem_create(roots[index]);
+        if !entity_register(kind, sizeof(WorldInvocation), alignof(WorldInvocation), 0) { return 99; }
+        var item: usize = 0;
+        while item < 2 {
+            var function = sem_create(roots[index]);
+            var definition = sem_attach(function, KFunction());
+            definition.type.scalar = SI32();
+            definition.type.pointer_bytes = width;
+            definition.body = sem_create(function);
+            var body = sem_attach(definition.body, KBlock());
+            var returned = sem_create(definition.body);
+            var result = sem_attach(returned, KReturn());
+            result.value = sem_create(returned);
+            var literal = sem_attach(result.value, KOperand());
+            literal.type.scalar = SI32();
+            literal.type.pointer_bytes = width;
+            literal.constant = true;
+            literal.bits = convert(u64, index * 10 + item + 1);
+            if !vector_push(void*, &body.items, returned) { return 98; }
+            var job = bits(WorldInvocation*, entity_component_data(entity_component_add(function, kind)));
+            fill(job, 0, sizeof(WorldInvocation));
+            job.kernel.kind = CompilerKernelKind.Evaluate;
+            job.kernel.payload = bits(void*, &job.invocation);
+            if !interpreter_invocation_init(&job.invocation, function, convert(usize, width), null, 0, true, 100) { failures++; }
+            jobs[index * 2 + item] = job;
+            item++;
+        }
+        views[index] = entity_view_open(roots[index]);
+        if views[index] == null { return 97; }
+        index++;
+    }
+    var pool: WorkPool;
+    if !work_pool_open(&pool, 4) { return 96; }
+    index = 0;
+    while index < 4 {
+        if !work_pool_submit(&pool, bits(void*, &jobs[index].kernel)) { return 95; }
+        // Portable hosts have one slot; preserve the same work/ownership model.
+        if !pool.threaded { work_pool_receive(&pool, true); }
+        index++;
+    }
+    if pool.threaded {
+        index = 0;
+        while index < 4 { work_pool_receive(&pool, true); index++; }
+    }
+    work_pool_close(&pool);
+    index = 0;
+    while index < 4 {
+        var invocation = &jobs[index].invocation;
+        var wanted = convert(u64, index / 2 * 10 + index % 2 + 1);
+        if invocation.state.failed || !invocation.state.done || invocation.context.result != wanted { failures++; }
+        interpreter_invocation_dispose(invocation);
+        index++;
+    }
+    index = 0;
+    while index < 2 {
+        entity_view_close(views[index]);
+        entity_release(roots[index]);
+        if !compiler_world_dispose(worlds[index]) { failures++; }
+        index++;
+    }
+    return failures;
+}
+
+extern fn entity_stage_discard(stage: void*): void;
+extern fn entity_query_count(kind: void*): usize;
+extern fn entity_query_at(kind: void*, index: usize): void*;
+extern fn entity_store_count(store: void*): usize;
+extern fn entity_store_component_count(store: void*): usize;
+
+// Staging must preserve borrowed component-query ranges and containment until
+// publication, then transfer the same payloads without changing their addresses.
+export fn semantic_stage_tests(): u32 {
+    var world = compiler_world_create();
+    var store = compiler_world_store(world);
+    var root = entity_create(store);
+    sem_attach(root, KProgram());
+    var parent = sem_create(root);
+    var kind = compiler_node_type(root, CompilerFoundation());
+    var count = entity_query_count(kind);
+    var entities = entity_store_count(store);
+    var components = entity_store_component_count(store);
+    var first = entity_stage_open(root);
+    var second = entity_stage_open(root);
+    var view = entity_view_open(root);
+    var a = entity_stage_create(first, parent);
+    var a_child = entity_stage_create(first, a);
+    var b = entity_stage_create(second, parent);
+    var data = sem_attach(a, KOperand());
+    data.bits = 17;
+    sem_attach(a_child, KBlock());
+    sem_attach(b, KOperand()).bits = 23;
+    var failures: u32 = 0;
+    if entity_stage_create(second, a) != null { failures++; }
+    if entity_child_count(parent) != 0 || entity_child_count(a) != 0 { failures++; }
+    if entity_query_count(kind) != count { failures++; }
+    if entity_store_count(store) != entities || entity_store_component_count(store) != components { failures++; }
+    if entity_stage_publish(first) { return 90; }
+    entity_view_close(view);
+    if !entity_stage_publish(first) { return 91; }
+    if bits(void*, sem_get(a)) != bits(void*, data) || data.bits != 17 { failures++; }
+    if entity_child_at(parent, 0) != a || entity_child_at(a, 0) != a_child { failures++; }
+    if entity_query_count(kind) != count + 2 { failures++; }
+    if entity_component_data(entity_query_at(kind, count)) != bits(void*, data) { failures++; }
+    if !entity_stage_publish(second) { return 92; }
+    if entity_child_at(parent, 1) != b || sem_get(b).bits != 23 { failures++; }
+    if entity_store_count(store) != entities + 3 || entity_store_component_count(store) != components + 3 { failures++; }
+    // Existing source nodes can receive worker-owned semantic attachments under
+    // an exclusive lease, without invalidating frozen typed query ranges.
+    var leased = entity_stage_open(root);
+    var competing = entity_stage_open(root);
+    if !entity_stage_lease(leased, parent) || entity_stage_lease(competing, parent) { return 94; }
+    view = entity_view_open(root);
+    if entity_stage_lease(competing, root) { failures++; }
+    var attached = sem_attach(parent, KOperand());
+    attached.bits = 31;
+    if entity_query_count(kind) != count + 3 || entity_store_component_count(store) != components + 3 { failures++; }
+    entity_view_close(view);
+    if !entity_stage_publish(leased) { return 95; }
+    if sem_get(parent) != attached || attached.bits != 31 || entity_query_count(kind) != count + 4 { failures++; }
+    entity_stage_discard(competing);
+    var discarded = entity_stage_open(root);
+    var unused = entity_stage_create(discarded, parent);
+    var value = sem_attach(unused, KOperand());
+    // The ordinary Foundation finalizer must release private vector storage.
+    if !vector_push(u8, &value.name, 120) { return 93; }
+    entity_stage_discard(discarded);
+    if entity_query_count(kind) != count + 4 || entity_child_count(parent) != 2 { failures++; }
+    var rollback = entity_stage_open(root);
+    var extra = sem_create(root);
+    if !entity_stage_lease(rollback, extra) { return 96; }
+    sem_attach(extra, KOperand());
+    entity_stage_discard(rollback);
+    if sem_get(extra) != null || entity_query_count(kind) != count + 4 { failures++; }
+    entity_release(root);
+    if !compiler_world_dispose(world) { failures++; }
+    return failures;
+}

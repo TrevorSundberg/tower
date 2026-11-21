@@ -8,7 +8,7 @@ import {hoverAt, hoverIndex} from '../src/language-queries.mjs';
 const read = name => readFile(new URL('../../' + name, import.meta.url));
 const grammar = Object.fromEntries(await Promise.all(['bedrock', 'foundation', 'tower'].map(async name =>
   [name, (await read('scaffolding/' + name + '.tower')).toString()])));
-const compiler = await loadTower(await read('build/browser-wasi/tower.wasm'), undefined, grammar.foundation,
+const compiler = await loadTower(await read(process.env.TOWER_TEST_WASM || 'build/browser-wasi/tower.wasm'), undefined, grammar.foundation,
   undefined, grammar.bedrock, {tower: grammar.tower});
 const file = (path, text) => ({path, text});
 const libraries = Object.entries(grammar).map(([name, text]) => file(name + '.tower', text));
@@ -174,6 +174,7 @@ test('explicit foreign declarations coalesce and link to a matching Tower export
     file('implementation.tower', 'import tower; export fn answer(): i32 { return 42; }'),
   ];
   succeeds('import tower; import api; import other; import implementation; print(answer());', files, '42\n');
+  succeeds('import tower; import api; import other; import implementation; var value = answer(); print(value);', files, '42\n');
   files[1].text = 'import tower; extern fn answer(): bool;';
   fails('import tower; import api; import other; import implementation;', files, /Incompatible declarations of foreign symbol/);
 });

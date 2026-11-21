@@ -9,6 +9,7 @@ import semantic_modules;
 import semantic_support;
 import semantic_values;
 import semantic_expressions;
+import semantic_declarations;
 import .library.vector;
 
 // Semantic compiler over shared Foundation components.
@@ -298,6 +299,22 @@ fn sem_type(c: SemanticContext*, n: void*): FoundationType* {
 
 fn sem_type_impl(c: SemanticContext*, n: void*): FoundationType* {
     n = sem_surface_unwrap(n);
+    var query = n;
+    while sem_is(query, "CoreType") && sem_child_count(query) == 1 {
+        query = sem_child(query, 0);
+    }
+    if sem_is(query, "TowerDecltype") {
+        var previous = c.unevaluated;
+        c.unevaluated = true;
+        var expression = sem_operand(c, sem_member(query, "value"), null);
+        c.unevaluated = previous;
+        if !sem_ok(c) || expression == null {
+            return sem_type_new(c, SI32(), 0, null);
+        }
+        var type = sem_type_copy(c, &sem_get(expression).type);
+        sem_type_use(c, query, type);
+        return type;
+    }
     if sem_is(n, "TowerExpression") {
         var left = sem_member(n, "left");
         var present = left != null;
@@ -576,8 +593,13 @@ fn sem_lookup(c: SemanticContext*, n: void*): void* {
 
 fn sem_declaration_type(c: SemanticContext*, n: void*): bool {
     var value: FoundationNode* = sem_get(n);
-    var state: SemanticEntry* = sem_state(c, c.declaration_state, n);
-    if value.kind != KDeclare() || state.number == 2 {
+    var state = sem_declaration_state(c, n);
+    var step4 = value.kind != KDeclare() && value.kind != KParameter();
+    if !step4 {
+        var step6 = state.number == 2;
+        step4 = step6;
+    }
+    if step4 {
         return true;
     }
     if state.number == 1 {
@@ -606,8 +628,11 @@ fn sem_declaration_type(c: SemanticContext*, n: void*): bool {
     }
     var annotation: void* = sem_member(n, "type");
     if annotation != null {
+        state.number = 1;
+        sem_push(&c.inferring, n);
         var step27 = sem_type(c, annotation);
         sem_set_type(&value.type, step27);
+        c.inferring.length--;
     } else {
         var initial: void* = sem_member(n, "value");
         if initial == null {
@@ -633,8 +658,13 @@ fn sem_declaration_type(c: SemanticContext*, n: void*): bool {
         sem_set_type(&value.type, &step40.type);
         value.type.pointer_bytes = c.program.pointer_bytes;
     }
-    if value.type.pointers == 0 && value.type.scalar == SVoid() {
-        sem_fail(c, n, "A variable cannot have void type");
+    var step42 = value.type.pointers == 0;
+    if step42 {
+        var step43 = value.type.scalar == SVoid();
+        step42 = step43;
+    }
+    if step42 {
+        sem_fail(c, n, value.kind == KParameter() ? "Invalid or duplicate function parameter" : "A variable cannot have void type");
     }
     if !sem_ok(c) {
         return false;

@@ -1,7 +1,9 @@
 # Tower language development
 
-Status: staged design, 2026-11-19. Only the implementation ledger below describes
-shipped behavior. The rest is a plan, not accepted source syntax yet.
+Status: staged design, reviewed 2026-11-20 after the expression/import migration.
+Only the implementation ledger describes implemented behavior; publication and
+validation are recorded separately in the journal. Proposed syntax below is not
+accepted source syntax yet.
 
 ## Architectural contract
 
@@ -117,6 +119,222 @@ for all remaining stages, including parallel execution at large project sizes.
     shared work graph and ownership/result model below. This is a language and
     runtime goal, not a claim that async/await or thread creation currently works.
 
+## Next slice after expressions: compile-time execution and type queries
+
+Recommendation from the 2026-11-20 source/journal/TODO audit: implement a
+dependency-backed `decltype(expression)` query first, then ordinary deterministic
+`comptime` execution on the same query infrastructure. The user confirms that
+`for`/`foreach` are being implemented separately; iteration and container migration
+are outside this slice. Exact overloads remain open, but do not require a complete
+overload system to deliver type queries. These are proposed implementation steps,
+not features added by this assessment.
+
+The existing `var name = initializer` inference, nominal enums, match/while,
+parenthesized type specialization and vector/stack/queue libraries already work.
+`const Name: T = value;` still expands to a function called as `Name()`; it is not
+a staged constant. `examples/foreach.tower` demonstrates grammar captures and
+local grammar replacement, not executable collection iteration.
+
+### 1. Unevaluated type queries and shared dependency resolution
+
+Proposed `decltype(expr)` returns the existing semantic type entity after name
+and expression-type dependencies finish. It must work in annotations and ordinary
+parenthesized type arguments. For example, `decltype(values.data[0])` can supply
+an element type without reading element zero, even when the vector is empty.
+`decltype(make_value())` determines the call's result type without executing the
+call. This is distinct from `comptime make_value()`, which explicitly executes it.
+
+Reuse the normal expression checker and resolved type components; introduce an
+unevaluated query mode rather than executing an expression and throwing away its
+result. Check names, exact operand types, scopes and dependent specializations.
+Do not load storage, increment a variable, allocate a runtime object or call a
+foreign function just to discover its type. A dependency may itself demand a
+staged type constructor; that is a separate evaluation query with its own effects.
+An explicit function signature need not demand its body or the returned type's
+layout. Inferred/dependent signatures can demand the dependencies that determine
+them. Ambiguous expressions such as an unconstrained null need explicit rules.
+
+Use Tower's existing type and place model. Parentheses preserve grouping and
+provenance without changing the result type. C++'s lvalue/rvalue reference rules
+are not implied by borrowing its `decltype` spelling; Tower has no such reference
+type contract today. Resolve surface uses to concrete Foundation types, retaining
+source/query metadata on the same entities. General first-class type values later
+need their own compilable Foundation representation and identity contract, not
+numeric host/entity addresses exposed as language type IDs.
+
+Replace separate recursive declaration/type state with queries for binding,
+expression type, function signature/body, specialization, layout and evaluation.
+Keep type identity separate from layout so pointer-recursive declarations remain
+legal. Record actual dependency chains, including qualified lookup and completed
+scope membership; a name miss must depend on the scope/module revision too.
+Keep module-wide forward binding, lexical local scope, ordered initialization and
+incremental grammar activation. A ready type is not permission to run its initializer.
+
+The initial audit identified serial layout kernels, recursive declaration
+inference, a shared mutable semantic context and no running-query suspension.
+The current checkout now has real native worker kernels for layout, staged
+execution, declaration dependency discovery and member-readiness scans; it has
+read/write claims, dynamic suspension/yield, stale dispatch rejection and cycle
+paths. The 1,024-entry module inference/decltype chains no longer use recursive
+inference. Function signatures and record fields participate in declaration
+ordering. Eligible body checking and expression lowering now have worker kernels.
+Structural type construction and editor queries remain coordinator work; this is
+not yet a fully parallel semantic pipeline.
+
+The graph is still scoped to one compilation (revision `1`, pointer width as its
+initial profile). That is not a persistent incremental cache key. Reusable queries
+need world/module/declaration identity, revision, query kind and exact arguments
+plus target/semantics/effect policy. Cross-instance reuse needs stable identities
+and reconstruction, not transported entity pointers. Missing-name dependencies
+must include scope membership and its revision.
+
+### 2. A real within-unit parallel consumer
+
+Do not add another coarse file scheduler and call this complete. Existing
+`library/compiler_work.tower` schedules independent compilation units plus their
+join; each unit compiles its import closure in an isolated compiler instance.
+It does not schedule declaration queries across those instances. This isolated-unit executor alone does not provide internal parallelism. The
+new within-unit kernels do; remaining semantic/parser phases still need migration.
+
+Use the same shared entities/components and derived work graph for queries both
+inside one unit and across module dependencies. The coordinator owns graph edits,
+reference counts, type interning and structural publication. Pin revision inputs,
+preallocate outputs or return worker-owned result buffers, and dispatch cached
+typed query batches with explicit read/write ranges. Merge components and
+diagnostics in deterministic semantic order, then release dependent work. A frozen
+entity view alone does not freeze arbitrary payloads or isolate SemanticContext.
+Move scratch, diagnostics and mutable session/cache state to appropriate owners
+before concurrent kernels use them. LLVM contexts/modules remain isolated or
+serialized; never concurrently mutate a shared LLVM module.
+
+Start with dependency-ready layout batches as the bounded integration consumer;
+then move type/body queries and eligible staged evaluations onto that executor.
+For multiple units, define one owner for a reusable query result and deduplicate
+its demanded computation using complete keys. Preserve per-unit compilation/link
+boundaries and module visibility. Isolated workers may transport canonical
+Foundation with explicit reconstruction; this is not sharing live entity handles.
+Native worker APIs and browser shared-memory deployment, if selected, need
+explicit execution/memory contracts. Keep the portable serial interpreter executor.
+
+Flecs motivates cached component queries, sliced work and declared access with
+publication at synchronization boundaries. It does not infer Tower's semantic
+dependencies or make arbitrary mutable state safe. A language `foreach` remains
+ordered by default; parallel compiler batches require separate scheduling/access
+proofs. Threading, contiguous storage and SIMD are independently measured goals.
+
+### 3. First executable comptime slice
+
+Scalar syntax implemented in the current checkout (publication validation is
+still in progress):
+
+```tower
+fn calculate(n: i32): i32 {
+    var result = n * 7;
+    return result;
+}
+var answer = comptime(calculate(6));
+var other: decltype(calculate(6));
+```
+
+`answer` receives a typed Foundation constant `42`. The type query for `other`
+resolves `i32` without executing `calculate`. The same ordinary function remains
+callable at runtime. Both requests reuse the existing type checker; evaluating
+`answer` additionally demands the checked/lowered body and selected callees.
+Forward declarations and cross-module calls must work through query dependencies,
+not through a special source-order constant pass.
+
+Evaluate ready requests through the ordinary Tower interpreter with explicit
+semantics version, target/layout, recorded inputs, capabilities and resource
+budgets. Begin with integer/bool arguments/results and a documented pure operation
+subset: ordinary locals, arithmetic, branches, loops and eligible direct calls.
+Materialize results with the existing typed Foundation literal representation.
+Retain provenance and the dependency record on shared entities. Do not run a whole
+module's initialization merely to invoke one staged function.
+
+The ordinary interpreter now has an explicit, independently owned invocation
+context with arguments, result, target width, error/output buffers and deterministic
+fuel. Staged execution enters the selected function without module initialization.
+Strict stages track local initialization/liveness, reject unsupported effects and
+memory operations, and suspend on an unresolved stage query without consuming
+fuel or repeating earlier execution. Result materialization follows a joined
+worker batch; the checked Foundation entities remain authoritative.
+
+Remaining work includes general tracked effect capabilities, frozen aggregate and
+file-input values, type-producing ordinary functions, demand-driven body checking,
+and dependency-aware invalidation. Heap/global/output/foreign capabilities are
+currently rejected in strict stages, not silently folded. A registered host
+callback alone does not make a function eligible for staging. Full parser/session
+and semantic ownership migration remains a primary objective alongside staging.
+
+Cache only completed eligible evaluations under their complete dependencies and
+profile. `const Name()` retains its present ordinary-function meaning until an
+explicitly tested migration exists. No native evaluator, special arithmetic folder,
+JIT requirement, public instruction ABI or interpreter-cache metadata is needed.
+Floats remain future language work and need a defined strict numeric profile;
+using host floating-point or merely executing Wasm cannot establish determinism.
+
+### 4. First-class types and arbitrary staged values
+
+Replace the bounded type-constructor evaluator with ordinary staged Tower code
+once type values have an executable Foundation spelling, stable nominal identity,
+construction/finalization rules and reflection components. Today
+`generic_type_result` recognizes one optional local struct followed by a return;
+it does not execute an arbitrary function body. `sem_constant_argument` admits
+integer literals/bound template values, not general staged expressions. Reuse
+those existing shared entities while retiring these bootstrap restrictions.
+
+This unlocks ordinary code computing type/array parameters, schema-generated
+structs, lookup tables and target-derived layouts. Adopt it in a small compiler
+subsystem with a before/after behavior and source-size comparison, rather than
+assuming every constant helper should disappear. Types must be usable through
+ordinary parenthesized application and semantic name lookup. Runtime values cannot
+retroactively alter already compiled static layouts.
+
+Extend arguments/results to aggregates, buffers/containers, graphs and functions
+under the arbitrary-value contract below. Define owned storage, shared aliases,
+cycles, type/function identity and relocations at stage boundaries. Retained or
+pinned shared compiler entities need an explicit interpreter-access contract;
+casting native entity pointers into guest addresses is not one. Target materialization
+must reconstruct compilable Foundation, never persist raw host addresses.
+
+Add tracked file inputs next, including observed absence and changed resolution;
+then recorded network acquisition and other capabilities with replay policies.
+These features depend on the same query/invalidation and effect-order rules, not
+a separate metaprogramming runtime. A successful scalar milestone is a vertical
+slice of this model, not the completed arbitrary-value compile-time feature.
+
+### Acceptance gates for this slice
+
+- Type queries: locals, fields, indexed elements, calls, imported aliases,
+  forward dependencies and generic instantiations; no execution of increments,
+  traps or foreign calls in operands; precise missing-name/type/cycle errors.
+- Scheduler: one large unit with independent and dependent declarations, multiple
+  imported modules in that unit, and multiple separate units sharing an import
+  diamond. Verify actual overlap within the single unit, deduplicated requests,
+  legal pointer recursion and rejected by-value/evaluation cycles.
+- Staging: ordinary function execution, used-input/body changes invalidating
+  consumers, unused-input stability, target/profile separation, ordered effects,
+  resource failure, cancellation and rejection of stale results. Add aggregate,
+  graph and recorded-I/O cases as those capabilities land.
+- Across all slices: compilable Foundation round trips, graph/fast interpreter
+  agreement at both pointer widths, raw/optimized LLVM, native/browser execution,
+  and identical canonical output/diagnostics at 1/2/4/8 workers with adversarial
+  completion order. Measure wall time, work/span, peak memory and scheduler cost;
+  a synthetic SIMD kernel does not establish compiler-wide speedups.
+- Bootstrap: implement new semantics in predecessor-compatible Tower first,
+  validate and publish the complete successor and resources, then adopt new
+  syntax in compiler sources. Recheck a clean default build after integration.
+
+References: the [C++ decltype specification](https://eel.is/c++draft/dcl.type.decltype)
+defines its operand as unevaluated; only that principle is proposed here.
+[Flecs systems](https://www.flecs.dev/flecs/Systems.html#threading) and
+[queries](https://www.flecs.dev/flecs/Queries.html#performance-and-caching) inform
+batching and query caching. The journal's 2026-11-18 type-function discussion,
+2026-11-19 language/worker/pinned-world entries, 2026-11-20 resolved-type-use and
+operator entries, and the original TODO dependency/type-value/staging notes
+provide the Tower-specific rationale. Historical speculative memory-safety and
+identity ideas in the TODO do not supersede the current raw Foundation contract.
+
 ## Arbitrary values at compile time
 
 The intended language accepts any Tower value as an input to, intermediate value
@@ -128,6 +346,27 @@ ordinary values and calls. The template example's type/integer arguments describ
 today's bootstrap implementation; they do not restrict the eventual language.
 Values need not become compile-time-only: execution stage follows dependencies
 and explicit staging, and the same eligible code and values remain usable at runtime.
+
+Known values should also be inferred through ordinary execution. For example,
+`var a = 5;` need not carry an explicit constant annotation for eligible later
+uses to become known; writes and aliases determine when that knowledge remains
+valid. This MUST NOT become a separate pre-LLVM constant-propagation or arithmetic
+folding pass. Dependency/effect tracking supplies available inputs to the ordinary
+Foundation interpreter, which executes the same value, arithmetic, call and memory
+operations used at runtime. Literals participate in that contract too. Fast paths,
+memoization and later native execution tiers must preserve those semantics.
+Explicit `comptime` requires a result at that stage; inferred execution may leave
+runtime work when inputs or authorized effects are unavailable. Knowing the
+argument to `print` does not authorize performing its output during compilation.
+
+Constant regex/DFA and grammar data are motivating cases: make as much ordinary
+execution known as dependencies allow, and expose the resulting values to native
+optimization without requiring users to generate code. Unknown input characters
+still select transitions and unknown input lengths still require repetition.
+Specialized state code and bounded-loop unrolling need finite code-size/work
+policies, effect preservation and measured results; fixed tables alone do not
+guarantee that LLVM generates an optimal branch layout. Explicit staged code
+generation remains an additional facility on the same Foundation nodes.
 
 A type constructor may consume a parsed configuration struct, a complete buffer
 read from a file, a container of schema records, a function that transforms those
@@ -420,9 +659,32 @@ containers. Benchmark representative compiler workloads before migrating them.
   concurrent entity mutation remains unfinished. The compiler-unit executor now
   uses real browser/Node workers with isolated compiler worlds and the same Tower
   dependency coordinator. Component read/write ranges and structural exclusivity
-  are available in that shared scheduler. Native CLI worker pools, frozen-world
-  phase publication, query/storage migration and measured SIMD remain open.
-  Tower expression precedence/operators and scoped `for` are implemented.
+  are available in that shared scheduler. Native Tower worker pools and pinned layout/evaluation publication now exist.
+  Declaration discovery/readiness (including signature parameters), eligible
+  function body checking, expression lowering and LR kernel closures run through that same pool. Canonical
+  generated entities are staged privately and published after worker joins;
+  exclusive leases permit body workers to attach components to their own source
+  entities while typed query indexes stay pinned. Ordinary indexed value access,
+  local inference, decltype, stage registration and defer use this path. Bodies
+  requiring generic/type construction and editor observation retain a coordinator
+  path pending explicit continuations.
+  A shared-memory
+  WASI transport passes Node and isolated Chromium overlap/cancellation tests.
+  Browser packaging now includes the shared reactor and nested worker; static
+  hosting gains isolation headers through a service worker, with a portable
+  fallback when isolation is unavailable. Local desktop loading/reload/fallback
+  tests pass; final publication verification remains outstanding. Full native unit
+  orchestration, structural semantic phases, query/storage migration and measured
+  SIMD remain open.
+  Tower expressions, numeric grammar precedence, compound assignments and lazy
+  logical/null operators are implemented by the 2026-11-20 expression migration.
+  The checked-in Linux x64 development bootstrap supports the expression/import
+  changes; this is not a portable release or evidence of browser publication.
+  Scalar `comptime(expr)` and unevaluated `decltype(expr)` now have working
+  implementations and focused tests; general compile-time values/effects and
+  fully threaded dependency-driven checking remain in progress. Selective
+  imports, exact overloads, automatic moves, properties, interfaces and general
+  attributes remain pending. Scoped `for` is implemented upstream.
   Generic calls can infer omitted type arguments from exact typed operands and
   nominal specialization metadata, including straight-return aliases. See
   [generic call inference](generic-call-inference.md) for constraints and bootstrap
@@ -431,8 +693,6 @@ containers. Benchmark representative compiler workloads before migrating them.
   nominal protocols, including vector/stack/queue. See
   [borrowed iteration](borrowed-iteration.md). It reuses scoped cleanup and
   Foundation nodes; checked borrowing and implicit parallel iteration remain out.
-  Selective imports, exact overloads, automatic moves,
-  comptime/eval, properties, interfaces and attributes are not implemented yet.
 
 ## Next parallel/compiler milestones
 
@@ -456,9 +716,13 @@ containers. Benchmark representative compiler workloads before migrating them.
    session leases; environments retain one idle cache and reject disposal with
    live requests. Tower CompilerWorld now owns stores and lazy parser/syntax/
    Foundation registries, with direct Tower payload finalizers and guarded
-   disposal. The production host uses one default-world handle; native sessions,
-   grammar baselines, provenance metadata and default-only semantic accessors
-   still need migration before complete independent compilation can use explicit worlds.
+   disposal. Node-anchored semantic, parser-match and provenance accessors now follow a
+   borrowed owner context on the entity store, and four interpreter jobs across
+   two explicit worlds pass through one pool. The production host still exposes
+   a default-world handle. Tower now owns grammar baseline/revision/cache records
+   and parser session leases; the remaining native session orchestration and host
+   transport still need migration before complete independent compilations can
+   share one native process safely.
 3. Migrate pure layout, body-analysis and lowering queries individually. Cache
    matching entity/component tuples. Preserve stable sparse payloads where
    address stability matters; introduce dense typed columns only for measured
@@ -476,10 +740,10 @@ Current migration audit (after the isolated compiler-worker milestone):
 
 | Area | Authoritative/shared data and present storage | Concurrency work still required |
 | --- | --- | --- |
-| Entities | Stable per-component payload allocations; dense per-type pointer indexes; owner component lists; pinned structural views | Explicit compiler-world ownership, structural publication and non-racing reference ownership |
-| Syntax/grammar | Shared entity components; parser tables and session stacks are derived | Isolate mutable session/cache state; preserve incremental grammar and source/effect order |
-| Semantics/layout | FoundationNode components; derived hash tables and layout work graph | Pure query inputs, declared accesses, owned result buffers, deterministic component commit |
-| Interpreter/staging | Shared Foundation plus a private verified execution cache | Explicit deterministic effects/inputs and invalidation; no metadata in the cache stream |
+| Entities | Stable payloads, dense per-type pointer indexes, explicit worlds, pinned views, exclusive attachment leases and staged canonical creation | Complete host-world isolation and non-racing reference ownership |
+| Syntax/grammar | Shared entities; Tower baseline/revision/cache records; worker-owned LR(0) transitions and LR(1) kernel closures | Remaining session orchestration, propagation/actions and source/effect order |
+| Semantics/layout | Shared query graph; parallel dependency discovery, layouts, eligible body checking and expression lowering | Generic/type construction continuations, editor queries and structural publication |
+| Interpreter/staging | Per-invocation contexts over shared Foundation; threaded lazy scalar queries and private execution caches | General ordinary-value execution, explicit effects/inputs and invalidation; no separate folding evaluator |
 | LLVM | Shared Foundation inputs; one mutable LLVM context/module per compiler instance | Function/query boundaries that do not concurrently mutate one LLVM module; preserve target legality |
 | Link/publication | Tower plans/artifacts plus upstream LLD and filesystem interfaces | Keep LLD globals and fixed temporary names isolated/serialized; publish a candidate only after its checks |
 

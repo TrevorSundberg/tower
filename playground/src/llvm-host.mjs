@@ -1,3 +1,4 @@
+import { decodeBytes } from './host-bytes.mjs';
 import { TowerWASI } from './wasi-host.mjs';
 import { configureTower, configureFoundation, configureBedrock } from './bootstrap.mjs';
 import { foreignArgument, invokeForeign } from './foreign.mjs';
@@ -17,7 +18,7 @@ export async function loadLLVM(bytes, log = () => {}, bootstrap, foundation, bed
   function string(pointer) {
     const memory = new Uint8Array(e.memory.buffer), end = memory.indexOf(0, pointer);
     if (!pointer || end < 0) throw new Error('Invalid LLVM compiler response');
-    return decoder.decode(memory.subarray(pointer, end));
+    return decodeBytes(decoder, memory.subarray(pointer, end));
   }
   return {
     module,
@@ -105,7 +106,7 @@ export async function executeWasm(compiled, update = () => {}, { imports = {} } 
   function append(text,bytes=new TextEncoder().encode(text).length) {
     if(outputBytes+bytes<=65536){output+=text;pending+=text;outputBytes+=bytes;}else outputTruncated=true;
   }
-  imports={...platformImports((_stream,data)=>append(decoder.decode(data,{stream:true}),data.length)),...imports};
+  imports={...platformImports((_stream,data)=>append(decodeBytes(decoder, data,{stream:true}),data.length)),...imports};
   const module = await WebAssembly.compile(compiled.wasm);
   const allowed = new Set(['print', 'trap']);
   const env = {};
@@ -127,20 +128,20 @@ export async function executeWasm(compiled, update = () => {}, { imports = {} } 
         kind === 2 ? bits ? 'true' : 'false' : kind === 0 ? BigInt.asIntN(32, bits) : kind === 6 ? BigInt.asIntN(64, bits) : BigInt.asUintN(64, bits);
       const text = String(value) + '\n';
       const bytes = new TextEncoder().encode(text).length;
-      append(decoder.decode(new TextEncoder().encode(text),{stream:true}),bytes);
+      append(decodeBytes(decoder, new TextEncoder().encode(text),{stream:true}),bytes);
       const now = performance.now();
       if (now - lastUpdate >= 50) { update({ status: 'executing', output: pending, outputTruncated }); pending = ''; lastUpdate = now; }
     },
     trap(message, offset) {
       const bytes = context.memory(), end = bytes.indexOf(0, message);
-      failure = { error: end < 0 ? 'Invalid Tower trap message' : new TextDecoder().decode(bytes.subarray(message, end)), errorOffset: offset >>> 0 };
+      failure = { error: end < 0 ? 'Invalid Tower trap message' : decodeBytes(new TextDecoder(), bytes.subarray(message, end)), errorOffset: offset >>> 0 };
       // This aborts the host call, not a language-level exception or WASM EH.
       throw new Error(failure.error);
     },
   } });
   try { instance.exports.tower_main(); }
   catch (error) { if (!failure) failure = { error: error.message, errorOffset: 0 }; }
-  append(decoder.decode(),0);
+  append(decodeBytes(decoder, ),0);
   const result = { status: failure ? 'error' : 'done', error: failure?.error ?? '', errorOffset: failure?.errorOffset ?? 0,
     output: pending, outputTruncated };
   update(result);

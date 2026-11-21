@@ -1,0 +1,50 @@
+import tower;
+
+extern fn work_host_heap_enter(): void;
+extern fn work_host_heap_leave(): void;
+extern fn __real_malloc(size: usize): void*;
+extern fn __real_calloc(count: usize, size: usize): void*;
+extern fn __real_realloc(pointer: void*, size: usize): void*;
+extern fn __real_free(pointer: void*): void;
+extern fn __real_aligned_alloc(alignment: usize, size: usize): void*;
+extern fn __real_posix_memalign(output: void**, alignment: usize, size: usize): i32;
+
+// Older V8 bounds checks can retain a previous shared-memory size until a host
+// transition. Serialize allocator entry and refresh that worker's memory view
+// before libc touches pages grown elsewhere. The lock spans calloc's fill and
+// realloc's copy as well as allocation. Native hosts use their ordinary libc.
+export fn __wrap_malloc(size: usize): void* {
+    work_host_heap_enter();
+    var result = __real_malloc(size);
+    work_host_heap_leave();
+    return result;
+}
+export fn __wrap_calloc(count: usize, size: usize): void* {
+    work_host_heap_enter();
+    var result = __real_calloc(count, size);
+    work_host_heap_leave();
+    return result;
+}
+export fn __wrap_realloc(pointer: void*, size: usize): void* {
+    work_host_heap_enter();
+    var result = __real_realloc(pointer, size);
+    work_host_heap_leave();
+    return result;
+}
+export fn __wrap_free(pointer: void*): void {
+    work_host_heap_enter();
+    __real_free(pointer);
+    work_host_heap_leave();
+}
+export fn __wrap_aligned_alloc(alignment: usize, size: usize): void* {
+    work_host_heap_enter();
+    var result = __real_aligned_alloc(alignment, size);
+    work_host_heap_leave();
+    return result;
+}
+export fn __wrap_posix_memalign(output: void**, alignment: usize, size: usize): i32 {
+    work_host_heap_enter();
+    var result = __real_posix_memalign(output, alignment, size);
+    work_host_heap_leave();
+    return result;
+}

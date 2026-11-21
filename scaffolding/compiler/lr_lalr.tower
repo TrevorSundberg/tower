@@ -319,7 +319,7 @@ fn lr_lalr_seed(value: LRStates*, graph: LRPropagation*, constructs: bool): bool
     return true;
 }
 
-export fn lr_states_lalr(value: LRStates*, constructs: bool): bool {
+export fn lr_states_lalr_cached(value: LRStates*, constructs: bool, cache: LRKernelClosure**): bool {
     var count: usize = 0;
     var index: usize = 0;
     for(; index != value.states.length; index++) {
@@ -332,15 +332,6 @@ export fn lr_states_lalr(value: LRStates*, constructs: bool): bool {
     if missing {
         return false;
     }
-    var cache_count = value.analysis.symbol_count + value.analysis.rule_count;
-    var cache = alloc(LRKernelClosure*, cache_count);
-    missing = cache == null;
-    if missing {
-        lr_propagation_destroy(graph);
-        return false;
-    }
-    var cache_bytes = cache_count *sizeof(LRKernelClosure*);
-    fill(cache, 0, cache_bytes);
     var ok = lr_lalr_seed(value, graph, constructs);
     var state_index: usize = 0;
     loop {
@@ -372,12 +363,18 @@ export fn lr_states_lalr(value: LRStates*, constructs: bool): bool {
     }
     ok &&= lr_propagation_solve(graph);
     ok &&= lr_lalr_actions(value, graph);
-    index = 0;
-    for(; index != cache_count; index++) {
-        lr_kernel_closure_destroy(cache[index]);
-    }
-    free(cache);
     lr_propagation_destroy(graph);
+    return ok;
+}
+
+export fn lr_states_lalr(value: LRStates*, constructs: bool): bool {
+    var count = value.analysis.symbol_count + value.analysis.rule_count;
+    var cache = alloc(LRKernelClosure*, count);
+    if cache == null { return false; }
+    fill(cache, 0, count * sizeof(LRKernelClosure*));
+    var ok = lr_states_lalr_cached(value, constructs, cache);
+    for(var i: usize = 0; i < count; ++i) { lr_kernel_closure_destroy(cache[i]); }
+    free(cache);
     return ok;
 }
 

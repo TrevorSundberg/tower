@@ -1,0 +1,32 @@
+import tower;
+
+// Names bind across the module; signature and field queries wait for the types
+// they actually inspect, even when the provider appears later in the file.
+fn echo(value: decltype(seed)): decltype(result) { return value; }
+struct Envelope { payload: decltype(result); }
+var record: Envelope;
+var result: decltype(make()) = 9;
+fn make(): decltype(seed) { return seed; }
+var seed: u64 = 42;
+var field: decltype(record.payload) = 3;
+var size = sizeof(Envelope);
+
+// This needs Link's nominal identity, not Link's field layout. It is legal and
+// must not acquire a false self cycle from the address expression.
+struct Link { next: decltype(&link); }
+var link: Link;
+
+// Signature locals are type queries too. They shadow module names, may refer
+// forward to another parameter, and expose checked fields to the return query.
+fn dependent(first: decltype(second), second: u64): decltype(first) { return first + second; }
+fn shadow(seed: bool): decltype(seed) { return seed; }
+fn read_payload(value: Envelope*): decltype(value.payload) { return value.payload; }
+fn generic_result(T: type, value: T): decltype(value) { return value; }
+
+var failures: i32 = 0;
+record.payload = 7;
+if dependent(20, 22) != 42 || !shadow(true) || read_payload(&record) != 7 { failures++; }
+if generic_result(u64, 13) != 13 { failures++; }
+if echo(seed) != 42 || result != 9 || field != 3 { failures++; }
+if size != 8 { failures++; }
+print(failures);

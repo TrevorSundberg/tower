@@ -1,0 +1,43 @@
+import tower;
+
+fn selected(): i32 {
+    if comptime(true) { return 42; }
+}
+fn repeated(): i32 {
+    while comptime(true) { return 42; }
+}
+fn counted(): i32 {
+    for(; comptime(true);) { return 42; }
+}
+fn labeled(): i32 {
+    label(first);
+    if comptime(true) { return 42; }
+    label(second);
+    return 7;
+}
+fn cleaned(): i32 {
+    var total: i32 = 0;
+    for(var i: i32 = 0; i < 3; i++) {
+        defer { total += comptime(5); }
+        if i == 1 { continue; }
+    }
+    {
+        defer {
+            defer { total += comptime(3); }
+            total += comptime(2);
+        }
+    }
+    return total;
+}
+var observed: i32 = 0;
+fn fallthrough(): void {
+    defer { observed += comptime(9); }
+    if comptime(true) {} else { return; }
+}
+var failures: i32 = 0;
+if selected() != 42 || repeated() != 42 || counted() != 42 || labeled() != 42 { failures++; }
+if cleaned() != 20 || comptime(cleaned()) != 20 { failures++; }
+if comptime(selected() + repeated() + counted()) != 126 { failures++; }
+fallthrough();
+if observed != 9 { failures++; }
+print(failures);

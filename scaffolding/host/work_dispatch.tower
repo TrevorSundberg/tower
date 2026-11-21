@@ -1,0 +1,8 @@
+import tower;
+import .library.work_pool;
+
+// Exactly one host unit owns the platform callback. Libraries can share the
+// pool implementation without exporting duplicate callbacks from each unit.
+export fn work_thread_entry(argument: void*): void* {
+    return work_pool_entry(argument);
+}

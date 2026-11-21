@@ -1,0 +1,83 @@
+import tower;
+import .library.work_pool;
+
+extern fn pthread_self(): usize;
+
+struct PoolTestJob {
+    entered: void*;
+    release: void*;
+    input: u64;
+    result: u64;
+    thread: usize;
+    bytes: usize;
+}
+
+export fn work_kernel_execute(payload: void*): void {
+    var job = bits(PoolTestJob*, payload);
+    job.thread = pthread_self();
+    work_signal_post(job.entered);
+    work_signal_wait(job.release);
+    // Concurrent allocation/fill/free must survive shared-memory growth, not
+    // merely scalar jobs which never exercise the compiler's allocator path.
+    var memory = alloc(u8, job.bytes);
+    if memory == null { job.result = ~convert(u64, 0); return; }
+    fill(memory, convert(u8, job.input), job.bytes);
+    job.result = job.input * job.input;
+    if memory[0] != convert(u8, job.input) || memory[job.bytes - 1] != convert(u8, job.input) {
+        job.result = ~convert(u64, 0);
+    }
+    free(memory);
+}
+
+export fn main(): i32 {
+    var pool: WorkPool;
+    if !work_pool_open(&pool, 4) { return 1; }
+    if !pool.threaded || pool.count != 4 { return 2; }
+    var entered = work_signal_open();
+    var release = work_signal_open();
+    if entered == null || release == null { return 3; }
+    var jobs: PoolTestJob[4];
+    fill(&jobs, 0, sizeof(PoolTestJob[4]));
+    var round: u64 = 1;
+    while round < 17 {
+        var i: usize = 0;
+        while i < 4 {
+            jobs[i].entered = entered;
+            jobs[i].release = release;
+            jobs[i].input = round + convert(u64, i);
+            jobs[i].bytes = round == 1 ? 8388608 : convert(usize, round * 257);
+            if !work_pool_submit(&pool, bits(void*, &jobs[i])) { return 4; }
+            i++;
+        }
+        if work_pool_submit(&pool, bits(void*, &jobs[0])) { return 5; }
+        // Four distinct workers must reach this barrier simultaneously. A
+        // synchronous dispatch or a pool with fewer workers cannot pass it.
+        i = 0;
+        while i < 4 { work_signal_wait(entered); i++; }
+        if work_pool_receive(&pool, false) != null { return 6; }
+        i = 0;
+        while i < 4 { work_signal_post(release); i++; }
+        i = 0;
+        while i < 4 {
+            var job = bits(PoolTestJob*, work_pool_receive(&pool, true));
+            if job == null { return 7; }
+            if job.result != job.input * job.input { return 8; }
+            i++;
+        }
+        i = 0;
+        while i < 4 {
+            var j: usize = 0;
+            while j < i {
+                if jobs[i].thread == jobs[j].thread { return 9; }
+                j++;
+            }
+            i++;
+        }
+        round++;
+    }
+    if pool.peak != 4 || pool.running != 0 { return 10; }
+    work_pool_close(&pool);
+    work_signal_close(entered);
+    work_signal_close(release);
+    return 0;
+}

@@ -8,13 +8,29 @@ let towerReady, installedFoundation, installedBedrock;
 const compilers = new Map();
 const warmRuns = new Map();
 let canonicalSources;
+let bundledTower;
 let selected = {revision:0};
 export function useCompiler(selection = {revision:0}) {
   if (selected.revision === selection.revision) return false;
+  towerReady?.then(tower => tower.close(), () => {});
+  for (const pending of compilers.values()) pending.then(compiler => compiler.close?.(), () => {});
   selected = selection;
   towerReady = undefined; installedFoundation = installedBedrock = undefined;
   compilers.clear(); warmRuns.clear();
   return true;
+}
+async function bundledTowerBytes() {
+  bundledTower ??= (async () => {
+    const shared = globalThis.crossOriginIsolated && typeof SharedArrayBuffer !== 'undefined';
+    if (shared) {
+      const response = await fetch('./capabilities.json');
+      if (response.ok && (await response.json()).threads) return fetchBytes('./tower-threads.wasm');
+    }
+    return fetchBytes('./tower.wasm');
+  })();
+  const pending = bundledTower;
+  try { return await pending; }
+  catch (error) { if (bundledTower === pending) bundledTower = undefined; throw error; }
 }
 function getCanonicalSources() {
   canonicalSources ??= Promise.all(['foundation','bedrock'].map(async name => {
@@ -35,11 +51,14 @@ export async function getTower(foundation, bedrock, towerSource) {
   const start = performance.now();
   const cached = !!towerReady && installedFoundation === foundation && installedBedrock === bedrock;
   if (!towerReady) {
-    towerReady = Promise.resolve(selected.tower ?? fetchBytes('./tower.wasm')).then(bytes =>
+    towerReady = Promise.resolve(selected.tower ?? bundledTowerBytes()).then(bytes =>
       loadTower(bytes, undefined, foundation, undefined, bedrock, {tower:towerSource}));
     installedFoundation = foundation; installedBedrock = bedrock;
   }
-  const tower = await towerReady;
+  const pending = towerReady;
+  let tower;
+  try { tower = await pending; }
+  catch (error) { if (towerReady === pending) towerReady = undefined; throw error; }
   tower.configureModules({builtins:{bedrock, foundation, tower:towerSource}});
   if (installedBedrock !== bedrock) {
     tower.configureBedrock(bedrock); installedBedrock = bedrock; installedFoundation = null;

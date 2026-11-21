@@ -24943,102 +24943,226 @@ canonical Foundation differential passes again against this successor. Logs use
 the expression-rebased-* prefix. Complete deployment assets are prepared from
 this exact integrated source, retaining the prior audit metadata and target packs.
 
-### Coordinator regex/lexer publication closeout and upstream merge (2026-11-20)
 
-Regex 7bbfdda and contextual lexer 7737acb are included in the fully verified
-combined source dafeb208afdf5618d00759d57c6ad8fba2e11e69 and Pages
-df6e5c53e3028a8c9724cad133c3f1fb01b7f311.
-Exact Pages action 44852551683 succeeded. Agent2's final evidence, inspected by
-coordinator: native 6/6 plus backend API, six WASI fixture groups, Node 416/416
-in 191.50 seconds, two browser successor generations with two/four workers and
-identical outputs, all 71 committed publication blobs matching tested bytes,
-70 served assets matching locally and on https://tower-lang.org/, and desktop/
-mobile compilation/execution/download/highlighting/persistence checks PASS.
-All three redirects reach the HTTPS apex. Reports/logs are the external
-C:/Sandbox/build/codex-agents/agent-2-final-publication-* files. Agent2 explicitly
-released its root/backend-cache ownership after hosted verification. No sanitizer
-or broad formatter sweep was run for these coordinator slices.
+## 2026-11-20 — Compile-time feature and dependency-scheduler audit after expressions
 
-The final root pull then discovered independent upstream expression cleanup
-406c198/bb7967d and newer Pages 0480cdc03c8805b739beaa496a658f3e8ff8d7ee.
-Those 200 changed files were preserved. Earlier full browser evidence above is
-for dafeb20/df6e5c5, not retroactively for this cleanup. A new empty-cache build
-using the documented published bootstrap (no private override) PASS at
-/home/trevo/.cache/tower/coordinator-expression-merged-clean; Clang/LLVM 19.1.7.
-Enabled TOWER_BACKEND_TESTS and rebuilt/ran tower-frontend-tests and
-tower-backend-tests: world/ownership/parser/provenance, full regex/contextual
-lexer suites and backend API PASS. Logs: lexicon-port/expression-merged-*.log in
-the coordination directory. The newer Pages exact action 44852925363 also passed;
-its manifest records source bb7967d and predecessor df6e5c5. Its publisher owns
-its additional browser evidence; the coordinator has not repeated that full
-suite. This journal closeout changes no compiler implementation or shipped asset.
+Request: pull latest and choose the next useful Tower language feature after
+expressions/compound operators, reading the relevant journal and original TODO;
+include decltype, ordinary compile-time execution and Flecs-style ECS scheduling
+inside a compilation unit as well as across units. The user subsequently confirmed
+that for/foreach are being implemented separately. This assessment now focuses
+on compile-time/type-query work; it does not implement iteration or claim new
+comptime syntax is accepted. todo.txt remains untouched.
 
-At pushed dafeb20 (unchanged native count after expression cleanup), 5,766 native
-compiler/runtime physical lines remain: 901 production .cpp plus 1,791 headers,
-1,700 test lines and 1,374 reference lines. Third-party dependencies are excluded;
-774 historical research lines are counted separately. Of production .cpp, 780
-are in syntax.cpp. These two coordinator migrations retired 450 native lines.
+Synchronization: main initially fast-forwarded b6b4f17 -> 943f73b, bringing the
+expression/import/runtime migrations. The user then supplied the bootstrap fix;
+main fast-forwarded to 479962b. On the later compiletime-only steering turn,
+`git pull --rebase` correctly refused the two unstaged documentation edits. Stashed
+only those edits, pulled (already current), and restored them without conflict.
+No feature branch or discarded local work.
 
-### Next draft: DFA table oracle retirement (2026-11-20)
+Read the language plan, Tower/Foundation/module/compiler-service/distribution
+docs, and relevant historical entries: the 2026-11-18 type-function and original
+TODO analysis; the 2026-11-19 language roadmap, arbitrary-value clarification,
+compiler workers and pinned worlds; the subsequent world/session/registry ports;
+the 2026-11-20 resolved type uses, expression migration, import integration and
+published bootstrap recovery. Read original TODO sections on task suspension,
+forward binding/inference, compile(expression), dependent parameters, type-valued
+functions/components, effects/order and deterministic execution. Relevant original
+anchors include lines 10-14, 34-66, 173-322, 540-624, 2030-2064, 2534-2537,
+3533-3571, 5555-5562, 7334-7494 and 8204-8212. These are exploratory notes, not a
+replacement for the current raw Foundation pointer/ownership contract.
 
-Prepared externally during Agent2's frozen dafeb20 publication. Agent3 confirmed
-ownership transfer for bootstrap/lexer-table-seed.cpp and only the reference
-imports in tests/lexer_table.tower; its production/NFA simulator/test cases stay
-unchanged. No root source or deployment cache is edited by this draft.
+Verified source findings at 479962b:
 
-lexer_table_oracle.tower translates the five reference functions actually used by
-that test: create/destroy, alphabet assignment, row append and maximal-prefix UTF-8
-matching. It preserves nested transition rows to catch errors in production's flat
-row indexing, implements the reference upper-bound search independently, and uses
-the same existing UTF-8 decoder as the old C++ reference. Explicit Tower ownership
-releases every row, table and alphabet. Unreferenced SymbolSequence/step/accepts
-reference functions have no consumers (rg audit); production equivalents remain.
+- `tower.tower` supplies expressions, precedence and compounds. Existing local
+  inference, enums, match/while, vectors/stack/queue and type/integer specialization
+  should not be proposed as unimplemented. The roadmap ledger and Tower guide
+  still described expressions as pending; corrected those statements, including
+  the old no-comma proposal. Implementation and hosted publication remain distinct.
+- `semantic_layout.tower` uses work_request/depend/seal/demand but invokes each
+  sem_layout_compute synchronously inside work_take. No work_access declarations
+  occur in compiler semantic kernels. Pinned EntityView protects structure and
+  lifetime, not arbitrary payload writes. This confirms the remembered within-unit
+  limitation; the issue is not an absent unit-level worker transport.
+- `semantic_statements.tower::sem_run` still iterates global phases and function
+  bodies with one mutable SemanticContext. `sem_declaration_type` has a separate
+  recursive inference chain/128-entry guard. Shared scope, error state, generic
+  tables and scratch cannot simply be used by concurrent kernels.
+- `work_graph.tower::work_depend` permits new edges only for a Building consumer.
+  It is a useful predeclared dependency scheduler, not yet a suspend/discover/resume
+  engine for running staged code. Layout's graph uses revision 1 and pointer width
+  as its profile for one compilation; this is not full persistent invalidation.
+- `compiler_work.tower` creates independent Unit tasks and one Join. Browser/Node
+  workers compile each unit's import closure in isolated instances. It does not
+  deduplicate or schedule declaration-level queries across those units. Native
+  CLI worker pools and shared-world phase dispatch are still pending.
+- `SemanticTypeUse` records resolved types on the original shared entities for
+  opt-in inspection. It is a useful component path, not an implemented decltype
+  operator or arbitrary first-class type execution.
+- `generic_type_result` recognizes an optional struct plus return; other statements
+  explicitly diagnose missing general compile-time execution. sem_constant_argument
+  accepts integer literals or bound values. `const Name()` is still an ordinary
+  function, not a compile-time evaluator or memoization guarantee.
+- `interpreter_init` begins at the program root. Ordinary function frames and
+  resumable steps exist, but staging needs an explicit invocation/result context,
+  dependency suspension and a strict effect/memory policy. Foundation docs explicitly
+  exclude invalid/uninitialized raw accesses from the current differential contract;
+  the ordinary interpreter is not automatically a strict compile-time environment.
 
-The unmodified existing Tower harness + unmodified C++ reference were compiled/run
-via a temporary Tower entry: PASS. The new Tower oracle runs the unchanged 500
-seeded DFA cases and 150 direct NFA simulation cases, including malformed UTF-8 and
-all failure tests: native and WASI PASS. First native link omitted the existing
-instrumented allocator object and therefore failed to resolve test hooks; adding
-the same runtime-instrumented.o used by the native frontend fixture fixed the link.
-No native helper, implementation, seed or host-import substitute was introduced.
-Published fb1ab1f9 bootstrap, Clang19, WASI SDK34 and existing memory/UTF-8/bytes objects.
+Recommended scoped implementation, recorded in docs/tower-language-plan.md:
+unevaluated decltype using ordinary semantic types; shared binding/type/signature/
+body/layout/evaluation queries with coordinator-owned suspension and actual cycle
+paths; a real dependency-ready within-unit layout batch consumer; then pure ordinary
+integer/bool function execution via the existing interpreter and typed Foundation
+constant materialization. Strict initialized-read checks, transitive effect gating,
+explicit target/profile/fuel and no execution of unrelated module initializers are
+part of that slice. Follow with executable first-class type values, arbitrary owned
+values/graphs/functions and tracked I/O. Do not add another evaluator or public IR.
+General type construction cannot be claimed merely because scalar comptime works.
 
-Files and evidence are C:/Sandbox/build/codex-agents/lexer-table-port/ (native.log
-retains the first link failure; native-final.log, wasm.log and legacy.log show PASS).
-Ready next source slot after combined hosted verification: add the new oracle,
-replace only five extern declarations with its import, delete the native seed and
-its reference target/dependency, validate actual CMake aggregate and standalone
-runners using the published bootstrap, journal/commit/rebase/push and publish with
-the next coordinated batch. This draft is NOT yet in main or deployed.
-### 2026-11-20 — Session buffers and lifetime move to Tower (agent 1)
+Declare read/write ranges, pin inputs, isolate scratch/results, and publish shared
+components deterministically before releasing consumers. Cache keys and dependency
+reads include module/world/revision, arguments, target/semantics and effects; use
+stable identities for cross-instance reuse. Preserve lexical visibility, ordered
+module effects and incremental grammar activation. Test one large unit, many
+modules in one unit, and multiple units sharing a dependency diamond; observe
+real within-unit overlap separately from unit-worker or synthetic SIMD results.
+for/foreach implementation remains with its existing owner.
 
-The next ownership slice replaces the native SyntaxSession class with the mechanical layout in compiler-syntax-session.hpp and its authoritative syntax_session_types.tower definition. syntax_session_state.tower now allocates/destroys sessions, adopts and releases completion snapshots and suffixes, resets progress, and owns diagnostic storage. Completion is destroyed before its borrowed grammar/table pins. The input, revision, version and cache owners from previous slices remain the same owners; this does not introduce a second semantic representation.
+Primary references checked during this audit:
+https://eel.is/c++draft/dcl.type.decltype describes an unevaluated operand; the
+proposed Tower feature does not import C++ lvalue/rvalue-reference special cases.
+https://www.flecs.dev/flecs/Systems.html#threading describes query slicing and
+synchronization, and its sync-point section requires declared component access.
+https://www.flecs.dev/flecs/Queries.html describes cached query matching. These
+support batching/access architecture; they do not supply Tower semantic dependency
+resolution or prove its current compiler thread-safe.
 
-syntax_highlights.tower owns contiguous highlight rows and stable copied style strings, including deep snapshot copying, reset/disposal and the existing scanner callback. A small distinct-style pool avoids allocating a string for every token. Presentation style remains independent of opaque lexical classification. Existing native API consumers use mechanical pointer/count access and keep their public return types while their migration continues. Temporary formatter/replacement sessions now use the same Tower allocation and destruction path. Remaining parser control, template parsing and source-format orchestration are still native and are not claimed retired.
+Trials and recovery, Linux x64 Steam Deck, Node v21.7.3, Ubuntu/LLVM 19 Docker
+image tower_build with WASI SDK 34 and the existing pinned LLVM 20 cache:
 
-Initial compile trials exposed two integration mistakes: `token` is a reserved declaration keyword, so the internal field/parameter is named `id`; existing syntax_destroy foreign declarations use void*, so the exported Tower function keeps that opaque ABI and casts internally. No native fallback or new bootstrap was introduced. Tests exercise style sharing through row growth, style mutation, immutable deep snapshot lifetime, every copy-allocation failure with unchanged destination and exact buffer counts, failed session allocation, allocation-free progress reset, source/baseline pins and suffix disposal. Existing native frontend/driver/execution/request suites pass 4/4 (17.42s), including earlier full version construction failure sweeps; module_paths.py passes.
+- Before bootstrap recovery, current compiler-worker tests passed 2/5 and failed
+  3/5 with Unexpected '+'. The three selected work_graph/work_access/compiler_work
+  interpreter tests failed during Tower grammar activation with the '&' conflict.
+  These are obsolete-artifact failures, not scheduler semantic regressions. Native
+  towerc also needs the documented Docker LLVM shared libraries, unavailable on
+  this bare host. Logs: build/language-next-audit/{compiler-workers,work-graph}.log.
+- After 479962b, ran the default clean successor path with no private predecessor:
+  `TOWER_BUILD_JOBS=2 ./build.sh env -u TOWER_BOOTSTRAP_COMPILER
+  TOWER_NATIVE_BUILD=/tmp/tower-home/.cache/tower/language-next-audit-native
+  bash playground/scripts/build-native.sh`. All 60 targets passed. This deploys
+  the executable and adjacent resources to build/native using the standard script.
+- `docker exec tower-parser-retirement python3
+  build/language-next-audit/check-native.py` passes 18 checks: operators,
+  null_operators, work_graph, work_access, compiler_work, entity_views and
+  language_collections in graph and fast modes; plus native LLVM executables for
+  the three work fixtures and work_graph_scale (64,000 tasks). Existing fixtures
+  are unchanged. Exact command construction, outputs and executable SHA256 are in
+  the ignored script, native-checks.json/log and native-build.log. These establish
+  existing serial coordinator semantics, not new staging or threading.
+- The standard parser/WASI build with the pinned bootstrap passes all 27 targets.
+  The LLVM/WASI build initially stopped at Git's submodule ownership check because
+  the retained container executes as root. Retried with a command-scoped safe.directory
+  entry for this known checkout's LLVM submodule, without changing global config.
+  LLVM rebuild and current worker-test results are recorded below when complete.
+- Preserved the current hosted build f714b9d by extracting origin/gh-pages into
+  build/language-next-audit/published. verify-published.mjs compares all 70 served
+  assets to that exact manifest and runs desktop/mobile import-Tower execution
+  through graph/fast/LLVM. Both pass; manifest SHA256 is
+  626959bf755d89ec218464e643eb64b85a56cd79b3692163335b60cf1a96bfa4.
+  This is exact-asset verification plus a narrow browser smoke, not the full
+  browser suite or publication of the newer expression compiler. No old local
+  artifact was uploaded over the live site. Documentation-only publication follows
+  the established preserved-deployment path; no runtime source changed here.
 
-Validation used the documented published fb1ab1f9 bootstrap, no TOWER_BOOTSTRAP_COMPILER, Clang19 and /home/trevo/.cache/tower/agent-1-ownership-final-1730. `cmake --build ... --target towerc tower-frontend-tests tower-driver-tests tower-execution-tests tower-driver-request-tests -j4`, then anchored ctest for those four suites. The actual successor compiles the generated tower_compiler_parser_nodes.tower for x86_64-pc-linux-gnu byte-identically to the bootstrap-produced object (cmp0), and compiles the same closure for wasm32-wasip1. The previous ownership commit6a3af2d is frozen for Agent2's combined deployment; this follow-up remains private until that publication finishes. Clean post-rebase successor validation is still required before its later push.
+### Compile-time implementation authorized; Tower-only constraint
 
-### 2026-11-20 - Shared source-format result and Tower orchestration (agent 1)
+The user then explicitly requested implementation, required actual threading/ECS
+throughout the compiler with lazy dependency resolution and cycle diagnostics,
+and prohibited introducing C++ for this feature. This supersedes the preceding
+assessment-only scope. Do not treat its design document or existing serial tests
+as completion. for/foreach remain separate work. Every resumed turn has pulled
+main with rebase (and preservation of the in-progress edits); upstream remains
+479962b at this checkpoint.
 
-syntax_session_format.tower now owns the existing source formatting orchestration: clone session baselines/cache, parse unexpanded roots, collect lexer comment spans, invoke the same format_source engine, reparse the result and compare the same shared trees before returning it. The existing syntax_format C++ function only converts the shared output into its legacy return ABI. New syntax_format_into(void*, FormatResult*, const char**) returns owned text/ordered spans and borrowed immutable diagnostic text; callers dispose the result after success or failure. Unavailable sessions retain their empty result/error behavior. Exact custom-whitespace round-trip refusal is unchanged, and error strings remain valid after destroying the input session.
+Implemented the first scheduler prerequisite in library/work_graph.tower:
+coordinator-owned work_suspend adds a discovered dependency, releases the execution
+lease, seals/recounts its remaining inputs and demands the dependency. Every
+dispatch now has a generation in WorkTicket; stale results cannot finish or suspend
+a later dispatch of the same query. Compiler unit receipts explicitly use their
+single dispatch generation. The new Tower work_resume fixture checks lazy unused
+work, lease release, shared-input deduplication, repeated completed dependencies,
+old receipts after resume, failed inputs, cancellation and dynamic/self cycle paths.
+Its native graph and optimized fast runs both print zero. The first fixture compile
+correctly rejected a missing direct vector import; fixed the import rather than
+weakening module visibility.
 
-With coordinator/Agent3 approval, format_suite and format_repository now consume that shared API directly. Existing format_abi string helpers and entity-output checks remain for other native boundary callers. All16 exact canonical text/span fixtures are unchanged. FormatComment moved mechanically into format_types; importing the full formatter implementation into the parser-node unit first exposed an incompatible lr_api foreign declaration. Preserved the existing compiler unit boundary by calling its formatter ABI with shared records. A compile trial also rejected boolean bitwise compound; comparison results are computed before lazy boolean accumulation, preserving comparison of every root. The output receives an explicit trailing NUL outside its counted text for reparsing and the existing callers.
+Cross-backend validation is not yet passed: the browser raw/optimized LLVM
+Foundation-reconstruction checks exposed an unreachable trap on the large work_graph
+fixture and a nonzero result on reconstructed work_resume. Subsequent parser failures
+in the same process followed the first trap. Isolated reproduction and intermediate
+Foundation are saved under build/language-next-audit. Native graph/fast success is
+not evidence that these failures can be ignored. Investigation remains required.
 
-Fresh documented default fb1/Clang19 build in previously empty agent-1-format-clean compiled merged7737acb plus session ownership and this change, without a private bootstrap. Native frontend/driver/format/execution/request checks pass5/5 (26.23s), including existing16 formatter goldens, comments, Foundation roundtrips and allocation cleanup. New own frontend fixtures check unavailable input, initial clone allocation failure, unchanged input revision/cursor/document/source, result lifetime after session destruction, and exact refusal text after diagnostic/session disposal. Whole session parse failure sweeps are not claimed: existing scanner callbacks still have a fatal allocation policy. Broad formatter/repository sweeps and sanitizers remain disabled. Agent2's frozen dafeb20 deployment does not include these private follow-ups; later final rebase/successor and publication are pending.
-### 2026-11-20 - Tower session setup and baseline installation (agent 1)
+Started a Tower-only interpreter context refactor. IMExecution carries the existing
+IMState pointer plus an optional owned IMContext. Existing runtime/fast entry points
+wrap the same operation handlers with their original signatures; the native state
+layout and C++ sources are unchanged. Explicit invocation starts a selected checked
+function with supplied arguments, rather than entering all module initialization.
+The context owns results/errors, target width, strict-mode initialization metadata
+and deterministic fuel. Unsupported storage/global/output/foreign effects are gated
+in strict mode; arithmetic still uses the original runtime operation implementation.
+This is initial scalar-stage infrastructure, not completed source comptime, type
+values or dependency integration. The first compatibility-context native rebuild
+passed; invocation/strict-mode rebuild and dedicated tests remain in progress.
 
-syntax_session_setup.tower now implements session creation policy, reset, error/revision access and validated Bedrock/Foundation installation. Existing native creation/baseline entry points only select the host world/environment or convert the owned diagnostic to their old string ABI. syntax_baseline_install uses the same SyntaxVersionDiagnostic owner as grammar construction; failed parse diagnostics transfer out of the temporary session before destruction, and publication still occurs only after complete validation. Identical installed text remains allocation-free. Existing sessions pin their original baseline through publication and reset.
+### Tower worker execution and explicit invocation trials (continued)
 
-New Tower checks cover failed publication preserving the old registry, identical text under allocation failure, retained sessions parsing/resetting under their original grammar after a successful replacement, and new sessions observing the replacement. The existing five native suites pass5/5 (17.11s). Actual successor compilation of the generated parser-node closure is byte-identical to the documented fb1 bootstrap object. Native compilation caught the mechanical header's unsigned argument being passed an enum class; corrected the declaration to the existing uint32-backed SyntaxBaselineMode, with no ABI change.
+The native context/invocation successor built successfully. Added a Tower fixture
+that constructs ordinary Foundation entities and interleaves two invocations with
+separate arguments/state. Browser tests pass at explicit target widths 4 and 8 for
+wrapping arithmetic, isolated results, uninitialized reads, zero fuel, global-input
+rejection, denied strict output and ordinary non-strict output. The invocation
+initializer now uses the runtime's reserved null region/stack base and heap base;
+argument stores use that actual frame base. A mismatched checked target is rejected.
+The implementation is still scalar stage infrastructure, not source comptime yet.
 
-Explicit world storage is retained, but full parsing still uses legacy host-world component services; arbitrary-world source execution is not newly promised by this setup API. Scanner, incremental parse and replacement-template orchestration remain next. The current source publication is still frozen for Agent2's dafeb20/Pagesdf6e5c5 batch. WASI SDK34 formatter validation for the private follow-ups is being prepared in agent-1-session-wasi; initial configure failures were shell argument transport (empty then truncated bootstrap path), not compiler failures. The pinned public bootstrap path is now passed literally through bash. No bootstrap source migration, private compiler override, sanitizer or broad formatter sweep was introduced.
-### 2026-11-20 - Tower scanner callbacks, previews and completion (agent 1)
+The work_resume fixture also prints zero as a native LLVM executable. Isolated
+unoptimized LLVM reconstruction failed its first 64-byte realloc, returning null
+without an interpreter diagnostic, and the fixture then counted failed assertions.
+Instrumenting the browser showed 262275072 bytes of compiler memory immediately
+after parsing/checking the 1.15 MB reconstructed Foundation. The reactor's 256 MiB
+maximum left insufficient space for the guest memory buffer to grow from 4 MiB
+to 8 MiB. Optimized reconstruction passed. Increasing the parser reactor ceiling
+to 512 MiB is under validation; this changes host containment capacity, not the
+language's raw allocation contract or strict-stage memory eligibility. Retain the
+allocation-failure tests; do not infer correctness solely from a raised ceiling.
+Reproduction is build/language-next-audit/debug-resume.mjs and run-rebuilt.mjs;
+intermediates and traces are in the same ignored directory.
 
-syntax_session_scan.tower replaces the native scanner-input adapters, parser/diagnostic/template callbacks, highlight suffix preview, module comment capture and completion queries. It uses the same production lexer, parser lookahead/accounting and LR completion operations. Preview owns a deep highlight snapshot, never installs a declaration, and preserves cursor/revision/error state. Private token IDs use SyntaxTokenId constants. Template stream userdata borrows an explicit plain session/capture frame. Existing externally consumed signatures remain unchanged. The obsolete skip error branch was removed because its old helper always returned an empty string; lexer skipping itself is unchanged. Temporary scan result storage is now consistently disposed during preview.
+Implemented library/work_pool.tower and host/work_linux.tower without C++ code:
+bounded stable slots, one start and finished semaphore per worker, a shared
+completion semaphore, coordinator-owned admission counters, owned kernel payloads,
+and shutdown that joins admitted work before releasing slots. Linux glibc x86_64
+and AArch64 ABI assumptions are explicit (native-word pthread_t, 32-byte sem_t).
+The host obtains the exported Tower entry with dlsym; no new language function
+pointer primitive or native callback trampoline was introduced. Native executables
+must export work_thread_entry. Portable execution reports its serial transport
+explicitly. Windows/macOS and within-unit browser threading are not implemented by
+this portable transport and remain required work, not claimed parallel execution.
 
-This slice removes145 native lines (6 mechanical adapter lines remain) from syntax.cpp. Compile caught the grammar keyword `expected` as an invalid local parameter; renamed it `lookahead`. Native frontend/driver/format/execution/request pass5/5 (20.21s), including new completion checks for identifiers, callable continuation, closing punctuation and rejection, plus suffix-preview immutability, ordered nonoverlapping spans and snapshot style lifetime after session reset. Existing compiler self-build/driver tests cover replacement stream callbacks. Earlier setup/format state also passed all16 exact formatter fixtures under WASI SDK34; scanner's WASI rerun and clean post-rebase successor are next.
+The Tower-only native fixture tests/work_pool.tower runs four jobs blocked behind
+a semaphore barrier. All four distinct pthread identities must arrive before the
+coordinator releases any worker; this proves actual overlap rather than merely
+queue width. Sixteen rounds passed under `timeout 30`. Reproduce by compiling the
+fixture and host/work_linux.tower with `build/native/towerc --library`, linking their
+objects with the existing guest-host-library.o using clang, `-pthread -ldl` and
+`-Wl,--export-dynamic-symbol=work_thread_entry`, then executing the result inside
+tower-parser-retirement. Intermediate objects/logs are in language-next-audit.
+POSIX documentation was consulted; the current Open Group endpoints returned 403.
+The Linux man-pages sem_wait documentation confirms the EINTR retry and EAGAIN
+nonblocking behavior used here: https://man7.org/linux/man-pages/man3/sem_trywait.3.html.
 
 Previous published ownership work through6a3af2d is now verified in source dafeb208afdf5618d00759d57c6ad8fba2e11e69 / Pages df6e5c53e3028a8c9724cad133c3f1fb01b7f311: exact action44852551683 succeeded,416/416Node, both parallel successor generations identical,70hosted asset hashes and desktop/mobile/redirect checks passed (Agent2 records). External expression cleanup406c198/bb7967d and Pages0480cdc arrived afterward and are not covered by those exact-release claims. Coordinator has assigned the next source queue to Agent1's private session/format/setup/scanner batch, then Agent3's ready fixtures, with Agent1 responsible for a combined deployment. Further parsing/template orchestration remains native and is not claimed retired by this slice.
 Post-rebase publication validation for the session/format/setup/scanner batch: source86bbac6 includes external expression cleanupbb7967d and coordinator closeouteace288. Only append-only journal conflicts occurred; all histories were retained. A previously empty /home/trevo/.cache/tower/agent-1-session-release built through the documented build-native.sh with TOWER_BOOTSTRAP_COMPILER unset, public fb1ab1f9 and Clang19. Native frontend/driver/storage/format/execution/request passed6/6 in17.40s, backend API and module_paths.py passed. The actual built successor compiled the generated parser-node closure byte-identically to the bootstrap native object (cmp0), then compiled that same current source for wasm32-wasip1. The last pre-rebase SDK34 formatter run also passed all exact fixtures after scanner retirement; combined current-source browser/WASI deployment validation remains next. No todo.txt changes and git diff --check passes. Source lock is held only for this validated source push, then handed to Agent3 and the coordinator's ready reference slices; Agent1 owns the following combined deployment. These follow-ups are not yet claimed deployed in the prior df6e5c5/0480cdc results.
@@ -25591,3 +25715,734 @@ and agent-2-lr-foreach-focused.log. This remains a Linux development bootstrap.
 The larger analysis oracle drafts remain outside Git. Agent1 explicitly accepts
 combined deployment of this grammar batch after the source slot; publication
 and hosted verification are pending that owner, not claimed here.
+Layout integration now prepares per-type pending-result components on the same
+entities, with coordinator-preallocated field offsets. The kernel reads completed
+layouts and writes only its own result. Access claims cover its output and input
+layouts; the coordinator pins the world for admitted batches, joins and publishes
+in deterministic admission order, then releases dependencies. Whole-program layout
+passes discover all pending types before dispatch so independent types within one
+unit can run concurrently. A context retains its pool across layout requests.
+This integration is being built/tested; do not yet claim it passed. The first native
+link caught an accidental transitive import of exported interpreter storage helpers
+into the semantics object. Split IMContext/IMInvocation data definitions into
+interpreter_context_types.tower, keeping runtime implementations in their existing
+object. This avoids duplicate exported definitions instead of relaxing the linker.
+No C++ source or todo.txt has changed. No final commit/deploy/push is claimed while
+this implementation and its validation remain in progress.
+
+The layout successor now builds and passes the eighteen existing native graph,
+fast and LLVM executable audit checks (including the 64,000-task scheduler fixture).
+A single source with 3,000 independent struct declarations compiled and interpreted
+correctly while /proc/PID/task showed five simultaneous OS threads (coordinator plus
+four workers). The earlier tiny semantics fixture completed its layout work between
+1 ms samples and observed only one thread; that measurement was inconclusive, not
+a reason to claim overlap. The larger reproduction and observer are saved as
+threaded-layouts.tower and check-workers.py under language-next-audit.
+
+Raising the parser reactor ceiling to 512 MiB resolved the isolated work_resume
+reconstruction check (all widths, graph/fast, raw/optimized LLVM reconstruction and
+LLVM/Wasm), 36.8 s. The work_graph/work_access/compiler_work reconstruction group
+also passes, 125.1 s. This confirms the observed resource exhaustion cause. It is
+not a speedup claim; large unoptimized reconstruction remains memory intensive.
+
+Source decltype and comptime integration is now in progress. decltype queries the
+ordinary checked expression type without runtime evaluation. Annotated declaration
+cycles are guarded as well as inferred initializer cycles. Its first fixture found
+a real integration error: a TowerExpression capture was passed to the Foundation
+expression entry rather than the common surface operand checker. Corrected both
+new query entry points to use sem_operand. The corrected source tests have not yet
+passed at this checkpoint. The old declaration inference recursion still needs
+replacement with dependency queries; do not describe decltype as fully scheduled.
+
+Layouts and evaluations now share SemanticContext.queries. Evaluation requests,
+readiness, invocation state and pending outputs are components on their source
+entities. Source comptime expressions lower into ordinary private Foundation helper
+bodies; they do not introduce another expression evaluator or public opcode ABI.
+Independent evaluations use the same worker pool in bounded 1,024-task slices.
+An unresolved compile-time result suspends the interpreter before executing its
+current task; the coordinator adds a dependency, releases access claims and demands
+the producer. A normal slice yields its lease with a fresh dispatch generation.
+Only joined workers' results are materialized; cycle detection uses the shared
+scheduler. Strict invocation memory now grows with live stack needs instead of
+reserving 4 MiB for every pending scalar request. These changes are under build and
+functional validation, not a completion claim. Decltype, nested evaluation, lazy
+branch, fuel, uninitialized-read, capture, output and cycle fixtures have been added.
+
+Added Tower platform transports for Windows x64/arm64 (CreateThread, semaphore
+handles, explicit DWORD callback) and Darwin x86_64/arm64 (pthread plus libdispatch
+semaphores). Compile/link export recipes now follow the semantics interface so
+focused compiler executables inherit the callback export as well. Only Linux has
+been executed; cross-object builds are being checked. Primary ABI references:
+https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createthread
+https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitforsingleobject
+https://raw.githubusercontent.com/apple/swift-corelibs-libdispatch/main/dispatch/semaphore.h
+Browser within-unit execution remains the explicit portable serial transport; the
+existing separate-unit worker pool does not close that gap. Full source dependency
+scheduling, dependency invalidation, lazy checked bodies and type-query threading
+remain required work. Nothing in this checkpoint supersedes the user's instruction
+not to finish with a partial threaded implementation.
+
+### Rebase onto 8577783 and staged execution results
+
+A further user continuation pulled main 479962b -> 8577783 with autostash. This
+brought the Tower CLI retirement, lexical-revision changes and deployment updates.
+The sole conflict was the ongoing journal: reconstructed it from the complete new
+upstream journal plus our original append-only tail, preserving upstream's earlier
+insertions as well as both new histories. The autostash remains available. Started
+a clean default-pin native build in compiletime-rebased-native; all 55 targets pass.
+The rebased parser reactor also builds. These validate the combined source against
+the documented predecessor, not just an older private compiler cache.
+
+The initial staged program exposed an over-restrictive eligibility check: ordinary
+compound assignment lowering captures a local place through temporary pointers.
+Rejecting every pointer operation therefore rejected ordinary scalar Tower code.
+Strict evaluation now allows target-byte addresses within live invocation storage,
+using the same arithmetic/load/store handlers plus initialization/range metadata.
+Returning a frame removes it from the live shadow range; a returned dangling local
+pointer is rejected on dereference. Imported pointer/aggregate invocation arguments,
+heap allocation, strings, globals and output still require capabilities not supplied
+by this initial strict context. No host pointer is injected into a staged value.
+
+After this correction, the native comptime fixture prints zero and the combined
+browser compiletime suite passes 10/10, including decltype/comptime Foundation
+round trips, graph/fast execution and LLVM/Wasm of materialized Foundation. It
+covers nested query suspension, an unevaluated decltype(comptime(...)), unselected
+branches with effects, wrapping arithmetic, ordinary runtime reuse, cycle reports,
+fuel, output denial, uninitialized reads and dead-frame access. Two fixture errors
+were corrected without weakening numeric semantics: a large literal with no u32
+peer defaults to i32; numeric convert(u32,-1) correctly rejects out-of-range input.
+The wrapping test now uses explicit bits(u32,-1), matching the ordinary contract.
+The native staged fixture also observed five simultaneous OS threads and returned
+zero (stage-thread-observation.json). Windows x64 and Darwin arm64 transport object
+compiles pass; those hosts have not been executed here.
+
+Declaration type resolution is being moved onto the shared query graph. Its state
+now lives in a component on each declaration instead of a separate authoritative
+status table. A nonrecursive binding-discovery pass builds module declaration-type
+dependencies before checking ready declarations, preserving source order for actual
+storage/initialization. Typed annotations depend on their type spelling rather than
+runtime initializer reads. Query-specific admission allows a coordinator-owned
+structural query to demand pure layout jobs without consuming unrelated ready work.
+This new slice is under build; the 1,024-link decltype and inference trials have not
+yet run. Signature/type-field dependencies and pure type-query worker execution
+still need completion; merely scheduling coordinator work does not make it parallel.
+
+### Compiler-wide threading is a primary objective; parser specialization is future guidance
+
+The user clarified during this continuation that migration of the **entire
+compiler** to ECS and threaded execution is a primary objective alongside
+`decltype` and compile-time execution. Completion of a staged evaluator alone
+must not be reported as completion of this work. Continue replacing serial
+compiler paths with shared entity/component queries, declared accesses,
+worker-owned results and deterministic publication. Dense archetype/column access
+and stable sparse components are complementary storage choices; select them for
+actual access and lifetime requirements, rather than changing semantic identity
+or introducing a second compiler graph. Structural publication, ordered grammar
+updates and effects can require sequencing; that is not permission to leave
+independent expensive work serialized. The singleton host world, semantic body
+checking/lowering, parser sessions/caches and backend/context ownership remain
+explicit migration items.
+
+The following is **future direction supplied by the user, not a request to
+implement parser specialization or JSON benchmarking now**:
+
+- Parse grammars, DFA/LR tables, precedence helpers and related compiler data
+  should eventually be usable as compile-time values through ordinary Tower
+  compiler services/imports. Explicitly tracked compile-time file reads should
+  permit constructing those values by interpreting ordinary Tower code first.
+- Freeze eligible results into a build so optimization sees their contents.
+  Explore specializing the ordinary parser against that constant grammar,
+  including direct Foundation/LLVM generation where useful. Ship prebuilt parser
+  and compiler implementations with distribution binaries; avoid rebuilding the
+  compiler's own unchanged grammar at every launch.
+- Start execution early through the graph or fast interpreter. Where supported,
+  compile a replacement implementation for native CPU or browser Wasm, validate
+  it, and switch at a safe boundary. Keep interpretation available on platforms
+  that cannot load generated native code. Runtime grammar edits should produce a
+  new dependency/version identity and optionally a new compiled implementation.
+- Explore caching compiled artifacts or code pages, subject to target, semantics,
+  dependency, relocation and lifetime contracts. A cached execution artifact is
+  derived data, never a second authoritative program format. Canonical Foundation
+  remains the semantic interchange and reconstruction source.
+- A future end-to-end experiment should implement a conformant JSON parser in
+  Tower grammar, import/use it through compiler services or ordinary Tower code,
+  and compare against established fast JSON parsers. Define correctness, Unicode,
+  malformed-input behavior, API/output allocation and benchmark conditions before
+  interpreting speed differences. No claim that Tower is already faster.
+- The motivating developer experience resembles editable game database values
+  that become generated constants in release builds: one ordinary data/program
+  model with explicit dynamic versus frozen inputs, giving optimizers useful
+  information without requiring users to maintain a separate code generator.
+
+Clarification to preserve when implementing that future work: knowing the
+**grammar/table contents** at compile time does not make an unknown input stream's
+characters constant. It enables specialization of the parser's fixed decisions;
+input-dependent transitions remain runtime work. Inlining and constant folding
+may remove substantial indirection, but do not by themselves guarantee an optimal
+DFA, complete table-to-code conversion or fastest-possible machine code. Compare
+ordinary constant-data optimization with deliberate specialization, code-size and
+instruction-cache costs, and retain equivalent interpreted behavior. The current
+scalar staging implementation is not yet frozen aggregate/file-input support;
+that remains a required architectural extension, not a capability verified here.
+
+### Shared-memory worker transport and declaration graph continuation
+
+Pulled/rebased onto `60dfb51`, retaining upstream parser pending-name/precedence
+and browser fixes. The journal-only autostash conflict was resolved by retaining
+the complete upstream journal plus this work's appended entries; no TODO edits.
+The 11-test compile-time group passed before the header-graph expansion, including
+both pointer widths, Foundation reconstruction, interpreter behavior, LLVM output,
+invalid staged effects/lifetimes/fuel/cycles and two 1,024-entry forward type chains
+(`build/language-next-audit/declaration-tests.log`).
+
+Added an experimental WASI Preview 1 threads transport entirely in Tower for
+pthread/semaphore operations. JavaScript supplies Web Workers and shared memory;
+Tower continues to own kernels, work admission, dependencies and publication.
+The transport uses wasi-sdk 34's threaded libc for stacks, TLS and allocator
+synchronization. Secondary instances call `wasi_thread_start`, never `_initialize`;
+wasm-ld's synchronized shared-memory initialization prevents data reset. The
+callback occupies a matching appended indirect-table slot in each instance.
+References: the [WASI threads ABI](https://github.com/WebAssembly/wasi-threads)
+and [WASI SDK](https://github.com/WebAssembly/wasi-sdk/blob/main/README.md).
+This is an explicit supported transport profile, not a requirement that portable
+interpretation allocate executable memory.
+
+Trials and corrections: SDK 34's legacy `wasi-sdk-pthread.cmake` selects the old
+`wasm32-wasi-threads` spelling while this package installs
+`wasm32-wasip1-threads`; the first configure therefore could not find crt/libc.
+`cmake/WasiThreads.cmake` selects the installed target and propagates its SDK path
+through CMake compiler checks. The first host instantiation lacked the advisory
+WASI `sched_yield` import; added that host operation. A standalone test link that
+explicitly exported `main` pulled an additional libc main adapter and produced a
+duplicate Wasm export; rely on the Tower export metadata instead.
+
+Observed on Node 21.7.3 / Steam Deck Linux with the existing Ubuntu 24 container:
+`node build/language-next-audit/shared-smoke.mjs` ran the real compile-time fixture
+through `build/browser-wasi-threads/tower.wasm`, printing `0` and `done`.
+`node build/language-next-audit/shared-barrier.mjs` returned `barrier: 0`: the same
+Tower pool fixture requires four distinct pthread IDs to enter a semaphore
+barrier before any worker is released, for sixteen rounds. This proves actual
+shared-memory Wasm worker overlap in Node. Browser isolation, cancellation,
+packaging, self-build and hosted deployment are **not yet validated**.
+
+Declaration scheduling is being expanded to include function signatures and
+struct-field queries, with nominal identity available before field layout.
+Member-type dependencies are discovered only when needed, so a pointer to a
+record does not acquire a false field-layout cycle. Dependency discovery and
+readiness scans now have worker-owned scratch/diagnostics and result components;
+structural/type-check publication still requires further migration. Builds first
+caught missing explicit imports for `sem_surface_unwrap` and `SemanticProgram`;
+these imports were added, rather than weakening module visibility. New header
+and field-cycle fixtures are pending validation. Do not interpret these in-progress
+changes as proof that all semantic checking is parallel.
+
+The expanded declaration-query implementation passes 14/14 compile-time tests
+against the shared-memory reactor (`declaration-thread-tests.log`), and the new
+header fixture prints `0` under the native compiler. This includes forward
+function signatures/record fields, legal nominal-pointer dependencies, header and
+field cycles, and the long annotated/inferred chains. Scope/structural publication
+still runs on the coordinator; discovery and member-readiness scans are actual
+worker kernels with private scratch and diagnostics. No new C++ implementation.
+
+The first real Chromium barrier trial timed out although the same Wasm binary
+passed in Node. Network/worker tracing showed nested workers requested but not
+finishing startup while their parent was inside a blocking Wasm call. Changed the
+host transport to asynchronously instantiate a reusable worker pool before entering
+compilation; `pthread_create` then sends work to initialized workers. A shared
+completion flag allows reuse without needing a parent message callback while
+Wasm is blocked. Chromium then passed the four-worker barrier. Its next trial
+caught a separate browser ABI issue: TextDecoder rejects SharedArrayBuffer views.
+Host text decoding now copies shared views at the published-result boundary;
+ordinary ArrayBuffer paths retain their existing behavior. A harness-only trial
+also supplied the Foundation argument in the wrong loader slot and was corrected.
+
+With these corrections, real headless Chromium under explicit COOP/COEP headers
+passes the barrier, `comptime.tower` and `decltype_headers.tower`, with both programs
+printing `0` (`shared-browser-warm.log`). The browser trace shows nested workers
+closing during explicit transport/fixture teardown; abrupt parent cancellation
+still needs its own validation. This validates local isolated-browser execution,
+not the production site's isolation policy, its packaging or a hosted deployment.
+The raw-source harness and logs are under `build/language-next-audit/`.
+
+The broader inference regression run exposes an obsolete 150-declaration recursion
+limit assertion, now superseded by graph ordering, plus pre-expression canonical
+spelling expectations. Record those separately from behavior failures; do not
+claim the full regression suite passes yet. A foreign-call binding audit also
+needs to cover inference checked before duplicate foreign declarations are linked.
+
+Started removing ambient semantic-world assumptions: an EntityStore may have one
+borrowed owner context installed before entity creation; CompilerWorld installs
+it on creation. Semantic node lookup/creation, parser-match lookup and provenance
+helpers can then follow a node's own world. This is an in-progress prerequisite
+for independent concurrent compiler contexts, not singleton removal everywhere.
+A new production-kernel fixture dispatches four staged invocations across two
+independent worlds, including distinct parser/Foundation component identities and
+complete teardown. Build and test results are pending.
+
+The explicit-world fixture now passes at both target pointer widths through the
+shared-memory reactor (`explicit-world-tests.log`, 2/2 including the invocation
+checks). Four production evaluation jobs in one pool resolve their nodes through
+two independently owned parser/Foundation registries and reclaim both worlds.
+The initial fixture builds rejected unescaped grammar words `match` and `expected`
+as local identifiers; renamed the locals without changing the grammar. The store
+owner association costs one pointer per store, not per node; default host APIs
+remain for migration, while node-anchored operations no longer select that default.
+
+Foreign inference exposed a real ordering regression: name discovery saw two
+imports declaring the same foreign symbol before signature linking and reported
+ambiguity. Permit provisional resolution of matching foreign names, then retain
+the existing signature/export validation after all header queries finish. Retarget
+already checked call components through the final binding chain. The reproducer
+now prints `42` and reconstructs a single Tower export plus the inferred call
+(`foreign-inference.log`); the module-scope regression fixture now includes it.
+
+Worker-read audit: generated generic types can appear after the initial declaration
+registration pass. A readiness scan must not attach a missing declaration-state
+component to such a type while the entity view is pinned. Introduced read-only
+query lookup; a generated type without a declaration query has already been
+constructed by its coordinator producer. Rebuild/expanded generic checks follow.
+
+Abrupt browser cancellation is separately exercised now: terminate the coordinator
+immediately after shared-worker setup while it starts compilation, then observe
+all page worker targets disappearing. A fixed 500 ms observation was too early;
+the bounded asynchronous teardown observation (up to five seconds) passes with
+zero surviving workers (`shared-browser-cancel-poll.log`). This establishes cleanup
+in the tested Chromium environment, not an exact teardown-latency guarantee.
+
+Native, portable reactor and LLVM/cross rebuilds are in progress. LLVM reactors
+need the ordinary Tower interpreter for stage execution even though they do not
+host the IDE's runtime session. Their evaluation unit imports the same interpreter
+implementation plus an explicit IMInvocation-owned Tower host for diagnostics and
+output; it supplies no implicit foreign-call capability. No separate constant
+interpreter and no C++ adapter were added. Validation of those rebuilt paths,
+self-build, production packaging/isolation and publication is still outstanding.
+
+### Rebase onto d79e449 and staged expression lowering (in progress)
+
+Continuation pulled with `git pull --rebase --autostash`, advancing 60dfb51 to
+ d79e449. Autostash c3ab57c preserves the incoming local work; earlier autostashes
+remain intact. Resolved overlapping CMake threading, interpreter-context, layout,
+work-ticket and documentation edits. Kept upstream scoped for and its migrations,
+Tower revision overlays, installed baseline ownership and shared execution-session
+work. The work_release conflict needed the new task id in upstream's for loop;
+keeping the old while fragment without its removed increment would hang. Journal
+merge preserved both histories; the prefix assertion first failed on two CRLF
+lines, so comparison normalized line endings before appending the local entries.
+No changes to todo.txt or new project-owned C++.
+
+The prior cross-backend staging run completed 17/17 tests before this pull:
+`TOWER_REQUIRE_THREADS=1 node --test playground/tests/compiler-threads.test.mjs
+playground/tests/compiletime.test.mjs playground/tests/interpreter-invocation.test.mjs`.
+This includes source/canonical LLVM evaluation, both pointer widths, the actual
+shared-memory overlap barrier and independent-world invocation checks. Native,
+portable and LLVM/cross builds also completed; these results precede d79e449 and
+are not a claim of post-rebase validation. The first post-rebase shared reactor
+build succeeded using the newly pinned development bootstrap
+9bbb2eb8fa039442303d231fd35b5b4ac416df21f19c80f0d5f9dbf6bb01f395.
+
+Next implementation targets per-function expression lowering, which previously
+remained a serial mutable pass. New Tower EntityStage creates actual canonical
+entities/component payloads privately, borrowing explicit store ownership without
+changing shared entity counts, reference counts or dense component indexes from a
+worker. The coordinator reserves publication capacity after joining pinned readers,
+then assigns ids and publishes containment/index entries in admission order. It is
+not an alternate semantic graph, an instruction format, or speculative native code.
+A stage cannot register new component kinds or modify another stage's nodes.
+Ordinary structural APIs reject staged nodes until publication.
+
+The lowering kernel owns semantic scratch, diagnostics and its generated-name
+namespace; it reads the frozen source-spelling table to avoid capturing user names.
+Each function has a shared-entity query/result component and disjoint payload access
+claim. Generated Foundation nodes use the staging path; existing function payloads
+are exclusively leased. Successful publication precedes normal execution or
+formatting, including cleanup of a failed program. Type/body checking, general
+query continuations, parser/backend session orchestration and production browser
+thread packaging remain separate unfinished work. The first lowering build caught
+a missing explicit semantic_program_types import; fixed and rebuilding. Staging
+lifecycle tests and lowering differential/round-trip tests have not yet passed at
+this point. Logs: build/language-next-audit/{rebased-threads,staged-lowering-build,
+staged-lowering-rebuild}.log.
+
+Staged lowering validation now passes: the shared reactor's combined compiletime,
+inference, operators, null operators, scoped-for, invocation/world/stage and actual
+worker-overlap run reports 33 passed, 3 intentionally skipped LLVM checks, 0 failed
+(`staged-lowering-regression.log`). The previous inferred-chain test expected the
+old recursive limit; changed it to inspect successful canonical typing without
+executing forward reads of uninitialized storage. EntityStage lifecycle coverage
+checks unchanged pinned query lengths/containment/counts, rejected publication
+while pinned, cross-stage parent rejection, stable payload addresses, ordered
+publication from two stages, discard finalization and complete world reclamation.
+The native lowering successor also linked successfully with the documented pinned
+bootstrap (`staged-native-build.log`); subsequent signature changes require another
+native rebuild before claiming native validation of those changes.
+
+Signature resolution now prebinds parameter entities in a signature-local scope.
+Each parameter type is an ordinary declaration query; the function return query
+depends on them. The same graph handles forward parameter references, parameter
+shadowing of module variables, return decltype(parameter), and return queries that
+need a parameter's record fields. Worker discovery/readiness borrows this scope;
+coordinator checking restores the prior scope/current-function afterward. The
+existing specialization path reuses these bound parameter entities. A focused
+shared-reactor trial prints zero for decltype_headers including a generic return
+query, and diagnoses parameter cycles as `second -> first -> second` and a
+field/signature cycle as `Record -> read -> Record`. Earlier regression checks
+report 14 passed/2 intentionally skipped, with no failures. The shared source and
+canonical LLVM suite is running against rebuilt LLVM/cross artifacts.
+
+Removed the fixed four-worker semantic limit. WASI transport capacity is explicit
+(1..256); native Tower transports query logical processor availability, bounded by
+the pool's existing 256-slot resource policy. Portable execution still has one
+slot. Semantic phase batches accommodate that configured capacity. The new formal
+capacity test runs sixteen independent function lowerings plus a staged computation
+at 1/2/4/8 workers, both pointer widths, twice per configuration (graph/fast runtime).
+All canonical Foundation strings and outputs match (`worker-capacity-tests.log`,
+2/2 including the four-thread blocking overlap fixture). This is a determinism
+and execution test, not a speedup claim or proof of universal compiler threading.
+The native processor-count additions and Windows/macOS transports still need their
+current compile/run checks. Node stdin testing exposed inherited --input-type flags
+on file-based worker launches; filter that coordinator-only flag in the Node host
+transport. No compiler algorithm moved to JavaScript.
+
+Query-result cleanup now clears borrowed compilation-context/scope pointers before
+scratch disposal; those per-compilation payloads must not retain dangling pointers
+as if they were persistent incremental caches. Rebuilding this cleanup together
+with the portable reactor. Production shared-thread packaging, full body checking,
+compiler-session ownership, general compile-time values/effects and persistent
+query invalidation remain unfinished. No deployment or final push is claimed.
+
+Broader validation initially looked stalled because Node buffered the module test
+file's results while synchronous grammar compilation continued. Instrumented an
+ignored copy to identify progress; isolated the rejected-grammar-cycle case. It
+passes in 13.67 s on the new shared reactor and 13.34 s on the exact upstream Pages
+artifact from 0226784. The one-cycle portable probe also terminates with the expected
+Import cycle diagnostic and zero execution steps. The attempted inspector sampler
+found its process already exited; there was no stuck sample to analyze. These trials
+supersede the preliminary suspected-deadlock interpretation, not evidence for a
+threading speedup. The full module suite is being allowed 300 seconds without an
+early interruption. The template suite separately passes 8/8; current portable,
+shared-capacity and original/canonical LLVM staging checks pass 21/21. Evidence:
+{grammar-cycle-isolated,upstream-grammar-cycle,cycle-probe,signature-templates,
+latest-staging-portable,module-scope-complete}.log under build/language-next-audit.
+
+The full shared module suite ultimately passes 18/18 in 288.94 seconds; the wider
+semantic/round-trip/interpreter/LLVM suite passes 15/15 in 127.75 seconds. Isolating
+the module LLVM test takes 4.36 seconds and also passes. A CPU sample during the
+long full run identified memmove, lr_items_insert, lr_states_lalr, lr_range_insert
+and lr_state_symbol. Mapped the stripped function indexes by relinking the same
+objects without --strip-all into an ignored named Wasm artifact; no C++ edit or
+semantic change was needed. This establishes serial LR table work as the sampled
+cost, not a proven cache corruption or scheduling deadlock. No general parser
+speedup claim follows from these observations.
+
+Next compiler-wide threading slice: precompute the independent LR(1) kernel
+closures used by LALR lookahead construction through the Tower work graph and
+pool. Their FIRST/production/symbol inputs are immutable. Each worker shallow-copies
+LRAnalysis so allocation failure writes its own failed flag, and owns its ordinary
+closure/goto buffers. Temporary shared-entity result components and declared ranges
+represent the jobs; deterministic publication fills the existing memoized closure
+cache before the ordinary propagation/action algorithm runs. Grammar entities,
+declaration order, conflict policy and parser-table format are unchanged. Tiny or
+portable builds retain the same serial algorithm. This is threading the existing
+compiler, not the future native parser-specialization/JSON experiment.
+
+The platform callback now has one Tower host owner (host/work_dispatch.tower),
+allowing parser and semantic units to reuse pool code without duplicate exported
+work_thread_entry definitions. Updated native/shared overlap fixture compositions.
+The shared reactor including LR jobs links successfully (lr-worker-build.log);
+focused regression/capacity validation is running (lr-workers-regression.log).
+
+### Continuation: compiled regex guidance and a real shared-memory failure
+
+The user clarified the future specialization example: ordinary Tower code should
+compile a constant regex into a DFA, expose the resulting immutable transitions
+and character classes to specialization, and eventually produce tight native
+matching code. The input characters are still runtime values. A constant table
+permits folding and specialization but does not guarantee that LLVM eliminates
+every lookup or discovers an optimal branch layout; explicit staged construction
+of Foundation code may be useful too. Keep one semantic graph, compile-time/runtime
+operation contracts, target/profile identity and interpreter fallback. This remains
+future guidance, alongside the parser/JSON examples, not an instruction to start
+regex code generation during the ECS/decltype/compile-time dependency work.
+
+The LR regression run exposed a real intermittent failure, distinct from the
+previous slow module-suite investigation. Individual test files passed, and one
+combined repetition passed 21/21 in 12.35 s, but other combined runs timed out.
+Node 21.7.3 inspector sampling of an owned stalled test process showed the root in
+work_signal_wait from lr_states_lalr_parallel during bootstrap grammar setup.
+NodeWorker inspector sessions showed three workers waiting for jobs, one idle,
+and shared status [2,2,3,2]: the idle worker had failed. Capturing its exception
+identified memory.fill in memset, called by lr_kernel_closure immediately after
+allocating its 68-byte result. Relinking the same objects without --strip-all and
+llvm-objdump-19 located that exact fill; libc's dlmalloc/realloc do contain locks.
+The root could not receive the queued JS error while synchronously waiting for a
+completion semaphore, so the failure appeared as a deadlock. This is not evidence
+that the compile-time dependency graph itself cycles or loses a task.
+
+The observed trap is consistent with a known V8 shared-memory growth defect:
+other workers can use a stale bound until servicing an engine interrupt. The
+upstream [V8 fix](https://github.com/v8/v8/commit/34241014663390c72e08c123faef6fedf395be8e)
+changes shared memory.size and bounds checks to read the backing store length.
+The [napi-rs WASI documentation](https://github.com/napi-rs/napi-rs/blob/main/cli/docs/wasi.md#shared-memory-growth-on-wasm32-wasip1-threads)
+documents allocator synchronization and worker-handoff refresh as compatibility
+measures. This research explains a concrete candidate root cause; the new
+compatibility path still needs controlled stress validation before calling it fixed.
+
+Added Tower host wrappers around the shared-WASI libc allocation entry points,
+with platform-only JS atomic lock/memory-view refresh primitives, and a refresh
+at semaphore handoff. Native allocator behavior remains its platform libc. No new
+C++ was added. The wrapper covers zero fill and realloc copying as well as malloc,
+and serializes growth with refresh before allocator entry. Separately, worker
+errors now publish bounded UTF-8 reports through shared state. Tower semaphore
+waits check that state with a 100 ms timed wait, so a guest trap can interrupt the
+blocked coordinator without waiting for its JS event loop. Fatal instances are
+abandoned; freeing through an allocator potentially interrupted in another thread
+is unsafe. An initial timed-wait trial incorrectly passed integer zero to WASI
+clock_gettime: SDK 34 uses a pointer-valued clockid_t. Removed that assumption and
+use an explicit host clock primitive solely for scheduler deadlines, never as a
+compile-time program input. The actual sem_timedwait timespec layout and errno
+values were checked against the installed SDK headers.
+
+Added a direct Tower serial/parallel LR-table fixture comparing every state item,
+transition and action, conflicts, construct mode, nullable grammar cycles, long
+productions, and temporary ECS ownership cleanup. It belongs to WORK_TESTS builds;
+the initial emission-only composition omitted its export, and the first enabled
+build caught missing explicit imports (Tower imports are not transitive). Fixed
+both compositions. The pool fixture now also exercises concurrent allocation,
+fill/free and repeated lifecycle reuse; an injected guest-thread failure test
+checks that the blocked root receives the failure. Current validation in progress:
+heap-sync-regression.log. Earlier health-check-only validation passed 19/19 and
+an ignored 16-repeat compile-time probe passed 61/61; those do not establish the
+allocator workaround's correctness. Native current sources rebuilt 35/35 through
+the documented pinned bootstrap (lr-native-build.log). No final deployment or push
+has occurred; compiler-wide body checking and other recorded gaps remain open.
+
+The user's follow-up strengthens this direction: automatic specialization should
+aggressively exploit fixed data, without requiring explicit user code generation.
+Treat this as part of the compile-time compiler design. Eligible ordinary Tower
+code should expose constants through calls and immutable aggregates, inline and
+fold known control flow, unroll statically bounded loops when profitable, and
+specialize a generic fixed-DFA runner into state-specific code when justified.
+An unknown-length input still requires repetition, and input characters still
+select runtime transitions. Absence of callbacks/dynamic dispatch does not make
+those values compile-time constants. No unconditional full-unrolling or perfect
+assembly guarantee is valid; recursive/cyclic state graphs need finite code and
+code-size/work budgets. Preserve effects, numeric/target contracts and canonical
+Foundation provenance; use reference/differential tests and inspect generated code
+plus throughput/code size. Manual staged code generation remains useful, but is
+not the prerequisite users should need for this case. ECS/threading and lazy
+dependency execution remain the immediate prerequisites and current priority;
+parser/JSON benchmarking has not been started.
+
+A further explicit correction from the user supersedes the earlier description
+of a separate inferred-constant propagation optimization: do not introduce a
+special pre-LLVM constant-folding/propagation pass. Known values must come from
+generic execution of ordinary Foundation operations through the shared Tower
+interpreter, including literal values. Input/dependency/effect tracking determines
+when execution is possible; the interpreter produces results. Optimized shortcuts,
+execution caches and future native execution tiers must implement that same
+contract, not an independent evaluator or algebraic folding rule set. No separate
+constant-propagation pass was implemented during this discussion. LLVM's own
+optimization pipeline is a separate backend concern.
+
+The shared-heap compatibility build passes the 22-test focused suite in 23.75 s,
+and again with V8 explicit bounds checks in 25.75 s. This includes serial/parallel
+LR table equality and ECS cleanup at 1/2/4/8 workers, 128 pool lifecycles with
+concurrent allocation, and injected worker-failure reporting (234/185 ms observed).
+The first explicit-bounds launch failed because Node rejects a process-wide V8
+flag explicitly repeated in Worker.execArgv; adjusted inheritance and reran it.
+The installed WASI libc archive provides malloc/calloc/realloc/free/aligned_alloc/
+posix_memalign, not the legacy memalign/valloc symbols declared by compatibility
+headers. Removed those unsupported wrappers after import validation caught them.
+Native Linux's rebuilt overlap/allocation fixture passes CTest (0.02 s). The
+isolated Chromium harness also passes pool overlap, comptime, decltype headers,
+and abrupt cancellation with zero nested workers left. Evidence logs:
+heap-sync-regression2.log, heap-sync-explicit-bounds2.log, heap-sync-browser.log,
+native-pool-build.log. These validate correctness on these hosts, not a speedup:
+the compatibility lock adds overhead, and no pre/post benchmark isolates its cost.
+
+### Continuation: function body workers, source attachment leases and upstream reconciliation
+
+The status request does not change the priority: compiler-wide ECS/threading and
+lazy compile-time/decltype queries are unfinished. Pulled main with
+`git pull --rebase --autostash`, advancing d79e449 to 1e50000; retained autostash
+4e8656b and reconciled seven conflicts without discarding either implementation.
+Upstream retired more native owners, introduced lexical defer and advanced the
+published Linux development bootstrap to hash
+fb1ab1f9e44dad9e8302472ee2c0d7c54471e4c555ce72c355e29a44aacc4628. Retained its defer
+cleanup in the interpreter call path while preserving explicit invocation context,
+strict memory initialization and allocation-failure handling. No new C++ feature
+implementation was introduced. All journal histories remain intact.
+
+EntityStage now supports coordinator-granted exclusive attachment leases over
+existing source entities. Workers may add stable canonical component payloads to
+their own owners without changing global typed indexes, type references or store
+counts. Publication reserves capacity before updating those indexes after joins;
+discard frees only the newly attached components. This is not rollback of arbitrary
+existing payload writes and does not permit concurrent readers of a leased owner's
+mutable component list. The scheduler must grant exclusive owner/payload access.
+Lease tests cover exclusion, pinning, publication identity/counts, discard and
+ownership cleanup alongside the existing independent-world invocation tests.
+
+BodyQuery jobs now check ordinary functions through the same Tower pool. Each
+worker owns lexical scopes, inference/scan scratch, diagnostics, generated names,
+defer registration/capture lists and stage requests. Source subtrees are leased
+before pinning. Generated control/defer nodes use the same staged Foundation
+entities; results and first diagnostics publish in source order. Layout reads use
+a non-mutating work_find lookup for completed results. Compile-time requests attach
+ordinary result components on the worker, then enter the dependency scheduler at
+publication; execution still uses the shared interpreter. No folding/propagation
+pass was added. Deferred capture hygiene merges in deterministic encounter order.
+
+Admission conservatively keeps generic/type construction and editor/type-use
+observation on the coordinator until those structural requests have resumable
+continuations. Ordinary pointer indexing no longer causes that fallback: only
+index syntax in actual type operands may construct an array type. Builtin type
+argument classification is shared by dependency discovery, editor checking and
+body admission. Admission also clears the preceding function's lexical scope so
+it cannot hide a qualified template. This is parallel eligible body checking,
+not universal body/type query threading or lazy checking of every function.
+
+Rebuilt shared and native compilers with the documented bootstrap and no private
+TOWER_BOOTSTRAP_COMPILER override. The shared regression passes 27 tests with one
+intentional LLVM skip in 52.46 s, including defer scope/order/capture/round-trip,
+strict stage failures, independent worlds and attachment leases. The first body
+capacity test passes 1/2/4/8 workers, both target widths and both runtime engines,
+with identical canonical output and deterministic first-error selection. Expanded
+it to pointer indexing, record fields, nested comptime and deferred mutation before
+return; the next suite passes 26/26 in 28.20 s, also covering inference. Native
+builds complete 50/50 then 37/37 after the admission change. Logs under
+build/language-next-audit: body-rebased-{shared,native,regression}.log and
+body-index-{shared,native,tests}.log. These are correctness results, not speedup
+measurements. Windows/macOS execution, final profile rebuilds, deployment and
+publication are still outstanding.
+
+Next parser slice under implementation: compute LR(0) outgoing closures as ECS
+jobs over immutable analysis/state items, with coordinator-only kernel interning
+and exact original pending-stack/transition order. Reuse bounded result component
+slots and invalidate tickets between joined waves. The existing serial builder
+remains the differential reference. The initial lr-state-shared.log build is in
+progress; this paragraph makes no validation claim for that additional slice.
+
+LR(0) state construction now dispatches independent outgoing closures through
+reusable ECS result slots. The coordinator alone interns kernels and assigns IDs,
+preserving the serial pending-stack and transition order. The existing reference
+builder shares initialization/symbol/transition helpers with this implementation.
+The first build exposed unsupported pointer-array spelling in a sizeof operand;
+used an explicit pointer-size times element count, without changing the grammar.
+Serial/threaded items, transitions, actions, conflicts and cleanup still agree;
+the focused suite including templates passes 27/27 in 50.52 s
+(lr-state-{shared2,regression}.log). An initial six-run timing probe was slower
+(roughly 7.9–10.4 s cold compilation versus 5.5–6.6 s before this slice), while
+other tests were also consuming CPU. This is an observed regression candidate,
+not an isolated speed measurement. Avoid scheduling states with one edge or fewer
+than 16 items; start the pool lazily for a useful batch. Validation and a controlled
+follow-up timing trial are required for that granularity policy.
+
+Native body/staging checks also pass through the rebuilt CLI: comptime.tower prints
+0, defer_scopes.tower prints the expected nineteen true lines through the fast
+interpreter, and decltype_headers.tower serializes Foundation. Logs are
+body-native-{comptime,defer,decltype}.log; the simultaneous runs' timings are not
+benchmarks. The current portable reactor rebuild completes 25/25. LLVM/cross
+rebuild links 41/41 and is packaging the matching compiler recipe/resources.
+
+The browser production path now bundles the nested compiler worker and optional
+shared reactor, selects it using actual cross-origin isolation and an explicit
+capabilities flag, and keeps the portable artifact. Static-host isolation uses a
+same-origin service worker that adds response headers without caching content;
+registration/control are bounded, and at most one startup reload happens before
+editor initialization. A denied/unsupported policy keeps the portable path.
+The platform requirements are documented by [MDN's crossOriginIsolated reference](https://developer.mozilla.org/en-US/docs/Web/API/Window/crossOriginIsolated)
+and [COEP reference](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cross-Origin-Embedder-Policy).
+The existing [coi-serviceworker project](https://github.com/gzuidhof/coi-serviceworker)
+is a precedent for the static-host approach; this repository's minimal transport
+is independently scoped to same-origin requests and has no asset cache.
+
+Local production-bundle desktop tests pass isolation, nested worker loading,
+reload and denied-service-worker fallback (2/2, 13.4 s). Added actual
+comptime/decltype execution and mobile coverage for the next run. Generation
+replacement now closes the old frontend transport. The host also rejects every
+ordinary API operation after close and makes cleanup after fatal abandonment a
+no-op, so callers cannot accidentally reenter an interrupted shared allocator.
+This is host transport/lifetime glue, not a JS compiler algorithm. Final bundle
+refresh, browser/LLVM checks and hosted publication have not yet completed.
+
+The user requested concise AGENTS.md guidance for future ECS/node/parser work.
+Added a short compiler threading section: one world-owned semantic graph, explicit
+session ownership and worker-local mutable state, lazy dependency scheduling with
+suspension/cycles/stale-ticket rejection, declared component access, coordinator
+publication after joins, and serial/parallel determinism plus overlap/lifetime
+validation. These are contribution constraints, not a claim that all existing
+compiler phases already satisfy the endpoint. todo.txt remains untouched.
+
+### 2026-11-20 - Staged control flow, cleanup aliases and target identity
+
+Pulled main from 1e50000 to bb7967d with `git pull --rebase --autostash`.
+Preserved the upstream native retirements, syntax-version/session ownership and
+source simplifications alongside the explicit interpreter/worker contexts. The
+retained autostash is 9d3865e. Resolved the overlapping semantic, entity, scheduler,
+CMake and journal edits without dropping either journal history. No C++ feature
+implementation was introduced; todo.txt still hashes to
+96a9e58964d7f01e4a97819f259448db81ef5e40.
+
+A pending `comptime(true)` was marked constant with temporary bits zero. Initial
+return-path checking therefore rejected `if comptime(true) { return 42; }`, and
+accepted the inverse missing-return case. It could also omit a fallthrough defer
+cleanup. Readiness now records exact evaluation dependencies; conservative initial
+flow retains cleanup paths. A FlowQuery component waits for those producers, then
+runs read-only Foundation reachability/return validation through the Tower worker
+pool. This does not compute expression values or add a folding evaluator: only the
+ordinary interpreter publishes the stage result.
+
+Deferred cleanup cloning also copied the temporary bits without retaining the
+producer. Clones now carry a dependency link to the original result and suspend
+on that same query; publication fills their scalar payloads before making the
+producer ready. This includes nested cleanup copies and a cycle reached through
+a deferred call. A new positive fixture checks staged if/while/for/labels,
+fallthrough cleanup and nested defer values, through runtime and staged execution;
+negative fixtures reject missing returns and a deferred evaluation cycle.
+
+The first target-width run found a separate real defect: semantic_values reset
+several literal/builtin types to pointer_bytes=4 after sem_type_new had selected
+the explicit target. Removed those overrides. The shared reactor builds 30/30
+after the rebase. The focused probe passes graph/fast execution at widths 4/8,
+Foundation reconstruction, both negative diagnostics, and work_reset/resumption
+checks. Its first rerun failed only because the ad-hoc work_resume fixture used
+input.tower as its import origin; setting the actual .tower/tests path fixes that
+harness setup. Reproduction logs: staged-flow-rebase-shared.log and
+staged-flow-fixtures-fixed{,2}.log under build/language-next-audit. Full LLVM,
+clean native successor, browser and publication validation remain pending.
+
+The prior shared module suite exceeded its 600-second bound after test 16; no
+full-suite pass is claimed. A controlled six-run cold compilation probe, with no
+other builds running, reproduced the LR(0) scheduling regression: the pre-LR(0)
+artifact compiled the small staged-square sample in 4.96-5.69 seconds; current
+single-edge jobs took 6.54-7.70 seconds. That older reference also predates the
+latest upstream rebase, so the numbers do not isolate every source change.
+Artifacts/hashes and per-run load/compile timings are in lr-state-controlled.log.
+The rejected granularity was one closure per dispatch in repeated waves. The
+next version partitions a state's outgoing symbols into contiguous disjoint
+ranges, computes them in one joined wave, and publishes in the unchanged serial
+order. work_reset retains scheduling capacity between waves while invalidating
+prior revision/dispatch tickets. Its range-build and follow-up performance and
+determinism checks are in progress; no speedup is asserted yet.
+
+The range implementation builds 7/7. The expanded shared capacity suite passes
+3/3 (31.12 s): actual four-worker overlap/reuse, worker-trap wakeup, and canonical
+output/error determinism at 1/2/4/8 workers including staged return conditions,
+cleanup aliases, widths 4/8 and both interpreters. The focused module/Foundation/
+raw+optimized LLVM round trip passes in 11.93 s. A second controlled comparison
+uses the same rebased code on both sides: single-edge jobs take 6.67-7.46 seconds;
+contiguous ranges take 4.80-5.31 seconds (three runs each). This removes the
+observed small-sample regression; it is not a general parser speedup guarantee.
+See lr-state-ranges-{tests,controlled}.log and staged-flow-module-roundtrip.log.
+
+A genuinely empty native cache, compiletime-bb7967d-clean, built the current
+compiler 55/55 with the documented fb1ab1 bootstrap and no private override.
+The invocation test adapter now honors TOWER_TEST_WASM; an explicit shared-reactor
+run passes all three invocation/world/staging checks in 2.06 s. The pool overlap
+fixture separately supplies the barrier evidence for real concurrency. Earlier
+invocation runs that did not select the shared artifact cannot establish shared
+execution solely from setting an ignored environment variable. Portable and
+LLVM/cross artifact rebuilds, native execution checks and full module regression
+are underway. Changes are still local at this checkpoint; nothing from this lane
+has yet been committed, pushed or deployed.

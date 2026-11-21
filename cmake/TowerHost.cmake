@@ -21,7 +21,7 @@ function(tower_compiler_host bootstrap dependency triple)
     set(tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/host_runtime.tower")
   endif()
   add_custom_command(OUTPUT "${input}"
-    COMMAND "${CMAKE_COMMAND}" -DROOT=${CMAKE_CURRENT_SOURCE_DIR} -DDRIVER=${driver} -DTESTS=${tests} -DOUTPUT=${input} -DMODULE_PLATFORM=${module_platform}
+    COMMAND "${CMAKE_COMMAND}" -DROOT=${CMAKE_CURRENT_SOURCE_DIR} -DDRIVER=${driver} -DTESTS=${tests} -DOUTPUT=${input} -DMODULE_PLATFORM=${module_platform} -DWORK_THREADS=${TOWER_BROWSER_THREADS}
       -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/ComposeHost.cmake"
     DEPENDS scaffolding/host/memory.tower scaffolding/host/driver_options.tower
       scaffolding/host/driver_services.tower scaffolding/tests/host_services.tower

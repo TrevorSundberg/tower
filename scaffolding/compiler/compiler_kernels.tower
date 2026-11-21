@@ -1,0 +1,51 @@
+import tower;
+import compiler_kernel;
+import semantic_layout_kernel;
+import semantic_declarations;
+import semantic_lowering_work;
+import semantic_body_work;
+import semantic_flow;
+import interpreter_context_types;
+
+extern fn interpreter_invocation_step(invocation: IMInvocation*, budget: usize): void;
+extern fn compiler_lr_kernel(payload: void*): void;
+extern fn compiler_lr_state_kernel(payload: void*): void;
+
+export fn work_kernel_execute(payload: void*): void {
+    var kernel = bits(CompilerKernel*, payload);
+    if kernel.kind == CompilerKernelKind.Layout {
+        semantic_layout_kernel(bits(SemanticLayoutWork*, kernel.payload));
+        return;
+    }
+    if kernel.kind == CompilerKernelKind.Evaluate {
+        // Bounded work permits cancellation and dependency continuations at
+        // safe interpreter task boundaries, without killing a running thread.
+        interpreter_invocation_step(bits(IMInvocation*, kernel.payload), 1024);
+        return;
+    }
+    if kernel.kind == CompilerKernelKind.Declaration {
+        semantic_declaration_kernel(bits(SemanticDeclaration*, kernel.payload));
+        return;
+    }
+    if kernel.kind == CompilerKernelKind.Lower {
+        semantic_lowering_kernel(bits(SemanticLowering*, kernel.payload));
+        return;
+    }
+    if kernel.kind == CompilerKernelKind.LRClosure {
+        compiler_lr_kernel(kernel.payload);
+        return;
+    }
+    if kernel.kind == CompilerKernelKind.Body {
+        semantic_body_kernel(bits(SemanticBodyWork*, kernel.payload));
+        return;
+    }
+    if kernel.kind == CompilerKernelKind.LRState {
+        compiler_lr_state_kernel(kernel.payload);
+        return;
+    }
+    if kernel.kind == CompilerKernelKind.Flow {
+        semantic_flow_kernel(bits(SemanticFlow*, kernel.payload));
+        return;
+    }
+    trap("Invalid compiler kernel", 0);
+}

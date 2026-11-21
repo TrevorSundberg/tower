@@ -4,10 +4,76 @@ import foundation_tags;
 import foundation_types;
 import interpreter_abi;
 import interpreter_storage;
+import interpreter_context;
+import interpreter_context_types;
+import .library.vector;
 
-fn im_ok(m: IMState*): bool {
-    var ok = !m.failed;
+fn ix_ok(m: IMExecution*): bool {
+    var ok = !m.state.failed;
     return ok;
+}
+
+extern fn entity_component_get(node: void*, type: void*): void*;
+extern fn entity_component_data(component: void*): void*;
+
+fn ix_pending(m: IMExecution*, node: void*): bool {
+    if node == null { return false; }
+    var component = entity_component_get(node, m.context.dependency_kind);
+    if component != null {
+        var dependency = bits(IMDependency*, entity_component_data(component));
+        if dependency.source != null { dependency = dependency.source; }
+        if !dependency.ready {
+            m.context.waiting = dependency.subject;
+            return true;
+        }
+        if dependency.failed {
+            ix_fail(m, "Compile-time input failed", im_cached_node(m.state, node).start);
+            return false;
+        }
+    }
+    var n = im_cached_node(m.state, node);
+    if ix_pending(m, n.value) || ix_pending(m, n.left) || ix_pending(m, n.right) || ix_pending(m, n.target) {
+        return true;
+    }
+    if n.kind == KCall() {
+        var i: usize = 0;
+        while i < n.items.length {
+            if ix_pending(m, n.items.data[i]) { return true; }
+            i++;
+        }
+    }
+    return false;
+}
+
+// Stage eligibility constrains effects and storage, never arithmetic semantics.
+// Eligible nodes execute through the same handlers as ordinary runtime code.
+fn ix_strict_node(m: IMExecution*, n: FoundationNode*, offset: usize): bool {
+    if !ix_strict(m) {
+        return true;
+    }
+    // Ordinary lowering captures places with local addresses, including scalar
+    // compound assignments. Strict stack addresses use the same target-byte
+    // representation and initialization checks; they never expose host memory.
+    var unsupported = n.kind == KString();
+    unsupported ||= n.kind == KAllocate() || n.kind == KReallocate() || n.kind == KFree();
+    unsupported ||= n.kind == KCopy() || n.kind == KFill();
+    if unsupported {
+        ix_fail(m, "This operation needs a compile-time storage or value capability", offset);
+        return false;
+    }
+    var global = n.global;
+    if n.binding != null && n.kind == KOperand() {
+        global ||= im_cached_node(m.state, n.binding).global;
+    }
+    if global {
+        ix_fail(m, "Compile-time evaluation requires explicit inputs instead of global storage", offset);
+        return false;
+    }
+    if n.kind == KPrint() {
+        ix_fail(m, "Compile-time output requires an explicit effect capability", offset);
+        return false;
+    }
+    return true;
 }
 
 fn im_or(a: bool, b: bool): bool {
@@ -77,34 +143,39 @@ fn im_sign_mask(value: u64, mask: u64): i64 {
     return bits(i64, value);
 }
 
-export fn interpreter_bytes(m: IMState*, address: u64, count: usize, offset: usize): u8* {
-    var size = convert(u64, im_memory_size(m));
+export fn ix_bytes(m: IMExecution*, address: u64, count: usize, offset: usize): u8* {
+    var size = convert(u64, im_memory_size(m.state));
     if address > size {
-        im_fail(m, "Address outside interpreter memory", offset);
+        ix_fail(m, "Address outside interpreter memory", offset);
         return null;
     }
     var remaining = size -address;
     if convert(u64, count) > remaining {
-        im_fail(m, "Address outside interpreter memory", offset);
+        ix_fail(m, "Address outside interpreter memory", offset);
         return null;
     }
     var at = convert(usize, address);
-    var memory = im_memory(m);
+    var memory = im_memory(m.state);
     return &memory[at];
 }
 
-export fn interpreter_load(m: IMState*, address: u64, type: FoundationType*, offset: usize): u64 {
-    return im_load_size(m, address, im_type_size(type), offset);
+export fn ix_load(m: IMExecution*, address: u64, type: FoundationType*, offset: usize): u64 {
+    return ix_load_size(m, address, im_type_size(type), offset);
 }
 
 // Explicit little-endian byte semantics, including unaligned guest addresses.
 // Fixed-width paths let LLVM combine loads without inheriting host endianness.
-fn im_load_size(m: IMState*, address: u64, size: usize, offset: usize): u64 {
-    var p = interpreter_bytes(m, address, size, offset);
-    if p == null {
+fn ix_load_size(m: IMExecution*, address: u64, size: usize, offset: usize): u64 {
+    var p = ix_bytes(m, address, size, offset);
+    var missing = p == null;
+    if missing {
         return 0;
     }
-    if size == 1 {
+    if !ix_initialized(m, address, size, false, offset) {
+        return 0;
+    }
+    var byte = size == 1;
+    if byte {
         return convert(u64, p[0]);
     }
     var lo = convert(u64, p[0]);
@@ -135,13 +206,17 @@ fn im_load_size(m: IMState*, address: u64, size: usize, offset: usize): u64 {
     return result;
 }
 
-export fn interpreter_write(m: IMState*, address: u64, value: u64, type: FoundationType*, offset: usize): void {
-    im_write_size(m, address, value, im_type_size(type), offset);
+export fn ix_write(m: IMExecution*, address: u64, value: u64, type: FoundationType*, offset: usize): void {
+    ix_write_size(m, address, value, im_type_size(type), offset);
 }
 
-fn im_write_size(m: IMState*, address: u64, value: u64, size: usize, offset: usize): void {
-    var p = interpreter_bytes(m, address, size, offset);
-    if p == null {
+fn ix_write_size(m: IMExecution*, address: u64, value: u64, size: usize, offset: usize): void {
+    var p = ix_bytes(m, address, size, offset);
+    var missing = p == null;
+    if missing {
+        return;
+    }
+    if !ix_initialized(m, address, size, true, offset) {
         return;
     }
     p[0] = im_byte(value);
@@ -167,7 +242,7 @@ fn im_write_size(m: IMState*, address: u64, value: u64, size: usize, offset: usi
     p[7] = im_byte(value);
 }
 
-export fn interpreter_allocate(m: IMState*, count: usize): u64 {
+export fn ix_allocate(m: IMExecution*, count: usize): u64 {
     if count > 268435456 {
         return 0;
     }
@@ -176,59 +251,60 @@ export fn interpreter_allocate(m: IMState*, count: usize): u64 {
     }
     count = im_align(count);
     var available: u64 = 0;
-    var at = im_free_first(m, &available);
+    var at = im_free_first(m.state, &available);
     loop {
         if at == 0 {
             break;
         }
         if available >= convert(u64, count) {
-            im_free_blocks_erase(m, at);
+            im_free_blocks_erase(m.state, at);
             if available > convert(u64, count) {
                 var tail = at + convert(u64, count);
-                var rest = available -convert(u64, count);
-                im_free_blocks_set(m, tail, rest);
+                var rest = available - convert(u64, count);
+                im_free_blocks_set(m.state, tail, rest);
             }
-            im_allocations_set(m, at, convert(u64, count));
+            im_allocations_set(m.state, at, convert(u64, count));
             return at;
         }
         var next = at + 1;
-        at = im_free_neighbor(m, next, false, &available);
+        at = im_free_neighbor(m.state, next, false, &available);
     }
-    var heap = m.heap;
+    var heap = m.state.heap;
     var remaining: usize = 268435456;
     remaining = remaining - heap;
     if count > remaining {
         return 0;
     }
     var end = heap + count;
-    if !im_memory_resize(m, end) {
+    var grown = im_memory_resize(m.state, end);
+    if !grown {
         return 0;
     }
-    m.heap = end;
+    m.state.heap = end;
     at = convert(u64, heap);
-    im_allocations_set(m, at, convert(u64, count));
+    im_allocations_set(m.state, at, convert(u64, count));
     return at;
 }
 
-export fn interpreter_deallocate(m: IMState*, at: u64): void {
+export fn ix_deallocate(m: IMExecution*, at: u64): void {
     if at == 0 {
         return;
     }
     var found = false;
-    var count = im_allocations_take(m, at, &found);
+    var count = im_allocations_take(m.state, at, &found);
     if !found {
-        im_fail(m, "Invalid allocation passed to free", 0);
+        ix_fail(m, "Invalid allocation passed to free", 0);
         return;
     }
     var neighbors: IMNeighbors;
-    im_free_neighbors(m, at, &neighbors);
+    im_free_neighbors(m.state, at, &neighbors);
     var available = neighbors.next_count;
     var next = neighbors.next;
     var end = at + count;
     if next != 0 {
         if end == next {
             count = count + available;
-            im_free_blocks_erase(m, next);
+            im_free_blocks_erase(m.state, next);
         }
     }
     var prev = neighbors.previous;
@@ -238,58 +314,61 @@ export fn interpreter_deallocate(m: IMState*, at: u64): void {
         if end == at {
             at = prev;
             count = count + available;
-            im_free_blocks_erase(m, prev);
+            im_free_blocks_erase(m.state, prev);
         }
     }
-    im_free_blocks_set(m, at, count);
+    im_free_blocks_set(m.state, at, count);
 }
 
-export fn interpreter_reallocate(m: IMState*, at: u64, count: usize): u64 {
+export fn ix_reallocate(m: IMExecution*, at: u64, count: usize): u64 {
     if at == 0 {
-        return interpreter_allocate(m, count);
+        return ix_allocate(m, count);
     }
     if count == 0 {
-        interpreter_deallocate(m, at);
+        ix_deallocate(m, at);
         return 0;
     }
     var found = false;
-    var previous = im_allocations_get(m, at, &found);
+    var previous = im_allocations_get(m.state, at, &found);
     if !found {
-        im_fail(m, "Invalid allocation passed to realloc", 0);
+        ix_fail(m, "Invalid allocation passed to realloc", 0);
         return 0;
     }
     if convert(u64, count) <= previous {
         return at;
     }
-    var result = interpreter_allocate(m, count);
+    var result = ix_allocate(m, count);
     if result == 0 {
         return 0;
     }
-    var memory = im_memory(m);
+    var memory = im_memory(m.state);
     var to = convert(usize, result);
     var from = convert(usize, at);
     copy(&memory[to], &memory[from], convert(usize, previous));
-    interpreter_deallocate(m, at);
+    ix_deallocate(m, at);
     return result;
 }
 
-fn im_read(m: IMState*, node: void*, offset: usize): u64 {
+fn ix_read(m: IMExecution*, node: void*, offset: usize): u64 {
     var found = false;
     var cached: u64 = 0;
-    if m.cached {
-        cached = im_values_get(m, im_key(node), &found);
+    if m.state.cached {
+        cached = im_values_get(m.state, im_key(node), &found);
         if found {
             return cached;
         }
     }
-    return im_read_uncached(m, node, im_cached_node(m, node), offset);
+    return ix_read_uncached(m, node, im_cached_node(m.state, node), offset);
 }
 
-fn im_read_uncached(m: IMState*, node: void*, n: FoundationNode*, offset: usize): u64 {
+fn ix_read_uncached(m: IMExecution*, node: void*, n: FoundationNode*, offset: usize): u64 {
+    if !ix_strict_node(m, n, offset) {
+        return 0;
+    }
     var found = false;
     var cached: u64 = 0;
     if n.kind == KAddress() {
-        return im_address(m, n.value, offset);
+        return ix_address(m, n.value, offset);
     }
     var direct = n.kind == KOperand();
     var test = n.kind == KString();
@@ -299,65 +378,68 @@ fn im_read_uncached(m: IMState*, node: void*, n: FoundationNode*, offset: usize)
     test = n.kind == KIndex();
     direct = im_or(direct, test);
     if !direct {
-        return im_evaluate(m, node, offset);
+        return ix_evaluate(m, node, offset);
     }
     if n.kind == KString() {
-        cached = im_strings_get(m, im_key(node), &found);
+        cached = im_strings_get(m.state, im_key(node), &found);
         if found {
             return cached;
         }
         var count = n.name.length + 1;
-        var at = interpreter_allocate(m, count);
+        var at = ix_allocate(m, count);
         if at == 0 {
-            im_fail(m, "String allocation failed", offset);
+            ix_fail(m, "String allocation failed", offset);
             return 0;
         }
-        var memory = im_memory(m);
+        var memory = im_memory(m.state);
         var index = convert(usize, at);
         if n.name.length != 0 {
             copy(&memory[index], n.name.data, n.name.length);
         }
         var terminator = index + n.name.length;
         memory[terminator] = 0;
-        im_strings_set(m, im_key(node), at);
+        im_strings_set(m.state, im_key(node), at);
         return at;
     }
     if n.constant {
         return n.bits;
     }
-    var address = im_address_component(m, node, n, offset);
-    if im_ok(m) {
-        return interpreter_load(m, address, &n.type, offset);
+    var address = ix_address_component(m, node, n, offset);
+    if ix_ok(m) {
+        return ix_load(m, address, &n.type, offset);
     }
     return 0;
 }
 
-fn im_address(m: IMState*, node: void*, offset: usize): u64 {
+fn ix_address(m: IMExecution*, node: void*, offset: usize): u64 {
     var found = false;
-    if m.cached {
-        var cached = im_addresses_get(m, im_key(node), &found);
+    if m.state.cached {
+        var cached = im_addresses_get(m.state, im_key(node), &found);
         if found {
             return cached;
         }
     }
-    return im_address_uncached(m, node, im_cached_node(m, node), offset);
+    return ix_address_uncached(m, node, im_cached_node(m.state, node), offset);
 }
 
-fn im_address_component(m: IMState*, node: void*, n: FoundationNode*, offset: usize): u64 {
+fn ix_address_component(m: IMExecution*, node: void*, n: FoundationNode*, offset: usize): u64 {
+    if !ix_strict_node(m, n, offset) {
+        return 0;
+    }
     var found = false;
     var cached: u64 = 0;
-    if m.cached {
-        cached = im_addresses_get(m, im_key(node), &found);
+    if m.state.cached {
+        cached = im_addresses_get(m.state, im_key(node), &found);
         if found {
             return cached;
         }
     }
-    return im_address_uncached(m, node, n, offset);
+    return ix_address_uncached(m, node, n, offset);
 }
 
-fn im_address_uncached(m: IMState*, node: void*, n: FoundationNode*, offset: usize): u64 {
+fn ix_address_uncached(m: IMExecution*, node: void*, n: FoundationNode*, offset: usize): u64 {
     if n.kind == KLoad() {
-        return im_read(m, n.value, offset);
+        return ix_read(m, n.value, offset);
     }
     var place = n.kind == KField();
     var test = n.kind == KIndex();
@@ -365,54 +447,58 @@ fn im_address_uncached(m: IMState*, node: void*, n: FoundationNode*, offset: usi
     if place {
         var pointer: u64 = 0;
         if n.indirect {
-            pointer = im_read(m, n.left, offset);
+            pointer = ix_read(m, n.left, offset);
         } else {
-            pointer = im_address(m, n.left, offset);
+            pointer = ix_address(m, n.left, offset);
         }
         if n.kind == KField() {
             pointer = pointer + convert(u64, n.byte_offset);
         }
         else {
-            var index = im_read(m, n.right, offset);
-            var right = im_cached_node(m, n.right);
+            var index = ix_read(m, n.right, offset);
+            var right = im_cached_node(m.state, n.right);
             if im_type_signed(&right.type) {
                 index = bits(u64, im_sign(index, &right.type));
             }
             var delta = index *convert(u64, im_type_size(&n.type));
             pointer = pointer + delta;
         }
-        if im_pointer_bytes(m) == 4 {
+        if ix_pointer_bytes(m) == 4 {
             pointer = pointer & 4294967295;
         }
         return pointer;
     }
     var binding = n;
-    if n.binding != null {
-        binding = im_cached_node(m, n.binding);
+    var bound = n.binding != null;
+    if bound {
+        binding = im_cached_node(m.state, n.binding);
     }
     var base: u64 = 16;
     if !binding.global {
-        base = convert(u64, im_base(m));
+        base = convert(u64, im_base(m.state));
     }
     return base + convert(u64, binding.byte_offset);
 }
 
-fn im_evaluate(m: IMState*, node: void*, offset: usize): u64 {
+fn ix_evaluate(m: IMExecution*, node: void*, offset: usize): u64 {
     var found = false;
     var cached: u64 = 0;
-    if m.cached {
-        cached = im_values_get(m, im_key(node), &found);
+    if m.state.cached {
+        cached = im_values_get(m.state, im_key(node), &found);
         if found {
             return cached;
         }
     }
-    var n = im_cached_node(m, node);
-    return im_evaluate_uncached(m, node, n, offset);
+    var n = im_cached_node(m.state, node);
+    return ix_evaluate_uncached(m, node, n, offset);
 }
 
-fn im_evaluate_uncached(m: IMState*, node: void*, n: FoundationNode*, offset: usize): u64 {
+fn ix_evaluate_uncached(m: IMExecution*, node: void*, n: FoundationNode*, offset: usize): u64 {
+    if !ix_strict_node(m, n, offset) {
+        return 0;
+    }
     if n.kind == KCall() {
-        im_fail(m, "Missing suspended call result", offset);
+        ix_fail(m, "Missing suspended call result", offset);
         return 0;
     }
     var direct = n.kind == KOperand();
@@ -425,7 +511,7 @@ fn im_evaluate_uncached(m: IMState*, node: void*, n: FoundationNode*, offset: us
     test = n.kind == KAddress();
     direct = im_or(direct, test);
     if direct {
-        return im_read_uncached(m, node, n, offset);
+        return ix_read_uncached(m, node, n, offset);
     }
     if n.kind == KSizeOf() {
         return convert(u64, im_type_size(&n.element));
@@ -439,12 +525,12 @@ fn im_evaluate_uncached(m: IMState*, node: void*, n: FoundationNode*, offset: us
     if allocation {
         var p: u64 = 0;
         if n.left != null {
-            p = im_read(m, n.left, offset);
+            p = ix_read(m, n.left, offset);
         }
-        var count = im_read(m, n.right, offset);
+        var count = ix_read(m, n.right, offset);
         var size = convert(u64, im_type_size(&n.element));
         var limit: u64 = 18446744073709551615;
-        if im_pointer_bytes(m) == 4 {
+        if ix_pointer_bytes(m) == 4 {
             limit = 4294967295;
         }
         limit = limit / size;
@@ -459,35 +545,36 @@ fn im_evaluate_uncached(m: IMState*, node: void*, n: FoundationNode*, offset: us
         }
         count = count * size;
         if n.kind == KAllocate() {
-            return interpreter_allocate(m, convert(usize, count));
+            return ix_allocate(m, convert(usize, count));
         }
-        return interpreter_reallocate(m, p, convert(usize, count));
+        return ix_reallocate(m, p, convert(usize, count));
     }
     var input_node = n.value;
     if n.kind == KBinary() {
         input_node = n.left;
     }
-    var a = im_evaluate(m, input_node, offset);
+    var a = ix_evaluate(m, input_node, offset);
     var result = a;
-    if im_ok(m) == false {
+    if ix_ok(m) == false {
         return result;
     }
     if n.kind == KLoad() {
-        return interpreter_load(m, a, &n.type, offset);
+        return ix_load(m, a, &n.type, offset);
     }
     if n.kind == KConvert() {
-        var input = im_cached_node(m, n.value);
-        result = im_convert_value(m, a, &input.type, &n.type, offset);
+        var input = im_cached_node(m.state, n.value);
+        result = ix_convert_value(m, a, &input.type, &n.type, offset);
     } else {
         if n.kind == KBinary() {
-            result = im_binary(m, n, a, offset);
+            result = ix_binary(m, n, a, offset);
         }
     }
     return result &im_type_mask(&n.type);
 }
 
-fn im_convert_value(m: IMState*, a: u64, input: FoundationType*, type: FoundationType*, offset: usize): u64 {
-    if type.scalar == SBool() {
+fn ix_convert_value(m: IMExecution*, a: u64, input: FoundationType*, type: FoundationType*, offset: usize): u64 {
+    var boolean = type.scalar == SBool();
+    if boolean {
         var nonzero = a != 0;
         return convert(u64, nonzero);
     }
@@ -515,7 +602,7 @@ fn im_convert_value(m: IMState*, a: u64, input: FoundationType*, type: Foundatio
     var test = magnitude > limit;
     invalid = im_or(invalid, test);
     if invalid {
-        im_fail(m, "Numeric conversion out of range; use bits for bit reinterpretation", offset);
+        ix_fail(m, "Numeric conversion out of range; use bits for bit reinterpretation", offset);
     }
     result = magnitude;
     if negative {
@@ -524,18 +611,19 @@ fn im_convert_value(m: IMState*, a: u64, input: FoundationType*, type: Foundatio
     return result;
 }
 
-fn im_binary(m: IMState*, n: FoundationNode*, x: u64, offset: usize): u64 {
-    var y = im_evaluate(m, n.right, offset);
-    var input = im_cached_node(m, n.left);
+fn ix_binary(m: IMExecution*, n: FoundationNode*, x: u64, offset: usize): u64 {
+    var y = ix_evaluate(m, n.right, offset);
+    var input = im_cached_node(m.state, n.left);
     var right_type = &input.type;
-    if input.type.pointers != 0 {
-        var right = im_cached_node(m, n.right);
+    var pointer = input.type.pointers != 0;
+    if pointer {
+        var right = im_cached_node(m.state, n.right);
         right_type = &right.type;
     }
-    return im_binary_values(m, n.op, x, y, &input.type, right_type, offset);
+    return ix_binary_values(m, n.op, x, y, &input.type, right_type, offset);
 }
 
-fn im_binary_values(m: IMState*, op: u32, x: u64, y: u64, type: FoundationType*, right_type: FoundationType*, offset: usize): u64 {
+fn ix_binary_values(m: IMExecution*, op: u32, x: u64, y: u64, type: FoundationType*, right_type: FoundationType*, offset: usize): u64 {
     var arithmetic = op == OAdd();
     var test = op == OSub();
     arithmetic = im_or(arithmetic, test);
@@ -547,11 +635,11 @@ fn im_binary_values(m: IMState*, op: u32, x: u64, y: u64, type: FoundationType*,
             y = y * convert(u64, im_pointee_size(type));
         }
     }
-    return im_binary_scalar(m, op, x, y, im_type_mask(type), im_type_signed(type), offset);
+    return ix_binary_scalar(m, op, x, y, im_type_mask(type), im_type_signed(type), offset);
 }
 
 // Shared scalar semantics for graph evaluation and compact instruction dispatch.
-fn im_binary_scalar(m: IMState*, op: u32, x: u64, y: u64, mask: u64, signed: bool, offset: usize): u64 {
+fn ix_binary_scalar(m: IMExecution*, op: u32, x: u64, y: u64, mask: u64, signed: bool, offset: usize): u64 {
     if op == OAdd() {
         return x + y;
     }
@@ -566,7 +654,7 @@ fn im_binary_scalar(m: IMState*, op: u32, x: u64, y: u64, mask: u64, signed: boo
     division = im_or(division, test);
     if division {
         if y == 0 {
-            im_fail(m, "Division by zero", offset);
+            ix_fail(m, "Division by zero", offset);
             return x;
         }
         if signed {
@@ -574,7 +662,7 @@ fn im_binary_scalar(m: IMState*, op: u32, x: u64, y: u64, mask: u64, signed: boo
             high++;
             if x == high {
                 if y == mask {
-                    im_fail(m, "Signed division overflow", offset);
+                    ix_fail(m, "Signed division overflow", offset);
                     return x;
                 }
             }
@@ -641,19 +729,19 @@ fn im_binary_scalar(m: IMState*, op: u32, x: u64, y: u64, mask: u64, signed: boo
     return convert(u64, result);
 }
 
-fn im_store(m: IMState*, target: void*, value: u64, offset: usize): void {
-    if im_ok(m) == false {
+fn ix_store(m: IMExecution*, target: void*, value: u64, offset: usize): void {
+    if ix_ok(m) == false {
         return;
     }
-    var at = im_address(m, target, offset);
-    var n = im_cached_node(m, target);
-    if im_ok(m) {
-        interpreter_write(m, at, value, &n.type, offset);
+    var at = ix_address(m, target, offset);
+    var n = im_cached_node(m.state, target);
+    if ix_ok(m) {
+        ix_write(m, at, value, &n.type, offset);
     }
 }
 
-fn im_enter(m: IMState*, node: void*): void {
-    var n = im_cached_node(m, node);
+fn ix_enter(m: IMExecution*, node: void*): void {
+    var n = im_cached_node(m.state, node);
     var i = n.items.length;
     loop {
         if i == 0 {
@@ -661,32 +749,37 @@ fn im_enter(m: IMState*, node: void*): void {
         }
         i--;
         var child = n.items.data[i];
-        var c = im_cached_node(m, child);
+        var c = im_cached_node(m.state, child);
         var omitted = c.kind == KFunction();
         var test = c.kind == KType();
         omitted = im_or(omitted, test);
         if !omitted {
-            im_task_push(m, child, false, 0, 0);
+            im_task_push(m.state, child, false, 0, 0);
         }
     }
 }
 
-fn im_returned(m: IMState*, value: u64): void {
-    var call = im_frame_call(m);
-    m.stack = im_base(m);
-    im_frame_pop(m);
-    if m.frame_count != 0 {
+fn ix_returned(m: IMExecution*, value: u64): void {
+    var call = im_frame_call(m.state);
+    m.state.stack = im_base(m.state);
+    if ix_strict(m) { m.context.initialized.length = m.state.stack; }
+    im_frame_pop(m.state);
+    if m.state.frame_count == 0 && m.context != null {
+        m.context.result = value;
+        m.context.returned = true;
+    }
+    if m.state.frame_count != 0 {
         if call != null {
-            if im_ok(m) {
-                im_values_set(m, im_key(call), value);
+            if ix_ok(m) {
+                im_values_set(m.state, im_key(call), value);
             }
         }
     }
 }
 
-fn im_call(m: IMState*, node: void*, offset: usize): void {
-    var n = im_cached_node(m, node);
-    var function = im_cached_node(m, n.binding);
+fn ix_call(m: IMExecution*, node: void*, offset: usize): void {
+    var n = im_cached_node(m.state, node);
+    var function = im_cached_node(m.state, n.binding);
     var base: usize = 0;
     {
         var small_args: u64[16];
@@ -694,6 +787,10 @@ fn im_call(m: IMState*, node: void*, offset: usize): void {
         var heap_args = n.items.length > 16;
         if heap_args {
             args = alloc(u64, n.items.length);
+            if args == null {
+                ix_fail(m, "Cannot allocate interpreter call arguments", offset);
+                return;
+            }
         }
         defer {
             if heap_args {
@@ -705,122 +802,137 @@ fn im_call(m: IMState*, node: void*, offset: usize): void {
             if i == n.items.length {
                 break;
             }
-            args[i] = im_read(m, n.items.data[i], offset);
+            args[i] = ix_read(m, n.items.data[i], offset);
             i++;
         }
-        if im_ok(m) == false {
+        if ix_ok(m) == false {
             return;
         }
         if function.external {
-            if im_has_foreign(m) == false {
-                im_missing_foreign(m, n.binding, offset);
+            if ix_has_foreign(m) == false {
+                ix_missing_foreign(m, n.binding, offset);
                 return;
             }
-            var result = im_foreign(m, n.binding, args, n.items.length);
-            if im_ok(m) {
-                im_values_set(m, im_key(node), result);
+            var result = ix_foreign(m, n.binding, args, n.items.length);
+            if ix_ok(m) {
+                im_values_set(m.state, im_key(node), result);
             }
             return;
         }
         var size = im_align(function.frame_size);
-        base = m.stack;
+        base = m.state.stack;
         var remaining: usize = 4194304;
         remaining = remaining - base;
-        var exhausted = m.frame_count >= 128;
+        var exhausted = m.state.frame_count >= 128;
         var test = size > remaining;
         exhausted = im_or(exhausted, test);
         if exhausted {
-            im_fail(m, "Tower call stack limit exceeded", offset);
+            ix_fail(m, "Tower call stack limit exceeded", offset);
             return;
         }
         var end = base + size;
-        m.stack = end;
+        m.state.stack = end;
+        if ix_strict(m) && !im_memory_resize(m.state, end) {
+            ix_fail(m, "Cannot grow strict evaluation stack", offset);
+            return;
+        }
+        if !ix_initialize_frame(m, base, size) { return; }
         i = 0;
         loop {
             if i == n.items.length {
                 break;
             }
-            var parameter = im_cached_node(m, function.parameters.data[i]);
+            var parameter = im_cached_node(m.state, function.parameters.data[i]);
             var at = base + parameter.byte_offset;
-            interpreter_write(m, convert(u64, at), args[i], &parameter.type, offset);
+            ix_write(m, convert(u64, at), args[i], &parameter.type, offset);
             i++;
         }
     }
-    im_frame_push(m, n.binding, base, offset, node);
-    im_enter(m, function.body);
+    im_frame_push(m.state, n.binding, base, offset, node);
+    ix_enter(m, function.body);
 }
 
-fn im_needs(m: IMState*, node: void*): bool {
+fn ix_needs(m: IMExecution*, node: void*): bool {
     if node == null {
         return false;
     }
     var found = false;
-    var cached = im_sequenced_get(m, im_key(node), &found);
+    var cached = im_sequenced_get(m.state, im_key(node), &found);
     if found {
         return cached != 0;
     }
-    var n = im_cached_node(m, node);
+    var n = im_cached_node(m.state, node);
     var result = n.kind == KCall();
     var test = n.kind == KAllocate();
     result = im_or(result, test);
     test = n.kind == KReallocate();
     result = im_or(result, test);
-    result = im_or(result, im_needs(m, n.left));
-    result = im_or(result, im_needs(m, n.right));
-    result = im_or(result, im_needs(m, n.value));
-    result = im_or(result, im_needs(m, n.target));
-    im_sequenced_set(m, im_key(node), convert(u64, result));
+    result = im_or(result, ix_needs(m, n.left));
+    result = im_or(result, ix_needs(m, n.right));
+    result = im_or(result, ix_needs(m, n.value));
+    result = im_or(result, ix_needs(m, n.target));
+    im_sequenced_set(m.state, im_key(node), convert(u64, result));
     return result;
 }
 
-fn im_queue(m: IMState*, node: void*, phase: usize, offset: usize): void {
+fn ix_queue(m: IMExecution*, node: void*, phase: usize, offset: usize): void {
     if node != null {
-        im_task_push(m, node, false, phase, offset);
+        im_task_push(m.state, node, false, phase, offset);
     }
 }
 
-export fn interpreter_init(m: IMState*): void {
-    if m.done {
+export fn ix_init(m: IMExecution*): void {
+    if m.state.done {
         return;
     }
-    if !im_memory_resize(m, 4194304) {
-        im_fail(m, "Cannot allocate interpreter memory", 0);
-        m.done = true;
-        return;
-    }
-    var root = im_root(m);
-    var n = im_cached_node(m, root);
-    var base = m.stack;
+    var root = ix_root(m);
+    var n = im_cached_node(m.state, root);
+    var base = m.state.stack;
     var size = im_align(n.frame_size);
     var end = base + size;
-    m.stack = end;
-    if end > 4194304 {
-        im_fail(m, "Tower interpreter stack exhausted", 0);
-        m.done = true;
+    var memory_size: usize = 4194304;
+    if ix_strict(m) { memory_size = end; }
+    var allocated = im_memory_resize(m.state, memory_size);
+    if !allocated {
+        ix_fail(m, "Cannot allocate interpreter memory", 0);
+        m.state.done = true;
         return;
     }
-    im_frame_push(m, root, base, 0, null);
-    im_enter(m, root);
+    m.state.stack = end;
+    if end > 4194304 {
+        ix_fail(m, "Tower interpreter stack exhausted", 0);
+        m.state.done = true;
+        return;
+    }
+    im_frame_push(m.state, root, base, 0, null);
+    if !ix_initialize_frame(m, base, size) {
+        return;
+    }
+    if n.kind == KFunction() {
+        ix_enter(m, n.body);
+    } else {
+        ix_enter(m, root);
+    }
 }
 
 // Output formatting is execution behavior; only appending bytes crosses the ABI.
-fn im_print(m: IMState*, node: void*, offset: usize): void {
-    var value = im_read(m, node, offset);
-    if im_ok(m) == false {
+fn ix_print(m: IMExecution*, node: void*, offset: usize): void {
+    var value = ix_read(m, node, offset);
+    if ix_ok(m) == false {
         return;
     }
-    var n = im_cached_node(m, node);
-    im_print_value(m, value, &n.type);
+    var n = im_cached_node(m.state, node);
+    ix_print_value(m, value, &n.type);
 }
 
-fn im_print_value(m: IMState*, value: u64, type: FoundationType*): void {
+fn ix_print_value(m: IMExecution*, value: u64, type: FoundationType*): void {
     var text: u8[80];
     var length: usize = 0;
     if type.pointers != 0 {
         text[0] = 48;
         text[1] = 120;
         length = 2;
-        var digits = im_pointer_bytes(m) *2;
+        var digits = ix_pointer_bytes(m) * 2;
         var hex = "0123456789abcdef";
         loop {
             if digits == 0 {
@@ -880,16 +992,16 @@ fn im_print_value(m: IMState*, value: u64, type: FoundationType*): void {
     }
     text[length] = 10;
     length++;
-    var total = m.output_bytes + length;
+    var total = m.state.output_bytes + length;
     if total <= 65536 {
-        im_append(m, &text[0], length);
+        ix_append(m, &text[0], length);
     } else {
-        m.output_truncated = true;
+        m.state.output_truncated = true;
     }
 }
 
-export fn interpreter_step(m: IMState*, budget: usize): void {
-    if m.done {
+export fn ix_step(m: IMExecution*, budget: usize): void {
+    if m.state.done {
         return;
     }
     var count: usize = 0;
@@ -897,34 +1009,49 @@ export fn interpreter_step(m: IMState*, budget: usize): void {
         if count == budget {
             break;
         }
-        if m.frame_count == 0 {
+        if m.state.frame_count == 0 {
             break;
         }
-        if im_ok(m) == false {
+        if ix_ok(m) == false {
+            break;
+        }
+        if ix_strict(m) && m.state.steps >= m.context.fuel {
+            ix_fail(m, "Compile-time evaluation fuel exhausted", 0);
             break;
         }
         count++;
-        var steps = m.steps + 1;
-        m.steps = steps;
-        if m.task_count == 0 {
-            im_returned(m, 0);
+        var steps = m.state.steps + 1;
+        m.state.steps = steps;
+        if m.state.task_count == 0 {
+            ix_returned(m, 0);
             continue;
         }
         var task: IMTask;
-        im_task_pop(m, &task);
+        im_task_pop(m.state, &task);
         // Ordinary statements clear both caches before evaluation. Only suspended
         // expression tasks can observe cached values or captured addresses.
-        m.cached = task.phase != 0;
-        var n = im_cached_node(m, task.node);
+        m.state.cached = task.phase != 0;
+        var n = im_cached_node(m.state, task.node);
+        if m.context != null && m.context.dependency_kind != null {
+            m.context.waiting = null;
+            if ix_pending(m, task.node) {
+                im_task_push(m.state, task.node, task.loop_resume != 0, task.phase, task.offset);
+                m.state.steps--;
+                break;
+            }
+        }
         var offset = task.offset;
         if task.phase == 0 {
             offset = n.start;
         }
+        if !ix_strict_node(m, n, offset) {
+            break;
+        }
         if task.phase == 0 {
-            im_cache_clear(m);
-            if im_needs(m, task.node) {
+            im_cache_clear(m.state);
+            if ix_needs(m, task.node) {
                 var resume = task.loop_resume != 0;
-                im_task_push(m, task.node, resume, 1, n.start);
+                im_task_push(m.state, task.node, resume, 1, n.start);
                 var assign = n.kind == KDeclare();
                 var test = n.kind == KAssign();
                 assign = im_or(assign, test);
@@ -939,28 +1066,28 @@ export fn interpreter_step(m: IMState*, budget: usize): void {
                 test = n.kind == KFill();
                 memory = im_or(memory, test);
                 if assign {
-                    im_queue(m, n.value, 2, offset);
+                    ix_queue(m, n.value, 2, offset);
                     var target = n.target;
                     if n.kind == KDeclare() {
                         target = task.node;
                     }
-                    im_queue(m, target, 3, offset);
+                    ix_queue(m, target, 3, offset);
                 } else {
                     if unary {
-                        im_queue(m, n.value, 2, offset);
+                        ix_queue(m, n.value, 2, offset);
                     }
                     else {
                         if n.kind == KFree() {
-                            im_queue(m, n.left, 2, offset);
+                            ix_queue(m, n.left, 2, offset);
                         }
                         else {
                             if memory {
-                                im_queue(m, n.value, 2, offset);
-                                im_queue(m, n.right, 2, offset);
-                                im_queue(m, n.left, 2, offset);
+                                ix_queue(m, n.value, 2, offset);
+                                ix_queue(m, n.right, 2, offset);
+                                ix_queue(m, n.left, 2, offset);
                             }
                             else {
-                                im_queue(m, task.node, 2, offset);
+                                ix_queue(m, task.node, 2, offset);
                             }
                         }
                     }
@@ -970,11 +1097,11 @@ export fn interpreter_step(m: IMState*, budget: usize): void {
         } else {
             if task.phase == 2 {
                 var found = false;
-                im_values_get(m, im_key(task.node), &found);
+                im_values_get(m.state, im_key(task.node), &found);
                 if found {
                     continue;
                 }
-                im_queue(m, task.node, 4, offset);
+                ix_queue(m, task.node, 4, offset);
                 if n.kind == KCall() {
                     var i = n.items.length;
                     loop {
@@ -982,11 +1109,11 @@ export fn interpreter_step(m: IMState*, budget: usize): void {
                             break;
                         }
                         i--;
-                        im_queue(m, n.items.data[i], 2, offset);
+                        ix_queue(m, n.items.data[i], 2, offset);
                     }
                 } else {
                     if n.kind == KAddress() {
-                        im_queue(m, n.value, 3, offset);
+                        ix_queue(m, n.value, 3, offset);
                     }
                     else {
                         var place = n.kind == KField();
@@ -998,12 +1125,12 @@ export fn interpreter_step(m: IMState*, budget: usize): void {
                             }
                         }
                         if place {
-                            im_queue(m, task.node, 3, offset);
+                            ix_queue(m, task.node, 3, offset);
                         }
                         else {
-                            im_queue(m, n.value, 2, offset);
-                            im_queue(m, n.right, 2, offset);
-                            im_queue(m, n.left, 2, offset);
+                            ix_queue(m, n.value, 2, offset);
+                            ix_queue(m, n.right, 2, offset);
+                            ix_queue(m, n.left, 2, offset);
                         }
                     }
                 }
@@ -1011,13 +1138,13 @@ export fn interpreter_step(m: IMState*, budget: usize): void {
             } else {
                 if task.phase == 3 {
                     var found = false;
-                    im_addresses_get(m, im_key(task.node), &found);
+                    im_addresses_get(m.state, im_key(task.node), &found);
                     if found {
                         continue;
                     }
-                    im_queue(m, task.node, 5, offset);
+                    ix_queue(m, task.node, 5, offset);
                     if n.kind == KLoad() {
-                        im_queue(m, n.value, 2, offset);
+                        ix_queue(m, n.value, 2, offset);
                     }
                     else {
                         var place = n.kind == KField();
@@ -1025,31 +1152,31 @@ export fn interpreter_step(m: IMState*, budget: usize): void {
                         place = im_or(place, test);
                         if place {
                             if n.kind == KIndex() {
-                                im_queue(m, n.right, 2, offset);
+                                ix_queue(m, n.right, 2, offset);
                             }
                             var phase: usize = 3;
                             if n.indirect {
                                 phase = 2;
                             }
-                            im_queue(m, n.left, phase, offset);
+                            ix_queue(m, n.left, phase, offset);
                         }
                     }
                     continue;
                 } else {
                     if task.phase == 5 {
-                        var address = im_address(m, task.node, task.offset);
-                        im_addresses_set(m, im_key(task.node), address);
+                        var address = ix_address(m, task.node, task.offset);
+                        im_addresses_set(m.state, im_key(task.node), address);
                         continue;
                     } else {
                         if task.phase == 4 {
                             if n.kind == KCall() {
-                                im_call(m, task.node, task.offset);
+                                ix_call(m, task.node, task.offset);
                             }
                             else {
                                 // Value tasks already checked this node's cache before scheduling
                                 // FinishValue; completing its children cannot evaluate the parent.
-                                var result = im_evaluate_uncached(m, task.node, n, task.offset);
-                                im_values_set(m, im_key(task.node), result);
+                                var result = ix_evaluate_uncached(m, task.node, n, task.offset);
+                                im_values_set(m.state, im_key(task.node), result);
                             }
                             continue;
                         }
@@ -1057,43 +1184,46 @@ export fn interpreter_step(m: IMState*, budget: usize): void {
                 }
             }
         }
-        im_statement(m, &task, n);
+        ix_statement(m, &task, n);
     }
-    var done = im_ok(m) == false;
-    var empty = m.frame_count == 0;
+    var done = ix_ok(m) == false;
+    var empty = m.state.frame_count == 0;
     done = im_or(done, empty);
-    m.done = done;
+    m.state.done = done;
 }
 
-fn im_statement(m: IMState*, task: IMTask*, n: FoundationNode*): void {
+fn ix_statement(m: IMExecution*, task: IMTask*, n: FoundationNode*): void {
     if n.kind == KBlock() {
-        im_enter(m, task.node);
+        ix_enter(m, task.node);
         return;
     }
     if n.kind == KDeclare() {
+        if !ix_initialize_frame(m, im_base(m.state) + n.byte_offset, im_type_size(&n.type)) {
+            return;
+        }
         if n.value != null {
-            im_store(m, task.node, im_evaluate(m, n.value, n.start), n.start);
+            ix_store(m, task.node, ix_evaluate(m, n.value, n.start), n.start);
         }
         return;
     }
     if n.kind == KAssign() {
-        im_store(m, n.target, im_evaluate(m, n.value, n.start), n.start);
+        ix_store(m, n.target, ix_evaluate(m, n.value, n.start), n.start);
         return;
     }
     if n.kind == KFree() {
-        interpreter_deallocate(m, im_read(m, n.left, n.start));
+        ix_deallocate(m, ix_read(m, n.left, n.start));
         return;
     }
     var memory = n.kind == KCopy();
     var test = n.kind == KFill();
     memory = im_or(memory, test);
     if memory {
-        var dest = im_read(m, n.left, n.start);
-        var source = im_read(m, n.right, n.start);
-        var size = im_read(m, n.value, n.start);
+        var dest = ix_read(m, n.left, n.start);
+        var source = ix_read(m, n.right, n.start);
+        var size = ix_read(m, n.value, n.start);
         var fm_condition_0 = n.kind == KCopy();
 
-        im_copy_values(m, dest, source, size, fm_condition_0, n.start);
+        ix_copy_values(m, dest, source, size, fm_condition_0, n.start);
         return;
     }
     if n.kind == KCall() {
@@ -1111,31 +1241,31 @@ fn im_statement(m: IMState*, task: IMTask*, n: FoundationNode*): void {
     test = n.kind == KBits();
     expression = im_or(expression, test);
     if expression {
-        im_evaluate(m, task.node, n.start);
+        ix_evaluate(m, task.node, n.start);
         return;
     }
     if n.kind == KReturn() {
         var result: u64 = 0;
         if n.value != null {
-            result = im_read(m, n.value, n.start);
+            result = ix_read(m, n.value, n.start);
         }
-        im_returned(m, result);
+        ix_returned(m, result);
         return;
     }
     if n.kind == KIf() {
-        var condition = im_read(m, n.value, n.start);
+        var condition = ix_read(m, n.value, n.start);
         if condition != 0 {
-            im_enter(m, n.body);
+            ix_enter(m, n.body);
         } else {
             if n.otherwise != null {
-                im_enter(m, n.otherwise);
+                ix_enter(m, n.otherwise);
             }
         }
         return;
     }
     if n.kind == KLoop() {
-        im_task_push(m, task.node, true, 0, 0);
-        im_enter(m, n.body);
+        im_task_push(m.state, task.node, true, 0, 0);
+        ix_enter(m, n.body);
         return;
     }
     var jump = n.kind == KBreak();
@@ -1143,14 +1273,14 @@ fn im_statement(m: IMState*, task: IMTask*, n: FoundationNode*): void {
     jump = im_or(jump, test);
     if jump {
         loop {
-            if m.task_count == 0 {
+            if m.state.task_count == 0 {
                 break;
             }
             var at: IMTask;
-            im_task_pop(m, &at);
+            im_task_pop(m.state, &at);
             if at.loop_resume != 0 {
                 if n.kind == KContinue() {
-                    im_task_push(m, at.node, true, at.phase, at.offset);
+                    im_task_push(m.state, at.node, true, at.phase, at.offset);
                 }
                 break;
             }
@@ -1158,13 +1288,14 @@ fn im_statement(m: IMState*, task: IMTask*, n: FoundationNode*): void {
         return;
     }
     if n.kind == KPrint() {
-        im_print(m, n.value, n.start);
+        ix_print(m, n.value, n.start);
         return;
     }
-    if n.kind == KTrap() {
-        var message = im_read(m, n.left, n.start);
-        var offset = im_read(m, n.right, n.start);
-        im_raise(m, message, offset);
+    var trapping = n.kind == KTrap();
+    if trapping {
+        var message = ix_read(m, n.left, n.start);
+        var offset = ix_read(m, n.right, n.start);
+        ix_raise(m, message, offset);
         return;
     }
     if n.kind == KLabel() {
@@ -1173,13 +1304,14 @@ fn im_statement(m: IMState*, task: IMTask*, n: FoundationNode*): void {
     if n.kind == KJump() {
         var discard: IMTask;
         loop {
-            if m.task_count == 0 {
+            var empty = m.state.task_count == 0;
+            if empty {
                 break;
             }
-            im_task_pop(m, &discard);
+            im_task_pop(m.state, &discard);
         }
-        var destination = im_cached_node(m, n.binding);
-        var body = im_cached_node(m, destination.body);
+        var destination = im_cached_node(m.state, n.binding);
+        var body = im_cached_node(m.state, destination.body);
         var i = body.items.length;
         var begin = destination.index + 1;
         loop {
@@ -1187,57 +1319,359 @@ fn im_statement(m: IMState*, task: IMTask*, n: FoundationNode*): void {
                 break;
             }
             i--;
-            im_task_push(m, body.items.data[i], false, 0, 0);
+            im_task_push(m.state, body.items.data[i], false, 0, 0);
         }
         return;
     }
-    im_fail(m, "Invalid foundation statement", n.start);
+    ix_fail(m, "Invalid foundation statement", n.start);
 }
 
-fn im_raise(m: IMState*, message: u64, offset: u64): void {
+fn ix_raise(m: IMExecution*, message: u64, offset: u64): void {
     var at = convert(usize, offset);
-    var bytes = interpreter_bytes(m, message, 1, at);
-    if bytes == null {
+    var bytes = ix_bytes(m, message, 1, at);
+    var failed = bytes == null;
+    if failed {
         return;
     }
-    if bytes[0] == 0 {
-        im_fail(m, "Tower trap", at);
+    var empty_message = bytes[0] == 0;
+    if empty_message {
+        ix_fail(m, "Tower trap", at);
         return;
     }
-    var available = im_memory_size(m) -convert(usize, message);
+    var available = im_memory_size(m.state) - convert(usize, message);
     var i: usize = 0;
     loop {
         var end = i == available;
         if end {
-            im_fail(m, "Unterminated trap message", at);
+            ix_fail(m, "Unterminated trap message", at);
             return;
         }
         end = bytes[i] == 0;
         if end {
-            im_fail(m, bytes, at);
+            ix_fail(m, bytes, at);
             return;
         }
         i++;
     }
 }
 
-fn im_copy_values(m: IMState*, dest: u64, source: u64, size: u64, copying: bool, offset: usize): void {
+fn ix_copy_values(m: IMExecution*, dest: u64, source: u64, size: u64, copying: bool, offset: usize): void {
     var limit = convert(u64, im_host_max());
     if size > limit {
-        im_fail(m, "Memory operation exceeds interpreter address space", offset);
+        ix_fail(m, "Memory operation exceeds interpreter address space", offset);
         return;
     }
     var count = convert(usize, size);
-    var p = interpreter_bytes(m, dest, count, offset);
+    var p = ix_bytes(m, dest, count, offset);
     var q: u8* = null;
     if copying {
-        q = interpreter_bytes(m, source, count, offset);
+        q = ix_bytes(m, source, count, offset);
     }
-    if im_ok(m) {
+    if ix_ok(m) {
         if q != null {
             copy(p, q, count);
         } else {
             fill(p, im_byte(source), count);
         }
     }
+}
+
+// Explicit Tower-owned invocation. Inputs and function nodes must remain pinned
+// until disposal. This starts only the selected body, never module initialization.
+// The caller supplies fresh storage or disposes a previous invocation first.
+export fn interpreter_invocation_init(invocation: IMInvocation*, function: void*, pointer_bytes: usize, arguments: u64*, count: usize, strict: bool, fuel: u64): bool {
+    fill(invocation, 0, sizeof(IMInvocation));
+    invocation.state.stack = 16;
+    invocation.state.heap = 4194304;
+    invocation.context.root = function;
+    invocation.context.pointer_bytes = pointer_bytes;
+    invocation.context.strict = strict;
+    invocation.context.fuel = fuel;
+    var execution: IMExecution;
+    execution.state = &invocation.state;
+    execution.context = &invocation.context;
+    if function == null || (pointer_bytes != 4 && pointer_bytes != 8) {
+        ix_fail(&execution, "Invalid evaluation function or target", 0);
+        return false;
+    }
+    var definition = im_cached_node(&invocation.state, function);
+    if convert(usize, definition.type.pointer_bytes) != pointer_bytes {
+        ix_fail(&execution, "Evaluation target differs from the checked function target", definition.start);
+        return false;
+    }
+    if definition.kind != KFunction() || definition.external || definition.body == null {
+        ix_fail(&execution, "Evaluation requires a checked ordinary function body", definition.start);
+        return false;
+    }
+    if count != definition.parameters.length || (count != 0 && arguments == null) {
+        ix_fail(&execution, "Evaluation argument count does not match the function", definition.start);
+        return false;
+    }
+    if !ix_strict_node(&execution, definition, definition.start) {
+        return false;
+    }
+    ix_init(&execution);
+    var i: usize = 0;
+    while i < count && ix_ok(&execution) {
+        var parameter = im_cached_node(&invocation.state, definition.parameters.data[i]);
+        if strict && (parameter.type.pointers != 0 || parameter.type.scalar == SStruct() || parameter.type.scalar == SArray()) {
+            ix_fail(&execution, "Evaluation inputs require explicit scalar values", parameter.start);
+            return false;
+        }
+        if !ix_strict_node(&execution, parameter, parameter.start) {
+            return false;
+        }
+        ix_write(&execution, convert(u64, im_base(&invocation.state) + parameter.byte_offset), arguments[i], &parameter.type, parameter.start);
+        i++;
+    }
+    return ix_ok(&execution);
+}
+
+export fn interpreter_invocation_step(invocation: IMInvocation*, budget: usize): void {
+    var execution: IMExecution;
+    execution.state = &invocation.state;
+    execution.context = &invocation.context;
+    ix_step(&execution, budget);
+}
+
+export fn interpreter_invocation_dispose(invocation: IMInvocation*): void {
+    interpreter_storage_dispose(&invocation.state);
+    vector_dispose(u8, &invocation.context.error);
+    vector_dispose(u8, &invocation.context.output);
+    vector_dispose(u8, &invocation.context.initialized);
+    fill(invocation, 0, sizeof(IMInvocation));
+}
+
+// Compatibility entry points preserve the native and fast-interpreter ABI.
+// Both paths call the same operation implementation through an explicit context.
+
+fn im_ok(m: IMState*): bool {
+    var execution: IMExecution;
+    execution.state = m;
+    execution.context = null;
+    return ix_ok(&execution);
+}
+
+export fn interpreter_bytes(m: IMState*, address: u64, count: usize, offset: usize): u8* {
+    var execution: IMExecution;
+    execution.state = m;
+    execution.context = null;
+    return ix_bytes(&execution, address, count, offset);
+}
+
+export fn interpreter_load(m: IMState*, address: u64, type: FoundationType*, offset: usize): u64 {
+    var execution: IMExecution;
+    execution.state = m;
+    execution.context = null;
+    return ix_load(&execution, address, type, offset);
+}
+
+fn im_load_size(m: IMState*, address: u64, size: usize, offset: usize): u64 {
+    var execution: IMExecution;
+    execution.state = m;
+    execution.context = null;
+    return ix_load_size(&execution, address, size, offset);
+}
+
+export fn interpreter_write(m: IMState*, address: u64, value: u64, type: FoundationType*, offset: usize): void {
+    var execution: IMExecution;
+    execution.state = m;
+    execution.context = null;
+    ix_write(&execution, address, value, type, offset);
+}
+
+fn im_write_size(m: IMState*, address: u64, value: u64, size: usize, offset: usize): void {
+    var execution: IMExecution;
+    execution.state = m;
+    execution.context = null;
+    ix_write_size(&execution, address, value, size, offset);
+}
+
+export fn interpreter_allocate(m: IMState*, count: usize): u64 {
+    var execution: IMExecution;
+    execution.state = m;
+    execution.context = null;
+    return ix_allocate(&execution, count);
+}
+
+export fn interpreter_deallocate(m: IMState*, at: u64): void {
+    var execution: IMExecution;
+    execution.state = m;
+    execution.context = null;
+    ix_deallocate(&execution, at);
+}
+
+export fn interpreter_reallocate(m: IMState*, at: u64, count: usize): u64 {
+    var execution: IMExecution;
+    execution.state = m;
+    execution.context = null;
+    return ix_reallocate(&execution, at, count);
+}
+
+fn im_read(m: IMState*, node: void*, offset: usize): u64 {
+    var execution: IMExecution;
+    execution.state = m;
+    execution.context = null;
+    return ix_read(&execution, node, offset);
+}
+
+fn im_read_uncached(m: IMState*, node: void*, n: FoundationNode*, offset: usize): u64 {
+    var execution: IMExecution;
+    execution.state = m;
+    execution.context = null;
+    return ix_read_uncached(&execution, node, n, offset);
+}
+
+fn im_address(m: IMState*, node: void*, offset: usize): u64 {
+    var execution: IMExecution;
+    execution.state = m;
+    execution.context = null;
+    return ix_address(&execution, node, offset);
+}
+
+fn im_address_component(m: IMState*, node: void*, n: FoundationNode*, offset: usize): u64 {
+    var execution: IMExecution;
+    execution.state = m;
+    execution.context = null;
+    return ix_address_component(&execution, node, n, offset);
+}
+
+fn im_address_uncached(m: IMState*, node: void*, n: FoundationNode*, offset: usize): u64 {
+    var execution: IMExecution;
+    execution.state = m;
+    execution.context = null;
+    return ix_address_uncached(&execution, node, n, offset);
+}
+
+fn im_evaluate(m: IMState*, node: void*, offset: usize): u64 {
+    var execution: IMExecution;
+    execution.state = m;
+    execution.context = null;
+    return ix_evaluate(&execution, node, offset);
+}
+
+fn im_evaluate_uncached(m: IMState*, node: void*, n: FoundationNode*, offset: usize): u64 {
+    var execution: IMExecution;
+    execution.state = m;
+    execution.context = null;
+    return ix_evaluate_uncached(&execution, node, n, offset);
+}
+
+fn im_convert_value(m: IMState*, a: u64, input: FoundationType*, type: FoundationType*, offset: usize): u64 {
+    var execution: IMExecution;
+    execution.state = m;
+    execution.context = null;
+    return ix_convert_value(&execution, a, input, type, offset);
+}
+
+fn im_binary(m: IMState*, n: FoundationNode*, x: u64, offset: usize): u64 {
+    var execution: IMExecution;
+    execution.state = m;
+    execution.context = null;
+    return ix_binary(&execution, n, x, offset);
+}
+
+fn im_binary_values(m: IMState*, op: u32, x: u64, y: u64, type: FoundationType*, right_type: FoundationType*, offset: usize): u64 {
+    var execution: IMExecution;
+    execution.state = m;
+    execution.context = null;
+    return ix_binary_values(&execution, op, x, y, type, right_type, offset);
+}
+
+fn im_binary_scalar(m: IMState*, op: u32, x: u64, y: u64, mask: u64, signed: bool, offset: usize): u64 {
+    var execution: IMExecution;
+    execution.state = m;
+    execution.context = null;
+    return ix_binary_scalar(&execution, op, x, y, mask, signed, offset);
+}
+
+fn im_store(m: IMState*, target: void*, value: u64, offset: usize): void {
+    var execution: IMExecution;
+    execution.state = m;
+    execution.context = null;
+    ix_store(&execution, target, value, offset);
+}
+
+fn im_enter(m: IMState*, node: void*): void {
+    var execution: IMExecution;
+    execution.state = m;
+    execution.context = null;
+    ix_enter(&execution, node);
+}
+
+fn im_returned(m: IMState*, value: u64): void {
+    var execution: IMExecution;
+    execution.state = m;
+    execution.context = null;
+    ix_returned(&execution, value);
+}
+
+fn im_call(m: IMState*, node: void*, offset: usize): void {
+    var execution: IMExecution;
+    execution.state = m;
+    execution.context = null;
+    ix_call(&execution, node, offset);
+}
+
+fn im_needs(m: IMState*, node: void*): bool {
+    var execution: IMExecution;
+    execution.state = m;
+    execution.context = null;
+    return ix_needs(&execution, node);
+}
+
+fn im_queue(m: IMState*, node: void*, phase: usize, offset: usize): void {
+    var execution: IMExecution;
+    execution.state = m;
+    execution.context = null;
+    ix_queue(&execution, node, phase, offset);
+}
+
+export fn interpreter_init(m: IMState*): void {
+    var execution: IMExecution;
+    execution.state = m;
+    execution.context = null;
+    ix_init(&execution);
+}
+
+fn im_print(m: IMState*, node: void*, offset: usize): void {
+    var execution: IMExecution;
+    execution.state = m;
+    execution.context = null;
+    ix_print(&execution, node, offset);
+}
+
+fn im_print_value(m: IMState*, value: u64, type: FoundationType*): void {
+    var execution: IMExecution;
+    execution.state = m;
+    execution.context = null;
+    ix_print_value(&execution, value, type);
+}
+
+export fn interpreter_step(m: IMState*, budget: usize): void {
+    var execution: IMExecution;
+    execution.state = m;
+    execution.context = null;
+    ix_step(&execution, budget);
+}
+
+fn im_statement(m: IMState*, task: IMTask*, n: FoundationNode*): void {
+    var execution: IMExecution;
+    execution.state = m;
+    execution.context = null;
+    ix_statement(&execution, task, n);
+}
+
+fn im_raise(m: IMState*, message: u64, offset: u64): void {
+    var execution: IMExecution;
+    execution.state = m;
+    execution.context = null;
+    ix_raise(&execution, message, offset);
+}
+
+fn im_copy_values(m: IMState*, dest: u64, source: u64, size: u64, copying: bool, offset: usize): void {
+    var execution: IMExecution;
+    execution.state = m;
+    execution.context = null;
+    ix_copy_values(&execution, dest, source, size, copying, offset);
 }

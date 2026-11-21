@@ -17,6 +17,9 @@ import {exportProject, importProject} from './project-archive.mjs';
 import {compilerSelection, selectCompiler, onCompilerSelection} from './compiler-selection.mjs';
 import { towerCompletion } from './completion.mjs';
 import { paint, highlighting, towerDecorations } from './tower-highlights.mjs';
+import { prepareCompilerIsolation } from './compiler-isolation.mjs';
+
+await prepareCompilerIsolation();
 
 const $ = id => document.getElementById(id);
 const selectSpan = StateEffect.define();

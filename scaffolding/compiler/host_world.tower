@@ -40,7 +40,7 @@ fn compiler_host_type(kind: u32): Entity* {
 }
 
 fn compiler_host_component(owner: Entity*, kind: u32): void* {
-    var data = compiler_world_component(compiler_host_world(), owner, kind);
+    var data = compiler_world_component(compiler_node_world(owner), owner, kind);
     var present = data != null;
     compiler_entity_require(present);
     return data;

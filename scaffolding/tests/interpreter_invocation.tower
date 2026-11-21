@@ -1,0 +1,125 @@
+import tower;
+import .compiler.interpreter;
+import .compiler.interpreter_context_types;
+import .compiler.foundation_types;
+import .compiler.foundation_tags;
+import .library.vector;
+
+extern fn tower_node_create(): void*;
+extern fn sem_create(parent: void*): void*;
+extern fn sem_attach(node: void*, kind: u32): FoundationNode*;
+extern fn sem_get(node: void*): FoundationNode*;
+extern fn entity_release(node: void*): usize;
+
+fn invocation_test_node(parent: void*, kind: u32, width: u32): void* {
+    var entity = sem_create(parent);
+    var node = sem_attach(entity, kind);
+    node.type.scalar = SI32();
+    node.type.pointer_bytes = width;
+    return entity;
+}
+
+fn invocation_test_run(invocation: IMInvocation*, budget: usize): void {
+    while !invocation.state.done {
+        interpreter_invocation_step(invocation, budget);
+    }
+}
+
+// These are ordinary Foundation entities, with the same checked components the
+// frontend produces. The harness deliberately changes one condition at a time
+// between completed invocations; no worker observes a mutable input graph.
+export fn interpreter_invocation_tests(width: u32): u32 {
+    var root = tower_node_create();
+    var function = invocation_test_node(root, KFunction(), width);
+    var definition = sem_get(function);
+    definition.frame_size = 16;
+    var body = invocation_test_node(function, KBlock(), width);
+    definition.body = body;
+    var parameter = invocation_test_node(function, KParameter(), width);
+    vector_push(void*, &definition.parameters, parameter);
+    var input = invocation_test_node(body, KOperand(), width);
+    sem_get(input).binding = parameter;
+    var one = invocation_test_node(body, KOperand(), width);
+    sem_get(one).constant = true;
+    sem_get(one).bits = 1;
+    var sum = invocation_test_node(body, KBinary(), width);
+    sem_get(sum).left = input;
+    sem_get(sum).right = one;
+    sem_get(sum).op = OAdd();
+    var returned = invocation_test_node(body, KReturn(), width);
+    sem_get(returned).value = sum;
+    vector_push(void*, &sem_get(body).items, returned);
+    var a: IMInvocation;
+    var b: IMInvocation;
+    var argument: u64 = 41;
+    var failures: u32 = 0;
+    if !interpreter_invocation_init(&a, function, convert(usize, width), &argument, 1, true, 100) {
+        failures++;
+    }
+    argument = 18446744073709551615;
+    if !interpreter_invocation_init(&b, function, convert(usize, width), &argument, 1, true, 100) {
+        failures++;
+    }
+    while !a.state.done || !b.state.done {
+        interpreter_invocation_step(&b, 1);
+        interpreter_invocation_step(&a, 3);
+    }
+    if a.state.failed || !a.context.returned || a.context.result != 42 {
+        failures++;
+    }
+    if b.state.failed || !b.context.returned || b.context.result != 0 {
+        failures++;
+    }
+    interpreter_invocation_dispose(&a);
+    interpreter_invocation_dispose(&b);
+
+    // Reading a local never initialized by this invocation is a stage error.
+    var local = invocation_test_node(body, KDeclare(), width);
+    sem_get(local).byte_offset = 4;
+    sem_get(input).binding = local;
+    interpreter_invocation_init(&a, function, convert(usize, width), &argument, 1, true, 100);
+    invocation_test_run(&a, 1);
+    if !a.state.failed || a.context.error.length == 0 {
+        failures++;
+    }
+    interpreter_invocation_dispose(&a);
+    sem_get(input).binding = parameter;
+
+    // Budget chunking cannot bypass deterministic total fuel.
+    interpreter_invocation_init(&a, function, convert(usize, width), &argument, 1, true, 0);
+    invocation_test_run(&a, 1);
+    if !a.state.failed || a.state.steps != 0 {
+        failures++;
+    }
+    interpreter_invocation_dispose(&a);
+
+    sem_get(parameter).global = true;
+    if interpreter_invocation_init(&a, function, convert(usize, width), &argument, 1, true, 100) {
+        failures++;
+    }
+    interpreter_invocation_dispose(&a);
+    sem_get(parameter).global = false;
+
+    sem_get(returned).kind = KPrint();
+    interpreter_invocation_init(&a, function, convert(usize, width), &argument, 1, true, 100);
+    invocation_test_run(&a, 1);
+    if !a.state.failed || a.context.output.length != 0 {
+        failures++;
+    }
+    interpreter_invocation_dispose(&a);
+
+    // An explicit ordinary invocation keeps runtime output behavior.
+    argument = 41;
+    interpreter_invocation_init(&a, function, convert(usize, width), &argument, 1, false, 0);
+    invocation_test_run(&a, 1);
+    if a.state.failed || a.context.output.length != 3 {
+        failures++;
+    } else {
+        if a.context.output.data[0] != 52 || a.context.output.data[1] != 50 || a.context.output.data[2] != 10 {
+            failures++;
+        }
+    }
+    interpreter_invocation_dispose(&a);
+    entity_release(root);
+    return failures;
+}

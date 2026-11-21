@@ -8,6 +8,10 @@ import semantic_statements;
 import semantic_defer;
 import semantic_support;
 import semantic_expression_lowering;
+import semantic_layout;
+import semantic_evaluation;
+import semantic_flow;
+import semantic_declarations;
 import .library.stack;
 import .library.vector;
 import .library.work_graph;
@@ -45,9 +49,7 @@ fn sem_context_init(c: SemanticContext*, program: SemanticProgram*): void {
     c.output_names = sem_table(c);
     var step10 = sem_table(c);
     c.fields_done = step10;
-    work_init(&c.layout_work, 1, convert(u64, program.pointer_bytes));
-    var step12 = sem_table(c);
-    c.declaration_state = step12;
+    work_init(&c.queries, 1, convert(u64, program.pointer_bytes));
     var step13 = sem_scope(c, null);
     c.scope = step13;
     for(var i: usize = 0; i < program.types.length; i++) {
@@ -58,9 +60,14 @@ fn sem_context_init(c: SemanticContext*, program: SemanticProgram*): void {
 }
 
 fn sem_context_dispose(c: SemanticContext*): void {
+    sem_layout_dispose(c);
+    sem_evaluation_dispose(c);
+    vector_dispose(&c.flow_jobs);
+    vector_dispose(&c.flow_dependencies);
+    sem_declaration_dispose(c);
     stack_dispose(&c.scan);
     vector_dispose(&c.token_text);
-    work_dispose(&c.layout_work);
+    work_dispose(&c.queries);
     var i: usize = 0;
     for(; i < c.lists.length; i++) {
         var step3 = bits(vector(void*)*, c.lists.data[i]);
@@ -127,6 +134,8 @@ export fn semantic_compile_budget(program: SemanticProgram*, roots: void**, base
     sem_defer_hygiene(c);
     sem_lower_expressions(c);
     sem_defer_validate(c);
+    sem_evaluations(c);
+    sem_flows(c);
     sem_context_dispose(c);
 }
 

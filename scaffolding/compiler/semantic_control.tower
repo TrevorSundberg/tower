@@ -6,6 +6,7 @@ import semantic_statements;
 import semantic_support;
 import semantic_types;
 import semantic_values;
+import semantic_flow;
 
 // Control-flow outcomes are a private analysis bit set, not program opcodes.
 const FlowNext: u32 = 1;
@@ -16,8 +17,9 @@ const MatchArmLimit: usize = 128;
 
 // Capture every spelling, including quoted/free uses, before generating names.
 // Bind operands directly; unique serialized names also preserve reparse hygiene.
-fn sem_control_name(c: SemanticContext*): u8* {
-    if c.control_names == null {
+fn sem_control_names(c: SemanticContext*): void {
+    var missing = c.control_names == null;
+    if missing {
         c.control_names = sem_table(c);
         var pending = sem_list(c);
         sem_push(pending, c.program.root);
@@ -52,10 +54,20 @@ fn sem_control_name(c: SemanticContext*): u8* {
             }
         }
     }
+}
+
+fn sem_control_name(c: SemanticContext*): u8* {
+    if c.control_reserved == null { sem_control_names(c); }
+    else { if c.control_names == null { c.control_names = sem_table(c); } }
+    var prefix = c.control_prefix == null ? "control value " : c.control_prefix;
     var index = c.control_names.count;
     loop {
-        var name = sem_cat(c, "control value ", sem_decimal(c, convert(u64, index)));
-        if sem_lookup_table(c.control_names, name) == null {
+        var name = sem_cat(c, prefix, sem_decimal(c, convert(u64, index)));
+        var exists = sem_lookup_table(c.control_names, name) != null;
+        if !exists && c.control_reserved != null {
+            exists = sem_lookup_table(c.control_reserved, name) != null;
+        }
+        if !exists {
             sem_put(c, c.control_names, name, c.program.root);
             return name;
         }
@@ -64,7 +76,8 @@ fn sem_control_name(c: SemanticContext*): u8* {
 }
 
 fn sem_control_node(c: SemanticContext*, parent: void*, kind: u32): void* {
-    var entity = sem_create(parent);
+    var entity = c.entity_stage == null ? sem_create(parent) : entity_stage_create(c.entity_stage, parent);
+    sem_require(entity != null);
     sem_node(c, entity, kind);
     return entity;
 }
@@ -281,8 +294,9 @@ fn sem_control_while(c: SemanticContext*, n: void*, depth: u32): u32 {
     var failure = sem_get(otherwise);
     sem_push(&failure.items, stop);
     var result = flow &FlowReturn();
-    if known.constant {
-        if known.bits == 0 {
+    if sem_flow_known(c, condition) {
+        var never = known.bits == 0;
+        if never {
             return FlowNext();
         }
         var exits = flow &FlowBreak();
@@ -373,7 +387,7 @@ fn sem_control_for(c: SemanticContext*, n: void*, depth: u32): u32 {
         return initial_flow;
     }
     var result = flow &FlowReturn();
-    if known.constant {
+    if sem_flow_known(c, condition) {
         if known.bits == 0 {
             return FlowNext();
         }

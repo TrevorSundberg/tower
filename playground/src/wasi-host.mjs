@@ -1,3 +1,4 @@
+import { decodeBytes } from './host-bytes.mjs';
 // Tower's WASI Preview 1 host. ABI layouts/constants follow wasi-sdk's
 // wasi/wasip1.h. This deliberately implements only our compiler's imports:
 // memory files, standard streams, clocks, entropy and process exit.
@@ -56,7 +57,7 @@ export class TowerWASI {
   path(fd, pointer, length) {
     const handle = this.fd(fd); if (handle.node.type !== 3) this.fail(E.NOTDIR);
     let text;
-    try { text = decoder.decode(this.memory(pointer, length)); } catch (error) { if (error instanceof Errno) throw error; this.fail(E.INVAL); }
+    try { text = decodeBytes(decoder, this.memory(pointer, length)); } catch (error) { if (error instanceof Errno) throw error; this.fail(E.INVAL); }
     if (!text || text.includes('\0')) this.fail(E.INVAL);
     if (text.startsWith('/')) this.fail(E.NOTCAPABLE);
     const parts = [];
@@ -116,10 +117,11 @@ export class TowerWASI {
       const bytes = this.memory(pointer, length);
       for (let start = 0; start < bytes.length; start += 65536) crypto.getRandomValues(bytes.subarray(start, start + 65536));
     },
+    sched_yield: () => {}, // Advisory: the host schedules independent Wasm workers.
     proc_exit: code => { throw new WASIExit(code); },
     fd_close: fd => {
       const h = this.fd(fd);
-      if (h.log) { h.pending += h.decoder.decode(); if (h.pending) h.log(h.pending); }
+      if (h.log) { h.pending += decodeBytes(h.decoder, ); if (h.pending) h.log(h.pending); }
       this.fds.delete(fd);
     },
     fd_prestat_get: (fd, result) => {
@@ -155,7 +157,7 @@ export class TowerWASI {
       this.view(result, 4); const buffers = this.vectors(vectors, count);
       const total = buffers.reduce((n, bytes) => n + bytes.length, 0);
       if (h.log) {
-        for (const bytes of buffers) h.pending += h.decoder.decode(bytes, { stream: true });
+        for (const bytes of buffers) h.pending += decodeBytes(h.decoder, bytes, { stream: true });
         const lines = h.pending.split('\n'); h.pending = lines.pop(); for (const line of lines) h.log(line);
         if (h.pending.length > 65536) { h.log(h.pending); h.pending = ''; }
       } else {

@@ -4,6 +4,8 @@ import grammar_builder;
 import lr_analysis;
 import lr_grammar;
 import lr_lalr;
+import lr_work;
+import lr_state_work;
 import lr_parser;
 import lr_runtime;
 import lr_states;
@@ -45,12 +47,18 @@ export fn frontend_table_finish(table: FrontendTable*, constructs: bool, special
         lr_analysis_order(analysis, index, grammar.names.data[index].order);
     }
     var states: LRStates* = null;
+    var anchor: void* = null;
+    for(var i: usize = 0; i < grammar.rule_metadata.length && anchor == null; ++i) {
+        anchor = grammar.rule_metadata.data[i].node;
+    }
     var ok = lr_analysis_compute(analysis);
     if ok {
-        states = lr_states_create(analysis);
+        states = lr_states_create_parallel(analysis, anchor);
         ok = states != null;
     }
-    ok &&= lr_states_lalr(states, constructs);
+    if ok {
+        ok = lr_states_lalr_parallel(states, constructs, anchor);
+    }
     if ok {
         table.runtime = lr_runtime_create(states);
         ok = table.runtime != null;

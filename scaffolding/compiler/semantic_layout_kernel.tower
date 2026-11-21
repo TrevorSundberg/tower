@@ -1,0 +1,77 @@
+import tower;
+import compiler_kernel;
+import foundation_types;
+import foundation_tags;
+import .library.vector;
+import .library.work_graph;
+
+extern fn sem_get(node: void*): FoundationNode*;
+extern fn semantic_size(type: FoundationType*): usize;
+extern fn semantic_alignment(type: FoundationType*): usize;
+extern fn semantic_enum(type: FoundationType*): bool;
+
+const LayoutMaximumBytes: usize = 4194304;
+
+// A derived pending result component on the same type entity. FoundationNode
+// remains authoritative; the coordinator publishes this result before releasing
+// dependents. Workers cannot mutate diagnostics, entity structure or scheduler.
+struct SemanticLayoutWork {
+    kernel: CompilerKernel;
+    ticket: WorkTicket;
+    subject: void*;
+    size: usize;
+    alignment: usize;
+    offsets: vector(usize);
+    error: u8*;
+    error_node: void*;
+}
+
+fn layout_round(size: usize, alignment: usize): usize {
+    var extra = size % alignment;
+    return extra == 0 ? size : size + alignment - extra;
+}
+
+fn semantic_layout_kernel(result: SemanticLayoutWork*): void {
+    var type = sem_get(result.subject);
+    result.size = 0;
+    result.alignment = 1;
+    result.error = null;
+    result.error_node = result.subject;
+    if semantic_enum(&type.type) {
+        result.size = semantic_size(&type.element);
+        result.alignment = semantic_alignment(&type.element);
+        return;
+    }
+    if type.type.scalar == SArray() {
+        var size = semantic_size(&type.element);
+        if type.length == 0 {
+            result.error = "An array needs a positive length";
+            return;
+        }
+        if size > LayoutMaximumBytes() / type.length {
+            result.error = "Array storage exceeds 4 MiB";
+            return;
+        }
+        result.size = size * type.length;
+        result.alignment = semantic_alignment(&type.element);
+        return;
+    }
+    var index: usize = 0;
+    while index < type.items.length {
+        var field = sem_get(type.items.data[index]);
+        var alignment = semantic_alignment(&field.type);
+        if alignment > result.alignment { result.alignment = alignment; }
+        var offset = layout_round(result.size, alignment);
+        var size = semantic_size(&field.type);
+        if offset > LayoutMaximumBytes() || size > LayoutMaximumBytes() - offset {
+            result.error = "Foundation struct storage exceeds 4 MiB";
+            result.error_node = type.items.data[index];
+            return;
+        }
+        result.offsets.data[index] = offset;
+        result.size = offset + size;
+        index++;
+    }
+    result.size = layout_round(result.size, result.alignment);
+    if result.size == 0 { result.size = 1; }
+}

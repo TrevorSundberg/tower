@@ -1,0 +1,31 @@
+import tower;
+
+var effects: i32 = 0;
+fn noisy(): i32 { effects++; print(effects); return 99; }
+fn next(value: i32): i32 { return value + 1; }
+fn calculate(value: i32): i32 {
+    var result = 0;
+    var index = 0;
+    while index < value {
+        result += 7;
+        index = next(index);
+    }
+    return result;
+}
+
+var answer = comptime(calculate(6));
+var nested = comptime(comptime(calculate(5)) + 7);
+var branch = comptime(false ? noisy() : calculate(6));
+var unused: decltype(comptime(noisy())) = 42;
+var wrapping: u32 = comptime(bits(u32, -1) + 1);
+var comparison = comptime(calculate(6) == 42);
+var a = comptime(calculate(1000));
+var b = comptime(calculate(2000));
+var c = comptime(calculate(3000));
+var d = comptime(calculate(4000));
+var failures: i32 = 0;
+if answer != 42 || nested != 42 || branch != 42 || unused != 42 { failures++; }
+if effects != 0 || wrapping != 0 || !comparison { failures++; }
+if a != 7000 || b != 14000 || c != 21000 || d != 28000 { failures++; }
+if calculate(6) != answer { failures++; }
+print(failures);

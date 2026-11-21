@@ -32,7 +32,30 @@ export fn compiler_world_create(): CompilerWorld* {
         free(world);
         return null;
     }
+    if !entity_store_set_context(world.store, bits(void*, world)) {
+        entity_store_dispose(world.store);
+        free(world);
+        return null;
+    }
     return world;
+}
+
+// Entity identity determines its compiler world. Workers never switch a global
+// current-world handle, and nodes from independent worlds cannot alias kinds.
+export fn compiler_node_world(node: Entity*): CompilerWorld* {
+    return bits(CompilerWorld*, entity_context(node));
+}
+
+export fn compiler_node_type(node: Entity*, kind: u32): Entity* {
+    var world = compiler_node_world(node);
+    if world == null { return null; }
+    return compiler_world_type(world, kind);
+}
+
+export fn compiler_node_get(node: Entity*, kind: u32): void* {
+    var world = compiler_node_world(node);
+    if world == null { return null; }
+    return compiler_world_get(world, node, kind);
 }
 
 // Borrowed store and type handles; callers retain types they need to own.
@@ -113,7 +136,8 @@ export fn compiler_world_type(world: CompilerWorld*, kind: u32): Entity* {
 }
 
 export fn compiler_world_get(world: CompilerWorld*, owner: Entity*, kind: u32): void* {
-    if owner == null {
+    var missing_owner = owner == null || world == null;
+    if missing_owner {
         return null;
     }
     if owner.store != world.store {
@@ -132,7 +156,8 @@ export fn compiler_world_get(world: CompilerWorld*, owner: Entity*, kind: u32): 
 // Reattachment preserves payload state. A failed attachment leaves the node
 // unchanged; a successfully registered type may remain cached for a retry.
 export fn compiler_world_component(world: CompilerWorld*, owner: Entity*, kind: u32): void* {
-    if owner == null {
+    var missing_owner = owner == null || world == null;
+    if missing_owner {
         return null;
     }
     if owner.store != world.store {

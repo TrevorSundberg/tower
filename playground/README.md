@@ -848,6 +848,17 @@ execution, exports and editor interactions. Build release bundles with
 Bundling clears generated `dist/` contents so stale optional backends cannot
 silently survive a rebuild. A present cross compiler requires all target packs.
 
+Build the shared-memory frontend with `bash playground/scripts/build-threads.sh`
+from the repository root. `TOWER_REQUIRE_THREADS=1 npm run build` checks that its
+artifact is included alongside the portable frontend. The playground selects it
+only in an isolated worker environment. On static hosting, a same-origin service
+worker supplies COOP/COEP headers and performs one startup reload before the editor
+opens; it does not cache assets or compiler results. When isolation is unavailable,
+the portable frontend remains usable. Native/LLVM unit compilation and the shared
+frontend are separate execution paths; packaging this reactor does not make every
+compiler phase parallel. Switching compiler generations retires the old frontend's
+nested workers. Cancellation terminates its owning worker and nested workers.
+
 GitHub Pages serves the contents of `dist/` from the repository's `gh-pages`
 branch. The build copies `playground/CNAME` into `dist/CNAME` and includes its
 checksum in the manifest, preserving the custom domain on future publications.

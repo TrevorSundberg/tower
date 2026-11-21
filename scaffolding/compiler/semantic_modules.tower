@@ -38,7 +38,7 @@ fn sem_modules_begin(program: SemanticProgram*): SemanticModules* {
     if program.modules != null {
         return program.modules;
     }
-    var registry = tower_node_create();
+    var registry = entity_create_related(program.root);
     sem_require(entity_register(registry, sizeof(SemanticModules), alignof(SemanticModules), 0));
     var component = entity_component_add(program.root, registry);
     var modules = bits(SemanticModules*, entity_component_data(component));
@@ -58,8 +58,9 @@ fn sem_module_scope(program: SemanticProgram*, module: void*): void* {
     var registry = sem_modules_begin(program);
     var path = frontend_module_name(module);
     var scope = sem_member(registry.scopes, path);
-    if scope == null {
-        scope = tower_node_create();
+    var missing = scope == null;
+    if missing {
+        scope = entity_create_related(registry.scopes);
         sem_require(entity_attach(scope, registry.scopes, path));
         entity_release(scope);
     }
@@ -280,6 +281,15 @@ fn sem_callable_owned(c: SemanticContext*, owner: void*, name: u8*): void* {
     return found;
 }
 
+fn sem_foreign_same_name(left: void*, right: void*): bool {
+    var a = sem_get(left);
+    var b = sem_get(right);
+    if a == null || b == null { return false; }
+    return a.kind == KFunction() && b.kind == KFunction()
+        && (a.external || a.exported) && (b.external || b.exported)
+        && sem_equal(sem_name(a), sem_name(b));
+}
+
 fn sem_callable_visible(c: SemanticContext*, table: SemanticTable*, node: void*, owner: void*, name: u8*): void* {
     var local = sem_callable_owned(c, owner, name);
     var present = local != null;
@@ -299,6 +309,10 @@ fn sem_callable_visible(c: SemanticContext*, table: SemanticTable*, node: void*,
             if present {
                 var different = found != null;
                 different &&= found != candidate;
+                // Foreign declarations of one link symbol are validated and
+                // coalesced after signature queries finish. They must remain
+                // name-resolvable while those queries are still pending.
+                if different && sem_foreign_same_name(found, candidate) { different = false; }
                 if different {
                     sem_fail(c, node, sem_cat(c, "Ambiguous imported name '", sem_cat(c, name, "'; use an import alias")));
                     return null;
@@ -583,4 +597,22 @@ fn sem_link_functions(c: SemanticContext*): void {
         }
     }
     root.items.length = count;
+    // Inference/decltype can check a call before all foreign signatures have
+    // resolved. Retarget those existing shared call components after merging.
+    var pending = sem_list(c);
+    sem_push(pending, c.program.root);
+    while pending.length != 0 {
+        pending.length--;
+        var node = pending.data[pending.length];
+        var value = sem_get(node);
+        if value != null && value.kind == KCall() && value.binding != null {
+            var function = sem_get(value.binding);
+            while function.binding != null {
+                value.binding = function.binding;
+                function = sem_get(value.binding);
+            }
+        }
+        var child: usize = 0;
+        while child < sem_child_count(node) { sem_push(pending, sem_child(node, child)); child++; }
+    }
 }

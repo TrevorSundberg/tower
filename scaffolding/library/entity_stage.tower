@@ -1,0 +1,237 @@
+import tower;
+import entities;
+import vector;
+
+// A worker owns these actual canonical entities, not a shadow graph or commands
+// containing another node model. Existing parent links and dense type indexes
+// remain unchanged until the coordinator publishes after all readers join.
+struct EntityStage {
+    anchor: Entity*;
+    nodes: vector(Entity*);
+    leases: vector(EntityStageLease);
+}
+
+struct EntityStageLease {
+    node: Entity*;
+    components: usize;
+}
+
+struct EntityStageCount {
+    entity: Entity*;
+    children: usize;
+    instances: usize;
+}
+
+fn entity_stage_init(stage: EntityStage*, anchor: Entity*): bool {
+    fill(stage, 0, sizeof(EntityStage));
+    if anchor == null || anchor.stage != null { return false; }
+    stage.anchor = anchor;
+    entity_retain(anchor);
+    return true;
+}
+
+export fn entity_stage_open(anchor: Entity*): EntityStage* {
+    var stage = alloc(EntityStage, 1);
+    if stage == null { return null; }
+    if !entity_stage_init(stage, anchor) { free(stage); return null; }
+    return stage;
+}
+
+// Coordinator-only, before pinning. The scheduler must own exclusive access to
+// this entity's component list and writable payloads for the entire lease. Its
+// existing identity/containment/type indexes remain published and stable. New
+// attachments are visible through this owner's lookup only, not typed queries.
+export fn entity_stage_lease(stage: EntityStage*, node: Entity*): bool {
+    if stage.anchor == null || node == null || node.store != stage.anchor.store
+        || node.store.views != 0 || node.registered { return false; }
+    if node.stage == bits(void*, stage) { return true; }
+    if node.stage != null { return false; }
+    if !vector_reserve(EntityStageLease, &stage.leases, stage.leases.length + 1) { return false; }
+    var lease = &stage.leases.data[stage.leases.length];
+    lease.node = node;
+    lease.components = node.component_count;
+    stage.leases.length++;
+    node.stage = bits(void*, stage);
+    return true;
+}
+
+// Only the owning worker calls create/component_add on its staged nodes.
+// No retain/release/attach/register/remove is permitted until publication.
+export fn entity_stage_create(stage: EntityStage*, parent: Entity*): Entity* {
+    if stage.anchor == null || parent == null || parent.store != stage.anchor.store { return null; }
+    if parent.stage != null && parent.stage != bits(void*, stage) { return null; }
+    if !vector_reserve(Entity*, &stage.nodes, stage.nodes.length + 1) { return null; }
+    var node = alloc(Entity, 1);
+    if node == null { return null; }
+    fill(node, 0, sizeof(Entity));
+    node.store = parent.store;
+    node.references = 1;
+    node.parent = parent; // Borrowed for provenance, not yet parent containment.
+    node.stage = bits(void*, stage);
+    stage.nodes.data[stage.nodes.length] = node;
+    stage.nodes.length++;
+    return node;
+}
+
+fn entity_stage_count(counts: vector(EntityStageCount)*, node: Entity*): EntityStageCount* {
+    var hash = bits(usize, node) / 16;
+    hash ^= hash >> 16;
+    var mask = counts.length - 1;
+    var index = hash & mask;
+    while counts.data[index].entity != null && counts.data[index].entity != node {
+        index = (index + 1) & mask;
+    }
+    counts.data[index].entity = node;
+    return &counts.data[index];
+}
+
+// Failure in preparation leaves all semantic identities/links/index lengths
+// unchanged. Capacity may grow, so publication requires an unpinned store even
+// when preparation fails. No fallible allocation remains after preparation.
+fn entity_stage_prepare(stage: EntityStage*): bool {
+    var store = stage.anchor.store;
+    if store.views != 0 { return false; }
+    var count = stage.nodes.length;
+    if count > ~convert(usize, 0) - store.next_id { return false; }
+    var components: usize = 0;
+    for(var i: usize = 0; i < count; ++i) {
+        var node = stage.nodes.data[i];
+        if node.component_count > ~convert(usize, 0) - components { return false; }
+        components += node.component_count;
+    }
+    for(var i: usize = 0; i < stage.leases.length; ++i) {
+        var lease = &stage.leases.data[i];
+        var added = lease.node.component_count - lease.components;
+        if added > ~convert(usize, 0) - components { return false; }
+        components += added;
+    }
+    if components > ~convert(usize, 0) - store.component_count { return false; }
+    if components > ~convert(usize, 0) - count { return false; }
+    var entries = components + count;
+    if entries > ~convert(usize, 0) / 2 { return false; }
+    var capacity: usize = 8;
+    while capacity < entries * 2 {
+        if capacity > ~convert(usize, 0) / 2 { return false; }
+        capacity *= 2;
+    }
+    var counts: vector(EntityStageCount);
+    vector_init(EntityStageCount, &counts);
+    if !vector_reserve(EntityStageCount, &counts, capacity) { return false; }
+    counts.length = capacity;
+    fill(counts.data, 0, capacity * sizeof(EntityStageCount));
+    for(var i: usize = 0; i < count; ++i) {
+        var node = stage.nodes.data[i];
+        entity_stage_count(&counts, node.parent).children++;
+        for(var j: usize = 0; j < node.component_count; ++j) {
+            entity_stage_count(&counts, node.components[j].type).instances++;
+        }
+    }
+    for(var i: usize = 0; i < stage.leases.length; ++i) {
+        var lease = &stage.leases.data[i];
+        for(var j = lease.components; j < lease.node.component_count; ++j) {
+            entity_stage_count(&counts, lease.node.components[j].type).instances++;
+        }
+    }
+    var success = true;
+    for(var i: usize = 0; i < capacity && success; ++i) {
+        var entry = &counts.data[i];
+        var node = entry.entity;
+        if node == null { continue; }
+        if entry.children > ~convert(usize, 0) - node.child_count
+            || entry.instances > ~convert(usize, 0) - node.instance_count { success = false; break; }
+        var children = node.child_count + entry.children;
+        if children > node.child_capacity {
+            var memory = realloc(EntityChild, node.children, children);
+            if memory == null { success = false; break; }
+            node.children = memory;
+            node.child_capacity = children;
+        }
+        var instances = node.instance_count + entry.instances;
+        if instances > node.instance_capacity {
+            var memory = realloc(EntityComponent*, node.instances, instances);
+            if memory == null { success = false; break; }
+            node.instances = memory;
+            node.instance_capacity = instances;
+        }
+    }
+    vector_dispose(EntityStageCount, &counts);
+    return success;
+}
+
+fn entity_stage_components(node: Entity*, first: usize): void {
+    for(var j = first; j < node.component_count; ++j) {
+        var component = node.components[j];
+        var type = component.type;
+        component.type_index = type.instance_count;
+        type.instances[type.instance_count] = component;
+        type.instance_count++;
+        entity_retain(type);
+        node.store.component_count++;
+    }
+}
+
+export fn entity_stage_publish(stage: EntityStage*): bool {
+    if stage.anchor == null || !entity_stage_prepare(stage) { return false; }
+    var store = stage.anchor.store;
+    for(var i: usize = 0; i < stage.nodes.length; ++i) {
+        var node = stage.nodes.data[i];
+        node.id = store.next_id;
+        store.next_id++;
+        store.entity_count++;
+        node.stage = null;
+        entity_stage_components(node, 0);
+        // Transfer the stage's one reference into its parent's ownership.
+        var parent = node.parent;
+        parent.children[parent.child_count].entity = node;
+        parent.children[parent.child_count].name = null;
+        parent.child_count++;
+    }
+    for(var i: usize = 0; i < stage.leases.length; ++i) {
+        var lease = &stage.leases.data[i];
+        lease.node.stage = null;
+        entity_stage_components(lease.node, lease.components);
+    }
+    vector_dispose(Entity*, &stage.nodes);
+    vector_dispose(EntityStageLease, &stage.leases);
+    entity_release(stage.anchor);
+    stage.anchor = null;
+    free(stage);
+    return true;
+}
+
+// Call only after the owning worker joins. Finalizers run on the coordinator;
+// discarded payloads must not have escaped into an existing published payload.
+export fn entity_stage_discard(stage: EntityStage*): void {
+    for(var i: usize = 0; i < stage.nodes.length; ++i) {
+        var node = stage.nodes.data[i];
+        for(var j: usize = 0; j < node.component_count; ++j) {
+            var component = node.components[j];
+            if component.type.lifecycle != 0 {
+                tower_entity_finalize(component.type.lifecycle, component, component.data);
+            }
+            free(component.allocation);
+        }
+        free(node.components);
+        free(node.children);
+        free(node.instances);
+        free(node);
+    }
+    for(var i: usize = 0; i < stage.leases.length; ++i) {
+        var lease = &stage.leases.data[i];
+        var node = lease.node;
+        for(var j = lease.components; j < node.component_count; ++j) {
+            var component = node.components[j];
+            if component.type.lifecycle != 0 {
+                tower_entity_finalize(component.type.lifecycle, component, component.data);
+            }
+            free(component.allocation);
+        }
+        node.component_count = lease.components;
+        node.stage = null;
+    }
+    vector_dispose(Entity*, &stage.nodes);
+    vector_dispose(EntityStageLease, &stage.leases);
+    if stage.anchor != null { entity_release(stage.anchor); }
+    stage.anchor = null;
+    free(stage);
+}

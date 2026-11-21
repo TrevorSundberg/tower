@@ -1,3 +1,4 @@
+import { decodeBytes } from './host-bytes.mjs';
 function configureGrammar(exports, source, name, setter, environment = 0) {
   if (typeof source !== 'string') throw new Error(`Load ${name.toLowerCase()}.tower before initializing Tower`);
   const bytes = new TextEncoder().encode(source);
@@ -9,7 +10,7 @@ function configureGrammar(exports, source, name, setter, environment = 0) {
     new Uint8Array(exports.memory.buffer).set(bytes, pointer);
     const error = exports[setter](pointer, bytes.length, environment);
     const memory = new Uint8Array(exports.memory.buffer);
-    const message = new TextDecoder().decode(memory.subarray(error, memory.indexOf(0, error)));
+    const message = decodeBytes(new TextDecoder(), memory.subarray(error, memory.indexOf(0, error)));
     if (message) throw new Error(message);
   } finally { free(pointer); }
 }

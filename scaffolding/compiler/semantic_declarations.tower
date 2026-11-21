@@ -1,0 +1,514 @@
+import tower;
+import foundation_tags;
+import foundation_types;
+import semantic_context;
+import semantic_program_types;
+import semantic_layout;
+import semantic_definitions;
+import semantic_modules;
+import semantic_support;
+import semantic_types;
+import semantic_expressions;
+import semantic_statements;
+import semantic_enums;
+import .library.vector;
+import .library.work_graph;
+import .library.work_pool;
+import .library.stack;
+import compiler_kernel;
+
+const DeclarationQuery: u32 = 3;
+const DeclarationDiscoveryQuery: u32 = 4;
+
+struct SemanticDeclaration {
+    number: usize;
+    query: usize;
+    discovery: usize;
+    kernel: CompilerKernel;
+    ticket: WorkTicket;
+    context: SemanticContext*;
+    scope: SemanticScope*;
+    subject: void*;
+    discover: bool;
+    waiting: usize;
+    dependencies: vector(usize);
+    error: vector(u8);
+    error_offset: usize;
+}
+
+struct DeclarationScan {
+    node: void*;
+    type: bool;
+}
+
+fn sem_declaration_state(c: SemanticContext*, node: void*): SemanticDeclaration* {
+    if c.declaration_state == null {
+        c.declaration_state = sem_create(c.program.root);
+        sem_require(entity_register(c.declaration_state, sizeof(SemanticDeclaration), alignof(SemanticDeclaration), 0));
+    }
+    var component = entity_component_get(node, c.declaration_state);
+    if component != null { return bits(SemanticDeclaration*, entity_component_data(component)); }
+    component = entity_component_add(node, c.declaration_state);
+    var state = bits(SemanticDeclaration*, entity_component_data(component));
+    sem_require(state != null);
+    fill(state, 0, sizeof(SemanticDeclaration));
+    return state;
+}
+
+// Worker lookup is read-only. A generated type with no declaration query was
+// already constructed by its coordinator-owned producer; never attach metadata
+// to it from a pinned worker scan.
+fn sem_declaration_query(c: SemanticContext*, node: void*): usize {
+    if node == null || c.declaration_state == null { return 0; }
+    var data = entity_component_data(entity_component_get(node, c.declaration_state));
+    if data == null { return 0; }
+    return bits(SemanticDeclaration*, data).query;
+}
+
+fn sem_declaration_scan_push(scan: vector(DeclarationScan)*, node: void*, type: bool): void {
+    if node == null { return; }
+    sem_require(vector_reserve(DeclarationScan, scan, scan.length + 1));
+    scan.data[scan.length].node = node;
+    scan.data[scan.length].type = type;
+    scan.length++;
+}
+
+fn sem_declaration_roots(c: SemanticContext*, subject: void*, scan: vector(DeclarationScan)*): void {
+    if sem_is(subject, "CoreStruct") {
+        var fields = sem_collect(c, sem_member(subject, "fields"), "CoreField");
+        var index: usize = 0;
+        while index < fields.length {
+            sem_declaration_scan_push(scan, sem_member(fields.data[index], "type"), true);
+            index++;
+        }
+    }
+    var annotation = sem_member(subject, "type");
+    if annotation != null { sem_declaration_scan_push(scan, annotation, true); }
+    else { sem_declaration_scan_push(scan, sem_member(subject, "value"), false); }
+}
+
+// A member lookup needs the selected record's fields, but a mere reference or
+// pointer to that record needs only its nominal identity. Discover these edges
+// after the value's declaration type is ready, without mutating expression nodes.
+fn sem_declaration_location(c: SemanticContext*, node: void*, waiting: usize*, depth: usize): FoundationType* {
+    if node == null || depth > 128 { return null; }
+    node = sem_surface_unwrap(node);
+    if sem_is(node, "CoreCall") {
+        var name = sem_member(node, "name");
+        var function = sem_resolve(c, c.functions, name, sem_identifier(c, name));
+        if function == null { return null; }
+        var query = sem_declaration_query(c, function);
+        if query != 0 && work_task(&c.queries, query).state != WorkState.Succeeded {
+            *waiting = query;
+            return null;
+        }
+        return &sem_get(function).type;
+    }
+    if !sem_is(node, "CoreLocation") { return null; }
+    var module = sem_namespace(c, node);
+    var base = sem_member(node, "base");
+    if module != null || base == null {
+        var name = sem_member(node, module != null ? "field" : "name");
+        var declaration: void* = null;
+        if module != null { declaration = sem_owned(c.globals, module, sem_identifier(c, name)); }
+        else {
+            declaration = sem_local(c, sem_identifier(c, name));
+            if declaration == null { declaration = sem_resolve(c, c.globals, name, sem_identifier(c, name)); }
+        }
+        if declaration == null { return null; }
+        var query = sem_declaration_query(c, declaration);
+        if query != 0 && work_task(&c.queries, query).state != WorkState.Succeeded {
+            *waiting = query;
+            return null;
+        }
+        return &sem_get(declaration).type;
+    }
+    var type = sem_declaration_location(c, base, waiting, depth + 1);
+    if type == null { return null; }
+    if type.scalar == SArray() && sem_member(node, "index") != null {
+        return &sem_get(type.record).element;
+    }
+    if type.scalar != SStruct() || type.record == null { return null; }
+    var query = sem_declaration_query(c, type.record);
+    if query != 0 && work_task(&c.queries, query).state != WorkState.Succeeded {
+        *waiting = query;
+        return null;
+    }
+    var name = sem_identifier(c, sem_member(node, "field"));
+    var record = sem_get(type.record);
+    var index: usize = 0;
+    while index < record.items.length {
+        var field = sem_get(record.items.data[index]);
+        if sem_equal(name, sem_name(field)) { return &field.type; }
+        index++;
+    }
+    return null;
+}
+
+fn sem_declaration_waiting(c: SemanticContext*, subject: void*): usize {
+    var scan: vector(DeclarationScan);
+    vector_init(DeclarationScan, &scan);
+    sem_declaration_roots(c, subject, &scan);
+    var waiting: usize = 0;
+    while scan.length != 0 && waiting == 0 {
+        scan.length--;
+        var node = scan.data[scan.length].node;
+        var type = scan.data[scan.length].type;
+        if sem_is(node, "TowerDecltype") {
+            sem_declaration_scan_push(&scan, sem_member(node, "value"), false);
+            continue;
+        }
+        if !type && sem_is(node, "CoreCall") {
+            var name_node = sem_member(node, "name");
+            var name = sem_identifier(c, name_node);
+            var builtin = semantic_builtin_kind(name);
+            var definition = sem_resolve(c, c.templates, name_node, name);
+            var args = sem_collect(c, sem_member(node, "args"), "CoreCallArgument");
+            var argument: usize = 0;
+            while argument < args.length {
+                var type_argument = semantic_builtin_type_argument(builtin, argument);
+                if definition != null && argument < generic_parameter_count(c.generics, definition) {
+                    type_argument = generic_type_parameter(c.generics, definition, argument);
+                }
+                sem_declaration_scan_push(&scan, args.data[argument], type_argument);
+                argument++;
+            }
+            continue;
+        }
+        if !type && sem_is(node, "CoreLocation") {
+            sem_declaration_location(c, node, &waiting, 0);
+        }
+        var index: usize = 0;
+        while index < sem_child_count(node) {
+            sem_declaration_scan_push(&scan, sem_child(node, index), type);
+            index++;
+        }
+    }
+    vector_dispose(DeclarationScan, &scan);
+    return waiting;
+}
+
+// Binding discovery reads syntax and module scopes without recursively asking
+// for a declaration's type. Typed annotations depend only on their type spelling;
+// an initializer's runtime reads do not make explicit types cyclic.
+fn sem_declaration_dependencies(c: SemanticContext*, subject: void*, result: SemanticDeclaration*): void {
+    var scan: vector(DeclarationScan);
+    vector_init(DeclarationScan, &scan);
+    sem_declaration_roots(c, subject, &scan);
+    if sem_function_syntax(subject) {
+        var parameters = &sem_get(subject).parameters;
+        for(var i: usize = 0; i < parameters.length; ++i) {
+            sem_declaration_input(result, sem_declaration_query(c, parameters.data[i]));
+        }
+    }
+    while scan.length != 0 && sem_ok(c) {
+        scan.length--;
+        var node = scan.data[scan.length].node;
+        var type = scan.data[scan.length].type;
+        if sem_is(node, "TowerDecltype") {
+            sem_declaration_scan_push(&scan, sem_member(node, "value"), false);
+            continue;
+        }
+        if !type && sem_is(node, "CoreCall") {
+            var name_node = sem_member(node, "name");
+            var name = sem_identifier(c, name_node);
+            var builtin = semantic_builtin_kind(name);
+            var definition = sem_resolve(c, c.templates, name_node, name);
+            var function = sem_resolve(c, c.functions, name_node, name);
+            if function != null {
+                var input = sem_declaration_query(c, function);
+                if input != 0 { sem_declaration_input(result, input); }
+            }
+            var args = sem_collect(c, sem_member(node, "args"), "CoreCallArgument");
+            if args.length != 0 && (builtin == KSizeOf() || builtin == KAlignOf()) {
+                var argument = sem_surface_unwrap(args.data[0]);
+                var nominal = sem_resolve(c, c.types, argument, sem_identifier(c, argument));
+                if nominal != null {
+                    var input = sem_declaration_query(c, nominal);
+                    if input != 0 { sem_declaration_input(result, input); }
+                }
+            }
+            var index: usize = 0;
+            while index < args.length {
+                var type_argument = semantic_builtin_type_argument(builtin, index);
+                if definition != null && index < generic_parameter_count(c.generics, definition) {
+                    type_argument = generic_type_parameter(c.generics, definition, index);
+                }
+                sem_declaration_scan_push(&scan, args.data[index], type_argument);
+                index++;
+            }
+            continue;
+        }
+        if !type && sem_is(node, "CoreLocation") {
+            var base = sem_member(node, "base");
+            var module = sem_namespace(c, node);
+            var dependency: void* = null;
+            if module != null {
+                dependency = sem_owned(c.globals, module, sem_identifier(c, sem_member(node, "field")));
+            } else {
+                if base == null {
+                    var name = sem_member(node, "name");
+                    if name != null {
+                        dependency = sem_local(c, sem_identifier(c, name));
+                        if dependency == null { dependency = sem_resolve(c, c.globals, name, sem_identifier(c, name)); }
+                    }
+                } else {
+                    var nominal = sem_owned(c.types, sem_owner(c, base), sem_identifier(c, base));
+                    if nominal != null && semantic_enum(&sem_get(nominal).type) {
+                        var input = sem_declaration_query(c, nominal);
+                        if input != 0 { sem_declaration_input(result, input); }
+                        continue;
+                    }
+                }
+            }
+            if dependency != null {
+                var input = sem_declaration_query(c, dependency);
+                sem_require(input != 0);
+                sem_declaration_input(result, input);
+            }
+            if module != null { continue; }
+        }
+        var child: usize = 0;
+        while child < sem_child_count(node) {
+            sem_declaration_scan_push(&scan, sem_child(node, child), type);
+            child++;
+        }
+    }
+    vector_dispose(DeclarationScan, &scan);
+}
+
+fn sem_declaration_input(result: SemanticDeclaration*, input: usize): void {
+    var index: usize = 0;
+    while index < result.dependencies.length {
+        if result.dependencies.data[index] == input { return; }
+        index++;
+    }
+    sem_require(vector_push(usize, &result.dependencies, input));
+}
+
+// Each worker borrows immutable scope/graph indexes and owns all scan scratch
+// and diagnostics. No entity registration, structural mutation or publication
+// is permitted while these jobs hold the coordinator's pinned entity view.
+fn semantic_declaration_kernel(result: SemanticDeclaration*): void {
+    var context: SemanticContext;
+    var program: SemanticProgram;
+    copy(&context, result.context, sizeof(SemanticContext));
+    copy(&program, context.program, sizeof(SemanticProgram));
+    context.program = &program;
+    context.editor = null;
+    context.scope = result.scope;
+    vector_init(void*, &context.allocations);
+    vector_init(void*, &context.lists);
+    vector_init(u8, &context.token_text);
+    fill(&context.scan, 0, sizeof(stack(void*)));
+    vector_init(u8, &program.error);
+    if result.discover { sem_declaration_dependencies(&context, result.subject, result); }
+    else { result.waiting = sem_declaration_waiting(&context, result.subject); }
+    copy(&result.error, &program.error, sizeof(vector(u8)));
+    result.error_offset = program.error_offset;
+    stack_dispose(void*, &context.scan);
+    vector_dispose(u8, &context.token_text);
+    var index: usize = 0;
+    while index < context.lists.length {
+        vector_dispose(void*, bits(vector(void*)*, context.lists.data[index]));
+        index++;
+    }
+    vector_dispose(void*, &context.lists);
+    index = 0;
+    while index < context.allocations.length {
+        free(context.allocations.data[index]);
+        index++;
+    }
+    vector_dispose(void*, &context.allocations);
+}
+
+fn sem_declaration_error(c: SemanticContext*, result: SemanticDeclaration*): bool {
+    if result.error.length == 0 { return false; }
+    if sem_ok(c) {
+        sem_require(vector_reserve(u8, &c.program.error, result.error.length + 1));
+        copy(c.program.error.data, result.error.data, result.error.length + 1);
+        c.program.error.length = result.error.length;
+        c.program.error_offset = result.error_offset;
+    }
+    vector_dispose(u8, &result.error);
+    return true;
+}
+
+extern fn entity_query_count(type: void*): usize;
+extern fn entity_query_at(type: void*, index: usize): void*;
+
+fn sem_declaration_dispose(c: SemanticContext*): void {
+    if c.declaration_state != null {
+        for(var i: usize = 0; i < entity_query_count(c.declaration_state); ++i) {
+            var result = bits(SemanticDeclaration*, entity_component_data(entity_query_at(c.declaration_state, i)));
+            vector_dispose(usize, &result.dependencies);
+            vector_dispose(u8, &result.error);
+            // These scratch scopes/context are owned only for this compilation.
+            result.context = null;
+            result.scope = null;
+        }
+    }
+    vector_dispose(void*, &c.declaration_jobs);
+}
+
+fn sem_declaration_subject(node: void*): bool {
+    return sem_is(node, "CoreDeclare") || sem_is(node, "CoreParameter") || sem_function_syntax(node)
+        || sem_is(node, "CoreStruct") || sem_is(node, "CoreEnum");
+}
+
+fn sem_declarations(c: SemanticContext*, statements: vector(void*)*): void {
+    if !sem_ok(c) { return; }
+    var subjects = sem_list(c);
+    for(var i: usize = 0; i < statements.length && sem_ok(c); ++i) {
+        var node = statements.data[i];
+        if !sem_declaration_subject(node) { continue; }
+        sem_push(subjects, node);
+        if sem_function_syntax(node) {
+            sem_parameters(c, node, null);
+            var parameters = &sem_get(node).parameters;
+            for(var j: usize = 0; j < parameters.length; ++j) { sem_push(subjects, parameters.data[j]); }
+        }
+    }
+    if !sem_ok(c) { return; }
+    statements = subjects;
+    var index: usize = 0;
+    while index < statements.length {
+        var node = statements.data[index];
+        if sem_declaration_subject(node) {
+            var id = work_request(&c.queries, node, DeclarationQuery(), 0);
+            sem_require(id != 0);
+            var result = sem_declaration_state(c, node);
+            result.query = id;
+            result.context = c;
+            result.subject = node;
+            result.kernel.kind = CompilerKernelKind.Declaration;
+            result.kernel.payload = bits(void*, result);
+            result.discover = true;
+            sem_require(vector_push(void*, &c.declaration_jobs, bits(void*, result)));
+            sem_require(work_access(&c.queries, id, 1, 4, id, 1, WorkAccessMode.Write));
+            result.discovery = work_request(&c.queries, node, DeclarationDiscoveryQuery(), 0);
+            sem_require(work_access(&c.queries, result.discovery, 1, 5, id, 1, WorkAccessMode.Write));
+            sem_require(work_access(&c.queries, result.discovery, 1, 3, 0, ~convert(usize, 0), WorkAccessMode.Read));
+            sem_require(work_seal(&c.queries, result.discovery));
+            sem_require(work_demand(&c.queries, result.discovery));
+        }
+        index++;
+    }
+    // Even primitive identities have a preallocated state so lookups in a
+    // worker can never enter entity_component_add while structure is pinned.
+    index = 0;
+    while index < c.program.types.length {
+        sem_declaration_state(c, c.program.types.data[index]);
+        index++;
+    }
+    if c.workers.count == 0 { sem_require(work_pool_open(&c.workers, work_thread_capacity())); }
+    var batch: SemanticDeclaration*[256];
+    loop {
+        var view = entity_view_open(c.program.root);
+        sem_require(view != null);
+        var count: usize = 0;
+        var ticket: WorkTicket;
+        while count < c.workers.count && work_take_query(&c.queries, &ticket, DeclarationDiscoveryQuery()) {
+            var result = sem_declaration_state(c, work_task(&c.queries, ticket.task).subject);
+            copy(&result.ticket, &ticket, sizeof(WorkTicket));
+            batch[count] = result;
+            sem_require(work_pool_submit(&c.workers, bits(void*, &result.kernel)));
+            count++;
+        }
+        index = 0;
+        while index < count { sem_require(work_pool_receive(&c.workers, true) != null); index++; }
+        entity_view_close(view);
+        if count == 0 { break; }
+        index = 0;
+        while index < count {
+            var result = batch[index];
+            var success = !sem_declaration_error(c, result);
+            sem_require(work_finish(&c.queries, &result.ticket, success));
+            var edge: usize = 0;
+            while edge < result.dependencies.length {
+                var input = result.dependencies.data[edge];
+                sem_require(work_depend(&c.queries, result.query, input));
+                sem_require(work_access(&c.queries, result.query, 1, 4, input, 1, WorkAccessMode.Read));
+                edge++;
+            }
+            sem_require(work_depend(&c.queries, result.query, result.discovery));
+            sem_require(work_seal(&c.queries, result.query));
+            result.discover = false;
+            index++;
+        }
+        if !sem_ok(c) { break; }
+    }
+    if !sem_ok(c) { return; }
+    index = 0;
+    while index < statements.length {
+        var node = statements.data[index];
+        if sem_declaration_subject(node) { sem_require(work_demand(&c.queries, sem_declaration_query(c, node))); }
+        index++;
+    }
+    loop {
+        if !sem_ok(c) { break; }
+        var view = entity_view_open(c.program.root);
+        sem_require(view != null);
+        var count: usize = 0;
+        var ticket: WorkTicket;
+        while count < c.workers.count && work_take_query(&c.queries, &ticket, DeclarationQuery()) {
+            var result = sem_declaration_state(c, work_task(&c.queries, ticket.task).subject);
+            copy(&result.ticket, &ticket, sizeof(WorkTicket));
+            batch[count] = result;
+            sem_require(work_pool_submit(&c.workers, bits(void*, &result.kernel)));
+            count++;
+        }
+        index = 0;
+        while index < count { sem_require(work_pool_receive(&c.workers, true) != null); index++; }
+        entity_view_close(view);
+        if count == 0 { break; }
+        index = 0;
+        while index < count {
+            var result = batch[index];
+            var node = result.subject;
+            var success = !sem_declaration_error(c, result) && sem_ok(c);
+            if success && result.waiting != 0 {
+                sem_require(work_suspend(&c.queries, &result.ticket, result.waiting));
+            } else {
+                if success {
+                    var saved_scope = c.scope;
+                    c.scope = result.scope;
+                    if sem_is(node, "CoreDeclare") || sem_is(node, "CoreParameter") { success = sem_declaration_type(c, node); }
+                    else {
+                        if sem_function_syntax(node) { sem_header(c, node, "", null); }
+                        else {
+                            if sem_is(node, "CoreStruct") { sem_type_fields(c, node); }
+                            else { sem_enum_fields(c, node); }
+                        }
+                        success = sem_ok(c);
+                    }
+                    c.scope = saved_scope;
+                }
+                sem_require(work_finish(&c.queries, &result.ticket, success));
+            }
+            index++;
+        }
+    }
+    index = 0;
+    while index < statements.length && sem_ok(c) {
+        var node = statements.data[index];
+        if sem_declaration_subject(node) {
+            var id = sem_declaration_query(c, node);
+            if work_task(&c.queries, id).state != WorkState.Succeeded {
+                var cycle: vector(usize);
+                vector_init(usize, &cycle);
+                sem_require(work_cycle(&c.queries, id, &cycle));
+                var chain: u8* = "";
+                var edge: usize = 0;
+                while edge < cycle.length {
+                    if edge != 0 { chain = sem_cat(c, chain, " -> "); }
+                    chain = sem_cat(c, chain, sem_name(sem_get(work_task(&c.queries, cycle.data[edge]).subject)));
+                    edge++;
+                }
+                vector_dispose(usize, &cycle);
+                sem_fail(c, node, sem_cat(c, "Cannot resolve declaration type: initializer dependency cycle ", chain));
+            }
+        }
+        index++;
+    }
+}

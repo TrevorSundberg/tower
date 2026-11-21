@@ -1,0 +1,39 @@
+import tower;
+import .compiler.interpreter_types;
+import .compiler.interpreter_context_types;
+import .compiler.interpreter_context;
+import .library.vector;
+
+// Compile-only reactor host: every machine belongs to an explicit IMInvocation.
+// Its ordinary interpreter callbacks use that same owned context; no process
+// output, global program or foreign-call capability is supplied implicitly.
+export fn im_pointer_bytes(machine: IMState*): usize {
+    return bits(IMInvocation*, machine).context.pointer_bytes;
+}
+export fn im_root(machine: IMState*): void* {
+    return bits(IMInvocation*, machine).context.root;
+}
+export fn im_has_foreign(machine: IMState*): bool { return false; }
+export fn im_fail(machine: IMState*, text: u8*, offset: usize): void {
+    var execution: IMExecution;
+    execution.state = machine;
+    execution.context = &bits(IMInvocation*, machine).context;
+    ix_fail(&execution, text, offset);
+}
+export fn im_append(machine: IMState*, text: u8*, count: usize): void {
+    var output = &bits(IMInvocation*, machine).context.output;
+    var end = output.length + count;
+    if end < output.length || !vector_reserve(u8, output, end) {
+        im_fail(machine, "Cannot allocate interpreter output", 0);
+        return;
+    }
+    copy(output.data + output.length, text, count);
+    output.length = end;
+}
+export fn im_missing_foreign(machine: IMState*, node: void*, offset: usize): void {
+    im_fail(machine, "Interpreter invocation requires an explicit foreign-call capability", offset);
+}
+export fn im_foreign(machine: IMState*, node: void*, args: u64*, count: usize): u64 {
+    im_missing_foreign(machine, node, 0);
+    return 0;
+}

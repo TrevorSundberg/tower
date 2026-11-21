@@ -1,0 +1,92 @@
+import tower;
+
+// WASI Preview 1 threads ABI from wasi-sdk 34: pthread_t is a wasm32
+// pointer; sem_t is four 32-bit words. The host supplies only thread spawning
+// and an indirect-table address for the ordinary exported Tower callback.
+extern fn pthread_create(thread: usize*, attributes: void*, entry: void*, argument: void*): i32;
+extern fn pthread_join(thread: usize, result: void**): i32;
+extern fn work_host_available(): bool;
+extern fn work_host_entry(): usize;
+extern fn work_host_capacity(): usize;
+extern fn work_host_check(): void;
+extern fn work_host_time(): i64;
+extern fn sem_init(signal: void*, shared: i32, value: u32): i32;
+extern fn sem_destroy(signal: void*): i32;
+extern fn sem_post(signal: void*): i32;
+extern fn sem_timedwait(signal: void*, deadline: void*): i32;
+extern fn sem_trywait(signal: void*): i32;
+extern fn __errno_location(): i32*;
+
+// wasi-sdk 34's wasm32 timespec is i64 seconds and i32 nanoseconds.
+struct WorkDeadline { seconds: i64; nanoseconds: i32; }
+
+export fn work_thread_available(): bool { return work_host_available(); }
+export fn work_thread_capacity(): usize { return work_host_capacity(); }
+
+export fn work_thread_open(argument: void*): void* {
+    var entry = bits(void*, work_host_entry());
+    if entry == null { return null; }
+    var thread = alloc(usize, 1);
+    if thread == null { return null; }
+    if pthread_create(thread, null, entry, argument) != 0 {
+        free(thread);
+        return null;
+    }
+    return bits(void*, thread);
+}
+
+export fn work_thread_close(thread: void*): void {
+    if thread == null { return; }
+    if pthread_join(*bits(usize*, thread), null) != 0 {
+        trap("Cannot join compiler worker", 0);
+    }
+    free(thread);
+}
+
+export fn work_signal_open(): void* {
+    var signal = bits(void*, alloc(u32, 4));
+    if signal == null { return null; }
+    if sem_init(signal, 0, 0) != 0 {
+        free(signal);
+        return null;
+    }
+    return signal;
+}
+
+export fn work_signal_close(signal: void*): void {
+    if signal == null { return; }
+    if sem_destroy(signal) != 0 { trap("Cannot release compiler semaphore", 0); }
+    free(signal);
+}
+
+export fn work_signal_post(signal: void*): void {
+    if sem_post(signal) != 0 { trap("Cannot publish compiler work", 0); }
+}
+
+export fn work_signal_wait(signal: void*): void {
+    loop {
+        // A trapped guest worker cannot post its completion semaphore. Check
+        // the shared transport failure record even while coordinator JS cannot
+        // service messages. Time affects scheduling only, never Tower results.
+        work_host_check();
+        var deadline: WorkDeadline;
+        var time = work_host_time() + 100000000;
+        deadline.seconds = time / 1000000000;
+        deadline.nanoseconds = convert(i32, time % 1000000000);
+        if sem_timedwait(signal, bits(void*, &deadline)) == 0 {
+            work_host_check();
+            return;
+        }
+        var error = *__errno_location();
+        if error != 27 && error != 73 { trap("Cannot wait for compiler work", 0); }
+    }
+}
+
+export fn work_signal_try(signal: void*): bool {
+    loop {
+        if sem_trywait(signal) == 0 { return true; }
+        var error = *__errno_location();
+        if error == 6 { return false; }
+        if error != 27 { trap("Cannot inspect compiler work", 0); }
+    }
+}

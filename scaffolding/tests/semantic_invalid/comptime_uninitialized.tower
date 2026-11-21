@@ -1,0 +1,3 @@
+import tower;
+fn uninitialized(): i32 { var value: i32; return value; }
+var result = comptime(uninitialized());

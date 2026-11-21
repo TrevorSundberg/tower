@@ -1,0 +1,39 @@
+import tower;
+import interpreter_types;
+import .library.vector;
+
+// An invocation context belongs to its evaluation request, which may be a
+// shared compiler entity. No ambient world, host address table or TLS lookup is
+// needed. The existing IMState ABI remains unchanged for retained host clients.
+struct IMContext {
+    root: void*;
+    pointer_bytes: usize;
+    error: vector(u8);
+    output: vector(u8);
+    result: u64;
+    returned: bool;
+    strict: bool;
+    fuel: u64;
+    initialized: vector(u8);
+    dependency_kind: void*;
+    waiting: void*;
+}
+
+// Shared query metadata; the evaluator reads readiness, while only the
+// coordinator materializes the Foundation constant and publishes readiness.
+struct IMDependency {
+    ready: bool;
+    failed: bool;
+    subject: void*;
+    source: IMDependency*;
+}
+
+struct IMExecution {
+    state: IMState*;
+    context: IMContext*;
+}
+
+struct IMInvocation {
+    state: IMState;
+    context: IMContext;
+}

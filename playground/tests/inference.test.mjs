@@ -114,7 +114,14 @@ test('unresolved inference, incompatible types and literal range errors prevent 
   if(llvm){const compiled=llvm.compile(source);assert.equal(compiled.status,'error',source);assert.match(compiled.error,message,source);}
  }
  const deep=Array.from({length:150},(_,i)=>`var x${i} = ${i===149?'1':`x${i+1}`};`).join('\n');
- assert.match(execute(deep).error,/nesting limit|dependency limit/);
+ const handle=tower.compile(deep);
+ try {
+  // The query graph resolves this chain without recursive inference. Do not
+  // execute its deliberately forward reads of uninitialized runtime storage.
+  const canonical=tower.foundation(handle);
+  assert.equal(typeof canonical.source,'string',canonical.error);
+  assert.match(canonical.source,/var x0: i32 =/);
+ } finally { tower.destroyExecution(handle); }
 });
 
 test('source formatting preserves inference while canonical output spells the checked types',()=>{

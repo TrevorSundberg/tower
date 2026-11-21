@@ -168,6 +168,11 @@ export fn semantic_builtin_arity(kind: u32): usize {
     return 0;
 }
 
+fn semantic_builtin_type_argument(kind: u32, index: usize): bool {
+    return index == 0 && (kind == KSizeOf() || kind == KAlignOf()
+        || kind == KConvert() || kind == KBits() || kind == KAllocate() || kind == KReallocate());
+}
+
 export fn semantic_builtin_kind(name: u8*): u32 {
     if sem_equal(name, "label") {
         return 31;

@@ -1,11 +1,11 @@
-import { loadTower, runToEnd } from './tower-host.mjs';
+import { runToEnd } from './tower-host.mjs';
 import {getTower, useCompiler} from './compiler-runtime.mjs';
 let tower, handle = 0, moduleHandle = 0, bedrockHandle = 0, installed, installedBedrock;
 const ready = (async () => {
-  const [wasm, module, seed, language] = await Promise.all([fetch('./tower.wasm'), fetch('./foundation.tower'), fetch('./bedrock.tower'), fetch('./tower.tower')]);
-    if (!wasm.ok || !module.ok || !seed.ok || !language.ok) throw new Error('Could not load Tower and its language modules');
+  const [module, seed, language] = await Promise.all([fetch('./foundation.tower'), fetch('./bedrock.tower'), fetch('./tower.tower')]);
+    if (!module.ok || !seed.ok || !language.ok) throw new Error('Could not load Tower and its language modules');
   installed = await module.text(); installedBedrock = await seed.text();
-  tower = await loadTower(await wasm.arrayBuffer(), undefined, installed, undefined, installedBedrock, {tower:await language.text()});
+  tower = (await getTower(installed, installedBedrock, await language.text())).tower;
 })();
 self.onmessage = async ({ data: { id, source, foundation, bedrock, editingModule, files=[], builtins={}, activePath='input.tower', entry, compiler, library='.tower' } }) => {
   try {

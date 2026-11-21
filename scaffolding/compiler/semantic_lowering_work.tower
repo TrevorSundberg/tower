@@ -1,0 +1,143 @@
+import tower;
+import compiler_kernel;
+import semantic_context;
+import semantic_program_types;
+import semantic_control;
+import semantic_support;
+import semantic_expression_lowering;
+import .library.vector;
+import .library.stack;
+import .library.work_graph;
+import .library.work_pool;
+
+const LoweringQuery: u32 = 5;
+
+struct SemanticLowering {
+    kernel: CompilerKernel;
+    ticket: WorkTicket;
+    context: SemanticContext*;
+    subject: void*;
+    block: void*;
+    stage: void*;
+    ordinal: usize;
+    count: usize;
+    error: vector(u8);
+    error_offset: usize;
+}
+
+extern fn entity_view_open(anchor: void*): void*;
+extern fn entity_view_close(view: void*): void;
+
+fn semantic_lowering_kernel(result: SemanticLowering*): void {
+    var context: SemanticContext;
+    var program: SemanticProgram;
+    copy(&context, result.context, sizeof(SemanticContext));
+    copy(&program, context.program, sizeof(SemanticProgram));
+    context.program = &program;
+    context.editor = null;
+    context.current = result.subject;
+    context.entity_stage = result.stage;
+    context.control_reserved = context.control_names;
+    context.control_names = null;
+    context.count = 0;
+    context.node_limit -= result.context.count;
+    vector_init(void*, &context.allocations);
+    vector_init(void*, &context.lists);
+    vector_init(u8, &context.token_text);
+    fill(&context.scan, 0, sizeof(stack(void*)));
+    vector_init(u8, &program.error);
+    context.control_prefix = sem_cat(&context, "control value ",
+        sem_cat(&context, sem_decimal(&context, convert(u64, result.ordinal)), "."));
+    sem_lift_block(&context, result.block);
+    result.count = context.count;
+    copy(&result.error, &program.error, sizeof(vector(u8)));
+    result.error_offset = program.error_offset;
+    stack_dispose(void*, &context.scan);
+    vector_dispose(u8, &context.token_text);
+    for(var i: usize = 0; i < context.lists.length; ++i) {
+        vector_dispose(void*, bits(vector(void*)*, context.lists.data[i]));
+    }
+    vector_dispose(void*, &context.lists);
+    for(var i: usize = 0; i < context.allocations.length; ++i) { free(context.allocations.data[i]); }
+    vector_dispose(void*, &context.allocations);
+}
+
+fn sem_lower_parallel(c: SemanticContext*): void {
+    if !c.surface_expressions || !sem_ok(c) { return; }
+    // Source spellings and names produced by earlier control lowering are frozen
+    // before dispatch. Every function owns its generated-name table and prefix.
+    sem_control_names(c);
+    var kind = sem_create(c.program.root);
+    sem_require(entity_register(kind, sizeof(SemanticLowering), alignof(SemanticLowering), 0));
+    for(var i: usize = 0; i < c.program.functions.length; ++i) {
+        var subject = c.program.functions.data[i];
+        var block = i == 0 ? subject : sem_get(subject).body;
+        if block == null { continue; }
+        var result = bits(SemanticLowering*, entity_component_data(entity_component_add(subject, kind)));
+        sem_require(result != null);
+        fill(result, 0, sizeof(SemanticLowering));
+        result.context = c;
+        result.subject = subject;
+        result.block = block;
+        result.ordinal = i;
+        result.kernel.kind = CompilerKernelKind.Lower;
+        result.kernel.payload = bits(void*, result);
+        var id = work_request(&c.queries, subject, LoweringQuery(), 0);
+        sem_require(id != 0);
+        // Disjoint function payload ranges; layout/type inputs are immutable.
+        // Generated entities remain private until the publication barrier.
+        sem_require(work_access(&c.queries, id, 1, 6, i, 1, WorkAccessMode.Write));
+        sem_require(work_access(&c.queries, id, 1, 1, 0, ~convert(usize, 0), WorkAccessMode.Read));
+        sem_require(work_seal(&c.queries, id));
+        sem_require(work_demand(&c.queries, id));
+    }
+    if c.workers.count == 0 { sem_require(work_pool_open(&c.workers, work_thread_capacity())); }
+    var batch: SemanticLowering*[256];
+    while sem_ok(c) {
+        var count: usize = 0;
+        var ticket: WorkTicket;
+        while count < c.workers.count && work_take_query(&c.queries, &ticket, LoweringQuery()) {
+            var subject = work_task(&c.queries, ticket.task).subject;
+            var result = bits(SemanticLowering*, entity_component_data(entity_component_get(subject, kind)));
+            copy(&result.ticket, &ticket, sizeof(WorkTicket));
+            result.stage = entity_stage_open(c.program.root);
+            sem_require(result.stage != null);
+            batch[count] = result;
+            count++;
+        }
+        if count == 0 { break; }
+        var view = entity_view_open(c.program.root);
+        sem_require(view != null);
+        for(var i: usize = 0; i < count; ++i) {
+            sem_require(work_pool_submit(&c.workers, bits(void*, &batch[i].kernel)));
+        }
+        for(var i: usize = 0; i < count; ++i) {
+            sem_require(work_pool_receive(&c.workers, true) != null);
+        }
+        entity_view_close(view);
+        for(var i: usize = 0; i < count; ++i) {
+            var result = batch[i];
+            // Even a failed function owns its generated nodes until the failed
+            // program is destroyed. Publish them so ordinary lifecycle cleanup
+            // handles all canonical links without dangling staged references.
+            sem_require(entity_stage_publish(result.stage));
+            result.stage = null;
+            c.count += result.count;
+            if result.error.length != 0 && sem_ok(c) {
+                sem_require(vector_reserve(u8, &c.program.error, result.error.length + 1));
+                copy(c.program.error.data, result.error.data, result.error.length + 1);
+                c.program.error.length = result.error.length;
+                c.program.error_offset = result.error_offset;
+            }
+            if c.count > c.node_limit { sem_fail(c, result.subject, "Foundation component memory budget exceeded"); }
+            var success = result.error.length == 0 && c.count <= c.node_limit;
+            sem_require(work_finish(&c.queries, &result.ticket, success));
+            vector_dispose(u8, &result.error);
+        }
+    }
+    for(var i: usize = 0; i < c.program.functions.length; ++i) {
+        var data = entity_component_data(entity_component_get(c.program.functions.data[i], kind));
+        if data != null { bits(SemanticLowering*, data).context = null; }
+    }
+
+}

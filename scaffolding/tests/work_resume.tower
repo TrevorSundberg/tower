@@ -1,0 +1,229 @@
+import tower;
+import .library.work_graph;
+import .library.vector;
+
+var failures: u32 = 0;
+
+fn check(ok: bool): void {
+    if !ok {
+        failures++;
+    }
+}
+
+fn request(g: WorkGraph*, key: u64): usize {
+    var id = work_request(g, null, 1, key);
+    check(id != 0);
+    return id;
+}
+
+fn resume_tests(): void {
+    var g: WorkGraph;
+    work_init(&g, 11, 29);
+    var query = request(&g, 1);
+    var input = request(&g, 2);
+    var unused = request(&g, 3);
+    check(work_access(&g, query, 1, 1, 0, 8, WorkAccessMode.Write));
+    check(work_access(&g, input, 1, 1, 0, 8, WorkAccessMode.Write));
+    check(work_seal(&g, query));
+    check(work_seal(&g, input));
+    check(work_seal(&g, unused));
+    check(work_demand(&g, query));
+    var ticket: WorkTicket;
+    var old: WorkTicket;
+    var spare: WorkTicket;
+    check(work_take(&g, &ticket));
+    check(ticket.task == query);
+    copy(&old, &ticket, sizeof(WorkTicket));
+    check(!work_suspend(&g, &ticket, 0));
+    check(work_ticket_valid(&g, &ticket));
+    check(work_suspend(&g, &ticket, input));
+    check(g.running == 0);
+    check(g.executing.length == 0);
+    check(!work_finish(&g, &old, true));
+    check(work_take(&g, &ticket));
+    check(ticket.task == input);
+    check(!work_take(&g, &spare));
+    check(work_finish(&g, &ticket, true));
+    check(work_take(&g, &ticket));
+    check(ticket.task == query);
+    check(ticket.dispatch != old.dispatch);
+    check(!work_finish(&g, &old, true));
+    check(!work_suspend(&g, &old, unused));
+    check(g.running == 1);
+    check(g.executing.length == 1);
+    // Reobserving a completed input neither duplicates the edge nor its work.
+    check(work_suspend(&g, &ticket, input));
+    check(g.edges.length == 1);
+    check(work_take(&g, &ticket));
+    check(ticket.task == query);
+    check(work_task(&g, input).dispatch == 1);
+    copy(&old, &ticket, sizeof(WorkTicket));
+    check(work_yield(&g, &ticket));
+    check(!work_ticket_valid(&g, &old));
+    check(work_take(&g, &ticket));
+    check(ticket.task == query && ticket.dispatch != old.dispatch);
+    check(work_finish(&g, &ticket, true));
+    check(!work_take(&g, &spare));
+    check(!work_task(&g, unused).demanded);
+    check(g.running == 0);
+    work_dispose(&g);
+}
+
+fn diamond_tests(): void {
+    var g: WorkGraph;
+    work_init(&g, 12, 29);
+    var left = request(&g, 1);
+    var right = request(&g, 2);
+    var shared = request(&g, 3);
+    check(work_seal(&g, left));
+    check(work_seal(&g, right));
+    check(work_seal(&g, shared));
+    check(work_demand(&g, left));
+    check(work_demand(&g, right));
+    var a: WorkTicket;
+    var b: WorkTicket;
+    var c: WorkTicket;
+    check(work_take(&g, &a));
+    check(work_take(&g, &b));
+    check(work_suspend(&g, &a, shared));
+    check(work_suspend(&g, &b, shared));
+    check(work_take(&g, &c));
+    check(c.task == shared);
+    check(!work_take(&g, &a));
+    check(work_finish(&g, &c, true));
+    check(work_take(&g, &a));
+    check(work_take(&g, &b));
+    check(a.task != b.task);
+    check(work_finish(&g, &b, true));
+    check(work_finish(&g, &a, true));
+    check(work_task(&g, shared).dispatch == 1);
+    check(!work_take(&g, &c));
+    work_dispose(&g);
+}
+
+fn failure_tests(): void {
+    var g: WorkGraph;
+    work_init(&g, 13, 29);
+    var query = request(&g, 1);
+    var input = request(&g, 2);
+    check(work_seal(&g, query));
+    check(work_seal(&g, input));
+    check(work_demand(&g, query));
+    var ticket: WorkTicket;
+    check(work_take(&g, &ticket));
+    check(work_suspend(&g, &ticket, input));
+    check(work_take(&g, &ticket));
+    check(work_finish(&g, &ticket, false));
+    check(work_task(&g, query).state == WorkState.Failed);
+    check(!work_take(&g, &ticket));
+    check(g.running == 0);
+    work_dispose(&g);
+
+    work_init(&g, 14, 29);
+    query = request(&g, 1);
+    input = request(&g, 2);
+    check(work_seal(&g, query));
+    check(work_seal(&g, input));
+    check(work_demand(&g, query));
+    check(work_take(&g, &ticket));
+    check(work_suspend(&g, &ticket, input));
+    check(work_take(&g, &ticket));
+    work_cancel(&g);
+    check(!work_finish(&g, &ticket, true));
+    check(!work_suspend(&g, &ticket, query));
+    check(g.running == 0);
+    work_dispose(&g);
+}
+
+fn cycle_tests(): void {
+    var g: WorkGraph;
+    work_init(&g, 15, 29);
+    var first = request(&g, 1);
+    var second = request(&g, 2);
+    check(work_seal(&g, first));
+    check(work_seal(&g, second));
+    check(work_demand(&g, first));
+    var ticket: WorkTicket;
+    check(work_take(&g, &ticket));
+    check(work_suspend(&g, &ticket, second));
+    check(work_take(&g, &ticket));
+    check(work_suspend(&g, &ticket, first));
+    check(!work_take(&g, &ticket));
+    check(g.running == 0);
+    var cycle: vector(usize);
+    vector_init(usize, &cycle);
+    check(work_cycle(&g, first, &cycle));
+    check(cycle.length == 3);
+    check(cycle.data[0] == first);
+    check(cycle.data[1] == second);
+    check(cycle.data[2] == first);
+    vector_dispose(usize, &cycle);
+    work_dispose(&g);
+
+    work_init(&g, 16, 29);
+    first = request(&g, 1);
+    check(work_seal(&g, first));
+    check(work_demand(&g, first));
+    check(work_take(&g, &ticket));
+    check(work_suspend(&g, &ticket, first));
+    vector_init(usize, &cycle);
+    check(work_cycle(&g, first, &cycle));
+    check(cycle.length == 2);
+    vector_dispose(usize, &cycle);
+    work_dispose(&g);
+}
+
+fn filtered_tests(): void {
+    var graph: WorkGraph;
+    work_init(&graph, 17, 29);
+    var zero = work_request(&graph, null, 0, 1);
+    var other = work_request(&graph, null, 2, 1);
+    check(work_seal(&graph, zero));
+    check(work_seal(&graph, other));
+    check(work_demand(&graph, other));
+    check(work_demand(&graph, zero));
+    var ticket: WorkTicket;
+    check(work_take_query(&graph, &ticket, 0));
+    check(ticket.task == zero);
+    check(work_finish(&graph, &ticket, true));
+    check(!work_take_query(&graph, &ticket, 0));
+    check(work_take(&graph, &ticket));
+    check(ticket.task == other);
+    check(work_finish(&graph, &ticket, true));
+    work_dispose(&graph);
+}
+
+fn reset_tests(): void {
+    var graph: WorkGraph;
+    work_init(&graph, 31, 29);
+    check(work_find(&graph, null, 1, 1) == 0);
+    var first = request(&graph, 1);
+    check(work_find(&graph, null, 1, 1) == first);
+    check(!work_reset(&graph, 32, 29));
+    check(work_seal(&graph, first));
+    check(work_demand(&graph, first));
+    var old: WorkTicket;
+    check(work_take(&graph, &old));
+    check(!work_reset(&graph, 32, 29));
+    check(work_finish(&graph, &old, true));
+    check(!work_reset(&graph, 31, 29));
+    check(work_reset(&graph, 32, 29));
+    check(work_find(&graph, null, 1, 1) == 0);
+    first = request(&graph, 1);
+    check(work_seal(&graph, first));
+    check(work_demand(&graph, first));
+    var current: WorkTicket;
+    check(work_take(&graph, &current));
+    check(current.task == old.task);
+    check(!work_finish(&graph, &old, true));
+    check(work_finish(&graph, &current, true));
+    work_dispose(&graph);
+}
+
+resume_tests();
+diamond_tests();
+failure_tests();
+cycle_tests();
+filtered_tests();
+reset_tests();
+print(failures);

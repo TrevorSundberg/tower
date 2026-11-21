@@ -13,7 +13,7 @@ extern fn tower_utf8_encode(value: u32, destination: u8*, capacity: usize): usiz
 // Legacy host constructors preserve the parent-owned reference convention.
 // Explicit world grammar construction uses GrammarBuilder and fallible results.
 fn parser_host_child(parent: Entity*): Entity* {
-    var node = entity_create(compiler_entity_store());
+    var node = entity_create_related(parent);
     var present = node != null;
     compiler_entity_require(present);
     compiler_entity_require(entity_attach(node, parent, null));

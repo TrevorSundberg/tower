@@ -1,0 +1,5 @@
+import tower;
+fn incomplete(): i32 {
+    if comptime(true) {} else { return 42; }
+}
+print(incomplete());
