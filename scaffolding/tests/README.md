@@ -26,6 +26,13 @@ The shared scalar-idiom JSON remains browser test data. The Tower runner reads
 only its ASCII string/null table format and rejects unsupported values/escapes;
 it does not duplicate that fixture corpus or require a general JSON library.
 
+The same runner owns the CLI C-output, explicit 32/64-bit profile and captured
+browser C comparisons. See [C backend validation](../../docs/c-backend.md) for
+the optional CTest matrix, required Clang/GCC multilib tools, direct commands
+and MSVC artifact handoff. These modes use the same raw-status capture and
+30-second child limit. They keep generated sources and outputs in their working
+directory; run different modes concurrently only in separate directories.
+
 ## Experimental Wasm linker
 
 The experimental static Wasm linker lives in `backend/wasm_link.tower`.

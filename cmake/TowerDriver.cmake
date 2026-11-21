@@ -1,5 +1,9 @@
 # Tower CLI integration with explicit target libc bindings.
 option(TOWER_DRIVER_TESTS "Build Tower CLI policy and process tests" OFF)
+option(TOWER_C_OUTPUT_TESTS "Register C-output tests (requires Clang/GCC and 32-bit hosted libraries)" OFF)
+if(TOWER_C_OUTPUT_TESTS AND NOT TOWER_DRIVER_TESTS)
+  message(FATAL_ERROR "TOWER_C_OUTPUT_TESTS requires TOWER_DRIVER_TESTS")
+endif()
 if(TOWER_DRIVER_TESTS)
   enable_testing()
 endif()
@@ -109,6 +113,20 @@ function(tower_driver_integrate)
       set_tests_properties(tower-driver-${check}-differential PROPERTIES TIMEOUT 1200
         WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/tower-${check}-differential-checks")
     endforeach()
+    if(TOWER_C_OUTPUT_TESTS)
+      find_program(TOWER_C_CLANG NAMES clang-19 clang REQUIRED)
+      find_program(TOWER_C_GCC NAMES gcc REQUIRED)
+      find_program(TOWER_C_CLANGXX NAMES clang++-19 clang++ REQUIRED)
+      find_program(TOWER_C_GXX NAMES g++ REQUIRED)
+      foreach(check IN ITEMS backend profiles)
+        file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/tower-c-${check}-checks")
+        add_test(NAME tower-driver-c-${check} COMMAND tower-driver-tests --c-${check}
+          "$<TARGET_FILE:towerc>" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding"
+          "${TOWER_C_CLANG}" "${TOWER_C_GCC}" "${TOWER_C_CLANGXX}" "${TOWER_C_GXX}")
+        set_tests_properties(tower-driver-c-${check} PROPERTIES TIMEOUT 1200
+          WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/tower-c-${check}-checks")
+      endforeach()
+    endif()
     include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/TowerDriverRequestTests.cmake")
     cmake_language(DEFER CALL tower_driver_request_tests)
   endif()

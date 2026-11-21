@@ -78,12 +78,30 @@ adding another LLVM-version-coupled dependency. The existing Tower backend calls
 the upstream LLVM C API for optimization; no new native optimizer was introduced.
 See the [LLVM release notes](https://releases.llvm.org/3.1/docs/ReleaseNotes.html).
 
-Reproduce differential and compiler-warning checks with
-`python3 scaffolding/tests/c-backend.py /path/to/towerc build/c-validation` and
-`powershell -File scaffolding/tests/c-backend-msvc.ps1 build/c-validation`.
-`c-backend-profiles.py` adds 32/64-bit C99/C++11 checks with multilib installed.
-After the playground deployment verifier, `python3 scaffolding/tests/c-downloads.py`
-compiles its captured browser C output; the MSVC script can also consume
-`build/deployment-verification` to check those same files.
+The existing Tower driver runs the differential and compiler-warning checks.
+Configure the native build with `-DTOWER_DRIVER_TESTS=ON -DTOWER_C_OUTPUT_TESTS=ON`,
+build `tower-driver-tests`, then run `ctest --test-dir <native-build>
+-R '^tower-driver-c-' --output-on-failure`. Clang/GCC, their C++ drivers and
+32-bit hosted libraries are required (`gcc-multilib g++-multilib` on Ubuntu).
+The two tests keep artifacts in `tower-c-backend-checks` and
+`tower-c-profiles-checks`. Profiles generate their own inputs and do not depend
+on a previous backend run.
+
+Direct commands, run in a writable artifact directory, are:
+
+```
+tower-driver-tests --c-backend COMPILER SCAFFOLDING CLANG GCC CLANGXX GXX [CASE]
+tower-driver-tests --c-profiles COMPILER SCAFFOLDING CLANG GCC CLANGXX GXX [CASE]
+tower-driver-tests --c-downloads CLANG GCC CLANGXX GXX [CASE]
+```
+
+Pass explicit executable and scaffolding paths. Optional case names such as
+`integers`, `comments` or `signed_rounding` select focused runs; unknown names
+fail. The download mode runs in the deployment verifier's artifact directory
+and checks its four desktop/mobile raw/optimized C files. Backend and download
+modes publish `expected.json` only after every selected check succeeds; a new
+run removes stale expectations and compiled outputs. The existing
+`powershell -File scaffolding/tests/c-backend-msvc.ps1 ARTIFACT_DIRECTORY`
+consumes that same JSON and generated C for MSVC checks.
 The research journal records measured compiler/platform coverage and performance;
 backend equivalence is tested on defined programs, not inferred from matching C.

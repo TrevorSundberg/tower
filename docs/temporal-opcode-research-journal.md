@@ -37812,3 +37812,79 @@ exactly matches the prepared receipt, preserving runtime 6c03edd, all 86 assets
 and concurrent tooling notes. Production linker selection remains upstream;
 the optimized source and reproducible results are available on main. todo.txt
 hash remains 045d1e620edf7c67b653fec19df850b370246b1d. Own publication lock released.
+
+### 2026-11-21: consolidate C-output validation in the Tower driver
+
+Audit the remaining c-backend.py, c-backend-profiles.py and c-downloads.py callers
+before translation. docs/c-backend.md exposes all three, and the MSVC checker
+consumes their generated C plus expected.json. Their real external-compiler,
+layout-rejection and browser-download contracts remain needed. Consolidate the
+three compilation/comparison loops in driver_c_validation.tower, using the
+existing driver executable, raw-status capture, byte comparison and JSON writer.
+Keep fixture sources in driver_c_cases.tower and read existing examples/tests.
+The old optional examples/control.tower does not exist and never contributed a
+case; remove that dead lookup. Do not silently skip any of the nine live files.
+Profiles now generate their own six inputs instead of depending on a previous
+backend run. No general subprocess, JSON or filesystem library is introduced.
+
+Preserve both Tower optimization levels, graph/native LLVM comparison, complete
+C output/diagnostics/status, source comments and strict compiler warnings. The
+legacy matrix uses Clang/GCC C89/C++98 at O0/O2; profiles use C99/C++11 at O2,
+both 32/64-bit Tower layouts, and reject opposite pointer width plus unaligned
+i386 u64 layout. Browser mode consumes the four captured deployment C files.
+Backend/download modes remove stale expected.json at entry, remove executables
+before each compilation, and publish the existing JSON schema only on success.
+Generated Tower fixture filenames use underscores. Compiler/tool paths are
+explicit argv entries; execution remains shell-free. Keep the existing MSVC
+consumer for its separate platform work; this milestone prioritizes Python.
+
+Add opt-in TOWER_C_OUTPUT_TESTS registrations to the existing driver CMake entry
+point; it requires TOWER_DRIVER_TESTS and Clang/GCC plus multilib. The default
+native bootstrap does not acquire those optional test dependencies. Each test
+uses its own working directory and the existing 30-second child/1,200-second
+CTest deadlines. Document direct modes and optional case filters.
+
+Small-unit preflight uses the published 0d752e7 bootstrap against frozen inputs
+in /cache/differential_driver_checkout. Initial drafts incorrectly used C++ enum
+member spelling, an inline array type in sizeof, and foreach on fixed arrays.
+The public language uses enum.member and nominal collection protocols; use
+counted traversal for the two coordinated fixture arrays. No language/compiler
+change is needed. The cases and validation units compile, then the existing
+tower-driver-tests target rebuilds in three steps. Windows x64/macOS ARM64
+validation objects compile; linked execution on those platforms is not claimed.
+
+Validation environment: isolated tower_agent1_c_checks container from tower_build
+(Ubuntu 24.04, Clang/LLVM 19), own tower_agent1_tooling volume; install the already
+documented gcc-multilib/g++-multilib test dependencies only in this disposable
+container and move /usr/bin/python3.12 out of PATH. Use the previously verified
+default successor /cache/differential_driver_native/towerc, SHA-256
+0d752e7dc35a0a8951872cf52d96873bb1e1cab2b3fe63d9b147e64e5deecca8.
+Compiler/runtime/bootstrap source inputs have not changed in this milestone.
+Commands use tower-driver-tests --c-backend or --c-profiles followed by compiler,
+scaffolding and explicit Clang/GCC/Clang++/G++ paths. Focused integers checks
+pass before the full matrix: 416 legacy comparisons and 96 profile comparisons,
+including all three incompatible-layout rejections. Artifacts remain in
+/cache/c_output_native and /cache/c_output_profiles. CTest -N -V confirms both
+registered commands/directories; the unchanged ordinary driver suite passes
+again in 9.95 seconds after adding dispatch. Reconfiguration needs no rebuild.
+
+Copy the four prior hosted deployment captures read-only from the coordinator's
+build/deployment-verification into this lane, then run --c-downloads in
+/cache/c_output_downloads: all 32 checks pass. This validates the new runner on
+saved browser artifacts, not a new browser release. Desktop/mobile raw inputs
+both hash c42a759897d45933bb9a5d82baa4e4e4b9bc2f2ec2b3fca22ba3670b3d6f6124;
+optimized inputs both hash d8b33f3aa49ce67ac055886f0fe4cfac7d0d6a9b4a8b9e49c42c89662e370dda.
+PowerShell's existing JSON decoder reads 52 native rows (ten trap rows) and four
+download rows with every MSVC field. An initial outer array wrapper counted the
+decoded array as one item; removing that wrapper confirms the actual row counts.
+MSVC tools are absent here, so no fresh Windows compilation is claimed.
+
+A focused comments run with spaces in the working directory and compiler path
+passes all 16 comparisons. Seed an old successful executable/expected.json and
+use /bin/true as the first C compiler: the runner rejects exit 127 after removing
+the stale executable and leaves no expected.json. An unknown filter also fails
+and leaves no expectations. No new non-Tower helper, sanitizer or broad format
+sweep is used. Remove 193 Python lines across the three scripts: five tracked
+Python files/401 lines remain, down 1,588 lines (79.8%) from the 1,989 baseline.
+Next audit the four measurement scripts and live compiler-project packager;
+prefer shared existing capabilities or removing steps before translation.
