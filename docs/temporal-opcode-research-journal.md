@@ -24942,3 +24942,71 @@ format sweep and passes all 163 selected tests in 152.9 seconds. The 13-program
 canonical Foundation differential passes again against this successor. Logs use
 the expression-rebased-* prefix. Complete deployment assets are prepared from
 this exact integrated source, retaining the prior audit metadata and target packs.
+
+### Coordinator regex/lexer publication closeout and upstream merge (2026-11-20)
+
+Regex 7bbfdda and contextual lexer 7737acb are included in the fully verified
+combined source dafeb208afdf5618d00759d57c6ad8fba2e11e69 and Pages
+df6e5c53e3028a8c9724cad133c3f1fb01b7f311.
+Exact Pages action 44852551683 succeeded. Agent2's final evidence, inspected by
+coordinator: native 6/6 plus backend API, six WASI fixture groups, Node 416/416
+in 191.50 seconds, two browser successor generations with two/four workers and
+identical outputs, all 71 committed publication blobs matching tested bytes,
+70 served assets matching locally and on https://tower-lang.org/, and desktop/
+mobile compilation/execution/download/highlighting/persistence checks PASS.
+All three redirects reach the HTTPS apex. Reports/logs are the external
+C:/Sandbox/build/codex-agents/agent-2-final-publication-* files. Agent2 explicitly
+released its root/backend-cache ownership after hosted verification. No sanitizer
+or broad formatter sweep was run for these coordinator slices.
+
+The final root pull then discovered independent upstream expression cleanup
+406c198/bb7967d and newer Pages 0480cdc03c8805b739beaa496a658f3e8ff8d7ee.
+Those 200 changed files were preserved. Earlier full browser evidence above is
+for dafeb20/df6e5c5, not retroactively for this cleanup. A new empty-cache build
+using the documented published bootstrap (no private override) PASS at
+/home/trevo/.cache/tower/coordinator-expression-merged-clean; Clang/LLVM 19.1.7.
+Enabled TOWER_BACKEND_TESTS and rebuilt/ran tower-frontend-tests and
+tower-backend-tests: world/ownership/parser/provenance, full regex/contextual
+lexer suites and backend API PASS. Logs: lexicon-port/expression-merged-*.log in
+the coordination directory. The newer Pages exact action 44852925363 also passed;
+its manifest records source bb7967d and predecessor df6e5c5. Its publisher owns
+its additional browser evidence; the coordinator has not repeated that full
+suite. This journal closeout changes no compiler implementation or shipped asset.
+
+At pushed dafeb20 (unchanged native count after expression cleanup), 5,766 native
+compiler/runtime physical lines remain: 901 production .cpp plus 1,791 headers,
+1,700 test lines and 1,374 reference lines. Third-party dependencies are excluded;
+774 historical research lines are counted separately. Of production .cpp, 780
+are in syntax.cpp. These two coordinator migrations retired 450 native lines.
+
+### Next draft: DFA table oracle retirement (2026-11-20)
+
+Prepared externally during Agent2's frozen dafeb20 publication. Agent3 confirmed
+ownership transfer for bootstrap/lexer-table-seed.cpp and only the reference
+imports in tests/lexer_table.tower; its production/NFA simulator/test cases stay
+unchanged. No root source or deployment cache is edited by this draft.
+
+lexer_table_oracle.tower translates the five reference functions actually used by
+that test: create/destroy, alphabet assignment, row append and maximal-prefix UTF-8
+matching. It preserves nested transition rows to catch errors in production's flat
+row indexing, implements the reference upper-bound search independently, and uses
+the same existing UTF-8 decoder as the old C++ reference. Explicit Tower ownership
+releases every row, table and alphabet. Unreferenced SymbolSequence/step/accepts
+reference functions have no consumers (rg audit); production equivalents remain.
+
+The unmodified existing Tower harness + unmodified C++ reference were compiled/run
+via a temporary Tower entry: PASS. The new Tower oracle runs the unchanged 500
+seeded DFA cases and 150 direct NFA simulation cases, including malformed UTF-8 and
+all failure tests: native and WASI PASS. First native link omitted the existing
+instrumented allocator object and therefore failed to resolve test hooks; adding
+the same runtime-instrumented.o used by the native frontend fixture fixed the link.
+No native helper, implementation, seed or host-import substitute was introduced.
+Published fb1ab1f9 bootstrap, Clang19, WASI SDK34 and existing memory/UTF-8/bytes objects.
+
+Files and evidence are C:/Sandbox/build/codex-agents/lexer-table-port/ (native.log
+retains the first link failure; native-final.log, wasm.log and legacy.log show PASS).
+Ready next source slot after combined hosted verification: add the new oracle,
+replace only five extern declarations with its import, delete the native seed and
+its reference target/dependency, validate actual CMake aggregate and standalone
+runners using the published bootstrap, journal/commit/rebase/push and publish with
+the next coordinated batch. This draft is NOT yet in main or deployed.
