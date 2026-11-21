@@ -27358,3 +27358,21 @@ separate evidence from deterministic fault-injection tests. Coordinator has
 requested Agent1 for the next combined deployment after Agent3/coordinator source
 slots; its acknowledgement/hosted verification is still pending at this source
 handoff. Prior published core/grammar checkpoints remain separately verified.
+
+Publication retry: ordinary push first failed GitHub DNS; command-local TLS
+resolve retry then correctly rejected main because external97a6586/9d1ea3d had
+advanced it during publication. Never force-pushed. Pulled/rebased the new LR
+propagation-frontier workers and preserved both journal append histories. Another
+empty documented default-bcc successor builds in agent-2-lr-final-9d1ea3d.
+Affected native checks PASS8/8 in5.55s plus backend API checks; native parser
+fixtures PASS9/9 in0.69s. The full driver result above remains dd6eb85 evidence;
+it was not repeated for this targeted propagation integration. Both aggregates
+link and seven rebuilt portable WASI entries pass. Reproduction scripts and logs
+use the agent-2-lr-9d1ea3d and agent-2-lr-final-9d1ea3d prefixes.
+
+The actual9d1ea3d-merged successor again matches both native and WASI LR fixture
+objects byte-for-byte. Its rebuilt shared-worker reactor passes3/3 required Node
+checks in12.77s, with zero skipped tests. No production worker/allocator algorithm
+was changed in this migration lane. The next combined release remains coordinated
+behind Agent3 and coordinator source slots; Agent1 acknowledgement is still pending.
+This final source checkpoint does not claim a new hosted analysis deployment.
