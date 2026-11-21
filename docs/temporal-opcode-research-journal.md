@@ -35888,3 +35888,23 @@ validation and publish metadata preserving runtime build-source identity. No
 todo.txt edit or sanitizer/format sweep. Next audit: the required packager and
 verification/measurement drivers, plus inline Python; first simplify the step,
 then translate only necessary behavior with existing Tower capabilities.
+
+Removal milestone publication receipt: source644ad20 is pushed after rebasing
+onto 2505a58. The incoming changes were documentation/journal only; compiler and
+runtime validation remains applicable, so no identical binaries were rebuilt.
+Pages fc45fc274afbdf0df1980d2837222ee20f3bc4de directly descends from
+2750d28b56d736370fb46d3f66a86000137bca9d and changes only the deployment manifest.
+It preserves runtime build source b24847b, all 83 asset hashes and all prior
+audit/provenance notes. Action44949255727 succeeded; the hosted manifest exactly
+matches prepared bytes, SHA-256
+53bf9a765c940d9760c76f87302fafb9b062c5674800fbbe19dddef35d3193f9.
+
+Remaining-tool audit confirms the three native measurement scripts still have
+current README/foundation-documentation callers and distinct paired/timing
+workloads. The browser packager consumes real build depfiles/link inputs and
+produces the editable compiler project/support archives used for successive
+browser generations. These are not dead tools. Next simplify their required
+behavior and shared process/measurement plumbing before translating; do not
+remove meaningful assertions or recreate their incidental report machinery
+without a consumer. The actual filesystem import driver likewise covers case,
+relative paths and symlink behavior that in-memory tests alone cannot replace.
