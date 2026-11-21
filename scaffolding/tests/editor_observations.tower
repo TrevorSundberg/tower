@@ -1,0 +1,115 @@
+import tower;
+import frontend_units;
+import editor_units;
+import .library.vector;
+import .compiler.syntax_session_types;
+import .compiler.syntax_version_types;
+
+extern fn compiler_world_create_workers(limit: usize): void*;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn frontend_world_clear(world: void*): bool;
+extern fn frontend_modules_create(): void*;
+extern fn frontend_modules_destroy(environment: void*): void;
+extern fn frontend_modules_configure(environment: void*, path: u8*, library: u8*): void;
+extern fn frontend_modules_bind_world(environment: void*, world: void*): bool;
+extern fn syntax_baseline_install(world: void*, environment: void*, source: u8*, foundation: bool, diagnostic: SyntaxVersionDiagnostic*): bool;
+extern fn syntax_version_diagnostic_dispose(diagnostic: SyntaxVersionDiagnostic*): void;
+extern fn syntax_version_diagnostic_text(diagnostic: SyntaxVersionDiagnostic*): u8*;
+extern fn language_document_world(world: void*, environment: void*, source: u8*, length: usize, mode: u32, width: u32): void*;
+extern fn language_document_result(query: void*): u8*;
+extern fn completion_begin_world(world: void*, environment: void*, source: u8*, length: usize, cursor: usize, spans: void*, count: usize): void*;
+extern fn completion_analyze(query: void*, active: void*, mode: u32, files: u8**, lengths: usize*, count: usize): void;
+extern fn completion_symbols(query: void*): void;
+extern fn completion_end(query: void*): u8*;
+extern fn completion_dispose(query: void*): void;
+extern fn syntax_session_open(world: void*, environment: void*, source: u8*, module: void*, mode: u32): SyntaxSession*;
+extern fn syntax_completion_enable(session: void*): void;
+extern fn syntax_next(session: void*): void*;
+extern fn syntax_destroy(session: void*): void;
+extern fn entity_release(node: void*): usize;
+
+fn editor_observation_baseline(world: void*, environment: void*, source: u8*, foundation: bool): void {
+    var diagnostic: SyntaxVersionDiagnostic = default;
+    defer syntax_version_diagnostic_dispose(&diagnostic);
+    var success = syntax_baseline_install(world, environment, source, foundation, &diagnostic);
+    if !success { puts(syntax_version_diagnostic_text(&diagnostic)); }
+    units_check(success, "Editor observation baseline");
+}
+
+fn editor_observation_completion(world: void*, environment: void*, source: u8*, candidate: u8*, snapshot: vector(u8)*): void {
+    var session = bits(void*, syntax_session_open(world, environment, source, null, 0));
+    units_check(session != null, "Completion observation session");
+    defer syntax_destroy(session);
+    syntax_completion_enable(session);
+    loop {
+        var node = syntax_next(session);
+        if node == null { break; }
+        entity_release(node);
+    }
+    var length = strlen(source);
+    var query = completion_begin_world(world, environment, source, length, length, null, 0);
+    units_check(query != null, "Completion observation query");
+    defer completion_dispose(query);
+    completion_analyze(query, session, 0, null, null, 0);
+    completion_symbols(query);
+    var output = completion_end(query);
+    if strstr(output, candidate) == null { puts(output); }
+    units_check(strstr(output, candidate) != null, "Worker completion retains typed lexical candidates");
+    editor_units_snapshot(output, snapshot);
+}
+
+fn editor_observation_trial(workers: usize, root: u8*, bedrock: u8*, foundation: u8*, snapshot: vector(u8)*): void {
+    var world = compiler_world_create_workers(workers);
+    var environment = frontend_modules_create();
+    units_check(world != null && environment != null && frontend_modules_bind_world(environment, world), "Observation world ownership");
+    frontend_modules_configure(environment, "editor_observations.tower", root);
+    editor_observation_baseline(world, environment, bedrock, false);
+    editor_observation_baseline(world, environment, foundation, true);
+    var source: u8* = "import tower; struct Pair {field:i32;} fn first(value:Pair*):i32{var local:decltype(value.field)=value.field;return local;} fn second(value:i32):i32{var local:decltype(value)=value;return local+1;} fn third(value:i32):i32{return second(value);} var pair:Pair;pair.field=3;print(first(&pair));";
+    var query = language_document_world(world, environment, source, strlen(source), 0, 8);
+    units_check(query != null, "Worker document query");
+    var output = language_document_result(query);
+    var complete = strstr(output, "\"complete\":true") != null
+        && strstr(output, "\"type\":\"i32\"") != null && strstr(output, "field") != null;
+    if !complete { puts(output); }
+    units_check(complete, "Worker document resolves annotations and bodies");
+    editor_units_snapshot(output, snapshot);
+    completion_dispose(query);
+    editor_observation_completion(world, environment,
+        "import tower;struct Pair{field:i32;}fn sample(value:Pair*):i32{var first:i32=3;if first>0{var local:i32=7;value.",
+        "field", snapshot);
+    editor_observation_completion(world, environment,
+        "import tower;fn identity(T:type,value:T):T{return value;}fn sample(seed:i32):i32{var value=identity(seed);if value>0{var local:i32=8;return ",
+        "local", snapshot);
+    editor_observation_completion(world, environment,
+        "import tower;struct Pair{field:i32;}fn sample(value: ",
+        "Pair", snapshot);
+    frontend_modules_destroy(environment);
+    units_check(frontend_world_clear(world) && compiler_world_dispose(world), "Observation world releases retained scopes");
+}
+
+fn editor_observation_tests(root: u8*): void {
+    var bedrock: vector(u8) = default;
+    var foundation: vector(u8) = default;
+    var baseline: vector(u8) = default;
+    defer vector_dispose(&bedrock);
+    defer vector_dispose(&foundation);
+    defer vector_dispose(&baseline);
+    units_read(root, "/bedrock.tower", &bedrock);
+    units_read(root, "/foundation.tower", &foundation);
+    for(var workers: usize = 1; workers <= 8; workers *= 2) {
+        var snapshot: vector(u8) = default;
+        defer vector_dispose(&snapshot);
+        editor_observation_trial(workers, root, bedrock.data, foundation.data, &snapshot);
+        if workers == 1 {
+            baseline = snapshot;
+            snapshot = default;
+        } else {
+            units_check(snapshot.length == baseline.length, "Editor workers preserve observation size");
+            for(var i: usize = 0; i < snapshot.length; i++) {
+                units_check(snapshot.data[i] == baseline.data[i], "Editor workers preserve types, scope and completion bytes");
+            }
+        }
+    }
+    puts("Editor observations: typed document and retained completion scopes agree at workers 1/2/4/8.");
+}

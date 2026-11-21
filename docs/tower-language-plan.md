@@ -836,12 +836,15 @@ containers. Benchmark representative compiler workloads before migrating them.
   prepare separately from their branches. Surface while/for/foreach bodies,
   ordinary match arms/fallbacks and deferred blocks now share these continuations.
   Generated loop/iteration/match blocks receive leases before resumed mutation.
-  Foreach protocol setup, structural headers, extended structural match patterns,
-  individual structural expressions and editor observation retain coordinator work.
+  Foreach protocol setup, structural headers, extended structural match patterns
+  and individual structural expressions retain coordinator work. Eligible editor
+  declaration/body observations now use private worker buffers and publish after
+  joins; captured lexical scopes live until the editor query is disposed.
   Already-instantiated generic bodies now use body workers when their immutable
   bindings and existing layouts are ready;
   conservative admission retains first consumers of pending layouts on the
-  coordinator and records completed layout dependencies on body queries.
+  coordinator. Body queries record the actual completed layout/signature reads,
+  instead of depending on every layout in the compilation.
   Generic function signatures now retain a body root without copying its
   descendants. Execution demand schedules those copies on workers through the
   shared query graph; body checking depends on their published receipts. Clone
@@ -861,6 +864,10 @@ containers. Benchmark representative compiler workloads before migrating them.
   Computed field bases without that projection retain coordinator checking.
   Call continuations preserve enclosing evaluation depth
   so skipped nested stages remain lazy during deduction.
+  Aggregate signature preparation, inferred binding scan/order/substitution and
+  inferred expression cloning also use worker jobs. One joined immutability proof
+  precedes inferred clone/preparation queries; ordinary interpreter jobs produce
+  the values. Alias references and changed storage indexes publish after joins.
   Shared entities now use stable component pages, exact-signature archetype rows,
   published component columns and view-owned multi-component query plans.
   These index stable payload pointers; they do not relocate component data.
@@ -943,8 +950,9 @@ containers. Benchmark representative compiler workloads before migrating them.
    Explicit completion/inspection constructors now borrow the requested world and
    environment; mixed compile/inspection jobs use the native unit executor, hide
    outputs until successful joins and pass real overlap/ownership/cleanup checks.
-   Within-world editor semantic observation still follows the coordinator path;
-   do not extend the isolated-job concurrency claim to that internal phase.
+   Eligible within-world editor declarations and bodies now use the same staged
+   workers, returning type observations and retained completion scopes. Type
+   interning/metadata publication and structural continuations remain coordinated.
 3. Migrate pure layout, body-analysis and lowering queries individually. Cache
    matching entity/component tuples. Preserve stable sparse payloads where
    address stability matters; introduce dense typed columns only for measured
@@ -964,8 +972,8 @@ Current migration audit (after the isolated compiler-worker milestone):
 | --- | --- | --- |
 | Entities | Stable payloads, dense per-type pointer indexes, explicit worlds, pinned views, exclusive attachment leases and staged canonical creation | Complete host-world isolation and non-racing reference ownership |
 | Syntax/grammar | Shared entities; world-bound module/session/baseline/revision/cache ownership; worker-owned FIRST/nullable frontiers, LR(0) transitions, LR(1) kernel closures, dependency-link construction, wide lookahead frontiers, LALR actions and runtime action/direct-index/goto rows | Native CLI project recipes, runtime sequence specialization and source/effect order; link/seed merging and row interning publish after joins |
-| Semantics/layout | Shared query graph; parallel dependency discovery, layouts, eligible ordinary/instantiated-generic bodies with loop/match/defer continuations, and expression lowering | Structural headers/protocols, expression/type-construction continuations, precise body layout dependencies, within-world editor observation and structural publication |
-| Interpreter/staging | Per-invocation contexts over shared Foundation; ECS preparation/lowering dependencies, threaded lazy scalar evaluation and private execution caches | General ordinary-value execution, explicit effects/inputs and invalidation; no separate folding evaluator |
+| Semantics/layout | Shared query graph; parallel dependency discovery, precise layout/signature reads, eligible ordinary/generic bodies with loop/match/defer continuations, editor observations, aggregate signatures and expression lowering | Structural headers/protocols, expression/type-construction continuations and deterministic structural publication |
+| Interpreter/staging | Per-invocation contexts over shared Foundation; ECS binding proofs, clone/preparation/lowering dependencies, threaded lazy scalar evaluation and private execution caches | General ordinary-value execution, explicit effects/inputs and invalidation; no separate folding evaluator |
 | LLVM | Shared Foundation inputs; one mutable LLVM context/module per compiler instance | Function/query boundaries that do not concurrently mutate one LLVM module; preserve target legality |
 | Link/publication | Tower plans/artifacts plus upstream LLD and filesystem interfaces | Keep LLD globals and fixed temporary names isolated/serialized; publish a candidate only after its checks |
 

@@ -31,6 +31,10 @@ struct SemanticDeclaration {
     kernel: CompilerKernel;
     ticket: WorkTicket;
     context: SemanticContext*;
+    editor: SemanticEditor;
+    type_observations: vector(SemanticTypeObservation);
+    allocations: vector(void*);
+    lists: vector(void*);
     scope: SemanticScope*;
     subject: void*;
     discover: bool;
@@ -630,7 +634,6 @@ fn sem_declaration_syntax(c: SemanticContext*, annotation: void*, nodes: vector(
 }
 
 fn sem_declaration_worker(c: SemanticContext*, result: SemanticDeclaration*): bool {
-    if c.editor != null || c.type_uses != null { return false; }
     var subject = result.subject;
     var record = sem_is(subject, "CoreStruct");
     if !record && !sem_is(subject, "CoreDeclare") && !sem_is(subject, "CoreParameter") && !sem_function_syntax(subject) { return false; }
@@ -653,7 +656,7 @@ fn sem_declaration_worker(c: SemanticContext*, result: SemanticDeclaration*): bo
 // The current declaration receipt yields before this bounded operand query.
 // Nested generic calls have already prepared their signatures in operand order.
 fn sem_declaration_inference_begin(c: SemanticContext*, result: SemanticDeclaration*, call: void*): bool {
-    if c.editor != null || c.type_uses != null || sem_prepared_call(c, call) != null { return false; }
+    if sem_prepared_call(c, call) != null { return false; }
     var name = sem_member(call, "name");
     var definition = sem_resolve(c, c.templates, name, sem_identifier(c, name));
     var count = generic_parameter_count(c.generics, definition);
@@ -710,7 +713,8 @@ fn semantic_declaration_kernel(result: SemanticDeclaration*): void {
     copy(&context, result.context, sizeof(SemanticContext));
     copy(&program, context.program, sizeof(SemanticProgram));
     context.program = &program;
-    context.editor = null;
+    sem_editor_private(&context, &result.editor);
+    context.type_observations = &result.type_observations;
     context.scope = result.scope;
     context.entity_stage = result.stage;
     context.query_reads = &result.query_reads;
@@ -746,6 +750,14 @@ fn semantic_declaration_kernel(result: SemanticDeclaration*): void {
     copy(&result.evaluations, &context.evaluation_jobs, sizeof(vector(void*)));
     copy(&result.error, &program.error, sizeof(vector(u8)));
     result.error_offset = program.error_offset;
+    // Completion's lexical scope borrows these tables until query disposal.
+    // Ordinary jobs still reclaim scratch immediately after returning facts.
+    if context.editor != null && context.editor.found {
+        result.allocations = context.allocations;
+        result.lists = context.lists;
+        context.allocations = default;
+        context.lists = default;
+    }
     stack_dispose(void*, &context.scan);
     vector_dispose(u8, &context.token_text);
     vector_dispose(&context.inferring);
@@ -764,6 +776,12 @@ fn semantic_declaration_kernel(result: SemanticDeclaration*): void {
 }
 
 fn sem_declaration_error(c: SemanticContext*, result: SemanticDeclaration*): bool {
+    sem_type_observations_publish(c, &result.type_observations);
+    sem_editor_publish(c, &result.editor);
+    foreach(var allocation in &result.allocations) { sem_push(&c.allocations, allocation); }
+    foreach(var list in &result.lists) { sem_push(&c.lists, list); }
+    vector_dispose(&result.allocations);
+    vector_dispose(&result.lists);
     if result.error.length == 0 { return false; }
     if sem_ok(c) {
         sem_require(vector_reserve(u8, &c.program.error, result.error.length + 1));
@@ -791,6 +809,10 @@ fn sem_declaration_dispose(c: SemanticContext*): void {
             var result = bits(SemanticDeclaration*, entity_component_data(entity_query_at(c.declaration_state, i)));
             vector_dispose(usize, &result.dependencies);
             vector_dispose(&result.query_reads);
+            vector_dispose(&result.type_observations);
+            vector_dispose(&result.allocations);
+            vector_dispose(&result.lists);
+            result.editor = default;
             vector_dispose(&result.nodes);
             vector_dispose(&result.calls);
             vector_dispose(&result.evaluations);

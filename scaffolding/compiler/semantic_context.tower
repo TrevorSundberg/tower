@@ -38,6 +38,13 @@ struct SemanticTypeUse {
     target: void*;
 }
 
+// Workers record type observations by value. Interning reflected type objects
+// and attaching inspection metadata happen after every stage in the wave joins.
+struct SemanticTypeObservation {
+    node: void*;
+    type: FoundationType;
+}
+
 // Scheduling provenance on a function entity, separate from its signature.
 struct SemanticBodyDemand { source: void*; }
 
@@ -77,6 +84,7 @@ struct SemanticEditor {
 struct SemanticContext {
     editor: SemanticEditor*;
     type_uses: void*;
+    type_observations: vector(SemanticTypeObservation)*;
     program: SemanticProgram*;
     current: void*;
     count: usize;
@@ -168,6 +176,18 @@ fn sem_query_input(c: SemanticContext*, subject: void*, query: u32): void {
 fn sem_query_observe(c: SemanticContext*, ticket: WorkTicket*, reads: vector(usize)*): void {
     foreach(var query in reads) { sem_require(work_observe(&c.queries, ticket, query)); }
     reads.length = 0;
+}
+
+fn sem_editor_private(c: SemanticContext*, editor: SemanticEditor*): void {
+    if c.editor == null { return; }
+    *editor = *c.editor;
+    c.editor = editor;
+}
+
+fn sem_editor_publish(c: SemanticContext*, editor: SemanticEditor*): void {
+    if c.editor != null && !c.editor.found && editor.found && sem_ok(c) {
+        *c.editor = *editor;
+    }
 }
 
 fn sem_editor_contains(c: SemanticContext*, n: void*): bool {

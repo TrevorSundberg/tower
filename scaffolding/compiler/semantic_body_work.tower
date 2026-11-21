@@ -95,6 +95,9 @@ fn sem_body_pending(c: SemanticContext*, subject: void*): bool {
     if sem_get(subject).external || !sem_body_needed(c, subject) {
         return false;
     }
+    // Completion checks only the function containing its source hole. Other
+    // declarations still resolve normally, without inventing empty body work.
+    if c.editor != null && !sem_editor_contains(c, subject) { return false; }
     var query = work_find(&c.queries, subject, BodyQuery, 0);
     return query == 0;
 }
@@ -166,6 +169,8 @@ struct SemanticBodyWork {
     kernel: CompilerKernel;
     ticket: WorkTicket;
     context: SemanticContext*;
+    editor: SemanticEditor;
+    type_observations: vector(SemanticTypeObservation);
     subject: void*;
     stage: void*;
     ordinal: usize;
@@ -598,8 +603,8 @@ fn sem_body_scope_begin(c: SemanticContext*, ordinal: usize): void {
     vector_init(&c.flow_dependencies);
 }
 
-// Editor observation and type-use collection retain coordinator ownership.
-// Their body work still participates in the same query/access protocol.
+// Structural bodies use the same query/access protocol. Ordinary body workers
+// return private editor observations for publication at their stage barrier.
 fn sem_body_structural_take(c: SemanticContext*, subject: void*, ordinal: usize,
 query: u32, ticket: WorkTicket*): usize {
     var id = work_request(&c.queries, subject, query, 0);
@@ -670,6 +675,8 @@ fn semantic_body_kernel(result: SemanticBodyWork*): void {
     copy(&context, result.context, sizeof(SemanticContext));
     copy(&program, context.program, sizeof(SemanticProgram));
     context.program = &program;
+    sem_editor_private(&context, &result.editor);
+    context.type_observations = &result.type_observations;
     context.current = result.subject;
     context.entity_stage = result.stage;
     context.query_reads = &result.query_reads;
@@ -731,7 +738,7 @@ fn semantic_body_kernel(result: SemanticBodyWork*): void {
     // Partial results retain lexical tables/scopes until their next dispatch.
     // Transfer ownership to the coordinator; never free scratch still borrowed
     // by the continuation, and never append to shared allocation lists here.
-    if !result.done {
+    if !result.done || (context.editor != null && context.editor.found) {
         copy(&result.allocations, &context.allocations, sizeof(vector(void*)));
         copy(&result.lists, &context.lists, sizeof(vector(void*)));
         vector_init(&context.allocations);
@@ -754,6 +761,8 @@ fn semantic_body_kernel(result: SemanticBodyWork*): void {
 }
 
 fn sem_body_clear(result: SemanticBodyWork*): void {
+    vector_dispose(&result.type_observations);
+    result.editor = default;
     vector_dispose(&result.evaluation_aliases);
     result.context = null;
     vector_dispose(&result.nodes);
@@ -786,6 +795,8 @@ fn sem_body_publish(c: SemanticContext*, result: SemanticBodyWork*): void {
     // owns their storage and reclaims it once checking completes.
     sem_query_observe(c, &result.ticket, &result.query_reads);
     sem_evaluation_aliases(c, &result.evaluation_aliases);
+    sem_type_observations_publish(c, &result.type_observations);
+    sem_editor_publish(c, &result.editor);
     foreach(var allocation in &result.allocations) {
         sem_push(&c.allocations, allocation);
     }
@@ -883,8 +894,7 @@ fn sem_bodies(c: SemanticContext*): void {
             result.ordinal = next;
             result.kernel.kind = CompilerKernelKind.Body;
             result.kernel.payload = bits(void*, result);
-            if c.editor != null || c.type_uses != null
-            || !sem_is(sem_member(subject, "body"), "CoreBlock") {
+            if !sem_is(sem_member(subject, "body"), "CoreBlock") {
                 var ticket: WorkTicket;
                 sem_body_structural_take(c, subject, next, BodyQuery, &ticket);
                 var saved_reads = c.query_reads;

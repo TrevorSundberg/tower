@@ -34745,3 +34745,47 @@ reuses these exact verified runtime assets and updates only manifest provenance.
 Remaining measured work is independent cold frontend initialization and warm
 edit execution/backend completion, not worker lifecycle or highlight debounce.
 The user's todo.txt changes remain outside all commits.
+Source publication succeeded normally at d2d5633 (feature commits de3d6c0 and
+fc4ee71), after preserving 6443f6d's documentation. Compiler/build inputs match
+the tested checkpoint exactly. Runtime deployment remains pending; the external
+native-retirement publication is not represented as this feature deployment.
+
+Continued with within-world editor queries. Declaration and ordinary body jobs
+now copy the editor observation into their work component and record type-use
+facts in private vectors. After all wave stages publish, the coordinator interns
+reflected type objects and attaches those observations to the original syntax
+entities. Removed the editor/type-use blanket worker exclusions. Completion still
+checks only the function containing its hole; independent document bodies can all
+use the existing worker scheduler. Captured lexical tables transfer to compilation
+ownership even when a completed worker stops at the editor boundary, keeping
+completion scope pointers alive until query disposal. This is under validation,
+not yet a claim that editor regression or release checks pass.
+
+The new Tower editor_observations fixture uses production worlds at workers
+1/2/4/8 and compares user-visible typed document/completion bytes, omitting only
+the existing numeric debug identities. It exercises decltype annotations in
+independent bodies, nested member completion, a local completion after generic
+body resumption, and parameter type completion. It shares the focused execution
+test target through its 'editor' selector, avoiding native LR fixture linkage
+and allocator instrumentation when testing real worker dispatch.
+
+The native compiler builds with the observation changes. The first new fixture
+assertion incorrectly required the source word 'decltype' in inspection JSON;
+inspection formats the resolved type instead. The document was complete. Changed
+that assertion to require the resolved i32 type and field information, preserving
+the serial/worker byte comparison. The focused rerun follows; the initial aborted
+assertion is not counted as a pass.
+
+The next fixture failure was also in the harness: it supplied partial identifier
+text with no lexer token spans, so completion correctly treated the cursor as a
+new hole rather than replacing that identifier. The focused low-level fixture
+now uses empty holes; existing browser completion tests cover partial tokens with
+the real lexer spans. This retains the intended nested/generic scope coverage.
+
+The corrected production native editor fixture passes at workers 1/2/4/8, with
+byte-identical user-visible document and completion results and successful world
+disposal (editor-observations-focused.log). Updated the migration plan to remove
+the now-obsolete blanket editor exclusion and all-layout body dependency item.
+Structural type construction/protocols, CLI/backend job integration, general
+staged values/effects/invalidation and measured scaling remain open; this is not
+a claim of full conversion or a measured speedup.

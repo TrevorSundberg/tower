@@ -52,11 +52,24 @@ fn sem_type_use(c: SemanticContext*, node: void*, type: FoundationType*): void {
     if c.type_uses == null {
         return;
     }
+    if c.type_observations != null {
+        var observation: SemanticTypeObservation = { node: node, type: *type };
+        sem_require(vector_push(c.type_observations, observation));
+        return;
+    }
     var component = entity_component_add(node, c.type_uses);
     var use = bits(SemanticTypeUse*, entity_component_data(component));
     var allocated = use != null;
     sem_require(allocated);
     use.target = sem_type_entity(c, type);
+}
+
+fn sem_type_observations_publish(c: SemanticContext*, observations: vector(SemanticTypeObservation)*): void {
+    sem_require(c.entity_stage == null && c.type_observations == null);
+    foreach(var &observation in observations) {
+        sem_type_use(c, observation.node, &observation.type);
+    }
+    vector_dispose(observations);
 }
 
 fn sem_constant_argument(c: SemanticContext*, n: void*, expected_type: FoundationType*): void* {
