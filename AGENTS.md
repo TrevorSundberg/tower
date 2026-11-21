@@ -141,6 +141,8 @@ Do NOT modify todo.txt
   A pinned view is not a payload lock. Publish structural changes, type interning,
   shared indexes and reference ownership on the coordinator after joins, using
   stages/leases. Cancellation must drain work before releasing its inputs.
+  Joining does not release stage leases; publish all affected stages before
+  coordinator updates to entities owned by other jobs.
   New syntax must update worker admission when its lowering can construct types
   or instantiate implicit protocol calls; test it inside independent bodies too.
 - Validate relevant changes against serial execution: canonical output and

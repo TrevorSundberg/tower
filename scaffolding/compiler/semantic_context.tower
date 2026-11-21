@@ -37,6 +37,9 @@ struct SemanticTypeUse {
     target: void*;
 }
 
+// Scheduling provenance on a function entity, separate from its signature.
+struct SemanticBodyDemand { source: void*; }
+
 const EditorEnumMembers: u32 = 5;
 
 // Default resource policy for attached semantic payloads, not a language/node
@@ -92,6 +95,8 @@ struct SemanticContext {
     declaration_jobs: vector(void*);
     declaration_subjects: vector(void*)*;
     prepared_calls: void*;
+    body_demands: void*;
+    body_seen: SemanticTable*;
     defer_type_fields: bool;
     control_names: SemanticTable*;
     control_reserved: SemanticTable*;

@@ -28439,3 +28439,112 @@ needed later, including via another body's call, so a one-pass function cursor
 alone is insufficient. Preserve ordinary recursive calls without inventing type
 cycles, and omit unused signature-only instances from executable Foundation output.
 This is a proposed next step and reproducer, not implemented support.
+
+### 2026-11-20 - Generic signatures no longer force unused bodies
+
+Window-batching source 2ef49d4 is pushed after an unchanged final pull. Its frozen
+browser release is completing validation. The preceding 05ad028/Pages 2c11139
+release has completed all hosted hash and desktop/mobile/default checks.
+
+Generic body demand is now recorded on the function entity from canonical calls,
+with the call retained as provenance. Declaration/type-query syntax is not an
+execution demand. Ordinary functions keep their existing module checking policy;
+needed generic bodies still use the same preparation/body graph and worker pool.
+Calls inside checked stage expressions are included despite their result
+placeholders. Newly needed earlier instances are revisited using existing query
+receipts, without rechecking completed bodies. Ordinary recursive/mutually
+recursive calls do not become false type/dependency cycles. Unused signature-only
+instances are removed from executable function/generated lists; retained function
+indices are rebuilt before interpretation/lowering and canonical serialization.
+This is not arbitrary dead-code elimination or branch-sensitive body-demand
+analysis. All checked stage expressions currently contribute call demand.
+
+The original signature-only reproducer now prints 7 in both interpreters and
+widths, instead of diagnosing its unused body. The permanent fixture prints 0
+for later/transitive use of earlier instances, compile-time invocation, recursion,
+mutual recursion, pointer signatures and local decltype queries. Negative cases
+require actual runtime/compile-time calls to diagnose the invalid body. Initial
+expanded capacity tests pass 3/3 in 45.86s. Matching backend/bootstrap builds are
+still running; this feature is not pushed yet.
+
+Audits found two ownership/provenance details before publication. Entity component
+payloads are not implicitly zeroed: initialize the new demand's source directly
+on first attachment instead of reading uninitialized memory. A completed callee
+can still be leased by another job in the same batch, so publish every stage and
+release its leases before coordinator demand discovery attaches cross-job metadata.
+Added that concise distinction to AGENTS.md. Body diagnostics now trace the actual
+body-demand call rather than the earlier decltype-only instantiation; the runtime
+negative test requires the wrapper(1) call chain. All changes remain Tower, with
+no new folding evaluator or C++ helper.
+
+The matching portable/LLVM compile-time suite passes 34/34 in 6.48s, including
+actual-call diagnostic provenance. Native acceptance initially passes 7/8, with
+the complete semantic graph oracle failing. Investigating the extra owned ECS
+component-kind entity: this oracle numbers every containment node, including
+nonsemantic metadata. Do not regenerate evidence merely because the hash changed.
+A temporary audit will require every old field/edge fingerprint to match after
+excluding exactly one nonsemantic leaf, then restore the unmodified assertions.
+The first scratch helper used the reserved grammar word `skip` as a parameter;
+renamed it to `omitted`. No compiler grammar change was needed.
+
+Window-batching release 2ef49d4 is published as Pages
+91424e8689559702b756b234898847c4980ad034 on 2c11139, action 44877328277 succeeds.
+Two edited browser generations pass in 111.33s/69.01s with identical sizes
+1,019,626/52,319,713/63,877,177 and hashes:
+parser 6bbaa873442b3d171577699c2adbe3a5feb5ae43c263dd9c29231bcb9d7e003f;
+LLVM ef232fa72478f2379c9abcdcdc7860995d49ecb0e9fda5744875729d114e39a7;
+cross 10e0c52f8ea9c10625a188ceba238c47a04408d5cff33f8cb42e71cd104abebb.
+Local 77-asset and desktop/mobile/default checks pass. Hosted asset hashes pass;
+remaining hosted workflows are running. Saved the published manifest and logs
+under build/language-next-audit/body-prefix-batch-*.
+
+The oracle investigation is complete: all 24 single-file graphs and both
+multi-file graphs match their previous full semantic-field/edge fingerprints
+when exactly one nonsemantic containment leaf is excluded. No semantic field,
+binding, type, source span or ordering change was needed; the added demand-kind
+entity changes traversal IDs. Updated complete-tree fingerprint constants only,
+restored all normal assertions, and removed the temporary tracer. The audit also
+passes the complete execution/round-trip/package suite. Its second scratch build
+used another reserved identifier, `expected`; replacing it with `wanted` completed
+the test harness. Evidence: lazy-body-oracle-trace.log and trace_lazy_oracle.py.
+Final stage-publication shared capacity tests pass 3/3 in 54.30s. Portable/shared
+builds pass; final native and LLVM/cross builds are running with the public
+bootstrap and no private override.
+
+The 2ef49d4/Pages 91424e8 hosted verifier completes successfully: all 77 hashes,
+desktop and mobile execution/editor/download workflows, and default target
+selection. Lazy body demand is still a separate local change at this point.
+
+Final native acceptance passes 8/8 in 42.20s with normal full-graph assertions;
+backend API checks pass. Editor completion/query regressions pass 28/28 in
+119.29s. The LLVM/cross build and compiler-project packaging finish successfully.
+Matching backend regressions, actual successor object comparison, two edited
+browser generations and local deployment workflows are running against this
+frozen implementation. No new C++ or todo.txt changes.
+
+The actual native successor recompiles tower_compiler_semantics.tower and its
+object compares byte-for-byte with the public-bootstrap build (cmp exit 0;
+lazy-body-successor.log). Expanded imported-module capacity coverage now combines
+an invalid body used solely through an alias-qualified decltype, a signature-only
+imported generic later demanded by runtime and compile-time code, and the existing
+cross-module layout/alias-shadowing checks. Expected execution is
+9/10/9/17/8/16, with no invalid body in canonical output, for both pointer widths
+and both interpreters at 1/2/4/8 workers. That expanded test is running.
+
+Expanded imported-module capacity checks pass 3/3 in 63.97s. Two edited browser
+compiler generations pass in 147.11s/90.47s with identical artifact sizes
+1,022,759/52,322,849/63,880,313 and hashes:
+parser cd5d3bb4b87f18d608d89bffc7a6946043cbe08d35b9ad1a1534e25b9569ae0b;
+LLVM fbb8ecd704a99d4aa50c7fd46853d1c14679a42d54f2d7045cb06be06e9fb1f9;
+cross b6c7c5250a37ef0c0f459e236653d9c57556ce0443c9efb56d89b89c8137a6a6.
+Their compiler project uses independent compilation-unit workers as well as the
+single-unit semantic graph paths exercised separately above. Full library/backend
+and remaining local deployment workflows are still running; no source push yet.
+
+Final matching backend/library suite passes 95/95 in 335.00s, covering compile-time,
+generic inference, expressions/precedence, defer, for/foreach, interpreter/LLVM
+and shared semantic/library graph cases. Local deployment passes all 77 asset
+hashes and desktop/mobile/default workflows. Together with native 8/8, backend
+API, actual successor cmp0, editor 28/28, capacity 3/3 and both edited browser
+generations, this completes checkpoint validation. Preparing the final pull and
+normal source push; broader compiler-wide threading remains ongoing.

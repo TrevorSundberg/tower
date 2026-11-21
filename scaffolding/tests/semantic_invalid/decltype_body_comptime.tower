@@ -1,0 +1,4 @@
+import tower;
+fn invalid(T:type, value:T):T { return missing_body_value; }
+var inspected:decltype(invalid(1));
+print(comptime(invalid(1)));

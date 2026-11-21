@@ -526,6 +526,18 @@ fn sem_ok(c: SemanticContext*): bool {
     return c.program.error.length == 0;
 }
 
+fn sem_instantiation_use(c: SemanticContext*, n: void*): void* {
+    var use = generic_origin(c.generics, n);
+    if use == null || c.body_demands == null { return use; }
+    var function = n;
+    while function != null && !sem_is(function, "CoreFunction") { function = sem_parent(function); }
+    if function != null {
+        var demand = bits(SemanticBodyDemand*, entity_component_data(entity_component_get(function, c.body_demands)));
+        if demand != null { return demand.source; }
+    }
+    return use;
+}
+
 fn sem_fail(c: SemanticContext*, n: void*, text: u8*): void {
     if !sem_ok(c) {
         return;
@@ -533,7 +545,7 @@ fn sem_fail(c: SemanticContext*, n: void*, text: u8*): void {
     var step3 = sem_offset(c, n);
     c.program.error_offset = step3;
     var seen: vector(void*)* = sem_list(c);
-    var use: void* = generic_origin(c.generics, n);
+    var use: void* = sem_instantiation_use(c, n);
     loop {
         if !(use != null && seen.length < 8 && !sem_has(seen, use)) {
             break;
@@ -565,7 +577,7 @@ fn sem_fail(c: SemanticContext*, n: void*, text: u8*): void {
         var step25 = sem_cat(c, step24, ".");
         var step26 = sem_cat(c, ", column ", step25);
         text = sem_cat(c, text, step26);
-        use = generic_origin(c.generics, use);
+        use = sem_instantiation_use(c, use);
     }
     var count: usize = sem_length(text);
     var step30 = count + 1;

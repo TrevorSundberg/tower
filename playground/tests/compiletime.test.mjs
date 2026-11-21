@@ -21,7 +21,7 @@ function execute(source, pointerBytes, fast) {
  } finally { tower.destroyExecution(handle); }
 }
 
-for (const name of ['decltype', 'decltype_headers', 'decltype_layout', 'decltype_generic_headers', 'decltype_type_fields', 'decltype_aggregate', 'body_continuation', 'comptime', 'comptime_flow']) {
+for (const name of ['decltype', 'decltype_headers', 'decltype_layout', 'decltype_generic_headers', 'decltype_type_fields', 'decltype_aggregate', 'decltype_lazy_body', 'body_continuation', 'comptime', 'comptime_flow']) {
  test(`${name} preserves types and behavior through Foundation, interpreters and LLVM`, async () => {
   tower.configureModules({entry: `.tower/tests/${name}.tower`});
   const source = await readFile(`scaffolding/tests/${name}.tower`, 'utf8');
@@ -29,6 +29,9 @@ for (const name of ['decltype', 'decltype_headers', 'decltype_layout', 'decltype
   for (const width of [4, 8]) {
    canonical = execute(source, width, false);
    assert.equal(execute(canonical, width, true), canonical);
+   if (name === 'decltype_lazy_body') {
+    assert.doesNotMatch(canonical, /missing_body_value|fn `unused\(/);
+   }
   }
   for (const input of [source, canonical]) {
    const result = llvm.compile(input);
@@ -49,6 +52,8 @@ for (const [name, message] of [
  ['decltype_type_field_cycle', /initializer dependency cycle/],
  ['decltype_aggregate_operator', /aggregate copies are not implemented/],
  ['aggregate_inferred_copy', /aggregate copies are not implemented/],
+ ['decltype_body_runtime', /Unknown local 'missing_body_value'/],
+ ['decltype_body_comptime', /Unknown local 'missing_body_value'/],
  ['decltype_unknown', /Unknown local/],
  ['comptime_cycle', /Compile-time dependency cycle/],
  ['comptime_defer_cycle', /Compile-time dependency cycle/],
@@ -67,10 +72,18 @@ for (const [name, message] of [
     const result = tower.execute(handle);
     assert.equal(result.status, 'error');
     assert.match(result.error, message);
+    if (name === 'decltype_body_runtime') {
+     assert.match(result.error, /Instantiated by wrapper[(]1[)]/);
+     assert.doesNotMatch(result.error, /Instantiated by invalid[(]1[)]/);
+    }
    } finally { tower.destroyExecution(handle); }
    const compiled = llvm.compile(source, {target:width === 4 ? 'wasm32-unknown-unknown' : 'wasm64-unknown-unknown'});
    assert.equal(compiled.status, 'error');
    assert.match(compiled.error, message);
+   if (name === 'decltype_body_runtime') {
+    assert.match(compiled.error, /Instantiated by wrapper[(]1[)]/);
+    assert.doesNotMatch(compiled.error, /Instantiated by invalid[(]1[)]/);
+   }
   }
  });
 }

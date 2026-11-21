@@ -1,0 +1,33 @@
+import tower;
+
+fn unused(T:type, value:T):T { return missing_body_value; }
+fn increment(T:type, value:T):T { return value+1; }
+var inspected:decltype(unused(1));
+var inspected_pointer:decltype(unused(bits(i32*,convert(usize,0))));
+var earlier:decltype(increment(1));
+
+fn wrapper(T:type, value:T):T {
+    var inspected_local:decltype(unused(value));
+    return increment(value);
+}
+fn factorial(T:type, value:T):T {
+    if value==0 { return 1; }
+    return value*factorial(value-1);
+}
+fn even(T:type, value:T):bool {
+    if value==0 { return true; }
+    return odd(value-1);
+}
+fn odd(T:type, value:T):bool {
+    if value==0 { return false; }
+    return even(value-1);
+}
+
+var failures:i32=0;
+inspected=7;
+earlier=wrapper(3);
+if inspected!=7 || earlier!=4 { failures++; }
+if wrapper(u64,8)!=9 || comptime(wrapper(10))!=11 { failures++; }
+if factorial(4)!=24 || comptime(factorial(u64,5))!=120 { failures++; }
+if !even(4) || even(3) || !comptime(odd(u64,5)) { failures++; }
+print(failures);

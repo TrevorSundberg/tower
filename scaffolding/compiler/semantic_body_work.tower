@@ -21,6 +21,71 @@ const BodyQuery: u32 = 6;
 const BodyPrepareQuery: u32 = 9;
 const BodyPreparationWindow: usize = 256;
 
+// A signature can exist for an unevaluated query without demanding its body.
+fn sem_body_needed(c: SemanticContext*, subject: void*): bool {
+    return generic_origin(c.generics, subject) == null
+        || entity_component_get(subject, c.body_demands) != null;
+}
+
+fn sem_body_calls(c: SemanticContext*, root: void*): void {
+    var pending: vector(void*);
+    vector_init(&pending);
+    defer vector_dispose(&pending);
+    sem_push(&pending, root);
+    while pending.length != 0 {
+        pending.length--;
+        var node = pending.data[pending.length];
+        if node == null { continue; }
+        var value = sem_get(node);
+        if value == null || value.kind == KFunction() || value.kind == KType()
+            || value.kind == KLabel() { continue; }
+        var seen = sem_state(c, c.body_seen, node);
+        if seen.number != 0 { continue; }
+        seen.number = 1;
+        if value.kind == KCall() && value.binding != null
+            && entity_component_get(value.binding, c.body_demands) == null {
+            var demand = bits(SemanticBodyDemand*, entity_component_data(entity_component_add(value.binding, c.body_demands)));
+            sem_require(demand != null);
+            demand.source = node;
+        }
+        // Traverse owned canonical operation edges, never syntax children or
+        // binding/type back-references. Unevaluated decltype calls are absent.
+        sem_push(&pending, value.left);
+        sem_push(&pending, value.right);
+        sem_push(&pending, value.value);
+        sem_push(&pending, value.target);
+        sem_push(&pending, value.body);
+        sem_push(&pending, value.otherwise);
+        foreach(var item in &value.items) { sem_push(&pending, item); }
+    }
+}
+
+fn sem_body_pending(c: SemanticContext*, subject: void*): bool {
+    if sem_get(subject).external || !sem_body_needed(c, subject) { return false; }
+    var query = work_find(&c.queries, subject, BodyQuery(), 0);
+    return query == 0;
+}
+
+fn sem_body_prune(c: SemanticContext*): void {
+    if !sem_ok(c) { return; }
+    var count: usize = 1;
+    for(var i: usize = 1; i < c.program.functions.length; i++) {
+        var subject = c.program.functions.data[i];
+        if !sem_body_needed(c, subject) { continue; }
+        sem_get(subject).index = count;
+        c.program.functions.data[count] = subject;
+        count++;
+    }
+    c.program.functions.length = count;
+    count = 0;
+    foreach(var subject in &c.generated) {
+        if sem_get(subject).kind == KFunction() && !sem_body_needed(c, subject) { continue; }
+        c.generated.data[count] = subject;
+        count++;
+    }
+    c.generated.length = count;
+}
+
 struct SemanticBodyScope {
     current: void*;
     scope: SemanticScope*;
@@ -371,6 +436,15 @@ fn sem_bodies(c: SemanticContext*): void {
     if !sem_ok(c) { return; }
     sem_control_names(c);
     sem_evaluation_begin(c);
+    c.body_demands = sem_create(c.program.root);
+    sem_require(entity_register(c.body_demands, sizeof(SemanticBodyDemand), alignof(SemanticBodyDemand), 0));
+    c.body_seen = sem_table(c);
+    sem_body_calls(c, c.program.root);
+    var evaluation: usize = 0;
+    while evaluation < c.evaluation_jobs.length {
+        sem_body_calls(c, bits(SemanticEvaluation*, c.evaluation_jobs.data[evaluation]).expression);
+        evaluation++;
+    }
     var kind = sem_create(c.program.root);
     sem_require(entity_register(kind, sizeof(SemanticBodyWork), alignof(SemanticBodyWork), 0));
     var next: usize = 1;
@@ -386,7 +460,7 @@ fn sem_bodies(c: SemanticContext*): void {
         while next < c.program.functions.length && prepared < BodyPreparationWindow() {
             prepared++;
             var subject = c.program.functions.data[next];
-            if sem_get(subject).external { next++; continue; }
+            if !sem_body_pending(c, subject) { next++; continue; }
             var result = bits(SemanticBodyWork*, entity_component_data(entity_component_add(subject, kind)));
             sem_require(result != null);
             fill(result, 0, sizeof(SemanticBodyWork));
@@ -409,6 +483,7 @@ fn sem_bodies(c: SemanticContext*): void {
                         sem_body_hold_error(c, failed);
                         break;
                     }
+                    sem_body_calls(c, sem_get(subject).body);
                     sem_body_clear(result);
                     continue;
                 }
@@ -456,6 +531,11 @@ fn sem_bodies(c: SemanticContext*): void {
             // Drain every prepared continuation even if an earlier one failed.
             // Each owns canonical nodes and private scope state until publication.
             for(var i = first; i < end; i++) { sem_body_publish(c, batch[i]); }
+            // A callee can be leased by another job in this batch. Attach demand
+            // metadata only after every stage is published and lease released.
+            if sem_ok(c) {
+                for(var i = first; i < end; i++) { sem_body_calls(c, sem_get(batch[i].subject).body); }
+            }
             first = end;
         }
         if failed != null {
@@ -466,5 +546,20 @@ fn sem_bodies(c: SemanticContext*): void {
             }
             sem_body_clear(failed);
         }
+        if sem_ok(c) {
+            // Stage expressions are ordinary checked code hidden behind their
+            // result placeholders. Their calls also require executable bodies.
+            while evaluation < c.evaluation_jobs.length {
+                sem_body_calls(c, bits(SemanticEvaluation*, c.evaluation_jobs.data[evaluation]).expression);
+                evaluation++;
+            }
+            if next == c.program.functions.length {
+                // A later checked body may demand an earlier signature-only
+                // instance. Existing body query receipts prevent rechecking.
+                next = 1;
+                while next < c.program.functions.length && !sem_body_pending(c, c.program.functions.data[next]) { next++; }
+            }
+        }
     }
+    sem_body_prune(c);
 }
