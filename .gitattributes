@@ -1,3 +1,15 @@
 *.sh text eol=lf
 *.tower text eol=lf
 CNAME text eol=lf
+
+# Tower is not registered in GitHub Linguist yet. Do not mislabel it as another
+# language; this keeps source eligible once upstream recognizes .tower.
+*.tower linguist-detectable=true
+
+# Dependency sources and compiled distribution artifacts are not authored source.
+third_party/** linguist-vendored=true
+bootstrap/**/*.tar.gz linguist-generated=true
+playground/dist/** linguist-generated=true
+
+# Scope-test fixtures are editor tests, not upstream classifier samples.
+editors/tower/tests/** linguist-detectable=false

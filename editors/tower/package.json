@@ -1,0 +1,35 @@
+{
+  "name": "tower-language",
+  "displayName": "Tower Language",
+  "description": "TextMate highlighting and basic editing support for Tower source files.",
+  "version": "0.1.0",
+  "publisher": "tower-local",
+  "private": true,
+  "license": "MIT",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Programming Languages"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TrevorSundberg/tower.git",
+    "directory": "editors/tower"
+  },
+  "contributes": {
+    "languages": [{
+      "id": "tower",
+      "aliases": ["Tower", "tower"],
+      "extensions": [".tower"],
+      "configuration": "./language_configuration.json"
+    }],
+    "grammars": [{
+      "language": "tower",
+      "scopeName": "source.tower",
+      "path": "./syntaxes/tower.tmLanguage.json"
+    }]
+  },
+  "scripts": {
+    "test": "vscode-tmgrammar-test \"tests/*.tower\""
+  },
+  "devDependencies": {
+    "vscode-tmgrammar-test": "0.1.3"
+  }
+}

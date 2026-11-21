@@ -1,0 +1,9 @@
+# Candidate fragment for upstream lib/linguist/languages.yml; not GitHub config.
+# Generate language_id upstream with script/update-ids at submission time.
+Tower:
+  type: programming
+  color: "#8cdeba"
+  extensions:
+  - ".tower"
+  tm_scope: source.tower
+  ace_mode: text

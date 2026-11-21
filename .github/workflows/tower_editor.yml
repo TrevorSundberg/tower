@@ -1,0 +1,31 @@
+name: Tower editor grammar
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'editors/tower/**'
+      - 'linguist/**'
+      - '.github/workflows/tower_editor.yml'
+  pull_request:
+    paths:
+      - 'editors/tower/**'
+      - 'linguist/**'
+      - '.github/workflows/tower_editor.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  textmate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: editors/tower/package-lock.json
+      - run: npm ci --prefix editors/tower
+      - run: npm test --prefix editors/tower

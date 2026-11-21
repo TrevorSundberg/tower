@@ -1,0 +1,21 @@
+{
+  "status": "candidates_only_permission_required",
+  "repository": "https://github.com/TrevorSundberg/tower",
+  "samples": [
+    {
+      "path": "scaffolding/library/bytes.tower",
+      "reason": "Real buffer growth, overflow checks, alias-aware append and memory operations.",
+      "license": null
+    },
+    {
+      "path": "scaffolding/library/vector.tower",
+      "reason": "Real parameterized types, fields, functions and collection operations.",
+      "license": null
+    },
+    {
+      "path": "scaffolding/bedrock.tower",
+      "reason": "The actual declaration grammar, patterns, captures, imports and precedence metadata.",
+      "license": null
+    }
+  ]
+}

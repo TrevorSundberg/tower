@@ -1,0 +1,66 @@
+// SYNTAX TEST "source.tower" "Tower declarations and expressions"
+
+    import tower;
+//  ^^^^^^ keyword.control.import.tower
+    import .compiler.syntax_types;
+//         ^ punctuation.separator.tower
+    import "arbitrary-path.tower";
+//         ^^^^^^^^^^^^^^^^^^^^^^ string.quoted.double.tower
+
+    export fn sum(count: i32): i32 {
+//  ^^^^^^ storage.modifier.tower
+//         ^^ storage.type.function.tower
+//            ^^^ entity.name.function.tower
+//                       ^^^ support.type.tower
+        var total: i32 = 0;
+//      ^^^ storage.type.tower
+//                       ^ constant.numeric.integer.decimal.tower
+        for (var i: i32 = 0; i < count; i++) {
+//      ^^^ keyword.control.tower
+            total += i;
+//                ^^ keyword.operator.tower
+        }
+        return total;
+//      ^^^^^^ keyword.control.tower
+    }
+
+    struct Point { x: i32; y: i32; }
+//  ^^^^^^ storage.type.tower
+//         ^^^^^ entity.name.type.tower
+    enum Mode: u8 { idle = 0, active = 1 }
+//  ^^^^ storage.type.tower
+//       ^^^^ entity.name.type.tower
+    var state: Point = default;
+//                     ^^^^^^^ constant.language.tower
+    var `if`: i32 = 7;
+//      ^^^^ variable.other.quoted.tower - keyword.control.tower
+    var message = "return // is text";
+//                 ^^^^^^ string.quoted.double.tower - keyword.control.tower
+    var quote = 'it\'s a string';
+//                 ^^ constant.character.escape.tower
+    var ratio = 8 / 2;
+//                ^ keyword.operator.tower - string.regexp.tower
+    var flag = true;
+//             ^^^^ constant.language.tower
+    var empty: u8* = null;
+//                   ^^^^ constant.language.tower
+    var value = empty?[0] ?? 1;
+//                   ^^ keyword.operator.tower
+//                        ^^ keyword.operator.tower
+    var bits_value: u32 = 16;
+    bits_value >>>= 1;
+//             ^^^^ keyword.operator.tower
+    defer free(empty);
+//  ^^^^^ keyword.control.tower
+//        ^^^^ support.function.tower
+    // "for" and /* text */ stay comments
+//  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ comment.line.double-slash.tower
+    /* begin comment
+       "quoted" and fn stay inside
+//     ^^^^^^^^^^^^^^^^^^^^^^^^^^^ comment.block.tower
+    */ var after: i32 = 1;
+//     ^^^ storage.type.tower - comment.block.tower
+
+    var broken = "unfinished
+    return;
+//  ^^^^^^ keyword.control.tower - string.quoted.double.tower

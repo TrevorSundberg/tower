@@ -1,0 +1,38 @@
+// SYNTAX TEST "source.tower" "Bedrock grammar and pattern boundaries"
+
+    import bedrock;
+    token Number = /[0-9]+/ as number;
+//  ^^^^^ keyword.declaration.grammar.tower
+//        ^^^^^^ entity.name.type.grammar.tower
+//                 ^^^^^^^^ string.regexp.tower
+//                          ^^ keyword.control.import.tower
+    skip Space = /[ \t]+/;
+//  ^^^^ keyword.declaration.grammar.tower
+//                  ^^ constant.character.escape.tower
+    token Slash = /[/]/ when expected as pattern;
+//                 ^ string.regexp.tower constant.other.character-class.tower
+//                      ^^^^ keyword.declaration.grammar.tower
+    token Escaped = /a\/b/;
+//                    ^^ constant.character.escape.tower
+    token MultiLine
+        // a declaration can span lines
+        = /[^/\]]+/;
+//        ^^^^^^^^^ string.regexp.tower
+    parse Atom = Identifier | Number;
+//  ^^^^^ keyword.declaration.grammar.tower
+//        ^^^^ entity.name.type.grammar.tower
+    parse Expr |= $left:Expr '+' $right:Expr @ 120 left
+//                ^^^^^ variable.other.capture.tower
+//                           ^^^ string.quoted.single.tower
+//                                           ^ keyword.operator.tower
+//                                             ^^^ constant.numeric.integer.decimal.tower
+        => replace { $left + $right };
+//      ^^ keyword.operator.tower
+//         ^^^^^^^ keyword.declaration.grammar.tower
+    parse Divide = '/' | '/*' | '//';
+//                 ^^^ string.quoted.single.tower - string.regexp.tower
+//                              ^^^^ string.quoted.single.tower - comment.line.double-slash.tower
+    parse `if` = 'if';
+//        ^^^^ variable.other.quoted.tower - keyword.control.tower
+    var quotient: i32 = 12 / 3;
+//                         ^ keyword.operator.tower - string.regexp.tower

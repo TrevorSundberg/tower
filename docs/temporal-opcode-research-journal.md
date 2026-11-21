@@ -32184,3 +32184,78 @@ Refreshed package SHA-256 is
 from implementation 2b65c3e. Its documented default bootstrap path builds a fresh
 successor in `/cache/binding-library-clean`, all 53 steps passing. The successor's
 library fixture links/runs without initialization and both value fixtures pass.
+
+## 2026-11-21 - Preparing Tower for GitHub Linguist recognition
+
+Request: prepare repository-local language registration materials, improve truthful
+classification where possible, then push and verify GitHub/deployment. No change
+or submission to another repository is authorized. Tower source/runtime semantics
+and bootstrap inputs are unchanged by this work.
+
+Research used current upstream primary sources:
+- https://github.com/github-linguist/linguist/blob/main/CONTRIBUTING.md
+- https://github.com/github-linguist/linguist/blob/main/docs/overrides.md
+- https://github.com/github-linguist/linguist/blob/main/lib/linguist/languages.yml
+- https://github.com/github-linguist/linguist/discussions/7378
+- https://github.com/github-linguist/linguist/blob/main/docs/troubleshooting.md
+- https://code.visualstudio.com/api/language-extensions/syntax-highlight-guide
+
+Upstream has no Tower/.tower entry and no Other language. Detectable attributes
+cannot register a language; Other groups smaller recognized languages. Rejected
+mapping Tower to C++, JavaScript or Text merely to affect percentages. Current
+admission policy asks for 2,000 indexed files for a repeating extension, excluding
+forks, with recent indexing and broad owner/repository distribution. No external
+adoption count has been measured or claimed. Local source count is not that test.
+
+Added a root README, scoped TextMate/VS Code package in editors/tower, a proposed
+Linguist YAML entry without an invented ID, and a manifest pointing to real buffer,
+vector and Bedrock sources. The new package alone is MIT licensed. Existing Tower
+source has no root license: candidate sample permissions remain explicitly pending,
+rather than silently relicensing them. Scope-test snippets are not upstream
+classifier samples. The checklist records actual submission commands, evidence and
+license gates, nested grammar-import discovery still to verify, PCRE validation,
+and release/search delays. No upstream PR or Marketplace publication was made.
+
+The TextMate grammar is conservative lexical editor metadata, not another parser
+or semantic model. It cannot execute Tower's incremental declarations. It supports
+comments, both string quotes, escaped identifiers, grammar patterns/captures,
+common declarations/types and operators. Patterns are restricted to token/skip
+declarations, with slash-aware character classes; division stays an operator.
+Retired const syntax is not promoted. New test cases are Tower text plus scope
+assertions in comments, run by the existing vscode-tmgrammar-test 0.1.3 engine.
+There is no new JavaScript/Python/native validation implementation. A path-filtered
+GitHub Actions workflow runs npm ci and the same tests on main and pull requests.
+
+.gitattributes preserves Tower text/line endings, makes .tower eligible once
+registered, marks dependency trees vendored and compressed/generated distribution
+paths generated, and excludes the editor's scope fixtures from statistics. Real
+project compiler/browser/build code is not hidden. Git check-attr verifies these
+boundaries and confirms no linguist-language override is applied.
+
+Environment: Windows PowerShell, C:/Sandbox/tower, Node/npm, existing GitHub Pages
+clone at build/pages-deploy. Initial git pull --rebase was blocked by pre-existing
+AGENTS/foundation/journal/todo edits. Saved the original diff under .git and used
+autostash to pull 148 commits through a07884e; all local edits were restored. Git's
+automatic geometric repack consumed multiple minutes and about 8 GiB; interrupted
+only its pack-objects helpers, after fetch, and the pull completed successfully.
+Subsequent Git commands disable automatic maintenance for that invocation. No
+source was discarded and todo.txt is excluded from this turn's edits/commits.
+
+Validation: npm install from the package directory created its locked development
+dependencies; an initial --prefix install failed looking for a root package.json.
+Subsequent npm ci --prefix editors/tower succeeds (25 packages audited, zero
+reported vulnerabilities). Initial scope assertions exposed inaccurate caret
+columns; fixed the assertions, then both fixture suites pass with
+npm test --prefix editors/tower. JSON/configuration and sample paths validate.
+A broad git diff --check reported pre-existing todo whitespace, which is preserved;
+checks for this change are scoped. This is not an upstream Linguist classifier or
+PCRE test result. CI and publication receipts are recorded after they complete.
+
+For this editor/documentation milestone, reused every hash-verified runtime asset
+from gh-pages 4705e84, retaining buildSourceCommit
+8e09a3c552ffda6ffa19da56ccbee85f6b504115. The complete copied manifest has 77 served
+assets including the manifest; local verification checks hashes and desktop/mobile
+execution. No compiler rebuild or bootstrap migration is warranted by these changes.
+The deployment metadata will identify the preparation source separately from the
+runtime build identity. Remaining work is independent adoption, explicit sample
+permission, upstream import/classifier tests and eventual authorized submission.

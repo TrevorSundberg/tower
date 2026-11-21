@@ -1,0 +1,121 @@
+{
+  "name": "Tower",
+  "scopeName": "source.tower",
+  "fileTypes": ["tower"],
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#strings" },
+    { "include": "#quoted_identifier" },
+    { "include": "#lexical_declaration" },
+    { "include": "#declarations" },
+    { "include": "#captures" },
+    { "include": "#keywords" },
+    { "include": "#values" },
+    { "include": "#operators" },
+    { "include": "#punctuation" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        { "name": "comment.line.double-slash.tower", "begin": "//", "end": "$" },
+        { "name": "comment.block.tower", "begin": "/\\*", "end": "\\*/" }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.tower", "begin": "\"", "end": "\"|$",
+          "patterns": [{ "name": "constant.character.escape.tower", "match": "\\\\." }]
+        },
+        {
+          "name": "string.quoted.single.tower", "begin": "'", "end": "'|$",
+          "patterns": [{ "name": "constant.character.escape.tower", "match": "\\\\." }]
+        }
+      ]
+    },
+    "quoted_identifier": {
+      "name": "variable.other.quoted.tower", "begin": "`", "end": "`|$",
+      "patterns": [{ "name": "constant.character.escape.tower", "match": "\\\\." }]
+    },
+    "lexical_declaration": {
+      "name": "meta.declaration.lexical.tower",
+      "begin": "\\b(token|skip)\\b",
+      "beginCaptures": { "1": { "name": "keyword.declaration.grammar.tower" } },
+      "end": ";",
+      "endCaptures": { "0": { "name": "punctuation.terminator.statement.tower" } },
+      "patterns": [
+        { "include": "#comments" },
+        { "include": "#quoted_identifier" },
+        { "include": "#pattern" },
+        { "include": "#keywords" },
+        { "include": "#operators" },
+        { "name": "entity.name.type.grammar.tower", "match": "[A-Za-z_][A-Za-z0-9_]*" }
+      ]
+    },
+    "pattern": {
+      "name": "string.regexp.tower", "begin": "/", "end": "/|$",
+      "patterns": [
+        { "name": "constant.character.escape.tower", "match": "\\\\." },
+        {
+          "name": "constant.other.character-class.tower", "begin": "\\[", "end": "\\]|$",
+          "patterns": [{ "name": "constant.character.escape.tower", "match": "\\\\." }]
+        }
+      ]
+    },
+    "declarations": {
+      "patterns": [
+        {
+          "match": "\\b(fn)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": { "name": "storage.type.function.tower" },
+            "2": { "name": "entity.name.function.tower" }
+          }
+        },
+        {
+          "match": "\\b(struct|enum)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": { "name": "storage.type.tower" },
+            "2": { "name": "entity.name.type.tower" }
+          }
+        },
+        {
+          "match": "\\b(parse)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": { "name": "keyword.declaration.grammar.tower" },
+            "2": { "name": "entity.name.type.grammar.tower" }
+          }
+        }
+      ]
+    },
+    "captures": { "name": "variable.other.capture.tower", "match": "\\$[A-Za-z_][A-Za-z0-9_]*" },
+    "keywords": {
+      "patterns": [
+        { "name": "keyword.control.tower", "match": "\\b(if|else|loop|while|for|foreach|in|break|continue|return|defer|match)\\b" },
+        { "name": "keyword.control.import.tower", "match": "\\b(import|as)\\b" },
+        { "name": "keyword.declaration.grammar.tower", "match": "\\b(parse|token|skip|replace|when|expected|left|right|nonassoc)\\b|L>R|R<L" },
+        { "name": "storage.modifier.tower", "match": "\\b(extern|export)\\b" },
+        { "name": "storage.type.tower", "match": "\\b(var|fn|struct|enum)\\b" },
+        { "name": "support.function.tower", "match": "\\b(print|alloc|realloc|free|copy|fill|sizeof|alignof|convert|bits|default|init|decltype|comptime)\\b(?=\\s*\\()" },
+        { "name": "keyword.operator.word.tower", "match": "\\b(is|not|compl|bitand|bitor|xor|and|or|not_eq|and_eq|or_eq|xor_eq)\\b" }
+      ]
+    },
+    "values": {
+      "patterns": [
+        { "name": "constant.language.tower", "match": "\\b(true|false|null|default)\\b" },
+        { "name": "support.type.tower", "match": "\\b(i8|i16|i32|i64|u8|u16|u32|u64|isize|usize|bool|void|type)\\b" },
+        { "name": "constant.numeric.integer.decimal.tower", "match": "\\b[0-9]+\\b" }
+      ]
+    },
+    "operators": {
+      "name": "keyword.operator.tower",
+      "match": ">>>=?|<<=?|>>=?|<=>|=>|\\?\\?=?|\\?\\.|\\?\\[|&&=?|\\|\\|=?|\\+\\+|--|[+*/%&|^!=<>-]=?|[~?:@]"
+    },
+    "punctuation": {
+      "patterns": [
+        { "name": "punctuation.terminator.statement.tower", "match": ";" },
+        { "name": "punctuation.section.tower", "match": "[{}()\\[\\]]" },
+        { "name": "punctuation.separator.tower", "match": "[,.]" }
+      ]
+    }
+  }
+}
