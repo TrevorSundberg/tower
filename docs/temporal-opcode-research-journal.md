@@ -23237,3 +23237,15 @@ The expanded run passed 35/35 tests across defer, for-loops and completion
 passed using the published for-capable 9bbb2eb8 predecessor. Package this validated
 successor before using defer in compiler implementations, then validate a fresh
 default build without a private compiler override after the cleanup migration.
+
+Pinned defer-capable archive
+007699e2e4b3e124835c18fd79126ec7baaf4db38d0b6fb1b0d244f220100bfe
+from implementation 08c7925 before production migration. Its relocated install
+passes all eight for/operator/null-operator/defer graph/fast checks, outside the
+repository so resource lookup cannot accidentally use the checkout
+(build/defer-relocated.log). The reviewed migration covers seven functions in six
+files and removes 21 duplicate cleanup copies / 23 lines before formatting. The
+inventory becomes 57 functions / 121 copies. Interpreter argument cleanup uses
+an inner block to preserve release before entering the called frame; parser
+state ownership transfers explicitly clear their local owners. Detailed
+exceptions and reproduction are in docs/research/tower-cleanup-audit.md.

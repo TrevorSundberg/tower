@@ -541,13 +541,13 @@ export fn regex_compile_tree(root: void*, source: u8*, match_type: void*, table:
     if failed {
         return "Unable to allocate regex lowering work";
     }
+    defer free(context);
     fill(context, 0, sizeof(RegexLowering));
     context.source = source;
     context.match_type = match_type;
     context.automaton = automaton_create(1114112);
     failed = context.automaton == null;
     if failed {
-        free(context);
         return "Unable to allocate token automaton";
     }
     var result: RegexFragment;
@@ -599,6 +599,5 @@ export fn regex_compile_tree(root: void*, source: u8*, match_type: void*, table:
     vector_dispose(void*, &context.pending);
     vector_dispose(void*, &context.characters);
     automaton_destroy(context.automaton);
-    free(context);
     return error;
 }

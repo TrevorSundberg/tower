@@ -35,6 +35,7 @@ export fn syntax_pending_destroy(value: SyntaxPendingRevision*): void {
 fn syntax_pending_format(value: SyntaxPendingRevision*, kind: void*): bool {
     var result: FormatResult;
     fill(&result, 0, sizeof(FormatResult));
+    defer format_dispose(&result);
     var format: FormatEngine;
     fill(&format, 0, sizeof(FormatEngine));
     format.result = &result;
@@ -48,7 +49,6 @@ fn syntax_pending_format(value: SyntaxPendingRevision*, kind: void*): bool {
     while index != lr_none() {
         // Successful validation cannot produce a cyclic missing-reference chain.
         if visited == value.count {
-            format_dispose(&result);
             return false;
         }
         ++visited;
@@ -71,7 +71,6 @@ fn syntax_pending_format(value: SyntaxPendingRevision*, kind: void*): bool {
         copy(&value.message, &result.text, sizeof(vector(u8)));
         fill(&result.text, 0, sizeof(vector(u8)));
     }
-    format_dispose(&result);
     return ok;
 }
 

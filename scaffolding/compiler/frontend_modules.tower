@@ -907,6 +907,7 @@ fn module_import_name(reader: SyntaxReader*, node: void*, value: SyntaxNode*): b
         // source order before the identifier segments, including during clones.
         var parents: vector(void*);
         vector_init(void*, &parents);
+        defer vector_dispose(void*, &parents);
         loop {
             var parent = syntax_reader_member(node, "parent");
             var done = parent == null;
@@ -916,7 +917,6 @@ fn module_import_name(reader: SyntaxReader*, node: void*, value: SyntaxNode*): b
             var prefix = syntax_reader_attach(reader, node, SyntaxTerm());
             var missing_prefix = prefix == null;
             if missing_prefix {
-                vector_dispose(void*, &parents);
                 return false;
             }
             prefix.literal = true;
@@ -943,20 +943,17 @@ fn module_import_name(reader: SyntaxReader*, node: void*, value: SyntaxNode*): b
                 segment = syntax_reader_required(reader, node, "segment");
                 missing = segment == null;
                 if missing {
-                    vector_dispose(void*, &parents);
                     return false;
                 }
                 var part = syntax_reader_attach(reader, segment, SyntaxTerm());
                 missing = part == null;
                 if missing {
-                    vector_dispose(void*, &parents);
                     return false;
                 }
                 ok = syntax_reader_name(reader, segment, &part.text);
                 ok &&= part.text.length != 0;
                 ok &&= vector_push(void*, &value.items, segment);
                 if !ok {
-                    vector_dispose(void*, &parents);
                     return false;
                 }
                 node = syntax_reader_member(node, "previous");
@@ -994,7 +991,6 @@ fn module_import_name(reader: SyntaxReader*, node: void*, value: SyntaxNode*): b
             module_require(foundation_name_append(&value.name, 0));
             value.name.length--;
         }
-        vector_dispose(void*, &parents);
     }
     if ok {
         ok = value.name.length != 0;

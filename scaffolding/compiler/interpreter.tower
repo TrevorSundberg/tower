@@ -709,71 +709,64 @@ fn im_returned(m: IMState*, value: u64): void {
 fn im_call(m: IMState*, node: void*, offset: usize): void {
     var n = im_cached_node(m, node);
     var function = im_cached_node(m, n.binding);
-    var small_args: u64[16];
-    var args = &small_args[0];
-    var heap_args = n.items.length > 16;
-    if heap_args {
-        args = alloc(u64, n.items.length);
-    }
-    var i: usize = 0;
-    loop {
-        if i == n.items.length {
-            break;
-        }
-        args[i] = im_read(m, n.items.data[i], offset);
-        i++;
-    }
-    if im_ok(m) == false {
+    var base: usize = 0;
+    {
+        var small_args: u64[16];
+        var args = &small_args[0];
+        var heap_args = n.items.length > 16;
         if heap_args {
-            free(args);
+            args = alloc(u64, n.items.length);
         }
-        return;
-    }
-    if function.external {
-        if im_has_foreign(m) == false {
-            im_missing_foreign(m, n.binding, offset);
+        defer {
             if heap_args {
                 free(args);
             }
+        }
+        var i: usize = 0;
+        loop {
+            if i == n.items.length {
+                break;
+            }
+            args[i] = im_read(m, n.items.data[i], offset);
+            i++;
+        }
+        if im_ok(m) == false {
             return;
         }
-        var result = im_foreign(m, n.binding, args, n.items.length);
-        if im_ok(m) {
-            im_values_set(m, im_key(node), result);
+        if function.external {
+            if im_has_foreign(m) == false {
+                im_missing_foreign(m, n.binding, offset);
+                return;
+            }
+            var result = im_foreign(m, n.binding, args, n.items.length);
+            if im_ok(m) {
+                im_values_set(m, im_key(node), result);
+            }
+            return;
         }
-        if heap_args {
-            free(args);
+        var size = im_align(function.frame_size);
+        base = m.stack;
+        var remaining: usize = 4194304;
+        remaining = remaining - base;
+        var exhausted = m.frame_count >= 128;
+        var test = size > remaining;
+        exhausted = im_or(exhausted, test);
+        if exhausted {
+            im_fail(m, "Tower call stack limit exceeded", offset);
+            return;
         }
-        return;
-    }
-    var size = im_align(function.frame_size);
-    var base = m.stack;
-    var remaining: usize = 4194304;
-    remaining = remaining - base;
-    var exhausted = m.frame_count >= 128;
-    var test = size > remaining;
-    exhausted = im_or(exhausted, test);
-    if exhausted {
-        im_fail(m, "Tower call stack limit exceeded", offset);
-        if heap_args {
-            free(args);
+        var end = base + size;
+        m.stack = end;
+        i = 0;
+        loop {
+            if i == n.items.length {
+                break;
+            }
+            var parameter = im_cached_node(m, function.parameters.data[i]);
+            var at = base + parameter.byte_offset;
+            interpreter_write(m, convert(u64, at), args[i], &parameter.type, offset);
+            i++;
         }
-        return;
-    }
-    var end = base + size;
-    m.stack = end;
-    i = 0;
-    loop {
-        if i == n.items.length {
-            break;
-        }
-        var parameter = im_cached_node(m, function.parameters.data[i]);
-        var at = base + parameter.byte_offset;
-        interpreter_write(m, convert(u64, at), args[i], &parameter.type, offset);
-        i++;
-    }
-    if heap_args {
-        free(args);
     }
     im_frame_push(m, n.binding, base, offset, node);
     im_enter(m, function.body);
