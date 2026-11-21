@@ -10,8 +10,7 @@ export fn fixture_sum(values: i32*, count: usize): i32 {
     var sum: i32 = 0;
     var i: usize = 0;
     loop {
-        var done = i == count;
-        if done {
+        if i == count {
             return sum;
         }
         sum = sum + values[i];
@@ -22,8 +21,7 @@ export fn fixture_sum(values: i32*, count: usize): i32 {
 export fn fixture_write(values: i32*, count: usize): void {
     var i: usize = 0;
     loop {
-        var done = i == count;
-        if done {
+        if i == count {
             return;
         }
         var value = convert(i32, i);
@@ -54,8 +52,7 @@ export fn fixture_bool(value: bool): bool {
 export fn fixture_length(text: u8*): usize {
     var n: usize = 0;
     loop {
-        var done = text[n] == 0;
-        if done {
+        if text[n] == 0 {
             return n;
         }
         n++;

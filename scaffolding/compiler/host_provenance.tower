@@ -19,8 +19,7 @@ export fn syntax_expansion_copy_origin(source: Entity*, destination: Entity*): b
 
 export fn syntax_expansion_history(node: Entity*): SyntaxExpansion* {
     var origin = syntax_get_origin(node);
-    var missing = origin == null;
-    if missing {
+    if origin == null {
         return null;
     }
     return origin.expansion;

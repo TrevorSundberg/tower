@@ -9,12 +9,10 @@ export fn host_handles_count(table: HostHandles*, kind: u32): usize {
     var count: usize = 0;
     var i: usize = 0;
     loop {
-        var done = i == table.count;
-        if done {
+        if i == table.count {
             return count;
         }
-        var same = table.slots[i].kind == kind;
-        if same {
+        if table.slots[i].kind == kind {
             count++;
         }
         i++;
@@ -24,8 +22,7 @@ export fn host_handles_count(table: HostHandles*, kind: u32): usize {
 export fn host_handles_get(table: HostHandles*, kind: u32, handle: u32): void* {
     var i: usize = 0;
     loop {
-        var done = i == table.count;
-        if done {
+        if i == table.count {
             return null;
         }
         var same = table.slots[i].handle == handle;
@@ -41,8 +38,7 @@ export fn host_handles_get(table: HostHandles*, kind: u32, handle: u32): void* {
 }
 
 export fn host_handles_insert(table: HostHandles*, kind: u32, payload: void*): u32 {
-    var absent = payload == null;
-    if absent {
+    if payload == null {
         return 0;
     }
     var maximum: usize = 4294967295;
@@ -53,17 +49,14 @@ export fn host_handles_insert(table: HostHandles*, kind: u32, payload: void*): u
     full = table.count == table.capacity;
     if full {
         var capacity = table.capacity *2;
-        var wrapped = capacity < table.capacity;
-        if wrapped {
+        if capacity < table.capacity {
             return 0;
         }
-        var initial = capacity == 0;
-        if initial {
+        if capacity == 0 {
             capacity = 8;
         }
         var slots = realloc(HostHandleSlot, table.slots, capacity);
-        var failed = slots == null;
-        if failed {
+        if slots == null {
             return 0;
         }
         table.slots = slots;
@@ -72,14 +65,12 @@ export fn host_handles_insert(table: HostHandles*, kind: u32, payload: void*): u
     var handle = table.next;
     loop {
         handle++;
-        var zero = handle == 0;
-        if zero {
+        if handle == 0 {
             continue;
         }
         var occupied = false;
         for(var i: usize = 0; i != table.count; i++) {
-            var same = table.slots[i].handle == handle;
-            if same {
+            if table.slots[i].handle == handle {
                 occupied = true;
                 break;
             }
@@ -100,8 +91,7 @@ export fn host_handles_insert(table: HostHandles*, kind: u32, payload: void*): u
 export fn host_handles_take(table: HostHandles*, kind: u32, handle: u32): void* {
     var i: usize = 0;
     loop {
-        var done = i == table.count;
-        if done {
+        if i == table.count {
             return null;
         }
         var same = table.slots[i].handle == handle;

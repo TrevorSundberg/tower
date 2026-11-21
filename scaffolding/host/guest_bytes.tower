@@ -16,8 +16,7 @@ export fn guest_runtime_copy(destination: void*, source: void*, count: usize): v
 export fn guest_runtime_move(destination: void*, source: void*, count: usize): void* {
     var out = bits(u8*, destination);
     var input = bits(u8*, source);
-    var forward = bits(usize, out) < bits(usize, input);
-    if forward {
+    if bits(usize, out) < bits(usize, input) {
         return guest_runtime_copy(destination, source, count);
     }
     var i = count;

@@ -29,8 +29,7 @@ fn sem_enum_header(c: SemanticContext*, n: void*): void {
 
 fn sem_enum_fields(c: SemanticContext*, n: void*): void {
     var state = sem_state(c, c.fields_done, n);
-    var ready = state.number != 0;
-    if ready {
+    if state.number != 0 {
         return;
     }
     state.number = 1;
@@ -51,15 +50,13 @@ fn sem_enum_fields(c: SemanticContext*, n: void*): void {
         if !sem_ok(c) {
             return;
         }
-        var done = i == members.length;
-        if done {
+        if i == members.length {
             return;
         }
         var member = members.data[i];
         var name = sem_identifier(c, sem_member(member, "name"));
         var initial = sem_member(member, "value");
-        var explicit = initial != null;
-        if explicit {
+        if initial != null {
             var literal = sem_operand(c, initial, &type.element);
             if !sem_ok(c) {
                 return;
@@ -109,8 +106,7 @@ fn sem_enum_operand(c: SemanticContext*, n: void*): bool {
     // Most member accesses are ordinary fields. Reject those before walking
     // lexical scopes; only a matching enum type needs the shadowing check.
     var definition = sem_resolve(c, c.types, base, name);
-    var found = definition != null;
-    if !found {
+    if definition == null {
         return false;
     }
     var type = sem_get(definition);
@@ -119,8 +115,7 @@ fn sem_enum_operand(c: SemanticContext*, n: void*): bool {
     }
     var scope = c.scope;
     loop {
-        var done = scope == null;
-        if done {
+        if scope == null {
             break;
         }
         var shadowed = sem_lookup_table(scope.names, name) != null;
@@ -141,8 +136,7 @@ fn sem_enum_operand(c: SemanticContext*, n: void*): bool {
     var state = sem_state(c, c.fields_done, definition);
     var names = bits(SemanticTable*, state.value);
     var member = sem_lookup_table(names, member_name);
-    var missing = member == null;
-    if missing {
+    if member == null {
         sem_fail(c, n, sem_cat(c, "Unknown enum member '", sem_cat(c, member_name, "'")));
         return true;
     }

@@ -73,8 +73,7 @@ fn parser_failure_tests(): void {
         parser_diagnostic_destroy(diagnostic);
         var ok = tower_test_buffer_count() == baseline;
         frontend_world_check(ok);
-        var reached = calls > budget;
-        if reached {} else {
+        if !(calls > budget) {
             frontend_world_check(completed);
             break;
         }

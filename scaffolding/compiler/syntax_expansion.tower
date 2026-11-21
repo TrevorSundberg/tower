@@ -110,8 +110,7 @@ fn expansion_normal(state: ExpansionState*, node: void*): bool {
     var mask = state.normal.length -1;
     loop {
         var current = state.normal.data[slot];
-        var found = current == key;
-        if found {
+        if current == key {
             return true;
         }
         empty = current == 0;
@@ -124,22 +123,18 @@ fn expansion_normal(state: ExpansionState*, node: void*): bool {
 }
 
 fn expansion_mark(state: ExpansionState*, node: void*): bool {
-    var present = expansion_normal(state, node);
-    if present {
+    if expansion_normal(state, node) {
         return true;
     }
     var needed = state.normal_count + 1;
     needed = needed * 2;
-    var grow = needed >= state.normal.length;
-    if grow {
+    if needed >= state.normal.length {
         var capacity = state.normal.length *2;
-        var small = capacity < 32;
-        if small {
+        if capacity < 32 {
             capacity = 32;
         }
         var next = alloc(usize, capacity);
-        var failed = next == null;
-        if failed {
+        if next == null {
             return expansion_memory(state);
         }
         var size = capacity *sizeof(usize);
@@ -148,8 +143,7 @@ fn expansion_mark(state: ExpansionState*, node: void*): bool {
         var mask = capacity -1;
         for(; index != state.normal.length; index++) {
             var key = state.normal.data[index];
-            var occupied = key != 0;
-            if occupied {
+            if key != 0 {
                 var slot = expansion_slot(key, capacity);
                 loop {
                     var empty = next[slot] == 0;
@@ -185,8 +179,7 @@ fn expansion_mark(state: ExpansionState*, node: void*): bool {
 fn expansion_push_frame(state: ExpansionState*, node: void*, index: usize): bool {
     var count = state.frames.length;
     var needed = count + 1;
-    var ok = vector_reserve(ExpansionFrame, &state.frames, needed);
-    if ok {
+    if vector_reserve(ExpansionFrame, &state.frames, needed) {
         state.frames.data[count].node = node;
         state.frames.data[count].next = 0;
         state.frames.data[count].index = index;
@@ -199,8 +192,7 @@ fn expansion_push_frame(state: ExpansionState*, node: void*, index: usize): bool
 fn expansion_push_work(state: ExpansionState*, work: vector(ExpansionWork)*, source: void*, parent: void*, role: u8*): bool {
     var count = work.length;
     var needed = count + 1;
-    var ok = vector_reserve(ExpansionWork, work, needed);
-    if ok {
+    if vector_reserve(ExpansionWork, work, needed) {
         work.data[count].source = source;
         work.data[count].parent = parent;
         work.data[count].role = role;
@@ -213,15 +205,13 @@ fn expansion_push_work(state: ExpansionState*, work: vector(ExpansionWork)*, sou
 fn expansion_children(state: ExpansionState*, work: vector(ExpansionWork)*, source: void*, parent: void*): bool {
     var index = entity_child_count(source);
     loop {
-        var done = index == 0;
-        if done {
+        if index == 0 {
             return true;
         }
         index--;
         var child = entity_child_at(source, index);
         var role = entity_child_name(source, index);
-        var ok = expansion_push_work(state, work, child, parent, role);
-        if !ok {
+        if !expansion_push_work(state, work, child, parent, role) {
             return false;
         }
     }
@@ -229,8 +219,7 @@ fn expansion_children(state: ExpansionState*, work: vector(ExpansionWork)*, sour
 
 fn expansion_copy_node(state: ExpansionState*, source: void*, copied: bool): void* {
     var count = state.result.generated_nodes + state.result.copied_nodes;
-    var limit = count >= 65536;
-    if limit {
+    if count >= 65536 {
         expansion_error(state, "Replacement output limit exceeded (65536 nodes)");
         return null;
     }
@@ -268,8 +257,7 @@ fn expansion_copy_node(state: ExpansionState*, source: void*, copied: bool): voi
 // second walk to register every cloned descendant as already expanded.
 fn expansion_copy_tree(state: ExpansionState*, source: void*): void* {
     var root = expansion_copy_node(state, source, true);
-    var missing = root == null;
-    if missing {
+    if root == null {
         return null;
     }
     state.clones.length = 0;
@@ -280,8 +268,7 @@ fn expansion_copy_tree(state: ExpansionState*, source: void*): void* {
             entity_release(root);
             return null;
         }
-        var empty = state.clones.length == 0;
-        if empty {
+        if state.clones.length == 0 {
             return root;
         }
         state.clones.length--;
@@ -315,13 +302,11 @@ fn expansion_splice(state: ExpansionState*, trace: void*, node: void*, work: Exp
 fn expansion_hole(state: ExpansionState*, rule: SyntaxExpansionRule*, trace: void*, work: ExpansionWork*): bool {
     var data = expansion_match(state, work.source);
     var index = data.id -3145728;
-    var invalid = convert(usize, index) >= rule.count;
-    if invalid {
+    if convert(usize, index) >= rule.count {
         return expansion_error(state, "Invalid replacement capture index");
     }
     var capture = &state.captures.data[index];
-    var unused = capture.remaining == 0;
-    if unused {
+    if capture.remaining == 0 {
         return expansion_error(state, "Invalid replacement capture use count");
     }
     capture.remaining--;
@@ -334,8 +319,7 @@ fn expansion_hole(state: ExpansionState*, rule: SyntaxExpansionRule*, trace: voi
         entity_retain(value);
         entity_attach(value, null, null);
     }
-    var missing = value == null;
-    if missing {
+    if value == null {
         return false;
     }
     var ok = true;
@@ -359,8 +343,7 @@ fn expansion_hole(state: ExpansionState*, rule: SyntaxExpansionRule*, trace: voi
                 state.items.length++;
             }
             loop {
-                var empty = state.items.length == 0;
-                if empty {
+                if state.items.length == 0 {
                     break;
                 }
                 state.items.length--;
@@ -382,13 +365,11 @@ fn expansion_instantiate(state: ExpansionState*, rule: SyntaxExpansionRule*, inv
     var previous = syntax_expansion_history(invocation);
     var depth: usize = 0;
     loop {
-        var done = previous == null;
-        if done {
+        if previous == null {
             break;
         }
         depth++;
-        var limit = depth >= 256;
-        if limit {
+        if depth >= 256 {
             expansion_error(state, "Replacement recursion limit exceeded (256 expansions in one chain)");
             return null;
         }
@@ -412,13 +393,11 @@ fn expansion_instantiate(state: ExpansionState*, rule: SyntaxExpansionRule*, inv
         state.captures.data[index].remaining = rule.captures[index].uses;
     }
     var trace = syntax_expansion_trace(rule.rule, rule.start, rule.end, invocation);
-    var missing_trace = trace == null;
-    if missing_trace {
+    if trace == null {
         expansion_memory(state);
         return null;
     }
-    var retained = vector_push(void*, &state.traces, trace);
-    if !retained {
+    if !vector_push(void*, &state.traces, trace) {
         syntax_trace_release(trace);
         expansion_memory(state);
         return null;
@@ -437,8 +416,7 @@ fn expansion_instantiate(state: ExpansionState*, rule: SyntaxExpansionRule*, inv
             entity_release(container);
             return null;
         }
-        var empty = state.work.length == 0;
-        if empty {
+        if state.work.length == 0 {
             break;
         }
         state.work.length--;
@@ -484,8 +462,7 @@ fn expansion_instantiate(state: ExpansionState*, rule: SyntaxExpansionRule*, inv
 
 fn expansion_rule(state: ExpansionState*, node: void*): SyntaxExpansionRule* {
     var data = expansion_match(state, node);
-    var valid = data.rule < state.input.count;
-    if valid {
+    if data.rule < state.input.count {
         return state.input.rules[data.rule];
     }
     return null;
@@ -497,20 +474,17 @@ fn expansion_run(state: ExpansionState*): bool {
         if !ok {
             return false;
         }
-        var empty = state.frames.length == 0;
-        if empty {
+        if state.frames.length == 0 {
             return true;
         }
         var top = state.frames.length -1;
         var frame = &state.frames.data[top];
-        var done = expansion_normal(state, frame.node);
-        if done {
+        if expansion_normal(state, frame.node) {
             state.frames.length = top;
             continue;
         }
         var count = entity_child_count(frame.node);
-        var children = frame.next < count;
-        if children {
+        if frame.next < count {
             var index = frame.next;
             frame.next = index + 1;
             var node = entity_child_at(frame.node, index);
@@ -538,22 +512,19 @@ fn expansion_run(state: ExpansionState*): bool {
             }
             var next = entity_child_at(candidate, 0);
             var data = expansion_match(state, next);
-            var leaf = data.rule == lr_none();
-            if leaf {
+            if data.rule == lr_none() {
                 break;
             }
             candidate = next;
         }
-        var missing = rule == null;
-        if missing {
+        if rule == null {
             var deferred = expansion_rule(state, frame.node);
             var found = deferred != null;
             if found {
                 var destination = false;
                 var index = top;
                 loop {
-                    var end = index == 0;
-                    if end {
+                    if index == 0 {
                         break;
                     }
                     index--;
@@ -590,14 +561,12 @@ fn expansion_run(state: ExpansionState*): bool {
             return expansion_error(state, "Replacement step limit exceeded (4096)");
         }
         var expanded = expansion_instantiate(state, rule, frame.node, candidate);
-        var failed = expanded == null;
-        if failed {
+        if expanded == null {
             expansion_append(state, " while replacing ");
             expansion_append(state, rule.rule);
             return false;
         }
-        var first = top == 0;
-        if first {
+        if top == 0 {
             entity_release(state.result.root);
             state.result.root = expanded;
         } else {

@@ -24875,3 +24875,58 @@ declaration modes. No live native core/header consumers remain, git diff --check
 passes and todo.txt is unchanged. Logs agent-2-final-merged-{native,wasi}-tests.log.
 The exclusive Agent2 publication lock now covers the final source push and
 combined reactor/package/Pages validation; hosted completion is still pending.
+### 2026-11-20: Execute the simplification roadmap, milestone 1 expressions
+
+User authorized three sequential implementation/publication milestones: adopt
+existing expressions, infer generic call arguments, then borrowed collection
+iteration. Started on main with git pull --rebase (1e50000). No new native source
+or todo edits are involved. The implementation and migration for each new feature
+must be built with the preceding bootstrap, with a validated published successor
+available before compiler source adopts new checking/syntax behavior.
+
+The expression pass removes 3,989 lines across 198 .tower modules. The inventory
+now spans 409 files because upstream moved more tests into Tower. Remaining
+distinct expression-local candidates drop to 283; these include address uses,
+typed values, intentionally saved reads and long expressions. Six immediate
+condition-local signals and five guarded assignments remain. The audit report
+records this superseding implementation result separately from its frozen counts.
+
+Bounded editing shapes preserve lexical bindings, comments, effect order and
+contextual numeric constraints: immediate single-use bool conditions, empty
+success inversion, guarded same-variable boolean assignments, and generated
+temporaries whose next use has no intervening evaluation. Numeric annotations
+remain; argument inlining crosses only unescaped local-value reads. Reviewed the
+semantic checker chains in particular, and removed redundant introduced grouping
+without reassociating right-hand arithmetic. Foundation-only and negative grammar/
+semantic fixtures remain unchanged. Local editing/inventory logs live under build.
+
+A fresh default-bootstrap build with no TOWER_BOOTSTRAP_COMPILER override passes:
+`TOWER_NATIVE_BUILD=/cache/expression-clean TOWER_BUILD_JOBS=4 bash playground/scripts/build-native.sh`
+inside tower-c-validation. All 55 native build steps succeed. Enabled backend,
+driver, execution and storage tests in that cache: frontend/driver/storage/
+execution/request CTests pass 5/5 in 16.07 seconds, and backend API checks pass.
+Browser parser plus both LLVM/cross reactors build with the same published
+bootstrap and package all compiler units. Logs: expression-clean-build.log,
+expression-ctest.log, expression-backend-test.log, expression-browser-build.log,
+expression-llvm-build.log. Formatter tree/idempotence checks and the broader
+operator/inference/interpreter/module/browser regressions are running; publication
+is not yet claimed at this checkpoint.
+
+The changed-file formatter run completes: all 198 files pass parsed-tree
+equivalence and a second formatting pass is identical. Logs are
+expression-format-{0,1}.log and expression-format-resume-{0..5}.log (the first
+21 completed before resuming with six workers). The Node regression run reports
+168 passing checks; its duplicated whole-repository formatter sweep was stopped
+because the changed-file sweep already covers this migration. The five focused
+formatter cases pass separately, with the whole-repository case excluded by a
+positive name filter (expression-format-focused.log). The interrupted aggregate
+has one harness failure and is not reported as a fully green aggregate.
+
+Thirteen examples/operator/for/defer/template programs produce byte-identical
+canonical Foundation using the published bootstrap and cleaned successor when
+both are passed the same explicit Bedrock/Foundation library root. The first
+attempt omitted that root and correctly differed: it compared the old packaged
+collection libraries with the newly cleaned libraries. Repeating with identical
+inputs passes (expression-equivalence.log). Fetched upstream through 7737acb;
+its ownership, formatter and lexer migrations must now be integrated before
+publication, followed by default-bootstrap rebuilds and relevant regressions.

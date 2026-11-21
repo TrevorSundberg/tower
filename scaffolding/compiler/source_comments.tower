@@ -9,8 +9,7 @@ import .library.vector;
 // supplies spans; neither this attachment path nor either emitter tokenizes source.
 fn source_comment_targets(entity: void*, base: usize, limit: usize, targets: vector(void*)*): void {
     var n = sem_get(entity);
-    var absent = n == null;
-    if absent {
+    if n == null {
         return;
     }
     var inside = n.start >= base;
@@ -19,23 +18,20 @@ fn source_comment_targets(entity: void*, base: usize, limit: usize, targets: vec
         sem_require(vector_push(void*, targets, entity));
     }
     var function = n.kind == KFunction();
-    var looping = n.kind == KLoop();
-    if looping {
+    if n.kind == KLoop() {
         function = true;
     }
     if function {
         source_comment_targets(n.body, base, limit, targets);
         return;
     }
-    var conditional = n.kind == KIf();
-    if conditional {
+    if n.kind == KIf() {
         source_comment_targets(n.body, base, limit, targets);
         source_comment_targets(n.otherwise, base, limit, targets);
         return;
     }
     var list = n.kind == KProgram();
-    var block = n.kind == KBlock();
-    if block {
+    if n.kind == KBlock() {
         list = true;
     }
     if list {
@@ -85,8 +81,7 @@ fn source_comment_sort(targets: vector(void*)*): void {
                     break;
                 }
                 var take_left = right == end;
-                var available = left < middle;
-                if available {
+                if left < middle {
                     if !take_left {
                         var a = sem_get(targets.data[left]);
                         var b = sem_get(targets.data[right]);
@@ -158,8 +153,7 @@ fn source_comment_append(n: FoundationNode*, source: u8*, first: usize, last: us
 }
 
 export fn semantic_source_comments(root: void*, source: u8*, spans: usize*, count: usize, base: usize, length: usize): void {
-    var empty = count == 0;
-    if empty {
+    if count == 0 {
         return;
     }
     var targets: vector(void*);
@@ -186,16 +180,14 @@ export fn semantic_source_comments(root: void*, source: u8*, spans: usize*, coun
             middle = middle / 2;
             middle = middle + left;
             var node = sem_get(targets.data[middle]);
-            var before = node.start < boundary;
-            if before {
+            if node.start < boundary {
                 left = middle + 1;
             } else {
                 right = middle;
             }
         }
         var target = root;
-        var found = left < targets.length;
-        if found {
+        if left < targets.length {
             target = targets.data[left];
         }
         source_comment_append(sem_get(target), source, spans[i], spans[next]);

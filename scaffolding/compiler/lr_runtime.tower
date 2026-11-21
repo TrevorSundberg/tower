@@ -54,30 +54,25 @@ fn lr_action_insert(values: vector(LRAction)*, value: LRAction*): bool {
     var low: usize = 0;
     var high = values.length;
     loop {
-        var done = low == high;
-        if done {
+        if low == high {
             break;
         }
         var middle = high -low;
         middle = middle / 2;
         middle = middle + low;
-        var less = lr_action_less(&values.data[middle], value);
-        if less {
+        if lr_action_less(&values.data[middle], value) {
             low = middle + 1;
         } else {
             high = middle;
         }
     }
-    var present = low < values.length;
-    if present {
-        var different = lr_action_less(value, &values.data[low]);
-        if !different {
+    if low < values.length {
+        if !lr_action_less(value, &values.data[low]) {
             return true;
         }
     }
     var count = values.length + 1;
-    var ok = vector_reserve(LRAction, values, count);
-    if !ok {
+    if !vector_reserve(LRAction, values, count) {
         return false;
     }
     var moved = values.length -low;
@@ -96,8 +91,7 @@ fn lr_row_destroy(value: LRRow*): void {
 }
 
 export fn lr_runtime_destroy(value: LRRuntime*): void {
-    var missing = value == null;
-    if missing {
+    if value == null {
         return;
     }
     var index: usize = 0;
@@ -128,8 +122,7 @@ fn lr_precedence_choice(source: LRStates*, state: usize, a: LRAction*, b: LRActi
     }
     var a_shift = a.state != lr_none();
     var b_shift = b.state != lr_none();
-    var same = a_shift == b_shift;
-    if same {
+    if a_shift == b_shift {
         return 0;
     }
     var reduction = a;
@@ -137,8 +130,7 @@ fn lr_precedence_choice(source: LRStates*, state: usize, a: LRAction*, b: LRActi
         reduction = b;
     }
     var rule = &source.analysis.rules[reduction.rule];
-    var annotated = rule.precedence != 0;
-    if !annotated {
+    if !(rule.precedence != 0) {
         return 0;
     }
     var power: u32 = 0;
@@ -146,8 +138,7 @@ fn lr_precedence_choice(source: LRStates*, state: usize, a: LRAction*, b: LRActi
     var items = source.states.data[state].items;
     var index: usize = 0;
     loop {
-        var done = index == items.values.length;
-        if done {
+        if index == items.values.length {
             break;
         }
         var item = &items.values.data[index];
@@ -169,8 +160,7 @@ fn lr_precedence_choice(source: LRStates*, state: usize, a: LRAction*, b: LRActi
         if missing {
             return 0;
         }
-        var present = power != 0;
-        if present {
+        if power != 0 {
             var incompatible = power != candidate.precedence;
             incompatible ||= direction != candidate.associativity;
             if incompatible {
@@ -185,20 +175,17 @@ fn lr_precedence_choice(source: LRStates*, state: usize, a: LRAction*, b: LRActi
         return 0;
     }
     var reduce = rule.precedence > power;
-    var equal = rule.precedence == power;
-    if equal {
+    if rule.precedence == power {
         var incompatible = rule.associativity != direction;
         if incompatible {
             return 0;
         }
-        var nonassoc = direction == 3;
-        if nonassoc {
+        if direction == 3 {
             return 3;
         }
         reduce = direction == 1;
     }
-    var choose_a = reduce != a_shift;
-    if choose_a {
+    if reduce != a_shift {
         return 1;
     }
     return 2;
@@ -228,14 +215,12 @@ fn lr_row_normalize(row: LRRow*, conflict: LRConflict*, state: usize, source: LR
     var read: usize = 0;
     var count: usize = 0;
     loop {
-        var done = read == row.actions.length;
-        if done {
+        if read == row.actions.length {
             break;
         }
         var action = &row.actions.data[read];
         var merged = false;
-        var present = count != 0;
-        if present {
+        if count != 0 {
             var previous = count -1;
             var last = &row.actions.data[previous];
             var same = last.rule == action.rule;
@@ -246,24 +231,20 @@ fn lr_row_normalize(row: LRRow*, conflict: LRConflict*, state: usize, source: LR
                 limit++;
                 merged = first <= limit;
                 if merged {
-                    var larger = action.last > last.last;
-                    if larger {
+                    if action.last > last.last {
                         last.last = action.last;
                     }
                 }
             }
             if !merged {
-                var overlap = action.first <= last.last;
-                if overlap {
+                if action.first <= last.last {
                     var choice = lr_precedence_choice(source, state, last, action);
-                    var resolved = choice != 0;
-                    if resolved {
+                    if choice != 0 {
                         var second = choice == 2;
                         if second {
                             copy(last, action, sizeof(LRAction));
                         }
-                        var reject = choice == 3;
-                        if reject {
+                        if choice == 3 {
                             count--;
                         }
                         read++;
@@ -293,8 +274,7 @@ fn lr_row_equal(a: LRRow*, b: LRRow*): bool {
     }
     var index: usize = 0;
     loop {
-        var done = index == a.actions.length;
-        if done {
+        if index == a.actions.length {
             return true;
         }
         var left = &a.actions.data[index];
@@ -315,8 +295,7 @@ fn lr_row_hash(row: LRRow*): usize {
     var hash: usize = 2166136261;
     var index: usize = 0;
     loop {
-        var done = index == row.actions.length;
-        if done {
+        if index == row.actions.length {
             return hash;
         }
         var action = &row.actions.data[index];
@@ -345,8 +324,7 @@ fn lr_row_index(row: LRRow*): bool {
         var single = action.first == action.last;
         if single {
             singles++;
-            var eof = action.first == LRTokenEnd();
-            if eof {
+            if action.first == LRTokenEnd() {
                 row.reduction = action.rule;
             }
         }
@@ -354,14 +332,12 @@ fn lr_row_index(row: LRRow*): bool {
     var needed = singles *2;
     var size: usize = 1;
     loop {
-        var enough = size > needed;
-        if enough {
+        if size > needed {
             break;
         }
         size = size * 2;
     }
-    var ok = vector_reserve(usize, &row.direct, size);
-    if !ok {
+    if !vector_reserve(usize, &row.direct, size) {
         return false;
     }
     row.direct.length = size;
@@ -370,13 +346,11 @@ fn lr_row_index(row: LRRow*): bool {
     var mask = size -1;
     index = 0;
     loop {
-        var done = index == row.actions.length;
-        if done {
+        if index == row.actions.length {
             return true;
         }
         var action = &row.actions.data[index];
-        var different = action.rule != row.reduction;
-        if different {
+        if action.rule != row.reduction {
             row.reduction = lr_none();
         }
         var single = action.first == action.last;
@@ -385,8 +359,7 @@ fn lr_row_index(row: LRRow*): bool {
             bucket = bucket * 16777619;
             bucket = bucket & mask;
             loop {
-                var empty = row.direct.data[bucket] == lr_none();
-                if empty {
+                if row.direct.data[bucket] == lr_none() {
                     break;
                 }
                 bucket++;
@@ -401,30 +374,25 @@ fn lr_row_index(row: LRRow*): bool {
 fn lr_runtime_gotos(state: LRRuntimeState*, input: LRState*, analysis: LRAnalysis*): bool {
     var index: usize = 0;
     loop {
-        var done = index == input.edges.length;
-        if done {
+        if index == input.edges.length {
             return true;
         }
         var edge = &input.edges.data[index];
         var symbol = &analysis.symbols[edge.symbol];
-        var terminal = symbol.nonterminal == lr_none();
-        if !terminal {
+        if symbol.nonterminal != lr_none() {
             var entry: LRGoto;
             entry.nonterminal = symbol.nonterminal;
             entry.state = edge.state;
             var position = state.gotos.length;
-            var ok = lr_append(LRGoto, &state.gotos, &entry);
-            if !ok {
+            if !lr_append(LRGoto, &state.gotos, &entry) {
                 return false;
             }
             loop {
-                var first = position == 0;
-                if first {
+                if position == 0 {
                     break;
                 }
                 var previous = position -1;
-                var sorted = state.gotos.data[previous].nonterminal < entry.nonterminal;
-                if sorted {
+                if state.gotos.data[previous].nonterminal < entry.nonterminal {
                     break;
                 }
                 copy(&state.gotos.data[position], &state.gotos.data[previous], sizeof(LRGoto));
@@ -469,8 +437,7 @@ fn lr_runtime_build(value: LRRuntime*, source: LRStates*, buckets: vector(usize)
             return true;
         }
         var row = alloc(LRRow, 1);
-        var missing = row == null;
-        if missing {
+        if row == null {
             return false;
         }
         fill(row, 0, sizeof(LRRow));
@@ -495,8 +462,7 @@ fn lr_runtime_build(value: LRRuntime*, source: LRStates*, buckets: vector(usize)
             return true;
         }
         row.hash = lr_row_hash(row);
-        var zero = bucket_count == 0;
-        if zero {
+        if bucket_count == 0 {
             lr_row_destroy(row);
             return false;
         }
@@ -539,8 +505,7 @@ fn lr_runtime_build(value: LRRuntime*, source: LRStates*, buckets: vector(usize)
 
 export fn lr_runtime_create(source: LRStates*): LRRuntime* {
     var value = alloc(LRRuntime, 1);
-    var missing = value == null;
-    if missing {
+    if value == null {
         return null;
     }
     fill(value, 0, sizeof(LRRuntime));
@@ -592,15 +557,13 @@ export fn lr_runtime_goto(value: LRRuntime*, state: usize, nonterminal: usize): 
     var low: usize = 0;
     var high = gotos.length;
     loop {
-        var done = low == high;
-        if done {
+        if low == high {
             break;
         }
         var middle = high -low;
         middle = middle / 2;
         middle = middle + low;
-        var less = gotos.data[middle].nonterminal < nonterminal;
-        if less {
+        if gotos.data[middle].nonterminal < nonterminal {
             low = middle + 1;
         } else {
             high = middle;
@@ -624,13 +587,11 @@ export fn lr_runtime_action(value: LRRuntime*, state: usize, id: u32, result: LR
     bucket = bucket & mask;
     loop {
         var index = row.direct.data[bucket];
-        var missing = index == lr_none();
-        if missing {
+        if index == lr_none() {
             break;
         }
         var action = &row.actions.data[index];
-        var same = action.first == id;
-        if same {
+        if action.first == id {
             copy(result, action, sizeof(LRAction));
             return true;
         }
@@ -640,15 +601,13 @@ export fn lr_runtime_action(value: LRRuntime*, state: usize, id: u32, result: LR
     var low: usize = 0;
     var high = row.actions.length;
     loop {
-        var done = low == high;
-        if done {
+        if low == high {
             break;
         }
         var middle = high -low;
         middle = middle / 2;
         middle = middle + low;
-        var less = row.actions.data[middle].last < id;
-        if less {
+        if row.actions.data[middle].last < id {
             low = middle + 1;
         } else {
             high = middle;
@@ -672,10 +631,8 @@ export fn lr_runtime_specialize(value: LRRuntime*, source: LRStates*): void {
     var root: usize = lr_none();
     var index: usize = 0;
     for(; index != value.rules.length; index++) {
-        var candidate = value.rules.data[index].owner == 1;
-        if candidate {
-            var duplicate = root != lr_none();
-            if duplicate {
+        if value.rules.data[index].owner == 1 {
+            if root != lr_none() {
                 return;
             }
             root = index;
@@ -720,8 +677,7 @@ export fn lr_runtime_specialize(value: LRRuntime*, source: LRStates*): void {
     value.sequence_states.data[0] = 0;
     index = 0;
     loop {
-        var done = index == rule.count;
-        if done {
+        if index == rule.count {
             break;
         }
         var position = rule.begin + index;

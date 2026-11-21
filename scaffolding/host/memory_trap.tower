@@ -11,8 +11,7 @@ export fn compiler_runtime_trap(message: u8*, offset: usize): void {
     compiler_runtime_write("Tower compiler internal trap at ", 32);
     var digits: u8[80];
     var length = runtime_format_value(&digits[0], 80, 1, convert(u64, offset), convert(u32, sizeof(usize)));
-    var present = length != 0;
-    if present {
+    if length != 0 {
         // The shared integer formatter appends a newline; the trap has a suffix.
         length = length - 1;
         compiler_runtime_write(&digits[0], length);

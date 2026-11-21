@@ -35,8 +35,7 @@ fn frontend_test_table_failures(kinds: FrontendKinds*): usize {
     var budget: usize = 0;
     var result: usize = 0;
     loop {
-        var exhausted = budget == 256;
-        if exhausted {
+        if budget == 256 {
             result = 710;
             break;
         }
@@ -50,8 +49,7 @@ fn frontend_test_table_failures(kinds: FrontendKinds*): usize {
         }
         tower_test_buffer_fail_after(lr_none());
         frontend_table_dispose(&table);
-        var leaked = tower_test_buffer_count() != buffers;
-        if leaked {
+        if tower_test_buffer_count() != buffers {
             result = 711;
             break;
         }
@@ -85,8 +83,7 @@ fn frontend_test_diagnostics(kinds: FrontendKinds*): usize {
             result = 721;
             break;
         }
-        var limit = budget == 64;
-        if limit {
+        if budget == 64 {
             result = 722;
             break;
         }
@@ -98,8 +95,7 @@ fn frontend_test_diagnostics(kinds: FrontendKinds*): usize {
         if present {
             loop {
                 var request = frontend_diagnostic_next(d);
-                var done = request == 0;
-                if done {
+                if request == 0 {
                     break;
                 }
                 var context: FrontendContextPosition;
@@ -128,8 +124,7 @@ fn frontend_test_diagnostics(kinds: FrontendKinds*): usize {
         }
         tower_test_buffer_fail_after(lr_none());
         frontend_diagnostic_destroy(d);
-        var leaked = tower_test_buffer_count() != buffers;
-        if leaked {
+        if tower_test_buffer_count() != buffers {
             result = 723;
             break;
         }
@@ -159,8 +154,7 @@ fn frontend_test_pattern_reader(kinds: FrontendKinds*): usize {
         if ok {
             ok = error.text.length == 0;
             var sample: u8* = "α123!";
-            var matched = lex_table_match(pattern.table, sample, syntax_text_length(sample), 0) == 5;
-            if !matched {
+            if !(lex_table_match(pattern.table, sample, syntax_text_length(sample), 0) == 5) {
                 ok = false;
             }
             syntax_pattern_release(pattern);
@@ -176,8 +170,7 @@ fn frontend_test_pattern_reader(kinds: FrontendKinds*): usize {
     }
     format_dispose(&error);
     frontend_pattern_destroy(compiler);
-    var leaked = tower_test_buffer_count() != buffers;
-    if leaked {
+    if tower_test_buffer_count() != buffers {
         return 716;
     }
     if ok {

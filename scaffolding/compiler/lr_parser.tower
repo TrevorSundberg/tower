@@ -51,8 +51,7 @@ struct LRParser {
 }
 
 export fn lr_parser_destroy(value: LRParser*): void {
-    var missing = value == null;
-    if missing {
+    if value == null {
         return;
     }
     vector_dispose(LRFrame, &value.stack);
@@ -62,8 +61,7 @@ export fn lr_parser_destroy(value: LRParser*): void {
 
 export fn lr_parser_create(runtime: LRRuntime*, prefix: bool, specialize: bool): LRParser* {
     var value = alloc(LRParser, 1);
-    var missing = value == null;
-    if missing {
+    if value == null {
         return null;
     }
     fill(value, 0, sizeof(LRParser));
@@ -78,8 +76,7 @@ export fn lr_parser_create(runtime: LRRuntime*, prefix: bool, specialize: bool):
     fill(&frame, 0, sizeof(LRFrame));
     frame.first = lr_none();
     frame.last = lr_none();
-    var ok = lr_append(LRFrame, &value.stack, &frame);
-    if ok {
+    if lr_append(LRFrame, &value.stack, &frame) {
         return value;
     }
     lr_parser_destroy(value);
@@ -108,8 +105,7 @@ fn lr_parser_sequence_step(value: LRParser*, ready: bool, id: u32, error: bool, 
     result.rule = runtime.sequence_rule;
     if complete {
         if needs_input {
-            var trailing = id != LRTokenEnd();
-            if trailing {
+            if id != LRTokenEnd() {
                 return 4;
             }
             if error {
@@ -124,8 +120,7 @@ fn lr_parser_sequence_step(value: LRParser*, ready: bool, id: u32, error: bool, 
     if error {
         return 4;
     }
-    var accepted = symbol_sequence_accepts(runtime.sequence, position, id);
-    if !accepted {
+    if !symbol_sequence_accepts(runtime.sequence, position, id) {
         return 4;
     }
     var next = position + 1;
@@ -188,12 +183,10 @@ fn lr_parser_decide(value: LRParser*, ready: bool, id: u32, error: bool, result:
     result.id = id;
     result.rule = action.rule;
     result.next = action.state;
-    var shift = action.state != lr_none();
-    if shift {
+    if action.state != lr_none() {
         return 1;
     }
-    var accept = action.rule == 0;
-    if accept {
+    if action.rule == 0 {
         if value.prefix {
             if !value.shifted {
                 return 5;
@@ -215,16 +208,14 @@ fn lr_parser_decide(value: LRParser*, ready: bool, id: u32, error: bool, result:
     }
     result.end = result.start;
     var begin = value.stack.length -rule.count;
-    var nonempty = rule.count != 0;
-    if nonempty {
+    if rule.count != 0 {
         result.start = value.stack.data[begin].start;
         result.end = result.start;
         var index = begin;
         for(; index != value.stack.length; index++) {
             var frame = &value.stack.data[index];
             var end = frame.start + frame.length;
-            var larger = end > result.end;
-            if larger {
+            if end > result.end {
                 result.end = end;
             }
         }
@@ -250,20 +241,17 @@ export fn lr_parser_step(value: LRParser*, ready: bool, id: u32, error: bool, st
 }
 
 export fn lr_parser_commit(value: LRParser*, step: LRStep*, first: usize, last: usize): bool {
-    var sequence_shift = step.kind == 6;
-    if sequence_shift {
+    if step.kind == 6 {
         var evidence = step.end != step.start;
         var byte = convert(u8, evidence);
         var ok = vector_push(u8, &value.evidence, byte);
         if !ok {
             return false;
         }
-        var initial = value.evidence.length == 1;
-        if initial {
+        if value.evidence.length == 1 {
             value.sequence_start = step.start;
         }
-        var larger = step.end > value.sequence_end;
-        if larger {
+        if step.end > value.sequence_end {
             value.sequence_end = step.end;
         }
         value.sequence_first = first;
@@ -286,8 +274,7 @@ export fn lr_parser_commit(value: LRParser*, step: LRStep*, first: usize, last: 
     frame.start = step.start;
     frame.length = step.end - step.start;
     value.stack.length = count;
-    var shift = step.kind == 1;
-    if shift {
+    if step.kind == 1 {
         value.consumed = step.end;
         value.shifted = true;
         value.work.shifts++;
@@ -313,8 +300,7 @@ export fn lr_parser_frame(value: LRParser*, index: usize, result: LRFrame*): voi
         result.first = lr_none();
         result.last = lr_none();
         result.state = value.runtime.sequence_states.data[index];
-        var nonzero = index != 0;
-        if nonzero {
+        if index != 0 {
             var previous = index -1;
             result.length = convert(usize, value.evidence.data[previous]);
         }
@@ -366,8 +352,7 @@ struct LRProbe {
 }
 
 export fn lr_probe_destroy(value: LRProbe*): void {
-    var missing = value == null;
-    if missing {
+    if value == null {
         return;
     }
     vector_dispose(LRProbeFrame, &value.frames);
@@ -376,16 +361,14 @@ export fn lr_probe_destroy(value: LRProbe*): void {
 
 fn lr_probe_allocate(runtime: LRRuntime*, budget: LRProbeBudget*, count: usize): LRProbe* {
     var value = alloc(LRProbe, 1);
-    var missing = value == null;
-    if missing {
+    if value == null {
         budget.complete = false;
         return null;
     }
     fill(value, 0, sizeof(LRProbe));
     value.runtime = runtime;
     value.budget = budget;
-    var ok = vector_reserve(LRProbeFrame, &value.frames, count);
-    if ok {
+    if vector_reserve(LRProbeFrame, &value.frames, count) {
         value.frames.length = count;
         return value;
     }
@@ -397,14 +380,12 @@ fn lr_probe_allocate(runtime: LRRuntime*, budget: LRProbeBudget*, count: usize):
 export fn lr_probe_create(parser: LRParser*, budget: LRProbeBudget*): LRProbe* {
     var count = lr_parser_frame_count(parser);
     var value = lr_probe_allocate(parser.runtime, budget, count);
-    var missing = value == null;
-    if missing {
+    if value == null {
         return null;
     }
     var index: usize = 0;
     loop {
-        var done = index == count;
-        if done {
+        if index == count {
             return value;
         }
         var frame: LRFrame;
@@ -418,8 +399,7 @@ export fn lr_probe_create(parser: LRParser*, budget: LRProbeBudget*): LRProbe* {
 export fn lr_probe_clone(source: LRProbe*): LRProbe* {
     var count = source.frames.length;
     var value = lr_probe_allocate(source.runtime, source.budget, count);
-    var present = value != null;
-    if present {
+    if value != null {
         var bytes = count *sizeof(LRProbeFrame);
         copy(value.frames.data, source.frames.data, bytes);
     }
@@ -462,15 +442,13 @@ export fn lr_probe_step(value: LRProbe*, id: u32, before: usize*): u32 {
         var top = value.frames.length -1;
         var state = value.frames.data[top].state;
         var action: LRAction;
-        var found = lr_runtime_action(value.runtime, state, id, &action);
-        if !found {
+        if !lr_runtime_action(value.runtime, state, id, &action) {
             return 0;
         }
         var frame: LRProbeFrame;
         frame.state = action.state;
         frame.consumed = false;
-        var shift = action.state != lr_none();
-        if shift {
+        if action.state != lr_none() {
             *before = state;
             var ok = lr_append(LRProbeFrame, &value.frames, &frame);
             if ok {
@@ -478,8 +456,7 @@ export fn lr_probe_step(value: LRProbe*, id: u32, before: usize*): u32 {
             }
             break;
         }
-        var accepted = action.rule == 0;
-        if accepted {
+        if action.rule == 0 {
             return 2;
         }
         var rule = &value.runtime.rules.data[action.rule];
@@ -526,15 +503,13 @@ struct LRCompletionPath {
 
 export fn lr_completion_create(parser: LRParser*): LRCompletion* {
     var c = alloc(LRCompletion, 1);
-    var editor_condition1 = c == null;
-    if editor_condition1 {
+    if c == null {
         return null;
     }
     fill(c, 0, sizeof(LRCompletion));
     c.budget.complete = true;
     c.original = lr_probe_create(parser, &c.budget);
-    var failed = c.original == null;
-    if failed {
+    if c.original == null {
         free(c);
         return null;
     }
@@ -542,8 +517,7 @@ export fn lr_completion_create(parser: LRParser*): LRCompletion* {
 }
 
 export fn lr_completion_destroy(c: LRCompletion*): void {
-    var editor_condition2 = c == null;
-    if editor_condition2 {
+    if c == null {
         return;
     }
     lr_probe_destroy(c.original);
@@ -560,19 +534,16 @@ export fn lr_completion_state(c: LRCompletion*): usize {
 }
 
 export fn lr_completion_accepts(c: LRCompletion*, id: u32): bool {
-    var editor_condition3 = c == null;
-    if editor_condition3 {
+    if c == null {
         return false;
     }
-    var editor_condition4 = c.original == null;
-    if editor_condition4 {
+    if c.original == null {
         return false;
     }
     c.budget.remaining = 8192;
     c.budget.complete = true;
     var probe = lr_probe_clone(c.original);
-    var editor_condition5 = probe == null;
-    if editor_condition5 {
+    if probe == null {
         return false;
     }
     var before: usize;
@@ -583,25 +554,21 @@ export fn lr_completion_accepts(c: LRCompletion*, id: u32): bool {
 }
 
 export fn lr_completion_follows(c: LRCompletion*, first: u32, second: u32): bool {
-    var editor_guard_1 = c == null;
-    if editor_guard_1 {
+    if c == null {
         return false;
     }
-    var editor_guard_2 = c.original == null;
-    if editor_guard_2 {
+    if c.original == null {
         return false;
     }
     c.budget.remaining = 8192;
     c.budget.complete = true;
     var probe = lr_probe_clone(c.original);
-    var editor_guard_3 = probe == null;
-    if editor_guard_3 {
+    if probe == null {
         return false;
     }
     var before: usize;
     var result = lr_probe_step(probe, first, &before);
-    var editor_guard_4 = result == 1;
-    if editor_guard_4 {
+    if result == 1 {
         result = lr_probe_step(probe, second, &before);
     }
     lr_probe_destroy(probe);
@@ -621,8 +588,7 @@ fn lr_completion_terminators(c: LRCompletion*, ids: u32*, count: usize, result: 
     var length: usize = 0;
     var answer = lr_none();
     loop {
-        var exhausted = c.budget.remaining == 0;
-        if exhausted {
+        if c.budget.remaining == 0 {
             break;
         }
         var eof: u32 = 0;
@@ -635,13 +601,11 @@ fn lr_completion_terminators(c: LRCompletion*, ids: u32*, count: usize, result: 
         }
         var status = lr_probe_step(trial, eof, &before);
         lr_probe_destroy(trial);
-        var complete = status == 2;
-        if complete {
+        if status == 2 {
             answer = length;
             break;
         }
-        var full = length == capacity;
-        if full {
+        if length == capacity {
             break;
         }
         var found: bool = false;
@@ -653,8 +617,7 @@ fn lr_completion_terminators(c: LRCompletion*, ids: u32*, count: usize, result: 
                 break;
             }
             status = lr_probe_step(trial, ids[i], &before);
-            var shifted = status == 1;
-            if shifted {
+            if status == 1 {
                 lr_probe_destroy(current);
                 current = trial;
                 result[length] = i;
@@ -664,8 +627,7 @@ fn lr_completion_terminators(c: LRCompletion*, ids: u32*, count: usize, result: 
             }
             lr_probe_destroy(trial);
         }
-        var failed = !found;
-        if failed {
+        if !found {
             break;
         }
     }
@@ -676,12 +638,10 @@ fn lr_completion_terminators(c: LRCompletion*, ids: u32*, count: usize, result: 
 // If closure preference fails, breadth-first search supplies a continuation.
 // Token spellings come from the active grammar/lexer; output is scratch source.
 export fn lr_completion_suffix(c: LRCompletion*, ids: u32*, count: usize, result: usize*, capacity: usize): usize {
-    var editor_condition6 = c == null;
-    if editor_condition6 {
+    if c == null {
         return lr_none();
     }
-    var editor_condition7 = c.original == null;
-    if editor_condition7 {
+    if c.original == null {
         return lr_none();
     }
     c.budget.remaining = 65536;
@@ -696,8 +656,7 @@ export fn lr_completion_suffix(c: LRCompletion*, ids: u32*, count: usize, result
     var first: LRCompletionPath;
     fill(&first, 0, sizeof(LRCompletionPath));
     first.probe = lr_probe_clone(c.original);
-    var editor_condition8 = first.probe == null;
-    if editor_condition8 {
+    if first.probe == null {
         return lr_none();
     }
     var added = lr_append(LRCompletionPath, &paths, &first);
@@ -709,16 +668,14 @@ export fn lr_completion_suffix(c: LRCompletion*, ids: u32*, count: usize, result
     var at: usize = 0;
     var length = lr_none();
     for(; at != paths.length; at++) {
-        var editor_condition10 = c.budget.remaining == 0;
-        if editor_condition10 {
+        if c.budget.remaining == 0 {
             break;
         }
         var path = &paths.data[at];
         var original = path.probe;
         var depth = path.depth;
         var probe = lr_probe_clone(original);
-        var editor_condition11 = probe == null;
-        if editor_condition11 {
+        if probe == null {
             break;
         }
         var before: usize;
@@ -726,14 +683,12 @@ export fn lr_completion_suffix(c: LRCompletion*, ids: u32*, count: usize, result
         eof = eof - 2;
         var status = lr_probe_step(probe, eof, &before);
         lr_probe_destroy(probe);
-        var editor_condition12 = status == 2;
-        if editor_condition12 {
+        if status == 2 {
             length = depth;
             var index = length;
             var parent = at;
             loop {
-                var editor_condition13 = index == 0;
-                if editor_condition13 {
+                if index == 0 {
                     break;
                 }
                 index--;
@@ -742,22 +697,18 @@ export fn lr_completion_suffix(c: LRCompletion*, ids: u32*, count: usize, result
             }
             break;
         }
-        var editor_condition14 = depth < capacity;
-        if editor_condition14 {
+        if depth < capacity {
             var i: usize = 0;
             for(; i != count; i++) {
-                var editor_condition16 = paths.length >= 512;
-                if editor_condition16 {
+                if paths.length >= 512 {
                     break;
                 }
                 probe = lr_probe_clone(original);
-                var editor_condition17 = probe == null;
-                if editor_condition17 {
+                if probe == null {
                     break;
                 }
                 status = lr_probe_step(probe, ids[i], &before);
-                var editor_condition18 = status == 1;
-                if editor_condition18 {
+                if status == 1 {
                     var next: LRCompletionPath;
                     next.probe = probe;
                     next.parent = at;

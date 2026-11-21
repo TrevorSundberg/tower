@@ -100,8 +100,7 @@ export fn syntax_template_holes_revision(input: SyntaxTemplateGrammar*, revision
         var ordinal = index &4294967295;
         var id = convert(u32, ordinal);
         id = id + 3145728;
-        var scalar = term.repetition == 0;
-        if scalar {
+        if term.repetition == 0 {
             var category = capture.wrapper;
             missing = category == null;
             if missing {
@@ -127,12 +126,10 @@ export fn syntax_template_holes_revision(input: SyntaxTemplateGrammar*, revision
                     compatible = order == 0;
                 }
                 if compatible {
-                    var base = target.repetition != 42;
-                    if base {
+                    if target.repetition != 42 {
                         template_hole(value, entry.name, id, false);
                     }
-                    var repeated = target.repetition != 63;
-                    if repeated {
+                    if target.repetition != 63 {
                         template_hole(value, entry.name, id, true);
                     }
                 }
@@ -159,20 +156,17 @@ fn template_source(input: SyntaxTemplateRemap*, index: usize): SyntaxEmissionPro
     var low: usize = 0;
     var high = input.source_count;
     loop {
-        var done = low == high;
-        if done {
+        if low == high {
             return null;
         }
         var middle = high -low;
         middle = middle / 2;
         middle = middle + low;
         var value = &input.source[middle];
-        var same = value.index == index;
-        if same {
+        if value.index == index {
             return value;
         }
-        var less = value.index < index;
-        if less {
+        if value.index < index {
             low = middle + 1;
         } else {
             high = middle;
@@ -184,8 +178,7 @@ fn template_destination(input: SyntaxTemplateRemap*, source: SyntaxEmissionProdu
     var low: usize = 0;
     var high = input.destination_count;
     loop {
-        var done = low == high;
-        if done {
+        if low == high {
             return lr_none();
         }
         var middle = high -low;
@@ -195,8 +188,7 @@ fn template_destination(input: SyntaxTemplateRemap*, source: SyntaxEmissionProdu
         var order = template_text_order(value.name, source.name);
         var equal_name = order == 0;
         if equal_name {
-            var equal_alternative = value.alternative == source.alternative;
-            if equal_alternative {
+            if value.alternative == source.alternative {
                 return value.index;
             }
         }
@@ -216,8 +208,7 @@ fn template_alias(input: SyntaxTemplateRemap*, name: u8*): u8* {
     var low: usize = 0;
     var high = input.alias_count;
     loop {
-        var done = low == high;
-        if done {
+        if low == high {
             return name;
         }
         var middle = high -low;
@@ -225,12 +216,10 @@ fn template_alias(input: SyntaxTemplateRemap*, name: u8*): u8* {
         middle = middle + low;
         var value = &input.aliases[middle];
         var order = template_text_order(value.name, name);
-        var same = order == 0;
-        if same {
+        if order == 0 {
             return value.target;
         }
-        var less = order < 0;
-        if less {
+        if order < 0 {
             low = middle + 1;
         } else {
             high = middle;
@@ -242,8 +231,7 @@ fn template_named(input: SyntaxTemplateRemap*, name: u8*): usize {
     var low: usize = 0;
     var high = input.name_count;
     loop {
-        var done = low == high;
-        if done {
+        if low == high {
             return lr_none();
         }
         var middle = high -low;
@@ -251,12 +239,10 @@ fn template_named(input: SyntaxTemplateRemap*, name: u8*): usize {
         middle = middle + low;
         var value = &input.names[middle];
         var order = template_text_order(value.name, name);
-        var same = order == 0;
-        if same {
+        if order == 0 {
             return value.index;
         }
-        var less = order < 0;
-        if less {
+        if order < 0 {
             low = middle + 1;
         } else {
             high = middle;
@@ -273,17 +259,14 @@ fn template_remap_node(input: SyntaxTemplateRemap*, node: void*, revision: Synta
         input.uses[ordinal] = input.uses[ordinal] + 1;
         return true;
     }
-    var terminal = data.rule == lr_none();
-    if terminal {
+    if data.rule == lr_none() {
         return true;
     }
     var source = template_source(input, data.rule);
     var label = template_alias(input, node_text_get(&data.label));
-    var owned = revision != null;
-    if owned {
+    if revision != null {
         var helper = syntax_emission_find_helper(revision, label);
-        var found = helper != null;
-        if found {
+        if helper != null {
             if helper.capture {
                 label = syntax_emission_capture_name(destination, helper.source);
                 var missing = label == null;
@@ -293,12 +276,10 @@ fn template_remap_node(input: SyntaxTemplateRemap*, node: void*, revision: Synta
             }
         }
     }
-    var supplied = source != null;
-    if supplied {
+    if source != null {
         data.rule = template_destination(input, source);
     } else {
-        var retained = destination != null;
-        if retained {
+        if destination != null {
             data.rule = syntax_emission_rule_index(destination, label);
         } else {
             data.rule = template_named(input, label);
@@ -337,8 +318,7 @@ export fn syntax_template_remap_revisions(input: SyntaxTemplateRemap*, source: S
         if !ok {
             break;
         }
-        var empty = pending.length == 0;
-        if empty {
+        if pending.length == 0 {
             break;
         }
         pending.length--;

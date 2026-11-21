@@ -33,8 +33,7 @@ struct FrontendDiagnostic {
 }
 
 export fn frontend_diagnostic_destroy(d: FrontendDiagnostic*): void {
-    var absent = d == null;
-    if absent {
+    if d == null {
         return;
     }
     lr_probe_destroy(d.original);
@@ -68,8 +67,7 @@ reader: bool, bad_input: bool, lookahead: u32, offset: usize): FrontendDiagnosti
     d.budget.complete = true;
     var count = lr_parser_frame_count(parser);
     var invalid = count == 0;
-    var too_deep = count > 4096;
-    if too_deep {
+    if count > 4096 {
         invalid = true;
     }
     if invalid {
@@ -88,8 +86,7 @@ reader: bool, bad_input: bool, lookahead: u32, offset: usize): FrontendDiagnosti
     var state = frames[last].state;
     var actions = lr_runtime_actions(d.runtime, state);
     d.count = lr_runtime_action_count(d.runtime, state);
-    var truncated = d.count > 64;
-    if truncated {
+    if d.count > 64 {
         d.count = 64;
         d.complete = false;
     }
@@ -103,21 +100,18 @@ reader: bool, bad_input: bool, lookahead: u32, offset: usize): FrontendDiagnosti
 
 fn frontend_diagnostic_consume(d: FrontendDiagnostic*, id: u32): u32 {
     var previous = lr_probe_clone(d.continuation);
-    var missing = previous == null;
-    if missing {
+    if previous == null {
         return 0;
     }
     var before: usize;
     var status = lr_probe_step(d.continuation, id, &before);
     var boundary = d.prefix;
-    var ordinary = id != 4294967294;
-    if !ordinary {
+    if !(id != 4294967294) {
         boundary = false;
     }
     if boundary {
         var accepted = status == 2;
-        var rejected = status == 0;
-        if rejected {
+        if status == 0 {
             var ending = lr_probe_step(previous, 4294967294, &before);
             accepted = ending == 2;
         }
@@ -183,8 +177,7 @@ export fn frontend_diagnostic_contexts(d: FrontendDiagnostic*, items: FrontendCo
                     var context: FrontendRulePosition;
                     context.production = item.production;
                     context.term = item.term;
-                    var ok = lr_append(FrontendRulePosition, &d.current.contexts, &context);
-                    if !ok {
+                    if !lr_append(FrontendRulePosition, &d.current.contexts, &context) {
                         d.complete = false;
                         d.done = true;
                         return;
@@ -208,8 +201,7 @@ export fn frontend_diagnostic_feed(d: FrontendDiagnostic*, valid: bool, position
     var status = frontend_diagnostic_consume(d, id);
     d.current.insertion = status != 0;
     d.ahead++;
-    var eof = id == 4294967294;
-    if eof {
+    if id == 4294967294 {
         d.phase = 4;
     }
 }
@@ -223,14 +215,12 @@ export fn frontend_diagnostic_next(d: FrontendDiagnostic*): u32 {
         }
         var begin = d.phase == 0;
         if begin {
-            var finished = d.index == d.count;
-            if finished {
+            if d.index == d.count {
                 d.done = true;
                 return 0;
             }
             d.stack = lr_probe_clone(d.original);
-            var missing = d.stack == null;
-            if missing {
+            if d.stack == null {
                 d.complete = false;
                 d.done = true;
                 return 0;
@@ -239,29 +229,25 @@ export fn frontend_diagnostic_next(d: FrontendDiagnostic*): u32 {
             d.index++;
             d.state = lr_none();
             d.accepted = lr_probe_step(d.stack, d.current.id, &d.state);
-            var rejected = d.accepted == 0;
-            if rejected {
+            if d.accepted == 0 {
                 lr_probe_destroy(d.stack);
                 d.stack = null;
                 continue;
             }
             d.phase = 2;
-            var context = d.state != lr_none();
-            if context {
+            if d.state != lr_none() {
                 d.phase = 1;
                 return 1;
             }
         }
-        var contexts = d.phase == 1;
-        if contexts {
+        if d.phase == 1 {
             return 1;
         }
         begin = d.phase == 2;
         if begin {
             d.phase = 4;
             var can_insert = d.accepted == 1;
-            var ordinary = d.current.id != 4294967294;
-            if !ordinary {
+            if !(d.current.id != 4294967294) {
                 can_insert = false;
             }
             if !d.reader {
@@ -284,8 +270,7 @@ export fn frontend_diagnostic_next(d: FrontendDiagnostic*): u32 {
                 }
             }
         }
-        var reading = d.phase == 3;
-        if reading {
+        if d.phase == 3 {
             var more = d.ahead < 3;
             if !d.current.insertion {
                 more = false;
@@ -299,24 +284,21 @@ export fn frontend_diagnostic_next(d: FrontendDiagnostic*): u32 {
             }
             d.phase = 4;
         }
-        var finish = d.phase == 4;
-        if finish {
+        if d.phase == 4 {
             var boundary = d.current.insertion;
             if !d.prefix {
                 boundary = false;
             }
             if boundary {
                 var end = lr_probe_clone(d.stack);
-                var exists = end != null;
-                if exists {
+                if end != null {
                     var before: usize;
                     var status = lr_probe_step(end, 4294967294, &before);
                     d.current.completes = status == 2;
                 }
                 lr_probe_destroy(end);
             }
-            var ok = lr_append(FrontendExpectation, &d.options, &d.current);
-            if !ok {
+            if !lr_append(FrontendExpectation, &d.options, &d.current) {
                 d.complete = false;
                 d.done = true;
                 return 0;

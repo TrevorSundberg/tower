@@ -183,3 +183,26 @@ Named aggregate initialization and `result(T, E)` / `option(T)` are valuable lat
 work. Their construction, return, move/borrow/drop and failure contracts should
 come from stage 6. The observed field assignments and error guards alone do not
 justify implicit copies, default initialization or an ad hoc propagation operator.
+
+## Expression adoption milestone (2026-11-20)
+
+The first implementation pass against main `1e50000` removes 3,989 source lines
+across 198 Tower modules. It folds immediate single-use condition bindings,
+inverts empty success branches, adopts lazy boolean compounds, and simplifies
+generated expression chains where evaluation order and typing are preserved.
+The first six semantic compiler files received additional chain review.
+
+The current inventory includes upstream's added Tower tests (409 files rather
+than the original 397). It now reports 283 distinct expression-local candidates,
+including six immediate condition locals, plus five guarded assignments. These
+remaining signals include intentional saved values, address uses, explicit type
+constraints and long expressions; the inventory is not a mandate to inline them.
+Foundation-only examples and intentionally invalid fixtures remain unchanged.
+
+The migration preserves numeric annotations unless the destination provides the
+same bool constraint. It does not move unconditional work into lazy operands or
+move initializers across calls/loads/writes. Removed argument temporaries cross
+only reads of unescaped local values. A source-local editing aid was used for
+these bounded shapes; it is not a new public refactoring or semantic API.
+
+Validation and publication details are recorded in the ongoing project journal.

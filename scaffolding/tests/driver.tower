@@ -67,8 +67,7 @@ fn driver_test_policies(): void {
     var link = driver_link_open("x86_64-unknown-linux-gnu", "cc path", "", "/sdk path", "output path", "/resource path", false, false, null, false);
     var check1 = link != null;
     driver_check(check1, "link allocation");
-    var check15 = link == null;
-    if check15 {
+    if link == null {
         return;
     }
     driver_text(&link.program, "program.o");
@@ -141,8 +140,7 @@ fn driver_test_process(self: u8*): void {
     var link = driver_link_open("x86_64-unknown-linux-gnu", "tower-deliberately-missing-tool-239482", "", "", "out", "resources", false, false, null, false);
     var check5 = link != null;
     driver_check(check5, "failure link allocation");
-    var check16 = link == null;
-    if check16 {
+    if link == null {
         return;
     }
     var check6 = driver_link_execute(link, "test", 4) == 1;
@@ -161,15 +159,13 @@ fn driver_test_process(self: u8*): void {
     var file = fopen(path.data, "rb");
     var check8 = file == null;
     driver_check(check8, "program temporary removed after failure");
-    var check17 = file != null;
-    if check17 {
+    if file != null {
         fclose(file);
     }
     file = fopen(other.data, "rb");
     var check9 = file == null;
     driver_check(check9, "runtime temporary removed after failure");
-    var check18 = file != null;
-    if check18 {
+    if file != null {
         fclose(file);
     }
     bytes_dispose(&path);
@@ -239,11 +235,9 @@ fn driver_test_compile(compiler: u8*, source: u8*, kind: u8*, output: u8*, extra
     driver_argument(&args, "", kind);
     driver_argument(&args, "", "-o");
     driver_argument(&args, "", output);
-    var more = extra[0] != 0;
-    if more {
+    if extra[0] != 0 {
         driver_argument(&args, "", extra);
-        var valued = value != null;
-        if valued {
+        if value != null {
             driver_argument(&args, "", value);
         }
     }
@@ -416,14 +410,12 @@ fn driver_test_cli(compiler: u8*): void {
 }
 
 export fn driver_tests(argc: i32, argv: u8**): i32 {
-    var check19 = argc > 1;
-    if check19 {
+    if argc > 1 {
         if driver_same(argv[1], "--failure") {
             return 127;
         }
         if driver_same(argv[1], "--arguments") {
-            var check20 = argc != 6;
-            if check20 {
+            if argc != 6 {
                 return 2;
             }
             driver_check_text(argv[2], "a b");
@@ -436,16 +428,13 @@ export fn driver_tests(argc: i32, argv: u8**): i32 {
     driver_test_policies();
     driver_test_process(argv[0]);
     driver_test_platform_cases();
-    var check21 = argc > 1;
-    if check21 {
+    if argc > 1 {
         driver_test_cli(argv[1]);
     }
-    var bindings = argc > 2;
-    if bindings {
+    if argc > 2 {
         driver_test_runtime_bind(argv[2]);
     }
-    var traps = argc > 3;
-    if traps {
+    if argc > 3 {
         driver_test_runtime_trap(argv[3]);
     }
     return 0;
@@ -464,8 +453,7 @@ fn driver_test_binding(tool: u8*, text: u8*, source: u8*, destination: u8*, stat
     var correct = result == status;
     driver_check(correct, "runtime binding exit status");
     driver_arguments_dispose(&args);
-    var failed = status != 0;
-    if failed {
+    if status != 0 {
         driver_test_read("driver stdout.txt", message, false);
     }
     else {

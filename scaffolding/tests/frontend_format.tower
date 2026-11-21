@@ -31,8 +31,7 @@ fn frontend_format_text(actual: u8*, wanted: u8*): void {
     loop {
         var equal = actual[index] == wanted[index];
         frontend_world_check(equal);
-        var done = actual[index] == 0;
-        if done {
+        if actual[index] == 0 {
             return;
         }
         index++;

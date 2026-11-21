@@ -10,29 +10,24 @@ const SyntaxDiagnosticTokenLimit: usize = 48;
 const SyntaxDiagnosticChoiceLimit: usize = 6;
 
 fn format_diagnostic_actual(f: FormatEngine*, input: SyntaxDiagnosticInput*): void {
-    var eof = input.offset >= input.size;
-    if eof {
+    if input.offset >= input.size {
         format_text(f, "end of input");
         return;
     }
     var remaining = input.size -input.offset;
-    var long = remaining > SyntaxDiagnosticTokenLimit();
-    if long {
+    if remaining > SyntaxDiagnosticTokenLimit() {
         remaining = SyntaxDiagnosticTokenLimit();
     }
     var end = input.offset + remaining;
-    var shorter = input.cursor < end;
-    if shorter {
+    if input.cursor < end {
         end = input.cursor;
     }
     for(; end > input.offset; end--) {
-        var within = end < input.size;
-        if !within {
+        if !(end < input.size) {
             break;
         }
         var prefix = input.source[end] &192;
-        var continuation = prefix == 128;
-        if !continuation {
+        if !(prefix == 128) {
             break;
         }
     }
@@ -40,25 +35,20 @@ fn format_diagnostic_actual(f: FormatEngine*, input: SyntaxDiagnosticInput*): vo
     for(var i = input.offset; i < end; i++) {
         var byte = input.source[i];
         var escaped: u8* = null;
-        var newline = byte == 10;
-        if newline {
+        if byte == 10 {
             escaped = "\\n";
         }
-        var carriage = byte == 13;
-        if carriage {
+        if byte == 13 {
             escaped = "\\r";
         }
-        var tab = byte == 9;
-        if tab {
+        if byte == 9 {
             escaped = "\\t";
         }
-        var special = escaped != null;
-        if special {
+        if escaped != null {
             format_text(f, escaped);
         } else {
             var escape = byte == 92;
-            var quote = byte == 39;
-            if quote {
+            if byte == 39 {
                 escape = true;
             }
             if escape {
@@ -67,8 +57,7 @@ fn format_diagnostic_actual(f: FormatEngine*, input: SyntaxDiagnosticInput*): vo
             format_char(f, byte);
         }
     }
-    var truncated = end < input.cursor;
-    if truncated {
+    if end < input.cursor {
         format_text(f, "...");
     }
     format_char(f, 39);
@@ -76,8 +65,7 @@ fn format_diagnostic_actual(f: FormatEngine*, input: SyntaxDiagnosticInput*): vo
 
 fn format_diagnostic_literal(input: SyntaxDiagnosticInput*, id: u32): bool {
     for(var i: usize = 0; i < input.literal_count; i++) {
-        var found = input.literals[i] == id;
-        if found {
+        if input.literals[i] == id {
             return true;
         }
     }
@@ -87,18 +75,15 @@ fn format_diagnostic_literal(input: SyntaxDiagnosticInput*, id: u32): bool {
 fn format_diagnostic_break(input: SyntaxDiagnosticInput*): bool {
     var begin = input.insertion_offset;
     var end = input.offset;
-    var outside = end > input.size;
-    if outside {
+    if end > input.size {
         end = input.size;
     }
     for(; begin < end; begin++) {
         var byte = input.source[begin];
-        var newline = byte == 10;
-        if newline {
+        if byte == 10 {
             return true;
         }
-        var carriage = byte == 13;
-        if carriage {
+        if byte == 13 {
             return true;
         }
     }
@@ -108,12 +93,10 @@ fn format_diagnostic_break(input: SyntaxDiagnosticInput*): bool {
 fn format_diagnostic_same_name(left: u8*, right: u8*): bool {
     var i: usize = 0;
     loop {
-        var different = left[i] != right[i];
-        if different {
+        if left[i] != right[i] {
             return false;
         }
-        var end = left[i] == 0;
-        if end {
+        if left[i] == 0 {
             return true;
         }
         i++;
@@ -130,12 +113,10 @@ fn format_diagnostic_production(input: SyntaxDiagnosticInput*, index: usize): Sy
         middle = middle / 2;
         middle = middle + low;
         var row = &input.productions[middle];
-        var found = row.index == index;
-        if found {
+        if row.index == index {
             return row;
         }
-        var before = row.index < index;
-        if before {
+        if row.index < index {
             low = middle + 1;
         }
         else {
@@ -150,8 +131,7 @@ fn format_diagnostic_context(input: SyntaxDiagnosticInput*, output: SyntaxDiagno
     var i: usize = 0;
     for(; i < input.count; i++) {
         var include = repair == ParserNoIndex();
-        var selected = repair == i;
-        if selected {
+        if repair == i {
             include = true;
         }
         if include {
@@ -159,21 +139,17 @@ fn format_diagnostic_context(input: SyntaxDiagnosticInput*, output: SyntaxDiagno
             for(var j: usize = 0; j < option.count; j++) {
                 var index = option.contexts[j].production;
                 var row = format_diagnostic_production(input, index);
-                var found = row != null;
-                if found {
-                    var first = name == null;
-                    if first {
+                if row != null {
+                    if name == null {
                         name = row.name;
                         output.production = index;
                     } else {
-                        var same = format_diagnostic_same_name(name, row.name);
-                        if !same {
+                        if !format_diagnostic_same_name(name, row.name) {
                             output.production = ParserNoIndex();
                             output.multiple = false;
                             return;
                         }
-                        var another = index != output.production;
-                        if another {
+                        if index != output.production {
                             output.multiple = true;
                         }
                     }
@@ -190,8 +166,7 @@ export fn format_syntax_diagnostic(input: SyntaxDiagnosticInput*, output: Syntax
     var f: FormatEngine;
     fill(&f, 0, sizeof(FormatEngine));
     f.result = &output.result;
-    var empty = input.count == 0;
-    if empty {
+    if input.count == 0 {
         format_text(&f, input.original);
         return;
     }
@@ -214,13 +189,10 @@ export fn format_syntax_diagnostic(input: SyntaxDiagnosticInput*, output: Syntax
         }
     }
     var suggested: bool = false;
-    var ambiguous = repairs != 1;
-    if ambiguous {
+    if repairs != 1 {
         repair = ParserNoIndex();
-        var unique = boundaries == 1;
-        if unique {
-            var line_break = format_diagnostic_break(input);
-            if line_break {
+        if boundaries == 1 {
+            if format_diagnostic_break(input) {
                 repair = boundary;
                 suggested = true;
             }
@@ -232,8 +204,7 @@ export fn format_syntax_diagnostic(input: SyntaxDiagnosticInput*, output: Syntax
     if !input.complete {
         repair = ParserNoIndex();
     }
-    var repaired = repair != ParserNoIndex();
-    if repaired {
+    if repair != ParserNoIndex() {
         if suggested {
             format_text(&f, "Possible missing ");
         }
@@ -250,8 +221,7 @@ export fn format_syntax_diagnostic(input: SyntaxDiagnosticInput*, output: Syntax
         var unexpected: bool = true;
         i = 0;
         for(; prefix[i] != 0; i++) {
-            var different = input.original[i] != prefix[i];
-            if different {
+            if input.original[i] != prefix[i] {
                 unexpected = false;
                 break;
             }
@@ -265,9 +235,7 @@ export fn format_syntax_diagnostic(input: SyntaxDiagnosticInput*, output: Syntax
         format_char(&f, 46);
         var boundary_start = input.repairs;
         boundary_start &&= input.at_start;
-        if boundary_start {
-            boundary_start = input.at_start;
-        }
+        boundary_start &&= input.at_start;
         if boundary_start {
             if input.statements {
                 format_text(&f, " Expected a statement or grammar declaration.");
@@ -290,11 +258,9 @@ export fn format_syntax_diagnostic(input: SyntaxDiagnosticInput*, output: Syntax
         }
         i = 0;
         for(; i < count; i++) {
-            var separator = i != 0;
-            if separator {
+            if i != 0 {
                 var next = i + 1;
-                var last = next == input.count;
-                if last {
+                if next == input.count {
                     format_text(&f, " or ");
                 }
                 else {

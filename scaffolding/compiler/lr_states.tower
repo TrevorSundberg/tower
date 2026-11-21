@@ -24,12 +24,10 @@ struct LRStates {
 }
 
 export fn lr_kernel(analysis: LRAnalysis*, item: LRItem*): bool {
-    var shifted = item.position != 0;
-    if shifted {
+    if item.position != 0 {
         return true;
     }
-    var start = item.rule == 0;
-    if start {
+    if item.rule == 0 {
         return true;
     }
     var empty = analysis.rules[item.rule].count == 0;
@@ -40,13 +38,11 @@ fn lr_state_hash(analysis: LRAnalysis*, items: LRItems*): usize {
     var hash: usize = 2166136261;
     var index: usize = 0;
     loop {
-        var done = index == items.values.length;
-        if done {
+        if index == items.values.length {
             return hash;
         }
         var item = &items.values.data[index];
-        var kernel = lr_kernel(analysis, item);
-        if kernel {
+        if lr_kernel(analysis, item) {
             hash = hash ^ item.rule;
             hash = hash * 16777619;
             hash = hash ^ item.position;
@@ -120,30 +116,25 @@ fn lr_state_symbol(analysis: LRAnalysis*, state: LRState*, symbol: usize): bool 
     var low: usize = 0;
     var high = state.symbols.length;
     loop {
-        var done = low == high;
-        if done {
+        if low == high {
             break;
         }
         var middle = high -low;
         middle = middle / 2;
         middle = middle + low;
-        var less = lr_symbol_less(analysis, state.symbols.data[middle], symbol);
-        if less {
+        if lr_symbol_less(analysis, state.symbols.data[middle], symbol) {
             low = middle + 1;
         } else {
             high = middle;
         }
     }
-    var present = low < state.symbols.length;
-    if present {
-        var different = lr_symbol_less(analysis, symbol, state.symbols.data[low]);
-        if !different {
+    if low < state.symbols.length {
+        if !lr_symbol_less(analysis, symbol, state.symbols.data[low]) {
             return true;
         }
     }
     var count = state.symbols.length + 1;
-    var ok = vector_reserve(usize, &state.symbols, count);
-    if !ok {
+    if !vector_reserve(usize, &state.symbols, count) {
         return false;
     }
     var moved = state.symbols.length -low;
@@ -164,8 +155,7 @@ fn lr_state_destroy(state: LRState*): void {
 }
 
 export fn lr_states_destroy(value: LRStates*): void {
-    var missing = value == null;
-    if missing {
+    if value == null {
         return;
     }
     for(var index: usize = 0; index != value.states.length; index++) {
@@ -179,14 +169,12 @@ export fn lr_states_destroy(value: LRStates*): void {
 
 fn lr_states_rehash(value: LRStates*): bool {
     var needed = value.states.length *2;
-    var enough = value.buckets.length > needed;
-    if enough {
+    if value.buckets.length > needed {
         return true;
     }
     needed = value.buckets.length * 2;
     needed = needed + 17;
-    var ok = vector_reserve(usize, &value.buckets, needed);
-    if !ok {
+    if !vector_reserve(usize, &value.buckets, needed) {
         return false;
     }
     value.buckets.length = needed;
@@ -196,8 +184,7 @@ fn lr_states_rehash(value: LRStates*): bool {
     }
     index = 0;
     loop {
-        var done = index == value.states.length;
-        if done {
+        if index == value.states.length {
             return true;
         }
         var state = value.states.data[index];
@@ -217,15 +204,13 @@ fn lr_states_intern(value: LRStates*, items: LRItems*, origin: usize): usize {
     }
     var hash = lr_state_hash(value.analysis, items);
     var bucket_count = value.buckets.length;
-    var empty = bucket_count == 0;
-    if empty {
+    if bucket_count == 0 {
         return lr_none();
     }
     var bucket = hash % bucket_count;
     var index = value.buckets.data[bucket];
     loop {
-        var end = index == lr_none();
-        if end {
+        if index == lr_none() {
             break;
         }
         var state = value.states.data[index];
@@ -239,8 +224,7 @@ fn lr_states_intern(value: LRStates*, items: LRItems*, origin: usize): usize {
         index = state.next;
     }
     var state = alloc(LRState, 1);
-    var missing = state == null;
-    if missing {
+    if state == null {
         return lr_none();
     }
     fill(state, 0, sizeof(LRState));

@@ -7,12 +7,10 @@ import driver_types;
 fn driver_equal(a: u8*, b: u8*): bool {
     var index: usize = 0;
     loop {
-        var different = a[index] != b[index];
-        if different {
+        if a[index] != b[index] {
             return false;
         }
-        var end = a[index] == 0;
-        if end {
+        if a[index] == 0 {
             return true;
         }
         index++;
@@ -61,8 +59,7 @@ export fn driver_parse(options: DriverOptions*, argc: usize, argv: u8**, target:
     options.comments = true;
     var index: usize = 1;
     loop {
-        var end = index >= argc;
-        if end {
+        if index >= argc {
             return true;
         }
         var arg = argv[index];
@@ -142,8 +139,7 @@ export fn driver_parse(options: DriverOptions*, argc: usize, argv: u8**, target:
             valued = true;
         }
         if valued {
-            var missing = index == argc;
-            if missing {
+            if index == argc {
                 options.error = 1;
                 options.argument = arg;
                 return false;
@@ -151,13 +147,11 @@ export fn driver_parse(options: DriverOptions*, argc: usize, argv: u8**, target:
             var value = argv[index];
             index++;
             if link {
-                var unallocated = options.links == null;
-                if unallocated {
+                if options.links == null {
                     // argc bounds the number of link values. One allocation;
                     // failure leaves the options safely disposable.
                     options.links = alloc(u8*, argc);
-                    var failed = options.links == null;
-                    if failed {
+                    if options.links == null {
                         options.error = 3;
                         options.argument = arg;
                         return false;

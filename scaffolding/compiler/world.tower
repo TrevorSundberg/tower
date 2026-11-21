@@ -23,14 +23,12 @@ struct CompilerWorld {
 
 export fn compiler_world_create(): CompilerWorld* {
     var world = alloc(CompilerWorld, 1);
-    var missing = world == null;
-    if missing {
+    if world == null {
         return null;
     }
     fill(world, 0, sizeof(CompilerWorld));
     world.store = entity_store_create();
-    var missing_store = world.store == null;
-    if missing_store {
+    if world.store == null {
         free(world);
         return null;
     }
@@ -52,68 +50,56 @@ export fn compiler_world_pinned(world: CompilerWorld*): bool {
 }
 
 export fn compiler_world_type(world: CompilerWorld*, kind: u32): Entity* {
-    var invalid = kind >= CompilerComponentCount();
-    if invalid {
+    if kind >= CompilerComponentCount() {
         return null;
     }
     var type = world.types[kind];
-    var present = type != null;
-    if present {
+    if type != null {
         return type;
     }
     var size = sizeof(FoundationNode);
     var alignment = alignof(FoundationNode);
     var lifecycle = compiler_foundation_lifecycle();
-    var syntax = kind == CompilerSyntax();
-    if syntax {
+    if kind == CompilerSyntax() {
         size = sizeof(SyntaxNode);
         alignment = alignof(SyntaxNode);
         lifecycle = compiler_syntax_lifecycle();
     }
-    var parser = kind <= CompilerParserMatch();
-    if parser {
+    if kind <= CompilerParserMatch() {
         lifecycle = compiler_parser_lifecycle(kind);
-        var rule = kind == CompilerParserRule();
-        if rule {
+        if kind == CompilerParserRule() {
             size = sizeof(ParserRuleData);
             alignment = alignof(ParserRuleData);
         }
-        var reference = kind == CompilerParserReference();
-        if reference {
+        if kind == CompilerParserReference() {
             size = sizeof(ParserReferenceData);
             alignment = alignof(ParserReferenceData);
         }
-        var string = kind == CompilerParserString();
-        if string {
+        if kind == CompilerParserString() {
             size = sizeof(ParserStringData);
             alignment = alignof(ParserStringData);
         }
-        var range = kind == CompilerParserRange();
-        if range {
+        if kind == CompilerParserRange() {
             size = sizeof(ParserRangeData);
             alignment = alignof(ParserRangeData);
         }
-        var parsed = kind == CompilerParserMatch();
-        if parsed {
+        if kind == CompilerParserMatch() {
             size = sizeof(ParserMatchData);
             alignment = alignof(ParserMatchData);
         }
     }
-    var origin = kind == CompilerSyntaxOrigin();
-    if origin {
+    if kind == CompilerSyntaxOrigin() {
         size = sizeof(SyntaxOrigin);
         alignment = alignof(SyntaxOrigin);
         lifecycle = compiler_origin_lifecycle();
     }
-    var expansion = kind == CompilerSyntaxExpansion();
-    if expansion {
+    if kind == CompilerSyntaxExpansion() {
         size = sizeof(SyntaxExpansion);
         alignment = alignof(SyntaxExpansion);
         lifecycle = compiler_expansion_lifecycle();
     }
     type = entity_create(world.store);
-    var missing = type == null;
-    if missing {
+    if type == null {
         return null;
     }
     var registered = entity_register(type, size, alignment, lifecycle);
@@ -127,21 +113,17 @@ export fn compiler_world_type(world: CompilerWorld*, kind: u32): Entity* {
 }
 
 export fn compiler_world_get(world: CompilerWorld*, owner: Entity*, kind: u32): void* {
-    var missing_owner = owner == null;
-    if missing_owner {
+    if owner == null {
         return null;
     }
-    var foreign_store = owner.store != world.store;
-    if foreign_store {
+    if owner.store != world.store {
         return null;
     }
-    var invalid = kind >= CompilerComponentCount();
-    if invalid {
+    if kind >= CompilerComponentCount() {
         return null;
     }
     var type = world.types[kind];
-    var missing_type = type == null;
-    if missing_type {
+    if type == null {
         return null;
     }
     return bits(void*, entity_component_data(entity_component_get(owner, type)));
@@ -150,47 +132,37 @@ export fn compiler_world_get(world: CompilerWorld*, owner: Entity*, kind: u32): 
 // Reattachment preserves payload state. A failed attachment leaves the node
 // unchanged; a successfully registered type may remain cached for a retry.
 export fn compiler_world_component(world: CompilerWorld*, owner: Entity*, kind: u32): void* {
-    var missing_owner = owner == null;
-    if missing_owner {
+    if owner == null {
         return null;
     }
-    var foreign_store = owner.store != world.store;
-    if foreign_store {
+    if owner.store != world.store {
         return null;
     }
     var type = compiler_world_type(world, kind);
-    var missing_type = type == null;
-    if missing_type {
+    if type == null {
         return null;
     }
     var data = compiler_world_get(world, owner, kind);
-    var existing = data != null;
-    if existing {
+    if data != null {
         return data;
     }
     data = bits(void*, entity_component_data(entity_component_add(owner, type)));
-    var failed = data == null;
-    if failed {
+    if data == null {
         return null;
     }
-    var parser = kind <= CompilerParserMatch();
-    if parser {
+    if kind <= CompilerParserMatch() {
         node_payload_init(kind, data);
     }
-    var syntax = kind == CompilerSyntax();
-    if syntax {
+    if kind == CompilerSyntax() {
         syntax_node_init(bits(SyntaxNode*, data));
     }
-    var foundation = kind == CompilerFoundation();
-    if foundation {
+    if kind == CompilerFoundation() {
         foundation_node_init(bits(FoundationNode*, data));
     }
-    var origin = kind == CompilerSyntaxOrigin();
-    if origin {
+    if kind == CompilerSyntaxOrigin() {
         fill(data, 0, sizeof(SyntaxOrigin));
     }
-    var expansion = kind == CompilerSyntaxExpansion();
-    if expansion {
+    if kind == CompilerSyntaxExpansion() {
         fill(data, 0, sizeof(SyntaxExpansion));
     }
     return data;
@@ -210,16 +182,13 @@ export fn compiler_world_dispose(world: CompilerWorld*): bool {
     if world.grammar.syntax is not null {
         return false;
     }
-    var pinned = world.store.views != 0;
-    if pinned {
+    if world.store.views != 0 {
         return false;
     }
-    var live_nodes = entity_store_count(world.store) != world.registered;
-    if live_nodes {
+    if entity_store_count(world.store) != world.registered {
         return false;
     }
-    var live_components = entity_store_component_count(world.store) != 0;
-    if live_components {
+    if entity_store_component_count(world.store) != 0 {
         return false;
     }
     var index: u32 = 0;
@@ -227,8 +196,7 @@ export fn compiler_world_dispose(world: CompilerWorld*): bool {
         var type = world.types[index];
         var present = type != null;
         if present {
-            var retained = entity_references(type) != 1;
-            if retained {
+            if entity_references(type) != 1 {
                 return false;
             }
         }

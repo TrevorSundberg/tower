@@ -34,8 +34,7 @@ export fn symbol_sequence_create(count: usize): SymbolSequence* {
 }
 
 export fn symbol_sequence_destroy(sequence: SymbolSequence*): void {
-    var empty = sequence == null;
-    if empty {
+    if sequence == null {
         return;
     }
     free(sequence.symbols);
@@ -48,12 +47,10 @@ export fn symbol_sequence_set(sequence: SymbolSequence*, state: usize, first: u3
 }
 
 export fn symbol_sequence_accepts(sequence: SymbolSequence*, state: usize, symbol: u32): bool {
-    var done = state >= sequence.count;
-    if done {
+    if state >= sequence.count {
         return false;
     }
-    var low = symbol < sequence.symbols[state].first;
-    if low {
+    if symbol < sequence.symbols[state].first {
         return false;
     }
     var accepted = symbol <= sequence.symbols[state].last;
@@ -62,16 +59,14 @@ export fn symbol_sequence_accepts(sequence: SymbolSequence*, state: usize, symbo
 
 export fn lex_table_create(): LexerTable* {
     var table = alloc(LexerTable, 1);
-    var ok = table != null;
-    if ok {
+    if table != null {
         fill(table, 0, sizeof(LexerTable));
     }
     return table;
 }
 
 export fn lex_table_destroy(table: LexerTable*): void {
-    var empty = table == null;
-    if empty {
+    if table == null {
         return;
     }
     vector_dispose(u32, &table.alphabet);
@@ -81,12 +76,10 @@ export fn lex_table_destroy(table: LexerTable*): void {
 }
 
 export fn lex_table_set_alphabet(table: LexerTable*, values: u32*, count: usize): bool {
-    var invalid = count < 2;
-    if invalid {
+    if count < 2 {
         return false;
     }
-    var active = table.accepting.length != 0;
-    if active {
+    if table.accepting.length != 0 {
         return false;
     }
     var ok = vector_reserve(u32, &table.alphabet, count);
@@ -99,13 +92,11 @@ export fn lex_table_set_alphabet(table: LexerTable*, values: u32*, count: usize)
 }
 
 export fn lex_table_append(table: LexerTable*, transitions: i32*, count: usize, accepting: bool): bool {
-    var empty = table.alphabet.length < 2;
-    if empty {
+    if table.alphabet.length < 2 {
         return false;
     }
     var columns = table.alphabet.length -1;
-    var invalid = count != columns;
-    if invalid {
+    if count != columns {
         return false;
     }
     var end = table.transitions.length + count;
@@ -153,14 +144,12 @@ export fn lex_table_step(table: LexerTable*, state: usize, symbol: u32): i32 {
     var first: usize = 0;
     var count = table.alphabet.length;
     loop {
-        var done = count == 0;
-        if done {
+        if count == 0 {
             break;
         }
         var half = count / 2;
         var middle = first + half;
-        var higher = symbol < table.alphabet.data[middle];
-        if higher {
+        if symbol < table.alphabet.data[middle] {
             count = half;
         }
         else {
@@ -176,8 +165,7 @@ export fn lex_table_step(table: LexerTable*, state: usize, symbol: u32): i32 {
 }
 
 export fn lex_table_accepts(table: LexerTable*, state: usize): bool {
-    var invalid = state >= table.accepting.length;
-    if invalid {
+    if state >= table.accepting.length {
         return false;
     }
     var accepted = table.accepting.data[state] != 0;
@@ -197,8 +185,7 @@ export fn lex_table_match(table: LexerTable*, source: u8*, length: usize, start:
         var begin = source + position;
         var remaining = length -position;
         var bytes = tower_utf8_decode(begin, remaining, &scalar);
-        var invalid = bytes == 0;
-        if invalid {
+        if bytes == 0 {
             return longest;
         }
         var next = lex_table_step(table, state, scalar);
@@ -208,8 +195,7 @@ export fn lex_table_match(table: LexerTable*, source: u8*, length: usize, start:
         }
         state = convert(usize, next);
         position = position + bytes;
-        var accepted = table.accepting.data[state] != 0;
-        if accepted {
+        if table.accepting.data[state] != 0 {
             longest = position - start;
         }
     }

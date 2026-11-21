@@ -27,8 +27,7 @@ export fn node_payload_size(kind: u32): usize {
 
 export fn node_payload_init(kind: u32, data: void*): void {
     fill(data, 0, node_payload_size(kind));
-    var `match` = kind == 4;
-    if `match` {
+    if kind == 4 {
         var value = bits(ParserMatchData*, data);
         value.id = 4294967294;
         value.rule = 0;
@@ -64,8 +63,7 @@ export fn node_payload_dispose(kind: u32, data: void*): void {
 }
 
 fn node_text_get(text: vector(u8)*): u8* {
-    var empty = text.data == null;
-    if empty {
+    if text.data == null {
         return "";
     }
     return text.data;
@@ -135,15 +133,12 @@ export fn node_string_resize(value: ParserStringData*, length: usize): bool {
 }
 
 export fn node_string_set(value: ParserStringData*, index: usize, id: u32): bool {
-    var grows = index >= value.ids.length;
-    if grows {
+    if index >= value.ids.length {
         var length = index + 1;
-        var wrapped = length == 0;
-        if wrapped {
+        if length == 0 {
             return false;
         }
-        var ok = node_string_resize(value, length);
-        if !ok {
+        if !node_string_resize(value, length) {
             return false;
         }
     }
@@ -153,12 +148,10 @@ export fn node_string_set(value: ParserStringData*, index: usize, id: u32): bool
 
 export fn node_string_append(value: ParserStringData*, source: u8*, count: usize): bool {
     var end = value.ids.length + count;
-    var wrapped = end < value.ids.length;
-    if wrapped {
+    if end < value.ids.length {
         return false;
     }
-    var ok = vector_reserve(u32, &value.ids, end);
-    if !ok {
+    if !vector_reserve(u32, &value.ids, end) {
         return false;
     }
     var offset: usize = 0;
@@ -167,8 +160,7 @@ export fn node_string_append(value: ParserStringData*, source: u8*, count: usize
         var start = source + offset;
         var remaining = count -offset;
         var bytes = tower_utf8_decode(start, remaining, &id);
-        var done = bytes == 0;
-        if done {
+        if bytes == 0 {
             break;
         }
         value.ids.data[value.ids.length] = id;

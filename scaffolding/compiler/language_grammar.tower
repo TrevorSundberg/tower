@@ -37,8 +37,7 @@ extern fn entity_retain(node: void*): usize;
 extern fn format_grammar_preview(result: FormatResult*, entity: void*, syntax: void*): void;
 
 fn language_syntax(node: void*): SyntaxNode* {
-    var grammar_condition1 = node == null;
-    if grammar_condition1 {
+    if node == null {
         return null;
     }
     var component = entity_component_get(node, syntax_component_type());
@@ -46,8 +45,7 @@ fn language_syntax(node: void*): SyntaxNode* {
 }
 
 fn language_grammar_keep(entry: LanguageGrammar*, node: void*): void {
-    var grammar_condition2 = node == null;
-    if grammar_condition2 {
+    if node == null {
         return;
     }
     entity_retain(node);
@@ -58,8 +56,7 @@ fn language_grammar_keep(entry: LanguageGrammar*, node: void*): void {
 // These are references to shared grammar entities, not a second syntax model.
 fn language_match_snapshot(q: CompletionQuery*, node: void*, session: void*, depth: usize): void {
     var exhausted = depth == 256;
-    var full = q.grammar.length >= 100000;
-    if full {
+    if q.grammar.length >= 100000 {
         exhausted = true;
     }
     if exhausted {
@@ -67,8 +64,7 @@ fn language_match_snapshot(q: CompletionQuery*, node: void*, session: void*, dep
         return;
     }
     var target = syntax_inspection_match(session, node);
-    var present = target != null;
-    if present {
+    if target != null {
         var entry: LanguageGrammar;
         fill(&entry, 0, sizeof(LanguageGrammar));
         entry.node = node;
@@ -141,8 +137,7 @@ fn language_match_candidate(q: CompletionQuery*, node: void*, candidate: Languag
 
 fn language_match_details(q: CompletionQuery*, candidate: LanguageCandidate*): void {
     var entry = candidate.matched;
-    var present = entry != null;
-    if !present {
+    if entry == null {
         return;
     }
     var kind: u8* = "matched syntax";
@@ -150,16 +145,14 @@ fn language_match_details(q: CompletionQuery*, candidate: LanguageCandidate*): v
     language_string(q, "description", "This code matches the pattern shown below.");
     language_grammar_targets(q, entry, false);
     var documentation = entry.targets.data[0];
-    var captured = candidate.capture != null;
-    if captured {
+    if candidate.capture != null {
         var binding = candidate.capture;
         var syntax = language_syntax(binding);
         kind = "captured syntax";
         language_string(q, "capture", syntax.capture.data);
         language_string(q, "category", syntax.text.data);
         var owner = language_ancestor(binding, "GrammarDeclaration");
-        var declared = owner != null;
-        if declared {
+        if owner != null {
             var declaration = language_syntax(owner);
             language_string(q, "capturedBy", declaration.name.data);
         }
@@ -170,17 +163,14 @@ fn language_match_details(q: CompletionQuery*, candidate: LanguageCandidate*): v
 }
 
 fn language_snapshot(q: CompletionQuery*, node: void*, session: void*, depth: usize): void {
-    var grammar_condition3 = depth == 256;
-    if grammar_condition3 {
+    if depth == 256 {
         q.truncated = true;
         return;
     }
     var syntax = language_syntax(node);
-    var grammar_condition4 = syntax != null;
-    if grammar_condition4 {
+    if syntax != null {
         // Import path terms are names, not grammar references.
-        var grammar_condition5 = syntax.kind == SyntaxImport();
-        if grammar_condition5 {
+        if syntax.kind == SyntaxImport() {
             return;
         }
         var entry: LanguageGrammar;
@@ -188,8 +178,7 @@ fn language_snapshot(q: CompletionQuery*, node: void*, session: void*, depth: us
         entry.node = node;
         var reference = syntax.kind == SyntaxRule();
         var text = &syntax.name;
-        var grammar_condition6 = syntax.kind == SyntaxTerm();
-        if grammar_condition6 {
+        if syntax.kind == SyntaxTerm() {
             text = &syntax.text;
             reference = !syntax.literal;
             if syntax.terminal_set {
@@ -200,16 +189,14 @@ fn language_snapshot(q: CompletionQuery*, node: void*, session: void*, depth: us
             var i: usize = 0;
             for(; i != 3; i++) {
                 var target = syntax_inspection_reference(session, text.data, text.length, i, &entry.total);
-                var grammar_condition8 = target == null;
-                if grammar_condition8 {
+                if target == null {
                     break;
                 }
                 language_grammar_keep(&entry, target);
             }
         }
         var grammar_condition12 = entry.targets.length != 0;
-        var template = syntax.kind == SyntaxTemplate();
-        if template {
+        if syntax.kind == SyntaxTemplate() {
             grammar_condition12 = true;
         }
         if grammar_condition12 {
@@ -237,12 +224,10 @@ fn language_templates_refresh(q: CompletionQuery*, session: void*): void {
             break;
         }
         var entry = &q.grammar.data[i];
-        var pending = entry.targets.length == 0;
-        if pending {
+        if entry.targets.length == 0 {
             var category: u8* = null;
             var tree = syntax_inspection_template(session, entry.node, &category, &entry.total);
-            var compiled = tree != null;
-            if compiled {
+            if tree != null {
                 sem_require(bytes_append(&entry.category, category, sem_length(category)));
                 sem_require(host_text_terminate(&entry.category));
                 language_grammar_keep(entry, tree);
@@ -275,24 +260,20 @@ fn language_grammar_dispose(q: CompletionQuery*): void {
 }
 
 fn language_grammar_find(q: CompletionQuery*, node: void*): LanguageGrammar* {
-    var indexed = q.grammar_index != null;
-    if indexed {
+    if q.grammar_index != null {
         var found = sem_find(q.grammar_index, null, node);
-        var present = found != null;
-        if present {
+        if found != null {
             return bits(LanguageGrammar*, found.value);
         }
         return null;
     }
     var i: usize = 0;
     loop {
-        var grammar_condition16 = i == q.grammar.length;
-        if grammar_condition16 {
+        if i == q.grammar.length {
             return null;
         }
         var entry = &q.grammar.data[i];
-        var grammar_condition17 = entry.node == node;
-        if grammar_condition17 {
+        if entry.node == node {
             return entry;
         }
         i++;
@@ -301,28 +282,23 @@ fn language_grammar_find(q: CompletionQuery*, node: void*): LanguageGrammar* {
 }
 
 fn language_inside(leaf: void*, node: void*): bool {
-    var grammar_condition18 = node == null;
-    if grammar_condition18 {
+    if node == null {
         return false;
     }
     var a = sem_match(leaf);
     var b = sem_match(node);
-    var grammar_condition19 = a == null;
-    if grammar_condition19 {
+    if a == null {
         return false;
     }
-    var grammar_condition20 = b == null;
-    if grammar_condition20 {
+    if b == null {
         return false;
     }
-    var grammar_condition21 = a.start < b.start;
-    if grammar_condition21 {
+    if a.start < b.start {
         return false;
     }
     var end = a.start + a.length;
     var limit = b.start + b.length;
-    var grammar_condition73 = end <= limit;
-    return grammar_condition73;
+    return end <= limit;
 }
 
 fn language_member_at(leaf: void*, node: void*, member: u8*): bool {
@@ -332,12 +308,10 @@ fn language_member_at(leaf: void*, node: void*, member: u8*): bool {
 fn language_ancestor(node: void*, label: u8*): void* {
     var depth: usize = 0;
     loop {
-        var grammar_condition22 = node == null;
-        if grammar_condition22 {
+        if node == null {
             return null;
         }
-        var grammar_condition23 = depth == 256;
-        if grammar_condition23 {
+        if depth == 256 {
             return null;
         }
         if sem_is(node, label) {
@@ -352,19 +326,15 @@ fn language_ancestor(node: void*, label: u8*): void* {
 fn language_grammar_docs(q: CompletionQuery*, node: void*): void {
     var depth: usize = 0;
     loop {
-        var grammar_condition24 = node == null;
-        if grammar_condition24 {
+        if node == null {
             return;
         }
-        var grammar_condition25 = depth == 256;
-        if grammar_condition25 {
+        if depth == 256 {
             return;
         }
         var syntax = language_syntax(node);
-        var grammar_condition26 = syntax != null;
-        if grammar_condition26 {
-            var grammar_condition27 = syntax.comments.length != 0;
-            if grammar_condition27 {
+        if syntax != null {
+            if syntax.comments.length != 0 {
                 var text: vector(u8);
                 vector_init(u8, &text);
                 var i: usize = 0;
@@ -372,29 +342,23 @@ fn language_grammar_docs(q: CompletionQuery*, node: void*): void {
                     var comment = &syntax.comments.data[i];
                     var first: usize = 0;
                     var last = comment.length;
-                    var grammar_condition29 = last >= 2;
-                    if grammar_condition29 {
-                        var grammar_condition30 = comment.data[0] == 47;
-                        if grammar_condition30 {
-                            var grammar_condition31 = comment.data[1] == 47;
-                            if grammar_condition31 {
+                    if last >= 2 {
+                        if comment.data[0] == 47 {
+                            if comment.data[1] == 47 {
                                 first = 2;
                             }
-                            var grammar_condition32 = comment.data[1] == 42;
-                            if grammar_condition32 {
+                            if comment.data[1] == 42 {
                                 first = 2;
                                 last = last - 2;
                             }
                         }
                     }
                     for(; first < last; first++) {
-                        var grammar_condition34 = comment.data[first] != 32;
-                        if grammar_condition34 {
+                        if comment.data[first] != 32 {
                             break;
                         }
                     }
-                    var grammar_condition35 = i != 0;
-                    if grammar_condition35 {
+                    if i != 0 {
                         completion_text(&text, "\n");
                     }
                     var length = last -first;
@@ -413,12 +377,10 @@ fn language_grammar_docs(q: CompletionQuery*, node: void*): void {
 
 fn language_grammar_location(q: CompletionQuery*, node: void*): void {
     var syntax = language_syntax(node);
-    var grammar_condition36 = syntax == null;
-    if grammar_condition36 {
+    if syntax == null {
         return;
     }
-    var grammar_condition37 = syntax.source == null;
-    if grammar_condition37 {
+    if syntax.source == null {
         return;
     }
     var source = syntax.source;
@@ -431,8 +393,7 @@ fn language_grammar_location(q: CompletionQuery*, node: void*): void {
 }
 
 fn language_grammar_targets(q: CompletionQuery*, entry: LanguageGrammar*, documentation: bool): void {
-    var grammar_condition41 = entry == null;
-    if grammar_condition41 {
+    if entry == null {
         return;
     }
     language_number(q, "alternatives", entry.total);
@@ -443,12 +404,10 @@ fn language_grammar_targets(q: CompletionQuery*, entry: LanguageGrammar*, docume
         var preview: FormatResult;
         fill(&preview, 0, sizeof(FormatResult));
         format_grammar_preview(&preview, entry.targets.data[i], syntax_component_type());
-        var grammar_condition43 = i != 0;
-        if grammar_condition43 {
+        if i != 0 {
             completion_text(&text, " | ");
         }
-        var grammar_condition44 = preview.text.length == 0;
-        if grammar_condition44 {
+        if preview.text.length == 0 {
             completion_text(&text, "(empty)");
         }
         else {
@@ -456,8 +415,7 @@ fn language_grammar_targets(q: CompletionQuery*, entry: LanguageGrammar*, docume
         }
         format_dispose(&preview);
     }
-    var grammar_condition45 = entry.total > entry.targets.length;
-    if grammar_condition45 {
+    if entry.total > entry.targets.length {
         completion_text(&text, " | ...");
     }
     completion_text(&q.output, ",\"definition\":");
@@ -471,13 +429,11 @@ fn language_grammar_targets(q: CompletionQuery*, entry: LanguageGrammar*, docume
 
 fn language_grammar_details(q: CompletionQuery*, leaf: void*, node: void*): void {
     var syntax = language_syntax(node);
-    var grammar_condition46 = syntax == null;
-    if grammar_condition46 {
+    if syntax == null {
         return;
     }
     var imported = language_ancestor(node, "ImportDeclaration");
-    var is_import = imported != null;
-    if is_import {
+    if imported != null {
         var module = language_syntax(imported);
         language_string(q, "kind", "module import");
         language_string(q, "module", module.name.data);
@@ -489,8 +445,7 @@ fn language_grammar_details(q: CompletionQuery*, leaf: void*, node: void*): void
     var description: u8* = "Defines syntax for subsequent source after the terminating semicolon.";
     var reference = false;
     var docs = true;
-    var grammar_condition47 = syntax.kind == SyntaxRule();
-    if grammar_condition47 {
+    if syntax.kind == SyntaxRule() {
         kind = "parse rule";
         description = "Defines how to write this part of the language.";
         if syntax.append {
@@ -514,20 +469,17 @@ fn language_grammar_details(q: CompletionQuery*, leaf: void*, node: void*): void
             description = "Separates alternative sequences accepted by this rule; order is not silent conflict priority.";
         }
     }
-    var grammar_condition48 = syntax.kind == SyntaxAlternative();
-    if grammar_condition48 {
+    if syntax.kind == SyntaxAlternative() {
         kind = "alternative";
         description = "Matches this ordered sequence of grammar terms.";
     }
-    var grammar_condition49 = syntax.kind == SyntaxTerm();
-    if grammar_condition49 {
+    if syntax.kind == SyntaxTerm() {
         kind = "grammar reference";
         description = "Matches this category using the grammar active at this declaration.";
         reference = true;
         docs = false;
         var atom = sem_member(node, "atom");
-        var grammar_condition50 = syntax.capture.length != 0;
-        if grammar_condition50 {
+        if syntax.capture.length != 0 {
             if !language_member_at(leaf, atom, "reference") {
                 kind = "capture binding";
                 description = "Binds the matched syntax subtree for use in this alternative's replacement. Its category is grammar, not a runtime type.";
@@ -539,8 +491,7 @@ fn language_grammar_details(q: CompletionQuery*, leaf: void*, node: void*): void
             kind = "literal token";
             description = "Matches this exact token spelling.";
             var parent = sem_parent(node);
-            var grammar_condition51 = language_ancestor(parent, "GrammarTokenSet") != null;
-            if grammar_condition51 {
+            if language_ancestor(parent, "GrammarTokenSet") != null {
                 kind = "excluded token";
                 description = "Excludes this exact token from the surrounding token set.";
             }
@@ -553,16 +504,13 @@ fn language_grammar_details(q: CompletionQuery*, leaf: void*, node: void*): void
         if language_member_at(leaf, node, "suffix") {
             reference = false;
             kind = "repetition";
-            var grammar_condition52 = syntax.repetition == 42;
-            if grammar_condition52 {
+            if syntax.repetition == 42 {
                 description = "Matches zero or more occurrences of the preceding term.";
             }
-            var grammar_condition53 = syntax.repetition == 43;
-            if grammar_condition53 {
+            if syntax.repetition == 43 {
                 description = "Matches one or more occurrences of the preceding term.";
             }
-            var grammar_condition54 = syntax.repetition == 63;
-            if grammar_condition54 {
+            if syntax.repetition == 63 {
                 description = "Matches zero or one occurrence of the preceding term.";
             }
         }
@@ -571,15 +519,13 @@ fn language_grammar_details(q: CompletionQuery*, leaf: void*, node: void*): void
         }
     }
     var lexical = syntax.kind == SyntaxToken();
-    var grammar_condition55 = syntax.kind == SyntaxSkip();
-    if grammar_condition55 {
+    if syntax.kind == SyntaxSkip() {
         lexical = true;
     }
     if lexical {
         kind = "token declaration";
         description = "Recognizes a token using this lexical pattern.";
-        var grammar_condition56 = syntax.kind == SyntaxSkip();
-        if grammar_condition56 {
+        if syntax.kind == SyntaxSkip() {
             kind = "skip declaration";
             description = "Consumes matching text as trivia instead of passing a token to the parser.";
         }
@@ -596,8 +542,7 @@ fn language_grammar_details(q: CompletionQuery*, leaf: void*, node: void*): void
             description = "Controls syntax highlighting only; it does not declare a semantic type.";
         }
     }
-    var grammar_condition57 = syntax.kind == SyntaxTemplate();
-    if grammar_condition57 {
+    if syntax.kind == SyntaxTemplate() {
         kind = "replacement template";
         description = "Parsed using the destination grammar when this rule becomes reachable; capture types are checked after substitution.";
     }
@@ -605,8 +550,7 @@ fn language_grammar_details(q: CompletionQuery*, leaf: void*, node: void*): void
     language_string(q, "description", description);
     if reference {
         var entry = language_grammar_find(q, node);
-        var grammar_condition59 = entry == null;
-        if grammar_condition59 {
+        if entry == null {
             language_string(q, "resolution", "Not resolved at this declaration; forward grammar dependencies may be resolved before activation.");
         }
         else {
@@ -621,18 +565,15 @@ fn language_grammar_details(q: CompletionQuery*, leaf: void*, node: void*): void
 
 fn language_template_capture(leaf: void*, template: LanguageGrammar*): void* {
     var span = sem_match(leaf);
-    var grammar_condition60 = span == null;
-    if grammar_condition60 {
+    if span == null {
         return null;
     }
-    var grammar_condition61 = span.id < 3145728;
-    if grammar_condition61 {
+    if span.id < 3145728 {
         return null;
     }
     var index = convert(usize, span.id) -3145728;
     index++;
-    var grammar_condition62 = index >= template.targets.length;
-    if grammar_condition62 {
+    if index >= template.targets.length {
         return null;
     }
     return template.targets.data[index];
@@ -642,8 +583,7 @@ fn language_capture_categories(q: CompletionQuery*, declaration: SyntaxNode*, ca
     var categories: vector(u8*);
     vector_init(u8*, &categories);
     var i: usize = 0;
-    var grammar_condition1 = declaration != null;
-    if grammar_condition1 {
+    if declaration != null {
         for(; i != declaration.items.length; i++) {
             var alternative = language_syntax(declaration.items.data[i]);
             var j: usize = 0;
@@ -665,16 +605,14 @@ fn language_capture_categories(q: CompletionQuery*, declaration: SyntaxNode*, ca
             }
         }
     }
-    var grammar_condition5 = categories.length == 0;
-    if grammar_condition5 {
+    if categories.length == 0 {
         sem_require(vector_push(u8*, &categories, capture.text.data));
     }
     var text: vector(u8);
     vector_init(u8, &text);
     i = 0;
     for(; i != categories.length; i++) {
-        var grammar_condition7 = i != 0;
-        if grammar_condition7 {
+        if i != 0 {
             completion_text(&text, " | ");
         }
         completion_text(&text, categories.data[i]);
@@ -829,8 +767,7 @@ fn language_template_details(q: CompletionQuery*, leaf: void*, candidate: Langua
         language_number(q, "replacementAlternatives", declaration.items.length);
     }
     var capture = language_template_capture(leaf, template);
-    var grammar_condition63 = capture != null;
-    if grammar_condition63 {
+    if capture != null {
         var syntax = language_syntax(capture);
         language_string(q, "kind", "capture substitution");
         language_string(q, "capture", syntax.capture.data);
@@ -839,8 +776,7 @@ fn language_template_details(q: CompletionQuery*, leaf: void*, candidate: Langua
         language_grammar_location(q, capture);
         return;
     }
-    var grammar_condition64 = candidate.subject != null;
-    if grammar_condition64 {
+    if candidate.subject != null {
         language_string(q, "kind", language_kind(sem_get(candidate.subject)));
         language_string(q, "description", "Function referenced by the replacement. This is its declared signature; substituted arguments are type-checked when the rule is used.");
         return;
@@ -855,13 +791,11 @@ fn language_template_details(q: CompletionQuery*, leaf: void*, candidate: Langua
 }
 
 fn language_template_walk(q: CompletionQuery*, node: void*, template: LanguageGrammar*, inherited: void*, checked: bool, depth: usize, budget: usize*): void {
-    var grammar_condition65 = depth >= 256;
-    if grammar_condition65 {
+    if depth >= 256 {
         q.truncated = true;
         return;
     }
-    var grammar_condition66 = *budget == 0;
-    if grammar_condition66 {
+    if *budget == 0 {
         q.truncated = true;
         return;
     }
@@ -873,31 +807,26 @@ fn language_template_walk(q: CompletionQuery*, node: void*, template: LanguageGr
     if language_template_role(node, &kind, &description) {
         selected = node;
     }
-    var grammar_condition67 = selected == null;
-    if grammar_condition67 {
+    if selected == null {
         selected = node;
     }
     var count = sem_child_count(node);
-    var grammar_condition68 = count == 0;
-    if grammar_condition68 {
+    if count == 0 {
         var candidate: LanguageCandidate;
         fill(&candidate, 0, sizeof(LanguageCandidate));
         candidate.node = selected;
         candidate.template = template;
         var span = sem_match(node);
-        var grammar_condition69 = span == null;
-        if grammar_condition69 {
+        if span == null {
             return;
         }
         candidate.from = span.start;
         candidate.to = span.start + span.length;
         var capture = language_template_capture(node, template);
-        var grammar_condition70 = capture == null;
-        if grammar_condition70 {
+        if capture == null {
             if checked {
                 var call = language_ancestor(node, "CoreCall");
-                var grammar_condition71 = call != null;
-                if grammar_condition71 {
+                if call != null {
                     if language_member_at(node, call, "name") {
                         var name = sem_identifier(&q.context, sem_member(call, "name"));
                         candidate.subject = sem_resolve_from(&q.context, q.context.functions, sem_member(call, "name"), name, sem_owner(&q.context, template.node));

@@ -22,8 +22,7 @@ fn frontend_test_cache_node(kinds: FrontendKinds*, id: usize): void* {
     var code = id + 32;
     text[0] = convert(u8, code);
     text[1] = 0;
-    var ok = node_text_set(&node.text, &text[0]);
-    if ok {
+    if node_text_set(&node.text, &text[0]) {
         return entity;
     }
     entity_release(entity);
@@ -42,8 +41,7 @@ fn frontend_cache_tests(kinds: FrontendKinds*): usize {
         var node = frontend_test_cache_node(kinds, i);
         var slot = frontend_cache_store(&cache, null, 0, &node, 1);
         entity_release(node);
-        var correct = slot == i;
-        if !correct {
+        if slot != i {
             ok = false;
             break;
         }
@@ -89,8 +87,7 @@ fn frontend_cache_tests(kinds: FrontendKinds*): usize {
     var budget: usize = 0;
     var result: usize = 0;
     loop {
-        var limit = budget == 64;
-        if limit {
+        if budget == 64 {
             result = 732;
             break;
         }

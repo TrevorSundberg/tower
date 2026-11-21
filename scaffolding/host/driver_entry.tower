@@ -26,9 +26,7 @@ fn driver_entry_compile(options: DriverOptions*, timing: DriverTiming*): i32 {
     fill(&executable, 0, sizeof(ByteBuffer));
     fill(&resources, 0, sizeof(ByteBuffer));
     var located = driver_platform_executable(&executable);
-    if located {
-        located = driver_resource_root(&resources, executable.data);
-    }
+    located &&= driver_resource_root(&resources, executable.data);
     var result: i32 = 1;
     if located {
         var request: DriverRequest;
@@ -49,8 +47,7 @@ fn driver_entry_compile(options: DriverOptions*, timing: DriverTiming*): i32 {
 export fn main(argc: i32, argv: u8**): i32 {
     var timing = driver_timing_open();
     var target = LLVMGetDefaultTargetTriple();
-    var missing = target == null;
-    if missing {
+    if target == null {
         driver_error("Cannot determine default target", "");
         driver_timing_close(timing, false);
         return 1;
@@ -58,12 +55,10 @@ export fn main(argc: i32, argv: u8**): i32 {
     var options: DriverOptions;
     var parsed = driver_prepare(&options, convert(usize, argc), argv, target);
     var status: i32 = 1;
-    var ready = parsed == 0;
-    if ready {
+    if parsed == 0 {
         status = driver_entry_compile(&options, timing);
     } else {
-        var complete = parsed == 2;
-        if complete {
+        if parsed == 2 {
             status = 0;
         }
     }

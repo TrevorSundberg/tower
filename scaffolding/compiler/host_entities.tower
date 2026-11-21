@@ -17,8 +17,7 @@ export fn syntax_component_type(): Entity* {
 }
 
 export fn syntax_get(owner: Entity*): SyntaxNode* {
-    var missing = owner == null;
-    if missing {
+    if owner == null {
         return null;
     }
     var component = entity_component_get(owner, syntax_component_type());
@@ -153,8 +152,7 @@ export fn tower_node_get_child_member(parent: Entity*, name: u8*): Entity* {
 
 export fn tower_node_get_parent_member_name(child: Entity*): u8* {
     var parent = entity_parent(child);
-    var absent = parent == null;
-    if absent {
+    if parent == null {
         return null;
     }
     var index = entity_child_index(parent, child);
@@ -167,8 +165,7 @@ export fn tower_node_get_child_member_name(parent: Entity*, index: usize): u8* {
 
 export fn tower_node_get_parent_child_index(child: Entity*): usize {
     var parent = entity_parent(child);
-    var absent = parent == null;
-    if absent {
+    if parent == null {
         var invalid: usize = 0;
         invalid--;
         return invalid;

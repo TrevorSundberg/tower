@@ -39,8 +39,7 @@ fn format_parser_no_rule(): usize {
 
 fn format_tree_push(pending: vector(FormatTreeEntry)*, node: void*, depth: usize, member: u8*): bool {
     var needed = pending.length + 1;
-    var overflow = needed == 0;
-    if overflow {
+    if needed == 0 {
         return false;
     }
     var ok = vector_reserve(FormatTreeEntry, pending, needed);
@@ -61,15 +60,13 @@ export fn format_parser_tree(result: FormatResult*, root: void*, kind: void*): v
     fill(&f, 0, sizeof(FormatEngine));
     f.result = result;
     f.match_kind = kind;
-    var empty = root == null;
-    if empty {
+    if root == null {
         format_text(&f, "<empty tree>\n");
         return;
     }
     var member: u8* = null;
     var parent = entity_parent(root);
-    var attached = parent != null;
-    if attached {
+    if parent != null {
         member = entity_child_name(parent, entity_child_index(parent, root));
     }
     var pending: vector(FormatTreeEntry);
@@ -88,8 +85,7 @@ export fn format_parser_tree(result: FormatResult*, root: void*, kind: void*): v
         var depth = entry.depth;
         member = entry.member;
         var indent = depth *2;
-        var overflow = indent < depth;
-        if overflow {
+        if indent < depth {
             result.failed = true;
             break;
         }
@@ -101,8 +97,7 @@ export fn format_parser_tree(result: FormatResult*, root: void*, kind: void*): v
             format_text(&f, ": ");
         }
         var span = format_match(&f, node);
-        var matched = span != null;
-        if matched {
+        if span != null {
             var rule = span.rule != format_parser_no_rule();
             if rule {
                 format_text(&f, "rule ");
@@ -186,16 +181,14 @@ extern fn tower_utf8_encode(id: u32, output: u8*, capacity: usize): usize;
 export fn format_parser_scalar(result: FormatResult*, id: u32): bool {
     var encoded: u8[4];
     var count = tower_utf8_encode(id, &encoded[0], 4);
-    var invalid = count == 0;
-    if invalid {
+    if count == 0 {
         return false;
     }
     var f: FormatEngine;
     fill(&f, 0, sizeof(FormatEngine));
     f.result = result;
     var escaped = format_parser_escape(id);
-    var special = escaped != null;
-    if special {
+    if escaped != null {
         format_text(&f, escaped);
     } else {
         format_char(&f, convert(u8, ParserScalar.Quote));
@@ -207,8 +200,7 @@ export fn format_parser_scalar(result: FormatResult*, id: u32): bool {
 
 export fn format_parser_host_text(result: FormatResult*): u8* {
     var size = result.text.length + 1;
-    var overflow = size == 0;
-    if overflow {
+    if size == 0 {
         result.failed = true;
     }
     if result.failed {
@@ -217,8 +209,7 @@ export fn format_parser_host_text(result: FormatResult*): u8* {
         return null;
     }
     var text = bits(u8*, tower_memory_allocate(size));
-    var missing = text == null;
-    if missing {
+    if text == null {
         format_dispose(result);
         abort();
         return null;
@@ -264,8 +255,7 @@ export fn parser_tree_debug_string(root: void*): u8* {
     var result: FormatResult;
     fill(&result, 0, sizeof(FormatResult));
     var kind: void* = null;
-    var present = root != null;
-    if present {
+    if root != null {
         kind = parser_match_get_type();
     }
     format_parser_tree(&result, root, kind);
@@ -280,14 +270,12 @@ export fn parser_table_utf8_id_to_string(userdata: void*, id: u32): u8* {
     fill(&result, 0, sizeof(FormatResult));
     result.text.data = &scratch[0];
     result.text.capacity = 6;
-    var valid = format_parser_scalar(&result, id);
-    if !valid {
+    if !format_parser_scalar(&result, id) {
         return null;
     }
     var size = result.text.length + 1;
     var text = bits(u8*, tower_memory_allocate(size));
-    var missing = text == null;
-    if missing {
+    if text == null {
         abort();
         return null;
     }

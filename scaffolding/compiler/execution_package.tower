@@ -83,9 +83,7 @@ fn execution_package_encode(program: SemanticProgram*, modules: void*, profile: 
     if !ok {
         execution_session_fail(&canonical, "Unable to allocate canonical formatted source", 0);
     }
-    if ok {
-        ok = execution_session_compile(&canonical, formatted.text.data, formatted.text.length, program.pointer_bytes, modules);
-    }
+    ok &&= execution_session_compile(&canonical, formatted.text.data, formatted.text.length, program.pointer_bytes, modules);
     if ok {
         ok = execution_session_fast(&canonical);
         if !ok {

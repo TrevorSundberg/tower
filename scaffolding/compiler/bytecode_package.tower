@@ -12,8 +12,7 @@ fn bc_read(data: u8*, at: usize, size: usize): u64 {
     var factor: u64 = 1;
     var i: usize = 0;
     loop {
-        var end = i == size;
-        if end {
+        if i == size {
             return result;
         }
         var index = at + i;
@@ -28,8 +27,7 @@ fn bc_read(data: u8*, at: usize, size: usize): u64 {
 fn bc_write(data: u8*, at: usize, value: u64, size: usize): void {
     var i: usize = 0;
     loop {
-        var end = i == size;
-        if end {
+        if i == size {
             return;
         }
         var index = at + i;
@@ -45,15 +43,13 @@ fn bc_checksum(data: u8*, length: usize): u64 {
     var hash: u64 = 14695981039346656037;
     var i: usize = 0;
     loop {
-        var end = i == length;
-        if end {
+        if i == length {
             return hash;
         }
         var byte: u64 = 0;
         var prefix = i < 48;
         var payload = i >= 56;
-        var included = im_or(prefix, payload);
-        if included {
+        if im_or(prefix, payload) {
             byte = convert(u64, data[i]);
         }
         hash = hash ^ byte;
@@ -63,18 +59,15 @@ fn bc_checksum(data: u8*, length: usize): u64 {
 }
 
 export fn bytecode_validate(data: u8*, length: usize): u32 {
-    var short = length < 56;
-    if short {
+    if length < 56 {
         return 1;
     }
-    var large = length > 268435456;
-    if large {
+    if length > 268435456 {
         return 1;
     }
     var magic = "TOWERBC";
     for(var i: usize = 0; i != 8; i++) {
-        var different = data[i] != magic[i];
-        if different {
+        if data[i] != magic[i] {
             return 2;
         }
     }
@@ -178,8 +171,7 @@ export fn bytecode_pointer_bytes(data: u8*): usize {
 }
 
 export fn bytecode_encode(f: FMState*, source: u8*, source_size: usize, width: usize, profile: u32, length: usize*): u8* {
-    var invalid_profile = profile > 2;
-    if invalid_profile {
+    if profile > 2 {
         return null;
     }
     var words = f.words.length *4;
@@ -195,8 +187,7 @@ export fn bytecode_encode(f: FMState*, source: u8*, source_size: usize, width: u
         return null;
     }
     var data = alloc(u8, total);
-    var failed = data == null;
-    if failed {
+    if data == null {
         *length = 0;
         return null;
     }
@@ -253,8 +244,7 @@ export fn bytecode_matches(f: FMState*, data: u8*): bool {
     }
     i = 0;
     loop {
-        var end = i == f.constants.length;
-        if end {
+        if i == f.constants.length {
             return true;
         }
         different = bc_read(data, at, 8) != f.constants.data[i];

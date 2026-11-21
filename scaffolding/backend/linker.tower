@@ -39,9 +39,7 @@ fn backend_link_argument(link: BackendLink*, prefix: u8*, value: u8*): void {
     vector_init(u8, &text);
     backend_text(&text, prefix);
     backend_text(&text, value);
-    var ok = vector_push(u8*, &link.arguments, text.data);
-    var failed = !ok;
-    if failed {
+    if !vector_push(u8*, &link.arguments, text.data) {
         vector_dispose(u8, &text);
         backend_text(&link.error, "Unable to allocate linker arguments");
     }
@@ -70,8 +68,7 @@ export fn backend_link_clear_inputs(link: BackendLink*): void {
 }
 
 export fn backend_link_close(link: BackendLink*): void {
-    var absent = link == null;
-    if absent {
+    if link == null {
         return;
     }
     backend_link_reset_plan(link);
@@ -95,8 +92,7 @@ fn backend_filename(name: u8*): bool {
     }
     var i: usize = 0;
     loop {
-        var end = i == length;
-        if end {
+        if i == length {
             return true;
         }
         var byte = name[i];
@@ -160,14 +156,12 @@ export fn backend_link_add_input(link: BackendLink*, name: u8*, data: u8*, lengt
     var i: usize = 0;
     var found: BackendLinkInput* = null;
     for(; i != link.inputs.length; i++) {
-        var same = backend_equal(link.inputs.data[i].name.data, name);
-        if same {
+        if backend_equal(link.inputs.data[i].name.data, name) {
             found = &link.inputs.data[i];
             break;
         }
     }
-    var absent = found == null;
-    if absent {
+    if found == null {
         var needed = link.inputs.length + 1;
         var ok = vector_reserve(BackendLinkInput, &link.inputs, needed);
         invalid = !ok;
@@ -187,8 +181,7 @@ export fn backend_link_add_input(link: BackendLink*, name: u8*, data: u8*, lengt
 
 fn backend_write_file(link: BackendLink*, path: u8*, data: u8*, length: usize): bool {
     var file = fopen(path, "wb");
-    var absent = file == null;
-    if absent {
+    if file == null {
         backend_text(&link.error, "Cannot open linker input: ");
         backend_text(&link.error, path);
         return false;
@@ -197,8 +190,7 @@ fn backend_write_file(link: BackendLink*, path: u8*, data: u8*, length: usize): 
     var status = fclose(file);
     var ok = written == length;
     ok &&= status == 0;
-    var failed = !ok;
-    if failed {
+    if !ok {
         backend_text(&link.error, "Cannot write linker input: ");
         backend_text(&link.error, path);
     }
@@ -207,15 +199,13 @@ fn backend_write_file(link: BackendLink*, path: u8*, data: u8*, length: usize): 
 
 fn backend_read_file(output: vector(u8)*, path: u8*): bool {
     var file = fopen(path, "rb");
-    var absent = file == null;
-    if absent {
+    if file == null {
         return false;
     }
     var status = backend_file_seek(file, 0, 2);
     var length = backend_file_position(file);
     var invalid = length < 0;
-    var failed = status != 0;
-    if failed {
+    if status != 0 {
         invalid = true;
     }
     if invalid {
@@ -301,8 +291,7 @@ export fn backend_link_plan(link: BackendLink*, triple: u8*, functions: void**, 
             if mac {
                 backend_link_argument(link, "", "ld64.lld");
                 backend_link_argument(link, "", "-arch");
-                var x86 = backend_prefix(triple, "x86_64");
-                if x86 {
+                if backend_prefix(triple, "x86_64") {
                     backend_link_argument(link, "", "x86_64");
                 }
                 else {
@@ -349,8 +338,7 @@ export fn backend_link_plan(link: BackendLink*, triple: u8*, functions: void**, 
             var k: usize = 0;
             loop {
                 var different = left[k] != right[k];
-                var end = left[k] == 0;
-                if end {
+                if left[k] == 0 {
                     different = true;
                 }
                 if different {
@@ -358,8 +346,7 @@ export fn backend_link_plan(link: BackendLink*, triple: u8*, functions: void**, 
                 }
                 k++;
             }
-            var sorted = left[k] <= right[k];
-            if sorted {
+            if left[k] <= right[k] {
                 break;
             }
             order.data[previous] = b;
@@ -422,8 +409,7 @@ export fn backend_link_plan(link: BackendLink*, triple: u8*, functions: void**, 
         backend_link_argument(link, "", "--export=tower_allocate");
         backend_link_argument(link, "", "--export=tower_deallocate");
     }
-    var nonwindows = !windows;
-    if nonwindows {
+    if !windows {
         backend_link_argument(link, "", "-o");
         backend_link_argument(link, "", "tower-output.bin");
     }
@@ -441,8 +427,7 @@ export fn backend_link_argument_count(link: BackendLink*): usize {
 
 export fn backend_link_read_output(link: BackendLink*): bool {
     var ok = backend_read_file(&link.output, "tower-output.bin");
-    var failed = !ok;
-    if failed {
+    if !ok {
         backend_text(&link.error, "Cannot read linked executable");
     }
     return ok;
@@ -450,8 +435,7 @@ export fn backend_link_read_output(link: BackendLink*): bool {
 
 export fn backend_link_create(): BackendLink* {
     var link = alloc(BackendLink, 1);
-    var present = link != null;
-    if present {
+    if link != null {
         fill(link, 0, sizeof(BackendLink));
     }
     return link;

@@ -48,8 +48,7 @@ fn scan_choice(input: SyntaxScanInput*, choice: LexiconChoice*): void {
 }
 
 fn scan_highlight(input: SyntaxScanInput*, start: usize, choice: LexiconChoice*): void {
-    var styled = input.highlights != null;
-    if styled {
+    if input.highlights != null {
         syntax_scan_highlight(input.highlights, start, input.cursor, input.revision, choice.style, choice.id, choice.skipped);
     }
 }
@@ -90,20 +89,17 @@ fn scan_after_skip(input: SyntaxScanInput*, result: SyntaxScanResult*): void {
     result.id = 4294967294;
     result.start = input.cursor;
     result.length = 0;
-    var done = input.cursor == input.size;
-    if done {
+    if input.cursor == input.size {
         return;
     }
     var choice: LexiconChoice;
     scan_choice(input, &choice);
     result.checks = result.checks + choice.checks;
-    var invalid = choice.length == 0;
-    if invalid {
+    if choice.length == 0 {
         var codepoint: u32;
         var remaining = input.size -input.cursor;
         choice.length = tower_utf8_decode(&input.source[input.cursor], remaining, &codepoint);
-        var empty = choice.length == 0;
-        if empty {
+        if choice.length == 0 {
             choice.length = 1;
         }
         choice.style = "invalid";
@@ -123,19 +119,16 @@ export fn syntax_scan_token(input: SyntaxScanInput*, result: SyntaxScanResult*):
 export fn syntax_scan_peek(input: SyntaxScanInput*, id: u32*): bool {
     var count: usize = 0;
     loop {
-        var exhausted = count == 32;
-        if exhausted {
+        if count == 32 {
             return false;
         }
-        var done = input.cursor == input.size;
-        if done {
+        if input.cursor == input.size {
             *id = 4294967294;
             return true;
         }
         var choice: LexiconChoice;
         scan_choice(input, &choice);
-        var invalid = choice.length == 0;
-        if invalid {
+        if choice.length == 0 {
             return false;
         }
         input.cursor = input.cursor + choice.length;
@@ -151,20 +144,17 @@ fn scan_capture(input: SyntaxScanInput*, name: u8*): usize {
     var low: usize = 0;
     var high = input.count;
     loop {
-        var done = low == high;
-        if done {
+        if low == high {
             return lr_none();
         }
         var middle = high -low;
         middle = middle / 2;
         middle = middle + low;
         var order = template_text_order(input.captures[middle].name, name);
-        var same = order == 0;
-        if same {
+        if order == 0 {
             return middle;
         }
-        var less = order < 0;
-        if less {
+        if order < 0 {
             low = middle + 1;
         } else {
             high = middle;
@@ -206,8 +196,7 @@ export fn syntax_scan_read(input: SyntaxScanInput*, result: SyntaxScanResult*): 
         ok = syntax_identifier_decode(&input.source[start], length, &name);
         if ok {
             var ordinal = scan_capture(input, name.data);
-            var missing = ordinal == lr_none();
-            if missing {
+            if ordinal == lr_none() {
                 scan_unknown(result, &name);
             } else {
                 ordinal = ordinal & 4294967295;
@@ -251,8 +240,7 @@ export fn syntax_scan_read(input: SyntaxScanInput*, result: SyntaxScanResult*): 
     }
     vector_dispose(u8, &name);
     if !ok {
-        var allocated = node != null;
-        if allocated {
+        if node != null {
             entity_release(node);
         }
         node = null;

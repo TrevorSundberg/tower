@@ -90,8 +90,7 @@ fn bi_function(c: BackendImport*, function: void*): void {
             if done {
                 break;
             }
-            var failed = c.backend.error.length != 0;
-            if failed {
+            if c.backend.error.length != 0 {
                 return;
             }
             var locals = sem_get(c.declarations);
@@ -131,8 +130,7 @@ export fn backend_import_foundation(b: Backend*, root: void*): bool {
     for(; original_index != original_root.items.length; original_index++) {
         var entity = original_root.items.data[original_index];
         var n = sem_get(entity);
-        var record = n.kind == 19;
-        if record {
+        if n.kind == 19 {
             bi_append(&c, root, entity);
         }
     }
@@ -146,8 +144,7 @@ export fn backend_import_foundation(b: Backend*, root: void*): bool {
         var name = LLVMGetValueName2(function, &length);
         var builtin = backend_prefix(name, "llvm.");
         var runtime = backend_reserved(name);
-        var main = backend_equal(name, "tower_main");
-        if main {
+        if backend_equal(name, "tower_main") {
             runtime = false;
         }
         if runtime {
@@ -166,8 +163,7 @@ export fn backend_import_foundation(b: Backend*, root: void*): bool {
                 if done {
                     break;
                 }
-                var matches = backend_equal(name, b.symbols.data[i]);
-                if matches {
+                if backend_equal(name, b.symbols.data[i]) {
                     var original = sem_get(b.source_functions.data[i]);
                     var public = original.external;
                     if original.exported {
@@ -177,8 +173,7 @@ export fn backend_import_foundation(b: Backend*, root: void*): bool {
                         signature = original;
                         copy(&n.type, &original.type, sizeof(FoundationType));
                     }
-                    var named = original.name.length != 0;
-                    if named {
+                    if original.name.length != 0 {
                         n.name.length = 0;
                         backend_text(&n.name, backend_name(original));
                         n.exported = original.exported;
@@ -243,8 +238,7 @@ export fn backend_import_foundation(b: Backend*, root: void*): bool {
             break;
         }
         var initializer = LLVMGetInitializer(global);
-        var missing = initializer == null;
-        if missing {
+        if initializer == null {
             backend_fail(b, "Unresolved LLVM global in foundation return path");
         }
         else {
@@ -268,8 +262,7 @@ export fn backend_import_foundation(b: Backend*, root: void*): bool {
         if done {
             break;
         }
-        var defined = LLVMIsDeclaration(function) == 0;
-        if defined {
+        if LLVMIsDeclaration(function) == 0 {
             bi_function(&c, function);
         }
         function = LLVMGetNextFunction(function);
@@ -291,8 +284,7 @@ export fn backend_optimize_interpreter(b: Backend*, optimize: bool): bool {
         // peepholes. lower-switch makes target-independent CFG import explicit.
         var error = LLVMRunPasses(b.module, "function(sroa,mem2reg),default<O2>,function(lower-switch)", null, options);
         LLVMDisposePassBuilderOptions(options);
-        var failed = error != null;
-        if failed {
+        if error != null {
             var message = LLVMGetErrorMessage(error);
             backend_fail(b, message);
             LLVMDisposeErrorMessage(message);

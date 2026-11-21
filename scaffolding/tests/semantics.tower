@@ -48,8 +48,7 @@ print(item.value);
 // Lexical scopes, early returns, loop control and signed literal bounds.
 fn choose(value: i32): i32 {
     loop {
-        var positive = value > 0;
-        if positive {
+        if value > 0 {
             return value;
         }
         break;

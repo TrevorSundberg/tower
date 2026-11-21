@@ -49,28 +49,18 @@ fn driver_request_path(out: ByteBuffer*, override: u8*, root: u8*, name: u8*): b
         ok = driver_text(out, override);
     } else {
         ok = driver_text(out, root);
-        if ok {
-            ok = driver_text(out, "/");
-        }
-        if ok {
-            ok = driver_text(out, name);
-        }
+        ok &&= driver_text(out, "/");
+        ok &&= driver_text(out, name);
     }
-    if ok {
-        ok = host_text_terminate(out);
-    }
+    ok &&= host_text_terminate(out);
     return ok;
 }
 
 fn driver_request_failure(request: DriverRequest*, prefix: u8*, detail: u8*): bool {
     request.error.length = 0;
     var ok = driver_text(&request.error, prefix);
-    if ok {
-        ok = driver_text(&request.error, detail);
-    }
-    if ok {
-        ok = host_text_terminate(&request.error);
-    }
+    ok &&= driver_text(&request.error, detail);
+    ok &&= host_text_terminate(&request.error);
     if !ok {
         request.error.length = 0;
     }
@@ -78,8 +68,7 @@ fn driver_request_failure(request: DriverRequest*, prefix: u8*, detail: u8*): bo
 }
 
 export fn driver_request_error(request: DriverRequest*): u8* {
-    var present = request.error.length != 0;
-    if present {
+    if request.error.length != 0 {
         return request.error.data;
     }
     return "Unable to allocate compiler input storage";
@@ -94,8 +83,7 @@ fn driver_request_read(request: DriverRequest*, path: u8*, index: usize): bool {
 
 fn driver_request_check_grammar(request: DriverRequest*, path: u8*): bool {
     var file = fopen(path, "rb");
-    var missing = file == null;
-    if missing {
+    if file == null {
         return driver_request_failure(request, "Cannot read grammar module: ", path);
     }
     fclose(file);
@@ -148,16 +136,10 @@ export fn driver_request_canonical(request: DriverRequest*): bool {
     var path: ByteBuffer;
     fill(&path, 0, sizeof(ByteBuffer));
     var ok = driver_request_path(&path, "", request.root, "bedrock.tower");
-    if ok {
-        ok = driver_request_read(request, path.data, DriverCanonicalBedrockText());
-    }
+    ok &&= driver_request_read(request, path.data, DriverCanonicalBedrockText());
     path.length = 0;
-    if ok {
-        ok = driver_request_path(&path, "", request.root, "foundation.tower");
-    }
-    if ok {
-        ok = driver_request_read(request, path.data, DriverCanonicalFoundationText());
-    }
+    ok &&= driver_request_path(&path, "", request.root, "foundation.tower");
+    ok &&= driver_request_read(request, path.data, DriverCanonicalFoundationText());
     bytes_dispose(&path);
     request.canonical = ok;
     return ok;
@@ -175,9 +157,7 @@ export fn driver_request_bind(request: DriverRequest*, slot: void**): void {
     var i: usize = 0;
     while path[i] != 0 {
         var separator = path[i] == 47;
-        if !separator {
-            separator = driver_platform_separator(path[i]);
-        }
+        separator ||= driver_platform_separator(path[i]);
         if separator {
             boundary = i + 1;
         }
@@ -205,8 +185,7 @@ export fn driver_request_stage(request: DriverRequest*): void {
 }
 
 export fn driver_request_close(request: DriverRequest*): void {
-    var bound = request.slot != null;
-    if bound {
+    if request.slot != null {
         *request.slot = request.previous;
     }
     var present = request.generated != null;

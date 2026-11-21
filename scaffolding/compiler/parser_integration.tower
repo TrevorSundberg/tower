@@ -53,8 +53,7 @@ fn parser_copy_text(source: u8*): u8* {
     }
     size = size + index;
     var result = bits(u8*, tower_memory_allocate(size));
-    var present = result != null;
-    if present {
+    if result != null {
         copy(result, source, size);
     }
     return result;
@@ -67,8 +66,7 @@ export fn parser_table_finish(table: ParserHostTable*, error: u8**, specialize: 
     if output {
         *error = null;
     }
-    var absent = table == null;
-    if absent {
+    if table == null {
         return null;
     }
     var message: u8* = null;
@@ -76,7 +74,7 @@ export fn parser_table_finish(table: ParserHostTable*, error: u8**, specialize: 
     if failed {
         message = parser_copy_text(table.error);
     }
-    if failed {} else {
+    if !failed {
         var count = lr_grammar_missing_count(table.grammar);
         var index: usize = 0;
         while index < count {
@@ -91,8 +89,7 @@ export fn parser_table_finish(table: ParserHostTable*, error: u8**, specialize: 
                 }
                 _ => {}
             }
-            var resolved = lr_grammar_resolve(table.grammar, index, id);
-            if resolved {} else {
+            if !lr_grammar_resolve(table.grammar, index, id) {
                 message = parser_presentation_text(table, ParserFormatKind.Missing, index, 0);
                 failed = true;
                 break;
@@ -100,17 +97,14 @@ export fn parser_table_finish(table: ParserHostTable*, error: u8**, specialize: 
             index = index + 1;
         }
     }
-    if failed {} else {
+    if !failed {
         if table.trace {
             parser_trace_table(table, ParserFormatKind.Grammar);
         }
-        var ok = parser_table_build(table, specialize);
-        if ok {
+        if parser_table_build(table, specialize) {
             message = parser_presentation_text(table, ParserFormatKind.Conflict, 0, 0);
             failed = message == null;
-            if failed {} else {
-                failed = message[0] != 0;
-            }
+            failed ||= message[0] != 0;
         } else {
             message = parser_copy_text(table.error);
             failed = true;
@@ -135,9 +129,7 @@ export fn parser_table_finish(table: ParserHostTable*, error: u8**, specialize: 
 export fn parser_table_create(root: void*, userdata: void*, presentation: ParserPresentation, error: u8**, mode: u32, specialize: bool): ParserHostTable* {
     var table = parser_table_open_host(root, userdata, presentation, mode);
     var present = table != null;
-    if present {
-        present = table.match_kind != null;
-    }
+    present &&= table.match_kind != null;
     if present {
         table.trace = entity_member_index(table.match_kind, "parser.trace") != ParserNoIndex();
     }

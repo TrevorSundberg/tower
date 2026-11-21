@@ -109,8 +109,7 @@ fn ide_parser_create(source: u8*, bytes: usize, mode: u32): u32 {
         return 0;
     }
     var state = ide_state();
-    var full = host_handles_count(&state.handles, 0) >= 32;
-    if full {
+    if host_handles_count(&state.handles, 0) >= 32 {
         ide_error("Too many open parser sessions");
         return 0;
     }
@@ -159,8 +158,7 @@ export fn tw_create_bedrock(source: u8*, bytes: usize): u32 {
 export fn tw_destroy(handle: u32): void {
     var state = ide_state();
     var session = bits(IdeParser*, host_handles_take(&state.handles, 0, handle));
-    var missing = session == null;
-    if missing {
+    if session == null {
         return;
     }
     syntax_destroy(session.syntax);
@@ -173,8 +171,7 @@ export fn tw_reset(handle: u32, source: u8*, bytes: usize): i32 {
         return 0;
     }
     var session = ide_parser(handle);
-    var missing = session == null;
-    if missing {
+    if session == null {
         ide_error("Invalid session handle");
         return 0;
     }
@@ -183,8 +180,7 @@ export fn tw_reset(handle: u32, source: u8*, bytes: usize): i32 {
     free(copy);
     session.response.length = 0;
     var error = syntax_get_error(session.syntax);
-    var failed = error[0] != 0;
-    if failed {
+    if error[0] != 0 {
         ide_error(error);
         return 0;
     }
@@ -193,8 +189,7 @@ export fn tw_reset(handle: u32, source: u8*, bytes: usize): i32 {
 
 export fn tw_inspect(handle: u32): u8* {
     var session = ide_parser(handle);
-    var missing = session == null;
-    if missing {
+    if session == null {
         return "{\"status\":\"error\",\"error\":\"Invalid session handle\"}";
     }
     var out = &session.response;
@@ -251,8 +246,7 @@ fn ide_spans(out: ByteBuffer*, spans: FormatSpan*, count: usize): void {
 
 export fn tw_format(handle: u32): u8* {
     var session = ide_parser(handle);
-    var missing = session == null;
-    if missing {
+    if session == null {
         return "{\"error\":\"Invalid session handle\"}";
     }
     var out = &session.response;
@@ -263,8 +257,7 @@ export fn tw_format(handle: u32): u8* {
     }
     var formatted: IdeForeignText;
     `cpp_name(TowerText syntax_format(SyntaxSession*))`(&formatted, session.syntax);
-    var failed = ide_foreign_size(&formatted.error) != 0;
-    if failed {
+    if ide_foreign_size(&formatted.error) != 0 {
         ide_text(out, "\"error\":");
         ide_foreign_quote(out, &formatted.error);
     }

@@ -13,8 +13,7 @@ fn module_test_parse(environment: ModuleEnvironment*, source: u8*, count: usize,
     var session = syntax_create(source, module);
     loop {
         var node = syntax_next(session);
-        var done = node == null;
-        if done {
+        if node == null {
             break;
         }
         entity_release(node);
@@ -140,8 +139,7 @@ export fn frontend_modules_tests(): usize {
     }
     vector_dispose(u8, &path);
     frontend_modules_destroy(environment);
-    var prior_failure = result != 0;
-    if prior_failure {
+    if result != 0 {
         return result;
     }
     return module_session_tests();
@@ -158,8 +156,7 @@ fn module_session_step(session: void*): bool {
 
 fn module_session_check(ok: bool, code: usize, result: usize*): void {
     if !ok {
-        var first = *result == 0;
-        if first {
+        if *result == 0 {
             *result = code;
         }
     }

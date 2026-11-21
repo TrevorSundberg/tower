@@ -246,8 +246,7 @@ fn table_owner_failure_tests(): void {
         }
         tower_test_buffer_fail_after(frontend_world_unlimited());
         if present {
-            var retry = table.grammar != null;
-            if retry {
+            if table.grammar != null {
                 table_owner_check(parser_table_build(table, true), 51);
                 var conflict: LRConflict;
                 var ok = lr_runtime_conflict(table.runtime, &conflict) == false;

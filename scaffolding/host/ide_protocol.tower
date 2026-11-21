@@ -20,16 +20,13 @@ export fn tw_free(pointer: u8*): void {
 }
 
 export fn host_source_error(source: u8*, count: usize): u8* {
-    var large = count > 8388608;
-    if large {
+    if count > 8388608 {
         return "Compilation source limit is 8 MiB";
     }
-    var missing = source == null;
-    if missing {
+    if source == null {
         return "Source must be valid UTF-8 without NUL bytes";
     }
-    var valid = tower_utf8_validate(source, count, 1) != 0;
-    if valid {
+    if tower_utf8_validate(source, count, 1) != 0 {
         return "";
     }
     return "Source must be valid UTF-8 without NUL bytes";
@@ -49,8 +46,7 @@ export fn host_execution_json(out: ByteBuffer*, error: u8*, error_count: usize, 
     if done {
         status = "done";
     }
-    var failed = error_count != 0;
-    if failed {
+    if error_count != 0 {
         status = "error";
     }
     var ok = host_protocol_text(out, "{\"status\":\"");
@@ -67,8 +63,7 @@ export fn host_execution_json(out: ByteBuffer*, error: u8*, error_count: usize, 
         if !ok {
             break;
         }
-        var comma = i != 0;
-        if comma {
+        if i != 0 {
             ok = bytes_push(out, 44);
         }
         if ok {

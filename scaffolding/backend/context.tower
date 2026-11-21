@@ -71,23 +71,20 @@ struct Backend {
 }
 
 fn backend_fail(b: Backend*, text: u8*): void {
-    var first = b.error.length == 0;
-    if first {
+    if b.error.length == 0 {
         backend_text(&b.error, text);
         b.error_offset = b.source_offset;
     }
 }
 
 fn backend_require(b: Backend*, ok: bool): void {
-    var failed = !ok;
-    if failed {
+    if !ok {
         backend_fail(b, "Unable to allocate backend storage");
     }
 }
 
 fn backend_name(n: FoundationNode*): u8* {
-    var absent = n.name.data == null;
-    if absent {
+    if n.name.data == null {
         return "";
     }
     return n.name.data;
@@ -107,12 +104,10 @@ fn backend_associate(values: vector(BackendAssociation)*, entity: void*, value: 
 fn backend_find(values: vector(BackendAssociation)*, entity: void*): void* {
     var i: usize = 0;
     loop {
-        var done = i == values.length;
-        if done {
+        if i == values.length {
             return null;
         }
-        var found = values.data[i].entity == entity;
-        if found {
+        if values.data[i].entity == entity {
             return values.data[i].value;
         }
         i++;
@@ -120,8 +115,7 @@ fn backend_find(values: vector(BackendAssociation)*, entity: void*): void* {
 }
 
 export fn backend_error(b: Backend*): u8* {
-    var empty = b.error.data == null;
-    if empty {
+    if b.error.data == null {
         return "";
     }
     return b.error.data;
@@ -144,16 +138,14 @@ export fn backend_optimized(b: Backend*): u8* {
 }
 
 export fn backend_bytes(b: Backend*): u8* {
-    var present = b.object != null;
-    if present {
+    if b.object != null {
         return LLVMGetBufferStart(b.object);
     }
     return null;
 }
 
 export fn backend_size(b: Backend*): usize {
-    var present = b.object != null;
-    if present {
+    if b.object != null {
         return LLVMGetBufferSize(b.object);
     }
     return 0;
@@ -215,8 +207,7 @@ export fn backend_function_name(b: Backend*, index: usize): u8* {
     // O2 may erase unused LLVM declarations. Keep result names independently
     // of LLVM value lifetimes, while Foundation entities retain source spelling.
     var name = b.symbols.data[index];
-    var empty = name == null;
-    if empty {
+    if name == null {
         return "";
     }
     return name;

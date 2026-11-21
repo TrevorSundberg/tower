@@ -110,25 +110,20 @@ struct SemanticContext {
 }
 
 fn sem_editor_contains(c: SemanticContext*, n: void*): bool {
-    var editor_condition1 = c.editor == null;
-    if editor_condition1 {
+    if c.editor == null {
         return false;
     }
-    var editor_condition2 = n == null;
-    if editor_condition2 {
+    if n == null {
         return false;
     }
-    var editor_condition3 = sem_source_base(c, n) != 0;
-    if editor_condition3 {
+    if sem_source_base(c, n) != 0 {
         return false;
     }
     var span = sem_match(n);
-    var editor_condition4 = span == null;
-    if editor_condition4 {
+    if span == null {
         return false;
     }
-    var editor_condition5 = span.start > c.editor.offset;
-    if editor_condition5 {
+    if span.start > c.editor.offset {
         return false;
     }
     var end = span.start + span.length;
@@ -142,12 +137,10 @@ fn sem_editor_capture(c: SemanticContext*, n: void*, kind: u32, receiver: Founda
         return false;
     }
     var span = sem_match(n);
-    var editor_condition6 = span.start != c.editor.offset;
-    if editor_condition6 {
+    if span.start != c.editor.offset {
         return false;
     }
-    var editor_condition7 = span.length != c.editor.length;
-    if editor_condition7 {
+    if span.length != c.editor.length {
         return false;
     }
     if c.editor.found {
@@ -161,8 +154,7 @@ fn sem_editor_capture(c: SemanticContext*, n: void*, kind: u32, receiver: Founda
     c.editor.loops = c.loops;
     var parent = n;
     loop {
-        var done = parent == null;
-        if done {
+        if parent == null {
             break;
         }
         if sem_is(parent, "CoreBlock") {
@@ -170,8 +162,7 @@ fn sem_editor_capture(c: SemanticContext*, n: void*, kind: u32, receiver: Founda
         }
         parent = sem_parent(parent);
     }
-    var editor_condition8 = receiver != null;
-    if editor_condition8 {
+    if receiver != null {
         sem_set_type(&c.editor.receiver, receiver);
     }
     sem_fail(c, n, "Editor resolution boundary");
@@ -212,8 +203,7 @@ extern fn abort(): void;
 // The component identity is supplied explicitly for reusable compiler contexts.
 // Its payload and ownership are the existing entity model, with no copied graph.
 export fn semantic_component_get(node: void*, type: void*): FoundationNode* {
-    var absent = node == null;
-    if absent {
+    if node == null {
         return null;
     }
     return bits(FoundationNode*, entity_component_data(entity_component_get(node, type)));
@@ -229,8 +219,7 @@ export fn semantic_component_attach(node: void*, type: void*, kind: u32): Founda
     }
     var lifecycle: usize = 0;
     lifecycle--;
-    var ok = entity_register(type, sizeof(FoundationNode), alignof(FoundationNode), lifecycle);
-    if !ok {
+    if !entity_register(type, sizeof(FoundationNode), alignof(FoundationNode), lifecycle) {
         return null;
     }
     value = bits(FoundationNode*, entity_component_data(entity_component_add(node, type)));
@@ -263,16 +252,14 @@ export fn sem_create(parent: void*): void* {
 extern fn sem_match(node: void*): ParserMatchData*;
 
 export fn sem_child(node: void*, index: usize): void* {
-    var absent = node == null;
-    if absent {
+    if node == null {
         return null;
     }
     return entity_child_at(node, index);
 }
 
 export fn sem_child_count(node: void*): usize {
-    var absent = node == null;
-    if absent {
+    if node == null {
         return 0;
     }
     return entity_child_count(node);
@@ -283,8 +270,7 @@ export fn sem_parent(node: void*): void* {
 }
 
 export fn sem_member(node: void*, name: u8*): void* {
-    var absent = node == null;
-    if absent {
+    if node == null {
         return null;
     }
     return entity_child_at(node, entity_member_index(node, name));

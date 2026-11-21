@@ -3,8 +3,7 @@ import .library.entities;
 import entity_require;
 
 fn compiler_component_get(node: Entity*, type: Entity*): void* {
-    var missing = node == null;
-    if missing {
+    if node == null {
         return null;
     }
     var component = entity_component_get(node, type);
@@ -98,8 +97,7 @@ export fn generic_error(context: GenericContext*): u8* {
 
 export fn generic_origin(context: GenericContext*, node: Entity*): Entity* {
     var data = compiler_component_get(node, context.origin_type);
-    var present = data != null;
-    if present {
+    if data != null {
         var origin = bits(GenericOrigin*, data);
         return origin.use;
     }
@@ -108,8 +106,7 @@ export fn generic_origin(context: GenericContext*, node: Entity*): Entity* {
 
 export fn generic_definition(context: GenericContext*, node: Entity*): Entity* {
     var data = compiler_component_get(node, context.origin_type);
-    var present = data != null;
-    if present {
+    if data != null {
         var origin = bits(GenericOrigin*, data);
         return origin.definition;
     }

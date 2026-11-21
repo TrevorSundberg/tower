@@ -8,8 +8,7 @@ import .library.vector;
 fn ide_consume(syntax: void*): void {
     for(var i: usize = 0; i < 1024; i++) {
         var root = syntax_next(syntax);
-        var end = root == null;
-        if end {
+        if root == null {
             break;
         }
         entity_release(root);
@@ -30,8 +29,7 @@ export fn tw_complete(source: u8*, bytes: usize, cursor: usize, mode: u32, files
     if bad {
         valid = false;
     }
-    var has_files = count != 0;
-    if has_files {
+    if count != 0 {
         bad = files == null;
         if bad {
             valid = false;
@@ -44,8 +42,7 @@ export fn tw_complete(source: u8*, bytes: usize, cursor: usize, mode: u32, files
     if !valid {
         return "{\"error\":\"Invalid completion request\"}";
     }
-    var inside = cursor < bytes;
-    if inside {
+    if cursor < bytes {
         var prefix = source[cursor] &192;
         bad = prefix == 128;
         if bad {
@@ -76,8 +73,7 @@ export fn tw_complete(source: u8*, bytes: usize, cursor: usize, mode: u32, files
     var size = ide_foreign_count(&listing, sizeof(IdeForeignHighlight));
     var spans = alloc(IdeCompletionSpan, size);
     var allocated = spans != null;
-    var empty = size == 0;
-    if empty {
+    if size == 0 {
         allocated = true;
     }
     ide_require(allocated);
@@ -91,8 +87,7 @@ export fn tw_complete(source: u8*, bytes: usize, cursor: usize, mode: u32, files
     ide_foreign_free(&listing);
     var query = completion_begin(source, bytes, cursor, spans, size);
     free(spans);
-    var missing = query == null;
-    if missing {
+    if query == null {
         syntax_destroy(original);
         return "{\"error\":\"Cannot allocate completion query\"}";
     }

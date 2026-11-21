@@ -4,13 +4,11 @@ import tower;
 // Decode one Unicode scalar; invalid/truncated input returns 0 and clears value.
 export fn tower_utf8_decode(data: u8*, size: usize, value: u32*): usize {
     *value = 0;
-    var empty = size == 0;
-    if empty {
+    if size == 0 {
         return 0;
     }
     var first = convert(u32, data[0]);
-    var ascii = first < 128;
-    if ascii {
+    if first < 128 {
         *value = first;
         return 1;
     }
@@ -25,14 +23,12 @@ export fn tower_utf8_decode(data: u8*, size: usize, value: u32*): usize {
     if invalid_lead {
         return 0;
     }
-    var two = first <= 223;
-    if two {
+    if first <= 223 {
         count = 2;
         minimum = 128;
         scalar = first & 31;
     } else {
-        var three = first <= 239;
-        if three {
+        if first <= 239 {
             count = 3;
             minimum = 2048;
             scalar = first & 15;
@@ -42,34 +38,28 @@ export fn tower_utf8_decode(data: u8*, size: usize, value: u32*): usize {
             scalar = first & 7;
         }
     }
-    var truncated = size < count;
-    if truncated {
+    if size < count {
         return 0;
     }
     var index: usize = 1;
     for(; index != count; index++) {
         var byte = convert(u32, data[index]);
         var prefix = byte &192;
-        var invalid = prefix != 128;
-        if invalid {
+        if prefix != 128 {
             return 0;
         }
         var payload = byte &63;
         scalar = scalar * 64;
         scalar = scalar | payload;
     }
-    var overlong = scalar < minimum;
-    if overlong {
+    if scalar < minimum {
         return 0;
     }
-    var too_large = scalar > 1114111;
-    if too_large {
+    if scalar > 1114111 {
         return 0;
     }
-    var low = scalar >= 55296;
-    if low {
-        var high = scalar <= 57343;
-        if high {
+    if scalar >= 55296 {
+        if scalar <= 57343 {
             return 0;
         }
     }
@@ -79,40 +69,32 @@ export fn tower_utf8_decode(data: u8*, size: usize, value: u32*): usize {
 
 // A null output queries size. Insufficient capacity or invalid scalars write nothing.
 export fn tower_utf8_encode(scalar: u32, output: u8*, capacity: usize): usize {
-    var low = scalar >= 55296;
-    if low {
-        var high = scalar <= 57343;
-        if high {
+    if scalar >= 55296 {
+        if scalar <= 57343 {
             return 0;
         }
     }
-    var too_large = scalar > 1114111;
-    if too_large {
+    if scalar > 1114111 {
         return 0;
     }
     var count: usize = 1;
     var prefix: u32 = 0;
-    var multiple = scalar > 127;
-    if multiple {
+    if scalar > 127 {
         count = 2;
         prefix = 192;
-        var three = scalar > 2047;
-        if three {
+        if scalar > 2047 {
             count = 3;
             prefix = 224;
-            var four = scalar > 65535;
-            if four {
+            if scalar > 65535 {
                 count = 4;
                 prefix = 240;
             }
         }
     }
-    var query = output == null;
-    if query {
+    if output == null {
         return count;
     }
-    var short_buffer = capacity < count;
-    if short_buffer {
+    if capacity < count {
         return 0;
     }
     var index = count -1;
@@ -134,27 +116,22 @@ export fn tower_utf8_validate(data: u8*, size: usize, reject_nul: u32): u32 {
     var index: usize = 0;
     var scalar: u32 = 0;
     loop {
-        var done = index == size;
-        if done {
+        if index == size {
             return 1;
         }
         var byte = data[index];
-        var nul = byte == 0;
-        if nul {
-            var reject = reject_nul != 0;
-            if reject {
+        if byte == 0 {
+            if reject_nul != 0 {
                 return 0;
             }
         }
-        var ascii = byte < 128;
-        if ascii {
+        if byte < 128 {
             index++;
         } else {
             var start = data + index;
             var remaining = size -index;
             var count = tower_utf8_decode(start, remaining, &scalar);
-            var invalid = count == 0;
-            if invalid {
+            if count == 0 {
                 return 0;
             }
             index = index + count;

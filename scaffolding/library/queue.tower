@@ -21,25 +21,21 @@ fn queue_init(T: type, value: queue(T)*): void {
 }
 
 fn queue_reserve(T: type, value: queue(T)*, needed: usize): bool {
-    var enough = needed <= value.capacity;
-    if enough {
+    if needed <= value.capacity {
         return true;
     }
     var size = sizeof(T);
-    var empty_type = size == 0;
-    if empty_type {
+    if size == 0 {
         return false;
     }
     var maximum: usize = 0;
     maximum--;
     var limit = maximum / size;
-    var impossible = needed > limit;
-    if impossible {
+    if needed > limit {
         return false;
     }
     var capacity = value.capacity *2;
-    var wrapped = capacity < value.capacity;
-    if wrapped {
+    if capacity < value.capacity {
         capacity = needed;
     }
     var small = capacity < 8;
@@ -50,13 +46,11 @@ fn queue_reserve(T: type, value: queue(T)*, needed: usize): bool {
     if small {
         capacity = needed;
     }
-    var large = capacity > limit;
-    if large {
+    if capacity > limit {
         capacity = needed;
     }
     var next = alloc(T, capacity);
-    var failed = next == null;
-    if failed {
+    if next == null {
         return false;
     }
     var i: usize = 0;
@@ -64,8 +58,7 @@ fn queue_reserve(T: type, value: queue(T)*, needed: usize): bool {
     for(; i != value.length; i++) {
         next[i] = value.data[at];
         at++;
-        var end = at == value.capacity;
-        if end {
+        if at == value.capacity {
             at = 0;
         }
     }
@@ -78,19 +71,16 @@ fn queue_reserve(T: type, value: queue(T)*, needed: usize): bool {
 
 fn queue_push(T: type, value: queue(T)*, element: T): bool {
     var needed = value.length + 1;
-    var overflow = needed == 0;
-    if overflow {
+    if needed == 0 {
         return false;
     }
-    var ok = queue_reserve(T, value, needed);
-    if !ok {
+    if !queue_reserve(T, value, needed) {
         return false;
     }
     // Avoid head + length overflowing even for a maximum-width capacity.
     var remaining = value.capacity -value.head;
     var at: usize = 0;
-    var wraps = value.length >= remaining;
-    if wraps {
+    if value.length >= remaining {
         at = value.length - remaining;
     } else {
         at = value.head + value.length;
@@ -107,8 +97,7 @@ fn queue_pop(T: type, value: queue(T)*, output: T*): bool {
     if empty {
         return false;
     }
-    var missing = output == null;
-    if missing {
+    if output == null {
         return false;
     }
     *output = value.data[value.head];
@@ -131,8 +120,7 @@ fn queue_dispose(T: type, value: queue(T)*): void {
 }
 
 fn queue_move(T: type, destination: queue(T)*, source: queue(T)*): void {
-    var same = destination == source;
-    if same {
+    if destination == source {
         return;
     }
     queue_dispose(T, destination);

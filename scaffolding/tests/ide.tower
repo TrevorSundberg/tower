@@ -17,12 +17,10 @@ import .library.bytes_interface;
 fn ide_test_same(a: u8*, b: u8*): bool {
     var i: usize = 0;
     loop {
-        var same = a[i] == b[i];
-        if !same {
+        if a[i] != b[i] {
             return false;
         }
-        var end = a[i] == 0;
-        if end {
+        if a[i] == 0 {
             return true;
         }
         i++;
@@ -34,20 +32,17 @@ fn ide_test_contains(text: u8*, part: u8*): bool {
     var n = ide_length(part);
     for(var i: usize = 0; i <= size; i++) {
         var remaining = size -i;
-        var short = remaining < n;
-        if short {
+        if remaining < n {
             break;
         }
         var j: usize = 0;
         for(; j < n; j++) {
             var at = i + j;
-            var same = text[at] == part[j];
-            if !same {
+            if text[at] != part[j] {
                 break;
             }
         }
-        var found = j == n;
-        if found {
+        if j == n {
             return true;
         }
     }
@@ -223,8 +218,7 @@ fn ide_test_execution(): u32 {
             return 35;
         }
         var roku = tw_exec_roku(graph, 0);
-        var narrow = width == 4;
-        if narrow {
+        if width == 4 {
             if !ide_test_contains(roku, "TowerRun()") {
                 return 36;
             }
@@ -363,8 +357,7 @@ fn ide_test_requests(): u32 {
         tw_exec_destroy(handle);
         var now = tw_live_nodes();
         var memory = tw_live_allocations();
-        var warm = i >= 2;
-        if warm {
+        if i >= 2 {
             var grew = now != nodes;
             if grew {
                 return 63;
@@ -386,18 +379,18 @@ fn ide_test_requests(): u32 {
     var allocations: usize = 0;
     while i < 16 {
         var handle = ide_test_create("print(42);");
-        if ide_test_consume(handle) {} else {
+        if !ide_test_consume(handle) {
             return 60;
         }
         tw_inspect(handle);
         tw_format(handle);
         tw_destroy(handle);
         var response = tw_complete("pri", 3, 3, 0, null, null, 0);
-        if ide_test_contains(response, "print") {} else {
+        if !ide_test_contains(response, "print") {
             return 61;
         }
         response = tw_complete("pri", 3, 4, 0, null, null, 0);
-        if ide_test_contains(response, "Invalid completion request") {} else {
+        if !ide_test_contains(response, "Invalid completion request") {
             return 62;
         }
         handle = ide_test_compile("print(42);", 4);
@@ -405,8 +398,7 @@ fn ide_test_requests(): u32 {
         tw_exec_destroy(handle);
         var now = tw_live_nodes();
         var memory = tw_live_allocations();
-        var warm = i >= 2;
-        if warm {
+        if i >= 2 {
             var grew = now != nodes;
             if grew {
                 return 63;

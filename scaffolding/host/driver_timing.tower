@@ -51,8 +51,7 @@ fn driver_timing_name(index: usize): u8* {
 
 export fn driver_timing_open(): DriverTiming* {
     var timing = alloc(DriverTiming, 1);
-    var valid = timing != null;
-    if valid {
+    if timing != null {
         fill(timing, 0, sizeof(DriverTiming));
         timing.start = driver_clock();
         timing.previous = timing.start;
@@ -61,8 +60,7 @@ export fn driver_timing_open(): DriverTiming* {
 }
 
 export fn driver_timing_value(timing: DriverTiming*, name: u8*, nanoseconds: u64): void {
-    var missing = timing == null;
-    if missing {
+    if timing == null {
         return;
     }
     for(var i: usize = 0; i < 11; i++) {
@@ -78,14 +76,12 @@ export fn driver_timing_mark(timing: DriverTiming*, enabled: bool, name: u8*): v
     if !enabled {
         return;
     }
-    var missing = timing == null;
-    if missing {
+    if timing == null {
         return;
     }
     var now = driver_clock();
     var elapsed: u64 = 0;
-    var ordered = now >= timing.previous;
-    if ordered {
+    if now >= timing.previous {
         elapsed = now - timing.previous;
     }
     driver_timing_value(timing, name, elapsed);
@@ -120,22 +116,18 @@ fn driver_timing_render(out: ByteBuffer*, timing: DriverTiming*): bool {
             }
         }
     }
-    if ok {
-        ok = driver_text(out, "}\n");
-    }
+    ok &&= driver_text(out, "}\n");
     return ok;
 }
 
 export fn driver_timing_close(timing: DriverTiming*, enabled: bool): void {
-    var missing = timing == null;
-    if missing {
+    if timing == null {
         return;
     }
     if enabled {
         var now = driver_clock();
         var elapsed: u64 = 0;
-        var ordered = now >= timing.start;
-        if ordered {
+        if now >= timing.start {
             elapsed = now - timing.start;
         }
         driver_timing_value(timing, "total", elapsed);

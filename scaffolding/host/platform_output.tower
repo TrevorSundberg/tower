@@ -5,10 +5,8 @@ import tower;
 export fn runtime_format_value(output: u8*, capacity: usize, kind: u32, value: u64, pointer_bytes: u32): usize {
     var buffer: u8[80];
     var length: usize = 0;
-    var boolean = kind == 2;
-    if boolean {
-        var truth = value != 0;
-        if truth {
+    if kind == 2 {
+        if value != 0 {
             copy(&buffer[0], "true\n", 5);
             length = 5;
         } else {
@@ -16,8 +14,7 @@ export fn runtime_format_value(output: u8*, capacity: usize, kind: u32, value: u
             length = 6;
         }
     } else {
-        var pointer = kind == 3;
-        if pointer {
+        if kind == 3 {
             var valid = pointer_bytes == 4;
             valid ||= pointer_bytes == 8;
             if !valid {
@@ -46,8 +43,7 @@ export fn runtime_format_value(output: u8*, capacity: usize, kind: u32, value: u
                 value = value & 4294967295;
                 negative = value >= 2147483648;
             } else {
-                var signed = kind == 6;
-                if signed {
+                if kind == 6 {
                     negative = value >= 9223372036854775808;
                 }
             }
@@ -81,8 +77,7 @@ export fn runtime_format_value(output: u8*, capacity: usize, kind: u32, value: u
         buffer[length] = 10;
         length++;
     }
-    var enough = capacity >= length;
-    if enough {
+    if capacity >= length {
         copy(output, &buffer[0], length);
         return length;
     }
@@ -100,19 +95,16 @@ export fn runtime_write_all(stream: u32, data: u8*, length: usize): bool {
     }
     var at: usize = 0;
     loop {
-        var done = at == length;
-        if done {
+        if at == length {
             return true;
         }
         var remaining = length -at;
         var written = platform_write(stream, &data[at], remaining);
-        var failed = written <= 0;
-        if failed {
+        if written <= 0 {
             return false;
         }
         var count = convert(u64, written);
-        var invalid = count > convert(u64, remaining);
-        if invalid {
+        if count > convert(u64, remaining) {
             return false;
         }
         at = at + convert(usize, count);
@@ -122,8 +114,7 @@ export fn runtime_write_all(stream: u32, data: u8*, length: usize): bool {
 export fn runtime_print_value(kind: u32, value: u64, pointer_bytes: u32): bool {
     var buffer: u8[80];
     var length = runtime_format_value(&buffer[0], 80, kind, value, pointer_bytes);
-    var invalid = length == 0;
-    if invalid {
+    if length == 0 {
         return false;
     }
     return runtime_write_all(1, &buffer[0], length);

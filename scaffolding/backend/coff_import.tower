@@ -41,8 +41,7 @@ fn coff_archive_header(data: u8*, name: u8*, name_size: usize, size: usize): voi
         digits[count] = convert(u8, digit);
         count++;
         size = size / 10;
-        var done = size == 0;
-        if done {
+        if size == 0 {
             break;
         }
     }

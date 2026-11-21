@@ -64,8 +64,7 @@ struct ParserRequest {
 }
 
 export fn parser_recognizer_destroy(request: ParserRequest*): void {
-    var missing = request == null;
-    if missing {
+    if request == null {
         return;
     }
     lr_completion_destroy(request.completion);
@@ -74,8 +73,7 @@ export fn parser_recognizer_destroy(request: ParserRequest*): void {
         parse_forest_destroy(request.forest);
     }
     lr_parser_destroy(request.control);
-    var retained = request.read_node_or_null != null;
-    if retained {
+    if request.read_node_or_null != null {
         entity_release(request.read_node_or_null);
     }
     vector_dispose(u8, &request.lookahead_error);
@@ -169,15 +167,10 @@ fn parser_request_advance(request: ParserRequest*, step: LRStep*, polling: bool)
     var error = request.lookahead_error.length != 0;
     var kind = lr_parser_step(request.control, request.has_lookahead, request.read_id,
     error, request.read_start, request.read_length, step);
-    var input = kind == convert(u32, ParserAction.NeedInput);
-    if input {
+    if kind == convert(u32, ParserAction.NeedInput) {
         var waiting = polling;
-        if waiting {
-            waiting = request.stream.kind == ParserInputService.Empty;
-        }
-        if waiting {
-            waiting = request.stream.buffered == false;
-        }
+        waiting &&= request.stream.kind == ParserInputService.Empty;
+        waiting &&= request.stream.buffered == false;
         if waiting {
             return kind;
         }
@@ -207,13 +200,11 @@ export fn parser_request_work(request: ParserRequest*, result: ParserRequestWork
 export fn parser_request_lookahead(request: ParserRequest*, result: ParserRequestLookahead*): void {
     result.runtime = null;
     result.state = lr_none();
-    var missing = request == null;
-    if missing {
+    if request == null {
         return;
     }
     var count = lr_parser_frame_count(request.control);
-    var empty = count == 0;
-    if empty {
+    if count == 0 {
         return;
     }
     var frame: LRFrame;
@@ -224,8 +215,7 @@ export fn parser_request_lookahead(request: ParserRequest*, result: ParserReques
 }
 
 export fn parser_recognizer_account_lookahead(request: ParserRequest*, checks: usize): void {
-    var present = request != null;
-    if present {
+    if request != null {
         request.work.actions = request.work.actions + checks;
     }
 }
@@ -233,8 +223,7 @@ export fn parser_recognizer_account_lookahead(request: ParserRequest*, checks: u
 export fn parser_recognizer_accepts(request: ParserRequest*, id: u32): bool {
     var context: ParserRequestLookahead;
     parser_request_lookahead(request, &context);
-    var missing = context.runtime == null;
-    if missing {
+    if context.runtime == null {
         return false;
     }
     parser_recognizer_account_lookahead(request, 1);
@@ -250,8 +239,7 @@ extern fn syntax_parser_diagnostic_read(source: void*, position: usize*, context
 
 export fn parser_table_completion(table: ParserHostTable*): LRCompletion* {
     var control = lr_parser_create(bits(LRRuntime*, table.runtime), true, false);
-    var absent = control == null;
-    if absent {
+    if control == null {
         return null;
     }
     var result = lr_completion_create(control);
@@ -265,22 +253,20 @@ fn parser_recognizer_create_mode(table: ParserHostTable*, stream: ParserStream*,
         return null;
     }
     var valid = table.built;
-    if valid {
-        valid = table.match_kind != null;
-    }
-    if valid {} else {
+    valid &&= table.match_kind != null;
+    if !valid {
         return null;
     }
     if prefix {
         valid = table.mode == convert(u32, ParserReadMode.Constructs);
-        if valid {} else {
+        if !valid {
             return null;
         }
     }
     var specialize = table.trace == false;
     var request = parser_request_create(bits(LRRuntime*, table.runtime), bits(void*, table), stream, prefix, specialize);
     missing = request == null;
-    if missing {} else {
+    if !missing {
         request.match_kind = table.match_kind;
     }
     return request;
@@ -310,8 +296,7 @@ fn parser_recognizer_advance(request: ParserRequest*, running: bool*, waiting: b
     var action = convert(ParserAction, kind);
     match action {
         ParserAction.Unexpected => {
-            var stream_error = request.lookahead_error.length != 0;
-            if stream_error {
+            if request.lookahead_error.length != 0 {
                 parser_request_fail(request, parser_state_text(&request.lookahead_error));
             } else {
                 var message = parser_presentation_text(request.table, ParserFormatKind.Unexpected, convert(usize, request.read_id), 0);
@@ -347,9 +332,7 @@ fn parser_recognizer_advance(request: ParserRequest*, running: bool*, waiting: b
         _ => {}
     }
     var shift = action == ParserAction.Shift;
-    if shift {} else {
-        shift = action == ParserAction.SequenceShift;
-    }
+    shift ||= action == ParserAction.SequenceShift;
     // Disabled tracing never constructs a formatter request or debug string.
     if request.table.trace {
         var rule = step.rule;
@@ -363,21 +346,19 @@ fn parser_recognizer_advance(request: ParserRequest*, running: bool*, waiting: b
     var grammar = bits(LRGrammar*, request.table.grammar);
     if shift {
         var label: u8* = null;
-        var needs_label = lr_tree_needs_label(request.read_node_or_null, request.match_kind);
-        if needs_label {
+        if lr_tree_needs_label(request.read_node_or_null, request.match_kind) {
             label = parser_presentation_text(request.table, ParserFormatKind.Scalar, convert(usize, step.id), 0);
             var present = label != null;
             parser_state_require(present);
         }
         var status = lr_tree_shift(request.control, request.forest, grammar, request.match_kind, &step, &request.read_node_or_null, label);
         tower_memory_free(bits(void*, label));
-        var attached = status == 2;
-        if attached {
+        if status == 2 {
             parser_request_fail(request, "Stream returned an attached node");
             return null;
         }
         var ok = status != 0;
-        if ok {} else {
+        if !ok {
             parser_request_fail(request, "Unable to allocate parser tree");
             return null;
         }
@@ -385,12 +366,11 @@ fn parser_recognizer_advance(request: ParserRequest*, running: bool*, waiting: b
     } else {
         var result: void* = null;
         var ok = lr_tree_reduce_kind(request.control, request.forest, grammar, request.match_kind, &step, &result);
-        if ok {} else {
+        if !ok {
             parser_request_fail(request, "Unable to allocate parser tree");
             return null;
         }
-        var ready = result != null;
-        if ready {
+        if result != null {
             request.complete = true;
             return result;
         }
@@ -413,8 +393,7 @@ export fn parser_recognizer_step(request: ParserRequest*, running: bool*): void*
 }
 
 export fn parser_diagnostic_destroy(result: ParserDiagnostic*): void {
-    var missing = result == null;
-    if missing {
+    if result == null {
         return;
     }
     var index: usize = 0;
@@ -449,8 +428,7 @@ export fn parser_recognizer_diagnostic(request: ParserRequest*, reader: ParserDi
     }
     loop {
         var need = frontend_diagnostic_next(probe);
-        var done = need == 0;
-        if done {
+        if need == 0 {
             break;
         }
         var state = frontend_diagnostic_state(probe);
@@ -471,8 +449,7 @@ export fn parser_recognizer_diagnostic(request: ParserRequest*, reader: ParserDi
                 }
                 ParserDiagnosticReader.Utf8 => {
                     var text = bits(ParserUtf8Stream*, source);
-                    var inside = position < text.source.length;
-                    if inside {
+                    if position < text.source.length {
                         var at = text.source.data + position;
                         var remaining = text.source.length -position;
                         var read = tower_utf8_decode(at, remaining, &id);
@@ -490,8 +467,7 @@ export fn parser_recognizer_diagnostic(request: ParserRequest*, reader: ParserDi
     result.complete = frontend_diagnostic_complete(probe);
     var index: usize = 0;
     var count = frontend_diagnostic_count(probe);
-    var ok = vector_reserve(SyntaxDiagnosticOption, &result.options, count);
-    if ok {} else {
+    if !vector_reserve(SyntaxDiagnosticOption, &result.options, count) {
         result.complete = false;
         return result;
     }

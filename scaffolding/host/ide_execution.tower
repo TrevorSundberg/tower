@@ -14,8 +14,7 @@ import .compiler.foundation_types;
 // Each execution owns its root, typed program indexes, cache and guest storage.
 // Destruction takes the handle first; a stale handle cannot reach freed state.
 fn ide_execution_close(session: IdeExecution*): void {
-    var present = session.fast != null;
-    if present {
+    if session.fast != null {
         fast_interpreter_dispose(session.fast);
     }
     interpreter_storage_dispose(&session.machine);
@@ -71,8 +70,7 @@ fn ide_execution_text(source: u8*, length: usize, width: u32, foundation: bool):
 fn ide_execution_publish(session: IdeExecution*): u32 {
     var state = ide_state();
     var handle = host_handles_insert(&state.handles, 1, bits(void*, session));
-    var failed = handle == 0;
-    if failed {
+    if handle == 0 {
         ide_execution_close(session);
         ide_error("Cannot allocate execution handle");
     } else {
@@ -83,8 +81,7 @@ fn ide_execution_publish(session: IdeExecution*): u32 {
 
 fn ide_execution_capacity(): bool {
     var state = ide_state();
-    var full = host_handles_count(&state.handles, 1) >= 8;
-    if full {
+    if host_handles_count(&state.handles, 1) >= 8 {
         ide_error("Too many execution sessions");
         return false;
     }
@@ -92,12 +89,10 @@ fn ide_execution_capacity(): bool {
 }
 
 fn ide_execution_fast(session: IdeExecution*): bool {
-    var started = session.machine.steps != 0;
-    if started {
+    if session.machine.steps != 0 {
         return false;
     }
-    var missing = session.fast == null;
-    if missing {
+    if session.fast == null {
         session.fast = fast_interpreter_create(&session.machine);
     }
     var ready = session.fast != null;
@@ -109,8 +104,7 @@ export fn tw_exec_create_target(source: u8*, bytes: usize, width: u32): u32 {
         return 0;
     }
     var valid = width == 4;
-    var wide = width == 8;
-    if wide {
+    if width == 8 {
         valid = true;
     }
     if !valid {
@@ -152,8 +146,7 @@ export fn tw_exec_create_files(sources: u8**, lengths: u32*, count: u32, width: 
         valid = false;
     }
     var allowed = width == 4;
-    var wide = width == 8;
-    if wide {
+    if width == 8 {
         allowed = true;
     }
     if !allowed {
@@ -201,16 +194,14 @@ export fn tw_exec_create_files(sources: u8**, lengths: u32*, count: u32, width: 
 export fn tw_exec_destroy(handle: u32): void {
     var state = ide_state();
     var session = bits(IdeExecution*, host_handles_take(&state.handles, 1, handle));
-    var exists = session != null;
-    if exists {
+    if session != null {
         ide_execution_close(session);
     }
 }
 
 export fn tw_exec_fast(handle: u32): i32 {
     var session = ide_execution(handle);
-    var missing = session == null;
-    if missing {
+    if session == null {
         return 0;
     }
     if ide_execution_fast(session) {
@@ -221,8 +212,7 @@ export fn tw_exec_fast(handle: u32): i32 {
 
 export fn tw_exec_memory(handle: u32): u8* {
     var session = ide_execution(handle);
-    var missing = session == null;
-    if missing {
+    if session == null {
         return null;
     }
     return session.machine.memory.data;
@@ -230,8 +220,7 @@ export fn tw_exec_memory(handle: u32): u8* {
 
 export fn tw_exec_memory_size(handle: u32): usize {
     var session = ide_execution(handle);
-    var missing = session == null;
-    if missing {
+    if session == null {
         return 0;
     }
     return session.machine.memory.length;
@@ -239,8 +228,7 @@ export fn tw_exec_memory_size(handle: u32): usize {
 
 export fn tw_exec_allocate(handle: u32, size: u32): u32 {
     var session = ide_execution(handle);
-    var missing = session == null;
-    if missing {
+    if session == null {
         return 0;
     }
     return convert(u32, interpreter_allocate(&session.machine, convert(usize, size)));
@@ -248,20 +236,17 @@ export fn tw_exec_allocate(handle: u32, size: u32): u32 {
 
 export fn tw_exec_deallocate(handle: u32, address: u32): void {
     var session = ide_execution(handle);
-    var exists = session != null;
-    if exists {
+    if session != null {
         interpreter_deallocate(&session.machine, convert(u64, address));
     }
 }
 
 export fn tw_exec_fail(handle: u32, error: u8*, length: usize): void {
     var session = ide_execution(handle);
-    var missing = session == null;
-    if missing {
+    if session == null {
         return;
     }
-    var empty = session.error.length == 0;
-    if empty {
+    if session.error.length == 0 {
         ide_require(bytes_assign_text(&session.error, error, length));
         session.machine.failed = true;
         session.machine.error_offset = 0;
@@ -270,13 +255,11 @@ export fn tw_exec_fail(handle: u32, error: u8*, length: usize): void {
 
 export fn tw_exec_output(handle: u32, data: u8*, length: usize): void {
     var session = ide_execution(handle);
-    var missing = session == null;
-    if missing {
+    if session == null {
         return;
     }
     var left = 65536 -session.machine.output_bytes;
-    var exceeded = length > left;
-    if exceeded {
+    if length > left {
         session.machine.output_truncated = true;
         return;
     }
@@ -286,12 +269,10 @@ export fn tw_exec_output(handle: u32, data: u8*, length: usize): void {
 
 export fn tw_exec_step(handle: u32, budget: u32): u8* {
     var session = ide_execution(handle);
-    var missing = session == null;
-    if missing {
+    if session == null {
         return "{\"status\":\"error\",\"error\":\"Invalid execution handle\"}";
     }
-    var capped = budget > 100000;
-    if capped {
+    if budget > 100000 {
         budget = 100000;
     }
     session.machine.failed = session.error.length != 0;
@@ -377,8 +358,7 @@ export fn im_has_foreign(machine: IMState*): bool {
 
 export fn im_fail(machine: IMState*, text: u8*, offset: usize): void {
     var session = bits(IdeExecution*, machine);
-    var empty = session.error.length == 0;
-    if empty {
+    if session.error.length == 0 {
         ide_assign(&session.error, text);
         machine.failed = true;
         machine.error_offset = offset;

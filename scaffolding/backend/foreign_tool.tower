@@ -22,35 +22,29 @@ extern fn puts(text: u8*): i32;
 fn foreign_expand_source(profile: u32, source: u8*, length: usize, out: vector(u8)*, wraps: vector(u8)*): bool {
     var i: usize = 0;
     loop {
-        var foreign_condition1007 = i == length;
-        if foreign_condition1007 {
+        if i == length {
             break;
         }
         var byte = source[i];
         // Preserve strings/comments verbatim, including backticks inside them.
         var quoted = byte == 34;
-        var foreign_condition1008 = byte == 39;
-        if foreign_condition1008 {
+        if byte == 39 {
             quoted = true;
         }
         if quoted {
             var start = i;
             i++;
             loop {
-                var foreign_condition1009 = i == length;
-                if foreign_condition1009 {
+                if i == length {
                     break;
                 }
                 var next = source[i];
                 i++;
-                var foreign_condition1010 = next == byte;
-                if foreign_condition1010 {
+                if next == byte {
                     break;
                 }
-                var foreign_condition1011 = next == 92;
-                if foreign_condition1011 {
-                    var foreign_condition1012 = i < length;
-                    if foreign_condition1012 {
+                if next == 92 {
+                    if i < length {
                         i++;
                     }
                 }
@@ -59,11 +53,9 @@ fn foreign_expand_source(profile: u32, source: u8*, length: usize, out: vector(u
             backend_text_append(out, &source[start], count);
             continue;
         }
-        var foreign_condition1013 = byte == 47;
-        if foreign_condition1013 {
+        if byte == 47 {
             var next = i + 1;
-            var foreign_condition1014 = next < length;
-            if foreign_condition1014 {
+            if next < length {
                 var line = source[next] == 47;
                 var block = source[next] == 42;
                 var comment = line;
@@ -74,24 +66,19 @@ fn foreign_expand_source(profile: u32, source: u8*, length: usize, out: vector(u
                     var start = i;
                     i = i + 2;
                     loop {
-                        var foreign_condition1015 = i == length;
-                        if foreign_condition1015 {
+                        if i == length {
                             break;
                         }
                         if line {
-                            var foreign_condition1016 = source[i] == 10;
-                            if foreign_condition1016 {
+                            if source[i] == 10 {
                                 break;
                             }
                         }
                         if block {
-                            var foreign_condition1017 = source[i] == 42;
-                            if foreign_condition1017 {
+                            if source[i] == 42 {
                                 next = i + 1;
-                                var foreign_condition1018 = next < length;
-                                if foreign_condition1018 {
-                                    var foreign_condition1019 = source[next] == 47;
-                                    if foreign_condition1019 {
+                                if next < length {
+                                    if source[next] == 47 {
                                         i = i + 2;
                                         break;
                                     }
@@ -106,27 +93,22 @@ fn foreign_expand_source(profile: u32, source: u8*, length: usize, out: vector(u
                 }
             }
         }
-        var foreign_condition1020 = byte == 96;
-        if foreign_condition1020 {
+        if byte == 96 {
             var start = i;
             i++;
             var begin = i;
             loop {
-                var foreign_condition1021 = i == length;
-                if foreign_condition1021 {
+                if i == length {
                     puts("Unterminated quoted Foundation name");
                     return false;
                 }
-                var foreign_condition1022 = source[i] == 96;
-                if foreign_condition1022 {
+                if source[i] == 96 {
                     break;
                 }
-                var foreign_condition1023 = source[i] == 92;
-                if foreign_condition1023 {
+                if source[i] == 92 {
                     i++;
                 }
-                var foreign_condition1024 = i == length;
-                if foreign_condition1024 {
+                if i == length {
                     return false;
                 }
                 i++;
@@ -140,8 +122,7 @@ fn foreign_expand_source(profile: u32, source: u8*, length: usize, out: vector(u
             if macro {
                 var result = foreign_symbol(profile, name);
                 var error = foreign_name_error(result);
-                var foreign_condition1025 = error[0] != 0;
-                if foreign_condition1025 {
+                if error[0] != 0 {
                     puts(name);
                     puts(error);
                     foreign_name_close(result);
@@ -174,20 +155,17 @@ fn foreign_expand_source(profile: u32, source: u8*, length: usize, out: vector(u
 }
 
 export fn main(argc: i32, argv: u8**): i32 {
-    var foreign_condition1026 = argc != 4;
-    if foreign_condition1026 {
+    if argc != 4 {
         puts("tower-foreign target-triple input.tower output.tower");
         return 2;
     }
     var profile = foreign_profile_for_target(argv[1]);
-    var foreign_condition1027 = profile == 0;
-    if foreign_condition1027 {
+    if profile == 0 {
         puts("Unsupported foreign target profile");
         return 2;
     }
     var input = fopen(argv[2], "rb");
-    var foreign_condition1028 = input == null;
-    if foreign_condition1028 {
+    if input == null {
         puts("Cannot open foreign source");
         return 1;
     }
@@ -196,8 +174,7 @@ export fn main(argc: i32, argv: u8**): i32 {
     var buffer: u8[4096];
     loop {
         var count = fread(&buffer[0], 1, 4096, input);
-        var foreign_condition1029 = count == 0;
-        if foreign_condition1029 {
+        if count == 0 {
             break;
         }
         backend_text_append(&source, &buffer[0], count);
@@ -215,16 +192,14 @@ export fn main(argc: i32, argv: u8**): i32 {
     var ok = foreign_expand_source(profile, source.data, source.length, &expanded, &wraps);
     if ok {
         var output = fopen(argv[3], "wb");
-        var foreign_condition1030 = output == null;
-        if foreign_condition1030 {
+        if output == null {
             ok = false;
         }
         else {
             var written = fwrite(expanded.data, 1, expanded.length, output);
             ok = written == expanded.length;
             var status = fclose(output);
-            var foreign_condition1031 = status != 0;
-            if foreign_condition1031 {
+            if status != 0 {
                 ok = false;
             }
         }
@@ -235,16 +210,14 @@ export fn main(argc: i32, argv: u8**): i32 {
         backend_text(&path, argv[3]);
         backend_text(&path, ".wrap.rsp");
         var output = fopen(path.data, "wb");
-        var foreign_condition3001 = output == null;
-        if foreign_condition3001 {
+        if output == null {
             ok = false;
         }
         else {
             var written = fwrite(wraps.data, 1, wraps.length, output);
             ok = written == wraps.length;
             var status = fclose(output);
-            var foreign_condition3002 = status != 0;
-            if foreign_condition3002 {
+            if status != 0 {
                 ok = false;
             }
         }

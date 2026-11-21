@@ -90,8 +90,7 @@ export fn driver_report(error: u8*, offset: usize, text: u8*, length: usize, sou
     var column: usize = 1;
     driver_source_position(text, length, offset, &line, &column);
     var file = frontend_modules_location(modules, offset, &line, &column);
-    var empty_file = file[0] == 0;
-    if empty_file {
+    if file[0] == 0 {
         file = source;
     }
     var out: ByteBuffer;

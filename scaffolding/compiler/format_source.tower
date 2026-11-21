@@ -12,13 +12,11 @@ import .library.vector;
 fn format_comments_ordered(comments: FormatComment*, count: usize): bool {
     var i: usize = 1;
     loop {
-        var done = i >= count;
-        if done {
+        if i >= count {
             return true;
         }
         var previous = i -1;
-        var backwards = comments[previous].start > comments[i].start;
-        if backwards {
+        if comments[previous].start > comments[i].start {
             return false;
         }
         i++;
@@ -29,15 +27,13 @@ fn format_comment_bound(comments: FormatComment*, count: usize, start: usize): u
     var low: usize = 0;
     var high = count;
     loop {
-        var done = low == high;
-        if done {
+        if low == high {
             return low;
         }
         var middle = high -low;
         middle = middle / 2;
         middle = low + middle;
-        var before = comments[middle].start < start;
-        if before {
+        if comments[middle].start < start {
             low = middle + 1;
         }
         else {
@@ -112,8 +108,7 @@ fn format_operator_leaf(f: FormatEngine*, entity: void*, source: u8*): bool {
 fn format_token_push(f: FormatEngine*, tokens: vector(FormatToken)*, start: usize, end: usize,
 comment: bool, pointer: bool, unary: bool, call: bool): void {
     var needed = tokens.length + 1;
-    var ok = vector_reserve(FormatToken, tokens, needed);
-    if ok {
+    if vector_reserve(FormatToken, tokens, needed) {
         var t = &tokens.data[tokens.length];
         t.start = start;
         t.end = end;
@@ -261,13 +256,11 @@ fn format_sort(tokens: vector(FormatToken)*): void {
     // Parser leaves are already ordered in the usual no-comment case.
     var next: usize = 1;
     loop {
-        var finished = next >= tokens.length;
-        if finished {
+        if next >= tokens.length {
             return;
         }
         var previous = next -1;
-        var unordered = tokens.data[previous].start > tokens.data[next].start;
-        if unordered {
+        if tokens.data[previous].start > tokens.data[next].start {
             break;
         }
         next++;
@@ -324,15 +317,13 @@ comments: FormatComment*, comment_count: usize, ordered: bool): void {
         }
         var comment = &comments[i];
         if ordered {
-            var beyond = comment.start > end;
-            if beyond {
+            if comment.start > end {
                 break;
             }
         }
         var after = comment.start >= from;
         var before = comment.end <= end;
-        var include = format_and(after, before);
-        if include {
+        if format_and(after, before) {
             format_token_push(f, &tokens, comment.start, comment.end, true, false, false, false);
         }
         i++;
@@ -361,8 +352,7 @@ comments: FormatComment*, comment_count: usize, ordered: bool): void {
         var last_close = format_token_is(source, &previous, "}");
         var close_empty = format_and(close, last_open);
         var break_line = false;
-        var last_present = previous.end != previous.start;
-        if last_present {
+        if previous.end != previous.start {
             if !close_empty {
                 var semicolon = format_token_is(source, &previous, ";");
                 if parentheses != 0 {
@@ -374,8 +364,7 @@ comments: FormatComment*, comment_count: usize, ordered: bool): void {
                     }
                 }
                 var after_close = last_close;
-                var condition44 = format_token_is(source, entry, ";");
-                if condition44 {
+                if format_token_is(source, entry, ";") {
                     after_close = false;
                 }
                 if format_token_is(source, entry, "else") {
@@ -413,8 +402,7 @@ comments: FormatComment*, comment_count: usize, ordered: bool): void {
         else {
             if !close_empty {
                 var tight = false;
-                var condition48 = format_token_is(source, entry, ";");
-                if condition48 {
+                if format_token_is(source, entry, ";") {
                     tight = true;
                 }
                 if format_token_is(source, entry, ",") {
@@ -459,8 +447,7 @@ comments: FormatComment*, comment_count: usize, ordered: bool): void {
                 if affix {
                     var left = format_symbolic(source, previous.start, previous.end);
                     var right = format_symbolic(source, entry.start, entry.end);
-                    var adjacent = format_and(left, right);
-                    if !adjacent {
+                    if !format_and(left, right) {
                         tight = true;
                     }
                 }
@@ -492,8 +479,7 @@ comments: FormatComment*, comment_count: usize, ordered: bool): void {
         format_write(f, &source[entry.start], length);
         format_span(f, begin, entry.start);
         if !entry.comment {
-            var opening = format_token_is(source, entry, "{");
-            if opening {
+            if format_token_is(source, entry, "{") {
                 f.result.depth++;
             }
             if format_token_is(source, entry, "(") {
@@ -546,22 +532,19 @@ comments: FormatComment*, comment_count: usize, syntax: void*, foundation: void*
             }
             var comment = &comments[j];
             if ordered {
-                var beyond = comment.start >= first;
-                if beyond {
+                if comment.start >= first {
                     break;
                 }
             }
             var after = comment.start >= previous_end;
             var before = comment.start < first;
-            var include = format_and(after, before);
-            if include {
+            if format_and(after, before) {
                 first = comment.start;
             }
             j++;
         }
         var declaration = format_source_declaration(f, root);
-        var separate = format_or(previous_declaration, declaration);
-        if separate {
+        if format_or(previous_declaration, declaration) {
             format_newline(f, true);
         }
         var lines = format_lines(source, previous_end, first);

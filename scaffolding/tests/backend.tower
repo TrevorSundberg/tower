@@ -12,8 +12,7 @@ import .backend.text;
 // upstream LLVM and shared entity/semantic objects as the production compiler.
 fn backend_test_target(triple: u8*, width: u32): bool {
     var b = backend_open(triple);
-    var absent = b == null;
-    if absent {
+    if b == null {
         return false;
     }
     var ok = b.error.length == 0;
@@ -24,8 +23,7 @@ fn backend_test_target(triple: u8*, width: u32): bool {
 
 export fn backend_tests(): i32 {
     var foreign_failures = foreign_tests();
-    var foreign_failed = foreign_failures != 0;
-    if foreign_failed {
+    if foreign_failures != 0 {
         return 90;
     }
     var ok = backend_test_target("wasm32-unknown-unknown", 4);
@@ -104,8 +102,7 @@ export fn backend_tests(): i32 {
         return 6;
     }
     b = backend_open("x86_64-unknown-linux-gnu");
-    var native = b.error.length == 0;
-    if native {
+    if b.error.length == 0 {
         type = LLVMFunctionType(b.i32, null, 0, 0);
         function = LLVMAddFunction(b.module, "custom_section", type);
         LLVMSetSection(function, ".tower.code");

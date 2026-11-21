@@ -33,24 +33,20 @@ fn ide_trace_hash(trace: SyntaxExpansion*, capacity: usize): usize {
 }
 
 fn ide_trace_find(index: IdeTraces*, trace: SyntaxExpansion*): usize {
-    var none = trace == null;
-    if none {
+    if trace == null {
         return ide_missing();
     }
-    var empty = index.slots.length == 0;
-    if empty {
+    if index.slots.length == 0 {
         return ide_missing();
     }
     var slot = ide_trace_hash(trace, index.slots.length);
     loop {
         var value = index.slots.data[slot];
-        var absent = value == 0;
-        if absent {
+        if value == 0 {
             return ide_missing();
         }
         value--;
-        var same = index.items.data[value] == trace;
-        if same {
+        if index.items.data[value] == trace {
             return value;
         }
         slot++;
@@ -61,11 +57,9 @@ fn ide_trace_find(index: IdeTraces*, trace: SyntaxExpansion*): usize {
 fn ide_trace_insert(index: IdeTraces*, trace: SyntaxExpansion*): void {
     var needed = index.items.length + 1;
     needed = needed * 2;
-    var grow = needed > index.slots.length;
-    if grow {
+    if needed > index.slots.length {
         var capacity = index.slots.length *2;
-        var small = capacity < 16;
-        if small {
+        if capacity < 16 {
             capacity = 16;
         }
         ide_require(vector_reserve(usize, &index.slots, capacity));
@@ -205,8 +199,7 @@ fn ide_tree(out: ByteBuffer*, root: void*): void {
 
 export fn tw_step(handle: u32): u8* {
     var session = ide_parser(handle);
-    var missing = session == null;
-    if missing {
+    if session == null {
         return "{\"status\":\"error\",\"error\":\"Invalid session handle\"}";
     }
     var before = syntax_get_revision(session.syntax);
@@ -214,16 +207,14 @@ export fn tw_step(handle: u32): u8* {
     var kind: u8* = "done";
     var found = root != null;
     if found {
-        var same = before == syntax_get_revision(session.syntax);
-        if same {
+        if before == syntax_get_revision(session.syntax) {
             kind = "statement";
         } else {
             kind = "declaration";
         }
     } else {
         var error = syntax_get_error(session.syntax);
-        var failed = error[0] != 0;
-        if failed {
+        if error[0] != 0 {
             kind = "error";
         }
     }

@@ -47,21 +47,18 @@ export fn `cpp_name(__wrap; static llvm::sys::MemoryBlock llvm::sys::Memory::all
     error.value = 0;
     error.category = `cpp_name(std::__2::error_category const& std::__2::generic_category() noexcept)`();
     var forbidden = flags != 50331648;
-    var nearby = near != null;
-    if nearby {
+    if near != null {
         forbidden = true;
     }
     if forbidden {
         error.value = 28;
         return;
     }
-    var empty = size == 0;
-    if empty {
+    if size == 0 {
         return;
     }
     out.address = bits(void*, alloc(u8, size));
-    var failed = out.address == null;
-    if failed {
+    if out.address == null {
         error.value = 48;
         return;
     }

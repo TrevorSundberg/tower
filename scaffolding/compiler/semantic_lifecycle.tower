@@ -17,8 +17,7 @@ import .library.work_graph;
 
 fn sem_track(c: SemanticContext*, data: u8*): void {
     var step1 = bits(void*, data);
-    var step2 = vector_push(void*, &c.allocations, step1);
-    sem_require(step2);
+    sem_require(vector_push(void*, &c.allocations, step1));
 }
 
 fn sem_context_init(c: SemanticContext*, program: SemanticProgram*): void {
@@ -53,8 +52,7 @@ fn sem_context_init(c: SemanticContext*, program: SemanticProgram*): void {
     c.scope = step13;
     for(var i: usize = 0; i < program.types.length; i++) {
         var n: void* = program.types.data[i];
-        var step16 = sem_get(n);
-        var step17 = sem_name(step16);
+        var step17 = sem_name(sem_get(n));
         sem_put(c, c.types, step17, n);
     }
 }
@@ -91,8 +89,7 @@ export fn semantic_initialize(program: SemanticProgram*, root: void*, width: u32
     sem_push(&program.functions, root);
     var scalar: u32 = 0;
     loop {
-        var step3 = scalar <= SUSize();
-        if !step3 {
+        if !(scalar <= SUSize()) {
             break;
         }
         if scalar == SStruct() {
@@ -154,8 +151,7 @@ export fn semantic_format_type(t: FoundationType*, output: vector(u8)*): void {
     var text: u8* = sem_type_name(&context, t);
     var count: usize = sem_length(text);
     var step5 = count + 1;
-    var step6 = vector_reserve(u8, output, step5);
-    sem_require(step6);
+    sem_require(vector_reserve(u8, output, step5));
     var step7 = count + 1;
     copy(output.data, text, step7);
     output.length = count;
@@ -169,8 +165,7 @@ export fn semantic_format_number(value: u64, t: FoundationType*, output: vector(
     var text: u8* = sem_number(&context, value, t);
     var count: usize = sem_length(text);
     var step4 = count + 1;
-    var step5 = vector_reserve(u8, output, step4);
-    sem_require(step5);
+    sem_require(vector_reserve(u8, output, step4));
     var step6 = count + 1;
     copy(output.data, text, step6);
     output.length = count;

@@ -21,8 +21,7 @@ export fn grammar_builder_finish(builder: GrammarBuilder*): void* {
     var root = builder.root;
     builder.root = null;
     if builder.failed {
-        var present = root != null;
-        if present {
+        if root != null {
             entity_release(root);
         }
         return null;

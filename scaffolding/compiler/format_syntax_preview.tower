@@ -27,8 +27,7 @@ fn format_preview_node(node: void*, kind: void*): SyntaxNode* {
 
 fn format_preview_location(f: FormatEngine*, node: SyntaxNode*): void {
     var absent = node.source == null;
-    var generated = node.start == ParserNoIndex();
-    if generated {
+    if node.start == ParserNoIndex() {
         absent = true;
     }
     if absent {
@@ -52,8 +51,7 @@ name_only: bool, syntax: void*, kind: void*): void {
     fill(&f, 0, sizeof(FormatEngine));
     f.result = result;
     var node = format_preview_node(entity, syntax);
-    var absent = node == null;
-    if absent {
+    if node == null {
         result.failed = true;
         return;
     }
@@ -65,8 +63,7 @@ name_only: bool, syntax: void*, kind: void*): void {
         fill(&part, 0, sizeof(FormatResult));
         var i: usize = 0;
         for(; i < node.items.length; i++) {
-            var separated = result.text.length != begin;
-            if separated {
+            if result.text.length != begin {
                 format_char(&f, 32);
             }
             // Reuse scratch capacity without retaining source-map output.
@@ -82,13 +79,11 @@ name_only: bool, syntax: void*, kind: void*): void {
                 break;
             }
             var length = result.text.length -begin;
-            var truncate = length > SyntaxPreviewLimit();
-            if truncate {
+            if length > SyntaxPreviewLimit() {
                 var end = begin + SyntaxPreviewLimit();
                 for(; end > begin; end--) {
                     var prefix = result.text.data[end] &192;
-                    var continuation = prefix == 128;
-                    if !continuation {
+                    if !(prefix == 128) {
                         break;
                     }
                 }
@@ -98,8 +93,7 @@ name_only: bool, syntax: void*, kind: void*): void {
             }
         }
         format_dispose(&part);
-        var empty = result.text.length == begin;
-        if empty {
+        if result.text.length == begin {
             format_text(&f, "<empty>");
         }
     }
@@ -121,8 +115,7 @@ export fn format_syntax_origin(result: FormatResult*, entity: void*, prefix: u8*
     fill(&f, 0, sizeof(FormatEngine));
     f.result = result;
     var node = format_preview_node(entity, syntax);
-    var absent = node == null;
-    if absent {
+    if node == null {
         result.failed = true;
         return;
     }
@@ -166,8 +159,7 @@ source_b: u8*, size_b: usize, syntax: void*, kind: void*, pending: vector(Format
     var x_syntax = format_preview_node(a, syntax);
     var y_syntax = format_preview_node(b, syntax);
     var grammar = x_syntax != null;
-    var other = y_syntax != null;
-    if other {
+    if y_syntax != null {
         grammar = true;
     }
     if grammar {
@@ -191,8 +183,7 @@ source_b: u8*, size_b: usize, syntax: void*, kind: void*, pending: vector(Format
     if !same {
         return false;
     }
-    var leaf = x.rule == ParserNoIndex();
-    if leaf {
+    if x.rule == ParserNoIndex() {
         var invalid = x.start > size_a;
         if invalid {
             return false;
@@ -217,12 +208,10 @@ source_b: u8*, size_b: usize, syntax: void*, kind: void*, pending: vector(Format
         }
     }
     var needed = pending.length + count;
-    var overflow = needed < pending.length;
-    if overflow {
+    if needed < pending.length {
         return false;
     }
-    var ok = vector_reserve(FormatTreePair, pending, needed);
-    if !ok {
+    if !vector_reserve(FormatTreePair, pending, needed) {
         return false;
     }
     // Reverse push preserves source order while avoiding host recursion.
@@ -247,8 +236,7 @@ source_b: u8*, size_b: usize, syntax: void*, kind: void*): bool {
     pair.right = b;
     var same = format_preview_pair(&pair, source_a, size_a, source_b, size_b, syntax, kind, &pending);
     while same {
-        var done = pending.length == 0;
-        if done {
+        if pending.length == 0 {
             break;
         }
         pending.length--;

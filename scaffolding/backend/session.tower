@@ -36,16 +36,14 @@ fn backend_json(out: vector(u8)*, text: u8*, length: usize): void {
     for(; i != length; i++) {
         var byte = text[i];
         var escape = byte == 34;
-        var slash = byte == 92;
-        if slash {
+        if byte == 92 {
             escape = true;
         }
         if escape {
             backend_text(out, "\\");
             backend_text_append(out, &text[i], 1);
         } else {
-            var control = byte < 32;
-            if control {
+            if byte < 32 {
                 backend_text(out, "\\u00");
                 var high = convert(usize, byte) / 16;
                 var low = convert(usize, byte) % 16;
@@ -94,8 +92,7 @@ export fn backend_session_reset(s: BackendSession*): void {
 }
 
 export fn backend_session_close(s: BackendSession*): void {
-    var absent = s == null;
-    if absent {
+    if s == null {
         return;
     }
     backend_session_reset(s);
@@ -106,8 +103,7 @@ export fn backend_session_close(s: BackendSession*): void {
 }
 
 export fn backend_session_set_target(s: BackendSession*, target: u8*): bool {
-    var absent = target == null;
-    if absent {
+    if target == null {
         return false;
     }
     var valid = backend_filename(target);
@@ -140,8 +136,7 @@ export fn backend_session_failure(s: BackendSession*, error: u8*, offset: usize)
 export fn backend_session_begin(s: BackendSession*, source: u8*, length: usize): u32 {
     backend_session_reset(s);
     var invalid = source == null;
-    var large = length > 8388608;
-    if large {
+    if length > 8388608 {
         invalid = true;
     }
     if invalid {
@@ -149,21 +144,18 @@ export fn backend_session_begin(s: BackendSession*, source: u8*, length: usize):
         return 0;
     }
     for(var i: usize = 0; i != length; i++) {
-        var zero = source[i] == 0;
-        if zero {
+        if source[i] == 0 {
             backend_session_failure(s, "Foundation source cannot contain NUL bytes", 0);
             return 0;
         }
     }
     s.times[0] = backend_session_clock();
     s.backend = backend_open(s.target.data);
-    var absent = s.backend == null;
-    if absent {
+    if s.backend == null {
         backend_session_failure(s, "Unable to allocate backend storage", 0);
         return 0;
     }
-    var failed = s.backend.error.length != 0;
-    if failed {
+    if s.backend.error.length != 0 {
         backend_session_failure(s, backend_error(s.backend), 0);
         return 0;
     }
@@ -207,8 +199,7 @@ export fn backend_session_after(s: BackendSession*): u8* {
 }
 
 export fn backend_session_disassembly(s: BackendSession*): u8* {
-    var present = s.decoder != null;
-    if present {
+    if s.decoder != null {
         return backend_disassembly_text(s.decoder);
     }
     return "";
@@ -228,8 +219,7 @@ fn backend_session_names(b: Backend*, out: vector(u8)*, functions: void**, count
             selected = n.external;
         }
         if selected {
-            var comma = !first;
-            if comma {
+            if !first {
                 backend_text(out, ",");
             }
             backend_json_text(out, backend_function_name(b, i));
@@ -244,12 +234,10 @@ fn backend_session_report(s: BackendSession*, functions: void**, count: usize): 
     out.length = 0;
     backend_text(out, "{\"status\":\"compiled\",\"format\":");
     var format: u8* = "elf";
-    var windows = backend_contains(s.target.data, "windows");
-    if windows {
+    if backend_contains(s.target.data, "windows") {
         format = "pe";
     }
-    var mac = backend_contains(s.target.data, "apple");
-    if mac {
+    if backend_contains(s.target.data, "apple") {
         format = "macho";
     }
     if s.backend.wasm {
@@ -400,8 +388,7 @@ export fn backend_session_compile(s: BackendSession*, root: void*, functions: vo
     if failed {
         return backend_session_failure(s, backend_error(s.backend), s.backend.error_offset);
     }
-    var executable = !s.object_only;
-    if executable {
+    if !s.object_only {
         ok = backend_link_plan(s.linker, s.target.data, functions, count, backend_bytes(s.backend), backend_size(s.backend), s.runtime, s.runtime_size);
         // Match the existing measurement boundary: argument/file preparation
         // precedes the upstream linker invocation. Wall time includes both.

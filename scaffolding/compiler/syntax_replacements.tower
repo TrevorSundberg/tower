@@ -84,14 +84,12 @@ fn replacement_reachable(state: ReplacementPlanState*): bool {
         if !state.allocated {
             return false;
         }
-        var empty = state.pending.length == 0;
-        if empty {
+        if state.pending.length == 0 {
             return true;
         }
         state.pending.length--;
         var index = state.pending.data[state.pending.length];
-        var visited = state.rules.data[index].reachable;
-        if visited {
+        if state.rules.data[index].reachable {
             continue;
         }
         state.rules.data[index].reachable = true;
@@ -114,8 +112,7 @@ fn replacement_reachable(state: ReplacementPlanState*): bool {
                     var target = replacement_find(state, term.text.data, term.text.length);
                     present = target != lr_none();
                     if present {
-                        var ok = replacement_queue(state, target);
-                        if !ok {
+                        if !replacement_queue(state, target) {
                             return false;
                         }
                     }
@@ -150,8 +147,7 @@ fn replacement_parents(state: ReplacementPlanState*): bool {
                     eligible &&= term.repetition == 0;
                     if eligible {
                         var target = replacement_find(state, term.text.data, term.text.length);
-                        var found = target != lr_none();
-                        if found {
+                        if target != lr_none() {
                             var parents = &state.rules.data[target].parents;
                             var count = parents.length;
                             var duplicate = count != 0;
@@ -202,8 +198,7 @@ fn replacement_excerpt(state: ReplacementPlanState*, source: vector(u8)*): void 
         }
     }
     loop {
-        var done = first == last;
-        if done {
+        if first == last {
             break;
         }
         var index = last -1;
@@ -213,20 +208,17 @@ fn replacement_excerpt(state: ReplacementPlanState*, source: vector(u8)*): void 
         }
         last = index;
     }
-    var empty = first == last;
-    if empty {
+    if first == last {
         replacement_text(state, "<empty>");
         return;
     }
     var end = first + 160;
-    var beyond = end > last;
-    if beyond {
+    if end > last {
         end = last;
     }
     for(; end != last; end--) {
         var byte = source.data[end] &192;
-        var continuation = byte == 128;
-        if !continuation {
+        if !(byte == 128) {
             break;
         }
     }
@@ -261,8 +253,7 @@ fn replacement_excerpt(state: ReplacementPlanState*, source: vector(u8)*): void 
             }
         }
     }
-    var truncated = end < last;
-    if truncated {
+    if end < last {
         replacement_text(state, "...");
     }
     replacement_text(state, "\"");
@@ -280,8 +271,7 @@ fn replacement_invalid(state: ReplacementPlanState*, name: u8*, body: SyntaxNode
     } else {
         replacement_text(state, "one of these syntax categories: ");
         for(var index: usize = 0; index != state.tried.length; index++) {
-            var separator = index != 0;
-            if separator {
+            if index != 0 {
                 replacement_text(state, ", ");
             }
             var target = state.tried.data[index];
@@ -319,8 +309,7 @@ fn replacement_prepare_one(state: ReplacementPlanState*, index: usize, alternati
     for(; item != sequence.items.length; item++) {
         var entity = sequence.items.data[item];
         var term = replacement_node(state, entity);
-        var captured = term.capture.length != 0;
-        if captured {
+        if term.capture.length != 0 {
             syntax_replacement_capture(state.plan.host, node_text_get(&term.capture), entity);
         }
     }
@@ -360,8 +349,7 @@ fn replacement_prepare_one(state: ReplacementPlanState*, index: usize, alternati
                 return false;
             }
             var status = syntax_replacement_attempt(state.plan.host, state.plan.rules[category].name);
-            var success = status == 1;
-            if success {
+            if status == 1 {
                 if selected {
                     replacement_text(state, "Ambiguous replacement destination for ");
                     replacement_text(state, rule.name);
@@ -372,8 +360,7 @@ fn replacement_prepare_one(state: ReplacementPlanState*, index: usize, alternati
                 syntax_replacement_select(state.plan.host);
                 selected = true;
             } else {
-                var first_error = state.original.length == 0;
-                if first_error {
+                if state.original.length == 0 {
                     state.allocated = node_text_set(&state.original, syntax_replacement_diagnostic(state.plan.host));
                     if !state.allocated {
                         return false;
@@ -381,8 +368,7 @@ fn replacement_prepare_one(state: ReplacementPlanState*, index: usize, alternati
                     state.plan.offset = syntax_replacement_offset(state.plan.host);
                 }
             }
-            var conflict = status == 2;
-            if conflict {
+            if status == 2 {
                 grammar_failed = true;
             }
             var parents = &state.rules.data[category].parents;

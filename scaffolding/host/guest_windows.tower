@@ -19,27 +19,23 @@ const GuestWindowsStderr: u32 = 4294967284;
 const GuestWindowsWriteLimit: usize = 4294967295;
 
 export fn guest_host_allocate(bytes: usize): void* {
-    var empty = bytes == 0;
-    if empty {
+    if bytes == 0 {
         bytes = 1;
     }
     return HeapAlloc(GetProcessHeap(), 0, bytes);
 }
 
 export fn guest_host_free(pointer: void*): void {
-    var present = pointer != null;
-    if present {
+    if pointer != null {
         HeapFree(GetProcessHeap(), 0, pointer);
     }
 }
 
 export fn guest_host_reallocate(pointer: void*, bytes: usize): void* {
-    var absent = pointer == null;
-    if absent {
+    if pointer == null {
         return guest_host_allocate(bytes);
     }
-    var empty = bytes == 0;
-    if empty {
+    if bytes == 0 {
         guest_host_free(pointer);
         return null;
     }
@@ -48,36 +44,30 @@ export fn guest_host_reallocate(pointer: void*, bytes: usize): void* {
 
 export fn platform_write(stream: u32, bytes: u8*, count: usize): i64 {
     var id = GuestWindowsStdout();
-    var error = stream == 2;
-    if error {
+    if stream == 2 {
         id = GuestWindowsStderr();
     }
     else {
-        var valid = stream == 1;
-        if !valid {
+        if !(stream == 1) {
             return -1;
         }
     }
     var total: usize = 0;
     while total < count {
         var remaining = count -total;
-        var large = remaining > GuestWindowsWriteLimit();
-        if large {
+        if remaining > GuestWindowsWriteLimit() {
             remaining = GuestWindowsWriteLimit();
         }
         var written: u32 = 0;
         var ok = WriteFile(GetStdHandle(id), &bytes[total], convert(u32, remaining), &written, null);
-        var failed = ok == 0;
-        if failed {
-            var progressed = total != 0;
-            if progressed {
+        if ok == 0 {
+            if total != 0 {
                 return convert(i64, total);
             }
             return -1;
         }
         total = total + convert(usize, written);
-        var stopped = written == 0;
-        if stopped {
+        if written == 0 {
             break;
         }
     }

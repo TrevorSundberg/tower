@@ -16,15 +16,13 @@ fn lr_lalr_index(value: LRStates*, state_index: usize, item: LRItem*): usize {
     var low: usize = 0;
     var high = state.items.values.length;
     loop {
-        var done = low == high;
-        if done {
+        if low == high {
             break;
         }
         var middle = high -low;
         middle = middle / 2;
         middle = middle + low;
-        var less = lr_item_less(&state.items.values.data[middle], &key);
-        if less {
+        if lr_item_less(&state.items.values.data[middle], &key) {
             low = middle + 1;
         } else {
             high = middle;
@@ -44,12 +42,10 @@ fn lr_lalr_index(value: LRStates*, state_index: usize, item: LRItem*): usize {
 
 fn lr_lalr_link(value: LRStates*, graph: LRPropagation*, source: usize, state: usize, item: LRItem*): bool {
     var destination = lr_lalr_index(value, state, item);
-    var missing = destination == lr_none();
-    if missing {
+    if destination == lr_none() {
         return false;
     }
-    var propagate = item.first == LRTokenPropagation();
-    if propagate {
+    if item.first == LRTokenPropagation() {
         return lr_propagation_edge(graph, source, destination);
     }
     return lr_propagation_seed(graph, destination, item.first, item.last);
@@ -59,15 +55,13 @@ fn lr_lalr_destination(value: LRStates*, state: LRState*, symbol: usize): usize 
     var low: usize = 0;
     var high = state.edges.length;
     loop {
-        var done = low == high;
-        if done {
+        if low == high {
             break;
         }
         var middle = high -low;
         middle = middle / 2;
         middle = middle + low;
-        var less = lr_symbol_less(value.analysis, state.edges.data[middle].symbol, symbol);
-        if less {
+        if lr_symbol_less(value.analysis, state.edges.data[middle].symbol, symbol) {
             low = middle + 1;
         } else {
             high = middle;
@@ -93,8 +87,7 @@ struct LRKernelClosure {
 }
 
 fn lr_kernel_closure_destroy(value: LRKernelClosure*): void {
-    var absent = value == null;
-    if absent {
+    if value == null {
         return;
     }
     for(var index: usize = 0; index != value.next.length; index++) {
@@ -137,8 +130,7 @@ fn lr_kernel_closure(analysis: LRAnalysis*, kernel: LRItem*): LRKernelClosure* {
         }
         var item = &closure.items.values.data[index];
         var rule = &analysis.rules[item.rule];
-        var present = item.position < rule.count;
-        if present {
+        if item.position < rule.count {
             var symbol = rule.begin + item.position;
             ok = lr_state_symbol(analysis, closure, symbol);
         }
@@ -197,8 +189,7 @@ kernel: LRItem*, cache: LRKernelClosure**): bool {
     var index: usize = 0;
     for(; index != closure.items.values.length; index++) {
         var item = &closure.items.values.data[index];
-        var empty = value.analysis.rules[item.rule].count == 0;
-        if empty {
+        if value.analysis.rules[item.rule].count == 0 {
             var ok = lr_lalr_link(value, graph, source, state_index, item);
             if !ok {
                 return false;
@@ -254,8 +245,7 @@ fn lr_lalr_actions(value: LRStates*, graph: LRPropagation*): bool {
             }
             var edge = &state.edges.data[index];
             var symbol = &value.analysis.symbols[edge.symbol];
-            var terminal = symbol.nonterminal == lr_none();
-            if terminal {
+            if symbol.nonterminal == lr_none() {
                 var action: LRAction;
                 action.first = symbol.first;
                 action.last = symbol.last;
@@ -275,8 +265,7 @@ fn lr_lalr_actions(value: LRStates*, graph: LRPropagation*): bool {
                 break;
             }
             var item = &state.items.values.data[index];
-            var reduction = item.position == value.analysis.rules[item.rule].count;
-            if reduction {
+            if item.position == value.analysis.rules[item.rule].count {
                 var vertex = state.base + index;
                 var ranges = &graph.nodes[vertex].ranges;
                 var range_index: usize = 0;
@@ -308,8 +297,7 @@ fn lr_lalr_seed(value: LRStates*, graph: LRPropagation*, constructs: bool): bool
     var seed: LRItem;
     fill(&seed, 0, sizeof(LRItem));
     var start = lr_lalr_index(value, 0, &seed);
-    var missing = start == lr_none();
-    if missing {
+    if start == lr_none() {
         return false;
     }
     var ok = lr_propagation_seed(graph, start, LRTokenEnd(), LRTokenEnd());
@@ -374,8 +362,7 @@ export fn lr_states_lalr(value: LRStates*, constructs: bool): bool {
                 break;
             }
             var item = &state.items.values.data[index];
-            var kernel = lr_kernel(value.analysis, item);
-            if kernel {
+            if lr_kernel(value.analysis, item) {
                 var source = state.base + index;
                 ok = lr_lalr_kernel(value, graph, state_index, source, item, cache);
             }

@@ -7,22 +7,18 @@ import semantic_context;
 // another label on the next pass; no independent instruction graph is created.
 fn ce_reach(c: CEmitter*, entity: void*): void {
     var n = sem_get(entity);
-    var absent = n == null;
-    if absent {
+    if n == null {
         return;
     }
     var index = ce_id(c, entity);
-    var fresh = c.active.data[index] == false;
-    if fresh {
+    if c.active.data[index] == false {
         c.active.data[index] = true;
         c.changed = true;
     }
-    var conditional = n.kind == KIf();
-    if conditional {
+    if n.kind == KIf() {
         var condition = sem_get(n.value);
         if condition.constant {
-            var yes = condition.bits != 0;
-            if yes {
+            if condition.bits != 0 {
                 ce_reach(c, n.body);
             } else {
                 ce_reach(c, n.otherwise);
@@ -33,14 +29,12 @@ fn ce_reach(c: CEmitter*, entity: void*): void {
         }
         return;
     }
-    var looping = n.kind == KLoop();
-    if looping {
+    if n.kind == KLoop() {
         ce_reach(c, n.body);
         return;
     }
     var list = n.kind == KBlock();
-    var program = n.kind == KProgram();
-    if program {
+    if n.kind == KProgram() {
         list = true;
     }
     if list {
@@ -48,8 +42,7 @@ fn ce_reach(c: CEmitter*, entity: void*): void {
         for(var i: usize = 0; i != n.items.length; i++) {
             var child = n.items.data[i];
             var item = sem_get(child);
-            var label = item.kind == KLabel();
-            if label {
+            if item.kind == KLabel() {
                 if ce_label_used(c, child) {
                     falls = true;
                 }
@@ -68,13 +61,11 @@ fn ce_reach_pass(c: CEmitter*, root: void*): void {
         ce_reach(c, root);
         for(var i: usize = 0; i != c.nodes.length; i++) {
             var n = sem_get(c.nodes.data[i]);
-            var function = n.kind == KFunction();
-            if function {
+            if n.kind == KFunction() {
                 ce_reach(c, n.body);
             }
         }
-        var done = !c.changed;
-        if done {
+        if !c.changed {
             break;
         }
     }
@@ -102,8 +93,7 @@ fn ce_reachable(c: CEmitter*, root: void*): void {
             if function {
                 var returns = ce_falls(c, n.body);
                 for(var j: usize = 0; j != c.nodes.length; j++) {
-                    var owner = c.owners.data[j] == entity;
-                    if owner {
+                    if c.owners.data[j] == entity {
                         var item = sem_get(c.nodes.data[j]);
                         var returning = item.kind == KReturn();
                         if returning {
@@ -113,8 +103,7 @@ fn ce_reachable(c: CEmitter*, root: void*): void {
                         }
                     }
                 }
-                var refined = c.returning.data[i] != returns;
-                if refined {
+                if c.returning.data[i] != returns {
                     c.returning.data[i] = returns;
                     changed = true;
                 }
@@ -130,28 +119,23 @@ fn ce_reachable(c: CEmitter*, root: void*): void {
 // comments remain available unless the user explicitly strips them.
 fn ce_notes(c: CEmitter*, entity: void*): void {
     var n = sem_get(entity);
-    var absent = n == null;
-    if absent {
+    if n == null {
         return;
     }
-    var function = n.kind == KFunction();
-    if function {
+    if n.kind == KFunction() {
         return;
     }
     ce_comments(c, n);
-    var conditional = n.kind == KIf();
-    if conditional {
+    if n.kind == KIf() {
         ce_notes(c, n.body);
         ce_notes(c, n.otherwise);
         return;
     }
-    var looping = n.kind == KLoop();
-    if looping {
+    if n.kind == KLoop() {
         ce_notes(c, n.body);
         return;
     }
-    var list = n.kind == KBlock();
-    if list {
+    if n.kind == KBlock() {
         for(var i: usize = 0; i != n.items.length; i++) {
             ce_notes(c, n.items.data[i]);
         }
@@ -163,16 +147,14 @@ fn ce_notes(c: CEmitter*, entity: void*): void {
 fn ce_label_used(c: CEmitter*, entity: void*): bool {
     var i: usize = 0;
     loop {
-        var done = i == c.nodes.length;
-        if done {
+        if i == c.nodes.length {
             return false;
         }
         var n = sem_get(c.nodes.data[i]);
         var jump = n.kind == KJump();
         jump &&= c.active.data[i];
         if jump {
-            var selected = n.binding == entity;
-            if selected {
+            if n.binding == entity {
                 return true;
             }
         }
@@ -182,32 +164,26 @@ fn ce_label_used(c: CEmitter*, entity: void*): bool {
 
 fn ce_breaks(c: CEmitter*, entity: void*): bool {
     var n = sem_get(entity);
-    var absent = n == null;
-    if absent {
+    if n == null {
         return false;
     }
     var index = ce_id(c, entity);
-    var inactive = c.active.data[index] == false;
-    if inactive {
+    if c.active.data[index] == false {
         return false;
     }
-    var breaking = n.kind == KBreak();
-    if breaking {
+    if n.kind == KBreak() {
         return true;
     }
-    var nested = n.kind == KLoop();
-    if nested {
+    if n.kind == KLoop() {
         return false;
     }
-    var conditional = n.kind == KIf();
-    if conditional {
+    if n.kind == KIf() {
         if ce_breaks(c, n.body) {
             return true;
         }
         return ce_breaks(c, n.otherwise);
     }
-    var block = n.kind == KBlock();
-    if block {
+    if n.kind == KBlock() {
         for(var i: usize = 0; i != n.items.length; i++) {
             if ce_breaks(c, n.items.data[i]) {
                 return true;
@@ -219,41 +195,33 @@ fn ce_breaks(c: CEmitter*, entity: void*): bool {
 
 fn ce_falls(c: CEmitter*, entity: void*): bool {
     var n = sem_get(entity);
-    var absent = n == null;
-    if absent {
+    if n == null {
         return true;
     }
-    var call = n.kind == KCall();
-    if call {
+    if n.kind == KCall() {
         var index = ce_id(c, n.binding);
         return c.returning.data[index];
     }
     var terminal = n.kind == KReturn();
-    var jump = n.kind == KJump();
-    if jump {
+    if n.kind == KJump() {
         terminal = true;
     }
-    var trapping = n.kind == KTrap();
-    if trapping {
+    if n.kind == KTrap() {
         terminal = true;
     }
-    var breaking = n.kind == KBreak();
-    if breaking {
+    if n.kind == KBreak() {
         terminal = true;
     }
-    var continuing = n.kind == KContinue();
-    if continuing {
+    if n.kind == KContinue() {
         terminal = true;
     }
     if terminal {
         return false;
     }
-    var conditional = n.kind == KIf();
-    if conditional {
+    if n.kind == KIf() {
         var condition = sem_get(n.value);
         if condition.constant {
-            var yes = condition.bits != 0;
-            if yes {
+            if condition.bits != 0 {
                 return ce_falls(c, n.body);
             }
             return ce_falls(c, n.otherwise);
@@ -263,27 +231,23 @@ fn ce_falls(c: CEmitter*, entity: void*): bool {
         }
         return ce_falls(c, n.otherwise);
     }
-    var loop_node = n.kind == KLoop();
-    if loop_node {
+    if n.kind == KLoop() {
         return ce_breaks(c, n.body);
     }
     var list = n.kind == KBlock();
-    var program = n.kind == KProgram();
-    if program {
+    if n.kind == KProgram() {
         list = true;
     }
     if list {
         var falls = true;
         var i: usize = 0;
         loop {
-            var done = i == n.items.length;
-            if done {
+            if i == n.items.length {
                 return falls;
             }
             var child = n.items.data[i];
             var item = sem_get(child);
-            var label = item.kind == KLabel();
-            if label {
+            if item.kind == KLabel() {
                 if ce_label_used(c, child) {
                     falls = true;
                 }

@@ -14,8 +14,7 @@ fn provenance_owner(trace: SyntaxExpansion*): Entity* {
 }
 
 export fn syntax_trace_retain(trace: SyntaxExpansion*): void {
-    var present = trace != null;
-    if present {
+    if trace != null {
         entity_retain(provenance_owner(trace));
     }
 }
@@ -24,8 +23,7 @@ export fn syntax_trace_retain(trace: SyntaxExpansion*): void {
 // destruction. A pinned trace remains unchanged until the view drains.
 export fn syntax_trace_release(trace: SyntaxExpansion*): void {
     loop {
-        var done = trace == null;
-        if done {
+        if trace == null {
             return;
         }
         var owner = provenance_owner(trace);
@@ -84,8 +82,7 @@ export fn syntax_trace_create(world: CompilerWorld*, invocation: Entity*, rule: 
     }
     var length: usize = 0;
     for(; rule[length] != 0; length++) {}
-    var copied = bytes_assign_text(&trace.rule, rule, length);
-    if !copied {
+    if !bytes_assign_text(&trace.rule, rule, length) {
         entity_release(owner);
         return null;
     }
@@ -94,8 +91,7 @@ export fn syntax_trace_create(world: CompilerWorld*, invocation: Entity*, rule: 
     trace.definition_start = definition_start;
     trace.definition_end = definition_end;
     var prior = syntax_origin_get(world, invocation);
-    var present = prior != null;
-    if present {
+    if prior != null {
         trace.previous = prior.expansion;
         syntax_trace_retain(trace.previous);
     }
@@ -110,22 +106,19 @@ export fn syntax_origin_copy(world: CompilerWorld*, source: Entity*, destination
     if missing {
         return true;
     }
-    var same = source == destination;
-    if same {
+    if source == destination {
         return true;
     }
     missing = destination == null;
     if missing {
         return false;
     }
-    var foreign = destination.store != world.store;
-    if foreign {
+    if destination.store != world.store {
         return false;
     }
     var pending: vector(SyntaxExpansion*);
     vector_init(SyntaxExpansion*, &pending);
-    var ok = vector_reserve(SyntaxExpansion*, &pending, prior.splices.length);
-    if !ok {
+    if !vector_reserve(SyntaxExpansion*, &pending, prior.splices.length) {
         return false;
     }
     var target = bits(SyntaxOrigin*, compiler_world_component(world, destination, CompilerSyntaxOrigin()));
@@ -156,8 +149,7 @@ export fn syntax_origin_mark(world: CompilerWorld*, trace: SyntaxExpansion*, nod
         return false;
     }
     var owner = provenance_owner(trace);
-    var foreign = owner.store != world.store;
-    if foreign {
+    if owner.store != world.store {
         return false;
     }
     var existing = syntax_origin_get(world, node);

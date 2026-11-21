@@ -66,20 +66,17 @@ fn regex_member(node: void*, name: u8*): void* {
 }
 
 fn regex_named(context: RegexLowering*, node: void*, name: u8*): bool {
-    var missing = node == null;
-    if missing {
+    if node == null {
         return false;
     }
     var `match` = regex_match(context, node);
     var label = node_text_get(&`match`.label);
     var i: usize = 0;
     loop {
-        var different = label[i] != name[i];
-        if different {
+        if label[i] != name[i] {
             return false;
         }
-        var end = label[i] == 0;
-        if end {
+        if label[i] == 0 {
             return true;
         }
         i++;
@@ -87,8 +84,7 @@ fn regex_named(context: RegexLowering*, node: void*, name: u8*): bool {
 }
 
 fn regex_fail(context: RegexLowering*, message: u8*): void {
-    var first = context.error == null;
-    if first {
+    if context.error == null {
         context.error = message;
     }
 }
@@ -143,8 +139,7 @@ fn regex_end(context: RegexLowering*, fragment: RegexFragment*, state: i32, othe
         end.state = state;
         end.other = other;
         end.next = regex_none();
-        var empty = fragment.first == regex_none();
-        if empty {
+        if fragment.first == regex_none() {
             fragment.first = index;
         }
         else {
@@ -173,8 +168,7 @@ fn regex_join(context: RegexLowering*, left: RegexFragment*, right: RegexFragmen
 fn regex_patch(context: RegexLowering*, fragment: RegexFragment*, target: i32): void {
     var index = fragment.first;
     loop {
-        var done = index == regex_none();
-        if done {
+        if index == regex_none() {
             return;
         }
         var patch = &context.patches.data[index];
@@ -185,8 +179,7 @@ fn regex_patch(context: RegexLowering*, fragment: RegexFragment*, target: i32): 
 
 fn regex_state(context: RegexLowering*, kind: u32, out: i32, other: i32, negated: bool): i32 {
     var index = automaton_add(context.automaton, kind, out, other, negated);
-    var failed = index < 0;
-    if failed {
+    if index < 0 {
         regex_fail(context, "Token pattern exceeds 512 NFA states");
     }
     return index;
@@ -201,8 +194,7 @@ fn regex_scalar(context: RegexLowering*, node: void*): u32 {
     var `match` = regex_match(context, node);
     context.cursor = `match`.start;
     var text = context.source + `match`.start;
-    var escaped = text[0] == 92;
-    if !escaped {
+    if !(text[0] == 92) {
         var result: u32;
         tower_utf8_decode(text, `match`.length, &result);
         return result;
@@ -247,13 +239,11 @@ fn regex_scalar(context: RegexLowering*, node: void*): u32 {
     var value: u32 = 0;
     for(; first != end; first++) {
         var digit = convert(u32, text[first]);
-        var decimal = digit <= 57;
-        if decimal {
+        if digit <= 57 {
             digit = digit - 48;
         }
         else {
-            var uppercase = digit <= 70;
-            if uppercase {
+            if digit <= 70 {
                 digit = digit - 55;
             }
             else {
@@ -281,15 +271,13 @@ fn regex_class(context: RegexLowering*, node: void*, index: i32, negated: void*)
     context.pending.length = 0;
     context.characters.length = 0;
     var body = negated;
-    var positive = body == null;
-    if positive {
+    if body == null {
         body = regex_member(node, "body");
     }
     var ok = vector_push(void*, &context.pending, body);
     regex_allocation(context, ok);
     loop {
-        var failed = context.error != null;
-        if failed {
+        if context.error != null {
             return;
         }
         var done = context.pending.length == 0;
@@ -317,8 +305,7 @@ fn regex_class(context: RegexLowering*, node: void*, index: i32, negated: void*)
             }
         }
     }
-    var empty = context.characters.length == 0;
-    if empty {
+    if context.characters.length == 0 {
         regex_fail(context, "Empty character class");
         return;
     }
@@ -332,8 +319,7 @@ fn regex_class(context: RegexLowering*, node: void*, index: i32, negated: void*)
         var last = first;
         i++;
         var after = i + 1;
-        var has_range = after < context.characters.length;
-        if has_range {
+        if after < context.characters.length {
             var dash = regex_match(context, context.characters.data[i]);
             var plain = dash.length == 1;
             if plain {
@@ -342,8 +328,7 @@ fn regex_class(context: RegexLowering*, node: void*, index: i32, negated: void*)
                     i++;
                     last = regex_scalar(context, context.characters.data[i]);
                     i++;
-                    var reversed = last < first;
-                    if reversed {
+                    if last < first {
                         regex_fail(context, "Reversed character range");
                     }
                 }
@@ -382,12 +367,10 @@ fn regex_atom(context: RegexLowering*, node: void*, result: RegexFragment*): voi
 fn regex_lower(context: RegexLowering*, root: void*, output: RegexFragment*): void {
     regex_visit(context, root, 0, false);
     loop {
-        var failed = context.error != null;
-        if failed {
+        if context.error != null {
             return;
         }
-        var done = context.visits.length == 0;
-        if done {
+        if context.visits.length == 0 {
             regex_pop(context, output);
             return;
         }
@@ -399,8 +382,7 @@ fn regex_lower(context: RegexLowering*, root: void*, output: RegexFragment*): vo
         var finish = visit.finish;
         var `match` = regex_match(context, node);
         context.cursor = `match`.start;
-        var deep = depth > 64;
-        if deep {
+        if depth > 64 {
             regex_fail(context, "Token pattern nesting exceeds 64");
             return;
         }
@@ -499,8 +481,7 @@ fn regex_lower(context: RegexLowering*, root: void*, output: RegexFragment*): vo
                             if suffixed {
                                 var operation = context.source[suffix.start];
                                 var split = regex_state(context, 1, result.start, -1, false);
-                                var optional = operation == 63;
-                                if optional {
+                                if operation == 63 {
                                     regex_end(context, &result, split, true);
                                 }
                                 else {
@@ -509,8 +490,7 @@ fn regex_lower(context: RegexLowering*, root: void*, output: RegexFragment*): vo
                                     result.last = regex_none();
                                     regex_end(context, &result, split, true);
                                 }
-                                var plus = operation == 43;
-                                if !plus {
+                                if !(operation == 43) {
                                     result.start = split;
                                 }
                             }
@@ -521,8 +501,7 @@ fn regex_lower(context: RegexLowering*, root: void*, output: RegexFragment*): vo
                         }
                         else {
                             var value = regex_member(node, "value");
-                            var missing = value == null;
-                            if missing {
+                            if value == null {
                                 value = node;
                             }
                             regex_atom(context, value, &result);
@@ -554,8 +533,7 @@ export fn regex_compile_tree(root: void*, source: u8*, match_type: void*, table:
     regex_lower(context, root, &result);
     var ok = context.error == null;
     if ok {
-        var empty = result.start < 0;
-        if empty {
+        if result.start < 0 {
             regex_fail(context, "Token pattern must not match empty input");
         }
         else {

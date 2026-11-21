@@ -49,28 +49,24 @@ const RuntimeReturnVerificationStatus: u32 = 2;
 
 fn runtime_bind_function(module: void*, source: u8*, destination: u8*, external: bool): bool {
     var function = LLVMGetNamedFunction(module, source);
-    var missing = function == null;
-    if missing {
+    if function == null {
         puts("Missing runtime implementation");
         puts(source);
         return false;
     }
     var declaration = LLVMIsDeclaration(function) != 0;
-    var correct = declaration == external;
-    if !correct {
+    if declaration != external {
         puts("Runtime implementation must be defined (or explicitly bound with --declare)");
         return false;
     }
     var previous = LLVMGetNamedFunction(module, destination);
-    var present = previous != null;
-    if present {
+    if previous != null {
         declaration = LLVMIsDeclaration(previous) != 0;
         if !declaration {
             puts("Runtime destination is already defined");
             return false;
         }
-        var same = LLVMGlobalGetValueType(previous) == LLVMGlobalGetValueType(function);
-        if !same {
+        if LLVMGlobalGetValueType(previous) != LLVMGlobalGetValueType(function) {
             puts("Runtime ABI type mismatch");
             return false;
         }
@@ -128,17 +124,13 @@ export fn main(argc: i32, argv: u8**): i32 {
             i = i + 2;
             continue;
         }
-        var state = strcmp(argv[i], "--state") == 0;
-        if state {
+        if strcmp(argv[i], "--state") == 0 {
             ok = strcmp(argv[next], "compiler-tests") == 0;
-            if ok {
-                ok = runtime_test_state(context, module);
-            }
+            ok &&= runtime_test_state(context, module);
             i = i + 2;
             continue;
         }
-        var exports = strcmp(argv[i], "--exports") == 0;
-        if exports {
+        if strcmp(argv[i], "--exports") == 0 {
             ok = strcmp(argv[next], "private") == 0;
             var function = LLVMGetFirstFunction(module);
             loop {
@@ -164,13 +156,11 @@ export fn main(argc: i32, argv: u8**): i32 {
         status = LLVMPrintModuleToFile(module, argv[2], &error);
         ok = status == 0;
     }
-    var reported = error != null;
-    if reported {
+    if error != null {
         puts(error);
         LLVMDisposeMessage(error);
     }
-    var loaded = module != null;
-    if loaded {
+    if module != null {
         LLVMDisposeModule(module);
     }
     LLVMContextDispose(context);

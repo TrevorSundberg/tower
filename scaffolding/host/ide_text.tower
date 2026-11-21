@@ -12,13 +12,11 @@ fn ide_require(ok: bool): void {
 
 fn ide_length(text: u8*): usize {
     var n: usize = 0;
-    var missing = text == null;
-    if missing {
+    if text == null {
         return 0;
     }
     loop {
-        var done = text[n] == 0;
-        if done {
+        if text[n] == 0 {
             return n;
         }
         n++;
@@ -91,15 +89,13 @@ fn ide_missing(): usize {
 }
 
 fn ide_comma(out: ByteBuffer*, index: usize): void {
-    var comma = index != 0;
-    if comma {
+    if index != 0 {
         ide_text(out, ",");
     }
 }
 
 fn ide_index(out: ByteBuffer*, index: usize): void {
-    var missing = index == ide_missing();
-    if missing {
+    if index == ide_missing() {
         ide_text(out, "null");
     } else {
         ide_number(out, index);

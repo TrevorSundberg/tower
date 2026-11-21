@@ -61,12 +61,10 @@ export fn host_runtime_tests(): i32 {
     state.allocation_calls = 0;
     state.fail_after = maximum;
     var pointer = compiler_memory_reallocate(&state, null, 4, 2);
-    var check_1 = pointer == null;
-    if check_1 {
+    if pointer == null {
         return 1;
     }
-    var check_2 = state.live_buffers != 1;
-    if check_2 {
+    if state.live_buffers != 1 {
         return 2;
     }
     var bytes = bits(u8*, pointer);
@@ -75,107 +73,85 @@ export fn host_runtime_tests(): i32 {
     // Overflow must not consume an injection or touch the original allocation.
     state.fail_after = 0;
     var next = compiler_memory_reallocate(&state, pointer, maximum, 2);
-    var check_3 = next != null;
-    if check_3 {
+    if next != null {
         return 3;
     }
-    var check_4 = state.allocation_calls != 1;
-    if check_4 {
+    if state.allocation_calls != 1 {
         return 4;
     }
-    var check_5 = state.fail_after != 0;
-    if check_5 {
+    if state.fail_after != 0 {
         return 5;
     }
     next = compiler_memory_reallocate(&state, pointer, 32, 1);
-    var check_6 = next != null;
-    if check_6 {
+    if next != null {
         return 6;
     }
-    var check_7 = state.fail_after != maximum;
-    if check_7 {
+    if state.fail_after != maximum {
         return 7;
     }
-    var check_8 = state.live_buffers != 1;
-    if check_8 {
+    if state.live_buffers != 1 {
         return 8;
     }
-    var check_9 = bytes[0] != 42;
-    if check_9 {
+    if bytes[0] != 42 {
         return 9;
     }
-    var check_10 = bytes[7] != 91;
-    if check_10 {
+    if bytes[7] != 91 {
         return 10;
     }
     next = compiler_memory_reallocate(&state, pointer, 32, 1);
-    var check_11 = next == null;
-    if check_11 {
+    if next == null {
         return 11;
     }
     pointer = next;
     bytes = bits(u8*, pointer);
-    var check_12 = bytes[0] != 42;
-    if check_12 {
+    if bytes[0] != 42 {
         return 12;
     }
-    var check_13 = bytes[7] != 91;
-    if check_13 {
+    if bytes[7] != 91 {
         return 13;
     }
-    var check_14 = state.live_buffers != 1;
-    if check_14 {
+    if state.live_buffers != 1 {
         return 14;
     }
     // Injected failure precedes the zero-size free, matching the old host.
     state.fail_after = 0;
     next = compiler_memory_reallocate(&state, pointer, 0, 1);
-    var check_15 = next != null;
-    if check_15 {
+    if next != null {
         return 15;
     }
-    var check_16 = state.live_buffers != 1;
-    if check_16 {
+    if state.live_buffers != 1 {
         return 16;
     }
-    var check_17 = bytes[0] != 42;
-    if check_17 {
+    if bytes[0] != 42 {
         return 17;
     }
     next = compiler_memory_reallocate(&state, pointer, maximum, 0);
-    var check_18 = next != null;
-    if check_18 {
+    if next != null {
         return 18;
     }
-    var check_19 = state.live_buffers != 0;
-    if check_19 {
+    if state.live_buffers != 0 {
         return 19;
     }
     compiler_memory_deallocate(&state, null);
-    var check_20 = state.live_buffers != 0;
-    if check_20 {
+    if state.live_buffers != 0 {
         return 20;
     }
     state.fail_after = 1;
     pointer = compiler_memory_reallocate(&state, null, 1, 1);
-    var check_21 = pointer == null;
-    if check_21 {
+    if pointer == null {
         return 21;
     }
     next = compiler_memory_reallocate(&state, null, 1, 1);
-    var check_22 = next != null;
-    if check_22 {
+    if next != null {
         return 22;
     }
     compiler_memory_deallocate(&state, pointer);
     pointer = compiler_memory_reallocate(null, null, 8, 1);
-    var check_23 = pointer == null;
-    if check_23 {
+    if pointer == null {
         return 23;
     }
     compiler_memory_deallocate(null, pointer);
-    var check_24 = state.live_buffers != 0;
-    if check_24 {
+    if state.live_buffers != 0 {
         return 24;
     }
 
@@ -185,24 +161,19 @@ export fn host_runtime_tests(): i32 {
     argv[0] = "towerc";
     var args = &argv[0];
     var ok = driver_parse(&options, 1, args, "host-target");
-    var check_25 = !ok;
-    if check_25 {
+    if !ok {
         return 25;
     }
-    var check_26 = driver_equal(options.target, "host-target") == false;
-    if check_26 {
+    if driver_equal(options.target, "host-target") == false {
         return 26;
     }
-    var check_27 = driver_equal(options.emit, "exe") == false;
-    if check_27 {
+    if driver_equal(options.emit, "exe") == false {
         return 27;
     }
-    var check_28 = driver_equal(options.cc, "clang") == false;
-    if check_28 {
+    if driver_equal(options.cc, "clang") == false {
         return 28;
     }
-    var check_29 = !options.optimize;
-    if check_29 {
+    if !options.optimize {
         return 29;
     }
     driver_dispose(&options);
@@ -238,79 +209,61 @@ export fn host_runtime_tests(): i32 {
     argv[30] = "--foundation";
     argv[31] = "foundation path";
     ok = driver_parse(&options, 32, args, "host");
-    var check_30 = !ok;
-    if check_30 {
+    if !ok {
         return 30;
     }
-    var check_31 = driver_equal(options.source, "input.tower") == false;
-    if check_31 {
+    if driver_equal(options.source, "input.tower") == false {
         return 31;
     }
-    var check_32 = options.link_count != 2;
-    if check_32 {
+    if options.link_count != 2 {
         return 32;
     }
-    var check_33 = driver_equal(options.links[0], "first.o") == false;
-    if check_33 {
+    if driver_equal(options.links[0], "first.o") == false {
         return 33;
     }
-    var check_34 = driver_equal(options.links[1], "second.a") == false;
-    if check_34 {
+    if driver_equal(options.links[1], "second.a") == false {
         return 34;
     }
-    var check_35 = !options.library;
-    if check_35 {
+    if !options.library {
         return 35;
     }
-    var check_36 = driver_equal(options.emit, "llvm") == false;
-    if check_36 {
+    if driver_equal(options.emit, "llvm") == false {
         return 36;
     }
     if options.optimize {
         return 37;
     }
-    var check_37 = !options.interpret;
-    if check_37 {
+    if !options.interpret {
         return 38;
     }
-    var check_38 = !options.timings;
-    if check_38 {
+    if !options.timings {
         return 39;
     }
-    var check_39 = driver_equal(options.target, "explicit-target") == false;
-    if check_39 {
+    if driver_equal(options.target, "explicit-target") == false {
         return 40;
     }
-    var check_40 = driver_equal(options.output, "last.out") == false;
-    if check_40 {
+    if driver_equal(options.output, "last.out") == false {
         return 41;
     }
-    var check_41 = driver_equal(options.cc, "cc path") == false;
-    if check_41 {
+    if driver_equal(options.cc, "cc path") == false {
         return 42;
     }
-    var check_42 = driver_equal(options.linker, "linker path") == false;
-    if check_42 {
+    if driver_equal(options.linker, "linker path") == false {
         return 43;
     }
-    var check_43 = driver_equal(options.sysroot, "root path") == false;
-    if check_43 {
+    if driver_equal(options.sysroot, "root path") == false {
         return 44;
     }
-    var check_44 = driver_equal(options.raw, "raw.ll") == false;
-    if check_44 {
+    if driver_equal(options.raw, "raw.ll") == false {
         return 45;
     }
-    var check_45 = driver_equal(options.optimized, "optimized.ll") == false;
-    if check_45 {
+    if driver_equal(options.optimized, "optimized.ll") == false {
         return 46;
     }
-    var check_46 = driver_equal(options.bedrock, "bedrock path") == false;
-    if check_46 {
+    if driver_equal(options.bedrock, "bedrock path") == false {
         return 47;
     }
-    var check_47 = driver_equal(options.foundation, "foundation path") == false;
-    if check_47 {
+    if driver_equal(options.foundation, "foundation path") == false {
         return 48;
     }
     driver_dispose(&options);
@@ -334,12 +287,10 @@ export fn host_runtime_tests(): i32 {
         if ok {
             return 49;
         }
-        var check_49 = options.error != 1;
-        if check_49 {
+        if options.error != 1 {
             return 50;
         }
-        var check_50 = options.argument != flags[index];
-        if check_50 {
+        if options.argument != flags[index] {
             return 51;
         }
         driver_dispose(&options);
@@ -347,12 +298,10 @@ export fn host_runtime_tests(): i32 {
     argv[1] = "--help";
     argv[2] = "--invalid";
     ok = driver_parse(&options, 3, args, "host");
-    var check_51 = !ok;
-    if check_51 {
+    if !ok {
         return 52;
     }
-    var check_52 = !options.help;
-    if check_52 {
+    if !options.help {
         return 53;
     }
     driver_dispose(&options);
@@ -362,8 +311,7 @@ export fn host_runtime_tests(): i32 {
     if ok {
         return 54;
     }
-    var check_53 = options.error != 2;
-    if check_53 {
+    if options.error != 2 {
         return 55;
     }
     driver_dispose(&options);
@@ -373,8 +321,7 @@ export fn host_runtime_tests(): i32 {
     if ok {
         return 56;
     }
-    var check_54 = options.argument != argv[2];
-    if check_54 {
+    if options.argument != argv[2] {
         return 57;
     }
     driver_dispose(&options);
@@ -382,12 +329,10 @@ export fn host_runtime_tests(): i32 {
     argv[2] = "exe";
     argv[3] = "--library";
     ok = driver_parse(&options, 4, args, "host");
-    var check_55 = !ok;
-    if check_55 {
+    if !ok {
         return 58;
     }
-    var check_56 = driver_equal(options.emit, "object") == false;
-    if check_56 {
+    if driver_equal(options.emit, "object") == false {
         return 59;
     }
     driver_dispose(&options);
@@ -395,15 +340,13 @@ export fn host_runtime_tests(): i32 {
     argv[1] = "-o";
     argv[2] = "--help";
     ok = driver_parse(&options, 3, args, "host");
-    var check_57 = !ok;
-    if check_57 {
+    if !ok {
         return 60;
     }
     if options.help {
         return 61;
     }
-    var check_58 = driver_equal(options.output, "--help") == false;
-    if check_58 {
+    if driver_equal(options.output, "--help") == false {
         return 62;
     }
     driver_dispose(&options);
@@ -414,8 +357,7 @@ export fn host_runtime_tests(): i32 {
     if ok {
         return 63;
     }
-    var check_59 = options.error != 3;
-    if check_59 {
+    if options.error != 3 {
         return 64;
     }
     driver_dispose(&options);
@@ -425,14 +367,12 @@ export fn host_runtime_tests(): i32 {
     if ok {
         return 65;
     }
-    var check_60 = options.link_count != 1;
-    if check_60 {
+    if options.link_count != 1 {
         return 66;
     }
     driver_dispose(&options);
     driver_dispose(&options);
-    var check_61 = tower_test_buffer_count() != buffers;
-    if check_61 {
+    if tower_test_buffer_count() != buffers {
         return 67;
     }
     return host_services_tests();

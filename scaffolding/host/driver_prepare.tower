@@ -53,8 +53,7 @@ export fn driver_prepare(options: DriverOptions*, argc: usize, argv: u8**, targe
         if options.interpret {
             invalid = true;
         }
-        var has_links = options.link_count != 0;
-        if has_links {
+        if options.link_count != 0 {
             invalid = true;
         }
         if invalid {

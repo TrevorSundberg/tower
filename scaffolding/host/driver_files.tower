@@ -22,8 +22,7 @@ extern fn fclose(file: void*): i32;
 // leaves its old contents intact and closes the file on every path.
 export fn driver_read_file(path: u8*, out: ByteBuffer*): bool {
     var file = fopen(path, "rb");
-    var missing = file == null;
-    if missing {
+    if file == null {
         return false;
     }
     var next: ByteBuffer;
@@ -36,23 +35,19 @@ export fn driver_read_file(path: u8*, out: ByteBuffer*): bool {
         if !ok {
             break;
         }
-        var failed = ferror(file) != 0;
-        if failed {
+        if ferror(file) != 0 {
             ok = false;
             break;
         }
-        var done = feof(file) != 0;
-        if done {
+        if feof(file) != 0 {
             break;
         }
-        var stalled = count == 0;
-        if stalled {
+        if count == 0 {
             ok = false;
             break;
         }
     }
-    var closed = fclose(file) == 0;
-    if !closed {
+    if !(fclose(file) == 0) {
         ok = false;
     }
     ok &&= host_text_terminate(&next);
@@ -71,33 +66,28 @@ export fn driver_read_file(path: u8*, out: ByteBuffer*): bool {
 // must not treat a partial output file as a successful compiler artifact.
 export fn driver_write_file(path: u8*, data: u8*, count: usize): bool {
     var file = fopen(path, "wb");
-    var missing = file == null;
-    if missing {
+    if file == null {
         return false;
     }
     var written: usize = 0;
     var ok = true;
     loop {
-        var done = written == count;
-        if done {
+        if written == count {
             break;
         }
         var next = data + written;
         var remaining = count -written;
         var amount = fwrite(next, 1, remaining, file);
-        var stalled = amount == 0;
-        if stalled {
+        if amount == 0 {
             ok = false;
             break;
         }
         written = written + amount;
     }
-    var failed = ferror(file) != 0;
-    if failed {
+    if ferror(file) != 0 {
         ok = false;
     }
-    var closed = fclose(file) == 0;
-    if !closed {
+    if !(fclose(file) == 0) {
         ok = false;
     }
     return ok;

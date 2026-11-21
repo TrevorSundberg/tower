@@ -43,21 +43,18 @@ export fn driver_platform_separator(byte: u8): bool {
 export fn driver_platform_executable(out: ByteBuffer*): bool {
     var capacity: u32 = 256;
     loop {
-        if bytes_reserve(out, convert(usize, capacity)) {} else {
+        if !bytes_reserve(out, convert(usize, capacity)) {
             return false;
         }
         var length = GetModuleFileNameA(null, out.data, capacity);
-        var failed = length == 0;
-        if failed {
+        if length == 0 {
             return false;
         }
-        var complete = length < capacity;
-        if complete {
+        if length < capacity {
             out.length = convert(usize, length);
             return host_text_terminate(out);
         }
-        var overflow = capacity > 2147483647;
-        if overflow {
+        if capacity > 2147483647 {
             return false;
         }
         capacity = capacity * 2;
@@ -91,13 +88,11 @@ export fn driver_platform_write(fd: i32, data: u8*, length: usize): void {
 export fn driver_platform_write_result(fd: i32, data: u8*, length: usize): bool {
     while length != 0 {
         var amount: usize = 65536;
-        var small = length < amount;
-        if small {
+        if length < amount {
             amount = length;
         }
         var written = _write(fd, data, convert(u32, amount));
-        var failed = written <= 0;
-        if failed {
+        if written <= 0 {
             return false;
         }
         var done = convert(usize, written);
@@ -145,19 +140,16 @@ export fn driver_platform_run(argv: u8**): i32 {
     var result: i32 = 1;
     if quoted.ok {
         var code = _spawnvp(0, argv[0], quoted.values.data);
-        var failed = code == -1;
-        if failed {
+        if code == -1 {
             var error = _errno();
-            var missing = *error == 2;
-            if missing {
+            if *error == 2 {
                 driver_error("Cannot find tool: ", argv[0]);
             }
             else {
                 driver_error("Cannot execute tool: ", strerror(*error));
             }
         }
-        var succeeded = code == 0;
-        if succeeded {
+        if code == 0 {
             result = 0;
         }
     } else {

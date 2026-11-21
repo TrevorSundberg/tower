@@ -24,8 +24,7 @@ fn parser_host_child(parent: Entity*): Entity* {
 fn parser_utf8_end(text: u8*): u8* {
     var end = text;
     loop {
-        var done = *end == 0;
-        if done {
+        if *end == 0 {
             return end;
         }
         end++;

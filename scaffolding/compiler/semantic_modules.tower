@@ -35,8 +35,7 @@ fn sem_module_kind(parent: void*, size: usize, alignment: usize): void* {
 }
 
 fn sem_modules_begin(program: SemanticProgram*): SemanticModules* {
-    var existing = program.modules != null;
-    if existing {
+    if program.modules != null {
         return program.modules;
     }
     var registry = tower_node_create();
@@ -59,8 +58,7 @@ fn sem_module_scope(program: SemanticProgram*, module: void*): void* {
     var registry = sem_modules_begin(program);
     var path = frontend_module_name(module);
     var scope = sem_member(registry.scopes, path);
-    var missing = scope == null;
-    if missing {
+    if scope == null {
         scope = tower_node_create();
         sem_require(entity_attach(scope, registry.scopes, path));
         entity_release(scope);
@@ -99,16 +97,14 @@ fn sem_module_record(program: SemanticProgram*, module: void*): void {
         var declaration = frontend_module_import_at(module, i);
         // Recovered editor parses may contribute a second source snapshot.
         // Each actual declaration keeps its own components and source spans.
-        var present = entity_component_get(declaration, registry.import_kind) != null;
-        if !present {
+        if entity_component_get(declaration, registry.import_kind) == null {
             var dependency = frontend_module_dependency_at(module, i);
             var target = sem_module_scope(program, dependency);
             var alias = frontend_module_alias(module, i);
             // Inspection retains the source wrapper too. Move the complete
             // tree so its children, roles and hover spans stay intact.
             var tree = sem_parent(declaration);
-            var unwrapped = tree == null;
-            if unwrapped {
+            if tree == null {
                 tree = declaration;
             }
             sem_require(entity_attach(tree, scope, alias));
@@ -130,22 +126,18 @@ fn sem_module_graph(program: SemanticProgram*, module: void*): void {
 
 fn sem_owner(c: SemanticContext*, node: void*): void* {
     var registry = c.program.modules;
-    var absent = registry == null;
-    if absent {
+    if registry == null {
         return null;
     }
     while node != null {
         var component = entity_component_get(node, registry.owner_kind);
         var link = bits(SemanticModuleLink*, entity_component_data(component));
-        var present = link != null;
-        if present {
+        if link != null {
             return link.module;
         }
-        var generic = c.generics != null;
-        if generic {
+        if c.generics != null {
             var original = generic_definition(c.generics, node);
-            var generated = original != node;
-            if generated {
+            if original != node {
                 node = original;
                 continue;
             }
@@ -159,8 +151,7 @@ fn sem_module_path(c: SemanticContext*, module: void*): u8* {
     var scopes = c.program.modules.scopes;
     var count = sem_child_count(scopes);
     for(var i: usize = 0; i < count; i++) {
-        var found = sem_child(scopes, i) == module;
-        if found {
+        if sem_child(scopes, i) == module {
             return entity_child_name(scopes, i);
         }
     }
@@ -169,8 +160,7 @@ fn sem_module_path(c: SemanticContext*, module: void*): u8* {
 
 fn sem_owned(table: SemanticTable*, module: void*, name: u8*): void* {
     var entry = sem_find(table, name, module);
-    var found = entry != null;
-    if found {
+    if entry != null {
         return entry.value;
     }
     return null;
@@ -179,8 +169,7 @@ fn sem_owned(table: SemanticTable*, module: void*, name: u8*): void* {
 fn sem_define(c: SemanticContext*, table: SemanticTable*, node: void*, name: u8*): bool {
     var owner = sem_owner(c, node);
     var entry = sem_entry(c, table, name, owner);
-    var duplicate = entry.value != null;
-    if duplicate {
+    if entry.value != null {
         return false;
     }
     entry.value = node;
@@ -191,8 +180,7 @@ fn sem_local(c: SemanticContext*, name: u8*): void* {
     var scope = c.scope;
     while scope != null {
         var found = sem_lookup_table(scope.names, name);
-        var present = found != null;
-        if present {
+        if found != null {
             return found;
         }
         scope = scope.parent;
@@ -203,8 +191,7 @@ fn sem_local(c: SemanticContext*, name: u8*): void* {
 fn sem_import_target(c: SemanticContext*, edge: void*): void* {
     var component = entity_component_get(edge, c.program.modules.import_kind);
     var link = bits(SemanticModuleLink*, entity_component_data(component));
-    var present = link != null;
-    if present {
+    if link != null {
         return link.module;
     }
     return null;
@@ -212,8 +199,7 @@ fn sem_import_target(c: SemanticContext*, edge: void*): void* {
 
 fn sem_import_alias(owner: void*, index: usize): u8* {
     var name = entity_child_name(owner, index);
-    var unnamed = name == null;
-    if unnamed {
+    if name == null {
         return "";
     }
     return name;
@@ -224,8 +210,7 @@ fn sem_alias(c: SemanticContext*, owner: void*, name: u8*): void* {
     var count = sem_child_count(owner);
     for(; i < count; i++) {
         var alias = sem_import_alias(owner, i);
-        var matches = sem_equal(alias, name);
-        if matches {
+        if sem_equal(alias, name) {
             return sem_import_target(c, sem_child(owner, i));
         }
     }
@@ -234,23 +219,19 @@ fn sem_alias(c: SemanticContext*, owner: void*, name: u8*): void* {
 
 fn sem_visible(c: SemanticContext*, table: SemanticTable*, node: void*, owner: void*, name: u8*): void* {
     var found = sem_owned(table, owner, name);
-    var local = found != null;
-    if local {
+    if found != null {
         return found;
     }
-    var legacy = owner == null;
-    if legacy {
+    if owner == null {
         return null;
     }
     var count = sem_child_count(owner);
     for(var i: usize = 0; i < count; i++) {
         var alias = sem_import_alias(owner, i);
-        var open = alias[0] == 0;
-        if open {
+        if alias[0] == 0 {
             var target = sem_import_target(c, sem_child(owner, i));
             var candidate = sem_owned(table, target, name);
-            var present = candidate != null;
-            if present {
+            if candidate != null {
                 var different = found != null;
                 different &&= found != candidate;
                 if different {
@@ -261,8 +242,7 @@ fn sem_visible(c: SemanticContext*, table: SemanticTable*, node: void*, owner: v
             }
         }
     }
-    var missing = found == null;
-    if missing {
+    if found == null {
         // Only the reflected Foundation primitive types are ownerless.
         var types = table == c.types;
         if types {
@@ -275,13 +255,11 @@ fn sem_visible(c: SemanticContext*, table: SemanticTable*, node: void*, owner: v
 fn sem_name_node(node: void*): void* {
     loop {
         var base = sem_member(node, "base");
-        var qualified = base != null;
-        if qualified {
+        if base != null {
             return node;
         }
         var name = sem_member(node, "name");
-        var wrapper = name != null;
-        if wrapper {
+        if name != null {
             node = name;
         } else {
             return node;
@@ -314,8 +292,7 @@ fn sem_callable_visible(c: SemanticContext*, table: SemanticTable*, node: void*,
     var count = sem_child_count(owner);
     for(; i < count; i++) {
         var alias = sem_import_alias(owner, i);
-        var open = alias[0] == 0;
-        if open {
+        if alias[0] == 0 {
             var dependency = sem_import_target(c, sem_child(owner, i));
             var candidate = sem_callable_owned(c, dependency, name);
             present = candidate != null;
@@ -340,8 +317,7 @@ fn sem_resolve(c: SemanticContext*, table: SemanticTable*, node: void*, spelling
 
 fn sem_resolve_from(c: SemanticContext*, table: SemanticTable*, node: void*, spelling: u8*, owner: void*): void* {
     var name = sem_name_node(node);
-    var indexed = sem_member(name, "index") != null;
-    if indexed {
+    if sem_member(name, "index") != null {
         return null;
     }
     var base = sem_member(name, "base");
@@ -350,8 +326,7 @@ fn sem_resolve_from(c: SemanticContext*, table: SemanticTable*, node: void*, spe
     qualified &&= field != null;
     if qualified {
         var target = sem_namespace_from(c, name, owner);
-        var present = target != null;
-        if present {
+        if target != null {
             return sem_owned(table, target, sem_identifier(c, field));
         }
         return null;
@@ -379,17 +354,14 @@ fn sem_namespace_from(c: SemanticContext*, node: void*, owner: void*): void* {
         return null;
     }
     base = sem_name_node(base);
-    var nested = sem_member(base, "base") != null;
-    if nested {
+    if sem_member(base, "base") != null {
         return null;
     }
     var name = sem_identifier(c, base);
     var shadowed = sem_local(c, name) != null;
-    var generic = c.generics != null;
-    if generic {
+    if c.generics != null {
         var parameter = generic_lookup(c.generics, base, base);
-        var bound = parameter != null;
-        if bound {
+        if parameter != null {
             shadowed = true;
         }
     }
@@ -418,16 +390,13 @@ fn sem_editor_symbol(c: SemanticContext*, node: void*, kind: u32): bool {
 fn sem_completion_visible(c: SemanticContext*, editor: SemanticEditor*, table: SemanticTable*, node: void*): bool {
     var name = sem_identifier(c, sem_member(node, "name"));
     var value = sem_get(node);
-    var builtin = name[0] == 0;
-    if builtin {
-        var present = value != null;
-        if present {
+    if name[0] == 0 {
+        if value != null {
             name = sem_name(value);
         }
     }
     var found: void* = null;
-    var qualified = editor.module != null;
-    if qualified {
+    if editor.module != null {
         found = sem_owned(table, editor.module, name);
     } else {
         var callable = table == c.functions;
@@ -452,8 +421,7 @@ fn sem_completion_visible(c: SemanticContext*, editor: SemanticEditor*, table: S
 // deterministic, escaped Foundation spelling; bindings still point to entities.
 fn sem_output_name(c: SemanticContext*, node: void*, name: u8*): u8* {
     var saved = sem_find(c.output_names, null, node);
-    var present = saved != null;
-    if present {
+    if saved != null {
         return bits(u8*, saved.value);
     }
     var spelling = name;
@@ -462,8 +430,7 @@ fn sem_output_name(c: SemanticContext*, node: void*, name: u8*): u8* {
     collision &&= original.number != 0;
     if collision {
         var owner = sem_owner(c, node);
-        var scoped = owner != null;
-        if scoped {
+        if owner != null {
             spelling = sem_cat(c, name, sem_cat(c, "@", sem_module_path(c, owner)));
         }
     }
@@ -472,10 +439,8 @@ fn sem_output_name(c: SemanticContext*, node: void*, name: u8*): u8* {
     loop {
         var taken = sem_lookup_table(c.output_names, candidate);
         var available = taken == null;
-        var generated = sem_equal(candidate, name) == false;
-        if generated {
-            var reserved = sem_find(c.source_names, candidate, null) != null;
-            if reserved {
+        if sem_equal(candidate, name) == false {
+            if sem_find(c.source_names, candidate, null) != null {
                 available = false;
             }
         }
@@ -493,8 +458,7 @@ fn sem_output_name(c: SemanticContext*, node: void*, name: u8*): u8* {
 
 fn sem_validate_aliases(c: SemanticContext*): void {
     var registry = c.program.modules;
-    var absent = registry == null;
-    if absent {
+    if registry == null {
         return;
     }
     var root = sem_get(c.program.root);
@@ -504,19 +468,15 @@ fn sem_validate_aliases(c: SemanticContext*): void {
         var imports = sem_child_count(scope);
         for(var edge: usize = 0; edge < imports; edge++) {
             var alias = sem_import_alias(scope, edge);
-            var named = alias[0] != 0;
-            if named {
+            if alias[0] != 0 {
                 var conflict = semantic_builtin_kind(alias) != 0;
                 conflict ||= sem_owned(c.types, null, alias) != null;
                 for(var n: usize = 0; n < root.items.length; n++) {
                     var declaration = root.items.data[n];
-                    var own = sem_owner(c, declaration) == scope;
-                    if own {
+                    if sem_owner(c, declaration) == scope {
                         var name = sem_member(declaration, "name");
-                        var present = name != null;
-                        if present {
-                            var same = sem_equal(alias, sem_identifier(c, name));
-                            if same {
+                        if name != null {
+                            if sem_equal(alias, sem_identifier(c, name)) {
                                 conflict = true;
                             }
                         }
@@ -588,8 +548,7 @@ fn sem_link_functions(c: SemanticContext*): void {
     i = 0;
     for(; i < c.functions.capacity; i++) {
         var entry = c.functions.entries[i];
-        var present = entry != null;
-        if present {
+        if entry != null {
             var node = sem_get(entry.value);
             while node.binding != null {
                 entry.value = node.binding;
@@ -602,8 +561,7 @@ fn sem_link_functions(c: SemanticContext*): void {
     for(; i < c.program.functions.length; i++) {
         var node = c.program.functions.data[i];
         var value = sem_get(node);
-        var unique = value.binding == null;
-        if unique {
+        if value.binding == null {
             value.index = count;
             c.program.functions.data[count] = node;
             count++;

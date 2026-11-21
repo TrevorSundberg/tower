@@ -19,8 +19,7 @@ fn guest_wasm_pages(): u32 {
 // outside the arena rather than wrapping the committed limit to null.
 fn guest_wasm_limit(pages: u32): usize {
     var limit = convert(u64, pages) *65536;
-    var full = limit > 4294967295;
-    if full {
+    if limit > 4294967295 {
         limit = 4294967295;
     }
     return convert(usize, limit);
@@ -28,8 +27,7 @@ fn guest_wasm_limit(pages: u32): usize {
 
 export fn guest_wasm_init(heap: GuestHeap*): bool {
     var pages = guest_wasm_pages();
-    var full = pages >= 65536;
-    if full {
+    if pages >= 65536 {
         return false;
     }
     var end = bits(u8*, guest_wasm_limit(pages));
@@ -38,8 +36,7 @@ export fn guest_wasm_init(heap: GuestHeap*): bool {
 
 export fn guest_wasm_allocate(heap: GuestHeap*, count: usize, size: usize): void* {
     var result = guest_heap_allocate(heap, count, size);
-    var allocated = result != null;
-    if allocated {
+    if result != null {
         return result;
     }
     var bytes = guest_heap_request_size(count, size);
@@ -54,8 +51,7 @@ export fn guest_wasm_allocate(heap: GuestHeap*, count: usize, size: usize): void
         return null;
     }
     var pages = guest_wasm_pages();
-    var detached = heap.limit != guest_wasm_limit(pages);
-    if detached {
+    if heap.limit != guest_wasm_limit(pages) {
         return null;
     }
     var needed = end + 65535;
@@ -63,8 +59,7 @@ export fn guest_wasm_allocate(heap: GuestHeap*, count: usize, size: usize): void
     var committed = convert(u32, needed);
     var delta = committed -pages;
     var previous = `llvm.wasm.memory.grow.i32`(0, delta);
-    var failed = previous != pages;
-    if failed {
+    if previous != pages {
         // Includes UINT32_MAX on failure. Never publish an uncommitted range.
         return null;
     }
@@ -75,29 +70,24 @@ export fn guest_wasm_allocate(heap: GuestHeap*, count: usize, size: usize): void
 
 export fn guest_wasm_reallocate(heap: GuestHeap*, pointer: void*, count: usize, size: usize): void* {
     var requested = guest_heap_request_size(count, size);
-    var overflow = requested == 0;
-    if overflow {
+    if requested == 0 {
         return null;
     }
-    var absent = pointer == null;
-    if absent {
+    if pointer == null {
         return guest_wasm_allocate(heap, count, size);
     }
     var bytes = count *size;
-    var empty = bytes == 0;
-    if empty {
+    if bytes == 0 {
         guest_heap_free(heap, pointer);
         return null;
     }
     var block = bits(GuestBlock*, pointer);
     block--;
-    var enough = block.size >= bytes;
-    if enough {
+    if block.size >= bytes {
         return pointer;
     }
     var result = guest_wasm_allocate(heap, count, size);
-    var allocated = result != null;
-    if allocated {
+    if result != null {
         copy(result, pointer, block.size);
         guest_heap_free(heap, pointer);
     }

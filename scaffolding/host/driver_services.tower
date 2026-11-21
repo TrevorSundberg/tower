@@ -12,22 +12,19 @@ export fn driver_resource_root(out: ByteBuffer*, executable: u8*): bool {
     var boundary: usize = 0;
     loop {
         var c = executable[i];
-        var end = c == 0;
-        if end {
+        if c == 0 {
             break;
         }
         i++;
         var separator = c == 47;
-        var windows = c == 92;
-        if windows {
+        if c == 92 {
             separator = true;
         }
         if separator {
             boundary = i;
         }
     }
-    var missing = boundary == 0;
-    if missing {
+    if boundary == 0 {
         return false;
     }
     out.length = 0;
@@ -42,25 +39,21 @@ export fn driver_resource_root(out: ByteBuffer*, executable: u8*): bool {
 export fn driver_source_position(source: u8*, count: usize, offset: usize, line: usize*, column: usize*): void {
     *line = 1;
     *column = 1;
-    var past = offset > count;
-    if past {
+    if offset > count {
         offset = count;
     }
     var i: usize = 0;
     loop {
-        var done = i == offset;
-        if done {
+        if i == offset {
             return;
         }
         var c = source[i];
-        var newline = c == 10;
-        if newline {
+        if c == 10 {
             *line = *line + 1;
             *column = 1;
         } else {
             var prefix = c &192;
-            var first = prefix != 128;
-            if first {
+            if prefix != 128 {
                 *column = *column + 1;
             }
         }

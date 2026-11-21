@@ -17,8 +17,7 @@ const MatchArmLimit: usize = 128;
 // Capture every spelling, including quoted/free uses, before generating names.
 // Bind operands directly; unique serialized names also preserve reparse hygiene.
 fn sem_control_name(c: SemanticContext*): u8* {
-    var missing = c.control_names == null;
-    if missing {
+    if c.control_names == null {
         c.control_names = sem_table(c);
         var pending = sem_list(c);
         sem_push(pending, c.program.root);
@@ -56,8 +55,7 @@ fn sem_control_name(c: SemanticContext*): u8* {
     var index = c.control_names.count;
     loop {
         var name = sem_cat(c, "control value ", sem_decimal(c, convert(u64, index)));
-        var exists = sem_lookup_table(c.control_names, name) != null;
-        if !exists {
+        if sem_lookup_table(c.control_names, name) == null {
             sem_put(c, c.control_names, name, c.program.root);
             return name;
         }
@@ -98,8 +96,7 @@ fn sem_control_local(c: SemanticContext*, block: void*, initial: void*): void* {
     value.value = initial;
     sem_add_local(c, entity);
     var owner = sem_get(block);
-    var same = block == c.current;
-    if !same {
+    if block != c.current {
         sem_push(&owner.locals, entity);
     }
     var global = block == c.program.root;
@@ -150,15 +147,13 @@ fn sem_control_match(c: SemanticContext*, n: void*, depth: u32): u32 {
         return FlowNext();
     }
     var arms = sem_collect(c, sem_member(n, "arms"), "TowerMatchArm");
-    var too_many = arms.length > MatchArmLimit();
-    if too_many {
+    if arms.length > MatchArmLimit() {
         sem_fail(c, n, "match supports at most 128 arms");
         return FlowNext();
     }
     var lowered_depth = convert(usize, depth) + arms.length;
     lowered_depth = lowered_depth + 3;
-    var too_deep = lowered_depth > 128;
-    if too_deep {
+    if lowered_depth > 128 {
         sem_fail(c, n, "match lowering exceeds Foundation block nesting limit of 128");
         return FlowNext();
     }
@@ -179,8 +174,7 @@ fn sem_control_match(c: SemanticContext*, n: void*, depth: u32): u32 {
         }
         var arm = arms.data[i];
         var choices = sem_collect(c, sem_member(arm, "patterns"), "TowerMatchLiteral");
-        var empty = choices.length == 0;
-        if empty {
+        if choices.length == 0 {
             sem_fail(c, arm, "A match arm needs a literal pattern");
             return FlowNext();
         }
@@ -197,8 +191,7 @@ fn sem_control_match(c: SemanticContext*, n: void*, depth: u32): u32 {
                 break;
             }
             var syntax = choices.data[j];
-            var single = sem_child_count(syntax) == 1;
-            if single {
+            if sem_child_count(syntax) == 1 {
                 syntax = sem_child(syntax, 0);
             }
             var pattern = sem_operand(c, syntax, type);
@@ -218,8 +211,7 @@ fn sem_control_match(c: SemanticContext*, n: void*, depth: u32): u32 {
                 }
                 var literal = sem_get(pattern);
                 var previous = sem_get(patterns.data[k]);
-                var duplicate = literal.bits == previous.bits;
-                if duplicate {
+                if literal.bits == previous.bits {
                     sem_fail(c, choices.data[j], "Duplicate match pattern");
                     return FlowNext();
                 }
@@ -290,13 +282,11 @@ fn sem_control_while(c: SemanticContext*, n: void*, depth: u32): u32 {
     sem_push(&failure.items, stop);
     var result = flow &FlowReturn();
     if known.constant {
-        var never = known.bits == 0;
-        if never {
+        if known.bits == 0 {
             return FlowNext();
         }
         var exits = flow &FlowBreak();
-        var breaks = exits != 0;
-        if breaks {
+        if exits != 0 {
             result = result | FlowNext();
         }
         return result;

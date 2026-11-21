@@ -15,23 +15,19 @@ export fn syntax_pattern_size(): usize {
 }
 
 export fn syntax_pattern_retain(value: SyntaxPattern*): void {
-    var present = value != null;
-    if present {
+    if value != null {
         value.references++;
     }
 }
 
 export fn syntax_pattern_release(value: SyntaxPattern*): void {
-    var missing = value == null;
-    if missing {
+    if value == null {
         return;
     }
     value.references--;
-    var unused = value.references == 0;
-    if unused {
+    if value.references == 0 {
         lex_table_destroy(value.table);
-        var tree = value.grammar != null;
-        if tree {
+        if value.grammar != null {
             entity_release(value.grammar);
         }
         free(value);
@@ -52,8 +48,7 @@ export fn syntax_pattern_create(grammar: void*): SyntaxPattern* {
         syntax_pattern_release(value);
         return null;
     }
-    var tree = grammar != null;
-    if tree {
+    if grammar != null {
         entity_retain(grammar);
     }
     value.grammar = grammar;
@@ -112,8 +107,7 @@ export fn syntax_comments_push(comments: vector(vector(u8))*, text: u8*, length:
     vector_init(u8, &snapshot);
     var ok = vector_reserve(u8, &snapshot, needed);
     if ok {
-        var nonempty = length != 0;
-        if nonempty {
+        if length != 0 {
             copy(snapshot.data, text, length);
         }
         snapshot.data[length] = 0;
@@ -155,8 +149,7 @@ fn syntax_text_equal(left: vector(u8)*, right: vector(u8)*): bool {
     }
     var index: usize = 0;
     loop {
-        var done = index == left.length;
-        if done {
+        if index == left.length {
             return true;
         }
         different = left.data[index] != right.data[index];
@@ -174,8 +167,7 @@ struct SyntaxComparison {
 
 fn syntax_comparison_push(pending: vector(SyntaxComparison)*, left: void*, right: void*): bool {
     var count = pending.length + 1;
-    var overflow = count == 0;
-    if overflow {
+    if count == 0 {
         return false;
     }
     var ok = vector_reserve(SyntaxComparison, pending, count);
@@ -190,8 +182,7 @@ fn syntax_comparison_push(pending: vector(SyntaxComparison)*, left: void*, right
 // 1 equal, 0 different, -1 allocation failure. Metadata and cache addresses do
 // not affect parser identity. Template coordinates matter only when requested.
 export fn syntax_nodes_equal(left: void*, right: void*, kind: void*, locations: bool): i32 {
-    var identical = left == right;
-    if identical {
+    if left == right {
         return 1;
     }
     var pending: vector(SyntaxComparison);
@@ -199,13 +190,11 @@ export fn syntax_nodes_equal(left: void*, right: void*, kind: void*, locations: 
     var ok = syntax_comparison_push(&pending, left, right);
     var result: i32 = 1;
     loop {
-        var failed = !ok;
-        if failed {
+        if !ok {
             result = -1;
             break;
         }
-        var done = pending.length == 0;
-        if done {
+        if pending.length == 0 {
             break;
         }
         pending.length--;
@@ -253,22 +242,19 @@ export fn syntax_nodes_equal(left: void*, right: void*, kind: void*, locations: 
         same &&= x.repetition == y.repetition;
         same &&= x.items.length == y.items.length;
         if locations {
-            var template_node = x.kind == 6;
-            if template_node {
+            if x.kind == 6 {
                 same &&= x.start == y.start;
                 same &&= x.end == y.end;
             }
         }
-        var different = !same;
-        if different {
+        if !same {
             result = 0;
             break;
         }
         var index: usize = 0;
         for(; index != x.items.length; index++) {
             ok = syntax_comparison_push(&pending, x.items.data[index], y.items.data[index]);
-            var failed_item = !ok;
-            if failed_item {
+            if !ok {
                 break;
             }
         }

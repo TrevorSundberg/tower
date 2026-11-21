@@ -23,8 +23,7 @@ fn ide_program_format(session: IdeExecution*, formatted: FormatResult*): void {
 
 fn ide_emit(handle: u32, flags: u32, roku: bool): u8* {
     var session = ide_execution(handle);
-    var missing = session == null;
-    if missing {
+    if session == null {
         ide_error("Invalid execution handle");
         return null;
     }
@@ -40,8 +39,7 @@ fn ide_emit(handle: u32, flags: u32, roku: bool): u8* {
     else {
         c_emit(&output, &error, session.program.root, session.program.pointer_bytes, comments);
     }
-    var failed = error.length != 0;
-    if failed {
+    if error.length != 0 {
         ide_error(ide_result(&error));
         bytes_dispose(&output);
         bytes_dispose(&error);
@@ -64,8 +62,7 @@ export fn tw_exec_roku(handle: u32, flags: u32): u8* {
 
 export fn tw_exec_strip_comments(handle: u32): void {
     var session = ide_execution(handle);
-    var present = session != null;
-    if present {
+    if session != null {
         semantic_strip_comments(session.program.root);
     }
 }
@@ -91,8 +88,7 @@ export fn tw_exec_bytecode_options(handle: u32, profile: u32): usize {
         ide_error(ide_result(&canonical.error));
     }
     else {
-        var ready = ide_execution_fast(canonical);
-        if ready {
+        if ide_execution_fast(canonical) {
             state.bytecode = bytecode_encode(canonical.fast, formatted.text.data, formatted.text.length, convert(usize, session.program.pointer_bytes), profile, &state.bytecode_size);
         }
         failed = state.bytecode == null;

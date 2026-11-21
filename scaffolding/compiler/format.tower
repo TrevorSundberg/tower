@@ -19,8 +19,7 @@ fn format_syntax(f: FormatEngine*, entity: void*): SyntaxNode* {
 }
 
 fn format_foundation(f: FormatEngine*, entity: void*): FoundationNode* {
-    var absent = f.foundation_kind == null;
-    if absent {
+    if f.foundation_kind == null {
         f.foundation_kind = core_component_type();
     }
     var component = entity_component_get(entity, f.foundation_kind);
@@ -33,8 +32,7 @@ export fn format_match(f: FormatEngine*, entity: void*): ParserMatchData* {
 }
 
 export fn format_write(f: FormatEngine*, bytes: u8*, count: usize): void {
-    var ok = bytes_append(&f.result.text, bytes, count);
-    if !ok {
+    if !bytes_append(&f.result.text, bytes, count) {
         f.result.failed = true;
     }
 }
@@ -52,19 +50,16 @@ export fn format_char(f: FormatEngine*, byte: u8): void {
 }
 
 export fn format_repeat(f: FormatEngine*, byte: u8, count: usize): void {
-    var empty = count == 0;
-    if empty {
+    if count == 0 {
         return;
     }
     var text = &f.result.text;
     var needed = text.length + count;
-    var overflow = needed < text.length;
-    if overflow {
+    if needed < text.length {
         f.result.failed = true;
         return;
     }
-    var ok = vector_reserve(u8, text, needed);
-    if ok {
+    if vector_reserve(u8, text, needed) {
         fill(&text.data[text.length], byte, count);
         text.length = needed;
     } else {
@@ -87,8 +82,7 @@ fn format_newline(f: FormatEngine*, blank: bool): void {
         var c = text.data[at];
         var space = c == 32;
         var tab = c == 9;
-        var trim = format_or(space, tab);
-        if !trim {
+        if !format_or(space, tab) {
             break;
         }
         text.length = at;
@@ -121,8 +115,7 @@ fn format_newline(f: FormatEngine*, blank: bool): void {
 fn format_span(f: FormatEngine*, begin: usize, source: usize): void {
     var spans = &f.result.spans;
     var needed = spans.length + 1;
-    var ok = vector_reserve(FormatSpan, spans, needed);
-    if ok {
+    if vector_reserve(FormatSpan, spans, needed) {
         var span = &spans.data[spans.length];
         span.begin = begin;
         span.end = f.result.text.length;
@@ -218,114 +211,86 @@ fn format_escape(f: FormatEngine*, bytes: u8*, length: usize, quote: u8): void {
 }
 
 fn format_reserved(name: vector(u8)*): bool {
-    var length2 = name.length == 2;
-    if length2 {
-        var word_fn = format_name_is(name, "fn");
-        if word_fn {
+    if name.length == 2 {
+        if format_name_is(name, "fn") {
             return true;
         }
-        var word_if = format_name_is(name, "if");
-        if word_if {
+        if format_name_is(name, "if") {
             return true;
         }
-        var word_as = format_name_is(name, "as");
-        if word_as {
+        if format_name_is(name, "as") {
             return true;
         }
         return false;
     }
-    var length3 = name.length == 3;
-    if length3 {
-        var word_var = format_name_is(name, "var");
-        if word_var {
+    if name.length == 3 {
+        if format_name_is(name, "var") {
             return true;
         }
         return false;
     }
-    var length4 = name.length == 4;
-    if length4 {
-        var word_else = format_name_is(name, "else");
-        if word_else {
+    if name.length == 4 {
+        if format_name_is(name, "else") {
             return true;
         }
-        var word_loop = format_name_is(name, "loop");
-        if word_loop {
+        if format_name_is(name, "loop") {
             return true;
         }
-        var word_true = format_name_is(name, "true");
-        if word_true {
+        if format_name_is(name, "true") {
             return true;
         }
-        var word_null = format_name_is(name, "null");
-        if word_null {
+        if format_name_is(name, "null") {
             return true;
         }
-        var word_skip = format_name_is(name, "skip");
-        if word_skip {
+        if format_name_is(name, "skip") {
             return true;
         }
-        var word_when = format_name_is(name, "when");
-        if word_when {
+        if format_name_is(name, "when") {
             return true;
         }
         return false;
     }
-    var length5 = name.length == 5;
-    if length5 {
-        var word_break = format_name_is(name, "break");
-        if word_break {
+    if name.length == 5 {
+        if format_name_is(name, "break") {
             return true;
         }
-        var word_false = format_name_is(name, "false");
-        if word_false {
+        if format_name_is(name, "false") {
             return true;
         }
-        var word_parse = format_name_is(name, "parse");
-        if word_parse {
+        if format_name_is(name, "parse") {
             return true;
         }
-        var word_token = format_name_is(name, "token");
-        if word_token {
+        if format_name_is(name, "token") {
             return true;
         }
         return false;
     }
-    var length6 = name.length == 6;
-    if length6 {
-        var word_return = format_name_is(name, "return");
-        if word_return {
+    if name.length == 6 {
+        if format_name_is(name, "return") {
             return true;
         }
-        var word_struct = format_name_is(name, "struct");
-        if word_struct {
+        if format_name_is(name, "struct") {
             return true;
         }
-        var word_extern = format_name_is(name, "extern");
-        if word_extern {
+        if format_name_is(name, "extern") {
             return true;
         }
-        var word_export = format_name_is(name, "export");
-        if word_export {
+        if format_name_is(name, "export") {
             return true;
         }
         return false;
     }
-    var length7 = name.length == 7;
-    if length7 {
-        var word_replace = format_name_is(name, "replace");
-        if word_replace {
+    if name.length == 7 {
+        if format_name_is(name, "replace") {
             return true;
         }
         return false;
     }
-    var length8 = name.length == 8;
-    if length8 {
-        var word_continue = format_name_is(name, "continue");
-        if word_continue {
+    if name.length == 8 {
+        if format_name_is(name, "continue") {
             return true;
         }
-        var word_expected = format_name_is(name, "expected");
-        if word_expected {
+        if format_name_is(name, "expected") {
             return true;
         }
         return false;
@@ -352,8 +317,7 @@ fn format_identifier(f: FormatEngine*, name: vector(u8)*): void {
     }
     // Canonical reserved spellings, independent of editable lexer keywords.
     if plain {
-        var reserved = format_reserved(name);
-        if reserved {
+        if format_reserved(name) {
             plain = false;
         }
     }

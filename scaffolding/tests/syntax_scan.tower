@@ -12,8 +12,7 @@ import .compiler.syntax_scan;
 fn syntax_scan_tests(context: void*, match_kind: void*): usize {
     var budget: usize = 0;
     loop {
-        var exhausted = budget == 128;
-        if exhausted {
+        if budget == 128 {
             return 601;
         }
         var buffers = tower_test_buffer_count();
@@ -74,8 +73,7 @@ fn syntax_scan_tests(context: void*, match_kind: void*): usize {
             syntax_scan_dispose(&result);
         }
         lexicon_destroy(input.lexicon);
-        var balanced = tower_test_buffer_count() == buffers;
-        if !balanced {
+        if tower_test_buffer_count() != buffers {
             return 602;
         }
         if !ok {

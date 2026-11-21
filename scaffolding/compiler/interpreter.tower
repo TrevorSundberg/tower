@@ -49,8 +49,7 @@ fn im_key(node: void*): u64 {
 
 fn im_align(n: usize): usize {
     var v = n + 15;
-    var returned_173 = v &im_align_mask();
-    return returned_173;
+    return v &im_align_mask();
 }
 
 fn im_power(n: usize): u64 {
@@ -102,12 +101,10 @@ export fn interpreter_load(m: IMState*, address: u64, type: FoundationType*, off
 // Fixed-width paths let LLVM combine loads without inheriting host endianness.
 fn im_load_size(m: IMState*, address: u64, size: usize, offset: usize): u64 {
     var p = interpreter_bytes(m, address, size, offset);
-    var missing = p == null;
-    if missing {
+    if p == null {
         return 0;
     }
-    var byte = size == 1;
-    if byte {
+    if size == 1 {
         return convert(u64, p[0]);
     }
     var lo = convert(u64, p[0]);
@@ -120,8 +117,7 @@ fn im_load_size(m: IMState*, address: u64, size: usize, offset: usize): u64 {
     var lo_3 = convert(u64, p[3]);
     lo_3 = lo_3 * 16777216;
     lo = lo | lo_3;
-    var word = size == 4;
-    if word {
+    if size == 4 {
         return lo;
     }
     var hi = convert(u64, p[4]);
@@ -145,13 +141,11 @@ export fn interpreter_write(m: IMState*, address: u64, value: u64, type: Foundat
 
 fn im_write_size(m: IMState*, address: u64, value: u64, size: usize, offset: usize): void {
     var p = interpreter_bytes(m, address, size, offset);
-    var missing = p == null;
-    if missing {
+    if p == null {
         return;
     }
     p[0] = im_byte(value);
-    var byte = size == 1;
-    if byte {
+    if size == 1 {
         return;
     }
     value = value / 256;
@@ -160,8 +154,7 @@ fn im_write_size(m: IMState*, address: u64, value: u64, size: usize, offset: usi
     p[2] = im_byte(value);
     value = value / 256;
     p[3] = im_byte(value);
-    var word = size == 4;
-    if word {
+    if size == 4 {
         return;
     }
     value = value / 256;
@@ -208,8 +201,7 @@ export fn interpreter_allocate(m: IMState*, count: usize): u64 {
         return 0;
     }
     var end = heap + count;
-    var grown = im_memory_resize(m, end);
-    if !grown {
+    if !im_memory_resize(m, end) {
         return 0;
     }
     m.heap = end;
@@ -322,8 +314,7 @@ fn im_read_uncached(m: IMState*, node: void*, n: FoundationNode*, offset: usize)
         }
         var memory = im_memory(m);
         var index = convert(usize, at);
-        var nonempty = n.name.length != 0;
-        if nonempty {
+        if n.name.length != 0 {
             copy(&memory[index], n.name.data, n.name.length);
         }
         var terminator = index + n.name.length;
@@ -396,16 +387,14 @@ fn im_address_uncached(m: IMState*, node: void*, n: FoundationNode*, offset: usi
         return pointer;
     }
     var binding = n;
-    var bound = n.binding != null;
-    if bound {
+    if n.binding != null {
         binding = im_cached_node(m, n.binding);
     }
     var base: u64 = 16;
     if !binding.global {
         base = convert(u64, im_base(m));
     }
-    var returned_174 = base + convert(u64, binding.byte_offset);
-    return returned_174;
+    return base + convert(u64, binding.byte_offset);
 }
 
 fn im_evaluate(m: IMState*, node: void*, offset: usize): u64 {
@@ -494,13 +483,11 @@ fn im_evaluate_uncached(m: IMState*, node: void*, n: FoundationNode*, offset: us
             result = im_binary(m, n, a, offset);
         }
     }
-    var returned_175 = result &im_type_mask(&n.type);
-    return returned_175;
+    return result &im_type_mask(&n.type);
 }
 
 fn im_convert_value(m: IMState*, a: u64, input: FoundationType*, type: FoundationType*, offset: usize): u64 {
-    var boolean = type.scalar == SBool();
-    if boolean {
+    if type.scalar == SBool() {
         var nonzero = a != 0;
         return convert(u64, nonzero);
     }
@@ -541,8 +528,7 @@ fn im_binary(m: IMState*, n: FoundationNode*, x: u64, offset: usize): u64 {
     var y = im_evaluate(m, n.right, offset);
     var input = im_cached_node(m, n.left);
     var right_type = &input.type;
-    var pointer = input.type.pointers != 0;
-    if pointer {
+    if input.type.pointers != 0 {
         var right = im_cached_node(m, n.right);
         right_type = &right.type;
     }
@@ -567,16 +553,13 @@ fn im_binary_values(m: IMState*, op: u32, x: u64, y: u64, type: FoundationType*,
 // Shared scalar semantics for graph evaluation and compact instruction dispatch.
 fn im_binary_scalar(m: IMState*, op: u32, x: u64, y: u64, mask: u64, signed: bool, offset: usize): u64 {
     if op == OAdd() {
-        var returned_176 = x + y;
-        return returned_176;
+        return x + y;
     }
     if op == OSub() {
-        var returned_177 = x -y;
-        return returned_177;
+        return x -y;
     }
     if op == OMul() {
-        var returned_178 = x *y;
-        return returned_178;
+        return x *y;
     }
     var division = op == ODiv();
     var test = op == ORem();
@@ -606,23 +589,18 @@ fn im_binary_scalar(m: IMState*, op: u32, x: u64, y: u64, mask: u64, signed: boo
             return bits(u64, signed_result);
         }
         if op == ODiv() {
-            var returned_179 = x / y;
-            return returned_179;
+            return x / y;
         }
-        var returned_180 = x % y;
-        return returned_180;
+        return x % y;
     }
     if op == OAnd() {
-        var returned_181 = x &y;
-        return returned_181;
+        return x &y;
     }
     if op == OOr() {
-        var returned_182 = x | y;
-        return returned_182;
+        return x | y;
     }
     if op == OXor() {
-        var returned_183 = x ^ y;
-        return returned_183;
+        return x ^ y;
     }
     var result = false;
     if op == OEq() {
@@ -779,8 +757,7 @@ fn im_needs(m: IMState*, node: void*): bool {
     var found = false;
     var cached = im_sequenced_get(m, im_key(node), &found);
     if found {
-        var returned_184 = cached != 0;
-        return returned_184;
+        return cached != 0;
     }
     var n = im_cached_node(m, node);
     var result = n.kind == KCall();
@@ -806,8 +783,7 @@ export fn interpreter_init(m: IMState*): void {
     if m.done {
         return;
     }
-    var allocated = im_memory_resize(m, 4194304);
-    if !allocated {
+    if !im_memory_resize(m, 4194304) {
         im_fail(m, "Cannot allocate interpreter memory", 0);
         m.done = true;
         return;
@@ -1185,23 +1161,19 @@ fn im_statement(m: IMState*, task: IMTask*, n: FoundationNode*): void {
         im_print(m, n.value, n.start);
         return;
     }
-    var trapping = n.kind == KTrap();
-    if trapping {
+    if n.kind == KTrap() {
         var message = im_read(m, n.left, n.start);
         var offset = im_read(m, n.right, n.start);
         im_raise(m, message, offset);
         return;
     }
-    var label = n.kind == KLabel();
-    if label {
+    if n.kind == KLabel() {
         return;
     }
-    var explicit_jump = n.kind == KJump();
-    if explicit_jump {
+    if n.kind == KJump() {
         var discard: IMTask;
         loop {
-            var empty = m.task_count == 0;
-            if empty {
+            if m.task_count == 0 {
                 break;
             }
             im_task_pop(m, &discard);
@@ -1211,8 +1183,7 @@ fn im_statement(m: IMState*, task: IMTask*, n: FoundationNode*): void {
         var i = body.items.length;
         var begin = destination.index + 1;
         loop {
-            var end = i == begin;
-            if end {
+            if i == begin {
                 break;
             }
             i--;
@@ -1226,12 +1197,10 @@ fn im_statement(m: IMState*, task: IMTask*, n: FoundationNode*): void {
 fn im_raise(m: IMState*, message: u64, offset: u64): void {
     var at = convert(usize, offset);
     var bytes = interpreter_bytes(m, message, 1, at);
-    var failed = bytes == null;
-    if failed {
+    if bytes == null {
         return;
     }
-    var empty_message = bytes[0] == 0;
-    if empty_message {
+    if bytes[0] == 0 {
         im_fail(m, "Tower trap", at);
         return;
     }

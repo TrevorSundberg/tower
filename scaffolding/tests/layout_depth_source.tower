@@ -19,8 +19,7 @@ fn layout_number(out: vector(u8)*, number: usize): void {
         digits[count] = convert(u8, digit);
         count++;
         number = number / 10;
-        var done = number == 0;
-        if done {
+        if number == 0 {
             break;
         }
     }

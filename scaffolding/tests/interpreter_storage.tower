@@ -133,8 +133,7 @@ fn interpreter_container_tests(): i32 {
             return 605;
         }
         var remainder = i % 2;
-        var even = remainder == 0;
-        if even {
+        if remainder == 0 {
             value = im_allocations_take(&state, i, &found);
             if !found {
                 return 606;
@@ -204,8 +203,7 @@ fn interpreter_container_tests(): i32 {
         im_addresses_set(&state, 2, 42);
     }
     loop {
-        var done = frame == 0;
-        if done {
+        if frame == 0 {
             break;
         }
         frame--;

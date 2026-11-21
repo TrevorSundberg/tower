@@ -43,16 +43,14 @@ fn work_graph_batches(width: usize): bool {
                 break;
             }
         }
-        var done = count == 0;
-        if done {
+        if count == 0 {
             break;
         }
         for(; count != 0; completed++) {
             count--;
             var task = work_task(&g, tickets[count].task);
             var index = convert(usize, task.argument);
-            var join = index == 257;
-            if join {
+            if index == 257 {
                 var sum: usize = 0;
                 i = 1;
                 for(; i < 257; i++) {
@@ -86,8 +84,7 @@ fn work_graph_tests(): i32 {
     for(; i < 1024; i++) {
         ids[i] = work_request(&g, bits(void*, &subjects[i]), 1, 0);
         var repeat = work_request(&g, bits(void*, &subjects[i]), 1, 0);
-        var same = repeat == ids[i];
-        if !same {
+        if repeat != ids[i] {
             return 1;
         }
     }
@@ -140,8 +137,7 @@ fn work_graph_tests(): i32 {
                 at = edge.next_dependency;
             }
         }
-        var done = count == 0;
-        if done {
+        if count == 0 {
             break;
         }
         // Simulate the opposite completion order from dispatch. No dependent

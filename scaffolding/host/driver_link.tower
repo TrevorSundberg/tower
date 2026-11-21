@@ -27,8 +27,7 @@ struct DriverLink {
 
 export fn driver_link_open(target: u8*, cc: u8*, linker: u8*, sysroot: u8*, output: u8*, root: u8*, wasm: bool, windows: bool, timing: DriverTiming*, timings: bool): DriverLink* {
     var link = alloc(DriverLink, 1);
-    var missing = link == null;
-    if missing {
+    if link == null {
         driver_error("Unable to allocate link storage", "");
         return null;
     }
@@ -72,8 +71,7 @@ fn driver_link_compile_arguments(link: DriverLink*, args: DriverArguments*): voi
     driver_argument(args, link.root, driver_runtime_resource(link.target));
     driver_argument(args, "", "-o");
     driver_argument(args, "", link.runtime.data);
-    var has_sysroot = link.sysroot[0] != 0;
-    if has_sysroot {
+    if link.sysroot[0] != 0 {
         driver_argument(args, "--sysroot=", link.sysroot);
     }
     driver_argument(args, "", "-mllvm");
@@ -84,31 +82,26 @@ fn driver_link_compile_arguments(link: DriverLink*, args: DriverArguments*): voi
 extern fn strstr(text: u8*, part: u8*): u8*;
 
 fn driver_runtime_resource(target: u8*): u8* {
-    var wasm = strstr(target, "wasm32") == target;
-    if wasm {
+    if strstr(target, "wasm32") == target {
         return "/runtime-wasm32.ll";
     }
     var arm = strstr(target, "aarch64") == target;
-    if arm {} else {
-        arm = strstr(target, "arm64") == target;
-    }
+    arm ||= strstr(target, "arm64") == target;
     var x64 = strstr(target, "x86_64") == target;
     var supported = arm;
     if x64 {
         supported = true;
     }
-    if supported {} else {
+    if !supported {
         return null;
     }
-    var windows = strstr(target, "windows") != null;
-    if windows {
+    if strstr(target, "windows") != null {
         if arm {
             return "/runtime-windows-arm64.ll";
         }
         return "/runtime-windows-x64.ll";
     }
-    var macos = strstr(target, "apple") != null;
-    if macos {
+    if strstr(target, "apple") != null {
         if arm {
             return "/runtime-macos-arm64.ll";
         }
@@ -122,8 +115,7 @@ fn driver_runtime_resource(target: u8*): u8* {
 
 fn driver_link_arguments(link: DriverLink*, args: DriverArguments*): void {
     var linker = link.linker;
-    var automatic = linker[0] == 0;
-    if automatic {
+    if linker[0] == 0 {
         linker = link.cc;
         if link.windows {
             linker = "lld-link-19";
@@ -166,8 +158,7 @@ fn driver_link_arguments(link: DriverLink*, args: DriverArguments*): void {
             driver_argument(args, prefix, link.exports.values.data[i]);
         }
     } else {
-        var has_sysroot = link.sysroot[0] != 0;
-        if has_sysroot {
+        if link.sysroot[0] != 0 {
             driver_argument(args, "--sysroot=", link.sysroot);
         }
     }
@@ -182,8 +173,7 @@ fn driver_link_arguments(link: DriverLink*, args: DriverArguments*): void {
 
 fn driver_link_execute(link: DriverLink*, data: u8*, length: usize): i32 {
     var runtime = driver_runtime_resource(link.target);
-    var unsupported = runtime == null;
-    if unsupported {
+    if runtime == null {
         driver_error("No bundled executable runtime profile for target: ", link.target);
         return 1;
     }
@@ -211,8 +201,7 @@ fn driver_link_execute(link: DriverLink*, data: u8*, length: usize): i32 {
     driver_link_compile_arguments(link, &compile);
     var result = driver_command(&compile);
     driver_arguments_dispose(&compile);
-    var failed = result != 0;
-    if failed {
+    if result != 0 {
         return result;
     }
     driver_timing_mark(link.timing, link.timings, "runtimeCompile");
@@ -232,16 +221,14 @@ fn driver_link_execute(link: DriverLink*, data: u8*, length: usize): i32 {
 }
 
 fn driver_temporary_dispose(path: ByteBuffer*): void {
-    var created = path.length != 0;
-    if created {
+    if path.length != 0 {
         driver_platform_remove(path.data);
     }
     bytes_dispose(path);
 }
 
 export fn driver_link_close(link: DriverLink*): void {
-    var missing = link == null;
-    if missing {
+    if link == null {
         return;
     }
     driver_temporary_dispose(&link.program);

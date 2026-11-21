@@ -40,8 +40,7 @@ fn driver_error_code(): i32 {
 
 export fn driver_clock(): u64 {
     var time: DriverTimespec;
-    var clock_failed = clock_gettime(driver_monotonic_clock(), &time) != 0;
-    if clock_failed {
+    if clock_gettime(driver_monotonic_clock(), &time) != 0 {
         return 0;
     }
     var seconds = convert(u64, time.seconds) *1000000000;
@@ -56,16 +55,13 @@ export fn driver_platform_write(fd: i32, data: u8*, length: usize): void {
 export fn driver_platform_write_result(fd: i32, data: u8*, length: usize): bool {
     while length != 0 {
         var count = write(fd, data, length);
-        var write_failed = count < 0;
-        if write_failed {
-            var write_interrupted = driver_error_code() == 4;
-            if write_interrupted {
+        if count < 0 {
+            if driver_error_code() == 4 {
                 continue;
             }
             return false;
         }
-        var write_stopped = count == 0;
-        if write_stopped {
+        if count == 0 {
             return false;
         }
         var done = convert(usize, count);
@@ -98,8 +94,7 @@ export fn driver_platform_temporary(out: ByteBuffer*): bool {
         directory = "/tmp";
     }
     var ok = driver_text(out, directory);
-    var nonempty_directory = directory[0] != 0;
-    if nonempty_directory {
+    if directory[0] != 0 {
         ok &&= driver_text(out, "/");
     }
     ok &&= driver_text(out, "tower-XXXXXX");
@@ -109,14 +104,12 @@ export fn driver_platform_temporary(out: ByteBuffer*): bool {
         return false;
     }
     var fd = mkstemp(out.data);
-    var create_failed = fd < 0;
-    if create_failed {
+    if fd < 0 {
         driver_error("Cannot create temporary file: ", strerror(driver_error_code()));
         out.length = 0;
         return false;
     }
-    var close_failed = close(fd) != 0;
-    if close_failed {
+    if close(fd) != 0 {
         driver_platform_remove(out.data);
         out.length = 0;
         return false;
@@ -127,8 +120,7 @@ export fn driver_platform_temporary(out: ByteBuffer*): bool {
 fn driver_find_tool(out: ByteBuffer*, name: u8*): bool {
     var i: usize = 0;
     for(; name[i] != 0; i++) {
-        var separator = name[i] == 47;
-        if separator {
+        if name[i] == 47 {
             var ok = driver_text(out, name);
             ok &&= host_text_terminate(out);
             ok &&= access(out.data, 1) == 0;
@@ -136,8 +128,7 @@ fn driver_find_tool(out: ByteBuffer*, name: u8*): bool {
         }
     }
     var path = getenv("PATH");
-    var missing = path == null;
-    if missing {
+    if path == null {
         return false;
     }
     var begin: usize = 0;
@@ -154,8 +145,7 @@ fn driver_find_tool(out: ByteBuffer*, name: u8*): bool {
             var count = i -begin;
             var segment = path + begin;
             var ok = bytes_append(out, segment, count);
-            var nonempty = count != 0;
-            if nonempty {
+            if count != 0 {
                 ok &&= driver_text(out, "/");
             }
             ok &&= driver_text(out, name);
@@ -163,8 +153,7 @@ fn driver_find_tool(out: ByteBuffer*, name: u8*): bool {
             if !ok {
                 return false;
             }
-            var executable = access(out.data, 1) == 0;
-            if executable {
+            if access(out.data, 1) == 0 {
                 return true;
             }
             if end {

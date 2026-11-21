@@ -137,22 +137,19 @@ fn format_grammar(f: FormatEngine*, entity: void*): void {
     format_comments(f, n);
     format_indent(f);
     var begin = f.result.text.length;
-    var imported = n.kind == 7;
-    if imported {
+    if n.kind == 7 {
         format_text(f, "import ");
         if n.literal {
             format_quote(f, &n.name);
         }
         else {
-            var legacy = n.items.length == 0;
-            if legacy {
+            if n.items.length == 0 {
                 format_identifier(f, &n.name);
             } else {
                 var i: usize = 0;
                 var separator: bool = false;
                 loop {
-                    var done = i == n.items.length;
-                    if done {
+                    if i == n.items.length {
                         break;
                     }
                     var segment = format_syntax(f, n.items.data[i]);
@@ -170,8 +167,7 @@ fn format_grammar(f: FormatEngine*, entity: void*): void {
                 }
             }
         }
-        var aliased = n.capture.length != 0;
-        if aliased {
+        if n.capture.length != 0 {
             format_text(f, " as ");
             format_identifier(f, &n.capture);
         }
@@ -239,8 +235,7 @@ fn format_grammar(f: FormatEngine*, entity: void*): void {
     } else {
         var entry = n.kind == 2;
         var skipped = n.kind == 3;
-        var lexical = format_or(entry, skipped);
-        if lexical {
+        if format_or(entry, skipped) {
             if skipped {
                 format_text(f, "skip ");
             } else {
@@ -289,38 +284,31 @@ export fn format_grammar_preview(result: FormatResult*, entity: void*, syntax: v
     f.result = result;
     f.syntax_kind = syntax;
     var n = format_syntax(&f, entity);
-    var grammar_condition1 = n == null;
-    if grammar_condition1 {
+    if n == null {
         return;
     }
-    var grammar_condition2 = n.kind == SyntaxAlternative();
-    if grammar_condition2 {
+    if n.kind == SyntaxAlternative() {
         format_alternative(&f, entity);
         format_precedence(&f, n);
         return;
     }
-    var grammar_condition3 = n.kind == SyntaxTerm();
-    if grammar_condition3 {
+    if n.kind == SyntaxTerm() {
         format_grammar_term(&f, entity);
         return;
     }
-    var grammar_condition4 = n.kind == SyntaxToken();
-    if grammar_condition4 {
+    if n.kind == SyntaxToken() {
         format_text(&f, "token ");
     }
-    var grammar_condition5 = n.kind == SyntaxSkip();
-    if grammar_condition5 {
+    if n.kind == SyntaxSkip() {
         format_text(&f, "skip ");
     }
     format_identifier(&f, &n.name);
-    var grammar_condition6 = n.kind == SyntaxToken();
-    if grammar_condition6 {
+    if n.kind == SyntaxToken() {
         format_text(&f, " = /");
         format_bytes(&f, &n.text);
         format_text(&f, "/");
     }
-    var grammar_condition7 = n.kind == SyntaxSkip();
-    if grammar_condition7 {
+    if n.kind == SyntaxSkip() {
         format_text(&f, " = /");
         format_bytes(&f, &n.text);
         format_text(&f, "/");

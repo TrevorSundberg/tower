@@ -84,8 +84,7 @@ fn ce_reserved(name: vector(u8)*): bool {
     var words = "auto break case char const continue default do double else enum extern float for goto if int long register return short signed sizeof static struct switch typedef union unsigned void volatile while asm bool catch class delete explicit export false friend inline mutable namespace new operator private protected public reinterpret_cast static_cast dynamic_cast const_cast template this throw true try typeid typename using virtual wchar_t and and_eq bitand bitor compl not not_eq or or_eq xor xor_eq alignas alignof char16_t char32_t constexpr decltype noexcept nullptr static_assert thread_local main uint8_t uint32_t uint64_t int32_t int64_t uintptr_t size_t NULL UINT64_C UINT64_MAX INT64_MAX INT64_MIN UINT32_MAX INT32_MAX INT32_MIN SIZE_MAX CHAR_BIT stdout stderr fputs fputc putchar puts printf exit memcpy memmove memset malloc realloc free fwrite _setmode _fileno";
     var at: usize = 0;
     loop {
-        var end = words[at] == 0;
-        if end {
+        if words[at] == 0 {
             break;
         }
         var start = at;
@@ -106,8 +105,7 @@ fn ce_reserved(name: vector(u8)*): bool {
         if equal {
             for(; i != length; i++) {
                 var p = start + i;
-                var mismatch = words[p] != name.data[i];
-                if mismatch {
+                if words[p] != name.data[i] {
                     equal = false;
                     break;
                 }
@@ -121,32 +119,26 @@ fn ce_reserved(name: vector(u8)*): bool {
             at++;
         }
     }
-    var enough = name.length >= 3;
-    if enough {
+    if name.length >= 3 {
         var first = name.data[0] == 116;
-        var upper_first = name.data[0] == 84;
-        if upper_first {
+        if name.data[0] == 84 {
             first = true;
         }
         if first {
             var second = name.data[1] == 99;
-            var upper_second = name.data[1] == 67;
-            if upper_second {
+            if name.data[1] == 67 {
                 second = true;
             }
             if second {
-                var third = name.data[2] == 95;
-                if third {
+                if name.data[2] == 95 {
                     return true;
                 }
             }
         }
     }
-    var generated = name.length >= 2;
-    if generated {
+    if name.length >= 2 {
         var first = name.data[0] == 118;
-        var temp = name.data[0] == 116;
-        if temp {
+        if name.data[0] == 116 {
             first = true;
         }
         if first {
@@ -417,8 +409,7 @@ fn ce_comments(c: CEmitter*, n: FoundationNode*): void {
             break;
         }
         var b = n.comments.data[i];
-        var slash = b == 92;
-        if slash {
+        if b == 92 {
             ce_text(c, "\\x5c");
         }
         else {
@@ -435,21 +426,18 @@ fn ce_comments(c: CEmitter*, n: FoundationNode*): void {
 fn ce_quote(c: CEmitter*, text: vector(u8)*): void {
     // C89 only requires 509 characters after string literal concatenation.
     // Large constants use a byte initializer with short physical lines instead.
-    var large = text.length > 96;
-    if large {
+    if text.length > 96 {
         ce_text(c, "{\n    ");
         var at: usize = 0;
         loop {
-            var done = at == text.length;
-            if done {
+            if at == text.length {
                 break;
             }
             ce_number(c, convert(u64, text.data[at]));
             ce_text(c, ", ");
             at++;
             var column = at % 16;
-            var newline = column == 0;
-            if newline {
+            if column == 0 {
                 ce_text(c, "\n    ");
             }
         }
@@ -879,8 +867,7 @@ fn ce_statement(c: CEmitter*, entity: void*): void {
     if n.kind == KIf() {
         var condition = sem_get(n.value);
         if condition.constant {
-            var yes = condition.bits != 0;
-            if yes {
+            if condition.bits != 0 {
                 ce_statement(c, n.body);
                 ce_notes(c, n.otherwise);
             } else {
@@ -942,8 +929,7 @@ fn ce_statement(c: CEmitter*, entity: void*): void {
         return;
     }
     if n.kind == KLabel() {
-        var unused = ce_label_used(c, entity) == false;
-        if unused {
+        if ce_label_used(c, entity) == false {
             return;
         }
         ce_indent(c);
@@ -1063,8 +1049,7 @@ fn ce_declaration(c: CEmitter*, entity: void*, variable: bool): void {
 fn ce_signature(c: CEmitter*, entity: void*): void {
     var n = sem_get(entity);
     var index = ce_id(c, entity);
-    var terminal = c.returning.data[index] == false;
-    if terminal {
+    if c.returning.data[index] == false {
         ce_text(c, "TC_NORETURN ");
     }
     ce_abi_type(c, &n.type);
@@ -1128,8 +1113,7 @@ fn ce_body(c: CEmitter*, entity: void*, program: bool): void {
                 variable = true;
             }
             var temp = ce_value_kind(n);
-            var string = n.kind == KString();
-            if string {
+            if n.kind == KString() {
                 ce_indent(c);
                 ce_text(c, "(void)");
                 ce_name(c, item, "tc_string_");

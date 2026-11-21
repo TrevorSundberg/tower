@@ -14,8 +14,7 @@ fn host_test_bytes(buffer: ByteBuffer*, wanted: u8*, count: usize): bool {
     }
     var i: usize = 0;
     loop {
-        var done = i == count;
-        if done {
+        if i == count {
             return true;
         }
         same = buffer.data[i] == wanted[i];
@@ -201,8 +200,7 @@ fn host_test_handles(): i32 {
 
 export fn host_support_tests(): i32 {
     var result = host_test_json();
-    var failed = result != 0;
-    if failed {
+    if result != 0 {
         return result;
     }
     return host_test_handles();

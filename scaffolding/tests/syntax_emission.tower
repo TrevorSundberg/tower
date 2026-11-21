@@ -106,14 +106,12 @@ fn emission_test_rule(f: EmissionFixture*, name: u8*): void* {
     var ok = node_text_set(&data.name, name);
     var index: usize = 0;
     loop {
-        var done = index == f.definitions.length;
-        if done {
+        if index == f.definitions.length {
             ok = vector_push(void*, &f.definitions, node);
             break;
         }
         var old = emission_test_node(f, f.definitions.data[index]);
-        var same = lr_name_equal(node_text_get(&old.name), name);
-        if same {
+        if lr_name_equal(node_text_get(&old.name), name) {
             f.definitions.data[index] = node;
             break;
         }
@@ -128,8 +126,7 @@ fn emission_test_rule(f: EmissionFixture*, name: u8*): void* {
 fn emission_test_sequence(f: EmissionFixture*, rule: void*): void* {
     var node = emission_test_new(f, rule, 4);
     var data = emission_test_node(f, rule);
-    var ok = vector_push(void*, &data.items, node);
-    if !ok {
+    if !vector_push(void*, &data.items, node) {
         f.failed = true;
     }
     return node;
@@ -166,8 +163,7 @@ fn emission_test_token(f: EmissionFixture*, name: u8*, skipped: bool, contextual
 }
 
 fn emission_test_reserve(f: EmissionFixture*, name: u8*): void {
-    var ok = vector_push(u8*, &f.reserved, name);
-    if !ok {
+    if !vector_push(u8*, &f.reserved, name) {
         f.failed = true;
     }
 }
@@ -182,22 +178,19 @@ fn emission_test_input(f: EmissionFixture*): void {
         rule.name_length = data.name.length;
         rule.alternatives = data.items.data;
         rule.count = data.items.length;
-        var ok = lr_append(SyntaxRuleView, &f.rules, &rule);
-        if !ok {
+        if !lr_append(SyntaxRuleView, &f.rules, &rule) {
             f.failed = true;
             return;
         }
         var position = index;
         loop {
-            var first = position == 0;
-            if first {
+            if position == 0 {
                 break;
             }
             var previous = position -1;
             var left = &f.rules.data[previous];
             var order = syntax_bytes_compare(left.name, left.name_length, rule.name, rule.name_length);
-            var ordered = order <= 0;
-            if ordered {
+            if order <= 0 {
                 break;
             }
             copy(&f.rules.data[position], left, sizeof(SyntaxRuleView));
@@ -378,8 +371,7 @@ fn emission_test_metadata(actual: SyntaxEmission*, reference: void*): bool {
     }
     index = 0;
     loop {
-        var done = index == count;
-        if done {
+        if index == count {
             return true;
         }
         var a: SyntaxEmissionHelper;
@@ -466,14 +458,12 @@ fn emission_test_both(f: EmissionFixture*): bool {
 }
 
 fn emission_test_failures(f: EmissionFixture*, category: u8*): bool {
-    var ok = emission_test_compare(f, category);
-    if !ok {
+    if !emission_test_compare(f, category) {
         return false;
     }
     var failure: usize = 0;
     loop {
-        var end = failure == 30000;
-        if end {
+        if failure == 30000 {
             return false;
         }
         var buffers = tower_test_buffer_count();
@@ -484,8 +474,7 @@ fn emission_test_failures(f: EmissionFixture*, category: u8*): bool {
         var success = result != null;
         syntax_emission_destroy(result);
         entity_release(f.input.root);
-        var leaked = buffers != tower_test_buffer_count();
-        if leaked {
+        if buffers != tower_test_buffer_count() {
             return false;
         }
         if success {
@@ -498,8 +487,7 @@ fn emission_test_failures(f: EmissionFixture*, category: u8*): bool {
 fn emission_test_random(f: EmissionFixture*, bound: u32): u32 {
     f.random = f.random * 1664525;
     f.random = f.random + 1013904223;
-    var zero = bound == 0;
-    if zero {
+    if bound == 0 {
         return 0;
     }
     var value = f.random / 65536;
@@ -509,16 +497,13 @@ fn emission_test_random(f: EmissionFixture*, bound: u32): u32 {
 
 fn emission_test_repeat(f: EmissionFixture*): u8 {
     var n = emission_test_random(f, 4);
-    var star = n == 1;
-    if star {
+    if n == 1 {
         return 42;
     }
-    var plus = n == 2;
-    if plus {
+    if n == 2 {
         return 43;
     }
-    var question = n == 3;
-    if question {
+    if n == 3 {
         return 63;
     }
     return 0;
@@ -642,8 +627,7 @@ export fn syntax_emission_tests(context: SyntaxEmissionInput*): usize {
         text[3] = convert(u8, digit);
         var owner = first;
         var bit = item &1;
-        var odd = bit != 0;
-        if odd {
+        if bit != 0 {
             owner = second;
         }
         emission_test_term(&f, owner, &text[0], true, 0, "");
@@ -656,8 +640,7 @@ export fn syntax_emission_tests(context: SyntaxEmissionInput*): usize {
     var trial: usize = 0;
     var state: u32 = 1162692948;
     loop {
-        var done = trial == 400;
-        if done {
+        if trial == 400 {
             return template_test_holes(context);
         }
         emission_test_init(&f, context, false);
@@ -696,8 +679,7 @@ export fn syntax_emission_tests(context: SyntaxEmissionInput*): usize {
                     ordinal = ordinal & 255;
                     capture[0] = convert(u8, ordinal);
                     capture[1] = 0;
-                    var excluded = kind == 4;
-                    if excluded {
+                    if kind == 4 {
                         emission_test_excluded(&f, sequence, repeat, &capture[0]);
                     } else {
                         var text: u8* = "Identifier";
@@ -705,12 +687,10 @@ export fn syntax_emission_tests(context: SyntaxEmissionInput*): usize {
                         if literal {
                             text = "literal";
                         }
-                        var contextual = kind == 2;
-                        if contextual {
+                        if kind == 2 {
                             text = "Context";
                         }
-                        var reference = kind == 3;
-                        if reference {
+                        if kind == 3 {
                             ordinal = emission_test_random(&f, count);
                             ordinal = ordinal + 48;
                             ordinal = ordinal & 255;

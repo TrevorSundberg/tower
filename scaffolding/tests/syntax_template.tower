@@ -15,8 +15,7 @@ import .compiler.syntax_template;
 fn template_test_holes(context: SyntaxEmissionInput*): usize {
     var budget: usize = 0;
     loop {
-        var exhausted = budget == 512;
-        if exhausted {
+        if budget == 512 {
             return 501;
         }
         var buffers = tower_test_buffer_count();
@@ -108,8 +107,7 @@ fn template_test_holes(context: SyntaxEmissionInput*): usize {
         }
         entity_release(input.emission.root);
         emission_test_dispose(&f);
-        var balanced = tower_test_buffer_count() == buffers;
-        if !balanced {
+        if tower_test_buffer_count() != buffers {
             return 502;
         }
         if !ok {

@@ -54,8 +54,7 @@ fn re_slot(r: RokuEmitter*, entity: void*): void {
 
 fn re_width(r: RokuEmitter*, t: FoundationType*): void {
     var boolean = t.scalar == SBool();
-    var pointer = t.pointers != 0;
-    if pointer {
+    if t.pointers != 0 {
         boolean = false;
     }
     if boolean {

@@ -11,11 +11,9 @@ extern fn guest_host_free(pointer: void*): void;
 fn guest_runtime_product(count: usize, size: usize): bool {
     var maximum: usize = 0;
     --maximum;
-    var sized = size != 0;
-    if sized {
+    if size != 0 {
         var limit = maximum / size;
-        var overflow = count > limit;
-        if overflow {
+        if count > limit {
             return false;
         }
     }

@@ -265,20 +265,16 @@ fn foreign_operator_code(m: ForeignName*, name: u8*, microsoft: bool): u8* {
         itanium = "aw";
         ms = "?__L";
     }
-    var foreign_condition2004 = itanium[0] == 0;
-    if foreign_condition2004 {
+    if itanium[0] == 0 {
         foreign_fail(m, "Unsupported foreign operator");
     }
     var arity = m.function.args.length;
-    var foreign_condition2005 = m.member != 0;
-    if foreign_condition2005 {
-        var foreign_condition2006 = m.member != 2;
-        if foreign_condition2006 {
+    if m.member != 0 {
+        if m.member != 2 {
             arity++;
         }
     }
-    var foreign_condition2007 = arity == 1;
-    if foreign_condition2007 {
+    if arity == 1 {
         if backend_equal(name, "+") {
             itanium = "ps";
         }
@@ -299,50 +295,39 @@ fn foreign_operator_code(m: ForeignName*, name: u8*, microsoft: bool): u8* {
 }
 
 fn foreign_it_standard(type: ForeignType*): u8* {
-    var foreign_condition2008 = type == null;
-    if foreign_condition2008 {
+    if type == null {
         return "";
     }
-    var foreign_condition2009 = foreign_std(type.scope) == false;
-    if foreign_condition2009 {
+    if foreign_std(type.scope) == false {
         return "";
     }
-    var foreign_condition2010 = type.args.length < 2;
-    if foreign_condition2010 {
+    if type.args.length < 2 {
         return "";
     }
     var character = type.args.data[0];
-    var foreign_condition2011 = character.kind != 1;
-    if foreign_condition2011 {
+    if character.kind != 1 {
         return "";
     }
-    var foreign_condition2012 = backend_equal(character.name, "c") == false;
-    if foreign_condition2012 {
+    if backend_equal(character.name, "c") == false {
         return "";
     }
-    var foreign_condition2013 = character.cv != 0;
-    if foreign_condition2013 {
+    if character.cv != 0 {
         return "";
     }
     var traits = type.args.data[1];
-    var foreign_condition2014 = foreign_std(traits.scope) == false;
-    if foreign_condition2014 {
+    if foreign_std(traits.scope) == false {
         return "";
     }
-    var foreign_condition2015 = backend_equal(traits.name, "char_traits") == false;
-    if foreign_condition2015 {
+    if backend_equal(traits.name, "char_traits") == false {
         return "";
     }
-    var foreign_condition2016 = traits.args.length != 1;
-    if foreign_condition2016 {
+    if traits.args.length != 1 {
         return "";
     }
-    var foreign_condition2017 = backend_equal(traits.args.data[0].name, "c") == false;
-    if foreign_condition2017 {
+    if backend_equal(traits.args.data[0].name, "c") == false {
         return "";
     }
-    var foreign_condition2018 = type.args.length == 2;
-    if foreign_condition2018 {
+    if type.args.length == 2 {
         if backend_equal(type.name, "basic_istream") {
             return "Si";
         }
@@ -353,14 +338,12 @@ fn foreign_it_standard(type: ForeignType*): u8* {
             return "Sd";
         }
     }
-    var foreign_condition2019 = type.args.length == 3;
-    if foreign_condition2019 {
+    if type.args.length == 3 {
         if backend_equal(type.name, "basic_string") {
             var allocator = type.args.data[2];
             if foreign_std(allocator.scope) {
                 if backend_equal(allocator.name, "allocator") {
-                    var foreign_condition2020 = allocator.args.length == 1;
-                    if foreign_condition2020 {
+                    if allocator.args.length == 1 {
                         if foreign_plain_char(allocator.args.data[0]) {
                             return "Ss";
                         }
@@ -373,12 +356,10 @@ fn foreign_it_standard(type: ForeignType*): u8* {
 }
 
 fn foreign_plain_char(type: ForeignType*): bool {
-    var foreign_condition3001 = type.kind != 1;
-    if foreign_condition3001 {
+    if type.kind != 1 {
         return false;
     }
-    var foreign_condition3002 = type.cv != 0;
-    if foreign_condition3002 {
+    if type.cv != 0 {
         return false;
     }
     return backend_equal(type.name, "c");
@@ -387,13 +368,11 @@ fn foreign_plain_char(type: ForeignType*): bool {
 fn foreign_tag_less(a: u8*, b: u8*): bool {
     var i: usize = 0;
     loop {
-        var foreign_condition3003 = a[i] != b[i];
-        if foreign_condition3003 {
+        if a[i] != b[i] {
             var less = a[i] < b[i];
             return less;
         }
-        var foreign_condition3004 = a[i] == 0;
-        if foreign_condition3004 {
+        if a[i] == 0 {
             return false;
         }
         i++;
@@ -405,13 +384,11 @@ fn foreign_sort_tags(m: ForeignName*): void {
     for(; i < m.abi_tags.length; i++) {
         var j = i;
         loop {
-            var foreign_condition3006 = j == 0;
-            if foreign_condition3006 {
+            if j == 0 {
                 break;
             }
             var previous = j -1;
-            var foreign_condition3007 = foreign_tag_less(m.abi_tags.data[j], m.abi_tags.data[previous]) == false;
-            if foreign_condition3007 {
+            if foreign_tag_less(m.abi_tags.data[j], m.abi_tags.data[previous]) == false {
                 break;
             }
             var temporary = m.abi_tags.data[j];
@@ -424,8 +401,7 @@ fn foreign_sort_tags(m: ForeignName*): void {
     i = 0;
     for(; i != m.abi_tags.length; i++) {
         var distinct = true;
-        var foreign_condition3009 = count != 0;
-        if foreign_condition3009 {
+        if count != 0 {
             var previous = count -1;
             distinct = backend_equal(m.abi_tags.data[previous], m.abi_tags.data[i]) == false;
         }

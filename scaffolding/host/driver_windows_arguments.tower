@@ -33,8 +33,7 @@ fn driver_windows_quote(out: ByteBuffer*, argument: u8*): bool {
                 if end {
                     break;
                 }
-                var quote = c == 34;
-                if quote {
+                if c == 34 {
                     ok &&= bytes_push(out, 92);
                 }
                 ok &&= bytes_push(out, c);

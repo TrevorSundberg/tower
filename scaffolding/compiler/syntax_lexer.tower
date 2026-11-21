@@ -56,8 +56,7 @@ fn lexicon_letter(byte: u8): bool {
 }
 
 fn lexicon_word(text: u8*, length: usize): bool {
-    var empty = length == 0;
-    if empty {
+    if length == 0 {
         return false;
     }
     var valid = lexicon_letter(text[0]);
@@ -66,8 +65,7 @@ fn lexicon_word(text: u8*, length: usize): bool {
     }
     var index: usize = 1;
     loop {
-        var done = index == length;
-        if done {
+        if index == length {
             return true;
         }
         var byte = text[index];
@@ -95,13 +93,11 @@ fn lexicon_prefix(source: u8*, length: usize, start: usize, text: u8*, count: us
     }
     var index: usize = 0;
     loop {
-        var done = index == count;
-        if done {
+        if index == count {
             return true;
         }
         var at = start + index;
-        var different = source[at] != text[index];
-        if different {
+        if source[at] != text[index] {
             return false;
         }
         index++;
@@ -110,16 +106,14 @@ fn lexicon_prefix(source: u8*, length: usize, start: usize, text: u8*, count: us
 
 export fn lexicon_create(): SyntaxLexicon* {
     var value = alloc(SyntaxLexicon, 1);
-    var present = value != null;
-    if present {
+    if value != null {
         fill(value, 0, sizeof(SyntaxLexicon));
     }
     return value;
 }
 
 export fn lexicon_destroy(value: SyntaxLexicon*): void {
-    var missing = value == null;
-    if missing {
+    if value == null {
         return;
     }
     vector_dispose(LexiconToken, &value.tokens);
@@ -164,12 +158,10 @@ fn lexicon_choice_init(choice: LexiconChoice*): void {
 }
 
 fn lexicon_accepts(runtime: LRRuntime*, state: usize, id: u32, choice: LexiconChoice*): bool {
-    var missing = runtime == null;
-    if missing {
+    if runtime == null {
         return false;
     }
-    var invalid = state >= runtime.states.length;
-    if invalid {
+    if state >= runtime.states.length {
         return false;
     }
     choice.checks++;
@@ -237,15 +229,13 @@ export fn lexicon_skip(value: SyntaxLexicon*, source: u8*, length: usize, start:
     lexicon_choice_init(choice);
     var index: usize = 0;
     loop {
-        var done = index == value.tokens.length;
-        if done {
+        if index == value.tokens.length {
             return;
         }
         var entry = &value.tokens.data[index];
         if entry.skipped {
             var count = lex_table_match(entry.table, source, length, start);
-            var selected = count > choice.length;
-            if selected {
+            if count > choice.length {
                 choice.length = count;
                 choice.id = entry.id;
                 choice.style = entry.style;
@@ -259,8 +249,7 @@ export fn lexicon_skip(value: SyntaxLexicon*, source: u8*, length: usize, start:
 export fn lexicon_identifier(value: SyntaxLexicon*, source: u8*, length: usize, start: usize): usize {
     var index: usize = 0;
     loop {
-        var done = index == value.tokens.length;
-        if done {
+        if index == value.tokens.length {
             return 0;
         }
         var entry = &value.tokens.data[index];
@@ -279,8 +268,7 @@ export fn lexicon_declaration(value: SyntaxLexicon*, source: u8*, length: usize,
             return false;
         }
         var keyword = &value.starts.data[index];
-        var selected = lexicon_prefix(source, length, start, keyword.text, keyword.length);
-        if selected {
+        if lexicon_prefix(source, length, start, keyword.text, keyword.length) {
             var position: usize = 0;
             loop {
                 done = position == value.tokens.length;
@@ -294,8 +282,7 @@ export fn lexicon_declaration(value: SyntaxLexicon*, source: u8*, length: usize,
                 }
                 if eligible {
                     var count = lex_table_match(entry.table, source, length, start);
-                    var longer = count > keyword.length;
-                    if longer {
+                    if count > keyword.length {
                         break;
                     }
                 }

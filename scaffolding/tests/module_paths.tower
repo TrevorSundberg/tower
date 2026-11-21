@@ -4,24 +4,19 @@ import .host.module_path;
 // Run from a directory containing CaseDir/Exact.tower. Link the selected
 // module_path platform implementation; these checks also run on Windows.
 export fn module_path_tests(): i32 {
-    var exact = module_file_case_matches("CaseDir/Exact.tower");
-    if exact {} else {
+    if !module_file_case_matches("CaseDir/Exact.tower") {
         return 1;
     }
-    var directory = module_file_case_matches("casedir/Exact.tower");
-    if directory {
+    if module_file_case_matches("casedir/Exact.tower") {
         return 2;
     }
-    var filename = module_file_case_matches("CaseDir/exact.tower");
-    if filename {
+    if module_file_case_matches("CaseDir/exact.tower") {
         return 3;
     }
-    var extension = module_file_case_matches("CaseDir/Exact.Tower");
-    if extension {
+    if module_file_case_matches("CaseDir/Exact.Tower") {
         return 4;
     }
-    var missing = module_file_case_matches("CaseDir/Absent.tower");
-    if missing {
+    if module_file_case_matches("CaseDir/Absent.tower") {
         return 5;
     }
     return 0;

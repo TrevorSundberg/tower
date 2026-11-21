@@ -28,16 +28,14 @@ struct SyntaxReader {
 }
 
 fn syntax_reader_fail(reader: SyntaxReader*, message: u8*): bool {
-    var first = reader.error == null;
-    if first {
+    if reader.error == null {
         reader.error = message;
     }
     return false;
 }
 
 fn syntax_reader_detail(reader: SyntaxReader*, message: u8*, detail: u8*, length: usize, suffix: u8*): bool {
-    var first = reader.error == null;
-    if first {
+    if reader.error == null {
         reader.detail = detail;
         reader.detail_length = length;
         reader.suffix = suffix;
@@ -55,8 +53,7 @@ fn syntax_reader_ok(reader: SyntaxReader*, ok: bool): bool {
 fn syntax_text_length(text: u8*): usize {
     var length: usize = 0;
     loop {
-        var done = text[length] == 0;
-        if done {
+        if text[length] == 0 {
             return length;
         }
         length++;
@@ -64,8 +61,7 @@ fn syntax_text_length(text: u8*): usize {
 }
 
 fn syntax_reader_finish(reader: SyntaxReader*, error: vector(u8)*): bool {
-    var success = reader.error == null;
-    if success {
+    if reader.error == null {
         return true;
     }
     var ok = node_text_set(error, reader.error);
@@ -90,8 +86,7 @@ fn syntax_reader_finish(reader: SyntaxReader*, error: vector(u8)*): bool {
 }
 
 fn syntax_reader_member(node: void*, name: u8*): void* {
-    var missing = node == null;
-    if missing {
+    if node == null {
         return null;
     }
     var index = entity_member_index(node, name);
@@ -100,8 +95,7 @@ fn syntax_reader_member(node: void*, name: u8*): void* {
 
 fn syntax_reader_required(reader: SyntaxReader*, node: void*, name: u8*): void* {
     var result = syntax_reader_member(node, name);
-    var missing = result == null;
-    if missing {
+    if result == null {
         var length = syntax_text_length(name);
         syntax_reader_detail(reader, "Malformed bedrock tree: missing capture '", name, length, "'");
     }
@@ -111,8 +105,7 @@ fn syntax_reader_required(reader: SyntaxReader*, node: void*, name: u8*): void* 
 fn syntax_reader_span(reader: SyntaxReader*, node: void*): ParserMatchData* {
     var component = entity_component_get(node, reader.match_kind);
     var span = bits(ParserMatchData*, entity_component_data(component));
-    var missing = span == null;
-    if missing {
+    if span == null {
         syntax_reader_fail(reader, "Malformed bedrock tree: missing source span");
         return null;
     }
@@ -158,8 +151,7 @@ fn syntax_reader_attach(reader: SyntaxReader*, node: void*, kind: u32): SyntaxNo
 // The same decoder is used by semantic lookup and source formatting. Decode in
 // the destination after the shared byte-buffer copy, including overlapping input.
 export fn syntax_identifier_decode(text: u8*, length: usize, result: vector(u8)*): bool {
-    var ok = bytes_assign_text(result, text, length);
-    if !ok {
+    if !bytes_assign_text(result, text, length) {
         return false;
     }
     result.length = syntax_identifier_decode_in_place(result.data, length);
@@ -209,8 +201,7 @@ export fn syntax_identifier_decode_in_place(text: u8*, length: usize): usize {
 
 fn syntax_reader_name(reader: SyntaxReader*, node: void*, result: vector(u8)*): bool {
     var span = syntax_reader_span(reader, node);
-    var missing = span == null;
-    if missing {
+    if span == null {
         return false;
     }
     var text = reader.source.text.data + span.start;
@@ -220,8 +211,7 @@ fn syntax_reader_name(reader: SyntaxReader*, node: void*, result: vector(u8)*): 
 
 // 0 valid, 1 empty, 2 unsupported. Preserve the existing literal category policy.
 export fn syntax_literal_check(text: u8*, length: usize): u32 {
-    var empty = length == 0;
-    if empty {
+    if length == 0 {
         return 1;
     }
     var letters: bool = false;
@@ -247,8 +237,7 @@ export fn syntax_literal_check(text: u8*, length: usize): u32 {
         }
     }
     if letters {
-        var word = lexicon_word(text, length);
-        if !word {
+        if !lexicon_word(text, length) {
             return 2;
         }
     }
@@ -268,12 +257,10 @@ export fn syntax_literal_check(text: u8*, length: usize): u32 {
 
 fn syntax_reader_literal(reader: SyntaxReader*, value: vector(u8)*): bool {
     var status = syntax_literal_check(value.data, value.length);
-    var empty = status == 1;
-    if empty {
+    if status == 1 {
         return syntax_reader_fail(reader, "Token literal is empty. Expected at least one character between the quotes.");
     }
-    var invalid = status == 2;
-    if invalid {
+    if status == 2 {
         return syntax_reader_detail(reader, "Unsupported token literal: ", value.data, value.length, "");
     }
     return true;
@@ -281,14 +268,12 @@ fn syntax_reader_literal(reader: SyntaxReader*, value: vector(u8)*): bool {
 
 fn syntax_reader_quoted(reader: SyntaxReader*, node: void*, result: vector(u8)*): bool {
     var span = syntax_reader_span(reader, node);
-    var missing = span == null;
-    if missing {
+    if span == null {
         return false;
     }
     var cursor = span.start;
     var end = reader.source.text.length;
-    var empty = cursor == end;
-    if empty {
+    if cursor == end {
         return syntax_reader_fail(reader, "Unterminated quoted literal");
     }
     var quote = reader.source.text.data[cursor];
@@ -300,8 +285,7 @@ fn syntax_reader_quoted(reader: SyntaxReader*, node: void*, result: vector(u8)*)
         }
         var byte = reader.source.text.data[cursor];
         cursor++;
-        var closes = byte == quote;
-        if closes {
+        if byte == quote {
             return true;
         }
         var newline = byte == 10;
@@ -309,8 +293,7 @@ fn syntax_reader_quoted(reader: SyntaxReader*, node: void*, result: vector(u8)*)
         if newline {
             return syntax_reader_fail(reader, "Newline in quoted literal");
         }
-        var escape = byte == 92;
-        if escape {
+        if byte == 92 {
             done = cursor == end;
             if done {
                 return syntax_reader_fail(reader, "Unterminated quoted literal");
@@ -339,8 +322,7 @@ fn syntax_reader_quoted(reader: SyntaxReader*, node: void*, result: vector(u8)*)
                 }
             }
         }
-        var ok = foundation_name_append(result, byte);
-        if !ok {
+        if !foundation_name_append(result, byte) {
             return syntax_reader_ok(reader, false);
         }
     }
@@ -350,8 +332,7 @@ fn syntax_reader_reverse(items: vector(void*)*): void {
     var left: usize = 0;
     var right = items.length;
     loop {
-        var done = left >= right;
-        if done {
+        if left >= right {
             return;
         }
         right--;
@@ -446,8 +427,7 @@ fn syntax_reader_term(reader: SyntaxReader*, node: void*): bool {
     if failed {
         return false;
     }
-    var nonempty = repetition.length != 0;
-    if nonempty {
+    if repetition.length != 0 {
         var text = reader.source.text.data + repetition.start;
         var valid = repetition.length == 1;
         if valid {
@@ -472,8 +452,7 @@ fn syntax_reader_sequence(reader: SyntaxReader*, node: void*): bool {
     }
     loop {
         var count = entity_child_count(node);
-        var done = count == 0;
-        if done {
+        if count == 0 {
             break;
         }
         var term = syntax_reader_required(reader, node, "term");
@@ -514,8 +493,7 @@ fn syntax_reader_rule(reader: SyntaxReader*, node: void*): bool {
     if !ok {
         return false;
     }
-    var empty = rule.name.length == 0;
-    if empty {
+    if rule.name.length == 0 {
         return syntax_reader_fail(reader, "Rule name cannot be empty");
     }
     var op = syntax_reader_span(reader, assignment);
@@ -537,8 +515,7 @@ fn syntax_reader_rule(reader: SyntaxReader*, node: void*): bool {
     }
     var annotation = syntax_reader_member(node, "precedence");
     var level = syntax_reader_member(annotation, "level");
-    var annotated = level != null;
-    if annotated {
+    if level != null {
         var span = syntax_reader_span(reader, level);
         if span == null {
             return false;
@@ -552,8 +529,7 @@ fn syntax_reader_rule(reader: SyntaxReader*, node: void*): bool {
             }
             var overflow = rule.precedence > 429496729;
             if !overflow {
-                var edge = rule.precedence == 429496729;
-                if edge {
+                if rule.precedence == 429496729 {
                     overflow = digit > 5;
                 }
             }
@@ -563,8 +539,7 @@ fn syntax_reader_rule(reader: SyntaxReader*, node: void*): bool {
             rule.precedence = rule.precedence * 10;
             rule.precedence = rule.precedence + digit;
         }
-        var zero = rule.precedence == 0;
-        if zero {
+        if rule.precedence == 0 {
             return syntax_reader_fail(reader, "Grammar precedence must be positive");
         }
         var direction = syntax_reader_member(annotation, "direction");
@@ -593,8 +568,7 @@ fn syntax_reader_rule(reader: SyntaxReader*, node: void*): bool {
         }
     }
     loop {
-        var done = alternatives == null;
-        if done {
+        if alternatives == null {
             break;
         }
         var sequence = syntax_reader_required(reader, alternatives, "sequence");
@@ -620,15 +594,13 @@ fn syntax_reader_rule(reader: SyntaxReader*, node: void*): bool {
     }
     syntax_reader_reverse(&rule.items);
     var body = syntax_reader_member(replacement, "body");
-    var present = body != null;
-    if present {
+    if body != null {
         var span = syntax_reader_span(reader, body);
         failed = span == null;
         if failed {
             return false;
         }
-        var invalid = span.length < 2;
-        if invalid {
+        if span.length < 2 {
             return syntax_reader_fail(reader, "Replacement body must contain opening and closing delimiters");
         }
         var value = syntax_reader_attach(reader, body, 6);
@@ -685,8 +657,7 @@ fn syntax_reader_token(reader: SyntaxReader*, node: void*, skipped: bool): bool 
     if !ok {
         return false;
     }
-    var empty = value.name.length == 0;
-    if empty {
+    if value.name.length == 0 {
         return syntax_reader_fail(reader, "Token name cannot be empty");
     }
     var label = syntax_reader_member(style, "kind");
@@ -707,8 +678,7 @@ fn syntax_reader_token(reader: SyntaxReader*, node: void*, skipped: bool): bool 
     if failed {
         return false;
     }
-    var invalid = span.length < 2;
-    if invalid {
+    if span.length < 2 {
         return syntax_reader_fail(reader, "Token pattern must contain opening and closing delimiters");
     }
     var start = span.start + 1;

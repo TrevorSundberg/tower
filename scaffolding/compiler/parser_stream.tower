@@ -42,8 +42,7 @@ fn parser_state_require(ok: bool): void {
 }
 
 fn parser_state_text(value: vector(u8)*): u8* {
-    var absent = value.data == null;
-    if absent {
+    if value.data == null {
         return "";
     }
     return value.data;
@@ -51,8 +50,7 @@ fn parser_state_text(value: vector(u8)*): u8* {
 
 fn parser_state_clear(value: vector(u8)*): void {
     value.length = 0;
-    var present = value.data != null;
-    if present {
+    if value.data != null {
         value.data[0] = 0;
     }
 }
@@ -60,8 +58,7 @@ fn parser_state_clear(value: vector(u8)*): void {
 fn parser_state_assign(value: vector(u8)*, text: u8*): void {
     var length: usize = 0;
     for(; text[length] != 0; length++) {}
-    var empty = length == 0;
-    if empty {
+    if length == 0 {
         parser_state_clear(value);
         return;
     }
@@ -70,13 +67,11 @@ fn parser_state_assign(value: vector(u8)*, text: u8*): void {
 
 export fn parser_stream_create(bytes: usize, kind: ParserInputService): ParserStream* {
     var total = sizeof(ParserStream) + bytes;
-    var overflow = total < bytes;
-    if overflow {
+    if total < bytes {
         return null;
     }
     var stream = bits(ParserStream*, tower_memory_allocate(total));
-    var missing = stream == null;
-    if missing {
+    if stream == null {
         return null;
     }
     fill(stream, 0, sizeof(ParserStream));
@@ -86,8 +81,7 @@ export fn parser_stream_create(bytes: usize, kind: ParserInputService): ParserSt
 }
 
 export fn parser_stream_get_userdata(stream: ParserStream*): void* {
-    var missing = stream == null;
-    if missing {
+    if stream == null {
         return null;
     }
     var data = bits(u8*, stream) + sizeof(ParserStream);
@@ -95,8 +89,7 @@ export fn parser_stream_get_userdata(stream: ParserStream*): void* {
 }
 
 export fn parser_stream_from_userdata(data: void*): ParserStream* {
-    var missing = data == null;
-    if missing {
+    if data == null {
         return null;
     }
     var address = bits(u8*, data) -sizeof(ParserStream);
@@ -116,15 +109,13 @@ export fn parser_stream_discard(stream: ParserStream*): void {
     var node = stream.buffered_node;
     stream.buffered_node = null;
     stream.buffered = false;
-    var present = node != null;
-    if present {
+    if node != null {
         entity_release(node);
     }
 }
 
 export fn parser_stream_dispose(stream: ParserStream*): void {
-    var utf8 = stream.kind == ParserInputService.Utf8;
-    if utf8 {
+    if stream.kind == ParserInputService.Utf8 {
         var data = bits(ParserUtf8Stream*, parser_stream_get_userdata(stream));
         vector_dispose(u8, &data.source);
     }
@@ -135,8 +126,7 @@ export fn parser_stream_dispose(stream: ParserStream*): void {
 
 export fn parser_stream_utf8_create(begin: u8*, end: u8*): ParserStream* {
     var stream = parser_stream_create(sizeof(ParserUtf8Stream), ParserInputService.Utf8);
-    var missing = stream == null;
-    if missing {
+    if stream == null {
         return null;
     }
     var data = bits(ParserUtf8Stream*, parser_stream_get_userdata(stream));
@@ -156,8 +146,7 @@ export fn parser_stream_utf8_null_terminated_create(text: u8*): ParserStream* {
 
 export fn parser_stream_recognizer_create(recognizer: void*): ParserStream* {
     var stream = parser_stream_create(sizeof(ParserRecognizerStream), ParserInputService.Recognizer);
-    var missing = stream == null;
-    if missing {
+    if stream == null {
         return null;
     }
     var data = bits(ParserRecognizerStream*, parser_stream_get_userdata(stream));
@@ -183,15 +172,13 @@ export fn parser_stream_poll(stream: ParserStream*, id: u32*, start: usize*, len
         return true;
     }
     parser_state_clear(&stream.error);
-    var custom = stream.kind == ParserInputService.Empty;
-    if custom {
+    if stream.kind == ParserInputService.Empty {
         return false;
     }
     *id = ParserStreamEnd();
     *start = convert(usize, ParserStreamEnd());
     *length = 0;
-    var utf8 = stream.kind == ParserInputService.Utf8;
-    if utf8 {
+    if stream.kind == ParserInputService.Utf8 {
         var data = bits(ParserUtf8Stream*, parser_stream_get_userdata(stream));
         if data.allocation_failed {
             parser_stream_set_error(stream, "Unable to allocate UTF-8 stream source");
@@ -200,8 +187,7 @@ export fn parser_stream_poll(stream: ParserStream*, id: u32*, start: usize*, len
         var remaining = data.source.length -data.cursor;
         var at = data.source.data + data.cursor;
         var read = tower_utf8_decode(at, remaining, id);
-        var decoded = read != 0;
-        if decoded {
+        if read != 0 {
             *start = data.cursor;
             *length = read;
             data.cursor = data.cursor + read;
@@ -268,8 +254,7 @@ extern fn syntax_parser_template_read(stream: ParserStream*, data: void*, id: u3
 
 export fn parser_stream_read(stream: ParserStream*, id: u32*, start: usize*, length: usize*): void* {
     var node: void* = null;
-    var ready = parser_stream_poll(stream, id, start, length, &node);
-    if ready {} else {
+    if !parser_stream_poll(stream, id, start, length, &node) {
         *id = ParserStreamEnd();
         *start = convert(usize, ParserStreamEnd());
         *length = 0;
@@ -278,8 +263,7 @@ export fn parser_stream_read(stream: ParserStream*, id: u32*, start: usize*, len
 }
 
 export fn parser_stream_destroy(stream: ParserStream*): void {
-    var missing = stream == null;
-    if missing {
+    if stream == null {
         return;
     }
     parser_stream_discard(stream);

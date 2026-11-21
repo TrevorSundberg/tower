@@ -33,14 +33,12 @@ export fn frontend_table_dispose(table: FrontendTable*): void {
 // character grammars use the same analysis, conflict check and specialization.
 export fn frontend_table_finish(table: FrontendTable*, constructs: bool, specialize: bool): u32 {
     var grammar = table.grammar;
-    var unresolved = lr_grammar_pending(grammar) != lr_none();
-    if unresolved {
+    if lr_grammar_pending(grammar) != lr_none() {
         return 3;
     }
     var analysis = lr_analysis_create(grammar.rules.data, grammar.rules.length,
     grammar.symbols.data, grammar.symbols.length, grammar.names.length);
-    var missing = analysis == null;
-    if missing {
+    if analysis == null {
         return 1;
     }
     for(var index: usize = 0; index != grammar.names.length; index++) {
@@ -60,8 +58,7 @@ export fn frontend_table_finish(table: FrontendTable*, constructs: bool, special
     var status: u32 = 1;
     if ok {
         var conflict: LRConflict;
-        var ambiguous = lr_runtime_conflict(table.runtime, &conflict);
-        if ambiguous {
+        if lr_runtime_conflict(table.runtime, &conflict) {
             status = 2;
         } else {
             if specialize {
@@ -78,12 +75,10 @@ export fn frontend_table_finish(table: FrontendTable*, constructs: bool, special
 
 export fn frontend_table_init(table: FrontendTable*, root: void*, kinds: FrontendKinds*): bool {
     fill(table, 0, sizeof(FrontendTable));
-    var absent = root == null;
-    if absent {
+    if root == null {
         return false;
     }
-    var empty = entity_child_count(root) == 0;
-    if empty {
+    if entity_child_count(root) == 0 {
         return false;
     }
     table.grammar = lr_grammar_create(root, kinds.rule, kinds.reference, kinds.string, kinds.range);
@@ -127,17 +122,14 @@ export fn frontend_read_characters(table: FrontendTable*, kinds: FrontendKinds*,
         }
         var step: LRStep;
         var action = lr_parser_step(parser, ready, id, false, start, length, &step);
-        var read = action == 0;
-        if read {
+        if action == 0 {
             start = input.cursor;
             length = 0;
             id = 4294967294;
-            var remaining = start < input.length;
-            if remaining {
+            if start < input.length {
                 var count = input.length -start;
                 length = tower_utf8_decode(&input.source[start], count, &id);
-                var invalid = length == 0;
-                if invalid {
+                if length == 0 {
                     input.error = 3;
                     break;
                 }
@@ -146,8 +138,7 @@ export fn frontend_read_characters(table: FrontendTable*, kinds: FrontendKinds*,
             ready = true;
             continue;
         }
-        var accept = action == 3;
-        if accept {
+        if action == 3 {
             root = lr_tree_accept(parser, forest);
             input.error = 0;
             break;
@@ -171,8 +162,7 @@ export fn frontend_read_characters(table: FrontendTable*, kinds: FrontendKinds*,
         }
         if reduce {
             ok = lr_tree_reduce_kind(parser, forest, table.grammar, kinds.`match`, &step, &root);
-            var complete = root != null;
-            if complete {
+            if root != null {
                 input.error = 0;
                 break;
             }
@@ -196,8 +186,7 @@ export fn frontend_pattern_table(table: FrontendTable*, kinds: FrontendKinds*): 
         var status = frontend_table_finish(table, false, true);
         ok = status == 0;
     }
-    var present = root != null;
-    if present {
+    if root != null {
         entity_release(root);
     }
     return ok;
@@ -208,13 +197,11 @@ export fn frontend_pattern_compile(table: FrontendTable*, kinds: FrontendKinds*,
     fill(&input, 0, sizeof(FrontendCharacters));
     input.source = text;
     input.length = syntax_text_length(text);
-    var too_long = input.length > 4096;
-    if too_long {
+    if input.length > 4096 {
         return null;
     }
     var status = tower_utf8_validate(text, input.length, 0);
-    var valid = status != 0;
-    if !valid {
+    if !(status != 0) {
         return null;
     }
     var root = frontend_read_characters(table, kinds, &input);
@@ -230,8 +217,7 @@ export fn frontend_pattern_compile(table: FrontendTable*, kinds: FrontendKinds*,
     }
     var offset: usize = 0;
     var error = regex_compile_tree(pattern.grammar, text, kinds.`match`, pattern.table, &offset);
-    var failed = error != null;
-    if failed {
+    if error != null {
         syntax_pattern_release(pattern);
         return null;
     }

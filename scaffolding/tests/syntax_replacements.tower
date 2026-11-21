@@ -11,8 +11,7 @@ fn replacement_test_source(source: u8*, count: usize, prefix: u8*): bool {
     var parsed: usize = 0;
     loop {
         var node = syntax_next(session);
-        var done = node == null;
-        if done {
+        if node == null {
             break;
         }
         parsed++;
@@ -23,8 +22,7 @@ fn replacement_test_source(source: u8*, count: usize, prefix: u8*): bool {
         var error = syntax_get_error(session);
         var prefix_length = syntax_text_length(prefix);
         var length = syntax_text_length(error);
-        var success = prefix_length == 0;
-        if success {
+        if prefix_length == 0 {
             ok = length == 0;
         } else {
             ok = length >= prefix_length;

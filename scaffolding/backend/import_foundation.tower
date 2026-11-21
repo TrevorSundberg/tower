@@ -26,8 +26,7 @@ fn bi_node(c: BackendImport*, kind: u32, scalar: u32): void* {
     var n = sem_attach(entity, kind);
     n.type.scalar = scalar;
     n.type.pointer_bytes = c.backend.pointer_bytes;
-    var pointer = scalar == 10;
-    if pointer {
+    if scalar == 10 {
         n.type.scalar = 5;
         n.type.pointers = 1;
     }
@@ -36,31 +35,24 @@ fn bi_node(c: BackendImport*, kind: u32, scalar: u32): void* {
 
 fn bi_scalar(c: BackendImport*, type: void*): u32 {
     var kind = LLVMGetTypeKind(type);
-    var empty = kind == 0;
-    if empty {
+    if kind == 0 {
         return 3;
     }
-    var pointer = kind == 12;
-    if pointer {
+    if kind == 12 {
         return 10;
     }
-    var integer = kind == 8;
-    if integer {
+    if kind == 8 {
         var width = LLVMGetIntTypeWidth(type);
-        var boolean = width == 1;
-        if boolean {
+        if width == 1 {
             return 2;
         }
-        var byte = width == 8;
-        if byte {
+        if width == 8 {
             return 5;
         }
-        var small = width <= 32;
-        if small {
+        if width <= 32 {
             return 1;
         }
-        var supported = width <= 64;
-        if supported {
+        if width <= 64 {
             return 7;
         }
     }
@@ -82,8 +74,7 @@ fn bi_name(c: BackendImport*, entity: void*, prefix: u8*): void {
                 collision = true;
             }
         }
-        var unique = !collision;
-        if unique {
+        if !collision {
             return;
         }
     }
@@ -108,8 +99,7 @@ fn bi_const(c: BackendImport*, scalar: u32, value: u64): void* {
 // so every branch can reuse it without depending on which branch executes first.
 fn bi_literal(c: BackendImport*, key: void*, scalar: u32, bits: u64): void* {
     var local = backend_find(&c.literals, key);
-    var missing = local == null;
-    if missing {
+    if local == null {
         local = bi_decl(c, scalar);
         var declaration = sem_get(local);
         declaration.value = bi_const(c, scalar, bits);
@@ -165,12 +155,10 @@ fn bi_result(c: BackendImport*, destination: void*, value: void*, first_local: u
     if result.constant {
         candidate = false;
     }
-    var fresh = declarations.items.length > first_local;
-    if !fresh {
+    if !(declarations.items.length > first_local) {
         candidate = false;
     }
-    var empty = block.items.length == 0;
-    if empty {
+    if block.items.length == 0 {
         candidate = false;
     }
     if candidate {
@@ -207,8 +195,7 @@ fn bi_cast(c: BackendImport*, value: void*, scalar: u32, reinterpret: bool): voi
     n.value = value;
     var v = sem_get(value);
     var boolean = n.type.scalar == 2;
-    var source_boolean = v.type.scalar == 2;
-    if source_boolean {
+    if v.type.scalar == 2 {
         boolean = true;
     }
     var numeric = n.type.pointers == 0;
@@ -229,8 +216,7 @@ fn bi_cast(c: BackendImport*, value: void*, scalar: u32, reinterpret: bool): voi
     if !reinterpret {
         var width = semantic_width(&n.type);
         var source_width = semantic_width(&v.type);
-        var narrowing = width < source_width;
-        if narrowing {
+        if width < source_width {
             // LLVM trunc is modular. Foundation convert is checked, so mask
             // before the conversion instead of introducing a range trap.
             var unsigned_value = bi_cast(c, value, 7, false);
@@ -270,8 +256,7 @@ fn bi_cast_type(c: BackendImport*, value: void*, type: FoundationType*): void* {
     n.value = value;
     var input = sem_get(value);
     var boolean = type.scalar == 2;
-    var source_boolean = input.type.scalar == 2;
-    if source_boolean {
+    if input.type.scalar == 2 {
         boolean = true;
     }
     var numeric = type.pointers == 0;
@@ -310,8 +295,7 @@ fn bi_storage(c: BackendImport*, bytes: u64, alignment: u32, global: bool): void
             unit = 4;
         }
     }
-    var unsupported = alignment > 8;
-    if unsupported {
+    if alignment > 8 {
         backend_fail(c.backend, "LLVM allocation alignment exceeds foundation layout");
     }
     var array = bi_node(c, 19, 9);
@@ -321,8 +305,7 @@ fn bi_storage(c: BackendImport*, bytes: u64, alignment: u32, global: bool): void
     bytes = bytes + unit;
     bytes--;
     var count = bytes / unit;
-    var empty = count == 0;
-    if empty {
+    if count == 0 {
         count = 1;
     }
     a.length = convert(usize, count);
@@ -359,8 +342,7 @@ fn bi_load(c: BackendImport*, address: void*, scalar: u32): void* {
 fn bi_store(c: BackendImport*, address: void*, value: void*): void {
     var v = sem_get(value);
     var scalar = v.type.scalar;
-    var pointer = v.type.pointers != 0;
-    if pointer {
+    if v.type.pointers != 0 {
         scalar = 10;
     }
     var typed = bi_typed_pointer(c, address, scalar);

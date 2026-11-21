@@ -18,8 +18,7 @@ export fn allocator_wasm_tests(): i32 {
         return 3;
     }
     var heap: GuestHeap;
-    var initialized = guest_wasm_init(&heap);
-    if !initialized {
+    if !guest_wasm_init(&heap) {
         return 4;
     }
     var begin = heap.cursor;

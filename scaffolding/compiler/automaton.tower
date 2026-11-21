@@ -56,8 +56,7 @@ export fn automaton_create(symbol_limit: u32): Automaton* {
 }
 
 export fn automaton_destroy(value: Automaton*): void {
-    var empty = value == null;
-    if empty {
+    if value == null {
         return;
     }
     var i: usize = 0;
@@ -74,8 +73,7 @@ export fn automaton_error(value: Automaton*): u32 {
 
 // Kinds: 0 = consuming range, 1 = epsilon split, 2 = accepting state.
 export fn automaton_add(value: Automaton*, kind: u32, out: i32, other: i32, negated: bool): i32 {
-    var full = value.count >= 512;
-    if full {
+    if value.count >= 512 {
         value.error = 1;
         return -1;
     }
@@ -89,8 +87,7 @@ export fn automaton_add(value: Automaton*, kind: u32, out: i32, other: i32, nega
 }
 
 export fn automaton_range(value: Automaton*, index: i32, first: u32, last: u32): bool {
-    var invalid = index < 0;
-    if invalid {
+    if index < 0 {
         return false;
     }
     var state = &value.states[index];
@@ -107,8 +104,7 @@ export fn automaton_range(value: Automaton*, index: i32, first: u32, last: u32):
 }
 
 export fn automaton_patch(value: Automaton*, index: i32, other: bool, target: i32): void {
-    var invalid = index < 0;
-    if invalid {
+    if index < 0 {
         return;
     }
     if other {
@@ -124,20 +120,16 @@ fn automaton_sift(values: u32*, size: usize, start: usize): void {
     loop {
         var child = root *2;
         child++;
-        var done = child >= size;
-        if done {
+        if child >= size {
             return;
         }
         var right = child + 1;
-        var exists = right < size;
-        if exists {
-            var larger = values[right] > values[child];
-            if larger {
+        if right < size {
+            if values[right] > values[child] {
                 child = right;
             }
         }
-        var ordered = values[root] >= values[child];
-        if ordered {
+        if values[root] >= values[child] {
             return;
         }
         var saved = values[root];
@@ -186,24 +178,20 @@ fn automaton_closure(value: Automaton*, work: AutomatonWork*, count: usize, resu
     copy(&work.pending, &work.seeds, bytes);
     var any = false;
     loop {
-        var done = count == 0;
-        if done {
+        if count == 0 {
             return any;
         }
         count--;
         var index = work.pending[count];
-        var absent = index < 0;
-        if absent {
+        if index < 0 {
             continue;
         }
-        var seen = work.visited[index] != 0;
-        if seen {
+        if work.visited[index] != 0 {
             continue;
         }
         work.visited[index] = 1;
         var state = &value.states[index];
-        var split = state.kind == 1;
-        if split {
+        if state.kind == 1 {
             work.pending[count] = state.out;
             count++;
             work.pending[count] = state.other;
@@ -240,8 +228,7 @@ fn automaton_intern(value: Automaton*, work: AutomatonWork*, subset: AutomatonSu
             if done {
                 break;
             }
-            var different = subset.bits[i] != work.subsets.data[found].bits[i];
-            if different {
+            if subset.bits[i] != work.subsets.data[found].bits[i] {
                 same = false;
                 break;
             }
@@ -334,8 +321,7 @@ fn automaton_build(value: Automaton*, start: i32, accepting: usize, table: Lexer
     i = 1;
     for(; i != count; i++) {
         var previous = i -1;
-        var different = work.alphabet.data[i] != work.alphabet.data[previous];
-        if different {
+        if work.alphabet.data[i] != work.alphabet.data[previous] {
             work.alphabet.data[work.alphabet.length] = work.alphabet.data[i];
             work.alphabet.length++;
         }
@@ -406,8 +392,7 @@ fn automaton_build(value: Automaton*, start: i32, accepting: usize, table: Lexer
                             }
                             j++;
                         }
-                        var matches = inside != state.negated;
-                        if matches {
+                        if inside != state.negated {
                             work.seeds[seeds] = state.out;
                             seeds++;
                         }
@@ -439,8 +424,7 @@ fn automaton_build(value: Automaton*, start: i32, accepting: usize, table: Lexer
 // Returns 0 on success, 1 for NFA size, 2 allocation, 3 DFA size, 4 nullable.
 export fn automaton_compile(value: Automaton*, start: i32, accepting: usize, table: LexerTable*, reject_empty: bool): u32 {
     var work = alloc(AutomatonWork, 1);
-    var failed = work == null;
-    if failed {
+    if work == null {
         return 2;
     }
     fill(work, 0, sizeof(AutomatonWork));

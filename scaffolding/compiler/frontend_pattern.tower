@@ -17,8 +17,7 @@ struct FrontendPatternCompiler {
 }
 
 export fn frontend_pattern_destroy(compiler: FrontendPatternCompiler*): void {
-    var absent = compiler == null;
-    if absent {
+    if compiler == null {
         return;
     }
     frontend_table_dispose(&compiler.table);
@@ -27,13 +26,11 @@ export fn frontend_pattern_destroy(compiler: FrontendPatternCompiler*): void {
 
 export fn frontend_pattern_create(kinds: FrontendKinds*): FrontendPatternCompiler* {
     var compiler = alloc(FrontendPatternCompiler, 1);
-    var absent = compiler == null;
-    if absent {
+    if compiler == null {
         return null;
     }
     copy(&compiler.kinds, kinds, sizeof(FrontendKinds));
-    var ok = frontend_pattern_table(&compiler.table, &compiler.kinds);
-    if ok {
+    if frontend_pattern_table(&compiler.table, &compiler.kinds) {
         return compiler;
     }
     frontend_pattern_destroy(compiler);
@@ -45,8 +42,7 @@ fn frontend_pattern_position(source: u8*, length: usize, offset: usize): usize {
     var at: usize = 0;
     loop {
         var done = at >= offset;
-        var end = at >= length;
-        if end {
+        if at >= length {
             done = true;
         }
         if done {
@@ -55,8 +51,7 @@ fn frontend_pattern_position(source: u8*, length: usize, offset: usize): usize {
         var id: u32;
         var remaining = length -at;
         var width = tower_utf8_decode(&source[at], remaining, &id);
-        var invalid = width == 0;
-        if invalid {
+        if width == 0 {
             width = 1;
         }
         at = at + width;
@@ -69,13 +64,11 @@ error: FormatResult*): SyntaxPattern* {
     var formatter: FormatEngine;
     fill(&formatter, 0, sizeof(FormatEngine));
     formatter.result = error;
-    var too_long = length > 4096;
-    if too_long {
+    if length > 4096 {
         format_text(&formatter, "Token pattern exceeds 4096 bytes");
         return null;
     }
-    var valid = tower_utf8_validate(source, length, 0) != 0;
-    if !valid {
+    if !(tower_utf8_validate(source, length, 0) != 0) {
         format_text(&formatter, "Invalid UTF-8 in token pattern");
         return null;
     }
@@ -91,18 +84,15 @@ error: FormatResult*): SyntaxPattern* {
     var root = frontend_read_characters(&compiler.table, &compiler.kinds, &input);
     missing = root == null;
     if missing {
-        var allocation = input.error == 1;
-        if allocation {
+        if input.error == 1 {
             format_text(&formatter, "Unable to allocate token pattern");
             return null;
         }
         format_text(&formatter, "Unexpected ");
-        var end = input.offset == length;
-        if end {
+        if input.offset == length {
             format_text(&formatter, "end of input");
         } else {
-            var zero = source[input.offset] == 0;
-            if zero {
+            if source[input.offset] == 0 {
                 format_text(&formatter, "'\\0'");
             } else {
                 var id: u32;
@@ -125,8 +115,7 @@ error: FormatResult*): SyntaxPattern* {
     }
     var offset: usize = 0;
     var message = regex_compile_tree(pattern.grammar, source, compiler.kinds.`match`, pattern.table, &offset);
-    var failed = message != null;
-    if failed {
+    if message != null {
         format_text(&formatter, message);
         format_text(&formatter, " at pattern character ");
         var position = frontend_pattern_position(source, length, offset);

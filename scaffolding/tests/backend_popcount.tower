@@ -42,8 +42,7 @@ fn population(T: type, value: T): T {
 
 fn verify(T: type, value: T, wanted: T): void {
     var actual = population(T, value);
-    var wrong = actual != wanted;
-    if wrong {
+    if actual != wanted {
         failures++;
     }
 }

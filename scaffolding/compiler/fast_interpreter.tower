@@ -83,13 +83,11 @@ fn fm_push(T: type, values: vector(T)*, value: T*): void {
 }
 
 fn fm_trim(T: type, values: vector(T)*): void {
-    var empty = values.length == 0;
-    if empty {
+    if values.length == 0 {
         vector_dispose(T, values);
         return;
     }
-    var exact = values.length == values.capacity;
-    if exact {
+    if values.length == values.capacity {
         return;
     }
     var data = realloc(T, values.data, values.length);
@@ -102,8 +100,7 @@ fn fm_trim(T: type, values: vector(T)*): void {
 fn fm_register(f: FMState*): usize {
     var result = f.next_register;
     f.next_register = result + 1;
-    var larger = f.next_register > f.max_register;
-    if larger {
+    if f.next_register > f.max_register {
         f.max_register = f.next_register;
     }
     return result;
@@ -116,8 +113,7 @@ fn fm_word(f: FMState*, value: usize): void {
 fn fm_emit(f: FMState*, op: usize, a: usize, b: usize, c: usize): usize {
     var at = f.words.length;
     var mark = true;
-    var nonempty = f.sources.length != 0;
-    if nonempty {
+    if f.sources.length != 0 {
         var last = f.sources.length -1;
         mark = f.sources.data[last].offset != f.current_offset;
     }
@@ -130,8 +126,7 @@ fn fm_emit(f: FMState*, op: usize, a: usize, b: usize, c: usize): usize {
     f.instructions++;
     // Branch target extensions are one full word; common branch registers still
     // fit in the header. Patching never changes instruction boundaries.
-    var jump = op == 13;
-    if jump {
+    if op == 13 {
         fm_word(f, 13);
         fm_word(f, a);
         return at;
@@ -182,8 +177,7 @@ fn fm_emit(f: FMState*, op: usize, a: usize, b: usize, c: usize): usize {
 fn fm_patch(f: FMState*, at: usize, operand: usize, target: usize): void {
     var index = at + operand;
     var header = f.words.data[at] &255;
-    var compact = header != 255;
-    if compact {
+    if header != 255 {
         index = at + 1;
     }
     f.words.data[index] = convert(u32, target);
@@ -192,13 +186,11 @@ fn fm_patch(f: FMState*, at: usize, operand: usize, target: usize): void {
 fn fm_constant(f: FMState*, value: u64): usize {
     var index: usize = 0;
     for(; index != f.constants.length; index++) {
-        var same = f.constants.data[index] == value;
-        if same {
+        if f.constants.data[index] == value {
             break;
         }
     }
-    var append = index == f.constants.length;
-    if append {
+    if index == f.constants.length {
         im_storage_require(vector_push(u64, &f.constants, value));
     }
     var result = fm_register(f);
@@ -251,8 +243,7 @@ fn fm_tag(type: FoundationType*): usize {
 fn fm_function(f: FMState*, node: void*): usize {
     var index: usize = 0;
     for(; index != f.functions.length; index++) {
-        var same = f.functions.data[index].node == node;
-        if same {
+        if f.functions.data[index].node == node {
             return index;
         }
     }
@@ -279,19 +270,16 @@ fn fm_function(f: FMState*, node: void*): usize {
 
 fn fm_local(f: FMState*, node: void*): usize {
     var n = im_node(node);
-    var bound = n.binding != null;
-    if bound {
+    if n.binding != null {
         node = n.binding;
     }
     var key = im_key(node);
     var i: usize = 0;
     loop {
-        var done = i == f.locals.length;
-        if done {
+        if i == f.locals.length {
             return 0;
         }
-        var found = f.locals.data[i].key == key;
-        if found {
+        if f.locals.data[i].key == key {
             return convert(usize, f.locals.data[i].value);
         }
         i++;
@@ -299,13 +287,11 @@ fn fm_local(f: FMState*, node: void*): usize {
 }
 
 fn fm_collect_addresses(f: FMState*, node: void*): void {
-    var absent = node == null;
-    if absent {
+    if node == null {
         return;
     }
     var n = im_node(node);
-    var address = n.kind == KAddress();
-    if address {
+    if n.kind == KAddress() {
         var place = n.value;
         loop {
             var target = im_node(place);
@@ -321,8 +307,7 @@ fn fm_collect_addresses(f: FMState*, node: void*): void {
                 place = target.left;
                 continue;
             }
-            var bound = target.binding != null;
-            if bound {
+            if target.binding != null {
                 place = target.binding;
             }
             im_storage_require(vector_push(u64, &f.escaped, im_key(place)));
@@ -353,8 +338,7 @@ fn fm_collect_addresses(f: FMState*, node: void*): void {
     fm_collect_addresses(f, n.otherwise);
     var i: usize = 0;
     loop {
-        var done = i == n.items.length;
-        if done {
+        if i == n.items.length {
             return;
         }
         fm_collect_addresses(f, n.items.data[i]);
@@ -371,13 +355,11 @@ fn fm_pin_locals(f: FMState*, index: usize, body: void*): void {
     var i: usize = 0;
     for(; i != block.items.length; i++) {
         var n = im_node(block.items.data[i]);
-        var label = n.kind == KLabel();
-        if label {
+        if n.kind == KLabel() {
             labeled = true;
         }
     }
-    var omit = !labeled;
-    if omit {
+    if !labeled {
         return;
     }
     f.escaped.length = 0;
@@ -435,15 +417,13 @@ fn fm_pin_locals(f: FMState*, index: usize, body: void*): void {
 
 fn fm_address(f: FMState*, node: void*): usize {
     var n = im_node(node);
-    var load = n.kind == KLoad();
-    if load {
+    if n.kind == KLoad() {
         return fm_value(f, n.value);
     }
     var fm_condition_8 = n.kind == KField();
     var fm_condition_9 = n.kind == KIndex();
 
-    var place = im_or(fm_condition_8, fm_condition_9);
-    if place {
+    if im_or(fm_condition_8, fm_condition_9) {
         var base: usize = 0;
         if n.indirect {
             base = fm_value(f, n.left);
@@ -452,15 +432,13 @@ fn fm_address(f: FMState*, node: void*): usize {
             base = fm_address(f, n.left);
         }
         var delta: usize = 0;
-        var field = n.kind == KField();
-        if field {
+        if n.kind == KField() {
             delta = fm_constant(f, convert(u64, n.byte_offset));
         }
         else {
             delta = fm_value(f, n.right);
             var right = im_node(n.right);
-            var signed = im_type_signed(&right.type);
-            if signed {
+            if im_type_signed(&right.type) {
                 var copied = fm_register(f);
                 fm_emit(f, 1, copied, delta, 0);
                 delta = copied;
@@ -472,8 +450,7 @@ fn fm_address(f: FMState*, node: void*): usize {
             delta = scaled;
         }
         var op: usize = 65;
-        var wide = n.type.pointer_bytes == 8;
-        if wide {
+        if n.type.pointer_bytes == 8 {
             op = 67;
         }
         var result = fm_register(f);
@@ -481,8 +458,7 @@ fn fm_address(f: FMState*, node: void*): usize {
         return result;
     }
     var binding = n;
-    var bound = n.binding != null;
-    if bound {
+    if n.binding != null {
         binding = im_node(n.binding);
     }
     var op: usize = 2;
@@ -495,8 +471,7 @@ fn fm_address(f: FMState*, node: void*): usize {
 }
 
 fn fm_value(f: FMState*, node: void*): usize {
-    var empty = node == null;
-    if empty {
+    if node == null {
         return fm_constant(f, 0);
     }
     var n = im_node(node);
@@ -518,25 +493,21 @@ fn fm_value(f: FMState*, node: void*): usize {
     if query {
         return fm_constant(f, convert(u64, im_type_alignment(&n.element)));
     }
-    var string = n.kind == KString();
-    if string {
+    if n.kind == KString() {
         var index = f.strings.length;
         im_storage_require(vector_push(void*, &f.strings, node));
         var result = fm_register(f);
         fm_emit(f, 18, result, index, 0);
         return result;
     }
-    var operand = n.kind == KOperand();
-    if operand {
+    if n.kind == KOperand() {
         var slot = fm_local(f, node);
-        var in_register = slot != 0;
-        if in_register {
+        if slot != 0 {
             slot--;
             return slot;
         }
         var binding = n;
-        var bound = n.binding != null;
-        if bound {
+        if n.binding != null {
             binding = im_node(n.binding);
         }
         var result = fm_register(f);
@@ -560,8 +531,7 @@ fn fm_value(f: FMState*, node: void*): usize {
         fm_emit(f, 4, result, address, im_type_size(&n.type));
         return result;
     }
-    var call = n.kind == KCall();
-    if call {
+    if n.kind == KCall() {
         var result = fm_register(f);
         var first = f.next_register;
         var i: usize = 0;
@@ -580,22 +550,19 @@ fn fm_value(f: FMState*, node: void*): usize {
     var fm_condition_14 = n.kind == KAllocate();
     var fm_condition_15 = n.kind == KReallocate();
 
-    var allocation = im_or(fm_condition_14, fm_condition_15);
-    if allocation {
+    if im_or(fm_condition_14, fm_condition_15) {
         var pointer = fm_value(f, n.left);
         var count = fm_value(f, n.right);
         var result = fm_register(f);
         fm_emit(f, 1, result, pointer, 0);
         var op: usize = 8;
-        var reallocating = n.kind == KReallocate();
-        if reallocating {
+        if n.kind == KReallocate() {
             op = 9;
         }
         fm_emit(f, op, result, count, im_type_size(&n.element));
         return result;
     }
-    var binary = n.kind == KBinary();
-    if binary {
+    if n.kind == KBinary() {
         var left = fm_value(f, n.left);
         var right = fm_value(f, n.right);
         var input = im_node(n.left);
@@ -610,8 +577,7 @@ fn fm_value(f: FMState*, node: void*): usize {
             fm_emit(f, 1, scaled, right, 0);
             right = scaled;
             var right_node = im_node(n.right);
-            var signed = im_type_signed(&right_node.type);
-            if signed {
+            if im_type_signed(&right_node.type) {
                 fm_emit(f, 21, right, fm_tag(&right_node.type), 0);
             }
             var size = fm_constant(f, convert(u64, im_pointee_size(&input.type)));
@@ -625,8 +591,7 @@ fn fm_value(f: FMState*, node: void*): usize {
         return result;
     }
     var value = fm_value(f, n.value);
-    var converting = n.kind == KConvert();
-    if converting {
+    if n.kind == KConvert() {
         var input = im_node(n.value);
         var descriptor: FMConversion;
         descriptor.from = &input.type;
@@ -645,16 +610,14 @@ fn fm_statement(f: FMState*, node: void*, breaks: vector(usize)*, continue_pc: u
     var n = im_node(node);
     f.current_offset = n.start;
     f.next_register = f.pinned;
-    var label = n.kind == KLabel();
-    if label {
+    if n.kind == KLabel() {
         var entry: IMEntry;
         entry.key = im_key(node);
         entry.value = convert(u64, f.words.length);
         fm_push(IMEntry, &f.labels, &entry);
         return;
     }
-    var jump_label = n.kind == KJump();
-    if jump_label {
+    if n.kind == KJump() {
         var entry: IMEntry;
         entry.key = im_key(n.binding);
         var at = fm_emit(f, 13, 0, 0, 0);
@@ -662,8 +625,7 @@ fn fm_statement(f: FMState*, node: void*, breaks: vector(usize)*, continue_pc: u
         fm_push(IMEntry, &f.jumps, &entry);
         return;
     }
-    var trapping = n.kind == KTrap();
-    if trapping {
+    if n.kind == KTrap() {
         var message = fm_value(f, n.left);
         var offset = fm_value(f, n.right);
         fm_emit(f, 22, message, offset, 0);
@@ -672,8 +634,7 @@ fn fm_statement(f: FMState*, node: void*, breaks: vector(usize)*, continue_pc: u
     var fm_condition_18 = n.kind == KBlock();
     var fm_condition_19 = n.kind == KProgram();
 
-    var block = im_or(fm_condition_18, fm_condition_19);
-    if block {
+    if im_or(fm_condition_18, fm_condition_19) {
         for(var i: usize = 0; i != n.items.length; i++) {
             fm_statement(f, n.items.data[i], breaks, continue_pc);
         }
@@ -682,24 +643,20 @@ fn fm_statement(f: FMState*, node: void*, breaks: vector(usize)*, continue_pc: u
     var fm_condition_20 = n.kind == KFunction();
     var fm_condition_21 = n.kind == KType();
 
-    var omitted = im_or(fm_condition_20, fm_condition_21);
-    if omitted {
+    if im_or(fm_condition_20, fm_condition_21) {
         return;
     }
     var declaration = n.kind == KDeclare();
     var fm_condition_22 = n.kind == KAssign();
 
-    var assign = im_or(declaration, fm_condition_22);
-    if assign {
-        var has_value = n.value != null;
-        if has_value {
+    if im_or(declaration, fm_condition_22) {
+        if n.value != null {
             var target = n.target;
             if declaration {
                 target = node;
             }
             var slot = fm_local(f, target);
-            var in_register = slot != 0;
-            if in_register {
+            if slot != 0 {
                 var value = fm_value(f, n.value);
                 slot--;
                 fm_emit(f, 1, slot, value, 0);
@@ -712,22 +669,19 @@ fn fm_statement(f: FMState*, node: void*, breaks: vector(usize)*, continue_pc: u
         }
         return;
     }
-    var conditional = n.kind == KIf();
-    if conditional {
+    if n.kind == KIf() {
         var value = fm_value(f, n.value);
         var branch = fm_emit(f, 14, value, 0, 0);
         fm_statement(f, n.body, breaks, continue_pc);
         var jump = fm_emit(f, 13, 0, 0, 0);
         fm_patch(f, branch, 3, f.words.length);
-        var has_else = n.otherwise != null;
-        if has_else {
+        if n.otherwise != null {
             fm_statement(f, n.otherwise, breaks, continue_pc);
         }
         fm_patch(f, jump, 2, f.words.length);
         return;
     }
-    var loop_node = n.kind == KLoop();
-    if loop_node {
+    if n.kind == KLoop() {
         var local_breaks: vector(usize);
         vector_init(usize, &local_breaks);
         var start = f.words.length;
@@ -739,45 +693,38 @@ fn fm_statement(f: FMState*, node: void*, breaks: vector(usize)*, continue_pc: u
         vector_dispose(usize, &local_breaks);
         return;
     }
-    var breaking = n.kind == KBreak();
-    if breaking {
+    if n.kind == KBreak() {
         var at = fm_emit(f, 13, 0, 0, 0);
         im_storage_require(vector_push(usize, breaks, at));
         return;
     }
-    var continuing = n.kind == KContinue();
-    if continuing {
+    if n.kind == KContinue() {
         fm_emit(f, 13, continue_pc, 0, 0);
         return;
     }
-    var returning = n.kind == KReturn();
-    if returning {
+    if n.kind == KReturn() {
         fm_emit(f, 16, fm_value(f, n.value), 0, 0);
         return;
     }
-    var print = n.kind == KPrint();
-    if print {
+    if n.kind == KPrint() {
         var value = fm_value(f, n.value);
         var input = im_node(n.value);
         fm_emit(f, 17, value, fm_type(f, &input.type), 0);
         return;
     }
-    var freeing = n.kind == KFree();
-    if freeing {
+    if n.kind == KFree() {
         fm_emit(f, 10, fm_value(f, n.left), 0, 0);
         return;
     }
     var fm_condition_23 = n.kind == KCopy();
     var fm_condition_24 = n.kind == KFill();
 
-    var memory = im_or(fm_condition_23, fm_condition_24);
-    if memory {
+    if im_or(fm_condition_23, fm_condition_24) {
         var left = fm_value(f, n.left);
         var right = fm_value(f, n.right);
         var count = fm_value(f, n.value);
         var op: usize = 11;
-        var filling = n.kind == KFill();
-        if filling {
+        if n.kind == KFill() {
             op = 12;
         }
         fm_emit(f, op, left, right, count);
@@ -806,8 +753,7 @@ export fn fast_interpreter_create(m: IMState*): FMState* {
         var external = n.external;
         if !external {
             var body = n.body;
-            var root = i == 0;
-            if root {
+            if i == 0 {
                 body = node;
             }
             fm_pin_locals(f, i, body);
@@ -824,8 +770,7 @@ export fn fast_interpreter_create(m: IMState*): FMState* {
             var end = j == f.labels.length;
             var available = !end;
             im_storage_require(available);
-            var matches = f.labels.data[j].key == f.jumps.data[i].key;
-            if matches {
+            if f.labels.data[j].key == f.jumps.data[i].key {
                 fm_patch(f, convert(usize, f.jumps.data[i].value), 2, convert(usize, f.labels.data[j].value));
                 break;
             }
@@ -882,22 +827,19 @@ fn fm_offset(f: FMState*, pc: usize): usize {
     var begin: usize = 0;
     var end = f.sources.length;
     loop {
-        var done = begin == end;
-        if done {
+        if begin == end {
             break;
         }
         var middle = end -begin;
         middle = middle / 2;
         middle = middle + begin;
-        var before = f.sources.data[middle].pc <= pc;
-        if before {
+        if f.sources.data[middle].pc <= pc {
             begin = middle + 1;
         } else {
             end = middle;
         }
     }
-    var empty = begin == 0;
-    if empty {
+    if begin == 0 {
         return 0;
     }
     begin--;
@@ -917,8 +859,7 @@ fn fm_mask(tag: usize): u64 {
 }
 
 fn fm_sign(value: u64, tag: usize): i64 {
-    var narrow = tag == 2;
-    if narrow {
+    if tag == 2 {
         return convert(i64, bits(i32, convert(u32, value)));
     }
     return bits(i64, value);
@@ -961,8 +902,7 @@ export fn fast_interpreter_step(m: IMState*, f: FMState*, budget: usize): void {
         b = b & 255;
         unpacked = word / 16777216;
         var c = convert(usize, unpacked);
-        var wide = op == 255;
-        if wide {
+        if op == 255 {
             var at = pc + 1;
             op = convert(usize, f.words.data[at]);
             at++;
@@ -987,15 +927,13 @@ export fn fast_interpreter_step(m: IMState*, f: FMState*, budget: usize): void {
         var r = &f.registers.data[f.register_base];
         count++;
         m.steps++;
-        var trapping = op == 22;
-        if trapping {
+        if op == 22 {
             f.preserve_error_offset = true;
             im_raise(m, r[a], r[b]);
             m.done = true;
             continue;
         }
-        var binary = op >= 64;
-        if binary {
+        if op >= 64 {
             r[a] = fm_binary(m, op, r[b], r[c]);
         }
         else {
@@ -1045,20 +983,17 @@ export fn fast_interpreter_step(m: IMState*, f: FMState*, budget: usize): void {
                                         if selected {
                                             var size = convert(u64, c);
                                             var limit = convert(u64, im_host_max());
-                                            var narrow = im_pointer_bytes(m) == 4;
-                                            if narrow {
+                                            if im_pointer_bytes(m) == 4 {
                                                 limit = 4294967295;
                                             }
                                             limit = limit / size;
-                                            var too_big = r[b] > limit;
-                                            if too_big {
+                                            if r[b] > limit {
                                                 r[a] = 0;
                                             }
                                             else {
                                                 size = size * r[b];
                                                 var result: u64 = 0;
-                                                var allocate = op == 8;
-                                                if allocate {
+                                                if op == 8 {
                                                     result = interpreter_allocate(m, convert(usize, size));
                                                 }
                                                 else {
@@ -1089,8 +1024,7 @@ export fn fast_interpreter_step(m: IMState*, f: FMState*, budget: usize): void {
                                                     else {
                                                         selected = op == 14;
                                                         if selected {
-                                                            var zero = r[a] == 0;
-                                                            if zero {
+                                                            if r[a] == 0 {
                                                                 f.pc = b;
                                                             }
                                                         }
@@ -1104,8 +1038,7 @@ export fn fast_interpreter_step(m: IMState*, f: FMState*, budget: usize): void {
                                                                 if selected {
                                                                     var value = r[a];
                                                                     m.stack = f.base;
-                                                                    var empty = f.frames.length == 0;
-                                                                    if empty {
+                                                                    if f.frames.length == 0 {
                                                                         m.done = true;
                                                                     }
                                                                     else {
@@ -1138,8 +1071,7 @@ export fn fast_interpreter_step(m: IMState*, f: FMState*, budget: usize): void {
                                                                             selected = im_or(fm_condition_34, fm_condition_35);
                                                                             if selected {
                                                                                 var base = f.base;
-                                                                                var global = op == 23;
-                                                                                if global {
+                                                                                if op == 23 {
                                                                                     base = 16;
                                                                                 }
                                                                                 var address = base + b;
@@ -1169,8 +1101,7 @@ export fn fast_interpreter_step(m: IMState*, f: FMState*, budget: usize): void {
             }
         }
         if m.failed {
-            var locate = !f.preserve_error_offset;
-            if locate {
+            if !f.preserve_error_offset {
                 m.error_offset = fm_offset(f, pc);
             }
             m.done = true;
@@ -1182,8 +1113,7 @@ fn fm_call(m: IMState*, f: FMState*, dest: usize, index: usize, first: usize, of
     var function = &f.functions.data[index];
     var arg_index = f.register_base + first;
     if function.external {
-        var missing = im_has_foreign(m) == false;
-        if missing {
+        if im_has_foreign(m) == false {
             im_missing_foreign(m, function.node, offset);
             return;
         }

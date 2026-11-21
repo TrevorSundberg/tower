@@ -30,8 +30,7 @@ extern fn parse_forest_attach(forest: void*, parent: void*, first: usize): bool;
 extern fn parse_forest_take(forest: void*, index: usize): void*;
 
 fn lr_tree_match(node: void*, kind: void*): ParserMatchData* {
-    var missing = node == null;
-    if missing {
+    if node == null {
         return null;
     }
     var data = entity_component_data(entity_component_get(node, kind));
@@ -40,8 +39,7 @@ fn lr_tree_match(node: void*, kind: void*): ParserMatchData* {
 
 fn lr_tree_create_match(node: void*, kind: void*): ParserMatchData* {
     var data = entity_component_data(entity_component_add(node, kind));
-    var present = data != null;
-    if present {
+    if data != null {
         node_payload_init(CompilerParserMatch(), data);
     }
     return bits(ParserMatchData*, data);
@@ -49,8 +47,7 @@ fn lr_tree_create_match(node: void*, kind: void*): ParserMatchData* {
 
 export fn lr_tree_needs_label(node: void*, kind: void*): bool {
     var data = lr_tree_match(node, kind);
-    var missing = data == null;
-    if missing {
+    if data == null {
         return true;
     }
     var empty = data.label.length == 0;
@@ -63,8 +60,7 @@ export fn lr_tree_shift(parser: LRParser*, forest: void*, grammar: LRGrammar*, k
     var node = *input;
     var supplied = node != null;
     if supplied {
-        var attached = entity_parent(node) != null;
-        if attached {
+        if entity_parent(node) != null {
             return 2;
         }
     } else {
@@ -75,8 +71,7 @@ export fn lr_tree_shift(parser: LRParser*, forest: void*, grammar: LRGrammar*, k
         }
     }
     var data = lr_tree_match(node, kind);
-    var missing = data == null;
-    if missing {
+    if data == null {
         data = lr_tree_create_match(node, kind);
         var absent = data == null;
         if absent {
@@ -89,8 +84,7 @@ export fn lr_tree_shift(parser: LRParser*, forest: void*, grammar: LRGrammar*, k
         data.start = step.start;
         data.length = step.end - step.start;
     }
-    var empty = data.label.length == 0;
-    if empty {
+    if data.label.length == 0 {
         var ok = node_match_set_label(data, label);
         if !ok {
             if !supplied {
@@ -108,8 +102,7 @@ export fn lr_tree_shift(parser: LRParser*, forest: void*, grammar: LRGrammar*, k
         return 0;
     }
     *input = null;
-    var sequence = step.kind == 6;
-    if sequence {
+    if step.kind == 6 {
         var joined: ParserForestSpan;
         joined.first = parser.sequence_first;
         joined.last = parser.sequence_last;
@@ -158,8 +151,7 @@ export fn lr_tree_reduce_kind(parser: LRParser*, forest: void*, grammar: LRGramm
         }
     }
     var materialize = !grammar.rule_metadata.data[step.rule].generated;
-    var root = rule.owner == 1;
-    if root {
+    if rule.owner == 1 {
         materialize = true;
     }
     if materialize {

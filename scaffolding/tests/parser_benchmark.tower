@@ -40,8 +40,7 @@ extern fn clock_gettime(clock: i32, value: BenchmarkTime*): i32;
 
 fn benchmark_clock(): u64 {
     var time: BenchmarkTime;
-    var failed = clock_gettime(1, &time) != 0;
-    if failed {
+    if clock_gettime(1, &time) != 0 {
         abort();
     }
     var seconds = convert(u64, time.seconds) *1000000000;
@@ -63,8 +62,7 @@ fn benchmark_number(value: u64): void {
         digits[count] = convert(u8, digit);
         count = count + 1;
         value = value / 10;
-        var done = value == 0;
-        if done {
+        if value == 0 {
             break;
         }
     }
@@ -77,8 +75,7 @@ fn benchmark_number(value: u64): void {
 
 fn benchmark_parse(session: void*): void {
     var root = syntax_next(session);
-    var failed = root == null;
-    if failed {
+    if root == null {
         puts(syntax_get_error(session));
         abort();
     }
@@ -89,8 +86,7 @@ export fn main(argc: i32, argv: u8**): i32 {
     var declaration: u8* = "parse Statement = 'x'* ';';";
     var setup: BenchmarkString;
     `cpp_name(abi_tag(cxx11) std::string syntax_set_bootstrap(char const*))`(&setup, declaration);
-    var failed = setup.length != 0;
-    if failed {
+    if setup.length != 0 {
         puts(setup.data);
         abort();
     }
@@ -127,8 +123,7 @@ export fn main(argc: i32, argv: u8**): i32 {
             benchmark_parse(session);
             var elapsed = benchmark_clock() -start;
             allocations = tower_test_buffer_allocations() - allocations;
-            var warmed = iteration >= 5;
-            if warmed {
+            if iteration >= 5 {
                 // CSV: input symbols, nanoseconds, tracked allocation calls,
                 // live tracked buffers after releasing the accepted tree.
                 benchmark_number(convert(u64, size));
@@ -139,10 +134,8 @@ export fn main(argc: i32, argv: u8**): i32 {
                 putchar(44);
                 benchmark_number(convert(u64, tower_test_buffer_count()));
                 putchar(10);
-                var repeated = iteration > 5;
-                if repeated {
-                    var leaked = tower_test_buffer_count() != live;
-                    if leaked {
+                if iteration > 5 {
+                    if tower_test_buffer_count() != live {
                         abort();
                     }
                 }

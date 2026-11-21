@@ -38,8 +38,7 @@ fn parse_missing(): usize {
 
 export fn parse_forest_create(): ParseForestStore* {
     var forest = alloc(ParseForestStore, 1);
-    var ok = forest != null;
-    if ok {
+    if forest != null {
         fill(forest, 0, sizeof(ParseForestStore));
     }
     return forest;
@@ -48,8 +47,7 @@ export fn parse_forest_create(): ParseForestStore* {
 export fn parse_forest_destroy(forest: ParseForestStore*): void {
     for(var i: usize = 0; i != forest.count; i++) {
         var entity = forest.children[i].entity;
-        var owned = entity != null;
-        if owned {
+        if entity != null {
             entity_release(entity);
         }
     }
@@ -59,22 +57,18 @@ export fn parse_forest_destroy(forest: ParseForestStore*): void {
 }
 
 fn parse_forest_reserve(forest: ParseForestStore*): bool {
-    var enough = forest.count < forest.capacity;
-    if enough {
+    if forest.count < forest.capacity {
         return true;
     }
     var capacity = forest.capacity *2;
-    var overflow = capacity < forest.capacity;
-    if overflow {
+    if capacity < forest.capacity {
         return false;
     }
-    var small = capacity < 16;
-    if small {
+    if capacity < 16 {
         capacity = 16;
     }
     var next = realloc(ParseChild, forest.children, capacity);
-    var failed = next == null;
-    if failed {
+    if next == null {
         return false;
     }
     forest.children = next;
@@ -107,9 +101,7 @@ export fn parse_forest_join(forest: ParseForestStore*, result: ParseForest*, fir
     var captured = capture != null;
     captured &&= *capture != 0;
     if captured {
-        var ok = parse_forest_reserve(forest);
-        var failed = !ok;
-        if failed {
+        if !parse_forest_reserve(forest) {
             return false;
         }
         var index = forest.count;
@@ -132,24 +124,19 @@ export fn parse_forest_join(forest: ParseForestStore*, result: ParseForest*, fir
 }
 
 fn parse_forest_visit(forest: ParseForestStore*, index: usize, capture: u8*): bool {
-    var empty = index == parse_missing();
-    if empty {
+    if index == parse_missing() {
         return true;
     }
-    var full = forest.pending_count == forest.pending_capacity;
-    if full {
+    if forest.pending_count == forest.pending_capacity {
         var capacity = forest.pending_capacity *2;
-        var overflow = capacity < forest.pending_capacity;
-        if overflow {
+        if capacity < forest.pending_capacity {
             return false;
         }
-        var small = capacity < 16;
-        if small {
+        if capacity < 16 {
             capacity = 16;
         }
         var next = realloc(ParseVisit, forest.pending, capacity);
-        var failed = next == null;
-        if failed {
+        if next == null {
             return false;
         }
         forest.pending = next;
@@ -170,8 +157,7 @@ export fn parse_forest_attach(forest: ParseForestStore*, parent: Entity*, first:
         if failed {
             return false;
         }
-        var done = forest.pending_count == 0;
-        if done {
+        if forest.pending_count == 0 {
             return true;
         }
         forest.pending_count--;
@@ -184,12 +170,10 @@ export fn parse_forest_attach(forest: ParseForestStore*, parent: Entity*, first:
         if failed {
             return false;
         }
-        var uncaptured = capture == null;
-        if uncaptured {
+        if capture == null {
             capture = child.capture;
         }
-        var leaf = child.entity != null;
-        if leaf {
+        if child.entity != null {
             ok = entity_attach(child.entity, parent, capture);
             if ok {
                 entity_release(child.entity);

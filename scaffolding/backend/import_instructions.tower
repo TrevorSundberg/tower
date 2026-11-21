@@ -30,8 +30,7 @@ fn bi_edge(c: BackendImport*, from: void*, to: void*): void {
             if done {
                 break;
             }
-            var matches = LLVMGetIncomingBlock(instruction, i) == from;
-            if matches {
+            if LLVMGetIncomingBlock(instruction, i) == from {
                 var value = bi_value(c, LLVMGetIncomingValue(instruction, i));
                 var snapshot = bi_decl(c, bi_scalar(c, LLVMTypeOf(instruction)));
                 bi_assign(c, bi_ref(c, snapshot), value);
@@ -60,8 +59,7 @@ fn bi_edge(c: BackendImport*, from: void*, to: void*): void {
 
 fn bi_print(c: BackendImport*, value: void*, code: u32): void {
     var scalar = code;
-    var pointer = code == 3;
-    if pointer {
+    if code == 3 {
         value = bi_cast(c, value, 8, false);
         value = bi_cast(c, value, 10, true);
     } else {
@@ -84,19 +82,16 @@ fn bi_call(c: BackendImport*, instruction: void*): void* {
     var callee = LLVMGetCalledValue(instruction);
     var length: usize = 0;
     var name = LLVMGetValueName2(callee, &length);
-    var printing = backend_equal(name, "tower_print");
-    if printing {
+    if backend_equal(name, "tower_print") {
         var code = LLVMGetOperand(instruction, 0);
         var value = bi_value(c, LLVMGetOperand(instruction, 1));
-        var constant = LLVMGetValueKind(code) == 18;
-        if constant {
+        if LLVMGetValueKind(code) == 18 {
             bi_print(c, value, convert(u32, LLVMConstIntGetZExtValue(code)));
         }
         else {
             code = bi_value(c, code);
             for(var i: u32 = 0; i != 9; i++) {
-                var valid = i != 4;
-                if valid {
+                if i != 4 {
                     var test = bi_binary(c, 8, code, bi_const(c, 1, convert(u64, i)), 2);
                     var outer = c.block;
                     var branch = sem_get(bi_if(c, test));
@@ -108,8 +103,7 @@ fn bi_call(c: BackendImport*, instruction: void*): void* {
         }
         return null;
     }
-    var trapping = backend_equal(name, "tower_trap");
-    if trapping {
+    if backend_equal(name, "tower_trap") {
         var entity = bi_node(c, 33, 3);
         var n = sem_get(entity);
         n.left = bi_value(c, LLVMGetOperand(instruction, 0));
@@ -173,8 +167,7 @@ fn bi_call(c: BackendImport*, instruction: void*): void* {
         return bi_ref(c, result);
     }
     var copy = backend_prefix(name, "llvm.memcpy.");
-    var move = backend_prefix(name, "llvm.memmove.");
-    if move {
+    if backend_prefix(name, "llvm.memmove.") {
         copy = true;
     }
     var fill_memory = backend_prefix(name, "llvm.memset.");
@@ -193,16 +186,14 @@ fn bi_call(c: BackendImport*, instruction: void*): void* {
         n.right = bi_value(c, LLVMGetOperand(instruction, 1));
         n.value = bi_cast(c, bi_value(c, LLVMGetOperand(instruction, 2)), 8, false);
         var volatile_flag = LLVMGetOperand(instruction, 3);
-        var volatile_memory = LLVMIsNull(volatile_flag) == 0;
-        if volatile_memory {
+        if LLVMIsNull(volatile_flag) == 0 {
             backend_fail(c.backend, "Volatile LLVM memory requires an explicit foundation contract");
         }
         bi_append(c, c.block, entity);
         return null;
     }
     var ignored = backend_prefix(name, "llvm.lifetime.");
-    var assume = backend_equal(name, "llvm.assume");
-    if assume {
+    if backend_equal(name, "llvm.assume") {
         ignored = true;
     }
     if ignored {
@@ -210,17 +201,14 @@ fn bi_call(c: BackendImport*, instruction: void*): void* {
     }
     // InstCombine recognizes these ordinary scalar idioms even without target
     // vectorization. Legalize their bit semantics; do not re-optimize the graph.
-    var population = backend_prefix(name, "llvm.ctpop.");
-    if population {
+    if backend_prefix(name, "llvm.ctpop.") {
         var type = LLVMTypeOf(instruction);
-        var integer = LLVMGetTypeKind(type) == 8;
-        if !integer {
+        if !(LLVMGetTypeKind(type) == 8) {
             backend_fail(c.backend, "Population count reconstruction requires a scalar integer");
             return null;
         }
         var width = LLVMGetIntTypeWidth(type);
-        var supported = width <= 64;
-        if !supported {
+        if !(width <= 64) {
             backend_fail(c.backend, "Population count reconstruction supports up to 64 bits");
             return null;
         }
@@ -249,8 +237,7 @@ fn bi_call(c: BackendImport*, instruction: void*): void* {
         }
         return value;
     }
-    var absolute = backend_prefix(name, "llvm.abs.");
-    if absolute {
+    if backend_prefix(name, "llvm.abs.") {
         var type = LLVMTypeOf(instruction);
         var scalar = bi_scalar(c, type);
         var a = bi_value(c, LLVMGetOperand(instruction, 0));
@@ -343,8 +330,7 @@ fn bi_call(c: BackendImport*, instruction: void*): void* {
         return bi_select(c, condition, a, b, bi_scalar(c, type));
     }
     var binding = backend_find(&c.values, callee);
-    var absent = binding == null;
-    if absent {
+    if binding == null {
         backend_fail(c.backend, "Unsupported LLVM intrinsic or indirect call: ");
         backend_text(&c.backend.error, name);
         return null;
@@ -362,8 +348,7 @@ fn bi_call(c: BackendImport*, instruction: void*): void* {
         value = bi_cast_type(c, value, &parameter.type);
         backend_require(c.backend, vector_push(void*, &n.items, value));
     }
-    var empty = n.type.scalar == 3;
-    if empty {
+    if n.type.scalar == 3 {
         bi_append(c, c.block, entity);
         return null;
     }
@@ -378,8 +363,7 @@ fn bi_instruction(c: BackendImport*, instruction: void*, block: void*): void* {
     if selected {
         var entity = bi_node(c, 18, 3);
         var n = sem_get(entity);
-        var valued = LLVMGetNumOperands(instruction) != 0;
-        if valued {
+        if LLVMGetNumOperands(instruction) != 0 {
             n.value = bi_value(c, LLVMGetOperand(instruction, 0));
             var function = sem_get(c.function);
             n.value = bi_cast_type(c, n.value, &function.type);
@@ -389,8 +373,7 @@ fn bi_instruction(c: BackendImport*, instruction: void*, block: void*): void* {
     }
     selected = op == 2;
     if selected {
-        var conditional = LLVMGetNumSuccessors(instruction) == 2;
-        if conditional {
+        if LLVMGetNumSuccessors(instruction) == 2 {
             var condition = bi_value(c, LLVMGetCondition(instruction));
             var outer = c.block;
             var branch = sem_get(bi_if(c, condition));
@@ -433,8 +416,7 @@ fn bi_instruction(c: BackendImport*, instruction: void*, block: void*): void* {
     selected = op == 26;
     if selected {
         var count = LLVMGetOperand(instruction, 0);
-        var constant = LLVMGetValueKind(count) == 18;
-        if !constant {
+        if !(LLVMGetValueKind(count) == 18) {
             backend_fail(c.backend, "Dynamic LLVM alloca cannot be represented by a static foundation local");
             return bi_const(c, 10, 0);
         }
@@ -450,8 +432,7 @@ fn bi_instruction(c: BackendImport*, instruction: void*, block: void*): void* {
     }
     if selected {
         var invalid = LLVMGetVolatile(instruction) != 0;
-        var atomic = LLVMGetOrdering(instruction) != 0;
-        if atomic {
+        if LLVMGetOrdering(instruction) != 0 {
             invalid = true;
         }
         if invalid {
@@ -498,8 +479,7 @@ fn bi_instruction(c: BackendImport*, instruction: void*, block: void*): void* {
         return a;
     }
     selected = op == 30;
-    var cast = op == 31;
-    if cast {
+    if op == 31 {
         selected = true;
     }
     if selected {
@@ -581,8 +561,7 @@ fn bi_instruction(c: BackendImport*, instruction: void*, block: void*): void* {
     if selected {
         binary = 7;
     }
-    var supported = binary != 99;
-    if supported {
+    if binary != 99 {
         var signed = op == 15;
         selected = op == 18;
         if selected {

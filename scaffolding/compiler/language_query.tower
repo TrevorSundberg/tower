@@ -56,13 +56,11 @@ struct LanguageCandidate {
 }
 
 fn language_quote(q: CompletionQuery*, text: u8*, size: usize): void {
-    var hover_condition1 = size > HoverPreviewByteLimit();
-    if hover_condition1 {
+    if size > HoverPreviewByteLimit() {
         size = HoverPreviewByteLimit();
         loop {
             var byte = text[size] &192;
-            var hover_condition2 = byte != 128;
-            if hover_condition2 {
+            if byte != 128 {
                 break;
             }
             size--;
@@ -133,10 +131,8 @@ fn language_documentation(q: CompletionQuery*, value: FoundationNode*): void {
                 break;
             }
         }
-        var content = last > first;
-        if content {
-            var newline = text.length != 0;
-            if newline {
+        if last > first {
+            if text.length != 0 {
                 sem_require(vector_push(u8, &text, 10));
             }
             var count = last -first;
@@ -144,8 +140,7 @@ fn language_documentation(q: CompletionQuery*, value: FoundationNode*): void {
         }
         i = i + 3;
     }
-    var present = text.length != 0;
-    if present {
+    if text.length != 0 {
         completion_text(&q.output, ",\"documentation\":");
         sem_require(host_json_quote(&q.output, text.data, text.length));
     }
@@ -154,19 +149,16 @@ fn language_documentation(q: CompletionQuery*, value: FoundationNode*): void {
 
 fn language_declaration_location(q: CompletionQuery*, subject: void*): void {
     var span = sem_match(subject);
-    var context_condition30 = span == null;
-    if context_condition30 {
+    if span == null {
         return;
     }
     var base = sem_source_base(&q.context, subject);
     var i: usize = 0;
     loop {
-        var context_condition31 = i == q.comment_modules.length;
-        if context_condition31 {
+        if i == q.comment_modules.length {
             return;
         }
-        var context_condition32 = base == q.comment_bases.data[i];
-        if context_condition32 {
+        if base == q.comment_bases.data[i] {
             var module = q.comment_modules.data[i];
             var line: usize = 1;
             var column: usize = 1;
@@ -184,16 +176,13 @@ fn language_declaration_location(q: CompletionQuery*, subject: void*): void {
 // components owns its entire source span; no keyword or punctuation allow-list.
 fn language_candidate(q: CompletionQuery*, node: void*, candidate: LanguageCandidate*, checked: bool): void {
     var span = sem_match(node);
-    var absent = span == null;
-    if absent {
+    if span == null {
         return;
     }
-    var empty = span.length == 0;
-    if empty {
+    if span.length == 0 {
         return;
     }
-    var outside = span.start >= q.length;
-    if outside {
+    if span.start >= q.length {
         return;
     }
     var priority = LanguagePresentation.None;
@@ -206,8 +195,7 @@ fn language_candidate(q: CompletionQuery*, node: void*, candidate: LanguageCandi
         presented.from = span.start;
         presented.to = span.start + span.length;
         var rank = language_component_present(q, node, component, checked, &presented);
-        var preferred = convert(u32, rank) > convert(u32, priority);
-        if preferred {
+        if convert(u32, rank) > convert(u32, priority) {
             priority = rank;
             copy(candidate, &presented, sizeof(LanguageCandidate));
         }
@@ -216,17 +204,14 @@ fn language_candidate(q: CompletionQuery*, node: void*, candidate: LanguageCandi
 
 fn language_leaf(q: CompletionQuery*, leaf: void*, candidate: LanguageCandidate*): void {
     var span = sem_match(leaf);
-    var hover_condition29 = span == null;
-    if hover_condition29 {
+    if span == null {
         return;
     }
-    var hover_condition30 = span.length == 0;
-    if hover_condition30 {
+    if span.length == 0 {
         return;
     }
     var end = span.start + span.length;
-    var hover_condition31 = end > q.length;
-    if hover_condition31 {
+    if end > q.length {
         return;
     }
     var selected = candidate.subject != null;
@@ -241,8 +226,7 @@ fn language_leaf(q: CompletionQuery*, leaf: void*, candidate: LanguageCandidate*
         subject = candidate.subject;
         node = candidate.node;
         value = sem_get(subject);
-        var generic_check1 = candidate.generic != null;
-        if generic_check1 {
+        if candidate.generic != null {
             value = null;
             language_generic_format(q, candidate.generic, &formatted, true);
         } else {
@@ -261,8 +245,7 @@ fn language_leaf(q: CompletionQuery*, leaf: void*, candidate: LanguageCandidate*
             }
         }
     }
-    var hover_condition32 = q.count != 0;
-    if hover_condition32 {
+    if q.count != 0 {
         completion_text(&q.output, ",");
     }
     completion_text(&q.output, "{\"from\":");
@@ -280,16 +263,14 @@ fn language_leaf(q: CompletionQuery*, leaf: void*, candidate: LanguageCandidate*
     }
     format_dispose(&formatted);
     var kind = language_kind(value);
-    var context_condition33 = candidate.description != null;
-    if context_condition33 {
+    if candidate.description != null {
         language_string(q, "description", candidate.description);
     }
     if selected {
         if candidate.grammar {
             kind = "grammar";
         }
-        var generic_check2 = candidate.generic != null;
-        if generic_check2 {
+        if candidate.generic != null {
             kind = language_generic_kind(candidate.generic);
         }
     }
@@ -317,16 +298,13 @@ fn language_leaf(q: CompletionQuery*, leaf: void*, candidate: LanguageCandidate*
     if matched_details {
         language_match_details(q, candidate);
     }
-    var grammar_condition1 = candidate.template != null;
-    if grammar_condition1 {
+    if candidate.template != null {
         language_template_details(q, leaf, candidate);
     }
     var syntax = sem_label(node);
-    var hover_condition33 = node == leaf;
-    if hover_condition33 {
+    if node == leaf {
         var parent = sem_parent(leaf);
-        var hover_condition34 = parent != null;
-        if hover_condition34 {
+        if parent != null {
             syntax = sem_label(parent);
         }
     }
@@ -334,14 +312,12 @@ fn language_leaf(q: CompletionQuery*, leaf: void*, candidate: LanguageCandidate*
     language_number(q, "entity", entity_id(node));
     language_number(q, "components", entity_component_count(node));
     var parent = sem_parent(node);
-    var hover_condition35 = parent != null;
-    if hover_condition35 {
+    if parent != null {
         language_number(q, "parent", entity_id(parent));
     }
     var hover_condition36 = value != null;
     if selected {
-        var generic_check3 = candidate.generic != null;
-        if generic_check3 {
+        if candidate.generic != null {
             language_generic_details(q, candidate.generic);
         }
     }
@@ -351,15 +327,12 @@ fn language_leaf(q: CompletionQuery*, leaf: void*, candidate: LanguageCandidate*
         language_number(q, "binding", entity_id(subject));
         language_number(q, "size", semantic_size(&value.type));
         language_number(q, "alignment", semantic_alignment(&value.type));
-        var hover_condition37 = value.kind == KFieldDeclaration();
-        if hover_condition37 {
+        if value.kind == KFieldDeclaration() {
             language_number(q, "offset", value.byte_offset);
         }
-        var hover_condition38 = sem_source_base(&q.context, subject) == 0;
-        if hover_condition38 {
+        if sem_source_base(&q.context, subject) == 0 {
             var declaration = sem_match(subject);
-            var hover_condition39 = declaration != null;
-            if hover_condition39 {
+            if declaration != null {
                 language_number(q, "declaration", declaration.start);
             }
         }
@@ -370,13 +343,11 @@ fn language_leaf(q: CompletionQuery*, leaf: void*, candidate: LanguageCandidate*
 }
 
 fn language_walk(q: CompletionQuery*, node: void*, inherited: LanguageCandidate*, checked: bool, depth: usize, budget: usize*): void {
-    var hover_condition40 = depth == InspectionDepthLimit();
-    if hover_condition40 {
+    if depth == InspectionDepthLimit() {
         q.truncated = true;
         return;
     }
-    var hover_condition41 = *budget == 0;
-    if hover_condition41 {
+    if *budget == 0 {
         q.truncated = true;
         return;
     }
@@ -389,14 +360,10 @@ fn language_walk(q: CompletionQuery*, node: void*, inherited: LanguageCandidate*
     language_match_candidate(q, node, &current);
     var count = sem_child_count(node);
     var syntax = language_syntax(node);
-    var grammar_condition2 = syntax != null;
-    if grammar_condition2 {
-        var grammar_condition3 = syntax.kind == SyntaxTemplate();
-        if grammar_condition3 {
+    if syntax != null {
+        if syntax.kind == SyntaxTemplate() {
             var template = language_grammar_find(q, node);
-            var grammar_condition4 = template != null;
-            grammar_condition4 &&= template.targets.length != 0;
-            if grammar_condition4 {
+            if template != null && template.targets.length != 0 {
                 language_leaf(q, sem_child(node, 0), &current);
                 language_template_walk(q, template.targets.data[0], template, null, checked, depth, budget);
                 var last = count -1;
@@ -405,8 +372,7 @@ fn language_walk(q: CompletionQuery*, node: void*, inherited: LanguageCandidate*
             }
         }
     }
-    var hover_condition42 = count == 0;
-    if hover_condition42 {
+    if count == 0 {
         language_leaf(q, node, &current);
         return;
     }
@@ -421,29 +387,24 @@ fn language_walk(q: CompletionQuery*, node: void*, inherited: LanguageCandidate*
 // shared entities until completion_dispose; no server protocol or guest JIT.
 export fn language_document(source: u8*, length: usize, mode: u32, pointer_bytes: u32): CompletionQuery* {
     var source_error = host_source_error(source, length);
-    var invalid_source = source_error[0] != 0;
-    if invalid_source {
+    if source_error[0] != 0 {
         return null;
     }
     var valid_width = pointer_bytes == 4;
-    var wide = pointer_bytes == 8;
-    if wide {
+    if pointer_bytes == 8 {
         valid_width = true;
     }
     if !valid_width {
         return null;
     }
-    var hover_condition44 = length > InspectionSourceByteLimit();
-    if hover_condition44 {
+    if length > InspectionSourceByteLimit() {
         return null;
     }
-    var hover_condition45 = mode > 2;
-    if hover_condition45 {
+    if mode > 2 {
         return null;
     }
     var q = completion_begin(source, length, 0, null, 0);
-    var hover_condition46 = q == null;
-    if hover_condition46 {
+    if q == null {
         return null;
     }
     q.inspection = true;
@@ -483,8 +444,7 @@ export fn language_document(source: u8*, length: usize, mode: u32, pointer_bytes
         i = 0;
         for(; i != q.comment_modules.length; i++) {
             var module = q.comment_modules.data[i];
-            var ordinary = frontend_module_roots(module) != 0;
-            if ordinary {
+            if frontend_module_roots(module) != 0 {
                 frontend_module_attach_comments(module, q.program.root, q.comment_bases.data[i]);
             }
         }
@@ -498,8 +458,7 @@ export fn language_document(source: u8*, length: usize, mode: u32, pointer_bytes
     var budget = InspectionNodeLimit();
     i = 0;
     for(; i != q.roots.length; i++) {
-        var hover_condition49 = q.bases.data[i] == 0;
-        if hover_condition49 {
+        if q.bases.data[i] == 0 {
             language_walk(q, q.roots.data[i], &empty, checked, 0, &budget);
         }
     }

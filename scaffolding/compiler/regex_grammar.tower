@@ -14,8 +14,7 @@ fn regex_symbols(builder: GrammarBuilder*, name: u8*, symbols: u8*): void {
     var i: usize = 0;
     loop {
         var value = symbols[i];
-        var done = value == 0;
-        if done {
+        if value == 0 {
             return;
         }
         var rule = grammar_builder_rule(builder, name, false);
@@ -31,8 +30,7 @@ fn regex_characters(builder: GrammarBuilder*, name: u8*, excluded: u8*): void {
     var i: usize = 0;
     loop {
         var value = excluded[i];
-        var done = value == 0;
-        if done {
+        if value == 0 {
             break;
         }
         blocked[value] = 1;
@@ -40,10 +38,8 @@ fn regex_characters(builder: GrammarBuilder*, name: u8*, excluded: u8*): void {
     }
     var first: u32 = 0;
     for(var scalar: u32 = 0; scalar != 128; scalar++) {
-        var omit = blocked[scalar] != 0;
-        if omit {
-            var nonempty = first < scalar;
-            if nonempty {
+        if blocked[scalar] != 0 {
+            if first < scalar {
                 var last = scalar -1;
                 var rule = grammar_builder_rule(builder, name, false);
                 grammar_builder_range(builder, rule, first, last);

@@ -240,8 +240,7 @@ fn format_semantic_name(f: FormatEngine*, entity: void*, fallback: vector(u8)*):
             if terminal {
                 var original: vector(u8);
                 vector_init(u8, &original);
-                var ok = bytes_assign_text(&original, parsed.label.data, parsed.label.length);
-                if ok {
+                if bytes_assign_text(&original, parsed.label.data, parsed.label.length) {
                     original.length = syntax_identifier_decode_in_place(original.data, original.length);
                     var same = original.length < fallback.length;
                     for(var i: usize = 0; i < original.length; i++) {
@@ -257,8 +256,7 @@ fn format_semantic_name(f: FormatEngine*, entity: void*, fallback: vector(u8)*):
                 vector_dispose(u8, &original);
                 break;
             }
-            var single = entity_child_count(node) == 1;
-            if single {
+            if entity_child_count(node) == 1 {
                 node = entity_child_at(node, 0);
             } else {
                 break;
@@ -282,8 +280,7 @@ fn format_type(f: FormatEngine*, t: FoundationType*): void {
         } else {
             var view: vector(u8);
             vector_init(u8, &view);
-            var ok = format_scalar_name(t, &view);
-            if !ok {
+            if !format_scalar_name(t, &view) {
                 f.result.failed = true;
             }
             format_identifier(f, &view);
@@ -315,8 +312,7 @@ fn format_expression(f: FormatEngine*, entity: void*): void {
     if builtin != null {
         format_text(f, builtin);
         format_text(f, "(");
-        var trapping = n.kind == 33;
-        if trapping {
+        if n.kind == 33 {
             format_expression(f, n.left);
             format_text(f, ", ");
             format_expression(f, n.right);
@@ -326,14 +322,12 @@ fn format_expression(f: FormatEngine*, entity: void*): void {
         }
         var size = format_is_SizeOf(n);
         var align = format_is_AlignOf(n);
-        var query = format_or(size, align);
-        if query {
+        if format_or(size, align) {
             format_type(f, &n.element);
         }
         var allocate = format_is_Allocate(n);
         var reallocate = format_is_Reallocate(n);
-        var allocation = format_or(allocate, reallocate);
-        if allocation {
+        if format_or(allocate, reallocate) {
             format_type(f, &n.element);
             format_text(f, ", ");
             if n.left != null {
@@ -355,8 +349,7 @@ fn format_expression(f: FormatEngine*, entity: void*): void {
         }
         var copy = format_is_Copy(n);
         var fill = format_is_Fill(n);
-        var memory = format_or(copy, fill);
-        if memory {
+        if format_or(copy, fill) {
             format_expression(f, n.left);
             format_text(f, ", ");
             format_expression(f, n.right);
@@ -489,8 +482,7 @@ fn format_function_header(f: FormatEngine*, entity: void*, n: FoundationNode*): 
     format_text(f, "(");
     var i: usize = 0;
     for(; i != n.parameters.length; i++) {
-        var hover_condition2 = i != 0;
-        if hover_condition2 {
+        if i != 0 {
             format_text(f, ", ");
         }
         var p = format_foundation(f, n.parameters.data[i]);
@@ -511,14 +503,12 @@ export fn format_summary(result: FormatResult*, entity: void*, syntax: void*, fo
     f.syntax_kind = syntax;
     f.foundation_kind = foundation;
     f.match_kind = `match`;
-    var hover_condition3 = format_syntax(&f, entity) != null;
-    if hover_condition3 {
+    if format_syntax(&f, entity) != null {
         format_grammar(&f, entity);
         return;
     }
     var n = format_foundation(&f, entity);
-    var hover_condition4 = n == null;
-    if hover_condition4 {
+    if n == null {
         return;
     }
     if format_is_Function(n) {
@@ -548,8 +538,7 @@ export fn format_summary(result: FormatResult*, entity: void*, syntax: void*, fo
     if format_is_Parameter(n) {
         named = true;
     }
-    var hover_condition5 = n.kind == KFieldDeclaration();
-    if hover_condition5 {
+    if n.kind == KFieldDeclaration() {
         named = true;
     }
     if named {
@@ -565,8 +554,7 @@ fn format_statement_body(f: FormatEngine*, entity: void*): void {
     var n = format_foundation(f, entity);
     var label = n.kind == 31;
     var jump = n.kind == 32;
-    var control = format_or(label, jump);
-    if control {
+    if format_or(label, jump) {
         if label {
             format_text(f, "label(");
         } else {
@@ -743,8 +731,7 @@ fn format_node(f: FormatEngine*, entity: void*): void {
             var type = format_is_Type(child);
             var declaration = format_or(function, type);
             var separate = format_or(previous, declaration);
-            var first = i == 0;
-            if first {
+            if i == 0 {
                 separate = false;
             }
             if separate {

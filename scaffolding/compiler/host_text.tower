@@ -9,14 +9,12 @@ export fn host_json_quote(out: ByteBuffer*, source: u8*, count: usize): bool {
     var maximum: usize = 0;
     maximum--;
     var left = maximum -out.length;
-    var small = left < 2;
-    if small {
+    if left < 2 {
         return false;
     }
     left = left - 2;
     var limit = left / 6;
-    var overflow = count > limit;
-    if overflow {
+    if count > limit {
         return false;
     }
     var base = bits(usize, out.data);
@@ -37,8 +35,7 @@ export fn host_json_quote(out: ByteBuffer*, source: u8*, count: usize): bool {
     var needed = count *6;
     needed = needed + out.length;
     needed = needed + 2;
-    var ok = bytes_reserve(out, needed);
-    if !ok {
+    if !bytes_reserve(out, needed) {
         return false;
     }
     if inside {
@@ -62,8 +59,7 @@ export fn host_json_quote(out: ByteBuffer*, source: u8*, count: usize): bool {
             out.data[at] = c;
             at++;
         } else {
-            var control = c < 32;
-            if control {
+            if c < 32 {
                 out.data[at] = 92;
                 at++;
                 out.data[at] = 117;
@@ -104,8 +100,7 @@ export fn host_json_unsigned(out: ByteBuffer*, value: u64): bool {
         }
     }
     var needed = out.length + count;
-    var overflow = needed < out.length;
-    if overflow {
+    if needed < out.length {
         return false;
     }
     var ok = bytes_reserve(out, needed);

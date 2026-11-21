@@ -45,8 +45,7 @@ fn syntax_bytes_compare(left: u8*, left_length: usize, right: u8*, right_length:
     loop {
         var end = index == left_length;
         if end {
-            var same = index == right_length;
-            if same {
+            if index == right_length {
                 return 0;
             }
             return -1;
@@ -55,12 +54,10 @@ fn syntax_bytes_compare(left: u8*, left_length: usize, right: u8*, right_length:
         if end {
             return 1;
         }
-        var less = left[index] < right[index];
-        if less {
+        if left[index] < right[index] {
             return -1;
         }
-        var greater = left[index] > right[index];
-        if greater {
+        if left[index] > right[index] {
             return 1;
         }
         index++;
@@ -71,8 +68,7 @@ fn syntax_rule_find(rules: SyntaxRuleView*, count: usize, name: u8*, length: usi
     var low: usize = 0;
     var high = count;
     loop {
-        var done = low == high;
-        if done {
+        if low == high {
             return lr_none();
         }
         var middle = high -low;
@@ -80,12 +76,10 @@ fn syntax_rule_find(rules: SyntaxRuleView*, count: usize, name: u8*, length: usi
         middle = middle + low;
         var rule = &rules[middle];
         var order = syntax_bytes_compare(name, length, rule.name, rule.name_length);
-        var same = order == 0;
-        if same {
+        if order == 0 {
             return middle;
         }
-        var less = order < 0;
-        if less {
+        if order < 0 {
             high = middle;
         } else {
             low = middle + 1;
@@ -100,8 +94,7 @@ fn syntax_validation_find(value: SyntaxValidation*, name: u8*, length: usize): u
 fn syntax_validation_token(value: SyntaxValidation*, text: u8*, length: usize, skipped: bool): bool {
     var index: usize = 0;
     loop {
-        var done = index == value.token_count;
-        if done {
+        if index == value.token_count {
             return false;
         }
         var node = syntax_validation_node(value, value.tokens[index]);
@@ -111,8 +104,7 @@ fn syntax_validation_token(value: SyntaxValidation*, text: u8*, length: usize, s
         }
         if eligible {
             var order = syntax_bytes_compare(text, length, node.name.data, node.name.length);
-            var same = order == 0;
-            if same {
+            if order == 0 {
                 return true;
             }
         }
@@ -136,8 +128,7 @@ fn syntax_validation_error(value: SyntaxValidation*, prefix: u8*, text: u8*, len
 }
 
 fn syntax_validation_location(value: SyntaxValidation*, node: SyntaxNode*): void {
-    var located = node.start != lr_none();
-    if located {
+    if node.start != lr_none() {
         *value.offset = node.start;
     }
 }
@@ -146,8 +137,7 @@ fn syntax_validation_location(value: SyntaxValidation*, node: SyntaxNode*): void
 // by the largest sequence, without copying capture names or rescanning prefixes.
 fn syntax_validation_captures(value: SyntaxValidation*, count: usize): bool {
     var size = count *2;
-    var overflow = size < count;
-    if overflow {
+    if size < count {
         value.allocated = false;
         return false;
     }
@@ -173,8 +163,7 @@ fn syntax_validation_capture(value: SyntaxValidation*, term: SyntaxNode*): bool 
         hash = hash * 16777619;
     }
     var size = value.captures.length;
-    var unavailable = size == 0;
-    if unavailable {
+    if size == 0 {
         value.allocated = false;
         return false;
     }
@@ -186,13 +175,11 @@ fn syntax_validation_capture(value: SyntaxValidation*, term: SyntaxNode*): bool 
             value.captures.data[slot] = term;
             return true;
         }
-        var same = syntax_text_equal(&previous.capture, &term.capture);
-        if same {
+        if syntax_text_equal(&previous.capture, &term.capture) {
             return syntax_validation_error(value, "Duplicate capture: ", term.capture.data, term.capture.length);
         }
         slot++;
-        var wrap = slot == value.captures.length;
-        if wrap {
+        if slot == value.captures.length {
             slot = 0;
         }
     }
@@ -206,8 +193,7 @@ fn syntax_validation_terms(value: SyntaxValidation*): bool {
             return true;
         }
         var rule = &value.rules[index];
-        var collision = syntax_validation_token(value, rule.name, rule.name_length, true);
-        if collision {
+        if syntax_validation_token(value, rule.name, rule.name_length, true) {
             return syntax_validation_error(value, "Name already defines a token or skip rule: ", rule.name, rule.name_length);
         }
         var alternative: usize = 0;
@@ -230,11 +216,9 @@ fn syntax_validation_terms(value: SyntaxValidation*): bool {
                 var term = syntax_validation_node(value, sequence.items.data[item]);
                 if term.literal {
                     var status = syntax_literal_check(term.text.data, term.text.length);
-                    var invalid = status != 0;
-                    if invalid {
+                    if status != 0 {
                         syntax_validation_location(value, term);
-                        var empty = status == 1;
-                        if empty {
+                        if status == 1 {
                             syntax_validation_text(value, "Token literal is empty. Expected at least one character between the quotes.");
                             return false;
                         }
@@ -257,14 +241,12 @@ fn syntax_validation_has_capture(value: SyntaxValidation*, sequence: SyntaxNode*
     var length = syntax_text_length(capture);
     var index: usize = 0;
     loop {
-        var done = index == sequence.items.length;
-        if done {
+        if index == sequence.items.length {
             return false;
         }
         var term = syntax_validation_node(value, sequence.items.data[index]);
         var order = syntax_bytes_compare(term.capture.data, term.capture.length, capture, length);
-        var found = order == 0;
-        if found {
+        if order == 0 {
             return true;
         }
         index++;
@@ -272,8 +254,7 @@ fn syntax_validation_has_capture(value: SyntaxValidation*, sequence: SyntaxNode*
 }
 
 fn syntax_validation_required(value: SyntaxValidation*, sequence: SyntaxNode*, name: u8*, capture: u8*): bool {
-    var present = syntax_validation_has_capture(value, sequence, capture);
-    if present {
+    if syntax_validation_has_capture(value, sequence, capture) {
         return true;
     }
     syntax_validation_location(value, sequence);
@@ -290,22 +271,19 @@ fn syntax_validation_required(value: SyntaxValidation*, sequence: SyntaxNode*, n
 fn syntax_validation_declaration(value: SyntaxValidation*, name: u8*, empty: bool, first: u8*, second: u8*, third: u8*, fourth: u8*, atom: bool): bool {
     var length = syntax_text_length(name);
     var index = syntax_validation_find(value, name, length);
-    var missing = index == lr_none();
-    if missing {
+    if index == lr_none() {
         return syntax_validation_error(value, "Missing declaration rule: ", name, length);
     }
     var rule = &value.rules[index];
     var alternative: usize = 0;
     loop {
-        var done = alternative == rule.count;
-        if done {
+        if alternative == rule.count {
             return true;
         }
         var sequence = syntax_validation_node(value, rule.alternatives[alternative]);
         alternative++;
         if empty {
-            var vacant = sequence.items.length == 0;
-            if vacant {
+            if sequence.items.length == 0 {
                 continue;
             }
         }
@@ -359,8 +337,7 @@ fn syntax_validation_imports(value: SyntaxValidation*): bool {
             for(; item < sequence.items.length; item++) {
                 var term = syntax_validation_node(value, sequence.items.data[item]);
                 if term.literal {
-                    var keyword = syntax_bytes_compare(term.text.data, term.text.length, "as", 2) == 0;
-                    if keyword {
+                    if syntax_bytes_compare(term.text.data, term.text.length, "as", 2) == 0 {
                         aliased = true;
                     }
                 }
@@ -383,7 +360,7 @@ fn syntax_validation_imports(value: SyntaxValidation*): bool {
             var parent = syntax_validation_has_capture(value, sequence, "parent");
             var segments = syntax_validation_has_capture(value, sequence, "segments");
             var valid = parent != segments;
-            if valid {} else {
+            if !valid {
                 syntax_validation_location(value, sequence);
                 syntax_validation_text(value, "ImportName must preserve exactly one capture: 'parent' or 'segments'");
                 return false;
@@ -391,11 +368,11 @@ fn syntax_validation_imports(value: SyntaxValidation*): bool {
             var item: usize = 0;
             while item < sequence.items.length {
                 var term = syntax_validation_node(value, sequence.items.data[item]);
-                if term.literal {} else {
+                if !term.literal {
                     var recursive = syntax_bytes_compare(term.text.data, term.text.length, "ImportName", 10) == 0;
                     if recursive {
                         valid = syntax_bytes_compare(term.capture.data, term.capture.length, "parent", 6) == 0;
-                        if valid {} else {
+                        if !valid {
                             syntax_validation_location(value, term);
                             syntax_validation_text(value, "Recursive ImportName must preserve capture 'parent'");
                             return false;
@@ -408,8 +385,7 @@ fn syntax_validation_imports(value: SyntaxValidation*): bool {
         }
     }
     index = syntax_validation_find(value, "ImportPath", 10);
-    var missing = index == lr_none();
-    if missing {
+    if index == lr_none() {
         return true;
     }
     var ok = syntax_validation_declaration(value, "ImportPath", false, "segment", null, null, null, false);
@@ -464,8 +440,7 @@ fn syntax_validation_declarations(value: SyntaxValidation*): bool {
 }
 
 fn syntax_validation_wait(value: SyntaxValidation*, owner: usize, term: void*): bool {
-    var fresh = value.pending[owner] == null;
-    if fresh {
+    if value.pending[owner] == null {
         value.allocated = vector_push(usize, &value.queue, owner);
         if value.allocated {
             value.pending[owner] = term;
@@ -504,13 +479,11 @@ fn syntax_validation_dependencies(value: SyntaxValidation*): bool {
                 if term.terminal_set {
                     continue;
                 }
-                var terminal = syntax_validation_token(value, term.text.data, term.text.length, false);
-                if terminal {
+                if syntax_validation_token(value, term.text.data, term.text.length, false) {
                     continue;
                 }
                 var target = syntax_validation_find(value, term.text.data, term.text.length);
-                var missing = target == lr_none();
-                if missing {
+                if target == lr_none() {
                     syntax_validation_wait(value, index, entity);
                 } else {
                     var edge: SyntaxDependent;
@@ -540,8 +513,7 @@ fn syntax_validation_dependencies(value: SyntaxValidation*): bool {
             if done {
                 break;
             }
-            var ok = syntax_validation_wait(value, edges.data[edge].owner, edges.data[edge].term);
-            if !ok {
+            if !syntax_validation_wait(value, edges.data[edge].owner, edges.data[edge].term) {
                 return false;
             }
             edge++;
@@ -557,8 +529,7 @@ fn syntax_validation_root(value: SyntaxValidation*, name: u8*): bool {
     if missing {
         return true;
     }
-    var ready = value.pending[index] == null;
-    if ready {
+    if value.pending[index] == null {
         return true;
     }
     syntax_validation_text(value, "Cannot activate incomplete grammar: ");
@@ -602,8 +573,7 @@ fn syntax_validation_properties(value: SyntaxValidation*): void {
             }
             var owner = index;
             index++;
-            var waiting = value.pending[owner] != null;
-            if waiting {
+            if value.pending[owner] != null {
                 continue;
             }
             var rule = &value.rules[owner];
@@ -625,8 +595,7 @@ fn syntax_validation_properties(value: SyntaxValidation*): void {
                     }
                     var term = syntax_validation_node(value, sequence.items.data[item]);
                     item++;
-                    var optional = syntax_validation_optional(term);
-                    if optional {
+                    if syntax_validation_optional(term) {
                         continue;
                     }
                     var terminal = term.literal;
@@ -679,8 +648,7 @@ fn syntax_validation_properties(value: SyntaxValidation*): void {
 
 fn syntax_validation_productive(value: SyntaxValidation*): bool {
     var statement = syntax_validation_find(value, "Statement", 9);
-    var present = statement != lr_none();
-    if present {
+    if statement != lr_none() {
         if value.states.data[statement].nullable {
             syntax_validation_text(value, "Statement must consume input");
             return false;
@@ -694,8 +662,7 @@ fn syntax_validation_productive(value: SyntaxValidation*): bool {
         }
         var owner = index;
         index++;
-        var waiting = value.pending[owner] != null;
-        if waiting {
+        if value.pending[owner] != null {
             continue;
         }
         var rule = &value.rules[owner];
@@ -722,14 +689,12 @@ fn syntax_validation_productive(value: SyntaxValidation*): bool {
                     continue;
                 }
                 var repeated = term.repetition == 42;
-                var plus = term.repetition == 43;
-                if plus {
+                if term.repetition == 43 {
                     repeated = true;
                 }
                 if repeated {
                     var target = syntax_validation_find(value, term.text.data, term.text.length);
-                    var found = target != lr_none();
-                    if found {
+                    if target != lr_none() {
                         if value.states.data[target].nullable {
                             return syntax_validation_error(value, "Cannot repeat nullable rule: ", term.text.data, term.text.length);
                         }

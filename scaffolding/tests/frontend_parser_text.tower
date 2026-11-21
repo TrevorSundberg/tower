@@ -150,8 +150,7 @@ fn parser_text_table_tests(): void {
     for(var budget: usize = 0; budget < count; budget++) {
         tower_test_buffer_fail_after(budget);
         request = parser_format_create(table, ParserFormatKind.Tables, 0, 0, false, false);
-        var present = request != null;
-        if present {
+        if request != null {
             var done = parser_format_next(request) == ParserFormatNeed.Done;
             table_owner_check(done, 124);
             table_owner_check(request.result.failed, 125);
@@ -257,8 +256,7 @@ fn parser_text_shift_tests(kernels: bool): void {
     var count: usize = 0;
     loop {
         var need = parser_format_next(request);
-        var done = need == ParserFormatNeed.Done;
-        if done {
+        if need == ParserFormatNeed.Done {
             break;
         }
         var description = need == ParserFormatNeed.Description;

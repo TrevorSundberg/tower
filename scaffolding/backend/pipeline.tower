@@ -10,8 +10,7 @@ fn backend_verify(b: Backend*): bool {
     var message: u8* = null;
     // LLVMReturnStatusAction: malformed IR is a diagnostic, never process abort.
     var status = LLVMVerifyModule(b.module, 2, &message);
-    var failed = status != 0;
-    if failed {
+    if status != 0 {
         backend_fail(b, message);
     }
     LLVMDisposeMessage(message);
@@ -56,8 +55,7 @@ export fn backend_emit(b: Backend*): bool {
     if failed {
         backend_fail(b, message);
     }
-    var present = message != null;
-    if present {
+    if message != null {
         LLVMDisposeMessage(message);
     }
     var result = status == 0;

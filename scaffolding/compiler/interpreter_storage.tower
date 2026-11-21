@@ -16,8 +16,7 @@ export fn im_memory(m: IMState*): u8* {
 export fn im_memory_resize(m: IMState*, count: usize): bool {
     var ok = vector_reserve(u8, &m.memory, count);
     if ok {
-        var grow = count > m.memory.length;
-        if grow {
+        if count > m.memory.length {
             var start = m.memory.data + m.memory.length;
             var extra = count -m.memory.length;
             fill(start, 0, extra);
@@ -60,15 +59,13 @@ fn im_map_lower(map: vector(IMEntry)*, key: u64): usize {
     var begin: usize = 0;
     var end = map.length;
     loop {
-        var done = begin == end;
-        if done {
+        if begin == end {
             return begin;
         }
         var middle = end -begin;
         middle = middle / 2;
         middle = middle + begin;
-        var before = map.data[middle].key < key;
-        if before {
+        if map.data[middle].key < key {
             begin = middle + 1;
         } else {
             end = middle;
@@ -79,12 +76,10 @@ fn im_map_lower(map: vector(IMEntry)*, key: u64): usize {
 fn im_map_get(map: vector(IMEntry)*, key: u64, found: bool*): u64 {
     var index = im_map_lower(map, key);
     *found = false;
-    var end = index == map.length;
-    if end {
+    if index == map.length {
         return 0;
     }
-    var same = map.data[index].key == key;
-    if same {
+    if map.data[index].key == key {
         *found = true;
         return map.data[index].value;
     }
@@ -93,10 +88,8 @@ fn im_map_get(map: vector(IMEntry)*, key: u64, found: bool*): u64 {
 
 fn im_map_set(map: vector(IMEntry)*, key: u64, value: u64): void {
     var index = im_map_lower(map, key);
-    var inside = index < map.length;
-    if inside {
-        var same = map.data[index].key == key;
-        if same {
+    if index < map.length {
+        if map.data[index].key == key {
             map.data[index].value = value;
             return;
         }
@@ -117,12 +110,10 @@ fn im_map_set(map: vector(IMEntry)*, key: u64, value: u64): void {
 fn im_map_take(map: vector(IMEntry)*, key: u64, found: bool*): u64 {
     var index = im_map_lower(map, key);
     *found = false;
-    var end = index == map.length;
-    if end {
+    if index == map.length {
         return 0;
     }
-    var same = map.data[index].key == key;
-    if !same {
+    if map.data[index].key != key {
         return 0;
     }
     *found = true;
@@ -154,8 +145,7 @@ export fn im_frame_push(m: IMState*, function: void*, base: usize, offset: usize
     var needed = m.frames.length + 1;
     var previous = m.frames.capacity;
     im_storage_require(vector_reserve(IMFrame, &m.frames, needed));
-    var grown = m.frames.capacity > previous;
-    if grown {
+    if m.frames.capacity > previous {
         var extra = m.frames.capacity -previous;
         extra = extra * sizeof(IMFrame);
         fill(&m.frames.data[previous], 0, extra);
@@ -180,8 +170,7 @@ export fn im_frame_pop(m: IMState*): void {
     m.frames.length--;
     m.frame_count = m.frames.length;
     m.task_count = 0;
-    var nonempty = m.frames.length != 0;
-    if nonempty {
+    if m.frames.length != 0 {
         frame = im_frame(m);
         m.task_count = frame.tasks.length;
     }
@@ -219,14 +208,12 @@ export fn im_free_neighbor(m: IMState*, key: u64, previous: bool, count: u64*): 
     var map = &m.free_blocks;
     var index = im_map_lower(map, key);
     if previous {
-        var first = index == 0;
-        if first {
+        if index == 0 {
             return 0;
         }
         index--;
     }
-    var end = index == map.length;
-    if end {
+    if index == map.length {
         return 0;
     }
     *count = map.data[index].value;
@@ -237,13 +224,11 @@ export fn im_free_neighbors(m: IMState*, key: u64, result: IMNeighbors*): void {
     fill(result, 0, sizeof(IMNeighbors));
     var map = &m.free_blocks;
     var index = im_map_lower(map, key);
-    var inside = index < map.length;
-    if inside {
+    if index < map.length {
         result.next = map.data[index].key;
         result.next_count = map.data[index].value;
     }
-    var has_previous = index != 0;
-    if has_previous {
+    if index != 0 {
         index--;
         result.previous = map.data[index].key;
         result.previous_count = map.data[index].value;
@@ -251,8 +236,7 @@ export fn im_free_neighbors(m: IMState*, key: u64, result: IMNeighbors*): void {
 }
 
 export fn im_free_first(m: IMState*, count: u64*): u64 {
-    var empty = m.free_blocks.length == 0;
-    if empty {
+    if m.free_blocks.length == 0 {
         return 0;
     }
     *count = m.free_blocks.data[0].value;

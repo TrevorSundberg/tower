@@ -191,8 +191,7 @@ fn frontend_world_unlimited(): usize {
 fn frontend_world_error_is(result: FormatResult*, text: u8*): bool {
     var index: usize = 0;
     for(; index < result.text.length; index++) {
-        var different = result.text.data[index] != text[index];
-        if different {
+        if result.text.data[index] != text[index] {
             return false;
         }
     }
@@ -392,12 +391,10 @@ fn frontend_world_failure_tests(): void {
         frontend_world_check(frontend_world_clear(world));
         ok = tower_test_buffer_count() == buffers;
         frontend_world_check(ok);
-        var done = budget == 512;
-        if done {
+        if budget == 512 {
             break;
         }
-        var first = budget == 0;
-        if first {
+        if budget == 0 {
             budget = 1;
         } else {
             budget = budget * 2;
@@ -427,8 +424,7 @@ fn frontend_world_failure_tests(): void {
         tower_test_buffer_fail_after(budget);
         pattern = frontend_world_pattern(world, "a+", 2, &error);
         tower_test_buffer_fail_after(frontend_world_unlimited());
-        var present = pattern != null;
-        if present {
+        if pattern != null {
             ok = lex_table_match(pattern.table, "aaa!", 4, 0) == 3;
             frontend_world_check(ok);
         }

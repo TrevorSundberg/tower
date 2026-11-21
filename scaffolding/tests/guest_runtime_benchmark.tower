@@ -4,16 +4,14 @@ import tower;
 // Both paths execute the same Tower workload. A null heap selects the current
 // runtime.c allocator through alloc/free; the other selects the Tower allocator.
 fn benchmark_allocate(heap: GuestHeap*, count: usize): u8* {
-    var baseline = heap == null;
-    if baseline {
+    if heap == null {
         return alloc(u8, count);
     }
     return bits(u8*, guest_heap_allocate(heap, count, 1));
 }
 
 fn benchmark_free(heap: GuestHeap*, pointer: u8*): void {
-    var baseline = heap == null;
-    if baseline {
+    if heap == null {
         free(pointer);
     } else {
         guest_heap_free(heap, bits(void*, pointer));
@@ -46,8 +44,7 @@ export fn guest_runtime_benchmark(use_tower: bool, rounds: usize): u64 {
             var size = i *17;
             size++;
             var pointer = benchmark_allocate(heap, size);
-            var failed = pointer == null;
-            if failed {
+            if pointer == null {
                 return 0;
             }
             pointers[i] = pointer;

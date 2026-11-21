@@ -3,11 +3,9 @@ import .library.vector;
 
 fn backend_length(text: u8*): usize {
     var count: usize = 0;
-    var present = text != null;
-    if present {
+    if text != null {
         loop {
-            var done = text[count] == 0;
-            if done {
+            if text[count] == 0 {
                 return count;
             }
             count++;
@@ -19,12 +17,10 @@ fn backend_length(text: u8*): usize {
 fn backend_equal(a: u8*, b: u8*): bool {
     var i: usize = 0;
     loop {
-        var different = a[i] != b[i];
-        if different {
+        if a[i] != b[i] {
             return false;
         }
-        var end = a[i] == 0;
-        if end {
+        if a[i] == 0 {
             return true;
         }
         i++;
@@ -34,12 +30,10 @@ fn backend_equal(a: u8*, b: u8*): bool {
 fn backend_prefix(a: u8*, b: u8*): bool {
     var i: usize = 0;
     loop {
-        var end = b[i] == 0;
-        if end {
+        if b[i] == 0 {
             return true;
         }
-        var different = a[i] != b[i];
-        if different {
+        if a[i] != b[i] {
             return false;
         }
         i++;
@@ -49,8 +43,7 @@ fn backend_prefix(a: u8*, b: u8*): bool {
 fn backend_text_append(out: vector(u8)*, text: u8*, count: usize): void {
     var end = out.length + count;
     var needed = end + 1;
-    var ok = vector_reserve(u8, out, needed);
-    if ok {
+    if vector_reserve(u8, out, needed) {
         copy(&out.data[out.length], text, count);
         out.length = end;
         out.data[end] = 0;
@@ -64,12 +57,10 @@ fn backend_text(out: vector(u8)*, text: u8*): void {
 fn backend_contains(text: u8*, part: u8*): bool {
     var i: usize = 0;
     loop {
-        var end = text[i] == 0;
-        if end {
+        if text[i] == 0 {
             return false;
         }
-        var found = backend_prefix(&text[i], part);
-        if found {
+        if backend_prefix(&text[i], part) {
             return true;
         }
         i++;

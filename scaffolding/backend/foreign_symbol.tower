@@ -64,15 +64,13 @@ export fn foreign_symbol(profile: u32, name: u8*): ForeignName* {
         if c {
             start = 7;
         }
-        var short_name = length <= start;
-        if short_name {
+        if length <= start {
             return foreign_mangle(profile, "", cpp, false);
         }
         var end = length -1;
         var count = end -start;
         var source = alloc(u8, length);
-        var foreign_condition1001 = source == null;
-        if foreign_condition1001 {
+        if source == null {
             return null;
         }
         copy(source, &name[start], count);
@@ -89,18 +87,14 @@ export fn foreign_symbol(profile: u32, name: u8*): ForeignName* {
         }
         var result = foreign_mangle(profile, declaration, cpp, false);
         free(source);
-        var foreign_condition1002 = result == null;
-        if foreign_condition1002 {
+        if result == null {
             return null;
         }
-        var foreign_condition1003 = name[end] != 41;
-        if foreign_condition1003 {
+        if name[end] != 41 {
             foreign_fail(result, "Unterminated foreign name expression");
         }
-        var foreign_condition1004 = prefix[0] != 0;
-        if foreign_condition1004 {
-            var foreign_condition1005 = result.error.length == 0;
-            if foreign_condition1005 {
+        if prefix[0] != 0 {
+            if result.error.length == 0 {
                 var text: vector(u8);
                 vector_init(u8, &text);
                 backend_text(&text, prefix);
@@ -112,8 +106,7 @@ export fn foreign_symbol(profile: u32, name: u8*): ForeignName* {
         return result;
     }
     var result = alloc(ForeignName, 1);
-    var foreign_condition1006 = result == null;
-    if foreign_condition1006 {
+    if result == null {
         return null;
     }
     fill(result, 0, sizeof(ForeignName));
@@ -122,47 +115,36 @@ export fn foreign_symbol(profile: u32, name: u8*): ForeignName* {
 }
 
 fn foreign_llvm_convention(m: ForeignName*): u32 {
-    var foreign_condition2025 = m.function == null;
-    if foreign_condition2025 {
+    if m.function == null {
         return 0;
     }
     var cc = m.function.convention;
     if m.function.variadic {
         cc = 1;
     }
-    var foreign_condition2026 = m.arch == 1;
-    if foreign_condition2026 {
-        var foreign_condition2027 = cc == 2;
-        if foreign_condition2027 {
+    if m.arch == 1 {
+        if cc == 2 {
             return 64;
         }
-        var foreign_condition2028 = cc == 3;
-        if foreign_condition2028 {
+        if cc == 3 {
             return 65;
         }
-        var foreign_condition2029 = cc == 5;
-        if foreign_condition2029 {
+        if cc == 5 {
             return 70;
         }
-        var foreign_condition2030 = cc == 0;
-        if foreign_condition2030 {
-            var foreign_condition2031 = m.member == 1;
-            if foreign_condition2031 {
-                var foreign_condition2032 = m.abi == 2;
-                if foreign_condition2032 {
+        if cc == 0 {
+            if m.member == 1 {
+                if m.abi == 2 {
                     return 70;
                 }
             }
         }
     }
-    var foreign_condition2033 = cc == 4;
-    if foreign_condition2033 {
-        var foreign_condition2034 = m.arch == 1;
-        if foreign_condition2034 {
+    if cc == 4 {
+        if m.arch == 1 {
             return 80;
         }
-        var foreign_condition2035 = m.arch == 2;
-        if foreign_condition2035 {
+        if m.arch == 2 {
             return 80;
         }
         foreign_fail(m, "vectorcall requires an x86 ABI profile");

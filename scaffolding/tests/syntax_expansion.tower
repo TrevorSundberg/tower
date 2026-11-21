@@ -63,8 +63,7 @@ fn expansion_test_init(f: ExpansionFixture*, input: SyntaxExpansionInput*, conte
     f.rule.end = 70;
     f.rule.tree = expansion_test_node(f, "Statement", 0, 0, 50, 20);
     f.result.root = expansion_test_node(f, "Statement", 1, 0, 12, 11);
-    var has_capture = uses != 0;
-    if has_capture {
+    if uses != 0 {
         f.rule.captures = &f.capture;
         f.rule.count = 1;
         f.capture.name = "value";
@@ -221,8 +220,7 @@ fn expansion_test_nodes(input: SyntaxExpansionInput*, context: void*): bool {
 fn expansion_test_failures(input: SyntaxExpansionInput*, context: void*): bool {
     var budget: usize = 0;
     loop {
-        var end = budget == 256;
-        if end {
+        if budget == 256 {
             return false;
         }
         var buffers = tower_test_buffer_count();
@@ -232,8 +230,7 @@ fn expansion_test_failures(input: SyntaxExpansionInput*, context: void*): bool {
         var ran = syntax_expand(&f.input, &f.result);
         tower_test_buffer_fail_after(lr_none());
         expansion_test_dispose(&f);
-        var balanced = tower_test_buffer_count() == buffers;
-        if !balanced {
+        if tower_test_buffer_count() != buffers {
             return false;
         }
         if ran {

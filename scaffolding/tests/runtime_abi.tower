@@ -112,10 +112,8 @@ export fn runtime_abi_tests(): i32 {
 }
 
 export fn main(argc: i32, argv: u8**): i32 {
-    var trap = argc > 1;
-    if trap {
-        var benchmark = strcmp(argv[1], "--benchmark") == 0;
-        if benchmark {
+    if argc > 1 {
+        if strcmp(argv[1], "--benchmark") == 0 {
             return runtime_abi_benchmark();
         }
         var divisor = atoi(argv[1]);

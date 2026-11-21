@@ -244,9 +244,7 @@ fn driver_compile_text_output(state: DriverCompilation*): i32 {
         }
         ok = false;
     }
-    if ok {
-        ok = driver_write_file(output, text.data, text.length);
-    }
+    ok &&= driver_write_file(output, text.data, text.length);
     bytes_dispose(&text);
     bytes_dispose(&error);
     return ok ? 0: 1;

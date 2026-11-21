@@ -71,8 +71,7 @@ fn emission_hash(text: u8*, length: usize): usize {
     var hash: usize = 2166136261;
     var index: usize = 0;
     loop {
-        var done = index == length;
-        if done {
+        if index == length {
             return hash;
         }
         hash = hash ^ convert(usize, text[index]);
@@ -82,8 +81,7 @@ fn emission_hash(text: u8*, length: usize): usize {
 }
 
 fn emission_rehash(value: SyntaxEmission*, size: usize): bool {
-    var ok = vector_reserve(usize, &value.buckets, size);
-    if !ok {
+    if !vector_reserve(usize, &value.buckets, size) {
         return false;
     }
     value.buckets.length = size;
@@ -91,14 +89,12 @@ fn emission_rehash(value: SyntaxEmission*, size: usize): bool {
     for(; index != size; index++) {
         value.buckets.data[index] = lr_none();
     }
-    var empty = size == 0;
-    if empty {
+    if size == 0 {
         return false;
     }
     index = 0;
     loop {
-        var done = index == value.names.length;
-        if done {
+        if index == value.names.length {
             return true;
         }
         var entry = value.names.data[index];
@@ -114,8 +110,7 @@ fn emission_name(value: SyntaxEmission*, text: u8*, length: usize): usize {
         return lr_none();
     }
     var size = value.buckets.length;
-    var grow = value.names.length >= size;
-    if grow {
+    if value.names.length >= size {
         size = size * 2;
         size = size + 17;
         var ok = emission_rehash(value, size);
@@ -124,8 +119,7 @@ fn emission_name(value: SyntaxEmission*, text: u8*, length: usize): usize {
             return lr_none();
         }
     }
-    var empty = size == 0;
-    if empty {
+    if size == 0 {
         value.failed = true;
         return lr_none();
     }
@@ -133,8 +127,7 @@ fn emission_name(value: SyntaxEmission*, text: u8*, length: usize): usize {
     var bucket = hash % size;
     var index = value.buckets.data[bucket];
     loop {
-        var done = index == lr_none();
-        if done {
+        if index == lr_none() {
             break;
         }
         var entry = value.names.data[index];
@@ -149,8 +142,7 @@ fn emission_name(value: SyntaxEmission*, text: u8*, length: usize): usize {
         index = entry.next;
     }
     var entry = alloc(SyntaxEmissionEntry, 1);
-    var missing = entry == null;
-    if missing {
+    if entry == null {
         value.failed = true;
         return lr_none();
     }
@@ -180,8 +172,7 @@ fn emission_name(value: SyntaxEmission*, text: u8*, length: usize): usize {
 fn emission_cname(value: SyntaxEmission*, text: u8*): usize {
     var length: usize = 0;
     loop {
-        var done = text[length] == 0;
-        if done {
+        if text[length] == 0 {
             return emission_name(value, text, length);
         }
         length++;
@@ -196,8 +187,7 @@ fn emission_find_entry(value: SyntaxEmission*, text: u8*): SyntaxEmissionEntry* 
 
 fn emission_find_text(value: SyntaxEmission*, text: u8*, length: usize): SyntaxEmissionEntry* {
     var size = value.buckets.length;
-    var empty = size == 0;
-    if empty {
+    if size == 0 {
         return null;
     }
     var hash = emission_hash(text, length);
@@ -220,8 +210,7 @@ fn emission_find_text(value: SyntaxEmission*, text: u8*, length: usize): SyntaxE
 
 export fn syntax_emission_rule_index(value: SyntaxEmission*, text: u8*): usize {
     var entry = emission_find_entry(value, text);
-    var missing = entry == null;
-    if missing {
+    if entry == null {
         return lr_none();
     }
     return entry.production;
@@ -263,16 +252,14 @@ fn emission_capture_bucket(source: void*, size: usize): usize {
 
 export fn syntax_emission_capture_name(value: SyntaxEmission*, source: void*): u8* {
     var size = value.capture_buckets.length;
-    var empty = size == 0;
-    if empty {
+    if size == 0 {
         return null;
     }
     var bucket = emission_capture_bucket(source, size);
     var index = value.capture_buckets.data[bucket];
     while index != lr_none() {
         var entry = &value.helpers.data[index];
-        var same = entry.source == source;
-        if same {
+        if entry.source == source {
             return entry.name;
         }
         index = value.capture_next.data[index];
@@ -290,8 +277,7 @@ fn emission_literal(value: SyntaxEmission*, term: SyntaxNode*): void {
         return;
     }
     var entry = value.names.data[index];
-    var missing = entry.literal == 4294967294;
-    if missing {
+    if entry.literal == 4294967294 {
         entry.literal = 2097152 + value.literal_count;
         value.literal_count++;
     }
@@ -343,8 +329,7 @@ fn emission_helper(value: SyntaxEmission*, prefix: u8*): usize {
 
 fn emission_wrapper(value: SyntaxEmission*, name: usize): usize {
     var entry = value.names.data[name];
-    var found = entry.wrapper != lr_none();
-    if found {
+    if entry.wrapper != lr_none() {
         return entry.wrapper;
     }
     var prefix: vector(u8);
@@ -396,13 +381,11 @@ fn emission_production(value: SyntaxEmission*, name: usize, generated: bool): vo
     var data = entity_component_data(entity_component_get(node, value.input.rule_kind));
     var rule = bits(ParserRuleData*, data);
     rule.generated = generated;
-    var ok = node_rule_set_name(rule, emission_text(value, name));
-    if !ok {
+    if !node_rule_set_name(rule, emission_text(value, name)) {
         value.failed = true;
     }
     var entry = value.names.data[name];
-    var first = entry.production == lr_none();
-    if first {
+    if entry.production == lr_none() {
         entry.production = entity_child_count(value.input.root);
     }
     return node;
@@ -440,8 +423,7 @@ fn emission_string(value: SyntaxEmission*, parent: void*, id: u32): void {
     }
     var data = entity_component_data(entity_component_get(node, value.input.string_kind));
     var string = bits(ParserStringData*, data);
-    var ok = node_string_set(string, 0, id);
-    if !ok {
+    if !node_string_set(string, 0, id) {
         value.failed = true;
     }
 }
@@ -455,8 +437,7 @@ fn emission_provenance(value: SyntaxEmission*, name: usize, source: void*, captu
     item.source = source;
     item.capture = capture;
     value.names.data[name].provenance = value.helpers.length;
-    var ok = lr_append(SyntaxEmissionHelper, &value.helpers, &item);
-    if !ok {
+    if !lr_append(SyntaxEmissionHelper, &value.helpers, &item) {
         value.failed = true;
     }
 }
@@ -472,17 +453,14 @@ fn emission_insert(values: vector(usize)*, item: usize, changed: bool*): bool {
         var middle = high -low;
         middle = middle / 2;
         middle = middle + low;
-        var less = values.data[middle] < item;
-        if less {
+        if values.data[middle] < item {
             low = middle + 1;
         } else {
             high = middle;
         }
     }
-    var present = low < values.length;
-    if present {
-        var same = values.data[low] == item;
-        if same {
+    if low < values.length {
+        if values.data[low] == item {
             return true;
         }
     }
@@ -601,8 +579,7 @@ fn emission_atom(value: SyntaxEmission*, rule: void*, entity: void*, captured: b
         emission_string(value, rule, entry.literal);
         return;
     }
-    var templating = value.input.category != null;
-    if templating {
+    if value.input.category != null {
         var terminal = entry.terminal != 4294967294;
         if terminal {
             name = emission_wrapper(value, name);
@@ -620,8 +597,7 @@ fn emission_sequence(value: SyntaxEmission*, name: usize, entity: void*, alterna
     entry.name = emission_text(value, name);
     entry.alternative = alternative;
     entry.index = entity_child_count(value.input.root);
-    var ok = lr_append(SyntaxEmissionProduction, &value.productions, &entry);
-    if !ok {
+    if !lr_append(SyntaxEmissionProduction, &value.productions, &entry) {
         value.failed = true;
         return;
     }
@@ -640,18 +616,15 @@ fn emission_sequence(value: SyntaxEmission*, name: usize, entity: void*, alterna
         }
         var source = sequence.items.data[index];
         var term = emission_node(value, source);
-        var repeated = term.repetition != 0;
-        if repeated {
+        if term.repetition != 0 {
             var list = emission_helper(value, "repeat");
             emission_provenance(value, list, source, false);
             var first = emission_production(value, list, true);
-            var plus = term.repetition == 43;
-            if plus {
+            if term.repetition == 43 {
                 emission_atom(value, first, source, false);
             }
             var next = emission_production(value, list, true);
-            var optional = term.repetition == 63;
-            if !optional {
+            if !(term.repetition == 63) {
                 emission_reference(value, next, list, "");
             }
             emission_atom(value, next, source, false);
@@ -713,17 +686,14 @@ fn emission_initialize(value: SyntaxEmission*, parent: SyntaxEmission*): void {
         }
         var entry = value.names.data[name];
         entry.used = true;
-        var skipped = terminal.kind == 3;
-        if !skipped {
+        if !(terminal.kind == 3) {
             var ordinal = index &4294967295;
             var id = convert(u32, ordinal);
             id = id + 1179648;
-            var identifier = lr_name_equal(entry.text.data, "Identifier");
-            if identifier {
+            if lr_name_equal(entry.text.data, "Identifier") {
                 id = 1114112;
             }
-            var string = lr_name_equal(entry.text.data, "String");
-            if string {
+            if lr_name_equal(entry.text.data, "String") {
                 id = 1114113;
             }
             entry.terminal = id;
@@ -744,8 +714,7 @@ fn emission_initialize(value: SyntaxEmission*, parent: SyntaxEmission*): void {
     }
     index = 0;
     loop {
-        var done = index == input.literal_count;
-        if done {
+        if index == input.literal_count {
             return;
         }
         var literal = &input.literals[index];
@@ -762,8 +731,7 @@ fn emission_initialize(value: SyntaxEmission*, parent: SyntaxEmission*): void {
 fn emission_collect_literals(value: SyntaxEmission*): void {
     var index: usize = 0;
     loop {
-        var done = index == value.input.count;
-        if done {
+        if index == value.input.count {
             return;
         }
         var rule = &value.input.rules[index];
@@ -811,8 +779,7 @@ fn emission_build(value: SyntaxEmission*, parent: SyntaxEmission*): void {
         if value.failed {
             return;
         }
-        var present = value.names.data[statement].rule != lr_none();
-        if present {
+        if value.names.data[statement].rule != lr_none() {
             emission_root(value, root, "Statement");
         }
     }
@@ -845,8 +812,7 @@ fn emission_build(value: SyntaxEmission*, parent: SyntaxEmission*): void {
             return;
         }
         var terminal = emission_node(value, value.input.tokens[index]);
-        var skipped = terminal.kind == 3;
-        if !skipped {
+        if !(terminal.kind == 3) {
             var name = emission_name(value, terminal.name.data, terminal.name.length);
             if value.failed {
                 return;
@@ -864,8 +830,7 @@ fn emission_visit(value: SyntaxEmission*, name: usize): void {
         return;
     }
     var rule = value.names.data[name].rule;
-    var missing = rule == lr_none();
-    if missing {
+    if rule == lr_none() {
         return;
     }
     var state = &value.states.data[rule];
@@ -873,8 +838,7 @@ fn emission_visit(value: SyntaxEmission*, name: usize): void {
         return;
     }
     state.visited = true;
-    var ok = vector_push(usize, &value.queue, rule);
-    if !ok {
+    if !vector_push(usize, &value.queue, rule) {
         value.failed = true;
     }
 }
@@ -967,8 +931,7 @@ fn emission_first(value: SyntaxEmission*): void {
                         return;
                     }
                     var optional = term.repetition == 42;
-                    var question = term.repetition == 63;
-                    if question {
+                    if term.repetition == 63 {
                         optional = true;
                     }
                     if !optional {
@@ -998,15 +961,13 @@ fn emission_starts(value: SyntaxEmission*, text: u8*): void {
         return;
     }
     var rule = value.names.data[name].rule;
-    var missing = rule == lr_none();
-    if missing {
+    if rule == lr_none() {
         return;
     }
     var first = &value.states.data[rule].first;
     var index: usize = 0;
     loop {
-        var done = index == first.length;
-        if done {
+        if index == first.length {
             return;
         }
         value.names.data[first.data[index]].start = true;
@@ -1016,8 +977,7 @@ fn emission_starts(value: SyntaxEmission*, text: u8*): void {
 
 fn emission_declarations(value: SyntaxEmission*): void {
     var count = value.input.count;
-    var ok = vector_reserve(SyntaxEmissionState, &value.states, count);
-    if !ok {
+    if !vector_reserve(SyntaxEmissionState, &value.states, count) {
         value.failed = true;
         return;
     }
@@ -1052,15 +1012,12 @@ fn emission_helper_sift(rows: SyntaxEmissionHelper*, size: usize, root: usize): 
         var child = root *2;
         child = child + 1;
         var right = child + 1;
-        var exists = right < size;
-        if exists {
-            var larger = emission_helper_order(&rows[right], &rows[child]) > 0;
-            if larger {
+        if right < size {
+            if emission_helper_order(&rows[right], &rows[child]) > 0 {
                 child = right;
             }
         }
-        var ordered = emission_helper_order(&rows[root], &rows[child]) >= 0;
-        if ordered {
+        if emission_helper_order(&rows[root], &rows[child]) >= 0 {
             return;
         }
         emission_helper_swap(rows, root, child);
@@ -1077,7 +1034,7 @@ fn emission_index_helpers(value: SyntaxEmission*): bool {
             captures = captures + 1;
         } else {
             var ok = lr_append(SyntaxEmissionHelper, &value.repetitions, row);
-            if ok {} else {
+            if !ok {
                 return false;
             }
         }
@@ -1096,23 +1053,19 @@ fn emission_index_helpers(value: SyntaxEmission*): bool {
         emission_helper_swap(rows, 0, size);
         emission_helper_sift(rows, size, 0);
     }
-    var empty = captures == 0;
-    if empty {
+    if captures == 0 {
         return true;
     }
     // Newest source-identity entry is the bucket head, matching last emission.
     // All allocations occur before publication; failed construction is discarded.
     size = captures * 2;
     size = size + 1;
-    var overflow = size <= captures;
-    if overflow {
+    if size <= captures {
         return false;
     }
     var ok = vector_reserve(usize, &value.capture_buckets, size);
-    if ok {
-        ok = vector_reserve(usize, &value.capture_next, value.helpers.length);
-    }
-    if ok {} else {
+    ok &&= vector_reserve(usize, &value.capture_next, value.helpers.length);
+    if !ok {
         return false;
     }
     value.capture_buckets.length = size;
@@ -1156,8 +1109,7 @@ fn emission_discard_scratch(value: SyntaxEmission*): void {
 }
 
 export fn syntax_emission_destroy(value: SyntaxEmission*): void {
-    var missing = value == null;
-    if missing {
+    if value == null {
         return;
     }
     var index: usize = 0;
@@ -1185,8 +1137,7 @@ export fn syntax_emit(input: SyntaxEmissionInput*): SyntaxEmission* {
 // The parent and temporary input views are only borrowed during construction.
 export fn syntax_emit_inherit(input: SyntaxEmissionInput*, parent: SyntaxEmission*): SyntaxEmission* {
     var value = alloc(SyntaxEmission, 1);
-    var missing = value == null;
-    if missing {
+    if value == null {
         return null;
     }
     fill(value, 0, sizeof(SyntaxEmission));
@@ -1252,12 +1203,10 @@ export fn syntax_emission_find_index(value: SyntaxEmission*, index: usize): Synt
         middle = middle / 2;
         middle = middle + low;
         var row = &value.productions.data[middle];
-        var found = row.index == index;
-        if found {
+        if row.index == index {
             return row;
         }
-        var before = row.index < index;
-        if before {
+        if row.index < index {
             low = middle + 1;
         } else {
             high = middle;
@@ -1278,8 +1227,7 @@ export fn syntax_emission_find_name(value: SyntaxEmission*, name: u8*, alternati
         var order = syntax_bytes_compare(row.name, syntax_text_length(row.name), name, length);
         var same_name = order == 0;
         if same_name {
-            var found = row.alternative == alternative;
-            if found {
+            if row.alternative == alternative {
                 return row.index;
             }
         }

@@ -114,8 +114,7 @@ fn guest_runtime_tests(): void {
         selected = selected % 64;
         var index = convert(usize, selected);
         p = slots[index];
-        var occupied = p != null;
-        if occupied {
+        if p != null {
             bytes = bits(u8*, p);
             var i: usize = 0;
             loop {

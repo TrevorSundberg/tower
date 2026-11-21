@@ -43,8 +43,7 @@ export fn backend_open(triple: u8*): Backend* {
     b.size_type = LLVMIntTypeInContext(b.context, width);
     var valid = LLVMByteOrder(b.layout) == 1;
     var width_ok = b.pointer_bytes == 4;
-    var wide = b.pointer_bytes == 8;
-    if wide {
+    if b.pointer_bytes == 8 {
         width_ok = true;
     }
     valid &&= width_ok;

@@ -59,13 +59,11 @@ fn frontend_world_kinds(world: void*, kinds: FrontendKinds*): bool {
 // construction publishes nothing, so callers can retry after resource recovery.
 export fn frontend_world_bedrock(world: void*): void* {
     var cache = compiler_world_grammar(world);
-    var cached = cache.bedrock != null;
-    if cached {
+    if cache.bedrock != null {
         return cache.bedrock;
     }
     var kinds: FrontendKinds;
-    var ready = frontend_world_kinds(world, &kinds);
-    if ready {
+    if frontend_world_kinds(world, &kinds) {
         cache.bedrock = frontend_bedrock_create(&kinds);
     }
     return cache.bedrock;
@@ -74,11 +72,9 @@ export fn frontend_world_bedrock(world: void*): void* {
 // Result owns its ordinary parse entities independently of the cached reader.
 export fn frontend_world_pattern(world: void*, source: u8*, length: usize, error: FormatResult*): SyntaxPattern* {
     var cache = compiler_world_grammar(world);
-    var missing = cache.patterns == null;
-    if missing {
+    if cache.patterns == null {
         var kinds: FrontendKinds;
-        var ready = frontend_world_kinds(world, &kinds);
-        if ready {
+        if frontend_world_kinds(world, &kinds) {
             cache.patterns = bits(void*, frontend_pattern_create(&kinds));
         }
     }
@@ -88,16 +84,14 @@ export fn frontend_world_pattern(world: void*, source: u8*, length: usize, error
 // Coordinator operation after requests join. A pin rejects reset without
 // changing either cache. Retained outputs remain valid and block world disposal.
 export fn frontend_world_clear(world: void*): bool {
-    var pinned = compiler_world_pinned(world);
-    if pinned {
+    if compiler_world_pinned(world) {
         return false;
     }
     var cache = compiler_world_grammar(world);
     syntax_baselines_clear(world);
     frontend_pattern_destroy(bits(FrontendPatternCompiler*, cache.patterns));
     cache.patterns = null;
-    var present = cache.bedrock != null;
-    if present {
+    if cache.bedrock != null {
         entity_release(cache.bedrock);
     }
     cache.bedrock = null;
@@ -108,8 +102,7 @@ export fn frontend_world_clear(world: void*): bool {
 // handle remains until host transport/session ownership is migrated.
 export fn syntax_native_bedrock(): void* {
     var document = frontend_world_bedrock(compiler_host_world());
-    var missing = document == null;
-    if missing {
+    if document == null {
         abort();
     }
     return document;

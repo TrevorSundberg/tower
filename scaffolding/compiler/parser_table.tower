@@ -43,8 +43,7 @@ fn parser_table_clear_runtime(table: ParserHostTable*): void {
 }
 
 export fn parser_table_destroy(table: ParserHostTable*): void {
-    var absent = table == null;
-    if absent {
+    if table == null {
         return;
     }
     parser_table_clear_runtime(table);
@@ -123,15 +122,13 @@ fn parser_table_contexts(table: ParserHostTable*, analysis: void*, states: void*
             var position: usize = 0;
             for(; position < size; position++) {
                 var item = &values[position];
-                var selected = lr_kernel(analysis, item) == kernel;
-                if selected {
+                if lr_kernel(analysis, item) == kernel {
                     var context = &state.contexts.data[state.contexts.length];
                     fill(context, 0, sizeof(FrontendContextPosition));
                     context.production = item.rule;
                     context.term = item.position;
                     var rule = &rules[item.rule];
-                    var inside = item.position < rule.count;
-                    if inside {
+                    if item.position < rule.count {
                         var symbol_index = rule.begin + item.position;
                         var symbol = &symbols[symbol_index];
                         context.terminal = symbol.nonterminal == parser_table_none();
@@ -168,8 +165,7 @@ export fn parser_table_build(table: ParserHostTable*, specialize: bool): bool {
     }
     parser_table_clear_runtime(table);
     table.error = null;
-    var unresolved = lr_grammar_pending(grammar) != parser_table_none();
-    if unresolved {
+    if lr_grammar_pending(grammar) != parser_table_none() {
         table.error = "Unresolved grammar rule";
         return false;
     }
@@ -205,8 +201,7 @@ export fn parser_table_build(table: ParserHostTable*, specialize: bool): bool {
     }
     if ok {
         var conflict: LRConflict;
-        var ambiguous = lr_runtime_conflict(table.runtime, &conflict);
-        if !ambiguous {
+        if !lr_runtime_conflict(table.runtime, &conflict) {
             if specialize {
                 lr_runtime_specialize(table.runtime, states);
             }
@@ -237,8 +232,7 @@ export fn parser_table_uses_dfa(table: ParserHostTable*): bool {
 }
 
 export fn parser_table_grammar(table: ParserHostTable*): void* {
-    var absent = table == null;
-    if absent {
+    if table == null {
         return null;
     }
     return table.grammar;
@@ -250,8 +244,7 @@ export fn parser_table_rule_next(table: ParserHostTable*, owner: usize, begin: u
     var count = lr_grammar_rule_count(table.grammar);
     var rules = lr_grammar_rule_data(table.grammar);
     for(var index = begin; index < count; index++) {
-        var same = rules[index].owner == owner;
-        if same {
+        if rules[index].owner == owner {
             return index;
         }
     }
@@ -273,8 +266,7 @@ export fn parser_table_non_terminal_resolve_reference(userdata: void*, name: u8*
     for(var index: usize = 0; index < count; index++) {
         var candidate = lr_grammar_name(table.grammar, index);
         for(var position: usize = 0; !(candidate[position] != name[position]); position++) {
-            var end = candidate[position] == 0;
-            if end {
+            if candidate[position] == 0 {
                 return convert(u32, index);
             }
         }
@@ -286,8 +278,7 @@ export fn parser_table_non_terminal_id_to_string(userdata: void*, id: u32): u8* 
     var table = bits(ParserHostTable*, userdata);
     parser_table_require(table);
     var index = convert(usize, id);
-    var outside = index >= lr_grammar_name_count(table.grammar);
-    if outside {
+    if index >= lr_grammar_name_count(table.grammar) {
         return null;
     }
     var source = lr_grammar_name(table.grammar, index);
@@ -295,8 +286,7 @@ export fn parser_table_non_terminal_id_to_string(userdata: void*, id: u32): u8* 
     for(; source[length] != 0; length++) {}
     var size = length + 1;
     var text = bits(u8*, tower_memory_allocate(size));
-    var missing = text == null;
-    if missing {
+    if text == null {
         abort();
         return null;
     }

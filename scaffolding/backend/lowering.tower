@@ -14,16 +14,13 @@ import .library.vector;
 const BackendFunctionAttributeIndex: u32 = ~convert(u32, 0);
 
 fn backend_type(b: Backend*, t: FoundationType*): void* {
-    var pointer = t.pointers != 0;
-    if pointer {
+    if t.pointers != 0 {
         return b.pointer_type;
     }
-    var aggregate = semantic_aggregate(t);
-    if aggregate {
+    if semantic_aggregate(t) {
         return LLVMArrayType2(b.i8, convert(u64, semantic_size(t)));
     }
-    var empty = t.scalar == SVoid();
-    if empty {
+    if t.scalar == SVoid() {
         return LLVMVoidTypeInContext(b.context);
     }
     return LLVMIntTypeInContext(b.context, semantic_width(t));
@@ -34,8 +31,7 @@ fn backend_size_value(b: Backend*, value: usize): void* {
 }
 
 fn backend_constant(b: Backend*, t: FoundationType*, value: u64): void* {
-    var pointer = t.pointers != 0;
-    if pointer {
+    if t.pointers != 0 {
         return LLVMConstNull(b.pointer_type);
     }
     return LLVMConstInt(backend_type(b, t), value, 0);
@@ -44,8 +40,7 @@ fn backend_constant(b: Backend*, t: FoundationType*, value: u64): void* {
 fn backend_narrow(t: FoundationType*): bool {
     var scalar = t.pointers == 0;
     var byte = t.scalar == SU8();
-    var boolean = t.scalar == SBool();
-    if boolean {
+    if t.scalar == SBool() {
         byte = true;
     }
     var result = scalar;
@@ -145,8 +140,7 @@ fn backend_guard(b: Backend*, valid: void*, message: u8*): void {
 }
 
 fn backend_signed(t: FoundationType*): i32 {
-    var signed = semantic_signed(t);
-    if signed {
+    if semantic_signed(t) {
         return 1;
     }
     return 0;
@@ -159,8 +153,7 @@ fn backend_gep(b: Backend*, base: void*, offset: void*): void* {
 
 fn backend_address(b: Backend*, entity: void*): void* {
     var n = sem_get(entity);
-    var load = n.kind == KLoad();
-    if load {
+    if n.kind == KLoad() {
         return backend_read(b, n.value);
     }
     var field = n.kind == KField();
@@ -215,15 +208,12 @@ fn backend_address(b: Backend*, entity: void*): void* {
 
 fn backend_read(b: Backend*, entity: void*): void* {
     var n = sem_get(entity);
-    var address = n.kind == KAddress();
-    if address {
+    if n.kind == KAddress() {
         return backend_address(b, n.value);
     }
-    var string = n.kind == KString();
-    if string {
+    if n.kind == KString() {
         var value = backend_find(&b.strings, entity);
-        var absent = value == null;
-        if absent {
+        if value == null {
             var data = LLVMConstStringInContext(b.context, backend_name(n), convert(u32, n.name.length), 0);
             value = LLVMAddGlobal(b.module, LLVMTypeOf(data), "tower.string");
             LLVMSetLinkage(value, 9);
@@ -258,8 +248,7 @@ fn backend_call(b: Backend*, n: FoundationNode*): void* {
     vector_init(void*, &args);
     var i: usize = 0;
     loop {
-        var done = i == n.items.length;
-        if done {
+        if i == n.items.length {
             break;
         }
         // Read each argument once, in source order.
@@ -290,8 +279,7 @@ fn backend_call(b: Backend*, n: FoundationNode*): void* {
 }
 
 fn backend_conversion(b: Backend*, n: FoundationNode*, from: FoundationType*, value: void*): void* {
-    var boolean = n.type.scalar == SBool();
-    if boolean {
+    if n.type.scalar == SBool() {
         var nonzero = LLVMBuildICmp(b.builder, 33, value, LLVMConstNull(LLVMTypeOf(value)), "");
         return LLVMBuildZExt(b.builder, nonzero, b.i8, "");
     }
@@ -426,8 +414,7 @@ fn backend_expression(b: Backend*, entity: void*): void* {
         var r = sem_get(n.right);
         var delta = LLVMBuildIntCast2(b.builder, right, b.size_type, backend_signed(&r.type), "");
         delta = LLVMBuildMul(b.builder, delta, backend_size_value(b, semantic_size(&element)), "");
-        var subtract = n.op == OSub();
-        if subtract {
+        if n.op == OSub() {
             delta = LLVMBuildNeg(b.builder, delta, "");
         }
         return backend_gep(b, a, delta);
@@ -549,14 +536,12 @@ fn backend_block(b: Backend*, entity: void*): void {
     var n = sem_get(entity);
     var i: usize = 0;
     loop {
-        var done = i == n.items.length;
-        if done {
+        if i == n.items.length {
             return;
         }
         var item = sem_get(n.items.data[i]);
         var active = backend_terminated(b) == false;
-        var label = item.kind == 31;
-        if label {
+        if item.kind == 31 {
             active = true;
         }
         if active {
@@ -567,8 +552,7 @@ fn backend_block(b: Backend*, entity: void*): void {
 }
 
 fn backend_branch(b: Backend*, block: void*): void {
-    var open = backend_terminated(b) == false;
-    if open {
+    if backend_terminated(b) == false {
         LLVMBuildBr(b.builder, block);
     }
 }
@@ -576,20 +560,17 @@ fn backend_branch(b: Backend*, block: void*): void {
 fn backend_statement(b: Backend*, entity: void*): void {
     var n = sem_get(entity);
     b.source_offset = n.start;
-    var label = n.kind == 31;
-    if label {
+    if n.kind == 31 {
         var block = backend_find(&b.labels, entity);
         backend_branch(b, block);
         LLVMPositionBuilderAtEnd(b.builder, block);
         return;
     }
-    var jump = n.kind == 32;
-    if jump {
+    if n.kind == 32 {
         LLVMBuildBr(b.builder, backend_find(&b.labels, n.binding));
         return;
     }
-    var trapping = n.kind == 33;
-    if trapping {
+    if n.kind == 33 {
         var args: void*[2];
         args[0] = backend_read(b, n.left);
         args[1] = LLVMBuildIntCast2(b.builder, backend_read(b, n.right), b.size_type, 0, "");
@@ -612,8 +593,7 @@ fn backend_statement(b: Backend*, entity: void*): void {
     }
     `match` = n.kind == KDeclare();
     if `match` {
-        var initialized = n.value != null;
-        if initialized {
+        if n.value != null {
             backend_assign(b, entity, n.value);
         }
         return;
@@ -649,8 +629,7 @@ fn backend_statement(b: Backend*, entity: void*): void {
     }
     `match` = n.kind == KReturn();
     if `match` {
-        var present = n.value != null;
-        if present {
+        if n.value != null {
             LLVMBuildRet(b.builder, backend_read(b, n.value));
         }
         else {
@@ -663,8 +642,7 @@ fn backend_statement(b: Backend*, entity: void*): void {
         var source = sem_get(n.value);
         var value = backend_read(b, n.value);
         var tag = source.type.scalar;
-        var pointer = source.type.pointers != 0;
-        if pointer {
+        if source.type.pointers != 0 {
             value = LLVMBuildPtrToInt(b.builder, value, b.i64, "");
             tag = 3;
         }
@@ -690,8 +668,7 @@ fn backend_statement(b: Backend*, entity: void*): void {
         backend_block(b, n.body);
         backend_branch(b, after);
         LLVMPositionBuilderAtEnd(b.builder, no);
-        var other = n.otherwise != null;
-        if other {
+        if n.otherwise != null {
             backend_block(b, n.otherwise);
         }
         backend_branch(b, after);
@@ -707,8 +684,7 @@ fn backend_statement(b: Backend*, entity: void*): void {
         var needed = b.loops.length + 1;
         var ok = vector_reserve(BackendLoop, &b.loops, needed);
         backend_require(b, ok);
-        var failed = !ok;
-        if failed {
+        if !ok {
             return;
         }
         b.loops.data[b.loops.length].head = head;
@@ -768,8 +744,7 @@ export fn backend_lower(b: Backend*, root: void*, functions: void**, count: usiz
     if failed {
         return false;
     }
-    var mismatch = pointer_bytes != b.pointer_bytes;
-    if mismatch {
+    if pointer_bytes != b.pointer_bytes {
         backend_fail(b, "Foundation target layout does not match LLVM target");
         return false;
     }
@@ -841,16 +816,14 @@ export fn backend_lower(b: Backend*, root: void*, functions: void**, count: usiz
             backend_text(&name, "tower_main");
         }
         else {
-            var private = !public;
-            if private {
+            if !public {
                 backend_text(&name, "tower.fn.");
             }
             if public {
                 var spelling = foreign_symbol(b.foreign_profile, backend_name(n));
                 convention = foreign_llvm_convention(spelling);
                 var error = foreign_name_error(spelling);
-                var failed_name = error[0] != 0;
-                if failed_name {
+                if error[0] != 0 {
                     b.source_offset = n.start;
                     backend_fail(b, error);
                     foreign_name_close(spelling);
@@ -865,8 +838,7 @@ export fn backend_lower(b: Backend*, root: void*, functions: void**, count: usiz
         }
         if public {
             var reserved = backend_reserved(name.data);
-            var duplicate = LLVMGetNamedFunction(b.module, name.data) != null;
-            if duplicate {
+            if LLVMGetNamedFunction(b.module, name.data) != null {
                 reserved = true;
             }
             if reserved {
@@ -930,8 +902,7 @@ export fn backend_lower(b: Backend*, root: void*, functions: void**, count: usiz
             }
             var local = sem_get(n.locals.data[j]);
             var slot: void* = null;
-            var nonglobal = !local.global;
-            if nonglobal {
+            if !local.global {
                 slot = LLVMBuildAlloca(b.builder, backend_type(b, &local.type), backend_name(local));
                 LLVMSetAlignment(slot, convert(u32, semantic_alignment(&local.type)));
             }
@@ -948,8 +919,7 @@ export fn backend_lower(b: Backend*, root: void*, functions: void**, count: usiz
             j++;
         }
         var body = n.body;
-        var top = i == 0;
-        if top {
+        if i == 0 {
             body = root;
         }
         var block_node = sem_get(body);
@@ -961,16 +931,14 @@ export fn backend_lower(b: Backend*, root: void*, functions: void**, count: usiz
             }
             var item = block_node.items.data[j];
             var label = sem_get(item);
-            var is_label = label.kind == 31;
-            if is_label {
+            if label.kind == 31 {
                 var block = LLVMAppendBasicBlockInContext(b.context, function, backend_name(label));
                 backend_require(b, backend_associate(&b.labels, item, block));
             }
             j++;
         }
         backend_block(b, body);
-        var open = backend_terminated(b) == false;
-        if open {
+        if backend_terminated(b) == false {
             var empty = n.type.scalar == SVoid();
             var scalar = n.type.pointers == 0;
             empty &&= scalar;

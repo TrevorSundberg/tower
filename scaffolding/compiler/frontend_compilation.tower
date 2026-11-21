@@ -22,8 +22,7 @@ extern fn bytes_append(target: vector(u8)*, data: u8*, count: usize): bool;
 fn frontend_source_length(source: u8*): usize {
     var length: usize = 0;
     loop {
-        var done = source[length] == 0;
-        if done {
+        if source[length] == 0 {
             return length;
         }
         length++;
@@ -85,8 +84,7 @@ export fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendS
         var session = frontend_module_session(module);
         loop {
             var root = syntax_next(session);
-            var finished = root == null;
-            if finished {
+            if root == null {
                 break;
             }
             entity_release(root);
@@ -153,8 +151,7 @@ export fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendS
         index++;
     }
     sem_require(vector_push(u8, &source, 0));
-    var ok = program.error.length == 0;
-    if ok {
+    if program.error.length == 0 {
         semantic_compile(program, roots.data, bases.data, roots.length, source.data);
     }
     if program.error.length == 0 {

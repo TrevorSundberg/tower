@@ -18,132 +18,101 @@ extern fn format_dependent_summary(result: FormatResult*, entity: void*, match_k
 extern fn format_dependent_view(result: FormatResult*, entity: void*, subject: void*, annotation: void*, match_kind: void*, substitutions: FormatSubstitution*): void;
 
 fn language_generic_kind(info: GenericInfo*): u8* {
-    var inspection_condition1 = info.kind == GenericInfoKind.Member;
-    if inspection_condition1 {
+    if info.kind == GenericInfoKind.Member {
         return "member access";
     }
-    var inspection_condition2 = info.kind == GenericInfoKind.Index;
-    if inspection_condition2 {
+    if info.kind == GenericInfoKind.Index {
         return "indexed element";
     }
-    var inspection_condition3 = info.kind == GenericInfoKind.Binary;
-    if inspection_condition3 {
+    if info.kind == GenericInfoKind.Binary {
         return "binary operation";
     }
-    var inspection_condition4 = info.kind == GenericInfoKind.Value;
-    if inspection_condition4 {
+    if info.kind == GenericInfoKind.Value {
         return "value";
     }
-    var inspection_condition5 = info.kind == GenericInfoKind.Load;
-    if inspection_condition5 {
+    if info.kind == GenericInfoKind.Load {
         return "pointer dereference";
     }
-    var inspection_condition6 = info.kind == GenericInfoKind.Assignment;
-    if inspection_condition6 {
+    if info.kind == GenericInfoKind.Assignment {
         return "assignment";
     }
-    var generic_check1 = info.kind == GenericInfoKind.Function;
-    if generic_check1 {
+    if info.kind == GenericInfoKind.Function {
         return "function template";
     }
-    var generic_check2 = info.kind == GenericInfoKind.Constructor;
-    if generic_check2 {
+    if info.kind == GenericInfoKind.Constructor {
         return "type function";
     }
-    var generic_check3 = info.kind == GenericInfoKind.TypeParameter;
-    if generic_check3 {
+    if info.kind == GenericInfoKind.TypeParameter {
         return "type parameter";
     }
-    var generic_check4 = info.kind == GenericInfoKind.ConstantParameter;
-    if generic_check4 {
+    if info.kind == GenericInfoKind.ConstantParameter {
         return "compile-time parameter";
     }
-    var generic_check5 = info.kind == GenericInfoKind.Parameter;
-    if generic_check5 {
+    if info.kind == GenericInfoKind.Parameter {
         return "parameter";
     }
-    var generic_check6 = info.kind == GenericInfoKind.Structure;
-    if generic_check6 {
+    if info.kind == GenericInfoKind.Structure {
         return "struct type";
     }
-    var generic_check7 = info.kind == GenericInfoKind.Field;
-    if generic_check7 {
+    if info.kind == GenericInfoKind.Field {
         return "field";
     }
-    var generic_check8 = info.kind == GenericInfoKind.Variable;
-    if generic_check8 {
+    if info.kind == GenericInfoKind.Variable {
         return "local variable";
     }
-    var generic_check9 = info.kind == GenericInfoKind.TypeExpression;
-    if generic_check9 {
+    if info.kind == GenericInfoKind.TypeExpression {
         return "type";
     }
     return "";
 }
 
 fn language_generic_description(info: GenericInfo*): u8* {
-    var inspection_condition7 = info.kind == GenericInfoKind.Member;
-    if inspection_condition7 {
+    if info.kind == GenericInfoKind.Member {
         return "Accesses a named field. Its type is not yet known for this template.";
     }
-    var inspection_condition8 = info.kind == GenericInfoKind.Index;
-    if inspection_condition8 {
+    if info.kind == GenericInfoKind.Index {
         return "Selects one element using its index. The first element has index zero.";
     }
-    var inspection_condition9 = info.kind == GenericInfoKind.Binary;
-    if inspection_condition9 {
-        var inspection_condition10 = info.resolved == null;
-        if inspection_condition10 {
+    if info.kind == GenericInfoKind.Binary {
+        if info.resolved == null {
             return "A valid result type has not been established for this expression.";
         }
         return "Uses the two operands to compute a new value.";
     }
-    var inspection_condition11 = info.kind == GenericInfoKind.Value;
-    if inspection_condition11 {
+    if info.kind == GenericInfoKind.Value {
         return "A value used by this expression.";
     }
-    var inspection_condition12 = info.kind == GenericInfoKind.Load;
-    if inspection_condition12 {
+    if info.kind == GenericInfoKind.Load {
         return "A pointer holds a memory address. This reads the value stored at that address.";
     }
-    var inspection_condition13 = info.kind == GenericInfoKind.Assignment;
-    if inspection_condition13 {
+    if info.kind == GenericInfoKind.Assignment {
         return "Changes the value on the left to the value on the right. The previous value is overwritten.";
     }
-    var generic_check10 = info.kind == GenericInfoKind.Function;
-    if generic_check10 {
+    if info.kind == GenericInfoKind.Function {
         return "Reusable code that accepts types as inputs. Each set of type arguments is checked separately; the remaining parameters receive values when the function runs.";
     }
-    var generic_check11 = info.kind == GenericInfoKind.Constructor;
-    if generic_check11 {
+    if info.kind == GenericInfoKind.Constructor {
         return "Runs during compilation to produce a type. Its arguments choose the types and sizes used in the result.";
     }
-    var generic_check12 = info.kind == GenericInfoKind.TypeParameter;
-    if generic_check12 {
+    if info.kind == GenericInfoKind.TypeParameter {
         return "A type you supply when calling this function. Uses of this name refer to that supplied type.";
     }
-    var generic_check13 = info.kind == GenericInfoKind.ConstantParameter;
-    if generic_check13 {
+    if info.kind == GenericInfoKind.ConstantParameter {
         return "A value supplied during compilation. It can determine the shape or size of the resulting type.";
     }
-    var generic_check14 = info.kind == GenericInfoKind.Parameter;
-    if generic_check14 {
+    if info.kind == GenericInfoKind.Parameter {
         return "A named input to the function. Each call supplies a value; its type can depend on the type arguments.";
     }
-    var generic_check15 = info.kind == GenericInfoKind.Structure;
-    if generic_check15 {
+    if info.kind == GenericInfoKind.Structure {
         return "Groups named fields into a type. The field types and memory layout are determined for each set of arguments.";
     }
-    var generic_check16 = info.kind == GenericInfoKind.Field;
-    if generic_check16 {
+    if info.kind == GenericInfoKind.Field {
         return "A named part of this struct. Each value of the struct has its own copy of the field.";
     }
-    var generic_check17 = info.kind == GenericInfoKind.Variable;
-    if generic_check17 {
+    if info.kind == GenericInfoKind.Variable {
         return "A named place to store a value. You can read it or change it later by assigning a new value.";
     }
-    var generic_check18 = info.kind == GenericInfoKind.Return;
-    if generic_check18 {
+    if info.kind == GenericInfoKind.Return {
         return "Ends this function and gives its result back to the code that called it.";
     }
     if info.dependent {
@@ -164,16 +133,13 @@ fn language_generic_space(text: u8*, first: usize, last: usize): bool {
     for(; first < last; first++) {
         var byte = text[first];
         var space = byte == TriviaSpace();
-        var generic_check19 = byte == TriviaTab();
-        if generic_check19 {
+        if byte == TriviaTab() {
             space = true;
         }
-        var generic_check20 = byte == TriviaNewline();
-        if generic_check20 {
+        if byte == TriviaNewline() {
             space = true;
         }
-        var generic_check21 = byte == TriviaCarriageReturn();
-        if generic_check21 {
+        if byte == TriviaCarriageReturn() {
             space = true;
         }
         if !space {
@@ -187,15 +153,13 @@ fn language_generic_space(text: u8*, first: usize, last: usize): bool {
 // source parsing and no need to instantiate a template just to read its docs.
 fn language_generic_documentation(q: CompletionQuery*, declaration: void*): void {
     var span = sem_match(declaration);
-    var generic_check22 = span == null;
-    if generic_check22 {
+    if span == null {
         return;
     }
     var base = sem_source_base(&q.context, declaration);
     var m: usize = 0;
     for(; m < q.comment_modules.length; m++) {
-        var generic_check23 = q.comment_bases.data[m] == base;
-        if generic_check23 {
+        if q.comment_bases.data[m] == base {
             var module = q.comment_modules.data[m];
             var count: usize = 0;
             var comments = frontend_module_comments(module, &count);
@@ -207,8 +171,7 @@ fn language_generic_documentation(q: CompletionQuery*, declaration: void*): void
                 var before = first -2;
                 var after = before + 1;
                 var last = comments[after];
-                var generic_check24 = last <= end;
-                if generic_check24 {
+                if last <= end {
                     if !language_generic_space(source, last, end) {
                         break;
                     }
@@ -217,13 +180,11 @@ fn language_generic_documentation(q: CompletionQuery*, declaration: void*): void
                 }
                 first = before;
             }
-            var generic_check25 = end != span.start;
-            if generic_check25 {
+            if end != span.start {
                 // Find the first attached comment after skipping later trivia.
                 first = 0;
                 while first < count {
-                    var generic_check26 = comments[first] == end;
-                    if generic_check26 {
+                    if comments[first] == end {
                         break;
                     }
                     first = first + 2;
@@ -233,8 +194,7 @@ fn language_generic_documentation(q: CompletionQuery*, declaration: void*): void
                 while first < total {
                     var after = first + 1;
                     var last = comments[after];
-                    var generic_check27 = last > span.start;
-                    if generic_check27 {
+                    if last > span.start {
                         break;
                     }
                     source_comment_append(&docs, source, comments[first], last);
@@ -265,10 +225,8 @@ fn language_generic_format(q: CompletionQuery*, info: GenericInfo*, formatted: F
         subject = node;
     }
     format_dependent_view(formatted, node, subject, info.annotation, parser_match_get_type(), substitutions);
-    var inspection_condition14 = info.annotation == null;
-    if inspection_condition14 {
-        var inspection_condition15 = info.resolved != null;
-        if inspection_condition15 {
+    if info.annotation == null {
+        if info.resolved != null {
             var append = !signature;
             if signature {
                 append = info.kind == GenericInfoKind.Variable;
@@ -288,8 +246,7 @@ fn language_generic_format(q: CompletionQuery*, info: GenericInfo*, formatted: F
 fn language_generic_details(q: CompletionQuery*, info: GenericInfo*): void {
     var annotation = info.annotation;
     var generic_check28 = annotation != null;
-    var inspection_condition16 = info.resolved != null;
-    if inspection_condition16 {
+    if info.resolved != null {
         generic_check28 = true;
     }
     if generic_check28 {
@@ -307,8 +264,7 @@ fn language_generic_details(q: CompletionQuery*, info: GenericInfo*): void {
     if info.dependent {
         language_string(q, "resolution", "Depends on the arguments supplied to this function.");
     }
-    var generic_check29 = info.resolved != null;
-    if generic_check29 {
+    if info.resolved != null {
         var resolved = sem_get(info.resolved);
         language_number(q, "size", semantic_size(&resolved.type));
         language_number(q, "alignment", semantic_alignment(&resolved.type));

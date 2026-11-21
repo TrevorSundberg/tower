@@ -4,8 +4,7 @@ import .library.entities;
 
 fn registry_check(ok: bool, code: i32, failure: i32*): void {
     if !ok {
-        var first = *failure == 0;
-        if first {
+        if *failure == 0 {
             *failure = code;
         }
     }

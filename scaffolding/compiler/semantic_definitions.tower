@@ -6,212 +6,163 @@ import semantic_support;
 // Numeric tags are defined in foundation_tags on the shared component model,
 // not a public instruction encoding; coordinate any renumbering.
 export fn semantic_scalar_name(scalar: u32): u8* {
-    var selected0 = scalar == SI32();
-    if selected0 {
+    if scalar == SI32() {
         return "i32";
     }
-    var selected1 = scalar == SU32();
-    if selected1 {
+    if scalar == SU32() {
         return "u32";
     }
-    var selected2 = scalar == SBool();
-    if selected2 {
+    if scalar == SBool() {
         return "bool";
     }
-    var selected3 = scalar == SVoid();
-    if selected3 {
+    if scalar == SVoid() {
         return "void";
     }
-    var selected4 = scalar == SStruct();
-    if selected4 {
+    if scalar == SStruct() {
         return "";
     }
-    var selected5 = scalar == SU8();
-    if selected5 {
+    if scalar == SU8() {
         return "u8";
     }
-    var selected6 = scalar == SI64();
-    if selected6 {
+    if scalar == SI64() {
         return "i64";
     }
-    var selected7 = scalar == SU64();
-    if selected7 {
+    if scalar == SU64() {
         return "u64";
     }
-    var selected8 = scalar == SUSize();
-    if selected8 {
+    if scalar == SUSize() {
         return "usize";
     }
     return "";
 }
 
 export fn semantic_operator(op: u32): u8* {
-    var selected0 = op == OAdd();
-    if selected0 {
+    if op == OAdd() {
         return "+";
     }
-    var selected1 = op == OSub();
-    if selected1 {
+    if op == OSub() {
         return "-";
     }
-    var selected2 = op == OMul();
-    if selected2 {
+    if op == OMul() {
         return "*";
     }
-    var selected3 = op == ODiv();
-    if selected3 {
+    if op == ODiv() {
         return "/";
     }
-    var selected4 = op == ORem();
-    if selected4 {
+    if op == ORem() {
         return "%";
     }
-    var selected5 = op == OAnd();
-    if selected5 {
+    if op == OAnd() {
         return "&";
     }
-    var selected6 = op == OOr();
-    if selected6 {
+    if op == OOr() {
         return "|";
     }
-    var selected7 = op == OXor();
-    if selected7 {
+    if op == OXor() {
         return "^";
     }
-    var selected8 = op == OEq();
-    if selected8 {
+    if op == OEq() {
         return "==";
     }
-    var selected9 = op == ONe();
-    if selected9 {
+    if op == ONe() {
         return "!=";
     }
-    var selected10 = op == OLt();
-    if selected10 {
+    if op == OLt() {
         return "<";
     }
-    var selected11 = op == OLe();
-    if selected11 {
+    if op == OLe() {
         return "<=";
     }
-    var selected12 = op == OGt();
-    if selected12 {
+    if op == OGt() {
         return ">";
     }
-    var selected13 = op == OGe();
-    if selected13 {
+    if op == OGe() {
         return ">=";
     }
     return "";
 }
 
 export fn semantic_builtin_name(kind: u32): u8* {
-    var label = kind == 31;
-    if label {
+    if kind == 31 {
         return "label";
     }
-    var jump = kind == 32;
-    if jump {
+    if kind == 32 {
         return "jump";
     }
-    var trap = kind == 33;
-    if trap {
+    if kind == 33 {
         return "trap";
     }
-    var selected17 = kind == KPrint();
-    if selected17 {
+    if kind == KPrint() {
         return "print";
     }
-    var selected26 = kind == KAllocate();
-    if selected26 {
+    if kind == KAllocate() {
         return "alloc";
     }
-    var selected27 = kind == KReallocate();
-    if selected27 {
+    if kind == KReallocate() {
         return "realloc";
     }
-    var selected28 = kind == KFree();
-    if selected28 {
+    if kind == KFree() {
         return "free";
     }
-    var selected29 = kind == KCopy();
-    if selected29 {
+    if kind == KCopy() {
         return "copy";
     }
-    var selected30 = kind == KFill();
-    if selected30 {
+    if kind == KFill() {
         return "fill";
     }
-    var selected24 = kind == KSizeOf();
-    if selected24 {
+    if kind == KSizeOf() {
         return "sizeof";
     }
-    var selected25 = kind == KAlignOf();
-    if selected25 {
+    if kind == KAlignOf() {
         return "alignof";
     }
-    var selected9 = kind == KConvert();
-    if selected9 {
+    if kind == KConvert() {
         return "convert";
     }
-    var selected10 = kind == KBits();
-    if selected10 {
+    if kind == KBits() {
         return "bits";
     }
     return null;
 }
 
 export fn semantic_builtin_arity(kind: u32): usize {
-    var label = kind == 31;
-    if label {
+    if kind == 31 {
         return 1;
     }
-    var jump = kind == 32;
-    if jump {
+    if kind == 32 {
         return 1;
     }
-    var trap = kind == 33;
-    if trap {
+    if kind == 33 {
         return 2;
     }
-    var selected17 = kind == KPrint();
-    if selected17 {
+    if kind == KPrint() {
         return 1;
     }
-    var selected26 = kind == KAllocate();
-    if selected26 {
+    if kind == KAllocate() {
         return 2;
     }
-    var selected27 = kind == KReallocate();
-    if selected27 {
+    if kind == KReallocate() {
         return 3;
     }
-    var selected28 = kind == KFree();
-    if selected28 {
+    if kind == KFree() {
         return 1;
     }
-    var selected29 = kind == KCopy();
-    if selected29 {
+    if kind == KCopy() {
         return 3;
     }
-    var selected30 = kind == KFill();
-    if selected30 {
+    if kind == KFill() {
         return 3;
     }
-    var selected24 = kind == KSizeOf();
-    if selected24 {
+    if kind == KSizeOf() {
         return 1;
     }
-    var selected25 = kind == KAlignOf();
-    if selected25 {
+    if kind == KAlignOf() {
         return 1;
     }
-    var selected9 = kind == KConvert();
-    if selected9 {
+    if kind == KConvert() {
         return 2;
     }
-    var selected10 = kind == KBits();
-    if selected10 {
+    if kind == KBits() {
         return 2;
     }
     return 0;
@@ -227,100 +178,77 @@ export fn semantic_builtin_kind(name: u8*): u32 {
     if sem_equal(name, "trap") {
         return 33;
     }
-    var selectedprint = sem_equal(name, "print");
-    if selectedprint {
+    if sem_equal(name, "print") {
         return 17;
     }
-    var selectedalloc = sem_equal(name, "alloc");
-    if selectedalloc {
+    if sem_equal(name, "alloc") {
         return 26;
     }
-    var selectedrealloc = sem_equal(name, "realloc");
-    if selectedrealloc {
+    if sem_equal(name, "realloc") {
         return 27;
     }
-    var selectedfree = sem_equal(name, "free");
-    if selectedfree {
+    if sem_equal(name, "free") {
         return 28;
     }
-    var selectedcopy = sem_equal(name, "copy");
-    if selectedcopy {
+    if sem_equal(name, "copy") {
         return 29;
     }
-    var selectedfill = sem_equal(name, "fill");
-    if selectedfill {
+    if sem_equal(name, "fill") {
         return 30;
     }
-    var selectedsizeof = sem_equal(name, "sizeof");
-    if selectedsizeof {
+    if sem_equal(name, "sizeof") {
         return 24;
     }
-    var selectedalignof = sem_equal(name, "alignof");
-    if selectedalignof {
+    if sem_equal(name, "alignof") {
         return 25;
     }
-    var selectedconvert = sem_equal(name, "convert");
-    if selectedconvert {
+    if sem_equal(name, "convert") {
         return 9;
     }
-    var selectedbits = sem_equal(name, "bits");
-    if selectedbits {
+    if sem_equal(name, "bits") {
         return 10;
     }
     return 0;
 }
 
 export fn semantic_builtin_at(index: usize): u32 {
-    var label = index == 10;
-    if label {
+    if index == 10 {
         return 31;
     }
-    var jump = index == 11;
-    if jump {
+    if index == 11 {
         return 32;
     }
-    var trap = index == 12;
-    if trap {
+    if index == 12 {
         return 33;
     }
-    var selected0 = index == 0;
-    if selected0 {
+    if index == 0 {
         return 17;
     }
-    var selected1 = index == 1;
-    if selected1 {
+    if index == 1 {
         return 26;
     }
-    var selected2 = index == 2;
-    if selected2 {
+    if index == 2 {
         return 27;
     }
-    var selected3 = index == 3;
-    if selected3 {
+    if index == 3 {
         return 28;
     }
-    var selected4 = index == 4;
-    if selected4 {
+    if index == 4 {
         return 29;
     }
-    var selected5 = index == 5;
-    if selected5 {
+    if index == 5 {
         return 30;
     }
-    var selected6 = index == 6;
-    if selected6 {
+    if index == 6 {
         return 24;
     }
-    var selected7 = index == 7;
-    if selected7 {
+    if index == 7 {
         return 25;
     }
-    var selected8 = index == 8;
-    if selected8 {
+    if index == 8 {
         return 9;
     }
-    var selected9 = index == 9;
-    if selected9 {
+    if index == 9 {
         return 10;
     }
     return 0;

@@ -34,20 +34,17 @@ export fn parser_presentation_text(table: ParserHostTable*, kind: ParserFormatKi
     var names = table.presentation != ParserPresentation.Numeric;
     var descriptions = table.presentation == ParserPresentation.Syntax;
     var request = parser_format_create(table, kind, first, second, names, descriptions);
-    var missing = request == null;
-    if missing {
+    if request == null {
         return null;
     }
     loop {
         var need = parser_format_next(request);
-        var done = need == ParserFormatNeed.Done;
-        if done {
+        if need == ParserFormatNeed.Done {
             break;
         }
         var index = parser_format_index(request);
         var text: u8* = null;
-        var description = need == ParserFormatNeed.Description;
-        if description {
+        if need == ParserFormatNeed.Description {
             text = syntax_parser_describe(table.userdata, index);
         } else {
             var id = convert(u32, index);
@@ -78,7 +75,7 @@ export fn parser_presentation_text(table: ParserHostTable*, kind: ParserFormatKi
     }
     var output = parser_format_result(request);
     var text: u8* = null;
-    if output.failed {} else {
+    if !output.failed {
         text = format_parser_host_text(output);
     }
     parser_format_destroy(request);
@@ -87,24 +84,22 @@ export fn parser_presentation_text(table: ParserHostTable*, kind: ParserFormatKi
 
 // Callers guard this before any formatter request or debug string allocation.
 export fn parser_trace_table(table: ParserHostTable*, kind: ParserFormatKind): void {
-    if table.trace {} else {
+    if !table.trace {
         return;
     }
     var text = parser_presentation_text(table, kind, 0, 0);
-    var present = text != null;
-    if present {
+    if text != null {
         puts(text);
         tower_memory_free(bits(void*, text));
     }
 }
 
 export fn parser_trace_step(table: ParserHostTable*, rule: usize, state: usize, offset: usize): void {
-    if table.trace {} else {
+    if !table.trace {
         return;
     }
     var text = parser_presentation_text(table, ParserFormatKind.Edge, rule, state);
-    var present = text != null;
-    if present {
+    if text != null {
         var result: FormatResult;
         var engine: FormatEngine;
         fill(&result, 0, sizeof(FormatResult));

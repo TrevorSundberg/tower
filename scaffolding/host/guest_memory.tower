@@ -44,8 +44,7 @@ export fn guest_heap_init(heap: GuestHeap*, begin: u8*, end: u8*): bool {
 // This call never moves existing allocations or frees a failed realloc's input.
 export fn guest_heap_extend(heap: GuestHeap*, end: u8*): bool {
     var limit = bits(usize, end);
-    var invalid = limit < heap.limit;
-    if invalid {
+    if limit < heap.limit {
         return false;
     }
     heap.limit = limit;
@@ -56,8 +55,7 @@ export fn guest_heap_extend(heap: GuestHeap*, end: u8*): bool {
 fn guest_heap_request_size(count: usize, size: usize): usize {
     var maximum: usize = 0;
     maximum--;
-    var sized = size != 0;
-    if sized {
+    if size != 0 {
         var limit = maximum / size;
         var overflow = count > limit;
         if overflow {
@@ -73,8 +71,7 @@ fn guest_heap_request_size(count: usize, size: usize): usize {
     bytes = bytes + 15;
     bytes = bytes / 16;
     bytes = bytes * 16;
-    var empty = bytes == 0;
-    if empty {
+    if bytes == 0 {
         bytes = 16;
     }
     return bytes;
@@ -82,24 +79,20 @@ fn guest_heap_request_size(count: usize, size: usize): usize {
 
 export fn guest_heap_allocate(heap: GuestHeap*, count: usize, size: usize): void* {
     var bytes = guest_heap_request_size(count, size);
-    var overflow = bytes == 0;
-    if overflow {
+    if bytes == 0 {
         return null;
     }
     var header = sizeof(GuestBlock);
     var link: GuestBlock** = &heap.available;
     loop {
         var block = *link;
-        var absent = block == null;
-        if absent {
+        if block == null {
             break;
         }
-        var enough = block.size >= bytes;
-        if enough {
+        if block.size >= bytes {
             var spare = block.size -bytes;
             var minimum = header + 16;
-            var split = spare >= minimum;
-            if split {
+            if spare >= minimum {
                 var data = bits(u8*, block);
                 data = data + header;
                 data = data + bytes;
@@ -117,13 +110,11 @@ export fn guest_heap_allocate(heap: GuestHeap*, count: usize, size: usize): void
         link = &block.next;
     }
     var remaining = heap.limit -heap.cursor;
-    var short_header = remaining < header;
-    if short_header {
+    if remaining < header {
         return null;
     }
     remaining = remaining - header;
-    var short_data = remaining < bytes;
-    if short_data {
+    if remaining < bytes {
         return null;
     }
     var block = bits(GuestBlock*, heap.cursor);
@@ -136,13 +127,11 @@ export fn guest_heap_allocate(heap: GuestHeap*, count: usize, size: usize): void
 
 fn guest_heap_merge(block: GuestBlock*): void {
     var next = block.next;
-    var present = next != null;
-    if present {
+    if next != null {
         var data = block + 1;
         var end = bits(u8*, data);
         end = end + block.size;
-        var adjacent = end == bits(u8*, next);
-        if adjacent {
+        if end == bits(u8*, next) {
             block.size = block.size + sizeof(GuestBlock);
             block.size = block.size + next.size;
             block.next = next.next;
@@ -167,8 +156,7 @@ export fn guest_heap_free(heap: GuestHeap*, pointer: void*): void {
         if absent {
             break;
         }
-        var follows = bits(usize, next) >= address;
-        if follows {
+        if bits(usize, next) >= address {
             break;
         }
         previous = next;
@@ -178,8 +166,7 @@ export fn guest_heap_free(heap: GuestHeap*, pointer: void*): void {
     block.next = *link;
     *link = block;
     guest_heap_merge(block);
-    var present = previous != null;
-    if present {
+    if previous != null {
         var data = previous + 1;
         var previous_end = bits(u8*, data);
         previous_end = previous_end + previous.size;
@@ -194,8 +181,7 @@ export fn guest_heap_free(heap: GuestHeap*, pointer: void*): void {
     // can fail despite one contiguous free span straddling the cursor.
     var data = block + 1;
     var end = bits(usize, data) + block.size;
-    var tail = end == heap.cursor;
-    if tail {
+    if end == heap.cursor {
         heap.cursor = bits(usize, block);
         *link = block.next;
     }
@@ -204,33 +190,27 @@ export fn guest_heap_free(heap: GuestHeap*, pointer: void*): void {
 export fn guest_heap_reallocate(heap: GuestHeap*, pointer: void*, count: usize, size: usize): void* {
     var maximum: usize = 0;
     maximum--;
-    var sized = size != 0;
-    if sized {
+    if size != 0 {
         var limit = maximum / size;
-        var overflow = count > limit;
-        if overflow {
+        if count > limit {
             return null;
         }
     }
-    var absent = pointer == null;
-    if absent {
+    if pointer == null {
         return guest_heap_allocate(heap, count, size);
     }
     var bytes = count *size;
-    var empty = bytes == 0;
-    if empty {
+    if bytes == 0 {
         guest_heap_free(heap, pointer);
         return null;
     }
     var block = bits(GuestBlock*, pointer);
     block--;
-    var enough = block.size >= bytes;
-    if enough {
+    if block.size >= bytes {
         return pointer;
     }
     var result = guest_heap_allocate(heap, count, size);
-    var ok = result != null;
-    if ok {
+    if result != null {
         copy(result, pointer, block.size);
         guest_heap_free(heap, pointer);
     }

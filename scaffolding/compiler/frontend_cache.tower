@@ -13,13 +13,11 @@ import .library.vector;
 // Immutable revision snapshots retain shared grammar entities. Cache slots are
 // disposable host handles; no parser semantics or source is encoded in them.
 export fn frontend_revision_release(revision: FrontendRevision*): void {
-    var missing = revision == null;
-    if missing {
+    if revision == null {
         return;
     }
     revision.references--;
-    var retained = revision.references != 0;
-    if retained {
+    if revision.references != 0 {
         return;
     }
     var i: usize = 0;
@@ -46,18 +44,15 @@ export fn frontend_revision_retain(revision: FrontendRevision*): FrontendRevisio
 
 fn frontend_revision_nodes(target: vector(void*)*, nodes: void**, count: usize): bool {
     var needed = target.length + count;
-    var overflow = needed < target.length;
-    if overflow {
+    if needed < target.length {
         return false;
     }
-    var ok = vector_reserve(void*, target, needed);
-    if !ok {
+    if !vector_reserve(void*, target, needed) {
         return false;
     }
     var i: usize = 0;
     loop {
-        var done = i == count;
-        if done {
+        if i == count {
             return true;
         }
         entity_retain(nodes[i]);
@@ -69,8 +64,7 @@ fn frontend_revision_nodes(target: vector(void*)*, nodes: void**, count: usize):
 
 fn frontend_revision_create(rules: SyntaxRuleView*, count: usize, tokens: void**, token_count: usize): FrontendRevision* {
     var revision = alloc(FrontendRevision, 1);
-    var missing = revision == null;
-    if missing {
+    if revision == null {
         return null;
     }
     fill(revision, 0, sizeof(FrontendRevision));
@@ -84,8 +78,7 @@ fn frontend_revision_create(rules: SyntaxRuleView*, count: usize, tokens: void**
     for(; i != count; i++) {
         var next = names + rules[i].name_length;
         var overflow = next < names;
-        var full = next == lr_none();
-        if full {
+        if next == lr_none() {
             overflow = true;
         }
         if overflow {
@@ -109,8 +102,7 @@ fn frontend_revision_create(rules: SyntaxRuleView*, count: usize, tokens: void**
         if !ok {
             break;
         }
-        var done = i == count;
-        if done {
+        if i == count {
             break;
         }
         var target = &revision.rules.data[i];
@@ -118,8 +110,7 @@ fn frontend_revision_create(rules: SyntaxRuleView*, count: usize, tokens: void**
         target.name_length = rules[i].name_length;
         target.count = rules[i].count;
         target.alternatives = null;
-        var populated = target.count != 0;
-        if populated {
+        if target.count != 0 {
             target.alternatives = &revision.alternatives.data[revision.alternatives.length];
         }
         ok = bytes_append(&revision.names, rules[i].name, rules[i].name_length);
@@ -206,8 +197,7 @@ export fn frontend_cache_dispose(cache: FrontendCache*): void {
 // keep independent recency, counters and compiled-table handle ownership.
 export fn frontend_cache_copy(target: FrontendCache*, source: FrontendCache*): bool {
     var count = source.entries.length;
-    var ok = vector_reserve(FrontendRevision*, &target.entries, count);
-    if !ok {
+    if !vector_reserve(FrontendRevision*, &target.entries, count) {
         return false;
     }
     for(var i: usize = 0; i != count; i++) {
@@ -225,8 +215,7 @@ fn frontend_cache_touch(cache: FrontendCache*, index: usize): void {
     var entry = cache.entries.data[index];
     var last = cache.entries.length -1;
     loop {
-        var done = index == last;
-        if done {
+        if index == last {
             break;
         }
         var next = index + 1;
@@ -240,14 +229,12 @@ export fn frontend_cache_find(cache: FrontendCache*, rules: SyntaxRuleView*, cou
 tokens: void**, token_count: usize, kind: void*): usize {
     var i: usize = 0;
     loop {
-        var done = i == cache.entries.length;
-        if done {
+        if i == cache.entries.length {
             cache.builds++;
             return lr_none();
         }
         var revision = cache.entries.data[i];
-        var same = frontend_revision_same(revision, rules, count, tokens, token_count, kind);
-        if same {
+        if frontend_revision_same(revision, rules, count, tokens, token_count, kind) {
             frontend_cache_touch(cache, i);
             cache.hits++;
             return revision.slot;
@@ -261,20 +248,17 @@ tokens: void**, token_count: usize, kind: void*): usize {
 export fn frontend_cache_store(cache: FrontendCache*, rules: SyntaxRuleView*, count: usize,
 tokens: void**, token_count: usize): usize {
     var revision = frontend_revision_create(rules, count, tokens, token_count);
-    var missing = revision == null;
-    if missing {
+    if revision == null {
         return lr_none();
     }
-    var full = cache.entries.length == FrontendCacheLimit();
-    if full {
+    if cache.entries.length == FrontendCacheLimit() {
         revision.slot = cache.entries.data[0].slot;
         frontend_revision_release(cache.entries.data[0]);
         cache.entries.data[0] = revision;
         frontend_cache_touch(cache, 0);
     } else {
         revision.slot = cache.entries.length;
-        var ok = vector_push(FrontendRevision*, &cache.entries, revision);
-        if !ok {
+        if !vector_push(FrontendRevision*, &cache.entries, revision) {
             frontend_revision_release(revision);
             return lr_none();
         }
@@ -301,8 +285,7 @@ export fn frontend_cache_pattern(cache: FrontendCache*, entity: void*, kind: voi
             }
             component = entity_component_get(revision.tokens.data[j], kind);
             var previous = bits(SyntaxNode*, entity_component_data(component));
-            var same = syntax_text_equal(&node.text, &previous.text);
-            if same {
+            if syntax_text_equal(&node.text, &previous.text) {
                 syntax_node_pattern(node, previous.compiled);
                 return;
             }

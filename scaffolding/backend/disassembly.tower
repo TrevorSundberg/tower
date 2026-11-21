@@ -27,15 +27,13 @@ fn backend_label_index(d: BackendDecoder*, address: u64): usize {
     var first: usize = 0;
     var last = d.labels.length;
     loop {
-        var done = first == last;
-        if done {
+        if first == last {
             return first;
         }
         var distance = last -first;
         distance = distance / 2;
         var middle = first + distance;
-        var smaller = d.labels.data[middle].address < address;
-        if smaller {
+        if d.labels.data[middle].address < address {
             first = middle + 1;
         }
         else {
@@ -45,16 +43,14 @@ fn backend_label_index(d: BackendDecoder*, address: u64): usize {
 }
 
 fn backend_label_add(d: BackendDecoder*, address: u64, name: u8*, length: usize, priority: u32): void {
-    var empty = length == 0;
-    if empty {
+    if length == 0 {
         return;
     }
     var index = backend_label_index(d, address);
     var found = index < d.labels.length;
     found &&= d.labels.data[index].address == address;
     if found {
-        var better = d.labels.data[index].priority > priority;
-        if better {
+        if d.labels.data[index].priority > priority {
             return;
         }
         d.labels.data[index].name.length = 0;
@@ -107,13 +103,11 @@ fn backend_object_integer(d: BackendDecoder*, offset: u64, width: u64, little: b
     var factor: u64 = 1;
     var i: u64 = 0;
     loop {
-        var done = i == width;
-        if done {
+        if i == width {
             return value;
         }
         var index = i;
-        var big = !little;
-        if big {
+        if !little {
             index = width - i;
             index--;
         }
@@ -152,12 +146,10 @@ fn backend_section_text(d: BackendDecoder*, kind: u32, index: u64): bool {
         var text = flags != 0;
         return text;
     }
-    var coff = kind == 5;
-    if coff {
+    if kind == 5 {
         var header: u64 = 0;
         var magic = backend_object_integer(d, 0, 2, true);
-        var pe = magic == 23117;
-        if pe {
+        if magic == 23117 {
             header = backend_object_integer(d, 60, 4, true);
             header = header + 4;
         }
@@ -255,8 +247,7 @@ fn backend_decimal(out: vector(u8)*, value: u64): void {
         var digit = convert(u8, remainder);
         buffer[i] = digit + 48;
         value = value / 10;
-        var done = value == 0;
-        if done {
+        if value == 0 {
             break;
         }
     }
@@ -268,8 +259,7 @@ fn backend_instructions(d: BackendDecoder*, data: u8*, length: usize, base: u64)
     var offset: usize = 0;
     loop {
         var done = offset == length;
-        var full = d.text.length >= 2097152;
-        if full {
+        if d.text.length >= 2097152 {
             done = true;
         }
         if done {
@@ -279,8 +269,7 @@ fn backend_instructions(d: BackendDecoder*, data: u8*, length: usize, base: u64)
         var address = base + convert(u64, offset);
         if d.instruction_labels {
             var label = backend_label_name(d, address);
-            var named = label != null;
-            if named {
+            if label != null {
                 backend_text(&d.text, label);
                 backend_text(&d.text, ":\n");
             }
@@ -289,8 +278,7 @@ fn backend_instructions(d: BackendDecoder*, data: u8*, length: usize, base: u64)
         var count = LLVMDisasmInstruction(d.llvm, &data[offset], convert(u64, remaining), address, &line[0], 1024);
         backend_hex(&d.text, address, 8);
         backend_text(&d.text, "  ");
-        var decoded = count != 0;
-        if decoded {
+        if count != 0 {
             backend_text(&d.text, &line[0]);
         }
         else {
@@ -304,8 +292,7 @@ fn backend_instructions(d: BackendDecoder*, data: u8*, length: usize, base: u64)
 }
 
 fn backend_wasm_byte(d: BackendDecoder*): u8 {
-    var done = d.offset >= d.end;
-    if done {
+    if d.offset >= d.end {
         d.failed = true;
         return 0;
     }
@@ -323,18 +310,15 @@ fn backend_wasm_u32(d: BackendDecoder*): usize {
         var low = byte &127;
         var part = convert(u64, low) *factor;
         value = value + part;
-        var overflow = value > 4294967295;
-        if overflow {
+        if value > 4294967295 {
             d.failed = true;
             return 0;
         }
-        var last = byte < 128;
-        if last {
+        if byte < 128 {
             return convert(usize, value);
         }
         i++;
-        var too_long = i == 5;
-        if too_long {
+        if i == 5 {
             d.failed = true;
             return 0;
         }
@@ -344,8 +328,7 @@ fn backend_wasm_u32(d: BackendDecoder*): usize {
 
 fn backend_wasm_skip(d: BackendDecoder*, count: usize): void {
     var remaining = d.end -d.offset;
-    var invalid = count > remaining;
-    if invalid {
+    if count > remaining {
         d.failed = true;
         d.offset = d.end;
         return;
@@ -362,8 +345,7 @@ fn backend_wasm_label(d: BackendDecoder*, index: usize, priority: u32): void {
     var count = backend_wasm_u32(d);
     var begin = d.offset;
     backend_wasm_skip(d, count);
-    var valid = !d.failed;
-    if valid {
+    if !d.failed {
         backend_label_add(d, convert(u64, index), &d.data[begin], count, priority);
     }
 }
@@ -389,8 +371,7 @@ fn backend_wasm_labels(d: BackendDecoder*): void {
         }
         d.end = d.offset + length;
         var section_end = d.end;
-        var exports = section == 7;
-        if exports {
+        if section == 7 {
             var count = backend_wasm_u32(d);
             var i: usize = 0;
             loop {
@@ -408,16 +389,14 @@ fn backend_wasm_labels(d: BackendDecoder*): void {
                 var index = backend_wasm_u32(d);
                 var function = kind == 0;
                 if function {
-                    var valid = !d.failed;
-                    if valid {
+                    if !d.failed {
                         backend_label_add(d, convert(u64, index), &d.data[name], size, 2);
                     }
                 }
                 i++;
             }
         }
-        var custom = section == 0;
-        if custom {
+        if section == 0 {
             var size = backend_wasm_u32(d);
             var begin = d.offset;
             backend_wasm_skip(d, size);
@@ -505,8 +484,7 @@ fn backend_wasm_labels(d: BackendDecoder*): void {
                                 }
                             } else {
                                 var index = backend_wasm_u32(d);
-                                var nonsection = !section_symbol;
-                                if nonsection {
+                                if !section_symbol {
                                     if named {
                                         var function = kind == 0;
                                         if function {
@@ -533,19 +511,16 @@ fn backend_wasm_limits(d: BackendDecoder*): void {
     var flags = backend_wasm_u32(d);
     backend_wasm_u32(d);
     var maximum = flags &1;
-    var bounded = maximum != 0;
-    if bounded {
+    if maximum != 0 {
         backend_wasm_u32(d);
     }
-    var unsupported = flags > 3;
-    if unsupported {
+    if flags > 3 {
         d.failed = true;
     }
 }
 
 fn backend_wasm_disassembly(d: BackendDecoder*): void {
-    var short = d.length < 8;
-    if short {
+    if d.length < 8 {
         d.failed = true;
         return;
     }
@@ -556,8 +531,7 @@ fn backend_wasm_disassembly(d: BackendDecoder*): void {
     header[3] = 109;
     header[4] = 1;
     for(var h: usize = 0; h != 8; h++) {
-        var mismatch = d.data[h] != header[h];
-        if mismatch {
+        if d.data[h] != header[h] {
             d.failed = true;
             return;
         }
@@ -587,8 +561,7 @@ fn backend_wasm_disassembly(d: BackendDecoder*): void {
             return;
         }
         d.end = d.offset + length;
-        var import_section = section == 2;
-        if import_section {
+        if section == 2 {
             var count = backend_wasm_u32(d);
             var i: usize = 0;
             loop {
@@ -602,26 +575,21 @@ fn backend_wasm_disassembly(d: BackendDecoder*): void {
                 backend_wasm_string(d);
                 backend_wasm_string(d);
                 var kind = backend_wasm_byte(d);
-                var function = kind == 0;
-                if function {
+                if kind == 0 {
                     imports++;
                     backend_wasm_u32(d);
                 }
-                var table = kind == 1;
-                if table {
+                if kind == 1 {
                     backend_wasm_byte(d);
                     backend_wasm_limits(d);
                 }
-                var memory = kind == 2;
-                if memory {
+                if kind == 2 {
                     backend_wasm_limits(d);
                 }
-                var global = kind == 3;
-                if global {
+                if kind == 3 {
                     backend_wasm_skip(d, 2);
                 }
-                var tag = kind == 4;
-                if tag {
+                if kind == 4 {
                     backend_wasm_byte(d);
                     backend_wasm_u32(d);
                 }
@@ -632,8 +600,7 @@ fn backend_wasm_disassembly(d: BackendDecoder*): void {
                 i++;
             }
         }
-        var code = section == 10;
-        if code {
+        if section == 10 {
             var section_end = d.end;
             var count = backend_wasm_u32(d);
             var i: usize = 0;
@@ -642,8 +609,7 @@ fn backend_wasm_disassembly(d: BackendDecoder*): void {
                 if d.failed {
                     done = true;
                 }
-                var full = d.text.length >= 2097152;
-                if full {
+                if d.text.length >= 2097152 {
                     done = true;
                 }
                 if done {
@@ -680,8 +646,7 @@ fn backend_wasm_disassembly(d: BackendDecoder*): void {
                 backend_decimal(&d.text, convert(u64, index));
                 backend_text(&d.text, "]");
                 var name = backend_label_name(d, convert(u64, index));
-                var named = name != null;
-                if named {
+                if name != null {
                     backend_text(&d.text, " <");
                     backend_text(&d.text, name);
                     backend_text(&d.text, ">");
@@ -717,8 +682,7 @@ export fn backend_disassemble(data: u8*, length: usize, triple: u8*): BackendDec
         return d;
     }
     var options: u64 = 2;
-    var x86 = backend_prefix(triple, "x86");
-    if x86 {
+    if backend_prefix(triple, "x86") {
         options = options | 4;
     }
     LLVMSetDisasmOptions(d.llvm, options);
@@ -739,8 +703,7 @@ export fn backend_disassemble(data: u8*, length: usize, triple: u8*): BackendDec
             var kind = LLVMBinaryGetType(binary);
             var supported = kind >= 5;
             supported &&= kind <= 13;
-            var unsupported = !supported;
-            if unsupported {
+            if !supported {
                 backend_text(&d.text, "Disassembly requires a platform object or executable");
                 LLVMDisposeBinary(binary);
                 LLVMDisposeMemoryBuffer(buffer);
@@ -822,16 +785,14 @@ export fn backend_disassemble(data: u8*, length: usize, triple: u8*): BackendDec
 }
 
 export fn backend_disassembly_text(d: BackendDecoder*): u8* {
-    var empty = d.text.data == null;
-    if empty {
+    if d.text.data == null {
         return "";
     }
     return d.text.data;
 }
 
 export fn backend_disassembly_close(d: BackendDecoder*): void {
-    var absent = d == null;
-    if absent {
+    if d == null {
         return;
     }
     vector_dispose(u8, &d.text);

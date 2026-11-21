@@ -91,8 +91,7 @@ fn parser_format_frame(request: ParserFormat*, frame: ParserFormatFrame*): void 
             }
         }
         ParserFormatTask.Range => {
-            var range = frame.a != frame.b;
-            if range {
+            if frame.a != frame.b {
                 format_text(&f, "[");
                 parser_format_text_later(request, "]");
                 parser_format_push(request, ParserFormatTask.Scalar, frame.b, 0, 0, null);
@@ -130,8 +129,7 @@ fn parser_format_frame(request: ParserFormat*, frame: ParserFormatFrame*): void 
             var rules = lr_grammar_rule_data(table.grammar);
             var rule = &rules[frame.a];
             format_text(&f, " ");
-            var dot = frame.b == frame.c;
-            if dot {
+            if frame.b == frame.c {
                 format_text(&f, "•");
             }
             var inside = frame.b < rule.count;
@@ -271,8 +269,7 @@ fn parser_format_frame(request: ParserFormat*, frame: ParserFormatFrame*): void 
                 return;
             }
             var conflict: LRConflict;
-            var ambiguous = lr_runtime_conflict(table.runtime, &conflict);
-            if !ambiguous {
+            if !lr_runtime_conflict(table.runtime, &conflict) {
                 return;
             }
             var left = conflict.left.rule != ParserNoIndex();
@@ -329,10 +326,8 @@ fn parser_format_frame(request: ParserFormat*, frame: ParserFormatFrame*): void 
             var state = &table.states.data[conflict.state];
             var index = frame.b;
             while index < state.contexts.length {
-                var closure = index == state.kernels;
-                if closure {
-                    var found = frame.c != 0;
-                    if found {
+                if index == state.kernels {
+                    if frame.c != 0 {
                         return;
                     }
                 }
@@ -348,13 +343,11 @@ fn parser_format_frame(request: ParserFormat*, frame: ParserFormatFrame*): void 
                 }
                 index++;
                 if selected {
-                    var separator = frame.c != 0;
-                    if separator {
+                    if frame.c != 0 {
                         format_text(&f, " or ");
                     }
                     var count = frame.c + 1;
-                    var more = count < ParserConflictAlternatives();
-                    if more {
+                    if count < ParserConflictAlternatives() {
                         parser_format_push(request, ParserFormatTask.Continue, frame.a, index, count, null);
                     }
                     parser_format_push(request, ParserFormatTask.Describe, item.production, 0, 0, null);
@@ -392,8 +385,7 @@ fn parser_format_frame(request: ParserFormat*, frame: ParserFormatFrame*): void 
 }
 
 export fn parser_format_destroy(request: ParserFormat*): void {
-    var absent = request == null;
-    if absent {
+    if request == null {
         return;
     }
     format_dispose(&request.result);
@@ -512,8 +504,7 @@ export fn parser_format_reply(request: ParserFormat*, text: u8*, length: usize):
     }
     var absent = text == null;
     if absent {
-        var invalid = length != 0;
-        if invalid {
+        if length != 0 {
             request.result.failed = true;
             return;
         }
@@ -531,8 +522,7 @@ export fn parser_format_reply(request: ParserFormat*, text: u8*, length: usize):
             }
         }
         ParserFormatNeed.Description => {
-            var empty = length == 0;
-            if empty {
+            if length == 0 {
                 parser_format_item_later(request, request.index, ParserNoIndex());
             }
             else {

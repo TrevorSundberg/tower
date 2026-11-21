@@ -139,8 +139,7 @@ fn batches(): void {
     while i < 37 {
         var count: usize = 8;
         var remaining = 37 -i;
-        var tail = count > remaining;
-        if tail {
+        if count > remaining {
             count = remaining;
         }
         check(entity_view_query(view, type, i, count, &query));

@@ -216,8 +216,7 @@ fn parser_state_tests(kinds: FrontendKinds*): usize {
             break;
         }
         budget++;
-        var limit = budget == 32;
-        if limit {
+        if budget == 32 {
             result = 804;
             break;
         }

@@ -18,12 +18,10 @@ export fn sem_match(node: Entity*): ParserMatchData* {
 fn metadata_text_equal(left: u8*, right: u8*): bool {
     var index: usize = 0;
     loop {
-        var different = left[index] != right[index];
-        if different {
+        if left[index] != right[index] {
             return false;
         }
-        var done = left[index] == 0;
-        if done {
+        if left[index] == 0 {
             return true;
         }
         index++;
@@ -34,27 +32,22 @@ fn metadata_text_equal(left: u8*, right: u8*): bool {
 // borrowed spelling directly; quoted or composite names use the shared decoder.
 fn metadata_plain_name(node: Entity*): u8* {
     loop {
-        var missing = node == null;
-        if missing {
+        if node == null {
             return "";
         }
         var span = sem_match(node);
-        var present = span != null;
-        if present {
+        if span != null {
             var invalid: usize = 0;
             invalid--;
-            var terminal = span.rule == invalid;
-            if terminal {
+            if span.rule == invalid {
                 var label = parser_match_get_label(span);
-                var quoted = label[0] == 96;
-                if quoted {
+                if label[0] == 96 {
                     return null;
                 }
                 return label;
             }
         }
-        var single = entity_child_count(node) == 1;
-        if single {
+        if entity_child_count(node) == 1 {
             node = entity_child_at(node, 0);
         } else {
             return null;
@@ -66,8 +59,7 @@ fn metadata_name(node: Entity*, text: vector(u8)*): void {
     var pending: vector(Entity*);
     vector_init(Entity*, &pending);
     vector_init(u8, text);
-    var present = node != null;
-    if present {
+    if node != null {
         compiler_entity_require(vector_push(Entity*, &pending, node));
     }
     while pending.length != 0 {
@@ -101,8 +93,7 @@ fn metadata_name(node: Entity*, text: vector(u8)*): void {
 
 export fn compiler_node_label(node: Entity*, label: u8*): bool {
     var span = sem_match(node);
-    var missing = span == null;
-    if missing {
+    if span == null {
         return false;
     }
     return metadata_text_equal(parser_match_get_label(span), label);
@@ -110,8 +101,7 @@ export fn compiler_node_label(node: Entity*, label: u8*): bool {
 
 export fn compiler_name_is(node: Entity*, name: u8*): bool {
     var plain = metadata_plain_name(node);
-    var present = plain != null;
-    if present {
+    if plain != null {
         return metadata_text_equal(plain, name);
     }
     var text: vector(u8);
@@ -143,13 +133,11 @@ export fn compiler_name_equal(left: Entity*, right: Entity*): bool {
 }
 
 export fn compiler_node_copy_metadata(source: Entity*, destination: Entity*): void {
-    var same = source == destination;
-    if same {
+    if source == destination {
         return;
     }
     var span = sem_match(source);
-    var present = span != null;
-    if present {
+    if span != null {
         var target = parser_match_create(destination);
         target.id = span.id;
         target.start = span.start;

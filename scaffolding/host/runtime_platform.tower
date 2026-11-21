@@ -82,16 +82,13 @@ const RuntimeFunctionAttributes: u32 = 4294967295;
 
 fn runtime_platform_declaration(module: void*, name: u8*, type: void*): void* {
     var function = LLVMGetNamedFunction(module, name);
-    var missing = function == null;
-    if missing {
+    if function == null {
         puts("Missing runtime platform declaration");
         puts(name);
         return null;
     }
     var valid = LLVMIsDeclaration(function) != 0;
-    if valid {
-        valid = LLVMGlobalGetValueType(function) == type;
-    }
+    valid &&= LLVMGlobalGetValueType(function) == type;
     if !valid {
         puts("Runtime platform declaration has an incompatible ABI");
         puts(name);
@@ -114,15 +111,12 @@ fn runtime_platform_wasm(context: void*, module: void*): bool {
     var state = runtime_platform_declaration(module, "guest_wasm_context", signature);
     var heap = runtime_platform_declaration(module, "guest_wasm_heap_base", signature);
     var missing = state == null;
-    if !missing {
-        missing = heap == null;
-    }
+    missing ||= heap == null;
     if missing {
         return false;
     }
     var existing = LLVMGetNamedGlobal(module, "__heap_base");
-    var collision = existing != null;
-    if collision {
+    if existing != null {
         puts("Unexpected pre-existing heap-base binding");
         return false;
     }
@@ -143,21 +137,18 @@ fn runtime_platform_wasm(context: void*, module: void*): bool {
 export fn runtime_test_state(context: void*, module: void*): bool {
     var width = LLVMPointerSize(LLVMGetModuleDataLayout(module));
     var integer = LLVMInt32TypeInContext(context);
-    var wide = width == 8;
-    if wide {
+    if width == 8 {
         integer = LLVMInt64TypeInContext(context);
     }
     else {
-        var valid = width == 4;
-        if !valid {
+        if !(width == 4) {
             puts("Unsupported runtime test-state layout");
             return false;
         }
     }
     var signature = LLVMFunctionType(LLVMPointerTypeInContext(context, 0), null, 0, 0);
     var function = runtime_platform_declaration(module, "compiler_test_state", signature);
-    var missing = function == null;
-    if missing {
+    if function == null {
         return false;
     }
     var values: void*[3];
@@ -182,8 +173,7 @@ fn runtime_platform_linux(context: void*, module: void*, arm: bool): bool {
     }
     var signature = LLVMFunctionType(integer, &parameters[0], 7, 0);
     var function = runtime_platform_declaration(module, "system_call", signature);
-    var missing = function == null;
-    if missing {
+    if function == null {
         return false;
     }
     var assembly = "syscall";
@@ -204,8 +194,7 @@ fn runtime_platform_linux(context: void*, module: void*, arm: bool): bool {
     var result = LLVMBuildCall2(builder, signature, instruction, &arguments[0], 7, "result");
     LLVMBuildRet(builder, result);
     var existing = LLVMGetNamedFunction(module, "_start");
-    var collision = existing != null;
-    if collision {
+    if existing != null {
         LLVMDisposeBuilder(builder);
         puts("Runtime entry is already defined");
         return false;
@@ -230,22 +219,19 @@ fn runtime_platform_linux(context: void*, module: void*, arm: bool): bool {
 
 export fn runtime_platform(context: void*, module: void*, profile: u8*): bool {
     var target = LLVMGetTarget(module);
-    var wasm = strcmp(profile, "wasm32") == 0;
-    if wasm {
+    if strcmp(profile, "wasm32") == 0 {
         var valid = strcmp(target, "wasm32-unknown-unknown") == 0;
         if valid {
             return runtime_platform_wasm(context, module);
         }
     }
-    var x64 = strcmp(profile, "linux-x64") == 0;
-    if x64 {
+    if strcmp(profile, "linux-x64") == 0 {
         var valid = strcmp(target, "x86_64-unknown-linux-gnu") == 0;
         if valid {
             return runtime_platform_linux(context, module, false);
         }
     }
-    var arm = strcmp(profile, "linux-arm64") == 0;
-    if arm {
+    if strcmp(profile, "linux-arm64") == 0 {
         var valid = strcmp(target, "aarch64-unknown-linux-gnu") == 0;
         if valid {
             return runtime_platform_linux(context, module, true);
