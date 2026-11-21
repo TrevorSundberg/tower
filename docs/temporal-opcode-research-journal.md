@@ -27335,3 +27335,26 @@ publication follows the serialized Agent2 -> Agent3 -> coordinator queue; the ne
 combined deployment must include current dependency-closure packaging and preserve
 the newest Pages predecessor. Until its owner verifies hosted output, this analysis
 slice has only the native/WASI/local-threaded validation recorded above.
+
+Final serialized pull found externalc1a4925/dd6eb85, adding joined action-range
+jobs to LR construction. Preserved both append-only journal histories and all
+upstream worker code. Built another empty documented default-bcc successor in
+agent-2-lr-final-dd6eb85 with no private compiler override. On this merged tree,
+native compiler/runtime selection PASS9/9 in122.13s plus backend API checks;
+parser-focused selection PASS9/9 in0.77s. Seven portable WASI entries PASS and
+both parser aggregates LINK. The actual newly built successor again emits the
+LR analysis fixture byte-identically to the published bootstrap on native and
+WASI (cmp0 for each). Rebuilt the threaded browser reactor from this tree before
+its final shared-worker tests. Logs: agent-2-lr-final-dd6eb85-native.log,
+agent-2-lr-dd6eb85-{parser,wasi,threads}-*, and
+agent-2-lr-dd6eb85-final-successor.log. The external validation script initially
+assumed a .wasm suffix on parser test outputs; those CMake executables omit it.
+Corrected only the runner path; all seven actual WASI programs then passed.
+
+Final merged shared-worker checks PASS3/3 in11.24s, zero skipped tests, using
+TOWER_REQUIRE_THREADS=1 and the just-rebuilt reactor. Native four-worker overlap,
+shared-Wasm overlap/cancellation, and1/2/4/8-worker semantic equality remain
+separate evidence from deterministic fault-injection tests. Coordinator has
+requested Agent1 for the next combined deployment after Agent3/coordinator source
+slots; its acknowledgement/hosted verification is still pending at this source
+handoff. Prior published core/grammar checkpoints remain separately verified.
