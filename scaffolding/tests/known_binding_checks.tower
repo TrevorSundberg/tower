@@ -19,6 +19,9 @@ fn known_binding_tests(modules: void*, root: u8*): void {
     units_read(root, "/tests/known_bindings.tower", &source);
     units_read(root, "/bedrock.tower", &bedrock);
     units_read(root, "/foundation.tower", &foundation);
+    var enums: vector(u8) = default;
+    defer vector_dispose(&enums);
+    units_read(root, "/tests/enum_expressions.tower", &enums);
     var library: vector(u8) = default;
     defer vector_dispose(&library);
     units_read(root, "/tests/known_binding_library.tower", &library);
@@ -52,9 +55,12 @@ fn known_binding_tests(modules: void*, root: u8*): void {
         execution_session_close(&graph);
         execution_session_close(&fast);
         var canonical: vector(u8) = default;
+        var enum_canonical: vector(u8) = default;
         defer vector_dispose(&canonical);
+        defer vector_dispose(&enum_canonical);
         for(var workers: usize = 1; workers <= 8; workers *= 2) {
             body_runs_trial(source.data, workers, width, bedrock.data, foundation.data, root, &canonical);
+            body_runs_trial(enums.data, workers, width, bedrock.data, foundation.data, root, &enum_canonical);
         }
     }
     struct_value_reject(modules, "import tower;var value=1;value++;print(comptime(value));", "cannot capture runtime storage");

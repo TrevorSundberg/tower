@@ -34252,3 +34252,45 @@ and stable successive bytes: Tower 1,099,395; LLVM 52,430,138; cross 63,987,560
 (`values-generations.log`). Final distribution/hosted publication follows. The
 protected `todo.txt` has not been modified. Floating point is next after publication,
 following the C-level sequence recorded in the language roadmap.
+
+#### Publication integration with workerized binding analysis
+
+The publication rebase pulled through 108a1e8. Preserved the upstream workerized
+binding scans/order proofs/publication, aggregate signatures, expression clones,
+queued evaluation aliases and observed query dependencies. Applied the shorthand
+migration to those implementations without restoring the prior coordinator loops.
+The resulting inventory supersedes the pre-rebase count above: 262 declarations
+and 183 changed Tower files. Upstream replaced some query IDs with nominal enums;
+those definitions remain. Upstream's unrelated todo.txt changes are preserved;
+this lane has no todo.txt delta.
+
+The first integration build found accessor calls left in the upstream files
+(`Unknown function 'SStruct'`). The temporary migration inventory had itself been
+rewritten on a previous pass. Reconstructed the complete legacy inventory from
+the upstream Git revision, then reran the Tower token migration. Fresh default
+native build and full execution suite pass in values-workers-clean.log and
+values-workers-tests.log. All three browser builds pass. The affected LLVM/Wasm
+fixtures and two real compiler generations also pass (values-workers-llvm.log,
+values-workers-generations.log). These are pre-fix receipts, not final publication
+evidence for subsequent changes.
+
+The browser transport still called lr_work_tests after upstream deliberately
+removed that native comparison fixture from the production browser reactor.
+Removed this stale transport call while retaining the semantic-world and actual
+threaded compilation checks. Their next run exposed a real nested staged-enum
+ownership failure. Relinking the existing threaded objects with
+`-DCMAKE_BUILD_TYPE=RelWithDebInfo` provided function names; llvm-objdump-19 located
+the abort in sem_control_local's conversion operand construction. A consuming
+stage tried to create a child under another producer's leased enum conversion.
+The nested integer literal was correctly dependency-tracked, but its surrounding
+conversion was not safe to mutate concurrently. sem_lift_value now creates a
+consumer-owned conversion before lowering it, retaining the original shared
+pending literal/readiness dependency. No lease weakening or serialized fallback
+was introduced. Added the existing enum-expression fixture to the native
+known-binding matrix at both pointer widths and 1/2/4/8 workers.
+
+An unpublished package and successor built before this bug was found are
+superseded; the final pin must include the fix. Local distribution validation
+passed desktop/mobile and 80 asset hashes before the fix; rebuild and repeat
+affected publication checks for the final compiler. Temporary symbolized binaries
+are debugging artifacts, not the intended release assets.

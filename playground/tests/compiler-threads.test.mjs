@@ -129,7 +129,8 @@ print(record_value(&record));`;
  for (const capacity of [1,2,4,8]) {
   const tower = await loadTower(compiler, undefined, foundation, undefined, undefined, {threads:{capacity}});
   try {
-   assert.equal(tower.exports.lr_work_tests(), 0, `LR tables and ECS cleanup at ${capacity} workers`);
+   // The native LR comparison fixture runs in tower-lr-work-tests. The browser
+   // reactor exposes semantic_world_tests and the threaded compilation below.
    for (const width of [4,8]) {
     assert.equal(tower.exports.semantic_world_tests(width), 0, `World budgets and shared kernels at ${capacity} workers, width ${width}`);
    }

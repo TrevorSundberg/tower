@@ -11,6 +11,7 @@ import .library.vector;
 import semantic_lowering_work;
 import semantic_aggregates;
 import semantic_known_bindings;
+import semantic_evaluation;
 
 // Expressions are normalized on the shared ECS entities into ordinary bound
 // locals, calls, loads/stores and control flow. No backend sees surface tags.
@@ -372,6 +373,18 @@ fn sem_lift_value(c: SemanticContext*, block: void*, n: void*): void* {
     var value = sem_get(n);
     if value.constant {
         return n;
+    }
+    // A nested staged enum exposes a conversion around its pending integer
+    // literal. The producer owns that conversion, including its component lease.
+    // Lower a consumer-owned projection while sharing the immutable/readiness-
+    // tracked literal; never rewrite the producer from another worker.
+    if value.kind == KConvert && sem_evaluation_dependency(c, n) != null {
+        var projection = sem_control_node(c, block, KConvert);
+        var local = sem_get(projection);
+        sem_set_type(&local.type, &value.type);
+        local.value = value.value;
+        n = projection;
+        value = local;
     }
     if semantic_aggregate(&value.type) {
         return sem_aggregate_value(c, block, n);
