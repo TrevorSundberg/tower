@@ -70,3 +70,11 @@ struct SyntaxSession {
     error_insertion: bool;
     highlights: SyntaxHighlights;
 }
+
+// Parser stream userdata borrows this frame and its typed capture rows.
+struct SyntaxTemplateInput {
+    session: SyntaxSession*;
+    captures: void*;
+    count: usize;
+    base: usize;
+}

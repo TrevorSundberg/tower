@@ -1,0 +1,189 @@
+import tower;
+import frontend_modules;
+import lr_parser;
+import lr_runtime;
+import parser_state;
+import parser_stream;
+import syntax_emission;
+import syntax_emission_types;
+import syntax_emission_lexical;
+import syntax_highlights;
+import syntax_lexer;
+import syntax_reader;
+import syntax_scan;
+import syntax_session_state;
+import syntax_session_types;
+import syntax_template;
+import syntax_types;
+import syntax_validation;
+
+extern fn entity_component_get(node: void*, kind: void*): void*;
+extern fn entity_component_data(component: void*): void*;
+
+fn syntax_session_scan_input(value: SyntaxSession*, position: usize, highlights: SyntaxHighlights*,
+    lookahead: ParserRequestLookahead*, input: SyntaxScanInput*): void {
+    var context: ParserRequestLookahead;
+    if lookahead is not null { copy(&context, lookahead, sizeof(ParserRequestLookahead)); }
+    else { parser_request_lookahead(bits(ParserRequest*, value.recognizer), &context); }
+    fill(input, 0, sizeof(SyntaxScanInput));
+    input.lexicon = bits(SyntaxLexicon*, value.pins.version.lexicon);
+    input.source = value.source;
+    input.size = value.source_length;
+    input.cursor = position;
+    input.revision = value.revision;
+    input.declaration = value.declaration;
+    input.bootstrapping = value.bootstrapping;
+    input.runtime = context.runtime;
+    input.state = context.state;
+    input.highlights = bits(void*, highlights);
+    input.context = value.pins.version.rules;
+    input.match_kind = parser_match_get_type();
+}
+
+export fn syntax_parser_diagnostic_read(opaque: void*, position: usize*, lookahead: ParserRequestLookahead*, id: u32*): bool {
+    var input: SyntaxScanInput;
+    syntax_session_scan_input(bits(SyntaxSession*, opaque), *position, null, lookahead, &input);
+    var ready = syntax_scan_peek(&input, id);
+    *position = input.cursor;
+    return ready;
+}
+
+export fn syntax_session_declaration(value: SyntaxSession*, position: usize): bool {
+    return lexicon_declaration(bits(SyntaxLexicon*, value.pins.version.lexicon), value.source, value.source_length, position);
+}
+
+export fn syntax_session_skip(value: SyntaxSession*, position: usize*, highlights: SyntaxHighlights*): void {
+    var input: SyntaxScanInput;
+    syntax_session_scan_input(value, *position, highlights, null, &input);
+    var result: SyntaxScanResult;
+    fill(&result, 0, sizeof(SyntaxScanResult));
+    syntax_scan_skip(&input, &result);
+    *position = input.cursor;
+    parser_recognizer_account_lookahead(bits(ParserRequest*, value.recognizer), result.checks);
+}
+
+fn syntax_session_read(stream: ParserStream*, value: SyntaxSession*, input: SyntaxScanInput*,
+    id: u32*, start: usize*, length: usize*): void* {
+    var result: SyntaxScanResult;
+    fill(&result, 0, sizeof(SyntaxScanResult));
+    defer syntax_scan_dispose(&result);
+    var node = syntax_scan_read(input, &result);
+    value.cursor = input.cursor;
+    value.error_offset = result.start;
+    parser_recognizer_account_lookahead(bits(ParserRequest*, value.recognizer), result.checks);
+    *id = result.id;
+    *start = result.start + input.base;
+    *length = result.length;
+    if result.error is not null {
+        parser_stream_set_error(stream, result.error);
+        *id = convert(u32, SyntaxTokenId.End);
+    }
+    return node;
+}
+
+export fn syntax_parser_read(stream: ParserStream*, userdata: void*, id: u32*, start: usize*, length: usize*): void* {
+    var value = *bits(SyntaxSession**, userdata);
+    var input: SyntaxScanInput;
+    syntax_session_scan_input(value, value.cursor, &value.highlights, null, &input);
+    return syntax_session_read(stream, value, &input, id, start, length);
+}
+
+export fn syntax_parser_template_read(stream: ParserStream*, userdata: void*, id: u32*, start: usize*, length: usize*): void* {
+    var host = *bits(SyntaxTemplateInput**, userdata);
+    var input: SyntaxScanInput;
+    syntax_session_scan_input(host.session, host.session.cursor, &host.session.highlights, null, &input);
+    input.replacement = true;
+    input.captures = bits(SyntaxTemplateCapture*, host.captures);
+    input.count = host.count;
+    input.base = host.base;
+    return syntax_session_read(stream, host.session, &input, id, start, length);
+}
+
+export fn syntax_session_lexemes(value: SyntaxSession*, output: SyntaxHighlights*): bool {
+    if !syntax_highlights_copy(output, &value.highlights) { return false; }
+    var position = value.cursor;
+    // Preview never commits declarations or modifies the session's parse cursor.
+    while value.pins.version is not null && position < value.source_length {
+        syntax_session_skip(value, &position, output);
+        if position == value.source_length { break; }
+        var declaration = syntax_session_declaration(value, position);
+        loop {
+            var input: SyntaxScanInput;
+            syntax_session_scan_input(value, position, output, null, &input);
+            input.declaration = declaration;
+            var result: SyntaxScanResult;
+            fill(&result, 0, sizeof(SyntaxScanResult));
+            defer syntax_scan_dispose(&result);
+            syntax_scan_token(&input, &result);
+            position = input.cursor;
+            parser_recognizer_account_lookahead(bits(ParserRequest*, value.recognizer), result.checks);
+            if !declaration || (result.length == 1 && value.source[result.start] == 59) || position == value.source_length { break; }
+        }
+    }
+    var first = convert(u32, SyntaxTokenId.Token);
+    for (var i: usize = 0; i < output.items.length; ++i) {
+        var row = &output.items.data[i];
+        if value.pins.grammar is null || row.id < first { continue; }
+        var index = convert(usize, row.id - first);
+        if index >= value.pins.grammar.tokens.length { continue; }
+        var definition = bits(SyntaxNode*, entity_component_data(entity_component_get(value.pins.grammar.tokens.data[index], syntax_component_type())));
+        row.opaque ||= syntax_bytes_compare(definition.name.data, definition.name.length, "GrammarPattern", 14) == 0;
+    }
+    return true;
+}
+
+export fn syntax_capture_comments(opaque: void*, module: FrontendModule*): void {
+    var value = bits(SyntaxSession*, opaque);
+    for (var i: usize = 0; i < value.highlights.items.length; ++i) {
+        var row = &value.highlights.items.data[i];
+        if syntax_bytes_compare(row.kind, syntax_text_length(row.kind), "comment", 7) == 0 {
+            frontend_module_comment(module, row.start, row.end);
+        }
+    }
+}
+
+fn syntax_completion_token(value: SyntaxSession*, text: u8*): u32 {
+    if value.completion is null { return convert(u32, SyntaxTokenId.End); }
+    var completion = bits(LRCompletion*, value.completion);
+    var context: ParserRequestLookahead;
+    context.runtime = lr_completion_runtime(completion);
+    context.state = lr_completion_state(completion);
+    var input: SyntaxScanInput;
+    syntax_session_scan_input(value, 0, null, &context, &input);
+    input.source = text;
+    input.size = syntax_text_length(text);
+    var result: SyntaxScanResult;
+    fill(&result, 0, sizeof(SyntaxScanResult));
+    defer syntax_scan_dispose(&result);
+    syntax_scan_token(&input, &result);
+    return result.error is null && result.start == 0 && result.length == input.size ? result.id : convert(u32, SyntaxTokenId.End);
+}
+
+export fn syntax_completion_enable(opaque: void*): void { bits(SyntaxSession*, opaque).completing = true; }
+export fn syntax_completion_module(opaque: void*): void* { return bits(SyntaxSession*, opaque).inputs.module; }
+export fn syntax_completion_identifier(opaque: void*, text: u8*): bool {
+    var value = bits(SyntaxSession*, opaque);
+    var name = convert(u32, SyntaxTokenId.Name);
+    return syntax_completion_token(value, text) == name && lr_completion_accepts(bits(LRCompletion*, value.completion), name);
+}
+
+export fn syntax_completion_accepts(opaque: void*, text: u8*, literal: bool): bool {
+    var value = bits(SyntaxSession*, opaque);
+    if value.completion is null { return false; }
+    var id = literal ? syntax_emission_literal(bits(SyntaxEmission*, value.pins.completion_version.emission), text) : syntax_completion_token(value, text);
+    if literal && id == convert(u32, SyntaxTokenId.End) { return false; }
+    return lr_completion_accepts(bits(LRCompletion*, value.completion), id);
+}
+
+export fn syntax_completion_callable(opaque: void*): bool {
+    var value = bits(SyntaxSession*, opaque);
+    if value.completion is null { return false; }
+    var id = syntax_emission_literal(bits(SyntaxEmission*, value.pins.completion_version.emission), "(");
+    return id != convert(u32, SyntaxTokenId.End) && lr_completion_follows(bits(LRCompletion*, value.completion), convert(u32, SyntaxTokenId.Name), id);
+}
+
+export fn syntax_completion_close(opaque: void*, type_name: u8*): u8* {
+    var value = bits(SyntaxSession*, opaque);
+    if value.completion is null { return null; }
+    return syntax_session_suffix(value, syntax_emission_completion_close(bits(SyntaxEmission*, value.pins.completion_version.emission), bits(LRCompletion*, value.completion), type_name));
+}

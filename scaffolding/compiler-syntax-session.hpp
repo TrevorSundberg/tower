@@ -36,6 +36,12 @@ struct SyntaxSession {
   bool error_insertion;
   SyntaxHighlights highlights;
 };
+struct SyntaxTemplateCapture;
+struct SyntaxTemplateInput {
+  SyntaxSession* session;
+  const SyntaxTemplateCapture* captures;
+  size_t count, base;
+};
 extern "C" SyntaxSession* syntax_session_allocate(void*, void*);
 extern "C" SyntaxSession* syntax_session_open(void*, void*, const char*, FrontendModule*, SyntaxBaselineMode);
 extern "C" bool syntax_baseline_install(void*, void*, const char*, bool, SyntaxVersionDiagnostic*);
@@ -47,6 +53,9 @@ extern "C" bool syntax_format_into(SyntaxSession*, TowerFormatResult*, const cha
 extern "C" void syntax_highlights_dispose(SyntaxHighlights*);
 extern "C" bool syntax_highlights_copy(SyntaxHighlights*, const SyntaxHighlights*);
 extern "C" void syntax_highlights_style(SyntaxHighlights*, size_t, const char*);
+extern "C" bool syntax_session_declaration(SyntaxSession*, size_t);
+extern "C" void syntax_session_skip(SyntaxSession*, size_t*, SyntaxHighlights*);
+extern "C" bool syntax_session_lexemes(SyntaxSession*, SyntaxHighlights*);
 extern "C" void syntax_session_pin_revision(const FrontendRevision**, const FrontendRevision*);
 extern "C" void syntax_session_pin_version(SyntaxVersion**, SyntaxVersion*);
 extern "C" void syntax_session_pins_baseline(SyntaxSessionPins*, const SyntaxSessionPins*);

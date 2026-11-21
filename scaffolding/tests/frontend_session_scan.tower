@@ -1,0 +1,68 @@
+import tower;
+import .compiler.syntax_session_types;
+import .compiler.syntax_version_types;
+import .compiler.syntax_emission_types;
+import frontend_world;
+import frontend_format;
+import frontend_diagnostic_revision;
+import frontend_session_format;
+import frontend_session_state;
+import frontend_syntax_version;
+
+extern fn syntax_completion_enable(session: void*): void;
+extern fn syntax_completion_identifier(session: void*, text: u8*): bool;
+extern fn syntax_completion_accepts(session: void*, text: u8*, literal: bool): bool;
+extern fn syntax_completion_callable(session: void*): bool;
+extern fn syntax_session_lexemes(session: SyntaxSession*, result: SyntaxHighlights*): bool;
+
+fn frontend_session_scan_tests(): void {
+    var diagnostic: SyntaxVersionDiagnostic;
+    fill(&diagnostic, 0, sizeof(SyntaxVersionDiagnostic));
+    defer syntax_version_diagnostic_dispose(&diagnostic);
+    frontend_world_check(syntax_baseline_install(compiler_host_world(), null,
+        "parse Statement = Identifier '(' ')' ';';", true, &diagnostic));
+    var session = syntax_create("", null);
+    defer syntax_destroy(session);
+    syntax_completion_enable(session);
+    diagnostic_revision_read(session);
+    frontend_world_check(syntax_get_error(session)[0] == 0);
+    frontend_world_check(syntax_completion_identifier(session, "callable"));
+    frontend_world_check(!syntax_completion_identifier(session, "two words"));
+    frontend_world_check(syntax_completion_callable(session));
+    syntax_reset(session, "callable(", null);
+    diagnostic_revision_read(session);
+    frontend_world_check(syntax_get_error(session)[0] != 0);
+    frontend_world_check(syntax_completion_accepts(session, ")", true));
+    frontend_world_check(!syntax_completion_accepts(session, ";", true));
+    syntax_reset(session, "parse Statement = String ';';'text'; @ 'suffix';", null);
+    diagnostic_revision_read(session);
+    frontend_world_check(syntax_get_error(session)[0] != 0);
+    var value = bits(SyntaxSession*, session);
+    var cursor = value.cursor;
+    var revision = value.revision;
+    var count = value.highlights.items.length;
+    var error = value.error.data;
+    var offset = value.error_offset;
+    var snapshot: SyntaxHighlights;
+    fill(&snapshot, 0, sizeof(SyntaxHighlights));
+    defer syntax_highlights_dispose(&snapshot);
+    frontend_world_check(syntax_session_lexemes(value, &snapshot));
+    frontend_world_check(value.cursor == cursor && value.revision == revision && value.highlights.items.length == count);
+    frontend_world_check(value.error.data == error && value.error_offset == offset);
+    frontend_world_check(snapshot.items.length >= count);
+    var strings: usize = 0;
+    for (var i: usize = 0; i < snapshot.items.length; ++i) {
+        var row = &snapshot.items.data[i];
+        frontend_world_check(row.start < row.end);
+        if i != 0 { frontend_world_check(row.start >= snapshot.items.data[i - 1].end); }
+        if row.id == convert(u32, SyntaxTokenId.String) {
+            strings++;
+            frontend_world_check(row.opaque);
+        }
+    }
+    frontend_world_check(strings >= 2);
+    syntax_reset(session, "", null);
+    // The snapshot owns its styles after its session has discarded all rows.
+    frontend_world_check(snapshot.items.length != 0);
+    frontend_format_text(snapshot.items.data[0].kind, "keyword");
+}
