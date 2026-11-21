@@ -35771,3 +35771,36 @@ the already-completed native retirement; ordinary git ls-files and Ninja's
 existing input listing can replace that reporting step. These four are the next
 removal candidates. Distribution verification and actual compiler-generation
 tests have live callers and require a separate minimal-behavior audit.
+Warm-edit publication completed as gh-pages d886fe2 from public runtime source
+b24847b. GitHub Pages reports built; full hosted verification against
+https://tower-lang.org/ passes all 83 asset hashes and desktop/mobile backend,
+grammar, highlighting/completion, persistence, target and native-download flows
+(build/warm-edit-hosted-deployment.log, exit zero). HTTP, www and the old GitHub
+Pages URL all redirect to the HTTPS apex and return 200.
+
+The deployment commit automatically started a large repository repack before its
+push. Stopped that incidental maintenance process so publication could proceed.
+At the user's explicit request, reran git repack -d -l --cruft --write-midx with
+four packing threads after the push, retaining unreachable objects without an
+expiration setting. It completed with exit zero: 11,387 packed objects, two packs,
+5.54 GiB, no loose objects and no reported garbage. The hosted correctness checks
+ran alongside that repack; all latency measurements finished earlier in isolation.
+Log: build/warm-edit-repack.log; final count-objects output is in the tool transcript.
+
+The final source synchronization also incorporated 619b885's Tower installer and
+bounded archive readers. Those tooling/library additions do not change the
+frozen compiler sources or browser assets measured at b24847b, so this final
+documentation publication reuses the verified runtime and preserves its identity.
+The remaining warm path still checks source separately in backend workers and
+reconstructs optimized Foundation; sharing eligible prepared compilation work
+without changing ECS ownership/dependency contracts is subsequent work.
+
+Final integration correction: while repacking/verifying, upstream also published
+8831909's native backend unit scheduling and 261fab2's direct bootstrap layout.
+Their fresh, no-private-override clean successor validation at exact source
+261fab2 is recorded in f81f5dd: all 54 build steps, graph/fast known_bindings,
+native struct_values and direct-resource checksum checks pass. Reuse that exact
+upstream validation evidence instead of rebuilding the same source again. These
+new scheduling sources remain on main; this documentation-only deployment keeps
+the independently measured and hosted-verified b24847b browser runtime. Preserve
+888cfef's direct-bootstrap provenance metadata and all runtime asset hashes.
