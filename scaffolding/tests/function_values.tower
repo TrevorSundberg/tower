@@ -16,6 +16,9 @@ fn recursive(value: i32): i32 {
 fn record_call(value: i32*): void { (*value)++; }
 fn half(value: f64): f64 { return value / 2.0; }
 fn small(value: i8): i8 { return value - 1; }
+fn answer(): i32 { return 42; }
+fn invoke_generic(T: type, callback: function(T)): T { return callback(); }
+fn identity(T: type, value: T): T { return value; }
 enum FunctionFailure: i32 { None, Local, Argument, Table, Field, NullFallback, Identity, Stage, Order, Recursion, Void, Float, Narrow, Aggregate, Relocation }
 
 fn check(): FunctionFailure {
@@ -56,6 +59,11 @@ fn check(): FunctionFailure {
     var raw = bits(usize, selected);
     var restored = bits(function(i32, i32), raw);
     if restored(21) != 42 || restored != selected { return FunctionFailure.Relocation; }
+    if invoke_generic(answer) != 42 { return FunctionFailure.Argument; }
+    var holder = answer;
+    var holder_pointer = identity(&holder);
+    var exact: function(i32) = answer;
+    if (*holder_pointer)() != exact() { return FunctionFailure.Identity; }
     return FunctionFailure.None;
 }
 print(convert(i32, check()));

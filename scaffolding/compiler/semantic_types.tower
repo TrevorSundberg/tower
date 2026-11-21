@@ -665,7 +665,8 @@ fn sem_function_type(c: SemanticContext*, owner: void*, result: FoundationType*,
     }
     foreach(var entity in &c.type_arguments) {
         var signature = sem_get(entity);
-        if signature.type.scalar != SFunction || !semantic_type_equal(&signature.element, result)
+        if signature.type.scalar != SFunction || signature.type.pointers != 0 || signature.type.record != entity
+        || !semantic_type_equal(&signature.element, result)
         || signature.parameters.length != parameters.length { continue; }
         var same = true;
         for(var i: usize = 0; i < parameters.length; i++) {

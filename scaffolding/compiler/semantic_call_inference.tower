@@ -126,6 +126,17 @@ fn sem_infer_match(inference: SemanticCallInference*, annotation: void*, actual:
     if arguments_node != null {
         var name = sem_member(annotation, "name");
         var definition = sem_resolve(c, c.type_functions, name, sem_identifier(c, name));
+        if definition == null && sem_equal(sem_identifier(c, name), "function") {
+            if actual.scalar != SFunction || actual.pointers != 0 { return; }
+            var arguments = sem_collect(c, arguments_node, sem_is(annotation, "CoreCall") ? "CoreCallArgument" : "CoreTypeArgument");
+            var signature = sem_get(actual.record);
+            if arguments.length != signature.parameters.length + 1 { return; }
+            sem_infer_match(inference, arguments.data[0], &signature.element, substitutions, depth + 1);
+            for(var i: usize = 0; i < signature.parameters.length && sem_ok(c); i++) {
+                sem_infer_match(inference, arguments.data[i + 1], &sem_get(signature.parameters.data[i]).type, substitutions, depth + 1);
+            }
+            return;
+        }
         if definition == null {
             return;
         }

@@ -68,6 +68,7 @@ struct FMState {
     words: vector(u32);
     constants: vector(u64);
     functions: vector(FMFunction);
+    function_indices: vector(usize);
     parameters: vector(FMParameter);
     types: vector(FoundationType*);
     conversions: vector(FMConversion);
@@ -255,6 +256,13 @@ fn fm_function(f: FMState*, node: void*): usize {
         fm_push(FMParameter, &f.parameters, &value);
     }
     fm_push(FMFunction, &f.functions, &function);
+    if f.function_indices.length <= n.index {
+        var previous = f.function_indices.length;
+        im_storage_require(vector_reserve(&f.function_indices, n.index + 1));
+        f.function_indices.length = n.index + 1;
+        for(var i = previous; i <= n.index; i++) { f.function_indices.data[i] = 0; }
+    }
+    f.function_indices.data[n.index] = index + 1;
     return index;
 }
 
@@ -789,6 +797,7 @@ export fn fast_interpreter_create(m: IMState*): FMState* {
     fm_trim(u32, &f.words);
     fm_trim(u64, &f.constants);
     fm_trim(FMFunction, &f.functions);
+    fm_trim(usize, &f.function_indices);
     fm_trim(FMParameter, &f.parameters);
     fm_trim(FoundationType*, &f.types);
     fm_trim(FMConversion, &f.conversions);
@@ -814,6 +823,7 @@ export fn fast_interpreter_dispose(f: FMState*): void {
     vector_dispose(&f.words);
     vector_dispose(&f.constants);
     vector_dispose(&f.functions);
+    vector_dispose(&f.function_indices);
     vector_dispose(&f.parameters);
     vector_dispose(&f.types);
     vector_dispose(&f.conversions);
@@ -926,14 +936,16 @@ export fn fast_interpreter_step(m: IMState*, f: FMState*, budget: usize): void {
         m.steps++;
         if op == FMCheckFunction || op == FMIndirectCall {
             var reference = r[op == FMCheckFunction ? a : b];
-            var index: usize = 0;
-            while index < f.functions.length && convert(u64, im_node(f.functions.data[index].node).index) + 1 != reference { index++; }
+            var encoded: usize = 0;
+            if reference != 0 && reference <= convert(u64, f.function_indices.length) {
+                encoded = f.function_indices.data[convert(usize, reference - 1)];
+            }
             var offset = fm_offset(f, pc);
             if reference == 0 { im_fail(m, "Cannot call a null function", offset); }
-            else { if index == f.functions.length { im_fail(m, "Invalid function reference", offset); }
+            else { if encoded == 0 { im_fail(m, "Invalid function reference", offset); }
             else { if op == FMCheckFunction {
-                if !im_function_matches(f.functions.data[index].node, f.types.data[b]) { im_fail(m, "Function reference signature mismatch", offset); }
-            } else { fm_call(m, f, a, index, c, offset); } } }
+                if !im_function_matches(f.functions.data[encoded - 1].node, f.types.data[b]) { im_fail(m, "Function reference signature mismatch", offset); }
+            } else { fm_call(m, f, a, encoded - 1, c, offset); } } }
             if m.failed { m.done = true; }
             continue;
         }
@@ -1197,6 +1209,7 @@ export fn fast_interpreter_stat(f: FMState*, key: usize): usize {
     var bytes = f.constants.capacity *sizeof(u64);
     var extra = f.functions.capacity *sizeof(FMFunction);
     bytes = bytes + extra;
+    bytes += f.function_indices.capacity * sizeof(usize);
     extra = f.parameters.capacity * sizeof(FMParameter);
     bytes = bytes + extra;
     extra = f.types.capacity * sizeof(FoundationType*);

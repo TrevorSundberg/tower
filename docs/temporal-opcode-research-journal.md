@@ -38344,3 +38344,20 @@ name coexistence case also remains valid: callable bindings take precedence, whi
 ordinary scalar variables retain Foundation's separate call namespace. All source
 implementation and assertions are Tower; JavaScript additions are existing browser
 test transport/version metadata only. Release/bootstrap/browser publication is next.
+
+Rebased the feature onto fb20d60, including the latest Tower Wasm linker changes
+and retirement of Python C-output/differential test drivers. A fresh default build
+in `/cache/functions-integrated` uses only the checked-in public bootstrap and
+passes the function and semantic suites. The integrated Tower driver, module-path,
+native differential and package differential CTests all pass (160.37s combined).
+The separately linked Wasm callback fixture completes with output `0\n` as well.
+
+Final review adds structural callback-signature deduction to the existing generic
+inference worker, with a conflicting-deduction regression. Signature interning
+explicitly excludes pointer/type-argument wrappers. Cached indirect calls now use
+a derived constant-time reference-to-function index instead of scanning function
+entities at each call; no graph identities enter instruction words. The focused
+suite includes generic invocation and function-storage pointers passed through a
+generic identity function. Only the affected native units/browser artifacts are
+being refreshed for this final implementation delta; inputs remain frozen during
+builds, and the deployment will retain the integrated source identity.

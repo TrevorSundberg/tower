@@ -43,6 +43,7 @@ fn function_tests(modules: void*, root: u8*): void {
     struct_value_reject(modules, "import tower;fn f(x:i32):i32{return x;}var p:function(i32,u32)=f;", "Expected function");
     struct_value_reject(modules, "import tower;fn f(x:i32):i32{return x;}var p=f;print(p());", "Wrong argument count");
     struct_value_reject(modules, "import tower;var p:function(i32,void);", "cannot have void");
+    struct_value_reject(modules, "import tower;fn f(x:i32):u32{return 1;}fn use(T:type,p:function(T,T)):void{}use(f);", "Conflicting inferred types");
     struct_value_reject(modules, "import tower;fn f():i32{return 1;}print(f);", "cannot be printed");
     struct_value_reject(modules, "import tower;fn f():i32{return 1;}print(comptime(bits(usize,f)));", "relocatable typed references");
     narrow_trap(modules, "import tower;fn f():i32{return 1;}var p=bits(function(i32,i32),f);print(p(1));", "Function reference signature mismatch");

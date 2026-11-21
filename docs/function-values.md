@@ -22,6 +22,8 @@ print(fallback(41));
 Function values work in locals, fields, arrays, parameters and results. Signatures
 must match exactly for ordinary assignments and calls; there are no implicit
 numeric promotions or captured environments. `==` and `!=` compare identities.
+Generic call inference can derive type arguments from callback parameter and
+result types, including through the existing straight-return type aliases.
 `default` is null, and `??`/`??=` provide lazy fallbacks. Calling null traps.
 Use comparisons or descriptive names for output; printing a function directly is
 rejected. Foundation retains its existing separate value/function namespaces: a
