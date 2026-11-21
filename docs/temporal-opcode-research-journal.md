@@ -26654,3 +26654,16 @@ example, corrected by selecting the memory example before import. No product
 semantics were changed for this verifier fix. Full release validation remains
 pending; upstream has since published foreach and reader-oracle changes, requiring
 another source integration before this lane can fast-forward main.
+
+Integrated upstream through 2452c10, including foreach, its published successor,
+and Tower reader/validation oracles. Retained all upstream documentation and test
+retirements; the language ledger now records implemented borrowed iteration.
+Audit found a new worker-admission hazard: a foreach body with an already typed
+collection parameter has no written generic call, but its implicit protocol
+lookup can instantiate functions. Route these bodies through the existing
+structural coordinator path until protocol construction has continuations.
+Added same-unit checks with two such bodies, ordinary body work, staged loop
+values and canonical comparisons at 1/2/4/8 workers. Extend the concise AGENTS
+rule to require admission auditing for implicit protocol construction. Foreach
+host tests also close shared transports. These changes do not claim protocol
+construction is already threaded; full compiler ECS migration remains active.

@@ -64,6 +64,7 @@ fn f${i}(value: decltype(seed)): decltype(value) {
   'var total = comptime(identity(' + functions.map((_,i) => `f${i}(0)`).join(' + ') + '));\n' +
   'print(total); print(`control value 1.0`);';
  const canonical = new Map();
+ let iterationCanonical;
  for (const capacity of [1,2,4,8]) {
   const tower = await loadTower(compiler, undefined, foundation, undefined, undefined, {threads:{capacity}});
   try {
@@ -88,6 +89,28 @@ fn f${i}(value: decltype(seed)): decltype(value) {
     assert.match(result.error, /unknownFirst/);
     assert.doesNotMatch(result.error, /unknownSecond/);
    } finally { tower.destroyExecution(invalid); }
+   // The body alone has no written generic call or parameterized local type.
+   // foreach still instantiates its implicit nominal protocol functions.
+   const iteration = tower.compile(`import tower; import library.vector;
+fn plain():u64 { return 7; }
+fn first(values:vector(u64)*):u64 {
+ var total:u64=0; foreach(var item in values) { total += item + comptime(2); } return total;
+}
+fn second(values:vector(u64)*):u64 {
+ var total:u64=0; foreach(var item in values) { total += item + comptime(2); } return total;
+}
+var values:vector(u64); vector_init(&values); defer vector_dispose(&values);
+vector_push(&values,20); vector_push(&values,22);
+print(first(&values)); print(second(&values)); print(plain());`);
+   try {
+    let result, output = '';
+    do { result = tower.execute(iteration, 10000); output += result.output; } while (result.status === 'executing');
+    assert.equal(result.status, 'done', result.error);
+    assert.equal(output, '46\n46\n7\n');
+    const text = tower.foundation(iteration).source;
+    iterationCanonical ??= text;
+    assert.equal(text, iterationCanonical, `implicit protocol publication at ${capacity} workers`);
+   } finally { tower.destroyExecution(iteration); }
   } finally { tower.close(); }
   assert.throws(() => tower.compile('print(1);'), /compiler is closed/);
   assert.doesNotThrow(() => tower.destroyExecution(0));

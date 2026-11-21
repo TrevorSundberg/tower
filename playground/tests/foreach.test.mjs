@@ -1,10 +1,11 @@
-import {test} from 'node:test';
+import {test,after} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {loadTower,loadLLVM,executeWasm,runToEnd} from './compiler-fixtures.mjs';
 const read=name=>readFile(new URL('../../'+name,import.meta.url));
 const foundation=(await read('scaffolding/foundation.tower')).toString();
 const tower=await loadTower(await read('build/browser-wasi/tower.wasm'),undefined,foundation);
+after(()=>tower.close());
 const llvm=process.env.TOWER_INTERPRETER_ONLY?null:await loadLLVM(await read('build/browser-wasi-llvm/tower-llvm.wasm'),undefined,foundation);
 function execute(source,width=4,fast=false){
  const handle=tower.compile(source,{pointerBytes:width});

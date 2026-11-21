@@ -71,6 +71,9 @@ fn sem_body_sources(c: SemanticContext*, subject: void*, nodes: vector(void*)*):
     for(var i: usize = 1; i < nodes.length; i++) {
         var node = nodes.data[i];
         if node == null { return false; }
+        // Protocol lookup can instantiate generic functions even when the loop
+        // source is an already typed parameter. It needs structural ownership.
+        if sem_is(node, "TowerForeach") { return false; }
         if sem_is(node, "CoreArrayCount") { return false; }
         if sem_is(node, "CoreType") && (sem_member(node, "args") != null
             || sem_member(node, "count") != null || sem_member(node, "index") != null) { return false; }
