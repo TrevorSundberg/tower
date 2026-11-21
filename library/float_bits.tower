@@ -1,0 +1,258 @@
+import tower;
+
+// Strict binary floating-point operations over their exact storage bits. These
+// ordinary Tower functions are shared by runtime execution and staged evaluation.
+// No host floating environment, allocation, global state or exception flags.
+var Float32Width: u32 = 32;
+var Float64Width: u32 = 64;
+var Float32Fraction: u32 = 23;
+var Float64Fraction: u32 = 52;
+var Float32Bias: i32 = 127;
+var Float64Bias: i32 = 1023;
+var Float32Sign: u64 = 2147483648;
+var Float64Sign: u64 = 9223372036854775808;
+var Float32Infinity: u64 = 2139095040;
+var Float64Infinity: u64 = 9218868437227405312;
+var FloatGuardBits: u32 = 3;
+var FloatLimbBits: u32 = 32;
+var FloatLimbMask: u64 = 4294967295;
+
+enum FloatClass: u32 { Zero, Finite, Infinity, NaN }
+enum FloatOrder: i32 { Less = -1, Equal = 0, Greater = 1, Unordered = 2 }
+// Shared operation ordering with Foundation's scalar binary operations.
+enum FloatOperation: u32 { Add = 0, Subtract = 1, Multiply = 2, Divide = 3, Equal = 8, NotEqual = 9, Less = 10, LessEqual = 11, Greater = 12, GreaterEqual = 13 }
+
+struct FloatLayout { fraction: u32; bias: i32; sign: u64; infinity: u64; }
+struct FloatParts { negative: bool; category: FloatClass; significand: u64; exponent: i32; }
+struct FloatProduct { low: u64; high: u64; }
+
+fn float_layout(width: u32): FloatLayout {
+    if width == Float32Width {
+        return { fraction: Float32Fraction, bias: Float32Bias, sign: Float32Sign, infinity: Float32Infinity };
+    }
+    if width == Float64Width {
+        return { fraction: Float64Fraction, bias: Float64Bias, sign: Float64Sign, infinity: Float64Infinity };
+    }
+    trap("Unsupported floating-point width", 0);
+    return default;
+}
+
+fn float_nan(layout: FloatLayout): u64 {
+    return layout.infinity | (convert(u64, 1) << (layout.fraction - 1));
+}
+
+fn float_signed(magnitude: u64, negative: bool, layout: FloatLayout): u64 {
+    return magnitude | (negative ? layout.sign : 0);
+}
+
+fn float_unpack(raw: u64, layout: FloatLayout): FloatParts {
+    var hidden = convert(u64, 1) << layout.fraction;
+    var fraction = raw & (hidden - 1);
+    var exponent = raw & layout.infinity;
+    var result: FloatParts = { negative: (raw & layout.sign) != 0,
+        category: FloatClass.Finite, significand: fraction, exponent: 1 - layout.bias };
+    if exponent == layout.infinity {
+        result.category = fraction == 0 ? FloatClass.Infinity : FloatClass.NaN;
+        return result;
+    }
+    if exponent != 0 {
+        result.significand |= hidden;
+        result.exponent = convert(i32, exponent >> layout.fraction) - layout.bias;
+    } else {
+        if fraction == 0 { result.category = FloatClass.Zero; return result; }
+        while result.significand < hidden { result.significand <<= 1; result.exponent--; }
+    }
+    return result;
+}
+
+// Every discarded nonzero bit contributes to the final sticky bit. Counts at
+// or above the storage width must not inherit Tower's masked shift semantics.
+fn float_shift_jam(value: u64, count: u32): u64 {
+    if count == 0 { return value; }
+    if count >= Float64Width { return convert(u64, value != 0); }
+    var lost = value & ((convert(u64, 1) << count) - 1);
+    return (value >> count) | convert(u64, lost != 0);
+}
+
+// extended has three guard/round/sticky bits. Normalize and round exactly once,
+// including the normal/subnormal boundary and carry into the exponent.
+fn float_pack(negative: bool, exponent: i32, extended: u64, layout: FloatLayout): u64 {
+    if extended == 0 { return float_signed(0, negative, layout); }
+    var hidden = convert(u64, 1) << layout.fraction;
+    var normal = hidden << FloatGuardBits;
+    var minimum = 1 - layout.bias;
+    while extended >= (normal << 1) { extended = float_shift_jam(extended, 1); exponent++; }
+    while extended < normal && exponent > minimum { extended <<= 1; exponent--; }
+    if exponent < minimum { extended = float_shift_jam(extended, convert(u32, minimum - exponent)); exponent = minimum; }
+    var significand = extended >> FloatGuardBits;
+    var half = convert(u64, 1) << (FloatGuardBits - 1);
+    var remainder = extended & ((half << 1) - 1);
+    if remainder > half || (remainder == half && (significand & 1) != 0) { significand++; }
+    if significand >= (hidden << 1) { significand >>= 1; exponent++; }
+    if exponent > layout.bias { return float_signed(layout.infinity, negative, layout); }
+    var encoded: u64 = 0;
+    if significand >= hidden { encoded = convert(u64, exponent + layout.bias) << layout.fraction; }
+    return float_signed(encoded | (significand & (hidden - 1)), negative, layout);
+}
+
+fn float_add_bits(a: u64, b: u64, layout: FloatLayout): u64 {
+    var left = float_unpack(a, layout);
+    var right = float_unpack(b, layout);
+    if left.category == FloatClass.NaN || right.category == FloatClass.NaN { return float_nan(layout); }
+    if left.category == FloatClass.Infinity {
+        if right.category == FloatClass.Infinity && left.negative != right.negative { return float_nan(layout); }
+        return float_signed(layout.infinity, left.negative, layout);
+    }
+    if right.category == FloatClass.Infinity { return float_signed(layout.infinity, right.negative, layout); }
+    if left.category == FloatClass.Zero && right.category == FloatClass.Zero {
+        return float_signed(0, left.negative && right.negative, layout);
+    }
+    if left.category == FloatClass.Zero { return b & ((layout.sign - 1) | layout.sign); }
+    if right.category == FloatClass.Zero { return a & ((layout.sign - 1) | layout.sign); }
+    if left.exponent < right.exponent || (left.exponent == right.exponent && left.significand < right.significand) {
+        var swap = left; left = right; right = swap;
+    }
+    var x = left.significand << FloatGuardBits;
+    var y = float_shift_jam(right.significand << FloatGuardBits, convert(u32, left.exponent - right.exponent));
+    var sum = left.negative == right.negative ? x + y : x - y;
+    if sum == 0 { return 0; }
+    return float_pack(left.negative, left.exponent, sum, layout);
+}
+
+fn float_product(a: u64, b: u64): FloatProduct {
+    var low = (a & FloatLimbMask) * (b & FloatLimbMask);
+    var middle = (a >> FloatLimbBits) * (b & FloatLimbMask);
+    var other = (a & FloatLimbMask) * (b >> FloatLimbBits);
+    var high = (a >> FloatLimbBits) * (b >> FloatLimbBits);
+    var next = low + (middle << FloatLimbBits);
+    high += (middle >> FloatLimbBits) + convert(u64, next < low);
+    low = next;
+    next = low + (other << FloatLimbBits);
+    high += (other >> FloatLimbBits) + convert(u64, next < low);
+    return { low: next, high: high };
+}
+
+fn float_multiply_bits(a: u64, b: u64, layout: FloatLayout): u64 {
+    var left = float_unpack(a, layout);
+    var right = float_unpack(b, layout);
+    var negative = left.negative != right.negative;
+    if left.category == FloatClass.NaN || right.category == FloatClass.NaN { return float_nan(layout); }
+    if left.category == FloatClass.Infinity || right.category == FloatClass.Infinity {
+        if left.category == FloatClass.Zero || right.category == FloatClass.Zero { return float_nan(layout); }
+        return float_signed(layout.infinity, negative, layout);
+    }
+    if left.category == FloatClass.Zero || right.category == FloatClass.Zero { return float_signed(0, negative, layout); }
+    var product = float_product(left.significand, right.significand);
+    var shift = layout.fraction - FloatGuardBits;
+    var extended = (product.high << (Float64Width - shift)) | float_shift_jam(product.low, shift);
+    return float_pack(negative, left.exponent + right.exponent, extended, layout);
+}
+
+fn float_divide_bits(a: u64, b: u64, layout: FloatLayout): u64 {
+    var left = float_unpack(a, layout);
+    var right = float_unpack(b, layout);
+    var negative = left.negative != right.negative;
+    if left.category == FloatClass.NaN || right.category == FloatClass.NaN { return float_nan(layout); }
+    if (left.category == FloatClass.Infinity && right.category == FloatClass.Infinity)
+        || (left.category == FloatClass.Zero && right.category == FloatClass.Zero) { return float_nan(layout); }
+    if left.category == FloatClass.Infinity || right.category == FloatClass.Zero {
+        return float_signed(layout.infinity, negative, layout);
+    }
+    if left.category == FloatClass.Zero || right.category == FloatClass.Infinity { return float_signed(0, negative, layout); }
+    var exponent = left.exponent - right.exponent;
+    var remainder = left.significand;
+    if remainder < right.significand { remainder <<= 1; exponent--; }
+    var quotient: u64 = 1;
+    remainder -= right.significand;
+    for(var bit: u32 = 0; bit < layout.fraction + FloatGuardBits; bit++) {
+        remainder <<= 1;
+        quotient <<= 1;
+        if remainder >= right.significand { remainder -= right.significand; quotient |= 1; }
+    }
+    quotient |= convert(u64, remainder != 0);
+    return float_pack(negative, exponent, quotient, layout);
+}
+
+fn float_order(a: u64, b: u64, layout: FloatLayout): FloatOrder {
+    var left = float_unpack(a, layout);
+    var right = float_unpack(b, layout);
+    if left.category == FloatClass.NaN || right.category == FloatClass.NaN { return FloatOrder.Unordered; }
+    var mask = layout.sign - 1;
+    var x = a & mask;
+    var y = b & mask;
+    if x == 0 && y == 0 { return FloatOrder.Equal; }
+    if left.negative != right.negative { return left.negative ? FloatOrder.Less : FloatOrder.Greater; }
+    if x == y { return FloatOrder.Equal; }
+    return (x < y) != left.negative ? FloatOrder.Less : FloatOrder.Greater;
+}
+
+fn tower_float_binary(a: u64, b: u64, operation: u32, width: u32): u64 {
+    var layout = float_layout(width);
+    var op = convert(FloatOperation, operation);
+    if op == FloatOperation.Add { return float_add_bits(a, b, layout); }
+    if op == FloatOperation.Subtract { return float_add_bits(a, b ^ layout.sign, layout); }
+    if op == FloatOperation.Multiply { return float_multiply_bits(a, b, layout); }
+    if op == FloatOperation.Divide { return float_divide_bits(a, b, layout); }
+    var order = float_order(a, b, layout);
+    if op == FloatOperation.Equal { return convert(u64, order == FloatOrder.Equal); }
+    if op == FloatOperation.NotEqual { return convert(u64, order != FloatOrder.Equal); }
+    if op == FloatOperation.Less { return convert(u64, order == FloatOrder.Less); }
+    if op == FloatOperation.LessEqual { return convert(u64, order == FloatOrder.Less || order == FloatOrder.Equal); }
+    if op == FloatOperation.Greater { return convert(u64, order == FloatOrder.Greater); }
+    if op == FloatOperation.GreaterEqual { return convert(u64, order == FloatOrder.Greater || order == FloatOrder.Equal); }
+    trap("Unsupported floating-point operation", 0);
+    return 0;
+}
+
+fn float_integer_mask(width: u32): u64 {
+    return width == Float64Width ? ~convert(u64, 0) : (convert(u64, 1) << width) - 1;
+}
+
+fn tower_float_from_integer(raw: u64, integer_width: u32, signed: bool, width: u32): u64 {
+    var layout = float_layout(width);
+    var mask = float_integer_mask(integer_width);
+    raw &= mask;
+    var negative = signed && (raw & ((mask >> 1) + 1)) != 0;
+    var magnitude = negative ? (convert(u64, 0) - raw) & mask : raw;
+    if magnitude == 0 { return 0; }
+    var exponent: u32 = 0;
+    var scan = magnitude;
+    while scan > 1 { scan >>= 1; exponent++; }
+    var precision = layout.fraction + FloatGuardBits;
+    var extended = exponent > precision ? float_shift_jam(magnitude, exponent - precision) : magnitude << (precision - exponent);
+    return float_pack(negative, convert(i32, exponent), extended, layout);
+}
+
+fn tower_float_convert(raw: u64, source_width: u32, width: u32): u64 {
+    var source = float_layout(source_width);
+    var layout = float_layout(width);
+    var value = float_unpack(raw, source);
+    if value.category == FloatClass.NaN { return float_nan(layout); }
+    if value.category == FloatClass.Infinity { return float_signed(layout.infinity, value.negative, layout); }
+    if value.category == FloatClass.Zero { return float_signed(0, value.negative, layout); }
+    var precision = layout.fraction + FloatGuardBits;
+    var extended = source.fraction > precision ? float_shift_jam(value.significand, source.fraction - precision)
+        : value.significand << (precision - source.fraction);
+    return float_pack(value.negative, value.exponent, extended, layout);
+}
+
+// Checked truncation toward zero. A negative fraction that truncates to zero is
+// representable even in an unsigned destination; NaN/infinity are never integers.
+fn tower_float_to_integer(raw: u64, width: u32, integer_width: u32, signed: bool, ok: bool*): u64 {
+    *ok = false;
+    var layout = float_layout(width);
+    var value = float_unpack(raw, layout);
+    if value.category == FloatClass.NaN || value.category == FloatClass.Infinity { return 0; }
+    var magnitude: u64 = 0;
+    if value.category != FloatClass.Zero && value.exponent >= 0 {
+        if value.exponent >= convert(i32, Float64Width) { return 0; }
+        var exponent = convert(u32, value.exponent);
+        magnitude = exponent > layout.fraction ? value.significand << (exponent - layout.fraction)
+            : value.significand >> (layout.fraction - exponent);
+    }
+    var mask = float_integer_mask(integer_width);
+    var limit = signed ? (mask >> 1) + convert(u64, value.negative) : mask;
+    if magnitude > limit || (!signed && value.negative && magnitude != 0) { return 0; }
+    *ok = true;
+    return (value.negative ? convert(u64, 0) - magnitude : magnitude) & mask;
+}
