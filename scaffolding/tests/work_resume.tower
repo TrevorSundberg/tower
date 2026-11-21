@@ -101,6 +101,55 @@ fn diamond_tests(): void {
     work_dispose(&g);
 }
 
+fn discovered_access_tests(): void {
+    var g: WorkGraph;
+    work_init(&g, 18, 29);
+    defer work_dispose(&g);
+    var query = work_request(&g, null, 1, 0);
+    var input = work_request(&g, null, 2, 0);
+    var writer = work_request(&g, null, 3, 0);
+    var reader = work_request(&g, null, 4, 0);
+    var unrelated = work_request(&g, null, 5, 0);
+    check(work_access(&g, input, 1, 1, 20, 4, WorkAccessMode.Write));
+    check(work_access(&g, writer, 1, 1, 20, 4, WorkAccessMode.Write));
+    check(work_access(&g, reader, 1, 1, 20, 4, WorkAccessMode.Read));
+    check(work_access(&g, unrelated, 1, 1, 24, 1, WorkAccessMode.Write));
+    check(work_seal(&g, query));
+    check(work_seal(&g, input));
+    check(work_seal(&g, writer));
+    check(work_seal(&g, reader));
+    check(work_seal(&g, unrelated));
+    check(work_demand(&g, query));
+    var old: WorkTicket;
+    var current: WorkTicket;
+    var peer: WorkTicket;
+    var spare: WorkTicket;
+    check(work_take(&g, &old));
+    check(work_suspend_access(&g, &old, input, 1, 1, 20, 4, WorkAccessMode.Read));
+    check(g.running == 0);
+    // The new read claim must not prevent its own producer from running.
+    check(work_take(&g, &current));
+    check(current.task == input);
+    check(work_finish(&g, &current, true));
+    check(work_demand(&g, writer));
+    check(work_demand(&g, reader));
+    check(work_demand(&g, unrelated));
+    check(work_take_query(&g, &current, 1));
+    var claims = g.accesses.length;
+    check(!work_suspend_access(&g, &old, input, 1, 1, 20, 4, WorkAccessMode.Write));
+    check(g.accesses.length == claims);
+    check(work_take_query(&g, &peer, 4));
+    check(work_take_query(&g, &spare, 5));
+    check(work_finish(&g, &spare, true));
+    check(!work_take_query(&g, &spare, 3));
+    check(work_finish(&g, &current, true));
+    check(!work_take_query(&g, &spare, 3));
+    check(work_finish(&g, &peer, true));
+    check(work_take_query(&g, &spare, 3));
+    check(work_finish(&g, &spare, true));
+    check(g.running == 0 && work_ok(&g));
+}
+
 fn failure_tests(): void {
     var g: WorkGraph;
     work_init(&g, 13, 29);
@@ -222,6 +271,7 @@ fn reset_tests(): void {
 
 resume_tests();
 diamond_tests();
+discovered_access_tests();
 failure_tests();
 cycle_tests();
 filtered_tests();

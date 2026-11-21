@@ -28138,3 +28138,68 @@ actual successor semantic-object cmp0. Compiler-project packaging also completed
 on the corrected source. Logs use generic-header-indirect. Source checkpoint is
 ready for the final pull and normal push; the already verified Pages4646cd1
 continues to contain the earlier field/layout checkpoint only.
+
+### 2026-11-20 - Declaration consumers suspend for layout receipts
+
+Generic signature source1be611b is pushed after an unchanged final pull. Its
+browser release is frozen; two edited successor generations have passed, with
+local deployment verification still finishing. Continuing into layout consumers.
+
+The new draft makes field-dependent declaration readiness return a required
+layout entity after its transitive by-value declarations are ready. The
+coordinator requests LayoutQuery and suspends the consumer; joined layout jobs
+publish through the same graph before the next type-check wave. Ordinary
+sem_location/sem_header then consume already-published layouts. Eligible member
+places and address/dereference paths can use the existing declaration workers,
+including instantiated generic signatures. Calls, indexing and type interning
+still retain narrower admission. No separate type or constant evaluator.
+
+Added work_suspend_access to discover a payload range with a dependency: the
+new claim applies when the consumer resumes, and cannot block its producer.
+Ordinary work_suspend delegates with no new range. Rejected a broad read claim
+over every layout: a structural coordinator query could then block an unrelated
+new layout producer while retaining its own ticket. The implemented claim names
+only the requested layout range. New work_resume coverage checks producer
+progress, concurrent readers, an adjacent writer, exclusion of an overlapping
+writer and rejection of stale tickets without extra claims. Compiler capacity
+fixtures now include16 ordinary field-dependent return signatures. This draft is
+being built/validated; no new source/publication success is claimed yet.
+
+Layout-query draft passes initial capacity/overlap checks3/3 in34.44s. The first
+ad-hoc work_resume run used input.tower, so its leading-dot import correctly
+failed; reran with the fixture's .tower/tests/work_resume.tower identity and all
+four width/interpreter combinations print0. Added a by-value layout cycle reached
+through decltype: it reports Recursive -> Recursive rather than leaving a stalled
+consumer. Native8/8 passes47.33s, backend API and actual successor semantic-object
+cmp0 pass. A direct sem_header breakpoint now proves actual checking, not merely
+admission:16 field-dependent signatures ran only on native thread1 before this
+slice, and now run across worker threads4..11. Foundation output is identical.
+Matching backend/shared-node regression suites are still running.
+
+The next structural gap is reproduced in type-constructor-delayed.tower. A
+parameterized struct field referring to a256-link forward decltype chain still
+recursively forces those declarations inside sem_type_call and fails with the
+Foundation expression nesting limit128, in both interpreters and widths. Nominal
+type headers are already separate from fields, so eligible annotation contexts
+can register generated field declarations in the same graph instead. Preserve
+pointer recursion and nominal identity; do not return unfinished fields into an
+ordinary expression checker that might immediately dereference the new value.
+This is a next-step proposal/reproducer, not implemented behavior.
+
+Generic-signature release completes: source1be611b, Pages40637885d18a04c095e3b35db09769d17aeda76f
+on parent4646cd1; GitHub action44871013291 succeeds. Local and hosted verification
+pass all77 exact asset hashes and desktop/mobile/default workflows. Two edited
+browser generations pass121.32s/84.05s, with identical sizes1,012,776/52,312,878/63,870,341
+and hashes940e504e85cb8c98845dbfd7a9250ef47813571d96009fe111496dbf12805874 (parser),
+dd183c093efbe17d59ef7ce349018f52b1459ef0c2711df195ccabf5db31512a (LLVM),
+adc53eba188cb97fa0964fd9075e71bdb52af38d0c68eae41212ce90d9ec694d (cross).
+These frozen-release results precede the current layout-query worker extension.
+
+Layout-query checkpoint validation completes: final capacity/overlap/cycle checks
+pass3/3 in39.88s; matching compile-time/inference/precedence/backend plus shared-node
+library/graph/fast/LLVM/Foundation fixtures pass67/67 in177.35s. This includes the
+new dynamic access-claim test and layout-cycle fixture. Native8/8, backend API,
+actual successor byte comparison and actual worker header proof are recorded
+above. Builds use the documented public bootstrap, with no private override.
+No C++ or todo.txt changes. Preparing the final pull and normal source push;
+parameterized-type field scheduling remains the next reproduced dependency gap.

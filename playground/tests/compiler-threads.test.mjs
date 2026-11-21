@@ -63,7 +63,7 @@ fn f${i}(value: decltype(seed)): decltype(value) {
  if comptime(true) { return result; }
 }`);
  const typedFunctions = Array.from({length:16}, (_,i) => `
-fn typed${i}(value:Shared*, extra:u64):u64 { return value.value + extra + ${i}; }`);
+fn typed${i}(value:Shared*, extra:u64):decltype(value.value) { return value.value + extra + ${i}; }`);
  const leaves = Array.from({length:16}, (_,i) => `var leaf${i} = -(${i}); var copy${i} = leaf${i};`);
  const records = Array.from({length:16}, (_,i) => `struct Record${i} { value:decltype(seed); next:Record${i}*; }`);
  const source = 'import tower;\nstruct Shared { value: u64; }\nfn identity(T:type, value:T):T { return value; }\n' + records.join('\n') + functions.join('\n') + typedFunctions.join('\n') +
@@ -222,6 +222,12 @@ fn badSecond(value:MissingSecond):void {}`);
     genericCycleDiagnostic ??= result.error;
     assert.equal(result.error, genericCycleDiagnostic, `signature cycle at ${capacity} workers`);
    } finally { tower.destroyExecution(genericCycle); }
+   const layoutCycle=tower.compile(await readFile('scaffolding/tests/semantic_invalid/decltype_layout_cycle.tower','utf8'));
+   try {
+    const result=tower.execute(layoutCycle);
+    assert.equal(result.status,'error');
+    assert.match(result.error,/Recursive by-value layout: Recursive -> Recursive/);
+   } finally { tower.destroyExecution(layoutCycle); }
    tower.configureModules({entry:'main.tower', files:[
     {path:'left.tower', text:'import tower; var seed:u64=3; struct Item { value:decltype(seed); next:Item*; } fn read(T:type,item:T*):decltype(item.value) { return item.value; }'},
     {path:'right.tower', text:'import tower; var seed:u64=7; struct Item { value:decltype(seed); next:Item*; }'},

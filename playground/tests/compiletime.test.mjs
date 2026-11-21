@@ -45,6 +45,7 @@ for (const [name, message] of [
  ['decltype_parameter_field_cycle', /initializer dependency cycle/],
  ['decltype_field_cycle', /initializer dependency cycle/],
  ['decltype_generic_header_cycle', /initializer dependency cycle/],
+ ['decltype_layout_cycle', /Recursive by-value layout: Recursive -> Recursive/],
  ['decltype_unknown', /Unknown local/],
  ['comptime_cycle', /Compile-time dependency cycle/],
  ['comptime_defer_cycle', /Compile-time dependency cycle/],

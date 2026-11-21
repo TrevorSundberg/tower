@@ -41,6 +41,7 @@ struct SemanticDeclaration {
     call_index: usize;
     calls: vector(DeclarationCall);
     waiting: usize;
+    layout: void*;
     dependencies: vector(usize);
     error: vector(u8);
     error_offset: usize;
@@ -138,19 +139,19 @@ fn sem_declaration_layout_waiting(c: SemanticContext*, record: void*): usize {
     return 0;
 }
 
-fn sem_declaration_location(c: SemanticContext*, node: void*, waiting: usize*, depth: usize): FoundationType* {
+fn sem_declaration_location(c: SemanticContext*, node: void*, waiting: usize*, layout: void**, depth: usize): FoundationType* {
     if node == null || depth > 128 { return null; }
     node = sem_surface_unwrap(node);
     // Address/dereference do not change the nominal record whose fields a
     // following selector needs. This is dependency projection only: the
     // ordinary checker still validates pointer depth and addressability.
     if sem_is(node, "CoreLoad") || sem_is(node, "CoreAddress") {
-        return sem_declaration_location(c, sem_member(node, "name"), waiting, depth + 1);
+        return sem_declaration_location(c, sem_member(node, "name"), waiting, layout, depth + 1);
     }
     if sem_is(node, "TowerExpression") && sem_member(node, "left") == null {
         var operation = sem_surface_operator(c, node, null);
         if sem_equal(operation, "*") || sem_equal(operation, "&") {
-            return sem_declaration_location(c, sem_member(node, "right"), waiting, depth + 1);
+            return sem_declaration_location(c, sem_member(node, "right"), waiting, layout, depth + 1);
         }
     }
     if sem_is(node, "CoreCall") {
@@ -185,7 +186,7 @@ fn sem_declaration_location(c: SemanticContext*, node: void*, waiting: usize*, d
         }
         return &sem_get(declaration).type;
     }
-    var type = sem_declaration_location(c, base, waiting, depth + 1);
+    var type = sem_declaration_location(c, base, waiting, layout, depth + 1);
     if type == null { return null; }
     if type.scalar == SArray() && sem_member(node, "index") != null {
         return &sem_get(type.record).element;
@@ -196,6 +197,11 @@ fn sem_declaration_location(c: SemanticContext*, node: void*, waiting: usize*, d
     var query = sem_declaration_layout_waiting(c, type.record);
     if query != 0 {
         *waiting = query;
+        return null;
+    }
+    var ready = work_find(&c.queries, type.record, LayoutQuery(), 0);
+    if ready == 0 || work_task(&c.queries, ready).state != WorkState.Succeeded {
+        *layout = type.record;
         return null;
     }
     var name = sem_identifier(c, sem_member(node, "field"));
@@ -209,12 +215,13 @@ fn sem_declaration_location(c: SemanticContext*, node: void*, waiting: usize*, d
     return null;
 }
 
-fn sem_declaration_waiting(c: SemanticContext*, subject: void*): usize {
+fn sem_declaration_waiting(c: SemanticContext*, subject: void*, layout: void**): usize {
+    *layout = null;
     var scan: vector(DeclarationScan);
     vector_init(DeclarationScan, &scan);
     sem_declaration_roots(c, subject, &scan);
     var waiting: usize = 0;
-    while scan.length != 0 && waiting == 0 {
+    while scan.length != 0 && waiting == 0 && *layout == null {
         scan.length--;
         var node = scan.data[scan.length].node;
         var type = scan.data[scan.length].type;
@@ -223,7 +230,7 @@ fn sem_declaration_waiting(c: SemanticContext*, subject: void*): usize {
             continue;
         }
         if !type && sem_is(node, "CoreCall") {
-            sem_declaration_location(c, node, &waiting, 0);
+            sem_declaration_location(c, node, &waiting, layout, 0);
             var name_node = sem_member(node, "name");
             var name = sem_identifier(c, name_node);
             var builtin = semantic_builtin_kind(name);
@@ -243,7 +250,7 @@ fn sem_declaration_waiting(c: SemanticContext*, subject: void*): usize {
             continue;
         }
         if !type && sem_is(node, "CoreLocation") {
-            sem_declaration_location(c, node, &waiting, 0);
+            sem_declaration_location(c, node, &waiting, layout, 0);
         }
         var index: usize = 0;
         while index < sem_child_count(node) {
@@ -353,11 +360,32 @@ fn sem_declaration_input(result: SemanticDeclaration*, input: usize): void {
     sem_require(vector_push(usize, &result.dependencies, input));
 }
 
-// Leaf value queries need no type construction or layout discovery. Their
-// ordinary checker still attaches canonical semantic components, under leases.
+// These places consume existing declarations and layouts. They never intern
+// types or prepare calls; readiness requests their receipts before checking.
+fn sem_declaration_place(c: SemanticContext*, node: void*, depth: usize): bool {
+    if node == null || depth > 128 { return false; }
+    node = sem_surface_unwrap(node);
+    if sem_is(node, "CoreLocation") {
+        if sem_member(node, "index") != null { return false; }
+        var base = sem_member(node, "base");
+        return base == null || sem_namespace(c, node) != null || sem_declaration_place(c, base, depth + 1);
+    }
+    if sem_is(node, "CoreLoad") || sem_is(node, "CoreAddress") {
+        return sem_declaration_place(c, sem_member(node, "name"), depth + 1);
+    }
+    if sem_is(node, "TowerExpression") && sem_member(node, "left") == null {
+        var operation = sem_surface_operator(c, node, null);
+        if sem_equal(operation, "*") || sem_equal(operation, "&") {
+            return sem_declaration_place(c, sem_member(node, "right"), depth + 1);
+        }
+    }
+    return false;
+}
+
+// Literal and place queries attach ordinary canonical components under leases.
 fn sem_declaration_leaf(c: SemanticContext*, node: void*): bool {
     node = sem_surface_unwrap(node);
-    if sem_is(node, "CoreLocation") { return sem_member(node, "base") == null || sem_namespace(c, node) != null; }
+    if sem_declaration_place(c, node, 0) { return true; }
     var parsed = sem_match(node);
     var literal_shape = sem_is(node, "Number") || sem_is(node, "String")
         || sem_is(node, "CoreOperand") || sem_is(node, "TowerExpression");
@@ -365,10 +393,10 @@ fn sem_declaration_leaf(c: SemanticContext*, node: void*): bool {
     return literal_shape && sem_literal(c, node);
 }
 
-// Named/pointer annotations are read-only. Leaf decltype and inferred values
+// Named/pointer annotations are read-only. Place decltype and inferred values
 // attach only to their own syntax, with all referenced types dependency-ready.
 // Module-qualified leaves and ordinary struct fields use the same ownership.
-// Calls, value-field/index access and type construction retain the coordinator.
+// Calls, indexing and type construction retain the coordinator.
 fn sem_declaration_worker(c: SemanticContext*, result: SemanticDeclaration*): bool {
     if c.editor != null || c.type_uses != null { return false; }
     var subject = result.subject;
@@ -428,8 +456,8 @@ fn semantic_declaration_kernel(result: SemanticDeclaration*): void {
     result.checked = false;
     if result.discover { sem_declaration_dependencies(&context, result.subject, result); }
     else {
-        result.waiting = sem_declaration_waiting(&context, result.subject);
-        if result.worker_check && result.waiting == 0 && sem_ok(&context) {
+        result.waiting = sem_declaration_waiting(&context, result.subject, &result.layout);
+        if result.worker_check && result.waiting == 0 && result.layout == null && sem_ok(&context) {
             result.checked = true;
             if sem_function_syntax(result.subject) { sem_header(&context, result.subject, "", null); }
             else {
@@ -576,8 +604,8 @@ fn sem_declaration_prepare(c: SemanticContext*, result: SemanticDeclaration*): u
     while result.call_index < result.calls.length && sem_ok(c) {
         // A ready inner call can expose another field/layout dependency needed
         // for deduction of the enclosing call. Observe it before typing operands.
-        var waiting = sem_declaration_waiting(c, result.subject);
-        if waiting != 0 { return waiting; }
+        var waiting = sem_declaration_waiting(c, result.subject, &result.layout);
+        if waiting != 0 || result.layout != null { return waiting; }
         var call = &result.calls.data[result.call_index];
         c.unevaluated = call.unevaluated;
         var prepared = sem_prepare_call(c, call.node);
@@ -586,7 +614,7 @@ fn sem_declaration_prepare(c: SemanticContext*, result: SemanticDeclaration*): u
         if query != 0 && work_task(&c.queries, query).state != WorkState.Succeeded { return query; }
         result.call_index++;
     }
-    return sem_ok(c) ? sem_declaration_waiting(c, result.subject) : 0;
+    return sem_ok(c) ? sem_declaration_waiting(c, result.subject, &result.layout) : 0;
 }
 
 // Registration and discovery are shared by source declarations and newly
@@ -724,6 +752,9 @@ fn sem_declarations(c: SemanticContext*, statements: vector(void*)*): void {
         while index < count { sem_require(work_pool_receive(&c.workers, true) != null); index++; }
         entity_view_close(view);
         if count == 0 { break; }
+        var layouts: vector(usize);
+        vector_init(&layouts);
+        defer vector_dispose(&layouts);
         index = 0;
         while index < count {
             var result = batch[index];
@@ -736,30 +767,42 @@ fn sem_declarations(c: SemanticContext*, statements: vector(void*)*): void {
             c.surface_expressions ||= result.surface;
             if c.count > c.node_limit { sem_fail(c, node, "Foundation component memory budget exceeded"); }
             var success = !sem_declaration_error(c, result) && sem_ok(c);
-            if success && result.waiting != 0 {
-                sem_require(work_suspend(&c.queries, &result.ticket, result.waiting));
-            } else {
-                if success && !result.checked {
-                    var saved_scope = c.scope;
-                    c.scope = result.scope;
-                    result.waiting = sem_declaration_prepare(c, result);
-                    if result.waiting == 0 && sem_ok(c) {
-                        if sem_is(node, "CoreDeclare") || sem_is(node, "CoreParameter") { sem_declaration_type(c, node); }
+            if success && !result.checked && result.waiting == 0 && result.layout == null {
+                var saved_scope = c.scope;
+                c.scope = result.scope;
+                result.waiting = sem_declaration_prepare(c, result);
+                if result.waiting == 0 && result.layout == null && sem_ok(c) {
+                    if sem_is(node, "CoreDeclare") || sem_is(node, "CoreParameter") { sem_declaration_type(c, node); }
+                    else {
+                        if sem_function_syntax(node) { sem_header(c, node, "", null); }
                         else {
-                            if sem_function_syntax(node) { sem_header(c, node, "", null); }
-                            else {
-                                if sem_is(node, "CoreStruct") { sem_type_fields(c, node); }
-                                else { sem_enum_fields(c, node); }
-                            }
+                            if sem_is(node, "CoreStruct") { sem_type_fields(c, node); }
+                            else { sem_enum_fields(c, node); }
                         }
                     }
-                    success = sem_ok(c);
-                    c.scope = saved_scope;
                 }
+                success = sem_ok(c);
+                c.scope = saved_scope;
+            }
+            if success && result.layout != null {
+                result.waiting = sem_layout_discover(c, result.layout);
+                sem_require(vector_push(&layouts, result.waiting));
+                sem_require(work_suspend_access(&c.queries, &result.ticket, result.waiting,
+                    1, 1, result.waiting, 1, WorkAccessMode.Read));
+            } else {
                 if success && result.waiting != 0 { sem_require(work_suspend(&c.queries, &result.ticket, result.waiting)); }
                 else { sem_require(work_finish(&c.queries, &result.ticket, success)); }
             }
             index++;
+        }
+        // Every declaration relinquishes its claims before this wave. Layout
+        // workers publish once, releasing all waiting consumers through the
+        // same graph; no worker recursively forces layout completion.
+        if layouts.length != 0 && sem_ok(c) {
+            sem_layout_execute(c);
+            foreach(var query in &layouts) {
+                if sem_ok(c) { sem_layout_cycle(c, query); }
+            }
         }
     }
     index = 0;
