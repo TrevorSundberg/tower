@@ -1,8 +1,8 @@
 {
-    "sourceCommit":  "76711f1822e6a0dd82b288ceb70771b743f7f497",
+    "sourceCommit":  "cb1f34018ed704985134e1012f1daae32b8ca309",
     "buildSourceCommit":  "f4c78cc3f576c0d9a580e5f47af788ce69a16d7a",
     "bootstrapSha256":  "24fa5adb794d245001369d5dda93acb58a662e5ec1d6f0e6ad672272dad0ae71",
-    "previousDeployment":  "66f5aa1b511f93b1405c407fd49d35bad75e063f",
+    "previousDeployment":  "070c27bd282b6e08a1170bd3c431c1f2a9cd8000",
     "buildNote":  "Built from f4c78cc with the verified direct predecessor. Full native execution, 11 browser worker checks, 75 browser LLVM/package checks, two identical compiler generations, direct-pin relocation and a clean default successor pass. Local desktop/mobile verification passed.",
     "scope":  "Strict f32/f64 semantics shared by staging, interpreters and LLVM; ordinary unary negation including unsigned integer -0; validated direct bootstrap.",
     "toolingMigration":  {
