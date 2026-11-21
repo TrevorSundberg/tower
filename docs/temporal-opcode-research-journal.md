@@ -38650,3 +38650,19 @@ verified runtime source identity and 86 assets, including callback/IDE metadata.
 The ordinary driver suite also passes after enabling its existing
 TOWER_DRIVER_TESTS CMake option and building the three driver steps; a first
 attempt without that opt-in correctly reported the target unavailable.
+
+Publication completion: implementation 118610b and validation 981bfc4 are pushed.
+Under the exclusive agent1 publication lock, preserve Pages 7a128371's callback/
+type-protocol notes, runtime buildSourceCommit 51c038e0d15480256f7dfd7991155874b97d2cab
+and all 86 assets. Pages 24ad3af7336b776fead1ce3b3357e5476c1fa3ec changes only
+deployment-manifest.json; action 44964036716 completes successfully. Prepared and
+hosted manifest SHA256 both equal
+b071a38fb2208e5dc03206107a4fbc46f8f40f39d0e7bbbb97b39c680f98be2e.
+No runtime rebuild is attributed to this tooling-only publication. Verify exact
+lock ownership before releasing it. Final tracked Python count remains 219 lines
+in one file: 1,770 lines and 22 files removed, plus this milestone's 17 inline lines.
+The public native compiler still transitively loads LLVM's existing libraries;
+"no new zlib dependency" describes this Tower gzip primitive, not elimination of
+LLVM's dynamic dependencies. The next packager can reuse WasmArchive's bounded
+GNU ar reader/index and WasmObject's symbol flags and exports; validate selection
+against the real build before removing llvm-nm or changing support membership.
