@@ -13,7 +13,27 @@ struct EntityStore {
     // The store does not interpret or destroy it; compiler worlds use it to
     // resolve node-local component identities without an ambient singleton.
     context: void*;
+    storage: EntityComponentPool;
 }
+
+// Allocation indexes only. Canonical component identity/payloads stay on entities.
+// A coordinator owns the store pool; a worker owns its stage's separate pool.
+struct EntityComponentPool { first: EntityComponentPage*; }
+struct EntityComponentPage {
+    pool: EntityComponentPool*;
+    previous: EntityComponentPage*;
+    next: EntityComponentPage*;
+    type_id: usize;
+    used: usize;
+    live: usize;
+    capacity: usize;
+    stride: usize;
+    components: EntityComponent*;
+    data: u8*;
+}
+
+const EntityComponentPageBytes: usize = 16384;
+const EntityComponentPageRows: usize = 64;
 
 struct EntityChild {
     entity: Entity*;
@@ -44,6 +64,7 @@ struct Entity {
     // stage. Component indexes publish after pinned readers join. A lease owns
     // the owner's component list; unrelated readers may only use pinned indexes.
     stage: void*;
+    storage: EntityComponentPool*;
 }
 
 // The coordinator opens/closes views and owns refcounts. Workers borrow the
@@ -65,6 +86,7 @@ struct EntityComponent {
     allocation: u8*;
     data: u8*;
     type_index: usize;
+    page: EntityComponentPage*;
 }
 
 // Transitional host bridge for existing native payload destructors; zero means none.
@@ -94,6 +116,7 @@ export fn entity_context(node: Entity*): void* {
 export fn entity_store_dispose(store: EntityStore*): bool {
     var occupied = store.entity_count != 0;
     occupied ||= store.views != 0;
+    occupied ||= store.storage.first != null;
     if occupied {
         return false;
     }
@@ -311,6 +334,103 @@ fn entity_reserve_components(data: EntityComponent***, capacity: usize*, count: 
     return true;
 }
 
+fn entity_component_page_detach(page: EntityComponentPage*): void {
+    if page.pool == null { return; }
+    if page.previous != null { page.previous.next = page.next; }
+    else { page.pool.first = page.next; }
+    if page.next != null { page.next.previous = page.previous; }
+    page.pool = null;
+    page.previous = null;
+    page.next = null;
+}
+
+// After publication every page remains owned by its live components. No pointer
+// to a destroyed stage's allocation pool may survive that boundary.
+fn entity_component_pool_detach(pool: EntityComponentPool*): void {
+    while pool.first != null { entity_component_page_detach(pool.first); }
+}
+
+fn entity_component_allocate(owner: Entity*, type: Entity*): EntityComponent* {
+    var alignment = type.data_alignment;
+    var pointer_size = sizeof(EntityComponent*);
+    if alignment < pointer_size { alignment = pointer_size; }
+    var mask = alignment - 1;
+    var maximum = ~convert(usize, 0);
+    if type.data_size > maximum - pointer_size { return null; }
+    var bytes = type.data_size + pointer_size;
+    if bytes > maximum - mask { return null; }
+    var stride = (bytes + mask) & ~mask;
+    if stride > maximum - sizeof(EntityComponent) { return null; }
+    var slot = stride + sizeof(EntityComponent);
+    var capacity = EntityComponentPageBytes() / slot;
+    if capacity > EntityComponentPageRows() { capacity = EntityComponentPageRows(); }
+    var component: EntityComponent* = null;
+    var data: u8* = null;
+    if capacity >= 2 {
+        var pool = owner.storage;
+        if owner.stage != null && pool == null { return null; }
+        if pool == null { pool = &owner.store.storage; }
+        var page = pool.first;
+        while page != null && page.type_id != type.id { page = page.next; }
+        if page == null {
+            // capacity*slot is bounded by the page byte policy. Header/alignment
+            // overhead is also bounded here because at least two slots fit.
+            bytes = sizeof(EntityComponentPage) + capacity * slot + pointer_size + mask;
+            var allocation = alloc(u8, bytes);
+            if allocation == null { return null; }
+            page = bits(EntityComponentPage*, allocation);
+            fill(page, 0, sizeof(EntityComponentPage));
+            page.pool = pool;
+            page.type_id = type.id;
+            page.capacity = capacity;
+            page.stride = stride;
+            page.components = bits(EntityComponent*, allocation + sizeof(EntityComponentPage));
+            var start = bits(usize, page.components + capacity) + pointer_size;
+            page.data = bits(u8*, (start + mask) & ~mask);
+            page.next = pool.first;
+            if pool.first != null { pool.first.previous = page; }
+            pool.first = page;
+        }
+        component = &page.components[page.used];
+        data = page.data + page.used * page.stride;
+        component.allocation = bits(u8*, page);
+        component.page = page;
+        page.used++;
+        page.live++;
+        if page.used == page.capacity { entity_component_page_detach(page); }
+    } else {
+        // Large or highly aligned payloads preserve the individually allocated
+        // path; never reserve multiple large objects just to fill a page.
+        if bytes + mask > maximum - sizeof(EntityComponent) { return null; }
+        var allocation = alloc(u8, bytes + mask + sizeof(EntityComponent));
+        if allocation == null { return null; }
+        component = bits(EntityComponent*, allocation);
+        var start = bits(usize, allocation + sizeof(EntityComponent)) + pointer_size;
+        data = bits(u8*, (start + mask) & ~mask);
+        component.allocation = allocation;
+        component.page = null;
+    }
+    var back = bits(EntityComponent**, data);
+    back--;
+    *back = component;
+    component.owner = owner;
+    component.type = type;
+    component.data = data;
+    return component;
+}
+
+// Called only by the coordinator, or when discarding a joined private stage.
+// Active partial pages unlink before their last component frees the allocation.
+fn entity_component_free(component: EntityComponent*): void {
+    var page = component.page;
+    if page == null { free(component.allocation); return; }
+    page.live--;
+    if page.live == 0 {
+        entity_component_page_detach(page);
+        free(page);
+    }
+}
+
 export fn entity_component_add(owner: Entity*, type: Entity*): EntityComponent* {
     var present = entity_component_get(owner, type);
     if present != null {
@@ -336,46 +456,8 @@ export fn entity_component_add(owner: Entity*, type: Entity*): EntityComponent* 
     if reserve_failed {
         return null;
     }
-    var alignment = type.data_alignment;
-    var pointer_size = sizeof(EntityComponent*);
-    if alignment < pointer_size {
-        alignment = pointer_size;
-    }
-    var extra = alignment -1;
-    extra = extra + pointer_size;
-    var wrapped = extra < alignment;
-    if wrapped {
-        return null;
-    }
-    var bytes = type.data_size + extra;
-    wrapped = bytes < type.data_size;
-    if wrapped {
-        return null;
-    }
-    var payload_bytes = bytes;
-    bytes = bytes + sizeof(EntityComponent);
-    wrapped = bytes < payload_bytes;
-    if wrapped {
-        return null;
-    }
-    var allocation = alloc(u8, bytes);
-    if allocation == null {
-        return null;
-    }
-    var component = bits(EntityComponent*, allocation);
-    var address = bits(usize, allocation);
-    address = address + sizeof(EntityComponent);
-    address = address + extra;
-    address = address / alignment;
-    address = address * alignment;
-    var data = bits(u8*, address);
-    var back = bits(EntityComponent **, data);
-    back--;
-    *back = component;
-    component.owner = owner;
-    component.type = type;
-    component.allocation = allocation;
-    component.data = data;
+    var component = entity_component_allocate(owner, type);
+    if component == null { return null; }
     component.type_index = type.instance_count;
     if staged { component.type_index = ~convert(usize, 0); }
     owner.components[owner.component_count] = component;
@@ -400,7 +482,7 @@ fn entity_component_dispose(component: EntityComponent*): void {
     }
     var store = type.store;
     store.component_count--;
-    free(component.allocation);
+    entity_component_free(component);
     entity_release(type);
 }
 

@@ -9,6 +9,7 @@ struct EntityStage {
     anchor: Entity*;
     nodes: vector(Entity*);
     leases: vector(EntityStageLease);
+    storage: EntityComponentPool;
 }
 
 struct EntityStageLease {
@@ -52,6 +53,7 @@ export fn entity_stage_lease(stage: EntityStage*, node: Entity*): bool {
     lease.components = node.component_count;
     stage.leases.length++;
     node.stage = bits(void*, stage);
+    node.storage = &stage.storage;
     return true;
 }
 
@@ -68,6 +70,7 @@ export fn entity_stage_create(stage: EntityStage*, parent: Entity*): Entity* {
     node.references = 1;
     node.parent = parent; // Borrowed for provenance, not yet parent containment.
     node.stage = bits(void*, stage);
+    node.storage = &stage.storage;
     stage.nodes.data[stage.nodes.length] = node;
     stage.nodes.length++;
     return node;
@@ -179,6 +182,7 @@ export fn entity_stage_publish(stage: EntityStage*): bool {
         store.next_id++;
         store.entity_count++;
         node.stage = null;
+        node.storage = null;
         entity_stage_components(node, 0);
         // Transfer the stage's one reference into its parent's ownership.
         var parent = node.parent;
@@ -189,10 +193,12 @@ export fn entity_stage_publish(stage: EntityStage*): bool {
     for(var i: usize = 0; i < stage.leases.length; ++i) {
         var lease = &stage.leases.data[i];
         lease.node.stage = null;
+        lease.node.storage = null;
         entity_stage_components(lease.node, lease.components);
     }
     vector_dispose(Entity*, &stage.nodes);
     vector_dispose(EntityStageLease, &stage.leases);
+    entity_component_pool_detach(&stage.storage);
     entity_release(stage.anchor);
     stage.anchor = null;
     free(stage);
@@ -209,7 +215,7 @@ export fn entity_stage_discard(stage: EntityStage*): void {
             if component.type.lifecycle != 0 {
                 tower_entity_finalize(component.type.lifecycle, component, component.data);
             }
-            free(component.allocation);
+            entity_component_free(component);
         }
         free(node.components);
         free(node.children);
@@ -224,13 +230,15 @@ export fn entity_stage_discard(stage: EntityStage*): void {
             if component.type.lifecycle != 0 {
                 tower_entity_finalize(component.type.lifecycle, component, component.data);
             }
-            free(component.allocation);
+            entity_component_free(component);
         }
         node.component_count = lease.components;
         node.stage = null;
+        node.storage = null;
     }
     vector_dispose(Entity*, &stage.nodes);
     vector_dispose(EntityStageLease, &stage.leases);
+    entity_component_pool_detach(&stage.storage);
     if stage.anchor != null { entity_release(stage.anchor); }
     stage.anchor = null;
     free(stage);
