@@ -29,6 +29,6 @@ add_executable(tower-reader-tests "${reader-main_OBJECT}" "${reader_cases}"
 target_compile_features(tower-reader-tests PRIVATE cxx_std_20)
 target_compile_options(tower-reader-tests PRIVATE -fno-exceptions)
 target_link_libraries(tower-reader-tests PRIVATE tower-compiler-parser-nodes tower-compiler-semantics
-  tower-compiler-entities tower-compiler-utilities tower-compiler-memory tower-syntax-emission-reference)
+  tower-compiler-entities tower-compiler-utilities tower-compiler-memory)
 add_test(NAME tower-reader COMMAND tower-reader-tests)
 set_tests_properties(tower-reader PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")

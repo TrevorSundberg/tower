@@ -28,6 +28,6 @@ add_executable(tower-syntax-nodes-tests "${payload_main}" "${payload_cases}" sca
 target_compile_features(tower-syntax-nodes-tests PRIVATE cxx_std_20)
 target_compile_options(tower-syntax-nodes-tests PRIVATE -fno-exceptions)
 target_link_libraries(tower-syntax-nodes-tests PRIVATE tower-compiler-parser-nodes tower-compiler-semantics
-  tower-compiler-entities tower-compiler-utilities tower-compiler-memory tower-syntax-emission-reference)
+  tower-compiler-entities tower-compiler-utilities tower-compiler-memory)
 add_test(NAME tower-syntax-nodes-tests COMMAND tower-syntax-nodes-tests)
 target_sources(tower-parser-tests PRIVATE "${payload_cases}")

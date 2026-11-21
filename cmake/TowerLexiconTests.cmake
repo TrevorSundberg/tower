@@ -46,5 +46,5 @@ else()
 endif()
 target_link_libraries(tower-lexicon-tests PRIVATE tower-lexicon-suite
   tower-compiler-parser-nodes tower-compiler-semantics tower-compiler-entities
-  tower-compiler-utilities tower-compiler-memory tower-syntax-emission-reference)
+  tower-compiler-utilities tower-compiler-memory)
 add_test(NAME tower-lexicon COMMAND tower-lexicon-tests)

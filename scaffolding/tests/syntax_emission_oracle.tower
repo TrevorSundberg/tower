@@ -1,0 +1,430 @@
+import tower;
+import .library.vector;
+import .compiler.syntax_types;
+import .compiler.syntax_emission_types;
+import .compiler.syntax_view;
+import .compiler.parser_types;
+import utility_checks;
+
+// Independent translation of syntax-emission-seed.cpp. Ordered definitions and
+// linear name/first sets deliberately differ from production hash/work indexes.
+// Both readers consume and emit the SAME entity components; these tables are
+// disposable test indexes, never an alternate grammar or serialization format.
+extern fn entity_create_related(node: void*): void*;
+extern fn entity_attach(child: void*, parent: void*, name: u8*): bool;
+extern fn entity_retain(node: void*): usize;
+extern fn entity_release(node: void*): usize;
+extern fn entity_child_count(node: void*): usize;
+extern fn entity_component_get(node: void*, kind: void*): void*;
+extern fn entity_component_add(node: void*, kind: void*): void*;
+extern fn entity_component_data(component: void*): void*;
+extern fn node_payload_init(kind: u32, data: void*): void;
+extern fn node_rule_set_name(data: ParserRuleData*, name: u8*): bool;
+extern fn node_reference_set_name(data: ParserReferenceData*, name: u8*): bool;
+extern fn node_reference_set_capture(data: ParserReferenceData*, name: u8*): bool;
+extern fn node_string_set(data: ParserStringData*, index: usize, id: u32): bool;
+
+enum OracleEmissionPayload: u32 { Rule, Reference, String, Range }
+enum OracleEmissionRepeat: u8 { Optional = 63, Star = 42, Plus = 43 }
+struct OracleEmissionName {
+    text: vector(u8);
+    wrapper: OracleEmissionName*;
+    alternatives: vector(void*);
+    first: vector(OracleEmissionName*);
+    literal: u32;
+    used: bool;
+    declaration: bool;
+    start: bool;
+    definition: bool;
+    visited: bool;
+    nullable: bool;
+}
+struct OracleEmission {
+    input: SyntaxEmissionInput;
+    names: vector(OracleEmissionName*);
+    definitions: vector(OracleEmissionName*);
+    public_names: vector(OracleEmissionName*);
+    retained: vector(void*);
+    productions: vector(SyntaxEmissionProduction);
+    helpers: vector(SyntaxEmissionHelper);
+    helper: usize;
+    literals: u32;
+}
+
+fn oracle_emission_length(text: u8*): usize {
+    var length: usize = 0;
+    while text is not null && text[length] != 0 { ++length; }
+    return length;
+}
+fn oracle_emission_compare(a: u8*, an: usize, b: u8*, bn: usize): i32 {
+    for (var i: usize = 0; i < an && i < bn; ++i) {
+        if a[i] < b[i] { return -1; }
+        if a[i] > b[i] { return 1; }
+    }
+    return an < bn ? -1 : an > bn ? 1 : 0;
+}
+fn oracle_emission_name(v: OracleEmission*, text: u8*, length: usize): OracleEmissionName* {
+    foreach (var entry in &v.names) {
+        if oracle_emission_compare(entry.text.data, entry.text.length, text, length) == 0 { return entry; }
+    }
+    var entry = alloc(OracleEmissionName, 1);
+    utility_check(entry is not null, "Emission oracle name allocation");
+    fill(entry, 0, sizeof(OracleEmissionName));
+    utility_check(vector_reserve(&entry.text, length + 1), "Emission oracle text allocation");
+    copy(entry.text.data, text, length);
+    entry.text.data[length] = 0;
+    entry.text.length = length;
+    entry.literal = convert(u32, SyntaxTokenId.End);
+    utility_check(vector_push(&v.names, entry), "Emission oracle names allocation");
+    return entry;
+}
+fn oracle_emission_cname(v: OracleEmission*, text: u8*): OracleEmissionName* {
+    return oracle_emission_name(v, text, oracle_emission_length(text));
+}
+fn oracle_emission_node(v: OracleEmission*, node: void*): SyntaxNode* {
+    return bits(SyntaxNode*, entity_component_data(entity_component_get(node, v.input.syntax_kind)));
+}
+fn oracle_emission_hold(v: OracleEmission*, node: void*): void {
+    utility_check(vector_push(&v.retained, node), "Emission oracle retained entities");
+    entity_retain(node);
+}
+fn oracle_emission_add_literal(v: OracleEmission*, text: u8*): OracleEmissionName* {
+    var name = oracle_emission_cname(v, text);
+    if name.literal == convert(u32, SyntaxTokenId.End) {
+        name.literal = convert(u32, SyntaxTokenId.Literal) + v.literals++;
+    }
+    return name;
+}
+fn oracle_emission_helper(v: OracleEmission*, kind: u8*): OracleEmissionName* {
+    var text: vector(u8); vector_init(&text); defer vector_dispose(&text);
+    var length = oracle_emission_length(kind);
+    utility_check(vector_reserve(&text, length + 32), "Emission oracle helper text");
+    copy(text.data, kind, length);
+    text.data[length] = 40;
+    loop {
+        var number = v.helper++;
+        var digits: u8[32];
+        var count: usize = 0;
+        loop {
+            digits[count++] = convert(u8, number % 10) + 48;
+            number /= 10;
+            if number == 0 { break; }
+        }
+        for (var i: usize = 0; i < count; ++i) { text.data[length + 1 + i] = digits[count - i - 1]; }
+        text.data[length + 1 + count] = 41;
+        var name = oracle_emission_name(v, text.data, length + count + 2);
+        if !name.used { name.used = true; return name; }
+    }
+}
+fn oracle_emission_token(v: OracleEmission*, index: usize): u32 {
+    var definition = oracle_emission_node(v, v.input.tokens[index]);
+    var name = oracle_emission_name(v, definition.name.data, definition.name.length);
+    if name == oracle_emission_cname(v, "Identifier") { return convert(u32, SyntaxTokenId.Name); }
+    if name == oracle_emission_cname(v, "String") { return convert(u32, SyntaxTokenId.String); }
+    return convert(u32, SyntaxTokenId.Token) + convert(u32, index);
+}
+fn oracle_emission_is_token(v: OracleEmission*, name: OracleEmissionName*): bool {
+    for (var i: usize = 0; i < v.input.token_count; ++i) {
+        var definition = oracle_emission_node(v, v.input.tokens[i]);
+        if definition.kind != convert(u32, SyntaxKind.Skip)
+            && name == oracle_emission_name(v, definition.name.data, definition.name.length) { return true; }
+    }
+    return false;
+}
+fn oracle_emission_wrapper(v: OracleEmission*, name: OracleEmissionName*): OracleEmissionName* {
+    if name.wrapper is null {
+        var prefix: vector(u8); vector_init(&prefix); defer vector_dispose(&prefix);
+        utility_check(vector_reserve(&prefix, name.text.length + 7), "Emission oracle wrapper text");
+        copy(prefix.data, "token ", 6);
+        copy(&prefix.data[6], name.text.data, name.text.length + 1);
+        name.wrapper = oracle_emission_helper(v, prefix.data);
+    }
+    return name.wrapper;
+}
+fn oracle_emission_child(v: OracleEmission*, parent: void*, kind: void*, payload: OracleEmissionPayload): void* {
+    var node = entity_create_related(parent);
+    utility_check(node is not null, "Emission oracle child allocation");
+    defer entity_release(node);
+    var data = entity_component_data(entity_component_add(node, kind));
+    utility_check(data is not null, "Emission oracle component allocation");
+    node_payload_init(convert(u32, payload), data);
+    utility_check(entity_attach(node, parent, null), "Emission oracle child attachment");
+    return node;
+}
+fn oracle_emission_production(v: OracleEmission*, name: OracleEmissionName*, generated: bool): void* {
+    var node = oracle_emission_child(v, v.input.root, v.input.rule_kind, OracleEmissionPayload.Rule);
+    var data = bits(ParserRuleData*, entity_component_data(entity_component_get(node, v.input.rule_kind)));
+    utility_check(node_rule_set_name(data, name.text.data), "Emission oracle production name");
+    data.generated = generated;
+    return node;
+}
+fn oracle_emission_reference(v: OracleEmission*, parent: void*, name: OracleEmissionName*, capture: u8*): void {
+    var node = oracle_emission_child(v, parent, v.input.reference_kind, OracleEmissionPayload.Reference);
+    var data = bits(ParserReferenceData*, entity_component_data(entity_component_get(node, v.input.reference_kind)));
+    utility_check(node_reference_set_name(data, name.text.data) && node_reference_set_capture(data, capture ?? ""), "Emission oracle reference");
+}
+fn oracle_emission_id(ids: vector(u32)*, id: u32): void {
+    var at: usize = 0;
+    while at < ids.length && ids.data[at] < id { ++at; }
+    if at < ids.length && ids.data[at] == id { return; }
+    utility_check(vector_push(ids, id), "Emission oracle terminal set");
+    for (var i = ids.length - 1; i > at; --i) { ids.data[i] = ids.data[i - 1]; }
+    ids.data[at] = id;
+}
+fn oracle_emission_token_set(v: OracleEmission*, term: SyntaxNode*): OracleEmissionName* {
+    var ids: vector(u32); vector_init(&ids); defer vector_dispose(&ids);
+    for (var i: usize = 0; i < v.input.token_count; ++i) {
+        var definition = oracle_emission_node(v, v.input.tokens[i]);
+        if definition.kind != convert(u32, SyntaxKind.Skip) && !definition.contextual { oracle_emission_id(&ids, oracle_emission_token(v, i)); }
+    }
+    for (var i: usize = 0; i < v.names.length; ++i) {
+        var name = v.names.data[i];
+        if name.literal == convert(u32, SyntaxTokenId.End) { continue; }
+        var excluded = false;
+        for (var j: usize = 0; j < term.items.length; ++j) {
+            var item = oracle_emission_node(v, term.items.data[j]);
+            excluded ||= oracle_emission_compare(item.text.data, item.text.length, name.text.data, name.text.length) == 0;
+        }
+        if !excluded { oracle_emission_id(&ids, name.literal); }
+    }
+    var helper = oracle_emission_helper(v, "token set");
+    for (var i: usize = 0; i < ids.length; ++i) {
+        var rule = oracle_emission_production(v, helper, true);
+        var node = oracle_emission_child(v, rule, v.input.range_kind, OracleEmissionPayload.Range);
+        var data = bits(ParserRangeData*, entity_component_data(entity_component_get(node, v.input.range_kind)));
+        data.start = ids.data[i]; data.end = ids.data[i];
+    }
+    return helper;
+}
+fn oracle_emission_atom(v: OracleEmission*, rule: void*, term: SyntaxNode*, capture: u8*): void {
+    if term.terminal_set {
+        oracle_emission_reference(v, rule, oracle_emission_token_set(v, term), term.capture.data);
+    } else { if term.literal {
+        var name = oracle_emission_add_literal(v, term.text.data);
+        var node = oracle_emission_child(v, rule, v.input.string_kind, OracleEmissionPayload.String);
+        var data = bits(ParserStringData*, entity_component_data(entity_component_get(node, v.input.string_kind)));
+        utility_check(node_string_set(data, 0, name.literal), "Emission oracle literal ID");
+    } else {
+        var name = oracle_emission_name(v, term.text.data, term.text.length);
+        if v.input.category is not null && oracle_emission_is_token(v, name) { name = oracle_emission_wrapper(v, name); }
+        oracle_emission_reference(v, rule, name, capture);
+    } }
+}
+fn oracle_emission_provenance(v: OracleEmission*, name: OracleEmissionName*, source: void*, capture: bool): void {
+    var helper: SyntaxEmissionHelper;
+    helper.name = name.text.data; helper.source = source; helper.capture = capture;
+    utility_check(vector_reserve(&v.helpers, v.helpers.length + 1), "Emission oracle provenance");
+    copy(&v.helpers.data[v.helpers.length++], &helper, sizeof(SyntaxEmissionHelper));
+}
+fn oracle_emission_emit(v: OracleEmission*, name: OracleEmissionName*, sequence: void*, alternative: usize): void {
+    var rule = oracle_emission_production(v, name, false);
+    var production: SyntaxEmissionProduction;
+    production.name = name.text.data; production.alternative = alternative;
+    production.index = entity_child_count(v.input.root);
+    utility_check(vector_reserve(&v.productions, v.productions.length + 1), "Emission oracle production index");
+    copy(&v.productions.data[v.productions.length++], &production, sizeof(SyntaxEmissionProduction));
+    var data = oracle_emission_node(v, sequence);
+    for (var i: usize = 0; i < data.items.length; ++i) {
+        var entity = data.items.data[i]; var term = oracle_emission_node(v, entity);
+        if term.repetition == 0 { oracle_emission_atom(v, rule, term, term.capture.data); continue; }
+        var list = oracle_emission_helper(v, "repeat");
+        oracle_emission_provenance(v, list, entity, false);
+        var first = oracle_emission_production(v, list, true);
+        if term.repetition == convert(u8, OracleEmissionRepeat.Plus) { oracle_emission_atom(v, first, term, ""); }
+        var repeated = oracle_emission_production(v, list, true);
+        if term.repetition != convert(u8, OracleEmissionRepeat.Optional) { oracle_emission_reference(v, repeated, list, ""); }
+        oracle_emission_atom(v, repeated, term, "");
+        if term.capture.length != 0 {
+            var capture = oracle_emission_helper(v, "capture");
+            oracle_emission_provenance(v, capture, entity, true);
+            oracle_emission_reference(v, oracle_emission_production(v, capture, false), list, "");
+            oracle_emission_reference(v, rule, capture, term.capture.data);
+        } else { oracle_emission_reference(v, rule, list, ""); }
+    }
+}
+fn oracle_emission_set(set: vector(OracleEmissionName*)*, name: OracleEmissionName*): bool {
+    foreach (var entry in set) { if entry == name { return false; } }
+    utility_check(vector_push(set, name), "Emission oracle first set");
+    return true;
+}
+fn oracle_emission_keyword(v: OracleEmission*, name: OracleEmissionName*): OracleEmissionName* {
+    var text: vector(u8); vector_init(&text); defer vector_dispose(&text);
+    utility_check(vector_reserve(&text, name.text.length + 1), "Emission oracle symbolic first terminal");
+    text.data[0] = 1; copy(&text.data[1], name.text.data, name.text.length);
+    return oracle_emission_name(v, text.data, name.text.length + 1);
+}
+fn oracle_emission_declarations(v: OracleEmission*): void {
+    var roots: OracleEmissionName*[4];
+    roots[0] = oracle_emission_cname(v, "GrammarDeclaration");
+    roots[1] = oracle_emission_cname(v, "GrammarTokenDeclaration");
+    roots[2] = oracle_emission_cname(v, "GrammarSkipDeclaration");
+    roots[3] = oracle_emission_cname(v, "ImportDeclaration");
+    var pending: vector(OracleEmissionName*); vector_init(&pending); defer vector_dispose(&pending);
+    for (var i: usize = 0; i < 4; ++i) { utility_check(vector_push(&pending, roots[i]), "Emission oracle declaration roots"); }
+    while pending.length != 0 {
+        var name = pending.data[--pending.length];
+        if name.visited || !name.definition { continue; }
+        name.visited = true;
+        for (var a: usize = 0; a < name.alternatives.length; ++a) {
+            var sequence = oracle_emission_node(v, name.alternatives.data[a]);
+            for (var t: usize = 0; t < sequence.items.length; ++t) {
+                var term = oracle_emission_node(v, sequence.items.data[t]);
+                var item = oracle_emission_name(v, term.text.data, term.text.length);
+                if term.literal { item.declaration = true; }
+                else { utility_check(vector_push(&pending, item), "Emission oracle declaration traversal"); }
+            }
+        }
+    }
+    var changed = true;
+    while changed {
+        changed = false;
+        for (var i: usize = 0; i < v.definitions.length; ++i) {
+            var name = v.definitions.data[i];
+            for (var a: usize = 0; a < name.alternatives.length; ++a) {
+                var sequence = oracle_emission_node(v, name.alternatives.data[a]);
+                var empty = true;
+                for (var t: usize = 0; t < sequence.items.length; ++t) {
+                    var term = oracle_emission_node(v, sequence.items.data[t]);
+                    var item = oracle_emission_name(v, term.text.data, term.text.length);
+                    if term.literal { changed = oracle_emission_set(&name.first, item) || changed; }
+                    else { if !item.definition { changed = oracle_emission_set(&name.first, oracle_emission_keyword(v, item)) || changed; }
+                    else {
+                        for (var f: usize = 0; f < item.first.length; ++f) { changed = oracle_emission_set(&name.first, item.first.data[f]) || changed; }
+                    } }
+                    if term.repetition != convert(u8, OracleEmissionRepeat.Star) && term.repetition != convert(u8, OracleEmissionRepeat.Optional)
+                        && (term.literal || !item.nullable) { empty = false; break; }
+                }
+                if empty && !name.nullable { name.nullable = true; changed = true; }
+            }
+        }
+    }
+    for (var i: usize = 0; i < 4; ++i) {
+        for (var f: usize = 0; f < roots[i].first.length; ++f) { roots[i].first.data[f].start = true; }
+    }
+}
+
+fn reference_syntax_emit(input: SyntaxEmissionInput*): void* {
+    var v = alloc(OracleEmission, 1);
+    utility_check(v is not null, "Emission oracle allocation");
+    fill(v, 0, sizeof(OracleEmission)); copy(&v.input, input, sizeof(SyntaxEmissionInput));
+    for (var i: usize = 0; i < input.count; ++i) {
+        var rule = &input.rules[i]; var name = oracle_emission_name(v, rule.name, rule.name_length);
+        name.used = true;
+        if !name.definition {
+            name.definition = true;
+            utility_check(vector_push(&v.definitions, name), "Emission oracle definitions");
+            var at = v.definitions.length - 1;
+            while at > 0 {
+                var previous = v.definitions.data[at - 1];
+                if oracle_emission_compare(previous.text.data, previous.text.length, name.text.data, name.text.length) <= 0 { break; }
+                v.definitions.data[at--] = previous;
+            }
+            v.definitions.data[at] = name;
+        }
+        for (var a: usize = 0; a < rule.count; ++a) {
+            utility_check(vector_push(&name.alternatives, rule.alternatives[a]), "Emission oracle alternatives");
+            oracle_emission_hold(v, rule.alternatives[a]);
+        }
+    }
+    for (var i: usize = 0; i < input.token_count; ++i) {
+        var definition = oracle_emission_node(v, input.tokens[i]);
+        oracle_emission_name(v, definition.name.data, definition.name.length).used = true;
+        oracle_emission_hold(v, input.tokens[i]);
+    }
+    for (var i: usize = 0; i < input.reserved_count; ++i) { oracle_emission_cname(v, input.reserved[i]).used = true; }
+    for (var i: usize = 0; i < input.literal_count; ++i) {
+        var item = &input.literals[i]; var name = oracle_emission_name(v, item.text, item.length);
+        if name.literal == convert(u32, SyntaxTokenId.End) { name.literal = item.id; ++v.literals; }
+    }
+    if input.category is null {
+        for (var i: usize = 0; i < v.definitions.length; ++i) {
+            var name = v.definitions.data[i];
+            for (var a: usize = 0; a < name.alternatives.length; ++a) {
+                var sequence = oracle_emission_node(v, name.alternatives.data[a]);
+                for (var t: usize = 0; t < sequence.items.length; ++t) {
+                    var term = oracle_emission_node(v, sequence.items.data[t]);
+                    if term.literal { oracle_emission_add_literal(v, term.text.data); }
+                    if term.terminal_set {
+                        for (var x: usize = 0; x < term.items.length; ++x) {
+                            oracle_emission_add_literal(v, oracle_emission_node(v, term.items.data[x]).text.data);
+                        }
+                    }
+                }
+            }
+        }
+        var top = oracle_emission_helper(v, "document");
+        oracle_emission_reference(v, oracle_emission_production(v, top, false), oracle_emission_cname(v, "GrammarDeclaration"), "");
+        oracle_emission_reference(v, oracle_emission_production(v, top, false), oracle_emission_cname(v, "GrammarTokenDeclaration"), "");
+        oracle_emission_reference(v, oracle_emission_production(v, top, false), oracle_emission_cname(v, "GrammarSkipDeclaration"), "");
+        oracle_emission_reference(v, oracle_emission_production(v, top, false), oracle_emission_cname(v, "ImportDeclaration"), "");
+        var statement = oracle_emission_cname(v, "Statement");
+        if statement.definition { oracle_emission_reference(v, oracle_emission_production(v, top, false), statement, ""); }
+    } else {
+        oracle_emission_reference(v, oracle_emission_production(v, oracle_emission_helper(v, "template"), false), oracle_emission_cname(v, input.category), "");
+    }
+    for (var i: usize = 0; i < v.definitions.length; ++i) {
+        var name = v.definitions.data[i];
+        for (var a: usize = 0; a < name.alternatives.length; ++a) { oracle_emission_emit(v, name, name.alternatives.data[a], a); }
+    }
+    if input.category is null { oracle_emission_declarations(v); }
+    else {
+        for (var i: usize = 0; i < input.token_count; ++i) {
+            var definition = oracle_emission_node(v, input.tokens[i]);
+            if definition.kind == convert(u32, SyntaxKind.Skip) { continue; }
+            var name = oracle_emission_name(v, definition.name.data, definition.name.length);
+            oracle_emission_reference(v, oracle_emission_production(v, oracle_emission_wrapper(v, name), true), name, "");
+        }
+    }
+    foreach (var name in &v.names) {
+        if name.used || name.literal != convert(u32, SyntaxTokenId.End) || name.declaration || name.start {
+            utility_check(vector_push(&v.public_names, name), "Emission oracle result names");
+            var at = v.public_names.length - 1;
+            while at > 0 {
+                var previous = v.public_names.data[at - 1];
+                if oracle_emission_compare(previous.text.data, previous.text.length, name.text.data, name.text.length) <= 0 { break; }
+                v.public_names.data[at--] = previous;
+            }
+            v.public_names.data[at] = name;
+        }
+    }
+    // The native reference publishes its repetition map, then its capture map,
+    // each in lexical order. Preserve that observable enumeration contract.
+    for (var i: usize = 1; i < v.helpers.length; ++i) {
+        var item: SyntaxEmissionHelper; copy(&item, &v.helpers.data[i], sizeof(SyntaxEmissionHelper));
+        var at = i;
+        while at > 0 {
+            var previous = &v.helpers.data[at - 1];
+            var order = oracle_emission_compare(previous.name, oracle_emission_length(previous.name), item.name, oracle_emission_length(item.name));
+            if previous.capture == item.capture ? order <= 0 : !previous.capture { break; }
+            copy(&v.helpers.data[at], previous, sizeof(SyntaxEmissionHelper));
+            --at;
+        }
+        copy(&v.helpers.data[at], &item, sizeof(SyntaxEmissionHelper));
+    }
+    return bits(void*, v);
+}
+fn reference_syntax_emission_destroy(value: void*): void {
+    var v = bits(OracleEmission*, value);
+    if v is null { return; }
+    foreach (var node in &v.retained) { entity_release(node); }
+    foreach (var name in &v.names) {
+        vector_dispose(&name.text); vector_dispose(&name.alternatives); vector_dispose(&name.first); free(name);
+    }
+    vector_dispose(&v.names); vector_dispose(&v.definitions); vector_dispose(&v.public_names);
+    vector_dispose(&v.retained); vector_dispose(&v.productions); vector_dispose(&v.helpers); free(v);
+}
+fn reference_syntax_emission_name_count(value: void*): usize { return bits(OracleEmission*, value).public_names.length; }
+fn reference_syntax_emission_name(value: void*, index: usize, out: SyntaxEmissionName*): void {
+    var name = bits(OracleEmission*, value).public_names.data[index];
+    out.text = name.text.data; out.length = name.text.length;
+    out.wrapper = name.wrapper is null ? null : name.wrapper.text.data;
+    out.literal = name.literal; out.used = name.used; out.declaration = name.declaration; out.start = name.start;
+}
+fn reference_syntax_emission_production_count(value: void*): usize { return bits(OracleEmission*, value).productions.length; }
+fn reference_syntax_emission_production(value: void*, index: usize, out: SyntaxEmissionProduction*): void {
+    copy(out, &bits(OracleEmission*, value).productions.data[index], sizeof(SyntaxEmissionProduction));
+}
+fn reference_syntax_emission_helper_count(value: void*): usize { return bits(OracleEmission*, value).helpers.length; }
+fn reference_syntax_emission_helper(value: void*, index: usize, out: SyntaxEmissionHelper*): void {
+    copy(out, &bits(OracleEmission*, value).helpers.data[index], sizeof(SyntaxEmissionHelper));
+}

@@ -22,5 +22,5 @@ if(format_triple MATCHES "^wasm32-")
   target_compile_features(tower-format-tests PRIVATE cxx_std_20)
   target_compile_options(tower-format-tests PRIVATE -fno-exceptions)
   target_link_libraries(tower-format-tests PRIVATE tower-compiler-parser-nodes tower-compiler-semantics
-    tower-compiler-entities tower-compiler-utilities tower-compiler-memory tower-syntax-emission-reference)
+    tower-compiler-entities tower-compiler-utilities tower-compiler-memory)
 endif()

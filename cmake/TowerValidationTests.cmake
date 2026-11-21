@@ -29,6 +29,6 @@ add_executable(tower-validation-tests "${validation-main_OBJECT}" "${validation_
 target_compile_features(tower-validation-tests PRIVATE cxx_std_20)
 target_compile_options(tower-validation-tests PRIVATE -fno-exceptions)
 target_link_libraries(tower-validation-tests PRIVATE tower-compiler-parser-nodes tower-compiler-semantics
-  tower-compiler-entities tower-compiler-utilities tower-compiler-memory tower-syntax-emission-reference tower-syntax-validation-reference)
+  tower-compiler-entities tower-compiler-utilities tower-compiler-memory tower-syntax-validation-reference)
 add_test(NAME tower-validation COMMAND tower-validation-tests)
 set_tests_properties(tower-validation PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")

@@ -45,5 +45,5 @@ else()
 endif()
 target_link_libraries(tower-lr-grammar-tests PRIVATE tower-lr-grammar-suite
   tower-compiler-parser-nodes tower-compiler-semantics tower-compiler-entities
-  tower-compiler-utilities tower-compiler-memory tower-syntax-emission-reference)
+  tower-compiler-utilities tower-compiler-memory)
 add_test(NAME tower-lr-grammar COMMAND tower-lr-grammar-tests)

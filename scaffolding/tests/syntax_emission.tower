@@ -1,3 +1,4 @@
+import syntax_emission_oracle;
 import .compiler.syntax_view;
 import .compiler.syntax_emission_types;
 import tower;
@@ -15,24 +16,7 @@ import .compiler.syntax_types;
 import .compiler.syntax_validation;
 import .library.vector;
 
-// Native and Wasm compiler builds share the production module. Only the test
-// build appends these Tower fixtures; the old native emitter is the reference.
-extern fn reference_syntax_emit(input: SyntaxEmissionInput*): void*;
-
-extern fn reference_syntax_emission_destroy(value: void*): void;
-
-extern fn reference_syntax_emission_name_count(value: void*): usize;
-
-extern fn reference_syntax_emission_name(value: void*, index: usize, out: SyntaxEmissionName*): void;
-
-extern fn reference_syntax_emission_production_count(value: void*): usize;
-
-extern fn reference_syntax_emission_production(value: void*, index: usize, out: SyntaxEmissionProduction*): void;
-
-extern fn reference_syntax_emission_helper_count(value: void*): usize;
-
-extern fn reference_syntax_emission_helper(value: void*, index: usize, out: SyntaxEmissionHelper*): void;
-
+// Production and independent test oracle consume the same shared entities.
 extern fn tower_test_buffer_count(): usize;
 
 extern fn tower_test_buffer_fail_after(count: usize): void;

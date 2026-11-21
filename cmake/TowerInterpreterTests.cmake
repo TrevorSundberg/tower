@@ -26,8 +26,3 @@ target_compile_definitions(tower-interpreter-tests PRIVATE TOWER_EXPANSION_TESTS
 target_compile_options(tower-interpreter-tests PRIVATE -UNDEBUG -fno-exceptions)
 target_link_libraries(tower-interpreter-tests PRIVATE tower-compiler-interpreter
   tower-compiler-parser-nodes tower-compiler-semantics tower-compiler-entities tower-compiler-utilities tower-compiler-memory)
-# The existing parser test object still contains grammar differential checks.
-if(TARGET tower-syntax-emission-reference)
-  target_link_libraries(tower-interpreter-tests PRIVATE tower-syntax-emission-reference)
-  target_compile_options(tower-syntax-emission-reference PRIVATE -fno-exceptions)
-endif()

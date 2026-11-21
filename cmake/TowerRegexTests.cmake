@@ -46,5 +46,5 @@ else()
 endif()
 target_link_libraries(tower-regex-tests PRIVATE tower-regex-suite
   tower-compiler-parser-nodes tower-compiler-semantics tower-compiler-entities
-  tower-compiler-utilities tower-compiler-memory tower-syntax-emission-reference)
+  tower-compiler-utilities tower-compiler-memory)
 add_test(NAME tower-regex COMMAND tower-regex-tests)
