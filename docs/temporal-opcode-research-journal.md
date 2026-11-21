@@ -26866,3 +26866,26 @@ The coordinator explicitly assigned the instrumented allocator threading contrac
 to Agent2 and accepted publication of the necessary link fix with the recorded
 6/7 newer-main result. Root/cache ownership returns after final source push; the
 original assertions and production worker defaults remain intact.
+
+### 2026-11-20: Preserve the newer upstream Pages successor during handoff
+
+After Agent1's0ce80c3 hosted desktop/mobile verification completed, the external
+publisher deployed2b74dc943af1c30adb3dd9648c7b0c1a1f777d30 from source
+58a0aaf9bc6bf7b811792378c665139308d8ef4e. Its direct parent and manifest predecessor
+are0ce80c3, and its source includes49ed3c3. Agent1 preserved that successor and
+fast-forwarded the detached Pages checkout without overwriting its artifacts.
+Exact action44858453636 succeeded. Agent1 independently downloaded and verified
+all77 served files against that committed manifest, including exact manifest
+bytes. Evidence: agent-1-successor-pages-hash-report.json and the external
+agent-1-successor-pages-2b74dc9 snapshot. Browser behavior checks for this newer
+release belong to its publisher; Agent1's full desktop/mobile result remains
+at exact0ce80c3. No older compiler bytes were redeployed over the successor.
+
+Sourcee20f4b1 contains the evaluation test-link correction and release/regression
+journal. Its ordinary source push encountered GitHub DNS failure; command-local
+curloptResolve retry succeeded without changing TLS or persistent Git settings.
+The final documentation-only update does not change compiler inputs. Current
+root dist remains the preserved tested49ed artifact, while the Pages checkout
+is the newer77-file release; future packaging must rebuild from its chosen
+source and retain that latest predecessor. All temporary probes are removed,
+worktrees are clean after commit, and no build processes remain at handoff.
