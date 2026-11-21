@@ -8855,10 +8855,14 @@ NEW CHAPTER OF TOWER
 Given the research we did, what would be your first task?
 I was originally basing a lot of this on WASM just because it's a very small determininstic subset of instructions, however I think before I dive into determinsim or even ECS or any of that, I just need to make a very C like language with pointers and unsafe memory, all that. That is the core, then I build on top of the core. Unless the core itself really needs to be memory safe, but even LLVM isnt memory safe so I'm fine building an unsafe core, then a safe core on top of that.
 
+SENT
 Next thing I need concrete proof of, what is the model and minimum overhead for how this state tracking is going to work
  - how will it be stored in memory, allocated in a very efficient manner (reading is more common than writing and should be less expensive, cache coherency is important)
  - can we get a proof of it working with native llvm, like an example that we custom write (even without a language) where we use the C like API and track all writes
  - and then we do a past edit and reconcile, measure the performance vs just rewinding and redoing the whole thing
+ - given that in our last commit we proved it with a mock opcode in node
+ - what would the performance and memory ramifications look like for the temporal API, imagining using it for the core isolated game logic like a lock step game
+
 
 I'm interested again because this is what I would move the engine into ideally
  - we'd just maintain our own kind of intgine, but its intgine in a way that hides all the backend crap
@@ -8900,8 +8904,16 @@ I'm interested again because this is what I would move the engine into ideally
  - join with your party when you go to areas
  - this is the whole intgine hotjoinable stuff
  - and then you can leave and go to new areas, probably would need server relay to simulate world as well
- -
-
+   - some kind of transfer authority from one world to another
+ - would be a good mmo format
+ - but david wants to just do a survival game, no horror
+ - total survival, total annihilation robots but a survival game
+ - what about a mech survival game
+ - you have to find and repair broken down mechs
+ - as little people
+ - and you can drive them but limited power, weapons, etc
+ - but as you venture out, you start to find other mechs (npcs) in operation, some hostile, etc
+ - build bases around your mechs, salvage mechs for parts, mine, etc
 
 how does tower store its data?
  - I guess just ECS components
@@ -8909,5 +8921,779 @@ how does tower store its data?
  - yeah I think ECS structs basically
  - and some kind of internal architecture/runtime to allocate them early on
 
+I like the idea that all algorithms we use can report a state at a specific step, and since we have sub-algorithms we basically need like a tree of step indices or something or stack to describe any specific point we want to see. I want to make it so the algorithm can be completely visualized with graphviz etc, lets just use our own actually, our own graphviz basically, and draw the nodes etc. including optimization, parsing, ast transforms, emitting byte code, all of it, I want to be able to easily step through any of it visually. make this an MCP too or cli as well so anyone from cli can dump algorithm state as well, very useful for designing say a JSON parser for example, letting an llm/codex/cluade get all the debug info it needs from parse issues etc
+
+once I get replacements working, I think I need to get the minimal almost opcode like built in syntax working, three value opcode etc
+a = b + c;
+probably need to do the alloca and mem2reg, and basically just get llvm declarations working properly
+get real opcode compiling and executing with llvm
+
+I wonder whats next, should we try to get temporal working
+ - or get tower compiler translated into tower?
+ - a minimal C?
+ - at least should get functions and basically all llvm
+
+it would be neat to define the platform library all intside of tower, like a vulkan include for example
+ - so we should get the getprocessaddr or ddlsym stuff workiing (dllimport basically)
+ - so we can start calling and importing platform specific apis in tower
+ - and get a window working
+ - or import js and be able to define js calls somehow as imported, I like that I mean its like requesting them to be put into the wasm table
+ - or if they aren't js importable, to import request from the library so that browser libraries can implement the requests
+
+ok yeah, then I could at least write kinmen kill to run in the browser...
+ - I mean maybe yeah I just write some kind of typescript simplified thing?
+ - native version of it... I dunno
+
+I CANT WAIT TO LIVE UPDATE TOWER WEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+ - live update plus minimal rebuild... woof!
+
+I mean the base of tower is pretty much... done?
+ - like we need to get parity with LLVM features, such as structs etc, be able to represent everything they can
+ - floats, all that, get all primitive data types and operations
+ - well, lets call it done when we've rewritten and unified everything into tower itself
+ - so whats next I guess, other than maybe unifying
+ - we could attempt the temporal stuff, since it should be able to be augmented and consumed by llvm as well (llvm can emit multiple instructions etc)
+ - the temporal stuff becomes really big once I move the compiler itself into this, minimal rebuild
+ - need TONS of minimal rebuild examples
+ - need to do the like ECS style thing, but that comes when we move it into tower itself
+ - I imagine I'll just basically try and port something like FLECS but our own and in tower with a cross platform threading implementation
+ - test the threading performance and job performance see if we can get it as fast as burst threads etc
+ - when we do the ECS style thing, this is where we really want to design an entirely safe language based on this concept
+   - with absolutely no improper usage of anything allowed
+   - but still raw pointer access in as many places as we can, safe spans/ranges of components for updating, etc
+ - but trying to get native performance here without ever letting users write code that breaks
+ - the foundation of tower obviously can write crashing/undefined code wiht invalid memory accesses and pointers etc/garbage data trash etc
+ - but the goal is that then we import this safe ECS style language and we limit all the featuers, done entirely through our AST transforms and cutting off / re-defining the language
+ - need containers and templates
+ - but we kinda need to figure out the AST form before that
+ - like are we doing straight up code replacement, or tree template replacement?
+
+I think I want to replace `as comment` `as string` `as number` `as identifier` etc with some just attribute
+
+eventually when we get all the things from tower moved over (binaryen, llvm, spirv, etc)
+ - and combined into a unified opcode with slight differences
+ - then we should make sure also that our data structures we use deconflict so we have the temporal stuff working very well
+ - that way we can do temporal recompiling and very fast minimal rebuild with our own opcode and it only affects exactly what it should
+
+SENT
+should also come up with a rough eventual plan for FLECS style / burst style job system and ECS + safe memory access always and hopefully zero perf hit
+ - pin pointers? would be lovely (delayed destruction)
+ - find a way to make it both extremely fast but also decently generic to use for anything (components are your allocations)
+ - fixed arrays only
+ - maybe safe allocated buffers somehow, ref count? unique?
+ - basically for the safe layer of tower, note that previously we had this safe handles system (the other codex is currently replacing the checked pointers with raw pointers)
+ - ideally want the performance of C or even Rust with the safety
+ - but I know rust rules are too obnoxious for me
+ - so I wonder if we can just use ECS and extremely fast burst style FLECS jobs style stuff, archetypes, lists, events etc
+ - to make this all insanely fast and type safe / memory safe
+ - clone FLECS and examine it, just the general ECS / achetype / memory layout / job system features
+ - we can make our own reflection so no need for that from FLECS or anything C based
+
+
+SENT
+I think the next step should be to completely remove the C++ code except for like llvm or third party externals we still rely on
+ - which means we also need a way to comile and link with those as well to produce a final executable, even in wasm too
+ - but I want to move all our own custom C++ to tower itself, though I realize we probably need a lot of things here to make this work
+discuss, whats next to get here?
+ - I imagine we need buffers/arrays and real memory/pointers
+ - if we could get away with it, I would LOVE to start structuring our nodes since we ahve to rewrite them in tower anyways
+ - bascially before we even get malloc or anything, just have a way to reserve a big static buffer for our executable at start, memory in wasm etc
+ - and then just use static buffers for now to get ECS working, should try to represent all of our nodes as ECS components with a sparse/dense index or whatever
+
+for bootstrapping purposes we should eventually include the compiler itself as a completely portable and minimal dependency .exe/elf/mac executable etc
+ - basically guarantee it runs on tons of different versions of windows with pretty much no dependencies (I mean I guess we just want ot make sure this is true with our compiler always)
+ - but basically we can put it in the repo so that anyone can compile the existing code
+ - our scripts would literally invoke the compiler included itself to build the compiler
+ - this is where I said it could be an extremely minimal version, even the interpreter only and just enough to call out to file io/OS etc
+ - but not sure if that matters or it could just be the whole exe compiler, both are fine and maybe easier to just include the whole compiler
+
+should make a bunch of webgpu examples where we compile tower shader code and tower wasm all the optimizations etc
+ - we have the whole tower IDE in the browser and we can edit graphics code etc and watch it run
+ - make a share space like jsfiddle
+ - towerfiddle
+ - and a wasi style OS
+ - a way of including assets in the fiddle as well, my lieyu example should be in there
+ - lets make our OS input library and graphics vulkan library for games / windowing
+ - basically our SDL for tower if you will, but way simpler just keep it raw and basic
+ - audio api as well
+ - and then rely on a wasi style interface for file io etc just because its a good C like interface
+ - gives us clocks, timers, etc
+ - make our graphics layer ideally just like everything else, if you want specifically have code targeting windows and dx12 then do so with our platform attributes etc
+ - I mean we just do vulkan for now but like for example webgpu with wgsl or wsl or whatever
+ - we need to target both of them, but sometimes we may want to do something specialized for that specific thing and that should be easy for users to do
+ - which should be how we define our platform library as well, like this is a platform library for windows, this is for linux, etc
+ - just means we can target wasm + wasi etc
+
+for tower I need to kinda do it like the wasm test suite
+ - just a huge library of text files, every expected error outcome, test tons of scenarios
+ - execution results expected, exceptions or hard errors/aborts expected, etc
+ - parse errors compiler errors type errors, literally exercise every error and tons of stress combinations
+ - try to achieve 100% code coverage with the tests
+ - and test all language constructs especially as well
+ - math strings allocation file io libraries compiling internal/external functions calling etc
+ - but a very easy format so we can just look at the files and know whats expected, and it auto goes through all the files and uses some stable sorting for order of tests etc
+
+I wonder if I should make a language server and all that too
+ - make sure that our current syntax highlighting code completion all that in a browser for example uses this interface
+ - for our runtime shared compiler as a live service etc
+
+SENT
+I want way to be able to data drive really good error messages where they make sense, like a missing semicolon
+ - I know there are ways to kinda detect using the parser and tables and where we were/tiny backtrack after error/attempts etc
+ - I would like a little bit of error recovery I suppose just to try to suggest a better error
+ - or a way for a user to specifically call out that situation
+ - also another thing I noticed for numbers, when there are like shift reduce conflicts and all that, the indices are useless to the user since they dont see anything
+ - we need to make sure the errors always mention the rules/where they were sourced from/all the context of the error that we can reprot (but concise and very clear, simple human terms, good compiler errors!)
+Error
+Ln 22, Col 1
+Unexpected 'var' at byte 464 in state(264, ')')
+can we improve this error at all? this was for a missing semicolon on the line above. first off, dont say byte, speak in line and character terms which seems like we already do so don't duplicate
+ - and no idea what state() and 264 is, this means nothing to a user trying to understand whats going on, make this way better and understandable
+ - and if we can improve the semicolon errors as mentioned, do so as well
+why is it sometimes just Unexpected var and then other times it has the at byte stuff? can we make errors consistent
+ - also just to mention for all this stuff if there's something else that could have been parsed instead and is recommended, we should mention it (like expected this here instead etc)
+
+ok, once we get the ECS stuff built in and working very fast / burst style compiler
+ - lets then start to move KK's components over to tower ECS style components
+ - and allow it to link with betaflight etc
+ - get all the C# and even the C code we wrote moved over too
+ - still need to compile and import betaflight, v8, etc but it'll be pretty minimal!
+ - you know, I think we should abandon preact and all that, I think we can do it way faster with tower modules and all
+ - we can make a native compiled super speed version of preact, with our own constructs that makes more sense
+ - no need to try and use js or typescript types anymore
+ - still love their style of interfaces but, hmm yolo
+ - I mean I can't think of anything faster then us live editing our own tower code super speed, way faster than v8 reloads or whatever they deal with
+ - and we can even precompile/prewarm all sorts of amazing stuff, compiletime advantages etc
+ - we just make this thing work lightning fast, so quick to edit and rebuild, even full rebuild lets make it go fast
+   - first execute interpreted/then as soon as llvm async basic raw finishes if we can emit and try that (measure if its faster to do that)
+   - or wait for full compiled release version of llvm optimized and at runtime switch execution over
+ - then we can make the physics engine entirely in our ECS style, wholly deterministic
+
+SENT
+ok for the targets checkboxes, lets make it more like the real targets we would support, we can pretty much just focus on modern machines like 64 bit but if 32 bit is still in use widely today for like microcontrollers or whatever we should probably support it too
+ - targe tripples or whatever where they make sense, like obviously wasm doesnt matter etc
+ - but basically just make an enumerated list of all the specific targets we support
+ - this means we will separate out platforms now, so instead of having all x86 in one place for all platforms we should get a text window at the bottom per platform/dissasembly etc with the download link at the bottom etc
+ - so now the window titles should just be the name of the target and dissasembly
+ - and I want you to do some kind of browser platform detection if we can, try to determine or statisticially slueth what it would probably be with a fallback of the most common probably like x86 windows or something
+ - can try and detect os separately from arm/x8664 etc and still pick a default if we can't figure out one or the other but related, etc
+can we get efficient syntax highlighting working as well on all the tower instructions, llvm raw/optimized, dissasembly x86 / wasm / windows etc?
+
+SENT
+for the web I'd like to introduce a folder style hierarchy view to the top left and remove the dropdown at the top with like bedrock foundation foreach etc
+ - instead these should just show up as files in the hierarchy browser
+ - however the hierarchy browser should have a project that we have selected
+ - regardless of project since bedrock and foundation are built ins, they should always be shown at the top of the hierarchy folder view in a special way to denote built in
+ - and the project dropdown can sort of be like the foreach or execute examples now
+ - have all the current examples be projects that we start with, but just like the open/save make it so that we can make new projects and it saves in the browser in storage (must be able to handle larger files too)
+ - be sure to support this kind of project style compilation for now too
+ - we shouldnt save indivudal files, always just save all files in the project (zip maybe? must be tiny dependency though if it is, or we can just make a quick zip ourselves)
+ - or maybe use browser file io api too to like map it to directories? not sure what works now
+ - but certianly virtual files in browser/wasi etc
+ - changing project should be like changing an entire drive and environment
+ - try to keep this code simple and concise though, our goal is working on tower not developing a huge web framework
+
+SENT
+this is the first time in a while we've run tower on linux, please make sure everything builds correctly and works on linux now including the web deployment all that
+
+once we port llvm/mlir/spirv/binaryen over
+ - make sure they work with temporal opcode
+ - probably should get the temporal stuff working with our own interpreter first
+
+SENT
+we should potentially even maintain a formatted C backend
+ - I want you to see, I think LLVM may have this but if not we can write a first party one in C
+ - also can we expose optimizer settings in the targets checkbox popup area (make sure it works for our fast interpreter too)
+ - that way we can have unoptimized C or optimized C etc
+ - standard ansi pedantic wall wextra style C, be very thorough, use older C I think C89 just to keep it simple (or do whatever llvm does it if handles it, we can just defer decisions there)
+ - add this as a target as well to the checkboxes, but not checked by default
+ - make sure it has its own window and a download button for it at the bottom as if its its own binary, and is syntax highlighted etc
+ - would be awesome to see if we could carry comments through both to C and maybe to our own tower instructions that we print, can make it a carried through primitive/attached
+ - but can strip these too in optimized form
+ - make sure to test it, compare performance against compiled C vs tower native code etc, should be pretty identical
+
+consolodate the tower standard library and the platform libraries
+ - we must have attributes implemented first, see our plans for attributes such as the very simple [comment] instead of `as comment` for bedrock or foundation, then expanding to like ecs components eventually etc
+ - I've seen a lot of posix or driver macos windows linux stuff etc, ANYTHING that is per platform should be consolodated, do a large audit over tower code
+ - ideally normal tower code never links with anything externally (our entire compiler) except the 3rd party dependencies we have
+ - but generally I mean we don't link with windows or macos or linux specific things, even for vulkan if its' not generic (may be identical and sharable though)
+ - I want to pull all these platform specifics into their own directories and then cleanup and share / join code together where it makes sense, but separate out concepts like file etc
+ - and then use our platform macros and dependency graph stuff to make sure its only ever compiled or included on those specific targets, optimized for those targets, etc
+ - I want all linking settings and everything to be exposed in tower itself (using the compiler as a service if needed, even like how we dll import externs etc)
+ - even for linking with static libraries and all that, per platform even, finding those libraries, linking search directories done properly on all platforms but provided again by our config for the compiler (defaults) with overridable
+ - we can basically do the equivalent of --no-std and only write pure tower, like no access to malloc which is basically just wrapping allocating windows or linux pages etc
+ - just static memory and pure math/pointers etc, very llvm and OS independent, and our containers should be well positioned to work with allocations or static sized constants optionally somehow
+ - but probably need to dev out the vulkan stuff first before really settling on a pattern
+ - I want to know how all the MLIR and matrix stuff works out etc
+ - and compute shaders, spirv, all that, textures whatever
+ - how we declare per OS bytecode or sections, and auto infer which code can run on which platforms, etc (indirection allows separation etc)
+ - so we have a proper platform library that's wasi like but consolodated into one and includes gpu primitives too, attempting to at least cpu emulate all just for compatability and testing code execution cpu side
+ - like we should be able to make a WICKED fast perfectly correct software rasterizer that emulates gpu functionality, I mean we don't need to right now but I'm just saying given how we can write shaders and even have pretend texture samplers all that etc
+ - and just like SSE is an option, we have all the options for compat like vulkan multi vs single indirect draw etc
+lets get our first spirv examples working
+ - look over the todo.txt and the past notes and journals
+ - we want an attribute styled way or something to effectively specify which platforms things compile for
+ - using our dependency tracking system or whatever for the things our compiler uses, ideally we would be able to identify which platform something is for (it specifies)
+ - but some things can be implemented by multiple platforms, need a way to specify disjointed implementations
+ - and a way to deconflict them if we need to for which to choose in the event its ambiguous, I dont think it should be but maybe?
+ - see past notes about like spirv qasm etc for how we do platform target tripple etc choosing all that
+ - just want to get an example working with vulkan all in tower, and potentially webgpu, create a library platform abstraction I think?
+ - we do want a direct vulkan include to be fair and a direct webgpu include, both specifically only work on respective platforms
+ - and then just like almost like a "gpu" include that does one or the other and is a compatable interface layer that we make, probably dx12 as well metal etc
+ - in all cases we want to emulate spirv primitives like textures or ddx ddy block execution etc
+ - so we can share math between them, sample ocean waves on cpu or gpu etc (example)
+ - read journals about vulkan or mlir matrices etc as well just for direction
+ - ideally using our ecs components and nodes in an intuitive way for platform support where needed
+ - and our new burst style parallel ecs compilation / job threading all that
+need to get our first temporal examples working, with llvm as well
+ - a way to specify as part of the compilation target
+ - hmm actually, this is somewhat related to our compile time dependencies
+ - and related to our platform selection code
+ - and related to our dynamic compilation sort of, and transformations of code, as well as adding components etc
+ - because I think for example, the temporal example is one where we may want to lazily recompile and reoptimize byte-code with added temporal checks
+ - this is like recompiling code with stack guards or instrumentation if I think of a modern C equivalent sort of
+ - except we should be able to request these transforms and recompilation from IN language for the same ast or parse trees etc
+ - compiler as a service here
+ - so in this example what I mean is like, maybe the whole program uses temporal, or maybe just an isolated region/sandbox inside
+ - and we do edits all that reconcile etc
+ - but that means only that inner code and code it touches needs the temporal compilation and additional overhead
+ - which means if it touches anything, that must have the temporal transformation to the byte code as well (like if it brings in math code or an algorihtm or a container, we need to recopmile it with temporal additons for reads/writes etc)
+ - and safely mix these two code styles togther, the same function may exist more than once, same wtih like spirv it may exist on gpu too
+ - I want to define a very tower friendly way of making these transforms in the compiler and annotations for platforms etc, and how it plays with our dependency system
+ - I'm not sure how indirection works like calling a function pointer, we may need to annotate the function pointer platforms for example, this is cpu, this is cpu tempora, this is gpu (or all of them)
+ - and then pointers maybe need to be generated for separate ones, etc (or it dually sets a pointer for both versions, I really have no idea what to do here)
+also all this should sort of play into the compile time kind of like #define style system or conditional compilation basically
+ - like I'm not sure what we settled on but we want a modern way to do this easily not like C macro define style, probably scoped {}
+ - and uses compile time conditions, which is basically just real interpreted tower code that can do anything itself
+
+DONE
+why is `import tower;` special, and how is the tower compiler files importing itself?
+
+SENT
+need to get tower as the compiler .tower files etc exposed in the projects view as Tower Compiler
+ - probably shouldn't be compiling a single file anymore, compile all the files together in the project for now until we figure out real modules/imports etc
+ - link them together etc, update on any change
+ - tower compiler itself needs to recompile and re-use the new wasm compiler (with a reset to original button)
+ - so we can actually modify the tower compiler itself in the browser
+ - well use imports properly is a better way of saying that, just validate we are
+
+tower instructions syntax highlighting should ideally match the same syntax highlighting above
+ - obviously the highlighting is customizable above and applies to the rules etc, but the base tower should have some simple rules/foundation etc where we can use that for the syntax rules
+ - if needed just like the auto formatter we have it would be cool for tower to data driven export syntax highlight rules for common text editor platforms as well including what we use in the web
+ - so that the highlighter there is driven from the same source (single source of truth on syntax for bedrock/foundation language)
+
+SENT
+probably do rust style error propegation and not exceptions (return values or something, do some looking out there for different language patterns)
+
+SENT
+what's next, after we get more stuff ported from C++, ideally keep going of course
+
+need to come up with the standard library, math, containers, files, crypto, http?
+
+tower needs to build in ccache style functionality, 100% correct always
+ - if we can pre-compile and cache or load from cache based on hash+version etc we absolutely will (maybe even own compiler hash woof)
+ - again minimal rebuild should help a hell of a lot, but in many ways I want tower to be able to save and crash and come back from a crash
+ - but I wonder if maybe we should just be able to save state the entire compiler program?
+ - like if we do it wasm style, we can just dump the memory to disk any time we need to hybernate an app (need to revive handles obviously)
+ - but we could support an OS style sleep/hydrate
+ - may still want to have ccache style individual files dumped as well? but even if compiler version changes thesee are all invalid just like whole memory
+ - so maybe just whole memory hah
+ - might work well with the temporal model to have it like that
+ - still need to figure out how we're going to load files, move things around etc and work with the temporal api still
+ - might need some kind of contiguous allocation template/container that somehow works with temporal/notifies of moves?
+
+SENT
+I noticed that we still link with C++ and C, and depending on the platform/build it cna have crazy names like _ZN3lld....
+ - I know this is like the name mangling that they do, can we look up and create a standard name mangler and MINIMAL grammar syntax to parse a C/C++ like format even in tower, but purely just to link with it?
+ - ideally a macro like cpp_name(std::string foo(std::ostream* out)) and c_name(int foo(void* bar)) or something, I know c mangling is just like name and underscore so probably way easier
+ - but for C++ name mangling I thin it would vastly help our headers to introduce this minimal grammar, literally the bare minimum just needed for name mangling only but where we can at least put full Cpp function declarations etc, even no throw if that does mangle etc all that
+ - ideally implement all the per platform/arch name mangling in a way where we can call it (pass enum constants in basically)
+discuss, is this reasonable and minimal/small to do this?
+
+SENT
+I know we have our interpreter right now which I believe is a direct node graph interperter from our opcode graph nodes?
+ - however I would like to create a very very as close to as fast as possible, even using tricks that I've seen some lua jits etc use with eax or register tricks with returns on C functions etc
+ - basically just making what is effectively a completely standard interpreter, probably akin to lua's 32 bit opcode 4 values, or even 2 values, whatever is the fastest to read and interpret very quickly
+ - but without emitting specific x86 or arm or anything, basically we can only use pure lowest level tower opcode to create the interpreter but we should examine what llvm does to make it just like lightning fast on all platforms, arm, pc, mobile, consoles, iphones, macs, etc
+ - just really blazing fast interpreter
+ - should compare to wasm performance and our own graph interperter
+ - I don't love maintaining two interpereters, but we should probably run all of them to compare at all points (like how we compare our current interpreter to the wasm output)
+ - we should include this as a target however, platform indepedent extremely fast low level opcode for interpereting, almost its own product but just a standardized super fast binary byte code with fast decoding (low overhead)
+ - and we should default check that target on as well
+ - and add another checkbox in the web executable dropdown for our graph interpereter, (show both windows, but with different intuitive names, like the wasm window too)
+ - this should be default checked on as well, so by default its our graph interpreter, fast interpereter, wasm output, and the platform detected
+ - profile this, make sure its defragmented, compact, very fast to execute, low or no memory overhead etc, cache coherant, optimized
+
+I almost want to make the requirement that all nodes / components in the ecs entity system
+ - all have a serialized text format that compiles with foundation/tower (maybe higher level tower too not sure)
+ - part of our auto formatter, use all the same thing
+ - basically just like for every primitive we support in tower we have a textual way to represent it
+ - that way we never need an in binary way to represent things on disk, like saving ASTs or nodes individually
+ - well we could, but that would be this model where we probably like save wasm style memory as a contiguous chunk and rehydrate later
+ - but thats a future thing, then it would be binary on disk, but like only if it matches our exact program and all handles support it etc (journal this idea)
+ - I'd rather save text and have it perfectly recreate back into the original where possible, though its a bit of a perf hit (which is why the save state memory version exists)
+ - text is also a lot easier to be backwards or forwards compatable and we can carefully introduce the text syntax
+ - or maybe require each to either piggy back or implement a custom feature if its needed
+ - well maybe requirement, I suppose some components could be ephemeral/cache/regenerated
+ - I mean in a cool way that means like, say for example we did a replacement transform
+ - just like how C outputs the macro post processed vesrsion, which has some #pragmas in it that point to the original lines
+ - we would have the same things, becausee we attached those pragma style components to parts of the ast/parse tree etc as we transformed it
+ - so we could always preserve original transform metadata for each pass we do, including optimizations
+ - you can literally trace it the entire way back if you wanted, which is ideal (probably separate source maps but you get the idea)
+ - obviously no requirement for users to implement this for their components like if someone makes a game engine in tower using the ECS we use for the compiler too
+ - but maybe its kinda cool, to have your serialization format be the game format, etc
+
+I know we introduced ` for doing templates, but I never liked that, do we need that?
+ - I see it used with cpp_name now as well, I guess it just means like the string of it? and identifier just gets stringified too?
+
+SENT
+A few things I see, while its probably true that named constants dont really have a place, I see too many magic numbers in tower
+ - our goal is everything compile time evaluatable, so really what I'm saying is that we dont even need constants because even a runtime value of 5 can be "evaluated" in an interpreter sandbox
+ - but I really think we need like enums or constants or something, some good way of doing this that even makes sense in the foundation tower code
+ - just too many magic constants appearing all over
+ - I guess ultimately we should just cleanup our compilers code with more tower code, so its really not that bad
+ - really, in the end, our whole pipeline should be written using the most advanced tower, not like it needs to stay at just foundation for some reason
+ - ok so bedrock (parse rules), foundation (opcode rules), tower!
+ - yes, lets make tower.tower, the official thing that sites above foundation that actually starts making niceities of the language
+ - lets add enums or constants or something and such there as well so we can start having named constants at least for now
+ - please introduce an import syntax (I think this actually needs to be foundation, but I'm not certain? maybe tower?)
+ - that can import other tower files in a proper dependency and import order so we can start getting real imports and tracking working etc and cleanup how we glue all these files today (audit and refactor everything to use proper imports)
+ - I guess including bedrock and foundation and tower too importing <<<
+ - and have a lot of the examples maybe update to depend on tower.tower (but imports omit .tower)
+ - though not all, especially simple syntax parse rule examples etc, keep it minimal
+
+SENT
+need to get autocomplete working in the browser
+ - so when I type I can get proper suggestions
+ - can this part be done entirely in .tower and exported to wasm?
+
+I should make a tower intro tutorial
+ - what makes tower special? parse rules in language, live editing, native performance, temporal opcode(incremental computing)
+ - first show how simple it looks like C, entice native programmers / performance nuts
+ - talk about bedrock, the simple parse rules
+ - show off an example with foreach
+ - talk about foundation, how we establish a very llvm like bytecode (binaryen, spirv)
+ - talk about tower.tower itself, the entire language is here
+ - show the post/pre increment example
+ - show off precedence and how it works
+ - talk about live updates, it all works
+ - show off the minimal rebuild temporal opcode in a cool way
+ - show off vulkan demos and shaders, compute shaders/spirv targets
+ - basically just interactive slides on the website
+ - add a button at the top called Tutorial
+ - fade text slowly in the slides for niceness
+ - come up with slides that are very simple, very few words
+ - each with a live interactive example and demo showing off the feature
+ - even gamify a little bit and get the user to type something, tiny puzzle or fix error etc
+ - where we can reuse our code editor, auto complete, syntax highlighting and errors, interpreter execution, etc
+ - show off exporting to different binaries, allow them to download
+ - each slide should highlight one thing at a time, in a nice narrative arc
+ - suspspence, a little humor in the examples, keep the user wanting more each slide
+ - simple animations and soft smooth transitions
+ - but nice animations for rewards or doing something correct, or highlighting something etc
+ - highlight or automatically select text where its needed
+ - but try to come up with a shared system that reuses our existing components, does not add to much (be concise even with wording, simple is best, imaging explaining to a just starting child or alternatively an adult advanced native programmer)
+ - it should interest both
+ - the tutorial should be full screen when you click it (fade in out overlay) but with an X button at the top that always exists so you can exit on any slide
+ - also have a very very light looking table of contents on the left with a hierarchy entry for each slide so its easy to navigate to any part of the tutorial
+ - teach parse rules, tokens, base foundation opcode like language, replacements/macros, precedence/communicative/associativity
+ - almost like you're teaching a compilers class, but not that heavy, we don't need to talk about shift reduce conflicts or whatever but may mention the type of parser we use with our cool table additions etc
+ - I like the cadence of like show off a feature that's unique and cool and may have more to it, and break it down, kind of like a saw tooth wave over and over
+ - so we always keep interest for advanced programmers but keep it simple enough for a basic learning/novice to start and get it
+ - examples of execution/print, errors, memory/pointers, rules, replacements / loops, etc
+ - write our own foreach loop
+ - conditions for when they succeed
+ - hint buttons if its needed
+ - imports all that
+ - templates
+ - basically carry them through the language
+
+SENT
+need to develop the tower.tower language now
+ - add enums, modern match style switches that people like
+ - we have our cool first party type templates
+ - need to add namespaces (this may actually need to be part of foundation? not sure?)
+ - well imports are kind of namespace and I'd like it to stay that way, file is the namespace (and the compiler api can provide filename/namespace etc)
+ - yes just use filename etc and import works with that, maybe dont need proper namespaces just to avoid collisions etc
+ - maybe just augment import to support aliases or importing specific exports etc like node
+ - actually have proper containers with foreach working templated, vector, unordered hash map, queue, stack, etc, but try to make them more universal and less stupid than C++ ones
+ - we need our whole anything is runtime/compiletime and compiletime keywords working so constants can just be compiletime anything, read in a file, parse the 5th byte, its a constant now!
+ - we run the graph interpreter for now for the compiletime execution, keep it deterministic (mode if needed)
+ - c++ style move if its even needed, not sure, maybe we just always do move for all containers, I like that
+ - overloadable operators
+ - for precedence, should we do the thing where its all done explicitly in rules themselves? and each of them chains from the other level?
+ - or just the simple numeric addition to the parser for precedence levels? much easier to use for sure and intuitive, needs a grammar extension I think
+ - handle communicative / associative or whatever, R>L L<R and all that
+ - oh precedence, we need proper table and order, I think we should just follow C like and get most operators working here, or C#
+ - I only want to use . however, we don't need ->, and it should chain through all pointers needed etc
+ - probably need to start thinking about runtime features, I really like C# interfaces and constraints so to speak
+ - but I don't want classes and all that, too messy, absolutely no garbage collector or anything
+ - maybe constraints like C++ templates, or C# generics where etc, but not sure yet
+ - get set properties for sure
+ - not sure how we do 'this', I don't really want to make classes or methods or anything I like just C like
+ - but I do think for example for getter setters, we do need a standard convention that takes like a pointer in
+ - auto pointer too, no need to & or * deref (is this safe in all cases, no bad assumptions?)
+ - for if else and loops no single line or that weird else dangling problem {} only
+ - I think {} introduces scopes for variables too, probably foundation level I think or like compiler level but tower.tower can introduce if needed
+ - reflection, for sure we want really good reflection, it can enumerate individual methods or fields, or even group things like getter setters (higher level constructs)
+ - know about all the structs, compressed somewhat and only accessed when needed etc (lazy if needed, also optimized out if its not used etc)
+ - same thing for the getter setter passing of this, we may just make it a convention that the first parameter is like a pointer and called this or something, wahtever is ideal
+ - but not like hidden like C++ or other languages
+ - maaaybe we auto pass it in if you do obj.method(obj) like that?
+ - but it would be syntic sugar like an overload
+ - overload resolution should just be exact
+ - abililty to eval("") code like this
+ - or to compile time eval code "5+5" within your code, as a string, or again even read from a file etc
+ - compile time attributes like C# with [] that are attached to the thing after it (structs I assume)
+ - unified struct initialization syntax that works for all things
+ - probably the ability to do new or placement new for allocation (pointer) and delete (just syntax sugar for allocating and reinterpreting)
+ - works with initialization syntax
+ - intiialization syntax should also work for containers and be easy to define/implement
+ - go back and audit old code and upgrade it as we can to use new features/new containers, import tower.tower etc, especially in the compiler
+ - ONLY write new .tower code from here on out, no other languages (other than maybe js for web etc but you get it)
+ - see past journals for ideas as well
+ - but also its my goal to have a proper dependency system as well, kind of related to the compile time feature, but like we only depend upon things we use and we resolve in that order as well
+ - so its not just like a module style language where we can forward resolve types, we literally do a full dependency tracking for resolution etc detect cycles all that, allow aliases or pointer referecnes etc
+ - may be a lot to do, write and journal your plan all down first and then tackle first features
+
+AST transforms, need to figure out a standardized way of adding these features in
+ - would be cool to have a data driven way for people to add transforms or plugins in, defined entirely in the language
+ - and would be neat if the language itself used these plugins to implement itself, types, dependencies, etc
+ - we could declare new transforms, or evne like how we do replacements we could have another transform sytax that is given the ast nodes
+ - or parse nodes, or opcode graph nodes, etc
+ - really would love a cool way to do this uniformly, but probably parse rules would be different (parse node transforms)
+ - vs type transforms, during type checking, etc
+ - would be so cool if type checking was a registered plugin, all that
+ - unparent reparent nodes, transform them, etc
+ - this is where the temporal opcode and react style idea comes in, can we like make transforms undoable and like temporal/rewindable?
+ - I mean with opcode, who cares we just do the transform, it doens't need to be react style or whatever
+ - we can do the react style but it'll just update as we expect anyways
+ - react style is basically just taking in the opcode tree and then outputting direct tower code text that gets recompiled into a new tere effectively, I think?
+
+I think tower.tower should also be what exposes our threading system and ECS build system as well, wait no hmm
+ - since the compiler will be relying on this as well
+ - hmm, well only if there is substantial need for it, my hope was to abuse it for a lot of things
+ - for example however we do auto complete, well nvm thats compiler services so yes it will use the ecs nodes
+ - just want to be sure AI reaches for the ECS stuff often, more than just random structs and pointers
+ - OH duh I'm talking about the safe ECS language
+ - tower.tower should basically be like C++ to C, where foundation is C and tower.tower is C++
+ - but then we need a separate thing that is "SAFE C++"
+ - a layer above tower that is the safe language, stronghold
+ - again just a .tower file that imports the stronghold library or whatever
+ - yes ok this makes sense, stronghold!
+ - stronghold will only allow use to use ECS like structs etc and declare our ECS components
+ - all pointer access must be removed, like literally stripped from the base grammar, we can't output assembly anymore so to speak this is a safe language
+ - we could allow an unsafe {} which effectively just means we can execute anything inside tower.tower inside there
+ - need a great way to do this with our parser that is data driven and fits really well with the rules, for users to define this (also some of it is compiler implementation)
+ - stronghold.tower wooo!
+ - this needs to be a guaranteed memory safe version of tower, eliminates all potential unsafe features from the language
+ - and potentially eliminates races, though they could be allowed with attributes or whatever if it makes sense
+ - I really want a very very good and optimized way to do events, make sure we can do ecs events easily not just global ones ideally, not sure what FLECS does
+ - again research flecs again, come up with good syntax or simple library call ways of determining which components go where
+
+SENT
+change our deployment to tower-lang.org (still github static pages just setup the dns to point there etc with gh and cloudflare)
+
+for each project we should have like a key file that we highlight (maybe just like pretend its the last focused file and save that in the user prefs)
+ - but for default built in projects, we select like the main file for each, so like ForEach auto selects foreach.tower etc
+ - because I changed it and one randomly changed to builtints
+
+I eventually want module resolution, I see we do relative paths, I almost don't want to allow that, but its ok I guess to do exact files as well (importing a json for example)
+ - but the module resolution should be entirely internal and contained
+ - just like project settings, except we can modify our own project or compilation chain etc so we can just do it all from tower invoking its own compiler service, a bit meta
+ - easy ability to also define custom importers like the json
+ - again just more compiletime dependency graph stuff
+ - json can be defining our own grammar that works and is 100% proper json, read into tower
+ - but also binary files, base64 (like import annotations or data driven? attributes maybe)
+ - or importing a png for example, maybe even into a base64 or hex string?
+ - or importing a png into a file path, should be able to have our import statement specify all these thigns in a very data driven way
+ - I would truly love it if somehow import was not anything special, just another compile time function that ties into the compiler service and affects our further code etc
+ - dynamic imports as well, we need an async model eventually/await, that works with bursty threads etc
+
+kinda want to turn the "as" into attributes, but like a really simple [comment] attribute, like the pre-syntax that only has one keyword in it before full attribute parsing
+ - as a part of bedrock possibly, chain them etc
+ - what is the when, or whatever I saw next to 'as'
+ - do an audit of things where we added custom syntax but they should really be C# inspired style attributes
+ - I like the idea that attributes are indeed checked, but they can be attached to pretty much anything, parse rules, opcode graph, ast, parse nodes, ecs entities/components
+ - maybe still as a parent child hierarchy relationship or attachment like that but still, or custom pointed to in a graph as attributes etc
+ - and later either foundation or tower.tower expands upon what attributes are (structs probably with initializers, or compiletime functions calls probably etc)
+ - plus reflection and templates and all that jazz, dependency order resolving etc
+ - and just like C# we can also start to use attributes to control compiler features
+ - balanace of syntax vs attributes, syntax can even be shorthand replacements for attributes etc (maybe externs is just an attribute, etc)
+
+for tower I only really want to support two optimization levels generally
+ - well no, you probably want it all feature based, if you really need to hardcore debug something, like if perf is important but you want asserts, all that jazz
+
+tower studio
+ - we do make sure tower is both a cli like unity cli for ai
+ - and cli like a normal compiler like clang dotnet etc
+ - and an mcp server got si
+ - live compiler service
+ - screenshot plus rendering studio, vulkane etc
+ - full text editor with all the features we want
+ - language server as well provided for others
+ - but best experience is within tower studio
+ - yoga like flexbox implementation
+ - wicked fast temporal opcode based ui imgui style but faster than react, minimal updates/events exact
+ - rendering of 3d canvas elements, windowing/resizing etc
+ - tower studio is our zero editor
+ - but every program can get access to EASY to use UI
+ - struct reflection property grid, with attributes for visibility, done
+ - hierarchy view (part of property grid etc), but you can also filter and tailor
+ - interfaces so you never need to know of them, like editor selections etc
+ - extremely minimal editor interface, easy to compile out but can also stay and exist as nop or null
+ - an execution context for the editor itself
+ - then sub-execution contexts for every program that is compiled and ran in the studio
+ - shared compile time code if we can / wasm etc, but spawn as many instances and windows in the studio
+ - windowing API that we give to OS, studio can hook it to spawn your window as a sub-rectangle pretend window
+ - like visual basic form editor for example
+ - we should eventually have a ui and game like editor for just 3d placements and gizmos and such
+ - maybe somehow you just give projection matrices and we overlay renderings of gizmos and capture inputs before passing them to you
+ - so our gizmos can work generically, and possibly with depth (transparent version when depth clipping, need correct near far fov etc)
+ - and post processing issues but we can still try!
+ - and just like your executable can include compiler itself or compiler services (such as dynamic compile eval etc)
+ - then we can also include tower studio into our app, highly encouraged
+ - and easy to pick and choose parts of the ui etc
+ - ui can be themed, all that
+
+for tower web we really need to get the graphviz style stuff working for showing dfa/lalr nodes and states (see my old compilers demo)
+ - and get a nice docking window framework for all this
+ - and highlighting it like we did back then, including highlighting the original grammar
+ - and the whole step by step execution thing, can just be for the graph interpreter only fast interpeter doesn't want or need that
+ - graph interpreter plus the entire compiler itself
+ - almost effectively want a yield or a way to do this coroutine style so we can keep it simple
+ - or just always run the full algorithm but report in the middle during an integer step possibly (but then we can only see what state we report, not inspect the whole thing its not paused)
+ - need a debugger too at some point as well!
+ - again, should all be language server style, but I think tower studio needs to basically be a whole unity replacement effectively
+ - crash tolerance for sub-windows?
+ - well again, maybe we can entirely avoid it by mostly using stronghold
+ - keeping vulkan issues to a minimum and tower unsafe code minimal
+
+I wonder if we can eventually remove the web build, like transpile to wasm + js bindings and do the entire app from wasm basically?
+ - meaning like, write the whole web app from tower, but probably would be vulkan I suppose
+ - but people could go wild and write straight up brower only apps that use specific js features etc
+ - easy to port or shim with tower platform implementations / attributes?
+
+I wonder how hard it would be to generate a correct construct that could compile and pass types with some basic fun variable names or function names struct names etc
+ - just pick from a group of names and try to make something that is mostly always a bit coherent
+
+tower studio!
+ - debugger, can pause sub-executables, ideally workers
+ - effectively has built in gdb
+ - walk through wasm in the browser (can we?), walk interpreter for sure, either one
+ - can probably have a wasm interpreter as well if needed
+ - x86/arm interpreters? qemu capability?
+ - would be neat to walk through those as well
+
+I should offer agents to anyone who wants to build things in tower
+ - but instruct the agents that they must do everything via tower
+ - even use a cloudflare proxy to append the system prompt etc with it
+ - so that it always writes in tower, always prefers stronghold and good ECS performance archetypes good use of sparse or dense
+ - always look at the resulting opcode/llvm/optimized formats
+ - always profile and run the results
+ - always build things as generic independent libraries
+ - always push libraries to the package manager
+ - use highest level of logic and reasoning for all coding
+
+SENT
+Taking from the approach of the fast interpreter, I previously wrote a backend target to roku brightscript called wasm2brs
+ - I would like it if you could pull this project and create a new backend 
+ - need a physical roku device to test with
+ - can you get the script working with our own post optimized backend like how we do the llvm > fast interpreted bytecode?
+ - make this all work to the best of your ability, and we will get a real roku device later
+ - add a target that is roku with a download where we can download the brightscript source
+ - make sure all bitwise etc operations work, see the test suite from wasm2brs etc
+
+I wonder if I should build my roku box again, usb box for testing, with the quick iteration loop, I'm sure codex can go to town
+ - and potentially even reverse engineer the whole too many variables thing, like figure out exactly what they are doing
+
+wasm2brs should just become part of tower
+ - I want to make it so tower can natively import wasm and translate it to tower
+ - so we can literally import .wasm files directly in tower, possibly llvm text or bc files but not sure how portable that would be or deterministic
+ - and then because we have this intermediate layer, the brs output is now just part of our backend target
+ - we can work with rust or any language that can compile to wasm-wasi and translate to brs
+ - or we can just work in tower itself
+ - also I know there's like a desktop brightscript emulator with some scene graph support or something mock like that
+ - we should really completely support the brightscript emulation package but written entirely in tower
+ - including all perfectly simulated defects like the too many variables or stuff I always ran into, weird brightscript compiler quirks, too many labels, etc
+ - see if we can use like control flow analysis to reduce this in brightscript, or detect and avoid it in cases where it may happen
+ - actually, we may want to remove it and emit some kind of extremely fast typescript or webassembly?
+ - looks like the new approach is using Hermes, I wonder if we can directly target their bytecode...
+
+we really need to make sure in all cases everything internal in tower is using ECS components and entities where at all possible
+ - proper archetypes
+ - proper lists or working with dependent components
+ - proper dependency system for type propegation, compiletime keyword for evaluating anything at compile time, etc
+ - and that both compilation units use threading but also internal compilation is entirely threaded, burst style FLECS style ecs components threading
+ - profile and make sure we're maximizing our use of cores (but efficiently, caching and sharing what we can)
+
+we should write custom compiler or llvm style passes just for ECS
+ - for proving whatever we can about it in terms of thread safety and all that
+ - but really whatever we can do to squeeze out extra performance here
+ - similar to the burst compiler, vectorization all that
+ - but we can try to include any other things to make it faster too, even optimizations for specific things it does
+
+need to do an agents.md audit
+ - always use ECS style components and entities where it makes sense, threaded and very fast, flecs style continue for all graph nodes ast parse nodes etc
+ - always use a proper dependency system so we can resolve types lazily or by dependency, respecting cycles or aliasing where needed
+ - always try and support our anything is compiletime or runtime features
+ - always write new code in tower, even for JavaScript or C++ and prefer to port code to .tower with proper libraries
+ - always profile our code and ensure we're efficiently using memory and performance and all cores where we can
+ - be sure that the compiler itself between compilation units and hosts supports threading as well as internal inside copilation units for trees and sub-trees/dependencies
+ - expand tower.tower features as the main language and feel free to implement features, and audit old code to see if it can be upgraded with new features (for loops, enums, compound expressions, tempaltes, containers, etc)
+
+need an eventual package manager, written all in tower
+ - http module is needed and working with os certs all that (curl or fetch style)
+ - maybe need the crypto module then so to speak
+ - cloudflare for now, workers and either their storage or kv or both, or sql, figure out what npm does here
+ - maybe use npm or yarn code as a basis (and however yarn hosts repos, the server part too)
+ - again all part of compiler services, and intended to be used as an API
+ - immutable, with draft and undoable changes
+ - use the same versioning system as node
+ - but ideally we can actually check interfaces ourselves, I guess we would need public vs private then
+ - we should version all of our things, including bedrock foundation tower.tower and the compiler itself
+ - may want to make them all the same version though, its kind of all one package, including platform etc
+ - well I guess the argument is should it be?
+ - technically you only need what you need, if you never invoke the compiler or eval or do anything with it, should link it out
+ - and that can be done by just never including the package
+ - like I don't think tower.tower should include that many compiler services grammar
+ - since grammar can be added by any package, compiler services can add grammar if needed like eval (if its even needed, try to do everything wtih compiletime functions/dependency graph etc)
+
+and as soon as we have the package manager working
+ - need command line installs etc, like -g where tower packages can install command line utils or programs for that platform as well as source code etc
+ - maybe not distributed binaries, probably always build from source
+ - users being able to publish packages, etc
+ - we package the entirety of tower and the compiler services / ide services / etc
+ - need an easy way to install per platform, probably bash or powershell etc, one liner download script etc (wget curl ps, mac?)
+
+SENT
+we shouldnt use - in our imports or names since it breaks import statements
+ - can use _ for library names or file names / directory names then
+ - lets also make import .something.foo mean basically ../something/foo where each pre . is .. basically, we have no need to do relative later so
+ - obviously anyone can use any folder name they want and import 'xyz' is valid syntax, just saying for our libraries, audit all, syntax-types syntax-validation etc
+ - add this guidance to agents.md and do an audit/fix
+ - correct me if I'm wrong but now our imports should be able to basically traverse any syntax, can we change all imports internally now to using import without a string?
+ - still keep the syntax for string just want our libraries etc to be that way
+ - for files like png and such probably still will use relative paths and all just looks better, but at least for tower files prefer this way
+ - and actually since if I'm right and we can represent everything we need, then I would make it so the string version has to be explicit with filename and case (like linux, even extra check on windows)
+ - and include the .tower for example in the string version, which we omit in the non string version, etc
+
+
+SENT
+from our tower.tower implementation journal and notes, I would like you to implement operator precedence all the standard C style operators
+ - then go back and audit all .tower code and simplify places where we could have used this (only for places that include tower)
+ - including a lot of if ok {} else {...} since we didn't have not ! operator etc, bitswise operators too
+ - no -> however
+ - do the numeric precedence implementation shortcut in the grammar, but ensure that the typical chaining style wiht communicative and associativity L>R R<L stuff works also as normal
+ - but I prefer this data driven parser shortcut that's even faster and less rules easier to parse less tables, optimized
+ - C++ operators as well if any etc
+
+also future ideas to explore, can we convert our parse tables and such (dfa, shift reduce, precedence helpers, etc) into direct extremely fast llvm
+ - to build the fastest parsers in the world, inluding for our own language
+ - and when we ship the compiler binaries in our own, we can pre-build the parser and compiler basically in one
+ - obviously if the parser changes we need to redo it
+ - but like maybe cached or something like that, interesting to cache code pages?
+ - for all code gen like this, in general I want to always be able to start as early as I can with interpretation
+ - and switch over to like a release compiled version of it running natively on the machine (or wasm in browser etc)
+ - so that parsing is just lightning fast, and we also can pre-load all this code too so we don't need to spend time compiling our own compiler
+ - test this by writing a perfect json parser all in tower grammar and be able to import it/use it in code from compiler services or imports etc
+ - test its speed against known extremely fast json parsers, can we do better with our own table optimizations and dfa etc, by using our code gen and llvm optimization advantage
+ - well actually, if my compiletime stuff worked exactly as I wanted, this would just work
+ - because we could compiletime evaluate the parse tables and load the file as compiletime data
+   - and because we know the actual values right then and there, theoretically rather than it being like a data driven parser
+   - the data is effectively all inlineable constants
+   - and the result would be that the actual compiletime evaluation of the code (even if it uses the interpreter to load the parse file and data)
+   - because the interpreter returned that buffer of file data for the parser and it was all constant/compile time
+   - then we should be able to evaluate the entire structure down to 
+ - yes this is the ideal flow, like we could use the compiler services etc to eval or build a custom instruction set like tower foundation instructions etc
+ - or emit that ourselves and code gen based on the table and parsing
+ - but if my thought is correct, with enoguh inlining and folding and optimization passes from LLVM, a giant parser that even if it works on an unkonwn stream of characters
+ - the rules are all compiletime known which means every single character in that input is a constant, we can fold the crap out of it to basically make the perfect dfa switch statement inline in assembly etc
+ - even without code-gen ourselves for the parser, is my idea correct here?
+ - then ideally our tower compiler can do that, compiletime import parse rules for efficiency which can get generated to code with llvm (but if anything changes, thats a runtime import not compiletime etc)
+   - but I guess even at runtime the same thing applies, we could still "compiletime import" the parse rules to make them constants and then codegen
+   - this is linking in code at runtime but we should absolutely support this (if its not supported by a platform then we use fast interpreter or graph interpreter etc)
+ - a lot of this got inspired by Monolith had this big database of values tool for their game where you could tweak values at runtime
+ - but in a build, they baked them all into a generated C file as constants so that the compiler could optimize as much as possible, I want this to be easy for developers
+
+things to do once we get C++ fully ported over
+ - we need to focus on building up the core .tower language and auditing old code / replacing with new features, even loops!
+ - also need to make sure we're doing ECS and proper threading EVERYWHERE, audit it all and make sure we don't do one off code that would be better done in ECS with threading / workers / jobs
+ - make sure our native builds / portable builds of tower that we use for bootstrapping use maximum parallelism (or are capable of it, --jobs or -j etc style or whatever are modern options for being like full 100% etc)
+ - I think there was a mention that the internal compilation unit wasnt doing the threaded approach yet with dependencies etc
+ - really need to unify our ECS usage etc
+
+after this above, then we work on stronghold!
+ - should make stronghold run on the gpu in compute shaders as well >_> HEHEH
+
+when we port mlir, llvm, spirv, binaryen, qasm, etc
+ - we need to find an extremely clever way to reference the original source code, almost keeping a 1:1 translation
+ - except for sure we want to turn them into our ECS nodes and parallel processing, which probably undoubtebly will dramatically change outcomes
+ - need extensive testing and lots and lots of references back to the original that we always try and preserve
+
+SENT
+whats the next thing to implement in tower.tower?
+ - language feature wise when it comes to getting closer to C or C++ like
+ - but including our compiletime features, etc
+ - whats in our journal for the next thing, ideally something that will be a big upgrade to old code and simplify it, like foreach loops or something, better containers, etc
+ - we just did expressions and compound operators / precedence, that was a huge help to simplify old code
+ - make sure we're using the ECS threading flecs style architecture where possible for maximum parllelization
+part of the compiletime thing is decltype basically, we should be able to do that as well, in dependency order, ECS threaded components entities etc
+ - as well as compiletime
+
+need to eventually decide on a standardized style
+ - kind of want to do just all lowercase underscores here for built in stuff, C++ style
+ - prefer pre-increment ++ in our code where we can for style
+ - all code cuddles foo {
+ - }
+ - but with the newline, never on a single line
+ - probably auto format most of this away
+ - part of our auto format could be auto transforms, to convert post to pre where it doens't matter
+ - I like that our auto formatter is pretty comprehensive and we can enable/add these passses etc
+ - only comment non obvious and external dependencies or considerations, otherwise prefer descriptive but concise names that explain the code just by reading the code
+ - 
+
+SENT
+fix for the bootstrapping compiler / expression changes has been pushed, pull and rebase if needed then continue the work you were doing
+
+I see a lot of use of void* as well
+ - did we want void?
+ - I remember one language did something cool with like units, or touples?
+
+eventually we should profile how long it takes to get the tower compiler built
+
+maybe what I do is have the steamdeck finish, then I use this machine to delegate out at least 2x or 3x per machine all working on moving to ECS
+
+I see this idea that I want to develop whole libraries with agents
+ - and allow them to go unattended, multiple groups working on the same things
+ - and then building libraries for a package manager
+
+obviously this could be used for any language, but for us we'd use it to exclusively push tower forward
+
+my new goal is to get tower to become a language on github
+
+my idea of ai goaping through rules, can it be done with tower?
+ - symbolic expansion
+ - our ssa memory tracking idea could have even more teeth apparently if we tracked the actual operations that operated on the memory, not just like simple version data
+
+right now compiling and getting to a result, even clicking a new project and seeing syntax highlighting working takes a long time now, its certainly regressed
+ - but I kinda want to wait until all the threading work is done to optimize the entire pipeline
+ - the web is running very slow
+
+SENT
+I want you to launch this in another one of the gits we have checked out for tower for an agent, maybe agent 1 or something, launch this but only lightly monitor it it can run itself mostly
+lets eliminate python after this, and then any cmake too (unless we need it for third party libraries, but keep it minimal)
+ - same with shell scripts, anything that can be either removed (not needed anymore) or converted into .tower properly, we should
+ - no more other languages in this repo except javascript for the browser, and even that we want to move as many things out of that and into tower that we can
+ - like eventually we'll redo the whole UI in tower, but for now its ok to keep this as JS, just prefer implementing things in tower and binding to JS instead
+ - for example, treating things as generic compiler services or ide live services / language server etc, rather that implementing it in JS
+after removing C++, remove as much js, mjs, python, cmake, bash, etc as we can (our own written scripts)
+ - if any of it is just fluff or can actually be removed / unused, do that first
+ - otherwise if its stricly needed, then start porting it over to tower as well
+ - other than third party dependencies, I want this repo to be like 99.9% tower code only inside it
+basically since you've cut out C++ its time to cut the others too, launch in a powershell that I can see and watch
+
+SENT
+git language changes to make tower a real language
 
 

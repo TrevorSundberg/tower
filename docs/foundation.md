@@ -723,6 +723,39 @@ See [building and linking](../playground/README.md#native-output-and-browser-cro
 - [ ] Extend provenance to module-qualified definition locations for multi-file
   replacement tooling; current definition byte coordinates are local to their module.
 
+
+## Planned Tower entity store and compiler analyses
+
+The long-term shared node model is a generic entity/component store implemented
+in Tower, together with its queries, jobs, safe access APIs, AST operations and
+reflection. Native seed definitions, bedrock.tower declarations, parse nodes,
+type objects and executable foundation operations use that same model. Ordered
+containment and other named relationships can coexist; semantic graph links do
+not all imply ownership. Dense chunks, sparse side components and fixed buffers
+are candidate storage policies behind the common API. Raw foundation pointers
+remain raw; safe handles/access scopes are a layer above them. These facilities
+are planned, not a claim that the current compiler already implements this ECS.
+
+For type propagation and other suitable analyses, investigate batches of active
+constraints grouped by function/region and operation kind. Dependency indexes
+wake affected work when facts change; equality constraints may use unification.
+Preserve ordered grammar activation and lexical visibility, define convergence
+and deterministic diagnostics, and invalidate stale facts after edits. Parallel
+fact discovery must coordinate writes to shared inference variables; structural
+rewrites additionally need isolated ownership or conflict-checked commits.
+Work queues, reverse indexes and caches remain derived from the shared entities.
+
+Use efficient ordered traversal as a comparison and retain it where appropriate.
+The initial propagation probe measured rule-evaluation counts in a toy serial
+model; it did not benchmark Tower or prove a parallel speedup. Full scope,
+primary sources, limitations, experiment results and reproducible source are in
+the [bulk-analysis journal entry](temporal-opcode-research-journal.md#2026-11-17---bulk-node-processing-and-dependency-driven-type-propagation).
+The earlier [ECS and safe-access research](temporal-opcode-research-journal.md#2026-11-17---tower-written-ecs-safe-access-scopes-pinning-and-general-jobs)
+and [Flecs/Unity comparison](temporal-opcode-research-journal.md#2026-11-17---clarifying-flecs-versus-unity-entities-jobs-and-burst)
+record the related storage and scheduler proposals. Canonical foundation text,
+shared validation/formatting and the prohibition on an independent public IR
+remain unchanged.
+
 ## First Tower-written entity store
 
 The compiler now uses [entities.tower](../scaffolding/library/entities.tower) for

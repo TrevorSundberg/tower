@@ -5642,6 +5642,365 @@ This turn changes the recorded requirements and migration tasks only; executable
 behavior is still the checked prototype. No compiler build or execution tests
 were run. Documentation diff checks passed; todo.txt was not modified.
 
+
+## 2026-11-17 - Tower-written ECS, safe access scopes, pinning and general jobs
+
+### Request, clarification and status
+
+The user requested an eventual Flecs/Burst-style ECS and job system with an always-safe Tower layer, ideally C/Rust-class performance, ergonomic access rules, fixed arrays, optional safely allocated buffers, and pinned addresses/delayed destruction. The foundation is moving to raw pointers in another implementation effort. This plan must not reinstate the old checked-pointer representation. The user requested an actual Flecs checkout/source examination, focused on storage, archetypes, queries and jobs, without taking its C reflection implementation.
+
+The user then clarified that the ECS, memory/access facilities, jobs, AST manipulation and reflection must ultimately be written in Tower, adding Tower parse rules where useful. Parse nodes, AST nodes, C++ bootstrap rule specifications (later translated to Tower), declarations in bedrock.tower, foundation graph operations and backend-consumed nodes must all use the SAME entity/component node model. Arbitrary components and hierarchy/relationships must work throughout the compiler. This is a general compiler substrate, not just an ECS offered to Tower applications.
+
+This is a research-backed proposal and milestone plan, not an implemented safe language or scheduler. Source inspection and an isolated native Flecs behavior probe were performed. No Tower compiler/runtime code was changed or in-progress pointer work reverted. The journal is the only repository file written by this task; todo.txt was not edited. The preceding raw-foundation decision supersedes the earlier Burst entry's description of checked cells as the long-term memory model. Earlier measurements remain measurements of their stated prototype/probes.
+
+### Recommendation and performance target
+
+Build a Tower entity store with three independent facilities: stable logical identity and typed component/resource ownership; scoped access permissions that keep storage alive, prevent relocation and exclude conflicting accesses; and a scheduler that acquires permissions and runs specialized ordinary Tower loops over ranges. Use the same store for compiler nodes and user programs. ECS handles belong in the safe layer and do not change the foundation's target-pointer ABI.
+
+Target **no per-element safety work in eligible hot loops**, with validation and synchronization at scope/job/chunk boundaries. A handle lookup per irregular graph edge, an atomic retain per shared-resource handoff, dependency updates, retained memory and bounds checks on unproven indexes all have costs. Universal zero-overhead safety for unrestricted escaping references, arbitrary mutation and immediate deletion is not a defensible promise.
+
+Avoid requiring Rust-style lifetime parameters throughout ordinary application code. A smaller set of compiler-enforced scoped-reference/escape rules, inferred access effects and dynamic boundary checks can support a simpler interface. Some restrictions remain necessary: safe code cannot retain an unrestricted reference forever while independently freeing or moving its target.
+
+### Flecs checkout and source findings
+
+Cloned https://github.com/SanderMertens/flecs.git with --depth 1 into:
+
+`C:\Users\trevo\AppData\Local\Temp\tower-flecs-research-ef986d75533344058c971f8b86e8b1db\flecs`
+
+Inspected commit `09790b5f7136ea76ad6d1366b2a8ce8040e5f89f`, dated 2026-11-16, subject `[docs] Fix dead links in documentation`; headers identify 4.2.0. The clone remained clean after the experiment. Findings apply to that checkout:
+
+- **Archetype columns:** entity arrays and a separate data array per stored component, plus column/type maps. Growth can reallocate columns; migration moves rows; deletion fills a removed row with the last row. Dense component addresses are not durable identities. See [table representation](https://github.com/SanderMertens/flecs/blob/09790b5f7136ea76ad6d1366b2a8ce8040e5f89f/src/storage/table.h) and [growth/removal/movement](https://github.com/SanderMertens/flecs/blob/09790b5f7136ea76ad6d1366b2a8ce8040e5f89f/src/storage/table.c).
+- **Lookup and transitions:** entity records locate table/row; recycling advances generations. Transition edges and matched-table query caches avoid repeated discovery. See [entity index](https://github.com/SanderMertens/flecs/blob/09790b5f7136ea76ad6d1366b2a8ce8040e5f89f/src/storage/entity_index.c), [table graph](https://github.com/SanderMertens/flecs/blob/09790b5f7136ea76ad6d1366b2a8ce8040e5f89f/src/storage/table_graph.c), and [query cache](https://github.com/SanderMertens/flecs/blob/09790b5f7136ea76ad6d1366b2a8ce8040e5f89f/src/query/cache/cache.c).
+- **Stable storage:** sparse payloads use allocated pages. Sparse components keep addresses through archetype moves but still participate in archetype identity. DontFragment uses sparse storage without adding those combinations to table signatures. Neither keeps an object alive after removal. See [sparse implementation](https://github.com/SanderMertens/flecs/blob/09790b5f7136ea76ad6d1366b2a8ce8040e5f89f/src/datastructures/sparse.c), [sparse components](https://github.com/SanderMertens/flecs/blob/09790b5f7136ea76ad6d1366b2a8ce8040e5f89f/src/storage/sparse_storage.c), and [traits](https://www.flecs.dev/flecs/ComponentTraits.html).
+- **Structural stability:** readonly execution and per-stage command queues postpone structural changes until merge. Authorized query fields can still mutate payloads: readonly here is not global value immutability. See [stage implementation](https://github.com/SanderMertens/flecs/blob/09790b5f7136ea76ad6d1366b2a8ce8040e5f89f/src/stage.c).
+- **Scheduling:** workers traverse ordered systems in a pipeline segment. ecs_worker_next divides matched table ranges into nearly equal slices; stable assignment between synchronization points is part of the design. Read/write annotations help determine when queued operations must become visible. This is not a general resource-dependency DAG freely scheduling independent whole systems. External task-thread hooks can integrate another runtime. See [system execution](https://github.com/SanderMertens/flecs/blob/09790b5f7136ea76ad6d1366b2a8ce8040e5f89f/src/addons/system/system.c), [pipeline](https://github.com/SanderMertens/flecs/blob/09790b5f7136ea76ad6d1366b2a8ce8040e5f89f/src/addons/pipeline/pipeline.c), [workers](https://github.com/SanderMertens/flecs/blob/09790b5f7136ea76ad6d1366b2a8ce8040e5f89f/src/addons/pipeline/worker.c), and [partitioning](https://github.com/SanderMertens/flecs/blob/09790b5f7136ea76ad6d1366b2a8ce8040e5f89f/src/iter.c).
+- **Events:** observers combine delivery with query matching. This suits structural/infrequent notifications; typed buffered streams are a better first candidate for bulk events. Flecs distinguishes these uses in its [observer manual](https://www.flecs.dev/flecs/ObserversManual.html).
+
+Take architectural ideas and compare behavior; do not assume Flecs C/C++ pointers establish Tower's safety guarantee. Stable addresses, declared query access and debug assertions do not prove non-escape, lifetime correctness or absence of races. Tower reflection should supply identities, layouts and specialization. No Flecs meta/reflection addon was enabled in the probe. The upstream repository includes an MIT license; no Flecs implementation was copied into Tower.
+
+### One entity/component model for the compiler
+
+The current scaffolding already points this way: tower.cpp has TowerNode identity, reference count, parent, children and components; syntax-nodes.hpp attaches grammar semantics to declaration nodes; core.hpp attaches executable semantics to expanded nodes. Storage currently uses C++ allocations/vectors rather than archetypes. Migration should preserve those semantics and APIs rather than introduce a second AST or public IR.
+
+| Concern | Example components or edges on the same entity kind |
+| --- | --- |
+| Parsing/source | Token/Match, provenance, comments, ordered children |
+| Grammar | Rule/TokenRule/SkipRule, alternatives, captures, repetition, replacements, assignment kind |
+| Reflection/types | TypeDefinition, FieldDefinition, nominal identity, explicit target Layout, storage policy |
+| Foundation | Operation, typed operands, call target, bindings, blocks, effects, lifetime/access contracts |
+| Transformation | provenance, semantic policies, pass annotations |
+| Work/resources | jobs, dependencies, buffers, events, completion state |
+
+An entity can accumulate appropriate components during parsing/resolution/optimization. Transformations may create/rewrite entities while preserving the shared model, bindings and provenance. One format does not require every transformation to retain every original node forever or every entity to contain a universal oversized record.
+
+Operation definitions, validators and formatting rules should be Tower entities and callable Tower code. The native Bedrock seed must construct the same grammar entities as parsing bedrock.tower; later that constructor/scanner becomes Tower code compiled by an earlier bootstrap. Query/access/transformation surface syntax can use Tower parse rules, lowering to ordinary foundation constructs and checked contracts. The provisional `as style` remains highlighting metadata.
+
+Type objects are entities too. Static get<T> specializes known component/layout access; dynamic reflection validates type/layout and returns scoped access or checked type-erased values. Dynamic byte offsets or forged type IDs must not manufacture safe references. Self-reflecting descriptors need a small validated bootstrap construction order, not a separate permanent C registry.
+
+The store can hold data and incomplete parse nodes that are not executable operations. Canonical program operations, contracts and retained semantic metadata still require compilable foundation spellings through the common formatter. Private caches do not become public language constructs merely because the same store can hold them. Foundation text remains the sole Tower program interchange/storage format.
+
+Parser tables, name/query indexes, dominance/use indexes, scheduler queues and the permitted private interpreter instruction cache remain derived accelerators. They reference canonical entities and explicit revisions, with invalidation/rebuild rules. They cannot become another authoritative AST, reflection universe or instruction language. Existing upstream backends remain staged implementation/comparison paths under the existing migration direction.
+
+### Storage policies and arbitrary metadata
+
+Use one API with multiple physical policies:
+
+- Dense component columns in fixed-capacity chunks for frequent scans. Growth adds a chunk. Reordering, swap removal and archetype migration occur only when leases allow. Fixed backing arrays prevent reallocation, not row movement or migration.
+- Sparse side storage for optional/frequently attached analysis metadata that should not change dense archetypes. Nonmoving slots/pages support stable components. Dynamic lookup is not necessarily as cheap as specialized column access.
+- Owned fixed-extent buffers for source bytes, operands, published child lists, mesh vertices and variable-sized resources. The component is the logical owner; this does not require malloc per scalar component.
+
+Component-column SoA does not imply field-level SoA: a Position{x,y,z} column may still contain contiguous Position structs. Field SoA/AoSoA is a distinct explicit layout choice. Reflected field access must not pretend a SoA proxy has a contiguous struct address.
+
+Compiler metadata particularly needs this hybrid. Turning every optional annotation into an archetype dimension causes movement and combinations. Turning every parent target into an archetype dimension can create many tiny tables. Keep common component types in signatures; store high-cardinality relationship targets as values/edge data or nonfragmenting relation storage, with derived reverse/query indexes. Benchmark this: an ECS is not automatically faster than a compact arena for recursive graph traversal.
+
+### Hierarchy, graph edges and ownership
+
+Separate relationship meaning from lifetime ownership. Ordered containment preserves source order, grammar alternatives, operands and member/role names. A conventional Parent relation can be single-parent and acyclic with an explicit deletion policy. BindsTo, TypeOf, Uses, Calls, Origin and DependsOn can have different cardinalities and legitimate cycles. Recursive types and functions must not be rejected because containment is tree-shaped. Multiple named hierarchy views can coexist.
+
+Keep one authoritative ordered edge representation; maintain reverse/parent/child indexes transactionally or as derived caches. Do not independently mutate disagreeing authoritative child lists and parent links. Arbitrary metadata attachment does not make an invalid executable operation valid; verify operation schemas at the appropriate boundary.
+
+Compilation/module/revision regions are a strong ownership default. Regions own entities/buffers; semantic links are handles without strong refcounts on every edge. Retained modules/revisions keep their regions alive, with explicit cross-region retention. A handle that safely reports deletion is not a snapshot guarantee. Old snapshots must retain the correct version/region.
+
+Refcounting every graph edge is a poor default: cycles leak and updates cost work without solving access synchronization. Cyclic semantic links work with region ownership. Finer incremental reclamation can follow actual workload evidence.
+
+### Durable identity and scoped access
+
+| Conceptual value | Promise | Cost location |
+| --- | --- | --- |
+| Entity/component/buffer handle | Stable identity; access can fail when absent/retired | Resolution/acquisition |
+| Owner/region owner | Controls lifetime and coordinated destruction | Creation/transfer/retirement |
+| ReadView | Live typed/aligned range, permitted shared reads | Scope boundaries; unproven bounds |
+| WriteView | Live range with exclusive access and controlled sub-borrows | Boundaries and safe splits |
+| Retained stable handle | Address/lifetime retained, not arbitrary write permission | Retain/release and retained memory |
+| Scoped reference | Cannot outlive/invalidate its access lease | Static proof; eligible code uses raw pointer |
+
+Acquisition validates resource/world identity, generation, component instance/type, initialization, bounds/alignment and conflicts. Register the lease atomically with respect to removal/movement/reclamation. Checking generation and then incrementing a pin without synchronization races with deletion. Start with a coordinator lock/ownership protocol at boundaries; advanced epoch/hazard reclamation requires a separately correct protocol.
+
+Entity identity and component-instance identity differ. Removing and readding T on a live entity invalidates a handle promising the old T instance. A lookup meaning 'current T on entity' can resolve the replacement instead. Define the distinction. Include world/region identity; prevent stale handles becoming valid on generation wrap by retiring exhausted slots or another explicitly safe policy.
+
+Inside a lease, pass pointer and length to specialized code. Multiple reads may overlap. Multiple mutable slices require verified disjoint splitting or a separately defined atomic/shared-mutation abstraction. Different wrappers/entities/component types do not establish disjointness of nested buffers.
+
+All access paths participate: main thread, reflection, nested queries, globals, callbacks, closures and FFI. Safe jobs cannot hide extra access through an unrestricted World pointer. Use restricted contexts, explicit extra resources, inferred effects and checked dynamic lookup. Helpers that store scoped references in globals or escaping closures must be rejected, including indirect calls.
+
+A callback-shaped library API alone cannot enforce this over raw pointers. The safe Tower layer needs trusted checked semantics for nonescape, resource moves and transitive effects. That checker can be Tower code on the same nodes. User parse replacements cannot certify forged safety facts. Unrestricted foundation memory/FFI crosses an explicit trusted/unsafe boundary. Release safety must not depend on debug-only checks.
+
+Control metadata also needs safe lifetime: resolving a stale handle must not dereference a freed world/region control block. Use a durable store identity/control-table protocol, or retain the relevant control block for the handles that need it. This is part of the acquisition design, not solved by storing a generation number alone.
+
+### Pinning and delayed destruction
+
+Distinguish three properties: address stability, value/resource lifetime, and permission to access without conflicts. A reference count supplies neither bounds safety nor exclusive mutation. Keeping bytes allocated is insufficient if a destructor has invalidated fields or a row has been overwritten. [Rust pinning documentation](https://doc.rust-lang.org/std/pin/index.html) is useful background; Tower need not adopt that surface API.
+
+For ordinary work, one job/access scope pins the relevant chunk/region. Structural commands wait for leases. Proven loop dereferences need no repeated generation/refcount checks, and no per-element pin/unpin.
+
+For long-lived addresses, choose stable component/resource storage up front. Return a retained handle and acquire short read/write access through it. Retention does not authorize concurrent mutation. An FFI pointer must retain its address/access rights through actual foreign completion; without a trustworthy foreign contract this is not a safe call.
+
+Proposed lifetime states:
+
+`Live -> Retired (no new ordinary acquisitions) -> Destruct/reclaim after existing leases, retained pins and device work finish`
+
+Specify the logical deletion/commit point. A queued delete may remain visible until commit, as in the Flecs probe. At retirement weak lookups fail. Existing retained handles may use the old value under documented rights; defer its destructor and owned-resource release until those rights end. Replacing a component creates a new instance. Define whether cloning retention after retirement is forbidden so retirement cannot accidentally admit new owners indefinitely.
+
+Dense safety must cover growth, movement, swap removal, sorting, compaction and moving an enclosing fixed-array component. Short leases defer these. Arbitrary long pins can freeze a chunk/world; stable side storage avoids that common trap. Explicit migration to stable storage is possible only with no outstanding old references and defined move/lifecycle semantics. Never keep two silently diverging authoritative copies.
+
+Cancellation must unwind access and reach actual quiescence before reclamation. Requesting cancellation/dropping a task handle does not mean the worker stopped. GPU retention ends at completion fences, not submission. Long pins retain memory; provide diagnostics and a pressure/backpressure policy.
+
+### Fixed arrays and allocated buffers
+
+Interpret the initial requirement as fixed extent/address for a published allocation: Array<T,N> for static length and an optional Buffer<T> with runtime-chosen length that never resizes in place. If the initial surface permits only compile-time N, dynamic buffers can come later. Neither needs a resizable-vector primitive in the safe layer.
+
+Recommended ownership defaults:
+
+- Entity/component or region ownership. Copyable lookup handles do not imply atomic refcounts for every access.
+- Optional standalone unique buffer owner with checked move/consumption. The owner value can move while payload stays allocated; outstanding users still delay destruction/replacement.
+- Optional shared immutable buffers for source text/assets/snapshots. Refcounts belong at ownership boundaries; unsynchronized cross-thread handoff needs appropriate atomics, local proven cases can avoid them.
+- Shared mutable buffers still require access leases/locks/atomics. All aliases share one access-control identity.
+
+A fixed-capacity list can vary initialized count, but shrinking/removing changes element lifetimes and obeys leases. Growth can add fixed pages or publish a replacement allocation after prior users finish. AST lists can use chunked edge storage while building and fixed ordered buffers after publication. This is not pointer-stable in-place resizing.
+
+Initialization is part of safety: publish initialized buffers, or use an internal builder tracking initialized elements. Specify allocation-size overflow, alignment, zero-length/zero-size cases, indexing and element destruction. Keep dynamic bounds checks when proofs are unavailable. Fixed length alone does not validate every index.
+
+Raw foundation allocate/reallocate/free remain available for bootstrap/C parity. Safe wrappers restrict their use; this proposal does not remove those operations.
+
+### General jobs, ECS systems and compiler passes
+
+An ECS system produces jobs from queries; a compiler pass produces jobs from module/function/entity partitions. Flat buffers, images, decompression and mesh processing use the same scheduler without an entity per scalar.
+
+A job descriptor contains compiled function/captures, logical range, resource access set, structural effects, dependencies, cancellation/completion state and retained access tokens. Resources include component columns, regions, fixed buffers, event streams and device resources.
+
+First correctness model:
+
+1. Resolve query/resource identities while structure is stable.
+2. Add dependencies for overlapping accesses with at least one writer and for explicit semantic ordering. Shared reads are compatible; distinct mutable slices need proof. Unknown accesses conservatively conflict.
+3. Acquire permissions together or through a fixed protocol. Avoid blocking while holding leases needed by a task being awaited. Completion must provide memory visibility.
+4. Retain captures, schedule substantial chunks and call specialized chunk code whose loop body LLVM can see. Avoid opaque per-element calls.
+5. Queue structural edits/events in task-local fixed buffers/pages. Release access on actual completion, including cleanup on failure/cancellation.
+6. Commit mutations at synchronization points, update indexes, deliver events and retire storage. Define command ordering, conflicts and stale-instance behavior.
+
+Begin with conservative world structural coordination and component-type/buffer conflicts; refine to chunk/range/subgraph access later. Cache schedules only with valid versions. A type-level access set is insufficient when distinct components alias the same buffer. Account for parent/inherited/shared query values and arbitrary lookups; row partitioning does not make these writes independent.
+
+Choose explicitly between Flecs-style stable slices through ordered systems and a more flexible dependency DAG. Stable row ownership can avoid barriers for row-local chains. Arbitrary work stealing between systems breaks that reasoning unless chunk dependencies/barriers replace it. Measure small tables, load imbalance, locality, false sharing and scheduling cost.
+
+Users should declare read/write inputs once in queries/signatures; inference and diagnostics handle ordinary dependencies. Explicit before/after ordering remains necessary where memory conflicts do not imply semantic order. Dynamic cases can serialize/reject safely instead of requiring lifetime annotations everywhere.
+
+Compiler jobs should start with independent functions/modules and frozen inputs. Pass-local output buffers/sparse metadata merge safely. Recursive inference and cross-module dependencies need real algorithms; ECS storage alone does not parallelize them. Editor rebuilds can retain old revisions while constructing new ones; temporal/incremental computation remains a separate correctness contract.
+
+Unity provides precedents for [container access/dependencies](https://docs.unity.com/en-us/engine/6000.3/manual/scripting/programming-distribute-work-threads/job-system/thread-safe-types/native-container) and [disposal scheduled after work](https://docs.unity.com/en-us/engine/6000.3/script-reference/unity/collections/nativearray1/dispose). Tower needs its own always-enforced safe subset, not a guarantee inferred from Unity safety-check configuration.
+
+### Events, mutation and platform continuation
+
+Typed per-task event streams merge at explicit points. Payloads own data, retain safe resources or carry durable handles, never expired borrows. Deterministic delivery uses logical task/range/order keys; worker arrival order varies. Observers suit structural/lifecycle notifications, but reentrant mutations cannot invalidate active leases. Move/destructor hooks need defined effects and cannot secretly destroy leased resources. Do not add/remove tags solely to trigger an observer per numeric update.
+
+Lists, queues, adjacency and components reuse fixed pages/buffers. 'Components are your allocations' is an ownership interface, not a requirement for malloc per component or a scheduler action per field access.
+
+Preserve the prior vectorization design: direct target loads/stores within validated scopes, true alignment/stride/bounds facts, specialized column lookup once per chunk and visible helpers. Only emit LLVM noalias/access-group promises where the complete contract proves them. Nested allocations need independent alias reasoning; unique wrapper names are not proofs. See [LLVM contracts](https://llvm.org/docs/LangRef.html#noalias). Sparse joins and handle traversal have distinct costs and may not vectorize. Compare C/Rust with matched layouts and numeric/failure/validation contracts.
+
+GPU jobs share access/dependency ideas, not host pointer representations. Use explicit target buffer layouts/address spaces; retain until device completion and exclude conflicting host access. General host ECS mutation, arbitrary reflection and observers are not automatically shader-legal. Kernels can produce bounded result/event/command buffers for later commit. Continue explicit SPIR-V/DXIL/WGSL legality and context/barrier/CPU fallback policies.
+
+Provide a portable single-threaded reference scheduler with no guest executable-memory requirement. Allocation, atomics, threads/waits and device submission need narrow platform bindings/foundation target implementations; storage policy, scheduling, checking, queries, reflection and compiler algorithms should be Tower code. No permanent custom C++ ECS/reflection/job implementation is intended.
+
+### Implementation sequence and acceptance criteria
+
+1. Preserve shared-node semantics during the separate raw-memory migration. Define identity, regions, type/layout objects, ordered edges and ownership. Maintain canonical source round trips; do not require a finished scheduler.
+2. Build the single-threaded store in Tower: fixed-page identities, fixed chunks, sparse side components, typed lookup, regions and relationships. Replace backing TowerNode operations without another AST. Test identity through movement, remove/readd, nominal types/layouts, ordered hierarchy and cyclic nonownership edges.
+3. Build enforced access/reclamation: nonescaping scopes, acquisition-versus-retirement synchronization, chunk/region leases, initialized buffers and staged commands. Test stale/cross-world handles, generation exhaustion, bounds, nested aliases, callback escapes, destructors, cancellation and relocation. Safety remains enabled in optimized builds.
+4. Make dense serial loops cheap. Compare IR/assembly with matched C/Rust loops; target no checks/retains per proven element. Measure graph lookup separately.
+5. Migrate compiler/reflection operations through the same store. Parser/bootstrap rules, types, foundation operations and passes all use it. Differentially check diagnostics, execution, canonical round trips and determinism. Stress optional metadata and diverse parents to reveal fragmentation.
+6. Add structured jobs: coordinator/pool and conservative conflicts, then finer ranges and schedule caching. Work steal only with valid dependencies. Include main thread, reflection and external resources. Test conflicting/overlapping queries, dynamic access, nesting, cancellation/destruction and serial/parallel equivalence under explicit order/numeric policies.
+7. Add longer-lived stable allocations, optional shared immutable buffers, event streams and snapshots. Benchmark retained memory and reclamation delay. Device fences/resources are a separate extension.
+8. Tune representative workloads: dense numeric scans, sparse graph/name lookup, grammar/metadata churn, ordered-child edits, tiny archetypes, large buffers, scatter/reductions, events and cancellation. Measure end-to-end compilation, scheduling, allocations and retained memory as well as arithmetic throughput.
+
+First combined acceptance case: a Tower compiler pass over entity components that acquires validated ranges once and produces an uncomplicated native loop, plus a graph pass that safely attaches metadata and preserves foundation round trips. Full GPU/parallel capability, Flecs reflection and a new public IR are not prerequisites.
+
+### Experiment, failures and limits
+
+Created the probe/CMake project beside the temporary clone. Built its amalgamation with FLECS_CUSTOM_BUILD, FLECS_SYSTEM, FLECS_PIPELINE and FLECS_OS_API_IMPL (plus automatically required dependencies); no meta/reflection or C++ API. Release x64, MSVC 19.44.35229.0, Windows SDK 10.0.26100.0. The custom CHECK macro stays active under NDEBUG.
+
+From the temporary project, or an equivalent directory with archived files and exact Flecs checkout:
+
+```powershell
+$cmakeExe = 'C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe'
+& $cmakeExe -S . -B build -G 'Visual Studio 17 2022' -A x64
+& $cmakeExe --build build --config Release --parallel 4
+& .\build\Release\probe.exe
+```
+
+Observed exit 0:
+
+```text
+PASS dense component moved on archetype transition (old pointer never dereferenced)
+PASS sparse address stable across archetype transition
+PASS DontFragment addition retained archetype
+PASS deferred deletion retained object through readonly scope, gone after merge
+INFO next id reused deleted low slot: 1; full id differs: 1
+PASS worker iterator coverage 26/26/26/25, each entity once
+PASS 4-thread system over 7 frames updated all 103 counters exactly once per frame
+```
+
+The movement test stores an integer address and never dereferences the stale pointer. Sparse stability is tested only while alive. Deletion uses a stage within readonly begin/end. Partitioning checks one 103-row table over four workers; actual pipeline execution checks seven increments per entity. ID reuse is this run's observation, not a promised allocation order.
+
+Trials/debug findings:
+
+- Initial compile used the .add field shown by a Systems manual example; it is absent from the checked-out ecs_entity_desc_t. Fixed the probe by creating the system entity and adding its DependsOn pair through the supported API.
+- Next link failed for ecs_defer_begin/end, absent from this checkout. Read actual headers/stage code and switched to ecs_get_stage, ecs_readonly_begin/end and staged deletion. These were probe/API mismatches, not Tower failures.
+- Removed redundant flecs_STATIC because the amalgamated header already defines it. MSBuild warned about incremental builds under Temp; this disposable build nevertheless completed.
+- CMake/clang/cl were not directly on PowerShell PATH. Located installed CMake through an existing Tower cache; the Visual Studio generator selected MSVC. An initial broad source search included nonexistent scaffolding/grammar.hpp; continued with actual syntax-nodes.hpp/parser files.
+- The first attempt to prepare this journal entry through one large shell command exceeded Windows process command-line length (error 206), before execution. Switched to applying a patch to the temporary draft, then a short append script. No repository write happened in that failed attempt.
+
+These are selected Flecs behavior checks, not a benchmark, sanitizer run, memory-safety proof, or tests of a Tower-written ECS/access protocol. No Tower build ran during concurrent pointer work. Next validation is the staged prototype and adversarial lifetime/race/codegen tests above.
+
+### Archived standalone behavior probe
+
+The following files are our probe, not the upstream implementation. Obtain Flecs at the commit above in a flecs subdirectory. Archiving them keeps reproduction independent of temporary-directory retention.
+
+<details>
+<summary>CMakeLists.txt</summary>
+
+```cmake
+cmake_minimum_required(VERSION 3.20)
+project(tower_flecs_probe LANGUAGES C)
+add_library(flecs STATIC flecs/distr/flecs.c)
+target_include_directories(flecs PUBLIC flecs/distr)
+target_compile_definitions(flecs PUBLIC FLECS_CUSTOM_BUILD FLECS_SYSTEM FLECS_PIPELINE FLECS_OS_API_IMPL)
+target_link_libraries(flecs PUBLIC wsock32 ws2_32 dbghelp)
+add_executable(probe probe.c)
+target_link_libraries(probe PRIVATE flecs)
+set_property(TARGET probe PROPERTY C_STANDARD 11)
+```
+
+</details>
+
+<details>
+<summary>probe.c</summary>
+
+```c
+#include "flecs.h"
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#define CHECK(x) do { if (!(x)) { fprintf(stderr,"FAIL line %d: %s\n",__LINE__,#x); exit(2); } } while(0)
+typedef struct Dense { int value; } Dense;
+typedef struct Stable { int value; } Stable;
+typedef struct Loose { int value; } Loose;
+typedef struct Counter { int value; } Counter;
+static ecs_entity_t counter_id;
+static void increment(ecs_iter_t *it) {
+    Counter *c = ecs_field(it, Counter, 0);
+    for (int i=0; i<it->count; i++) c[i].value++;
+}
+int main(void) {
+    ecs_world_t *w = ecs_init();
+    ECS_COMPONENT(w, Dense);
+    ECS_COMPONENT(w, Stable);
+    ECS_COMPONENT(w, Loose);
+    ECS_COMPONENT(w, Counter);
+    ECS_TAG(w, Extra);
+    ecs_add_id(w, ecs_id(Stable), EcsSparse);
+    ecs_add_id(w, ecs_id(Loose), EcsDontFragment);
+    ecs_entity_t a=ecs_new(w), b=ecs_new(w);
+    ecs_set(w,a,Dense,{11}); ecs_set(w,b,Dense,{22});
+    uintptr_t a_before=(uintptr_t)ecs_get(w,a,Dense);
+    ecs_add(w,a,Extra);
+    CHECK((uintptr_t)ecs_get(w,a,Dense)!=a_before);
+    CHECK(ecs_get(w,a,Dense)->value==11);
+    puts("PASS dense component moved on archetype transition (old pointer never dereferenced)");
+    ecs_entity_t s=ecs_new(w);
+    ecs_set(w,s,Stable,{33});
+    const Stable *sp=ecs_get(w,s,Stable);
+    const ecs_table_t *st=ecs_get_table(w,s);
+    ecs_add(w,s,Extra);
+    CHECK(ecs_get_table(w,s)!=st);
+    CHECK(ecs_get(w,s,Stable)==sp && sp->value==33);
+    puts("PASS sparse address stable across archetype transition");
+    ecs_entity_t l=ecs_new(w);
+    const ecs_table_t *lt=ecs_get_table(w,l);
+    ecs_set(w,l,Loose,{44});
+    CHECK(ecs_get_table(w,l)==lt);
+    CHECK(ecs_get(w,l,Loose)->value==44);
+    puts("PASS DontFragment addition retained archetype");
+    ecs_world_t *stage=ecs_get_stage(w,0);
+    ecs_readonly_begin(w,false);
+    ecs_delete(stage,s);
+    CHECK(ecs_is_alive(w,s));
+    CHECK(ecs_get(w,s,Stable)==sp && sp->value==33);
+    ecs_readonly_end(w);
+    CHECK(!ecs_is_alive(w,s));
+    puts("PASS deferred deletion retained object through readonly scope, gone after merge");
+    ecs_entity_t reused=ecs_new(w);
+    CHECK(!ecs_is_alive(w,s));
+    printf("INFO next id reused deleted low slot: %d; full id differs: %d\n",(uint32_t)reused==(uint32_t)s,reused!=s);
+    enum { N=103, WORKERS=4 };
+    ecs_entity_t es[N]; int seen[N]={0}; int counts[WORKERS]={0};
+    for(int i=0;i<N;i++){es[i]=ecs_new(w); ecs_set(w,es[i],Counter,{0});}
+    ecs_query_t *q=ecs_query(w,{.terms={{.id=ecs_id(Counter)}}});
+    CHECK(q);
+    for(int worker=0;worker<WORKERS;worker++){
+        ecs_iter_t base=ecs_query_iter(w,q);
+        ecs_iter_t it=ecs_worker_iter(&base,worker,WORKERS);
+        while(ecs_worker_next(&it)){
+            counts[worker]+=it.count;
+            for(int j=0;j<it.count;j++){
+                int found=0;
+                for(int k=0;k<N;k++) if(es[k]==it.entities[j]) {seen[k]++; found=1; break;}
+                CHECK(found);
+            }
+        }
+    }
+    for(int i=0;i<N;i++)CHECK(seen[i]==1);
+    CHECK(counts[0]==26 && counts[1]==26 && counts[2]==26 && counts[3]==25);
+    printf("PASS worker iterator coverage %d/%d/%d/%d, each entity once\n",counts[0],counts[1],counts[2],counts[3]);
+    ecs_query_fini(q);
+    counter_id=ecs_id(Counter);
+    ecs_entity_t sys=ecs_new(w);
+    ecs_add_pair(w,sys,EcsDependsOn,EcsOnUpdate);
+    ecs_system(w,{
+        .entity=sys,
+        .query.terms={{.id=counter_id}}, .callback=increment, .multi_threaded=true
+    });
+    ecs_set_threads(w,WORKERS);
+    for(int frame=0;frame<7;frame++) CHECK(ecs_progress(w,0.016f));
+    for(int i=0;i<N;i++)CHECK(ecs_get(w,es[i],Counter)->value==7);
+    puts("PASS 4-thread system over 7 frames updated all 103 counters exactly once per frame");
+    ecs_set_threads(w,0);
+    ecs_fini(w);
+    return 0;
+}
+```
+
+</details>
+
+
+## 2026-11-17 - Clarifying Flecs versus Unity Entities, Jobs and Burst
+
+The user asked how Flecs differs from Unity Burst jobs. Separate the responsibilities: Flecs supplies ECS storage/queries and pipeline scheduling; Unity Entities supplies ECS integration; Unity Jobs is a general CPU task scheduler; Burst compiles supported code to native CPU instructions using LLVM and also supports eligible static methods outside jobs. Flecs uses the application's ordinary native compiler, which can also optimize/vectorize eligible loops. This comparison establishes no universal throughput ranking.
+
+Rechecked Flecs commit 09790b5f7136ea76ad6d1366b2a8ce8040e5f89f, docs/Systems.md and src/addons/pipeline/pipeline.c. Workers execute an ordered system sequence on assigned table slices. Stable row assignment can avoid barriers for eligible row-local chains. Workers may consequently be in different systems at the same instant; describing Flecs as globally finishing each entire system before starting the next would be inaccurate. Its built-in strategy is nevertheless different from scheduling a general DAG of independently ready jobs. Sync points merge staged operations. External task hooks do not by themselves replace those pipeline semantics. See the [pinned execution loop](https://github.com/SanderMertens/flecs/blob/09790b5f7136ea76ad6d1366b2a8ce8040e5f89f/src/addons/pipeline/pipeline.c).
+
+Unity Jobs schedules work with dependencies and work stealing; it can be used independently of ECS. Entities integrates component read/write dependencies with scheduled jobs. Distinguish system update order from completion order of jobs that systems enqueue. The base job scheduler does not infer arbitrary pointer memory dependencies, and declared accesses cannot automatically account for hidden nested aliases. Sources: [Jobs overview](https://docs.unity.com/en-us/engine/6000.6/manual/scripting/programming-distribute-work-threads/job-system/overview), [Entities job integration](https://docs.unity.cn/Packages/com.unity.entities@1.4/manual/systems-scheduling-jobs.html), [Burst compiler](https://docs.unity3d.com/Packages/com.unity.burst@1.8/manual/index.html).
+
+Tower direction remains composable: one entity/component store, a general resource-access/dependency scheduler usable by queries and arbitrary buffers, and ordinary Tower compilation with specialization/LLVM. Optionally preserve stable chunk ownership for cheap row-local chains and locality. Fine-grained DAG scheduling trades dependency/queue costs for flexibility and load balance; choose from measurements rather than assuming it is always faster. All custom facilities and the checking layer are ultimately Tower code.
+
+Validation: source/doc inspection only in this follow-up; no new behavior/performance tests and no compiler changes. Previous Flecs probe results are unchanged. Appended this clarification without replacing earlier entries; todo.txt was not edited.
+
 ## 2026-11-17 - Raw foundation memory, foreign calls and executable linking
 
 ### Scope and preserved baseline
@@ -5786,6 +6145,399 @@ scripts are build-wasm.sh, build-llvm.sh, build-native.sh, build-targets.sh,
 test-linking.sh, test-windows-linking.sh and test-target-packs.sh. Final cross-Wasm
 linker validation/publication results will be recorded separately after completion.
 todo.txt was not modified by this implementation task.
+
+
+
+## 2026-11-17 - Bulk node processing and dependency-driven type propagation
+
+### Request and scope
+
+The user asked whether ECS-backed compiler nodes could enable very fast transforms despite the usual top-down/bottom-up AST traversal pattern. They clarified that the proposed technique is to process nodes in batches by kind, iterating toward a stable result, particularly for type propagation. The research continued read-only at their request. This entry is being added only after their subsequent explicit request to update the journal and documentation with the findings.
+
+This extends the earlier entries on Burst-style primitives, the Tower-written shared ECS/safe layer, and Flecs versus Unity Jobs/Burst. Those entries already contain the Flecs checkout, behavior probe and scheduler/storage findings. The additional proposal here concerns compiler analysis and inference over that same entity/component graph. It does not introduce another AST, authoritative public IR, graph bytecode or required dependency on MLIR. The solver, rules, reflection and eventual ECS implementation should be Tower code.
+
+No compiler implementation changed for this research. The executable experiment was an abstract Python propagation model outside the repository, not Tower inference or a multithreaded implementation. Performance statements below distinguish work counts from timings and proposed benefits from verified behavior.
+
+### Main finding
+
+Bulk processing by operation/constraint kind is a credible implementation strategy for some compiler analyses. It combines fixed-point dataflow/constraint solving with dense storage and specialized handlers. ECS supplies representation, indexing and scheduling opportunities; it does not supply the inference algorithm or prove operations independent.
+
+The proposed core loop is:
+
+```text
+Establish binding context and seed analysis facts.
+While active constraints remain:
+    Group active constraints by region/function and operation kind.
+    Evaluate sufficiently large independent batches.
+    Merge proposed fact changes under a defined rule.
+    Wake constraints that depend on facts that actually changed.
+```
+
+Prefer dependency-driven work queues over unconditional whole-program sweeps. Keep ordinary ordered traversal where it already solves the problem efficiently. A function/region-first, kind-second grouping can preserve locality better than putting every addition in the program into one global batch. The best grain size and dense-sweep versus sparse-worklist crossover require measurements.
+
+### Local repository evidence
+
+At inspection, scaffolding/core.cpp already separates collecting type headers, fields/layouts, and function headers from checking function bodies. Function bodies are then checked serially using mutable Compiler state including current function, scope stack, loop depth, type registry and error state. Expected types are passed into operand/expression processing. Type layout follows dependencies recursively and rejects recursive by-value layouts.
+
+These are useful migration boundaries, not proof that the existing loop can simply be parallelized. Per-function checking needs isolated context/output, stable shared declarations and a policy for shared type construction/interning and diagnostics. Registry maps, current-function state and first-error behavior cannot be shared unsafely among workers. Header registration alone is not the entire inference design.
+
+The canonical SyntaxNode/CoreNode components already live on Tower entities. Semantic dependencies can therefore be explicit edges/components on those entities, with reverse-use lists, queues and analysis indexes derived from them. Unresolved analysis state must be distinguished from a completed valid program type. The framework should not invent a second authoritative constraint language outside Tower's foundation/shared-node contracts.
+
+### Type information can flow in both directions
+
+Conceptual future syntax, not a claim that local inference is currently implemented:
+
+```text
+var a = 1;
+var b = a + a;
+consume_u32(b);
+```
+
+Assuming the ordinary same-type integer addition rule, the function parameter constrains b to u32, which constrains the addition operands/result, then a and its literal initializer. The literal must be range-checked against u32. Defer literal defaults until the language's specified defaulting point; eagerly committing the literal to i32 could reject valid contextual inference.
+
+The node types generate rules such as equality of a declaration and initializer type, supported operand/result combinations for an arithmetic operation, parameter/argument compatibility for calls, and receiver/field constraints for member access. Information is not limited to child-to-parent flow in the AST. Dependencies include contextual expected types, binding targets, called signatures, generic instances and other facts read by the rule.
+
+This is compile-time reasoning about a variable's type, not changing that type every time a mutable variable is assigned at runtime. Pointer arithmetic, comparisons, explicit conversions, overloaded operations and different literal kinds have their own rules; the simple addition example is not a universal equality rule for every operator.
+
+### Constraint solving, unification and convergence
+
+Use monotone information updates where possible: updates refine or accumulate knowledge without undoing established facts within one fixed input revision. Contradictory constraints produce diagnostics; they must not cause workers to overwrite the same type with different last-writer answers.
+
+For simple domains, an illustration is unresolved -> integer-constrained -> u32. Real types are structured and include equality relationships, nominal identity, generic instances and possibly subtyping/overloads. Unification is useful for equating inference variables and structured types; it should complement batching rather than forcing all equalities through hundreds of rounds. Distinct generic instantiations need distinct inference variables unless sharing is justified. Equality propagation can collapse a chain that a naive step-by-step model treats as sequential.
+
+The merge operation for a suitable dataflow domain should have the appropriate order-independent properties, and transfer functions must be monotone. Finite-height domains plus fair processing give a standard termination route. Arbitrary term growth, unrestricted user rewrite rules and speculative overload search need additional algorithms, limits or termination policies. Treat solver exhaustion as a diagnostic/resource result, not evidence of type validity. Successful quiescence can still leave ambiguity or underconstrained variables; an unseeded cycle is not automatically valid or inferable.
+
+Do not confuse type equality conflicts with control-flow joins of abstract runtime values. The exact domain and merge meaning are analysis-specific. Likewise, scalar type inference should not silently add implicit numeric conversion rules that Tower's foundation does not have.
+
+Directed summary graphs can use strongly connected components to isolate mutually recursive groups and process the acyclic remainder in dependency order. Applying SCC scheduling indiscriminately to bidirectional equality edges can put most of a function in one component; unification and independently owned constraint groups are better tools for those cases.
+
+### Safe parallel updates and deterministic results
+
+Different AST nodes can constrain the same type variable, call summary or interned type. Distinct nodes or node kinds therefore do not prove disjoint mutable memory. Begin with stable input facts, worker-local proposals and a defined merge/commit phase. This fits the proposed read/write access leases and keeps structural storage stable while batches execute. Sharded ownership or asynchronous propagation can be explored later with proper synchronization and performance evidence.
+
+Wake subscribers only when a fact's value changes. Dependency registration and publication must not lose updates. Initial scheduling must evaluate all required constraints or correctly seed all source facts: the toy probe can start only from seeded dependents because its rules cannot produce evidence from nothing. A general solver cannot inherit that shortcut without checking rule semantics. A dirty bitset/work queue should be derived scheduling data; adding/removing Dirty components must not trigger archetype migration on every step.
+
+For suitable finite monotone analyses, different fair orders should converge to the same final facts, although work counts differ. This does not automatically make error ordering, generated IDs or source emission deterministic. Buffer diagnostics and choose a stable source/semantic ordering; canonical names and output must not depend on worker completion order. Any speculative decision/default selection must have explicit deterministic semantics.
+
+Initially separate fact discovery from structural rewrites. Concurrent rewrites can overlap in operands, parents, use lists, lifetime effects and provenance even when they start at different entities. Use isolated function/region ownership or conflict-checked proposals with a stable commit policy. Read/write leases establish memory safety; they do not by themselves prove that a rewrite preserves program meaning.
+
+### Suitable analyses and boundaries
+
+| Analysis | Candidate implementation |
+| --- | --- |
+| Local type constraints | Active batches plus equality/unification machinery |
+| Function effects | Propagated summaries over call dependencies |
+| CPU/GPU requirements | Requirement/support facts through calls and selected implementations |
+| Reachability | Newly reached frontier/worklist |
+| Constants/ranges | Domain-specific facts over value/control-flow dependencies |
+| Recursive summaries | Fixed-point processing inside mutually dependent groups |
+| Type layout | Dependency ordering with explicit invalid-cycle handling |
+
+Function effects and target requirements are attractive early experiments because suitable summaries often involve finite sets. Full target implementation selection may be more complex than simply unioning capability flags; preserve semantic-profile and fallback requirements from prior research.
+
+Tower's grammar declarations affect subsequent parsing after their terminating boundaries. Lexical scope, declaration visibility and shadowing remain semantic constraints. Establish correct grammar/binding context before treating name uses as freely schedulable analysis nodes. Independent files/regions require known grammar/import inputs. ECS storage cannot erase these ordering requirements.
+
+Sparse joins, graph lookups, synchronization, queue maintenance and memory bandwidth can dominate runtime. Homogeneous batches may reduce branching and sometimes enable SIMD, but dependent gathers or shared solver state may prevent useful vectorization. Avoid one task per tiny node. Parallel functions/regions can give useful work granularity even when each region uses a serial local solver.
+
+### Incremental editing and cache identity
+
+Dependency tracking also suggests selective recomputation, but monotone propagation for a fixed graph is not automatically an incremental solver for edits. An edit can remove an old constraint or change i32 to u32; simply unioning new evidence with stale facts would leave false conflicts/results. Invalidate and recompute affected regions, retain justifications capable of retracting facts, or create a new revision with correctly reused results. Rebuild outdated subscriber edges and reject stale worker publications.
+
+Use explicit revision, semantic version, target description, numeric/access policies and selected implementations in relevant cache assumptions. There is no new claim here that ECS or a worklist alone implements the temporal runtime or optimal incremental compilation.
+
+### Primary sources reviewed
+
+- [MLIR dataflow analysis tutorial](https://mlir.llvm.org/docs/Tutorials/DataFlowAnalysis/): lattice states, merge rules and propagation over compiler dependencies. Supports the fixed-point foundation; it does not establish a Tower speedup or implement Tower type inference.
+- [MLIR pass infrastructure](https://mlir.llvm.org/docs/PassManagement/): restrictions on sibling access, mutation outside the owned operation and mutable pass/global state for parallel passes. A precedent for isolation rather than unrestricted parallel graph mutation.
+- [Rust compiler type inference](https://rustc-dev-guide.rust-lang.org/type-inference.html): inference variables, equality/unification, deferred obligations and snapshots for speculative checks. Used as an algorithmic reference, not a decision to adopt Rust's surface borrowing/type system or every dated implementation detail in that page.
+
+Exploratory research also found Rust parallel-query/codegen material and LLVM context concurrency documentation; the concrete conclusion here does not depend on unverified claims about parallelizing arbitrary LLVM functions within one shared context. Two guessed MLIR documentation URLs, /docs/TypeInference/ and /docs/DataFlowAnalysis/, were inaccessible; the actual tutorial above was read. An initial PowerShell rg invocation passed wildcard path arguments literally and failed; corrected to directory search with -g filters. Neither tool issue was a compiler defect.
+
+### Actual standalone experiment
+
+Temporary directory:
+
+`C:\Users\trevo\AppData\Local\Temp\tower-type-flow-a4817d59936240ca86ac246ba4e90fc7`
+
+The archived probe.py compares synchronous full scans with synchronous changed-node batches. It uses four abstract evidence states encoded as bits: no evidence, i32 evidence, u32 evidence, or both/conflicting evidence. Rules only OR incoming evidence. This is a small finite monotone model, not inference for Tower, unification, subtyping or overloads.
+
+The batch model groups active nodes by one-input copy versus multi-input merge. Each round reads the old facts, collects proposals, commits them, then activates dependents. Shuffling batches, items and proposal order stays within those synchronous rounds; it is not an asynchronous race test. Full scans include a final no-change round.
+
+| Case | Nodes | Full-scan rule evaluations / rounds | Active-batch evaluations / rounds |
+| --- | ---: | ---: | ---: |
+| One chain, depth 512 | 513 | 262,656 / 513 | 512 / 512 |
+| 64 chains, depth 32 | 2,112 | 67,584 / 33 | 2,048 / 32 |
+| Balanced tree, depth 9 | 1,023 | 5,110 / 10 | 511 / 9 |
+| Seeded three-node cycle | 3 | 9 / 3 | 3 / 3 |
+| Unseeded three-node cycle | 3 | 3 / 1 | 0 / 0 |
+| Conflicting three-node cycle | 3 | 9 / 3 | 6 / 3 |
+
+Final states matched for all six named cases, including 20 shuffled schedules per case, and for 100 generated 40-node graphs. Unseeded cycles remain unknown; conflicting seeded cycles reach conflicting evidence. This is test evidence for these implementations, not a proof of all solvers or inputs.
+
+A follow-up dependency-ordered traversal of the same simple chain took 512 evaluations in one pass. The active-batch implementation still needed 512 rounds for that chain. This comparison is essential: removing redundant work does not remove the dependency depth, and a straightforward traversal can already be optimal for a simple acyclic dependency graph. No speedup ratio should be inferred from comparison only with the intentionally simple full-scan baseline.
+
+Counts cover rule evaluations, not graph construction, reverse-index construction, queue/set/sort/allocation work, merges, memory traffic or thread synchronization. No timing, native-code measurement, GPU execution or worker threads were involved. Consequently these numbers cannot establish 'crazy fast' compilation, SIMD throughput, or an advantage over a well-implemented serial compiler.
+
+Reproduction, with Python 3.12.14 in this environment:
+
+```powershell
+# Run from the temporary directory or another scratch directory containing probe.py.
+& C:\Sandbox\tower\build\temporal-native\venv\Scripts\python.exe -B probe.py
+```
+
+The script writes results.json in its working directory; run outside the repository for a read-only trial. Original artifact SHA-256 values, before newline-normalized archival below:
+
+- probe.py: 7f78f7428f879b8533872560418e0616fcb110f7f7aac424d14133fcd62b3891
+- results.json: 4eca98683c0261b66788e9deeab40f61a44ff85e21803f6c9a1f10d79d1f3c7a
+
+### Proposed next steps and acceptance criteria
+
+1. Specify a small analysis domain and reference serial algorithm. Start with finite effect/target facts or deliberately limited type constraints, with clear unknown/conflict/default rules.
+2. Store semantic inputs/results on shared entities; derive subscribers, work queues and revision indexes. Make implementation and rule functions Tower code as self-hosting primitives permit.
+3. Compare ordered traversal, full scans and active batches single-threaded. Include dependency/index construction and all memory/queue costs. Use chain, wide DAG, shared-variable and cyclic cases.
+4. Add parallelism across isolated functions/constraint groups, then within large groups with safe proposal merging. Check serial/parallel equivalence, deterministic diagnostics/output, cancellation and stale-publication rejection across worker counts and varied schedules.
+5. Add real type equality/unification and contextual inference, then only the generic/overload features actually required. Test backwards constraints, literal range/defaulting, shared variables, conflicts, unresolved cycles and invalid recursive types.
+6. Evaluate end-to-end compiler time and retained memory, not just node throughput. Verify canonical foundation round trips and interpreter/backend agreement after transformations. Keep existing efficient traversals when batching does not pay.
+
+Standing documentation is updated with the long-term Tower-written common store and the analysis research direction, explicitly marked as planned/proposed rather than implemented. Prior journal content and concurrent implementation findings are preserved; todo.txt and compiler source are not part of this documentation update.
+
+### Archived probe and ordered-chain comparison
+
+The source/results below preserve the experiment independently of temporary-file lifetime. Text is normalized to LF for the journal; original byte hashes above may therefore differ from extracted files on another platform.
+
+<details>
+<summary>probe.py</summary>
+
+```python
+from collections import defaultdict
+from pathlib import Path
+import json, random
+# Abstract forward type-evidence propagation only, not Tower type inference.
+# 0=no evidence, 1=i32 evidence, 2=u32 evidence, 3=conflicting evidence.
+# Facts join with bitwise OR. Storage and source program stay unchanged.
+def rule(state, inputs, node):
+    value = state[node]
+    for dep in inputs[node]:
+        value |= state[dep]
+    return value
+
+def full_scans(inputs, seeds):
+    state = seeds[:]
+    visits = rounds = 0
+    active = [n for n, deps in enumerate(inputs) if deps]
+    while True:
+        rounds += 1
+        out = state[:]
+        for node in active:
+            visits += 1
+            out[node] = rule(state, inputs, node)
+        if out == state:
+            return state, dict(visits=visits, rounds=rounds)
+        state = out
+
+def dirty_batches(inputs, seeds, rng=None):
+    users = [[] for _ in inputs]
+    for node, deps in enumerate(inputs):
+        for dep in deps:
+            users[dep].append(node)
+    state = seeds[:]
+    dirty = {user for n, seed in enumerate(seeds) if seed for user in users[n]}
+    visits = rounds = 0
+    while dirty:
+        rounds += 1
+        groups = defaultdict(list)
+        for node in sorted(dirty):
+            groups['copy' if len(inputs[node]) == 1 else 'merge'].append(node)
+        proposals = []
+        batches = list(groups.values())
+        if rng:
+            rng.shuffle(batches)
+        for batch in batches:
+            if rng:
+                rng.shuffle(batch)
+            for node in batch:
+                visits += 1
+                value = rule(state, inputs, node)
+                if value != state[node]:
+                    proposals.append((node, value))
+        if rng:
+            rng.shuffle(proposals)
+        dirty = set()
+        for node, value in proposals:
+            state[node] |= value
+            dirty.update(users[node])
+    return state, dict(visits=visits, rounds=rounds)
+
+def chains(count, depth):
+    inputs, seeds = [], []
+    for _ in range(count):
+        start = len(inputs)
+        inputs.append([]); seeds.append(1)
+        for n in range(depth):
+            inputs.append([start+n]); seeds.append(0)
+    return inputs, seeds
+
+def tree(depth):
+    n = 2**(depth+1)-1
+    inputs = [[] for _ in range(n)]
+    seeds = [0]*n
+    for node in range(n):
+        children = [2*node+1,2*node+2]
+        if children[-1] < n:
+            inputs[node] = children
+        else:
+            seeds[node] = 1
+    return inputs,seeds
+
+cases = {
+    'chain_512': chains(1,512),
+    '64_chains_depth_32': chains(64,32),
+    'balanced_tree_depth_9': tree(9),
+    'seeded_cycle': ([[2],[0],[1]],[1,0,0]),
+    'unseeded_cycle': ([[2],[0],[1]],[0,0,0]),
+    'conflicting_cycle': ([[2],[0],[1]],[1,2,0]),
+}
+report = {'kind':'algorithmic work counts, not timings or parallel execution; abstract forward evidence only', 'cases':{}}
+for name,(inputs,seeds) in cases.items():
+    expected, full = full_scans(inputs,seeds)
+    actual, dirty = dirty_batches(inputs,seeds)
+    assert actual == expected
+    for seed in range(20):
+        shuffled,_ = dirty_batches(inputs,seeds,random.Random(seed))
+        assert shuffled == expected
+    report['cases'][name] = dict(nodes=len(inputs),full_scan=full,dirty_batches=dirty,final_states=sorted(set(actual)))
+for seed in range(100):
+    rng=random.Random(seed)
+    inputs=[rng.sample(range(40),rng.randrange(4)) for _ in range(40)]
+    seeds=[rng.choice([0,0,0,0,1,2]) for _ in range(40)]
+    expected,_=full_scans(inputs,seeds)
+    actual,_=dirty_batches(inputs,seeds,rng)
+    assert actual==expected
+report['random_graphs_matched']=100
+report['shuffled_schedules_per_named_case']=20
+Path('results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
+print(json.dumps(report,indent=2))
+```
+
+</details>
+
+<details>
+<summary>results.json</summary>
+
+```json
+{
+  "kind": "algorithmic work counts, not timings or parallel execution; abstract forward evidence only",
+  "cases": {
+    "chain_512": {
+      "nodes": 513,
+      "full_scan": {
+        "visits": 262656,
+        "rounds": 513
+      },
+      "dirty_batches": {
+        "visits": 512,
+        "rounds": 512
+      },
+      "final_states": [
+        1
+      ]
+    },
+    "64_chains_depth_32": {
+      "nodes": 2112,
+      "full_scan": {
+        "visits": 67584,
+        "rounds": 33
+      },
+      "dirty_batches": {
+        "visits": 2048,
+        "rounds": 32
+      },
+      "final_states": [
+        1
+      ]
+    },
+    "balanced_tree_depth_9": {
+      "nodes": 1023,
+      "full_scan": {
+        "visits": 5110,
+        "rounds": 10
+      },
+      "dirty_batches": {
+        "visits": 511,
+        "rounds": 9
+      },
+      "final_states": [
+        1
+      ]
+    },
+    "seeded_cycle": {
+      "nodes": 3,
+      "full_scan": {
+        "visits": 9,
+        "rounds": 3
+      },
+      "dirty_batches": {
+        "visits": 3,
+        "rounds": 3
+      },
+      "final_states": [
+        1
+      ]
+    },
+    "unseeded_cycle": {
+      "nodes": 3,
+      "full_scan": {
+        "visits": 3,
+        "rounds": 1
+      },
+      "dirty_batches": {
+        "visits": 0,
+        "rounds": 0
+      },
+      "final_states": [
+        0
+      ]
+    },
+    "conflicting_cycle": {
+      "nodes": 3,
+      "full_scan": {
+        "visits": 9,
+        "rounds": 3
+      },
+      "dirty_batches": {
+        "visits": 6,
+        "rounds": 3
+      },
+      "final_states": [
+        3
+      ]
+    }
+  },
+  "random_graphs_matched": 100,
+  "shuffled_schedules_per_named_case": 20
+}
+```
+
+</details>
+
+<details>
+<summary>Ordered-chain follow-up, run through Python stdin</summary>
+
+```python
+length = 512
+state = [1] + [0] * length
+visits = 0
+for node in range(1, length + 1):
+    state[node] |= state[node - 1]
+    visits += 1
+assert all(value == 1 for value in state)
+print({'dependency_ordered_chain_visits': visits, 'passes': 1,
+       'scope': 'same abstract one-way propagation; not a benchmark'})
+```
+
+Observed: 512 evaluations, one pass, all states equal to 1.
+
+</details>
 
 ## 2026-11-17 - Shared calls, data-driven grammar scanners and build selection
 
@@ -5969,6 +6721,7 @@ storage/linking prerequisites and the subsequently requested grammar/call/module
 changes. Full OS services, general imports, local type inference, indirect calls,
 atomic grammar groups and strict compile-time memory/effect policy remain future
 work. Concurrent ECS/bulk-analysis notes and todo.txt are outside this commit.
+
 
 ## 2026-11-17 - Published cross-target playground and verified online
 
@@ -8187,6 +8940,298 @@ entities and proven DFA specializations. Keep the remaining semantic/type pipeli
 formatter/interpreter, backend/CLI adapters and bootstrap retirement in scope.
 Portable per-platform bootstrap executables are not delivered by this checkpoint.
 Existing unrelated working edits, including todo.txt, were preserved.
+
+## 2026-11-18 - Readable foundation and Tower-owned CPU/GPU compiler passes
+
+### User clarification and scope
+
+The user requested a read-only explanation of MLIR versus LLVM IR, followed by
+CPU/GPU and SPIR-V implications and concrete foundation-text examples. They then
+clarified that the intended endpoint is AI-assisted translation/adaptation of the
+needed LLVM, possibly MLIR, and SPIR-V tooling into ordinary Tower code operating
+on the same ECS-style nodes/entities. They do not require adopting MLIR itself or
+its textual dialect syntax. Preserve Tower's readable, C-like foundation form.
+The subsequent instruction authorizes this journal append only; no implementation,
+grammar, instruction, task-list or build-file changes accompany this entry.
+
+This clarifies the earlier conversational recommendation to try an MLIR adapter:
+such an adapter is an optional migration experiment, not the architecture's required
+endpoint or an adopted dependency. Useful compiler algorithms can instead be
+implemented/ported directly against Tower's shared entities. Existing upstream
+backends remain reference implementations during incremental migration.
+
+### Research findings and architectural conclusions
+
+- LLVM IR supplies a defined low-level instruction vocabulary. MLIR supplies
+  extensible operations/types and reusable transformation infrastructure across
+  multiple semantic levels. MLIR's LLVM dialect is a representation inside MLIR;
+  translation produces actual LLVM IR. Neither requires Tower to expose its text.
+- LLVM is not CPU-only. Current upstream documentation describes SPIR-V output,
+  Vulkan target environments and a DirectX/DXIL backend. This documentation is not
+  proof that Tower's pinned/built backend supports all those paths. Emitting any
+  SPIR-V is insufficient: Vulkan interfaces, layouts, capabilities and execution
+  rules must hold. DXIL and direct WGSL remain separate target responsibilities.
+- MLIR's useful contribution for this discussion is retaining whole computations
+  and structured loops until transformations such as tiling, fusion and vectorization
+  have used their information. Compiling explicitly authored GPU kernels does not
+  by itself require MLIR. More ambitious compiler-chosen parallel implementation
+  increases the value of reusing its algorithms, without settling representation.
+- Its GPU/SPIR-V infrastructure models thread/workgroup concepts, shader interfaces
+  and target legality. It does not define Tower's CPU shader emulation, deterministic
+  arithmetic or resource semantics. The documented SPIR-V-to-LLVM conversion is
+  incomplete; do not assume general shader emulation from its existence.
+- Porting an algorithm includes adapting its semantic assumptions and eligibility.
+  LLVM/MLIR poison, undefined behavior, alias assumptions and floating-point
+  reassociation must not silently become Tower semantics. Shared entity storage
+  alone neither proves transformations correct nor guarantees faster compilation.
+
+Primary sources consulted during the discussion:
+
+- LLVM language reference: https://llvm.org/docs/LangRef.html
+- MLIR language reference: https://mlir.llvm.org/docs/LangRef/
+- MLIR rationale: https://mlir.llvm.org/docs/Rationale/Rationale/
+- LLVM dialect and translation: https://mlir.llvm.org/docs/Dialects/LLVM/ and
+  https://mlir.llvm.org/docs/TargetLLVMIR/
+- Linalg operations and transformations: https://mlir.llvm.org/docs/Dialects/Linalg/
+- Linalg design rationale:
+  https://github.com/llvm/llvm-project/blob/main/mlir/docs/Rationale/RationaleLinalgDialect.md
+- Generic semantic interfaces: https://mlir.llvm.org/docs/Interfaces/
+- Arithmetic semantics: https://mlir.llvm.org/docs/Dialects/ArithOps/
+- GPU and SPIR-V dialects: https://mlir.llvm.org/docs/Dialects/GPU/ and
+  https://mlir.llvm.org/docs/Dialects/SPIR-V/
+- SPIR-V-to-LLVM conversion limitations:
+  https://mlir.llvm.org/docs/SPIRVToLLVMDialectConversion/
+- LLVM SPIR-V target: https://llvm.org/docs/SPIRVUsage.html
+- LLVM DXIL architecture: https://llvm.org/docs/DirectX/DXILArchitecture.html
+
+### Foundation spelling and semantic growth
+
+`var a: i32 = 5;` remains unchanged. Existing declarations, simple arithmetic,
+ordinary calls and structured blocks remain the basic written form. Today's
+CoreNode/CoreKind/CoreOp components, foundation grammar, builtin table and shared
+formatter were inspected in scaffolding/core.hpp, core-nodes.cpp, foundation.tower
+and format.cpp. Builtins already resolve ordinary call spellings such as alloc,
+copy and convert to semantic operations; new domains need not introduce another
+source language or an arith/linalg prefix convention.
+
+Matrix multiplication is already expressible as an ordinary integer function using
+structs, raw pointers, indexing and loops. The verified example below uses a
+matrix(T) type-producing function and pointer parameters, consistent with the
+current restriction on aggregate by-value calls. Current type functions support
+bounded type-argument specialization; general compile-time value arguments such as
+matrix(f32, 64, 64) are not implemented. Current foundation scalar operations do
+not include floating-point, SIMD/matrix primitives or shader operations. The
+existing library/vector.tower is a growable storage container, not SIMD support.
+
+The following is a proposed future call shape, NOT newly implemented behavior:
+
+```text
+fn multiply(output: matrix(f32)*, left: matrix(f32)*, right: matrix(f32)*): void {
+    matrix_multiply(output, left, right);
+}
+```
+
+The relevant matrix type and operation definitions would need to be supplied.
+The same readable call can either invoke ordinary Tower loop code or resolve to
+an explicitly defined operation with a Tower reference/fallback implementation.
+Keeping its whole semantic identity until lowering permits matrix-level transforms.
+Compiler recognition must bind to that definition/contract, not guess from a
+function's display name. An alternative is proving an eligible ordinary function
+implements the operation. Naming a function alone grants no optimization rights.
+
+Potential shared components describe operation identity, typed operands, dimensions,
+strides/layout, reads/writes, alias preconditions, numeric policy, execution context
+and eligible implementations. These are proposed semantics/components, not a new
+public IR or a completed component API. Matrix output overwrite versus accumulation,
+copying transpose versus view construction, and alias behavior require definitions.
+A strict accumulation order cannot be changed merely to enable a faster reduction;
+separate multiply/add cannot automatically become fused floating-point arithmetic.
+
+Likewise a future shader-body fragment could retain ordinary calls:
+
+```text
+var index: u32 = global_invocation_id(0);
+var value: f32 = buffer_load(values, index);
+value = value * scale;
+buffer_store(values, index, value);
+```
+
+This fragment is illustrative only. Resources, valid access range, entry-point
+selection, workgroup dimensions, bindings, address spaces and capability/context
+requirements need explicit definitions and serializable declarations. No new
+attribute syntax, shader ABI or operation-registration API was selected here.
+CPU execution of shader operations still needs explicit policies for sampling,
+derivatives, collectives and synchronization; the shared ocean-wave/buoyancy
+motivation remains applicable.
+
+Every semantic fact affecting behavior must survive foundation serialization,
+through the operation's definition or an explicit versioned foundation/library
+dependency. Hidden metadata that changes behavior and disappears on formatting is
+invalid. Proven derived analysis facts can be recomputed. An operation-definition
+API is future work; do not claim arbitrary calls acquire new semantics today.
+
+Ported compiler passes themselves are ordinary Tower functions operating on these
+entities. A pass may replace a whole matrix operation with smaller matrix operations
+and loops, then with scalar/vector or target operations. Transformation preserves
+defined behavior; it need not preserve the original graph structure. Each public
+resulting representation must have its own compilable foundation spelling and
+structural round-trip contract. Keep the base grammar small; richer syntax may be
+built with Tower rules/replacements. No MLIR textual dialect or binary Tower graph
+format is required by this direction.
+
+### In-memory validation and reproducer
+
+Ran an ad hoc Node script from C:\Sandbox\tower, piped through a PowerShell
+single-quoted here-string to `node --input-type=module`. It imported the existing
+Tower/LLVM host modules, read the existing Wasm artifacts and grammar files, and
+compiled a source string. It wrote no test file or repository output and did not
+rebuild either compiler. Environment: Windows PowerShell, Node v21.7.3.
+
+Verified observations: scalar addition printed 12; multiplying row-major matrices
+[1,2;3,4] and [5,6;7,8] printed 19,22,43,50. Interpreter execution and LLVM-generated
+Wasm execution agreed exactly. Formatting, foundation reparsing, reexecution and a
+second formatting preserved output and produced identical canonical text. The
+canonical form specializes the generic view to an ordinary concrete declaration
+named `matrix(i32)` using quoted-identifier syntax; this is the existing generic
+specializer's behavior, not a new matrix opcode.
+
+Artifacts present when recording this entry (SHA-256):
+
+- build/browser-wasi/tower.wasm:
+  2c48373adcdb4782325545b3000a9a97d0472e95488f6ad347ef73018bd42fe8
+- build/browser-wasi-llvm/tower-llvm.wasm:
+  399a8d3b39318c786f9056c7624f7484c6e3c564006f11a3dce8f4763f4f7f06
+
+HEAD at recording was 01cb987909743d33f6148e31d75044ea74e5ebcb with pre-existing
+working edits, so HEAD alone does not identify the local artifacts. The test is
+bounded evidence for existing integer matrix computation and serialization, not
+GPU execution, floating-point correctness, matrix recognition, optimization quality
+or a performance benchmark. The raw-view example assumes compatible dimensions,
+sufficient initialized input/output storage and output disjoint from the inputs;
+it adds no runtime safety policy.
+
+Reproduce the successful test from the repository root with the existing artifacts:
+
+```powershell
+@'
+import {readFile} from 'node:fs/promises';
+import assert from 'node:assert/strict';
+import {loadTower} from './playground/src/tower-host.mjs';
+import {loadLLVM, executeWasm} from './playground/src/llvm-host.mjs';
+const grammar = await readFile('scaffolding/foundation.tower', 'utf8');
+const bedrock = await readFile('scaffolding/bedrock.tower', 'utf8');
+const tower = await loadTower(await readFile('build/browser-wasi/tower.wasm'),
+    undefined, grammar, grammar, bedrock);
+const source = `
+var a: i32 = 5;
+var b: i32 = 7;
+var c: i32 = a + b;
+print(c);
+fn matrix(T: type): type {
+    struct Result {
+        data: T*;
+        rows: usize;
+        columns: usize;
+        row_stride: usize;
+    }
+    return Result;
+}
+fn matrix_multiply(out: matrix(i32)*, lhs: matrix(i32)*, rhs: matrix(i32)*): void {
+    var row: usize = 0;
+    loop {
+        var done: bool = row == lhs.rows;
+        if done { break; }
+        var col: usize = 0;
+        loop {
+            done = col == rhs.columns;
+            if done { break; }
+            var sum: i32 = 0;
+            var k: usize = 0;
+            loop {
+                done = k == lhs.columns;
+                if done { break; }
+                var ai: usize = row * lhs.row_stride;
+                ai = ai + k;
+                var bi: usize = k * rhs.row_stride;
+                bi = bi + col;
+                var term: i32 = lhs.data[ai] * rhs.data[bi];
+                sum = sum + term;
+                k = k + 1;
+            }
+            var ci: usize = row * out.row_stride;
+            ci = ci + col;
+            out.data[ci] = sum;
+            col = col + 1;
+        }
+        row = row + 1;
+    }
+}
+var ad: i32[4];
+ad[0] = 1; ad[1] = 2; ad[2] = 3; ad[3] = 4;
+var bd: i32[4];
+bd[0] = 5; bd[1] = 6; bd[2] = 7; bd[3] = 8;
+var cd: i32[4];
+var A: matrix(i32);
+A.data = &ad[0]; A.rows = 2; A.columns = 2; A.row_stride = 2;
+var B: matrix(i32);
+B.data = &bd[0]; B.rows = 2; B.columns = 2; B.row_stride = 2;
+var C: matrix(i32);
+C.data = &cd[0]; C.rows = 2; C.columns = 2; C.row_stride = 2;
+matrix_multiply(&C, &A, &B);
+print(cd[0]); print(cd[1]); print(cd[2]); print(cd[3]);
+`;
+function run(handle) {
+    let output = '', result;
+    for (let i = 0; i < 100; ++i) {
+        result = tower.execute(handle, 10000);
+        output += result.output;
+        if (result.status !== 'executing') break;
+    }
+    assert.equal(result.status, 'done', result.error);
+    return output;
+}
+const handle = tower.compile(source);
+try {
+    const output = run(handle);
+    assert.equal(output, '12\n19\n22\n43\n50\n');
+    const canonical = tower.foundation(handle).source;
+    const round = tower.compileFoundation(canonical);
+    try {
+        assert.equal(run(round), output);
+        assert.equal(tower.foundation(round).source, canonical);
+    } finally { tower.destroyExecution(round); }
+    const llvm = await loadLLVM(
+        await readFile('build/browser-wasi-llvm/tower-llvm.wasm'),
+        undefined, grammar, grammar);
+    const compiled = llvm.compile(canonical);
+    assert.equal(compiled.status, 'compiled', compiled.error);
+    const actual = await executeWasm(compiled);
+    assert.equal(actual.status, 'done', actual.error);
+    assert.equal(actual.output, output);
+    console.log(JSON.stringify({output, llvmWasm: 'same result',
+        canonicalRoundTrip: 'stable'}, null, 2));
+} finally { tower.destroyExecution(handle); }
+'@ | node --input-type=module
+```
+
+The initial journal append command embedded that PowerShell here-string inside
+another here-string with the same terminator. PowerShell rejected the command at
+parse time, before any write. The append was then applied as a file patch.
+
+No implementation was selected or changed by this investigation. Future work is
+to define the needed numeric/resource/operation contracts and shared semantic
+interfaces, then incrementally port and validate useful transformations against
+reference implementations. A future MLIR adapter comparison may be useful, but
+is optional under the clarified Tower-owned architecture. Preserve existing work
+and journal entries; this entry records proposals separately from the verified
+integer example.
+
+Post-append validation extracted and executed the reproducer directly from this
+entry: output remained 12,19,22,43,50, LLVM/Wasm agreed, and canonical text was
+stable. A SHA-256 comparison confirmed the entire preceding journal was preserved
+byte-for-byte. The before/after file inventory also detected concurrent changes
+to unrelated parser/LR/build files; this task neither edited nor reverted them.
+Its only successful repository mutation was this journal append.
 
 ## 2026-11-18 — Tower-owned LR analysis, states and LALR actions
 
@@ -21824,7 +22869,6 @@ its adjacent resources, or a matching LLVM/Wasm reactor, is required to rebuild
 this source state. Do not restore a native seed, invent a second expression
 compiler, discard the upstream operator work or deploy stale artifacts as a
 substitute. Publication of this retirement slice remains pending that bootstrap.
-
 ## 2026-11-20 — Identifier module paths, parent dots and exact quoted imports
 
 Implemented the requested internal naming/import audit. This supersedes earlier
@@ -32719,3 +33763,20 @@ The push raced upstream a4aa3e7; rebased normally and preserved its journal and
 obsolete-release-assertion removals. Compiler/build inputs compare byte-for-byte
 equal between 3125c40 and reachable 6f3834c, so retained the verified archive and
 updated its source-base provenance to 6f3834c. No force push or redundant rebuild.
+
+## 2026-11-21 - Commit the preserved local research and planning notes
+
+The user explicitly requested committing all remaining local changes and returning
+the checkout to a clean, pushed state. Pulled through 89fe018 with rebase/autostash,
+retaining the existing AGENTS.md, foundation guide, historical research-journal and
+todo.txt edits. This checkpoint preserves those notes as written; no todo content
+was edited by this task. The historical ECS/analysis probes describe their original
+environments and proposals, not new runtime implementations or rerun experiments.
+
+Reviewed the four-file diff and the linked research headings. Documentation-only
+whitespace checks pass outside the preserved todo notes; existing todo whitespace
+is intentionally retained. There are no compiler, runtime or bootstrap changes in
+this checkpoint. The deployment reuses the previously verified gh-pages asset set,
+retains buildSourceCommit 8e09a3c552ffda6ffa19da56ccbee85f6b504115, and updates only
+publication metadata. Final synchronization, Pages status and hosted metadata are
+verified during publication; no repeated compiler/browser matrix is warranted.

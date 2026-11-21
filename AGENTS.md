@@ -263,6 +263,18 @@ Do NOT modify todo.txt
   allowed ONLY as an interpreter execution cache: no graph traversal, reflection
   or compiler metadata encoded into that stream and no independent language/ABI.
   Derived execution/analysis indexes must not become a separate semantic model.
+- Long term, implement the generic entity/component store, safe access layer,
+  queries, jobs, AST manipulation and reflection in Tower, with narrow platform
+  primitives underneath. Native bootstrap definitions, parsed grammar, syntax,
+  foundation operations and backend input share this same entity model. Support
+  extensible components and ordered/named relationships; storage policies and
+  derived indexes may differ without introducing another authoritative node format.
+- Explore bulk compiler analyses by batching active constraints by region and
+  operation kind, using dependency-driven propagation and unification where
+  appropriate. Preserve grammar/scope order, deterministic results and explicit
+  convergence/invalidation rules. Treat this as a research direction: compare
+  against efficient serial traversals and measure total work/end-to-end time;
+  ECS layout or parallel scheduling alone is not a performance guarantee.
 - Long term, translate the needed LLVM and Binaryen machinery into Tower, trim
   unused functionality, and combine applicable optimizations on these same nodes
   augmented with instruction semantics. Preserve compilable foundation spellings,
