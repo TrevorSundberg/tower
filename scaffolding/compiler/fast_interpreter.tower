@@ -8,8 +8,18 @@ import interpreter;
 import .library.vector;
 import .library.float_bits;
 
-var FMFloat32BinaryBase: usize = 144;
-var FMFloat64BinaryBase: usize = 160;
+var FMIntegerBinaryBase: usize = 64;
+var FMIntegerTypeCount: usize = 8;
+var FMUInt8: usize = 0;
+var FMUInt32: usize = 1;
+var FMInt32: usize = 2;
+var FMUInt64: usize = 3;
+var FMInt64: usize = 4;
+var FMInt8: usize = 5;
+var FMUInt16: usize = 6;
+var FMInt16: usize = 7;
+var FMFloat32BinaryBase: usize = 192;
+var FMFloat64BinaryBase: usize = 208;
 
 // Private, disposable execution cache of checked foundation nodes. This is not
 // an interchange format or a second semantic IR. No graph pointers or compiler
@@ -225,23 +235,12 @@ fn fm_type(f: FMState*, type: FoundationType*): usize {
 }
 
 fn fm_tag(type: FoundationType*): usize {
-    var size = im_type_size(type);
+    var width = semantic_width(type);
     var signed = im_type_signed(type);
-    var small = size == 1;
-    if small {
-        return 0;
-    }
-    small = size == 4;
-    if small {
-        if signed {
-            return 2;
-        }
-        return 1;
-    }
-    if signed {
-        return 4;
-    }
-    return 3;
+    if width == IntegerByteWidth { return signed ? FMInt8 : FMUInt8; }
+    if width == IntegerShortWidth { return signed ? FMInt16 : FMUInt16; }
+    if width == IntegerWordWidth { return signed ? FMInt32 : FMUInt32; }
+    return signed ? FMInt64 : FMUInt64;
 }
 
 fn fm_function(f: FMState*, node: void*): usize {
@@ -443,13 +442,11 @@ fn fm_address(f: FMState*, node: void*): usize {
             }
             var size = fm_constant(f, convert(u64, im_type_size(&n.type)));
             var scaled = fm_register(f);
-            fm_emit(f, 77, scaled, delta, size);
+            fm_emit(f, FMIntegerBinaryBase + convert(usize, OMul) * FMIntegerTypeCount + FMUInt64, scaled, delta, size);
             delta = scaled;
         }
-        var op: usize = 65;
-        if n.type.pointer_bytes == 8 {
-            op = 67;
-        }
+        var tag = n.type.pointer_bytes == 8 ? FMUInt64 : FMUInt32;
+        var op = FMIntegerBinaryBase + convert(usize, OAdd) * FMIntegerTypeCount + tag;
         var result = fm_register(f);
         fm_emit(f, op, result, base, delta);
         return result;
@@ -578,10 +575,10 @@ fn fm_value(f: FMState*, node: void*): usize {
                 fm_emit(f, 21, right, fm_tag(&right_node.type), 0);
             }
             var size = fm_constant(f, convert(u64, im_pointee_size(&input.type)));
-            fm_emit(f, 77, right, right, size);
+            fm_emit(f, FMIntegerBinaryBase + convert(usize, OMul) * FMIntegerTypeCount + FMUInt64, right, right, size);
         }
-        var op = convert(usize, n.op) *5;
-        op = op + 64;
+        var op = convert(usize, n.op) * FMIntegerTypeCount;
+        op = op + FMIntegerBinaryBase;
         op = op + fm_tag(&input.type);
         if semantic_float(&input.type) {
             op = convert(usize, n.op) + (input.type.scalar == SF32 ? FMFloat32BinaryBase : FMFloat64BinaryBase);
@@ -847,22 +844,15 @@ fn fm_offset(f: FMState*, pc: usize): usize {
 }
 
 fn fm_mask(tag: usize): u64 {
-    var small = tag == 0;
-    if small {
-        return 255;
-    }
-    small = tag < 3;
-    if small {
-        return 4294967295;
-    }
-    return 18446744073709551615;
+    var width = IntegerLongWidth;
+    if tag == FMUInt8 || tag == FMInt8 { width = IntegerByteWidth; }
+    if tag == FMUInt16 || tag == FMInt16 { width = IntegerShortWidth; }
+    if tag == FMUInt32 || tag == FMInt32 { width = IntegerWordWidth; }
+    return ~convert(u64, 0) >> (IntegerLongWidth - width);
 }
 
 fn fm_sign(value: u64, tag: usize): i64 {
-    if tag == 2 {
-        return convert(i64, bits(i32, convert(u32, value)));
-    }
-    return bits(i64, value);
+    return im_sign_mask(value, fm_mask(tag));
 }
 
 fn fm_binary(m: IMState*, opcode: usize, x: u64, y: u64): u64 {
@@ -871,13 +861,11 @@ fn fm_binary(m: IMState*, opcode: usize, x: u64, y: u64): u64 {
         var base = wide ? FMFloat64BinaryBase : FMFloat32BinaryBase;
         return tower_float_binary(x, y, convert(u32, opcode - base), wide ? Float64Width : Float32Width);
     }
-    var instruction = opcode -64;
-    var op = instruction / 5;
-    var tag = instruction % 5;
+    var instruction = opcode - FMIntegerBinaryBase;
+    var op = instruction / FMIntegerTypeCount;
+    var tag = instruction % FMIntegerTypeCount;
     var mask = fm_mask(tag);
-    var signed = tag == 2;
-    var wide_signed = tag == 4;
-    signed = im_or(signed, wide_signed);
+    var signed = tag == FMInt8 || tag == FMInt16 || tag == FMInt32 || tag == FMInt64;
     var result = im_binary_scalar(m, convert(u32, op), x, y, mask, signed, 0);
     result = result & mask;
     return result;
@@ -938,7 +926,7 @@ export fn fast_interpreter_step(m: IMState*, f: FMState*, budget: usize): void {
             m.done = true;
             continue;
         }
-        if op >= 64 {
+        if op >= FMIntegerBinaryBase {
             r[a] = fm_binary(m, op, r[b], r[c]);
         }
         else {

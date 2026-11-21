@@ -66,21 +66,15 @@ fn bi_print(c: BackendImport*, value: void*, code: u32): void {
         bi_append(c, c.block, printed);
         return;
     }
-    var scalar = code;
-    if code == 3 {
-        value = bi_cast(c, value, 8, false);
+    if code == SVoid {
+        value = bi_cast(c, value, SUSize, false);
         value = bi_cast(c, value, BackendImportPointer, true);
     } else {
-        var signed = code == 0;
-        if signed {
-            value = bi_cast(c, value, 1, false);
-            value = bi_cast(c, value, 0, true);
-        } else {
-            signed = code == 6;
-            value = bi_cast(c, value, scalar, signed);
-        }
+        var unsigned = semantic_unsigned_scalar(code);
+        value = bi_cast(c, value, unsigned, false);
+        if unsigned != code { value = bi_cast(c, value, code, true); }
     }
-    var entity = bi_node(c, 17, 3);
+    var entity = bi_node(c, KPrint, SVoid);
     var n = sem_get(entity);
     n.value = value;
     bi_append(c, c.block, entity);
@@ -114,7 +108,8 @@ fn bi_float_type(c: BackendImport*, width: u32): u32 {
 }
 
 fn bi_float_integer_type(c: BackendImport*, width: u32, signed: bool): u32 {
-    if width == 8 && !signed { return SU8; }
+    if width == IntegerByteWidth { return signed ? SI8 : SU8; }
+    if width == IntegerShortWidth { return signed ? SI16 : SU16; }
     if width == Float32Width { return signed ? SI32 : SU32; }
     if width == Float64Width { return signed ? SI64 : SU64; }
     backend_fail(c.backend, "Unsupported floating integer conversion width");
@@ -139,7 +134,7 @@ fn bi_float_call(c: BackendImport*, instruction: void*, name: u8*): void* {
     var result: void* = null;
     if backend_equal(name, "tower_strict_float_from_integer") {
         var integer = bi_float_integer_type(c, width, bi_float_parameter(c, instruction, 2) != 0);
-        var unsigned = integer == SI32 ? SU32 : (integer == SI64 ? SU64 : integer);
+        var unsigned = semantic_unsigned_scalar(integer);
         input = bi_cast(c, bi_cast(c, input, unsigned, false), integer, true);
         var scalar = bi_float_type(c, bi_float_parameter(c, instruction, 3));
         result = bi_cast(c, input, scalar, false);
@@ -151,7 +146,8 @@ fn bi_float_call(c: BackendImport*, instruction: void*, name: u8*): void* {
         } else {
             var integer = bi_float_integer_type(c, destination, bi_float_parameter(c, instruction, 3) != 0);
             result = bi_cast(c, input, integer, false);
-            if integer == SI32 || integer == SI64 { result = bi_cast(c, result, integer == SI32 ? SU32 : SU64, true); }
+            var unsigned = semantic_unsigned_scalar(integer);
+            if unsigned != integer { result = bi_cast(c, result, unsigned, true); }
         }
     }
     return bi_float_pack(c, result);

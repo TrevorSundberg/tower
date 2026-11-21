@@ -676,7 +676,7 @@ fn sem_surface(c: SemanticContext*, n: void*, expected_type: FoundationType*): v
                     if text[index] < SurfaceFirstDigit || text[index] > SurfaceLastDigit { literal = false; break; }
                 }
                 if literal {
-                    var storage = sem_type_new(c, type.scalar == SI32 ? SU32 : SU64, 0, null);
+                    var storage = sem_type_new(c, semantic_unsigned_scalar(type.scalar), 0, null);
                     var magnitude = sem_operand(c, right, storage);
                     if !sem_ok(c) { return n; }
                     var maximum = semantic_mask(type) >> 1;

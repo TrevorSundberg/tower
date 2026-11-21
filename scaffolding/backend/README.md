@@ -30,7 +30,10 @@ Fast source execution and `.towerbc` generation use the standard path:
 foundation graph → LLVM → upstream scalar passes → foundation graph → private
 execution cache. `backend_optimize_interpreter` uses explicit 32/64-bit VM
 layout and `function(sroa,mem2reg),default<O2>,function(lower-switch)`, with
-verification and loop/SLP vectorization disabled. The pass manager receives no
+verification and loop/SLP vectorization disabled. LLVM 19/20's `default<O2>`
+parser resets vectorization options, so this profile also marks its private
+functions `noimplicitfloat` to prevent implicit SIMD. Native target emission
+keeps its separate vectorizing pipeline. The pass manager receives no
 host target machine. `--no-optimize` and the web
 optimization control disable passes while retaining exactly the same bridge.
 

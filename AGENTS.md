@@ -84,6 +84,12 @@ Do NOT modify todo.txt
 
 ## Writing Tower code
 
+- Use `i8`/`u8` and `i16`/`u16` for signed/unsigned byte and short storage when
+  those widths describe the data or foreign contract. Keep wider counters and
+  intermediates where required; Tower does not apply C integer promotions.
+  Use explicit checked `convert` or same-width `bits` as appropriate. See
+  docs/narrow-integers.md and publish the compatible bootstrap before adoption
+  in compiler/build sources.
 - Use the correct concrete type for values, parameters, returns and pointers.
   Avoid `void*` when the pointee type is known; preserve type information through
   helpers and containers instead of erasing it and repeatedly casting it back.

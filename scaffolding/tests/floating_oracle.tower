@@ -6,6 +6,7 @@ import .compiler.execution_session;
 import .compiler.semantic_program_types;
 import .library.bytes_types;
 import .library.bytes_interface;
+import .compiler.foundation_tags;
 
 extern fn host_json_unsigned(out: ByteBuffer*, value: u64): bool;
 
@@ -25,7 +26,9 @@ fn floating_oracle_tests(modules: void*): void {
             var session: ExecutionSession = default;
             execution_compile(&session, execution_semantic_valid(index), width, modules);
             execution_check(execution_graph_hash_projection(&session.program, true) == execution_semantic_integer_hash(index, width),
-                "Every previous integer graph field/edge is unchanged after excluding exactly the two new built-in type entries");
+                "Every previous integer graph field/edge is unchanged after excluding the added built-in type entries");
+            execution_check(execution_graph_hash_builtins(&session.program, SI8) == execution_semantic_float_hash(index, width),
+                "Every previous floating-era graph field/edge is unchanged after excluding exactly i8/i16/u16 registry entries");
             floating_oracle_number(execution_graph_hash(&session.program));
             execution_session_close(&session);
         }
@@ -37,6 +40,8 @@ fn floating_oracle_tests(modules: void*): void {
         execution_check(execution_session_compile_sources(&session, &inputs[0], 2, width, modules), "Multifile oracle compilation");
         var wanted: u64 = width == 4 ? 2510591834063832804 : 17056953736380698224;
         execution_check(execution_graph_hash_projection(&session.program, true) == wanted, "Multifile integer graph unchanged");
+        wanted = width == 4 ? 6641099657036002744 : 10990785931555110124;
+        execution_check(execution_graph_hash_builtins(&session.program, SI8) == wanted, "Multifile floating-era graph unchanged");
         floating_oracle_number(execution_graph_hash(&session.program));
         execution_session_close(&session);
     }

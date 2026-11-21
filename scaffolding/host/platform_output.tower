@@ -23,7 +23,7 @@ export fn runtime_format_value(output: u8*, capacity: usize, kind: u32, value: u
         copy(output, &buffer[0], length);
         return length;
     }
-    if kind == 2 {
+    if kind == SBool {
         if value != 0 {
             copy(&buffer[0], "true\n", 5);
             length = 5;
@@ -32,7 +32,7 @@ export fn runtime_format_value(output: u8*, capacity: usize, kind: u32, value: u
             length = 6;
         }
     } else {
-        if kind == 3 {
+        if kind == SVoid {
             var valid = pointer_bytes == 4;
             valid ||= pointer_bytes == 8;
             if !valid {
@@ -55,24 +55,20 @@ export fn runtime_format_value(output: u8*, capacity: usize, kind: u32, value: u
                 value = value / 16;
             }
         } else {
-            var narrow = kind == 0;
-            var negative = false;
-            if narrow {
-                value = value & 4294967295;
-                negative = value >= 2147483648;
-            } else {
-                if kind == 6 {
-                    negative = value >= 9223372036854775808;
-                }
-            }
+            var width = IntegerLongWidth;
+            if kind == SI8 { width = IntegerByteWidth; }
+            if kind == SI16 { width = IntegerShortWidth; }
+            if kind == SI32 { width = IntegerWordWidth; }
+            var mask = ~convert(u64, 0) >> (IntegerLongWidth - width);
+            value &= mask;
+            var signed = kind == SI8 || kind == SI16 || kind == SI32 || kind == SI64;
+            var negative = signed && value > (mask >> 1);
             if negative {
                 buffer[0] = 45;
                 length = 1;
                 var zero: u64 = 0;
                 value = zero - value;
-                if narrow {
-                    value = value & 4294967295;
-                }
+                value &= mask;
             }
             var digits: u8[24];
             var count: usize = 0;

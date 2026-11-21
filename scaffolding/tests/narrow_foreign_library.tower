@@ -1,0 +1,5 @@
+import tower;
+
+export fn i8_add(a: i8, b: i8): i8 { return a + b; }
+export fn i16_add(a: i16, b: i16): i16 { return a + b; }
+export fn u16_add(a: u16, b: u16): u16 { return a + b; }

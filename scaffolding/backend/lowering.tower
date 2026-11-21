@@ -98,18 +98,11 @@ fn backend_float_conversion(b: Backend*, n: FoundationNode*, from: FoundationTyp
 }
 
 fn backend_narrow(t: FoundationType*): bool {
-    var scalar = t.pointers == 0;
-    var byte = t.scalar == SU8;
-    if t.scalar == SBool {
-        byte = true;
-    }
-    var result = scalar;
-    result &&= byte;
-    return result;
+    return t.pointers == 0 && t.scalar != SVoid && !semantic_aggregate(t) && semantic_width(t) < IntegerWordWidth;
 }
 
-fn backend_zext_attribute(b: Backend*, value: void*, index: u32, call: bool): void {
-    var kind = LLVMGetEnumAttributeKindForName("zeroext", 7);
+fn backend_extension_attribute(b: Backend*, value: void*, index: u32, call: bool, signed: bool): void {
+    var kind = LLVMGetEnumAttributeKindForName(signed ? "signext" : "zeroext", 7);
     var attribute = LLVMCreateEnumAttribute(b.context, kind, 0);
     if call {
         LLVMAddCallSiteAttribute(value, index, attribute);
@@ -127,7 +120,7 @@ fn backend_abi(b: Backend*, value: void*, n: FoundationNode*, call: bool): void 
     if public {
         var narrow = backend_narrow(&n.type);
         if narrow {
-            backend_zext_attribute(b, value, 0, call);
+            backend_extension_attribute(b, value, 0, call, semantic_signed(&n.type));
         }
         var i: usize = 0;
         for(; i != n.parameters.length; i++) {
@@ -135,7 +128,7 @@ fn backend_abi(b: Backend*, value: void*, n: FoundationNode*, call: bool): void 
             narrow = backend_narrow(&parameter.type);
             if narrow {
                 var index = convert(u32, i) + 1;
-                backend_zext_attribute(b, value, index, call);
+                backend_extension_attribute(b, value, index, call, semantic_signed(&parameter.type));
             }
         }
     }

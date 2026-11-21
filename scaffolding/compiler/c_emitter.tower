@@ -81,7 +81,7 @@ fn ce_name(c: CEmitter*, node: void*, prefix: u8*): void {
 }
 
 fn ce_reserved(name: vector(u8)*): bool {
-    var words = "auto break case char const continue default do double else enum extern float for goto if int long register return short signed sizeof static struct switch typedef union unsigned void volatile while asm bool catch class delete explicit export false friend inline mutable namespace new operator private protected public reinterpret_cast static_cast dynamic_cast const_cast template this throw true try typeid typename using virtual wchar_t and and_eq bitand bitor compl not not_eq or or_eq xor xor_eq alignas alignof char16_t char32_t constexpr decltype noexcept nullptr static_assert thread_local main uint8_t uint32_t uint64_t int32_t int64_t uintptr_t size_t NULL UINT64_C UINT64_MAX INT64_MAX INT64_MIN UINT32_MAX INT32_MAX INT32_MIN SIZE_MAX CHAR_BIT stdout stderr fputs fputc putchar puts printf exit memcpy memmove memset malloc realloc free fwrite _setmode _fileno";
+    var words = "auto break case char const continue default do double else enum extern float for goto if int long register return short signed sizeof static struct switch typedef union unsigned void volatile while asm bool catch class delete explicit export false friend inline mutable namespace new operator private protected public reinterpret_cast static_cast dynamic_cast const_cast template this throw true try typeid typename using virtual wchar_t and and_eq bitand bitor compl not not_eq or or_eq xor xor_eq alignas alignof char16_t char32_t constexpr decltype noexcept nullptr static_assert thread_local main uint8_t uint16_t uint32_t uint64_t int8_t int16_t int32_t int64_t uintptr_t size_t NULL UINT64_C UINT64_MAX INT64_MAX INT64_MIN UINT32_MAX INT32_MAX INT32_MIN SIZE_MAX CHAR_BIT stdout stderr fputs fputc putchar puts printf exit memcpy memmove memset malloc realloc free fwrite _setmode _fileno";
     var at: usize = 0;
     loop {
         if words[at] == 0 {
@@ -250,8 +250,12 @@ fn ce_type(c: CEmitter*, t: FoundationType*): void {
         ce_text(c, "uint8_t");
         return;
     }
-    if t.scalar == SU8 {
+    if t.scalar == SU8 || t.scalar == SI8 {
         ce_text(c, "uint8_t");
+        return;
+    }
+    if t.scalar == SI16 || t.scalar == SU16 {
+        ce_text(c, "uint16_t");
         return;
     }
     if t.scalar == SI32 {
@@ -495,10 +499,10 @@ fn ce_prepare_address(c: CEmitter*, entity: void*): void {
 fn ce_signed_value(c: CEmitter*, entity: void*): void {
     var n = sem_get(entity);
     if semantic_signed(&n.type) {
-        ce_text(c, "tc_s");
-        ce_suffix(c, &n.type);
-        ce_text(c, "(");
+        ce_text(c, "tc_signed(");
         ce_temp(c, entity);
+        ce_text(c, ", ");
+        ce_suffix(c, &n.type);
         ce_text(c, ")");
     }
     else {

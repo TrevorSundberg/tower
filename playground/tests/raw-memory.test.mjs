@@ -94,7 +94,8 @@ test('external host implementations receive scalar values and actual byte views'
     wide: (_ctx, value) => value + 1n,
   };
   imports.f32_add = imports.f64_add = imports.add;
-  const source = (await read('scaffolding/tests/floating_foreign.tower')).toString() + 'extern fn add(a: i32, b: i32): i32; extern fn mutate(p: i32*, n: usize): void; extern fn wide(x: u64): u64; var a: i32* = alloc(i32, 2); mutate(a, 2); var sum: i32 = add(a[0], a[1]); print(sum); var large: u64 = wide(18446744073709551614); print(large); free(a);';
+  imports.i8_add = imports.i16_add = imports.u16_add = imports.add;
+  const source = (await read('scaffolding/tests/floating_foreign.tower')).toString() + (await read('scaffolding/tests/narrow_foreign.tower')).toString() + 'extern fn add(a: i32, b: i32): i32; extern fn mutate(p: i32*, n: usize): void; extern fn wide(x: u64): u64; var a: i32* = alloc(i32, 2); mutate(a, 2); var sum: i32 = add(a[0], a[1]); print(sum); var large: u64 = wide(18446744073709551614); print(large); free(a);';
   const interpreter = await loadTower(bytes, undefined, grammar, undefined, undefined, {imports});
   const h = interpreter.compile(source);
   try { const result = interpreter.execute(h); assert.equal(result.output, '42\n18446744073709551615\n', result.error); }

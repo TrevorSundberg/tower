@@ -150,10 +150,7 @@ fn sem_lift_shift(c: SemanticContext*, block: void*, left: void*, right: void*, 
     if operation == SurfaceShiftUnsigned && semantic_signed(&input.type) {
         var original = &input.type;
         var type = sem_type_copy(c, original);
-        type.scalar = SU32;
-        if original.scalar == SI64 {
-            type.scalar = SU64;
-        }
+        type.scalar = semantic_unsigned_scalar(original.scalar);
         var converted = sem_control_node(c, block, KBits);
         sem_get(converted).value = left;
         sem_set_type(&sem_get(converted).type, type);

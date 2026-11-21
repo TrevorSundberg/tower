@@ -98,7 +98,10 @@ fn execution_roundtrip(original: ExecutionSession*, modules: void*, structural: 
         var item = root.items.data[i];
         execution_check(sem_get(item) != null && entity_component_get(item, parser_match_get_type()) != null, "semantics enrich original parser entities");
     }
-    execution_run(&round, 7, 10000);
+    // Rich fixtures can exceed the original tiny-program budget. Bound their
+    // replay using the already completed graph execution, with lowering slack.
+    var replay_limit = convert(usize, original.machine.steps) * 2 + 10000;
+    execution_run(&round, 7, replay_limit);
     execution_check(execution_equal(&original.output, &round.output) && execution_equal(&original.error, &round.error), "round trip preserves execution");
     execution_session_close(&round);
     format_dispose(&text);

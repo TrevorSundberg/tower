@@ -37149,3 +37149,72 @@ and three driver-test build steps pass. The fresh successor SHA-256 is
 the checked-in bootstrap remains 1a5b588. CTest tower-driver passes in 9.85 seconds
 and tower-driver-module-paths in 3.07 seconds against this successor. Reuse the
 earlier platform-object and fixture-cleanup checks, whose inputs are unchanged.
+### 2026-11-21: complete byte/short scalar values in Tower
+
+The user's next milestone follows published floats and integer negation. Pulled
+main from cb1f340 to d5412d0 before editing, preserving the new structural-local
+worker queries and Tower compiler-verification tool. Selected the remaining
+i8/i16/u16 gap ahead of first-class functions: compact storage, binary formats
+and ordinary foreign short/byte signatures benefit immediately. u8 already
+existed. Foundation/Bedrock grammars are unchanged; ordinary type lookup receives
+three new entries, with existing tags preserved. Compiler/runtime/tests are
+Tower; small existing JavaScript ABI/version/fixture transports were extended.
+todo.txt is unchanged.
+
+Shared width, signedness, layout and unsigned-counterpart queries now cover all
+integer widths. Exact signed-minimum magnitudes, logical right shift, checked
+conversions and staged evaluation reuse the existing operations/interpreter.
+No alternate constant folder, mutable cross-worker table or semantic IR was
+introduced. The execution cache now has eight integer tags; its private opcode
+layout and semantics versions advance to 4, container version stays 1. Canonical
+Foundation remains authoritative and cache validation/reconstruction is required.
+Native/Wasm signatures use the existing scalar ABI extension path, selecting
+signext or zeroext consistently for calls/declarations/definitions. The LLVM
+[parameter attribute contract](https://www.llvm.org/docs/LangRef.html#parameter-attributes)
+is the reference; actual cross-object Tower tests establish only the exercised
+platforms, not universal C ABI compatibility.
+
+The first new fixture failed eight short checks while every byte-pattern check
+passed. A reduced output fixture showed two apparently equal i16 values comparing
+unequal. Root cause: ix_load_size/ix_write_size had specialized 1/4/8-byte paths;
+size 2 fell through into eight-byte access after validating only two guest bytes.
+Added an exact two-byte early return in both shared paths. Explicit unaligned
+neighbor-sentinel, array/struct/container and pointer-stride cases cover this.
+Both graph and cached execution now agree on the full target memory image.
+The exhaustive-byte fixture also exceeded old small-test replay budgets; bounded
+round-trip/package replay now derives its budget from the completed graph run.
+This was a harness limit, distinct from the memory defect.
+
+LLVM reconstruction found a second pre-existing assumption: default<O2> in LLVM
+19/20 resets loop/SLP vectorization options even after the C API disables them.
+The narrow foreach reduction produced <2 x i16> on the intended scalar VM profile
+and was correctly rejected by its scalar importer. Confirmed in upstream
+PassBuilder.cpp (PTO assignments in the default pipeline parser) and vectorizer
+sources. The private reconstruction profile now adds noimplicitfloat to its
+functions, which the loop/SLP vectorizers explicitly honor for implicit SIMD.
+It retains O2 scalar passes and strict floating helper calls. Native target
+emission keeps its separate vectorizing pipeline; the same fixture's native
+LLVM output contains a vectorized <8 x i16> reduction. This is an observed
+eligible loop, not a general vectorization guarantee or a new public vector type.
+
+C emission now uses width-driven signed decoding, checked conversion and division
+overflow checks, with exact two-byte loads/stores and signed narrow signatures.
+Roku already had generic masks/sign extension; corrected population counting to
+include a partial 16-bit limb (also fixes its pre-existing byte case). The private
+host text-print discriminator moved outside scalar tags to avoid colliding with
+i8. Browser foreign arguments decode i8/i16/u16 exactly at the host boundary.
+
+Validation so far: smallest changed units compiled before frozen-input native
+builds. /cache/narrow-native/tower-execution-tests /work/scaffolding narrow passes
+both widths, graph/cache output/error/memory agreement, boundaries, checked traps,
+ordinary staging, Foundation stability, package verification/re-encoding and
+1/2/4/8-worker canonical equivalence. Full execution suite passes. The oracle
+projection reproduces every old integer-era and floating-era graph field/edge
+fingerprint after excluding only added built-in registry entries; complete-tree
+fingerprints were updated only after that proof. run-guest-runtime.mjs passes
+both new integer/float-conversion fixtures through 32/64-bit interpretation,
+native execution and Wasm execution. Separately compiled narrow scalar provider
+and caller link/run on Linux. Raw and optimized emitted C pass strict Clang C89;
+optimized C passes GCC C89 too. Logs include build/narrow-{native,tests,all,
+oracle,backend-build,browser-build}.log. Browser, fresh bootstrap and publication
+validation are pending; this entry is not a publication receipt.

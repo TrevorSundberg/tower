@@ -219,7 +219,7 @@ fn execution_semantic_integer_hash(index: usize, width: u32): u64 {
 // The floating-oracle audit reproduced every preceding fingerprint after
 // excluding exactly the f32/f64 registry entries. These complete fingerprints
 // include both new entries and retain all semantic fields, bindings and order.
-fn execution_semantic_hash(index: usize, width: u32): u64 {
+fn execution_semantic_float_hash(index: usize, width: u32): u64 {
     if index == 0 { return width == 4 ? 15340892500092396181 : 8083663960729913337; }
     if index == 1 { return width == 4 ? 14298020940744023439 : 14781124476609120507; }
     if index == 2 { return width == 4 ? 171869663777765144 : 433206745296736708; }
@@ -232,5 +232,23 @@ fn execution_semantic_hash(index: usize, width: u32): u64 {
     if index == 9 { return width == 4 ? 4600714848320353357 : 2186297522259895161; }
     if index == 10 { return width == 4 ? 10108536397841907695 : 15113008673131018579; }
     if index == 11 { return width == 4 ? 16289861219645668247 : 13283064529737934655; }
+    return 0;
+}
+
+fn execution_semantic_hash(index: usize, width: u32): u64 {
+    // Audit reproduced both preceding baselines excluding only added registry
+    // entries. Normal checks include every new type, field, binding and edge.
+    if index == 0 { return width == 4 ? 17550851546206296197 : 10694640083919068125; }
+    if index == 1 { return width == 4 ? 2234088534281509825 : 9129112241312349249; }
+    if index == 2 { return width == 4 ? 18185131383907750840 : 2904669142694659416; }
+    if index == 3 { return width == 4 ? 2880726899043837645 : 10582045715535700665; }
+    if index == 4 { return width == 4 ? 330986916191907497 : 17945632760938876341; }
+    if index == 5 { return width == 4 ? 10213527022041557251 : 12538210409673468379; }
+    if index == 6 { return width == 4 ? 670029869445582155 : 7381383192835097783; }
+    if index == 7 { return width == 4 ? 8209067815612241625 : 4842515660881683589; }
+    if index == 8 { return width == 4 ? 9771902353399349455 : 3148393235840226915; }
+    if index == 9 { return width == 4 ? 4924511262006142162 : 13912325952195888562; }
+    if index == 10 { return width == 4 ? 6992508449529175351 : 15935479689016841631; }
+    if index == 11 { return width == 4 ? 5107321194815912695 : 4904938985419661075; }
     return 0;
 }

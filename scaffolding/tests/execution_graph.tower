@@ -35,13 +35,13 @@ fn execution_graph_text(hash: u64*, text: u8*, length: usize): void {
     execution_graph_word(hash, convert(u64, length));
     for (var i: usize = 0; i < length; i++) { execution_graph_word(hash, convert(u64, text[i])); }
 }
-fn execution_graph_float_builtin(entity: void*): bool {
+fn execution_graph_new_builtin(entity: void*, first_omitted_scalar: u32): bool {
     var node = sem_get(entity);
     return node != null && node.kind == KType && node.type.pointers == 0 && node.type.record == null &&
-        (node.type.scalar == SF32 || node.type.scalar == SF64);
+        node.type.scalar >= first_omitted_scalar;
 }
 
-fn execution_graph_hash_projection(program: SemanticProgram*, omit_float_registry: bool): u64 {
+fn execution_graph_hash_builtins(program: SemanticProgram*, first_omitted_scalar: u32): u64 {
     var nodes: vector(void*);
     vector_init(void*, &nodes);
     defer vector_dispose(void*, &nodes);
@@ -49,7 +49,7 @@ fn execution_graph_hash_projection(program: SemanticProgram*, omit_float_registr
     for (var i: usize = 0; i < nodes.length; i++) {
         for (var j: usize = 0; j < entity_child_count(nodes.data[i]); j++) {
             var child = entity_child_at(nodes.data[i], j);
-            if !omit_float_registry || !execution_graph_float_builtin(child) {
+            if !execution_graph_new_builtin(child, first_omitted_scalar) {
                 execution_check(vector_push(&nodes, child), "graph evidence storage");
             }
         }
@@ -62,7 +62,7 @@ fn execution_graph_hash_projection(program: SemanticProgram*, omit_float_registr
     var types: vector(void*) = default;
     defer vector_dispose(&types);
     foreach(var type in &program.types) {
-        if !omit_float_registry || !execution_graph_float_builtin(type) {
+        if !execution_graph_new_builtin(type, first_omitted_scalar) {
             execution_check(vector_push(&types, type), "graph registry evidence storage");
         }
     }
@@ -105,5 +105,9 @@ fn execution_graph_hash_projection(program: SemanticProgram*, omit_float_registr
 }
 
 fn execution_graph_hash(program: SemanticProgram*): u64 {
-    return execution_graph_hash_projection(program, false);
+    return execution_graph_hash_builtins(program, FoundationScalarLimit);
+}
+
+fn execution_graph_hash_projection(program: SemanticProgram*, omit_float_registry: bool): u64 {
+    return execution_graph_hash_builtins(program, omit_float_registry ? SF32 : FoundationScalarLimit);
 }

@@ -10,6 +10,9 @@ export function foreignArgument(value, type, pointerBytes = 4) {
   if (type === 'u64') return BigInt.asUintN(64, bits);
   if (pointerBytes === 8 && (type === 'usize' || type.endsWith('*'))) return BigInt.asUintN(64, bits);
   if (type === 'i32') return Number(BigInt.asIntN(32, bits));
+  if (type === 'i8') return Number(BigInt.asIntN(8, bits));
+  if (type === 'i16') return Number(BigInt.asIntN(16, bits));
+  if (type === 'u16') return Number(BigInt.asUintN(16, bits));
   return Number(BigInt.asUintN(type === 'u8' || type === 'bool' ? 8 : 32, bits));
 }
 export function foreignResult(value, type) {

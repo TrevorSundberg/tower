@@ -1,0 +1,21 @@
+import tower;
+
+var byte: i8 = -128;
+var short: i16 = -32768;
+var unsigned: u16 = 65535;
+print(byte);
+print(short);
+print(unsigned);
+print(bits(u16, short));
+var a: i16 = 256;
+a *= 128;
+print(a);
+print(bits(u16, a));
+print(a == short);
+var remainder: i16 = -32767;
+remainder %= 3;
+print(remainder);
+print(short >> 15);
+print(short >>> 15);
+print(-unsigned);
+print(convert(i16, byte));

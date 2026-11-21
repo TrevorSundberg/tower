@@ -268,6 +268,16 @@ export fn backend_import_foundation(b: Backend*, root: void*): bool {
 
 export fn backend_optimize_interpreter(b: Backend*, optimize: bool): bool {
     if optimize {
+        // LLVM 19/20's default<O2> parser resets vectorizer tuning options.
+        // This scalar reconstruction profile also forbids implicit SIMD on each
+        // function. Ordinary target emission retains its vectorizing pipeline.
+        var kind = LLVMGetEnumAttributeKindForName("noimplicitfloat", 15);
+        var attribute = LLVMCreateEnumAttribute(b.context, kind, 0);
+        var function = LLVMGetFirstFunction(b.module);
+        while function != null {
+            LLVMAddAttributeAtIndex(function, BackendFunctionAttributeIndex, attribute);
+            function = LLVMGetNextFunction(function);
+        }
         var options = LLVMCreatePassBuilderOptions();
         LLVMPassBuilderOptionsSetVerifyEach(options, BackendVerifyEach);
         LLVMPassBuilderOptionsSetLoopVectorization(options, 0);

@@ -1,0 +1,86 @@
+import tower;
+import library.vector;
+
+var failures: u32 = 0;
+var BytePatterns: u32 = 256;
+var ByteSign: u32 = 128;
+var ByteMaximum: u32 = 255;
+extern fn platform_write(stream: u32, data: u8*, length: usize): u64;
+fn check(condition: bool, message: u8*): void {
+    if !condition {
+        var length: usize = 0;
+        while message[length] != 0 { length++; }
+        platform_write(1, message, length);
+        print("");
+        failures++;
+    }
+}
+export fn narrow_add(a: i8, b: i8): i8 { return a + b; }
+export fn narrow_short(a: i16, b: i16): i16 { return a * b; }
+export fn narrow_unsigned(a: u16, b: u16): u16 { return a + b; }
+export fn narrow_div(a: i8, b: i8): i8 { return a / b; }
+export fn narrow_rem(a: i16, b: i16): i16 { return a % b; }
+fn minimum(): i16 { return -(32768); }
+check(sizeof(i8) == 1 && alignof(i8) == 1, "byte layout");
+check(sizeof(i16) == 2 && sizeof(u16) == 2 && alignof(i16) == 2, "short layout");
+var low: i8 = -(128);
+var high: i8 = 127;
+var low_short: i16 = -32768;
+var high_short: i16 = 32767;
+var unsigned_short: u16 = 65535;
+check(convert(i64, low) == -128 && convert(i32, low_short) == -32768, "signed widening");
+check(narrow_add(high, 1) == low && narrow_add(low, -1) == high, "signed byte wrap");
+check(narrow_short(256, 128) == low_short, "short multiplication wrap");
+check(narrow_unsigned(unsigned_short, 1) == 0, "unsigned short wrap");
+check(narrow_div(-127, 3) == -42 && narrow_rem(-32767, 3) == -1, "signed division rounding");
+check(comptime(minimum()) == low_short, "minimum stages through ordinary interpreter");
+check(bits(u8, low) == 128 && bits(u16, low_short) == 32768, "signed bit storage");
+check((low >>> 7) == 1 && (low >> 7) == -1 && (low << 8) == low, "byte shifts");
+check((low_short >>> 15) == 1 && (low_short >> 15) == -1 && (low_short << 16) == low_short, "short shifts");
+check(unsigned_short++ == 65535 && unsigned_short == 0 && --unsigned_short == 65535, "unsigned modify");
+check(high++ == 127 && high == low && --high == 127, "signed modify");
+high_short += 1;
+check(high_short == low_short, "compound wrap");
+var zero: u16 = -0;
+check(zero == 0 && -unsigned_short == 1, "unsigned negation");
+// Compare every byte pattern against wider arithmetic; exported calls exercise
+// actual narrow argument/return contracts as well as the shared interpreter.
+for (var pattern: u32 = 0; pattern < BytePatterns; pattern++) {
+    var byte = bits(i8, convert(u8, pattern));
+    var signed: i32 = convert(i32, pattern);
+    if pattern >= ByteSign { signed -= convert(i32, BytePatterns); }
+    check(convert(i32, byte) == signed, "exhaustive signed decode");
+    check(convert(u32, bits(u8, narrow_add(byte, 17))) == ((pattern + 17) & ByteMaximum), "exhaustive byte add");
+    check(convert(i32, narrow_div(byte, 3)) == signed / 3, "exhaustive byte divide");
+    check(convert(u32, bits(u8, ~byte)) == (pattern ^ ByteMaximum), "exhaustive complement");
+    check(convert(i32, byte >> 3) == signed >> 3, "exhaustive arithmetic shift");
+}
+struct Packet { tag: i8; code: u16; delta: i16; }
+fn packet(): Packet { return { tag: -7, code: 60000, delta: -1234 }; }
+var value = packet();
+var copy = value;
+value.delta = 0;
+check(sizeof(Packet) == 6 && alignof(Packet) == 2, "mixed narrow struct layout");
+check(copy.tag == -7 && copy.code == 60000 && copy.delta == -1234, "by-value narrow members");
+var values: i16[3];
+values[0] = low_short; values[1] = 17; values[2] = -9;
+var end = &values[2];
+check(end[-2] == low_short && end[-1] == 17, "signed pointer index and two-byte stride");
+var heap = alloc(u16, 2);
+heap[0] = 50000; heap[1] = 40000;
+check(heap[0] + heap[1] == 24464, "raw short loads and stores");
+free(heap);
+var sentinel: u8 = 90;
+var raw: u8[4];
+fill(&raw[0], sentinel, sizeof(u8[4]));
+var unaligned = bits(i16*, &raw[1]);
+*unaligned = -1234;
+check(raw[0] == sentinel && raw[3] == sentinel && *unaligned == -1234, "two-byte unaligned access preserves neighbors");
+var collection: vector(i8) = default;
+vector_push(&collection, -100); vector_push(&collection, 70);
+var sum: i16 = 0;
+foreach (var item in &collection) { sum += convert(i16, item); }
+vector_dispose(&collection);
+check(sum == -30, "narrow generic storage and iteration");
+print(failures);
+if failures != 0 { trap("Narrow integer tests failed", failures); }

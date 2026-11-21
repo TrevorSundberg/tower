@@ -21,7 +21,8 @@ fn floating_package(graph: ExecutionSession*, modules: void*): void {
     defer execution_session_close(&loaded);
     execution_check(execution_package_encode(&graph.program, modules, 0, &bytes, &error), "Floating package encodes");
     execution_check(execution_package_load(&loaded, bytes.data, bytes.length, modules), "Floating package reconstructs and verifies cache");
-    execution_run(&loaded, 1000, 100000);
+    var replay_limit = convert(usize, graph.machine.steps) * 2 + 100000;
+    execution_run(&loaded, 1000, replay_limit);
     execution_check(loaded.machine.done && execution_equal(&graph.output, &loaded.output) &&
         execution_equal(&graph.error, &loaded.error), "Floating package preserves execution");
     // Canonical reconstruction can renumber dead generated frame slots. The

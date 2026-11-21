@@ -231,6 +231,7 @@ fn ix_load_size(m: IMExecution*, address: u64, size: usize, offset: usize): u64 
     var lo_1 = convert(u64, p[1]);
     lo_1 = lo_1 * 256;
     lo = lo | lo_1;
+    if size == convert(usize, IntegerShortWidth / IntegerByteWidth) { return lo; }
     var lo_2 = convert(u64, p[2]);
     lo_2 = lo_2 * 65536;
     lo = lo | lo_2;
@@ -274,6 +275,7 @@ fn ix_write_size(m: IMExecution*, address: u64, value: u64, size: usize, offset:
     }
     value = value / 256;
     p[1] = im_byte(value);
+    if size == convert(usize, IntegerShortWidth / IntegerByteWidth) { return; }
     value = value / 256;
     p[2] = im_byte(value);
     value = value / 256;

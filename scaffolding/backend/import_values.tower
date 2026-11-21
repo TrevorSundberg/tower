@@ -23,7 +23,7 @@ fn bi_pow2(width: u32): u64 {
 fn bi_narrow_memory(type: void*): bool {
     if LLVMGetTypeKind(type) == 8 {
         var width = LLVMGetIntTypeWidth(type);
-        var direct = width == 8;
+        var direct = width == IntegerByteWidth || width == IntegerShortWidth;
         if direct {
             return false;
         }
@@ -93,7 +93,7 @@ fn bi_mask(c: BackendImport*, value: void*, type: void*): void* {
         if ordinary {
             return value;
         }
-        ordinary = width == 8;
+        ordinary = width == IntegerByteWidth || width == IntegerShortWidth;
         if ordinary {
             return value;
         }

@@ -2,4 +2,4 @@ import tower;
 
 // Private host print transport: payload is a target byte address and the third
 // argument is its byte count. Text is formatted in Tower before crossing it.
-var RuntimePrintText: u32 = 12;
+var RuntimePrintText: u32 = 256;

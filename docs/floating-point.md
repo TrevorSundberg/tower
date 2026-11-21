@@ -62,7 +62,8 @@ Reparsing reconstructs the floating operand with its exact bits. This also
 preserves NaN payloads, which decimal text cannot express. Optimized LLVM import
 reconstructs the same Foundation arithmetic/conversions from strict runtime calls.
 The `.towerbc` container remains version 1; semantics and execution-cache versions
-are now 3, so older runtimes reject the new cache contract before execution.
+are now 4 after the narrow-integer extension, so older runtimes reject the new
+cache contract before execution. Floating conversions also support i8/i16/u16.
 
 `print` uses Tower decimal conversion, with 9/17 significant digits sufficient
 for round trips. It uses scientific notation, retains a decimal point and zero's

@@ -1,0 +1,18 @@
+import tower;
+
+var failures: u32 = 0;
+fn check(value: bool): void { if !value { failures++; } }
+export fn narrow_byte(value: f32): i8 { return convert(i8, value); }
+export fn narrow_signed(value: f64): i16 { return convert(i16, value); }
+export fn narrow_unsigned(value: f64): u16 { return convert(u16, value); }
+export fn narrow_widen(value: i8): f64 { return convert(f64, value); }
+check(narrow_byte(-128.75) == -128 && narrow_byte(127.99) == 127);
+check(narrow_signed(-32768.9) == -32768 && narrow_signed(32767.9) == 32767);
+check(narrow_unsigned(65535.9) == 65535 && narrow_unsigned(-0.9) == 0);
+check(narrow_widen(-128) == -128.0 && narrow_widen(127) == 127.0);
+var signed: i16 = -32768;
+var unsigned: u16 = 65535;
+check(convert(f32, signed) == -32768.0 && convert(f32, unsigned) == 65535.0);
+check(comptime(narrow_signed(-32768.0)) == signed);
+print(failures);
+if failures != 0 { trap("Narrow floating conversion tests failed", failures); }

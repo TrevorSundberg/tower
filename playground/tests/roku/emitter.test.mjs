@@ -30,7 +30,7 @@ function reference(source) {
 }
 
 for(const optimize of [false,true]) test(`optimized foundation to Roku (${optimize?'O2':'O0'}) executes shared semantics`,{timeout:180000},async()=>{
-  for(const file of ['tests/backend_semantics.tower','examples/functions.tower','examples/structs.tower','examples/memory.tower','examples/collections.tower','examples/match.tower']) {
+  for(const file of ['tests/backend_semantics.tower','tests/narrow_integers.tower','tests/narrow_output.tower','examples/functions.tower','examples/structs.tower','examples/memory.tower','examples/collections.tower','examples/match.tower']) {
     const source=await text('scaffolding/'+file);
     const emitted=compile(source,optimize);
     const expected=reference(source);

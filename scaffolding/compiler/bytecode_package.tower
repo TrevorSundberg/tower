@@ -3,8 +3,8 @@ import fast_interpreter;
 import interpreter;
 
 var BytecodeContainerVersion: u64 = 1;
-var BytecodeSemanticsVersion: u64 = 3;
-var BytecodeExecutionCacheVersion: u64 = 3;
+var BytecodeSemanticsVersion: u64 = 4;
+var BytecodeExecutionCacheVersion: u64 = 4;
 
 // .towerbc v1: portable, versioned distribution envelope. Canonical Foundation
 // is the semantic authority; packed words/constants are a verified execution

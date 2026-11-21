@@ -26,8 +26,8 @@ fn re_runtime(r: RokuEmitter*): void {
     re_text(r, "\n");
     re_text(r, "function tr_popcnt(x as longinteger, width as integer) as longinteger\n");
     re_text(r, "    count = 0&\n");
-    re_text(r, "    for i = 0 to width \\ 16 - 1\n");
-    re_text(r, "        digit% = tr_limb(x, i)\n");
+    re_text(r, "    for i = 0 to (width + 15) \\ 16 - 1\n");
+    re_text(r, "        digit% = tr_limb(tr_mask(x, width), i)\n");
     re_text(r, "        while digit% <> 0\n");
     re_text(r, "            digit% = digit% and (digit% - 1)\n");
     re_text(r, "            count = count + 1&\n");

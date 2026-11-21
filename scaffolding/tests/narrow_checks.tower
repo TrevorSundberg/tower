@@ -1,0 +1,76 @@
+import tower;
+import floating_checks;
+import body_runs;
+import frontend_units;
+import execution_support;
+import execution_core;
+import struct_value_checks;
+import .compiler.execution_session;
+import .library.vector;
+
+fn narrow_trap(modules: void*, source: u8*, message: u8*): void {
+    for (var width: u32 = 4; width <= 8; width += 4) {
+        var graph: ExecutionSession = default;
+        var fast: ExecutionSession = default;
+        defer execution_session_close(&graph);
+        defer execution_session_close(&fast);
+        execution_compile(&graph, source, width, modules);
+        execution_compile(&fast, source, width, modules);
+        execution_check(execution_session_start(&graph) && execution_session_fast(&fast), "Narrow trap engines start");
+        execution_run(&graph, 1000, 100000);
+        execution_run(&fast, 1000, 100000);
+        execution_same(&graph, &fast);
+        execution_check(strstr(graph.error.data, message) != null, "Narrow operation traps with shared diagnostic");
+    }
+}
+
+fn narrow_tests(modules: void*, root: u8*): void {
+    var execution_limit: usize = 1000000;
+    var bedrock: vector(u8) = default;
+    var foundation: vector(u8) = default;
+    defer vector_dispose(&bedrock);
+    defer vector_dispose(&foundation);
+    units_read(root, "/bedrock.tower", &bedrock);
+    units_read(root, "/foundation.tower", &foundation);
+    for (var fixture: usize = 0; fixture < 2; fixture++) {
+        var source: vector(u8) = default;
+        defer vector_dispose(&source);
+        units_read(root, fixture == 0 ? "/tests/narrow_integers.tower" : "/tests/narrow_floats.tower", &source);
+        for (var width: u32 = 4; width <= 8; width += 4) {
+            var graph: ExecutionSession = default;
+            var fast: ExecutionSession = default;
+            defer execution_session_close(&graph);
+            defer execution_session_close(&fast);
+            execution_compile(&graph, source.data, width, modules);
+            execution_compile(&fast, source.data, width, modules);
+            execution_check(execution_session_start(&graph) && execution_session_fast(&fast), "Narrow engines start");
+            execution_run(&graph, 1000, execution_limit);
+            execution_run(&fast, 1000, execution_limit);
+            execution_same(&graph, &fast);
+            execution_check(graph.machine.done && graph.error.length == 0 && execution_text(&graph.output, "0\n"), "Narrow integer fixture passes");
+            floating_package(&graph, modules);
+            execution_roundtrip(&graph, modules, false);
+            var canonical: vector(u8) = default;
+            defer vector_dispose(&canonical);
+            for (var workers: usize = 1; workers <= 8; workers *= 2) {
+                body_runs_trial(source.data, workers, width, bedrock.data, foundation.data, root, &canonical);
+            }
+        }
+    }
+    struct_value_reject(modules, "var x:i8=128;", "Integer literal out of range");
+    struct_value_reject(modules, "import tower;var x:i8=-129;", "Integer literal out of range");
+    struct_value_reject(modules, "var x:i16=32768;", "Integer literal out of range");
+    struct_value_reject(modules, "import tower;var x:i16=-(32769);", "Integer literal out of range");
+    struct_value_reject(modules, "var x:u16=65536;", "Integer literal out of range");
+    struct_value_reject(modules, "import tower;var a:i8=1;var b:i16=2;print(a+b);", "explicit conversion");
+    struct_value_reject(modules, "import tower;print(comptime(convert(i8,128)));", "Numeric conversion out of range");
+    floating_trap(modules, "import tower;var x=128.0;x+=0;print(convert(i8,x));");
+    floating_trap(modules, "import tower;var x=32768.0;x+=0;print(convert(i16,x));");
+    floating_trap(modules, "import tower;var x=65536.0;x+=0;print(convert(u16,x));");
+    narrow_trap(modules, "import tower;var a:i8=-128;a+=0;var b:i8=-1;print(a/b);", "Signed division overflow");
+    narrow_trap(modules, "import tower;var a:i16=-32768;a+=0;var b:i16=-1;print(a%b);", "Signed division overflow");
+    narrow_trap(modules, "import tower;var a:u16=1;a+=0;var b:u16=0;print(a/b);", "Division by zero");
+    narrow_trap(modules, "import tower;var a:i16=-1;a+=0;print(convert(u16,a));", "Numeric conversion out of range");
+    narrow_trap(modules, "import tower;var a:i16=128;a+=0;print(convert(i8,a));", "Numeric conversion out of range");
+    puts("Narrow integers: widths, signedness, layout, staging, cache, round trips and worker determinism pass.");
+}

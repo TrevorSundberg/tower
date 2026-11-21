@@ -16,6 +16,9 @@ catch (error) { if (error.code !== 'ENOENT') throw error; }
 const cases = [
   ['integer negation', (await read('scaffolding/tests/integer_negation.tower')).toString(), '0\n'],
   ['floating values', (await read('scaffolding/tests/floating_point.tower')).toString(), '0\n'],
+  ['narrow integers', (await read('scaffolding/tests/narrow_integers.tower')).toString(), '0\n'],
+  ['narrow floating conversions', (await read('scaffolding/tests/narrow_floats.tower')).toString(), '0\n'],
+  ['narrow output', (await read('scaffolding/tests/narrow_output.tower')).toString(), '-128\n-32768\n65535\n32768\n-32768\n32768\ntrue\n-1\n-1\n1\n1\n-128\n'],
   ['floating output', (await read('scaffolding/tests/floating_output.tower')).toString(), '1.00000001e-1\n1.0000000000000001e-1\n1.5\n-0.0\ninf\n-inf\nnan\n4.9406564584124654e-324\n1.7976931348623157e308\n'],
   ['named field initialization', (await read('scaffolding/tests/named_initialization.tower')).toString(), '0\n'],
   ['resumable control bodies', (await read('scaffolding/tests/body_continuation.tower')).toString(), '0\n'],

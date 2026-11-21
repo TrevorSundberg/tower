@@ -38,7 +38,7 @@ export fn semantic_aggregate(t: FoundationType*): bool {
 }
 
 export fn semantic_integer(t: FoundationType*): bool {
-    var step2 = t.pointers == 0 &&(t.scalar == SI32 || t.scalar == SU32 || t.scalar == SU8 || t.scalar == SI64 || t.scalar == SU64 || t.scalar == SUSize);
+    var step2 = t.pointers == 0 &&(t.scalar == SI32 || t.scalar == SU32 || t.scalar == SU8 || t.scalar == SI64 || t.scalar == SU64 || t.scalar == SUSize || t.scalar == SI8 || t.scalar == SI16 || t.scalar == SU16);
     return step2;
 }
 
@@ -63,7 +63,15 @@ fn sem_float_literal(c: SemanticContext*, node: void*): bool {
 }
 
 export fn semantic_signed(t: FoundationType*): bool {
-    return t.pointers == 0 &&(t.scalar == SI32 || t.scalar == SI64);
+    return t.pointers == 0 &&(t.scalar == SI32 || t.scalar == SI64 || t.scalar == SI8 || t.scalar == SI16);
+}
+
+export fn semantic_unsigned_scalar(scalar: u32): u32 {
+    if scalar == SI8 { return SU8; }
+    if scalar == SI16 { return SU16; }
+    if scalar == SI32 { return SU32; }
+    if scalar == SI64 { return SU64; }
+    return scalar;
 }
 
 export fn semantic_size(t: FoundationType*): usize {
@@ -77,8 +85,11 @@ export fn semantic_size(t: FoundationType*): usize {
     if t.scalar == SVoid {
         return 0;
     }
-    if t.scalar == SBool || t.scalar == SU8 {
+    if t.scalar == SBool || t.scalar == SU8 || t.scalar == SI8 {
         return 1;
+    }
+    if t.scalar == SI16 || t.scalar == SU16 {
+        return convert(usize, IntegerShortWidth / IntegerByteWidth);
     }
     if t.scalar == SI64 || t.scalar == SU64 || t.scalar == SF64 {
         return 8;

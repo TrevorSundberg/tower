@@ -127,10 +127,11 @@ export async function executeWasm(compiled, update = () => {}, { imports = {} } 
   };
   const instance = await WebAssembly.instantiate(module, { env, tower: {
     print(kind, bits, pointerBytes) {
-      const runtimePrintText = 12;
+      const runtimePrintText = 256, runtimePrintI8 = 12, runtimePrintI16 = 13;
       const value = kind === runtimePrintText ? decodeBytes(new TextDecoder(), context.memory().subarray(Number(bits), Number(bits) + pointerBytes)) :
         kind === 3 ? '0x' + BigInt.asUintN(pointerBytes * 8, bits).toString(16).padStart(pointerBytes * 2, '0') :
-        kind === 2 ? bits ? 'true' : 'false' : kind === 0 ? BigInt.asIntN(32, bits) : kind === 6 ? BigInt.asIntN(64, bits) : BigInt.asUintN(64, bits);
+        kind === 2 ? bits ? 'true' : 'false' : kind === 0 ? BigInt.asIntN(32, bits) : kind === 6 ? BigInt.asIntN(64, bits) :
+        kind === runtimePrintI8 ? BigInt.asIntN(8, bits) : kind === runtimePrintI16 ? BigInt.asIntN(16, bits) : BigInt.asUintN(64, bits);
       const text = String(value) + '\n';
       const bytes = new TextEncoder().encode(text).length;
       append(decodeBytes(decoder, new TextEncoder().encode(text),{stream:true}),bytes);

@@ -9,7 +9,7 @@ import .compiler.foundation_types;
 import .library.vector;
 
 // Disposable LLVM->entity associations only. There is no second Tower IR.
-var BackendImportPointer: u32 = 12;
+var BackendImportPointer: u32 = FoundationScalarLimit;
 var LLVMFloatTypeKind: u32 = 2;
 var LLVMDoubleTypeKind: u32 = 3;
 var LLVMConstantIntegerValueKind: u32 = 18;
@@ -55,6 +55,7 @@ fn bi_scalar(c: BackendImport*, type: void*): u32 {
         if width == 8 {
             return 5;
         }
+        if width == IntegerShortWidth { return SU16; }
         if width <= 32 {
             return 1;
         }
