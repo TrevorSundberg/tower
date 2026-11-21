@@ -1,4 +1,5 @@
 import tower;
+import lr_analysis;
 import component_kinds;
 import frontend_cache;
 import frontend_revision_types;
@@ -103,11 +104,11 @@ fn syntax_version_replacements(value: SyntaxVersion*, diagnostic: SyntaxVersionD
     plan.count = value.grammar.rules.length;
     plan.kind = value.kinds.syntax;
     plan.host = bits(void*, owner);
-    plan.offset = ~convert(usize, 0);
+    plan.offset = lr_none();
     defer syntax_replacements_dispose(&plan);
     if syntax_replacements_prepare(&plan) && syntax_replacement_freeze(owner) { return true; }
     value.replacement_error_offset = plan.offset;
-    if plan.offset != ~convert(usize, 0) { diagnostic.offset = plan.offset; }
+    if plan.offset != lr_none() { diagnostic.offset = plan.offset; }
     vector_move(u8, &diagnostic.text, &plan.error);
     return false;
 }
@@ -138,7 +139,7 @@ export fn syntax_version_build(world: void*, source: FrontendRevision*, bedrock:
     var error: u8* = null;
     defer tower_memory_free(bits(void*, error));
     var table = parser_table_open(value.rules, &value.kinds, bits(void*, value), ParserPresentation.Syntax, convert(u32, ParserReadMode.Constructs));
-    if table is not null { table.trace = entity_member_index(value.kinds.`match`, "parser.trace") != ~convert(usize, 0); }
+    if table is not null { table.trace = entity_member_index(value.kinds.`match`, "parser.trace") != lr_none(); }
     value.table = bits(void*, parser_table_finish(table, &error, true));
     if value.table is null {
         if error is not null { node_text_set(&diagnostic.text, error); }

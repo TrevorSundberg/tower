@@ -1,4 +1,6 @@
 import tower;
+import frontend_revision_types;
+import syntax_version_types;
 import syntax_types;
 
 // Session-owned input leases. World/environment and a supplied module are
@@ -10,4 +12,12 @@ struct SyntaxSessionInputs {
     source: SyntaxSource*;
     document: void*;
     owns_module: bool;
+}
+
+struct SyntaxSessionPins {
+    grammar: FrontendRevision*;
+    baseline: FrontendRevision*;
+    bedrock: FrontendRevision*;
+    version: SyntaxVersion*;
+    completion_version: SyntaxVersion*;
 }

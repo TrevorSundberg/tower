@@ -1,0 +1,34 @@
+import tower;
+import frontend_cache;
+import frontend_revision_types;
+import syntax_session_types;
+import syntax_version;
+import syntax_version_types;
+
+// Every field owns a reference, including aliases. Acquire the replacement
+// first so self-assignment cannot destroy the object before retaining it.
+export fn syntax_session_pin_revision(destination: FrontendRevision**, source: FrontendRevision*): void {
+    var retained = frontend_revision_retain(source);
+    frontend_revision_release(*destination);
+    *destination = retained;
+}
+
+export fn syntax_session_pin_version(destination: SyntaxVersion**, source: SyntaxVersion*): void {
+    var retained = syntax_version_retain(source);
+    syntax_version_release(*destination);
+    *destination = retained;
+}
+
+export fn syntax_session_pins_baseline(target: SyntaxSessionPins*, source: SyntaxSessionPins*): void {
+    syntax_session_pin_revision(&target.baseline, source.baseline);
+    syntax_session_pin_revision(&target.bedrock, source.bedrock);
+}
+
+export fn syntax_session_pins_dispose(value: SyntaxSessionPins*): void {
+    frontend_revision_release(value.grammar);
+    frontend_revision_release(value.baseline);
+    frontend_revision_release(value.bedrock);
+    syntax_version_release(value.completion_version);
+    syntax_version_release(value.version);
+    fill(value, 0, sizeof(SyntaxSessionPins));
+}

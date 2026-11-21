@@ -24423,3 +24423,85 @@ frontend now includes both full allocation sweeps (0.89 s). No sanitizer or broa
 formatter sweep. This commit remains private behind Agent 2's current browser
 publication and the coordinator's requested small regex-fixture source slot.
 Final rebase/default clean successor/source publication remain required.
+
+
+### 2026-11-20 - Tower session revision and completion pins (agent 1)
+
+Moved the remaining strong grammar/baseline/Bedrock/current-version/completion-
+version fields from native shared_ptr members into SyntaxSessionPins. Tower owns
+assignment, baseline forks and disposal. Each aliased field owns one reference;
+assignment acquires the new pin before releasing the old one, including self-
+assignment. Native local smart pointers remain short-lived transport leases;
+the session and its cache no longer maintain native reference-control blocks.
+Creation adopts returned owned pins; reset, successful declarations, template
+sessions and completion capture all use the Tower ownership operations. The
+existing SyntaxSession transport destructor delegates these owners' disposal.
+
+New Tower checks exercise multiple fields aliasing the same revision/version,
+self-assignment and baseline self-copy with allocation disabled, null replacement,
+retained source entities after the original pins/world cache are gone, and
+idempotent disposal. Native frontend/driver/execution tests pass, with the new
+ownership checks included; module_paths.py also passes on the actual successor.
+No new public syntax API, native wrapper implementation or native test was added.
+This remains part of the private follow-up queue until Agent 2's publication and
+the coordinator's regex-fixture slot finish; final rebase/clean successor/deploy
+validation are still pending for these follow-ups.
+
+Integration checkpoint for the private Version/session queue: rebased all four
+commits onto 7175751, preserving all upstream research/publication journal blocks.
+Read the revised AGENTS module rule: explicit modules import Bedrock/Foundation
+normally; host-installed Foundation remains only the no-import compatibility path.
+The migration preserves that distinction. A new empty cache at
+/home/trevo/.cache/tower/agent-1-session-pins-clean completed the documented build
+with no TOWER_BOOTSTRAP_COMPILER override and matching Clang 19.1.7 selected by the
+updated script. The published fb1ab1 Linux development bootstrap remains the pin;
+this does not publish or claim a portable Windows/macOS/Linux compiler release.
+Frontend/driver/execution pass 3/3 (18.94 s), driver-request passes separately
+(0.10 s), and the actual successor passes module_paths.py. Its complete generated
+parser-unit native object and wasm32-wasip1 object are byte-identical to those
+emitted by the documented bootstrap. Wasm object agreement is compilation evidence,
+not a claim that the private code has already passed browser runtime tests.
+
+Clarification of the preceding cache entry: allocation-free hit testing covers
+repeated references to the same shared grammar entities. frontend_revision_same
+still calls syntax_nodes_equal for distinct graphs; that comparison can allocate
+its existing temporary work vector. The cache pin/slot handoff adds no allocation
+after a hit, but the whole equality search is not universally allocation-free.
+
+Agent 2 reported the previous pushed batch successfully published at Pages commit
+ec60a942d59a595cdbf6e12bdf1c44df92f444d9, exact action 44849731181 successful, with
+70 hosted asset hashes, desktop/mobile and redirects verified. That deployment
+includes ba8aaca's session-input/replacement owners, not these private follow-ups.
+The next agreed source queue is coordinator regex retirement, these Agent 1
+commits, Agent 3 formatter retirement, then Agent 2's final core adapters. Agent 2
+explicitly owns the next combined browser build/deployment/hosted verification.
+Final rebase and another clean successor are required if that queue changes
+compiler sources before this agent's push.
+
+Remaining migration dependency: Agent 3's formatter fixture currently uses the
+existing test-only TowerText ABI. A future production syntax_format_into API should
+return the shared FormatResult plus an owned diagnostic buffer, preserving exact
+source spans and the existing round-trip refusal text. This API is proposed, not
+implemented here. Removing the legacy syntax std::string/vector/TowerText exports
+also requires its large syntax fixture and the driver/IDE consumers to migrate.
+The next implementation unit is plain Tower session progress/error/highlight and
+completion ownership, then source-format orchestration over those same nodes.
+No native wrapper or fallback was added to bridge that future work.
+Final ownership publication slot acquired after coordinator regex 7bbfdda. The
+new version modules now use the existing lr_none() sentinel helper consistently;
+the incremental native compiler/test build passes. This is an equivalent spelling
+of the previously typed all-ones sentinel, not a new semantic value. The incoming
+regex source changes require a fresh default-bootstrap successor and integrated
+checks before pushing; Agent 2 retains the combined browser publication role.
+Final ownership-slot validation after rebase onto coordinator regex 7bbfdda:
+empty /home/trevo/.cache/tower/agent-1-ownership-final-1730 completed the documented
+fb1ab1/Clang19 build with TOWER_BOOTSTRAP_COMPILER unset. Built and ran native
+frontend/driver/execution/driver-request: 4/4 pass (18.34 s), including the newly
+integrated regex fixtures and both complete construction/cache failure sweeps.
+module_paths.py passes. The actual clean successor rebuilt the complete parser
+unit to an x86_64 object byte-identical to the bootstrap object and compiled the
+same unit for wasm32-wasip1 successfully. Final diff whitespace check passes;
+todo.txt is untouched. Build log: agent-1-ownership-final-build.log in the shared
+coordination directory; focused CTest log is in the new cache. Source push and
+lock handoff follow final pull; Agent 3 owns the next formatter source slot and
+Agent 2 the combined browser deployment/hosted verification.

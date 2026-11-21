@@ -1,6 +1,7 @@
 import tower;
 import .library.vector;
 import .compiler.syntax_version_types;
+import .compiler.syntax_session_types;
 import .compiler.frontend_revision_types;
 import .compiler.grammar_types;
 import .compiler.syntax_view;
@@ -28,6 +29,58 @@ extern fn syntax_version_diagnostic_text(value: SyntaxVersionDiagnostic*): u8*;
 extern fn syntax_version_cache_dispose(value: SyntaxVersionCache*): void;
 extern fn syntax_version_cache_copy(target: SyntaxVersionCache*, source: SyntaxVersionCache*): bool;
 extern fn syntax_version_cached(value: SyntaxVersionCache*, world: void*, definitions: FrontendRevision*, bedrock: FrontendRevision*, diagnostic: SyntaxVersionDiagnostic*): SyntaxVersion*;
+extern fn syntax_session_pin_revision(destination: FrontendRevision**, source: FrontendRevision*): void;
+extern fn syntax_session_pin_version(destination: SyntaxVersion**, source: SyntaxVersion*): void;
+extern fn syntax_session_pins_baseline(target: SyntaxSessionPins*, source: SyntaxSessionPins*): void;
+extern fn syntax_session_pins_dispose(value: SyntaxSessionPins*): void;
+
+fn frontend_session_pins_tests(): void {
+    var baseline = tower_test_buffer_count();
+    var world = compiler_world_create();
+    var kinds: FrontendKinds;
+    frontend_world_check(frontend_world_test_kinds(world, &kinds));
+    var source = entity_create(compiler_world_store(world));
+    var alternative = frontend_format_child(compiler_world_store(world), source, null);
+    preview_syntax(world, alternative).kind = convert(u32, SyntaxKind.Alternative);
+    var rule: SyntaxRuleView;
+    rule.name = "Retained";
+    rule.name_length = 8;
+    rule.alternatives = &alternative;
+    rule.count = 1;
+    var revision = syntax_revision_create(&rule, 1, null, 0);
+    var version = syntax_version_create(world, revision, revision);
+    frontend_world_check(revision is not null && version is not null);
+    var first: SyntaxSessionPins;
+    var second: SyntaxSessionPins;
+    fill(&first, 0, sizeof(SyntaxSessionPins));
+    fill(&second, 0, sizeof(SyntaxSessionPins));
+    tower_test_buffer_fail_after(0);
+    syntax_session_pin_revision(&first.grammar, revision);
+    syntax_session_pin_revision(&first.baseline, revision);
+    syntax_session_pin_revision(&first.bedrock, revision);
+    syntax_session_pin_version(&first.version, version);
+    syntax_session_pin_version(&first.completion_version, version);
+    syntax_session_pins_baseline(&second, &first);
+    frontend_world_check(revision.references == 8 && version.references == 3);
+    syntax_session_pin_revision(&first.grammar, first.grammar);
+    syntax_session_pin_version(&first.version, first.version);
+    syntax_session_pins_baseline(&second, &second);
+    frontend_world_check(revision.references == 8 && version.references == 3);
+    syntax_session_pin_revision(&first.grammar, null);
+    syntax_session_pins_dispose(&first);
+    frontend_world_check(revision.references == 5 && version.references == 1);
+    tower_test_buffer_fail_after(frontend_world_unlimited());
+    syntax_version_release(version);
+    frontend_revision_release(revision);
+    entity_release(source);
+    frontend_world_check(!compiler_world_dispose(world));
+    frontend_format_text(second.baseline.rules.data[0].name, "Retained");
+    syntax_session_pins_dispose(&second);
+    syntax_session_pins_dispose(&second);
+    frontend_world_check(second.baseline is null && second.bedrock is null && second.version is null);
+    frontend_world_check(compiler_world_dispose(world));
+    frontend_world_check(tower_test_buffer_count() == baseline);
+}
 
 fn frontend_version_cache_tests(world: void*, revision: FrontendRevision*, bedrock: FrontendRevision*): void {
     var buffers = tower_test_buffer_count();

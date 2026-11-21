@@ -1,4 +1,5 @@
 import tower;
+import lr_analysis;
 import frontend_cache;
 import lr_tree;
 import syntax_emission;
@@ -35,7 +36,7 @@ export fn syntax_version_create(world: void*, grammar: FrontendRevision*, bedroc
     }
     value.grammar = frontend_revision_retain(grammar);
     value.bedrock = frontend_revision_retain(bedrock);
-    value.replacement_error_offset = ~convert(usize, 0);
+    value.replacement_error_offset = lr_none();
     return value;
 }
 
