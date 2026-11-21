@@ -38033,6 +38033,6 @@ pipeline_viewport_profile.json (110 actions, no page errors): desktop/mobile col
 After rebasing to dc3a7ed, a second clean public-bootstrap native successor build
 passed all 54 steps; ordinary and fast Structs interpretation both print 42/22/7.
 Browser runtime build identity remains frozen 797f54a; reconstruct its build inputs
-from public 7425a14 plus git diff 8c05a96 033efb3 -- scaffolding. The compiler tree
-matches public 033efb3. The final UI and provenance explicitly distinguish later
+from public 7425a14 plus git diff 19174dd 1baa366 -- scaffolding. The compiler tree
+matches public 1baa366. The final UI and provenance explicitly distinguish later
 experimental-linker/tooling source changes from these tested runtime bytes.

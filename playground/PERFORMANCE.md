@@ -81,10 +81,11 @@ inspection. Visible panes retain their existing update path.
 The final uninstrumented confirmation uses freshly rebuilt native/portable/
 threaded/LLVM/cross assets from snapshot `797f54a` and the final UI, with no
 concurrent builds/tests. Public build inputs can be reconstructed from `7425a14`
-plus `git diff 8c05a96 033efb3 -- scaffolding`; the editable recipe contains the
+plus `git diff 19174dd 1baa366 -- scaffolding`; the editable recipe contains the
 exact compiled sources. Later experimental-linker/tooling changes on main are
 not included in those runtime bytes. A fresh public-bootstrap native successor
-after rebasing to `dc3a7ed` also builds and executes both interpreters correctly.
+after rebasing also builds and executes both interpreters correctly; its production
+inputs match public `1baa366`.
 
 One fresh browser per device, ten repetitions per warm action; milliseconds:
 
