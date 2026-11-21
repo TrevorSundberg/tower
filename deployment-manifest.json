@@ -1,10 +1,10 @@
 {
-  "sourceCommit": "7aa2e56cb825e830f9f934b76da07dc4ed7b69d0",
-  "buildSourceCommit": "f4c78cc3f576c0d9a580e5f47af788ce69a16d7a",
+  "sourceCommit": "d5412d08bb9d1541acd78334833aa283e4847c85",
+  "buildSourceCommit": "85c8a138e098f2dd84706d3f9d6e7bbcfa592887",
   "bootstrapSha256": "24fa5adb794d245001369d5dda93acb58a662e5ec1d6f0e6ad672272dad0ae71",
-  "previousDeployment": "873c2d5557ea873a1af7cecddfd351edbd8ad0ef",
-  "buildNote": "Built from f4c78cc with the verified direct predecessor. Full native execution, 11 browser worker checks, 75 browser LLVM/package checks, two identical compiler generations, direct-pin relocation and a clean default successor pass. Local desktop/mobile verification passed.",
-  "scope": "Strict f32/f64 semantics shared by staging, interpreters and LLVM; ordinary unary negation including unsigned integer -0; validated direct bootstrap.",
+  "previousDeployment": "97f68c62f6edca89152d1d3ef12307692051ae73",
+  "buildNote": "Frozen 85c8a13 compiler snapshot built with the public predecessor 7ef1e6d; clean native, portable/shared/LLVM/cross builds and two identical browser generations passed. Full body 1/2/4/8-worker, known-binding, floating/negation and backend unit checks passed. Rebase to public 2776318 changes no retained compiler inputs; the new direct bootstrap 1a5b588 also built a clean 54-step successor and ran the continuation fixture with zero failures.",
+  "scope": "Shared-graph structural local declaration queries and bounded declaration scheduling, including integrated floating-point and ordinary unary-negation semantics.",
   "toolingMigration": {
     "sourceCommit": "d64b91d58c1ec8d7d1c0a544d5fcf4ea385fab02",
     "validationCommit": "a4ef899515d986626bb51165208dbabdd9d5bcf6",
@@ -26,9 +26,9 @@
     "journal": "docs/temporal-opcode-research-journal.md",
     "scope": "Proposed fixed-size CPU/GPU vector values, f32_4 naming, swizzles and automatic SIMD on shared Foundation/ECS operations. Design direction only; runtime assets unchanged."
   },
-  "publishedBuildSourceCommit": "883190973174fc6fbef77a78629e5a32f5401867",
-  "compilerSourceTree": "60829aa83ec8507e4f18b5777b9040f771bf9217",
-  "publicationNote": "Browser binaries built from 8831909. Rebase to 2505a58 changes no compiler/backend/host/CMake implementation; editable catalog and recipe remove seven deleted, unreferenced archive/installer libraries. Retained recipe units unchanged. Native service supports independent backend units; CLI project wiring and structural semantic preparation remain incomplete.",
+  "publishedBuildSourceCommit": "85c8a138e098f2dd84706d3f9d6e7bbcfa592887",
+  "compilerSourceTree": "8fb8845e056bb00361c88bc5aae5ba0f0754885c",
+  "publicationNote": "Binary and editable-source build identity remains local frozen snapshot 85c8a13, with equivalent retained compiler sources available at public 2776318. The rebase adds unimported experimental static Wasm linker modules and tooling; those additions are excluded from this editable snapshot. Structural local roots still enter the executor one body at a time; cross-body structural batching and native CLI project wiring remain unfinished.",
   "bootstrapToolingMigration": {
     "sourceCommit": "baff98d91534cb73653af82e89e61bfbac93f73a",
     "report": "docs/temporal-opcode-research-journal.md",
@@ -82,6 +82,35 @@
     "limits": "Inline Python and live packaging, verification, benchmark and test drivers remain. Standalone release requirements retained; this is not a portable release.",
     "runtimeAssetsChanged": false
   },
+  "editableSourceCommit": "85c8a138e098f2dd84706d3f9d6e7bbcfa592887",
+  "bootstrapExecutableSha256": "7ef1e6da14b9de1c5e06df2cc75ff8cb1058fb6ea5bd4c57a0a0f243ca28dc16",
+  "publishedBootstrapSha256": "1a5b58879eb247e0c2e3ab33804d965b8b157f170af49f71b53a611b7762d8bb",
+  "wasmLinkerPort": {
+    "sourceCommit": "76711f1822e6a0dd82b288ceb70771b743f7f497",
+    "implementationCommit": "44f233a",
+    "status": "Experimental static Wasm linker implemented entirely in Tower; production LLD dispatch retained.",
+    "validation": "Native and WASI linker checks pass with the latest direct bootstrap, including parsed shared-input rejection; raw/optimized real objects execute; portable and LLVM compiler reactors relink and run. Recorded stale baseline test expectations remain.",
+    "remaining": "Lazy archives, shared-memory/TLS, debug/profile coverage, parallel relocation, browser self-build generations and production cutover.",
+    "runtimeAssetsChanged": false
+  },
+  "verifierToolingMigration": {
+    "sourceCommit": "7aa2e56cb825e830f9f934b76da07dc4ed7b69d0",
+    "report": "docs/temporal-opcode-research-journal.md",
+    "retired": [
+      "playground/scripts/verify-compiler.py",
+      "inline Python distribution report assertions"
+    ],
+    "implementation": "Tower CLI verifier writes command logs and directly asserts the expected missing-Clang failure; JSON report/parser step removed. Build only the selected required Tower tool.",
+    "entryPoint": "playground/scripts/test-compiler-distribution.sh",
+    "validation": "After rebase, a clean checkout passes all 54 native and five tool build steps with Python unavailable. Successor is byte-identical to the public bootstrap; all 16 development checks, the restricted expected-failure gate and binary stdout/stderr process checks pass.",
+    "compilerSha256": "1a5b58879eb247e0c2e3ab33804d965b8b157f170af49f71b53a611b7762d8bb",
+    "remainingPythonFiles": 11,
+    "remainingTrackedPythonLines": 777,
+    "initialTrackedPythonLines": 1989,
+    "inventoryBase": "dfe6ce3",
+    "limits": "Linux x64 runner uses existing GNU env/timeout. Restricted PATH is not OS isolation; native Windows/macOS release runners and complete portable dependency closure remain work. Inline Python remains in two other build/test scripts.",
+    "runtimeAssetsChanged": false
+  },
   "assets": {
     ".nojekyll": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "CNAME": "98b2dc87ce088779cec3fd8c72bab57b6a45b4c1df747ded3a55d4205fecc34c",
@@ -94,7 +123,7 @@
     "capabilities.json": "beb929d7896b760e4a190875af67a895bc6599978a1566614dc7f39df7277bb2",
     "collections.tower": "f6e2bceb516d9ff9f073aa5504827db60f55d113a2389e9a0e2c17a25d26aef7",
     "compiler/imports-tower-18.txt.gz": "0fca0647149fdb009d542136fd37c0d0d37d73c50352efd08c0d1a5659f614ef",
-    "compiler/project.json": "fe795e3105b8df0d034c7a3736e6dacd5f2b035b4f293e972b5059a56bb924cf",
+    "compiler/project.json": "0e977046e2b3b314adb38256ae5125fbc467cf278e1681e0207889ad82ed0170",
     "compiler/support-cross-0.a.gz": "aab08074aab481e777013da0a53ce7a81fe3f65c3b09acfecb2871f322358514",
     "compiler/support-cross-1.a.gz": "015302cd33bd6b3b18148678106b78ff86351475eb604928329cb079b88ebf4a",
     "compiler/support-cross-2.a.gz": "04c0fd15f850c41cbeaefc2bb4f15362fddee8a5bed246a5145df4f34ffd53fb",
@@ -159,42 +188,14 @@
     "targets/x86_64-unknown-linux-gnu-runtime.o": "dd9017a54b2e683f35ed8289eebf6d13175beddd9020ddbdfba3c4933e5c847b",
     "templates.tower": "2045b87e45eda35945fea88cf70b904d8f695c93e36eea08aa0a14b4354682dc",
     "tokens.tower": "594b7d7efd13e3568819e6830e4fda1651f102ee9f2a633339d092f2c4721774",
-    "tower-cross.wasm.gz": "16664111ad05697fd85d1077ed6b50d088093a3c75f7932e670ba74b75a9eb93",
-    "tower-llvm.wasm": "0c33ed73ccfb75698f8ceaaf3eeb6a129a8ddbb5c6adc80c95e34c625f1c79eb",
-    "tower-llvm.wasm.gz": "642e5621043bf94777e755f5becc9d36ddbe8f449d8179249dfe3129a8547c13",
-    "tower-threads.wasm": "5d94c4c403934292bfa884548ac9c8978533f455d4fd9c65f75cfbaacbae4504",
+    "tower-cross.wasm.gz": "41b8345297fc0d2d7a086316f3709ab50e4066d4b5c4040439f7df5dce6e4fd1",
+    "tower-llvm.wasm": "209778c34a09cb45130774916c5f61d118c46c331422a4bbddeaa30a858b4200",
+    "tower-llvm.wasm.gz": "260208b0243280e888e672d302a570a8bffe3cb5eda42fddeb5db73bb33802ce",
+    "tower-threads.wasm": "1424a13fb1561bd659801d3f6e57783340d37f4e19ace820f19642c48f5ac43b",
     "tower.tower": "63294de01345b184b24720a9fa7cefd8eff88878bb898d53cccfe3f622246718",
-    "tower.wasm": "eba85af36326cb60516d3b50a7eba431c0272a2ca4578c2ddf930126031a1191",
+    "tower.wasm": "7d072d624231013895528e4f9d137503e8e617d0ea9f42e3f44b9f0e5ff8d33c",
     "worker.js": "614839341f06ecccb90d467f25ae536696fac03d1e74f8193572122dd7f6512f",
     "worker.js.map": "2549b3159a4174fc5a7760822ffe5413d3163f7686a73455d52f2bb4566bb50c"
   },
-  "editableSourceCommit": "2505a585f4d48a5931e474b7521f9a26f5f7dd01",
-  "bootstrapExecutableSha256": "7ef1e6da14b9de1c5e06df2cc75ff8cb1058fb6ea5bd4c57a0a0f243ca28dc16",
-  "publishedBootstrapSha256": "1a5b58879eb247e0c2e3ab33804d965b8b157f170af49f71b53a611b7762d8bb",
-  "wasmLinkerPort": {
-    "sourceCommit": "76711f1822e6a0dd82b288ceb70771b743f7f497",
-    "implementationCommit": "44f233a",
-    "status": "Experimental static Wasm linker implemented entirely in Tower; production LLD dispatch retained.",
-    "validation": "Native and WASI linker checks pass with the latest direct bootstrap, including parsed shared-input rejection; raw/optimized real objects execute; portable and LLVM compiler reactors relink and run. Recorded stale baseline test expectations remain.",
-    "remaining": "Lazy archives, shared-memory/TLS, debug/profile coverage, parallel relocation, browser self-build generations and production cutover.",
-    "runtimeAssetsChanged": false
-  },
-  "verifierToolingMigration": {
-    "sourceCommit": "7aa2e56cb825e830f9f934b76da07dc4ed7b69d0",
-    "report": "docs/temporal-opcode-research-journal.md",
-    "retired": [
-      "playground/scripts/verify-compiler.py",
-      "inline Python distribution report assertions"
-    ],
-    "implementation": "Tower CLI verifier writes command logs and directly asserts the expected missing-Clang failure; JSON report/parser step removed. Build only the selected required Tower tool.",
-    "entryPoint": "playground/scripts/test-compiler-distribution.sh",
-    "validation": "After rebase, a clean checkout passes all 54 native and five tool build steps with Python unavailable. Successor is byte-identical to the public bootstrap; all 16 development checks, the restricted expected-failure gate and binary stdout/stderr process checks pass.",
-    "compilerSha256": "1a5b58879eb247e0c2e3ab33804d965b8b157f170af49f71b53a611b7762d8bb",
-    "remainingPythonFiles": 11,
-    "remainingTrackedPythonLines": 777,
-    "initialTrackedPythonLines": 1989,
-    "inventoryBase": "dfe6ce3",
-    "limits": "Linux x64 runner uses existing GNU env/timeout. Restricted PATH is not OS isolation; native Windows/macOS release runners and complete portable dependency closure remain work. Inline Python remains in two other build/test scripts.",
-    "runtimeAssetsChanged": false
-  }
+  "equivalentPublicSourceCommit": "2776318365d52fa50a4e5a7abaef7cbb9be77b6d"
 }
