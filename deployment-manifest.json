@@ -73,5 +73,11 @@
   },
   "sourceCommit": "0987aa5c0d1577d00264f6498fbdfcd4b6a981bc",
   "previousDeployment": "c1b54ec3f0ec5440550e623a62fc4682bef7034b",
-  "scope": "Audited identifier imports and exact quoted paths; current Tower expressions, scoped defer, world ownership and backend source sessions; hybrid development bootstrap."
+  "scope": "Audited identifier imports and exact quoted paths; current Tower expressions, scoped defer, world ownership and backend source sessions; hybrid development bootstrap.",
+  "simplificationAudit": {
+    "sourceCommit": "71757517b37656a31ae98c55cbdf07b716f4521c",
+    "baseline": "0987aa5c0d1577d00264f6498fbdfcd4b6a981bc",
+    "report": "docs/research/tower-simplification-audit.md",
+    "scope": "Read-only source inventory and next-feature recommendation; deployed compiler assets unchanged."
+  }
 }
