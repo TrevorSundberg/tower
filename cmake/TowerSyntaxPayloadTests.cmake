@@ -24,7 +24,7 @@ foreach(unit IN ITEMS main cases)
 endforeach()
 add_executable(tower-syntax-nodes-tests "${payload_main}" "${payload_cases}" scaffolding/tower.cpp
   scaffolding/syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/format.cpp
-  scaffolding/lex-pattern.cpp scaffolding/lex-pattern-common.cpp)
+  scaffolding/lex-pattern.cpp)
 target_compile_features(tower-syntax-nodes-tests PRIVATE cxx_std_20)
 target_compile_options(tower-syntax-nodes-tests PRIVATE -fno-exceptions)
 target_link_libraries(tower-syntax-nodes-tests PRIVATE tower-compiler-parser-nodes tower-compiler-semantics

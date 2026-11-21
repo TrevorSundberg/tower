@@ -1,7 +1,6 @@
 #pragma once
 #include <cstdint>
 #include <string>
-#include <string_view>
 #include <vector>
 #include "compiler-lexer-table.hpp"
 #include "node-ref.hpp"
@@ -12,7 +11,6 @@ struct LexPattern {
   mutable size_t references;
   LexerTable* table;
   TowerNode* grammar; // retained shared entities; tables are derived
-  size_t match(std::string_view source, size_t start) const;
 };
 extern "C" {
 size_t syntax_pattern_size();

@@ -18,7 +18,7 @@ if(format_triple MATCHES "^wasm32-")
   set_source_files_properties("${format_object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
   add_executable(tower-format-tests "${format_object}" scaffolding/tower.cpp
     scaffolding/syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/format.cpp
-    scaffolding/lex-pattern.cpp scaffolding/lex-pattern-common.cpp)
+    scaffolding/lex-pattern.cpp)
   target_compile_features(tower-format-tests PRIVATE cxx_std_20)
   target_compile_options(tower-format-tests PRIVATE -fno-exceptions)
   target_link_libraries(tower-format-tests PRIVATE tower-compiler-parser-nodes tower-compiler-semantics

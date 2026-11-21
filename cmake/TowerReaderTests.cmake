@@ -25,7 +25,7 @@ set_source_files_properties("${reader_cases}" PROPERTIES GENERATED TRUE EXTERNAL
 target_sources(tower-parser-tests PRIVATE "${reader_cases}")
 add_executable(tower-reader-tests "${reader-main_OBJECT}" "${reader_cases}"
   scaffolding/tower.cpp scaffolding/syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/format.cpp
-  scaffolding/lex-pattern.cpp scaffolding/lex-pattern-common.cpp)
+  scaffolding/lex-pattern.cpp)
 target_compile_features(tower-reader-tests PRIVATE cxx_std_20)
 target_compile_options(tower-reader-tests PRIVATE -fno-exceptions)
 target_link_libraries(tower-reader-tests PRIVATE tower-compiler-parser-nodes tower-compiler-semantics

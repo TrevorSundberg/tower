@@ -1,4 +1,3 @@
-import syntax_emission_oracle;
 import .compiler.syntax_view;
 import .compiler.syntax_emission_types;
 import tower;
@@ -17,6 +16,14 @@ import .compiler.syntax_validation;
 import .library.vector;
 
 // Production and independent test oracle consume the same shared entities.
+extern fn reference_syntax_emit(input: SyntaxEmissionInput*): void*;
+extern fn reference_syntax_emission_destroy(value: void*): void;
+extern fn reference_syntax_emission_name_count(value: void*): usize;
+extern fn reference_syntax_emission_name(value: void*, index: usize, out: SyntaxEmissionName*): void;
+extern fn reference_syntax_emission_production_count(value: void*): usize;
+extern fn reference_syntax_emission_production(value: void*, index: usize, out: SyntaxEmissionProduction*): void;
+extern fn reference_syntax_emission_helper_count(value: void*): usize;
+extern fn reference_syntax_emission_helper(value: void*, index: usize, out: SyntaxEmissionHelper*): void;
 extern fn tower_test_buffer_count(): usize;
 
 extern fn tower_test_buffer_fail_after(count: usize): void;

@@ -28,11 +28,11 @@ tower_runtime_object(live-main "${live_input}" "${live_triple}"
   --declare driver_syntax_delete _ZdlPv)
 add_executable(tower-live-syntax-tests "${live-main_OBJECT}"
   scaffolding/tower.cpp scaffolding/syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/format.cpp
-  scaffolding/lex-pattern.cpp scaffolding/lex-pattern-common.cpp)
+  scaffolding/lex-pattern.cpp)
 target_compile_features(tower-live-syntax-tests PRIVATE cxx_std_20)
 target_compile_options(tower-live-syntax-tests PRIVATE -fno-exceptions)
 target_link_libraries(tower-live-syntax-tests PRIVATE tower-compiler-parser-nodes tower-compiler-semantics
-  tower-compiler-entities tower-compiler-utilities tower-compiler-memory tower-syntax-emission-reference)
+  tower-compiler-entities tower-compiler-utilities tower-compiler-memory)
 add_test(NAME tower-live-syntax COMMAND tower-live-syntax-tests)
 set_tests_properties(tower-live-syntax PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")
 endfunction()

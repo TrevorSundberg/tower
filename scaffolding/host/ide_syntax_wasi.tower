@@ -83,7 +83,7 @@ extern fn tower_tests(): void;
 
 extern fn parser_tests(): void;
 
-extern fn `cpp_name(void syntax_tests())`(): void;
+extern fn syntax_tests(): void;
 
 fn ide_foreign_long(value: IdeForeignString*): bool {
     var raw = bits(u8*, value);
@@ -129,6 +129,6 @@ fn ide_foreign_free(value: IdeForeignVector*): void {
 export fn tw_self_test(): i32 {
     tower_tests();
     parser_tests();
-    `cpp_name(void syntax_tests())`();
+    syntax_tests();
     return 0;
 }

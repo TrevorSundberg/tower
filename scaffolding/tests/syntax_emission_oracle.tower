@@ -303,7 +303,7 @@ fn oracle_emission_declarations(v: OracleEmission*): void {
     }
 }
 
-fn reference_syntax_emit(input: SyntaxEmissionInput*): void* {
+export fn reference_syntax_emit(input: SyntaxEmissionInput*): void* {
     var v = alloc(OracleEmission, 1);
     utility_check(v is not null, "Emission oracle allocation");
     fill(v, 0, sizeof(OracleEmission)); copy(&v.input, input, sizeof(SyntaxEmissionInput));
@@ -403,7 +403,7 @@ fn reference_syntax_emit(input: SyntaxEmissionInput*): void* {
     }
     return bits(void*, v);
 }
-fn reference_syntax_emission_destroy(value: void*): void {
+export fn reference_syntax_emission_destroy(value: void*): void {
     var v = bits(OracleEmission*, value);
     if v is null { return; }
     foreach (var node in &v.retained) { entity_release(node); }
@@ -413,18 +413,18 @@ fn reference_syntax_emission_destroy(value: void*): void {
     vector_dispose(&v.names); vector_dispose(&v.definitions); vector_dispose(&v.public_names);
     vector_dispose(&v.retained); vector_dispose(&v.productions); vector_dispose(&v.helpers); free(v);
 }
-fn reference_syntax_emission_name_count(value: void*): usize { return bits(OracleEmission*, value).public_names.length; }
-fn reference_syntax_emission_name(value: void*, index: usize, out: SyntaxEmissionName*): void {
+export fn reference_syntax_emission_name_count(value: void*): usize { return bits(OracleEmission*, value).public_names.length; }
+export fn reference_syntax_emission_name(value: void*, index: usize, out: SyntaxEmissionName*): void {
     var name = bits(OracleEmission*, value).public_names.data[index];
     out.text = name.text.data; out.length = name.text.length;
     out.wrapper = name.wrapper is null ? null : name.wrapper.text.data;
     out.literal = name.literal; out.used = name.used; out.declaration = name.declaration; out.start = name.start;
 }
-fn reference_syntax_emission_production_count(value: void*): usize { return bits(OracleEmission*, value).productions.length; }
-fn reference_syntax_emission_production(value: void*, index: usize, out: SyntaxEmissionProduction*): void {
+export fn reference_syntax_emission_production_count(value: void*): usize { return bits(OracleEmission*, value).productions.length; }
+export fn reference_syntax_emission_production(value: void*, index: usize, out: SyntaxEmissionProduction*): void {
     copy(out, &bits(OracleEmission*, value).productions.data[index], sizeof(SyntaxEmissionProduction));
 }
-fn reference_syntax_emission_helper_count(value: void*): usize { return bits(OracleEmission*, value).helpers.length; }
-fn reference_syntax_emission_helper(value: void*, index: usize, out: SyntaxEmissionHelper*): void {
+export fn reference_syntax_emission_helper_count(value: void*): usize { return bits(OracleEmission*, value).helpers.length; }
+export fn reference_syntax_emission_helper(value: void*, index: usize, out: SyntaxEmissionHelper*): void {
     copy(out, &bits(OracleEmission*, value).helpers.data[index], sizeof(SyntaxEmissionHelper));
 }
