@@ -59,6 +59,10 @@ inputs publish. Unsupported automatic evaluation leaves runtime behavior intact;
 an explicit `comptime(...)` request still reports failures. Initialization order
 and effects are retained, including reads through functions before initialization.
 Results publish after worker joins and materialize as typed Foundation literals.
+Successful fixed bindings and their complete initializer computations disappear
+from runtime execution. Libraries can therefore use named computed values without
+requiring an implicit module initializer. Failed or mutable candidates keep their
+ordinary initialization and effects.
 No separate arithmetic folder, declaration grammar, keyword or accessor function
 is involved. The former `const Name: T = value` function shorthand is retired;
 replace it with `var Name: T = value` and read `Name`, without parentheses.

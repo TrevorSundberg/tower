@@ -32150,3 +32150,31 @@ substantial gaps. Added explicit milestones and acceptance criteria to
 `docs/tower-language-plan.md`, without changing the protected `todo.txt`. Finish
 publishing this milestone first, then begin floating point, followed by function
 values/calls. Higher-level features already present do not imply C completeness.
+
+#### Library initialization integration
+
+The first published pin accepts and folds ordinary named bindings, but the actual
+migration's fresh library build exposed a missing cleanup step: folded declarations
+and generated initializer temporaries still appeared as top-level executable
+statements, rejected by `backend_lower` in library mode. The migration was kept
+local/stashed; published sources still use the supported earlier spelling.
+
+Each binding's existing lowering worker now records its emitted initializer range
+on the declaration component. After successful strict evaluation and substitution
+of all reads, coordinator publication removes that complete range and dead local
+index entries. Failed/mutable/effectful candidates are untouched. This avoids a
+special library evaluator, hidden initializer or backend-only semantics. The first
+cleanup trial preserved byte offsets but forgot to renumber surviving local slot
+indices, producing LLVM references into another function's local table (and a
+native fault). Renumbering the derived per-function slot indexes fixes that issue;
+published byte offsets remain stable for surviving storage. A dedicated
+`known_binding_library.tower` fixture covers literal, computed, conditional and
+local named values through an exported entry point, plus graph/round-trip checks
+that no runtime module initialization remains. This fix requires another pinned
+bootstrap before the stashed compiler migration can be published.
+
+The library object now links with Clang 19 and its exported main exits 0 without
+any initializer wrapper. The complete native execution suite passes after slot
+renumbering (`binding-library-index-tests.log`), including both feature suites,
+both target widths and prior semantic oracles. LLVM execution of the named-binding
+fixture also prints 0 after initializer removal.

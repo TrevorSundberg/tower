@@ -20,6 +20,9 @@ struct SemanticKnownBinding {
     immutable: bool;
     ordered: bool;
     evaluation: void*;
+    block: void*;
+    begin: usize;
+    end: usize;
 }
 
 fn sem_known_binding(c: SemanticContext*, declaration: void*): SemanticKnownBinding* {
@@ -198,7 +201,8 @@ fn sem_known_publish(c: SemanticContext*): void {
     var seen = sem_table(c);
     for(var index: usize = 0; index < c.program.functions.length; index++) {
         var function = c.program.functions.data[index];
-        sem_push(pending, index == 0 ? function : sem_get(function).body);
+        sem_push(pending, function);
+        if index != 0 { sem_push(pending, sem_get(function).body); }
     }
     for(var index: usize = 0; index < pending.length; index++) {
         var node = pending.data[index];
@@ -219,6 +223,58 @@ fn sem_known_publish(c: SemanticContext*): void {
             value.constant = true;
             value.bits = sem_get(result.literal).bits;
             value.binding = null;
+        }
+    }
+    // Every read is now a literal. Remove the successful binding's complete
+    // runtime initializer, including lowered calls/temporaries. Strict execution
+    // proved it has no observable runtime effects; rejected candidates stay put.
+    // Mark ranges first, then compact, preserving the indices of other bindings.
+    var removed = sem_table(c);
+    var dead = sem_list(c);
+    foreach(var node in pending) {
+        if node == null || sem_get(node) == null || sem_get(node).kind != KDeclare() { continue; }
+        var binding = sem_known_binding(c, node);
+        if binding == null || binding.evaluation == null || binding.block == null { continue; }
+        var result = sem_evaluation_get(c, binding.evaluation);
+        if !result.ready.ready || result.ready.failed { continue; }
+        var block = sem_get(binding.block);
+        for(var at = binding.begin; at < binding.end; at++) {
+            var item = block.items.data[at];
+            if item != null { sem_push(dead, item); }
+            block.items.data[at] = null;
+        }
+    }
+    for(var index: usize = 0; index < dead.length; index++) {
+        var node = dead.data[index];
+        if node == null { continue; }
+        var mark = sem_state(c, removed, node);
+        if mark.number != 0 { continue; }
+        mark.number = 1;
+        var value = sem_get(node);
+        if value != null { sem_known_edges(dead, value); }
+    }
+    // Local lists are derived storage indexes. Drop removed declarations while
+    // retaining published offsets of surviving storage for this compilation.
+    foreach(var node in pending) {
+        if node == null { continue; }
+        var value = sem_get(node);
+        if value == null { continue; }
+        if value.kind == KProgram() || value.kind == KFunction() || value.kind == KBlock() {
+            var kept: usize = 0;
+            foreach(var item in &value.items) {
+                if item != null { value.items.data[kept] = item; kept++; }
+            }
+            value.items.length = kept;
+            kept = 0;
+            foreach(var local in &value.locals) {
+                if sem_state(c, removed, local).number == 0 { value.locals.data[kept] = local; kept++; }
+            }
+            value.locals.length = kept;
+            if value.kind == KProgram() || value.kind == KFunction() {
+                for(var index: usize = 0; index < value.locals.length; index++) {
+                    sem_get(value.locals.data[index]).index = index;
+                }
+            }
         }
     }
 }

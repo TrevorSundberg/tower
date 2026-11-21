@@ -1,0 +1,17 @@
+import tower;
+
+var Limit: usize = 64;
+var Mask: u32 = (1 << 5) | 3;
+fn calculate(value: i32): i32 {
+    var total = value;
+    for(var i = 0; i < 4; i++) { total += i; }
+    return total;
+}
+var Answer = calculate(36);
+var Selected = true ? calculate(4) : calculate(8);
+
+// Library entry points require no runtime module initializer for these values.
+export fn main(): i32 {
+    var Local = calculate(6);
+    return Limit == 64 && Mask == 35 && Answer == 42 && Selected == 10 && Local == 12 ? 0 : 1;
+}

@@ -6,6 +6,7 @@ import execution_core;
 import struct_value_checks;
 import named_initialization_checks;
 import .compiler.execution_session;
+import .compiler.foundation_tags;
 import .library.vector;
 
 fn known_binding_tests(modules: void*, root: u8*): void {
@@ -18,6 +19,17 @@ fn known_binding_tests(modules: void*, root: u8*): void {
     units_read(root, "/tests/known_bindings.tower", &source);
     units_read(root, "/bedrock.tower", &bedrock);
     units_read(root, "/foundation.tower", &foundation);
+    var library: vector(u8) = default;
+    defer vector_dispose(&library);
+    units_read(root, "/tests/known_binding_library.tower", &library);
+    var library_session: ExecutionSession = default;
+    defer execution_session_close(&library_session);
+    execution_compile(&library_session, library.data, 8, modules);
+    foreach(var item in &sem_get(library_session.program.root).items) {
+        var kind = sem_get(item).kind;
+        execution_check(kind == KFunction() || kind == KType(), "Fixed library values leave no runtime initialization");
+    }
+    execution_roundtrip(&library_session, modules, false);
     for(var width: u32 = 4; width <= 8; width += 4) {
         var graph: ExecutionSession = default;
         var fast: ExecutionSession = default;
