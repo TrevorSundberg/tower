@@ -42,6 +42,7 @@ struct WorkTask {
     visit: u64;
     active: bool;
     access: usize;
+    dispatch: u64;
 }
 
 struct WorkEdge {
@@ -55,6 +56,7 @@ struct WorkTicket {
     task: usize;
     revision: u64;
     profile: u64;
+    dispatch: u64;
 }
 
 struct WorkFrame {
@@ -99,6 +101,32 @@ fn work_dispose(g: WorkGraph*): void {
     vector_dispose(&g.accesses);
     vector_dispose(&g.executing);
     fill(g, 0, sizeof(WorkGraph));
+}
+
+// Reuse scheduling storage only after every task completed and the executor
+// joined. A different identity prevents old tickets from matching reused rows.
+// Cancelled executors must drain and dispose through their ownership boundary.
+fn work_reset(g: WorkGraph*, revision: u64, profile: u64): bool {
+    if g.running != 0 || g.cancelled || (revision == g.revision && profile == g.profile) { return false; }
+    for(var i: usize = 0; i < g.tasks.length; i++) {
+        var state = g.tasks.data[i].state;
+        if state != WorkState.Succeeded && state != WorkState.Failed { return false; }
+    }
+    g.tasks.length = 0;
+    g.edges.length = 0;
+    g.task_index.length = 0;
+    g.edge_index.length = 0;
+    g.ready.length = 0;
+    g.scratch.length = 0;
+    g.frames.length = 0;
+    g.accesses.length = 0;
+    g.executing.length = 0;
+    g.head = 0;
+    g.sweep = 0;
+    g.revision = revision;
+    g.profile = profile;
+    g.error = WorkError.None;
+    return true;
 }
 
 fn work_ok(g: WorkGraph*): bool {
@@ -202,6 +230,18 @@ fn work_index(g: WorkGraph*, edges: bool): bool {
 
 // All key fields compare exactly. A graph's explicit profile covers target,
 // semantics and capability policy; callers must not reuse it for another profile.
+fn work_find(g: WorkGraph*, subject: void*, query: u32, argument: u64): usize {
+    if g.task_index.length == 0 { return 0; }
+    var at = work_bucket(work_key(subject, query, argument), g.task_index.length);
+    while g.task_index.data[at] != 0 {
+        var id = g.task_index.data[at];
+        var task = work_task(g, id);
+        if task.subject == subject && task.query == query && task.argument == argument { return id; }
+        at = work_bucket(convert(u64, at + 1), g.task_index.length);
+    }
+    return 0;
+}
+
 fn work_request(g: WorkGraph*, subject: void*, query: u32, argument: u64): usize {
     if !work_ok(g) {
         return 0;
@@ -407,6 +447,7 @@ fn work_seal(g: WorkGraph*, id: usize): bool {
         return false;
     }
     task.state = WorkState.Waiting;
+    task.remaining = 0;
     var blocked = task.blocked;
     var at = task.dependencies;
     while at != 0 {
@@ -471,6 +512,14 @@ fn work_demand(g: WorkGraph*, id: usize): bool {
 // coordinator-owned. Publish results in semantic/source order when order matters,
 // never in worker completion order. Ticket failure preserves the output.
 fn work_take(g: WorkGraph*, output: WorkTicket*): bool {
+    return work_take_matching(g, output, false, 0);
+}
+
+fn work_take_query(g: WorkGraph*, output: WorkTicket*, query: u32): bool {
+    return work_take_matching(g, output, true, query);
+}
+
+fn work_take_matching(g: WorkGraph*, output: WorkTicket*, filtered: bool, query: u32): bool {
     if !work_ok(g) {
         return false;
     }
@@ -489,22 +538,31 @@ fn work_take(g: WorkGraph*, output: WorkTicket*): bool {
             continue;
         }
         var task = work_task(g, id);
+        if filtered && task.query != query { continue; }
         var ready = task.state == WorkState.Ready;
         if ready {
             if !work_access_available(g, task) {
                 continue;
             }
-            if task.access != 0 {
+            var dispatch = task.dispatch + 1;
+            if dispatch == 0 {
+                g.error = WorkError.Invalid;
+                return false;
+            }
+            var shared = task.access != 0;
+            if shared {
                 if !work_memory(g, vector_push(&g.executing, id)) {
                     return false;
                 }
             }
             g.ready.data[at] = 0;
             task.state = WorkState.Running;
+            task.dispatch = dispatch;
             g.running++;
             output.task = id;
             output.revision = g.revision;
             output.profile = g.profile;
+            output.dispatch = dispatch;
             return true;
         }
         g.ready.data[at] = 0;
@@ -551,7 +609,9 @@ fn work_fail(g: WorkGraph*, id: usize): bool {
     return true;
 }
 
-fn work_finish(g: WorkGraph*, ticket: WorkTicket*, success: bool): bool {
+// A receipt belongs to one dispatch, not merely to a task in a revision. A
+// suspended query can run again before a delayed receipt from its old dispatch.
+fn work_ticket_valid(g: WorkGraph*, ticket: WorkTicket*): bool {
     if !work_ok(g) {
         return false;
     }
@@ -563,17 +623,65 @@ fn work_finish(g: WorkGraph*, ticket: WorkTicket*, success: bool): bool {
     valid &&= task.state == WorkState.Running;
     valid &&= ticket.revision == g.revision;
     valid &&= ticket.profile == g.profile;
-    if !valid {
-        return false;
-    }
+    valid &&= ticket.dispatch == task.dispatch;
+    return valid;
+}
+
+fn work_release(g: WorkGraph*, id: usize): void {
     g.running--;
     for(var i: usize = 0; i < g.executing.length; i++) {
-        if g.executing.data[i] == ticket.task {
+        var found = g.executing.data[i] == id;
+        if found {
             g.executing.length--;
             g.executing.data[i] = g.executing.data[g.executing.length];
             break;
         }
     }
+}
+
+// Suspend at an executor-owned continuation after discovering another input.
+// The worker must have relinquished its borrowed views/leases before this call.
+// The coordinator alone adds the edge, releases access claims, and demands the
+// dependency. The payload/continuation stays on the subject's shared components;
+// this derived scheduler never copies it or repeats already-observed effects.
+// Seal a newly discovered dependency before suspending its consumer.
+fn work_suspend(g: WorkGraph*, ticket: WorkTicket*, dependency: usize): bool {
+    if !work_ticket_valid(g, ticket) {
+        return false;
+    }
+    var input = work_task(g, dependency);
+    if input == null || input.state == WorkState.Building {
+        return false;
+    }
+    var task = work_task(g, ticket.task);
+    task.state = WorkState.Building;
+    var attached = work_depend(g, ticket.task, dependency);
+    if !attached {
+        task.state = WorkState.Running;
+        return false;
+    }
+    work_release(g, ticket.task);
+    if !work_seal(g, ticket.task) {
+        return false;
+    }
+    return work_demand(g, dependency);
+}
+
+// Cooperative bounded execution retains its payload but gets a new receipt on
+// readmission. It releases every access claim exactly like dependency suspension.
+fn work_yield(g: WorkGraph*, ticket: WorkTicket*): bool {
+    if !work_ticket_valid(g, ticket) { return false; }
+    work_release(g, ticket.task);
+    work_task(g, ticket.task).state = WorkState.Building;
+    return work_seal(g, ticket.task);
+}
+
+fn work_finish(g: WorkGraph*, ticket: WorkTicket*, success: bool): bool {
+    if !work_ticket_valid(g, ticket) {
+        return false;
+    }
+    var task = work_task(g, ticket.task);
+    work_release(g, ticket.task);
     if !success {
         return work_fail(g, ticket.task);
     }

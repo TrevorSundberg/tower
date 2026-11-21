@@ -1,1 +1,1 @@
-{"llvm":true,"cross":true}
+{"llvm":true,"cross":true,"threads":true}
