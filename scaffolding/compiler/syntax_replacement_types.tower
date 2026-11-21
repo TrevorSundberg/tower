@@ -1,0 +1,19 @@
+import tower;
+import .library.vector;
+
+// Owned leases on shared source/template entities, not a second syntax graph.
+struct SyntaxReplacementCapture {
+    name: vector(u8);
+    source: void*;
+    uses: usize;
+}
+
+struct SyntaxReplacement {
+    rule: vector(u8);
+    category: vector(u8);
+    start: usize;
+    end: usize;
+    error_offset: usize;
+    tree: void*;
+    captures: vector(SyntaxReplacementCapture);
+}

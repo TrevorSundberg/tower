@@ -1,0 +1,34 @@
+import tower;
+import .library.vector;
+
+struct SyntaxExpansionCapture {
+    name: u8*;
+    uses: usize;
+    repeated: bool;
+}
+
+struct SyntaxExpansionRule {
+    tree: void*;
+    rule: u8*;
+    category: u8*;
+    start: usize;
+    end: usize;
+    captures: SyntaxExpansionCapture*;
+    count: usize;
+}
+
+struct SyntaxExpansionInput {
+    rules: SyntaxExpansionRule**;
+    count: usize;
+    match_kind: void*;
+}
+
+struct SyntaxExpansionResult {
+    root: void*;
+    replacements: usize;
+    generated_nodes: usize;
+    copied_nodes: usize;
+    error_offset: usize;
+    error: vector(u8);
+}
+

@@ -18,7 +18,6 @@
 #include <array>
 #include <cassert>
 #include <cstring>
-#include <map>
 #include <memory>
 #include <string>
 #include <vector>
@@ -33,21 +32,10 @@ constexpr uint32_t FirstToken = 0x120000;
 using Node = std::unique_ptr<TowerNode, decltype(&tower_node_release_ref)>;
 Node owned(TowerNode* node) { return Node(node, tower_node_release_ref); }
 
-using Term = TowerNodeRef;
-using Sequence = TowerNodeRef;
 using Revision = std::shared_ptr<const FrontendRevision>;
 using PendingRules = std::unique_ptr<SyntaxPendingRevision, decltype(&syntax_pending_destroy)>;
 SyntaxNode& semantic(const TowerNodeRef& node) { return syntax_node(node.get()); }
 SyntaxNode& semantic(TowerNode* node) { return syntax_node(node); }
-
-struct Replacement {
-  std::string rule, category;
-  size_t start = 0, end = 0;
-  size_t error_offset = 0;
-  Node tree = owned(nullptr);
-  std::map<std::string, Term> captures;
-  std::map<std::string, size_t> uses;
-};
 
 struct Version {
   Revision grammar; // pinned shared source entities and immutable lookup views
@@ -57,10 +45,7 @@ struct Version {
   std::unique_ptr<SyntaxEmission, decltype(&syntax_emission_destroy)> emission{nullptr, syntax_emission_destroy};
   PendingRules pending{nullptr, syntax_pending_destroy};
   Revision bedrock;
-  std::map<size_t, Replacement> replacements;
-  std::vector<std::vector<SyntaxExpansionCapture>> expansion_captures;
-  std::vector<SyntaxExpansionRule> expansion_rules;
-  std::vector<const SyntaxExpansionRule*> expansion_index;
+  std::unique_ptr<SyntaxReplacementOwner, decltype(&syntax_replacement_owner_destroy)> replacements{nullptr, syntax_replacement_owner_destroy};
   size_t replacement_error_offset = TOWER_INVALID_INDEX;
   ~Version() { lexicon_destroy(lexicon); parser_table_destroy(table); }
 };
@@ -323,11 +308,9 @@ extern "C" TowerNode* syntax_parser_template_read(Stream* stream, void* userdata
   return read_scan(stream, host.session, input, id, start, length);
 }
 
-bool compile_template(Version& version, const Revision& defs, const Sequence& seq,
-    Replacement& replacement, std::string& error, bool& grammar_error) {
+bool compile_template(Version& version, const Revision& defs, TowerNode* seq,
+    SyntaxReplacementOwner* owner, SyntaxReplacement& replacement, std::string& error, bool& grammar_error) {
   grammar_error = false;
-  replacement.error_offset = replacement.start;
-  replacement.uses.clear();
   auto grammar = std::make_shared<Version>();
   grammar->grammar = defs;
   grammar->bedrock = version.bedrock;
@@ -345,9 +328,10 @@ bool compile_template(Version& version, const Revision& defs, const Sequence& se
   input.session.bedrock = version.bedrock;
   input.session.version = grammar;
   std::vector<SyntaxTemplateCapture> captures;
-  for (const auto& [name, entity] : replacement.captures) {
-    const auto& term = semantic(entity);
-    captures.push_back({name.c_str(), entity.get(), syntax_emission_wrapper(grammar->emission.get(), term.text.c_str())});
+  for (size_t i = 0; i < replacement.captures.length; ++i) {
+    const auto& capture = replacement.captures.data[i];
+    const auto& term = semantic(capture.source);
+    captures.push_back({capture.name.c_str(), capture.source, syntax_emission_wrapper(grammar->emission.get(), term.text.c_str())});
   }
   input.captures = captures.data(); input.count = captures.size();
   SyntaxTemplateGrammar holes{};
@@ -385,7 +369,7 @@ bool compile_template(Version& version, const Revision& defs, const Sequence& se
   }
   auto* body = child(root.get(), 0);
   if (!body) { error = "Replacement must produce one syntax tree"; return false; }
-  tower_node_add_ref(body); tower_node_detach(body); replacement.tree = owned(body);
+  tower_node_add_ref(body); tower_node_detach(body); syntax_replacement_tree(owner, body);
   std::vector<size_t> uses(captures.size());
   SyntaxTemplateRemap remap{body, parser_match_get_type(),
     syntax_emission_productions(grammar->emission.get()), syntax_emission_production_count(grammar->emission.get()),
@@ -393,55 +377,35 @@ bool compile_template(Version& version, const Revision& defs, const Sequence& se
     nullptr, 0, nullptr, 0,
     parser_table_grammar(version.table), uses.data(), uses.size()};
   if (!syntax_template_remap_revisions(&remap, grammar->emission.get(), version.emission.get())) { error = "Unable to allocate replacement template mapping"; return false; }
-  for (size_t i = 0; i < captures.size(); ++i) if (uses[i]) replacement.uses[captures[i].name] = uses[i];
+  for (size_t i = 0; i < captures.size(); ++i) replacement.captures.data[i].uses = uses[i];
   return true;
 }
 
 struct ReplacementPlanHost {
   Version& version;
   const Revision& definitions;
-  Replacement current;
-  TowerNodeRef sequence;
-  Node selected = owned(nullptr);
-  std::string selected_category, diagnostic;
-  std::map<std::string, size_t> selected_uses;
 };
 
 bool prepare_replacements(Version& version, const Revision& defs, std::string& message) {
   ReplacementPlanHost host{version, defs};
-  SyntaxReplacementPlan plan{defs->rules.data, defs->rules.length, syntax_component_type(), &host, {}, TOWER_INVALID_INDEX};
-  const bool ok = syntax_replacements_prepare(&plan);
+  version.replacements.reset(syntax_replacement_owner_create(&host, version.emission.get(), syntax_component_type(), parser_match_get_type()));
+  if (!version.replacements) { message = "Unable to allocate replacement preparation storage"; return false; }
+  SyntaxReplacementPlan plan{defs->rules.data, defs->rules.length, syntax_component_type(), version.replacements.get(), {}, TOWER_INVALID_INDEX};
+  const bool ok = syntax_replacements_prepare(&plan) && syntax_replacement_freeze(version.replacements.get());
   if (!ok) {
     version.replacement_error_offset = plan.offset;
     message = plan.error.length ? std::string(reinterpret_cast<const char*>(plan.error.data), plan.error.length)
       : "Unable to allocate replacement preparation storage";
   }
   syntax_replacements_dispose(&plan);
-  if (!ok) return false;
-  version.expansion_captures.resize(version.replacements.size());
-  version.expansion_rules.reserve(version.replacements.size());
-  if (!version.replacements.empty()) version.expansion_index.resize(version.replacements.rbegin()->first + 1);
-  for (const auto& [index, replacement] : version.replacements) {
-    auto& captures = version.expansion_captures[version.expansion_rules.size()];
-    for (const auto& [name, source] : replacement.captures) {
-      auto used = replacement.uses.find(name);
-      captures.push_back({name.c_str(), used == replacement.uses.end() ? 0 : used->second,
-        semantic(source).repetition != 0});
-    }
-    version.expansion_rules.push_back({replacement.tree.get(), replacement.rule.c_str(),
-      replacement.category.c_str(), replacement.start, replacement.end, captures.data(), captures.size()});
-    version.expansion_index[index] = &version.expansion_rules.back();
-  }
-  return true;
+  return ok;
 }
 
 bool expand(SyntaxSession& session, Node& root) {
-  SyntaxExpansionInput input{session.version->expansion_index.data(),
-    session.version->expansion_index.size(), parser_match_get_type()};
   SyntaxExpansionResult result{root.release(), session.expansion_stats.replacements,
     session.expansion_stats.generated_nodes, session.expansion_stats.copied_nodes,
     session.error_offset, {}};
-  const bool ok = syntax_expand(&input, &result);
+  const bool ok = syntax_expand(syntax_replacement_input(session.version->replacements.get()), &result);
   root = owned(result.root);
   session.expansion_stats = {result.replacements, result.generated_nodes, result.copied_nodes};
   session.error_offset = result.error_offset;
@@ -453,39 +417,16 @@ bool expand(SyntaxSession& session, Node& root) {
 }
 }
 
-extern "C" void syntax_replacement_begin(void* context, const char* name, TowerNode* sequence, size_t start, size_t end) {
-  auto& host = *static_cast<ReplacementPlanHost*>(context);
-  host.current = Replacement{}; host.current.rule = name;
-  host.current.start = start; host.current.end = end;
-  host.sequence = TowerNodeRef(sequence); host.selected = owned(nullptr); host.selected_uses.clear();
-}
-extern "C" void syntax_replacement_capture(void* context, const char* name, TowerNode* source) {
-  static_cast<ReplacementPlanHost*>(context)->current.captures[name] = TowerNodeRef(source);
-}
 extern "C" unsigned syntax_replacement_attempt(void* context, const char* category) {
-  auto& host = *static_cast<ReplacementPlanHost*>(context);
-  host.current.category = category; host.diagnostic.clear();
+  auto* owner = static_cast<SyntaxReplacementOwner*>(context);
+  auto* current = syntax_replacement_candidate(owner, category);
+  if (!current) return 0;
+  auto& host = *static_cast<ReplacementPlanHost*>(syntax_replacement_host(owner));
+  std::string diagnostic;
   bool grammar_error = false;
-  const bool ok = compile_template(host.version, host.definitions, host.sequence, host.current, host.diagnostic, grammar_error);
+  const bool ok = compile_template(host.version, host.definitions, syntax_replacement_sequence(owner), owner, *current, diagnostic, grammar_error);
+  syntax_replacement_error(owner, diagnostic.c_str());
   return ok ? 1 : grammar_error ? 2 : 0;
-}
-extern "C" const char* syntax_replacement_diagnostic(void* context) {
-  return static_cast<ReplacementPlanHost*>(context)->diagnostic.c_str();
-}
-extern "C" size_t syntax_replacement_offset(void* context) {
-  return static_cast<ReplacementPlanHost*>(context)->current.error_offset;
-}
-extern "C" void syntax_replacement_select(void* context) {
-  auto& host = *static_cast<ReplacementPlanHost*>(context);
-  host.selected = std::move(host.current.tree); host.selected_category = host.current.category;
-  host.selected_uses = std::move(host.current.uses);
-}
-extern "C" void syntax_replacement_commit(void* context, size_t alternative) {
-  auto& host = *static_cast<ReplacementPlanHost*>(context);
-  host.current.tree = std::move(host.selected); host.current.category = std::move(host.selected_category);
-  host.current.uses = std::move(host.selected_uses);
-  auto index = syntax_emission_find_name(host.version.emission.get(), host.current.rule.c_str(), alternative);
-  host.version.replacements.emplace(index, std::move(host.current));
 }
 SyntaxExpansionStats syntax_get_expansion_stats(SyntaxSession* session) { return session->expansion_stats; }
 
@@ -773,7 +714,7 @@ TowerNode* syntax_next(SyntaxSession* session) {
       }
     } else {
       session->declarations_only = false;
-      if (!session->formatting && !session->version->replacements.empty()) {
+      if (!session->formatting && syntax_replacement_count(session->version->replacements.get())) {
         if (!expand(*session, root)) return nullptr;
       }
       session->comment_cursor = session->cursor;
@@ -910,31 +851,23 @@ extern "C" TowerNode* syntax_inspection_match(SyntaxSession* session, TowerNode*
   }
   return nullptr;
 }
-static const Replacement* inspection_replacement(SyntaxSession* session, TowerNode* body) {
+static const SyntaxReplacement* inspection_replacement(SyntaxSession* session, TowerNode* body) {
   if (!session->version) return nullptr;
   const auto& version = *session->version;
-  for (const auto& [index, replacement] : version.replacements) {
-    auto* production = syntax_emission_find_index(version.emission.get(), index);
-    if (!production) continue;
-    auto* rule = syntax_revision_rule(version.grammar.get(), production->name, std::strlen(production->name));
-    if (rule && production->alternative < rule->count &&
-        semantic(rule->alternatives[production->alternative]).replacement == body) return &replacement;
-  }
-  return nullptr;
+  return syntax_replacement_inspect(version.replacements.get(), version.grammar.get(), body);
 }
 extern "C" TowerNode* syntax_inspection_template(SyntaxSession* session, TowerNode* body,
                                                 const char** category, size_t* captures) {
   *category = ""; *captures = 0;
   auto* replacement = inspection_replacement(session, body);
   if (!replacement) return nullptr;
-  *category = replacement->category.c_str(); *captures = replacement->captures.size();
-  return replacement->tree.get();
+  *category = replacement->category.c_str(); *captures = replacement->captures.length;
+  return replacement->tree;
 }
 extern "C" TowerNode* syntax_inspection_capture(SyntaxSession* session, TowerNode* body, size_t index) {
   auto* replacement = inspection_replacement(session, body);
-  if (!replacement || index >= replacement->captures.size()) return nullptr;
-  auto capture = replacement->captures.begin(); std::advance(capture, index);
-  return capture->second.get();
+  if (!replacement || index >= replacement->captures.length) return nullptr;
+  return replacement->captures.data[index].source;
 }
 static uint32_t completion_token(SyntaxSession* session, const char* text) {
   if (!session->completion) return PARSER_ID_EOF;

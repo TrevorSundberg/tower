@@ -14,6 +14,7 @@ import frontend_pending;
 import frontend_revision;
 import frontend_baselines;
 import frontend_session_inputs;
+import frontend_replacement_owner;
 
 // Separate test unit: call the actual production exports, without embedding a
 // second copy of the grammar reader or depending on the native default world.
@@ -455,6 +456,7 @@ export fn frontend_world_tests(): void {
     frontend_baseline_tests();
     frontend_baseline_failure_tests();
     frontend_session_inputs_tests();
+    frontend_replacement_owner_tests();
     frontend_session_module_tests();
     frontend_world_lifetime_tests();
     frontend_world_failure_tests();

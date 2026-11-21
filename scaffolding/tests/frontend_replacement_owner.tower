@@ -1,0 +1,171 @@
+import tower;
+import .library.vector;
+import .compiler.syntax_replacement_types;
+import .compiler.syntax_expansion_types;
+import .compiler.syntax_emission_types;
+import .compiler.syntax_types;
+import .compiler.syntax_view;
+import .compiler.frontend_revision_types;
+import .compiler.grammar_types;
+import frontend_world;
+import frontend_format;
+import frontend_syntax_preview;
+import frontend_revision;
+import frontend_emission;
+
+extern fn syntax_replacement_owner_create(host: void*, emission: void*, kind: void*, match_kind: void*): void*;
+extern fn syntax_replacement_owner_destroy(owner: void*): void;
+extern fn syntax_replacement_begin(owner: void*, name: u8*, sequence: void*, start: usize, end: usize): void;
+extern fn syntax_replacement_capture(owner: void*, name: u8*, source: void*): void;
+extern fn syntax_replacement_candidate(owner: void*, category: u8*): SyntaxReplacement*;
+extern fn syntax_replacement_host(owner: void*): void*;
+extern fn syntax_replacement_sequence(owner: void*): void*;
+extern fn syntax_replacement_tree(owner: void*, tree: void*): void;
+extern fn syntax_replacement_error(owner: void*, text: u8*): void;
+extern fn syntax_replacement_diagnostic(owner: void*): u8*;
+extern fn syntax_replacement_offset(owner: void*): usize;
+extern fn syntax_replacement_select(owner: void*): void;
+extern fn syntax_replacement_commit(owner: void*, alternative: usize): void;
+extern fn syntax_replacement_freeze(owner: void*): bool;
+extern fn syntax_replacement_input(owner: void*): SyntaxExpansionInput*;
+extern fn syntax_replacement_count(owner: void*): usize;
+extern fn syntax_replacement_inspect(owner: void*, grammar: FrontendRevision*, body: void*): SyntaxReplacement*;
+
+fn replacement_owner_stage(owner: void*, name: u8*, sequence: void*, tree: void*, first: void*, second: void*): void {
+    syntax_replacement_begin(owner, name, sequence, 12, 34);
+    // Deliberately unsorted, with replacement of an existing capture binding.
+    syntax_replacement_capture(owner, "z", first);
+    syntax_replacement_capture(owner, "a", first);
+    syntax_replacement_capture(owner, "z", second);
+    var current = syntax_replacement_candidate(owner, "Selected");
+    if current is not null {
+        frontend_world_check(current.captures.length == 2);
+        frontend_format_text(current.captures.data[0].name.data, "a");
+        frontend_world_check(current.captures.data[0].source == first);
+        frontend_world_check(current.captures.data[1].source == second);
+        current.captures.data[0].uses = 2;
+        current.captures.data[1].uses = 3;
+        entity_retain(tree);
+        syntax_replacement_tree(owner, tree);
+        syntax_replacement_select(owner);
+    }
+    // A later failed destination must not replace the successful selection.
+    current = syntax_replacement_candidate(owner, "Rejected");
+    if current is not null {
+        current.captures.data[0].uses = 9;
+        current.error_offset = 17;
+        syntax_replacement_error(owner, "candidate diagnostic");
+    }
+    syntax_replacement_commit(owner, 0);
+}
+
+fn frontend_replacement_owner_tests(): void {
+    var baseline = tower_test_buffer_count();
+    var world = compiler_world_create();
+    var store = compiler_world_store(world);
+    var kinds: FrontendKinds;
+    frontend_world_check(frontend_world_test_kinds(world, &kinds));
+    var source = entity_create(store);
+    var alternatives: void*[2];
+    var rules: SyntaxRuleView[2];
+    for (var i: usize = 0; i < 2; ++i) {
+        alternatives[i] = frontend_format_child(store, source, null);
+        preview_syntax(world, alternatives[i]).kind = convert(u32, SyntaxKind.Alternative);
+        rules[i].name = i == 0 ? "A" : "B";
+        rules[i].name_length = 1;
+        rules[i].alternatives = &alternatives[i];
+        rules[i].count = 1;
+    }
+    var first = frontend_format_child(store, source, null);
+    var second = frontend_format_child(store, source, null);
+    preview_syntax(world, first).kind = convert(u32, SyntaxKind.Term);
+    var term = preview_syntax(world, second);
+    term.kind = convert(u32, SyntaxKind.Term);
+    term.repetition = 43;
+    var tree = frontend_format_child(store, source, null);
+    var body = frontend_format_child(store, source, null);
+    // SyntaxNode owns its replacement reference.
+    entity_retain(body);
+    preview_syntax(world, alternatives[0]).replacement = body;
+    var revision = syntax_revision_create(&rules[0], 2, null, 0);
+    frontend_world_check(revision is not null);
+    var input: SyntaxEmissionInput;
+    fill(&input, 0, sizeof(SyntaxEmissionInput));
+    input.rules = &rules[0];
+    input.count = 2;
+    input.category = "A";
+    input.root = entity_create(store);
+    input.syntax_kind = kinds.syntax;
+    input.rule_kind = kinds.rule;
+    input.reference_kind = kinds.reference;
+    input.string_kind = kinds.string;
+    input.range_kind = kinds.range;
+    var emission = syntax_emit(&input);
+    frontend_world_check(emission is not null);
+    var buffers = tower_test_buffer_count();
+    var references = entity_references(tree);
+    var allocations = tower_test_buffer_allocations();
+    var owner = syntax_replacement_owner_create(source, emission, kinds.syntax, kinds.`match`);
+    frontend_world_check(owner is not null);
+    replacement_owner_stage(owner, "B", alternatives[1], tree, first, second);
+    replacement_owner_stage(owner, "A", alternatives[0], tree, first, second);
+    frontend_world_check(syntax_replacement_freeze(owner));
+    allocations = tower_test_buffer_allocations() - allocations;
+    frontend_world_check(syntax_replacement_host(owner) is null);
+    frontend_world_check(syntax_replacement_count(owner) == 2);
+    var expanded = syntax_replacement_input(owner);
+    var a = syntax_emission_find_name(emission, "A", 0);
+    var b = syntax_emission_find_name(emission, "B", 0);
+    frontend_world_check(expanded.match_kind == kinds.`match`);
+    frontend_world_check(expanded.count > a && expanded.count > b);
+    var selected = expanded.rules[a];
+    frontend_world_check(selected.tree == tree && selected.start == 12 && selected.end == 34);
+    frontend_format_text(selected.category, "Selected");
+    frontend_world_check(selected.count == 2);
+    frontend_world_check(selected.captures[0].uses == 2 && !selected.captures[0].repeated);
+    frontend_world_check(selected.captures[1].uses == 3 && selected.captures[1].repeated);
+    var inspected = syntax_replacement_inspect(owner, revision, body);
+    frontend_world_check(inspected is not null && inspected.tree == tree);
+    frontend_world_check(syntax_replacement_inspect(owner, revision, tree) is null);
+    // Frozen queries and repeated freeze never allocate or change addresses.
+    tower_test_buffer_fail_after(0);
+    frontend_world_check(syntax_replacement_freeze(owner));
+    frontend_world_check(syntax_replacement_candidate(owner, "later") is null);
+    frontend_world_check(syntax_replacement_input(owner).rules[a] == selected);
+    tower_test_buffer_fail_after(frontend_world_unlimited());
+    syntax_replacement_owner_destroy(owner);
+    frontend_world_check(tower_test_buffer_count() == buffers && entity_references(tree) == references);
+    // Every preparation/publication allocation fails without leaking leases.
+    for (var i: usize = 0; i < allocations; ++i) {
+        tower_test_buffer_fail_after(i);
+        owner = syntax_replacement_owner_create(source, emission, kinds.syntax, kinds.`match`);
+        if owner is not null {
+            replacement_owner_stage(owner, "B", alternatives[1], tree, first, second);
+            replacement_owner_stage(owner, "A", alternatives[0], tree, first, second);
+            frontend_world_check(!syntax_replacement_freeze(owner));
+        }
+        tower_test_buffer_fail_after(frontend_world_unlimited());
+        syntax_replacement_owner_destroy(owner);
+        frontend_world_check(tower_test_buffer_count() == buffers);
+        frontend_world_check(entity_references(tree) == references);
+    }
+    owner = syntax_replacement_owner_create(source, emission, kinds.syntax, kinds.`match`);
+    replacement_owner_stage(owner, "A", alternatives[0], tree, first, second);
+    tower_test_buffer_fail_after(0);
+    frontend_world_check(!syntax_replacement_freeze(owner));
+    tower_test_buffer_fail_after(frontend_world_unlimited());
+    frontend_world_check(syntax_replacement_freeze(owner));
+    syntax_replacement_owner_destroy(owner);
+    owner = syntax_replacement_owner_create(source, emission, kinds.syntax, kinds.`match`);
+    tower_test_buffer_fail_after(0);
+    frontend_world_check(syntax_replacement_freeze(owner));
+    frontend_world_check(syntax_replacement_input(owner).count == 0);
+    tower_test_buffer_fail_after(frontend_world_unlimited());
+    syntax_replacement_owner_destroy(owner);
+    frontend_revision_release(revision);
+    syntax_emission_destroy(emission);
+    entity_release(input.root);
+    entity_release(source);
+    frontend_world_check(compiler_world_dispose(world));
+    frontend_world_check(tower_test_buffer_count() == baseline);
+}

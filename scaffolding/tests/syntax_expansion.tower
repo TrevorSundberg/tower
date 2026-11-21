@@ -9,6 +9,7 @@ import .compiler.lr_tree;
 import .compiler.parser_nodes;
 import .compiler.parser_types;
 import .compiler.syntax_expansion;
+import .compiler.syntax_expansion_types;
 import .compiler.syntax_reader;
 import .compiler.syntax_validation;
 

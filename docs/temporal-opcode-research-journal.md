@@ -23487,3 +23487,57 @@ rules over its Bedrock pin for diagnostic lookup, preserving cached versions.
 The existing diagnostics.test.mjs reset fixture is the relevant check; native
 build/object agreement had not covered that interaction. The coordinator owns
 that correction and its browser verification. Preserve it on the next pull.
+
+### 2026-11-20 - Tower-owned replacement candidates and frozen expansion views (agent 1)
+
+Moved the remaining native replacement/capture/use maps out of syntax.cpp into
+syntax_replacement_owner.tower. Tower now retains source capture entities and
+compiled template trees, sorts capture names and production indexes, selects a
+successful destination while later candidates are tried, and publishes contiguous
+immutable expansion views. The shared entities remain authoritative. Tooling's
+replacement-body lookup now uses the same Tower owner and revision index. Native
+code retains temporary parser orchestration and scratch remap arrays; this is not
+complete SyntaxSession/Version retirement. No new native implementation or tests
+were introduced; compiler-syntax-replacements.hpp is the mechanical ABI mirror.
+
+Extracted expansion view layouts into syntax_expansion_types.tower so focused
+ownership tests can call production exports without embedding another expander.
+The existing syntax_expansion Tower fixture gains that direct type import.
+The new owner is included through frontend_world's existing dependency path;
+no CMake/runtime embedding change was needed. Capture order, repeated flags,
+selected-category/use counts, template inspection, stable freeze/query addresses,
+empty freeze with allocation disabled, failed freeze retry, and every allocation
+in a two-rule construction are tested in frontend_replacement_owner.tower.
+Each injected failure must restore entity references and buffer counts after
+owner destruction. The capture fixture deliberately inserts names out of order,
+replaces one binding, and tries another category after a successful selection.
+
+Initial compiler checks caught incompatible imported callback declarations
+(void* versus the concrete owner pointer), then missing direct type/text-helper
+imports after separating view types. Kept the existing callback ABI, cast the
+context inside its Tower implementations and added explicit imports. The final
+current-pin native build succeeds; frontend/driver CTests pass 2/2 (16.40 s),
+and the actual successor passes scaffolding/tests/module_paths.py. Build log:
+C:/Sandbox/build/codex-agents/agent-1-replacements-build.log. No sanitizer or broad
+formatter run. The upstream defer release and new published bootstrap arrived
+during validation, so final rebase plus an empty-cache default successor check
+remain required before source publication. Agent 2 explicitly accepts combined
+browser deployment and hosted verification for this next batch; no deployment
+success for these local slices is claimed yet.
+Post-rebase validation for the session-input/replacement slices: rebased onto
+ef5c5ff, preserving both append-only journal histories and the coordinator's
+current-source diagnostic-provenance correction. Adopted AGENTS.md's new defer
+rule in session reset: source/document temporaries have lexical cleanup, then
+are nulled on ownership transfer. Their exhaustive failure tests still pass.
+The empty agent-1-replacement-clean cache completed the documented build with
+TOWER_BOOTSTRAP_COMPILER unset, using published complete bootstrap fb1ab1f9e44dad9e8302472ee2c0d7c54471e4c555ce72c355e29a44aacc4628.
+This is the documented Linux development bootstrap, not a new portable release.
+Anchored frontend/driver/execution CTests pass 3/3 (19.18 s); the clean actual
+successor passes module_paths.py. The final publication pull remains under the
+agent's exclusive source lock; Agent 2 owns the next combined browser deployment.
+Final source-slot pull reached 4a3266a; only two documentation files changed
+upstream since the clean successor build, so compiled sources are identical.
+Preserved all coordinator/defer publication journal entries during the append
+conflict resolution. The clean actual successor compiled the complete generated
+parser unit to an x86_64 object byte-identical to the bootstrap-built object
+(cmp exit 0). Final diff whitespace check passes and todo.txt is untouched.

@@ -52,13 +52,11 @@ mode: u32, module: FrontendModule*): bool {
     if selected is not null { name = frontend_module_name(selected); }
     var prepared = syntax_source_create(name, source, length);
     if prepared is null { return false; }
+    defer syntax_source_release(prepared);
     var document = entity_create(compiler_world_store(value.world));
+    defer { if document is not null { entity_release(document); } }
     var node = document is null ? null : bits(SyntaxNode*, compiler_world_component(value.world, document, CompilerSyntax()));
-    if node is null {
-        if document is not null { entity_release(document); }
-        syntax_source_release(prepared);
-        return false;
-    }
+    if node is null { return false; }
     node.kind = SyntaxDocument();
     var replace_owned = value.owns_module && value.source is not null;
     if module is not null && bits(void*, module) != value.module {
@@ -78,7 +76,9 @@ mode: u32, module: FrontendModule*): bool {
     }
     syntax_source_release(value.source);
     value.source = prepared;
+    prepared = null;
     if value.document is not null { entity_release(value.document); }
     value.document = document;
+    document = null;
     return ready;
 }

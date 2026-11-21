@@ -8,6 +8,7 @@ import syntax_emission;
 import syntax_nodes;
 import syntax_reader;
 import syntax_validation;
+import syntax_expansion_types;
 import .library.vector;
 
 // Replacement execution over shared parse entities. Rule slots and visitation
@@ -19,37 +20,6 @@ extern fn entity_replace_child(parent: void*, index: usize, replacement: void*):
 extern fn entity_take_last_child(parent: void*): void*;
 
 extern fn entity_child_name(parent: void*, index: usize): u8*;
-
-struct SyntaxExpansionCapture {
-    name: u8*;
-    uses: usize;
-    repeated: bool;
-}
-
-struct SyntaxExpansionRule {
-    tree: void*;
-    rule: u8*;
-    category: u8*;
-    start: usize;
-    end: usize;
-    captures: SyntaxExpansionCapture*;
-    count: usize;
-}
-
-struct SyntaxExpansionInput {
-    rules: SyntaxExpansionRule**;
-    count: usize;
-    match_kind: void*;
-}
-
-struct SyntaxExpansionResult {
-    root: void*;
-    replacements: usize;
-    generated_nodes: usize;
-    copied_nodes: usize;
-    error_offset: usize;
-    error: vector(u8);
-}
 
 // Provenance lives in Tower world components. Selection, traversal,
 // recursion/output limits and copying decisions all live in this module.
