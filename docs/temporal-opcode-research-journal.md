@@ -28952,3 +28952,47 @@ todo.txt retains Git blob 96a9e58964d7f01e4a97819f259448db81ef5e40. The universa
 ECS/archetype/query and structural-threading objective remains unfinished.
 
 
+The final page-storage pull integrated upstream a91a4b6: Tower template/inspection
+ports and the published default-initialization bootstrap/adoption. Preserved both
+append-only journal histories. Code conflicts were limited to independent default
+initializers; reviewed the merged entity/stage ownership paths. Rebased page commit
+is 80975de. An initially absent compiletime-component-pages-merged-clean cache
+builds all 55 native steps using the documented f7ae2e1c bootstrap, with no private
+override. Full native acceptance passes 8/8 (49.14s), backend API passes, actual
+entities-unit successor is byte identical (cmp0), shared capacities pass 3/3
+(46.95s), and editor checks pass 28/28 (118.83s). Portable/shared and LLVM/cross
+reactors and the 15-unit compiler project rebuild successfully. One premature
+successor invocation raced CMake relinking towerc and received permission denied;
+reran after that build completed, without altering executable permissions.
+Matching library/language/default regressions, two edited compiler generations
+and local browser verification are still running. The pre-rebase frozen bundle
+is superseded and will not overwrite a newer upstream deployment.
+
+Preparing the subsequent archetype/query slice in ignored isolated Tower sources
+while those source-reading checks run. Exact component-set tables will index
+stable canonical payloads with dense entity rows and pointer columns. Worker
+stages reserve all destination table capacity before publication; pending counts
+protect empty destinations across a batch, and failed preparation rolls those
+reservations back. Cached multi-component plans belong to a pinned view and read
+published columns, never a leased owner's mutable component list. Planned first
+production consumer is flow-query discovery with explicit source ordinals so
+archetype iteration order cannot change diagnostics. This is design/experimental
+work, not a claim that these tables are deployed or that payloads relocate.
+
+Merged-source regressions pass 102/102 in 393.46s, now including the upstream
+default-initialization tests. Both edited browser generations pass at 2/4 workers
+in 137.79s/92.52s with identical sizes 1,021,935/52,327,003/63,884,451 and hashes:
+parser e1fe367a2ba9d82ad5d5dcf018a0de9b80f0ba0c6a83d8372cc4ca31bff2eaf3;
+LLVM 0ec5b18711408d8fbc68187d641cfc87ad949b64a4de1e18cd56325eb573a0ed;
+cross 7929f825159013ba0bd02185e439b16863294fc7ad95b1d3afc0d4dca898c92a.
+Local deployment completes all 77 hashes and desktop/mobile/default workflows.
+The source push was rejected because upstream added abaa0f5's publication journal;
+fetched and confirmed that update is documentation only. No source rebase ran
+while tests or packaging read sources. Preserving that entry before normal retry;
+compiler/build/bootstrap inputs do not change in this second merge.
+The isolated table prototype passes graph interpretation at 32/64 bits and fast
+interpretation at 32 bits. Scratch-client setup initially used unsupported --run,
+a late concatenated import and an undefined trap identifier; corrected the client
+and used --interpret/--interpret-fast with explicit failure counters. These were
+fixture errors; no compiler acceptance rule was changed. Prototype results are
+not release evidence for the upcoming table integration.
