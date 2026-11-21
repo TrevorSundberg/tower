@@ -27151,3 +27151,17 @@ successfully for desktop and mobile, all 77 assets, native exports and project
 workflows. Its normal Pages publication is now in progress. The following
 propagation edits are excluded from that frozen bundle and will receive their
 own publication after validation and source synchronization.
+
+The first propagation timing trial overlapped Git's Pages publication work, so
+repeated it after all publishing/build/browser processes finished. The idle
+A/B/B/A/A/B trial (same Node/worker/source/canonical-output checks) records baseline
+5845/5340/4705 ms and propagation-worker 5267/5194/5681 ms. These ranges overlap;
+retain no end-to-end speedup claim. Raw hashes/times are in
+lr-propagation-benchmark-idle.log. The purpose achieved here is safe parallel
+fixed-point computation, with batching efficiency still subject to measurement.
+
+The dd6eb85 action bundle was fast-forwarded from upstream ff814ae to Pages
+3652113; its exact GitHub Pages run44860751608 succeeds. Hosted byte/browser
+verification is running against that frozen bundle. The final source pull for
+propagation found main unchanged, so the clean-build and acceptance evidence
+above applies without another source integration.
