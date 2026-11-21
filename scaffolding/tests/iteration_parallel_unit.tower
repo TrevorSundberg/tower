@@ -1,0 +1,26 @@
+import tower;
+import .library.vector;
+
+// Each unit owns its ECS graph. Runtime views borrow the caller's contiguous
+// storage; no entity pointers or mutable iterator state cross worker messages.
+export fn iteration_transform(data: u32*, count: usize): void {
+    var view: vector(u32);
+    view.data = data;
+    view.length = count;
+    view.capacity = count;
+    foreach(var & item in &view) {
+        *item = *item * 3 + 7;
+    }
+}
+
+export fn iteration_checksum(data: u32*, count: usize): u32 {
+    var view: vector(u32);
+    view.data = data;
+    view.length = count;
+    view.capacity = count;
+    var result: u32 = 0;
+    foreach(var item in &view) {
+        result += item;
+    }
+    return result;
+}

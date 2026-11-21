@@ -120,3 +120,18 @@ test('the dense Tower batch kernel vectorizes on native targets without changing
     assert.ok(result.object.length);
   }
 });
+
+test('borrowed iteration remains deterministic across independently owned compiler worlds',async () => {
+  const iteration = structuredClone(files);
+  const source = (await read('scaffolding/tests/iteration_parallel_unit.tower')).toString();
+  for (const unit of recipe.units) iteration.find(file => file.path === unit.entry).text = source;
+  const serial = await compileUnits({compiler,recipe,files:iteration});
+  for (const workers of [2,4]) {
+    const published = [];
+    const parallel = await compileUnits({compiler,recipe,files:iteration,workers,createWorker,
+      onObject:unit => published.push(unit.object)});
+    assert.deepEqual(parallel.inputs,serial.inputs);
+    assert.deepEqual(published,recipe.units.map(unit => unit.object));
+    assert.equal(parallel.stats.peak,workers);
+  }
+});

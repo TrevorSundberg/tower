@@ -1,6 +1,7 @@
 import tower;
 import semantic_control;
 import semantic_defer;
+import semantic_iteration;
 import foundation_tags;
 import foundation_types;
 import semantic_context;
@@ -344,6 +345,9 @@ fn sem_statement_impl(c: SemanticContext*, n: void*, depth: u32): u32 {
     }
     if sem_is(n, "TowerDefer") {
         return sem_defer_register(c, n, depth);
+    }
+    if sem_is(n, "TowerForeach") {
+        return sem_iteration(c, n, depth);
     }
     if sem_is(n, "TowerFor") {
         return sem_control_for(c, n, depth);

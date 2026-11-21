@@ -25379,3 +25379,44 @@ contract comment to production Tower sources; its new oracle fixtures remain
 separate. git diff --check passes and todo.txt is untouched. Agent3 holds the
 source lock for this push, then hands it to Agent2; Agent1 remains responsible
 for the combined deployment, which is still pending.
+
+Milestone 2 source eea0037 and Pages 999df00 are published. Hosted verification
+passes all 70 asset hashes and desktop/mobile execution, completion, grammar
+editing, persistence and native download checks (inference-live.log and saved
+inference-live-report.json). The broader interpreter regression run passes 78
+with four intentional LLVM skips; the separate 13 backend/worker checks pass.
+
+### 2026-11-20: Milestone 3, typed finite borrowed foreach
+
+Implemented TowerForeach in tower.tower and semantic_iteration.tower, with ordinary
+nominal-owner begin/next/element/end functions in vector.tower and queue.tower.
+Stack aliases inherit vector traversal. Resolution uses the original declaration
+and GenericInstance components, never formatted type names. All syntax, checking,
+protocols and lowering are Tower. No new public operation or native feature code;
+Foundation/Bedrock stay unchanged. Local state and source-once capture lower to
+existing Foundation operations and reuse SemanticDeferred for orderly exits.
+The initial binding draft omitted declaration_state publication for the generated
+item: source lookup tried to infer a declaration with no source initializer.
+Marking that already-checked local resolved fixes the issue without inventing a
+syntax node or separate type representation. Invalid void elements are rejected.
+
+Vector/ring traversal is a finite borrow of initial storage/order; structural
+mutation is excluded by caller contract, not runtime checking. Scalar/pointer
+copy and explicit aggregate borrow are distinct. next advances before the body,
+so continue is correct. End runs once on normal termination, break and return,
+with existing deferred cleanup order; traps do not promise unwinding. Protocol
+names are a small ordinary-function convention. Attribute/trait registration may
+replace this convention after the shared attribute design is researched; no new
+Bedrock attribute syntax is introduced here.
+
+Seven feature tests exercise reference/cache interpreters at both pointer widths,
+canonical Foundation reconstruction, raw/optimized LLVM/Wasm, custom nominal
+protocols sharing a module, wrapped queues, aliases, source-once effects, borrows,
+nested loops, continue/return/defer ordering, diagnostics, formatting and runtime
+behavior of the shared worker fixture. The combined feature/real-worker suite
+passes 14/14 (iteration-backends.log); serial/two/four workers publish identical
+object bytes in source order. Three native fixture programs also agree across
+both interpreters and native LLVM (iteration-native-cases.log). Compiler scratch
+and iterator state remain owned by each compilation; foreach itself is sequential.
+The compiler's initial native build succeeds with published inference bootstrap
+257654. A fresh pinned successor build/publication must precede old-loop adoption.

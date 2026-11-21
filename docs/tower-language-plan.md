@@ -427,7 +427,11 @@ containers. Benchmark representative compiler workloads before migrating them.
   nominal specialization metadata, including straight-return aliases. See
   [generic call inference](generic-call-inference.md) for constraints and bootstrap
   compatibility; this does not add implicit conversions or overload ranking.
-  Selective imports, exact overloads, automatic moves, general foreach,
+  Typed `foreach` now supports finite borrowed views through statically resolved
+  nominal protocols, including vector/stack/queue. See
+  [borrowed iteration](borrowed-iteration.md). It reuses scoped cleanup and
+  Foundation nodes; checked borrowing and implicit parallel iteration remain out.
+  Selective imports, exact overloads, automatic moves,
   comptime/eval, properties, interfaces and attributes are not implemented yet.
 
 ## Next parallel/compiler milestones

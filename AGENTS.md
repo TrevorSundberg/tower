@@ -45,6 +45,18 @@ Do NOT modify todo.txt
 
 ## Writing Tower code
 
+- Use the existing ECS entities/components and compilation-local scratch for new
+  checking/lowering. Independent units use CompilerWork's isolated workers and
+  deterministic publication; never share mutable entity pointers or iteration
+  state across workers. A sequential loop is not a parallel scheduling contract.
+- Prefer `foreach (var item in &values)` for stable, finite collection traversal.
+  Use `foreach (var &item in &values)` for element writes or aggregate borrows;
+  the latter binds an element pointer. Keep the owner alive and structurally
+  unchanged through the loop, including indirect calls. Growth/disposal/reordering
+  invalidates these raw borrows. Keep counted loops for changing bounds, index
+  coordination or later counter use. Custom nominal types associate ordinary
+  `<declaration>_iterate_begin/next/element/end` functions in their own module;
+  see docs/borrowed-iteration.md. Publish the compatible bootstrap before adoption.
 - Prefer inferred generic call arguments when typed operands determine them,
   e.g. `vector_push(&values, item)`. Keep explicit arguments for unresolved type
   parameters or when they explain an otherwise ambiguous call. Omit all type
@@ -63,7 +75,7 @@ Do NOT modify todo.txt
   tests, queue draining and other condition-driven work. When migrating old loops,
   preserve dynamic bounds, counter visibility, effects and skipped updates; an
   old `continue` may intentionally bypass a trailing increment. General collection
-  `foreach` still requires the planned iterator/ownership contract.
+  `foreach` follows the finite borrowed-view contract described above.
 - Use `defer cleanup(resource);` or `defer { ... }` for explicit cleanup that
   belongs to a lexical scope, especially repeated early-return cleanup. Register
   it after successful initialization. Cleanups run in reverse registration order

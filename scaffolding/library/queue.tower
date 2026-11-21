@@ -130,3 +130,43 @@ fn queue_move(T: type, destination: queue(T)*, source: queue(T)*): void {
     destination.head = source.head;
     queue_init(source);
 }
+
+// A finite FIFO view. Structural mutation of the owner invalidates this borrow.
+// The initial head/length/capacity are captured once, with no hidden allocation.
+fn queue_iteration(T: type): type {
+    struct Result {
+        data: T*;
+        remaining: usize;
+        capacity: usize;
+        position: usize;
+        current: usize;
+    }
+    return Result;
+}
+
+fn queue_iterate_begin(T: type, source: queue(T)*, state: queue_iteration(T)*): void {
+    state.data = source.data;
+    state.remaining = source.length;
+    state.capacity = source.capacity;
+    state.position = source.head;
+    state.current = source.head;
+}
+
+fn queue_iterate_next(T: type, source: queue(T)*, state: queue_iteration(T)*): bool {
+    if state.remaining == 0 {
+        return false;
+    }
+    state.current = state.position;
+    state.position++;
+    if state.position == state.capacity {
+        state.position = 0;
+    }
+    state.remaining--;
+    return true;
+}
+
+fn queue_iterate_element(T: type, source: queue(T)*, state: queue_iteration(T)*): T* {
+    return &state.data[state.current];
+}
+
+fn queue_iterate_end(T: type, source: queue(T)*, state: queue_iteration(T)*): void {}
