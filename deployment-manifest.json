@@ -81,10 +81,10 @@
                    "worker.js":  "6b9f1d2f855b5284afdbbd20559991f0f70220195277486ce77022fcf2326965",
                    "worker.js.map":  "19db30619da7d398e10a543f8e29e579ab21ac1b6d77c69fdf003972b48621cc"
                },
-    "sourceCommit":  "8df50ca58a79c6f30f3ed9bc6b0bb8b705930c1b",
+    "sourceCommit":  "24b0156b2fdb2a4155ba87222ac4e077b20d330e",
     "buildSourceCommit":  "2f6ce16c9e8e6d525215af60b2ba2eb1ecb89bdb",
     "bootstrapSha256":  "2292bd8abc4761ba0e62f6c2fb8fee2f482c5273f2a267402fe09d5d34d9913a",
-    "previousDeployment":  "bdf187e06c153419584478298b21c9793d0ad8fe",
+    "previousDeployment":  "4c653065c33d280e2208f7f91236fd4ba8bcdc46",
     "buildNote":  "Public bootstrap clean native successor; portable, threaded, LLVM and cross-target reactors rebuilt. LR oracle, worker determinism, host/module tests, browser checks and two identical successor compiler generations passed. See the journal and playground/PERFORMANCE.md.",
     "scope":  "Retain warm playground workers across projects, coalesce parsing without the execution debounce, replace project source capabilities, cache grammar sources, and reduce LR closure construction work while preserving ECS scheduling.",
     "toolingMigration":  {
@@ -107,5 +107,8 @@
                                     "report":  "docs/tower-language-plan.md",
                                     "journal":  "docs/temporal-opcode-research-journal.md",
                                     "scope":  "Proposed fixed-size CPU/GPU vector values, f32_4 naming, swizzles and automatic SIMD on shared Foundation/ECS operations. Design direction only; runtime assets unchanged."
-                                }
+                                },
+    "publishedBuildSourceCommit":  "736f8f1685bb1d0edb9a3ffffe1893225156b116",
+    "compilerSourceTree":  "450ef63ee1655353750380116c87c94730f7411a",
+    "publicationNote":  "Documentation-only provenance update after successful exact 80-asset and desktop/mobile hosted verification. Runtime assets are unchanged. The original build snapshot and published equivalent differ only in journal text."
 }
