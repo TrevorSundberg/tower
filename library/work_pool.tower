@@ -9,6 +9,9 @@ extern fn work_thread_capacity(): usize;
 // needed by another world or phase. This controls lifetime, not job semantics.
 extern fn work_thread_retention(): bool;
 extern fn work_thread_open(argument: void*): void*;
+// Native services may select a separately linked Tower callback. The callback
+// still uses this pool's slot handoff, completion and cancellation protocol.
+extern fn work_thread_open_named(argument: void*, posix_entry: u8*, windows_entry: u8*): void*;
 extern fn work_thread_close(thread: void*): void;
 extern fn work_signal_open(): void*;
 extern fn work_signal_close(signal: void*): void;
@@ -35,25 +38,39 @@ struct WorkPool {
     threaded: bool;
 }
 
+var WorkPoolMaximumCapacity: usize = 256;
+
+fn work_pool_wait(slot: WorkSlot*): void* {
+    work_signal_wait(slot.start);
+    return slot.job;
+}
+
+fn work_pool_complete(slot: WorkSlot*): void {
+    work_signal_post(slot.finished);
+    work_signal_post(slot.completion);
+}
+
 fn work_pool_entry(argument: void*): void* {
     var slot = bits(WorkSlot*, argument);
     loop {
-        work_signal_wait(slot.start);
-        var job = slot.job;
+        var job = work_pool_wait(slot);
         if job == null {
             return null;
         }
         work_kernel_execute(job);
         // finished publishes this slot's payload; completion wakes the owner.
         // Never read job/busy again until the next start semaphore acquisition.
-        work_signal_post(slot.finished);
-        work_signal_post(slot.completion);
+        work_pool_complete(slot);
     }
 }
 
 fn work_pool_open(pool: WorkPool*, capacity: usize): bool {
+    return work_pool_open_named(pool, capacity, null, null);
+}
+
+fn work_pool_open_named(pool: WorkPool*, capacity: usize, entry: u8*, windows_entry: u8*): bool {
     *pool = default;
-    if capacity == 0 || capacity > 256 {
+    if capacity == 0 || capacity > WorkPoolMaximumCapacity {
         return false;
     }
     // A caller's budget is an upper bound, not permission to exhaust a fixed
@@ -90,7 +107,8 @@ fn work_pool_open(pool: WorkPool*, capacity: usize): bool {
             work_pool_close(pool);
             return false;
         }
-        slot.thread = work_thread_open(bits(void*, slot));
+        slot.thread = entry == null && windows_entry == null ? work_thread_open(bits(void*, slot))
+            : work_thread_open_named(bits(void*, slot), entry, windows_entry);
         if slot.thread == null {
             work_pool_close(pool);
             return false;
@@ -99,7 +117,9 @@ fn work_pool_open(pool: WorkPool*, capacity: usize): bool {
     return true;
 }
 
-fn work_pool_submit(pool: WorkPool*, job: void*): bool {
+// Admission only. A serial caller executes its own kernel before receiving;
+// threaded slots execute through the callback selected when opening the pool.
+fn work_pool_admit(pool: WorkPool*, job: void*): bool {
     if job == null || pool.running == pool.count {
         return false;
     }
@@ -115,14 +135,18 @@ fn work_pool_submit(pool: WorkPool*, job: void*): bool {
             }
             if pool.threaded {
                 work_signal_post(slot.start);
-            } else {
-                work_kernel_execute(job);
             }
             return true;
         }
         index++;
     }
     return false;
+}
+
+fn work_pool_submit(pool: WorkPool*, job: void*): bool {
+    if !work_pool_admit(pool, job) { return false; }
+    if !pool.threaded { work_kernel_execute(job); }
+    return true;
 }
 
 // Exactly one consumed completion token accounts for one returned result. A

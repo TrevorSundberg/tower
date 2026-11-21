@@ -1,0 +1,7 @@
+import tower;
+
+// Stable query/access identities shared by frontend and backend unit systems.
+enum CompilerQuery: u32 { Unit, Join, Backend, BackendJoin }
+var CompilerUnitDomain: u64 = 1;
+var CompilerProgramComponent: u64 = 1;
+var CompilerBackendComponent: u64 = 2;
