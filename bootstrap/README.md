@@ -38,13 +38,16 @@ editing, rebuilding and downloading compiler output.
 size, build provenance, source input hashes and optional source patch. Its
 `directory`, `executable` and `checksums` fields describe the checked-in layout;
 `sha256` now identifies the executable. `linux-x64/SHA256SUMS` is the directly
-consumable verification list. The initial schema-2 pin has exactly the same
-compiler and resources as the preceding compressed pin; `archive_origin` retains
-that archive's identity. The archive and installer are retired, not additional
+consumable verification list. The initial schema-2 migration retained the previous
+compiler/resources and recorded their `archive_origin`; subsequent pins record
+their own directly built executable. The archive and installer are retired, not additional
 required formats. Preserve frozen resource bytes and the compiler's executable
 mode when publishing or checking out a pin.
 
-The pin supports struct copies/by-value calls, named-field/default initialization,
+The current pin supports scalar `f32`/`f64`, strict shared staged/runtime arithmetic,
+and ordinary unary negation including integer `-0` and exact signed minima.
+See [the floating contract](../docs/floating-point.md) for numeric and backend limits.
+It also supports struct copies/by-value calls, named-field/default initialization,
 expression operators, `for`/`defer`, borrowed `foreach`, generic call inference,
 identifier module paths and exact quoted imports. Build new syntax with the
 preceding pin, publish a compatible successor with complete resources, and only

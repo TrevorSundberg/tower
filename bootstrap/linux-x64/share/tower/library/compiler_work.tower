@@ -1,15 +1,12 @@
 import tower;
 import work_graph;
 import entities;
+import compiler_work_types;
 
 // Coordinator metadata on ordinary ECS entities. Worker recipe/result components
 // attach to this same subject. Program graphs remain in each unit's exclusive
 // compiler world; the coordinator never reads them during an active dispatch.
 struct CompilerWorkUnit { ordinal: usize; task: usize; }
-
-enum CompilerQuery: u32 {
-    Unit, Join
-}
 
 // Transport-independent coordinator for isolated compilation contexts. Unit
 // ordinals are stable recipe/source order. The host transports sources and owned
@@ -74,7 +71,7 @@ export fn compiler_work_create(units: usize, workers: usize, revision: u64, prof
         unit.task = task;
         // One exclusive unit recipe/result range, shared by native and isolated
         // transports. The join reads every completed range after dependencies.
-        if !work_access(&work.graph, task, 1, 1, i, 1, WorkAccessMode.Write)
+        if !work_access(&work.graph, task, CompilerUnitDomain, CompilerProgramComponent, i, 1, WorkAccessMode.Write)
             || !work_seal(&work.graph, task) {
             compiler_work_close(work);
             return null;
@@ -89,7 +86,7 @@ export fn compiler_work_create(units: usize, workers: usize, revision: u64, prof
             return null;
         }
     }
-    var valid = work_access(&work.graph, join, 1, 1, 0, units, WorkAccessMode.Read);
+    var valid = work_access(&work.graph, join, CompilerUnitDomain, CompilerProgramComponent, 0, units, WorkAccessMode.Read);
     valid &&= work_seal(&work.graph, join);
     valid &&= work_demand(&work.graph, join);
     if !valid {
@@ -114,6 +111,29 @@ fn compiler_work_unit(work: CompilerWork*, ordinal: usize): CompilerWorkUnit* {
     var subject = compiler_work_subject(work, ordinal);
     if subject is null { return null; }
     return bits(CompilerWorkUnit*, entity_component_data(entity_component_get(subject, work.kind)));
+}
+
+export fn compiler_work_unit_task(work: CompilerWork*, ordinal: usize): usize {
+    var unit = compiler_work_unit(work, ordinal);
+    return unit == null ? 0 : unit.task;
+}
+
+// Borrow only at a completed phase boundary, under the unit owner's exclusive
+// continuation lease. Backend queries extend this same graph and its subjects.
+export fn compiler_work_graph(work: CompilerWork*): WorkGraph* {
+    if work.completed != work.units || work.failed != 0 || !work_ok(&work.graph)
+        || work.graph.running != 0 { return null; }
+    var join = work_find(&work.graph, bits(void*, work.owner), convert(u32, CompilerQuery.Join), 0);
+    if work_task(&work.graph, join).state == WorkState.Ready {
+        var ticket: WorkTicket;
+        if !work_take_task(&work.graph, &ticket, join) || !work_finish(&work.graph, &ticket, true) {
+            return null;
+        }
+    }
+    foreach(var &task in &work.graph.tasks) {
+        if task.state != WorkState.Succeeded && task.state != WorkState.Failed { return null; }
+    }
+    return &work.graph;
 }
 
 export fn compiler_work_next(work: CompilerWork*): usize {

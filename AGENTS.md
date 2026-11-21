@@ -198,6 +198,11 @@ Do NOT modify todo.txt
   one; `>>` extends signed values and `>>>` zero-fills. Signed-minimum literals
   must keep their exact magnitude until range checking; never overflow a signed
   host intermediate or add interpreter-only arithmetic behavior.
+  Keep unary minus as an ordinary operation, including literal operands; staged
+  evaluation uses the same interpreter. Do not fuse its sign into the literal
+  reader as a folding shortcut. Integer `-0` is zero; unsigned negation wraps.
+  Retain explicit operand types through Foundation output for signed-minimum
+  magnitudes, and preserve floating negative zero separately.
 - Parentheses determine grouping and are transparent to semantic type inference.
   Use the common operand-unwrapping helper for literal/type queries, while keeping
   source grouping and provenance for formatting. Typed peers constrain literals;

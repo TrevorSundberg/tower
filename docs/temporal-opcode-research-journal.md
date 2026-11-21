@@ -36112,3 +36112,28 @@ ordinary operations without evaluating minus in the checker. The focused
 integer_negation suite passes both pointer widths, graph/compact execution,
 staging, range diagnostics and stable Foundation reconstruction
 (build/integer-negation-checks.log).
+
+Direct-pin release receipt: f4c78cc3f576c0d9a580e5f47af788ce69a16d7a is now pushed
+on main. The full native execution suite passes with the negation change, including
+semantic oracles, staging and Foundation/package contracts. All 11 browser worker
+checks pass; LLVM/raw-memory/package checks pass 75 tests with the optional
+production-excluded package fixture skipped. Two successive browser compiler
+generations reproduce identical bytes and edited semantic behavior. Local desktop
+and mobile deployment verification passes all 84 served asset checks, backend
+agreement, grammar editing, completion and downloads. Logs:
+float-direct-execution.log, float-negation-{workers,browser,generation,
+deployment-local}.log. No new C++/Python implementation was introduced.
+
+The schema-2 Tower packager produced /cache/float_direct_release_f4c78cc from that
+exact published source and its adjacent resources. Executable SHA-256 is
+1a5b58879eb247e0c2e3ab33804d965b8b157f170af49f71b53a611b7762d8bb.
+SHA256SUMS verification passes. Running from unrelated /tmp passes both fixtures
+and native negation execution. The candidate member list contains every previous
+pin member plus four new resources; copying those complete files retains no stale
+resources. The executable mode remains 100755. A fresh documented default build
+in /cache/float-direct-successor passes all 54 steps using the checked-in direct
+compiler with no private override; both successor fixtures print zero failures.
+This replaces the historical compressed candidates above and retains upstream's
+installer/archive retirement. Logs: float-direct-relocated.log,
+float-direct-successor-{build,execution}.log. AGENTS.md additionally records that
+unary negation remains an ordinary operation evaluated by the shared interpreter.

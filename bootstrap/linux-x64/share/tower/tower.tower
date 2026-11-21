@@ -25,7 +25,7 @@ parse Statement |= TowerMatch | TowerWhile;
 
 // Higher-level expression grammar; Foundation itself keeps its small operands.
 parse Statement = ';';
-parse TowerExpression = CoreLocation | CoreCall | Number | String | 'true' | 'false' | 'null'
+parse TowerExpression = CoreLocation | CoreCall | Number | FloatNumber | String | 'true' | 'false' | 'null'
                        | '(' $value:TowerComma ')';
 parse TowerPostfixOperator = '++' | '--' @ 150 left;
 parse TowerExpression |= $left:TowerExpression TowerPostfixOperator @ 150 left;
