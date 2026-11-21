@@ -72,12 +72,16 @@ tools="$(bash playground/scripts/build-bootstrap.sh --tools)"
 "$tools/package_roku" program.brs program-roku.zip
 ```
 
-Pass a tool name after `--tools` to build only `prepare_lld_compat`, `package_roku`,
+Pass a tool name after `--tools` to build only `prepare_llvm`, `package_roku`,
 `package_bootstrap`, `verify_compiler` or `verify_bootstrap_symbols`.
 Omitting the name builds all five.
 
-`build-llvm.sh` invokes `prepare_lld_compat` automatically. The Roku ZIP/CRC/DEFLATE
-implementation is Tower with no zlib link; see the [Roku guide](../docs/roku-backend.md)
+`build-llvm.sh` invokes `prepare_llvm` automatically for the guarded LLD backport
+and temporary CRLF normalization of upstream `config.guess`/`config.sub`. Files
+already using LF are untouched. Its EXIT trap restores exact original bytes;
+if a source has since changed or restoration fails, the tool reports and retains
+the private backup directory for recovery. Each script has a 1 MiB input limit.
+The Roku ZIP/CRC/DEFLATE implementation is Tower with no zlib link; see the [Roku guide](../docs/roku-backend.md)
 for codec scope and device-testing limits. `TOWER_TOOLS_BUILD` selects the tools
 build directory (default `$HOME/.cache/tower/tools`), and `LLVM_CONFIG` selects
 the host LLVM installation (default `llvm-config-19`). Wrapper stdout is only the
@@ -86,6 +90,13 @@ builds the Tower builder/runtime; Tower owns the tool compilation/link arguments
 The [distribution checks](../docs/bootstrap-distribution.md#validation-and-measurement)
 use `verify_compiler` directly; the verifier and its assertions are Tower.
 Wider test and upstream build tooling still needs migration.
+
+`scaffolding/library/gzip.tower` adds a deterministic single-member gzip envelope
+to the same raw DEFLATE encoder and CRC32 implementation. It has no filename,
+timestamp or host metadata, and publishes output only after the complete member
+is available. It does not decode gzip. The existing fixed-Huffman encoder can
+produce larger files than a dynamic-Huffman compressor; the browser compiler
+packager still uses Python until its complete Tower replacement is validated.
 
 ## Publishing a replacement pin
 

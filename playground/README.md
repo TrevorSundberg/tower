@@ -1120,7 +1120,7 @@ The compiler-project check edits a semantic diagnostic and builds two successive
 complete sets of reactors using the browser host APIs, checking that the edit is
 executed by each successor. It is separate from the quick Node test suite.
 
-The pinned LLVM 20 LLD needs the guarded Tower `prepare_lld_compat` backport to link
+The pinned LLVM 20 LLD needs the guarded Tower `prepare_llvm` backport to link
 WASI SDK 34 libc's `__wasm_first_page_end` reference. It uses LLVM's existing
 64 KiB page constant and only affects non-PIC links. The full build applies it
 to cached third-party source before rebuilding LLD. Review/remove it with an

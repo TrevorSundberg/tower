@@ -38549,3 +38549,86 @@ compiler extensions. Implement the smallest typed metadata/protocol mechanism ne
 for the standard-type migration, with attribute syntax over it where useful; this
 does not require finishing every proposed reflection/attribute feature first.
 This is a design proposal, not new syntax, a finalized API or implemented behavior.
+
+### 2026-11-21: retire inline Python in LLVM preparation; reuse Tower compression
+
+Continue the Python-first tooling migration from 04f4ec9. Audit deletion before
+translation: the default Git-archive LLVM cache already has LF scripts, but an
+explicit TOWER_LLVM_SOURCE_DIR may be an edited Windows checkout. Pinned LLVM
+1e57ee22ca274b663eeb279fd86e7010a8441c99's
+llvm/cmake/modules/GetHostTriple.cmake still runs sh config.guess on Linux even
+with LLVM_HOST_TRIPLE supplied. Removing preparation would break that supported
+path. config.sub is absent at this pin but retained for compatible source overrides.
+
+Rename the existing prepare_lld_compat entry point to prepare_llvm, preserving
+its guarded LLD backport and adding prepare/restore modes. The existing shell
+EXIT trap invokes Tower instead of the two inline Python blocks (17 Python
+lines removed). LF-only files now require no backup or write. CRLF pairs alone
+are normalized; bare CR is preserved. Private backups use exclusive creation.
+Restore only a source still matching either the original or its normalized
+bytes; otherwise retain the later edit and recovery backup and report failure.
+Missing source and I/O failures retain backups too. This intentionally improves
+on the former Python cleanup, which could discard recovery data after an edit.
+The caller owns an initially empty backup directory. Compare-before-write is
+not a concurrency lock or a general hard-link identity guarantee. Bound each
+upstream script to 1 MiB; reject oversized inputs before mutation.
+
+Smallest-unit trials caught missing direct imports for file/stream helpers and
+strcmp, fixed before integration. Freeze inputs in /cache/packaging_checkout,
+using public bootstrap 0d752e7dc35a0a8951872cf52d96873bb1e1cab2b3fe63d9b147e64e5deecca8.
+Build through the documented --tools prepare_llvm path with
+TOWER_TOOLS_BUILD=/cache/packaging_tools, Ubuntu24.04/LLVM19.1.1 tower_build,
+owned tower_agent1_tooling Docker volume and Python unavailable. All five initial
+build steps pass. No compiler pin, source semantics or native dependency changes.
+
+Compile scaffolding/tests/llvm_scripts_checks.tower with --library --target
+x86_64-unknown-linux-gnu and explicit frozen --bedrock/--foundation, link with
+clang-19 and /cache/packaging_tools/guest-host-library.o. Cases pass for missing
+scripts, unchanged LF, mixed CRLF/LF/bare CR, repeated preparation, source-directory
+alias refusal, exclusive backup against a symlink, partial preparation, later
+edits, missing source, already-restored source and the input-size limit. Execute
+the real pinned config.guess after preparing a CRLF copy; output matches the
+original x86_64-unknown-linux-gnu triple, and restore compares byte-for-byte with
+the CRLF input. Repeat the final fixture and CLI trial under /cache/llvm script
+checks to exercise argument paths with spaces.
+
+Exercise actual build-llvm.sh with TOWER_LLVM_SOURCE_DIR=/cache/llvm_script_checks,
+private host_failed/wasm_unused outputs, the documented tools path and a private
+TMPDIR. Preserve real LLD Driver.cpp and CRLF config.guess in that fixture, but
+omit LLVM CMakeLists.txt to force the later configure failure. The default patcher
+runs, configure reports the intended missing CMakeLists, EXIT restoration returns
+exact original bytes, and the temporary directory is empty. Initial integration
+attempts failed before reaching configure because the read-only source bind lacked
+its parent submodule Git metadata and an existing placeholder directory prevented
+symlink creation. Correct the owned cache path and mount both upstream source and
+parent .git read-only in an ephemeral container; do not treat those early exits
+as restoration evidence. Python remains unavailable in the successful trial.
+
+For the remaining browser compiler packager, reuse existing deflate.tower and
+crc32.tower rather than adding zlib. New library/gzip.tower is a small deterministic
+RFC1952 single-member envelope: fixed header, no filename/time/host metadata,
+CRC32 and modulo-2^32 size trailer. Publish the complete output only on success;
+input may borrow the old output. This is an encoder, not a decoder. It retains
+the existing fixed-Huffman/LZ77 encoder and stored-block fallback.
+
+Compile the gzip unit first, then tests/gzip_checks.tower through the same frozen
+public compiler/runtime. Empty, text, all-byte, repeated-window and incompressible
+fixtures pass deterministic repeat, invalid-input output preservation and aliased
+input checks. GNU gzip -t/-dc independently validates each member; cmp verifies
+exact payloads. Also use the frozen compiler-project-profile/support-llvm-0.a.gz
+copied read-only from the coordinator's build, SHA256
+6a4eaa06284781536e8153d3181b4f73e7dfe29653b9549550c66dd5daab51d5.
+Original payload 27,145,038 bytes; Tower member 8,797,774 bytes versus the reference
+7,491,477 bytes (17.4% larger compressed output). Independent decompression and
+byte comparison pass for that real archive too. No claim of equal compression
+ratio or measured throughput. Inputs/results remain under /cache/gzip_checks_corpus,
+/cache/gzip_real_corpus and build/gzip_payload in the owned checkout/volume.
+
+Tracked Python remains one file/219 lines, down from 23 files/1,989 lines (89.0%).
+The additional inline 17 lines are now gone. package-compiler-project.py remains
+the only live project Python entry point; its build-llvm caller and Docker Python
+installation remain until replacement validation. The new gzip primitive is ready
+but has not yet switched production packaging. Next: consume real Ninja/Clang
+link inputs and depfiles, preserve source/import-unit closure, archive symbol
+selection, exported aliases, wraps and foreign-import allowlists, then validate
+successive browser compiler generations before deleting that final script.

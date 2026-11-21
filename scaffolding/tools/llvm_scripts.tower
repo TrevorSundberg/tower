@@ -1,0 +1,107 @@
+import tower;
+import tool_files_linux;
+import tool_files_posix;
+import tool_process_linux;
+import tool_streams_posix;
+import .host.module_path_linux;
+import .host.driver_files;
+import .library.bytes;
+import .library.bytes_types;
+
+extern fn memcmp(left: u8*, right: u8*, count: usize): i32;
+
+var LlvmScriptBytesLimit: usize = 1048576;
+var LlvmScriptCount: usize = 2;
+
+fn llvm_script_same(left: ByteBuffer*, right: ByteBuffer*): bool {
+    return left.length == right.length && (left.length == 0 || memcmp(left.data, right.data, left.length) == 0);
+}
+
+// Only CRLF pairs change. Bare CR, LF and all other bytes retain their positions
+// relative to each other. Inputs and output must be distinct buffers.
+fn llvm_script_lf(original: ByteBuffer*, normalized: ByteBuffer*): bool {
+    for(var at: usize = 0; at < original.length; at++) {
+        if original.data[at] == *"\r" && at + 1 < original.length && original.data[at + 1] == *"\n" { continue; }
+        if !bytes_push(normalized, original.data[at]) { return false; }
+    }
+    return true;
+}
+
+fn llvm_script_backup(path: u8*, original: ByteBuffer*): bool {
+    // Exclusive creation prevents overwriting an earlier recovery copy or alias.
+    var file = fopen(path, "wbx");
+    if file == null { return false; }
+    var at: usize = 0;
+    while at < original.length {
+        var count = fwrite(original.data + at, 1, original.length - at, file);
+        if count == 0 { break; }
+        at += count;
+    }
+    var ok = at == original.length && ferror(file) == 0;
+    if fclose(file) != 0 { ok = false; }
+    if !ok { remove(path); }
+    return ok;
+}
+
+fn llvm_script_prepare(source: u8*, backup: u8*): bool {
+    var kind = tool_file_kind(source, true);
+    if kind == ToolFileKind.Missing { return true; }
+    if kind != ToolFileKind.Regular { return false; }
+    var original: ByteBuffer = default; var normalized: ByteBuffer = default;
+    defer bytes_dispose(&original); defer bytes_dispose(&normalized);
+    if !tool_read_file(source, LlvmScriptBytesLimit, &original) || !llvm_script_lf(&original, &normalized) { return false; }
+    if llvm_script_same(&original, &normalized) { return true; }
+    if !llvm_script_backup(backup, &original) { return false; }
+    return driver_write_file(source, normalized.data, normalized.length);
+}
+
+fn llvm_script_restore(source: u8*, backup: u8*): bool {
+    var kind = tool_file_kind(backup, false);
+    if kind == ToolFileKind.Missing { return true; }
+    if kind != ToolFileKind.Regular || !tool_output_distinct(source, backup) { return false; }
+    var original: ByteBuffer = default; var normalized: ByteBuffer = default; var current: ByteBuffer = default;
+    defer bytes_dispose(&original); defer bytes_dispose(&normalized); defer bytes_dispose(&current);
+    if !tool_read_file(backup, LlvmScriptBytesLimit, &original) || !llvm_script_lf(&original, &normalized)
+        || !tool_read_file(source, LlvmScriptBytesLimit, &current) { return false; }
+    if !llvm_script_same(&current, &original) {
+        if !llvm_script_same(&current, &normalized) { return false; }
+        if !driver_write_file(source, original.data, original.length) { return false; }
+    }
+    return remove(backup) == 0;
+}
+
+fn llvm_scripts_empty(directory: u8*): bool {
+    var handle = opendir(directory);
+    if handle == null { return false; }
+    defer closedir(handle);
+    loop {
+        *__errno_location() = 0;
+        var entry = readdir(handle);
+        if entry == null { return *__errno_location() == 0; }
+        var name = module_dirent_name(entry);
+        if strcmp(name, ".") != 0 && strcmp(name, "..") != 0 { return false; }
+    }
+}
+
+// The caller owns an empty private backup directory and restores from its EXIT
+// trap, including after partial preparation. Keep originals on any mismatch or
+// I/O failure. This compare-before-write policy is not a concurrent-writer lock.
+fn llvm_scripts(root: u8*, backup: u8*, restoring: bool): bool {
+    var directory: ByteBuffer = default; var source: ByteBuffer = default; var saved: ByteBuffer = default;
+    defer bytes_dispose(&directory); defer bytes_dispose(&source); defer bytes_dispose(&saved);
+    if !tool_join(&directory, root, "llvm/cmake") || !tool_directory(directory.data)
+        || !tool_directory(backup) || !tool_output_distinct(directory.data, backup)
+        || (!restoring && !llvm_scripts_empty(backup)) { return false; }
+    var names: u8*[2]; names[0] = "config.guess"; names[1] = "config.sub";
+    var ok = true;
+    for(var i: usize = 0; i < LlvmScriptCount; i++) {
+        if !tool_join(&source, directory.data, names[i]) || !tool_join(&saved, backup, names[i]) { return false; }
+        if restoring {
+            if !llvm_script_restore(source.data, saved.data) { ok = false; }
+        } else {
+            if !llvm_script_prepare(source.data, saved.data) { return false; }
+        }
+    }
+    if restoring && ok { ok = rmdir(backup) == 0; }
+    return ok;
+}

@@ -1,0 +1,62 @@
+import tower;
+import utility_checks;
+import .library.gzip;
+import .library.bytes;
+import .library.bytes_types;
+import .compiler.host_text;
+import .tools.tool_files_posix;
+import .tools.tool_streams_posix;
+import .host.driver_files;
+
+fn gzip_fixture(directory: u8*, name: u8*, input: ByteBuffer*): void {
+    var encoded: ByteBuffer = default; var repeated: ByteBuffer = default;
+    var source: ByteBuffer = default; var path: ByteBuffer = default;
+    defer bytes_dispose(&encoded); defer bytes_dispose(&repeated);
+    defer bytes_dispose(&source); defer bytes_dispose(&path);
+    utility_check(gzip_compress(input.data, input.length, &encoded)
+        && gzip_compress(input.data, input.length, &repeated) && encoded.length == repeated.length
+        && utility_equal(encoded.data, repeated.data, encoded.length), "deterministic gzip member");
+    var retained = encoded.length;
+    utility_check(!gzip_compress(null, 1, &encoded) && encoded.length == retained
+        && utility_equal(encoded.data, repeated.data, retained), "invalid gzip input leaves output unchanged");
+    utility_check(bytes_assign_text(&repeated, input.data, input.length)
+        && gzip_compress(repeated.data, repeated.length, &repeated) && encoded.length == repeated.length
+        && utility_equal(encoded.data, repeated.data, encoded.length), "aliased gzip input publication");
+    utility_check(tool_join(&source, directory, name) && bytes_append(&source, ".bin", 4)
+        && host_text_terminate(&source) && tool_output_parents(source.data)
+        && driver_write_file(source.data, input.data, input.length), "write independent gzip reference");
+    utility_check(tool_join(&path, directory, name) && bytes_append(&path, ".gz", 3)
+        && host_text_terminate(&path) && driver_write_file(path.data, encoded.data, encoded.length), "write gzip member");
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    var required: i32 = 2; var with_payload: i32 = 3; var usage: i32 = 2;
+    if argc != required && argc != with_payload { puts("Supply a corpus directory and optional real support archive"); return usage; }
+    var input: ByteBuffer = default; defer bytes_dispose(&input);
+    gzip_fixture(argv[1], "empty", &input);
+    var greeting = "Tower gzip\n\r\n";
+    utility_check(bytes_assign_text(&input, greeting, strlen(greeting)), "gzip text input");
+    gzip_fixture(argv[1], "text", &input);
+    input.length = 0;
+    var byte_values: usize = 256;
+    for(var i: usize = 0; i < byte_values; i++) { utility_check(bytes_push(&input, convert(u8, i)), "binary fixture byte"); }
+    gzip_fixture(argv[1], "binary", &input);
+    input.length = 0;
+    var long_bytes: usize = 131073; var alphabet: usize = 7;
+    for(var i: usize = 0; i < long_bytes; i++) { utility_check(bytes_push(&input, convert(u8, i % alphabet)), "repeated window fixture byte"); }
+    gzip_fixture(argv[1], "repeated", &input);
+    input.length = 0;
+    var state: u32 = 7; var multiplier: u32 = 1664525; var increment: u32 = 1013904223; var high_byte: u32 = 24;
+    for(var i: usize = 0; i < long_bytes; i++) {
+        state = state * multiplier + increment;
+        utility_check(bytes_push(&input, convert(u8, state >> high_byte)), "incompressible fixture byte");
+    }
+    gzip_fixture(argv[1], "random", &input);
+    if argc == with_payload {
+        var payload_limit: usize = 67108864;
+        utility_check(tool_read_file(argv[2], payload_limit, &input), "read real support payload");
+        gzip_fixture(argv[1], "support", &input);
+    }
+    puts("Gzip corpus written; independent decompression and byte comparison required");
+    return 0;
+}

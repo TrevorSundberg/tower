@@ -1,0 +1,99 @@
+import tower;
+import utility_checks;
+import .tools.llvm_scripts;
+import .tools.tool_files_linux;
+import .tools.tool_files_posix;
+import .tools.tool_streams_posix;
+import .host.driver_files;
+import .library.bytes;
+import .library.bytes_types;
+
+extern fn symlink(target: u8*, link: u8*): i32;
+
+fn llvm_scripts_test_text(path: u8*, text: u8*): void {
+    utility_check(driver_write_file(path, text, strlen(text)), "write script fixture bytes");
+}
+
+fn llvm_scripts_test_read(path: u8*, wanted: u8*): void {
+    var data: ByteBuffer = default; defer bytes_dispose(&data);
+    utility_check(driver_read_file(path, &data) && data.length == strlen(wanted)
+        && utility_equal(data.data, wanted, data.length), "exact script fixture bytes");
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    var argument_count: i32 = 3; var usage: i32 = 2;
+    if argc != argument_count { puts("Supply a new fixture directory and the real LF config.guess"); return usage; }
+    var root = argv[1]; var mode: u32 = 448;
+    utility_check(mkdir(root, mode) == 0, "exclusive fixture root");
+    var source: ByteBuffer = default; var other: ByteBuffer = default; var backup: ByteBuffer = default;
+    var saved: ByteBuffer = default; var directory: ByteBuffer = default;
+    defer bytes_dispose(&source); defer bytes_dispose(&other); defer bytes_dispose(&backup);
+    defer bytes_dispose(&saved); defer bytes_dispose(&directory);
+    utility_check(tool_join(&source, root, "llvm/cmake/config.guess") && tool_output_parents(source.data)
+        && tool_join(&other, root, "llvm/cmake/config.sub") && tool_join(&directory, root, "llvm/cmake")
+        && tool_join(&backup, root, "backup") && mkdir(backup.data, mode) == 0
+        && tool_join(&saved, backup.data, "config.guess"), "script fixture paths");
+    utility_check(llvm_scripts(root, backup.data, false) && llvm_scripts(root, backup.data, true), "absent scripts need no copies");
+    utility_check(mkdir(backup.data, mode) == 0, "recreate empty backup");
+    llvm_scripts_test_text(source.data, "first\nsecond\n");
+    utility_check(llvm_scripts(root, backup.data, false) && llvm_scripts_empty(backup.data), "LF source untouched without backup");
+    utility_check(llvm_scripts(root, backup.data, true), "empty restoration cleanup");
+    llvm_scripts_test_read(source.data, "first\nsecond\n");
+    utility_check(!llvm_scripts(root, directory.data, true), "backup cannot alias source directory");
+    llvm_scripts_test_read(source.data, "first\nsecond\n");
+
+    var original = "first\r\nsecond\nthird\rbare\r\n";
+    var normalized = "first\nsecond\nthird\rbare\n";
+    utility_check(mkdir(backup.data, mode) == 0, "new CRLF backup");
+    llvm_scripts_test_text(source.data, original);
+    utility_check(llvm_scripts(root, backup.data, false), "normalize only CRLF pairs");
+    llvm_scripts_test_read(source.data, normalized); llvm_scripts_test_read(saved.data, original);
+    utility_check(!llvm_scripts(root, backup.data, false), "do not replace recovery data on repeated preparation");
+    llvm_scripts_test_text(source.data, "later user edit\n");
+    utility_check(!llvm_scripts(root, backup.data, true), "reject changed source while retaining recovery bytes");
+    llvm_scripts_test_read(source.data, "later user edit\n"); llvm_scripts_test_read(saved.data, original);
+    llvm_scripts_test_text(source.data, normalized);
+    utility_check(llvm_scripts(root, backup.data, true), "restore exact original bytes");
+    llvm_scripts_test_read(source.data, original);
+
+    utility_check(mkdir(backup.data, mode) == 0 && mkdir(other.data, mode) == 0, "partial prepare fixture");
+    utility_check(!llvm_scripts(root, backup.data, false), "invalid second script fails after first preparation");
+    llvm_scripts_test_read(source.data, normalized);
+    utility_check(llvm_scripts(root, backup.data, true) && rmdir(other.data) == 0, "partial preparation remains restorable");
+    llvm_scripts_test_read(source.data, original);
+    utility_check(mkdir(backup.data, mode) == 0 && symlink(source.data, saved.data) == 0, "backup symlink fixture");
+    var bytes: ByteBuffer = { data: original, length: strlen(original), capacity: 0 };
+    utility_check(!llvm_script_backup(saved.data, &bytes), "exclusive backup rejects a symlink");
+    llvm_scripts_test_read(source.data, original);
+    utility_check(remove(saved.data) == 0, "remove only owned backup symlink");
+    utility_check(llvm_scripts(root, backup.data, false), "prepare missing-source restoration fixture");
+    utility_check(remove(source.data) == 0 && !llvm_scripts(root, backup.data, true), "missing source retains backup");
+    llvm_scripts_test_read(saved.data, original);
+    llvm_scripts_test_text(source.data, original);
+    utility_check(llvm_scripts(root, backup.data, true), "already restored source permits cleanup");
+
+    var oversized: ByteBuffer = default; defer bytes_dispose(&oversized);
+    var oversized_length = LlvmScriptBytesLimit + 1;
+    utility_check(bytes_reserve(&oversized, oversized_length), "oversized fixture allocation");
+    fill(oversized.data, *"x", oversized_length); oversized.length = oversized_length;
+    utility_check(driver_write_file(source.data, oversized.data, oversized.length)
+        && mkdir(backup.data, mode) == 0, "oversized script fixture");
+    utility_check(!llvm_scripts(root, backup.data, false) && llvm_scripts_empty(backup.data), "reject oversized script before changing it");
+    var retained: ByteBuffer = default; defer bytes_dispose(&retained);
+    utility_check(driver_read_file(source.data, &retained) && llvm_script_same(&retained, &oversized)
+        && llvm_scripts(root, backup.data, true), "oversized source preserved and empty backup cleaned");
+
+    var real: ByteBuffer = default; var crlf: ByteBuffer = default; var original_path: ByteBuffer = default;
+    defer bytes_dispose(&real); defer bytes_dispose(&crlf); defer bytes_dispose(&original_path);
+    utility_check(tool_read_file(argv[2], LlvmScriptBytesLimit, &real), "read real upstream config.guess");
+    for(var at: usize = 0; at < real.length; at++) {
+        if real.data[at] == *"\n" { utility_check(bytes_push(&crlf, *"\r"), "CRLF fixture carriage return"); }
+        utility_check(bytes_push(&crlf, real.data[at]), "CRLF fixture upstream byte");
+    }
+    utility_check(tool_join(&original_path, root, "original_config.guess")
+        && driver_write_file(original_path.data, crlf.data, crlf.length)
+        && driver_write_file(source.data, crlf.data, crlf.length)
+        && mkdir(backup.data, mode) == 0, "persist real script trial input");
+    puts("LLVM script cases passed; real CRLF fixture ready for CLI execution/restoration checks");
+    return 0;
+}
