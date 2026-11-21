@@ -36440,3 +36440,71 @@ explicit-source override callers before deciding whether normalization can be
 eliminated, scoped to a required boundary or minimally translated. Do not port the
 backup/restore machinery automatically. The real filesystem import tests still
 need their OS behavior covered beyond the in-memory case-matching fixture.
+The documentation rebase brought in 0730a53's direct-bootstrap simplification.
+The compiler executable/resources are byte-for-byte the prior pin (executable
+7ef1e6d; historical archive 2292bd8), and compiler/backend/host/CMake implementation
+sources are unchanged from 8831909. Respect the new instruction to eliminate
+unnecessary tooling before translating it. A clean default native build verifies
+the new checked-in path. Reuse the verified browser reactors and generation checks;
+remove only the seven deleted, unreferenced archive/installer library files from
+the frozen editable recipe and rebundle the live source catalog. Existing jq
+performs this data edit; no new packaging implementation or repeated LLVM archive
+scan is needed. All retained recipe files/units are unchanged, and no remaining
+compiler/backend/host/library module imports the deleted libraries. Preserve
+8831909 as the browser binaries' build identity and record the catalog revision
+separately. The raw prior recipe remains in compiler-project-8831909.json locally.
+
+2026-11-21 — Native backend milestone publication and local declaration queries
+
+The clean direct-bootstrap build completed all 54 steps (ecs-direct-backend-native.log).
+Published the frozen 8831909 browser binaries plus the refreshed editable catalog
+as gh-pages 66f5aa1b511f93b1405c407fd49d35bad75e063f. The first normal push lost
+a race to fc45fc2; rebuilt the publication commit on that parent, preserving its
+new pythonStepRetirement metadata, and pushed normally. Pages run 44949530119
+completed successfully. The hosted verifier then checked all 82 requested assets
+against the local manifest (SHA-256 7de563adfb10ade4c6993a06aada890238fccfe760d43f9c27a5742bbdfcd7e7),
+and desktop/mobile graph, fast interpreter and LLVM output all agreed on 42.
+The manifest distinguishes binary build source from the later editable catalog.
+The new local declaration work below is subsequent, not part of those binaries.
+
+Declaration discovery/checking now reserve a bounded 256-query preparation
+window independently of worker count and refill slots as each job completes.
+Their shared descriptor/graph stays frozen until joining; stages publish before
+coordinator continuations. The initial focused body/known-binding suites pass.
+
+Structural local declarations now share the declaration dependency executor:
+bind the name once, register its lexical scope/current function, suspend the
+BodyPrepare receipt on its Declaration query, run eligible initializer deduction
+and signature checking through workers, then reacquire the preparation receipt
+and finish frame storage/explicit initialization. Ordinary checking shares the
+same bind/finish helpers. Earlier completed lexical locals need no synthetic
+declaration queries. Local jobs declare the containing function's Body write
+range. The body retains its cursor and scope; no statement or initializer replay.
+
+Producer diagnostics remain on declaration components until compilation teardown.
+Independent successful receipts are no longer marked failed solely because an
+earlier job selected an error. A later consumer follows failed dependency edges
+to recover the original signature error. Unresolved local cycles use the shared
+cycle walker and fail the producer to settle its suspended body consumer.
+New fixtures cover self-shadowing initializer cycles (the outer variable must
+not win lookup), a failed shared signature first reached by a later body, and
+mixed inferred/explicit decltype/comptime locals across a nested scope.
+
+Small-unit compilation passed before the incremental native test build. One new
+fixture initially used reserved `expected` as a variable; renamed it. A subsequent
+abort exposed stale build input: a source edit landed after the compiler read it
+but before its object timestamp, so Ninja considered the older object fresh.
+Force-rebuilt only the affected semantic object with inputs frozen. The resulting
+body smoke and known-binding suites pass (body-local-queries-checked.log), including
+serial/threaded canonical output, execution, diagnostic ordering and cycles.
+This is a workflow correction: freeze a compilation unit's imported sources while
+its command runs; perform unrelated reads/documentation or draft in a separate
+snapshot. Do not mistake an in-flight edit for validated source.
+
+Remaining: local structural preparations still enter this executor one body at a
+time. Batch independent local roots before discovery and retain per-root failures
+to overlap their chains; then extend the continuation mechanism to remaining
+structural expression/control/protocol preparation. Type construction/interning
+and structural publication still require coordinator ownership. Native CLI project
+recipe wiring and exclusive linking remain separate unfinished work. No 100%
+conversion or end-to-end speedup claim is made by these focused checks.

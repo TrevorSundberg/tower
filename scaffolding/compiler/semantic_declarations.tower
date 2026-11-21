@@ -36,6 +36,7 @@ struct SemanticDeclaration {
     allocations: vector(void*);
     lists: vector(void*);
     scope: SemanticScope*;
+    current: void*;
     subject: void*;
     discover: bool;
     worker_check: bool;
@@ -426,8 +427,12 @@ fn sem_declaration_dependencies(c: SemanticContext*, subject: void*, result: Sem
             }
             if dependency != null {
                 var input = sem_declaration_query(c, dependency);
-                sem_require(input != 0);
-                sem_declaration_input(result, input);
+                if input != 0 { sem_declaration_input(result, input); }
+                else {
+                    // Earlier lexical locals may have completed in their body
+                    // query. Their immutable types do not need invented jobs.
+                    sem_require(sem_declaration_state(c, dependency).number == 2);
+                }
             }
             if module != null { continue; }
         }
@@ -716,6 +721,7 @@ fn semantic_declaration_kernel(result: SemanticDeclaration*): void {
     sem_editor_private(&context, &result.editor);
     context.type_observations = &result.type_observations;
     context.scope = result.scope;
+    context.current = result.current;
     context.entity_stage = result.stage;
     context.query_reads = &result.query_reads;
     context.count = 0;
@@ -789,8 +795,49 @@ fn sem_declaration_error(c: SemanticContext*, result: SemanticDeclaration*): boo
         c.program.error.length = result.error.length;
         c.program.error_offset = result.error_offset;
     }
-    vector_dispose(u8, &result.error);
+    // Retain the producer diagnostic for later dependent body continuations.
+    // The compilation owns it until declaration disposal.
     return true;
+}
+
+fn sem_declaration_capture_error(c: SemanticContext*, result: SemanticDeclaration*): void {
+    if result.error.length != 0 || sem_ok(c) { return; }
+    sem_require(vector_reserve(&result.error, c.program.error.length + 1));
+    copy(result.error.data, c.program.error.data, c.program.error.length + 1);
+    result.error.length = c.program.error.length;
+    result.error_offset = c.program.error_offset;
+}
+
+// A failed shared signature retains its diagnostic even after its first body
+// consumer has yielded it for source-order selection. Follow only failed edges;
+// an unfinished cycle is diagnosed separately by the ordinary graph walker.
+fn sem_declaration_failure(c: SemanticContext*, id: usize): bool {
+    var pending: vector(usize) = default;
+    defer vector_dispose(&pending);
+    sem_require(vector_push(&pending, id));
+    for(var i: usize = 0; i < pending.length; i++) {
+        var task = work_task(&c.queries, pending.data[i]);
+        if task.state != WorkState.Failed { continue; }
+        if task.query == DeclarationQuery || task.query == DeclarationDiscoveryQuery {
+            var result = sem_declaration_state(c, task.subject);
+            if result.error.length != 0 {
+                sem_require(vector_reserve(&c.program.error, result.error.length + 1));
+                copy(c.program.error.data, result.error.data, result.error.length + 1);
+                c.program.error.length = result.error.length;
+                c.program.error_offset = result.error_offset;
+                return true;
+            }
+        }
+        var edge = task.dependencies;
+        while edge != 0 {
+            var dependency = c.queries.edges.data[edge - 1].dependency;
+            var seen = false;
+            foreach(var prior in &pending) { seen ||= prior == dependency; }
+            if !seen { sem_require(vector_push(&pending, dependency)); }
+            edge = c.queries.edges.data[edge - 1].next_dependency;
+        }
+    }
+    return false;
 }
 
 extern fn entity_query_count(type: void*): usize;
@@ -824,6 +871,7 @@ fn sem_declaration_dispose(c: SemanticContext*): void {
             // These scratch scopes/context are owned only for this compilation.
             result.context = null;
             result.scope = null;
+            result.current = null;
         }
     }
     vector_dispose(void*, &c.declaration_jobs);
@@ -973,6 +1021,10 @@ fn sem_declaration_add(c: SemanticContext*, node: void*): void {
     result.worker_check = sem_declaration_worker(c, result);
     sem_require(vector_push(&c.declaration_jobs, bits(void*, result)));
     sem_require(work_access(&c.queries, id, 1, 4, id, 1, WorkAccessMode.Write));
+    if result.current != null {
+        sem_require(work_access(&c.queries, id, convert(u64, SemanticWorkDomain.Compiler),
+            convert(u64, SemanticAccess.Body), sem_get(result.current).index, 1, WorkAccessMode.Write));
+    }
     result.discovery = work_request(&c.queries, node, DeclarationDiscoveryQuery, 0);
     sem_require(work_access(&c.queries, result.discovery, 1, 5, id, 1, WorkAccessMode.Write));
     sem_require(work_access(&c.queries, result.discovery, 1, 3, 0, ~convert(usize, 0), WorkAccessMode.Read));
@@ -980,34 +1032,45 @@ fn sem_declaration_add(c: SemanticContext*, node: void*): void {
     sem_require(work_demand(&c.queries, result.discovery));
 }
 
+// Tickets and stages are reserved before this call, so type/readiness workers
+// see one immutable graph. Pool width changes execution, never the query wave.
+fn sem_declaration_dispatch(c: SemanticContext*, batch: SemanticDeclaration**, count: usize): void {
+    var context = *c;
+    var next: usize = 0;
+    while next < count || c.workers.running != 0 {
+        while next < count && c.workers.running < c.workers.count {
+            var result = batch[next++];
+            result.context = &context;
+            sem_require(work_pool_submit(&c.workers, bits(void*, &result.kernel)));
+        }
+        sem_require(work_pool_receive(&c.workers, true) != null);
+    }
+    for(var i: usize = 0; i < count; i++) { batch[i].context = null; }
+}
+
 fn sem_declaration_discover(c: SemanticContext*): void {
     if c.workers.count == 0 { sem_require(sem_workers_open(c)); }
-    var batch: SemanticDeclaration*[256];
+    var batch: vector(SemanticDeclaration*) = default;
+    sem_require(vector_reserve(&batch, SemanticPreparationWindow));
+    defer vector_dispose(&batch);
     var index: usize = 0;
     loop {
         var view = entity_view_open(c.program.root);
         sem_require(view != null);
         var count: usize = 0;
         var ticket: WorkTicket;
-        while count < c.workers.count && work_take_query(&c.queries, &ticket, DeclarationDiscoveryQuery) {
+        while count < SemanticPreparationWindow && work_take_query(&c.queries, &ticket, DeclarationDiscoveryQuery) {
             var result = sem_declaration_state(c, work_task(&c.queries, ticket.task).subject);
             copy(&result.ticket, &ticket, sizeof(WorkTicket));
-            batch[count] = result;
+            batch.data[count] = result;
             count++;
         }
-        var context = *c;
-        for(var i: usize = 0; i < count; i++) {
-            batch[i].context = &context;
-            sem_require(work_pool_submit(&c.workers, bits(void*, &batch[i].kernel)));
-        }
-        index = 0;
-        while index < count { sem_require(work_pool_receive(&c.workers, true) != null); index++; }
+        sem_declaration_dispatch(c, batch.data, count);
         entity_view_close(view);
         if count == 0 { break; }
         index = 0;
         while index < count {
-            var result = batch[index];
-            result.context = null;
+            var result = batch.data[index];
             var success = !sem_declaration_error(c, result);
             sem_query_observe(c, &result.ticket, &result.query_reads);
             sem_require(work_finish(&c.queries, &result.ticket, success));
@@ -1048,19 +1111,23 @@ fn sem_declarations(c: SemanticContext*, statements: vector(void*)*): void {
         }
     }
     if !sem_ok(c) { return; }
-    statements = c.declaration_subjects;
-    var index: usize = 0;
     // Even primitive identities have a preallocated state so lookups in a
     // worker can never enter entity_component_add while structure is pinned.
-    index = 0;
+    var index: usize = 0;
     while index < c.program.types.length {
         sem_declaration_state(c, c.program.types.data[index]);
         index++;
     }
     sem_declaration_discover(c);
-    var batch: SemanticDeclaration*[256];
+    sem_declarations_execute(c, c.declaration_subjects);
+}
+
+fn sem_declarations_execute(c: SemanticContext*, statements: vector(void*)*): void {
+    var batch: vector(SemanticDeclaration*) = default;
+    sem_require(vector_reserve(&batch, SemanticPreparationWindow));
+    defer vector_dispose(&batch);
     if !sem_ok(c) { return; }
-    index = 0;
+    var index: usize = 0;
     while index < statements.length {
         var node = statements.data[index];
         if sem_declaration_subject(node) { sem_require(work_demand(&c.queries, sem_declaration_query(c, node))); }
@@ -1070,7 +1137,7 @@ fn sem_declarations(c: SemanticContext*, statements: vector(void*)*): void {
         if !sem_ok(c) { break; }
         var count: usize = 0;
         var ticket: WorkTicket;
-        while count < c.workers.count && work_take_query(&c.queries, &ticket, DeclarationQuery) {
+        while count < SemanticPreparationWindow && work_take_query(&c.queries, &ticket, DeclarationQuery) {
             var result = sem_declaration_state(c, work_task(&c.queries, ticket.task).subject);
             copy(&result.ticket, &ticket, sizeof(WorkTicket));
             result.kernel.kind = result.worker_check ? CompilerKernelKind.DeclarationType : CompilerKernelKind.Declaration;
@@ -1079,7 +1146,7 @@ fn sem_declarations(c: SemanticContext*, statements: vector(void*)*): void {
                 sem_require(result.stage != null);
                 foreach(var node in &result.nodes) { sem_require(entity_stage_lease(result.stage, node)); }
             }
-            batch[count] = result;
+            batch.data[count] = result;
             count++;
         }
         var view = entity_view_open(c.program.root);
@@ -1087,14 +1154,7 @@ fn sem_declarations(c: SemanticContext*, statements: vector(void*)*): void {
         // Readiness checks inspect graph states, including newly discovered
         // field dependencies. Finish every Ready -> Running transition before
         // dispatch so workers read an immutable graph throughout this wave.
-        var context = *c;
-        for(var i: usize = 0; i < count; i++) {
-            batch[i].context = &context;
-            sem_require(work_pool_submit(&c.workers, bits(void*, &batch[i].kernel)));
-        }
-        index = 0;
-        while index < count { sem_require(work_pool_receive(&c.workers, true) != null); index++; }
-        for(var i: usize = 0; i < count; i++) { batch[i].context = null; }
+        sem_declaration_dispatch(c, batch.data, count);
         entity_view_close(view);
         if count == 0 { break; }
         var layouts: vector(usize);
@@ -1103,7 +1163,7 @@ fn sem_declarations(c: SemanticContext*, statements: vector(void*)*): void {
         // Release every lease before a structural continuation can discover
         // declarations or prepare syntax owned by another completed job.
         for(var i: usize = 0; i < count; i++) {
-            var result = batch[i];
+            var result = batch.data[i];
             if result.stage != null {
                 sem_require(entity_stage_publish(result.stage));
                 result.stage = null;
@@ -1111,8 +1171,13 @@ fn sem_declarations(c: SemanticContext*, statements: vector(void*)*): void {
         }
         index = 0;
         while index < count {
-            var result = batch[index];
+            var result = batch.data[index];
             var node = result.subject;
+            // Keep this producer's diagnostic separate from an earlier job's
+            // selected error. Independent successful receipts remain reusable.
+            var selected_error = c.program.error;
+            var selected_offset = c.program.error_offset;
+            c.program.error = default;
             foreach(var job in &result.evaluations) {
                 var evaluation = bits(SemanticEvaluation*, job);
                 sem_push(&c.evaluation_jobs, job);
@@ -1129,7 +1194,9 @@ fn sem_declarations(c: SemanticContext*, statements: vector(void*)*): void {
             c.query_reads = &result.query_reads;
             if success && !result.checked && result.waiting == 0 && result.layout == null {
                 var saved_scope = c.scope;
+                var saved_current = c.current;
                 c.scope = result.scope;
+                c.current = result.current;
                 result.waiting = sem_declaration_prepare(c, result);
                 if result.waiting == 0 && result.layout == null && sem_ok(c) {
                     if result.inference_pending { readmit = true; }
@@ -1151,7 +1218,9 @@ fn sem_declarations(c: SemanticContext*, statements: vector(void*)*): void {
                 }
                 success = sem_ok(c);
                 c.scope = saved_scope;
+                c.current = saved_current;
             }
+            if !success { sem_declaration_capture_error(c, result); }
             c.query_reads = saved_reads;
             sem_query_observe(c, &result.ticket, &result.query_reads);
             if success && result.layout != null {
@@ -1169,6 +1238,11 @@ fn sem_declarations(c: SemanticContext*, statements: vector(void*)*): void {
                     else { sem_require(work_finish(&c.queries, &result.ticket, success)); }
                 }
             }
+            if selected_error.length != 0 {
+                vector_dispose(&c.program.error);
+                c.program.error = selected_error;
+                c.program.error_offset = selected_offset;
+            } else { vector_dispose(&selected_error); }
             index++;
         }
         // Every declaration relinquishes its claims before this wave. Layout
@@ -1187,6 +1261,7 @@ fn sem_declarations(c: SemanticContext*, statements: vector(void*)*): void {
         if sem_declaration_subject(node) {
             var id = sem_declaration_query(c, node);
             if work_task(&c.queries, id).state != WorkState.Succeeded {
+                if sem_declaration_failure(c, id) { break; }
                 var cycle: vector(usize);
                 vector_init(usize, &cycle);
                 sem_require(work_cycle(&c.queries, id, &cycle));
@@ -1208,5 +1283,28 @@ fn sem_declarations(c: SemanticContext*, statements: vector(void*)*): void {
             }
         }
         index++;
+    }
+}
+
+// A structural body continuation has bound this declaration exactly once.
+// Release its body/type-index claims while ordinary declaration queries check
+// the initializer, deduce calls and resolve their signatures on workers.
+fn sem_declaration_local(c: SemanticContext*, node: void*, preparation: WorkTicket*): void {
+    var saved_subjects = c.declaration_subjects;
+    c.declaration_subjects = sem_list(c);
+    defer { c.declaration_subjects = saved_subjects; }
+    var result = sem_declaration_state(c, node);
+    result.scope = c.scope;
+    result.current = c.current;
+    sem_declaration_add(c, node);
+    sem_declaration_discover(c);
+    if !sem_ok(c) { return; }
+    var id = preparation.task;
+    sem_require(work_suspend(&c.queries, preparation, result.query));
+    sem_declarations_execute(c, c.declaration_subjects);
+    if sem_ok(c) { sem_require(work_take_task(&c.queries, preparation, id)); }
+    else {
+        sem_declaration_capture_error(c, result);
+        sem_require(work_fail(&c.queries, result.query));
     }
 }

@@ -408,6 +408,30 @@ fn sem_loop_finish(flow: u32): u32 {
     return(flow &FlowReturn) |((flow &FlowBreak) != 0 ? FlowNext: 0);
 }
 
+// Binding precedes type/initializer queries, including a self-reference. A
+// suspended declaration resumes completion without rebinding or replaying it.
+fn sem_declaration_bind(c: SemanticContext*, n: void*): bool {
+    if !sem_shape(c, n, "name") { return false; }
+    var value = sem_node(c, n, KDeclare);
+    var name = sem_identifier(c, sem_member(n, "name"));
+    if !value.global { sem_set_name(value, name); }
+    if name[0] == 0 || !value.global && sem_lookup_table(c.scope.names, name) != null {
+        sem_fail(c, n, sem_cat(c, "Missing or duplicate local '", sem_cat(c, name, "'")));
+        return false;
+    }
+    if !value.global { sem_put(c, c.scope.names, name, n); }
+    return true;
+}
+
+fn sem_declaration_finish(c: SemanticContext*, n: void*): void {
+    var value = sem_get(n);
+    if !value.global { sem_add_local(c, n); }
+    var initial = sem_member(n, "value");
+    if initial != null && value.value == null {
+        value.value = sem_initial_value(c, initial, &value.type);
+    }
+}
+
 fn sem_statement(c: SemanticContext*, n: void*, depth: u32): u32 {
     if c.deferring != 0 && sem_control_call(c, n, "jump") != null {
         sem_fail(c, n, "A deferred cleanup cannot jump out of its scope");
@@ -491,33 +515,8 @@ fn sem_statement_impl(c: SemanticContext*, n: void*, depth: u32): u32 {
     }
     var kind: u8* = sem_label(n);
     if sem_equal(kind, "CoreDeclare") {
-        if !sem_shape(c, n, "name") {
-            return 1;
-        }
-        var value: FoundationNode* = sem_node(c, n, KDeclare);
-        var name: u8* = sem_identifier(c, sem_member(n, "name"));
-        if !value.global {
-            sem_set_name(value, name);
-        }
-        if name[0] == 0 || !value.global && sem_lookup_table(c.scope.names, name) != null {
-            var step18 = sem_cat(c, "Missing or duplicate local '", name);
-            sem_fail(c, n, sem_cat(c, step18, "'"));
-            return 1;
-        }
-        if !value.global {
-            sem_put(c, c.scope.names, name, n);
-        }
-        if !sem_declaration_type(c, n) {
-            return 1;
-        }
-        if !value.global {
-            sem_add_local(c, n);
-        }
-        var initial: void* = sem_member(n, "value");
-        if initial != null && value.value == null {
-            var step28 = sem_initial_value(c, initial, &value.type);
-            value.value = step28;
-        }
+        if !sem_declaration_bind(c, n) || !sem_declaration_type(c, n) { return FlowNext; }
+        sem_declaration_finish(c, n);
     } else {
         if sem_equal(kind, "CoreAssign") {
             if !sem_shape(c, n, "target") || !sem_shape(c, n, "value") || !sem_shape(c, sem_member(n, "target"), "name") {

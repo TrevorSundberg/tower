@@ -447,4 +447,15 @@ if match_runs(1) != 9 || match_runs(2) != 11 || match_runs(3) != 12 || match_run
 if comptime(match_runs(2)) != 11 || comptime(match_default()) != 13 {
     failures++;
 }
+fn declaration_queries(input: i32): i32 {
+    var source = input + 1;
+    var derived = identity(source);
+    var explicit: decltype(identity(derived)) = identity(derived + 1);
+    {
+        var source = identity(explicit);
+        explicit = source + comptime(identity(1));
+    }
+    return explicit;
+}
+if declaration_queries(39) != 42 { failures++; }
 print(failures);

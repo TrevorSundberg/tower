@@ -7,6 +7,7 @@ import semantic_definitions;
 import foundation_tags;
 import semantic_support;
 import semantic_types;
+import semantic_declarations;
 import semantic_layout;
 import semantic_statements;
 import semantic_control;
@@ -642,22 +643,36 @@ fn sem_body_prepare(c: SemanticContext*, result: SemanticBodyWork*): void {
     sem_body_save(c, &saved);
     sem_body_restore(c, &result.lexical);
     var cursor = sem_body_cursor(result);
-    if result.boundaries.data[result.boundary].header {
-        var node = sem_unwrap(sem_child(cursor.subject, cursor.next));
-        if !sem_body_enter(c, result, node) {
+    var node = sem_unwrap(sem_child(cursor.subject, cursor.next));
+    if sem_is(node, "CoreDeclare") {
+        if sem_declaration_bind(c, node) {
+            sem_declaration_local(c, node, &ticket);
+            if sem_ok(c) { sem_declaration_finish(c, node); }
+        }
+        cursor.next++;
+        sem_block_accept(c, cursor, node, FlowNext);
+    } else {
+        if result.boundaries.data[result.boundary].header {
+            if !sem_body_enter(c, result, node) {
+                sem_block_step(c, cursor);
+            }
+        } else {
             sem_block_step(c, cursor);
         }
-    } else {
-        sem_block_step(c, cursor);
     }
     result.boundary++;
     sem_body_save(c, &result.lexical);
     sem_body_restore(c, &saved);
     sem_layout_all(c);
     c.query_reads = saved_reads;
-    sem_query_observe(c, &ticket, &result.query_reads);
     var ok = sem_ok(c);
-    sem_require(work_finish(&c.queries, &ticket, ok));
+    if work_ticket_valid(&c.queries, &ticket) {
+        sem_query_observe(c, &ticket, &result.query_reads);
+        sem_require(work_finish(&c.queries, &ticket, ok));
+    } else {
+        sem_require(!ok && work_task(&c.queries, result.preparation).state == WorkState.Failed);
+        result.query_reads.length = 0;
+    }
     if !ok {
         // This failed continuation owns its newly constructed types. Continue
         // earlier bodies for diagnostic ordering without admitting those types
