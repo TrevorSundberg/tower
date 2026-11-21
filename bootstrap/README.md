@@ -62,3 +62,27 @@ The manifest records the exact source revision and input hashes, with an
 accompanying `source-changes.patch` when the build includes uncommitted sources.
 Revalidate the final rebased source with the default bootstrap before publishing
 an updated pin.
+
+## Tower build tools
+
+The same Linux x64/Docker environment builds the LLD compatibility patcher and
+Roku packager from Tower, using the verified pin and existing guest runtime:
+
+```sh
+tools="$(bash playground/scripts/build-bootstrap.sh --tools)"
+"$tools/package_roku" program.brs program-roku.zip
+```
+
+`build-llvm.sh` invokes the resulting `prepare_lld_compat` automatically. The
+two former Python tools are retired. The Roku ZIP writer, CRC and small raw
+DEFLATE compressor are in-house Tower; no zlib link is needed. Their scope and
+device-testing limits are documented in [the Roku guide](../docs/roku-backend.md).
+
+`TOWER_TOOLS_BUILD` selects the build directory (default
+`$HOME/.cache/tower/tools`), and `LLVM_CONFIG` selects the installed host LLVM
+(default `llvm-config-19`). The wrapper's stdout is only the tools directory;
+build output goes to stderr. A small CMake bridge builds `build_tools.tower` and
+the shared host runtime, then Tower passes explicit compiler/linker arguments
+without a shell. The builder rebuilds the two small tools on each invocation
+and writes import depfiles. Bootstrap installation and upstream build bridges
+remain Python/shell/CMake migration work; this is not a portable native release.

@@ -1,6 +1,37 @@
 cmake_minimum_required(VERSION 3.20)
 
 project(scaffolding LANGUAGES C CXX VERSION 1)
+
+# Minimal bootstrap bridge: Tower owns the tool recipes and process execution.
+# Requires only the published compiler and installed host LLVM.
+option(TOWER_TOOLS_ONLY "Bootstrap the Linux x64 Tower build tools" OFF)
+if(TOWER_TOOLS_ONLY)
+  if(NOT TOWER_BOOTSTRAP_COMPILER OR NOT CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux"
+      OR NOT CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64)$")
+    message(FATAL_ERROR "Tower tools require the verified Linux x64 bootstrap; see bootstrap/README.md")
+  endif()
+  include(cmake/TowerRuntime.cmake)
+  set(tool_triple x86_64-unknown-linux-gnu)
+  tower_guest_runtime(host-library "${tool_triple}" posix OFF)
+  get_property(tool_runtime GLOBAL PROPERTY TOWER_GUEST_host-library_OBJECT)
+  set(tool_object "${CMAKE_CURRENT_BINARY_DIR}/build_tools.o")
+  set(tool_builder "${CMAKE_CURRENT_BINARY_DIR}/build_tools")
+  add_custom_command(OUTPUT "${tool_object}" "${tool_builder}"
+    COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tools/build_tools.tower"
+      --library --target "${tool_triple}"
+      --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
+      --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
+      -o "${tool_object}" --depfile "${tool_object}.d"
+    COMMAND "${CMAKE_C_COMPILER}" "${tool_object}" "${tool_runtime}" -o "${tool_builder}"
+    DEPFILE "${tool_object}.d"
+    DEPENDS scaffolding/tools/build_tools.tower "${TOWER_BOOTSTRAP_COMPILER}" "${tool_runtime}" VERBATIM)
+  add_custom_target(tower-tools
+    COMMAND "${tool_builder}" "${TOWER_BOOTSTRAP_COMPILER}" "${CMAKE_C_COMPILER}"
+      "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/bin" "${tool_runtime}"
+    DEPENDS "${tool_builder}" VERBATIM)
+  return()
+endif()
+
 include(cmake/TowerCompilerUtilities.cmake)
 include(cmake/TowerInterpreter.cmake)
 

@@ -1,0 +1,52 @@
+import tower;
+import utility_checks;
+import .tools.tool_process_linux;
+import .library.vector;
+import .library.bytes;
+import .library.bytes_types;
+
+extern fn strcmp(left: u8*, right: u8*): i32;
+extern fn strlen(text: u8*): usize;
+extern fn raise(signal: i32): i32;
+
+fn process_check_run(path: u8*, mode: u8*): ToolProcessResult {
+    var args: vector(u8*) = default;
+    defer vector_dispose(&args);
+    utility_check(tool_process_argument(&args, path) && tool_process_argument(&args, "--child")
+        && tool_process_argument(&args, mode) && tool_process_argument(&args, "literal spaces;$(no_command)")
+        && tool_process_argument(&args, "") && tool_process_argument(&args, null), "child argument storage");
+    return tool_process(path, args.data);
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    var child_count: i32 = 5;
+    var fixture_exit: i32 = 37;
+    var exec_like_exit: i32 = 127;
+    var terminate_signal: i32 = 15;
+    var unexpected_return: i32 = 1;
+    if argc != 1 {
+        utility_check(argc == child_count && strcmp(argv[1], "--child") == 0, "child mode arguments");
+        utility_check(strcmp(argv[3], "literal spaces;$(no_command)") == 0 && argv[4][0] == 0,
+            "child received exact shell-free arguments including empty string");
+        if strcmp(argv[2], "signal") == 0 { raise(terminate_signal); return unexpected_return; }
+        if strcmp(argv[2], "exec-like") == 0 { return exec_like_exit; }
+        return fixture_exit;
+    }
+    var ordinary = process_check_run(argv[0], "ordinary");
+    utility_check(ordinary.kind == ToolProcessKind.Exited && ordinary.exit_code == fixture_exit
+        && tool_process_status(ordinary) == fixture_exit, "exact ordinary exit status");
+    var special = process_check_run(argv[0], "exec-like");
+    utility_check(special.kind == ToolProcessKind.Exited && special.exit_code == exec_like_exit,
+        "real exit 127 distinguished from exec failure");
+    var signaled = process_check_run(argv[0], "signal");
+    utility_check(signaled.kind == ToolProcessKind.Signaled && signaled.signal == terminate_signal, "signal status preserved");
+    var missing: ByteBuffer = default;
+    defer bytes_dispose(&missing);
+    utility_check(bytes_append(&missing, argv[0], strlen(argv[0]))
+        && bytes_append(&missing, ".missing", strlen(".missing")) && bytes_push(&missing, 0), "missing executable path");
+    var failed = process_check_run(missing.data, "ordinary");
+    var no_entry: i32 = 2;
+    utility_check(failed.kind == ToolProcessKind.ExecFailed && failed.error == no_entry, "exec failure errno preserved");
+    puts("Tower process checks passed");
+    return 0;
+}

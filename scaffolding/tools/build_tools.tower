@@ -1,0 +1,132 @@
+import tower;
+import tool_process_linux;
+import tool_files_posix;
+import .library.vector;
+import .library.bytes;
+import .library.bytes_types;
+
+extern fn puts(text: u8*): i32;
+extern fn strlen(text: u8*): usize;
+extern fn strcmp(left: u8*, right: u8*): i32;
+extern fn strerror(error: i32): u8*;
+
+enum BuildToolExit: i32 { Success = 0, Failure = 1, Usage = 2 }
+
+fn build_tool_error(text: u8*): void {
+    var stderr_stream: i32 = 2;
+    write(stderr_stream, text, strlen(text));
+}
+
+fn build_tool_path(out: ByteBuffer*, directory: u8*, name: u8*, suffix: u8*): bool {
+    return bytes_append(out, directory, strlen(directory)) && bytes_push(out, convert(u8, ToolPathByte.Slash))
+        && bytes_append(out, name, strlen(name)) && bytes_append(out, suffix, strlen(suffix)) && bytes_push(out, 0);
+}
+
+fn build_tool_run(args: vector(u8*)*): i32 {
+    if !tool_process_argument(args, null) { return convert(i32, BuildToolExit.Failure); }
+    var result = tool_process(args.data[0], args.data);
+    if result.kind != ToolProcessKind.Exited || result.exit_code != 0 {
+        build_tool_error("Tool build command failed: ");
+        build_tool_error(args.data[0]);
+        if result.error != 0 {
+            build_tool_error(": ");
+            build_tool_error(strerror(result.error));
+        }
+        build_tool_error("\n");
+    }
+    return tool_process_status(result);
+}
+
+// Existing inputs must resolve. Compare every destination before compilation,
+// including aliases through symlinks. This does not promise hard-link identity
+// checks or protection against concurrent filesystem replacement.
+fn build_tool_outputs_safe(inputs: vector(u8*)*, outputs: vector(u8*)*): bool {
+    foreach (var input in inputs) {
+        foreach (var output in outputs) {
+            if !tool_output_distinct(input, output) { return false; }
+        }
+    }
+    foreach (var output in outputs) {
+        var resolved = realpath(output, null);
+        if resolved == null { continue; }
+        defer free(resolved);
+        foreach (var other in outputs) {
+            if output != other && !tool_output_distinct(output, other) { return false; }
+        }
+    }
+    return true;
+}
+
+// Explicit inputs: verified compiler, host linker, source checkout, output root
+// and compatible guest host object. Rebuild on every invocation; compiler depfiles
+// expose the real import closure for a later content-addressed build scheduler.
+fn build_tool(compiler: u8*, linker: u8*, root: u8*, output: u8*, runtime: u8*, name: u8*): i32 {
+    var directory: ByteBuffer = default;
+    var source: ByteBuffer = default;
+    var object: ByteBuffer = default;
+    var executable: ByteBuffer = default;
+    var depfile: ByteBuffer = default;
+    var bedrock: ByteBuffer = default;
+    var foundation: ByteBuffer = default;
+    defer bytes_dispose(&directory);
+    defer bytes_dispose(&source);
+    defer bytes_dispose(&object);
+    defer bytes_dispose(&executable);
+    defer bytes_dispose(&depfile);
+    defer bytes_dispose(&bedrock);
+    defer bytes_dispose(&foundation);
+    if !build_tool_path(&directory, root, "scaffolding/tools", "")
+        || !build_tool_path(&source, directory.data, name, ".tower")
+        || !build_tool_path(&object, output, name, ".o") || !build_tool_path(&executable, output, name, "")
+        || !build_tool_path(&depfile, output, name, ".d")
+        || !build_tool_path(&bedrock, root, "scaffolding/bedrock.tower", "")
+        || !build_tool_path(&foundation, root, "scaffolding/foundation.tower", "")
+        || !tool_output_parents(object.data) { return convert(i32, BuildToolExit.Failure); }
+    var args: vector(u8*) = default;
+    var inputs: vector(u8*) = default;
+    var outputs: vector(u8*) = default;
+    defer vector_dispose(&args);
+    defer vector_dispose(&inputs);
+    defer vector_dispose(&outputs);
+    if !tool_process_argument(&inputs, compiler) || !tool_process_argument(&inputs, linker)
+        || !tool_process_argument(&inputs, runtime) || !tool_process_argument(&inputs, source.data)
+        || !tool_process_argument(&inputs, bedrock.data) || !tool_process_argument(&inputs, foundation.data)
+        || !tool_process_argument(&inputs, "/proc/self/exe")
+        || !tool_process_argument(&outputs, object.data) || !tool_process_argument(&outputs, depfile.data)
+        || !tool_process_argument(&outputs, executable.data) { return convert(i32, BuildToolExit.Failure); }
+    if !build_tool_outputs_safe(&inputs, &outputs) {
+        build_tool_error("Build inputs must exist and output paths must be distinct from inputs and each other.\n");
+        return convert(i32, BuildToolExit.Failure);
+    }
+    if !tool_process_argument(&args, compiler) || !tool_process_argument(&args, source.data) || !tool_process_argument(&args, "--library")
+        || !tool_process_argument(&args, "--target") || !tool_process_argument(&args, "x86_64-unknown-linux-gnu")
+        || !tool_process_argument(&args, "--bedrock") || !tool_process_argument(&args, bedrock.data)
+        || !tool_process_argument(&args, "--foundation") || !tool_process_argument(&args, foundation.data)
+        || !tool_process_argument(&args, "-o") || !tool_process_argument(&args, object.data)
+        || !tool_process_argument(&args, "--depfile") || !tool_process_argument(&args, depfile.data) { return convert(i32, BuildToolExit.Failure); }
+    var status = build_tool_run(&args);
+    if status != 0 { return status; }
+    args.length = 0;
+    if !tool_process_argument(&args, linker) || !tool_process_argument(&args, object.data) || !tool_process_argument(&args, runtime)
+        || !tool_process_argument(&args, "-o") || !tool_process_argument(&args, executable.data) { return convert(i32, BuildToolExit.Failure); }
+    status = build_tool_run(&args);
+    if status == 0 { puts(executable.data); }
+    return status;
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    var required_count: i32 = 6;
+    var selected_count: i32 = 7;
+    var usage = convert(i32, BuildToolExit.Usage);
+    if argc != required_count && argc != selected_count {
+        puts("Usage: build_tools COMPILER LINKER REPOSITORY OUTPUT_DIRECTORY GUEST_HOST_OBJECT [prepare_lld_compat|package_roku]");
+        return usage;
+    }
+    if argc == selected_count {
+        if strcmp(argv[6], "prepare_lld_compat") != 0 && strcmp(argv[6], "package_roku") != 0 { return usage; }
+        return build_tool(argv[1], argv[2], argv[3], argv[4], argv[5], argv[6]);
+    }
+    var status = build_tool(argv[1], argv[2], argv[3], argv[4], argv[5], "prepare_lld_compat");
+    if status != 0 { return status; }
+    return build_tool(argv[1], argv[2], argv[3], argv[4], argv[5], "package_roku");
+}

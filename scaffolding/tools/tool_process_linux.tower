@@ -1,0 +1,98 @@
+import tower;
+import .library.vector;
+
+// Explicit Linux process ABI. Arguments borrow caller-owned, NUL-terminated
+// strings until synchronous completion. No PATH lookup or shell interpretation.
+enum ToolProcessKind: i32 { Exited, Signaled, PipeFailed, ForkFailed, ExecFailed, WaitFailed, ReadFailed }
+struct ToolProcessResult {
+    kind: ToolProcessKind;
+    exit_code: i32;
+    signal: i32;
+    error: i32;
+}
+struct ToolPipe { reader: i32; writer: i32; }
+
+extern fn pipe2(descriptors: i32*, flags: i32): i32;
+extern fn fork(): i32;
+extern fn execv(file: u8*, args: u8**): i32;
+extern fn _exit(code: i32): void;
+extern fn waitpid(pid: i32, status: i32*, options: i32): i32;
+extern fn close(fd: i32): i32;
+extern fn read(fd: i32, data: u8*, length: usize): i64;
+extern fn write(fd: i32, data: u8*, length: usize): i64;
+extern fn __errno_location(): i32*;
+
+// A typed boundary also keeps literal arguments out of generic deduction in
+// the current published bootstrap, which otherwise duplicates their bytes.
+fn tool_process_argument(args: vector(u8*)*, text: u8*): bool {
+    return vector_push(args, text);
+}
+
+fn tool_process(executable: u8*, args: u8**): ToolProcessResult {
+    var close_on_exec: i32 = 524288;
+    var interrupted: i32 = 4;
+    var io_error: i32 = 5;
+    var cannot_exec: i32 = 127;
+    var pipe: ToolPipe = default;
+    if pipe2(&pipe.reader, close_on_exec) != 0 {
+        return init(ToolProcessResult) { kind: ToolProcessKind.PipeFailed, error: *__errno_location(), ..default };
+    }
+    var pid = fork();
+    if pid == 0 {
+        close(pipe.reader);
+        execv(executable, args);
+        var error = *__errno_location();
+        var sent: usize = 0;
+        while sent < sizeof(i32) {
+            var count = write(pipe.writer, bits(u8*, &error) + sent, sizeof(i32) - sent);
+            if count < 0 && *__errno_location() == interrupted { continue; }
+            if count <= 0 { break; }
+            sent += convert(usize, count);
+        }
+        _exit(cannot_exec);
+    }
+    var fork_error = *__errno_location();
+    close(pipe.writer);
+    if pid < 0 {
+        close(pipe.reader);
+        return init(ToolProcessResult) { kind: ToolProcessKind.ForkFailed, error: fork_error, ..default };
+    }
+    var exec_error: i32 = 0;
+    var read_error: i32 = 0;
+    var received: usize = 0;
+    while received < sizeof(i32) {
+        var count = read(pipe.reader, bits(u8*, &exec_error) + received, sizeof(i32) - received);
+        if count < 0 {
+            if *__errno_location() == interrupted { continue; }
+            read_error = *__errno_location();
+            break;
+        }
+        if count == 0 { break; }
+        received += convert(usize, count);
+    }
+    close(pipe.reader);
+    var status: i32 = 0;
+    loop {
+        var waited = waitpid(pid, &status, 0);
+        if waited == pid { break; }
+        if waited < 0 && *__errno_location() == interrupted { continue; }
+        return init(ToolProcessResult) { kind: ToolProcessKind.WaitFailed, error: *__errno_location(), ..default };
+    }
+    if received != 0 && received != sizeof(i32) { read_error = io_error; }
+    if read_error != 0 { return init(ToolProcessResult) { kind: ToolProcessKind.ReadFailed, error: read_error, ..default }; }
+    if exec_error != 0 { return init(ToolProcessResult) { kind: ToolProcessKind.ExecFailed, error: exec_error, ..default }; }
+    var signal_mask: i32 = 127;
+    var exit_shift: i32 = 8;
+    var exit_mask: i32 = 255;
+    var signal = status & signal_mask;
+    if signal != 0 { return init(ToolProcessResult) { kind: ToolProcessKind.Signaled, signal: signal, ..default }; }
+    return init(ToolProcessResult) { kind: ToolProcessKind.Exited, exit_code: (status >> exit_shift) & exit_mask, ..default };
+}
+
+fn tool_process_status(result: ToolProcessResult): i32 {
+    var signal_base: i32 = 128;
+    var failure: i32 = 1;
+    if result.kind == ToolProcessKind.Exited { return result.exit_code; }
+    if result.kind == ToolProcessKind.Signaled { return signal_base + result.signal; }
+    return failure;
+}

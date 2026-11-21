@@ -34337,3 +34337,91 @@ The ordinary Wasm profile's permitted NaN variability means it alone is not proo
 of Tower's required deterministic bits. No floating language feature or C parity
 is claimed by this research checkpoint. No new C++, Python or JavaScript logic
 was introduced; the only additional JS transport edit removed a stale call.
+
+### 2026-11-21 — Tower tooling builder and live Python entry-point retirement
+
+Coordinator completion at `669a6ad` released the active build/package paths.
+The earlier LLD and archive ports now replace their real callers: removed
+`playground/scripts/prepare-lld-compat.py` (22 lines) and `package-roku.py`
+(28 lines). Their complete predecessors remain in Git at `108a1e8`.
+`build-llvm.sh` invokes Tower `prepare_lld_compat`; the Roku guide invokes
+Tower `package_roku`. Historical journal references deliberately remain.
+
+`build-bootstrap.sh --tools` verifies/installs the public bootstrap as before,
+then uses a small `TOWER_TOOLS_ONLY` CMake bridge to build the existing Tower
+runtime binder, shared host runtime and `scaffolding/tools/build_tools.tower`.
+Tower owns both tool recipes, compiler/linker argv construction and process
+execution. This bridge does not configure upstream LLVM sources or build a
+successor compiler. It retains the current Linux x64/Docker bootstrap route;
+the installer and wider shell/CMake migration are still unfinished. The new
+bridge adds 31 CMake lines and extends the existing shell entry, so deletion of
+two Python files is not a claim that all non-Tower build glue is gone.
+
+`tool_process_linux.tower` uses the explicit Linux pipe2/fork/execv/waitpid ABI,
+with a close-on-exec errno pipe to distinguish launch failure from exit 127.
+Reads, writes and waits retry EINTR; the parent joins the child on ordinary
+error paths. Arguments borrow stable NUL-terminated strings synchronously;
+there is no PATH search, shell interpretation or output capture. Exit codes and
+signals remain distinct structured results; the command adapter preserves
+ordinary status and uses 128 plus signal for signaled children. Build tools
+stop before linking after compiler failure, emit import depfiles, and rebuild
+their small objects on each call. No caching or parallel scheduling is claimed.
+Output checks reject input/output and output/output symlink aliases before
+compilation. They do not identify hard links or prevent filesystem races.
+
+The first process test exposed a published-bootstrap defect: a string literal
+passed directly to inferred `vector_push(&args, "--child")` became
+`--child--child` followed by NUL in the linked `.data` section. A longer literal
+was duplicated the same way; direct typed strcmp literals were correct. This
+is observed byte evidence, not a diagnosed compiler root cause. The first
+self-exec test's marker guard then recursively selected its parent path. The
+container exited, and subsequent runs were bounded with `--pids-limit 64` and
+`timeout 20`; unexpected child argument counts/markers now fail immediately.
+A typed non-generic `tool_process_argument` boundary avoids the defect, and
+the focused test passes. Reported the finding through coordinator-inbox.txt;
+this lane changed no compiler semantics. The initial pointer-null conversion
+also required `bits`, not numeric `convert`; the final typed helper accepts null
+directly. These failures precede the successful evidence below.
+
+Validation used `tower_build` Linux/amd64, Clang 19.1.1, read-only `/work`, and
+the isolated `tower_agent1_tooling` Docker volume. The clean default installation
+used no `TOWER_BOOTSTRAP_COMPILER` override and verified public pin
+`e886c65dff84c83b8647d516eaa1de6754f58f04932022238680f8d1489f9e32`:
+
+```powershell
+docker run --rm --platform linux/amd64 --pids-limit 128 `
+  -v C:/Sandbox/tower-agent-1:/work:ro -v tower_agent1_tooling:/cache `
+  -v tower_agent1_tooling:/root/.cache -w /work `
+  -e 'TOWER_TOOLS_BUILD=/cache/clean tools' tower_build `
+  bash playground/scripts/build-bootstrap.sh --tools
+```
+
+All five clean build steps passed, including the shared runtime and builder.
+The returned directory was `/cache/clean tools/bin`. A separate direct Tower
+builder run also passed with output directory containing literal spaces and
+`;$(no_command)`. Compiler depfiles preserve the import closure and escape the
+space/dollar path characters. `tool_process_checks.tower`, compiled with the
+public pin and linked with the freshly built host runtime, passes exact literal
+and empty arguments, exit 37, real exit 127, SIGTERM and ENOENT launch failure.
+The false-compiler/true-linker trial returned 1 despite existing object output;
+invalid tool selection returned 2. An object-output symlink to the runtime was
+rejected with status 1 and left its SHA-256 unchanged.
+
+The clean-built LLD tool patched an isolated copy of the real pinned upstream
+Driver.cpp to SHA-256
+`a131be088ad618758d21dc390cd89a06bd2bcd9d453a248eb683de608bf473c3`, exactly the
+earlier independent Python/Tower comparison; a second application succeeds
+unchanged. The shared upstream checkout was read-only. The clean-built Roku
+tool reproduces the previously verified fixture ZIP byte for byte, and the
+standard ZIP reader accepts it. Its dynamic dependency list contains libc only,
+with no zlib link. Bash syntax checks and the live-reference audit pass; only
+historical journal mentions of the retired Python paths remain.
+
+No compiler/runtime/browser implementation changed in this cutover. The tested
+patch bytes and archive behavior preserve the earlier focused/native/browser
+evidence; rebuilding the complete identical LLVM/browser matrix would not add
+evidence for the small invocation change. Publication will update source/tooling
+metadata while preserving the coordinator's verified runtime assets and their
+`buildSourceCommit` identity. No sanitizer, formatting sweep, bootstrap pin
+change or `todo.txt` edit was made. Next: migrate bootstrap installation and
+packaging capabilities into Tower, then further reusable browser tooling.

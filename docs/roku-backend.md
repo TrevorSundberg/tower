@@ -11,8 +11,16 @@ The production CLI supports:
 ```sh
 towerc program.tower --target roku -o program.brs
 towerc program.tower --emit brightscript --no-optimize -o program-o0.brs
-python playground/scripts/package-roku.py program.brs program-roku.zip
+tools="$(bash playground/scripts/build-bootstrap.sh --tools)"
+"$tools/package_roku" program.brs program-roku.zip
 ```
+
+Build the packager in the documented Linux x64/WSL/Docker bootstrap environment.
+Its in-house Tower ZIP/CRC/DEFLATE implementation normalizes source to LF and
+fixes member metadata for reproducible archives. The initial compressor uses
+fixed Huffman codes with a stored-block fallback; it does not yet provide a
+general zlib API or decompressor. Archives may be larger than the former Python
+packager's zlib output, while extracting to the same files.
 
 `--raw-ir` and `--optimized-ir` retain the LLVM stages for inspection. Both O0 and
 O2 follow the fast interpreter's bridge: checked foundation → LLVM scalar
@@ -74,8 +82,9 @@ With the current parser/LLVM reactors built and Node.js 22 or newer:
 ```sh
 npm ci --prefix playground
 npm run test:roku --prefix playground
-python playground/scripts/package-roku.py build/roku-device/source/program.brs build/roku-conformance.zip
-python playground/scripts/package-roku.py build/roku-device/integers.brs build/roku-integers.zip
+tools="$(bash playground/scripts/build-bootstrap.sh --tools)"
+"$tools/package_roku" build/roku-device/source/program.brs build/roku-conformance.zip
+"$tools/package_roku" build/roku-device/integers.brs build/roku-integers.zip
 ```
 
 Tests compile generated source with BrighterScript and execute it using
