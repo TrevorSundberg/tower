@@ -4,6 +4,7 @@ import foundation_types;
 import semantic_context;
 import semantic_control;
 import semantic_defer;
+import semantic_declarations;
 import semantic_statements;
 import semantic_support;
 import semantic_types;
@@ -177,7 +178,7 @@ fn sem_iteration(c: SemanticContext*, n: void*, depth: u32): u32 {
     var item = sem_control_local(c, iteration, initializer);
     // A generated declaration has a checked initializer but no source type/value
     // capture. Publish its resolved type before exposing the lexical binding.
-    sem_state(c, c.declaration_state, item).number = 2;
+    sem_declaration_state(c, item).number = 2;
     var name = sem_identifier(c, sem_member(n, "name"));
     if name[0] == 0 {
         sem_fail(c, n, "foreach requires a nonempty item name");
