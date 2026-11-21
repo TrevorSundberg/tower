@@ -1,5 +1,5 @@
 {
-    "sourceCommit":  "7425a1403070ce1358ed0ba2aeb8aff3e8df1284",
+    "sourceCommit":  "b9550aef4253f8d23350963ec8768054a8841416",
     "buildSourceCommit":  "6c03edd97407d9fd11e39296f3f6ef89299c2a15",
     "bootstrapSha256":  "057f0d4697431b40ca5cd5930d1bfa18648a3ef35a48961e295f2b4db53418d2",
     "previousDeployment":  "120bdc162485c3deb78235572a95bb676505d8d6",
@@ -94,14 +94,14 @@
     "editableSourceCommit":  "6c03edd97407d9fd11e39296f3f6ef89299c2a15",
     "bootstrapExecutableSha256":  "057f0d4697431b40ca5cd5930d1bfa18648a3ef35a48961e295f2b4db53418d2",
     "wasmLinkerPort":  {
-                           "sourceCommit":  "4bbb2b947fec2b792628492fa1287f3439ba30a2",
-                           "implementationCommit":  "b16c5e3",
-                           "status":  "Experimental Tower static Wasm linker now supports lazy GNU archives and an explicit byte-only BackendLink/reactor service. Production LLD dispatch retained.",
-                           "validation":  "Fresh public-bootstrap compiler successors, backend API, native worker overlap and 1/2/4/8-worker frontend checks pass after scheduler rebases. Native/WASI linker and actual Wasm reactor byte-service checks pass. A pre-rebase LLVM reactor linked with lazy archives passed all 12 selected interpreter/raw/optimized tests; this is not a complete current-source browser self-build.",
-                           "remaining":  "Complete edited browser self-build generations with tower-wasm-ld; shared-memory/TLS, parallel parsing/relocation, debug/profile coverage and production cutover; native ELF/COFF/Mach-O remain later work.",
+                           "sourceCommit":  "b9550aef4253f8d23350963ec8768054a8841416",
+                           "implementationCommit":  "e27dcb398e1cf050725354dca60bc911e6ddc95a",
+                           "status":  "Experimental Tower static Wasm linker passes complete edited browser self-builds and supports explicit nonshared imported memory. Production LLD dispatch retained.",
+                           "validation":  "Current-source portable/LLVM/cross reactors pass two edited browser generations using Tower linking, with identical successor hashes across two/four compilation workers; both whole and lazy archive recipes tested. Repeated lazy generations after the 0d752e7 public bootstrap rebase pass. Fresh native successor, backend API, worker overlap, native/WASI linker fixtures, raw/optimized imported-memory execution and LLD execution comparison pass. Host memory limit violations are rejected.",
+                           "remaining":  "Shared-memory atomic initialization, TLS and concurrent instantiation; actual parallel linker parsing/relocation jobs with deterministic joins; debug/profile coverage and production cutover. Native ELF/COFF/Mach-O remain later work.",
                            "runtimeAssetsChanged":  false,
-                           "availability":  "Source/API milestone only; the hosted default compiler retains its existing runtime build.",
-                           "benchmark":  "Latest paired warm LLVM-reactor sample: Tower median 0.90 s / about 337 MiB RSS; SDK 34 LLD median 0.81 s / about 366 MiB. No speedup claimed; Tower output about 1.9% larger."
+                           "availability":  "Source/API validation receipt only; hosted compiler/runtime assets and build-source identity are preserved. This does not enable Tower linking in production.",
+                           "benchmark":  "Paired warm final LLVM reactor links: Tower median 0.57 s / about 337 MiB RSS; SDK34 LLD median 0.47 s / about 368 MiB. Tower is about 21% slower and 8% smaller in RSS, output about 1.9% larger. Previous/current Tower comparison finds no added slowdown and identical defined-memory output."
                        },
     "verifierToolingMigration":  {
                                      "sourceCommit":  "7aa2e56cb825e830f9f934b76da07dc4ed7b69d0",
