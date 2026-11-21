@@ -25534,3 +25534,26 @@ Next: merge latest session/format/source changes, repeat a clean documented
 bootstrap successor and focused checks before requesting the source slot. The
 larger LR analysis/reference migration remains separate pending work; no claim
 of complete LR retirement or deployment of this new fixture is made yet.
+
+Grammar integration follow-up: rebased onto Agent1's published0333904, preserving
+all session/format/baseline/scanner changes and journal histories. A new empty
+agent-2-lr-successor-0333904 cache completed documented build-native.sh with
+TOWER_BOOTSTRAP_COMPILER unset, publicfb1 and Clang19/LLVM19. Native focused
+frontend/driver/storage/format/execution/request passed6/6 in17.24s; backend API
+passed. Rebuilt both native/WASI parser aggregates (link PASS) and grammar Tower
+entries (run PASS). Source slot accepted after coordinator/Agent3 ready batches;
+Agent1 explicitly owns the following combined deployment, delegated by Agent2.
+
+Separate next-slice investigation reproduced the known LR analysis baseline
+failure without porting its implementation. The standalone legacy harness first
+needed the aggregate's warmed default parser component registry; otherwise its
+line427 lifetime count includes newly registered persistent types. Warming those
+five component kinds in the temporary Tower entry preserves the test itself and
+reaches the real line143 action mismatch. GDB shows state2/token2097156: production
+reports reduce2/reduce6, old seed reports shift5/reduce2. Production's explicit
+same-kind conflict prepass in lr_runtime.tower intentionally prevents precedence
+from hiding reduce/reduce conflicts; the old seed predates that prepass. Debugger
+commands/results are agent_2_lr_analysis.gdb and agent-2-lr-analysis-gdb-values.log.
+The analysis migration will need an independently verified legacy oracle plus
+explicit tests of current conflict selection/precedence. It is not part of this
+validated grammar retirement and no old-analysis pass is claimed.
