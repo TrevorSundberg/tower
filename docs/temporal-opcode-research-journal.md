@@ -34312,3 +34312,28 @@ the graph interpreter and struct_values through the fast interpreter each print
 values-published-struct.log). This archive includes both the removed shorthand
 grammar/resources and the staged-enum ownership fix. Final browser publication
 uses release binaries rebuilt from these same sources.
+
+Final release checks pass: all 23 browser worker/module transport checks, including
+actual overlap, cancellation and 1/2/4/8-worker semantic determinism
+(values-published-tests.log); the three selected LLVM/Wasm differential fixtures
+(values-published-llvm.log); and two edited-source compiler generations with
+identical successive hashes (values-published-generations.log). Generation 2
+sizes: Tower 1,109,118, LLVM 52,439,865, cross 63,997,282 bytes. Release browser
+builds package 17 Tower units. Local distribution verification passes all 80
+assets and desktop/mobile execution, native downloads, grammar editing,
+completion/highlighting, persistence and compiler-project flows
+(values-published-local.log). The source/bootstrap push reached dfee43c after one
+transient GitHub DNS failure; the normal retry succeeded without force pushing.
+
+Started the next floating-point audit, recorded in the language roadmap. Existing
+foreign-name mangling recognizes float/double, but no floating scalar kind or
+executable value operations exist. Proposed a Tower-owned deterministic binary
+kernel before integrating shared scalar components, staging and backend emission.
+The proposed strict policy distinguishes bit-preserving copies/sign changes from
+canonicalized binary arithmetic NaNs. Primary research:
+[WebAssembly numeric semantics](https://webassembly.github.io/spec/core/exec/numerics.html)
+and [SoftFloat's documented interface](https://www.jhauser.us/arithmetic/SoftFloat-3/doc/SoftFloat.html).
+The ordinary Wasm profile's permitted NaN variability means it alone is not proof
+of Tower's required deterministic bits. No floating language feature or C parity
+is claimed by this research checkpoint. No new C++, Python or JavaScript logic
+was introduced; the only additional JS transport edit removed a stale call.

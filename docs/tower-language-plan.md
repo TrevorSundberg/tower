@@ -63,6 +63,32 @@ typed lowering, serial/parallel determinism and a published compatible bootstrap
 before compiler-source adoption. New Foundation value types/operations are allowed
 where required by these capabilities; parser conveniences remain in Tower rules.
 
+#### Floating-point implementation entry point
+
+The first source audit found no executable floating scalar kind: Foundation types,
+the interpreter value bits, and LLVM lowering currently handle integers/pointers.
+The foreign-name reader recognizes C/C++ float/double spellings for mangling;
+that does not establish floating argument/value support.
+
+Begin with Tower-owned binary32/binary64 bit arithmetic used by ordinary runtime
+interpretation and staged execution alike. Proposed initial strict profile:
+nearest/ties-to-even rounding, gradual underflow, signed zero, infinities, and one
+positive quiet NaN for binary arithmetic results. Storage, copying and explicit bit
+reinterpretation must preserve the supplied bits. Negation must flip the sign
+bit, including zero; lowering it as subtraction from positive zero is insufficient.
+Numeric conversion to integers must explicitly check range after truncation.
+These are design decisions to implement and test, not current language behavior.
+
+Do not delegate the strict contract to host arithmetic or assume Wasm alone makes
+NaN bits deterministic. The [WebAssembly numeric specification](https://webassembly.github.io/spec/core/exec/numerics.html)
+permits multiple NaN results under its ordinary profile. The
+[SoftFloat interface documentation](https://www.jhauser.us/arithmetic/SoftFloat-3/doc/SoftFloat.html)
+is a useful independent reference for rounding and boundary validation; it is not
+a dependency or a new C implementation to import. Test the Tower kernel against
+independent known bit patterns before wiring shared scalar components, literal
+parsing/formatting, interpreter operations and LLVM lowering. Keep scratch local
+to each query/worker and include the numeric policy in semantic/cache identity.
+
 ### Existing broader roadmap
 
 The subsequent instruction is to complete this roadmap, not stop after the first
