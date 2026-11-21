@@ -32290,3 +32290,26 @@ package metadata), archive SHA-256
 A fresh documented-pin successor in `/cache/cyclic-binding-clean` passes all 53
 steps; its cyclic-module and named-binding libraries compile, and the latter
 links/runs with exit 0. Evidence: `cyclic-binding-clean.log`.
+
+### Tower language-support preparation: publication receipt
+
+Rebased the preparation commit onto dfe6ce3, retaining both journal additions
+and restoring the pre-existing local edits. Both TextMate suites (54 scope
+assertions) pass after rebase; commit 054466c contains only the 16 preparation
+files/updates. Published it with gh-pages 450dba5 using one normal atomic push.
+The GitHub Tower editor grammar workflow succeeded:
+https://github.com/TrevorSundberg/tower/actions/runs/44936316421
+The GitHub Pages build/deployment also succeeded:
+https://github.com/TrevorSundberg/tower/actions/runs/44936314967
+
+npm run test:deployment --prefix playground and then
+node playground/scripts/verify-deployment.mjs https://tower-lang.org/ both pass:
+all 77 served assets match, desktop/mobile backends agree, compilation/downloads,
+completion, diagnostics, persistence, project imports and cancellation controls
+pass with no browser errors. Reports are build/language-prep-local-report.json
+and build/language-prep-hosted-report.json. HTTP apex, HTTPS www and the old
+GitHub Pages URL each return 301 to https://tower-lang.org/. The live manifest
+identifies preparation source 054466c and preserves runtime buildSourceCommit
+8e09a3c552ffda6ffa19da56ccbee85f6b504115. The receipt checkpoint changes only journal
+and deployment metadata; it reuses this exact tested runtime asset set. Upstream
+recognition, sample permission and adoption remain pending as documented.
