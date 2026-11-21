@@ -36310,3 +36310,19 @@ with403; the authenticated gh contents API succeeded with a current-blob lease.
 An initial stale-blob check prevented overwriting a newer publication, which was
 then reread and retained. Final reviewed-source receipt is being synchronized;
 production remains on LLD and the documented remaining gates still apply.
+Hosted release verified: main a4fe0fda9aff1c5584ebc90d6b5c4f9c3736e847 and Pages
+ef9389541a826607778cbe4eb8c5ed3e3282c6e1 are pushed normally. Pages serves the exact
+tested runtime built from published f4c78cc; its manifest distinguishes the
+build predecessor's executable hash from the new published direct pin. All 84
+served asset checks match, and desktop/mobile backend agreement, editable grammar,
+persistence, completion, native builds/downloads and layout checks pass
+(build/float-deployment-hosted.log). Verified manifest SHA-256:
+cdaac800f7683874c598c2ae0b2bc92bebbf9f4465e89fdd10243619e2fbf50c.
+The receipt-only follow-up preserves these runtime bytes and build-source identity.
+
+Remaining language work is unchanged: i8/i16/u16 completeness, first-class
+function values/indirect calls, fixed vectors/swizzles and explicit CPU/GPU SIMD
+contracts. The current f32/f64 path is strict shared Tower software arithmetic;
+C/Roku floating emission and hardware acceleration remain unsupported, as stated
+in docs/floating-point.md. No C-parity or portable native-release completion is
+claimed by this milestone.
