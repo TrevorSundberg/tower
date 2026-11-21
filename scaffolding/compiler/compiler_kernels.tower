@@ -11,11 +11,19 @@ import semantic_generic_body_work;
 import interpreter_context_types;
 
 extern fn interpreter_invocation_step(invocation: IMInvocation*, budget: usize): void;
+
 extern fn compiler_lr_kernel(payload: void*): void;
+
 extern fn compiler_lr_state_kernel(payload: void*): void;
+
 extern fn compiler_lr_action_kernel(payload: void*): void;
+
 extern fn compiler_lr_propagation_kernel(payload: void*): void;
+
 extern fn compiler_lr_first_kernel(payload: void*): void;
+
+extern fn compiler_lr_link_kernel(payload: void*): void;
+
 extern fn compiler_lr_runtime_kernel(payload: void*): void;
 
 export fn work_kernel_execute(payload: void*): void {
@@ -80,6 +88,10 @@ export fn work_kernel_execute(payload: void*): void {
     }
     if kernel.kind == CompilerKernelKind.CompileUnit {
         compiler_unit_kernel(kernel.payload);
+        return;
+    }
+    if kernel.kind == CompilerKernelKind.LRLink {
+        compiler_lr_link_kernel(kernel.payload);
         return;
     }
     trap("Invalid compiler kernel", 0);

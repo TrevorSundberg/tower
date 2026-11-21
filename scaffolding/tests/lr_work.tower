@@ -1,4 +1,5 @@
 import tower;
+import .library.vector;
 import .compiler.worker_policy;
 import .compiler.lr_work;
 import .compiler.lr_state_work;
@@ -15,13 +16,21 @@ import .compiler.compiler_kernel;
 import .library.work_pool;
 
 extern fn compiler_world_create(): void*;
+
 extern fn compiler_world_create_workers(limit: usize): void*;
+
 extern fn compiler_world_worker_limit(world: void*): usize;
+
 extern fn compiler_world_store(world: void*): void*;
+
 extern fn compiler_world_dispose(world: void*): bool;
+
 extern fn entity_create(store: void*): void*;
+
 extern fn entity_store_count(store: void*): usize;
+
 extern fn entity_store_component_count(store: void*): usize;
+
 extern fn frontend_world_clear(world: void*): bool;
 
 // Repeated grammar builds retain threads, never payloads or an active lease.
@@ -29,40 +38,65 @@ extern fn frontend_world_clear(world: void*): bool;
 fn lr_worker_lifetime(): bool {
     var world = compiler_world_create();
     var other = compiler_world_create();
-    if world == null || other == null { return false; }
+    if world == null || other == null {
+        return false;
+    }
     defer compiler_world_dispose(world);
     defer compiler_world_dispose(other);
     var root = entity_create(compiler_world_store(world));
     var second = entity_create(compiler_world_store(other));
-    if root == null || second == null { return false; }
+    if root == null || second == null {
+        return false;
+    }
     defer entity_release(root);
     defer entity_release(second);
     var capacity = work_thread_capacity();
-    if capacity > 4 { capacity = 4; }
+    if capacity > 4 {
+        capacity = 4;
+    }
     var retained = work_thread_retention();
     var lease: ParserWorkers;
-    if !parser_workers_open(&lease, root, capacity) { return false; }
+    if !parser_workers_open(&lease, root, capacity) {
+        return false;
+    }
     defer parser_workers_close(&lease);
     var slots = lease.pool.slots;
     var thread = slots[0].thread;
     var first_pool = lease.pool;
     var rejected: ParserWorkers;
-    if parser_workers_open(&rejected, root, capacity) { parser_workers_close(&rejected); return false; }
-    if frontend_world_clear(world) || compiler_world_dispose(world) { return false; }
-    if !retained { parser_workers_close(&lease); }
+    if parser_workers_open(&rejected, root, capacity) {
+        parser_workers_close(&rejected);
+        return false;
+    }
+    if frontend_world_clear(world) || compiler_world_dispose(world) {
+        return false;
+    }
+    if !retained {
+        parser_workers_close(&lease);
+    }
     var independent: ParserWorkers;
-    if !parser_workers_open(&independent, second, capacity) { return false; }
+    if !parser_workers_open(&independent, second, capacity) {
+        return false;
+    }
     defer parser_workers_close(&independent);
-    if independent.pool == first_pool || (retained && independent.pool.slots == slots) { return false; }
+    if independent.pool == first_pool ||(retained && independent.pool.slots == slots) {
+        return false;
+    }
     parser_workers_close(&independent);
-    if !retained && !parser_workers_open(&lease, root, capacity) { return false; }
+    if !retained && !parser_workers_open(&lease, root, capacity) {
+        return false;
+    }
 
     var rule: LRProduction;
     fill(&rule, 0, sizeof(LRProduction));
     var analysis = lr_analysis_create(&rule, 1, null, 0, 1);
-    if analysis == null { return false; }
+    if analysis == null {
+        return false;
+    }
     defer lr_analysis_destroy(analysis);
-    if !lr_analysis_compute(analysis) { return false; }
+    if !lr_analysis_compute(analysis) {
+        return false;
+    }
     var task: LRClosureTask;
     fill(&task, 0, sizeof(LRClosureTask));
     var item: LRItem;
@@ -77,7 +111,9 @@ fn lr_worker_lifetime(): bool {
     task.kernel.kind = CompilerKernelKind.LRClosure;
     task.kernel.payload = bits(void*, &task);
     var view = entity_view_open(root);
-    if view == null { return false; }
+    if view == null {
+        return false;
+    }
     var submitted = work_pool_submit(lease.pool, bits(void*, &task.kernel));
     parser_workers_close(&lease);
     // Close is the cancellation/join boundary; the stack task and analysis can
@@ -85,67 +121,100 @@ fn lr_worker_lifetime(): bool {
     entity_view_close(view);
     var ok = submitted && task.success && closure != null;
     lr_kernel_closure_destroy(closure);
-    if !ok || !parser_workers_open(&lease, root, capacity) { return false; }
-    if retained && (lease.pool.slots != slots || lease.pool.slots[0].thread != thread) { return false; }
-    if lease.pool.running != 0 { return false; }
+    if !ok || !parser_workers_open(&lease, root, capacity) {
+        return false;
+    }
+    if retained &&(lease.pool.slots != slots || lease.pool.slots[0].thread != thread) {
+        return false;
+    }
+    if lease.pool.running != 0 {
+        return false;
+    }
     parser_workers_close(&lease);
-    if !frontend_world_clear(world) || compiler_world_grammar(world).workers.count != 0 { return false; }
-    if !parser_workers_open(&lease, root, capacity) { return false; }
+    if !frontend_world_clear(world) || compiler_world_grammar(world).workers.count != 0 {
+        return false;
+    }
+    if !parser_workers_open(&lease, root, capacity) {
+        return false;
+    }
     parser_workers_close(&lease);
     // A non-world caller keeps a local pool and closes it at the same boundary.
-    if !parser_workers_open(&lease, null, capacity) { return false; }
-    if lease.cache != null { return false; }
+    if !parser_workers_open(&lease, null, capacity) {
+        return false;
+    }
+    if lease.cache != null {
+        return false;
+    }
     parser_workers_close(&lease);
     return lease.local.count == 0;
 }
 
 fn lr_worker_budget(): bool {
-    if compiler_world_create_workers(0) is not null || compiler_world_create_workers(257) is not null { return false; }
+    if compiler_world_create_workers(0) is not null || compiler_world_create_workers(257) is not null {
+        return false;
+    }
     for(var limit: usize = 1; limit <= 2; limit++) {
         var world = compiler_world_create_workers(limit);
-        if world is null { return false; }
+        if world is null {
+            return false;
+        }
         var root = entity_create(compiler_world_store(world));
-        if root is null { compiler_world_dispose(world); return false; }
+        if root is null {
+            compiler_world_dispose(world);
+            return false;
+        }
         var available = work_thread_capacity();
-        var actual = limit < available ? limit : available;
+        var actual = limit < available ? limit: available;
         var ok = compiler_world_worker_limit(world) == limit && compiler_worker_capacity(root) == actual;
         var lease: ParserWorkers;
         for(var attempt: usize = 0; attempt < 2 && ok; attempt++) {
             ok = parser_workers_open(&lease, root, 8);
             if ok {
-                ok = lease.pool.count == (work_thread_available() ? actual : 1);
+                ok = lease.pool.count ==(work_thread_available() ? actual: 1);
                 parser_workers_close(&lease);
             }
         }
         entity_release(root);
         ok = compiler_world_dispose(world) && ok;
-        if !ok { return false; }
+        if !ok {
+            return false;
+        }
     }
     return true;
 }
 
 fn lr_work_equal(a: LRStates*, b: LRStates*): bool {
-    if a.states.length != b.states.length { return false; }
+    if a.states.length != b.states.length {
+        return false;
+    }
     for(var i: usize = 0; i < a.states.length; i++) {
         var x = a.states.data[i];
         var y = b.states.data[i];
         if x.origin != y.origin || x.base != y.base || x.edges.length != y.edges.length
-            || x.actions.length != y.actions.length || x.items.values.length != y.items.values.length { return false; }
+        || x.actions.length != y.actions.length || x.items.values.length != y.items.values.length {
+            return false;
+        }
         for(var j: usize = 0; j < x.items.values.length; j++) {
             var left = &x.items.values.data[j];
             var right = &y.items.values.data[j];
             if left.rule != right.rule || left.position != right.position
-                || left.first != right.first || left.last != right.last { return false; }
+            || left.first != right.first || left.last != right.last {
+                return false;
+            }
         }
         for(var j: usize = 0; j < x.edges.length; j++) {
             if x.edges.data[j].symbol != y.edges.data[j].symbol
-                || x.edges.data[j].state != y.edges.data[j].state { return false; }
+            || x.edges.data[j].state != y.edges.data[j].state {
+                return false;
+            }
         }
         for(var j: usize = 0; j < x.actions.length; j++) {
             var left = &x.actions.data[j];
             var right = &y.actions.data[j];
             if left.rule != right.rule || left.state != right.state
-                || left.first != right.first || left.last != right.last { return false; }
+            || left.first != right.first || left.last != right.last {
+                return false;
+            }
         }
     }
     return true;
@@ -155,32 +224,142 @@ fn lr_work_equal(a: LRStates*, b: LRStates*): bool {
 // every item, transition and action, including conflict-bearing tables; verify
 // transient ECS jobs leave neither entities nor components behind.
 fn lr_runtime_work_equal(a: LRRuntime*, b: LRRuntime*): bool {
-    if a.states.length != b.states.length || a.rows.length != b.rows.length { return false; }
+    if a.states.length != b.states.length || a.rows.length != b.rows.length {
+        return false;
+    }
     for(var i: usize = 0; i < a.states.length; i++) {
         var x = &a.states.data[i];
         var y = &b.states.data[i];
         if x.row.actions.length != y.row.actions.length || x.gotos.length != y.gotos.length
-            || x.row.reduction != y.row.reduction || x.row.direct.length != y.row.direct.length { return false; }
+        || x.row.reduction != y.row.reduction || x.row.direct.length != y.row.direct.length {
+            return false;
+        }
         for(var j: usize = 0; j < x.row.actions.length; j++) {
             var left = &x.row.actions.data[j];
             var right = &y.row.actions.data[j];
-            if left.first != right.first || left.last != right.last || left.rule != right.rule || left.state != right.state { return false; }
+            if left.first != right.first || left.last != right.last || left.rule != right.rule || left.state != right.state {
+                return false;
+            }
         }
         for(var j: usize = 0; j < x.row.direct.length; j++) {
-            if x.row.direct.data[j] != y.row.direct.data[j] { return false; }
+            if x.row.direct.data[j] != y.row.direct.data[j] {
+                return false;
+            }
         }
         for(var j: usize = 0; j < x.gotos.length; j++) {
-            if x.gotos.data[j].nonterminal != y.gotos.data[j].nonterminal || x.gotos.data[j].state != y.gotos.data[j].state { return false; }
+            if x.gotos.data[j].nonterminal != y.gotos.data[j].nonterminal || x.gotos.data[j].state != y.gotos.data[j].state {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+// Compare the unsolved graph as well as final action tables. This catches
+// changed publication order, missing seeds, duplicate edges and queue flags
+// that a later fixed point might otherwise conceal.
+fn lr_links_work_trial(value: LRStates*, constructs: bool, anchor: void*): bool {
+    var owner = entity_create_related(anchor);
+    if owner == null {
+        return false;
+    }
+    defer entity_release(owner);
+    var graph: WorkGraph;
+    work_init(&graph, 1, 0);
+    defer work_dispose(&graph);
+    var pool: WorkPool;
+    if !work_pool_open(&pool, compiler_worker_capacity(anchor)) {
+        return false;
+    }
+    defer work_pool_close(&pool);
+    var count = value.analysis.symbol_count + value.analysis.rule_count;
+    var cache = alloc(LRKernelClosure*, count);
+    if cache == null {
+        return false;
+    }
+    fill(cache, 0, count *sizeof(LRKernelClosure*));
+    defer {
+        for(var i: usize = 0; i < count; i++) {
+            lr_kernel_closure_destroy(cache[i]);
+        }
+        free(cache);
+    }
+    var serial = lr_states_propagation_cached(value, constructs, cache);
+    var lanes = value.states.length / 128;
+    if lanes > pool.count {
+        lanes = pool.count;
+    }
+    if lanes == 0 {
+        lanes = 1;
+    }
+    var parallel = lr_states_propagation_work(value, constructs, cache, owner, &graph, &pool, lanes);
+    defer {
+        lr_propagation_destroy(serial);
+        lr_propagation_destroy(parallel);
+    }
+    if serial == null || parallel == null || serial.count != parallel.count
+    || serial.pending.length != parallel.pending.length {
+        return false;
+    }
+    for(var i: usize = 0; i < serial.pending.length; i++) {
+        if serial.pending.data[i] != parallel.pending.data[i] {
+            return false;
+        }
+    }
+    for(var i: usize = 0; i < serial.count; i++) {
+        var a = &serial.nodes[i];
+        var b = &parallel.nodes[i];
+        if a.queued != b.queued || a.edges.length != b.edges.length || a.ranges.length != b.ranges.length {
+            return false;
+        }
+        for(var j: usize = 0; j < a.edges.length; j++) {
+            if a.edges.data[j] != b.edges.data[j] {
+                return false;
+            }
+        }
+        for(var j: usize = 0; j < a.ranges.length; j++) {
+            if a.ranges.data[j].first != b.ranges.data[j].first || a.ranges.data[j].last != b.ranges.data[j].last {
+                return false;
+            }
+        }
+    }
+    if pool.count > 1 && value.states.length >= 256 {
+        if pool.peak < 2 || graph.revision < 2 {
+            return false;
+        }
+    }
+    {
+        var key: usize = 0;
+        while key < count && cache[key] == null {
+            key++;
+        }
+        if key == count {
+            return false;
+        }
+        var saved = cache[key];
+        cache[key] = null;
+        var rejected = lr_states_propagation_work(value, constructs, cache, owner, &graph, &pool, lanes);
+        // Worker failure must not lazily rebuild shared input or publish a
+        // partial result, and must join every peer before scratch is freed.
+        var ok = rejected == null && cache[key] == null && pool.running == 0;
+        cache[key] = saved;
+        lr_propagation_destroy(rejected);
+        if !ok {
+            return false;
         }
     }
     return true;
 }
 
 fn lr_work_trial(anchor: void*, rules: LRProduction*, count: usize,
-                  symbols: LRSymbol*, length: usize, names: usize): bool {
+symbols: LRSymbol*, length: usize, names: usize): bool {
     var analysis = lr_analysis_create(rules, count, symbols, length, names);
     var other = lr_analysis_create(rules, count, symbols, length, names);
-    if analysis == null || other == null { lr_analysis_destroy(analysis); lr_analysis_destroy(other); return false; }
+    if analysis == null || other == null {
+        lr_analysis_destroy(analysis);
+        lr_analysis_destroy(other);
+        return false;
+    }
     var ok = lr_analysis_compute(analysis);
     ok &&= lr_analysis_compute_parallel(other, anchor);
     var serial: LRStates* = null;
@@ -191,7 +370,8 @@ fn lr_work_trial(anchor: void*, rules: LRProduction*, count: usize,
         ok = serial != null && threaded != null;
     }
     for(var mode: usize = 0; mode < 2 && ok; mode++) {
-        ok = lr_states_lalr(serial, mode != 0);
+        ok = lr_links_work_trial(serial, mode != 0, anchor);
+        ok &&= lr_states_lalr(serial, mode != 0);
         ok &&= lr_states_lalr_parallel(threaded, mode != 0, anchor);
         ok &&= lr_work_equal(serial, threaded);
         if ok {
@@ -205,11 +385,13 @@ fn lr_work_trial(anchor: void*, rules: LRProduction*, count: usize,
                 ok = conflict == lr_runtime_conflict(b, &y);
                 if conflict && ok {
                     ok = x.state == y.state && x.left.rule == y.left.rule && x.right.rule == y.right.rule
-                        && x.left.first == y.left.first && x.right.first == y.right.first
-                        && x.left.last == y.left.last && x.right.last == y.right.last
-                        && x.left.state == y.left.state && x.right.state == y.right.state;
+                    && x.left.first == y.left.first && x.right.first == y.right.first
+                    && x.left.last == y.left.last && x.right.last == y.right.last
+                    && x.left.state == y.left.state && x.right.state == y.right.state;
                 }
-                if !conflict && ok { ok = lr_runtime_work_equal(a, b); }
+                if !conflict && ok {
+                    ok = lr_runtime_work_equal(a, b);
+                }
             }
             lr_runtime_destroy(a);
             lr_runtime_destroy(b);
@@ -230,9 +412,9 @@ fn lr_first_work_trial(anchor: void*, mode: usize): bool {
     // 128 lanes: A -> B C, B -> A | empty, C -> D,
     // D -> overlapping terminal ranges | empty. The final lane has no seed.
     for(var lane: usize = 0; lane < 128; lane++) {
-        var start = lane * 4;
-        var rule = lane * 7;
-        var symbol = lane * 6;
+        var start = lane *4;
+        var rule = lane *7;
+        var symbol = lane *6;
         rules[rule].owner = start;
         rules[rule].begin = symbol;
         rules[rule].count = 2;
@@ -252,13 +434,13 @@ fn lr_first_work_trial(anchor: void*, mode: usize): bool {
         rules[rule + 4].begin = symbol + 4;
         rules[rule + 4].count = 1;
         symbols[symbol + 4].nonterminal = lr_none();
-        symbols[symbol + 4].first = convert(u32, lane * 8 + 32);
+        symbols[symbol + 4].first = convert(u32, lane *8 + 32);
         symbols[symbol + 4].last = symbols[symbol + 4].first + 3;
         rules[rule + 5].owner = start + 3;
         rules[rule + 5].begin = symbol + 5;
         rules[rule + 5].count = 1;
         symbols[symbol + 5].nonterminal = lr_none();
-        symbols[symbol + 5].first = convert(u32, lane * 8 + 34);
+        symbols[symbol + 5].first = convert(u32, lane *8 + 34);
         symbols[symbol + 5].last = symbols[symbol + 5].first + 2;
         rules[rule + 6].owner = start + 3;
         rules[rule + 6].begin = symbol + 3;
@@ -269,7 +451,9 @@ fn lr_first_work_trial(anchor: void*, mode: usize): bool {
             symbols[symbol + 5].nonterminal = start + 2;
         }
     }
-    if mode == 1 { symbols[4].nonterminal = 512; }
+    if mode == 1 {
+        symbols[4].nonterminal = 512;
+    }
     if mode == 2 {
         // A bad reference after a terminal is not reached by FIRST analysis.
         rules[4].count = 2;
@@ -278,26 +462,45 @@ fn lr_first_work_trial(anchor: void*, mode: usize): bool {
     }
     var a = lr_analysis_create(&rules[0], 896, &symbols[0], 768, 512);
     var b = lr_analysis_create(&rules[0], 896, &symbols[0], 768, 512);
-    defer { lr_analysis_destroy(a); lr_analysis_destroy(b); }
-    if a == null || b == null { return false; }
+    defer {
+        lr_analysis_destroy(a);
+        lr_analysis_destroy(b);
+    }
+    if a == null || b == null {
+        return false;
+    }
     for(var i: usize = 0; i < 512; i++) {
-        lr_analysis_order(a, i, 511 - i);
-        lr_analysis_order(b, i, 511 - i);
+        lr_analysis_order(a, i, 511 -i);
+        lr_analysis_order(b, i, 511 -i);
     }
     var serial = lr_analysis_compute(a);
     var threaded = lr_analysis_compute_parallel(b, anchor);
-    if serial != threaded || a.failed != b.failed { return false; }
-    if mode == 1 { return !serial && a.failed; }
-    if !serial { return false; }
+    if serial != threaded || a.failed != b.failed {
+        return false;
+    }
+    if mode == 1 {
+        return !serial && a.failed;
+    }
+    if !serial {
+        return false;
+    }
     for(var i: usize = 0; i < 512; i++) {
         var x = &a.nonterminals[i];
         var y = &b.nonterminals[i];
-        if x.nullable != y.nullable || x.order != y.order || x.first.length != y.first.length { return false; }
-        if y.nullable != (i < 508) { return false; }
-        if mode == 0 && y.first.length != (i < 508 ? 2 : 0) { return false; }
+        if x.nullable != y.nullable || x.order != y.order || x.first.length != y.first.length {
+            return false;
+        }
+        if y.nullable !=(i < 508) {
+            return false;
+        }
+        if mode == 0 && y.first.length !=(i < 508 ? 2: 0) {
+            return false;
+        }
         for(var j: usize = 0; j < x.first.length; j++) {
             if x.first.data[j].first != y.first.data[j].first
-                || x.first.data[j].last != y.first.data[j].last { return false; }
+            || x.first.data[j].last != y.first.data[j].last {
+                return false;
+            }
         }
     }
     return true;
@@ -305,49 +508,78 @@ fn lr_first_work_trial(anchor: void*, mode: usize): bool {
 
 fn lr_propagation_work_trial(anchor: void*): bool {
     var owner = entity_create_related(anchor);
-    if owner == null { return false; }
+    if owner == null {
+        return false;
+    }
     defer entity_release(owner);
     var graph: WorkGraph;
     work_init(&graph, 1, 0);
     defer work_dispose(&graph);
     var pool: WorkPool;
-    if !work_pool_open(&pool, work_thread_capacity()) { return false; }
+    if !work_pool_open(&pool, work_thread_capacity()) {
+        return false;
+    }
     defer work_pool_close(&pool);
     var a = lr_propagation_create(1032);
     var b = lr_propagation_create(1032);
-    defer { lr_propagation_destroy(a); lr_propagation_destroy(b); }
-    if a == null || b == null { return false; }
+    defer {
+        lr_propagation_destroy(a);
+        lr_propagation_destroy(b);
+    }
+    if a == null || b == null {
+        return false;
+    }
     // Many independent cyclic lanes expose a wide frontier across several
     // joined waves. Duplicate/self/diamond edges must preserve exact distinct
     // overlapping ranges. An unseeded cycle must stay empty and terminate.
     for(var mode: usize = 0; mode < 2; mode++) {
-        var value = mode == 0 ? a : b;
+        var value = mode == 0 ? a: b;
         for(var lane: usize = 0; lane < 129; lane++) {
-            var start = lane * 8;
+            var start = lane *8;
             for(var i: usize = 0; i < 8; i++) {
-                if !lr_propagation_edge(value, start + i, start + (i + 1) % 8) { return false; }
-                if !lr_propagation_edge(value, start + i, start + i) { return false; }
+                if !lr_propagation_edge(value, start + i, start +(i + 1) % 8) {
+                    return false;
+                }
+                if !lr_propagation_edge(value, start + i, start + i) {
+                    return false;
+                }
             }
             if !lr_propagation_edge(value, start, start + 1)
-                || !lr_propagation_edge(value, start, start + 2) { return false; }
+            || !lr_propagation_edge(value, start, start + 2) {
+                return false;
+            }
             if lane < 128 {
-                var first = convert(u32, lane * 8 + 32);
+                var first = convert(u32, lane *8 + 32);
                 if !lr_propagation_seed(value, start, first, first + 3)
-                    || !lr_propagation_seed(value, start + 7, first + 2, first + 4) { return false; }
+                || !lr_propagation_seed(value, start + 7, first + 2, first + 4) {
+                    return false;
+                }
             }
         }
     }
-    if !lr_propagation_solve(a) || !lr_propagation_solve_parallel(b, owner, &graph, &pool) { return false; }
-    if a.pending.length != 0 || b.pending.length != 0 { return false; }
-    if pool.count > 1 && (pool.peak < 2 || graph.revision < 3) { return false; }
+    if !lr_propagation_solve(a) || !lr_propagation_solve_parallel(b, owner, &graph, &pool) {
+        return false;
+    }
+    if a.pending.length != 0 || b.pending.length != 0 {
+        return false;
+    }
+    if pool.count > 1 &&(pool.peak < 2 || graph.revision < 3) {
+        return false;
+    }
     for(var i: usize = 0; i < a.count; i++) {
         var x = &a.nodes[i];
         var y = &b.nodes[i];
-        if x.queued || y.queued || x.ranges.length != y.ranges.length { return false; }
-        if y.ranges.length != (i < 1024 ? 2 : 0) { return false; }
+        if x.queued || y.queued || x.ranges.length != y.ranges.length {
+            return false;
+        }
+        if y.ranges.length !=(i < 1024 ? 2: 0) {
+            return false;
+        }
         for(var j: usize = 0; j < x.ranges.length; j++) {
             if x.ranges.data[j].first != y.ranges.data[j].first
-                || x.ranges.data[j].last != y.ranges.data[j].last { return false; }
+            || x.ranges.data[j].last != y.ranges.data[j].last {
+                return false;
+            }
         }
     }
     return true;
@@ -361,11 +593,19 @@ export fn lr_work_tests(): u32 {
     var components = entity_store_component_count(store);
     var failures: u32 = 0;
     for(var mode: usize = 0; mode < 3; mode++) {
-        if !lr_first_work_trial(root, mode) { failures++; }
+        if !lr_first_work_trial(root, mode) {
+            failures++;
+        }
     }
-    if !lr_propagation_work_trial(root) { failures++; }
-    if !lr_worker_lifetime() { failures++; }
-    if !lr_worker_budget() { failures++; }
+    if !lr_propagation_work_trial(root) {
+        failures++;
+    }
+    if !lr_worker_lifetime() {
+        failures++;
+    }
+    if !lr_worker_budget() {
+        failures++;
+    }
     var symbols: LRSymbol[2048];
     var rules: LRProduction[132];
     fill(&rules, 0, sizeof(LRProduction[132]));
@@ -374,9 +614,16 @@ export fn lr_work_tests(): u32 {
         symbols[i].first = convert(u32, i + 2097152);
         symbols[i].last = symbols[i].first;
     }
+    // A narrow closure cache can still expose wide state/link/action work.
+    rules[0].count = 256;
+    if !lr_work_trial(root, &rules[0], 1, &symbols[0], 256, 1) {
+        failures++;
+    }
     // Many distinct dotted productions and state/hash-table resizes.
     rules[0].count = 1024;
-    if !lr_work_trial(root, &rules[0], 1, &symbols[0], 1024, 1) { failures++; }
+    if !lr_work_trial(root, &rules[0], 1, &symbols[0], 1024, 1) {
+        failures++;
+    }
 
     // Root -> 896 terminals List, List -> Item List | empty, Item -> 128
     // alternatives. Exercise both closure batches and multiple action ranges.
@@ -398,16 +645,24 @@ export fn lr_work_tests(): u32 {
         symbols[i + 899].first = convert(u32, i / 2 + 32);
         symbols[i + 899].last = symbols[i + 899].first + convert(u32, i % 2);
     }
-    if !lr_work_trial(root, &rules[0], 131, &symbols[0], 1027, 3) { failures++; }
+    if !lr_work_trial(root, &rules[0], 131, &symbols[0], 1027, 3) {
+        failures++;
+    }
     // A nullable cycle in the grammar is valid fixed-point input, distinct from
     // an impossible recursive by-value type or compile-time execution cycle.
     rules[131].owner = 2;
     rules[131].begin = 1027;
     rules[131].count = 1;
     symbols[1027].nonterminal = 1;
-    if !lr_work_trial(root, &rules[0], 132, &symbols[0], 1028, 3) { failures++; }
-    if entity_store_count(store) != entities || entity_store_component_count(store) != components { failures++; }
+    if !lr_work_trial(root, &rules[0], 132, &symbols[0], 1028, 3) {
+        failures++;
+    }
+    if entity_store_count(store) != entities || entity_store_component_count(store) != components {
+        failures++;
+    }
     entity_release(root);
-    if !compiler_world_dispose(world) { failures++; }
+    if !compiler_world_dispose(world) {
+        failures++;
+    }
     return failures;
 }

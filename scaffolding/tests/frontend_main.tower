@@ -14,6 +14,8 @@ import syntax_lexer;
 
 extern fn parser_tests(): void;
 
+extern fn lr_work_tests(): u32;
+
 extern fn tower_test_buffer_count(): usize;
 
 extern fn puts(text: u8*): i32;
@@ -34,6 +36,11 @@ export fn main(argc: i32, argv: u8**): i32 {
     if tower_test_buffer_count() != body_buffers {
         puts("Body continuation scratch cleanup failed");
         return 2;
+    }
+    var lr_buffers = tower_test_buffer_count();
+    if lr_work_tests() != 0 || tower_test_buffer_count() != lr_buffers {
+        puts("LR worker graph or scratch cleanup failed");
+        return 3;
     }
     parser_tests();
     parser_failure_tests();

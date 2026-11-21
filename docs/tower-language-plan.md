@@ -670,9 +670,11 @@ containers. Benchmark representative compiler workloads before migrating them.
   dependency coordinator. Component read/write ranges and structural exclusivity
   are available in that shared scheduler. Native Tower worker pools and pinned layout/evaluation publication now exist.
   Declaration discovery/readiness (including signature parameters), eligible
-  function body checking, expression lowering, LR transition/kernel closures and
-  FIRST/nullable frontiers and LALR lookahead frontiers/action ranges run through
-  the shared pool API. Canonical
+  function body checking, expression lowering, LR transition/kernel closures,
+  FIRST/nullable frontiers, LALR dependency-link construction and lookahead
+  frontiers/action ranges run through the shared pool API. Link workers use
+  immutable closures/state bases and private ordered publication records; the
+  coordinator merges them into the same derived graph after joining. Canonical
   generated entities are staged privately and published after worker joins;
   exclusive leases permit body workers to attach components to their own source
   entities while typed query indexes stay pinned. Ordinary indexed value access,
@@ -798,7 +800,7 @@ Current migration audit (after the isolated compiler-worker milestone):
 | Area | Authoritative/shared data and present storage | Concurrency work still required |
 | --- | --- | --- |
 | Entities | Stable payloads, dense per-type pointer indexes, explicit worlds, pinned views, exclusive attachment leases and staged canonical creation | Complete host-world isolation and non-racing reference ownership |
-| Syntax/grammar | Shared entities; world-bound module/session/baseline/revision/cache ownership; worker-owned FIRST/nullable frontiers, LR(0) transitions, LR(1) kernel closures, wide lookahead frontiers, LALR actions and runtime action/direct-index/goto rows | Native CLI project recipes, propagation-edge construction, runtime sequence specialization and source/effect order; row interning publishes after joins |
+| Syntax/grammar | Shared entities; world-bound module/session/baseline/revision/cache ownership; worker-owned FIRST/nullable frontiers, LR(0) transitions, LR(1) kernel closures, dependency-link construction, wide lookahead frontiers, LALR actions and runtime action/direct-index/goto rows | Native CLI project recipes, runtime sequence specialization and source/effect order; link/seed merging and row interning publish after joins |
 | Semantics/layout | Shared query graph; parallel dependency discovery, layouts, eligible ordinary/instantiated-generic body checking and expression lowering | Nested statement/type-construction continuations, precise body layout dependencies, within-world editor observation and structural publication |
 | Interpreter/staging | Per-invocation contexts over shared Foundation; ECS preparation/lowering dependencies, threaded lazy scalar evaluation and private execution caches | General ordinary-value execution, explicit effects/inputs and invalidation; no separate folding evaluator |
 | LLVM | Shared Foundation inputs; one mutable LLVM context/module per compiler instance | Function/query boundaries that do not concurrently mutate one LLVM module; preserve target legality |

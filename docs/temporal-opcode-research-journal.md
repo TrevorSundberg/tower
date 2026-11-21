@@ -30452,3 +30452,141 @@ completion/highlighting, persistence and real Linux defaults
 builds, tests or formatters remain active. Commit, perform the required rebase,
 repeat the native frontend/production-worker checks, and publish this checkpoint.
 The LALR link draft remains separate and unintegrated.
+
+Published body-continuation checkpoint: source
+2a4e4f71b9b5df0d1758d4ed82eadbfe7c9b883a, Pages
+e7a225ae632295f435f565aacb053e612291cf25 (parent 4262917e).
+The required post-commit rebase was unchanged; native frontend and production
+LR/unit/editor/body checks passed 2/2 in 150.57 seconds
+(body-runs-post-rebase.log). Final selected semantic/layout round-trip,
+diagnostic, deep-layout and parser checks also pass 4/4 in 10.20 seconds, with
+the other 14 cases deliberately unselected (body-runs-semantics-final.log).
+Both main and Pages pushes succeeded. Pages action 44913107213 is in progress;
+hosted verification remains pending. Keep dist frozen until it finishes.
+
+The formatted LALR refinement passes the full production harness, including
+the 256-terminal grammar whose closure cache alone is below the parallel gate
+(lr-links-formatted-check.log). To test private-output cleanup under the serial
+instrumented allocator too, split its explicit-width executor from production
+batch-size admission, following the existing runtime-row executor pattern.
+The missing-closure failure now exercises that same job/cleanup path with one
+lane; the production path retains measured-size admission. This last refinement
+is formatted and being compiled/tested, including a pure Tower instrumentation
+main linked against the existing serial test transport. No C/C++ helper is added.
+
+The final LALR executor draft passes production LR/unit/editor/body fixtures and
+the serial instrumented LR graph test with exact buffer cleanup
+(lr-links-ownership-check.log). This includes rejected missing immutable input
+without cache mutation and complete draining before cleanup. The six Tower
+files are now integrated, with the same instrumented graph/cleanup check added
+to the existing native frontend fixture. Five implementation/test files already
+passed formatting; the small frontend entry-point addition is being formatted.
+Default-bootstrap native/browser builds, successor equivalence and integration
+regressions are next. The source still keeps link/seed merging, runtime sequence
+specialization and grammar publication on the coordinator; parallel derivation
+does not make those remaining ownership boundaries disappear.
+
+Body checkpoint Pages action 44913107213 succeeded. Hosted verification has
+matched all 77 assets and is continuing through browser workflows; do not replace
+dist until that verification completes.
+
+The first hosted body-checkpoint verifier matched all assets and passed desktop,
+but timed out at verify-deployment.mjs:325 while opening the compiler project on
+mobile: status remained "Tower is parsing…" for 65 seconds
+(body-runs-hosted.log). The identical build passed the full local mobile check.
+Native/parser rebuilds were active during this hosted trial; load is a plausible
+cause, not yet a verified explanation. Let the native build/checks finish, then
+retry the unchanged live build with no competing compiler builds. Do not mark
+hosted verification complete or replace the frozen dist based on asset hashes.
+
+Integrated LALR validation passes the default-bootstrap native build, all eight
+CTest cases in 194.11 seconds, and backend API checks (lr-links-native.log).
+The frontend fixture now includes the serial private-output/failure/cleanup
+path; production checks exercise real workers. Shared and portable Wasm builds
+also completed. Defer LLVM packaging and further compiler execution until the
+unchanged body-checkpoint hosted verifier retry finishes without competing builds
+(body-runs-hosted-retry.log). The previous failure remains recorded above.
+
+Prepared an uncompiled next draft for nested lexical body continuations in the
+ignored nested_bodies_draft audit directory. It keeps nested block cursors on
+the existing body-work component, shares statement completion with the ordinary
+checker, and scans immutable lexical blocks for ordered structural boundaries.
+Context scopes/defer state survive the same ownership transfer at joins; stack
+growth reacquires cursors rather than keeping pointers across vector movement.
+Control constructs (if/for/while/match/defer handlers) still use their existing
+complete preparation when structural. Planned fixtures cover shadowing,
+defer/early-return flow, twelve nested blocks to grow the cursor stack, arrays,
+staged execution and canonical target/worker equivalence. No part of this next
+draft is integrated, validated or published yet.
+
+The unchanged body-checkpoint hosted retry now passes all 77 asset hashes and
+the complete desktop/mobile/Linux workflow, including the previously timed-out
+compiler-project opening (body-runs-hosted-retry.log and
+body-runs-hosted-report.json). No competing compiler builds ran during this
+retry. This establishes successful hosted verification; it supports, but does
+not by itself prove, load as the cause of the first timeout. Resume LALR LLVM
+packaging, successor comparisons and browser integration checks. Dist can now
+be refreshed for the next checkpoint when its artifacts are ready.
+
+LALR native successor objects match the default-bootstrap reference byte-for-byte
+(lr-links-successors.log): parser_nodes
+1b9b40bef7a2806d4baac52ab9efedcf886dc31ca99ac3f0502140cde250cd27,
+semantics 62e5ab0898d92e7e7e1d6bcd9d91cfbf27cfc068e247f8a7b0a71881b11cb346.
+LLVM/cross packaging is still running; do not start mixed-artifact regressions.
+
+The separate nested-block draft compiles and passes the native instrumented
+frontend matrix, including its new nested-error case and expanded fixture,
+canonical target/worker comparisons, exact cleanup and parser/lexer tests
+(nested-bodies-draft.log). The production harness initially failed to link:
+lr_work_main exports lr_work_test_main, and CMake normally binds it to main with
+the existing Tower runtime_bind tool. The ignored direct-link harness had omitted
+that naming step. A test-only Tower entry with the expected exported name fixes
+the harness; the production run is now in progress (nested-bodies-production.log).
+No nested-block source is integrated or published yet.
+
+LALR browser validation passes all 66 compile-time/invocation/Wasm/worker-count
+checks in 64.20 seconds, without skips (lr-links-regressions.log). Additional
+Bedrock, precedence, replacement, data-driven scanner, operator and diagnostic
+checks pass 49/49 in 20.93 seconds (lr-links-parser-regressions.log). Edited
+browser generations are running against the completed LLVM/cross package.
+
+The corrected nested-block production harness passes real LR workers, isolated
+unit/editor jobs and the expanded body matrix, including nested error ordering
+(nested-bodies-production.log). Its four changed draft files are being formatted
+in a separate shadow tree, while a dedicated probe checks for real worker /
+construction / worker transitions at a nonzero lexical depth. These experiments
+do not change the frozen LALR checkpoint sources.
+
+LALR edited browser self-hosting generations now pass and reproduce all three
+artifacts byte-for-byte (121.80/85.85 seconds; lr-links-generation1/2.json).
+Sizes are 1076148/52375065/63932495, hashes
+ tower 20510df41242affe0fb51a84827a26b13ad12a9d80ee0203201a0f16915ae380,
+ LLVM 166cffcf98f92b25472e0468eea12c7437839a71332255981ff2537ebecaec51,
+ cross ff364daa336d13e629259edee71233e0ecfc270afb4f5ed4e22c27b7e65abd1f.
+The checkpoint distribution is rebuilt and its full local desktop/mobile/Linux
+verification is running without competing compiler builds.
+
+The nested-block draft's four files pass the ordinary Tower formatter's structural
+and idempotence checks (nested-bodies-format.log). A production native probe
+observed four body workers and a nonzero-depth worker / structural preparation /
+worker / preparation / worker sequence at cursor positions 0/241/242/482/483.
+It exited normally with HOST_WORLD=0 and LEGACY_ALLOCATE=0 (nested-overlap.log).
+This proves actual nested continuation overlap, not a measured speedup. Broader
+negative-fixture equivalence and successor checks remain pending; these files
+remain isolated from the frozen LALR checkpoint.
+
+The full LALR local deployment verifier passed: 77 asset hashes, desktop/mobile
+execution, completion/editing, native builds/downloads, persistence and actual
+Linux defaults (lr-links-local.log / lr-links-local-report.json). All source-reading
+builds and verifiers have finished. Commit this checkpoint, rebase, rerun the
+native frontend/production worker checks, then publish and verify hosted output.
+C/C++ remain unchanged and todo.txt remains 96a9e58964d7f01e4a97819f259448db81ef5e40.
+
+Prepared a further isolated control_bodies_draft from the validated lexical-block
+draft. It retains if/else and Foundation loop progress on the same body component
+and shares if begin/flow completion with the ordinary checker. Conditions that
+require structural construction still prepare their whole statement; surface
+while/for/match/defer handlers remain whole. Added branch/loop cleanup, continue,
+break, staged definite-return and earlier-error fixtures. This extension is not
+yet compiled or validated; do not confuse it with the nested lexical-block overlap
+proof or the LALR checkpoint being published.
