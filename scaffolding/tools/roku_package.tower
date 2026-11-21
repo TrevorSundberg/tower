@@ -1,0 +1,78 @@
+import tower;
+import .library.bytes;
+import .library.bytes_types;
+import .library.zip_archive;
+import .library.deflate;
+import .compiler.utf8;
+
+extern fn strlen(text: u8*): usize;
+extern fn memcmp(left: u8*, right: u8*, length: usize): i32;
+
+enum RokuPackageResult: i32 { Ok, InvalidText, InvalidProgram, AllocationFailure, CompressionFailure, ArchiveFailure }
+enum RokuTextByte: u8 { LF = 10, CR = 13 }
+enum PackageFile: usize { Manifest, Main, Program, Count }
+
+// The fixed Linux recipe matches the existing Python packager: three ordered
+// files, Unix 0644 attributes and DOS timestamp 2020-01-01. Tower's own raw
+// DEFLATE codec replaces the former host zlib dependency. No filesystem effects.
+fn roku_package(data: u8*, length: usize, out: ByteBuffer*): RokuPackageResult {
+    var permit_nul: u32 = 0;
+    if tower_utf8_validate(data, length, permit_nul) == 0 { return RokuPackageResult.InvalidText; }
+    var marker = "function TowerRun(";
+    var marker_length = strlen(marker);
+    var found = false;
+    if length >= marker_length {
+        for (var at: usize = 0; at <= length - marker_length; at++) {
+            if memcmp(data + at, marker, marker_length) == 0 { found = true; break; }
+        }
+    }
+    if !found { return RokuPackageResult.InvalidProgram; }
+    var source: ByteBuffer = default;
+    defer bytes_dispose(&source);
+    if !bytes_reserve(&source, length) { return RokuPackageResult.AllocationFailure; }
+    for (var at: usize = 0; at < length; at++) {
+        var byte = data[at];
+        if byte == convert(u8, RokuTextByte.CR) {
+            if at + 1 < length && data[at + 1] == convert(u8, RokuTextByte.LF) { at++; }
+            byte = convert(u8, RokuTextByte.LF);
+        }
+        source.data[source.length] = byte;
+        source.length++;
+    }
+    var file_count = convert(usize, PackageFile.Count);
+    var entries = alloc(ZipEntry, file_count);
+    if entries == null { return RokuPackageResult.AllocationFailure; }
+    defer free(entries);
+    var compressed = alloc(ByteBuffer, file_count);
+    if compressed == null { return RokuPackageResult.AllocationFailure; }
+    fill(compressed, 0, file_count * sizeof(ByteBuffer));
+    defer {
+        for (var index: usize = 0; index < file_count; index++) { bytes_dispose(&compressed[index]); }
+        free(compressed);
+    }
+    var manifest = "title=Tower Roku program\nmajor_version=1\nminor_version=0\nbuild_version=0\n";
+    var main = "sub Main()\n    print \"TOWER_ROKU_BEGIN\"\n    TowerRun()\n    print \"TOWER_ROKU_END\"\nend sub\n";
+    entries[convert(usize, PackageFile.Manifest)] = { name: "manifest", content: manifest, length: strlen(manifest), ..default };
+    entries[convert(usize, PackageFile.Main)] = { name: "source/Main.brs", content: main, length: strlen(main), ..default };
+    entries[convert(usize, PackageFile.Program)] = { name: "source/program.brs", content: source.data, length: source.length, ..default };
+    var zip_version: u32 = 20;
+    var unix_host: u32 = 3;
+    var host_shift: u32 = 8;
+    var unix_mode: u32 = 420;
+    var attribute_shift: u32 = 16;
+    var fixed_date: u32 = 20513;
+    var archive_limit = convert(usize, ~convert(u32, 0));
+    for (var index: usize = 0; index < file_count; index++) {
+        var entry = &entries[index];
+        if !deflate_compress(entry.content, entry.length, &compressed[index]) { return RokuPackageResult.CompressionFailure; }
+        entry.name_length = strlen(entry.name);
+        entry.compressed = compressed[index].data;
+        entry.compressed_length = compressed[index].length;
+        entry.method = ZipMethod.Deflate;
+        entry.made_by = (unix_host << host_shift) | zip_version;
+        entry.dos_date = fixed_date;
+        entry.external_attributes = unix_mode << attribute_shift;
+    }
+    if zip32_write(&entries[0], file_count, archive_limit, out) != ZipResult.Ok { return RokuPackageResult.ArchiveFailure; }
+    return RokuPackageResult.Ok;
+}

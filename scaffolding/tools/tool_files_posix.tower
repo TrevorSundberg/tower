@@ -1,0 +1,51 @@
+import tower;
+import .library.bytes;
+import .library.bytes_types;
+import .host.driver_files;
+
+// Native Linux/POSIX tooling only. File handles and path resolution are explicit
+// runtime capabilities, never strict compile-time effects. realpath follows
+// symlinks for output protection; this is not Tower module-identity resolution.
+extern fn realpath(path: u8*, result: u8*): u8*;
+extern fn mkdir(path: u8*, mode: u32): i32;
+extern fn opendir(path: u8*): void*;
+extern fn closedir(directory: void*): i32;
+extern fn strlen(text: u8*): usize;
+extern fn strcmp(left: u8*, right: u8*): i32;
+
+enum ToolPathByte: u8 { Nul = 0, Slash = 47 }
+
+fn tool_directory(path: u8*): bool {
+    var directory = opendir(path);
+    return directory != null && closedir(directory) == 0;
+}
+
+// Make parents in written path order, leaving symlink resolution to the OS.
+// A pre-existing non-directory is an error. Never invokes a shell or deletes.
+fn tool_output_parents(path: u8*): bool {
+    var buffer: ByteBuffer = default;
+    defer bytes_dispose(&buffer);
+    if !bytes_assign_text(&buffer, path, strlen(path)) { return false; }
+    var directory_mode: u32 = 511;
+    for (var at: usize = 1; at < buffer.length; at++) {
+        if buffer.data[at] != convert(u8, ToolPathByte.Slash) { continue; }
+        buffer.data[at] = convert(u8, ToolPathByte.Nul);
+        var ok = mkdir(buffer.data, directory_mode) == 0 || tool_directory(buffer.data);
+        buffer.data[at] = convert(u8, ToolPathByte.Slash);
+        if !ok { return false; }
+    }
+    return true;
+}
+
+// Called after reading source and before opening output. A resolvable destination
+// cannot alias source through '.', '..' or symlinks. A nonexistent destination
+// cannot be that existing source; failed opens are still reported by the writer.
+fn tool_output_distinct(source: u8*, output: u8*): bool {
+    var resolved_source = realpath(source, null);
+    if resolved_source == null { return false; }
+    defer free(resolved_source);
+    var resolved_output = realpath(output, null);
+    if resolved_output == null { return true; }
+    defer free(resolved_output);
+    return strcmp(resolved_source, resolved_output) != 0;
+}

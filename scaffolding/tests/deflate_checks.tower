@@ -1,0 +1,160 @@
+import tower;
+import utility_checks;
+import .library.bytes;
+import .library.bytes_types;
+import .library.vector;
+import .library.deflate;
+import .library.zip_archive;
+import .compiler.host_text;
+import .host.driver_files;
+import .tools.tool_files_posix;
+
+extern fn strlen(text: u8*): usize;
+
+enum DeflateFixturePattern: usize { Random, Run, Alphabet, WindowRepeat, Count }
+
+fn deflate_fixture_add(entries: vector(ZipEntry)*, directory: u8*, input: ByteBuffer*, supplied: ByteBuffer*): void {
+    var name: ByteBuffer = default;
+    var source: ByteBuffer = default;
+    var encoded: ByteBuffer = default;
+    var path: ByteBuffer = default;
+    defer bytes_dispose(&name);
+    defer bytes_dispose(&source);
+    defer bytes_dispose(&encoded);
+    defer bytes_dispose(&path);
+    utility_check(bytes_append(&name, "case_", strlen("case_"))
+        && host_json_unsigned(&name, convert(u64, entries.length))
+        && bytes_append(&name, ".bin", strlen(".bin")), "corpus member name");
+    utility_check(bytes_append(&source, input.data, input.length), "retain corpus input");
+    if supplied == null {
+        utility_check(deflate_compress(source.data, source.length, &encoded), "Tower DEFLATE succeeds");
+        var repeated: ByteBuffer = default;
+        defer bytes_dispose(&repeated);
+        utility_check(deflate_compress(source.data, source.length, &repeated)
+            && encoded.length == repeated.length && utility_equal(encoded.data, repeated.data, encoded.length), "DEFLATE deterministic");
+        utility_check(bytes_assign_text(&repeated, source.data, source.length), "prepare aliased compression input");
+        utility_check(deflate_compress(repeated.data, repeated.length, &repeated)
+            && encoded.length == repeated.length && utility_equal(encoded.data, repeated.data, encoded.length), "DEFLATE aliased publication");
+        var blocks: usize = source.length == 0 ? 1 : (source.length - 1) / DeflateStoredLimit + 1;
+        utility_check(encoded.length <= source.length + blocks * DeflateStoredOverhead, "stored-block expansion bound");
+    } else { utility_check(bytes_append(&encoded, supplied.data, supplied.length), "retain boundary stream"); }
+    utility_check(bytes_append(&path, directory, strlen(directory))
+        && bytes_append(&path, "/expected/", strlen("/expected/"))
+        && bytes_append(&path, name.data, name.length) && host_text_terminate(&path)
+        && tool_output_parents(path.data) && driver_write_file(path.data, source.data, source.length), "write independent expected bytes");
+    var version: u32 = 20;
+    var epoch_date: u32 = 33;
+    var entry: ZipEntry = { name: name.data, name_length: name.length, content: source.data, length: source.length,
+        compressed: encoded.data, compressed_length: encoded.length, method: ZipMethod.Deflate,
+        made_by: version, dos_date: epoch_date, ..default };
+    utility_check(vector_push(entries, entry), "retain corpus member");
+    name = default;
+    source = default;
+    encoded = default;
+}
+
+// Construct exact legal length/distance tokens independently of match finding.
+// An external RFC decoder checks the entire expected byte sequence afterward.
+fn deflate_boundary(entries: vector(ZipEntry)*, directory: u8*, distance: usize, length: usize): void {
+    var input: ByteBuffer = default;
+    defer bytes_dispose(&input);
+    utility_check(bytes_reserve(&input, distance + length), "boundary input allocation");
+    var seed: u32 = 1729;
+    var byte_mask = convert(u32, ~convert(u8, 0));
+    for (var at: usize = 0; at < distance; at++) { input.data[at] = convert(u8, utility_random(&seed) & byte_mask); }
+    for (var at: usize = 0; at < length; at++) { input.data[distance + at] = input.data[at]; }
+    input.length = distance + length;
+    var writer: DeflateBits = { limit: ~convert(usize, 0), ok: true, ..default };
+    defer bytes_dispose(&writer.output);
+    var final_fixed: u32 = 3;
+    var header_bits: u32 = 3;
+    deflate_put(&writer, final_fixed, header_bits);
+    for (var at: usize = 0; at < distance; at++) { deflate_symbol(&writer, convert(u32, input.data[at])); }
+    deflate_match(&writer, length, distance);
+    deflate_symbol(&writer, DeflateEndCode);
+    if writer.count != 0 { deflate_put(&writer, 0, DeflateByteBits - writer.count); }
+    utility_check(writer.ok && !writer.larger, "boundary stream allocation");
+    deflate_fixture_add(entries, directory, &input, &writer.output);
+}
+
+fn deflate_corpus(entries: vector(ZipEntry)*, directory: u8*): void {
+    var sizes: vector(usize) = default;
+    defer vector_dispose(&sizes);
+    utility_check(vector_push(&sizes, 0) && vector_push(&sizes, 1) && vector_push(&sizes, 2) && vector_push(&sizes, 3)
+        && vector_push(&sizes, 257) && vector_push(&sizes, 258) && vector_push(&sizes, 259)
+        && vector_push(&sizes, 32767) && vector_push(&sizes, 32768) && vector_push(&sizes, 32769)
+        && vector_push(&sizes, 65534) && vector_push(&sizes, 65535) && vector_push(&sizes, 65536)
+        && vector_push(&sizes, 131071), "corpus size fixtures");
+    for (var pattern: usize = 0; pattern < convert(usize, DeflateFixturePattern.Count); pattern++) {
+        foreach (var length in &sizes) {
+            var input: ByteBuffer = default;
+            defer bytes_dispose(&input);
+            utility_check(bytes_reserve(&input, length), "corpus input allocation");
+            var seed: u32 = 1729;
+            var byte_mask = convert(u32, ~convert(u8, 0));
+            var repeated_byte: u8 = 65;
+            for (var at: usize = 0; at < length; at++) {
+                if pattern == convert(usize, DeflateFixturePattern.WindowRepeat) {
+                    input.data[at] = at < DeflateWindow ? convert(u8, utility_random(&seed) & byte_mask) : input.data[at - DeflateWindow];
+                } else { if pattern == convert(usize, DeflateFixturePattern.Random) {
+                    input.data[at] = convert(u8, utility_random(&seed) & byte_mask);
+                } else {
+                    input.data[at] = pattern == convert(usize, DeflateFixturePattern.Run)
+                        ? repeated_byte : convert(u8, convert(u32, at) & byte_mask);
+                } }
+            }
+            input.length = length;
+            deflate_fixture_add(entries, directory, &input, null);
+        }
+    }
+    // Both edges of all RFC length ranges, with the special 258 token separate.
+    var length_ranges: u32 = 28;
+    var literal_lengths: u32 = 8;
+    var lengths_per_group: u32 = 4;
+    var base: usize = 3;
+    for (var index: u32 = 0; index < length_ranges; index++) {
+        var extra = index < literal_lengths ? 0 : index / lengths_per_group - 1;
+        var span: usize = 1 << convert(usize, extra);
+        deflate_boundary(entries, directory, 1, base);
+        var last = base + span - 1;
+        if last == DeflateMaximumMatch { last--; }
+        if last > base { deflate_boundary(entries, directory, 1, last); }
+        base += span;
+    }
+    deflate_boundary(entries, directory, 1, DeflateMaximumMatch);
+    var distance_ranges: u32 = 30;
+    var literal_distances: u32 = 4;
+    var distances_per_group: u32 = 2;
+    base = 1;
+    for (var index: u32 = 0; index < distance_ranges; index++) {
+        var extra = index < literal_distances ? 0 : index / distances_per_group - 1;
+        var span: usize = 1 << convert(usize, extra);
+        deflate_boundary(entries, directory, base, DeflateMaximumMatch);
+        if span > 1 { deflate_boundary(entries, directory, base + span - 1, DeflateMaximumMatch); }
+        base += span;
+    }
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    var argument_count: i32 = 2;
+    var usage_status: i32 = 2;
+    if argc != argument_count { puts("Supply an isolated corpus output directory"); return usage_status; }
+    var entries: vector(ZipEntry) = default;
+    defer {
+        foreach (var &entry in &entries) { free(entry.name); free(entry.content); free(entry.compressed); }
+        vector_dispose(&entries);
+    }
+    deflate_corpus(&entries, argv[1]);
+    var output: ByteBuffer = default;
+    var path: ByteBuffer = default;
+    defer bytes_dispose(&output);
+    defer bytes_dispose(&path);
+    var archive_limit: usize = 16777216;
+    utility_check(zip32_write(entries.data, entries.length, archive_limit, &output) == ZipResult.Ok, "write complete DEFLATE corpus");
+    utility_check(bytes_append(&path, argv[1], strlen(argv[1]))
+        && bytes_append(&path, "/corpus.zip", strlen("/corpus.zip")) && host_text_terminate(&path)
+        && driver_write_file(path.data, output.data, output.length), "persist corpus ZIP");
+    puts("Tower DEFLATE corpus generated; independent ZIP extraction and byte comparison required");
+    print(entries.length);
+    return 0;
+}

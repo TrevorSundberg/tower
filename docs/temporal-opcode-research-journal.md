@@ -33984,3 +33984,173 @@ runtime values, explicit dependency failures/cycles diagnose correctly, and
 serial/worker canonical output and source-ordered errors agree. The concurrently
 published 6443f6d changes documentation only; it does not invalidate these compiler
 results or require another identical build.
+
+
+### 2026-11-21: in-house archive tooling and the non-Tower dependency policy
+
+Continued agent 1's tooling assignment after the first pushed milestone
+`f0cac4f`. The interrupted preparation turn made no file changes; the resumed
+work rechecked the clean checkout, pulled, and read the coordinator's current
+ownership notice. The user clarified that "third party language" meant
+project-owned code in languages other than Tower, not upstream libraries.
+Later the user specifically rejected a new zlib link for this tool and requested
+a concise general preference in `AGENTS.md`: implement new libraries in Tower
+where practical, starting with a correct minimal subset that can grow; necessary
+OS/platform calls remain external. Added that instruction under implementation
+language. It does not claim existing upstream dependencies have been replaced.
+
+The coordinator's `92da0a8` source milestone was pulled during implementation.
+`git ls-files '*.cpp' '*.c' '*.h' '*.hpp'` is empty, `host/legacy.tower` exists,
+and the default pin is now Tower-built Linux x64, archive SHA-256
+`fd536ba1ae5cefe891e78690e23c06ef7fcd5d729c0e3395824d8977abf9a9b4`.
+Read the changed AGENTS/bootstrap contracts. This is the canonical Linux/Docker
+route, not proof of native Windows/macOS release execution. The coordinator
+still owns the active release scripts, bootstrap and publication lock until its
+hosted validation completes; this milestone adds independent tools/libraries
+without swapping those paths or modifying its pin.
+
+#### Implemented components and boundaries
+
+* `library/crc32.tower`: incremental IEEE CRC-32 over explicit bytes, with fixed
+  width arithmetic and no host service.
+* `library/zip_archive.tower`: deterministic single-disk ZIP32 writer for stored
+  and raw-DEFLATE payloads. Callers explicitly supply order, timestamps, flags,
+  attributes and compression. It checks complete archive limits before payload
+  access, rejects duplicate/unsafe relative member paths and unsupported flags,
+  and publishes output ownership only on success. Inputs may borrow the previous
+  destination. ZIP64, encryption, archive reading and filename transcoding are
+  outside this first writer; callers supply the name bytes in their stated encoding.
+* `library/deflate.tower`: pure Tower raw RFC 1951 encoder, using fixed Huffman
+  codes, a 32 KiB LZ77 window, 4,096 hash buckets and a 64-candidate search budget.
+  Each match is at most 258 bytes; nearest equal-length matches win. Absolute
+  offsets and decreasing chain checks bound traversal after the ring wraps.
+  Stored blocks win when fixed coding would be larger, limiting expansion to
+  five bytes per 65,535-byte block (one block for an empty input). Scratch is
+  private to each call; allocation/rejection leaves the destination intact.
+  No dynamic-Huffman optimizer, streaming API, dictionaries, inflater or zlib/gzip
+  wrapper is claimed. This is a reusable initial compression subset, not all of zlib.
+* `tools/roku_package.tower` and `package_roku.tower`: preserve the three-file
+  package recipe, source marker/UTF-8 checks, universal-newline normalization,
+  entry order, 2020-01-01 timestamp and Unix 0644 attributes. Compression now uses
+  the Tower codec. `tool_files_posix.tower` provides explicit runtime parent
+  creation and `realpath`-based source/output protection, including symlinks.
+  There is no command-shell interpolation. The CLI uses Linux/POSIX filesystem
+  APIs; the byte/CRC/compression/archive libraries have no platform ABI.
+
+Source/output protection follows the predecessor's resolved-path rule; hard-link
+identity and concurrent path mutation are not claimed. A failed physical write
+can leave partial output, as in the existing driver helper. A failed compression
+allocation preserves the caller's output but deterministic allocation-failure
+injection was not added to this standalone suite. Names and files are ordinary
+tool data, so no second semantic graph or unnecessary ECS entities were introduced.
+
+Primary format references used for implementation:
+[PKWARE APPNOTE 6.3.10](https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT)
+and [RFC 1951](https://www.rfc-editor.org/rfc/rfc1951.html).
+The writer follows the local/central/end record layout; the codec separates
+Huffman bit order from ordinary numeric fields and handles overlapping copies.
+
+#### Trials, rejected approach and verification
+
+The first unpublished draft used the existing system zlib runtime through
+`compress2` and removed the RFC 1950 wrapper. It produced an archive identical
+to the Python predecessor (SHA-256 `006c0d8688ae8c85546c6759f787de3cc62f162071e8241b9c9f82775ea8d748`).
+That was useful compatibility evidence, but the user preferred an in-house
+implementation. Deleted the draft host adapter before commit and removed both
+production and test zlib links. **The earlier byte-identical compressed-output
+result applies only to that discarded draft.** The final Tower codec deliberately
+uses a different compression strategy; exact decompressed content and metadata
+are the compatibility contract. `readelf -d package_roku` now lists only
+`libc.so.6` as NEEDED, with no zlib or LLVM dependency in the tool executable.
+
+Other failed trials: the published language currently has no hexadecimal literal
+syntax or `u16`, so protocol values use named decimal `u32` bindings and checked
+16-bit field limits. Fixed-array bounds do not accept ordinary known bindings at
+this stage; the fixed-size recipe uses explicitly owned allocations instead.
+Numeric `convert` checks range, so emitting low bytes must mask before conversion;
+the initial unmasked writer trapped and was corrected before any successful ZIP
+claim. `else if` requires a nested block under the current grammar. The Docker
+configure invocation initially split an unquoted PowerShell CMake argument at
+`.cmake`; quoting the whole `-D` argument fixed it. No compiler semantics were
+changed for these tooling issues.
+
+`tool_archive_checks.tower` passes exact CRC check-vector/chunking checks; ZIP
+repeatability, complete-size limits, empty archive, invalid and duplicate paths,
+unsupported encryption, metadata overflow, ZIP64 rejection before reading data,
+and input/output aliasing. Roku checks cover UTF-8/marker failures, unchanged
+failure destinations, LF/CRLF/lone-CR normalization, actual file writes,
+same-path and symlink output rejection, and a file used as a parent directory.
+CLI usage returns 2; missing source and source/output equality return 1.
+Paths containing spaces and literal `;$(no_command)` were passed without a shell
+and written as literal filesystem names.
+
+`deflate_checks.tower` generates **161 members** and their independent original
+files. Cases include empty and short input, seeded binary noise, runs, all byte
+values, a repeated 32 KiB window, 257/258/259 lengths, both sides of 32 KiB and
+65,535-byte boundaries, and inputs spanning multiple stored blocks. It also
+constructs both endpoints of every RFC length/distance range to exercise coding
+independently of match search. The encoder checks repeatability, aliased output,
+and the stored expansion bound; the standard Python ZIP reader independently
+validates CRC/decompression, then `diff -r expected actual` compares every byte.
+Both WSL and the canonical Docker image pass these checks. Corpus SHA-256:
+`e69c5e83922aacdf254b29da9980597a96938625cb9787203e452c9f37c0577d`.
+No Python implementation/test helper was added: only the existing Python package
+command and standard `python3 -m zipfile` reader were used as external references.
+
+Environment: WSL `trevo`, Clang/LLVM 19; `tower_build` Linux/amd64 Docker image,
+Clang 19.1.1; isolated WSL prefix `/home/trevo/.cache/tower/agent1-tooling-*` and
+Docker volume `tower_agent1_tooling`. Repository mounted read-only at `/work` in
+Docker. The public pin was installed into `/cache/bootstrap` using the documented
+installer with no private bootstrap environment override. Rebuilt the existing
+`tower-guest-host-library` target under `/cache/native` with that explicit verified
+compiler path. New tools/tests use the existing `--library` entry and host library:
+
+```sh
+"$pin/towerc" scaffolding/tools/package_roku.tower --library \
+  --target x86_64-unknown-linux-gnu --bedrock scaffolding/bedrock.tower \
+  --foundation scaffolding/foundation.tower -o /cache/native/package_roku.o
+clang-19 /cache/native/package_roku.o /cache/native/guest-host-library.o -o /cache/native/package_roku
+"$pin/towerc" scaffolding/tests/tool_archive_checks.tower --library \
+  --target x86_64-unknown-linux-gnu --bedrock scaffolding/bedrock.tower \
+  --foundation scaffolding/foundation.tower -o /cache/native/tool_archive_checks.o
+clang-19 /cache/native/tool_archive_checks.o /cache/native/guest-host-library.o -o /cache/native/tool_archive_checks
+/cache/native/tool_archive_checks /cache/roku/stored.zip '/cache/roku/source with spaces/program.brs' /cache/roku/fixture.zip
+"$pin/towerc" scaffolding/tests/deflate_checks.tower --library \
+  --target x86_64-unknown-linux-gnu --bedrock scaffolding/bedrock.tower \
+  --foundation scaffolding/foundation.tower -o /cache/native/deflate_checks.o
+clang-19 /cache/native/deflate_checks.o /cache/native/guest-host-library.o -o /cache/native/deflate_checks
+/cache/native/deflate_checks /cache/deflate
+python3 -m zipfile -t /cache/deflate/corpus.zip
+python3 -m zipfile -e /cache/deflate/corpus.zip /cache/deflate/actual
+diff -r /cache/deflate/expected /cache/deflate/actual
+```
+
+Here `$pin` is `/cache/bootstrap/fd536ba1ae5cefe891e78690e23c06ef7fcd5d729c0e3395824d8977abf9a9b4`;
+run the commands inside `docker run --rm --platform linux/amd64` with the mounts
+above and working directory `/work`. No zlib link flag or development package is
+required. The same commands/paths adapted to the isolated WSL cache also pass.
+
+Real program evidence: the coordinator's generated Roku program was read-only
+input, 41,286 bytes. Tower produces a 10,307-byte ZIP versus the predecessor's
+8,640-byte ZIP: a roughly 19% archive-size cost for this initial small compressor,
+not a general benchmark. Independently extracted directories are byte-identical.
+The fixed metadata/listing and standard ZIP integrity checks pass. No physical
+Roku or native Windows/macOS execution is claimed.
+
+The live Python `package-roku.py` and browser archive implementation remain until
+the coordinator releases active packaging ownership and a documented Tower
+tool invocation is wired in. Likewise the earlier LLD port awaits its build-path
+cutover. This is implemented/reproducible shared tooling, not yet elimination of
+those production entry points. No sanitizer, broad formatting sweep, compiler
+semantic change, bootstrap overwrite or `todo.txt` modification occurred.
+
+Pre-publication rebase incorporated `6443f6d`, preserving both journal append
+histories and the upstream architecture notes. This lane's commit has no
+`todo.txt` delta; unrelated upstream edits remain preserved. Installed the new
+published `e886c65dff84c83b8647d516eaa1de6754f58f04932022238680f8d1489f9e32`
+pin in the isolated Docker cache, rebuilt the host library and all three objects,
+then linked without zlib. Archive/path tests pass and the regenerated 161-member
+corpus is byte-identical to the independently decoded corpus above. The final
+tool's dynamic dependencies still list only libc. Runtime Pages deployment is
+still blocked by the coordinator's live release ownership; no deployment by
+this lane is claimed.

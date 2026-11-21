@@ -1,0 +1,148 @@
+import tower;
+import bytes;
+import bytes_types;
+import crc32;
+
+// ZIP32 single-disk writer. Compression is an explicit caller capability:
+// Deflate entries borrow a complete raw DEFLATE stream and its original bytes.
+// Entries/order/metadata stay immutable during the call. No host clock, file
+// access, filename encoding conversion or compression library is hidden here.
+enum ZipMethod: u32 { Stored = 0, Deflate = 8 }
+enum ZipResult: i32 { Ok, InvalidName, DuplicateName, Unsupported, Limit, AllocationFailure }
+enum ZipSignature: u32 { Local = 67324752, Central = 33639248, End = 101010256 }
+enum ZipNameByte: u8 { Nul = 0, Dot = 46, Slash = 47, Colon = 58, Backslash = 92 }
+var ZipShortMax: u32 = 65535;
+
+struct ZipEntry {
+    name: u8*;
+    name_length: usize;
+    content: u8*;
+    length: usize;
+    compressed: u8*;
+    compressed_length: usize;
+    method: ZipMethod;
+    flags: u32;
+    made_by: u32;
+    dos_time: u32;
+    dos_date: u32;
+    external_attributes: u32;
+}
+
+fn zip_u16(out: ByteBuffer*, value: u32): bool {
+    var byte_bits: u32 = 8;
+    var byte_mask = convert(u32, ~convert(u8, 0));
+    return bytes_push(out, convert(u8, value & byte_mask))
+        && bytes_push(out, convert(u8, (value >> byte_bits) & byte_mask));
+}
+
+fn zip_u32(out: ByteBuffer*, value: u32): bool {
+    var half_bits: u32 = 16;
+    return zip_u16(out, value) && zip_u16(out, value >> half_bits);
+}
+
+fn zip_name_valid(data: u8*, length: usize): bool {
+    if length == 0 || data == null || data[0] == convert(u8, ZipNameByte.Slash) { return false; }
+    var component: usize = 0;
+    for (var at: usize = 0; at <= length; at++) {
+        if at != length {
+            var byte = data[at];
+            if byte == convert(u8, ZipNameByte.Nul) || byte == convert(u8, ZipNameByte.Backslash)
+                || byte == convert(u8, ZipNameByte.Colon) { return false; }
+            if byte != convert(u8, ZipNameByte.Slash) { continue; }
+        }
+        var count = at - component;
+        if count == 0 || count == 1 && data[component] == convert(u8, ZipNameByte.Dot)
+            || count == 2 && data[component] == convert(u8, ZipNameByte.Dot)
+                && data[component + 1] == convert(u8, ZipNameByte.Dot) { return false; }
+        component = at + 1;
+    }
+    return true;
+}
+
+fn zip_same_name(left: ZipEntry*, right: ZipEntry*): bool {
+    if left.name_length != right.name_length { return false; }
+    for (var at: usize = 0; at < left.name_length; at++) {
+        if left.name[at] != right.name[at] { return false; }
+    }
+    return true;
+}
+
+// Limit includes every local record, name, payload, central record and trailer.
+// Reject before reading payload bytes if counts/sizes cannot fit. Failure leaves
+// out's ownership and contents intact. On success out owns the completed archive;
+// inputs may borrow its old contents because publication is the final operation.
+fn zip32_write(entries: ZipEntry*, count: usize, limit: usize, out: ByteBuffer*): ZipResult {
+    var local_header: usize = 30;
+    var central_header: usize = 46;
+    var end_header: usize = 22;
+    var max_field = convert(usize, ZipShortMax);
+    var max_offset = convert(u64, ~convert(u32, 0));
+    var utf8_flag: u32 = 2048;
+    var extract_version: u32 = 20;
+    if count > max_field || count != 0 && entries == null { return ZipResult.Limit; }
+    var total = convert(u64, end_header);
+    for (var index: usize = 0; index < count; index++) {
+        var entry = &entries[index];
+        if entry.name_length > max_field || convert(u64, entry.length) > max_offset
+            || convert(u64, entry.compressed_length) > max_offset { return ZipResult.Limit; }
+        if !zip_name_valid(entry.name, entry.name_length) { return ZipResult.InvalidName; }
+        if (entry.flags & ~utf8_flag) != 0 || entry.method != ZipMethod.Stored && entry.method != ZipMethod.Deflate {
+            return ZipResult.Unsupported;
+        }
+        if entry.made_by > ZipShortMax || entry.dos_time > ZipShortMax || entry.dos_date > ZipShortMax { return ZipResult.Limit; }
+        if entry.length != 0 && entry.content == null { return ZipResult.Unsupported; }
+        var encoded_length = entry.method == ZipMethod.Stored ? entry.length : entry.compressed_length;
+        if entry.method == ZipMethod.Deflate && (encoded_length == 0 || entry.compressed == null) {
+            return ZipResult.Unsupported;
+        }
+        for (var prior: usize = 0; prior < index; prior++) {
+            if zip_same_name(entry, &entries[prior]) { return ZipResult.DuplicateName; }
+        }
+        total += convert(u64, local_header + central_header) + convert(u64, entry.name_length) * 2
+            + convert(u64, encoded_length);
+        if total > convert(u64, limit) || total > max_offset { return ZipResult.Limit; }
+    }
+    if total > convert(u64, limit) { return ZipResult.Limit; }
+    var archive: ByteBuffer = default;
+    defer bytes_dispose(&archive);
+    if !bytes_reserve(&archive, convert(usize, total)) { return ZipResult.AllocationFailure; }
+    var ok = true;
+    for (var index: usize = 0; index < count; index++) {
+        var entry = &entries[index];
+        var encoded = entry.method == ZipMethod.Stored ? entry.content : entry.compressed;
+        var encoded_length = entry.method == ZipMethod.Stored ? entry.length : entry.compressed_length;
+        ok &&= zip_u32(&archive, convert(u32, ZipSignature.Local)) && zip_u16(&archive, extract_version)
+            && zip_u16(&archive, entry.flags) && zip_u16(&archive, convert(u32, entry.method))
+            && zip_u16(&archive, entry.dos_time) && zip_u16(&archive, entry.dos_date)
+            && zip_u32(&archive, crc32_update(0, entry.content, entry.length))
+            && zip_u32(&archive, convert(u32, encoded_length)) && zip_u32(&archive, convert(u32, entry.length))
+            && zip_u16(&archive, convert(u32, entry.name_length)) && zip_u16(&archive, 0)
+            && bytes_append(&archive, entry.name, entry.name_length) && bytes_append(&archive, encoded, encoded_length);
+    }
+    var directory_start = archive.length;
+    var offset: usize = 0;
+    for (var index: usize = 0; index < count; index++) {
+        var entry = &entries[index];
+        var encoded_length = entry.method == ZipMethod.Stored ? entry.length : entry.compressed_length;
+        ok &&= zip_u32(&archive, convert(u32, ZipSignature.Central)) && zip_u16(&archive, entry.made_by)
+            && zip_u16(&archive, extract_version) && zip_u16(&archive, entry.flags)
+            && zip_u16(&archive, convert(u32, entry.method)) && zip_u16(&archive, entry.dos_time)
+            && zip_u16(&archive, entry.dos_date) && zip_u32(&archive, crc32_update(0, entry.content, entry.length))
+            && zip_u32(&archive, convert(u32, encoded_length)) && zip_u32(&archive, convert(u32, entry.length))
+            && zip_u16(&archive, convert(u32, entry.name_length)) && zip_u16(&archive, 0)
+            && zip_u16(&archive, 0) && zip_u16(&archive, 0) && zip_u16(&archive, 0)
+            && zip_u32(&archive, entry.external_attributes) && zip_u32(&archive, convert(u32, offset))
+            && bytes_append(&archive, entry.name, entry.name_length);
+        offset += local_header + entry.name_length + encoded_length;
+    }
+    var directory_size = archive.length - directory_start;
+    ok &&= zip_u32(&archive, convert(u32, ZipSignature.End)) && zip_u16(&archive, 0) && zip_u16(&archive, 0)
+        && zip_u16(&archive, convert(u32, count)) && zip_u16(&archive, convert(u32, count))
+        && zip_u32(&archive, convert(u32, directory_size)) && zip_u32(&archive, convert(u32, directory_start))
+        && zip_u16(&archive, 0);
+    if !ok || convert(u64, archive.length) != total { return ZipResult.AllocationFailure; }
+    bytes_dispose(out);
+    *out = archive;
+    archive = default;
+    return ZipResult.Ok;
+}

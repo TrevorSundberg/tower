@@ -8,6 +8,13 @@ an isolated writable fixture path to the resulting executable. The journal's
 comparison evidence. The production browser build still uses the Python patcher
 until the coordinator's zero-native release permits the tested cutover.
 
+`tool_archive_checks.tower` covers the Tower CRC/ZIP/Roku tools and POSIX path
+protection. `deflate_checks.tower` writes a 161-member ZIP corpus plus independent
+expected files; validate/extract it with a standard ZIP reader, then compare the
+directories byte for byte. Both build as library objects linked with the existing
+`guest-host-library.o`, with no zlib dependency. The journal's in-house archive
+entry records the Docker/WSL commands, codec scope and compression tradeoff.
+
 The same runtime/parser now also runs in the [static WASM playground](../../playground/README.md).
 Native and WASM parser builds use explicit error returns with C++ exceptions disabled.
 

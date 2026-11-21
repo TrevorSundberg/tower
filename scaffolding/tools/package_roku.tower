@@ -1,0 +1,41 @@
+import tower;
+import roku_package;
+import tool_files_posix;
+import .host.driver_files;
+import .library.bytes;
+import .library.bytes_types;
+
+extern fn puts(text: u8*): i32;
+extern fn strlen(text: u8*): usize;
+extern fn write(stream: i32, text: u8*, length: usize): i64;
+
+enum RokuExit: i32 { Ok = 0, Failure = 1, Usage = 2 }
+
+fn roku_error(message: u8*): i32 {
+    var stderr_stream: i32 = 2;
+    write(stderr_stream, message, strlen(message));
+    write(stderr_stream, "\n", 1);
+    return convert(i32, RokuExit.Failure);
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    var argument_count: i32 = 3;
+    if argc != argument_count {
+        roku_error("Usage: package_roku SOURCE.brs OUTPUT.zip");
+        return convert(i32, RokuExit.Usage);
+    }
+    var source: ByteBuffer = default;
+    var archive: ByteBuffer = default;
+    defer bytes_dispose(&source);
+    defer bytes_dispose(&archive);
+    if !driver_read_file(argv[1], &source) { return roku_error("Cannot read Roku source"); }
+    var result = roku_package(source.data, source.length, &archive);
+    if result == RokuPackageResult.InvalidProgram { return roku_error("Input must be Tower-generated Roku BrightScript"); }
+    if result == RokuPackageResult.InvalidText { return roku_error("Roku source is not valid UTF-8"); }
+    if result != RokuPackageResult.Ok { return roku_error("Cannot construct Roku archive"); }
+    if !tool_output_distinct(argv[1], argv[2]) { return roku_error("Output must differ from source"); }
+    if !tool_output_parents(argv[2]) { return roku_error("Cannot create output directory"); }
+    if !driver_write_file(argv[2], archive.data, archive.length) { return roku_error("Cannot write Roku archive"); }
+    puts("Wrote Roku archive; physical Roku execution remains to be tested.");
+    return convert(i32, RokuExit.Ok);
+}

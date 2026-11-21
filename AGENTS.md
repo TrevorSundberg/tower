@@ -40,6 +40,10 @@ Do NOT modify todo.txt
 - Do not introduce new C++ or Python code. Use Tower for new tooling as well as
   language features; convenience or familiarity with another language is not a
   reason to add another implementation language.
+- Before adding a library dependency implemented in C or another language, prefer
+  an in-house Tower implementation where practical. Start with the smallest correct
+  subset needed now, designed to grow into a reusable library. Necessary operating
+  system and platform APIs remain external.
 - Keep JavaScript minimal and limited to necessary browser/UI integration and
   transport. Put reusable logic, compiler behavior, test cases and assertions in
   Tower wherever possible. Do not add JavaScript implementations of logic that

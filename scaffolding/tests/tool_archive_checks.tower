@@ -1,0 +1,151 @@
+import tower;
+import utility_checks;
+import .library.bytes;
+import .library.bytes_types;
+import .library.crc32;
+import .library.deflate;
+import .library.zip_archive;
+import .tools.roku_package;
+import .tools.tool_files_posix;
+import .host.driver_files;
+
+extern fn strlen(text: u8*): usize;
+extern fn symlink(source: u8*, alias: u8*): i32;
+extern fn unlink(path: u8*): i32;
+
+fn archive_same(left: ByteBuffer*, right: ByteBuffer*): bool {
+    return left.length == right.length && utility_equal(left.data, right.data, left.length);
+}
+
+fn archive_crc_checks(): void {
+    var check_crc: u32 = 3421780262;
+    var fixture = "123456789";
+    utility_check(crc32_update(0, fixture, strlen(fixture)) == check_crc, "CRC-32 published check vector");
+    utility_check(crc32_update(0, null, 0) == 0, "CRC empty input");
+    var preserved: ByteBuffer = default;
+    defer bytes_dispose(&preserved);
+    utility_check(bytes_assign_text(&preserved, fixture, strlen(fixture)), "compression failure sentinel");
+    var saved = preserved.data;
+    utility_check(!deflate_compress(null, 1, &preserved), "null compression input rejected");
+    utility_check(!deflate_compress(fixture, ~convert(usize, 0), &preserved), "compression size overflow rejected before input access");
+    utility_check(preserved.data == saved && preserved.length == strlen(fixture)
+        && utility_equal(preserved.data, fixture, preserved.length), "compression rejection preserves destination");
+    var maximum: usize = 1024;
+    var data = alloc(u8, maximum);
+    utility_check(data != null, "CRC fixture allocation");
+    defer free(data);
+    var seed: u32 = 1729;
+    var byte_mask = convert(u32, ~convert(u8, 0));
+    for (var at: usize = 0; at < maximum; at++) { data[at] = convert(u8, utility_random(&seed) & byte_mask); }
+    var sample_stride: usize = 17;
+    for (var length: usize = 0; length <= maximum; length += sample_stride) {
+        var actual = crc32_update(0, data, length);
+        var split = length / 2;
+        var first = crc32_update(0, data, split);
+        utility_check(crc32_update(first, data + split, length - split) == actual, "CRC chunk composition");
+    }
+}
+
+fn archive_zip_checks(path: u8*): void {
+    var fixture = "123456789";
+    var fixture_version: u32 = 20;
+    var fixture_date: u32 = 33;
+    var entry: ZipEntry = { name: "fixture.txt", name_length: strlen("fixture.txt"), content: fixture,
+        length: strlen(fixture), method: ZipMethod.Stored, made_by: fixture_version, dos_date: fixture_date, ..default };
+    var output: ByteBuffer = default;
+    var repeated: ByteBuffer = default;
+    defer bytes_dispose(&output);
+    defer bytes_dispose(&repeated);
+    var limit: usize = 4096;
+    utility_check(zip32_write(&entry, 1, limit, &output) == ZipResult.Ok, "stored ZIP writes");
+    utility_check(zip32_write(&entry, 1, limit, &repeated) == ZipResult.Ok && archive_same(&output, &repeated), "ZIP output deterministic");
+    utility_check(tool_output_parents(path) && driver_write_file(path, output.data, output.length), "write stored ZIP for independent reader");
+    var saved = output.data;
+    utility_check(zip32_write(&entry, 1, output.length - 1, &output) == ZipResult.Limit, "complete archive size limit includes central directory");
+    utility_check(output.data == saved && archive_same(&output, &repeated), "size failure preserves destination ownership/bytes");
+    utility_check(zip32_write(&entry, 1, output.length, &output) == ZipResult.Ok, "exact archive size limit succeeds");
+    var too_many = convert(usize, ZipShortMax) + 1;
+    utility_check(zip32_write(null, too_many, limit, &output) == ZipResult.Limit, "entry count rejects before dereference");
+    entry.name = "../fixture.txt";
+    entry.name_length = strlen(entry.name);
+    utility_check(zip32_write(&entry, 1, limit, &output) == ZipResult.InvalidName, "parent archive path rejected");
+    entry.name = "source//fixture.txt";
+    entry.name_length = strlen(entry.name);
+    utility_check(zip32_write(&entry, 1, limit, &output) == ZipResult.InvalidName, "empty path component rejected");
+    entry.name = "/fixture.txt";
+    entry.name_length = strlen(entry.name);
+    utility_check(zip32_write(&entry, 1, limit, &output) == ZipResult.InvalidName, "absolute archive path rejected");
+    entry.name = "C:\\fixture.txt";
+    entry.name_length = strlen(entry.name);
+    utility_check(zip32_write(&entry, 1, limit, &output) == ZipResult.InvalidName, "host-specific archive path rejected");
+    entry.name = "fixture.txt";
+    entry.name_length = strlen(entry.name);
+    var encryption_flag: u32 = 1;
+    entry.flags = encryption_flag;
+    utility_check(zip32_write(&entry, 1, limit, &output) == ZipResult.Unsupported, "encryption cannot leak into baseline ZIP");
+    entry.flags = 0;
+    entry.dos_date = ZipShortMax + 1;
+    utility_check(zip32_write(&entry, 1, limit, &output) == ZipResult.Limit, "metadata cannot silently truncate");
+    entry.dos_date = fixture_date;
+    var duplicate_count: usize = 2;
+    var duplicates = alloc(ZipEntry, duplicate_count);
+    utility_check(duplicates != null, "duplicate fixture allocation");
+    defer free(duplicates);
+    duplicates[0] = entry;
+    duplicates[1] = entry;
+    utility_check(zip32_write(duplicates, duplicate_count, limit, &output) == ZipResult.DuplicateName, "duplicate archive paths rejected");
+    entry.length = convert(usize, ~convert(u32, 0)) + 1;
+    utility_check(zip32_write(&entry, 1, limit, &output) == ZipResult.Limit, "ZIP64 input rejected before payload access");
+    entry.content = output.data;
+    entry.length = output.length;
+    utility_check(zip32_write(&entry, 1, limit, &output) == ZipResult.Ok, "writer safely borrows its destination as input");
+    var empty_size: usize = 22;
+    utility_check(zip32_write(null, 0, empty_size, &output) == ZipResult.Ok && output.length == empty_size, "empty archive is valid");
+    utility_check(zip32_write(null, 0, empty_size - 1, &output) == ZipResult.Limit, "empty archive observes limit");
+}
+
+fn archive_roku_checks(source_path: u8*, archive_path: u8*): void {
+    var source = "function TowerRun()\n    print \"hello\"\nend function\n";
+    var crlf = "function TowerRun()\r\n    print \"hello\"\rend function\r\n";
+    var output: ByteBuffer = default;
+    var other: ByteBuffer = default;
+    defer bytes_dispose(&output);
+    defer bytes_dispose(&other);
+    utility_check(roku_package(source, strlen(source), &output) == RokuPackageResult.Ok, "Roku packaging");
+    utility_check(roku_package(crlf, strlen(crlf), &other) == RokuPackageResult.Ok && archive_same(&output, &other), "universal-newline compatibility");
+    var saved = other.data;
+    utility_check(roku_package("not a program", strlen("not a program"), &other) == RokuPackageResult.InvalidProgram, "Roku entry marker required");
+    var invalid_byte: u8 = 255;
+    utility_check(roku_package(&invalid_byte, 1, &other) == RokuPackageResult.InvalidText, "invalid source UTF-8 rejected");
+    utility_check(other.data == saved && archive_same(&output, &other), "Roku failures preserve output");
+    utility_check(tool_output_parents(source_path) && driver_write_file(source_path, source, strlen(source)), "write source fixture");
+    utility_check(!tool_output_distinct(source_path, source_path), "same output source rejected");
+    utility_check(tool_output_distinct(source_path, archive_path), "different output accepted");
+    var alias: ByteBuffer = default;
+    defer bytes_dispose(&alias);
+    utility_check(bytes_append(&alias, source_path, strlen(source_path))
+        && bytes_append(&alias, ".alias", strlen(".alias")) && bytes_push(&alias, 0), "alias path");
+    var absolute = realpath(source_path, null);
+    utility_check(absolute != null, "resolve source fixture");
+    defer free(absolute);
+    utility_check(symlink(absolute, alias.data) == 0, "create isolated symlink fixture");
+    defer unlink(alias.data);
+    utility_check(!tool_output_distinct(source_path, alias.data), "symlink output alias rejected");
+    var blocked: ByteBuffer = default;
+    defer bytes_dispose(&blocked);
+    utility_check(bytes_append(&blocked, source_path, strlen(source_path))
+        && bytes_append(&blocked, "/out.zip", strlen("/out.zip")) && bytes_push(&blocked, 0), "nondirectory path");
+    utility_check(!tool_output_parents(blocked.data), "existing file cannot become an output parent");
+    utility_check(tool_output_parents(archive_path) && driver_write_file(archive_path, output.data, output.length), "write Roku ZIP for independent reader");
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    var argument_count: i32 = 4;
+    var usage_status: i32 = 2;
+    if argc != argument_count { puts("Supply isolated stored ZIP, source fixture and Roku ZIP output paths"); return usage_status; }
+    archive_crc_checks();
+    archive_zip_checks(argv[1]);
+    archive_roku_checks(argv[2], argv[3]);
+    puts("Tower CRC, ZIP and Roku packaging checks passed");
+    return 0;
+}
