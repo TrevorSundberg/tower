@@ -37,6 +37,9 @@ Do NOT modify todo.txt
   and runtime code, tests, experiments, samples, drivers, benchmarks, audits,
   migration/generation tools and validation helpers. Temporary, ignored and
   one-off scripts are not exceptions to this rule.
+- Aim for an overwhelmingly Tower repository, reducing existing non-Tower code
+  to essential platform/browser binding shims. Measure actual source migration
+  separately from GitHub recognizing Tower in its language breakdown.
 - Do not introduce new C++ or Python code. Use Tower for new tooling as well as
   language features; convenience or familiarity with another language is not a
   reason to add another implementation language.

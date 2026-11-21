@@ -34425,3 +34425,30 @@ metadata while preserving the coordinator's verified runtime assets and their
 `buildSourceCommit` identity. No sanitizer, formatting sweep, bootstrap pin
 change or `todo.txt` edit was made. Next: migrate bootstrap installation and
 packaging capabilities into Tower, then further reusable browser tooling.
+
+The user clarified the repository-wide endpoint using GitHub's language chart:
+actual owned implementation should become overwhelmingly Tower, with other
+languages reduced to essential platform/browser bindings. Added that concise
+goal to AGENTS.md. GitHub recognizing `.tower` is separate from removing existing
+JavaScript, Python, shell and CMake logic; this milestone changes real entry
+points rather than reporting a cosmetic chart percentage.
+
+The first source push met concurrent main changes and was rejected normally.
+Rebased onto `dfee43c`, preserving both journal append histories. That source
+includes a new public `2292bd8abc4761ba0e62f6c2fb8fee2f482c5273f2a267402fe09d5d34d9913a`
+bootstrap and the upstream constant-shorthand migration, so earlier bootstrap
+evidence was insufficient for the final merged checkout. Repeated the clean
+default tool build in `/cache/rebased tools`: all five steps pass, along with
+process checks and exact LLD/Roku outputs. A fresh default native successor in
+`/cache/tooling_successor_2292` also passes all 53 steps, invoked through the
+documented build-native.sh with no private compiler override. Enum expressions
+in the graph interpreter, struct values in the fast interpreter, and linked
+native struct values each print 0. These are Linux development results, not
+Windows/macOS native release claims.
+
+An attempted Pages-history fetch stalled on old binary history; the read-only
+local-history fallback also required a large repack. Both were cancelled. The
+GitHub connector can read and optimistically update the single manifest by blob
+SHA, preserving the existing remote tree and all runtime files. Publication uses
+that path under the acquired agent1 publication lock instead of transferring
+unneeded historical binaries. No source or Pages force-push is used.
