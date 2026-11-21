@@ -511,14 +511,21 @@ fn work_demand(g: WorkGraph*, id: usize): bool {
 // coordinator-owned. Publish results in semantic/source order when order matters,
 // never in worker completion order. Ticket failure preserves the output.
 fn work_take(g: WorkGraph*, output: WorkTicket*): bool {
-    return work_take_matching(g, output, false, 0);
+    return work_take_matching(g, output, false, 0, 0);
 }
 
 fn work_take_query(g: WorkGraph*, output: WorkTicket*, query: u32): bool {
-    return work_take_matching(g, output, true, query);
+    return work_take_matching(g, output, true, query, 0);
 }
 
-fn work_take_matching(g: WorkGraph*, output: WorkTicket*, filtered: bool, query: u32): bool {
+// Select a requested structural job without consuming earlier independent work.
+// Readiness, access exclusions and ticket validation remain the ordinary path.
+fn work_take_task(g: WorkGraph*, output: WorkTicket*, task: usize): bool {
+    if task == 0 { return false; }
+    return work_take_matching(g, output, false, 0, task);
+}
+
+fn work_take_matching(g: WorkGraph*, output: WorkTicket*, filtered: bool, query: u32, wanted: usize): bool {
     if !work_ok(g) {
         return false;
     }
@@ -536,6 +543,7 @@ fn work_take_matching(g: WorkGraph*, output: WorkTicket*, filtered: bool, query:
             }
             continue;
         }
+        if wanted != 0 && wanted != id { continue; }
         var task = work_task(g, id);
         if filtered && task.query != query { continue; }
         var ready = task.state == WorkState.Ready;
