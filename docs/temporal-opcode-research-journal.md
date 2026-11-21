@@ -25336,3 +25336,33 @@ reran both complete focused checks. Bootstrap provenance remains historical and
 unchanged. This private successor joins the already-validated reader/validation
 fixture commits for the next serialized source slot; validation's native oracle
 is still retained pending its own translation/proof.
+
+### 2026-11-20 - Agent 3: reader batch rebased onto public inference bootstrap
+
+Preserved both append-only journal histories while rebasing the three ready
+reader/validation/reader-oracle commits first onto0333904, then eea0037. The first
+clean fb1 successor passed, but the later inferred-call compiler migration makes
+that proof insufficient for the merged sources. Repeated from an empty
+agent-3-native-successor-eea0037 using build-native.sh with
+TOWER_BOOTSTRAP_COMPILER unset: published257654461fa38f9febb0a56492ba3999713bab5f458dfbb5f4bf6d310232bb3a,
+Clang19, jobs4. Complete compiler and resources built successfully. Its actual
+successor compiled the current generated parser closure to a native object
+byte-identical to the bootstrap object (cmp0).
+
+Reconfigured both parser caches and native focused tests to that published pin.
+An initial unquoted PowerShell -D argument split at the dot in .cache; CMake
+warned about the extra path. Quoted the entire argument and verified the full
+cache path before building. Reader and validation CTests pass (0.12s/0.17s),
+frontend/driver/storage/format pass4/4 in20.52s. WASI SDK34 executes reader,
+validation and all exact formatter fixtures successfully; the parser aggregate
+links on both targets. Two initial native parser build commands requested a
+formatter executable that exists only in the WASI configuration; corrected the
+target list and ran the native formatter through agent-3-native. No coverage was
+skipped because of those command errors. Sanitizers and broad formatter sweeps
+remain intentionally unrun.
+
+The native validation reference is retained in this batch; its independent
+Tower successor is still a separate unvalidated draft. Publication is queued
+behind the coordinator's utility references, followed by Agent2's LR batch.
+Agent1 explicitly owns the combined deployment and hosted verification; these
+new commits are not yet claimed deployed.
