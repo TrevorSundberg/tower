@@ -44,6 +44,8 @@ export fn main(): i32 {
     symbol_case(BootstrapUnit.ParserNodes, false, " U LLVMContextCreate\n", "LLVMContextCreate");
     symbol_case(BootstrapUnit.Interpreter, false, " U semantic_float\n U entity_component_get\n", null);
     symbol_case(BootstrapUnit.Semantics, false, " U compiler_lr_state_kernel\n U entity_stage_hold\n", null);
+    symbol_case(BootstrapUnit.Semantics, false, " U generic_error_clear\n", null);
+    symbol_case(BootstrapUnit.ParserNodes, false, " U generic_error_clear\n", "generic_error_clear");
     var empty: BootstrapSymbol = default; var rejected: BootstrapSymbol = default;
     utility_check(!bootstrap_symbols_check(BootstrapUnit.Unknown, false, empty, &rejected), "unknown unit cannot pass an empty closure");
     utility_check(bootstrap_unit("unknown") == BootstrapUnit.Unknown && bootstrap_unit("parser-nodes") == BootstrapUnit.ParserNodes,

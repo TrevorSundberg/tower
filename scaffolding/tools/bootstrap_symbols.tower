@@ -104,7 +104,7 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, symbol: u8*, len
         return bootstrap_symbol_in("syntax_create syntax_destroy syntax_next syntax_get_error syntax_get_revision syntax_get_error_offset bytes_append", symbol, length)
             || bootstrap_symbol_in("tower_allocate tower_trap sem_match core_component_type abort entity_component_get entity_component_data", symbol, length)
             || bootstrap_symbol_in("entity_component_add entity_register tower_node_create entity_attach entity_release entity_child_at entity_child_count", symbol, length)
-            || bootstrap_symbol_in("entity_parent entity_member_index foundation_node_init syntax_identifier_decode_in_place generic_begin generic_error", symbol, length)
+            || bootstrap_symbol_in("entity_parent entity_member_index foundation_node_init syntax_identifier_decode_in_place generic_begin generic_error generic_error_clear", symbol, length)
             || bootstrap_symbol_in("generic_register generic_parameter_count generic_type_parameter generic_instantiate generic_lookup generic_type_result", symbol, length)
             || bootstrap_symbol_in("generic_origin foundation_name_append foundation_nodes_prepend compiler_clone_tree entity_child_name entity_component_at", symbol, length)
             || bootstrap_symbol_in("entity_component_count entity_component_type entity_id entity_retain entity_view_close entity_view_open", symbol, length)

@@ -36780,3 +36780,45 @@ remaining inline Python. The 11 tracked .py files still total 777 lines; inline
 removal is measured separately. Bootstrap/runtime assets and todo.txt are not
 modified. Continue auditing required filesystem, benchmark and browser-packaging
 tools before translating their smallest necessary behavior.
+
+Publication rebase correction: incoming 5ca3c3d changes body declaration
+scheduling and work_graph. The preceding 28-pair byte agreement describes the
+pre-rebase compiler only. Clone committed 41df88a into the own Docker volume at
+/cache/bootstrap_symbols_rebased_checkout and run the documented default native
+and selected-tool builds, with Python unavailable and no private bootstrap
+override. The clean successor builds successfully; a later build invocation
+confirms no remaining Ninja work. Its SHA-256 is
+587ce30678c0ef71ad09f1c43affac2bef627dcdaadb813e5bea4f48268a6f7a.
+It compiles and executes body_continuation with zero failures. The explicit
+custom-grammar/missing-grammar tail also passes without Python.
+
+Depfiles identify entities, parser-nodes and semantics as consumers of the
+changed work_graph. Recheck these three groups across all four targets. Entity
+and semantic predecessor/successor IR and objects agree byte-for-byte. Add the
+exact new generic_error_clear semantic import after reviewing its declaration
+and coordinator-only implementation; focused Tower checks accept it only in
+that component. All twelve affected pairs pass the final symbol checker.
+
+The strict script stops at the Linux parser cmp: the new compiler orders
+vector_push(void*), vector_push(usize) and vector_reserve(AutomatonSubset)
+specializations differently from the public predecessor. Complete the remaining
+affected comparisons with the same emission/checker commands while recording
+cmp separately. All four parser targets differ in bytes, but llvm-diff-19 returns
+zero with empty logs for each pair. A repeated Linux parser emission by the same
+successor is byte-identical in both IR and object. Logs/artifacts remain under
+the cloned checkout's build/bootstrap-check, including per-target .llvm-diff
+files. This is evidence of a generation-order difference, not a claim that the
+strict bootstrap matrix passes after rebase. Keep its cmp gate unchanged and
+notify the coordinator; do not repin or alter compiler semantics in this lane.
+The independent tooling change and metadata-only publication preserve runtime
+assets. No broader compiler/browser matrix is claimed for this checkpoint.
+
+The next removal-first audit confirms that the remaining C validation scripts
+still have documented callers and distinct emitted-C/platform checks. The
+interpreter/bytecode/module-path Python drivers have no live repository callers
+beyond their own usage strings, but contain subprocess/package/filesystem checks
+not established as redundant by the existing in-memory Tower tests. Retain them
+until that coverage is mapped; an absent caller alone is not grounds to discard
+a meaningful standalone validation entry point. Tracked Python remains 11 files,
+777 lines (down from 23 files and 1,989 lines); this milestone separately removes
+201 inline Python lines. Tracked owned C/C++ source remains zero.
