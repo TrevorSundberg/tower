@@ -11,7 +11,7 @@
     "capabilities.json": "beb929d7896b760e4a190875af67a895bc6599978a1566614dc7f39df7277bb2",
     "collections.tower": "f6e2bceb516d9ff9f073aa5504827db60f55d113a2389e9a0e2c17a25d26aef7",
     "compiler/imports-tower-18.txt.gz": "0fca0647149fdb009d542136fd37c0d0d37d73c50352efd08c0d1a5659f614ef",
-    "compiler/project.json": "1b15dff1d07a674306d144b159afd7bce2e30b572c886379e7f411f0de65a122",
+    "compiler/project.json": "d17cb91dbeaa601d85f9049057bae77e1e88f2641342e07f6d5aa520764079fe",
     "compiler/support-cross-0.a.gz": "24b988a194e6885e0c6c8fe95a2df1690fd3f82bf0f98b7be9d775d7210643d0",
     "compiler/support-cross-1.a.gz": "0ea1bf1660589a28d771c919dd04fbd90ee4b74291970c836e03f6376752e27a",
     "compiler/support-cross-2.a.gz": "ea1c99415a1076f15e8398b7a8d78098e8d3f0e6fd4e002cbb169c1c982b1232",
@@ -69,17 +69,17 @@
     "targets/x86_64-unknown-linux-gnu-runtime.o": "dd9017a54b2e683f35ed8289eebf6d13175beddd9020ddbdfba3c4933e5c847b",
     "templates.tower": "2045b87e45eda35945fea88cf70b904d8f695c93e36eea08aa0a14b4354682dc",
     "tokens.tower": "594b7d7efd13e3568819e6830e4fda1651f102ee9f2a633339d092f2c4721774",
-    "tower-cross.wasm.gz": "0444301c23c880c739a86ebeb2e0035e8ea276cdf67c0fd8098c5285bbcb0a8d",
-    "tower-llvm.wasm": "7a82de351435633d63589c4a896b256383c359cb8bb2f58d1a127422efcb0e46",
-    "tower-llvm.wasm.gz": "14a1f79e76465734773e97141a8da1dc3dc9055cd021cd302ac952c48fdc2468",
-    "tower-threads.wasm": "e8986d3c1a020ac564fcbff2fc21cab8e2c4f0eac51f130b479657a582a7117a",
+    "tower-cross.wasm.gz": "e0a5f0b5b5b335a0c0f8ed5a8eec4b0fef0a67cbca5e95dae6e1bfdbf8b5a0d8",
+    "tower-llvm.wasm": "9ca376ba5787c6b5451838f2f8ccd82363c1c4bc1140a363dc0c95e4fc9b36ff",
+    "tower-llvm.wasm.gz": "2eff10acffd9250edda348cdeea25278c8010e9bc2dd890f0e9a2bd85e47c593",
+    "tower-threads.wasm": "c66d7f867a7ed48043a08611f6e602079e74c35aa4a0a703819ffc700b9e30a3",
     "tower.tower": "3ffd10221e05a5b5b7512143600b1bd725250e604c50eb613c26a2ee16802a8f",
-    "tower.wasm": "1b2b46e3c64a7a9364af182dacad40e915cd1ea75a7c0bd6fa0fe71827cdbd1c",
+    "tower.wasm": "8dbfde8f617c71fc8615c363423fe21d79e12e29e082c262acbad4a98f0e6b6f",
     "worker.js": "9772e163624e910b63732507e540cf664de469cc78927c864c24c97f585188a5",
     "worker.js.map": "01d2e7b85a0a5a8f159c06f2fd4b94bb03bf45ee10db36cc54fcb2ea9639a213"
   },
-  "sourceCommit": "458ad680da71e7ee70497d7956bcd4254b87cf86",
-  "previousDeployment": "f9e5ab36c5901964fb39065eb3bd55437844e87b",
+  "sourceCommit": "791fbdb38ab3338ee23290b121b7c93303191c93",
+  "previousDeployment": "9a829ba8aec1ebe2d253d8eaa72f7fa6d663721e",
   "scope": "Tower ECS worker scheduling, lazy decltype/comptime queries, staged flow validation and integrated upstream language/compiler work.",
   "buildNote": "Built with the documented published development bootstrap; includes shared-memory and portable frontends plus LLVM/cross backends. See the project journal for exact validation and remaining serial phases.",
   "simplificationAudit": {
@@ -88,5 +88,5 @@
     "report": "docs/research/tower-simplification-audit.md",
     "scope": "Read-only source inventory and next-feature recommendation; deployed compiler assets unchanged."
   },
-  "buildSourceCommit": "458ad680da71e7ee70497d7956bcd4254b87cf86"
+  "buildSourceCommit": "791fbdb38ab3338ee23290b121b7c93303191c93"
 }
