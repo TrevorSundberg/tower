@@ -94,9 +94,9 @@
     "sourceCommit": "3c9a01c8d05b88872d56aaff11b029e7cb630aba",
     "report": "docs/temporal-opcode-research-journal.md"
   },
-  "previousDeployment": "8431125d8ba7c7817efbf92b8fae34522eefc4e5",
-  "buildNote": "Built with the documented published development bootstrap; includes shared-memory and portable frontends plus LLVM/cross backends. See the project journal for exact validation and remaining serial phases.",
+  "previousDeployment": "ae73b8849875ce613ab52e9ebae8294ca65b61d1",
+  "buildNote": "Documentation-only checkpoint. Preserves every verified runtime asset and its original buildSourceCommit; see the journal delivery audit for shipped behavior and remaining work.",
   "buildSourceCommit": "8e09a3c552ffda6ffa19da56ccbee85f6b504115",
-  "sourceCommit": "8e09a3c552ffda6ffa19da56ccbee85f6b504115",
-  "scope": "Tower ECS worker scheduling, lazy decltype/comptime queries, staged flow validation and integrated upstream language/compiler work."
+  "sourceCommit": "459b199e40fbb0725b47282ce19ad86f50bc5035",
+  "scope": "Documentation audit of shipped ECS/threading and scalar staging, remaining completion gates and validation; runtime assets unchanged."
 }
