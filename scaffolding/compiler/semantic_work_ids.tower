@@ -1,5 +1,9 @@
 import tower;
 
+// Bound retained private stages independently of the host worker count.
+// Workers refill within this window; structural publication ends the window.
+var SemanticPreparationWindow: usize = 256;
+
 // Stable scheduler identifiers; declarations have no module initialization effect.
 enum SemanticQuery: u32 {
     Layout = 1, Evaluation, Declaration, DeclarationDiscovery, Lowering, Body,

@@ -1,0 +1,115 @@
+import tower;
+import frontend_units;
+import work_named;
+import .library.vector;
+
+extern fn backend_units_create(frontend: void*, count: usize, budget: usize, target: u8*, library: bool, optimize: bool): void*;
+extern fn backend_units_close(batch: void*): void;
+extern fn backend_units_step(batch: void*, wait: bool): bool;
+extern fn backend_units_failed(batch: void*): usize;
+extern fn backend_units_cancelled(batch: void*): bool;
+extern fn backend_units_cancel(batch: void*): void;
+extern fn backend_units_result(batch: void*, ordinal: usize): void*;
+extern fn backend_units_error(batch: void*): u8*;
+extern fn backend_bytes(backend: void*): u8*;
+extern fn backend_size(backend: void*): usize;
+
+var BackendFixtureUnits: usize = 4;
+var BackendFixtureRevision: u64 = 75;
+var BackendFixtureProfile: u64 = 19;
+
+fn backend_units_frontend(width: u32, root: u8*, bedrock: u8*, foundation: u8*): void* {
+    var frontend = frontend_units_create(BackendFixtureUnits, 1, width,
+        BackendFixtureRevision, BackendFixtureProfile, bedrock, foundation, root);
+    units_check(frontend != null, "backend frontend create");
+    var source: u8* = "import tower; export fn answer():i32 {var x:decltype(later())=comptime(later());return x;} fn later():i32{return 42;}";
+    for(var ordinal: usize = 1; ordinal <= BackendFixtureUnits; ordinal++) {
+        units_check(frontend_units_source(frontend, ordinal, "backend_unit.tower", source, strlen(source)), "backend source");
+    }
+    units_check(backend_units_create(frontend, BackendFixtureUnits, 1, "wasm32-unknown-unknown", true, true) == null,
+        "backend cannot precede frontend completion");
+    while !frontend_units_step(frontend, true) {}
+    units_check(frontend_units_failed(frontend) == 0 && !frontend_units_cancelled(frontend), "backend frontend completed");
+    return frontend;
+}
+
+fn backend_units_trial(frontend: void*, budget: usize, target: u8*, output: vector(u8)*): void {
+    units_check(backend_units_create(frontend, ~convert(usize, 0), budget, target, true, true) == null,
+        "backend rejects invalid count before allocating or walking units");
+    var batch = backend_units_create(frontend, BackendFixtureUnits, budget, target, true, true);
+    units_check(batch != null, "backend batch create");
+    defer backend_units_close(batch);
+    units_check(backend_units_result(batch, 1) == null, "backend unpublished output");
+    units_check(backend_units_create(frontend, BackendFixtureUnits, budget, target, true, true) == null,
+        "backend rejects competing graph owner");
+    while !backend_units_step(batch, true) {}
+    if backend_units_failed(batch) != 0 { puts(backend_units_error(batch)); }
+    units_check(!backend_units_cancelled(batch) && backend_units_failed(batch) == 0, "backend compilation succeeds");
+    for(var ordinal: usize = 1; ordinal <= BackendFixtureUnits; ordinal++) {
+        var backend = backend_units_result(batch, ordinal);
+        units_check(backend != null && backend_size(backend) != 0, "backend object produced");
+        var bytes = backend_bytes(backend);
+        for(var i: usize = 0; i < backend_size(backend); i++) {
+            units_check(vector_push(output, bytes[i]), "backend object snapshot");
+        }
+    }
+    units_check(backend_units_result(batch, BackendFixtureUnits + 1) == null, "backend invalid result ordinal");
+}
+
+export fn backend_units_tests(root: u8*): void {
+    work_named_tests();
+    var bedrock: vector(u8) = default;
+    var foundation: vector(u8) = default;
+    defer vector_dispose(&bedrock);
+    defer vector_dispose(&foundation);
+    units_read(root, "/bedrock.tower", &bedrock);
+    units_read(root, "/foundation.tower", &foundation);
+    for(var width: u32 = 4; width <= 8; width += 4) {
+        var frontend = backend_units_frontend(width, root, bedrock.data, foundation.data);
+        defer frontend_units_close(frontend);
+        var target: u8* = width == 4 ? "wasm32-unknown-unknown" : "x86_64-unknown-linux-gnu";
+        var serial: vector(u8) = default;
+        var parallel: vector(u8) = default;
+        defer vector_dispose(&serial);
+        defer vector_dispose(&parallel);
+        backend_units_trial(frontend, 1, target, &serial);
+        backend_units_trial(frontend, BackendFixtureUnits, target, &parallel);
+        units_check(serial.length == parallel.length, "backend deterministic object lengths");
+        for(var i: usize = 0; i < serial.length; i++) {
+            units_check(serial.data[i] == parallel.data[i], "backend deterministic object bytes");
+        }
+        for(var budget: usize = 1; budget <= BackendFixtureUnits; budget += BackendFixtureUnits - 1) {
+            var failure = backend_units_create(frontend, BackendFixtureUnits, budget,
+                "not-a-real-target", true, true);
+            units_check(failure != null, "backend invalid-target batch");
+            while !backend_units_step(failure, true) {}
+            units_check(backend_units_failed(failure) == 1 && backend_units_error(failure)[0] != 0,
+                "backend deterministic first diagnostic");
+            units_check(backend_units_result(failure, 1) == null, "failed backend never publishes");
+            backend_units_close(failure);
+        }
+        parallel.length = 0;
+        backend_units_trial(frontend, BackendFixtureUnits, target, &parallel);
+        units_check(serial.length == parallel.length, "backend retry after failed queries");
+        for(var i: usize = 0; i < serial.length; i++) {
+            units_check(serial.data[i] == parallel.data[i], "backend retry preserves object bytes");
+        }
+    }
+    for(var active: usize = 0; active < 2; active++) {
+        var frontend = backend_units_frontend(8, root, bedrock.data, foundation.data);
+        defer frontend_units_close(frontend);
+        var batch = backend_units_create(frontend, BackendFixtureUnits, BackendFixtureUnits,
+            "x86_64-unknown-linux-gnu", true, true);
+        units_check(batch != null, "backend cancellation batch");
+        if active != 0 { backend_units_step(batch, false); }
+        backend_units_cancel(batch);
+        // A polling step may finish tiny objects first. In that case cancellation
+        // is correctly a no-op; unfinished work must be drained and hidden.
+        units_check(backend_units_step(batch, false), "backend cancellation drained");
+        if backend_units_cancelled(batch) {
+            units_check(backend_units_result(batch, 1) == null, "cancelled backend output hidden");
+        }
+        backend_units_close(batch);
+    }
+    puts("Native backend units: shared frontend queries, private LLVM contexts, deterministic objects/errors and cancellation passed.");
+}

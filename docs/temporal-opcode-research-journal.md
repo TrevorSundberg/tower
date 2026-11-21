@@ -35565,3 +35565,93 @@ explicit limitations; build/warm-edit-integrated-profile.json is the raw report.
 Publication uses b24847b as buildSourceCommit, a reachable public checkpoint,
 with the public 2292bd8 bootstrap and normal gh-pages history. Runtime assets are
 frozen at that tested checkpoint; subsequent documentation records verification.
+The audit checkpoint rebased onto 6f73a74's editor-latency changes and is now pushed
+as c19af1f. The merged clean native successor completes all 54 steps with the
+public bootstrap; portable/shared/LLVM builds and recipe packaging pass. Two
+browser generations using the target-registry recipe match exactly (tower
+1,132,071; LLVM 52,477,247; cross 64,034,630 bytes). The newer merged IDE code was
+then rebuilt into the publication assets; focused package checks pass four cases,
+with the opt-in fixture export explicitly skipped in this production reactor.
+Upstream recorded that fixture's separate five-case, zero-skip run. Deployment
+uses the frozen c19af1f snapshot and preserves prior tooling migration metadata.
+
+### Native backend units on the existing frontend graph
+
+Implemented backend recipe/results on the existing frontend unit entities, with
+Backend/BackendJoin queries depending on their completed Unit queries. Shared
+query/access identities now live in compiler_work_types.tower. A frontend lease
+rejects competing graph owners and prevents disposal while backend jobs retain
+programs. Each backend kernel owns its LLVM context/module/target machine and
+output; immutable Foundation programs and coordinator components stay pinned.
+No canonical graph copy, new evaluator, C++ helper or alternate scheduler was
+introduced. Native callback selection extends the existing Tower WorkPool and
+platform adapters; default frontend dispatch and portable inline execution retain
+their previous contract. Browser LLVM remains isolated-reactor execution.
+
+Admission continuously refills available slots; publication waits for whole-batch
+success and diagnostics choose the earliest source ordinal. Cancellation drains
+workers before releasing views. Review caught an important failure-lifetime case:
+unadmitted queries must settle before recipe components are removed, otherwise a
+later target batch could admit a stale recipe from the shared ready queue. Failed
+batches now mark those unused queries failed, retaining completed frontend work.
+Linking is excluded from parallel kernels because its current shared/temp-file
+state still requires an exclusive owner.
+
+Small-unit preflight compiled the pool change before integration. Backend preflight
+first diagnosed a missing direct vector import (transitive imports do not expose
+that type constructor); adding explicit imports fixes backend, fixture and graph
+unit compilation. Native focused integration is underway. The first build command
+found the reused cache had BACKEND_TESTS disabled; enabled its existing opt-in
+target, rather than starting another clean build directory. The fixture exercises
+named callback overlap on distinct actual pthreads, serial/parallel Linux and Wasm
+object equality, source-ordered failures, reuse after failed jobs, and cancellation.
+Logs: work-pool-preflight.log, backend-units-preflight.log,
+ecs-backend-units-{configure,build,tests}.log. These are implementation and pending
+validation results, not a claim that structural semantic preparation is threaded.
+
+Native backend integration passes: tower-worker-overlap and
+tower-native-backend-units, two tests with zero skips (13.33 seconds together).
+The existing native frontend unit fixture also passes after the shared pool change
+(11.29 seconds). Darwin arm64, Windows x64, WASI and portable thread-adapter
+objects compile successfully; native execution is verified on Linux only.
+The backend fixture also retries the same frontend after both serial and parallel
+target failures, ensuring unadmitted old recipes cannot survive into a new batch.
+
+Checkpoint c19af1f is deployed as gh-pages 743ae0c. Pages run 44947223502 succeeds;
+all 83 hosted asset requests match the frozen manifest and desktop/mobile graph,
+fast and LLVM execution agree. Manifest SHA-256:
+19a37d7c9cbbe54deb608d52f491e199ebd1e49a9f6fa7998265d70c1cf6466f.
+The current backend batch work is later, uncommitted source and is not included in
+that deployment. Its first upload emitted a credential-store warning but the
+normal authenticated push ultimately succeeded; no force push was used.
+
+### Frozen worker descriptors and body/staging frontiers
+
+Found additional worker descriptors still pointing at the live SemanticContext.
+Copying that whole context on a worker can race the coordinator's writes to its
+embedded WorkPool counters even when semantic inputs themselves are immutable.
+Body checking, declaration discovery/checking, evaluation preparation and lowering
+now borrow a descriptor frozen after graph admission and before dispatch. Results
+clear that stack borrow after joins. This follows the existing known-value worker
+fix rather than relying on optimization to omit reads of unused fields.
+
+Body continuation dispatch now reserves a complete bounded source window and
+refills idle slots on individual completions. Every stage is published before
+source-ordered bookkeeping; structural type construction retains its required
+publication barrier. Its focused smoke suite passes serial/worker canonical output,
+execution, resumed control-flow diagnostics and layout cycles, and the backend
+fixture still passes (ecs-body-frontier-* / ecs-backend-final-tests.log).
+Applied the same refill pattern to evaluation preparation/cloning and aggregate/
+expression lowering, with a shared 256-job preparation window. Those last changes
+are under focused validation. They may retain more private staged output than a
+worker-sized wave; the explicit bound limits that tradeoff. No measured end-to-end
+speedup or complete structural-query migration is claimed.
+
+The final bounded staging/lowering changes pass the body smoke and native backend
+fixture (ecs-stage-frontiers-*). Rebuilt the native compiler and ran the focused
+known-binding suite: ordinary interpreter staging, graph/fast execution, effect
+rules, lazy captures, canonical output and worker determinism pass. That successor
+also emits actual Linux x64 and Wasm objects for known_parallel_unit.tower
+(ecs-backend-known-{build,tests,check}.log). No sanitizer sweep or full browser
+matrix was repeated during these edits. The next publication needs regenerated
+frontend artifacts because the shared pool/semantic code changed.

@@ -21,9 +21,13 @@ export fn work_thread_capacity(): usize {
     return convert(usize, count > 256 ? 256 : count);
 }
 export fn work_thread_open(argument: void*): void* {
+    return work_thread_open_named(argument, null, "work_windows_entry");
+}
+export fn work_thread_open_named(argument: void*, posix_entry: u8*, windows_entry: u8*): void* {
+    if windows_entry == null { return null; }
     var module = GetModuleHandleW(null);
     if module == null { return null; }
-    var entry = GetProcAddress(module, "work_windows_entry");
+    var entry = GetProcAddress(module, windows_entry);
     if entry == null { return null; }
     return CreateThread(null, 0, entry, argument, 0, null);
 }

@@ -6,6 +6,7 @@ export fn work_thread_retention(): bool { return false; }
 export fn work_thread_available(): bool { return false; }
 export fn work_thread_capacity(): usize { return 1; }
 export fn work_thread_open(argument: void*): void* { return null; }
+export fn work_thread_open_named(argument: void*, posix_entry: u8*, windows_entry: u8*): void* { return null; }
 export fn work_thread_close(thread: void*): void {}
 export fn work_signal_open(): void* { return null; }
 export fn work_signal_close(signal: void*): void {}

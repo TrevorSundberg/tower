@@ -1,0 +1,292 @@
+import tower;
+import context;
+import target;
+import lowering;
+import pipeline;
+import .compiler.semantic_program_types;
+import .library.compiler_work_types;
+import .library.work_graph;
+import .library.work_pool;
+import .library.vector;
+
+extern fn frontend_units_work_acquire(frontend: void*): void*;
+extern fn frontend_units_work_release(frontend: void*): void;
+extern fn frontend_units_program(frontend: void*, ordinal: usize): SemanticProgram*;
+extern fn compiler_work_graph(work: void*): WorkGraph*;
+extern fn compiler_work_anchor(work: void*): void*;
+extern fn compiler_work_subject(work: void*, ordinal: usize): void*;
+extern fn compiler_work_unit_task(work: void*, ordinal: usize): usize;
+extern fn entity_create_related(anchor: void*): void*;
+extern fn entity_register(kind: void*, size: usize, alignment: usize, lifecycle: usize): bool;
+extern fn entity_component_add(node: void*, kind: void*): void*;
+extern fn entity_component_get(node: void*, kind: void*): void*;
+extern fn entity_component_remove(node: void*, kind: void*): bool;
+extern fn entity_component_data(component: void*): void*;
+extern fn entity_release(node: void*): usize;
+extern fn entity_view_open(anchor: void*): void*;
+extern fn entity_view_close(view: void*): void;
+
+// These components extend the frontend's unit entities and dependency graph.
+// Each admitted job borrows one immutable Foundation program and exclusively
+// owns its LLVM context, module, target machine, diagnostics and object buffer.
+struct BackendUnit {
+    batch: BackendUnits*;
+    program: SemanticProgram*;
+    backend: Backend*;
+    view: void*;
+    ordinal: usize;
+    task: usize;
+    ticket: WorkTicket;
+    success: bool;
+}
+
+struct BackendUnits {
+    frontend: void*;
+    work: void*;
+    graph: WorkGraph*;
+    kind: void*;
+    view: void*;
+    pool: WorkPool;
+    target: vector(u8);
+    count: usize;
+    join: usize;
+    completed: usize;
+    failed: usize;
+    library: bool;
+    optimize: bool;
+    started: bool;
+    finished: bool;
+    cancelled: bool;
+}
+
+fn backend_units_job(batch: BackendUnits*, ordinal: usize): BackendUnit* {
+    var subject = compiler_work_subject(batch.work, ordinal);
+    if subject == null || batch.kind == null { return null; }
+    return bits(BackendUnit*, entity_component_data(entity_component_get(subject, batch.kind)));
+}
+
+fn backend_unit_execute(payload: void*): void {
+    var job = bits(BackendUnit*, payload);
+    var batch = job.batch;
+    job.backend = backend_open(batch.target.data);
+    if job.backend == null { return; }
+    var program = job.program;
+    job.success = backend_lower(job.backend, program.root, program.functions.data,
+        program.functions.length, program.pointer_bytes, batch.library);
+    job.success &&= backend_optimize(job.backend, batch.optimize);
+    job.success &&= backend_emit(job.backend);
+}
+
+// Platform adapters select this callback using the same WorkPool transport.
+// Linking is deliberately absent: its process/temporary-file state is exclusive.
+export fn backend_thread_entry(argument: void*): void* {
+    var slot = bits(WorkSlot*, argument);
+    loop {
+        var job = work_pool_wait(slot);
+        if job == null { return null; }
+        backend_unit_execute(job);
+        work_pool_complete(slot);
+    }
+}
+
+export fn backend_windows_entry(argument: void*): u32 {
+    backend_thread_entry(argument);
+    return 0;
+}
+
+fn backend_units_unpin(batch: BackendUnits*): void {
+    for(var ordinal: usize = 1; ordinal <= batch.count; ordinal++) {
+        var job = backend_units_job(batch, ordinal);
+        if job != null && job.view != null {
+            entity_view_close(job.view);
+            job.view = null;
+        }
+    }
+    if batch.view != null {
+        entity_view_close(batch.view);
+        batch.view = null;
+    }
+}
+
+export fn backend_units_cancel(batch: BackendUnits*): void {
+    if batch.finished { return; }
+    batch.cancelled = true;
+    if batch.graph != null { work_cancel(batch.graph); }
+    while batch.pool.running != 0 { work_pool_receive(&batch.pool, true); }
+    backend_units_unpin(batch);
+    batch.finished = true;
+}
+
+export fn backend_units_close(batch: BackendUnits*): void {
+    if batch == null { return; }
+    backend_units_cancel(batch);
+    work_pool_close(&batch.pool);
+    if batch.work != null {
+        for(var ordinal: usize = 1; ordinal <= batch.count; ordinal++) {
+            var job = backend_units_job(batch, ordinal);
+            if job == null { continue; }
+            backend_close(job.backend);
+            if !entity_component_remove(compiler_work_subject(batch.work, ordinal), batch.kind) {
+                trap("Cannot release backend unit component", 0);
+            }
+        }
+    }
+    if batch.kind != null { entity_release(batch.kind); }
+    if batch.frontend != null { frontend_units_work_release(batch.frontend); }
+    vector_dispose(&batch.target);
+    free(batch);
+}
+
+// The frontend owner must outlive this lease. Its close entry rejects an active
+// backend lease; concurrent mutation or a second backend batch is not admitted.
+export fn backend_units_create(frontend: void*, count: usize, budget: usize,
+target: u8*, library: bool, optimize: bool): BackendUnits* {
+    if frontend == null || count == 0 || budget == 0 || target == null { return null; }
+    var batch = alloc(BackendUnits, 1);
+    if batch == null { return null; }
+    *batch = default;
+    batch.work = frontend_units_work_acquire(frontend);
+    if batch.work == null { free(batch); return null; }
+    batch.frontend = frontend;
+    batch.library = library;
+    batch.optimize = optimize;
+    if compiler_work_subject(batch.work, count) == null
+        || compiler_work_subject(batch.work, count + 1) != null {
+        backend_units_close(batch);
+        return null;
+    }
+    batch.count = count;
+    batch.graph = compiler_work_graph(batch.work);
+    if batch.graph == null { backend_units_close(batch); return null; }
+    var length: usize = 0;
+    while target[length] != 0 { length++; }
+    if !vector_reserve(&batch.target, length + 1) {
+        backend_units_close(batch); return null;
+    }
+    copy(batch.target.data, target, length + 1);
+    batch.target.length = length;
+    var lanes = budget < count ? budget : count;
+    if !work_pool_open_named(&batch.pool, lanes, "backend_thread_entry", "backend_windows_entry") {
+        backend_units_close(batch); return null;
+    }
+    var anchor = compiler_work_anchor(batch.work);
+    batch.kind = entity_create_related(anchor);
+    if batch.kind == null || !entity_register(batch.kind, sizeof(BackendUnit), alignof(BackendUnit), 0) {
+        backend_units_close(batch); return null;
+    }
+    // A fresh argument distinguishes successive target/profile batches while
+    // preserving the frontend's completed queries and their stable subjects.
+    var generation = convert(u64, batch.graph.tasks.length);
+    batch.join = work_request(batch.graph, anchor, convert(u32, CompilerQuery.BackendJoin), generation);
+    for(var ordinal: usize = 1; ordinal <= count; ordinal++) {
+        var subject = compiler_work_subject(batch.work, ordinal);
+        var job = bits(BackendUnit*, entity_component_data(entity_component_add(subject, batch.kind)));
+        if job == null { backend_units_close(batch); return null; }
+        *job = default;
+        job.batch = batch;
+        job.ordinal = ordinal;
+        job.program = frontend_units_program(frontend, ordinal);
+        if job.program == null { backend_units_close(batch); return null; }
+        job.task = work_request(batch.graph, subject, convert(u32, CompilerQuery.Backend), generation);
+        if !work_depend(batch.graph, job.task, compiler_work_unit_task(batch.work, ordinal))
+            || !work_depend(batch.graph, batch.join, job.task)
+            || !work_access(batch.graph, job.task, CompilerUnitDomain, CompilerProgramComponent,
+                ordinal - 1, 1, WorkAccessMode.Read)
+            || !work_access(batch.graph, job.task, CompilerUnitDomain, CompilerBackendComponent,
+                ordinal - 1, 1, WorkAccessMode.Write)
+            || !work_seal(batch.graph, job.task) {
+            backend_units_close(batch); return null;
+        }
+    }
+    if !work_access(batch.graph, batch.join, CompilerUnitDomain, CompilerBackendComponent,
+        0, count, WorkAccessMode.Read) || !work_seal(batch.graph, batch.join)
+        || !work_demand(batch.graph, batch.join) {
+        backend_units_close(batch); return null;
+    }
+    return batch;
+}
+
+fn backend_units_receive(batch: BackendUnits*, wait: bool): bool {
+    var job = bits(BackendUnit*, work_pool_receive(&batch.pool, wait));
+    if job == null { return false; }
+    if !work_finish(batch.graph, &job.ticket, job.success) {
+        trap("Stale backend unit receipt", 0);
+    }
+    batch.completed++;
+    if !job.success && (batch.failed == 0 || job.ordinal < batch.failed) {
+        batch.failed = job.ordinal;
+    }
+    return true;
+}
+
+export fn backend_units_step(batch: BackendUnits*, wait: bool): bool {
+    if batch.finished { return true; }
+    if !batch.started {
+        batch.view = entity_view_open(compiler_work_anchor(batch.work));
+        if batch.view == null { backend_units_cancel(batch); return true; }
+        for(var ordinal: usize = 1; ordinal <= batch.count; ordinal++) {
+            var job = backend_units_job(batch, ordinal);
+            job.view = entity_view_open(job.program.root);
+            if job.view == null { backend_units_cancel(batch); return true; }
+        }
+        batch.started = true;
+    }
+    loop {
+        while batch.failed == 0 && batch.pool.running < batch.pool.count {
+            var ticket: WorkTicket;
+            if !work_take(batch.graph, &ticket) { break; }
+            if ticket.task == batch.join {
+                if !work_finish(batch.graph, &ticket, true) { trap("Invalid backend join", 0); }
+                break;
+            }
+            var ordinal = work_task(batch.graph, ticket.task).subject;
+            var job = bits(BackendUnit*, entity_component_data(entity_component_get(ordinal, batch.kind)));
+            job.ticket = ticket;
+            if !work_pool_admit(&batch.pool, bits(void*, job)) {
+                backend_units_cancel(batch); return true;
+            }
+            if !batch.pool.threaded { backend_unit_execute(bits(void*, job)); }
+        }
+        if batch.pool.running == 0 {
+            if batch.failed != 0 || batch.completed == batch.count {
+                // A failed earlier unit stops admission. Settle every unused
+                // query before removing its component, so a later target batch
+                // cannot admit an old recipe through this shared ready queue.
+                if batch.failed != 0 {
+                    for(var ordinal: usize = 1; ordinal <= batch.count; ordinal++) {
+                        var task = backend_units_job(batch, ordinal).task;
+                        var state = work_task(batch.graph, task).state;
+                        if state == WorkState.Ready || state == WorkState.Waiting {
+                            if !work_fail(batch.graph, task) { backend_units_cancel(batch); return true; }
+                        }
+                    }
+                }
+                backend_units_unpin(batch);
+                batch.finished = true;
+                return true;
+            }
+            // Backend tasks depend only on completed frontend work. A stalled
+            // frontier here is invalid scheduling state, not an implicit wait.
+            backend_units_cancel(batch);
+            return true;
+        }
+        if !backend_units_receive(batch, wait) { return false; }
+        // Immediately refill after each receipt; blocking callers may keep
+        // draining, while polling callers inspect available completions only.
+    }
+}
+
+export fn backend_units_failed(batch: BackendUnits*): usize { return batch.failed; }
+export fn backend_units_cancelled(batch: BackendUnits*): bool { return batch.cancelled; }
+
+export fn backend_units_result(batch: BackendUnits*, ordinal: usize): Backend* {
+    if !batch.finished || batch.cancelled || batch.failed != 0 { return null; }
+    var job = backend_units_job(batch, ordinal);
+    return job == null ? null : job.backend;
+}
+
+export fn backend_units_error(batch: BackendUnits*): u8* {
+    if !batch.finished || batch.cancelled || batch.failed == 0 { return ""; }
+    var backend = backend_units_job(batch, batch.failed).backend;
+    return backend == null ? "Unable to allocate backend storage" : backend_error(backend);
+}

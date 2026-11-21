@@ -1,0 +1,49 @@
+import tower;
+import .library.work_pool;
+import utility_checks;
+
+extern fn pthread_self(): usize;
+
+var NamedWorkerCount: usize = 4;
+struct NamedWorkerJob { entered: void*; release: void*; thread: usize; }
+
+export fn named_worker_entry(argument: void*): void* {
+    var slot = bits(WorkSlot*, argument);
+    loop {
+        var job = bits(NamedWorkerJob*, work_pool_wait(slot));
+        if job == null { return null; }
+        job.thread = pthread_self();
+        work_signal_post(job.entered);
+        work_signal_wait(job.release);
+        work_pool_complete(slot);
+    }
+}
+
+fn work_named_tests(): void {
+    var pool: WorkPool = default;
+    utility_check(work_pool_open_named(&pool, NamedWorkerCount, "named_worker_entry", null), "named worker pool");
+    defer work_pool_close(&pool);
+    utility_check(pool.threaded && pool.count > 1, "named worker test needs actual threads");
+    var entered = work_signal_open();
+    var release = work_signal_open();
+    utility_check(entered != null && release != null, "named worker signals");
+    var jobs = alloc(NamedWorkerJob, pool.count);
+    utility_check(jobs != null, "named worker jobs");
+    for(var i: usize = 0; i < pool.count; i++) {
+        jobs[i] = init(NamedWorkerJob) {entered: entered, release: release, thread: 0};
+        utility_check(work_pool_admit(&pool, bits(void*, &jobs[i])), "named worker admission");
+    }
+    for(var i: usize = 0; i < pool.count; i++) { work_signal_wait(entered); }
+    utility_check(work_pool_receive(&pool, false) == null, "named workers overlap before release");
+    for(var i: usize = 0; i < pool.count; i++) { work_signal_post(release); }
+    while pool.running != 0 { work_pool_receive(&pool, true); }
+    for(var i: usize = 0; i < pool.count; i++) {
+        utility_check(jobs[i].thread != pthread_self(), "named job executes off coordinator");
+        for(var j: usize = 0; j < i; j++) {
+            utility_check(jobs[i].thread != jobs[j].thread, "named jobs use distinct threads");
+        }
+    }
+    free(jobs);
+    work_signal_close(entered);
+    work_signal_close(release);
+}

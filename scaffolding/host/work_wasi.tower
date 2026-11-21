@@ -26,6 +26,10 @@ struct WorkDeadline { seconds: i64; nanoseconds: i32; }
 export fn work_thread_available(): bool { return work_host_available(); }
 export fn work_thread_capacity(): usize { return work_host_capacity(); }
 
+// This transport exports one browser-selected frontend callback. LLVM uses
+// isolated backend reactor instances; native symbol lookup is not available.
+export fn work_thread_open_named(argument: void*, posix_entry: u8*, windows_entry: u8*): void* { return null; }
+
 export fn work_thread_open(argument: void*): void* {
     var entry = bits(void*, work_host_entry());
     if entry == null { return null; }

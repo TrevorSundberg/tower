@@ -132,11 +132,11 @@ fn sem_lower_transform(c: SemanticContext*, signature: bool): void {
     if c.workers.count == 0 { sem_require(sem_workers_open(c)); }
     var batch: vector(SemanticLowering*) = default;
     defer vector_dispose(&batch);
-    sem_require(vector_reserve(&batch, c.workers.count));
+    sem_require(vector_reserve(&batch, SemanticPreparationWindow));
     while sem_ok(c) {
         var count: usize = 0;
         var ticket: WorkTicket;
-        while count < c.workers.count && work_take_query(&c.queries, &ticket, query_kind) {
+        while count < SemanticPreparationWindow && work_take_query(&c.queries, &ticket, query_kind) {
             var subject = work_task(&c.queries, ticket.task).subject;
             var result = bits(SemanticLowering*, entity_component_data(entity_component_get(subject, kind)));
             result.ticket = ticket;
@@ -156,16 +156,21 @@ fn sem_lower_transform(c: SemanticContext*, signature: bool): void {
         if count == 0 { break; }
         var view = entity_view_open(kind);
         sem_require(view != null);
-        for(var i: usize = 0; i < count; ++i) {
-            sem_require(work_pool_submit(&c.workers, bits(void*, &batch.data[i].kernel)));
-        }
-        for(var i: usize = 0; i < count; ++i) {
+        var context = *c;
+        var next: usize = 0;
+        while next < count || c.workers.running != 0 {
+            while next < count && c.workers.running < c.workers.count {
+                var result = batch.data[next++];
+                result.context = &context;
+                sem_require(work_pool_submit(&c.workers, bits(void*, &result.kernel)));
+            }
             sem_require(work_pool_receive(&c.workers, true) != null);
         }
         entity_view_close(view);
         for(var i: usize = 0; i < count; ++i) {
             sem_require(entity_stage_publish(batch.data[i].stage));
             batch.data[i].stage = null;
+            batch.data[i].context = null;
         }
         for(var i: usize = 0; i < count; ++i) {
             var result = batch.data[i];

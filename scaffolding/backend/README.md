@@ -87,6 +87,20 @@ context/module still has one owner; this does not make the LLD linker concurrent
 6. Read `backend_raw`, `backend_optimized`, `backend_bytes`, `backend_size`,
    `backend_error` and `backend_error_offset`. Call `backend_close` once.
 
+Native `backend_units_create(frontend, count, budget, triple, library, optimize)`
+extends a successfully completed FrontendUnits batch. It attaches backend recipe/
+result components to the same unit entities, adds dependencies on their completed
+frontend queries, and borrows the existing query graph under an exclusive lease.
+Keep the frontend alive and immutable until `backend_units_close`. Each worker
+owns its LLVM context, module and target machine; Foundation inputs remain pinned.
+`backend_units_step(batch, wait)` refills the ready frontier as workers complete.
+Only a successful whole batch exposes borrowed `Backend*` results through
+`backend_units_result`; their storage belongs to the batch. Failure diagnostics
+select the first unit in source order. Cancellation drains admitted jobs before
+unpinning, and a cancelled graph cannot be reused. Linking remains a separate
+exclusive stage. Browser LLVM compilation continues to use isolated reactors;
+the native callback selection API is not a browser shared-memory LLVM backend.
+
 Perform each stage once on a fresh result. Text and byte views remain borrowed
 until close; copy them to retain downloads beyond that lifetime. The Foundation
 program must remain alive through lowering and any subsequent metadata/link-plan

@@ -839,6 +839,65 @@ fn sem_body_publish(c: SemanticContext*, result: SemanticBodyWork*): void {
     }
 }
 
+// Reserve the complete independent continuation frontier before dispatch.
+// Structural publication still needs a barrier, but worker-sized sub-batches
+// need not idle behind one slow body. Freeze the descriptor as well as the graph:
+// a worker must never copy c while the coordinator changes c.workers counters.
+fn sem_body_wave(c: SemanticContext*, batch: SemanticBodyWork**, count: usize, failed: usize): void {
+    var running: vector(SemanticBodyWork*) = default;
+    sem_require(vector_reserve(&running, count));
+    defer vector_dispose(&running);
+    var active: usize = 0;
+    for(var i: usize = 0; i < count && i <= failed; i++) {
+        var result = batch[i];
+        if result.done { continue; }
+        sem_require(work_take_task(&c.queries, &result.ticket,
+            work_find(&c.queries, result.subject, BodyQuery, 0)));
+        result.stop = sem_body_stop(result);
+        result.stage = entity_stage_open(c.program.root);
+        sem_require(result.stage != null);
+        foreach(var node in &result.nodes) {
+            sem_require(entity_stage_lease(result.stage, node));
+        }
+        // Generated control blocks survive across dispatches and are not in
+        // the original syntax list. They require leases too, not just pins.
+        foreach(var &frame in &result.blocks) {
+            if frame.loop_state.block != null {
+                sem_require(entity_stage_lease(result.stage, frame.loop_state.block));
+            }
+            if frame.iteration_state.iteration != null {
+                sem_require(entity_stage_lease(result.stage, frame.iteration_state.iteration));
+            }
+            if frame.match_state.block != null {
+                sem_require(entity_stage_lease(result.stage, frame.match_state.block));
+            }
+        }
+        running.data[active++] = result;
+    }
+    if active == 0 { return; }
+    var context = *c;
+    var view = entity_view_open(c.program.root);
+    sem_require(view != null);
+    var next: usize = 0;
+    while next < active || c.workers.running != 0 {
+        while next < active && c.workers.running < c.workers.count {
+            var result = running.data[next++];
+            result.context = &context;
+            sem_require(work_pool_submit(&c.workers, bits(void*, &result.kernel)));
+        }
+        sem_require(work_pool_receive(&c.workers, true) != null);
+    }
+    entity_view_close(view);
+    // Publish every stage before any cross-body bookkeeping. Completion order
+    // must not change diagnostics, nominal type identity or observation order.
+    for(var i: usize = 0; i < active; i++) {
+        sem_require(entity_stage_publish(running.data[i].stage));
+        running.data[i].stage = null;
+        running.data[i].context = null;
+    }
+    for(var i: usize = 0; i < active; i++) { sem_body_publish(c, running.data[i]); }
+}
+
 fn sem_bodies(c: SemanticContext*): void {
     if !sem_ok(c) {
         return;
@@ -930,58 +989,7 @@ fn sem_bodies(c: SemanticContext*): void {
         var pending = count != 0;
         while pending {
             pending = false;
-            for(var first: usize = 0; first < count && first <= failed;) {
-                var running: SemanticBodyWork*[256];
-                var active: usize = 0;
-                while first < count && first <= failed && active < c.workers.count {
-                    var result = batch[first++];
-                    if result.done {
-                        continue;
-                    }
-                    sem_require(work_take_task(&c.queries, &result.ticket,
-                    work_find(&c.queries, result.subject, BodyQuery, 0)));
-                    result.stop = sem_body_stop(result);
-                    result.stage = entity_stage_open(c.program.root);
-                    sem_require(result.stage != null);
-                    foreach(var node in &result.nodes) {
-                        sem_require(entity_stage_lease(result.stage, node));
-                    }
-                    // Retained generated blocks are absent from original syntax.
-                    // Completion appends to them after resumption; pinning alone
-                    // does not grant payload ownership.
-                    foreach(var & frame in &result.blocks) {
-                        if frame.loop_state.block != null {
-                            sem_require(entity_stage_lease(result.stage, frame.loop_state.block));
-                        }
-                        if frame.iteration_state.iteration != null {
-                            sem_require(entity_stage_lease(result.stage, frame.iteration_state.iteration));
-                        }
-                        if frame.match_state.block != null {
-                            sem_require(entity_stage_lease(result.stage, frame.match_state.block));
-                        }
-                    }
-                    running[active++] = result;
-                }
-                if active == 0 {
-                    continue;
-                }
-                var view = entity_view_open(c.program.root);
-                sem_require(view != null);
-                for(var i: usize = 0; i < active; i++) {
-                    sem_require(work_pool_submit(&c.workers, bits(void*, &running[i].kernel)));
-                }
-                for(var i: usize = 0; i < active; i++) {
-                    sem_require(work_pool_receive(&c.workers, true) != null);
-                }
-                entity_view_close(view);
-                for(var i: usize = 0; i < active; i++) {
-                    sem_require(entity_stage_publish(running[i].stage));
-                    running[i].stage = null;
-                }
-                for(var i: usize = 0; i < active; i++) {
-                    sem_body_publish(c, running[i]);
-                }
-            }
+            sem_body_wave(c, &batch[0], count, failed);
             // Release all read claims before coordinator construction writes.
             for(var i: usize = 0; i < count; i++) {
                 var result = batch[i];

@@ -995,7 +995,9 @@ fn sem_declaration_discover(c: SemanticContext*): void {
             batch[count] = result;
             count++;
         }
+        var context = *c;
         for(var i: usize = 0; i < count; i++) {
+            batch[i].context = &context;
             sem_require(work_pool_submit(&c.workers, bits(void*, &batch[i].kernel)));
         }
         index = 0;
@@ -1005,6 +1007,7 @@ fn sem_declaration_discover(c: SemanticContext*): void {
         index = 0;
         while index < count {
             var result = batch[index];
+            result.context = null;
             var success = !sem_declaration_error(c, result);
             sem_query_observe(c, &result.ticket, &result.query_reads);
             sem_require(work_finish(&c.queries, &result.ticket, success));
@@ -1084,11 +1087,14 @@ fn sem_declarations(c: SemanticContext*, statements: vector(void*)*): void {
         // Readiness checks inspect graph states, including newly discovered
         // field dependencies. Finish every Ready -> Running transition before
         // dispatch so workers read an immutable graph throughout this wave.
+        var context = *c;
         for(var i: usize = 0; i < count; i++) {
+            batch[i].context = &context;
             sem_require(work_pool_submit(&c.workers, bits(void*, &batch[i].kernel)));
         }
         index = 0;
         while index < count { sem_require(work_pool_receive(&c.workers, true) != null); index++; }
+        for(var i: usize = 0; i < count; i++) { batch[i].context = null; }
         entity_view_close(view);
         if count == 0 { break; }
         var layouts: vector(usize);

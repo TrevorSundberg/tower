@@ -25,6 +25,7 @@ extern fn compiler_work_done(work: void*): bool;
 extern fn compiler_work_failed(work: void*): usize;
 
 extern fn compiler_work_cancel(work: void*): void;
+extern fn compiler_work_graph(work: void*): void*;
 
 extern fn entity_create(store: void*): void*;
 
@@ -109,6 +110,7 @@ struct FrontendUnits {
     started: bool;
     finished: bool;
     cancelled: bool;
+    borrowed: bool;
 }
 
 fn frontend_units_snapshot(out: vector(u8)*, source: u8*, length: usize): bool {
@@ -191,6 +193,7 @@ export fn frontend_units_close(batch: FrontendUnits*): void {
     if batch is null {
         return;
     }
+    if batch.borrowed { trap("Compilation units still borrowed by a backend", 0); }
     if batch.work is not null {
         frontend_units_cancel(batch);
     }
@@ -389,6 +392,20 @@ export fn frontend_units_step(batch: FrontendUnits*, wait: bool): bool {
 
 export fn frontend_units_failed(batch: FrontendUnits*): usize {
     return compiler_work_failed(batch.work);
+}
+
+// One coordinator may extend completed unit queries while borrowing their
+// programs. No frontend mutation/disposal is permitted until release.
+export fn frontend_units_work_acquire(batch: FrontendUnits*): void* {
+    if !batch.finished || batch.cancelled || batch.borrowed
+        || compiler_work_graph(batch.work) == null { return null; }
+    batch.borrowed = true;
+    return batch.work;
+}
+
+export fn frontend_units_work_release(batch: FrontendUnits*): void {
+    if !batch.borrowed { trap("Compilation unit lease was not acquired", 0); }
+    batch.borrowed = false;
 }
 
 export fn frontend_units_cancelled(batch: FrontendUnits*): bool {
