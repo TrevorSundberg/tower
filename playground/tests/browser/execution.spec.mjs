@@ -296,8 +296,38 @@ test('projects and edits reuse idle execution workers with replaced environments
     await expect(page.locator('#llvm-output')).toHaveText(value + '\n');
     await expect(page.locator('#execution-status')).toContainText('backends match');
   }
+  await page.getByRole('textbox',{name:'Tower source'}).press('ControlOrMeta+End');
+  await page.keyboard.insertText('\n// ');
+  await page.keyboard.type('keep warm compilers through this typing burst',{delay:70});
+  await expect(page.locator('#execution-status')).toContainText('backends match');
+  for (const id of ['execution-output','fast-output','llvm-output'])
+    await expect(page.locator('#'+id)).toHaveText('43\n');
   expect(page.workers().filter(worker => worker.url().includes('execution-worker'))).toEqual(nextWorkers);
   expect(requests.filter(url => /tower(?:-llvm)?\.wasm/.test(url))).toEqual([]);
+});
+
+test('superseded compilation cannot execute while waiting for its UI permit',async({page})=>{
+  await selectDocument(page,'functions.tower');
+  await expect(page.locator('#execution-status')).toContainText('backends match');
+  const workers=page.workers().filter(worker=>worker.url().includes('execution-worker'));
+  for(const worker of workers) await worker.evaluate(()=>{
+    const send=self.postMessage.bind(self);
+    self.__readyIds=[]; self.__executedIds=[];
+    self.postMessage=(data,...args)=>{
+      if(data.phase?.startsWith('Executing'))self.__executedIds.push(data.id);
+      if(data.ready){self.__readyIds.push(data.id);setTimeout(()=>send(data,...args),300);}
+      else send(data,...args);
+    };
+  });
+  const editor=page.getByRole('textbox',{name:'Tower source'});
+  await editor.press('ControlOrMeta+End');await page.keyboard.insertText('\n// pending');
+  for(const worker of workers) await expect.poll(()=>worker.evaluate(()=>self.__readyIds.length)).toBeGreaterThan(0);
+  const obsolete=await Promise.all(workers.map(worker=>worker.evaluate(()=>self.__readyIds[0])));
+  await page.keyboard.insertText(' newest');
+  await expect(page.locator('#execution-status')).toContainText('backends match');
+  expect(page.workers().filter(worker=>worker.url().includes('execution-worker'))).toEqual(workers);
+  for(let i=0;i<workers.length;i++)expect(await workers[i].evaluate(()=>self.__executedIds)).not.toContain(obsolete[i]);
+  for(const id of ['execution-output','fast-output','llvm-output'])await expect(page.locator('#'+id)).toHaveText('720\n721\n');
 });
 
 test('LLVM infinite execution cancels on edits and traps remain inline', async ({ page, request }) => {

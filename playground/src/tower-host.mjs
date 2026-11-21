@@ -135,6 +135,20 @@ export async function loadTower(bytes, log = () => {}, bootstrap, foundation, be
       if (!size) throw new Error(string(exports.tw_last_error()));
       return new Uint8Array(exports.memory.buffer, exports.tw_exec_bytecode_data(), size).slice();
     },
+    preparePackage(handle, {optimizationProfile=0}={}) {
+      // Older editable compiler generations retain the original validated load.
+      if (!exports.tw_exec_prepare_package) {
+        const bytecode = host.bytecode(handle,{optimizationProfile});
+        return {bytecode,handle:host.loadBytecode(bytecode)};
+      }
+      const canonical = exports.tw_exec_prepare_package(handle,optimizationProfile);
+      if (!canonical) throw new Error(string(exports.tw_last_error()));
+      try {
+        const size = exports.tw_exec_bytecode_size();
+        const bytecode = new Uint8Array(exports.memory.buffer,exports.tw_exec_bytecode_data(),size).slice();
+        return {bytecode,handle:canonical};
+      } catch (error) { exports.tw_exec_destroy(canonical); throw error; }
+    },
     loadBytecode(bytes) {
       if (!(bytes instanceof Uint8Array) || bytes.length > 256 * 1024 * 1024) throw new Error('Invalid .towerbc input');
       const pointer = exports.tw_alloc(bytes.length || 1);

@@ -1,6 +1,7 @@
 # IDE service integration, currently linked into the WASI host. All policies,
 # ownership and functional fixtures are Tower; no native adapter is generated.
 option(TOWER_IDE_TESTS "Include focused Tower IDE service fixtures" OFF)
+option(TOWER_IDE_PACKAGE_TESTS "Include Tower package ownership fixtures" OFF)
 function(tower_ide_integrate target)
   set(input "${CMAKE_CURRENT_BINARY_DIR}/tower_compiler_ide.tower")
   set(object "${CMAKE_CURRENT_BINARY_DIR}/tower-compiler-ide.o")
@@ -11,6 +12,9 @@ function(tower_ide_integrate target)
   endforeach()
   if(TOWER_IDE_TESTS)
     string(APPEND source "import tests.ide;\n")
+  endif()
+  if(TOWER_IDE_PACKAGE_TESTS)
+    string(APPEND source "import tests.ide_package_checks;\n")
   endif()
   file(GENERATE OUTPUT "${input}" CONTENT "${source}")
   add_custom_command(OUTPUT "${object}"

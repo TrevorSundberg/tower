@@ -467,17 +467,21 @@ Choose **Memory** for a growing byte buffer and indexed arrays.
 Unmodified saved Foundation defaults upgrade with the bundled module;
 customized modules are retained and can be reset with **Foundation → Restore**.
 
-Typing waits for a **200 ms quiet period**, reset by each edit, before parsing,
-highlighting, diagnostics and auto execution update together. There is no second
-execution delay. Opening a document and explicit Execute bypass the debounce;
-IME composition defers automatic work. Syntax-only examples remain parser
+Highlighting starts on the next animation frame, and automatic execution starts
+when the current parse is valid, without a fixed typing delay. IME composition
+defers automatic work; diagnostic visibility retains its separate delay policy.
+Syntax-only examples remain parser
 demos. Cancel stops the current source revision until another edit or explicit
 execution; re-inspecting it does not restart a cancelled infinite loop.
 
 Compilation and execution run in **one worker per backend**, separate from live parsing.
-Each column shows its own progress. **Cancel** terminates whichever workers remain;
-editing also cancels them and keeps the last output/errors visible until new
-results arrive. Completed workers retain
+Each column shows its own progress. **Cancel** terminates whichever workers remain.
+Edits coalesce unfinished compilation in the same warm worker and reject stale
+results. A worker must receive permission for the current revision before running
+the program. An edit during execution discards its results and terminates it on
+the next UI task unless its terminal reply is already queued; explicit Cancel,
+project switches and compiler changes terminate immediately. The last output and
+errors remain visible until new results arrive. Completed workers retain
 their compiler and grammar state; each new run gets fresh program memory and
 obsolete replies are rejected. Execution has no elapsed-time cutoff;
 the interpreter runs bounded instruction slices. LLVM compiles, optimizes, links
@@ -957,8 +961,11 @@ and mobile emulation separately, waiting for each result; it also records indivi
 worker phase timings and grammar-only typing. File opening executes immediately
 after parsing. Highlighting schedules on the next animation frame and coalesces
 edits behind a running parse without throwing away the warm worker. Automatic
-execution retains a 200 ms typing debounce; diagnostic visibility uses its separate
-delay policy.
+execution follows the valid parse immediately and coalesces pending compilation;
+diagnostic visibility uses its separate delay policy. Package preparation retains
+the freshly reconstructed Foundation session after validating the envelope and
+matching its execution cache, so the fast runner does not parse its own package
+again. Imported packages still take the full untrusted reconstruction/check path.
 Status timings list each backend's stages in pipeline order (backends run in
 parallel). A `(cached)` load reports the **current run's** measured reuse time,
 even when it rounds to 0.0 ms; it never substitutes an earlier cold-load measurement.

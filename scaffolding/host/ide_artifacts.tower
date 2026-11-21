@@ -11,13 +11,20 @@ import .library.vector;
 import .compiler.foundation_types;
 import .compiler.foundation_tags;
 import .compiler.format_types;
+import .compiler.component_kinds;
+
+extern fn compiler_node_type(node: void*, kind: u32): void*;
+
+enum IdePackageError: u32 { CacheMismatch = 9 }
+var IdePackageHeaderBytes: usize = 56;
 
 fn ide_program_format(session: IdeExecution*, formatted: FormatResult*): void {
     *formatted = default;
     var present = session != null;
     present &&= session.program.error.length == 0;
     if present {
-        format_entity(formatted, session.program.root, syntax_component_type(), null, parser_match_get_type());
+        format_entity(formatted, session.program.root, compiler_node_type(session.program.root, CompilerSyntax),
+            null, compiler_node_type(session.program.root, CompilerParserMatch));
     }
 }
 
@@ -67,7 +74,10 @@ export fn tw_exec_strip_comments(handle: u32): void {
     }
 }
 
-export fn tw_exec_bytecode_options(handle: u32, profile: u32): usize {
+// Reconstruct canonical Foundation once and keep its owning execution session.
+// Encoding and verification use that same freshly checked graph. The caller can
+// publish it for execution or dispose it when only the package bytes are wanted.
+fn ide_prepare_package(handle: u32, profile: u32): IdeExecution* {
     var state = ide_state();
     bytecode_free(state.bytecode);
     state.bytecode = null;
@@ -77,11 +87,16 @@ export fn tw_exec_bytecode_options(handle: u32, profile: u32): usize {
     invalid ||= session.program.error.length != 0;
     if invalid {
         ide_error("Cannot package an invalid program");
-        return 0;
+        return null;
     }
     ide_error("");
     var formatted: FormatResult;
     ide_program_format(session, &formatted);
+    defer format_dispose(&formatted);
+    if formatted.failed {
+        ide_error("Cannot format .towerbc Foundation source");
+        return null;
+    }
     var canonical = ide_execution_text(formatted.text.data, formatted.text.length, session.program.pointer_bytes, true);
     var failed = canonical.error.length != 0;
     if failed {
@@ -96,8 +111,44 @@ export fn tw_exec_bytecode_options(handle: u32, profile: u32): usize {
             ide_error("Cannot allocate .towerbc package");
         }
     }
+    if !failed {
+        var invalid = bytecode_validate(state.bytecode, state.bytecode_size);
+        if invalid != 0 {
+            ide_error(bytecode_error(invalid));
+            failed = true;
+        } else {
+            if !bytecode_matches(canonical.fast, state.bytecode) {
+                ide_error(bytecode_error(convert(u32, IdePackageError.CacheMismatch)));
+                failed = true;
+            }
+        }
+    }
+    if failed {
+        ide_execution_close(canonical);
+        bytecode_free(state.bytecode);
+        state.bytecode = null;
+        state.bytecode_size = 0;
+        return null;
+    }
+    return canonical;
+}
+
+export fn tw_exec_prepare_package(handle: u32, profile: u32): u32 {
+    if !ide_execution_capacity() { return 0; }
+    var canonical = ide_prepare_package(handle, profile);
+    if canonical == null { return 0; }
+    return ide_execution_publish(canonical);
+}
+
+export fn tw_exec_bytecode_size(): usize {
+    return ide_state().bytecode_size;
+}
+
+export fn tw_exec_bytecode_options(handle: u32, profile: u32): usize {
+    var canonical = ide_prepare_package(handle, profile);
+    if canonical == null { return 0; }
     ide_execution_close(canonical);
-    format_dispose(&formatted);
+    var state = ide_state();
     return state.bytecode_size;
 }
 
@@ -121,7 +172,7 @@ export fn tw_exec_load_bytecode(data: u8*, size: usize): u32 {
         ide_error(bytecode_error(invalid));
         return 0;
     }
-    var source = data + 56;
+    var source = data + IdePackageHeaderBytes;
     var length = bytecode_source_size(data);
     for(var i: usize = 0; i < length; i++) {
         rejected = source[i] == 0;
@@ -140,7 +191,7 @@ export fn tw_exec_load_bytecode(data: u8*, size: usize): u32 {
     var ready = ide_execution_fast(session);
     ready &&= bytecode_matches(session.fast, data);
     if !ready {
-        ide_error(bytecode_error(9));
+        ide_error(bytecode_error(convert(u32, IdePackageError.CacheMismatch)));
         ide_execution_close(session);
         return 0;
     }

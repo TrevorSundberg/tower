@@ -3,9 +3,18 @@ import { originalDiagnostic } from './foundation-source.mjs';
 import { getTower, getCanonicalTower, getCompiler, warmCompiler, useCompiler } from './compiler-runtime.mjs';
 import {projectDiagnostic} from './projects.mjs';
 
-// Completed workers retain compiler/grammar state. Active cancellation still
-// terminates the worker, including synchronous compilation or an infinite loop.
-async function receive({ data: { command, id, source, foundation, bedrock, backend, pointerBytes=4, inputs={}, files, drive=[], builtins={}, entry='input.tower', bytecode, optimize=true, comments=true, compiler, library='.tower' } }) {
+// Compilation is coalesced across edits. The UI grants execution explicitly,
+// after which edits/cancellation can terminate the worker and an infinite loop.
+let desired, executionPermit;
+async function permitExecution(event) {
+  if (desired !== event) return false;
+  return new Promise(resolve => {
+    executionPermit = {id:event.data.id,resolve};
+    postMessage({id:event.data.id,backend:event.data.backend,ready:true});
+  });
+}
+async function receive(event) {
+  const {command, id, source, foundation, bedrock, backend, pointerBytes=4, inputs={}, files, drive=[], builtins={}, entry='input.tower', bytecode, optimize=true, comments=true, compiler, library='.tower'} = event.data;
   useCompiler(compiler);
   if (command === 'warm') {
     try { await warmCompiler('./tower-llvm.wasm.gz'); postMessage({warm:true}); }
@@ -48,21 +57,22 @@ async function receive({ data: { command, id, source, foundation, bedrock, backe
         if(compiled.status==='error'){send({result:originalDiagnostic(compiled,formatted.spans,formatted.sourceMap),timings});return;}
         await getCanonicalTower();
         tower.destroyExecution(handle);
+        const reconstructionStart = performance.now();
         handle = tower.compile(compiled.foundation,{pointerBytes});
+        timings.reconstruct = performance.now() - reconstructionStart;
         const checked = tower.execute(handle,0);
         if(checked.status==='error'){send({result:checked,timings});return;}
         send({optimizedFoundation:compiled.foundation,optimizationProfile:compiled.optimizationProfile,fastLLVM:{before:compiled.before,after:compiled.after},timings});
-        const start = performance.now(); tower.useFast(handle);
-        timings.prepare = performance.now() - start;
         const packageStart = performance.now();
         await getCanonicalTower();
-        const bytecode = tower.bytecode(handle,{optimizationProfile:compiled.optimizationProfile}), loaded = tower.loadBytecode(bytecode);
-        try {
-          const disassembly = tower.foundation(loaded).source;
-          timings.package = performance.now() - packageStart;
-          send({bytecode,disassembly,cache:tower.fastStats(handle),timings});
-        } finally { tower.destroyExecution(loaded); }
+        const prepared = tower.preparePackage(handle,{optimizationProfile:compiled.optimizationProfile});
+        tower.destroyExecution(handle);
+        handle = prepared.handle;
+        const disassembly = tower.foundation(handle).source;
+        timings.package = performance.now() - packageStart;
+        send({bytecode:prepared.bytecode,disassembly,cache:tower.fastStats(handle),timings});
       }
+      if (!await permitExecution(event)) return;
       send({ phase: 'Executing…' });
       const execution = performance.now();
       let pending = '', lastUpdate = execution;
@@ -91,6 +101,7 @@ async function receive({ data: { command, id, source, foundation, bedrock, backe
       const diagnostic = result => originalDiagnostic(result, formatted.spans, formatted.sourceMap);
       if (compiled.status === 'error') { send({ result: diagnostic(compiled), timings }); return; }
       send({ llvm: { before: compiled.before, after: compiled.after, disassembly: compiled.disassembly, wasm: compiled.wasm }, timings });
+      if (!await permitExecution(event)) return;
       send({ phase: 'Executing…' });
       const execution = performance.now();
       await executeWasm(compiled, result => {
@@ -101,7 +112,36 @@ async function receive({ data: { command, id, source, foundation, bedrock, backe
   } catch (error) { send({ error: error.message, timings }); }
   finally { if (handle) tower.destroyExecution(handle); }
 }
-// A real request can arrive while preloading. Serialize access to the reactor;
-// cancellation still terminates the worker, including a pending warm run.
-let queue = Promise.resolve();
-self.onmessage = event => { queue = queue.then(() => receive(event)); };
+// Source capability updates and reactor calls remain serialized. Yield once at
+// admission so already queued edit messages replace obsolete pending requests.
+let draining = false, warmRequest;
+async function drain() {
+  if (draining) return;
+  draining = true;
+  try {
+    while (desired || warmRequest) {
+      await new Promise(resolve => setTimeout(resolve,0));
+      const event = desired ?? warmRequest;
+      if (!event) continue;
+      if (event === warmRequest) warmRequest = null;
+      await receive(event);
+      if (desired === event) desired = null;
+    }
+  } finally { draining = false; }
+}
+self.onmessage = event => {
+  const {command,id} = event.data;
+  if (command === 'execute' || command === 'cancel') {
+    if (command === 'cancel' && desired?.data.id === id) desired = null;
+    if (executionPermit?.id === id) {
+      const permit = executionPermit; executionPermit = null;
+      permit.resolve(command === 'execute' && desired?.data.id === id);
+    }
+    return;
+  }
+  if (command !== 'warm') {
+    if (executionPermit) { executionPermit.resolve(false); executionPermit = null; }
+    desired = event;
+  } else warmRequest = event;
+  void drain();
+};

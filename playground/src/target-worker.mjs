@@ -85,5 +85,27 @@ async function receive({data:{command,id,source,foundation,bedrock,targetKeys=[]
   } catch(error) { send({error:error.message,done:true}); }
   finally { if(handle) tower.destroyExecution(handle); }
 }
-let queue = Promise.resolve();
-self.onmessage = event => { queue = queue.then(() => receive(event)); };
+let desired, warmRequest, draining = false;
+async function drain() {
+  if (draining) return;
+  draining = true;
+  try {
+    while (desired || warmRequest) {
+      await new Promise(resolve => setTimeout(resolve,0));
+      const event = desired ?? warmRequest;
+      if (!event) continue;
+      if (event === warmRequest) warmRequest = null;
+      await receive(event);
+      if (desired === event) desired = null;
+    }
+  } finally { draining = false; }
+}
+self.onmessage = event => {
+  if (event.data.command === 'cancel') {
+    if (desired?.data.id === event.data.id) desired = null;
+    return;
+  }
+  const warm = event.data.command === 'warm';
+  if (!warm) desired = event; else warmRequest = event;
+  void drain();
+};

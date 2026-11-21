@@ -104,6 +104,7 @@ let editor, source = '', offsets = [0], result = null, generation = 0;
 let frame = 0, queued = null, dirty = true, busy = false;
 let executionId = 0, executionError = null, runners = {};
 const idleExecutionWorkers = new Map();
+const settlingExecutionWorkers = new Map();
 let linkInputs = {}, llvmViews = {};
 let selectedTargets = { ...emptySelection(), wasm: true, interpreter: true, fast: true }, savedSelection = null, targetsChanged = false;
 try { savedSelection = savedTargetSelection(localStorage); } catch {}
@@ -137,14 +138,13 @@ function downloadName(key, extension) { return $('filename').textContent.replace
 const selectedNativeKeys = () => nativeTargetKeys.filter(key => selectedTargets[key]);
 const buildKeys = () => [...selectedNativeKeys(), ...Object.keys(sourceTargets).filter(key=>selectedTargets[key])];
 let autoTimer = 0, documentRevision = 0, executedRevision = -1;
-const typingDebounceMs = 200;
+const compositionRetryMs = 200;
 let diagnosticPhase = null;
 const diagnosticDelay = new DiagnosticDelay((channel, value) => {
   if (channel === 'editor') publishDiagnostic(value?.error ?? null, value?.phase ?? null);
   else { $(channel).textContent = value ?? ''; $(channel).hidden = value === null; }
 });
 const reportProblem = (channel, value) => diagnosticDelay.update(channel, value, documentRevision);
-let typingDeadline = 0;
 let foundation = '', bundledFoundation = '', editingModule = '', bedrock = '', bundledBedrock = '', bundledTower = '', bundledBuiltins = {};
 let documentLoadId = 0;
 let editorExtensions, projects = [], project, storage, activePath = '', saveSequence = 0;
@@ -203,7 +203,7 @@ function compileNative(id,text) {
   const keys = buildKeys();
   const worker = idleExecutionWorkers.get('native') ?? new Worker(new URL('./target-worker.js',import.meta.url),{type:'module'});
   idleExecutionWorkers.delete('native');
-  const runner = runners.native = {worker,keys,timings:{},failure:null,completed:new Set()};
+  const runner = runners.native = {id,worker,keys,timings:{},failure:null,completed:new Set()};
   for (const key of keys) setPhase(key,'Loading…');
   const beginDisplay = () => { if (!runner.displayStarted) { keys.forEach(clearNative); renderLLVM(); runner.displayStarted=true; } };
   const fail = (message,key) => {
@@ -215,7 +215,7 @@ function compileNative(id,text) {
   };
   const finish = () => {
     worker.onmessage = worker.onerror = null;
-    if (runner.failure) worker.terminate(); else idleExecutionWorkers.set('native',worker);
+    if (runner.failure) worker.terminate(); else { worker.cancelledCompilation=false; idleExecutionWorkers.set('native',worker); }
     runner.worker=null; showTimings(); updateComparison();
   };
   worker.onerror = event => { event.preventDefault(); if(id!==executionId)return; beginDisplay(); fail(event.message); finish(); };
@@ -240,7 +240,7 @@ function compileNative(id,text) {
 function showTimings() {
   const a = runners.interpreter?.timings ?? {}, b = runners.llvm?.timings ?? {};
   const values = [['Tower load', a.load, a.loadCached], ['Tower compile', a.tower], ['Instructions', a.instructions],
-    ['Graph run', a.execute], ['Fast LLVM', runners.fast?.timings?.optimize], ['Fast prepare', runners.fast?.timings?.prepare], ['Bytecode package', runners.fast?.timings?.package], ['Fast run', runners.fast?.timings?.execute], ['LLVM load', b.llvmLoad, b.llvmLoadCached], ['LLVM parse', b.parse],
+    ['Graph run', a.execute], ['Fast LLVM', runners.fast?.timings?.optimize], ['Fast reconstruction', runners.fast?.timings?.reconstruct], ['Fast prepare', runners.fast?.timings?.prepare], ['Bytecode package', runners.fast?.timings?.package], ['Fast run', runners.fast?.timings?.execute], ['LLVM load', b.llvmLoad, b.llvmLoadCached], ['LLVM parse', b.parse],
     ['LLVM raw', b.before], ['LLVM optimize', b.after], ['LLVM emit', b.emit], ['Link', b.link],
     ['LLVM disassembly', b.disassembly], ['LLVM compile total', b.llvm], ['LLVM run', b.execute]];
   for(const [label,ms] of Object.entries(runners.native?.timings??{})) values.push([label+' compile',ms]);
@@ -300,14 +300,50 @@ function scheduleAutoExecution() {
     if (revision !== documentRevision || dirty || !$('auto-execute').checked) return;
     if (editor.composing) { scheduleAutoExecution(); return; }
     execute();
-  }, Math.max(editor.composing ? typingDebounceMs : 0, typingDeadline - performance.now()));
+  }, editor.composing ? compositionRetryMs : 0);
 }
-function stopExecution(message) {
+function stopExecution(message, preserveCompilation = false) {
   clearTimeout(autoTimer); autoTimer = 0; ++executionId;
+  if (!preserveCompilation) for (const [worker,timer] of settlingExecutionWorkers) {
+    clearTimeout(timer); worker.terminate(); settlingExecutionWorkers.delete(worker);
+  }
+  if (!preserveCompilation) for (const [backend,worker] of idleExecutionWorkers) {
+    if (!worker.cancelledCompilation) continue;
+    worker.terminate(); idleExecutionWorkers.delete(backend);
+  }
   for (const backend of Object.keys(runners)) {
     const runner = runners[backend];
     if (runner?.worker) {
-      runner.worker.terminate(); runner.worker = null;
+      const worker = runner.worker;
+      if (preserveCompilation && !runner.executing) {
+        worker.postMessage({command:'cancel',id:runner.id});
+        worker.onmessage = null;
+        worker.onerror = event => {
+          event.preventDefault(); worker.terminate();
+          if (idleExecutionWorkers.get(backend) === worker) idleExecutionWorkers.delete(backend);
+        };
+        worker.cancelledCompilation = true;
+        idleExecutionWorkers.set(backend,worker);
+      } else if (preserveCompilation) {
+        // A terminal reply may already be queued when the edit arrives. Give
+        // that reply one UI task to return the warm worker; otherwise terminate
+        // it, including a synchronous/infinite Wasm run. Explicit Cancel skips
+        // this settlement and always terminates immediately.
+        const retire = () => {
+          clearTimeout(settlingExecutionWorkers.get(worker));
+          settlingExecutionWorkers.delete(worker); worker.terminate();
+        };
+        settlingExecutionWorkers.set(worker,setTimeout(retire,0));
+        worker.onerror = event => { event.preventDefault(); retire(); };
+        worker.onmessage = ({data}) => {
+          if (data.id !== runner.id || !data.result || data.result.status === 'executing') return;
+          clearTimeout(settlingExecutionWorkers.get(worker)); settlingExecutionWorkers.delete(worker);
+          worker.onmessage = worker.onerror = null;
+          if (idleExecutionWorkers.has(backend) || runners[backend]?.worker || data.error) worker.terminate();
+          else { worker.cancelledCompilation=false; idleExecutionWorkers.set(backend,worker); }
+        };
+      } else worker.terminate();
+      runner.worker = null;
       for (const key of backend === 'native' ? runner.keys.filter(key=>!runner.completed.has(key)) : [backend]) setPhase(key,'Cancelled');
     }
   }
@@ -362,7 +398,7 @@ function updateComparison() {
 }
 function execute() {
   if (project?.compilerProject) { rebuildCompiler(); return; }
-  stopExecution(); runners = {};
+  stopExecution(undefined,true); runners = {};
   executedRevision = documentRevision; executionError = null;
   $('execution-status').textContent = 'Executing…';
   $('execute').disabled = true; $('cancel-execution').disabled = false;
@@ -370,11 +406,11 @@ function execute() {
   for (const backend of selectedBackends()) {
     const worker = idleExecutionWorkers.get(backend) ?? new Worker(new URL('./execution-worker.js', import.meta.url), { type: 'module' });
     idleExecutionWorkers.delete(backend);
-    const runner = runners[backend] = { worker, output: '', timings: {} };
+    const runner = runners[backend] = { id, worker, output: '', timings: {} };
     setPhase(backend,'Loading…');
     const finish = () => {
       worker.onmessage = worker.onerror = null;
-      if (runner.failure) worker.terminate(); else idleExecutionWorkers.set(backend, worker);
+      if (runner.failure) worker.terminate(); else { worker.cancelledCompilation=false; idleExecutionWorkers.set(backend, worker); }
       runner.worker = null; showTimings(); updateComparison();
     };
     const fail = message => {
@@ -386,6 +422,11 @@ function execute() {
     worker.onerror = event => { event.preventDefault(); if (id === executionId) fail(event.message || 'Execution worker stopped'); };
     worker.onmessage = ({ data }) => {
       if (id !== executionId || data.id !== id) return;
+      if (data.ready) {
+        runner.executing = true; worker.cancelledCompilation = false;
+        worker.postMessage({command:'execute',id});
+        return;
+      }
       if (data.timings) { runner.timings = data.timings; showTimings(); }
       if (data.error) { fail(data.error); return; }
       if (data.phase) setPhase(backend,data.phase);
@@ -649,13 +690,12 @@ window.addEventListener('pagehide', () => { if (editor) persist(); stopExecution
 document.addEventListener('visibilitychange', () => { if (document.hidden && editor) persist(); });
 function changed(deferDiagnostics = editor.hasFocus) {
   ++saveSequence; // an older write must not mark these newer edits as saved
-  typingDeadline = performance.now() + typingDebounceMs;
   cancelAnimationFrame(frame); frame=0;
   ++documentRevision;
   if (deferDiagnostics) diagnosticDelay.edit(documentRevision);
   else diagnosticDelay.reset(documentRevision);
   const wasExecuting = isExecuting();
-  stopExecution(wasExecuting ? 'Cancelled by edit' : 'Ready');
+  stopExecution(wasExecuting ? 'Cancelled by edit' : 'Ready',true);
   executionError = null; captureDocument();
   ++generation;
   dirty = true; controls();
@@ -668,7 +708,7 @@ function changed(deferDiagnostics = editor.hasFocus) {
 }
 function replaceSource(text) {
   editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: text } });
-  typingDeadline = 0; schedule();
+  schedule();
 }
 function renderFiles() {
   $('project-kind').replaceChildren(...projects.map(p => new Option(p.name, p.id)));
@@ -718,7 +758,7 @@ function selectFile(path, fresh = false) {
   $('filename').textContent = editingModule ? editingModule + '.tower' : path;
   editor.setState(fileStates.get(path) ?? EditorState.create({doc:text, extensions:editorExtensions}));
   showPosition(editor.state);
-  stopExecution(); clearCompiled(); clearInspection(); renderFiles(); changed(false); typingDeadline = 0; schedule();
+  stopExecution(); clearCompiled(); clearInspection(); renderFiles(); changed(false); schedule();
 }
 function showPosition(state) {
   const location=documentLocation(state.doc,state.selection.main.head,activePath);

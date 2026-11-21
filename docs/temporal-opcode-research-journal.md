@@ -35157,3 +35157,53 @@ not implemented. Nineteen tracked `.py` files are not the whole remaining Python
 surface: inline Python also remains in build-llvm.sh, test-bootstrap.sh and
 test-compiler-distribution.sh. Include those callers in the Python-first
 retirement audit; do not declare Python eliminated from file counts alone.
+## 2026-11-21 - Warm edit completion
+
+Pulled through 5fdee25 before work, retaining todo.txt edits. The latest lazy
+staged-capture and backend-world changes remain intact. Rebuilt the baseline
+portable/shared/LLVM reactors from public bootstrap 2292bd8a. Instrumented the
+existing browser transport to distinguish fast Foundation reconstruction, package
+encoding and package loading. Seven warm edits show a fixed 200 ms quiet period
+followed by three compilations of the optimized/canonical Foundation path.
+The redundant load alone costs roughly 25-56 ms; rebuilding the optimized source
+costs roughly 29-73 ms. Evidence: build/warm-edit-before.json and its worker phases.
+
+Implemented Tower-owned package preparation that retains the fresh canonical
+execution session after envelope validation and exact execution-cache comparison.
+The fast runner executes that session instead of discarding it and loading the
+same bytes into another session. Imported/untrusted bytes still reconstruct and
+check normally. The formatter derives component kinds from the program's world.
+The ABI addition is optional in the browser transport, retaining the original
+validated path for older editable compiler generations. New Tower fixtures cover
+32/64-bit layouts, independent execution ownership after destroying the original,
+partially executed input, equivalent disassembly/results, invalid inputs/profiles
+and stable lifetime counts. All five package checks pass without skips.
+
+Removed the fixed automatic-execution quiet period. Edits retain compiling
+workers; queued requests coalesce to the newest revision and all reactor access
+remains serialized. Execution requires a current-revision permit from the UI, so
+stale compilation cannot start a program. Explicit Cancel, project/compiler
+switches and teardown still terminate affected workers immediately. Native build
+workers use the same latest-request admission without an execution permit because
+they only emit artifacts. Both interpreters and synchronous/infinite Wasm remain
+cancellable once execution starts.
+
+The first continuous-typing browser trial caught a terminal-reply race: one warm
+worker had finished but its reply was still queued when an edit terminated it.
+Automatic edits now allow that terminal reply one UI task to return the worker;
+otherwise they terminate it. Explicit cancellation skips settlement. Eight focused
+desktop/mobile checks then pass, including 70 ms typing bursts with all three
+execution workers retained, active infinite loops and compilation cancellation.
+The first Tower build also rejected C-style else-if; corrected it to ordinary
+Tower nested blocks without changing or adopting bootstrap syntax. Logs:
+build/warm-edit-package-tests.log and warm-edit-browser-followup.log.
+
+Admission now retains only one latest pending source snapshot per worker, rather
+than a promise closure for every edit. Two additional desktop/mobile tests delay
+the UI permit and prove an obsolete revision never enters execution; all six
+permit/reuse/cancellation checks pass. The final Tower package fixture rebuild
+and five package tests also pass, zero skips. The first isolated seven-edit
+comparison reports desktop all-output median 407 to 275 ms and mobile emulation
+391 to 187 ms. Final source synchronization and publication validation follow.
+The native/worker ECS query policy is unchanged; this is browser request transport
+and ownership reuse of an already checked Tower canonical package session.
