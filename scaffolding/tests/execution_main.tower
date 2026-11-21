@@ -21,6 +21,7 @@ export fn main(argc: i32, argv: u8**): i32 {
     execution_check(argc == 2, "resource root argument");
     var path: ByteBuffer;
     fill(&path, 0, sizeof(ByteBuffer));
+    defer bytes_dispose(&path);
     execution_check(driver_text(&path, argv[1]) && driver_text(&path, "/foundation.tower") && host_text_terminate(&path), "resource path");
     var options: DriverOptions;
     fill(&options, 0, sizeof(DriverOptions));
@@ -29,6 +30,7 @@ export fn main(argc: i32, argv: u8**): i32 {
     options.foundation = "";
     var request: DriverRequest;
     execution_check(driver_request_open(&request, &options, argv[1]), "bootstrap snapshots");
+    defer driver_request_close(&request);
     driver_request_bind(&request, driver_syntax_slot());
     var result: usize[4];
     driver_syntax_bedrock(&result[0], request.text[DriverBedrockText()].data);
@@ -40,8 +42,5 @@ export fn main(argc: i32, argv: u8**): i32 {
     execution_check(driver_syntax_data(&result[0])[0] == 0, "install Foundation");
     if driver_syntax_heap(&result[0]) { driver_syntax_delete(driver_syntax_storage(&result[0])); }
     execution_tests(request.modules);
-    driver_request_close(&request);
-    bytes_dispose(&path);
-
     return 0;
 }

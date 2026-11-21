@@ -24090,3 +24090,34 @@ checks passed. This confirms format.cpp has no hidden dependency on the removed
 headers. Coordinator assigned Agent 2 the next combined browser deployment after
 Agents 1 and 3 publish their independently validated source milestones; no second
 milestone deployment is claimed before those merged builds and hosted checks.
+
+### 2026-11-20 - Agent 2: execution retirement rebased onto published defer bootstrap
+
+Upstream ef5c5ff arrived before this slice's publication and supersedes the
+9bbb2eb8 bootstrap with the published fb1ab1f9 archive/resources. Rebase preserved
+both journal histories. Execution-test overlaps were upstream formatting versus
+the extracted shared suite and transport-independent diagnostics: the formatted
+matrix/allocation bodies moved to `execution_suite.tower`, all new semantic and
+checksum-valid cache-mismatch/NUL assertions remain, and native/WASI entries still
+call the same suite. No upstream compiler changes were reverted.
+
+A fresh empty `agent-2-defer-successor` cache built with the documented native
+script, four jobs, and `TOWER_BOOTSTRAP_COMPILER` unset: PASS. After reading the
+new AGENTS guidance, the graph fingerprint vector, native fixture request/path,
+and missing-foreign diagnostic buffer now use lexical defer cleanup with the same
+release order. Explicit lifetime assertions and prompt intermediate releases stay
+explicit. Native frontend, driver and execution passed (20.41s total including an
+initial not-run request target). The newly added upstream driver-request target
+was initially omitted from the explicit build target list, so CTest could not
+find it; building `tower-driver-request-tests` and running its anchored CTest
+passed in 0.02s. Backend API also passed. The rebuilt WASI execution suite and
+parser host/storage checks both passed under the new bootstrap. Logs live in
+`C:/Sandbox/build/codex-agents/agent-2-defer-{successor,wasi,wasi-test}.log`.
+
+Coordinator completed its prior deployment and released the lock. Its verified
+a13c7de publication was followed by the upstream defer publication c1b54ec, which
+preserves a13c7de as parent. The next batch must preserve that newer deployment
+and its target packs. Agent 1 and Agent 3 explicitly delegate their next browser
+publication to Agent 2; source slots remain Agent 1, Agent 3, then Agent 2. Root
+checkout/cache reuse is authorized only for clean published-source integration
+and generated deployment artifacts, under Agent 2's exclusive publication lock.

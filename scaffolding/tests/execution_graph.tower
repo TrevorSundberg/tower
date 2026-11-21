@@ -37,6 +37,7 @@ fn execution_graph_text(hash: u64*, text: u8*, length: usize): void {
 fn execution_graph_hash(program: SemanticProgram*): u64 {
     var nodes: vector(void*);
     vector_init(void*, &nodes);
+    defer vector_dispose(void*, &nodes);
     execution_check(vector_push(void*, &nodes, program.root), "graph evidence storage");
     for (var i: usize = 0; i < nodes.length; i++) {
         for (var j: usize = 0; j < entity_child_count(nodes.data[i]); j++) {
@@ -83,6 +84,5 @@ fn execution_graph_hash(program: SemanticProgram*): u64 {
         execution_graph_word(&hash, convert(u64, node.exported));
         execution_graph_word(&hash, convert(u64, node.global));
     }
-    vector_dispose(void*, &nodes);
     return hash;
 }

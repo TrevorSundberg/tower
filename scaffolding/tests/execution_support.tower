@@ -119,12 +119,12 @@ export fn im_append(machine: IMState*, text: u8*, count: usize): void {
 export fn im_missing_foreign(machine: IMState*, node: void*, offset: usize): void {
     var text: ByteBuffer;
     fill(&text, 0, sizeof(ByteBuffer));
+    defer bytes_dispose(&text);
     var function = sem_get(node);
     execution_check(execution_append_text(&text, "No interpreter implementation registered for external function '")
         && bytes_append(&text, function.name.data, function.name.length)
         && execution_append_text(&text, "'") && host_text_terminate(&text), "foreign diagnostic allocation");
     im_fail(machine, text.data, offset);
-    bytes_dispose(&text);
 }
 
 export fn im_foreign(machine: IMState*, node: void*, args: u64*, count: usize): u64 {
