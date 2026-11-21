@@ -4,9 +4,13 @@ import .backend.source_session;
 // Exercise the compiled production service through its ownership boundary.
 // A host installs Foundation before invoking this fixture, as for ordinary work.
 extern fn backend_worker_runtime(): u8*;
+
 extern fn backend_worker_runtime_size(): usize;
+
 extern fn strlen(text: u8*): usize;
+
 extern fn strstr(text: u8*, part: u8*): u8*;
+
 extern fn strcmp(left: u8*, right: u8*): i32;
 
 const BackendSourceObjectOutput: u32 = 1;
@@ -18,39 +22,75 @@ fn backend_source_test_has(text: u8*, wanted: u8*): bool {
 export fn backend_source_tests(): i32 {
     var left = backend_source_create(backend_worker_runtime(), backend_worker_runtime_size());
     var right = backend_source_create(backend_worker_runtime(), backend_worker_runtime_size());
-    if left == null || right == null { backend_source_close(left); backend_source_close(right); return 1; }
+    if left == null || right == null {
+        backend_source_close(left);
+        backend_source_close(right);
+        return 1;
+    }
     var failure: i32 = 0;
     var first: u8* = "var answer: i32 = 42; print(answer);";
     var second: u8* = "var answer: i32 = 99; print(answer);";
     var result = backend_source_compile(left, first, strlen(first), BackendSourceImport(), null, null);
-    if !backend_source_test_has(result, "\"format\":\"foundation\"") { failure = 2; }
+    if !backend_source_test_has(result, "\"format\":\"foundation\"") {
+        failure = 2;
+    }
     var original = backend_source_foundation(left);
-    if !backend_source_test_has(original, "42") { failure = 3; }
+    if !backend_source_test_has(original, "42") {
+        failure = 3;
+    }
     var saved = alloc(u8, strlen(original) + 1);
-    if saved == null { backend_source_close(left); backend_source_close(right); return 4; }
+    if saved == null {
+        backend_source_close(left);
+        backend_source_close(right);
+        return 4;
+    }
     copy(saved, original, strlen(original) + 1);
     result = backend_source_compile(right, second, strlen(second), BackendSourceImport() | BackendSourceUnoptimized(), null, null);
-    if !backend_source_test_has(result, "\"optimizationProfile\":2") { failure = 5; }
-    if !backend_source_test_has(backend_source_foundation(right), "99") { failure = 6; }
-    if strcmp(backend_source_foundation(left), saved) != 0 { failure = 7; }
+    if !backend_source_test_has(result, "\"optimizationProfile\":2") {
+        failure = 5;
+    }
+    if !backend_source_test_has(backend_source_foundation(right), "99") {
+        failure = 6;
+    }
+    if strcmp(backend_source_foundation(left), saved) != 0 {
+        failure = 7;
+    }
     result = backend_source_compile(left, null, 1, 0, null, null);
-    if !backend_source_test_has(result, "Invalid foundation source length") { failure = 8; }
-    var zero: u8[2]; zero[0] = 0; zero[1] = 1;
+    if !backend_source_test_has(result, "Invalid foundation source length") {
+        failure = 8;
+    }
+    var zero: u8[2];
+    zero[0] = 0;
+    zero[1] = 1;
     result = backend_source_compile(left, &zero[0], 2, 0, null, null);
-    if !backend_source_test_has(result, "Foundation source cannot contain NUL bytes") { failure = 9; }
+    if !backend_source_test_has(result, "Foundation source cannot contain NUL bytes") {
+        failure = 9;
+    }
     result = backend_source_compile(left, first, 8388609, 0, null, null);
-    if !backend_source_test_has(result, "Invalid foundation source length") { failure = 10; }
+    if !backend_source_test_has(result, "Invalid foundation source length") {
+        failure = 10;
+    }
     result = backend_source_compile(left, first, strlen(first), 0, null, "fixture grammar failure");
-    if !backend_source_test_has(result, "fixture grammar failure") { failure = 11; }
-    if strcmp(backend_source_foundation(left), saved) != 0 { failure = 12; }
+    if !backend_source_test_has(result, "fixture grammar failure") {
+        failure = 11;
+    }
+    if strcmp(backend_source_foundation(left), saved) != 0 {
+        failure = 12;
+    }
     // The caller's span is followed by invalid syntax and has no terminator at
     // its boundary. Compilation must consume exactly the supplied byte count.
     var clipped: u8* = "print(42);?";
-    result = backend_source_compile(left, clipped, strlen(clipped) - 1, BackendSourceObjectOutput() | BackendSourceUnoptimized(), null, null);
-    if !backend_source_test_has(result, "\"status\":\"compiled\"") { failure = 13; }
-    if backend_source_foundation(left)[0] != 0 { failure = 14; }
+    result = backend_source_compile(left, clipped, strlen(clipped) -1, BackendSourceObjectOutput() | BackendSourceUnoptimized(), null, null);
+    if !backend_source_test_has(result, "\"status\":\"compiled\"") {
+        failure = 13;
+    }
+    if backend_source_foundation(left)[0] != 0 {
+        failure = 14;
+    }
     result = backend_source_compile(left, first, strlen(first), 0, null, null);
-    if !backend_source_test_has(result, "\"status\":\"compiled\"") { failure = 15; }
+    if !backend_source_test_has(result, "\"status\":\"compiled\"") {
+        failure = 15;
+    }
     free(saved);
     backend_source_close(left);
     backend_source_close(right);

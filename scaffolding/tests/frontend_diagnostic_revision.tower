@@ -5,18 +5,27 @@ import frontend_revision;
 import .compiler.frontend_revision_types;
 
 extern fn syntax_completion_create(text: u8*, mode: u32): void*;
+
 extern fn syntax_reset(session: void*, text: u8*, module: void*): void;
+
 extern fn syntax_next(session: void*): void*;
+
 extern fn syntax_get_error(session: void*): u8*;
+
 extern fn syntax_destroy(session: void*): void;
+
 extern fn entity_release(node: void*): usize;
+
 extern fn strstr(text: u8*, part: u8*): u8*;
+
 extern fn puts(text: u8*): i32;
 
 fn diagnostic_revision_read(session: void*): void {
     loop {
         var node = syntax_next(session);
-        if node == null { break; }
+        if node == null {
+            break;
+        }
         entity_release(node);
     }
 }
@@ -24,7 +33,9 @@ fn diagnostic_revision_read(session: void*): void {
 fn diagnostic_revision_expect(session: void*, wanted: u8*): void {
     var error = syntax_get_error(session);
     var ok = strstr(error, wanted) != null;
-    if !ok { puts(error); }
+    if !ok {
+        puts(error);
+    }
     frontend_world_check(ok);
 }
 

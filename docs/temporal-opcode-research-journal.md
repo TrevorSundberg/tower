@@ -23324,3 +23324,12 @@ Reran the cleanup inventory after the final upstream integration: 59 functions /
 storage is released before diagnostic allocation, and byte-buffer tests check
 distinct lifetimes plus repeated-disposal idempotence. Preserved both; the reviewed
 migration still removes 21 copies. See build/defer-audit-final.json and the audit.
+
+Release pull advanced to 781c4d5, including the Tower-owned backend source session,
+LLVM worker exports and cached-diagnostic provenance correction. Preserved all
+upstream work and both journal histories. The old aggregate had passed its first
+two suites and was still running after six minutes; stopped it because the
+checkout/executable no longer matched. No complete native parser/formatter pass
+is claimed. Repeat the relevant native/frontend/backend and browser checks on
+the combined source and refresh the pin before publication. The 4230a7c5 archive
+and 5358968 revision above are superseded release candidates after this rebase.

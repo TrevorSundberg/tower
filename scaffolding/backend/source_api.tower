@@ -5,11 +5,19 @@ import .compiler.format_types;
 // Existing shared-graph services. The backend borrows an explicit module
 // environment; it neither selects a CLI transport nor owns another semantic IR.
 extern fn tower_node_create(): void*;
+
 extern fn entity_release(node: void*): usize;
+
 extern fn semantic_initialize(program: SemanticProgram*, root: void*, width: u32): void;
+
 extern fn semantic_program_dispose(program: SemanticProgram*): void;
+
 extern fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendSource*, count: usize, environment: void*): void;
+
 extern fn syntax_component_type(): void*;
+
 extern fn parser_match_get_type(): void*;
+
 extern fn format_entity(out: FormatResult*, root: void*, syntax: void*, foundation: void*, match_kind: void*): void;
+
 extern fn format_dispose(out: FormatResult*): void;

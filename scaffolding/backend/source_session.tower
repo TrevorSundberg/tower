@@ -18,15 +18,22 @@ const BackendSourceUnoptimized: u32 = 8;
 
 export fn backend_source_create(runtime: u8*, length: usize): BackendSource* {
     var source = alloc(BackendSource, 1);
-    if source == null { return null; }
+    if source == null {
+        return null;
+    }
     fill(source, 0, sizeof(BackendSource));
     source.backend = backend_session_create(runtime, length);
-    if source.backend == null { free(source); return null; }
+    if source.backend == null {
+        free(source);
+        return null;
+    }
     return source;
 }
 
 export fn backend_source_close(source: BackendSource*): void {
-    if source == null { return; }
+    if source == null {
+        return;
+    }
     backend_session_close(source.backend);
     vector_dispose(u8, &source.foundation);
     free(source);
@@ -52,7 +59,7 @@ fn backend_source_error(source: BackendSource*, program: SemanticProgram*): u8* 
     vector_init(u8, &message);
     backend_text_append(&message, program.error.data, program.error.length);
     var result = backend_session_failure(source.backend,
-        message.data ?? "Unable to allocate compiler diagnostic", program.error_offset);
+    message.data ?? "Unable to allocate compiler diagnostic", program.error_offset);
     vector_dispose(u8, &message);
     return result;
 }
@@ -63,7 +70,7 @@ fn backend_source_import(source: BackendSource*, program: SemanticProgram*, widt
     var backend = source.backend;
     var result = backend_session_response(backend);
     if backend_session_import(backend, program.root, program.functions.data,
-        program.functions.length, width, optimize, imported.root) {
+    program.functions.length, width, optimize, imported.root) {
         var formatted: FormatResult;
         fill(&formatted, 0, sizeof(FormatResult));
         format_entity(&formatted, imported.root, syntax_component_type(), null, parser_match_get_type());
@@ -75,12 +82,18 @@ fn backend_source_import(source: BackendSource*, program: SemanticProgram*, widt
             source.foundation.data[source.foundation.length] = 0;
             var checked: SemanticProgram;
             backend_source_program(&checked, source.foundation.data, source.foundation.length, width, environment);
-            if checked.error.length != 0 { result = backend_source_error(source, &checked); }
-            else { result = backend_session_import_report(backend, optimize); }
+            if checked.error.length != 0 {
+                result = backend_source_error(source, &checked);
+            }
+            else {
+                result = backend_session_import_report(backend, optimize);
+            }
             backend_source_program_close(&checked);
         }
         format_dispose(&formatted);
-    } else { result = backend_session_response(backend); }
+    } else {
+        result = backend_session_response(backend);
+    }
     backend_source_program_close(&imported);
     return result;
 }
@@ -88,30 +101,38 @@ fn backend_source_import(source: BackendSource*, program: SemanticProgram*, widt
 export fn backend_source_compile(source: BackendSource*, text: u8*, length: usize, flags: u32, environment: void*, foundation_error: u8*): u8* {
     var backend = source.backend;
     var width = backend_session_begin(backend, text, length);
-    if width == 0 { return backend_session_response(backend); }
+    if width == 0 {
+        return backend_session_response(backend);
+    }
     if foundation_error != null && foundation_error[0] != 0 {
         return backend_session_failure(backend, foundation_error, 0);
     }
     // The frontend's source owner accepts terminated text. Its input bytes are
     // validated above and copied once, so it never reads past the caller's span.
     var terminated = alloc(u8, length + 1);
-    if terminated == null { return backend_session_failure(backend, "Unable to allocate foundation source", 0); }
+    if terminated == null {
+        return backend_session_failure(backend, "Unable to allocate foundation source", 0);
+    }
     copy(terminated, text, length);
     terminated[length] = 0;
     var program: SemanticProgram;
     backend_source_program(&program, terminated, length, width, environment);
     free(terminated);
     var result: u8* = null;
-    if program.error.length != 0 { result = backend_source_error(source, &program); }
+    if program.error.length != 0 {
+        result = backend_source_error(source, &program);
+    }
     else {
         source.foundation.length = 0;
-        if source.foundation.data != null { source.foundation.data[0] = 0; }
-        if (flags & BackendSourceImport()) != 0 {
+        if source.foundation.data != null {
+            source.foundation.data[0] = 0;
+        }
+        if(flags &BackendSourceImport()) != 0 {
             result = backend_source_import(source, &program, width,
-                (flags & BackendSourceUnoptimized()) == 0, environment);
+            (flags &BackendSourceUnoptimized()) == 0, environment);
         } else {
             result = backend_session_compile(backend, program.root, program.functions.data,
-                program.functions.length, width, flags);
+            program.functions.length, width, flags);
         }
     }
     backend_source_program_close(&program);

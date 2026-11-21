@@ -6,22 +6,35 @@ import .backend.text;
 import .library.vector;
 
 extern fn core_component_type(): void*;
+
 extern fn entity_member_index(owner: void*, name: u8*): usize;
+
 extern fn entity_child_at(owner: void*, index: usize): void*;
+
 extern fn entity_attach(node: void*, parent: void*, name: u8*): bool;
+
 extern fn entity_register(type: void*, size: usize, alignment: usize, lifecycle: usize): bool;
+
 extern fn entity_component_add(owner: void*, type: void*): void*;
+
 extern fn entity_component_get(owner: void*, type: void*): void*;
+
 extern fn entity_component_data(component: void*): u8*;
+
 extern fn syntax_completion_create(text: u8*, mode: u32): void*;
+
 extern fn syntax_completion_module(session: void*): void*;
+
 extern fn syntax_destroy(session: void*): void;
+
 extern fn frontend_module_environment(module: void*): void*;
+
 extern fn abort(): void;
 
 // Supplied by a Tower build tool as compilable Tower source, including the exact
 // runtime object bytes. These are target artifacts, never a second program IR.
 extern fn backend_worker_runtime_hex(): u8*;
+
 extern fn backend_worker_runtime_size(): usize;
 
 struct LlvmWorker {
@@ -29,7 +42,11 @@ struct LlvmWorker {
     foundation_error: vector(u8);
 }
 
-fn llvm_worker_require(ok: bool): void { if !ok { abort(); } }
+fn llvm_worker_require(ok: bool): void {
+    if !ok {
+        abort();
+    }
+}
 
 // The transport is owned by this worker's existing entity world, matching the
 // IDE transport. Explicit BackendSource sessions remain independent of it.
@@ -50,11 +67,11 @@ fn llvm_worker(): LlvmWorker* {
     var runtime = alloc(u8, size);
     llvm_worker_require(runtime != null);
     var hex = backend_worker_runtime_hex();
-    for (var i: usize = 0; i < size; i++) {
-        var high = hex[i * 2];
-        var low = hex[i * 2 + 1];
-        high -= high >= 97 ? 87 : 48;
-        low -= low >= 97 ? 87 : 48;
+    for(var i: usize = 0; i < size; i++) {
+        var high = hex[i *2];
+        var low = hex[i *2 + 1];
+        high -= high >= 97 ? 87: 48;
+        low -= low >= 97 ? 87: 48;
         runtime[i] = high * 16 + low;
     }
     state.source = backend_source_create(runtime, size);
@@ -65,17 +82,25 @@ fn llvm_worker(): LlvmWorker* {
 }
 
 // Runtime bytes share the worker lifetime; callers of BackendSource borrow them.
-export fn backend_worker_runtime(): u8* { return llvm_worker().source.backend.runtime; }
+export fn backend_worker_runtime(): u8* {
+    return llvm_worker().source.backend.runtime;
+}
 
 // Remaining syntax bootstrap return ABI: wasm32, WASI SDK34 libc++ __2
 // alternate string layout. It is borrowed only while copying the diagnostic.
 // The syntax owner can replace this binding when its native API is retired.
-struct LlvmBootstrapString { words: usize[3]; }
+struct LlvmBootstrapString {
+    words: usize[3];
+}
+
 extern fn `cpp_name(std::string syntax_set_bootstrap(char const*))`(out: LlvmBootstrapString*, source: u8*): void;
+
 extern fn `cpp_name(void operator delete(void*))`(data: u8*): void;
 
 export fn tw_set_foundation(text: u8*, length: usize): i32 {
-    if text == null || length > 131072 { return 0; }
+    if text == null || length > 131072 {
+        return 0;
+    }
     var terminated = alloc(u8, length + 1);
     llvm_worker_require(terminated != null);
     copy(terminated, text, length);
@@ -84,28 +109,39 @@ export fn tw_set_foundation(text: u8*, length: usize): i32 {
     `cpp_name(std::string syntax_set_bootstrap(char const*))`(&error, terminated);
     free(terminated);
     var raw = bits(u8*, &error);
-    var heap = (raw[11] & 128) != 0;
-    var message = heap ? bits(u8*, error.words[0]) : raw;
-    var size = heap ? error.words[1] : convert(usize, raw[11]);
+    var heap =(raw[11] &128) != 0;
+    var message = heap ? bits(u8*, error.words[0]): raw;
+    var size = heap ? error.words[1]: convert(usize, raw[11]);
     var state = llvm_worker();
     state.foundation_error.length = 0;
     llvm_worker_require(vector_reserve(u8, &state.foundation_error, size + 1));
     copy(state.foundation_error.data, message, size);
     state.foundation_error.length = size;
     state.foundation_error.data[size] = 0;
-    if heap { `cpp_name(void operator delete(void*))`(message); }
+    if heap {
+        `cpp_name(void operator delete(void*))`(message);
+    }
     return 1;
 }
 
 export fn tw_llvm_set_target(target: u8*): i32 {
-    if backend_session_set_target(llvm_worker().source.backend, target) { return 1; }
+    if backend_session_set_target(llvm_worker().source.backend, target) {
+        return 1;
+    }
     return 0;
 }
-export fn tw_llvm_clear_inputs(): void { backend_session_clear_inputs(llvm_worker().source.backend); }
+
+export fn tw_llvm_clear_inputs(): void {
+    backend_session_clear_inputs(llvm_worker().source.backend);
+}
+
 export fn tw_llvm_add_input(name: u8*, bytes: u8*, length: usize): i32 {
-    if backend_session_add_input(llvm_worker().source.backend, name, bytes, length) { return 1; }
+    if backend_session_add_input(llvm_worker().source.backend, name, bytes, length) {
+        return 1;
+    }
     return 0;
 }
+
 export fn tw_llvm_compile_options(text: u8*, length: usize, flags: u32, environment: void*): u8* {
     var state = llvm_worker();
     // Current callers supply their existing environment lease. Legacy callers
@@ -116,14 +152,37 @@ export fn tw_llvm_compile_options(text: u8*, length: usize, flags: u32, environm
         environment = frontend_module_environment(syntax_completion_module(lease));
     }
     var result = backend_source_compile(state.source, text, length, flags, environment,
-        state.foundation_error.data);
-    if lease != null { syntax_destroy(lease); }
+    state.foundation_error.data);
+    if lease != null {
+        syntax_destroy(lease);
+    }
     return result;
 }
-export fn tw_llvm_compile(text: u8*, length: usize): u8* { return tw_llvm_compile_options(text, length, 0, null); }
-export fn tw_llvm_before(): u8* { return backend_session_before(llvm_worker().source.backend); }
-export fn tw_llvm_after(): u8* { return backend_session_after(llvm_worker().source.backend); }
-export fn tw_llvm_foundation(): u8* { return backend_source_foundation(llvm_worker().source); }
-export fn tw_llvm_disassembly(): u8* { return backend_session_disassembly(llvm_worker().source.backend); }
-export fn tw_llvm_bytes(): u8* { return backend_session_bytes(llvm_worker().source.backend); }
-export fn tw_llvm_size(): usize { return backend_session_size(llvm_worker().source.backend); }
+
+export fn tw_llvm_compile(text: u8*, length: usize): u8* {
+    return tw_llvm_compile_options(text, length, 0, null);
+}
+
+export fn tw_llvm_before(): u8* {
+    return backend_session_before(llvm_worker().source.backend);
+}
+
+export fn tw_llvm_after(): u8* {
+    return backend_session_after(llvm_worker().source.backend);
+}
+
+export fn tw_llvm_foundation(): u8* {
+    return backend_source_foundation(llvm_worker().source);
+}
+
+export fn tw_llvm_disassembly(): u8* {
+    return backend_session_disassembly(llvm_worker().source.backend);
+}
+
+export fn tw_llvm_bytes(): u8* {
+    return backend_session_bytes(llvm_worker().source.backend);
+}
+
+export fn tw_llvm_size(): usize {
+    return backend_session_size(llvm_worker().source.backend);
+}
