@@ -1,0 +1,147 @@
+import tower;
+import storage_api;
+import utility_checks;
+import .library.vector;
+import .compiler.grammar_types;
+import .compiler.lr_types;
+import .compiler.parser_types;
+
+// Independent, test-only transcription of the native grammar reference. These
+// ordered snapshots are disposable indexes over the existing shared entities.
+// Linear name lookup and rank counting deliberately differ from production's
+// hash buckets and heap sort. They do not replace the authoritative grammar.
+struct OracleGrammarName { text: vector(u8); order: usize; }
+struct OracleGrammarRule { production: LRProduction; node: void*; generated: bool; }
+struct OracleGrammarSymbol { symbol: LRSymbol; node: void*; capture: vector(u8); }
+struct OracleGrammarMissing { name: vector(u8); symbol: usize; }
+struct OracleGrammar {
+    names: vector(OracleGrammarName*);
+    rules: vector(OracleGrammarRule*);
+    symbols: vector(OracleGrammarSymbol*);
+    missing: vector(OracleGrammarMissing*);
+}
+
+extern fn entity_child_count(node: void*): usize;
+extern fn entity_child_at(node: void*, index: usize): void*;
+extern fn entity_component_get(node: void*, kind: void*): void*;
+extern fn entity_component_data(component: void*): void*;
+
+fn oracle_grammar_text(value: vector(u8)*): u8* { return value.data ?? ""; }
+fn oracle_grammar_payload(node: void*, kind: void*): void* {
+    return entity_component_data(entity_component_get(node, kind));
+}
+fn oracle_grammar_name(value: OracleGrammar*, text: u8*, source: bool): usize {
+    if source {
+        // The augmented S' name never participates in source-name lookup.
+        for (var index: usize = 1; index < value.names.length; ++index) {
+            if strcmp(oracle_grammar_text(&value.names.data[index].text), text) == 0 { return index; }
+        }
+    }
+    var entry = alloc(OracleGrammarName, 1);
+    utility_check(entry is not null, "LR oracle name allocation");
+    fill(entry, 0, sizeof(OracleGrammarName));
+    utility_check(storage_assign(&entry.text, text, strlen(text)), "LR oracle name snapshot");
+    utility_check(vector_push(OracleGrammarName*, &value.names, entry), "LR oracle name index");
+    return value.names.length - 1;
+}
+fn oracle_grammar_lookup(value: OracleGrammar*, text: u8*): usize {
+    for (var index: usize = 1; index < value.names.length; ++index) {
+        if strcmp(oracle_grammar_text(&value.names.data[index].text), text) == 0 { return index; }
+    }
+    return ~convert(usize, 0);
+}
+fn oracle_grammar_rule(value: OracleGrammar*, owner: usize, node: void*, generated: bool): void {
+    var entry = alloc(OracleGrammarRule, 1);
+    utility_check(entry is not null, "LR oracle production allocation");
+    fill(entry, 0, sizeof(OracleGrammarRule));
+    entry.production.owner = owner; entry.node = node; entry.generated = generated;
+    utility_check(vector_push(OracleGrammarRule*, &value.rules, entry), "LR oracle production index");
+}
+fn oracle_grammar_symbol(value: OracleGrammar*, nonterminal: usize, first: u32, last: u32, node: void*, capture: u8*): void {
+    var entry = alloc(OracleGrammarSymbol, 1);
+    utility_check(entry is not null, "LR oracle symbol allocation");
+    fill(entry, 0, sizeof(OracleGrammarSymbol));
+    entry.symbol.nonterminal = nonterminal; entry.symbol.first = first; entry.symbol.last = last; entry.node = node;
+    utility_check(storage_assign(&entry.capture, capture, strlen(capture)), "LR oracle capture snapshot");
+    utility_check(vector_push(OracleGrammarSymbol*, &value.symbols, entry), "LR oracle symbol index");
+}
+fn oracle_grammar_unresolved(value: OracleGrammar*, text: u8*): void {
+    var entry = alloc(OracleGrammarMissing, 1);
+    utility_check(entry is not null, "LR oracle unresolved allocation");
+    fill(entry, 0, sizeof(OracleGrammarMissing));
+    utility_check(storage_assign(&entry.name, text, strlen(text)), "LR oracle unresolved name snapshot");
+    entry.symbol = value.symbols.length;
+    utility_check(vector_push(OracleGrammarMissing*, &value.missing, entry), "LR oracle unresolved index");
+}
+fn oracle_grammar_dispose(value: OracleGrammar*): void {
+    for (var index: usize = 0; index < value.names.length; ++index) {
+        var entry = value.names.data[index]; vector_dispose(u8, &entry.text); free(entry);
+    }
+    for (var index: usize = 0; index < value.rules.length; ++index) { free(value.rules.data[index]); }
+    for (var index: usize = 0; index < value.symbols.length; ++index) {
+        var entry = value.symbols.data[index]; vector_dispose(u8, &entry.capture); free(entry);
+    }
+    for (var index: usize = 0; index < value.missing.length; ++index) {
+        var entry = value.missing.data[index]; vector_dispose(u8, &entry.name); free(entry);
+    }
+    vector_dispose(OracleGrammarName*, &value.names); vector_dispose(OracleGrammarRule*, &value.rules);
+    vector_dispose(OracleGrammarSymbol*, &value.symbols); vector_dispose(OracleGrammarMissing*, &value.missing);
+}
+fn oracle_grammar_init(value: OracleGrammar*, root: void*, kinds: FrontendKinds*): void {
+    fill(value, 0, sizeof(OracleGrammar));
+    oracle_grammar_name(value, "S'", false);
+    oracle_grammar_rule(value, 0, null, false);
+    for (var index: usize = 0; index < entity_child_count(root); ++index) {
+        var node = entity_child_at(root, index);
+        var data = bits(ParserRuleData*, oracle_grammar_payload(node, kinds.rule));
+        utility_check(data is not null, "LR oracle grammar child is a rule");
+        oracle_grammar_rule(value, oracle_grammar_name(value, oracle_grammar_text(&data.name), true), node, data.generated);
+        // Precedence is a shared component field; the historical fixture uses
+        // zero, and an additional test below covers nonzero preservation.
+        var production = &value.rules.data[value.rules.length - 1].production;
+        production.precedence = data.precedence; production.associativity = data.associativity;
+    }
+    for (var index: usize = 0; index < value.names.length; ++index) {
+        var entry = value.names.data[index];
+        for (var peer: usize = 0; peer < value.names.length; ++peer) {
+            var order = strcmp(oracle_grammar_text(&value.names.data[peer].text), oracle_grammar_text(&entry.text));
+            if order < 0 || (order == 0 && peer < index) { ++entry.order; }
+        }
+    }
+    if value.names.length > 1 {
+        oracle_grammar_symbol(value, 1, LRTokenEnd(), LRTokenEnd(), null, "");
+        value.rules.data[0].production.count = 1;
+    }
+    for (var index: usize = 1; index < value.rules.length; ++index) {
+        var rule = value.rules.data[index]; rule.production.begin = value.symbols.length;
+        for (var child: usize = 0; child < entity_child_count(rule.node); ++child) {
+            var node = entity_child_at(rule.node, child);
+            var reference = bits(ParserReferenceData*, oracle_grammar_payload(node, kinds.reference));
+            if reference is not null {
+                var name = oracle_grammar_text(&reference.name);
+                var owner = oracle_grammar_lookup(value, name);
+                if owner == ~convert(usize, 0) { oracle_grammar_unresolved(value, name); }
+                oracle_grammar_symbol(value, owner, LRTokenEnd(), LRTokenEnd(), node, oracle_grammar_text(&reference.capture));
+            }
+            var text = bits(ParserStringData*, oracle_grammar_payload(node, kinds.string));
+            if text is not null {
+                for (var position: usize = 0; position < text.ids.length; ++position) {
+                    var id = text.ids.data[position];
+                    oracle_grammar_symbol(value, ~convert(usize, 0), id, id, node, "");
+                }
+            }
+            var range = bits(ParserRangeData*, oracle_grammar_payload(node, kinds.range));
+            if range is not null {
+                oracle_grammar_symbol(value, ~convert(usize, 0), range.start < range.end ? range.start : range.end,
+                    range.start < range.end ? range.end : range.start, node, "");
+            }
+        }
+        rule.production.count = value.symbols.length - rule.production.begin;
+    }
+}
+fn oracle_grammar_resolve(value: OracleGrammar*, index: usize, id: u32): bool {
+    if index >= value.missing.length || id == LRTokenEnd() { return false; }
+    var symbol = &value.symbols.data[value.missing.data[index].symbol].symbol;
+    symbol.first = id; symbol.last = id;
+    return true;
+}

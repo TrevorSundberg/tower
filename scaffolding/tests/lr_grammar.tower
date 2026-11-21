@@ -1,0 +1,213 @@
+import tower;
+import lr_grammar_oracle;
+import mt19937;
+import utility_checks;
+import storage_api;
+import .compiler.lr_api;
+import .compiler.lr_types;
+import .compiler.component_kinds;
+import .compiler.grammar_types;
+import .compiler.parser_types;
+
+extern fn compiler_world_create(): void*;
+extern fn compiler_world_store(world: void*): void*;
+extern fn compiler_world_type(world: void*, kind: u32): void*;
+extern fn compiler_world_component(world: void*, node: void*, kind: u32): void*;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn entity_create(store: void*): void*;
+extern fn entity_attach(node: void*, parent: void*, name: u8*): bool;
+extern fn entity_release(node: void*): usize;
+extern fn entity_store_count(store: void*): usize;
+extern fn entity_view_open(node: void*): void*;
+extern fn entity_view_close(view: void*): void;
+extern fn node_string_append(value: ParserStringData*, text: u8*, length: usize): bool;
+extern fn lr_grammar_generated(grammar: void*, index: usize): bool;
+
+fn lr_grammar_test_kinds(world: void*, kinds: FrontendKinds*): void {
+    fill(kinds, 0, sizeof(FrontendKinds));
+    kinds.rule = compiler_world_type(world, CompilerParserRule());
+    kinds.reference = compiler_world_type(world, CompilerParserReference());
+    kinds.string = compiler_world_type(world, CompilerParserString());
+    kinds.range = compiler_world_type(world, CompilerParserRange());
+    utility_check(kinds.rule is not null && kinds.reference is not null && kinds.string is not null && kinds.range is not null,
+        "LR grammar fixture component kinds");
+}
+fn lr_grammar_test_child(world: void*, parent: void*): void* {
+    var node = entity_create(compiler_world_store(world));
+    utility_check(node is not null && entity_attach(node, parent, null), "LR grammar fixture child ownership");
+    entity_release(node);
+    return node;
+}
+fn lr_grammar_test_rule(world: void*, root: void*, name: u8*, generated: bool): void* {
+    var node = lr_grammar_test_child(world, root);
+    var data = bits(ParserRuleData*, compiler_world_component(world, node, CompilerParserRule()));
+    utility_check(data is not null && node_rule_set_name(data, name), "LR grammar fixture rule name");
+    data.generated = generated;
+    return node;
+}
+fn lr_grammar_test_reference(world: void*, rule: void*, name: u8*, capture: u8*): void* {
+    var node = lr_grammar_test_child(world, rule);
+    var data = bits(ParserReferenceData*, compiler_world_component(world, node, CompilerParserReference()));
+    utility_check(data is not null && node_reference_set_name(data, name) && node_reference_set_capture(data, capture),
+        "LR grammar fixture reference and capture");
+    return node;
+}
+fn lr_grammar_test_string(world: void*, node: void*, text: u8*): void {
+    var data = bits(ParserStringData*, compiler_world_component(world, node, CompilerParserString()));
+    utility_check(data is not null && node_string_append(data, text, strlen(text)), "LR grammar fixture UTF8 string");
+}
+fn lr_grammar_test_range(world: void*, node: void*, first: u32, last: u32): void {
+    var data = bits(ParserRangeData*, compiler_world_component(world, node, CompilerParserRange()));
+    utility_check(data is not null, "LR grammar fixture range"); data.start = first; data.end = last;
+}
+fn lr_grammar_test_name(index: usize): u8* {
+    var names: u8*[7];
+    names[0] = "Root"; names[1] = "later"; names[2] = "S'"; names[3] = "";
+    names[4] = "z"; names[5] = "alpha"; names[6] = "雪";
+    return names[index];
+}
+fn lr_grammar_fixture_fixed(world: void*): void* {
+    var root = entity_create(compiler_world_store(world));
+    utility_check(root is not null, "LR grammar fixture root");
+    for (var index: usize = 0; index < 7; ++index) {
+        var rule = lr_grammar_test_rule(world, root, lr_grammar_test_name(index), true);
+        for (var peer: usize = 0; peer < 7; ++peer) {
+            lr_grammar_test_reference(world, rule, lr_grammar_test_name(peer), "snapshot");
+        }
+        lr_grammar_test_string(world, lr_grammar_test_child(world, rule), "abc");
+        lr_grammar_test_range(world, lr_grammar_test_child(world, rule), ~convert(u32, 0), 4294967280);
+        lr_grammar_test_reference(world, rule, "external", "");
+    }
+    return root;
+}
+fn lr_grammar_fixture_random(world: void*, random: TestRandom*): void* {
+    var root = entity_create(compiler_world_store(world));
+    utility_check(root is not null, "LR random grammar root");
+    var rules = 1 + test_random(random) % 32;
+    for (var rule_index: u32 = 0; rule_index < rules; ++rule_index) {
+        var name = lr_grammar_test_name(convert(usize, test_random(random) % 7));
+        var generated = test_random(random) % 2 != 0;
+        var rule = lr_grammar_test_rule(world, root, name, generated);
+        var count = test_random(random) % 8;
+        for (var index: u32 = 0; index < count; ++index) {
+            var choice = test_random(random) % 4;
+            if choice == 0 || choice == 3 {
+                var reference = test_random(random) % 2 != 0 ? lr_grammar_test_name(convert(usize, test_random(random) % 7)) : "unbound";
+                var capture = lr_grammar_test_name(convert(usize, test_random(random) % 7));
+                var node = lr_grammar_test_reference(world, rule, reference, capture);
+                if choice == 3 {
+                    lr_grammar_test_string(world, node, "xy");
+                    lr_grammar_test_range(world, node, 9, 2);
+                }
+            } else {
+                if choice == 1 {
+                    var text = test_random(random) % 2 != 0 ? "abc雪" : "";
+                    lr_grammar_test_string(world, lr_grammar_test_child(world, rule), text);
+                } else {
+                    var first = test_random(random); var last = test_random(random);
+                    lr_grammar_test_range(world, lr_grammar_test_child(world, rule), first, last);
+                }
+            }
+        }
+    }
+    return root;
+}
+fn lr_grammar_test_create(root: void*, kinds: FrontendKinds*): void* {
+    return lr_grammar_create(root, kinds.rule, kinds.reference, kinds.string, kinds.range);
+}
+// Consumes the root after closing its immutable read view. Both implementations
+// must retain independent diagnostic text after source storage is destroyed.
+fn lr_grammar_test_compare(root: void*, kinds: FrontendKinds*): void {
+    var oracle: OracleGrammar;
+    var actual: void*;
+    {
+        var view = entity_view_open(root);
+        utility_check(view is not null, "LR grammar immutable source view");
+        defer entity_view_close(view);
+        actual = lr_grammar_test_create(root, kinds);
+        utility_check(actual is not null, "LR grammar production construction");
+        oracle_grammar_init(&oracle, root, kinds);
+        utility_check(lr_grammar_missing_count(actual) == oracle.missing.length, "LR grammar unresolved count");
+        for (var index: usize = 0; index < oracle.missing.length; ++index) {
+            utility_check(strcmp(lr_grammar_missing_name(actual, index), oracle_grammar_text(&oracle.missing.data[index].name)) == 0,
+                "LR grammar unresolved name order");
+            utility_check(!lr_grammar_resolve(actual, index, LRTokenEnd()), "LR grammar rejects EOF resolution");
+            var id = 2097152 + convert(u32, index);
+            utility_check(lr_grammar_resolve(actual, index, id) && oracle_grammar_resolve(&oracle, index, id), "LR grammar external resolution");
+        }
+        utility_check(!lr_grammar_resolve(actual, oracle.missing.length, 42), "LR grammar rejects invalid missing index");
+        utility_check(lr_grammar_name_count(actual) == oracle.names.length, "LR grammar name count");
+        for (var index: usize = 0; index < oracle.names.length; ++index) {
+            utility_check(strcmp(lr_grammar_name(actual, index), oracle_grammar_text(&oracle.names.data[index].text)) == 0
+                && lr_grammar_name_order(actual, index) == oracle.names.data[index].order, "LR grammar ordered names including augmented duplicate");
+        }
+        utility_check(lr_grammar_rule_count(actual) == oracle.rules.length, "LR grammar production count");
+        for (var index: usize = 0; index < oracle.rules.length; ++index) {
+            var left = &lr_grammar_rule_data(actual)[index]; var right = &oracle.rules.data[index].production;
+            utility_check(left.owner == right.owner && left.begin == right.begin && left.count == right.count
+                && left.precedence == right.precedence && left.associativity == right.associativity, "LR grammar production fields");
+            utility_check(lr_grammar_rule_node(actual, index) == oracle.rules.data[index].node
+                && lr_grammar_generated(actual, index) == oracle.rules.data[index].generated, "LR grammar production provenance and generated flag");
+        }
+        utility_check(lr_grammar_symbol_count(actual) == oracle.symbols.length, "LR grammar symbol count");
+        for (var index: usize = 0; index < oracle.symbols.length; ++index) {
+            var left = &lr_grammar_symbol_data(actual)[index]; var right = &oracle.symbols.data[index].symbol;
+            utility_check(left.nonterminal == right.nonterminal && left.first == right.first && left.last == right.last,
+                "LR grammar symbol ranges and nonterminals");
+            utility_check(lr_grammar_symbol_node(actual, index) == oracle.symbols.data[index].node
+                && strcmp(lr_grammar_capture(actual, index), oracle_grammar_text(&oracle.symbols.data[index].capture)) == 0,
+                "LR grammar symbol provenance and captures");
+        }
+        lr_grammar_finish(actual);
+    }
+    entity_release(root);
+    defer lr_grammar_destroy(actual);
+    defer oracle_grammar_dispose(&oracle);
+    for (var index: usize = 0; index < oracle.names.length; ++index) {
+        utility_check(strcmp(lr_grammar_name(actual, index), oracle_grammar_text(&oracle.names.data[index].text)) == 0,
+            "LR grammar name snapshot survives source release");
+    }
+    for (var index: usize = 0; index < oracle.symbols.length; ++index) {
+        utility_check(strcmp(lr_grammar_capture(actual, index), oracle_grammar_text(&oracle.symbols.data[index].capture)) == 0,
+            "LR grammar capture snapshot survives source release");
+    }
+}
+export fn lr_grammar_tests(): void {
+    test_random_check();
+    var baseline = tower_test_buffer_count();
+    var world = compiler_world_create();
+    utility_check(world is not null, "LR grammar explicit world");
+    var kinds: FrontendKinds; lr_grammar_test_kinds(world, &kinds);
+    var root = lr_grammar_fixture_fixed(world);
+    var buffers = tower_test_buffer_count();
+    var success = false;
+    for (var fail: usize = 0; fail < 2048 && !success; ++fail) {
+        tower_test_buffer_fail_after(fail);
+        var grammar = lr_grammar_test_create(root, &kinds);
+        success = grammar is not null;
+        lr_grammar_destroy(grammar);
+        tower_test_buffer_fail_after(~convert(usize, 0));
+        utility_check(tower_test_buffer_count() == buffers, "LR grammar complete construction failure cleanup");
+    }
+    utility_check(success, "LR grammar allocation sweep reaches success");
+    lr_grammar_test_compare(root, &kinds);
+    var random: TestRandom; test_random_init(&random, 1196573005);
+    var nodes = entity_store_count(compiler_world_store(world));
+    for (var trial: usize = 0; trial < 150; ++trial) {
+        var before = tower_test_buffer_count();
+        lr_grammar_test_compare(lr_grammar_fixture_random(world, &random), &kinds);
+        utility_check(tower_test_buffer_count() == before, "LR grammar random trial buffer cleanup");
+        utility_check(entity_store_count(compiler_world_store(world)) == nodes, "LR grammar random trial node cleanup");
+    }
+    // Additional boundaries absent from the old fixture: an empty document and
+    // the precedence metadata consumed by the current production table builder.
+    lr_grammar_test_compare(entity_create(compiler_world_store(world)), &kinds);
+    root = entity_create(compiler_world_store(world));
+    var rule = lr_grammar_test_rule(world, root, "Precedence", false);
+    var data = bits(ParserRuleData*, oracle_grammar_payload(rule, kinds.rule));
+    data.precedence = 17; data.associativity = 2;
+    lr_grammar_test_compare(root, &kinds);
+    utility_check(compiler_world_dispose(world), "LR grammar explicit world disposal");
+    utility_check(tower_test_buffer_count() == baseline, "LR grammar releases all world and oracle storage");
+    puts("LR grammar: ordered snapshots, 150 random grammars, source lifetime and allocation failures passed.");
+}

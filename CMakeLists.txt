@@ -129,7 +129,7 @@ if(TOWER_PARSER_ONLY)
   target_compile_definitions(tower-compiler-memory PRIVATE TOWER_COMPILER_MEMORY_TESTS=1)
   tower_compiler_interpreter()
   add_executable(tower-parser-tests scaffolding/tests/main.cpp
-    scaffolding/tests/lr-analysis.cpp scaffolding/tests/lr-grammar.cpp
+    scaffolding/tests/lr-analysis.cpp
     scaffolding/tower.cpp scaffolding/tests/nodes.cpp
     scaffolding/syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/format.cpp scaffolding/lex-pattern.cpp scaffolding/lex-pattern-common.cpp scaffolding/syntax-tests.cpp)
   target_compile_features(tower-parser-tests PRIVATE cxx_std_20)
@@ -158,7 +158,7 @@ if(TOWER_PARSER_ONLY)
     target_compile_definitions(tower-syntax-emission-reference PRIVATE syntax_emission_${name}=reference_syntax_emission_${name})
   endforeach()
   target_link_libraries(tower-parser-tests PRIVATE tower-syntax-emission-reference)
-  add_library(tower-lr-reference STATIC scaffolding/bootstrap/lr-analysis-seed.cpp scaffolding/bootstrap/lr-grammar-seed.cpp)
+  add_library(tower-lr-reference STATIC scaffolding/bootstrap/lr-analysis-seed.cpp)
   target_compile_features(tower-lr-reference PRIVATE cxx_std_20)
   foreach(name IN ITEMS analysis_create analysis_destroy analysis_compute analysis_failed analysis_nullable
       analysis_first_count analysis_first_data items_create items_destroy items_insert items_count items_data items_close items_goto
@@ -169,9 +169,6 @@ if(TOWER_PARSER_ONLY)
       runtime_specialize runtime_sequence parser_create parser_destroy parser_step parser_commit parser_frame_count parser_frame
       parser_frames parser_sequence_forest parser_consumed parser_shifted parser_work
       probe_create probe_clone probe_destroy probe_reset probe_count probe_frames probe_accepts probe_step
-      grammar_create grammar_destroy grammar_rule_count grammar_rule_data grammar_rule_node grammar_generated
-      grammar_symbol_count grammar_symbol_data grammar_symbol_node grammar_capture grammar_name_count grammar_name grammar_name_order
-      grammar_missing_count grammar_missing_name grammar_resolve grammar_finish
       tree_needs_label tree_shift tree_reduce tree_accept)
     target_compile_definitions(tower-lr-reference PRIVATE lr_${name}=reference_lr_${name})
   endforeach()
@@ -189,6 +186,7 @@ if(TOWER_PARSER_ONLY)
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")
   include(cmake/TowerRegexTests.cmake)
   include(cmake/TowerLexiconTests.cmake)
+  include(cmake/TowerLRGrammarTests.cmake)
   include(cmake/TowerInterpreterTests.cmake)
   foreach(reference IN ITEMS tower-syntax-validation-reference
       tower-syntax-emission-reference tower-lr-reference)

@@ -25484,3 +25484,53 @@ private derived reference indexes over the existing shared grammar model. The
 new pull also received bb7967d's Tower simplification changes; a fresh documented
 successor must be repeated before the next source publication. This new source
 is later than the verified dafeb20 deployment and is not claimed deployed here.
+
+### 2026-11-20 - Agent 2: LR grammar fixture and reference retirement
+
+After the verified core deployment and lock release, coordinator assigned the
+independent LR reference/fixture lane. The smallest coherent slice retires
+126lines of tests/lr-grammar.cpp and93lines of bootstrap/lr-grammar-seed.cpp.
+Production LR algorithms, shared entities, grammar components and exports are
+unchanged. Agent3 approved the narrow parser target/seed source-list changes;
+remaining native lr-analysis.cpp changes only its fixture declaration to extern C.
+
+Before deletion, the unchanged native harness and reference passed on Linux and
+WASI SDK34, using a temporary Tower entry and external mechanical CMake wiring.
+Original SHA256: fixture6bd56029b93e8271f906e6e25423abe709a21775f6ca8b9701c9b7dc7cf63a43;
+seed3dab99b0d7830628f0534b4d6ff6fb0297d8f06e21ef58090ee2c6ada4f61f86.
+Then a temporary Tower proof compared the unchanged native seed, new Tower oracle
+and production on the fixed fixture,150seeded randomized grammars and empty
+input. Every rule/symbol field, node identity, generated flag, ordered name,
+capture and missing-name resolution matched on both Linux and WASI. Text/capture
+snapshots also matched after source entity destruction. Native baseline/proof
+helpers remain outside Git as AgentLRBaseline.cmake, AgentLRGrammarProof.cmake
+and agent_2_lr_grammar_proof.tower in C:/Sandbox/build/codex-agents. Native source
+is reproducible from bb7967d; no native implementation or fallback was added.
+
+Permanent tests/lr_grammar.tower and lr_grammar_oracle.tower call actual compiled
+production exports. The independent oracle uses linear lookup and rank counting,
+not production hash buckets/heap sort, over private disposable snapshots of the
+same grammar entities. An explicit world owns each source; read views bracket
+construction, close before source destruction, and all oracle/world buffers are
+released. Preserved the2048-attempt construction allocation-failure sweep,150
+std::mt19937-equivalent randomized trials with seed0x4752414d, mixed reference/
+string/range components, reversed/extreme ranges, duplicate augmented S' names,
+UTF8/empty names, unresolved references, exact provenance, and per-trial cleanup.
+Added empty-grammar and nonzero precedence/associativity preservation checks.
+
+Focused native/WASI Tower runners pass. After deleting both native files and
+removing their target/rename entries, both parser aggregates link and both
+focused Tower entries still pass. The optional external proof include was cleared
+from each cache before this check. Full known-broken parser aggregate execution,
+sanitizers and broad formatter sweeps remain skipped. Source consumers audited
+with rg; git diff --check passes. Logs are agent-2-lr-{baseline,proof,retired}-*
+and agent-2-lr-grammar-*. Initial draft compile errors were ordinary fixture
+syntax/import issues: Tower requires else { if... }, expected is a grammar word,
+and directly used imports must be explicit. Corrected them without compiler
+changes. One manual compiler command accidentally supplied Foundation as Bedrock;
+the import-cycle diagnostic disappeared with the correct documented arguments.
+
+Next: merge latest session/format/source changes, repeat a clean documented
+bootstrap successor and focused checks before requesting the source slot. The
+larger LR analysis/reference migration remains separate pending work; no claim
+of complete LR retirement or deployment of this new fixture is made yet.

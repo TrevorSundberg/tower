@@ -6,7 +6,7 @@
 #include <random>
 #include <vector>
 #include <algorithm>
-void lr_grammar_tests();
+extern "C" void lr_grammar_tests();
 extern "C" {
 LRAnalysis* reference_lr_analysis_create(const LRProduction*, size_t, const LRSymbol*, size_t, size_t);
 void reference_lr_analysis_destroy(LRAnalysis*);
