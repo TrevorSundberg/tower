@@ -15,8 +15,8 @@ const grammar = Object.fromEntries(await Promise.all(['bedrock','foundation','to
 let compiler = await loadLLVM(await read(process.env.TOWER_TEST_LLVM_WASM || 'build/browser-wasi-llvm/tower-llvm.wasm'),undefined,grammar.foundation,undefined,grammar.bedrock,{tower:grammar.tower});
 const files = structuredClone(recipe.files);
 const values = files.find(file => file.path === 'compiler/semantic_values.tower');
-assert.ok(values.text.includes('null requires a pointer type'));
-values.text = values.text.replace('null requires a pointer type','Compiler project generation says: null requires a pointer type');
+assert.ok(values.text.includes('null requires a pointer or function type'));
+values.text = values.text.replace('null requires a pointer or function type','Compiler project generation says: null requires a pointer or function type');
 let previous;
 for (let generation = 1; generation <= 2; ++generation) {
   const started = performance.now();

@@ -690,6 +690,8 @@ fn sem_function_type(c: SemanticContext*, owner: void*, result: FoundationType*,
 
 fn sem_function_reference(c: SemanticContext*, source: void*, name: void*): bool {
     name = sem_surface_unwrap(name);
+    if !sem_is(name, "CoreLocation") && !sem_is(name, "Identifier") { return false; }
+    if sem_member(name, "base") != null && sem_namespace(c, name) == null { return false; }
     if sem_value_binding(c, name) != null { return false; }
     var function = sem_resolve(c, c.functions, name, sem_identifier(c, name));
     if function == null { return false; }

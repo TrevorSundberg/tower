@@ -38361,3 +38361,12 @@ suite includes generic invocation and function-storage pointers passed through a
 generic identity function. Only the affected native units/browser artifacts are
 being refreshed for this final implementation delta; inputs remain frozen during
 builds, and the deployment will retain the integrated source identity.
+
+The final callback-inference/cache-index build passes the focused function suite
+and the 32/64-bit interpreter/native/Wasm runtime transport. Tightened function
+reference recognition to declaration-name syntax (including namespace members),
+so taking the address of a literal cannot accidentally resolve a quoted function
+with matching text. The Tower negative regression passes. The raw expected output
+fixture now uses .expected rather than pretending to be Tower source. Updated the
+existing browser self-build transport's edited-diagnostic sentinel for nullable
+function types; it continues to test a real semantic edit across generations.
