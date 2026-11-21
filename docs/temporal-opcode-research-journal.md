@@ -37802,3 +37802,13 @@ This exercises the optimized Tower linker inside Wasm, not just native relinking
 The functional and performance gates for this scoped optimization are complete;
 no shared-memory/TLS/parallel-linker feature work was started after the user's
 profiling request. Publication again preserves the verified hosted runtime.
+
+Performance milestone publication: implementation rebased to 358a2ca and final
+validation bf4499c are pushed. The last rebase only merged the other tooling
+lane's journal receipt, so validated compiler inputs did not change. Pages
+f92b0badd81695a312d5e6f9a5e8582b2a66c014 / action 44959982303 succeeded. Hosted
+manifest SHA-256 990ff9e21e789a108522839c44b8f0cd8ecfecef1824aebf7ecbaf3921fd4a73
+exactly matches the prepared receipt, preserving runtime 6c03edd, all 86 assets
+and concurrent tooling notes. Production linker selection remains upstream;
+the optimized source and reproducible results are available on main. todo.txt
+hash remains 045d1e620edf7c67b653fec19df850b370246b1d. Own publication lock released.
