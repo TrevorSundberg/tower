@@ -255,9 +255,8 @@ fn fm_function(f: FMState*, node: void*): usize {
     function.frame_size = im_align(n.frame_size);
     function.parameters = f.parameters.length;
     function.parameter_count = n.parameters.length;
-    var i: usize = 0;
-    for(; i != n.parameters.length; i++) {
-        var param = im_node(n.parameters.data[i]);
+    foreach(var & parameter in &n.parameters) {
+        var param = im_node(*parameter);
         var value: FMParameter;
         value.offset = param.byte_offset;
         value.size = im_type_size(&param.type);
@@ -635,8 +634,8 @@ fn fm_statement(f: FMState*, node: void*, breaks: vector(usize)*, continue_pc: u
     var fm_condition_19 = n.kind == KProgram();
 
     if im_or(fm_condition_18, fm_condition_19) {
-        for(var i: usize = 0; i != n.items.length; i++) {
-            fm_statement(f, n.items.data[i], breaks, continue_pc);
+        foreach(var & item in &n.items) {
+            fm_statement(f, *item, breaks, continue_pc);
         }
         return;
     }
@@ -687,8 +686,8 @@ fn fm_statement(f: FMState*, node: void*, breaks: vector(usize)*, continue_pc: u
         var start = f.words.length;
         fm_statement(f, n.body, &local_breaks, start);
         fm_emit(f, 13, start, 0, 0);
-        for(var i: usize = 0; i != local_breaks.length; i++) {
-            fm_patch(f, local_breaks.data[i], 2, f.words.length);
+        foreach(var & local_break in &local_breaks) {
+            fm_patch(f, *local_break, 2, f.words.length);
         }
         vector_dispose(&local_breaks);
         return;

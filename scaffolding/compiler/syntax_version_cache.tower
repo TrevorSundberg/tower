@@ -10,19 +10,25 @@ import .library.vector;
 
 export fn syntax_version_cache_dispose(value: SyntaxVersionCache*): void {
     frontend_cache_dispose(&value.index);
-    for (var i: usize = 0; i < value.versions.length; ++i) { syntax_version_release(value.versions.data[i]); }
+    foreach(var & version in &value.versions) {
+        syntax_version_release(*version);
+    }
     vector_dispose(&value.versions);
 }
 
 // Clone recency and pins together; allocation failure preserves the destination.
 export fn syntax_version_cache_copy(target: SyntaxVersionCache*, source: SyntaxVersionCache*): bool {
-    if target == source { return true; }
+    if target == source {
+        return true;
+    }
     var prepared: SyntaxVersionCache;
     fill(&prepared, 0, sizeof(SyntaxVersionCache));
     defer syntax_version_cache_dispose(&prepared);
     if !vector_reserve(&prepared.versions, source.versions.length) ||
-        !frontend_cache_copy(&prepared.index, &source.index) { return false; }
-    for (var i: usize = 0; i < source.versions.length; ++i) {
+    !frontend_cache_copy(&prepared.index, &source.index) {
+        return false;
+    }
+    for(var i: usize = 0; i < source.versions.length; ++i) {
         prepared.versions.data[i] = syntax_version_retain(source.versions.data[i]);
     }
     prepared.versions.length = source.versions.length;
@@ -37,24 +43,32 @@ export fn syntax_version_cache_copy(target: SyntaxVersionCache*, source: SyntaxV
 export fn syntax_version_cached(value: SyntaxVersionCache*, world: void*, definitions: FrontendRevision*, bedrock: FrontendRevision*, diagnostic: SyntaxVersionDiagnostic*): SyntaxVersion* {
     diagnostic.text.length = 0;
     diagnostic.fallback = "Unable to allocate grammar revision";
-    if definitions is null { return null; }
+    if definitions is null {
+        return null;
+    }
     var kind = compiler_world_type(world, CompilerSyntax());
-    if kind is null { return null; }
+    if kind is null {
+        return null;
+    }
     var slot = frontend_cache_find(&value.index, definitions.rules.data, definitions.rules.length,
-        definitions.tokens.data, definitions.tokens.length, kind);
+    definitions.tokens.data, definitions.tokens.length, kind);
     if slot != lr_none() {
         diagnostic.fallback = "";
         return syntax_version_retain(value.versions.data[slot]);
     }
     var version = syntax_version_build(world, definitions, bedrock, diagnostic);
-    if version is null { return null; }
-    if !vector_reserve(&value.versions, FrontendCacheLimit()) { return version; }
+    if version is null {
+        return null;
+    }
+    if !vector_reserve(&value.versions, FrontendCacheLimit()) {
+        return version;
+    }
     if value.versions.length == 0 {
-        fill(value.versions.data, 0, FrontendCacheLimit() * sizeof(SyntaxVersion*));
+        fill(value.versions.data, 0, FrontendCacheLimit() *sizeof(SyntaxVersion*));
         value.versions.length = FrontendCacheLimit();
     }
     slot = frontend_cache_store(&value.index, definitions.rules.data, definitions.rules.length,
-        definitions.tokens.data, definitions.tokens.length);
+    definitions.tokens.data, definitions.tokens.length);
     if slot != lr_none() {
         syntax_version_release(value.versions.data[slot]);
         value.versions.data[slot] = syntax_version_retain(version);

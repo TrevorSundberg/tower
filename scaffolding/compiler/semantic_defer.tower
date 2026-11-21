@@ -61,14 +61,14 @@ fn sem_defer_clone(c: SemanticContext*, parent: void*, original: void*, clones: 
     value.target = sem_defer_clone(c, entity, source.target, clones, to);
     value.body = sem_defer_clone(c, entity, source.body, clones, to);
     value.otherwise = sem_defer_clone(c, entity, source.otherwise, clones, to);
-    for(var i: usize = 0; i < source.items.length; i++) {
-        sem_push(&value.items, sem_defer_clone(c, entity, source.items.data[i], clones, to));
+    foreach(var & item in &source.items) {
+        sem_push(&value.items, sem_defer_clone(c, entity, *item, clones, to));
     }
-    for(var i: usize = 0; i < source.locals.length; i++) {
-        sem_push(&value.locals, sem_defer_clone(c, entity, source.locals.data[i], clones, to));
+    foreach(var & local in &source.locals) {
+        sem_push(&value.locals, sem_defer_clone(c, entity, *local, clones, to));
     }
-    for(var i: usize = 0; i < source.parameters.length; i++) {
-        sem_push(&value.parameters, sem_defer_clone(c, entity, source.parameters.data[i], clones, to));
+    foreach(var & parameter in &source.parameters) {
+        sem_push(&value.parameters, sem_defer_clone(c, entity, *parameter, clones, to));
     }
     if value.kind == KDeclare() {
         sem_add_local(c, entity);
@@ -86,8 +86,8 @@ fn sem_defer_emit(c: SemanticContext*, block: void*, stop: void*, loops: usize):
         var clones = sem_table(c);
         var to = sem_list(c);
         var body = sem_defer_clone(c, block, pending.body, clones, to);
-        for(var i: usize = 0; i < to.length; i++) {
-            var value = sem_get(to.data[i]);
+        foreach(var & to_item in to) {
+            var value = sem_get(*to_item);
             if value.binding != null {
                 var local = sem_find(clones, null, value.binding);
                 if local != null {
@@ -127,8 +127,8 @@ fn sem_defer_hygiene(c: SemanticContext*): void {
     }
     // Encounter order is stable across hosts; pointer-keyed hash-table iteration
     // must never decide serialized names.
-    for(var i: usize = 0; i < c.defer_order.length; i++) {
-        sem_set_name(sem_get(c.defer_order.data[i]), sem_control_name(c));
+    foreach(var & defer_order_item in c.defer_order) {
+        sem_set_name(sem_get(*defer_order_item), sem_control_name(c));
     }
 }
 

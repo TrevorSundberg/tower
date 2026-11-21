@@ -35,8 +35,8 @@ fn source_comment_targets(entity: void*, base: usize, limit: usize, targets: vec
         list = true;
     }
     if list {
-        for(var i: usize = 0; i != n.items.length; i++) {
-            source_comment_targets(n.items.data[i], base, limit, targets);
+        foreach(var & item in &n.items) {
+            source_comment_targets(*item, base, limit, targets);
         }
     }
 }
@@ -46,9 +46,8 @@ fn source_comment_targets(entity: void*, base: usize, limit: usize, targets: vec
 fn source_comment_sort(targets: vector(void*)*): void {
     var scratch: vector(void*);
     vector_init(&scratch);
-    var i: usize = 0;
-    for(; i != targets.length; i++) {
-        sem_require(vector_push(&scratch, targets.data[i]));
+    foreach(var & target in targets) {
+        sem_require(vector_push(&scratch, *target));
     }
     var width: usize = 1;
     loop {

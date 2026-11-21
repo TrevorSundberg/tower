@@ -37,9 +37,8 @@ fn parser_table_none(): usize {
 fn parser_table_clear_runtime(table: ParserHostTable*): void {
     lr_runtime_destroy(table.runtime);
     table.runtime = null;
-    var index: usize = 0;
-    for(; index < table.states.length; index++) {
-        vector_dispose(&table.states.data[index].contexts);
+    foreach(var & state in &table.states) {
+        vector_dispose(&(*state).contexts);
     }
     vector_dispose(&table.states);
     table.built = false;

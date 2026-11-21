@@ -350,8 +350,7 @@ fn generic_member(a: GenericAnalysis*, node: void*, source: GenericInfo*, depth:
     var name = sem_identifier(a.context, sem_member(node, "field"));
     var fields = sem_collect(a.context, sem_member(record.annotation, "fields"), "CoreField");
     var field: void* = null;
-    for(var i: usize = 0; i < fields.length; i++) {
-        var candidate = fields.data[i];
+    foreach(var candidate in fields) {
         if sem_equal(name, sem_identifier(a.context, sem_member(candidate, "name"))) {
             if field != null {
                 return;

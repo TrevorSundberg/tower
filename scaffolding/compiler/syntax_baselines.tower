@@ -101,13 +101,13 @@ export fn syntax_world_publish(world: void*, source: u8*, length: usize, documen
     if compiler_world_get(world, document, CompilerSyntax()) is null {
         return false;
     }
-    for(var i: usize = 0; i < revision.alternatives.length; ++i) {
-        if compiler_world_get(world, revision.alternatives.data[i], CompilerSyntax()) is null {
+    foreach(var & alternative in &revision.alternatives) {
+        if compiler_world_get(world, *alternative, CompilerSyntax()) is null {
             return false;
         }
     }
-    for(var i: usize = 0; i < revision.tokens.length; ++i) {
-        if compiler_world_get(world, revision.tokens.data[i], CompilerSyntax()) is null {
+    foreach(var & lexeme in &revision.tokens) {
+        if compiler_world_get(world, *lexeme, CompilerSyntax()) is null {
             return false;
         }
     }

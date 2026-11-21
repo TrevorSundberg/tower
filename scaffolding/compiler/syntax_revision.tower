@@ -239,8 +239,8 @@ index: usize, count: usize*, kind: void*): void* {
 }
 
 export fn syntax_revision_bedrock_error(revision: FrontendRevision*, kind: void*): u8* {
-    for(var i: usize = 0; i < revision.alternatives.length; ++i) {
-        if syntax_revision_node(revision.alternatives.data[i], kind).replacement is not null {
+    foreach(var & alternative in &revision.alternatives) {
+        if syntax_revision_node(*alternative, kind).replacement is not null {
             return "Bedrock declaration rules cannot use replacement handlers yet";
         }
     }

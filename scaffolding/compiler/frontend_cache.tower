@@ -185,8 +185,8 @@ tokens: void**, token_count: usize, kind: void*): bool {
 }
 
 export fn frontend_cache_dispose(cache: FrontendCache*): void {
-    for(var i: usize = 0; i != cache.entries.length; i++) {
-        frontend_revision_release(cache.entries.data[i]);
+    foreach(var & entry in &cache.entries) {
+        frontend_revision_release(*entry);
     }
     vector_dispose(&cache.entries);
     cache.builds = 0;

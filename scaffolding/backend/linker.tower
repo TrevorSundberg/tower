@@ -48,8 +48,8 @@ fn backend_link_argument(link: BackendLink*, prefix: u8*, value: u8*): void {
 export fn backend_link_reset_plan(link: BackendLink*): void {
     remove("tower-stack-probe.lib");
     remove("tower-platform.tbd");
-    for(var i: usize = 0; i != link.arguments.length; i++) {
-        free(link.arguments.data[i]);
+    foreach(var & argument in &link.arguments) {
+        free(*argument);
     }
     link.arguments.length = 0;
     link.error.length = 0;
@@ -57,9 +57,7 @@ export fn backend_link_reset_plan(link: BackendLink*): void {
 }
 
 export fn backend_link_clear_inputs(link: BackendLink*): void {
-    var i: usize = 0;
-    for(; i != link.inputs.length; i++) {
-        var input = &link.inputs.data[i];
+    foreach(var & input in &link.inputs) {
         remove(input.name.data);
         vector_dispose(&input.name);
         vector_dispose(&input.bytes);

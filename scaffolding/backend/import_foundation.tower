@@ -68,8 +68,8 @@ fn bi_name(c: BackendImport*, entity: void*, prefix: u8*): void {
         backend_decimal(&n.name, c.serial);
         c.serial++;
         var collision = false;
-        for(var i: usize = 0; i != c.backend.source_functions.length; i++) {
-            var original = sem_get(c.backend.source_functions.data[i]);
+        foreach(var & source_function in &c.backend.source_functions) {
+            var original = sem_get(*source_function);
             if backend_equal(backend_name(original), n.name.data) {
                 collision = true;
             }

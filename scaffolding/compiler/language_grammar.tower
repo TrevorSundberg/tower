@@ -86,9 +86,7 @@ fn language_match_snapshot(q: CompletionQuery*, node: void*, session: void*, dep
 
 fn language_grammar_index(q: CompletionQuery*): void {
     q.grammar_index = sem_table(&q.context);
-    var i: usize = 0;
-    for(; i != q.grammar.length; i++) {
-        var entry = &q.grammar.data[i];
+    foreach(var & entry in &q.grammar) {
         var indexed = sem_state(&q.context, q.grammar_index, entry.node);
         indexed.value = bits(void*, entry);
     }
@@ -103,8 +101,7 @@ fn language_match_candidate(q: CompletionQuery*, node: void*, candidate: Languag
     if named {
         var name = tower_node_get_parent_member_name(node);
         var alternative = language_syntax(parent.targets.data[0]);
-        for(var i: usize = 0; i != alternative.items.length; i++) {
-            var term = alternative.items.data[i];
+        foreach(var term in &alternative.items) {
             var syntax = language_syntax(term);
             var captured = syntax.capture.length != 0;
             captured &&= name != null;
@@ -247,11 +244,9 @@ fn language_templates_refresh(q: CompletionQuery*, session: void*): void {
 }
 
 fn language_grammar_dispose(q: CompletionQuery*): void {
-    var i: usize = 0;
-    for(; i != q.grammar.length; i++) {
-        var entry = &q.grammar.data[i];
-        for(var j: usize = 0; j != entry.targets.length; j++) {
-            entity_release(entry.targets.data[j]);
+    foreach(var & entry in &q.grammar) {
+        foreach(var & target in &entry.targets) {
+            entity_release(*target);
         }
         vector_dispose(&entry.targets);
         vector_dispose(&entry.category);
@@ -586,15 +581,14 @@ fn language_capture_categories(q: CompletionQuery*, declaration: SyntaxNode*, ca
     if declaration != null {
         for(; i != declaration.items.length; i++) {
             var alternative = language_syntax(declaration.items.data[i]);
-            var j: usize = 0;
-            for(; j != alternative.items.length; j++) {
-                var term = language_syntax(alternative.items.data[j]);
+            foreach(var & item in &alternative.items) {
+                var term = language_syntax(*item);
                 var same = term.capture.length != 0;
                 same &&= sem_equal(term.capture.data, capture.capture.data);
                 if same {
                     var known = false;
-                    for(var k: usize = 0; k != categories.length; k++) {
-                        if sem_equal(categories.data[k], term.text.data) {
+                    foreach(var & category in &categories) {
+                        if sem_equal(*category, term.text.data) {
                             known = true;
                         }
                     }

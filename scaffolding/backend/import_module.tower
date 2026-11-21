@@ -107,9 +107,8 @@ fn bi_function(c: BackendImport*, function: void*): void {
     }
     var declarations = sem_get(c.declarations);
     var body = sem_get(n.body);
-    var i: usize = 0;
-    for(; i != body.items.length; i++) {
-        backend_require(c.backend, vector_push(&declarations.items, body.items.data[i]));
+    foreach(var & item in &body.items) {
+        backend_require(c.backend, vector_push(&declarations.items, *item));
     }
     n.body = c.declarations;
 }
@@ -126,9 +125,7 @@ export fn backend_import_foundation(b: Backend*, root: void*): bool {
     program.type.scalar = 3;
     program.type.pointer_bytes = b.pointer_bytes;
     var original_root = sem_get(b.source_root);
-    var original_index: usize = 0;
-    for(; original_index != original_root.items.length; original_index++) {
-        var entity = original_root.items.data[original_index];
+    foreach(var entity in &original_root.items) {
         var n = sem_get(entity);
         if n.kind == 19 {
             bi_append(&c, root, entity);

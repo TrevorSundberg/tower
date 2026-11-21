@@ -648,9 +648,8 @@ fn format_statement_body(f: FormatEngine*, entity: void*): void {
             format_type(f, &n.element);
             format_text(f, " {\n");
             f.result.depth++;
-            var i: usize = 0;
-            for(; i != n.items.length; i++) {
-                var member = format_foundation(f, n.items.data[i]);
+            foreach(var & item in &n.items) {
+                var member = format_foundation(f, *item);
                 format_indent(f);
                 format_identifier(f, &member.name);
                 format_text(f, " = ");

@@ -53,8 +53,8 @@ export fn syntax_trace_dispose(trace: SyntaxExpansion*): void {
 export fn syntax_origin_dispose(origin: SyntaxOrigin*): void {
     syntax_trace_release(origin.expansion);
     origin.expansion = null;
-    for(var index: usize = 0; index < origin.splices.length; index++) {
-        syntax_trace_release(origin.splices.data[index]);
+    foreach(var & splice in &origin.splices) {
+        syntax_trace_release(*splice);
     }
     vector_dispose(&origin.splices);
 }

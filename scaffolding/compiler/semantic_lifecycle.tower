@@ -52,8 +52,7 @@ fn sem_context_init(c: SemanticContext*, program: SemanticProgram*): void {
     work_init(&c.queries, 1, convert(u64, program.pointer_bytes));
     var step13 = sem_scope(c, null);
     c.scope = step13;
-    for(var i: usize = 0; i < program.types.length; i++) {
-        var n: void* = program.types.data[i];
+    foreach(var n in &program.types) {
         var step17 = sem_name(sem_get(n));
         sem_put(c, c.types, step17, n);
     }

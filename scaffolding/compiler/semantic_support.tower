@@ -252,8 +252,8 @@ fn sem_list(c: SemanticContext*): vector(void*)* {
 }
 
 fn sem_has(v: vector(void*)*, n: void*): bool {
-    for(var i: usize = 0; i < v.length; i++) {
-        if v.data[i] == n {
+    foreach(var & v_item in v) {
+        if *v_item == n {
             return true;
         }
     }

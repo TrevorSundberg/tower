@@ -750,8 +750,8 @@ export fn backend_lower(b: Backend*, root: void*, functions: void**, count: usiz
     }
     if library {
         var program = sem_get(root);
-        for(var i: usize = 0; i != program.items.length; i++) {
-            var n = sem_get(program.items.data[i]);
+        foreach(var & item in &program.items) {
+            var n = sem_get(*item);
             var allowed = n.kind == KFunction();
             var type = n.kind == KType();
             if type {

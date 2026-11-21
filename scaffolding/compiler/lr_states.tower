@@ -158,8 +158,8 @@ export fn lr_states_destroy(value: LRStates*): void {
     if value == null {
         return;
     }
-    for(var index: usize = 0; index != value.states.length; index++) {
-        lr_state_destroy(value.states.data[index]);
+    foreach(var & state in &value.states) {
+        lr_state_destroy(*state);
     }
     vector_dispose(&value.states);
     vector_dispose(&value.pending);

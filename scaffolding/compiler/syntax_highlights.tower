@@ -10,34 +10,45 @@ extern fn abort(): void;
 
 fn syntax_highlight_style(value: SyntaxHighlights*, text: u8*): u8* {
     var length = syntax_text_length(text);
-    if length == 0 { return ""; }
-    for (var i: usize = 0; i < value.styles.length; ++i) {
-        var style = &value.styles.data[i];
-        if syntax_bytes_compare(style.data, style.length, text, length) == 0 { return style.data; }
+    if length == 0 {
+        return "";
     }
-    if !vector_reserve(vector(u8), &value.styles, value.styles.length + 1) { return null; }
+    foreach(var & style in &value.styles) {
+        if syntax_bytes_compare(style.data, style.length, text, length) == 0 {
+            return style.data;
+        }
+    }
+    if !vector_reserve(&value.styles, value.styles.length + 1) {
+        return null;
+    }
     var style = &value.styles.data[value.styles.length];
     vector_init(style);
-    if !node_text_set(style, text) { return null; }
+    if !node_text_set(style, text) {
+        return null;
+    }
     value.styles.length++;
     return style.data;
 }
 
 export fn syntax_highlights_clear(value: SyntaxHighlights*): void {
-    for (var i: usize = 0; i < value.styles.length; ++i) { vector_dispose(&value.styles.data[i]); }
+    foreach(var & style in &value.styles) {
+        vector_dispose(style);
+    }
     value.styles.length = 0;
     value.items.length = 0;
 }
 
 export fn syntax_highlights_dispose(value: SyntaxHighlights*): void {
     syntax_highlights_clear(value);
-    vector_dispose(vector(u8), &value.styles);
+    vector_dispose(&value.styles);
     vector_dispose(&value.items);
 }
 
 export fn syntax_highlights_push(value: SyntaxHighlights*, start: usize, end: usize, revision: usize, style: u8*, id: u32, opaque: bool): bool {
     var name = syntax_highlight_style(value, style);
-    if name is null || !vector_reserve(&value.items, value.items.length + 1) { return false; }
+    if name is null || !vector_reserve(&value.items, value.items.length + 1) {
+        return false;
+    }
     var row = &value.items.data[value.items.length++];
     row.start = start;
     row.end = end;
@@ -52,23 +63,30 @@ export fn syntax_highlights_push(value: SyntaxHighlights*, start: usize, end: us
 // former fatal allocation policy; fallible owner operations are tested directly.
 export fn syntax_scan_highlight(host: void*, start: usize, end: usize, revision: usize, style: u8*, id: u32, skipped: bool): void {
     if !syntax_highlights_push(bits(SyntaxHighlights*, host), start, end, revision, style, id,
-        skipped || id == convert(u32, SyntaxTokenId.String)) { abort(); }
+    skipped || id == convert(u32, SyntaxTokenId.String)) {
+        abort();
+    }
 }
 
 export fn syntax_highlights_style(value: SyntaxHighlights*, index: usize, style: u8*): void {
     var name = syntax_highlight_style(value, style);
-    if name is null { abort(); }
+    if name is null {
+        abort();
+    }
     value.items.data[index].kind = name;
 }
 
 export fn syntax_highlights_copy(target: SyntaxHighlights*, source: SyntaxHighlights*): bool {
-    if target == source { return true; }
+    if target == source {
+        return true;
+    }
     var prepared: SyntaxHighlights;
     fill(&prepared, 0, sizeof(SyntaxHighlights));
     defer syntax_highlights_dispose(&prepared);
-    for (var i: usize = 0; i < source.items.length; ++i) {
-        var row = &source.items.data[i];
-        if !syntax_highlights_push(&prepared, row.start, row.end, row.revision, row.kind, row.id, row.opaque) { return false; }
+    foreach(var & row in &source.items) {
+        if !syntax_highlights_push(&prepared, row.start, row.end, row.revision, row.kind, row.id, row.opaque) {
+            return false;
+        }
     }
     syntax_highlights_dispose(target);
     copy(target, &prepared, sizeof(SyntaxHighlights));

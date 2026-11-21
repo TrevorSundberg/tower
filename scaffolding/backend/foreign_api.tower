@@ -168,8 +168,8 @@ fn foreign_c(m: ForeignName*, object: bool): void {
             backend_text(&m.text, "@");
         }
         var count: usize = 0;
-        for(var i: usize = 0; i != m.function.args.length; i++) {
-            count = count + foreign_argument_bytes(m, m.function.args.data[i]);
+        foreach(var & arg in &m.function.args) {
+            count = count + foreign_argument_bytes(m, *arg);
         }
         foreign_number(&m.text, count, 10);
     }

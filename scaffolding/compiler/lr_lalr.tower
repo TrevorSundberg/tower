@@ -90,8 +90,8 @@ fn lr_kernel_closure_destroy(value: LRKernelClosure*): void {
     if value == null {
         return;
     }
-    for(var index: usize = 0; index != value.next.length; index++) {
-        lr_items_destroy(value.next.data[index]);
+    foreach(var & next_item in &value.next) {
+        lr_items_destroy(*next_item);
     }
     vector_dispose(&value.next);
     vector_dispose(&value.state.symbols);
@@ -307,9 +307,7 @@ fn lr_lalr_seed(value: LRStates*, graph: LRPropagation*, constructs: bool): bool
     if constructs {
         var owner = value.analysis.rules[0].owner;
         var first = &value.analysis.nonterminals[owner].first;
-        var index: usize = 0;
-        for(; index != first.length; index++) {
-            var range = &first.data[index];
+        foreach(var & range in first) {
             ok = lr_propagation_seed(graph, start, range.first, range.last);
             if !ok {
                 return false;

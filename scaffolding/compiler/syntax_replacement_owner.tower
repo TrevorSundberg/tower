@@ -34,13 +34,14 @@ struct SyntaxReplacementOwner {
 }
 
 fn replacement_release(node: void*): void {
-    if node is not null { entity_release(node); }
+    if node is not null {
+        entity_release(node);
+    }
 }
 
 fn replacement_dispose(value: SyntaxReplacement*): void {
     replacement_release(value.tree);
-    for (var i: usize = 0; i < value.captures.length; ++i) {
-        var capture = &value.captures.data[i];
+    foreach(var & capture in &value.captures) {
         replacement_release(capture.source);
         vector_dispose(&capture.name);
     }
@@ -52,7 +53,9 @@ fn replacement_dispose(value: SyntaxReplacement*): void {
 
 export fn syntax_replacement_owner_create(host: void*, emission: SyntaxEmission*, kind: void*, match_kind: void*): SyntaxReplacementOwner* {
     var value = alloc(SyntaxReplacementOwner, 1);
-    if value is null { return null; }
+    if value is null {
+        return null;
+    }
     fill(value, 0, sizeof(SyntaxReplacementOwner));
     value.host = host;
     value.emission = emission;
@@ -62,11 +65,15 @@ export fn syntax_replacement_owner_create(host: void*, emission: SyntaxEmission*
 }
 
 export fn syntax_replacement_owner_destroy(value: SyntaxReplacementOwner*): void {
-    if value is null { return; }
+    if value is null {
+        return;
+    }
     replacement_dispose(&value.current);
     replacement_release(value.sequence);
     replacement_release(value.selected);
-    for (var i: usize = 0; i < value.entries.length; ++i) { replacement_dispose(&value.entries.data[i]); }
+    foreach(var & entry in &value.entries) {
+        replacement_dispose(entry);
+    }
     vector_dispose(&value.entries);
     vector_dispose(&value.productions);
     vector_dispose(&value.captures);
@@ -80,13 +87,17 @@ export fn syntax_replacement_owner_destroy(value: SyntaxReplacementOwner*): void
 
 export fn syntax_replacement_begin(context: void*, name: u8*, sequence: void*, start: usize, end: usize): void {
     var value = bits(SyntaxReplacementOwner*, context);
-    if value.frozen { return; }
+    if value.frozen {
+        return;
+    }
     replacement_dispose(&value.current);
     replacement_release(value.sequence);
     replacement_release(value.selected);
     value.selected = null;
     value.sequence = sequence;
-    if sequence is not null { entity_retain(sequence); }
+    if sequence is not null {
+        entity_retain(sequence);
+    }
     value.current.start = start;
     value.current.end = end;
     value.current.error_offset = start;
@@ -97,11 +108,13 @@ export fn syntax_replacement_begin(context: void*, name: u8*, sequence: void*, s
 
 export fn syntax_replacement_capture(context: void*, name: u8*, source: void*): void {
     var value = bits(SyntaxReplacementOwner*, context);
-    if value.failed || value.frozen { return; }
+    if value.failed || value.frozen {
+        return;
+    }
     var captures = &value.current.captures;
     var length = syntax_text_length(name);
     var index: usize = 0;
-    for (; index < captures.length; ++index) {
+    for(; index < captures.length; ++index) {
         var previous = &captures.data[index];
         var order = syntax_bytes_compare(previous.name.data, previous.name.length, name, length);
         if order == 0 {
@@ -110,7 +123,9 @@ export fn syntax_replacement_capture(context: void*, name: u8*, source: void*): 
             previous.source = source;
             return;
         }
-        if order > 0 { break; }
+        if order > 0 {
+            break;
+        }
     }
     var capture: SyntaxReplacementCapture;
     fill(&capture, 0, sizeof(SyntaxReplacementCapture));
@@ -121,8 +136,8 @@ export fn syntax_replacement_capture(context: void*, name: u8*, source: void*): 
     }
     capture.source = source;
     entity_retain(source);
-    for (var i = captures.length; i > index; --i) {
-        copy(&captures.data[i], &captures.data[i - 1], sizeof(SyntaxReplacementCapture));
+    for(var i = captures.length; i > index; --i) {
+        copy(&captures.data[i], &captures.data[i -1], sizeof(SyntaxReplacementCapture));
     }
     copy(&captures.data[index], &capture, sizeof(SyntaxReplacementCapture));
     captures.length++;
@@ -130,18 +145,31 @@ export fn syntax_replacement_capture(context: void*, name: u8*, source: void*): 
 
 // The temporary parser borrows this mutable candidate only during preparation.
 export fn syntax_replacement_candidate(value: SyntaxReplacementOwner*, category: u8*): SyntaxReplacement* {
-    if value.failed || value.frozen { return null; }
+    if value.failed || value.frozen {
+        return null;
+    }
     value.failed = !node_text_set(&value.current.category, category);
-    if value.failed { return null; }
+    if value.failed {
+        return null;
+    }
     value.diagnostic.length = 0;
-    if value.diagnostic.data is not null { value.diagnostic.data[0] = 0; }
+    if value.diagnostic.data is not null {
+        value.diagnostic.data[0] = 0;
+    }
     value.current.error_offset = value.current.start;
-    for (var i: usize = 0; i < value.current.captures.length; ++i) { value.current.captures.data[i].uses = 0; }
+    foreach(var & capture in &value.current.captures) {
+        (*capture).uses = 0;
+    }
     return &value.current;
 }
 
-export fn syntax_replacement_host(value: SyntaxReplacementOwner*): void* { return value.host; }
-export fn syntax_replacement_sequence(value: SyntaxReplacementOwner*): void* { return value.sequence; }
+export fn syntax_replacement_host(value: SyntaxReplacementOwner*): void* {
+    return value.host;
+}
+
+export fn syntax_replacement_sequence(value: SyntaxReplacementOwner*): void* {
+    return value.sequence;
+}
 
 // Adopt the parser's one owned tree reference, replacing any previous attempt.
 export fn syntax_replacement_tree(value: SyntaxReplacementOwner*, tree: void*): void {
@@ -155,7 +183,7 @@ export fn syntax_replacement_error(value: SyntaxReplacementOwner*, text: u8*): v
 
 export fn syntax_replacement_diagnostic(context: void*): u8* {
     var value = bits(SyntaxReplacementOwner*, context);
-    return value.failed ? "Unable to allocate replacement preparation storage" : node_text_get(&value.diagnostic);
+    return value.failed ? "Unable to allocate replacement preparation storage": node_text_get(&value.diagnostic);
 }
 
 export fn syntax_replacement_offset(context: void*): usize {
@@ -165,12 +193,18 @@ export fn syntax_replacement_offset(context: void*): usize {
 
 export fn syntax_replacement_select(context: void*): void {
     var value = bits(SyntaxReplacementOwner*, context);
-    if value.failed || value.frozen { return; }
+    if value.failed || value.frozen {
+        return;
+    }
     var captures = &value.current.captures;
     value.failed = !node_text_set(&value.category, node_text_get(&value.current.category)) || !vector_reserve(&value.uses, captures.length);
-    if value.failed { return; }
+    if value.failed {
+        return;
+    }
     value.uses.length = captures.length;
-    for (var i: usize = 0; i < captures.length; ++i) { value.uses.data[i] = captures.data[i].uses; }
+    for(var i: usize = 0; i < captures.length; ++i) {
+        value.uses.data[i] = captures.data[i].uses;
+    }
     replacement_release(value.selected);
     value.selected = value.current.tree;
     value.current.tree = null;
@@ -179,24 +213,34 @@ export fn syntax_replacement_select(context: void*): void {
 // Production order, like capture-name order, is derived and deterministic.
 export fn syntax_replacement_commit(context: void*, alternative: usize): void {
     var value = bits(SyntaxReplacementOwner*, context);
-    if value.failed || value.frozen { return; }
+    if value.failed || value.frozen {
+        return;
+    }
     var current = &value.current;
     var production = syntax_emission_find_name(value.emission, node_text_get(&current.rule), alternative);
     var index: usize = 0;
-    for (; index < value.productions.length; ++index) {
-        if value.productions.data[index] >= production { break; }
+    for(; index < value.productions.length; ++index) {
+        if value.productions.data[index] >= production {
+            break;
+        }
     }
-    if index < value.productions.length && value.productions.data[index] == production { return; }
+    if index < value.productions.length && value.productions.data[index] == production {
+        return;
+    }
     value.failed = !vector_reserve(&value.entries, value.entries.length + 1) || !vector_reserve(&value.productions, value.productions.length + 1);
-    if value.failed { return; }
+    if value.failed {
+        return;
+    }
     replacement_release(current.tree);
     current.tree = value.selected;
     value.selected = null;
     vector_move(&current.category, &value.category);
-    for (var i: usize = 0; i < current.captures.length; ++i) { current.captures.data[i].uses = value.uses.data[i]; }
-    for (var i = value.entries.length; i > index; --i) {
-        copy(&value.entries.data[i], &value.entries.data[i - 1], sizeof(SyntaxReplacement));
-        value.productions.data[i] = value.productions.data[i - 1];
+    for(var i: usize = 0; i < current.captures.length; ++i) {
+        current.captures.data[i].uses = value.uses.data[i];
+    }
+    for(var i = value.entries.length; i > index; --i) {
+        copy(&value.entries.data[i], &value.entries.data[i -1], sizeof(SyntaxReplacement));
+        value.productions.data[i] = value.productions.data[i -1];
     }
     copy(&value.entries.data[index], current, sizeof(SyntaxReplacement));
     fill(current, 0, sizeof(SyntaxReplacement));
@@ -206,23 +250,33 @@ export fn syntax_replacement_commit(context: void*, alternative: usize): void {
 }
 
 export fn syntax_replacement_freeze(value: SyntaxReplacementOwner*): bool {
-    if value.failed { return false; }
-    if value.frozen { return true; }
+    if value.failed {
+        return false;
+    }
+    if value.frozen {
+        return true;
+    }
     var total: usize = 0;
-    for (var i: usize = 0; i < value.entries.length; ++i) {
-        var count = value.entries.data[i].captures.length;
-        if count > ~convert(usize, 0) - total { return false; }
+    foreach(var & entry in &value.entries) {
+        var count =(*entry).captures.length;
+        if count > ~convert(usize, 0) -total {
+            return false;
+        }
         total += count;
     }
     var count = value.entries.length;
-    var slots = count == 0 ? 0 : value.productions.data[count - 1] + 1;
-    if count != 0 && slots == 0 { return false; }
+    var slots = count == 0 ? 0: value.productions.data[count -1] + 1;
+    if count != 0 && slots == 0 {
+        return false;
+    }
     if !vector_reserve(&value.captures, total) ||
-        !vector_reserve(&value.rules, count) ||
-        !vector_reserve(&value.index, slots) { return false; }
-    fill(value.index.data, 0, slots * sizeof(SyntaxExpansionRule*));
+    !vector_reserve(&value.rules, count) ||
+    !vector_reserve(&value.index, slots) {
+        return false;
+    }
+    fill(value.index.data, 0, slots *sizeof(SyntaxExpansionRule*));
     var offset: usize = 0;
-    for (var i: usize = 0; i < count; ++i) {
+    for(var i: usize = 0; i < count; ++i) {
         var entry = &value.entries.data[i];
         var rule = &value.rules.data[i];
         rule.tree = entry.tree;
@@ -231,8 +285,8 @@ export fn syntax_replacement_freeze(value: SyntaxReplacementOwner*): bool {
         rule.start = entry.start;
         rule.end = entry.end;
         rule.count = entry.captures.length;
-        rule.captures = rule.count == 0 ? null : &value.captures.data[offset];
-        for (var j: usize = 0; j < rule.count; ++j) {
+        rule.captures = rule.count == 0 ? null: &value.captures.data[offset];
+        for(var j: usize = 0; j < rule.count; ++j) {
             var capture = &entry.captures.data[j];
             var view = &value.captures.data[offset++];
             view.name = node_text_get(&capture.name);
@@ -252,18 +306,31 @@ export fn syntax_replacement_freeze(value: SyntaxReplacementOwner*): bool {
     return true;
 }
 
-export fn syntax_replacement_input(value: SyntaxReplacementOwner*): SyntaxExpansionInput* { return &value.input; }
-export fn syntax_replacement_count(value: SyntaxReplacementOwner*): usize { return value.entries.length; }
+export fn syntax_replacement_input(value: SyntaxReplacementOwner*): SyntaxExpansionInput* {
+    return &value.input;
+}
+
+export fn syntax_replacement_count(value: SyntaxReplacementOwner*): usize {
+    return value.entries.length;
+}
 
 export fn syntax_replacement_inspect(value: SyntaxReplacementOwner*, grammar: FrontendRevision*, body: void*): SyntaxReplacement* {
-    if value is null { return null; }
-    for (var i: usize = 0; i < value.entries.length; ++i) {
+    if value is null {
+        return null;
+    }
+    for(var i: usize = 0; i < value.entries.length; ++i) {
         var production = syntax_emission_find_index(value.emission, value.productions.data[i]);
-        if production is null { continue; }
+        if production is null {
+            continue;
+        }
         var rule = syntax_revision_rule(grammar, production.name, syntax_text_length(production.name));
-        if rule is null || production.alternative >= rule.count { continue; }
+        if rule is null || production.alternative >= rule.count {
+            continue;
+        }
         var node = bits(SyntaxNode*, entity_component_data(entity_component_get(rule.alternatives[production.alternative], value.kind)));
-        if node.replacement == body { return &value.entries.data[i]; }
+        if node.replacement == body {
+            return &value.entries.data[i];
+        }
     }
     return null;
 }

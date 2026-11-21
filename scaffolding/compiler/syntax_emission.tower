@@ -737,14 +737,14 @@ fn emission_collect_literals(value: SyntaxEmission*): void {
         var rule = &value.input.rules[index];
         for(var alternative: usize = 0; alternative != rule.count; alternative++) {
             var sequence = emission_node(value, rule.alternatives[alternative]);
-            for(var position: usize = 0; position != sequence.items.length; position++) {
-                var term = emission_node(value, sequence.items.data[position]);
+            foreach(var & element in &sequence.items) {
+                var term = emission_node(value, *element);
                 if term.literal {
                     emission_literal(value, term);
                 }
                 if term.terminal_set {
-                    for(var item: usize = 0; item != term.items.length; item++) {
-                        emission_literal(value, emission_node(value, term.items.data[item]));
+                    foreach(var & element in &term.items) {
+                        emission_literal(value, emission_node(value, *element));
                     }
                 }
                 if value.failed {
@@ -860,8 +860,8 @@ fn emission_reachable(value: SyntaxEmission*): void {
         var rule = &value.input.rules[value.queue.data[index]];
         for(var alternative: usize = 0; alternative != rule.count; alternative++) {
             var sequence = emission_node(value, rule.alternatives[alternative]);
-            for(var position: usize = 0; position != sequence.items.length; position++) {
-                var term = emission_node(value, sequence.items.data[position]);
+            foreach(var & item in &sequence.items) {
+                var term = emission_node(value, *item);
                 var name = emission_name(value, term.text.data, term.text.length);
                 if value.failed {
                     return;
@@ -1098,9 +1098,8 @@ export fn syntax_emission_repetitions(value: SyntaxEmission*): SyntaxEmissionHel
 }
 
 fn emission_discard_scratch(value: SyntaxEmission*): void {
-    var index: usize = 0;
-    for(; index < value.states.length; index++) {
-        vector_dispose(&value.states.data[index].first);
+    foreach(var & state in &value.states) {
+        vector_dispose(&(*state).first);
     }
     vector_dispose(&value.states);
     vector_dispose(&value.queue);
@@ -1112,9 +1111,7 @@ export fn syntax_emission_destroy(value: SyntaxEmission*): void {
     if value == null {
         return;
     }
-    var index: usize = 0;
-    for(; index != value.names.length; index++) {
-        var entry = value.names.data[index];
+    foreach(var entry in &value.names) {
         vector_dispose(&entry.text);
         free(entry);
     }

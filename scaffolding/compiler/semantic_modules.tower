@@ -485,8 +485,7 @@ fn sem_validate_aliases(c: SemanticContext*): void {
             if alias[0] != 0 {
                 var conflict = semantic_builtin_kind(alias) != 0;
                 conflict ||= sem_owned(c.types, null, alias) != null;
-                for(var n: usize = 0; n < root.items.length; n++) {
-                    var declaration = root.items.data[n];
+                foreach(var declaration in &root.items) {
                     if sem_owner(c, declaration) == scope {
                         var name = sem_member(declaration, "name");
                         if name != null {

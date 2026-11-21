@@ -126,9 +126,8 @@ fn foreign_clone(m: ForeignName*, type: ForeignType*): ForeignType* {
     var result = foreign_node(m, type.kind);
     copy(result, type, sizeof(ForeignType));
     vector_init(&result.args);
-    var i: usize = 0;
-    for(; i != type.args.length; i++) {
-        foreign_require(m, vector_push(&result.args, type.args.data[i]));
+    foreach(var & arg in &type.args) {
+        foreign_require(m, vector_push(&result.args, *arg));
     }
     return result;
 }
@@ -736,7 +735,7 @@ fn foreign_parameters(m: ForeignName*, function: ForeignType*): void {
             break;
         }
         var type = foreign_type(m);
-        // Parenthesized pointer/reference function declarator: int (*name)(int).
+        // Parenthesized pointer/reference function declarator: int *name(int).
         if foreign_take(m, "(") {
             var cc = foreign_cc(m);
             var owner = foreign_member_owner(m);

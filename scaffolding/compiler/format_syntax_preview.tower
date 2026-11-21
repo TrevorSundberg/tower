@@ -61,15 +61,14 @@ name_only: bool, syntax: void*, kind: void*): void {
         var begin = result.text.length;
         var part: FormatResult;
         fill(&part, 0, sizeof(FormatResult));
-        var i: usize = 0;
-        for(; i < node.items.length; i++) {
+        foreach(var & item in &node.items) {
             if result.text.length != begin {
                 format_char(&f, 32);
             }
             // Reuse scratch capacity without retaining source-map output.
             part.text.length = 0;
             part.spans.length = 0;
-            format_entity(&part, node.items.data[i], syntax, null, kind);
+            format_entity(&part, *item, syntax, null, kind);
             if part.failed {
                 result.failed = true;
                 break;

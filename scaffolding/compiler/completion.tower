@@ -192,9 +192,9 @@ fn completion_parse(q: CompletionQuery*, source: u8*, mode: u32, future: bool): 
             }
         }
     }
-    for(var i: usize = 0; i != entries.length; i++) {
-        completion_attach(q, entries.data[i], base);
-        entity_release(entries.data[i]);
+    foreach(var & entry in &entries) {
+        completion_attach(q, *entry, base);
+        entity_release(*entry);
     }
     vector_dispose(&entries);
     if q.inspection {
@@ -777,8 +777,8 @@ fn completion_semantic_node(q: CompletionQuery*, node: void*, kind: u8*, categor
     }
     if sem_equal(kind, "variable") {
         var name = sem_name(value);
-        for(var i: usize = 0; i != q.bindings.length; i++) {
-            if sem_equal(name, q.bindings.data[i]) {
+        foreach(var & binding in &q.bindings) {
+            if sem_equal(name, *binding) {
                 return;
             }
         }
@@ -829,9 +829,7 @@ fn completion_table(q: CompletionQuery*, table: SemanticTable*, kind: u8*, categ
     var nodes: vector(void*);
     vector_init(&nodes);
     sem_scope_locals(&q.context, &scope, &nodes);
-    var i: usize = 0;
-    for(; i != nodes.length; i++) {
-        var candidate = nodes.data[i];
+    foreach(var candidate in &nodes) {
         var lexical = table == q.context.functions;
         lexical ||= table == q.context.globals;
         lexical ||= table == q.context.types;
@@ -853,9 +851,7 @@ fn completion_templates(q: CompletionQuery*, table: SemanticTable*, kind: u8*, d
     var nodes: vector(void*);
     vector_init(&nodes);
     sem_scope_locals(&q.context, &scope, &nodes);
-    var i: usize = 0;
-    for(; i != nodes.length; i++) {
-        var node = nodes.data[i];
+    foreach(var node in &nodes) {
         var eligible = sem_completion_visible(&q.context, &q.editor, table, node);
         if category == 0 {
             // Resolve return annotations with the ordinary type resolver when
@@ -934,8 +930,8 @@ export fn completion_symbols(q: CompletionQuery*): void {
         if record == null {
             return;
         }
-        for(var i: usize = 0; i != record.items.length; i++) {
-            completion_semantic_node(q, record.items.data[i], "property", 3);
+        foreach(var & item in &record.items) {
+            completion_semantic_node(q, *item, "property", 3);
         }
         return;
     }

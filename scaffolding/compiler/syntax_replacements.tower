@@ -305,9 +305,7 @@ fn replacement_prepare_one(state: ReplacementPlanState*, index: usize, alternati
     var sequence = replacement_node(state, source);
     var body = replacement_node(state, sequence.replacement);
     syntax_replacement_begin(state.plan.host, rule.name, source, body.start, body.end);
-    var item: usize = 0;
-    for(; item != sequence.items.length; item++) {
-        var entity = sequence.items.data[item];
+    foreach(var entity in &sequence.items) {
         var term = replacement_node(state, entity);
         if term.capture.length != 0 {
             syntax_replacement_capture(state.plan.host, node_text_get(&term.capture), entity);
@@ -469,9 +467,8 @@ export fn syntax_replacements_prepare(plan: SyntaxReplacementPlan*): bool {
     state.plan = plan;
     state.allocated = true;
     var ok = replacement_prepare_all(&state);
-    var index: usize = 0;
-    for(; index != state.rules.length; index++) {
-        vector_dispose(&state.rules.data[index].parents);
+    foreach(var & rule in &state.rules) {
+        vector_dispose(&(*rule).parents);
     }
     vector_dispose(&state.rules);
     vector_dispose(&state.pending);

@@ -60,8 +60,8 @@ fn foreign_key(out: vector(u8)*, type: ForeignType*): void {
     if type.template_id {
         backend_text(out, "I");
     }
-    for(var i: usize = 0; i != type.args.length; i++) {
-        foreign_key(out, type.args.data[i]);
+    foreach(var & arg in &type.args) {
+        foreign_key(out, *arg);
     }
     backend_text(out, "}");
 }
@@ -135,8 +135,8 @@ fn foreign_it_qualifiers(m: ForeignName*, cv: u32): void {
 
 fn foreign_it_arguments(m: ForeignName*, type: ForeignType*): void {
     backend_text(&m.text, "I");
-    for(var i: usize = 0; i != type.args.length; i++) {
-        foreign_it_type(m, type.args.data[i]);
+    foreach(var & arg in &type.args) {
+        foreign_it_type(m, *arg);
     }
     backend_text(&m.text, "E");
 }
@@ -230,11 +230,10 @@ fn foreign_it_name(m: ForeignName*, type: ForeignType*, function: bool): void {
     if function {
         // ABI tags are explicitly supplied because a declaration does not carry
         // a header's inline-namespace attributes or inferred return-type tags.
-        var i: usize = 0;
-        for(; i != m.abi_tags.length; i++) {
+        foreach(var & abi_tag in &m.abi_tags) {
             backend_text(&m.text, "B");
-            foreign_number(&m.text, backend_length(m.abi_tags.data[i]), 10);
-            backend_text(&m.text, m.abi_tags.data[i]);
+            foreign_number(&m.text, backend_length(*abi_tag), 10);
+            backend_text(&m.text, *abi_tag);
         }
     }
     if nested {
@@ -248,8 +247,8 @@ fn foreign_it_parameters(m: ForeignName*, type: ForeignType*): void {
             backend_text(&m.text, "v");
         }
     }
-    for(var i: usize = 0; i != type.args.length; i++) {
-        foreign_it_type(m, type.args.data[i]);
+    foreach(var & arg in &type.args) {
+        foreign_it_type(m, *arg);
     }
     if type.variadic {
         backend_text(&m.text, "z");

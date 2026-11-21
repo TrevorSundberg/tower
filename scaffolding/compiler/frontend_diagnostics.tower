@@ -40,9 +40,8 @@ export fn frontend_diagnostic_destroy(d: FrontendDiagnostic*): void {
     lr_probe_destroy(d.stack);
     lr_probe_destroy(d.continuation);
     vector_dispose(&d.current.contexts);
-    var i: usize = 0;
-    for(; i != d.options.length; i++) {
-        vector_dispose(&d.options.data[i].contexts);
+    foreach(var & option in &d.options) {
+        vector_dispose(&(*option).contexts);
     }
     vector_dispose(&d.options);
     free(d);

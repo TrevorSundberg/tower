@@ -152,9 +152,7 @@ fn foreign_ms_component(m: ForeignName*, type: ForeignType*): void {
     var start = m.text.length;
     backend_text(&m.text, "?$");
     foreign_ms_identifier(m, type.name);
-    var i: usize = 0;
-    for(; i != type.args.length; i++) {
-        var argument = type.args.data[i];
+    foreach(var argument in &type.args) {
         if argument.kind == 9 {
             backend_text(&m.text, "$0");
             if argument.ref != 0 {
@@ -226,9 +224,7 @@ fn foreign_ms_parameters(m: ForeignName*, function: ForeignType*): void {
             backend_text(&m.text, "X");
         }
     }
-    var i: usize = 0;
-    for(; i != function.args.length; i++) {
-        var type = function.args.data[i];
+    foreach(var type in &function.args) {
         var key: vector(u8);
         vector_init(&key);
         foreign_key(&key, type);

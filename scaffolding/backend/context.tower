@@ -188,8 +188,8 @@ export fn backend_close(b: Backend*): void {
     if present {
         LLVMContextDispose(b.context);
     }
-    for(var i: usize = 0; i != b.symbols.length; i++) {
-        free(b.symbols.data[i]);
+    foreach(var & symbol in &b.symbols) {
+        free(*symbol);
     }
     vector_dispose(&b.symbols);
     vector_dispose(&b.functions);

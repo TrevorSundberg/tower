@@ -157,8 +157,8 @@ fn syntax_validation_capture(value: SyntaxValidation*, term: SyntaxNode*): bool 
         return true;
     }
     var hash: usize = 2166136261;
-    for(var index: usize = 0; index != term.capture.length; index++) {
-        var byte = convert(usize, term.capture.data[index]);
+    foreach(var & capture_item in &term.capture) {
+        var byte = convert(usize, *capture_item);
         hash = hash ^ byte;
         hash = hash * 16777619;
     }

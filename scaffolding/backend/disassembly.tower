@@ -796,9 +796,8 @@ export fn backend_disassembly_close(d: BackendDecoder*): void {
         return;
     }
     vector_dispose(&d.text);
-    var i: usize = 0;
-    for(; i != d.labels.length; i++) {
-        vector_dispose(&d.labels.data[i].name);
+    foreach(var & label in &d.labels) {
+        vector_dispose(&(*label).name);
     }
     vector_dispose(&d.labels);
     free(d);

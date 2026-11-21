@@ -617,8 +617,8 @@ fn syntax_reader_rule(reader: SyntaxReader*, node: void*): bool {
             return syntax_reader_ok(reader, false);
         }
         syntax_node_replacement(rule, body);
-        for(var index: usize = 0; index != rule.items.length; index++) {
-            var component = entity_component_get(rule.items.data[index], reader.syntax_kind);
+        foreach(var & item in &rule.items) {
+            var component = entity_component_get(*item, reader.syntax_kind);
             var alternative = bits(SyntaxNode*, entity_component_data(component));
             syntax_node_replacement(alternative, body);
         }

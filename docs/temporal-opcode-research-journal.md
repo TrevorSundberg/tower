@@ -26889,3 +26889,33 @@ root dist remains the preserved tested49ed artifact, while the Pages checkout
 is the newer77-file release; future packaging must rebuild from its chosen
 source and retain that latest predecessor. All temporary probes are removed,
 worktrees are clean after commit, and no build processes remain at handoff.
+After publishing 2452c10's compatible bootstrap, converted the reviewed 108 loops
+in 51 production files. Kept source pointers as pointers (rather than taking a
+second address), and retained live element reads via explicit borrows where the
+body did not already have an element binding. The first compile correctly caught
+the mechanical double-address cases and a generated `token` identifier reserved
+by the declaration grammar; corrected the uses and renamed that local `lexeme`.
+The documented default build then succeeds with no bootstrap override. The work
+scheduler's executing-list removal and potentially aliased propagation loops stay
+counted. Existing work_graph, work_access and compiler_work fixtures all report
+zero failures under the migrated compiler/cache interpreter (iteration-work-graph.log).
+Formatting, broader validation and final browser publication follow.
+
+All 51 migrated files pass parsed-tree-preserving formatting and idempotence
+checks (iteration-migration-format.log). Follow-up cleanup removes three redundant
+address/dereference pairs and the final two explicit nested-vector type arguments,
+bringing generic-call adoption to 811 calls; targeted formatting is repeated for
+those files. Formatting also expands older compact statements to the canonical
+style, so raw net line count is not used as the iteration reduction metric.
+Thirteen representative user programs produce byte-identical canonical Foundation
+under the prior published compiler and the migrated successor. Scheduler fixtures
+also report zero failures in the reference interpreter, matching the cache runs.
+
+The final native/default-bootstrap build and all browser reactors pass on the
+migrated sources. Native frontend/driver/storage/execution/request suites pass 5/5
+in 20.19 seconds, and backend API checks pass (iteration-final-native.log).
+Real compiler-worker tests pass 7/7, including the shared foreach fixture,
+cancellation, ordered failure selection, and serial/two/four-worker determinism.
+Five focused formatter behavior tests pass; their unrelated full-repository sweep
+is excluded because the changed-file tree/idempotence audit already checked all
+51 files. The three final address/dereference cleanups pass that check again.

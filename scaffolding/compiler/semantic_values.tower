@@ -187,8 +187,7 @@ fn sem_location(c: SemanticContext*, n: void*, depth: u32): void* {
     }
     var step74 = sem_get(parent.record);
     var fields: vector(void*)* = &step74.items;
-    for(var i: usize = 0; i < fields.length; i++) {
-        var field: void* = fields.data[i];
+    foreach(var field in fields) {
         if sem_equal(sem_name(sem_get(field)), sem_name(value)) {
             value.binding = field;
         }

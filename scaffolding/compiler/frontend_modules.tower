@@ -320,10 +320,9 @@ export fn frontend_modules_fallback(environment: ModuleEnvironment*, directory: 
 }
 
 export fn frontend_modules_clear(environment: ModuleEnvironment*): void {
-    var i: usize = 0;
-    for(; i != environment.inputs.length; i++) {
-        vector_dispose(&environment.inputs.data[i].name);
-        vector_dispose(&environment.inputs.data[i].text);
+    foreach(var & input in &environment.inputs) {
+        vector_dispose(&(*input).name);
+        vector_dispose(&(*input).text);
     }
     environment.inputs.length = 0;
 }
@@ -339,9 +338,7 @@ export fn frontend_modules_source(environment: ModuleEnvironment*, name: u8*, te
     var ok = module_path(name, &input.name);
     ok &&= bytes_assign_text(&input.text, text, length);
     if ok {
-        var i: usize = 0;
-        for(; i != environment.inputs.length; i++) {
-            var previous = &environment.inputs.data[i];
+        foreach(var & previous in &environment.inputs) {
             if module_equal(previous.name.data, input.name.data) {
                 vector_dispose(&previous.name);
                 vector_dispose(&previous.text);
@@ -366,9 +363,7 @@ export fn frontend_modules_source(environment: ModuleEnvironment*, name: u8*, te
 }
 
 fn module_read(environment: ModuleEnvironment*, path: u8*, text: vector(u8)*): u32 {
-    var i: usize = 0;
-    for(; i != environment.inputs.length; i++) {
-        var input = &environment.inputs.data[i];
+    foreach(var & input in &environment.inputs) {
         if module_equal(path, input.name.data) {
             module_require(bytes_assign_text(text, input.text.data, input.text.length));
             return ModuleReady();
@@ -510,8 +505,8 @@ export fn frontend_module_error(module: FrontendModule*): u8* {
 }
 
 fn module_grammar_clear(grammar: ModuleGrammar*): void {
-    for(var i: usize = 0; i != grammar.rules.length; i++) {
-        free(grammar.rules.data[i].alternatives);
+    foreach(var & rule in &grammar.rules) {
+        free((*rule).alternatives);
     }
     grammar.rules.length = 0;
     grammar.tokens.length = 0;
@@ -601,9 +596,8 @@ export fn frontend_module_grammar(module: FrontendModule*): ModuleGrammar* {
     }
     module_grammar_clear(&module.grammar);
     var seed = frontend_syntax(syntax_native_bedrock(), syntax_component_type());
-    var i: usize = 0;
-    for(; i != seed.items.length; i++) {
-        module_grammar_add(&module.grammar, seed.items.data[i]);
+    foreach(var & item in &seed.items) {
+        module_grammar_add(&module.grammar, *item);
     }
     var seen: vector(FrontendModule*);
     vector_init(&seen);
@@ -758,8 +752,8 @@ fn module_load(parent: FrontendModule*, name: u8*, literal: bool): FrontendModul
     var status = module_resolve(parent, name, literal, &path, &text);
     var result: FrontendModule* = null;
     if status == ModuleReady() {
-        for(var i: usize = 0; i != parent.graph.entities.length; i++) {
-            var old = module_node(parent.graph, parent.graph.entities.data[i]);
+        foreach(var & entitie in &parent.graph.entities) {
+            var old = module_node(parent.graph, *entitie);
             if module_equal(path.data, old.source.name.data) {
                 result = old;
                 break;
@@ -917,9 +911,8 @@ fn module_import_name(reader: SyntaxReader*, node: void*, value: SyntaxNode*): b
             copy(&identifiers, &value.items, sizeof(vector(void*)));
             copy(&value.items, &parents, sizeof(vector(void*)));
             vector_init(&parents);
-            var index: usize = 0;
-            for(; index < identifiers.length; index++) {
-                module_require(vector_push(&value.items, identifiers.data[index]));
+            foreach(var & identifier in &identifiers) {
+                module_require(vector_push(&value.items, *identifier));
             }
             vector_dispose(&identifiers);
             var i: usize = 0;
@@ -948,9 +941,9 @@ fn module_import_name(reader: SyntaxReader*, node: void*, value: SyntaxNode*): b
     }
     if ok {
         ok = value.name.length != 0;
-        for(var i: usize = 0; i != value.name.length; i++) {
-            if value.name.data[i] == 92 {
-                value.name.data[i] = 47;
+        foreach(var & name_item in &value.name) {
+            if *name_item == 92 {
+                *name_item = 47;
             }
         }
     }
@@ -993,9 +986,8 @@ export fn frontend_module_import(module: FrontendModule*, node: void*, source: S
         return false;
     }
     if aliased {
-        var index: usize = 0;
-        for(; index < module.imports.length; index++) {
-            var previous = frontend_syntax(module.imports.data[index], reader.syntax_kind);
+        foreach(var & element in &module.imports) {
+            var previous = frontend_syntax(*element, reader.syntax_kind);
             if module_equal(module_text(&previous.capture), value.capture.data) {
                 module_fail(module, "Duplicate import alias: ", value.capture.data);
                 return false;
@@ -1093,9 +1085,8 @@ fn module_validate_cycles(graph: ModuleGraph*): void {
             if module_reaches(current, current) {
                 var invalid = current.declarations.length != 0;
                 invalid ||= current.roots.length == 0;
-                var n: usize = 0;
-                for(; n < current.roots.length; n++) {
-                    var node = entity_child_at(current.roots.data[n], 0);
+                foreach(var & root in &current.roots) {
+                    var node = entity_child_at(*root, 0);
                     var reader: SyntaxReader;
                     fill(&reader, 0, sizeof(SyntaxReader));
                     reader.match_kind = parser_match_get_type();
@@ -1503,8 +1494,8 @@ fn module_cache_store(module: FrontendModule*): void {
 }
 
 export fn frontend_modules_used_clear(environment: ModuleEnvironment*): void {
-    for(var i: usize = 0; i != environment.used.length; i++) {
-        free(environment.used.data[i]);
+    foreach(var & used_item in &environment.used) {
+        free(*used_item);
     }
     environment.used.length = 0;
 }
@@ -1522,8 +1513,8 @@ export fn frontend_modules_implicit(environment: ModuleEnvironment*): bool {
 }
 
 export fn frontend_modules_sources_clear(environment: ModuleEnvironment*): void {
-    for(var i: usize = 0; i != environment.sources.length; i++) {
-        syntax_source_release(environment.sources.data[i]);
+    foreach(var & source in &environment.sources) {
+        syntax_source_release(*source);
     }
     environment.sources.length = 0;
     environment.bases.length = 0;
@@ -1634,10 +1625,9 @@ export fn frontend_modules_depfile(environment: ModuleEnvironment*, output: u8*,
     vector_init(&text);
     module_make_path(&text, output);
     module_require(bytes_append(&text, ":", 1));
-    var i: usize = 0;
-    for(; i != environment.used.length; i++) {
+    foreach(var & used_item in &environment.used) {
         module_require(bytes_append(&text, " ", 1));
-        module_make_path(&text, environment.used.data[i]);
+        module_make_path(&text, *used_item);
     }
     module_require(bytes_append(&text, "\n", 1));
     var file = fopen(path, "wb");

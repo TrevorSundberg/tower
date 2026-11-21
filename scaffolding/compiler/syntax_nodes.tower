@@ -132,9 +132,8 @@ export fn syntax_node_dispose(value: SyntaxNode*): void {
     vector_dispose(&value.capture);
     vector_dispose(&value.style);
     vector_dispose(&value.items);
-    var index: usize = 0;
-    for(; index != value.comments.length; index++) {
-        vector_dispose(&value.comments.data[index]);
+    foreach(var & comment in &value.comments) {
+        vector_dispose(comment);
     }
     vector_dispose(&value.comments);
     syntax_node_source(value, null);

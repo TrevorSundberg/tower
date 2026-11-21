@@ -579,8 +579,7 @@ fn sem_function_body(c: SemanticContext*, n: void*): void {
     c.scope = sem_scope(c, null);
     c.loops = 0;
     c.flow_dependencies.length = 0;
-    for(var j: usize = 0; j < function_node.parameters.length; j++) {
-        var parameter = function_node.parameters.data[j];
+    foreach(var parameter in &function_node.parameters) {
         sem_put(c, c.scope.names, sem_name(sem_get(parameter)), parameter);
     }
     function_node.body = sem_member(n, "body");

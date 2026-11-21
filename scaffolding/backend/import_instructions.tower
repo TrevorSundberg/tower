@@ -42,9 +42,7 @@ fn bi_edge(c: BackendImport*, from: void*, to: void*): void {
         }
         instruction = LLVMGetNextInstruction(instruction);
     }
-    var index: usize = 0;
-    for(; index != copies.length; index++) {
-        var pair = &copies.data[index];
+    foreach(var & pair in &copies) {
         bi_assign(c, bi_ref(c, pair.entity), bi_ref(c, pair.value));
     }
     vector_dispose(&copies);

@@ -12,9 +12,7 @@ export fn backend_reactor_argument(link: BackendLink*, argument: u8*): void {
 }
 
 export fn backend_reactor_link(link: BackendLink*): bool {
-    var i: usize = 0;
-    for(; i != link.inputs.length; i++) {
-        var input = &link.inputs.data[i];
+    foreach(var & input in &link.inputs) {
         if !backend_write_file(link, input.name.data, input.bytes.data, input.bytes.length) {
             return false;
         }

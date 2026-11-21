@@ -56,10 +56,9 @@ fn sem_layout_discover(c: SemanticContext*, n: void*): usize {
             sem_layout_dependency(c, id, &type.element);
         } else {
             if !semantic_enum(&type.type) {
-                var field: usize = 0;
-                while field < type.items.length {
-                    sem_layout_dependency(c, id, &sem_get(type.items.data[field]).type);
-                    field++;
+                foreach(var & item in &type.items) {
+                    var field = sem_get(*item);
+                    sem_layout_dependency(c, id, &field.type);
                 }
             }
         }

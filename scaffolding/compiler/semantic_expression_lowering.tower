@@ -435,8 +435,8 @@ fn sem_lift_value(c: SemanticContext*, block: void*, n: void*): void* {
         }
     }
     if value.kind == KCall() {
-        for(var index: usize = 0; index != value.items.length; index++) {
-            value.items.data[index] = sem_lift_value(c, block, value.items.data[index]);
+        foreach(var & item in &value.items) {
+            *item = sem_lift_value(c, block, *item);
         }
     }
     var discarded = value.type.pointers == 0;

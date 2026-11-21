@@ -39,8 +39,7 @@ fn ce_reach(c: CEmitter*, entity: void*): void {
     }
     if list {
         var falls = true;
-        for(var i: usize = 0; i != n.items.length; i++) {
-            var child = n.items.data[i];
+        foreach(var child in &n.items) {
             var item = sem_get(child);
             if item.kind == KLabel() {
                 if ce_label_used(c, child) {
@@ -59,8 +58,8 @@ fn ce_reach_pass(c: CEmitter*, root: void*): void {
     loop {
         c.changed = false;
         ce_reach(c, root);
-        for(var i: usize = 0; i != c.nodes.length; i++) {
-            var n = sem_get(c.nodes.data[i]);
+        foreach(var & node in &c.nodes) {
+            var n = sem_get(*node);
             if n.kind == KFunction() {
                 ce_reach(c, n.body);
             }
@@ -136,8 +135,8 @@ fn ce_notes(c: CEmitter*, entity: void*): void {
         return;
     }
     if n.kind == KBlock() {
-        for(var i: usize = 0; i != n.items.length; i++) {
-            ce_notes(c, n.items.data[i]);
+        foreach(var & item in &n.items) {
+            ce_notes(c, *item);
         }
     }
 }
@@ -184,8 +183,8 @@ fn ce_breaks(c: CEmitter*, entity: void*): bool {
         return ce_breaks(c, n.otherwise);
     }
     if n.kind == KBlock() {
-        for(var i: usize = 0; i != n.items.length; i++) {
-            if ce_breaks(c, n.items.data[i]) {
+        foreach(var & item in &n.items) {
+            if ce_breaks(c, *item) {
                 return true;
             }
         }

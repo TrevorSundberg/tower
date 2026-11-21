@@ -96,9 +96,7 @@ fn sem_constant_argument(c: SemanticContext*, n: void*, expected_type: Foundatio
         sem_fail(c, n, step45);
         return null;
     }
-    var i: usize = 0;
-    for(; i < c.constant_arguments.length; i++) {
-        var existing: void* = c.constant_arguments.data[i];
+    foreach(var existing in &c.constant_arguments) {
         var e: FoundationNode* = sem_get(existing);
         if semantic_type_equal(&e.type, &constant.type) && e.bits == constant.bits {
             return existing;
@@ -155,8 +153,7 @@ fn sem_register_template(c: SemanticContext*, n: void*): void {
     var names: SemanticTable* = sem_table(c);
     var step12 = sem_member(n, "params");
     var parameters: vector(void*)* = sem_collect(c, step12, "CoreParameter");
-    for(var i: usize = 0; i < parameters.length; i++) {
-        var p: void* = parameters.data[i];
+    foreach(var p in parameters) {
         var step16 = sem_member(p, "name");
         var value: u8* = sem_identifier(c, step16);
         if !sem_put(c, names, value, p) {
@@ -402,9 +399,8 @@ fn sem_type_impl(c: SemanticContext*, n: void*): FoundationType* {
             var step48 = sem_decimal(c, length);
             var step49 = sem_cat(c, step47, step48);
             var name: u8* = sem_cat(c, step49, "]");
-            var i: usize = 0;
-            for(; i < c.program.types.length; i++) {
-                var a: FoundationNode* = sem_get(c.program.types.data[i]);
+            foreach(var & entry in &c.program.types) {
+                var a: FoundationNode* = sem_get(*entry);
                 if a.type.scalar == SArray() && semantic_type_equal(&a.element, t) && convert(u64, a.length) == length {
                     return &a.type;
                 }
@@ -515,9 +511,7 @@ fn sem_type_fields(c: SemanticContext*, n: void*): void {
     var t: FoundationNode* = sem_get(n);
     var names: SemanticTable* = sem_table(c);
     var fields: vector(void*)* = sem_collect(c, sem_member(n, "fields"), "CoreField");
-    var i: usize = 0;
-    for(; i < fields.length; i++) {
-        var field: void* = fields.data[i];
+    foreach(var field in fields) {
         if !sem_shape(c, field, "name") || !sem_shape(c, field, "type") {
             return;
         }

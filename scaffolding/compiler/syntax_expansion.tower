@@ -595,8 +595,8 @@ export fn syntax_expand(input: SyntaxExpansionInput*, result: SyntaxExpansionRes
     vector_dispose(&state.clones);
     vector_dispose(&state.captures);
     vector_dispose(&state.items);
-    for(var index: usize = 0; index < state.traces.length; index++) {
-        syntax_trace_release(state.traces.data[index]);
+    foreach(var & trace in &state.traces) {
+        syntax_trace_release(*trace);
     }
     vector_dispose(&state.traces);
     return ok;
