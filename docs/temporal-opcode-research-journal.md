@@ -25228,3 +25228,36 @@ the external evidence directory and ran the existing runner with Windows Node.
 No implementation change was needed. Syntax-emission reference translation now
 has an external Tower draft; it is unvalidated and excluded from this release.
 Agent3 then Agent2 own the next ready source slots; Agent1 owns combined deployment.
+### 2026-11-20 - Agent 3: declaration reader tests in Tower
+
+Continued independently while the formatter/syntax-payload batch is being
+published by agent2. Ported the complete native tests/syntax-reader.cpp into
+syntax_reader.tower, calling the existing production services and unchanged
+syntax-reader-seed C ABI oracle. Native and WASI focused runners compiled and
+executed successfully before removing the old native functional test. The seed
+is retained intentionally; no differential check was replaced by an assumption.
+
+Preserved the exact mt19937 seed0x52454144, draw order and all1000 length-delimited
+arbitrary-byte identifier/literal cases, including embedded NUL, quoted variants,
+in-place agreement, overlapping destination decoding, failed-growth pointer/data
+preservation and overflow rejection. All8 declaration fixtures retain Rule/Token/
+Skip behavior, replacements, character sets, quoted names and contextual/style
+metadata. Each compares success/error bytes, full syntax structure with locations,
+canonical output and every descendant's retained source/range. Mutated assignment
+and body/pattern spans require the original exact diagnostics. Each allocation
+sweep still reaches success within512 trials, checks error allocation failure,
+and restores exact node/buffer counts after cloned partial trees are released.
+
+A small Tower parser_fixture_setup reads the same Bedrock/Foundation files for
+both focused platforms. The isolated CMake fragment binds existing syntax setup
+and delete symbols for the already-validated Linux x86_64/libstdc++ and WASI
+SDK34 profiles; these are mechanical ABI bindings, not new native wrappers.
+The parser aggregate links the separate Tower case object and retains its
+independent reader oracle archive. Production parser/grammar behavior is unchanged.
+
+Validation: agent-3-parser target tower-reader-tests, ctest -R '^tower-reader$'
+--output-on-failure PASS1/1 (0.10seconds); agent-3-parser-wasi same target then
+node scaffolding/tests/host-wasi.mjs <binary> PASS. Published fb1 bootstrap used,
+no private compiler requirement. Native tests/syntax-reader.cpp removed only after
+both executions. No sanitizers or broad formatter sweep. This private follow-up
+is not part of the already-pushed042dcc9 or its pending combined deployment.

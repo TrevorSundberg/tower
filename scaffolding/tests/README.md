@@ -56,6 +56,13 @@ source/pattern/replacement ownership, 64-child comparisons and allocation-failur
 atomicity. The parser aggregate calls the same Tower cases. Run the native binary
 or pass the WASI binary to `host-wasi.mjs`.
 
+`tower-reader-tests` runs declaration-reader coverage in Tower against the retained
+native reference. It preserves all 1,000 seeded identifier/literal byte cases,
+in-place/aliased decoding, eight declaration fixtures, exact malformed-tree
+diagnostics, shared source provenance, canonical declaration output and allocation
+failures. Native CTest sets its working directory to the grammar resources;
+WASI uses `host-wasi.mjs`. The parser aggregate calls the same cases.
+
 The isolated `cmake/TowerDriver.cmake` fragment adds CLI checks with
 `-DTOWER_DRIVER_TESTS=ON` to a native compiler configuration. Build `towerc` and
 `tower-driver-tests`, then run `ctest --test-dir <build> -R tower-driver

@@ -11,7 +11,7 @@ extern "C" void entity_registry_tests();
 extern "C" void regex_tests();
 extern "C" void syntax_lexer_tests();
 extern "C" void syntax_nodes_tests();
-void syntax_reader_tests();
+extern "C" void syntax_reader_tests();
 void syntax_validation_tests();
 size_t syntax_expansion_test_entry();
 extern "C" size_t syntax_emission_tests(const SyntaxEmissionInput*);

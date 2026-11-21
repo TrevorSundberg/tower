@@ -1,0 +1,23 @@
+import tower;
+import .library.bytes_types;
+import .library.bytes_interface;
+import format_abi;
+import utility_checks;
+
+extern fn driver_read_file(path: u8*, out: ByteBuffer*): bool;
+extern fn host_text_terminate(out: ByteBuffer*): bool;
+extern fn fixture_bedrock(out: usize*, source: u8*): void;
+extern fn fixture_foundation(out: usize*, source: u8*): void;
+
+fn parser_fixture_baseline(path: u8*, bedrock: bool): void {
+    var input: ByteBuffer; fill(&input, 0, sizeof(ByteBuffer)); defer bytes_dispose(&input);
+    utility_check(driver_read_file(path, &input) && host_text_terminate(&input), "Read parser fixture grammar");
+    var result: usize[4];
+    if bedrock { fixture_bedrock(&result[0], input.data); } else { fixture_foundation(&result[0], input.data); }
+    defer format_abi_string_dispose(&result[0]);
+    if format_abi_string_length(&result[0]) != 0 { puts(format_abi_string_data(&result[0])); }
+    utility_check(format_abi_string_length(&result[0]) == 0, "Install parser fixture grammar");
+}
+fn parser_fixture_setup(): void {
+    parser_fixture_baseline("bedrock.tower", true); parser_fixture_baseline("foundation.tower", false);
+}

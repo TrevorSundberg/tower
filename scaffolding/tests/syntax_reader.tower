@@ -1,0 +1,163 @@
+import tower;
+import .compiler.syntax_types;
+import .compiler.parser_types;
+import .compiler.format_types;
+import .host.driver_api;
+import .library.bytes_types;
+import .library.bytes_interface;
+import .library.vector;
+import storage_api;
+import utility_checks;
+import mt19937;
+
+extern fn syntax_read_rule(node: void*, source: SyntaxSource*, match_kind: void*, syntax_kind: void*, error: ByteBuffer*): bool;
+extern fn syntax_read_token(node: void*, source: SyntaxSource*, match_kind: void*, syntax_kind: void*, skipped: bool, error: ByteBuffer*): bool;
+extern fn syntax_identifier_decode(source: u8*, length: usize, out: ByteBuffer*): bool;
+extern fn syntax_identifier_decode_in_place(source: u8*, length: usize): usize;
+extern fn syntax_literal_check(source: u8*, length: usize): u32;
+extern fn reference_syntax_read_rule(node: void*, source: SyntaxSource*, match_kind: void*, syntax_kind: void*, error: ByteBuffer*): bool;
+extern fn reference_syntax_read_token(node: void*, source: SyntaxSource*, match_kind: void*, syntax_kind: void*, skipped: bool, error: ByteBuffer*): bool;
+extern fn reference_syntax_identifier_decode(source: u8*, length: usize, out: ByteBuffer*): bool;
+extern fn reference_syntax_literal_check(source: u8*, length: usize): u32;
+extern fn syntax_equal(left: void*, right: void*, locations: bool): bool;
+
+fn reader_test_buffer_equal(left: ByteBuffer*, right: ByteBuffer*): bool {
+    return left.length == right.length && utility_equal(left.data, right.data, left.length);
+}
+fn reader_test_message(error: ByteBuffer*, message: u8*): bool {
+    return error.length == strlen(message) && utility_equal(error.data, message, error.length);
+}
+fn reader_test_clone(source: void*): void* {
+    var count: usize = 0; var result = compiler_clone_tree(source, 10000, &count);
+    utility_check(result is not null, "Reader fixture tree clone"); return result;
+}
+fn reader_test_read(node: void*, source: SyntaxSource*, kind: SyntaxKind, error: ByteBuffer*, reference: bool): bool {
+    if kind == SyntaxKind.Rule {
+        if reference { return reference_syntax_read_rule(node, source, parser_match_get_type(), syntax_component_type(), error); }
+        return syntax_read_rule(node, source, parser_match_get_type(), syntax_component_type(), error);
+    }
+    if reference { return reference_syntax_read_token(node, source, parser_match_get_type(), syntax_component_type(), kind == SyntaxKind.Skip, error); }
+    return syntax_read_token(node, source, parser_match_get_type(), syntax_component_type(), kind == SyntaxKind.Skip, error);
+}
+fn reader_test_compare(input: void*, source: SyntaxSource*, kind: SyntaxKind, success: bool, message: u8*): void {
+    var a = reader_test_clone(input); defer tower_node_release_ref(a);
+    var b = reader_test_clone(input); defer tower_node_release_ref(b);
+    var x: ByteBuffer; fill(&x, 0, sizeof(ByteBuffer)); defer bytes_dispose(&x);
+    var y: ByteBuffer; fill(&y, 0, sizeof(ByteBuffer)); defer bytes_dispose(&y);
+    var actual = reader_test_read(a, source, kind, &x, false); var reference = reader_test_read(b, source, kind, &y, true);
+    utility_check(actual == success && reference == success, "Reader/reference expected result");
+    utility_check(reader_test_buffer_equal(&x, &y), "Reader/reference exact error bytes");
+    if message is not null { utility_check(reader_test_message(&x, message), "Reader exact malformed-tree diagnostic"); }
+    if success {
+        utility_check(syntax_equal(a, b, true), "Reader/reference complete syntax structure and locations");
+        var left: FormatResult; fill(&left, 0, sizeof(FormatResult)); defer format_dispose(&left);
+        var right: FormatResult; fill(&right, 0, sizeof(FormatResult)); defer format_dispose(&right);
+        format_entity(&left, a, syntax_component_type(), null, parser_match_get_type());
+        format_entity(&right, b, syntax_component_type(), null, parser_match_get_type());
+        utility_check(!left.failed && !right.failed && left.text.length == right.text.length && utility_equal(left.text.data, right.text.data, left.text.length), "Reader/reference canonical declaration text");
+        var pending: vector(void*); vector_init(void*, &pending); defer vector_dispose(void*, &pending);
+        utility_check(vector_push(void*, &pending, a), "Reader provenance stack");
+        while pending.length != 0 {
+            var node = pending.data[--pending.length]; var value = syntax_get(node);
+            utility_check(value is not null && value.source == source && value.start <= value.end && value.end <= source.text.length, "Reader shared provenance and source bounds");
+            for (var index: usize = 0; index < value.items.length; ++index) { utility_check(vector_push(void*, &pending, value.items.data[index]), "Reader provenance child"); }
+            if value.replacement is not null { utility_check(vector_push(void*, &pending, value.replacement), "Reader replacement provenance"); }
+        }
+    }
+}
+fn reader_test_warm(declaration: void*, source: SyntaxSource*, kind: SyntaxKind): void {
+    var warm = reader_test_clone(declaration); defer tower_node_release_ref(warm);
+    var error: ByteBuffer; fill(&error, 0, sizeof(ByteBuffer)); defer bytes_dispose(&error);
+    utility_check(reader_test_read(warm, source, kind, &error, false), "Warm reader component indexes");
+}
+fn reader_test_fixture(text: u8*, kind: SyntaxKind, failures: bool): void {
+    var session = syntax_create(text, null);
+    var root = syntax_next(session);
+    if root is null { puts(text); puts(syntax_get_error(session)); }
+    utility_check(root is not null, "Reader fixture parsed"); defer tower_node_release_ref(root);
+    var declaration = tower_node_get_child(root, 0); var source = syntax_get(declaration).source;
+    syntax_source_retain(source); defer syntax_source_release(source);
+    syntax_destroy(session);
+    reader_test_compare(declaration, source, kind, true, null);
+    {
+        var broken = reader_test_clone(declaration); defer tower_node_release_ref(broken);
+        if kind == SyntaxKind.Rule {
+            var assignment = tower_node_get_child_member(broken, "op");
+            var position = bits(ParserMatchData*, tower_node_get_component_userdata(assignment, parser_match_get_type()));
+            var length = position.length; position.start = ~convert(usize, 0);
+            reader_test_compare(broken, source, kind, false, "Malformed bedrock tree: source span outside source");
+            position.start = source.text.length; position.length = length;
+            reader_test_compare(broken, source, kind, false, "Malformed bedrock tree: source span outside source");
+            var replacement = tower_node_get_child_member(broken, "replacement");
+            if tower_node_get_child_member(replacement, "body") is not null {
+                var other = reader_test_clone(declaration); defer tower_node_release_ref(other);
+                var body = tower_node_get_child_member(tower_node_get_child_member(other, "replacement"), "body");
+                bits(ParserMatchData*, tower_node_get_component_userdata(body, parser_match_get_type())).length = 1;
+                reader_test_compare(other, source, kind, false, "Replacement body must contain opening and closing delimiters");
+            }
+        } else {
+            var pattern = tower_node_get_child_member(broken, "pattern");
+            bits(ParserMatchData*, tower_node_get_component_userdata(pattern, parser_match_get_type())).length = 1;
+            reader_test_compare(broken, source, kind, false, "Token pattern must contain opening and closing delimiters");
+        }
+    }
+    if failures {
+        reader_test_warm(declaration, source, kind);
+        var buffers = tower_test_buffer_count(); var nodes = tower_node_get_allocated_count(); var success = false;
+        for (var failure: usize = 0; failure < 512 && !success; ++failure) {
+            {
+                var copied = reader_test_clone(declaration); defer tower_node_release_ref(copied);
+                var error: ByteBuffer; fill(&error, 0, sizeof(ByteBuffer)); defer bytes_dispose(&error);
+                tower_test_buffer_fail_after(failure); success = reader_test_read(copied, source, kind, &error, false); tower_test_buffer_fail_after(~convert(usize, 0));
+                utility_check(success || error.length == 0 || reader_test_message(&error, "Unable to allocate grammar declaration"), "Reader allocation failure diagnostic");
+            }
+            utility_check(tower_test_buffer_count() == buffers && tower_node_get_allocated_count() == nodes, "Reader failure releases temporary components/buffers");
+        }
+        utility_check(success, "Reader allocation sweep reaches success");
+    }
+}
+fn reader_test_identifiers(): void {
+    var random: TestRandom; test_random_init(&random, 1380270404);
+    for (var trial: usize = 0; trial < 1000; ++trial) {
+        var text: u8[42]; var count: usize = 0;
+        if trial % 2 != 0 { text[count++] = 96; }
+        for (var index: usize = 0; index < trial % 40; ++index) { text[count++] = convert(u8, test_random(&random) & 255); }
+        if trial % 2 != 0 { text[count++] = 96; }
+        var a: ByteBuffer; fill(&a, 0, sizeof(ByteBuffer)); defer bytes_dispose(&a);
+        var b: ByteBuffer; fill(&b, 0, sizeof(ByteBuffer)); defer bytes_dispose(&b);
+        utility_check(syntax_identifier_decode(&text[0], count, &a) && reference_syntax_identifier_decode(&text[0], count, &b), "Identifier decode success");
+        utility_check(reader_test_buffer_equal(&a, &b), "1000 identifier bytes match native reference");
+        var in_place: u8[42]; copy(&in_place[0], &text[0], count);
+        var size = syntax_identifier_decode_in_place(&in_place[0], count);
+        utility_check(size == b.length && utility_equal(&in_place[0], b.data, size), "In-place identifier matches independent reference");
+        utility_check(syntax_literal_check(&text[0], count) == reference_syntax_literal_check(&text[0], count), "Literal validation matches independent reference");
+    }
+    var value: ByteBuffer; fill(&value, 0, sizeof(ByteBuffer)); defer bytes_dispose(&value);
+    var source: u8* = "prefix`a\\nb\\t\\`c`";
+    utility_check(bytes_assign_text(&value, source, strlen(source)), "Identifier alias fixture");
+    utility_check(syntax_identifier_decode(value.data + 6, value.length - 6, &value) && reader_test_message(&value, "a\nb\t`c"), "Identifier overlap decode and escapes");
+    var address = value.data; var long_text: u8[1000]; fill(&long_text[0], 120, 1000);
+    tower_test_buffer_fail_after(0); var ok = syntax_identifier_decode(&long_text[0], 1000, &value); tower_test_buffer_fail_after(~convert(usize, 0));
+    utility_check(!ok && value.data == address && reader_test_message(&value, "a\nb\t`c"), "Identifier failure preserves prior pointer and bytes");
+    utility_check(!syntax_identifier_decode(null, ~convert(usize, 0), &value), "Identifier overflow rejected");
+}
+export fn syntax_reader_tests(): void {
+    reader_test_identifiers();
+    reader_test_fixture("parse Example = 'a' $name:Identifier* | 'b' Identifier? | ;", SyntaxKind.Rule, true);
+    reader_test_fixture("parse Example = [^'{' '}']+;", SyntaxKind.Rule, true);
+    reader_test_fixture("parse `escaped\\tname` = Identifier;", SyntaxKind.Rule, false);
+    reader_test_fixture("parse Statement |= 'noop' ';' => replace { print(1); };", SyntaxKind.Rule, true);
+    reader_test_fixture("token Example = /[a-z]+/ when expected as string;", SyntaxKind.Token, true);
+    reader_test_fixture("token Example = /[a-z]+/;", SyntaxKind.Token, false);
+    reader_test_fixture("skip Example = /[~]+/ as comment;", SyntaxKind.Skip, true);
+    reader_test_fixture("skip Example = /[~]+/;", SyntaxKind.Skip, false);
+    {
+        var node = tower_node_create(); defer tower_node_release_ref(node);
+        var source = syntax_source_create("bad.tower", "", 0); defer syntax_source_release(source);
+        var error: ByteBuffer; fill(&error, 0, sizeof(ByteBuffer)); defer bytes_dispose(&error);
+        tower_test_buffer_fail_after(0); var ok = syntax_read_rule(node, source, parser_match_get_type(), syntax_component_type(), &error); tower_test_buffer_fail_after(~convert(usize, 0));
+        utility_check(!ok && error.length == 0 && error.data is null, "Reader missing capture and error-message allocation failure");
+        reader_test_compare(node, source, SyntaxKind.Rule, false, "Malformed bedrock tree: missing capture 'name'");
+    }
+    puts("Syntax reader: 1000 byte fixtures, exact native reference trees/errors, malformed spans and allocation failures passed.");
+}
