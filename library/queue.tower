@@ -74,7 +74,7 @@ fn queue_push(T: type, value: queue(T)*, element: T): bool {
     if needed == 0 {
         return false;
     }
-    if !queue_reserve(T, value, needed) {
+    if !queue_reserve(value, needed) {
         return false;
     }
     // Avoid head + length overflowing even for a maximum-width capacity.
@@ -116,17 +116,17 @@ fn queue_pop(T: type, value: queue(T)*, output: T*): bool {
 
 fn queue_dispose(T: type, value: queue(T)*): void {
     free(value.data);
-    queue_init(T, value);
+    queue_init(value);
 }
 
 fn queue_move(T: type, destination: queue(T)*, source: queue(T)*): void {
     if destination == source {
         return;
     }
-    queue_dispose(T, destination);
+    queue_dispose(destination);
     destination.data = source.data;
     destination.length = source.length;
     destination.capacity = source.capacity;
     destination.head = source.head;
-    queue_init(T, source);
+    queue_init(source);
 }
