@@ -162,7 +162,7 @@ try {
     await expect(page.locator('#execution-panel')).toBeVisible();
     assert.equal((await savedProject(page)).builtins.foundation,foundation);
     await selectDocument(page, 'foreach.tower');
-    await expect(page.locator('#status')).toContainText('Complete');
+    await expect(page.locator('#status')).toContainText('Complete',{timeout:60000});
     await expect(page.getByRole('button',{name:'Example',exact:true})).toHaveCount(0);
     await page.locator('#editor').click({position:{x:80,y:20}});
     await page.getByRole('textbox',{name:'Tower source'}).press('ControlOrMeta+a');

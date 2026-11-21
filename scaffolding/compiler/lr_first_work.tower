@@ -4,6 +4,7 @@ import lexer_table;
 import lr_analysis;
 import lr_types;
 import lr_work;
+import parser_workers;
 import .library.vector;
 import .library.work_graph;
 import .library.work_pool;
@@ -24,6 +25,9 @@ struct LRFirstTask {
     count: usize;
     success: bool;
 }
+
+// Scheduling grain, not a grammar limit. Narrow waves retain the serial solver.
+const LRFirstGrain: usize = 64;
 
 // Each nonterminal owns its output. References always read the preceding
 // joined snapshot, including self references and nullable cycles.
@@ -117,11 +121,14 @@ fn lr_analysis_work(value: LRAnalysis*, anchor: void*, capacity: usize): bool {
     var graph: WorkGraph;
     work_init(&graph, 1, 0);
     defer work_dispose(&graph);
-    var pool: WorkPool;
-    if !work_pool_open(&pool, capacity) { return false; }
-    defer work_pool_close(&pool);
+    var workers: ParserWorkers;
+    if !parser_workers_open(&workers, anchor, capacity) { return false; }
+    defer parser_workers_close(&workers);
+    var pool = workers.pool;
     while frontier.length != 0 {
-        var count = frontier.length / 16;
+        var count = frontier.length / LRFirstGrain();
+        // A retained world pool may be wider than this analysis's job array.
+        if count > capacity { count = capacity; }
         if count > pool.count { count = pool.count; }
         if count < 2 { return lr_analysis_compute(value); }
         if !work_reset(&graph, graph.revision + 1, graph.profile) { return false; }
@@ -146,10 +153,10 @@ fn lr_analysis_work(value: LRAnalysis*, anchor: void*, capacity: usize): bool {
         var ok = true;
         var admitted: usize = 0;
         for(; admitted < count; admitted++) {
-            if !work_pool_submit(&pool, bits(void*, &jobs[admitted].kernel)) { ok = false; break; }
+            if !work_pool_submit(pool, bits(void*, &jobs[admitted].kernel)) { ok = false; break; }
         }
         for(var i: usize = 0; i < admitted; i++) {
-            if work_pool_receive(&pool, true) == null { ok = false; }
+            if work_pool_receive(pool, true) == null { ok = false; }
         }
         entity_view_close(view);
         for(var i: usize = 0; i < admitted; i++) {
@@ -184,8 +191,8 @@ fn lr_analysis_work(value: LRAnalysis*, anchor: void*, capacity: usize): bool {
 
 export fn lr_analysis_compute_parallel(value: LRAnalysis*, anchor: void*): bool {
     var capacity = work_thread_capacity();
-    if capacity < 2 || anchor == null || value.nonterminal_count < 64 { return lr_analysis_compute(value); }
-    var useful = value.nonterminal_count / 16;
+    if capacity < 2 || anchor == null || value.nonterminal_count < 2 * LRFirstGrain() { return lr_analysis_compute(value); }
+    var useful = value.nonterminal_count / LRFirstGrain();
     if capacity > useful { capacity = useful; }
     var ok = lr_analysis_work(value, anchor, capacity);
     if !ok { value.failed = true; }

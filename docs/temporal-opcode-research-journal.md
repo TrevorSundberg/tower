@@ -27476,3 +27476,34 @@ worker leases, larger closure batches, bounded-transport slot release and Tower
 LR/syntax-emission test migrations. Integrate after active source readers finish;
 adapt FIRST to those same pool leases and repeat a clean public-bootstrap build.
 Pre-integration results do not certify that merged source.
+
+The pre-integration native acceptance finishes 6/6 (75.94 s); standalone backend
+API checks pass. Rebased FIRST onto 5d69144, retaining both journal histories and
+all upstream LR lifetime/granularity fixtures. FIRST now borrows ParserWorkers,
+including native retention and bounded-WASI slot release, rather than opening
+its own unrelated pool. Clamp jobs to this analysis's capacity even if a retained
+pool is wider. Use a named 64-nonterminal scheduling grain; no throughput claim.
+Start fresh compiletime-first-pools-clean plus the rebuilt shared reactor/tests.
+
+The frozen 9d1ea3d propagation bundle completes local release verification:
+all 77 exact assets, desktop/mobile flows and real Linux target defaults pass.
+Its Pages publication is in progress, distinct from the merged FIRST source.
+
+Propagation Pages push succeeds normally as f9e5ab3 from predecessor3652113;
+GitHub run44862363766 succeeds. Hosted hashes match all77 assets, but the browser
+trial stops at verify-deployment.mjs's foreach document selection: status still
+"Tower is parsing" when Playwright's default5-second assertion deadline expires.
+This trial ran alongside builds; that is a possible timing contributor, not a
+proven compiler fault or a passing deployment check. Give this asynchronous
+imported-example compilation the same60-second budget already used for compiled
+execution/project checks, preserving the required Complete result, and rerun.
+
+Merged FIRST/pool validation completes: empty-cache public-bootstrap native build
+56/56; actual successor parser object cmp0; native acceptance8/8 (49.47 s),
+including the new production LR worker-equivalence and instrumented-transport
+checks; standalone backend API passes. Shared overlap/trap/determinism passes3/3
+(26.25 s), shared compile-time/inference27/27 (37.88 s), portable parser/precedence
+21/21 (11.28 s). Matching portable/shared/LLVM/cross builds and compiler-project
+packaging finish. Logs: lr-first-pools-*. The hosted propagation retry has checked
+all77 hashes; its browser workflows are still running. FIRST's browser bundle
+and two-generation checks follow the final source synchronization.
