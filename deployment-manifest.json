@@ -11,7 +11,7 @@
     "capabilities.json": "beb929d7896b760e4a190875af67a895bc6599978a1566614dc7f39df7277bb2",
     "collections.tower": "f6e2bceb516d9ff9f073aa5504827db60f55d113a2389e9a0e2c17a25d26aef7",
     "compiler/imports-tower-18.txt.gz": "0fca0647149fdb009d542136fd37c0d0d37d73c50352efd08c0d1a5659f614ef",
-    "compiler/project.json": "dd7b2f6bbcd491e2d561aedd606bbfc55b324ffbd27b35792ad410f6e5e5e29b",
+    "compiler/project.json": "b0cf130d9dce08e7b09beb07318095f196749f131f6d75bf7052adbded1dd5ed",
     "compiler/support-cross-0.a.gz": "03c694c1f3966163c3e118c6570e139f9bfa93c4b5690cb5d3ebbb75ca39346f",
     "compiler/support-cross-1.a.gz": "015302cd33bd6b3b18148678106b78ff86351475eb604928329cb079b88ebf4a",
     "compiler/support-cross-2.a.gz": "04c0fd15f850c41cbeaefc2bb4f15362fddee8a5bed246a5145df4f34ffd53fb",
@@ -78,9 +78,9 @@
     "worker.js": "39213347695a05edc08714b411230ae26f92e38f84858cda39b22b43bae8474b",
     "worker.js.map": "37af2546e2780f6a9cc2a510e06d31d6dd8a006705dc8bdfcdb9d0567bfbe296"
   },
-  "sourceCommit": "3a8d1590f13dfb0a009bf6db7df5905272defcd1",
-  "buildSourceCommit": "3a8d1590f13dfb0a009bf6db7df5905272defcd1",
-  "previousDeployment": "89596ba954d1bf5c6311b3a628f46db88ab4e347",
+  "sourceCommit": "c81a36e546226de33cd5ae828c2468766aefc6e1",
+  "buildSourceCommit": "c81a36e546226de33cd5ae828c2468766aefc6e1",
+  "previousDeployment": "49ddc2772ddafa6ff9983c4d4c14f2122183ef38",
   "scope": "Tower ECS worker scheduling, lazy decltype/comptime queries, staged flow validation and integrated upstream language/compiler work.",
   "buildNote": "Built with the documented published development bootstrap; includes shared-memory and portable frontends plus LLVM/cross backends. See the project journal for exact validation and remaining serial phases.",
   "simplificationAudit": {
