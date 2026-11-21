@@ -31375,3 +31375,242 @@ integrated compiler/bootstrap validation is still required before publishing the
 local compiler milestone. This journal-only commit does not rebuild or replace
 the verified deployed runtime assets. Documentation diff checks pass; todo.txt
 retains blob 96a9e58964d7f01e4a97819f259448db81ef5e40.
+
+### 2026-11-21 — Stronghold revision: static guarantees and cheap scoped access
+
+The user clarifies the priority behind the earlier safe-handle explorations:
+memory safety with very little overhead, enforced at compile time wherever
+possible, using ECS-aware language features to avoid pervasive lifetime/type
+ceremony. Entity handles should become direct pointers while safely borrowed;
+safe memory chunks outside ECS should remain possible. This refines the preceding
+Stronghold proposal. It does not request implementation yet or relax memory/type
+safety. Compiler ECS/threading and interpreter-based compile-time work remain the
+implementation priority; all future project-owned implementation remains Tower.
+
+Change in emphasis:
+
+Make static ownership, access and non-escape rules the primary mechanism. Runtime
+checks, locks, reference counting and reclamation schemes from the earlier entry
+are tools for explicitly dynamic cases, not the default cost of every reference.
+The desired common case is a bounded access scope whose correctness is checked
+once by the compiler, with any necessary runtime admission at its boundary and
+ordinary pointer loads/stores inside. Do not build an always-checked reference
+system and hope LLVM removes all its overhead. Define eligible cases and their
+lowering costs explicitly, then verify the generated code.
+
+Keep four concepts separate: a persistent entity handle denotes identity; a
+temporary typed borrow grants access; a scope keeps the underlying storage alive
+and stable; and an access capability controls conflicting reads/writes. A handle
+need not own or pin an entity. A borrow may lower to one target pointer once its
+scope and permissions are established. Bounds metadata for a slice is still real
+runtime data when its length is dynamic; erasing ownership metadata does not mean
+all useful types become one machine word.
+
+Proposed default ECS contract:
+
+1. Enter a system/query with statically checked read/write requirements and an
+   owner/world context. Infer requirements through ordinary calls, including
+   callbacks and generated functions. Public or separately compiled boundaries
+   expose checked summaries so callers do not need to inspect every body.
+2. Partition compatible work into disjoint entity/table ranges. Give each job
+   scoped access to its ranges. Multiple readers are compatible; mutable access
+   must be exclusive for the actual overlapping storage. A read/write component
+   set is the initial conservative model, with proven filters/ranges recovering
+   concurrency. Readiness dependencies and access conflicts both constrain jobs.
+3. Hold structural changes that could invalidate those ranges until their users
+   finish. Updating fields is distinct from moving entities, changing membership,
+   resizing borrowed storage or freeing owners. Structural access is an effect
+   that ordinary row code does not possess. Queue commands explicitly or leave
+   the access scope before acquiring structural authority.
+4. Traverse existing matched rows directly. The iterator already proves entity
+   existence and component presence for that protected traversal, so it need not
+   look up a generational handle for every row or field. Disjoint chunk iterators
+   can establish independent mutable borrows by construction. Scoped borrowed
+   references cannot be stored beyond their scope or retained by an escaping
+   callback. Borrow shortening should follow last use where provable, not always
+   the end of a function.
+5. Join the relevant jobs, end their borrows, then publish changes in the specified
+   order. This is a deliberate execution contract. Do not silently postpone a
+   synchronous mutation whose immediate visibility the program depends on. A
+   command's visibility and same-batch lookup semantics must be documented.
+
+This can amortize lifetime/structural protection across thousands of accesses.
+When exclusive ownership and structured job lifetime already prove the scope,
+the access token can be a compiler-only fact: no per-object pin counter, heap
+guard allocation or reference-count traffic is inherently required. A dynamic
+shared-world scheduler may still need admission bookkeeping and synchronization
+per job or batch. Those costs do not disappear because the compiler verified
+correct use of its protocol. Starting with world-wide structural phases is simple;
+later narrow them to affected stores/tables/allocations where measured benefits
+justify the additional ownership rules. Adding a component may move several
+columns, so merely locking that component's type is not sufficient.
+
+Pinning also needs a precise meaning here. Freezing a component's location does
+not freeze a vector allocation reached through one of its fields, nor grant
+permission to race on its contents. Track ownership and invalidating effects for
+reachable storage: buffer growth, nested container replacement and callbacks can
+invalidate borrows independently of archetype movement. Shared references inside
+different components can alias the same resource. Access summaries must include
+that resource/region or conservatively reject conflicting use. Component names
+alone cannot prove arbitrary pointer graphs disjoint.
+
+Static proof versus runtime facts:
+
+| Operation | Proposed proof/admission | Intended repeated-access cost |
+| --- | --- | --- |
+| Visit matched query rows | Checked query capabilities, stable membership, disjoint ranges | Direct column/payload access; no handle validation per field |
+| Resolve an arbitrary saved handle | Check world/incarnation/presence within a protected scope unless already proven | Lookup once per acquired borrow, then direct access |
+| Visit an owned buffer | Owner stays live; iterator constrains initialized range | Ordinary traversal, with bounds checks absent when proven redundant |
+| Split a buffer for parallel jobs | Validate a dynamic split boundary once, construct disjoint views | Direct access in each view under its range contract |
+| Mutate two arbitrary entity IDs | Prove IDs/ranges distinct or check aliasing when acquiring access | Direct access after successful admission |
+| Publish a genuinely shared mutable value | Explicit atomic/lock/snapshot contract | Its documented synchronization cost remains |
+
+The compiler can prove that every use follows a safe protocol without knowing
+which entities a runtime file or network packet will identify. It cannot generally
+prove that an arbitrary saved handle is still alive, that two runtime IDs differ,
+or that a runtime index is in bounds. A successful check can establish a fact for
+the remainder of a protected scope; checking again on every field is unnecessary.
+Removing all such checks requires restricting the operation or changing ownership
+so the fact follows by construction. A static-only subset can reject operations
+without those proofs; useful dynamic APIs can retain an explicit checked boundary.
+Never convert proof failure into unchecked access in optimized builds.
+
+Ergonomics to target:
+
+Ordinary system authors should write typed component inputs, a familiar loop and
+ordinary helper calls. Infer scoped lifetimes, read/write effects and temporary
+borrows; generate query/partition plans. Persistent graph edges use copyable
+handles, so users do not encode an entire evolving entity graph into nested
+reference lifetimes. Returning an owned value, keeping a handle, splitting a
+region or moving structural changes to a command phase should be straightforward
+fixes with concrete diagnostics. Advanced library authors may need explicit
+ownership/effect contracts; do not pretend every relationship can be inferred.
+
+We still need restrictions on aliasing, escape, destruction and mutation. ECS
+offers useful structural constraints that can make them easier to express; it
+does not make unrestricted shared mutation statically safe. Avoid compensating
+for a rejected proof with hidden copies, reference counting, global locks or an
+unexplained loss of parallelism. Expose consequential costs at API boundaries.
+Measure both programmer friction and runtime performance rather than declaring
+the result universally easier or faster than Rust before implementing it.
+
+Compile-time facilities that help:
+
+Use ordinary Tower type values and functions to describe component schemas,
+query shapes, ownership and access requirements. Known schemas can generate
+specialized traversal, layout access and job descriptors at compile time. Erase
+proof-only region/permission information when valid, while keeping runtime world
+checks where the instance identity is dynamic. Compile-time knowledge of a type
+does not establish the identity or liveness of every runtime object of that type.
+
+Ownership, definite initialization, non-escape and effect checking operate on
+the shared entities. Their reusable summaries should be dependency queries with
+explicit invalidation, independent work scheduled in parallel and deterministic
+diagnostics. Recursive calls require convergent effect-summary analysis where
+supported, not declaring every call-graph cycle illegal. Keep the proof system
+small and predictable initially: owned regions, scoped borrows, access sets and
+disjoint iterator/split operations, rather than an arbitrary theorem prover.
+
+These are static safety analyses, not a separate constant-propagation evaluator.
+When an expression's actual known value is needed, use ordinary interpreter
+evaluation under Tower's existing deterministic contract. LLVM can optimize the
+resulting ordinary operations. Generated code must satisfy the same safety rules;
+user code cannot fabricate a proof or capability by returning a convenient flag.
+Foundation remains the compilable semantic representation, and safe module/trust
+contracts must survive or be rechecked at separate compilation and import.
+
+Safe allocations outside ECS are part of the design:
+
+- An owned allocation or buffer has one destruction authority. Move the owner
+  when transferring it; create temporary read-only or exclusive writable views
+  for access. Release occurs at the defined ownership boundary. This can compile
+  to an allocation, pointer/length storage and a matching free, without a mandatory
+  refcount or ECS entity per allocation. Aggregate move/destruction semantics
+  must be defined first; current Tower vector_move is a raw caller contract.
+- An arena/region owns a group of stable allocations and releases them together
+  after all external borrows/jobs end. Internal graphs can contain cycles without
+  per-edge reference counts. Initial restrictions can forbid individual frees
+  and moving live allocations; adding those operations later requires stronger
+  identities or proofs. Transfer an isolated region between jobs only when no
+  incompatible references remain. Ownership metadata concerns the region, not
+  every object in it.
+- Safe slices retain length and a lifetime tied to their owner. Splitting creates
+  disjoint child permissions. Resizing or disposing the owner is unavailable while
+  conflicting views are live. A user can hold a stable owner for a long computation
+  without manufacturing ECS entities for temporary numerical buffers or parser
+  scratch. Shared non-ECS resources can use the same scheduler access model.
+- Initialization means no read of an uninitialized/invalid value, not compulsory
+  zero-fill followed by overwriting every element. Permit an inaccessible builder
+  to allocate raw backing storage and construct each element once; expose only
+  the initialized range, and publish the completed typed buffer after its contract
+  is satisfied. Track partial cleanup correctly on failure. Prefer append/exact-
+  length construction protocols over an initialization bitmap for every object.
+  Arbitrary partially initialized typed reads remain unavailable to safe code.
+
+Safe byte buffers do not authorize reinterpreting arbitrary bytes as references
+or invariant-bearing structs. Typed decoding/construction, alignment and checked
+layout arithmetic still matter. Address-stable allocations do not alone prevent
+use-after-free or writable aliases. Optional shared ownership/concurrent buffers
+remain available with visible costs rather than becoming the ordinary model.
+
+Optional logical races remain a separate future feature. The default query/owned-
+region path should prevent conflicting ordinary accesses. Relaxing consistency
+must not force every hot-path load to become atomic, or silently change strict
+compile-time execution into a nondeterministic computation. The earlier examples
+of absent lookup results and protected snapshots remain valid for opted-in APIs.
+
+Evidence and current implementation limits:
+
+Reviewed scaffolding/library/entities.tower: today's Entity is a raw pointer to
+an object containing store/id/reference metadata. EntityView is heap allocated,
+increments the store's view count, and delays reclamation; its own comment says
+payload access still needs permissions. Dense table columns point to stable
+component payloads rather than guaranteeing packed contiguous payload arrays.
+scaffolding/library/vector.tower and docs/borrowed-iteration.md explicitly leave
+growth/borrow safety to the caller. Thus the proposed generational safe handles,
+erased scoped capabilities, contiguous-query cost targets and safe owned buffers
+must not be described as implemented properties of those current APIs. Existing
+coordinator-owned view/stage machinery is a starting point, not a requirement
+to preserve its allocation/bookkeeping cost in Stronghold.
+
+Primary references reviewed for specific mechanisms, not performance promises:
+Bevy's [DeferredWorld](https://docs.rs/bevy_ecs/latest/bevy_ecs/world/struct.DeferredWorld.html)
+separates component access from structural mutation, and its
+[SystemParam contract](https://docs.rs/bevy_ecs/latest/bevy_ecs/system/trait.SystemParam.html#safety)
+requires complete access registration and conflict prevention. Its
+[get_entity_mut](https://docs.rs/bevy_ecs/latest/bevy_ecs/world/struct.World.html#method.get_entity_mut)
+also reports duplicate mutable entity requests, illustrating why dynamic aliasing
+needs an acquisition rule. Rust's
+[split_at_mut](https://doc.rust-lang.org/std/primitive.slice.html#method.split_at_mut)
+constructs nonoverlapping mutable slices after a boundary check. Pony's
+[reference capabilities](https://tutorial.ponylang.io/reference-capabilities/reference-capabilities.html)
+show compiler-enforced isolation/immutable sharing, including isolated groups
+with internal references. We are borrowing these principles, not adopting their
+full languages, runtime memory management or syntax.
+
+Revised future implementation order and acceptance criteria:
+
+1. Specify scoped access, structural effects, owned buffers and moves, including
+   initialized construction and cleanup. Define a small trusted implementation
+   boundary and the common ergonomic query/region APIs together.
+2. Enforce those rules on the shared graph; infer summaries and connect proven
+   access to dependency/job scheduling. Add dynamic handle acquisition only where
+   necessary. Support non-ECS owned storage from the start.
+3. Implement a representative component update and parallel buffer operation in
+   Tower. Compare to equivalent raw Tower code with identical layout, arithmetic,
+   synchronization and optimized backend settings. Inspect optimized loops for
+   per-element checks, allocations, refcount updates and synchronization; measure
+   whole-job throughput and compiler cost too. No benchmark has been run here.
+4. Reject escaping borrows, conflicting dynamic aliases, structural mutation and
+   nested-buffer growth during access, early arena release and uninitialized
+   reads. Demonstrate safe optional failure at dynamic acquisition boundaries.
+   Tune storage/partitioning and only then consider more complex concurrent APIs.
+
+This explicitly supersedes any impression from the preceding entry that per-use
+runtime protection should be the default. The target is compile-time enforced
+ownership and effects with batch-scoped access and direct-pointer inner loops,
+plus honest, bounded runtime checks for facts that actually depend on runtime
+data. This is a future design, not an implementation or zero-overhead claim.
+This turn changes only the journal; existing compiler work and todo.txt are
+preserved. Validation is documentation review/diff checks and publication of
+the unchanged verified runtime assets, not repeated compiler or sanitizer suites.
