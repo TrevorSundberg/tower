@@ -23736,3 +23736,58 @@ verification. Main and the prepared gh-pages commit can be pushed together with
 a normal atomic fast-forward update so source and deployment cannot diverge if
 another writer advances either branch. Existing unrelated local edits, including
 todo.txt, are excluded from these commits.
+
+### Import audit follow-up: current ownership integration and superseding results
+
+Rebased the audit through d79e449, retaining upstream's scoped `for` migration,
+canonical formatting, published compatible bootstrap and Tower-owned installed
+syntax baselines. The earlier formatting sweep and experimental test/memory
+adjustments above describe intermediate revisions, not the final patch. In
+particular the final tree uses upstream's 512 MiB parser maximum, not the temporary
+2 GiB experiment. It retains restored CoreOperand call arguments, enum-specific
+diagnostics and the real increment_rules replacement fixture. Overlapping local
+changes were dropped instead of undoing these upstream fixes.
+
+A fresh documented default-bootstrap native build passed all 55 targets in
+`/root/.cache/tower/import_followup_d79e449`, without a private bootstrap override.
+The native module filesystem tests pass. The explicit compiler-unit undefined
+symbol audit required one additional current dependency, compiler_world_get;
+all five unit allowlists then passed. The filename audit passes, including the
+renamed legacy Foundation fixture. The changed semantic_expressions.tower file
+matches the production formatter and is idempotent. The earlier whole-source
+formatter sweep predates the newest upstream ownership files; no claim is made
+that those additions were included in that earlier sweep.
+
+The post-for broad Node run passed 384 of 385 tests. Its sole failure was cached
+grammar diagnostics retaining old declaration locations after comments moved a
+rule. Cached tables correctly reused the same grammar shape, but diagnostic
+formatting consulted their old owning revision. A trial adapter passed current
+declarations through the existing Tower syntax_revision_overlay operation;
+all 49 diagnostic, completion and Wasm checks then passed, including the test's
+positive grammar-cache-hit assertion. The next upstream fetch contains 781c4d5,
+which independently implements this fix with a focused Tower regression. Drop
+the overlapping trial adapter and validate the upstream implementation after
+rebasing. This is an existing Tower operation, not a new native language feature.
+
+On d79e449 plus the trial adapter, all 44 module-resolution, module-scope and
+semantic-port tests pass, including repeated lifetime checks and the large
+Foundation round trip under the retained 512 MiB limit. General allocation-failure
+recovery is unchanged. WASI, LLVM/cross and support packaging pass. Two successive
+browser compiler generations pass edited-semantic-behavior checks with identical
+hashes and sizes 893780, 52124123 and 63681489 bytes for parser, LLVM and cross.
+Required-backend local deployment verification passes all 70 asset hashes and
+both desktop/mobile execution, completion, editing, persistence and download
+flows. Logs are modules-baselines.log, baseline-diagnostics.log,
+successors-baselines.log and verify-local-baselines.log in build/import-followup.
+
+The post-for target-pack check links all five supported packs and executes Linux
+x64, Windows x64 and Linux ARM64 (QEMU); macOS remains link-only validation.
+Symlink alias identity and quoted exact-case path policies remain unchanged.
+All project-owned Tower names are expressible with identifier imports; arbitrary
+user filenames can still require the explicit quoted form.
+
+Before publication, integrate the newly fetched backend source-session migration
+(759c6fc) and provenance fix (781c4d5), then repeat the required clean successor
+build and affected checks. Publish through the existing gh-pages checkout with
+normal fast-forward pushes and verify the hosted result. Unrelated local AGENTS,
+foundation, journal and todo edits remain excluded from these audit commits.

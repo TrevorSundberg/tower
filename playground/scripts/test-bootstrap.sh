@@ -126,6 +126,7 @@ if sys.argv[1] == 'parser-nodes': allowed |= {
     'abort',
     'compiler_clone_tree',
     'compiler_host_world',
+    'compiler_world_get',
     'compiler_world_grammar',
     'compiler_world_pinned',
     'compiler_world_type',
