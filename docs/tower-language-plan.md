@@ -19,6 +19,52 @@ surface metadata and provenance on those entities for tools and reflection.
 
 ## Dependency order and milestones
 
+### Immediate C-level capability sequence (2026-11-21)
+
+The user requested this sequence after struct values and ordinary named bindings
+are published with a working bootstrap. Target practical C-level capabilities,
+using C89 as the first completeness baseline; this is not a claim of C source or
+ABI compatibility. Tower's explicit conversions, defined arithmetic, modules and
+staging remain intentional language choices. Keep all new implementation/tests
+in Tower and use the shared ECS/dependency/worker architecture.
+
+1. **Floating point.** Implement first-class `f32`/`f64` values, literals, unary
+   and binary operations, comparisons, explicit numeric conversions, memory/layout,
+   formatting and diagnostics. Specify rounding, signed zero, infinities, NaNs,
+   subnormals and conversion boundaries before folding. Strict compile-time and
+   portable interpreted execution need deterministic Tower-owned arithmetic;
+   native/Wasm lowering must preserve that same profile. Test independent known
+   bit patterns, boundary cases, round trips and interpreter/backend agreement.
+   Define the supported extended-precision/C `long double` ABI separately rather
+   than silently equating every C floating type with f64.
+2. **First-class functions and indirect calls.** Typed function values, assignment,
+   parameter/result passing, nullability, address-taking and indirect calls on
+   the same entities. Define identity, lifetime, target representation and ABI;
+   support plain noncapturing functions before closures. Verify recursion,
+   callback tables, native foreign callbacks and Wasm table signatures. Exported
+   callbacks must not depend on an unexecuted module initializer.
+3. **Unions and bit-fields.** Shared storage/layout, explicit overlap and access
+   rules, named fields, target-controlled packing/alignment and diagnostics.
+   Distinguish raw C-style storage from later safe tagged variants. Preserve
+   compilable Foundation spellings and define union reinterpretation semantics.
+4. **Complete C interoperability.** Target-specific aggregate argument/result
+   classification, variadic calls/functions and default argument promotions at
+   foreign boundaries, callback conventions, data linkage and library coverage.
+   Test each supported ABI with existing third-party toolchains; internal struct
+   value lowering alone is not evidence of external ABI compatibility.
+5. **Completeness audit.** Inventory volatile accesses, static local storage,
+   initializer/string/character/numeric spellings, control-flow equivalents and
+   standard-library facilities. Give every C89 capability an implemented,
+   intentionally different, externally supplied or missing status with a test.
+   Do not declare parity from an operator checklist or from self-hosting alone.
+
+Each milestone needs the ordinary interpreter, canonical Foundation round trips,
+typed lowering, serial/parallel determinism and a published compatible bootstrap
+before compiler-source adoption. New Foundation value types/operations are allowed
+where required by these capabilities; parser conveniences remain in Tower rules.
+
+### Existing broader roadmap
+
 The subsequent instruction is to complete this roadmap, not stop after the first
 milestone. The shared compiler infrastructure below is a cross-cutting requirement
 for all remaining stages, including parallel execution at large project sizes.

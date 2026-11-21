@@ -32130,3 +32130,23 @@ binding-sensitive diffs separately. Publish and validate the complete compatible
 development bootstrap before migrating compiler sources; do not repeat the earlier
 unsupported-source bootstrap break. This remains a hybrid Linux x64 development
 package, not the planned portable pure-Tower release. `todo.txt` is untouched.
+
+The final native suite, including temporary-field rejection, earlier indirect
+global observations and explicit/inferred dependency cycles, passes in
+`value-bindings-dependencies.log`. Both current LLVM native executables print 0.
+Packaged implementation f50b79d as archive SHA-256
+512ae5643fcc27dcde2e94ea6517c662d3e960f12309179e1eca14b089f5ea91;
+the hash-verified relocated installation runs both fixtures. A fresh successor
+build using the documented pin with no private bootstrap override passes all 53
+steps in `/cache/value-bindings-clean` (`value-bindings-clean.log`). Packaging's
+PowerShell-to-bash command quoting truncated the recorded build-command argument;
+corrected that metadata to the actual command above. Compiler/resource bytes and
+hash verification were unaffected. The compiler-source migration follows this pin.
+
+The user also asked whether this reaches C89 parity, then authorized the next
+C-level feature sequence. It does not yet: floating point, first-class functions
+and indirect calls, unions/bit-fields and full C aggregate ABI support remain
+substantial gaps. Added explicit milestones and acceptance criteria to
+`docs/tower-language-plan.md`, without changing the protected `todo.txt`. Finish
+publishing this milestone first, then begin floating point, followed by function
+values/calls. Higher-level features already present do not imply C completeness.

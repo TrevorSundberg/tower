@@ -28,7 +28,9 @@ the operator fixtures, and a clean successor build before updating this pin.
 Never migrate compiler source to unsupported syntax before the replacement
 bootstrap is committed and the default clean build path has passed.
 
-The current pin supports named-field destination initialization (`{ x: 1 }`,
+The current pin supports shallow struct copies and by-value Tower calls/returns,
+ordinary scalar `var` binding inference through staged execution, and
+named-field destination initialization (`{ x: 1 }`,
 `init(Type) { ... }`, nested fields and explicit `..default`),
 target-typed `default`/`default(Type)` initialization,
 expression operators, scoped `for`/`defer`, borrowed
