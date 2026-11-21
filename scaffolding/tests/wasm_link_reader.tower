@@ -553,6 +553,8 @@ fn wasm_test_byte_plans(): void {
     var link: WasmLink = default;
     utility_check(wasm_link_init(&link) && wasm_link_plan(&link, &argument_bytes[0], 2, &source, 1), "unterminated byte-key request links");
     utility_check(wasm_bytes_equal(init(WasmBytes) { data: original.data, length: original.length }, init(WasmBytes) { data: link.output.data, length: link.output.length }), "CLI-shaped BackendLink and byte plan preserve identical image");
+    utility_check(!wasm_link_plan(&link, &argument_bytes[0], 2, &source, 1) && link.error == WasmLinkError.Input
+        && link.output.length == 0, "byte plan replay cannot expose an old artifact");
     utility_check(wasm_link_close(&link), "byte plan world cleanup");
     var duplicate: WasmLinkInputBytes[2]; duplicate[0] = source; duplicate[1] = source;
     utility_check(wasm_link_init(&link) && !wasm_link_plan(&link, &argument_bytes[0], 2, &duplicate[0], 2)

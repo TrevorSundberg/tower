@@ -12,6 +12,10 @@ struct WasmLinkInputBytes { name: WasmBytes; bytes: WasmBytes; }
 // tool name. Input names are exact byte keys, never paths to open. This service
 // performs no filesystem access, host callbacks or implicit native fallback.
 fn wasm_link_plan(link: WasmLink*, arguments: WasmBytes*, count: usize, inputs: WasmLinkInputBytes*, input_count: usize): bool {
+    if link.started || link.layout_type != null {
+        link.output.length = 0;
+        return wasm_link_fail(link, WasmLinkError.Input, wasm_text_bytes("link requests are single use"));
+    }
     var names: WasmNameMap = default;
     defer wasm_names_dispose(&names);
     if input_count >= convert(usize, WasmNoIndex) { return wasm_link_fail(link, WasmLinkError.Layout, default(WasmBytes)); }

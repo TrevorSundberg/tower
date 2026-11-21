@@ -37062,3 +37062,13 @@ five observations on each device without errors (cold_warm_final_transport.json)
 Both changed scripts pass node --check. CPU sampling, larger-unit compiles and
 browser timing sets ran sequentially; no sanitizers or broad release rebuilds.
 Publication reuses verified assets, retaining their compiler/bootstrap/UI identity.
+
+Final merge receipt: the next pull included 564972f's for-header continuation and
+failed-signature propagation fixes; the implementation rebased to b16c5e3 and was
+pushed with journal 5b76a54 after a transient GitHub DNS failure was retried.
+A third clean public-bootstrap successor at coordinator-wasm-linker/successor-final
+passes the current backend API, real worker/reversed-completion and full focused
+frontend suites. Native/WASI linker suites also pass. Added explicit byte-plan
+replay rejection with zero output, closing the same stale-artifact case already
+covered by wasm_link_run. Publication is a source/validation receipt only; it
+preserves runtime 85c8a13 and all 84 assets from the other lanes' verified release.
