@@ -16,7 +16,6 @@
 #include "syntax-nodes.hpp"
 #include "format.hpp"
 #include "compiler-format.hpp"
-#include <array>
 #include <cstring>
 #include <memory>
 #include <string>
@@ -73,9 +72,8 @@ struct SyntaxSession {
   size_t comment_cursor = 0;
   Revision bedrock;
   std::shared_ptr<Version> version;
-  FrontendCache cache{};
-  std::array<std::shared_ptr<Version>, SYNTAX_MAX_CACHED_GRAMMARS> versions;
-  ~SyntaxSession() { frontend_cache_dispose(&cache); syntax_session_inputs_dispose(&inputs); }
+  SyntaxVersionCache cache{};
+  ~SyntaxSession() { syntax_version_cache_dispose(&cache); syntax_session_inputs_dispose(&inputs); }
   SyntaxExpansionStats expansion_stats;
   std::string error;
   size_t error_offset = 0;
@@ -108,19 +106,11 @@ std::string syntax_diagnostic(SyntaxSession& session, Recognizer* recognizer, bo
 }
 
 std::shared_ptr<Version> compiled(SyntaxSession& session, const Revision& definitions, std::string& error) {
-  if (!definitions) { error = "Unable to allocate grammar revision"; return nullptr; }
-  const auto slot = frontend_cache_find(&session.cache, definitions->rules.data, definitions->rules.length,
-    definitions->tokens.data, definitions->tokens.length, syntax_component_type());
-  if (slot != TOWER_INVALID_INDEX) { error.clear(); return session.versions[slot]; }
   SyntaxVersionDiagnostic diagnostic{{}, nullptr, session.error_offset};
-  std::shared_ptr<Version> version(syntax_version_build(session.inputs.world, definitions.get(), session.bedrock.get(), &diagnostic), syntax_version_release);
+  std::shared_ptr<Version> version(syntax_version_cached(&session.cache, session.inputs.world, definitions.get(), session.bedrock.get(), &diagnostic), syntax_version_release);
   error = syntax_version_diagnostic_text(&diagnostic);
   session.error_offset = diagnostic.offset;
   syntax_version_diagnostic_dispose(&diagnostic);
-  if (version) {
-    const auto stored = frontend_cache_store(&session.cache, definitions->rules.data, definitions->rules.length, definitions->tokens.data, definitions->tokens.length);
-    if (stored != TOWER_INVALID_INDEX) session.versions[stored] = version;
-  }
   return version;
 }
 
@@ -351,7 +341,7 @@ void syntax_reset(SyntaxSession* session, const char* source, FrontendModule* mo
   session->source = session->inputs.source ? session->inputs.source->text.view() : std::string_view{};
   session->cursor = session->revision = session->error_offset = 0;
   session->error_insertion = false;
-  session->cache.builds = session->cache.hits = 0;
+  session->cache.index.builds = session->cache.index.hits = 0;
   session->expansion_stats = {};
   session->finalized = false; session->declarations_only = true; session->comment_cursor = 0;
   session->error.clear(); session->highlights.clear(); session->grammar = session->baseline;
@@ -360,7 +350,7 @@ void syntax_reset(SyntaxSession* session, const char* source, FrontendModule* mo
   session->version = compiled(*session, session->grammar, session->error);
 }
 SyntaxCacheStats syntax_get_cache_stats(SyntaxSession* session) {
-  return {session->cache.builds, session->cache.hits, session->cache.entries.length};
+  return {session->cache.index.builds, session->cache.index.hits, session->cache.index.entries.length};
 }
 
 void syntax_destroy(SyntaxSession* session) { delete session; }
@@ -381,7 +371,7 @@ TowerText syntax_format(SyntaxSession* session) {
   copy.baseline = session->baseline;
   copy.bedrock = session->bedrock; copy.bootstrapping = session->bootstrapping;
   copy.building_bedrock = session->building_bedrock;
-  if (frontend_cache_copy(&copy.cache, &session->cache)) copy.versions = session->versions;
+  syntax_version_cache_copy(&copy.cache, &session->cache);
   copy.formatting = true; syntax_reset(&copy, session->source.data());
   std::vector<TowerNodeRef> owned; std::vector<TowerNode*> roots;
   while (auto* root = syntax_next(&copy)) { owned.push_back(TowerNodeRef::adopt(root)); roots.push_back(root); }
@@ -395,7 +385,7 @@ TowerText syntax_format(SyntaxSession* session) {
   verify.baseline = copy.baseline;
   verify.bedrock = copy.bedrock; verify.bootstrapping = copy.bootstrapping;
   verify.building_bedrock = copy.building_bedrock; verify.formatting = true;
-  if (frontend_cache_copy(&verify.cache, &copy.cache)) verify.versions = copy.versions;
+  syntax_version_cache_copy(&verify.cache, &copy.cache);
   syntax_reset(&verify, result.source.c_str());
   size_t index = 0; bool same = true;
   while (auto* raw = syntax_next(&verify)) {
@@ -522,7 +512,7 @@ TowerNode* syntax_next(SyntaxSession* session) {
       auto& token = syntax_node(construct);
       if (syntax_revision_rule(session->grammar.get(), token.name.data(), token.name.size()))
         return fail("Name already defines a parse rule: " + token.name);
-      frontend_cache_pattern(&session->cache, construct, syntax_component_type());
+      frontend_cache_pattern(&session->cache.index, construct, syntax_component_type());
       if (!token.compiled) { auto pattern = lex_pattern_compile(token.text, error); syntax_node_pattern(&token, pattern.get()); }
       if (!token.compiled) return fail(error);
       TowerByteBuffer edit_error{};

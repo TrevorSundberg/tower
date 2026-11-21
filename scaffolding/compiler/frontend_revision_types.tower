@@ -16,3 +16,10 @@ struct FrontendRevision {
     alternatives: vector(void*);
     tokens: vector(void*);
 }
+
+const FrontendCacheLimit: usize = 64;
+struct FrontendCache {
+    entries: vector(FrontendRevision*);
+    builds: usize;
+    hits: usize;
+}

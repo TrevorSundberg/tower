@@ -4,6 +4,7 @@ import syntax_emission;
 import .compiler.lr_tree;
 import .compiler.frontend_bedrock;
 import .compiler.frontend_cache;
+import .compiler.frontend_revision_types;
 import .compiler.grammar_types;
 import .compiler.lr_analysis;
 import .compiler.parser_nodes;

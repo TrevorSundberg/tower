@@ -24395,3 +24395,31 @@ C:/Sandbox/build/codex-agents/agent-1-version-construction-build.log; final buil
 and CTest output are in agent-1-replacement-clean. This follow-up stays private
 until Agent 2 completes the already frozen ba8aaca browser publication, after
 which final rebase, clean successor and publication remain required.
+
+
+### 2026-11-20 - Coherent Tower ownership of compiled syntax cache slots (agent 1)
+
+Added syntax_version_cache.tower to own the existing source-snapshot LRU and its
+compiled-version leases together. Removed the native std::array<shared_ptr<Version>>
+and all native lookup/store/eviction ownership policy. A hit returns a retained
+version without allocating. A miss prepares the version first and reserves slot
+storage before publishing its source index; either optional cache allocation may
+fail while returning the complete uncached version. No index can refer to an
+unowned slot. Formatting clones copy recency and version pins transactionally,
+leaving an existing destination intact on failure. Session baselines remain
+stable for each cache lifetime, as before; this adds no cross-session scheduling.
+
+Moved the small FrontendCache layout and named 64-slot limit to the existing
+frontend_revision_types module, with a direct import in the old Tower cache
+fixture. The native mirror only carries the two owner fields. The new focused
+fixture checks allocation-free hits/self-copy, cloning over a populated owner,
+every clone allocation failure, independent retained lifetime after both caches
+are disposed, and all allocations in build-plus-cache insertion. Every surviving
+source index must point to the returned version, and disposal must restore the
+exact initial buffer count. The former raw source-index tests are retained.
+
+Native build passes and frontend/driver/execution CTests pass 3/3 (18.51 s);
+frontend now includes both full allocation sweeps (0.89 s). No sanitizer or broad
+formatter sweep. This commit remains private behind Agent 2's current browser
+publication and the coordinator's requested small regex-fixture source slot.
+Final rebase/default clean successor/source publication remain required.

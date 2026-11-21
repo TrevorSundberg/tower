@@ -12,12 +12,6 @@ import .library.vector;
 
 // Immutable revision snapshots retain shared grammar entities. Cache slots are
 // disposable host handles; no parser semantics or source is encoded in them.
-struct FrontendCache {
-    entries: vector(FrontendRevision*);
-    builds: usize;
-    hits: usize;
-}
-
 export fn frontend_revision_release(revision: FrontendRevision*): void {
     var missing = revision == null;
     if missing {
@@ -271,7 +265,7 @@ tokens: void**, token_count: usize): usize {
     if missing {
         return lr_none();
     }
-    var full = cache.entries.length == 64;
+    var full = cache.entries.length == FrontendCacheLimit();
     if full {
         revision.slot = cache.entries.data[0].slot;
         frontend_revision_release(cache.entries.data[0]);

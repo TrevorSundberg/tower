@@ -25,6 +25,67 @@ extern fn syntax_version_build(world: void*, source: FrontendRevision*, bedrock:
 extern fn syntax_version_bedrock(module: FrontendRevision*, kind: void*, diagnostic: SyntaxVersionDiagnostic*): bool;
 extern fn syntax_version_diagnostic_dispose(value: SyntaxVersionDiagnostic*): void;
 extern fn syntax_version_diagnostic_text(value: SyntaxVersionDiagnostic*): u8*;
+extern fn syntax_version_cache_dispose(value: SyntaxVersionCache*): void;
+extern fn syntax_version_cache_copy(target: SyntaxVersionCache*, source: SyntaxVersionCache*): bool;
+extern fn syntax_version_cached(value: SyntaxVersionCache*, world: void*, definitions: FrontendRevision*, bedrock: FrontendRevision*, diagnostic: SyntaxVersionDiagnostic*): SyntaxVersion*;
+
+fn frontend_version_cache_tests(world: void*, revision: FrontendRevision*, bedrock: FrontendRevision*): void {
+    var buffers = tower_test_buffer_count();
+    var cache: SyntaxVersionCache;
+    var fork: SyntaxVersionCache;
+    var diagnostic: SyntaxVersionDiagnostic;
+    fill(&cache, 0, sizeof(SyntaxVersionCache));
+    fill(&fork, 0, sizeof(SyntaxVersionCache));
+    fill(&diagnostic, 0, sizeof(SyntaxVersionDiagnostic));
+    var calls = tower_test_buffer_allocations();
+    var version = syntax_version_cached(&cache, world, revision, bedrock, &diagnostic);
+    calls = tower_test_buffer_allocations() - calls;
+    frontend_world_check(version is not null && version.references == 2);
+    frontend_world_check(cache.index.builds == 1 && cache.index.entries.length == 1);
+    tower_test_buffer_fail_after(0);
+    var hit = syntax_version_cached(&cache, world, revision, bedrock, &diagnostic);
+    frontend_world_check(hit == version && cache.index.hits == 1);
+    frontend_world_check(syntax_version_cache_copy(&cache, &cache));
+    tower_test_buffer_fail_after(frontend_world_unlimited());
+    syntax_version_release(hit);
+    var copying = tower_test_buffer_allocations();
+    frontend_world_check(syntax_version_cache_copy(&fork, &cache));
+    copying = tower_test_buffer_allocations() - copying;
+    frontend_world_check(version.references == 3);
+    var entries = fork.index.entries.data;
+    var slots = fork.versions.data;
+    var copied_buffers = tower_test_buffer_count();
+    for (var i: usize = 0; i < copying; ++i) {
+        tower_test_buffer_fail_after(i);
+        frontend_world_check(!syntax_version_cache_copy(&fork, &cache));
+        tower_test_buffer_fail_after(frontend_world_unlimited());
+        frontend_world_check(fork.index.entries.data == entries && fork.versions.data == slots);
+        frontend_world_check(version.references == 3 && tower_test_buffer_count() == copied_buffers);
+    }
+    syntax_version_cache_dispose(&cache);
+    frontend_world_check(version.references == 2);
+    hit = syntax_version_cached(&fork, world, revision, bedrock, &diagnostic);
+    frontend_world_check(hit == version);
+    syntax_version_release(hit);
+    syntax_version_cache_dispose(&fork);
+    frontend_world_check(version.references == 1 && version.table is not null);
+    syntax_version_release(version);
+    syntax_version_diagnostic_dispose(&diagnostic);
+    frontend_world_check(tower_test_buffer_count() == buffers);
+    for (var i: usize = 0; i < calls; ++i) {
+        tower_test_buffer_fail_after(i);
+        version = syntax_version_cached(&cache, world, revision, bedrock, &diagnostic);
+        tower_test_buffer_fail_after(frontend_world_unlimited());
+        if cache.index.entries.length != 0 {
+            frontend_world_check(version is not null && cache.index.entries.length == 1);
+            frontend_world_check(cache.versions.data[cache.index.entries.data[0].slot] == version);
+        }
+        syntax_version_release(version);
+        syntax_version_cache_dispose(&cache);
+        syntax_version_diagnostic_dispose(&diagnostic);
+        frontend_world_check(tower_test_buffer_count() == buffers);
+    }
+}
 
 fn frontend_syntax_version_tests(): void {
     var baseline = tower_test_buffer_count();
@@ -173,6 +234,7 @@ fn frontend_syntax_construction_tests(): void {
         frontend_world_check(revision.references == 1 && bedrock.references == 2);
         frontend_world_check(tower_test_buffer_count() == buffers);
     }
+    frontend_version_cache_tests(world, revision, bedrock);
     // Module completion reports unresolved rules, unlike the execution filter.
     frontend_world_check(!syntax_version_bedrock(revision, kinds.syntax, &diagnostic));
     frontend_world_check(diagnostic.text.length != 0);

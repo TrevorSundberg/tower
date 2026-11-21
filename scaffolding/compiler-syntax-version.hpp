@@ -21,6 +21,10 @@ struct SyntaxVersion {
   FrontendKinds kinds;
 };
 struct SyntaxVersionDiagnostic { TowerByteBuffer text; const char* fallback; size_t offset; };
+struct SyntaxVersionCache {
+  FrontendCache index;
+  struct { SyntaxVersion** data; size_t length, capacity; } versions;
+};
 extern "C" SyntaxVersion* syntax_version_create(void*, const FrontendRevision*, const FrontendRevision*);
 extern "C" SyntaxVersion* syntax_version_retain(SyntaxVersion*);
 extern "C" void syntax_version_release(SyntaxVersion*);
@@ -31,3 +35,6 @@ extern "C" bool syntax_version_bedrock(const FrontendRevision*, TowerNode*, Synt
 extern "C" const char* syntax_version_diagnostic_text(SyntaxVersionDiagnostic*);
 extern "C" void syntax_version_diagnostic_dispose(SyntaxVersionDiagnostic*);
 extern "C" char* syntax_version_description(const SyntaxVersion*, const FrontendRevision*, size_t, bool);
+extern "C" void syntax_version_cache_dispose(SyntaxVersionCache*);
+extern "C" bool syntax_version_cache_copy(SyntaxVersionCache*, const SyntaxVersionCache*);
+extern "C" SyntaxVersion* syntax_version_cached(SyntaxVersionCache*, void*, const FrontendRevision*, const FrontendRevision*, SyntaxVersionDiagnostic*);

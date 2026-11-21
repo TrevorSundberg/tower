@@ -24,3 +24,8 @@ struct SyntaxVersionDiagnostic {
     fallback: u8*;
     offset: usize;
 }
+
+struct SyntaxVersionCache {
+    index: FrontendCache;
+    versions: vector(SyntaxVersion*);
+}

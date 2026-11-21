@@ -13,6 +13,7 @@ import syntax_replacement_owner;
 import syntax_version;
 import syntax_version_build;
 import syntax_version_presentation;
+import syntax_version_cache;
 
 extern fn compiler_host_world(): void*;
 

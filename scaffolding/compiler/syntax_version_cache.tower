@@ -1,0 +1,62 @@
+import tower;
+import component_kinds;
+import frontend_cache;
+import frontend_revision_types;
+import syntax_version;
+import syntax_version_build;
+import syntax_version_types;
+import .library.vector;
+
+export fn syntax_version_cache_dispose(value: SyntaxVersionCache*): void {
+    frontend_cache_dispose(&value.index);
+    for (var i: usize = 0; i < value.versions.length; ++i) { syntax_version_release(value.versions.data[i]); }
+    vector_dispose(SyntaxVersion*, &value.versions);
+}
+
+// Clone recency and pins together; allocation failure preserves the destination.
+export fn syntax_version_cache_copy(target: SyntaxVersionCache*, source: SyntaxVersionCache*): bool {
+    if target == source { return true; }
+    var prepared: SyntaxVersionCache;
+    fill(&prepared, 0, sizeof(SyntaxVersionCache));
+    defer syntax_version_cache_dispose(&prepared);
+    if !vector_reserve(SyntaxVersion*, &prepared.versions, source.versions.length) ||
+        !frontend_cache_copy(&prepared.index, &source.index) { return false; }
+    for (var i: usize = 0; i < source.versions.length; ++i) {
+        prepared.versions.data[i] = syntax_version_retain(source.versions.data[i]);
+    }
+    prepared.versions.length = source.versions.length;
+    syntax_version_cache_dispose(target);
+    copy(target, &prepared, sizeof(SyntaxVersionCache));
+    fill(&prepared, 0, sizeof(SyntaxVersionCache));
+    return true;
+}
+
+// Returns an owning pin. A successful uncached build remains usable if either
+// slot storage or snapshot publication fails; no cache entry can lack its owner.
+export fn syntax_version_cached(value: SyntaxVersionCache*, world: void*, definitions: FrontendRevision*, bedrock: FrontendRevision*, diagnostic: SyntaxVersionDiagnostic*): SyntaxVersion* {
+    diagnostic.text.length = 0;
+    diagnostic.fallback = "Unable to allocate grammar revision";
+    if definitions is null { return null; }
+    var kind = compiler_world_type(world, CompilerSyntax());
+    if kind is null { return null; }
+    var slot = frontend_cache_find(&value.index, definitions.rules.data, definitions.rules.length,
+        definitions.tokens.data, definitions.tokens.length, kind);
+    if slot != ~convert(usize, 0) {
+        diagnostic.fallback = "";
+        return syntax_version_retain(value.versions.data[slot]);
+    }
+    var version = syntax_version_build(world, definitions, bedrock, diagnostic);
+    if version is null { return null; }
+    if !vector_reserve(SyntaxVersion*, &value.versions, FrontendCacheLimit()) { return version; }
+    if value.versions.length == 0 {
+        fill(value.versions.data, 0, FrontendCacheLimit() * sizeof(SyntaxVersion*));
+        value.versions.length = FrontendCacheLimit();
+    }
+    slot = frontend_cache_store(&value.index, definitions.rules.data, definitions.rules.length,
+        definitions.tokens.data, definitions.tokens.length);
+    if slot != ~convert(usize, 0) {
+        syntax_version_release(value.versions.data[slot]);
+        value.versions.data[slot] = syntax_version_retain(version);
+    }
+    return version;
+}
