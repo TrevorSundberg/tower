@@ -151,6 +151,8 @@ Do NOT modify todo.txt
   stages/leases. Cancellation must drain work before releasing its inputs.
   Joining does not release stage leases; publish all affected stages before
   coordinator updates to entities owned by other jobs.
+  Component allocation pools belong to a store or one worker stage. Keep payload
+  addresses stable; release private pool links before destroying a published stage.
   New syntax must update worker admission when its lowering can construct types
   or instantiate implicit protocol calls; test it inside independent bodies too.
 - Validate relevant changes against serial execution: canonical output and

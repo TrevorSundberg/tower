@@ -28618,6 +28618,7 @@ The matching backend/library suite passes 95/95 in 325.11s. Together with native
 is complete. Local browser workflows remain in progress against the frozen dist;
 the verifier has already loaded its source inputs, so the final source pull will
 not race a compiler build or source-reading test. No C++ or todo.txt edits.
+
 ### 2026-11-20 - Replacement-template construction moves to Tower
 
 Pulled c91bc8c before work, including newer dependency/body workers and the stage-publication ownership clarification. Git pull's automatic pack maintenance accounted for much of its wait; no repository maintenance was interrupted or disabled. Next port replaces native compile_template/syntax_replacement_attempt with syntax_template_build.tower over the existing shared entities, capture rows, parser tables and remap APIs. Preserve candidate status/diagnostic offsets, grammar-conflict distinction, capture uses and adopted-tree ownership. Lexical defer releases recognizer/stream before capture storage, session pins and grammar. New allocation failures report diagnostics instead of dereferencing missing stream/request storage.
@@ -28765,6 +28766,7 @@ write-back block and also asserts every input file remains byte identical. This
 is a tooling change, not a relaxed parser-tree/idempotence requirement. Final
 formatting and publication results follow below.
 
+
 Final validation/publication: all 101 migrated files pass parser-tree equivalence
 and formatting idempotence through the shared formatter, combining completed
 Wasm/native checks with 55 remaining files checked by 24 native validation
@@ -28794,3 +28796,159 @@ Next language work remains named-field construction with explicit completeness
 and ownership contracts, followed by result/option propagation when return and
 move/drop behavior are defined. The 275 field-assignment runs are an audit signal,
 not permission to collapse partial updates or resource initialization blindly.
+
+
+Worker-discovery source 782d73a is pushed after an unchanged final pull. Local
+verification completes all 77 asset hashes and desktop/mobile/default workflows;
+publication of its frozen bundle is underway.
+
+### 2026-11-20 - Stable component pages and worker allocation ownership
+
+Reviewed the original stable-sparse ECS rationale, the pinned-query limitations,
+and stage/lease publication contracts above, plus library/entities.tower and
+entity_stage.tower. Native entity/component interfaces use opaque pointers; their
+payload addresses must remain stable, including legacy nontrivial native payloads.
+Current type indexes are dense pointers to individual allocations. Do not call
+that archetype or packed payload storage.
+
+Next implementation: pack small same-type payloads into stable pages, preserving
+all public entity/component access and lifetime contracts. Coordinator allocation
+uses a store-local pool; each worker stage uses its own pool, including additions
+to leased entities. Full pages detach from allocation pools, and publication
+releases stage pool ownership without moving payloads. Last-component cleanup
+reclaims its page. Large/over-aligned payloads retain individual allocation.
+Pool keys use store-local monotonic type IDs, not reusable allocation addresses.
+No worker changes shared pool state or type indexes. This is a storage-density
+step with holes after removal, not relocating multi-component archetypes or a
+SIMD/speed guarantee. Implementation and fault/lifetime/parallel tests are next;
+this paragraph records the design, not verified support.
+
+Small-component pages are implemented in Tower with a 16 KiB slot budget and
+at most 64 rows. Each page stores a contiguous header range and a strided aligned
+payload range; payloads keep the existing back-reference/access contract and are
+not implicitly zeroed. Oversized/aligned rows fall back to individual allocation.
+Partial pages unlink on last-component destruction, full pages stop being
+allocation candidates, and stage publication detaches all remaining private pool
+links before freeing the stage. No page retains a type pointer as a reusable key.
+Stage creation/leases install an explicit private pool on the entity; a missing
+pool on a staged owner fails instead of falling back to shared mutation.
+
+The first entity_pages fixture passes with output 0 in graph/fast interpreters at
+both pointer widths, using the preceding compiler to run the new Tower library.
+It covers multiple pages, 64-byte alignment, stable survivors after removals,
+re-addition, large sparse allocation, overflow rejection, separate stage pools,
+pinned publication rejection, deterministic reverse stage publication, leased
+node additions, discard and complete store cleanup. Integrated production storage
+builds, actual worker overlap and native allocator/lifetime coverage are running.
+No new native code. This is packed stable per-type storage with holes, not full
+multi-component archetypes or measured faster execution.
+
+Worker-discovery release 782d73a is Pages
+113f5711c9a7f5aa06e32d1fb2260bdf0cc3aed6 on ff06a67. Action 44879710792 succeeds;
+its saved manifest and hosted verification use body-demand-* audit files.
+
+Production page storage passes shared capacity/cycle/import/window checks 3/3 in
+52.06s and native acceptance 8/8 in 52.47s, plus backend API checks. Existing full
+semantic graph fingerprints remain unchanged. Added a separate Tower native
+fault suite through the existing opaque entity interface: observe allocations
+for 130 payloads, require amortization, inject each observed failure point, retry
+without losing prior values/addresses, and require no leaked allocations after
+cleanup. A second sweep fails each stage-publication allocation, checks unchanged
+shared query lengths, retries publication and verifies stable payloads/cleanup.
+This test is being built into the instrumented single-owner storage harness;
+it has not yet passed. Added concise pool-ownership/lifetime guidance to AGENTS.md.
+
+The new native allocation/publication fault sweep passes in the instrumented
+storage harness (0.16s), including the amortized-allocation bound and every
+observed failure point. Saved its detailed LastTest output as
+entity-pages-fault-detail.log. The actual successor recompiles the Tower entities
+unit and compares byte-for-byte with the public-bootstrap object
+(entity-pages-successor.log, cmp exit 0). The preceding fixture used both runtime
+interpreters; full compiler/browser packaging and matching regressions are next.
+
+The 782d73a/Pages 113f571 hosted verifier completes all 77 hashes and desktop,
+mobile and default-target workflows. Component-page local deployment checks now
+run against their own frozen bundle while its regression/generation tests finish.
+
+Component-page editor tests pass 28/28 in 114.88s. The matching backend/library
+suite now includes entity_pages, adding interpreter, Foundation, LLVM optimization
+round trips and Wasm execution coverage for the new allocation layout. Both
+compiler generations and local browser workflows are still in progress.
+
+The standalone entity_pages LLVM/Wasm trial first failed host import validation:
+`No implementation registered for external function 'tower_entity_finalize'`.
+Even with every lifecycle set to zero, Wasm import validation requires the
+ordinary lifecycle dispatch referenced by the library. This was missing test
+client code, not a page allocator failure. Added a Tower-owned lifecycle dispatcher
+and strengthened the fixture to count/check actual finalization during removals,
+publication and discard (200 callbacks after the first trial, 441 in total).
+The focused cross-backend fixture is rerunning. Do not weaken import validation
+or add a native callback implementation.
+
+The user reiterated that the endpoint should be fully Flecs-like. Current shared
+entities/components, query graph, stages and real worker paths do not establish
+full archetype tables or multi-component query planning. Stable component pages
+are an intermediate storage step; continue those query/storage and structural
+scheduling migrations after this validated checkpoint, entirely in Tower.
+
+The lifecycle-enabled fixture then exposed a harness target-profile error:
+semantic-port.test.mjs retained its last (wasm64) canonical text and sent that
+text to executable wasm32 lowering. Explicit usize maxima in the storage library
+correctly produced `Integer literal out of range for usize`. Kept each width's
+interpreter/Foundation/LLVM-Foundation checks, and use the separately retained
+wasm32 canonical text for executable wasm32. This respects the existing explicit
+target contract rather than silently changing constants or weakening range
+checking. The focused fixture is rerunning with both fixes; the first broad run
+was 95/96 with the missing standalone finalizer as its only failure.
+
+The corrected lifecycle/target-profile fixture passes its complete focused
+interpreter, Foundation, LLVM optimized-Foundation and Wasm checks in 34.41s.
+The broader suite is rerunning because the harness now retains the correct
+canonical target profile for every library fixture. Local deployment completes
+all 77 hashes and desktop/mobile/default workflows. Two edited browser compiler
+generations pass in 125.26s/87.31s with identical sizes
+1,024,635/52,324,729/63,882,193 and hashes:
+parser a2b62cffe61f9fb15429bec5cbdacf6a6de3b6138a10d98d68be3a6552d0cc21;
+LLVM 41063d4cdaebb904abd3562f6a35a2530b0d81ead565b54abae8d242f64d8568;
+cross 4c6cbece63f5fa52342e890f81729b3f40dd7758af16fd0924f0fffdb3417fcd.
+The fixture/harness corrections do not alter those compiler binaries.
+
+### 2026-11-20 - Remaining Flecs-style storage/query contract
+
+Reviewed upstream Flecs docs at commit
+85188ed19f971c201af61c26143fa69877fe418b (2026-11-20), through the public GitHub
+connector. Primary references:
+[component traits](https://github.com/SanderMertens/flecs/blob/85188ed19f971c201af61c26143fa69877fe418b/docs/ComponentTraits.md),
+[queries](https://github.com/SanderMertens/flecs/blob/85188ed19f971c201af61c26143fa69877fe418b/docs/Queries.md),
+[systems](https://github.com/SanderMertens/flecs/blob/85188ed19f971c201af61c26143fa69877fe418b/docs/Systems.md).
+
+Flecs groups equal component sets into tables and can cache matching tables.
+Sparse storage preserves addresses through table transitions; non-fragmenting
+traits can additionally avoid splitting tables for infrequent metadata. These
+are separate choices. Its staging model protects iteration while structural
+changes accumulate, and multithreaded systems partition matched table ranges.
+Access declarations inform synchronization. The relevant target is compiler-wide
+shared entities/components, archetype-aware queries and dependency/access-aware
+worker scheduling, while preserving required ordering; not a claim that every
+operation executes simultaneously.
+
+Tower's new pages preserve its existing stable-payload contract. Next: archetype
+membership and multi-component query ranges/cache invalidation, with explicit
+stable versus relocatable storage policies. Existing compiler pointers cannot
+silently become movable column borrows. Stages must prepare all fallible table
+reservations before publishing canonical membership; failed publication preserves
+identities/query lengths. Queries under pins must use published indexes/columns,
+not another worker's leased mutable component list. Sparse query metadata must
+not accidentally multiply archetypes without an explicit policy. Source-order
+publication and stale revision/profile tickets remain required. These are next
+implementation constraints, not completed archetype/query features.
+
+Final corrected regression suite passes 96/96 in 250.93s. Combined with native
+8/8, the exhaustive allocation/publication fault sweep, capacity 3/3, editor
+28/28, actual entities-unit successor cmp0, both edited browser generations and
+full local deployment verification, the stable component-page checkpoint is
+validated. Preparing the final pull and normal push/publication. No C++ changes;
+todo.txt retains Git blob 96a9e58964d7f01e4a97819f259448db81ef5e40. The universal
+ECS/archetype/query and structural-threading objective remains unfinished.
+
+

@@ -11,12 +11,13 @@ const source=(await read('scaffolding/tests/semantics.tower')).toString();
 const expected=width=>`0\n42\n7\n42\n${width===4?20:32}\n${width}\n42\n3\n-2147483648\n`;
 
 test('Tower semantic compiler preserves layouts, bindings, templates, and Foundation round trips',async()=>{
- let canonical;
+ let canonical, canonical32;
  for(const pointerBytes of [4,8]){
   const h=tower.compile(source,{pointerBytes});
   try{
    const r=tower.execute(h,100000);assert.equal(r.status,'done',r.error);assert.equal(r.output,expected(pointerBytes));
    canonical=tower.foundation(h).source;
+   if(pointerBytes===4)canonical32=canonical;
   }finally{tower.destroyExecution(h);}
   const h2=tower.compile(canonical,{pointerBytes});
   try{
@@ -24,7 +25,7 @@ test('Tower semantic compiler preserves layouts, bindings, templates, and Founda
    assert.equal(tower.foundation(h2).source,canonical);
   }finally{tower.destroyExecution(h2);}
  }
- for(const input of [source,canonical]){
+ for(const input of [source,canonical32]){
   const compiled=llvm.compile(input);assert.equal(compiled.status,'compiled',compiled.error);
   assert.equal((await executeWasm(compiled)).output,expected(4));
  }
@@ -32,12 +33,12 @@ test('Tower semantic compiler preserves layouts, bindings, templates, and Founda
 
 // Behavioral checks live in Tower; this adapter runs the same fixtures through
 // the browser transports and checks their failure-code output and round trips.
-for(const [name,output] of [['language_control','42\n0\n'],['language_collections','0\n'],['language_enums','0\n'],['work_graph','0\n'],['work_access','0\n'],['work_resume','0\n'],['compiler_work','0\n'],['compiler_batch','0\n'],['backend_popcount','0\n'],['backend_stack','0\n'],['backend_import_constants','0\n']]) {
+for(const [name,output] of [['language_control','42\n0\n'],['language_collections','0\n'],['language_enums','0\n'],['entity_pages','0\n'],['work_graph','0\n'],['work_access','0\n'],['work_resume','0\n'],['compiler_work','0\n'],['compiler_batch','0\n'],['backend_popcount','0\n'],['backend_stack','0\n'],['backend_import_constants','0\n']]) {
  test(`Tower ${name} agrees across graph, fast, LLVM and Foundation text`,async()=>{
   const source=(await read(`scaffolding/tests/${name}.tower`)).toString();
   tower.configureModules({entry:`.tower/tests/${name}.tower`});
   llvm.configureModules({entry:`.tower/tests/${name}.tower`});
-  let canonical;
+  let canonical, canonical32;
   for(const pointerBytes of [4,8]) for(const fast of [false,true]) {
    const h=tower.compile(source,{pointerBytes});
    try {
@@ -47,6 +48,7 @@ for(const [name,output] of [['language_control','42\n0\n'],['language_collection
     assert.equal(result.status,'done',result.error);
     assert.equal(result.output,output);
     canonical=tower.foundation(h).source;
+    if(pointerBytes===4)canonical32=canonical;
    } finally { tower.destroyExecution(h); }
    const h2=tower.compile(canonical,{pointerBytes});
    try {
@@ -71,7 +73,9 @@ for(const [name,output] of [['language_control','42\n0\n'],['language_collection
     } finally { tower.destroyExecution(optimized); }
    }
   }
-  for(const text of [source,canonical]) {
+  // Executable Wasm is wasm32. A wasm64 Foundation result can contain explicit
+  // target-sized constants/layouts; retain its separate same-profile checks above.
+  for(const text of [source,canonical32]) {
    const compiled=llvm.compile(text);
    assert.equal(compiled.status,'compiled',compiled.error);
    assert.equal((await executeWasm(compiled)).output,output);

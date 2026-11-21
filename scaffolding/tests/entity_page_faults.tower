@@ -1,0 +1,106 @@
+import tower;
+import storage_api;
+import utility_checks;
+
+// Exercise the production Tower store through its existing opaque interface.
+// The storage harness supplies deterministic, single-owner allocation failures.
+extern fn entity_store_create():void*;
+extern fn entity_store_dispose(store:void*):bool;
+extern fn entity_create(store:void*):void*;
+extern fn entity_release(node:void*):usize;
+extern fn entity_register(type:void*,size:usize,alignment:usize,lifecycle:usize):bool;
+extern fn entity_component_add(owner:void*,type:void*):void*;
+extern fn entity_component_get(owner:void*,type:void*):void*;
+extern fn entity_component_count(owner:void*):usize;
+extern fn entity_component_data(component:void*):u8*;
+extern fn entity_query_count(type:void*):usize;
+extern fn entity_stage_open(anchor:void*):void*;
+extern fn entity_stage_create(stage:void*,parent:void*):void*;
+extern fn entity_stage_publish(stage:void*):bool;
+extern fn entity_view_open(anchor:void*):void*;
+extern fn entity_view_close(view:void*):void;
+
+fn entity_page_add_trial(failure:usize):usize {
+    var baseline=tower_test_buffer_count();
+    var store=entity_store_create();
+    var type=entity_create(store);
+    utility_check(entity_register(type,sizeof(u64),64,0),"Page fault type");
+    var owners:void*[130];
+    var payloads:u64*[130];
+    for(var i:usize=0;i<130;i++) { owners[i]=entity_create(store); }
+    var before=tower_test_buffer_allocations();
+    tower_test_buffer_fail_after(failure);
+    var failed=false;
+    for(var i:usize=0;i<130;i++) {
+        var component=entity_component_add(owners[i],type);
+        if component==null {
+            tower_test_buffer_fail_after(~convert(usize,0));
+            utility_check(!failed && entity_component_count(owners[i])==0
+                && entity_query_count(type)==i,"Page allocation failure preserves membership");
+            failed=true;
+            component=entity_component_add(owners[i],type);
+        }
+        utility_check(component!=null,"Page allocation retries after failure");
+        payloads[i]=bits(u64*,entity_component_data(component));
+        *payloads[i]=convert(u64,i)+700;
+    }
+    tower_test_buffer_fail_after(~convert(usize,0));
+    var used=tower_test_buffer_allocations()-before;
+    utility_check(failed==(failure!=~convert(usize,0)),"Page failure point reached");
+    utility_check(entity_query_count(type)==130,"Page trial publishes every component");
+    for(var i:usize=0;i<130;i++) {
+        utility_check(entity_component_data(entity_component_get(owners[i],type))==bits(u8*,payloads[i])
+            && *payloads[i]==convert(u64,i)+700,"Page failure preserves earlier addresses and values");
+        entity_release(owners[i]);
+    }
+    entity_release(type);
+    utility_check(entity_store_dispose(store),"Page fault store cleanup");
+    utility_check(tower_test_buffer_count()==baseline,"Page fault allocation cleanup");
+    return used;
+}
+
+fn entity_page_publish_trial(failure:usize):usize {
+    var baseline=tower_test_buffer_count();
+    var store=entity_store_create();
+    var root=entity_create(store);
+    var type=entity_create(store);
+    utility_check(entity_register(type,sizeof(u64),64,0),"Page publication type");
+    var stage=entity_stage_open(root);
+    var view=entity_view_open(root);
+    var payloads:u64*[130];
+    for(var i:usize=0;i<130;i++) {
+        var node=entity_stage_create(stage,root);
+        payloads[i]=bits(u64*,entity_component_data(entity_component_add(node,type)));
+        *payloads[i]=convert(u64,i)+900;
+    }
+    utility_check(entity_query_count(type)==0,"Private pages remain outside shared indexes");
+    entity_view_close(view);
+    var before=tower_test_buffer_allocations();
+    tower_test_buffer_fail_after(failure);
+    var published=entity_stage_publish(stage);
+    tower_test_buffer_fail_after(~convert(usize,0));
+    var used=tower_test_buffer_allocations()-before;
+    utility_check(published==(failure==~convert(usize,0)),"Publication failure point reached");
+    if !published {
+        utility_check(entity_query_count(type)==0,"Failed page publication preserves query lengths");
+        utility_check(entity_stage_publish(stage),"Page publication retries after failure");
+    }
+    utility_check(entity_query_count(type)==130,"Page publication indexes all payloads");
+    for(var i:usize=0;i<130;i++) {
+        utility_check(*payloads[i]==convert(u64,i)+900,"Publication keeps private page addresses and values");
+    }
+    entity_release(type);
+    entity_release(root);
+    utility_check(entity_store_dispose(store),"Published page store cleanup");
+    utility_check(tower_test_buffer_count()==baseline,"Published page allocation cleanup");
+    return used;
+}
+
+fn entity_page_fault_tests():void {
+    var allocations=entity_page_add_trial(~convert(usize,0));
+    utility_check(allocations<260,"Small payload allocation is amortized across pages");
+    for(var failure:usize=0;failure<allocations;failure++) { entity_page_add_trial(failure); }
+    allocations=entity_page_publish_trial(~convert(usize,0));
+    for(var failure:usize=0;failure<allocations;failure++) { entity_page_publish_trial(failure); }
+    puts("Component page allocation and publication failure cleanup passed");
+}

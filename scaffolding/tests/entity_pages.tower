@@ -1,0 +1,128 @@
+import tower;
+import .library.entities;
+import .library.entity_stage;
+
+var failures:i32=0;
+var finalized:usize=0;
+fn check(ok:bool):void { if !ok { failures++; } }
+
+// Standalone Tower clients supply their own lifecycle dispatch. Keep LLVM/Wasm
+// self-contained and verify lifetime identity on removal, publication and discard.
+export fn tower_entity_finalize(lifecycle:usize,component:EntityComponent*,data:u8*):void {
+    check(lifecycle==1 && entity_component_data(component)==data);
+    check(entity_component_from_data(data)==component);
+    finalized++;
+}
+
+fn pages():void {
+    var store=entity_store_create();
+    var root=entity_create(store);
+    var type=entity_create(store);
+    check(entity_register(type,sizeof(u64),64,1));
+    var owners:Entity*[150];
+    var payloads:u64*[150];
+    var allocations:usize=0;
+    var last:u8* = null;
+    for(var i:usize=0;i<150;i++) {
+        owners[i]=entity_create(store);
+        check(entity_attach(owners[i],root,null));
+        entity_release(owners[i]);
+        var component=entity_component_add(owners[i],type);
+        check(component!=null && component.page!=null);
+        payloads[i]=bits(u64*,entity_component_data(component));
+        *payloads[i]=1000+convert(u64,i);
+        check(bits(usize,payloads[i])%64==0);
+        check(entity_component_from_data(bits(u8*,payloads[i]))==component);
+        if component.allocation!=last { allocations++; last=component.allocation; }
+        else { check(bits(usize,payloads[i])-bits(usize,payloads[i-1])==component.page.stride); }
+    }
+    check(allocations>1 && allocations<10);
+    for(var i:usize=0;i<150;i+=3) { check(entity_component_remove(owners[i],type)); }
+    for(var i:usize=0;i<150;i++) {
+        if i%3!=0 {
+            check(entity_component_data(entity_component_get(owners[i],type))==bits(u8*,payloads[i]));
+            check(*payloads[i]==1000+convert(u64,i));
+        } else {
+            var component=entity_component_add(owners[i],type);
+            *bits(u64*,component.data)=2000+convert(u64,i);
+        }
+    }
+    check(entity_query_count(type)==150);
+    var large=entity_create(store);
+    check(entity_register(large,32768,256,0));
+    var sparse=entity_component_add(root,large);
+    check(sparse!=null && sparse.page==null && bits(usize,sparse.data)%256==0);
+    var huge=entity_create(store);
+    check(entity_register(huge,~convert(usize,0),64,0));
+    check(entity_component_add(root,huge)==null);
+    entity_release(huge);
+    entity_release(large);
+    entity_release(type);
+    entity_release(root);
+    check(entity_store_count(store)==0 && entity_store_component_count(store)==0);
+    check(store.storage.first==null && entity_store_dispose(store));
+}
+
+fn stages():void {
+    var store=entity_store_create();
+    var root=entity_create(store);
+    var existing=entity_create(store);
+    check(entity_attach(existing,root,null));
+    entity_release(existing);
+    var type=entity_create(store);
+    check(entity_register(type,sizeof(u64),64,1));
+    var first=entity_stage_open(root);
+    var second=entity_stage_open(root);
+    check(entity_stage_lease(first,existing));
+    var view=entity_view_open(root);
+    var a:EntityComponent*[80];
+    var b:EntityComponent*[80];
+    for(var i:usize=0;i<80;i++) {
+        a[i]=entity_component_add(entity_stage_create(first,root),type);
+        b[i]=entity_component_add(entity_stage_create(second,root),type);
+        check(a[i]!=null && b[i]!=null && a[i].page!=b[i].page);
+        *bits(u64*,a[i].data)=convert(u64,i);
+        *bits(u64*,b[i].data)=1000+convert(u64,i);
+    }
+    var leased=entity_component_add(existing,type);
+    *bits(u64*,leased.data)=3000;
+    check(leased.page!=null && store.storage.first==null);
+    check(entity_query_count(type)==0 && entity_store_component_count(store)==0);
+    check(!entity_stage_publish(first) && !entity_stage_publish(second));
+    entity_view_close(view);
+    check(entity_stage_publish(second));
+    check(entity_query_count(type)==80 && b[79].page.pool==null);
+    check(entity_stage_publish(first));
+    check(entity_query_count(type)==161 && a[79].page.pool==null && existing.storage==null);
+    for(var i:usize=0;i<80;i++) {
+        check(entity_query_at(type,i)==b[i]);
+        check(entity_query_at(type,i+80)==a[i]);
+        check(*bits(u64*,a[i].data)==convert(u64,i));
+        check(*bits(u64*,b[i].data)==1000+convert(u64,i));
+    }
+    check(entity_query_at(type,160)==leased && *bits(u64*,leased.data)==3000);
+    var discarded=entity_stage_open(root);
+    var other=entity_create(store);
+    check(entity_register(other,sizeof(u32),alignof(u32),0));
+    check(entity_stage_lease(discarded,existing));
+    view=entity_view_open(root);
+    check(entity_component_add(existing,other)!=null);
+    for(var i:usize=0;i<80;i++) {
+        check(entity_component_add(entity_stage_create(discarded,root),type)!=null);
+    }
+    entity_stage_discard(discarded);
+    check(existing.storage==null && existing.stage==null);
+    check(entity_component_get(existing,other)==null && entity_query_count(type)==161);
+    entity_view_close(view);
+    entity_release(other);
+    entity_release(type);
+    entity_release(root);
+    check(entity_store_count(store)==0 && entity_store_component_count(store)==0);
+    check(store.storage.first==null && entity_store_dispose(store));
+}
+
+pages();
+check(finalized==200);
+stages();
+check(finalized==441);
+print(failures);
