@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {TowerWASI} from '../src/wasi-host.mjs';
 import {configureBedrock, configureTower} from '../src/bootstrap.mjs';
+import {moduleInputs} from '../src/module-inputs.mjs';
 
 // Byte transport only; ownership, reconstruction and cleanup assertions are Tower.
 test('backend source requests retain their explicit ECS world', async context => {
@@ -17,8 +18,9 @@ test('backend source requests retain their explicit ECS world', async context =>
     context.skip('Build with TOWER_BACKEND_TESTS=ON to run Tower backend fixtures');
     return;
   }
+  const modules = moduleInputs(e, {bedrock, foundation});
   configureBedrock(e, bedrock);
-  configureTower(e, foundation);
+  configureTower(e, foundation, modules.environment);
   const pointers = [];
   try {
     for (const source of [bedrock, foundation]) {

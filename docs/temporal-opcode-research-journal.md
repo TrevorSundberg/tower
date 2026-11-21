@@ -34917,3 +34917,15 @@ array traversals with counted loops and restarted only the affected backend buil
 This was a fixture syntax failure, not a failed world-ownership assertion.
 Added concise AGENTS guidance preserving executed-control-flow capture discovery
 and exact local identity checks for future staged features.
+
+Shared-memory release tests pass all three cases, zero skips, in 61.0 seconds:
+128 real pool lifecycles, worker-trap propagation, then LR/declaration/body/
+lowering/staging determinism at workers 1/2/4/8, including the new lazy bindings
+and cycle cases (ecs-lazy-capture-shared.log). The first backend-world invocation
+failed before reaching Tower assertions because its transport omitted the
+Foundation module environment, now required by Foundation's explicit Bedrock
+import. Supplied the ordinary moduleInputs transport and added Bedrock/Foundation
+snapshots to each Tower fixture environment. The existing BackendSource fixture
+then passed; the old new-world fixture returned its expected Baseline failure
+before rebuilding those snapshot additions. This is corrected harness setup,
+not evidence that a foreign world was accepted.
