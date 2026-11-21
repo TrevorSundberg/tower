@@ -36508,3 +36508,30 @@ structural expression/control/protocol preparation. Type construction/interning
 and structural publication still require coordinator ownership. Native CLI project
 recipe wiring and exclusive linking remain separate unfinished work. No 100%
 conversion or end-to-end speedup claim is made by these focused checks.
+
+Integration at 85c8a13 adds upstream f4c78cc's floating-point/negation work. The
+default build from a new ecs-local-query-release directory passed all 54 steps;
+its successor compiled body_continuation.tower to a native executable that printed
+zero failures. The actual checked-in direct bootstrap remains executable SHA-256
+7ef1e6d, with historical archive 2292bd8. Earlier floating archive-candidate entries
+do not describe the current direct pin; these sources still build with the actual
+documented default and no private override. Do not infer a pin update from those
+candidate journal entries. The retained test cache was reconfigured to use that
+same direct path. After the rebase, the full body matrix (widths 4/8, workers
+1/2/4/8, canonical reparsing and ordered failures), known bindings, floating,
+integer negation and native backend units all passed. Logs:
+body-local-query-{release-native,successor,rebased-tests-build,rebased-checks}.log.
+The browser publication lane is now rebuilding portable/shared/LLVM/cross modules
+and checking two generations from this frozen checkpoint.
+
+Next-body-frontier design constraint: batching local roots must also retain the
+complete lexical descriptor (defer bindings/control/flow state, not just scope and
+function). Query-owned failure receipts must let independent roots finish even
+when another root fails. Associate newly constructed types/layout dependencies
+with their producing query before batching: a global sem_layout_all after several
+roots construct types would incorrectly attribute a later body's bad layout to an
+earlier independent body. Constructor/signature completion must wait for its own
+field/layout receipts without rechecking an already completed function header or
+initializer. Preserve ownership of partially inferred operands and type identities.
+An ignored prototype in body-frontier-next explores these changes but is incomplete,
+uncompiled and deliberately excluded from the current implementation/publication.
