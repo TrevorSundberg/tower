@@ -48,6 +48,7 @@ extern "C" bool syntax_baseline_install(void*, void*, const char*, bool, SyntaxV
 extern "C" void syntax_session_completion(SyntaxSession*, LRCompletion*);
 extern "C" char* syntax_session_suffix(SyntaxSession*, char*);
 extern "C" void syntax_session_progress(SyntaxSession*);
+extern "C" char* syntax_session_diagnostic(SyntaxSession*, void*, bool);
 struct TowerFormatResult;
 extern "C" bool syntax_format_into(SyntaxSession*, TowerFormatResult*, const char**);
 extern "C" void syntax_highlights_dispose(SyntaxHighlights*);

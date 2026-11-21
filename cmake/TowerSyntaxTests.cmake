@@ -27,8 +27,7 @@ tower_runtime_object(live-main "${live_input}" "${live_triple}"
   --declare fixture_bedrock ${live_bedrock} --declare fixture_foundation ${live_foundation}
   --declare driver_syntax_delete _ZdlPv)
 add_executable(tower-live-syntax-tests "${live-main_OBJECT}"
-  scaffolding/tower.cpp scaffolding/syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/format.cpp
-  scaffolding/lex-pattern.cpp)
+  scaffolding/tower.cpp scaffolding/syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/format.cpp)
 target_compile_features(tower-live-syntax-tests PRIVATE cxx_std_20)
 target_compile_options(tower-live-syntax-tests PRIVATE -fno-exceptions)
 target_link_libraries(tower-live-syntax-tests PRIVATE tower-compiler-parser-nodes tower-compiler-semantics

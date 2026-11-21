@@ -24,8 +24,7 @@ add_custom_command(OUTPUT "${validation_cases}"
 set_source_files_properties("${validation_cases}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
 target_sources(tower-parser-tests PRIVATE "${validation_cases}")
 add_executable(tower-validation-tests "${validation-main_OBJECT}" "${validation_cases}"
-  scaffolding/tower.cpp scaffolding/syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/format.cpp
-  scaffolding/lex-pattern.cpp)
+  scaffolding/tower.cpp scaffolding/syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/format.cpp)
 target_compile_features(tower-validation-tests PRIVATE cxx_std_20)
 target_compile_options(tower-validation-tests PRIVATE -fno-exceptions)
 target_link_libraries(tower-validation-tests PRIVATE tower-compiler-parser-nodes tower-compiler-semantics

@@ -1,5 +1,4 @@
 #include "syntax.hpp"
-#include "compiler-syntax-reader.hpp"
 #include "compiler-syntax-validation.hpp"
 #include "compiler-syntax-emission.hpp"
 #include "compiler-syntax-expansion.hpp"
@@ -7,13 +6,10 @@
 #include "compiler-syntax-version.hpp"
 #include "compiler-syntax-session.hpp"
 #include "compiler-syntax-template.hpp"
-#include "compiler-syntax-scan.hpp"
 #include "compiler-frontend.hpp"
 #include "compiler-lr.hpp"
 #include "compiler-entities.hpp"
 #include "compiler-generics.hpp"
-#include "compiler-syntax-lexer.hpp"
-#include "lex-pattern.hpp"
 #include "syntax-nodes.hpp"
 #include "format.hpp"
 #include "compiler-format.hpp"
@@ -40,51 +36,15 @@ Match* match(TowerNode* node) {
   return (Match*)tower_node_get_component_userdata(node, parser_match_get_type());
 }
 TowerNode* child(TowerNode* node, size_t i) { return tower_node_get_child(node, i); }
-TowerNode* member(TowerNode* node, const char* name) { return node ? tower_node_get_child_member(node, name) : nullptr; }
-std::string read_declaration(TowerNode* node, const SyntaxSource* source, SyntaxKind kind) {
-  TowerByteBuffer error{};
-  const auto match_kind = parser_match_get_type(), syntax_kind = syntax_component_type();
-  const bool ok = kind == SyntaxKind::Rule ? syntax_read_rule(node, source, match_kind, syntax_kind, &error) :
-    syntax_read_token(node, source, match_kind, syntax_kind, kind == SyntaxKind::Skip, &error);
-  std::string message;
-  if (!ok) message = error.length ? std::string(reinterpret_cast<const char*>(error.data), error.length) : "Unable to allocate grammar declaration";
-  bytes_dispose(&error); return message;
-}
 
 }
 
 namespace {
 std::string syntax_diagnostic(SyntaxSession& session, Recognizer* recognizer, bool repairs = true) {
-  const std::unique_ptr<ParserDiagnostic, decltype(&parser_diagnostic_destroy)> diagnostic(
-    parser_recognizer_diagnostic(recognizer, repairs ? ParserDiagnosticReader::Syntax : ParserDiagnosticReader::None, &session), parser_diagnostic_destroy);
-  // Cached tables retain their original declarations; diagnostic provenance
-  // follows the current source revision, including source-only edits.
-  Revision definitions(syntax_revision_overlay(session.pins.bedrock,
-    session.pins.grammar ? session.pins.grammar->rules.data : nullptr, session.pins.grammar ? session.pins.grammar->rules.length : 0,
-    nullptr, 0, syntax_component_type()), frontend_revision_release);
-  const SyntaxDiagnosticInput input{session.source, session.source_length, session.cursor,
-    diagnostic->offset, diagnostic->insertion_offset, parser_recognizer_get_error(recognizer),
-    diagnostic->options.data, diagnostic->options.length,
-    syntax_emission_literal_ids(session.pins.version->emission), syntax_emission_literal_count(session.pins.version->emission),
-    syntax_emission_productions(session.pins.version->emission), syntax_emission_production_count(session.pins.version->emission),
-    repairs, diagnostic->complete, diagnostic->at_start, syntax_revision_rule(definitions.get(), "Statement", 9) != nullptr};
-  SyntaxDiagnosticText output{};
-  format_syntax_diagnostic(&input, &output);
-  if (output.insertion) { session.error_offset = diagnostic->insertion_offset; session.error_insertion = true; }
-  auto* description = syntax_version_description(session.pins.version, definitions.get(), output.production, output.multiple);
-  auto* text = syntax_diagnostic_text_finish(&output, description ? description : "");
-  tower_memory_free(description);
+  auto* text = syntax_session_diagnostic(&session, recognizer, repairs);
   std::string result(text); tower_memory_free(text); return result;
 }
 
-std::shared_ptr<Version> compiled(SyntaxSession& session, const FrontendRevision* definitions, std::string& error) {
-  SyntaxVersionDiagnostic diagnostic{{}, nullptr, session.error_offset};
-  std::shared_ptr<Version> version(syntax_version_cached(&session.cache, session.inputs.world, definitions, session.pins.bedrock, &diagnostic), syntax_version_release);
-  error = syntax_version_diagnostic_text(&diagnostic);
-  session.error_offset = diagnostic.offset;
-  syntax_version_diagnostic_dispose(&diagnostic);
-  return version;
-}
 
 bool compile_template(Version& version, const Revision& defs, TowerNode* seq,
     SyntaxReplacementOwner* owner, SyntaxReplacement& replacement, std::string& error, bool& grammar_error) {
@@ -161,20 +121,6 @@ bool compile_template(Version& version, const Revision& defs, TowerNode* seq,
   return true;
 }
 
-bool expand(SyntaxSession& session, Node& root) {
-  SyntaxExpansionResult result{root.release(), session.expansion_stats.replacements,
-    session.expansion_stats.generated_nodes, session.expansion_stats.copied_nodes,
-    session.error_offset, {}};
-  const bool ok = syntax_expand(syntax_replacement_input(session.pins.version->replacements), &result);
-  root = owned(result.root);
-  session.expansion_stats = {result.replacements, result.generated_nodes, result.copied_nodes};
-  session.error_offset = result.error_offset;
-  if (!ok) session.error = result.error.data
-    ? std::string(reinterpret_cast<const char*>(result.error.data), result.error.length)
-    : "Unable to allocate replacement expansion storage";
-  syntax_expansion_result_dispose(&result);
-  return ok;
-}
 }
 
 extern "C" unsigned syntax_replacement_attempt(void* context, const char* category) {
@@ -223,183 +169,6 @@ TowerText syntax_format(SyntaxSession* session) {
   format_dispose(&output);
   return result;
 }
-namespace {
-void preserve_comments(SyntaxSession& session, SyntaxNode& declaration, size_t through) {
-  for (size_t i = 0; i < session.highlights.items.length; ++i) {
-    const auto& token = session.highlights.items.data[i];
-    if (std::string_view(token.kind) != "comment" || token.start < session.comment_cursor || token.end > through) continue;
-    if (declaration.replacement) {
-      const auto& body = semantic(declaration.replacement);
-      if (token.start >= body.start && token.end <= body.end) continue;
-    }
-    declaration.comments.emplace_back(std::string_view(session.source, session.source_length).substr(token.start, token.end - token.start));
-  }
-  session.comment_cursor = through;
-}
-}
-
-TowerNode* syntax_next(SyntaxSession* session) {
-  if (!session->error.empty()) return nullptr;
-  session->expansion_stats = {};
-  syntax_session_skip(session, &session->cursor, &session->highlights);
-  if (session->cursor == session->source_length) {
-    if (session->completing) {
-      syntax_session_completion(session, parser_table_completion(session->pins.version->table));
-      syntax_session_pin_version(&session->pins.completion_version, session->pins.version);
-    }
-    if (!session->finalized) {
-      preserve_comments(*session, semantic(session->inputs.document), session->cursor);
-      if (syntax_pending_count(session->pins.version->pending))
-        session->error = syntax_pending_message(session->pins.version->pending, &session->error_offset);
-      if (session->building_bedrock && session->error.empty()) {
-        const auto& module = session->pins.grammar;
-        SyntaxVersionDiagnostic diagnostic{{}, nullptr, session->error_offset};
-        syntax_version_bedrock(module, syntax_component_type(), &diagnostic);
-        session->error = syntax_version_diagnostic_text(&diagnostic);
-        session->error_offset = diagnostic.offset;
-        syntax_version_diagnostic_dispose(&diagnostic);
-        if (session->error.empty()) {
-          std::shared_ptr<Version> version(syntax_version_build(session->inputs.world, nullptr, module, &diagnostic), syntax_version_release);
-          session->error = syntax_version_diagnostic_text(&diagnostic);
-          session->error_offset = diagnostic.offset;
-          syntax_version_diagnostic_dispose(&diagnostic);
-          if (version && !syntax_emission_keyword_starts(version->emission))
-            session->error = "Bedrock declarations must begin with literal keywords";
-        }
-      }
-      session->finalized = true;
-    }
-    return nullptr;
-  }
-  session->declaration = syntax_session_declaration(session, session->cursor);
-  if (session->bootstrapping && !session->declaration) {
-    session->error_offset = session->cursor;
-    session->error = session->building_bedrock ? "Bedrock may contain only token, skip and parse declarations" : "Foundation may contain only token, skip and parse declarations";
-    return nullptr;
-  }
-  size_t construct_start = session->cursor;
-  const auto fail = [&](const std::string& error) -> TowerNode* {
-    session->error = error;
-    return nullptr;
-  };
-  {
-    Node root = owned(nullptr);
-    {
-      std::unique_ptr<Stream, decltype(&parser_stream_destroy)> stream(
-        parser_stream_create(sizeof(SyntaxSession*), ParserInputService::Syntax), parser_stream_destroy);
-      *(SyntaxSession**)parser_stream_get_userdata(stream.get()) = session;
-      std::unique_ptr<Recognizer, decltype(&parser_recognizer_destroy)> recognizer(
-        parser_recognizer_create_prefix(session->pins.version->table, stream.get()), parser_recognizer_destroy);
-      session->recognizer = recognizer.get();
-      if (session->completing) parser_recognizer_capture_completion(recognizer.get());
-      bool running = true;
-      while (running) root = owned(parser_recognizer_step(recognizer.get(), &running));
-      session->recognizer = nullptr;
-      if (!root) {
-        if (session->completing) {
-          syntax_session_completion(session, parser_recognizer_take_completion(recognizer.get()));
-          syntax_session_pin_version(&session->pins.completion_version, session->pins.version);
-        }
-        return fail(syntax_diagnostic(*session, recognizer.get()));
-      }
-      // The recognizer may have inspected one following token. Keep only the
-      // committed span; the next construct gets its own declaration/lexer mode.
-      auto* span = match(root.get());
-      session->cursor = parser_match_get_start(span) + parser_match_get_length(span);
-      while (session->highlights.items.length != 0 && session->highlights.items.data[session->highlights.items.length - 1].start >= session->cursor)
-        --session->highlights.items.length;
-      session->error_offset = session->cursor;
-    } // No recognizer or lookahead survives the grammar swap.
-    TowerNode* construct = child(root.get(), 0);
-    const std::string construct_kind = parser_match_get_label(match(construct));
-    if (construct_kind == "ImportDeclaration") {
-      syntax_session_inputs_module(&session->inputs, session->inputs.source->text.c_str(), nullptr);
-      if (!frontend_module_import(session->inputs.module, construct, session->inputs.source)) return fail(frontend_module_error(session->inputs.module));
-      const auto* grammar = frontend_module_grammar(session->inputs.module);
-      Revision candidate(syntax_revision_create(grammar->rules.data, grammar->rules.length,
-        grammar->tokens.data, grammar->tokens.length), frontend_revision_release);
-      std::string error;
-      auto version = compiled(*session, candidate.get(), error);
-      if (!version) return fail(error);
-      syntax_session_pin_version(&session->pins.version, version.get());
-      syntax_session_pin_revision(&session->pins.grammar, candidate.get());
-      ++session->revision;
-    }
-    if (construct_kind == "GrammarTokenDeclaration" || construct_kind == "GrammarSkipDeclaration") {
-      session->error_offset = construct_start;
-      auto error = read_declaration(construct, session->inputs.source,
-        construct_kind == "GrammarSkipDeclaration" ? SyntaxKind::Skip : SyntaxKind::Token);
-      if (!error.empty()) return fail(error);
-      auto& token = syntax_node(construct);
-      if (syntax_revision_rule(session->pins.grammar, token.name.data(), token.name.size()))
-        return fail("Name already defines a parse rule: " + token.name);
-      frontend_cache_pattern(&session->cache.index, construct, syntax_component_type());
-      if (!token.compiled) { auto pattern = lex_pattern_compile(token.text, error); syntax_node_pattern(&token, pattern.get()); }
-      if (!token.compiled) return fail(error);
-      TowerByteBuffer edit_error{};
-      Revision candidate(syntax_revision_declare(session->pins.grammar, construct, syntax_component_type(), &edit_error), frontend_revision_release);
-      if (edit_error.length) error.assign(reinterpret_cast<const char*>(edit_error.data), edit_error.length);
-      bytes_dispose(&edit_error);
-      if (!candidate) return fail(error.empty() ? "Unable to allocate grammar revision" : error);
-      auto version = compiled(*session, candidate.get(), error);
-      if (!version) return fail(error);
-      syntax_session_pin_version(&session->pins.version, version.get());
-      syntax_session_pin_revision(&session->pins.grammar, candidate.get());
-      ++session->revision;
-    }
-    if (construct_kind == "GrammarDeclaration") {
-      session->error_offset = construct_start;
-      auto error = read_declaration(construct, session->inputs.source, SyntaxKind::Rule);
-      if (!error.empty()) return fail(error);
-      TowerByteBuffer edit_error{};
-      Revision candidate(syntax_revision_declare(session->pins.grammar, construct, syntax_component_type(), &edit_error), frontend_revision_release);
-      if (edit_error.length) error.assign(reinterpret_cast<const char*>(edit_error.data), edit_error.length);
-      bytes_dispose(&edit_error);
-      if (!candidate) return fail(error.empty() ? "Unable to allocate grammar revision" : error);
-      auto version = compiled(*session, candidate.get(), error);
-      if (!version) return fail(error);
-      syntax_session_pin_version(&session->pins.version, version.get());
-      syntax_session_pin_revision(&session->pins.grammar, candidate.get());
-      ++session->revision;
-    }
-    if (session->declaration) {
-      auto& declaration = syntax_node(construct);
-      declaration.start = construct_start; declaration.end = session->cursor;
-      preserve_comments(*session, declaration, session->cursor);
-      tower_node_attach(root.get(), session->inputs.document);
-      semantic(session->inputs.document).items.push_back(construct);
-      // Grammar roles apply only to grammar names/references and captures.
-      // Imports and `as style` values are ordinary identifiers, not rule names.
-      // Patterns, quoted paths and replacement bodies keep their token styles.
-      bool capture = false;
-      auto* declared_name = match(member(construct, "name"));
-      size_t template_start = TOWER_INVALID_INDEX;
-      if (declaration.replacement) template_start = semantic(declaration.replacement).start - 1;
-      for (size_t i = 0; i < session->highlights.items.length; ++i) {
-        auto& token = session->highlights.items.data[i];
-        if (token.start < construct_start) continue;
-        if (token.start >= template_start) continue;
-        if (std::string_view(token.kind) == "comment") continue;
-        if (std::string_view(token.kind) == "identifier") {
-          if (construct_kind == "GrammarDeclaration") syntax_highlights_style(&session->highlights, i, capture ? "capture" : "rule");
-          else if ((construct_kind == "GrammarTokenDeclaration" || construct_kind == "GrammarSkipDeclaration") &&
-                   token.start == parser_match_get_start(declared_name) &&
-                   token.end == parser_match_get_start(declared_name) + parser_match_get_length(declared_name)) syntax_highlights_style(&session->highlights, i, "rule");
-        }
-        capture = std::string_view(session->source, session->source_length).substr(token.start, token.end - token.start) == "$";
-      }
-    } else {
-      session->declarations_only = false;
-      if (!session->formatting && syntax_replacement_count(session->pins.version->replacements)) {
-        if (!expand(*session, root)) return nullptr;
-      }
-      session->comment_cursor = session->cursor;
-    }
-    if (session->inputs.module && !session->formatting) frontend_module_record(session->inputs.module, root.get(), session->declaration);
-    return root.release();
-  }
-}
-
 std::vector<SyntaxHighlight> syntax_get_lexemes(SyntaxSession* session) {
   SyntaxHighlights spans{};
   if (!syntax_session_lexemes(session, &spans)) std::abort();

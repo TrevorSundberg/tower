@@ -2,11 +2,11 @@
 #include "node-ref.hpp"
 #include "compiler-bytes.hpp"
 #include "compiler-source.hpp"
-#include "lex-pattern.hpp"
 #include <string>
 #include <vector>
 
 struct SyntaxComments;
+struct LexPattern;
 extern "C" bool syntax_comments_push(SyntaxComments*, const char*, size_t);
 struct SyntaxComments {
   CoreName* data;

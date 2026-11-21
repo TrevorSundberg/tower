@@ -12,16 +12,6 @@ extern "C" TowerNode* frontend_bedrock_create(FrontendKinds*);
 extern "C" size_t frontend_bedrock_tests(FrontendKinds*);
 extern "C" size_t frontend_modules_tests();
 
-struct FrontendPatternCompiler;
-struct TowerFormatResult;
-struct LexPattern;
-extern "C" {
-FrontendPatternCompiler* frontend_pattern_create(const FrontendKinds*);
-void frontend_pattern_destroy(FrontendPatternCompiler*);
-LexPattern* frontend_pattern_read(FrontendPatternCompiler*, const char*, size_t, TowerFormatResult*);
-LexPattern* frontend_host_pattern_read(const char*, size_t, TowerFormatResult*);
-}
-
 struct FrontendSource { const char* data; size_t length; };
 struct SemanticProgram;
 struct ModuleEnvironment;

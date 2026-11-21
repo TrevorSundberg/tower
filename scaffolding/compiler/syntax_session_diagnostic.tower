@@ -1,0 +1,59 @@
+import tower;
+import format_diagnostic_types;
+import frontend_cache;
+import frontend_revision_types;
+import parser_diagnostic_types;
+import parser_state;
+import syntax_emission;
+import syntax_emission_lexical;
+import syntax_revision;
+import syntax_session_types;
+import syntax_version_presentation;
+
+extern fn syntax_component_type(): void*;
+extern fn format_syntax_diagnostic(input: SyntaxDiagnosticInput*, output: SyntaxDiagnosticText*): void;
+extern fn syntax_diagnostic_text_finish(output: SyntaxDiagnosticText*, description: u8*): u8*;
+extern fn tower_memory_free(memory: void*): void;
+
+// External draft for the next source slice; not imported, built or published.
+// The caller receives the existing host-text allocation and releases it with
+// tower_memory_free. Grammar/candidate views remain pinned until formatting ends.
+export fn syntax_session_diagnostic(value: SyntaxSession*, recognizer: ParserRequest*, repairs: bool): u8* {
+    var diagnostic = parser_recognizer_diagnostic(recognizer,
+        repairs ? ParserDiagnosticReader.Syntax : ParserDiagnosticReader.None, bits(void*, value));
+    defer parser_diagnostic_destroy(diagnostic);
+    // Cached tables retain their original declarations. Locations follow the
+    // current source revision, including edits that only move comments.
+    var definitions = syntax_revision_overlay(value.pins.bedrock,
+        value.pins.grammar ?. rules.data, value.pins.grammar ?. rules.length ?? 0,
+        null, 0, syntax_component_type());
+    defer frontend_revision_release(definitions);
+    var emission = bits(SyntaxEmission*, value.pins.version.emission);
+    var input: SyntaxDiagnosticInput;
+    input.source = value.source;
+    input.size = value.source_length;
+    input.cursor = value.cursor;
+    input.offset = diagnostic.offset;
+    input.insertion_offset = diagnostic.insertion_offset;
+    input.original = parser_recognizer_get_error(bits(void*, recognizer));
+    input.options = diagnostic.options.data;
+    input.count = diagnostic.options.length;
+    input.literals = syntax_emission_literal_ids(emission);
+    input.literal_count = syntax_emission_literal_count(emission);
+    input.productions = syntax_emission_productions(emission);
+    input.production_count = syntax_emission_production_count(emission);
+    input.repairs = repairs;
+    input.complete = diagnostic.complete;
+    input.at_start = diagnostic.at_start;
+    input.statements = syntax_revision_rule(definitions, "Statement", 9) is not null;
+    var output: SyntaxDiagnosticText;
+    fill(&output, 0, sizeof(SyntaxDiagnosticText));
+    format_syntax_diagnostic(&input, &output);
+    if output.insertion {
+        value.error_offset = diagnostic.insertion_offset;
+        value.error_insertion = true;
+    }
+    var description = syntax_version_description(value.pins.version, definitions, output.production, output.multiple);
+    defer tower_memory_free(bits(void*, description));
+    return syntax_diagnostic_text_finish(&output, description ?? "");
+}

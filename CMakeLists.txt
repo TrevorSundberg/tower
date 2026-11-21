@@ -25,7 +25,7 @@ if(TOWER_NATIVE)
   tower_compiler_utilities()
   tower_compiler_parser_nodes()
   tower_compiler_interpreter()
-  add_executable(towerc $<TARGET_OBJECTS:tower-native-compiler> scaffolding/tower.cpp scaffolding/lex-pattern.cpp scaffolding/format.cpp)
+  add_executable(towerc $<TARGET_OBJECTS:tower-native-compiler> scaffolding/tower.cpp scaffolding/format.cpp)
   target_compile_features(towerc PRIVATE cxx_std_20)
   target_sources(towerc PRIVATE scaffolding/syntax.cpp)
   target_link_libraries(towerc PRIVATE tower-compiler-parser-nodes tower-compiler-semantics tower-compiler-entities tower-compiler-utilities tower-compiler-memory)
@@ -54,7 +54,7 @@ if(TOWER_BROWSER)
   tower_compiler_interpreter()
   add_executable(tower-browser
     scaffolding/tower.cpp scaffolding/tests/nodes.cpp
-    scaffolding/syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/format.cpp scaffolding/lex-pattern.cpp)
+    scaffolding/syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/format.cpp)
   target_compile_features(tower-browser PRIVATE cxx_std_20)
   target_link_libraries(tower-browser PRIVATE tower-compiler-interpreter tower-compiler-parser-nodes tower-compiler-semantics tower-compiler-entities tower-compiler-utilities tower-compiler-memory)
   target_compile_options(tower-browser PRIVATE -fno-exceptions -UNDEBUG)
@@ -108,7 +108,7 @@ if(TOWER_BROWSER)
     set(CMAKE_SYSTEM_NAME "${tower_sdk_system_name}")
     set(tower_llvm_sources
       scaffolding/tower.cpp scaffolding/tests/nodes.cpp
-      scaffolding/syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/format.cpp scaffolding/lex-pattern.cpp)
+      scaffolding/syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/format.cpp)
     function(tower_llvm_reactor name output)
       add_executable(${name} ${tower_llvm_sources})
       target_include_directories(${name} PRIVATE ${TOWER_LLVM_SOURCE_DIR}/lld/include
@@ -142,7 +142,7 @@ if(TOWER_PARSER_ONLY)
   tower_compiler_interpreter()
   add_executable(tower-parser-tests
     scaffolding/tower.cpp scaffolding/tests/nodes.cpp
-    scaffolding/syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/format.cpp scaffolding/lex-pattern.cpp)
+    scaffolding/syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/format.cpp)
   target_compile_features(tower-parser-tests PRIVATE cxx_std_20)
   if(CMAKE_CXX_COMPILER_TARGET MATCHES "^wasm")
     target_compile_options(tower-parser-tests PRIVATE "-ffile-prefix-map=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding=source")

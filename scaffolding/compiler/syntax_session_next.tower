@@ -1,0 +1,306 @@
+import tower;
+import format_types;
+import frontend_cache;
+import frontend_modules;
+import frontend_revision_types;
+import frontend_world;
+import lr_analysis;
+import lr_parser;
+import lr_tree;
+import parser_nodes;
+import parser_markers;
+import parser_types;
+import parser_state;
+import parser_stream;
+import parser_table_types;
+import syntax_emission;
+import syntax_emission_lexical;
+import syntax_expansion;
+import syntax_expansion_types;
+import syntax_highlights;
+import syntax_nodes;
+import syntax_pending;
+import syntax_reader;
+import syntax_replacement_owner;
+import syntax_revision;
+import syntax_session_diagnostic;
+import syntax_session_inputs;
+import syntax_session_pins;
+import syntax_session_scan;
+import syntax_session_setup;
+import syntax_session_state;
+import syntax_session_types;
+import syntax_types;
+import syntax_validation;
+import syntax_version;
+import syntax_version_build;
+import syntax_version_cache;
+import syntax_version_types;
+import .library.vector;
+
+// Advances one session through the shared syntax entities. Grammar changes are
+// published only after the recognizer and its lookahead have been released.
+extern fn entity_component_get(entity: void*, kind: void*): void*;
+extern fn entity_component_data(component: void*): void*;
+extern fn entity_child_at(parent: void*, index: usize): void*;
+extern fn tower_node_attach(child: void*, parent: void*): void;
+extern fn tower_node_get_child_member(parent: void*, name: u8*): void*;
+extern fn tower_memory_free(memory: void*): void;
+extern fn format_dispose(output: FormatResult*): void;
+extern fn abort(): void;
+extern fn bytes_assign_text(value: vector(u8)*, source: u8*, length: usize): bool;
+extern fn bytes_append(value: vector(u8)*, source: u8*, length: usize): bool;
+
+fn syntax_session_node(entity: void*): SyntaxNode* {
+    return bits(SyntaxNode*, entity_component_data(entity_component_get(entity, syntax_component_type())));
+}
+fn syntax_session_match(entity: void*): ParserMatchData* {
+    return bits(ParserMatchData*, entity_component_data(entity_component_get(entity, parser_match_get_type())));
+}
+fn syntax_session_text(text: u8*, wanted: u8*): bool {
+    return syntax_bytes_compare(text, syntax_text_length(text), wanted, syntax_text_length(wanted)) == 0;
+}
+fn syntax_session_fail(value: SyntaxSession*, message: u8*): void* {
+    syntax_session_error(value, message);
+    return null;
+}
+fn syntax_session_error_bytes(value: SyntaxSession*, text: u8*, length: usize): void {
+    if !bytes_assign_text(&value.error, text, length) { abort(); }
+}
+fn syntax_session_comments(value: SyntaxSession*, declaration: SyntaxNode*, through: usize): void {
+    for (var i: usize = 0; i < value.highlights.items.length; ++i) {
+        var row = &value.highlights.items.data[i];
+        if !syntax_session_text(row.kind, "comment") || row.start < value.comment_cursor || row.end > through { continue; }
+        if declaration.replacement is not null {
+            var body = syntax_session_node(declaration.replacement);
+            if row.start >= body.start && row.end <= body.end { continue; }
+        }
+        if !syntax_comments_push(&declaration.comments, &value.source[row.start], row.end - row.start) { abort(); }
+    }
+    value.comment_cursor = through;
+}
+
+fn syntax_session_install(value: SyntaxSession*, candidate: FrontendRevision*): bool {
+    var diagnostic: SyntaxVersionDiagnostic;
+    fill(&diagnostic, 0, sizeof(SyntaxVersionDiagnostic));
+    defer syntax_version_diagnostic_dispose(&diagnostic);
+    diagnostic.offset = value.error_offset;
+    var version = syntax_version_cached(&value.cache, value.inputs.world, candidate, value.pins.bedrock, &diagnostic);
+    defer syntax_version_release(version);
+    value.error_offset = diagnostic.offset;
+    if version is null {
+        syntax_session_error(value, syntax_version_diagnostic_text(&diagnostic));
+        return false;
+    }
+    syntax_session_pin_version(&value.pins.version, version);
+    syntax_session_pin_revision(&value.pins.grammar, candidate);
+    value.revision++;
+    return true;
+}
+
+fn syntax_session_declare(value: SyntaxSession*, construct: void*): bool {
+    var error: vector(u8);
+    vector_init(&error);
+    defer vector_dispose(&error);
+    var candidate = syntax_revision_declare(value.pins.grammar, construct, syntax_component_type(), &error);
+    defer frontend_revision_release(candidate);
+    if candidate is null {
+        if error.length == 0 { syntax_session_error(value, "Unable to allocate grammar revision"); }
+        else { syntax_session_error_bytes(value, error.data, error.length); }
+        return false;
+    }
+    return syntax_session_install(value, candidate);
+}
+
+fn syntax_session_read_declaration(value: SyntaxSession*, construct: void*, rule: bool, skipped: bool): bool {
+    var error: vector(u8);
+    vector_init(&error);
+    defer vector_dispose(&error);
+    var ready = rule ? syntax_read_rule(construct, value.inputs.source, parser_match_get_type(), syntax_component_type(), &error)
+        : syntax_read_token(construct, value.inputs.source, parser_match_get_type(), syntax_component_type(), skipped, &error);
+    if !ready {
+        if error.length == 0 { syntax_session_error(value, "Unable to allocate grammar declaration"); }
+        else { syntax_session_error_bytes(value, error.data, error.length); }
+    }
+    return ready;
+}
+
+fn syntax_session_pattern(value: SyntaxSession*, construct: void*): bool {
+    var entry = syntax_session_node(construct);
+    if syntax_revision_rule(value.pins.grammar, entry.name.data, entry.name.length) is not null {
+        syntax_session_error(value, "Name already defines a parse rule: ");
+        if !bytes_append(&value.error, entry.name.data, entry.name.length) { abort(); }
+        if !vector_reserve(&value.error, value.error.length + 1) { abort(); }
+        value.error.data[value.error.length] = 0;
+        return false;
+    }
+    frontend_cache_pattern(&value.cache.index, construct, syntax_component_type());
+    if entry.compiled is not null { return true; }
+    var error: FormatResult;
+    fill(&error, 0, sizeof(FormatResult));
+    defer format_dispose(&error);
+    var pattern = frontend_host_pattern_read(entry.text.data, entry.text.length, &error);
+    syntax_node_pattern(entry, pattern);
+    syntax_pattern_release(pattern);
+    if entry.compiled is not null { return true; }
+    if error.failed { syntax_session_error(value, "Unable to allocate token pattern diagnostic"); }
+    else {
+        if !bytes_assign_text(&value.error, error.text.data, error.text.length) { abort(); }
+    }
+    return false;
+}
+
+fn syntax_session_expand(value: SyntaxSession*, root: void**): bool {
+    var result: SyntaxExpansionResult;
+    fill(&result, 0, sizeof(SyntaxExpansionResult));
+    defer syntax_expansion_result_dispose(&result);
+    result.root = *root;
+    result.replacements = value.expansion_stats.replacements;
+    result.generated_nodes = value.expansion_stats.generated_nodes;
+    result.copied_nodes = value.expansion_stats.copied_nodes;
+    result.error_offset = value.error_offset;
+    var ready = syntax_expand(syntax_replacement_input(bits(SyntaxReplacementOwner*, value.pins.version.replacements)), &result);
+    *root = result.root;
+    value.expansion_stats.replacements = result.replacements;
+    value.expansion_stats.generated_nodes = result.generated_nodes;
+    value.expansion_stats.copied_nodes = result.copied_nodes;
+    value.error_offset = result.error_offset;
+    if !ready {
+        if result.error.data is null { syntax_session_error(value, "Unable to allocate replacement expansion storage"); }
+        else { syntax_session_error_bytes(value, result.error.data, result.error.length); }
+    }
+    return ready;
+}
+
+fn syntax_session_finish(value: SyntaxSession*): void {
+    if value.completing {
+        syntax_session_completion(value, parser_table_completion(bits(ParserHostTable*, value.pins.version.table)));
+        syntax_session_pin_version(&value.pins.completion_version, value.pins.version);
+    }
+    if value.finalized { return; }
+    syntax_session_comments(value, syntax_session_node(value.inputs.document), value.cursor);
+    var pending = bits(SyntaxPendingRevision*, value.pins.version.pending);
+    if syntax_pending_count(pending) != 0 { syntax_session_error(value, syntax_pending_message(pending, &value.error_offset)); }
+    if value.building_bedrock && value.error.length == 0 {
+        var diagnostic: SyntaxVersionDiagnostic;
+        fill(&diagnostic, 0, sizeof(SyntaxVersionDiagnostic));
+        defer syntax_version_diagnostic_dispose(&diagnostic);
+        diagnostic.offset = value.error_offset;
+        syntax_version_bedrock(value.pins.grammar, syntax_component_type(), &diagnostic);
+        syntax_session_error(value, syntax_version_diagnostic_text(&diagnostic));
+        value.error_offset = diagnostic.offset;
+        syntax_version_diagnostic_dispose(&diagnostic);
+        if value.error.length == 0 {
+            var version = syntax_version_build(value.inputs.world, null, value.pins.grammar, &diagnostic);
+            defer syntax_version_release(version);
+            syntax_session_error(value, syntax_version_diagnostic_text(&diagnostic));
+            value.error_offset = diagnostic.offset;
+            if version is not null && !syntax_emission_keyword_starts(bits(SyntaxEmission*, version.emission)) {
+                syntax_session_error(value, "Bedrock declarations must begin with literal keywords");
+            }
+        }
+    }
+    value.finalized = true;
+}
+
+export fn syntax_next(opaque: void*): void* {
+    var value = bits(SyntaxSession*, opaque);
+    if value.error.length != 0 { return null; }
+    fill(&value.expansion_stats, 0, sizeof(SyntaxSessionExpansionStats));
+    syntax_session_skip(value, &value.cursor, &value.highlights);
+    if value.cursor == value.source_length { syntax_session_finish(value); return null; }
+    value.declaration = syntax_session_declaration(value, value.cursor);
+    if value.bootstrapping && !value.declaration {
+        value.error_offset = value.cursor;
+        return syntax_session_fail(value, value.building_bedrock ? "Bedrock may contain only token, skip and parse declarations" : "Foundation may contain only token, skip and parse declarations");
+    }
+    var start = value.cursor;
+    var root: void* = null;
+    defer { if root is not null { entity_release(root); } }
+    {
+        var stream = parser_stream_create(sizeof(SyntaxSession*), ParserInputService.Syntax);
+        defer parser_stream_destroy(stream);
+        *bits(SyntaxSession**, parser_stream_get_userdata(stream)) = value;
+        var recognizer = parser_recognizer_create_prefix(bits(ParserHostTable*, value.pins.version.table), stream);
+        defer parser_recognizer_destroy(recognizer);
+        value.recognizer = bits(void*, recognizer);
+        if value.completing { parser_recognizer_capture_completion(recognizer); }
+        var running = true;
+        while running {
+            var next = parser_recognizer_step(recognizer, &running);
+            if root is not null { entity_release(root); }
+            root = next;
+        }
+        value.recognizer = null;
+        if root is null {
+            if value.completing {
+                syntax_session_completion(value, parser_recognizer_take_completion(recognizer));
+                syntax_session_pin_version(&value.pins.completion_version, value.pins.version);
+            }
+            var message = syntax_session_diagnostic(value, recognizer, true);
+            defer tower_memory_free(bits(void*, message));
+            return syntax_session_fail(value, message);
+        }
+        var span = syntax_session_match(root);
+        value.cursor = span.start + span.length;
+        while value.highlights.items.length != 0 && value.highlights.items.data[value.highlights.items.length - 1].start >= value.cursor {
+            value.highlights.items.length--;
+        }
+        value.error_offset = value.cursor;
+    }
+    // Request and lookahead are destroyed before installing a grammar revision.
+    var construct = entity_child_at(root, 0);
+    var label = node_text_get(&syntax_session_match(construct).label);
+    var importing = syntax_session_text(label, "ImportDeclaration");
+    var rule = syntax_session_text(label, "GrammarDeclaration");
+    var skipped = syntax_session_text(label, "GrammarSkipDeclaration");
+    var lexical = skipped || syntax_session_text(label, "GrammarTokenDeclaration");
+    if importing {
+        syntax_session_inputs_module(&value.inputs, value.inputs.source.text.data, null);
+        var module = bits(FrontendModule*, value.inputs.module);
+        if !frontend_module_import(module, construct, value.inputs.source) { return syntax_session_fail(value, frontend_module_error(module)); }
+        var grammar = frontend_module_grammar(module);
+        var candidate = syntax_revision_create(grammar.rules.data, grammar.rules.length, grammar.tokens.data, grammar.tokens.length);
+        defer frontend_revision_release(candidate);
+        if !syntax_session_install(value, candidate) { return null; }
+    }
+    if lexical || rule {
+        value.error_offset = start;
+        if !syntax_session_read_declaration(value, construct, rule, skipped) { return null; }
+        if lexical && !syntax_session_pattern(value, construct) { return null; }
+        if !syntax_session_declare(value, construct) { return null; }
+    }
+    if value.declaration {
+        var declaration = syntax_session_node(construct);
+        declaration.start = start;
+        declaration.end = value.cursor;
+        syntax_session_comments(value, declaration, value.cursor);
+        tower_node_attach(root, value.inputs.document);
+        if !vector_push(&syntax_session_node(value.inputs.document).items, construct) { abort(); }
+        var capture = false;
+        var name = syntax_session_match(tower_node_get_child_member(construct, "name"));
+        var template_start = lr_none();
+        if declaration.replacement is not null { template_start = syntax_session_node(declaration.replacement).start - 1; }
+        for (var i: usize = 0; i < value.highlights.items.length; ++i) {
+            var row = &value.highlights.items.data[i];
+            if row.start < start || row.start >= template_start || syntax_session_text(row.kind, "comment") { continue; }
+            if syntax_session_text(row.kind, "identifier") {
+                if rule { syntax_highlights_style(&value.highlights, i, capture ? "capture" : "rule"); }
+                else {
+                    if lexical && row.start == name.start && row.end == name.start + name.length { syntax_highlights_style(&value.highlights, i, "rule"); }
+                }
+            }
+            capture = row.end - row.start == 1 && value.source[row.start] == 36;
+        }
+    } else {
+        value.declarations_only = false;
+        if !value.formatting && syntax_replacement_count(bits(SyntaxReplacementOwner*, value.pins.version.replacements)) != 0 {
+            if !syntax_session_expand(value, &root) { return null; }
+        }
+        value.comment_cursor = value.cursor;
+    }
+    if value.inputs.module is not null && !value.formatting { frontend_module_record(bits(FrontendModule*, value.inputs.module), root, value.declaration); }
+    var result = root;
+    root = null;
+    return result;
+}
