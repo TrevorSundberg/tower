@@ -11,14 +11,14 @@ import format_abi;
 import format_suite;
 import utility_checks;
 
-extern fn `cpp_name(SyntaxSession* syntax_create_bedrock(char const*))`(source: u8*): void*;
-extern fn `cpp_name(SyntaxSession* syntax_create_foundation(char const*))`(source: u8*): void*;
+extern fn syntax_create_bedrock(source: u8*): void*;
+extern fn syntax_create_foundation(source: u8*): void*;
 
 fn format_repository_source(input: u8*, baseline: u32, invalid: bool, result: FormatResult*): void {
     var session: void*;
-    if baseline == 1 { session = `cpp_name(SyntaxSession* syntax_create_bedrock(char const*))`(input); }
+    if baseline == 1 { session = syntax_create_bedrock(input); }
     else {
-        if baseline == 2 { session = `cpp_name(SyntaxSession* syntax_create_foundation(char const*))`(input); }
+        if baseline == 2 { session = syntax_create_foundation(input); }
         else { session = syntax_create(input, null); }
     }
     utility_check(session is not null, "Repository formatter source session");

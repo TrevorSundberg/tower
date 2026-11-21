@@ -1,0 +1,11 @@
+import tower;
+extern fn tower_tests(): void;
+extern fn parser_tests(): void;
+extern fn syntax_tests(): void;
+
+export fn tw_self_test(): i32 {
+    tower_tests();
+    parser_tests();
+    syntax_tests();
+    return 0;
+}

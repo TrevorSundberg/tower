@@ -3,7 +3,8 @@ import ide_types;
 import ide_api;
 import ide_state;
 import ide_text;
-import ide_syntax_wasi;
+import syntax_baseline_api;
+import .compiler.syntax_version_types;
 import .library.bytes_types;
 import .library.bytes_interface;
 import .library.vector;
@@ -329,12 +330,13 @@ export fn tw_set_foundation(source: u8*, bytes: usize): i32 {
         return 0;
     }
     var text = ide_copy(source, bytes);
-    var error: IdeForeignString;
-    `cpp_name(std::string syntax_set_bootstrap(char const*))`(&error, text);
+    var error: SyntaxVersionDiagnostic = default;
+    defer syntax_version_diagnostic_dispose(&error);
+    syntax_host_install(compiler_host_world(), text, true, &error);
     free(text);
     var state = ide_state();
-    ide_require(bytes_assign_text(&state.foundation_error, ide_foreign_data(&error), ide_foreign_size(&error)));
-    ide_foreign_dispose(&error);
+    var diagnostic = syntax_version_diagnostic_text(&error);
+    ide_assign(&state.foundation_error, diagnostic);
     return 1;
 }
 

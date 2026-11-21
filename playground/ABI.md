@@ -18,11 +18,12 @@ Calls into one instance are serialized. Separate worker instances own separate
 worlds; shared graph mutation is not claimed thread-safe. Cancellation terminates
 the owning worker, and request generations continue to reject stale results.
 
-The temporary `ide_syntax_wasi.tower` module calls existing syntax inspection
-interfaces using WASI SDK 34 libc++ ABI v2 (alternate strings and size-based
-vectors). It owns and disposes those foreign return values before returning
-Tower-owned JSON. Other hosts need bindings for their syntax API ABI until those
-remaining syntax services expose portable Tower views.
+Syntax inspection, baseline installation and seed formatting use shared Tower
+views and diagnostics on every target. `host/syntax_baseline.tower` owns the
+legacy entry points' buffers and borrowed module context in a component on their
+compiler world. `frontend_world_clear` releases that state after readers and
+workers join. The explicit-world session/baseline APIs remain independent of the
+IDE transport; no C++ string or vector layouts cross this boundary.
 
 Focused fixtures are implemented in `scaffolding/tests/ide.tower`. Configure the
 WASI build with `-DTOWER_IDE_TESTS=ON`, rebuild, then run

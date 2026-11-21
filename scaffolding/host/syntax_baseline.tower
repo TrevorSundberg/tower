@@ -1,0 +1,145 @@
+import tower;
+import .compiler.component_kinds;
+import .compiler.syntax_version_types;
+import .compiler.syntax_session_types;
+import .compiler.frontend_revision_types;
+import .compiler.format_types;
+import .library.vector;
+
+extern fn compiler_host_world(): void*;
+extern fn compiler_world_type(world: void*, kind: u32): void*;
+extern fn compiler_world_type_existing(world: void*, kind: u32): void*;
+extern fn compiler_world_store(world: void*): void*;
+extern fn compiler_world_pinned(world: void*): bool;
+extern fn compiler_buffer_allocate(size: usize): u8*;
+extern fn compiler_buffer_free(data: u8*): void;
+extern fn entity_create(store: void*): void*;
+extern fn entity_register(type: void*, size: usize, alignment: usize, lifecycle: usize): bool;
+extern fn entity_member_index(owner: void*, name: u8*): usize;
+extern fn entity_child_at(owner: void*, index: usize): void*;
+extern fn entity_attach(child: void*, parent: void*, name: u8*): bool;
+extern fn entity_release(node: void*): usize;
+extern fn entity_component_add(owner: void*, type: void*): void*;
+extern fn entity_component_get(owner: void*, type: void*): void*;
+extern fn entity_component_remove(owner: void*, type: void*): bool;
+extern fn entity_component_data(component: void*): void*;
+extern fn syntax_baseline_install(world: void*, environment: void*, source: u8*, foundation: bool, diagnostic: SyntaxVersionDiagnostic*): bool;
+extern fn syntax_session_open(world: void*, environment: void*, source: u8*, module: void*, mode: u32): SyntaxSession*;
+extern fn syntax_version_diagnostic_text(diagnostic: SyntaxVersionDiagnostic*): u8*;
+extern fn syntax_version_diagnostic_dispose(diagnostic: SyntaxVersionDiagnostic*): void;
+extern fn frontend_world_bedrock(world: void*): void*;
+extern fn syntax_format_node(node: void*, result: FormatResult*): void;
+extern fn format_dispose(result: FormatResult*): void;
+extern fn abort(): void;
+
+struct SyntaxHost {
+    environment: void*; // Borrowed; the request restores/releases its environment.
+    bedrock: SyntaxVersionDiagnostic;
+    foundation: SyntaxVersionDiagnostic;
+    seed: FormatResult;
+}
+
+// The registry component is transport state, not another semantic graph. Only
+// the owning coordinator mutates it; independent worlds never share its buffers.
+fn syntax_host_state(world: void*): SyntaxHost* {
+    var owner = compiler_world_type(world, CompilerSyntax());
+    if owner is null { abort(); }
+    var slot = entity_member_index(owner, "syntax.transport");
+    if slot != ~convert(usize, 0) {
+        return bits(SyntaxHost*, entity_component_data(entity_component_get(owner, entity_child_at(owner, slot))));
+    }
+    if compiler_world_pinned(world) { abort(); }
+    var type = entity_create(compiler_world_store(world));
+    if type is null { abort(); }
+    defer entity_release(type);
+    if !entity_register(type, sizeof(SyntaxHost), alignof(SyntaxHost), 0) { abort(); }
+    if !entity_attach(type, owner, "syntax.transport") { abort(); }
+    var component = entity_component_add(owner, type);
+    if component is null { abort(); }
+    var state = bits(SyntaxHost*, entity_component_data(component));
+    *state = default;
+    return state;
+}
+
+// Called before frontend caches are cleared, after all readers/workers join.
+// A failed component transition leaves the buffers and borrowed context intact.
+export fn syntax_host_clear(world: void*): bool {
+    var owner = compiler_world_type_existing(world, CompilerSyntax());
+    if owner is null { return true; }
+    var slot = entity_member_index(owner, "syntax.transport");
+    if slot == ~convert(usize, 0) { return true; }
+    var type = entity_child_at(owner, slot);
+    var state = entity_component_data(entity_component_get(owner, type));
+    var owned: SyntaxHost;
+    copy(&owned, state, sizeof(SyntaxHost));
+    if !entity_component_remove(owner, type) { return false; }
+    syntax_version_diagnostic_dispose(&owned.bedrock);
+    syntax_version_diagnostic_dispose(&owned.foundation);
+    format_dispose(&owned.seed);
+    return entity_attach(type, null, null);
+}
+
+export fn syntax_host_environment(world: void*): void** { return &syntax_host_state(world).environment; }
+
+export fn syntax_host_install(world: void*, source: u8*, foundation: bool, diagnostic: SyntaxVersionDiagnostic*): bool {
+    return syntax_baseline_install(world, syntax_host_state(world).environment, source, foundation, diagnostic);
+}
+
+export fn syntax_host_set(world: void*, source: u8*, length: usize, foundation: bool, environment: void*): u8* {
+    var state = syntax_host_state(world);
+    // Preserve the legacy bootstrap contract: bind before validating the text.
+    if foundation && environment is not null { state.environment = environment; }
+    var diagnostic = foundation ? &state.foundation : &state.bedrock;
+    syntax_version_diagnostic_dispose(diagnostic);
+    *diagnostic = default;
+    var valid = source is not null && length <= 65536;
+    for (var i: usize = 0; valid && i < length; ++i) { valid = source[i] != 0; }
+    if !valid {
+        diagnostic.fallback = foundation ? "Bootstrap must be at most 64 KiB without NUL bytes" : "Bedrock must be at most 64 KiB without NUL bytes";
+    } else {
+        var text = compiler_buffer_allocate(length + 1);
+        if text is null { diagnostic.fallback = "Unable to allocate grammar input"; }
+        else {
+            copy(text, source, length);
+            text[length] = 0;
+            syntax_baseline_install(world, state.environment, text, foundation, diagnostic);
+            compiler_buffer_free(text);
+        }
+    }
+    return syntax_version_diagnostic_text(diagnostic);
+}
+
+export fn syntax_host_seed(world: void*): u8* {
+    var state = syntax_host_state(world);
+    if state.seed.text.data is null {
+        var seed = frontend_world_bedrock(world);
+        if seed is null { abort(); }
+        syntax_format_node(seed, &state.seed);
+        if state.seed.failed || !vector_reserve(&state.seed.text, state.seed.text.length + 1) { abort(); }
+        state.seed.text.data[state.seed.text.length] = 0;
+    }
+    return state.seed.text.data;
+}
+
+export fn syntax_create(source: u8*, module: void*): SyntaxSession* {
+    var world = compiler_host_world();
+    return syntax_session_open(world, syntax_host_state(world).environment, source, module, SyntaxFoundationBaseline());
+}
+export fn syntax_create_foundation(source: u8*): SyntaxSession* {
+    var world = compiler_host_world();
+    return syntax_session_open(world, syntax_host_state(world).environment, source, null, SyntaxBedrockBaseline());
+}
+export fn syntax_create_bedrock(source: u8*): SyntaxSession* {
+    var world = compiler_host_world();
+    return syntax_session_open(world, syntax_host_state(world).environment, source, null, SyntaxSeedBaseline());
+}
+export fn syntax_completion_create(source: u8*, mode: u32): SyntaxSession* {
+    return mode == 2 ? syntax_create_bedrock(source) : mode == 1 ? syntax_create_foundation(source) : syntax_create(source, null);
+}
+export fn tw_set_bedrock(source: u8*, length: usize): u8* {
+    return syntax_host_set(compiler_host_world(), source, length, false, null);
+}
+export fn tw_set_bootstrap(source: u8*, length: usize, environment: void*): u8* {
+    return syntax_host_set(compiler_host_world(), source, length, true, environment);
+}
+export fn tw_bedrock_seed(): u8* { return syntax_host_seed(compiler_host_world()); }

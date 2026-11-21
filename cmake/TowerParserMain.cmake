@@ -2,12 +2,8 @@
 # fixture keeps its native implementation until function addresses are supported.
 get_property(main_triple GLOBAL PROPERTY TOWER_COMPILER_TRIPLE)
 set(main_entry main)
-set(main_bedrock _Z18syntax_set_bedrockB5cxx11PKc)
-set(main_foundation _Z20syntax_set_bootstrapB5cxx11PKc)
 if(main_triple MATCHES "^wasm32-")
   set(main_entry __main_argc_argv)
-  set(main_bedrock _Z18syntax_set_bedrockPKc)
-  set(main_foundation _Z20syntax_set_bootstrapPKc)
 endif()
 set(main_input "${CMAKE_CURRENT_BINARY_DIR}/tower_parser_main.tower")
 set(main_prologue "")
@@ -22,7 +18,5 @@ if(MSVC)
   endif()
 endif()
 file(GENERATE OUTPUT "${main_input}" CONTENT "import tower;\nimport tests.parser_main;\n${main_prologue}export fn ${main_entry}(argc: i32, argv: u8**): i32 { ${main_setup}return parser_main(argc, argv); }\n")
-tower_runtime_object(parser-main "${main_input}" "${main_triple}"
-  --declare fixture_bedrock ${main_bedrock} --declare fixture_foundation ${main_foundation}
-  --declare driver_syntax_delete _ZdlPv)
+tower_runtime_object(parser-main "${main_input}" "${main_triple}")
 target_sources(tower-parser-tests PRIVATE "${parser-main_OBJECT}")

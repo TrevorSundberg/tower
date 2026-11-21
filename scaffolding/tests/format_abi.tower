@@ -5,26 +5,6 @@ import storage_api;
 import utility_checks;
 import .host.driver_api;
 
-// Explicit temporary syntax adapter ABI. Linux x86_64 uses libstdc++ strings;
-// the WASI runner uses libc++ alternate strings. CMake restricts these profiles.
-// The permanent assertions operate on the shared Tower FormatResult layout.
+// Shared Tower formatter result ABI on every target.
 extern fn syntax_format_into(session: void*, output: FormatResult*, error: u8**): bool;
 extern fn syntax_format_node(root: void*, result: FormatResult*): void;
-
-fn format_abi_string_data(value: usize*): u8* {
-    if sizeof(usize) == 8 { return bits(u8*, value[0]); }
-    var bytes = bits(u8*, value);
-    return (bytes[11] & 128) != 0 ? bits(u8*, value[0]) : bytes;
-}
-fn format_abi_string_length(value: usize*): usize {
-    if sizeof(usize) == 8 { return value[1]; }
-    var bytes = bits(u8*, value);
-    return (bytes[11] & 128) != 0 ? value[1] : convert(usize, bytes[11]);
-}
-fn format_abi_string_dispose(value: usize*): void {
-    if sizeof(usize) == 8 {
-        if bits(u8*, value[0]) != bits(u8*, value + 2) { driver_syntax_delete(bits(u8*, value[0])); }
-    } else {
-        if (bits(u8*, value)[11] & 128) != 0 { driver_syntax_delete(bits(u8*, value[0])); }
-    }
-}

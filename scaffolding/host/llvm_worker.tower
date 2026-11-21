@@ -1,4 +1,6 @@
 import tower;
+import syntax_baseline_api;
+import .compiler.syntax_version_types;
 import .backend.source_api;
 import .backend.source_session;
 import .backend.session;
@@ -86,17 +88,6 @@ export fn backend_worker_runtime(): u8* {
     return llvm_worker().source.backend.runtime;
 }
 
-// Remaining syntax bootstrap return ABI: wasm32, WASI SDK34 libc++ __2
-// alternate string layout. It is borrowed only while copying the diagnostic.
-// The syntax owner can replace this binding when its native API is retired.
-struct LlvmBootstrapString {
-    words: usize[3];
-}
-
-extern fn `cpp_name(std::string syntax_set_bootstrap(char const*))`(out: LlvmBootstrapString*, source: u8*): void;
-
-extern fn `cpp_name(void operator delete(void*))`(data: u8*): void;
-
 export fn tw_set_foundation(text: u8*, length: usize): i32 {
     if text == null || length > 131072 {
         return 0;
@@ -105,22 +96,19 @@ export fn tw_set_foundation(text: u8*, length: usize): i32 {
     llvm_worker_require(terminated != null);
     copy(terminated, text, length);
     terminated[length] = 0;
-    var error: LlvmBootstrapString;
-    `cpp_name(std::string syntax_set_bootstrap(char const*))`(&error, terminated);
+    var error: SyntaxVersionDiagnostic = default;
+    defer syntax_version_diagnostic_dispose(&error);
+    syntax_host_install(compiler_host_world(), terminated, true, &error);
     free(terminated);
-    var raw = bits(u8*, &error);
-    var heap =(raw[11] &128) != 0;
-    var message = heap ? bits(u8*, error.words[0]): raw;
-    var size = heap ? error.words[1]: convert(usize, raw[11]);
+    var message = syntax_version_diagnostic_text(&error);
+    var size = backend_length(message);
     var state = llvm_worker();
     state.foundation_error.length = 0;
     llvm_worker_require(vector_reserve(&state.foundation_error, size + 1));
     copy(state.foundation_error.data, message, size);
     state.foundation_error.length = size;
     state.foundation_error.data[size] = 0;
-    if heap {
-        `cpp_name(void operator delete(void*))`(message);
-    }
+
     return 1;
 }
 

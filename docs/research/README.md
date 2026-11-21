@@ -1,5 +1,7 @@
 # Temporal opcode validation artifacts
 
+Historical research: the C/C++ experiment and its native-only build/check helpers were retired on 2026-11-21. Sources and reproduction commands remain available at [revision abf427e](https://github.com/TrevorSundberg/tower/tree/abf427ed2b3073cac31fafb3c4cb8ff590064d3f/docs/research). The descriptions and recorded measurements below are historical; they are not linked into the current compiler.
+
 The [native LLVM experiment](native-temporal/README.md) now adds compiled x64
 write tracking, selective past-input repair, snapshot/undo comparisons, and a
 file-backed history that can be reopened in another process. Its
@@ -8,7 +10,7 @@ and long-lived editor histories. This is a fixed-shape, aligned-word, region-lev
 subset of the current API, not the full dynamic core running natively.
 
 The current core is the [ten-operation API](temporal-core-api.md), its
-[complete commented C declarations](temporal-core.h), and its
+[complete commented C declarations](https://github.com/TrevorSundberg/tower/blob/abf427ed2b3073cac31fafb3c4cb8ff590064d3f/docs/research/temporal-core.h), and its
 [runnable example](temporal-core-example.mjs). Compiler intrinsics come first
 and are separate from user operations. The executable model registers actual
 numeric-address globals and tracks allocation/free ownership and lifetimes;
@@ -38,12 +40,12 @@ node docs/research/temporal-validation-all.mjs
 | --- | --- |
 | [Native proof and benchmark](native-temporal/README.md) | Real LLVM objects, agreed C API subset, all generated state stores tracked, fixed-shape region repair, independent historical-value oracle and disk remapping. |
 | [Native model and measurements](temporal-native-model.md) | Concrete arena layout, read/write tradeoffs, raw performance evidence, retention and cold-history design; no universal minimum-overhead claim. |
-| [Current C declarations](temporal-core.h) | Five compiler memory/lifetime intrinsics first; ten non-convenience user operations. |
+| [Current C declarations](https://github.com/TrevorSundberg/tower/blob/abf427ed2b3073cac31fafb3c4cb8ff590064d3f/docs/research/temporal-core.h) | Five compiler memory/lifetime intrinsics first; ten non-convenience user operations. |
 | [Current core contract](temporal-core-api.md) | Explicit storage ownership, execution entry, stable Points, source capture and historical lifetime rules. |
 | [Current runtime](temporal-core-runtime.mjs) | One numeric address space, allocation identities, automatic ordinary opcode tracking and atomic subtree replay. |
 | [Current validation](temporal-core-validation.mjs) | Original calculations and seeded corrections compared to independent fresh numerical results, including three levels of controllers. |
 | [Current adversarial tests](temporal-core-adversarial.mjs) | Attempts to break ordering, pointers, ownership, lifetimes, source capture, handles and nested atomicity. |
-| [Current declaration checks](temporal-core-surface.mjs) | C-header names/arguments/order checked against actual methods; not native compilation. |
+| [Current declaration checks](https://github.com/TrevorSundberg/tower/blob/abf427ed2b3073cac31fafb3c4cb8ff590064d3f/docs/research/temporal-core-surface.mjs) | C-header names/arguments/order checked against actual methods; not native compilation. |
 | [Current mutation tests](temporal-core-mutations.mjs) | Intentionally corrupt actual runtime source in memory; only behavioral assertion failures count as detections. |
 | [Current runnable examples](temporal-core-example.mjs) | Separate globals, ordinary stores and stable historical points; accompanying C source is illustrative. |
 | [Earlier byte core API](temporal-byte-api.md) | Source pointer and byte count; untyped Write, fixed-extent replacement; owner-carrying fake addresses. |

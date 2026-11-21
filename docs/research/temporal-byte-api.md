@@ -1,7 +1,7 @@
 # Temporal byte core: implemented C-like interface
 
 > Retained earlier experiment. The current interface is
-> [temporal-core.h](temporal-core.h), with [its contract](temporal-core-api.md).
+> [temporal-core.h](https://github.com/TrevorSundberg/tower/blob/abf427ed2b3073cac31fafb3c4cb8ff590064d3f/docs/research/temporal-core.h), with [its contract](temporal-core-api.md).
 > It separates compiler intrinsics, removes the public append convenience and
 > mark/label lookup, and implements explicit allocation ownership rather than
 > relying on owner-carrying fake addresses. Historical text below is preserved.

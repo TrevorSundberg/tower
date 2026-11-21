@@ -12,3 +12,4 @@ add_custom_command(OUTPUT "${template_object}"
   VERBATIM)
 set_source_files_properties("${template_object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
 target_sources(tower-compiler-parser-nodes INTERFACE "${template_object}")
+include("${CMAKE_CURRENT_LIST_DIR}/TowerSyntaxHost.cmake")

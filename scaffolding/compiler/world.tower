@@ -86,6 +86,10 @@ export fn compiler_world_pinned(world: CompilerWorld*): bool {
     return pinned;
 }
 
+export fn compiler_world_type_existing(world: CompilerWorld*, kind: u32): Entity* {
+    return kind < CompilerComponentCount() ? world.types[kind] : null;
+}
+
 export fn compiler_world_type(world: CompilerWorld*, kind: u32): Entity* {
     if kind >= CompilerComponentCount() {
         return null;

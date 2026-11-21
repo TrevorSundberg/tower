@@ -1,4 +1,6 @@
 import tower;
+import .host.syntax_baseline_api;
+import .compiler.syntax_version_types;
 import .host.driver_types;
 import .host.driver_support;
 import .host.driver_request;
@@ -35,16 +37,11 @@ export fn main(argc: i32, argv: u8**): i32 {
     var request: DriverRequest;
     execution_check(driver_request_open(&request, &options, argv[1]), "bootstrap snapshots");
     defer driver_request_close(&request);
-    driver_request_bind(&request, driver_syntax_slot());
-    var result: usize[4];
-    driver_syntax_bedrock(&result[0], request.text[DriverBedrockText()].data);
-    execution_check(driver_syntax_data(&result[0])[0] == 0, "install Bedrock");
-    if driver_syntax_heap(&result[0]) {
-        driver_syntax_delete(driver_syntax_storage(&result[0]));
-    }
-    driver_syntax_foundation(&result[0], request.text[DriverFoundationText()].data);
-    execution_check(driver_syntax_data(&result[0])[0] == 0, "install Foundation");
-    if driver_syntax_heap(&result[0]) { driver_syntax_delete(driver_syntax_storage(&result[0])); }
+    driver_request_bind(&request, syntax_host_environment(compiler_host_world()));
+    var result: SyntaxVersionDiagnostic = default;
+    defer syntax_version_diagnostic_dispose(&result);
+    execution_check(syntax_host_install(compiler_host_world(), request.text[DriverBedrockText()].data, false, &result), "install Bedrock" );
+    execution_check(syntax_host_install(compiler_host_world(), request.text[DriverFoundationText()].data, true, &result), "install Foundation" );
     frontend_modules_configure(request.modules, "named_initialization_input.tower", argv[1]);
     named_initialization_tests(request.modules, argv[1]);
     frontend_modules_configure(request.modules, options.source, argv[1]);

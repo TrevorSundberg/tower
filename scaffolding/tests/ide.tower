@@ -8,7 +8,7 @@ import .host.ide_tree;
 import .host.ide_completion;
 import .host.ide_execution;
 import .host.ide_artifacts;
-import .host.ide_syntax_wasi;
+import .host.ide_selftest;
 import .library.bytes_types;
 import .library.bytes_interface;
 

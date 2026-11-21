@@ -4,23 +4,20 @@ import format_abi;
 import utility_checks;
 import .library.bytes_types;
 import .library.bytes_interface;
+import .host.syntax_baseline_api;
+import .compiler.syntax_version_types;
 
-extern fn `cpp_name(std::string syntax_set_bedrock(char const*))`(result: usize*, source: u8*): void;
-extern fn `cpp_name(std::string syntax_set_bootstrap(char const*))`(result: usize*, source: u8*): void;
-extern fn `cpp_name(void operator delete(void*))`(data: u8*): void;
 extern fn driver_read_file(path: u8*, out: ByteBuffer*): bool;
 extern fn host_text_terminate(out: ByteBuffer*): bool;
 
-export fn driver_syntax_delete(data: u8*): void { `cpp_name(void operator delete(void*))`(data); }
 fn format_wasi_baseline(path: u8*, bedrock: bool): void {
     var input: ByteBuffer; fill(&input, 0, sizeof(ByteBuffer)); defer bytes_dispose(&input);
     utility_check(driver_read_file(path, &input) && host_text_terminate(&input), "Read WASI formatter grammar");
-    var result: usize[3];
-    if bedrock { `cpp_name(std::string syntax_set_bedrock(char const*))`(&result[0], input.data); }
-    else { `cpp_name(std::string syntax_set_bootstrap(char const*))`(&result[0], input.data); }
-    defer format_abi_string_dispose(&result[0]);
-    if format_abi_string_length(&result[0]) != 0 { puts(format_abi_string_data(&result[0])); }
-    utility_check(format_abi_string_length(&result[0]) == 0, "Install WASI formatter grammar");
+    var result: SyntaxVersionDiagnostic = default;
+    defer syntax_version_diagnostic_dispose(&result);
+    var ok = syntax_host_install(compiler_host_world(), input.data, !bedrock, &result);
+    if !ok { puts(syntax_version_diagnostic_text(&result)); }
+    utility_check(ok, "Install WASI formatter grammar");
 }
 export fn __main_argc_argv(argc: i32, argv: u8**): i32 {
     format_wasi_baseline("bedrock.tower", true); format_wasi_baseline("foundation.tower", false);

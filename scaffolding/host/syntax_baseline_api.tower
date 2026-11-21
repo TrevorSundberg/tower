@@ -1,0 +1,12 @@
+import tower;
+import .compiler.syntax_version_types;
+
+// Explicit world ownership; returned text and the environment slot are borrowed
+// until the corresponding update or frontend_world_clear. Coordinator use only.
+extern fn syntax_host_environment(world: void*): void**;
+extern fn syntax_host_install(world: void*, source: u8*, foundation: bool, diagnostic: SyntaxVersionDiagnostic*): bool;
+extern fn syntax_host_set(world: void*, source: u8*, length: usize, foundation: bool, environment: void*): u8*;
+extern fn syntax_host_seed(world: void*): u8*;
+extern fn syntax_version_diagnostic_text(diagnostic: SyntaxVersionDiagnostic*): u8*;
+extern fn syntax_version_diagnostic_dispose(diagnostic: SyntaxVersionDiagnostic*): void;
+extern fn compiler_host_world(): void*;

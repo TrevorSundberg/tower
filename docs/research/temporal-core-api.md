@@ -1,6 +1,6 @@
 # Temporal core: compiler intrinsics first, user operations second
 
-The declarations are in [temporal-core.h](temporal-core.h), with compiler-only
+The declarations are in [temporal-core.h](https://github.com/TrevorSundberg/tower/blob/abf427ed2b3073cac31fafb3c4cb8ff590064d3f/docs/research/temporal-core.h), with compiler-only
 `builtin_temporal_*` declarations first. The executable fake-machine implementation
 is [temporal-core-runtime.mjs](temporal-core-runtime.mjs). The header specifies the
 C-like boundary; it is not a linked native implementation or an LLVM compiler.
@@ -186,11 +186,10 @@ selective scheduler built from those traces.
 node docs/research/temporal-core-example.mjs
 node docs/research/temporal-core-validation.mjs
 node docs/research/temporal-core-adversarial.mjs
-node docs/research/temporal-core-surface.mjs
 node docs/research/temporal-core-mutations.mjs
 ```
 
-[The C source example](temporal-core-example.c) spells the original calculations
+[The C source example](https://github.com/TrevorSundberg/tower/blob/abf427ed2b3073cac31fafb3c4cb8ff590064d3f/docs/research/temporal-core-example.c) spells the original calculations
 as ordinary source. Its [runnable lowering](temporal-core-example.mjs) uses the
 same user operations and explicit compiler-generated registration/opcodes.
 The declaration checks compare the header to actual method names, argument

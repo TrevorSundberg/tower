@@ -28,6 +28,7 @@ extern fn compiler_world_grammar(world: void*): CompilerGrammarCache*;
 extern fn compiler_world_type(world: void*, kind: u32): void*;
 
 extern fn compiler_world_pinned(world: void*): bool;
+extern fn syntax_host_clear(world: void*): bool;
 
 fn frontend_world_kinds(world: void*, kinds: FrontendKinds*): bool {
     kinds.rule = compiler_world_type(world, CompilerParserRule());
@@ -94,6 +95,7 @@ export fn frontend_world_clear(world: void*): bool {
     }
     var cache = compiler_world_grammar(world);
     if cache.workers_busy { return false; }
+    if !syntax_host_clear(world) { return false; }
     work_pool_close(&cache.workers);
     syntax_baselines_clear(world);
     frontend_pattern_destroy(bits(FrontendPatternCompiler*, cache.patterns));

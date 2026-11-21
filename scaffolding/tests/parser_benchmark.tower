@@ -1,20 +1,10 @@
 import tower;
 
-// Measurement only: calls the unchanged production syntax exports so exactly
-// the same fixture can link against the saved predecessor and current compiler.
-// Allocation calls below count the existing instrumented Tower buffer allocator;
-// they are not a claim about all libc/C++ allocations.
+import .host.syntax_baseline_api;
+import .compiler.syntax_version_types;
+
+// Production parsing benchmark; setup uses the shared Tower diagnostic ABI.
 extern fn syntax_create(source: u8*, module: void*): void*;
-
-// Linux x64 / libstdc++ existing syntax return ABI; an empty success string uses
-// inline storage. The normal Tower foreign-name tool resolves the declaration.
-struct BenchmarkString {
-    data: u8*;
-    length: usize;
-    inline_bytes: u8[16];
-}
-
-extern fn `cpp_name(abi_tag(cxx11) std::string syntax_set_bootstrap(char const*))`(result: BenchmarkString*, source: u8*): void;
 
 extern fn syntax_reset(session: void*, source: u8*, module: void*): void;
 
@@ -84,10 +74,10 @@ fn benchmark_parse(session: void*): void {
 
 export fn main(argc: i32, argv: u8**): i32 {
     var declaration: u8* = "parse Statement = 'x'* ';';";
-    var setup: BenchmarkString;
-    `cpp_name(abi_tag(cxx11) std::string syntax_set_bootstrap(char const*))`(&setup, declaration);
-    if setup.length != 0 {
-        puts(setup.data);
+    var setup: SyntaxVersionDiagnostic = default;
+    defer syntax_version_diagnostic_dispose(&setup);
+    if !syntax_host_install(compiler_host_world(), declaration, true, &setup) {
+        puts(syntax_version_diagnostic_text(&setup));
         abort();
     }
     var length: usize = 0;

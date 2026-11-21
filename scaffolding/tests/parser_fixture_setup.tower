@@ -1,14 +1,13 @@
 import tower;
 import .library.bytes_types;
 import .library.bytes_interface;
-import format_abi;
+import .host.syntax_baseline_api;
+import .compiler.syntax_version_types;
 import utility_checks;
 import storage_api;
 
 extern fn driver_read_file(path: u8*, out: ByteBuffer*): bool;
 extern fn host_text_terminate(out: ByteBuffer*): bool;
-extern fn fixture_bedrock(out: usize*, source: u8*): void;
-extern fn fixture_foundation(out: usize*, source: u8*): void;
 extern fn compiler_runtime_write(data: u8*, length: usize): void;
 
 fn parser_fixture_try_baseline(path: u8*, bedrock: bool): bool {
@@ -16,11 +15,11 @@ fn parser_fixture_try_baseline(path: u8*, bedrock: bool): bool {
     if !driver_read_file(path, &input) || !host_text_terminate(&input) {
         compiler_runtime_write("Cannot read ", 12); compiler_runtime_write(path, strlen(path)); compiler_runtime_write("\n", 1); return false;
     }
-    var result: usize[4];
-    if bedrock { fixture_bedrock(&result[0], input.data); } else { fixture_foundation(&result[0], input.data); }
-    defer format_abi_string_dispose(&result[0]);
-    if format_abi_string_length(&result[0]) != 0 {
-        compiler_runtime_write(format_abi_string_data(&result[0]), format_abi_string_length(&result[0])); compiler_runtime_write("\n", 1); return false;
+    var result: SyntaxVersionDiagnostic = default;
+    defer syntax_version_diagnostic_dispose(&result);
+    if !syntax_host_install(compiler_host_world(), input.data, !bedrock, &result) {
+        var text = syntax_version_diagnostic_text(&result);
+        compiler_runtime_write(text, strlen(text)); compiler_runtime_write("\n", 1); return false;
     }
     return true;
 }

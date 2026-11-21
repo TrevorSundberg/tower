@@ -93,19 +93,3 @@ extern fn backend_bytes(backend: void*): u8*;
 extern fn backend_size(backend: void*): usize;
 
 extern fn backend_function_name(backend: void*, index: usize): u8*;
-
-// Private target-artifact bindings to the remaining native syntax baseline.
-// The builder supplies the selected C++ string ABI and sret attributes.
-extern fn driver_syntax_slot(): void**;
-
-extern fn driver_syntax_bedrock(result: usize*, source: u8*): void;
-
-extern fn driver_syntax_foundation(result: usize*, source: u8*): void;
-
-extern fn driver_syntax_delete(data: u8*): void;
-
-extern fn driver_syntax_data(value: usize*): u8*;
-
-extern fn driver_syntax_heap(value: usize*): bool;
-
-extern fn driver_syntax_storage(value: usize*): u8*;

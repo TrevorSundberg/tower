@@ -1,5 +1,7 @@
 # Native temporal proof
 
+Historical research: the C/C++ experiment and its native-only build/check helpers were retired on 2026-11-21. Sources and reproduction commands remain available at [revision abf427e](https://github.com/TrevorSundberg/tower/tree/abf427ed2b3073cac31fafb3c4cb8ff590064d3f/docs/research). The descriptions and recorded measurements below are historical; they are not linked into the current compiler.
+
 This experiment compiles ordinary LLVM memory operations to native x64 code,
 tracks every state write in that generated workload, amends a captured input in
 the past, and compares selective repair with both snapshot replay and undo/redo.
@@ -12,7 +14,7 @@ and provenance are in [results/windows-x64.json](results/windows-x64.json).
 ## Relation to the agreed C API
 
 The public example and repair benchmark include the existing
-[temporal-core.h](../temporal-core.h), with its original signatures. The LLVM
+[temporal-core.h](https://github.com/TrevorSundberg/tower/blob/abf427ed2b3073cac31fafb3c4cb8ff590064d3f/docs/research/temporal-core.h), with its original signatures. The LLVM
 lowering emits `builtin_temporal_load(address, 8)` and
 `builtin_temporal_store(address, value, 8)`. The example uses
 `temporal_create`, `temporal_point`, `temporal_edit`, `temporal_store_at`,

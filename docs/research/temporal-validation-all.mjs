@@ -55,10 +55,6 @@ const suites = [
     cases: r.cases, assertions: r.assertions, expectedFailures: r.expectedFailures,
     successfulRepairs: r.successfulRepairs,
   })],
-  ['temporal-core-surface.mjs', (r) => ({
-    assertions: r.assertions, compilerIntrinsics: r.compilerIntrinsics,
-    userOperations: r.userOperations, nativeCompilationClaim: r.nativeCompilationClaim,
-  })],
   ['temporal-core-mutations.mjs', (r) => ({
     baselineProbes: r.baselineProbes, detectedMutations: r.detected,
     survivingMutations: r.survivors,

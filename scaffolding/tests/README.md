@@ -304,7 +304,8 @@ installation leaves the previous grammar revision intact and stops the session.
 A session caches up to 64 compiled grammars; new definitions still require table
 construction. This is not temporal repair yet.
 
-The session API is in [syntax.hpp](../syntax.hpp). `syntax_next()` transfers one
+The session API is in [syntax_session_setup.tower](../compiler/syntax_session_setup.tower)
+and [syntax_session_scan.tower](../compiler/syntax_session_scan.tower). `syntax_next()` transfers one
 root per declaration or statement. `syntax_get_error()` distinguishes failure from
 EOF. Roots, copied labels and named captures survive later declarations and session
 destruction; numeric match and production IDs remain local to their original table.

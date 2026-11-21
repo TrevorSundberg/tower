@@ -28,6 +28,20 @@ function(tower_runtime_tools)
 endfunction()
 
 function(tower_runtime_object name input triple)
+  if(NOT ARGN)
+    # No foreign rewrites remain: emit the Tower object directly.
+    set(object "${CMAKE_CURRENT_BINARY_DIR}/${name}.o")
+    add_custom_command(OUTPUT "${object}"
+      COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${input}" --library --target "${triple}"
+        --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
+        --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
+        -o "${object}" --depfile "${object}.d"
+      DEPFILE "${object}.d"
+      DEPENDS "${input}" "${TOWER_BOOTSTRAP_COMPILER}" VERBATIM)
+    set_source_files_properties("${object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
+    set(${name}_OBJECT "${object}" PARENT_SCOPE)
+    return()
+  endif()
   tower_runtime_tools()
   get_property(bind GLOBAL PROPERTY TOWER_RUNTIME_BIND)
   set(ir "${CMAKE_CURRENT_BINARY_DIR}/${name}-unbound.ll")
