@@ -56,6 +56,24 @@ function(tower_backend_integrate)
     DEPFILE "${foreign_object}.d"
     DEPENDS "${foreign_source}" "${TOWER_BOOTSTRAP_COMPILER}" "${foreign_runtime}"
     BYPRODUCTS "${foreign_object}" VERBATIM)
+  set(runtime_source "")
+  if(TOWER_BROWSER_LLVM)
+    set(embed_object "${CMAKE_CURRENT_BINARY_DIR}/tower-embed-runtime.o")
+    set(embed_tool "${CMAKE_CURRENT_BINARY_DIR}/tower-embed-runtime${CMAKE_HOST_EXECUTABLE_SUFFIX}")
+    set(runtime_source "${CMAKE_CURRENT_BINARY_DIR}/tower_runtime.tower")
+    tower_guest_runtime(wasm32 wasm32-unknown-unknown wasm OFF)
+    get_property(guest_runtime GLOBAL PROPERTY TOWER_GUEST_wasm32_OBJECT)
+    add_custom_command(OUTPUT "${embed_tool}"
+      COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/backend/embed_runtime.tower"
+        --library --target "${foreign_host_triple}" -o "${embed_object}" --depfile "${embed_object}.d"
+      COMMAND "${TOWER_BACKEND_HOST_CC}" "${embed_object}" "${foreign_runtime}" -o "${embed_tool}"
+      DEPFILE "${embed_object}.d"
+      DEPENDS scaffolding/backend/embed_runtime.tower "${TOWER_BOOTSTRAP_COMPILER}" "${foreign_runtime}"
+      BYPRODUCTS "${embed_object}" VERBATIM)
+    add_custom_command(OUTPUT "${runtime_source}"
+      COMMAND "${embed_tool}" "${guest_runtime}" "${runtime_source}"
+      DEPENDS "${embed_tool}" "${guest_runtime}" VERBATIM)
+  endif()
   foreach(flavor IN ITEMS native wasm)
     set(input "${CMAKE_CURRENT_BINARY_DIR}/tower_backend_${flavor}.tower")
     set(expanded "${CMAKE_CURRENT_BINARY_DIR}/tower_backend_${flavor}_expanded.tower")
@@ -65,10 +83,11 @@ function(tower_backend_integrate)
       set(wasm_only ON)
     endif()
     add_custom_command(OUTPUT "${input}"
-      COMMAND "${CMAKE_COMMAND}" -DROOT=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT=${input} -DWASM_ONLY=${wasm_only} -DWASI_HOST=${TOWER_BROWSER} -DTESTS=${TOWER_BACKEND_TESTS} -DLLVM_CONFIG_DIR=${backend_llvm_config} -DHOST_TRIPLE=${triple}
+      COMMAND "${CMAKE_COMMAND}" -DROOT=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT=${input} -DWASM_ONLY=${wasm_only} -DWASI_HOST=${TOWER_BROWSER} -DTESTS=${TOWER_BACKEND_TESTS} -DLLVM_CONFIG_DIR=${backend_llvm_config} -DHOST_TRIPLE=${triple} -DRUNTIME_SOURCE=${runtime_source}
         -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/ComposeBackend.cmake"
       DEPENDS ${backend_sources} scaffolding/library/vector.tower scaffolding/compiler/foundation_nodes.tower
-        cmake/ComposeBackend.cmake scaffolding/tests/backend.tower scaffolding/tests/foreign_names.tower VERBATIM)
+        cmake/ComposeBackend.cmake scaffolding/tests/backend.tower scaffolding/tests/foreign_names.tower
+        scaffolding/host/llvm_worker.tower scaffolding/tests/backend_source.tower ${runtime_source} VERBATIM)
     set(mangle_input "${input}")
     if(TOWER_BROWSER_LLVM)
       set(mangle_input "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/backend/wasi_support.tower")
@@ -99,7 +118,7 @@ function(tower_backend_integrate)
       set_source_files_properties("${test_object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
       get_target_property(test_sources towerc SOURCES)
       list(REMOVE_ITEM test_sources "${CMAKE_CURRENT_BINARY_DIR}/tower-driver.o")
-      list(APPEND test_sources scaffolding/llvm-engine.cpp scaffolding/core.cpp scaffolding/core-nodes.cpp scaffolding/core-machine.cpp)
+      list(APPEND test_sources scaffolding/core.cpp scaffolding/core-nodes.cpp scaffolding/core-machine.cpp)
       get_target_property(test_libraries towerc LINK_LIBRARIES)
       add_executable(tower-backend-tests ${test_sources} "${test_object}")
       target_compile_features(tower-backend-tests PRIVATE cxx_std_20)

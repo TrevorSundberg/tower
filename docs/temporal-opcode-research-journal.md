@@ -23030,3 +23030,107 @@ directory, plus the clean cache's CTest LastTest.log. Updated the native header'
 stale descriptions to name the world-owned Tower-built seed. Source publication
 is under agent 1's lock; coordinator owns the combined browser deployment after
 handoff. No hosted success is claimed at this checkpoint.
+## 2026-11-20: four independent migration checkouts and ownership
+
+The user requested three local, visible Codex agents alongside the coordinator.
+Renamed the clean independent `tower-cli-runtime` clone to `tower-agent-1`,
+repaired its nested Pages worktree metadata, preserved its stash, pulled main,
+and passed Git connectivity checks. Created independent `tower-agent-2` and
+`tower-agent-3` clones (no shared Git hardlinks); all start at `8d8b4aa` on main.
+The old completed CLI session was closed before moving its checkout. The older
+`tower-interpreter` worktree is unrelated and remains untouched. Trusted only the
+three explicitly assigned project paths and launched each through visible
+PowerShell with `codex --yolo --no-daemon`; each has acknowledged its task.
+
+Parallel ownership: agent 1 handles native syntax definition/token overlays,
+immutable revisions, then baseline/session world ownership; agent 2 handles
+CoreProgram/CoreMachine execution adapters and their native test consumers;
+agent 3 translates remaining parser/ECS/format/semantic native tests and their
+harness. The coordinator retains LLVM worker orchestration, backend adapters,
+runtime embedding and their isolated build wiring. These lanes share existing
+ECS/Foundation entities; none introduces another semantic graph or new features.
+External task/status/inbox files live in `C:/Sandbox/build/codex-agents`; each
+agent has its own checkout/build cache. Publication uses an exclusive shared
+lock, fresh rebase and combined-source validation to avoid artifact rollback.
+Each agent must journal, validate, commit/pull/rebase, deploy/verify and push;
+no force pushes, no todo edits, no new native implementation, and no sanitizer
+or broad formatter sweeps. Existing Python/JS orchestration is reused.
+
+Coordinator's next bounded port: replace `llvm-backend.cpp` source compilation,
+optimized Foundation reconstruction/checking, result ownership and worker exports
+with Tower services over SemanticProgram and BackendSession. Preserve the
+transport-independent graph backend API. Replace the generated native runtime
+header with a Tower-generated source literal so no owned native embedding shim
+is needed. These are planned changes, not yet validated results.
+
+### LLVM worker/native adapter retirement: implementation and initial validation
+
+Removed llvm-backend.cpp (67 lines), llvm-engine.cpp (106), llvm-engine.hpp (21),
+and the comment-only llvm-wasi.cpp. Repository-wide caller search found no
+remaining consumers of the legacy TowerObject/emit/optimize/disassemble API;
+its only remaining build reference was the native test source list. Native
+backend tests now link without it. Browser reactor source lists also no longer
+link core.cpp/core-nodes.cpp. Their remaining test consumers belong to agent 2/3.
+
+backend/source_session.tower owns explicit BackendSource sessions and invokes
+existing SemanticProgram/frontend/formatter interfaces over shared ECS nodes.
+It checks bounded non-NUL input, owns one terminated copy, reconstructs and
+rechecks optimized Foundation, preserves diagnostics/offsets, and releases each
+temporary graph. The graph backend remains independent of source/CLI/browser
+transport. host/llvm_worker.tower supplies the existing worker exports using an
+entity-world transport component. Transport buffers/runtime bytes retain worker
+lifetime; explicit source sessions have a close API. This is not a claim of
+thread-safe mutation or complete world/session isolation.
+
+Replaced embed-object.py and its generated native header with the Tower tool
+backend/embed_runtime.tower and isolated backend build wiring. It emits ordinary
+Tower functions containing exact hex runtime bytes and length; the actual backend
+unit includes these declarations, so the editable successor recipe contains them.
+First trial used unsupported hex string escapes; rejected without expanding
+Foundation/grammar. The corrected generator emits ASCII hex decoded once per
+worker. The generated 6,382 bytes exactly match guest-wasm32.o, SHA256
+0648ec02fefe315f065f8fef6cd289d97b1430561c109ec94d0208033e163ba9.
+A test-build manifest initially appended imports after generated declarations;
+fixed composition order so all imports precede generated Tower declarations.
+Test extern prototypes initially disagreed with the concrete BackendSource type;
+the fixture now imports that module directly. No owned native shim was added.
+
+Upstream 8290fd2 arrived after agent launch, adding for loops and a new complete
+published bootstrap. Rebased with autostash, preserving both appended journal
+sections, read new AGENTS instructions, and notified agents. An already-started
+cached build exposed its stale a543 compiler (TowerFor unsupported); reconfigured
+to documented installed bootstrap 9bbb2eb8fa039442303d231fd35b5b4ac416df21f19c80f0d5f9dbf6bb01f395.
+Fresh no-override native build /home/trevo/.cache/tower/llvm-worker-for-clean passed.
+Current parser and both LLVM/cross reactors built successfully. Backend native API
+checks passed; focused frontend/driver checks and final integrated publication
+are tracked below when complete.
+
+New Tower backend_source_tests passed three repeated runs in each test-enabled
+LLVM/cross reactor: independent sessions/result buffers, raw/optimized import,
+invalid null/oversized/NUL inputs, supplied grammar diagnostics, exact source-span
+clipping, linked output, resets and disposal. Existing backend_tests passed too.
+The first test log printed a detached Wasm ArrayBuffer view's length as zero
+AFTER subsequent memory growth; comparison happened before growth and passed.
+The separate ABI check captures length first and confirms 6,382 exact bytes in
+both production reactors, plus legacy three-argument and explicit-environment
+four-argument tw_llvm_compile_options calls. Logs are build/language-next/
+llvm-worker-{source-tests,abi}.log. Tests use existing TowerWASI/bootstrap helpers
+through inline Node orchestration; no new JS functional test implementation.
+
+Existing Node LLVM execution/cross compilation/operators/for-loop suite: 56/56,
+no skips, 7.90s initially and 8.25s after the environment handoff fix. Objects,
+imports/exports, linking, optimized Foundation reconstruction and interpreter
+agreement are covered. Raw/optimized source behavior remained intact.
+
+Paired benchmark against the current published 0226784 LLVM reactor used identical
+canonical Foundation generated from functions/collections/templates, two warmups
+and 12 alternating warm request pairs per fixture. Object bytes were identical.
+Initial worker created an empty syntax session solely to borrow its environment:
+medians 6.59->9.07ms, 35.18->35.88ms, 3.68->5.28ms; consistent small-program
+regression (~2ms). Fixed by mechanically passing the caller's already-owned module
+environment as a fourth JS-to-Tower argument. Legacy callers retain the old
+fallback lease. Repeated medians: 6.60->6.43ms, 34.05->33.39ms, 3.40->3.25ms;
+paired median deltas -10.51%, -2.37%, -0.99%, with 5/4/6 slower pairs of 12.
+This noisy warm-request trial eliminates the observed fixed overhead; it is not
+an across-platform throughput guarantee. Reports: llvm-worker-benchmark.json and
+llvm-worker-pinned-benchmark.json. Sanitizer/broad formatter sweeps remain skipped.

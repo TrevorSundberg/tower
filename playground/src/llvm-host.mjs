@@ -86,7 +86,7 @@ export async function loadLLVM(bytes, log = () => {}, bootstrap, foundation, bed
       if (!pointer) throw new Error('Unable to allocate foundation source memory');
       try {
         new Uint8Array(e.memory.buffer).set(text, pointer);
-        const result = JSON.parse(string(e.tw_llvm_compile_options(pointer, text.length, (emit === 'object' ? 1 : 0) | (library ? 2 : 0) | (emit === 'foundation' ? 4 : 0) | (optimize ? 0 : 8))));
+        const result = JSON.parse(string(e.tw_llvm_compile_options(pointer, text.length, (emit === 'object' ? 1 : 0) | (library ? 2 : 0) | (emit === 'foundation' ? 4 : 0) | (optimize ? 0 : 8), modules.environment)));
         if (result.status === 'error') return moduleDiagnostic(result, modules.sourceMap());
         if (emit === 'foundation') return {...result, foundation:string(e.tw_llvm_foundation()), before:string(e.tw_llvm_before()), after:string(e.tw_llvm_after())};
         return { ...result, before: string(e.tw_llvm_before()), after: string(e.tw_llvm_after()), disassembly: e.tw_llvm_disassembly ? string(e.tw_llvm_disassembly()) : '',

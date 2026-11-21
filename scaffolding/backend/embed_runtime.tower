@@ -1,0 +1,56 @@
+import tower;
+
+// Translate the former native runtime header generator into Tower. The output
+// is ordinary compilable Tower with exact hex bytes and an explicit length.
+extern fn fopen(path: u8*, mode: u8*): void*;
+extern fn fclose(file: void*): i32;
+extern fn fgetc(file: void*): i32;
+extern fn fputc(byte: i32, file: void*): i32;
+extern fn fputs(text: u8*, file: void*): i32;
+extern fn ferror(file: void*): i32;
+extern fn puts(text: u8*): i32;
+
+fn embed_runtime_size(out: void*, value: usize): bool {
+    var digits: u8[20];
+    var count: usize = 0;
+    loop {
+        digits[count] = convert(u8, value % 10) + 48;
+        count++;
+        value /= 10;
+        if value == 0 { break; }
+    }
+    while count != 0 {
+        count--;
+        if fputc(convert(i32, digits[count]), out) < 0 { return false; }
+    }
+    return true;
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    if argc != 3 { puts("embed-runtime object output.tower"); return 1; }
+    var input = fopen(argv[1], "rb");
+    if input == null { puts("Cannot open runtime object"); return 1; }
+    var output = fopen(argv[2], "wb");
+    if output == null { fclose(input); puts("Cannot write runtime Tower source"); return 1; }
+    var ok = fputs("// Generated from the selected Tower runtime target object.\nexport fn backend_worker_runtime_hex(): u8* { return \"", output) >= 0;
+    var count: usize = 0;
+    var hex: u8* = "0123456789abcdef";
+    while ok {
+        var byte = fgetc(input);
+        if byte < 0 { break; }
+        ok = fputc(convert(i32, hex[convert(usize, byte) / 16]), output) >= 0;
+        ok &&= fputc(convert(i32, hex[convert(usize, byte) % 16]), output) >= 0;
+        if count == ~convert(usize, 0) { ok = false; break; }
+        count++;
+    }
+    ok &&= ferror(input) == 0;
+    ok &&= fputs("\"; }\nexport fn backend_worker_runtime_size(): usize { return ", output) >= 0;
+    ok &&= embed_runtime_size(output, count);
+    ok &&= fputs("; }\n", output) >= 0;
+    var input_status = fclose(input);
+    var output_status = fclose(output);
+    if !ok || input_status != 0 || output_status != 0 {
+        puts("Unable to embed runtime object"); return 1;
+    }
+    return 0;
+}

@@ -1,10 +1,28 @@
 # Tower backend API
 
-The implementation consumes the existing validated Foundation entities through
-`sem_get`. It does not parse source or define another
-semantic representation. LLVM/lld remain upstream dependencies. The native
-`llvm-engine.cpp` and `llvm-backend.cpp` files only connect the existing frontend
-and transport interfaces to these Tower functions. `llvm-wasi.cpp` has no code.
+The graph backend consumes existing validated Foundation entities through
+`sem_get`. LLVM/lld remain upstream dependencies. The Tower source service in
+`source_session.tower` calls the existing frontend and formatter on these same
+entities; it does not define another semantic representation. The browser worker
+exports live in `host/llvm_worker.tower`. The native LLVM engine/worker adapters
+have been retired; browser reactors no longer link CoreProgram adapters.
+
+`backend_source_create(runtime, length)` owns a backend session and reconstructed
+Foundation buffer; `backend_source_close` releases both. Call
+`backend_source_compile(source, text, length, flags, environment, foundation_error)`
+with a pinned module environment and the diagnostic from installing the requested
+Foundation grammar (null/empty means success). Source spans need not end in NUL.
+The service validates/copies the span, compiles it through `SemanticProgram`, and
+releases every temporary shared graph after lowering. Import mode formats the
+reconstructed graph and recompiles it before reporting success. Results belong
+to the explicit session; independent sessions do not share result buffers.
+
+The worker's entity component holds its transport session for the worker lifetime,
+as the IDE does. This does not make concurrent mutation of a session safe. Callers
+serialize requests or use separate sessions/worlds. The source API is independent
+of the worker exports and CLI. A Tower build tool, `embed_runtime.tower`, emits the
+runtime object as hex in compilable Tower source included in the actual backend unit,
+so browser successor builds reconstruct it without a native embedding wrapper.
 
 ## Interpreter program optimization
 

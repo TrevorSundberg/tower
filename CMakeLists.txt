@@ -103,19 +103,10 @@ if(TOWER_BROWSER)
     add_subdirectory(${TOWER_LLVM_SOURCE_DIR}/llvm third_party/llvm-project/llvm)
     set(CMAKE_SYSTEM_NAME "${tower_sdk_system_name}")
     set(tower_llvm_sources
-      scaffolding/llvm-backend.cpp scaffolding/llvm-engine.cpp scaffolding/llvm-wasi.cpp scaffolding/core.cpp scaffolding/core-nodes.cpp
       scaffolding/tower.cpp scaffolding/tests/nodes.cpp
       scaffolding/syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/format.cpp scaffolding/lex-pattern.cpp scaffolding/lex-pattern-common.cpp scaffolding/syntax-tests.cpp)
-    get_filename_component(tower_sdk_bin "${CMAKE_C_COMPILER}" DIRECTORY)
-    tower_guest_runtime(wasm32 wasm32-unknown-unknown wasm OFF)
-    get_property(guest_runtime GLOBAL PROPERTY TOWER_GUEST_wasm32_OBJECT)
-    add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/tower-runtime.inc"
-      COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${guest_runtime}" "${CMAKE_CURRENT_BINARY_DIR}/tower-runtime.o"
-      COMMAND python3 "${CMAKE_CURRENT_SOURCE_DIR}/playground/scripts/embed-object.py"
-        "${CMAKE_CURRENT_BINARY_DIR}/tower-runtime.o" "${CMAKE_CURRENT_BINARY_DIR}/tower-runtime.inc"
-      DEPENDS "${guest_runtime}" playground/scripts/embed-object.py)
     function(tower_llvm_reactor name output)
-      add_executable(${name} ${tower_llvm_sources} "${CMAKE_CURRENT_BINARY_DIR}/tower-runtime.inc")
+      add_executable(${name} ${tower_llvm_sources})
       target_include_directories(${name} PRIVATE ${TOWER_LLVM_SOURCE_DIR}/lld/include
         ${TOWER_LLVM_SOURCE_DIR}/llvm/include ${CMAKE_CURRENT_BINARY_DIR}/third_party/llvm-project/llvm/include
         "${CMAKE_CURRENT_BINARY_DIR}")
