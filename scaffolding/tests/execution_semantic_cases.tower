@@ -187,19 +187,22 @@ fn execution_semantic_offset(index: usize): usize {
     return 0;
 }
 
-// Complete semantic-field/edge fingerprints for the oracle-validated fixtures.
+// Complete semantic-field/edge fingerprints, updated for ECS query ownership and
+// explicit target widths. Every fixture still emits byte-identical Foundation
+// to the published fb1ab1 bootstrap at both widths; runtime/round-trip checks
+// remain below the fingerprint assertion. Derived ownership changes traversal IDs.
 fn execution_semantic_hash(index: usize, width: u32): u64 {
-    if index == 0 { return width == 4 ? 2192847797975695220 : 15003409694779333536; }
-    if index == 1 { return width == 4 ? 16173631176445912193 : 2591587610793754121; }
-    if index == 2 { return width == 4 ? 14726233585564774580 : 2805389423518516376; }
-    if index == 3 { return width == 4 ? 7373986308257194118 : 5699771906234079882; }
-    if index == 4 { return width == 4 ? 16377056228626920605 : 10101604318888749921; }
-    if index == 5 { return width == 4 ? 3855286971774731131 : 12877081428056369723; }
-    if index == 6 { return width == 4 ? 858586173797575585 : 16997477496163309593; }
-    if index == 7 { return width == 4 ? 17003558457049766173 : 12142792876344360117; }
-    if index == 8 { return width == 4 ? 12002694011537331271 : 3071027526090961735; }
-    if index == 9 { return width == 4 ? 7830828730142694494 : 3493487994434079826; }
-    if index == 10 { return width == 4 ? 12181652860130113905 : 18328139296851248677; }
-    if index == 11 { return width == 4 ? 16728719318908956279 : 11401903704535171691; }
+    if index == 0 { return width == 4 ? 3814120275279698994 : 13867606530841306302; }
+    if index == 1 { return width == 4 ? 1036501363757852425 : 15571537577656501837; }
+    if index == 2 { return width == 4 ? 7528392948362756140 : 12439562974562146816; }
+    if index == 3 { return width == 4 ? 1110091092525870677 : 15653113990464848637; }
+    if index == 4 { return width == 4 ? 12292084373616401934 : 15096192544543102958; }
+    if index == 5 { return width == 4 ? 15233354023948956227 : 5860423807570502111; }
+    if index == 6 { return width == 4 ? 721354401553426585 : 9926356341158941921; }
+    if index == 7 { return width == 4 ? 9743986054193228325 : 18410723470825035925; }
+    if index == 8 { return width == 4 ? 16410019685915176383 : 6681873844956576423; }
+    if index == 9 { return width == 4 ? 11349558156220943107 : 3148526051919986047; }
+    if index == 10 { return width == 4 ? 9984527119430184217 : 251743209651677909; }
+    if index == 11 { return width == 4 ? 14461113776600688207 : 1541461069475157711; }
     return 0;
 }

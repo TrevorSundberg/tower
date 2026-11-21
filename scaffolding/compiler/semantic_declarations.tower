@@ -506,7 +506,13 @@ fn sem_declarations(c: SemanticContext*, statements: vector(void*)*): void {
                     edge++;
                 }
                 vector_dispose(usize, &cycle);
-                sem_fail(c, node, sem_cat(c, "Cannot resolve declaration type: initializer dependency cycle ", chain));
+                if sem_is(node, "CoreDeclare") && sem_member(node, "type") == null {
+                    sem_fail(c, node, sem_cat(c, "Cannot infer the type of '",
+                        sem_cat(c, sem_name(sem_get(node)), sem_cat(c, "': initializer dependency cycle ",
+                            sem_cat(c, chain, "; add an explicit type annotation")))));
+                } else {
+                    sem_fail(c, node, sem_cat(c, "Cannot resolve declaration type: initializer dependency cycle ", chain));
+                }
             }
         }
         index++;

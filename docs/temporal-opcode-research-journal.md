@@ -24943,6 +24943,105 @@ canonical Foundation differential passes again against this successor. Logs use
 the expression-rebased-* prefix. Complete deployment assets are prepared from
 this exact integrated source, retaining the prior audit metadata and target packs.
 
+### Coordinator regex/lexer publication closeout and upstream merge (2026-11-20)
+
+Regex 7bbfdda and contextual lexer 7737acb are included in the fully verified
+combined source dafeb208afdf5618d00759d57c6ad8fba2e11e69 and Pages
+df6e5c53e3028a8c9724cad133c3f1fb01b7f311.
+Exact Pages action 44852551683 succeeded. Agent2's final evidence, inspected by
+coordinator: native 6/6 plus backend API, six WASI fixture groups, Node 416/416
+in 191.50 seconds, two browser successor generations with two/four workers and
+identical outputs, all 71 committed publication blobs matching tested bytes,
+70 served assets matching locally and on https://tower-lang.org/, and desktop/
+mobile compilation/execution/download/highlighting/persistence checks PASS.
+All three redirects reach the HTTPS apex. Reports/logs are the external
+C:/Sandbox/build/codex-agents/agent-2-final-publication-* files. Agent2 explicitly
+released its root/backend-cache ownership after hosted verification. No sanitizer
+or broad formatter sweep was run for these coordinator slices.
+
+The final root pull then discovered independent upstream expression cleanup
+406c198/bb7967d and newer Pages 0480cdc03c8805b739beaa496a658f3e8ff8d7ee.
+Those 200 changed files were preserved. Earlier full browser evidence above is
+for dafeb20/df6e5c5, not retroactively for this cleanup. A new empty-cache build
+using the documented published bootstrap (no private override) PASS at
+/home/trevo/.cache/tower/coordinator-expression-merged-clean; Clang/LLVM 19.1.7.
+Enabled TOWER_BACKEND_TESTS and rebuilt/ran tower-frontend-tests and
+tower-backend-tests: world/ownership/parser/provenance, full regex/contextual
+lexer suites and backend API PASS. Logs: lexicon-port/expression-merged-*.log in
+the coordination directory. The newer Pages exact action 44852925363 also passed;
+its manifest records source bb7967d and predecessor df6e5c5. Its publisher owns
+its additional browser evidence; the coordinator has not repeated that full
+suite. This journal closeout changes no compiler implementation or shipped asset.
+
+At pushed dafeb20 (unchanged native count after expression cleanup), 5,766 native
+compiler/runtime physical lines remain: 901 production .cpp plus 1,791 headers,
+1,700 test lines and 1,374 reference lines. Third-party dependencies are excluded;
+774 historical research lines are counted separately. Of production .cpp, 780
+are in syntax.cpp. These two coordinator migrations retired 450 native lines.
+
+### Next draft: DFA table oracle retirement (2026-11-20)
+
+Prepared externally during Agent2's frozen dafeb20 publication. Agent3 confirmed
+ownership transfer for bootstrap/lexer-table-seed.cpp and only the reference
+imports in tests/lexer_table.tower; its production/NFA simulator/test cases stay
+unchanged. No root source or deployment cache is edited by this draft.
+
+lexer_table_oracle.tower translates the five reference functions actually used by
+that test: create/destroy, alphabet assignment, row append and maximal-prefix UTF-8
+matching. It preserves nested transition rows to catch errors in production's flat
+row indexing, implements the reference upper-bound search independently, and uses
+the same existing UTF-8 decoder as the old C++ reference. Explicit Tower ownership
+releases every row, table and alphabet. Unreferenced SymbolSequence/step/accepts
+reference functions have no consumers (rg audit); production equivalents remain.
+
+The unmodified existing Tower harness + unmodified C++ reference were compiled/run
+via a temporary Tower entry: PASS. The new Tower oracle runs the unchanged 500
+seeded DFA cases and 150 direct NFA simulation cases, including malformed UTF-8 and
+all failure tests: native and WASI PASS. First native link omitted the existing
+instrumented allocator object and therefore failed to resolve test hooks; adding
+the same runtime-instrumented.o used by the native frontend fixture fixed the link.
+No native helper, implementation, seed or host-import substitute was introduced.
+Published fb1ab1f9 bootstrap, Clang19, WASI SDK34 and existing memory/UTF-8/bytes objects.
+
+Files and evidence are C:/Sandbox/build/codex-agents/lexer-table-port/ (native.log
+retains the first link failure; native-final.log, wasm.log and legacy.log show PASS).
+Ready next source slot after combined hosted verification: add the new oracle,
+replace only five extern declarations with its import, delete the native seed and
+its reference target/dependency, validate actual CMake aggregate and standalone
+runners using the published bootstrap, journal/commit/rebase/push and publish with
+the next coordinated batch. This draft is NOT yet in main or deployed.
+### 2026-11-20 — Session buffers and lifetime move to Tower (agent 1)
+
+The next ownership slice replaces the native SyntaxSession class with the mechanical layout in compiler-syntax-session.hpp and its authoritative syntax_session_types.tower definition. syntax_session_state.tower now allocates/destroys sessions, adopts and releases completion snapshots and suffixes, resets progress, and owns diagnostic storage. Completion is destroyed before its borrowed grammar/table pins. The input, revision, version and cache owners from previous slices remain the same owners; this does not introduce a second semantic representation.
+
+syntax_highlights.tower owns contiguous highlight rows and stable copied style strings, including deep snapshot copying, reset/disposal and the existing scanner callback. A small distinct-style pool avoids allocating a string for every token. Presentation style remains independent of opaque lexical classification. Existing native API consumers use mechanical pointer/count access and keep their public return types while their migration continues. Temporary formatter/replacement sessions now use the same Tower allocation and destruction path. Remaining parser control, template parsing and source-format orchestration are still native and are not claimed retired.
+
+Initial compile trials exposed two integration mistakes: `token` is a reserved declaration keyword, so the internal field/parameter is named `id`; existing syntax_destroy foreign declarations use void*, so the exported Tower function keeps that opaque ABI and casts internally. No native fallback or new bootstrap was introduced. Tests exercise style sharing through row growth, style mutation, immutable deep snapshot lifetime, every copy-allocation failure with unchanged destination and exact buffer counts, failed session allocation, allocation-free progress reset, source/baseline pins and suffix disposal. Existing native frontend/driver/execution/request suites pass 4/4 (17.42s), including earlier full version construction failure sweeps; module_paths.py passes.
+
+Validation used the documented published fb1ab1f9 bootstrap, no TOWER_BOOTSTRAP_COMPILER, Clang19 and /home/trevo/.cache/tower/agent-1-ownership-final-1730. `cmake --build ... --target towerc tower-frontend-tests tower-driver-tests tower-execution-tests tower-driver-request-tests -j4`, then anchored ctest for those four suites. The actual successor compiles the generated tower_compiler_parser_nodes.tower for x86_64-pc-linux-gnu byte-identically to the bootstrap-produced object (cmp0), and compiles the same closure for wasm32-wasip1. The previous ownership commit6a3af2d is frozen for Agent2's combined deployment; this follow-up remains private until that publication finishes. Clean post-rebase successor validation is still required before its later push.
+
+### 2026-11-20 - Shared source-format result and Tower orchestration (agent 1)
+
+syntax_session_format.tower now owns the existing source formatting orchestration: clone session baselines/cache, parse unexpanded roots, collect lexer comment spans, invoke the same format_source engine, reparse the result and compare the same shared trees before returning it. The existing syntax_format C++ function only converts the shared output into its legacy return ABI. New syntax_format_into(void*, FormatResult*, const char**) returns owned text/ordered spans and borrowed immutable diagnostic text; callers dispose the result after success or failure. Unavailable sessions retain their empty result/error behavior. Exact custom-whitespace round-trip refusal is unchanged, and error strings remain valid after destroying the input session.
+
+With coordinator/Agent3 approval, format_suite and format_repository now consume that shared API directly. Existing format_abi string helpers and entity-output checks remain for other native boundary callers. All16 exact canonical text/span fixtures are unchanged. FormatComment moved mechanically into format_types; importing the full formatter implementation into the parser-node unit first exposed an incompatible lr_api foreign declaration. Preserved the existing compiler unit boundary by calling its formatter ABI with shared records. A compile trial also rejected boolean bitwise compound; comparison results are computed before lazy boolean accumulation, preserving comparison of every root. The output receives an explicit trailing NUL outside its counted text for reparsing and the existing callers.
+
+Fresh documented default fb1/Clang19 build in previously empty agent-1-format-clean compiled merged7737acb plus session ownership and this change, without a private bootstrap. Native frontend/driver/format/execution/request checks pass5/5 (26.23s), including existing16 formatter goldens, comments, Foundation roundtrips and allocation cleanup. New own frontend fixtures check unavailable input, initial clone allocation failure, unchanged input revision/cursor/document/source, result lifetime after session destruction, and exact refusal text after diagnostic/session disposal. Whole session parse failure sweeps are not claimed: existing scanner callbacks still have a fatal allocation policy. Broad formatter/repository sweeps and sanitizers remain disabled. Agent2's frozen dafeb20 deployment does not include these private follow-ups; later final rebase/successor and publication are pending.
+### 2026-11-20 - Tower session setup and baseline installation (agent 1)
+
+syntax_session_setup.tower now implements session creation policy, reset, error/revision access and validated Bedrock/Foundation installation. Existing native creation/baseline entry points only select the host world/environment or convert the owned diagnostic to their old string ABI. syntax_baseline_install uses the same SyntaxVersionDiagnostic owner as grammar construction; failed parse diagnostics transfer out of the temporary session before destruction, and publication still occurs only after complete validation. Identical installed text remains allocation-free. Existing sessions pin their original baseline through publication and reset.
+
+New Tower checks cover failed publication preserving the old registry, identical text under allocation failure, retained sessions parsing/resetting under their original grammar after a successful replacement, and new sessions observing the replacement. The existing five native suites pass5/5 (17.11s). Actual successor compilation of the generated parser-node closure is byte-identical to the documented fb1 bootstrap object. Native compilation caught the mechanical header's unsigned argument being passed an enum class; corrected the declaration to the existing uint32-backed SyntaxBaselineMode, with no ABI change.
+
+Explicit world storage is retained, but full parsing still uses legacy host-world component services; arbitrary-world source execution is not newly promised by this setup API. Scanner, incremental parse and replacement-template orchestration remain next. The current source publication is still frozen for Agent2's dafeb20/Pagesdf6e5c5 batch. WASI SDK34 formatter validation for the private follow-ups is being prepared in agent-1-session-wasi; initial configure failures were shell argument transport (empty then truncated bootstrap path), not compiler failures. The pinned public bootstrap path is now passed literally through bash. No bootstrap source migration, private compiler override, sanitizer or broad formatter sweep was introduced.
+### 2026-11-20 - Tower scanner callbacks, previews and completion (agent 1)
+
+syntax_session_scan.tower replaces the native scanner-input adapters, parser/diagnostic/template callbacks, highlight suffix preview, module comment capture and completion queries. It uses the same production lexer, parser lookahead/accounting and LR completion operations. Preview owns a deep highlight snapshot, never installs a declaration, and preserves cursor/revision/error state. Private token IDs use SyntaxTokenId constants. Template stream userdata borrows an explicit plain session/capture frame. Existing externally consumed signatures remain unchanged. The obsolete skip error branch was removed because its old helper always returned an empty string; lexer skipping itself is unchanged. Temporary scan result storage is now consistently disposed during preview.
+
+This slice removes145 native lines (6 mechanical adapter lines remain) from syntax.cpp. Compile caught the grammar keyword `expected` as an invalid local parameter; renamed it `lookahead`. Native frontend/driver/format/execution/request pass5/5 (20.21s), including new completion checks for identifiers, callable continuation, closing punctuation and rejection, plus suffix-preview immutability, ordered nonoverlapping spans and snapshot style lifetime after session reset. Existing compiler self-build/driver tests cover replacement stream callbacks. Earlier setup/format state also passed all16 exact formatter fixtures under WASI SDK34; scanner's WASI rerun and clean post-rebase successor are next.
+
+Previous published ownership work through6a3af2d is now verified in source dafeb208afdf5618d00759d57c6ad8fba2e11e69 / Pages df6e5c53e3028a8c9724cad133c3f1fb01b7f311: exact action44852551683 succeeded,416/416Node, both parallel successor generations identical,70hosted asset hashes and desktop/mobile/redirect checks passed (Agent2 records). External expression cleanup406c198/bb7967d and Pages0480cdc arrived afterward and are not covered by those exact-release claims. Coordinator has assigned the next source queue to Agent1's private session/format/setup/scanner batch, then Agent3's ready fixtures, with Agent1 responsible for a combined deployment. Further parsing/template orchestration remains native and is not claimed retired by this slice.
+Post-rebase publication validation for the session/format/setup/scanner batch: source86bbac6 includes external expression cleanupbb7967d and coordinator closeouteace288. Only append-only journal conflicts occurred; all histories were retained. A previously empty /home/trevo/.cache/tower/agent-1-session-release built through the documented build-native.sh with TOWER_BOOTSTRAP_COMPILER unset, public fb1ab1f9 and Clang19. Native frontend/driver/storage/format/execution/request passed6/6 in17.40s, backend API and module_paths.py passed. The actual built successor compiled the generated parser-node closure byte-identically to the bootstrap native object (cmp0), then compiled that same current source for wasm32-wasip1. The last pre-rebase SDK34 formatter run also passed all exact fixtures after scanner retirement; combined current-source browser/WASI deployment validation remains next. No todo.txt changes and git diff --check passes. Source lock is held only for this validated source push, then handed to Agent3 and the coordinator's ready reference slices; Agent1 owns the following combined deployment. These follow-ups are not yet claimed deployed in the prior df6e5c5/0480cdc results.
 
 ## 2026-11-20 — Compile-time feature and dependency-scheduler audit after expressions
 
@@ -26446,3 +26545,38 @@ execution solely from setting an ignored environment variable. Portable and
 LLVM/cross artifact rebuilds, native execution checks and full module regression
 are underway. Changes are still local at this checkpoint; nothing from this lane
 has yet been committed, pushed or deployed.
+
+### 2026-11-20 - Publication checkpoint requested before further migration
+
+The user asked to publish a working bootstrap/feature checkpoint promptly so
+others can try it, then continue the full ECS/threading migration. Created the
+initial local milestone commit and rebased onto 0333904, including upstream Tower
+session buffers, source formatting, setup and scanner callbacks. Resolved the
+append-only journal overlap and explicitly restored every upstream entry. Local
+Git lacked author configuration; used the repository's existing author identity
+for these commands without changing global Git configuration. A push dry run
+confirms access; it is not an actual push or deployment.
+
+Native execution acceptance found the generic new declaration-cycle wording no
+longer matched the existing inferred-variable diagnostic. Kept the original
+inference message/suggestion for inferred declarations; annotated/decltype cycles
+retain the new query diagnostic. The native fixture also fingerprints containment
+IDs, which now include ECS query ownership entities, plus explicit target-width
+fields corrected above. Ran all twelve positive fixtures at both widths through
+both the published fb1ab1 compiler and the current successor: all 24 canonical
+Foundation outputs are byte-identical. Regenerated the internal field/edge
+fingerprints against this evidence, keeping every assertion and the independent
+runtime, graph/fast, source-order, lifetime and round-trip checks. The instrumented
+trial passes the complete execution suite; temporary tracing is removed and the
+normal assertions are being rerun. Logs: semantic-reference.log and
+publication-native-oracle-trace.log. The first tracing attempt used print in a
+host-only test entry lacking tower_print; switched to its existing bounded text
+formatter/puts, then removed that temporary helper after collecting the evidence.
+
+A second empty-cache native build after the latest source rebase succeeds 55/55
+with the documented bootstrap, no private override
+(compiletime-publication-clean, publication-clean-native.log). Updated shared and
+portable reactors also build 25/25 and 23/23. Native acceptance with restored
+fingerprints, shared checks, LLVM/cross rebuild, packaging and deployment remain
+in progress. This checkpoint does not claim generic/type construction, all native
+sessions, remaining parser phases or backend contexts are fully threaded.

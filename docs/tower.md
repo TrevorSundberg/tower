@@ -35,10 +35,11 @@ and capability model below.
 
 Canonical Foundation contains the checked types and evaluated scalar constants;
 it needs no `decltype` or `comptime` syntax. Declaration dependency discovery,
-layout, expression lowering and evaluation use Tower ECS queries and worker pools.
-Full body checking, compiler-session isolation and browser deployment of shared
-threads remain in progress; these features do not imply a completely threaded
-compiler yet.
+layout, eligible body checking, expression lowering, evaluation and dependent
+return-path validation use Tower ECS queries and worker pools. Deferred cleanup
+copies retain their staged-value dependencies. Generic/type construction,
+compiler-session isolation and remaining parser/backend phases still need work;
+these features do not imply a completely threaded compiler yet.
 
 ## Compile-time value goals
 
@@ -244,7 +245,7 @@ appear in the builtin tree and can be opened or edited there.
 
 ## Compiler work graph
 
-`library/work-graph` is the shared Tower dependency index for compiler execution.
+`library.work_graph` is the shared Tower dependency index for compiler execution.
 It deduplicates queries over borrowed shared entities, records dependencies and
 consumers, and yields ready tickets for an executor. Work states are nominal enums.
 Only demanded queries run; failed inputs block their consumers. Tickets include
@@ -253,7 +254,9 @@ results. Iterative cycle diagnostics return the actual closed dependency path.
 
 The coordinator owns this mutable index. Workers must own their scratch/results
 and publish through the coordinator; this API does not make the entity store
-thread safe. The current compiler uses the serial executor for type layout.
+thread safe. Type layout uses the Tower pool with private result components and
+publication after joins. Native and shared-memory Wasm hosts supply threads;
+portable Wasm uses the same scheduling contract with one execution slot.
 Layout dependencies are discovered once, pointer fields do not demand pointee
 layout, and layout kernels consume completed dependency layouts. The former
 128-level layout recursion and 256-type/field caps are removed. Compilation
@@ -273,7 +276,7 @@ They also do not pin entities or intercept undeclared raw-pointer writes. The
 executor must preserve input lifetimes and own scratch, and the coordinator must
 remain the sole writer of scheduler state.
 
-`library/compiler-work` uses the same graph for compiler unit builds. Its Tower
+`library.compiler_work` uses the same graph for compiler unit builds. Its Tower
 API bounds active work, accepts revision/profile tickets, joins prerequisites,
 selects failures in recipe order and cancels outstanding results. Browser
 compiler rebuilds use isolated compiler instances on up to two real workers.
