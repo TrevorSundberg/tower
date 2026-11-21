@@ -6,22 +6,10 @@ import .backend.source_session;
 import .backend.session;
 import .backend.text;
 import .library.vector;
+import .library.entity_types;
+import .library.entity_api;
 
 extern fn core_component_type(): void*;
-
-extern fn entity_member_index(owner: void*, name: u8*): usize;
-
-extern fn entity_child_at(owner: void*, index: usize): void*;
-
-extern fn entity_attach(node: void*, parent: void*, name: u8*): bool;
-
-extern fn entity_register(type: void*, size: usize, alignment: usize, lifecycle: usize): bool;
-
-extern fn entity_component_add(owner: void*, type: void*): void*;
-
-extern fn entity_component_get(owner: void*, type: void*): void*;
-
-extern fn entity_component_data(component: void*): u8*;
 
 extern fn syntax_completion_create(text: u8*, mode: u32): void*;
 
@@ -53,13 +41,13 @@ fn llvm_worker_require(ok: bool): void {
 // The transport is owned by this worker's existing entity world, matching the
 // IDE transport. Explicit BackendSource sessions remain independent of it.
 fn llvm_worker(): LlvmWorker* {
-    var owner = core_component_type();
+    var owner = bits(Entity*, core_component_type());
     var slot = entity_member_index(owner, "llvm.transport");
     if slot != ~convert(usize, 0) {
         var type = entity_child_at(owner, slot);
         return bits(LlvmWorker*, entity_component_data(entity_component_get(owner, type)));
     }
-    var type = entity_create(compiler_world_store(compiler_node_world(owner)));
+    var type = entity_create(owner.store);
     llvm_worker_require(entity_register(type, sizeof(LlvmWorker), alignof(LlvmWorker), 0));
     var component = entity_component_add(owner, type);
     llvm_worker_require(component != null);

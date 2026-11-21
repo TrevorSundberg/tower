@@ -1,5 +1,6 @@
 import tower;
 import .library.entities;
+import .library.entity_types;
 import .library.entity_stage;
 
 var failures:i32=0;

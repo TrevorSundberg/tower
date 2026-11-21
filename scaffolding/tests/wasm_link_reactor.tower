@@ -1,0 +1,50 @@
+import tower;
+import utility_checks;
+import wasm_link_fixture;
+import .backend.link_types;
+import .backend.text;
+import .backend.wasm_bytes;
+import .library.bytes_types;
+import .library.bytes_interface;
+
+// Link this entry against the real backend reactor unit, compiler units and
+// upstream support. These declarations exercise the public transport boundary.
+extern fn backend_link_create(): BackendLink*;
+extern fn backend_link_close(link: BackendLink*): void;
+extern fn backend_link_add_input(link: BackendLink*, name: u8*, data: u8*, length: usize): bool;
+extern fn backend_reactor_argument(link: BackendLink*, argument: u8*): void;
+extern fn backend_reactor_link(link: BackendLink*): bool;
+extern fn fopen(path: u8*, mode: u8*): void*;
+extern fn fclose(file: void*): i32;
+
+export fn _start(): void {
+    var fixture: ByteBuffer = default;
+    var image: ByteBuffer = default;
+    defer bytes_dispose(&fixture); defer bytes_dispose(&image);
+    wasm_test_named_object(&fixture, "answer", 0);
+    var link = backend_link_create();
+    utility_check(link != null, "reactor request allocation");
+    defer backend_link_close(link);
+    utility_check(backend_link_add_input(link, "fixture.o", fixture.data, fixture.length), "reactor input capability");
+    backend_reactor_argument(link, "tower-wasm-ld");
+    backend_reactor_argument(link, "--no-entry");
+    backend_reactor_argument(link, "--export=answer");
+    backend_reactor_argument(link, "fixture.o");
+    backend_reactor_argument(link, "-o");
+    backend_reactor_argument(link, "tower-output.bin");
+    utility_check(backend_reactor_link(link) && link.output.length != 0 && link.error.length == 0, "real reactor selects Tower linker");
+    utility_check(bytes_append(&image, link.output.data, link.output.length), "reactor image snapshot");
+    var output_file = fopen("tower-output.bin", "rb");
+    utility_check(output_file == null, "Tower reactor link publishes bytes without a temporary output file");
+    if output_file != null { fclose(output_file); }
+    // A successful invocation followed by an unsupported profile must not use
+    // upstream LLD implicitly or retain its previous artifact.
+    backend_reactor_argument(link, "--shared-memory");
+    utility_check(!backend_reactor_link(link) && link.output.length == 0
+        && backend_contains(link.error.data, "--shared-memory"), "explicit Tower route never falls back");
+    free(link.arguments.data[--link.arguments.length]);
+    link.error.length = 0;
+    utility_check(backend_reactor_link(link) && link.error.length == 0
+        && wasm_bytes_equal(init(WasmBytes) { data: image.data, length: image.length }, init(WasmBytes) { data: link.output.data, length: link.output.length }), "reactor retry creates an isolated deterministic link world");
+    puts("Tower reactor linker byte service passed");
+}

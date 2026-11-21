@@ -1,4 +1,5 @@
 import tower;
+import link_types;
 import coff_import;
 import context;
 import file_api;
@@ -7,20 +8,6 @@ import foreign_reader;
 import foreign_symbol;
 import text;
 import .library.vector;
-
-// Link plans are transport-independent argument lists for upstream LLD.
-// Native hosts execute the bundled upstream tool; WASI invokes its pinned ABI.
-struct BackendLinkInput {
-    name: vector(u8);
-    bytes: vector(u8);
-}
-
-struct BackendLink {
-    arguments: vector(u8*);
-    inputs: vector(BackendLinkInput);
-    error: vector(u8);
-    output: vector(u8);
-}
 
 extern fn fopen(path: u8*, mode: u8*): void*;
 

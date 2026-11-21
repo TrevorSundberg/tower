@@ -2,6 +2,7 @@ import tower;
 import generic_registry;
 import host_metadata;
 import .library.entities;
+import .library.entity_types;
 import .library.entity_stage;
 import generic_body_types;
 import entity_require;

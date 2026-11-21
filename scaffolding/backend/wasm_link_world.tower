@@ -4,13 +4,21 @@ import wasm_object;
 import wasm_object_types;
 import wasm_archive;
 import .library.vector;
-import .library.entities;
+import .library.entity_types;
+import .library.entity_api;
 
 struct WasmObjectEntry { node: Entity*; object: WasmObject*; name: WasmBytes; }
+enum WasmInputKind: u8 { Object = 0, Archive = 1 }
+struct WasmInputOrder { kind: WasmInputKind; index: u32; }
+struct WasmArchivePayload { archive: WasmArchive; selected: vector(bool); }
+struct WasmArchiveEntry { node: Entity*; payload: WasmArchivePayload*; name: WasmBytes; }
 struct WasmLinkWorld {
     store: EntityStore*;
     object_type: Entity*;
+    archive_type: Entity*;
     objects: vector(WasmObjectEntry);
+    archives: vector(WasmArchiveEntry);
+    inputs: vector(WasmInputOrder);
     error: WasmReadError;
     error_input: WasmBytes;
     error_offset: usize;
@@ -22,13 +30,15 @@ fn wasm_link_world_open(world: WasmLinkWorld*): bool {
     if !entity_store_set_context(world.store, bits(void*, world)) { return false; }
     world.object_type = entity_create(world.store);
     if world.object_type == null { return false; }
-    return entity_register(world.object_type, sizeof(WasmObject), alignof(WasmObject), 0);
+    if !entity_register(world.object_type, sizeof(WasmObject), alignof(WasmObject), 0) { return false; }
+    world.archive_type = entity_create(world.store);
+    return world.archive_type != null && entity_register(world.archive_type, sizeof(WasmArchivePayload), alignof(WasmArchivePayload), 0);
 }
 
 // Coordinator prepares nodes and component kinds before any worker dispatch.
 // Workers then own one stable object payload and private vectors. No structure,
 // refcounts, type identities or global symbol indexes are mutated by a reader.
-fn wasm_link_prepare_object(world: WasmLinkWorld*, name: WasmBytes, bytes: WasmBytes): WasmObject* {
+fn wasm_link_prepare_object_mode(world: WasmLinkWorld*, name: WasmBytes, bytes: WasmBytes, record_input: bool): WasmObject* {
     if world.error != WasmReadError.None { return null; }
     var node = entity_create(world.store);
     if node == null { world.error = WasmReadError.Allocation; return null; }
@@ -39,7 +49,15 @@ fn wasm_link_prepare_object(world: WasmLinkWorld*, name: WasmBytes, bytes: WasmB
     object.bytes = bytes;
     var entry: WasmObjectEntry = { node: node, object: object, name: name };
     if !vector_push(&world.objects, entry) { entity_release(node); world.error = WasmReadError.Allocation; return null; }
+    if record_input {
+        var order: WasmInputOrder = { kind: WasmInputKind.Object, index: convert(u32, world.objects.length - 1) };
+        if !vector_push(&world.inputs, order) { world.error = WasmReadError.Allocation; return null; }
+    }
     return object;
+}
+
+fn wasm_link_prepare_object(world: WasmLinkWorld*, name: WasmBytes, bytes: WasmBytes): WasmObject* {
+    return wasm_link_prepare_object_mode(world, name, bytes, true);
 }
 
 fn wasm_link_collect_errors(world: WasmLinkWorld*): bool {
@@ -64,7 +82,7 @@ fn wasm_link_read_object(world: WasmLinkWorld*, name: WasmBytes, bytes: WasmByte
 }
 
 // Read-all is the explicit whole-archive contract used by compiler self-builds.
-// Lazy archive extraction will consume the indexed archive symbols separately.
+// Lazy archive extraction consumes indexed archive symbols separately.
 fn wasm_link_read_archive(world: WasmLinkWorld*, name: WasmBytes, bytes: WasmBytes): bool {
     var archive: WasmArchive = default;
     defer wasm_archive_dispose(&archive);
@@ -78,6 +96,30 @@ fn wasm_link_read_archive(world: WasmLinkWorld*, name: WasmBytes, bytes: WasmByt
     return true;
 }
 
+// Lazy inputs retain their indexed members on an archive component. Selection
+// happens in request order before type interning and symbol publication.
+fn wasm_link_add_archive(world: WasmLinkWorld*, name: WasmBytes, bytes: WasmBytes): bool {
+    if world.error != WasmReadError.None { return false; }
+    var node = entity_create(world.store);
+    if node == null { world.error = WasmReadError.Allocation; return false; }
+    var component = entity_component_add(node, world.archive_type);
+    if component == null { entity_release(node); world.error = WasmReadError.Allocation; return false; }
+    var payload = bits(WasmArchivePayload*, entity_component_data(component));
+    *payload = default;
+    var entry: WasmArchiveEntry = { node: node, payload: payload, name: name };
+    if !vector_push(&world.archives, entry) { entity_release(node); world.error = WasmReadError.Allocation; return false; }
+    if !wasm_archive_read(&payload.archive, bytes) {
+        world.error = payload.archive.error; world.error_input = name; world.error_offset = payload.archive.error_offset; return false;
+    }
+    var count = payload.archive.members.length;
+    if !vector_reserve(&payload.selected, count) { world.error = WasmReadError.Allocation; return false; }
+    if count != 0 { fill(payload.selected.data, 0, count * sizeof(bool)); }
+    payload.selected.length = count;
+    var order: WasmInputOrder = { kind: WasmInputKind.Archive, index: convert(u32, world.archives.length - 1) };
+    if !vector_push(&world.inputs, order) { world.error = WasmReadError.Allocation; return false; }
+    return true;
+}
+
 fn wasm_link_world_close(world: WasmLinkWorld*): bool {
     if world.store == null { return true; }
     if world.store.views != 0 { return false; }
@@ -86,7 +128,13 @@ fn wasm_link_world_close(world: WasmLinkWorld*): bool {
         entity_release(entry.node);
     }
     vector_dispose(&world.objects);
+    foreach (var & entry in &world.archives) {
+        wasm_archive_dispose(&entry.payload.archive); vector_dispose(&entry.payload.selected);
+        entity_release(entry.node);
+    }
+    vector_dispose(&world.archives); vector_dispose(&world.inputs);
     if world.object_type != null { entity_release(world.object_type); world.object_type = null; }
+    if world.archive_type != null { entity_release(world.archive_type); world.archive_type = null; }
     if !entity_store_dispose(world.store) { return false; }
     *world = default;
     return true;

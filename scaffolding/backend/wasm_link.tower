@@ -6,12 +6,19 @@ import wasm_link_synthetic;
 import wasm_link_live;
 import wasm_link_layout;
 import wasm_link_emit;
+import wasm_link_archives;
+import wasm_bytes;
 
 // Transport-independent static Wasm image construction. The request owns a
 // world and borrows pinned object/archive bytes until close. No filesystem,
 // process launching, native linker, CLI or browser objects enter this API.
 fn wasm_link_run(link: WasmLink*): bool {
-    return wasm_link_prepare(link) && wasm_link_symbols(link) && wasm_link_synthetics(link)
+    if link.started || link.layout_type != null {
+        link.output.length = 0;
+        return wasm_link_fail(link, WasmLinkError.Input, wasm_text_bytes("link requests are single use"));
+    }
+    link.started = true;
+    return wasm_link_extract_archives(link) && wasm_link_prepare(link) && wasm_link_symbols(link) && wasm_link_synthetics(link)
         && wasm_link_apply_wraps(link) && wasm_link_variants(link) && wasm_link_liveness(link)
         && wasm_link_layout(link) && wasm_link_emit(link);
 }

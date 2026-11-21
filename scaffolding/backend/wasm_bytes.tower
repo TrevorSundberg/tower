@@ -1,7 +1,7 @@
 import tower;
-import .library.bytes;
+import .library.bytes_interface;
 import .library.bytes_types;
-import .compiler.utf8;
+extern fn tower_utf8_decode(bytes: u8*, size: usize, scalar: u32*): usize;
 
 // Borrowed immutable object bytes. The owning link request pins their allocation
 // until all input readers and relocation jobs have joined.

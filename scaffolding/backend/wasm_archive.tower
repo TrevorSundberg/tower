@@ -12,6 +12,7 @@ struct WasmArchive {
     bytes: WasmBytes;
     members: vector(WasmArchiveMember);
     symbols: vector(WasmArchiveSymbol);
+    indexed: bool;
     error: WasmReadError;
     error_offset: usize;
 }
@@ -139,6 +140,8 @@ fn wasm_archive_read(archive: WasmArchive*, bytes: WasmBytes): bool {
         foreach (var & member in &archive.members) {
             var width: usize = wasm_bytes_text(member.name, "/") ? 4 : 8;
             if !wasm_bytes_text(member.name, "/") && !wasm_bytes_text(member.name, "/SYM64/") { continue; }
+            if archive.indexed { wasm_read_fail(&reader, WasmReadError.Duplicate); break; }
+            archive.indexed = true;
             var sub: WasmReader = { bytes: member.bytes, ..default };
             wasm_archive_symbols(archive, &sub, width);
             if sub.error != WasmReadError.None {

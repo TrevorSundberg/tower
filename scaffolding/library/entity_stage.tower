@@ -1,5 +1,6 @@
 import tower;
 import entities;
+import entity_types;
 import vector;
 
 // A worker owns these actual canonical entities, not a shadow graph or commands

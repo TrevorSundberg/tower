@@ -4,6 +4,7 @@ import entity_require;
 import host_world;
 import parser_types;
 import .library.entities;
+import .library.entity_types;
 import grammar_types;
 
 extern fn tower_utf8_decode(source: u8*, length: usize, value: u32*): usize;

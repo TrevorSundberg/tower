@@ -1,4 +1,5 @@
 import tower;
+import link_types;
 import lld_api;
 import linker;
 import text;

@@ -4,6 +4,7 @@ import component_kinds;
 import parser_types;
 import syntax_types;
 import .library.entities;
+import .library.entity_types;
 import .library.entity_stage;
 import .library.vector;
 

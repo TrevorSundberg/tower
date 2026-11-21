@@ -1,0 +1,171 @@
+import tower;
+import wasm_bytes;
+import wasm_names;
+import wasm_object;
+import wasm_object_types;
+import wasm_archive;
+import wasm_link_world;
+import wasm_link_types;
+import wasm_link_synthetic;
+import wasm_link_prepare;
+import wasm_link_symbols;
+import .library.vector;
+
+struct WasmArchiveCandidate { archive: u32; member: usize; next: u32; tail: u32; }
+struct WasmArchiveSelection {
+    definitions: WasmNameMap;
+    demands: WasmNameMap;
+    names: WasmNameMap;
+    comdats: WasmNameMap;
+    candidates: vector(WasmArchiveCandidate);
+    pending: vector(WasmBytes);
+    order: vector(u32);
+}
+
+fn wasm_archive_selection_close(selection: WasmArchiveSelection*): void {
+    wasm_names_dispose(&selection.definitions); wasm_names_dispose(&selection.demands); wasm_names_dispose(&selection.names);
+    wasm_names_dispose(&selection.comdats);
+    vector_dispose(&selection.candidates); vector_dispose(&selection.pending); vector_dispose(&selection.order);
+}
+
+fn wasm_archive_reference_name(link: WasmLink*, name: WasmBytes): WasmBytes {
+    foreach (var & wrap in &link.wraps) {
+        if wasm_bytes_equal(name, wrap.name) { return wrap.wrapper; }
+        if wasm_bytes_equal(name, wrap.real) { return wrap.name; }
+    }
+    return name;
+}
+
+fn wasm_archive_schedule(link: WasmLink*, selection: WasmArchiveSelection*, name: WasmBytes): bool {
+    var index = wasm_names_get(&selection.names, name);
+    var candidate: WasmArchiveCandidate = default;
+    var payload: WasmArchivePayload* = null;
+    loop {
+        if index == WasmNoIndex { return true; }
+        candidate = selection.candidates.data[convert(usize, index)];
+        payload = link.world.archives.data[convert(usize, candidate.archive)].payload;
+        if !payload.selected.data[candidate.member] { break; }
+        index = candidate.next;
+    }
+    payload.selected.data[candidate.member] = true;
+    var member = &payload.archive.members.data[candidate.member];
+    var object_index = convert(u32, link.world.objects.length);
+    var object = wasm_link_prepare_object_mode(&link.world, member.name, member.bytes, false);
+    if object == null { return wasm_link_fail(link, WasmLinkError.Allocation, member.name); }
+    if !wasm_object_read(object, member.bytes) {
+        link.world.error = object.error; link.world.error_input = member.name; link.world.error_offset = object.error_offset;
+        return wasm_link_fail(link, WasmLinkError.Input, member.name);
+    }
+    return wasm_archive_index_object(link, selection, object_index);
+}
+
+fn wasm_archive_demand(link: WasmLink*, selection: WasmArchiveSelection*, name: WasmBytes): bool {
+    // Satisfied references cannot trigger a future extraction. Avoid retaining
+    // their often long C++ names in the unresolved-demand index.
+    if wasm_names_get(&selection.definitions, name) != WasmNoIndex || wasm_link_synthetic_kind(name) != WasmSynthetic.None { return true; }
+    if !wasm_names_set(&selection.demands, name, 0) { return wasm_link_fail(link, WasmLinkError.Allocation, name); }
+    return wasm_archive_schedule(link, selection, name);
+}
+
+fn wasm_archive_index_object(link: WasmLink*, selection: WasmArchiveSelection*, index: u32): bool {
+    var object = link.world.objects.data[convert(usize, index)].object;
+    if !wasm_link_push(link, &selection.order, index) { return false; }
+    // Reuse final-link COMDAT selection. This scratch is discarded before any
+    // member is fetched; the object's authoritative records remain unchanged.
+    var layout: WasmObjectLayout = default;
+    defer wasm_link_object_layout_dispose(&layout);
+    if object.comdats.length != 0 {
+        if !wasm_link_chunks(link, &layout.functions, object.functions.length) || !wasm_link_chunks(link, &layout.globals, object.globals.length)
+            || !wasm_link_chunks(link, &layout.data, object.data.length) || !wasm_link_chunks(link, &layout.tables, object.tables.length)
+            || !wasm_link_chunks(link, &layout.tags, object.tags.length)
+            || !wasm_link_object_comdats(link, object, &layout, &selection.comdats, index) { return false; }
+    }
+    // Publish every definition before considering this object's references.
+    foreach (var & symbol in &object.symbols) {
+        var excluded = convert(u32, WasmSymbolFlag.Local) | convert(u32, WasmSymbolFlag.Undefined);
+        if symbol.kind == convert(u8, WasmSymbolKind.Section) || (symbol.flags & excluded) != 0 { continue; }
+        if object.comdats.length != 0 {
+            var chunk = wasm_link_defined_chunk(&layout, symbol);
+            if chunk != null && chunk.discarded { continue; }
+        }
+        if !wasm_names_set(&selection.definitions, symbol.name, 0) { return wasm_link_fail(link, WasmLinkError.Allocation, symbol.name); }
+    }
+    // Stack in reverse source order, then drain depth first without recursive
+    // host calls. A member's definitions can satisfy later pending demands.
+    for (var row = object.symbols.length; row != 0;) {
+        var symbol = &object.symbols.data[--row];
+        if symbol.kind == convert(u8, WasmSymbolKind.Section) || (symbol.flags & convert(u32, WasmSymbolFlag.Local)) != 0 { continue; }
+        var name = wasm_archive_reference_name(link, symbol.name);
+        var wrapped = !wasm_bytes_equal(name, symbol.name);
+        var undefined = (symbol.flags & convert(u32, WasmSymbolFlag.Undefined)) != 0;
+        if !undefined && object.comdats.length != 0 {
+            var chunk = wasm_link_defined_chunk(&layout, symbol);
+            undefined = chunk != null && chunk.discarded;
+        }
+        var strong_undefined = undefined && (symbol.flags & convert(u32, WasmSymbolFlag.Weak)) == 0;
+        if (wrapped || strong_undefined) && !wasm_link_push(link, &selection.pending, name) { return false; }
+    }
+    return true;
+}
+
+fn wasm_archive_index_library(link: WasmLink*, selection: WasmArchiveSelection*, index: u32): bool {
+    var entry = &link.world.archives.data[convert(usize, index)];
+    var archive = &entry.payload.archive;
+    if !archive.indexed {
+        foreach (var & member in &archive.members) {
+            if !member.special { return wasm_link_fail(link, WasmLinkError.Unsupported, wasm_text_bytes("lazy archive requires a symbol index")); }
+        }
+    }
+    foreach (var & symbol in &archive.symbols) {
+        if wasm_names_get(&selection.definitions, symbol.name) != WasmNoIndex { continue; }
+        var head = wasm_names_get(&selection.names, symbol.name);
+        var row = convert(u32, selection.candidates.length);
+        var candidate: WasmArchiveCandidate = { archive: index, member: symbol.member, next: WasmNoIndex, tail: row };
+        if !wasm_link_push(link, &selection.candidates, candidate) { return false; }
+        if head == WasmNoIndex {
+            if !wasm_names_set(&selection.names, symbol.name, row) {
+                return wasm_link_fail(link, WasmLinkError.Allocation, symbol.name);
+            }
+        } else {
+            var first = &selection.candidates.data[convert(usize, head)];
+            selection.candidates.data[convert(usize, first.tail)].next = row;
+            first.tail = row;
+        }
+    }
+    for (var row = archive.symbols.length; row != 0;) {
+        var symbol = &archive.symbols.data[--row];
+        if wasm_names_get(&selection.demands, symbol.name) != WasmNoIndex && !wasm_link_push(link, &selection.pending, symbol.name) { return false; }
+    }
+    return true;
+}
+
+fn wasm_archive_drain(link: WasmLink*, selection: WasmArchiveSelection*): bool {
+    while selection.pending.length != 0 {
+        var name = selection.pending.data[--selection.pending.length];
+        if !wasm_archive_demand(link, selection, name) { return false; }
+    }
+    return true;
+}
+
+fn wasm_link_extract_archives(link: WasmLink*): bool {
+    if link.world.archives.length == 0 { return true; }
+    if !wasm_link_collect_errors(&link.world) { return wasm_link_fail(link, WasmLinkError.Input, link.world.error_input); }
+    var selection: WasmArchiveSelection = default;
+    defer wasm_archive_selection_close(&selection);
+    foreach (var & input in &link.world.inputs) {
+        var ok = input.kind == WasmInputKind.Object ? wasm_archive_index_object(link, &selection, input.index) : wasm_archive_index_library(link, &selection, input.index);
+        if !ok || !wasm_archive_drain(link, &selection) { return false; }
+    }
+    // LLD applies requested exports after ordinary inputs. Both required and
+    // optional exports extract a member if present; only the former must exist.
+    foreach (var & request in &link.exports) {
+        if !wasm_archive_demand(link, &selection, request.name) || !wasm_archive_drain(link, &selection) { return false; }
+    }
+    // Physical components stay stable. Only the derived publication order moves;
+    // later weak/COMDAT selection sees the same order as lazy extraction.
+    var ordered: vector(WasmObjectEntry) = default;
+    if !vector_reserve(&ordered, selection.order.length) { return wasm_link_fail(link, WasmLinkError.Allocation, default(WasmBytes)); }
+    foreach (var index in &selection.order) { ordered.data[ordered.length++] = link.world.objects.data[convert(usize, index)]; }
+    vector_dispose(&link.world.objects); link.world.objects = ordered;
+    return true;
+}

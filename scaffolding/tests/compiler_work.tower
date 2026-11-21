@@ -1,6 +1,7 @@
 import tower;
 import .library.compiler_work;
 import .library.entities;
+import .library.entity_types;
 import .library.work_graph;
 
 export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, data: u8*): void {

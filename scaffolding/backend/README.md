@@ -123,6 +123,23 @@ to 2 MiB. The data is platform output, never Tower program interchange.
 
 ## Linking and backend service
 
+The experimental static Wasm implementation is Tower code in `wasm_link.tower`.
+It consumes platform object/archive records on per-request ECS components and
+borrows immutable input bytes until close. `wasm_link_plan` accepts argument/input
+byte spans; `backend_link_tower_wasm` adapts ordinary `BackendLink` storage without
+files or a native linker. Reactor recipes explicitly select this path by naming
+`tower-wasm-ld` in argument zero. Unsupported options fail without fallback.
+The default upstream path below is retained until the self-build, shared-memory,
+TLS and worker gates pass. See [linker checks](../tests/README.md) for supported
+profiles and executable fixtures. Link requests are single use; the BackendLink
+adapter creates a fresh world for each invocation. Finish or join readers before
+closing input owners; a pinned view prevents structural mutation and disposal.
+
+Entity layouts live in `library/entity_types.tower`; separately compiled linker
+clients use the typed `entity_api.tower` declarations and link the existing Tower
+ECS implementation once. These are the compiler's shared types, with unchanged
+layout and lifetime rules. No private replacement entity store is introduced.
+
 `backend_link_create`, `backend_link_add_input`, `backend_link_clear_inputs` and
 `backend_link_close` own link-input storage. `backend_link_plan` receives the
 target, shared function index, emitted object and target runtime object. It

@@ -1,0 +1,152 @@
+import tower;
+import wasm_bytes;
+import wasm_names;
+import wasm_object_types;
+import wasm_link_world;
+import wasm_link_types;
+import .library.bytes_interface;
+import .library.bytes_types;
+
+// Incremental argument decoding has no transport. A caller supplies the bytes
+// requested by an action from explicit inputs or its own filesystem boundary.
+enum WasmOptionPending: u8 { None = 0, Output = 1, Stack = 2 }
+enum WasmOptionAction: u8 { None = 0, Object = 1, AllowedNames = 2, ExportNames = 3 }
+struct WasmLinkOptions { pending: WasmOptionPending; whole_archive: bool; output: WasmBytes; has_input: bool; }
+struct WasmLinkOption { action: WasmOptionAction; name: WasmBytes; whole_archive: bool; }
+
+fn wasm_option_prefix(text: WasmBytes, prefix: u8*): bool {
+    var begin = wasm_text_bytes(prefix);
+    return text.length >= begin.length && wasm_bytes_equal(init(WasmBytes) { data: text.data, length: begin.length }, begin);
+}
+
+fn wasm_option_suffix(text: WasmBytes, prefix: u8*): WasmBytes {
+    var length = wasm_text_bytes(prefix).length;
+    return init(WasmBytes) { data: text.data + length, length: text.length - length };
+}
+
+fn wasm_option_number(text: WasmBytes, output: u64*): bool {
+    var zero: u8 = 48;
+    var nine: u8 = 57;
+    var decimal: u64 = 10;
+    var value: u64 = 0;
+    if text.length == 0 { return false; }
+    for (var at: usize = 0; at < text.length; at++) {
+        var digit = text.data[at];
+        if digit < zero || digit > nine { return false; }
+        var next = convert(u64, digit - zero);
+        if value > (~convert(u64, 0) - next) / decimal { return false; }
+        value = value * decimal + next;
+    }
+    *output = value; return true;
+}
+
+fn wasm_option_names(link: WasmLink*, text: WasmBytes, exports: bool): bool {
+    var line_feed: u8 = 10;
+    var space: u8 = 32;
+    var comment: u8 = 35;
+    for (var at: usize = 0; at < text.length;) {
+        var first = at;
+        while at < text.length && text.data[at] != line_feed { at++; }
+        var last = at;
+        for (var next = first; next < last; next++) { if text.data[next] == comment { last = next; break; } }
+        while first < last && text.data[first] <= space { first++; }
+        while last > first && text.data[last - 1] <= space { last--; }
+        if last > first {
+            var name: WasmBytes = { data: text.data + first, length: last - first };
+            if exports {
+                var request: WasmExportRequest = { name: name, required: false };
+                if !wasm_link_push(link, &link.exports, request) { return false; }
+            } else {
+                if !wasm_names_set(&link.allowed, name, 0) { return wasm_link_fail(link, WasmLinkError.Allocation, name); }
+            }
+        }
+        if at < text.length { at++; }
+    }
+    return true;
+}
+
+fn wasm_option_wrap_name(link: WasmLink*, prefix: u8*, name: WasmBytes, output: WasmBytes*): bool {
+    var bytes: ByteBuffer = default;
+    var start = wasm_text_bytes(prefix);
+    if !bytes_append(&bytes, start.data, start.length) || !bytes_append(&bytes, name.data, name.length) {
+        bytes_dispose(&bytes); return wasm_link_fail(link, WasmLinkError.Allocation, name);
+    }
+    if !wasm_link_push(link, &link.owned, bytes) { bytes_dispose(&bytes); return false; }
+    *output = init(WasmBytes) { data: bytes.data, length: bytes.length };
+    return true;
+}
+
+fn wasm_link_option(link: WasmLink*, options: WasmLinkOptions*, argument: WasmBytes, item: WasmLinkOption*): bool {
+    *item = default;
+    if link.started || link.error != WasmLinkError.None { return wasm_link_fail(link, WasmLinkError.Input, argument); }
+    if options.pending == WasmOptionPending.Output {
+        if argument.length == 0 { return wasm_link_fail(link, WasmLinkError.Input, argument); }
+        options.output = argument; options.pending = WasmOptionPending.None; return true;
+    }
+    if options.pending == WasmOptionPending.Stack {
+        options.pending = WasmOptionPending.None;
+        if !wasm_option_prefix(argument, "stack-size=") { return wasm_link_fail(link, WasmLinkError.Unsupported, argument); }
+        if !wasm_option_number(wasm_option_suffix(argument, "stack-size="), &link.stack_size) { return wasm_link_fail(link, WasmLinkError.Input, argument); }
+        return true;
+    }
+    if wasm_bytes_text(argument, "-o") { options.pending = WasmOptionPending.Output; return true; }
+    if wasm_bytes_text(argument, "-z") { options.pending = WasmOptionPending.Stack; return true; }
+    if wasm_bytes_text(argument, "--no-entry") || wasm_bytes_text(argument, "--strip-all") || wasm_bytes_text(argument, "--threads=1") { return true; }
+    if wasm_bytes_text(argument, "--whole-archive") { options.whole_archive = true; return true; }
+    if wasm_bytes_text(argument, "--no-whole-archive") { options.whole_archive = false; return true; }
+    if wasm_bytes_text(argument, "--export-memory") { link.export_memory = true; return true; }
+    if wasm_bytes_text(argument, "--export-table") { link.export_table = true; return true; }
+    if wasm_bytes_text(argument, "--stack-first") { link.stack_first = true; return true; }
+    if wasm_bytes_text(argument, "--debug-names") { link.emit_names = true; return true; }
+    if wasm_bytes_text(argument, "--allow-undefined") { link.allow_undefined = true; return true; }
+    if wasm_bytes_text(argument, "--no-gc-sections") { link.garbage_collect = false; return true; }
+    if wasm_option_prefix(argument, "--export=") || wasm_option_prefix(argument, "--export-if-defined=") {
+        var required = wasm_option_prefix(argument, "--export=");
+        var request: WasmExportRequest = { name: wasm_option_suffix(argument, required ? "--export=" : "--export-if-defined="), required: required };
+        if request.name.length == 0 { return wasm_link_fail(link, WasmLinkError.Input, argument); }
+        return wasm_link_push(link, &link.exports, request);
+    }
+    if wasm_option_prefix(argument, "--wrap=") {
+        var wrap: WasmWrapRequest = { name: wasm_option_suffix(argument, "--wrap="), ..default };
+        if wrap.name.length == 0 { return wasm_link_fail(link, WasmLinkError.Input, argument); }
+        return wasm_option_wrap_name(link, "__wrap_", wrap.name, &wrap.wrapper) && wasm_option_wrap_name(link, "__real_", wrap.name, &wrap.real)
+            && wasm_link_push(link, &link.wraps, wrap);
+    }
+    if wasm_option_prefix(argument, "--allow-undefined-file=") {
+        *item = init(WasmLinkOption) { action: WasmOptionAction.AllowedNames, name: wasm_option_suffix(argument, "--allow-undefined-file="), ..default }; return true;
+    }
+    if wasm_option_prefix(argument, "--export-if-defined-list=") {
+        *item = init(WasmLinkOption) { action: WasmOptionAction.ExportNames, name: wasm_option_suffix(argument, "--export-if-defined-list="), ..default }; return true;
+    }
+    if wasm_option_prefix(argument, "--initial-memory=") {
+        return wasm_option_number(wasm_option_suffix(argument, "--initial-memory="), &link.initial_memory) || wasm_link_fail(link, WasmLinkError.Input, argument);
+    }
+    if wasm_option_prefix(argument, "--max-memory=") {
+        return wasm_option_number(wasm_option_suffix(argument, "--max-memory="), &link.maximum_memory) || wasm_link_fail(link, WasmLinkError.Input, argument);
+    }
+    var dash: u8 = 45;
+    if argument.length == 0 || argument.data[0] == dash { return wasm_link_fail(link, WasmLinkError.Unsupported, argument); }
+    *item = init(WasmLinkOption) { action: WasmOptionAction.Object, name: argument, whole_archive: options.whole_archive };
+    options.has_input = true;
+    return true;
+}
+
+fn wasm_link_option_bytes(link: WasmLink*, item: WasmLinkOption*, input: WasmBytes): bool {
+    if item.action == WasmOptionAction.AllowedNames || item.action == WasmOptionAction.ExportNames {
+        return wasm_option_names(link, input, item.action == WasmOptionAction.ExportNames);
+    }
+    if item.action != WasmOptionAction.Object { return wasm_link_fail(link, WasmLinkError.Input, item.name); }
+    var archive_magic: u8 = 33;
+    var archive_magic_bytes: usize = 8;
+    var archive = input.length >= archive_magic_bytes && input.data[0] == archive_magic;
+    var ok = true;
+    if archive { ok = item.whole_archive ? wasm_link_read_archive(&link.world, item.name, input) : wasm_link_add_archive(&link.world, item.name, input); }
+    else { ok = wasm_link_read_object(&link.world, item.name, input); }
+    return ok || wasm_link_fail(link, WasmLinkError.Input, link.world.error_input);
+}
+
+fn wasm_link_options_finish(link: WasmLink*, options: WasmLinkOptions*): bool {
+    if options.pending != WasmOptionPending.None { return wasm_link_fail(link, WasmLinkError.Input, wasm_text_bytes("missing linker option value")); }
+    if !options.has_input { return wasm_link_fail(link, WasmLinkError.Input, wasm_text_bytes("provide input objects or archives")); }
+    return link.error == WasmLinkError.None;
+}

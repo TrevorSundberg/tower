@@ -1,5 +1,6 @@
 import tower;
 import .library.entities;
+import .library.entity_types;
 import component_kinds;
 import parser_types;
 import syntax_types;

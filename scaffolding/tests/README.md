@@ -12,6 +12,9 @@ LLD while the remaining compatibility and worker gates are implemented.
 worlds and pinned disposal, symbol selection, wrapping, direct-call signature
 variants versus address-only declarations, relocation bit patterns, import/weak
 policies, rejected shared-memory requests and failure without partial output.
+It also checks lazy GNU archive extraction, backward references, recursive member
+dependencies, cycles, weak references, exports, COMDAT alternatives, unused
+malformed members, byte-only plans and deterministic retry cleanup.
 Build it with the public bootstrap's `--library`, then link the object with the
 existing `guest-host-library.o` using clang. `wasm_link_reader_wasi.tower` adds
 the existing Tower allocator and a WASI `_start`; compile it for
@@ -25,7 +28,8 @@ supports explicit `--whole-archive`, `--export=`, `--export-if-defined=`, `--wra
 allow-undefined lists, stack/memory limits and `-o`. Its optional
 `--export-if-defined-list=FILE` reads one export name per line to avoid host
 command-line limits; `--debug-names` retains symbolic Wasm stack traces.
-Lazy archives, shared-memory/TLS, memory64, tags, referential global initializers,
+Indexed GNU archives are lazy by default; `--whole-archive` requests every member.
+Thin/BSD-index archives remain unsupported. Shared-memory/TLS, memory64, tags, referential global initializers,
 imported memory, dynamic/relocatable output and DWARF/custom-section preservation
 are not implemented. Requests for currently recognized unsupported profiles
 fail explicitly; this is not a complete drop-in `wasm-ld` CLI.
@@ -38,6 +42,21 @@ Both this linker and upstream LLD must execute through `host-wasi.mjs` and print
 `TOWER_TEST_WASM` and `TOWER_TEST_LLVM_WASM` with the existing test fixture loaders
 without replacing the active build artifacts. The journal records exact local
 commands, the current gates and baseline test-expectation failures.
+
+`backend/wasm_link_plan.tower` accepts length-delimited arguments and explicitly
+named input bytes, including allow/export lists. Its keys need no NUL terminator.
+`backend/linker_tower_wasm.tower` adapts the existing `BackendLink` ownership API;
+each invocation uses an independent link world and publishes an owned image.
+Existing reactor transports opt in by using `tower-wasm-ld` as argument zero.
+They must supply every input byte; no filesystem search or native fallback occurs.
+The default `wasm-ld` recipe continues to select upstream LLD.
+
+`wasm_link_reactor.tower` is a separate WASI entry linked against the actual
+backend/compiler units and support archives. It checks explicit Tower dispatch,
+absence of a temporary output file, unsupported-option failure without fallback,
+and byte-identical retry output. Run it through the same `host-wasi.mjs` binding.
+This verifies the byte service in Wasm; two edited browser self-build generations
+with the new linker and shared-memory/TLS support remain production cutover gates.
 
 The isolated tooling check `lld_compat_checks.tower` validates the Tower LLD
 compatibility patcher against exact output and rejection fixtures, including

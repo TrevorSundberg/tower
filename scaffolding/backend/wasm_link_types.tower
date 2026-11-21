@@ -5,7 +5,7 @@ import wasm_link_world;
 import wasm_names;
 import .library.vector;
 import .library.bytes_types;
-import .library.entities;
+import .library.entity_types;
 
 enum WasmLinkError: u32 { None = 0, Allocation = 1, Duplicate = 2, Signature = 3, Undefined = 4, Unsupported = 5, Layout = 6, Input = 7 }
 enum WasmSynthetic: u8 { None = 0, Stack = 1, HeapBase = 2, DataEnd = 3, MemoryBase = 4, TableBase = 5, Constructors = 6, IndirectTable = 7, DsoHandle = 8, StackLow = 9, StackHigh = 10, GlobalBase = 11, HeapEnd = 12, FirstPageEnd = 13, SignatureTrap = 14 }
@@ -93,6 +93,7 @@ struct WasmLink {
     shared_memory: bool;
     allow_undefined: bool;
     garbage_collect: bool;
+    started: bool;
 }
 
 var WasmStackAlignment: u64 = 16;

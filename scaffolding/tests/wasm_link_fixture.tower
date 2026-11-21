@@ -1,0 +1,39 @@
+import tower;
+import utility_checks;
+import .backend.wasm_bytes;
+import .backend.wasm_object_types;
+import .library.bytes_interface;
+import .library.bytes_types;
+
+fn wasm_test_byte(output: ByteBuffer*, value: u8): void { utility_check(bytes_push(output, value), "fixture byte allocation"); }
+fn wasm_test_index(output: ByteBuffer*, value: u64): void { utility_check(wasm_write_uleb(output, value), "fixture index allocation"); }
+fn wasm_test_name(output: ByteBuffer*, value: u8*): void { utility_check(wasm_write_name(output, wasm_text_bytes(value)), "fixture name allocation"); }
+fn wasm_test_section(output: ByteBuffer*, kind: WasmSection, data: ByteBuffer*): void {
+    wasm_test_byte(output, convert(u8, kind));
+    wasm_test_index(output, convert(u64, data.length));
+    utility_check(bytes_append(output, data.data, data.length), "fixture section allocation");
+    data.length = 0;
+}
+
+fn wasm_test_named_object(output: ByteBuffer*, name: u8*, flags: u32): void {
+    var header: u8[8] = default;
+    header[1] = 97; header[2] = 115; header[3] = 109; header[4] = 1;
+    utility_check(bytes_append(output, &header[0], 8), "fixture header");
+    var section: ByteBuffer = default;
+    var symbols: ByteBuffer = default;
+    defer bytes_dispose(&section); defer bytes_dispose(&symbols);
+    wasm_test_index(&section, 1); wasm_test_byte(&section, WasmFunctionType);
+    wasm_test_index(&section, 0); wasm_test_index(&section, 1); wasm_test_byte(&section, convert(u8, WasmValueType.I32));
+    wasm_test_section(output, WasmSection.Type, &section);
+    wasm_test_index(&section, 1); wasm_test_index(&section, 0);
+    wasm_test_section(output, WasmSection.Function, &section);
+    wasm_test_index(&section, 1); wasm_test_index(&section, 4); wasm_test_index(&section, 0);
+    wasm_test_byte(&section, convert(u8, WasmOpcode.I32Const)); wasm_test_byte(&section, 42); wasm_test_byte(&section, convert(u8, WasmOpcode.End));
+    wasm_test_section(output, WasmSection.Code, &section);
+    wasm_test_index(&symbols, 1); wasm_test_byte(&symbols, convert(u8, WasmSymbolKind.Function));
+    wasm_test_index(&symbols, convert(u64, flags)); wasm_test_index(&symbols, 0); wasm_test_name(&symbols, name);
+    wasm_test_name(&section, "linking"); wasm_test_index(&section, convert(u64, WasmLinkingVersion));
+    wasm_test_byte(&section, convert(u8, WasmLinkingSection.Symbols)); wasm_test_index(&section, convert(u64, symbols.length));
+    utility_check(bytes_append(&section, symbols.data, symbols.length), "fixture symbols");
+    wasm_test_section(output, WasmSection.Custom, &section);
+}

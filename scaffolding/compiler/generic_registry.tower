@@ -1,5 +1,6 @@
 import tower;
 import .library.entities;
+import .library.entity_types;
 import entity_require;
 
 fn compiler_component_get(node: Entity*, type: Entity*): void* {

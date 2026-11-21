@@ -1,4 +1,5 @@
 import tower;
+import .compiler.utf8;
 import .backend.wasm_bytes;
 import .backend.wasm_object_types;
 import .backend.wasm_link_world;
@@ -7,6 +8,7 @@ import .backend.wasm_link_types;
 import .backend.wasm_link_prepare;
 import .backend.wasm_link_symbols;
 import .library.entities;
+import .library.entity_types;
 import .library.bytes;
 import .library.bytes_types;
 import .host.driver_files;

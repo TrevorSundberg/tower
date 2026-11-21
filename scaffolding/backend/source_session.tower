@@ -6,6 +6,8 @@ import .compiler.semantic_program_types;
 import .compiler.format_types;
 import .compiler.component_kinds;
 import .library.vector;
+import .library.entity_types;
+import .library.entity_api;
 
 // Explicit request ownership above the graph backend. A caller pins its module
 // environment for compilation; returned text/artifacts belong to this session.
@@ -43,13 +45,13 @@ export fn backend_source_close(source: BackendSource*): void {
 fn backend_source_program_close(program: SemanticProgram*): void {
     var root = program.root;
     semantic_program_dispose(program);
-    entity_release(root);
+    entity_release(bits(Entity*, root));
 }
 
 fn backend_source_program(program: SemanticProgram*, world: void*, text: u8*, length: usize, width: u32, environment: void*): bool {
-    var root = entity_create(compiler_world_store(world));
+    var root = entity_create(bits(EntityStore*, compiler_world_store(world)));
     if root == null { return false; }
-    semantic_initialize(program, root, width);
+    semantic_initialize(program, bits(void*, root), width);
     var input: FrontendSource;
     input.data = text;
     input.length = length;
@@ -71,9 +73,9 @@ fn backend_source_error(source: BackendSource*, program: SemanticProgram*): u8* 
 fn backend_source_import(source: BackendSource*, program: SemanticProgram*, width: u32, optimize: bool, environment: void*): u8* {
     var imported: SemanticProgram;
     var world = compiler_node_world(program.root);
-    var root = entity_create(compiler_world_store(world));
+    var root = entity_create(bits(EntityStore*, compiler_world_store(world)));
     if root == null { return backend_session_failure(source.backend, "Unable to allocate compiler root", 0); }
-    semantic_initialize(&imported, root, width);
+    semantic_initialize(&imported, bits(void*, root), width);
     var backend = source.backend;
     var result = backend_session_response(backend);
     if backend_session_import(backend, program.root, program.functions.data,

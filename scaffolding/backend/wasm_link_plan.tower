@@ -1,0 +1,33 @@
+import tower;
+import wasm_bytes;
+import wasm_names;
+import wasm_object_types;
+import wasm_link_types;
+import wasm_link_options;
+import wasm_link;
+
+struct WasmLinkInputBytes { name: WasmBytes; bytes: WasmBytes; }
+
+// Borrow all argument/input bytes until wasm_link_close. Arguments omit the
+// tool name. Input names are exact byte keys, never paths to open. This service
+// performs no filesystem access, host callbacks or implicit native fallback.
+fn wasm_link_plan(link: WasmLink*, arguments: WasmBytes*, count: usize, inputs: WasmLinkInputBytes*, input_count: usize): bool {
+    var names: WasmNameMap = default;
+    defer wasm_names_dispose(&names);
+    if input_count >= convert(usize, WasmNoIndex) { return wasm_link_fail(link, WasmLinkError.Layout, default(WasmBytes)); }
+    for (var at: usize = 0; at < input_count; at++) {
+        var name = inputs[at].name;
+        if wasm_names_get(&names, name) != WasmNoIndex { return wasm_link_fail(link, WasmLinkError.Duplicate, name); }
+        if !wasm_names_set(&names, name, convert(u32, at)) { return wasm_link_fail(link, WasmLinkError.Allocation, name); }
+    }
+    var options: WasmLinkOptions = default;
+    for (var at: usize = 0; at < count; at++) {
+        var item: WasmLinkOption = default;
+        if !wasm_link_option(link, &options, arguments[at], &item) { return false; }
+        if item.action == WasmOptionAction.None { continue; }
+        var index = wasm_names_get(&names, item.name);
+        if index == WasmNoIndex { return wasm_link_fail(link, WasmLinkError.Input, item.name); }
+        if !wasm_link_option_bytes(link, &item, inputs[convert(usize, index)].bytes) { return false; }
+    }
+    return wasm_link_options_finish(link, &options) && wasm_link_run(link);
+}

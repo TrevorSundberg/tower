@@ -1,12 +1,12 @@
 import tower;
+import .compiler.utf8;
 import .backend.wasm_bytes;
-import .backend.wasm_names;
-import .backend.wasm_object_types;
-import .backend.wasm_link_world;
 import .backend.wasm_link_types;
 import .backend.wasm_link_prepare;
+import .backend.wasm_link_options;
 import .backend.wasm_link;
 import .library.entities;
+import .library.entity_types;
 import .library.bytes;
 import .library.bytes_types;
 import .host.driver_files;
@@ -14,32 +14,6 @@ import .host.driver_files;
 extern fn puts(text: u8*): i32;
 extern fn abort(): void;
 export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, data: u8*): void { abort(); }
-
-fn wasm_cli_prefix(text: WasmBytes, prefix: u8*): bool {
-    var begin = wasm_text_bytes(prefix);
-    return text.length >= begin.length && wasm_bytes_equal(init(WasmBytes) { data: text.data, length: begin.length }, begin);
-}
-
-fn wasm_cli_suffix(text: WasmBytes, prefix: u8*): WasmBytes {
-    var length = wasm_text_bytes(prefix).length;
-    return init(WasmBytes) { data: text.data + length, length: text.length - length };
-}
-
-fn wasm_cli_number(text: WasmBytes, output: u64*): bool {
-    var zero: u8 = 48;
-    var nine: u8 = 57;
-    var decimal: u64 = 10;
-    var value: u64 = 0;
-    if text.length == 0 { return false; }
-    for (var at: usize = 0; at < text.length; at++) {
-        var digit = text.data[at];
-        if digit < zero || digit > nine { return false; }
-        var next = convert(u64, digit - zero);
-        if value > (~convert(u64, 0) - next) / decimal { return false; }
-        value = value * decimal + next;
-    }
-    *output = value; return true;
-}
 
 fn wasm_cli_read(link: WasmLink*, name: u8*, output: WasmBytes*): bool {
     var bytes: ByteBuffer = default;
@@ -49,110 +23,20 @@ fn wasm_cli_read(link: WasmLink*, name: u8*, output: WasmBytes*): bool {
     return true;
 }
 
-// A line-list adapter keeps compiler-sized export sets below host command-line
-// limits. It is a tool option, not an extension of Wasm object semantics.
-fn wasm_cli_names(link: WasmLink*, path: u8*, exports: bool): bool {
-    var text: WasmBytes = default;
-    if !wasm_cli_read(link, path, &text) { return false; }
-    var line_feed: u8 = 10;
-    var space: u8 = 32;
-    var comment: u8 = 35;
-    for (var at: usize = 0; at < text.length;) {
-        var first = at;
-        while at < text.length && text.data[at] != line_feed { at++; }
-        var last = at;
-        for (var next = first; next < last; next++) { if text.data[next] == comment { last = next; break; } }
-        while first < last && text.data[first] <= space { first++; }
-        while last > first && text.data[last - 1] <= space { last--; }
-        if last > first {
-            var name: WasmBytes = { data: text.data + first, length: last - first };
-            if exports {
-                var request: WasmExportRequest = { name: name, required: false };
-                if !wasm_link_push(link, &link.exports, request) { return false; }
-            } else {
-                if !wasm_names_set(&link.allowed, name, 0) { return wasm_link_fail(link, WasmLinkError.Allocation, name); }
-            }
-        }
-        if at < text.length { at++; }
-    }
-    return true;
-}
-
-fn wasm_cli_wrap_name(link: WasmLink*, prefix: u8*, name: WasmBytes, output: WasmBytes*): bool {
-    var bytes: ByteBuffer = default;
-    var start = wasm_text_bytes(prefix);
-    if !bytes_append(&bytes, start.data, start.length) || !bytes_append(&bytes, name.data, name.length) {
-        bytes_dispose(&bytes); return wasm_link_fail(link, WasmLinkError.Allocation, name);
-    }
-    if !wasm_link_push(link, &link.owned, bytes) { bytes_dispose(&bytes); return false; }
-    *output = init(WasmBytes) { data: bytes.data, length: bytes.length };
-    return true;
-}
-
 fn wasm_cli_options(link: WasmLink*, argc: i32, argv: u8**, output: u8**): bool {
-    var whole_archive = false;
+    var options: WasmLinkOptions = default;
     for (var at: i32 = 1; at < argc; at++) {
-        var option = wasm_text_bytes(argv[at]);
-        if wasm_bytes_text(option, "-o") {
-            if at + 1 == argc { return wasm_link_fail(link, WasmLinkError.Input, option); }
-            *output = argv[++at]; continue;
-        }
-        if wasm_bytes_text(option, "--no-entry") || wasm_bytes_text(option, "--strip-all") || wasm_bytes_text(option, "--threads=1") { continue; }
-        if wasm_bytes_text(option, "--whole-archive") { whole_archive = true; continue; }
-        if wasm_bytes_text(option, "--no-whole-archive") { whole_archive = false; continue; }
-        if wasm_bytes_text(option, "--export-memory") { link.export_memory = true; continue; }
-        if wasm_bytes_text(option, "--stack-first") { link.stack_first = true; continue; }
-        if wasm_bytes_text(option, "--debug-names") { link.emit_names = true; continue; }
-        if wasm_bytes_text(option, "--allow-undefined") { link.allow_undefined = true; continue; }
-        if wasm_bytes_text(option, "--no-gc-sections") { link.garbage_collect = false; continue; }
-        if wasm_cli_prefix(option, "--export=") || wasm_cli_prefix(option, "--export-if-defined=") {
-            var required = wasm_cli_prefix(option, "--export=");
-            var request: WasmExportRequest = { name: wasm_cli_suffix(option, required ? "--export=" : "--export-if-defined="), required: required };
-            if !wasm_link_push(link, &link.exports, request) { return false; }
-            continue;
-        }
-        if wasm_cli_prefix(option, "--wrap=") {
-            var wrap: WasmWrapRequest = { name: wasm_cli_suffix(option, "--wrap="), ..default };
-            if !wasm_cli_wrap_name(link, "__wrap_", wrap.name, &wrap.wrapper) || !wasm_cli_wrap_name(link, "__real_", wrap.name, &wrap.real)
-                || !wasm_link_push(link, &link.wraps, wrap) { return false; }
-            continue;
-        }
-        if wasm_cli_prefix(option, "--allow-undefined-file=") {
-            if !wasm_cli_names(link, wasm_cli_suffix(option, "--allow-undefined-file=").data, false) { return false; }
-            continue;
-        }
-        if wasm_cli_prefix(option, "--export-if-defined-list=") {
-            if !wasm_cli_names(link, wasm_cli_suffix(option, "--export-if-defined-list=").data, true) { return false; }
-            continue;
-        }
-        if wasm_cli_prefix(option, "--initial-memory=") {
-            if !wasm_cli_number(wasm_cli_suffix(option, "--initial-memory="), &link.initial_memory) { return wasm_link_fail(link, WasmLinkError.Input, option); }
-            continue;
-        }
-        if wasm_cli_prefix(option, "--max-memory=") {
-            if !wasm_cli_number(wasm_cli_suffix(option, "--max-memory="), &link.maximum_memory) { return wasm_link_fail(link, WasmLinkError.Input, option); }
-            continue;
-        }
-        if wasm_bytes_text(option, "-z") {
-            if at + 1 == argc { return wasm_link_fail(link, WasmLinkError.Input, option); }
-            option = wasm_text_bytes(argv[++at]);
-            if !wasm_cli_prefix(option, "stack-size=") || !wasm_cli_number(wasm_cli_suffix(option, "stack-size="), &link.stack_size) {
-                return wasm_link_fail(link, WasmLinkError.Unsupported, option);
-            }
-            continue;
-        }
-        var dash: u8 = 45;
-        if option.length == 0 || option.data[0] == dash { return wasm_link_fail(link, WasmLinkError.Unsupported, option); }
-        var input: WasmBytes = default;
-        if !wasm_cli_read(link, argv[at], &input) { return false; }
-        var archive_magic: u8 = 33;
-        var archive = input.length >= 8 && input.data[0] == archive_magic;
-        if archive && !whole_archive { return wasm_link_fail(link, WasmLinkError.Unsupported, wasm_text_bytes("lazy archive extraction; use explicit --whole-archive")); }
-        var ok = archive ? wasm_link_read_archive(&link.world, option, input) : wasm_link_read_object(&link.world, option, input);
-        if !ok { return wasm_link_fail(link, WasmLinkError.Input, link.world.error_input); }
+        var item: WasmLinkOption = default;
+        if !wasm_link_option(link, &options, wasm_text_bytes(argv[at]), &item) { return false; }
+        if item.action == WasmOptionAction.None { continue; }
+        var bytes: WasmBytes = default;
+        // Actions name either an entire argv string or its suffix, both NUL
+        // terminated here. The backend's byte-plan adapter needs no terminator.
+        if !wasm_cli_read(link, item.name.data, &bytes) || !wasm_link_option_bytes(link, &item, bytes) { return false; }
     }
-    if *output == null || link.world.objects.length == 0 { return wasm_link_fail(link, WasmLinkError.Input, wasm_text_bytes("provide input objects and -o output.wasm")); }
-    return true;
+    if options.output.length == 0 { return wasm_link_fail(link, WasmLinkError.Input, wasm_text_bytes("provide -o output.wasm")); }
+    *output = options.output.data;
+    return wasm_link_options_finish(link, &options);
 }
 
 export fn main(argc: i32, argv: u8**): i32 {

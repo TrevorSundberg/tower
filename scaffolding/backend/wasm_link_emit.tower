@@ -3,7 +3,7 @@ import wasm_bytes;
 import wasm_object_types;
 import wasm_link_types;
 import wasm_link_relocate;
-import .library.bytes;
+import .library.bytes_interface;
 import .library.bytes_types;
 
 fn wasm_emit_section(output: ByteBuffer*, kind: WasmSection, section: ByteBuffer*): bool {

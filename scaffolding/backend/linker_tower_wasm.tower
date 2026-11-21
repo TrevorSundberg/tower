@@ -1,0 +1,44 @@
+import tower;
+import link_types;
+import text;
+import wasm_bytes;
+import wasm_link_types;
+import wasm_link_prepare;
+import wasm_link_plan;
+import .library.vector;
+
+// Explicit experimental backend: all object/archive/name-list bytes must be in
+// BackendLink.inputs. Reuses the ordinary argument plan and publishes an owned
+// result. No temp files, singleton LLD context, process or fallback is involved.
+export fn backend_link_tower_wasm(backend: BackendLink*): bool {
+    backend.error.length = 0;
+    backend.output.length = 0;
+    var link: WasmLink = default;
+    defer wasm_link_close(&link);
+    var arguments: vector(WasmBytes) = default;
+    var inputs: vector(WasmLinkInputBytes) = default;
+    defer vector_dispose(&arguments); defer vector_dispose(&inputs);
+    var ok = wasm_link_init(&link);
+    if backend.arguments.length == 0 { ok = wasm_link_fail(&link, WasmLinkError.Input, wasm_text_bytes("missing Wasm linker arguments")); }
+    for (var at: usize = 1; at < backend.arguments.length && ok; at++) {
+        ok = wasm_link_push(&link, &arguments, wasm_text_bytes(backend.arguments.data[at]));
+    }
+    foreach (var & input in &backend.inputs) {
+        var item: WasmLinkInputBytes = { name: { data: input.name.data, length: input.name.length }, bytes: { data: input.bytes.data, length: input.bytes.length } };
+        ok &&= wasm_link_push(&link, &inputs, item);
+    }
+    ok &&= wasm_link_plan(&link, arguments.data, arguments.length, inputs.data, inputs.length);
+    if !ok {
+        backend_text(&backend.error, wasm_link_message(link.error));
+        if link.error_name.length != 0 { backend_text(&backend.error, ": "); backend_text_append(&backend.error, link.error_name.data, link.error_name.length); }
+        if link.world.error != WasmReadError.None { backend_text(&backend.error, ": "); backend_text(&backend.error, wasm_read_message(link.world.error)); }
+        return false;
+    }
+    // Transfer the completed image; borrowed inputs remain owned by BackendLink.
+    vector_dispose(&backend.output);
+    backend.output.data = link.output.data;
+    backend.output.length = link.output.length;
+    backend.output.capacity = link.output.capacity;
+    link.output = default;
+    return true;
+}

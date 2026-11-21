@@ -5,9 +5,9 @@ import wasm_object_types;
 import wasm_link_world;
 import wasm_link_types;
 import .library.vector;
-import .library.bytes;
+import .library.bytes_interface;
 import .library.bytes_types;
-import .library.entities;
+import .library.entity_api;
 
 fn wasm_link_close(link: WasmLink*): bool {
     if link.world.store != null && link.world.store.views != 0 { return false; }

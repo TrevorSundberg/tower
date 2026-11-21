@@ -36898,3 +36898,110 @@ does not establish a general speedup or regression; it does not reproduce a
 consistent slowdown in the affected body workload. The initial /usr/bin/time
 attempt could not run because that executable is absent in the container; used
 Bash's existing time keyword instead, without installing or adding a tool.
+## 2026-11-21 - Lazy Wasm libraries and an explicit Tower reactor link service
+
+Continued the static-linker milestone after pulling main through 82dde6f. The
+unfinished four-file archive change was stashed by exact path, rebased and restored;
+no unrelated work was discarded. All new implementation and fixtures are Tower.
+No todo.txt, native implementation, sanitizer run or broad formatter sweep.
+
+Implemented indexed GNU archive extraction on request-owned archive components.
+Original object/archive order is explicit; extracted object components retain
+stable addresses while the coordinator publishes their derived resolution order.
+A private iterative demand stack handles chained/backward references and cycles
+without recursive host calls. Weak references do not pull members. Required and
+optional exports are applied after ordinary inputs and can extract definitions.
+This follows the pinned LLD Driver.cpp export handling and InputFiles.cpp COMDAT
+rules, rather than assuming exports behave like initial undefined references.
+COMDAT marking is shared with final symbol selection. A discarded member can
+advance to another indexed candidate for the same name; empty symbol indexes are
+distinct from missing indexes. Unused malformed members are not parsed. Thin and
+BSD-index archives remain explicitly unsupported. Extraction is serial today;
+world ownership and stable components alone are not a claim of parallel linking.
+
+Moved option interpretation out of the executable into wasm_link_options.tower.
+wasm_link_plan accepts borrowed, length-delimited argument/input spans with exact
+name keys, including allow/export-list inputs. It performs no filesystem access.
+backend_link_tower_wasm adapts existing BackendLink ownership, creates a fresh
+world per invocation, and transfers only complete output. Failure clears output.
+The existing reactor API selects it explicitly when argument zero is
+`tower-wasm-ld`; ordinary `wasm-ld` keeps the upstream service. Unknown/unsupported
+options fail without fallback. Planning errors remain blocking. The standalone
+CLI is now a small file/argument/result adapter using that same decoder.
+
+Integration exposed real duplicate-definition/type-boundary problems: importing
+the entities, bytes and UTF-8 implementation modules into an already separately
+linked compiler duplicated their exports. Old source/worker declarations also
+erased entity parameters to void*. Mechanically moved the unchanged entity
+layouts to entity_types.tower and added a typed entity_api declaration surface.
+Existing entity users explicitly import those shared types; no store algorithms,
+component layouts or lifetime rules changed. The linker now uses the shared ECS,
+byte-buffer and UTF-8 interfaces, and standalone tools supply their implementations
+once. Backend source roots and the LLVM worker convert opaque compiler handles at
+the boundary and otherwise use concrete entity pointers. BackendLink types likewise
+have one shared declaration module. Foundation and semantic algorithms are unchanged.
+
+Validation on WSL Ubuntu, Clang/LLVM 19.1.7, using the hash-verified checked-in
+bootstrap returned by build-bootstrap.sh, with no private bootstrap override:
+
+- Fresh isolated native successor and backend test build completed (59-step plan)
+  at /home/trevo/.cache/tower/coordinator-wasm-linker/successor. Backend API PASS.
+  Native worker overlap PASS. Focused frontend suite PASS: editor/world ownership,
+  32/64-bit body execution/canonical round trips, 1/2/4/8-worker determinism,
+  diagnostic cycles/order, parser, regex and contextual lexer. The first frontend
+  invocation omitted its required source-directory argument and exited 1; rerun
+  with /mnt/c/Sandbox/tower/scaffolding passed. Successor entity_tables and
+  entity_views fast-interpreter checks both report zero failures.
+- Expanded wasm_link_reader Tower suite PASS natively and as WASI. It covers
+  archive order, chains, cycles, weak references, required/optional exports,
+  COMDAT fallback to a later indexed candidate, empty/missing indexes, unused
+  invalid members, single-use requests, duplicate input capabilities, non-NUL
+  byte keys, failed requests/retries and byte-identical outputs.
+- Real llvm-ar library containing the separately compiled Tower library links
+  before its caller and executes through host-wasi.mjs: Tower Wasm linker
+  execution passed. The standard support archive is now lazy too.
+- wasm_link_reactor.tower links against the actual backend/compiler objects and
+  upstream support and runs in the browser WASI host. PASS: Tower dispatch,
+  no temporary output file, unsupported profile rejection without fallback,
+  deterministic retry using a new isolated world. This exercises the existing
+  reactor transport entirely with Tower assertions; no new JavaScript test.
+- A full LLVM reactor linked with all five real support archives in lazy mode
+  passes all 12 selected for-loops/generic-inference checks, including graph/fast
+  interpretation and raw/optimized LLVM execution. Candidate override:
+  TOWER_TEST_LLVM_WASM=build/wasm_link_llvm_lazy_reactor.wasm. An initial mixed
+  artifact attempt failed instantiation because cached manifests/objects lacked
+  backend_initialize_targets, semantic_float and compiler_work_graph. Regenerate
+  the backend manifest from current ComposeBackend, compile current semantic and
+  entity units, and bind the real target-registry state using runtime_bind. This
+  fixes the inputs; no fallback implementations or permissive host imports were
+  added. Other reactor units remain the previously validated snapshots. This is
+  focused integration evidence, not a full current-source browser generation.
+
+Reproduction artifacts live in the isolated coordinator-wasm-linker cache. Build
+wasm_link_reader/wasm_link_static with `--library`, link them with the freshly built
+guest-host-library.o and clang-19. Compile the reader_wasi/reactor fixtures for
+wasm32-unknown-unknown; link with `--no-entry --export=_start --stack-first -z
+stack-size=4194304` (8 MiB for compiler reactor checks). Run through the existing
+`node scaffolding/tests/host-wasi.mjs` transport. The full reactor uses the existing
+project recipe exports/wraps, 32 MiB initial memory and 2 GiB maximum. Exact
+operational argument snapshots are build/wasm_link_plan_link_args.json and
+build/wasm_link_lazy_reference.rsp; the reference is WASI SDK 34's wasm-ld.
+
+Paired warm native links of that LLVM reactor measured Tower 0.92/0.80/0.95 s,
+about 337 MiB peak RSS, versus LLD 0.77/0.78/0.77 s, about 365 MiB. Avoid indexing
+already-satisfied demands and definitions in lazy selection: subsequent Tower
+1.00/0.86/0.90 s versus LLD 0.88/0.81/0.78 s, with byte-identical Tower output.
+These noisy samples do not establish a speedup; the latter median is about 11%
+slower with about 8% less RSS (KiB readings 345024-345148 vs 374344-374560).
+Tower image 53,566,581 bytes; LLD 52,583,916 bytes. Parallel reader/relocation jobs
+and output compaction still need their own measured contracts. An earlier paired
+run overlapped unrelated compiles and is not performance evidence. llvm-readobj-19
+--all crashed on the large linked module; bounded inspection and actual Wasm
+instantiation/execution supplied the useful checks instead.
+
+Next: fresh complete browser compiler self-builds selecting tower-wasm-ld, then
+shared-memory/TLS/bulk initialization and real CompilerWork jobs over pinned
+inputs with deterministic publication/cancellation. Retain upstream LLD until
+those gates and supported target profiles pass. Native ELF/COFF/Mach-O replacement
+is separate later work. This experimental source/API milestone does not switch
+the hosted default runtime or claim all LLVM/lld dependencies are removed.

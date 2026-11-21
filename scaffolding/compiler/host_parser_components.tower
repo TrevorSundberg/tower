@@ -4,6 +4,7 @@ import component_kinds;
 import entity_require;
 import parser_types;
 import .library.entities;
+import .library.entity_types;
 
 // Compatibility symbols over the world-owned Tower parser components.
 

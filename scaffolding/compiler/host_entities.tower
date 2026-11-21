@@ -9,6 +9,7 @@ import component_kinds;
 import entity_require;
 import syntax_types;
 import .library.entities;
+import .library.entity_types;
 
 export fn core_component_type(): Entity* {
     return compiler_host_type(CompilerFoundation);

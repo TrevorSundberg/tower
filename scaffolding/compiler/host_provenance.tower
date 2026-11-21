@@ -5,6 +5,7 @@ import syntax_provenance;
 import entity_require;
 import syntax_types;
 import .library.entities;
+import .library.entity_types;
 
 export fn syntax_get_origin(node: Entity*): SyntaxOrigin* {
     return syntax_origin_get(compiler_node_world(node), node);

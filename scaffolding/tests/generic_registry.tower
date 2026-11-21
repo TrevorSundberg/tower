@@ -1,6 +1,7 @@
 import tower;
 import .compiler.generic_registry;
 import .library.entities;
+import .library.entity_types;
 
 fn registry_check(ok: bool, code: i32, failure: i32*): void {
     if !ok {

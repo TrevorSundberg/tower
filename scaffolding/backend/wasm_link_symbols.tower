@@ -5,16 +5,13 @@ import wasm_object_types;
 import wasm_link_world;
 import wasm_link_types;
 import .library.vector;
-import .library.bytes;
+import .library.bytes_interface;
 import .library.bytes_types;
 
-fn wasm_link_comdats(link: WasmLink*): bool {
-    for (var index: usize = 0; index < link.world.objects.length; index++) {
-        var object = link.world.objects.data[index].object;
-        var layout = link.layouts.data[index];
+fn wasm_link_object_comdats(link: WasmLink*, object: WasmObject*, layout: WasmObjectLayout*, names: WasmNameMap*, owner: u32): bool {
         foreach (var & group in &object.comdats) {
-            if wasm_names_get(&link.comdat_names, group.name) == WasmNoIndex {
-                if !wasm_names_set(&link.comdat_names, group.name, convert(u32, index)) {
+            if wasm_names_get(names, group.name) == WasmNoIndex {
+                if !wasm_names_set(names, group.name, owner) {
                     return wasm_link_fail(link, WasmLinkError.Allocation, group.name);
                 }
                 continue;
@@ -36,8 +33,27 @@ fn wasm_link_comdats(link: WasmLink*): bool {
                 chunks.data[convert(usize, entry.index)].discarded = true;
             }
         }
+    return true;
+}
+
+fn wasm_link_comdats(link: WasmLink*): bool {
+    for (var index: usize = 0; index < link.world.objects.length; index++) {
+        if !wasm_link_object_comdats(link, link.world.objects.data[index].object, link.layouts.data[index], &link.comdat_names, convert(u32, index)) { return false; }
     }
     return true;
+}
+
+fn wasm_link_defined_chunk(layout: WasmObjectLayout*, symbol: WasmSymbolRecord*): WasmChunkLayout* {
+    if (symbol.flags & convert(u32, WasmSymbolFlag.Undefined)) != 0 { return null; }
+    var row = convert(usize, symbol.index);
+    match convert(WasmSymbolKind, symbol.kind) {
+        WasmSymbolKind.Function => { return &layout.functions.data[row]; }
+        WasmSymbolKind.Global => { return &layout.globals.data[row]; }
+        WasmSymbolKind.Data => { return &layout.data.data[row]; }
+        WasmSymbolKind.Table => { return &layout.tables.data[row]; }
+        WasmSymbolKind.Tag => { return &layout.tags.data[row]; }
+        _ => { return null; }
+    }
 }
 
 fn wasm_link_symbol_chunk(link: WasmLink*, reference: WasmSymbolReference): WasmChunkLayout* {
@@ -46,17 +62,7 @@ fn wasm_link_symbol_chunk(link: WasmLink*, reference: WasmSymbolReference): Wasm
     var object = link.world.objects.data[index].object;
     var layout = link.layouts.data[index];
     var symbol = &object.symbols.data[convert(usize, reference.symbol)];
-    if (symbol.flags & convert(u32, WasmSymbolFlag.Undefined)) != 0 { return null; }
-    var row = convert(usize, symbol.index);
-    var kind = convert(WasmSymbolKind, symbol.kind);
-    match kind {
-        WasmSymbolKind.Function => { return &layout.functions.data[row]; }
-        WasmSymbolKind.Global => { return &layout.globals.data[row]; }
-        WasmSymbolKind.Data => { return &layout.data.data[row]; }
-        WasmSymbolKind.Table => { return &layout.tables.data[row]; }
-        WasmSymbolKind.Tag => { return &layout.tags.data[row]; }
-        _ => { return null; }
-    }
+    return wasm_link_defined_chunk(layout, symbol);
 }
 
 fn wasm_link_signatures(link: WasmLink*, left: WasmSymbolReference, right: WasmSymbolReference): bool {

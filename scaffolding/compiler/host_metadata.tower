@@ -7,6 +7,7 @@ import host_world;
 import parser_types;
 import world;
 import .library.entities;
+import .library.entity_types;
 import .library.entity_stage;
 import syntax_provenance;
 import .library.vector;

@@ -1,6 +1,9 @@
 import tower;
+import link_types;
 import linker_wasi;
 import linker;
+import linker_tower_wasm;
+import text;
 
 // Host build service for compiler reactors. Inputs and arguments are explicit
 // capabilities supplied by the build recipe, never filesystem/tool searches.
@@ -11,6 +14,12 @@ export fn backend_reactor_argument(link: BackendLink*, argument: u8*): void {
 }
 
 export fn backend_reactor_link(link: BackendLink*): bool {
+    if link.error.length != 0 { link.output.length = 0; return false; }
+    // Explicit recipe opt-in uses the existing transport and input ownership.
+    // The default upstream tool remains available for unsupported profiles.
+    if link.arguments.length != 0 && backend_equal(link.arguments.data[0], "tower-wasm-ld") {
+        return backend_link_tower_wasm(link);
+    }
     foreach(var & input in &link.inputs) {
         if !backend_write_file(link, input.name.data, input.bytes.data, input.bytes.length) {
             return false;
