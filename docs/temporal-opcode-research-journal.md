@@ -32033,3 +32033,22 @@ Pages runtime release 32fa67548d887da23b842a8e6a23a9a295cbc77f and manifest line
 This milestone removed 1,440 compiler C/C++ lines and all 774 historical research C/C++ lines. Remaining tracked owned native source is exactly 469 lines in five files (55 production, 234 node fixtures, 180 headers). todo.txt blob remains 96a9e58964d7f01e4a97819f259448db81ef5e40. No sanitizer, broad formatter sweep, new native implementation, or fallback seed was added. The full migration goal remains active. Next implement the node fixture/lifecycle and default-host/allocation replacement described above, then publish pure-Tower successors and complete portable bootstrap tooling/packages; the current committed bootstrap is still the explicitly documented hybrid Linux x64 development package.
 
 Final journal publication pulled 8e09a3c (resumable surface-control workers and build-depfile fixes), so this supersedes the preceding assumption that the final pull was documentation-only. Preserved its complete journal and AGENTS.md Stronghold direction. The baseline release above remains verified at cb35053/e7c8abb; its 121 browser results are not relabeled as checks of 8e09a3c. Built a fresh successor from the documented public bootstrap in /home/trevo/.cache/tower/coordinator-baseline-control-clean: PASS all 54 build steps. Ran the expanded tests/body_continuation.tower through the graph interpreter, fast interpreter and emitted/linked native executable (LLVM 19 clang): all output 0. Evidence baseline-control-native-build.log, baseline-control-graph.log, baseline-control-fast.log and baseline-control-native.log. The separate worker-control release owns its refreshed browser publication; this journal-only update preserves whichever verified runtime release is current rather than replacing its assets. Native retirement count remains 469; next work uses the integrated main and its ECS continuation contracts.
+Integrated validation completes: the fresh default-bootstrap native build passes
+all 53 steps; its CLI prints 0 for body_continuation.tower, and the rebuilt native
+serial/worker body smoke passes execution, canonical output and diagnostic/cycle
+ordering. Published source commit 8e09a3c552ffda6ffa19da56ccbee85f6b504115 to main
+immediately after those checks so others can try the changes. Evidence is
+control-batch-baseline-{clean,cli,smoke}.log under build/language-next-audit.
+
+The updated 16-unit browser package builds successfully. Repeated only the
+affected compiler-worker/parser selection after the baseline port: 18/18 pass
+in 79.033s. The resumable-body LLVM differential passes in 15.869s. Both actual
+successor generations then pass at 2/4 unit workers, including changed semantic
+behavior and identical successive bytes: Tower 1,092,387; LLVM 52,400,189; cross
+63,957,610. Evidence is control-batch-baseline-{browser,tests,generations,dist}.log.
+No repeat of the unrelated full native/browser/UI suites. The runtime candidate
+is frozen at 8e09a3c; final documentation publication preserves that verified
+build identity and those assets. The normal Pages publisher and served-byte
+verification complete publication, with receipts in published-pages.json and
+control-batch publication logs. This remains about 70% of the scoped conversion;
+the remaining boundaries and next layout-dependency work above are still open.
