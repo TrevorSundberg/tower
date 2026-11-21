@@ -1,8 +1,8 @@
 {
-    "sourceCommit":  "e8b11f525ee442a8b400b693b52b9fb12c4503c2",
+    "sourceCommit":  "780276a88a036b349677e9536ff683b009f288ba",
     "buildSourceCommit":  "85c8a138e098f2dd84706d3f9d6e7bbcfa592887",
     "bootstrapSha256":  "24fa5adb794d245001369d5dda93acb58a662e5ec1d6f0e6ad672272dad0ae71",
-    "previousDeployment":  "09a46e0941588309c283e960c40b04354cb4a417",
+    "previousDeployment":  "43bd0b25d854775d0db5911095d18c083ee92365",
     "buildNote":  "Frozen 85c8a13 compiler snapshot built with the public predecessor 7ef1e6d; clean native, portable/shared/LLVM/cross builds and two identical browser generations passed. Full body 1/2/4/8-worker, known-binding, floating/negation and backend unit checks passed. Rebase to public 2776318 changes no retained compiler inputs; the new direct bootstrap 1a5b588 also built a clean 54-step successor and ran the continuation fixture with zero failures.",
     "scope":  "Shared-graph structural local declaration queries and bounded declaration scheduling, including integrated floating-point and ordinary unary-negation semantics.",
     "toolingMigration":  {
@@ -203,6 +203,7 @@
                           "scope":  "Stable editor/output geometry, quiet progress, on-demand timing details, retained output scroll and in-place native artifacts.",
                           "runtimeDeployment":  "09a46e0941588309c283e960c40b04354cb4a417",
                           "runtimeAssetsChanged":  false,
-                          "validation":  "26 focused browser checks, six final frame/storage checks and four integrated edit/recompile captures pass. Full local desktop/mobile deployment verification passes all 84 asset hashes and behavior checks."
+                          "validation":  "26 focused browser checks, six final frame/storage checks, four integrated captures and all four live desktop/mobile edit/recompile captures pass. Full local and hosted deployment verification passes all 84 asset hashes and behavior checks.",
+                          "verifiedDeployment":  "43bd0b25d854775d0db5911095d18c083ee92365"
                       }
 }
