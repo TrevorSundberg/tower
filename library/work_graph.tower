@@ -634,6 +634,21 @@ fn work_ticket_valid(g: WorkGraph*, ticket: WorkTicket*): bool {
     return valid;
 }
 
+// Record a value actually read from an already-published query. The executor
+// must keep that input immutable for the read and join its worker before this
+// coordinator call. This adds provenance without suspending/replaying work or
+// releasing its access claims. Unavailable inputs require work_suspend instead.
+fn work_observe(g: WorkGraph*, ticket: WorkTicket*, dependency: usize): bool {
+    if !work_ticket_valid(g, ticket) { return false; }
+    var input = work_task(g, dependency);
+    if input == null || input.state != WorkState.Succeeded { return false; }
+    var task = work_task(g, ticket.task);
+    task.state = WorkState.Building;
+    var attached = work_depend(g, ticket.task, dependency);
+    task.state = WorkState.Running;
+    return attached;
+}
+
 fn work_release(g: WorkGraph*, id: usize): void {
     g.running--;
     for(var i: usize = 0; i < g.executing.length; i++) {

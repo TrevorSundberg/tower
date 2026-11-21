@@ -1,0 +1,218 @@
+import tower;
+import bytes;
+import bytes_types;
+
+// Raw RFC 1951 encoder. Fixed Huffman codes plus bounded LZ77 search; choose
+// stored blocks when they are smaller. No platform ABI, external codec, dynamic
+// Huffman tree, dictionary or zlib/gzip wrapper. All scratch belongs to this call.
+var DeflateWindow: usize = 32768;
+var DeflateHashBuckets: usize = 4096;
+var DeflateSearchLimit: usize = 64;
+var DeflateMinimumMatch: usize = 3;
+var DeflateMaximumMatch: usize = 258;
+var DeflateStoredLimit: usize = 65535;
+var DeflateStoredOverhead: usize = 5;
+var DeflateByteBits: u32 = 8;
+var DeflateEndCode: u32 = 256;
+
+enum DeflateAttempt: i32 { Ok, Larger, AllocationFailure }
+
+struct DeflateBits {
+    output: ByteBuffer;
+    pending: u32;
+    count: u32;
+    limit: usize;
+    ok: bool;
+    larger: bool;
+}
+
+fn deflate_put(writer: DeflateBits*, value: u32, width: u32): void {
+    if !writer.ok || writer.larger { return; }
+    writer.pending |= value << writer.count;
+    writer.count += width;
+    var byte_mask = convert(u32, ~convert(u8, 0));
+    while writer.count >= DeflateByteBits {
+        if writer.output.length == writer.limit { writer.larger = true; return; }
+        if !bytes_push(&writer.output, convert(u8, writer.pending & byte_mask)) { writer.ok = false; return; }
+        writer.pending >>= DeflateByteBits;
+        writer.count -= DeflateByteBits;
+    }
+}
+
+fn deflate_code(writer: DeflateBits*, value: u32, width: u32): void {
+    var reversed: u32 = 0;
+    for (var bit: u32 = 0; bit < width; bit++) {
+        reversed = (reversed << 1) | (value & 1);
+        value >>= 1;
+    }
+    deflate_put(writer, reversed, width);
+}
+
+fn deflate_symbol(writer: DeflateBits*, symbol: u32): void {
+    var high_literal: u32 = 144;
+    var high_length: u32 = 280;
+    var low_literal_base: u32 = 48;
+    var high_literal_base: u32 = 400;
+    var high_length_base: u32 = 192;
+    var low_literal_width: u32 = 8;
+    var high_literal_width: u32 = 9;
+    var low_length_width: u32 = 7;
+    var high_length_width: u32 = 8;
+    if symbol < high_literal { deflate_code(writer, low_literal_base + symbol, low_literal_width); }
+    else {
+        if symbol < DeflateEndCode { deflate_code(writer, high_literal_base + symbol - high_literal, high_literal_width); }
+        else {
+            if symbol < high_length { deflate_code(writer, symbol - DeflateEndCode, low_length_width); }
+            else { deflate_code(writer, high_length_base + symbol - high_length, high_length_width); }
+        }
+    }
+}
+
+fn deflate_match(writer: DeflateBits*, length: usize, distance: usize): void {
+    var first_length_code: u32 = 257;
+    var maximum_length_code: u32 = 285;
+    var literal_lengths: u32 = 8;
+    var lengths_per_group: u32 = 4;
+    if length == DeflateMaximumMatch { deflate_symbol(writer, maximum_length_code); }
+    else {
+        var base = convert(u32, DeflateMinimumMatch);
+        for (var code: u32 = first_length_code; code < maximum_length_code; code++) {
+            var index = code - first_length_code;
+            var extra: u32 = index < literal_lengths ? 0 : index / lengths_per_group - 1;
+            var span: u32 = 1 << extra;
+            if convert(u32, length) < base + span {
+                deflate_symbol(writer, code);
+                deflate_put(writer, convert(u32, length) - base, extra);
+                break;
+            }
+            base += span;
+        }
+    }
+    var distance_codes: u32 = 30;
+    var literal_distances: u32 = 4;
+    var distances_per_group: u32 = 2;
+    var distance_width: u32 = 5;
+    var base: u32 = 1;
+    for (var code: u32 = 0; code < distance_codes; code++) {
+        var extra: u32 = code < literal_distances ? 0 : code / distances_per_group - 1;
+        var span: u32 = 1 << extra;
+        if convert(u32, distance) < base + span {
+            deflate_code(writer, code, distance_width);
+            deflate_put(writer, convert(u32, distance) - base, extra);
+            break;
+        }
+        base += span;
+    }
+}
+
+fn deflate_hash(data: u8*): usize {
+    var multiplier: usize = 251;
+    return ((convert(usize, data[0]) * multiplier + convert(usize, data[1])) * multiplier
+        + convert(usize, data[2])) & (DeflateHashBuckets - 1);
+}
+
+fn deflate_fixed(data: u8*, length: usize, limit: usize, out: ByteBuffer*): DeflateAttempt {
+    var heads = alloc(usize, DeflateHashBuckets);
+    if heads == null { return DeflateAttempt.AllocationFailure; }
+    defer free(heads);
+    var previous = alloc(usize, DeflateWindow);
+    if previous == null { return DeflateAttempt.AllocationFailure; }
+    defer free(previous);
+    var absent = ~convert(usize, 0);
+    for (var index: usize = 0; index < DeflateHashBuckets; index++) { heads[index] = absent; }
+    for (var index: usize = 0; index < DeflateWindow; index++) { previous[index] = absent; }
+    var writer: DeflateBits = { limit: limit, ok: true, ..default };
+    defer bytes_dispose(&writer.output);
+    var fixed_final: u32 = 3;
+    var block_header_bits: u32 = 3;
+    deflate_put(&writer, fixed_final, block_header_bits);
+    var position: usize = 0;
+    while position < length && writer.ok && !writer.larger {
+        var matched: usize = 0;
+        var distance: usize = 0;
+        if length - position >= DeflateMinimumMatch {
+            var candidate = heads[deflate_hash(data + position)];
+            var maximum = length - position;
+            if maximum > DeflateMaximumMatch { maximum = DeflateMaximumMatch; }
+            var attempts: usize = 0;
+            while candidate != absent && candidate < position && position - candidate <= DeflateWindow
+                && attempts < DeflateSearchLimit {
+                var count: usize = 0;
+                while count < maximum && data[candidate + count] == data[position + count] { count++; }
+                if count > matched && count >= DeflateMinimumMatch {
+                    matched = count;
+                    distance = position - candidate;
+                    if count == maximum { break; }
+                }
+                var next = previous[candidate & (DeflateWindow - 1)];
+                if next >= candidate { break; }
+                candidate = next;
+                attempts++;
+            }
+        }
+        var advance: usize = 1;
+        if matched >= DeflateMinimumMatch {
+            deflate_match(&writer, matched, distance);
+            advance = matched;
+        } else { deflate_symbol(&writer, convert(u32, data[position])); }
+        // Index all consumed starts, including positions inside an emitted match.
+        // Each ring link holds an absolute input offset; stale/future links stop
+        // traversal and cannot create a cycle after the window wraps.
+        for (var step: usize = 0; step < advance; step++) {
+            var at = position + step;
+            if length - at < DeflateMinimumMatch { break; }
+            var hash = deflate_hash(data + at);
+            previous[at & (DeflateWindow - 1)] = heads[hash];
+            heads[hash] = at;
+        }
+        position += advance;
+    }
+    deflate_symbol(&writer, DeflateEndCode);
+    if writer.ok && !writer.larger && writer.count != 0 { deflate_put(&writer, 0, DeflateByteBits - writer.count); }
+    if !writer.ok { return DeflateAttempt.AllocationFailure; }
+    if writer.larger { return DeflateAttempt.Larger; }
+    bytes_dispose(out);
+    *out = writer.output;
+    writer.output = default;
+    return DeflateAttempt.Ok;
+}
+
+fn deflate_short(out: ByteBuffer*, value: u32): bool {
+    var byte_mask = convert(u32, ~convert(u8, 0));
+    return bytes_push(out, convert(u8, value & byte_mask))
+        && bytes_push(out, convert(u8, (value >> DeflateByteBits) & byte_mask));
+}
+
+fn deflate_stored(data: u8*, length: usize, out: ByteBuffer*): bool {
+    var position: usize = 0;
+    loop {
+        var count = length - position;
+        if count > DeflateStoredLimit { count = DeflateStoredLimit; }
+        var final_block = count == length - position;
+        var final_bit: u8 = final_block ? 1 : 0;
+        if !bytes_push(out, final_bit) || !deflate_short(out, convert(u32, count))
+            || !deflate_short(out, ~convert(u32, count)) || !bytes_append(out, data + position, count) { return false; }
+        position += count;
+        if final_block { return true; }
+    }
+}
+
+// Complete immutable byte input; output publication is atomic and can replace a
+// buffer borrowed by input. Deterministic nearest-match tie breaking and fixed
+// limits are compression policy, not format/language limits. Expansion is at
+// most five bytes per stored block (including one block for an empty input).
+fn deflate_compress(data: u8*, length: usize, out: ByteBuffer*): bool {
+    if length != 0 && data == null { return false; }
+    var blocks: usize = length == 0 ? 1 : (length - 1) / DeflateStoredLimit + 1;
+    if blocks > (~convert(usize, 0) - length) / DeflateStoredOverhead { return false; }
+    var stored_size = length + blocks * DeflateStoredOverhead;
+    var next: ByteBuffer = default;
+    defer bytes_dispose(&next);
+    var result = deflate_fixed(data, length, stored_size, &next);
+    if result == DeflateAttempt.AllocationFailure { return false; }
+    if result == DeflateAttempt.Larger && !deflate_stored(data, length, &next) { return false; }
+    bytes_dispose(out);
+    *out = next;
+    next = default;
+    return true;
+}
