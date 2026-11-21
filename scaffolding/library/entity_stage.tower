@@ -158,6 +158,17 @@ fn entity_stage_prepare(stage: EntityStage*): bool {
         }
     }
     vector_dispose(EntityStageCount, &counts);
+    if !success { return false; }
+    for(var i: usize = 0; success && i < stage.nodes.length; i++) {
+        success = entity_table_prepare(stage.nodes.data[i], null, null);
+    }
+    for(var i: usize = 0; success && i < stage.leases.length; i++) {
+        success = entity_table_prepare(stage.leases.data[i].node, null, null);
+    }
+    if !success {
+        foreach(var node in &stage.nodes) { entity_table_unprepare(node); }
+        foreach(var &lease in &stage.leases) { entity_table_unprepare(lease.node); }
+    }
     return success;
 }
 
@@ -184,6 +195,7 @@ export fn entity_stage_publish(stage: EntityStage*): bool {
         node.stage = null;
         node.storage = null;
         entity_stage_components(node, 0);
+        entity_table_publish(node);
         // Transfer the stage's one reference into its parent's ownership.
         var parent = node.parent;
         parent.children[parent.child_count].entity = node;
@@ -195,6 +207,7 @@ export fn entity_stage_publish(stage: EntityStage*): bool {
         lease.node.stage = null;
         lease.node.storage = null;
         entity_stage_components(lease.node, lease.components);
+        entity_table_publish(lease.node);
     }
     vector_dispose(Entity*, &stage.nodes);
     vector_dispose(EntityStageLease, &stage.leases);

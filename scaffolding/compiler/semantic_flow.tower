@@ -1,5 +1,6 @@
 import tower;
 import compiler_kernel;
+import component_kinds;
 import foundation_tags;
 import foundation_types;
 import semantic_context;
@@ -10,12 +11,19 @@ import .library.vector;
 import .library.work_graph;
 import .library.work_pool;
 
+extern fn entity_view_tables(view: void*, terms: void**, count: usize): void*;
+extern fn entity_table_query_count(query: void*): usize;
+extern fn entity_table_query_ranges(query: void*): usize;
+extern fn entity_table_query_range_count(query: void*, index: usize): usize;
+extern fn entity_table_query_column(query: void*, index: usize, term: usize): void**;
+
 const FlowQuery: u32 = 7;
 
 struct SemanticFlow {
     kernel: CompilerKernel;
     ticket: WorkTicket;
     subject: void*;
+    ordinal: usize;
     invalid_label: void*;
     excessive_depth: void*;
     flow: u32;
@@ -46,6 +54,7 @@ fn sem_flow_request(c: SemanticContext*, subject: void*, dependencies: vector(vo
     sem_require(result != null);
     fill(result, 0, sizeof(SemanticFlow));
     result.subject = subject;
+    result.ordinal = c.flow_count;
     result.kernel.kind = CompilerKernelKind.Flow;
     result.kernel.payload = bits(void*, result);
     var query = work_request(&c.queries, subject, FlowQuery(), 0);
@@ -54,10 +63,10 @@ fn sem_flow_request(c: SemanticContext*, subject: void*, dependencies: vector(vo
         var dependency = work_find(&c.queries, dependencies.data[i], EvaluationQuery(), 0);
         sem_require(dependency != 0 && work_depend(&c.queries, query, dependency));
     }
-    sem_require(work_access(&c.queries, query, 1, 8, c.flow_jobs.length, 1, WorkAccessMode.Write));
+    sem_require(work_access(&c.queries, query, 1, 8, c.flow_count, 1, WorkAccessMode.Write));
     sem_require(work_access(&c.queries, query, 1, 3, 0, ~convert(usize, 0), WorkAccessMode.Read));
     sem_require(work_seal(&c.queries, query));
-    sem_push(&c.flow_jobs, bits(void*, result));
+    c.flow_count++;
 }
 
 // Read-only return/reachability validation of the already-lowered Foundation
@@ -109,27 +118,52 @@ fn semantic_flow_kernel(result: SemanticFlow*): void {
 }
 
 fn sem_flows(c: SemanticContext*): void {
-    if !sem_ok(c) || c.flow_jobs.length == 0 { return; }
+    if !sem_ok(c) || c.flow_count == 0 { return; }
     if c.workers.count == 0 { sem_require(work_pool_open(&c.workers, work_thread_capacity())); }
-    for(var i: usize = 0; i < c.flow_jobs.length; i++) {
-        var result = bits(SemanticFlow*, c.flow_jobs.data[i]);
-        sem_require(work_demand(&c.queries, work_find(&c.queries, result.subject, FlowQuery(), 0)));
-    }
     var view = entity_view_open(c.program.root);
     sem_require(view != null);
+    defer entity_view_close(view);
+    // Discover jobs from their canonical Foundation and flow components. The
+    // cached table plan is immutable under this pin, including across workers.
+    var terms: void*[2];
+    terms[0] = compiler_node_type(c.program.root, CompilerFoundation());
+    terms[1] = c.flow_results;
+    var query = entity_view_tables(view, &terms[0], 2);
+    sem_require(query != null && entity_table_query_count(query) == c.flow_count);
+    var jobs: vector(SemanticFlow*);
+    vector_init(&jobs);
+    defer vector_dispose(&jobs);
+    sem_require(vector_reserve(&jobs, c.flow_count));
+    jobs.length = c.flow_count;
+    fill(jobs.data, 0, jobs.length * sizeof(SemanticFlow*));
+    for(var index: usize = 0; index < entity_table_query_ranges(query); index++) {
+        var column = entity_table_query_column(query, index, 1);
+        var length = entity_table_query_range_count(query, index);
+        for(var row: usize = 0; row < length; row++) {
+            var result = bits(SemanticFlow*, entity_component_data(column[row]));
+            sem_require(result.ordinal < jobs.length && jobs.data[result.ordinal] == null);
+            jobs.data[result.ordinal] = result;
+        }
+    }
+    // Archetype/row order is an execution detail. Demand, admission and errors
+    // retain the source ordinal recorded when each dependency query was created.
+    for(var i: usize = 0; i < c.flow_count; i++) {
+        var result = jobs.data[i];
+        sem_require(work_demand(&c.queries, work_find(&c.queries, result.subject, FlowQuery(), 0)));
+    }
     var next: usize = 0;
-    while next < c.flow_jobs.length {
-        var count = c.flow_jobs.length - next;
+    while next < c.flow_count {
+        var count = c.flow_count - next;
         if count > c.workers.count { count = c.workers.count; }
         for(var i: usize = 0; i < count; i++) {
-            var result = bits(SemanticFlow*, c.flow_jobs.data[next + i]);
+            var result = jobs.data[next + i];
             sem_require(work_take_query(&c.queries, &result.ticket, FlowQuery()));
             sem_require(work_task(&c.queries, result.ticket.task).subject == result.subject);
             sem_require(work_pool_submit(&c.workers, bits(void*, &result.kernel)));
         }
         for(var i: usize = 0; i < count; i++) { sem_require(work_pool_receive(&c.workers, true) != null); }
         for(var i: usize = 0; i < count; i++) {
-            var result = bits(SemanticFlow*, c.flow_jobs.data[next + i]);
+            var result = jobs.data[next + i];
             var function = sem_get(result.subject);
             var returns = function.type.pointers != 0 || function.type.scalar != SVoid();
             var missing = returns && (result.flow & FlowNext()) != 0;
@@ -150,5 +184,4 @@ fn sem_flows(c: SemanticContext*): void {
         }
         next += count;
     }
-    entity_view_close(view);
 }

@@ -61,7 +61,6 @@ fn sem_context_init(c: SemanticContext*, program: SemanticProgram*): void {
 fn sem_context_dispose(c: SemanticContext*): void {
     sem_layout_dispose(c);
     sem_evaluation_dispose(c);
-    vector_dispose(&c.flow_jobs);
     vector_dispose(&c.flow_dependencies);
     sem_declaration_dispose(c);
     stack_dispose(&c.scan);

@@ -1,0 +1,131 @@
+import tower;
+import storage_api;
+import utility_checks;
+import entity_page_faults;
+
+extern fn entity_component_remove(owner:void*,type:void*):bool;
+extern fn entity_stage_lease(stage:void*,owner:void*):bool;
+extern fn entity_view_tables(view:void*,terms:void**,count:usize):void*;
+extern fn entity_table_query_count(query:void*):usize;
+extern fn entity_table_query_component(query:void*,row:usize,term:usize):void*;
+
+fn entity_table_query_trial(failure:usize):usize {
+    var baseline=tower_test_buffer_count();
+    var store=entity_store_create();
+    var root=entity_create(store);
+    var types:void*[2];
+    for(var i:usize=0;i<2;i++) {
+        types[i]=entity_create(store);
+        utility_check(entity_register(types[i],sizeof(u64),8,0),"Table query fault type");
+    }
+    utility_check(entity_component_add(root,types[0])!=null && entity_component_add(root,types[1])!=null,"Table query fault components");
+    var before_view=tower_test_buffer_count();
+    var view=entity_view_open(root);
+    var before=tower_test_buffer_allocations();
+    tower_test_buffer_fail_after(failure);
+    var query=entity_view_tables(view,&types[0],2);
+    tower_test_buffer_fail_after(~convert(usize,0));
+    var used=tower_test_buffer_allocations()-before;
+    utility_check((query!=null)==(failure==~convert(usize,0)),"Table query failure point reached");
+    if query==null { query=entity_view_tables(view,&types[0],2); }
+    utility_check(query!=null && entity_table_query_count(query)==1,"Query retry publishes one complete plan");
+    utility_check(entity_view_tables(view,&types[0],2)==query,"Pinned query cache identity");
+    utility_check(entity_table_query_component(query,0,0)==entity_component_get(root,types[0])
+        && entity_table_query_component(query,0,1)==entity_component_get(root,types[1]),"Query retry preserves canonical components");
+    entity_view_close(view);
+    utility_check(tower_test_buffer_count()==before_view,"View releases every plan allocation");
+    entity_release(types[0]); entity_release(types[1]); entity_release(root);
+    utility_check(entity_store_dispose(store) && tower_test_buffer_count()==baseline,"Table query failure cleanup");
+    return used;
+}
+
+fn entity_table_move_trial(failure:usize):usize {
+    var baseline=tower_test_buffer_count();
+    var store=entity_store_create();
+    var root=entity_create(store);
+    var types:void*[2];
+    for(var i:usize=0;i<2;i++) {
+        types[i]=entity_create(store);
+        utility_check(entity_register(types[i],sizeof(u64),8,0),"Table removal fault type");
+        utility_check(entity_component_add(root,types[i])!=null,"Table removal components");
+    }
+    var original=entity_component_data(entity_component_get(root,types[0]));
+    *bits(u64*,original)=51;
+    var before=tower_test_buffer_allocations();
+    tower_test_buffer_fail_after(failure);
+    var removed=entity_component_remove(root,types[1]);
+    tower_test_buffer_fail_after(~convert(usize,0));
+    var used=tower_test_buffer_allocations()-before;
+    utility_check(removed==(failure==~convert(usize,0)),"Table removal failure point reached");
+    if !removed {
+        var view=entity_view_open(root);
+        var query=entity_view_tables(view,&types[0],2);
+        utility_check(entity_table_query_count(query)==1 && entity_component_count(root)==2,"Failed table move preserves old membership");
+        entity_view_close(view);
+        utility_check(entity_component_remove(root,types[1]),"Table removal retries");
+    }
+    utility_check(entity_component_data(entity_component_get(root,types[0]))==original
+        && *bits(u64*,original)==51,"Table move preserves stable survivor");
+    var view=entity_view_open(root);
+    var query=entity_view_tables(view,&types[0],2);
+    utility_check(entity_table_query_count(query)==0,"Table move removes old intersection");
+    entity_view_close(view);
+    entity_release(types[0]); entity_release(types[1]); entity_release(root);
+    utility_check(entity_store_dispose(store) && tower_test_buffer_count()==baseline,"Table removal failure cleanup");
+    return used;
+}
+
+fn entity_table_lease_trial(failure:usize):usize {
+    var baseline=tower_test_buffer_count();
+    var store=entity_store_create();
+    var root=entity_create(store);
+    var other=entity_create(store);
+    var types:void*[2];
+    for(var i:usize=0;i<2;i++) {
+        types[i]=entity_create(store);
+        utility_check(entity_register(types[i],sizeof(u64),8,0),"Table lease fault type");
+    }
+    utility_check(entity_component_add(root,types[0])!=null && entity_component_add(other,types[1])!=null,"Table lease initial components");
+    var stage=entity_stage_open(root);
+    utility_check(entity_stage_lease(stage,other),"Table lease ownership");
+    var view=entity_view_open(root);
+    utility_check(entity_component_add(other,types[0])!=null,"Table lease private attachment");
+    for(var i:usize=0;i<30;i++) {
+        var node=entity_stage_create(stage,root);
+        utility_check(entity_component_add(node,types[0])!=null && entity_component_add(node,types[1])!=null,"Table lease private nodes");
+    }
+    var query=entity_view_tables(view,&types[0],2);
+    utility_check(entity_table_query_count(query)==0,"Lease private arrays do not change table queries");
+    entity_view_close(view);
+    var before=tower_test_buffer_allocations();
+    tower_test_buffer_fail_after(failure);
+    var published=entity_stage_publish(stage);
+    tower_test_buffer_fail_after(~convert(usize,0));
+    var used=tower_test_buffer_allocations()-before;
+    utility_check(published==(failure==~convert(usize,0)),"Table lease failure point reached");
+    if !published {
+        view=entity_view_open(root);
+        query=entity_view_tables(view,&types[0],2);
+        utility_check(entity_table_query_count(query)==0 && entity_query_count(types[0])==1
+            && entity_query_count(types[1])==1,"Failed lease publication preserves old tables and type indexes");
+        entity_view_close(view);
+        utility_check(entity_stage_publish(stage),"Table lease publication retries");
+    }
+    view=entity_view_open(root);
+    query=entity_view_tables(view,&types[0],2);
+    utility_check(entity_table_query_count(query)==31,"Lease and new rows publish together");
+    entity_view_close(view);
+    entity_release(types[0]); entity_release(types[1]); entity_release(other); entity_release(root);
+    utility_check(entity_store_dispose(store) && tower_test_buffer_count()==baseline,"Table lease failure cleanup");
+    return used;
+}
+
+fn entity_table_fault_tests():void {
+    var allocations=entity_table_query_trial(~convert(usize,0));
+    for(var failure:usize=0;failure<allocations;failure++) { entity_table_query_trial(failure); }
+    allocations=entity_table_move_trial(~convert(usize,0));
+    for(var failure:usize=0;failure<allocations;failure++) { entity_table_move_trial(failure); }
+    allocations=entity_table_lease_trial(~convert(usize,0));
+    for(var failure:usize=0;failure<allocations;failure++) { entity_table_lease_trial(failure); }
+    puts("Archetype query, transition and leased-publication failure cleanup passed");
+}

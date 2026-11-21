@@ -1,0 +1,140 @@
+import tower;
+import .library.entities;
+import .library.entity_stage;
+
+var failures:i32=0;
+fn check(ok:bool):void { if !ok { failures++; } }
+export fn tower_entity_finalize(lifecycle:usize,component:EntityComponent*,data:u8*):void {
+    check(lifecycle==1 && entity_component_data(component)==data);
+    check(entity_component_from_data(data)==component);
+}
+
+fn table_rows(query:EntityTableQuery*,a:Entity*,b:Entity*):usize {
+    var total:usize=0;
+    for(var index:usize=0;index<entity_table_query_ranges(query);index++) {
+        var range:EntityTableRange=default;
+        var length=query.matches[index].table.length;
+        // Partition every matched table into disjoint ranges, including its tail.
+        for(var first:usize=0;first<length;first+=7) {
+            var count=length-first;
+            if count>7 { count=7; }
+            check(entity_table_query_range(query,index,first,count,&range));
+            var owners=entity_table_range_rows(&range);
+            var left=entity_table_range_column(&range,0);
+            var right=entity_table_range_column(&range,1);
+            check(entity_table_range_column(&range,2)==null);
+            for(var row:usize=0;row<count;row++) {
+                check(left[row].owner==owners[row] && right[row].owner==owners[row]);
+                check(left[row].type==a && right[row].type==b);
+                check(left[row]==entity_component_get(owners[row],a));
+                total++;
+            }
+        }
+        check(entity_table_query_range(query,index,length,0,&range));
+        check(entity_table_range_rows(&range)==null && entity_table_range_column(&range,0)==null);
+        range.length=73;
+        check(!entity_table_query_range(query,index,length,1,&range) && range.length==73);
+    }
+    check(entity_table_query_component(query,total,0)==null);
+    check(entity_table_query_component(query,0,2)==null);
+    return total;
+}
+
+fn tables():void {
+    var store=entity_store_create();
+    var root=entity_create(store);
+    var a=entity_create(store);
+    var b=entity_create(store);
+    var c=entity_create(store);
+    check(entity_register(a,sizeof(u64),64,1));
+    check(entity_register(b,sizeof(u64),8,1));
+    check(entity_register(c,sizeof(u64),8,1));
+    var owners:Entity*[100];
+    var values:u64*[100];
+    for(var i:usize=0;i<100;i++) {
+        owners[i]=entity_create(store);
+        check(entity_attach(owners[i],root,null));
+        entity_release(owners[i]);
+        // Addition order must not split one component signature into two tables.
+        if i%4==0 { check(entity_component_add(owners[i],b)!=null); }
+        values[i]=bits(u64*,entity_component_data(entity_component_add(owners[i],a)));
+        *values[i]=convert(u64,i)+100;
+        if i%2==0 { check(entity_component_add(owners[i],b)!=null); }
+        if i%3==0 { check(entity_component_add(owners[i],c)!=null); }
+    }
+    var first=entity_stage_open(root);
+    var second=entity_stage_open(root);
+    check(entity_stage_lease(first,owners[1]) && entity_stage_lease(second,owners[3]));
+    var terms:Entity*[2]; terms[0]=a; terms[1]=b;
+    var view=entity_view_open(root);
+    var query=entity_view_tables(view,&terms[0],2);
+    check(query!=null && entity_table_query_count(query)==50);
+    check(entity_table_query_ranges(query)==2 && table_rows(query,a,b)==50);
+    check(entity_view_tables(view,&terms[0],2)==query);
+    check(entity_view_tables(view,&terms[0],0)==null);
+    terms[1]=a;
+    check(entity_view_tables(view,&terms[0],2)==null);
+    terms[1]=root;
+    check(entity_view_tables(view,&terms[0],2)==null);
+    var other=entity_store_create();
+    terms[1]=entity_create(other);
+    check(entity_register(terms[1],sizeof(u64),8,0));
+    check(entity_view_tables(view,&terms[0],2)==null);
+    entity_release(terms[1]); check(entity_store_dispose(other));
+    terms[1]=b;
+    check(entity_component_add(owners[5],b)==null && !entity_component_remove(owners[2],b));
+    check(entity_component_add(owners[1],b)!=null && entity_component_add(owners[1],c)!=null);
+    check(entity_component_add(owners[3],b)!=null);
+    for(var i:usize=0;i<10;i++) {
+        var left=entity_stage_create(first,root);
+        var right=entity_stage_create(second,root);
+        check(entity_component_add(left,a)!=null && entity_component_add(left,b)!=null);
+        check(entity_component_add(right,b)!=null && entity_component_add(right,a)!=null);
+    }
+    // Cached plans continue to see published membership while private owner
+    // component arrays grow. No query scans those mutable arrays.
+    check(entity_view_tables(view,&terms[0],2)==query && entity_table_query_count(query)==50);
+    check(table_rows(query,a,b)==50);
+    check(!entity_stage_publish(first));
+    entity_view_close(view);
+    check(entity_stage_publish(second) && entity_stage_publish(first));
+    view=entity_view_open(root);
+    query=entity_view_tables(view,&terms[0],2);
+    check(entity_table_query_count(query)==72 && table_rows(query,a,b)==72);
+    for(var i:usize=0;i<100;i++) {
+        check(entity_component_data(entity_component_get(owners[i],a))==bits(u8*,values[i]));
+        check(*values[i]==convert(u64,i)+100);
+    }
+    entity_view_close(view);
+    for(var i:usize=0;i<100;i+=2) { check(entity_component_remove(owners[i],b)); }
+    var discarded=entity_stage_open(root);
+    check(entity_stage_lease(discarded,owners[5]));
+    view=entity_view_open(root);
+    query=entity_view_tables(view,&terms[0],2);
+    check(entity_table_query_count(query)==22 && table_rows(query,a,b)==22);
+    check(entity_component_add(owners[5],b)!=null);
+    var private=entity_stage_create(discarded,root);
+    check(entity_component_add(private,a)!=null && entity_component_add(private,b)!=null);
+    entity_view_close(view);
+    entity_stage_discard(discarded);
+    view=entity_view_open(root);
+    query=entity_view_tables(view,&terms[0],2);
+    check(entity_table_query_count(query)==22 && table_rows(query,a,b)==22);
+    entity_view_close(view);
+    var deferred=entity_create(store);
+    check(entity_component_add(deferred,a)!=null && entity_component_add(deferred,b)!=null);
+    view=entity_view_open(root);
+    query=entity_view_tables(view,&terms[0],2);
+    check(entity_table_query_count(query)==23);
+    check(entity_release(deferred)==0 && entity_table_query_count(query)==23);
+    entity_view_close(view);
+    view=entity_view_open(root);
+    query=entity_view_tables(view,&terms[0],2);
+    check(entity_table_query_count(query)==22);
+    entity_view_close(view);
+    entity_release(a); entity_release(b); entity_release(c); entity_release(root);
+    for(var i:usize=0;i<256;i++) { check(store.tables[i]==null); }
+    check(entity_store_dispose(store));
+}
+tables();
+print(failures);

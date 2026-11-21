@@ -47,6 +47,6 @@ if(TOWER_WORK_TESTS AND TOWER_BROWSER_THREADS)
   set_target_properties(tower-work-tests PROPERTIES LINKER_LANGUAGE C SUFFIX .wasm)
   target_link_options(tower-work-tests PRIVATE -mexec-model=reactor
     -Wl,--export=work_thread_entry -Wl,--export-table -Wl,--growable-table
-    -Wl,--initial-memory=8388608 -Wl,--max-memory=536870912
+    -Wl,--initial-memory=8388608 -Wl,--max-memory=2147483648
     "-Wl,--allow-undefined-file=${CMAKE_CURRENT_SOURCE_DIR}/cmake/WorkImports.txt")
 endif()

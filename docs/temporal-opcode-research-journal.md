@@ -28996,3 +28996,128 @@ a late concatenated import and an undefined trap identifier; corrected the clien
 and used --interpret/--interpret-fast with explicit failure counters. These were
 fixture errors; no compiler acceptance rule was changed. Prototype results are
 not release evidence for the upcoming table integration.
+
+The page checkpoint is pushed as d22a25d (implementation 46322d8) after preserving
+abaa0f5's journal. A full non-journal tree comparison with the tested pre-rebase
+source is identical. Published Pages 7225a20407cec7a6ad26498a80255b676cf59b04,
+parent ec18a1b, and GitHub action 44882997326 succeeds. The first hosted verifier
+ran before the new manifest propagated and correctly rejected the old manifest;
+retrying after deployment completion. Publication records use
+entity-pages-merged-{pages,manifest}.json and the matching hosted log.
+
+### 2026-11-21 - Archetype membership and pinned multi-component plans
+
+Integrated the isolated exact-signature table implementation into the Tower
+entity store. Every published nonempty entity has one derived table row, with
+sorted monotonic type IDs, dense entity rows and columns of stable component
+pointers. Component add/remove and stage publication reserve before committing;
+reclamation does not allocate. Pending destination counts prevent an empty table
+from being freed while another prepared row still targets it. Failed stage
+preparation cancels every reservation while preserving canonical membership and
+published query lengths. Types and metadata stay ordinary entities/components.
+
+AND queries cache matched tables and column mappings inside EntityView. The view
+owns/frees its plans; plans cannot survive structural unpinning. Workers borrow
+immutable table ranges and private cursors, without reading another worker's
+mutable leased component list. These are stable sparse payload columns, not
+relocating packed component data. Empty entities are not indexed, and a query
+requires at least one distinct registered component term from the same world.
+
+Flow analysis now discovers its jobs through the Foundation+flow component
+intersection. Each job records its source ordinal; a temporary ordered index
+preserves demand/admission/publication and diagnostics independently of table
+iteration order. Removed the redundant persistent flow_jobs pointer vector.
+The initial production build found a missing direct component_kinds import for
+CompilerFoundation; added that import, without changing lookup behavior. Native
+build, allocator fault sweeps, real worker checks and cross-backend validation
+remain in progress. No new C++ feature code or todo.txt edits.
+
+Integrated table storage passes native acceptance 8/8 (69.15s), backend API and
+shared capacities 3/3 (65.77s). The native storage harness explicitly reports both
+component-page and archetype/query/lease failure sweeps passed; saved its detailed
+output as entity-tables-native-detail.log. It injects every observed query-plan,
+new-subset transition and mixed leased/new-row publication allocation failure,
+checks unchanged published membership, retries and verifies exact allocation
+cleanup. The actual successor recompiles the entities unit byte identically
+(entity-tables-successor.log, cmp0). The standalone integrated table fixture
+prints 0 through that new compiler's graph interpreter.
+
+A native debugger trial places a breakpoint at depth zero of sem_flow_node for
+16 functions whose return validation depends on ordinary comptime(flag()) results.
+The archetype-discovered flow roots execute two each on threads 4 through 11;
+none execute on coordinator thread 1. The process exits normally. Its canonical
+Foundation output is byte identical to the preceding page-storage compiler.
+Source, debugger script/log and before/after Foundation live under
+entity_tables_flow_proof.tower and entity-tables-flow-* in the audit directory.
+This proves actual work distribution, not a claim of measured speedup. Portable,
+shared and LLVM/cross builds/package complete; matching 103-case regressions and
+two edited browser compiler generations are now running against frozen sources.
+
+The page release's hosted verification finishes successfully: all 77 assets,
+desktop/mobile execution, editor/download workflows and default-target checks.
+Archetype editor coverage passes 28/28 (128.06s). Its separate frozen bundle is
+now undergoing local deployment verification; the current hosted release remains
+the validated page-storage checkpoint. The next published-column lookup path is
+only an isolated draft, with its 32-bit fast-interpreter fixture printing 0.
+
+The first broad run finishes 101/102; its only failure was a malformed test-list
+entry that accidentally used entity_tables as entity_pages' expected output.
+Corrected the entry into two independent fixtures. Their focused run then exposed
+an actual resource boundary: compiling LLVM's unoptimized 2,324,422-byte Foundation
+reconstruction exhausted the portable reactor's 512 MiB memory ceiling. A fresh
+instance reproduces it at 535,887,872 memory bytes, so this is not accumulated
+stale fixture state. The subsequent LR failure followed the abort and is not an
+independent table defect. Native compilation reports its separate 64 MiB
+Foundation-component policy at line 87,238. No assertion or round-trip comparison
+was removed. Logs: entity-tables-{focused,repro,memory,native-abort}.log.
+
+Relinking exactly the same portable objects with the existing LLVM/self-built
+compiler 2 GiB allowance succeeds on that same text (555,089,920 memory bytes).
+The diagnostic relink also retained names, and is not a distribution artifact.
+Aligned the normal portable/shared reactor ceiling and shared-memory host maximum
+with that established 2 GiB allowance; initial memory remains 8 MiB. This changes
+an allocation ceiling, not the semantic/component budget or any language rule.
+Rebuilding through the normal scripts and rerunning the unchanged backend fixture
+assertions and shared-worker checks. The wider limit does not guarantee arbitrary
+inputs fit or add recovery after the existing fatal allocation boundary.
+
+Before that link-policy fix, both edited archetype compiler generations pass in
+140.95s/106.01s, already using the package recipe's 2 GiB ceiling, with identical
+sizes 1,027,987/52,333,069/63,890,517 and hashes:
+parser d0460f4907219ec841fbc42d7beb075e8d29aea7fccd3d2e2b4f5d9d411a9e40;
+LLVM fdbeb906e2af98466ef9472769bea17f4101e55fb6f64fb90f2fd7414c21da50;
+cross f330a78a549d5b9bf19296f0cae8979a6fca8cda3b9fec83dc7584406dd54ac2.
+The actual native successor also reproduces the semantic compiler object exactly
+(cmp0), and local deployment passes all 77 hashes and desktop/mobile/default flows.
+The final bundle needs the normal relinked frontend before publication.
+
+With the normal 2 GiB frontend link, entity_pages passes its complete focused
+backend/round-trip checks (75.04s); entity_tables is still running. The first
+shared rerun passes production compiler determinism at all capacities but rejects
+the standalone work-pool fixture during instantiation: its declared maximum was
+still 8,192 pages while the updated host supplied 32,768. Aligned that test reactor's
+link ceiling with the production host contract and reran the unchanged overlap,
+trap/cancellation and deterministic compiler assertions. This is an explicit
+Wasm import-type mismatch, not a worker scheduling failure.
+
+Both corrected storage fixtures now pass their full focused graph/fast,
+Foundation/LLVM-Foundation and executable Wasm checks: 2/2 in 123.32s (15 other
+fixture tests intentionally excluded by the name filter). Together with the 101
+unchanged passing cases from the broad run, all 103 selected cases are covered;
+the malformed listing and allocation-limit trials above remain recorded failures.
+The compiler/library source and browser-generation package recipe are unchanged
+by the link-ceiling correction, so their identical two-generation hashes remain
+applicable. The normal frontend links and host shared-memory configuration receive
+fresh capacity and deployment checks; no patched experimental Wasm is published.
+
+The final shared rerun passes 3/3 in 47.99s after the fixture maximum was aligned.
+Source validation for the archetype checkpoint is complete: native 8/8/backend API,
+exhaustive allocation/publication failures, both actual successor objects cmp0,
+28 editor cases, all 103 selected language/backend cases across the broad and
+corrected focused runs, two byte-identical edited browser generations and measured
+8-thread flow roots. Final local browser verification has matched all 77 rebuilt
+assets and desktop workflows; mobile/default checks remain in progress. Preparing
+the final commit/pull and source push. Publication will wait for that verifier.
+All compiler feature logic is Tower; host/build changes only align Wasm resource
+limits. todo.txt remains blob 96a9e58964d7f01e4a97819f259448db81ef5e40. Full structural
+continuations, type interning and compiler-wide query migration remain open.

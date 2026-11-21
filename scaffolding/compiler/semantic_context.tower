@@ -131,7 +131,7 @@ struct SemanticContext {
     unevaluated: bool;
     type_query_operand: void*;
     flow_results: void*;
-    flow_jobs: vector(void*);
+    flow_count: usize;
     flow_dependencies: vector(void*);
 }
 

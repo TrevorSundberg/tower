@@ -62,7 +62,9 @@ if(TOWER_BROWSER)
     -Wl,--export=tw_abi_version -Wl,--export=tw_alloc -Wl,--export=tw_free
     $<$<CONFIG:Release>:-Wl,--strip-all>
     $<$<CONFIG:MinSizeRel>:-Wl,--strip-all>
-    -Wl,-z,stack-size=2097152 -Wl,--initial-memory=8388608 -Wl,--max-memory=536870912)
+    # Match the LLVM and self-built compiler allowance. Expanded Foundation
+    # round trips can exceed 512 MiB; this ceiling does not preallocate memory.
+    -Wl,-z,stack-size=2097152 -Wl,--initial-memory=8388608 -Wl,--max-memory=2147483648)
   if(TOWER_BROWSER_THREADS)
     target_link_options(tower-browser PRIVATE
       -Wl,--export=work_thread_entry -Wl,--export-table -Wl,--growable-table

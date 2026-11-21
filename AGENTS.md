@@ -153,6 +153,8 @@ Do NOT modify todo.txt
   coordinator updates to entities owned by other jobs.
   Component allocation pools belong to a store or one worker stage. Keep payload
   addresses stable; release private pool links before destroying a published stage.
+  Query plans borrow published table columns under a view; build them before
+  dispatch and keep cursors private. Reserve every table transition before commit.
   New syntax must update worker admission when its lowering can construct types
   or instantiate implicit protocol calls; test it inside independent bodies too.
 - Validate relevant changes against serial execution: canonical output and

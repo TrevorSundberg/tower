@@ -34,7 +34,7 @@ export async function compilerThreads(module, {memory,
   workerURL = new URL(import.meta.url.endsWith('.mjs') ? './compiler-thread-worker.mjs' : './compiler-thread-worker.js', import.meta.url),
   workerFactory, capacity = 4} = {}) {
   if (!WebAssembly.Module.imports(module).some(item => item.kind === 'memory')) return null;
-  if (!memory) memory = new WebAssembly.Memory({initial:128, maximum:8192, shared:true});
+  if (!memory) memory = new WebAssembly.Memory({initial:128, maximum:32768, shared:true});
   if (!(memory.buffer instanceof SharedArrayBuffer)) throw new Error('Compiler threads require shared memory');
   if (!Number.isInteger(capacity) || capacity < 1 || capacity > 256) throw new Error('Invalid compiler worker capacity');
   if (!workerFactory) {
