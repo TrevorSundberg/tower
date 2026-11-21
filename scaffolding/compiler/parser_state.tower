@@ -78,7 +78,7 @@ export fn parser_recognizer_destroy(request: ParserRequest*): void {
     }
     vector_dispose(&request.lookahead_error);
     vector_dispose(&request.error);
-    tower_memory_free(bits(void*, request));
+    compiler_buffer_free(bits(void*, request));
 }
 
 // Low-level LR request constructor. A null table supports clients driving the
@@ -92,7 +92,7 @@ export fn parser_request_create(runtime: LRRuntime*, context: void*, stream: Par
     if missing {
         return null;
     }
-    var request = bits(ParserRequest*, tower_memory_allocate(sizeof(ParserRequest)));
+    var request = bits(ParserRequest*, compiler_buffer_allocate(sizeof(ParserRequest)));
     missing = request == null;
     if missing {
         return null;
@@ -303,7 +303,7 @@ fn parser_recognizer_advance(request: ParserRequest*, running: bool*, waiting: b
                 var present = message != null;
                 parser_state_require(present);
                 parser_request_fail(request, message);
-                tower_memory_free(bits(void*, message));
+                compiler_buffer_free(bits(void*, message));
             }
             return null;
         }
@@ -352,7 +352,7 @@ fn parser_recognizer_advance(request: ParserRequest*, running: bool*, waiting: b
             parser_state_require(present);
         }
         var status = lr_tree_shift(request.control, request.forest, grammar, request.match_kind, &step, &request.read_node_or_null, label);
-        tower_memory_free(bits(void*, label));
+        compiler_buffer_free(bits(void*, label));
         if status == 2 {
             parser_request_fail(request, "Stream returned an attached node");
             return null;
@@ -398,18 +398,18 @@ export fn parser_diagnostic_destroy(result: ParserDiagnostic*): void {
     }
     var index: usize = 0;
     while index < result.options.length {
-        tower_memory_free(bits(void*, result.options.data[index].label));
+        compiler_buffer_free(bits(void*, result.options.data[index].label));
         index = index + 1;
     }
     vector_dispose(&result.options);
     frontend_diagnostic_destroy(bits(FrontendDiagnostic*, result.probe));
-    tower_memory_free(bits(void*, result));
+    compiler_buffer_free(bits(void*, result));
 }
 
 // Read-only with respect to table, recognizer, stream, entities and world.
 // Probe stacks/format buffers are local to this diagnostic, never cached there.
 export fn parser_recognizer_diagnostic(request: ParserRequest*, reader: ParserDiagnosticReader, source: void*): ParserDiagnostic* {
-    var result = bits(ParserDiagnostic*, tower_memory_allocate(sizeof(ParserDiagnostic)));
+    var result = bits(ParserDiagnostic*, compiler_buffer_allocate(sizeof(ParserDiagnostic)));
     var missing = result == null;
     if missing {
         return null;

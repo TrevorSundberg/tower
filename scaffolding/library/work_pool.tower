@@ -56,6 +56,12 @@ fn work_pool_open(pool: WorkPool*, capacity: usize): bool {
     if capacity == 0 || capacity > 256 {
         return false;
     }
+    // A caller's budget is an upper bound, not permission to exhaust a fixed
+    // transport. Browser workers report one lane inside a worker so nested
+    // phases execute inline instead of waiting on their occupied outer slots.
+    var available = work_thread_capacity();
+    if available == 0 { return false; }
+    if capacity > available { capacity = available; }
     pool.threaded = work_thread_available() && capacity > 1;
     if !pool.threaded {
         capacity = 1;

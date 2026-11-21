@@ -52,7 +52,7 @@ fn parser_copy_text(source: u8*): u8* {
         index = index + 1;
     }
     size = size + index;
-    var result = bits(u8*, tower_memory_allocate(size));
+    var result = bits(u8*, compiler_buffer_allocate(size));
     if result != null {
         copy(result, source, size);
     }
@@ -114,12 +114,12 @@ export fn parser_table_finish(table: ParserHostTable*, error: u8**, specialize: 
         if output {
             *error = message;
         } else {
-            tower_memory_free(bits(void*, message));
+            compiler_buffer_free(bits(void*, message));
         }
         parser_table_destroy(table);
         return null;
     }
-    tower_memory_free(bits(void*, message));
+    compiler_buffer_free(bits(void*, message));
     if table.trace {
         parser_trace_table(table, ParserFormatKind.Tables);
     }

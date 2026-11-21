@@ -1,0 +1,35 @@
+import tower;
+import .host.memory_types;
+import utility_checks;
+
+extern fn compiler_node_allocate(state: CompilerNodeMemoryState*, bytes: usize, diagnostic: bool): void*;
+extern fn compiler_node_free(state: CompilerNodeMemoryState*, pointer: void*, diagnostic: bool): void;
+extern fn compiler_buffer_allocate(bytes: usize): void*;
+extern fn compiler_buffer_free(pointer: void*): void;
+extern fn tower_test_buffer_count(): usize;
+extern fn tower_test_buffer_fail_after(count: usize): void;
+
+export fn compiler_buffer_owner_tests(): void {
+    var baseline = tower_test_buffer_count();
+    var owner: CompilerNodeMemoryState = default;
+    for(var size: usize = 0; size <= 65; size++) {
+        var owned = compiler_buffer_allocate(size);
+        utility_check(owned is not null && bits(usize, owned) % (sizeof(usize) * 2) == 0, "compiler buffer alignment");
+        utility_check(owner.live_allocations == 0 && tower_test_buffer_count() == baseline + 1, "compiler buffer explicit allocator");
+        fill(owned, 42, size);
+        // Legacy caller settings do not reinterpret an untracked owned buffer.
+        compiler_node_free(&owner, owned, true);
+        utility_check(owner.live_allocations == 0 && tower_test_buffer_count() == baseline, "legacy frees owned compiler buffer");
+        var legacy = compiler_node_allocate(&owner, size, true);
+        utility_check(legacy is not null && owner.live_allocations == 1, "explicit legacy diagnostic owner");
+        fill(legacy, 43, size);
+        compiler_buffer_free(legacy);
+        utility_check(owner.live_allocations == 0 && tower_test_buffer_count() == baseline, "owned free honors captured legacy policy");
+    }
+    compiler_buffer_free(null);
+    tower_test_buffer_fail_after(0);
+    utility_check(compiler_buffer_allocate(17) is null, "compiler buffer failure propagation");
+    tower_test_buffer_fail_after(~convert(usize, 0));
+    utility_check(compiler_buffer_allocate(~convert(usize, 0)) is null, "compiler buffer size overflow");
+    utility_check(tower_test_buffer_count() == baseline, "compiler buffer failure cleanup");
+}

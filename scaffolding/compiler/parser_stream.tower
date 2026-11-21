@@ -31,9 +31,9 @@ struct ParserRecognizerStream {
     complete: bool;
 }
 
-extern fn tower_memory_allocate(bytes: usize): void*;
+extern fn compiler_buffer_allocate(bytes: usize): void*;
 
-extern fn tower_memory_free(memory: void*): void;
+extern fn compiler_buffer_free(memory: void*): void;
 
 fn parser_state_require(ok: bool): void {
     if !ok {
@@ -70,7 +70,7 @@ export fn parser_stream_create(bytes: usize, kind: ParserInputService): ParserSt
     if total < bytes {
         return null;
     }
-    var stream = bits(ParserStream*, tower_memory_allocate(total));
+    var stream = bits(ParserStream*, compiler_buffer_allocate(total));
     if stream == null {
         return null;
     }
@@ -121,7 +121,7 @@ export fn parser_stream_dispose(stream: ParserStream*): void {
     }
     vector_dispose(&stream.error);
     vector_dispose(&stream.buffered_error);
-    tower_memory_free(bits(void*, stream));
+    compiler_buffer_free(bits(void*, stream));
 }
 
 export fn parser_stream_utf8_create(begin: u8*, end: u8*): ParserStream* {

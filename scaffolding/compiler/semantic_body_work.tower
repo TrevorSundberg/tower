@@ -474,7 +474,7 @@ fn sem_bodies(c: SemanticContext*): void {
     sem_require(entity_register(kind, sizeof(SemanticBodyWork), alignof(SemanticBodyWork), 0));
     var next: usize = 1;
     while next < c.program.functions.length && sem_ok(c) {
-        if c.workers.count == 0 { sem_require(work_pool_open(&c.workers, work_thread_capacity())); }
+        if c.workers.count == 0 { sem_require(sem_workers_open(c)); }
         sem_generic_bodies(c, next, kind);
         if !sem_ok(c) { break; }
         var batch: SemanticBodyWork*[256];

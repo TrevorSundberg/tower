@@ -1,5 +1,6 @@
 import tower;
 import grammar_types;
+import worker_policy;
 import .library.work_pool;
 
 extern fn compiler_node_world(node: void*): void*;
@@ -23,6 +24,8 @@ fn parser_workers_open(lease: ParserWorkers*, anchor: void*, capacity: usize): b
         lease.pool = &lease.local;
         return true;
     }
+    var limit = compiler_world_worker_limit(world);
+    if capacity > limit { capacity = limit; }
     var cache = compiler_world_grammar(world);
     if cache.workers_busy { return false; }
     var pool = &cache.workers;

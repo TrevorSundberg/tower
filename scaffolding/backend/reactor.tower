@@ -1,5 +1,4 @@
 import tower;
-import .library.compiler_work;
 import linker_wasi;
 import linker;
 

@@ -13,13 +13,14 @@ extern fn syntax_parser_describe(context: void*, rule: usize): u8*;
 
 extern fn parser_table_non_terminal_id_to_string(context: void*, id: u32): u8*;
 
-extern fn tower_memory_free(memory: void*): void;
+extern fn compiler_buffer_free(memory: void*): void;
 
 extern fn puts(text: u8*): i32;
 
 extern fn putchar(byte: i32): i32;
 
 fn parser_trace_write(text: u8*): void {
+    if text is null { return; }
     var index: usize = 0;
     while text[index] != 0 {
         putchar(convert(i32, text[index]));
@@ -70,7 +71,7 @@ export fn parser_presentation_text(table: ParserHostTable*, kind: ParserFormatKi
         }
         parser_format_reply(request, text, length);
         if present {
-            tower_memory_free(bits(void*, text));
+            compiler_buffer_free(bits(void*, text));
         }
     }
     var output = parser_format_result(request);
@@ -90,7 +91,7 @@ export fn parser_trace_table(table: ParserHostTable*, kind: ParserFormatKind): v
     var text = parser_presentation_text(table, kind, 0, 0);
     if text != null {
         puts(text);
-        tower_memory_free(bits(void*, text));
+        compiler_buffer_free(bits(void*, text));
     }
 }
 
@@ -112,12 +113,12 @@ export fn parser_trace_step(table: ParserHostTable*, rule: usize, state: usize, 
         format_char(&engine, 10);
         parser_trace_write(result.text.data);
         format_dispose(&result);
-        tower_memory_free(bits(void*, text));
+        compiler_buffer_free(bits(void*, text));
     }
 }
 
 export fn parser_tree_debug_print(root: void*): void {
     var text = parser_tree_debug_string(root);
     parser_trace_write(text);
-    tower_memory_free(bits(void*, text));
+    compiler_buffer_free(bits(void*, text));
 }

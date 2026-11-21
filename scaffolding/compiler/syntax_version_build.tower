@@ -24,7 +24,7 @@ import .library.vector;
 
 extern fn parser_table_open(root: void*, kinds: FrontendKinds*, userdata: void*, presentation: ParserPresentation, mode: u32): ParserHostTable*;
 extern fn parser_table_finish(table: ParserHostTable*, error: u8**, specialize: bool): ParserHostTable*;
-extern fn tower_memory_free(memory: void*): void;
+extern fn compiler_buffer_free(memory: void*): void;
 
 export fn syntax_version_diagnostic_dispose(value: SyntaxVersionDiagnostic*): void {
     vector_dispose(&value.text);
@@ -135,7 +135,7 @@ export fn syntax_version_build(world: void*, source: FrontendRevision*, bedrock:
     if !syntax_version_seed(value, ready, null, null) { return null; }
     diagnostic.fallback = "Unable to build grammar";
     var error: u8* = null;
-    defer tower_memory_free(bits(void*, error));
+    defer compiler_buffer_free(bits(void*, error));
     var table = parser_table_open(value.rules, &value.kinds, bits(void*, value), ParserPresentation.Syntax, convert(u32, ParserReadMode.Constructs));
     if table is not null { table.trace = entity_member_index(value.kinds.`match`, "parser.trace") != lr_none(); }
     value.table = bits(void*, parser_table_finish(table, &error, true));

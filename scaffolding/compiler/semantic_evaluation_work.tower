@@ -85,7 +85,7 @@ fn sem_evaluation_prepare_all(c: SemanticContext*): void {
         sem_require(work_seal(&c.queries, id));
         sem_require(work_demand(&c.queries, id));
     }
-    if c.workers.count == 0 { sem_require(work_pool_open(&c.workers, work_thread_capacity())); }
+    if c.workers.count == 0 { sem_require(sem_workers_open(c)); }
     var batch: SemanticEvaluationWork*[256];
     while sem_ok(c) {
         var count: usize = 0;

@@ -30,9 +30,14 @@ export fn work_kernel_execute(payload: void*): void {
 }
 
 export fn main(): i32 {
+    // Native one-lane hosts cannot exercise overlap under their policy.
+    // CTest records this explicitly as skipped, not a concurrency proof.
+    var lanes = work_thread_capacity();
+    if lanes < 2 { return 77; }
+    if lanes > 4 { lanes = 4; }
     var pool: WorkPool;
     if !work_pool_open(&pool, 4) { return 1; }
-    if !pool.threaded || pool.count != 4 { return 2; }
+    if !pool.threaded || pool.count != lanes { return 2; }
     var entered = work_signal_open();
     var release = work_signal_open();
     if entered == null || release == null { return 3; }
@@ -41,7 +46,7 @@ export fn main(): i32 {
     var round: u64 = 1;
     while round < 17 {
         var i: usize = 0;
-        while i < 4 {
+        while i < pool.count {
             jobs[i].entered = entered;
             jobs[i].release = release;
             jobs[i].input = round + convert(u64, i);
@@ -50,22 +55,23 @@ export fn main(): i32 {
             i++;
         }
         if work_pool_submit(&pool, bits(void*, &jobs[0])) { return 5; }
-        // Four distinct workers must reach this barrier simultaneously. A
-        // synchronous dispatch or a pool with fewer workers cannot pass it.
+        // Every admitted worker must reach this barrier simultaneously. The
+        // browser fixture supplies four lanes; smaller native policies use all
+        // their lanes. A synchronous dispatch cannot pass this barrier.
         i = 0;
-        while i < 4 { work_signal_wait(entered); i++; }
+        while i < pool.count { work_signal_wait(entered); i++; }
         if work_pool_receive(&pool, false) != null { return 6; }
         i = 0;
-        while i < 4 { work_signal_post(release); i++; }
+        while i < pool.count { work_signal_post(release); i++; }
         i = 0;
-        while i < 4 {
+        while i < pool.count {
             var job = bits(PoolTestJob*, work_pool_receive(&pool, true));
             if job == null { return 7; }
             if job.result != job.input * job.input { return 8; }
             i++;
         }
         i = 0;
-        while i < 4 {
+        while i < pool.count {
             var j: usize = 0;
             while j < i {
                 if jobs[i].thread == jobs[j].thread { return 9; }
@@ -75,7 +81,7 @@ export fn main(): i32 {
         }
         round++;
     }
-    if pool.peak != 4 || pool.running != 0 { return 10; }
+    if pool.peak != pool.count || pool.running != 0 { return 10; }
     work_pool_close(&pool);
     work_signal_close(entered);
     work_signal_close(release);

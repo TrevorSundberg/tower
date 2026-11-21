@@ -1,4 +1,5 @@
 import tower;
+import worker_policy;
 import compiler_kernel;
 import lr_runtime;
 import lr_states;
@@ -58,7 +59,7 @@ export fn compiler_lr_runtime_kernel(payload: void*): void {
 // Hash interning is deterministic publication. Sorting, precedence/conflict
 // checks, direct lookup indexes and goto construction all use private workers.
 export fn lr_runtime_create_parallel(source: LRStates*, anchor: void*): LRRuntime* {
-    var capacity = work_thread_capacity();
+    var capacity = compiler_worker_capacity(anchor);
     var count = source.states.length / LRRuntimeGrain();
     if count > capacity { count = capacity; }
     if count < 2 || anchor == null { return lr_runtime_create(source); }

@@ -69,7 +69,7 @@ fn parser_failure_tests(): void {
         var diagnostic = parser_recognizer_diagnostic(request, ParserDiagnosticReader.None, null);
         tower_test_buffer_fail_after(ParserNoIndex());
         calls = tower_test_buffer_allocations() - calls;
-        var completed = diagnostic.complete;
+        var completed = diagnostic is not null && diagnostic.complete;
         parser_diagnostic_destroy(diagnostic);
         var ok = tower_test_buffer_count() == baseline;
         frontend_world_check(ok);

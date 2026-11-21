@@ -1,0 +1,187 @@
+import tower;
+import .library.vector;
+import .compiler.semantic_program_types;
+import .compiler.foundation_types;
+import .compiler.component_kinds;
+import .compiler.format_types;
+import .compiler.interpreter_context_types;
+
+extern fn frontend_units_create(count: usize, budget: usize, width: u32, revision: u64, profile: u64, bedrock: u8*, foundation: u8*, library: u8*): void*;
+extern fn frontend_units_source(batch: void*, ordinal: usize, path: u8*, source: u8*, length: usize): bool;
+extern fn frontend_units_step(batch: void*, wait: bool): bool;
+extern fn frontend_units_program(batch: void*, ordinal: usize): SemanticProgram*;
+extern fn frontend_units_error(batch: void*): u8*;
+extern fn frontend_units_failed(batch: void*): usize;
+extern fn frontend_units_cancelled(batch: void*): bool;
+extern fn frontend_units_cancel(batch: void*): void;
+extern fn frontend_units_close(batch: void*): void;
+extern fn compiler_node_world(node: void*): void*;
+extern fn compiler_node_type(node: void*, kind: u32): void*;
+extern fn compiler_world_worker_limit(world: void*): usize;
+extern fn format_entity(result: FormatResult*, node: void*, syntax: void*, foundation: void*, match_kind: void*): void;
+extern fn format_dispose(result: FormatResult*): void;
+extern fn sem_get(node: void*): FoundationNode*;
+extern fn interpreter_invocation_init(invocation: IMInvocation*, function: void*, width: usize, arguments: u64*, count: usize, strict: bool, fuel: u64): bool;
+extern fn interpreter_invocation_step(invocation: IMInvocation*, budget: usize): void;
+extern fn interpreter_invocation_dispose(invocation: IMInvocation*): void;
+extern fn work_thread_available(): bool;
+extern fn work_thread_capacity(): usize;
+extern fn strlen(text: u8*): usize;
+extern fn strcmp(a: u8*, b: u8*): i32;
+extern fn strstr(text: u8*, query: u8*): u8*;
+extern fn puts(text: u8*): i32;
+extern fn abort(): void;
+extern fn fopen(path: u8*, mode: u8*): void*;
+extern fn fseek(file: void*, offset: i64, origin: i32): i32;
+extern fn ftell(file: void*): i64;
+extern fn fread(data: void*, size: usize, count: usize, file: void*): usize;
+extern fn fclose(file: void*): i32;
+
+fn units_check(ok: bool, message: u8*): void {
+    if !ok { puts(message); abort(); }
+}
+
+fn units_read(root: u8*, name: u8*, out: vector(u8)*): void {
+    var path: vector(u8) = default;
+    defer vector_dispose(&path);
+    for(var i: usize = 0; i < strlen(root); i++) { units_check(vector_push(&path, root[i]), "resource root"); }
+    for(var i: usize = 0; i < strlen(name); i++) { units_check(vector_push(&path, name[i]), "resource name"); }
+    units_check(vector_push(&path, 0), "resource terminator");
+    var file = fopen(path.data, "rb");
+    units_check(file is not null, "resource open");
+    defer fclose(file);
+    units_check(fseek(file, 0, 2) == 0, "resource end");
+    var length = ftell(file);
+    units_check(length >= 0 && fseek(file, 0, 0) == 0, "resource length");
+    out.length = convert(usize, length);
+    units_check(vector_reserve(out, out.length + 1), "resource allocation");
+    units_check(fread(bits(void*, out.data), 1, out.length, file) == out.length, "resource snapshot");
+    out.data[out.length] = 0;
+}
+
+fn units_trial(budget: usize, width: u32, bedrock: u8*, foundation: u8*, root: u8*, out: vector(u8)*): void {
+    var batch = frontend_units_create(3, budget, width, 71, 19, bedrock, foundation, root);
+    units_check(batch is not null, "unit batch create");
+    defer frontend_units_close(batch);
+    var sources: u8*[3];
+    sources[0] = "import tower; fn id(T:type,x:T):T{return x;} fn answer():i32 { var x:decltype(id(42))=comptime(later()); return id(x); } fn later():i32{return 42;}";
+    sources[1] = "import tower; fn id(T:type,x:T):T{return x;} fn answer():i32 { var x:decltype(id(43))=comptime(later()); return id(x); } fn later():i32{return 43;}";
+    sources[2] = "import tower; fn id(T:type,x:T):T{return x;} fn answer():i32 { var x:decltype(id(44))=comptime(later()); return id(x); } fn later():i32{return 44;}";
+    units_check(frontend_units_program(batch, 1) is null, "unpublished unit result");
+    units_check(!frontend_units_source(batch, 0, "unit.tower", sources[0], strlen(sources[0])), "invalid unit ordinal");
+    for(var i: usize = 1; i <= 3; i++) {
+        var size = strlen(sources[i - 1]);
+        var snapshot = alloc(u8, size);
+        units_check(snapshot is not null, "caller snapshot");
+        copy(snapshot, sources[i - 1], size);
+        units_check(frontend_units_source(batch, i, "unit.tower", snapshot, size), "unit source");
+        fill(snapshot, 0, size);
+        free(snapshot);
+    }
+    var invalid: u8[3];
+    invalid[0] = 97; invalid[1] = 0; invalid[2] = 98;
+    units_check(!frontend_units_source(batch, 1, "unit.tower", &invalid[0], 3), "NUL input rejected");
+    var done = frontend_units_step(batch, false);
+    units_check(!frontend_units_source(batch, 1, "unit.tower", sources[0], strlen(sources[0])), "active unit immutable");
+    while !done { done = frontend_units_step(batch, true); }
+    if frontend_units_failed(batch) != 0 { puts(frontend_units_error(batch)); }
+    units_check(!frontend_units_cancelled(batch) && frontend_units_failed(batch) == 0, "unit compilation succeeds");
+    var worlds: void*[3];
+    for(var i: usize = 1; i <= 3; i++) {
+        var program = frontend_units_program(batch, i);
+        units_check(program is not null && program.pointer_bytes == width, "published target profile");
+        worlds[i - 1] = compiler_node_world(program.root);
+        for(var j: usize = 0; j < i - 1; j++) { units_check(worlds[j] != worlds[i - 1], "exclusive unit world"); }
+        var lanes = budget < 3 ? budget : 3;
+        var available = work_thread_capacity();
+        if lanes > available { lanes = available; }
+        if !work_thread_available() { lanes = 1; }
+        units_check(compiler_world_worker_limit(worlds[i - 1]) == budget / lanes, "nested world budget");
+        var answer: void* = null;
+        foreach(var function in &program.functions) {
+            var node = sem_get(function);
+            if node.name.length == 6 && strcmp(node.name.data, "answer") == 0 { answer = function; }
+        }
+        units_check(answer is not null, "unit answer binding");
+        var invocation: IMInvocation = default;
+        units_check(interpreter_invocation_init(&invocation, answer, convert(usize, width), null, 0, true, 10000), "unit invocation");
+        while !invocation.state.done && !invocation.state.failed { interpreter_invocation_step(&invocation, 7); }
+        units_check(!invocation.state.failed && invocation.context.result == convert(u64, 41 + i), "unit compiletime/decltype executes");
+        interpreter_invocation_dispose(&invocation);
+        var formatted: FormatResult = default;
+        format_entity(&formatted, program.root, compiler_node_type(program.root, CompilerSyntax()),
+            compiler_node_type(program.root, CompilerFoundation()), compiler_node_type(program.root, CompilerParserMatch()));
+        units_check(!formatted.failed, "unit Foundation format");
+        foreach(var byte in &formatted.text) { units_check(vector_push(out, byte), "unit canonical snapshot"); }
+        format_dispose(&formatted);
+    }
+    units_check(frontend_units_program(batch, 4) is null, "invalid result ordinal");
+}
+
+fn units_failure(budget: usize, bedrock: u8*, foundation: u8*, root: u8*): void {
+    var batch = frontend_units_create(3, budget, 8, 72, 19, bedrock, foundation, root);
+    units_check(batch is not null, "failed batch create");
+    defer frontend_units_close(batch);
+    var sources: u8*[3];
+    sources[0] = "import tower; fn value():i32{return comptime(later());} fn later():i32{return 9;}";
+    sources[1] = "import tower; var left=right; var right=left;";
+    sources[2] = "import tower; fn later():i32{return missing;}";
+    for(var i: usize = 1; i <= 3; i++) { units_check(frontend_units_source(batch, i, "failed.tower", sources[i - 1], strlen(sources[i - 1])), "failed batch source"); }
+    while !frontend_units_step(batch, true) {}
+    units_check(frontend_units_failed(batch) == 2 && strstr(frontend_units_error(batch), "cycle") is not null, "earliest unit cycle diagnostic");
+    units_check(frontend_units_program(batch, 1) is null && frontend_units_program(batch, 3) is null, "failed batch never publishes");
+}
+
+fn units_syntax_failure(bedrock: u8*, foundation: u8*, root: u8*): void {
+    for(var grammar: usize = 0; grammar < 2; grammar++) {
+        var selected = grammar == 0 ? foundation : "parse Statement = Missing;";
+        var batch = frontend_units_create(3, 3, 8, 74, 19, bedrock, selected, root);
+        units_check(batch is not null, "syntax failure batch");
+        for(var i: usize = 1; i <= 3; i++) {
+            var source: u8* = i == 2 ? "@" : "import tower; fn answer():i32{return 42;}";
+            units_check(frontend_units_source(batch, i, "syntax.tower", source, strlen(source)), "syntax failure source");
+        }
+        while !frontend_units_step(batch, true) {}
+        units_check(frontend_units_failed(batch) == (grammar == 0 ? 2 : 1), "syntax diagnostic source order");
+        units_check(frontend_units_error(batch)[0] != 0 && frontend_units_program(batch, 1) is null, "syntax failure never publishes");
+        frontend_units_close(batch);
+    }
+}
+
+fn units_cancellation(bedrock: u8*, foundation: u8*, root: u8*): void {
+    for(var active: usize = 0; active < 2; active++) {
+        var batch = frontend_units_create(4, 2, 8, 73, 19, bedrock, foundation, root);
+        units_check(batch is not null, "cancel batch create");
+        var source: u8* = "import tower; fn answer():i32{return 42;}";
+        for(var i: usize = 1; i <= 4; i++) { units_check(frontend_units_source(batch, i, "cancel.tower", source, strlen(source)), "cancel source"); }
+        if active != 0 { frontend_units_step(batch, false); }
+        frontend_units_cancel(batch);
+        units_check(frontend_units_cancelled(batch) && frontend_units_step(batch, false), "cancel joins workers");
+        units_check(frontend_units_program(batch, 1) is null, "cancel rejects publication");
+        frontend_units_close(batch);
+    }
+}
+
+export fn frontend_units_tests(root: u8*): void {
+    var bedrock: vector(u8) = default;
+    var foundation: vector(u8) = default;
+    defer vector_dispose(&bedrock);
+    defer vector_dispose(&foundation);
+    units_read(root, "/bedrock.tower", &bedrock);
+    units_read(root, "/foundation.tower", &foundation);
+    for(var width: u32 = 4; width <= 8; width += 4) {
+        var serial: vector(u8) = default;
+        var parallel: vector(u8) = default;
+        units_trial(1, width, bedrock.data, foundation.data, root, &serial);
+        units_trial(6, width, bedrock.data, foundation.data, root, &parallel);
+        units_check(serial.length == parallel.length, "unit canonical lengths");
+        for(var i: usize = 0; i < serial.length; i++) { units_check(serial.data[i] == parallel.data[i], "unit canonical bytes"); }
+        vector_dispose(&serial);
+        vector_dispose(&parallel);
+    }
+    units_failure(1, bedrock.data, foundation.data, root);
+    units_failure(3, bedrock.data, foundation.data, root);
+    units_syntax_failure(bedrock.data, foundation.data, root);
+    units_cancellation(bedrock.data, foundation.data, root);
+    puts("Native ECS units: independent worlds, nested budgets, decltype/comptime, deterministic failures and cancellation passed.");
+}

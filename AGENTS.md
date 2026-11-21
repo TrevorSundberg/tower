@@ -142,6 +142,10 @@ Do NOT modify todo.txt
   interpreter state; shared inputs must remain immutable during dispatch.
   Derive component kinds from the entity/session world, including formatter and
   inspection fallbacks; never borrow another world's component identity.
+  Set worker budgets on worlds before handoff; nested phases must use that policy.
+  Compiler buffers use `compiler_buffer_allocate/free`, never the legacy global
+  allocation counter. A legacy adapter being implemented in Tower does not make
+  its process-wide state safe to share.
 - Schedule compiler queries through the shared dependency graph. Request only
   needed type/body/layout/evaluation work; suspend on newly discovered dependencies
   rather than blocking a worker or recursively forcing completion. Diagnose cycles

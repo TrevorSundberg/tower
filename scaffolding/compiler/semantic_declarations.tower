@@ -891,7 +891,7 @@ fn sem_declaration_add(c: SemanticContext*, node: void*): void {
 }
 
 fn sem_declaration_discover(c: SemanticContext*): void {
-    if c.workers.count == 0 { sem_require(work_pool_open(&c.workers, work_thread_capacity())); }
+    if c.workers.count == 0 { sem_require(sem_workers_open(c)); }
     var batch: SemanticDeclaration*[256];
     var index: usize = 0;
     loop {

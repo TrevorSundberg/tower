@@ -1,4 +1,5 @@
 import tower;
+import worker_policy;
 import compiler_kernel;
 import lr_analysis;
 import lr_lalr;
@@ -294,7 +295,7 @@ fn lr_propagation_solve_parallel(value: LRPropagation*, owner: void*, graph: Wor
 // grammar's world. The grammar remains authoritative; closure/index objects are
 // private derived data. No grammar update is published from a worker.
 export fn lr_states_lalr_parallel(value: LRStates*, constructs: bool, anchor: void*): bool {
-    var capacity = work_thread_capacity();
+    var capacity = compiler_worker_capacity(anchor);
     if capacity <= 1 || anchor == null { return lr_states_lalr(value, constructs); }
     var count = value.analysis.symbol_count + value.analysis.rule_count;
     if count < 2 * LRClosureGrain() { return lr_states_lalr(value, constructs); }

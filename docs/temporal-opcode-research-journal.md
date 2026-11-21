@@ -29931,3 +29931,198 @@ Together with native 8/8/API, actual driver successor identity, full CLI profile
 coverage and request ownership/cleanup tests, this is the publication checkpoint.
 No C++ or todo.txt changes. Continue the isolated worker-budget/unit-ECS draft
 rather than treating this as completion of compiler-wide threading.
+
+### 2026-11-21 — native unit ECS executor and world worker budgets (draft)
+
+Native CLI source c81a36e546226de33cd5ae828c2468766aefc6e1 is committed/pushed
+following an unchanged pull/rebase. Pages b6f9f647a1509511403ac32398b7dc13e0198378
+(action 44900276927) succeeds. First hosted verification stopped on HTTP 503 for
+structs.tower, before browser checks; retry has matched all 77 assets and is still
+running browser workflows. Do not call hosted verification complete yet.
+
+The isolated world-budget draft passes the real native LR equivalence/lifetime
+suite, including one/two-worker budget enforcement and retained reopen. Initial
+compile attempts missed direct imports of the new policy helper; fixed rather
+than relying on transitive visibility. The next draft now also has actual native
+unit kernels: each CompilerWork query names an ECS entity with ordinal/task
+metadata; recipe/result components attach to that subject. An outer pool dispatches
+full ordinary frontend compilation into exclusive worlds/environments with bounded
+nested phase workers. Input snapshots live until join; cancellation drains admitted
+workers; successful programs remain hidden until all results settle, and failures
+select the earliest source ordinal. This is a callable Tower compiler service;
+CLI project-recipe wiring and LLVM unit concurrency are not yet implemented.
+
+CompilerWork's implementation belongs in the entity unit, rather than being
+embedded separately in backend reactors or semantic units. Native/frontend clients
+use the existing opaque ABI between compilation units. Standalone Tower library
+tests can import its ordinary entity implementation without conflicting foreign
+signatures or duplicate exports. The first frontend draft imported ByteBuffer's
+foreign bytes_append declaration beside the semantic vector(u8) declaration;
+the compiler correctly rejected their incompatible nominal signatures. Use local
+owned vector snapshots for these recipes, preserving one existing ABI. Draft
+review also caught null entity/module accesses on partial construction; cleanup
+now checks optional owners before calling non-null APIs. Unit integration tests
+are in progress; two harness-only failures were an unsupported string escape for
+embedded NUL (use an explicit byte array) and a missing raw-pointer conversion
+for fread. No new C++, custom folding pass or independent program model.
+
+The first full unit trial passed its successful serial/parallel compilation,
+canonical comparison and interpreter checks for both target widths, then crashed
+while cleaning a failure batch. GDB stopped in entity_release called by
+frontend_units_close: a unit never admitted after an earlier failure has no
+program root, and entity_release requires a non-null entity. Guard absent roots,
+and also absent coordinator owner/kind handles during partial construction. This
+was a cleanup bug, not evidence of a worker race. The failure/cancellation tests
+are retained. Unit queries now declare exclusive recipe/result ranges and their
+join reads those ranges through the same WorkGraph access protocol.
+
+Correction to the initial environment hypothesis: direct execution also aborts
+on the host; debugger timing masks it. The captured core identifies a real shared
+counter race. syntax_version_release -> parser_table_destroy -> tower_memory_free
+uses the legacy C++ adapter's single CompilerNodeMemoryState. Its Tower allocator
+increments/decrements live_allocations without synchronization, including release
+builds; concurrent independent units lose updates and later abort at zero. Evidence:
+unit-draft-core.log, unit-draft-counter-core.log and the pre-fix binary hash
+cf19ac0aae3cb4e6390a7071ae7cad672461a383ef21d67ce7861eb3d88692f0. Debugger runs
+also observe zero compiler_host_world calls, so absence of that accessor alone
+was insufficient evidence of complete isolation. The container now has GDB for
+reproducing the actual environment; no project native source was added.
+
+Draft correction remains entirely Tower: compiler-owned buffers use the ordinary
+runtime allocator and record allocator/optional diagnostic ownership in a private
+allocation header. Legacy allocation/free ABI stays compatible; legacy frees can
+release Tower-owned results using the recorded allocator instead of mutating the
+legacy counter. All Tower parser/diagnostic/format buffer paths use this explicit
+owner-free policy. The header belongs only to compiler allocation, not Foundation
+pointers or the program graph. Legacy single-owner counting/guards remain available
+for explicit host clients. Instrumented serial tests now cover these buffers through
+the ordinary runtime, including failures and both compatibility directions. Repeat
+real concurrent unit trials and all affected allocation-failure checks before merge.
+
+With owned compiler buffers, four consecutive uninstrumented native unit runs
+pass outside GDB (unit-memory-repeat.log). The expanded run also passes ephemeral
+caller-source snapshots, concurrent lexical failures and invalid grammar baselines
+(unit-memory-final-trial.log), in addition to the ordinary lazy evaluation/cycle/
+cancellation checks. The unit-owner library fixture returns 0 under the interpreter.
+The core's legacy counter was exactly zero while a live parser table was being
+freed; unit-draft-counter-core.log confirms the failing invariant.
+
+Expanded deterministic allocation injection exposed two old assumptions: formatter
+host-string helpers aborted instead of returning allocation failure to already
+nullable callers, and parser_failures.tower dereferenced a diagnostic unconditionally
+because its outer allocation was formerly outside injection. Formatter helpers now
+return null and trace output accepts it; the failure fixture treats a null diagnostic
+as incomplete, still requiring success once the measured allocation budget suffices.
+The current focused allocation suite is being rerun; do not claim it passed yet.
+
+The corrected focused suite passes, including exhaustive unit-metadata constructor
+allocation failures, owned/legacy buffer compatibility, parser diagnostics that can
+now fail their outer allocation, regex/lexer failure coverage and exact cleanup
+(unit-memory-failures.log). Overlap probe unit-overlap.log captures three concurrent
+compiler_unit_kernel stacks on native workers, 25 total kernel calls, zero
+compiler_host_world calls and zero tower_memory_allocate calls. The first GDB
+probe incorrectly switched threads inside Breakpoint.stop(); use ordinary stopped
+breakpoint commands instead. This is evidence of actual full-unit overlap, not
+merely queued work. No speedup claim is made.
+
+The draft is now integrated, including native production-worker tests, serial
+allocation tests, shared immutable world budgets and the Tower-owned buffer fix.
+CompilerWork exports are owned by the entity unit instead of duplicated in backend
+reactors. Document the callable service and its limits; add concise AGENTS guidance
+on nested budgets and avoiding the legacy counter. Published native-world source
+c81a36e / Pages b6f9f647 passed complete hosted verification on retry; report is
+native-world-hosted-report.json. Next: default-bootstrap native/browser builds,
+full regressions, successive compiler generations, local/hosted publication, then
+continue remaining structural/editor/backend ownership and scheduling work.
+
+The genuinely empty default-bootstrap native directory
+`compiletime-unit-world-clean` built successfully. Its initial six-test run caught
+one more newly instrumented allocation: storage_stream_tests assumed the stream
+object allocation was outside the failure budget. GDB identified parser_stream_poll
+on a null object. Split object-allocation rejection from source-buffer failure;
+retain the existing source diagnostic and exact cleanup checks. Enable the omitted
+TOWER_BACKEND_TESTS option too: all eight native tests then passed in 104.08 seconds,
+including the production unit executor, plus backend API checks. Actual successor
+objects for entities, parser_nodes, semantics and host match byte for byte.
+
+The first browser generation pair passed with edited semantic behavior and equal
+hashes (unit-world-generations.log; sizes 1070218/52369141/63926572). The editor
+suite passed 28 tests; the capacity tests in that combined invocation skipped
+because they require repository-root cwd. Rerunning from the root with
+TOWER_REQUIRE_THREADS=1 exposed a real transport-budget bug: lr_worker_budget's
+two-lane world requested two pthreads from a one-worker browser transport. The
+second spawn waited indefinitely because the first occupied its only slot. Stop
+that run, rather than calling skipped or blocked cases passing.
+
+Correct the ordinary Tower WorkPool to clamp requested lanes to the transport's
+available capacity; worker-side browser contexts advertise one lane, so nested
+phases run inline there. A world's immutable budget remains an upper bound;
+compiler_worker_capacity intersects it with the current transport. Native worlds
+can still use their allocated nested budgets. Update budget expectations to test
+this distinction. Rebuild and repeat actual 1/2/4/8-worker validation before
+publication; the earlier browser generation hashes precede this correction.
+
+An isolated editor-world draft removes default-world component queries from
+inspection/formatting and supplies explicit world/environment query constructors.
+It is not merged yet. Its first harness compile missed a direct vector import;
+the first runtime setup configured the library after installing Foundation, so
+Foundation's ordinary imports could not resolve. Configure inputs before baseline
+installation. Both are harness corrections; explicit-world editor validation is
+still in progress.
+
+The transport correction passes all three browser worker tests at 1/2/4/8 lanes
+in 61.05 seconds with zero skips (unit-world-capacity-transport.log). The native
+eight-test suite and backend API pass again in 80.10 seconds. Extend the browser
+capacity fixture to invoke the independent-world semantic/interpreter kernels at
+each width too; its test driver must drain a full bounded pool before submitting
+more jobs. The native overlap fixture now uses up to four available lanes and
+explicitly skips on a single-lane host (CTest code 77), while the browser proof
+continues to require four simultaneous workers.
+
+The broad browser invocation used the wrong cwd for compiletime.test.mjs, which
+failed to open scaffolding/foundation.tower before running any cases. Its other
+70 tests passed, including storage/entity/work graph differential cases and Wasm
+self-tests (652.38 seconds). Rerun the omitted compile-time file from the repository
+root on the final artifacts; do not report this invocation as 115/115 passing.
+The final portable/LLVM/cross rebuild and extended worker checks are underway.
+
+The isolated editor draft now passes both target widths, generic inspection,
+typed member completion, Bedrock/Foundation grammar previews, foreign-environment
+and foreign-session rejection, independent disposal and exact buffer cleanup.
+GDB observes zero compiler_host_world, syntax_completion_create or legacy
+tower_memory_allocate calls throughout those explicit services
+(editor-world-ownership.log). This establishes ownership isolation, not parallel
+editor scheduling; the draft remains separate from the unit-executor checkpoint.
+
+Final extended browser capacity checks pass 3/3 with no skips in 63.62 seconds,
+including independent-world semantic kernels for both target widths at every
+1/2/4/8 transport capacity. The exact overlap fixture still requires all four
+lanes when four are available; its final native and browser checks pass. Native
+successor entity/parser/semantic/host objects are byte-identical after the
+transport correction too (unit-world-successors-final.log). On the final browser
+artifacts, the root-cwd compile-time, invocation and Wasm suites pass 63/63 in
+18.64 seconds (unit-world-compiletime-final.log), covering the omitted compile-time
+cases and rerunning Wasm self-tests. No test failure remains in these checks.
+Final edited generations and full local deployment workflows are still running;
+do not infer their result from matching asset hashes alone.
+
+The final edited browser generation pair passes and is byte-identical across
+two/four isolated build workers: tower/LLVM/cross sizes
+1070098/52369021/63926452 (unit-world-generation1.json and
+unit-world-generation2.json; unit-world-generations-final.log). The local deployment
+has matched all 77 assets and passed desktop workflows; mobile/native-output
+verification is still running. The upstream fetch currently reports no source
+changes beyond c81a36e. The required commit/rebase/publication steps remain pending.
+
+Complete local deployment verification passed all 77 hashes, desktop/mobile
+execution, grammar editing, completion/highlighting, persistence, native build
+downloads and the real Linux defaults (unit-world-local-report.json). Final
+generation durations were 139.43/93.74 seconds; hashes are
+tower 75a44ad7cc56cab042d6e38efdbf211f2b1be80bf995fe4006fcab3fa1fc84ef,
+LLVM c22fdf34c2df408263101b5f04e3559f0ddee03bfe2eb5a494b89c9639bdb2bf,
+cross edf9d6ef788acfbfebf7459a1313c41d21a99829fbf38624093ae9fb59486554.
+Source uses only Tower for the implementation; no C/C++ source changes and todo.txt
+remains hash 96a9e58964d7f01e4a97819f259448db81ef5e40. Ready to commit, rebase and
+publish this checkpoint. Continue afterward with explicit editor ownership/jobs,
+structural semantic continuations and backend ownership/scheduling; do not call
+the compiler universally threaded or the general compile-time value model complete.

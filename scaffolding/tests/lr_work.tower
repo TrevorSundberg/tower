@@ -1,4 +1,5 @@
 import tower;
+import .compiler.worker_policy;
 import .compiler.lr_work;
 import .compiler.lr_state_work;
 import .compiler.lr_runtime;
@@ -14,6 +15,8 @@ import .compiler.compiler_kernel;
 import .library.work_pool;
 
 extern fn compiler_world_create(): void*;
+extern fn compiler_world_create_workers(limit: usize): void*;
+extern fn compiler_world_worker_limit(world: void*): usize;
 extern fn compiler_world_store(world: void*): void*;
 extern fn compiler_world_dispose(world: void*): bool;
 extern fn entity_create(store: void*): void*;
@@ -94,6 +97,31 @@ fn lr_worker_lifetime(): bool {
     if lease.cache != null { return false; }
     parser_workers_close(&lease);
     return lease.local.count == 0;
+}
+
+fn lr_worker_budget(): bool {
+    if compiler_world_create_workers(0) is not null || compiler_world_create_workers(257) is not null { return false; }
+    for(var limit: usize = 1; limit <= 2; limit++) {
+        var world = compiler_world_create_workers(limit);
+        if world is null { return false; }
+        var root = entity_create(compiler_world_store(world));
+        if root is null { compiler_world_dispose(world); return false; }
+        var available = work_thread_capacity();
+        var actual = limit < available ? limit : available;
+        var ok = compiler_world_worker_limit(world) == limit && compiler_worker_capacity(root) == actual;
+        var lease: ParserWorkers;
+        for(var attempt: usize = 0; attempt < 2 && ok; attempt++) {
+            ok = parser_workers_open(&lease, root, 8);
+            if ok {
+                ok = lease.pool.count == (work_thread_available() ? actual : 1);
+                parser_workers_close(&lease);
+            }
+        }
+        entity_release(root);
+        ok = compiler_world_dispose(world) && ok;
+        if !ok { return false; }
+    }
+    return true;
 }
 
 fn lr_work_equal(a: LRStates*, b: LRStates*): bool {
@@ -337,6 +365,7 @@ export fn lr_work_tests(): u32 {
     }
     if !lr_propagation_work_trial(root) { failures++; }
     if !lr_worker_lifetime() { failures++; }
+    if !lr_worker_budget() { failures++; }
     var symbols: LRSymbol[2048];
     var rules: LRProduction[132];
     fill(&rules, 0, sizeof(LRProduction[132]));

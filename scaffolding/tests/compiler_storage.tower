@@ -255,6 +255,9 @@ fn storage_stream_tests(): void {
     utility_check(id == 233 && start == 1 && length == 2, "UTF-8 stream owns multibyte source");
     parser_stream_destroy(stream);
     tower_test_buffer_fail_next(); stream = parser_stream_utf8_null_terminated_create("a");
+    utility_check(stream is null && tower_test_buffer_count() == baseline, "UTF-8 stream object allocation failure cleanup");
+    tower_test_buffer_fail_after(1); stream = parser_stream_utf8_null_terminated_create("a");
+    utility_check(stream is not null, "UTF-8 stream source allocation fixture");
     parser_stream_read(stream, &id, &start, &length);
     utility_check(id == StorageParserEof() && strcmp(parser_stream_get_error(stream), "Unable to allocate UTF-8 stream source") == 0, "UTF-8 stream allocation diagnostic");
     parser_stream_destroy(stream);

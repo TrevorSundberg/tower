@@ -1,4 +1,5 @@
 import tower;
+import worker_policy;
 import .library.work_graph;
 import .library.work_pool;
 import .library.stack;
@@ -368,3 +369,9 @@ fn sem_is(node: void*, name: u8*): bool {
 extern fn foundation_name_append(value: vector(u8)*, byte: u8): bool;
 
 extern fn foundation_nodes_prepend(values: vector(void*)*, source: void**, count: usize): bool;
+
+// The same immutable world budget governs every semantic phase, including
+// interpreter evaluation and resumed declaration/body work.
+fn sem_workers_open(c: SemanticContext*): bool {
+    return c.workers.count != 0 || work_pool_open(&c.workers, compiler_worker_capacity(c.program.root));
+}

@@ -8,8 +8,8 @@ ordinary syntax and Foundation entities and their components, bindings, named
 relationships, and resolved types. Their result indexes are disposable views.
 
 The entry composes a link unit; it does not implicitly re-export source names.
-Tower callers import the defining modules (`language-query`, `completion`,
-`frontend-compilation` or `frontend-modules`) and their needed type modules.
+Tower callers import the defining modules (`language_query`, `completion`,
+`frontend_compilation` or `frontend_modules`) and their needed type modules.
 Source visibility follows the [module scope rules](modules.md#module-scopes-and-aliases).
 Completion and hover resolve aliases through those same scopes and display
 original declaration names when flattened Foundation needs a unique spelling.
@@ -111,3 +111,52 @@ already pure Tower or independently concurrent. Parser/session adapters and some
 diagnostic presentation remain native, and the module registry still has its
 existing lifetime/concurrency constraints. No new AST, symbol table, instruction
 ABI, or host-dependent type resolver is introduced by these IDE services.
+
+
+## Concurrent compilation units
+
+`compiler/frontend_units.tower` runs independent compilation units through the
+same Tower worker dispatcher used by parser and semantic kernels. `CompilerWork`
+queries name ordinary ECS entities; unit input/result components live on those
+entities. Each unit owns an exclusive compiler world and module environment.
+Within it, normal parsing, dependency queries, lazy `decltype`/`comptime` and
+interpreter evaluation use the existing compiler services.
+
+Create a batch with `frontend_units_create(count, budget, pointer_bytes, revision,
+profile, bedrock, foundation, library)`. The grammar/library strings are copied.
+Supply each one-based ordinal with `frontend_units_source(batch, ordinal, path,
+source, length)` before stepping. Paths and bounded source bytes are copied;
+embedded NUL is rejected. Configure every unit before calling
+`frontend_units_step(batch, wait)` repeatedly until it returns true. One
+coordinator owns these calls; workers exclusively own the admitted unit worlds.
+
+The immutable budget is split between outer unit lanes and each world's nested
+parser/semantic kernels. It bounds concurrently executing compilation lanes, not
+the number of retained idle OS threads. Portable hosts use the same queries with
+the serial transport. Pools also respect transport capacity; nested browser
+workers run their inner phases inline instead of waiting for occupied outer slots.
+Worker count does not affect program semantics, canonical
+Foundation or diagnostic order. Revision/profile tokens validate receipts; these
+are not persistent incremental-cache identities.
+
+After completion, check `frontend_units_cancelled` and `frontend_units_failed`.
+The latter returns zero or the earliest failing source ordinal;
+`frontend_units_error` borrows its diagnostic text. A successful batch exposes
+borrowed `SemanticProgram` values through `frontend_units_program(batch, ordinal)`.
+No failed or cancelled batch exposes programs. Keep the batch alive while using
+its programs, entities or text. `frontend_units_cancel` drains admitted work;
+`frontend_units_close` cancels if needed, joins, and releases all owned worlds.
+
+This service currently finishes at checked Foundation programs. Native CLI
+project-recipe wiring and parallel LLVM/LLD execution remain separate work;
+backend target initialization and linker globals must retain explicit ownership.
+The outer executor does not remove remaining structural coordinator phases inside
+one unit.
+
+Compiler-owned parser/diagnostic buffers use `compiler_buffer_allocate/free` and
+the ordinary compiler allocator. Their private header records allocator and
+optional diagnostic ownership so legacy host frees remain compatible. This is
+not Foundation pointer metadata. The legacy `tower_memory_*` counter measures
+its explicit single-owner allocation clients, not all compiler allocations;
+production workers do not access it. Fault-injection tests use the serial runtime
+and check exact buffer cleanup separately from real worker-overlap tests.

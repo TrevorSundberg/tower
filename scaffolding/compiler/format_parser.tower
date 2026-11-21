@@ -27,7 +27,7 @@ extern fn entity_child_at(parent: void*, index: usize): void*;
 
 extern fn parser_match_get_type(): void*;
 
-extern fn tower_memory_allocate(bytes: usize): void*;
+extern fn compiler_buffer_allocate(bytes: usize): void*;
 
 extern fn abort(): void;
 
@@ -203,13 +203,11 @@ export fn format_parser_host_text(result: FormatResult*): u8* {
     }
     if result.failed {
         format_dispose(result);
-        abort();
         return null;
     }
-    var text = bits(u8*, tower_memory_allocate(size));
+    var text = bits(u8*, compiler_buffer_allocate(size));
     if text == null {
         format_dispose(result);
-        abort();
         return null;
     }
     copy(text, result.text.data, result.text.length);
@@ -234,12 +232,10 @@ export fn format_parser_label_text(text: u8*, length: usize, prefix: u8*, suffix
     var end = size + after;
     var capacity = end + 1;
     if size < length || end < size || capacity == 0 {
-        abort();
         return null;
     }
-    var output = bits(u8*, tower_memory_allocate(capacity));
+    var output = bits(u8*, compiler_buffer_allocate(capacity));
     if output is null {
-        abort();
         return null;
     }
     copy(output, prefix, before);
@@ -270,9 +266,8 @@ export fn parser_table_utf8_id_to_string(userdata: void*, id: u32): u8* {
         return null;
     }
     var size = result.text.length + 1;
-    var text = bits(u8*, tower_memory_allocate(size));
+    var text = bits(u8*, compiler_buffer_allocate(size));
     if text == null {
-        abort();
         return null;
     }
     copy(text, result.text.data, result.text.length);

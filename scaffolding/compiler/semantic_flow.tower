@@ -119,7 +119,7 @@ fn semantic_flow_kernel(result: SemanticFlow*): void {
 
 fn sem_flows(c: SemanticContext*): void {
     if !sem_ok(c) || c.flow_count == 0 { return; }
-    if c.workers.count == 0 { sem_require(work_pool_open(&c.workers, work_thread_capacity())); }
+    if c.workers.count == 0 { sem_require(sem_workers_open(c)); }
     var view = entity_view_open(c.program.root);
     sem_require(view != null);
     defer entity_view_close(view);

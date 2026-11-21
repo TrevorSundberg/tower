@@ -15,83 +15,64 @@ fn compiler_memory_guard(): usize {
     return convert(usize, guard);
 }
 
+// Compiler-owned buffers carry their allocator/optional instrumentation owner.
+// This private allocation header is unrelated to Foundation pointer semantics.
+// Null owner uses the ordinary compiler runtime, including its explicit serial
+// fault-injection profile. Legacy host instrumentation stays single-owner.
 export fn compiler_node_allocate(state: CompilerNodeMemoryState*, size: usize, diagnostic: bool): void* {
-    var bytes = size;
     var word = sizeof(usize);
+    var overhead = word * (diagnostic ? 5 : 4);
+    var maximum = ~convert(usize, 0);
+    if size > maximum - overhead - word { return null; }
+    var payload = size == 0 ? 1 : size;
+    if diagnostic { payload = (payload + word - 1) / word * word; }
+    var bytes = payload + overhead;
+    var allocation = state is null ? bits(void*, alloc(u8, bytes)) : compiler_host_reallocate(null, bytes);
+    if allocation is null { return null; }
+    var header = bits(usize*, allocation);
+    header[0] = bits(usize, state);
+    header[1] = payload;
+    header[2] = diagnostic ? compiler_memory_guard() : 0;
+    header[3] = diagnostic ? 1 : 0;
+    var data = &header[4];
+    if state is not null { state.live_allocations++; }
     if diagnostic {
-        var maximum: usize = 0;
-        maximum--;
-        var overhead = word *4;
-        overhead--;
-        var limit = maximum -overhead;
-        if size > limit {
-            return null;
-        }
-        var padding = word -1;
-        bytes = size + padding;
-        bytes = bytes / word;
-        bytes = bytes * word;
-        var guards = word *3;
-        bytes = bytes + guards;
-    }
-    // A successful zero-size request still owns a releasable allocation.
-    if bytes == 0 {
-        bytes = 1;
-    }
-    var memory = compiler_host_reallocate(null, bytes);
-    if memory == null {
-        return null;
-    }
-    state.live_allocations++;
-    if diagnostic {
-        var header = bits(usize*, memory);
-        var overhead = word *3;
-        var payload = bytes -overhead;
-        header[0] = payload;
-        header[1] = compiler_memory_guard();
-        var end = payload / word;
-        end = end + 2;
-        header[end] = compiler_memory_guard();
-        var data = &header[2];
+        header[4 + payload / word] = compiler_memory_guard();
         fill(data, 219, payload);
-        return bits(void*, data);
     }
-    return memory;
+    return bits(void*, data);
 }
 
 export fn compiler_node_free(state: CompilerNodeMemoryState*, pointer: void*, diagnostic: bool): void {
-    if pointer == null {
-        return;
+    if pointer is null { return; }
+    var header = bits(usize*, pointer) - 4;
+    var owner = bits(CompilerNodeMemoryState*, header[0]);
+    var payload = header[1];
+    var guarded = header[3] != 0;
+    // A public legacy free can release a Tower-owned buffer. Its captured
+    // allocator policy, not the caller's default diagnostic profile, decides
+    // how to reclaim it. Explicit legacy owners must still agree.
+    if owner is not null {
+        if owner.live_allocations == 0 || (state is not null && (state != owner || diagnostic != guarded)) { abort(); return; }
+        owner.live_allocations--;
     }
-    if state.live_allocations == 0 {
-        abort();
-        return;
-    }
-    var allocation = pointer;
-    if diagnostic {
-        var header = bits(usize*, pointer);
-        header = header - 2;
+    if guarded {
         var guard = compiler_memory_guard();
-        var corrupted = header[1] != guard;
-        if corrupted {
-            abort();
-            return;
-        }
-        var bytes = header[0];
-        var end = bytes / sizeof(usize);
-        end = end + 2;
-        corrupted = header[end] != guard;
-        if corrupted {
-            abort();
-            return;
-        }
-        var overhead = sizeof(usize) *3;
-        bytes = bytes + overhead;
-        fill(header, 254, bytes);
-        allocation = bits(void*, header);
+        if header[2] != guard || header[4 + payload / sizeof(usize)] != guard { abort(); return; }
+        fill(header, 254, payload + sizeof(usize) * 5);
     }
-    state.live_allocations--;
-    compiler_host_deallocate(allocation);
+    if owner is null { free(header); }
+    else { compiler_host_deallocate(bits(void*, header)); }
+}
+
+// Production compiler paths never touch the legacy process-wide node counter.
+// Both entry points use the same allocation format as its compatibility bridge.
+export fn compiler_buffer_allocate(bytes: usize): void* {
+    return compiler_node_allocate(null, bytes, false);
+}
+
+export fn compiler_buffer_free(pointer: void*): void {
+    compiler_node_free(null, pointer, false);
 }
 
 export fn compiler_host_reallocate(pointer: void*, bytes: usize): void* {

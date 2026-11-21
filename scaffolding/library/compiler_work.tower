@@ -1,5 +1,11 @@
 import tower;
 import work_graph;
+import entities;
+
+// Coordinator metadata on ordinary ECS entities. Worker recipe/result components
+// attach to this same subject. Program graphs remain in each unit's exclusive
+// compiler world; the coordinator never reads them during an active dispatch.
+struct CompilerWorkUnit { ordinal: usize; task: usize; }
 
 enum CompilerQuery: u32 {
     Unit, Join
@@ -10,6 +16,9 @@ enum CompilerQuery: u32 {
 // artifacts; it never shares entity pointers or LLVM contexts between workers.
 struct CompilerWork {
     graph: WorkGraph;
+    store: EntityStore*;
+    owner: Entity*;
+    kind: Entity*;
     units: usize;
     workers: usize;
     completed: usize;
@@ -21,6 +30,9 @@ struct CompilerWork {
 export fn compiler_work_close(work: CompilerWork*): void {
     if work != null {
         work_dispose(&work.graph);
+        if work.owner is not null { entity_release(work.owner); }
+        if work.kind is not null { entity_release(work.kind); }
+        if work.store is not null && !entity_store_dispose(work.store) { trap("Compiler unit store still borrowed", 0); }
         free(work);
     }
 }
@@ -37,32 +49,71 @@ export fn compiler_work_create(units: usize, workers: usize, revision: u64, prof
     }
     *work = default;
     work_init(&work.graph, revision, profile);
+    work.store = entity_store_create();
+    if work.store is null { compiler_work_close(work); return null; }
+    work.owner = entity_create(work.store);
+    work.kind = entity_create(work.store);
+    if work.owner is null || work.kind is null
+        || !entity_register(work.kind, sizeof(CompilerWorkUnit), alignof(CompilerWorkUnit), 0) {
+        compiler_work_close(work);
+        return null;
+    }
     work.units = units;
     work.workers = workers;
     var i: usize = 0;
     for(; i < units; i++) {
-        var task = work_request(&work.graph, null, convert(u32, CompilerQuery.Unit), convert(u64, i));
-        if !work_seal(&work.graph, task) {
+        var node = entity_create(work.store);
+        if node is null { compiler_work_close(work); return null; }
+        var attached = entity_attach(node, work.owner, null);
+        entity_release(node);
+        if !attached { compiler_work_close(work); return null; }
+        var unit = bits(CompilerWorkUnit*, entity_component_data(entity_component_add(node, work.kind)));
+        if unit is null { compiler_work_close(work); return null; }
+        unit.ordinal = i + 1;
+        var task = work_request(&work.graph, bits(void*, node), convert(u32, CompilerQuery.Unit), convert(u64, i));
+        unit.task = task;
+        // One exclusive unit recipe/result range, shared by native and isolated
+        // transports. The join reads every completed range after dependencies.
+        if !work_access(&work.graph, task, 1, 1, i, 1, WorkAccessMode.Write)
+            || !work_seal(&work.graph, task) {
             compiler_work_close(work);
             return null;
         }
     }
-    var join = work_request(&work.graph, null, convert(u32, CompilerQuery.Join), 0);
+    var join = work_request(&work.graph, bits(void*, work.owner), convert(u32, CompilerQuery.Join), 0);
     i = 0;
     for(; i < units; i++) {
-        var task = i + 1;
+        var task = compiler_work_unit(work, i + 1).task;
         if !work_depend(&work.graph, join, task) {
             compiler_work_close(work);
             return null;
         }
     }
-    var valid = work_seal(&work.graph, join);
+    var valid = work_access(&work.graph, join, 1, 1, 0, units, WorkAccessMode.Read);
+    valid &&= work_seal(&work.graph, join);
     valid &&= work_demand(&work.graph, join);
     if !valid {
         compiler_work_close(work);
         return null;
     }
     return work;
+}
+
+// Borrowed stable entity, valid until close. Callers attach recipes/results before
+// dispatch and pin this store while workers borrow those component payloads.
+export fn compiler_work_anchor(work: CompilerWork*): Entity* {
+    return work.owner;
+}
+
+export fn compiler_work_subject(work: CompilerWork*, ordinal: usize): Entity* {
+    if ordinal == 0 || ordinal > work.units { return null; }
+    return entity_child_at(work.owner, ordinal - 1);
+}
+
+fn compiler_work_unit(work: CompilerWork*, ordinal: usize): CompilerWorkUnit* {
+    var subject = compiler_work_subject(work, ordinal);
+    if subject is null { return null; }
+    return bits(CompilerWorkUnit*, entity_component_data(entity_component_get(subject, work.kind)));
 }
 
 export fn compiler_work_next(work: CompilerWork*): usize {
@@ -77,14 +128,15 @@ export fn compiler_work_next(work: CompilerWork*): usize {
     }
     var ticket: WorkTicket;
     if work_take(&work.graph, &ticket) {
-        if ticket.task > work.units {
+        var task = work_task(&work.graph, ticket.task);
+        if task.subject == bits(void*, work.owner) {
             work_finish(&work.graph, &ticket, true);
             return 0;
         }
         if work.graph.running > work.peak {
             work.peak = work.graph.running;
         }
-        return ticket.task;
+        return bits(CompilerWorkUnit*, entity_component_data(entity_component_get(bits(Entity*, task.subject), work.kind))).ordinal;
     }
     return 0;
 }
@@ -96,7 +148,7 @@ export fn compiler_work_accept(work: CompilerWork*, unit: usize, revision: u64, 
         return false;
     }
     var ticket: WorkTicket;
-    ticket.task = unit;
+    ticket.task = compiler_work_unit(work, unit).task;
     ticket.revision = revision;
     ticket.profile = profile;
     // Unit transport dispatches each unit once. Resumable query transports must
@@ -110,7 +162,7 @@ export fn compiler_work_accept(work: CompilerWork*, unit: usize, revision: u64, 
     // every earlier task for every out-of-order receipt in a large project.
     while work.settled < work.units {
         var next = work.settled + 1;
-        var task = work_task(&work.graph, next);
+        var task = work_task(&work.graph, compiler_work_unit(work, next).task);
         var settled = task.state == WorkState.Succeeded;
         settled ||= task.state == WorkState.Failed;
         if !settled {

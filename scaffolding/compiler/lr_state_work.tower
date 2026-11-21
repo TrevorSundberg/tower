@@ -1,4 +1,5 @@
 import tower;
+import worker_policy;
 import compiler_kernel;
 import lr_analysis;
 import lr_states;
@@ -44,7 +45,7 @@ export fn compiler_lr_state_kernel(payload: void*): void {
 // kernels, publishes transition IDs and pops the pending stack, in exactly the
 // serial order. Workers never mutate the state index or share failed flags.
 export fn lr_states_create_parallel(analysis: LRAnalysis*, anchor: void*): LRStates* {
-    var capacity = work_thread_capacity();
+    var capacity = compiler_worker_capacity(anchor);
     if capacity <= 1 || anchor == null || analysis.symbol_count + analysis.rule_count < 32 {
         return lr_states_create(analysis);
     }

@@ -1,4 +1,5 @@
 import tower;
+import worker_policy;
 import compiler_kernel;
 import lexer_table;
 import lr_analysis;
@@ -190,7 +191,7 @@ fn lr_analysis_work(value: LRAnalysis*, anchor: void*, capacity: usize): bool {
 }
 
 export fn lr_analysis_compute_parallel(value: LRAnalysis*, anchor: void*): bool {
-    var capacity = work_thread_capacity();
+    var capacity = compiler_worker_capacity(anchor);
     if capacity < 2 || anchor == null || value.nonterminal_count < 2 * LRFirstGrain() { return lr_analysis_compute(value); }
     var useful = value.nonterminal_count / LRFirstGrain();
     if capacity > useful { capacity = useful; }

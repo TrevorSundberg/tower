@@ -13,9 +13,9 @@ extern fn lr_analysis_compute_parallel(analysis: void*, anchor: void*): bool;
 
 extern fn entity_child_count(root: void*): usize;
 
-extern fn tower_memory_allocate(size: usize): void*;
+extern fn compiler_buffer_allocate(size: usize): void*;
 
-extern fn tower_memory_free(memory: void*): void;
+extern fn compiler_buffer_free(memory: void*): void;
 
 extern fn abort(): void;
 
@@ -51,13 +51,13 @@ export fn parser_table_destroy(table: ParserHostTable*): void {
     }
     parser_table_clear_runtime(table);
     lr_grammar_destroy(table.grammar);
-    tower_memory_free(bits(void*, table));
+    compiler_buffer_free(bits(void*, table));
 }
 
 // Input entities/kinds are borrowed for construction. LRGrammar owns immutable
 // name/capture snapshots; successful build releases its source-node indexes.
 export fn parser_table_open(root: void*, kinds: FrontendKinds*, userdata: void*, presentation: ParserPresentation, mode: u32): ParserHostTable* {
-    var table = bits(ParserHostTable*, tower_memory_allocate(sizeof(ParserHostTable)));
+    var table = bits(ParserHostTable*, compiler_buffer_allocate(sizeof(ParserHostTable)));
     var missing = table == null;
     if missing {
         return null;
@@ -287,11 +287,8 @@ export fn parser_table_non_terminal_id_to_string(userdata: void*, id: u32): u8* 
     var length: usize = 0;
     for(; source[length] != 0; length++) {}
     var size = length + 1;
-    var text = bits(u8*, tower_memory_allocate(size));
-    if text == null {
-        abort();
-        return null;
-    }
+    var text = bits(u8*, compiler_buffer_allocate(size));
+    if text == null { return null; }
     copy(text, source, size);
     return text;
 }

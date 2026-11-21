@@ -8,7 +8,7 @@ import syntax_session_types;
 import syntax_version_cache;
 import .library.vector;
 
-extern fn tower_memory_free(memory: void*): void;
+extern fn compiler_buffer_free(memory: void*): void;
 
 export fn syntax_session_allocate(world: void*, environment: void*): SyntaxSession* {
     var value = alloc(SyntaxSession, 1);
@@ -26,7 +26,7 @@ export fn syntax_session_completion(value: SyntaxSession*, completion: LRComplet
 }
 
 export fn syntax_session_suffix(value: SyntaxSession*, text: u8*): u8* {
-    tower_memory_free(bits(void*, value.completion_suffix));
+    compiler_buffer_free(bits(void*, value.completion_suffix));
     value.completion_suffix = text;
     return text;
 }
@@ -56,7 +56,7 @@ export fn syntax_destroy(opaque: void*): void {
     if value is null { return; }
     // Completion data is gone before the version/table it borrows can disappear.
     lr_completion_destroy(bits(LRCompletion*, value.completion));
-    tower_memory_free(bits(void*, value.completion_suffix));
+    compiler_buffer_free(bits(void*, value.completion_suffix));
     syntax_version_cache_dispose(&value.cache);
     syntax_session_inputs_dispose(&value.inputs);
     syntax_session_pins_dispose(&value.pins);

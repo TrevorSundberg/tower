@@ -92,7 +92,7 @@ fn sem_layout_cycle(c: SemanticContext*, root: usize): void {
 
 fn sem_layout_execute(c: SemanticContext*): void {
     if c.workers.count == 0 {
-        sem_require(work_pool_open(&c.workers, work_thread_capacity()));
+        sem_require(sem_workers_open(c));
     }
     // All component allocation occurs before pinning. No worker performs an
     // entity mutation or uses the coordinator's semantic scratch/diagnostics.

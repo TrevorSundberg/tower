@@ -1,5 +1,6 @@
 import tower;
 import compiler_kernel;
+import frontend_units;
 import semantic_layout_kernel;
 import semantic_declarations;
 import semantic_lowering_work;
@@ -75,6 +76,10 @@ export fn work_kernel_execute(payload: void*): void {
     }
     if kernel.kind == CompilerKernelKind.LRRuntime {
         compiler_lr_runtime_kernel(kernel.payload);
+        return;
+    }
+    if kernel.kind == CompilerKernelKind.CompileUnit {
+        compiler_unit_kernel(kernel.payload);
         return;
     }
     trap("Invalid compiler kernel", 0);

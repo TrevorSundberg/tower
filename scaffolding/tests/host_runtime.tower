@@ -9,6 +9,7 @@ import .host.memory_types;
 extern fn tower_test_buffer_count(): usize;
 
 extern fn tower_test_buffer_fail_next(): void;
+extern fn tower_test_buffer_fail_after(count: usize): void;
 
 export fn host_runtime_tests(): i32 {
     var maximum: usize = 0;
@@ -56,6 +57,22 @@ export fn host_runtime_tests(): i32 {
             return 707;
         }
     }
+    var initial_buffers = tower_test_buffer_count();
+    var owned = compiler_buffer_allocate(17);
+    if owned is null { return 708; }
+    if node_state.live_allocations != 0 || tower_test_buffer_count() != initial_buffers + 1 { return 709; }
+    // A legacy caller's diagnostic setting must not reinterpret this buffer.
+    compiler_node_free(&node_state, owned, true);
+    if node_state.live_allocations != 0 || tower_test_buffer_count() != initial_buffers { return 710; }
+    var legacy = compiler_node_allocate(&node_state, 17, true);
+    if legacy is null { return 711; }
+    compiler_buffer_free(legacy);
+    if node_state.live_allocations != 0 || tower_test_buffer_count() != initial_buffers { return 712; }
+    tower_test_buffer_fail_next();
+    owned = compiler_buffer_allocate(17);
+    if owned is not null { return 713; }
+    if tower_test_buffer_count() != initial_buffers { return 714; }
+    tower_test_buffer_fail_after(maximum);
     var state: CompilerMemoryState;
     state.live_buffers = 0;
     state.allocation_calls = 0;

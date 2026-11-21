@@ -12,10 +12,10 @@ import syntax_version_presentation;
 
 extern fn format_syntax_diagnostic(input: SyntaxDiagnosticInput*, output: SyntaxDiagnosticText*): void;
 extern fn syntax_diagnostic_text_finish(output: SyntaxDiagnosticText*, description: u8*): u8*;
-extern fn tower_memory_free(memory: void*): void;
+extern fn compiler_buffer_free(memory: void*): void;
 
 // The caller receives the existing host-text allocation and releases it with
-// tower_memory_free. Grammar/candidate views remain pinned until formatting ends.
+// compiler_buffer_free. Grammar/candidate views remain pinned until formatting ends.
 export fn syntax_session_diagnostic(value: SyntaxSession*, recognizer: ParserRequest*, repairs: bool): u8* {
     var diagnostic = parser_recognizer_diagnostic(recognizer,
         repairs ? ParserDiagnosticReader.Syntax : ParserDiagnosticReader.None, bits(void*, value));
@@ -51,6 +51,6 @@ export fn syntax_session_diagnostic(value: SyntaxSession*, recognizer: ParserReq
         value.error_insertion = true;
     }
     var description = syntax_version_description(value.pins.version, definitions, output.production, output.multiple);
-    defer tower_memory_free(bits(void*, description));
+    defer compiler_buffer_free(bits(void*, description));
     return syntax_diagnostic_text_finish(&output, description ?? "");
 }

@@ -48,7 +48,7 @@ extern fn entity_component_data(component: void*): void*;
 extern fn entity_child_at(parent: void*, index: usize): void*;
 extern fn tower_node_attach(child: void*, parent: void*): void;
 extern fn tower_node_get_child_member(parent: void*, name: u8*): void*;
-extern fn tower_memory_free(memory: void*): void;
+extern fn compiler_buffer_free(memory: void*): void;
 extern fn format_dispose(output: FormatResult*): void;
 extern fn abort(): void;
 extern fn bytes_assign_text(value: vector(u8)*, source: u8*, length: usize): bool;
@@ -237,7 +237,7 @@ export fn syntax_next(opaque: void*): void* {
                 syntax_session_pin_version(&value.pins.completion_version, value.pins.version);
             }
             var message = syntax_session_diagnostic(value, recognizer, true);
-            defer tower_memory_free(bits(void*, message));
+            defer compiler_buffer_free(bits(void*, message));
             return syntax_session_fail(value, message);
         }
         var span = syntax_session_match(root);

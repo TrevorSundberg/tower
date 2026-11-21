@@ -4,12 +4,14 @@ import .compiler.foundation_tags;
 import .compiler.component_kinds;
 import .compiler.parser_types;
 import .compiler.semantic_context;
+import .compiler.semantic_program_types;
 import .compiler.compiler_kernel;
 import .compiler.interpreter_context_types;
 import .library.vector;
 import .library.work_pool;
 
 extern fn compiler_world_create(): void*;
+extern fn compiler_world_create_workers(limit: usize): void*;
 extern fn compiler_world_store(world: void*): void*;
 extern fn compiler_world_dispose(world: void*): bool;
 extern fn compiler_world_component(world: void*, node: void*, kind: u32): void*;
@@ -35,8 +37,17 @@ export fn semantic_world_tests(width: u32): u32 {
     var failures: u32 = 0;
     var index: usize = 0;
     while index < 2 {
-        worlds[index] = compiler_world_create();
+        worlds[index] = compiler_world_create_workers(index + 1);
         roots[index] = entity_create(compiler_world_store(worlds[index]));
+        var policy: SemanticContext = default;
+        var policy_program: SemanticProgram = default;
+        policy_program.root = roots[index];
+        policy.program = &policy_program;
+        if !sem_workers_open(&policy) { return 94; }
+        var available = work_thread_capacity();
+        var expected_count = index + 1 < available ? index + 1 : available;
+        if policy.workers.count != (work_thread_available() ? expected_count : 1) { failures++; }
+        work_pool_close(&policy.workers);
         sem_attach(roots[index], KProgram());
         var parsed = compiler_world_component(worlds[index], roots[index], CompilerParserMatch());
         if bits(void*, sem_match(roots[index])) != parsed { failures++; }
@@ -76,14 +87,12 @@ export fn semantic_world_tests(width: u32): u32 {
     index = 0;
     while index < 4 {
         if !work_pool_submit(&pool, bits(void*, &jobs[index].kernel)) { return 95; }
-        // Portable hosts have one slot; preserve the same work/ownership model.
-        if !pool.threaded { work_pool_receive(&pool, true); }
+        // A requested width is bounded by the transport. Drain a full pool
+        // before submitting another job, including one/two-lane hosts.
+        if pool.running == pool.count { work_pool_receive(&pool, true); }
         index++;
     }
-    if pool.threaded {
-        index = 0;
-        while index < 4 { work_pool_receive(&pool, true); index++; }
-    }
+    while pool.running != 0 { work_pool_receive(&pool, true); }
     work_pool_close(&pool);
     index = 0;
     while index < 4 {

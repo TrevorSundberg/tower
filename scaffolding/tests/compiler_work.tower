@@ -1,5 +1,11 @@
 import tower;
 import .library.compiler_work;
+import .library.entities;
+import .library.work_graph;
+
+export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, data: u8*): void {
+    trap("Unexpected unit lifecycle", 0);
+}
 
 var failures: u32 = 0;
 
@@ -15,6 +21,15 @@ fn compiler_work_tests(): void {
     check(valid);
     if !valid {
         return;
+    }
+    check(compiler_work_subject(work, 0) is null && compiler_work_subject(work, 5) is null);
+    check(entity_child_count(bits(Entity*, work.owner)) == 4);
+    for(var i: usize = 1; i <= 4; i++) {
+        var subject = compiler_work_subject(work, i);
+        var unit = compiler_work_unit(work, i);
+        check(subject is not null && unit.ordinal == i);
+        check(work_task(&work.graph, unit.task).subject == bits(void*, subject));
+        check(entity_context(bits(Entity*, subject)) is null);
     }
     var a = compiler_work_next(work);
     var b = compiler_work_next(work);

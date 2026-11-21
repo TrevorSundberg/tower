@@ -19,15 +19,20 @@ struct CompilerWorld {
     store: EntityStore*;
     types: Entity*[9]; // CompilerComponentCount slots.
     registered: usize;
+    worker_limit: usize;
     grammar: CompilerGrammarCache;
 }
 
-export fn compiler_world_create(): CompilerWorld* {
+// Set once, before any nodes, pools or requests exist. This is an execution
+// resource policy, never part of type identity or Tower program semantics.
+export fn compiler_world_create_workers(limit: usize): CompilerWorld* {
+    if limit == 0 || limit > 256 { return null; }
     var world = alloc(CompilerWorld, 1);
     if world == null {
         return null;
     }
     *world = default;
+    world.worker_limit = limit;
     world.store = entity_store_create();
     if world.store == null {
         free(world);
@@ -39,6 +44,14 @@ export fn compiler_world_create(): CompilerWorld* {
         return null;
     }
     return world;
+}
+
+export fn compiler_world_create(): CompilerWorld* {
+    return compiler_world_create_workers(work_thread_capacity());
+}
+
+export fn compiler_world_worker_limit(world: CompilerWorld*): usize {
+    return world.worker_limit;
 }
 
 // Entity identity determines its compiler world. Workers never switch a global
