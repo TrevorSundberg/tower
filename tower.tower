@@ -80,6 +80,7 @@ parse CoreValue = CoreOperand;
 parse CoreCallArgument = CoreOperand;
 parse CoreOperand = TowerExpression;
 parse TowerExpressionStatement = $value:TowerComma ';';
+parse TowerDefer = 'defer' $body:TowerExpressionStatement | 'defer' $body:CoreBlock;
 // A scoped initializer, a bool test before each iteration, and an update after
 // the body (including continue). Empty clauses mean no initialization/test/update.
 parse TowerForInitial = CoreDeclare | TowerExpressionStatement | ';';
@@ -88,4 +89,5 @@ parse TowerForStep = TowerComma?;
 parse TowerFor = 'for' '(' $initial:TowerForInitial $condition:TowerForCondition ';' $step:TowerForStep ')' $body:CoreBlock;
 parse Statement = CoreDeclare | CoreBlock | CoreIf | CoreLoop | CoreBreak | CoreContinue | CoreFunction
                  | CoreReturn | CoreStruct | CoreEnum | CoreExternal | CoreExport | TowerConstant
-                 | TowerExportedConstant | TowerMatch | TowerWhile | TowerFor | TowerExpressionStatement;
+                 | TowerExportedConstant | TowerMatch | TowerWhile | TowerFor | TowerDefer
+                 | TowerExpressionStatement;
