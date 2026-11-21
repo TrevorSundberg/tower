@@ -24846,3 +24846,20 @@ The next required step is to replace the borrowed formatter predecessor with
 Agent 3's eventual published commit after coordinator regex and Agent 1's source
 slots, preserve their updates, and repeat the clean documented successor and
 focused integration checks before the final source push and combined deployment.
+
+Final integration now uses the actual published formatter/syntax-payload tip
+042dcc9, including coordinator regex 7bbfdda and Agent 1 ownership 6a3af2d.
+Rebased only the two Agent 2 commits from the borrowed formatter predecessor;
+preserved both journal histories and the newer parser test source removals.
+The empty agent-2-final-native-042dcc9 cache built successfully with the documented
+build-native.sh, TOWER_BOOTSTRAP_COMPILER unset, published fb1 bootstrap and
+Clang19/LLVM19. The six focused native CTests passed in 17.67s; backend API passed.
+The first backend invocation used the nonexistent name tower-backend-api-tests;
+the actual built target tower-backend-tests then ran successfully. This command
+typo and the successful rerun remain in agent-2-final-native-tests.log.
+Reconfigured/rebuilt the agent-2-interpreter-wasi cache: execution, parser
+--host-only storage, formatter, syntax payload and regex entries all passed.
+Logs are C:/Sandbox/build/codex-agents/agent-2-final-{native,wasi}*.log.
+The coordinator's already-validated contextual lexer fixture retirement has an
+accepted final source slot before Agent 2 publication; repeat affected checks
+after that merge. No source publication or final hosted result is claimed yet.
