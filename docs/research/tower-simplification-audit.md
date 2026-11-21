@@ -206,3 +206,26 @@ only reads of unescaped local values. A source-local editing aid was used for
 these bounded shapes; it is not a new public refactoring or semantic API.
 
 Validation and publication details are recorded in the ongoing project journal.
+
+## Generic inference and borrowed traversal (2026-11-20)
+
+Published inference removed 809 repeated type arguments from 92 production Tower
+files. Explicit generic regression fixtures still exercise the original spelling.
+Both call forms use the same exact specialization entities and ordinary calls.
+
+The iteration audit reviewed 114 zero-based, index-only vector traversal shapes
+across production Tower code. It selected 108 loops in 51 files, including parser,
+semantic compiler, formatting, backend cleanup and the existing work scheduler's
+read-only/state-field traversals. Selection requires stable container structure,
+including calls within the body; freeing an element's separately owned payload
+does not free the vector holding that element. Existing element bindings are
+retained where possible, and aggregate updates use explicit pointer borrows.
+
+Six candidates stay counted: module graph traversal with recursive reachability,
+LR input/output that may alias, FIRST-set propagation whose destination may be
+its input, two externally supplied driver argument destinations, and the executing
+task list's removal/swap. Other loop shapes (live worklists, reusable indices,
+parallel arrays and nonzero bounds) remain outside this mechanical candidate set.
+This is a source audit, not proof of arbitrary alias safety or a speed claim.
+The migration follows publication of the validated iteration bootstrap; validation
+and final adoption counts are recorded in the journal.

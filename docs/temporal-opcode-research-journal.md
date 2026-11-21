@@ -25430,3 +25430,13 @@ A relocated install runs collection/borrow/ring fixtures successfully with its
 own resources. A previously empty /cache/iteration-pinned-clean builds all 55
 steps with no TOWER_BOOTSTRAP_COMPILER override, using that pin. Publish this
 bootstrap before the forthcoming production foreach migration.
+
+The release rebase integrated fcc389c's independent Tower utility oracles and
+native-reference removals. Only append-only journal conflicts required resolution;
+all histories were retained. The initial 603e2d pin was not published before this
+rebase. Rebuilt the merged source from scratch in /cache/iteration-rebased and
+repackaged at source 1e55315 as
+ dffdeac838ec9c7c097ad5b42ef073afd1db9b9da1ce113a3635d303804ce935
+(with no source patch). Another previously empty /cache/iteration-public-clean
+build passed all 55 steps with the new pin and no private override. This supersedes
+the unpublished package and preserves reachable source provenance for publication.
