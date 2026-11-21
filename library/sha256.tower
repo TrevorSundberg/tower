@@ -1,0 +1,162 @@
+import tower;
+
+// FIPS 180-4 SHA-256 over explicit bytes. Fixed-width wrapping arithmetic,
+// no host ABI, allocation, native crypto library or implicit file capability.
+var Sha256BlockBytes: usize = 64;
+var Sha256StateWords: usize = 8;
+var Sha256Rounds: usize = 64;
+var Sha256InputWords: usize = 16;
+var Sha256DigestBytes: usize = 32;
+var Sha256WordBytes: usize = 4;
+var Sha256ByteBits: u32 = 8;
+var Sha256WordBits: u32 = 32;
+var Sha256HexBits: u32 = 4;
+var Sha256HexDigits: usize = 8;
+var Sha256LengthBytes: usize = 8;
+
+// Literal array bounds mirror the named FIPS dimensions above.
+struct Sha256 {
+    state: u32[8];
+    rounds: u32[64];
+    block: u8[64];
+    bytes: u64;
+    buffered: usize;
+}
+struct Sha256Digest { bytes: u8[32]; }
+
+fn sha256_rotate(value: u32, count: u32): u32 {
+    return (value >> count) | (value << (Sha256WordBits - count));
+}
+
+fn sha256_small_zero(value: u32): u32 {
+    var first: u32 = 7; var second: u32 = 18; var shift: u32 = 3;
+    return sha256_rotate(value, first) ^ sha256_rotate(value, second) ^ (value >> shift);
+}
+fn sha256_small_one(value: u32): u32 {
+    var first: u32 = 17; var second: u32 = 19; var shift: u32 = 10;
+    return sha256_rotate(value, first) ^ sha256_rotate(value, second) ^ (value >> shift);
+}
+fn sha256_large_zero(value: u32): u32 {
+    var first: u32 = 2; var second: u32 = 13; var third: u32 = 22;
+    return sha256_rotate(value, first) ^ sha256_rotate(value, second) ^ sha256_rotate(value, third);
+}
+fn sha256_large_one(value: u32): u32 {
+    var first: u32 = 6; var second: u32 = 11; var third: u32 = 25;
+    return sha256_rotate(value, first) ^ sha256_rotate(value, second) ^ sha256_rotate(value, third);
+}
+
+// Specification data written in hex text because the bootstrap has no hex
+// integer literals. Decode once per initialized state, never once per block.
+fn sha256_spec_word(text: u8*): u32 {
+    var zero: u8 = 48; var nine: u8 = 57; var lower_a: u8 = 97;
+    var decimal_digits: u32 = 10;
+    var value: u32 = 0;
+    for (var at: usize = 0; at < Sha256HexDigits; at++) {
+        var digit = text[at];
+        value = (value << Sha256HexBits) | (digit <= nine ? convert(u32, digit - zero)
+            : convert(u32, digit - lower_a) + decimal_digits);
+    }
+    return value;
+}
+
+fn sha256_init(state: Sha256*): void {
+    *state = default;
+    var initial = "6a09e667bb67ae853c6ef372a54ff53a510e527f9b05688c1f83d9ab5be0cd19";
+    var rounds = "428a2f9871374491b5c0fbcfe9b5dba53956c25b59f111f1923f82a4ab1c5ed5d807aa9812835b01243185be550c7dc372be5d7480deb1fe9bdc06a7c19bf174e49b69c1efbe47860fc19dc6240ca1cc2de92c6f4a7484aa5cb0a9dc76f988da983e5152a831c66db00327c8bf597fc7c6e00bf3d5a7914706ca63511429296727b70a852e1b21384d2c6dfc53380d13650a7354766a0abb81c2c92e92722c85a2bfe8a1a81a664bc24b8b70c76c51a3d192e819d6990624f40e3585106aa07019a4c1161e376c082748774c34b0bcb5391c0cb34ed8aa4a5b9cca4f682e6ff3748f82ee78a5636f84c878148cc7020890befffaa4506cebbef9a3f7c67178f2";
+    for (var at: usize = 0; at < Sha256StateWords; at++) { state.state[at] = sha256_spec_word(initial + at * Sha256HexDigits); }
+    for (var at: usize = 0; at < Sha256Rounds; at++) { state.rounds[at] = sha256_spec_word(rounds + at * Sha256HexDigits); }
+}
+
+fn sha256_block(state: Sha256*, data: u8*): void {
+    var schedule: u32[64];
+    for (var at: usize = 0; at < Sha256InputWords; at++) {
+        var word: u32 = 0;
+        for (var byte: usize = 0; byte < Sha256WordBytes; byte++) {
+            word = (word << Sha256ByteBits) | convert(u32, data[at * Sha256WordBytes + byte]);
+        }
+        schedule[at] = word;
+    }
+    var recent: usize = 2; var middle: usize = 7; var previous: usize = 15;
+    for (var at: usize = Sha256InputWords; at < Sha256Rounds; at++) {
+        schedule[at] = sha256_small_one(schedule[at - recent]) + schedule[at - middle]
+            + sha256_small_zero(schedule[at - previous]) + schedule[at - Sha256InputWords];
+    }
+    var a = state.state[0]; var b = state.state[1]; var c = state.state[2]; var d = state.state[3];
+    var e = state.state[4]; var f = state.state[5]; var g = state.state[6]; var h = state.state[7];
+    for (var at: usize = 0; at < Sha256Rounds; at++) {
+        var choose = (e & f) ^ (~e & g);
+        var majority = (a & b) ^ (a & c) ^ (b & c);
+        var first = h + sha256_large_one(e) + choose + state.rounds[at] + schedule[at];
+        var second = sha256_large_zero(a) + majority;
+        h = g; g = f; f = e; e = d + first; d = c; c = b; b = a; a = first + second;
+    }
+    state.state[0] += a; state.state[1] += b; state.state[2] += c; state.state[3] += d;
+    state.state[4] += e; state.state[5] += f; state.state[6] += g; state.state[7] += h;
+}
+
+// Initialize once, then update with immutable, disjoint chunks. A rejected
+// length/null input leaves the state unchanged. The maximum is <2^64 bits.
+fn sha256_update(state: Sha256*, data: u8*, length: usize): bool {
+    var maximum = (~convert(u64, 0)) / convert(u64, Sha256ByteBits);
+    if state.bytes > maximum || convert(u64, length) > maximum - state.bytes
+        || length != 0 && data == null { return false; }
+    state.bytes += convert(u64, length);
+    var at: usize = 0;
+    while at < length {
+        if state.buffered == 0 && length - at >= Sha256BlockBytes {
+            sha256_block(state, data + at);
+            at += Sha256BlockBytes;
+        } else {
+            var count = Sha256BlockBytes - state.buffered;
+            if count > length - at { count = length - at; }
+            copy(&state.block[state.buffered], data + at, count);
+            at += count; state.buffered += count;
+            if state.buffered == Sha256BlockBytes {
+                sha256_block(state, &state.block[0]);
+                state.buffered = 0;
+            }
+        }
+    }
+    return true;
+}
+
+// Finalize a value copy; callers can keep updating the original state.
+fn sha256_finish(state: Sha256*): Sha256Digest {
+    var finished = *state;
+    var padding_bit: u8 = 128;
+    var length_start = Sha256BlockBytes - Sha256LengthBytes;
+    finished.block[finished.buffered] = padding_bit;
+    finished.buffered++;
+    if finished.buffered > length_start {
+        fill(&finished.block[finished.buffered], 0, Sha256BlockBytes - finished.buffered);
+        sha256_block(&finished, &finished.block[0]);
+        finished.buffered = 0;
+    }
+    fill(&finished.block[finished.buffered], 0, length_start - finished.buffered);
+    var bit_length = state.bytes * convert(u64, Sha256ByteBits);
+    var mask = convert(u64, ~convert(u8, 0));
+    for (var at: usize = 0; at < Sha256LengthBytes; at++) {
+        finished.block[Sha256BlockBytes - 1 - at] = convert(u8, bit_length & mask);
+        bit_length >>= Sha256ByteBits;
+    }
+    sha256_block(&finished, &finished.block[0]);
+    var result: Sha256Digest = default;
+    var byte_mask = convert(u32, ~convert(u8, 0));
+    for (var at: usize = 0; at < Sha256DigestBytes; at++) {
+        var shift = convert(u32, Sha256WordBytes - 1 - at % Sha256WordBytes) * Sha256ByteBits;
+        result.bytes[at] = convert(u8, (finished.state[at / Sha256WordBytes] >> shift) & byte_mask);
+    }
+    return result;
+}
+
+// Caller supplies 65 bytes: lowercase hex plus NUL.
+fn sha256_hex(digest: Sha256Digest*, out: u8*): void {
+    var digits = "0123456789abcdef";
+    var nibble_mask: u8 = 15;
+    var hex_per_byte: usize = 2;
+    for (var at: usize = 0; at < Sha256DigestBytes; at++) {
+        out[at * hex_per_byte] = digits[digest.bytes[at] >> Sha256HexBits];
+        out[at * hex_per_byte + 1] = digits[digest.bytes[at] & nibble_mask];
+    }
+    out[Sha256DigestBytes * hex_per_byte] = 0;
+}
