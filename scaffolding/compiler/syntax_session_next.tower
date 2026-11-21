@@ -81,8 +81,7 @@ fn syntax_session_comments(value: SyntaxSession*, declaration: SyntaxNode*, thro
 }
 
 fn syntax_session_install(value: SyntaxSession*, candidate: FrontendRevision*): bool {
-    var diagnostic: SyntaxVersionDiagnostic;
-    fill(&diagnostic, 0, sizeof(SyntaxVersionDiagnostic));
+    var diagnostic: SyntaxVersionDiagnostic = default;
     defer syntax_version_diagnostic_dispose(&diagnostic);
     diagnostic.offset = value.error_offset;
     var version = syntax_version_cached(&value.cache, value.inputs.world, candidate, value.pins.bedrock, &diagnostic);
@@ -136,8 +135,7 @@ fn syntax_session_pattern(value: SyntaxSession*, construct: void*): bool {
     }
     frontend_cache_pattern(&value.cache.index, construct, syntax_component_type());
     if entry.compiled is not null { return true; }
-    var error: FormatResult;
-    fill(&error, 0, sizeof(FormatResult));
+    var error: FormatResult = default;
     defer format_dispose(&error);
     var pattern = frontend_host_pattern_read(entry.text.data, entry.text.length, &error);
     syntax_node_pattern(entry, pattern);
@@ -151,8 +149,7 @@ fn syntax_session_pattern(value: SyntaxSession*, construct: void*): bool {
 }
 
 fn syntax_session_expand(value: SyntaxSession*, root: void**): bool {
-    var result: SyntaxExpansionResult;
-    fill(&result, 0, sizeof(SyntaxExpansionResult));
+    var result: SyntaxExpansionResult = default;
     defer syntax_expansion_result_dispose(&result);
     result.root = *root;
     result.replacements = value.expansion_stats.replacements;
@@ -182,8 +179,7 @@ fn syntax_session_finish(value: SyntaxSession*): void {
     var pending = bits(SyntaxPendingRevision*, value.pins.version.pending);
     if syntax_pending_count(pending) != 0 { syntax_session_error(value, syntax_pending_message(pending, &value.error_offset)); }
     if value.building_bedrock && value.error.length == 0 {
-        var diagnostic: SyntaxVersionDiagnostic;
-        fill(&diagnostic, 0, sizeof(SyntaxVersionDiagnostic));
+        var diagnostic: SyntaxVersionDiagnostic = default;
         defer syntax_version_diagnostic_dispose(&diagnostic);
         diagnostic.offset = value.error_offset;
         syntax_version_bedrock(value.pins.grammar, syntax_component_type(), &diagnostic);

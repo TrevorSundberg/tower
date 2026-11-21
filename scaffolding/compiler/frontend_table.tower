@@ -29,7 +29,7 @@ struct FrontendTable {
 export fn frontend_table_dispose(table: FrontendTable*): void {
     lr_runtime_destroy(table.runtime);
     lr_grammar_destroy(table.grammar);
-    fill(table, 0, sizeof(FrontendTable));
+    *table = default;
 }
 
 // Grammar names must be resolved before this step. Both ordinary grammars and
@@ -83,7 +83,7 @@ export fn frontend_table_finish(table: FrontendTable*, constructs: bool, special
 }
 
 export fn frontend_table_init(table: FrontendTable*, root: void*, kinds: FrontendKinds*): bool {
-    fill(table, 0, sizeof(FrontendTable));
+    *table = default;
     if root == null {
         return false;
     }
@@ -202,8 +202,7 @@ export fn frontend_pattern_table(table: FrontendTable*, kinds: FrontendKinds*): 
 }
 
 export fn frontend_pattern_compile(table: FrontendTable*, kinds: FrontendKinds*, text: u8*): SyntaxPattern* {
-    var input: FrontendCharacters;
-    fill(&input, 0, sizeof(FrontendCharacters));
+    var input: FrontendCharacters = default;
     input.source = text;
     input.length = syntax_text_length(text);
     if input.length > 4096 {

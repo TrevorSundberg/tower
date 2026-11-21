@@ -105,7 +105,7 @@ fn lr_kernel_closure(analysis: LRAnalysis*, kernel: LRItem*): LRKernelClosure* {
     if missing {
         return null;
     }
-    fill(cached, 0, sizeof(LRKernelClosure));
+    *cached = default;
     var closure = &cached.state;
     closure.items = lr_items_create();
     missing = closure.items == null;
@@ -269,8 +269,7 @@ fn lr_lalr_actions(value: LRStates*, graph: LRPropagation*): bool {
 }
 
 fn lr_lalr_seed(value: LRStates*, graph: LRPropagation*, constructs: bool): bool {
-    var seed: LRItem;
-    fill(&seed, 0, sizeof(LRItem));
+    var seed: LRItem = default;
     var start = lr_lalr_index(value, 0, &seed);
     if start == lr_none() {
         return false;

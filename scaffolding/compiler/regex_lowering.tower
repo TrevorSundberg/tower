@@ -521,7 +521,7 @@ export fn regex_compile_tree(root: void*, source: u8*, match_type: void*, table:
         return "Unable to allocate regex lowering work";
     }
     defer free(context);
-    fill(context, 0, sizeof(RegexLowering));
+    *context = default;
     context.source = source;
     context.match_type = match_type;
     context.automaton = automaton_create(1114112);

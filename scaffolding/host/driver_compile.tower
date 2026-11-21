@@ -100,8 +100,7 @@ fn driver_backend_failed(state: DriverCompilation*): bool {
 }
 
 fn driver_compile_format(state: DriverCompilation*, root: void*, out: ByteBuffer*): bool {
-    var formatted: FormatResult;
-    fill(&formatted, 0, sizeof(FormatResult));
+    var formatted: FormatResult = default;
     format_entity(&formatted, root, syntax_component_type(), null, parser_match_get_type());
     var ok = !formatted.failed && bytes_assign_text(out, formatted.text.data, formatted.text.length);
     format_dispose(&formatted);
@@ -135,8 +134,7 @@ fn driver_compile_normalize(state: DriverCompilation*): bool {
     if !driver_compile_ir(state) {
         return false;
     }
-    var imported: SemanticProgram;
-    fill(&imported, 0, sizeof(SemanticProgram));
+    var imported: SemanticProgram = default;
     semantic_initialize(&imported, tower_node_create(), state.width);
     var root = imported.root;
     var ok = backend_import_foundation(state.backend, root);
@@ -218,8 +216,8 @@ fn driver_compile_text_output(state: DriverCompilation*): i32 {
     }
     var text: ByteBuffer;
     var error: ByteBuffer;
-    fill(&text, 0, sizeof(ByteBuffer));
-    fill(&error, 0, sizeof(ByteBuffer));
+    text = default;
+    error = default;
     var ok = true;
     if driver_same(emit, "bytecode") {
         ok = driver_install_grammar(state.request, true);
@@ -415,8 +413,7 @@ export fn driver_compile(options: DriverOptions*, resources: u8*, timing: Driver
         return 1;
     }
     driver_timing_mark(timing, options.timings, "bootstrap");
-    var state: DriverCompilation;
-    fill(&state, 0, sizeof(DriverCompilation));
+    var state: DriverCompilation = default;
     state.request = request;
     state.timing = timing;
     var result = driver_compile_run(&state);

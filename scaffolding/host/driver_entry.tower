@@ -23,8 +23,8 @@ extern fn driver_resource_root(out: ByteBuffer*, executable: u8*): bool;
 fn driver_entry_compile(options: DriverOptions*, timing: DriverTiming*): i32 {
     var executable: ByteBuffer;
     var resources: ByteBuffer;
-    fill(&executable, 0, sizeof(ByteBuffer));
-    fill(&resources, 0, sizeof(ByteBuffer));
+    executable = default;
+    resources = default;
     var located = driver_platform_executable(&executable);
     located &&= driver_resource_root(&resources, executable.data);
     var result: i32 = 1;

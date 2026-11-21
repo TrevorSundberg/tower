@@ -17,7 +17,7 @@ struct GuestHeap {
 }
 
 export fn guest_heap_init(heap: GuestHeap*, begin: u8*, end: u8*): bool {
-    fill(heap, 0, sizeof(GuestHeap));
+    *heap = default;
     var first = bits(usize, begin);
     var limit = bits(usize, end);
     var invalid = first == 0;

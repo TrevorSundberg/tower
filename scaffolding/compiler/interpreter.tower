@@ -1380,7 +1380,7 @@ fn ix_copy_values(m: IMExecution*, dest: u64, source: u64, size: u64, copying: b
 // until disposal. This starts only the selected body, never module initialization.
 // The caller supplies fresh storage or disposes a previous invocation first.
 export fn interpreter_invocation_init(invocation: IMInvocation*, function: void*, pointer_bytes: usize, arguments: u64*, count: usize, strict: bool, fuel: u64): bool {
-    fill(invocation, 0, sizeof(IMInvocation));
+    *invocation = default;
     invocation.state.stack = 16;
     invocation.state.heap = 4194304;
     invocation.context.root = function;
@@ -1439,7 +1439,7 @@ export fn interpreter_invocation_dispose(invocation: IMInvocation*): void {
     vector_dispose(u8, &invocation.context.error);
     vector_dispose(u8, &invocation.context.output);
     vector_dispose(u8, &invocation.context.initialized);
-    fill(invocation, 0, sizeof(IMInvocation));
+    *invocation = default;
 }
 
 // Compatibility entry points preserve the native and fast-interpreter ABI.

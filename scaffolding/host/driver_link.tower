@@ -31,7 +31,7 @@ export fn driver_link_open(target: u8*, cc: u8*, linker: u8*, sysroot: u8*, outp
         driver_error("Unable to allocate link storage", "");
         return null;
     }
-    fill(link, 0, sizeof(DriverLink));
+    *link = default;
     link.target = target;
     link.cc = cc;
     link.linker = linker;

@@ -45,8 +45,7 @@ fn execution_package_load(execution: ExecutionSession*, data: u8*, size: usize, 
             return false;
         }
     }
-    var text: ByteBuffer;
-    fill(&text, 0, sizeof(ByteBuffer));
+    var text: ByteBuffer = default;
     if !bytes_assign_text(&text, source, length) {
         execution_session_fail(execution, "Unable to allocate .towerbc Foundation source", 0);
         return false;
@@ -74,11 +73,9 @@ fn execution_package_encode(program: SemanticProgram*, modules: void*, profile: 
         }
         return false;
     }
-    var formatted: FormatResult;
-    fill(&formatted, 0, sizeof(FormatResult));
+    var formatted: FormatResult = default;
     format_entity(&formatted, program.root, syntax_component_type(), null, parser_match_get_type());
-    var canonical: ExecutionSession;
-    fill(&canonical, 0, sizeof(ExecutionSession));
+    var canonical: ExecutionSession = default;
     var ok = !formatted.failed;
     if !ok {
         execution_session_fail(&canonical, "Unable to allocate canonical formatted source", 0);

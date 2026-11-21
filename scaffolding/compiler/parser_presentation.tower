@@ -102,8 +102,8 @@ export fn parser_trace_step(table: ParserHostTable*, rule: usize, state: usize, 
     if text != null {
         var result: FormatResult;
         var engine: FormatEngine;
-        fill(&result, 0, sizeof(FormatResult));
-        fill(&engine, 0, sizeof(FormatEngine));
+        result = default;
+        engine = default;
         engine.result = &result;
         format_text(&engine, "STEP: ");
         format_text(&engine, text);

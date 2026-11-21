@@ -15,7 +15,7 @@ struct ParserWorkers {
 }
 
 fn parser_workers_open(lease: ParserWorkers*, anchor: void*, capacity: usize): bool {
-    fill(lease, 0, sizeof(ParserWorkers));
+    *lease = default;
     if capacity == 0 || capacity > 256 { return false; }
     var world = compiler_node_world(anchor);
     if world == null {

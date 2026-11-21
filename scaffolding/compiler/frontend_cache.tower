@@ -67,7 +67,7 @@ fn frontend_revision_create(rules: SyntaxRuleView*, count: usize, tokens: void**
     if revision == null {
         return null;
     }
-    fill(revision, 0, sizeof(FrontendRevision));
+    *revision = default;
     revision.references = 1;
     // One names buffer and one retained-alternative buffer for the revision.
     // Rule views borrow these stable allocations; nothing grows after linking.

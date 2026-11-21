@@ -21,8 +21,7 @@ export fn syntax_version_cache_copy(target: SyntaxVersionCache*, source: SyntaxV
     if target == source {
         return true;
     }
-    var prepared: SyntaxVersionCache;
-    fill(&prepared, 0, sizeof(SyntaxVersionCache));
+    var prepared: SyntaxVersionCache = default;
     defer syntax_version_cache_dispose(&prepared);
     if !vector_reserve(&prepared.versions, source.versions.length) ||
     !frontend_cache_copy(&prepared.index, &source.index) {
@@ -34,7 +33,7 @@ export fn syntax_version_cache_copy(target: SyntaxVersionCache*, source: SyntaxV
     prepared.versions.length = source.versions.length;
     syntax_version_cache_dispose(target);
     copy(target, &prepared, sizeof(SyntaxVersionCache));
-    fill(&prepared, 0, sizeof(SyntaxVersionCache));
+    prepared = default;
     return true;
 }
 

@@ -121,8 +121,7 @@ export fn syntax_replacement_attempt(context: void*, category: u8*): u32 {
     input.base = replacement.start;
     input.captures = bits(void*, captures.data);
     input.count = captures.length;
-    var holes: SyntaxTemplateGrammar;
-    fill(&holes, 0, sizeof(SyntaxTemplateGrammar));
+    var holes: SyntaxTemplateGrammar = default;
     holes.emission.root = grammar.rules;
     holes.emission.syntax_kind = grammar.kinds.syntax;
     holes.emission.rule_kind = grammar.kinds.rule;
@@ -182,8 +181,7 @@ export fn syntax_replacement_attempt(context: void*, category: u8*): u32 {
     }
     uses.length = captures.length;
     fill(uses.data, 0, uses.length * sizeof(usize));
-    var remap: SyntaxTemplateRemap;
-    fill(&remap, 0, sizeof(SyntaxTemplateRemap));
+    var remap: SyntaxTemplateRemap = default;
     remap.root = body;
     remap.match_kind = version.kinds.`match`;
     remap.source = syntax_emission_productions(emission);

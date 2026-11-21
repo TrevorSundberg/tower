@@ -58,7 +58,7 @@ fn execution_session_close(execution: ExecutionSession*): void {
     }
     bytes_dispose(&execution.error);
     bytes_dispose(&execution.output);
-    fill(execution, 0, sizeof(ExecutionSession));
+    *execution = default;
 }
 
 fn execution_session_fail(execution: ExecutionSession*, text: u8*, offset: usize): void {

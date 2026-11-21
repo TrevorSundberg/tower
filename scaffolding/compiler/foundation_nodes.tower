@@ -8,7 +8,7 @@ export fn foundation_node_size(): usize {
 }
 
 export fn foundation_node_init(value: FoundationNode*): void {
-    fill(value, 0, sizeof(FoundationNode));
+    *value = default;
     value.type.pointer_bytes = 4;
     value.element.pointer_bytes = 4;
     value.alignment = 1;

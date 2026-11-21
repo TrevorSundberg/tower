@@ -27,7 +27,7 @@ export fn compiler_world_create(): CompilerWorld* {
     if world == null {
         return null;
     }
-    fill(world, 0, sizeof(CompilerWorld));
+    *world = default;
     world.store = entity_store_create();
     if world.store == null {
         free(world);

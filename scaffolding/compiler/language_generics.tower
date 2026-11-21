@@ -189,8 +189,7 @@ fn language_generic_documentation(q: CompletionQuery*, declaration: void*): void
                     }
                     first = first + 2;
                 }
-                var docs: FoundationNode;
-                fill(&docs, 0, sizeof(FoundationNode));
+                var docs: FoundationNode = default;
                 while first < total {
                     var after = first + 1;
                     var last = comments[after];
@@ -209,8 +208,7 @@ fn language_generic_documentation(q: CompletionQuery*, declaration: void*): void
 }
 
 fn language_generic_format(q: CompletionQuery*, info: GenericInfo*, formatted: FormatResult*, signature: bool): void {
-    var a: GenericAnalysis;
-    fill(&a, 0, sizeof(GenericAnalysis));
+    var a: GenericAnalysis = default;
     a.context = &q.context;
     a.component = q.generic_info;
     a.budget = InspectionNodeLimit();
@@ -250,8 +248,7 @@ fn language_generic_details(q: CompletionQuery*, info: GenericInfo*): void {
         generic_check28 = true;
     }
     if generic_check28 {
-        var formatted: FormatResult;
-        fill(&formatted, 0, sizeof(FormatResult));
+        var formatted: FormatResult = default;
         language_generic_format(q, info, &formatted, false);
         var formatted_ok = !formatted.failed;
         formatted_ok &&= formatted.text.length != 0;

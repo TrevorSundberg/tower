@@ -61,8 +61,7 @@ fn parser_format_rule_valid(request: ParserFormat*, index: usize): bool {
 // Frames are popped before execution; a paused callback never retains a pointer
 // into the growable frame storage. Iterators schedule one child at a time.
 fn parser_format_frame(request: ParserFormat*, frame: ParserFormatFrame*): void {
-    var f: FormatEngine;
-    fill(&f, 0, sizeof(FormatEngine));
+    var f: FormatEngine = default;
     f.result = &request.result;
     var table = request.table;
     match frame.kind {
@@ -401,7 +400,7 @@ export fn parser_format_create(table: ParserHostTable*, kind: ParserFormatKind, 
     if absent {
         return null;
     }
-    fill(request, 0, sizeof(ParserFormat));
+    *request = default;
     request.table = table;
     request.names = names;
     request.descriptions = descriptions;
@@ -509,8 +508,7 @@ export fn parser_format_reply(request: ParserFormat*, text: u8*, length: usize):
             return;
         }
     }
-    var f: FormatEngine;
-    fill(&f, 0, sizeof(FormatEngine));
+    var f: FormatEngine = default;
     f.result = &request.result;
     match need {
         ParserFormatNeed.Name => {

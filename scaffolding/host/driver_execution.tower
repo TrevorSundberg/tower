@@ -50,8 +50,7 @@ export fn im_fail(machine: IMState*, text: u8*, offset: usize): void {
 extern fn abort(): void;
 
 export fn im_missing_foreign(machine: IMState*, node: void*, offset: usize): void {
-    var text: ByteBuffer;
-    fill(&text, 0, sizeof(ByteBuffer));
+    var text: ByteBuffer = default;
     var function = sem_get(node);
     var ok = driver_text(&text, "No interpreter implementation registered for external function '");
     ok &&= bytes_append(&text, function.name.data, function.name.length);
@@ -72,8 +71,7 @@ extern fn driver_platform_write_result(fd: i32, data: u8*, length: usize): bool;
 export fn im_foreign(machine: IMState*, node: void*, args: u64*, count: usize): u64 {
     var function = sem_get(node);
     if function.name.length != 14 || memcmp(function.name.data, "platform_write", 14) != 0 || count != 3 {
-        var text: ByteBuffer;
-        fill(&text, 0, sizeof(ByteBuffer));
+        var text: ByteBuffer = default;
         var ok = driver_text(&text, "No native interpreter binding for '");
         ok &&= bytes_append(&text, function.name.data, function.name.length);
         ok &&= driver_text(&text, "'");

@@ -28718,3 +28718,49 @@ The bootstrap is published before any compiler migration to default syntax.
 Publication completes: Pagesff651622c0d7ef662f84f86c565d483f73585693 from frozen source7ae5d78032004c3293ccb472376e90a9d59f5fa2 preserves113f571's newer upstream deployment history. Exact GitHub action44880397172 succeeds. Local and hosted verification each pass all77 asset hashes and desktop/mobile workflows, parser/type completion, editable grammar, persistence and native builds/downloads. Reports are template-{local,hosted}-ui-report.json and template-pages-success.json. One Pages fetch hit DNS failure and succeeded with command-local TLS hostname resolution; normal pushes succeeded, no force push or global configuration changes.
 
 While hosted checks ran, pulled upstream18ff584/a68920b's default-initialization feature and published bootstrap, read the eight new AGENTS guidance lines, and repeated an initially empty documented build in coordinator-template-default-clean. It passes without private bootstrap overrides; the actual successor reproduces its template/inspection native object exactly and compiles default_initialization.tower. The frozen hosted artifact intentionally remains the verified7ae source; this later upstream language feature is not claimed to be in that artifact. No own code changed after publication. Final source/journal history is preserved, todo.txt hash remains96a9e58964d7f01e4a97819f259448db81ef5e40, and publication ownership is released after the final journal push. Next port: remaining native editor/format string/vector transport; actual function-address support is still needed before retiring native callback registry/tests.
+
+### 2026-11-20 - Default initialization adoption and successor validation
+
+Published the compatible f7ae2e1c development bootstrap in a68920b before applying
+the audited migration. The merged template port adds two eligible sites: final
+adoption is 202 complete zero fills across 101 production Tower files, comprising
+99 declaration/fill pairs, 51 allocation destinations and 52 resets. The diff
+removes 99 physical source lines. Exact destination types/storage extents and
+effect order are preserved; batch/partial/nonzero fills and invariant-establishing
+constructors stay explicit. No C++ feature implementation, Foundation grammar
+change or todo.txt edit. Guidance and contracts are in AGENTS.md and
+docs/default-initialization.md; the implementation ledger now records the feature.
+
+After migration, an initially empty /cache/default-migration-clean builds all 55
+steps through the normal published pin with TOWER_BOOTSTRAP_COMPILER unset.
+All eight native CTest suites pass (26.16 s), backend API checks pass, and the
+actual successor recompiles its semantic compiler object byte identically
+(cmp exit 0). Logs: default-migration-clean.log and
+default-migration-native-tests.log. Rebuilt portable/shared Wasm and LLVM/cross
+reactors and their current 15-unit compiler project; logs are
+default-migration-{wasm,threads,llvm}.log.
+
+The migrated reactors pass 145/145 selected language/runtime/backend regressions
+(42.67 s), 3/3 shared-world worker checks (30.08 s), and 7/7 isolated compiler
+worker tests (26.04 s), with zero skips. This covers the default fixture at both
+pointer widths and 1/2/4/8 workers, actual overlap, deterministic publication,
+cancellation and diagnostic ordering. Browser isolation/portable fallback checks
+pass 4/4 on desktop/mobile (13.4 s). Logs: default-migrated-regressions.log,
+default-migrated-shared.log, default-migrated-workers.log and
+default-browser-threads.log.
+
+Two successive edited browser compiler generations pass at 2/4 workers in
+77.43/58.41 s and produce identical reactor hashes: parser
+986f10fdd1b75545c467ec7d4c7b917ace68db1c42bdcc031f514eb9420a0732,
+LLVM e8bb5b8049bd930190ed6d6151b26903b0e9366e0b520297933021b2c1d92822,
+cross 9d20dccf4594aa8f8156bf999bae52a812679d729f2d00dff0b78d8d9780b276.
+The edited semantic diagnostic is present in both successors; this is execution
+of the rebuilt compiler, not merely compiling source objects. Evidence:
+default-migration-generations.log and compiler-workbench/generation{1,2}.json.
+
+The read-only formatting audit was slow under Wasm; stopped its exact owned Node
+processes and switched to the same compiler formatter natively. The validation
+transport is Tower and links existing compiler APIs; it removes the older tool's
+write-back block and also asserts every input file remains byte identical. This
+is a tooling change, not a relaxed parser-tree/idempotence requirement. Final
+formatting and publication results follow below.

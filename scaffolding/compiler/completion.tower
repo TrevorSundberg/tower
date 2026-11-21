@@ -397,7 +397,7 @@ export fn completion_begin(source: u8*, length: usize, cursor: usize, spans: Com
     if q == null {
         return null;
     }
-    fill(q, 0, sizeof(CompletionQuery));
+    *q = default;
     q.source = source;
     q.length = length;
     q.cursor = cursor;

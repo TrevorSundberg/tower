@@ -669,7 +669,7 @@ export fn backend_disassemble(data: u8*, length: usize, triple: u8*): BackendDec
     if absent {
         return null;
     }
-    fill(d, 0, sizeof(BackendDecoder));
+    *d = default;
     d.data = data;
     d.length = length;
     d.end = length;

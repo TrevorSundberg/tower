@@ -34,8 +34,7 @@ export fn syntax_reset(opaque: void*, source: u8*, module: FrontendModule*): voi
         syntax_session_pin_version(&value.pins.version, null);
         return;
     }
-    var diagnostic: SyntaxVersionDiagnostic;
-    fill(&diagnostic, 0, sizeof(SyntaxVersionDiagnostic));
+    var diagnostic: SyntaxVersionDiagnostic = default;
     defer syntax_version_diagnostic_dispose(&diagnostic);
     diagnostic.offset = value.error_offset;
     var version = syntax_version_cached(&value.cache, value.inputs.world, value.pins.grammar, value.pins.bedrock, &diagnostic);

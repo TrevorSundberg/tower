@@ -114,8 +114,7 @@ fn bi_function(c: BackendImport*, function: void*): void {
 }
 
 export fn backend_import_foundation(b: Backend*, root: void*): bool {
-    var c: BackendImport;
-    fill(&c, 0, sizeof(BackendImport));
+    var c: BackendImport = default;
     c.backend = b;
     c.root = root;
     c.block = root;

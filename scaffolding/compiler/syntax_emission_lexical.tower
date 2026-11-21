@@ -121,8 +121,7 @@ fn emission_lexical_tokens(value: SyntaxEmission*): bool {
     while index < value.input.token_count {
         var source = emission_node(value, value.input.tokens[index]);
         var entry = emission_find_text(value, source.name.data, source.name.length);
-        var row: LexiconToken;
-        fill(&row, 0, sizeof(LexiconToken));
+        var row: LexiconToken = default;
         row.table = source.compiled ?. table;
         var ordinal = index &convert(usize, ~convert(u32, 0));
         row.id = convert(u32, ordinal);
@@ -428,10 +427,8 @@ export fn syntax_emission_completion_close(value: SyntaxEmission*, completion: L
     var ok = emission_suffix_candidates(value, &words, &ids);
     ok &&= vector_push(&words, type_name);
     ok &&= vector_push(&ids, convert(u32, SyntaxTokenId.Name));
-    var result: FormatResult;
-    fill(&result, 0, sizeof(FormatResult));
-    var format: FormatEngine;
-    fill(&format, 0, sizeof(FormatEngine));
+    var result: FormatResult = default;
+    var format: FormatEngine = default;
     format.result = &result;
     if ok {
         // Preserve the established bounded LR suffix-search policy.

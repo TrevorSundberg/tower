@@ -440,7 +440,7 @@ fn lr_runtime_build(value: LRRuntime*, source: LRStates*, buckets: vector(usize)
         if row == null {
             return false;
         }
-        fill(row, 0, sizeof(LRRow));
+        *row = default;
         var input = source.states.data[index];
         var position: usize = 0;
         loop {
@@ -508,7 +508,7 @@ export fn lr_runtime_create(source: LRStates*): LRRuntime* {
     if value == null {
         return null;
     }
-    fill(value, 0, sizeof(LRRuntime));
+    *value = default;
     value.conflict.state = lr_none();
     value.sequence_rule = lr_none();
     var buckets: vector(usize);

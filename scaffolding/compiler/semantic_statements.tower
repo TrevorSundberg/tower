@@ -269,7 +269,7 @@ struct SemanticBlockCursor {
 }
 
 fn sem_block_begin(c: SemanticContext*, n: void*, depth: u32, cursor: SemanticBlockCursor*): bool {
-    fill(cursor, 0, sizeof(SemanticBlockCursor));
+    *cursor = default;
     cursor.subject = n;
     cursor.depth = depth;
     cursor.flow = FlowNext();

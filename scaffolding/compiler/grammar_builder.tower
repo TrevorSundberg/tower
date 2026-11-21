@@ -11,7 +11,7 @@ import syntax_reader;
 // Fallible construction on the caller's registered kinds. The root owns every
 // attached node; a failure is sticky and finish discards the partial document.
 export fn grammar_builder_init(builder: GrammarBuilder*, kinds: FrontendKinds*): void {
-    fill(builder, 0, sizeof(GrammarBuilder));
+    *builder = default;
     builder.kinds = kinds;
     builder.root = entity_create_related(kinds.rule);
     builder.failed = builder.root == null;

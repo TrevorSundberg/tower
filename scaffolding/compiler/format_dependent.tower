@@ -240,8 +240,7 @@ export fn format_dependent_summary(result: FormatResult*, entity: void*, match_k
 }
 
 export fn format_dependent_view(result: FormatResult*, entity: void*, subject: void*, annotation: void*, match_kind: void*, substitutions: FormatSubstitution*): void {
-    var f: FormatEngine;
-    fill(&f, 0, sizeof(FormatEngine));
+    var f: FormatEngine = default;
     f.result = result;
     f.match_kind = match_kind;
     f.substitutions = substitutions;

@@ -707,8 +707,7 @@ fn syntax_validation_productive(value: SyntaxValidation*): bool {
 }
 
 export fn syntax_validate(rules: SyntaxRuleView*, count: usize, tokens: void**, token_count: usize, kind: void*, error: vector(u8)*, offset: usize*, pending: void**): bool {
-    var value: SyntaxValidation;
-    fill(&value, 0, sizeof(SyntaxValidation));
+    var value: SyntaxValidation = default;
     value.rules = rules;
     value.count = count;
     value.tokens = tokens;

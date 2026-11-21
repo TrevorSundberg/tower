@@ -19,7 +19,7 @@ extern fn parser_table_destroy(table: void*): void;
 export fn syntax_version_create(world: void*, grammar: FrontendRevision*, bedrock: FrontendRevision*): SyntaxVersion* {
     var value = alloc(SyntaxVersion, 1);
     if value is null { return null; }
-    fill(value, 0, sizeof(SyntaxVersion));
+    *value = default;
     value.rules = entity_create(compiler_world_store(world));
     if value.rules is null { free(value); return null; }
     value.references = 1;

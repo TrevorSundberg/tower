@@ -47,8 +47,7 @@ fn format_preview_location(f: FormatEngine*, node: SyntaxNode*): void {
 // name_only uses the first alternative, selected by the caller's revision view.
 export fn format_syntax_description(result: FormatResult*, entity: void*, name: u8*,
 name_only: bool, syntax: void*, kind: void*): void {
-    var f: FormatEngine;
-    fill(&f, 0, sizeof(FormatEngine));
+    var f: FormatEngine = default;
     f.result = result;
     var node = format_preview_node(entity, syntax);
     if node == null {
@@ -59,8 +58,7 @@ name_only: bool, syntax: void*, kind: void*): void {
     if !name_only {
         format_text(&f, " = ");
         var begin = result.text.length;
-        var part: FormatResult;
-        fill(&part, 0, sizeof(FormatResult));
+        var part: FormatResult = default;
         foreach(var & item in &node.items) {
             if result.text.length != begin {
                 format_char(&f, 32);
@@ -103,15 +101,13 @@ name_only: bool, syntax: void*, kind: void*): void {
 
 export fn syntax_description_text(entity: void*, name: u8*, name_only: bool,
 syntax: void*, kind: void*): u8* {
-    var result: FormatResult;
-    fill(&result, 0, sizeof(FormatResult));
+    var result: FormatResult = default;
     format_syntax_description(&result, entity, name, name_only, syntax, kind);
     return format_parser_host_text(&result);
 }
 
 export fn format_syntax_origin(result: FormatResult*, entity: void*, prefix: u8*, syntax: void*, kind: void*): void {
-    var f: FormatEngine;
-    fill(&f, 0, sizeof(FormatEngine));
+    var f: FormatEngine = default;
     f.result = result;
     var node = format_preview_node(entity, syntax);
     if node == null {
@@ -126,8 +122,7 @@ export fn format_syntax_origin(result: FormatResult*, entity: void*, prefix: u8*
 }
 
 export fn syntax_origin_text(entity: void*, prefix: u8*, syntax: void*, kind: void*): u8* {
-    var result: FormatResult;
-    fill(&result, 0, sizeof(FormatResult));
+    var result: FormatResult = default;
     format_syntax_origin(&result, entity, prefix, syntax, kind);
     return format_parser_host_text(&result);
 }

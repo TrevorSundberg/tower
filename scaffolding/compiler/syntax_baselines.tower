@@ -34,7 +34,7 @@ fn syntax_baseline_dispose(value: SyntaxBaseline*): void {
         entity_release(value.document);
     }
     vector_dispose(&value.source);
-    fill(value, 0, sizeof(SyntaxBaseline));
+    *value = default;
 }
 
 fn syntax_baselines_owner(world: void*, create: bool): SyntaxBaselines* {
@@ -49,7 +49,7 @@ fn syntax_baselines_owner(world: void*, create: bool): SyntaxBaselines* {
     if owner is null {
         return null;
     }
-    fill(owner, 0, sizeof(SyntaxBaselines));
+    *owner = default;
     cache.syntax = bits(void*, owner);
     return owner;
 }
@@ -112,8 +112,7 @@ export fn syntax_world_publish(world: void*, source: u8*, length: usize, documen
         }
     }
     // Prepare the only fallible publication data before changing either baseline.
-    var prepared: SyntaxBaseline;
-    fill(&prepared, 0, sizeof(SyntaxBaseline));
+    var prepared: SyntaxBaseline = default;
     if !bytes_append(&prepared.source, source, length) {
         return false;
     }

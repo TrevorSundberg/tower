@@ -43,7 +43,7 @@ export fn `cpp_name(method void llvm::CrashRecoveryContext::HandleExit(int))`(se
 // file mapping fails. Supply its data-only allocation, replacing the WASI
 // unsupported-operation stub through --wrap, without a native subclass/vtable.
 export fn `cpp_name(__wrap; static llvm::sys::MemoryBlock llvm::sys::Memory::allocateMappedMemory(unsigned long, llvm::sys::MemoryBlock const*, unsigned int, std::__2::error_code&))`(out: BackendWasiMemory*, size: usize, near: BackendWasiMemory*, flags: u32, error: BackendWasiError*): void {
-    fill(out, 0, sizeof(BackendWasiMemory));
+    *out = default;
     error.value = 0;
     error.category = `cpp_name(std::__2::error_category const& std::__2::generic_category() noexcept)`();
     var forbidden = flags != 50331648;
@@ -69,7 +69,7 @@ export fn `cpp_name(__wrap; static llvm::sys::MemoryBlock llvm::sys::Memory::all
 
 export fn `cpp_name(__wrap; static std::__2::error_code llvm::sys::Memory::releaseMappedMemory(llvm::sys::MemoryBlock&))`(out: BackendWasiError*, memory: BackendWasiMemory*): void {
     free(memory.address);
-    fill(memory, 0, sizeof(BackendWasiMemory));
+    *memory = default;
     out.value = 0;
     out.category = `cpp_name(std::__2::error_category const& std::__2::generic_category() noexcept)`();
 }

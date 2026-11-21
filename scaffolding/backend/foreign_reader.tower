@@ -114,7 +114,7 @@ fn foreign_node(m: ForeignName*, kind: u32): ForeignType* {
     var present = type != null;
     foreign_require(m, present);
     if present {
-        fill(type, 0, sizeof(ForeignType));
+        *type = default;
         type.kind = kind;
         type.name = "";
         foreign_require(m, vector_push(&m.types, type));

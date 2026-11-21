@@ -56,7 +56,7 @@ export fn symbol_sequence_accepts(sequence: SymbolSequence*, state: usize, symbo
 export fn lex_table_create(): LexerTable* {
     var table = alloc(LexerTable, 1);
     if table != null {
-        fill(table, 0, sizeof(LexerTable));
+        *table = default;
     }
     return table;
 }

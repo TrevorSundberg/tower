@@ -84,10 +84,10 @@ fn driver_output_safe(source: u8*, output: u8*): bool {
     var output_path: ByteBuffer;
     var input_normal: ByteBuffer;
     var output_normal: ByteBuffer;
-    fill(&input_path, 0, sizeof(ByteBuffer));
-    fill(&output_path, 0, sizeof(ByteBuffer));
-    fill(&input_normal, 0, sizeof(ByteBuffer));
-    fill(&output_normal, 0, sizeof(ByteBuffer));
+    input_path = default;
+    output_path = default;
+    input_normal = default;
+    output_normal = default;
     var ok = driver_platform_absolute(source, &input_path) && driver_platform_absolute(output, &output_path);
     ok &&= driver_path_normalize(input_path.data, &input_normal) && driver_path_normalize(output_path.data, &output_normal);
     if ok && driver_same(input_normal.data, output_normal.data) {

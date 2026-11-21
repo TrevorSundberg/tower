@@ -65,8 +65,7 @@ fn language_match_snapshot(q: CompletionQuery*, node: void*, session: void*, dep
     }
     var target = syntax_inspection_match(session, node);
     if target != null {
-        var entry: LanguageGrammar;
-        fill(&entry, 0, sizeof(LanguageGrammar));
+        var entry: LanguageGrammar = default;
         entry.node = node;
         entry.matched = true;
         entry.total = 1;
@@ -170,8 +169,7 @@ fn language_snapshot(q: CompletionQuery*, node: void*, session: void*, depth: us
         if syntax.kind == SyntaxImport() {
             return;
         }
-        var entry: LanguageGrammar;
-        fill(&entry, 0, sizeof(LanguageGrammar));
+        var entry: LanguageGrammar = default;
         entry.node = node;
         var reference = syntax.kind == SyntaxRule();
         var text = &syntax.name;
@@ -396,8 +394,7 @@ fn language_grammar_targets(q: CompletionQuery*, entry: LanguageGrammar*, docume
     vector_init(&text);
     var i: usize = 0;
     for(; i != entry.targets.length; i++) {
-        var preview: FormatResult;
-        fill(&preview, 0, sizeof(FormatResult));
+        var preview: FormatResult = default;
         format_grammar_preview(&preview, entry.targets.data[i], syntax_component_type());
         if i != 0 {
             completion_text(&text, " | ");
@@ -806,8 +803,7 @@ fn language_template_walk(q: CompletionQuery*, node: void*, template: LanguageGr
     }
     var count = sem_child_count(node);
     if count == 0 {
-        var candidate: LanguageCandidate;
-        fill(&candidate, 0, sizeof(LanguageCandidate));
+        var candidate: LanguageCandidate = default;
         candidate.node = selected;
         candidate.template = template;
         var span = sem_match(node);

@@ -1153,8 +1153,7 @@ fn ce_body(c: CEmitter*, entity: void*, program: bool): void {
 }
 
 export fn c_emit(text: vector(u8)*, error: vector(u8)*, root: void*, pointer_bytes: u32, comments: bool): void {
-    var c: CEmitter;
-    fill(&c, 0, sizeof(CEmitter));
+    var c: CEmitter = default;
     c.text = text;
     c.error = error;
     c.pointer_bytes = pointer_bytes;

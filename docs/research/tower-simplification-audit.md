@@ -23,6 +23,18 @@ helpers whose public contract intentionally describes bytes. Preserve explicit
 library initialization when zero state does not establish its invariant. Validate
 the successor/bootstrap before adoption and keep negative/ABI fixtures explicit.
 
+Implemented and published the feature in `18ff584`, then published its complete
+development bootstrap in `a68920b` before compiler adoption. The bounded audit
+selects 202 replacements across 101 production files: 99 declaration/fill pairs,
+51 allocation destinations and 52 resets. This removes 99 source lines and the
+repeated byte-count/type spelling at every selected site. The two additional
+sites since the initial 200-site inventory come from the merged Tower template
+port. Existing library initialization and disposal order are preserved.
+
+See [default initialization](../default-initialization.md) for the implemented
+contract. Named-field construction, move/drop behavior and general aggregate
+staging remain separate work; this milestone does not supply those contracts.
+
 Baseline: `0987aa5c0d1577d00264f6498fbdfcd4b6a981bc`, 2026-11-20.
 
 **Recommendation: finish adopting Tower expressions throughout the compiler;

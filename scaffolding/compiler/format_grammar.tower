@@ -191,8 +191,7 @@ fn format_grammar(f: FormatEngine*, entity: void*): void {
                 break;
             }
             if i != 0 {
-                var output: FormatResult;
-                fill(&output, 0, sizeof(FormatResult));
+                var output: FormatResult = default;
                 var probe: FormatEngine;
                 probe.source_names = false;
                 probe.result = &output;
@@ -280,7 +279,7 @@ fn format_grammar(f: FormatEngine*, entity: void*): void {
 export fn format_grammar_preview(result: FormatResult*, entity: void*, syntax: void*): void {
     var f: FormatEngine;
     f.source_names = false;
-    fill(&f, 0, sizeof(FormatEngine));
+    f = default;
     f.result = result;
     f.syntax_kind = syntax;
     var n = format_syntax(&f, entity);

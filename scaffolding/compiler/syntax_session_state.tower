@@ -13,7 +13,7 @@ extern fn tower_memory_free(memory: void*): void;
 export fn syntax_session_allocate(world: void*, environment: void*): SyntaxSession* {
     var value = alloc(SyntaxSession, 1);
     if value is null { return null; }
-    fill(value, 0, sizeof(SyntaxSession));
+    *value = default;
     value.inputs.world = world;
     value.inputs.environment = environment;
     value.declarations_only = true;

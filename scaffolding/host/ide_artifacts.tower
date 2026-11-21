@@ -13,7 +13,7 @@ import .compiler.foundation_tags;
 import .compiler.format_types;
 
 fn ide_program_format(session: IdeExecution*, formatted: FormatResult*): void {
-    fill(formatted, 0, sizeof(FormatResult));
+    *formatted = default;
     var present = session != null;
     present &&= session.program.error.length == 0;
     if present {
@@ -29,8 +29,8 @@ fn ide_emit(handle: u32, flags: u32, roku: bool): u8* {
     }
     var output: ByteBuffer;
     var error: ByteBuffer;
-    fill(&output, 0, sizeof(ByteBuffer));
-    fill(&error, 0, sizeof(ByteBuffer));
+    output = default;
+    error = default;
     var bit = flags &1;
     var comments = bit == 0;
     if roku {

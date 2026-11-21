@@ -69,8 +69,7 @@ export fn lr_states_create_parallel(analysis: LRAnalysis*, anchor: void*): LRSta
         jobs[i].kernel.kind = CompilerKernelKind.LRState;
         jobs[i].kernel.payload = bits(void*, jobs[i]);
     }
-    var workers: ParserWorkers;
-    fill(&workers, 0, sizeof(ParserWorkers));
+    var workers: ParserWorkers = default;
     defer parser_workers_close(&workers);
     var graph: WorkGraph;
     work_init(&graph, 1, 0);

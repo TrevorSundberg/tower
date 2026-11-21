@@ -80,8 +80,7 @@ export fn syntax_highlights_copy(target: SyntaxHighlights*, source: SyntaxHighli
     if target == source {
         return true;
     }
-    var prepared: SyntaxHighlights;
-    fill(&prepared, 0, sizeof(SyntaxHighlights));
+    var prepared: SyntaxHighlights = default;
     defer syntax_highlights_dispose(&prepared);
     foreach(var & row in &source.items) {
         if !syntax_highlights_push(&prepared, row.start, row.end, row.revision, row.kind, row.id, row.opaque) {
@@ -90,6 +89,6 @@ export fn syntax_highlights_copy(target: SyntaxHighlights*, source: SyntaxHighli
     }
     syntax_highlights_dispose(target);
     copy(target, &prepared, sizeof(SyntaxHighlights));
-    fill(&prepared, 0, sizeof(SyntaxHighlights));
+    prepared = default;
     return true;
 }

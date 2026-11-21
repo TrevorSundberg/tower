@@ -100,7 +100,7 @@ fn lr_grammar_name_add(value: LRGrammar*, name: u8*, index: usize*): bool {
     if entry == null {
         return false;
     }
-    fill(entry, 0, sizeof(LRGrammarName));
+    *entry = default;
     var ok = node_text_set(&entry.text, name);
     ok &&= vector_push(&value.names, entry);
     if !ok {
@@ -237,8 +237,7 @@ fn lr_grammar_payload(node: void*, kind: void*): void* {
 }
 
 fn lr_grammar_add_symbol(value: LRGrammar*, symbol: LRSymbol*, node: void*, capture: u8*): bool {
-    var metadata: LRGrammarSymbol;
-    fill(&metadata, 0, sizeof(LRGrammarSymbol));
+    var metadata: LRGrammarSymbol = default;
     metadata.node = node;
     var ok = true;
     if *capture != 0 {
@@ -268,10 +267,8 @@ fn lr_grammar_rules(value: LRGrammar*, root: void*, kind: void*): bool {
     if !ok {
         return false;
     }
-    var rule: LRProduction;
-    fill(&rule, 0, sizeof(LRProduction));
-    var metadata: LRGrammarRule;
-    fill(&metadata, 0, sizeof(LRGrammarRule));
+    var rule: LRProduction = default;
+    var metadata: LRGrammarRule = default;
     ok = lr_append(LRProduction, &value.rules, &rule);
     ok &&= lr_append(LRGrammarRule, &value.rule_metadata, &metadata);
     if !ok {
@@ -404,7 +401,7 @@ export fn lr_grammar_create(root: void*, rule_kind: void*, reference_kind: void*
     if value == null {
         return null;
     }
-    fill(value, 0, sizeof(LRGrammar));
+    *value = default;
     var ok = lr_grammar_rules(value, root, rule_kind);
     ok &&= lr_grammar_symbols(value, reference_kind, string_kind, range_kind);
     if ok {

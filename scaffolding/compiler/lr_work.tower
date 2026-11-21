@@ -350,8 +350,7 @@ export fn lr_states_lalr_parallel(value: LRStates*, constructs: bool, anchor: vo
         ok &&= work_seal(&graph, query);
         ok &&= work_demand(&graph, query);
     }
-    var workers: ParserWorkers;
-    fill(&workers, 0, sizeof(ParserWorkers));
+    var workers: ParserWorkers = default;
     if ok && capacity != 0 { ok = parser_workers_open(&workers, anchor, capacity); }
     var pool = workers.pool;
     var view: void* = null;

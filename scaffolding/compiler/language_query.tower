@@ -219,8 +219,7 @@ fn language_leaf(q: CompletionQuery*, leaf: void*, candidate: LanguageCandidate*
     selected &&= end <= candidate.to;
     var subject = leaf;
     var node = leaf;
-    var formatted: FormatResult;
-    fill(&formatted, 0, sizeof(FormatResult));
+    var formatted: FormatResult = default;
     var value: FoundationNode* = null;
     if selected {
         subject = candidate.subject;
@@ -453,8 +452,7 @@ export fn language_document(source: u8*, length: usize, mode: u32, pointer_bytes
     q.output.length = 0;
     q.count = 0;
     completion_text(&q.output, "{\"entries\":[");
-    var empty: LanguageCandidate;
-    fill(&empty, 0, sizeof(LanguageCandidate));
+    var empty: LanguageCandidate = default;
     var budget = InspectionNodeLimit();
     i = 0;
     for(; i != q.roots.length; i++) {

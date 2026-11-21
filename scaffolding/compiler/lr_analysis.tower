@@ -132,7 +132,7 @@ export fn lr_analysis_create(rules: LRProduction*, rule_count: usize, symbols: L
     if failed {
         return null;
     }
-    fill(result, 0, sizeof(LRAnalysis));
+    *result = default;
     result.rules = rules;
     result.rule_count = rule_count;
     result.symbols = symbols;
@@ -258,7 +258,7 @@ export fn lr_analysis_first_data(value: LRAnalysis*, index: usize): SymbolRange*
 export fn lr_items_create(): LRItems* {
     var result = alloc(LRItems, 1);
     if result != null {
-        fill(result, 0, sizeof(LRItems));
+        *result = default;
     }
     return result;
 }
@@ -371,8 +371,7 @@ export fn lr_items_close(value: LRAnalysis*, items: LRItems*, lookahead: bool): 
     // Many items reach the same nonterminal with identical lookahead. Expand
     // each pair once, rather than inserting every production for every incoming
     // item. Exact range identities and the sorted closure remain unchanged.
-    var expanded: LRItems;
-    fill(&expanded, 0, sizeof(LRItems));
+    var expanded: LRItems = default;
     var ok: bool = true;
     loop {
         var done = items.pending.length == 0;
@@ -540,7 +539,7 @@ export fn lr_propagation_create(count: usize): LRPropagation* {
     if missing {
         return null;
     }
-    fill(value, 0, sizeof(LRPropagation));
+    *value = default;
     value.nodes = alloc(LRPropagationNode, count);
     missing = value.nodes == null;
     if missing {

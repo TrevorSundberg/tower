@@ -25,8 +25,7 @@ export fn driver_read_file(path: u8*, out: ByteBuffer*): bool {
     if file == null {
         return false;
     }
-    var next: ByteBuffer;
-    fill(&next, 0, sizeof(ByteBuffer));
+    var next: ByteBuffer = default;
     var chunk: u8[16384];
     var ok = true;
     loop {

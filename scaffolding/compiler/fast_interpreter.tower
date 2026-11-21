@@ -248,8 +248,7 @@ fn fm_function(f: FMState*, node: void*): usize {
         }
     }
     var n = im_node(node);
-    var function: FMFunction;
-    fill(&function, 0, sizeof(FMFunction));
+    var function: FMFunction = default;
     function.node = node;
     function.external = n.external;
     function.frame_size = im_align(n.frame_size);
@@ -734,7 +733,7 @@ fn fm_statement(f: FMState*, node: void*, breaks: vector(usize)*, continue_pc: u
 
 export fn fast_interpreter_create(m: IMState*): FMState* {
     var f = alloc(FMState, 1);
-    fill(f, 0, sizeof(FMState));
+    *f = default;
     var failed = m.failed;
     if failed {
         return f;

@@ -163,8 +163,7 @@ export fn format_syntax_diagnostic(input: SyntaxDiagnosticInput*, output: Syntax
     output.production = ParserNoIndex();
     output.multiple = false;
     output.insertion = false;
-    var f: FormatEngine;
-    fill(&f, 0, sizeof(FormatEngine));
+    var f: FormatEngine = default;
     f.result = &output.result;
     if input.count == 0 {
         format_text(&f, input.original);
@@ -278,8 +277,7 @@ export fn format_syntax_diagnostic(input: SyntaxDiagnosticInput*, output: Syntax
 }
 
 export fn syntax_diagnostic_text_finish(output: SyntaxDiagnosticText*, description: u8*): u8* {
-    var f: FormatEngine;
-    fill(&f, 0, sizeof(FormatEngine));
+    var f: FormatEngine = default;
     f.result = &output.result;
     var present = description != null;
     present &&= *description != 0;

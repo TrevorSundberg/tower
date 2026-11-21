@@ -44,8 +44,7 @@ export fn syntax_session_diagnostic(value: SyntaxSession*, recognizer: ParserReq
     input.complete = diagnostic.complete;
     input.at_start = diagnostic.at_start;
     input.statements = syntax_revision_rule(definitions, "Statement", 9) is not null;
-    var output: SyntaxDiagnosticText;
-    fill(&output, 0, sizeof(SyntaxDiagnosticText));
+    var output: SyntaxDiagnosticText = default;
     format_syntax_diagnostic(&input, &output);
     if output.insertion {
         value.error_offset = diagnostic.insertion_offset;

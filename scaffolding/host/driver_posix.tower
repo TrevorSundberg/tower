@@ -167,8 +167,7 @@ fn driver_find_tool(out: ByteBuffer*, name: u8*): bool {
 }
 
 export fn driver_platform_run(argv: u8**): i32 {
-    var executable: ByteBuffer;
-    fill(&executable, 0, sizeof(ByteBuffer));
+    var executable: ByteBuffer = default;
     var result: i32 = 1;
     if driver_find_tool(&executable, argv[0]) {
         var original = argv[0];

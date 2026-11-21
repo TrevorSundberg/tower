@@ -21,7 +21,7 @@ export fn backend_source_create(runtime: u8*, length: usize): BackendSource* {
     if source == null {
         return null;
     }
-    fill(source, 0, sizeof(BackendSource));
+    *source = default;
     source.backend = backend_session_create(runtime, length);
     if source.backend == null {
         free(source);
@@ -71,8 +71,7 @@ fn backend_source_import(source: BackendSource*, program: SemanticProgram*, widt
     var result = backend_session_response(backend);
     if backend_session_import(backend, program.root, program.functions.data,
     program.functions.length, width, optimize, imported.root) {
-        var formatted: FormatResult;
-        fill(&formatted, 0, sizeof(FormatResult));
+        var formatted: FormatResult = default;
         format_entity(&formatted, imported.root, syntax_component_type(), null, parser_match_get_type());
         if formatted.failed || !vector_reserve(&source.foundation, formatted.text.length + 1) {
             result = backend_session_failure(backend, "Unable to allocate canonical formatted source", 0);

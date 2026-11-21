@@ -84,7 +84,7 @@ struct WorkGraph {
 }
 
 fn work_init(g: WorkGraph*, revision: u64, profile: u64): void {
-    fill(g, 0, sizeof(WorkGraph));
+    *g = default;
     g.revision = revision;
     g.profile = profile;
     g.error = WorkError.None;
@@ -100,7 +100,7 @@ fn work_dispose(g: WorkGraph*): void {
     vector_dispose(&g.frames);
     vector_dispose(&g.accesses);
     vector_dispose(&g.executing);
-    fill(g, 0, sizeof(WorkGraph));
+    *g = default;
 }
 
 // Reuse scheduling storage only after every task completed and the executor

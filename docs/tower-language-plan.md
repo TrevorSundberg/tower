@@ -700,6 +700,13 @@ containers. Benchmark representative compiler workloads before migrating them.
   nominal protocols, including vector/stack/queue. See
   [borrowed iteration](borrowed-iteration.md). It reuses scoped cleanup and
   Foundation nodes; checked borrowing and implicit parallel iteration remain out.
+  Target-typed `default` and explicit `default(Type)` now provide scalar zeros
+  and complete in-place struct/array initialization/reset. See
+  [default initialization](default-initialization.md). Existing Foundation
+  address/sizeof/fill operations preserve target layout and one destination
+  evaluation. This does not implement named-field construction, ownership or
+  aggregate staging capabilities. Its compatible bootstrap precedes adoption
+  across the compiler, libraries, backend and host code.
 
 ## Next parallel/compiler milestones
 

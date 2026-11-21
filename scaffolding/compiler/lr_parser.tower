@@ -39,7 +39,7 @@ export fn lr_parser_create(runtime: LRRuntime*, prefix: bool, specialize: bool):
     if value == null {
         return null;
     }
-    fill(value, 0, sizeof(LRParser));
+    *value = default;
     value.runtime = runtime;
     value.prefix = prefix;
     if specialize {
@@ -47,8 +47,7 @@ export fn lr_parser_create(runtime: LRRuntime*, prefix: bool, specialize: bool):
     }
     value.sequence_first = lr_none();
     value.sequence_last = lr_none();
-    var frame: LRFrame;
-    fill(&frame, 0, sizeof(LRFrame));
+    var frame: LRFrame = default;
     frame.first = lr_none();
     frame.last = lr_none();
     if lr_append(LRFrame, &value.stack, &frame) {
@@ -205,7 +204,7 @@ fn lr_parser_decide(value: LRParser*, ready: bool, id: u32, error: bool, result:
 }
 
 export fn lr_parser_step(value: LRParser*, ready: bool, id: u32, error: bool, start: usize, length: usize, result: LRStep*): u32 {
-    fill(result, 0, sizeof(LRStep));
+    *result = default;
     result.rule = lr_none();
     result.next = lr_none();
     result.id = id;
@@ -271,7 +270,7 @@ export fn lr_parser_frame_count(value: LRParser*): usize {
 
 export fn lr_parser_frame(value: LRParser*, index: usize, result: LRFrame*): void {
     if value.sequence {
-        fill(result, 0, sizeof(LRFrame));
+        *result = default;
         result.first = lr_none();
         result.last = lr_none();
         result.state = value.runtime.sequence_states.data[index];
@@ -289,7 +288,7 @@ export fn lr_parser_frames(value: LRParser*): LRFrame* {
 }
 
 export fn lr_parser_sequence_forest(value: LRParser*, result: LRFrame*): void {
-    fill(result, 0, sizeof(LRFrame));
+    *result = default;
     result.first = value.sequence_first;
     result.last = value.sequence_last;
     result.start = value.sequence_start;
@@ -330,7 +329,7 @@ fn lr_probe_allocate(runtime: LRRuntime*, budget: LRProbeBudget*, count: usize):
         budget.complete = false;
         return null;
     }
-    fill(value, 0, sizeof(LRProbe));
+    *value = default;
     value.runtime = runtime;
     value.budget = budget;
     if vector_reserve(&value.frames, count) {
@@ -471,7 +470,7 @@ export fn lr_completion_create(parser: LRParser*): LRCompletion* {
     if c == null {
         return null;
     }
-    fill(c, 0, sizeof(LRCompletion));
+    *c = default;
     c.budget.complete = true;
     c.original = lr_probe_create(parser, &c.budget);
     if c.original == null {
@@ -618,8 +617,7 @@ export fn lr_completion_suffix(c: LRCompletion*, ids: u32*, count: usize, result
     }
     var paths: vector(LRCompletionPath);
     vector_init(&paths);
-    var first: LRCompletionPath;
-    fill(&first, 0, sizeof(LRCompletionPath));
+    var first: LRCompletionPath = default;
     first.probe = lr_probe_clone(c.original);
     if first.probe == null {
         return lr_none();

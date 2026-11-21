@@ -69,8 +69,7 @@ export fn syntax_version_seed(value: SyntaxVersion*, definitions: FrontendRevisi
     for (var i: usize = 0; i < syntax_pending_count(pending); ++i) {
         if !vector_push(&reserved, syntax_pending_name(pending, i)) { return false; }
     }
-    var input: SyntaxEmissionInput;
-    fill(&input, 0, sizeof(SyntaxEmissionInput));
+    var input: SyntaxEmissionInput = default;
     input.rules = definitions.rules.data;
     input.count = definitions.rules.length;
     input.tokens = definitions.tokens.data;
@@ -98,8 +97,7 @@ fn syntax_version_replacements(value: SyntaxVersion*, diagnostic: SyntaxVersionD
     var owner = syntax_replacement_owner_create(bits(void*, value), bits(SyntaxEmission*, value.emission), value.kinds.syntax, value.kinds.`match`);
     if owner is null { return false; }
     value.replacements = bits(void*, owner);
-    var plan: SyntaxReplacementPlan;
-    fill(&plan, 0, sizeof(SyntaxReplacementPlan));
+    var plan: SyntaxReplacementPlan = default;
     plan.rules = value.grammar.rules.data;
     plan.count = value.grammar.rules.length;
     plan.kind = value.kinds.syntax;

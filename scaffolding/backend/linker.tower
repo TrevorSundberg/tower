@@ -167,7 +167,7 @@ export fn backend_link_add_input(link: BackendLink*, name: u8*, data: u8*, lengt
             return false;
         }
         found = &link.inputs.data[link.inputs.length];
-        fill(found, 0, sizeof(BackendLinkInput));
+        *found = default;
         backend_text(&found.name, name);
         link.inputs.length = needed;
     }
@@ -434,7 +434,7 @@ export fn backend_link_read_output(link: BackendLink*): bool {
 export fn backend_link_create(): BackendLink* {
     var link = alloc(BackendLink, 1);
     if link != null {
-        fill(link, 0, sizeof(BackendLink));
+        *link = default;
     }
     return link;
 }

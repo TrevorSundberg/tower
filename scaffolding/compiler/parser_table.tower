@@ -83,8 +83,7 @@ export fn parser_table_open(root: void*, kinds: FrontendKinds*, userdata: void*,
 
 // Existing default-world transport API. Empty grammars do not create kind nodes.
 export fn parser_table_open_host(root: void*, userdata: void*, presentation: ParserPresentation, mode: u32): ParserHostTable* {
-    var kinds: FrontendKinds;
-    fill(&kinds, 0, sizeof(FrontendKinds));
+    var kinds: FrontendKinds = default;
     var present = root != null;
     present &&= entity_child_count(root) != 0;
     if present {

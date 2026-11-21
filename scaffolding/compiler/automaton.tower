@@ -43,7 +43,7 @@ export fn automaton_create(symbol_limit: u32): Automaton* {
     if failed {
         return null;
     }
-    fill(result, 0, sizeof(Automaton));
+    *result = default;
     result.states = alloc(AutomatonState, 512);
     failed = result.states == null;
     if failed {
@@ -173,7 +173,7 @@ fn automaton_has(work: AutomatonWork*, subset: AutomatonSubset*, index: usize): 
 }
 
 fn automaton_closure(value: Automaton*, work: AutomatonWork*, count: usize, result: AutomatonSubset*): bool {
-    fill(result, 0, sizeof(AutomatonSubset));
+    *result = default;
     fill(&work.visited, 0, value.count);
     var bytes = count *sizeof(i32);
     copy(&work.pending, &work.seeds, bytes);
@@ -428,7 +428,7 @@ export fn automaton_compile(value: Automaton*, start: i32, accepting: usize, tab
     if work == null {
         return 2;
     }
-    fill(work, 0, sizeof(AutomatonWork));
+    *work = default;
     var result = automaton_build(value, start, accepting, table, work, reject_empty);
     vector_dispose(&work.subsets);
     vector_dispose(&work.links);

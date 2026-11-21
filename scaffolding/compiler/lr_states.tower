@@ -250,7 +250,7 @@ fn lr_states_begin(analysis: LRAnalysis*): LRStates* {
     if missing {
         return null;
     }
-    fill(value, 0, sizeof(LRStates));
+    *value = default;
     defer lr_states_destroy(value);
     value.analysis = analysis;
     var items = lr_items_create();
@@ -258,8 +258,7 @@ fn lr_states_begin(analysis: LRAnalysis*): LRStates* {
     if missing {
         return null;
     }
-    var seed: LRItem;
-    fill(&seed, 0, sizeof(LRItem));
+    var seed: LRItem = default;
     var ok = lr_items_insert(items, &seed);
     ok &&= lr_items_close(analysis, items, false);
     if !ok {

@@ -1137,7 +1137,7 @@ export fn syntax_emit_inherit(input: SyntaxEmissionInput*, parent: SyntaxEmissio
     if value == null {
         return null;
     }
-    fill(value, 0, sizeof(SyntaxEmission));
+    *value = default;
     value.input = input;
     emission_build(value, parent);
     var ordinary = input.category == null;

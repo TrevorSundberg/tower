@@ -29,7 +29,7 @@ fn ide_execution_compile(sources: FrontendSource*, count: usize, width: u32, fou
     var session = alloc(IdeExecution, 1);
     var exists = session != null;
     ide_require(exists);
-    fill(session, 0, sizeof(IdeExecution));
+    *session = default;
     semantic_initialize(&session.program, tower_node_create(), width);
     var state = ide_state();
     var rejected = false;
@@ -366,8 +366,7 @@ export fn im_fail(machine: IMState*, text: u8*, offset: usize): void {
 }
 
 export fn im_missing_foreign(machine: IMState*, node: void*, offset: usize): void {
-    var text: ByteBuffer;
-    fill(&text, 0, sizeof(ByteBuffer));
+    var text: ByteBuffer = default;
     ide_text(&text, "No interpreter implementation registered for external function '");
     var function = sem_get(node);
     ide_require(bytes_append(&text, function.name.data, function.name.length));
@@ -385,14 +384,12 @@ export fn im_append(machine: IMState*, text: u8*, count: usize): void {
 export fn im_foreign(machine: IMState*, node: void*, args: u64*, count: usize): u64 {
     var session = bits(IdeExecution*, machine);
     var function = sem_get(node);
-    var request: ByteBuffer;
-    fill(&request, 0, sizeof(ByteBuffer));
+    var request: ByteBuffer = default;
     ide_text(&request, "{\"name\":");
     ide_quote_bytes(&request, function.name.data, function.name.length);
     ide_field(&request, "pointerBytes", convert(usize, session.program.pointer_bytes));
     ide_text(&request, ",\"types\":[");
-    var type: ByteBuffer;
-    fill(&type, 0, sizeof(ByteBuffer));
+    var type: ByteBuffer = default;
     var i: usize = 0;
     for(; i < function.parameters.length; i++) {
         var parameter = sem_get(function.parameters.data[i]);

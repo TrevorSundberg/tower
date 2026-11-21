@@ -180,7 +180,7 @@ export fn foreign_mangle(profile: u32, declaration: u8*, cpp: bool, object: bool
     if m == null {
         return null;
     }
-    fill(m, 0, sizeof(ForeignName));
+    *m = default;
     m.object_symbol = object;
     foreign_profile(m, profile);
     foreign_lex(m, declaration);

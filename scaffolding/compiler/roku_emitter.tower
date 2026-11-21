@@ -766,8 +766,7 @@ fn re_body(r: RokuEmitter*, entity: void*, program: bool): void {
 }
 
 export fn roku_emit(text: vector(u8)*, error: vector(u8)*, root: void*, pointer_bytes: u32, comments: bool): void {
-    var r: RokuEmitter;
-    fill(&r, 0, sizeof(RokuEmitter));
+    var r: RokuEmitter = default;
     r.common.text = text;
     r.common.error = error;
     r.common.comments = comments;

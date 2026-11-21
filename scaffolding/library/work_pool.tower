@@ -52,7 +52,7 @@ fn work_pool_entry(argument: void*): void* {
 }
 
 fn work_pool_open(pool: WorkPool*, capacity: usize): bool {
-    fill(pool, 0, sizeof(WorkPool));
+    *pool = default;
     if capacity == 0 || capacity > 256 {
         return false;
     }
@@ -170,5 +170,5 @@ fn work_pool_close(pool: WorkPool*): void {
     }
     work_signal_close(pool.completion);
     free(pool.slots);
-    fill(pool, 0, sizeof(WorkPool));
+    *pool = default;
 }

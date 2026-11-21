@@ -120,8 +120,7 @@ fn frontend_bedrock_comment(b: FrontendBedrock*, text: u8*): void {
 // parser or a serialized binary grammar. The formatter prints these same nodes.
 
 export fn frontend_bedrock_create(kinds: FrontendKinds*): void* {
-    var b: FrontendBedrock;
-    fill(&b, 0, sizeof(FrontendBedrock));
+    var b: FrontendBedrock = default;
     b.kinds = kinds;
     var ready = frontend_pattern_table(&b.patterns, kinds);
     b.failed = !ready;

@@ -55,7 +55,7 @@ reader: bool, bad_input: bool, lookahead: u32, offset: usize): FrontendDiagnosti
     if missing {
         return null;
     }
-    fill(d, 0, sizeof(FrontendDiagnostic));
+    *d = default;
     d.runtime = parser.runtime;
     d.prefix = prefix;
     d.reader = reader;

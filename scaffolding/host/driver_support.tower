@@ -39,7 +39,7 @@ struct DriverArguments {
 }
 
 fn driver_arguments_init(args: DriverArguments*): void {
-    fill(args, 0, sizeof(DriverArguments));
+    *args = default;
     args.ok = true;
 }
 
@@ -47,8 +47,7 @@ fn driver_argument(args: DriverArguments*, prefix: u8*, value: u8*): void {
     if !args.ok {
         return;
     }
-    var text: ByteBuffer;
-    fill(&text, 0, sizeof(ByteBuffer));
+    var text: ByteBuffer = default;
     args.ok = driver_text(&text, prefix);
     args.ok &&= driver_text(&text, value);
     args.ok &&= host_text_terminate(&text);
@@ -93,8 +92,7 @@ export fn driver_report(error: u8*, offset: usize, text: u8*, length: usize, sou
     if file[0] == 0 {
         file = source;
     }
-    var out: ByteBuffer;
-    fill(&out, 0, sizeof(ByteBuffer));
+    var out: ByteBuffer = default;
     var ok = driver_text(&out, file);
     ok &&= driver_text(&out, ":");
     ok &&= host_json_unsigned(&out, convert(u64, line));

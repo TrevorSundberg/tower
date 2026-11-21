@@ -242,7 +242,7 @@ export fn parser_stream_return(stream: ParserStream*, node: void**, id: u32, sta
     stream.buffered_length = length;
     vector_dispose(&stream.buffered_error);
     copy(&stream.buffered_error, error, sizeof(vector(u8)));
-    fill(error, 0, sizeof(vector(u8)));
+    *error = default;
     parser_state_clear(&stream.error);
 }
 

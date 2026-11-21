@@ -36,7 +36,7 @@ export fn syntax_source_create(name: u8*, text: u8*, length: usize): SyntaxSourc
     if source == null {
         return null;
     }
-    fill(source, 0, sizeof(SyntaxSource));
+    *source = default;
     source.references = 1;
     var ok = node_text_set(&source.name, name);
     ok &&= vector_reserve(&source.text, needed);

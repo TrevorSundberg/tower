@@ -333,8 +333,7 @@ export fn frontend_modules_source(environment: ModuleEnvironment*, name: u8*, te
     if !valid {
         return false;
     }
-    var input: ModuleInput;
-    fill(&input, 0, sizeof(ModuleInput));
+    var input: ModuleInput = default;
     var ok = module_path(name, &input.name);
     ok &&= bytes_assign_text(&input.text, text, length);
     if ok {
@@ -459,7 +458,7 @@ export fn frontend_module_root(source: u8*, environment: ModuleEnvironment*): Fr
     var graph = alloc(ModuleGraph, 1);
     var allocated5 = graph != null;
     module_require(allocated5);
-    fill(graph, 0, sizeof(ModuleGraph));
+    *graph = default;
     graph.tracked = true;
     graph.environment = environment;
     if environment == null {
@@ -524,8 +523,7 @@ fn module_grammar_add(grammar: ModuleGrammar*, entity: void*): void {
             }
         }
         if i == grammar.rules.length {
-            var entry: SyntaxRuleView;
-            fill(&entry, 0, sizeof(SyntaxRuleView));
+            var entry: SyntaxRuleView = default;
             entry.name = value.name.data;
             entry.name_length = value.name.length;
             var needed = grammar.rules.length + 1;
@@ -631,8 +629,7 @@ fn module_candidate(base: u8*, name: u8*, literal: bool, result: vector(u8)*): b
 
 // Host-selected builtin paths are explicit inputs, and retain their real provenance.
 export fn frontend_modules_builtin(environment: ModuleEnvironment*, name: u8*, path: u8*): void {
-    var alias: ModuleAlias;
-    fill(&alias, 0, sizeof(ModuleAlias));
+    var alias: ModuleAlias = default;
     module_require(node_text_set(&alias.name, name));
     module_require(module_path(path, &alias.path));
     var count = environment.aliases.length + 1;
@@ -969,8 +966,7 @@ fn module_read_import(reader: SyntaxReader*, node: void*): bool {
 }
 
 export fn frontend_module_import(module: FrontendModule*, node: void*, source: SyntaxSource*): bool {
-    var reader: SyntaxReader;
-    fill(&reader, 0, sizeof(SyntaxReader));
+    var reader: SyntaxReader = default;
     reader.source = source;
     reader.match_kind = parser_match_get_type();
     reader.syntax_kind = syntax_component_type();
@@ -1087,8 +1083,7 @@ fn module_validate_cycles(graph: ModuleGraph*): void {
                 invalid ||= current.roots.length == 0;
                 foreach(var & root in &current.roots) {
                     var node = entity_child_at(*root, 0);
-                    var reader: SyntaxReader;
-                    fill(&reader, 0, sizeof(SyntaxReader));
+                    var reader: SyntaxReader = default;
                     reader.match_kind = parser_match_get_type();
                     var span = syntax_reader_span(&reader, node);
                     if module_equal(span.label.data, "Statement") {
@@ -1248,7 +1243,7 @@ export fn frontend_modules_create(): ModuleEnvironment* {
     var environment = alloc(ModuleEnvironment, 1);
     var ok = environment != null;
     module_require(ok);
-    fill(environment, 0, sizeof(ModuleEnvironment));
+    *environment = default;
     return environment;
 }
 
@@ -1456,8 +1451,7 @@ fn module_clone(graph: ModuleGraph*, source: FrontendModule*): FrontendModule* {
         var declaration = compiler_clone_tree(source.imports.data[i], ModuleMaximumSourceBytes(), &copied);
         var present = declaration != null;
         module_require(present);
-        var reader: SyntaxReader;
-        fill(&reader, 0, sizeof(SyntaxReader));
+        var reader: SyntaxReader = default;
         reader.source = result.source;
         reader.match_kind = parser_match_get_type();
         reader.syntax_kind = syntax_component_type();
@@ -1479,7 +1473,7 @@ fn module_cache_store(module: FrontendModule*): void {
     var graph = alloc(ModuleGraph, 1);
     var present = graph != null;
     module_require(present);
-    fill(graph, 0, sizeof(ModuleGraph));
+    *graph = default;
     graph.environment = environment;
     var snapshot = module_clone(graph, module);
     if environment.cache.length == ModuleCacheEntries() {

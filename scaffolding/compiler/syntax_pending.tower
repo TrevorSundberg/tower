@@ -33,11 +33,9 @@ export fn syntax_pending_destroy(value: SyntaxPendingRevision*): void {
 }
 
 fn syntax_pending_format(value: SyntaxPendingRevision*, kind: void*): bool {
-    var result: FormatResult;
-    fill(&result, 0, sizeof(FormatResult));
+    var result: FormatResult = default;
     defer format_dispose(&result);
-    var format: FormatEngine;
-    fill(&format, 0, sizeof(FormatEngine));
+    var format: FormatEngine = default;
     format.result = &result;
     format_text(&format, "Unresolved grammar reference at end of module: ");
     var rules = &value.owner.rules;
@@ -97,7 +95,7 @@ export fn syntax_pending_create(rules: SyntaxRuleView*, count: usize, waiting: v
     if value is null {
         return false;
     }
-    fill(value, 0, sizeof(SyntaxPendingRevision));
+    *value = default;
     value.offset = lr_none();
     var selected = alloc(SyntaxRuleView, total);
     value.terms = alloc(void*, total);

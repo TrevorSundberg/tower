@@ -31,7 +31,7 @@ lookahead: ParserRequestLookahead*, input: SyntaxScanInput*): void {
     else {
         parser_request_lookahead(bits(ParserRequest*, value.recognizer), &context);
     }
-    fill(input, 0, sizeof(SyntaxScanInput));
+    *input = default;
     input.lexicon = bits(SyntaxLexicon*, value.pins.version.lexicon);
     input.source = value.source;
     input.size = value.source_length;
@@ -61,8 +61,7 @@ export fn syntax_session_declaration(value: SyntaxSession*, position: usize): bo
 export fn syntax_session_skip(value: SyntaxSession*, position: usize*, highlights: SyntaxHighlights*): void {
     var input: SyntaxScanInput;
     syntax_session_scan_input(value, *position, highlights, null, &input);
-    var result: SyntaxScanResult;
-    fill(&result, 0, sizeof(SyntaxScanResult));
+    var result: SyntaxScanResult = default;
     syntax_scan_skip(&input, &result);
     *position = input.cursor;
     parser_recognizer_account_lookahead(bits(ParserRequest*, value.recognizer), result.checks);
@@ -70,8 +69,7 @@ export fn syntax_session_skip(value: SyntaxSession*, position: usize*, highlight
 
 fn syntax_session_read(stream: ParserStream*, value: SyntaxSession*, input: SyntaxScanInput*,
 id: u32*, start: usize*, length: usize*): void* {
-    var result: SyntaxScanResult;
-    fill(&result, 0, sizeof(SyntaxScanResult));
+    var result: SyntaxScanResult = default;
     defer syntax_scan_dispose(&result);
     var node = syntax_scan_read(input, &result);
     value.cursor = input.cursor;
@@ -121,8 +119,7 @@ export fn syntax_session_lexemes(value: SyntaxSession*, output: SyntaxHighlights
             var input: SyntaxScanInput;
             syntax_session_scan_input(value, position, output, null, &input);
             input.declaration = declaration;
-            var result: SyntaxScanResult;
-            fill(&result, 0, sizeof(SyntaxScanResult));
+            var result: SyntaxScanResult = default;
             defer syntax_scan_dispose(&result);
             syntax_scan_token(&input, &result);
             position = input.cursor;
@@ -168,8 +165,7 @@ fn syntax_completion_token(value: SyntaxSession*, text: u8*): u32 {
     syntax_session_scan_input(value, 0, null, &context, &input);
     input.source = text;
     input.size = syntax_text_length(text);
-    var result: SyntaxScanResult;
-    fill(&result, 0, sizeof(SyntaxScanResult));
+    var result: SyntaxScanResult = default;
     defer syntax_scan_dispose(&result);
     syntax_scan_token(&input, &result);
     return result.error is null && result.start == 0 && result.length == input.size ? result.id: convert(u32, SyntaxTokenId.End);

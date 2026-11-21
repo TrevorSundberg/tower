@@ -131,7 +131,7 @@ fn ide_parser_create(source: u8*, bytes: usize, mode: u32): u32 {
         ide_error("Cannot allocate parser handle");
         return 0;
     }
-    fill(session, 0, sizeof(IdeParser));
+    *session = default;
     session.syntax = syntax;
     var handle = host_handles_insert(&state.handles, 0, bits(void*, session));
     failed = handle == 0;

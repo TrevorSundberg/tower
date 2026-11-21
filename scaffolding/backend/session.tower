@@ -67,7 +67,7 @@ export fn backend_session_create(runtime: u8*, length: usize): BackendSession* {
     if failed {
         return null;
     }
-    fill(s, 0, sizeof(BackendSession));
+    *s = default;
     s.linker = backend_link_create();
     failed = s.linker == null;
     if failed {

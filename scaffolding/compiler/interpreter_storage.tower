@@ -221,7 +221,7 @@ export fn im_free_neighbor(m: IMState*, key: u64, previous: bool, count: u64*): 
 }
 
 export fn im_free_neighbors(m: IMState*, key: u64, result: IMNeighbors*): void {
-    fill(result, 0, sizeof(IMNeighbors));
+    *result = default;
     var map = &m.free_blocks;
     var index = im_map_lower(map, key);
     if index < map.length {

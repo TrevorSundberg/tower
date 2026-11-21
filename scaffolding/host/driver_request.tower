@@ -93,7 +93,7 @@ fn driver_request_check_grammar(request: DriverRequest*, path: u8*): bool {
 // Snapshot explicit inputs before entering the compiler. File failures return
 // through the owner, so a failed read cannot bypass request/timing destruction.
 export fn driver_request_open(request: DriverRequest*, options: DriverOptions*, root: u8*): bool {
-    fill(request, 0, sizeof(DriverRequest));
+    *request = default;
     request.options = options;
     request.root = root;
     if !(driver_platform_exists(options.source)) {
@@ -133,8 +133,7 @@ export fn driver_request_canonical(request: DriverRequest*): bool {
     if request.canonical {
         return true;
     }
-    var path: ByteBuffer;
-    fill(&path, 0, sizeof(ByteBuffer));
+    var path: ByteBuffer = default;
     var ok = driver_request_path(&path, "", request.root, "bedrock.tower");
     ok &&= driver_request_read(request, path.data, DriverCanonicalBedrockText());
     path.length = 0;
@@ -204,5 +203,5 @@ export fn driver_request_close(request: DriverRequest*): void {
     bytes_dispose(&request.bedrock_path);
     bytes_dispose(&request.foundation_path);
     bytes_dispose(&request.error);
-    fill(request, 0, sizeof(DriverRequest));
+    *request = default;
 }

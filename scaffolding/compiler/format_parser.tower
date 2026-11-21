@@ -56,8 +56,7 @@ fn format_tree_push(pending: vector(FormatTreeEntry)*, node: void*, depth: usize
 // The caller keeps the graph and component kind alive and immutable for this
 // query. No global world lookup, graph mutation or borrowed pointer escapes.
 export fn format_parser_tree(result: FormatResult*, root: void*, kind: void*): void {
-    var f: FormatEngine;
-    fill(&f, 0, sizeof(FormatEngine));
+    var f: FormatEngine = default;
     f.result = result;
     f.match_kind = kind;
     if root == null {
@@ -184,8 +183,7 @@ export fn format_parser_scalar(result: FormatResult*, id: u32): bool {
     if count == 0 {
         return false;
     }
-    var f: FormatEngine;
-    fill(&f, 0, sizeof(FormatEngine));
+    var f: FormatEngine = default;
     f.result = result;
     var escaped = format_parser_escape(id);
     if escaped != null {
@@ -252,8 +250,7 @@ export fn format_parser_label_text(text: u8*, length: usize, prefix: u8*, suffix
 }
 
 export fn parser_tree_debug_string(root: void*): u8* {
-    var result: FormatResult;
-    fill(&result, 0, sizeof(FormatResult));
+    var result: FormatResult = default;
     var kind: void* = null;
     if root != null {
         kind = parser_match_get_type();
@@ -266,8 +263,7 @@ export fn parser_table_utf8_id_to_string(userdata: void*, id: u32): u8* {
     // One scalar needs at most four UTF-8 bytes plus quotes. Use bounded scratch
     // storage so this hot host path still allocates only its returned string.
     var scratch: u8[6];
-    var result: FormatResult;
-    fill(&result, 0, sizeof(FormatResult));
+    var result: FormatResult = default;
     result.text.data = &scratch[0];
     result.text.capacity = 6;
     if !format_parser_scalar(&result, id) {

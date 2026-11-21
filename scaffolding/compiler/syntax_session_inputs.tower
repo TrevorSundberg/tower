@@ -20,7 +20,7 @@ export fn syntax_session_inputs_dispose(value: SyntaxSessionInputs*): void {
     if value.owns_module { frontend_module_destroy(bits(FrontendModule*, value.module)); }
     syntax_source_release(value.source);
     if value.document is not null { entity_release(value.document); }
-    fill(value, 0, sizeof(SyntaxSessionInputs));
+    *value = default;
 }
 
 export fn syntax_session_inputs_module(value: SyntaxSessionInputs*, source: u8*, module: FrontendModule*): void {

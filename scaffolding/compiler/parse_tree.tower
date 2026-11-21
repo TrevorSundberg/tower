@@ -39,7 +39,7 @@ fn parse_missing(): usize {
 export fn parse_forest_create(): ParseForestStore* {
     var forest = alloc(ParseForestStore, 1);
     if forest != null {
-        fill(forest, 0, sizeof(ParseForestStore));
+        *forest = default;
     }
     return forest;
 }

@@ -40,7 +40,7 @@ export fn syntax_pattern_create(grammar: void*): SyntaxPattern* {
     if failed {
         return null;
     }
-    fill(value, 0, sizeof(SyntaxPattern));
+    *value = default;
     value.references = 1;
     value.table = lex_table_create();
     failed = value.table == null;
@@ -60,7 +60,7 @@ export fn syntax_node_size(): usize {
 }
 
 export fn syntax_node_init(value: SyntaxNode*): void {
-    fill(value, 0, sizeof(SyntaxNode));
+    *value = default;
     value.start = 0;
     value.start--;
     value.end = value.start;

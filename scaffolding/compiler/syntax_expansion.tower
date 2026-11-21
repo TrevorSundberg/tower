@@ -584,8 +584,7 @@ fn expansion_run(state: ExpansionState*): bool {
 }
 
 export fn syntax_expand(input: SyntaxExpansionInput*, result: SyntaxExpansionResult*): bool {
-    var state: ExpansionState;
-    fill(&state, 0, sizeof(ExpansionState));
+    var state: ExpansionState = default;
     state.input = input;
     state.result = result;
     var ok = expansion_run(&state);

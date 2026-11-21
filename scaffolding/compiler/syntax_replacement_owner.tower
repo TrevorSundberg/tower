@@ -48,7 +48,7 @@ fn replacement_dispose(value: SyntaxReplacement*): void {
     vector_dispose(&value.captures);
     vector_dispose(&value.rule);
     vector_dispose(&value.category);
-    fill(value, 0, sizeof(SyntaxReplacement));
+    *value = default;
 }
 
 export fn syntax_replacement_owner_create(host: void*, emission: SyntaxEmission*, kind: void*, match_kind: void*): SyntaxReplacementOwner* {
@@ -56,7 +56,7 @@ export fn syntax_replacement_owner_create(host: void*, emission: SyntaxEmission*
     if value is null {
         return null;
     }
-    fill(value, 0, sizeof(SyntaxReplacementOwner));
+    *value = default;
     value.host = host;
     value.emission = emission;
     value.kind = kind;
@@ -127,8 +127,7 @@ export fn syntax_replacement_capture(context: void*, name: u8*, source: void*): 
             break;
         }
     }
-    var capture: SyntaxReplacementCapture;
-    fill(&capture, 0, sizeof(SyntaxReplacementCapture));
+    var capture: SyntaxReplacementCapture = default;
     if !node_text_set(&capture.name, name) || !vector_reserve(captures, captures.length + 1) {
         vector_dispose(&capture.name);
         value.failed = true;

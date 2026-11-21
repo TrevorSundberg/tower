@@ -107,7 +107,7 @@ fn lexicon_prefix(source: u8*, length: usize, start: usize, text: u8*, count: us
 export fn lexicon_create(): SyntaxLexicon* {
     var value = alloc(SyntaxLexicon, 1);
     if value != null {
-        fill(value, 0, sizeof(SyntaxLexicon));
+        *value = default;
     }
     return value;
 }
@@ -144,15 +144,14 @@ export fn lexicon_literal(value: SyntaxLexicon*, text: u8*, length: usize, id: u
 }
 
 export fn lexicon_start(value: SyntaxLexicon*, text: u8*, length: usize): bool {
-    var literal: LexiconLiteral;
-    fill(&literal, 0, sizeof(LexiconLiteral));
+    var literal: LexiconLiteral = default;
     literal.text = text;
     literal.length = length;
     return lr_append(LexiconLiteral, &value.starts, &literal);
 }
 
 fn lexicon_choice_init(choice: LexiconChoice*): void {
-    fill(choice, 0, sizeof(LexiconChoice));
+    *choice = default;
     choice.id = 4294967294;
     choice.style = "";
 }

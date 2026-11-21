@@ -324,8 +324,7 @@ comments: FormatComment*, comment_count: usize, ordered: bool): void {
         i++;
     }
     format_sort(&tokens);
-    var previous: FormatToken;
-    fill(&previous, 0, sizeof(FormatToken));
+    var previous: FormatToken = default;
     var previous_end = from;
     var parentheses: usize = 0;
     i = 0;

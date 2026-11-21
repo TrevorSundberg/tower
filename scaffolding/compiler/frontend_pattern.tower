@@ -61,8 +61,7 @@ fn frontend_pattern_position(source: u8*, length: usize, offset: usize): usize {
 
 export fn frontend_pattern_read(compiler: FrontendPatternCompiler*, source: u8*, length: usize,
 error: FormatResult*): SyntaxPattern* {
-    var formatter: FormatEngine;
-    fill(&formatter, 0, sizeof(FormatEngine));
+    var formatter: FormatEngine = default;
     formatter.result = error;
     if length > 4096 {
         format_text(&formatter, "Token pattern exceeds 4096 bytes");
@@ -77,8 +76,7 @@ error: FormatResult*): SyntaxPattern* {
         format_text(&formatter, "Unable to allocate token pattern grammar");
         return null;
     }
-    var input: FrontendCharacters;
-    fill(&input, 0, sizeof(FrontendCharacters));
+    var input: FrontendCharacters = default;
     input.source = source;
     input.length = length;
     var root = frontend_read_characters(&compiler.table, &compiler.kinds, &input);

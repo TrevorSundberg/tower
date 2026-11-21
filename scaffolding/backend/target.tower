@@ -12,7 +12,7 @@ export fn backend_open(triple: u8*): Backend* {
     if failed {
         return null;
     }
-    fill(b, 0, sizeof(Backend));
+    *b = default;
     backend_initialize_targets();
     b.wasm = backend_prefix(triple, "wasm");
     b.foreign_profile = foreign_profile_for_target(triple);

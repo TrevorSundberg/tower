@@ -19,7 +19,7 @@ struct SemanticDeferred {
 }
 
 fn sem_defer_copy_text(destination: vector(u8)*, source: vector(u8)*): void {
-    fill(destination, 0, sizeof(vector(u8)));
+    *destination = default;
     if source.length == 0 {
         return;
     }

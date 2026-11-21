@@ -39,7 +39,7 @@ export fn syntax_template_holes_revision(input: SyntaxTemplateGrammar*, revision
     if missing {
         return false;
     }
-    fill(value, 0, sizeof(SyntaxEmission));
+    *value = default;
     value.input = &input.emission;
     var index: usize = 0;
     loop {

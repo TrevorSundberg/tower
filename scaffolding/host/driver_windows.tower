@@ -127,8 +127,7 @@ export fn driver_platform_run(argv: u8**): i32 {
     driver_arguments_init(&quoted);
     var i: usize = 0;
     for(; argv[i] != null; i++) {
-        var text: ByteBuffer;
-        fill(&text, 0, sizeof(ByteBuffer));
+        var text: ByteBuffer = default;
         quoted.ok = driver_windows_quote(&text, argv[i]);
         quoted.ok &&= vector_push(&quoted.values, text.data);
         if !quoted.ok {

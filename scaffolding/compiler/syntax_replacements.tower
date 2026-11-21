@@ -462,8 +462,7 @@ fn replacement_prepare_all(state: ReplacementPlanState*): bool {
 }
 
 export fn syntax_replacements_prepare(plan: SyntaxReplacementPlan*): bool {
-    var state: ReplacementPlanState;
-    fill(&state, 0, sizeof(ReplacementPlanState));
+    var state: ReplacementPlanState = default;
     state.plan = plan;
     state.allocated = true;
     var ok = replacement_prepare_all(&state);

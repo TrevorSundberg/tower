@@ -122,8 +122,7 @@ fn ide_tree_push(items: vector(IdeTreeItem)*, node: void*, parent: usize, role: 
 fn ide_tree(out: ByteBuffer*, root: void*): void {
     var pending: vector(IdeTreeItem);
     vector_init(&pending);
-    var traces: IdeTraces;
-    fill(&traces, 0, sizeof(IdeTraces));
+    var traces: IdeTraces = default;
     ide_tree_push(&pending, root, ide_missing(), tower_node_get_parent_member_name(root));
     ide_text(out, ",\"nodes\":[");
     var index: usize = 0;
