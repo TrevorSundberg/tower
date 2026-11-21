@@ -89,6 +89,78 @@ independent known bit patterns before wiring shared scalar components, literal
 parsing/formatting, interpreter operations and LLVM lowering. Keep scratch local
 to each query/worker and include the numeric policy in semantic/cache identity.
 
+#### Core vector direction requested 2026-11-21
+
+Make fixed-size numeric vectors part of the language's core value/type model,
+usable in ordinary CPU programs, portable interpretation and GPU code. The user
+wants convenient float3/float4-style math and Burst-like SIMD optimization to
+share this model, including swizzles on every supported vector family. `f32_4`
+is their suggested Tower-style spelling, not a finalized syntax decision.
+
+Proposed naming: ordinary type aliases `f32_2`, `f32_3`, `f32_4`, `i32_4`,
+`u32_4`, and corresponding boolean masks, backed by a single type-producing
+application such as `vec(f32, 4)`. Resolve these through ordinary names/type
+objects; do not add reserved type keywords or angle-bracket parsing. Keep the
+growable collection `vector(T)` distinct: it owns storage and a runtime length,
+whereas these values have a statically known lane count. Exact names, supported
+initial widths and whether wider/scalable forms need a separate application
+remain open. Start practical work with 2/3/4-lane fixed values alongside floats.
+
+One logical vector need not occupy one machine register. Preserve its lane count
+and semantics while choosing scalar instructions, SSE/AVX, NEON, Wasm SIMD or
+shader vector operations under the selected target. A three-lane value must not
+read a fourth element or expose a padding lane. SIMD across loop iterations is
+a separate compiler optimization over the same operations: ordinary `for` and
+`foreach` code should benefit when alias, access, effect and cost analysis permit.
+Do not require handwritten intrinsics, promise automatic vectorization of every
+loop, or silently rearrange address-observable array/struct storage. GPU vector
+components are also distinct from invocation/subgroup lanes and synchronization.
+
+Proposed shared operation surface: component arithmetic, explicit numeric
+conversions, scalar splats, construction/extraction/insertion, comparison masks,
+`select`/`any`/`all`, and math such as dot/cross/length/normalize. Specify scalar
+broadcast and scalar-versus-mask equality rules before implementation; avoid an
+implicit mask-to-bool condition. Bounds, zero-length normalization, integer
+overflow, divide-by-zero and masked-lane effects need explicit contracts. Reduction
+order and contraction/reassociation must respect the strict floating profile;
+relaxed math is a separate explicit profile, including in staging/cache identity.
+
+Swizzles should work on integer, floating and mask vectors on CPU and GPU alike.
+Propose `.xyzw` and `.rgba` read/write spellings, reads with repetition, and unique
+destination lanes for assignment. Evaluate the destination once and snapshot the
+right side before overlapping writes (`v.xy = v.yx`). Diagnose out-of-range lanes
+and duplicate writable selectors. Longer vectors still need ordinary indexed
+lane operations; four-letter aliases must not become a language-wide lane limit.
+These spellings are proposals, not accepted syntax today.
+
+Attach vector element/count/type identity and operations to the existing ECS
+entities; use the same checking, interpreter, formatter and backend inputs.
+Provide compilable Foundation type/operation spellings, including shuffle/select,
+and reversible canonical round trips. Keep independent checking/lowering in
+CompilerWork jobs with private scratch and deterministic publication. Scalar
+fallbacks and accelerated variants must satisfy the selected semantics, with
+capabilities explicit and no unsupported instructions in a baseline variant.
+
+Separate logical values from target layout/ABI. Record lane size, alignment,
+array stride, padding, address spaces and external/shader buffer profiles. A
+CPU register's width does not determine a buffer's byte layout; for example,
+[WGSL defines different size and alignment for three-component vectors](https://www.w3.org/TR/WGSL/#alignment-and-size).
+Support SPIR-V/Vulkan, DXIL/DirectX and direct WGSL/WebGPU emission with legality
+checks and documented portable fallbacks, without forcing WGSL through SPIR-V.
+CPU reference execution of shader math, including ocean waves and buoyancy,
+remains a motivating use case. Context-dependent derivatives/sampling/collectives
+retain their separately specified policies.
+
+Use [Burst's vector support](https://docs.unity.cn/Packages/com.unity.burst%401.4/manual/docs/CSharpLanguageSupport_Types.html)
+as a usability reference and [LLVM's loop/SLP vectorizers](https://llvm.org/docs/Vectorizers.html)
+as initial implementation machinery and comparison points. This direction does
+not claim their exact API, hardware mapping or performance. Validate lane bits,
+swizzle aliasing, layouts, Foundation round trips, CPU/interpreter/GPU agreement
+under eligible profiles, worker determinism and actual generated instructions.
+Floating scalar semantics remain the first dependency; this vector track extends
+that milestone without dropping first-class functions or the remaining C-level
+capability work above. All new implementation/tests stay in Tower.
+
 ### Existing broader roadmap
 
 The subsequent instruction is to complete this roadmap, not stop after the first

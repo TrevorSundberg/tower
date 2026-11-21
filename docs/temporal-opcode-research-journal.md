@@ -34474,3 +34474,72 @@ This verifies this metadata publication; runtime browser-generation and UI
 evidence belongs to the preserved upstream release, not a repeated test here.
 The current tracked inventory has 20 Python files and zero owned C/C++ files;
 substantial JavaScript/shell/CMake migration remains. No 99.999% claim is made.
+#### User direction: unified core vectors, swizzles and automatic SIMD
+
+The user explicitly requested core float3/float4-style values, tentatively named
+`f32_3`/`f32_4`, unified with Burst-style SIMD use and shader vectors, available
+on CPU and GPU with swizzles throughout. They prefer the compiler to choose SSE
+or other vectorization without requiring users to write manual intrinsics, and
+remain open to a clean naming/model proposal. Recorded this as language direction
+in docs/tower-language-plan.md, not as an implemented feature or finalized syntax.
+
+The proposed common model is fixed-size logical lane values, with convenient
+ordinary aliases over a type-producing application such as `vec(f32, 4)`.
+The existing growable `vector(T)` is a different storage/ownership abstraction.
+Neither a source value's lane count nor its memory layout should be defined by
+the CPU's physical SIMD register width. The same entities/operations can be
+scalarized, lowered to eligible CPU SIMD, or emitted as shader operations.
+Auto-vectorizing multiple loop iterations uses the same arithmetic plus proven
+alias/effect/access information. It does not imply arbitrary AoS/SoA rewriting,
+automatic parallel threads, or equivalence to GPU subgroup lanes.
+
+Proposed swizzle contract: `.xyzw`/`.rgba` on numeric and mask vectors; repeated
+read selectors; unique writable lanes; one destination evaluation and a complete
+right-side snapshot before overlapping writes. Include masks/select/any/all,
+explicit conversion/splat rules and standard vector math. Decide equality,
+normalization of zero, division/masking behavior and reduction order explicitly.
+Strict staged arithmetic and runtime arithmetic must agree; SIMD reassociation
+or approximate math cannot silently change that profile. Keep one canonical
+Foundation spelling and shared ECS checking/lowering, with worker-owned scratch.
+
+Primary references consulted:
+[Unity Burst vector types](https://docs.unity.cn/Packages/com.unity.burst%401.4/manual/docs/CSharpLanguageSupport_Types.html),
+[LLVM loop and SLP vectorization](https://llvm.org/docs/Vectorizers.html), and
+[WGSL vector layout](https://www.w3.org/TR/WGSL/#alignment-and-size).
+These support the distinction between user vector values, vectorizer decisions
+and explicit buffer layouts. In particular, WGSL's three-component vector size
+and alignment differ; blindly adopting a SIMD register size is not interoperable
+layout. Backend legality must cover SPIR-V/Vulkan, DXIL and direct WGSL/WebGPU,
+including unsupported element types and optional capabilities. This is a design
+proposal informed by those sources, not a claim of identical target behavior.
+
+Plan vectors alongside the floating-point milestone, preserving the requested
+remaining C-level work. First establish scalar numeric semantics, then shared
+fixed-vector types/operations, swizzle sequencing, canonical/interpreter tests,
+and target implementations with actual instruction/performance evidence. CPU
+shader reference execution and shared ocean-wave/buoyancy math remain motivating
+examples. No implementation, bootstrap change or todo.txt edit accompanies this
+direction entry; all future implementation/tests remain Tower source.
+
+#### Hosted migration release receipt
+
+Source/bootstrap publication is dfee43c; validation/initial floating research is
+5307c71. Pages runtime publication 4359808 plus metadata correction 3c4865a is live.
+`node playground/scripts/verify-deployment.mjs https://tower-lang.org/` succeeds:
+all 80 exact asset hashes and complete desktop/mobile flows pass, including
+backend agreement, editable grammar/compiler projects, persistence, completion,
+highlighting and native builds/downloads. Evidence: values-published-hosted.log
+and build/deployment-verification/report.json. PowerShell 5's UTF-8 writer added
+a BOM to the first metadata edit; the follow-up uses BOM-free UTF-8 and was
+published before this successful verification. Runtime buildSourceCommit remains
+dfee43c. The vector-direction/journal receipt is documentation only; its publication
+preserves the verified runtime bytes and updates source metadata without rebuilding
+compiler artifacts. The current source has no remaining legacy const declarations.
+
+The final documentation pull incorporated the Tower build-tool cutover through
+a4ef899 and preserved its journal/AGENTS guidance. No compiler semantic source
+changed in that integration. A fresh default build using its updated bootstrap
+entry point passes all 53 steps in `/cache/values-tooling-clean`; the successor's
+fixed-binding library links/runs with status 0 and enum graph execution prints 0
+(values-tooling-clean.log, values-tooling-enums.log). Preserve the newer Pages
+toolingMigration metadata from 645eefc along with the verified runtime assets.
