@@ -34452,3 +34452,25 @@ GitHub connector can read and optimistically update the single manifest by blob
 SHA, preserving the existing remote tree and all runtime files. Publication uses
 that path under the acquired agent1 publication lock instead of transferring
 unneeded historical binaries. No source or Pages force-push is used.
+
+Final publication receipt: source cutover `d64b91d` and policy/validation
+`a4ef899` are pushed after the final documentation-only rebase over `5307c71`.
+That last rebase changed no compiler/bootstrap/tool inputs, so the passing
+2292 clean-build evidence remains applicable. Native successor SHA-256 is
+`7ef1e6da14b9de1c5e06df2cc75ff8cb1058fb6ea5bd4c57a0a0f243ca28dc16`.
+
+Correction to the proposed connector publication path above: the connector's
+update operation returned HTTP 403, Resource not accessible by integration.
+The already authenticated repository `gh` CLI completed the same contents-API
+update with the current blob SHA. Meanwhile upstream published Pages `3c4865a`
+with runtime build source `dfee43c` and 80 assets. Refetched that manifest and
+preserved every asset hash, its buildSourceCommit, audits and notes rather than
+restoring the earlier 6443 runtime. The resulting metadata-only Pages commit
+`645eefc74785f9aae953b239b73e9f005fb82ff2` directly descends from `3c4865a` and
+changes only deployment-manifest.json. GitHub Pages run `44941850486` succeeded.
+The exact HTTPS manifest receipt matches the prepared local file at SHA-256
+`0762deb5bc76a3a2594bf2707205de149d8cb3a2f123d597f101ac7a5321d86b`.
+This verifies this metadata publication; runtime browser-generation and UI
+evidence belongs to the preserved upstream release, not a repeated test here.
+The current tracked inventory has 20 Python files and zero owned C/C++ files;
+substantial JavaScript/shell/CMake migration remains. No 99.999% claim is made.
