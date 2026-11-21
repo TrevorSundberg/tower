@@ -97,6 +97,11 @@ function(tower_driver_integrate)
     endif()
     add_test(NAME tower-driver COMMAND tower-driver-tests "$<TARGET_FILE:towerc>" "${runtime_bind}" ${runtime_test})
     set_tests_properties(tower-driver PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/tower-driver-checks")
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/tower-module-path-checks")
+    add_test(NAME tower-driver-module-paths COMMAND tower-driver-tests --module-paths
+      "$<TARGET_FILE:towerc>" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")
+    set_tests_properties(tower-driver-module-paths PROPERTIES
+      WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/tower-module-path-checks")
     include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/TowerDriverRequestTests.cmake")
     cmake_language(DEFER CALL tower_driver_request_tests)
   endif()

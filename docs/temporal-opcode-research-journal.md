@@ -37079,3 +37079,62 @@ manifest, SHA-256 b641e676fbd0d2d7218f6e1bf30c0ebeb4bb698c062d6102cb280ef4c4f791
 It preserves runtime build 85c8a138e098f2dd84706d3f9d6e7bbcfa592887, all 84 asset
 entries and concurrent UI/tooling/profiling notes. This is explicitly an experimental
 source/API receipt, not a hosted linker cutover. The publication lock is released.
+
+### 2026-11-21: retire the Python filesystem-import driver
+
+Audit module_paths.py before translating it. There are no current repository
+callers beyond historical journal entries, but its real filesystem behavior is
+not redundant with frontend_modules.tower's in-memory provider or the smaller
+module_file_case_matches fixture. Keep those contracts and remove the separate
+script/runner: add driver_module_paths.tower to the existing Tower driver test
+executable and its subprocess/output-capture facilities. The new CTest entry
+tower-driver-module-paths has its own working directory so parallel driver tests
+cannot race on capture logs. Direct use is `tower-driver-tests --module-paths
+/absolute/compiler /absolute/scaffolding`; the explicit source directory keeps
+the previous test's checkout grammar inputs rather than silently selecting the
+tested compiler's bundled grammar.
+
+All eleven previous cases remain: leading-dot imports, exact quoted case and
+extension, quoted spaces/hyphens, duplicate lexical imports executing once,
+exact library fallback over a differently cased local file, rejection of that
+fallback for leading-dot imports, and two lexical symlink aliases executing
+twice. Fresh roots use the existing platform temporary-file reservation plus
+an exclusively created sibling directory. Typed fixture ownership records only
+fixed suffixes under that root; scope cleanup removes files and directories in
+reverse order, without recursive deletion or directory traversal. Reuse existing
+file/argument helpers. The only new platform bindings are directory removal /
+creation and symlink creation. POSIX already had mkdir/symlink declarations.
+
+Windows uses the documented BOOLEAN return and file/unprivileged flags of
+[CreateSymbolicLinkA](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-createsymboliclinka),
+retrying the ordinary file-link call when the optional unprivileged flag fails.
+As before, unavailable symlink creation is an explicit skip; it does not silently
+count as an executed alias check. The Linux validation below did create the link
+and execute that case. Windows/macOS linked execution is not claimed here.
+
+Validation uses the public 1a5b588 bootstrap, tower_build, Clang/LLVM 19 and the
+already verified unchanged compiler source/successor from d20583c. Compile the
+smallest changed module first. Copy only the changed test inputs and CMake
+registration into the own /cache/bootstrap_symbols_rebased_checkout snapshot;
+enable TOWER_DRIVER_TESTS in /cache/bootstrap_symbols_rebased_native and build
+the existing tower-driver-tests target. This is three incremental steps, not
+another compiler rebuild. An initial attempt also named tower-runtime-abi-tests,
+which is not a target in this profile; correct the invocation to the actual
+driver target. With /usr/bin/python3.12 unavailable in the disposable container,
+the complete tower-driver test passes in 10.08 seconds and the new import test
+passes in 3.10 seconds. The final named-stream-constant cleanup compiles and
+passes the focused test again in 3.11 seconds.
+
+Repeat the focused runner with TMPDIR=/cache/module\ path\ fixtures. It passes
+with spaces in the temporary root. Then supply a missing compiler and missing
+grammar directory: both return failure, and after each successful/failed trial
+`find ... -mindepth 1` confirms the temporary directory is empty. Cross-compile
+the Windows x64 bindings and POSIX/macOS ARM64 bindings with the public bootstrap;
+both produce objects. No compiler semantics, bootstrap pin, runtime assets or
+todo.txt changed. No sanitizer or broad formatting/matrix run.
+
+Delete the 55-line Python driver and document the existing Tower entry point.
+Tracked Python is now 10 files / 722 lines, down 1,267 lines (63.7%) from the
+23-file / 1,989-line baseline. The separate inline-Python reduction from the
+preceding milestone is unchanged. Continue auditing remaining subprocess,
+benchmark and browser-packaging coverage before removing or porting it.

@@ -1,0 +1,120 @@
+import tower;
+import driver;
+import driver_platform_api;
+import .host.driver_support;
+import .host.driver_platform;
+import .library.bytes_types;
+import .library.bytes_interface;
+
+// This suite needs real filesystem lookup, not an in-memory module provider.
+// Reuse the driver runner and keep all fixtures inside one newly created root.
+struct DriverImportFiles {
+    root: ByteBuffer;
+    files: DriverArguments;
+    directories: DriverArguments;
+}
+
+var DriverImportStdout: i32 = 1;
+
+fn driver_import_close(files: DriverImportFiles*): void {
+    for(var i = files.files.values.length; i != 0;) {
+        driver_platform_remove(files.files.values.data[--i]);
+    }
+    for(var i = files.directories.values.length; i != 0;) {
+        driver_test_remove_directory(files.directories.values.data[--i]);
+    }
+    driver_test_remove_directory(files.root.data);
+    driver_arguments_dispose(&files.files);
+    driver_arguments_dispose(&files.directories);
+}
+
+// A null source creates a directory. Names are fixed fixture suffixes, not user
+// paths; recording before creation also cleans up a partially written file.
+fn driver_import_add(files: DriverImportFiles*, name: u8*, source: u8*): bool {
+    var paths = source == null ? &files.directories : &files.files;
+    driver_argument(paths, files.root.data, name);
+    if !paths.ok { return false; }
+    var path = paths.values.data[paths.values.length - 1];
+    return source == null ? driver_test_directory(path) : driver_write_file(path, source, strlen(source));
+}
+
+fn driver_import_grammar(files: DriverImportFiles*, resources: u8*, name: u8*): bool {
+    var path: ByteBuffer = default; var source: ByteBuffer = default;
+    defer bytes_dispose(&path); defer bytes_dispose(&source);
+    if !driver_text(&path, resources) || !driver_text(&path, name) || !host_text_terminate(&path)
+        || !driver_read_file(path.data, &source) { return false; }
+    path.length = 0;
+    return driver_text(&path, "/library") && driver_text(&path, name) && host_text_terminate(&path)
+        && driver_import_add(files, path.data, source.data);
+}
+
+fn driver_import_run(files: DriverImportFiles*, compiler: u8*, source: u8*, output: u8*): bool {
+    var args: DriverArguments = default; driver_arguments_init(&args);
+    var stdout_data: ByteBuffer = default; var stderr_data: ByteBuffer = default;
+    defer driver_arguments_dispose(&args);
+    defer bytes_dispose(&stdout_data); defer bytes_dispose(&stderr_data);
+    driver_argument(&args, "", compiler);
+    driver_argument(&args, files.root.data, "/a/b/main.tower");
+    driver_argument(&args, "", "--interpret");
+    driver_argument(&args, "", "--foundation");
+    driver_argument(&args, files.root.data, "/library/foundation.tower");
+    driver_argument(&args, "", "--bedrock");
+    driver_argument(&args, files.root.data, "/library/bedrock.tower");
+    if !args.ok || !driver_write_file(args.values.data[1], source, strlen(source)) { return false; }
+    var result = driver_test_capture(&args);
+    if !driver_read_file("driver stdout.txt", &stdout_data) || !driver_read_file("driver stderr.txt", &stderr_data) { return false; }
+    var ok = output == null ? result != 0 && strstr(stderr_data.data, "import") != null
+        : result == 0 && driver_same(stdout_data.data, output);
+    if !ok { driver_error("Filesystem import case failed: ", source); driver_error("Diagnostic: ", stderr_data.data); }
+    return ok;
+}
+
+fn driver_import_checks(files: DriverImportFiles*, compiler: u8*, resources: u8*): bool {
+    if !driver_import_add(files, "/library", null) || !driver_import_add(files, "/a", null)
+        || !driver_import_add(files, "/a/b", null) || !driver_import_add(files, "/CaseDir", null)
+        || !driver_import_add(files, "/custom folder", null)
+        || !driver_import_grammar(files, resources, "/bedrock.tower")
+        || !driver_import_grammar(files, resources, "/foundation.tower")
+        || !driver_import_grammar(files, resources, "/tower.tower")
+        || !driver_import_add(files, "/a/b/main.tower", "")
+        || !driver_import_add(files, "/a/one.tower", "import tower; print(1);")
+        || !driver_import_add(files, "/two.tower", "import tower; print(2);")
+        || !driver_import_add(files, "/CaseDir/Exact.tower", "import tower; print(42);")
+        || !driver_import_add(files, "/custom folder/a-b.tower", "import tower; print(9);")
+        || !driver_import_add(files, "/a/b/Helper.tower", "import tower; print(0);")
+        || !driver_import_add(files, "/library/helper.tower", "import tower; print(3);")
+        || !driver_import_add(files, "/effects.tower", "import tower; print(7);") { return false; }
+    if !driver_import_run(files, compiler, "import .one; import ..two;", "1\n2\n")
+        || !driver_import_run(files, compiler, "import \"../../CaseDir/Exact.tower\";", "42\n")
+        || !driver_import_run(files, compiler, "import \"../../casedir/Exact.tower\";", null)
+        || !driver_import_run(files, compiler, "import \"../../CaseDir/exact.tower\";", null)
+        || !driver_import_run(files, compiler, "import \"../../CaseDir/Exact.Tower\";", null)
+        || !driver_import_run(files, compiler, "import \"../../CaseDir/Exact\";", null)
+        || !driver_import_run(files, compiler, "import \"../../custom folder/a-b.tower\";", "9\n")
+        || !driver_import_run(files, compiler, "import ..CaseDir.Exact; import \"../../CaseDir/Exact.tower\";", "42\n")
+        || !driver_import_run(files, compiler, "import helper;", "3\n")
+        || !driver_import_run(files, compiler, "import .helper;", null) { return false; }
+    driver_argument(&files.files, files.root.data, "/alias.tower");
+    if !files.files.ok { return false; }
+    var alias = files.files.values.data[files.files.values.length - 1];
+    if !driver_test_symlink("effects.tower", alias) {
+        driver_platform_write(DriverImportStdout, "Symlink fixture unavailable\n", strlen("Symlink fixture unavailable\n"));
+        return true;
+    }
+    return driver_import_run(files, compiler, "import ..effects; import ..alias;", "7\n7\n");
+}
+
+fn driver_test_module_paths(compiler: u8*, resources: u8*): bool {
+    var files: DriverImportFiles = default;
+    var marker: ByteBuffer = default;
+    defer bytes_dispose(&files.root); defer bytes_dispose(&marker);
+    if !driver_platform_temporary(&marker) { return false; }
+    defer driver_platform_remove(marker.data);
+    if !driver_text(&files.root, marker.data) || !driver_text(&files.root, "_imports")
+        || !host_text_terminate(&files.root) || !driver_test_directory(files.root.data) { return false; }
+    driver_arguments_init(&files.files); driver_arguments_init(&files.directories);
+    defer driver_import_close(&files);
+    var ok = driver_import_checks(&files, compiler, resources);
+    if ok { driver_platform_write(DriverImportStdout, "Native module paths passed\n", strlen("Native module paths passed\n")); }
+    return ok;
+}

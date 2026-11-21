@@ -8,6 +8,7 @@ import .host.driver_platform;
 import .host.driver_windows_arguments;
 import driver_platform_api;
 import driver_compilation;
+import driver_module_paths;
 
 extern fn strstr(text: u8*, part: u8*): u8*;
 
@@ -411,6 +412,12 @@ fn driver_test_cli(compiler: u8*): void {
 
 export fn driver_tests(argc: i32, argv: u8**): i32 {
     if argc > 1 {
+        if driver_same(argv[1], "--module-paths") {
+            var module_arguments: i32 = 4;
+            var usage: i32 = 2; var failure: i32 = 1;
+            if argc != module_arguments { return usage; }
+            return driver_test_module_paths(argv[2], argv[3]) ? 0 : failure;
+        }
         if driver_same(argv[1], "--failure") {
             return 127;
         }

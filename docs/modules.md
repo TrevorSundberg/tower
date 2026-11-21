@@ -238,9 +238,21 @@ be selected, viewed, edited, restored and saved with the project. Unused bundled
 modules are available to import but absent from the tree. Legacy projects without
 imports show their implicit Bedrock/Foundation dependencies.
 
+## Native import checks
+
+Native filesystem import checks run in the existing Tower driver test runner.
+Configure the native build with `-DTOWER_DRIVER_TESTS=ON`, build
+`tower-driver-tests`, then run `ctest --test-dir <native-build> -R
+'^tower-driver-module-paths$' --output-on-failure`. The equivalent direct command
+is `tower-driver-tests --module-paths /absolute/path/to/towerc
+/absolute/path/to/scaffolding`. It uses the explicitly supplied grammar files
+and fresh temporary directories, covering relative imports, exact case and
+extensions, quoted filenames, library fallback, and lexical symlink identity.
+Symlink checks report a skip if the host cannot create them. No Python is needed.
+
 ## Bootstrap requirement
 
-The standard build automatically verifies and installs the checked-in development
+The standard build automatically verifies and uses the checked-in development
 bootstrap, including expression support and its complete grammar/library resources:
 
 ```sh

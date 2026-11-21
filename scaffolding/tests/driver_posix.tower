@@ -19,6 +19,14 @@ extern fn symlink(target: u8*, link: u8*): i32;
 
 extern fn mkdir(path: u8*, mode: u32): i32;
 
+extern fn rmdir(path: u8*): i32;
+
+var DriverTestPrivateMode: u32 = 448;
+
+export fn driver_test_directory(path: u8*): bool { return mkdir(path, DriverTestPrivateMode) == 0; }
+export fn driver_test_remove_directory(path: u8*): void { rmdir(path); }
+export fn driver_test_symlink(target: u8*, path: u8*): bool { return symlink(target, path) == 0; }
+
 extern fn driver_resource_root(out: ByteBuffer*, executable: u8*): bool;
 
 export fn driver_test_cli_platform(compiler: u8*): void {
@@ -32,8 +40,8 @@ export fn driver_test_cli_platform(compiler: u8*): void {
     driver_platform_remove(alias);
     // Copy the complete resource directory beside the compiler, then execute
     // from a different cwd with spaces in the package and source names.
-    mkdir("driver relocated", 448);
-    mkdir("driver relocated/share", 448);
+    mkdir("driver relocated", DriverTestPrivateMode);
+    mkdir("driver relocated/share", DriverTestPrivateMode);
     var bytes: ByteBuffer;
     var root: ByteBuffer;
     fill(&bytes, 0, sizeof(ByteBuffer));
@@ -41,7 +49,7 @@ export fn driver_test_cli_platform(compiler: u8*): void {
     driver_check(driver_read_file(compiler, &bytes), "read compiler for relocation");
     driver_check(driver_write_file("driver relocated/towerc", bytes.data, bytes.length), "write relocated compiler");
     bytes_dispose(&bytes);
-    ok = chmod("driver relocated/towerc", 448) == 0;
+    ok = chmod("driver relocated/towerc", DriverTestPrivateMode) == 0;
     driver_check(ok, "relocated executable mode");
     driver_check(driver_resource_root(&root, compiler), "relocation resource root");
     var args: DriverArguments;
@@ -78,7 +86,7 @@ export fn driver_test_close(fd: i32): void {
 export fn driver_test_platform_cases(): void {
     var path = "./driver executable text";
     driver_check(driver_write_file(path, "exit 0\n", 7), "executable text fixture");
-    var ok = chmod(path, 448) == 0;
+    var ok = chmod(path, DriverTestPrivateMode) == 0;
     driver_check(ok, "executable fixture mode");
     var args: DriverArguments;
     driver_arguments_init(&args);

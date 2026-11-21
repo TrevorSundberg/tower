@@ -8,6 +8,18 @@ extern fn _dup2(source: i32, destination: i32): i32;
 
 extern fn _close(fd: i32): i32;
 
+extern fn _mkdir(path: u8*): i32;
+extern fn _rmdir(path: u8*): i32;
+extern fn CreateSymbolicLinkA(path: u8*, target: u8*, flags: u32): u8;
+
+export fn driver_test_directory(path: u8*): bool { return _mkdir(path) == 0; }
+export fn driver_test_remove_directory(path: u8*): void { _rmdir(path); }
+export fn driver_test_symlink(target: u8*, path: u8*): bool {
+    var file_link: u32 = 0; var allow_unprivileged: u32 = 2;
+    return CreateSymbolicLinkA(path, target, allow_unprivileged) != 0
+        || CreateSymbolicLinkA(path, target, file_link) != 0;
+}
+
 export fn driver_test_file(file: void*): i32 {
     return _fileno(file);
 }
@@ -26,6 +38,7 @@ export fn driver_test_close(fd: i32): void {
 
 export fn driver_test_platform_cases(): void {}
 
-// Windows symlink creation can require privileges; ordinary path/argv cases
-// still run through the same driver suite and GetModuleFileNameA implementation.
+// The module-path suite attempts symlinks and reports unavailable privileges.
+// Executable relocation cases below remain POSIX-only; ordinary argv cases use
+// the same driver suite and GetModuleFileNameA implementation.
 export fn driver_test_cli_platform(compiler: u8*): void {}
