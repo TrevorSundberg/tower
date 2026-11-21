@@ -13,6 +13,7 @@ if (!base.pathname.endsWith('/')) throw new Error('Deployment URL must end in /'
 const output = new URL('../../build/deployment-verification/', import.meta.url);
 await mkdir(output, {recursive:true});
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
+const bytecodeContainerVersion = 1, bytecodeSemanticsVersion = 3, bytecodeExecutionCacheVersion = 3;
 const report = {url:base.href, assets:[], browsers:[]};
 const manifest = JSON.parse(await readFile(new URL('../dist/deployment-manifest.json', import.meta.url), 'utf8'));
 // .nojekyll is a hosting marker; GitHub Pages does not serve dotfiles.
@@ -116,9 +117,9 @@ try {
     assert.match(bytecodeArtifact.suggestedFilename(), /\.towerbc$/);
     const bytecodeBytes = await readFile(await bytecodeArtifact.path());
     assert.equal(bytecodeBytes.subarray(0,7).toString(),'TOWERBC');
-    assert.equal(bytecodeBytes.readUInt32LE(8),1);
-    assert.equal(bytecodeBytes.readUInt32LE(12),2);
-    assert.equal(bytecodeBytes.readUInt32LE(16),2);
+    assert.equal(bytecodeBytes.readUInt32LE(8),bytecodeContainerVersion);
+    assert.equal(bytecodeBytes.readUInt32LE(12),bytecodeSemanticsVersion);
+    assert.equal(bytecodeBytes.readUInt32LE(16),bytecodeExecutionCacheVersion);
     assert.equal(bytecodeBytes.readUInt32LE(24),1);
     await expect.poll(()=>outputText(page,'llvm-before')).toContain('define');
     await expect.poll(()=>outputText(page,'llvm-after')).toContain('define');

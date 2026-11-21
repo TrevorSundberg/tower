@@ -36017,3 +36017,34 @@ successfully under container-local /cache/float_bootstrap_probe. The exact faile
 stage is not established; do not infer compiler failure from that generic tool
 diagnostic. Use a new container-local candidate directory for final packaging,
 then independently verify relocation and the default clean successor build.
+
+Floating release validation (2026-11-21): the final native compiler was rebuilt
+from 9bcb6d3 with the documented default predecessor, and its focused floating
+suite passes (float-final-native-build.log, float-final-focused.log). Browser
+worker/module/LLVM/raw-memory tests pass 94 checks with one optional backend
+fixture skipped because that reactor was built without TOWER_BACKEND_TESTS
+(float-browser-release.log). The two browser compiler generations pass with
+identical module bytes and the deliberately edited diagnostic in each generation
+(float-browser-generation.log). This verifies the existing worker paths; it does
+not claim new parallel numeric kernels or hardware floating acceleration.
+
+The Tower packager produced candidate /cache/float_bootstrap_release_9bcb6d3,
+archive SHA-256 6277c4980edee18344a71eb1b64292d02af0eb3b81f59c2b840eb88b39bbb493,
+with source base 9bcb6d3d03c7b05296abf3f47ca76c17ec3db01e and no source patch.
+The independent existing installer verified every member under
+/cache/float-bootstrap-relocated. Its compiler passes the floating fixture in
+compact interpretation and native execution (float-relocated-execution.log).
+After copying that manifest/archive into the repository pin, a new build via
+`TOWER_NATIVE_BUILD=/cache/float-successor-clean TOWER_BUILD_JOBS=3 bash
+playground/scripts/build-native.sh` passed all 54 steps without a private
+bootstrap override. CMake records the new hash-addressed published-path compiler.
+The successor passes graph/compact/native execution (float-successor-build.log,
+float-successor-execution.log). This remains a Linux x64 development bootstrap.
+
+Local deployment validation exposed two old browser transport assertions still
+expecting semantics/cache version 2. They now name and expect version 3 while
+retaining container version 1; the Tower package validation/reconstruction remains
+authoritative. The focused browser package checks pass four tests, with its
+optional package-ownership fixture absent from the production reactor and skipped
+(float-browser-bytecode.log). The full native package suite remains the evidence
+for the Tower implementation. Site publication and hosted verification follow.

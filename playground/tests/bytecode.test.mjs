@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile,writeFile} from 'node:fs/promises';
 import {loadTower} from './compiler-fixtures.mjs';
 const read=path=>readFile(new URL('../../'+path,import.meta.url));
+const bytecodeContainerVersion=1, bytecodeSemanticsVersion=3, bytecodeExecutionCacheVersion=3;
 const tower=await loadTower(await read('build/browser-wasi/tower.wasm'),undefined,(await read('scaffolding/foundation.tower')).toString());
 test('Tower package preparation owns independent verified execution sessions', {skip:!tower.exports.ide_package_tests}, () => {
   assert.equal(tower.exports.ide_package_tests(),0);
@@ -15,7 +16,7 @@ for(const width of [4,8])test('.towerbc v1 round trip, target layout and determi
   try{
     const bytes=tower.bytecode(input), view=new DataView(bytes.buffer);
     assert.equal(new TextDecoder().decode(bytes.subarray(0,7)),'TOWERBC');
-    assert.equal(view.getUint32(8,true),1);assert.equal(view.getUint32(12,true),2);assert.equal(view.getUint32(16,true),2);
+    assert.equal(view.getUint32(8,true),bytecodeContainerVersion);assert.equal(view.getUint32(12,true),bytecodeSemanticsVersion);assert.equal(view.getUint32(16,true),bytecodeExecutionCacheVersion);
     assert.equal(view.getUint32(20,true),width);
     loaded=tower.loadBytecode(bytes);
     const disassembly=tower.foundation(loaded).source;

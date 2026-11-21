@@ -67,12 +67,13 @@ where required by these capabilities; parser conveniences remain in Tower rules.
 
 #### Floating-point implementation entry point
 
-Implementation update (2026-11-21, publication pending): scalar f32/f64 now pass
-focused native checks for exact literals, shared strict arithmetic, conversions,
+Implementation update (2026-11-21, validated for release): scalar f32/f64 now pass
+native and browser checks for exact literals, shared strict arithmetic, conversions,
 staging, struct/container storage, canonical/optimized Foundation and 1/2/4/8
-worker determinism. Native-compiled Wasm language and output fixtures pass too.
-See [the implemented contract](floating-point.md) and the journal for remaining
-browser/release/bootstrap validation. The following paragraphs preserve the
+worker determinism. Native-compiled Wasm language/output fixtures, two successive
+browser compiler generations, relocated bootstrap execution and the default clean
+successor build pass too. See [the implemented contract](floating-point.md) and
+the journal for publication receipts. The following paragraphs preserve the
 initial audit and its rationale; they no longer describe absent scalar support.
 
 The first source audit found no executable floating scalar kind: Foundation types,
