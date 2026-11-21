@@ -78,11 +78,11 @@
     "worker.js": "39213347695a05edc08714b411230ae26f92e38f84858cda39b22b43bae8474b",
     "worker.js.map": "37af2546e2780f6a9cc2a510e06d31d6dd8a006705dc8bdfcdb9d0567bfbe296"
   },
-  "sourceCommit": "6fcad397a10797b879011755a838e8a9c916779f",
+  "sourceCommit": "43d7c12a82ff62244660cebd7d0fa1f3c00900b4",
   "buildSourceCommit": "6fcad397a10797b879011755a838e8a9c916779f",
-  "previousDeployment": "0dbc5f7e29fcf2a0a677b2e26b6d7d9cd46e0589",
-  "scope": "Tower ECS worker scheduling, lazy decltype/comptime queries, staged flow validation and integrated upstream language/compiler work.",
-  "buildNote": "Built with the documented published development bootstrap; includes shared-memory and portable frontends plus LLVM/cross backends. See the project journal for exact validation and remaining serial phases.",
+  "previousDeployment": "6aaa550888708b0810ad9cc16e8089158f8d890a",
+  "scope": "Documentation audit of shipped ECS/threading and scalar staging, remaining completion gates and validation; runtime assets unchanged.",
+  "buildNote": "Documentation-only checkpoint. Preserves every verified runtime asset and its original buildSourceCommit; see the journal delivery audit for shipped behavior and remaining work.",
   "simplificationAudit": {
     "sourceCommit": "71757517b37656a31ae98c55cbdf07b716f4521c",
     "baseline": "0987aa5c0d1577d00264f6498fbdfcd4b6a981bc",
