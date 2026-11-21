@@ -38417,3 +38417,91 @@ geometric vector math, so this is language/CPU-GPU capability work, not a claim 
 the largest immediate compiler line reduction. Unions/bit-fields, broader foreign
 aggregate ABI and other C completeness gaps remain separate milestones. No next
 feature implementation or todo.txt edit is included in this recommendation.
+
+#### Vector/shader requirements and ordinary scalar type definitions
+
+User explicitly requires the coming f32_1/2/3/4 family to support compute and
+other shader code, GLSL/HLSL-style generation and optimization, and eventual
+SPIR-V integration. Recorded actionable tasks in docs/tower-language-plan.md,
+without editing todo.txt. Preserve the existing DXIL and direct WGSL goals and
+one shared ECS/Foundation semantic model. This entry records direction only.
+
+Research check: Microsoft's HLSL vector documentation permits one through four
+components. Base SPIR-V OpTypeVector requires at least two, while the optional
+SPV_EXT_long_vector extension changes the one-lane rule. Therefore a portable
+f32_1 must not accidentally depend on that extension: scalar lowering is the
+baseline proposal. If f32_1 is a true f32 alias, it necessarily shares f32's type
+identity and interface; any convenience .x/.r/swizzle behavior must be shared or
+implemented through an explicitly distinct wrapper. That choice remains open.
+WGSL's vec3<f32> example has size 12, alignment 16 and array stride 16: logical
+lanes, CPU ABI, register width and shader-buffer layout are separate contracts.
+References consulted 2026-11-21:
+- https://registry.khronos.org/SPIR-V/specs/unified1/SPIRV.html#_type_declaration_instructions
+- https://github.com/KhronosGroup/SPIRV-Registry/blob/main/extensions/EXT/SPV_EXT_long_vector.asciidoc
+- https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-vector
+- https://www.w3.org/TR/WGSL/#alignment-and-size
+
+The user then asked whether i32 itself can be implemented in Tower. Current
+implementation already writes scalar checking/layout, ordinary interpreter
+arithmetic and LLVM lowering in Tower. It does not yet define i32 as an ordinary
+library-produced type: foundation_tags has SI32; FoundationType has a scalar
+tag; semantic_support recognizes signedness/width by those tags. backend_type
+maps the checked width to LLVMIntTypeInContext. LLVM is a target implementation,
+not the portable interpreter's type authority. The shared interpreter operations
+also serve staged execution; replacing them with a second constant evaluator
+would violate the intended model.
+
+Proposed next architecture step to discuss before vector implementation: ordinary
+Tower functions construct reflected scalar/vector type objects on the shared ECS
+model; components describe representation, numeric semantics, layout and operation
+implementations. Keep a small explicit foundation for bits/memory/control and
+execution, with ordinary Tower definitions layered on it. A prior compiler builds
+the next compiler, so self-hosted implementation does not imply infinite runtime
+recursion or that the starting executable needs no machine primitives. Optimize
+eligible operations to native LLVM/SPIR-V instructions under a verified semantic
+contract; keep a portable interpreted implementation. Replacing built-in scalar
+special cases, literal/default inference, canonical formatting and backend mapping
+is incremental work, not an already available user-level integer-type API. No new
+type-construction implementation is included in this discussion.
+
+User priority clarification: ALL existing named types should have concrete Tower
+source definitions, with dedicated modules such as i32.tower/f32.tower and Tower
+implementations of pointer/reference, array, struct, enum, function and other type
+constructors. Merely moving a special-case compiler switch into Tower does not
+meet this goal. Shared generic implementation is welcome; dedicated definitions
+need not duplicate arithmetic. Foundation includes/imports the standard types;
+Bedrock remains the grammar/bootstrap layer and does not import that prelude.
+The compiler's implementation types are distinct from Bedrock's user grammar.
+
+This type-definition migration explicitly comes BEFORE vectors/vectorization.
+Added a prerequisite task sequence to docs/tower-language-plan.md, superseding
+this turn's earlier vector-first recommendation: audit existing special cases,
+define the shared reflected type/operation protocol and irreducible execution
+foundation, establish bootstrapping/import order, migrate named types and type
+constructors, then migrate checking/interpreter/formatting/backends with behavior
+and worker tests. Preserve ordinary compile-time execution, complete compilable
+Foundation, target legality and predecessor/successor bootstrap publication.
+Only after that should f32_1/2/3/4 use the same mechanism. This is recorded user
+direction and pending implementation, not a claim that the migration is complete.
+
+Final linker integration supersedes the intermediate pin/build identities above.
+Rebased onto 092b408, including shared-memory Wasm linker initialization and Tower
+measurement-driver migration. Refreshed native and browser artifacts from 6ff68d2
+using validated intermediate bootstrap 81928f54. The first focused-test command
+requested tower-execution-tests from the clean configuration where that optional
+target was disabled; enabled TOWER_EXECUTION_TESTS/TOWER_DRIVER_TESTS and reran.
+The focused function suite and driver test pass (12.01s driver), as does the
+32/64-bit interpreter/native/Wasm fixture transport with the integrated linker.
+
+The final complete development pin is executable SHA-256
+9bf8779c9b5844e6f5b0df6688a3ac517b2b4f9924b84c36f19c572b93b8e459.
+Its member hashes and relocated Tower verify_compiler checks pass. A fresh default
+build in /cache/functions-final-successor, without a private bootstrap override,
+completes all 54 steps and both function_values/body_continuation smoke checks.
+Final two edited browser compiler generations again agree byte-for-byte: tower
+2fc5fa91f65255da39edc395894a60dadd9eae566da7a74409673e618876ac4b,
+llvm 1726eeca38269ae50044b4b50d4f8d028c46306ec8e5298f9a91d2a6580a0cd7,
+cross 13cd3e43f86a6889271aa41fbbb3545dbc8e567571b126d63b7b0f270581a611.
+Local publication verification passes all 86 assets and desktop/mobile flows.
+Logs: build/functions-final-{generations,local}.log,
+/cache/functions-final-{successor.log,verification/checks.txt}.

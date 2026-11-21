@@ -106,6 +106,54 @@ independent known bit patterns before wiring shared scalar components, literal
 parsing/formatting, interpreter operations and LLVM lowering. Keep scratch local
 to each query/worker and include the numeric policy in semantic/cache identity.
 
+#### Standard types defined in Tower: prerequisite before vectors
+
+User priority, 2026-11-21: implement the existing types themselves through
+dedicated Tower source modules before vector/vectorization work. Writing a
+compiler switch in Tower is not sufficient. Concrete named types such as i32
+and f32 should have their own definitions (for example i32.tower/f32.tower),
+and pointers, references, arrays, structs, functions and other type families
+should be constructed through Tower implementations of a common type protocol.
+
+Foundation imports these standard definitions. Bedrock remains the grammar and
+bootstrap layer and must not import the i32/f32/standard-type prelude. Tower
+builds richer syntax above Foundation. The compiler's own implementation using
+integers does not make integers part of the Bedrock source-language prelude.
+Exact module paths/import activation are implementation work, not an assertion
+that the current bootstrap loader already supports this split.
+
+- [ ] Audit every built-in tag/name/layout/operation special case, including
+  bool, void, integer/float widths, target-sized integers, pointer/reference
+  families, arrays, nominal structs/enums, function values and type values.
+- [ ] Define the smallest shared ECS type/operation protocol: construction and
+  identity, value representation, target layout/ABI, literal construction,
+  checking/conversion/operator behavior, reflection and canonical Foundation.
+  Type definitions and implementations remain ordinary Tower source, with
+  deterministic staged execution and tracked dependencies.
+- [ ] Specify the irreducible foundation execution/representation primitives
+  and bootstrap order explicitly. Avoid an infinite dependency between defining
+  i32 and executing its definition. Build each successor with its predecessor;
+  do not solve the cycle by moving the standard type prelude into Bedrock or by
+  treating LLVM types as Tower's semantic authority.
+- [ ] Introduce dedicated standard-type modules and have Foundation include them.
+  Share generic integer/floating implementations where useful; a named type file
+  may instantiate one, rather than duplicating arithmetic for every width.
+  Struct declarations and pointer/array/function syntax invoke these same type
+  constructors. Reference policy remains explicit; this does not imply ownership
+  or safety semantics that are not implemented today.
+- [ ] Migrate checking, literals/default inference, interpreter/staging, formatter
+  and LLVM/other target implementations incrementally to the protocol. Keep one
+  authoritative graph with compilable Foundation spellings; derived fast paths
+  may specialize proven operation contracts without owning a second type model.
+- [ ] Validate exact scalar bits/traps, layouts/ABI, Foundation round trips,
+  worker determinism and differential execution. Publish a complete compatible
+  bootstrap and prove a clean successor before migrating compiler/build sources.
+- [ ] Resume fixed vectors through this same type-definition mechanism once the
+  existing type migration works; avoid another hardcoded tag per lane count.
+
+This supersedes the earlier suggestion to begin fixed vectors immediately after
+function values. It is a planned architecture migration, not implemented behavior.
+
 #### Core vector direction requested 2026-11-21
 
 Make fixed-size numeric vectors part of the language's core value/type model,
@@ -114,14 +162,57 @@ wants convenient float3/float4-style math and Burst-like SIMD optimization to
 share this model, including swizzles on every supported vector family. `f32_4`
 is their suggested Tower-style spelling, not a finalized syntax decision.
 
-Proposed naming: ordinary type aliases `f32_2`, `f32_3`, `f32_4`, `i32_4`,
+Proposed naming: ordinary type aliases `f32_1`, `f32_2`, `f32_3`, `f32_4`, `i32_4`,
 `u32_4`, and corresponding boolean masks, backed by a single type-producing
 application such as `vec(f32, 4)`. Resolve these through ordinary names/type
 objects; do not add reserved type keywords or angle-bracket parsing. Keep the
 growable collection `vector(T)` distinct: it owns storage and a runtime length,
 whereas these values have a statically known lane count. Exact names, supported
 initial widths and whether wider/scalable forms need a separate application
-remain open. Start practical work with 2/3/4-lane fixed values alongside floats.
+remain open. Start practical work with scalar-compatible one-lane behavior and
+2/3/4-lane fixed values alongside floats.
+
+User clarification, 2026-11-21: compute and graphics shader targeting is a design
+requirement for these types, including GLSL/HLSL-style source generation,
+SPIR-V tooling/optimization, DXIL and direct WGSL. Pending tasks:
+
+- [ ] Specify whether `f32_1` is exactly the `f32` type alias (preferred starting
+  proposal), including inference, overload identity, `.x`/`.r`, repeated read
+  swizzles, construction, indexing and masks. A true alias cannot have a distinct
+  interface from `f32`; either share the interface or deliberately choose a
+  distinct wrapper. Keep backend scalar representation independent of that choice.
+- [ ] Define target legality for 1/2/3/4 lanes and scalarize one-lane values for
+  baseline SPIR-V/WGSL. HLSL permits one-component vectors; base SPIR-V
+  `OpTypeVector` requires at least two components. The optional
+  `SPV_EXT_long_vector` changes this, so never silently require it for `f32_1`.
+  Record explicit SPIR-V version, client environment and capability requirements.
+- [ ] Specify scalar/vector arithmetic, masks, conversions and swizzle sequencing
+  once on shared ECS types/operations with compilable Foundation spellings and
+  portable interpreter behavior. Keep type names ordinary bindings; avoid a new
+  hardcoded scalar-tag family solely for each lane count.
+- [ ] Define CPU ABI and shader-buffer layouts independently, including 3-lane
+  size/alignment/stride, padding, boolean storage and matrix conventions later.
+  Never infer GPU buffer compatibility from CPU register allocation or sizeof.
+- [ ] Add explicit compute/vertex/fragment entry contracts, stage I/O, resources,
+  address spaces, workgroup sizes, barriers, memory semantics and uniformity.
+  Reject unsupported recursion, indirect calls and effects for a selected shader
+  profile; eligible specialization/devirtualization must be proven before emission.
+- [ ] Plan GLSL/HLSL source emitters plus SPIR-V/Vulkan, DXIL/DirectX and direct
+  WGSL/WebGPU paths on the same nodes. Integrate upstream validators/optimizers
+  incrementally as reference tools, then translate needed machinery into Tower.
+  SPIR-V is a target artifact, not a replacement semantic storage format.
+- [ ] Test Foundation round trips, worker determinism, lane bits and swizzle
+  aliasing, explicit layout fixtures and real compute/graphics shader validation.
+  Compare CPU reference execution against eligible GPU kernels under a declared
+  numeric profile. Preserve strict folding/runtime agreement; require explicit
+  relaxed policies for contraction, reassociation, derivatives and sampling.
+
+References checked for this clarification:
+[SPIR-V type instructions](https://registry.khronos.org/SPIR-V/specs/unified1/SPIRV.html#_type_declaration_instructions),
+[optional long-vector extension](https://github.com/KhronosGroup/SPIRV-Registry/blob/main/extensions/EXT/SPV_EXT_long_vector.asciidoc),
+[HLSL vector types](https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-vector),
+and [WGSL layout](https://www.w3.org/TR/WGSL/#alignment-and-size).
+These are planned tasks, not implemented vector or shader support.
 
 One logical vector need not occupy one machine register. Preserve its lane count
 and semantics while choosing scalar instructions, SSE/AVX, NEON, Wasm SIMD or

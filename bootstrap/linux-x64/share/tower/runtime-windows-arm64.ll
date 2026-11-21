@@ -1,4 +1,4 @@
-; ModuleID = '/cache/functions-integrated/guest-windows-arm64-unbound.ll'
+; ModuleID = '/cache/functions-published-successor/guest-windows-arm64-unbound.ll'
 source_filename = "Tower"
 target datalayout = "e-m:w-p:64:64-i32:32-i64:64-i128:128-n32:64-S128-Fn32"
 target triple = "aarch64-pc-windows-msvc"
@@ -753,7 +753,7 @@ if.end:                                           ; preds = %if.else
   br label %loop
 }
 
-define internal i64 @tower.fn.float_signed(i64 %0, i8 %1, ptr %2) {
+define internal i64 @tower.fn.float_signed(i64 %0, i8 zeroext %1, ptr %2) {
 entry:
   %magnitude = alloca i64, align 8
   %negative = alloca i8, align 1
@@ -2413,7 +2413,7 @@ error17:                                          ; preds = %loop.end10
   unreachable
 }
 
-define internal i64 @tower.fn.float_pack(i8 %0, i32 %1, i64 %2, ptr %3) {
+define internal i64 @tower.fn.float_pack(i8 zeroext %0, i32 %1, i64 %2, ptr %3) {
 entry:
   %negative = alloca i8, align 1
   %exponent = alloca i32, align 4
@@ -2920,7 +2920,7 @@ if.body:                                          ; preds = %entry
   store ptr %"control value 6.50", ptr %"control value 6.73", align 1
   %134 = load i8, ptr %"control value 6.49", align 1
   %135 = load ptr, ptr %"control value 6.73", align 1
-  %136 = call i64 @tower.fn.float_signed(i64 0, i8 %134, ptr %135)
+  %136 = call i64 @tower.fn.float_signed(i64 0, i8 zeroext %134, ptr %135)
   store i64 %136, ptr %"control value 6.74", align 1
   %137 = load i64, ptr %"control value 6.74", align 1
   ret i64 %137
@@ -3660,7 +3660,7 @@ if.body73:                                        ; preds = %if.end65
   %447 = load i64, ptr %"control value 6.204", align 1
   %448 = load i8, ptr %"control value 6.205", align 1
   %449 = load ptr, ptr %"control value 6.229", align 1
-  %450 = call i64 @tower.fn.float_signed(i64 %447, i8 %448, ptr %449)
+  %450 = call i64 @tower.fn.float_signed(i64 %447, i8 zeroext %448, ptr %449)
   store i64 %450, ptr %"control value 6.230", align 1
   %451 = load i64, ptr %"control value 6.230", align 1
   ret i64 %451
@@ -3794,7 +3794,7 @@ if.end78:                                         ; preds = %loop.end82, %if.els
   %523 = load i64, ptr %"control value 6.251", align 1
   %524 = load i8, ptr %"control value 6.252", align 1
   %525 = load ptr, ptr %"control value 6.276", align 1
-  %526 = call i64 @tower.fn.float_signed(i64 %523, i8 %524, ptr %525)
+  %526 = call i64 @tower.fn.float_signed(i64 %523, i8 zeroext %524, ptr %525)
   store i64 %526, ptr %"control value 6.277", align 1
   %527 = load i64, ptr %"control value 6.277", align 1
   ret i64 %527
@@ -5143,7 +5143,7 @@ if.end12:                                         ; preds = %if.else11
   %435 = load i64, ptr %"control value 7.210", align 1
   %436 = load i8, ptr %"control value 7.211", align 1
   %437 = load ptr, ptr %"control value 7.235", align 1
-  %438 = call i64 @tower.fn.float_signed(i64 %435, i8 %436, ptr %437)
+  %438 = call i64 @tower.fn.float_signed(i64 %435, i8 zeroext %436, ptr %437)
   store i64 %438, ptr %"control value 7.236", align 1
   %439 = load i64, ptr %"control value 7.236", align 1
   ret i64 %439
@@ -5225,7 +5225,7 @@ if.body13:                                        ; preds = %if.end6
   %484 = load i64, ptr %"control value 7.239", align 1
   %485 = load i8, ptr %"control value 7.240", align 1
   %486 = load ptr, ptr %"control value 7.264", align 1
-  %487 = call i64 @tower.fn.float_signed(i64 %484, i8 %485, ptr %486)
+  %487 = call i64 @tower.fn.float_signed(i64 %484, i8 zeroext %485, ptr %486)
   store i64 %487, ptr %"control value 7.265", align 1
   %488 = load i64, ptr %"control value 7.265", align 1
   ret i64 %488
@@ -5373,7 +5373,7 @@ if.end24:                                         ; preds = %if.else23, %if.body
   store ptr %"control value 7.274", ptr %"control value 7.297", align 1
   %560 = load i8, ptr %"control value 7.272", align 1
   %561 = load ptr, ptr %"control value 7.297", align 1
-  %562 = call i64 @tower.fn.float_signed(i64 0, i8 %560, ptr %561)
+  %562 = call i64 @tower.fn.float_signed(i64 0, i8 zeroext %560, ptr %561)
   store i64 %562, ptr %"control value 7.298", align 1
   %563 = load i64, ptr %"control value 7.298", align 1
   ret i64 %563
@@ -6175,7 +6175,7 @@ if.end53:                                         ; preds = %if.else52
   %1002 = load i32, ptr %"control value 7.498", align 1
   %1003 = load i64, ptr %"control value 7.499", align 1
   %1004 = load ptr, ptr %"control value 7.523", align 1
-  %1005 = call i64 @tower.fn.float_pack(i8 %1001, i32 %1002, i64 %1003, ptr %1004)
+  %1005 = call i64 @tower.fn.float_pack(i8 zeroext %1001, i32 %1002, i64 %1003, ptr %1004)
   store i64 %1005, ptr %"control value 7.524", align 1
   %1006 = load i64, ptr %"control value 7.524", align 1
   ret i64 %1006
@@ -8027,7 +8027,7 @@ if.end15:                                         ; preds = %if.else14
   %450 = load i64, ptr %"control value 9.215", align 1
   %451 = load i8, ptr %"control value 9.216", align 1
   %452 = load ptr, ptr %"control value 9.240", align 1
-  %453 = call i64 @tower.fn.float_signed(i64 %450, i8 %451, ptr %452)
+  %453 = call i64 @tower.fn.float_signed(i64 %450, i8 zeroext %451, ptr %452)
   store i64 %453, ptr %"control value 9.241", align 1
   %454 = load i64, ptr %"control value 9.241", align 1
   ret i64 %454
@@ -8124,7 +8124,7 @@ if.body19:                                        ; preds = %if.end18
   store ptr %"control value 9.248", ptr %"control value 9.271", align 1
   %504 = load i8, ptr %"control value 9.247", align 1
   %505 = load ptr, ptr %"control value 9.271", align 1
-  %506 = call i64 @tower.fn.float_signed(i64 0, i8 %504, ptr %505)
+  %506 = call i64 @tower.fn.float_signed(i64 0, i8 zeroext %504, ptr %505)
   store i64 %506, ptr %"control value 9.272", align 1
   %507 = load i64, ptr %"control value 9.272", align 1
   ret i64 %507
@@ -8319,7 +8319,7 @@ loop.end:                                         ; preds = %if.body22
   %617 = load i32, ptr %"control value 9.310", align 1
   %618 = load i64, ptr %"control value 9.311", align 1
   %619 = load ptr, ptr %"control value 9.335", align 1
-  %620 = call i64 @tower.fn.float_pack(i8 %616, i32 %617, i64 %618, ptr %619)
+  %620 = call i64 @tower.fn.float_pack(i8 zeroext %616, i32 %617, i64 %618, ptr %619)
   store i64 %620, ptr %"control value 9.336", align 1
   %621 = load i64, ptr %"control value 9.336", align 1
   ret i64 %621
@@ -9540,7 +9540,7 @@ if.body19:                                        ; preds = %if.end18
   %460 = load i64, ptr %"control value 10.221", align 1
   %461 = load i8, ptr %"control value 10.222", align 1
   %462 = load ptr, ptr %"control value 10.246", align 1
-  %463 = call i64 @tower.fn.float_signed(i64 %460, i8 %461, ptr %462)
+  %463 = call i64 @tower.fn.float_signed(i64 %460, i8 zeroext %461, ptr %462)
   store i64 %463, ptr %"control value 10.247", align 1
   %464 = load i64, ptr %"control value 10.247", align 1
   ret i64 %464
@@ -9654,7 +9654,7 @@ if.body25:                                        ; preds = %if.end24
   store ptr %"control value 10.254", ptr %"control value 10.277", align 1
   %522 = load i8, ptr %"control value 10.253", align 1
   %523 = load ptr, ptr %"control value 10.277", align 1
-  %524 = call i64 @tower.fn.float_signed(i64 0, i8 %522, ptr %523)
+  %524 = call i64 @tower.fn.float_signed(i64 0, i8 zeroext %522, ptr %523)
   store i64 %524, ptr %"control value 10.278", align 1
   %525 = load i64, ptr %"control value 10.278", align 1
   ret i64 %525
@@ -10050,7 +10050,7 @@ valid:                                            ; preds = %loop.end35
   %716 = load i32, ptr %"control value 10.343", align 1
   %717 = load i64, ptr %"control value 10.344", align 1
   %718 = load ptr, ptr %"control value 10.368", align 1
-  %719 = call i64 @tower.fn.float_pack(i8 %715, i32 %716, i64 %717, ptr %718)
+  %719 = call i64 @tower.fn.float_pack(i8 zeroext %715, i32 %716, i64 %717, ptr %718)
   store i64 %719, ptr %"control value 10.369", align 1
   %720 = load i64, ptr %"control value 10.369", align 1
   ret i64 %720
@@ -12053,7 +12053,7 @@ if.end5:                                          ; preds = %if.else4
   br label %loop
 }
 
-define internal i64 @tower.fn.tower_float_from_integer(i64 %0, i32 %1, i8 %2, i32 %3) {
+define internal i64 @tower.fn.tower_float_from_integer(i64 %0, i32 %1, i8 zeroext %2, i32 %3) {
 entry:
   %raw = alloca i64, align 8
   %integer_width = alloca i32, align 4
@@ -12699,7 +12699,7 @@ valid32:                                          ; preds = %if.end26
   %238 = load i32, ptr %"control value 14.94", align 1
   %239 = load i64, ptr %"control value 14.95", align 1
   %240 = load ptr, ptr %"control value 14.119", align 1
-  %241 = call i64 @tower.fn.float_pack(i8 %237, i32 %238, i64 %239, ptr %240)
+  %241 = call i64 @tower.fn.float_pack(i8 zeroext %237, i32 %238, i64 %239, ptr %240)
   store i64 %241, ptr %"control value 14.120", align 1
   %242 = load i64, ptr %"control value 14.120", align 1
   ret i64 %242
@@ -13425,7 +13425,7 @@ if.body1:                                         ; preds = %if.end
   %277 = load i64, ptr %"control value 15.131", align 1
   %278 = load i8, ptr %"control value 15.132", align 1
   %279 = load ptr, ptr %"control value 15.156", align 1
-  %280 = call i64 @tower.fn.float_signed(i64 %277, i8 %278, ptr %279)
+  %280 = call i64 @tower.fn.float_signed(i64 %277, i8 zeroext %278, ptr %279)
   store i64 %280, ptr %"control value 15.157", align 1
   %281 = load i64, ptr %"control value 15.157", align 1
   ret i64 %281
@@ -13518,7 +13518,7 @@ if.body4:                                         ; preds = %if.end3
   store ptr %"control value 15.161", ptr %"control value 15.184", align 1
   %331 = load i8, ptr %"control value 15.160", align 1
   %332 = load ptr, ptr %"control value 15.184", align 1
-  %333 = call i64 @tower.fn.float_signed(i64 0, i8 %331, ptr %332)
+  %333 = call i64 @tower.fn.float_signed(i64 0, i8 zeroext %331, ptr %332)
   store i64 %333, ptr %"control value 15.185", align 1
   %334 = load i64, ptr %"control value 15.185", align 1
   ret i64 %334
@@ -13677,7 +13677,7 @@ if.end9:                                          ; preds = %loop.end, %if.body7
   %421 = load i32, ptr %"control value 15.209", align 1
   %422 = load i64, ptr %"control value 15.210", align 1
   %423 = load ptr, ptr %"control value 15.234", align 1
-  %424 = call i64 @tower.fn.float_pack(i8 %420, i32 %421, i64 %422, ptr %423)
+  %424 = call i64 @tower.fn.float_pack(i8 zeroext %420, i32 %421, i64 %422, ptr %423)
   store i64 %424, ptr %"control value 15.235", align 1
   %425 = load i64, ptr %"control value 15.235", align 1
   ret i64 %425
@@ -13716,7 +13716,7 @@ if.end12:                                         ; preds = %if.else11
   br label %loop
 }
 
-define internal i64 @tower.fn.tower_float_to_integer(i64 %0, i32 %1, i32 %2, i8 %3, ptr %4) {
+define internal i64 @tower.fn.tower_float_to_integer(i64 %0, i32 %1, i32 %2, i8 zeroext %3, ptr %4) {
 entry:
   %raw = alloca i64, align 8
   %width = alloca i32, align 4
@@ -16873,7 +16873,7 @@ if.end16:                                         ; preds = %if.else15, %if.body
   ret void
 }
 
-define internal i8 @tower.fn.float_big_decimal(ptr %0) {
+define internal zeroext i8 @tower.fn.float_big_decimal(ptr %0) {
 entry:
   %value = alloca ptr, align 8
   %carry = alloca i64, align 8
@@ -17230,7 +17230,7 @@ error23:                                          ; preds = %if.end21
   unreachable
 }
 
-define internal i8 @tower.fn.float_decimal_digit(i8 %0) {
+define internal zeroext i8 @tower.fn.float_decimal_digit(i8 zeroext %0) {
 entry:
   %byte = alloca i8, align 1
   %"control value 25.0" = alloca i8, align 1
@@ -18058,7 +18058,7 @@ if.end9:                                          ; preds = %if.else8
   %124 = load i8, ptr %byte, align 1
   store i8 %124, ptr %"control value 26.58", align 1
   %125 = load i8, ptr %"control value 26.58", align 1
-  %126 = call i8 @tower.fn.float_decimal_digit(i8 %125)
+  %126 = call zeroext i8 @tower.fn.float_decimal_digit(i8 zeroext %125)
   store i8 %126, ptr %"control value 26.59", align 1
   %127 = load i8, ptr %"control value 26.59", align 1
   %128 = icmp eq i8 0, %127
@@ -18411,7 +18411,7 @@ if.end42:                                         ; preds = %if.else41, %if.body
   %288 = load i8, ptr %287, align 1
   store i8 %288, ptr %"control value 26.125", align 1
   %289 = load i8, ptr %"control value 26.125", align 1
-  %290 = call i8 @tower.fn.float_decimal_digit(i8 %289)
+  %290 = call zeroext i8 @tower.fn.float_decimal_digit(i8 zeroext %289)
   store i8 %290, ptr %"control value 26.126", align 1
   %291 = load i8, ptr %"control value 26.126", align 1
   %292 = icmp eq i8 0, %291
@@ -18442,7 +18442,7 @@ loop46:                                           ; preds = %if.end50, %if.end45
   %302 = load i8, ptr %301, align 1
   store i8 %302, ptr %"control value 26.130", align 1
   %303 = load i8, ptr %"control value 26.130", align 1
-  %304 = call i8 @tower.fn.float_decimal_digit(i8 %303)
+  %304 = call zeroext i8 @tower.fn.float_decimal_digit(i8 zeroext %303)
   store i8 %304, ptr %"control value 26.131", align 1
   %305 = load i8, ptr %"control value 26.131", align 1
   store i8 %305, ptr %"control check 26.0", align 1
@@ -18664,7 +18664,7 @@ if.body64:                                        ; preds = %if.end63
   store ptr %"control value 26.163", ptr %"control value 26.186", align 1
   %408 = load i8, ptr %"control value 26.162", align 1
   %409 = load ptr, ptr %"control value 26.186", align 1
-  %410 = call i64 @tower.fn.float_signed(i64 0, i8 %408, ptr %409)
+  %410 = call i64 @tower.fn.float_signed(i64 0, i8 zeroext %408, ptr %409)
   store i64 %410, ptr %"control value 26.187", align 1
   %411 = load i64, ptr %"control value 26.187", align 1
   ret i64 %411
@@ -18818,7 +18818,7 @@ if.body72:                                        ; preds = %if.end71
   store ptr %"control value 26.205", ptr %"control value 26.228", align 1
   %489 = load i8, ptr %"control value 26.204", align 1
   %490 = load ptr, ptr %"control value 26.228", align 1
-  %491 = call i64 @tower.fn.float_signed(i64 0, i8 %489, ptr %490)
+  %491 = call i64 @tower.fn.float_signed(i64 0, i8 zeroext %489, ptr %490)
   store i64 %491, ptr %"control value 26.229", align 1
   %492 = load i64, ptr %"control value 26.229", align 1
   ret i64 %492
@@ -19900,7 +19900,7 @@ if.end156:                                        ; preds = %if.else155, %if.bod
   %998 = load i32, ptr %"control value 26.470", align 1
   %999 = load i64, ptr %"control value 26.471", align 1
   %1000 = load ptr, ptr %"control value 26.495", align 1
-  %1001 = call i64 @tower.fn.float_pack(i8 %997, i32 %998, i64 %999, ptr %1000)
+  %1001 = call i64 @tower.fn.float_pack(i8 zeroext %997, i32 %998, i64 %999, ptr %1000)
   store i64 %1001, ptr %"control value 26.496", align 1
   %1002 = load i64, ptr %"control value 26.496", align 1
   store i64 %1002, ptr %raw, align 1
@@ -19942,7 +19942,7 @@ if.end159:                                        ; preds = %if.else158, %if.bod
   ret i64 %1020
 }
 
-define internal i64 @tower.fn.float_text_digits(ptr %0, ptr %1, i64 %2, i32 %3, i8 %4) {
+define internal i64 @tower.fn.float_text_digits(ptr %0, ptr %1, i64 %2, i32 %3, i8 zeroext %4) {
 entry:
   %output = alloca ptr, align 8
   %digits = alloca ptr, align 8
@@ -21142,7 +21142,7 @@ if.body:                                          ; preds = %entry
   store i8 %141, ptr %"control value 28.79", align 1
   %142 = load ptr, ptr %"control value 28.78", align 1
   %143 = load i8, ptr %"control value 28.79", align 1
-  %144 = call i64 @tower.fn.float_text_digits(ptr %142, ptr @tower.string.4, i64 1, i32 0, i8 %143)
+  %144 = call i64 @tower.fn.float_text_digits(ptr %142, ptr @tower.string.4, i64 1, i32 0, i8 zeroext %143)
   store i64 %144, ptr %"control value 28.80", align 1
   %145 = load i64, ptr %"control value 28.80", align 1
   ret i64 %145
@@ -21457,7 +21457,7 @@ loop29:                                           ; preds = %if.end33, %if.end21
   store ptr %280, ptr %"control value 28.135", align 1
   store ptr %number, ptr %"control value 28.136", align 1
   %281 = load ptr, ptr %"control value 28.136", align 1
-  %282 = call i8 @tower.fn.float_big_decimal(ptr %281)
+  %282 = call zeroext i8 @tower.fn.float_big_decimal(ptr %281)
   store i8 %282, ptr %"control value 28.137", align 1
   %283 = load ptr, ptr %"control value 28.135", align 1
   %284 = load i8, ptr %"control value 28.137", align 1
@@ -22005,7 +22005,7 @@ loop.end79:                                       ; preds = %if.else84
   %536 = load i64, ptr %"control value 28.258", align 1
   %537 = load i32, ptr %"control value 28.259", align 1
   %538 = load i8, ptr %"control value 28.260", align 1
-  %539 = call i64 @tower.fn.float_text_digits(ptr %534, ptr %535, i64 %536, i32 %537, i8 %538)
+  %539 = call i64 @tower.fn.float_text_digits(ptr %534, ptr %535, i64 %536, i32 %537, i8 zeroext %538)
   store i64 %539, ptr %"control value 28.261", align 1
   %540 = load i64, ptr %"control value 28.261", align 1
   ret i64 %540
@@ -22224,7 +22224,7 @@ entry:
   %12 = load i32, ptr %"control value 33.1", align 1
   %13 = load i8, ptr %"control value 33.3", align 1
   %14 = load i32, ptr %"control value 33.4", align 1
-  %15 = call i64 @tower.fn.tower_float_from_integer(i64 %11, i32 %12, i8 %13, i32 %14)
+  %15 = call i64 @tower.fn.tower_float_from_integer(i64 %11, i32 %12, i8 zeroext %13, i32 %14)
   store i64 %15, ptr %"control value 33.5", align 1
   %16 = load i64, ptr %"control value 33.5", align 1
   ret i64 %16
@@ -22270,7 +22270,7 @@ entry:
   %13 = load i32, ptr %"control value 34.2", align 1
   %14 = load i8, ptr %"control value 34.4", align 1
   %15 = load ptr, ptr %"control value 34.5", align 1
-  %16 = call i64 @tower.fn.tower_float_to_integer(i64 %11, i32 %12, i32 %13, i8 %14, ptr %15)
+  %16 = call i64 @tower.fn.tower_float_to_integer(i64 %11, i32 %12, i32 %13, i8 zeroext %14, ptr %15)
   store i64 %16, ptr %"control value 34.6", align 1
   %17 = load i64, ptr %"control value 34.6", align 1
   store i64 %17, ptr %result, align 1
@@ -22298,7 +22298,7 @@ if.end:                                           ; preds = %if.else
   ret i64 %25
 }
 
-define internal i8 @tower.fn.guest_runtime_product(i64 %0, i64 %1) {
+define internal zeroext i8 @tower.fn.guest_runtime_product(i64 %0, i64 %1) {
 entry:
   %count = alloca i64, align 8
   %size = alloca i64, align 8
@@ -22408,7 +22408,7 @@ entry:
   store i64 %3, ptr %"control value 36.1", align 1
   %4 = load i64, ptr %"control value 36.0", align 1
   %5 = load i64, ptr %"control value 36.1", align 1
-  %6 = call i8 @tower.fn.guest_runtime_product(i64 %4, i64 %5)
+  %6 = call zeroext i8 @tower.fn.guest_runtime_product(i64 %4, i64 %5)
   store i8 %6, ptr %"control value 36.2", align 1
   %7 = load i8, ptr %"control value 36.2", align 1
   %8 = icmp eq i8 0, %7
@@ -22469,7 +22469,7 @@ entry:
   store i64 %4, ptr %"control value 37.1", align 1
   %5 = load i64, ptr %"control value 37.0", align 1
   %6 = load i64, ptr %"control value 37.1", align 1
-  %7 = call i8 @tower.fn.guest_runtime_product(i64 %5, i64 %6)
+  %7 = call zeroext i8 @tower.fn.guest_runtime_product(i64 %5, i64 %6)
   store i8 %7, ptr %"control value 37.2", align 1
   %8 = load i8, ptr %"control value 37.2", align 1
   %9 = icmp eq i8 0, %8
