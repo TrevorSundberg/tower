@@ -38236,3 +38236,15 @@ Pages 32c7b089f7db3cb8535070ac29bd156b4a797eb5 / action 44962497981 succeeds;
 hosted/prepared SHA-256 both equal
 1a80115ef25508348c95ad476d9d74f39ec43ac1c24575744b5477b46cf99ea7.
 This publishes the source/API validation receipt, not a production LLD cutover.
+Publication receipt: implementation 1007d41 and validation 824af12 are pushed.
+Retry a transient GitHub DNS failure with command-scoped curloptResolve after a
+successful pull; no persistent Git configuration change. Pages
+f8ca7d51b5ffc0479acc77b83f27a3e13b66ba14 descends from 519699b and changes only
+deployment-manifest.json, preserving the newer runtime build identity
+797f54a46984d160fb768dc5dc8d8451ed486fe9, all 86 assets and concurrent UI/profiling/
+linker notes. Action 44962327434 succeeds and the hosted manifest matches exactly,
+SHA-256 b26763698fff0efd680a5c60f723d8faea49b7659252bc0484312f9b9ea948c6.
+Release the owned lock after verification. The 219-line count is tracked .py
+source: build-llvm.sh also still has two inline Python CRLF backup/restore blocks
+(17 lines), counted separately. Remove those dependencies with the final
+packaging/build-path work before claiming Python has been entirely eliminated.
