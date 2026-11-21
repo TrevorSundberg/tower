@@ -37909,3 +37909,13 @@ Prefer one shared Tower measurement runner with workload presets over four
 separate translations; keep reproducible measurement behavior while reducing
 duplicate command/capture/statistics handling. The live compiler-project packager
 still feeds browser self-build recipes and cannot simply be removed.
+
+Publication receipt: 0f61bb1 and fb20d60 are pushed. The first push encountered a
+transient GitHub DNS failure; resolve its address and retry with command-scoped
+http.curloptResolve after another successful pull, without changing Git config.
+Under the shared lock, metadata-only Pages a7783f98cd4d2e5d1b869051cd2af4dd3c9f761f
+descends from f92b0bad and changes only deployment-manifest.json. Preserve all
+86 assets, runtime buildSourceCommit 6c03edd and concurrent performance notes.
+Pages action 44960880845 succeeds; hosted bytes match the prepared manifest,
+SHA-256 0f324916ff5dd2d72c4c1867e8815ee1dbd4ee8926b7ce065fc045644224e987.
+The owned publication lock is released after this verification.
