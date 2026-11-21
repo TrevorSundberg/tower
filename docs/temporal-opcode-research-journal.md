@@ -24219,3 +24219,18 @@ Also counted 190 field-assignment runs (766 assignments) and 280 zero-fill/sizeo
 calls. These include resets, output records and raw memory, so initializer sugar
 and result/option propagation require the planned construction/ownership contracts;
 they are not justified as automatic copy/drop shortcuts by this inventory.
+
+Publication/validation: rebased the audit onto ebbd840, preserving both complete
+journal additions. Upstream retired native adapters and moved tests; the reported
+counts remain explicitly pinned to 0987aa5. Eight inventory sanity checks and
+Python compilation pass after the rebase, as does git's whitespace check. Audit
+commit 7175751 is pushed. Metadata-only Pages commit 440f142 preserves all 70
+existing asset hashes and compiler source provenance (0987aa5); no older local
+compiler artifacts were copied. Hosted verification at tower-lang.org passes:
+the exact new manifest SHA-256 is
+4c840198933f2baa876583a31e31690aac32fbcdd509cabf607ca9b007575d2c,
+and all 69 publicly served assets match their hashes (.nojekyll is checked locally).
+The report is build/simplification-hosted-report.json. A transient GitHub DNS
+failure resolved on retry, and the initial hosted checks correctly waited for
+Pages to publish the new manifest. No feature implementation or source migration
+is claimed by this audit-only publication.
