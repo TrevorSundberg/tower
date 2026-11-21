@@ -1,0 +1,117 @@
+import tower;
+import frontend_cache;
+import frontend_modules;
+import frontend_revision_types;
+import lr_tree;
+import parser_nodes;
+import syntax_baselines;
+import syntax_reader;
+import syntax_revision;
+import syntax_session_inputs;
+import syntax_session_pins;
+import syntax_session_state;
+import syntax_session_types;
+import syntax_version_build;
+import syntax_version;
+import syntax_version_cache;
+import syntax_version_types;
+import .library.vector;
+
+extern fn abort(): void;
+
+fn syntax_session_error(value: SyntaxSession*, text: u8*): void {
+    // Preserve the existing native diagnostic setter's fatal allocation policy.
+    if !node_text_set(&value.error, text) { abort(); }
+}
+
+export fn syntax_reset(opaque: void*, source: u8*, module: FrontendModule*): void {
+    var value = bits(SyntaxSession*, opaque);
+    var mode = value.building_bedrock ? SyntaxSeedBaseline() : value.bootstrapping ? SyntaxBedrockBaseline() : SyntaxFoundationBaseline();
+    var ready = syntax_session_inputs_reset(&value.inputs, source, syntax_text_length(source), mode, module);
+    syntax_session_progress(value);
+    if !ready {
+        syntax_session_error(value, "Unable to allocate source text");
+        syntax_session_pin_version(&value.pins.version, null);
+        return;
+    }
+    var diagnostic: SyntaxVersionDiagnostic;
+    fill(&diagnostic, 0, sizeof(SyntaxVersionDiagnostic));
+    defer syntax_version_diagnostic_dispose(&diagnostic);
+    diagnostic.offset = value.error_offset;
+    var version = syntax_version_cached(&value.cache, value.inputs.world, value.pins.grammar, value.pins.bedrock, &diagnostic);
+    // cached transfers one owned reference; replace the session's old owner.
+    syntax_session_pin_version(&value.pins.version, version);
+    syntax_version_release(version);
+    value.error_offset = diagnostic.offset;
+    syntax_session_error(value, syntax_version_diagnostic_text(&diagnostic));
+}
+
+// The caller supplies the environment explicitly. Existing host entry points
+// only select their host world/environment; all construction policy lives here.
+export fn syntax_session_open(world: void*, environment: void*, source: u8*, module: FrontendModule*, mode: u32): SyntaxSession* {
+    var value = syntax_session_allocate(world, environment);
+    if value is null { abort(); return null; }
+    if mode == SyntaxFoundationBaseline() {
+        syntax_session_inputs_module(&value.inputs, source, module);
+        var grammar = module is null ? null : frontend_module_grammar(module);
+        if grammar is not null {
+            value.pins.baseline = syntax_revision_create(grammar.rules.data, grammar.rules.length, grammar.tokens.data, grammar.tokens.length);
+            value.pins.bedrock = syntax_world_revision(world, SyntaxSeedBaseline());
+        } else {
+            value.pins.baseline = syntax_world_revision(world, SyntaxFoundationBaseline());
+            if value.pins.baseline is null {
+                syntax_session_error(value, "Load foundation.tower before creating a syntax session");
+                return value;
+            }
+            value.pins.bedrock = syntax_world_revision(world, SyntaxBedrockBaseline());
+        }
+    } else {
+        value.bootstrapping = true;
+        value.building_bedrock = mode == SyntaxSeedBaseline();
+        value.pins.bedrock = syntax_world_revision(world, mode);
+        syntax_session_pin_revision(&value.pins.baseline, value.pins.bedrock);
+    }
+    if value.pins.bedrock is null {
+        syntax_session_error(value, "Unable to allocate Bedrock revision");
+        return value;
+    }
+    syntax_reset(bits(void*, value), source, null);
+    return value;
+}
+
+export fn syntax_get_error(opaque: void*): u8* {
+    return node_text_get(&bits(SyntaxSession*, opaque).error);
+}
+
+export fn syntax_get_revision(opaque: void*): usize { return bits(SyntaxSession*, opaque).revision; }
+export fn syntax_get_error_offset(opaque: void*): usize { return bits(SyntaxSession*, opaque).error_offset; }
+
+export fn syntax_baseline_install(world: void*, environment: void*, source: u8*, foundation: bool, diagnostic: SyntaxVersionDiagnostic*): bool {
+    var length = syntax_text_length(source);
+    if syntax_world_matches(world, source, length, foundation) { return true; }
+    var session = syntax_session_open(world, environment, source, null, foundation ? SyntaxBedrockBaseline() : SyntaxSeedBaseline());
+    defer syntax_destroy(bits(void*, session));
+    loop {
+        var root = syntax_next(bits(void*, session));
+        if root is null { break; }
+        entity_release(root);
+    }
+    if session.error.length != 0 {
+        // Transfer the diagnostic owner before destroying its session.
+        vector_dispose(u8, &diagnostic.text);
+        copy(&diagnostic.text, &session.error, sizeof(vector(u8)));
+        vector_init(u8, &session.error);
+        diagnostic.offset = session.error_offset;
+        return false;
+    }
+    if foundation && session.pins.grammar.tokens.length == 0 {
+        diagnostic.fallback = "Bootstrap must define at least one token or skip rule";
+        return false;
+    }
+    if !syntax_world_publish(world, source, length, session.inputs.document, session.pins.grammar, foundation) {
+        diagnostic.fallback = "Unable to allocate grammar baseline";
+        return false;
+    }
+    frontend_modules_reset_compilation(bits(ModuleEnvironment*, environment));
+    return true;
+}

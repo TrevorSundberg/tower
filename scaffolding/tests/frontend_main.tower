@@ -16,6 +16,7 @@ export fn main(argc: i32, argv: u8**): i32 {
     parser_failure_tests();
     frontend_diagnostic_revision_tests();
     frontend_session_format_tests();
+    frontend_session_setup_tests();
     regex_tests();
     syntax_lexer_tests();
     return 0;

@@ -1,12 +1,16 @@
 import tower;
 import .compiler.format_types;
 import .compiler.syntax_session_types;
+import .compiler.syntax_version_types;
 import frontend_world;
 import frontend_format;
 import frontend_diagnostic_revision;
+import frontend_syntax_version;
+import frontend_baselines;
 
 extern fn syntax_create(source: u8*, module: void*): void*;
 extern fn syntax_format_into(session: void*, output: FormatResult*, error: u8**): bool;
+extern fn syntax_baseline_install(world: void*, environment: void*, source: u8*, foundation: bool, diagnostic: SyntaxVersionDiagnostic*): bool;
 
 fn frontend_session_format_tests(): void {
     // frontend_diagnostic_revision_tests has installed the declaration seed as
@@ -45,4 +49,35 @@ fn frontend_session_format_tests(): void {
     frontend_world_check(output.text.length == 0 && output.spans.length == 0);
     syntax_destroy(session);
     frontend_format_text(error, "Formatting would change the parsed source under this grammar; source was left unchanged");
+}
+
+fn frontend_session_setup_tests(): void {
+    var world = compiler_host_world();
+    var diagnostic: SyntaxVersionDiagnostic;
+    fill(&diagnostic, 0, sizeof(SyntaxVersionDiagnostic));
+    defer syntax_version_diagnostic_dispose(&diagnostic);
+    var baseline: u8* = "parse Statement = 'a' ';';";
+    frontend_world_check(syntax_baseline_install(world, null, baseline, true, &diagnostic));
+    frontend_format_text(syntax_version_diagnostic_text(&diagnostic), "");
+    var old = syntax_create("a;", null);
+    defer syntax_destroy(old);
+    tower_test_buffer_fail_after(0);
+    var ready = syntax_baseline_install(world, null, baseline, true, &diagnostic);
+    tower_test_buffer_fail_after(frontend_world_unlimited());
+    frontend_world_check(ready);
+    frontend_world_check(!syntax_baseline_install(world, null, "parse Statement = 'b'", true, &diagnostic));
+    frontend_world_check(syntax_version_diagnostic_text(&diagnostic)[0] != 0);
+    frontend_world_check(syntax_world_matches(world, baseline, 26, true));
+    syntax_version_diagnostic_dispose(&diagnostic);
+    fill(&diagnostic, 0, sizeof(SyntaxVersionDiagnostic));
+    frontend_world_check(syntax_baseline_install(world, null, "parse Statement = 'b' ';';", true, &diagnostic));
+    diagnostic_revision_read(old);
+    frontend_world_check(syntax_get_error(old)[0] == 0);
+    syntax_reset(old, "a;", null);
+    diagnostic_revision_read(old);
+    frontend_world_check(syntax_get_error(old)[0] == 0);
+    var current = syntax_create("b;", null);
+    diagnostic_revision_read(current);
+    frontend_world_check(syntax_get_error(current)[0] == 0);
+    syntax_destroy(current);
 }

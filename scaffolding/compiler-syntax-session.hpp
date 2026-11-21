@@ -37,6 +37,8 @@ struct SyntaxSession {
   SyntaxHighlights highlights;
 };
 extern "C" SyntaxSession* syntax_session_allocate(void*, void*);
+extern "C" SyntaxSession* syntax_session_open(void*, void*, const char*, FrontendModule*, SyntaxBaselineMode);
+extern "C" bool syntax_baseline_install(void*, void*, const char*, bool, SyntaxVersionDiagnostic*);
 extern "C" void syntax_session_completion(SyntaxSession*, LRCompletion*);
 extern "C" char* syntax_session_suffix(SyntaxSession*, char*);
 extern "C" void syntax_session_progress(SyntaxSession*);

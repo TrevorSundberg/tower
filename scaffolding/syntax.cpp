@@ -272,67 +272,19 @@ size_t syntax_expansion_test_entry() {
 #endif
 
 SyntaxSession* syntax_create(const char* source, FrontendModule* module) {
-  std::unique_ptr<SyntaxSession, decltype(&syntax_destroy)> session(
-    syntax_session_allocate(compiler_host_world(), syntax_modules), syntax_destroy);
-  if (!session) std::abort();
-  syntax_session_inputs_module(&session->inputs, source, module);
-  if (const auto* grammar = module ? frontend_module_grammar(module) : nullptr) {
-    session->pins.baseline = syntax_revision_create(grammar->rules.data, grammar->rules.length,
-      grammar->tokens.data, grammar->tokens.length);
-    session->pins.bedrock = syntax_world_revision(compiler_host_world(), SyntaxBaselineMode::Seed);
-    if (!session->pins.bedrock) { session->error = "Unable to allocate Bedrock revision"; return session.release(); }
-    syntax_reset(session.get(), source);
-    return session.release();
-  }
-  session->pins.baseline = syntax_world_revision(compiler_host_world(), SyntaxBaselineMode::Foundation);
-  if (!session->pins.baseline) { session->error = "Load foundation.tower before creating a syntax session"; return session.release(); }
-  session->pins.bedrock = syntax_world_revision(compiler_host_world(), SyntaxBaselineMode::Bedrock);
-  if (!session->pins.bedrock) { session->error = "Unable to allocate Bedrock revision"; return session.release(); }
-  syntax_reset(session.get(), source);
-  return session.release();
+  return syntax_session_open(compiler_host_world(), syntax_modules, source, module, SyntaxBaselineMode::Foundation);
 }
-
 SyntaxSession* syntax_create_foundation(const char* source) {
-  std::unique_ptr<SyntaxSession, decltype(&syntax_destroy)> session(
-    syntax_session_allocate(compiler_host_world(), syntax_modules), syntax_destroy);
-  if (!session) std::abort();
-  session->bootstrapping = true;
-  session->pins.bedrock = syntax_world_revision(compiler_host_world(), SyntaxBaselineMode::Bedrock);
-  if (!session->pins.bedrock) { session->error = "Unable to allocate Bedrock revision"; return session.release(); }
-  syntax_session_pin_revision(&session->pins.baseline, session->pins.bedrock);
-  syntax_reset(session.get(), source);
-  return session.release();
+  return syntax_session_open(compiler_host_world(), syntax_modules, source, nullptr, SyntaxBaselineMode::Bedrock);
 }
-
 SyntaxSession* syntax_create_bedrock(const char* source) {
-  std::unique_ptr<SyntaxSession, decltype(&syntax_destroy)> session(
-    syntax_session_allocate(compiler_host_world(), syntax_modules), syntax_destroy);
-  if (!session) std::abort();
-  session->bootstrapping = session->building_bedrock = true;
-  session->pins.bedrock = syntax_world_revision(compiler_host_world(), SyntaxBaselineMode::Seed);
-  if (!session->pins.bedrock) { session->error = "Unable to allocate Bedrock revision"; return session.release(); }
-  syntax_session_pin_revision(&session->pins.baseline, session->pins.bedrock);
-  syntax_reset(session.get(), source);
-  return session.release();
-}
-
-void syntax_reset(SyntaxSession* session, const char* source, FrontendModule* module) {
-  const bool source_ready = syntax_session_inputs_reset(&session->inputs, source, std::strlen(source),
-    session->building_bedrock ? SyntaxBaselineMode::Seed : session->bootstrapping ? SyntaxBaselineMode::Bedrock : SyntaxBaselineMode::Foundation, module);
-  syntax_session_progress(session);
-  if (!source_ready) { session->error = "Unable to allocate source text"; syntax_session_pin_version(&session->pins.version, nullptr); return; }
-  std::string error;
-  syntax_session_pin_version(&session->pins.version, compiled(*session, session->pins.grammar, error).get());
-  session->error = error;
+  return syntax_session_open(compiler_host_world(), syntax_modules, source, nullptr, SyntaxBaselineMode::Seed);
 }
 SyntaxCacheStats syntax_get_cache_stats(SyntaxSession* session) {
   return {session->cache.index.builds, session->cache.index.hits, session->cache.index.entries.length};
 }
 
-const char* syntax_get_error(SyntaxSession* session) { return session->error.c_str(); }
-size_t syntax_get_revision(SyntaxSession* session) { return session->revision; }
 size_t syntax_get_offset(SyntaxSession* session) { return session->cursor; }
-size_t syntax_get_error_offset(SyntaxSession* session) { return session->error_offset; }
 bool syntax_get_error_insertion(SyntaxSession* session) { return session->error_insertion; }
 TowerNode* syntax_document(SyntaxSession* session) { return session->inputs.document; }
 bool syntax_can_format(SyntaxSession* session) {
@@ -592,32 +544,19 @@ std::vector<SyntaxTokenInfo> syntax_get_tokens(SyntaxSession* session) {
 }
 
 std::string syntax_set_bedrock(const char* source) {
-  if (syntax_world_matches(compiler_host_world(), source, std::strlen(source), false)) return {};
-  std::unique_ptr<SyntaxSession, decltype(&syntax_destroy)> session(syntax_create_bedrock(source), syntax_destroy);
-  while (auto* root = syntax_next(session.get())) tower_node_release_ref(root);
-  if (!session->error.empty()) return session->error;
-  if (!syntax_world_publish(compiler_host_world(), source, std::strlen(source), session->inputs.document, session->pins.grammar, false))
-    return "Unable to allocate grammar baseline";
-  frontend_modules_reset_compilation(syntax_modules);
-  // Foundation must be reloaded under the new bedrock. Existing syntax sessions
-  // retain their own foundation and bedrock entities and remain valid.
-  return {};
+  SyntaxVersionDiagnostic diagnostic{};
+  syntax_baseline_install(compiler_host_world(), syntax_modules, source, false, &diagnostic);
+  std::string result = syntax_version_diagnostic_text(&diagnostic);
+  syntax_version_diagnostic_dispose(&diagnostic);
+  return result;
 }
-
 std::string syntax_set_bootstrap(const char* source) {
-  if (syntax_world_matches(compiler_host_world(), source, std::strlen(source), true)) return {};
-  std::unique_ptr<SyntaxSession, decltype(&syntax_destroy)> session(syntax_create_foundation(source), syntax_destroy);
-  while (auto* root = syntax_next(session.get())) tower_node_release_ref(root);
-  if (!session->error.empty()) return session->error;
-  if (session->pins.grammar->tokens.length == 0) return "Bootstrap must define at least one token or skip rule";
-  // Baselines reference the same semantic declaration entities. Existing
-  // sessions retain their baseline; a new module affects only new sessions.
-  if (!syntax_world_publish(compiler_host_world(), source, std::strlen(source), session->inputs.document, session->pins.grammar, true))
-    return "Unable to allocate grammar baseline";
-  frontend_modules_reset_compilation(syntax_modules);
-  return {};
+  SyntaxVersionDiagnostic diagnostic{};
+  syntax_baseline_install(compiler_host_world(), syntax_modules, source, true, &diagnostic);
+  std::string result = syntax_version_diagnostic_text(&diagnostic);
+  syntax_version_diagnostic_dispose(&diagnostic);
+  return result;
 }
-
 #ifdef __wasi__
 extern "C" __attribute__((export_name("tw_set_bedrock"))) const char* syntax_wasm_bedrock(const char* source, size_t bytes) {
   static std::string error;
