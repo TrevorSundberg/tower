@@ -1,5 +1,6 @@
 import semantic_program_types;
 import tower;
+import syntax_session_types;
 import language_grammar;
 import foundation_tags;
 import frontend_compilation;
@@ -22,6 +23,8 @@ struct CompletionSpan {
 }
 
 struct CompletionQuery {
+    world: void*;
+    environment: void*;
     active: void*;
     program: SemanticProgram;
     context: SemanticContext;
@@ -55,6 +58,22 @@ struct CompletionQuery {
 }
 
 extern fn syntax_completion_create(source: u8*, mode: u32): void*;
+
+extern fn syntax_session_open(world: void*, environment: void*, source: u8*, module: void*, mode: u32): SyntaxSession*;
+
+extern fn frontend_modules_bind_world(environment: void*, world: void*): bool;
+
+extern fn compiler_world_store(world: void*): void*;
+
+extern fn entity_create(store: void*): void*;
+
+extern fn compiler_node_get(node: void*, kind: u32): void*;
+
+// The query borrows its world/environment until disposal. Legacy callers select
+// that owner once at their boundary; recovery never switches an ambient world.
+fn completion_session(q: CompletionQuery*, source: u8*, mode: u32): void* {
+    return bits(void*, syntax_session_open(q.world, q.environment, source, null, mode));
+}
 
 extern fn syntax_destroy(session: void*): void;
 
@@ -92,7 +111,7 @@ fn completion_parse(q: CompletionQuery*, source: u8*, mode: u32, future: bool): 
     var length = sem_length(source);
     sem_require(bytes_append(&q.input, source, length));
     sem_require(vector_push(&q.input, 10));
-    var session = syntax_completion_create(source, mode);
+    var session = completion_session(q, source, mode);
     var entries: vector(void*);
     vector_init(&entries);
     var count: usize = 0;
@@ -215,6 +234,10 @@ fn completion_parse(q: CompletionQuery*, source: u8*, mode: u32, future: bool): 
 }
 
 export fn completion_analyze(q: CompletionQuery*, active: void*, mode: u32, files: u8**, lengths: usize*, count: usize): void {
+    var owner = bits(SyntaxSession*, active);
+    if owner is null || owner.inputs.world != q.world || owner.inputs.environment != q.environment {
+        return;
+    }
     q.active = active;
     if q.hidden {
         return;
@@ -273,7 +296,7 @@ export fn completion_analyze(q: CompletionQuery*, active: void*, mode: u32, file
     var suffix_length = q.length -q.to;
     sem_require(bytes_append(&text, &q.source[q.to], suffix_length));
     sem_require(host_text_terminate(&text));
-    var root = tower_node_create();
+    var root = entity_create(compiler_world_store(q.world));
     semantic_initialize(&q.program, root, 4);
     q.semantic = true;
     var valid = completion_parse(q, text.data, mode, false);
@@ -282,14 +305,14 @@ export fn completion_analyze(q: CompletionQuery*, active: void*, mode: u32, file
     if !valid {
         semantic_program_dispose(&q.program);
         entity_release(root);
-        root = tower_node_create();
+        root = entity_create(compiler_world_store(q.world));
         semantic_initialize(&q.program, root, 4);
         q.roots.length = 0;
         q.bases.length = 0;
         q.input.length = 0;
         text.length = prefix_end;
         sem_require(host_text_terminate(&text));
-        var probe = syntax_completion_create(text.data, mode);
+        var probe = completion_session(q, text.data, mode);
         syntax_completion_enable(probe);
         for(var i: usize = 0; i != 1024; i++) {
             var root = syntax_next(probe);
@@ -393,11 +416,24 @@ fn completion_text(out: vector(u8)*, text: u8*): void {
 // mode 2 marks declaration-reader queries. Value/type/member roles come from
 // semantic resolution, not adjacent punctuation.
 export fn completion_begin(source: u8*, length: usize, cursor: usize, spans: CompletionSpan*, count: usize): CompletionQuery* {
+    var session = syntax_completion_create("", 0);
+    var owner = bits(SyntaxSession*, session);
+    var result = completion_begin_world(owner.inputs.world, owner.inputs.environment, source, length, cursor, spans, count);
+    syntax_destroy(session);
+    return result;
+}
+
+export fn completion_begin_world(world: void*, environment: void*, source: u8*, length: usize, cursor: usize, spans: CompletionSpan*, count: usize): CompletionQuery* {
+    if world is null || !frontend_modules_bind_world(environment, world) {
+        return null;
+    }
     var q = alloc(CompletionQuery, 1);
     if q == null {
         return null;
     }
     *q = default;
+    q.world = world;
+    q.environment = environment;
     q.source = source;
     q.length = length;
     q.cursor = cursor;

@@ -1,8 +1,10 @@
 import tower;
 import frontend_units;
+import editor_units;
 import utility_checks;
 
 extern fn lr_work_tests(): u32;
+
 extern fn work_thread_available(): bool;
 
 export fn lr_work_test_main(argc: i32, argv: u8**): i32 {
@@ -11,5 +13,6 @@ export fn lr_work_test_main(argc: i32, argv: u8**): i32 {
     utility_check(lr_work_tests() == 0, "Real threaded LR and serial tables retain identical records, conflicts and world ownership");
     puts("Native production worker policy: serial/threaded LR graph and lifetime comparisons passed.");
     frontend_units_tests(argv[1]);
+    editor_units_tests(argv[1]);
     return 0;
 }

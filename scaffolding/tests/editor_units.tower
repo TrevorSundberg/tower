@@ -1,0 +1,125 @@
+import tower;
+import .library.vector;
+import frontend_units;
+
+extern fn frontend_units_inspect(batch: void*, ordinal: usize, mode: u32): bool;
+
+extern fn frontend_units_document(batch: void*, ordinal: usize): u8*;
+
+extern fn strncmp(a: u8*, b: u8*, length: usize): i32;
+
+// Inspector entity IDs and component counts describe each world's temporary
+// storage, including scheduling metadata. Compare every user-visible field,
+// excluding only those numeric debug identities in the compiler-owned JSON.
+fn editor_units_snapshot(text: u8*, output: vector(u8)*): void {
+    var keys: u8*[4];
+    keys[0] = ",\"entity\":";
+    keys[1] = ",\"components\":";
+    keys[2] = ",\"parent\":";
+    keys[3] = ",\"binding\":";
+    var length = strlen(text);
+    for(var i: usize = 0; i < length; i++) {
+        var omitted: usize = 0;
+        if text[i] == 44 {
+            for(var key: usize = 0; key < 4; key++) {
+                var prefix = strlen(keys[key]);
+                if prefix < length -i && strncmp(&text[i], keys[key], prefix) == 0 {
+                    var end = i + prefix;
+                    while end < length && text[end] >= 48 && text[end] <= 57 {
+                        end++;
+                    }
+                    if end > i + prefix {
+                        omitted = end - i;
+                    }
+                }
+            }
+        }
+        if omitted != 0 {
+            i += omitted - 1;
+        }
+        else {
+            units_check(vector_push(output, text[i]), "Inspection output snapshot");
+        }
+    }
+}
+
+fn editor_units_trial(budget: usize, bedrock: u8*, foundation: u8*, root: u8*, output: vector(u8)*): void {
+    var batch = frontend_units_create(3, budget, 8, 84, 21, bedrock, foundation, root);
+    units_check(batch is not null, "Editor unit batch");
+    defer frontend_units_close(batch);
+    var sources: u8*[3];
+    sources[0] = "import tower; fn answer():i32 {return comptime(40+2);}";
+    sources[1] = "import tower; struct Pair {field:i32;} fn identity(T:type,value:T):T{return value;} var p:Pair; p.field=identity(7);";
+    sources[2] = "parse Choice = 'first' | 'second';";
+    for(var i: usize = 1; i <= 3; i++) {
+        units_check(frontend_units_source(batch, i, "inspect.tower", sources[i -1], strlen(sources[i -1])), "Editor unit input snapshot");
+    }
+    units_check(frontend_units_inspect(batch, 2, 0) && frontend_units_inspect(batch, 3, 1), "Editor unit query selection");
+    units_check(!frontend_units_inspect(batch, 2, 3) && !frontend_units_inspect(batch, 4, 0), "Editor unit rejects invalid configuration");
+    units_check(frontend_units_document(batch, 2) is null, "Editor unit hides unpublished output");
+    var done = frontend_units_step(batch, false);
+    units_check(!frontend_units_inspect(batch, 1, 0), "Editor active unit immutable");
+    while !done {
+        done = frontend_units_step(batch, true);
+    }
+    if frontend_units_failed(batch) != 0 {
+        puts(frontend_units_error(batch));
+    }
+    units_check(!frontend_units_cancelled(batch) && frontend_units_failed(batch) == 0, "Editor and compiler units succeed together");
+    units_check(frontend_units_program(batch, 1) is not null && frontend_units_document(batch, 1) is null, "Executable unit result kind");
+    for(var i: usize = 2; i <= 3; i++) {
+        var text = frontend_units_document(batch, i);
+        units_check(text is not null && frontend_units_program(batch, i) is null, "Inspection unit result kind");
+        units_check(strstr(text, i == 2 ? "function template": "grammar") is not null, "Inspection unit shared metadata");
+        units_check(strstr(text, "\"complete\":true") is not null, "Inspection unit complete output");
+        editor_units_snapshot(text, output);
+    }
+}
+
+export fn editor_units_tests(root: u8*): void {
+    var bedrock: vector(u8) = default;
+    var foundation: vector(u8) = default;
+    units_read(root, "/bedrock.tower", &bedrock);
+    units_read(root, "/foundation.tower", &foundation);
+    defer vector_dispose(&bedrock);
+    defer vector_dispose(&foundation);
+    var serial: vector(u8) = default;
+    var parallel: vector(u8) = default;
+    defer vector_dispose(&serial);
+    defer vector_dispose(&parallel);
+    editor_units_trial(1, bedrock.data, foundation.data, root, &serial);
+    editor_units_trial(6, bedrock.data, foundation.data, root, &parallel);
+    units_check(serial.length == parallel.length, "Inspection scheduling preserves output size");
+    for(var i: usize = 0; i < serial.length; i++) {
+        units_check(serial.data[i] == parallel.data[i], "Inspection scheduling preserves output bytes");
+    }
+    // Cancellation uses the same join-before-release path for both result kinds.
+    var batch = frontend_units_create(2, 4, 4, 85, 21, bedrock.data, foundation.data, root);
+    units_check(batch is not null, "Cancelled editor batch");
+    for(var i: usize = 1; i <= 2; i++) {
+        var source: u8* = "import tower; var value:i32=42;";
+        units_check(frontend_units_source(batch, i, "cancel.tower", source, strlen(source)) && frontend_units_inspect(batch, i, 0), "Cancelled editor recipe");
+    }
+    var done = frontend_units_step(batch, false);
+    frontend_units_cancel(batch);
+    if !done {
+        units_check(frontend_units_cancelled(batch) && frontend_units_document(batch, 1) is null && frontend_units_program(batch, 1) is null, "Cancelled editor batch hides results");
+    }
+    frontend_units_close(batch);
+    // A failed compilation suppresses earlier successful inspection results,
+    // including jobs that were never admitted by the one-lane transport.
+    batch = frontend_units_create(3, 6, 8, 86, 21, bedrock.data, foundation.data, root);
+    units_check(batch is not null, "Failed mixed editor batch");
+    for(var i: usize = 1; i <= 3; i++) {
+        var source: u8* = i == 2 ? "import tower; fn broken():i32{return unknown_value;}": "import tower; var field:i32=42;";
+        units_check(frontend_units_source(batch, i, "failed.tower", source, strlen(source)), "Failed mixed unit recipe");
+        if i != 2 {
+            units_check(frontend_units_inspect(batch, i, 0), "Failed mixed inspection recipe");
+        }
+    }
+    while !frontend_units_step(batch, true) {}
+    units_check(frontend_units_failed(batch) == 2 && strstr(frontend_units_error(batch), "unknown_value") is not null, "Mixed batch source-order diagnostic");
+    units_check(frontend_units_document(batch, 1) is null && frontend_units_document(batch, 3) is null && frontend_units_program(batch, 2) is null, "Failed mixed batch hides all results");
+    frontend_units_close(batch);
+    puts("Tower editor units: mixed native jobs, deterministic inspection and cancellation passed.");
+}

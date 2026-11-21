@@ -3,6 +3,7 @@ import language_components;
 import language_generics;
 import inspection_policy;
 import tower;
+import syntax_session_types;
 import completion;
 import foundation_tags;
 import foundation_types;
@@ -22,10 +23,6 @@ import .library.vector;
 // Language-service inspection shares completion's source/module ownership,
 // ordinary semantic checking, and the real syntax/Foundation ECS components.
 // The returned ranges are a disposable presentation index, not another AST.
-extern fn syntax_component_type(): void*;
-
-extern fn parser_match_get_type(): void*;
-
 extern fn entity_id(node: void*): usize;
 
 extern fn entity_component_count(node: void*): usize;
@@ -233,12 +230,12 @@ fn language_leaf(q: CompletionQuery*, leaf: void*, candidate: LanguageCandidate*
                 value = null;
             } else {
                 if candidate.grammar {
-                    format_grammar_preview(&formatted, subject, syntax_component_type());
+                    format_grammar_preview(&formatted, subject, null);
                 } else {
                     if sem_is(subject, "TowerExpression") || sem_is(subject, "TowerComma") || sem_is(subject, "TowerNullAccess") {
-                        format_dependent_summary(&formatted, subject, parser_match_get_type());
+                        format_dependent_summary(&formatted, subject, null);
                     } else {
-                        format_summary(&formatted, subject, syntax_component_type(), core_component_type(), parser_match_get_type());
+                        format_summary(&formatted, subject, null, null, null);
                     }
                 }
             }
@@ -385,6 +382,14 @@ fn language_walk(q: CompletionQuery*, node: void*, inherited: LanguageCandidate*
 // Direct native/Wasm entry point. The handle owns its output and all temporary
 // shared entities until completion_dispose; no server protocol or guest JIT.
 export fn language_document(source: u8*, length: usize, mode: u32, pointer_bytes: u32): CompletionQuery* {
+    var session = syntax_completion_create("", mode);
+    var owner = bits(SyntaxSession*, session);
+    var result = language_document_world(owner.inputs.world, owner.inputs.environment, source, length, mode, pointer_bytes);
+    syntax_destroy(session);
+    return result;
+}
+
+export fn language_document_world(world: void*, environment: void*, source: u8*, length: usize, mode: u32, pointer_bytes: u32): CompletionQuery* {
     var source_error = host_source_error(source, length);
     if source_error[0] != 0 {
         return null;
@@ -402,7 +407,7 @@ export fn language_document(source: u8*, length: usize, mode: u32, pointer_bytes
     if mode > 2 {
         return null;
     }
-    var q = completion_begin(source, length, 0, null, 0);
+    var q = completion_begin_world(world, environment, source, length, 0, null, 0);
     if q == null {
         return null;
     }
@@ -411,7 +416,7 @@ export fn language_document(source: u8*, length: usize, mode: u32, pointer_bytes
     sem_require(bytes_append(&q.recovered, source, length));
     sem_require(host_text_terminate(&q.recovered));
     q.source = q.recovered.data;
-    var root = tower_node_create();
+    var root = entity_create(compiler_world_store(q.world));
     semantic_initialize(&q.program, root, pointer_bytes);
     q.semantic = true;
     var complete = completion_parse(q, q.source, mode, false);

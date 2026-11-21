@@ -222,7 +222,7 @@ fn language_generic_format(q: CompletionQuery*, info: GenericInfo*, formatted: F
         node = info.declaration;
         subject = node;
     }
-    format_dependent_view(formatted, node, subject, info.annotation, parser_match_get_type(), substitutions);
+    format_dependent_view(formatted, node, subject, info.annotation, null, substitutions);
     if info.annotation == null {
         if info.resolved != null {
             var append = !signature;

@@ -1,4 +1,5 @@
 import tower;
+import component_kinds;
 import language_components;
 import syntax_types;
 import syntax_tags;
@@ -40,8 +41,7 @@ fn language_syntax(node: void*): SyntaxNode* {
     if node == null {
         return null;
     }
-    var component = entity_component_get(node, syntax_component_type());
-    return bits(SyntaxNode*, entity_component_data(component));
+    return bits(SyntaxNode*, compiler_node_get(node, CompilerSyntax()));
 }
 
 fn language_grammar_keep(entry: LanguageGrammar*, node: void*): void {
@@ -395,7 +395,7 @@ fn language_grammar_targets(q: CompletionQuery*, entry: LanguageGrammar*, docume
     var i: usize = 0;
     for(; i != entry.targets.length; i++) {
         var preview: FormatResult = default;
-        format_grammar_preview(&preview, entry.targets.data[i], syntax_component_type());
+        format_grammar_preview(&preview, entry.targets.data[i], null);
         if i != 0 {
             completion_text(&text, " | ");
         }

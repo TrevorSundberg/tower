@@ -1,0 +1,146 @@
+import tower;
+import .library.vector;
+import frontend_units;
+import editor_units;
+import .compiler.syntax_session_types;
+import .compiler.syntax_version_types;
+
+extern fn compiler_world_create_workers(limit: usize): void*;
+
+extern fn compiler_world_dispose(world: void*): bool;
+
+extern fn frontend_world_clear(world: void*): bool;
+
+extern fn frontend_modules_create(): void*;
+
+extern fn frontend_modules_destroy(environment: void*): void;
+
+extern fn frontend_modules_configure(environment: void*, path: u8*, library: u8*): void;
+
+extern fn frontend_modules_bind_world(environment: void*, world: void*): bool;
+
+extern fn syntax_baseline_install(world: void*, environment: void*, source: u8*, foundation: bool, diagnostic: SyntaxVersionDiagnostic*): bool;
+
+extern fn syntax_version_diagnostic_dispose(diagnostic: SyntaxVersionDiagnostic*): void;
+
+extern fn syntax_version_diagnostic_text(diagnostic: SyntaxVersionDiagnostic*): u8*;
+
+extern fn language_document_world(world: void*, environment: void*, source: u8*, length: usize, mode: u32, width: u32): void*;
+
+extern fn language_document_result(query: void*): u8*;
+
+extern fn completion_dispose(query: void*): void;
+
+extern fn completion_begin_world(world: void*, environment: void*, source: u8*, length: usize, cursor: usize, spans: void*, count: usize): void*;
+
+extern fn completion_analyze(query: void*, active: void*, mode: u32, files: u8**, lengths: usize*, count: usize): void;
+
+extern fn completion_symbols(query: void*): void;
+
+extern fn completion_end(query: void*): u8*;
+
+extern fn syntax_session_open(world: void*, environment: void*, source: u8*, module: void*, mode: u32): SyntaxSession*;
+
+extern fn syntax_completion_enable(session: void*): void;
+
+extern fn syntax_next(session: void*): void*;
+
+extern fn syntax_destroy(session: void*): void;
+
+extern fn entity_release(node: void*): usize;
+
+extern fn tower_test_buffer_count(): usize;
+
+fn editor_world_install(world: void*, environment: void*, source: u8*, foundation: bool): void {
+    var diagnostic: SyntaxVersionDiagnostic = default;
+    defer syntax_version_diagnostic_dispose(&diagnostic);
+    var success = syntax_baseline_install(world, environment, source, foundation, &diagnostic);
+    if !success {
+        puts(syntax_version_diagnostic_text(&diagnostic));
+    }
+    units_check(success, "Editor world baseline");
+}
+
+fn editor_world_completion(world: void*, environment: void*): void {
+    var source: u8* = "import tower; struct Pair { field: i32; } var value: Pair; value.";
+    var length = strlen(source);
+    var session = bits(void*, syntax_session_open(world, environment, source, null, 0));
+    defer syntax_destroy(session);
+    syntax_completion_enable(session);
+    loop {
+        var root = syntax_next(session);
+        if root is null {
+            break;
+        }
+        units_check(compiler_node_world(root) == world, "Editor prefix node world");
+        entity_release(root);
+    }
+    var query = completion_begin_world(world, environment, source, length, length, null, 0);
+    units_check(query is not null, "Editor world completion creation");
+    defer completion_dispose(query);
+    completion_analyze(query, session, 0, null, null, 0);
+    completion_symbols(query);
+    var output = completion_end(query);
+    if strstr(output, "field") is null {
+        puts(output);
+    }
+    units_check(strstr(output, "field") is not null, "Editor world typed member completion");
+}
+
+export fn editor_world_tests(root: u8*): void {
+    var before = tower_test_buffer_count();
+    var bedrock: vector(u8) = default;
+    var foundation: vector(u8) = default;
+    units_read(root, "/bedrock.tower", &bedrock);
+    units_read(root, "/foundation.tower", &foundation);
+    var worlds: void*[2];
+    var environments: void*[2];
+    var queries: void*[2];
+    var source: u8* = "import tower; struct Pair { field:i32; } fn identity(T:type,value:T):T {return value;} var sample:Pair; sample.field=identity(7);";
+    for(var i: usize = 0; i < 2; i++) {
+        worlds[i] = compiler_world_create_workers(i + 1);
+        environments[i] = frontend_modules_create();
+        units_check(worlds[i] is not null && environments[i] is not null && frontend_modules_bind_world(environments[i], worlds[i]), "Editor exclusive world");
+        frontend_modules_configure(environments[i], "editor.tower", root);
+        editor_world_install(worlds[i], environments[i], bedrock.data, false);
+        editor_world_install(worlds[i], environments[i], foundation.data, true);
+        queries[i] = language_document_world(worlds[i], environments[i], source, strlen(source), 0, convert(u32, 4 + i *4));
+        units_check(queries[i] is not null, "Editor world document creation");
+        var output = language_document_result(queries[i]);
+        if strstr(output, "function template") is null {
+            puts(output);
+        }
+        units_check(strstr(output, "function template") is not null && strstr(output, "field") is not null && strstr(output, "\"complete\":true") is not null, "Editor generic and typed component inspection");
+        editor_world_completion(worlds[i], environments[i]);
+        var grammar: u8* = "parse Choice = 'first' | 'second';";
+        for(var mode: u32 = 1; mode <= 2; mode++) {
+            var grammar_query = language_document_world(worlds[i], environments[i], grammar, strlen(grammar), mode, 4);
+            units_check(grammar_query is not null, "Editor grammar document creation");
+            var description = language_document_result(grammar_query);
+            units_check(strstr(description, "grammar") is not null && strstr(description, "Choice") is not null && strstr(description, "first") is not null, "Editor node-owned grammar preview");
+            completion_dispose(grammar_query);
+        }
+    }
+    units_check(language_document_world(worlds[0], environments[1], source, strlen(source), 0, 4) is null, "Foreign editor environment rejected");
+    units_check(completion_begin_world(worlds[0], environments[1], source, strlen(source), 0, null, 0) is null, "Foreign completion environment rejected");
+    var foreign = bits(void*, syntax_session_open(worlds[1], environments[1], "", null, 0));
+    var rejected = completion_begin_world(worlds[0], environments[0], source, strlen(source), 0, null, 0);
+    units_check(rejected is not null, "Editor mismatched session fixture");
+    completion_analyze(rejected, foreign, 0, null, null, 0);
+    units_check(strstr(completion_end(rejected), "field") is null, "Foreign completion session rejected");
+    completion_dispose(rejected);
+    syntax_destroy(foreign);
+    for(var i: usize = 0; i < 2; i++) {
+        completion_dispose(queries[i]);
+        frontend_modules_destroy(environments[i]);
+        units_check(frontend_world_clear(worlds[i]) && compiler_world_dispose(worlds[i]), "Editor world independent disposal");
+        if i == 0 {
+            units_check(strstr(language_document_result(queries[1]), "function template") is not null, "Other world query survives disposal");
+        }
+    }
+    vector_dispose(&bedrock);
+    vector_dispose(&foundation);
+    editor_units_tests(root);
+    units_check(tower_test_buffer_count() == before, "Editor worlds and batches release all buffers");
+    puts("Tower explicit editor worlds: typed completion, generic inspection and independent lifetime passed.");
+}

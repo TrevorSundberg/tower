@@ -2,46 +2,81 @@ import tower;
 import compiler_kernel;
 import semantic_program_types;
 import frontend_compilation;
+import language_query;
+import completion;
 import syntax_version_types;
 import .library.work_pool;
 import .library.vector;
 
 extern fn compiler_work_create(count: usize, workers: usize, revision: u64, profile: u64): void*;
+
 extern fn compiler_work_close(work: void*): void;
+
 extern fn compiler_work_anchor(work: void*): void*;
+
 extern fn compiler_work_subject(work: void*, ordinal: usize): void*;
+
 extern fn compiler_work_next(work: void*): usize;
+
 extern fn compiler_work_accept(work: void*, ordinal: usize, revision: u64, profile: u64, success: bool): bool;
+
 extern fn compiler_work_done(work: void*): bool;
+
 extern fn compiler_work_failed(work: void*): usize;
+
 extern fn compiler_work_cancel(work: void*): void;
+
 extern fn entity_create(store: void*): void*;
+
 extern fn entity_create_related(anchor: void*): void*;
+
 extern fn entity_release(node: void*): usize;
+
 extern fn entity_register(kind: void*, size: usize, alignment: usize, lifecycle: usize): bool;
+
 extern fn entity_component_add(node: void*, kind: void*): void*;
+
 extern fn entity_component_get(node: void*, kind: void*): void*;
+
 extern fn entity_component_data(component: void*): void*;
 
 extern fn compiler_world_create_workers(limit: usize): void*;
+
 extern fn compiler_world_store(world: void*): void*;
+
 extern fn compiler_world_dispose(world: void*): bool;
+
 extern fn frontend_world_clear(world: void*): bool;
+
 extern fn frontend_modules_create(): void*;
+
 extern fn frontend_modules_destroy(environment: void*): void;
+
 extern fn frontend_modules_bind_world(environment: void*, world: void*): bool;
+
 extern fn frontend_modules_configure(environment: void*, source: u8*, library: u8*): void;
+
 extern fn syntax_baseline_install(world: void*, environment: void*, source: u8*, foundation: bool, diagnostic: SyntaxVersionDiagnostic*): bool;
+
 extern fn syntax_version_diagnostic_text(diagnostic: SyntaxVersionDiagnostic*): u8*;
+
 extern fn syntax_version_diagnostic_dispose(diagnostic: SyntaxVersionDiagnostic*): void;
+
 extern fn semantic_initialize(program: SemanticProgram*, root: void*, width: u32): void;
+
 extern fn semantic_program_dispose(program: SemanticProgram*): void;
+
 extern fn entity_view_open(anchor: void*): void*;
+
 extern fn entity_view_close(view: void*): void;
 
 // The coordinator store owns recipes/results and query identities. Each unit
 // owns a separate compiler world and module cache, handed exclusively to one
 // worker. Immutable snapshots stay alive through cancellation and joins.
+enum FrontendUnitAction: u32 {
+    Compile, Inspect
+}
+
 struct FrontendUnit {
     kernel: CompilerKernel;
     batch: FrontendUnits*;
@@ -52,6 +87,9 @@ struct FrontendUnit {
     source: vector(u8);
     program: SemanticProgram;
     diagnostic: SyntaxVersionDiagnostic;
+    inspection: CompletionQuery*;
+    action: FrontendUnitAction;
+    mode: u32;
     success: bool;
     configured: bool;
 }
@@ -74,7 +112,9 @@ struct FrontendUnits {
 }
 
 fn frontend_units_snapshot(out: vector(u8)*, source: u8*, length: usize): bool {
-    if length == ~convert(usize, 0) || !vector_reserve(out, length + 1) { return false; }
+    if length == ~convert(usize, 0) || !vector_reserve(out, length + 1) {
+        return false;
+    }
     copy(out.data, source, length);
     out.data[length] = 0;
     out.length = length;
@@ -83,7 +123,9 @@ fn frontend_units_snapshot(out: vector(u8)*, source: u8*, length: usize): bool {
 
 fn frontend_units_job(batch: FrontendUnits*, ordinal: usize): FrontendUnit* {
     var subject = compiler_work_subject(batch.work, ordinal);
-    if subject is null || batch.kind is null { return null; }
+    if subject is null || batch.kind is null {
+        return null;
+    }
     return bits(FrontendUnit*, entity_component_data(entity_component_get(subject, batch.kind)));
 }
 
@@ -95,9 +137,22 @@ export fn compiler_unit_kernel(payload: void*): void {
     var batch = job.batch;
     job.success = syntax_baseline_install(job.world, job.modules, batch.bedrock.data, false, &job.diagnostic);
     job.success &&= syntax_baseline_install(job.world, job.modules, batch.foundation.data, true, &job.diagnostic);
-    if !job.success { return; }
+    if !job.success {
+        return;
+    }
+    if job.action == FrontendUnitAction.Inspect {
+        job.inspection = language_document_world(job.world, job.modules, job.source.data, job.source.length, job.mode, batch.width);
+        job.success = job.inspection is not null;
+        if !job.success {
+            job.diagnostic.fallback = "Unable to create inspection query";
+        }
+        return;
+    }
     var root = entity_create(compiler_world_store(job.world));
-    if root is null { job.success = false; return; }
+    if root is null {
+        job.success = false;
+        return;
+    }
     semantic_initialize(&job.program, root, batch.width);
     var source: FrontendSource;
     source.data = job.source.data;
@@ -117,27 +172,47 @@ export fn compiler_unit_kernel(payload: void*): void {
 // Cancel the graph first, then join every admitted worker before releasing
 // pinned component payloads. A cancelled batch never exposes result programs.
 export fn frontend_units_cancel(batch: FrontendUnits*): void {
-    if batch.finished { return; }
+    if batch.finished {
+        return;
+    }
     batch.cancelled = true;
     compiler_work_cancel(batch.work);
-    while batch.pool.running != 0 { work_pool_receive(&batch.pool, true); }
-    if batch.view is not null { entity_view_close(batch.view); batch.view = null; }
+    while batch.pool.running != 0 {
+        work_pool_receive(&batch.pool, true);
+    }
+    if batch.view is not null {
+        entity_view_close(batch.view);
+        batch.view = null;
+    }
     batch.finished = true;
 }
 
 export fn frontend_units_close(batch: FrontendUnits*): void {
-    if batch is null { return; }
-    if batch.work is not null { frontend_units_cancel(batch); }
+    if batch is null {
+        return;
+    }
+    if batch.work is not null {
+        frontend_units_cancel(batch);
+    }
     work_pool_close(&batch.pool);
     if batch.work is not null {
         for(var i: usize = 1; i <= batch.count; i++) {
             var job = frontend_units_job(batch, i);
-            if job is null { continue; }
+            if job is null {
+                continue;
+            }
+            if job.inspection is not null {
+                completion_dispose(job.inspection);
+            }
             var root = job.program.root;
             semantic_program_dispose(&job.program);
-            if root is not null { entity_release(root); }
-            if job.modules is not null { frontend_modules_destroy(job.modules); }
-            if job.world is not null && (!frontend_world_clear(job.world) || !compiler_world_dispose(job.world)) {
+            if root is not null {
+                entity_release(root);
+            }
+            if job.modules is not null {
+                frontend_modules_destroy(job.modules);
+            }
+            if job.world is not null &&(!frontend_world_clear(job.world) || !compiler_world_dispose(job.world)) {
                 trap("Compilation unit world still borrowed", 0);
             }
             syntax_version_diagnostic_dispose(&job.diagnostic);
@@ -145,7 +220,9 @@ export fn frontend_units_close(batch: FrontendUnits*): void {
             vector_dispose(&job.source);
         }
     }
-    if batch.kind is not null { entity_release(batch.kind); }
+    if batch.kind is not null {
+        entity_release(batch.kind);
+    }
     compiler_work_close(batch.work);
     vector_dispose(&batch.bedrock);
     vector_dispose(&batch.foundation);
@@ -157,33 +234,49 @@ export fn frontend_units_close(batch: FrontendUnits*): void {
 // their private worlds divide the remaining budget among nested phase kernels.
 // Width is explicit target layout, independent of the host or worker count.
 export fn frontend_units_create(count: usize, budget: usize, width: u32,
-    revision: u64, profile: u64, bedrock: u8*, foundation: u8*, library: u8*): FrontendUnits* {
-    if count == 0 || budget == 0 || budget > 256 || (width != 4 && width != 8)
-        || bedrock is null || foundation is null || library is null { return null; }
+revision: u64, profile: u64, bedrock: u8*, foundation: u8*, library: u8*): FrontendUnits* {
+    if count == 0 || budget == 0 || budget > 256 ||(width != 4 && width != 8)
+    || bedrock is null || foundation is null || library is null {
+        return null;
+    }
     var batch = alloc(FrontendUnits, 1);
-    if batch is null { return null; }
+    if batch is null {
+        return null;
+    }
     *batch = default;
     batch.width = width;
     batch.revision = revision;
     batch.profile = profile;
-    var lanes = count < budget ? count : budget;
-    if !work_pool_open(&batch.pool, lanes) { frontend_units_close(batch); return null; }
+    var lanes = count < budget ? count: budget;
+    if !work_pool_open(&batch.pool, lanes) {
+        frontend_units_close(batch);
+        return null;
+    }
     batch.count = count;
     batch.work = compiler_work_create(count, batch.pool.count, revision, profile);
-    if batch.work is null { frontend_units_close(batch); return null; }
+    if batch.work is null {
+        frontend_units_close(batch);
+        return null;
+    }
     batch.kind = entity_create_related(compiler_work_anchor(batch.work));
     var ok = batch.kind is not null;
     ok &&= entity_register(batch.kind, sizeof(FrontendUnit), alignof(FrontendUnit), 0);
     ok &&= frontend_units_snapshot(&batch.bedrock, bedrock, frontend_source_length(bedrock));
     ok &&= frontend_units_snapshot(&batch.foundation, foundation, frontend_source_length(foundation));
     ok &&= frontend_units_snapshot(&batch.library, library, frontend_source_length(library));
-    if !ok { frontend_units_close(batch); return null; }
+    if !ok {
+        frontend_units_close(batch);
+        return null;
+    }
     // Portable transport has one lane and uses the same recipe/query protocol.
     var inner = budget / batch.pool.count;
     for(var i: usize = 1; i <= count; i++) {
         var node = compiler_work_subject(batch.work, i);
         var job = bits(FrontendUnit*, entity_component_data(entity_component_add(node, batch.kind)));
-        if job is null { frontend_units_close(batch); return null; }
+        if job is null {
+            frontend_units_close(batch);
+            return null;
+        }
         *job = default;
         job.batch = batch;
         job.ordinal = i;
@@ -200,23 +293,51 @@ export fn frontend_units_create(count: usize, budget: usize, width: u32,
 }
 
 export fn frontend_units_source(batch: FrontendUnits*, ordinal: usize, path: u8*, source: u8*, length: usize): bool {
-    if batch.started || batch.finished || path is null || source is null { return false; }
+    if batch.started || batch.finished || path is null || source is null {
+        return false;
+    }
     var job = frontend_units_job(batch, ordinal);
-    if job is null { return false; }
+    if job is null {
+        return false;
+    }
     // The current frontend accepts terminated text. Reject embedded NUL rather
     // than silently compiling only a prefix of this explicit input snapshot.
-    for(var i: usize = 0; i < length; i++) { if source[i] == 0 { return false; } }
+    for(var i: usize = 0; i < length; i++) {
+        if source[i] == 0 {
+            return false;
+        }
+    }
     job.configured = false;
     if !frontend_units_snapshot(&job.path, path, frontend_source_length(path))
-        || !frontend_units_snapshot(&job.source, source, length) { return false; }
+    || !frontend_units_snapshot(&job.source, source, length) {
+        return false;
+    }
     frontend_modules_configure(job.modules, job.path.data, batch.library.data);
     job.configured = true;
     return true;
 }
 
+// Inspection uses the same unit query, immutable snapshots and world ownership.
+// Its recoverable source diagnostics are part of the returned document, rather
+// than an executable program. Batch failure/cancellation still hides all output.
+export fn frontend_units_inspect(batch: FrontendUnits*, ordinal: usize, mode: u32): bool {
+    if batch.started || batch.finished || mode > 2 {
+        return false;
+    }
+    var job = frontend_units_job(batch, ordinal);
+    if job is null {
+        return false;
+    }
+    job.action = FrontendUnitAction.Inspect;
+    job.mode = mode;
+    return true;
+}
+
 fn frontend_units_receive(batch: FrontendUnits*, wait: bool): bool {
     var kernel = bits(CompilerKernel*, work_pool_receive(&batch.pool, wait));
-    if kernel is null { return false; }
+    if kernel is null {
+        return false;
+    }
     var job = bits(FrontendUnit*, kernel.payload);
     if !compiler_work_accept(batch.work, job.ordinal, batch.revision, batch.profile, job.success) {
         trap("Stale compilation unit receipt", 0);
@@ -227,18 +348,27 @@ fn frontend_units_receive(batch: FrontendUnits*, wait: bool): bool {
 // Poll is the only coordinator mutation entry while workers run. Completion
 // order cannot change diagnostics: the graph settles every earlier ordinal.
 export fn frontend_units_step(batch: FrontendUnits*, wait: bool): bool {
-    if batch.finished { return true; }
+    if batch.finished {
+        return true;
+    }
     if !batch.started {
         for(var i: usize = 1; i <= batch.count; i++) {
-            if !frontend_units_job(batch, i).configured { return false; }
+            if !frontend_units_job(batch, i).configured {
+                return false;
+            }
         }
         batch.view = entity_view_open(compiler_work_anchor(batch.work));
-        if batch.view is null { frontend_units_cancel(batch); return true; }
+        if batch.view is null {
+            frontend_units_cancel(batch);
+            return true;
+        }
         batch.started = true;
     }
     loop {
         var ordinal = compiler_work_next(batch.work);
-        if ordinal == 0 { break; }
+        if ordinal == 0 {
+            break;
+        }
         if !work_pool_submit(&batch.pool, bits(void*, &frontend_units_job(batch, ordinal).kernel)) {
             frontend_units_cancel(batch);
             return true;
@@ -247,7 +377,9 @@ export fn frontend_units_step(batch: FrontendUnits*, wait: bool): bool {
     frontend_units_receive(batch, wait);
     while frontend_units_receive(batch, false) {}
     if compiler_work_done(batch.work) {
-        while batch.pool.running != 0 { frontend_units_receive(batch, true); }
+        while batch.pool.running != 0 {
+            frontend_units_receive(batch, true);
+        }
         entity_view_close(batch.view);
         batch.view = null;
         batch.finished = true;
@@ -267,15 +399,29 @@ export fn frontend_units_cancelled(batch: FrontendUnits*): bool {
 // The programs retain their private world until batch close; LLVM can consume
 // these canonical Foundation entities with one context/module per result.
 export fn frontend_units_program(batch: FrontendUnits*, ordinal: usize): SemanticProgram* {
-    if !batch.finished || batch.cancelled || compiler_work_failed(batch.work) != 0 { return null; }
+    if !batch.finished || batch.cancelled || compiler_work_failed(batch.work) != 0 {
+        return null;
+    }
     var job = frontend_units_job(batch, ordinal);
-    return job is null ? null : &job.program;
+    return job is null || job.action != FrontendUnitAction.Compile ? null: &job.program;
+}
+
+export fn frontend_units_document(batch: FrontendUnits*, ordinal: usize): u8* {
+    if !batch.finished || batch.cancelled || compiler_work_failed(batch.work) != 0 {
+        return null;
+    }
+    var job = frontend_units_job(batch, ordinal);
+    return job is null || job.inspection is null ? null: language_document_result(job.inspection);
 }
 
 export fn frontend_units_error(batch: FrontendUnits*): u8* {
-    if !batch.finished || batch.cancelled || compiler_work_failed(batch.work) == 0 { return ""; }
+    if !batch.finished || batch.cancelled || compiler_work_failed(batch.work) == 0 {
+        return "";
+    }
     var job = frontend_units_job(batch, compiler_work_failed(batch.work));
-    if job.program.error.length != 0 { return job.program.error.data; }
+    if job.program.error.length != 0 {
+        return job.program.error.data;
+    }
     var error = syntax_version_diagnostic_text(&job.diagnostic);
-    return error[0] == 0 ? "Unable to allocate compilation unit storage" : error;
+    return error[0] == 0 ? "Unable to allocate compilation unit storage": error;
 }

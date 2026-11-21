@@ -30126,3 +30126,178 @@ remains hash 96a9e58964d7f01e4a97819f259448db81ef5e40. Ready to commit, rebase a
 publish this checkpoint. Continue afterward with explicit editor ownership/jobs,
 structural semantic continuations and backend ownership/scheduling; do not call
 the compiler universally threaded or the general compile-time value model complete.
+
+Published checkpoint: source 67da01c77bd7122a9792f4a38a65181ac6ae24ca,
+Pages 0826f407afaceb60299d75953aa17d0daff793b3 (parent b6f9f647).
+The post-commit pull/rebase was unchanged, main and Pages pushes succeeded, and
+Pages action 44905130571 completed successfully. Live verification has matched
+all 77 assets; its full browser workflows remain in progress. Preserve that
+dist snapshot until verification finishes.
+
+Work continues in the isolated editor-world draft. Explicit completion/document
+constructors borrow a world/environment; recovery sessions and roots use those
+owners, reject foreign sessions, and read component data from each node's world.
+The shared formatter now derives absent syntax/match kinds without registering
+types or consulting a default world. Existing legacy query entry points remain
+adapters. An inspection action on the same FrontendUnits ECS recipe/result
+component runs these services through the ordinary unit kernel, alongside
+compilation jobs; no new scheduler or C++ callback is introduced. Results stay
+hidden until joins and are reclaimed before their private worlds. The serial
+instrumented mixed-job tests pass with exact buffer cleanup. The first production
+test main missed a direct helper import; correct that and run the real workers
+before claiming editor overlap. Inspector debug entity IDs/component counts may
+reflect temporary worker storage; comparison excludes those numeric debug fields
+while checking all rendered source/type/signature/description fields.
+
+The production mixed editor/compilation batch passes too, including serial versus
+parallel rendered-result comparison and cancellation (editor-units-draft.log).
+GDB captures overlapping unit kernels and inspection running on native worker
+IDs 3/4 and 15/16, with zero default-world, legacy session-constructor or legacy
+buffer-allocation calls (editor-units-overlap.log). The draft is now integrated.
+Native frontend tests receive the resource directory for ordinary imports; the
+production LR/unit fixture also runs mixed editor jobs. Add failed-batch suppression
+coverage and an explicit diagnostic when an inspection query cannot be created.
+Run the integrated default-bootstrap builds and regressions before publishing.
+
+The complete hosted verification for 67da01c / Pages 0826f407 passed, including
+desktop/mobile workflows and real Linux defaults; saved report is
+unit-world-hosted-report.json. This supersedes the earlier pending hosted status.
+The editor checkpoint is now building against the documented default bootstrap;
+its publication has not happened yet.
+
+Integrated editor validation: the default-bootstrap native rebuild passes 8/8
+CTest cases (117.29 seconds), including the new explicit-world and mixed-job
+fixtures, plus the backend API checks (editor-world-native.log). Native successor
+parser_nodes/semantics/parser_format objects compare byte-identically
+(editor-world-successors.log). Browser capacity checks pass 3/3 in 52.98 seconds
+without skips; compile-time/invocation checks pass 48/48 in 13.09 seconds.
+
+The editor regression invocation passed 97 cases but its repository-wide
+formatting sweep was deliberately interrupted with SIGTERM after it began
+walking all bundled sources. The printed filenames were processed files, not
+formatting failures. A negative test-name filter unexpectedly still selected
+that sweep; it too was interrupted. An explicit positive selection then passed
+all five formatting behavior cases in 4.56 seconds
+(editor-world-formatting-selected.log). Do not report the interrupted 98-case
+invocation as wholly passing, or infer style failures from its progress output.
+Its completion, query, hover, formatter-port and Wasm cases all passed.
+
+The edited browser compiler generations pass and match byte-for-byte (125.36 /
+94.01 seconds): tower/LLVM/cross sizes 1071306/52370224/63927654; hashes
+ tower a2d84f404ad1d4eaf8ac803c08b21f304bf466417676bfab8a1e5b2f8fc0a21c,
+ LLVM 5ccc81ad376e966b6e4afe9181b4ba4d33ce24e8cd0c75e1aea782700037d61e,
+ cross 644337010ea234b55e33d69c3deae23f4affc4cbcb1015fce5ab11a978b85c3d.
+Reports/logs use the editor-world- prefix in build/language-next-audit. Full local
+deployment validation is now running. Structural function checking still batches
+an entire prefix through its last type-construction statement on the coordinator;
+next investigate resumable statement runs with explicit query dependencies and
+owned lexical scratch, rather than pretending those prefixes are already parallel.
+
+Full local editor deployment verification completed successfully, including all
+77 assets, desktop/mobile workflows and real Linux defaults
+(editor-world-local-report.json). A subsequent check restricted to changed Tower
+files found real formatting differences in the newly added declarations and
+one-line blocks; this is distinct from the earlier interrupted repository sweep.
+Apply the ordinary Tower formatter, including its structural reparse validation
+and a second idempotence check, to the changed files. An ignored native Tower
+harness (editor_format_main.tower / build-editor-format.py in the audit directory)
+uses explicit world/module ownership and syntax_format_into for that check.
+Formatting and final artifact refresh are pending; do not publish stale bundled
+compiler sources. The helper initially selected duplicate lexical Tower imports,
+then exposed a missing explicit pointer conversion and a wrong disposal symbol;
+those were harness errors, corrected before it ran. Its container Git file-list
+lookup also required using the host's already-authorized checkout instead.
+
+An isolated next draft replaces last-structural-statement prefixes with alternating
+worker statement runs and coordinator construction queries, keyed by the existing
+body subject plus syntax cursor. The body query suspends on each preparation
+receipt, and every stage publishes before structural access resumes. Its existing
+work component retains the block cursor, lexical state and scratch ownership;
+partial worker allocations transfer to compilation cleanup at joins. Completed
+bodies still release private scratch promptly. Source windows and continuation
+rounds are independent of worker width; later errors wait for earlier bodies.
+Nested structural blocks and type interning still use coordinator construction.
+This draft is not part of the editor checkpoint's implementation or publication.
+
+The draft passes native frontend/worker fixtures and the existing and expanded
+body_continuation example in both ordinary and fast interpreters. Added isolated
+native trials compare Foundation bytes and execute locals, defer, labels, flow,
+arrays, decltype and staged values at widths 4/8 with budgets 1/2/4/8; late errors
+in an earlier resumed body beat a later body's immediate error. Production and
+serial instrumented runs pass, including exact scratch cleanup
+(body-runs-tests.log; body-runs-extended.log). The test harness initially tried
+function-only invocation for the program root; that API correctly rejects a
+KProgram. The corrected test uses ix_init with an explicit context, executing
+module initialization through the ordinary interpreter. Its temporary main also
+needed imports before declarations. These were test setup failures, not accepted
+compiler behavior.
+
+The first GDB probe used optimized-away helper names. A second found real worker
+execution and repeated worker/construction/worker transitions, but could not
+snapshot overlap: Python Breakpoint.stop runs before GDB has marked the other
+threads stopped. The debug probe reported them running even in all-stop mode.
+Move snapshot inspection into breakpoint commands after stop processing, as the
+previous successful unit-overlap probe did; absence of overlap in that premature
+snapshot is not evidence that the executor ran serially. Final overlap validation
+is still pending at this entry.
+
+The corrected after-stop GDB probe now proves four simultaneous native body
+kernels (threads 11/12/13/14), plus worker/structural/worker/structural/worker
+progress on one persistent cursor (statement indices 0/242/243/483/484).
+Default-world and legacy allocation probes both remain zero
+(body-large-proof.gdb and body-large-proof.log). The larger ordinary Tower fixture
+contains eight independent functions with three statement runs separated by two
+generic calls; it executes to the same expected result. This is overlap evidence,
+not a speedup measurement. The draft still needs integration, complete bootstrap
+and browser regression validation after the editor checkpoint is published.
+
+Changed-file formatting completed for all 13 edited/new Tower files, including
+structural reparse validation, idempotence and final world cleanup
+(editor-world-format-native-run.log). The editor source is frozen for the final
+default-bootstrap native/shared-Wasm/portable-Wasm rebuild and artifact refresh.
+The isolated body draft also matches the current native CLI on all 80 positive
+and negative compile-time/decltype fixture/target combinations, including exact
+error text and source locations (body-differential.log). That comparison ran
+before the small draft-only cleanup for failed editor observation and malformed
+body admission; verify those with the integrated frontend checks later.
+
+Clarify an existing service limit: document inspection accepts an explicit 4/8-byte
+target, while completion_analyze still initializes its recovery program with the
+existing 4-byte profile. The new completion ownership constructor does not imply
+native-target selection; docs now state that limit. A final regression process
+was started before the refreshed LLVM package finished; it was stopped during
+its worker-capacity file to avoid reading an artifact while it was replaced.
+Rerun after packaging completes; the interrupted run is not validation evidence
+(editor-world-regressions-prebuild-interrupted.log).
+
+Final formatted editor artifacts: default-bootstrap native checks pass 8/8 in
+110.58 seconds plus backend API checks; native successor parser_nodes, semantics
+and parser_format objects are byte-identical (editor-world-native-final.log,
+editor-world-successors-final.log). Final browser checks pass 66/66 in 76.17
+seconds without skips, including compile-time/invocation/Wasm and capacities
+1/2/4/8 (editor-world-regressions-final.log). Both edited browser generations pass
+and match: 125.86/95.22 seconds, sizes 1071306/52370224/63927654; final hashes
+ tower aee5043df024eb438b8f47f85d9dd6dbee5868b49266c73cbab32f333f6b876d,
+ LLVM 2d3bfc8925e83b664be357b7cad8b927f781801276fef3a260c3a42f75332e9a,
+ cross 000f7886a9c1f490d4553622296fca78c9cb5290702c3f692387b9421d8d46eb.
+These supersede the pre-format hashes; reports are editor-world-final-generation1/2.json.
+The rebuilt dist has matched all 77 assets; full local workflows are still running.
+
+The isolated, formatted body draft now compiles its own semantic compiler and
+reproduces the object in a second native successor generation. The current
+reference compiler produces identical bytes too: SHA-256
+3c79c7f991b74c86279b166dafa73f311b5af2fd9bdba24a3ac0f6ceb876001f
+(body-selfhost-check.log, body-runs-selfhost.o, body-runs-generation2.o,
+body-runs-reference.o). Its reference/successor compile timings were 35.80/43.39
+seconds while other validation was running; those are not a controlled speed
+comparison. Implementation remains entirely Tower, with no C/C++ changes.
+
+Full final local deployment verification passed all 77 hashes, desktop/mobile
+workflows, editable grammar, completion/highlighting, persistence, native build
+and download workflows, and real Linux defaults
+(editor-world-local-final-report.json). No C/C++ source changed; todo.txt remains
+96a9e58964d7f01e4a97819f259448db81ef5e40. Commit/rebase and publish this editor
+checkpoint, verify the hosted result, then integrate the independently validated
+body continuations. The compiler-wide migration remains incomplete; explicit
+world ownership and isolated inspection jobs do not remove the remaining
+within-world structural/editor phases, CLI project wiring or backend boundaries.

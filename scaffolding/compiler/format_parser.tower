@@ -25,8 +25,6 @@ extern fn entity_child_count(parent: void*): usize;
 
 extern fn entity_child_at(parent: void*, index: usize): void*;
 
-extern fn parser_match_get_type(): void*;
-
 extern fn compiler_buffer_allocate(bytes: usize): void*;
 
 extern fn abort(): void;
@@ -247,11 +245,7 @@ export fn format_parser_label_text(text: u8*, length: usize, prefix: u8*, suffix
 
 export fn parser_tree_debug_string(root: void*): u8* {
     var result: FormatResult = default;
-    var kind: void* = null;
-    if root != null {
-        kind = parser_match_get_type();
-    }
-    format_parser_tree(&result, root, kind);
+    format_parser_tree(&result, root, null);
     return format_parser_host_text(&result);
 }
 

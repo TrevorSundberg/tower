@@ -1,4 +1,5 @@
 import tower;
+import component_kinds;
 import .library.vector;
 import format_types;
 import format_api;
@@ -21,7 +22,12 @@ extern fn syntax_nodes_equal(left: void*, right: void*, kind: void*, locations: 
 // They are presentation only; never serialized as grammar or foundation source.
 const SyntaxPreviewLimit: usize = 120;
 
+extern fn compiler_node_get(node: void*, kind: u32): void*;
+
 fn format_preview_node(node: void*, kind: void*): SyntaxNode* {
+    if kind is null {
+        return bits(SyntaxNode*, compiler_node_get(node, CompilerSyntax()));
+    }
     return bits(SyntaxNode*, entity_component_data(entity_component_get(node, kind)));
 }
 

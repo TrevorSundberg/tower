@@ -21,15 +21,24 @@ dwell, painting and UI labels; it does not parse source or resolve types.
 
 | Query | Tower entry points | Ownership |
 | --- | --- | --- |
-| Document / hover | `language_document(source, length, mode, pointer_bytes)`, `language_document_result(query)` | Copy the UTF-8 JSON result before `completion_dispose(query)`. |
-| Completion | `completion_begin`, `completion_analyze`, `completion_symbols`, `completion_offer`, `completion_end` | One query owns recovery text and temporary analysis; dispose it after copying the result. The current native adapter supplies the active parser and lexical/grammar views. |
+| Document / hover | `language_document_world(world, environment, source, length, mode, pointer_bytes)`, `language_document_result(query)` | Borrow the world/environment until `completion_dispose(query)`; copy the result before disposal. |
+| Completion | `completion_begin_world`, `completion_analyze`, `completion_symbols`, `completion_offer`, `completion_end` | The constructor takes world/environment before the existing source/span arguments. The active parser must have the same owners. Dispose after copying the result. |
 | Checking / diagnostics | `frontend_compile_sources`, `frontend_modules_error_file`, `frontend_modules_error_offset`, `frontend_modules_location` | Results belong to the semantic program and module environment. Keep them alive while reading diagnostics. |
 | Module source position | `frontend_module_location(module, offset, line, column)` | Returned filename is borrowed from the module's source metadata. Offsets are UTF-8 bytes; line and Unicode-scalar column are one-based. |
 
 Document modes are `0` for ordinary source, `1` for Foundation, and `2` for
-Bedrock. Pointer width is explicit (`4` or `8` bytes). Configure the module
-environment and its source files before querying. The returned ranges are UTF-8
+Bedrock. Document inspection takes an explicit pointer width (`4` or `8` bytes).
+Completion retains its existing 4-byte semantic target; explicit world ownership
+does not yet add completion target selection. Configure the module environment and its source files before querying. The returned ranges are UTF-8
 byte ranges; JavaScript maps them to UTF-16 offsets solely for editor rendering.
+
+The explicit services create recovery sessions and semantic roots in the supplied
+world. Formatting and component inspection read each node's own world, including
+implicit component kinds. Independent worlds can run concurrently; one active
+writer owns each world/environment. These synchronous constructors do not acquire
+a shared-world payload lock. Use the unit executor below for isolated worker jobs.
+`language_document` and `completion_begin` remain legacy host adapters; browser
+transport entry points still select their host context at that boundary.
 
 Hover results include a canonical signature, resolved type/layout where present,
 attached comments, and file/line/column locations. Grammar references retain the
@@ -107,9 +116,9 @@ and the `LanguagePresentation` priority enum. The browser still only renders the
 returned data and uses its cached position index for mouse movement.
 
 This is an incremental library boundary, not a claim that the whole compiler is
-already pure Tower or independently concurrent. Parser/session adapters and some
-diagnostic presentation remain native, and the module registry still has its
-existing lifetime/concurrency constraints. No new AST, symbol table, instruction
+already pure Tower or independently concurrent. Legacy host adapters and backend
+publication still need migration. Explicit compiler worlds, module environments
+and editor jobs now have independent ownership. No new AST, symbol table, instruction
 ABI, or host-dependent type resolver is introduced by these IDE services.
 
 
@@ -129,6 +138,15 @@ source, length)` before stepping. Paths and bounded source bytes are copied;
 embedded NUL is rejected. Configure every unit before calling
 `frontend_units_step(batch, wait)` repeatedly until it returns true. One
 coordinator owns these calls; workers exclusively own the admitted unit worlds.
+
+For document/hover work, select `frontend_units_inspect(batch, ordinal, mode)`
+before stepping. Compile and inspection jobs may share a batch and the same ECS
+query protocol. After a successful join, `frontend_units_document` borrows an
+inspection job's JSON; `frontend_units_program` returns only compilation jobs.
+Invalid or incomplete inspected source may produce a recovered document with
+`complete: false`; failure to create the query fails the batch. Cancellation or
+any failed unit suppresses both kinds of result. Debug entity IDs/component counts
+describe temporary world storage and are not stable semantic identifiers.
 
 The immutable budget is split between outer unit lanes and each world's nested
 parser/semantic kernels. It bounds concurrently executing compilation lanes, not

@@ -178,8 +178,10 @@ read/write claims, dynamic suspension/yield, stale dispatch rejection and cycle
 paths. The 1,024-entry module inference/decltype chains no longer use recursive
 inference. Function signatures and record fields participate in declaration
 ordering. Eligible body checking and expression lowering now have worker kernels.
-Structural type construction and editor queries remain coordinator work; this is
-not yet a fully parallel semantic pipeline.
+Structural type construction and within-world editor observation remain coordinator
+work. Explicit-world completion/inspection services now run as independent native
+unit jobs with the same ECS recipes, joins and budget policy. This is not yet a
+fully parallel semantic pipeline.
 
 The graph is still scoped to one compilation (revision `1`, pointer width as its
 initial profile). That is not a persistent incremental cache key. Reusable queries
@@ -766,8 +768,12 @@ containers. Benchmark representative compiler workloads before migrating them.
    unit executor now dispatches independent frontends in one process, with ECS
    recipes/results and bounded nested workers. Its production overlap, lazy
    evaluation/cycle, cancellation and cleanup tests pass. CLI project recipes,
-   IDE adapters and backend publication still need integration; do not extend
-   this frontend concurrency claim to those paths.
+   legacy IDE transport adapters and backend publication still need integration.
+   Explicit completion/inspection constructors now borrow the requested world and
+   environment; mixed compile/inspection jobs use the native unit executor, hide
+   outputs until successful joins and pass real overlap/ownership/cleanup checks.
+   Within-world editor semantic observation still follows the coordinator path;
+   do not extend the isolated-job concurrency claim to that internal phase.
 3. Migrate pure layout, body-analysis and lowering queries individually. Cache
    matching entity/component tuples. Preserve stable sparse payloads where
    address stability matters; introduce dense typed columns only for measured
@@ -787,7 +793,7 @@ Current migration audit (after the isolated compiler-worker milestone):
 | --- | --- | --- |
 | Entities | Stable payloads, dense per-type pointer indexes, explicit worlds, pinned views, exclusive attachment leases and staged canonical creation | Complete host-world isolation and non-racing reference ownership |
 | Syntax/grammar | Shared entities; world-bound module/session/baseline/revision/cache ownership; worker-owned FIRST/nullable frontiers, LR(0) transitions, LR(1) kernel closures, wide lookahead frontiers, LALR actions and runtime action/direct-index/goto rows | Native CLI project recipes, propagation-edge construction, runtime sequence specialization and source/effect order; row interning publishes after joins |
-| Semantics/layout | Shared query graph; parallel dependency discovery, layouts, eligible ordinary/instantiated-generic body checking and expression lowering | Generic/type construction continuations, precise body layout dependencies, editor queries and structural publication |
+| Semantics/layout | Shared query graph; parallel dependency discovery, layouts, eligible ordinary/instantiated-generic body checking and expression lowering | Generic/type construction continuations, precise body layout dependencies, within-world editor observation and structural publication |
 | Interpreter/staging | Per-invocation contexts over shared Foundation; ECS preparation/lowering dependencies, threaded lazy scalar evaluation and private execution caches | General ordinary-value execution, explicit effects/inputs and invalidation; no separate folding evaluator |
 | LLVM | Shared Foundation inputs; one mutable LLVM context/module per compiler instance | Function/query boundaries that do not concurrently mutate one LLVM module; preserve target legality |
 | Link/publication | Tower plans/artifacts plus upstream LLD and filesystem interfaces | Keep LLD globals and fixed temporary names isolated/serialized; publish a candidate only after its checks |

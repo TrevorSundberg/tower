@@ -1,4 +1,5 @@
 import tower;
+import component_kinds;
 import semantic_types;
 import language_query;
 import language_grammar;
@@ -231,14 +232,15 @@ fn language_component_present(q: CompletionQuery*, node: void*, component: void*
         language_generic_present(q, node, candidate);
         return LanguagePresentation.Generic;
     }
-    if type == core_component_type() {
+    var data = entity_component_data(component);
+    if data is not null && data == compiler_node_get(node, CompilerFoundation()) {
         if checked {
             language_foundation_present(node, candidate);
             return LanguagePresentation.Foundation;
         }
         return LanguagePresentation.None;
     }
-    var grammar = type == syntax_component_type();
+    var grammar = data is not null && data == compiler_node_get(node, CompilerSyntax());
     if grammar {
         candidate.grammar = true;
         return LanguagePresentation.Grammar;
