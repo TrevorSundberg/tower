@@ -170,28 +170,28 @@ fn sem_defer_register(c: SemanticContext*, n: void*, depth: u32): u32 {
     return FlowNext();
 }
 
-fn sem_defer_exit(c: SemanticContext*, n: void*): void {
+fn sem_defer_exit(c: SemanticContext*, n: void*, flow: u32): u32 {
     var value = sem_get(n);
     if value == null {
-        return;
+        return flow;
     }
     var returned = value.kind == KReturn();
     if returned && c.deferring != 0 {
         sem_fail(c, n, "A deferred cleanup cannot return from its enclosing function");
-        return;
+        return flow;
     }
     if !returned && value.kind != KBreak() && value.kind != KContinue() {
-        return;
+        return flow;
     }
     var pending = bits(SemanticDeferred*, c.deferred);
     if pending == null {
-        return;
+        return flow;
     }
     var loops: usize = 0;
     if !returned {
         loops = c.loops;
         if pending.loops < loops {
-            return;
+            return flow;
         }
     }
     var kind = value.kind;
@@ -202,10 +202,14 @@ fn sem_defer_exit(c: SemanticContext*, n: void*): void {
     if result != null {
         result = sem_control_read(c, n, sem_control_local(c, n, result));
     }
-    sem_defer_emit(c, n, null, loops);
+    var cleanup = sem_defer_emit(c, n, null, loops);
     var terminal = sem_control_node(c, n, kind);
     sem_get(terminal).value = result;
     sem_push(&value.items, terminal);
+    if(cleanup &FlowNext()) == 0 {
+        return 0;
+    }
+    return flow;
 }
 
 fn sem_defer_depth(c: SemanticContext*, n: void*, depth: u32): void {

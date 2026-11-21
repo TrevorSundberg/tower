@@ -207,7 +207,9 @@ export fn compiler_world_dispose(world: CompilerWorld*): bool {
     if cached {
         return false;
     }
-    if world.grammar.syntax is not null { return false; }
+    if world.grammar.syntax is not null {
+        return false;
+    }
     var pinned = world.store.views != 0;
     if pinned {
         return false;

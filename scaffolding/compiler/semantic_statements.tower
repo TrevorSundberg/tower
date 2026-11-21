@@ -404,7 +404,7 @@ fn sem_statement(c: SemanticContext*, n: void*, depth: u32): u32 {
     }
     var flow = sem_statement_impl(c, n, depth);
     if(c.deferred != null || c.deferring != 0) && sem_ok(c) {
-        sem_defer_exit(c, n);
+        return sem_defer_exit(c, n, flow);
     }
     return flow;
 }

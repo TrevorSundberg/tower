@@ -76,6 +76,9 @@ test('traps stop execution without unwinding and deferred traps preserve definit
   for (const text of [
     'defer print(3); { defer print(2); trap("cleanup-stop", 7); }',
     'fn stopped(): i32 { defer print(2); defer trap("cleanup-stop", 7); } stopped();',
+    'fn stopped(): i32 { loop { defer trap("cleanup-stop", 7); break; } } stopped();',
+    'fn stopped(): i32 { for (;;) { defer trap("cleanup-stop", 7); break; } } stopped();',
+    'fn stopped(): i32 { for (;;) { defer trap("cleanup-stop", 7); continue; } } stopped();',
   ]) for (const fast of [false, true]) {
     const handle = tower.compile('import tower; ' + text);
     try {

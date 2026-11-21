@@ -8,7 +8,9 @@ import frontend_format;
 import frontend_syntax_preview;
 
 extern fn syntax_world_revision(world: void*, mode: u32): FrontendRevision*;
+
 extern fn syntax_world_matches(world: void*, source: u8*, length: usize, foundation: bool): bool;
+
 extern fn syntax_world_publish(world: void*, source: u8*, length: usize, document: void*, revision: FrontendRevision*, foundation: bool): bool;
 
 fn frontend_baseline_tests(): void {
@@ -32,7 +34,7 @@ fn frontend_baseline_tests(): void {
     frontend_world_check(!syntax_world_matches(world, "old!", 4, true));
     var allocations = tower_test_buffer_allocations();
     frontend_world_check(syntax_world_publish(world, "new", 3, document, seed, false));
-    var construction = tower_test_buffer_allocations() - allocations;
+    var construction = tower_test_buffer_allocations() -allocations;
     frontend_world_check(syntax_world_revision(world, SyntaxFoundationBaseline()) is null);
     frontend_world_check(syntax_world_matches(world, "new", 3, false));
     frontend_world_check(!syntax_world_matches(other, "new", 3, false));
@@ -40,7 +42,7 @@ fn frontend_baseline_tests(): void {
     frontend_world_check(syntax_world_publish(world, "old", 3, document, seed, true));
     var buffers = tower_test_buffer_count();
     var references = entity_references(document);
-    for (var i: usize = 0; i < construction; ++i) {
+    for(var i: usize = 0; i < construction; ++i) {
         tower_test_buffer_fail_after(i);
         var published = syntax_world_publish(world, "replace", 7, document, seed, false);
         tower_test_buffer_fail_after(frontend_world_unlimited());
@@ -80,7 +82,7 @@ fn frontend_baseline_failure_tests(): void {
     entity_retain(document);
     var allocations = tower_test_buffer_allocations();
     var seed = syntax_world_revision(world, SyntaxSeedBaseline());
-    var construction = tower_test_buffer_allocations() - allocations;
+    var construction = tower_test_buffer_allocations() -allocations;
     frontend_world_check(seed is not null);
     frontend_revision_release(seed);
     frontend_world_check(frontend_world_clear(world));
@@ -90,7 +92,7 @@ fn frontend_baseline_failure_tests(): void {
     cache.bedrock = document;
     entity_retain(document);
     var buffers = tower_test_buffer_count();
-    for (var i: usize = 0; i < construction; ++i) {
+    for(var i: usize = 0; i < construction; ++i) {
         tower_test_buffer_fail_after(i);
         seed = syntax_world_revision(world, SyntaxSeedBaseline());
         tower_test_buffer_fail_after(frontend_world_unlimited());

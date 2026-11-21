@@ -30,17 +30,25 @@ extern fn compiler_world_get(world: void*, entity: void*, kind: u32): void*;
 
 fn syntax_baseline_dispose(value: SyntaxBaseline*): void {
     frontend_revision_release(value.revision);
-    if value.document is not null { entity_release(value.document); }
+    if value.document is not null {
+        entity_release(value.document);
+    }
     vector_dispose(u8, &value.source);
     fill(value, 0, sizeof(SyntaxBaseline));
 }
 
 fn syntax_baselines_owner(world: void*, create: bool): SyntaxBaselines* {
     var cache = compiler_world_grammar(world);
-    if cache.syntax is not null { return bits(SyntaxBaselines*, cache.syntax); }
-    if !create || compiler_world_pinned(world) { return null; }
+    if cache.syntax is not null {
+        return bits(SyntaxBaselines*, cache.syntax);
+    }
+    if !create || compiler_world_pinned(world) {
+        return null;
+    }
     var owner = alloc(SyntaxBaselines, 1);
-    if owner is null { return null; }
+    if owner is null {
+        return null;
+    }
     fill(owner, 0, sizeof(SyntaxBaselines));
     cache.syntax = bits(void*, owner);
     return owner;
@@ -49,17 +57,27 @@ fn syntax_baselines_owner(world: void*, create: bool): SyntaxBaselines* {
 // Returns an owned revision pin. Existing snapshots can be read under an ECS
 // view, but first construction/publication/reset requires the coordinator.
 export fn syntax_world_revision(world: void*, mode: u32): FrontendRevision* {
-    if mode > SyntaxSeedBaseline() { return null; }
+    if mode > SyntaxSeedBaseline() {
+        return null;
+    }
     var owner = syntax_baselines_owner(world, mode != SyntaxFoundationBaseline());
-    if owner is null { return null; }
-    if mode == SyntaxFoundationBaseline() { return frontend_revision_retain(owner.foundation.revision); }
+    if owner is null {
+        return null;
+    }
+    if mode == SyntaxFoundationBaseline() {
+        return frontend_revision_retain(owner.foundation.revision);
+    }
     if mode == SyntaxBedrockBaseline() && owner.bedrock.revision is not null {
         return frontend_revision_retain(owner.bedrock.revision);
     }
     if owner.seed is null {
-        if compiler_world_pinned(world) { return null; }
+        if compiler_world_pinned(world) {
+            return null;
+        }
         var document = frontend_world_bedrock(world);
-        if document is null { return null; }
+        if document is null {
+            return null;
+        }
         owner.seed = syntax_revision_document(document, compiler_world_type(world, CompilerSyntax()));
     }
     return frontend_revision_retain(owner.seed);
@@ -67,26 +85,38 @@ export fn syntax_world_revision(world: void*, mode: u32): FrontendRevision* {
 
 export fn syntax_world_matches(world: void*, source: u8*, length: usize, foundation: bool): bool {
     var owner = syntax_baselines_owner(world, false);
-    if owner is null { return false; }
-    var baseline = foundation ? &owner.foundation : &owner.bedrock;
+    if owner is null {
+        return false;
+    }
+    var baseline = foundation ? &owner.foundation: &owner.bedrock;
     return baseline.revision is not null && syntax_bytes_compare(baseline.source.data, baseline.source.length, source, length) == 0;
 }
 
 // Caller has validated grammar semantics. Enforce ownership at this publication
 // boundary; an explicit world must never accept another world's declaration nodes.
 export fn syntax_world_publish(world: void*, source: u8*, length: usize, document: void*, revision: FrontendRevision*, foundation: bool): bool {
-    if revision is null || document is null || compiler_world_pinned(world) { return false; }
-    if compiler_world_get(world, document, CompilerSyntax()) is null { return false; }
-    for (var i: usize = 0; i < revision.alternatives.length; ++i) {
-        if compiler_world_get(world, revision.alternatives.data[i], CompilerSyntax()) is null { return false; }
+    if revision is null || document is null || compiler_world_pinned(world) {
+        return false;
     }
-    for (var i: usize = 0; i < revision.tokens.length; ++i) {
-        if compiler_world_get(world, revision.tokens.data[i], CompilerSyntax()) is null { return false; }
+    if compiler_world_get(world, document, CompilerSyntax()) is null {
+        return false;
+    }
+    for(var i: usize = 0; i < revision.alternatives.length; ++i) {
+        if compiler_world_get(world, revision.alternatives.data[i], CompilerSyntax()) is null {
+            return false;
+        }
+    }
+    for(var i: usize = 0; i < revision.tokens.length; ++i) {
+        if compiler_world_get(world, revision.tokens.data[i], CompilerSyntax()) is null {
+            return false;
+        }
     }
     // Prepare the only fallible publication data before changing either baseline.
     var prepared: SyntaxBaseline;
     fill(&prepared, 0, sizeof(SyntaxBaseline));
-    if !bytes_append(&prepared.source, source, length) { return false; }
+    if !bytes_append(&prepared.source, source, length) {
+        return false;
+    }
     var owner = syntax_baselines_owner(world, true);
     if owner is null {
         vector_dispose(u8, &prepared.source);
@@ -95,18 +125,22 @@ export fn syntax_world_publish(world: void*, source: u8*, length: usize, documen
     prepared.document = document;
     entity_retain(document);
     prepared.revision = frontend_revision_retain(revision);
-    var target = foundation ? &owner.foundation : &owner.bedrock;
+    var target = foundation ? &owner.foundation: &owner.bedrock;
     syntax_baseline_dispose(target);
     copy(target, &prepared, sizeof(SyntaxBaseline));
     // A new Bedrock invalidates future Foundation sessions. Existing pins survive.
-    if !foundation { syntax_baseline_dispose(&owner.foundation); }
+    if !foundation {
+        syntax_baseline_dispose(&owner.foundation);
+    }
     return true;
 }
 
 fn syntax_baselines_clear(world: void*): void {
     var cache = compiler_world_grammar(world);
     var owner = bits(SyntaxBaselines*, cache.syntax);
-    if owner is null { return; }
+    if owner is null {
+        return;
+    }
     frontend_revision_release(owner.seed);
     syntax_baseline_dispose(&owner.bedrock);
     syntax_baseline_dispose(&owner.foundation);

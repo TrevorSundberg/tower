@@ -23273,3 +23273,26 @@ resolution, and the fast interpreter (build/defer-rebased-tests.log). All four
 integrated native suites now pass: frontend, driver, execution and driver-request
 (build/defer-driver-request.log). The execution suite includes the upstream
 156 graph/fast trials, Foundation round trips and package contracts.
+
+The additional module-scope suite passes 19/19, including a new diamond-import
+cleanup test and its Foundation reconstruction. Top-level defers run after all
+program statements, in reverse registration order across dependencies; shared
+imports register once. Both interpreters also execute the emitted defer .towerbc
+package with all 19 expected results (38 true lines across the two modes).
+Logs: build/defer-module-scopes.log and defer-package-check.log.
+
+Before final packaging, upstream advanced again to d79e449 (world-owned installed
+syntax baselines). Rebased, retained both journal additions, and included those
+new ownership tests in final validation. Canonical formatting of the incoming
+Tower sources uses the existing shared engine, checks parse equivalence and
+idempotence, and changes no native implementation. Final compilation and the
+parser aggregate run only after these source edits are complete.
+
+Final flow review found a real conservative-checking defect: a non-void function
+containing `loop { defer trap("cleanup-stop", 7); break; }` incorrectly diagnosed
+a missing return. Reproduced with the built successor (defer-flow-before.log).
+Exit expansion had discarded the cleanup's termination flow and preserved the
+original break/continue/return flag. It now removes that exit when cleanup cannot
+fall through, using the same flow result as ordinary scope cleanup. Added loop
+and endless-for break/continue regressions; no runtime or Foundation change is
+needed. Rebuild and retest this correction before final packaging.
