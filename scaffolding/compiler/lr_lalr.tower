@@ -118,6 +118,45 @@ fn lr_kernel_closure_destroy(value: LRKernelClosure*): void {
     free(value);
 }
 
+// Scatter the sorted closure into its outgoing kernels once. Rescanning the
+// entire closure for every symbol makes wide expression grammars quadratic.
+// Range containment matches lr_items_shift, including overlapping terminals.
+// Advancing a dotted position preserves item order and cannot create duplicates.
+fn lr_kernel_shift(analysis: LRAnalysis*, cached: LRKernelClosure*): bool {
+    var closure = &cached.state;
+    foreach (var &item in &closure.items.values) {
+        var rule = &analysis.rules[item.rule];
+        if item.position >= rule.count { continue; }
+        var symbol_index = rule.begin + item.position;
+        var symbol = &analysis.symbols[symbol_index];
+        var terminal = symbol.nonterminal == lr_none();
+        var low: usize = 0;
+        var high = closure.symbols.length;
+        while low < high {
+            var middle = low + (high - low) / 2;
+            var candidate = &analysis.symbols[closure.symbols.data[middle]];
+            var before = terminal ? candidate.nonterminal != lr_none() || candidate.first < symbol.first
+                : lr_symbol_less(analysis, closure.symbols.data[middle], symbol_index);
+            if before { low = middle + 1; } else { high = middle; }
+        }
+        var advanced = *item;
+        ++advanced.position;
+        for (var i = low; i < closure.symbols.length; ++i) {
+            var candidate = &analysis.symbols[closure.symbols.data[i]];
+            if terminal {
+                if candidate.nonterminal != lr_none() || candidate.first > symbol.last { break; }
+                if candidate.last > symbol.last { continue; }
+            } else {
+                if candidate.nonterminal != symbol.nonterminal { break; }
+            }
+            // These immutable kernels are consumed by propagation, never closed
+            // again. They need neither sorted insertion nor a pending work copy.
+            if !vector_push(&cached.next.data[i].values, advanced) { return false; }
+        }
+    }
+    return true;
+}
+
 fn lr_kernel_closure(analysis: LRAnalysis*, kernel: LRItem*): LRKernelClosure* {
     var cached = alloc(LRKernelClosure, 1);
     var missing = cached == null;
@@ -132,8 +171,7 @@ fn lr_kernel_closure(analysis: LRAnalysis*, kernel: LRItem*): LRKernelClosure* {
         lr_kernel_closure_destroy(cached);
         return null;
     }
-    var seed: LRItem;
-    copy(&seed, kernel, sizeof(LRItem));
+    var seed = *kernel;
     seed.first = LRTokenPropagation;
     seed.last = LRTokenPropagation;
     var ok = lr_items_insert(closure.items, &seed);
@@ -175,13 +213,9 @@ fn lr_kernel_closure(analysis: LRAnalysis*, kernel: LRItem*): LRKernelClosure* {
             lr_items_destroy(next);
             break;
         }
-        var symbol = closure.symbols.data[index];
-        // Only advanced kernel items cross a transition. Destination closures
-        // (including empty reductions) are already linked from those kernels
-        // in that destination state; closing every goto repeats that work.
-        ok = lr_items_shift(analysis, closure.items, &analysis.symbols[symbol], next);
         index++;
     }
+    ok &&= lr_kernel_shift(analysis, cached);
     if ok {
         return cached;
     }

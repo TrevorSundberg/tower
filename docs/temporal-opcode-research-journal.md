@@ -34586,3 +34586,109 @@ https://github.com/llvm/llvm-project/blob/llvmorg-19.1.1/lld/wasm/Driver.cpp.
 Current upstream documentation is design context, not an automatic upgrade of the
 pinned LLVM contract. This entry changes no compiler implementation or bootstrap;
 the existing tooling agent remains independent and todo.txt is untouched.
+## 2026-11-21 - Playground cold and warm latency regression
+
+Pulled through d2d5633 before implementation, retaining the user's uncommitted
+todo.txt bytes. Git's automatic repack delayed the first pull; stopped only that
+maintenance process and completed ordinary pulls with maintenance.auto=false and
+gc.auto=0. No force push or feature branch. The new KnownProof/KnownClone,
+aggregate-preparation and query-read work remains intact.
+
+On Windows, AMD Ryzen 9 5900HX, Node 21.7.3 and Playwright Chromium, the live
+playground reproduced the complaint. Two new-project clicks after a completed
+program took 2636/2668 ms to highlight, 6336/6378 ms to graph output, and
+8495/8548 ms to all selected outputs. Repeated Execute on the same project took
+113/133 ms. Ordinary edits highlighted in 236/329 ms; syntax-only trailing edits
+took 235/240 ms. These are measured browser actions/result DOM mutations, not
+physical display latency. Live report: build/latency-live-before.json. That first
+probe excludes the preliminary isolation reload from its cold navigation number;
+the revised profiler records the original navigation across that reload.
+
+Root causes: selectProject unconditionally terminated the parser and all idle
+execution workers, losing warm module/grammar/compiler state on every project.
+Ordinary edits also imposed a 200 ms delay before parsing and killed an in-flight
+parser, despite the existing generation/coalescing protocol. Canonical operations
+repeatedly fetched tower.tower even inside a warm worker. These browser boundary
+policies now retain idle workers, replace complete project source capabilities,
+coalesce stale parser requests, schedule highlighting on the next frame, and cache
+bundled language-source fetches. The separate execution debounce and diagnostic
+visibility policy remain explicit. Active execution/project/compiler cancellation
+still terminates the affected workers, including nested workers.
+
+CPU sampling of the current compiler independently found expensive sorted LR item
+insertion/memmove and per-symbol rescans of entire LR(1) closures. New Tower-owned
+closure-local hash indexes append unique exact items, preserve the pending stack
+order, and heap-sort once before publication. LALR preparation scatters the sorted
+closure once into outgoing kernels, preserving terminal-range containment and
+nonterminal order. These are derived worker-private indexes, not new semantic
+nodes or a replacement for ECS scheduling. Existing CompilerWork dispatch, joins,
+world ownership and deterministic publication remain unchanged.
+
+The initial indexed version reduced sampled cold parsing from 1782 to 1375 ms
+and a subsequent fresh-session compile from 677 to 490 ms. These figures include
+CPU-profiler overhead and are diagnosis, not final speedup measurements. Samples:
+build/latency-cpu-before.json.cpuprofile and latency-cpu-index.json.cpuprofile.
+Use the existing Ninja link command without --strip-all to retain names in a
+separate tower_profile.wasm; production assets remain stripped. The first shell
+wrapper had a final CRLF command error after linking/tests completed; later
+wrappers use a terminating comment. Do not interpret that wrapper status as a
+failed compiler or suppress actual build failures.
+
+The final native LR oracle passes exact closure/state/transition/action/control
+comparisons, 150 randomized grammar/propagation trials, allocation-failure cleanup
+and a new reopen-after-publication/duplicate-seed check. Evidence:
+build/latency-lr-final.log, ctest -R '^tower-lr-analysis$'. The first indexed browser
+reactor passed all 15 wasm.test.mjs checks. Final browser/reactor, worker and latency
+results are recorded below after release validation. No sanitizer or repository
+formatting sweep was run, and no new bootstrap syntax was introduced.
+
+Same-origin isolated browser comparisons (three warm actions each, one cold
+context) are recorded in playground/PERFORMANCE.md and ignored artifacts
+build/latency-local-before.json and latency-local-after.json. Desktop new-project
+highlight/instructions/graph/all-output medians changed from 2644/6311/6311/7093 ms
+to 51/72/73/114 ms. Existing-project switches changed from 2638/6301/6302/7372 ms
+to 69/111/111/347 ms. Syntax-only typing changed from 235 to 38 ms. Cold all-output
+time changed from 6707 to 5828 ms; independent worker frontend initialization is
+still expensive. Warm automatic-edit completion did not improve (455 to 490 ms),
+and unchanged Execute stayed about 123 ms. Mobile emulation has similar project
+gains, but is the same hardware, not a phone benchmark. The final isolated sampled
+LR trial reduced parse/compile/new-session-parse from 1782/677/649 to 1047/351/333 ms;
+sampling overhead and upstream bundle differences are documented, not hidden.
+
+The 28 portable WASM/module-capability checks pass. All 20 affected desktop/mobile
+browser checks pass cumulatively, including cancellation, idle-worker retention,
+library overrides, continuous typing and stale-response coalescing. Initially the
+slow-response fixture's page.route was bypassed by the isolation service worker;
+blocking service workers only in that transport test makes its delay real. The
+coalesced reply receives a 20-second assertion timeout instead of the old 5-second
+worker-replacement assumption. Native tower-lr-worker-equivalence passes real
+overlap, ownership and serial equivalence with the production allocator.
+
+Release worker validation exposed two issues. The browser test still called the
+lr_work_tests export that upstream deliberately removed from production reactors;
+that assertion now points readers to the separately passing native LR fixture.
+After correcting it, the 1/2/4/8-worker semantic comparison trapped at two workers
+on the existing enum_expressions.tower workload. Named WASM CPU/debug symbols
+identified sem_control_local creating a read under a nested compile-time enum
+producer leased by another preparation job. The old code also rewrote that shared
+conversion's operand. The consumer now creates its conversion under its own block
+and reads the original pending literal; lowering leaves that shared placeholder
+untouched. Its ordinary interpreter dependency still suspends until the producer
+publishes. Threading and query scheduling remain enabled. The temporary host
+diagnostic wrapper was removed after identifying the fixture; the source and
+stack are preserved in build/latency-thread-source.log.
+
+The corrected threaded reactor passes all three compiler-threads.test.mjs tests:
+128 pool lifecycles with actual four-worker overlap, trapped-worker propagation,
+and canonical output/diagnostics at 1/2/4/8 workers (38 seconds total). Evidence:
+build/latency-thread-fixed.log. Release rebuild and publication follow this milestone.
+
+Publication rebase correction: origin/main advanced through 7d50641, including
+the completed inferred-var migration, new public bootstrap, Tower archive tooling,
+and 9736da8's independent fix for the same nested enum ownership defect. Preserve
+that upstream consumer-projection implementation and its test-export correction;
+the duplicate local semantic-control/lowering patch is superseded, not combined.
+The LR additions now reference the migrated named values without function calls.
+Both journal histories are retained. Rebuild all affected release assets and a
+clean native successor from the new documented pin before publishing; earlier
+bootstrap validation is not evidence for these rebased compiler sources.

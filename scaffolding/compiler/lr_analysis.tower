@@ -365,6 +365,95 @@ fn lr_suffix(value: LRAnalysis*, rule: LRProduction*, position: usize, item: LRI
     }
 }
 
+// Closure-local membership index. Item order is private until the closure joins;
+// sorting once then restores the exact public LR order without quadratic shifts.
+// Each worker owns this scratch; grammar entities remain the semantic authority.
+struct LRItemIndex {
+    slots: vector(usize);
+}
+
+enum LRItemSlot: usize { Vacant = 0 }
+
+fn lr_item_hash(item: LRItem*): usize {
+    var basis: usize = 2166136261;
+    var multiplier: usize = 16777619;
+    var hash = (basis ^ item.rule) * multiplier;
+    hash = (hash ^ item.position) * multiplier;
+    hash = (hash ^ convert(usize, item.first)) * multiplier;
+    return (hash ^ convert(usize, item.last)) * multiplier;
+}
+
+fn lr_item_index_reserve(index: LRItemIndex*, values: vector(LRItem)*): bool {
+    var minimum_capacity: usize = 32;
+    var load_divisor: usize = 2;
+    if values.length < index.slots.length / load_divisor { return true; }
+    var capacity = index.slots.length;
+    if capacity == 0 { capacity = minimum_capacity; }
+    while values.length >= capacity / load_divisor {
+        var next = capacity * load_divisor;
+        if next <= capacity { return false; }
+        capacity = next;
+    }
+    if !vector_reserve(&index.slots, capacity) { return false; }
+    index.slots.length = capacity;
+    // Zero is vacant; occupied slots contain the item index plus one.
+    fill(index.slots.data, 0, capacity * sizeof(usize));
+    for (var i: usize = 0; i < values.length; ++i) {
+        var slot = lr_item_hash(&values.data[i]) & (capacity - 1);
+        while index.slots.data[slot] != convert(usize, LRItemSlot.Vacant) { slot = (slot + 1) & (capacity - 1); }
+        index.slots.data[slot] = i + 1;
+    }
+    return true;
+}
+
+fn lr_item_index_insert(index: LRItemIndex*, items: LRItems*, item: LRItem*, queue: bool): bool {
+    if items.failed { return false; }
+    var saved = *item;
+    if !lr_item_index_reserve(index, &items.values) { items.failed = true; return false; }
+    var mask = index.slots.length - 1;
+    var slot = lr_item_hash(&saved) & mask;
+    while index.slots.data[slot] != convert(usize, LRItemSlot.Vacant) {
+        var previous = &items.values.data[index.slots.data[slot] - 1];
+        if previous.rule == saved.rule && previous.position == saved.position &&
+            previous.first == saved.first && previous.last == saved.last { return true; }
+        slot = (slot + 1) & mask;
+    }
+    var count = items.values.length + 1;
+    if count == 0 || !vector_reserve(&items.values, count) ||
+        (queue && !vector_push(&items.pending, saved)) { items.failed = true; return false; }
+    items.values.data[items.values.length] = saved;
+    items.values.length = count;
+    index.slots.data[slot] = count;
+    return true;
+}
+
+fn lr_items_sift(values: vector(LRItem)*, root: usize, count: usize): void {
+    var branches: usize = 2;
+    var saved = values.data[root];
+    while root < count / branches {
+        var child = root * branches + 1;
+        if child + 1 < count && lr_item_less(&values.data[child], &values.data[child + 1]) { ++child; }
+        if !lr_item_less(&saved, &values.data[child]) { break; }
+        values.data[root] = values.data[child];
+        root = child;
+    }
+    values.data[root] = saved;
+}
+
+fn lr_items_sort(values: vector(LRItem)*): void {
+    var branches: usize = 2;
+    var root = values.length / branches;
+    while root != 0 { --root; lr_items_sift(values, root, values.length); }
+    var count = values.length;
+    while count > 1 {
+        --count;
+        var last = values.data[count];
+        values.data[count] = values.data[0];
+        values.data[0] = last;
+        lr_items_sift(values, 0, count);
+    }
+}
+
 export fn lr_items_close(value: LRAnalysis*, items: LRItems*, lookahead: bool): bool {
     var ranges: vector(SymbolRange);
     vector_init(&ranges);
@@ -372,6 +461,11 @@ export fn lr_items_close(value: LRAnalysis*, items: LRItems*, lookahead: bool): 
     // each pair once, rather than inserting every production for every incoming
     // item. Exact range identities and the sorted closure remain unchanged.
     var expanded: LRItems = default;
+    var membership: LRItemIndex = default;
+    var expansion: LRItemIndex = default;
+    defer vector_dispose(&membership.slots);
+    defer vector_dispose(&expansion.slots);
+    defer lr_items_sort(&items.values);
     var ok: bool = true;
     loop {
         var done = items.pending.length == 0;
@@ -422,9 +516,7 @@ export fn lr_items_close(value: LRAnalysis*, items: LRItems*, lookahead: bool): 
             var key: LRItem = { rule: symbol.nonterminal, position: 0, first: ranges.data[range].first, last: ranges.data[range].last };
             range++;
             var previous = expanded.values.length;
-            ok = lr_items_insert(&expanded, &key);
-            // This set is only a membership index, never a closure work queue.
-            expanded.pending.length = 0;
+            ok = lr_item_index_insert(&expansion, &expanded, &key, false);
             if !ok {
                 value.failed = true;
                 break;
@@ -439,7 +531,7 @@ export fn lr_items_close(value: LRAnalysis*, items: LRItems*, lookahead: bool): 
                     break;
                 }
                 var next: LRItem = { rule: productions.data[production], position: 0, first: key.first, last: key.last };
-                ok = lr_items_insert(items, &next);
+                ok = lr_item_index_insert(&membership, items, &next, true);
                 if !ok {
                     break;
                 }

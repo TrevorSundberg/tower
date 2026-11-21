@@ -18,6 +18,24 @@ function run(compiler, source, files, entry = 'units/main.tower') {
   finally { compiler.destroyExecution(handle); }
 }
 
+test('reused host replaces a complete project library without retaining removed capabilities',async () => {
+  const compiler = await host();
+  const source = (await read('scaffolding/examples/functions.tower')).toString();
+  const execute = builtins => {
+    compiler.configureModules({entry:'main.tower',files:[],builtins,replaceBuiltins:true});
+    const handle = compiler.compile(source);
+    try {return compiler.execute(handle,10000);}
+    finally {compiler.destroyExecution(handle);}
+  };
+  try {
+    assert.equal(execute(grammar).output,'720\n721\n');
+    const missing = execute({bedrock:grammar.bedrock,foundation:grammar.foundation});
+    assert.equal(missing.status,'error');
+    assert.match(missing.error,/Cannot read imported module: tower/);
+    assert.equal(execute(grammar).output,'720\n721\n');
+  } finally {compiler.close();}
+});
+
 test('Tower, Foundation and Bedrock work under ordinary renamed paths',async () => {
   const compiler = await host();
   const files = [

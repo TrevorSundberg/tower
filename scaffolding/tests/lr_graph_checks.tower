@@ -48,6 +48,13 @@ fn lr_check_graph(rules: vector(LRProduction)*, symbols: vector(LRSymbol)*, name
         }
         utility_check(lr_items_close(actual, left, mode != 0), "LR closure fixed point"); oracle_items_close(oracle, right, mode != 0); lr_check_items(left, right);
         utility_check(lr_items_close(actual, left, mode != 0), "LR closure idempotence"); lr_check_items(left, right);
+        // Reopen a published closure with a new lookahead. Private hash indexes
+        // must not survive sorting, and duplicate insertion must remain harmless.
+        var additional: LRItem = { rule: 0, position: 0, first: LRTokenEnd, last: LRTokenEnd };
+        utility_check(lr_items_insert(left, &additional) && lr_items_insert(left, &additional), "LR published closure accepts a new seed once");
+        oracle_item_insert(&right.values, &additional);
+        utility_check(lr_items_close(actual, left, mode != 0), "LR reopened closure fixed point");
+        oracle_items_close(oracle, right, mode != 0); lr_check_items(left, right);
         foreach (var &symbol in symbols) {
             var next = lr_items_create(); utility_check(next is not null, "LR goto item set"); defer lr_items_destroy(next);
             var reference = oracle_items_create(); defer oracle_items_destroy(reference);

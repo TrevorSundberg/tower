@@ -144,7 +144,7 @@ const diagnosticDelay = new DiagnosticDelay((channel, value) => {
   else { $(channel).textContent = value ?? ''; $(channel).hidden = value === null; }
 });
 const reportProblem = (channel, value) => diagnosticDelay.update(channel, value, documentRevision);
-let typingDeadline = 0, typingTimer = 0;
+let typingDeadline = 0;
 let foundation = '', bundledFoundation = '', editingModule = '', bedrock = '', bundledBedrock = '', bundledTower = '', bundledBuiltins = {};
 let documentLoadId = 0;
 let editorExtensions, projects = [], project, storage, activePath = '', saveSequence = 0;
@@ -300,7 +300,7 @@ function scheduleAutoExecution() {
     if (revision !== documentRevision || dirty || !$('auto-execute').checked) return;
     if (editor.composing) { scheduleAutoExecution(); return; }
     execute();
-  }, editor.composing ? typingDebounceMs : 0);
+  }, Math.max(editor.composing ? typingDebounceMs : 0, typingDeadline - performance.now()));
 }
 function stopExecution(message) {
   clearTimeout(autoTimer); autoTimer = 0; ++executionId;
@@ -591,9 +591,9 @@ function render() {
 }
 async function perform(method) {
   // One request in flight, one latest pending request. Completed requests keep
-  // the warm worker; edits terminate unfinished work for the obsolete source.
+  // the warm worker; newer edits coalesce while obsolete replies are discarded.
   if (busy) { queued = method; return; }
-  cancelAnimationFrame(frame); clearTimeout(typingTimer); typingTimer=0; frame = 0; queued = null;
+  cancelAnimationFrame(frame); frame = 0; queued = null;
   const ticket = ++generation;
   method = 'analyze';
   source = editor.state.doc.toString(); offsets = byteOffsets(source);
@@ -617,9 +617,6 @@ async function perform(method) {
 function schedule(method = 'analyze') {
   queued = method;
   if (frame || busy) return;
-  clearTimeout(typingTimer); typingTimer=0;
-  const remaining = typingDeadline - performance.now();
-  if (remaining > 0) { typingTimer=setTimeout(()=>{typingTimer=0;schedule(queued);},remaining); return; }
   frame = requestAnimationFrame(() => {
     frame = 0;
     // Do not disturb a mobile/IME composition with parse decorations.
@@ -653,7 +650,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden && edi
 function changed(deferDiagnostics = editor.hasFocus) {
   ++saveSequence; // an older write must not mark these newer edits as saved
   typingDeadline = performance.now() + typingDebounceMs;
-  clearTimeout(typingTimer); typingTimer=0; cancelAnimationFrame(frame); frame=0;
+  cancelAnimationFrame(frame); frame=0;
   ++documentRevision;
   if (deferDiagnostics) diagnosticDelay.edit(documentRevision);
   else diagnosticDelay.reset(documentRevision);
@@ -661,7 +658,6 @@ function changed(deferDiagnostics = editor.hasFocus) {
   stopExecution(wasExecuting ? 'Cancelled by edit' : 'Ready');
   executionError = null; captureDocument();
   ++generation;
-  if (busy) engine.stop();
   dirty = true; controls();
   $('node-info').textContent = 'Tree spans refer to UTF-8 source bytes.';
   $('status').textContent = 'Updating...';
@@ -731,9 +727,9 @@ function showPosition(state) {
 function selectProject(id) {
   const next = projects.find(p => p.id === id); if (!next || next === project) return;
   if (project) persist();
-  ++documentLoadId; ++generation; engine.stop(); stopExecution();
-  for (const worker of idleExecutionWorkers.values()) worker.terminate();
-  idleExecutionWorkers.clear(); fileStates.clear();
+  ++documentLoadId; ++generation;
+  if (engine.pending) engine.stop();
+  stopExecution(); fileStates.clear();
   cancelCompilerBuild();
   project = next; linkInputs = project.links; activePath = '';
   try { localStorage.setItem('tower-project-selected-v1', id); } catch {}

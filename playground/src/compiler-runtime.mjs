@@ -33,7 +33,7 @@ async function bundledTowerBytes() {
   catch (error) { if (bundledTower === pending) bundledTower = undefined; throw error; }
 }
 function getCanonicalSources() {
-  canonicalSources ??= Promise.all(['foundation','bedrock'].map(async name => {
+  canonicalSources ??= Promise.all(['foundation','bedrock','tower'].map(async name => {
     const response = await fetch('./'+name+'.tower');
     if (!response.ok) throw new Error(name+'.tower is unavailable');
     return response.text();
@@ -43,11 +43,11 @@ function getCanonicalSources() {
 // Canonical packages use the bundled grammar, regardless of editor overrides.
 // Existing execution handles retain their checked nodes across grammar changes.
 export async function getCanonicalTower() {
-  const [foundation,bedrock] = await getCanonicalSources();
-  return getTower(foundation,bedrock);
+  const [foundation,bedrock,tower] = await getCanonicalSources();
+  return getTower(foundation,bedrock,tower);
 }
 export async function getTower(foundation, bedrock, towerSource) {
-  towerSource ??= await fetch('./tower.tower').then(response => response.text());
+  towerSource ??= (await getCanonicalSources())[2];
   const start = performance.now();
   const cached = !!towerReady && installedFoundation === foundation && installedBedrock === bedrock;
   if (!towerReady) {

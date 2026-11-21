@@ -16,7 +16,7 @@ self.onmessage = async ({ data: { id, source, foundation, bedrock, editingModule
       handle = moduleHandle = bedrockHandle = 0;
       installed = foundation; installedBedrock = bedrock;
     }
-    tower.configureModules({entry:activePath, files, builtins:{...builtins, bedrock, foundation}, library});
+    tower.configureModules({entry:activePath, files, builtins:{...builtins, bedrock, foundation}, library, replaceBuiltins:true});
     const start = performance.now();
     let current;
     if (editingModule === 'bedrock') {

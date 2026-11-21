@@ -273,7 +273,7 @@ test('functions compile and execute off the UI thread with matching backends', a
   expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight && document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
-test('projects replace execution workers while edits reuse the new environment', async ({ page, request }) => {
+test('projects and edits reuse idle execution workers with replaced environments', async ({ page, request }) => {
   test.skip(!(await (await request.get('/capabilities.json')).json()).llvm);
   await selectDocument(page, 'functions.tower');
   await expect(page.locator('#execution-status')).toContainText('backends match');
@@ -284,7 +284,7 @@ test('projects replace execution workers while edits reuse the new environment',
   await expect(page.locator('#execution-output')).toHaveText('5\n84\n42\n');
   await expect(page.locator('#execution-status')).toContainText('backends match');
   const nextWorkers = page.workers().filter(worker => worker.url().includes('execution-worker'));
-  expect(nextWorkers.every(worker => !workers.includes(worker))).toBe(true);
+  expect(nextWorkers).toEqual(workers);
   // Focus now prewarms the independent completion compiler. Finish a language
   // query before measuring execution-worker reuse, so its first load is excluded.
   await setSource(page,'pri');await page.keyboard.press('Control+Space');

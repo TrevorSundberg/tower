@@ -24,7 +24,7 @@ async function receive({id, method, source, cursor, foundation, bedrock, editing
     if (method === 'warm') {
       result = null;
     } else if (method === 'complete' || method === 'document') {
-      tower.configureModules({entry:activePath, files, builtins:{...builtins,foundation,bedrock}, library});
+      tower.configureModules({entry:activePath, files, builtins:{...builtins,foundation,bedrock}, library, replaceBuiltins:true});
       result = method === 'complete' ? tower.complete(source, cursor, {editingModule}) : tower.inspectDocument(source,{editingModule,pointerBytes});
       if (result.error) throw new Error(result.error);
     } else {

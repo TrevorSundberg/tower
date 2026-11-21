@@ -18,6 +18,9 @@ test.beforeEach(async ({ page }) => {
   await expect(page.locator('#status')).toContainText('Complete');
 });
 
+test.describe('delayed parser transport', () => {
+// Network interception cannot delay a response served by the isolation worker.
+test.use({serviceWorkers:'block'});
 test('slow parsing has no deadline and can be cancelled or superseded', async ({page}) => {
   test.setTimeout(45000);
   await page.route('**/worker.js', async route => {
@@ -45,8 +48,10 @@ test('slow parsing has no deadline and can be cancelled or superseded', async ({
   await setSource(page, slow(3));
   await expect(page.locator('#status')).toContainText('Tower is parsing');
   await setSource(page, 'print(4);');
-  await expect(page.locator('#status')).toContainText('Complete');
+  // The old reply is discarded, then the latest edit uses the same warm worker.
+  await expect(page.locator('#status')).toContainText('Complete', {timeout:20000});
   await expect(page.locator('#tree')).toContainText('4');
+});
 });
 
 test('whole-document tree selects roots, nested nodes and replacements', async ({ page }, info) => {
@@ -246,7 +251,7 @@ test('LLVM compiles the current program into a downloadable executable', async (
   await expect(page.locator('#llvm-download')).toHaveAttribute('download', 'functions-wasm.wasm');
 });
 
-test('continuous typing coalesces into one update and reuses the WASM worker and grammar tables', async ({ page }) => {
+test('continuous typing updates highlighting and reuses the WASM worker and grammar tables', async ({ page }) => {
   const workers = []; page.on('worker', worker => { if (new URL(worker.url()).pathname.endsWith('/worker.js')) workers.push(worker); });
   const worker = page.workers().find(worker => new URL(worker.url()).pathname.endsWith('/worker.js'));
   await worker.evaluate(() => {
@@ -269,11 +274,11 @@ test('continuous typing coalesces into one update and reuses the WASM worker and
     }).observe(document.querySelector('#status'), { childList: true });
   });
   await page.keyboard.type('updates throughout a continuous burst of typing', { delay: 15 });
-  expect(await page.evaluate(() => window.__liveUpdates)).toBe(0);
+  expect(await page.evaluate(() => window.__liveUpdates)).toBeGreaterThan(0);
   await expect(page.locator('#status')).toContainText('Complete');
   expect(workers).toHaveLength(0);
   const replies = await worker.evaluate(() => self.__editReplies);
-  expect(replies).toHaveLength(1);
+  expect(replies.length).toBeGreaterThan(1);
   expect(replies.every(reply => reply.builds === 0)).toBe(true);
 });
 

@@ -154,8 +154,12 @@ selected file; Execute compiles the project, except when inspecting a built-in,
 which retains its ordinary standalone execution controls. Cross-file failures
 identify their path instead of marking the wrong editor buffer.
 
-Changing projects cancels work, terminates parser and backend workers, clears
-outputs/downloads and replaces link inputs, built-in overrides and editor state.
+Changing projects cancels active work, clears outputs/downloads and replaces link
+inputs, built-in overrides and editor state. Idle parser and backend workers retain
+their initialized compilers and validated grammar caches. Each request replaces
+the complete project source capabilities, including removed library files; cache
+validation still checks exact transitive source inputs. Active workers are terminated
+on project changes, explicit cancellation and compiler-generation changes.
 The frontend's WASI drive is replaced with the project's virtual files on each
 compile; old paths and open file descriptors cannot survive replacement. Tower's
 current browser platform API still exposes output only: mounting does not itself
@@ -951,7 +955,10 @@ run `node scripts/profile-execution.mjs ../build/execution-profile.json`.
 Set `TOWER_PROFILE_URL` to compare another served build. The probe measures desktop
 and mobile emulation separately, waiting for each result; it also records individual
 worker phase timings and grammar-only typing. File opening executes immediately
-after parsing; ordinary typing uses the same 200 ms trailing debounce as diagnostics.
+after parsing. Highlighting schedules on the next animation frame and coalesces
+edits behind a running parse without throwing away the warm worker. Automatic
+execution retains a 200 ms typing debounce; diagnostic visibility uses its separate
+delay policy.
 Status timings list each backend's stages in pipeline order (backends run in
 parallel). A `(cached)` load reports the **current run's** measured reuse time,
 even when it rounds to 0.0 ms; it never substitutes an earlier cold-load measurement.

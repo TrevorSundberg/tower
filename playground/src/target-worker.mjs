@@ -26,7 +26,7 @@ async function receive({data:{command,id,source,foundation,bedrock,targetKeys=[]
     send({phase:'Loading…'});
     tower = (await getTower(foundation,bedrock,builtins.tower)).tower;
     tower.mountFiles(drive);
-    tower.configureModules({entry, files:drive, builtins:{...builtins,bedrock,foundation}, library});
+    tower.configureModules({entry, files:drive, builtins:{...builtins,bedrock,foundation}, library, replaceBuiltins:true});
     handle = tower.compile(files?.[0]?.text ?? source,{pointerBytes:keys.length || targetKeys.includes('c') ? 8 : 4});
     const checked = tower.execute(handle,0);
     if (checked.status === 'error') { const diagnostic = projectDiagnostic(checked,files); send({error:(diagnostic.errorFile ? diagnostic.errorFile + ': ' : '') + checked.error,diagnostic,done:true}); return; }
@@ -42,7 +42,7 @@ async function receive({data:{command,id,source,foundation,bedrock,targetKeys=[]
         // Compile each profile before layout queries or LLVM lowering. The Roku
         // graph is 32-bit even when C/native output is selected alongside it.
         await getTower(foundation,bedrock,builtins.tower);
-        tower.configureModules({entry, files:drive, builtins:{...builtins,bedrock,foundation}, library});
+        tower.configureModules({entry, files:drive, builtins:{...builtins,bedrock,foundation}, library, replaceBuiltins:true});
         generated=tower.compile(files?.[0]?.text ?? source,{pointerBytes:target.pointerBytes});
         const initial=tower.execute(generated,0);
         if(initial.status==='error') throw new Error(initial.error);

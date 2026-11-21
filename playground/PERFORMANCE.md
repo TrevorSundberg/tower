@@ -1,3 +1,84 @@
+# Project switching and cold startup — 2026-11-21
+
+The regression was reproducible after downloads and execution had warmed up:
+switching projects discarded the parser and idle execution workers. Every switch
+then rebuilt their grammar/compiler state. Edits also waited 200 ms before parsing
+and terminated an unfinished parser request, defeating the existing latest-edit
+queue. Idle workers now survive project switches, complete source capabilities
+replace the previous project's inputs, and highlighting starts on the next frame.
+Execution retains its separate 200 ms typing debounce. Active cancellation still
+terminates the affected workers and their nested compiler workers.
+
+CPU profiles also identified sorted insertion into LR closure sets and repeatedly
+scanning a closure for each outgoing symbol. Tower now uses private hash indexes
+while constructing a closure, sorts once before publication, and scatters items
+into outgoing kernels in one traversal. The shared ECS graph, worker ownership,
+dependency scheduling and deterministic publication remain authoritative.
+
+## End-to-end measurements
+
+Windows, Ryzen 9 5900HX, Node 21.7.3, Playwright 1.65.1 Chromium. Both bundles were
+served from the same local origin, without concurrent builds or tests. The baseline
+is the previously published bundle (runtime source `8e09a3c`); the candidate includes
+upstream `d2d5633` and this change. Mobile is Pixel 7 emulation on the same computer,
+not a physical phone. Warm rows are medians of three actions; cold rows are one
+fresh browser context per bundle and include the isolation-service-worker reload.
+All times are milliseconds from the action to its observed DOM result. “Complete”
+includes every selected execution/backend output, including LLVM optimization.
+
+| Desktop action | Highlight before → after | Graph result before → after | Complete before → after |
+| --- | ---: | ---: | ---: |
+| Cold navigation | 2465.8 → 2020.6 | 6253.6 → 5344.1 | 6706.6 → 5828.4 |
+| New project, already warm | 2643.7 → 50.9 | 6311.4 → 72.5 | 7092.6 → 114.0 |
+| Switch existing project | 2638.2 → 69.4 | 6301.8 → 111.2 | 7371.7 → 347.1 |
+| Edit with automatic execution | 252.2 → 46.9 | 285.1 → 285.7 | 454.7 → 490.2 |
+| Execute unchanged source | — | 54.1 → 53.0 | 125.7 → 122.3 |
+| Type with automatic execution off | 234.7 → 37.6 | — | — |
+
+The first Foundation instructions on new projects fell from 6311.1 to 71.7 ms;
+existing-project switches fell from 6301.3 to 110.6 ms. Warm edit execution did
+**not** improve in this run; its debounce and backend work still determine completion.
+
+| Mobile emulation action | Highlight before → after | Graph result before → after | Complete before → after |
+| --- | ---: | ---: | ---: |
+| Cold navigation | 2386.3 → 2041.8 | 5275.9 → 4332.8 | 5930.1 → 4923.8 |
+| New project, already warm | 2600.5 → 54.1 | 5552.0 → 71.3 | 6152.4 → 105.8 |
+| Switch existing project | 2668.8 → 66.2 | 5667.1 → 100.1 | 6413.3 → 271.1 |
+| Edit with automatic execution | 246.3 → 60.2 | 278.3 → 266.1 | 413.8 → 444.7 |
+| Execute unchanged source | — | 50.0 → 50.0 | 109.8 → 108.0 |
+| Type with automatic execution off | 243.5 → 37.6 | — | — |
+
+Desktop and mobile select different native targets; compare before/after within
+each configuration. Cold startup still takes seconds: parser, graph execution and
+LLVM workers independently initialize frontend state. Sharing prepared work across
+those boundaries remains future work. These samples do not establish WAN download
+latency, physical display latency, or a statistical cold-start percentile.
+
+## Reproduction and CPU evidence
+
+Build and serve the complete bundle using the README entry points, then run
+`node scripts/profile-execution.mjs ../build/execution-profile.json` from
+`playground`. Optional `TOWER_PROFILE_URL`, `TOWER_PROFILE_DEVICE` (`desktop` or
+`mobile`) and `TOWER_PROFILE_REPEATS` select the origin, device and repeat count.
+The report captures worker lifetimes, transport phases, parser duration, first
+instructions, graph/fast/Wasm results, animation-frame markers, resource timing
+and the deployment manifest. Existing Tower examples supply the workloads.
+The local comparison reports are `build/latency-local-before.json` and
+`build/latency-local-after.json`; these generated artifacts are ignored.
+
+Set `TOWER_PROFILE_REACTOR` to a reactor path for a separate Node inspector CPU
+sample. It writes phase timings and a `.cpuprofile`. With the same upstream
+compiler, before/after the LR changes, sampled cold parse fell from 1782 to 1047 ms,
+subsequent cold compile from 677 to 351 ms, and a warm new-session parse from 649
+to 333 ms. These timings include profiler overhead and are not the browser table.
+The original `memmove`/sorted-insertion hotspot is removed. Independent native LR
+oracle tests compare exact closures, transitions and tables, including randomized
+grammars, failure cleanup and reopening a sorted closure. Real LR worker tests
+check overlap, ownership and serial equivalence.
+
+The historical profile below describes an earlier implementation and workload;
+its smaller timings are not directly comparable to today's full compiler pipeline.
+
 # Live editing profile — 2026-11-16
 
 The original edit path waited 450 ms after the last keystroke, cleared the

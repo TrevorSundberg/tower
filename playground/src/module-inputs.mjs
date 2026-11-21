@@ -17,7 +17,9 @@ export function moduleInputs(exports, initial = {}) {
     } finally { free(pointer); }
   }
   function configure(update = {}) {
-    state = {...state, ...update, builtins:{...state.builtins, ...update.builtins}};
+    // A complete project request replaces its source capabilities, including
+    // removed library files. Partial baseline configuration can still merge.
+    state = {...state, ...update, builtins:update.replaceBuiltins ? {...update.builtins} : {...state.builtins, ...update.builtins}};
     exports.frontend_modules_clear(environment);
     const files = [...state.files.filter(file => typeof file.text === 'string'), ...Object.entries(state.builtins).filter(([,source]) => typeof source === 'string')
       .map(([name, source]) => ({path:'.tower/' + name + '.tower', text:source}))];

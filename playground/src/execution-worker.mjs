@@ -27,7 +27,7 @@ async function receive({ data: { command, id, source, foundation, bedrock, backe
     timings.load = frontend.loadMs; timings.loadCached = frontend.cached;
     let at = performance.now();
     tower.mountFiles(drive);
-    tower.configureModules({entry, files:drive, builtins:{...builtins,bedrock,foundation}, library});
+    tower.configureModules({entry, files:drive, builtins:{...builtins,bedrock,foundation}, library, replaceBuiltins:true});
     handle = tower.compile(files?.[0]?.text ?? source,{pointerBytes});
     timings.tower = performance.now() - at;
     const checked = tower.execute(handle, 0);
