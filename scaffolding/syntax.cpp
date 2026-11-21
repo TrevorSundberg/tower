@@ -56,29 +56,6 @@ std::string read_declaration(TowerNode* node, const SyntaxSource* source, Syntax
 
 }
 
-struct SyntaxSession {
-  SyntaxSessionInputs inputs{compiler_host_world(), syntax_modules};
-  std::string_view source; // Borrowed from the Tower-owned source snapshot.
-  size_t cursor = 0;
-  size_t revision = 0;
-  SyntaxSessionPins pins{};
-  Recognizer* recognizer = nullptr; // borrowed only while reading this stream
-  bool completing = false;
-  std::unique_ptr<LRCompletion, decltype(&lr_completion_destroy)> completion{nullptr, lr_completion_destroy};
-  std::unique_ptr<char, decltype(&tower_memory_free)> completion_suffix{nullptr, tower_memory_free};
-  bool bootstrapping = false, declaration = false;
-  bool building_bedrock = false, finalized = false, declarations_only = true;
-  bool formatting = false;
-  size_t comment_cursor = 0;
-  SyntaxVersionCache cache{};
-  ~SyntaxSession() { syntax_version_cache_dispose(&cache); syntax_session_inputs_dispose(&inputs); syntax_session_pins_dispose(&pins); }
-  SyntaxExpansionStats expansion_stats;
-  std::string error;
-  size_t error_offset = 0;
-  bool error_insertion = false;
-  std::vector<SyntaxHighlight> highlights;
-};
-
 namespace {
 std::string syntax_diagnostic(SyntaxSession& session, Recognizer* recognizer, bool repairs = true) {
   const std::unique_ptr<ParserDiagnostic, decltype(&parser_diagnostic_destroy)> diagnostic(
@@ -88,7 +65,7 @@ std::string syntax_diagnostic(SyntaxSession& session, Recognizer* recognizer, bo
   Revision definitions(syntax_revision_overlay(session.pins.bedrock,
     session.pins.grammar ? session.pins.grammar->rules.data : nullptr, session.pins.grammar ? session.pins.grammar->rules.length : 0,
     nullptr, 0, syntax_component_type()), frontend_revision_release);
-  const SyntaxDiagnosticInput input{session.source.data(), session.source.size(), session.cursor,
+  const SyntaxDiagnosticInput input{session.source, session.source_length, session.cursor,
     diagnostic->offset, diagnostic->insertion_offset, parser_recognizer_get_error(recognizer),
     diagnostic->options.data, diagnostic->options.length,
     syntax_emission_literal_ids(session.pins.version->emission), syntax_emission_literal_count(session.pins.version->emission),
@@ -112,15 +89,12 @@ std::shared_ptr<Version> compiled(SyntaxSession& session, const FrontendRevision
   return version;
 }
 
-extern "C" void syntax_scan_highlight(void* host, size_t start, size_t end, size_t revision, const char* style, uint32_t id, bool skipped) {
-  static_cast<std::vector<SyntaxHighlight>*>(host)->push_back({start, end, revision, style, skipped || id == MetaString, id});
-}
-SyntaxScanInput scan_input(const SyntaxSession& session, size_t pos, std::vector<SyntaxHighlight>* highlights,
+SyntaxScanInput scan_input(const SyntaxSession& session, size_t pos, SyntaxHighlights* highlights,
     const ParserLookahead* expected = nullptr) {
   ParserLookahead context;
   if (expected) context = *expected; else parser_request_lookahead(session.recognizer, &context);
   SyntaxScanInput input{};
-  input.lexicon = session.pins.version->lexicon; input.source = session.source.data(); input.size = session.source.size();
+  input.lexicon = session.pins.version->lexicon; input.source = session.source; input.size = session.source_length;
   input.cursor = pos; input.revision = session.revision;
   input.declaration = session.declaration; input.bootstrapping = session.bootstrapping;
   input.runtime = context.runtime; input.state = context.state; input.highlights = highlights;
@@ -134,16 +108,16 @@ extern "C" bool syntax_parser_diagnostic_read(void* context, size_t* pos, const 
   return ok;
 }
 bool declaration_at(const SyntaxSession& session, size_t pos) {
-  return lexicon_declaration(session.pins.version->lexicon, session.source.data(), session.source.size(), pos);
+  return lexicon_declaration(session.pins.version->lexicon, session.source, session.source_length, pos);
 }
-std::string skip_source(SyntaxSession& session, size_t& pos, std::vector<SyntaxHighlight>& highlights) {
+std::string skip_source(SyntaxSession& session, size_t& pos, SyntaxHighlights& highlights) {
   auto input = scan_input(session, pos, &highlights);
   SyntaxScanResult result{};
   syntax_scan_skip(&input, &result);
   pos = input.cursor; parser_recognizer_account_lookahead(session.recognizer, result.checks);
   return {};
 }
-std::string scan(SyntaxSession& session, size_t& pos, std::vector<SyntaxHighlight>& highlights,
+std::string scan(SyntaxSession& session, size_t& pos, SyntaxHighlights& highlights,
     uint32_t& id, size_t& start, size_t& length) {
   auto input = scan_input(session, pos, &highlights);
   SyntaxScanResult result{};
@@ -169,15 +143,15 @@ extern "C" TowerNode* syntax_parser_read(Stream* stream, void* userdata, uint32_
   return read_scan(stream, session, input, id, start, length);
 }
 struct TemplateInput {
-  SyntaxSession session;
+  SyntaxSession* session;
   const SyntaxTemplateCapture* captures = nullptr;
   size_t count = 0, base = 0;
 };
 extern "C" TowerNode* syntax_parser_template_read(Stream* stream, void* userdata, uint32_t* id, size_t* start, size_t* length) {
   auto& host = **static_cast<TemplateInput**>(userdata);
-  auto input = scan_input(host.session, host.session.cursor, &host.session.highlights);
+  auto input = scan_input(*host.session, host.session->cursor, &host.session->highlights);
   input.replacement = true; input.captures = host.captures; input.count = host.count; input.base = host.base;
-  return read_scan(stream, host.session, input, id, start, length);
+  return read_scan(stream, *host.session, input, id, start, length);
 }
 
 bool compile_template(Version& version, const Revision& defs, TowerNode* seq,
@@ -188,16 +162,19 @@ bool compile_template(Version& version, const Revision& defs, TowerNode* seq,
   if (!syntax_version_seed(grammar.get(), defs.get(), replacement.category.c_str(), version.emission)) {
     error = "Unable to allocate replacement grammar"; return false;
   }
-  TemplateInput input;
+  std::unique_ptr<SyntaxSession, decltype(&syntax_destroy)> session(
+    syntax_session_allocate(compiler_host_world(), syntax_modules), syntax_destroy);
+  if (!session) { error = "Unable to allocate replacement session"; return false; }
+  TemplateInput input{session.get()};
   input.base = replacement.start;
   const auto& text = semantic(semantic(seq).replacement).text;
-  if (!syntax_session_inputs_source(&input.session.inputs, text.data(), text.size(), "replacement")) {
+  if (!syntax_session_inputs_source(&input.session->inputs, text.data(), text.size(), "replacement")) {
     error = "Unable to allocate replacement source text"; return false;
   }
-  input.session.source = input.session.inputs.source->text.view();
-  syntax_session_pin_revision(&input.session.pins.grammar, defs.get());
-  syntax_session_pin_revision(&input.session.pins.bedrock, version.bedrock);
-  syntax_session_pin_version(&input.session.pins.version, grammar.get());
+  syntax_session_progress(input.session);
+  syntax_session_pin_revision(&input.session->pins.grammar, defs.get());
+  syntax_session_pin_revision(&input.session->pins.bedrock, version.bedrock);
+  syntax_session_pin_version(&input.session->pins.version, grammar.get());
   std::vector<SyntaxTemplateCapture> captures;
   for (size_t i = 0; i < replacement.captures.length; ++i) {
     const auto& capture = replacement.captures.data[i];
@@ -228,15 +205,15 @@ bool compile_template(Version& version, const Revision& defs, TowerNode* seq,
   *(TemplateInput**)parser_stream_get_userdata(stream.get()) = &input;
   std::unique_ptr<Recognizer, decltype(&parser_recognizer_destroy)> recognizer(
     parser_recognizer_create(grammar->table, stream.get()), parser_recognizer_destroy);
-  input.session.recognizer = recognizer.get();
+  input.session->recognizer = recognizer.get();
   Node root = owned(nullptr);
   bool running = true;
   while (running) root = owned(parser_recognizer_step(recognizer.get(), &running));
   if (!root) {
-    replacement.error_offset = replacement.start + input.session.error_offset;
+    replacement.error_offset = replacement.start + input.session->error_offset;
     // Holes are typed subtrees rather than ordinary lexer tokens; report
     // checked expectations here without guessing an insertion around a hole.
-    error = syntax_diagnostic(input.session, recognizer.get(), false); return false;
+    error = syntax_diagnostic(*input.session, recognizer.get(), false); return false;
   }
   auto* body = child(root.get(), 0);
   if (!body) { error = "Replacement must produce one syntax tree"; return false; }
@@ -295,7 +272,9 @@ size_t syntax_expansion_test_entry() {
 #endif
 
 SyntaxSession* syntax_create(const char* source, FrontendModule* module) {
-  auto session = std::make_unique<SyntaxSession>();
+  std::unique_ptr<SyntaxSession, decltype(&syntax_destroy)> session(
+    syntax_session_allocate(compiler_host_world(), syntax_modules), syntax_destroy);
+  if (!session) std::abort();
   syntax_session_inputs_module(&session->inputs, source, module);
   if (const auto* grammar = module ? frontend_module_grammar(module) : nullptr) {
     session->pins.baseline = syntax_revision_create(grammar->rules.data, grammar->rules.length,
@@ -314,7 +293,9 @@ SyntaxSession* syntax_create(const char* source, FrontendModule* module) {
 }
 
 SyntaxSession* syntax_create_foundation(const char* source) {
-  auto session = std::make_unique<SyntaxSession>();
+  std::unique_ptr<SyntaxSession, decltype(&syntax_destroy)> session(
+    syntax_session_allocate(compiler_host_world(), syntax_modules), syntax_destroy);
+  if (!session) std::abort();
   session->bootstrapping = true;
   session->pins.bedrock = syntax_world_revision(compiler_host_world(), SyntaxBaselineMode::Bedrock);
   if (!session->pins.bedrock) { session->error = "Unable to allocate Bedrock revision"; return session.release(); }
@@ -324,7 +305,9 @@ SyntaxSession* syntax_create_foundation(const char* source) {
 }
 
 SyntaxSession* syntax_create_bedrock(const char* source) {
-  auto session = std::make_unique<SyntaxSession>();
+  std::unique_ptr<SyntaxSession, decltype(&syntax_destroy)> session(
+    syntax_session_allocate(compiler_host_world(), syntax_modules), syntax_destroy);
+  if (!session) std::abort();
   session->bootstrapping = session->building_bedrock = true;
   session->pins.bedrock = syntax_world_revision(compiler_host_world(), SyntaxBaselineMode::Seed);
   if (!session->pins.bedrock) { session->error = "Unable to allocate Bedrock revision"; return session.release(); }
@@ -336,22 +319,16 @@ SyntaxSession* syntax_create_bedrock(const char* source) {
 void syntax_reset(SyntaxSession* session, const char* source, FrontendModule* module) {
   const bool source_ready = syntax_session_inputs_reset(&session->inputs, source, std::strlen(source),
     session->building_bedrock ? SyntaxBaselineMode::Seed : session->bootstrapping ? SyntaxBaselineMode::Bedrock : SyntaxBaselineMode::Foundation, module);
-  session->source = session->inputs.source ? session->inputs.source->text.view() : std::string_view{};
-  session->cursor = session->revision = session->error_offset = 0;
-  session->error_insertion = false;
-  session->cache.index.builds = session->cache.index.hits = 0;
-  session->expansion_stats = {};
-  session->finalized = false; session->declarations_only = true; session->comment_cursor = 0;
-  session->error.clear(); session->highlights.clear(); syntax_session_pin_revision(&session->pins.grammar, session->pins.baseline);
-  session->declaration = false;
+  syntax_session_progress(session);
   if (!source_ready) { session->error = "Unable to allocate source text"; syntax_session_pin_version(&session->pins.version, nullptr); return; }
-  syntax_session_pin_version(&session->pins.version, compiled(*session, session->pins.grammar, session->error).get());
+  std::string error;
+  syntax_session_pin_version(&session->pins.version, compiled(*session, session->pins.grammar, error).get());
+  session->error = error;
 }
 SyntaxCacheStats syntax_get_cache_stats(SyntaxSession* session) {
   return {session->cache.index.builds, session->cache.index.hits, session->cache.index.entries.length};
 }
 
-void syntax_destroy(SyntaxSession* session) { delete session; }
 const char* syntax_get_error(SyntaxSession* session) { return session->error.c_str(); }
 size_t syntax_get_revision(SyntaxSession* session) { return session->revision; }
 size_t syntax_get_offset(SyntaxSession* session) { return session->cursor; }
@@ -365,21 +342,30 @@ TowerText syntax_format(SyntaxSession* session) {
   if (!syntax_can_format(session)) return {};
   // Formatting is opt-in: retain original trees only for this pass, before
   // replacements rewrite them. Ordinary live parsing does no extra tree copies.
-  SyntaxSession copy;
+  std::unique_ptr<SyntaxSession, decltype(&syntax_destroy)> copy_owner(
+    syntax_session_allocate(compiler_host_world(), syntax_modules), syntax_destroy);
+  if (!copy_owner) return {};
+  auto& copy = *copy_owner;
   syntax_session_pins_baseline(&copy.pins, &session->pins);
   copy.bootstrapping = session->bootstrapping;
   copy.building_bedrock = session->building_bedrock;
   syntax_version_cache_copy(&copy.cache, &session->cache);
-  copy.formatting = true; syntax_reset(&copy, session->source.data());
+  copy.formatting = true; syntax_reset(&copy, session->source);
   std::vector<TowerNodeRef> owned; std::vector<TowerNode*> roots;
   while (auto* root = syntax_next(&copy)) { owned.push_back(TowerNodeRef::adopt(root)); roots.push_back(root); }
   if (!copy.error.empty()) return {};
   std::vector<TowerCommentSpan> comments;
-  for (const auto& token : copy.highlights) if (token.kind == "comment") comments.push_back({token.start, token.end});
-  auto result = tower_format_source(roots, copy.source, comments);
+  for (size_t i = 0; i < copy.highlights.items.length; ++i) {
+    const auto& token = copy.highlights.items.data[i];
+    if (std::string_view(token.kind) == "comment") comments.push_back({token.start, token.end});
+  }
+  auto result = tower_format_source(roots, std::string_view(copy.source, copy.source_length), comments);
   // User grammars may give punctuation or whitespace a different meaning.
   // Accept layout changes only if the same grammar reads the same source trees.
-  SyntaxSession verify;
+  std::unique_ptr<SyntaxSession, decltype(&syntax_destroy)> verify_owner(
+    syntax_session_allocate(compiler_host_world(), syntax_modules), syntax_destroy);
+  if (!verify_owner) return {};
+  auto& verify = *verify_owner;
   syntax_session_pins_baseline(&verify.pins, &copy.pins);
   verify.bootstrapping = copy.bootstrapping;
   verify.building_bedrock = copy.building_bedrock; verify.formatting = true;
@@ -388,8 +374,8 @@ TowerText syntax_format(SyntaxSession* session) {
   size_t index = 0; bool same = true;
   while (auto* raw = syntax_next(&verify)) {
     auto node = TowerNodeRef::adopt(raw);
-    same &= index < roots.size() && format_same_tree(roots[index], raw, copy.source.data(), copy.source.size(),
-      verify.source.data(), verify.source.size(), syntax_component_type(), parser_match_get_type()); ++index;
+    same &= index < roots.size() && format_same_tree(roots[index], raw, copy.source, copy.source_length,
+      verify.source, verify.source_length, syntax_component_type(), parser_match_get_type()); ++index;
   }
   if (!same || index != roots.size() || !verify.error.empty())
     return {{}, {}, "Formatting would change the parsed source under this grammar; source was left unchanged"};
@@ -398,13 +384,14 @@ TowerText syntax_format(SyntaxSession* session) {
 
 namespace {
 void preserve_comments(SyntaxSession& session, SyntaxNode& declaration, size_t through) {
-  for (const auto& token : session.highlights) {
-    if (token.kind != "comment" || token.start < session.comment_cursor || token.end > through) continue;
+  for (size_t i = 0; i < session.highlights.items.length; ++i) {
+    const auto& token = session.highlights.items.data[i];
+    if (std::string_view(token.kind) != "comment" || token.start < session.comment_cursor || token.end > through) continue;
     if (declaration.replacement) {
       const auto& body = semantic(declaration.replacement);
       if (token.start >= body.start && token.end <= body.end) continue;
     }
-    declaration.comments.emplace_back(session.source.substr(token.start, token.end - token.start));
+    declaration.comments.emplace_back(std::string_view(session.source, session.source_length).substr(token.start, token.end - token.start));
   }
   session.comment_cursor = through;
 }
@@ -415,13 +402,13 @@ TowerNode* syntax_next(SyntaxSession* session) {
   session->expansion_stats = {};
   std::string trivia_error = skip_source(*session, session->cursor, session->highlights);
   if (!trivia_error.empty()) {
-    session->error_offset = session->highlights.back().start;
+    session->error_offset = session->highlights.items.data[session->highlights.items.length - 1].start;
     session->error = trivia_error;
     return nullptr;
   }
-  if (session->cursor == session->source.size()) {
+  if (session->cursor == session->source_length) {
     if (session->completing) {
-      session->completion.reset(parser_table_completion(session->pins.version->table));
+      syntax_session_completion(session, parser_table_completion(session->pins.version->table));
       syntax_session_pin_version(&session->pins.completion_version, session->pins.version);
     }
     if (!session->finalized) {
@@ -474,7 +461,7 @@ TowerNode* syntax_next(SyntaxSession* session) {
       session->recognizer = nullptr;
       if (!root) {
         if (session->completing) {
-          session->completion.reset(parser_recognizer_take_completion(recognizer.get()));
+          syntax_session_completion(session, parser_recognizer_take_completion(recognizer.get()));
           syntax_session_pin_version(&session->pins.completion_version, session->pins.version);
         }
         return fail(syntax_diagnostic(*session, recognizer.get()));
@@ -483,8 +470,8 @@ TowerNode* syntax_next(SyntaxSession* session) {
       // committed span; the next construct gets its own declaration/lexer mode.
       auto* span = match(root.get());
       session->cursor = parser_match_get_start(span) + parser_match_get_length(span);
-      while (!session->highlights.empty() && session->highlights.back().start >= session->cursor)
-        session->highlights.pop_back();
+      while (session->highlights.items.length != 0 && session->highlights.items.data[session->highlights.items.length - 1].start >= session->cursor)
+        --session->highlights.items.length;
       session->error_offset = session->cursor;
     } // No recognizer or lookahead survives the grammar swap.
     TowerNode* construct = child(root.get(), 0);
@@ -552,17 +539,18 @@ TowerNode* syntax_next(SyntaxSession* session) {
       auto* declared_name = match(member(construct, "name"));
       size_t template_start = TOWER_INVALID_INDEX;
       if (declaration.replacement) template_start = semantic(declaration.replacement).start - 1;
-      for (auto& token : session->highlights) {
+      for (size_t i = 0; i < session->highlights.items.length; ++i) {
+        auto& token = session->highlights.items.data[i];
         if (token.start < construct_start) continue;
         if (token.start >= template_start) continue;
-        if (token.kind == "comment") continue;
-        if (token.kind == "identifier") {
-          if (construct_kind == "GrammarDeclaration") token.kind = capture ? "capture" : "rule";
+        if (std::string_view(token.kind) == "comment") continue;
+        if (std::string_view(token.kind) == "identifier") {
+          if (construct_kind == "GrammarDeclaration") syntax_highlights_style(&session->highlights, i, capture ? "capture" : "rule");
           else if ((construct_kind == "GrammarTokenDeclaration" || construct_kind == "GrammarSkipDeclaration") &&
                    token.start == parser_match_get_start(declared_name) &&
-                   token.end == parser_match_get_start(declared_name) + parser_match_get_length(declared_name)) token.kind = "rule";
+                   token.end == parser_match_get_start(declared_name) + parser_match_get_length(declared_name)) syntax_highlights_style(&session->highlights, i, "rule");
         }
-        capture = session->source.substr(token.start, token.end - token.start) == "$";
+        capture = std::string_view(session->source, session->source_length).substr(token.start, token.end - token.start) == "$";
       }
     } else {
       session->declarations_only = false;
@@ -577,28 +565,35 @@ TowerNode* syntax_next(SyntaxSession* session) {
 }
 
 std::vector<SyntaxHighlight> syntax_get_lexemes(SyntaxSession* session) {
-  auto result = session->highlights;
+  SyntaxHighlights spans{};
+  if (!syntax_highlights_copy(&spans, &session->highlights)) std::abort();
   size_t pos = session->cursor;
   // After an error, colour the suffix with the last committed grammar. This
   // preview never installs declarations or changes the parsing cursor.
-  if (session->pins.version) while (pos < session->source.size()) {
-    skip_source(*session, pos, result);
-    if (pos == session->source.size()) break;
+  if (session->pins.version) while (pos < session->source_length) {
+    skip_source(*session, pos, spans);
+    if (pos == session->source_length) break;
     bool meta = declaration_at(*session, pos);
     // Preview declarations with the active reader but never install them.
     do {
       uint32_t id; size_t start, length;
       bool saved = session->declaration; session->declaration = meta;
-      scan(*session, pos, result, id, start, length);
+      scan(*session, pos, spans, id, start, length);
       session->declaration = saved;
-      if (!meta || (length == 1 && session->source[start] == ';') || pos == session->source.size()) break;
+      if (!meta || (length == 1 && session->source[start] == ';') || pos == session->source_length) break;
     } while (true);
   }
   // Token overrides replace their existing ordered slot, while additions append.
   // Resolve the private lexical id back to its shared declaration metadata;
   // changing `as style` must never turn identifiers into strings or comments.
-  for (auto& span : result) if (session->pins.grammar && span.token >= FirstToken && span.token - FirstToken < session->pins.grammar->tokens.length)
-    span.opaque = span.opaque || semantic(session->pins.grammar->tokens.data[span.token - FirstToken]).name == "GrammarPattern";
+  std::vector<SyntaxHighlight> result;
+  for (size_t i = 0; i < spans.items.length; ++i) {
+    auto& span = spans.items.data[i];
+    if (session->pins.grammar && span.token >= FirstToken && span.token - FirstToken < session->pins.grammar->tokens.length)
+      span.opaque = span.opaque || semantic(session->pins.grammar->tokens.data[span.token - FirstToken]).name == "GrammarPattern";
+    result.push_back({span.start, span.end, span.revision, span.kind, span.opaque, span.token});
+  }
+  syntax_highlights_dispose(&spans);
   return result;
 }
 
@@ -610,9 +605,11 @@ std::vector<SyntaxHighlight> syntax_get_highlights(SyntaxSession* session) {
 
 extern "C" void frontend_module_comment(FrontendModule*, size_t, size_t);
 extern "C" void syntax_capture_comments(SyntaxSession* session, FrontendModule* module) {
-  for (const auto& token : session->highlights)
-    if (token.kind == "comment")
+  for (size_t i = 0; i < session->highlights.items.length; ++i) {
+    const auto& token = session->highlights.items.data[i];
+    if (std::string_view(token.kind) == "comment")
       frontend_module_comment(module, token.start, token.end);
+  }
 }
 
 std::vector<SyntaxTokenInfo> syntax_get_tokens(SyntaxSession* session) {
@@ -627,7 +624,7 @@ std::vector<SyntaxTokenInfo> syntax_get_tokens(SyntaxSession* session) {
 
 std::string syntax_set_bedrock(const char* source) {
   if (syntax_world_matches(compiler_host_world(), source, std::strlen(source), false)) return {};
-  std::unique_ptr<SyntaxSession> session(syntax_create_bedrock(source));
+  std::unique_ptr<SyntaxSession, decltype(&syntax_destroy)> session(syntax_create_bedrock(source), syntax_destroy);
   while (auto* root = syntax_next(session.get())) tower_node_release_ref(root);
   if (!session->error.empty()) return session->error;
   if (!syntax_world_publish(compiler_host_world(), source, std::strlen(source), session->inputs.document, session->pins.grammar, false))
@@ -640,7 +637,7 @@ std::string syntax_set_bedrock(const char* source) {
 
 std::string syntax_set_bootstrap(const char* source) {
   if (syntax_world_matches(compiler_host_world(), source, std::strlen(source), true)) return {};
-  std::unique_ptr<SyntaxSession> session(syntax_create_foundation(source));
+  std::unique_ptr<SyntaxSession, decltype(&syntax_destroy)> session(syntax_create_foundation(source), syntax_destroy);
   while (auto* root = syntax_next(session.get())) tower_node_release_ref(root);
   if (!session->error.empty()) return session->error;
   if (session->pins.grammar->tokens.length == 0) return "Bootstrap must define at least one token or skip rule";
@@ -723,7 +720,7 @@ extern "C" TowerNode* syntax_inspection_capture(SyntaxSession* session, TowerNod
 }
 static uint32_t completion_token(SyntaxSession* session, const char* text) {
   if (!session->completion) return PARSER_ID_EOF;
-  ParserLookahead context{lr_completion_runtime(session->completion.get()), lr_completion_state(session->completion.get())};
+  ParserLookahead context{lr_completion_runtime(session->completion), lr_completion_state(session->completion)};
   auto input = scan_input(*session, 0, nullptr, &context);
   input.source = text; input.size = std::strlen(text);
   SyntaxScanResult result{};
@@ -734,7 +731,7 @@ static uint32_t completion_token(SyntaxSession* session, const char* text) {
   return id;
 }
 extern "C" bool syntax_completion_identifier(SyntaxSession* session, const char* text) {
-  return completion_token(session, text) == MetaName && lr_completion_accepts(session->completion.get(), MetaName);
+  return completion_token(session, text) == MetaName && lr_completion_accepts(session->completion, MetaName);
 }
 extern "C" bool syntax_completion_accepts(SyntaxSession* session, const char* text, bool literal) {
   if (!session->completion) return false;
@@ -743,18 +740,17 @@ extern "C" bool syntax_completion_accepts(SyntaxSession* session, const char* te
     id = syntax_emission_literal(session->pins.completion_version->emission, text);
     if (id == PARSER_ID_EOF) return false;
   } else id = completion_token(session, text);
-  return lr_completion_accepts(session->completion.get(), id);
+  return lr_completion_accepts(session->completion, id);
 }
 extern "C" bool syntax_completion_callable(SyntaxSession* session) {
   if (!session->completion) return false;
   auto id = syntax_emission_literal(session->pins.completion_version->emission, "(");
-  return id != PARSER_ID_EOF && lr_completion_follows(session->completion.get(), MetaName, id);
+  return id != PARSER_ID_EOF && lr_completion_follows(session->completion, MetaName, id);
 }
 extern "C" const char* syntax_completion_close(SyntaxSession* session, const char* type_name) {
   if (!session->completion) return nullptr;
-  session->completion_suffix.reset(syntax_emission_completion_close(
-    session->pins.completion_version->emission, session->completion.get(), type_name));
-  return session->completion_suffix.get();
+  return syntax_session_suffix(session, syntax_emission_completion_close(
+    session->pins.completion_version->emission, session->completion, type_name));
 }
 std::vector<std::string> syntax_get_keywords(SyntaxSession* session) {
   std::vector<std::string> result;

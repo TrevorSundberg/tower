@@ -1,0 +1,66 @@
+import tower;
+import lr_parser;
+import parser_nodes;
+import syntax_highlights;
+import syntax_session_inputs;
+import syntax_session_pins;
+import syntax_session_types;
+import syntax_version_cache;
+import .library.vector;
+
+extern fn tower_memory_free(memory: void*): void;
+
+export fn syntax_session_allocate(world: void*, environment: void*): SyntaxSession* {
+    var value = alloc(SyntaxSession, 1);
+    if value is null { return null; }
+    fill(value, 0, sizeof(SyntaxSession));
+    value.inputs.world = world;
+    value.inputs.environment = environment;
+    value.declarations_only = true;
+    return value;
+}
+
+export fn syntax_session_completion(value: SyntaxSession*, completion: LRCompletion*): void {
+    lr_completion_destroy(bits(LRCompletion*, value.completion));
+    value.completion = bits(void*, completion);
+}
+
+export fn syntax_session_suffix(value: SyntaxSession*, text: u8*): u8* {
+    tower_memory_free(bits(void*, value.completion_suffix));
+    value.completion_suffix = text;
+    return text;
+}
+
+export fn syntax_session_progress(value: SyntaxSession*): void {
+    value.source = value.inputs.source ?. text.data;
+    value.source_length = value.inputs.source ?. text.length ?? 0;
+    value.cursor = 0;
+    value.revision = 0;
+    value.error_offset = 0;
+    value.error_insertion = false;
+    value.cache.index.builds = 0;
+    value.cache.index.hits = 0;
+    fill(&value.expansion_stats, 0, sizeof(SyntaxSessionExpansionStats));
+    value.finalized = false;
+    value.declarations_only = true;
+    value.comment_cursor = 0;
+    value.declaration = false;
+    value.error.length = 0;
+    if value.error.data is not null { value.error.data[0] = 0; }
+    syntax_highlights_clear(&value.highlights);
+    syntax_session_pin_revision(&value.pins.grammar, value.pins.baseline);
+}
+
+export fn syntax_destroy(opaque: void*): void {
+    var value = bits(SyntaxSession*, opaque);
+    if value is null { return; }
+    // Completion data is gone before the version/table it borrows can disappear.
+    lr_completion_destroy(bits(LRCompletion*, value.completion));
+    tower_memory_free(bits(void*, value.completion_suffix));
+    syntax_version_cache_dispose(&value.cache);
+    syntax_session_inputs_dispose(&value.inputs);
+    syntax_session_pins_dispose(&value.pins);
+    syntax_highlights_dispose(&value.highlights);
+    vector_dispose(u8, &value.error);
+    free(value);
+}

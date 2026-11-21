@@ -14,6 +14,7 @@ import frontend_pending;
 import frontend_revision;
 import frontend_baselines;
 import frontend_session_inputs;
+import frontend_session_state;
 import frontend_replacement_owner;
 import frontend_syntax_version;
 
@@ -453,6 +454,8 @@ export fn frontend_world_tests(): void {
     frontend_baseline_tests();
     frontend_baseline_failure_tests();
     frontend_session_inputs_tests();
+    frontend_highlight_tests();
+    frontend_session_state_tests();
     frontend_replacement_owner_tests();
     frontend_syntax_version_tests();
     frontend_session_pins_tests();

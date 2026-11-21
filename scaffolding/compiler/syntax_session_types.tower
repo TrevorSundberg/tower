@@ -2,6 +2,7 @@ import tower;
 import frontend_revision_types;
 import syntax_version_types;
 import syntax_types;
+import .library.vector;
 
 // Session-owned input leases. World/environment and a supplied module are
 // borrowed; an internally opened module, source snapshot and document are owned.
@@ -20,4 +21,52 @@ struct SyntaxSessionPins {
     bedrock: FrontendRevision*;
     version: SyntaxVersion*;
     completion_version: SyntaxVersion*;
+}
+
+struct SyntaxHighlightSpan {
+    start: usize;
+    end: usize;
+    revision: usize;
+    kind: u8*;
+    opaque: bool;
+    id: u32;
+}
+
+// Rows borrow stable strings from this owner's small style pool. Styles are
+// metadata, not semantic id categories; opaque classification is independent.
+struct SyntaxHighlights {
+    items: vector(SyntaxHighlightSpan);
+    styles: vector(vector(u8));
+}
+
+struct SyntaxSessionExpansionStats {
+    replacements: usize;
+    generated_nodes: usize;
+    copied_nodes: usize;
+}
+
+struct SyntaxSession {
+    inputs: SyntaxSessionInputs;
+    source: u8*;
+    source_length: usize;
+    cursor: usize;
+    revision: usize;
+    pins: SyntaxSessionPins;
+    recognizer: void*;
+    completing: bool;
+    completion: void*;
+    completion_suffix: u8*;
+    bootstrapping: bool;
+    declaration: bool;
+    building_bedrock: bool;
+    finalized: bool;
+    declarations_only: bool;
+    formatting: bool;
+    comment_cursor: usize;
+    cache: SyntaxVersionCache;
+    expansion_stats: SyntaxSessionExpansionStats;
+    error: vector(u8);
+    error_offset: usize;
+    error_insertion: bool;
+    highlights: SyntaxHighlights;
 }
