@@ -6,6 +6,7 @@ project(scaffolding LANGUAGES C CXX VERSION 1)
 # Requires only the published compiler and installed host LLVM.
 option(TOWER_TOOLS_ONLY "Bootstrap the Linux x64 Tower build tools" OFF)
 if(TOWER_TOOLS_ONLY)
+  set(TOWER_TOOL "" CACHE STRING "Optional Tower tool selected by build_tools")
   if(NOT TOWER_BOOTSTRAP_COMPILER OR NOT CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux"
       OR NOT CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64)$")
     message(FATAL_ERROR "Tower tools require the verified Linux x64 bootstrap; see bootstrap/README.md")
@@ -27,7 +28,7 @@ if(TOWER_TOOLS_ONLY)
     DEPENDS scaffolding/tools/build_tools.tower "${TOWER_BOOTSTRAP_COMPILER}" "${tool_runtime}" VERBATIM)
   add_custom_target(tower-tools
     COMMAND "${tool_builder}" "${TOWER_BOOTSTRAP_COMPILER}" "${CMAKE_C_COMPILER}"
-      "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/bin" "${tool_runtime}"
+      "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/bin" "${tool_runtime}" ${TOWER_TOOL}
     DEPENDS "${tool_builder}" VERBATIM)
   return()
 endif()

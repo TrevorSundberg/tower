@@ -5,7 +5,7 @@ sdk="${WASI_SDK_PATH:-$HOME/.cache/tower/wasi-sdk/wasi-sdk-34.0-x86_64-linux}"
 bootstrap="$(bash "$repo/playground/scripts/build-bootstrap.sh")"
 revision="$(git -C "$repo/third_party/llvm-project" rev-parse HEAD)"
 source="${TOWER_LLVM_SOURCE_DIR:-$(bash "$repo/playground/scripts/cache-llvm-source.sh")}"
-tools="$(TOWER_BOOTSTRAP_COMPILER="$bootstrap" bash "$repo/playground/scripts/build-bootstrap.sh" --tools)"
+tools="$(TOWER_BOOTSTRAP_COMPILER="$bootstrap" bash "$repo/playground/scripts/build-bootstrap.sh" --tools prepare_lld_compat)"
 "$tools/prepare_lld_compat" "$source"
 # Native tablegen must be built with the same LLVM source revision. Keep the
 # large intermediate builds on the Linux filesystem when called through WSL.

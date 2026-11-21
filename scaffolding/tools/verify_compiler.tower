@@ -1,0 +1,256 @@
+import tower;
+import tool_process_linux;
+import tool_files_posix;
+import tool_files_linux;
+import tool_streams_posix;
+import .library.bytes;
+import .library.bytes_types;
+import .library.vector;
+import .library.sha256;
+import .compiler.host_text;
+import .host.driver_files;
+
+// Linux x64 development tooling. GNU env/timeout are existing platform process
+// capabilities, outside the compiler's restricted PATH. No shell is invoked.
+enum VerificationMode: i32 { Restricted, Development, ExpectMissingClang }
+enum VerificationExit: i32 { Success = 0, Failure = 1, Usage = 2 }
+struct VerificationTime { seconds: i64; nanoseconds: i64; }
+struct Verification {
+    compiler: u8*; directory: u8*; path: u8*;
+    summary: ByteBuffer;
+}
+var VerificationInputLimit: usize = 1073741824;
+var VerificationLogLimit: usize = 4194304;
+var VerificationRepeatCount: usize = 3;
+
+extern fn getenv(name: u8*): u8*;
+extern fn strrchr(text: u8*, character: i32): u8*;
+extern fn strchr(text: u8*, character: i32): u8*;
+extern fn strstr(text: u8*, needle: u8*): u8*;
+extern fn memcmp(left: u8*, right: u8*, length: usize): i32;
+extern fn fileno(file: void*): i32;
+extern fn clock_gettime(clock: i32, time: VerificationTime*): i32;
+extern fn puts(text: u8*): i32;
+
+fn verification_text(out: ByteBuffer*, text: u8*): bool {
+    return bytes_append(out, text, strlen(text));
+}
+
+fn verification_clock(): u64 {
+    var monotonic_clock: i32 = 1; var nanos_per_second: u64 = 1000000000;
+    var now: VerificationTime = default;
+    if clock_gettime(monotonic_clock, &now) != 0 { return 0; }
+    return convert(u64, now.seconds) * nanos_per_second + convert(u64, now.nanoseconds);
+}
+
+fn verification_record(v: Verification*, name: u8*, value: u8*): bool {
+    return verification_text(&v.summary, name) && verification_text(&v.summary, "\t")
+        && verification_text(&v.summary, value) && verification_text(&v.summary, "\n");
+}
+
+fn verification_save(v: Verification*): bool {
+    var path: ByteBuffer = default;
+    defer bytes_dispose(&path);
+    return tool_join(&path, v.directory, "checks.txt")
+        && driver_write_file(path.data, v.summary.data, v.summary.length);
+}
+
+fn verification_hash(path: u8*, out: ByteBuffer*): bool {
+    var data: ByteBuffer = default;
+    defer bytes_dispose(&data);
+    if !tool_read_file(path, VerificationInputLimit, &data) || data.length == 0 { return false; }
+    var state: Sha256 = default; sha256_init(&state);
+    if !sha256_update(&state, data.data, data.length) { return false; }
+    var digest = sha256_finish(&state); var hex: u8[65];
+    var hash_characters: usize = 64;
+    sha256_hex(&digest, &hex[0]);
+    return bytes_assign_text(out, &hex[0], hash_characters);
+}
+
+fn verification_copy(fixtures: u8*, directory: u8*, name: u8*): bool {
+    var source: ByteBuffer = default; var destination: ByteBuffer = default;
+    var filename: ByteBuffer = default; var data: ByteBuffer = default;
+    defer bytes_dispose(&source); defer bytes_dispose(&destination);
+    defer bytes_dispose(&filename); defer bytes_dispose(&data);
+    if !verification_text(&filename, "distribution_") || !verification_text(&filename, name)
+        || !verification_text(&filename, ".tower") || !host_text_terminate(&filename)
+        || !tool_join(&source, fixtures, filename.data)
+        || !tool_read_file(source.data, VerificationInputLimit, &data) { return false; }
+    filename.length = 0;
+    return verification_text(&filename, name) && verification_text(&filename, ".tower")
+        && host_text_terminate(&filename) && tool_join(&destination, directory, filename.data)
+        && driver_write_file(destination.data, data.data, data.length);
+}
+
+// Fresh output directories prevent stale artifacts from satisfying a check.
+// Keep both logs even when execution fails; no report parser is required.
+fn verification_run(v: Verification*, name: u8*, executable: u8*, a: u8*, b: u8*, c: u8*, d: u8*, e: u8*,
+    exit_code: i32, output: u8*, diagnostic: u8*): bool {
+    var out_path: ByteBuffer = default; var err_path: ByteBuffer = default;
+    var stdout_data: ByteBuffer = default; var stderr_data: ByteBuffer = default;
+    var args: vector(u8*) = default;
+    defer bytes_dispose(&out_path); defer bytes_dispose(&err_path);
+    defer bytes_dispose(&stdout_data); defer bytes_dispose(&stderr_data); defer vector_dispose(&args);
+    if !tool_join(&out_path, v.directory, name) || !verification_text(&out_path, ".stdout")
+        || !host_text_terminate(&out_path) || !tool_join(&err_path, v.directory, name)
+        || !verification_text(&err_path, ".stderr") || !host_text_terminate(&err_path) { return false; }
+    var out_file = fopen(out_path.data, "wb");
+    if out_file == null { return false; }
+    var err_file = fopen(err_path.data, "wb");
+    if err_file == null { fclose(out_file); return false; }
+    var closed = false;
+    defer { if !closed { fclose(out_file); fclose(err_file); } }
+    var timeout = "/usr/bin/timeout";
+    var timeout_duration = "180s"; var kill_grace = "1s";
+    if !tool_process_argument(&args, timeout) || !tool_process_argument(&args, "--kill-after")
+        || !tool_process_argument(&args, kill_grace) || !tool_process_argument(&args, timeout_duration)
+        || !tool_process_argument(&args, "/usr/bin/env") || !tool_process_argument(&args, "--ignore-environment")
+        || !tool_process_argument(&args, "--chdir") || !tool_process_argument(&args, v.directory)
+        || !tool_process_argument(&args, v.path) || !tool_process_argument(&args, executable ?? v.compiler) { return false; }
+    if a != null && !tool_process_argument(&args, a) { return false; }
+    if b != null && !tool_process_argument(&args, b) { return false; }
+    if c != null && !tool_process_argument(&args, c) { return false; }
+    if d != null && !tool_process_argument(&args, d) { return false; }
+    if e != null && !tool_process_argument(&args, e) { return false; }
+    if !tool_process_argument(&args, null) { return false; }
+    var out_descriptor = fileno(out_file); var err_descriptor = fileno(err_file);
+    if out_descriptor < 0 || err_descriptor < 0 { return false; }
+    var started = verification_clock();
+    var result = tool_process_streams(timeout, args.data, out_descriptor, err_descriptor);
+    var elapsed = verification_clock() - started;
+    var out_closed = fclose(out_file); var err_closed = fclose(err_file); closed = true;
+    var logs_ok = out_closed == 0 && err_closed == 0
+        && tool_read_file(out_path.data, VerificationLogLimit, &stdout_data)
+        && tool_read_file(err_path.data, VerificationLogLimit, &stderr_data)
+        && host_text_terminate(&stdout_data) && host_text_terminate(&stderr_data);
+    var passed = logs_ok && result.kind == ToolProcessKind.Exited && result.exit_code == exit_code;
+    if output != null {
+        passed &&= stdout_data.length == strlen(output) && memcmp(stdout_data.data, output, stdout_data.length) == 0;
+    }
+    if diagnostic != null { passed &&= logs_ok && strstr(stderr_data.data, diagnostic) != null; }
+    // Help must describe the compiler options; an arbitrary successful program
+    // is not a verifier success. Diagnostics must identify a source column.
+    if strcmp(name, "help") == 0 { passed &&= logs_ok && strstr(stdout_data.data, "--target") != null; }
+    if strcmp(name, "diagnostic") == 0 {
+        var location = logs_ok ? strstr(stderr_data.data, "invalid.tower:4:") : null;
+        if location == null { passed = false; }
+        else {
+            location += strlen("invalid.tower:4:");
+            var first_digit: u8 = 48; var last_digit: u8 = 57; var colon: u8 = 58;
+            var digits: usize = 0;
+            while location[digits] >= first_digit && location[digits] <= last_digit { digits++; }
+            passed &&= digits != 0 && location[digits] == colon;
+        }
+    }
+    var nanos_per_millisecond: u64 = 1000000;
+    var recorded = verification_record(v, name, passed ? "pass" : "FAIL")
+        && verification_text(&v.summary, "exit\t") && host_json_unsigned(&v.summary, convert(u64, tool_process_status(result)))
+        && verification_text(&v.summary, "\tprocess_kind\t") && host_json_unsigned(&v.summary, convert(u64, result.kind))
+        && verification_text(&v.summary, "\terrno\t") && host_json_unsigned(&v.summary, convert(u64, result.error))
+        && verification_text(&v.summary, "\tmilliseconds\t") && host_json_unsigned(&v.summary, elapsed / nanos_per_millisecond)
+        && verification_text(&v.summary, "\ncommand");
+    for (var at: usize = 0; recorded && at + 1 < args.length; at++) {
+        recorded = verification_text(&v.summary, "\t") && host_json_quote(&v.summary, args.data[at], strlen(args.data[at]));
+    }
+    recorded &&= verification_text(&v.summary, "\n");
+    puts(name);
+    return verification_save(v) && recorded && passed;
+}
+
+fn verification_checks(v: Verification*, mode: VerificationMode): bool {
+    var success = convert(i32, VerificationExit.Success); var failure = convert(i32, VerificationExit.Failure);
+    if !verification_run(v, "help", null, "--help", null, null, null, null, success, null, null)
+        || !verification_run(v, "version", null, "--version", null, null, null, null, success, null, null)
+        || !verification_run(v, "invalid_option", null, "--not-an-option", null, null, null, null, failure, null, "Unexpected argument")
+        || !verification_run(v, "missing_source", null, "missing.tower", null, null, null, null, failure, null, null)
+        || !verification_run(v, "diagnostic", null, "invalid.tower", "--interpret", null, null, null, failure, null, "invalid.tower:4:")
+        || !verification_run(v, "interpret", null, "program.tower", "--interpret", null, null, null, success, "42\n", null) { return false; }
+    var baseline: ByteBuffer = default; var digest: ByteBuffer = default; var object: ByteBuffer = default;
+    var name: ByteBuffer = default;
+    defer bytes_dispose(&baseline); defer bytes_dispose(&digest); defer bytes_dispose(&object); defer bytes_dispose(&name);
+    for (var at: usize = 0; at < VerificationRepeatCount; at++) {
+        name.length = 0;
+        if !verification_text(&name, "compile_") || !host_json_unsigned(&name, convert(u64, at))
+            || !host_text_terminate(&name)
+            || !verification_run(v, name.data, null, "program.tower", "--emit", "object", "-o", "program.o", success, null, null)
+            || !tool_join(&object, v.directory, "program.o") || !verification_hash(object.data, &digest) { return false; }
+        if at == 0 {
+            if !bytes_assign_text(&baseline, digest.data, digest.length) { return false; }
+        } else { if strcmp(baseline.data, digest.data) != 0 { puts("Repeated object emission changed bytes."); return false; } }
+        // Require each compiler invocation to recreate its output.
+        if remove(object.data) != 0 { return false; }
+    }
+    if !verification_record(v, "object_sha256", baseline.data)
+        || !verification_run(v, "library", null, "library.tower", "--library", "-o", "library.o", null, success, null, null) { return false; }
+    if mode == VerificationMode.ExpectMissingClang {
+        return verification_run(v, "link", null, "link.tower", "--link", "library.o", "-o", "linked", failure, null, "Cannot find tool: clang")
+            && verification_record(v, "result", "expected missing clang; restricted release verification has NOT passed");
+    }
+    if !verification_run(v, "link", null, "link.tower", "--link", "library.o", "-o", "linked", success, null, null)
+        || !verification_run(v, "linked_execution", "./linked", null, null, null, null, null, success, "42\n", null)
+        || !verification_run(v, "compile_executable", null, "program.tower", "-o", "program", null, null, success, null, null) { return false; }
+    for (var at: usize = 0; at < VerificationRepeatCount; at++) {
+        name.length = 0;
+        if !verification_text(&name, "execution_") || !host_json_unsigned(&name, convert(u64, at)) || !host_text_terminate(&name)
+            || !verification_run(v, name.data, "./program", null, null, null, null, null, success, "42\n", null) { return false; }
+    }
+    return verification_record(v, "result", mode == VerificationMode.Development ? "development checks passed" : "restricted host checks passed; dependency closure still requires OS isolation");
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    var required_count: i32 = 4; var optional_count: i32 = 5;
+    var failure = convert(i32, VerificationExit.Failure); var usage = convert(i32, VerificationExit.Usage);
+    if argc != required_count && argc != optional_count {
+        puts("Usage: verify_compiler COMPILER FIXTURE_DIRECTORY NEW_OUTPUT_DIRECTORY [restricted|development|expect_missing_clang]");
+        return usage;
+    }
+    var mode = VerificationMode.Restricted;
+    if argc == optional_count {
+        if strcmp(argv[4], "development") == 0 { mode = VerificationMode.Development; }
+        else { if strcmp(argv[4], "expect_missing_clang") == 0 { mode = VerificationMode.ExpectMissingClang; }
+        else { if strcmp(argv[4], "restricted") != 0 { return usage; } } }
+    }
+    var compiler = realpath(argv[1], null); var fixtures = realpath(argv[2], null);
+    defer free(compiler); defer free(fixtures);
+    var private_directory: u32 = 448;
+    if compiler == null || fixtures == null || !tool_output_parents(argv[3]) || mkdir(argv[3], private_directory) != 0 {
+        puts("Inputs must exist and the output directory must be new."); return failure;
+    }
+    var directory = realpath(argv[3], null);
+    if directory == null { return failure; }
+    defer free(directory);
+    var path: ByteBuffer = default; var compiler_directory: ByteBuffer = default; var digest: ByteBuffer = default;
+    defer bytes_dispose(&path); defer bytes_dispose(&compiler_directory); defer bytes_dispose(&digest);
+    var slash: i32 = 47; var last_slash = strrchr(compiler, slash);
+    if last_slash == null { return failure; }
+    var parent_bytes = bits(usize, last_slash) - bits(usize, compiler);
+    if parent_bytes == 0 { parent_bytes = 1; }
+    if !bytes_assign_text(&compiler_directory, compiler, parent_bytes)
+        || !verification_text(&path, "PATH=") { return failure; }
+    if mode == VerificationMode.Development {
+        var inherited_path = getenv("PATH");
+        if inherited_path == null || !verification_text(&path, inherited_path) { return failure; }
+    } else {
+        var path_separator: i32 = 58;
+        if strchr(compiler_directory.data, path_separator) != null {
+            puts("Restricted PATH cannot represent a compiler directory containing a colon."); return failure;
+        }
+        if !verification_text(&path, compiler_directory.data) || !verification_text(&path, ":")
+            || !verification_text(&path, compiler_directory.data) || !verification_text(&path, "/tools") { return failure; }
+    }
+    if !host_text_terminate(&path) { return failure; }
+    var v: Verification = { compiler: compiler, directory: directory, path: path.data, ..default };
+    defer bytes_dispose(&v.summary);
+    var ok = verification_hash(compiler, &digest) && verification_record(&v, "compiler_sha256", digest.data)
+        && verification_record(&v, "profile", "Linux x64; clean child environment; GNU env/timeout; not OS isolation")
+        && verification_copy(fixtures, directory, "program") && verification_copy(fixtures, directory, "library")
+        && verification_copy(fixtures, directory, "link") && verification_copy(fixtures, directory, "invalid")
+        && verification_checks(&v, mode);
+    if !ok { verification_record(&v, "result", "FAILED"); }
+    ok = verification_save(&v) && ok;
+    puts(directory);
+    if ok && mode == VerificationMode.ExpectMissingClang {
+        puts("Expected missing Clang confirmed; restricted release verification has NOT passed.");
+    } else { puts(ok ? "Compiler host checks passed; see checks.txt and command logs." : "Compiler verification failed; see checks.txt and command logs."); }
+    return ok ? convert(i32, VerificationExit.Success) : failure;
+}

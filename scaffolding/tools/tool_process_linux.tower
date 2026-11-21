@@ -38,6 +38,19 @@ fn tool_process(executable: u8*, args: u8**): ToolProcessResult {
 // An explicit nonnegative descriptor redirects stdout. The caller retains its
 // descriptor; the child closes its extra copy before exec. Stderr is inherited.
 fn tool_process_output(executable: u8*, args: u8**, output: i32): ToolProcessResult {
+    var inherit_stderr: i32 = -1;
+    return tool_process_streams(executable, args, output, inherit_stderr);
+}
+
+// Separate file descriptors avoid pipe backpressure for diagnostic captures.
+// Redirected stderr must not borrow stdout, which may already be redirected.
+// Descriptors remain caller-owned; the child closes only extra descriptor copies.
+fn tool_process_streams(executable: u8*, args: u8**, output: i32, error_output: i32): ToolProcessResult {
+    var stdout_stream: i32 = 1; var stderr_stream: i32 = 2;
+    var invalid_argument: i32 = 22;
+    if error_output == stdout_stream {
+        return init(ToolProcessResult) { kind: ToolProcessKind.RedirectFailed, error: invalid_argument, ..default };
+    }
     var close_on_exec: i32 = 524288;
     var interrupted: i32 = 4;
     var io_error: i32 = 5;
@@ -50,10 +63,12 @@ fn tool_process_output(executable: u8*, args: u8**, output: i32): ToolProcessRes
     if pid == 0 {
         close(pipe.reader);
         var failure: ToolLaunchFailure = { kind: ToolProcessKind.ExecFailed, ..default };
-        var stdout_stream: i32 = 1; var last_standard_stream: i32 = 2;
-        if output >= 0 && dup2(output, stdout_stream) < 0 { failure.kind = ToolProcessKind.RedirectFailed; }
+        var last_standard_stream = stderr_stream;
+        if (output >= 0 && dup2(output, stdout_stream) < 0)
+            || (error_output >= 0 && dup2(error_output, stderr_stream) < 0) { failure.kind = ToolProcessKind.RedirectFailed; }
         else {
             if output > last_standard_stream { close(output); }
+            if error_output > last_standard_stream && error_output != output { close(error_output); }
             execv(executable, args);
         }
         failure.error = *__errno_location();

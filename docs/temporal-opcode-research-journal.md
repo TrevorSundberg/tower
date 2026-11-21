@@ -36326,3 +36326,86 @@ contracts. The current f32/f64 path is strict shared Tower software arithmetic;
 C/Roku floating emission and hardware acceleration remain unsupported, as stated
 in docs/floating-point.md. No C-parity or portable native-release completion is
 claimed by this milestone.
+
+### 2026-11-21: simplify and migrate the live relocation verifier
+
+The previous goal turn made progress by removing six unnecessary Python tools.
+This turn's caller audit found verify-compiler.py still performs required real
+CLI/relocation checks. Its only machine-readable report consumer was the inline
+Python block in test-compiler-distribution.sh. Remove that JSON/report-parsing
+step entirely: the Tower verifier now makes the expected-failure assertion
+directly and writes plain command logs plus checks.txt. No JSON library or
+second report validator is needed.
+
+Implemented scaffolding/tools/verify_compiler.tower using the public checked-in
+Linux x64 compiler and existing Tower byte buffers, file capabilities and SHA-256.
+It retains help/options/version, missing-file and UTF-8 diagnostic location,
+interpretation, three fresh byte-identical object emissions, separate library
+linking, linked execution and three executable runs. Record compiler/object
+hashes, exact quoted argument vectors, exit/process status, errno, millisecond
+timings and separate binary stdout/stderr. Read bounds are 1 GiB per input and
+4 MiB per log; they do not bound child disk writes. Every run requires a new
+output directory and removes each object before the next compile, preventing
+stale artifacts from satisfying checks. Failures retain their evidence.
+
+The runner is explicitly Linux x64. Existing GNU env/timeout supply process cwd,
+clean child environment (only the selected PATH) and the 180-second deadline plus
+one-second kill grace. They are platform tools already in the canonical Docker
+environment, not new installed libraries or an in-house process scheduler.
+Commands use direct argv, never shell interpretation. Development mode permits
+the caller's PATH; ordinary restricted mode permits only the compiler directory
+and its tools child. The explicit expect_missing_clang mode requires the first
+ten checks to succeed and then exact exit 1 plus the missing-Clang diagnostic at
+link. It labels restricted release verification as NOT passed. Signals, timeout
+and execution failures cannot satisfy a compiler-error expectation. Native
+Windows/macOS release testing still needs its host runner and actual OS isolation;
+restricted PATH alone does not prove portable dependency closure.
+
+Extended the existing Linux process capability only enough to redirect stderr
+independently while retaining child status and caller descriptor ownership.
+Focused Tower tests cover distinct binary stdout/stderr including NUL, nonzero
+exit, descriptor lifetime and stderr-redirection failure, alongside the existing
+argument, signal, exec-error and large-capture/limit checks. All pass.
+
+The first compile rejected library-level string initializers as executable
+top-level statements in the public bootstrap. Keep the named timeout strings
+local to the runner instead; no compiler changes or private bootstrap required.
+The tool compiles and links with the public pin and existing guest host object.
+The Tower tool builder accepts verify_compiler. The existing shell/CMake bridge
+now optionally passes one selected tool name through to the Tower builder;
+omitting it retains the all-tools behavior. Distribution selects only its
+verifier, and build-llvm.sh selects only prepare_lld_compat, avoiding unrelated
+tool builds rather than adding more mandatory build work.
+
+Validation in linux/amd64 tower_build (Ubuntu 24.04, Clang/LLVM 19.1.1):
+
+- Direct verifier against the previously validated d7345af0 native successor:
+  all 16 development checks pass; object SHA-256
+  85b8b24fce30f9b54adb0fe5ccdc92a9299b82d298cc499bf65bee00d8ebba3d matches the
+  former Python verifier. Default restricted mode exits 1 at link with
+  `Cannot find tool: clang`. The explicit transitional mode confirms that failure
+  only after all ten prerequisite checks pass.
+- In a disposable container, rename /usr/bin/python3.12 so python3 is unavailable.
+  Run the actual test-compiler-distribution.sh with TOWER_TOOLS_BUILD set to fresh
+  /cache/verifier_tools, then to fresh /cache/verifier_selected_tools after adding
+  selection. Both public-bootstrap five-step builds and relocation workflows pass.
+  The selected bin directory contains only verify_compiler and its object/depfile.
+  Reports remain at build/distribution/relocation.X80Xv2 and relocation.L0ZnTx;
+  relocated compiler SHA is 138eb52384e7a2995889de64c62b5833a202d9fb202cf24029c730d95a509858.
+- Reusing an output directory exits 1 and preserves the checks.txt hash. An
+  unrelated successful executable fails the help assertion; a copied compiler
+  missing adjacent resources fails the diagnostic prerequisite, not the expected
+  link gate. Both reject even in expect_missing_clang mode.
+- A disposable container's /towerc plus /share verifies the root-directory PATH
+  case through the expected link failure. A compiler directory containing a
+  colon is rejected explicitly because PATH cannot represent it faithfully.
+  Paths with spaces are covered by both real relocation workflows. Selecting
+  prepare_lld_compat through the same bridge builds that tool successfully.
+
+Retired verify-compiler.py (114 lines) and eight inline Python assertion lines.
+Eleven tracked Python files remain, totaling 777 lines including blanks/comments,
+versus 23 files/1989 lines at dfe6ce3: about 61% fewer tracked Python lines.
+Inline Python in build-llvm.sh and test-bootstrap.sh remains separate. Wider
+shell/CMake/JavaScript migration is still active; this is not an overall language
+percentage. Docs describe the simplified invocation, fresh logs and platform scope.
+No todo.txt, compiler semantics, runtime binary or browser asset changes.

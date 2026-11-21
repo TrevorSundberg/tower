@@ -56,13 +56,16 @@ source through the default clean build before publishing.
 
 ## Tower build tools
 
-The same environment builds the LLD compatibility patcher, Roku packager and
-bootstrap candidate packager through the public compiler and existing runtime:
+The same environment builds the LLD compatibility patcher, Roku and bootstrap
+packagers, and compiler verifier through the public compiler and existing runtime:
 
 ```sh
 tools="$(bash playground/scripts/build-bootstrap.sh --tools)"
 "$tools/package_roku" program.brs program-roku.zip
 ```
+
+Pass a tool name after `--tools` to build only `prepare_lld_compat`, `package_roku`,
+`package_bootstrap` or `verify_compiler`. Omitting the name builds all four.
 
 `build-llvm.sh` invokes `prepare_lld_compat` automatically. The Roku ZIP/CRC/DEFLATE
 implementation is Tower with no zlib link; see the [Roku guide](../docs/roku-backend.md)
@@ -71,7 +74,9 @@ build directory (default `$HOME/.cache/tower/tools`), and `LLVM_CONFIG` selects
 the host LLVM installation (default `llvm-config-19`). Wrapper stdout is only the
 resulting directory; build output goes to stderr. A small existing CMake bridge
 builds the Tower builder/runtime; Tower owns the tool compilation/link arguments.
-Wider distribution, test and upstream build tooling still needs migration.
+The [distribution checks](../docs/bootstrap-distribution.md#validation-and-measurement)
+use `verify_compiler` directly; the verifier and its assertions are Tower.
+Wider test and upstream build tooling still needs migration.
 
 ## Publishing a replacement pin
 

@@ -91,24 +91,37 @@ Run from the repository root:
 ```
 
 The distribution check moves the compiler and resources into a directory with
-spaces. `verify-compiler.py` uses Tower fixtures for diagnostics, interpretation,
-object compilation, separate library linking and executable behavior. It records
-startup/compilation/execution timings, exit codes and output, and compares three
-object emissions. Reports go to `build/distribution/relocated-{development,restricted}/`.
+spaces. The Tower `verify_compiler` tool uses the existing Tower fixtures for
+diagnostics, interpretation, object compilation, separate library linking and
+executable behavior. It records compiler/object hashes, command arguments,
+millisecond timings, exit codes and separate stdout/stderr logs, and compares
+three fresh object emissions. Each run writes `checks.txt` and logs below a new
+`build/distribution/relocation.XXXXXX/{development,restricted}/` directory.
+There is no JSON report/parser step. Existing output directories are rejected.
 
 The development run permits installed tools. The restricted run searches only
 the package root and its `tools` directory; the development package must fail at
-linking with `Cannot find tool: clang`. The transitional shell check asserts
-that earlier checks succeeded and this is the specific failure. The restricted
-verification itself is **not passed**. Retire this expected failure when the
-Tower target runtime and bundled linker are integrated.
+linking with `Cannot find tool: clang`. The explicit `expect_missing_clang` mode
+requires all earlier checks to pass and this specific link failure; ordinary
+restricted mode rejects the package. Restricted release verification itself is
+**not passed**. Retire the expected failure when the Tower target runtime and
+bundled linker are integrated.
 
 Run a future candidate through the strict verifier directly:
 
 ```sh
-python3 playground/scripts/verify-compiler.py /relocated/package/towerc \
-  --output build/distribution/candidate-verification
+tools="$(bash playground/scripts/build-bootstrap.sh --tools verify_compiler)"
+"$tools/verify_compiler" /relocated/package/towerc scaffolding/tests \
+  build/distribution/new_candidate_verification
 ```
+
+The current verifier runs on Linux x64 through the canonical Docker environment.
+It uses existing GNU `env` and `timeout` commands for a clean child environment,
+unrelated working directory and a 180-second deadline with a one-second kill
+grace; process arguments are passed directly without a shell. Captured log reads
+are bounded to 4 MiB each and input files to 1 GiB. These are trusted development
+tools, not a disk-write sandbox. Native Windows/macOS release verification still
+requires an appropriate host runner and actual execution on those systems.
 
 A restricted `PATH` is not an isolated OS: installed dynamic libraries can still
 satisfy the loader. Release verification needs clean OS images without LLVM,

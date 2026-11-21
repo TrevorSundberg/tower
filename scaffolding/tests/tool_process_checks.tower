@@ -2,6 +2,8 @@ import tower;
 import utility_checks;
 import .tools.tool_process_linux;
 import .tools.tool_capture_linux;
+import .tools.tool_streams_posix;
+import .host.driver_files;
 import .library.vector;
 import .library.bytes;
 import .library.bytes_types;
@@ -32,6 +34,15 @@ export fn main(argc: i32, argv: u8**): i32 {
             "child received exact shell-free arguments including empty string");
         if strcmp(argv[2], "signal") == 0 { raise(terminate_signal); return unexpected_return; }
         if strcmp(argv[2], "exec-like") == 0 { return exec_like_exit; }
+        if strcmp(argv[2], "both") == 0 {
+            var stdout_stream: i32 = 1; var stderr_stream: i32 = 2;
+            var stdout_data: u8[3]; stdout_data[0] = 42; stdout_data[1] = 0; stdout_data[2] = 17;
+            var stderr_data: u8[2]; stderr_data[0] = 9; stderr_data[1] = 0;
+            var stdout_bytes: usize = 3; var stderr_bytes: usize = 2;
+            utility_check(write(stdout_stream, &stdout_data[0], stdout_bytes) == convert(i64, stdout_bytes)
+                && write(stderr_stream, &stderr_data[0], stderr_bytes) == convert(i64, stderr_bytes), "separate binary writes");
+            return fixture_exit;
+        }
         if strcmp(argv[2], "capture") == 0 {
             var data: u8[256]; var stdout_stream: i32 = 1;
             for (var at: usize = 0; at < binary_chunk; at++) { data[at] = convert(u8, at); }
@@ -75,6 +86,20 @@ export fn main(argc: i32, argv: u8**): i32 {
     utility_check(redirected.kind == ToolProcessKind.RedirectFailed && redirected.error == bad_descriptor, "redirect failure distinguished");
     args.data[2] = "ordinary";
     utility_check(tool_capture(argv[0], args.data, limit, &captured) == fixture_exit && captured.data == saved, "capture propagates failed child status");
+    var out_file = tmpfile(); var err_file = tmpfile();
+    utility_check(out_file != null && err_file != null, "separate capture files");
+    defer fclose(out_file); defer fclose(err_file);
+    args.data[2] = "both";
+    var both = tool_process_streams(argv[0], args.data, fileno(out_file), fileno(err_file));
+    utility_check(both.kind == ToolProcessKind.Exited && both.exit_code == fixture_exit, "stderr capture retains nonzero exit");
+    var seek_start: i32 = 0;
+    utility_check(fseek(out_file, 0, seek_start) == 0 && fseek(err_file, 0, seek_start) == 0, "capture descriptors remain caller owned");
+    utility_check(tool_read_stream(out_file, limit, &captured) && captured.length == 3
+        && captured.data[0] == 42 && captured.data[1] == 0 && captured.data[2] == 17, "exact binary stdout kept separate");
+    utility_check(tool_read_stream(err_file, limit, &captured) && captured.length == 2
+        && captured.data[0] == 9 && captured.data[1] == 0, "exact binary stderr kept separate");
+    var bad_stderr = tool_process_streams(argv[0], args.data, fileno(out_file), invalid_descriptor);
+    utility_check(bad_stderr.kind == ToolProcessKind.RedirectFailed && bad_stderr.error == bad_descriptor, "stderr redirect failure distinguished");
     puts("Tower process checks passed");
     return 0;
 }
