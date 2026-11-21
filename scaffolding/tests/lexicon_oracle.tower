@@ -1,0 +1,170 @@
+import tower;
+import .library.vector;
+import .compiler.syntax_types;
+import .compiler.lr_types;
+import utility_checks;
+
+// Test-only port of syntax-lexer-seed.cpp. These borrowed table/text indexes
+// exercise selection independently of the production selector, without owning
+// or replacing the shared grammar entities that produced those tables.
+struct TestLexiconChoice {
+    length: usize;
+    id: u32;
+    style: u8*;
+    skipped: bool;
+    checks: usize;
+}
+struct OracleLexiconToken {
+    table: LexerTable*;
+    id: u32;
+    style: u8*;
+    skipped: bool;
+    contextual: bool;
+    identifier: bool;
+}
+struct OracleLexiconLiteral {
+    text: u8*;
+    length: usize;
+    id: u32;
+    word: bool;
+    declaration: bool;
+}
+struct OracleLexicon {
+    tokens: vector(OracleLexiconToken);
+    literals: vector(OracleLexiconLiteral);
+    starts: vector(OracleLexiconLiteral);
+}
+
+extern fn lex_table_match(table: LexerTable*, source: u8*, length: usize, start: usize): usize;
+extern fn lr_runtime_action(runtime: void*, state: usize, id: u32, action: LRAction*): bool;
+
+fn oracle_lexicon_letter(byte: u8): bool {
+    return (byte >= 97 && byte <= 122) || (byte >= 65 && byte <= 90) || byte == 95;
+}
+
+fn oracle_lexicon_word(text: u8*, length: usize): bool {
+    if length == 0 || !oracle_lexicon_letter(text[0]) { return false; }
+    for (var index: usize = 0; index < length; ++index) {
+        var byte = text[index];
+        if !oracle_lexicon_letter(byte) && !(byte >= 48 && byte <= 57) { return false; }
+    }
+    return true;
+}
+
+fn oracle_lexicon_prefix(source: u8*, length: usize, start: usize, text: u8*, count: usize): bool {
+    return start <= length && count <= length - start && utility_equal(&source[start], text, count);
+}
+
+fn oracle_lexicon_accepts(runtime: void*, state: usize, id: u32, choice: TestLexiconChoice*): bool {
+    if runtime is null || state == ~convert(usize, 0) { return false; }
+    ++choice.checks;
+    var action: LRAction;
+    return lr_runtime_action(runtime, state, id, &action);
+}
+
+fn oracle_lexicon_reset(choice: TestLexiconChoice*): void {
+    fill(choice, 0, sizeof(TestLexiconChoice));
+    choice.id = LRTokenEnd();
+    choice.style = "";
+}
+
+fn oracle_lexicon_dispose(value: OracleLexicon*): void {
+    vector_dispose(OracleLexiconToken, &value.tokens);
+    vector_dispose(OracleLexiconLiteral, &value.literals);
+    vector_dispose(OracleLexiconLiteral, &value.starts);
+}
+
+fn oracle_lexicon_token(value: OracleLexicon*, table: LexerTable*, id: u32, style: u8*, skipped: bool, contextual: bool, identifier: bool): void {
+    utility_check(vector_reserve(OracleLexiconToken, &value.tokens, value.tokens.length + 1), "Lexicon oracle token allocation");
+    var entry = &value.tokens.data[value.tokens.length++];
+    entry.table = table;
+    entry.id = id;
+    entry.style = style;
+    entry.skipped = skipped;
+    entry.contextual = contextual;
+    entry.identifier = identifier;
+}
+
+fn oracle_lexicon_literal(value: OracleLexicon*, text: u8*, length: usize, id: u32, declaration: bool): void {
+    utility_check(vector_reserve(OracleLexiconLiteral, &value.literals, value.literals.length + 1), "Lexicon oracle literal allocation");
+    var literal = &value.literals.data[value.literals.length++];
+    literal.text = text;
+    literal.length = length;
+    literal.id = id;
+    literal.word = oracle_lexicon_word(text, length);
+    literal.declaration = declaration;
+}
+
+fn oracle_lexicon_start(value: OracleLexicon*, text: u8*, length: usize): void {
+    utility_check(vector_reserve(OracleLexiconLiteral, &value.starts, value.starts.length + 1), "Lexicon oracle start allocation");
+    var literal = &value.starts.data[value.starts.length++];
+    fill(literal, 0, sizeof(OracleLexiconLiteral));
+    literal.text = text;
+    literal.length = length;
+}
+
+fn oracle_lexicon_choose(value: OracleLexicon*, source: u8*, length: usize, start: usize, declaration: bool, runtime: void*, state: usize, choice: TestLexiconChoice*): void {
+    oracle_lexicon_reset(choice);
+    for (var index: usize = 0; index < value.tokens.length; ++index) {
+        var entry = &value.tokens.data[index];
+        if entry.contextual && !oracle_lexicon_accepts(runtime, state, entry.id, choice) { continue; }
+        var count = lex_table_match(entry.table, source, length, start);
+        if count > choice.length || (count != 0 && count == choice.length && entry.contextual
+            && !oracle_lexicon_accepts(runtime, state, choice.id, choice)) {
+            choice.length = count;
+            choice.id = entry.id;
+            choice.style = entry.style;
+            choice.skipped = entry.skipped;
+        }
+    }
+    for (var index: usize = 0; index < value.literals.length; ++index) {
+        var literal = &value.literals.data[index];
+        if (!declaration || literal.declaration || oracle_lexicon_accepts(runtime, state, literal.id, choice))
+            && literal.length >= choice.length && oracle_lexicon_prefix(source, length, start, literal.text, literal.length) {
+            choice.length = literal.length;
+            choice.id = literal.id;
+            choice.style = literal.word ? "keyword" : "operator";
+            choice.skipped = false;
+        }
+    }
+}
+
+fn oracle_lexicon_skip(value: OracleLexicon*, source: u8*, length: usize, start: usize, choice: TestLexiconChoice*): void {
+    oracle_lexicon_reset(choice);
+    for (var index: usize = 0; index < value.tokens.length; ++index) {
+        var entry = &value.tokens.data[index];
+        if !entry.skipped { continue; }
+        var count = lex_table_match(entry.table, source, length, start);
+        if count > choice.length {
+            choice.length = count;
+            choice.id = entry.id;
+            choice.style = entry.style;
+            choice.skipped = true;
+        }
+    }
+}
+
+fn oracle_lexicon_identifier(value: OracleLexicon*, source: u8*, length: usize, start: usize): usize {
+    for (var index: usize = 0; index < value.tokens.length; ++index) {
+        var entry = &value.tokens.data[index];
+        if entry.identifier { return lex_table_match(entry.table, source, length, start); }
+    }
+    return 0;
+}
+
+fn oracle_lexicon_declaration(value: OracleLexicon*, source: u8*, length: usize, start: usize): bool {
+    for (var index: usize = 0; index < value.starts.length; ++index) {
+        var keyword = &value.starts.data[index];
+        if !oracle_lexicon_prefix(source, length, start, keyword.text, keyword.length) { continue; }
+        var longer = false;
+        for (var token_index: usize = 0; token_index < value.tokens.length; ++token_index) {
+            var entry = &value.tokens.data[token_index];
+            if !entry.skipped && !entry.contextual && lex_table_match(entry.table, source, length, start) > keyword.length {
+                longer = true;
+                break;
+            }
+        }
+        if !longer { return true; }
+    }
+    return false;
+}

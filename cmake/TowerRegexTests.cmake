@@ -33,7 +33,7 @@ add_custom_command(OUTPUT "${regex_main_object}"
   DEPENDS "${regex_input}" "${TOWER_BOOTSTRAP_COMPILER}" VERBATIM)
 set_source_files_properties("${regex_main_object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
 get_target_property(regex_sources tower-parser-tests SOURCES)
-list(FILTER regex_sources EXCLUDE REGEX "scaffolding/tests/|scaffolding/bootstrap/|scaffolding/core.*cpp")
+list(FILTER regex_sources EXCLUDE REGEX "scaffolding/tests/|scaffolding/bootstrap/|scaffolding/core.*cpp|\\.(o|obj)$")
 list(APPEND regex_sources scaffolding/tests/nodes.cpp)
 add_executable(tower-regex-tests ${regex_sources} "${regex_main_object}")
 target_compile_features(tower-regex-tests PRIVATE cxx_std_20)

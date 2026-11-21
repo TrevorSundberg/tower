@@ -129,7 +129,7 @@ if(TOWER_PARSER_ONLY)
   target_compile_definitions(tower-compiler-memory PRIVATE TOWER_COMPILER_MEMORY_TESTS=1)
   tower_compiler_interpreter()
   add_executable(tower-parser-tests scaffolding/tests/main.cpp
-    scaffolding/tests/lr-analysis.cpp scaffolding/tests/lr-grammar.cpp scaffolding/tests/syntax-lexer.cpp scaffolding/tests/syntax-reader.cpp scaffolding/tests/syntax-validation.cpp
+    scaffolding/tests/lr-analysis.cpp scaffolding/tests/lr-grammar.cpp scaffolding/tests/syntax-reader.cpp scaffolding/tests/syntax-validation.cpp
     scaffolding/core.cpp scaffolding/core-nodes.cpp
     scaffolding/tower.cpp scaffolding/tests/nodes.cpp
     scaffolding/syntax.cpp scaffolding/syntax-nodes.cpp scaffolding/format.cpp scaffolding/lex-pattern.cpp scaffolding/lex-pattern-common.cpp scaffolding/syntax-tests.cpp)
@@ -158,12 +158,6 @@ if(TOWER_PARSER_ONLY)
     lex_table_set_alphabet=reference_lex_table_set_alphabet lex_table_append=reference_lex_table_append
     lex_table_match=reference_lex_table_match lex_table_step=reference_lex_table_step lex_table_accepts=reference_lex_table_accepts)
   target_link_libraries(tower-parser-tests PRIVATE tower-lexer-reference)
-  add_library(tower-syntax-lexer-reference STATIC scaffolding/bootstrap/syntax-lexer-seed.cpp)
-  target_compile_features(tower-syntax-lexer-reference PRIVATE cxx_std_20)
-  foreach(name IN ITEMS create destroy token literal start choose skip identifier declaration)
-    target_compile_definitions(tower-syntax-lexer-reference PRIVATE lexicon_${name}=reference_lexicon_${name})
-  endforeach()
-  target_link_libraries(tower-parser-tests PRIVATE tower-syntax-lexer-reference)
   add_library(tower-syntax-reader-reference STATIC scaffolding/bootstrap/syntax-reader-seed.cpp)
   target_compile_features(tower-syntax-reader-reference PRIVATE cxx_std_20)
   foreach(name IN ITEMS read_rule read_token identifier_decode identifier_decode_in_place literal_check)
@@ -219,8 +213,9 @@ if(TOWER_PARSER_ONLY)
   set_tests_properties(tower-parser-tests tower-foreach-example PROPERTIES
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")
   include(cmake/TowerRegexTests.cmake)
+  include(cmake/TowerLexiconTests.cmake)
   include(cmake/TowerInterpreterTests.cmake)
-  foreach(reference IN ITEMS tower-lexer-reference tower-syntax-lexer-reference
+  foreach(reference IN ITEMS tower-lexer-reference
       tower-syntax-reader-reference tower-syntax-validation-reference
       tower-syntax-emission-reference tower-lr-reference
       tower-utf8-reference tower-bytes-reference)
