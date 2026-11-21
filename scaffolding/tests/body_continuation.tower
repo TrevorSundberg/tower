@@ -458,4 +458,20 @@ fn declaration_queries(input: i32): i32 {
     return explicit;
 }
 if declaration_queries(39) != 42 { failures++; }
+// Header inference can suspend, but its initializer runs once and the update
+// keeps the header binding even when a body-local declaration shadows it.
+fn for_initializer_once(): i32 {
+    var hits: i32 = 0;
+    var total: i32 = 0;
+    for(var i = identity(hits++); i < 3; i++) {
+        var i = identity(7);
+        total += i;
+    }
+    return total * 10 + hits;
+}
+
+if for_initializer_once() != 211 || comptime(for_initializer_once()) != 211 {
+    failures++;
+}
+
 print(failures);

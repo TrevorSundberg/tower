@@ -15,6 +15,7 @@ var FlowBreak: u32 = 2;
 var FlowContinue: u32 = 4;
 var FlowReturn: u32 = 8;
 var MatchArmLimit: usize = 128;
+var ControlBlockNestingLimit: u32 = 128;
 
 // Capture every spelling, including quoted/free uses, before generating names.
 // Bind operands directly; unique serialized names also preserve reparse hygiene.
@@ -382,27 +383,31 @@ fn sem_control_while(c: SemanticContext*, n: void*, depth: u32): u32 {
 // update directly. A reachable continue requires moving it to the next loop head,
 // guarded on the first entry; this preserves effects without duplicating updates
 // or rewriting continues belonging to nested loops.
-fn sem_control_for_begin(c: SemanticContext*, n: void*, depth: u32, state: SemanticLoopCursor*): bool {
+fn sem_control_for_scope(c: SemanticContext*, n: void*, depth: u32, state: SemanticLoopCursor*): bool {
     *state = default;
-    if depth > 125 {
+    if depth > ControlBlockNestingLimit - 3 {
         sem_fail(c, n, "for lowering exceeds Foundation block nesting limit of 128");
         return false;
     }
-    var value = sem_node(c, n, KBlock);
-    var saved = c.scope;
-    c.scope = sem_scope(c, saved);
-    var initial = sem_child(sem_member(n, "initial"), 0);
-    var initial_flow = FlowNext;
-    if !sem_is(initial, ";") {
-        initial_flow = sem_statement(c, initial, depth + 1);
-        // The statement checker attaches jump semantics to its call entity,
-        // exactly as ordinary block statements do.
-        var jump = sem_control_call(c, initial, "jump");
-        if jump != null {
-            initial = jump;
-        }
-        sem_push(&value.items, initial);
-    }
+    sem_node(c, n, KBlock);
+    state.saved = c.scope;
+    c.scope = sem_scope(c, state.saved);
+    state.initial_flow = FlowNext;
+    return true;
+}
+
+fn sem_control_for_accept(c: SemanticContext*, n: void*, initial: void*, flow: u32, state: SemanticLoopCursor*): void {
+    // The statement checker attaches jump semantics to its call entity,
+    // exactly as ordinary block statements do.
+    var jump = sem_control_call(c, initial, "jump");
+    if jump != null { initial = jump; }
+    sem_push(&sem_get(n).items, initial);
+    state.initial_flow = flow;
+}
+
+// A header declaration may finish through its ordinary dependency query before
+// checking the condition/update. Its loop scope and bound local are retained.
+fn sem_control_for_tail(c: SemanticContext*, n: void*, state: SemanticLoopCursor*): void {
     var condition_syntax = sem_member(n, "condition");
     var condition: void* = null;
     if sem_child_count(condition_syntax) == 0 {
@@ -417,10 +422,18 @@ fn sem_control_for_begin(c: SemanticContext*, n: void*, depth: u32, state: Seman
         update = sem_control_node(c, n, SurfaceDiscard);
         sem_get(update).value = sem_surface_discard(c, sem_child(step_syntax, 0));
     }
-    state.saved = saved;
     state.condition = condition;
     state.update = update;
-    state.initial_flow = initial_flow;
+}
+
+fn sem_control_for_begin(c: SemanticContext*, n: void*, depth: u32, state: SemanticLoopCursor*): bool {
+    if !sem_control_for_scope(c, n, depth, state) { return false; }
+    var initial = sem_child(sem_member(n, "initial"), 0);
+    if !sem_is(initial, ";") {
+        var flow = sem_statement(c, initial, depth + 1);
+        sem_control_for_accept(c, n, initial, flow, state);
+    }
+    sem_control_for_tail(c, n, state);
     return true;
 }
 

@@ -769,6 +769,15 @@ fn sem_call_specialization(c: SemanticContext*, definition: void*, use: void*, a
             return null;
         }
         sem_push(&c.generated, instance);
+    } else {
+        // A different body may have registered this signature and retained a
+        // failed receipt. Its nominal identity is not a completed signature.
+        // Structural callers must recover that producer's diagnostic too.
+        var query = sem_declaration_query(c, instance);
+        if query != 0 && work_task(&c.queries, query).state != WorkState.Succeeded {
+            sem_declaration_report(c, instance);
+            return null;
+        }
     }
     return instance;
 }

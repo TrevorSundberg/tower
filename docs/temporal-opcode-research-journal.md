@@ -36832,3 +36832,69 @@ Preserve runtime build source 85c8a138e098f2dd84706d3f9d6e7bbcfa592887, all 84
 asset records and the concurrent compiler/UI notes. The manifest explicitly
 records the post-rebase strict comparison limitation above; no runtime binary
 was rebuilt for this tooling publication.
+Integration/publication checkpoint is 5ca3c3dded042d15ad63f4077595ec819d49fe99,
+pushed to main. The rebase incorporated only 780276a's journal receipt, so compiler
+inputs and native validation remain unchanged. Portable and shared-Wasm builds
+passed with the actual public 1a5b588 bootstrap. The shared test suite passed all
+three cases with no skips: real four-lane overlap/reuse, worker-trap interruption,
+and declaration/body/lowering/staging determinism at 1/2/4/8 workers. Total 78.94 s
+(body-frontier-release-shared-tests.log); the different elapsed time from the
+previous run is not yet an isolated compiler-performance measurement. LLVM/cross
+builds and browser successor generations are the remaining publication checks.
+
+The next draft extends the same body frontier to for-header declarations. It
+separates opening the header scope, accepting its completed initializer, and
+checking the condition/update; the body work component retains the loop cursor
+while the initializer's declaration query resolves. Existing runtime/staged loop,
+defer and continue fixtures remain applicable; new cases cover header self-shadow
+cycles and a side-effecting initializer with a shadowing body local. This draft
+is isolated under build/language-next-audit/for-header-next and excluded from the
+5ca3c3d release inputs. It is not yet compiled or claimed implemented behavior.
+
+A focused follow-up exposed a failure-propagation hole before deployment:
+an earlier body with `var a:i32=bad(1); return unknownFirst;` and a later body
+with `var b=bad(2)` reused the same failed generic signature. Its nominal entity
+already existed, so the synchronous structural call path skipped header checking
+and ignored the failed declaration receipt. The compiler incorrectly reported
+unknownFirst instead of MissingReturn from bad's return annotation. Reproducer:
+build/language-next-audit/shared_initializer_failure.tower; the 5ca3c3d successor
+exited 1 with that wrong later diagnostic. An earlier trial returning a instead
+also exited 1 but selected the later body's MissingReturn; that superficially
+correct message concealed the missing dependency failure in the earlier body.
+
+Structural specialization reuse now checks an existing declaration receipt and
+recovers its producer error/cycle through sem_declaration_report before returning
+the instance. Added serial and four-worker SharedInitializer cases to the existing
+body smoke/matrix. This is a targeted correction, not a new folding evaluator.
+The first browser compiler generation at 5ca3c3d passed (tower 1,173,126 bytes,
+LLVM 52,548,338, cross 64,105,686); stopped generation two deliberately when this
+bug was confirmed. Those artifacts are not deployed. Keep earlier passing
+unaffected checks; validate the corrected inputs before publication.
+
+The for-header draft is now integrated after a successful isolated small-unit
+compile. Its scope and initializer acceptance use the same helpers as ordinary
+for checking. The body component carries the pending loop cursor while the actual
+CoreDeclare initializer enters the batched declaration graph; condition/update
+checking remains a structural continuation. No initializer or header binding is
+replayed when the body frame opens. The new fixture executes a side-effecting
+initializer once, shadows its variable inside the body, and checks the result
+both at runtime and through comptime. Header self-reference is diagnosed through
+the shared graph even when an outer global has the same name.
+
+The combined failure fix and header continuation pass the native body smoke,
+including the new SharedInitializer serial/four-worker regression, header cycle,
+canonical reparse, loop/defer execution and earlier layout ownership cases.
+The rebuilt native successor compiles and executes the expanded body_continuation
+fixture with zero failures. Evidence: for-header-preflight.log and
+for-header-native.log. The prior broad matrix remains evidence for the unchanged
+scheduler/transport paths; this follow-up uses the focused affected checks.
+
+A short paired timing check followed the shared-suite elapsed-time increase.
+Alternated the retained ecs-local-query-release compiler and the current successor
+three times over the identical expanded body_continuation source, --emit foundation
+--timings, with no concurrent build. Wall times old/current: 1.739/1.411,
+1.637/1.379, 1.811/1.861 s (frontier-timings.log). This small, noisy CLI sample
+does not establish a general speedup or regression; it does not reproduce a
+consistent slowdown in the affected body workload. The initial /usr/bin/time
+attempt could not run because that executable is absent in the container; used
+Bash's existing time keyword instead, without installing or adding a tool.

@@ -173,7 +173,7 @@ fn body_runs_arm_error(budget: usize, bedrock: u8*, foundation: u8*, root: u8*, 
     units_check(frontend_units_failed(batch) == 1 && strstr(error, mode == 2 ? "Duplicate match pattern" : "unknownMatch") is not null && strstr(error, "unknownSecond") is null, "Resumed arm and cleanup failures preserve source diagnostic order");
 }
 
-enum BodyDeclarationFailure: u32 { SelfReference, SharedSignature }
+enum BodyDeclarationFailure: u32 { SelfReference, SharedSignature, SharedInitializer, HeaderSelfReference }
 var BodyDeclarationRevision: u64 = 90;
 var BodyDeclarationProfile: u64 = 23;
 
@@ -183,10 +183,17 @@ fn body_runs_declaration_error(budget: usize, bedrock: u8*, foundation: u8*, roo
     defer frontend_units_close(batch);
     var source: u8* = "import tower;var x:i32=42;fn id(T:type,x:T):T{return x;}fn first():i32{var x=id(x);return x;}fn later():i32{return unknownLater;}";
     var diagnostic_text: u8* = "initializer dependency cycle";
+    if mode == BodyDeclarationFailure.HeaderSelfReference {
+        source = "import tower;var x:i32=42;fn id(T:type,x:T):T{return x;}fn first():i32{for(var x=id(x);x<1;x++){return x;}return 0;}fn later():i32{return unknownLater;}";
+    }
     if mode == BodyDeclarationFailure.SharedSignature {
         // Later reaches the shared failure first. Earlier resumes through its
         // own dependency and must recover that producer's original diagnostic.
         source = "import tower;fn id(T:type,x:T):T{return x;}fn bad(T:type,x:T):MissingReturn{return x;}fn first():i32{var a=id(1);var b=bad(a);return b;}fn later():i32{var b=bad(2);return b;}";
+        diagnostic_text = "MissingReturn";
+    }
+    if mode == BodyDeclarationFailure.SharedInitializer {
+        source = "import tower;fn bad(T:type,x:T):MissingReturn{return x;}fn first():i32{var a:i32=bad(1);return unknownFirst;}fn later():i32{var b=bad(2);return b;}";
         diagnostic_text = "MissingReturn";
     }
     units_check(frontend_units_source(batch, 1, "local_dependency.tower", source, strlen(source)), "Local declaration dependency source");
@@ -222,7 +229,10 @@ fn body_runs_smoke(root: u8*): void {
     body_runs_arm_error(4, bedrock.data, foundation.data, root, 1);
     body_runs_arm_error(4, bedrock.data, foundation.data, root, 2);
     body_runs_declaration_error(1, bedrock.data, foundation.data, root, BodyDeclarationFailure.SelfReference);
+    body_runs_declaration_error(4, bedrock.data, foundation.data, root, BodyDeclarationFailure.HeaderSelfReference);
     body_runs_declaration_error(4, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedSignature);
+    body_runs_declaration_error(1, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedInitializer);
+    body_runs_declaration_error(4, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedInitializer);
     body_runs_cycle(4, bedrock.data, foundation.data, root, false);
     body_runs_cycle(4, bedrock.data, foundation.data, root, true);
     puts("Body smoke: serial/worker canonical output, execution and ordered diagnostics/cycles passed.");
@@ -265,7 +275,9 @@ fn body_runs_tests(root: u8*): void {
     // avoid rebuilding each diagnostic's module graph at all four widths too.
     for(var budget: usize = 1; budget <= 4; budget *= 4) {
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.SelfReference);
+        body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.HeaderSelfReference);
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedSignature);
+        body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedInitializer);
         for(var mode: u32 = 0; mode < 5; mode++) {
             body_runs_arm_error(budget, bedrock.data, foundation.data, root, mode);
         }

@@ -177,6 +177,8 @@ struct SemanticBodyWork {
     boundary: usize;
     preparation: usize;
     declaration: SemanticDeclaration*;
+    declaration_header: void*;
+    declaration_loop: SemanticLoopCursor;
     boundaries: vector(SemanticBodyBoundary);
     blocks: vector(SemanticBodyBlock);
     allocations: vector(void*);
@@ -440,7 +442,7 @@ fn sem_body_close_block(c: SemanticContext*, result: SemanticBodyWork*): void {
     sem_block_accept(c, sem_body_cursor(result), subject, sem_statement_complete(c, subject, flow));
 }
 
-fn sem_body_enter(c: SemanticContext*, result: SemanticBodyWork*, node: void*): bool {
+fn sem_body_enter(c: SemanticContext*, result: SemanticBodyWork*, node: void*, prepared: SemanticLoopCursor*): bool {
     var cursor = sem_body_cursor(result);
     var lexical = node != null && sem_is(node, "CoreBlock");
     var branch = node != null && sem_is(node, "CoreIf") && sem_member(node, "condition") != null && sem_is(sem_member(node, "body"), "CoreBlock")
@@ -496,7 +498,10 @@ fn sem_body_enter(c: SemanticContext*, result: SemanticBodyWork*, node: void*): 
         } else {
             if for_loop {
                 frame.kind = SemanticBodyBlockKind.For;
-                begun = sem_control_for_begin(c, node, depth, &frame.loop_state);
+                if prepared != null {
+                    frame.loop_state = *prepared;
+                    begun = true;
+                } else { begun = sem_control_for_begin(c, node, depth, &frame.loop_state); }
                 depth += 2;
             } else {
                 if iteration {
@@ -539,7 +544,7 @@ fn sem_body_run(c: SemanticContext*, result: SemanticBodyWork*): void {
             return;
         }
         var node = sem_is(source, "Statement") ? sem_unwrap(source): null;
-        if !sem_body_enter(c, result, node) {
+        if !sem_body_enter(c, result, node, null) {
             sem_block_step(c, cursor);
         }
     }
@@ -632,7 +637,7 @@ fn sem_body_prepare(c: SemanticContext*, result: SemanticBodyWork*): void {
     // Standalone local declarations were admitted together before this loop.
     sem_require(!sem_is(node, "CoreDeclare"));
     if result.boundaries.data[result.boundary].header {
-        if !sem_body_enter(c, result, node) {
+        if !sem_body_enter(c, result, node, null) {
             sem_block_step(c, cursor);
         }
     } else {
@@ -680,13 +685,20 @@ fn sem_body_declarations(c: SemanticContext*, batch: SemanticBodyWork**, count: 
         if result.done { continue; }
         var cursor = sem_body_cursor(result);
         var node = sem_unwrap(sem_child(cursor.subject, cursor.next));
+        var header: void* = null;
+        if sem_is(node, "TowerFor") && result.boundaries.data[result.boundary].header {
+            header = node;
+            node = sem_child(sem_member(node, "initial"), 0);
+        }
         if !sem_is(node, "CoreDeclare") { continue; }
         var ticket: WorkTicket;
         sem_require(work_take_task(&c.queries, &ticket, result.preparation));
         var saved: SemanticBodyScope;
         sem_body_save(c, &saved);
         sem_body_restore(c, &result.lexical);
-        if sem_declaration_bind(c, node) {
+        result.declaration_header = header;
+        if header != null { sem_control_for_scope(c, header, cursor.depth + 1, &result.declaration_loop); }
+        if sem_ok(c) && sem_declaration_bind(c, node) {
             var declaration = sem_declaration_state(c, node);
             declaration.scope = c.scope;
             declaration.current = c.current;
@@ -740,9 +752,18 @@ fn sem_body_declarations(c: SemanticContext*, batch: SemanticBodyWork**, count: 
             generic_error_clear(c.generics);
             sem_declaration_finish(c, node);
         }
-        var cursor = sem_body_cursor(result);
-        cursor.next++;
-        sem_block_accept(c, cursor, node, FlowNext);
+        if result.declaration_header != null {
+            var header = result.declaration_header;
+            if sem_ok(c) {
+                sem_control_for_accept(c, header, node, sem_statement_complete(c, node, FlowNext), &result.declaration_loop);
+                sem_control_for_tail(c, header, &result.declaration_loop);
+                if sem_ok(c) { sem_require(sem_body_enter(c, result, header, &result.declaration_loop)); }
+            }
+        } else {
+            var cursor = sem_body_cursor(result);
+            cursor.next++;
+            sem_block_accept(c, cursor, node, FlowNext);
+        }
         result.boundary++;
         sem_body_save(c, &result.lexical);
         sem_body_restore(c, &saved);
@@ -762,6 +783,8 @@ fn sem_body_declarations(c: SemanticContext*, batch: SemanticBodyWork**, count: 
         }
         result.preparation = 0;
         result.declaration = null;
+        result.declaration_header = null;
+        result.declaration_loop = default;
     }
 }
 
@@ -857,6 +880,9 @@ fn semantic_body_kernel(result: SemanticBodyWork*): void {
 }
 
 fn sem_body_clear(result: SemanticBodyWork*): void {
+    result.declaration = null;
+    result.declaration_header = null;
+    result.declaration_loop = default;
     vector_dispose(&result.type_observations);
     result.editor = default;
     vector_dispose(&result.evaluation_aliases);
