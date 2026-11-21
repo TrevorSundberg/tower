@@ -38632,3 +38632,21 @@ but has not yet switched production packaging. Next: consume real Ninja/Clang
 link inputs and depfiles, preserve source/import-unit closure, archive symbol
 selection, exported aliases, wraps and foreign-import allowlists, then validate
 successive browser compiler generations before deleting that final script.
+
+Final source rebase integrates callback support and complete public pin through
+ccb245f; implementation is 118610b. Preserve the newer pin. From a new
+/cache/packaging_rebased_checkout clone, run build-native.sh with
+TOWER_NATIVE_BUILD=/cache/packaging_rebased_native, no private bootstrap and
+Python unavailable: all 54 steps pass. Successor and public executable are
+byte-identical SHA256
+9bf8779c9b5844e6f5b0df6688a3ac517b2b4f9924b84c36f19c572b93b8e459.
+Build prepare_llvm through a fresh /cache/packaging_rebased_tools (five steps),
+then compile/run the LLVM script fixture and real CLI prepare/sh/restore trial
+again. Compile/run the gzip fixture with all synthetic inputs and the real
+27,145,038-byte archive; independent gzip verification and exact comparison pass
+for every output. This validates the merged compiler against the new tooling;
+no private bootstrap or downgrade is introduced. Publication preserves the newer
+verified runtime source identity and 86 assets, including callback/IDE metadata.
+The ordinary driver suite also passes after enabling its existing
+TOWER_DRIVER_TESTS CMake option and building the three driver steps; a first
+attempt without that opt-in correctly reported the target unavailable.
