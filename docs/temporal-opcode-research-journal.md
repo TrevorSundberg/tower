@@ -37005,3 +37005,16 @@ inputs with deterministic publication/cancellation. Retain upstream LLD until
 those gates and supported target profiles pass. Native ELF/COFF/Mach-O replacement
 is separate later work. This experimental source/API milestone does not switch
 the hosted default runtime or claim all LLVM/lld dependencies are removed.
+
+Rebase validation: the milestone is ceed19d after rebasing onto d20583c, preserving
+new body-dependency scheduling, generic-registry and tooling/UI work. AGENTS now
+also explicitly requires frozen unit inputs. Built a second clean native successor
+from the public checked-in bootstrap at coordinator-wasm-linker/successor-rebased
+(69-step plan including focused tests). Backend API, real worker overlap/reversed
+completion order and the expanded frontend suite all PASS. That successor rebuilt
+the reader WASI fixture and current backend reactor unit; both the focused WASI
+suite and actual reactor byte-service check PASS after relinking. The earlier
+12-check full-reactor result remains identified as pre-rebase artifact evidence,
+not a current-source browser self-build claim. The metadata publication will
+preserve the other lane's current runtime and assets; the default runtime remains
+on upstream LLD. todo.txt still hashes to 045d1e620edf7c67b653fec19df850b370246b1d.
