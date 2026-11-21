@@ -1,5 +1,15 @@
 import tower;
 import .backend.source_session;
+import .compiler.syntax_version_types;
+
+extern fn compiler_world_create_workers(limit: usize): void*;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn frontend_world_clear(world: void*): bool;
+extern fn frontend_modules_create(): void*;
+extern fn frontend_modules_destroy(environment: void*): void;
+extern fn frontend_modules_configure(environment: void*, entry: u8*, library: u8*): void;
+extern fn syntax_baseline_install(world: void*, environment: void*, source: u8*, foundation: bool, diagnostic: SyntaxVersionDiagnostic*): bool;
+extern fn syntax_version_diagnostic_dispose(diagnostic: SyntaxVersionDiagnostic*): void;
 
 // Exercise the compiled production service through its ownership boundary.
 // A host installs Foundation before invoking this fixture, as for ordinary work.
@@ -14,6 +24,59 @@ extern fn strstr(text: u8*, part: u8*): u8*;
 extern fn strcmp(left: u8*, right: u8*): i32;
 
 var BackendSourceObjectOutput: u32 = 1;
+
+enum BackendWorldFailure: i32 { None, Allocation, Baseline, Import, ForeignEnvironment, MissingWorld, Object, RetainedText, Cleanup }
+
+struct BackendWorldFixture { world: void*; modules: void*; source: BackendSource*; }
+
+fn backend_world_close(fixture: BackendWorldFixture*): bool {
+    backend_source_close(fixture.source);
+    frontend_modules_destroy(fixture.modules);
+    var closed = fixture.world == null || frontend_world_clear(fixture.world) && compiler_world_dispose(fixture.world);
+    *fixture = default;
+    return closed;
+}
+
+// Assertions live in Tower; the browser transport supplies the same baseline
+// bytes it uses for ordinary compiler instances. No current-world switch occurs.
+export fn backend_source_world_tests(bedrock: u8*, foundation: u8*): i32 {
+    var fixtures: BackendWorldFixture[2] = default;
+    defer { foreach(var &fixture in &fixtures) { backend_world_close(fixture); } }
+    var diagnostic: SyntaxVersionDiagnostic = default;
+    defer syntax_version_diagnostic_dispose(&diagnostic);
+    for(var index: usize = 0; index < 2; index++) {
+        var fixture = &fixtures[index];
+        fixture.world = compiler_world_create_workers(index + 1);
+        fixture.modules = frontend_modules_create();
+        fixture.source = backend_source_create(backend_worker_runtime(), backend_worker_runtime_size());
+        if fixture.world == null || fixture.modules == null || fixture.source == null { return convert(i32, BackendWorldFailure.Allocation); }
+        frontend_modules_configure(fixture.modules, "world_input.tower", "");
+        if !syntax_baseline_install(fixture.world, fixture.modules, bedrock, false, &diagnostic)
+            || !syntax_baseline_install(fixture.world, fixture.modules, foundation, true, &diagnostic) {
+            return convert(i32, BackendWorldFailure.Baseline);
+        }
+    }
+    var source: u8* = "fn answer():i32{return 42;}print(answer());";
+    foreach(var &fixture in &fixtures) {
+        var result = backend_source_compile(fixture.source, source, strlen(source), BackendSourceImport, fixture.modules, null);
+        if !backend_source_test_has(result, "\"format\":\"foundation\"")
+            || !backend_source_test_has(backend_source_foundation(fixture.source), "42") {
+            return convert(i32, BackendWorldFailure.Import);
+        }
+    }
+    var first = &fixtures[0];
+    var second = &fixtures[1];
+    var result = backend_source_compile_world(first.source, first.world, source, strlen(source), 0, second.modules, null);
+    if !backend_source_test_has(result, "another compiler world") { return convert(i32, BackendWorldFailure.ForeignEnvironment); }
+    result = backend_source_compile_world(first.source, null, source, strlen(source), 0, first.modules, null);
+    if !backend_source_test_has(result, "compiler world is required") { return convert(i32, BackendWorldFailure.MissingWorld); }
+    if !backend_world_close(first) { return convert(i32, BackendWorldFailure.Cleanup); }
+    if !backend_source_test_has(backend_source_foundation(second.source), "42") { return convert(i32, BackendWorldFailure.RetainedText); }
+    result = backend_source_compile_world(second.source, second.world, source, strlen(source), BackendSourceObjectOutput, second.modules, null);
+    if !backend_source_test_has(result, "\"status\":\"compiled\"") { return convert(i32, BackendWorldFailure.Object); }
+    if !backend_world_close(second) { return convert(i32, BackendWorldFailure.Cleanup); }
+    return convert(i32, BackendWorldFailure.None);
+}
 
 fn backend_source_test_has(text: u8*, wanted: u8*): bool {
     return text != null && strstr(text, wanted) != null;

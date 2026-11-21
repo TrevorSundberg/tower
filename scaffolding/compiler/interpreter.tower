@@ -23,6 +23,14 @@ fn ix_value_input(m: IMExecution*, n: FoundationNode*): void* {
     return input.producer;
 }
 
+fn ix_local_binding(m: IMExecution*, binding: void*): bool {
+    if binding == null || m.state.frames.length == 0 { return false; }
+    var local = im_cached_node(m.state, binding);
+    var function = im_cached_node(m.state, im_frame(m.state).function);
+    return !local.global && local.index < function.locals.length
+        && function.locals.data[local.index] == binding;
+}
+
 fn ix_pending(m: IMExecution*, node: void*): bool {
     if node == null { return false; }
     var component = entity_component_get(node, m.context.dependency_kind);
@@ -94,7 +102,18 @@ fn ix_strict_node(m: IMExecution*, n: FoundationNode*, offset: usize): bool {
     }
     if global {
         if ix_value_input(m, n) != null { return true; }
-        ix_fail(m, "Compile-time evaluation requires explicit inputs instead of global storage", offset);
+        if m.state.frames.length != 0 && im_frame(m.state).function == m.context.root {
+            ix_fail(m, "Compile-time expression cannot capture runtime storage; pass explicit compile-time arguments", offset);
+        } else {
+            ix_fail(m, "Compile-time evaluation requires explicit inputs instead of global storage", offset);
+        }
+        return false;
+    }
+    // A lowered stage borrows declaration identities, never their caller's
+    // frame offsets. Check only executed reads; an untaken arm has no capture.
+    if n.kind == KOperand && n.binding != null && !n.constant
+        && ix_value_input(m, n) == null && !ix_local_binding(m, n.binding) {
+        ix_fail(m, "Compile-time expression cannot capture runtime storage; pass explicit compile-time arguments", offset);
         return false;
     }
     if n.kind == KPrint {
@@ -468,6 +487,13 @@ fn ix_address_component(m: IMExecution*, node: void*, n: FoundationNode*, offset
 }
 
 fn ix_address_uncached(m: IMExecution*, node: void*, n: FoundationNode*, offset: usize): u64 {
+    if !ix_strict_node(m, n, offset) { return 0; }
+    // A published scalar input supplies a value, not storage in this invocation.
+    // In particular, taking its address must not borrow a helper-frame slot.
+    if ix_strict(m) && ix_value_input(m, n) != null {
+        ix_fail(m, "Compile-time expression cannot capture runtime storage; pass explicit compile-time arguments", offset);
+        return 0;
+    }
     if n.kind == KLoad {
         return ix_read(m, n.value, offset);
     }

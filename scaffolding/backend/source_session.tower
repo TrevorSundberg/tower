@@ -4,6 +4,7 @@ import session;
 import text;
 import .compiler.semantic_program_types;
 import .compiler.format_types;
+import .compiler.component_kinds;
 import .library.vector;
 
 // Explicit request ownership above the graph backend. A caller pins its module
@@ -45,12 +46,15 @@ fn backend_source_program_close(program: SemanticProgram*): void {
     entity_release(root);
 }
 
-fn backend_source_program(program: SemanticProgram*, text: u8*, length: usize, width: u32, environment: void*): void {
-    semantic_initialize(program, tower_node_create(), width);
+fn backend_source_program(program: SemanticProgram*, world: void*, text: u8*, length: usize, width: u32, environment: void*): bool {
+    var root = entity_create(compiler_world_store(world));
+    if root == null { return false; }
+    semantic_initialize(program, root, width);
     var input: FrontendSource;
     input.data = text;
     input.length = length;
     frontend_compile_sources(program, &input, 1, environment);
+    return true;
 }
 
 fn backend_source_error(source: BackendSource*, program: SemanticProgram*): u8* {
@@ -66,13 +70,17 @@ fn backend_source_error(source: BackendSource*, program: SemanticProgram*): u8* 
 
 fn backend_source_import(source: BackendSource*, program: SemanticProgram*, width: u32, optimize: bool, environment: void*): u8* {
     var imported: SemanticProgram;
-    semantic_initialize(&imported, tower_node_create(), width);
+    var world = compiler_node_world(program.root);
+    var root = entity_create(compiler_world_store(world));
+    if root == null { return backend_session_failure(source.backend, "Unable to allocate compiler root", 0); }
+    semantic_initialize(&imported, root, width);
     var backend = source.backend;
     var result = backend_session_response(backend);
     if backend_session_import(backend, program.root, program.functions.data,
     program.functions.length, width, optimize, imported.root) {
         var formatted: FormatResult = default;
-        format_entity(&formatted, imported.root, syntax_component_type(), null, parser_match_get_type());
+        format_entity(&formatted, imported.root, compiler_node_type(imported.root, CompilerSyntax),
+            null, compiler_node_type(imported.root, CompilerParserMatch));
         if formatted.failed || !vector_reserve(&source.foundation, formatted.text.length + 1) {
             result = backend_session_failure(backend, "Unable to allocate canonical formatted source", 0);
         } else {
@@ -80,7 +88,11 @@ fn backend_source_import(source: BackendSource*, program: SemanticProgram*, widt
             source.foundation.length = formatted.text.length;
             source.foundation.data[source.foundation.length] = 0;
             var checked: SemanticProgram;
-            backend_source_program(&checked, source.foundation.data, source.foundation.length, width, environment);
+            if !backend_source_program(&checked, world, source.foundation.data, source.foundation.length, width, environment) {
+                format_dispose(&formatted);
+                backend_source_program_close(&imported);
+                return backend_session_failure(backend, "Unable to allocate compiler root", 0);
+            }
             if checked.error.length != 0 {
                 result = backend_source_error(source, &checked);
             }
@@ -98,10 +110,22 @@ fn backend_source_import(source: BackendSource*, program: SemanticProgram*, widt
 }
 
 export fn backend_source_compile(source: BackendSource*, text: u8*, length: usize, flags: u32, environment: void*, foundation_error: u8*): u8* {
+    // Compatibility selection stays at this boundary; the entire request,
+    // including optimized Foundation reconstruction, uses one explicit world.
+    var world = frontend_modules_world(environment) ?? compiler_host_world();
+    return backend_source_compile_world(source, world, text, length, flags, environment, foundation_error);
+}
+
+export fn backend_source_compile_world(source: BackendSource*, world: void*, text: u8*, length: usize, flags: u32, environment: void*, foundation_error: u8*): u8* {
     var backend = source.backend;
     var width = backend_session_begin(backend, text, length);
     if width == 0 {
         return backend_session_response(backend);
+    }
+    if world == null { return backend_session_failure(backend, "A compiler world is required", 0); }
+    var bound = frontend_modules_world(environment);
+    if bound != null && bound != world {
+        return backend_session_failure(backend, "Module environment belongs to another compiler world", 0);
     }
     if foundation_error != null && foundation_error[0] != 0 {
         return backend_session_failure(backend, foundation_error, 0);
@@ -115,8 +139,9 @@ export fn backend_source_compile(source: BackendSource*, text: u8*, length: usiz
     copy(terminated, text, length);
     terminated[length] = 0;
     var program: SemanticProgram;
-    backend_source_program(&program, terminated, length, width, environment);
+    var created = backend_source_program(&program, world, terminated, length, width, environment);
     free(terminated);
+    if !created { return backend_session_failure(backend, "Unable to allocate compiler root", 0); }
     var result: u8* = null;
     if program.error.length != 0 {
         result = backend_source_error(source, &program);

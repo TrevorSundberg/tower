@@ -3,6 +3,7 @@
 set(TOWER_BOOTSTRAP_COMPILER "" CACHE FILEPATH "Host Tower compiler used to build Tower-written compiler code")
 option(TOWER_MODULE_TESTS "Include Tower module loader functional checks" OFF)
 option(TOWER_WORK_TESTS "Build the Tower native worker overlap/ownership fixture" OFF)
+option(TOWER_BACKEND_TESTS "Include Tower backend service fixtures" OFF)
 set(TOWER_UTILITIES_TARGET "" CACHE STRING "Override the compiler utility object's target triple")
 function(tower_compiler_utilities)
   if(TARGET tower-compiler-utilities)

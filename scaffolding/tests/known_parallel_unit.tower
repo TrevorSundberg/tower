@@ -7,9 +7,11 @@ fn calculate(value: i32): i32 {
 }
 
 export fn kernel(input: i32): i32 {
+    var lazy = false ? input : 42;
+    var staged_lazy = comptime(lazy);
     var Fixed = calculate(36);
     var Dependent: decltype(Fixed) = Fixed + 1;
     var Staged = comptime(Dependent);
     var dynamic = input + Staged;
-    return dynamic;
+    return dynamic + staged_lazy;
 }

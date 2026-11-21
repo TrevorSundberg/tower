@@ -34862,3 +34862,49 @@ replace that fixture. Its first two tests passed; the compiler test failed with
 'missing lr_work_tests', not a scheduler failure. Restore WORK_TESTS inclusion
 for either target, retain default OFF, and rebuild only the affected shared
 reactor. This corrects the earlier 'unused fixtures' rationale explicitly.
+
+Publication integration update: upstream a4ef899 includes the repository-wide
+const-to-var migration, a new public bootstrap, staged-enum ownership fixes and
+Tower tooling cutovers. Stopped the unfinished old-snapshot generation/worker
+runs before rebasing. Seven multi-world/backend cases had passed, including
+object equality, cancellation, inferred staging and deterministic diagnostics;
+that partial run is not the completed suite. Preserved both journal histories
+and resolved BodyQuery's migrated var spelling while retaining editor admission.
+Upstream also removed the LR browser transport call to match the earlier exclusion;
+with explicit WORK_TESTS inclusion restored here, retain its actual LR check.
+The published Pages manifest now identifies dfee43c runtime source, superseding
+the historical native-retirement publication blocker. A new publication must
+include that source rather than replace it with the older snapshot.
+
+Implementing the confirmed lazy-capture gap on the merged source: remove the
+whole-expression capture rejection and validate actual strict-interpreter reads
+against the current function's locals index and exact declaration identity.
+Published value inputs remain dependency-driven; requesting their address does
+not invent helper storage. Automatic inference retains its bounded mandatory-input
+admission scan but lets the ordinary interpreter choose optional conditional,
+logical and coalescing arms. No arithmetic evaluator or constant-folding pass is
+added. Added Tower cases for untaken/taken captures, helper-frame offset collision,
+implicit staging with decltype, pointer captures and taken/untaken cycles. Fresh
+public-pin successor build is running; these changes are not yet validated.
+
+Lazy capture validation: the fresh 2292bd8 public-bootstrap successor builds.
+The first attempt exposed a new-source syntax error (Tower requires nested if
+inside else, not 'else if'); corrected that spelling and rebuilt successfully.
+known_bindings.tower prints zero failures with the successor. Its complete focused
+native harness passes both interpreter modes, Foundation reconstruction, pointer
+widths 4/8, worker counts 1/2/4/8 and every existing/new negative capture/cycle
+case (ecs-lazy-capture-known.log). The body continuation smoke also passes
+(ecs-lazy-capture-body.log). These are semantic/determinism results, not speed
+claims. Runtime captures in selected arms still fail or remain runtime for
+optional inference; untaken arms no longer invent a capture or cycle.
+
+Next bounded ownership change: BackendSource now has an explicit-world entry,
+selects a bound module world's identity at its legacy boundary, allocates both
+source and imported Foundation roots in that world, and obtains formatter kinds
+from those roots. It rejects a foreign module environment before compilation.
+The LLVM transport also creates its registry entity in its owner's store. Added
+Tower backend-world checks for two independent baselines/environments, imported
+Foundation recompilation, mismatched/missing worlds, retained text and disposal
+of one world while the other stays usable. The browser test is byte transport;
+assertions are Tower. This prepares backend jobs for isolation; it does not yet
+make LLVM's global target registration or LLD publication concurrently safe.

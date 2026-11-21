@@ -59,7 +59,7 @@ fn llvm_worker(): LlvmWorker* {
         var type = entity_child_at(owner, slot);
         return bits(LlvmWorker*, entity_component_data(entity_component_get(owner, type)));
     }
-    var type = tower_node_create();
+    var type = entity_create(compiler_world_store(compiler_node_world(owner)));
     llvm_worker_require(entity_register(type, sizeof(LlvmWorker), alignof(LlvmWorker), 0));
     var component = entity_component_add(owner, type);
     llvm_worker_require(component != null);

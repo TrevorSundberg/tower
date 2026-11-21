@@ -120,6 +120,13 @@ argument boundaries and temporary cleanup after tool failure. Fixtures stay out
 of the production driver object. The standalone runner uses the Tower guest
 runtime artifact for allocation, output and traps.
 
+For browser backend service ownership checks, configure the LLVM browser build
+with `-DTOWER_BACKEND_TESTS=ON`, rebuild it, then run
+`TOWER_REQUIRE_BACKEND_TESTS=1 node --test playground/tests/backend-worlds.test.mjs`.
+The Tower fixture checks explicit-world source compilation and optimized
+Foundation reconstruction, foreign-environment rejection, retained output and
+independent world cleanup. JavaScript only supplies baseline bytes and invokes it.
+
 Windows process/quoting checks can run independently of a Windows compiler build:
 cross-compile a manifest importing the driver support, timing, windows_arguments,
 windows, link and prepare modules plus `tests.driver_windows` and `tests.driver`.

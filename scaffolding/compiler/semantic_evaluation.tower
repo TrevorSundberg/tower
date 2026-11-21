@@ -38,8 +38,6 @@ struct SemanticEvaluation {
     requested: bool;
     started: bool;
     inferred: bool;
-    unavailable: bool;
-    capture_checked: bool;
     aliases: vector(void*);
 }
 
@@ -175,42 +173,6 @@ fn sem_comptime(c: SemanticContext*, n: void*, expected_type: FoundationType*): 
     return n;
 }
 
-fn sem_evaluation_available(c: SemanticContext*, result: SemanticEvaluation*): bool {
-    if result.unavailable { return false; }
-    if result.capture_checked { return true; }
-    // A stage expression has explicit arguments. Borrowing an ordinary local's
-    // byte offset would accidentally read unrelated helper-frame storage.
-    var scan = sem_list(c);
-    sem_push(scan, result.expression);
-    while scan.length != 0 && sem_ok(c) {
-        scan.length--;
-        var entity = scan.data[scan.length];
-        var value = sem_get(entity);
-        if value == null { continue; }
-        if value.kind == KOperand && value.binding != null && !value.constant {
-            var input = c.value_inputs == null ? null : entity_component_get(value.binding, c.value_inputs);
-            if input == null {
-                if result.inferred { result.unavailable = true; }
-                else { sem_fail(c, entity, "Compile-time expression cannot capture runtime storage; pass explicit compile-time arguments"); }
-                return false;
-            }
-        }
-        if value.left != null { sem_push(scan, value.left); }
-        if value.right != null { sem_push(scan, value.right); }
-        if value.value != null { sem_push(scan, value.value); }
-        if value.target != null { sem_push(scan, value.target); }
-        if value.kind == KCall || value.kind == SurfaceInitializer {
-            var index: usize = 0;
-            while index < value.items.length {
-                sem_push(scan, value.items.data[index]);
-                index++;
-            }
-        }
-    }
-    result.capture_checked = sem_ok(c);
-    return result.capture_checked;
-}
-
 fn sem_evaluation_function(c: SemanticContext*, result: SemanticEvaluation*): void* {
     if result.function == null {
         result.function = sem_control_node(c, result.subject, KFunction);
@@ -220,10 +182,8 @@ fn sem_evaluation_function(c: SemanticContext*, result: SemanticEvaluation*): vo
 }
 
 fn sem_evaluation_clone_expression(c: SemanticContext*, result: SemanticEvaluation*): void {
-    // All value-input metadata is published before this read-only availability
-    // check. It computes no values; the ordinary interpreter still evaluates
-    // every eligible expression and dynamically suspends on its actual inputs.
-    if !sem_evaluation_available(c, result) { return; }
+    // Capture validity follows executed interpreter reads, after ordinary
+    // lowering has preserved lazy branches. This clone computes no values.
     var function = sem_evaluation_function(c, result);
     var previous = c.current;
     c.current = function;
@@ -241,7 +201,6 @@ fn sem_evaluation_clone_expression(c: SemanticContext*, result: SemanticEvaluati
 }
 
 fn sem_evaluation_prepare(c: SemanticContext*, result: SemanticEvaluation*): void {
-    if !sem_evaluation_available(c, result) { return; }
     var function = sem_evaluation_function(c, result);
     var definition = sem_get(function);
     definition.body = sem_control_node(c, function, KBlock);
@@ -297,12 +256,6 @@ fn sem_evaluations(c: SemanticContext*): void {
             var result = sem_evaluation_get(c, task.subject);
             sem_require(result != null);
             result.ticket = ticket;
-            if result.unavailable {
-                result.ready.failed = true;
-                result.ready.ready = true;
-                sem_require(work_finish(&c.queries, &result.ticket, true));
-                continue;
-            }
             if !result.started {
                 interpreter_invocation_init(&result.invocation, result.function, convert(usize, c.program.pointer_bytes), null, 0, true, EvaluationFuel);
                 result.invocation.context.dependency_kind = c.evaluation_ready;

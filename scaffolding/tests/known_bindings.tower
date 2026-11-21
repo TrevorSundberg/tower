@@ -59,4 +59,24 @@ check(change() == 6 && changed == 6, "interprocedural mutation");
 // Failed automatic staging is not an eager runtime failure in an unused branch.
 fn skipped(): i32 { if false { var invalid = 1 / 0; return invalid; } return 7; }
 check(skipped() == 7, "speculative staging failure preserves lazy execution");
+
+fn lazy_capture(value: i32): i32 {
+    var fixed = false ? value : 42;
+    var flag = true || value == 0;
+    var other = false && value == 0;
+    var explicit = comptime(false ? value : 42);
+    var chained: decltype(fixed) = comptime(fixed);
+    return chained + explicit + (comptime(flag) && !comptime(other) ? 1 : 0);
+}
+check(lazy_capture(9) == 85, "untaken captures are absent staged dependencies");
+fn lazy_taken(value: i32): i32 {
+    var runtime = true ? value : 42;
+    return runtime;
+}
+check(lazy_taken(7) == 7 && lazy_taken(8) == 8, "taken captures retain runtime initialization");
+fn lazy_pointer(value: i32*): usize { return comptime(false ? bits(usize, value) : 42); }
+check(lazy_pointer(null) == 42, "untaken pointer capture");
+var lazy_cycle_a: i32 = comptime(false ? lazy_cycle_b : 42);
+var lazy_cycle_b: i32 = lazy_cycle_a;
+check(comptime(lazy_cycle_b) == 42, "untaken dependency does not introduce a cycle");
 print(failures);

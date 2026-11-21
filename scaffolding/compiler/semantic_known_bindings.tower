@@ -91,7 +91,18 @@ fn sem_known_inputs(c: SemanticContext*, expression: void*, pending: vector(void
             var input = sem_known_binding(c, value.binding);
             if input == null || !input.immutable || !input.ordered { return false; }
         }
-        sem_known_edges(pending, value);
+        // Optional arms are evaluated only if ordinary interpreter control flow
+        // selects them. This bounded admission scan checks mandatory inputs;
+        // it neither chooses a branch nor computes a constant.
+        if value.kind == SurfaceSelect {
+            sem_push(pending, value.value);
+        } else {
+            if value.kind == SurfaceAnd || value.kind == SurfaceOr || value.kind == SurfaceCoalesce {
+                sem_push(pending, value.left);
+            } else {
+                sem_known_edges(pending, value);
+            }
+        }
     }
     return true;
 }
