@@ -1,3 +1,59 @@
+# Warm edit execution — 2026-11-21
+
+Automatic execution no longer waits for a fixed 200 ms typing pause. Parsing
+starts on the next animation frame; compilation workers finish their current
+request and retain only the latest pending edit. A UI permission message lets
+only the current revision start execution. Explicit cancellation still terminates
+workers immediately. During automatic edits, an executing worker gets one UI
+task to deliver a queued completion before termination, preserving warm workers
+without leaving an infinite program running.
+
+The fast interpreter now keeps the canonical session created while preparing its
+package instead of discarding it and reconstructing the same Foundation again.
+Tower checks the complete package and execution cache against that session;
+loading an external package still reconstructs and validates it independently.
+Formatting derives component identities from the owning world. ECS ownership,
+dependency scheduling and compiler worker policy remain intact.
+
+## End-to-end measurements
+
+Windows, Ryzen 9 5900HX, Node 21.7.3, Playwright 1.65.1 Chromium; Pixel 7 emulation
+uses the same computer, not physical phone hardware. Both bundles ran from the
+same local origin without concurrent builds or tests. These are medians of seven
+small trailing-comment edits to the Memory example with automatic execution on.
+Times run from editor input to the observed DOM result; completion includes all
+selected outputs, including LLVM/native compilation and the optimized fast
+interpreter package. Baseline source is `5fdee25`; candidate source is `6f73a74`.
+
+| Configuration | Highlight before → after | First instructions before → after | Graph result before → after | Complete before → after |
+| --- | ---: | ---: | ---: | ---: |
+| Desktop | 43.2 → 46.0 ms | 256.5 → 123.8 ms | 257.5 → 132.4 ms | 407.0 → 252.1 ms |
+| Mobile emulation | 64.3 → 58.8 ms | 242.4 → 107.7 ms | 249.8 → 120.7 ms | 390.7 → 228.5 ms |
+
+Full-output latency fell 38% and 42%, respectively. Highlight timing did not
+materially improve. These small samples do not establish tail latency or costs
+for large semantic edits. Source parsing and independent backend compilation
+still perform work on each edit; this is not incremental semantic compilation.
+
+Run the existing profiler from `playground` with `TOWER_PROFILE_REPEATS=7`:
+`node scripts/profile-execution.mjs ../build/warm-edit-release-profile.json`.
+The ignored before/after reports are `build/warm-edit-before.json` and
+`build/warm-edit-release-profile.json`. The earlier `warm-edit-after.json`
+measured an intermediate queue implementation and is superseded by these numbers.
+
+Browser checks cover semantic edits, a continuous 44-character typing burst,
+retention of all three warm execution workers without reactor downloads,
+obsolete-revision execution rejection, explicit cancellation and recovery from
+infinite programs. Tower package fixtures cover both pointer widths, independent
+session ownership, full-loader equivalence, invalid inputs and lifetime counts.
+Fresh public-bootstrap native builds, shared-memory workers at 1/2/4/8 workers,
+two matching editable compiler generations, package tampering rejection and
+desktop/mobile deployment flows pass. See the project journal for exact commands,
+the initial completion-race failure and publication integration checks.
+
+The following section records the previous project-switch milestone. Its retained
+execution debounce and warm-edit limitations are superseded by this change.
+
 # Project switching and cold startup — 2026-11-21
 
 The regression was reproducible after downloads and execution had warmed up:

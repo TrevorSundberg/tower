@@ -35404,3 +35404,41 @@ Ready-query frontend artifacts and their two identical generations remain valid
 for unchanged frontend sources. The backend registration adapter is implemented
 and tested; native backend job dispatch and structural semantic continuations
 remain implementation work, so this audit does not claim complete threading.
+
+Publication synchronization pulled d2e398a's Tower bootstrap archive/hash tooling
+without compiler-source conflicts. The implementation is published on main as
+6f73a74, and all release assets are rebuilt from that public source checkpoint.
+A fresh native directory /root/.cache/tower/warm_edit_release builds all 53 steps
+with env -u TOWER_BOOTSTRAP_COMPILER and public pin 2292bd8a; graph and fast
+execution of the extended known_bindings fixture both print zero failures.
+Portable/shared/LLVM/cross reactors and compiler-project packaging pass. The
+release portable host suite passes 32 checks; its one optional package-fixture
+test is excluded from production, having separately passed all five checks with
+-DTOWER_IDE_PACKAGE_TESTS=ON. All three shared-memory checks pass at 1/2/4/8
+workers. Two editable browser compiler generations pass with identical hashes
+and the changed semantic diagnostic. No sanitizer or formatting sweep was run.
+
+Exact local deployment verification passes all 83 assets and desktop/mobile
+backend, grammar, completion, persistence, target-default and native-download
+flows. Logs: build/warm-edit-release-{native,successor,wasm,threads,llvm,host-tests,thread-tests,generations}.log and warm-edit-local-deployment.log.
+This publication will replace the old manifest's inaccessible pre-rebase build
+identifier with the actual public 6f73a74 build source, preserving normal
+gh-pages ancestry and validating all artifact hashes. No ancestry check is
+bypassed and no local-only compiler is required.
+
+Final isolated seven-edit profiling at public source 6f73a74 supersedes the
+intermediate queue measurements: desktop highlight 43.150 -> 46.015 ms,
+first instructions 256.525 -> 123.750, graph result 257.450 -> 132.375 and
+all-output completion 406.950 -> 252.115. Mobile emulation: highlight
+64.295 -> 58.780, instructions 242.395 -> 107.725, graph 249.815 -> 120.720,
+completion 390.660 -> 228.455. These are medians of small trailing-comment edits
+to memory.tower, not a claim of incremental semantic compilation or physical
+phone performance. Both reports have no browser errors. Reproduce with
+TOWER_PROFILE_REPEATS=7 node scripts/profile-execution.mjs
+../build/warm-edit-release-profile.json; baseline build/warm-edit-before.json.
+
+Before publication, upstream c19af1f adds known-input eligibility threading,
+semantic ready-queue refill and synchronized backend target registration.
+Integrate it and repeat the clean successor/affected release checks before
+publishing. The timing table above explicitly identifies its measured checkpoint;
+it does not claim those newer sources have already been measured.
