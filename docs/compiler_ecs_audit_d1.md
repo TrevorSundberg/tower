@@ -1121,3 +1121,75 @@ through coordinator; no competing A1 implementation or weakened oracle.
 | Canonical serial/worker behavior | Existing LR tables, lifecycle canonical text, type protocols and execution binding-correspondence oracles preserve bindings/order/effects. New focused runners compile; latest joined runtime receipts are pending. |
 | Scalar external callers | Explicit-language JSON10 passes published browser11checks and isolated Roku JSON test; old native signed32 timeout and separate Roku population timeout remain. Current rebuilt compiler caller validation still required. |
 | Bootstrap/package/release | Clean documented native build127ca98 passes with verified42resources and no stale forwarders/private override. Final newer compiler freeze, browser/generation/full supported instrumentation and atomic published/hosted verification remain open. |
+
+### Shared assertion output boundary at4635241 plus scoped fix
+
+`scaffolding/tests/frontend_units.tower`: all20 direct importers reviewed for
+this boundary. Failure originally wrote buffered stdout then aborted; D2 lost
+its diagnostic and repeated a113.56s selector to recover it. Added only the
+existing opaque libc stream ABI and `fflush(null)` between `puts` and `abort`.
+No successful-branch allocation, scheduling or ownership changes. Actual
+public-pin object disassembly confirms the successful test/jump/return bytes
+are identical. `scaffolding/tests/parser_benchmark.tower` receives the same
+failure-only change; its page census, timing, ownership and bounds are unchanged.
+
+Two frozen scaffolding snapshots import the actual before/after helper from an
+identical temporary Tower program. Three passing runs per version return0 with
+identical output; all six controlled assertion failures preserve signal6/raw134.
+All three old failure outputs are empty; all three new outputs retain preceding
+context and the exact assertion. This is ordinary diagnostic validation, not
+unsafe memory/race probing. Raw logs/objects/source hashes/disassembly are under
+`build/d1_ecs/assertion_diagnostics`. Final ASan parser result remains pending.
+
+### Additional incoming owner review during the ASan freeze
+
+Capture ranges v2 `0d04fe88` replaces the earlier query-registration sentinel
+with a program-root capture component marking successful producer drain. New
+capture admission checks that marker; exact lowering revision/profile/dispatch
+checks remain. Read all300 patch lines. This is review only: descendant payload
+leases, late/aggregate acceptance and eager metadata measurement remain open.
+
+B2 native identity `77df2699` adds owned lexical absolute source/root buffers,
+keeps them through module/environment use, disposes after worlds, and checks a
+relative plus absolute import executes one shared helper exactly once. Its
+`driver_module_paths.tower` fixture retains two entry spellings, quoted paths with
+spaces, exact stdout42, and deferred file/buffer cleanup. Not adopted yet.
+B2 fixture-import patch `ea7bfd6a` needs reconciliation: its shared writer adds
+Tower before every case although current D1 differential/C cases and scalar JSON
+already deliberately import Foundation. Routed exact caller evidence to root/B2;
+do not replace their explicit language contracts with blanket activation. The
+separate generated `measure_kernel` source still lacks an import and may need its
+own owner-scoped correction. No runtime validity is inferred from this review.
+
+### Actual parser ASan closure at4635241 plus diagnostic-only edits
+
+The shared address mode rebuilt the actual parser target from public pin9653f818
+with one build/compiler lane in D1's LLVM19.1.1 Docker environment, CPUs0/2.
+All26 direct Tower objects and all four linked memory-archive members have ASan
+references; the actual link, source mappings and hashes are retained, rather than
+inferring instrumentation from C flags. Build67/67 passes437.01s wall,
+428.25CPU,818908KiB RSS,0swaps. Artifact SHA
+a04347eea55ec97806626258e1c64b7c5982bbe0e7888b193914597fe18b4cbe.
+
+Three normal and three128-reset stress runs pass under
+ASAN_OPTIONS=detect_leaks=1:halt_on_error=1, raw0, with44/492 measured rows each.
+Normal/stress ownership diagnostics are byte-identical to earlier normal native
+receipts. Full session/world teardown assertions pass with no sanitizer findings.
+
+| Samples | Wall seconds | CPU seconds | Peak RSS KiB |
+| --- | --- | --- | --- |
+| Normal1/2/3 | 1.55 /1.05 /0.87 | 1.50 /1.03 /0.85 | 146656 /145260 /146540 |
+| Stress1/2/3 | 7.19 /6.46 /6.43 | 7.06 /6.36 /6.32 | 442596 /446804 /448708 |
+
+All samples0swaps. To investigate high stress RSS, a separate same-input run
+with only ASan quarantine reduced to16MiB passes6.59wall/6.53CPU/115240KiB and
+identical ownership output. This attributes much of the RSS to sanitizer
+quarantine; it does not replace default-quarantine acceptance or prove every
+byte's origin. Requested component bytes/live payload stay distinct from RSS.
+The observer deliberately uses serial fault-count transport, so no threaded
+sanitization/scaling or UBSan coverage is claimed. Newer incoming compiler
+candidates remain outside this frozen production127ca98 receipt.
+
+Full logs, commands, source/object hashes and nm evidence:
+build/d1_ecs/parser_asan_127ca98, exported to D1/parser_asan_receipt.
+Every owned process drained before releasing the shared heavy slot to D2.

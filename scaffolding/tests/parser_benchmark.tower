@@ -51,6 +51,7 @@ fn benchmark_clock(): u64 {
 extern fn putchar(byte: i32): i32;
 
 extern fn puts(text: u8*): i32;
+extern fn fflush(stream: void*): i32;
 
 extern fn abort(): void;
 
@@ -80,7 +81,7 @@ extern fn dprintf(fd: i32, format: u8*, size: usize, iteration: usize,
     individual_bytes: usize, cached: usize): i32;
 
 fn benchmark_check(ok: bool, message: u8*): void {
-    if !ok { puts(message); abort(); }
+    if !ok { puts(message); fflush(null); abort(); }
 }
 
 fn benchmark_retention(world: void*, session: SyntaxSession*, result: BenchmarkRetention*): void {

@@ -48064,3 +48064,95 @@ injection tests invalidation publication but not real generic write discovery;
 that remaining end-to-end case was routed to A1/root. No range implementation
 adopted or runtime pass inferred. This documentation-only review has no runtime
 performance path to profile; pending eager metadata cost stays explicit.
+
+### D1 redirected assertion diagnostics (implementation pending validation)
+
+D2's current type-smoke raw134 after116.23s had no assertion text because
+`frontend_units.units_check` calls buffered `puts` followed by `abort`. Its
+line-buffered diagnostic repeat consumed113.56s and exposed the known lifecycle
+capture failure. Those are actual failures, not timing regressions or passing
+coverage. D1 audited all20 direct importers and owns this shared fixture helper.
+The scoped implementation adds the existing libc `fflush(null)` ABI before
+`abort`, preserving the message, assertions, and nonzero failure. The same exact
+boundary fix applies to D1's parser census helper. Successful branches acquire no
+new I/O, allocation, world ownership or scheduler work; no production changes.
+
+Frozen full before/after source snapshots and one identical temporary Tower
+program import the actual helper, testing both success and controlled assertion
+failure with redirected files. This is an ordinary harness diagnostic test, not
+an invalid-memory or intentional-race probe. Public-pin smallest compilation and
+paired runs precede actual ASan parser checking. Logs are in
+`build/d1_ecs/assertion_diagnostics`; measurements and outcomes remain pending.
+
+D1 diagnostic paired check now passes. SteamDeck, own Docker LLVM19.1.1,
+CPUs0/2, public compiler9653f818, target x86_64-pc-linux-gnu, jobs1, identical
+Tower probe and frozen source snapshots, three success/failure runs per version.
+Before/after smallest compilation:5.55/3.90s wall,5.44/3.84CPU,
+200232/199416KiB RSS; parser smallest4.86/4.74/187712. These one-sample compile
+differences include cache warmth and are not a compiler speedup claim.
+
+Before success wall0.02/0.02/0.02s, CPU0.02/0.01/0.01,
+RSS49896/49904/49892KiB; after0.05/0.04/0.04s, CPU0.04/0.04/0.03,
+RSS49864/49824/49820. The20-50ms process-startup samples are not sufficient for
+an assertion-path slowdown claim. Inspected exact object disassembly: both true
+paths are identical test/jump/return bytes with no allocator or external call;
+only false path adds fflush. No new concurrency exists to scale.
+
+Before controlled failure wall0.69/0.72/0.85s, CPU0.05/0.06/0.03,
+RSS48616/48456/48576KiB; after0.70/0.90/0.73s, CPU0.03/0.05/0.04,
+RSS48520/48468/48628. Abort delivery/host handling dominate wall time, despite
+ulimit-c0; all raw statuses134 and signal6 retained. GNUtime's trailing0 is not
+the subprocess result. All runs0swaps. Old failure stdout empty3/3; new context
+and assertion exact3/3; passing outputs exact/raw0 in all six. No helper-owned
+allocation or retention was introduced. Exported assertion_diagnostics.patch
+cb26ef0b, pending coherent release and actual parser ASan receipt.
+
+ASan orchestration first failed128 at Git's mounted-workspace ownership guard,
+before configure/compiler execution. Preserved initial_attempt.error/status.
+After verifying all children absent, scoped safe.directory only for that Git
+metadata read in our own container; no global configuration change. Retried
+existing shared TOWER_SANITIZER=address parser target, public bootstrap, jobs1,
+own cache/container, source manifest frozen. Production127ca98 remains unchanged
+by newer incoming candidates; exact two diagnostic edits are separately hashed.
+
+Read current300-line A1 range-v2 proposal0d04fe88 and185-line layout profile
+983a18c6. Former replaces KnownPublish query-registration sentinel with explicit
+program-root successful-drain marker. Descendant leases/late aggregates and eager
+metadata measurements still unresolved, not adopted. Profile uses independent
+field-offset oracle, actual callback spans and explicit shared budgets; its RSS
+is cumulative and retained byte count is derived layout arrays only. Root
+requested opt-in registration after exact API exports arrive. No default test
+or timing pass threshold.
+
+Root requested driver request manifest property correction. Inspected current
+producer/consumer: TOWER_DRIVER_PRODUCTION_SOURCE includes platform paths/stat,
+TOWER_DRIVER_SOURCE does not. Prepared one-line contextual draft87f875de after
+preserving a failed zero-context apply check. Actual contextual apply-check passes;
+local manifest stays frozen until ASan build drains. B1/B2 may independently
+apply this owned draft; local fault sweep has not run.
+
+Incoming B2 blanket fixture writer prefix conflicts with existing D1 explicit
+Foundation imports. Supplied exact fd0966b3/6b575c81 patches and postimage hashes;
+both reverse-check current source. Root withdrew blanket prefix across lanes.
+Preserve D2's separately measured Foundation kernel correction; no language
+fallback/detection heuristic or source-offset rewrite.
+
+Actual parser ASan target completed67/67 with public bootstrap and frozen source
+manifest; detailed timings/coverage are in the D1 audit. Verified26direct Tower
+objects and all four memory-archive members, not just configured objects.
+Three normal plus three stress runs pass with leak detection, exact previous
+native ownership diagnostics, complete teardown and0swaps. Investigated
+442596-448708KiB stress RSS with an additional16MiB quarantine diagnostic:
+115240KiB and identical live/page/teardown outputs, supporting instrumentation
+retention attribution. Default-quarantine samples remain the acceptance receipt.
+No TSan/UBSan/whole-compiler or later-source validation claim. Both containers
+idle, sessions terminal, own heavy lock released to D2. Normal current package
+was not overwritten. Pending owner source/registration work remains separate.
+
+Root requested file-backed registration of B2 backend_execution_roots32-line
+fixture. Read exact candidate5d3e769c and fixture: independent arithmetic45,
+effects2, direct/callback/recursive calls, unused type helper and retained export.
+Plan reuse existing native differential reference/raw/optimized path with exact
+wanted stdout; no generic language injection or duplicated fixture. ABI/export
+retention needs separate coverage since ordinary output cannot prove an uncalled
+export survived. No changes applied during the ASan freeze.
