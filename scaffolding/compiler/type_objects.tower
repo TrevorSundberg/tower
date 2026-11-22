@@ -1,8 +1,38 @@
 import tower;
 import foundation_types;
+import foundation_tags;
 import .library.vector;
 
 extern fn semantic_type_equal(left: FoundationType*, right: FoundationType*): bool;
+extern fn sem_get(node: void*): FoundationNode*;
+extern fn sem_require(ok: bool): void;
+
+// LLVM's scalar return path cannot reconstruct opaque type identity after it
+// lowers to an integer index. Preserve the checked Foundation program instead.
+// Traverse owned semantic edges only; bindings and nominal records can cycle.
+export fn type_object_program(root: void*): bool {
+    var pending: vector(void*) = default;
+    defer vector_dispose(&pending);
+    sem_require(vector_push(&pending, root));
+    while pending.length != 0 {
+        var subject = pending.data[--pending.length];
+        if subject == null { continue; }
+        var node = sem_get(subject);
+        if node == null { continue; }
+        if node.kind == KTypeReference || node.type.scalar == SType || node.element.scalar == SType { return true; }
+        if node.kind == KLabel { continue; }
+        sem_require(vector_push(&pending, node.left));
+        sem_require(vector_push(&pending, node.right));
+        sem_require(vector_push(&pending, node.value));
+        sem_require(vector_push(&pending, node.target));
+        sem_require(vector_push(&pending, node.body));
+        sem_require(vector_push(&pending, node.otherwise));
+        foreach(var item in &node.items) { sem_require(vector_push(&pending, item)); }
+        foreach(var parameter in &node.parameters) { sem_require(vector_push(&pending, parameter)); }
+        foreach(var attribute in &node.attributes) { sem_require(vector_push(&pending, attribute)); }
+    }
+    return false;
+}
 
 // Disposable execution indexes for opaque type values. The canonical payload
 // remains a Foundation type descriptor, including its nominal entity binding.

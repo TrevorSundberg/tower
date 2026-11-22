@@ -45711,3 +45711,37 @@ consolidation (build/type-objects-unified-unit.log). Scheduler, type and publica
 checks follow on frozen inputs; this records a compiler-unit result, not a completed
 release. The earlier dispatch-only attempt and memory failure are retained in
 build/type-objects-rebase-unit-full.log and build/type-objects-rebase-workers.log.
+
+The unified fixture initially rejected the immutable module_count because the new
+unknown-statement guard also saw ordinary function/nominal declarations at module
+boundaries. Those existing declaration contracts are now admitted explicitly.
+The combined computed fixture returns 0. Frozen query-smoke and control-smoke pass
+for serial/threaded 32/64-bit execution, as do the complete types and known suites
+(build/type-objects-unified-{query,control,types,known}.log). Native LLVM execution
+of type_object_values returns 0. Ordinary C emission compiled under C89 warnings
+and matched the graph result (15,16); ordinary BrightScript emission succeeded.
+
+An initial CLI .towerbc replay returned 0 but exposed a more important semantic
+failure: unconditional LLVM scalar reconstruction erased metatype descriptors
+into plain integer indexes. BrightScript consequently accepted that erased
+program before its type-value rejection could see it. Passing output was not
+sufficient evidence of identity preservation. The CLI and browser source service
+now retain checked canonical Foundation for programs containing type values and
+report the existing canonical execution profile 0. The direct LLVM import API
+rejects this unsupported reconstruction. Platform LLVM output may still optimize
+its private indexes. The retained .towerbc executes with result 0 from /tmp and
+disassembles to type_type()/type_value(integer_type(...)); its profile word is 0.
+BrightScript now diagnoses unsupported type values, matching C. A Tower service
+fixture checks preservation for both optimization settings. No JavaScript logic
+or separate constant evaluator was added for this fix.
+
+User direction clarified before publication: every named primitive must own its
+complete operator, conversion and literal policies in Tower, not merely call a
+representation constructor that implicitly grants compiler-defined operators.
+Explicit Foundation operations remain the irreducible execution boundary;
+ordinary typed functions/attributes associate those operations with types, and
+the compiler consumes the common protocol. Shared implementations should avoid
+per-width arithmetic duplication. Keep all built-in definitions in types.tower
+until it becomes unwieldy; this supersedes the earlier one-file-per-type preference.
+Finish and publish this identity checkpoint first, then consolidate the prelude
+and implement that full protocol. Neither task is represented as already complete.

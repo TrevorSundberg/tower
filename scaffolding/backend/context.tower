@@ -25,6 +25,7 @@ extern fn semantic_aggregate(type: FoundationType*): bool;
 
 extern fn semantic_type_equal(a: FoundationType*, b: FoundationType*): bool;
 extern fn type_object_intern(values: vector(FoundationType)*, type: FoundationType*): u64;
+extern fn type_object_program(root: void*): bool;
 
 struct BackendAssociation {
     entity: void*;

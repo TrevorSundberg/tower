@@ -1,0 +1,5 @@
+import tower;
+
+// Existing .towerbc and backend response values; these describe the graph used
+// for execution, independently of optimization of platform machine output.
+enum ExecutionProfile: u32 { Canonical = 0, Optimized = 1, Normalized = 2 }

@@ -78,11 +78,13 @@ fn backend_source_import(source: BackendSource*, program: SemanticProgram*, widt
     semantic_initialize(&imported, bits(void*, root), width);
     var backend = source.backend;
     var result = backend_session_response(backend);
-    if backend_session_import(backend, program.root, program.functions.data,
+    var preserve = type_object_program(program.root);
+    if preserve || backend_session_import(backend, program.root, program.functions.data,
     program.functions.length, width, optimize, imported.root) {
         var formatted: FormatResult = default;
-        format_entity(&formatted, imported.root, compiler_node_type(imported.root, CompilerSyntax),
-            null, compiler_node_type(imported.root, CompilerParserMatch));
+        var output = preserve ? program.root : imported.root;
+        format_entity(&formatted, output, compiler_node_type(output, CompilerSyntax),
+            null, compiler_node_type(output, CompilerParserMatch));
         if formatted.failed || !vector_reserve(&source.foundation, formatted.text.length + 1) {
             result = backend_session_failure(backend, "Unable to allocate canonical formatted source", 0);
         } else {
@@ -99,7 +101,8 @@ fn backend_source_import(source: BackendSource*, program: SemanticProgram*, widt
                 result = backend_source_error(source, &checked);
             }
             else {
-                result = backend_session_import_report(backend, optimize);
+                result = preserve ? backend_session_foundation_report(backend, ExecutionProfile.Canonical)
+                    : backend_session_import_report(backend, optimize);
             }
             backend_source_program_close(&checked);
         }

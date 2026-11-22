@@ -11,6 +11,7 @@ import session_wasi;
 import target;
 import text;
 import .compiler.foundation_types;
+import .compiler.execution_profiles;
 import .library.vector;
 
 // Backend service over validated Foundation entities. Source parsing and worker/
@@ -420,14 +421,13 @@ export fn backend_session_import(s: BackendSession*, root: void*, functions: voi
 }
 
 export fn backend_session_import_report(s: BackendSession*, optimize: bool): u8* {
+    return backend_session_foundation_report(s, optimize ? ExecutionProfile.Optimized : ExecutionProfile.Normalized);
+}
+
+fn backend_session_foundation_report(s: BackendSession*, profile: ExecutionProfile): u8* {
     s.response.length = 0;
     backend_text(&s.response, "{\"status\":\"compiled\",\"format\":\"foundation\",\"optimizationProfile\":");
-    if optimize {
-        backend_text(&s.response, "1");
-    }
-    else {
-        backend_text(&s.response, "2");
-    }
+    backend_decimal(&s.response, convert(u64, profile));
     backend_text(&s.response, "}");
     return s.response.data;
 }

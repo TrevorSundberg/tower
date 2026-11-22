@@ -114,6 +114,10 @@ fn bi_function(c: BackendImport*, function: void*): void {
 }
 
 export fn backend_import_foundation(b: Backend*, root: void*): bool {
+    if type_object_program(b.source_root) {
+        backend_fail(b, "LLVM scalar reconstruction cannot preserve type values; retain canonical Foundation");
+        return false;
+    }
     var c: BackendImport = { backend: b, root: root, block: root, declarations: root, ..default };
     var program = sem_attach(root, 0);
     semantic_collect_comments(b.source_root, root);

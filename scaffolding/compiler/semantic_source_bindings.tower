@@ -77,6 +77,7 @@ fn sem_source_scan(c: SemanticContext*, job: SemanticKnownWork*, node: void*, de
     if depth > SourceBindingDepthLimit { job.binding_incomplete = true; return; }
     if sem_is(node, "Statement") {
         node = sem_unwrap(node);
+        if sem_function_syntax(node) { return; }
         // Extension statements need an explicit binding/effect contract before
         // they can establish early immutability. Preserve the local-proof
         // admission rule even though global and local captures share this scan.
@@ -87,7 +88,8 @@ fn sem_source_scan(c: SemanticContext*, job: SemanticKnownWork*, node: void*, de
             && !sem_is(node, "TowerDefer") && !sem_is(node, "CoreAssign")
             && !sem_is(node, "TowerExpressionStatement") && !sem_is(node, "CoreCallStatement")
             && !sem_is(node, "CoreReturn") && !sem_is(node, "CoreBreak")
-            && !sem_is(node, "CoreContinue") {
+            && !sem_is(node, "CoreContinue") && !sem_is(node, "CoreStruct")
+            && !sem_is(node, "CoreEnum") {
             job.binding_incomplete = true;
         }
     }

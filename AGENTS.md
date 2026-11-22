@@ -467,9 +467,11 @@ Do NOT modify todo.txt
   Include the complete type prelude and `foundation_syntax.tower` in bootstrap,
   browser and compiler resources, and validate a changed definition, target
   layouts, canonical round trips and serial/parallel checking before publication.
-  Prioritize dedicated Tower definitions for all standard named types and type
-  constructors before fixed vectors/vectorization. Concrete types such as i32
-  and f32 should have source modules; pointers, references, structs, arrays,
+  Prioritize complete Tower definitions for all standard named types and type
+  constructors before fixed vectors/vectorization. Keep the built-in definitions
+  and shared operator/conversion/literal policies together in `types.tower` until
+  its size warrants splitting. Concrete types such as i32 and f32 must own their
+  behavior through the shared protocol; pointers, references, structs, arrays,
   functions and other families use Tower implementations of a shared protocol.
   Compiler special cases merely written in Tower do not satisfy this endpoint.
   Foundation imports these definitions; Bedrock stays the grammar/bootstrap layer

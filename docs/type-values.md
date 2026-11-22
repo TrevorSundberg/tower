@@ -60,6 +60,12 @@ actual descriptor and nominal binding. Staged captures reconstruct references
 in their consuming invocation. `.towerbc` semantic profile 8 invalidates older
 caches and verifies reconstructed Foundation before execution.
 
+LLVM machine output can optimize type indexes internally. Its scalar return path
+cannot reconstruct their type identities, so CLI and browser Foundation/bytecode
+requests retain the checked canonical graph with optimization profile 0 when it
+contains type values. They do not serialize the lowered indexes as integer types.
+Direct LLVM-to-Foundation import diagnoses this unsupported reconstruction.
+
 Direct type-valued foreign/exported parameters and returns, including direct
 pointers to type values, are rejected. There is no supported cross-module or
 foreign representation contract for these private indexes; enclosing raw memory

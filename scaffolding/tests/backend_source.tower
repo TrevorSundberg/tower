@@ -91,6 +91,8 @@ fn backend_source_test_has(text: u8*, wanted: u8*): bool {
 }
 
 export fn backend_source_tests(environment: void*): i32 {
+    var type_identity_failure: i32 = 17;
+    if !backend_source_type_values(environment) { return type_identity_failure; }
     var link_failure: i32 = 16;
     if !backend_source_link_tests(environment) { return link_failure; }
     var left = backend_source_create(backend_worker_runtime(), backend_worker_runtime_size());
@@ -194,6 +196,21 @@ fn backend_source_link_tests(environment: void*): bool {
         if !backend_source_test_has(result, "\"status\":\"compiled\"") || link.output.length < wasm_header_bytes { return false; }
         backend_session_reset(source.backend);
         if link.generated.length != 0 || link.output.length != 0 || link.error.length != 0 { return false; }
+    }
+    return true;
+}
+
+fn backend_source_type_values(environment: void*): bool {
+    var source = backend_source_create(backend_worker_runtime(), backend_worker_runtime_size());
+    if source == null { return false; }
+    defer backend_source_close(source);
+    var text = "var selected:type_type()=type_value(integer_type(8,0));var expected:type_type()=type_value(integer_type(8,0));var equal:bool=selected==expected;print(equal);";
+    for(var optimize: usize = 0; optimize < 2; optimize++) {
+        var flags = BackendSourceImport | (optimize == 0 ? BackendSourceUnoptimized : 0);
+        var result = backend_source_compile(source, text, strlen(text), flags, environment, null);
+        if !backend_source_test_has(result, "\"optimizationProfile\":0")
+            || !backend_source_test_has(backend_source_foundation(source), "type_value(integer_type(8, 0))")
+            || !backend_source_test_has(backend_source_foundation(source), "type_type()") { return false; }
     }
     return true;
 }

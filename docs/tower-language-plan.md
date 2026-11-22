@@ -108,10 +108,11 @@ to each query/worker and include the numeric policy in semantic/cache identity.
 
 #### Standard types defined in Tower: prerequisite before vectors
 
-User priority, 2026-11-21: implement the existing types themselves through
-dedicated Tower source modules before vector/vectorization work. Writing a
-compiler switch in Tower is not sufficient. Concrete named types such as i32
-and f32 should have their own definitions (for example i32.tower/f32.tower),
+User priority, updated 2026-11-22: implement the existing types themselves in
+Tower before vector/vectorization work. Keep all built-in definitions and shared
+operator, conversion and literal policies in `types.tower` until its size warrants
+splitting. Writing a compiler switch in Tower is not sufficient. Concrete named
+types such as i32 and f32 must define their complete behavior through the protocol,
 and pointers, references, arrays, structs, functions and other type families
 should be constructed through Tower implementations of a common type protocol.
 
@@ -164,9 +165,10 @@ the existing interpreter and dependency graph.
   i32 and executing its definition. Build each successor with its predecessor;
   do not solve the cycle by moving the standard type prelude into Bedrock or by
   treating LLVM types as Tower's semantic authority.
-- [ ] Introduce dedicated standard-type modules and have Foundation include them.
-  Share generic integer/floating implementations where useful; a named type file
-  may instantiate one, rather than duplicating arithmetic for every width.
+- [ ] Consolidate standard definitions in `types.tower`, imported by Foundation.
+  Share generic integer/floating implementations instead of duplicating arithmetic
+  for every width. Move every named primitive's operators, conversion and literal
+  policies out of compiler special cases and into those source definitions.
   Struct declarations and pointer/array/function syntax invoke these same type
   constructors. Reference policy remains explicit; this does not imply ownership
   or safety semantics that are not implemented today.

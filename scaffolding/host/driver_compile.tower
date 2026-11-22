@@ -21,6 +21,7 @@ import .library.bytes_interface;
 import .compiler.semantic_program_types;
 import .compiler.format_types;
 import .compiler.foundation_types;
+import .compiler.execution_profiles;
 
 struct DriverCompilation {
     request: DriverRequest*;
@@ -34,8 +35,10 @@ struct DriverCompilation {
     width: u32;
     profile: u32;
     packaged: bool;
+    preserve_foundation: bool;
 }
 
+extern fn type_object_program(root: void*): bool;
 extern fn syntax_baseline_install(world: void*, environment: void*, source: u8*, foundation: bool, diagnostic: SyntaxVersionDiagnostic*): bool;
 extern fn syntax_version_diagnostic_text(diagnostic: SyntaxVersionDiagnostic*): u8*;
 extern fn syntax_version_diagnostic_dispose(diagnostic: SyntaxVersionDiagnostic*): void;
@@ -134,9 +137,10 @@ fn driver_compile_normalize(state: DriverCompilation*): bool {
     var imported: SemanticProgram = default;
     semantic_initialize(&imported, entity_create(compiler_world_store(state.request.world)), state.width);
     var root = imported.root;
-    var ok = backend_import_foundation(state.backend, root);
+    state.preserve_foundation = type_object_program(program.root);
+    var ok = state.preserve_foundation || backend_import_foundation(state.backend, root);
     if ok {
-        ok = driver_compile_format(state, root, &state.generated);
+        ok = driver_compile_format(state, state.preserve_foundation ? program.root : root, &state.generated);
     }
     else {
         driver_backend_failed(state);
@@ -218,7 +222,8 @@ fn driver_compile_text_output(state: DriverCompilation*): i32 {
     var ok = true;
     if driver_same(emit, "bytecode") {
         ok = driver_install_grammar(state.request, true, SyntaxFoundationBaseline);
-        var profile = state.packaged ? state.profile:(options.optimize ? convert(u32, 1): convert(u32, 2));
+        var profile = state.packaged ? state.profile : convert(u32, state.preserve_foundation
+            ? ExecutionProfile.Canonical : options.optimize ? ExecutionProfile.Optimized : ExecutionProfile.Normalized);
         ok &&= execution_package_encode(program, driver_request_modules(state.request), profile, &text, &error);
     } else {
         if driver_same(emit, "foundation") {
