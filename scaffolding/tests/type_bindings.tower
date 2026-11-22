@@ -9,8 +9,11 @@ var Nothing: type = empty_type();
 var Address: type = address_type();
 var Reference: type = pointer_type(Word);
 var Callback: type = function(Word, Word);
+var Cells: type = array_type(Word, 3);
+var Rows: type = array_type(Cells, 2);
 
 fn same_type(T: type): type { return T; }
+fn fixed_array(T: type, N: usize): type { return array_type(T, N); }
 // Enum headers resolve before declaration queries. Intern the representation,
 // never an unrelated alias whose producer has not published its type yet.
 enum EarlyType: same_type(integer_type(32, 1)) { First }
@@ -40,6 +43,15 @@ fn verify(): i32 {
     *reference = 7;
     var callback: Callback = identity;
     if value != 7 || callback(value) != 7 { failures++; }
+    var cells: Cells = default;
+    var bracket: Word[3]* = &cells;
+    var rows: Rows = default;
+    var generic: fixed_array(Word, 3) = default;
+    var same: Cells* = &generic;
+    bracket[0][0] = 7;
+    same[0][2] = 11;
+    rows[1][2] = generic[2];
+    if sizeof(Cells) != 6 || sizeof(Rows) != 12 || cells[0] != 7 || rows[1][2] != 11 { failures++; }
     var real: Real = 1.5;
     if real + real != 3.0 { failures++; }
     var flag: Flag = true;

@@ -42354,3 +42354,55 @@ cache while both requests remain alive. An initial preflight needed explicit
 entity component interface declarations in the test. Native and browser checks
 will establish correctness and whether the parser regression is removed; no
 speedup or deployment is claimed before those results.
+
+The corrected browser threading suite passes all three tests, including actual
+four-worker overlap and serial/1/2/4/8-worker semantic/canonical agreement. Total
+time is 60.835s (main matrix 59.769s), compared with the stopped >260s run above;
+this restores the earlier roughly one-minute range, not evidence of overall
+compiler scaling. Native source-type and body-smoke checks pass, including the
+new deferred-depth diagnostic comparison. Evidence: import-grammar-{native,
+browser-checks}.log. Rebased upstream build cleanup through d92b322, without
+conflicts; implementation is now b5ba9f6. The public bootstrap hash is unchanged.
+Rebuilding the release with the changed build recipes, private override unset;
+the focused module-cache runner and candidate self-compilation are in progress.
+
+Those checks passed: the focused parser modules suite exercises fresh ordinary
+trees, immutable declaration sharing, baseline invalidation and live request
+lifetime; the rebuilt native candidate compiles semantic_declarations.tower.
+After the upstream build-recipe rebase, the final browser threading suite passes
+again in 55.316s. The real threaded Wasm reactor also passes the selected shared
+world/demanded-evaluation and entity-stage checks (the unrelated invocation test
+was filtered, not claimed as passing). Source b5ba9f6 is pushed. Its frozen native
+SHA-256 is c60dddf462af54fc50e2365eea4e05444bd4a8d7e11ffc931aae3f2541865dfa;
+project SHA-256 is e6610ca5e2b2500dfe3561bf5b6cab74d1847a3032c8a1f53fd585d6121880d6.
+The complete single/threaded/LLVM/cross build and static bundle pass; edited
+browser generations and hosted publication are pending. Evidence:
+import-grammar-{modules,self,release-build,final-browser,world-checks,bundle}.log.
+
+Next changes, excluded from that frozen release, route array_type(T,N) through
+the existing array query used by bracket spelling. The receipt stores syntax
+operands with explicit type/value roles, including bound generic extents. Workers
+check element/extent and private errors; joined publication alone interns the
+canonical identity. Malformed arity produces an ordered query error without
+reading operands. Primitive constructors still use ordinary semantic/interpreter
+contracts; this adds no separate value evaluator or folding pass. Positive tests
+cover aliases, nested arrays, generic constructors and identity agreement with
+bracket spelling; negatives cover arity, extent and dependency cycles. Small-unit
+preflight passes; focused native types validation is running in array-call logs.
+
+The array-call suite first rejected an invalid test assumption: Tower arrays do
+not copy by value (only defined struct copies do). Replaced those fixture copies
+with pointers of equivalent bracket/call types and indexed element writes. The
+corrected source-type suite passes both interpreters, both target widths,
+1/2/4/8 workers, canonical round trips, constructor errors and dependency cycles.
+Evidence: array-call-{native,fixed}.log. Supported extent expressions remain
+integer literals and bound generic values; general early value execution is a
+separate unresolved dependency/ownership problem, not silently handled by a new
+folding evaluator. Candidate self-compilation is running in array-call-self.log.
+
+b5ba9f6's frozen browser package passed both edited self-build generations with
+identical reactor hashes (import-grammar-generations.log and its workbench).
+Pages commit 19770a6297a6b79d923d26a506314dcf84003015 was pushed and workflow
+44990149611 succeeded. Its manifest preserves prior receipts and records exact
+runtime/project/bootstrap identities. Hosted verification is running; the array
+call changes above remain excluded from this deployment.

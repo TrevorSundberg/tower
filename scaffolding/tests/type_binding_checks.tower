@@ -45,6 +45,9 @@ fn type_binding_tests(modules: void*, root: u8*): void {
     struct_value_reject(modules, "import tower;var A:type=integer_type(24,1);", "Unsupported primitive numeric width");
     struct_value_reject(modules, "import tower;var A:type=integer_type(32,2);", "Integer signedness");
     struct_value_reject(modules, "import tower;var A:type=integer_type(32);", "Wrong argument count");
+    struct_value_reject(modules, "import tower;var A:type=array_type(i32);", "Wrong argument count");
+    struct_value_reject(modules, "import tower;var A:type=array_type(A,1);", "dependency cycle");
+    struct_value_reject(modules, "import tower;var A:type=array_type(i32,missing);", "compile-time integer argument");
     struct_value_reject(modules, "import foundation_syntax;var n:i32;", "Unknown type 'i32'");
 
     // Replace the actual source definition through the tracked module input API.

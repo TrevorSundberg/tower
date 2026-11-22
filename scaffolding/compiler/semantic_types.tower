@@ -19,6 +19,7 @@ import .library.work_graph;
 
 // Semantic compiler over shared Foundation components.
 // Temporary indexes and scratch allocations are scoped to one compilation.
+var ArrayTypeConstructorArity: usize = 2;
 
 // Type bindings have no runtime storage. They reuse declaration dependencies,
 // nominal identities and the existing type-constructor application mechanism.
@@ -357,7 +358,7 @@ fn sem_type_call(c: SemanticContext*, n: void*): FoundationType* {
     if sem_equal(name, "pointer_type") || sem_equal(name, "array_type") {
         var pointer = sem_equal(name, "pointer_type");
         var args = sem_collect(c, sem_member(n, "args"), sem_is(n, "CoreCall") ? "CoreCallArgument" : "CoreTypeArgument");
-        var arity: usize = pointer ? 1 : 2;
+        var arity: usize = pointer ? 1 : ArrayTypeConstructorArity;
         if args.length != arity {
             sem_fail(c, n, "Wrong argument count for type constructor");
             return sem_type_new(c, SI32, 0, null);

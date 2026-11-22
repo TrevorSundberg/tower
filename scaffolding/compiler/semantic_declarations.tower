@@ -54,6 +54,8 @@ struct SemanticDeclaration {
     module_initializer: bool;
     array_type: bool;
     array_ready: bool;
+    array_base: void*;
+    array_count: void*;
     array_element: FoundationType;
     array_length: usize;
     array_result: FoundationType;
@@ -148,6 +150,16 @@ fn sem_array_type_add(c: SemanticContext*, node: void*, parent: SemanticDeclarat
     var result = sem_declaration_state(c, node);
     if result.query != 0 { sem_require(result.array_type); return result; }
     result.array_type = true;
+    result.array_base = sem_member(node, "base");
+    result.array_count = sem_array_count(node);
+    if result.array_base == null {
+        var arguments = sem_collect(c, sem_member(node, "args"),
+            sem_is(node, "CoreCall") ? "CoreCallArgument" : "CoreTypeArgument");
+        if arguments.length == ArrayTypeConstructorArity {
+            result.array_base = arguments.data[0];
+            result.array_count = arguments.data[1];
+        }
+    }
     result.construction_owner = parent.construction_owner ?? parent;
     sem_require(result.construction_owner != null);
     result.scope = parent.scope;
@@ -158,8 +170,15 @@ fn sem_array_type_add(c: SemanticContext*, node: void*, parent: SemanticDeclarat
 }
 
 fn sem_array_type_check(c: SemanticContext*, result: SemanticDeclaration*): void {
-    result.array_element = *sem_type(c, sem_member(result.subject, "base"));
-    if sem_ok(c) { result.array_length = sem_array_length(c, result.subject, &result.array_element); }
+    if result.array_base == null || result.array_count == null {
+        sem_fail(c, result.subject, "Wrong argument count for type constructor");
+        return;
+    }
+    result.array_element = *sem_type(c, result.array_base);
+    if sem_ok(c) {
+        result.array_length = sem_array_length_value(c, result.subject, &result.array_element,
+            sem_constant_value(c, result.array_count, null));
+    }
 }
 
 fn sem_declaration_scan_push(scan: vector(DeclarationScan)*, node: void*, type: bool): void {
@@ -174,8 +193,8 @@ fn sem_declaration_roots(c: SemanticContext*, result: SemanticDeclaration*, scan
     var subject = result.subject;
     if result.constructor != null { sem_constructor_roots(c, result, scan); return; }
     if result.array_type {
-        sem_declaration_scan_push(scan, sem_member(subject, "base"), true);
-        sem_declaration_scan_push(scan, sem_array_count(subject), false);
+        sem_declaration_scan_push(scan, result.array_base, true);
+        sem_declaration_scan_push(scan, result.array_count, false);
         return;
     }
     if sem_type_binding(c, subject) {
@@ -432,7 +451,7 @@ fn sem_declaration_waiting(c: SemanticContext*, result: SemanticDeclaration*, la
         scan.length--;
         var node = scan.data[scan.length].node;
         var type = scan.data[scan.length].type;
-        if type && (sem_array_syntax(node) || sem_constructor_syntax(c, node)) {
+        if type && sem_type_query_syntax(c, node) {
             var query = sem_declaration_query(c, node);
             if query != 0 && query != result.query {
                 // The call continuation consumes these receipts in source
@@ -542,7 +561,7 @@ fn sem_declaration_dependencies(c: SemanticContext*, subject: void*, result: Sem
         scan.length--;
         var node = scan.data[scan.length].node;
         var type = scan.data[scan.length].type;
-        if type && (sem_array_syntax(node) || sem_constructor_syntax(c, node)) {
+        if type && sem_type_query_syntax(c, node) {
             var query = sem_declaration_query(c, node);
             if query != 0 && query != result.query {
                 sem_declaration_input(result, query);
@@ -846,9 +865,8 @@ fn sem_declaration_syntax(c: SemanticContext*, annotation: void*, nodes: vector(
             var name = sem_identifier(c, name_node);
             if sem_type_representation_name(name) && !sem_equal(name, "array_type") {
                 // Scalar representations and pointer wrappers create only
-                // private type descriptions. Array identities still require
-                // the coordinator's interner until their call spelling has a
-                // prepared array receipt, just like bracket spelling.
+                // private type descriptions. Both array spellings require a
+                // prepared receipt; only publication uses the shared interner.
                 staged = true;
                 var arguments = sem_collect(c, sem_member(node, "args"),
                     sem_is(node, "CoreCall") ? "CoreCallArgument" : "CoreTypeArgument");
@@ -919,8 +937,11 @@ fn sem_declaration_worker(c: SemanticContext*, result: SemanticDeclaration*): bo
         return sem_declaration_syntax(c, sem_member(subject, "value"), &result.nodes, true, true);
     }
     if result.array_type {
-        return sem_declaration_syntax(c, sem_member(subject, "base"), &result.nodes, true, true)
-            && sem_declaration_syntax(c, sem_array_count(subject), &result.nodes, true, false);
+        // Invalid arity is diagnosed by the query in source order; it reads no
+        // operand and only writes its private error receipt.
+        if result.array_base == null || result.array_count == null { return true; }
+        return sem_declaration_syntax(c, result.array_base, &result.nodes, true, true)
+            && sem_declaration_syntax(c, result.array_count, &result.nodes, true, false);
     }
     if result.expression {
         if result.expression_mode == SemanticExpressionMode.AssignmentTarget {
@@ -1267,7 +1288,7 @@ fn sem_declaration_calls(c: SemanticContext*, result: SemanticDeclaration*): voi
             result.calls.length++;
             continue;
         }
-        if entry.type && (sem_array_syntax(node) || sem_constructor_syntax(c, node)) {
+        if entry.type && sem_type_query_syntax(c, node) {
             // The child query owns its element/count dependencies. The parent
             // resumes with its canonical identity, without checking it twice.
             sem_declaration_call_push(&scan, node, true, entry.unevaluated, true, entry.evaluation_depth);
@@ -1311,7 +1332,9 @@ fn sem_declaration_calls(c: SemanticContext*, result: SemanticDeclaration*): voi
 }
 
 fn sem_type_query_add(c: SemanticContext*, node: void*, parent: SemanticDeclaration*): SemanticDeclaration* {
-    if sem_array_syntax(node) { return sem_array_type_add(c, node, parent); }
+    if sem_array_syntax(node) || sem_equal(sem_identifier(c, sem_member(node, "name")), "array_type") {
+        return sem_array_type_add(c, node, parent);
+    }
     return sem_constructor_add(c, node, parent);
 }
 
