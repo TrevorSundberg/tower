@@ -1264,5 +1264,45 @@
                                               "ms":  48792.8552
                                           },
                           "benchmark":  "Three alternating tiny one-worker process links: Tower below 0.01s timer resolution, 1920-1924KiB RSS; LLD 0.01s each, 28632-28908KiB. No general throughput or parallel-speedup claim."
-                      }
+                      },
+    "objectRuleToolingMigration":  {
+                                       "sourceCommits":  [
+                                                             "0ab812b96ea4dc00b8b7f0139c68a66b06f2ebe1",
+                                                             "3029c6dcb6ea652e2ffd28fcb9a70e04817d9d35"
+                                                         ],
+                                       "validationCommit":  "d10a97f1271ea249cf70a0516c59bd9f7e4eaa3f",
+                                       "implementation":  "Remove repeated plain Tower object compilation commands across fourteen CMake fragments; reuse the existing compiler depfile rule. Retain generated-input prerequisites, object identities, platform profiles and ownership. Driver tests explicitly depend on their optional runtime ABI executable.",
+                                       "cmake":  {
+                                                     "files":  39,
+                                                     "beforeLines":  1783,
+                                                     "afterLines":  1603,
+                                                     "baselineLines":  2594,
+                                                     "removedThisBatch":  180,
+                                                     "removedFromBaseline":  991
+                                                 },
+                                       "inventory":  {
+                                                         "pythonFiles":  0,
+                                                         "ownedNativeFiles":  0,
+                                                         "shellFiles":  9,
+                                                         "shellLines":  230,
+                                                         "javascriptFiles":  186,
+                                                         "javascriptLines":  24368
+                                                     },
+                                       "validation":  {
+                                                          "publicBootstrapSha256":  "6022aa2bdfc838ead9dd9507bea004b78568997f3a468f916a9bfa4310a0680a",
+                                                          "cleanNative":  "PASS: fresh 48-step documented default public-bootstrap successor after final 89151aa integration; private override unset",
+                                                          "nativeCompilerSha256":  "6d0f5dc9eca601dd43cf02f308885ed48918b2ea764ce09379b88ef911b6cab7",
+                                                          "finalFocused":  "PASS: type-smoke and control-smoke serial/worker execution, canonical reparse, cleanup, ordered diagnostics/failures/cycles; updated backend API",
+                                                          "finalRuntimeSmoke":  "PASS: interpreted32/64, native and actual Wasm memory execution",
+                                                          "equivalence":  "PASS before ELF/iteration integrations:42 object files and5 executables match baseline bytes across native/core/WASI/browser profiles",
+                                                          "nativeCore":  "PASS15/15 on baseline and candidate before integrations",
+                                                          "nativeFixtures":  "PASS9 allocator/runtime/real-worker/registry-once/instrumented/driver-request checks before integrations",
+                                                          "wasi":  "PASS full check_core wasi pipeline, parser/interpreter156 graph-fast trials, both-width semantic oracles and package/round-trip contracts; additional allocator/runtime ABI/formatter/UTF8/lexer/entity fixtures pass before integrations",
+                                                          "browser":  "PASS3/3 real-overlap, failure-transport and1/2/4/8-worker determinism checks plus IDE fixture before integrations",
+                                                          "dependencies":  "PASS: touching mt19937, ide_state and driver_support rebuilds requested dependent objects with identical bytes; next lexer build is a no-op",
+                                                          "optionalFixture":  "PASS after ELF integration: driver/request/runtime ABI checks. Removing only the generated runtime ABI executable then building only driver-tests restores it in one link step; runtime ABI test passes and compiler hash is unchanged",
+                                                          "knownFailure":  "Existing frontend fixture abort reproduces on baseline/candidate before integrations: formatted Bedrock rejected during frontend_session_world baseline installation. Byte-identical frontend objects; reported separately, not counted as passing.",
+                                                          "limits":  "Broader comparisons, WASI and browser checks retain their recorded pre-integration source scope. Final native focused checks cover the merged compiler. No new portable bootstrap pin or full browser self-generation claim; manifest-only receipt preserves all104 published assets and ELF runtime identity."
+                                                      }
+                                   }
 }
