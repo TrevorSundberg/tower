@@ -44054,3 +44054,28 @@ workflow tests native execution, allocation, indirect foreign calls, a 64 KiB
 frame and backtrace unwinding, plus strict signature verification. This candidate
 does not yet replace production lldMachO; macOS execution and publication are
 still pending, and no speedup or complete migration is claimed at this point.
+
+Worker fixture source bca0b1a is pushed. Pages
+697b6e6e739522e2c5290647ac2433687ba9ab95 workflow 45033775839 succeeded;
+hosted manifest bytes match SHA256
+fd4e024025f176e33b759f6048176d396ce4f1501392f8d33b8271372e71d84a.
+Runtime source 23b919ef, all 104 asset entries and prior receipts are preserved.
+The publication lock is released. This documentation receipt reuses those assets.
+
+Final receipt rebase integrated upstream a723e86 (isolated Mach-O services plus
+BSD support in the shared archive reader). The source guard correctly stopped
+publication of the validation record until this integration was checked. Freeze
+3ffce3b in /cache/worker_fixture_rebased and build a new successor through
+build-native.sh with TOWER_BOOTSTRAP_COMPILER unset and
+TOWER_NATIVE_BUILD=/cache/worker_fixture_rebased_native. All 48 build steps and
+the rebuilt backend API suite pass. Successor SHA256:
+7a657c75f5fac16972e15e46ced670d0da64dedc540f66a0a9b9b70aa1ce8bee.
+Compile wasm_link_reader.tower and host/work_linux.tower, host/work_dispatch.tower
+with that compiler, explicit frozen Foundation/Bedrock and --library. Link with
+the freshly built guest-host-library.o, Clang 19, -pthread -ldl and
+-Wl,--export-dynamic-symbol=work_thread_entry. Reader/world/archive checks pass,
+including observed real-worker relocation overlap. Logs:
+build/worker_fixture_rebased_{build,backend_build,archive}.log. Unchanged frontend
+and published browser fixture evidence is reused. The upstream Mach-O candidate
+is not connected to production; its platform execution remains the owner's work.
+This integration check does not replace the hosted 23b919ef runtime assets.
