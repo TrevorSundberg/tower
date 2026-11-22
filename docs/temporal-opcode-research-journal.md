@@ -48104,3 +48104,17 @@ unaffected in its independent clone and retains the host slot; D2 starts no
 heavy job. The next measured staged-workload comparison uses preserved5d4 as
 predecessor, so memory/CPU growth from this newer capture source is visible
 instead of relabeling the prior constant-body profiles.
+
+Correction to de2c8ca source-proof receipt: the full fixture copy was initially
+placed at compiler/semantic_source_proof_checks.tower, an untracked wrong path,
+while the existing query caller imports tests/semantic_source_proof_checks.tower.
+Thus the earlier statement that the tracked fixture already matched41454429 was
+incorrect. Git status exposed the error before any compiler/build ran. Moved
+that accidental untracked copy into the external D2 coordination directory for
+provenance, then reviewed the actual old847bba9e→new41454429diff and updated only
+the existing tests path. No duplicate production/test implementation remains.
+The real delta adds original-root retention, generic extension and joined-output
+invalidation cases. Its injected mutation tests the publication boundary, not
+actual late-generic alias-write discovery; the end-to-end gap stays explicit.
+Existing query-smoke hook already calls this fixture; next run must compile the
+changed tests path. No previous source-proof success has been relabeled.
