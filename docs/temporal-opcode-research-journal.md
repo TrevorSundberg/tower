@@ -40327,7 +40327,7 @@ Documentation now names the Tower membership roots and the retained one-import
 selectors precisely. Historical bootstrap provenance remains intact. No
 todo.txt edit, compiler semantics change, new dependency or unpublished syntax.
 
-Both edited browser generations pass at worker counts 2 and 4 (51.0 and 40.9
+Both edited browser generations pass at worker counts 2 and 4 (51.0 and 44.7
 seconds), including the changed diagnostic. Sizes/hashes match each other and
 the preceding fixed-root milestone: Tower 1204517/1c438ff004141dd6, LLVM
 52706143/6e19227a90abe0c1, cross 64263424/627dfb65b44170d0. These frozen
@@ -40346,3 +40346,12 @@ changed. Preserve published fffdc85 runtime identity, all 89 assets and the new
 ecsHeaderStream receipt during tooling publication. The remaining ComposeBackend
 contains actual upstream target-list discovery and platform selection; audit its
 callers and separate removable fixed membership from required behavior next.
+
+Publication verified: implementation 2588af2 and validation e61eb68 are pushed.
+Pages 86042e3c59fe3ee5ab97dd369a6ad5b71bfbda75/action 44978229448 succeeds.
+The exact hosted manifest SHA256 is
+5a5c4829cbddea928e02e0590a10cded3a3b93769d33637e2a3e83ee84268740.
+Runtime fffdc85/all 89 assets and every prior receipt, including ecsHeaderStream,
+are preserved. The initial hosted check observed the preceding manifest while
+Actions was still deploying; recheck after completion matches exact bytes.
+No runtime asset replacement or portable-release claim accompanies this receipt.
