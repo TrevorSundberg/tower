@@ -1,5 +1,7 @@
 import tower;
 import .backend.source_session;
+import .backend.session;
+import .backend.linker;
 import .compiler.syntax_version_types;
 
 extern fn compiler_world_create_workers(limit: usize): void*;
@@ -89,6 +91,8 @@ fn backend_source_test_has(text: u8*, wanted: u8*): bool {
 }
 
 export fn backend_source_tests(): i32 {
+    var link_failure: i32 = 16;
+    if !backend_source_link_tests() { return link_failure; }
     var left = backend_source_create(backend_worker_runtime(), backend_worker_runtime_size());
     var right = backend_source_create(backend_worker_runtime(), backend_worker_runtime_size());
     if left == null || right == null {
@@ -165,4 +169,31 @@ export fn backend_source_tests(): i32 {
     backend_source_close(right);
     backend_source_close(null);
     return failure;
+}
+
+fn backend_source_link_tests(): bool {
+    var source = backend_source_create(backend_worker_runtime(), backend_worker_runtime_size());
+    if source == null { return false; }
+    defer backend_source_close(source);
+    var text = "extern fn imported(value:i32):i32;export fn public_answer():i32{return imported(42);}print(public_answer());";
+    var generated_inputs: usize = 3;
+    var wasm_header_bytes: usize = 8;
+    for (var optimize: usize = 0; optimize < 2; optimize++) {
+        var flags: u32 = optimize == 0 ? BackendSourceUnoptimized : 0;
+        var result = backend_source_compile(source, text, strlen(text), flags, null, null);
+        var link = source.backend.linker;
+        if !backend_source_test_has(result, "\"status\":\"compiled\"") || link.file_plan
+            || link.generated.length != generated_inputs || link.output.length < wasm_header_bytes
+            || !backend_source_test_has(link.generated.data[2].bytes.data, "imported") { return false; }
+        var malformed: u8 = 0;
+        if !backend_link_add_input(link, "broken.o", &malformed, sizeof(u8)) { return false; }
+        result = backend_source_compile(source, text, strlen(text), flags, null, null);
+        if !backend_source_test_has(result, "broken.o") || link.output.length != 0 { return false; }
+        backend_link_clear_inputs(link);
+        result = backend_source_compile(source, text, strlen(text), flags, null, null);
+        if !backend_source_test_has(result, "\"status\":\"compiled\"") || link.output.length < wasm_header_bytes { return false; }
+        backend_session_reset(source.backend);
+        if link.generated.length != 0 || link.output.length != 0 || link.error.length != 0 { return false; }
+    }
+    return true;
 }

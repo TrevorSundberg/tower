@@ -18,15 +18,6 @@ extern fn `cpp_name(std::__2::error_category const& std::__2::generic_category()
 
 extern fn _Exit(status: i32): void;
 
-extern fn `cpp_name(__real; static llvm::Expected<llvm::FileOutputBuffer> llvm::FileOutputBuffer::create(llvm::StringRef, unsigned long, unsigned int))`(result: void*, path: void*, size: usize, flags: u32): void;
-
-// Select the upstream no-mmap implementation before it creates a temporary file
-// and tries the unsupported WASI mapping. The result and StringRef stay opaque.
-export fn `cpp_name(__wrap; static llvm::Expected<llvm::FileOutputBuffer> llvm::FileOutputBuffer::create(llvm::StringRef, unsigned long, unsigned int))`(result: void*, path: void*, size: usize, flags: u32): void {
-    var memory_flags = flags | 2;
-    `cpp_name(__real; static llvm::Expected<llvm::FileOutputBuffer> llvm::FileOutputBuffer::create(llvm::StringRef, unsigned long, unsigned int))`(result, path, size, memory_flags);
-}
-
 export fn `cpp_name(static llvm::CrashRecoveryContext* llvm::CrashRecoveryContext::GetCurrent())`(): void* {
     return null;
 }

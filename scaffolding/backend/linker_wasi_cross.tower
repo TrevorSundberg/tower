@@ -1,6 +1,28 @@
 import tower;
+import link_types;
+import .library.vector;
 import linker_wasi;
+import linker;
 import text;
+
+// Remaining native-format LLD ABI. Wasm uses the Tower byte linker in both
+// reactor profiles; these streams/context calls are never needed for it.
+struct BackendLldArguments { data: u8**; count: usize; }
+struct BackendLldStream { opaque: u64[8]; }
+
+extern fn `cpp_name(__real; static llvm::Expected<llvm::FileOutputBuffer> llvm::FileOutputBuffer::create(llvm::StringRef, unsigned long, unsigned int))`(result: void*, path: void*, size: usize, flags: u32): void;
+
+// Only native-format LLD needs FileOutputBuffer. Do not keep its exported wrap
+// in the Wasm-only reactor after removing the library that supplies __real.
+export fn `cpp_name(__wrap; static llvm::Expected<llvm::FileOutputBuffer> llvm::FileOutputBuffer::create(llvm::StringRef, unsigned long, unsigned int))`(result: void*, path: void*, size: usize, flags: u32): void {
+    var no_mmap: u32 = 2;
+    `cpp_name(__real; static llvm::Expected<llvm::FileOutputBuffer> llvm::FileOutputBuffer::create(llvm::StringRef, unsigned long, unsigned int))`(result, path, size, flags | no_mmap);
+}
+
+extern fn `cpp_name(ctor(base) llvm::raw_fd_ostream(int, bool, bool, llvm::raw_ostream::OStreamKind))`(self: BackendLldStream*, fd: i32, close: bool, unbuffered: bool, kind: u32): void*;
+extern fn `cpp_name(dtor(base) llvm::raw_fd_ostream())`(self: BackendLldStream*): void*;
+extern fn `cpp_name(static void lld::CommonLinkerContext::destroy())`(): void;
+extern fn `cpp_name(llvm::raw_ostream& llvm::nulls())`(): BackendLldStream*;
 
 extern fn `cpp_name(bool lld::elf::link(llvm::ArrayRef<char const*>, llvm::raw_ostream&, llvm::raw_ostream&, bool, bool))`(args: BackendLldArguments*, output: BackendLldStream*, error: BackendLldStream*, exit_early: bool, disable_output: bool): bool;
 
@@ -8,10 +30,7 @@ extern fn `cpp_name(bool lld::coff::link(llvm::ArrayRef<char const*>, llvm::raw_
 
 extern fn `cpp_name(bool lld::macho::link(llvm::ArrayRef<char const*>, llvm::raw_ostream&, llvm::raw_ostream&, bool, bool))`(args: BackendLldArguments*, output: BackendLldStream*, error: BackendLldStream*, exit_early: bool, disable_output: bool): bool;
 
-export fn backend_lld_dispatch(triple: u8*, args: BackendLldArguments*, output: BackendLldStream*, error: BackendLldStream*): bool {
-    if backend_prefix(triple, "wasm") {
-        return `cpp_name(bool lld::wasm::link(llvm::ArrayRef<char const*>, llvm::raw_ostream&, llvm::raw_ostream&, bool, bool))`(args, output, error, false, false);
-    }
+fn backend_lld_dispatch(triple: u8*, args: BackendLldArguments*, output: BackendLldStream*, error: BackendLldStream*): bool {
     if backend_contains(triple, "windows") {
         return `cpp_name(bool lld::coff::link(llvm::ArrayRef<char const*>, llvm::raw_ostream&, llvm::raw_ostream&, bool, bool))`(args, output, error, false, false);
     }
@@ -19,4 +38,28 @@ export fn backend_lld_dispatch(triple: u8*, args: BackendLldArguments*, output: 
         return `cpp_name(bool lld::macho::link(llvm::ArrayRef<char const*>, llvm::raw_ostream&, llvm::raw_ostream&, bool, bool))`(args, output, error, false, false);
     }
     return `cpp_name(bool lld::elf::link(llvm::ArrayRef<char const*>, llvm::raw_ostream&, llvm::raw_ostream&, bool, bool))`(args, output, error, false, false);
+}
+
+export fn backend_link_wasi(link: BackendLink*, triple: u8*): bool {
+    link.output.length = 0;
+    if link.error.length != 0 { return false; }
+    if backend_prefix(triple, "wasm") { return backend_link_tower_wasm(link); }
+    var error_file = fopen("tower-link.stderr", "wb");
+    if error_file == null { backend_text(&link.error, "Cannot open linker diagnostics"); return false; }
+    var error: BackendLldStream;
+    `cpp_name(ctor(base) llvm::raw_fd_ostream(int, bool, bool, llvm::raw_ostream::OStreamKind))`(&error, fileno(error_file), false, true, 0);
+    var args: BackendLldArguments = { data: link.arguments.data, count: link.arguments.length };
+    var linked = backend_lld_dispatch(triple, &args, `cpp_name(llvm::raw_ostream& llvm::nulls())`(), &error);
+    `cpp_name(static void lld::CommonLinkerContext::destroy())`();
+    `cpp_name(dtor(base) llvm::raw_fd_ostream())`(&error);
+    fclose(error_file);
+    if !linked {
+        backend_text(&link.error, "Link failed: ");
+        var diagnostics: vector(u8) = default;
+        backend_read_file(&diagnostics, "tower-link.stderr");
+        backend_text_append(&link.error, diagnostics.data, diagnostics.length);
+        vector_dispose(&diagnostics);
+    }
+    remove("tower-link.stderr");
+    return linked && backend_link_read_output(link);
 }

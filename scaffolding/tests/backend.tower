@@ -21,7 +21,32 @@ fn backend_test_target(triple: u8*, width: u32): bool {
     return ok;
 }
 
+fn backend_test_wasm_plan(): bool {
+    var link = backend_link_create();
+    if link == null { return false; }
+    defer backend_link_close(link);
+    var object: u8[2] = default;
+    var runtime: u8[2] = default;
+    object[0] = 42; runtime[0] = 99;
+    if !backend_link_add_input(link, "library.o", &object[0], sizeof(u8[2]))
+        || !backend_link_plan(link, "wasm32-unknown-unknown", null, 0, &object[0], sizeof(u8[2]), &runtime[0], sizeof(u8[2])) { return false; }
+    var generated_inputs: usize = 3;
+    if link.file_plan || link.generated.length != generated_inputs || link.inputs.length != 1
+        || !backend_equal(link.arguments.data[0], "tower-wasm-ld") { return false; }
+    object[0] = 1; runtime[0] = 2;
+    if link.generated.data[0].bytes.data[0] != 42 || link.generated.data[1].bytes.data[0] != 99
+        || !backend_contains(link.generated.data[2].bytes.data, "tower_trap") { return false; }
+    backend_link_reset_plan(link);
+    if link.generated.length != 0 || link.arguments.length != 0 || link.inputs.length != 1 { return false; }
+    if backend_link_plan(link, "wasm32-unknown-unknown", null, 0, null, 1, &runtime[0], sizeof(u8[2]))
+        || link.error.length == 0 || link.output.length != 0 { return false; }
+    return backend_link_plan(link, "wasm32-unknown-unknown", null, 0, &object[0], sizeof(u8[2]), &runtime[0], sizeof(u8[2]))
+        && link.error.length == 0 && link.generated.length == generated_inputs && link.generated.data[0].bytes.data[0] == 1;
+}
+
 export fn backend_tests(): i32 {
+    var plan_failure: i32 = 91;
+    if !backend_test_wasm_plan() { return plan_failure; }
     var foreign_failures = foreign_tests();
     if foreign_failures != 0 {
         return 90;

@@ -103,7 +103,7 @@ fn driver_test_policies(): void {
     link.wasm = true;
     driver_arguments_init(&args);
     driver_link_arguments(link, &args);
-    driver_check_argument(&args, 0, "wasm-ld-19");
+    driver_check_argument(&args, 0, "tower-wasm-ld");
     driver_check_argument(&args, 4, "--allow-undefined-file=allowed.txt");
     driver_check_argument(&args, 11, "--export=hello");
     driver_check_argument(&args, 12, "external lib.o");

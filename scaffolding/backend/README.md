@@ -1,7 +1,8 @@
 # Tower backend API
 
 The graph backend consumes existing validated Foundation entities through
-`sem_get`. LLVM/lld remain upstream dependencies. The Tower source service in
+`sem_get`. LLVM remains upstream; LLD is retained for native ELF/COFF/Mach-O
+linking. Wasm linking is Tower. The Tower source service in
 `source_session.tower` calls the existing frontend and formatter on these same
 entities; it does not define another semantic representation. The browser worker
 exports live in `host/llvm_worker.tower`. The native LLVM engine/worker adapters
@@ -130,15 +131,17 @@ to 2 MiB. The data is platform output, never Tower program interchange.
 
 ## Linking and backend service
 
-The experimental static Wasm implementation is Tower code in `wasm_link.tower`.
+The production static Wasm implementation is Tower code in `wasm_link.tower`.
 It consumes platform object/archive records on per-request ECS components and
 borrows immutable input bytes until close. `wasm_link_plan` accepts argument/input
 byte spans; `backend_link_tower_wasm` adapts ordinary `BackendLink` storage without
-files or a native linker. Reactor recipes explicitly select this path by naming
-`tower-wasm-ld` in argument zero. Unsupported options fail without fallback.
+files or a native linker. Ordinary Wasm sessions, native CLI Wasm output and
+reactor self-build recipes use it by default. Recipes name `tower-wasm-ld`;
+the historical `wasm-ld` argument zero is also accepted by the byte service.
+Unsupported options fail without fallback.
 Two edited browser self-build generations pass with both whole and lazy archives,
 including identical successor bytes across two/four compilation workers. The
-default upstream path below is retained while compatibility coverage expands.
+native-format upstream path below remains until its Tower replacements land.
 See [linker checks](../tests/README.md) for supported
 profiles and executable fixtures. Link requests are single use; the BackendLink
 adapter creates a fresh world for each invocation. Finish or join readers before
@@ -209,18 +212,24 @@ layout and lifetime rules. No private replacement entity store is introduced.
 `backend_link_create`, `backend_link_add_input`, `backend_link_clear_inputs` and
 `backend_link_close` own link-input storage. `backend_link_plan` receives the
 target, shared function index, emitted object and target runtime object. It
-prepares deterministic input files and the upstream linker argument vector.
+prepares deterministic arguments and, for Wasm, owns copies of generated object,
+runtime and allowed-import bytes separately from caller inputs. Reset/close frees
+the generated plan; caller inputs persist until cleared or closed. A failed
+request exposes no previous output. Clear/reset its error before retrying the
+direct byte service. Wasm planning and linking perform no filesystem operations.
 `backend_link_arguments` and `backend_link_argument_count` expose that vector.
 Native package hosts execute the corresponding bundled upstream linker, then
 call `backend_link_read_output`. Process creation, package discovery and CLI
 options belong to the host owner; the backend does not call a shell.
 
-WASI uses `backend_link_wasi` to invoke the upstream library in the same worker.
+For Wasm, `backend_link_wasi` selects the Tower byte service. The Wasm-only
+reactor links no LLD library. For native formats, the cross reactor invokes the
+upstream library in the same worker and prepares deterministic temporary files.
 It captures linker diagnostics, destroys the upstream linker context after every
 invocation, and reads the linked output. Failed invocations cannot return stale
 bytes. Inputs retain deterministic lexical ordering and the existing filename,
 size and count limits. Use one active link operation per filesystem namespace;
-parallel workers/processes must have separate namespaces.
+parallel native-link workers/processes must have separate namespaces.
 
 `BackendSession` composes object generation, linking, disassembly and owned JSON
 results for the existing worker protocol. Create with borrowed runtime-object

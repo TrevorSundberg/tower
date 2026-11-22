@@ -391,8 +391,7 @@ export fn backend_session_compile(s: BackendSession*, root: void*, functions: vo
     }
     if !s.object_only {
         ok = backend_link_plan(s.linker, s.target.data, functions, count, backend_bytes(s.backend), backend_size(s.backend), s.runtime, s.runtime_size);
-        // Match the existing measurement boundary: argument/file preparation
-        // precedes the upstream linker invocation. Wall time includes both.
+        // Argument/input preparation precedes linking. Wall time includes both.
         started = backend_session_clock();
         ok &&= backend_link_wasi(s.linker, s.target.data);
         failed = !ok;

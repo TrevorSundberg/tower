@@ -513,7 +513,7 @@ modules, the program is shared as canonical foundation text and resolved with th
 same foundation grammar, node schema and verifier. The `.towerbc` envelope pairs
 this text with a verified, versioned execution cache; it introduces no separate
 semantic IR. LLVM lowers ordinary locals to entry allocas, runs
-SROA/mem2reg plus O2, verifies the LLVM IR, emits an object and links it with LLD.
+SROA/mem2reg plus O2, verifies the LLVM IR, emits an object and links it with Tower.
 Address-taken locals remain ordinary allocas; typed raw pointers lower to LLVM ptr.
 No language exceptions or user phi nodes.
 Dispatch canonicalization and incremental compilation remain future work.
@@ -839,7 +839,9 @@ exposed by buffer growth on LLVM 19). This does not disable IR verification:
 ## LLVM module
 
 `bash playground/scripts/build-llvm.sh` builds native `llvm-tblgen` from the
-repository's LLVM revision, then cross-compiles the Tower LLVM backend and LLD to `build/browser-wasi-llvm/tower-llvm.wasm`. This is a considerably
+repository's LLVM revision, then cross-compiles the Tower LLVM backend to
+`build/browser-wasi-llvm/tower-llvm.wasm`. Wasm linking is Tower; this reactor
+has no LLD library dependency. This is a considerably
 larger build. Run `npm run build` afterward to include it in `dist/`.
 
 The script keeps a revision-pinned snapshot of a clean LLVM checkout and its
@@ -862,7 +864,7 @@ files, standard streams, clocks and entropy. It replaces the external browser
 shim. It implements our modules' import subset, not a general WASI runtime or
 OS. No host filesystem/network/environment access is exposed to WASM. Unsupported
 operations fail. Files are limited to 64 MiB apiece. Tower's WASI backend integration also
-provides LLD a heap-backed output buffer (WASI has no mmap) and substitutes worker
+provides the remaining native-format LLD path a heap-backed output buffer (WASI has no mmap) and substitutes worker
 termination for unavailable signal-based crash recovery.
 
 The parser module is approximately 3.9 MiB before HTTP compression. LLVM is a
@@ -1160,8 +1162,6 @@ chunks target 24 MiB of object payload and must fit the 64 MiB input envelope.
 The fixed-Huffman encoder can produce larger downloads than the retired Python
 compressor. Python remains an upstream LLVM build requirement only.
 
-The pinned LLVM 20 LLD needs the guarded Tower `prepare_llvm` backport to link
-WASI SDK 34 libc's `__wasm_first_page_end` reference. It uses LLVM's existing
-64 KiB page constant and only affects non-PIC links. The full build applies it
-to cached third-party source before rebuilding LLD. Review/remove it with an
-LLVM upgrade; the source checkout's submodule remains unchanged.
+Tower's Wasm linker handles WASI SDK 34 libc's `__wasm_first_page_end` reference.
+The old LLD Wasm backport and its source patcher are retired. `prepare_llvm` now
+only normalizes/restores the upstream configuration scripts needed by the build.

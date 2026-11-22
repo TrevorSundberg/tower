@@ -26,7 +26,7 @@ export fn _start(): void {
     utility_check(link != null, "reactor request allocation");
     defer backend_link_close(link);
     utility_check(backend_link_add_input(link, "fixture.o", fixture.data, fixture.length), "reactor input capability");
-    backend_reactor_argument(link, "tower-wasm-ld");
+    backend_reactor_argument(link, "wasm-ld");
     backend_reactor_argument(link, "--no-entry");
     backend_reactor_argument(link, "--export=answer");
     backend_reactor_argument(link, "fixture.o");
@@ -39,9 +39,9 @@ export fn _start(): void {
     if output_file != null { fclose(output_file); }
     // A successful invocation followed by an unsupported profile must not use
     // upstream LLD implicitly or retain its previous artifact.
-    backend_reactor_argument(link, "--shared-memory");
+    backend_reactor_argument(link, "--relocatable");
     utility_check(!backend_reactor_link(link) && link.output.length == 0
-        && backend_contains(link.error.data, "--shared-memory"), "explicit Tower route never falls back");
+        && backend_contains(link.error.data, "--relocatable"), "default Tower route never falls back");
     free(link.arguments.data[--link.arguments.length]);
     link.error.length = 0;
     utility_check(backend_reactor_link(link) && link.error.length == 0

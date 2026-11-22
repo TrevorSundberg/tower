@@ -1,5 +1,6 @@
 import tower;
 import link_types;
+import link_inputs;
 import coff_import;
 import context;
 import file_api;
@@ -34,8 +35,15 @@ fn backend_link_argument(link: BackendLink*, prefix: u8*, value: u8*): void {
 }
 
 export fn backend_link_reset_plan(link: BackendLink*): void {
-    remove("tower-stack-probe.lib");
-    remove("tower-platform.tbd");
+    if link.file_plan {
+        remove("tower-input.o");
+        remove("tower-output.bin");
+        remove("tower-stack-probe.lib");
+        remove("tower-platform.tbd");
+        foreach (var & input in &link.inputs) { remove(input.name.data); }
+    }
+    link.file_plan = false;
+    backend_link_inputs_release(&link.generated);
     foreach(var & argument in &link.arguments) {
         free(*argument);
     }
@@ -45,12 +53,8 @@ export fn backend_link_reset_plan(link: BackendLink*): void {
 }
 
 export fn backend_link_clear_inputs(link: BackendLink*): void {
-    foreach(var & input in &link.inputs) {
-        remove(input.name.data);
-        vector_dispose(&input.name);
-        vector_dispose(&input.bytes);
-    }
-    link.inputs.length = 0;
+    if link.file_plan { foreach (var & input in &link.inputs) { remove(input.name.data); } }
+    backend_link_inputs_release(&link.inputs);
 }
 
 export fn backend_link_close(link: BackendLink*): void {
@@ -61,6 +65,7 @@ export fn backend_link_close(link: BackendLink*): void {
     backend_link_clear_inputs(link);
     vector_dispose(&link.arguments);
     vector_dispose(&link.inputs);
+    vector_dispose(&link.generated);
     vector_dispose(&link.error);
     vector_dispose(&link.output);
     free(link);
@@ -165,6 +170,13 @@ export fn backend_link_add_input(link: BackendLink*, name: u8*, data: u8*, lengt
     return complete;
 }
 
+fn backend_link_generated(link: BackendLink*, name: u8*, data: u8*, length: usize): bool {
+    if backend_link_input_store(&link.generated, name, data, length) { return true; }
+    backend_text(&link.error, "Cannot retain linker input: ");
+    backend_text(&link.error, name);
+    return false;
+}
+
 fn backend_write_file(link: BackendLink*, path: u8*, data: u8*, length: usize): bool {
     var file = fopen(path, "wb");
     if file == null {
@@ -216,22 +228,13 @@ fn backend_read_file(output: vector(u8)*, path: u8*): bool {
 
 export fn backend_link_plan(link: BackendLink*, triple: u8*, functions: void**, count: usize, object: u8*, object_size: usize, runtime: u8*, runtime_size: usize): bool {
     backend_link_reset_plan(link);
-    // A failed invocation cannot expose output left by a prior request.
-    remove("tower-output.bin");
-    var ok = backend_write_file(link, "tower-input.o", object, object_size);
-    var failed = !ok;
-    if failed {
-        return false;
-    }
     var wasm = backend_prefix(triple, "wasm");
     var windows = backend_contains(triple, "windows");
     var mac = backend_contains(triple, "apple");
+    var ok = true;
     if wasm {
-        ok = backend_write_file(link, "tower-runtime.o", runtime, runtime_size);
-        failed = !ok;
-        if failed {
-            return false;
-        }
+        if !backend_link_generated(link, "tower-input.o", object, object_size)
+            || !backend_link_generated(link, "tower-runtime.o", runtime, runtime_size) { return false; }
         var allowed: vector(u8);
         vector_init(&allowed);
         backend_text(&allowed, "tower_print\ntower_trap\n");
@@ -245,13 +248,10 @@ export fn backend_link_plan(link: BackendLink*, triple: u8*, functions: void**, 
                 backend_text(&allowed, "\n");
             }
         }
-        ok = backend_write_file(link, "tower-allowed.txt", allowed.data, allowed.length);
+        ok = backend_link_generated(link, "tower-allowed.txt", allowed.data, allowed.length);
         vector_dispose(&allowed);
-        failed = !ok;
-        if failed {
-            return false;
-        }
-        backend_link_argument(link, "", "wasm-ld");
+        if !ok { return false; }
+        backend_link_argument(link, "", "tower-wasm-ld");
         backend_link_argument(link, "", "--no-entry");
         backend_link_argument(link, "", "--export=tower_main");
         backend_link_argument(link, "", "--export-memory");
@@ -265,6 +265,10 @@ export fn backend_link_plan(link: BackendLink*, triple: u8*, functions: void**, 
         backend_link_argument(link, "", "tower-input.o");
         backend_link_argument(link, "", "tower-runtime.o");
     } else {
+        link.file_plan = true;
+        // A failed native invocation cannot expose an old executable.
+        remove("tower-output.bin");
+        if !backend_write_file(link, "tower-input.o", object, object_size) { return false; }
         if windows {
             backend_link_argument(link, "", "lld-link");
             backend_link_argument(link, "", "/entry:mainCRTStartup");
@@ -344,7 +348,9 @@ export fn backend_link_plan(link: BackendLink*, triple: u8*, functions: void**, 
     i = 0;
     for(; i != order.length; i++) {
         var input = &link.inputs.data[order.data[i]];
-        ok = backend_write_file(link, input.name.data, input.bytes.data, input.bytes.length);
+        if !wasm && !backend_write_file(link, input.name.data, input.bytes.data, input.bytes.length) {
+            vector_dispose(&order); return false;
+        }
         backend_link_argument(link, "", input.name.data);
     }
     vector_dispose(&order);

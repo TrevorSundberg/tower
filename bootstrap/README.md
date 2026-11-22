@@ -100,8 +100,8 @@ across four targets without rebuilding the native compiler. It also verifies
 custom/missing grammar inputs. See the [comparison command](../docs/bootstrap-distribution.md#whole-compiler-release-requirements).
 The original single-unit symbol-file mode remains available.
 
-`build-llvm.sh` invokes `prepare_llvm` automatically for the guarded LLD backport
-and temporary CRLF normalization of upstream `config.guess`/`config.sub`. Files
+`build-llvm.sh` invokes `prepare_llvm` automatically for temporary CRLF
+normalization of upstream `config.guess`/`config.sub`. Files
 already using LF are untouched. Its EXIT trap restores exact original bytes;
 if a source has since changed or restoration fails, the tool reports and retains
 the private backup directory for recovery. Each script has a 1 MiB input limit.

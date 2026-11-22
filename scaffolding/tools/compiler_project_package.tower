@@ -222,7 +222,7 @@ fn compiler_project_reactor(whole: CompilerProjectPackage*, name: u8*, build: u8
     if !tool_join(&path, build, binary) { return false; }
     var module = compiler_project_input(&inputs, path.data);
     if module == null || !compiler_project_exports(module, &exports) { return false; }
-    var baseline = "wasm-ld --no-entry --export-memory --stack-first";
+    var baseline = "tower-wasm-ld --no-entry --export-memory --stack-first";
     if !tool_shell_words(baseline, strlen(baseline), &arguments)
         || !compiler_project_argument_number(&arguments, "--threads=", CompilerProjectLinkThreads)
         || !compiler_project_word(&arguments, "-z") || !compiler_project_argument_number(&arguments, "stack-size=", CompilerProjectStackBytes)
@@ -243,12 +243,11 @@ fn compiler_project_reactor(whole: CompilerProjectPackage*, name: u8*, build: u8
         }
     }
     foreach(var & key in &names) { if !compiler_project_argument(&arguments, key.data, ".o") { return false; } }
-    if !compiler_project_word(&arguments, "--whole-archive") { return false; }
     foreach(var & asset in &assets) {
         var gzip_suffix = strlen(".gz"); var word: ByteBuffer = default; defer bytes_dispose(&word);
         if !bytes_append(&word, asset.data, asset.length - gzip_suffix) || !tool_word_end(&arguments, &word) { return false; }
     }
-    if !compiler_project_word(&arguments, "--no-whole-archive") || !compiler_project_word(&arguments, "-o")
+    if !compiler_project_word(&arguments, "-o")
         || !compiler_project_word(&arguments, "tower-output.bin") { return false; }
     var allow_prefix = "--allow-undefined-file=";
     for(var at: usize = 0; at < linker.length; at++) {

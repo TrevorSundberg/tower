@@ -132,15 +132,15 @@ former script-specific formats; no current downstream reader depended on them.
 Artifacts/logs remain for inspection. C runtime kernels keep separate long and
 short sources and per-case native/C executables.
 
-## Experimental Wasm linker
+## Tower Wasm linker
 
-The experimental static Wasm linker lives in `backend/wasm_link.tower`.
+The static Wasm linker lives in `backend/wasm_link.tower`.
 Its API accepts a fresh, stable `WasmLink`, explicit options, and borrowed object
 bytes through its owned ECS world. Keep those input allocations immutable and
 alive until `wasm_link_close`; the request is not a shallow-copyable owner.
 `wasm_link_run` publishes a complete image only on success. It performs no file
-access or native linker calls. Production backend dispatch still uses upstream
-LLD while the remaining compatibility and worker gates are implemented.
+access or native linker calls. Production Wasm backend dispatch and native CLI
+Wasm output use it; native ELF/COFF/Mach-O still use upstream linkers.
 
 `wasm_link_reader.tower` checks bounded LEB/object/archive decoding, independent
 worlds and pinned disposal, symbol selection, wrapping, direct-call signature
@@ -257,9 +257,9 @@ the third-party wasi-libc thread ABI; Tower owns job scheduling and the linker.
 named input bytes, including allow/export lists. Its keys need no NUL terminator.
 `backend/linker_tower_wasm.tower` adapts the existing `BackendLink` ownership API;
 each invocation uses an independent link world and publishes an owned image.
-Existing reactor transports opt in by using `tower-wasm-ld` as argument zero.
+Existing reactor transports use it by default, with `tower-wasm-ld` as argument zero.
 They must supply every input byte; no filesystem search or native fallback occurs.
-The default `wasm-ld` recipe continues to select upstream LLD.
+Historical `wasm-ld` recipe names also use Tower. There is no Wasm LLD fallback.
 
 `wasm_link_reactor.tower` is a separate WASI entry linked against the actual
 backend/compiler units and support archives. It checks explicit Tower dispatch,
@@ -269,21 +269,17 @@ The existing `playground/scripts/test-compiler-project.mjs` transport accepts
 `TOWER_TEST_COMPILER_PROJECT` and `TOWER_TEST_COMPILER_WORKBENCH` directory URLs
 (relative to the repository, with trailing `/`) plus `TOWER_TEST_LLVM_WASM`.
 Package current compiler units with the existing packager into an isolated
-directory, set each reactor recipe's argument zero to `tower-wasm-ld`, and select
-those paths. Two generations with two/four workers now pass for both whole and
+directory and select those paths; generated recipes already use Tower and lazy
+archives. Two generations with two/four workers pass for both whole and
 lazy archives, including edited semantic behavior, executable compiler checks
 and identical successor hashes. TLS and actual linker-kernel overlap have separate
 fixtures above; compilation worker counts do not establish parallel execution
-inside one link request. Complete thread-runtime compatibility and wider object
-profiles remain production cutover gates.
+inside one link request. Actual SDK34 thread-runtime compatibility is validated;
+dynamic linking, memory64 and wider object profiles remain separate work.
 
-The isolated tooling check `lld_compat_checks.tower` validates the Tower LLD
-compatibility patcher against exact output and rejection fixtures, including
-real file I/O. Build it as a library object and link `guest-host-library.o`; pass
-an isolated writable fixture path to the resulting executable. The journal's
-2026-11-21 tooling migration entry records full commands and independent Python
-comparison evidence. The production browser build invokes the Tower patcher
-through `build-bootstrap.sh --tools`.
+The obsolete LLD Wasm compatibility patcher and its fixtures are retired with
+the lldWasm dependency. Earlier journal entries and Git history retain the
+SDK34 first-page backport evidence. Tower handles that ABI directly.
 
 `tool_archive_checks.tower` covers the Tower CRC/ZIP/Roku tools and POSIX path
 protection. `deflate_checks.tower` writes a 161-member ZIP corpus plus independent

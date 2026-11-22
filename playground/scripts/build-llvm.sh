@@ -6,7 +6,6 @@ bootstrap="$(bash "$repo/playground/scripts/build-bootstrap.sh")"
 revision="$(git -C "$repo/third_party/llvm-project" rev-parse HEAD)"
 source="${TOWER_LLVM_SOURCE_DIR:-$(bash "$repo/playground/scripts/cache-llvm-source.sh")}"
 tools="$(TOWER_BOOTSTRAP_COMPILER="$bootstrap" bash "$repo/playground/scripts/build-bootstrap.sh" --tools prepare_llvm)"
-"$tools/prepare_llvm" "$source"
 # Native tablegen must be built with the same LLVM source revision. Keep the
 # large intermediate builds on the Linux filesystem when called through WSL.
 host="${TOWER_LLVM_HOST_BUILD:-$HOME/.cache/tower/llvm-tablegen-$revision}"

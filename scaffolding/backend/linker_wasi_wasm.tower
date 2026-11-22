@@ -1,10 +1,11 @@
 import tower;
+import link_types;
 import linker_wasi;
 import text;
 
-export fn backend_lld_dispatch(triple: u8*, args: BackendLldArguments*, output: BackendLldStream*, error: BackendLldStream*): bool {
-    if backend_prefix(triple, "wasm") {
-        return `cpp_name(bool lld::wasm::link(llvm::ArrayRef<char const*>, llvm::raw_ostream&, llvm::raw_ostream&, bool, bool))`(args, output, error, false, false);
-    }
+export fn backend_link_wasi(link: BackendLink*, triple: u8*): bool {
+    if backend_prefix(triple, "wasm") { return backend_link_tower_wasm(link); }
+    link.output.length = 0;
+    backend_text(&link.error, "This compiler supports Wasm linking only");
     return false;
 }
