@@ -42905,3 +42905,19 @@ lines net, leaving39/1603 (991/2594 lines,38.2%, removed from baseline). The ear
 Python/owned native remain zero and shell9/230. Latest verified Pages248f24a has
 104 assets, buildSourceCommit06f207edc0b0f90d6becf0d1c90dac002401b653 and the ELF
 release provenance. Preserve all of them when appending this tooling receipt.
+
+The final source guard catches 89151aa's iteration-protocol queries and prepared
+control continuations during the next pull. Cleanup/validation rebase to
+0ab812b/3029c6d. Freeze3029c6d in /cache/object_rules_final_checkout; follow the
+updated AGENTS.md focused type-smoke/control-smoke policy. A fresh default public
+successor in /cache/object_rules_final_native passes48 steps, then the two backend/
+LR fixture targets build in five steps. Both focused selectors pass serial/worker
+execution, canonical reparse, cleanup, ordered errors and failures/cycles. Backend
+API and interpreted32/64/native/Wasm memory smoke pass again. Final compiler
+SHA2566d0f5dc9eca601dd43cf02f308885ed48918b2ea764ce09379b88ef911b6cab7.
+No bootstrap override or pin change. The prior broader comparison/WASI/browser
+evidence remains tied to its explicitly recorded pre-integration source; do not
+claim it was rerun on this final compiler. Build recipes/platform bindings are
+unchanged by the compiler integration, and the new continuation module is found
+by the existing import/depfile machinery in this clean build. Publication can now
+proceed with the latest verified runtime assets preserved.
