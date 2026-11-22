@@ -37,6 +37,20 @@ struct WorkPool {
     peak: usize;
     completion: void*;
     threaded: bool;
+    custom_entry: bool;
+    execute: function(void, void*);
+    claim: void*;
+}
+
+// A finite batch is only a transport view of already-ready, pre-leased jobs.
+// The owner freezes the pointer array and payload layout through the final join.
+// Only next is shared mutable state; the claim semaphore protects it.
+struct WorkBatch {
+    jobs: void**;
+    count: usize;
+    next: usize;
+    offset: usize;
+    claim: void*;
     execute: function(void, void*);
 }
 
@@ -84,6 +98,7 @@ fn work_pool_open_kernel(pool: WorkPool*, capacity: usize, execute: function(voi
 fn work_pool_open_impl(pool: WorkPool*, capacity: usize, entry: u8*, windows_entry: u8*, execute: function(void, void*)): bool {
     *pool = default;
     pool.execute = execute;
+    pool.custom_entry = entry != null || windows_entry != null;
     if capacity == 0 || capacity > WorkPoolMaximumCapacity {
         return false;
     }
@@ -135,6 +150,13 @@ fn work_pool_open_impl(pool: WorkPool*, capacity: usize, entry: u8*, windows_ent
 // Admission only. A serial caller executes its own kernel before receiving;
 // threaded slots execute through the callback selected when opening the pool.
 fn work_pool_admit(pool: WorkPool*, job: void*): bool {
+    return work_pool_admit_execute(pool, job, pool.execute);
+}
+
+// Only ordinary entries read slot.execute. Named entries retain their own
+// payload protocol and cannot accept a different per-admission callback.
+fn work_pool_admit_execute(pool: WorkPool*, job: void*, execute: function(void, void*)): bool {
+    if execute == null || (pool.custom_entry && execute != pool.execute) { return false; }
     if job == null || pool.running == pool.count {
         return false;
     }
@@ -143,6 +165,7 @@ fn work_pool_admit(pool: WorkPool*, job: void*): bool {
         var slot = &pool.slots[index];
         if !slot.busy {
             slot.job = job;
+            slot.execute = execute;
             slot.busy = true;
             pool.running++;
             if pool.running > pool.peak {
@@ -161,6 +184,54 @@ fn work_pool_admit(pool: WorkPool*, job: void*): bool {
 fn work_pool_submit(pool: WorkPool*, job: void*): bool {
     if !work_pool_admit(pool, job) { return false; }
     if !pool.threaded { pool.execute(job); }
+    return true;
+}
+
+fn work_batch_execute(payload: void*): void {
+    var batch = bits(WorkBatch*, payload);
+    loop {
+        work_signal_wait(batch.claim);
+        var next = batch.next;
+        if next < batch.count { batch.next++; }
+        work_signal_post(batch.claim);
+        if next == batch.count { return; }
+        var job = bits(void*, bits(u8*, batch.jobs[next]) + batch.offset);
+        batch.execute(job);
+    }
+}
+
+// Caller plus extra_lanes execute a finite batch; no graph/ticket/publication
+// authority moves into this view. The caller already owns its lane. The pool
+// must be drained, and all jobs, leases and contexts must survive this call.
+fn work_pool_batch(pool: WorkPool*, jobs: void**, count: usize, offset: usize, extra_lanes: usize): bool {
+    if count == 0 { return true; }
+    if pool.running != 0 || pool.count == 0 || jobs == null { return false; }
+    var extra = extra_lanes < pool.count ? extra_lanes : pool.count;
+    if extra >= count { extra = count - 1; }
+    if !pool.threaded { extra = 0; }
+    if extra == 0 {
+        for(var i: usize = 0; i < count; i++) {
+            pool.execute(bits(void*, bits(u8*, jobs[i]) + offset));
+        }
+        return true;
+    }
+    if pool.custom_entry { return false; }
+    if pool.claim == null {
+        pool.claim = work_signal_open();
+        if pool.claim == null { return false; }
+        work_signal_post(pool.claim);
+    }
+    var batch = init(WorkBatch) {
+        jobs: jobs, count: count, next: 0, offset: offset,
+        claim: pool.claim, execute: pool.execute
+    };
+    // This defer runs while batch is alive, including a partial submission
+    // failure. No caller may reclaim the borrowed descriptor before the join.
+    defer { while pool.running != 0 { work_pool_receive(pool, true); } }
+    for(var lane: usize = 0; lane < extra; lane++) {
+        if !work_pool_admit_execute(pool, bits(void*, &batch), work_batch_execute) { return false; }
+    }
+    work_batch_execute(bits(void*, &batch));
     return true;
 }
 
@@ -214,6 +285,7 @@ fn work_pool_close(pool: WorkPool*): void {
         index++;
     }
     work_signal_close(pool.completion);
+    work_signal_close(pool.claim);
     free(pool.slots);
     *pool = default;
 }

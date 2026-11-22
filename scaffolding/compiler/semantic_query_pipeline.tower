@@ -1,0 +1,53 @@
+import tower;
+import semantic_context_types;
+import semantic_context;
+import semantic_work_ids;
+import semantic_evaluation;
+import semantic_capture_work;
+import semantic_source_bindings;
+import semantic_type_execution;
+import semantic_layout;
+import semantic_execution_work;
+import semantic_body_work;
+import semantic_support;
+import .library.vector;
+import .library.work_graph;
+
+fn sem_query_pipeline_merge(current: SemanticPumpResult, next: SemanticPumpResult): SemanticPumpResult {
+    if current == SemanticPumpResult.Failed || next == SemanticPumpResult.Failed { return SemanticPumpResult.Failed; }
+    if current == SemanticPumpResult.Progress || next == SemanticPumpResult.Progress { return SemanticPumpResult.Progress; }
+    if current == SemanticPumpResult.Waiting || next == SemanticPumpResult.Waiting { return SemanticPumpResult.Waiting; }
+    return SemanticPumpResult.Complete;
+}
+
+// The owning declaration/body pipeline services its own ready work, then these
+// cross-phase producers. Each pump joins its frontier before returning; no cycle
+// is selected here while another producer could still satisfy the dependency.
+fn sem_query_pipeline_pump(c: SemanticContext*): SemanticPumpResult {
+    if !sem_ok(c) || !work_ok(&c.queries) { return SemanticPumpResult.Failed; }
+    var state = sem_evaluation_pump_inputs(c, false);
+    if state == SemanticPumpResult.Failed { return state; }
+    state = sem_query_pipeline_merge(state, sem_type_execution_pump(c));
+    if state == SemanticPumpResult.Failed { return state; }
+    state = sem_query_pipeline_merge(state, sem_capture_pump(c));
+    if state == SemanticPumpResult.Failed { return state; }
+    state = sem_query_pipeline_merge(state, sem_source_bindings_pump(c));
+    if state == SemanticPumpResult.Failed { return state; }
+    if c.executable_functions != null && sem_query_pending(c, convert(u32, SemanticQuery.ExecutableFunction)) {
+        state = sem_query_pipeline_merge(state, sem_bodies_pump(c));
+        if state == SemanticPumpResult.Failed { return state; }
+        state = sem_query_pipeline_merge(state, sem_executables_pump(c));
+    }
+    if c.type_executions != null && sem_query_pending(c, convert(u32, SemanticQuery.TypeExecution)) {
+        if sem_layout_execute(c) != 0 { state = sem_query_pipeline_merge(state, SemanticPumpResult.Progress); }
+        if c.declaration_isolated {
+            // Layout components retain their original diagnostics. As in the
+            // body coordinator, let earlier lexical owners settle before the
+            // failure walker selects a visible error from those receipts.
+            vector_dispose(&c.program.error);
+            c.program.error_offset = 0;
+        }
+    }
+    if !sem_ok(c) { return SemanticPumpResult.Failed; }
+    return state;
+}

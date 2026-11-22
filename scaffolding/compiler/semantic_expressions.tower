@@ -1,4 +1,5 @@
 import tower;
+import semantic_context_types;
 import foundation_tags;
 import foundation_types;
 import semantic_context;
@@ -132,6 +133,10 @@ fn sem_default(c: SemanticContext*, n: void*, expected_type: FoundationType*, de
 // Stronger source policies can inspect completeness/default coverage here, and
 // analyze the resulting ordinary stores without changing Foundation semantics.
 fn sem_named_initialization(c: SemanticContext*, n: void*, expected_type: FoundationType*, destination: bool): void* {
+    // Inference can check an explicit init(Type) before the call supplies its
+    // concrete parameter type. Reuse the checked fields and effects, while
+    // still enforcing that later expected type; never append the fields twice.
+    if sem_get(n) != null { return sem_surface_expected(c, n, expected_type); }
     var initial = sem_node(c, n, SurfaceInitializer);
     var type = expected_type;
     var annotation = sem_member(n, "type");

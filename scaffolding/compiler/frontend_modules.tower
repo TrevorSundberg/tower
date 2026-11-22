@@ -428,7 +428,7 @@ fn module_node(graph: ModuleGraph*, entity: void*): FrontendModule* {
     return bits(FrontendModule*, entity_component_data(entity_component_get(entity, graph.kind)));
 }
 
-fn module_new(graph: ModuleGraph*, name: u8*, text: u8*): FrontendModule* {
+fn module_new(graph: ModuleGraph*, name: u8*, text: u8*, length: usize): FrontendModule* {
     if graph.kind == null {
         graph.kind = entity_create(compiler_world_store(graph.world));
         module_require(entity_register(graph.kind, sizeof(FrontendModule), alignof(FrontendModule), 0));
@@ -443,7 +443,7 @@ fn module_new(graph: ModuleGraph*, name: u8*, text: u8*): FrontendModule* {
     fill(value, 0, sizeof(FrontendModule));
     value.entity = entity;
     value.graph = graph;
-    value.source = syntax_source_create(name, text, syntax_text_length(text));
+    value.source = syntax_source_create(name, text, length);
     var allocated4 = value.source != null;
     module_require(allocated4);
     module_require(vector_push(&graph.entities, entity));
@@ -496,6 +496,11 @@ export fn frontend_module_root(source: u8*, environment: ModuleEnvironment*): Fr
 }
 
 export fn frontend_module_root_world(world: void*, source: u8*, environment: ModuleEnvironment*): FrontendModule* {
+    return frontend_module_root_world_size(world, source, syntax_text_length(source), environment);
+}
+
+export fn frontend_module_root_world_size(world: void*, source: u8*, length: usize, environment: ModuleEnvironment*): FrontendModule* {
+    if source == null || length == ~convert(usize, 0) { return null; }
     if !frontend_modules_bind_world(environment, world) { return null; }
     var graph = alloc(ModuleGraph, 1);
     var allocated5 = graph != null;
@@ -520,7 +525,7 @@ export fn frontend_module_root_world(world: void*, source: u8*, environment: Mod
     if name[0] == 0 {
         name = "input.tower";
     }
-    var result = module_new(graph, name, source);
+    var result = module_new(graph, name, source, length);
     environment.active = result;
     return result;
 }
@@ -815,7 +820,7 @@ fn module_load(parent: FrontendModule*, name: u8*, literal: bool): FrontendModul
                     module_fail(parent, "Import depth exceeds 128: ", path.data);
                 }
                 else {
-                    result = module_new(parent.graph, path.data, text.data);
+                    result = module_new(parent.graph, path.data, text.data, text.length);
                     parent.graph.depth++;
                     var session = parent.graph.import_session;
                     parent.graph.import_session = null;
@@ -1477,7 +1482,7 @@ fn module_clone(graph: ModuleGraph*, source: FrontendModule*): FrontendModule* {
             return old;
         }
     }
-    var result = module_new(graph, source.source.name.data, source.source.text.data);
+    var result = module_new(graph, source.source.name.data, source.source.text.data, source.source.text.length);
     i = 0;
     for(; i != source.dependencies.length; i++) {
         var dependency = module_clone(graph, source.dependencies.data[i]);

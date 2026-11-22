@@ -1,0 +1,25 @@
+import tower;
+import semantic_known_types;
+import .library.vector;
+
+// A world-owned proof fact on the original declaration. Its query owns the
+// mutation/escape evidence; no initializer value or runtime frame is copied.
+struct SemanticSourceBinding {
+    owner: void*;
+    query: usize;
+    ordinal: usize;
+    immutable: bool;
+}
+
+// The owning world retains proof work across consumer suspension. Components
+// on the program and later specialization own disjoint joined result vectors;
+// declaration facts publish only after the entire applicable proof is ready.
+struct SemanticSourceBindingPipeline {
+    jobs: vector(SemanticKnownWork*);
+    source_roots: vector(void*);
+    query: usize;
+    first: usize;
+    extension: bool;
+    published: bool;
+    roots_ready: bool;
+}

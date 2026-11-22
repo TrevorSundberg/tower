@@ -1,15 +1,27 @@
 import tower;
-import evaluation_query_checks;
+import .compiler.semantic_context_types;
 import .compiler.foundation_types;
 import .compiler.foundation_tags;
 import .compiler.component_kinds;
 import .compiler.parser_types;
-import .compiler.semantic_context;
+import .compiler.semantic_query_api;
 import .compiler.semantic_program_types;
 import .compiler.compiler_kernel;
 import .compiler.interpreter_context_types;
 import .library.vector;
 import .library.work_pool;
+
+extern fn evaluation_query_tests(width: u32, workers: usize): u32;
+extern fn sem_workers_open(c: SemanticContext*): bool;
+extern fn sem_match(node: void*): ParserMatchData*;
+extern fn entity_register(kind: void*, size: usize, alignment: usize, lifecycle: usize): bool;
+extern fn compiler_node_type(node: void*, kind: u32): void*;
+extern fn entity_child_count(node: void*): usize;
+extern fn entity_child_at(node: void*, index: usize): void*;
+extern fn entity_stage_open(anchor: void*): void*;
+extern fn entity_stage_lease(stage: void*, node: void*): bool;
+extern fn entity_stage_create(stage: void*, parent: void*): void*;
+extern fn entity_stage_publish(stage: void*): bool;
 
 extern fn compiler_world_create(): void*;
 extern fn compiler_world_create_workers(limit: usize): void*;

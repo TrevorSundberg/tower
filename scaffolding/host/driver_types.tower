@@ -1,6 +1,10 @@
 import tower;
 
-enum DriverOptionError: u32 { None = 0, MissingValue = 1, Unexpected = 2, Allocation = 3, Jobs = 4 }
+enum DriverOptionError: u32 { None = 0, MissingValue = 1, Unexpected = 2, Allocation = 3, Jobs = 4, UnitRetainedBytes = 5 }
+
+// Declared multi-unit snapshots and exposed retained object bytes only. Parser,
+// semantic component and foreign LLVM heap limits remain separate policies.
+var DriverUnitRetainedByteLimit: usize = 268435456;
 
 struct DriverOptions {
     source: u8*;
@@ -20,6 +24,8 @@ struct DriverOptions {
     units: u8**;
     unit_count: usize;
     jobs: usize;
+    unit_retained_bytes: usize;
+    unit_retained_policy: bool;
     optimize: bool;
     interpret: bool;
     library: bool;

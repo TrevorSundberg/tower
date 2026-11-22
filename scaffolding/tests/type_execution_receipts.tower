@@ -1,0 +1,125 @@
+import tower;
+import .compiler.semantic_context_types;
+import .compiler.semantic_evaluation_types;
+import .compiler.semantic_query_api;
+import .compiler.semantic_program_types;
+import .compiler.semantic_work_ids;
+import .compiler.foundation_types;
+import .compiler.foundation_tags;
+import .library.work_graph;
+
+extern fn compiler_world_create_workers(limit: usize): void*;
+extern fn compiler_world_store(world: void*): void*;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn entity_create(store: void*): void*;
+extern fn puts(text: u8*): i32;
+extern fn exit(status: i32): void;
+
+fn type_receipt_check(ok: bool, message: u8*): void {
+    if !ok { puts(message); exit(1); }
+}
+
+enum TypeReceiptCase: u32 {
+    Complete, SemanticFailure, StaleRevision, StaleProfile, StaleDispatch,
+    ChangedSequence, ChangedOperand, Cancelled, WrongDependency, WrongTarget
+}
+
+fn type_execution_receipt_trial(width: u32, mode: TypeReceiptCase): void {
+    var world = compiler_world_create_workers(1);
+    type_receipt_check(world != null, "Type request world");
+    var root = entity_create(compiler_world_store(world));
+    var program: SemanticProgram;
+    semantic_initialize(&program, root, width);
+    var context: SemanticContext;
+    sem_context_init(&context, &program);
+    context.generics = generic_begin(root);
+    sem_evaluation_begin(&context);
+    var owner = sem_create(root);
+    var result = bits(SemanticEvaluation*, entity_component_data(entity_component_add(owner, context.evaluation_results)));
+    *result = default;
+    result.subject = owner;
+    sem_push(&context.evaluation_jobs, bits(void*, result));
+    var invocation = &result.invocation.context;
+    invocation.construct_types = true;
+    invocation.waiting_type = true;
+    invocation.pointer_bytes = convert(usize, width);
+    var subject = sem_create(owner);
+    var operation = sem_attach(subject, KTypeConstruct);
+    operation.op = convert(u32, TypeConstructionKind.Integer);
+    operation.type = { scalar: SType, pointer_bytes: width, ..default };
+    var request = &invocation.type_construction;
+    *request = { owner: owner, subject: subject, sequence: 1, kind: operation.op,
+        first: mode == TypeReceiptCase.SemanticFailure ? 24 : 32, second: 1, ..default };
+    var evaluation = work_request(&context.queries, owner, convert(u32, SemanticQuery.Evaluation), 0);
+    sem_require(work_access(&context.queries, evaluation, convert(u64, SemanticWorkDomain.Compiler),
+        convert(u64, SemanticAccess.Evaluation), evaluation, 1, WorkAccessMode.Write));
+    sem_require(work_seal(&context.queries, evaluation) && work_demand(&context.queries, evaluation));
+    var ticket: WorkTicket;
+    sem_require(work_take_task(&context.queries, &ticket, evaluation));
+    var rejected = mode == TypeReceiptCase.StaleRevision || mode == TypeReceiptCase.StaleProfile
+        || mode == TypeReceiptCase.StaleDispatch || mode == TypeReceiptCase.WrongTarget;
+    if mode == TypeReceiptCase.StaleRevision { ticket.revision++; }
+    if mode == TypeReceiptCase.StaleProfile { ticket.profile++; }
+    if mode == TypeReceiptCase.StaleDispatch { ticket.dispatch++; }
+    if mode == TypeReceiptCase.WrongTarget { invocation.pointer_bytes = width == 4 ? 8 : 4; }
+    var query = sem_type_execution_request(&context, owner, request, &ticket);
+    if rejected {
+        type_receipt_check(query == 0 && program.error.length != 0 && context.type_executions == null
+            && !request.ready, "Stale/target receipt rejected before publication");
+    } else {
+        type_receipt_check(query != 0 && sem_type_execution_request(&context, owner, request, &ticket) == query,
+            "Repeated admission has one request identity");
+        if mode == TypeReceiptCase.WrongDependency {
+            var unrelated = work_request(&context.queries, root, convert(u32, SemanticQuery.KnownSnapshot), 0);
+            sem_require(work_seal(&context.queries, unrelated));
+            sem_require(work_suspend(&context.queries, &ticket, unrelated));
+            sem_require(work_demand(&context.queries, query));
+        } else { sem_require(work_suspend(&context.queries, &ticket, query)); }
+        if mode == TypeReceiptCase.Cancelled {
+            work_cancel(&context.queries);
+            type_receipt_check(sem_type_execution_pump(&context) == SemanticPumpResult.Failed && !request.ready,
+                "Cancelled graph cannot publish a type descriptor");
+        } else {
+            if mode == TypeReceiptCase.ChangedSequence { request.sequence++; }
+            if mode == TypeReceiptCase.ChangedOperand { request.first++; }
+            var outcome = sem_type_execution_pump(&context);
+            if mode == TypeReceiptCase.ChangedSequence || mode == TypeReceiptCase.ChangedOperand
+                || mode == TypeReceiptCase.WrongDependency {
+                type_receipt_check(outcome == SemanticPumpResult.Failed && program.error.length != 0 && !request.ready,
+                    "Changed request or unrelated dependency invalidates pending publication");
+            } else {
+                type_receipt_check(outcome == SemanticPumpResult.Progress && request.ready
+                    && work_task(&context.queries, query).state == WorkState.Succeeded,
+                    "Type request delivery completes through WorkGraph");
+                if mode == TypeReceiptCase.SemanticFailure {
+                    type_receipt_check(request.failed && request.error.length != 0 && program.error.length == 0,
+                        "Delivered semantic error is not a successful construction");
+                } else {
+                    type_receipt_check(!request.failed && request.result.scalar == SI32 && request.result.pointer_bytes == width,
+                        "Integer request publishes its target descriptor");
+                    sem_require(work_take_task(&context.queries, &ticket, evaluation));
+                    request.ready = false;
+                    request.sequence++;
+                    request.first = 64;
+                    var later = sem_type_execution_request(&context, owner, request, &ticket);
+                    type_receipt_check(later != 0 && later != query, "Repeated source operation has a new invocation sequence");
+                    sem_require(work_suspend(&context.queries, &ticket, later));
+                    type_receipt_check(sem_type_execution_pump(&context) == SemanticPumpResult.Progress
+                        && request.ready && !request.failed && request.result.scalar == SI64,
+                        "Repeated source operation does not reuse its previous value");
+                }
+            }
+        }
+    }
+    work_cancel(&context.queries);
+    sem_context_dispose(&context);
+    semantic_program_dispose(&program);
+    entity_release(root);
+    type_receipt_check(compiler_world_dispose(world), "Type request world and invocation cleanup");
+}
+
+export fn type_execution_receipt_tests(width: u32): void {
+    for(var mode: u32 = 0; mode <= convert(u32, TypeReceiptCase.WrongTarget); mode++) {
+        type_execution_receipt_trial(width, convert(TypeReceiptCase, mode));
+    }
+}

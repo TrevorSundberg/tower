@@ -1,0 +1,113 @@
+import tower;
+import tool_files_posix;
+
+// Validation of native target artifacts, not a Tower interchange format. LLVM
+// owns sanitizer lowering/runtime; all selection and error policy lives here.
+extern fn LLVMContextCreate(): void*;
+extern fn LLVMContextDispose(context: void*): void;
+extern fn LLVMCreateMemoryBufferWithContentsOfFile(path: u8*, buffer: void**, error: u8**): i32;
+extern fn LLVMParseIRInContext(context: void*, buffer: void*, module: void**, error: u8**): i32;
+extern fn LLVMDisposeModule(module: void*): void;
+extern fn LLVMDisposeMessage(message: u8*): void;
+extern fn LLVMGetTarget(module: void*): u8*;
+extern fn LLVMGetNamedFunction(module: void*, name: u8*): void*;
+extern fn LLVMGetFirstFunction(module: void*): void*;
+extern fn LLVMGetNextFunction(function: void*): void*;
+extern fn LLVMIsDeclaration(function: void*): i32;
+extern fn LLVMGetEnumAttributeKindForName(name: u8*, length: usize): u32;
+extern fn LLVMCreateEnumAttribute(context: void*, kind: u32, value: u64): void*;
+extern fn LLVMAddAttributeAtIndex(function: void*, index: u32, attribute: void*): void;
+extern fn LLVMCreatePassBuilderOptions(): void*;
+extern fn LLVMDisposePassBuilderOptions(options: void*): void;
+extern fn LLVMPassBuilderOptionsSetVerifyEach(options: void*, enabled: i32): void;
+extern fn LLVMRunPasses(module: void*, passes: u8*, machine: void*, options: void*): void*;
+extern fn LLVMGetErrorMessage(error: void*): u8*;
+extern fn LLVMDisposeErrorMessage(message: u8*): void;
+extern fn LLVMVerifyModule(module: void*, action: u32, error: u8**): i32;
+extern fn LLVMPrintModuleToFile(module: void*, path: u8*, error: u8**): i32;
+extern fn strstr(text: u8*, part: u8*): u8*;
+extern fn puts(text: u8*): i32;
+
+var InstrumentFunctionAttributes: u32 = ~convert(u32, 0);
+var InstrumentReturnVerificationStatus: u32 = 2;
+
+fn instrument_message(message: u8*): void {
+    if message != null { puts(message); LLVMDisposeMessage(message); }
+}
+
+fn instrument_module(context: void*, module: void*, mode: u8*): bool {
+    var target = LLVMGetTarget(module);
+    if target == null || strstr(target, "x86_64") != target || strstr(target, "linux") == null {
+        puts("Sanitizer validation currently requires an explicit Linux x64 target");
+        return false;
+    }
+    if LLVMGetNamedFunction(module, "__asan_init") != null || LLVMGetNamedFunction(module, "__tsan_init") != null {
+        puts("Input already contains sanitizer instrumentation; use the original emitted IR");
+        return false;
+    }
+    var address = strcmp(mode, "address") == 0;
+    var attribute_name = address ? "sanitize_address" : "sanitize_thread";
+    var kind = LLVMGetEnumAttributeKindForName(attribute_name, strlen(attribute_name));
+    if kind == 0 { puts("Linked LLVM does not support the requested sanitizer attribute"); return false; }
+    var attribute = LLVMCreateEnumAttribute(context, kind, 0);
+    var definitions: usize = 0;
+    var function = LLVMGetFirstFunction(module);
+    while function != null {
+        if LLVMIsDeclaration(function) == 0 {
+            LLVMAddAttributeAtIndex(function, InstrumentFunctionAttributes, attribute);
+            definitions++;
+        }
+        function = LLVMGetNextFunction(function);
+    }
+    if definitions == 0 { puts("Input contains no function definitions to instrument"); return false; }
+    var options = LLVMCreatePassBuilderOptions();
+    if options == null { puts("Cannot allocate LLVM pass options"); return false; }
+    defer LLVMDisposePassBuilderOptions(options);
+    LLVMPassBuilderOptionsSetVerifyEach(options, 1);
+    var passes = address ? "asan" : "tsan-module,function(tsan)";
+    var error = LLVMRunPasses(module, passes, null, options);
+    if error != null {
+        var message = LLVMGetErrorMessage(error);
+        puts(message);
+        LLVMDisposeErrorMessage(message);
+        return false;
+    }
+    puts("Instrumented function definitions:");
+    print(definitions);
+    return true;
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    if argc != 4 || (strcmp(argv[1], "address") != 0 && strcmp(argv[1], "thread") != 0) {
+        puts("usage: instrument_llvm address|thread INPUT.ll OUTPUT.ll");
+        return 2;
+    }
+    if !tool_output_distinct(argv[2], argv[3]) {
+        puts("Instrumentation output must differ from the frozen input");
+        return 2;
+    }
+    var context = LLVMContextCreate();
+    if context == null { puts("Cannot allocate LLVM context"); return 1; }
+    defer LLVMContextDispose(context);
+    var buffer: void* = null;
+    var module: void* = null;
+    var message: u8* = null;
+    if LLVMCreateMemoryBufferWithContentsOfFile(argv[2], &buffer, &message) != 0 {
+        instrument_message(message); return 1;
+    }
+    // LLVMParseIRInContext consumes this buffer on either success or failure.
+    if LLVMParseIRInContext(context, buffer, &module, &message) != 0 {
+        instrument_message(message); return 1;
+    }
+    defer LLVMDisposeModule(module);
+    if !instrument_module(context, module, argv[1]) { return 1; }
+    if LLVMVerifyModule(module, InstrumentReturnVerificationStatus, &message) != 0 {
+        instrument_message(message); return 1;
+    }
+    instrument_message(message);
+    message = null;
+    if LLVMPrintModuleToFile(module, argv[3], &message) != 0 {
+        instrument_message(message); return 1;
+    }
+    return 0;
+}

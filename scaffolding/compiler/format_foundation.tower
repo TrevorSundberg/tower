@@ -331,6 +331,30 @@ fn format_number(f: FormatEngine*, n: FoundationNode*): void {
 
 fn format_expression(f: FormatEngine*, entity: void*): void {
     var n = format_foundation(f, entity);
+    if n.kind == KTypeConstruct {
+        var name: u8* = null;
+        var binary = false;
+        match convert(TypeConstructionKind, n.op) {
+            TypeConstructionKind.Integer => { name = "integer_type"; binary = true; }
+            TypeConstructionKind.Floating => { name = "float_type"; }
+            TypeConstructionKind.Pointer => { name = "pointer_type"; }
+            TypeConstructionKind.Array => { name = "array_type"; binary = true; }
+            _ => { f.result.failed = true; return; }
+        }
+        if n.left == null || (n.right != null) != binary {
+            f.result.failed = true;
+            return;
+        }
+        format_text(f, name);
+        format_text(f, "(");
+        format_expression(f, n.left);
+        if binary {
+            format_text(f, ", ");
+            format_expression(f, n.right);
+        }
+        format_text(f, ")");
+        return;
+    }
     if n.kind == KMetadataValue {
         format_text(f, "init(");
         format_type(f, &n.type);
@@ -639,6 +663,7 @@ fn format_statement_body(f: FormatEngine*, entity: void*): void {
     var expression = builtin != null;
     var call = format_is_Call(n);
     expression = format_or(expression, call);
+    expression ||= n.kind == KTypeConstruct;
     if expression {
         format_expression(f, entity);
         format_text(f, ";");

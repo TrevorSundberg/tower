@@ -1,0 +1,16 @@
+import tower;
+import foundation_types;
+import semantic_evaluation_types;
+import .library.vector;
+
+enum SemanticConstructorPhase: u32 { Call, Clone, Alias, Execute, Ready }
+
+struct SemanticConstructor {
+    phase: SemanticConstructorPhase;
+    definition: void*;
+    instance: void*;
+    syntax: void*;
+    arguments: vector(void*)*;
+    type: FoundationType;
+    evaluation: SemanticEvaluation*;
+}

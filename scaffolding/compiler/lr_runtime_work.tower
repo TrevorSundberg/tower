@@ -69,7 +69,15 @@ export fn lr_runtime_create_parallel(source: LRStates*, anchor: void*): LRRuntim
 // Explicit executor width also exercises this ownership path with the serial
 // instrumented transport. Production admission keeps its measured-size policy.
 export fn lr_runtime_create_work(source: LRStates*, anchor: void*, count: usize): LRRuntime* {
-    if count == 0 || count > 256 || count > source.states.length || anchor == null { return null; }
+    var jobs: LRRuntimeTask*[WorkPoolMaximumCapacity];
+    if count == 0 || count > sizeof(decltype(jobs)) / sizeof(LRRuntimeTask*)
+        || count > source.states.length || anchor == null { return null; }
+    var graph: WorkGraph;
+    work_init(&graph, 1, 0);
+    defer work_dispose(&graph);
+    var admission: ParserAdmission = default;
+    if !parser_admission_open(&admission, anchor, count) { return null; }
+    defer parser_admission_close(&admission, &graph);
     var value = alloc(LRRuntime, 1);
     if value == null { return null; }
     *value = default;
@@ -107,10 +115,6 @@ export fn lr_runtime_create_work(source: LRStates*, anchor: void*, count: usize)
     if !parser_workers_open(&workers, anchor, count) { return null; }
     defer parser_workers_close(&workers);
     if count > workers.pool.count { count = workers.pool.count; }
-    var graph: WorkGraph;
-    work_init(&graph, 1, 0);
-    defer work_dispose(&graph);
-    var jobs: LRRuntimeTask*[256];
     var position: usize = 0;
     for(var i: usize = 0; i < count; i++) {
         var node = lr_work_node(owner);
@@ -137,16 +141,10 @@ export fn lr_runtime_create_work(source: LRStates*, anchor: void*, count: usize)
     }
     var view = entity_view_open(owner);
     if view == null { return null; }
-    var admitted: usize = 0;
-    var ok = true;
-    for(; admitted < count; admitted++) {
-        if !work_pool_submit(workers.pool, bits(void*, &jobs[admitted].kernel)) { ok = false; break; }
-    }
-    for(var i: usize = 0; i < admitted; i++) {
-        if work_pool_receive(workers.pool, true) == null { ok = false; }
-    }
+    var ok = compiler_kernel_dispatch_admitted(workers.pool, &jobs[0], count, admission.extra);
     entity_view_close(view);
-    for(var i: usize = 0; i < admitted; i++) {
+    if !ok { return null; }
+    for(var i: usize = 0; i < count; i++) {
         if !work_finish(&graph, &jobs[i].ticket, jobs[i].success) { ok = false; }
     }
     if !ok { return null; }
