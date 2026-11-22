@@ -32,17 +32,29 @@ get_property(utility_bind GLOBAL PROPERTY TOWER_RUNTIME_BIND)
 set(bytes_ir "${CMAKE_CURRENT_BINARY_DIR}/tower-bytes-tests-unbound.ll")
 set(bytes_bound "${CMAKE_CURRENT_BINARY_DIR}/tower-bytes-tests.ll")
 set(bytes_object "${CMAKE_CURRENT_BINARY_DIR}/tower-bytes-tests.o")
-add_custom_command(OUTPUT "${bytes_ir}" "${bytes_bound}" "${bytes_object}"
+set(bytes_products "${bytes_ir}" "${bytes_bound}" "${bytes_object}")
+set(bytes_emit llvm-optimized)
+set(bytes_compile COMMAND "${CMAKE_C_COMPILER}" --target=${utility_triple} -O2 -c "${bytes_bound}" -o "${bytes_object}")
+if(TOWER_SANITIZER)
+  set(bytes_products "${bytes_ir}" "${bytes_bound}")
+  set(bytes_emit llvm)
+  set(bytes_compile)
+endif()
+add_custom_command(OUTPUT ${bytes_products}
   COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/bytes.tower"
-    --target "${utility_triple}" --emit llvm-optimized -o "${bytes_ir}" --depfile "${bytes_ir}.d"
+    --jobs "${TOWER_COMPILER_JOBS}" --target "${utility_triple}" --emit "${bytes_emit}" -o "${bytes_ir}" --depfile "${bytes_ir}.d"
     --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
     --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
   COMMAND "${utility_bind}" "${bytes_ir}" "${bytes_bound}"
     byte_test_reallocate tower_reallocate byte_test_deallocate tower_deallocate ${utility_entry_binding}
-  COMMAND "${CMAKE_C_COMPILER}" --target=${utility_triple} -O2 -c "${bytes_bound}" -o "${bytes_object}"
+  ${bytes_compile}
   DEPFILE "${bytes_ir}.d"
   DEPENDS scaffolding/tests/bytes.tower scaffolding/tests/bytes_oracle.tower scaffolding/tests/utility_checks.tower
     "${TOWER_BOOTSTRAP_COMPILER}" "${utility_bind}" VERBATIM)
+if(TOWER_SANITIZER)
+  tower_sanitizer_object(tower-bytes-tests "${bytes_bound}" "${utility_triple}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/bytes.tower")
+endif()
 set_source_files_properties("${bytes_object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
 add_executable(tower-bytes-tests "${bytes_object}" "${utility_trap}")
 set_target_properties(tower-bytes-tests PROPERTIES LINKER_LANGUAGE CXX)

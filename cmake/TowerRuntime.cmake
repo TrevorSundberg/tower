@@ -1,9 +1,10 @@
 # Reserved runtime-symbol connections are emitted by a Tower tool using upstream
 # LLVM C APIs. Keep this target artifact separate from canonical Tower source.
+include("${CMAKE_CURRENT_LIST_DIR}/TowerSanitizers.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/TowerGuestRuntime.cmake")
 function(tower_host_linker output fallback)
   if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
-    set(${output} "${TOWER_BOOTSTRAP_COMPILER}" --link-executable PARENT_SCOPE)
+    set(${output} "${TOWER_BOOTSTRAP_COMPILER}" --jobs "${TOWER_COMPILER_JOBS}" --link-executable PARENT_SCOPE)
   else()
     set(${output} "${fallback}" PARENT_SCOPE)
   endif()
@@ -16,14 +17,14 @@ function(tower_wasi_link_tool)
   tower_runtime_tools()
   execute_process(COMMAND "${TOWER_RUNTIME_HOST_CC}" -print-target-triple
     OUTPUT_VARIABLE host_triple OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND_ERROR_IS_FATAL ANY)
-  tower_guest_runtime(host-library "${host_triple}" posix OFF)
+  tower_guest_runtime(host-library "${host_triple}" posix OFF UNINSTRUMENTED)
   get_property(runtime GLOBAL PROPERTY TOWER_GUEST_host-library_OBJECT)
   set(object "${CMAKE_CURRENT_BINARY_DIR}/link_wasi.o")
   set(program "${CMAKE_CURRENT_BINARY_DIR}/link_wasi")
   add_custom_command(OUTPUT "${object}" "${program}"
     COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tools/link_wasi.tower"
-      --library --target "${host_triple}" -o "${object}" --depfile "${object}.d"
-    COMMAND "${TOWER_BOOTSTRAP_COMPILER}" --link-executable "${object}" "${runtime}" -o "${program}"
+      --jobs "${TOWER_COMPILER_JOBS}" --library --target "${host_triple}" -o "${object}" --depfile "${object}.d"
+    COMMAND "${TOWER_BOOTSTRAP_COMPILER}" --jobs "${TOWER_COMPILER_JOBS}" --link-executable "${object}" "${runtime}" -o "${program}"
       -ldl -Wl,--export-dynamic-symbol=work_thread_entry
     DEPFILE "${object}.d"
     DEPENDS scaffolding/tools/link_wasi.tower "${runtime}" "${TOWER_BOOTSTRAP_COMPILER}" VERBATIM)
@@ -75,12 +76,14 @@ function(tower_runtime_tools)
     OUTPUT_VARIABLE llvm_libdir OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND_ERROR_IS_FATAL ANY)
   execute_process(COMMAND "${TOWER_RUNTIME_LLVM_CONFIG}" --link-shared --libnames
     OUTPUT_VARIABLE llvm_libname OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND_ERROR_IS_FATAL ANY)
+  set_property(GLOBAL PROPERTY TOWER_RUNTIME_LLVM_LIBRARY "${llvm_libdir}/${llvm_libname}")
   set(object "${CMAKE_CURRENT_BINARY_DIR}/runtime-bind.o")
   set(program "${CMAKE_CURRENT_BINARY_DIR}/runtime_bind${CMAKE_HOST_EXECUTABLE_SUFFIX}")
   # The primary output must match the compiler's depfile target. Otherwise Ninja
   # rejects that depfile and rebuilds this tool and its consumers on every run.
   add_custom_command(OUTPUT "${object}" "${program}"
     COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/host/runtime_bind.tower"
+      --jobs "${TOWER_COMPILER_JOBS}"
       --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
       --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
       --library --target "${host_triple}" -o "${object}" --depfile "${object}.d"
@@ -92,11 +95,41 @@ function(tower_runtime_tools)
 endfunction()
 
 function(tower_runtime_object name input triple)
+  if(TOWER_SANITIZER)
+    set(ir "${CMAKE_CURRENT_BINARY_DIR}/${name}-original.ll")
+    set(bound "${ir}")
+    set(outputs "${ir}")
+    set(binding_command)
+    set(binding_dependencies)
+    if(ARGN)
+      tower_runtime_tools()
+      get_property(bind GLOBAL PROPERTY TOWER_RUNTIME_BIND)
+      set(bound "${CMAKE_CURRENT_BINARY_DIR}/${name}-bound.ll")
+      list(APPEND outputs "${bound}")
+      set(binding_command COMMAND "${bind}" "${ir}" "${bound}" ${ARGN})
+      set(binding_dependencies "${bind}" tower-runtime-bind)
+    endif()
+    add_custom_command(OUTPUT ${outputs}
+      COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${input}" --jobs "${TOWER_COMPILER_JOBS}" --library --target "${triple}"
+        --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
+        --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
+        --emit llvm -o "${ir}" --depfile "${ir}.d"
+      ${binding_command}
+      DEPFILE "${ir}.d"
+      DEPENDS "${input}" "${TOWER_BOOTSTRAP_COMPILER}" ${binding_dependencies} VERBATIM)
+    tower_sanitizer_object("${name}" "${bound}" "${triple}" "${input}")
+    if(input STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/host/memory_instrumented.tower")
+      set_property(GLOBAL APPEND PROPERTY TOWER_INSTRUMENTED_RUNTIME_OBJECTS "${${name}_OBJECT}")
+    endif()
+    set(${name}_OBJECT "${${name}_OBJECT}" PARENT_SCOPE)
+    set(${name}_PRIMARY_OUTPUT "${ir}" PARENT_SCOPE)
+    return()
+  endif()
   if(NOT ARGN)
     # No foreign rewrites remain: emit the Tower object directly.
     set(object "${CMAKE_CURRENT_BINARY_DIR}/${name}.o")
     add_custom_command(OUTPUT "${object}"
-      COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${input}" --library --target "${triple}"
+      COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${input}" --jobs "${TOWER_COMPILER_JOBS}" --library --target "${triple}"
         --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
         --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
         -o "${object}" --depfile "${object}.d"
@@ -112,7 +145,7 @@ function(tower_runtime_object name input triple)
   set(bound "${CMAKE_CURRENT_BINARY_DIR}/${name}.ll")
   set(object "${CMAKE_CURRENT_BINARY_DIR}/${name}.o")
   add_custom_command(OUTPUT "${ir}" "${bound}" "${object}"
-    COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${input}" --library --target "${triple}"
+    COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${input}" --jobs "${TOWER_COMPILER_JOBS}" --library --target "${triple}"
       --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
       --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
       --emit llvm-optimized -o "${ir}" --depfile "${ir}.d"
