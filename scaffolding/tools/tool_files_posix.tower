@@ -13,6 +13,8 @@ extern fn opendir(path: u8*): void*;
 extern fn closedir(directory: void*): i32;
 extern fn strlen(text: u8*): usize;
 extern fn strcmp(left: u8*, right: u8*): i32;
+extern fn statx(directory: i32, path: u8*, flags: i32, mask: u32, output: void*): i32;
+extern fn __errno_location(): i32*;
 
 // Owned NUL-terminated path; length excludes the terminator. Inputs may borrow
 // out until successful publication. Filesystem paths do not change module identity.
@@ -52,15 +54,25 @@ fn tool_output_parents(path: u8*): bool {
     return true;
 }
 
-// Called after reading source and before opening output. A resolvable destination
-// cannot alias source through '.', '..' or symlinks. A nonexistent destination
-// cannot be that existing source; failed opens are still reported by the writer.
+// Native Linux tools: use the same statx boundary as tool_files_linux rather
+// than libc's architecture-dependent stat layout. Follow links and compare
+// device+inode, including hard links which distinct realpaths cannot detect.
+// Caller freezes paths between this check and writing; this is not protection
+// against a concurrent filesystem rename. Only ENOENT permits a new output.
 fn tool_output_distinct(source: u8*, output: u8*): bool {
-    var resolved_source = realpath(source, null);
-    if resolved_source == null { return false; }
-    defer free(resolved_source);
-    var resolved_output = realpath(output, null);
-    if resolved_output == null { return true; }
-    defer free(resolved_output);
-    return strcmp(resolved_source, resolved_output) != 0;
+    var source_status: u64[32];
+    var output_status: u64[32];
+    var working_directory: i32 = -100;
+    var inode_mask: u32 = 256;
+    var inode_word: usize = 4;
+    var device_word: usize = 17;
+    var no_entry: i32 = 2;
+    if statx(working_directory, source, 0, inode_mask, bits(void*, &source_status[0])) != 0
+        || (source_status[0] & convert(u64, inode_mask)) == 0 { return false; }
+    if statx(working_directory, output, 0, inode_mask, bits(void*, &output_status[0])) != 0 {
+        return *__errno_location() == no_entry;
+    }
+    if (output_status[0] & convert(u64, inode_mask)) == 0 { return false; }
+    return source_status[inode_word] != output_status[inode_word]
+        || source_status[device_word] != output_status[device_word];
 }
