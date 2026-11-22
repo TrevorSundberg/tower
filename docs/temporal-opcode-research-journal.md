@@ -39171,3 +39171,13 @@ The ordinary driver CTest passes again (10.61 seconds). Changed shell syntax and
 scoped diff checks pass. Compiler/host/backend/library/bootstrap sources are
 unchanged; the already verified public successor remains applicable. Publish
 source/test-tooling evidence while preserving the current runtime/86 assets.
+
+Publication: source dcfaa3330a8bf1d8513b8995e7c56a6e20ecc82a is pushed.
+Pages 78647df04e272c7455e95b97bb223f543e572bdd/action 44970892558 succeeds;
+the hosted manifest exactly matches SHA256
+3bab6d8404a729f0d2bb895daeec977bdcb4eb6e4cd34bbfeaf770a47af18156.
+Runtime buildSourceCommit 51c038e0d15480256f7dfd7991155874b97d2cab, all
+86 assets and all other lanes' receipts remain unchanged. Next audit confirms
+test-bootstrap.sh still owns required cross-stage object/IR agreement and grammar
+checks, but its repeated build and named expected/symbol files can be eliminated
+by extending the existing Tower verifier with explicit already-built inputs.
