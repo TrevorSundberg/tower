@@ -8,7 +8,7 @@ import .host.driver_platform;
 import .library.bytes_types;
 import .library.bytes_interface;
 
-enum MeasureMode: u32 { Compiler, Semantics, Native, C }
+enum MeasureMode: u32 { Compiler, Semantics, Native, C, Interpreters }
 struct MeasureInputs { mode: MeasureMode; before: u8*; after: u8*; grammar: u8*; tools: u8**; filter: u8*; }
 var MeasureWarmups: usize = 2;
 var MeasureCompilerPairs: usize = 12;
@@ -17,6 +17,8 @@ var MeasureNativeSamples: usize = 5;
 var MeasureRuntimeSamples: usize = 7;
 var MeasureRuntimeIterations: usize = 30000000;
 var MeasureInterpreterIterations: usize = 100000;
+var MeasureInterpreterWarmups: usize = 3;
+var MeasureInterpreterSamples: usize = 15;
 var MeasureReportSchemaVersion: usize = 1;
 
 fn measure_selected(inputs: MeasureInputs*, name: u8*): bool { return inputs.filter == null || driver_same(inputs.filter, name); }
@@ -45,6 +47,19 @@ fn measure_native(report: MeasureReport*, inputs: MeasureInputs*, name: u8*, fil
     measure_compiler_series(&group, "compile", inputs.after, inputs.grammar, null, null, "measured_program", MeasureCompare.None, true);
     measure_executable_series(&group, "execute", "measured_program");
     measure_compiler_series(&group, "object", inputs.after, inputs.grammar, "--emit", "object", "measured_program.o", MeasureCompare.None, true);
+    measure_group_run(report, &group);
+}
+
+fn measure_interpreters(report: MeasureReport*, inputs: MeasureInputs*, name: u8*): void {
+    if !measure_selected(inputs, name) { return; }
+    var source = driver_c_path(inputs.grammar, "/benchmarks/interpreter_"); defer bytes_dispose(&source);
+    driver_check(driver_text(&source, name) && driver_text(&source, ".tower") && host_text_terminate(&source), "interpreter measurement source path");
+    var group: MeasureGroup = { name: name, source: source.data, warmups: MeasureInterpreterWarmups,
+        repeats: MeasureInterpreterSamples, alternating: true, ..default };
+    defer measure_group_close(&group);
+    // Three warmups start fast/graph, so the first retained pair is graph/fast.
+    measure_compiler_series(&group, "fast", inputs.after, inputs.grammar, "--interpret-fast", null, null, MeasureCompare.Output, true);
+    measure_compiler_series(&group, "graph", inputs.after, inputs.grammar, "--interpret", null, null, MeasureCompare.Output, true);
     measure_group_run(report, &group);
 }
 
@@ -149,6 +164,12 @@ fn driver_test_measure(inputs: MeasureInputs*): i32 {
         MeasureMode.Native => {
             measure_native(&report, inputs, "memory", "/examples/memory.tower", "5\n84\n42\n");
             measure_native(&report, inputs, "functions", "/examples/functions.tower", "720\n721\n");
+        }
+        MeasureMode.Interpreters => {
+            measure_interpreters(&report, inputs, "arithmetic");
+            measure_interpreters(&report, inputs, "calls");
+            measure_interpreters(&report, inputs, "memory");
+            measure_interpreters(&report, inputs, "branch");
         }
         MeasureMode.C => {
             measure_c_runtime(&report, inputs, "recurrence", false); measure_c_runtime(&report, inputs, "memory", true);

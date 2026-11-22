@@ -42996,3 +42996,77 @@ Pages e1b3e963b406eb385a0acf43c2dfe1e5eea5a692 was pushed without force for89151
 Workflow44992545084 succeeded; hosted verification has matched all104 assets and
 passed desktop backend, grammar, completion, persistence and native-download
 checks. Mobile/default verification remains running in control-protocol-hosted.log.
+
+### 2026-11-21: reuse Tower interpreter measurements and remove obsolete probes
+
+Audit actual callers before porting. At source 6a52e7b, the 25-line native
+benchmark-interpreters.mjs duplicates the existing driver_measure Tower engine.
+The browser and native runners share four Foundation programs stored as six
+JavaScript lines in interpreter-workloads.mjs. No downstream reader of the native
+script's report format was found. Add --measure-interpreters to tower-driver-tests
+using the existing process capture, timing parser, output comparison, hashing,
+median and report code. It retains three warmups, fifteen alternating pairs and
+the old order: first warmup fast/graph, first retained sample graph/fast. Reuse
+schemaVersion 1, integer nanoseconds, raw samples and compiler/source hashes.
+Do not add another tool, build target, statistics implementation or dependency.
+
+Move arithmetic/calls/memory/branch programs into shared
+scaffolding/benchmarks/interpreter_*.tower files. Preserve the operations, loop
+structure and outputs; add explicit Foundation imports and named quantities.
+These changes affect compilation input, so historical compile timings are not
+same-source comparisons. The browser runner's only change is reading these files;
+its remaining JavaScript measurement/assertion logic still needs a separate
+Tower/host-boundary design. Delete the native runner and JavaScript workload file.
+
+Also remove guest-runtime-benchmark.mjs and guest_runtime_benchmark.tower. The
+caller audit finds only the script's own reference, with no live build, package
+or documentation entry point outside historical journal entries. Its original
+comparison against a C runtime allocator no longer exists after native retirement;
+the current variants both use Tower heap code. Retain its history at 6a52e7b,
+rather than porting an obsolete migration experiment. Functional allocator,
+runtime ABI and memory-growth checks remain in their existing suites.
+
+Freeze initial index tree d88c640f6bdf893caebfd2d20add3a0bafb20e33 into
+/cache/interpreter_measurement_checkout in owned container tower_agent1_c_checks.
+Environment: Ubuntu 24.04, LLVM/Clang 19.1.1, Node /usr/local/bin/node, no Python.
+The checked-in public 6022aa2b bootstrap successfully emits Foundation for all four
+workloads and compiles the smallest changed driver_measure_cases library unit.
+Configure the existing native CMake path with TOWER_DRIVER_TESTS=ON and the public
+bootstrap, then build tower-driver-tests in /cache/interpreter_measurement_native:
+seven steps pass. Production compiler sources are unchanged by this batch; reuse
+the already verified 6d0f5dc9 successor from the previous milestone for execution.
+
+Run the old native benchmark alone against that compiler before removing it;
+all four cases pass. Its generated legacy sources remain in the owned baseline
+snapshot. Execute each legacy/new source under both --interpret and
+--interpret-fast: arithmetic 49995064, calls 4501500, memory 49995000, branch -1426
+match exactly. Then run the new --measure-interpreters mode without concurrent
+builds or tests: all four groups pass with 15 retained samples per metric/series,
+three warmups and matching stdout. Report SHA256
+26ac725fa1a25aef988ca5b6644e5823625aa06a41f196a051b3fbb182a5411b.
+A branch-only invocation passes; missing arguments return 2; an unknown filter
+returns 1 and removes the preceding measurements.json instead of leaving stale
+success. Existing Tower exact timing/median validation executes with each run.
+
+Browser check reuses the published 89151aa runtime from Pages e1b3e963, downloaded
+at that exact commit and verified against its manifest: tower.wasm SHA256
+a679a40001b5f99fedf111870d0aeb404eee6254c48b27423bca564799f8b397 and tower-llvm.wasm
+614f8af487276c03e68e917dde5f5bd038164db5b4dda360de58668e8e38acce. Run the existing
+browser benchmark against the frozen source with all optional modes enabled.
+All four cases finish graph, fast, LLVM optimized/debug Foundation plus actual
+Wasm execution, with 15 samples each and identical-output assertions. Final report
+SHA256 10d82bfc48064c05400a380bf81a4730c49d6fab6e23e5eeac9b89fa66b21047.
+PowerShell Stop treated the script's normal stderr progress as a terminating
+host error; Docker's Node process continued. Confirm its completion and complete
+final JSON (written only after all assertions), rather than restart a concurrent
+measurement or call that transport error a compiler failure. No speedup claim.
+
+This batch removes 58 JavaScript lines and three JavaScript files net, plus the
+78-line obsolete Tower allocator experiment. Current tracked inventory before
+integration: Python/owned C/C++ zero, shell 9/230, CMake 39/1603, JavaScript
+183/24310. Against the recorded baselines: Python 23/1989 removed, shell 253/483
+lines (52.4%), CMake 991/2594 (38.2%), JavaScript 120/24430 (0.49%). The first
+PowerShell inventory attempt accidentally matched each category name inside a
+switch instead of its file path and returned spurious zeroes; corrected direct
+path matching gives these counts. GitHub language percentages are not these
+source-line measurements. No todo.txt, bootstrap pin or runtime asset changes.

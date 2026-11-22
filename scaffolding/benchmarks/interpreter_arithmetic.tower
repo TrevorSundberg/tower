@@ -1,0 +1,14 @@
+import foundation;
+
+var iterations: u32 = 10000;
+var xor_mask: u32 = 17;
+var i: u32 = 0;
+var sum: u32 = 0;
+loop {
+    var stop = i == iterations;
+    if stop { break; }
+    sum = sum + i;
+    sum = sum ^ xor_mask;
+    i = i + 1;
+}
+print(sum);

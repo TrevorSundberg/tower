@@ -5,7 +5,6 @@ import os from 'node:os';
 
 const root = new URL('../../', import.meta.url);
 const foundation = await readFile(new URL('scaffolding/foundation.tower', root), 'utf8');
-import {workloads} from './interpreter-workloads.mjs';
 
 const median = xs => xs.toSorted((a,b)=>a-b)[Math.floor(xs.length/2)];
 const wasmPath = process.env.TOWER_BENCH_REACTOR ?? 'build/browser-wasi/tower.wasm';
@@ -17,7 +16,8 @@ let compiler;
 if (process.env.TOWER_BENCH_WASM !== '0') compiler = await loadLLVM(await readFile(new URL('build/browser-wasi-llvm/tower-llvm.wasm',root)),undefined,foundation);
 if(compiler)modes.push('llvm-fast','llvm-debug-fast');
 const report = {environment:{node:process.version,platform:process.platform,arch:process.arch,cpu:os.cpus()[0].model},reactor:wasmPath,warmups:3,samples:15,workloads:{}};
-for (const [name,source] of Object.entries(workloads)) {
+for (const name of ['arithmetic','calls','memory','branch']) {
+  const source = await readFile(new URL('scaffolding/benchmarks/interpreter_'+name+'.tower',root),'utf8');
   const rows = Object.fromEntries(modes.map(mode=>[mode,{setup:[],execute:[]} ]));
   const imported={};
   if(compiler)for(const mode of ['llvm-fast','llvm-debug-fast']){

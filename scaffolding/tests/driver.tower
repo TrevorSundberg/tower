@@ -487,13 +487,14 @@ export fn driver_tests(argc: i32, argv: u8**): i32 {
                 filter: argc == filtered_arguments ? argv[5] : null, ..default };
             return driver_test_measure(&inputs);
         }
-        if driver_same(argv[1], "--measure-native") || driver_same(argv[1], "--measure-c") {
+        if driver_same(argv[1], "--measure-native") || driver_same(argv[1], "--measure-c") || driver_same(argv[1], "--measure-interpreters") {
             var c = driver_same(argv[1], "--measure-c");
+            var interpreters = driver_same(argv[1], "--measure-interpreters");
             var native_arguments: i32 = 4; var c_arguments: i32 = 6; var usage: i32 = 2;
             var required_arguments = c ? c_arguments : native_arguments;
             if argc != required_arguments && argc != required_arguments + 1 { return usage; }
             var inputs: MeasureInputs = { after: argv[2], grammar: argv[3], tools: c ? argv + 4 : null,
-                mode: c ? MeasureMode.C : MeasureMode.Native,
+                mode: c ? MeasureMode.C : (interpreters ? MeasureMode.Interpreters : MeasureMode.Native),
                 filter: argc == required_arguments + 1 ? argv[required_arguments] : null, ..default };
             return driver_test_measure(&inputs);
         }

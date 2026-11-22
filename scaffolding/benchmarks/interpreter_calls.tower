@@ -1,0 +1,17 @@
+import foundation;
+
+fn add(a: i32, b: i32): i32 {
+    var result = a + b;
+    return result;
+}
+
+var iterations: i32 = 3000;
+var i = 0;
+var sum = 0;
+loop {
+    var stop = i == iterations;
+    if stop { break; }
+    sum = add(sum, add(i, 1));
+    i = i + 1;
+}
+print(sum);

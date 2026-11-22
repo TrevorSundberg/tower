@@ -1,0 +1,17 @@
+import foundation;
+
+var capacity: usize = 1024;
+var iterations: usize = 10000;
+var p = alloc(u32, capacity);
+var i: usize = 0;
+var sum: u32 = 0;
+loop {
+    var stop = i == iterations;
+    if stop { break; }
+    var j = i % capacity;
+    p[j] = convert(u32, i);
+    sum = sum + p[j];
+    i = i + 1;
+}
+free(p);
+print(sum);

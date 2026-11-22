@@ -96,6 +96,7 @@ Linux in an otherwise empty writable artifact directory, using explicit paths:
 tower-driver-tests --measure-compiler BEFORE AFTER SCAFFOLDING [CASE]
 tower-driver-tests --measure-semantics BEFORE AFTER SCAFFOLDING [CASE]
 tower-driver-tests --measure-native COMPILER SCAFFOLDING [CASE]
+tower-driver-tests --measure-interpreters COMPILER SCAFFOLDING [CASE]
 tower-driver-tests --measure-c COMPILER SCAFFOLDING CLANG GCC [CASE]
 ```
 
@@ -114,6 +115,13 @@ The Linux host description comes from `/usr/bin/uname -srm`.
 - `--measure-native`: memory and functions; five samples each of interpretation,
   native compilation, execution and object emission in that dependency order.
   Interpretation and execution must match the known fixture outputs.
+- `--measure-interpreters`: arithmetic, calls, memory and branch; three warmups
+  and fifteen alternating graph/fast pairs. The first warmup starts fast, and
+  the first retained pair starts graph. Both modes must produce identical stdout.
+  These Foundation workloads live in `scaffolding/benchmarks` and are shared by
+  the browser runner. Their explicit imports and named limits replace the old
+  inline strings; compare compiler versions on the same frozen source files,
+  rather than treating historical compile timings as the same input.
 - `--measure-c`: recurrence and memory kernels, 30 million iterations; seven
   alternating runs of LLVM O2 and raw/optimized C built by Clang/GCC O2. The
   100,000-iteration variants separately compare graph/fast O0/fast O2 and retain
@@ -127,8 +135,8 @@ reads; result validation, hashing and report formatting are outside it. CLI
 phases such as `compile` and `execute` exclude launch. This capture method differs
 from the retired Python probes, so do not compare their wall numbers as if the
 harness overhead were identical. Compare paired results from the same runner;
-derive ratios from the recorded medians. The report schema replaces the four
-former script-specific formats; no current downstream reader depended on them.
+derive ratios from the recorded medians. The report schema replaces the retired
+script-specific formats; no current downstream reader depended on them.
 Artifacts/logs remain for inspection. C runtime kernels keep separate long and
 short sources and per-case native/C executables.
 

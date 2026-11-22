@@ -98,9 +98,14 @@ from this directory, optionally setting `TOWER_BENCH_BASELINE` to an earlier
 reactor path relative to the repository root. It alternates runners, validates
 output, and separates compilation/preparation from execution. Wasm measurements
 include module compilation/instantiation and execution, so they are end-to-end
-host measurements, not isolated instruction throughput. Native comparison:
-`node scaffolding/tests/benchmark-interpreters.mjs /path/to/towerc report.json`
-from the repository root. `node scripts/profile-interpreters.mjs` writes separate
+host measurements, not isolated instruction throughput. Both runners read the
+Foundation workloads in `scaffolding/benchmarks/interpreter_*.tower`.
+For native measurements, build `tower-driver-tests` with `TOWER_DRIVER_TESTS=ON`
+and run `tower-driver-tests --measure-interpreters COMPILER SCAFFOLDING [CASE]`
+from an empty writable artifact directory. The existing Tower measurement engine
+validates outputs and writes `measurements.json`, with raw samples, input hashes
+and medians in nanoseconds; see [native measurements](../scaffolding/tests/README.md#native-measurements).
+`node scripts/profile-interpreters.mjs` writes separate
 CPU profiles under `build/`; `TOWER_PROFILE_REACTOR` can select an unstripped
 reactor for function names. See the research journal for measured results and
 platform coverage; portability does not imply a measured speed guarantee on
