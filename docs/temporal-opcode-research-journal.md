@@ -41164,3 +41164,14 @@ index and a normal fast-forward artifact commit; main remained the source branch
 Release only this lane's agent1-candidate-537637e lock after hosted verification.
 Goal remains active: Python elimination is complete, remaining shell/CMake bridges
 and reusable JavaScript still require migration. todo.txt was not changed.
+
+Final receipt pull receives 7503718's array-type query scheduling. Before pushing,
+repeat the clean documented default public-bootstrap successor from frozen
+cdd34d0 in /cache/candidate_checks_final_checkout, with the correct
+TOWER_NATIVE_BUILD=/cache/candidate_checks_final_native override. All 48 steps
+and both-width/native/Wasm memory execution checks pass. Final native SHA256:
+dc8d77c5cd060863b39c30ead48f4e99f948251f5ceb375d96f795f91bfdad05.
+The already verified hosted project remains the explicit 537637e build, and
+runtime remains 2225c52; do not relabel either as containing this later change.
+Publication lock is released. No further runtime rebuild or deployment is needed
+for this journal-only receipt.
