@@ -45447,3 +45447,28 @@ The final rebase incorporates 8c51600's newly published Tower-linked bootstrap.
 Verify its documented hashes and rerun the example in both native interpreters:
 both still print 5, 6, 7, 7, 9. The example bytes and hosted runtime are unchanged;
 update only publication provenance to refer to the rebased example source commit.
+Final publication source is frozen/pushed at8c51600f, including the later
+interpreter checkpoint d51164fd. Tags bootstrap_linux_x64_c59e8bab_source and
+linker_tower_production_8c51600f retain exact bootstrap/runtime provenance across
+concurrent main rebases. Another empty-cache public successor passed after that
+interpreter merge. Refreshed plain/threaded/LLVM/cross links and compiler project
+all pass. Both browser compiler generations pass with edited semantic behavior
+and identical second-generation hashes; final sizes1,383,764/35,180,396/56,333,342
+bytes. Real worker suite passes3/3 again,26.07s, zero skipped. Local deployment
+checks match all104assets and pass desktop/mobile interpreter/LLVM agreement,
+raw/optimized builds, downloads, grammar editing and completion.
+
+Native-host CI45049057956 passes8/8: raw/optimized Mach-O on both actual Mac
+architectures, strict signatures, and default Windows CLI outputs. Hosted ELF
+CI45049057808 passes both x64 link profiles; ARM64 hits a fixture assertion before
+artifact upload because its older SDK lacks optional .note.gnu.property.
+The malformed-note check now supplies a deliberately truncated note when absent,
+rather than assuming every CRT provides one or skipping coverage. Local checks
+pass with both the original and explicitly property-free ARM64 CRT inputs; the
+latter image executes under QEMU with libc/unwind/init/fini assertions. Line-buffer
+CI fixture diagnostics so a future abort does not hide its assertion text.
+Production linker bytes are unchanged by this fixture correction.
+
+Preserve the exact published Foundation increment example from Pages11ebf6b4
+(source4da1e44), which arrived separately from main, together with every previous
+receipt. Do not replace it with the older root-checkout example during deployment.

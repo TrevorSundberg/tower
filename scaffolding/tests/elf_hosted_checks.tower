@@ -48,7 +48,16 @@ fn elf_hosted_checks(reference: ElfLink*, inputs: vector(ByteBuffer)*): void {
         }
         if changed { break; }
     }
-    utility_check(changed && !elf_dynamic_link_run(&malformed) && malformed.error.kind == ElfError.Input && malformed.output.length == 0, "truncated property note rejected");
+    // GNU properties are optional: older ARM64 SDK startup objects omit them.
+    // Supply a malformed note when the SDK has none, keeping this check real.
+    var truncated: u8 = 0;
+    if !changed {
+        var section: ElfSection = { name: wasm_text_bytes(".note.gnu.property"), kind: ElfSectionType.Note,
+            bytes: { data: &truncated, length: 1 }, size: 1, alignment: ElfAddressBytes, ..default };
+        utility_check(malformed.objects.length != 0
+            && vector_push(&malformed.objects.data[0].object.sections, section), "explicit truncated property fixture");
+    }
+    utility_check(!elf_dynamic_link_run(&malformed) && malformed.error.kind == ElfError.Input && malformed.output.length == 0, "truncated property note rejected");
     var image: WasmBytes = { data: reference.output.data, length: reference.output.length };
     var programs = elf_header(image, ElfHeaderAt.Programs, ElfAddressBytes);
     var count = elf_header(image, ElfHeaderAt.ProgramCount, ElfHalfBytes); var end: u64 = 0;

@@ -43,7 +43,7 @@ jobs:
       - run: build/elf_arrays ${{ matrix.architecture.cpu }} build/arrays.o
       - run: bootstrap/linux-x64/towerc scaffolding/tests/elf_hosted_program.tower --library --target ${{ matrix.architecture.triple }} ${{ matrix.optimization.flag }} -o build/program.o
       - run: clang-19 --target=${{ matrix.architecture.triple }} -Wno-override-module -O2 -ffreestanding -fno-builtin -mllvm -disable-loop-idiom-all -c /tmp/tower_hosted_elf/guest-host-library.ll -o build/runtime.o
-      - run: build/elf_driver build/hosted_images/tower-${{ matrix.optimization.name }} ${{ matrix.architecture.cpu }} 4 ${{ matrix.architecture.sdk }}/Scrt1.o ${{ matrix.architecture.sdk }}/crti.o build/program.o build/arrays.o build/runtime.o ${{ matrix.architecture.sdk }}/libc.so.6 ${{ matrix.architecture.sdk }}/libgcc_s.so.1 ${{ matrix.architecture.sdk }}/crtn.o
+      - run: stdbuf -oL build/elf_driver build/hosted_images/tower-${{ matrix.optimization.name }} ${{ matrix.architecture.cpu }} 4 ${{ matrix.architecture.sdk }}/Scrt1.o ${{ matrix.architecture.sdk }}/crti.o build/program.o build/arrays.o build/runtime.o ${{ matrix.architecture.sdk }}/libc.so.6 ${{ matrix.architecture.sdk }}/libgcc_s.so.1 ${{ matrix.architecture.sdk }}/crtn.o
       - run: clang-19 --target=${{ matrix.architecture.triple }} -fuse-ld=lld -pie -Wl,--export-dynamic build/program.o build/arrays.o build/runtime.o -lgcc_s -o build/hosted_images/reference-${{ matrix.optimization.name }}
       - uses: actions/upload-artifact@v4
         with:
