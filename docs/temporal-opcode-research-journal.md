@@ -48541,3 +48541,46 @@ repeat-emission deadline failure, and final TSan, public-bootstrap/browser relea
 and publication are pending. The next owned change isolates the existing backend
 execution-function traversal into a shared private Tower module so the allocation
 fixture can link without duplicate backend exports. No publication lease is held.
+
+### B2 private execution-index module and actual ownership checks
+
+At committed merge 6509489, the coordinator requested a concrete import/link
+boundary for the backend-index fixture. Extracted backend_execution_functions
+unchanged from lowering into backend/execution_functions.tower. Production and
+fixture import that same private helper; explicit Foundation types and sem_get
+ABI declarations avoid importing the backend implementation's exported functions.
+There is no new graph, algorithm, scheduler or public backend test export.
+
+Public predecessor helper compilation passes in 1.325270074 s wall / 1.226927 s
+CPU / 176660 KiB RSS; fixture compilation passes in 2.433927592 / 2.074178 /
+205476. The coherent native rebuild passes 60 steps in 77.312281235 / 152.520723 /
+837848 (outer 2, compiler 4, Linux x64 LLVM19, assigned 12 CPUs). Rebase file
+mtimes explain the wider rebuild; production semantics besides this extraction
+are unchanged. A first observer invocation used bare cmake, which the observer
+cannot resolve; it failed before a build and remains in the original log.
+The retry uses /usr/bin/cmake.
+
+A temporary Tower entry calls the unchanged fixture and is linked with exactly
+the existing frontend runner's production object/library list, replacing only
+its entry object/output. Link succeeds; llvm-nm confirms only test entry exports,
+not duplicate production backend exports. Actual full fixture passes in
+1.411942498 s wall / 1.359440 s CPU / 160868 KiB RSS. This includes both at least
+one injected failure and eventual successful traversal, balanced private buffers,
+invalid caller identity rejection, exact canonical before/after bytes, and complete
+source-world teardown. It uses serial fault instrumentation, not concurrent
+allocation instrumentation. Logs: build/b2_execution_index_*.
+
+Unchanged backend API checks pass before/after: 0.024220666 / 0.027009243 s wall,
+0.023310 / 0.026238 s CPU, 70428 / 70476 KiB RSS. These single warm correctness
+samples do not support a performance claim; extraction preserves the algorithm.
+The earlier alternating normalization profile remains the relevant root-admission
+performance evidence. D1 owns adding the fixture to the generic existing runner.
+Handoff B2_execution_index_module.patch (-p1 after db1807dd) SHA256
+ de4f960898330bf2ada27c925f0f3196f29f5850985c188d240a04f3ddea62e1
+contains the helper, production import and corrected fixture imports. Reverse
+application checks successfully. No publication is attempted.
+
+After the intentional coherent merge, ordinary pull --rebase tried to flatten its
+history and replay already integrated owner commits against unchanged origin607.
+That new rebase was aborted, preserving committed6509489; pull --rebase=merges
+completed with the same commit identity. No work was discarded or force-pushed.

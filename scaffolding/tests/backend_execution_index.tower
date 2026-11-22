@@ -1,12 +1,14 @@
 import tower;
 import frontend_units;
 import utility_checks;
-import .backend.lowering;
+import .backend.execution_functions;
 import .compiler.format_types;
+import .compiler.foundation_types;
 import .library.vector;
 
 extern fn tower_test_buffer_count(): usize;
 extern fn tower_test_buffer_fail_after(count: usize): void;
+extern fn sem_get(node: void*): FoundationNode*;
 
 fn backend_execution_index_case(root: u8*): void {
     var bedrock: vector(u8) = default;
