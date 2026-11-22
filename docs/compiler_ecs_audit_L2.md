@@ -467,3 +467,22 @@ cycle and aggregate contracts remain intact. The journal records exact identitie
 raw outcomes and timings. This coherent local checkpoint is a shared debugging base,
 not a new sanitizer or release acceptance receipt. Final gates and publication stay
 open while A1/L1 investigate the interpreter/producer boundary.
+
+## Reviewed type presentation integration
+
+The B2-owned language_generics/language_components follow-up shares constructor
+descriptions between dependent previews and checked KTypeConstruct operations.
+Checked presentation uses the actual operation kind, without a new spelling
+registry, type identity or graph. The existing generic-preview binding rules are
+preserved. Array count wording permits ordinary evaluated arguments. Focused
+editor tests retain exact token/function-kind assertions and pass after the
+public-pin rebuild: 14.71 s wall / 14.92 s CPU / 258300 KiB RSS. The journal records
+source boundaries and binary hashes. No paired speedup is claimed from this
+correctness repair; earlier failed and newer owner timings are not equivalent
+successful inputs.
+
+The concurrent registry/provider repair compiles, but the storage runner fails
+earlier at the unchanged Session reset parses assertion. GDB and an unbuffered
+retry identify seed-only print fixtures in compiler_storage_tests; D1/B1 own the
+repair. The registry case is unrun in this process, not passed. Final integrated
+capture correctness, instrumentation, bootstrap and publication remain open.

@@ -47393,3 +47393,74 @@ source manifest. Pending standalone profile registration, B2 hover follow-ups,
 entity-registry fixture repairs and backend-index registration are excluded because
 they have not been integrated or built. This checkpoint is not final acceptance,
 a public bootstrap pin, a deployment, or permission to weaken failed contracts.
+
+### L2 review follow-ups after the coherent checkpoint
+
+Checkpoint 7ac22f4 contains all reviewed source that produced compiler d09bad2c
+and revised execution runner2747c240, with no pending profile/hover/index repairs
+silently included. The incremental bundle from8391a52 is44763dbe; full Git tree,
+working-source SHA256 list, binary identities and patch/supersession roster are
+shared with the coordinator. Both known-capability and aggregate failures remain
+explicit. All jobs drain before the host slot is handed to L1.
+
+After that freeze, B2's checked-constructor hover patchdffdad44 plus reviewed
+follow-up5f43191c and entity_registry_language64d55417 apply cleanly as six pending
+files. Checked operations select descriptions from actual KTypeConstruct/op data;
+ordinary parameters keep their declaration metadata. Array count wording no longer
+incorrectly requires compile-time execution. Exact ordinary function-kind assertions
+remain in the hover fixture. The registry fixture explicitly imports Foundation,
+owns its module provider, and closes it before the unchanged entity/component
+baseline assertion. These changes are not built yet and do not inherit prior passes.
+
+The aggregate ABI review confirms that current sem_evaluation_aggregate_publish
+already resolves projection offsets after layout and relocates scalar leaves via
+sem_evaluation_value. Type values publish KTypeReference/element and functions
+publish bound KFunctionReference, clearing private numeric indices. The consumer
+must use ordinary reads/writes to rematerialize those references in its own
+invocation. Null-subject parent projections are layout metadata; producer padding
+and private indices must not be copied. L1/A1 coordinate the same existing projection
+vector and borrowed input metadata, with no second evaluator or initializer parser.
+L2 requests type/callback aggregate coverage alongside nested records/arrays and
+preserved raw-pointer/source-proof rejection checks. No L2 ABI edit is made.
+
+### L2 constructor hover passes; independent storage gate exposes another fixture
+
+After L1's authoritative drain, L2 freezes the seven reviewed Tower files: the
+two B2 hover patches, three-path registry/provider repair and D1 body-root import
+9dcff8a7. The latter adds only the missing Foundation import to its exact fixture;
+the 30 lifecycle cases and recursion oracle remain intact. A fresh public-pin
+smallest language unit passes in 22.58 s wall / 19.10 s CPU / 737508 KiB RSS;
+the changed parser entry passes in 2.74 s / 2.46 s / 186068 KiB. Incremental native
+build passes in 31.23 s / 21.73 s / 790240 KiB; frontend/storage runners build in
+11.52 s / 14.93 s / 344708 KiB. Compiler jobs 1, outer jobs 2, own normal cache,
+unchanged Linux x64/LLVM19 public bootstrap and no private override. Resource diff
+is empty. Logs, exact commands, outputs and times are L2/logs/hover_registry_*.
+
+Compiler SHA256 is 185044e303e2fd484395a0efeab5a9b463a2a6b1ec74b072b4cd512b1ce7c9a7;
+frontend runner is 43d593ff414d730793e227d5c38d7c58c7fb8027ea9425ab4bf19efd86c85b34;
+storage runner is 76897317b3972b35e2fcee21482128657f478da786614e479f7f5d9e3e544e2a.
+Focused editor checks pass, including checked-constructor descriptions, ordinary
+function/parameter metadata, independent lifetimes, mixed worker execution and
+cancellation. This run takes 14.71 s / 14.92 s / 258300 KiB. It is a correctness
+and resource receipt, not a paired performance improvement claim; the old hover
+oracle failed before this fix and owner timings use a different source snapshot.
+The prior paired type/generic measurements remain specific to their frozen input.
+
+Storage aborts by SIGABRT after 0.34 s / 0.14 s / 89716 KiB, despite GNU time's
+trailing status field reading zero. The signal and enclosing nonzero process
+result take precedence. A diagnostic GDB run locates compiler_storage_tests;
+an unbuffered retry prints the exact assertion, Session reset parses. The existing
+storage_session_tests resets a seed-only session to print(42) with no language
+import/provider, while its initial Bedrock parse declaration succeeds. This is a
+fixture hypothesis, not an established production defect. The repaired registry
+fixture is later in the runner and has not been reached; its independent B1 pass
+does not turn this whole-run failure into acceptance. D1/B1 receive the exact
+source location and logs for the owned repair. No assertion or failure oracle is
+changed. GDB's zero exit is not a target pass.
+
+All jobs and diagnostic retries drain before L2 releases the host slot. Full
+parser execution was not repeated here; its changed entry only has compile
+evidence. Full lifecycle remains blocked by the separately recorded aggregate
+and captured-address failures, so no known-failing matrix is repeated. Pending
+aggregate ABI, required-capture policy, opt-in measurement target, final sanitizer,
+public-bootstrap closure and leased publication remain open.
