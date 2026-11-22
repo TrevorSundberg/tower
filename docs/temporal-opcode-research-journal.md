@@ -46031,3 +46031,11 @@ is the next-session plan. Do not start those features as part of this closeout.
 Publish source and deployment refs atomically, verify hosted bytes and flows,
 and leave main clean. The AGENTS.md atomic-publication rule is included in this
 same checkpoint; no separate unpushed guidance is intended to remain.
+
+The last pull adds only the upstream deployment journal receipt (172468b1).
+All scaffolding, CMake and browser implementation inputs are byte-identical to
+the preceding validated source. Rebase maps that source to 98ade8cc; update only
+the package's source-base identity and deployment provenance to this reachable
+equivalent snapshot. Keep its source-file hashes, executable/resources and all
+completed validation evidence unchanged. No additional runtime rebuild is needed
+for this documentation-only integration.
