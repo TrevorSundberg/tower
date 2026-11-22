@@ -1,4 +1,5 @@
 import tower;
+import semantic_context_types;
 import compiler_kernel;
 import generic_body_types;
 import semantic_context;
@@ -10,6 +11,7 @@ import semantic_work_ids;
 import .library.vector;
 import .library.work_graph;
 import .library.work_pool;
+import .library.work_budget_types;
 
 extern fn generic_body_pending(context: void*, node: void*): bool;
 extern fn generic_body_limit(context: void*): usize;
@@ -137,6 +139,11 @@ fn sem_generic_copies_execute(c: SemanticContext*): bool {
             stop++;
             if cost > request.limit { break; }
         }
+        var reservation: WorkReservation;
+        var extra = sem_workers_admit(c, stop - first, &reservation);
+        // The borrowed grant survives every stage hold, publication and ticket
+        // completion in this wave. Clone node limits remain independent.
+        defer sem_workers_release(c, &reservation);
         for(var i = first; i < stop; i++) {
             var result = batch.data[i];
             result.request.stage = entity_stage_open(c.program.root);
@@ -144,7 +151,7 @@ fn sem_generic_copies_execute(c: SemanticContext*): bool {
         }
         var view = entity_view_open(c.program.root);
         sem_require(view != null);
-        sem_require(compiler_kernel_dispatch(&c.workers, &batch.data[first], stop - first));
+        sem_require(compiler_kernel_dispatch_admitted(&c.workers, &batch.data[first], stop - first, extra));
         // Histories can have zero references pending reclamation under this pin.
         // Acquire their queued payload ownership before releasing the last view.
         for(var i = first; i < stop; i++) { entity_stage_hold(batch.data[i].request.stage); }

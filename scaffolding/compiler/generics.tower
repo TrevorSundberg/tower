@@ -67,10 +67,14 @@ export fn generic_register(context: GenericContext*, definition: Entity*): u32 {
     if produces_type {
         var error: u8* = null;
         var result = generic_type_result_read(definition, &error);
+        var ordinary_call = compiler_node_label(result, "CoreCall");
         // Nominal recursive declarations retain early identity publication.
         // General type-producing bodies use ordinary callable specialization
         // and execution, including mutable value parameters and control flow.
-        if result != null && !compiler_node_label(result, "TowerExpression")
+        // A one-return callable wrapper still executes its callee. Static
+        // signature identities are prepared by ordinary semantic resolution;
+        // helper chains must not become eager type aliases by name or shape.
+        if result != null && !ordinary_call && !compiler_node_label(result, "TowerExpression")
             && !compiler_name_is(compiler_node_member(result, "name"), "type_value") {
             template.kind = GenericKind.TypeConstructor;
         }

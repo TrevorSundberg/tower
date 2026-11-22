@@ -1,0 +1,350 @@
+# L2 type and generic compiler audit
+
+Status: implementation and acceptance work in progress. Reviewed source is
+`6282238779034442e0578d76b921ca117df819f1`, unless a later receipt explicitly says
+otherwise. This is a file audit, not a claim that the overall compiler is complete.
+
+## Contracts and current architecture
+
+Read the journal's **Remaining work after the type-value checkpoint**, type values,
+computed arguments, numeric, module, generic-inference, compiler-services and
+threading contracts. Production helper-body/capture readiness supersedes the older
+handoff's missing-helper experiment. The next work follows that newer continuation.
+
+Primary references reviewed: [Flecs systems](https://www.flecs.dev/flecs/Systems.html),
+[storage traits](https://www.flecs.dev/flecs/ComponentTraits.html), and
+[Burst aliasing](https://docs.unity3d.com/Packages/com.unity.burst@1.8/manual/aliasing.html).
+Relevant principles are explicit read/write scheduling, deferred structural
+publication, storage chosen for traversal/lifetime, and alias guarantees only when
+proved. No borrowed implementation or unmeasured performance claim follows.
+
+The following rows describe the complete files, including their error/cleanup
+paths. Related units outside L2 ownership are reviewed as interfaces; changes need
+their owner's coordination. Stable component payloads and dense pointer indexes
+are not packed type payloads. The current type/generic records need stable addresses
+across suspension; wholesale SoA conversion is not justified by this review.
+
+| File under `scaffolding/` | Storage, world, scheduling and ownership finding | Disposition / evidence gap |
+| --- | --- | --- |
+| `types.tower` | Thirteen forwarding imports; declarations are ordinary module entities, no separate registry. Each import participates in grammar/module setup. | Consolidate with helpers; profile source/module overhead and preserve source-bound override. |
+| `types/integer.tower` | Shared signed/unsigned constructors use explicit target-width inputs and structural constructor compatibility path. | Move unchanged behavior to prelude; executed local inputs remain separate unfinished work. |
+| `types/i8.tower` | Ordinary signed 8-bit source binding through shared helper. No mutable worker state. | Consolidate; retain wrapping, signed minimum and exact conversion tests. |
+| `types/u8.tower` | Ordinary unsigned 8-bit binding through shared helper. | Consolidate; preserve byte ABI/storage. |
+| `types/i16.tower` | Ordinary signed 16-bit binding through shared helper. | Consolidate; preserve two-byte/unaligned behavior. |
+| `types/u16.tower` | Ordinary unsigned 16-bit binding through shared helper. | Consolidate; preserve two-byte/unaligned behavior. |
+| `types/i32.tower` | Ordinary signed 32-bit binding; existing tracked-source override proves representation follows source. | Move override to consolidated prelude without replacing other definitions. |
+| `types/u32.tower` | Ordinary unsigned 32-bit binding through shared helper. | Consolidate; preserve exact typed arithmetic. |
+| `types/i64.tower` | Ordinary signed 64-bit binding through shared helper. | Consolidate; preserve signed-minimum parsing/evaluation. |
+| `types/u64.tower` | Ordinary unsigned 64-bit binding through shared helper. | Consolidate; preserve full unsigned range. |
+| `types/f32.tower` | Source selects binary32 representation; strict arithmetic policy still compiler/runtime owned. | Consolidate; source policy migration is not yet implemented. |
+| `types/f64.tower` | Source selects binary64 representation; literal default remains checker policy. | Consolidate; preserve negative zero/NaN/rounding contracts. |
+| `types/bool.tower` | Ordinary boolean representation binding; no runtime storage. | Consolidate; protocol policy remains unfinished. |
+| `types/void.tower` | Ordinary empty representation binding. | Consolidate; retain void parameter/field/array rejection. |
+| `types/usize.tower` | Explicit target-address representation, independent of host width. | Consolidate; both pointer-width profiles required. |
+| `compiler/type_primitives.tower` | Pure scalar-representation selection and canonical spellings; no world/global identity registry. Scalar tags are private execution contracts. | Preserve irreducible representation operations; named-language policy belongs in source. |
+| `compiler/type_objects.tower` | Iterative owned-edge scan identifies metatype-containing programs; invocation-local vector interns descriptors by semantic equality. It never serializes addresses/index identity. | Audit transitive ABI/reconstruction consumers with owners. Linear interning needs measurement before optimization. |
+| `compiler/semantic_types.tower` | Canonical aliases, nominal/array/function identities use shared Foundation entities. Type/constant indexes are compilation-owned linear vectors. Worker observations defer publication; array interning explicitly forbids a worker stage. Function signatures can be private structural equivalents. Legacy synchronous constructor/declaration fallback remains. | Measure scans; preserve ordered interner publication and nominal identity. Executed constructors and compatibility-path unification remain open. |
+| `compiler/semantic_type_values.tower` | Argument queries attach to existing declaration entities. Ordinary interpreter evaluates nonliteral integer inputs; parent query waits, preserving lexical scope/current function. Pump runs evaluation/capture/body/executable producers. | Preserve untaken-dependency behavior; general representation construction needs shared suspension interface. |
+| `compiler/semantic_constructor_work.tower` | Coordinator-owned receipts use Call/Clone/Alias/Execute/Ready phases on source/instance entities. Clone completion precedes nominal publication, which precedes fields; executed constructors clone checked expressions and wait on ordinary evaluation. Scope belongs to definition for instances and lexical owner for value queries. | Assigned to L2 after initial audit. Extend only with shared interpreter/evaluation agreement; retain failure receipts and recursive nominal layouts. |
+| `compiler/generic_registry.tower` | Registry component belongs to root's store and owns component kinds by containment. Template/instance/origin payloads stay on actual nodes. Linked instance index is derived. Body-cost memoization is coordinator-only. Fixed arrays match current parameter bounds. | Measure locality/scan cost; no process-global state found. Existing reclamation and clone-budget tests are relevant but not yet rerun in this lane. |
+| `compiler/generics.tower` | Coordinator publishes instance/header identity before recursive resolution. Explicit clone stack preserves deep trees; workers clone to their private stage, read canonical metadata, and retain provenance. Kind registration still chooses structural type constructors by body shape. | Inspect clone scratch allocator boundary; unify shape compatibility only with tested recursive identity/forward-header behavior. |
+| `compiler/generic_body_types.tower` | Borrowed worker transport contains opaque context/entity/stage handles and private budget/result counters. Lifetime is provided by owner/pin and stage, not this record. | Keep typed ABI migration coordinated with dispatcher; do not claim the opaque record itself enforces leases. |
+| `compiler/semantic_generic_body_work.tower` | Work component on each instance owns ticket/kernel/private stage. Registers layout/type-index reads and unique output write range before dispatch. Bounded clone budgets; shared dispatcher; holds stages before last view closes; publish/discard then finish. Dispose requires drained stages. | Validate actual overlap, failure draining and source-order diagnostics. A window/queue count is not speedup evidence. |
+| `compiler/semantic_generic_info.tower` | Optional inspection components attach to original definitions/annotations; lexical tables are derived. Bounded traversal uses declaration identity; incomplete/error layouts are withheld. Single query owner mutates these components. | Retain serial per-document publication; independent documents already use exclusive worlds. Inspect error recovery with existing IDE fixtures. |
+| `compiler/semantic_generic_values.tower` | Query-owned substitution views refer to existing declarations/trees. Shape cache accepts direct fixed nominal returns only. Concrete expression queries clone temporary trees, reuse ordinary checker, then release clone; no evaluator or authoritative alternate IR. | Bounded traversal may return unknown; do not present that as successful complete inference. Preserve nominal/generic hover fixtures. |
+
+## Interface and packaging audit
+
+`semantic_constructor_work.tower` (assigned to L2 by coordinator) owns Call/Clone/Alias/Execute/Ready receipts
+and graph waits. `semantic_context`, declarations, expressions and evaluation pumps
+are A1 interfaces. Executed representation constructors need L1 interpreter request
+and result transport, retained evaluated arguments, and A1 coordinator publication.
+An API proposal has been sent through lane coordination; implementation is pending.
+
+`compiler_project_files.tower` explicitly scans `types/`, CMake copies its resource
+glob, `build.mjs` enumerates it, and the packaging fixture copies it. Those callers
+must move together before deletion. Browser recipe filters currently accept nested
+type paths; keeping old recipe compatibility can be valid while new source packages
+drop them. `bootstrap_package.tower` collects the complete adjacent `share` tree,
+so use a clean build/package rather than preserving stale resources. The checked-in
+predecessor package must remain intact until a complete successor is validated.
+
+## Baseline and acceptance receipts
+
+Host: WSL Orchestral-Revng, Linux 6.18.33.2 x86_64; 15.3 GiB WSL RAM and 4 GiB swap,
+8 physical/16 logical host cores per lane assignment. Public pin executable SHA-256
+`9653f8187a104ca84ab5d8601f336d7e1ed8200206544c70a81415018d623d02`;
+default package verification passed, no bootstrap override. Filesystem C: about
+128 GiB free; WSL about 931 GiB free. No sibling cache is used.
+
+Before edits, `type_bindings`, `type_object_values`, and `computed_type_arguments`
+each ran three fresh CLI processes with workers 1 and 4, explicit source Bedrock/
+Foundation, `--interpret-fast --timings`. All 18 exit codes are zero and each output
+is `0`. These observations are **rejected for acceptance measurements**: L1 reported
+possible concurrent build overlap, and WSL subsequently removed `/tmp` before the
+logs could be copied. Only tool-output fragments survive. Repeat to Windows-side
+lane logs under the shared lock before edits. Fresh processes reuse OS filesystem
+cache; no cold-cache claim. Allocation/retention counters and actual overlap are
+not established by CLI timings. Full paired results and focused tests remain open.
+
+The first shell-loop launch failed before compilation because WSL command transport
+expanded loop variables, leaving an invalid `--jobs` argument. Logs `__.err` and
+`__.time` were also lost with `/tmp`; the error text survives in tool output.
+Explicit per-process arguments fixed the launch. It is not a passing sample.
+All processes drained before releasing the local build lock.
+
+No implementation, sanitizer, clean-successor, browser-generation or publication
+acceptance is claimed by this initial audit. Remaining work stays active.
+
+### Prelude candidate
+
+The isolated repeat writes durable evidence to
+`C:/Sandbox/build/codex_ecs_20261122/L2/logs/baseline`. All eighteen samples exit
+zero with output zero. Median wall seconds for 1/4 workers respectively are:
+type bindings 2.00/1.74, type objects 1.97/1.89, computed arguments 2.69/1.98.
+There is visible run-to-run variation; report the samples and paired CPU/RSS
+results before drawing performance conclusions. No allocation counter claim.
+
+The candidate consolidates all fourteen scalar/helper modules into types.tower.
+CMake, compiler-project collection, browser builtin packaging and its fixture now
+use that file. Existing browser recipe filters still accept the old nested files
+for compatibility with previously published compiler projects. The old bootstrap's
+complete resource set remains untouched until a replacement is validated/pinned.
+
+The source-bound i32 fixture now reads the full consolidated prelude, verifies a
+unique declaration and edits only its width, preserving all other declarations.
+Smallest-unit compilation passes using foundation_syntax as explicit grammar;
+using foundation itself when types is the entry creates a self-import cycle and
+is preserved as the failed first launch. The normal type_bindings consumer returns
+zero. Native suites, after measurements and complete publication remain pending.
+
+The clean default native build now passes all 51 steps with no private override,
+two build jobs and persistent cache `/root/.cache/tower/l2_ecs_native`. Wall 94.14 s,
+user 156.02 s, system 18.62 s, peak RSS 843848 KiB; this single build is a closure
+observation, not a paired speedup claim. Executable SHA-256:
+`37ca7ab55e4755d1158edc733277b7b7bcafc6e452e8711f41db5072dc2ffd67`.
+The smallest changed test unit and both native runners compile. The full `types`
+suite passes both engines, target widths, canonical reconstruction, workers
+1/2/4/8, invalid inputs and the tracked-source i32 override. Smoke checks and
+after profiles continue on the same frozen source; none of this is publication.
+
+The isolated after run is complete: all eighteen samples exit zero with output
+zero. Both `type-smoke` and `query-smoke` pass. Identical public executable,
+fixture text, flags and target were used before/after; only source prelude
+organization changed. Each cell is the median of three fresh processes, with
+uncontrolled warm filesystem cache. CPU is user plus system; RSS is KiB.
+
+| Fixture | Workers | Wall s before/after | CPU s before/after | Peak RSS before/after |
+| --- | ---: | ---: | ---: | ---: |
+| type_bindings | 1 | 2.00 / 1.69 | 1.65 / 1.62 | 174812 / 177836 |
+| type_bindings | 4 | 1.74 / 1.50 | 1.76 / 1.80 | 192612 / 191788 |
+| type_object_values | 1 | 1.97 / 1.73 | 1.66 / 1.67 | 174792 / 178012 |
+| type_object_values | 4 | 1.89 / 1.49 | 1.92 / 1.77 | 193872 / 192704 |
+| computed_type_arguments | 1 | 2.69 / 1.74 | 2.30 / 1.68 | 179456 / 178564 |
+| computed_type_arguments | 4 | 1.98 / 1.49 | 2.03 / 1.77 | 198420 / 197720 |
+
+Durable raw `.time`, `.out` and `.err` receipts are in lane `logs/baseline` and
+`logs/after`. Wall time improves in this run, but baseline variance, cache and
+host scheduling prevent attributing every difference to module consolidation.
+Serial type bindings/objects retain roughly 3 MiB more peak process RSS; parallel
+RSS falls slightly. This is small relative to the approximately 175 MiB process,
+not evidence of a leak or proof of unchanged allocation. CLI timings expose no
+allocation/retention or worker-idle counters; those measurements remain open.
+The four-worker observation does not establish real overlap by itself.
+
+## Type/operation policy ownership inventory
+
+| Contract | Current authority and required continuation |
+| --- | --- |
+| Named primitive identity | Source `var Name: type` bindings; no ambient i32/f32 spelling registry. `sem_type_entity` interns resolved descriptors, excluding mutable alias producer payloads. |
+| Primitive representation | Foundation constructors and `type_primitives` select private scalar tags. They are execution contracts, not complete source operator policies. |
+| Nominal/structural identity | Actual struct/enum entities; structural array element/count and function signatures. Generic instance lookup uses definition plus canonical argument entities. |
+| Layout/ABI | Explicit pointer width and shared semantic layout. `sem_header` rejects direct metatypes but transitive aggregate-pointer/callback rejection needs a completed-descriptor scan. A1 hook requested. Raw opaque casts cannot gain invented safety from this scan. |
+| Literal defaults/construction | Checker still defaults integer/floating literals to signed32/binary64 and performs contextual exact-bit/range rules. Source policy protocol remains unfinished. |
+| Operators/conversions | Semantic expression/value checking selects shared Foundation operations; strict machine semantics live in ordinary interpreter/runtime/lowering. Every named type still implicitly inherits representation policy. Full source protocol cannot be claimed. |
+| Reflection/serialization | Foundation type descriptors and bound nominal entities, shared formatter; invocation-private indexes relocate through descriptors. No addresses/indexes in canonical text. |
+| Executed construction | Existing integer argument and ordinary type-selection queries are real. General executed representation constructor requires agreed compiler-effect operation, invocation request, shared graph producer and canonical/backend contracts; proposal pending. |
+
+No new type protocol is inferred from attribute spelling. Typed metadata must be
+identified by its nominal binding and consumed explicitly. No fixed-vector/shader
+feature or noalias guarantee is part of this work.
+
+## Constructor/ABI candidate, pending integration validation
+
+All four opcode/format/execution/backend owners agreed the explicit capability
+contract. L1's reviewed `constructor_interpreter.patch` is integrated locally;
+its smallest unit and synthetic request tests passed on L1, not the joined feature
+here. A1's context/query/pipeline/ABI bridge and B1/B2 implementation are still
+required. Do not interpret the following source audit as passing checks.
+
+| Added or changed file | Candidate ownership/storage/scheduling audit | Evidence / open validation |
+| --- | --- | --- |
+| `compiler/semantic_type_execution.tower` | One stable ECS continuation per evaluation owner; WorkGraph key adds invocation sequence. Admission validates exact request address, ticket revision/profile/dispatch, target and world. Exclusive type-index publication and invocation range precede dispatch. Arrays wait on field/layout producers and retain one result across retries. No owned buffers: invocation owns error/result and root owns referenced entities until drain. Cancellation reports failure. | Smallest unit and joined build pass. Query smoke executes all receipt cases at both target widths. Array layout failure and inference-effect policy still need full source regression closure. |
+| `compiler/semantic_constructor_types.tower` | A1's extracted single definition of the existing phase enum and constructor payload. Descriptor copies and borrowed definition/instance/syntax/argument/evaluation references keep their existing world/query owner. No new allocation, interning, scheduler or authoritative graph. | Reviewed all fields against the former in-module definition; v2 full link and query smoke pass. Constructor semantic tests remain open as described below. |
+| `compiler/semantic_constructor_work.tower` | Value-position helper builds ordered ordinary operand edges and a metatype result; no worker interner. Immutable zero-argument representations remain references. Static compatibility path preserved. | Shared tags integrated; A1 call/admission wiring pending. |
+| `compiler/semantic_type_values.tower` | Delegates cross-phase pumping to A1's one shared pipeline; retains existing argument continuations and owner scope. | Pending A1 pipeline source, then type/query smoke. |
+| `compiler/type_objects.tower` | Pure ABI scan follows completed record/array/function descriptors, including pointer payloads. Iterative scratch/visited vectors are disposed; nominal cycles terminate. No second authoritative graph. | Smallest public-predecessor unit passes. Baseline accepts a foreign pointer to a record containing metatype, confirming the gap. Late A1 hook pending. |
+| `tests/type_construction_execution.tower` | Ordinary source values exercise mutable locals, repeated constructor node executions, nested descriptor arguments, arrays/nominal identity, explicit stages and untaken invalid widths. | Corrected unsupported `i32*[3]` fixture spelling to existing nested constructors. Baseline now fails specifically on value-position integer_type; not a speed comparison. |
+| `tests/type_execution_receipts.tower` | Real shared graph/components without parser overhead; stale revision/profile/dispatch/target, duplicate admission, changed sequence, repeated node results, semantic error delivery, cancellation and disposal at both target widths. No fake worker concurrency claim. | Draft, not compiled/run. |
+| `tests/type_binding_checks.tower` | Extends existing graph/fast, canonical and 1/2/4/8-worker matrix; checks recursive ABI descriptors independently of declaration rejection and runtime capability after ordered effects. | Prelude-only version passed earlier; newly added constructor/ABI cases remain unvalidated. |
+
+Baseline ABI experiment receipts: `L2/logs/abi_nested_baseline_retry.*`, exit zero,
+1.61 s wall, 1.59 s user, 0.22 s system, 184708 KiB RSS. Initial BOM-bearing source
+failed at 1:1; its `abi_nested_baseline.*` logs remain. Constructor baseline first
+failed fixture parsing (`construction_baseline.*`); corrected retry fails with
+`Unknown function 'integer_type'` at the actual executed call
+(`construction_baseline_retry.*`). Neither failure is counted as a passing test.
+Pure ABI helper compilation is recorded in `type_objects_unit.*`.
+
+Optional known-value inference must not grant the compiler capability to ordinary
+runtime construction and erase its required failure. A1 was asked to preserve
+that distinction; the source tests include a constant-operand runtime case.
+Publication, full public-bootstrap closure and actual sanitizer checks remain open.
+
+## Joined production experiment and remaining dependency failure
+
+The exact owner patches now supply the semantic pipeline/caller, formatter,
+backend capability guard and bytecode semantic/cache versions 9/6. The correct
+ABI link boundary exports the helper only from the interpreter implementation;
+the semantic unit and independent ABI test use extern declarations. An initial
+proposal to remove only the helper export was superseded after symbol inspection
+showed every type-object export duplicated by an implementation import.
+
+The latest receipt fixture compiles with the public predecessor (18.76 s wall,
+15.70 s CPU, 729900 KiB RSS); the execution fixture with eight repeated
+entity/component retention checks per width also compiles (3.34 s, 2.85 s,
+223168 KiB). These are compilation observations, not runtime retention evidence.
+Redundant default initialization immediately before verified full initialization
+was removed from the receipt fixture. A1 owns analogous query-fixture changes
+and the data-only semantic unit boundaries needed to keep the test closure within
+the existing payload budget.
+
+The production-only native build passes all 51 steps using the public pin,
+without override: 89.07 s wall, 172.91 s CPU, 846964 KiB peak RSS, successor
+`3b0810ab586b15fa8fe3c3475219655c899d21f4c4b62d11fbe411b2a6b8d73d`.
+The build's timing is an observation, potentially overlapping the coordinator's
+hosted browser verifier; it is not a speed comparison or passing test profile.
+
+The new ordinary-call probe found that `generic_register` treated a direct
+representation-return body as a static constructor, rejecting its ordinary call
+even in an untaken branch. A first classification candidate fixes the minimal
+probe (output 7), but is **not accepted**: the full fixture exposes a legacy
+recursive `sem_declaration_type` failure while a type alias producer is suspended.
+`print(sizeof(u8))` and a module alias to u8 pass; a function containing
+`var r:type=u8; return r;`, used to produce another alias, fails with a false
+u8 initializer cycle. This is routed to A1's body/query admission boundary.
+Arbitrary wrapper chains and aliases, local type bindings, and recursive nominal
+constructor identity are explicit regressions; a four-name classifier exception
+alone cannot establish the ordinary function contract.
+
+Before this production build, all 24 isolated comparison samples passed output
+zero: type_bindings, type_object_values, computed_type_arguments and the larger
+body_continuation, three samples each at one/four workers. The preserved compiler
+is `37ca7ab55e4755d1158edc733277b7b7bcafc6e452e8711f41db5072dc2ffd67`.
+Receipts in `L2/logs/constructor_before` ran 11:03:07-11:03:52 local time, before
+the coordinator's disclosed browser verification starting 11:07:52. Equivalent
+after measurements remain pending a corrected, validated successor.
+
+## Refreshed unit boundary and independent regressions
+
+A1's v2 data-module/query-unit split is integrated as one coordinated change.
+The L2 receipt fixture now imports shared payloads and declaration-only APIs;
+the producer exports its two entry points once. The public pin compiles the
+fixture in 3.05 s wall / 2.62 s CPU / 203020 KiB RSS, and its only strong external
+definition is `type_execution_receipt_tests`. This replaces the previous 18.76 s
+/ 15.70 s / 729900 KiB closure observation without removing assertions. The full
+linked fixture remains a required gate.
+
+The unchanged nested-metatype foreign ABI probe now rejects with the precise
+ABI diagnostic (expected exit 1), whereas the predecessor accepted it. The
+joined executable used is still `3b0810ab...b8d73d`; newer A1/D2 source changes
+are not attributed to that binary.
+
+L1's supported inferred-generic/named-initializer call also crashes in that
+joined executable. Batch GDB identifies `sem_lift_initialization+574`, the
+dereference of `sem_get(field.binding).byte_offset`. The source and complete
+diagnostic receipts are routed to A1's lowering/inference ownership. Replay
+after a prior lowering cleared the binding is an investigation hypothesis.
+The regression must be fixed and validated rather than hidden by a null check
+or an explicit-generic workaround.
+
+D2's native sanitizer build mode is present; valid whole-compiler workloads
+remain pending. Per the latest user direction, deliberate invalid-memory and
+intentional-race controls will not be repeated. Existing sensitivity receipts
+are retained and are not clean-production evidence.
+
+The new joined native executable
+`0d5b242318f196f72d2003b3ebfa4abfddf18d73774953b49f7b3c7eeb7d9428`
+builds from the public pin in 52 steps (105.55 s wall / 165.38 s CPU /
+796204 KiB RSS), followed by five runner steps. Its query smoke passes the
+serial/threaded 32/64-bit matrix, including all constructor receipt assertions.
+The broader type suites remain failing: ordinary nominal-wrapper calls are
+rejected in value position, and `sizeof(signed_word(16))` lacks ordinary-call
+query preparation. The four-name classifier has been replaced by CoreCall shape
+classification, preserving static function signatures; it is not accepted until
+those compatibility cases pass. Full logs and frozen input hashes are retained
+under `L2/joined_v2_*` and `L2/logs/joined_v2_*`.
+
+A1's root-call demand fix and the shared work-budget/world/dispatcher handoffs
+were applied only after that run drained. They are newer than the measured
+executable. Actual grant adoption by the generic clone caller and a coherent
+rebuild are pending; no budget enforcement or speedup is claimed from merely
+importing these interfaces.
+
+## Shared budget integration and current gates
+
+The generic clone caller now reserves extra lanes from the world-owned budget
+for each wave, passes the grant to the common admitted dispatcher, and releases
+it after stage hold, view close, ordered publication/discard and ticket finish.
+The existing clone-node limit remains; the zero-byte worker receipt does not
+account for retained clone storage. The smallest unit passes with the public pin
+(19.44 s wall / 16.41 s CPU / 726672 KiB RSS). A1's helper resets fresh receipt
+storage before reading it and imports the shared data-only budget definitions.
+
+The complete B2 v2 unit-service/driver handoff, B1 parser admission and updated
+formatter fixtures, A2 shared dispatcher projection, and A1 initializer reuse
+and semantic-world test boundary are integrated for the next coherent build.
+These owner handoffs are implementation inputs, not passing runtime evidence.
+The outer-unit default accounts for selected retained buffers, not process RSS
+or every parser/LLVM allocation. Remaining semantic callers and ordinary type
+query compatibility still require A1's coordinated changes.
+
+The inferred initializer crash is now traced more specifically: inference checks
+the explicit initializer before the concrete parameter check repeats it; the
+second check appends the same field entities, and lowering clears their bindings
+on the first visit. A1's reuse guard preserves checked fields/effects and still
+checks the later expected type. Joined runtime validation is pending.
+
+The linked constructor receipt tests passed in the prior query-smoke result;
+the earlier statement that they awaited linking is superseded. Full source
+construction, repeated compile/close retention, joined sanitizer and publication
+gates remain open. The static function-signature exception in CoreCall
+classification is also a known compatibility gap for ordinary helpers named
+`function`; it must not be presented as general binding resolution.
+
+## Identity and readiness join
+
+The final classifier removes the function-spelling exception. A shared semantic
+predicate resolves ordinary functions, templates and value callees before static
+signature identities; A1's declaration/body consumers use that predicate. The
+public-pin joined compiler is
+`c7b8a53dcbc700d3270a24430e7ae188ac8cd1464cccad09e5e8e708e4a0e144`.
+Its 12 native build steps pass in 63.27 s wall / 92.37 s CPU / 784148 KiB RSS;
+four runner steps pass in 10.54 s / 11.77 s / 317416 KiB. The exact consolidated
+resource copy is independently checked with `diff -qr` before execution.
+
+Query smoke passes, a function returning local `u8` prints 1, and an ordinary
+function named `function` prints the expected sizeof 4. The unit-service suite
+passes with bounded source inputs and the current payload layouts. Type smoke
+reaches an obsolete diagnostic expectation: mutually recursive ordinary helper
+calls now hit the interpreter's call-stack limit, while its old oracle expects
+a graph cycle. Direct jobs 1/4 runs reject with byte-identical diagnostics and
+do not expose the later unrelated error. D1 owns the narrow oracle correction;
+genuine declaration/capture cycle coverage must remain.
+
+The full constructor fixture still fails on its local explicit `comptime` type
+binding, through a whole-body dependency edge. A1 owns the required-stage pipeline
+correction; the fixture remains unchanged. This is not type-suite acceptance.
+Final retention, paired current-input performance, sanitizer, bootstrap pin and
+publication gates remain open. Logs use the `identity_readiness` prefix in the
+external L2 evidence directory.

@@ -1,4 +1,6 @@
 import tower;
+import semantic_context_types;
+import semantic_declaration_types;
 import semantic_attributes;
 import semantic_control;
 import semantic_defer;
@@ -18,6 +20,8 @@ import semantic_declarations;
 import semantic_body_work;
 import semantic_flow;
 import .library.vector;
+
+extern fn type_object_abi_safe(type: FoundationType*): bool;
 
 // Semantic compiler over shared Foundation components.
 // Temporary indexes and scratch allocations are scoped to one compilation.
@@ -171,6 +175,27 @@ fn sem_header(c: SemanticContext*, n: void*, name: u8*, definition: void*): void
     function_node.exported = sem_is(n, "CoreExport");
     c.scope = saved_scope;
     c.current = saved_current;
+}
+
+// All field/signature producers have completed; aggregate ABI lowering has not
+// rewritten the source signatures yet. Follow descriptors, including pointers
+// and callbacks, so an opaque type identity cannot leak through a nested ABI.
+fn sem_foreign_signatures(c: SemanticContext*): void {
+    if !sem_ok(c) { return; }
+    foreach(var subject in &c.program.functions) {
+        var function = sem_get(subject);
+        if !function.external && !function.exported { continue; }
+        foreach(var parameter in &function.parameters) {
+            if !type_object_abi_safe(&sem_get(parameter).type) {
+                sem_fail(c, parameter, "Type values cannot cross a foreign or exported ABI");
+                return;
+            }
+        }
+        if !type_object_abi_safe(&function.type) {
+            sem_fail(c, subject, "Type values cannot cross a foreign or exported ABI");
+            return;
+        }
+    }
 }
 
 fn sem_scope(c: SemanticContext*, parent: SemanticScope*): SemanticScope* {
@@ -828,7 +853,17 @@ fn sem_run(c: SemanticContext*): void {
                 if i >= initializers_until { initializers_until = sem_module_initializer_range(c, statements, i); }
                 sem_module_initializer_finish(c, n);
             }
-            sem_statement(c, n, 0);
+            if sem_ok(c) && (sem_is(n, "CoreCallStatement") || sem_is(n, "TowerExpressionStatement"))
+                && sem_control_call(c, n, "label") == null && sem_control_call(c, n, "jump") == null {
+                var discarded = sem_is(n, "TowerExpressionStatement");
+                var source = sem_member(n, discarded ? "value" : "call");
+                var mode = discarded ? SemanticExpressionMode.Discard : SemanticExpressionMode.Value;
+                var prepared = sem_module_expression(c, source, mode);
+                if sem_ok(c) {
+                    var flow = discarded ? sem_expression_statement(c, n, prepared) : sem_call_statement(c, n, prepared);
+                    sem_statement_complete(c, n, flow);
+                }
+            } else { sem_statement(c, n, 0); }
             if sem_is(n, "CoreCallStatement") {
                 var step63 = sem_member(n, "call");
                 statements.data[i] = step63;

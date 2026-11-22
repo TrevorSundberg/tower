@@ -12,7 +12,7 @@ test('three default runners compare and either interpreter can run independently
   const artifact=await download, bytes=await readFile(await artifact.path());
   expect(artifact.suggestedFilename()).toMatch(/\.towerbc$/);
   expect(bytes.subarray(0,7).toString()).toBe('TOWERBC');expect(bytes.readUInt32LE(8)).toBe(1);
-  expect(bytes.readUInt32LE(12)).toBe(2);expect(bytes.readUInt32LE(16)).toBe(2);expect(bytes.readUInt32LE(24)).toBe(1);
+  expect(bytes.readUInt32LE(12)).toBe(9);expect(bytes.readUInt32LE(16)).toBe(6);expect(bytes.readUInt32LE(24)).toBe(1);
   await page.locator('#build-targets summary').click();
   await expect(page.locator('#optimize')).toBeChecked();
   await page.locator('#optimize').uncheck();

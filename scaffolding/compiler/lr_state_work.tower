@@ -24,6 +24,7 @@ struct LRStateTask {
 
 var LRStateGrain: usize = 128;
 var LRStateFanout: usize = 4;
+var LRStateWorkPerJob: usize = 65536;
 
 export fn compiler_lr_state_kernel(payload: void*): void {
     var task = bits(LRStateTask*, payload);
@@ -52,24 +53,10 @@ export fn lr_states_create_parallel(analysis: LRAnalysis*, anchor: void*): LRSta
     var value = lr_states_begin(analysis);
     if value == null { return null; }
     defer lr_states_destroy(value);
-    var owner = entity_create_related(anchor);
-    if owner == null { return null; }
-    defer entity_release(owner);
-    var kind = lr_work_node(owner);
-    if kind == null || !entity_register(kind, sizeof(LRStateTask), alignof(LRStateTask), 0) { return null; }
-    var nodes: void*[256];
-    var jobs: LRStateTask*[256];
-    fill(&jobs, 0, 256 * sizeof(void*));
-    for(var i: usize = 0; i < capacity; i++) {
-        nodes[i] = lr_work_node(owner);
-        if nodes[i] == null { return null; }
-        jobs[i] = bits(LRStateTask*, entity_component_data(entity_component_add(nodes[i], kind)));
-        if jobs[i] == null { return null; }
-        fill(jobs[i], 0, sizeof(LRStateTask));
-        jobs[i].analysis = analysis;
-        jobs[i].kernel.kind = CompilerKernelKind.LRState;
-        jobs[i].kernel.payload = bits(void*, jobs[i]);
-    }
+    var owner: void* = null;
+    defer { if owner != null { entity_release(owner); } }
+    var nodes: void*[WorkPoolMaximumCapacity];
+    var jobs: LRStateTask*[WorkPoolMaximumCapacity];
     var workers: ParserWorkers = default;
     defer parser_workers_close(&workers);
     var graph: WorkGraph;
@@ -89,18 +76,51 @@ export fn lr_states_create_parallel(analysis: LRAnalysis*, anchor: void*): LRSta
         // A single outgoing edge exposes no parallel work; tiny closures cost
         // less than the handoff. Keep the same transition algorithm in both
         // paths and start platform threads only for a useful ready batch.
-        if state.symbols.length < LRStateFanout || state.items.values.length < LRStateGrain {
+        var count: usize = 0;
+        if state.symbols.length >= LRStateFanout && state.items.values.length >= LRStateGrain {
+            // Each outgoing shift scans the source items. Bound the number of
+            // jobs by that known work, without overflowing an items*edges product.
+            // Closure expansion can add work; this is a conservative admission
+            // estimate, not a claim that every edge has identical cost.
+            var items = state.items.values.length;
+            var symbols_per_job = LRStateWorkPerJob / items + (LRStateWorkPerJob % items != 0 ? 1 : 0);
+            count = state.symbols.length / symbols_per_job;
+            if count > capacity { count = capacity; }
+        }
+        var admission: ParserAdmission = default;
+        defer parser_admission_close(&admission, &graph);
+        if count >= 2 && !parser_admission_open(&admission, anchor, count) { return null; }
+        if count < 2 || admission.extra == 0 {
             for(var i: usize = 0; i < state.symbols.length && ok; i++) {
                 ok = lr_state_transition(value, state, state.symbols.data[i]);
             }
             continue;
         }
-        if workers.pool == null && !parser_workers_open(&workers, anchor, capacity) { return null; }
+        // A grammar can contain many symbols yet never expose a useful state
+        // frontier. Allocate ECS jobs only when the same gate admits workers.
+        // Reuse them for later states; all inputs stay frozen until each join.
+        if owner == null {
+            owner = entity_create_related(anchor);
+            if owner == null { return null; }
+            var kind = lr_work_node(owner);
+            if kind == null || !entity_register(kind, sizeof(LRStateTask), alignof(LRStateTask), 0) { return null; }
+            for(var i: usize = 0; i < capacity; i++) {
+                nodes[i] = lr_work_node(owner);
+                if nodes[i] == null { return null; }
+                jobs[i] = bits(LRStateTask*, entity_component_data(entity_component_add(nodes[i], kind)));
+                if jobs[i] == null { return null; }
+                *jobs[i] = default;
+                jobs[i].analysis = analysis;
+                jobs[i].kernel.kind = CompilerKernelKind.LRState;
+                jobs[i].kernel.payload = bits(void*, jobs[i]);
+            }
+            if !parser_workers_open(&workers, anchor, capacity) { return null; }
+        }
         var pool = workers.pool;
         if !vector_reserve(LRItems*, &results, state.symbols.length) { return null; }
         results.length = state.symbols.length;
         fill(results.data, 0, results.length * sizeof(LRItems*));
-        var count = results.length < pool.count ? results.length : pool.count;
+        if count > pool.count { count = pool.count; }
         var position: usize = 0;
         // One joined wave per state. Each worker owns a contiguous output range,
         // amortizing dispatch over several closures instead of one tiny edge.
@@ -123,15 +143,10 @@ export fn lr_states_create_parallel(analysis: LRAnalysis*, anchor: void*): LRSta
         if !ok { break; }
         var view = entity_view_open(owner);
         if view == null { return null; }
-        var admitted: usize = 0;
-        for(; admitted < count; admitted++) {
-            if !work_pool_submit(pool, bits(void*, &jobs[admitted].kernel)) { ok = false; break; }
-        }
-        for(var i: usize = 0; i < admitted; i++) {
-            if work_pool_receive(pool, true) == null { ok = false; }
-        }
+        ok = compiler_kernel_dispatch_admitted(pool, &jobs[0], count, admission.extra);
         entity_view_close(view);
-        for(var i: usize = 0; i < admitted; i++) {
+        if !ok { break; }
+        for(var i: usize = 0; i < count; i++) {
             if !work_finish(&graph, &jobs[i].ticket, jobs[i].success) || !jobs[i].success { ok = false; }
         }
         for(var i: usize = 0; i < results.length; i++) {

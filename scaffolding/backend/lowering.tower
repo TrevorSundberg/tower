@@ -408,6 +408,21 @@ fn backend_conversion(b: Backend*, n: FoundationNode*, from: FoundationType*, va
 fn backend_expression(b: Backend*, entity: void*): void* {
     var n = sem_get(entity);
     if n.kind == KFunctionReference || n.kind == KTypeReference { return backend_read(b, entity); }
+    if n.kind == KTypeConstruct {
+        // Construction is a compile-stage effect. Preserve ordinary operand
+        // effects before the reached runtime capability failure, including in
+        // helper bodies that are never called or branches that are never taken.
+        if n.left != null { backend_read(b, n.left); }
+        if n.right != null { backend_read(b, n.right); }
+        var offset = b.source_offset;
+        b.source_offset = n.start;
+        backend_guard(b, LLVMConstNull(LLVMIntTypeInContext(b.context, 1)),
+            "Type construction requires compile-stage capability");
+        b.source_offset = offset;
+        // The guard's success block has no reachable predecessor. This value
+        // only keeps surrounding LLVM expressions well-typed, never a type ID.
+        return LLVMGetUndef(backend_type(b, &n.type));
+    }
     var ordinary = n.kind == KOperand;
     var `match` = n.kind == KString;
     if `match` {

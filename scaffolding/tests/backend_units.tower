@@ -4,8 +4,12 @@ import work_named;
 import .library.vector;
 import .library.work_pool;
 import .library.compiler_work_types;
+import .library.work_budget;
+import .library.work_budget_types;
 
 extern fn backend_units_create(frontend: void*, count: usize, budget: usize, target: u8*, library: bool, optimize: bool): void*;
+extern fn backend_units_create_bounded(frontend: void*, count: usize, budget: usize, retained_bytes: usize,
+    target: u8*, library: bool, optimize: bool): void*;
 extern fn backend_units_close(batch: void*): void;
 extern fn backend_units_step(batch: void*, wait: bool): bool;
 extern fn backend_units_failed(batch: void*): usize;
@@ -18,6 +22,7 @@ extern fn backend_size(backend: void*): usize;
 extern fn frontend_units_observer(frontend: void*, context: void*,
     event: function(void, void*, CompilerQuery, usize, bool)): bool;
 extern fn frontend_units_peak(frontend: void*): usize;
+extern fn frontend_units_pending(frontend: void*): bool;
 extern fn pthread_self(): usize;
 extern fn sched_yield(): i32;
 
@@ -83,11 +88,14 @@ fn backend_units_frontend(width: u32, root: u8*, bedrock: u8*, foundation: u8*):
 }
 
 fn backend_units_trial(frontend: void*, budget: usize, target: u8*, output: vector(u8)*): void {
+    var streaming = frontend_units_pending(frontend);
+    var before: WorkBudgetSnapshot;
+    units_check(work_budget_snapshot(frontend_units_work_budget(frontend), &before), "backend input accounting");
     units_check(backend_units_create(frontend, ~convert(usize, 0), budget, target, true, true) == null,
         "backend rejects invalid count before allocating or walking units");
     var batch = backend_units_create(frontend, BackendFixtureUnits, budget, target, true, true);
     units_check(batch != null, "backend batch create");
-    defer backend_units_close(batch);
+    defer { if batch != null { backend_units_close(batch); } }
     units_check(backend_units_result(batch, 1) == null, "backend unpublished output");
     units_check(backend_units_create(frontend, BackendFixtureUnits, budget, target, true, true) == null,
         "backend rejects competing graph owner");
@@ -103,6 +111,37 @@ fn backend_units_trial(frontend: void*, budget: usize, target: u8*, output: vect
         }
     }
     units_check(backend_units_result(batch, BackendFixtureUnits + 1) == null, "backend invalid result ordinal");
+    var retained: WorkBudgetSnapshot;
+    units_check(work_budget_snapshot(frontend_units_work_budget(frontend), &retained)
+        && retained.used_lanes == 0 && retained.peak_lanes <= retained.lanes,
+        "backend joins all shared execution grants");
+    if streaming {
+        units_check(retained.used_bytes > before.used_bytes && retained.live == before.live + BackendFixtureUnits + 1,
+            "streaming objects retain their byte reservations after join");
+    }
+    // A streaming backend borrows the frontend ledger; a later target owns its
+    // own ledger. Either way releasing it must restore the frontend baseline.
+    backend_units_close(batch);
+    batch = null;
+    units_check(work_budget_snapshot(frontend_units_work_budget(frontend), &retained)
+        && retained.used_lanes == 0 && retained.used_bytes == before.used_bytes
+        && retained.live == before.live, "backend disposal releases retained output receipts");
+}
+
+fn backend_units_memory(frontend: void*, target: u8*): void {
+    units_check(backend_units_create_bounded(frontend, BackendFixtureUnits, 1, 0, target, true, true) == null
+        && backend_units_create_bounded(frontend, BackendFixtureUnits, 1, ~convert(usize, 0), target, true, true) == null,
+        "bounded backend rejects missing or unbounded policy");
+    var bytes = strlen(target) + 1;
+    units_check(backend_units_create_bounded(frontend, BackendFixtureUnits, 1, bytes - 1, target, true, true) == null,
+        "target cap rejection leaves frontend graph usable");
+    var batch = backend_units_create_bounded(frontend, BackendFixtureUnits, 1, bytes, target, true, true);
+    units_check(batch != null, "exact target bytes admitted before allocation");
+    defer backend_units_close(batch);
+    while !backend_units_step(batch, true) {}
+    units_check(!backend_units_cancelled(batch) && backend_units_failed(batch) == 1
+        && strcmp(backend_units_error(batch), "Unable to reserve retained backend output") == 0
+        && backend_units_result(batch, 1) == null, "denied object output is reclaimed before failed publication");
 }
 
 export fn backend_units_tests(root: u8*): void {
@@ -117,6 +156,7 @@ export fn backend_units_tests(root: u8*): void {
         var frontend = backend_units_frontend(width, root, bedrock.data, foundation.data);
         defer frontend_units_close(frontend);
         var target: u8* = width == 4 ? "wasm32-unknown-unknown" : "x86_64-unknown-linux-gnu";
+        backend_units_memory(frontend, target);
         var serial: vector(u8) = default;
         var parallel: vector(u8) = default;
         defer vector_dispose(&serial);

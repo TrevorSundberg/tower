@@ -1,4 +1,5 @@
 import tower;
+import semantic_context_types;
 import semantic_attributes;
 import semantic_work_ids;
 import foundation_tags;
@@ -15,6 +16,7 @@ import semantic_expressions;
 import semantic_call_inference;
 import semantic_evaluation;
 import semantic_declarations;
+import semantic_constructor_work;
 import .library.vector;
 import .library.work_graph;
 import .library.float_text;
@@ -880,14 +882,20 @@ fn sem_call(c: SemanticContext*, n: void*): void* {
     if sem_call_uses_value(c, step3) {
         return sem_indirect_call(c, n, step3, args);
     }
+    if sem_type_construct_value(c, n, name, args) { return n; }
     var builtin: u32 = semantic_builtin_kind(name);
     if builtin != 0 {
         return sem_builtin(c, n, builtin, args);
     }
     if sem_resolve(c, c.type_functions, step3, name) != null {
-        var step12 = sem_cat(c, "Type constructor '", name);
-        var step13 = sem_cat(c, step12, "' produces a type, not a runtime value");
-        sem_fail(c, n, step13);
+        var type = sem_constructor_prepared(c, n);
+        if type == null {
+            sem_fail(c, n, "Nominal type value requires its type construction query");
+            return n;
+        }
+        var value = sem_node(c, n, KTypeReference);
+        value.type = *sem_type_new(c, SType, 0, null);
+        value.element = *type;
         return n;
     }
     var definition: void* = sem_resolve(c, c.templates, step3, name);

@@ -91,8 +91,29 @@ tools="$(bash playground/scripts/build-bootstrap.sh --tools)"
 ```
 
 Pass a tool name after `--tools` to build only `prepare_llvm`, `package_roku`,
-`package_bootstrap`, `package_compiler_project`, `package_targets`, `verify_compiler` or
-`verify_bootstrap_symbols` or `check_core`. Omitting the name builds all eight.
+`package_bootstrap`, `package_compiler_project`, `package_targets`,
+`package_playground_assets`, `verify_compiler`, `verify_bootstrap_symbols` or
+`check_core`. Omitting the name builds these nine ordinary tools.
+
+The opt-in `build-bootstrap.sh --tools instrument_llvm` entry builds A2's
+Linux x64 LLVM sanitizer tool using the same public compiler, guest-library
+runtime and discovered LLVM shared library. It does not rebuild the ordinary
+tool set. See [actual Tower instrumentation](../docs/compiler_sanitizer_checks.md)
+for supported modes, sensitivity controls and coverage limits.
+
+Build children use CMake's `TOWER_COMPILER_JOBS` worker budget (default `1`),
+independently of outer `TOWER_BUILD_JOBS`/Ninja parallelism. For a two-worker
+single-object build, use `TOWER_BUILD_JOBS=1 ./build.sh bash
+playground/scripts/build-native.sh -DTOWER_COMPILER_JOBS=2`. Keep the product of
+outer processes and per-compiler workers within the host CPU/memory budget.
+The tools bridge passes its configured value to `build_tools` as the required
+`JOBS` argument after `GUEST_HOST_OBJECT`. Configure the tools cache with
+`-DTOWER_COMPILER_JOBS=2` when intentionally overriding it. Nonpositive or
+nondecimal CMake values fail configuration; the compiler's existing `--jobs`
+parser rejects values outside its supported capacity. Direct user `towerc`
+invocations retain their existing default worker policy.
+The small foreign fixture compiled after the Wasm build explicitly uses one
+worker; that separate shell command does not inherit CMake cache options.
 
 `package_targets RUNTIME_RESOURCE_DIRECTORY TARGET_DESCRIPTION_DIRECTORY CLANG OUTPUT_DIRECTORY`
 uses the native package's existing bound runtime IR and the repository's target

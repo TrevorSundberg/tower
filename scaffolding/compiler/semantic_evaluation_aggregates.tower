@@ -1,4 +1,6 @@
 import tower;
+import semantic_context_types;
+import semantic_evaluation_types;
 import foundation_tags;
 import foundation_types;
 import semantic_context;
@@ -15,14 +17,6 @@ import .library.vector;
 extern fn ix_load(m: IMExecution*, address: u64, type: FoundationType*, offset: usize): u64;
 
 var EvaluationRootProjection: usize = ~convert(usize, 0);
-struct SemanticEvaluationLeaf {
-    subject: void*;
-    field: void*;
-    parent: usize;
-    index: usize;
-    type: FoundationType;
-    byte_offset: usize;
-}
 
 // A pending aggregate is a tree of ordinary field initializers. Only scalar
 // leaves are shared between consuming lowering jobs and the staged producer;

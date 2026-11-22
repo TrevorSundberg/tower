@@ -1,0 +1,61 @@
+import tower;
+import utility_checks;
+import .tools.tool_process_linux;
+import .tools.tool_files_posix;
+import .tools.tool_files_linux;
+import .tools.tool_streams_posix;
+import .library.vector;
+import .library.bytes;
+import .library.bytes_types;
+
+fn budget_build(builder: u8*, compiler: u8*, repository: u8*, output: u8*, runtime: u8*, jobs: u8*): i32 {
+    var args: vector(u8*) = default;
+    defer vector_dispose(&args);
+    utility_check(tool_process_argument(&args, builder) && tool_process_argument(&args, compiler)
+        && tool_process_argument(&args, repository) && tool_process_argument(&args, output)
+        && tool_process_argument(&args, runtime) && tool_process_argument(&args, jobs)
+        && tool_process_argument(&args, "package_roku") && tool_process_argument(&args, null), "budget command arguments");
+    return tool_process_status(tool_process(builder, args.data));
+}
+
+fn budget_product(root: u8*, directory: u8*, name: u8*, out: ByteBuffer*): bool {
+    var path: ByteBuffer = default;
+    defer bytes_dispose(&path);
+    return tool_join(&path, root, directory) && tool_join(out, path.data, name);
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    var arguments: i32 = 6;
+    if argc != arguments { puts("Usage: build_tool_budget_checks BUILDER COMPILER REPOSITORY RUNTIME NEW_OUTPUT_DIRECTORY"); return 2; }
+    var root = argv[5];
+    var private_mode: u32 = 448;
+    utility_check(mkdir(root, private_mode) == 0, "fresh budget fixture directory");
+    var path: ByteBuffer = default; var object: ByteBuffer = default; var binary: ByteBuffer = default;
+    defer bytes_dispose(&path); defer bytes_dispose(&object); defer bytes_dispose(&binary);
+    utility_check(tool_join(&path, root, "invalid"), "invalid budget output path");
+    var invalid: u8*[5];
+    var invalid_count: usize = 5;
+    invalid[0] = "0"; invalid[1] = "-1"; invalid[2] = "two"; invalid[3] = ""; invalid[4] = "999999999999999999999999";
+    for(var at: usize = 0; at < invalid_count; at++) {
+        utility_check(budget_build(argv[1], argv[2], argv[3], path.data, argv[4], invalid[at]) == 1,
+            "compiler rejects invalid forwarded budget");
+        utility_check(budget_product(root, "invalid", "package_roku.o", &object)
+            && budget_product(root, "invalid", "package_roku", &binary)
+            && tool_file_kind(object.data, false) == ToolFileKind.Missing
+            && tool_file_kind(binary.data, false) == ToolFileKind.Missing, "invalid budget publishes no product");
+    }
+    utility_check(tool_join(&path, root, "serial")
+        && budget_build(argv[1], argv[2], argv[3], path.data, argv[4], "1") == 0, "serial tool build");
+    utility_check(tool_join(&path, root, "parallel")
+        && budget_build(argv[1], argv[2], argv[3], path.data, argv[4], "2") == 0, "two-worker tool build");
+    var serial: ByteBuffer = default; var parallel: ByteBuffer = default;
+    defer bytes_dispose(&serial); defer bytes_dispose(&parallel);
+    var product_limit: usize = 16777216;
+    utility_check(budget_product(root, "serial", "package_roku.o", &object)
+        && budget_product(root, "parallel", "package_roku.o", &binary)
+        && tool_read_file(object.data, product_limit, &serial) && tool_read_file(binary.data, product_limit, &parallel)
+        && serial.length != 0 && serial.length == parallel.length
+        && utility_equal(serial.data, parallel.data, serial.length), "worker budgets preserve object bytes");
+    puts("Tool build budgets: invalid inputs reject without products; serial/two-worker objects agree");
+    return 0;
+}

@@ -1,4 +1,7 @@
 import tower;
+import .library.work_budget_types;
+import semantic_known_types;
+import semantic_context_types;
 import compiler_kernel;
 import foundation_tags;
 import foundation_types;
@@ -13,39 +16,6 @@ import .library.vector;
 import .library.work_graph;
 import .library.work_pool;
 
-enum SemanticKnownAction: u32 { Scan, Order, Publish, Inputs, Bind }
-
-struct SemanticKnownCandidate { subject: void*; ordinal: usize; }
-struct SemanticKnownPatch { subject: void*; literal: void*; declaration: bool; }
-
-struct SemanticKnownStorage {
-    subject: void*;
-    items: vector(void*);
-    locals: vector(void*);
-    replace_items: bool;
-    replace_locals: bool;
-}
-
-// Facts belong to the query's ECS component. Workers read a pinned graph and
-// own their traversal scratch; only the coordinator attaches binding metadata
-// or applies the returned patches, after every reader has joined.
-struct SemanticKnownWork {
-    kernel: CompilerKernel;
-    ticket: WorkTicket;
-    context: SemanticContext*;
-    subject: void*;
-    root: void*;
-    owner: void*;
-    ordinal: usize;
-    source_ordinal: usize;
-    action: SemanticKnownAction;
-    binding_incomplete: bool;
-    candidates: vector(SemanticKnownCandidate);
-    mutations: vector(void*);
-    patches: vector(SemanticKnownPatch);
-    query_reads: vector(usize);
-    storage: vector(SemanticKnownStorage);
-}
 
 extern fn entity_view_tables(view: void*, terms: void**, count: usize): void*;
 extern fn entity_table_query_count(query: void*): usize;
@@ -268,7 +238,7 @@ fn sem_known_job(c: SemanticContext*, kind: void*, subject: void*, root: void*, 
     return result;
 }
 
-fn sem_known_jobs(c: SemanticContext*, kind: void*, count: usize, query_kind: SemanticQuery): vector(SemanticKnownWork*) {
+fn sem_known_jobs_begin(c: SemanticContext*, kind: void*, count: usize, query_kind: SemanticQuery): vector(SemanticKnownWork*) {
     var jobs: vector(SemanticKnownWork*) = default;
     sem_require(vector_reserve(&jobs, count));
     jobs.length = count;
@@ -314,32 +284,61 @@ fn sem_known_jobs(c: SemanticContext*, kind: void*, count: usize, query_kind: Se
             convert(u64, SemanticAccess.Evaluation), 0, ~convert(usize, 0), WorkAccessMode.Read));
         sem_require(work_seal(&c.queries, id) && work_demand(&c.queries, id));
     }
-    // Reserve each bounded frontier before freezing its context. Even receipt
-    // publication can grow graph indexes, so it follows the complete join.
-    view = entity_view_open(c.program.root);
-    sem_require(view != null);
-    for(var first: usize = 0; first < count;) {
-        var length = count - first;
-        if length > SemanticPreparationWindow { length = SemanticPreparationWindow; }
-        for(var i: usize = 0; i < length; i++) {
-            var result = jobs.data[first + i];
-            sem_require(work_take_task(&c.queries, &result.ticket,
-                work_find(&c.queries, result.subject, convert(u32, query_kind), 0)));
+    return jobs;
+}
+
+// A caller retains the source-ordered result vector and completed prefix across
+// waits. An unavailable producer does not prevent later independent work from
+// entering this bounded frontier, and never causes an immediate-take assertion.
+fn sem_known_jobs_pump(c: SemanticContext*, jobs: vector(SemanticKnownWork*)*, query_kind: SemanticQuery,
+    first: usize*): SemanticPumpResult {
+    if !sem_ok(c) || !work_ok(&c.queries) { return SemanticPumpResult.Failed; }
+    var batch: vector(SemanticKnownWork*) = default;
+    defer vector_dispose(&batch);
+    for(var index = *first; index < jobs.length && batch.length < SemanticPreparationWindow; index++) {
+        var result = jobs.data[index];
+        var id = work_find(&c.queries, result.subject, convert(u32, query_kind), 0);
+        var state = work_task(&c.queries, id).state;
+        if state == WorkState.Succeeded {
+            if index == *first { (*first)++; }
+            continue;
         }
-        var context = *c;
-        for(var i: usize = 0; i < length; i++) { jobs.data[first + i].context = &context; }
-        sem_require(compiler_kernel_dispatch(&c.workers, &jobs.data[first], length));
-        for(var i: usize = 0; i < length; i++) {
-            var result = jobs.data[first + i];
-            result.context = null;
-            sem_query_observe(c, &result.ticket, &result.query_reads);
-            sem_require(work_finish(&c.queries, &result.ticket, true));
+        if state == WorkState.Failed {
+            if batch.length == 0 { return SemanticPumpResult.Failed; }
+            break;
         }
-        first += length;
+        if work_take_task(&c.queries, &result.ticket, id) { sem_require(vector_push(&batch, result)); }
     }
+    if batch.length == 0 {
+        return *first == jobs.length ? SemanticPumpResult.Complete : SemanticPumpResult.Waiting;
+    }
+    // Reserve tickets before freezing input. Join every reader before releasing
+    // the view or publishing graph observations; the component owns its output.
+    var context = *c;
+    foreach(var result in &batch) { result.context = &context; }
+    var view = entity_view_open(c.program.root);
+    sem_require(view != null);
+    var receipt: WorkReservation;
+    var extra = sem_workers_admit(c, batch.length, &receipt);
+    defer sem_workers_release(c, &receipt);
+    sem_require(compiler_kernel_dispatch_admitted(&c.workers, batch.data, batch.length, extra));
     entity_view_close(view);
-    // Component results stay private until the caller publishes this stable
-    // source-ordered vector. A slow job no longer stalls unrelated ready jobs.
+    foreach(var result in &batch) {
+        result.context = null;
+        sem_query_observe(c, &result.ticket, &result.query_reads);
+        sem_require(work_finish(&c.queries, &result.ticket, true));
+    }
+    return SemanticPumpResult.Progress;
+}
+
+fn sem_known_jobs(c: SemanticContext*, kind: void*, count: usize, query_kind: SemanticQuery): vector(SemanticKnownWork*) {
+    var jobs = sem_known_jobs_begin(c, kind, count, query_kind);
+    var first: usize = 0;
+    var state = sem_known_jobs_pump(c, &jobs, query_kind, &first);
+    while state == SemanticPumpResult.Progress { state = sem_known_jobs_pump(c, &jobs, query_kind, &first); }
+    // Ordered late phases call this only after their prerequisites have drained.
+    // Early proof consumers retain jobs and use the pump directly instead.
+    sem_require(state == SemanticPumpResult.Complete);
     return jobs;
 }
 

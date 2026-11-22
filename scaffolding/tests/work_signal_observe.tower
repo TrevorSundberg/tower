@@ -1,0 +1,42 @@
+import tower;
+import .host.work_linux;
+
+extern fn strcmp(left: u8*, right: u8*): i32;
+
+// Observer control for the actual POSIX semaphore boundary. This deliberately
+// excludes WorkPool so its other completion edges cannot obscure which acquire
+// a race detector recognizes. Both modes use the same valid ownership handoff.
+struct SignalObservation { finished: void*; release: void*; value: u64; }
+
+export fn signal_observer_entry(payload: void*): void* {
+    var observation = bits(SignalObservation*, payload);
+    observation.value = 42;
+    work_signal_post(observation.finished);
+    work_signal_wait(observation.release);
+    if observation.value != 84 { trap("Semaphore release did not publish input", 0); }
+    return null;
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    if argc != 2 { return 2; }
+    var polling = strcmp(argv[1], "try") == 0;
+    if !polling && strcmp(argv[1], "wait") != 0 { return 2; }
+    var observation: SignalObservation = default;
+    observation.finished = work_signal_open();
+    observation.release = work_signal_open();
+    defer work_signal_close(observation.finished);
+    defer work_signal_close(observation.release);
+    if observation.finished == null || observation.release == null { return 3; }
+    var worker = work_thread_open_named(bits(void*, &observation), "signal_observer_entry", null);
+    if worker == null { return 4; }
+    // A failure must still release/join before the borrowed stack/signals end.
+    defer { work_signal_post(observation.release); work_thread_close(worker); }
+    if polling {
+        while !work_signal_try(observation.finished) {}
+    } else {
+        work_signal_wait(observation.finished);
+    }
+    if observation.value != 42 { return 5; }
+    observation.value = 84;
+    return 0;
+}

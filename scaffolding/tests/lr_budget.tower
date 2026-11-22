@@ -1,0 +1,143 @@
+import tower;
+import .compiler.lr_types;
+import .compiler.compiler_kernel;
+import .compiler.parser_workers;
+import .library.work_budget;
+import .library.work_budget_types;
+import .library.work_pool;
+
+// Separate test entry imports only types and declaration boundaries for the LR
+// algorithms. Keep the public-bootstrap parser aggregate below its expansion cap.
+extern fn compiler_world_create_workers(limit: usize): void*;
+extern fn compiler_world_bind_budget(world: void*, budget: WorkBudget*): bool;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn compiler_world_store(world: void*): void*;
+extern fn entity_create(store: void*): void*;
+extern fn entity_release(node: void*): usize;
+extern fn lr_state_wide_admission(root: void*, size: usize, admits: bool): bool;
+extern fn lr_first_work_trial(root: void*, mode: usize): bool;
+extern fn lr_work_trial(root: void*, rules: LRProduction*, count: usize,
+    symbols: LRSymbol*, length: usize, names: usize): bool;
+
+// Hold competing outer reservations without blocking a worker. A previously
+// retained wide pool must obey the current shared grant, including no extras.
+// Actual overlap and transport races are covered by the production observer run.
+struct LRDispatchProbe {
+    kernel: CompilerKernel;
+    gate: void*;
+    release: void*;
+    active: usize*;
+    peak: usize*;
+    participants: usize;
+    success: bool;
+}
+
+fn lr_dispatch_probe_execute(payload: void*): void {
+    var job = bits(LRDispatchProbe*, bits(CompilerKernel*, payload).payload);
+    work_signal_wait(job.gate);
+    (*job.active)++;
+    if *job.peak < *job.active { *job.peak = *job.active; }
+    if *job.active == job.participants {
+        for(var i: usize = 0; i < job.participants; i++) { work_signal_post(job.release); }
+    }
+    work_signal_post(job.gate);
+    work_signal_wait(job.release);
+    work_signal_wait(job.gate);
+    (*job.active)--;
+    work_signal_post(job.gate);
+    job.success = true;
+}
+
+// A two-party barrier requires simultaneous execution. With exactly one extra
+// lane, the second participant must run on the caller. Queue occupancy alone
+// cannot satisfy this check; the enclosing test process supplies a timeout.
+fn lr_dispatch_caller_overlap(): bool {
+    if !work_thread_available() || work_thread_capacity() < 2 { return true; }
+    var gate = work_signal_open();
+    var release = work_signal_open();
+    if gate == null || release == null {
+        if gate != null { work_signal_close(gate); }
+        if release != null { work_signal_close(release); }
+        return false;
+    }
+    defer work_signal_close(gate);
+    defer work_signal_close(release);
+    work_signal_post(gate);
+    var jobs: LRDispatchProbe[2];
+    var pointers: LRDispatchProbe*[2];
+    var count = sizeof(decltype(jobs)) / sizeof(LRDispatchProbe);
+    var active: usize = 0;
+    var peak: usize = 0;
+    var pool: WorkPool = default;
+    if !work_pool_open_kernel(&pool, count, lr_dispatch_probe_execute) { return false; }
+    defer work_pool_close(&pool);
+    for(var i: usize = 0; i < count; i++) {
+        jobs[i] = init(LRDispatchProbe) {gate: gate, release: release, active: &active,
+            peak: &peak, participants: count, ..default};
+        jobs[i].kernel.payload = bits(void*, &jobs[i]);
+        pointers[i] = &jobs[i];
+    }
+    if !compiler_kernel_dispatch_admitted(&pool, &pointers[0], count, count - 1) { return false; }
+    if active != 0 || peak != count || pool.peak != count - 1 { return false; }
+    for(var i: usize = 0; i < count; i++) { if !jobs[i].success { return false; } }
+    return true;
+}
+
+fn lr_shared_worker_budget(): bool {
+    var limit = work_thread_capacity();
+    var test_limit: usize = 4;
+    if limit > test_limit { limit = test_limit; }
+    var gate = work_signal_open();
+    if gate == null { return false; }
+    defer work_signal_close(gate);
+    work_signal_post(gate);
+    var budget: WorkBudget = default;
+    if !work_budget_init(&budget, limit, 0, 1)
+        || !work_budget_synchronize(&budget, gate, work_signal_wait, work_signal_post) { return false; }
+    defer { if !work_budget_dispose(&budget) { trap("LR fixture retained worker budget", 0); } }
+    var outer: WorkReservation = default;
+    if work_budget_reserve_result(&budget, 1, 1, 0, &outer) != WorkBudgetError.None { return false; }
+    defer {
+        if work_budget_release_result(&budget, &outer) != WorkBudgetError.None {
+            trap("LR fixture lost caller reservation", 0);
+        }
+    }
+    var world = compiler_world_create_workers(limit);
+    if world == null { return false; }
+    defer { if !compiler_world_dispose(world) { trap("LR budget fixture retained world", 0); } }
+    if !compiler_world_bind_budget(world, &budget) || compiler_world_bind_budget(world, &budget) { return false; }
+    var root = entity_create(compiler_world_store(world));
+    if root == null { return false; }
+    defer entity_release(root);
+    if !lr_state_wide_admission(root, 512, true) { return false; }
+    var other: WorkReservation = default;
+    defer {
+        if other.active && work_budget_release_result(&budget, &other) != WorkBudgetError.None {
+            trap("LR fixture lost competing reservation", 0);
+        }
+    }
+    if work_budget_reserve_result(&budget, limit - 1, limit - 1, 0, &other) != WorkBudgetError.None { return false; }
+    if !lr_state_wide_admission(root, 512, false) || !lr_first_work_trial(root, 0) { return false; }
+    if other.active && work_budget_release_result(&budget, &other) != WorkBudgetError.None { return false; }
+    if limit > 2 {
+        if work_budget_reserve_result(&budget, limit - 2, limit - 2, 0, &other) != WorkBudgetError.None { return false; }
+        var admission: ParserAdmission = default;
+        if !parser_admission_open(&admission, root, limit) { return false; }
+        var admitted = admission.extra == 1;
+        parser_admission_close(&admission, null);
+        if !admitted || !lr_state_wide_admission(root, 512, true) { return false; }
+        if work_budget_release_result(&budget, &other) != WorkBudgetError.None { return false; }
+    }
+    var symbols: LRSymbol[1024];
+    var count = sizeof(decltype(symbols)) / sizeof(LRSymbol);
+    var no_nonterminal = ~convert(usize, 0);
+    for(var i: usize = 0; i < count; i++) {
+        symbols[i] = {nonterminal: no_nonterminal, first: convert(u32, i + 32), last: convert(u32, i + 32)};
+    }
+    var rule: LRProduction = {owner: 0, begin: 0, count: count, precedence: 0, associativity: 0};
+    if !lr_work_trial(root, &rule, 1, &symbols[0], count, 1) { return false; }
+    var snapshot: WorkBudgetSnapshot = default;
+    return work_budget_snapshot(&budget, &snapshot) && snapshot.used_lanes == outer.lanes
+        && snapshot.live == 1 && snapshot.used_bytes == 0 && snapshot.peak_lanes <= limit;
+}
+

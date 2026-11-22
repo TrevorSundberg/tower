@@ -1,3 +1,0 @@
-import .foundation_syntax;
-// This representation takes its width from the explicit target description.
-var usize: type = address_type();

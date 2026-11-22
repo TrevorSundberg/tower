@@ -3,6 +3,7 @@ import frontend_units;
 import backend_units;
 import editor_units;
 import body_runs;
+import lr_budget;
 import utility_checks;
 
 extern fn lr_work_tests(): u32;
@@ -32,6 +33,8 @@ export fn lr_work_test_main(argc: i32, argv: u8**): i32 {
         return 1;
     }
     if all || lr {
+        utility_check(lr_dispatch_caller_overlap(), "One extra worker overlaps the caller at a shared barrier");
+        utility_check(lr_shared_worker_budget(), "Shared LR lane grants preserve graphs and release ownership");
         utility_check(lr_work_tests() == 0, "Real threaded LR and serial tables retain identical records, conflicts and world ownership");
         puts("Native production worker policy: serial/threaded LR graph and lifetime comparisons passed.");
     }
