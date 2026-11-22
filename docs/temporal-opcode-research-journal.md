@@ -45075,3 +45075,52 @@ is 168 JavaScript files/22,470 lines. Net reduction from the original baseline i
 1,960 JavaScript lines/20 files, or 5,314 lines (17.9%)/70 files across the five
 measured languages. Python/PowerShell remain zero, shell 9/230 and CMake 39/1,599.
 Temporal research and todo.txt remain unchanged.
+
+Publication receipt: source 60a276efd6ba8fff1a141922192740f5d4b80726 is pushed.
+Pages commit 3937cadf1d9b72e9d7de46a980b12932ac5a6201 completed workflow
+45047502685 successfully. The hosted deployment-manifest.json exactly matches
+the published receipt, SHA256
+c4b381407d6ded4d22066c1b4d651a0f4431aef909a59adf15965577544e1454.
+All 78 prior manifest fields, 104 asset records and runtime/build source
+e9d2bfab51d0a487cbe925ffe816926d0955d5f6 are preserved. Release the owned
+publication lock after that verification. This journal-only closeout reuses
+the verified deployment and does not rebuild or relabel its runtime assets.
+
+### 2026-11-22 - Tooling cleanup stopping point and next pass
+
+Stop at this validated milestone as requested. Python, PowerShell and owned
+C/C++ remain eliminated; JavaScript still includes required browser bindings,
+UI, integration tests and protected temporal research. The inventory above is
+actual tracked source, not a GitHub Linguist percentage or a claim that the
+remaining repository is already only Tower and binding shims. Recover the old
+completion/hover tests from ed691d9dfbb98b9e98223bed1288359b1e9c4067 if a later
+coverage audit needs the original fixtures.
+
+Next, audit playground/tests/operators.test.mjs and default.test.mjs against
+their existing Tower fixtures and native suites. Both still embed semantic
+programs/assertions and repeat execution/round-trip orchestration. Remove
+duplicated coverage first; migrate only distinct compiler cases into existing
+Tower test entry points. Preserve the actual 32/64-bit target, ordinary/fast
+interpreter, canonical Foundation and LLVM/Wasm differential checks. Keep the
+small JavaScript boundary needed to instantiate and execute browser Wasm.
+This is a candidate plan, not a claim that those files are unused or removable
+in full. Take one coherent fixture family at a time and compare baseline
+results before deleting its JavaScript assertions.
+
+After that, inspect module-resolution.test.mjs and related module fixtures for
+the same split: compiler lookup/dependency semantics can live in Tower, while
+configureModules capability replacement and host lifecycle behavior need real
+transport coverage. Audit callers before touching any remaining build/profile
+script; the previous pass found active roles, so do not delete them by name.
+Leave all 26 temporal JavaScript files and pinned third-party reference fixtures
+alone. Do not modify todo.txt or begin a full UI rewrite in this lane.
+
+Resume from current main with the public bootstrap. Build semantic IDE tests
+with `bash playground/scripts/build-wasm.sh -DTOWER_IDE_TESTS=ON`, run
+`npm run test:ide --prefix playground`, and run the affected transport/backend
+checks. The published production reactor deliberately lacks ide_tests;
+`npm test` rejects it instead of silently omitting the Tower suite. Configure
+`-DTOWER_IDE_TESTS=OFF` before producing release assets. Reuse unaffected passing
+evidence; rebuild a successor after rebases that change compiler inputs. Future
+cleanup should keep documenting actual removed lines, retained contracts,
+baseline failures and publication provenance here.
