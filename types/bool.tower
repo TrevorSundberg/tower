@@ -1,0 +1,2 @@
+import .foundation_syntax;
+var bool: type = boolean_type();
