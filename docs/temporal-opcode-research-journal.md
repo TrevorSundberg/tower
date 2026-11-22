@@ -39878,3 +39878,98 @@ and cancellation drains and hides unfinished results. The checkpoint is ready
 for the publication bootstrap/browser checks; whole-compiler completion is not
 claimed. Structural type/protocol construction and some control headers still
 need the coordinator, and persistent cross-revision caching remains future work.
+## 2026-11-21: Target packs reuse installed IR and Tower import/archive writers
+
+Audit the last target-pack construction entry point before translating it.
+build-targets.sh has one active caller in internal.sh and two documented recipes.
+Its five CMake targets only consume bound runtime IR already distributed beside
+the native compiler. Remove that configured-build-directory dependency and its
+profile-selection/copy loop. The required remaining behavior is five explicit
+Clang compilations plus two small platform import descriptions. New package_targets
+uses the existing Linux tool process/filesystem boundary and build_tools entry
+point; it does not compose runtime source again. Remove the 21-line shell script
+and add one net invocation line in internal.sh. Shell becomes 11 files/256 lines:
+eight scripts and 227/483 lines (47.0%) below the post-Python baseline. Tracked
+Python and owned C/C++ remain zero; this is source removal, not language relabeling.
+
+Extract the existing COFF short-import metadata writer into library/coff_import_object,
+using bytes_interface in backend translation units to preserve implementation
+ownership. Keep the backend's single-symbol archive spelling unchanged. The target
+tool uses the existing indexed GNU ar writer, indexing both each function and
+its __imp_ name. Read-only LLVM 19 source, llvm/lib/Object/COFFImportFile.cpp,
+confirms this symbol convention. No new native library, llvm-dlltool invocation,
+assembler thunk or Windows implementation is introduced. The platform linker
+and OS still own those parts. The bounded definition parser accepts LIBRARY,
+EXPORTS and up to 256 unique bare code symbols; it rejects aliases, ordinals,
+flags and path-like DLL names instead of silently weakening their meaning.
+
+Prepare all seven products in a private output-directory stage before publishing.
+Validate destination types and the source-description alias before replacement.
+Each rename is atomic; the entire generation is not one atomic transaction and
+concurrent consumers require an external publication lock. Child failure statuses
+are retained. Successful children must actually produce nonempty bounded objects.
+Failed stages remain inspectable; no recursive removal or temporary script exists.
+
+Validation environment: owned tower_agent1_c_checks Docker container, Ubuntu 24.04,
+LLVM/Clang 19.1.1, frozen a890c86 plus the changed sources in
+/cache/target_pack_checkout, and checked-in complete public bootstrap 21f52712.
+The default build-bootstrap.sh --tools package_targets passes all five steps in
+/cache/target_pack_default_tools with TOWER_BOOTSTRAP_COMPILER unset and Python
+absent. All seven tools also build through the omitted-selection mode. The final
+package_targets executable SHA256 is
+437dc10d7a2c173512d36f8c6632ffca08ae715044e4a84831372622752d35de.
+The fresh default build-native.sh successor passes all 54 steps in
+/cache/target_pack_native; its complete copied package is SHA256
+6602916630077dd8e0f7e0cbc496a45df02f6ea6d9be8b2d302c3deb055d3434.
+This is a Linux development successor with external LLVM, not a portable release
+or a changed bootstrap pin. A resumed no-work check confirms the build is complete.
+
+Smallest-unit trials caught an extra parenthesis, missing explicit strlen
+declaration in a test, and Clang requiring --target=TRIPLE rather than a separate
+--target argument. Fix those before broad checks. The initial differential fixture
+link omitted the bytes implementation; link the unchanged bytes unit explicitly
+for the old fixture, and import it in standalone roots while retaining interface
+imports in compiler units. Actual old/new __chkstk/kernelbase.dll archives compare
+byte for byte, SHA256
+525fa98f299a2fcf66b3fecd630647b495d2c318d3843dd742cca0cb20e03a95.
+Retire the one-off file-writing Tower fixture after that comparison; retain the
+portable checksum regression. Existing run-guest-runtime.mjs with that Tower test
+and an expected true-newline file passes both target-width interpreters, native
+execution and Wasm execution using the fresh successor. The WSL Node path was
+unavailable, so use Docker's existing /usr/local/bin/node transport; no new JS.
+
+Compare outputs with all five previous TowerGuestRuntime CMake targets. Both Linux
+and both macOS objects and libSystem.tbd are byte-identical. The Windows object
+initially differs at COFF TimeDateStamp only. LLVM's WinCOFFObjectWriter.cpp assigns
+current time for incremental-link compatibility, and Clang Options.td exposes
+-mno-incremental-linker-compatible. Add that flag only to the distributed Windows
+runtime object: timestamp becomes zero, bytes after its header timestamp remain
+identical, and all seven final products repeat exactly. The new indexed Windows
+import library deliberately has different archive organization; validate through
+LLVM readers, symbol names, linking and execution rather than claiming identity.
+
+Run the existing Tower driver --target-packs against the new seven files in
+/cache/target package final and the copied build/targets. All five target links
+pass; Linux x64 executes, Linux ARM64 executes under QEMU, and Windows x64 executes
+through WSL interop. --windows-linking separately passes actual foreign-archive
+and memory PE programs with the new import library. macOS checks are linking only.
+The published tower-cross.wasm.gz is downloaded and verified against the current
+manifest, SHA256 0e68e03aa131df1525d460b154d8bbb7aa51afb6f1c4e9609f0e1eb92e3d217b;
+root's local browser artifact was stale, so do not use it as publication evidence.
+All seven existing cross-compilation tests pass using the new packs, including
+six targets, repeat-byte checks, linked libraries and recoverable errors. Execute
+browser-generated Linux x64/ARM64 programs and their libraries with the Tower
+--browser-exports runner from build/cross (an initial wrong working directory was
+corrected), and both Windows downloads directly. After the timestamp fix, repeat
+the affected Windows browser test and real PE executions successfully.
+
+target_pack_import_checks passes through the public compiler: LF/CRLF, supported
+symbols, unsupported/duplicate declarations, 256/257 boundary, invalid metadata
+preserving prior output and an input borrowing the prior output allocation.
+Operational failure checks use existing /usr/bin/false, /usr/bin/true and
+/usr/bin/timeout: fail/empty-success/status125 preserve every published hash.
+An unsupported DATA definition fails before publication. An output symlink and
+output aliasing the source-description directory are rejected; no earlier product
+is published and source libSystem.tbd stays unchanged. Paths with spaces pass.
+Shell syntax, scoped diff and active-reference audits pass. No todo.txt edits,
+shared-cache writes, private syntax adoption or full unrelated release matrix.

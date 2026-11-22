@@ -1,0 +1,54 @@
+import tower;
+import utility_checks;
+import .tools.target_pack_imports;
+import .library.bytes;
+import .library.bytes_types;
+import .library.coff_import_object;
+import .compiler.host_text;
+
+extern fn strlen(text: u8*): usize;
+
+fn target_definition_case(text: u8*, accepted: bool): void {
+    var source: ByteBuffer = { data: text, length: strlen(text), ..default };
+    var imports: TargetImports = default; defer target_imports_close(&imports);
+    utility_check(target_imports_read(&source, &imports) == accepted, "supported import-definition boundary");
+}
+
+export fn main(): i32 {
+    target_definition_case("LIBRARY KERNEL32.dll\nEXPORTS\n  ExitProcess\n", true);
+    target_definition_case("\r\n LIBRARY test.dll \r\nEXPORTS\r\nFirst\r\nSecond\r\n", true);
+    target_definition_case("", false);
+    target_definition_case("EXPORTS\nFirst\n", false);
+    target_definition_case("LIBRARY test.dll\nEXPORTS\n", false);
+    target_definition_case("LIBRARY test.dll\nEXPORTS\nFirst\nFirst\n", false);
+    target_definition_case("LIBRARY test.dll\nEXPORTS\nFirst DATA\n", false);
+    target_definition_case("LIBRARY test.dll\nEXPORTS\nFirst PRIVATE\n", false);
+    target_definition_case("LIBRARY test.dll\nEXPORTS\nFirst=Other\n", false);
+    target_definition_case("LIBRARY test.dll\nEXPORTS\nFirst @1\n", false);
+    target_definition_case("LIBRARY ../test.dll\nEXPORTS\nFirst\n", false);
+    target_definition_case("LIBRARY test.dll\nEXPORTS\n1First\n", false);
+
+    var text: ByteBuffer = default; var imports: TargetImports = default;
+    defer bytes_dispose(&text); defer target_imports_close(&imports);
+    var heading = "LIBRARY test.dll\nEXPORTS\n";
+    utility_check(bytes_append(&text, heading, strlen(heading)), "definition allocation");
+    for(var at: usize = 0; at < TargetImportLimit; at++) {
+        utility_check(bytes_append(&text, "Symbol", strlen("Symbol")) && host_json_unsigned(&text, convert(u64, at))
+            && bytes_push(&text, *"\n"), "bounded definition allocation");
+    }
+    utility_check(target_imports_read(&text, &imports) && imports.symbols.length == TargetImportLimit, "maximum supported import count");
+    utility_check(bytes_append(&text, "Extra\n", strlen("Extra\n")), "extra import allocation");
+    utility_check(!target_imports_read(&text, &imports) && imports.symbols.length == TargetImportLimit, "oversized definition preserves prior result");
+
+    var object: ByteBuffer = default; defer bytes_dispose(&object);
+    utility_check(bytes_assign_text(&object, "unchanged", strlen("unchanged")), "object sentinel");
+    utility_check(!coff_import_object(&object, CoffMaximumMachine + 1, "First", "test.dll")
+        && !coff_import_object(&object, CoffMachineAmd64, "", "test.dll")
+        && !coff_import_object(&object, CoffMachineAmd64, null, "test.dll")
+        && !coff_import_object(&object, CoffMachineAmd64, "First", "")
+        && strcmp(object.data, "unchanged") == 0, "invalid COFF metadata preserves output");
+    utility_check(coff_import_object(&object, CoffMachineAmd64, object.data, "test.dll"), "COFF input may borrow previous output");
+    utility_check(strcmp(object.data + CoffShortImportHeaderBytes, "unchanged") == 0, "borrowed symbol survives publication");
+    puts("Target import definition and ownership checks passed");
+    return 0;
+}

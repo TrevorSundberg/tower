@@ -1,0 +1,54 @@
+import tower;
+import bytes_interface;
+import bytes_types;
+
+// COFF IMPORT_OBJECT_HEADER, followed by NUL-terminated symbol and DLL names.
+// This is metadata only: the platform linker provides the thunk and Windows the
+// function. Preserve the original by-name/code import contract; no data/ordinal
+// import, decoration rewriting or native machine-code implementation is implied.
+var CoffShortImportHeaderBytes: usize = 20;
+var CoffMachineAmd64: u32 = 34404;
+var CoffImportCodeByName: u32 = 4;
+var CoffMaximumMachine: u32 = convert(u32, ~convert(u16, 0));
+var CoffImportNameLimit: usize = 65536;
+var CoffImportSignatureOffset: usize = 2;
+var CoffImportMachineOffset: usize = 6;
+var CoffImportPayloadOffset: usize = 12;
+var CoffImportFlagsOffset: usize = 18;
+var CoffHalfBytes: usize = 2;
+var CoffWordBytes: usize = 4;
+var CoffByteBits: u32 = 8;
+
+fn coff_unsigned(data: u8*, number: u32, count: usize, big: bool): void {
+    var byte_mask = convert(u32, ~convert(u8, 0));
+    for(var i: usize = 0; i < count; i++) {
+        var at = big ? count - i - 1 : i;
+        data[at] = convert(u8, number & byte_mask); number >>= CoffByteBits;
+    }
+}
+
+fn coff_import_name_size(name: u8*): usize {
+    if name == null { return 0; }
+    var length: usize = 0;
+    while length < CoffImportNameLimit && name[length] != 0 { length++; }
+    return length == 0 || length == CoffImportNameLimit ? 0 : length + 1;
+}
+
+// Inputs borrow readable NUL-terminated strings until return. Publication is
+// atomic, including when an input borrows out's previous storage.
+fn coff_import_object(out: ByteBuffer*, machine: u32, symbol: u8*, dll: u8*): bool {
+    var symbol_size = coff_import_name_size(symbol); var dll_size = coff_import_name_size(dll);
+    if symbol_size == 0 || dll_size == 0 || machine > CoffMaximumMachine { return false; }
+    var payload = symbol_size + dll_size; var total = CoffShortImportHeaderBytes + payload;
+    var next: ByteBuffer = default; defer bytes_dispose(&next);
+    if !bytes_reserve(&next, total) { return false; }
+    next.length = total; fill(next.data, 0, total);
+    coff_unsigned(next.data + CoffImportSignatureOffset, CoffMaximumMachine, CoffHalfBytes, false);
+    coff_unsigned(next.data + CoffImportMachineOffset, machine, CoffHalfBytes, false);
+    coff_unsigned(next.data + CoffImportPayloadOffset, convert(u32, payload), CoffWordBytes, false);
+    coff_unsigned(next.data + CoffImportFlagsOffset, CoffImportCodeByName, CoffHalfBytes, false);
+    copy(next.data + CoffShortImportHeaderBytes, symbol, symbol_size);
+    copy(next.data + CoffShortImportHeaderBytes + symbol_size, dll, dll_size);
+    bytes_dispose(out); *out = next; next = default;
+    return true;
+}

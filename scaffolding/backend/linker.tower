@@ -8,6 +8,7 @@ import foreign_reader;
 import foreign_symbol;
 import text;
 import .library.vector;
+import .library.coff_import_object;
 
 extern fn fopen(path: u8*, mode: u8*): void*;
 

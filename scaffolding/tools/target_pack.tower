@@ -1,0 +1,114 @@
+import tower;
+import target_pack_imports;
+import tool_words;
+import tool_files_posix;
+import tool_files_linux;
+import tool_streams_posix;
+import tool_process_linux;
+import .library.bytes;
+import .library.bytes_types;
+import .library.vector;
+import .compiler.host_text;
+import .host.driver_files;
+
+extern fn puts(text: u8*): i32;
+extern fn rename(source: u8*, destination: u8*): i32;
+extern fn strcmp(left: u8*, right: u8*): i32;
+
+var TargetPackFileBytes: usize = 67108864;
+var TargetPackDefinitionBytes: usize = 65536;
+struct TargetPack {
+    resources: u8*; descriptions: u8*; clang: u8*; output: u8*;
+    stage: ByteBuffer; products: vector(ByteBuffer); failure_status: i32;
+}
+
+fn target_pack_text(out: ByteBuffer*, text: u8*): bool { return bytes_append(out, text, strlen(text)); }
+fn target_pack_close(pack: TargetPack*): void { bytes_dispose(&pack.stage); tool_words_close(&pack.products); }
+
+fn target_pack_product(pack: TargetPack*, name: u8*): bool {
+    var copy: ByteBuffer = default; defer bytes_dispose(&copy);
+    if !bytes_assign_text(&copy, name, strlen(name)) || !vector_push(&pack.products, copy) { return false; }
+    copy = default; return true;
+}
+
+fn target_pack_write(pack: TargetPack*, name: u8*, data: ByteBuffer*): bool {
+    var path: ByteBuffer = default; defer bytes_dispose(&path);
+    return tool_join(&path, pack.stage.data, name) && driver_write_file(path.data, data.data, data.length)
+        && target_pack_product(pack, name);
+}
+
+// Native packaging consumes the exact bound runtime IR already distributed
+// beside towerc. Preserve TowerGuestRuntime's code generation flags; disable
+// Windows incremental-link timestamps for reproducible distributed objects.
+fn target_pack_runtime(pack: TargetPack*, triple: u8*, profile: u8*): bool {
+    var resource: ByteBuffer = default; var input: ByteBuffer = default; var name: ByteBuffer = default;
+    var target: ByteBuffer = default; defer bytes_dispose(&target);
+    var output: ByteBuffer = default; var data: ByteBuffer = default; var args: vector(u8*) = default;
+    defer bytes_dispose(&resource); defer bytes_dispose(&input); defer bytes_dispose(&name);
+    defer bytes_dispose(&output); defer bytes_dispose(&data); defer vector_dispose(&args);
+    if !target_pack_text(&resource, "runtime-") || !target_pack_text(&resource, profile)
+        || !target_pack_text(&resource, ".ll") || !host_text_terminate(&resource)
+        || !tool_join(&input, pack.resources, resource.data)
+        || !target_pack_text(&name, triple) || !target_pack_text(&name, "-runtime.o")
+        || !host_text_terminate(&name) || !tool_join(&output, pack.stage.data, name.data)
+        || tool_file_kind(input.data, true) != ToolFileKind.Regular { return false; }
+    if !target_pack_text(&target, "--target=") || !target_pack_text(&target, triple) || !host_text_terminate(&target)
+        || !tool_process_argument(&args, pack.clang) || !tool_process_argument(&args, target.data) || !tool_process_argument(&args, "-O2")
+        || !tool_process_argument(&args, "-ffreestanding") || !tool_process_argument(&args, "-fno-builtin")
+        || !tool_process_argument(&args, "-fno-stack-protector") || !tool_process_argument(&args, "-mllvm")
+        || !tool_process_argument(&args, "-disable-loop-idiom-all")
+        || (strcmp(profile, "windows-x64") == 0 && !tool_process_argument(&args, "-mno-incremental-linker-compatible"))
+        || !tool_process_argument(&args, "-c")
+        || !tool_process_argument(&args, input.data) || !tool_process_argument(&args, "-o")
+        || !tool_process_argument(&args, output.data) || !tool_process_argument(&args, null) { return false; }
+    puts(triple);
+    var status = tool_process_status(tool_process(pack.clang, args.data));
+    if status != 0 { pack.failure_status = status; return false; }
+    return tool_read_file(output.data, TargetPackFileBytes, &data) && data.length != 0
+        && target_pack_product(pack, name.data);
+}
+
+fn target_pack_descriptions(pack: TargetPack*): bool {
+    var path: ByteBuffer = default; var definition: ByteBuffer = default; var archive: ByteBuffer = default;
+    var tbd: ByteBuffer = default; var imports: TargetImports = default;
+    defer bytes_dispose(&path); defer bytes_dispose(&definition); defer bytes_dispose(&archive);
+    defer bytes_dispose(&tbd); defer target_imports_close(&imports);
+    if !tool_join(&path, pack.descriptions, "kernel32.def") || !tool_read_file(path.data, TargetPackDefinitionBytes, &definition)
+        || !target_imports_read(&definition, &imports) || !target_imports_archive(&imports, &archive) {
+        puts("Unsupported or unreadable Windows import definition"); return false;
+    }
+    return target_pack_write(pack, "kernel32.lib", &archive) && tool_join(&path, pack.descriptions, "libSystem.tbd")
+        && tool_read_file(path.data, TargetPackDefinitionBytes, &tbd) && tbd.length != 0
+        && target_pack_write(pack, "libSystem.tbd", &tbd);
+}
+
+// Prepare the whole set before changing any published file. Each replacement
+// is atomic; this is not a concurrent-consumer/generation lock. Keep failures
+// in the private stage for inspection, never recursively delete output trees.
+fn target_pack_publish(pack: TargetPack*): bool {
+    var source: ByteBuffer = default; var output: ByteBuffer = default; var description: ByteBuffer = default;
+    defer bytes_dispose(&source); defer bytes_dispose(&output); defer bytes_dispose(&description);
+    if !tool_join(&description, pack.descriptions, "libSystem.tbd") { return false; }
+    foreach(var & product in &pack.products) {
+        if !tool_join(&output, pack.output, product.data) || !tool_output_distinct(description.data, output.data) { return false; }
+        var kind = tool_file_kind(output.data, false);
+        if kind != ToolFileKind.Regular && kind != ToolFileKind.Missing { return false; }
+    }
+    foreach(var & product in &pack.products) {
+        if !tool_join(&source, pack.stage.data, product.data) || !tool_join(&output, pack.output, product.data)
+            || rename(source.data, output.data) != 0 { return false; }
+    }
+    return rmdir(pack.stage.data) == 0;
+}
+
+fn target_pack_build(pack: TargetPack*): bool {
+    if !tool_join(&pack.stage, pack.output, ".target_pack_XXXXXX") || !tool_output_parents(pack.stage.data)
+        || mkdtemp(pack.stage.data) == null { return false; }
+    return target_pack_descriptions(pack)
+        && target_pack_runtime(pack, "x86_64-unknown-linux-gnu", "linux-x64")
+        && target_pack_runtime(pack, "aarch64-unknown-linux-gnu", "linux-arm64")
+        && target_pack_runtime(pack, "x86_64-pc-windows-msvc", "windows-x64")
+        && target_pack_runtime(pack, "x86_64-apple-macos11", "macos-x64")
+        && target_pack_runtime(pack, "arm64-apple-macos11", "macos-arm64")
+        && target_pack_publish(pack);
+}

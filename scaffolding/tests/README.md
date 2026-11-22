@@ -61,7 +61,7 @@ modes; no additional tool binary or CMake target is needed.
 `--windows-linking` independently compiles the foreign archive and two PE programs;
 its expected output is shared Tower data, with no prerequisite native test or
 generated text files. `--target-packs` consumes the five runtime objects and import
-descriptions produced by `build-targets.sh`. It compiles and links all five target
+descriptions produced by Tower's `package_targets` tool. It compiles and links all five target
 programs, executes Linux x64, and detects `qemu-aarch64` for Linux ARM64 execution.
 This separates artifact construction from validation; repeating a test does not
 rebuild the packs. Run each mode in its own writable output directory.
@@ -312,6 +312,14 @@ installer layer in favor of directly runnable checked-in files. Reader/installer
 experiments are preserved in Git history; they are not required build tooling.
 
 The same runtime/parser now also runs in the [static WASM playground](../../playground/README.md).
+`target_pack_import_checks.tower` checks the minimal import-definition grammar,
+duplicate/unsupported declarations, the 256-symbol limit and atomic COFF output
+ownership. Build/link it like the POSIX utility checks above. The portable
+`coff_import_checks.tower` fingerprints the original stack-probe import archive;
+run it with `run-guest-runtime.mjs COMPILER SOURCE EXPECTED_OUTPUT_FILE`, where
+the expected file contains `true` followed by a newline, to cover 32/64-bit
+interpretation and native/Wasm execution.
+
 `compiler_support_checks.tower` exercises deterministic indexed GNU ar output,
 archive symbol closure, duplicate member names, seed exclusion, chunk bounds and
 malformed inputs. Pass a new writable fixture directory and optionally a real

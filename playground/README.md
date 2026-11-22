@@ -618,7 +618,9 @@ Build the native-target browser module/support packs under Linux or WSL:
 
 ```sh
 TOWER_BROWSER_CROSS=ON bash playground/scripts/build-llvm.sh
-bash playground/scripts/build-targets.sh
+bash playground/scripts/build-native.sh
+tools="$(bash playground/scripts/build-bootstrap.sh --tools package_targets)"
+"$tools/package_targets" "$PWD/build/native/share/tower" "$PWD/scaffolding/targets" "$(llvm-config-19 --bindir)/clang" "$PWD/build/targets"
 npm run build --prefix playground
 ```
 
@@ -636,8 +638,9 @@ build/native/towerc source.tower --target wasm32-unknown-unknown --link library.
 
 `--emit object|llvm|llvm-optimized|exe`, `--target`, `--link`, `--cc`, `--linker`
 and `--sysroot` control emission/tool selection. `--interpret` uses the portable
-interpreter. The current native driver locates Bedrock, Foundation and generated runtime target artifacts
-in its build-time source checkout; it is not yet an installed relocatable SDK.
+interpreter. The native driver locates Bedrock, Foundation and generated runtime target artifacts
+in the adjacent `share/tower` resource directory. Move that complete resource tree
+with the executable; the development package still requires external LLVM/Clang.
 The browser includes already-built runtime packs; the native driver compiles its
 runtime with Clang and invokes the selected linker/compiler driver. Windows linking
 can use the small `build/targets/kernel32.lib` import library without a full SDK.
@@ -686,7 +689,8 @@ sdk="${WASI_SDK_PATH:-$HOME/.cache/tower/wasi-sdk/wasi-sdk-34.0-x86_64-linux}"
 bash playground/scripts/build-wasm.sh
 (cd build/linking && "$native/tower-driver-tests" --linking "$native/towerc" "$repo/scaffolding" \
   "$llvm_bin/clang" "$llvm_bin/llvm-ar" "$sdk/bin/wasm-ld" "$repo/build/linking/wasm-fixture.a" "$llvm_lib/libLLVM.so")
-bash playground/scripts/build-targets.sh
+tools="$(bash playground/scripts/build-bootstrap.sh --tools package_targets)"
+"$tools/package_targets" "$repo/build/native/share/tower" "$repo/scaffolding/targets" "$llvm_bin/clang" "$repo/build/targets"
 mkdir -p build/target-checks
 (cd build/target-checks && "$native/tower-driver-tests" --target-packs "$native/towerc" "$repo/scaffolding" "$llvm_bin" "$repo/build/targets")
 (cd build/linking && "$native/tower-driver-tests" --windows-linking "$native/towerc" "$repo/scaffolding" \

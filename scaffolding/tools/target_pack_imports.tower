@@ -1,0 +1,99 @@
+import tower;
+import tool_words;
+import .library.bytes;
+import .library.bytes_types;
+import .library.vector;
+import .library.ar_archive;
+import .library.coff_import_object;
+import .compiler.host_text;
+
+extern fn strcmp(left: u8*, right: u8*): i32;
+
+enum TargetImportState: u32 { Library, Exports, Symbols }
+struct TargetImports { dll: ByteBuffer; symbols: vector(ByteBuffer); }
+var TargetImportLimit: usize = 256;
+var TargetImportArchiveBytes: usize = 1048576;
+
+fn target_imports_close(imports: TargetImports*): void {
+    bytes_dispose(&imports.dll); tool_words_close(&imports.symbols);
+}
+
+fn target_import_name(word: ByteBuffer*, dll: bool): bool {
+    if word.length == 0 || coff_import_name_size(word.data) == 0 { return false; }
+    for(var at: usize = 0; at < word.length; at++) {
+        var byte = word.data[at];
+        var letter = (byte >= *"a" && byte <= *"z") || (byte >= *"A" && byte <= *"Z") || byte == *"_";
+        if !letter && !(at != 0 && byte >= *"0" && byte <= *"9") && !(dll && at != 0 && byte == *".") { return false; }
+    }
+    return true;
+}
+
+// Deliberately small .def subset: LIBRARY bare.dll, EXPORTS, then one bare code
+// symbol per line. Reject aliases, ordinals, DATA/PRIVATE flags and duplicates;
+// never silently turn unsupported declarations into a different import library.
+fn target_import_line(imports: TargetImports*, state: TargetImportState*, data: u8*, length: usize): bool {
+    var words: vector(ByteBuffer) = default; var word: ByteBuffer = default;
+    defer tool_words_close(&words); defer bytes_dispose(&word);
+    for(var at: usize = 0; at < length; at++) {
+        var byte = data[at];
+        if byte == 0 { return false; }
+        if tool_word_space(byte) {
+            if word.length != 0 && !tool_word_end(&words, &word) { return false; }
+        } else { if !bytes_push(&word, byte) { return false; } }
+    }
+    if word.length != 0 && !tool_word_end(&words, &word) { return false; }
+    if words.length == 0 { return true; }
+    var library_words: usize = 2;
+    if *state == TargetImportState.Library {
+        if words.length != library_words || strcmp(words.data[0].data, "LIBRARY") != 0
+            || !target_import_name(&words.data[1], true)
+            || !bytes_assign_text(&imports.dll, words.data[1].data, words.data[1].length) { return false; }
+        *state = TargetImportState.Exports; return true;
+    }
+    if words.length != 1 { return false; }
+    if *state == TargetImportState.Exports {
+        if strcmp(words.data[0].data, "EXPORTS") != 0 { return false; }
+        *state = TargetImportState.Symbols; return true;
+    }
+    var symbol = &words.data[0];
+    if !target_import_name(symbol, false) || imports.symbols.length == TargetImportLimit { return false; }
+    foreach(var & previous in &imports.symbols) { if strcmp(previous.data, symbol.data) == 0 { return false; } }
+    if !vector_push(&imports.symbols, *symbol) { return false; }
+    *symbol = default; return true;
+}
+
+fn target_imports_read(input: ByteBuffer*, out: TargetImports*): bool {
+    var next: TargetImports = default; defer target_imports_close(&next);
+    var state = TargetImportState.Library; var begin: usize = 0;
+    for(var at: usize = 0; at <= input.length; at++) {
+        if at != input.length && input.data[at] != *"\r" && input.data[at] != *"\n" { continue; }
+        if !target_import_line(&next, &state, input.data + begin, at - begin) { return false; }
+        begin = at + 1;
+    }
+    if state != TargetImportState.Symbols || next.symbols.length == 0 { return false; }
+    target_imports_close(out); *out = next; next = default; return true;
+}
+
+fn target_imports_archive(imports: TargetImports*, out: ByteBuffer*): bool {
+    var objects: vector(ByteBuffer) = default; var aliases: vector(ByteBuffer) = default;
+    var members: vector(ArMember) = default; var symbols: vector(ArSymbol) = default;
+    defer tool_words_close(&objects); defer tool_words_close(&aliases);
+    defer vector_dispose(&members); defer vector_dispose(&symbols);
+    for(var at: usize = 0; at < imports.symbols.length; at++) {
+        var name = &imports.symbols.data[at]; var object: ByteBuffer = default; var alias: ByteBuffer = default;
+        defer bytes_dispose(&object); defer bytes_dispose(&alias);
+        var prefix = "__imp_"; var prefix_bytes: usize = 6;
+        if !coff_import_object(&object, CoffMachineAmd64, name.data, imports.dll.data)
+            || !bytes_append(&alias, prefix, prefix_bytes) || !bytes_append(&alias, name.data, name.length)
+            || !host_text_terminate(&alias) { return false; }
+        var member: ArMember = { name: name.data, name_length: name.length, data: object.data, length: object.length };
+        var direct: ArSymbol = { name: name.data, length: name.length, member: at };
+        var indirect: ArSymbol = { name: alias.data, length: alias.length, member: at };
+        if !vector_push(&members, member) || !vector_push(&symbols, direct) || !vector_push(&symbols, indirect)
+            || !vector_push(&objects, object) { return false; }
+        object = default;
+        if !vector_push(&aliases, alias) { return false; }
+        alias = default;
+    }
+    return ar32_write(members.data, members.length, symbols.data, symbols.length, TargetImportArchiveBytes, out) == ArResult.Ok;
+}

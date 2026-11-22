@@ -78,8 +78,21 @@ tools="$(bash playground/scripts/build-bootstrap.sh --tools)"
 ```
 
 Pass a tool name after `--tools` to build only `prepare_llvm`, `package_roku`,
-`package_bootstrap`, `package_compiler_project`, `verify_compiler` or
-`verify_bootstrap_symbols`. Omitting the name builds all six.
+`package_bootstrap`, `package_compiler_project`, `package_targets`, `verify_compiler` or
+`verify_bootstrap_symbols`. Omitting the name builds all seven.
+
+`package_targets RUNTIME_RESOURCE_DIRECTORY TARGET_DESCRIPTION_DIRECTORY CLANG OUTPUT_DIRECTORY`
+uses the native package's existing bound runtime IR and the repository's target
+descriptions to produce five runtime objects, `kernel32.lib` and `libSystem.tbd`.
+Tower writes the Windows short-import metadata and indexed archive; Clang consumes
+the existing target IR with the runtime's established freestanding flags. No
+`llvm-dlltool` or native CMake build directory is required for packaging.
+The Windows object disables incremental-link timestamps for repeatable bytes.
+The import definition subset is `LIBRARY bare.dll`, `EXPORTS`, then one bare
+function name per line (up to 256); aliases, ordinals and data/visibility flags
+are rejected. Packaging stages the complete set before replacing files, with
+atomic replacement per file. Failed stages remain available for inspection;
+concurrent consumers still need an external generation/publication lock.
 
 `verify_bootstrap_symbols --compare` consumes an explicit predecessor, successor,
 source/build directories and `llvm-nm`; it compares seven compiler components

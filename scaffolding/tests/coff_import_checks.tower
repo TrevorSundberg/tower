@@ -1,0 +1,26 @@
+import tower;
+import .backend.coff_import;
+import .library.bytes;
+import .library.vector;
+import .library.coff_import_object;
+import .library.sha256;
+
+// The pre-extraction stack-probe archive is a fixed interoperability fixture.
+// Run through run-guest-runtime.mjs for both target widths and native/Wasm.
+fn coff_fixture_matches(): bool {
+    var archive: vector(u8) = default; defer vector_dispose(&archive);
+    if !coff_import_archive(&archive, CoffMachineAmd64, "__chkstk", "kernelbase.dll") { return false; }
+    var hash: Sha256 = default; sha256_init(&hash);
+    if !sha256_update(&hash, archive.data, archive.length) { return false; }
+    var digest = sha256_finish(&hash);
+    // SHA-256 lowercase hex plus its terminating NUL.
+    var hex: u8[65]; sha256_hex(&digest, &hex[0]);
+    var wanted = "525fa98f299a2fcf66b3fecd630647b495d2c318d3843dd742cca0cb20e03a95";
+    var hex_per_byte: usize = 2;
+    for(var at: usize = 0; at < Sha256DigestBytes * hex_per_byte; at++) {
+        if hex[at] != wanted[at] { return false; }
+    }
+    return true;
+}
+
+print(coff_fixture_matches());
