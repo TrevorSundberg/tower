@@ -17,21 +17,26 @@ struct CompilerKernel {
 fn compiler_kernel_dispatch(T: type, pool: WorkPool*, jobs: T**, count: usize): bool {
     if count == 0 { return true; }
     if pool.running != 0 || pool.count == 0 { return false; }
-    if count == 1 {
-        pool.execute(bits(void*, &jobs[0].kernel));
-        return true;
+    defer compiler_kernel_join(pool);
+    for(var next: usize = 0; next < count; next++) {
+        if !compiler_kernel_send(pool, &jobs[next].kernel, count == 1) { return false; }
     }
-    defer {
-        // A failed submission still owns all previously admitted inputs.
-        while pool.running != 0 { work_pool_receive(pool, true); }
+    return compiler_kernel_join(pool);
+}
+
+// Only typed component-to-kernel projection is generic. Keep the transport and
+// failure draining shared instead of compiling them once for every job type.
+fn compiler_kernel_send(pool: WorkPool*, kernel: CompilerKernel*, inline: bool): bool {
+    if inline { pool.execute(bits(void*, kernel)); return true; }
+    if pool.running == pool.count && work_pool_receive(pool, true) == null { return false; }
+    return work_pool_submit(pool, bits(void*, kernel));
+}
+
+fn compiler_kernel_join(pool: WorkPool*): bool {
+    // A failed submission still owns all previously admitted inputs.
+    var ok = true;
+    while pool.running != 0 {
+        if work_pool_receive(pool, true) == null { ok = false; }
     }
-    var next: usize = 0;
-    while next < count || pool.running != 0 {
-        while next < count && pool.running < pool.count {
-            if !work_pool_submit(pool, bits(void*, &jobs[next].kernel)) { return false; }
-            next++;
-        }
-        if work_pool_receive(pool, true) == null { return false; }
-    }
-    return true;
+    return ok;
 }

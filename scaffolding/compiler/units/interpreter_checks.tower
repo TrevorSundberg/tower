@@ -8,3 +8,4 @@ import compiler.fast_interpreter;
 import compiler.bytecode_package;
 import tests.interpreter_storage;
 import tests.interpreter_invocation;
+import tests.interpreter_call_query;

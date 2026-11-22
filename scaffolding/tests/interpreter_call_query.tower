@@ -1,0 +1,186 @@
+import tower;
+import .compiler.foundation_types;
+import .compiler.foundation_tags;
+import .compiler.interpreter_context_types;
+import .library.vector;
+
+extern fn compiler_world_create_workers(limit: usize): void*;
+extern fn compiler_world_store(world: void*): void*;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn entity_create(store: void*): void*;
+extern fn entity_release(node: void*): usize;
+extern fn entity_register(kind: void*, size: usize, alignment: usize, finalizer: usize): bool;
+extern fn entity_component_add(node: void*, kind: void*): void*;
+extern fn entity_component_data(component: void*): void*;
+extern fn sem_create(parent: void*): void*;
+extern fn sem_attach(node: void*, kind: u32): FoundationNode*;
+extern fn sem_get(node: void*): FoundationNode*;
+extern fn interpreter_invocation_init(invocation: IMInvocation*, function: void*, width: usize, arguments: u64*, count: usize, strict: bool, fuel: u64): bool;
+extern fn interpreter_invocation_step(invocation: IMInvocation*, budget: usize): void;
+extern fn interpreter_invocation_dispose(invocation: IMInvocation*): void;
+extern fn puts(message: u8*): i32;
+extern fn abort(): void;
+
+var CallQueryFuel: u64 = 10000;
+
+fn call_query_require(ok: bool): void { if !ok { abort(); } }
+fn call_query_push(items: vector(void*)*, item: void*): void { call_query_require(vector_push(items, item)); }
+fn call_query_check(ok: bool, message: u8*, failures: u32*): void {
+    if !ok { puts(message); (*failures)++; }
+}
+
+fn call_query_node(root: void*, width: u32, kind: u32): void* {
+    var node = sem_create(root);
+    var value = sem_attach(node, kind);
+    value.type.scalar = SI32;
+    value.type.pointer_bytes = width;
+    return node;
+}
+
+fn call_query_read(root: void*, width: u32, binding: void*): void* {
+    var node = call_query_node(root, width, KOperand);
+    sem_get(node).binding = binding;
+    sem_get(node).type = sem_get(binding).type;
+    return node;
+}
+
+// An argument mutates caller storage before the called body becomes available.
+// Waiting and resuming must retain that effect exactly once, including retries
+// before publication. This uses ordinary Foundation calls and the interpreter.
+export fn call_query_tests(width: u32): u32 {
+    var failures: u32 = 0;
+    var world = compiler_world_create_workers(1);
+    var root = entity_create(compiler_world_store(world));
+    sem_attach(root, KProgram);
+    var calls = sem_create(root);
+    call_query_require(entity_register(calls, sizeof(IMCallInput), alignof(IMCallInput), 0));
+    var entry = call_query_node(root, width, KFunction);
+    var body = call_query_node(root, width, KBlock);
+    sem_get(entry).body = body;
+    sem_get(entry).frame_size = sizeof(i32);
+    var counter = call_query_node(root, width, KDeclare);
+    var zero = call_query_node(root, width, KOperand);
+    sem_get(zero).constant = true;
+    sem_get(counter).value = zero;
+    call_query_push(&sem_get(entry).locals, counter);
+    call_query_push(&sem_get(body).items, counter);
+
+    var argument = call_query_node(root, width, KFunction);
+    var argument_body = call_query_node(root, width, KBlock);
+    sem_get(argument).body = argument_body;
+    sem_get(argument).frame_size = convert(usize, width);
+    var pointer = call_query_node(root, width, KParameter);
+    sem_get(pointer).type.pointers = 1;
+    call_query_push(&sem_get(argument).parameters, pointer);
+    call_query_push(&sem_get(argument).locals, pointer);
+    var loaded = call_query_node(root, width, KLoad);
+    sem_get(loaded).value = call_query_read(root, width, pointer);
+    var one = call_query_node(root, width, KOperand);
+    sem_get(one).constant = true;
+    sem_get(one).bits = 1;
+    var increment = call_query_node(root, width, KBinary);
+    sem_get(increment).op = OAdd;
+    sem_get(increment).left = loaded;
+    sem_get(increment).right = one;
+    var store = call_query_node(root, width, KAssign);
+    sem_get(store).target = loaded;
+    sem_get(store).value = increment;
+    call_query_push(&sem_get(argument_body).items, store);
+    var argument_return = call_query_node(root, width, KReturn);
+    sem_get(argument_return).value = loaded;
+    call_query_push(&sem_get(argument_body).items, argument_return);
+    var argument_input = bits(IMCallInput*, entity_component_data(entity_component_add(argument, calls)));
+    *argument_input = default;
+    argument_input.function = argument;
+    argument_input.ready = true;
+
+    var callee = call_query_node(root, width, KFunction);
+    var callee_body = call_query_node(root, width, KBlock);
+    sem_get(callee).body = callee_body;
+    sem_get(callee).frame_size = sizeof(i32);
+    var parameter = call_query_node(root, width, KParameter);
+    call_query_push(&sem_get(callee).parameters, parameter);
+    call_query_push(&sem_get(callee).locals, parameter);
+    var callee_return = call_query_node(root, width, KReturn);
+    sem_get(callee_return).value = call_query_read(root, width, parameter);
+    call_query_push(&sem_get(callee_body).items, callee_return);
+    var address = call_query_node(root, width, KAddress);
+    sem_get(address).type.pointers = 1;
+    sem_get(address).value = call_query_read(root, width, counter);
+    var argument_call = call_query_node(root, width, KCall);
+    sem_get(argument_call).binding = argument;
+    call_query_push(&sem_get(argument_call).items, address);
+    var call = call_query_node(root, width, KCall);
+    sem_get(call).binding = callee;
+    call_query_push(&sem_get(call).items, argument_call);
+    var sum = call_query_node(root, width, KBinary);
+    sem_get(sum).op = OAdd;
+    sem_get(sum).left = call;
+    sem_get(sum).right = call_query_read(root, width, counter);
+    var returned = call_query_node(root, width, KReturn);
+    sem_get(returned).value = sum;
+    call_query_push(&sem_get(body).items, returned);
+
+    // A distinct executable identity verifies selection without changing the
+    // source signature or its body. Its result makes a wrong mapping observable.
+    var snapshot = call_query_node(root, width, KFunction);
+    var snapshot_body = call_query_node(root, width, KBlock);
+    sem_get(snapshot).body = snapshot_body;
+    sem_get(snapshot).frame_size = sizeof(i32);
+    var snapshot_parameter = call_query_node(root, width, KParameter);
+    call_query_push(&sem_get(snapshot).parameters, snapshot_parameter);
+    call_query_push(&sem_get(snapshot).locals, snapshot_parameter);
+    var answer = call_query_node(root, width, KOperand);
+    sem_get(answer).constant = true;
+    sem_get(answer).bits = 42;
+    var snapshot_return = call_query_node(root, width, KReturn);
+    sem_get(snapshot_return).value = answer;
+    call_query_push(&sem_get(snapshot_body).items, snapshot_return);
+
+    var invocation: IMInvocation = default;
+    call_query_require(interpreter_invocation_init(&invocation, entry, convert(usize, width), null, 0, true, CallQueryFuel));
+    invocation.context.type_arguments = true;
+    invocation.context.call_inputs = calls;
+    interpreter_invocation_step(&invocation, convert(usize, CallQueryFuel));
+    call_query_check(!invocation.state.done && !invocation.state.failed && invocation.context.waiting_call == callee,
+        "An executed call suspends for its body after argument evaluation", &failures);
+    var steps = invocation.state.steps;
+    interpreter_invocation_step(&invocation, convert(usize, CallQueryFuel));
+    call_query_check(!invocation.state.failed && invocation.context.waiting_call == callee && invocation.state.steps == steps,
+        "A still-pending body preserves the same call continuation", &failures);
+    var input = bits(IMCallInput*, entity_component_data(entity_component_add(callee, calls)));
+    *input = default;
+    input.function = snapshot;
+    input.ready = true;
+    interpreter_invocation_step(&invocation, convert(usize, CallQueryFuel));
+    call_query_check(invocation.state.done && !invocation.state.failed && invocation.context.result == 43,
+        "Published body resumes without replaying the argument's mutation", &failures);
+    interpreter_invocation_dispose(&invocation);
+
+    input.ready = false;
+    call_query_require(interpreter_invocation_init(&invocation, entry, convert(usize, width), null, 0, true, CallQueryFuel));
+    invocation.context.type_arguments = true;
+    invocation.context.call_inputs = calls;
+    interpreter_invocation_step(&invocation, convert(usize, CallQueryFuel));
+    call_query_check(invocation.context.waiting_call == callee && !invocation.state.failed,
+        "A fresh invocation waits for pending call input", &failures);
+    input.failed = true;
+    input.ready = true;
+    interpreter_invocation_step(&invocation, convert(usize, CallQueryFuel));
+    call_query_check(invocation.state.failed && invocation.context.error.length != 0,
+        "Failed call publication diagnoses the retained invocation", &failures);
+    interpreter_invocation_dispose(&invocation);
+
+    input.ready = false;
+    input.failed = false;
+    call_query_require(interpreter_invocation_init(&invocation, entry, convert(usize, width), null, 0, true, CallQueryFuel));
+    invocation.context.type_arguments = true;
+    invocation.context.call_inputs = calls;
+    interpreter_invocation_step(&invocation, convert(usize, CallQueryFuel));
+    call_query_check(invocation.context.waiting_call == callee && !invocation.state.failed,
+        "An invocation can be disposed while its called body is pending", &failures);
+    interpreter_invocation_dispose(&invocation);
+    entity_release(root);
+    call_query_check(compiler_world_dispose(world), "Suspended call inputs release their world", &failures);
+    return failures;
+}

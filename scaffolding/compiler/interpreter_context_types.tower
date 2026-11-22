@@ -19,6 +19,8 @@ struct IMContext {
     value_inputs: void*;
     require_relocatable: bool;
     type_arguments: bool;
+    call_inputs: void*;
+    waiting_call: void*;
     waiting: void*;
     retain_result_storage: bool;
 }
@@ -36,6 +38,11 @@ struct IMDependency {
 // Foundation scalar value published through the dependency graph. A local's own
 // invocation still reads its normal stack storage, including mutable computation.
 struct IMValueInput { producer: void*; owner: void*; }
+
+// A compiler-owned executable snapshot of an ordinary function. Calls retain
+// their source binding identity; only execution selects the published snapshot.
+// The interpreter never checks or lowers a missing body on its worker.
+struct IMCallInput { function: void*; ready: bool; failed: bool; }
 
 struct IMExecution {
     state: IMState*;

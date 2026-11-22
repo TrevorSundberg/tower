@@ -10,6 +10,11 @@ import .library.vector;
 import .library.float_bits;
 import .library.float_text;
 
+var InterpreterFinishValuePhase: usize = 4;
+var InterpreterInlineArgumentStorage: type = array_type(u64, 16);
+var InterpreterStackBytes: usize = 4194304;
+var InterpreterCallDepth: usize = 128;
+
 fn ix_ok(m: IMExecution*): bool {
     var ok = !m.state.failed;
     return ok;
@@ -72,7 +77,7 @@ fn ix_strict_node(m: IMExecution*, n: FoundationNode*, offset: usize): bool {
     }
     // Early type arguments run before ordinary function bodies are available.
     // Reject only an executed call; lowering already preserves lazy branches.
-    if m.context.type_arguments && n.kind == KCall {
+    if m.context.type_arguments && m.context.call_inputs == null && n.kind == KCall {
         ix_fail(m, "Function calls in type arguments require staged body scheduling", offset);
         return false;
     }
@@ -894,11 +899,24 @@ fn ix_call(m: IMExecution*, node: void*, offset: usize): void {
         }
     }
     var function = im_cached_node(m.state, binding);
+    if ix_strict(m) && m.context.call_inputs != null && !function.external {
+        var input = bits(IMCallInput*, entity_component_data(entity_component_get(binding, m.context.call_inputs)));
+        if input == null || !input.ready {
+            m.context.waiting_call = binding;
+            return;
+        }
+        if input.failed || input.function == null {
+            ix_fail(m, "Compile-time function input failed", offset);
+            return;
+        }
+        binding = input.function;
+        function = im_cached_node(m.state, binding);
+    }
     var base: usize = 0;
     {
-        var small_args: u64[16];
+        var small_args: InterpreterInlineArgumentStorage;
         var args = &small_args[0];
-        var heap_args = n.items.length > 16;
+        var heap_args = n.items.length > sizeof(InterpreterInlineArgumentStorage) / sizeof(u64);
         if heap_args {
             args = alloc(u64, n.items.length);
             if args == null {
@@ -935,9 +953,9 @@ fn ix_call(m: IMExecution*, node: void*, offset: usize): void {
         }
         var size = im_align(function.frame_size);
         base = m.state.stack;
-        var remaining: usize = 4194304;
+        var remaining = InterpreterStackBytes;
         remaining = remaining - base;
-        var exhausted = m.state.frame_count >= 128;
+        var exhausted = m.state.frame_count >= InterpreterCallDepth;
         var test = size > remaining;
         exhausted = im_or(exhausted, test);
         if exhausted {
@@ -1149,6 +1167,7 @@ export fn ix_step(m: IMExecution*, budget: usize): void {
         // expression tasks can observe cached values or captured addresses.
         m.state.cached = task.phase != 0;
         var n = im_cached_node(m.state, task.node);
+        if m.context != null { m.context.waiting_call = null; }
         if m.context != null && m.context.dependency_kind != null {
             m.context.waiting = null;
             if ix_pending(m, task.node) {
@@ -1218,7 +1237,7 @@ export fn ix_step(m: IMExecution*, budget: usize): void {
                 if found {
                     continue;
                 }
-                ix_queue(m, task.node, 4, offset);
+                ix_queue(m, task.node, InterpreterFinishValuePhase, offset);
                 if n.kind == KCall {
                     var i = n.items.length;
                     loop {
@@ -1286,9 +1305,16 @@ export fn ix_step(m: IMExecution*, budget: usize): void {
                         im_addresses_set(m.state, im_key(task.node), address);
                         continue;
                     } else {
-                        if task.phase == 4 {
+                        if task.phase == InterpreterFinishValuePhase {
                             if n.kind == KCall {
                                 ix_call(m, task.node, task.offset);
+                                if m.context != null && m.context.waiting_call != null {
+                                    // Callee and arguments are already cached. Resume
+                                    // this finish task, never their effects or statements.
+                                    im_task_push(m.state, task.node, task.loop_resume != 0, task.phase, task.offset);
+                                    m.state.steps--;
+                                    break;
+                                }
                             }
                             else {
                                 // Value tasks already checked this node's cache before scheduling

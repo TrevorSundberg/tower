@@ -168,6 +168,8 @@ fn evaluation_query_check(ok: bool, message: u8*, failures: u32*): void {
     if !ok { puts(message); *failures += 1; }
 }
 
+extern fn call_query_tests(width: u32): u32;
+
 fn evaluation_query_stage(c: SemanticContext*, input: void*, requested: bool): SemanticEvaluation* {
     var subject = sem_create(c.program.root);
     var value = sem_attach(subject, KOperand);
@@ -195,6 +197,7 @@ fn evaluation_query_stage(c: SemanticContext*, input: void*, requested: bool): S
 // acquire executable nodes; pumping a completed graph must not replay work.
 export fn evaluation_query_tests(width: u32, workers: usize): u32 {
     var failures: u32 = 0;
+    failures += call_query_tests(width);
     failures += body_query_tests(width, workers, BodyQueryFixture.Resume);
     failures += body_query_tests(width, workers, BodyQueryFixture.Cycle);
     failures += body_query_tests(width, workers, BodyQueryFixture.Cancel);

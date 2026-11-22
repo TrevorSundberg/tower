@@ -45124,3 +45124,82 @@ checks. The published production reactor deliberately lacks ide_tests;
 evidence; rebuild a successor after rebases that change compiler inputs. Future
 cleanup should keep documenting actual removed lines, retained contracts,
 baseline failures and publication provenance here.
+The local-capture milestone is published at ecc4333 with Pages 6401ea0; Pages
+action 45041002396 succeeds. Clean default-bootstrap successor and proof-unit
+self-compilation pass; all three browser worker checks pass with zero skips.
+Both edited browser compiler generations pass with identical bytes (Tower
+1,369,650; LLVM 35,165,166; cross 56,309,347). Compiler SHA-256 is
+7343162d925e0abe9a1449f5cf42028e84b30a46bb6cd53060e9284275658d68;
+project SHA-256 is
+b3a0e80ac402f1cc18c98a57bf73bc30d83c681b4d40ba20cba15f1ab2b92cfb.
+All seven reused target-pack hashes match. Evidence: binding-proofs-publication-*.
+The first hosted check sees a concurrently updated documentation manifest and
+fails its exact manifest comparison. Confirm upstream Pages 5d359d2 retains
+identical runtime assets/build identity, adopt that manifest, and rerun hosted
+verification (binding-proofs-hosted-current.log). All 104 assets and desktop/mobile
+checks pass. The hosted verification is complete.
+
+Continue with executed-call suspension. Add an optional interpreter call-input
+component mapping an ordinary function identity to its published executable
+snapshot. At the call's finish task, callee/argument effects have already run;
+an unavailable body returns its identity to the coordinator and retains that
+same task and caches. This does not check/lower a function on an interpreter
+worker. The existing unsupported-call guard remains active when no producer
+service is supplied; production early-body integration is not implemented yet.
+Use the shared dispatcher for bounded generic-body clone batches too, preserving
+their stage holds, clone budget and join-before-publication ordering.
+
+The public predecessor compiles the interpreter continuation unit. Add a focused
+ordinary-Foundation test in which an argument increments caller storage, the
+callee remains unavailable across two attempts, then publication must finish
+with exactly one increment. The first integrated build rejects the test's u64
+fuel passed as a usize step budget; add explicit conversions and rerun query-smoke
+(staged-call-continuation-native-fixed.log). The primitive's query-smoke check
+passes. It was still uncommitted at that point; this is not compiler-wide completion.
+
+## 2026-11-22: Clean staging checkpoint and detailed continuation handoff
+
+The user requests a clean committed/pushed checkpoint and a substantial future
+notes report. Add docs/compiler_ecs_threading_handoff.md with the implemented
+architecture, published milestones, an explicitly estimated80–85% range,
+remaining acceptance boundaries, and an ordered implementation/publication plan.
+Keep the current scope separate from Stronghold and parser/regex specialization.
+
+An attempted production helper-body producer compiles as a small standalone unit,
+but the combined semantics_checks closure exceeds the public predecessor's128MiB
+Foundation-component allowance. Moving the new interpreter-only test out of the
+semantic closure and sharing the generic dispatcher's transport code do not make
+that experimental integration fit. Preserve the failed logs staged-bodies-native,
+staged-bodies-partition-fixed and staged-bodies-shared-transport; do not disguise
+this as successful helper execution. The integration also needs narrower layout
+readiness, retained source-ordered body diagnostics, early/runtime demand
+separation, and aggregate/indirect-call verification. Remove the unvalidated
+producer wiring and its unsupported acceptance fixtures from the release;
+record their design and exact follow-up problems in the handoff. No bootstrap
+override or budget increase is introduced.
+
+The checkpoint retains the ordinary interpreter's optional IMCallInput handshake:
+an executed call with an unavailable body preserves its finish task and argument
+caches, returns the original function identity, and resumes after publication.
+Production type arguments still omit this service and retain their existing
+unsupported-call diagnostic. The new Tower fixture lives with interpreter object
+units and is called through the existing query-smoke export; alternate parser
+test units import it too. It requires no duplicate semantic compiler import.
+
+Generic-body clone batches now use the common typed dispatcher while preserving
+clone limits, stage_hold-before-view-close and joined publication. The dispatcher
+keeps typed job-to-kernel access generic and shares send/join transport; it adds
+no queue allocation and retains submission/completion failure handling. Native
+public-predecessor compilation, query-smoke and type-smoke pass in
+staging-checkpoint-native/query/types.log. Extend the primitive fixture before
+publication to cover distinct executable selection, unchanged fuel across a
+repeated wait, failed publication, and disposal while pending. Final focused and
+milestone checks are recorded below as they complete. todo.txt is unchanged.
+
+The final call primitive fixture passes query-smoke at32/64-bit profiles and
+one/four workers, including distinct snapshot selection, no argument replay or
+fuel charge across a repeated wait, failed-input diagnostics, and disposal while
+pending. The documented native build runs with TOWER_BOOTSTRAP_COMPILER unset;
+its successor compiles compiler_kernel to LLVM. Evidence:
+staging-checkpoint-public-native.log, staging-checkpoint-query-final.log and
+staging-checkpoint-successor.log. Freeze this source for publication validation.

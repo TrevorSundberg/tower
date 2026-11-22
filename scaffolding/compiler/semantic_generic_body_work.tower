@@ -144,13 +144,7 @@ fn sem_generic_copies_execute(c: SemanticContext*): bool {
         }
         var view = entity_view_open(c.program.root);
         sem_require(view != null);
-        var dispatched = first;
-        while dispatched < stop || c.workers.running != 0 {
-            while dispatched < stop && c.workers.running < c.workers.count {
-                sem_require(work_pool_submit(&c.workers, bits(void*, &batch.data[dispatched++].kernel)));
-            }
-            sem_require(work_pool_receive(&c.workers, true) != null);
-        }
+        sem_require(compiler_kernel_dispatch(&c.workers, &batch.data[first], stop - first));
         // Histories can have zero references pending reclamation under this pin.
         // Acquire their queued payload ownership before releasing the last view.
         for(var i = first; i < stop; i++) { entity_stage_hold(batch.data[i].request.stage); }
