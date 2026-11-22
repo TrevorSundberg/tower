@@ -39617,3 +39617,51 @@ remains byte-identical SHA361466038559fa5d295268fb38fc3fbe3af7ae3993523974056933
 Native export-profile/reader checks pass. Public clean successor, updated Wasm
 reader, final threaded links and browser self-build gates follow the frozen
 source checkpoint. Production LLD selection remains unchanged.
+
+### 2026-11-21: threaded linker final merged validation
+
+Rebase brought in the attribute milestone through4f74fbd, including new public
+bootstrap21f527125bfa05a8cd6d4923d4fdc026a04553e919f2905c602a17691598dba5.
+Preserved its grammar/attribute changes and reread changed AGENTS.md. This
+supersedes earlier baseline identities for the final validation. Fresh default
+build-native.sh in successor-thread-runtime (no private compiler override),
+backend API, and successor-built native reader all pass. The successor itself
+also compiles the standalone Tower linker used for the final runtime links.
+Portable WASI reader passes with current public pin; all refreshed portable,
+threaded, LLVM and cross reactors build. No sanitizer or broad formatter run.
+
+Final export-cache benchmark, three previous/indexed pairs, medians0.54/0.54s;
+RSS352920/352740KiB. The discarded per-function string prototype's4.8MiB growth
+is removed. Frozen nonthreaded LLVM-reactor bytes remain identical. This is a
+regression check, not a parallel speedup claim.
+
+Final current-reader image, including new export/table cases, is identical at
+one/four link workers:2588850a27ec111d4e2bca699ec08b57ad4f0e8a7625aa2cb55434b1d4840837.
+Final refreshed threaded compiler is identical at1/2/4/8 link workers:
+02519f2851bd7b7e622b4a5b0f3ece3b2dfed648a6f8ac07fdd67815a1a8d0c8.
+Current SDK34 LLD reference reader passes both128 lifecycles and injected worker
+failure (2/2,0.44s). Tower-linked reader plus Tower-linked compiler pass3/3,
+zero skips,19.14s; this includes full current compiler checks at1/2/4/8 execution
+workers. Evidence build/wasm_link_{runtime_reference,thread_final}.log and
+wasm_link_thread_runtime_final_args.json. Third-party wasi-libc remains the
+platform thread/TLS implementation; scheduling is the same Tower ECS/work graph.
+
+Use the other lane's NEW Tower package_compiler_project, built through the public
+--tools entry in /home/trevo/.cache/tower/coordinator-thread-runtime-tools.
+No Python packager or replacement script. Fresh package is
+build/compiler_project_thread_runtime; JSON edits preserve UTF-8 explicitly.
+Set reactor argument zero to tower-wasm-ld, use lazy archives and --threads=4.
+The isolated LLVM host correctly caps that link budget to its one lane.
+Two edited browser generations at two/four compilation workers pass with
+identical output hashes (generation1 47.49s):
+tower24a93d2c5edf44d36c80220c4e0fa610c22d67fbdb20f9a4af4cfd721a4b6175,
+llvm6d88d5f82eafe6a40d4d2a652f414cec881868fe7ffacbe97bdfdbac5bafa0e8,
+crossad6e10a1cfbe6244cb3e37a04ea861c8a6e78d6b40ac952cb442ff11a044fcfe.
+Sizes1234766/53689510/65345276. Logs build/wasm_link_thread_generations.log and
+build/compiler_workbench_thread_runtime/generation{1,2}.json.
+
+Actual SDK thread-runtime linking and shared portable compiler execution are now
+verified. Remaining production work: default byte-link service selection, wider
+object/debug profiles and explicit CLI support; shared LLVM hosting is a separate
+transport conversion. Native ELF/COFF/Mach-O translation remains later. Publish
+this source/API milestone without replacing the other lane's new hosted runtime.
