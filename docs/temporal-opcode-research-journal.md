@@ -48059,3 +48059,13 @@ profile_logs_failed_wildcards.tgz (SHA60e3561a), then corrected with fail-fast
 shell expansion of actual paths and verified the member listing. Original
 compiler evidence was untouched; all compiler commands had independent raw
 status traps. No benchmark rerun or cleanup was needed for this transport error.
+
+Next D2 measurement scope reuses existing Tower stress wrappers/shared producer
+and checked compiler-threads oracles:16staged worker bodies and260generic-window
+bodies, with optional type-field/generic variants after targeted failures.
+Read all four complete wrappers and shared caller/oracle paths; per-file/world/
+lifetime dispositions and independent sums now in the lane audit. No new code
+or generator, no runtime benchmark during D1's active build. Generate/hash inputs
+once through the public compiler at the next admitted slot, then paired1/2worker
+output and canonical/object checks. This extends the simple constant-function
+baseline; it does not claim all body/parser/import/staging performance closed.

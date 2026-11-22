@@ -1019,3 +1019,28 @@ unresolved foreign symbol at link time. Hold source/selector adoption pending
 an explicit owner-approved Linux64 opt-in target or portable measurement
 boundary. No stub, silent skip or competing generic manifest is introduced.
 This is source/caller review; new D2 runtime measurements do not apply yet.
+
+### Existing staged workload producers selected for the next measurement slot
+
+Four additional D1-owned caller receipts at9ae2b39 (no edits):
+`scaffolding/tests/stress/workers.tower`, `generic_workers.tower`, `window.tower`
+and `type_fields.tower` in the same directory. Each complete three-line wrapper
+imports Tower and the already-audited shared stress_sources, then synchronously
+calls stress_emit with its typed function value. The shared helper owns and
+closes the sole contiguous ByteBuffer, checks the65536byte output bound and
+exact write; wrappers introduce no world, scheduler or retained graph. Existing
+browser compiler-threads tests provide exact independent output oracles and
+serial/parallel canonical comparisons; they are historical caller contracts,
+not newly executed browser evidence.
+
+Workers16 exercises decltype, staged generic calls, lexical defers and untaken
+invalid dependencies: expected504,7,42,42,0,136,-120,-2147483648. Each returned
+f(i) is9+3i (return captured before the outer defer); sum over0..15 is504.
+Generic16 similarly returns9+3i for both signed32/unsigned64 and checks array
+sizes28/36 plus record73. Window260 sums1..260=33930, exceeding one body batch.
+Type-fields256 contains explicit independent layout/value predicates and prints
+zero failures. These reuse existing Tower-generated inputs rather than adding
+another generator or JS measurement logic. They extend six supplemental caller
+reviews (previous two tool fixtures plus these four), separate from98original
+local reviews and19incoming measurement reviews. Current native/paired staged
+execution is queued after D1's owned slot; no pass or scaling claim yet.
