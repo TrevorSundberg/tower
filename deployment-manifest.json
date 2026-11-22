@@ -336,7 +336,7 @@
                                  "validation":  "79 runtime/LLVM/package checks; eight threaded package/worker checks; two edited browser compiler generations; four final worker-reuse/stale-permit browser checks; ten output/viewport/frame checks. Fresh native successor after final compiler-source rebase. All 86 local deployment asset hashes and full desktop/mobile flows pass."
                              },
     "scope":  "Shared grammar attributes, typed declaration metadata and ordinary staged aggregate results; attribute-aware editor and constant bindings.",
-    "previousDeployment":  "78647df04e272c7455e95b97bb223f543e572bdd",
+    "previousDeployment":  "f5d201b301f37aefe69f630bc36400ee0994ae81",
     "measurementToolingMigration":  {
                                         "implementationCommit":  "1007d4179107c6c5372afcb9d1233a406695e992",
                                         "validationCommit":  "824af121b0441df8c2a6af9e6a328bd6a0164018",
@@ -376,8 +376,8 @@
     "bootstrapExecutableSha256":  "21f527125bfa05a8cd6d4923d4fdc026a04553e919f2905c602a17691598dba5",
     "publishedBootstrapSha256":  "21f527125bfa05a8cd6d4923d4fdc026a04553e919f2905c602a17691598dba5",
     "bootstrapSha256":  "160660d6b0d76a0d0a4afd48205538d0a9a84dc00977e9c4f4cb4ed85d18318d",
-    "sourceCommit":  "80873efa3d0a8a2d5f650220833589b9bfcdbe90",
-    "publicationNote":  "Attributes and staged aggregate metadata implemented in Tower; dedicated standard-type protocol modules remain pending.",
+    "sourceCommit":  "4f74fbd48ed58b7a224d3c05d36274ad48d7a4f7",
+    "publicationNote":  "Attribute publication receipt only; preserves the verified runtime assets and their 9e7eb79 build identity. Dedicated standard-type protocol modules remain pending.",
     "buildNote":  "Runtime and compiler-project assets built from 9e7eb79 using complete bootstrap 160660d6. Published bootstrap 21f52712 has a clean, byte-identical default successor. Two edited-semantic browser generations match at 2/4 workers.",
     "buildSourceCommit":  "9e7eb79813f798dd733033c43a6d1f7fd0f0b685",
     "compilerSourceTree":  "80823ceb675e1dfc24272665b04c42118c9b2594",
@@ -517,6 +517,7 @@
                        "semanticsVersion":  6,
                        "executionCacheVersion":  5,
                        "validation":  "Native/guest Wasm, widths 4/8, worker determinism, canonical Foundation, callback diagnostics, annotated import cycles, editor/parser and desktop/mobile deployment checks pass.",
-                       "limitation":  "Standard-type protocol consumers and source prelude are not yet implemented."
+                       "limitation":  "Standard-type protocol consumers and source prelude are not yet implemented.",
+                       "hostedVerification":  "All 88 assets and desktop/mobile execution, grammar, completion, persistence, backend and download checks passed at Pages f5d201b."
                    }
 }
