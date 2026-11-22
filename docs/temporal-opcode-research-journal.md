@@ -41383,3 +41383,20 @@ new focused CTest registration lines); JavaScript 187/24364. These are source
 counts, not GitHub language percentages. No todo.txt change. Publication will
 preserve verified browser/runtime assets and their existing build identities;
 the native formatter is obtained through the documented source build.
+
+Integration rebase receives f5ca50e/f13b167's shared instance receipts and array
+layout ownership; formatter implementation is now 567767e. Freeze that commit in
+/cache/format_driver_rebased_checkout. Repeat the clean documented default public
+bootstrap build with TOWER_BOOTSTRAP_COMPILER unset and
+TOWER_NATIVE_BUILD=/cache/format_driver_rebased_native: all 48 steps pass. Final
+successor SHA256 8702849dfa13b2fcb860f5aff181d805e5a1dd807ae53bae49b8001ce1048fb2.
+Fresh tower-driver, tower-driver-formatting and tower-format CTests pass 3/3 in
+37.67s. The existing memory fixture again passes 32/64-bit interpretation, native
+execution and actual Wasm execution. The unrelated leading-dot failure remains
+the separately reported pre-change limitation, not a passing suite claim.
+
+Pages advanced concurrently to 4e2017c4 (successful action 44983035300), whose
+runtime and compiler project identify 7503718. Preserve that newer publication
+and all its receipts/assets; do not restore the earlier local dist tree. Only a
+native formatter validation receipt is needed. No portable bootstrap replacement
+or browser formatter rebuild is implied by this source-tooling milestone.
