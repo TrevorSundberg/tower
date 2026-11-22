@@ -119,6 +119,12 @@ export fn compiler_work_unit_task(work: CompilerWork*, ordinal: usize): usize {
     return unit == null ? 0 : unit.task;
 }
 
+// Extend a fresh plan before any worker borrows its recipes. Completed plans
+// still use the stricter continuation lease below, including retry validation.
+export fn compiler_work_plan(work: CompilerWork*): WorkGraph* {
+    return work.completed == 0 && work.graph.running == 0 && work_ok(&work.graph) ? &work.graph : null;
+}
+
 // Borrow only at a completed phase boundary, under the unit owner's exclusive
 // continuation lease. Backend queries extend this same graph and its subjects.
 export fn compiler_work_graph(work: CompilerWork*): WorkGraph* {
@@ -148,17 +154,15 @@ export fn compiler_work_next(work: CompilerWork*): usize {
         return 0;
     }
     var ticket: WorkTicket;
-    if work_take(&work.graph, &ticket) {
+    if work_take_query(&work.graph, &ticket, convert(u32, CompilerQuery.Unit)) {
         var task = work_task(&work.graph, ticket.task);
-        if task.subject == bits(void*, work.owner) {
-            work_finish(&work.graph, &ticket, true);
-            return 0;
-        }
         if work.graph.running > work.peak {
             work.peak = work.graph.running;
         }
         return bits(CompilerWorkUnit*, entity_component_data(entity_component_get(bits(Entity*, task.subject), work.kind))).ordinal;
     }
+    var join = work_find(&work.graph, bits(void*, work.owner), convert(u32, CompilerQuery.Join), 0);
+    if work_take_task(&work.graph, &ticket, join) { work_finish(&work.graph, &ticket, true); }
     return 0;
 }
 

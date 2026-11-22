@@ -133,21 +133,29 @@ fn body_runs_header_cycle(budget: usize, bedrock: u8*, foundation: u8*, root: u8
     units_check(strstr(error, earlier_fails ? "unknownFirst": "Recursive by-value layout") is not null, "Header dependency cycles retain deterministic diagnostics");
 }
 
-fn body_runs_surface_error(budget: usize, bedrock: u8*, foundation: u8*, root: u8*, mode: u32): void {
+enum BodyLoopFailure: u32 { WhileValue, ForInitializer, ForCondition, ForUpdate, ForInitialExpression, Count }
+
+fn body_runs_surface_error(budget: usize, bedrock: u8*, foundation: u8*, root: u8*, mode: BodyLoopFailure): void {
     var batch = frontend_units_create(1, budget, 8, 88, 23, bedrock, foundation, root);
     units_check(batch is not null, "Loop header error batch");
     defer frontend_units_close(batch);
     var source: u8* = "import tower; fn id(T:type,x:T):T{return x;} fn first():i32 {while id(unknownLoop)>0 {return 1;} return 0;} fn later():i32{return unknownSecond;}";
-    if mode == 1 {
+    if mode == BodyLoopFailure.ForInitializer {
         source = "import tower; fn id(T:type,x:T):T{return x;} fn first():i32 {for(var i=id(unknownLoop); i<1; i++) {return 1;} return 0;} fn later():i32{return unknownSecond;}";
     }
-    if mode == 2 {
+    if mode == BodyLoopFailure.ForCondition {
         source = "import tower; fn bad(T:type):type{struct Recursive{value:Recursive;}return Recursive;} fn first():i32 {for(var i:i32=0; sizeof(bad(i32))>0; i++) {return 1;} return 0;} fn later():i32{return unknownSecond;}";
+    }
+    if mode == BodyLoopFailure.ForUpdate {
+        source = "import tower; fn id(T:type,x:T):T{return x;} fn first():i32 {for(var i:i32=0; i<1; id(unknownLoop)) {return 1;} return 0;} fn later():i32{return unknownSecond;}";
+    }
+    if mode == BodyLoopFailure.ForInitialExpression {
+        source = "import tower; fn id(T:type,x:T):T{return x;} fn first():i32 {for(id(unknownLoop); false;) {return 1;} return 0;} fn later():i32{return unknownSecond;}";
     }
     units_check(frontend_units_source(batch, 1, "loop_error.tower", source, strlen(source)), "Loop header error source");
     while !frontend_units_step(batch, true) {}
     var error = frontend_units_error(batch);
-    units_check(frontend_units_failed(batch) == 1 && strstr(error, mode == 2 ? "Recursive by-value layout": "unknownLoop") is not null && strstr(error, "unknownSecond") is null, "Loop header failure preserves scopes, cleanup and error order");
+    units_check(frontend_units_failed(batch) == 1 && strstr(error, mode == BodyLoopFailure.ForCondition ? "Recursive by-value layout": "unknownLoop") is not null && strstr(error, "unknownSecond") is null, "Loop header failure preserves scopes, cleanup and error order");
 }
 
 fn body_runs_arm_error(budget: usize, bedrock: u8*, foundation: u8*, root: u8*, mode: u32): void {
@@ -238,6 +246,9 @@ fn body_runs_smoke(root: u8*): void {
     body_runs_header_error(4, bedrock.data, foundation.data, root);
     body_runs_header_cycle(4, bedrock.data, foundation.data, root, false);
     body_runs_header_cycle(4, bedrock.data, foundation.data, root, true);
+    body_runs_surface_error(4, bedrock.data, foundation.data, root, BodyLoopFailure.ForCondition);
+    body_runs_surface_error(4, bedrock.data, foundation.data, root, BodyLoopFailure.ForUpdate);
+    body_runs_surface_error(4, bedrock.data, foundation.data, root, BodyLoopFailure.ForInitialExpression);
     body_runs_arm_error(4, bedrock.data, foundation.data, root, 1);
     body_runs_arm_error(4, bedrock.data, foundation.data, root, 2);
     body_runs_declaration_error(1, bedrock.data, foundation.data, root, BodyDeclarationFailure.SelfReference);
@@ -301,8 +312,8 @@ fn body_runs_tests(root: u8*): void {
         for(var mode: u32 = 0; mode < 5; mode++) {
             body_runs_arm_error(budget, bedrock.data, foundation.data, root, mode);
         }
-        for(var mode: u32 = 0; mode < 3; mode++) {
-            body_runs_surface_error(budget, bedrock.data, foundation.data, root, mode);
+        for(var mode: u32 = 0; mode < convert(u32, BodyLoopFailure.Count); mode++) {
+            body_runs_surface_error(budget, bedrock.data, foundation.data, root, convert(BodyLoopFailure, mode));
         }
         body_runs_header_error(budget, bedrock.data, foundation.data, root);
         body_runs_header_cycle(budget, bedrock.data, foundation.data, root, false);

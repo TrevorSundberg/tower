@@ -10,6 +10,7 @@ import semantic_flow;
 import .library.vector;
 
 // Control-flow outcomes are a private analysis bit set, not program opcodes.
+var FlowStop: u32 = 0;
 var FlowNext: u32 = 1;
 var FlowBreak: u32 = 2;
 var FlowContinue: u32 = 4;
@@ -233,8 +234,12 @@ fn sem_control_match_arm(c: SemanticContext*, state: SemanticMatchCursor*): bool
 }
 
 fn sem_control_match_begin(c: SemanticContext*, n: void*, depth: u32, state: SemanticMatchCursor*): bool {
+    return sem_control_match_value(c, n, depth, state, null);
+}
+
+fn sem_control_match_value(c: SemanticContext*, n: void*, depth: u32, state: SemanticMatchCursor*, initial: void*): bool {
     *state = default;
-    var initial = sem_expression(c, sem_member(n, "value"), null);
+    initial ??= sem_expression(c, sem_member(n, "value"), null);
     if !sem_ok(c) {
         return false;
     }

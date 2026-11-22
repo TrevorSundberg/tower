@@ -91,9 +91,13 @@ context/module still has one owner; this does not make the LLD linker concurrent
    `backend_error` and `backend_error_offset`. Call `backend_close` once.
 
 Native `backend_units_create(frontend, count, budget, triple, library, optimize)`
-extends a successfully completed FrontendUnits batch. It attaches backend recipe/
-result components to the same unit entities, adds dependencies on their completed
-frontend queries, and borrows the existing query graph under an exclusive lease.
+extends a configured or successfully completed FrontendUnits batch. It attaches
+backend recipe/result components to the same unit entities and adds dependencies
+on their frontend queries under an exclusive graph lease. Attach before frontend
+dispatch for streaming: ready LLVM jobs share the frontend pool and total budget,
+and start after their own frontend receipt joins. Attaching after completion uses
+a backend pool and supports subsequent target batches. Mid-dispatch attachment
+is rejected.
 Keep the frontend alive and immutable until `backend_units_close`. Each worker
 owns its LLVM context, module and target machine; Foundation inputs remain pinned.
 `backend_units_step(batch, wait)` refills the ready frontier as workers complete.

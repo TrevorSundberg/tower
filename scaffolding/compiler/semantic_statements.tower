@@ -463,6 +463,14 @@ fn sem_statement_complete(c: SemanticContext*, n: void*, flow: u32): u32 {
     return flow;
 }
 
+fn sem_expression_statement(c: SemanticContext*, n: void*, prepared: void*): u32 {
+    c.surface_expressions = true;
+    var value = sem_node(c, n, SurfaceDiscard);
+    value.value = prepared ?? sem_surface_discard(c, sem_surface_unwrap(sem_member(n, "value")));
+    if sem_ok(c) && sem_get(value.value).kind == KTrap { return FlowStop; }
+    return FlowNext;
+}
+
 fn sem_statement_impl(c: SemanticContext*, n: void*, depth: u32): u32 {
     var label_call = sem_control_call(c, n, "label");
     if label_call != null {
@@ -513,17 +521,7 @@ fn sem_statement_impl(c: SemanticContext*, n: void*, depth: u32): u32 {
         return sem_control_for(c, n, depth);
     }
     if sem_is(n, "TowerExpressionStatement") {
-        c.surface_expressions = true;
-        var expression = sem_surface_unwrap(sem_member(n, "value"));
-        var value = sem_node(c, n, SurfaceDiscard);
-        value.value = sem_surface_discard(c, expression);
-        if sem_ok(c) {
-            var operation = sem_get(value.value);
-            if operation.kind == KTrap {
-                return 0;
-            }
-        }
-        return FlowNext;
+        return sem_expression_statement(c, n, null);
     }
     if sem_is(n, "CoreEnum") {
         sem_fail(c, n, "Enum types must be declared at top level");

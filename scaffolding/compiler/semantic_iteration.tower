@@ -14,6 +14,8 @@ import semantic_layout;
 import semantic_call_inference;
 import .library.vector;
 
+var IterationSourceDepthLimit: u32 = 123;
+
 // The source's nominal declaration owns a statically resolved iteration protocol
 // in its module. Each compilation exclusively owns its scratch and ECS graph. These are ordinary functions, with no container-name cases or
 // independent iterator opcodes. The source pointer is evaluated exactly once.
@@ -87,8 +89,12 @@ struct SemanticIterationCursor {
 }
 
 fn sem_iteration_begin(c: SemanticContext*, n: void*, depth: u32, cursor: SemanticIterationCursor*): bool {
+    return sem_iteration_value(c, n, depth, cursor, null);
+}
+
+fn sem_iteration_value(c: SemanticContext*, n: void*, depth: u32, cursor: SemanticIterationCursor*, initial: void*): bool {
     *cursor = default;
-    if depth > 123 {
+    if depth > IterationSourceDepthLimit {
         sem_fail(c, n, "foreach lowering exceeds Foundation block nesting limit of 128");
         return false;
     }
@@ -96,7 +102,7 @@ fn sem_iteration_begin(c: SemanticContext*, n: void*, depth: u32, cursor: Semant
         sem_fail(c, n, "foreach cleanup cannot be combined with explicit function labels or jumps");
         return false;
     }
-    var initial = sem_operand(c, sem_member(n, "source"), null);
+    initial ??= sem_operand(c, sem_member(n, "source"), null);
     if !sem_ok(c) {
         return false;
     }

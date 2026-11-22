@@ -40110,3 +40110,143 @@ Runtime c7a7976/all 88 assets, target-pack and ECS expression/unit receipts rema
 unchanged. No identical runtime binary was republished and no edited-generation
 test compiler was substituted for production. Next inspect platform host/parser
 manifest selection for further removal of generation and duplicated source lists.
+
+Checkpoint c7a7976 was rebased onto a890c86 and pushed to main. The incoming
+changes add real threaded Wasm-linker support and Tower bootstrap/distribution
+tools; no conflicts occurred. A fresh default build, with
+TOWER_BOOTSTRAP_COMPILER unset and TOWER_NATIVE_BUILD set to
+/tmp/tower-home/.cache/tower/ecs-expression-units-clean, completed all 54 steps
+using public 21f52712. The multi-unit CLI checks pass again against that merged
+binary. Its SHA-256 is
+c56472b3e284ed3f8cce8a321e87dd8ebd39f8d0655474a39a8fb65ea6acceda;
+build/native includes its complete adjacent resources. Evidence:
+build/language-next-audit/expression-units-clean.log. The source checkpoint is
+published; browser build, generation and hosted verification remain in progress.
+
+The checkpoint's portable/threaded/LLVM/cross reactors and compiler project now
+build successfully. All three compiler-threads tests pass with no skips, including
+the four-worker barrier and 1/2/4/8-worker canonical/staging checks. The first
+browser-generation invocation hit EACCES in an older root-owned workbench; reused
+the frozen project and reran only generations with TOWER_TEST_COMPILER_WORKBENCH
+set to build/language-next-audit/expression-units-workbench/. Both actual edited
+compiler generations pass and produce identical artifact hashes (87.7s at two
+workers, 54.9s at four; these are validation timings, not a controlled speedup
+claim). Project SHA-256 is cc2ec155f5ea8b14f0776e263e459fad61dc68331976c56b2a10dc08f634edc7.
+Evidence: expression-units-browser-{build,checks}.log and
+expression-units-generations.log in build/language-next-audit. Published the
+frozen c7a7976 assets at Pages 9ced85534540c83b18d6e04852f80d3259e97d02;
+GitHub accepted the existing uncompressed LLVM reactor with its advisory size
+warning. The manifest preserves other lanes' receipts and names the actual
+bootstrap/build source. Hosted verification remains pending.
+
+## 2026-11-21: For-header expression continuations after the published checkpoint
+
+Continued implementation while the frozen c7a7976 package ran its generation
+checks. New code is not in that published package. For conditions and discarded
+updates now have separate expression receipts across the body window. The
+initializer retains its loop scope, yields its preparation ticket, and is never
+replayed. Condition publication transfers lexical state before update admission;
+an explicit edge records that dependency. The coordinator publishes the loop
+structure after both receipts complete. Empty conditions/updates retain their
+existing semantics; nondeclaration initial statements still use coordinator
+checking and preserve their source order. Expression modes distinguish normal
+values, contextual initialization and discarded values (including void calls).
+
+Added runtime/comptime fixtures covering initializer count, header shadowing,
+comma effects, void updates, continue/break and omitted header parts, plus update
+and initial-expression failure ordering. Preflight caught a missing direct import
+for SurfaceDiscard; the corrected semantic_body_work preflight passes. The
+affected native build/body smoke is running in for-query-native.log. No completion
+or publication claim is made for this follow-up yet.
+
+Checkpoint deployment verification is complete. Pages workflow 44974918196
+succeeded for 9ced855. The hosted manifest matches local SHA-256
+3c42739ce369a3548ac98fbb84471531eb817c5bd867c6b09550c4c2eb51bc75. The verifier
+matched all 88 assets, then initially encountered another old root-owned output
+file while saving a native download. Preserved that old output directory at
+build/language-next-audit/pre-expression-units-deployment-verification and reran
+the existing verifier into a fresh directory. Desktop, mobile, all backend/editor/
+grammar/persistence/download checks and real Linux target defaults pass. Evidence:
+expression-units-hosted-fresh.log and build/deployment-verification/report.json.
+This verifies the frozen c7a7976 checkpoint, not the follow-up working tree.
+
+The first for smoke found Unsupported foundation expression 'TowerComma': a for
+condition enters through the surface operand checker, whereas while accepts a
+Foundation value wrapper. Added an Operand expression mode that invokes the
+existing ordinary checker; no new evaluator or folding path. Also admitted match
+subjects and foreach sources through the same expression receipts. Their ordinary
+coordinator helpers accept the joined value instead of checking it again, and
+iteration retains its structural-error ordering. A source-count fixture checks
+once-only foreach/match effects at runtime and comptime. The expanded preflight
+passes; header-query-native.log is the current affected build/smoke run.
+
+The source-count fixture initially allocated a vector during comptime and hit the
+existing strict interpreter storage-capability restriction. This was a fixture
+eligibility error, not a header scheduling failure. Changed it to a borrowed
+stack-backed vector view; the affected smoke passes. Superseding the earlier
+coordinator limitation: ordinary for initializer expressions now also use
+discard-expression receipts, before condition and update receipts. Explicit
+control statements retain their statement checks. A shared expression-statement
+publisher consumes the checked value once, including void/trap flow and defer
+completion. The full body matrix passes on 32/64-bit targets at 1/2/4/8 workers,
+with canonical reparsing, runtime/comptime execution, diagnostic ordering and
+cycles. Evidence: header-parts-{preflight,native}.log. No allocator capability
+or separate constant evaluator was introduced.
+
+Next, removing the native multi-unit frontend/backend batch barrier. The draft
+attaches backend components and dependency queries before frontend dispatch and
+uses the frontend's same pool for both phases. Each backend query waits only for
+its own unit. A typed transport descriptor invokes worker execution and a separate
+coordinator receipt callback; it carries no language semantics. Ready backend
+queries reuse released lanes, with immutable program worlds pinned only after
+their frontend receipt joins. Completed frontend batches still support later
+target batches. Failure/cancellation must drain the shared transport before
+releasing either phase's leases. This is implementation in progress, not yet
+validated or published; unit-stream-preflight.log records the first small-unit
+compilation of frontend, backend and CLI changes.
+
+The streaming native implementation now passes its affected build and tests.
+The backend attaches before frontend dispatch, and both phases use one typed
+WorkPool and the existing shared graph; no second scheduler graph was added.
+Unit admission selects only Unit queries, leaving Backend queries to the attached
+consumer. Per-unit dependencies and program read/write claims protect handoff.
+Backend failures settle all admitted source-order contenders; frontend failure
+hides every object, including already completed ones. Cancellation drains the
+shared pool before any program or recipe view closes. Later target batches on a
+completed frontend remain supported. Multi-unit CLI timings now report combined
+compile wall time rather than an invalid overlapping frontend phase total.
+
+An optional frozen worker observer supports actual overlap evidence: the native
+test holds frontend unit 2 until backend unit 1 enters on another OS thread,
+with a bounded monotonic deadline and semaphore handoff. This passes at 2/4
+workers on both target widths. Serial/streamed/phase-separated object bytes
+match; source and target failure selection, hidden failed results, retry,
+cancellation and CLI linking checks pass. The shared pool stays within the
+requested budget. Logs: unit-stream-{preflight,native}.log. Standalone frontend,
+inspection and graph-ownership regression checks follow in
+unit-stream-ownership.log. No speedup percentage or whole-compiler completion
+claim follows from these concurrency checks.
+
+Standalone frontend and mixed inspection regression checks also pass, and the
+existing compiler_work fixture reports zero failures. To test avoidable transport
+overhead along narrow declaration chains, saved the complete pre-change compiler
+beside its resource directory as ecs-local-query-new-pin/towerc-before-inline.
+The candidate runs a lone ready declaration kernel inline only when that pool
+has no admitted work; it retains the same frozen context, ticket, worker stage
+and coordinator publication. Multi-job waves retain worker dispatch. Small-unit
+preflight, affected rebuild and body smoke pass. The existing Tower measurement
+runner is comparing the two binaries on semantics64 with two warmups and nine
+alternating pairs, frozen inputs and no concurrent heavy work. Results remain
+pending in inline-query-native.log and measurements.json; this is not yet a
+measured performance claim.
+
+The paired run completed with identical interpreted output. Baseline compiler
+SHA-256 84109cbddc40289bb9d3295463180bfc3863253c50ed80a7384c38280b4b449e
+versus candidate 149453a8fe71692f29c6589fa432ec1b02a55ab38225bff0ebab738e9ed30a3c:
+median compile 2.3140s versus 2.1089s; wall 2.5788s versus 2.4084s. The nine pairs
+show substantial variance and only five favor the candidate on wall time, so
+these lower medians are not evidence of a reliable general speedup. Retained
+the bounded inline path because it removes a provably unnecessary handoff with
+no available parallel work and preserves existing query semantics. Full samples,
+input hashes, commands and platform are preserved in
+build/language-next-audit/inline-query-measurements.json. Publication checks follow.

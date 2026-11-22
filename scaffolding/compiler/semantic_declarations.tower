@@ -27,6 +27,8 @@ var DeclarationQuery: u32 = convert(u32, SemanticQuery.Declaration);
 var DeclarationDiscoveryQuery: u32 = convert(u32, SemanticQuery.DeclarationDiscovery);
 var ExpressionQuery: u32 = convert(u32, SemanticQuery.Expression);
 
+enum SemanticExpressionMode: u32 { Value, Operand, Initializer, Discard }
+
 struct SemanticDeclaration {
     number: usize;
     query: usize;
@@ -44,7 +46,7 @@ struct SemanticDeclaration {
     constructed: vector(void*);
     subject: void*;
     expression: bool;
-    initializer: bool;
+    expression_mode: SemanticExpressionMode;
     expected_type: FoundationType*;
     value: void*;
     discover: bool;
@@ -773,9 +775,12 @@ fn sem_declaration_infer(c: SemanticContext*, result: SemanticDeclaration*): voi
 }
 
 fn sem_expression_check(c: SemanticContext*, result: SemanticDeclaration*): void {
-    result.value = result.initializer
-        ? sem_initial_value(c, result.subject, result.expected_type)
-        : sem_expression(c, result.subject, result.expected_type);
+    match result.expression_mode {
+        SemanticExpressionMode.Operand => { result.value = sem_operand(c, result.subject, result.expected_type); }
+        SemanticExpressionMode.Initializer => { result.value = sem_initial_value(c, result.subject, result.expected_type); }
+        SemanticExpressionMode.Discard => { result.value = sem_surface_discard(c, result.subject); }
+        _ => { result.value = sem_expression(c, result.subject, result.expected_type); }
+    }
 }
 
 // Workers borrow immutable scope/graph indexes and own scratch/diagnostics.
@@ -1095,11 +1100,11 @@ fn sem_declaration_prepare(c: SemanticContext*, result: SemanticDeclaration*): u
 // Registration and discovery are shared by source declarations and newly
 // instantiated signatures. All nodes are registered before discovery dispatch;
 // every dependency is sealed before the caller may suspend/demand it.
-fn sem_expression_add(c: SemanticContext*, node: void*, expected_type: FoundationType*, lexical: SemanticBodyScope*, initializer: bool): SemanticDeclaration* {
+fn sem_expression_add(c: SemanticContext*, node: void*, expected_type: FoundationType*, lexical: SemanticBodyScope*, mode: SemanticExpressionMode): SemanticDeclaration* {
     var result = sem_declaration_state(c, node);
     sem_require(result.query == 0);
     result.expression = true;
-    result.initializer = initializer;
+    result.expression_mode = mode;
     result.expected_type = expected_type;
     result.scope = lexical.scope;
     result.current = lexical.current;
@@ -1138,6 +1143,16 @@ fn sem_declaration_add(c: SemanticContext*, node: void*): void {
 // see one immutable graph. Pool width changes execution, never the query wave.
 fn sem_declaration_dispatch(c: SemanticContext*, batch: SemanticDeclaration**, count: usize): void {
     var context = *c;
+    // A lone ready query cannot overlap another job here. Run its same frozen
+    // kernel inline, keeping the ticket, stage and joined publication contract
+    // while avoiding a semaphore round trip along a narrow dependency chain.
+    if count == 1 && c.workers.running == 0 {
+        var result = batch[0];
+        result.context = &context;
+        c.workers.execute(bits(void*, &result.kernel));
+        result.context = null;
+        return;
+    }
     var next: usize = 0;
     while next < count || c.workers.running != 0 {
         while next < count && c.workers.running < c.workers.count {

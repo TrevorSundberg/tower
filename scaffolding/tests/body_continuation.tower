@@ -510,4 +510,54 @@ fn condition_queries(): i32 {
 
 if condition_queries() != 513 || comptime(condition_queries()) != 513 { failures++; }
 
+fn tick(value: i32*): void { (*value)++; }
+
+fn for_tail_queries(): i32 {
+    var starts: i32 = 0;
+    var checks: i32 = 0;
+    var steps: i32 = 0;
+    var sum: i32 = 0;
+    for (var i: i32 = identity(starts++); identity((checks++, i < 4)); tick(&steps), i++) {
+        if i == 1 { continue; }
+        if i == 3 { break; }
+        var i = identity(7);
+        sum += i;
+    }
+    var x: i32 = 0;
+    for (x = identity(1); ; tick(&x)) {
+        if x == 3 { break; }
+        sum += x;
+    }
+    for (; identity(x < 5); tick(&x)) {
+        if x == 3 { continue; }
+        sum += x;
+    }
+    return starts * 10000 + checks * 1000 + steps * 100 + sum * 10 + x;
+}
+
+if for_tail_queries() != 14515 || comptime(for_tail_queries()) != 14515 { failures++; }
+
+fn viewed(values: vector(i32)*, visits: i32*): vector(i32)* {
+    (*visits)++;
+    return values;
+}
+
+fn selection_sources(): i32 {
+    var visits: i32 = 0;
+    var storage: i32[2];
+    storage[0] = 4;
+    storage[1] = 6;
+    // A borrowed stack view also exercises strict staging without heap effects.
+    var values: vector(i32) = { data: &storage[0], length: 2, capacity: 2 };
+    var sum: i32 = 0;
+    foreach (var value in viewed(&values, &visits)) { sum += value; }
+    match identity(visits++) {
+        1 => { sum += 20; }
+        _ => { return 0; }
+    }
+    return visits * 100 + sum;
+}
+
+if selection_sources() != 230 || comptime(selection_sources()) != 230 { failures++; }
+
 print(failures);

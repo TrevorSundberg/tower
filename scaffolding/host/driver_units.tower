@@ -116,20 +116,19 @@ fn driver_units_compile(request: DriverRequest*, timing: DriverTiming*): i32 {
         }
         driver_request_configure_modules(request, frontend_units_environment(batch.frontend, i + 1), path);
     }
-    var started = driver_clock();
-    while !frontend_units_step(batch.frontend, true) { }
+    // Attach LLVM consumers before dispatch. The frontend and backend share
+    // one ready graph and pool; a completed unit can advance immediately.
+    batch.backend = backend_units_create(batch.frontend, count, budget, options.target, true, options.optimize);
+    if batch.backend == null || !backend_units_library(batch.backend, 1, false) {
+        driver_error("Unable to allocate backend unit graph", ""); return 1;
+    }
+    while !backend_units_step(batch.backend, true) { }
     if frontend_units_cancelled(batch.frontend) { driver_error("Compilation unit dispatch failed", ""); return 1; }
     var failed = frontend_units_failed(batch.frontend);
     if failed != 0 {
         driver_units_report(&batch, request, failed, frontend_units_error(batch.frontend), frontend_units_error_offset(batch.frontend));
         return 1;
     }
-    if options.timings { driver_timing_value(timing, "parse", driver_clock() - started); }
-    batch.backend = backend_units_create(batch.frontend, count, budget, options.target, true, options.optimize);
-    if batch.backend == null || !backend_units_library(batch.backend, 1, false) {
-        driver_error("Unable to allocate backend unit graph", ""); return 1;
-    }
-    while !backend_units_step(batch.backend, true) { }
     if backend_units_cancelled(batch.backend) { driver_error("Backend unit dispatch failed", ""); return 1; }
     failed = backend_units_failed(batch.backend);
     if failed != 0 {

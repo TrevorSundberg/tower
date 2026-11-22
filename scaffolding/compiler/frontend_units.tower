@@ -1,11 +1,11 @@
 import tower;
-import compiler_kernel;
 import semantic_program_types;
 import frontend_compilation;
 import language_query;
 import completion;
 import syntax_version_types;
 import .library.work_pool;
+import .library.compiler_work_types;
 import .library.vector;
 
 extern fn compiler_work_create(count: usize, workers: usize, revision: u64, profile: u64): void*;
@@ -26,6 +26,7 @@ extern fn compiler_work_failed(work: void*): usize;
 
 extern fn compiler_work_cancel(work: void*): void;
 extern fn compiler_work_graph(work: void*): void*;
+extern fn compiler_work_plan(work: void*): void*;
 
 extern fn entity_create(store: void*): void*;
 
@@ -79,7 +80,7 @@ enum FrontendUnitAction: u32 {
 }
 
 struct FrontendUnit {
-    kernel: CompilerKernel;
+    kernel: CompilerWorkKernel;
     batch: FrontendUnits*;
     ordinal: usize;
     world: void*;
@@ -111,6 +112,11 @@ struct FrontendUnits {
     finished: bool;
     cancelled: bool;
     borrowed: bool;
+    continuation: void*;
+    next: function(CompilerWorkKernel*, void*);
+    settle: function(void, void*, bool);
+    observer: function(void, void*, CompilerQuery, usize, bool);
+    observer_context: void*;
 }
 
 fn frontend_units_snapshot(out: vector(u8)*, source: u8*, length: usize): bool {
@@ -136,6 +142,12 @@ fn frontend_units_job(batch: FrontendUnits*, ordinal: usize): FrontendUnit* {
 // services as single-unit compilation; no alternate evaluator or graph exists.
 export fn compiler_unit_kernel(payload: void*): void {
     var job = bits(FrontendUnit*, payload);
+    frontend_units_observe(job.batch, CompilerQuery.Unit, job.ordinal, true);
+    defer frontend_units_observe(job.batch, CompilerQuery.Unit, job.ordinal, false);
+    frontend_unit_compile(job);
+}
+
+fn frontend_unit_compile(job: FrontendUnit*): void {
     var batch = job.batch;
     job.success = syntax_baseline_install(job.world, job.modules, batch.bedrock.data, false, &job.diagnostic);
     job.success &&= syntax_baseline_install(job.world, job.modules, batch.foundation.data, true, &job.diagnostic);
@@ -182,6 +194,7 @@ export fn frontend_units_cancel(batch: FrontendUnits*): void {
     while batch.pool.running != 0 {
         work_pool_receive(&batch.pool, true);
     }
+    if batch.settle != null { batch.settle(batch.continuation, false); }
     if batch.view is not null {
         entity_view_close(batch.view);
         batch.view = null;
@@ -251,7 +264,7 @@ revision: u64, profile: u64, bedrock: u8*, foundation: u8*, library: u8*): Front
     batch.revision = revision;
     batch.profile = profile;
     var lanes = count < budget ? count: budget;
-    if !work_pool_open(&batch.pool, lanes) {
+    if !work_pool_open_kernel(&batch.pool, lanes, compiler_work_kernel_execute) {
         frontend_units_close(batch);
         return null;
     }
@@ -283,8 +296,9 @@ revision: u64, profile: u64, bedrock: u8*, foundation: u8*, library: u8*): Front
         *job = default;
         job.batch = batch;
         job.ordinal = i;
-        job.kernel.kind = CompilerKernelKind.CompileUnit;
         job.kernel.payload = bits(void*, job);
+        job.kernel.execute = compiler_unit_kernel;
+        job.kernel.receive = frontend_unit_receive;
         job.world = compiler_world_create_workers(inner);
         job.modules = frontend_modules_create();
         if job.world is null || job.modules is null || !frontend_modules_bind_world(job.modules, job.world) {
@@ -324,7 +338,7 @@ export fn frontend_units_source(batch: FrontendUnits*, ordinal: usize, path: u8*
 // Its recoverable source diagnostics are part of the returned document, rather
 // than an executable program. Batch failure/cancellation still hides all output.
 export fn frontend_units_inspect(batch: FrontendUnits*, ordinal: usize, mode: u32): bool {
-    if batch.started || batch.finished || mode > 2 {
+    if batch.started || batch.finished || batch.borrowed || mode > 2 {
         return false;
     }
     var job = frontend_units_job(batch, ordinal);
@@ -336,15 +350,20 @@ export fn frontend_units_inspect(batch: FrontendUnits*, ordinal: usize, mode: u3
     return true;
 }
 
-fn frontend_units_receive(batch: FrontendUnits*, wait: bool): bool {
-    var kernel = bits(CompilerKernel*, work_pool_receive(&batch.pool, wait));
-    if kernel is null {
-        return false;
-    }
-    var job = bits(FrontendUnit*, kernel.payload);
+fn frontend_unit_receive(payload: void*): void {
+    var job = bits(FrontendUnit*, payload);
+    var batch = job.batch;
     if !compiler_work_accept(batch.work, job.ordinal, batch.revision, batch.profile, job.success) {
         trap("Stale compilation unit receipt", 0);
     }
+}
+
+fn frontend_units_receive(batch: FrontendUnits*, wait: bool): bool {
+    var kernel = bits(CompilerWorkKernel*, work_pool_receive(&batch.pool, wait));
+    if kernel is null {
+        return false;
+    }
+    kernel.receive(kernel.payload);
     return true;
 }
 
@@ -368,26 +387,32 @@ export fn frontend_units_step(batch: FrontendUnits*, wait: bool): bool {
         batch.started = true;
     }
     loop {
-        var ordinal = compiler_work_next(batch.work);
-        if ordinal == 0 {
-            break;
+        while batch.pool.running < batch.pool.count && compiler_work_failed(batch.work) == 0 {
+            // Ready downstream queries get the released lane immediately. Both
+            // phases use this pool, so their total dispatch cannot exceed its
+            // budget, and any completion wakes this same coordinator.
+            var kernel: CompilerWorkKernel* = null;
+            if batch.next != null { kernel = batch.next(batch.continuation); }
+            if kernel == null {
+                var ordinal = compiler_work_next(batch.work);
+                if ordinal == 0 { break; }
+                kernel = &frontend_units_job(batch, ordinal).kernel;
+            }
+            if !work_pool_submit(&batch.pool, bits(void*, kernel)) {
+                frontend_units_cancel(batch);
+                return true;
+            }
         }
-        if !work_pool_submit(&batch.pool, bits(void*, &frontend_units_job(batch, ordinal).kernel)) {
-            frontend_units_cancel(batch);
+        if batch.pool.running == 0 {
+            if !compiler_work_done(batch.work) { frontend_units_cancel(batch); return true; }
+            if batch.settle != null { batch.settle(batch.continuation, compiler_work_failed(batch.work) == 0); }
+            entity_view_close(batch.view);
+            batch.view = null;
+            batch.finished = true;
             return true;
         }
+        if !frontend_units_receive(batch, wait) { return false; }
     }
-    frontend_units_receive(batch, wait);
-    while frontend_units_receive(batch, false) {}
-    if compiler_work_done(batch.work) {
-        while batch.pool.running != 0 {
-            frontend_units_receive(batch, true);
-        }
-        entity_view_close(batch.view);
-        batch.view = null;
-        batch.finished = true;
-    }
-    return batch.finished;
 }
 
 export fn frontend_units_failed(batch: FrontendUnits*): usize {
@@ -408,11 +433,12 @@ export fn frontend_units_error_offset(batch: FrontendUnits*): usize {
     return job.program.error.length == 0 ? job.diagnostic.offset : job.program.error_offset;
 }
 
-// One coordinator may extend completed unit queries while borrowing their
-// programs. No frontend mutation/disposal is permitted until release.
+// One coordinator may extend a fresh plan or completed unit queries. An active
+// dispatch cannot acquire a new owner; the frontend must outlive the lease.
 export fn frontend_units_work_acquire(batch: FrontendUnits*): void* {
-    if !batch.finished || batch.cancelled || batch.borrowed
-        || compiler_work_graph(batch.work) == null { return null; }
+    if (batch.started && !batch.finished) || batch.cancelled || batch.borrowed { return null; }
+    var graph = batch.started ? compiler_work_graph(batch.work) : compiler_work_plan(batch.work);
+    if graph == null { return null; }
     batch.borrowed = true;
     return batch.work;
 }
@@ -420,6 +446,47 @@ export fn frontend_units_work_acquire(batch: FrontendUnits*): void* {
 export fn frontend_units_work_release(batch: FrontendUnits*): void {
     if !batch.borrowed { trap("Compilation unit lease was not acquired", 0); }
     batch.borrowed = false;
+    batch.continuation = null;
+    batch.next = null;
+    batch.settle = null;
+}
+
+// Configure a continuation before dispatch. Only its completed unit dependencies
+// may expose program payloads; recipes and callbacks remain frozen until join.
+export fn frontend_units_pending(batch: FrontendUnits*): bool { return !batch.started && !batch.finished; }
+
+// Optional worker event tracing. Freeze the callback/context before dispatch;
+// observers own their synchronization and must not mutate compiler state.
+export fn frontend_units_observer(batch: FrontendUnits*, context: void*,
+    event: function(void, void*, CompilerQuery, usize, bool)): bool {
+    if batch.started || batch.finished { return false; }
+    batch.observer = event;
+    batch.observer_context = context;
+    return true;
+}
+
+export fn frontend_units_observe(batch: FrontendUnits*, phase: CompilerQuery, ordinal: usize, entering: bool): void {
+    if batch.observer != null { batch.observer(batch.observer_context, phase, ordinal, entering); }
+}
+
+export fn frontend_units_peak(batch: FrontendUnits*): usize { return batch.pool.peak; }
+
+export fn frontend_units_work_extend(batch: FrontendUnits*, context: void*,
+    next: function(CompilerWorkKernel*, void*), settle: function(void, void*, bool)): bool {
+    if !batch.borrowed || batch.started || batch.finished || batch.next != null
+        || context == null || next == null || settle == null { return false; }
+    batch.continuation = context;
+    batch.next = next;
+    batch.settle = settle;
+    return true;
+}
+
+// Address-only recipe borrow; contents are not readable until the unit query
+// has succeeded and its worker receipt has been joined by this coordinator.
+export fn frontend_units_program_recipe(batch: FrontendUnits*, ordinal: usize): SemanticProgram* {
+    if !batch.borrowed || batch.started || batch.finished { return null; }
+    var job = frontend_units_job(batch, ordinal);
+    return job == null || job.action != FrontendUnitAction.Compile ? null : &job.program;
 }
 
 export fn frontend_units_cancelled(batch: FrontendUnits*): bool {

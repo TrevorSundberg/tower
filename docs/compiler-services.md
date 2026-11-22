@@ -168,11 +168,17 @@ No failed or cancelled batch exposes programs. Keep the batch alive while using
 its programs, entities or text. `frontend_units_cancel` drains admitted work;
 `frontend_units_close` cancels if needed, joins, and releases all owned worlds.
 
-Native `backend/units.tower` extends a successful frontend batch with backend
+Native `backend/units.tower` extends a configured frontend batch with backend
 components and queries on those same unit entities. Call
 `backend_units_create(frontend, count, budget, triple, library, optimize)` and step
-with `backend_units_step(batch, wait)`. Each job owns its LLVM context/module/target
-machine and borrows pinned Foundation input. Slots refill as jobs complete;
+with `backend_units_step(batch, wait)`. Attach before the first frontend step to
+stream both phases through the frontend's shared pool. Each LLVM query depends
+only on its own frontend query, so it can run while other units still compile.
+The frontend budget bounds both phases together; the backend budget additionally
+caps simultaneous LLVM jobs. A backend may also attach after frontend completion
+to compile another target using its own pool. Attaching midway through frontend
+dispatch is rejected. Each job owns its LLVM context/module/target machine and
+borrows pinned Foundation input after its producer joins. Slots refill as jobs complete;
 `backend_units_result(batch, ordinal)` exposes borrowed backend results only after
 whole-batch success. Check `backend_units_failed`, `backend_units_error` and
 `backend_units_cancelled`; cancellation drains admitted work before releasing views.
@@ -183,6 +189,12 @@ Close the backend batch before its frontend owner. A second backend batch cannot
 acquire that frontend while the first still holds its lease. Failed target queries
 settle without discarding completed frontend queries; explicit cancellation makes
 the graph terminal. See [backend API](../scaffolding/backend/README.md).
+
+Optional `frontend_units_observer(batch, context, event)` traces worker entry and
+exit with `(context, CompilerQuery, ordinal, entering)`. Configure it before
+dispatch and keep its context alive through all joins. The callback may execute
+concurrently; it owns its synchronization and must not mutate compiler state.
+`frontend_units_peak` reports shared pool occupancy, not a speedup measurement.
 
 Target registration uses native platform once primitives. Browser backends use
 isolated reactors. Linking retains exclusive ownership. The outer executor does
@@ -203,8 +215,7 @@ capacity. All units must compile successfully before linking. Failures select
 the earliest unit in input order, and depfiles include each unit's imports.
 Additional units currently require executable output; interpreter/library modes
 and single-unit IR outputs are rejected. Multi-unit timings report aggregate
-compile and frontend wall time, not fictitious per-phase times for overlapping
-LLVM work.
+compile wall time, since frontend and LLVM work overlap.
 
 Compiler-owned parser/diagnostic buffers use `compiler_buffer_allocate/free` and
 the ordinary compiler allocator. Their private header records allocator and
