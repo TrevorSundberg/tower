@@ -47678,3 +47678,12 @@ receipts, not D2 executions; no failure or case is removed. D1 owns the current
 heavy slot for its smallest-unit checks. D2 has no active process and has not
 started a stale full build. Fresh local smallest-unit/canonical build and final
 instrumentation/release validation remain required.
+
+Root authorized the previously reviewed B2 allocation-root wrapper that the
+coherent checkpoint omitted. Adopted exact sourceSHA28e3e4a from its delivered
+snapshot and D1's exact two-line frontend_main registration; retained the same
+frontend_units_memory implementation. D1's earlier Unknown function failure
+remains recorded in its lane. D2 acquired the normally released heavy.lock for
+smallest changed tooling/frontend units before any larger native build. The
+sources will remain frozen through that command group; all new runtime results
+still pending at this entry.
