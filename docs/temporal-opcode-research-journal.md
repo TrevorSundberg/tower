@@ -39701,3 +39701,62 @@ lane's receipt. Only this milestone's source/API receipt and publication metadat
 changed; production LLD dispatch remains. Released the coordinator publication
 lock. Git push needed the existing command-scoped curl DNS resolution override;
 no persistent Git configuration changed.
+### 2026-11-21: remove duplicate distribution staging and its shell runner
+
+Audit at bf6865c: test-compiler-distribution.sh has one executable caller in
+internal.sh. build-native.sh already copies the complete executable/share tree
+from its native cache into build/native. The test script copies that package a
+second time into a temporary directory, then runs existing Tower verification.
+That second copy, temporary executable tree and recursive cleanup are unnecessary.
+Keep the complete native build output as the relocated test input and eliminate
+the staging operation rather than porting its cp/trap logic into Tower.
+
+Add --development-package COMPILER FIXTURE_DIRECTORY OUTPUT_DIRECTORY to the
+existing verify_compiler. Extract its existing single-mode body into
+verification_execute without changing assertions, environment, limits or reports.
+The small package mode validates input kinds, creates a fresh relocation.XXXXXX
+report directory and invokes development then expect_missing_clang in process.
+It preserves the distinction between a passing development check and the absent
+bundled Clang requirement: restricted portable-release verification is still not
+passed. Keep the original direct CLI/default strict mode. Reuse existing Tower
+filesystem/process APIs; no new tool, installer, copying helper or CMake target.
+
+Freeze bf6865c plus verify_compiler in /cache/distribution_tooling_checkout.
+The smallest changed module compiles on its first attempt through the published
+21f52712 pin. Build through existing build_tools and the current guest host object,
+then independently through the documented default build-bootstrap.sh --tools
+verify_compiler with TOWER_BOOTSTRAP_COMPILER unset and a fresh
+/cache/distribution_default_tools cache. All five steps pass with Python absent.
+Both verifier builds are SHA256
+8ef7020ecef62822e8dfd1455775429f7f211bf9c94b83ce1009e85715c1ebbb.
+
+For actual relocation, move the previously built complete build/native directory
+from the owned bootstrap_comparison_rebased_checkout to
+/cache/distribution relocated package with spaces. Temporarily rename the original
+native cache's share directory while verifying, then restore it in a finally
+block. The package/compiler and original/public pin hashes all equal 21f52712.
+Run --development-package with that executable, the frozen fixture directory and
+/cache/distribution reports with spaces. Both environment modes pass in
+relocation.t14I9L/{development,restricted}; original-cache resources are restored.
+This exercises a real package move, spaces, independent process working directories
+and both compiler/environment contracts without the new tool copying any package.
+
+Direct/default strict mode still fails at the precise Cannot find tool: clang
+diagnostic, while expect_missing_clang records the required narrower result.
+An existing single-mode output is rejected. Missing package arguments return 2;
+a missing compiler returns 1 without creating its report root. /usr/bin/true
+cannot masquerade as a compiler: help fails, restricted checks are not started,
+and existing successful report hashes remain unchanged under the reused root.
+All child commands retain the original clean environment, timeout, stdout/stderr
+logs, exact output assertions and repeated-object checks. A trailing operational
+hash command initially passed a literal variable spelling; rerunning with the
+actual package path confirms the hash and does not require repeating passed tests.
+
+Delete the 16-line distribution shell runner; internal.sh gains one net invocation
+line. Shell falls from 13 files/291 lines to 12/276, another 15 lines gone. Against
+the post-Python baseline this is seven scripts and 207/483 lines removed (42.9%).
+Python and owned C/C++ remain zero. Update the Docker/default-tool commands and
+explain that build/native is already relocated; shell syntax, active-reference
+searches and scoped diff checks pass. Compiler, runtime, grammar, library and
+bootstrap sources are unchanged; retain the validated 21f52712 successor and
+existing runtime assets. No todo.txt changes or shared-cache mutations.

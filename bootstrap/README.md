@@ -100,6 +100,9 @@ resulting directory; build output goes to stderr. A small existing CMake bridge
 builds the Tower builder/runtime; Tower owns the tool compilation/link arguments.
 The [distribution checks](../docs/bootstrap-distribution.md#validation-and-measurement)
 use `verify_compiler` directly; the verifier and its assertions are Tower.
+Its `--development-package COMPILER FIXTURE_DIRECTORY OUTPUT_DIRECTORY` mode runs
+both development and expected-missing-Clang checks against the package already
+copied by the native build, creating fresh reports without staging another copy.
 Wider test and upstream build tooling still needs migration.
 
 `scaffolding/library/gzip.tower` adds a deterministic single-member gzip envelope

@@ -197,26 +197,15 @@ fn verification_checks(v: Verification*, mode: VerificationMode): bool {
     return verification_record(v, "result", mode == VerificationMode.Development ? "development checks passed" : "restricted host checks passed; dependency closure still requires OS isolation");
 }
 
-export fn main(argc: i32, argv: u8**): i32 {
-    var required_count: i32 = 4; var optional_count: i32 = 5;
-    var failure = convert(i32, VerificationExit.Failure); var usage = convert(i32, VerificationExit.Usage);
-    if argc != required_count && argc != optional_count {
-        puts("Usage: verify_compiler COMPILER FIXTURE_DIRECTORY NEW_OUTPUT_DIRECTORY [restricted|development|expect_missing_clang]");
-        return usage;
-    }
-    var mode = VerificationMode.Restricted;
-    if argc == optional_count {
-        if strcmp(argv[4], "development") == 0 { mode = VerificationMode.Development; }
-        else { if strcmp(argv[4], "expect_missing_clang") == 0 { mode = VerificationMode.ExpectMissingClang; }
-        else { if strcmp(argv[4], "restricted") != 0 { return usage; } } }
-    }
-    var compiler = realpath(argv[1], null); var fixtures = realpath(argv[2], null);
+fn verification_execute(compiler_input: u8*, fixture_input: u8*, output: u8*, mode: VerificationMode): i32 {
+    var failure = convert(i32, VerificationExit.Failure);
+    var compiler = realpath(compiler_input, null); var fixtures = realpath(fixture_input, null);
     defer free(compiler); defer free(fixtures);
     var private_directory: u32 = 448;
-    if compiler == null || fixtures == null || !tool_output_parents(argv[3]) || mkdir(argv[3], private_directory) != 0 {
+    if compiler == null || fixtures == null || !tool_output_parents(output) || mkdir(output, private_directory) != 0 {
         puts("Inputs must exist and the output directory must be new."); return failure;
     }
-    var directory = realpath(argv[3], null);
+    var directory = realpath(output, null);
     if directory == null { return failure; }
     defer free(directory);
     var path: ByteBuffer = default; var compiler_directory: ByteBuffer = default; var digest: ByteBuffer = default;
@@ -253,4 +242,45 @@ export fn main(argc: i32, argv: u8**): i32 {
         puts("Expected missing Clang confirmed; restricted release verification has NOT passed.");
     } else { puts(ok ? "Compiler host checks passed; see checks.txt and command logs." : "Compiler verification failed; see checks.txt and command logs."); }
     return ok ? convert(i32, VerificationExit.Success) : failure;
+}
+
+// build-native already copies the complete compiler/resources from its cache
+// into build/native. Consume that relocated package directly: no second copy,
+// installation, temporary executable tree or recursive cleanup is needed.
+fn verification_development_package(compiler: u8*, fixtures: u8*, output: u8*): i32 {
+    var failure = convert(i32, VerificationExit.Failure);
+    if tool_file_kind(compiler, true) != ToolFileKind.Regular || !tool_directory(fixtures) {
+        puts("Compiler and fixture directory must exist"); return failure;
+    }
+    var reports: ByteBuffer = default; var development: ByteBuffer = default; var restricted: ByteBuffer = default;
+    defer bytes_dispose(&reports); defer bytes_dispose(&development); defer bytes_dispose(&restricted);
+    if !tool_join(&reports, output, "relocation.XXXXXX") || !tool_output_parents(reports.data)
+        || mkdtemp(reports.data) == null || !tool_join(&development, reports.data, "development")
+        || !tool_join(&restricted, reports.data, "restricted") { return failure; }
+    var status = verification_execute(compiler, fixtures, development.data, VerificationMode.Development);
+    if status != convert(i32, VerificationExit.Success) { return status; }
+    return verification_execute(compiler, fixtures, restricted.data, VerificationMode.ExpectMissingClang);
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    var required_count: i32 = 4; var optional_count: i32 = 5;
+    var usage = convert(i32, VerificationExit.Usage);
+    if argc > 1 && strcmp(argv[1], "--development-package") == 0 {
+        if argc != optional_count {
+            puts("Usage: verify_compiler --development-package COMPILER FIXTURE_DIRECTORY OUTPUT_DIRECTORY");
+            return usage;
+        }
+        return verification_development_package(argv[2], argv[3], argv[4]);
+    }
+    if argc != required_count && argc != optional_count {
+        puts("Usage: verify_compiler COMPILER FIXTURE_DIRECTORY NEW_OUTPUT_DIRECTORY [restricted|development|expect_missing_clang]");
+        return usage;
+    }
+    var mode = VerificationMode.Restricted;
+    if argc == optional_count {
+        if strcmp(argv[4], "development") == 0 { mode = VerificationMode.Development; }
+        else { if strcmp(argv[4], "expect_missing_clang") == 0 { mode = VerificationMode.ExpectMissingClang; }
+        else { if strcmp(argv[4], "restricted") != 0 { return usage; } } }
+    }
+    return verification_execute(argv[1], argv[2], argv[3], mode);
 }

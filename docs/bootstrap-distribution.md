@@ -85,19 +85,25 @@ Run from the repository root:
 
 ```sh
 ./build.sh bash playground/scripts/build-native.sh
-./build.sh bash playground/scripts/test-compiler-distribution.sh
+./build.sh bash playground/scripts/build-bootstrap.sh --tools verify_compiler
+./build.sh /tmp/tower-home/.cache/tower/tools/bin/verify_compiler --development-package "$PWD/build/native/towerc" "$PWD/scaffolding/tests" "$PWD/build/distribution"
 ./build.sh bash playground/scripts/test-native-core.sh
 ./build.sh bash playground/scripts/test-host-runtime.sh
 ```
 
-The distribution check moves the compiler and resources into a directory with
-spaces. The Tower `verify_compiler` tool uses the existing Tower fixtures for
+The native build already copies the complete compiler/resources from its cache
+into `build/native`. Tower's `verify_compiler --development-package` consumes
+that relocated package directly, without a second temporary copy or recursive
+cleanup. It uses the existing Tower fixtures for
 diagnostics, interpretation, object compilation, separate library linking and
 executable behavior. It records compiler/object hashes, command arguments,
 millisecond timings, exit codes and separate stdout/stderr logs, and compares
 three fresh object emissions. Each run writes `checks.txt` and logs below a new
 `build/distribution/relocation.XXXXXX/{development,restricted}/` directory.
-There is no JSON report/parser step. Existing output directories are rejected.
+There is no JSON report/parser step. The package mode creates a fresh report
+directory on each invocation; single-mode verification rejects an existing output.
+The journal records a real package move into a path with spaces, with the original
+cache's resource directory temporarily unavailable during both environment checks.
 
 The development run permits installed tools. The restricted run searches only
 the package root and its `tools` directory; the development package must fail at

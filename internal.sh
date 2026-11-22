@@ -10,7 +10,8 @@ llvm_lib="$("${LLVM_CONFIG:-llvm-config-19}" --libdir)"
 bash playground/scripts/setup-wasi.sh
 bash playground/scripts/build-native.sh -DTOWER_DRIVER_TESTS=ON
 cmake --build "$native" --target tower-driver-tests --parallel "${TOWER_BUILD_JOBS:-2}"
-bash playground/scripts/test-compiler-distribution.sh
+tools="$(bash playground/scripts/build-bootstrap.sh --tools verify_compiler)"
+"$tools/verify_compiler" --development-package "$repo/build/native/towerc" "$repo/scaffolding/tests" "$repo/build/distribution"
 bash playground/scripts/test-native-core.sh
 bootstrap="$(bash playground/scripts/build-bootstrap.sh)"
 tools="$(bash playground/scripts/build-bootstrap.sh --tools verify_bootstrap_symbols)"
