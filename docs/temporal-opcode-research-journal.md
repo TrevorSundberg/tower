@@ -39774,3 +39774,17 @@ cache resources are restored. No second package staging operation is needed.
 Only tooling/docs changed in this lane; shell syntax/diff/reference checks pass.
 Preserve the coordinator's newly verified threaded-linker receipt and runtime
 9e7eb79/all 88 assets during source/tooling publication.
+
+Publication verified: implementation 1f2a721 and validation 0538f39 are pushed.
+Pages 218bad95c7dd8563369823103789b8cc6bf70962/action 44973150392 succeeds;
+hosted manifest SHA256 is exactly
+192b979248adc4f7159f10f9c736a84b76b9601571907e327bf718e05293282e.
+Runtime 9e7eb79813f798dd733033c43a6d1f7fd0f0b685/all 88 assets, attribute
+metadata and the coordinator's new threaded-linker receipt are preserved.
+Next target-pack audit: the native package already contains the bound target
+runtime IR. Preserve TowerGuestRuntime.cmake's freestanding/no-builtin/no-stack-
+protector/disabled-loop-idiom flags when consuming it; do not duplicate source
+composition or invent another runtime. The seven kernel32.def import descriptions
+remain required; consider the existing COFF short-import and shared ar writer
+before adding any new library. Production pack construction remains unchanged
+in this milestone. The two remaining test scripts are CMake/SDK build boundaries.
