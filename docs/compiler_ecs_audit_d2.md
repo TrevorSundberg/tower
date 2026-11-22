@@ -677,3 +677,26 @@ old copied resources to equal a newly consolidated main prelude. New clean publi
 build, source-bound i32 override checks, resource hashes and successor pin remain
 separate gates. This review neither applies a partial type/ABI closure nor validates
 pending constructor/nominal/function-signature fixes.
+
+### Incoming CLI byte-budget fixture
+
+`scaffolding/tests/driver_unit_budget.tower` was read in full from the coordinator's
+additional source snapshots. SHA-256 is
+`634777b72bdd62b06b61aef0ebf955da1e3417600d01868c45666a7a7c3fd630`;
+the delivery receipt identifies L2 clone HEAD
+`0817375496d2dd6841107c1b91133058eaf12f8d` with possible uncommitted handoffs,
+not a committed B2 implementation identity. B2 owns the driver contract and D1
+owns generic registration. This is the seventeenth incoming review, separate
+from98local tracked-path reviews and runtime acceptance.
+
+The fixture borrows stack argument arrays and literal text through synchronous
+`driver_parse`, then disposes each options object before reuse. It checks the
+default retained-byte policy, explicit65536-byte policy with one extra unit,
+missing value, six malformed/overflow values, and unchanged valid/invalid jobs
+parsing. No compiler world, work queue, lease or payload mutation is constructed
+by this CLI-only test. It verifies option identity and diagnostics, not actual
+snapshot memory admission, allocation rollback or threaded execution; those are
+covered separately by the owner's frontend-unit fixtures. The local driver lacks
+the new option fields, so the draft is not applied or compiled against a partial
+API closure. Existing D2 compiler-job plumbing remains a distinct policy from
+this retained-source byte limit.

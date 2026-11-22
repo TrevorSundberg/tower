@@ -47081,3 +47081,15 @@ Preserve D2/A1 build hunks and complete old public resources. Future copied-reso
 provenance must compare against original build-source, not new main definitions.
 Clean public-bootstrap, source-bound override and full successor pin remain open.
 These audit/documentation changes have no runtime performance effect.
+
+D2 additionally reviewed the delivered driver_unit_budget fixture in full,
+SHA634777b72bdd62b06b61aef0ebf955da1e3417600d01868c45666a7a7c3fd630.
+Its stack/literal argument borrows end before each options disposal; it checks
+retained-byte CLI defaults, explicit policy, malformed values and unchanged jobs
+parsing. This is option-level coverage, not actual snapshot/whole-heap budgeting
+or worker concurrency. The delivered L2 working-tree identity is provenance,
+while B2 owns production driver semantics and D1 registration. No partial API
+was applied or executed; audit count is98local paths plus17incoming reviews.
+Documentation-only review has no runtime performance/memory change. An initial
+rg lookup used a nonexistent playground/tests/performance* glob and exited2;
+the corrected existing-directory search succeeded without changing files.
