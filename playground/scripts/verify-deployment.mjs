@@ -14,6 +14,9 @@ const output = new URL('../../build/deployment-verification/', import.meta.url);
 await mkdir(output, {recursive:true});
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 const bytecodeContainerVersion = 1, bytecodeSemanticsVersion = 7, bytecodeExecutionCacheVersion = 5;
+// Completion runs asynchronous compiler work, like execution below.
+// Its language-service deadline already exceeds Playwright's default five seconds.
+const compilerResponseDeadline = {timeout:60000};
 const report = {url:base.href, assets:[], browsers:[]};
 const manifest = JSON.parse(await readFile(new URL('../dist/deployment-manifest.json', import.meta.url), 'utf8'));
 // .nojekyll is a hosting marker; GitHub Pages does not serve dotfiles.
@@ -286,19 +289,19 @@ try {
     const editor = page.locator('#editor .cm-content');
     await editor.focus(); await page.keyboard.press('ControlOrMeta+a');
     await page.keyboard.insertText('import tower; pri'); await page.keyboard.press('Control+Space');
-    await expect(page.locator('.cm-tooltip-autocomplete [role=option]').filter({hasText:'print'})).toBeVisible();
+    await expect(page.locator('.cm-tooltip-autocomplete [role=option]').filter({hasText:'print'})).toBeVisible(compilerResponseDeadline);
     await page.keyboard.press('Tab'); await expect(editor.locator('.cm-line')).toHaveText('import tower; print');
     await page.keyboard.press('ControlOrMeta+a');
     await page.keyboard.insertText('import tower; struct Point { x: i32; y: i32; } var point: Point; point.');
     await page.keyboard.press('Control+Space');
-    await expect(page.locator('.cm-tooltip-autocomplete [role=option]')).toHaveCount(2);
+    await expect(page.locator('.cm-tooltip-autocomplete [role=option]')).toHaveCount(2,compilerResponseDeadline);
     await page.screenshot({path:new URL(name+'-completion.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
     await page.keyboard.press('Escape');
     await page.keyboard.press('ControlOrMeta+a');
     await page.keyboard.insertText('import tower; var value: i32 = 1; print(va');
     await page.keyboard.press('Control+Space');
     const contextualOptions = page.locator('.cm-tooltip-autocomplete [role=option]');
-    await expect(contextualOptions).toHaveCount(1);
+    await expect(contextualOptions).toHaveCount(1,compilerResponseDeadline);
     await expect(contextualOptions).toContainText('value');
     await expect(contextualOptions).not.toContainText('active grammar');
     await page.screenshot({path:new URL(name+'-context-completion.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
@@ -306,7 +309,7 @@ try {
     await page.keyboard.press('ControlOrMeta+a');
     await page.keyboard.insertText('import tower; var value: i32 = 1; var valid: bool = true; fn check(flag: bool): void {} check(va');
     await page.keyboard.press('Control+Space');
-    await expect(contextualOptions).toHaveCount(1);
+    await expect(contextualOptions).toHaveCount(1,compilerResponseDeadline);
     await expect(contextualOptions).toContainText('valid');
     await page.keyboard.press('Escape');await page.keyboard.press('ControlOrMeta+a');
     // Selecting all reveals the preceding fixture's pending error. Start from
@@ -325,7 +328,7 @@ try {
     await page.keyboard.insertText('import tower; struct Point { instant:i32; } var point:Point; point');
     await page.keyboard.press('Escape');await page.waitForTimeout(200);
     await page.keyboard.press('.');
-    await expect(page.locator('.cm-completionLabel')).toHaveText(['instant']);
+    await expect(page.locator('.cm-completionLabel')).toHaveText(['instant'],compilerResponseDeadline);
     await page.locator('#project-kind').selectOption('tower:compiler');
     await expect(page.locator('#compiler-controls')).toBeVisible();
     await expect(page.locator('#status')).toContainText('Complete',{timeout:65000});

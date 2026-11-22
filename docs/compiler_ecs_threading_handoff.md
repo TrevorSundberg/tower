@@ -345,7 +345,7 @@ Native compiler SHA-256:
 `142459861bd0f5eecec96891cbf5d6d035f131e387408eabab31276883afb92a`.
 Compiler-project SHA-256:
 `406a401a9af04b7d0f1be8e1a7603c2317d6c4528bad0c7b606f284aa6d6c112`.
-The published predecessor remains
+The browser/runtime build used predecessor
 `18664657c3ff9142a6d59bef8ffa794fd10d12313d55f91dd47f5575141a29f9`.
 
 Identical edited generation outputs:
@@ -372,3 +372,46 @@ after this rebase: both pass, and the native compiler hash remains identical.
 Reuse the unaffected browser/generation results and record the source equivalence
 explicitly in the deployment manifest. Preserve upstream Pages `3937cad`'s
 additional IDE-migration receipt and its unchanged target assets.
+
+## Publication and later upstream integration
+
+The final documentation-only rebase produced implementation commit
+`cf47b568f34c39249aee8e4377d47a1c3fbeddd0` and report commit
+`d51164fd60f8dd06806a5c21f57602f2bf717a0b`. Both were pushed atomically with Pages
+`f1a5dd372f80d86580ad6cafa24b96ba6cbe83ea`; workflow
+[45048091240](https://github.com/TrevorSundberg/tower/actions/runs/45048091240)
+succeeded. The first attempted atomic push was rejected by a concurrent main
+update; it published neither ref. It was rebased and retried normally.
+
+The hosted asset check passed, but the first UI run timed out waiting five
+seconds for contextual completion. An unchanged retry passed the complete desktop
+checks and hit the same deadline on mobile. The language service already permits
+ten-second queries, so `verify-deployment.mjs` now gives its completion-popup
+assertions the same named 60-second deadline used for asynchronous compiler
+responses elsewhere in that verifier. Expected counts, labels, and typed filtering
+are unchanged. This is a browser validation-boundary adjustment, not a compiler
+implementation or removal of a check. Keep both initial failure logs.
+
+Concurrent publications then changed the increment example and its documentation
+receipt. Compare the manifests: only `increment.tower` changed among the 104
+assets, while the compiler/project/runtime identities stayed at `cf47b56`.
+Preserve that published example and the newer manifest instead of overwriting
+them or accepting a mismatched manifest. The exact current manifest used for the
+final hosted run has SHA-256
+`2264cdbfd0dc671a4404f3971be5e4552a80f3fc24267a72dff181bdadeb46f8`.
+
+Upstream also merged the separate hosted-linker/bootstrap milestone through
+`8c51600fa6160e81aa2e7efd60bbebcd7b1be39d`. The repository's **current** public
+Linux x64 bootstrap now hashes to
+`c59e8bab69340cfcea7f03e3fa081b339dcf12230e84fd0c51870eb766551a75`.
+A fresh documented native build with the private override unset and its successor
+proof-unit compilation both pass after this integration. That native executable
+hashes to `f51533b17340518e00b2f5ae1f000445280df77c227770aafb7d20f19d4c3098`.
+Evidence: `staging-checkpoint-linker-rebase-native.log` and
+`staging-checkpoint-linker-rebase-successor.log`. This is native rebase validation;
+it does not relabel the already published browser artifacts as a new linker build.
+
+Before resuming the helper-body experiment, test the current public pin and its
+unit budget again. The earlier budget failure was measured with the older
+predecessor; it remains evidence of the attempted integration's failure, not a
+claim that every later bootstrap must hit exactly the same limit/location.

@@ -45231,6 +45231,43 @@ both pass and native SHA256 remains14245986...afb92a. Reuse the unaffected
 browser/generation checks, retain their original build identity in the report,
 and explicitly record the equivalent published source. Preserve3937cad's new
 IDE-migration deployment receipt. Evidence: staging-checkpoint-final-rebase-*.
+
+Checkpoint source/report cf47b56 and d51164f are pushed with Pages
+f1a5dd372f80d86580ad6cafa24b96ba6cbe83ea; workflow45048091240 succeeds.
+The first atomic push was rejected by a concurrent main update and changed
+neither ref; the normal rebase/retry succeeds. The tree was clean at that push.
+The detailed continuation report is docs/compiler_ecs_threading_handoff.md.
+
+Hosted verification matches all104 assets. Initial UI runs hit Playwright's
+five-second completion-popup deadline: the unchanged retry passes all desktop
+checks, then hits the same deadline on mobile. A later run hits the initial print
+popup deadline instead. Batch the verifier's completion waits under the same
+named60-second compiler-response deadline used elsewhere; the language service
+already allows10-second queries. Keep every option-count, label and typed-filter
+assertion. This is a browser UI validation-boundary change, not compiler logic.
+Preserve failed staging-checkpoint-hosted*.log evidence; do not report those runs
+as passing. The final unchanged-runtime run is hosted-completion.log.
+
+Concurrent example publications change only increment.tower plus manifest
+receipts; compare all asset hashes and retain that correction. Runtime/project
+identity stays cf47b56. The final hosted run starts against exact manifest
+2264cdbfd0dc671a4404f3971be5e4552a80f3fc24267a72dff181bdadeb46f8.
+Do not rerun compiler matrices merely because documentation receipts change.
+
+Upstream's independent linker milestone through8c51600 is integrated. Its new
+public bootstrap hashes toc59e8bab69340cfcea7f03e3fa081b339dcf12230e84fd0c51870eb766551a75.
+The documented native build with private override unset and successor proof-unit
+compilation both pass; resulting native SHA256 is
+f51533b17340518e00b2f5ae1f000445280df77c227770aafb7d20f19d4c3098.
+These native rebase checks do not relabel the already verified browser artifacts
+as a linker-milestone build. Record both identities in the handoff and test the
+current public pin before assuming the older unit-budget failure reproduces.
+
+The user asks to close the checkpoint promptly. Further feature work is deferred
+to the report's ordered next milestones. Commit the final report and scoped
+verifier adjustment, preserve the published runtime/receipts, and leave main clean.
+Full hosted UI success must be reported only if the final run actually completes;
+the earlier timeout failures remain recorded regardless of that outcome.
 ### Hosted ELF linker continuation plan (2026-11-22)
 
 The completed byte-linker publication leaves hosted Linux CLI/LLVM-library link
