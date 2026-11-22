@@ -43514,3 +43514,66 @@ structural publication are legitimate serial work, not unfinished parallelizatio
 Prioritize early dependency integration, remaining structural continuations,
 explicit production-world coverage/shared import ownership, then measured scaling.
 No new benchmark suite, sanitizer or broad audit helper was added; todo.txt is unchanged.
+
+## 2026-11-22: Faster completion, phase-pump primitive and focused query checks
+
+The user asks what primitives and iteration changes would accelerate completion.
+Reviewed the relevant recent JSONL slice of rollout-2026-11-20T13-25-57-
+01a1fada-0eac-70b2-8757-176ea67402d8.jsonl under the local Codex sessions directory.
+The last5,000 records sampled04:19:14–13:23:33UTC on November22. Filtering tool-call
+payload text finds600 calls,193 containing log-tail commands,164 containing
+write_stdin polls,58 matching build invocations,9 full browser test invocations
+and7 browser generation invocations. These categories overlap; payload matching
+does not prove unique executed commands or assign elapsed time. The main concrete
+process problems are repeated polling, repeated full publication validation, and
+fine-grained handler conversions while phase integration remains unfinished.
+
+Do not add another thread pool, atomic-refcount rewrite or standalone safety
+framework. Existing primitives already provide workers, bounded refill, leases,
+stage publication, cancellation and dependency cycles. The useful missing
+abstraction is a resumable phase pump. Added SemanticPumpResult with Progress,
+Waiting, Complete and Failed. Ordinary evaluation now runs through a one-window
+pump; final diagnostics are separate. A producer in another compiler phase causes
+Waiting without a false cycle or worker borrow. The finalizer diagnoses an actual
+cycle only when work_cycle finds one; an unfinished noncyclic query receives its
+own diagnostic rather than sem_require aborting. No graph is duplicated and no
+new evaluator is introduced. Full early type/value execution still needs caller
+integration and body/proof/lowering readiness; the pump alone does not claim it.
+
+The existing evaluation query fixture now suspends on a Body receipt, verifies
+that preparation/interpretation has not started, publishes that receipt, and
+resumes to42 on the same graph. It also verifies completion without replay and
+that unrelated stages stay dormant. The existing native tower-lr-work-tests now
+has query-smoke, reusing these Tower assertions for32/64-bit profiles and one/four
+workers. This provides a direct edit/build/run route for scheduler changes without
+grammar/body/full-browser matrices. No new test binary or external helper exists.
+
+Publication candidate0515916's native/public-bootstrap build and self-compilation
+pass, but browser tests stopped2/3: the newly added startup test demanded its
+consumer before registering/sealing preparation. Production sem_evaluations
+already registers before demand. Corrected the fixture's setup to follow that
+contract, and added the focused native entry so this class of mistake fails
+locally. Retain admission-browser-checks.log as failed evidence; do not publish
+that candidate as a passing release. The prior3e12adb hosted release stays live.
+Current small-unit/ordinary comptime checks are in phase-pump-native.log. The
+initial native query-smoke integration imported the compiler implementation twice
+and failed linking (query-smoke-native.log). Reused the existing semantics_checks
+compilation unit when native worker tests are enabled; the runner calls its Tower
+export rather than importing a second implementation. query-smoke-native-fixed.log
+passes all four width/worker combinations. No safety
+invariant, cycle test, bootstrap compatibility check or required release check
+was removed. AGENTS now advises phase pumps and focused query checks, plus fewer
+log polls and one frozen publication run for a coherent milestone.
+
+Applied the same bounded pump contract to declaration/expression/array/type-
+construction queries. Existing production entry points drain it and retain their
+source-order diagnostics; the pump itself yields without prematurely diagnosing
+an external dependency as a cycle. A stalled noncyclic declaration now reports
+its unfinished producer instead of aborting. The cross-phase fixture now follows
+Body -> Declaration -> EvaluationPrepare -> Evaluation, with independent pumps,
+joined workers, one publication per continuation and no replay after completion.
+The checked declaration in this scheduler fixture is synthetic; existing
+type-smoke checks exercise actual syntax/type checking. No whole-body proof edge
+was removed and the production pipeline is not yet generally interleaved.
+The native runner also registers query-smoke with CTest. Full native/browser
+publication remains one frozen milestone after these affected checks pass.

@@ -1721,9 +1721,6 @@ fn sem_declaration_constructed(c: SemanticContext*, result: SemanticDeclaration*
 }
 
 fn sem_declarations_execute(c: SemanticContext*, statements: vector(void*)*): void {
-    var batch: vector(SemanticDeclaration*) = default;
-    sem_require(vector_reserve(&batch, SemanticPreparationWindow));
-    defer vector_dispose(&batch);
     if !sem_ok(c) { return; }
     var index: usize = 0;
     while index < statements.length {
@@ -1732,8 +1729,24 @@ fn sem_declarations_execute(c: SemanticContext*, statements: vector(void*)*): vo
         if query != 0 { sem_require(work_demand(&c.queries, query)); }
         index++;
     }
-    loop {
+    while sem_declarations_pump(c) == SemanticPumpResult.Progress {}
+    if c.declaration_isolated { return; }
+    foreach(var node in statements) {
         if !sem_ok(c) { break; }
+        if sem_declaration_query(c, node) != 0 { sem_declaration_report(c, node); }
+    }
+}
+
+// Consume one ready declaration/type frontier. Continuations remain on their
+// entities; other phases may publish prerequisites before the next pump.
+fn sem_declarations_pump(c: SemanticContext*): SemanticPumpResult {
+    if !sem_ok(c) || !work_ok(&c.queries) { return SemanticPumpResult.Failed; }
+    if c.workers.count == 0 { sem_require(sem_workers_open(c)); }
+    var batch: vector(SemanticDeclaration*) = default;
+    sem_require(vector_reserve(&batch, SemanticPreparationWindow));
+    defer vector_dispose(&batch);
+    var index: usize = 0;
+    {
         var count: usize = 0;
         var ticket: WorkTicket;
         while count < SemanticPreparationWindow && (work_take_query(&c.queries, &ticket, DeclarationQuery)
@@ -1764,8 +1777,10 @@ fn sem_declarations_execute(c: SemanticContext*, statements: vector(void*)*): vo
         sem_declaration_dispatch(c, batch.data, count);
         entity_view_close(view);
         if count == 0 {
-            if sem_generic_copies_execute(c) { continue; }
-            break;
+            if sem_generic_copies_execute(c) { return sem_ok(c) ? SemanticPumpResult.Progress : SemanticPumpResult.Failed; }
+            var pending = sem_query_pending(c, DeclarationQuery) || sem_query_pending(c, ExpressionQuery)
+                || sem_query_pending(c, ArrayTypeQuery) || sem_query_pending(c, TypeConstructionQuery);
+            return pending ? SemanticPumpResult.Waiting : SemanticPumpResult.Complete;
         }
         var layouts: vector(usize);
         vector_init(&layouts);
@@ -1890,12 +1905,12 @@ fn sem_declarations_execute(c: SemanticContext*, statements: vector(void*)*): vo
                 result.waiting = sem_layout_discover(c, result.layout);
                 sem_require(vector_push(&layouts, result.waiting));
                 sem_require(work_suspend_access(&c.queries, &result.ticket, result.waiting,
-                    1, 1, result.waiting, 1, WorkAccessMode.Read));
+                    convert(u64, SemanticWorkDomain.Compiler), convert(u64, SemanticAccess.Layout), result.waiting, 1, WorkAccessMode.Read));
             } else {
                 if success && result.waiting != 0 {
                     sem_declaration_input(result, result.waiting);
                     sem_require(work_suspend_access(&c.queries, &result.ticket, result.waiting,
-                        1, 4, result.waiting, 1, WorkAccessMode.Read));
+                        convert(u64, SemanticWorkDomain.Compiler), convert(u64, SemanticAccess.Declaration), result.waiting, 1, WorkAccessMode.Read));
                 } else {
                     if success && readmit {
                         if result.storage_pending && semantic_aggregate(&sem_get(node).type) {
@@ -1936,13 +1951,7 @@ fn sem_declarations_execute(c: SemanticContext*, statements: vector(void*)*): vo
             }
         }
     }
-    if c.declaration_isolated { return; }
-    index = 0;
-    while index < statements.length && sem_ok(c) {
-        var node = statements.data[index];
-        if sem_declaration_query(c, node) != 0 { sem_declaration_report(c, node); }
-        index++;
-    }
+    return sem_ok(c) ? SemanticPumpResult.Progress : SemanticPumpResult.Failed;
 }
 
 fn sem_declaration_report(c: SemanticContext*, node: void*): void {
@@ -1950,7 +1959,10 @@ fn sem_declaration_report(c: SemanticContext*, node: void*): void {
     if work_task(&c.queries, id).state == WorkState.Succeeded || sem_declaration_failure(c, id) { return; }
     var cycle: vector(usize) = default;
     defer vector_dispose(&cycle);
-    sem_require(work_cycle(&c.queries, id, &cycle));
+    if !work_cycle(&c.queries, id, &cycle) {
+        sem_fail(c, node, "Declaration type is waiting for an unfinished compiler query");
+        return;
+    }
     foreach(var query in &cycle) {
         if work_task(&c.queries, query).query == convert(u32, SemanticQuery.Layout) {
             sem_layout_cycle(c, query);

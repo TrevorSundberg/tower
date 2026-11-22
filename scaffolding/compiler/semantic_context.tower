@@ -204,6 +204,15 @@ fn sem_query_observe(c: SemanticContext*, ticket: WorkTicket*, reads: vector(usi
     reads.length = 0;
 }
 
+// Inspect only demanded queries of this phase. An empty ready queue is a
+// suspension point, not permission to diagnose a cycle or replay its consumer.
+fn sem_query_pending(c: SemanticContext*, query: u32): bool {
+    foreach(var &task in &c.queries.tasks) {
+        if task.query == query && task.demanded && task.state != WorkState.Succeeded { return true; }
+    }
+    return false;
+}
+
 fn sem_editor_private(c: SemanticContext*, editor: SemanticEditor*): void {
     if c.editor == null { return; }
     *editor = *c.editor;

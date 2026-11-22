@@ -31,6 +31,7 @@ Do NOT modify todo.txt
   Documentation-only deployment reuses verified runtime assets and preserves
   their build-source identity; do not rebuild identical compiler binaries.
 - Compile the smallest changed Tower unit with frozen inputs; use `type-smoke` for type/query edits and `control-smoke` for continuations, reuse unaffected checks, and reserve full body/bootstrap/browser matrices for publication or changed ownership contracts.
+- Use `query-smoke` for scheduler/staging continuations; batch related edits, inspect logs at phase boundaries, and keep one frozen publication run instead of restarting full checks for each handler.
 
 ## Implementation language
 
@@ -278,6 +279,7 @@ Do NOT modify todo.txt
   Discover staged captures/dependencies through executed control flow; untaken
   branches must not introduce storage errors or cycles. Validate captured local
   identity against its owning frame, never just a coincident byte offset.
+- Make phase executors resumable pumps with explicit progress/waiting/completion/failure results; diagnose cycles only after the owning pipeline exhausts eligible producers, and join workers before returning a borrowed world or context.
 - Declare component read/write ranges and exclusive ownership before dispatch.
   A pinned view is not a payload lock. Publish structural changes, type interning,
   shared indexes and reference ownership on the coordinator after joins, using

@@ -246,7 +246,11 @@ fn sem_evaluation_cycle(c: SemanticContext*, id: usize): void {
     var cycle: vector(usize);
     vector_init(usize, &cycle);
     var found = work_cycle(&c.queries, id, &cycle);
-    sem_require(found);
+    if !found {
+        vector_dispose(&cycle);
+        sem_fail(c, work_task(&c.queries, id).subject, "Compile-time dependency is waiting for an unfinished compiler query");
+        return;
+    }
     var text: u8* = "Compile-time dependency cycle";
     var index: usize = 0;
     while index < cycle.length {
@@ -260,9 +264,17 @@ fn sem_evaluation_cycle(c: SemanticContext*, id: usize): void {
 }
 
 fn sem_evaluations(c: SemanticContext*): void {
-    if !sem_ok(c) || c.evaluation_jobs.length == 0 { return; }
+    while sem_evaluation_pump(c) == SemanticPumpResult.Progress {}
+    sem_evaluation_finish(c);
+}
+
+// One bounded interpreter frontier. Keep final cycle/error selection separate
+// so a pipeline coordinator can service a waiting type/body/lowering phase.
+fn sem_evaluation_pump(c: SemanticContext*): SemanticPumpResult {
+    if !sem_ok(c) || !work_ok(&c.queries) { return SemanticPumpResult.Failed; }
+    if c.evaluation_jobs.length == 0 { return SemanticPumpResult.Complete; }
     sem_evaluation_work_register(c, false);
-    if !sem_ok(c) { return; }
+    if !sem_ok(c) { return SemanticPumpResult.Failed; }
     var index: usize = 0;
     while index < c.evaluation_jobs.length && sem_ok(c) {
         var result = bits(SemanticEvaluation*, c.evaluation_jobs.data[index]);
@@ -271,16 +283,16 @@ fn sem_evaluations(c: SemanticContext*): void {
         }
         index++;
     }
-    if !sem_ok(c) { return; }
+    if !sem_ok(c) { return SemanticPumpResult.Failed; }
     if c.workers.count == 0 { sem_require(sem_workers_open(c)); }
     var batch: vector(SemanticEvaluation*) = default;
     defer vector_dispose(&batch);
     sem_require(vector_reserve(&batch, SemanticPreparationWindow));
-    loop {
+    {
         // A suspended interpreter can demand another stage. Prepare only that
         // ready frontier before opening the next immutable execution view.
         sem_evaluation_prepare_all(c);
-        if !sem_ok(c) { break; }
+        if !sem_ok(c) { return SemanticPumpResult.Failed; }
         var view = entity_view_open(c.program.root);
         sem_require(view != null);
         var count: usize = 0;
@@ -293,7 +305,10 @@ fn sem_evaluations(c: SemanticContext*): void {
             result.ticket = ticket;
             batch.data[count++] = result;
         }
-        if count == 0 { entity_view_close(view); break; }
+        if count == 0 {
+            entity_view_close(view);
+            return sem_query_pending(c, EvaluationQuery) ? SemanticPumpResult.Waiting : SemanticPumpResult.Complete;
+        }
         // Reserve a bounded ready frontier, then refill each completed slot.
         // No results become visible until all readers in this window join.
         var next: usize = 0;
@@ -350,9 +365,14 @@ fn sem_evaluations(c: SemanticContext*): void {
             index++;
         }
         entity_view_close(view);
-        if !sem_ok(c) { break; }
     }
-    index = 0;
+    return sem_ok(c) ? SemanticPumpResult.Progress : SemanticPumpResult.Failed;
+}
+
+// Call only after the owning pipeline can no longer satisfy a waiting producer.
+// Ordinary phase pumping never declares its unfinished dependencies cyclic.
+fn sem_evaluation_finish(c: SemanticContext*): void {
+    var index: usize = 0;
     while index < c.queries.tasks.length && sem_ok(c) {
         var task = work_task(&c.queries, index + 1);
         if task.query == EvaluationQuery && task.demanded && task.state != WorkState.Succeeded {

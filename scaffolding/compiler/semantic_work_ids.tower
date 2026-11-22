@@ -4,6 +4,10 @@ import tower;
 // Workers refill within this window; structural publication ends the window.
 var SemanticPreparationWindow: usize = 256;
 
+// Phase pumps join their workers before returning. Waiting is not proof of a
+// cycle: a different phase may own the unfinished producer.
+enum SemanticPumpResult: u32 { Progress, Waiting, Complete, Failed }
+
 // Stable scheduler identifiers; declarations have no module initialization effect.
 enum SemanticQuery: u32 {
     Layout = 1, Evaluation, Declaration, DeclarationDiscovery, Lowering, Body,

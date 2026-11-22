@@ -48,7 +48,8 @@ function(tower_lr_work_policy_test)
   add_test(NAME tower-native-backend-units COMMAND tower-lr-work-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" backend)
   add_test(NAME tower-editor-units COMMAND tower-lr-work-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" editor)
   add_test(NAME tower-body-continuations COMMAND tower-lr-work-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" bodies)
-  set_tests_properties(tower-lr-worker-equivalence tower-native-units tower-native-backend-units tower-editor-units tower-body-continuations PROPERTIES TIMEOUT 180)
+  add_test(NAME tower-query-continuations COMMAND tower-lr-work-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" query-smoke)
+  set_tests_properties(tower-lr-worker-equivalence tower-native-units tower-native-backend-units tower-editor-units tower-body-continuations tower-query-continuations PROPERTIES TIMEOUT 180)
   add_custom_target(tower-body-smoke
     COMMAND "$<TARGET_FILE:tower-lr-work-tests>" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" body-smoke
     DEPENDS tower-lr-work-tests USES_TERMINAL VERBATIM)

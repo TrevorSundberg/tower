@@ -7,6 +7,7 @@ import .compiler.semantic_support;
 import .compiler.semantic_lifecycle;
 import .compiler.semantic_evaluation;
 import .compiler.semantic_evaluation_work;
+import .compiler.semantic_declarations;
 import .compiler.semantic_work_ids;
 import .compiler.compiler_kernel;
 import .library.work_graph;
@@ -47,7 +48,7 @@ fn evaluation_query_stage(c: SemanticContext*, input: void*, requested: bool): S
 // Exercise a dependency discovered after its consumer has already started, then
 // append another consumer to the same graph. An unreachable stage must never
 // acquire executable nodes; pumping a completed graph must not replay work.
-fn evaluation_query_tests(width: u32, workers: usize): u32 {
+export fn evaluation_query_tests(width: u32, workers: usize): u32 {
     var failures: u32 = 0;
     var world = compiler_world_create_workers(workers);
     var root = entity_create(compiler_world_store(world));
@@ -65,6 +66,7 @@ fn evaluation_query_tests(width: u32, workers: usize): u32 {
     var producer = evaluation_query_stage(&context, input, false);
     var unused = evaluation_query_stage(&context, input, false);
     var consumer = evaluation_query_stage(&context, producer.subject, true);
+    sem_evaluation_work_register(&context, false);
     sem_require(work_demand(&context.queries, work_find(&context.queries, consumer.subject, EvaluationQuery, 0)));
     sem_evaluation_prepare_all(&context);
     evaluation_query_check(consumer.started && !consumer.ready.ready && !producer.started && !unused.started,
@@ -110,6 +112,46 @@ fn evaluation_query_tests(width: u32, workers: usize): u32 {
     }
     evaluation_query_check(unused.function == null && !unused.started,
         "Refilled evaluation windows preserve undemanded work", &failures);
+    // A producer owned by another compiler phase is not an evaluation cycle.
+    var blocked = evaluation_query_stage(&context, input, true);
+    var owner = sem_create(root);
+    sem_attach(owner, KFunction);
+    var prerequisite = work_request(&context.queries, owner, convert(u32, SemanticQuery.Body), 0);
+    sem_require(work_seal(&context.queries, prerequisite));
+    // A checked type receipt still waits for its producing body. The pump must
+    // preserve that continuation rather than forcing its producer recursively.
+    var declaration = sem_declaration_state(&context, input);
+    declaration.subject = input;
+    declaration.checked = true;
+    declaration.calls_scanned = true;
+    declaration.kernel.payload = bits(void*, declaration);
+    declaration.query = work_request(&context.queries, input, DeclarationQuery, 0);
+    sem_require(work_depend(&context.queries, declaration.query, prerequisite));
+    sem_require(work_access(&context.queries, declaration.query, convert(u64, SemanticWorkDomain.Compiler),
+        convert(u64, SemanticAccess.Declaration), declaration.query, 1, WorkAccessMode.Write));
+    sem_require(work_seal(&context.queries, declaration.query));
+    var preparation = work_find(&context.queries, blocked.subject, EvaluationPrepareQuery, 0);
+    sem_require(work_depend(&context.queries, preparation, declaration.query));
+    evaluation_query_check(sem_evaluation_pump(&context) == SemanticPumpResult.Waiting
+        && program.error.length == 0 && !blocked.started && context.workers.running == 0,
+        "Evaluation pump yields to another phase without a false cycle or worker borrow", &failures);
+    evaluation_query_check(sem_declarations_pump(&context) == SemanticPumpResult.Waiting
+        && program.error.length == 0 && context.workers.running == 0,
+        "Declaration pump preserves an unfinished producer without forcing it", &failures);
+    var receipt: WorkTicket = default;
+    sem_require(work_take_task(&context.queries, &receipt, prerequisite));
+    sem_require(work_finish(&context.queries, &receipt, true));
+    evaluation_query_check(sem_declarations_pump(&context) == SemanticPumpResult.Progress
+        && work_task(&context.queries, declaration.query).state == WorkState.Succeeded,
+        "Body publication releases the waiting declaration continuation", &failures);
+    evaluation_query_check(sem_declarations_pump(&context) == SemanticPumpResult.Complete,
+        "Completed declarations do not replay when the phase is pumped again", &failures);
+    evaluation_query_check(sem_evaluation_pump(&context) == SemanticPumpResult.Progress
+        && blocked.ready.ready && sem_get(blocked.subject).bits == 42,
+        "Published body receipt resumes the same interpreter consumer", &failures);
+    evaluation_query_check(sem_evaluation_pump(&context) == SemanticPumpResult.Complete,
+        "Settled evaluation pump reports completion without replay", &failures);
+    evaluation_query_check(!unused.started, "Cross-phase resumption keeps undemanded stages dormant", &failures);
     work_pool_close(&context.workers);
     sem_context_dispose(&context);
     semantic_program_dispose(&program);
