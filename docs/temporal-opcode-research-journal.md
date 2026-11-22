@@ -42283,3 +42283,22 @@ Log: build/unit_bridge_wasi_integrated.log. Final WASI interpreter SHA256
 The final five native and five WASI build objects still match the ten independently
 recompiled packaged outputs exactly; reuse that closure evidence. No repeated
 unaffected browser matrix or bootstrap repin is needed for this tooling receipt.
+
+Publication/accounting correction: git numstat gives +14/-3 lines in host-wasi
+and -24 in the retired interpreter runner, so this milestone removes 13 JS lines,
+not the ten reported in the preceding entry. Upstream added 15, not twelve;
+current JS186/24366 and its net 64-line reduction remain correct. The first receipt
+f61dec7b is superseded by corrected Pages f6189a71df732510d1e31393b17535140e8d0009.
+No runtime asset changed in either manifest-only update. Source commits ddc4b0e,
+8d4767a and final validation 76a5408 are pushed. Under our shared publication lock,
+preserve the newer source-type release from Pages 1e827882, including all 104
+assets, runtime source 46b1da9f7073298ff3dbba438107ba0bc632b3aa and provenance.
+Action 44989097677 completes successfully. Fetch
+https://tower-lang.org/deployment-manifest.json?unit-bridge=f6189a71df732510d1e31393b17535140e8d0009
+and verify exact prepared/hosted SHA256
+bfc7328e539985e811c0ee0be3cd3bc241f4cd79c97ad172a9c93a01a643c1b9,
+plus unchanged asset map/build identity. Release our own lock after verification.
+This receipt preserves the existing browser verification evidence; it does not
+claim a fresh full browser run. Continue removal audits for remaining generators
+and live JS callers. In particular, the standalone entity fixture owns its own
+finalizer and is not automatically interchangeable with the parser aggregate.
