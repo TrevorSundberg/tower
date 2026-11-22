@@ -46506,3 +46506,74 @@ and `root_coordination_served_manifest.json`. This local browser run overlapped
 some local worker activity; affected timing samples must not be treated as quiet
 performance comparisons. Correctness results and remote-host measurements are
 separate. The receipt changes no assets or build identity.
+identities, then monitor sparse status updates and coordinate acceptance work.
+
+### 2026-11-22: D1 acceptance inventory and staging fixture audit (in progress)
+
+D1 began from clean main `6282238779034442e0578d76b921ca117df819f1`
+after `git pull --rebase`. The exact tracked inventory contains 1,011 Tower files;
+437 are test/fixture/example paths in D1's direct scope (40,411 lines). Only root
+AGENTS.md applies. Parent additionally requested a cross-lane completeness ledger;
+that roster is distinct from substantive file review. The growing receipt is
+`docs/compiler_ecs_audit_d1.md`. No new audit implementation or production compiler
+change has been introduced; todo.txt is untouched.
+
+Read current services/handoff, type-values and the newer journal continuation.
+Production helper-readiness is implemented, superseding the historical experiment.
+Primary sources consulted: Flecs Systems and ComponentTraits manuals, Unity Burst
+1.8 aliasing manual (linked in the audit). They inform staged/access/storage review;
+they supply no Tower speed claim or invented noalias guarantee.
+
+Initial source/caller review covers deliberate invalid fixtures and ordinary
+staging/type fixtures. Found candidate stale browser expectations: immutable
+module capture and a type helper with a local statement are still classified as
+unsupported in compiletime.test.mjs despite newer type/known-value support. Aggregate
+error strings also predate copy support. These are hypotheses pending public-pin
+execution, not confirmed bugs or reasons to rewrite intentional invalid data.
+A mistyped read of absent `semantic_invalid/type_argument_cycle.tower` exited 1;
+corrected inventory used actual tracked paths, with no code/test result affected.
+
+Host: SteamDeck, 14.8 GiB memory, 9.7 GiB available, 142 GiB disk free; 5.6 GiB swap
+was already used at start. CLI thread 01a2046a-4644-7ab1-a0ae-abd80210f013,
+PID 2688166. D2 has first heavy-build priority; D1 has run no build/benchmark/test.
+The canonical supported native route is Docker tower_build:latest; native host
+libLLVM.so.19.1 is unavailable per assignment. Logs/status/inbox are external under
+/home/deck/tower_coord_ecs_20261122/D1. No sibling cache or clone is modified.
+This audit/documentation work changes no executable behavior, so before/after
+runtime CPU/RSS/overlap measurements are inapplicable at this phase. Actual test
+changes will require frozen-input baseline and post-change evidence. All build,
+execution, sanitizer, merged publication and hosted gates remain pending.
+
+D1 review checkpoint: 172/437 direct-scope files have substantive rows; all 1,011
+initial tracked paths now have a parent-confirmed owner in
+`docs/compiler_ecs_file_roster.md`. The sorted partition has no missing or duplicate
+path. Audited-path checks likewise find no absent/duplicate receipt. This is source
+review only, not acceptance closure. Historical lexer/editor inputs, parse-only
+lessons, invalid fixtures and repetitive compiler-size workloads remain intact.
+
+A concrete source finding in `tests/work_pool.tower`: normal completion receives
+all jobs before releasing signals, but early nonzero returns can leave admitted
+workers borrowing local jobs/signals. Proposed D1 fix is scoped to harness draining,
+with baseline and explicit failure/cancellation trial before acceptance. No production
+pool change authorized or made. `work_graph`/`work_graph_scale` also skip cleanup
+on early failure (sequential protocol fixtures); distinguish that from the real
+worker lifetime issue. `work_resume`/`work_observe` already cover stale revision,
+profile/dispatch receipts, lazy demand, read/write exclusion and cycle/failure
+protocols. Signal barriers and thread IDs in `work_pool`/`work_named` demonstrate
+actual overlap only when executed successfully; timings remain separate.
+
+Coordinator confirmed D2 provenance-only review of all 45 pinned Tower resource
+copies; those must not be edited independently. D1 also granted D2 the narrow
+`driver_measure_cases.measure_kernel` missing `import foundation;` correction
+following D2's failing reference measurement. D2 owns that edit/retest; expected
+results remain unchanged. D2 separately reported accidentally overlapping a tool
+build and a measurement; those timings are invalid and will not be reused as D1
+baseline. D1 ran no heavy work while D2 held the lock.
+
+A2 owns instrumentation investigation. D1's source review identifies production
+allocator/barrier stress versus explicitly serial `work_instrumented` and
+compiler owner/buffer OOM checks. No supported Tower-object ASan/UBSan/TSan run is
+claimed. An exploratory search included absent scaffolding/CMakeLists.txt and
+returned 2; actual build entry is root CMakeLists.txt. This affected no check.
+Documentation checkpoint has no executable behavior change; runtime profiling
+remains inapplicable until implementing the proposed harness change.
