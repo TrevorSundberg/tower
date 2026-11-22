@@ -1,0 +1,124 @@
+import tower;
+import .compiler.semantic_context_types;
+import .compiler.semantic_program_types;
+import .compiler.semantic_query_api;
+import .compiler.semantic_source_binding_types;
+import .compiler.semantic_known_types;
+import .compiler.semantic_work_ids;
+import .compiler.foundation_tags;
+import .compiler.component_kinds;
+import .compiler.parser_types;
+import .library.work_graph;
+
+extern fn compiler_world_create_workers(limit: usize): void*;
+extern fn compiler_world_store(world: void*): void*;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn compiler_world_component(world: void*, node: void*, kind: u32): void*;
+extern fn entity_create(store: void*): void*;
+extern fn node_match_set_label(value: ParserMatchData*, label: u8*): bool;
+extern fn puts(text: u8*): i32;
+
+enum SourceProofFixture: u32 { Resume, Failure, Cancel }
+
+fn source_proof_check(ok: bool, message: u8*, failures: u32*): void {
+    if !ok { puts(message); (*failures)++; }
+}
+
+fn source_proof_case(width: u32, workers: usize, mode: SourceProofFixture): u32 {
+    var failures: u32 = 0;
+    var world = compiler_world_create_workers(workers);
+    var root = entity_create(compiler_world_store(world));
+    var program: SemanticProgram;
+    semantic_initialize(&program, root, width);
+    var context: SemanticContext;
+    sem_context_init(&context, &program);
+    var declaration = sem_create(root);
+    var value = sem_attach(declaration, KDeclare);
+    value.global = true;
+    var syntax = bits(ParserMatchData*, compiler_world_component(world, declaration, CompilerParserMatch));
+    sem_require(node_match_set_label(syntax, "CoreDeclare"));
+    sem_push(&sem_get(root).items, declaration);
+    // More than one frontier, with an earlier producer held deliberately. The
+    // fixture tests actual shared dispatch, not queue width as overlap evidence.
+    for(var index: usize = 0; index < SemanticPreparationWindow + 1; index++) {
+        var function = sem_create(root);
+        sem_attach(function, KFunction);
+        sem_push(&program.functions, function);
+    }
+    var proof = sem_source_binding_request(&context, declaration);
+    var pipeline = bits(SemanticSourceBindingPipeline*, entity_component_data(entity_component_get(root, context.source_binding_pipeline)));
+    source_proof_check(sem_source_binding(&context, declaration) == null
+        && !pipeline.published && context.workers.running == 0,
+        "Request retains source proof work without publishing unchecked facts", &failures);
+    sem_require(work_demand(&context.queries, proof));
+    var scan = work_find(&context.queries, root, convert(u32, SemanticQuery.SourceBindings), 0);
+    var held: WorkTicket;
+    sem_require(work_take_task(&context.queries, &held, scan));
+    var prerequisite = work_request(&context.queries, declaration, convert(u32, SemanticQuery.BodyPrefix), 0);
+    sem_require(work_seal(&context.queries, prerequisite));
+    sem_require(work_suspend(&context.queries, &held, prerequisite));
+    source_proof_check(sem_source_bindings_pump(&context) == SemanticPumpResult.Progress
+        && context.workers.running == 0 && context.queries.running == 0,
+        "Bounded proof dispatch joins while an earlier scan remains suspended", &failures);
+    var completed: usize = 0;
+    foreach(var job in &pipeline.jobs) {
+        var query = work_find(&context.queries, job.subject, convert(u32, SemanticQuery.SourceBindings), 0);
+        if work_task(&context.queries, query).state == WorkState.Succeeded { completed++; }
+    }
+    source_proof_check(completed == SemanticPreparationWindow
+        && sem_source_binding(&context, declaration) == null,
+        "Later eligible scans fill one frontier without premature proof publication", &failures);
+    while sem_source_bindings_pump(&context) == SemanticPumpResult.Progress {}
+    source_proof_check(sem_source_bindings_pump(&context) == SemanticPumpResult.Waiting
+        && sem_source_bindings_pump(&context) == SemanticPumpResult.Waiting
+        && !work_ticket_valid(&context.queries, &held) && program.error.length == 0,
+        "Repeated waits preserve receipts and reject the suspended dispatch ticket", &failures);
+    // No pin or worker borrow survives a pump boundary.
+    sem_attach(sem_create(root), KOperand);
+    if mode == SourceProofFixture.Cancel {
+        work_cancel(&context.queries);
+        source_proof_check(sem_source_bindings_pump(&context) == SemanticPumpResult.Failed
+            && context.workers.running == 0 && context.queries.running == 0,
+            "Cancelled proof retains no active dispatch or input borrow", &failures);
+    } else {
+        var ticket: WorkTicket;
+        sem_require(work_take_task(&context.queries, &ticket, prerequisite));
+        sem_require(work_finish(&context.queries, &ticket, mode == SourceProofFixture.Resume));
+        var outcome = sem_source_bindings_pump(&context);
+        while outcome == SemanticPumpResult.Progress { outcome = sem_source_bindings_pump(&context); }
+        if mode == SourceProofFixture.Failure {
+            source_proof_check(outcome == SemanticPumpResult.Failed
+                && sem_source_binding(&context, declaration) == null,
+                "Failed prerequisite never publishes an immutable binding proof", &failures);
+        } else {
+            var binding = sem_source_binding(&context, declaration);
+            source_proof_check(outcome == SemanticPumpResult.Complete && binding != null
+                && binding.immutable && binding.owner == null && binding.ordinal == 0
+                && pipeline.published && pipeline.jobs.length == 0,
+                "Joined proof publishes declaration identity and releases retained scan output", &failures);
+            source_proof_check(work_task(&context.queries, scan).dispatch == 2
+                && work_task(&context.queries, proof).dispatch == 1
+                && entity_component_data(entity_component_get(root, context.source_binding_pipeline)) == bits(void*, pipeline)
+                && sem_source_binding_request(&context, declaration) == proof
+                && sem_source_bindings_pump(&context) == SemanticPumpResult.Complete,
+                "Resumption executes the held scan once and never replays completed publication", &failures);
+            foreach(var function in &program.functions) {
+                if function == root { continue; }
+                var query = work_find(&context.queries, function, convert(u32, SemanticQuery.SourceBindings), 0);
+                source_proof_check(work_task(&context.queries, query).dispatch == 1,
+                    "Independent proof scan is not replayed while an earlier scan waits", &failures);
+            }
+        }
+    }
+    sem_context_dispose(&context);
+    semantic_program_dispose(&program);
+    entity_release(root);
+    source_proof_check(compiler_world_dispose(world), "Proof continuation releases its owning world", &failures);
+    return failures;
+}
+
+export fn semantic_source_proof_tests(width: u32, workers: usize): u32 {
+    return source_proof_case(width, workers, SourceProofFixture.Resume)
+        + source_proof_case(width, workers, SourceProofFixture.Failure)
+        + source_proof_case(width, workers, SourceProofFixture.Cancel);
+}

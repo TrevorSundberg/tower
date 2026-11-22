@@ -1,5 +1,6 @@
 import tower;
 import foreign_names;
+import backend_type_construction;
 import .backend.bindings;
 import .backend.context;
 import .backend.disassembly;
@@ -83,6 +84,8 @@ fn backend_test_macho_plan(): bool {
 }
 
 export fn backend_tests(): i32 {
+    var construction_failure: i32 = 92;
+    if !backend_type_construction_tests() { return construction_failure; }
     var plan_failure: i32 = 91;
     if !backend_test_wasm_plan() || !backend_test_elf_plan() || !backend_test_pe_plan() || !backend_test_macho_plan() { return plan_failure; }
     var foreign_failures = foreign_tests();

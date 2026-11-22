@@ -52,7 +52,8 @@ array indexes must be in order. This is the Foundation metadata reconstruction
 form, separate from Tower's ordinary `init(Type){ field: value }` expression.
 The formatter preserves nominal bindings and function references. Metadata remains
 in Foundation text in `.towerbc`; it does not enter the private execution stream.
-The semantics version is 6; the unchanged execution-cache encoding remains 5.
+Attributes introduced semantics version 6 without changing cache encoding 5.
+See the [current package contract](../playground/README.md) for later versions.
 
 Compiler consumers use the same `FoundationNode` metadata entities. Lookup by the
 bound attribute type is available through `foundation_attribute_get`. Entity

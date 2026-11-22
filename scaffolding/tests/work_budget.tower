@@ -1,5 +1,6 @@
 import tower;
 import .library.work_budget;
+import .library.work_budget_types;
 
 fn budget_check(ok: bool): void {
     if !ok { trap("Work budget reservation regression", 0); }
@@ -134,8 +135,11 @@ fn budget_optional(): void {
     budget_check(work_budget_release_result(&budget, &extra) == WorkBudgetError.Stale);
 }
 
-budget_receipts();
-budget_reference();
-budget_limits();
-budget_optional();
-print(0);
+export fn main(argc: i32, argv: u8**): i32 {
+    budget_receipts();
+    budget_reference();
+    budget_limits();
+    budget_optional();
+    print(0);
+    return 0;
+}

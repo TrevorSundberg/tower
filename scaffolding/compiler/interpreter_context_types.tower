@@ -1,6 +1,24 @@
 import tower;
 import interpreter_types;
+import foundation_types;
 import .library.vector;
+
+// One reached constructor retains evaluated operands until the coordinator
+// publishes a descriptor. Owner and sequence distinguish recursion/loop visits;
+// private type-value indexes never cross this invocation boundary.
+struct IMTypeConstruction {
+    owner: void*;
+    subject: void*;
+    sequence: usize;
+    kind: u32;
+    first: u64;
+    second: u64;
+    input: FoundationType;
+    result: FoundationType;
+    error: vector(u8);
+    ready: bool;
+    failed: bool;
+}
 
 // An invocation context belongs to its evaluation request, which may be a
 // shared compiler entity. No ambient world, host address table or TLS lookup is
@@ -26,6 +44,9 @@ struct IMContext {
     capture_ordinal: usize;
     waiting: void*;
     retain_result_storage: bool;
+    construct_types: bool;
+    waiting_type: bool;
+    type_construction: IMTypeConstruction;
 }
 
 // Shared query metadata; the evaluator reads readiness, while only the
@@ -37,10 +58,11 @@ struct IMDependency {
     source: IMDependency*;
 }
 
-// Explicit immutable inputs for a staged invocation. The producer is an ordinary
-// Foundation scalar value published through the dependency graph. A local's own
-// invocation still reads its normal stack storage, including mutable computation.
-struct IMValueInput { producer: void*; owner: void*; ordinal: usize; }
+// Both producers are ordinary Foundation values published through the graph.
+// Required capture proof owns producer/owner/ordinal. Optional inference owns
+// known_producer and cannot borrow a value proved only for a required stage.
+// A local's own invocation still reads its normal stack storage.
+struct IMValueInput { producer: void*; owner: void*; ordinal: usize; known_producer: void*; }
 
 // The compiler can prepare an executable snapshot lazily without changing the
 // source function's signature or declaration identity. The interpreter retains

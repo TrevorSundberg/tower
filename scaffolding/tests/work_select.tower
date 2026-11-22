@@ -53,9 +53,12 @@ fn selection_trial(count: usize, reverse: bool): void {
 }
 
 // count, reverse, wall ns, CPU us, process peak RSS KiB, retained graph bytes.
-selection_trial(32, false);
-selection_trial(32, true);
-selection_trial(4096, false);
-selection_trial(4096, true);
-selection_trial(65536, false);
-selection_trial(65536, true);
+export fn main(argc: i32, argv: u8**): i32 {
+    selection_trial(32, false);
+    selection_trial(32, true);
+    selection_trial(4096, false);
+    selection_trial(4096, true);
+    selection_trial(65536, false);
+    selection_trial(65536, true);
+    return 0;
+}

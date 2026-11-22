@@ -2,6 +2,7 @@ import tower;
 import .compiler.compiler_kernel;
 import .library.work_pool;
 import .library.work_budget;
+import .library.work_budget_types;
 import .host.work_linux;
 import .host.work_dispatch;
 
@@ -163,5 +164,8 @@ fn admission_tests(): void {
     admission_check(named.running == 0 && named.peak == 0);
 }
 
-admission_tests();
-print(0);
+export fn main(argc: i32, argv: u8**): i32 {
+    admission_tests();
+    print(0);
+    return 0;
+}

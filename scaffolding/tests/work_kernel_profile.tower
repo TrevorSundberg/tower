@@ -85,12 +85,15 @@ fn kernel_profile(input: u8*, workers: usize, count: usize): void {
         + pool.count * sizeof(WorkSlot) + 1000000);
 }
 
-var input = alloc(u8, 1000000);
-kernel_profile_check(input != null);
-fill(input, 97, 1000000);
-kernel_profile(input, 1, 1);
-kernel_profile(input, 1, 32);
-kernel_profile(input, 2, 32);
-kernel_profile(input, 4, 32);
-kernel_profile(input, 8, 32);
-free(input);
+export fn main(argc: i32, argv: u8**): i32 {
+    var input = alloc(u8, 1000000);
+    kernel_profile_check(input != null);
+    fill(input, 97, 1000000);
+    kernel_profile(input, 1, 1);
+    kernel_profile(input, 1, 32);
+    kernel_profile(input, 2, 32);
+    kernel_profile(input, 4, 32);
+    kernel_profile(input, 8, 32);
+    free(input);
+    return 0;
+}

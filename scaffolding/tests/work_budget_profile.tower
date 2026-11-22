@@ -1,5 +1,6 @@
 import tower;
 import .library.work_budget;
+import .library.work_budget_types;
 
 // Linux x64 timing boundary. The workload remains in Tower and validates every
 // grant plus final accounting. This measures ledger overhead, not compiler work.
@@ -49,5 +50,8 @@ fn budget_profile(lanes: usize, rounds: usize): void {
     print(budget.entries.capacity * sizeof(WorkBudgetEntry));
 }
 
-budget_profile(1, 1048576);
-budget_profile(12, 87382);
+export fn main(argc: i32, argv: u8**): i32 {
+    budget_profile(1, 1048576);
+    budget_profile(12, 87382);
+    return 0;
+}

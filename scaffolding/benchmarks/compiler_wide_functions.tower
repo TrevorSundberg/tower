@@ -1,0 +1,12 @@
+import tower;
+import .tests.stress_sources;
+import .library.bytes;
+import .library.bytes_types;
+
+// The shared stress generator emits a fragment. Measurements compile a complete
+// file from the declaration seed, including its explicit language dependency.
+var source: ByteBuffer = default;
+defer bytes_dispose(&source);
+stress_text(&source, "import tower;\n");
+stress_wide_functions(&source);
+stress_publish(&source);

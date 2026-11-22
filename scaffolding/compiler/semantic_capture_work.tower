@@ -1,4 +1,8 @@
 import tower;
+import semantic_declaration_types;
+import semantic_source_binding_types;
+import semantic_context_types;
+import semantic_evaluation_types;
 import semantic_context;
 import semantic_source_bindings;
 import semantic_declarations;
@@ -62,10 +66,15 @@ fn sem_capture_pump(c: SemanticContext*): SemanticPumpResult {
     var result = bits(SemanticCapture*, entity_component_data(entity_component_get(subject, c.capture_inputs)));
     var binding = sem_get(subject);
     if result.proof == null {
-        // The interpreter has relinquished its execution claims before proof
-        // workers read the program. Record the joined immutable prerequisites.
-        result.proof = sem_source_binding_require(c, subject);
-        sem_require(work_observe(&c.queries, &ticket, c.source_binding_proof));
+        // Suspend before dispatching proof workers. A retained proof pipeline
+        // publishes declaration facts once, after all of its scans have joined.
+        var proof = sem_source_binding_request(c, subject);
+        if work_task(&c.queries, proof).state != WorkState.Succeeded {
+            sem_require(work_suspend(&c.queries, &ticket, proof));
+            return SemanticPumpResult.Progress;
+        }
+        result.proof = sem_source_binding(c, subject);
+        sem_require(work_observe(&c.queries, &ticket, proof));
         if result.proof != null { sem_require(work_observe(&c.queries, &ticket, result.proof.query)); }
     }
     if result.proof == null || !result.proof.immutable || sem_member(subject, "value") == null {
@@ -118,9 +127,15 @@ fn sem_capture_pump(c: SemanticContext*): SemanticPumpResult {
         }
     }
     if sem_ok(c) {
-        var input = bits(IMValueInput*, entity_component_data(entity_component_add(subject, c.value_inputs)));
-        sem_require(input != null);
-        *input = { producer: result.evaluation.literal, owner: result.proof.owner, ordinal: result.proof.ordinal };
+        var input = bits(IMValueInput*, entity_component_data(entity_component_get(subject, c.value_inputs)));
+        if input == null {
+            input = bits(IMValueInput*, entity_component_data(entity_component_add(subject, c.value_inputs)));
+            sem_require(input != null);
+            *input = default;
+        }
+        input.producer = result.evaluation.literal;
+        input.owner = result.proof.owner;
+        input.ordinal = result.proof.ordinal;
     } else {
         result.error = c.program.error;
         result.error_offset = c.program.error_offset;
@@ -132,10 +147,7 @@ fn sem_capture_pump(c: SemanticContext*): SemanticPumpResult {
 
 fn sem_capture_failure(c: SemanticContext*, subject: void*): bool {
     var result = bits(SemanticCapture*, entity_component_data(entity_component_get(subject, c.capture_inputs)));
-    if result == null || result.error.length == 0 { return false; }
-    sem_fail(c, subject, result.error.data);
-    c.program.error_offset = result.error_offset;
-    return true;
+    return result != null && sem_restore_error(c, &result.error, result.error_offset);
 }
 
 fn sem_captures_dispose(c: SemanticContext*): void {

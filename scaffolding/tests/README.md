@@ -791,3 +791,52 @@ Tower storage fault-injection tests without an interpreter host adapter.
 The browser/WASM suite in `playground/tests/execution.test.mjs` additionally
 exercises numeric conversions and traps, binary operations, control flow,
 replacement source provenance, semantic ABI syntax changes and grammar reuse.
+
+### Focused native scheduler regressions
+
+With `TOWER_WORK_TESTS=ON`, native Linux x64 builds register the ready-index,
+reservation ledger, shared-ledger overlap, admitted kernel dispatch, tool output
+identity, semaphore observer and concurrent entity-stage fixtures through the
+common Tower object/runtime rules. `TOWER_SANITIZER=address` or `thread` uses the same targets and production
+allocator; configured object manifests alone are not execution evidence.
+
+```sh
+cmake --build "$TOWER_NATIVE_BUILD" --parallel 1 --target \
+  tower-work-ready-tests tower-work-budget-tests tower-work-budget-shared-tests \
+  tower-work-kernel-admission-tests tower-tool-output-identity-tests \
+  tower-work-signal-observe-tests tower-entity-stage-concurrent-tests
+ctest --test-dir "$TOWER_NATIVE_BUILD" --output-on-failure \
+  -R '^tower-(work-(ready|budget|budget-shared|kernel-admission)-tests|tool-output-identity-tests|work-signal-observe-tests-(try|wait)|entity-stage-concurrent-tests)$'
+```
+
+These checks preserve explicit stale/owner receipts, independent budget totals,
+actual barrier-proven overlap, typed kernel projection and valid semaphore
+handoffs. Fixed four/eight worker cases are concurrency stress, not the host's
+recommended compilation budget. Failures/timeouts stay failures. Neither the
+historical invalid-memory probe nor the intentional-race probe is registered.
+
+Four measurement targets are excluded from the default build and CTest. Request
+one explicitly, with exclusive host budget and frozen inputs:
+
+```sh
+cmake --build "$TOWER_NATIVE_BUILD" --parallel 1 --target tower-measure-work-select
+cmake --build "$TOWER_NATIVE_BUILD" --parallel 1 --target tower-measure-work-budget-profile
+cmake --build "$TOWER_NATIVE_BUILD" --parallel 1 --target tower-measure-work-kernel-overhead
+cmake --build "$TOWER_NATIVE_BUILD" --parallel 1 --target tower-measure-work-kernel-profile
+```
+
+They check workload results and report timing/memory fields; no timing threshold
+is a correctness oracle. The Linux x64 clock/rusage ABI and reported capacity
+sums do not establish portable host coverage or total live allocator bytes.
+Record exact source/artifact identity, repeats and runtime coverage alongside
+results. This registration does not itself validate any incoming source bundle;
+current implementation and execution receipts remain in the D1 audit/journal.
+
+For a focused frontend/backend streaming check, use
+`tower-lr-work-tests RESOURCE_ROOT backend-overlap` from the existing native
+worker runner. It builds the independent serial64-bit object baseline, then
+runs the same two-worker streaming case used by the full `backend` selector.
+Exact object bytes, shared-budget limits, distinct-thread barrier assertions and
+the30-second internal deadline are unchanged. Phase messages identify baseline
+versus streaming work; directional deadline errors identify the waiting side.
+The focused selector does not replace the full backend matrix or its failures.
