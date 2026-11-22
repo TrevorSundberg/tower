@@ -44495,6 +44495,19 @@ do not repeat the unaffected native/browser matrices. Temporal research remains
 untouched. The extra 161 lines bring JavaScript to 174 files/23,500 lines, down
 930 lines from this lane's baseline; total non-Tower reduction is 4,284 lines
 (14.5%) and 64 files across Python, PowerShell, shell, CMake and JavaScript.
+
+The same audit finds two more unlinked one-off UI measurements:
+benchmark-completion.mjs (86 lines) and benchmark-hover.mjs (61). Neither their
+filenames nor report interfaces have a current caller or documentation link;
+both only report timing when invoked manually. Remove them under the same user
+authorization, retaining the actual completion/hover implementations and their
+Node/Playwright functional suites. Their exact code remains at a9301ff. Keep
+profile.mjs (the package's profile command), the documented interpreter/semantic
+benchmarks and current PERFORMANCE.md reproduction commands. Across these six
+unlinked experiments, 308 JavaScript lines are removed without a replacement
+tool. JavaScript is now 172 files/23,353 lines, down 1,077 from the starting
+inventory; all five measured non-Tower categories together are down 4,431 lines
+(15.0%) and 66 files. All temporal research remains intact.
 Published-browser target execution is now PASS: workflow 45038423612 runs all
 four jobs successfully, consuming the exact f7545d6 browser backend and target
 packs. Both Intel and Apple Silicon Macs verify strict signatures and execute the
