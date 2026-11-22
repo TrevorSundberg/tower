@@ -20,11 +20,10 @@ All 1,011 paths have exactly one roster owner. The sorted union matches the
 tracked list with no duplicate or missing path. Counts measure inventory only,
 not substantive audit completion. Each section is sorted by exact repository path.
 
-Incoming draft paths are listed separately until their commits integrate;
-they do not change the tracked count above. D1 has substantive source receipts
-for thirteen incoming test files plus B1's one-off retention diagnostic in
-`compiler_ecs_audit_d1.md`; these are source reviews, not integrated compiler
-execution receipts.
+Incoming paths and their historical receipt states are listed separately from
+the immutable baseline count above. Subsequent receipt updates follow the tables.
+Per-file substantive reviews are in `compiler_ecs_audit_d1.md`; they are source
+reviews, not integrated compiler execution receipts.
 
 | Incoming path | Roster owner | Specific implementation reservation | Exact draft |
 | --- | --- | --- | --- |
@@ -57,13 +56,13 @@ owners and require refreshed owner receipts. The projection delta is SHA256
 `19ddf885590763d28a41ef43bbf7a9d253825e2f7125a8f27d835dac1d6d5fee`.
 After source review, D1 applied the A2 graph/budget/pool/kernel/tool-file and ten
 fixture prerequisites plus projection delta, preserving the earlier D2
-build/sanitizer drafts. They remain unvalidated locally. The A1 extraction did
+build/sanitizer drafts. At that import boundary they were unvalidated locally. The A1 extraction did
 not pass its header-context check and remains unapplied; no partial application
 or foreign world/unit change occurred. The twenty supplied/reported paths above
 are supplemented by the coordinator's live inventory below. Additional source
 identities and substantive receipts are still required.
 
-### Live eight-clone reconciliation, 2026-11-22 20:38 UTC
+### Historical eight-clone inventory received 2026-11-22 20:38 UTC
 
 Coordinator inventory `new_tower_audit_inventory.json`, SHA256
 `3ee5aa6b5afad479e24db33b7e89d36391b6b164a028379054638343f65cee63`,
@@ -121,6 +120,29 @@ ship; do not turn inventory arithmetic into a final release count.
 
 Other reported new cross-lane files need exact integrated paths and content
 receipts; a status mention alone is not an inventory or review claim.
+
+### Receipt update after local checkpoint0313651
+
+All twenty initially missing test bodies in the additional table and
+semantic_lifecycle_checks have now arrived as exact owner snapshots and received
+substantive per-file reviews. The ten measurement/ownership snapshots and eleven
+additional new test paths have separate hash/owner/provenance rows in the D1 audit;
+work_ready's derived-count update is a refreshed receipt for an existing path.
+The earlier table's pending-source states are preserved as the historical request,
+not current missing-body blockers. Root confirmed execution_type_construction and
+execution_rejection are L1, type_construction_execution/type_execution_receipts L2,
+and backend_type_construction shared L2/B2. World-budget binding fixture is B2
+with A2's shared ledger contract; physical copies through L2 confer no ownership.
+
+Local b8ae879/0313651 commit the coordinated prerequisites and focused registration.
+Eight selected regressions pass actual ASan and TSan with no skips; three valid
+concurrent workloads each pass20repeats in both modes. That evidence covers the
+hashed focused source closure only. Constructor/capture, parser retention, whole
+compiler, browser/generation and publication gates remain separate. New production
+module audits remain each owner's responsibility; no count implies their closure.
+
+The following paragraph preserves the earlier2fbeffe checkpoint, before those
+incoming paths were committed locally; it is not a current source-change claim.
 At D1 checkpoint `2fbeffe` (based on published `60741c5`), the tracked count
 remains 1,011. The only changed tracked Tower files since the baseline are D1's
 `body_runs.tower`, `driver_c_cases.tower`, `driver_execution_cases.tower` and

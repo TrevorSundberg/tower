@@ -47353,3 +47353,28 @@ owner attribution and actual tested bytes. Updated narrow registration handoff
 5ae06f78753754314bcfb57dbb4adefd8286d488c108697e11735b97bb5f0c34 includes
 B1 derived array count. No publication lease exists. Further source integration
 must rebuild changed ABI/import closures and revalidate affected evidence.
+
+## 2026-11-22 D1 source review reconciliation and slot transfer
+
+All twenty initially missing test paths from the51-path coordinator inventory,
+plus semantic_lifecycle_checks, now have exact complete-body D1 receipts. Updated
+the roster with source/owner confirmation and preserved the original pending
+states as a historical request. World-budget fixture implementation is B2 with
+A2 shared-ledger contract; copies through L2 do not transfer ownership. This
+review-only documentation needs no new runtime performance/memory measurement.
+
+After all own jobs drained, released D1 heavy.lock for D2's bounded tool checks.
+Parser canonical Foundation emission also exits139, before creating an output;
+it is not only native object optimization. Original source/logs preserved. No
+retained core is available through coredumpctl; host has gdb but the canonical
+container currently lacks it. Prepared a minimal Tower-only aggregate snapshot
+reset/copy probe in own ignored build/parser_retention directory, unrun pending
+next slot. No production change or claim of root-cause attribution.
+
+Authorized generic frontend allocation registration is exactly one import and one
+root-helper call in frontend_main, after session-world checks. Caller audit finds
+only the serial fault-allocator focused frontend target. Patchc6ad23af7a4857d2af3a9117c07ff2a295ccbc694eb8bfda472d24c69c3e14dc is exported
+for coherent B2 integration. Local helper/type prerequisites remain absent, so no
+compile/runtime pass is claimed for that draft. Final compiler rebuilding awaits
+frozen owner capture/type/prelude inputs, per coordinator; do not build a stale
+full matrix while those required fixes are active.
