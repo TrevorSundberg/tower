@@ -16,8 +16,10 @@ struct SemanticSourceBinding {
 // declaration facts publish only after the entire applicable proof is ready.
 struct SemanticSourceBindingPipeline {
     jobs: vector(SemanticKnownWork*);
+    source_roots: vector(void*);
     query: usize;
     first: usize;
     extension: bool;
     published: bool;
+    roots_ready: bool;
 }

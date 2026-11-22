@@ -18,6 +18,7 @@ import semantic_values;
 import semantic_expressions;
 import semantic_declarations;
 import semantic_body_work;
+import semantic_source_bindings;
 import semantic_flow;
 import .library.vector;
 
@@ -737,6 +738,7 @@ fn sem_function_finish(c: SemanticContext*, n: void*, cursor: SemanticBlockCurso
 }
 
 fn sem_run(c: SemanticContext*): void {
+    sem_source_binding_roots(c);
     sem_attributes_declarations(c);
     sem_validate_aliases(c);
     var step1 = sem_get(c.program.root);

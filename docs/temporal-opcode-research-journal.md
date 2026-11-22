@@ -48156,3 +48156,44 @@ Plan reuse existing native differential reference/raw/optimized path with exact
 wanted stdout; no generic language injection or duplicated fixture. ABI/export
 retention needs separate coverage since ordinary output cannot prove an uncalled
 export survived. No changes applied during the ASan freeze.
+
+After measured milestone40768d9, no-op merge-preserving ff-only pull succeeds.
+Preserved exact normal127ca98 package0377c5da separately before future rebuilds.
+Applied reviewed B2 lexical native identity77df2699, derived execution-root
+index5d3e769c and diagnostic1110c19f; owner source review and B1/B2 request fault
+passes remain separate from pending D1 runs. Owned request manifest87f875de now
+uses existing complete production-source property. No adapter or missing symbol
+fallback. Rejected blanket fixture prefix remains absent.
+
+A1 exact harmless layout APIbc7525c7 and191-line v2 profiledc299e61 adopted after
+ASan freeze. Registration reuses existing native compiler-unit sources/libraries,
+guest runtime and dynamic worker entry export; EXCLUDE_FROM_ALL and no CTest.
+Native B2 file fixture is read once, exact independent45,2 reference output
+checked, then existing raw/optimized differential executions reused. Existing
+cases preserve null-oracle behavior. No duplicated embedded fixture, extra
+reference compilation or import injection. D2 exact measurement repair0caf05cc
+retains Foundation kernel and adds its shared Tower wide-source wrapper.
+
+Complete per-file review and new scope accounting recorded in D1 audit/roster.
+Current code is implemented, not yet locally compiled/measured. D2 owns live
+paired-profile slot; D1 requested next bounded smallest-unit/target/fault/native
+fixture/layout measurement slot. No source mutation during owned builds, no
+publication request while final source/capture/browser/generation gates remain.
+
+Before the next freeze, integrated previously reviewed A1 original-source roots
+4784413a and failure-walk producer diagnostics plus six-line editor background
+fix6a6eeed6. Program owns borrowed original syntax roots through context cleanup;
+editor observations are borrowed, cleared only for an independent required body
+outside the completion hole. General late-capture range v3 is not included.
+
+L2 type-query microprofile05a442e8 and L1 selector518918fa reviewed but held:
+the selector unconditionally imports Linux getrusage into execution_main, while
+its CMake target is not Linux/x64-limited. A64 pointer-size assertion is not an
+OS ABI check. Routed concrete cross-host link concern; need explicit Linux-only
+entry/target or existing portable measurement boundary before adoption. Its
+16/256/1000 fanout oracle,3x256 serial queries, canonical stability and retained
+entity/component checks are otherwise appropriate focused evidence.
+
+Root requested two known-binding diagnostic corrections only after independent
+successor evidence; exact effect-count and parameter-capture cases identified.
+Pointer/address rejections and dependency-cycle fixtures remain unchanged.

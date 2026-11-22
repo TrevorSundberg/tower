@@ -1236,3 +1236,16 @@ reviewed with its30-case consumer. It is not yet integrated: tracked totals stay
 1,039/465direct at3125aaf; eventual adoption adds exactly one path, not three,
 since lifecycle/source-proof files already exist. Their new hashes are update
 receipts, not duplicate inventory rows.
+
+After40768d9, the next prepared closure adds three source paths:
+
+| Path | Audit lane | Implementation owner | Review |
+| --- | --- | --- | --- |
+| scaffolding/tests/backend_execution_roots.tower | D1 | B2 | Full32-line fixture, SHA dda143e6; native file registration and exact45,2 oracle reviewed, runtime pending. |
+| scaffolding/tests/semantic_layout_profile.tower | D1 | A1 | Full191-line v2, SHA dc299e61; explicit world/budget/job spans/cleanup and limitations recorded in D1 audit, opt-in only. |
+| scaffolding/benchmarks/compiler_wide_functions.tower | D2 | D2 | Exact0caf05cc handoff; D1 read12-line shared-generator/import/cleanup wrapper as integration review, not duplicate ownership credit. |
+
+When these prepared additions enter the index, totals are1,042 Tower paths and
+467 D1 direct paths. Pending A1 semantic_capture_module remains unintegrated
+and would add one more D1 path; its lifecycle/source-proof consumers are updates,
+not additional files. These counts are scope accounting, not runtime acceptance.

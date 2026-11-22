@@ -65,6 +65,7 @@ fn measure_interpreters(report: MeasureReport*, inputs: MeasureInputs*, name: u8
 
 fn measure_kernel(path: u8*, memory: bool, iterations: usize): void {
     var text: ByteBuffer = default; defer bytes_dispose(&text);
+    measure_text(&text, "import foundation;\n");
     if memory { measure_text(&text, "var data=alloc(u32,4096); var i:u32=0; var sum:u32=1; fill(data,0,16384); loop { var done=i=="); }
     else { measure_text(&text, "var state:u32=7; var i:u32=0; loop { var done=i=="); }
     measure_number(&text, iterations);

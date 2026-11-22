@@ -26,7 +26,7 @@ fn sem_layout_dependency(c: SemanticContext*, consumer: usize, type: FoundationT
     }
 }
 
-fn sem_layout_discover(c: SemanticContext*, n: void*): usize {
+export fn sem_layout_discover(c: SemanticContext*, n: void*): usize {
     var graph = &c.queries;
     var first = graph.tasks.length;
     var root = work_request(graph, n, convert(u32, SemanticQuery.Layout), 0);
@@ -92,7 +92,7 @@ fn sem_layout_cycle(c: SemanticContext*, root: usize): void {
     sem_fail(c, subject, sem_cat(c, "Recursive by-value layout: ", sem_cat(c, chain, "; use a pointer")));
 }
 
-fn sem_layout_execute(c: SemanticContext*): usize {
+export fn sem_layout_execute(c: SemanticContext*): usize {
     if c.workers.count == 0 {
         sem_require(sem_workers_open(c));
     }

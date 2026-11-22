@@ -32,7 +32,7 @@ Configure the native build with `-DTOWER_DRIVER_TESTS=ON` and build
 `tower-driver-tests`. The existing runner also provides:
 
 - `ctest --test-dir <native-build> -R '^tower-driver-native-differential$' --output-on-failure`
-  compares eight real native programs with the graph interpreter, with both
+  compares the native fixtures with the graph interpreter, with both
   optimized and unoptimized compilation.
 - `ctest --test-dir <native-build> -R '^tower-driver-package-differential$' --output-on-failure`
   compares graph/fast execution, file package loads, Foundation reconstruction,
@@ -47,6 +47,12 @@ and a writable working directory. Each CTest has a separate output directory;
 direct runs retain sources, binaries and capture logs there for inspection.
 Unknown filters fail. Child exit statuses are preserved, including abnormal
 termination, with a 30-second child limit and a 20-minute CTest limit.
+
+The native-only `backend_execution_roots` case reads its Tower fixture from
+this directory and requires the independent output `45\n2\n` before comparing
+raw and optimized native execution. Its direct, callback and recursive calls
+share two observable effects; its uncalled type helper remains in the source.
+The fixture keeps its own explicit language import, without a runner prefix.
 
 The shared scalar-idiom JSON remains browser test data. The Tower runner reads
 only its ASCII string/null table format and rejects unsupported values/escapes;
@@ -831,6 +837,22 @@ sums do not establish portable host coverage or total live allocator bytes.
 Record exact source/artifact identity, repeats and runtime coverage alongside
 results. This registration does not itself validate any incoming source bundle;
 current implementation and execution receipts remain in the D1 audit/journal.
+
+With both `TOWER_WORK_TESTS=ON` and `TOWER_BACKEND_TESTS=ON`, the separate
+Linux x64 `tower-semantic-layout-profile` executable reuses the native compiler
+unit link closure and production worker transport. It is excluded from default
+builds and CTest; explicitly run `tower-measure-semantic-layout` to build and
+measure it. Two warmups precede three samples at32/512/2048/4096/8192 fields,
+requesting one or four lanes, plus an8192-field case with the other lanes reserved.
+Host capacity can reduce the actual worker count.
+
+Each result has eleven lines: requested lanes, fields, other-lane reservation,
+pump wall nanoseconds, process CPU microseconds, process peak RSS KiB, observed
+overlapping job intervals, caller jobs, summed job nanoseconds, retained derived
+layout-vector bytes and ledger peak lanes. Sizes, alignments, every field offset,
+exactly-once job observations and complete world/budget teardown are checked.
+RSS is cumulative across trials; derived vector bytes are not total live memory.
+This is a layout-pump measurement, not end-to-end compilation or a speed claim.
 
 For a focused frontend/backend streaming check, use
 `tower-lr-work-tests RESOURCE_ROOT backend-overlap` from the existing native

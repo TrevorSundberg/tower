@@ -112,7 +112,12 @@ fn driver_units_compile(request: DriverRequest*, timing: DriverTiming*): i32 {
     for (var i: usize = 0; i < count; i++) {
         var input = &batch.inputs.data[i];
         var path = driver_units_path(options, i);
-        if !frontend_units_source(batch.frontend, i + 1, path, input.data, input.length) {
+        var absolute: ByteBuffer = default;
+        defer bytes_dispose(&absolute);
+        if !driver_platform_absolute(path, &absolute) {
+            driver_error("Cannot resolve compilation unit path: ", path); return 1;
+        }
+        if !frontend_units_source(batch.frontend, i + 1, absolute.data, input.data, input.length) {
             var error = frontend_units_error(batch.frontend);
             if error[0] != 0 {
                 driver_units_report(&batch, request, i + 1, error, frontend_units_error_offset(batch.frontend));
@@ -120,7 +125,7 @@ fn driver_units_compile(request: DriverRequest*, timing: DriverTiming*): i32 {
             }
             driver_error("Cannot snapshot unit (check --unit-retained-bytes, allocation capacity and NUL bytes): ", path); return 1;
         }
-        driver_request_configure_modules(request, frontend_units_environment(batch.frontend, i + 1), path);
+        driver_request_configure_modules(request, frontend_units_environment(batch.frontend, i + 1), absolute.data);
     }
     // Attach LLVM consumers before dispatch. The frontend and backend share
     // one ready graph and pool; a completed unit can advance immediately.

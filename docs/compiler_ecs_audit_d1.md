@@ -1193,3 +1193,27 @@ candidates remain outside this frozen production127ca98 receipt.
 Full logs, commands, source/object hashes and nm evidence:
 build/d1_ecs/parser_asan_127ca98, exported to D1/parser_asan_receipt.
 Every owned process drained before releasing the shared heavy slot to D2.
+
+### Owner handoffs and registrations prepared after40768d9
+
+Reviewed exact owner patches and new fixture sources before adoption; local
+runtime validation of this newer closure is pending. Previous parser ASan
+receipt does not validate these changed production units.
+
+| Path | Reviewed identity and substantive disposition |
+| --- | --- |
+| scaffolding/tests/backend_execution_roots.tower | B2 fixture SHA dda143e624da801d4c6563873d72fa24d5c2fc0a0df126e5b10c4725aad43390,32lines. Explicit Tower, shared global effects, direct/callback/recursive references, unused type helper and retained uncalled export. Independent output45=21+20+4 and effects2. Registered as native-only file input without language injection. Raw/optimized output checks do not alone prove uncalled export retention; separate ABI/backend coverage remains required. |
+| scaffolding/tests/semantic_layout_profile.tower | A1 v2 SHA dc299e613dc2df5648bb51af82133e74e6f6c38dab7f67ba3eb2bfd5d152dee3,191lines. World-owned type/field and observation components;11query nodes over one derived layout graph, private offsets and per-job clock/thread/call payloads. All metadata attached before dispatch. Callback invokes production kernel, exact field sizes/offsets independently checked, joins precede context/root/world disposal, synchronized shared budget returns all reservations. Two warmups/three samples, five field sizes, requested1/4 and occupied-lane case. Actual interval overlap and host-capacity cap qualify scaling; cumulative RSS and derived-vector bytes are partial memory measures. Opt-in compiler-unit target only, no default/CTest/time threshold. Current initial-frontier grant behavior is measured, not silently replaced with A1's experimental scheduler changes. |
+| scaffolding/tests/driver_differentials.tower | D1 generic registration adds file snapshot helper and optional independent expected output to native path. Both callers audited: existing embedded cases pass null and preserve behavior; new file supplies45,2. Same single graph reference then raw/optimized executions, avoiding redundant compilation. ByteBuffer owners use lexical cleanup; exact file bytes including explicit Tower import remain intact. Unknown/package-only selection behavior remains explicit. |
+| scaffolding/tests/driver_module_paths.tower | B2 native-identity77df2699 adds relative and absolute entry spellings importing one helper by both lexical forms. Actual helper effect42 must occur once; deferred temporary-file/buffer cleanup preserved. Host driver owns absolute lexical strings through environment lifetime; no symlink identity claim or browser-key normalization. |
+| scaffolding/tests/driver_request.tower | B2 diagnostic1110c19f adds nonempty-error oracle to every failed allocation trial before close. Existing complete buffer balance, distinct worlds, stage ownership, idempotent close and missing-source/grammar messages remain. Request target now consumes existing production driver-source property, including platform path/stat definitions. B1/B2 independent sweeps pass; D1 current-source sweep pending. |
+| scaffolding/tests/driver_measure_cases.tower | Exact D2 measured repair0caf05cc adds Foundation only to generated arithmetic/memory kernel text; body, output/reference and sample policy unchanged. Distinct from rejected blanket Tower writer prefix. |
+| scaffolding/benchmarks/compiler_wide_functions.tower | D2-owned addition from0caf05cc,12lines reviewed as an incoming dependency, not D1 ownership credit. Reuses shared stress generator, explicit Tower import, one owned ByteBuffer and deferred disposal. Generated complete-file import is essential because every file begins with Bedrock seed. |
+
+A1 API patchbc7525c7 only exports two existing layout functions and declares
+them in the shared query API. CMake profile target reuses current compiler
+sources/libraries and guest runtime property, avoiding another implementation
+closure. Root explicitly authorized this registration and the one-line request
+manifest correction. B2 native/backend index and diagnostic patches remain
+owner implementations; D1 does not claim their full production audit or runtime
+acceptance from integration.

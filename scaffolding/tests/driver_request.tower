@@ -87,6 +87,7 @@ export fn main(argc: i32, argv: u8**): i32 {
         tower_test_buffer_fail_after(fail);
         success = driver_request_open(&request, &options, argv[1]);
         tower_test_buffer_fail_after(unlimited);
+        if !success { request_check(driver_request_error(&request)[0] != 0, "failed request has an actionable diagnostic"); }
         driver_request_close(&request);
         request_counts(baseline);
         if success {
