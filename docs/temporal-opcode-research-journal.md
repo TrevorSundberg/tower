@@ -45753,3 +45753,15 @@ seed/inspection changes. Do not overwrite those changes with an older runtime.
 At the user's request, AGENTS.md now requires source/build commits reachable from
 the main being published and one atomic push of main plus gh-pages. This makes ref
 publication transactional; GitHub Pages remains asynchronous and must be verified.
+
+The missing source arrived shortly afterwards in main 9d84f04b. Rebased all six
+checkpoint commits cleanly, verified both published source identities are now
+ancestors, and rebuilt native, browser and threaded compilers. Full integrated
+types checks pass, including both engines, 32/64-bit targets and worker widths.
+The relocated complete candidate at /cache/type_values_bootstrap_25413363 executes
+the type-value fixture from /tmp and passes all packaged SHA-256 checks. The older
+pre-rebase candidate is retained only as a development artifact and will not be
+published. Browser validation exposed a missing direct source-service declaration
+for type_object_program and a stale transport expectation for the now-executable
+generic type function; both were corrected. The corresponding diagnostic already
+has its precise expectation in Tower's body_runs fixture. Publication is pending.

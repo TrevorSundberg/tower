@@ -193,7 +193,7 @@ test('declaration, body checking, lowering and staging are deterministic at 1/2/
     try {
      const result=tower.execute(handle);
      assert.equal(result.status,'error');
-     assert.match(result.error,/Division by zero|Expected (i32|u64), got bool|Type constructors currently support a struct and return|initializer dependency cycle first -> second -> first|An index must be an integer/);
+     assert.match(result.error,/Division by zero|Expected (i32|u64), got bool|Cannot infer type argument 'T'|initializer dependency cycle first -> second -> first|An index must be an integer/);
      const diagnostic={error:result.error,offset:result.errorOffset};
      if (!continuationDiagnostics.has(source)) continuationDiagnostics.set(source,diagnostic);
      assert.deepEqual(diagnostic,continuationDiagnostics.get(source),`declaration continuation errors at ${capacity} workers`);

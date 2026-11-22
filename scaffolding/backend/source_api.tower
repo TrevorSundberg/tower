@@ -7,6 +7,7 @@ import .compiler.format_types;
 extern fn compiler_host_world(): void*;
 extern fn compiler_world_store(world: void*): void*;
 extern fn compiler_node_world(node: void*): void*;
+extern fn type_object_program(root: void*): bool;
 extern fn compiler_node_type(node: void*, kind: u32): void*;
 extern fn frontend_modules_world(environment: void*): void*;
 extern fn semantic_initialize(program: SemanticProgram*, root: void*, width: u32): void;

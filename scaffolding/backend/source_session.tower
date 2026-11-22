@@ -5,6 +5,7 @@ import text;
 import .compiler.semantic_program_types;
 import .compiler.format_types;
 import .compiler.component_kinds;
+import .compiler.execution_profiles;
 import .library.vector;
 import .library.entity_types;
 import .library.entity_api;
