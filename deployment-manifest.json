@@ -1641,5 +1641,26 @@
                                    "temporalSourcesChanged":  false,
                                    "runtimeAssetsChanged":  false,
                                    "limitations":  "Required shell/CMake integration and remaining browser/host JavaScript remain; no universal shim-only or portable compiler release claim."
-                               }
+                               },
+    "unlinkedMeasurementRetirement":  {
+                                          "sourceCommit":  "5b59d24304464299eb95dd659875f6f098bf6260",
+                                          "report":  "docs/temporal-opcode-research-journal.md",
+                                          "removed":  [
+                                                          "playground/scripts/benchmark-compiler-ownership.mjs",
+                                                          "playground/scripts/benchmark-compiler-workers.mjs",
+                                                          "playground/scripts/benchmark-parser.mjs",
+                                                          "playground/scripts/profile-diagnostics.mjs",
+                                                          "playground/scripts/benchmark-completion.mjs",
+                                                          "playground/scripts/benchmark-hover.mjs"
+                                                      ],
+                                          "reason":  "No current build, package, CI, test, documentation or report consumers; retained in Git history instead of porting standalone research probes.",
+                                          "checks":  "Repository-wide caller/artifact search and diff checks; production code and functional assertions unchanged. Reuse verified runtime checks.",
+                                          "javaScriptFiles":  172,
+                                          "javaScriptLines":  23353,
+                                          "javaScriptLinesRemovedFromBaseline":  1077,
+                                          "nonTowerLinesRemovedFromBaseline":  4431,
+                                          "nonTowerFilesRemovedFromBaseline":  66,
+                                          "temporalSourcesChanged":  false,
+                                          "runtimeAssetsChanged":  false
+                                      }
 }
