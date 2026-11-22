@@ -54,6 +54,7 @@ struct SemanticDeclaration {
     array_element: FoundationType;
     array_length: usize;
     array_result: FoundationType;
+    construction_owner: SemanticDeclaration*;
     expression_mode: SemanticExpressionMode;
     expected_type: FoundationType*;
     value: void*;
@@ -143,6 +144,8 @@ fn sem_array_type_add(c: SemanticContext*, node: void*, parent: SemanticDeclarat
     var result = sem_declaration_state(c, node);
     if result.query != 0 { sem_require(result.array_type); return result; }
     result.array_type = true;
+    result.construction_owner = parent.construction_owner ?? parent;
+    sem_require(result.construction_owner != null);
     result.scope = parent.scope;
     result.current = parent.current;
     result.lexical = parent.lexical;
@@ -1066,6 +1069,7 @@ fn sem_declaration_dispose(c: SemanticContext*): void {
             result.context = null;
             result.scope = null;
             result.current = null;
+            result.construction_owner = null;
             result.expected_type = null;
             result.value = null;
             result.lexical = default;
@@ -1589,6 +1593,14 @@ fn sem_declarations_execute(c: SemanticContext*, statements: vector(void*)*): vo
                 result.array_result = *sem_array_intern(c, &result.array_element, result.array_length);
                 result.array_ready = true;
                 sem_type_use(c, result.subject, &result.array_result);
+            }
+            // The originating declaration owns layouts created by child type
+            // queries, including arrays used only by sizeof/alignof/alloc.
+            // Its value type may be scalar and cannot reveal these operands.
+            if c.declaration_isolated && result.array_type {
+                for(var i = type_first; i < c.program.types.length; i++) {
+                    sem_push(&result.construction_owner.constructed, c.program.types.data[i]);
+                }
             }
             // Array identity does not require element layout. Making its
             // producer wait for the containing record's fields would create

@@ -41278,3 +41278,42 @@ retain execution, canonical reparsing and ordered diagnostic/cycle behavior.
 Evidence: generic-{work-pump,deferred-instance}-preflight.log and
 generic-copy-pump-native.log. This is a validated infrastructure checkpoint;
 constructor syntax/result continuations are still the next implementation.
+
+The shared clone checkpoint rebased onto documentation-only upstream changes and
+passed the documented native build, then was pushed as f5ca50e. Native SHA-256:
+b94418cdad42691a52980cdb853ec38c1229e696a2cb0d6a721792a83be357e9.
+Its source tree is 54f94d0e93cb26b90e3522713224de713fc2e535. The verified browser
+continues to identify 7503718.
+
+Follow-up audit found that the originating-producer distinction described above
+also exposes a bug in the published array milestone. A body-local inferred
+`var size=sizeof(i32[2]);` returned 0 instead of 8 when that array had no other
+layout consumer. Array identity queries correctly avoided waiting for layout,
+but their scalar-valued parent lost ownership of the newly created layout while
+the body barrier advanced layout_checked. A direct return used the structural
+path and still returned 8, so the broader fixture had not exposed the missing
+frontier. The reduced array_builtin_queries.tower run produced 0/0/16 for two
+body-local sizes and a module size.
+
+Array queries now carry their originating declaration through nested type
+queries and transfer newly created types to that producer's constructed frontier.
+Identity remains independent; the owner completes field/layout work before its
+receipt succeeds. Added fresh sizeof/alignof/nested-array extents to the shared
+body fixture, exercised at runtime and comptime. Small-unit preflight is running
+in array-owner-preflight.log. This correction is not yet validated/published;
+do not claim 7503718 handles these local sizeof cases correctly.
+
+The corrected native compiler now prints 8/12/16 for that reduced case. The
+expanded runtime/comptime success fixture and canonical reparsing pass at
+32/64 bits and 1/2/4/8 workers. Diagnostic/cycle groups are still finishing in
+array-owner-matrix.log; candidate self-compilation of the changed semantic unit
+is running in array-owner-self.log. This is an ownership/dependency correction:
+the requesting declaration completes the hidden type operand's layout, without
+forcing the nominal identity query to wait for its containing record's fields.
+
+The layout-ownership correction passes the complete matrix, including both
+diagnostic/cycle groups, and the candidate compiles its own changed semantic
+unit successfully. Evidence: array-owner-{preflight,matrix,self}.log. The reduced
+output is 8/12/16; fresh body-local sizeof/alignof/nested arrays also pass under
+ordinary execution and comptime. Publish this correction before extending the
+constructor continuations.

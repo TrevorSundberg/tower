@@ -662,5 +662,12 @@ fn query_arrays_fields(): i32 {
     value.nested[2][1] = 20;
     return value.first[0] + value.second[2] + value.nested[2][1];
 }
-if query_arrays_first() != 42 || query_arrays_second() != 42 || query_arrays_fields() != 42 { failures++; }
+fn query_array_layouts(): i32 {
+    var size = sizeof(i32[17]);
+    var alignment = alignof(i16[19]);
+    var nested = sizeof(i32[3][17]);
+    return size == 68 && alignment == 2 && nested == 204 ? 42 : 0;
+}
+if query_arrays_first() != 42 || query_arrays_second() != 42 || query_arrays_fields() != 42
+    || query_array_layouts() != 42 || comptime(query_array_layouts()) != 42 { failures++; }
 print(failures);
