@@ -43675,3 +43675,38 @@ Production switch removes lldCOFF and its C++ foreign call; Mach-O and host/SDK
 linkers remain. Before publication, complete clean successor/backend/browser
 validation, reference stack-probe linking and release checks. Unsupported COFF
 profiles are documented in backend/README.md rather than silently delegated.
+
+Integrated 6850468 (resumable compiler query pumps) before the clean build. Public
+bootstrap successor completed all 48 actual generation/link steps, backend API
+passed, and native/archive/runtime/interpreter plus native-to-Wasm linking passed.
+Browser cross/world/raw-memory matrix: 34/34, zero skips, 7.54 seconds. Actual
+browser-generated windows.exe prints 5/84/42/8/41/42 and library-windows.exe prints
+42 on Windows. Real shared-worker suite: 3/3, zero skips, 22.26 seconds. Two edited
+browser compiler generations passed at 2 and 4 workers, approximately 44.4/31.8
+seconds to the checking stage, sizes 1329133/35123620/61115835 (tower/llvm/cross).
+
+Final review against pinned lld/COFF/Chunks.cpp and Symbols.cpp found that COFF
+absolute symbols contain VAs, not RVAs. The restricted profile now rejects their
+RVA/PC-relative patches and exports rather than producing a wrong address;
+absolute ADDR32/ADDR64 retain their defined value. Added relocation-error cases
+for bounds, unknown kind, undefined target and this absolute/RVA boundary; all
+pass without partial output or retained world pins. A fixture initially used
+the reserved grammar word `expected` as a local; renaming it fixed compilation.
+The following build chain now stops on compiler failure, avoiding stale fixture
+executables; the final checks were rerun with the new compiled driver.
+
+Reference probe imports are emitted by the Tower test driver via
+`pe_link_driver probe.lib --probe-import`. SDK34 lld-link with the identical
+optimized/raw objects, runtime, kernel32.lib and probe.lib executes 42/50/42.
+Three alternating single-worker end-to-end tiny links: Tower below 0.01-second
+timer resolution, RSS 1928-1932 KiB; SDK34 lld-link 0.06 seconds each, RSS
+27292-27824 KiB. Tower image 17408 bytes versus LLD 16384. This is a small-fixture
+measurement, not a general parallel speedup claim; separate metadata sections
+explain remaining file padding. The final absolute-symbol validation changes
+require rebuilding the affected cross unit before publication.
+
+Publication coordination: the existing shared publish.lock still identifies
+agent1-parser-measurement-a3a28bb. Its Pages receipt exists at ad2214f; the owner
+has been notified through the existing coordinator inbox. Do not overwrite that
+lock or replace another publisher's runtime/receipts. Mach-O remains the next
+implementation boundary and host/SDK linkers remain afterward.

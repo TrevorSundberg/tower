@@ -25,6 +25,11 @@ fn pe_patch_one(link: PeLink*, object: PeObject*, patch: PePatch, output: u8*, e
         return pe_fail(error, PeError.Input, section.name, patch.offset);
     }
     var symbol = pe_patch_symbol(link, object, patch, error); if symbol == null { return false; }
+    // COFF absolute symbols contain VAs, whereas all normal definitions contain
+    // RVAs here. Do not silently reinterpret an absolute VA as a relative RVA.
+    if symbol.section == PeAbsolute && patch.kind != PeRelocation.Address64 && patch.kind != PeRelocation.Address32 {
+        return pe_fail(error, PeError.Unsupported, symbol.name, patch.offset);
+    }
     var addend = elf_uint(section.bytes, patch.offset, width);
     var value = symbol.rva;
     if patch.kind == PeRelocation.Address64 || patch.kind == PeRelocation.Address32 {

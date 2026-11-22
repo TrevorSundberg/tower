@@ -284,7 +284,8 @@ remains an ordinary imported jump thunk into kernelbase.dll.
 
 Other architectures, bigobj, weak externals, other COMDAT selection modes,
 TLS/CRT constructors, directives, delay imports, ordinal imports, resources and
-PDB/debug emission are not this profile; required unsupported behavior is
+PDB/debug emission are not this profile; absolute-symbol RVA/PC-relative patches
+and absolute exports are also rejected. Required unsupported behavior is
 diagnosed, with no LLD fallback. Discardable debug/link-remove inputs are omitted.
 Low-level requests are single-use and borrow inputs until close; the byte service
 creates a fresh world on retry and never publishes partial or stale output.

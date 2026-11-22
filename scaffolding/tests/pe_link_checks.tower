@@ -143,3 +143,25 @@ fn pe_check_byte_service(inputs: vector(ByteBuffer)*, probe: WasmBytes, referenc
     utility_check(backend_link_tower_pe(&backend, "x86_64-pc-windows-msvc") && backend.output.length == reference.output.length, "PE byte service retry uses fresh world");
     utility_check(!backend_link_tower_pe(&backend, "aarch64-pc-windows-msvc") && backend.output.length == 0, "PE target profile legality");
 }
+
+enum PePatchFailure: u32 { Bounds, Unsupported, Undefined, AbsoluteRelative, Count }
+fn pe_check_patch_errors(inputs: vector(ByteBuffer)*, probe: WasmBytes): void {
+    for (var at: u32 = 0; at < convert(u32, PePatchFailure.Count); at++) {
+        var kind = convert(PePatchFailure, at); var wanted = PeError.Unsupported;
+        var data: u8[8] = default; var link: PeLink = default; defer pe_link_close(&link); pe_check_load(&link, inputs, probe); link.workers = 4;
+        var object = link.objects.data[0].object;
+        var section: PeSection = { name: wasm_text_bytes(".rdata$bad"), bytes: { data: &data[0], length: sizeof(u8[8]) }, size: PeAddress, flags: PeRead | PeInitialized, alignment: PeAddress, ..default };
+        var section_index = object.sections.length; utility_check(vector_push(&object.sections, section), "PE invalid patch section");
+        var symbol_index = object.symbols.length; var symbol: PeSymbol = { name: wasm_text_bytes("elf_answer"), storage: PeStorage.External, ..default };
+        var patch: PePatch = { section: section_index, symbol: symbol_index, kind: PeRelocation.Rva32, ..default };
+        match kind {
+            PePatchFailure.Bounds => { patch.offset = PeAddress; wanted = PeError.Input; }
+            PePatchFailure.Unsupported => { patch.kind = convert(PeRelocation, ~convert(u16, 0)); }
+            PePatchFailure.Undefined => { symbol.name = wasm_text_bytes("missing_patch_symbol"); wanted = PeError.Undefined; }
+            PePatchFailure.AbsoluteRelative => { symbol.storage = PeStorage.Static; symbol.section = PeAbsolute; symbol.value = 42; }
+            _ => { abort(); }
+        }
+        utility_check(vector_push(&object.symbols, symbol) && vector_push(&object.patches, patch), "PE invalid patch input");
+        utility_check(!pe_link_run(&link) && link.error.kind == wanted && link.output.length == 0 && link.store.views == 0, "PE invalid relocation rejects without output or leaked pin");
+    }
+}

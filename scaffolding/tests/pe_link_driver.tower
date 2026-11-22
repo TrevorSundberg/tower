@@ -34,6 +34,15 @@ fn pe_test_file(path: u8*, data: ByteBuffer*): bool {
     data.length = convert(usize, length); return fread(data.data, 1, data.length, file) == data.length;
 }
 export fn main(argc: i32, argv: u8**): i32 {
+    // Emit precisely the same lazy OS import used by the byte service so the
+    // external reference linker receives identical inputs in differential runs.
+    if argc == 3 && wasm_bytes_text(wasm_text_bytes(argv[2]), "--probe-import") {
+        var archive: vector(u8) = default; defer vector_dispose(&archive);
+        utility_check(coff_import_archive(&archive, convert(u32, PeMachineX64), "__chkstk", "kernelbase.dll"), "reference probe import");
+        var file = fopen(argv[1], "wb"); utility_check(file != null, "probe import output");
+        var written = fwrite(archive.data, 1, archive.length, file);
+        utility_check(fclose(file) == 0 && written == archive.length, "probe import write"); return 0;
+    }
     var first_input: i32 = 3;
     if argc <= first_input { puts("usage: pe_link_driver output workers object-or-archive ..."); return 1; }
     var checks = wasm_bytes_text(wasm_text_bytes(argv[first_input]), "--checks"); if checks { first_input++; }
@@ -64,6 +73,7 @@ export fn main(argc: i32, argv: u8**): i32 {
     if checks {
         var probe_bytes: WasmBytes = { data: probe.data, length: probe.length };
         pe_check_inputs(&inputs, probe_bytes, &link); pe_check_patch_matrix(&inputs, probe_bytes); pe_check_byte_service(&inputs, probe_bytes, &link);
+        pe_check_patch_errors(&inputs, probe_bytes);
     }
     var file = fopen(argv[1], "wb"); utility_check(file != null, "PE output open");
     var written = fwrite(link.output.data, 1, link.output.length, file);

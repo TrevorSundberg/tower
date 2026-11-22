@@ -121,6 +121,7 @@ fn pe_layout_exports(link: PeLink*): bool {
     for (var at: usize = 0; at < link.exports.length; at++) {
         var name = link.exports.data[at]; var symbol = pe_link_lookup(link, name);
         if symbol == null { return pe_fail(&link.error, PeError.Undefined, name, 0); }
+        if symbol.section == PeAbsolute { return pe_fail(&link.error, PeError.Unsupported, name, 0); }
         if at != 0 && wasm_bytes_equal(link.exports.data[at - 1], name) { return pe_fail(&link.error, PeError.Duplicate, name, 0); }
         section.size += convert(u64, name.length) + 1;
     }
