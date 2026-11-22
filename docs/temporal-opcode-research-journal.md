@@ -46506,3 +46506,331 @@ and `root_coordination_served_manifest.json`. This local browser run overlapped
 some local worker activity; affected timing samples must not be treated as quiet
 performance comparisons. Correctness results and remote-host measurements are
 separate. The receipt changes no assets or build identity.
+### 2026-11-22 - L1 execution ownership audit begins
+
+Lane L1 reviews main 6282238779034442e0578d76b921ca117df819f1 in the independent
+Windows clone tower-agent-1. Read the current handoff, services, bootstrap/build
+contracts and newer type-value continuation; production helper readiness already
+exists. The per-file audit is docs/compiler_ecs_audit_L1.md and explicitly labels
+reviewed versus pending coverage. Primary Flecs systems/component-trait and Burst
+aliasing sources are linked there. No new evaluator, semantic IR or scheduler is
+proposed. todo.txt is untouched.
+
+Initial clean pull/rebase passed. Baseline build uses the public checked-in pin
+with TOWER_BOOTSTRAP_COMPILER unset: WSL Orchestral-Revng (Ubuntu 24.04.5,
+Linux x64 6.18.33.2, LLVM/Clang 19), TOWER_NATIVE_BUILD=/tmp/tower_l1_ecs_native,
+TOWER_BUILD_JOBS=2, build-native.sh with DRIVER/WORK/BACKEND tests enabled.
+The external local_build_owner.txt reserves this heavy build against L2. WSL
+has 15 GiB RAM and 4 GiB swap; Windows volume initially has 127.31 GiB free.
+The baseline log is C:/Sandbox/build/codex_ecs_20261122/L1/logs/baseline_build.log.
+Build/test success and acceptance are not yet claimed.
+
+Reading found a candidate terminal-state defect: execution_session_fail marks
+failed without done, and execution_session_start initializes before observing
+failed. A rejected envelope has no program root, so stepping that failed session
+may dereference absent graph state. Existing package tests step a cache mismatch
+with a reconstructed graph but do not step early envelope/NUL failures. Reproduce
+before fixing. Also inspect bounded source NUL handling and encoder failure output.
+These are audit findings/proposals, not implemented or experimentally confirmed
+behavior. Runtime measurements are inapplicable to this documentation; subsequent
+code changes will retain equivalent baseline/candidate evidence.
+
+L1 confirmed and fixed two failure paths using the same new Tower fixtures against
+baseline and candidate. Early rejected .towerbc + step terminates baseline by
+signal 11 (0.64s wall, 0.21s CPU, 90984 KiB RSS). Source emission for a checked
+indirect function graph likewise terminates by signal 11 (3.18s, 1.84s CPU,
+174540 KiB RSS). The existing function_values.tower CLI C-output path independently
+reproduces the latter. Fix execution_session_fail to make failure terminal and
+check failed/missing root before startup. Share deferred C/Roku index cleanup and
+return after failed collection, before traversal assumes supported direct calls.
+Focused rejection/source-rejection tests now pass, including reuse and preservation
+of the original graph. These failure-path timings do not establish a speedup.
+
+Retain initial test compilation failures: importing the emitter vector ABI beside
+host ByteBuffer ABI produced incompatible foreign declarations; direct declarations
+repeated that error, then a missing bytes import failed. Reuse driver_api and bytes
+interfaces; the corrected test unit compiles. All logs remain under external L1/logs.
+The first smallest-target probe selected parser-format.o (no work), while actual
+changed emitter closure parser-nodes.o builds in the successful full target run.
+No no-op was counted as a changed-unit validation.
+
+Native baseline and test executables pass default public-bootstrap compilation.
+WSL /tmp cache vanished between calls, breaking direct CMake reconfigure; reran
+into persistent /root/.cache/tower/l1_ecs_native, saved complete baseline compiler
+and resources separately. Repeated clean native: 103.00s wall, 158.15s user,
+19.60s system, 845804 KiB RSS. Test targets: 15.81s wall, 23.65s CPU, 336092 KiB RSS.
+query-smoke passes; core suite fails first historic literal fixture without import.
+D1 was notified; focused selectors do not close full-suite acceptance. Further
+bounded source/encoder regressions and valid-input profiles are next.
+
+Constructor integration is still a coordinated proposal. L1/L2 agree an invocation-
+private owner+sequence request, full FoundationType input/result, exactly-once
+operand capture and coordinator validation/publication after joins. A1 owns shared
+evaluation/context/lifecycle bridge; L1 owns interpreter API. Runtime constructor
+execution evaluates ordinary operands in order then fails for missing compile-stage
+capability across graph/cache/native/Wasm, while untaken/uncalled helpers remain
+valid. No new tag/API is adopted before formatter/backend agreement and public
+bootstrap publication. All acceptance, instrumentation and deployment gaps remain
+explicit in docs/compiler_ecs_audit_L1.md and external status.
+
+### 2026-11-22 L1 bounded execution input and package encoding evidence
+
+Integrated coordinator documentation-only main d3ec5a4 with
+`git -c rebase.autoStash=true pull --rebase`; all L1 edits survived. Compiler
+inputs from main were unchanged. No todo.txt edit, branch or publication.
+
+Focused baseline regressions reproduced two additional defects (exit 1, retained
+logs `L1/logs/bounds_baseline.*` and `encoder_baseline.*`): the session copied an
+explicitly bounded input but its NUL-terminated frontend silently accepted the
+prefix of a source containing NUL; invalid package profile returned null without
+clearing the caller's length. The encoder also lacked the reader's width policy
+and multiplied section sizes before bounds validation.
+
+Implemented in existing Tower paths: validate each owned snapshot for embedded
+NUL, preserve the first diagnostic and byte offset, release every snapshot on
+failure; reset encoded length before validation, reject unsupported width/profile
+and oversized source, and bound each cache section against the remaining package
+limit before multiplication/addition. This is host-buffer validation, not an
+implicit ownership or bounds policy for guest Foundation memory. New regression
+cases retain source length exclusion, terminal failures/reuse, invalid widths,
+maximum usize source length, and a valid checksummed encoding.
+
+The smallest changed interpreter unit and towerc/execution test targets compile
+with the public pin. `rejection`, `encoder-rejection`, `source-rejection` all pass
+on the candidate. The original `semantics` selector independently reproduces the
+missing-import fixture failure at its first multifile source; D1 explicitly
+reserved the complete execution fixture migration to L1. A focused pass does not
+close core/semantic/full-suite acceptance. Those literal fixtures will receive
+explicit imports and exact offset adjustments, never an ambient import in a
+shared compiler/test helper. Existing cached full-tree fingerprints are historical
+metadata, not a substitute for fresh canonical/output checks.
+
+Valid-input before/after measurement now uses the existing Tower driver runner,
+complete saved baseline compiler/resources and frozen current compiler/resources,
+under the local atomic heavy-build lock. C: has 138.59 GB free; WSL remains the
+actual approximately 15 GiB memory budget. No unmeasured improvement is claimed.
+The new fixes still need full merged native/browser/public-bootstrap validation,
+actual supported sanitizer coverage (coordinated with A2), publication and hosted
+verification. Constructor tag/API implementation still awaits final B2 agreement;
+B1 formatter and L2 schema have acknowledged the reached-op capability contract.
+
+### Valid-input boundary measurements before constructor integration
+
+WSL Ubuntu24.04.5, kernel6.18.33.2, Ryzen9 5900HX (8 cores/16 threads),
+Clang19.1.1. Saved public-build baseline compiler SHA256
+`36342c85f4febd28bb0897db63776ee5f2d0934561bdd1ff499e45e1cffc93e8`;
+boundary-fix candidate `e2819bbe5d367a3af267a24438b22b95fe03e58f33306a2faf75dbef5d20a5e7`.
+Complete resources remain beside each compiler. These measurements precede the
+new constructor opcode/context; they cannot validate that later change.
+
+Existing `tower-driver-tests --measure-semantics BEFORE AFTER SCAFFOLDING
+structs64` passed two warmups and nine alternating retained pairs with identical
+stdout `42/22/7`. Median wall 1.766102313 -> 1.772047220 s; compile phase
+1.349426308 -> 1.358445002 s; execution 4.079675 -> 4.123406 ms. Runner aggregate
+39.31 s wall,36.75 s CPU,196280 KiB maxRSS. This is effectively unchanged within
+observed samples, not evidence of improvement or multicore speedup. The runner
+uses its documented default compiler worker policy; it is not a controlled
+single-versus-multicore scaling experiment.
+
+Separate `functions.tower --jobs 1 --no-optimize --timings --emit c|bytecode`
+profiles used one warmup plus three retained fresh-process pairs, /usr/bin/time-v,
+no sibling workloads, identical frozen source/resources. C median wall
+1.48 ->1.46 s, CPU1.45 ->1.50 s, RSS170216 ->170224 KiB; bytecode wall
+1.61 ->1.68 s, CPU1.63 ->1.68 s, RSS173688 ->173816 KiB. All eight C outputs
+(including warmups) have SHA256
+`19ad3e04c3de36c23233818468ca53360150fef15bfea8881287fee2227288af`;
+all eight packages `fa2a8faf61dcb31fc855dbdc80227da8643a974f50f8323c20d924969930f63c`.
+The small package median increase is below the overlapping sample range and
+not an established regression; final joined feature profiles remain required.
+Peak RSS is process-level evidence; these timings do not count individual live
+allocations. Existing repeated entity-retention tests will supply that separate
+ownership evidence once the explicit-import fixture migration is validated.
+
+### Constructor interpreter primitives and isolated protocol evidence
+
+All owners acknowledged KTypeConstruct37 and TypeConstructionKind Integer0,
+Floating1,Pointer2,Array3 plus explicit compile-stage capability. Implemented only
+owned shared tags, IMContext/request structure, graph interpreter and private
+cache. Each request retains evaluation owner, monotone per-invocation sequence,
+subject, already evaluated numeric operands and full input/result descriptors.
+Pointer/array private indexes are decoded locally and removed from transport.
+The retained FinishValue task waits without replaying effects; after the joined
+coordinator delivers a result, only invocation-private type interning occurs.
+Failure receipts are terminal independently of ready. Context disposal releases
+the request diagnostic vector. No worker world interner, alternate evaluator,
+shared type registry or second authoritative graph was introduced.
+
+No capability check runs before operand effects. Graph runtime and cache opcode27
+both report `Type construction requires compile-stage capability` only when the
+operation is reached. Bytecode semantic/cache versions move to9/6; envelope1 and
+canonical Foundation authority are unchanged. The formatter, frontend producer,
+A1 ticket/bridge/pump and backend integration are other owners' pending changes.
+Optional known-value inference must not erase this runtime capability effect;
+only explicit compiler stages may grant it. No new syntax has been adopted in
+compiler/build/tool sources and no new public pin is claimed.
+
+The smallest interpreter unit compiles with the public predecessor. The dependent
+compiler and work-test runners link; execution test compilation initially failed
+because its new file omitted a direct execution_session import for strlen. Fixed
+that explicit import, retained failure log, rebuilt only the affected target.
+Focused `type-construction` passes widths4/8: ordinary effectful helper calls print
+1 then2, pending retries leave step/effect counts unchanged, the same node visited
+twice gets sequence1/2, returned descriptors relocate and consume the request,
+failed-without-ready receipts terminate, sequence overflow rejects, and fast
+runtime preserves the graph capability failure/output. Test graph changes occur
+only before dispatch or after invocation disposal. 2.76s wall,1.92s CPU,179344KiB
+RSS establishes focused coverage, not a speedup claim. Integrated optimized
+constant-operand/canonical/native/browser, concurrency and sanitizer evidence
+remain open. Full execution fixture migration is running; no broad pass yet.
+
+### L1 round-trip oracle repair and joined source integration (2026-11-22)
+
+Safely pulled `89d6038` after draining the broad core run. Existing remote
+`todo.txt` edits were preserved; this lane did not edit or stage that file.
+The broad run passed all 156 graph/cache trials (two widths, three step budgets),
+allocation/reallocation checks and canonical package reconstruction, then failed
+on the loop fixture's structural assertion. Total 4m11.66s wall,35.89s CPU,
+191300KiB peakRSS. Failure logs remain `L1/logs/core_imports.log/time`.
+
+A focused `core-static` selector avoided repeating those passing execution trials.
+The exact mismatch was generated declaration index4 versus5, with matching kind
+and name. Those compilation-local ordinals are derived, not binding identity.
+Root approved mapping graph node pairs first and verifying every binding against
+its exact paired target. The negative oracle redirects a compatible reference to
+a different declaration with the same spelling; it fails as expected, restores
+both borrowed names and the edge before cleanup, then passes the positive check.
+Two custom Core-grammar fixtures import Foundation because Tower already owns
+`++`; ordinary literal fixtures explicitly import Tower. The shared compiler does
+not silently inject a language import.
+
+Test construction exposed two retained failures: aggregate foreach requires an
+explicit borrow, and public predecessor compilation of inferred
+`vector_push(pairs, init(ExecutionNodePair){...})` terminated SIG11. A named typed
+local plus explicit `vector_push(ExecutionNodePair, pairs, pair)` compiles. This is
+an unfixed predecessor compiler limitation/bug, routed to root/L2. The first
+negative-oracle fixture used constant locals whose reads were optimized away;
+foreign-touched locals preserve real binding references. No production formatter
+change was needed for this structural failure.
+
+`core-static` now passes core language/generic/foreign/quoted/target round trips,
+16 repeated request entity-retention checks and independent-world execution and
+package cleanup:44.18s wall,5.50s user,4.87s system,320992KiB peakRSS. Diagnostic
+runner links explicitly frozen pre-A1/L2 compiler objects; object hashes and link
+command are retained. This validates the oracle/import repair against those
+objects, not newly integrated semantic source. The semantic corpus separately
+fails because an old negative fixture is accepted; its identifying diagnostic is
+added and awaits recompilation. No full semantic-suite pass is claimed.
+
+Applied owner-supplied A1 bridge, L2 producer v4/helper4args, B1 formatter fixtures
+and B2 lowering patches after checking them and draining builds. A1's refreshed
+bridge reverse-check passes, including its corrected extern ABI helper boundary;
+importing type_objects implementation into semantic_statements had duplicated all
+exports. The superseded L2 ABI-internal proposal was never applied here. Combined
+A1 source-proof/query hooks and L2 receipt-v2 fixtures are integrated but not yet
+linked. A1 retains proof/pump/shared-context ownership, L2 owns producer/generic
+classification; this lane does not claim authorship or validation of their fixes.
+
+Fast-cache initial allocation failure now records a terminal error before any
+cache dereference. Both factories, CLI early exit, IDE package preparation,
+short-circuit package matching, cache statistics and cleanup guard the pointer;
+ordinary stepping observes done/failed. Existing vector-buffer fault injection
+does not establish failure coverage for the initial raw alloc(FMState) call.
+Cache storage reporting now includes type_values capacity. These two small changes
+still await their own joined build; no allocation-failure or speedup claim.
+
+Root authorized package-version consumer changes. Audited version symbols and
+literal current-version documentation: browser package test and deployment
+verifier now expect container1/semantics9/cache6. New Tower fixture explicitly
+rejects previous semantics8 and cache5, restores bytes, and verifies the original
+checksum again. Existing browser malformed-version checks remain. Numeric and
+attribute docs label their earlier version numbers as historical introductions;
+README distinguishes current source from the still-published runtime. No old
+hosted assets were relabeled or run through the new-version verifier. Joined
+browser/source-generation/public-bootstrap, sanitizer, profiling and leased
+publication remain open acceptance work.
+
+### L1 semantic corpus distinguishes Foundation from Tower
+
+Three diagnostic-only runs preserved all failures. The first identifies unsigned
+`u64 = -1`: Tower's ordinary unary operation correctly wraps; original Foundation
+signed-literal rejection must import Foundation. The second reaches store/load
+wording: original `*a = 1` negative fixture requires Foundation's store grammar,
+whereas Tower diagnoses the unary load first. Those two fixtures now explicitly
+import Foundation, retaining exact expected errors and accounting for their actual
+import prefix in byte offsets. No production semantic rule changed.
+
+The third run advances through these cases to generic error fixture51. It reports
+`Expected i32, got bool; use an explicit conversion` and repeats the identical
+`Instantiated by bad(i32) at line 1, column 57.` trace twice. The exact oracle still
+requires one trace; it was not weakened. Log `semantics_store.log/time` records
+exit1,50.66s wall,8.61s CPU. Code review suggests sem_body_failure passes an already
+formatted worker error through sem_fail, which appends origin context again.
+A1 owns this path and received the minimal source and proposed receipt-copy
+approach (like sem_declaration_restore_error); no cross-owner fix applied by L1.
+
+Safely rebased to docs-only60741c5 with all edits preserved. This does not validate
+unpublished compiler source or reset unchanged runtime evidence. Version audit
+also found the browser download specification expecting semantics/cache2/2; it
+now expects9/6, preserving optimization-profile assertions1/2. All three changed
+JavaScript boundary files pass node --check. Their version checks must run against
+the new coherent browser runtime, not the published8/5 assets. The patch is
+exported as L1_version_consumers.patch. A2's Tower LLVM instrumenter/probes/docs
+are integrated by owner handoff; full native-unit/runtime instrumentation still
+requires D2 build-boundary integration. No sanitizer pass is claimed here.
+
+### L1 fast-cache follow-up and user-directed validation scope
+
+Public predecessor compilation of the smallest interpreter unit passes:
+5.02s wall,4.74s CPU,323772KiB peakRSS. Relinking the recorded existing compiler
+objects with that new interpreter passes type-construction at both widths
+(2.66s wall,1.85s CPU,183196KiB), encoder current/previous-version checks and
+terminal session rejection. These results validate the small allocation guard
+and statistics change in that snapshot, not the later shared type-module split.
+The guard's allocation-failure branch itself is reviewed, not fault-injected.
+
+The compact generic-call reproduction confirms the predecessor crashes while
+inferring vector_push's type from a nested named initializer. Supplying its type
+argument explicitly compiles and prints1 with the same initializer. L2 owns
+follow-up compiler diagnosis; the explicit spelling in the structural oracle is
+a workaround, not a claimed compiler fix. Existing logs remain preserved.
+
+The user then asked not to repeat the step associated with an app classification
+notice. L1 stopped deliberate invalid memory/threading experiments, released the
+idle build slot and informed the coordinator/L2. Ordinary compiler development,
+regression tests and performance work continue. Unperformed validation remains
+explicit; no scope change is described as a passing check.
+
+After all jobs drained, integrated the complete A1v2 bridge/shared data-module/
+fixture/query-object split. Exact prior bridge and fixture reverse-checks passed;
+new full patches matched the main index and the shared incremental patch matched
+its owner baseline. The new sem_restore_error copies formatted receipts without
+appending origin context again. The original case51 exact oracle is unchanged.
+Changed component declaration/import ownership requires fresh relevant units;
+previous diagnostic-only object mixtures cannot establish joined acceptance.
+
+### L1 joined A1v2 build and query checks
+
+Smallest public-predecessor units pass: semantics_checks24.49s wall/20.89s CPU/
+796832KiB peakRSS; evaluation_query_checks3.77s/3.03s/216280KiB. The established
+normal build-native.sh then passes52 steps with compilerjobs1/outerjobs2,
+112.53s wall/165.23s CPU/797344KiB. Execution and work runners link in five further
+steps. This is a development build from main60741c5 plus recorded source patch
+and untracked hashes, with no private bootstrap override or successor adoption.
+Its compiler SHA256 is
+`0e4e64b1036621d282568aaab429a170f4ca5e403aba170d66e5d57b105f38e1`.
+Build timing is not an equivalent-input speedup comparison.
+
+Joined query-smoke passes widths4/8 and serial/threaded cases, including the
+A1 source-proof and L2 receipt hooks:0.20s wall/0.17s CPU/61164KiB. The semantic
+corpus now passes exact case51 with one instantiation trace, confirming A1's
+formatted-receipt fix. It then fails historical expected parser text at case52:
+the boolean compile-time parameter is rejected by its current semantic contract
+with `Compile-time value parameters currently require an integer type` at
+entrybase+28. Updated exact expectation/relative offset14, preserving rejection;
+that new expectation awaits rerun. Full corpus is not passed. Logs and failed
+50.07s run remain. Drained all jobs and released the lock before fixture edits.
+
+This L1 snapshot deliberately does not adopt L2's still-unaccepted generic-call
+classification candidate. Its successful query receipts do not establish complete
+source constructor support, final performance, whole-compiler lifetime/thread
+validation, public pin, deployment or hosted verification.

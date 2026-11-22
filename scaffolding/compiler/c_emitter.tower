@@ -22,6 +22,14 @@ struct CEmitter {
     comments: bool;
 }
 
+fn ce_dispose(c: CEmitter*): void {
+    vector_dispose(&c.nodes);
+    vector_dispose(&c.owners);
+    vector_dispose(&c.active);
+    vector_dispose(&c.returning);
+    if c.error.length != 0 { c.text.length = 0; }
+}
+
 fn ce_text(c: CEmitter*, text: u8*): void {
     sem_require(bytes_append(c.text, text, frontend_source_length(text)));
 }
@@ -352,7 +360,7 @@ fn ce_value_kind(n: FoundationNode*): bool {
 }
 
 fn ce_collect(c: CEmitter*, entity: void*, owner: void*): void {
-    if entity == null {
+    if entity == null || c.error.length != 0 {
         return;
     }
     if ce_id(c, entity) < c.nodes.length {
@@ -371,6 +379,7 @@ fn ce_collect(c: CEmitter*, entity: void*, owner: void*): void {
     if n.kind == KTypeReference || n.type.scalar == SType || n.element.scalar == SType {
         ce_fail(c, "This source backend does not yet implement type values; use LLVM native/Wasm output");
     }
+    if c.error.length != 0 { return; }
     if n.kind == KFunction {
         owner = entity;
     }
@@ -1174,7 +1183,9 @@ fn ce_body(c: CEmitter*, entity: void*, program: bool): void {
 
 export fn c_emit(text: vector(u8)*, error: vector(u8)*, root: void*, pointer_bytes: u32, comments: bool): void {
     var c: CEmitter = { text: text, error: error, pointer_bytes: pointer_bytes, comments: comments, ..default };
+    defer ce_dispose(&c);
     ce_collect(&c, root, root);
+    if error.length != 0 { return; }
     ce_reachable(&c, root);
     ce_text(&c, "/* Tower generated C. Compile: cc -std=c89 -pedantic -Wall -Wextra -O2 program.c */\n");
     ce_text(&c, "#define TC_POINTER_BYTES ");
@@ -1237,11 +1248,4 @@ export fn c_emit(text: vector(u8)*, error: vector(u8)*, root: void*, pointer_byt
     ce_text(&c, "int main(void)\n{\n");
     ce_body(&c, root, true);
     ce_text(&c, "#ifdef __cplusplus\n}\n#endif\n");
-    vector_dispose(&c.nodes);
-    vector_dispose(&c.owners);
-    vector_dispose(&c.active);
-    vector_dispose(&c.returning);
-    if error.length != 0 {
-        text.length = 0;
-    }
 }
