@@ -46359,3 +46359,40 @@ Cross-lane capability/formatter/backend agreement and ABI readiness hooks remain
 tracked before adoption. No lane or overall compiler completion is claimed.
 These are coordination/documentation changes; no coordinator-authored executable
 input changed, so coordinator runtime performance measurements are inapplicable.
+
+### 2026-11-22: B2 isolated serial-transport linker publication
+
+The intentional single-owner instrumented allocator links the portable serial
+work transport, which defines no `work_thread_entry`. Unconditional semantic
+library callback exports therefore made `tower-frontend-tests` fail to link.
+A2 and D2 acknowledged the narrow fix: mark final serial consumers and gate the
+callback export; preserve production threaded transport. The explicitly serial
+worker test also removes its absent callback export. Source `274a898` contains
+only this CMake correction and its validation note above main `60312d3`.
+
+Under lease `B2_SERIAL_EXPORT_20261122`, B2 stashed all ongoing cache/compiler and
+audit edits before exact-source validation. The earlier focused runtime tests had
+included an unpublished cache optimization and are development evidence only.
+The exact snapshot regenerated profiles, rebuilt the original parser and linked
+the serial frontend and production unit runners with the public Linux x64 pin.
+Build wall/user/system seconds were 17.935/13.574/2.579. The explicit editor check
+passed (21.396/11.661/1.329); worker-instrumented/native-units/editor-units CTests
+all passed (27.023/34.639/4.179), including actual unit overlap. Dynamic symbol
+inspection confirms production still exports the callback and serial targets do
+not. Logs: `build/b2_serial_exact_build.log` and
+`build/b2_serial_exact_validation.log`; details and limits are in
+[serial transport checks](compiler_serial_transport_checks.md).
+
+The dedicated Linux container uses affinity 12–23 and 24 GiB; its cumulative
+memory peak remained 1,133,895,680 bytes, not a fresh per-test RSS measurement.
+Runtime algorithms are unchanged, so runtime performance comparison and a new
+runtime build are inapplicable to this build-boundary publication. Existing
+recipes still use implicit compiler worker admission; D2 owns that separate fix.
+No threaded sanitizer evidence is claimed. The broad B2 audit, cache milestone,
+shared budgets and constructor work remain unfinished and outside this lease.
+
+The publication reuses the latest verified Pages tree and original runtime build
+identity, preserving concurrent receipts and CNAME. Full-history Pages fetches
+were stopped and drained after making no useful progress; a single-snapshot
+fetch avoids downloading obsolete binary history. Source and runtime-build
+ancestry, atomic refs and hosted verification are checked before lease release.
