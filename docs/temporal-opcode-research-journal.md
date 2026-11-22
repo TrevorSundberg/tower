@@ -41611,3 +41611,15 @@ bytes. Reuse its unchanged process/argv and native/WASI orchestration evidence;
 do not claim the failing pre-rebase WASI semantic fingerprint suite passed or
 was rerun against the later compiler sources. No browser runtime is rebuilt for
 this tooling receipt. Latest inspected Pages base is c4d1c1be (runtime f13b167).
+
+The publication pull then receives bf14704's retained structural-constructor
+failure correction. The production-source guard stops the push. Implementation
+rebases to 43befe5, validation to d18a78f; freeze d18a78f in
+/cache/core_tool_final_checkout and repeat a clean default public successor in
+/cache/core_tool_final_native. All 48 steps and the 32/64-bit/native/Wasm memory
+smoke pass. Final compiler SHA256:
+675245e78ef0b20b4f3e155916dbc144ccdbfb7c870044d81b5d8eec146cc658.
+No tool source/import changed in this second rebase. Failure probes additionally
+confirm missing CMake creates no build directory, and configure failure creates
+no Ninja build output. Keep the separately recorded WASI fingerprint failure
+visible; these successor checks do not turn that suite into a passing result.
