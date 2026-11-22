@@ -4,6 +4,9 @@ import storage_api;
 import utility_checks;
 import .library.vector;
 
+extern fn printf(format: u8*, index: usize, begin: usize, end: usize, source: usize,
+    actual_begin: usize, actual_end: usize, actual_source: usize): i32;
+
 // Frozen exact text and ordered spans, independently checked against unchanged
 // native format-seed.cpp from 3167766 (SHA-256 recorded in the project journal).
 // Generated names deliberately contain NUL, represented as bytes rather than a
@@ -23,20 +26,50 @@ fn format_fixture_text(actual: FormatResult*, text: u8*, count: usize): void {
 }
 fn format_fixture_span(actual: FormatResult*, index: usize, begin: usize, end: usize, source: usize): void {
     var span = &actual.spans.data[index];
+    if span.begin != begin || span.end != end || span.source != source {
+        printf("Span %llu: wanted (%llu,%llu,%llu), got (%llu,%llu,%llu)\n", index,
+            begin, end, source, span.begin, span.end, span.source);
+    }
     utility_check(span.begin == begin && span.end == end && span.source == source, "Frozen formatter reference ordered span triple");
 }
 
 // Canonical Foundation spells physical representations independently of names.
 // Source-format fixtures below retain their frozen spelling and exact spans.
+// This independent declaration table tracks the current types.tower prelude;
+// each helper contributes its function and return-statement spans.
+struct FormatCanonicalDeclaration { text: u8*; spans: usize; }
+
 fn format_fixture_canonical(actual: FormatResult*, body: u8*, count: usize): void {
-    var prelude = "import foundation_syntax;\n\n/* Signedness is part of the primitive representation contract, not a host*/\n/* promotion rule. Widths are target bits; supported widths are 8, 16, 32 and 64.*/\nvar i8: type = integer_type(8, 1);\n\nvar u8: type = integer_type(8, 0);\n\nvar i16: type = integer_type(16, 1);\n\nvar u16: type = integer_type(16, 0);\n\nvar i32: type = integer_type(32, 1);\n\nvar u32: type = integer_type(32, 0);\n\nvar i64: type = integer_type(64, 1);\n\nvar u64: type = integer_type(64, 0);\n\nvar f32: type = float_type(32);\n\nvar f64: type = float_type(64);\n\nvar bool: type = boolean_type();\n\nvar void: type = empty_type();\n\n/* This representation takes its width from the explicit target description.*/\nvar usize: type = address_type();\n\n";
+    var prelude = "import foundation_syntax;\n\n/* Signedness is part of the primitive representation contract, not a host*/\n/* promotion rule. Widths are target bits; supported widths are 8, 16, 32 and 64.*/\n";
+    var declarations: FormatCanonicalDeclaration[15];
+    declarations[0] = { text: "fn signed_integer(width: address_type()): type_type() {\n    return integer_type(width, 1);\n}\n\n", spans: 2 };
+    declarations[1] = { text: "fn unsigned_integer(width: address_type()): type_type() {\n    return integer_type(width, 0);\n}\n\n", spans: 2 };
+    declarations[2] = { text: "var i8: type = integer_type(8, 1);\n\n", spans: 1 };
+    declarations[3] = { text: "var u8: type = integer_type(8, 0);\n\n", spans: 1 };
+    declarations[4] = { text: "var i16: type = integer_type(16, 1);\n\n", spans: 1 };
+    declarations[5] = { text: "var u16: type = integer_type(16, 0);\n\n", spans: 1 };
+    declarations[6] = { text: "var i32: type = integer_type(32, 1);\n\n", spans: 1 };
+    declarations[7] = { text: "var u32: type = integer_type(32, 0);\n\n", spans: 1 };
+    declarations[8] = { text: "var i64: type = integer_type(64, 1);\n\n", spans: 1 };
+    declarations[9] = { text: "var u64: type = integer_type(64, 0);\n\n", spans: 1 };
+    declarations[10] = { text: "var f32: type = float_type(32);\n\n", spans: 1 };
+    declarations[11] = { text: "var f64: type = float_type(64);\n\n", spans: 1 };
+    declarations[12] = { text: "var bool: type = boolean_type();\n\n", spans: 1 };
+    declarations[13] = { text: "var void: type = empty_type();\n\n", spans: 1 };
+    declarations[14] = { text: "/* This representation takes its width from the explicit target description.*/\nvar usize: type = address_type();\n\n", spans: 1 };
     var text: vector(u8) = default;
     defer vector_dispose(&text);
     for(var i: usize = 0; i < strlen(prelude); ++i) { utility_check(vector_push(&text, prelude[i]), "Canonical prelude fixture"); }
+    for(var i: usize = 0; i < sizeof(decltype(declarations)) / sizeof(FormatCanonicalDeclaration); i++) {
+        var declaration = &declarations[i];
+        for(var byte: usize = 0; byte < strlen(declaration.text); byte++) {
+            utility_check(vector_push(&text, declaration.text[byte]), "Canonical declaration fixture");
+        }
+        count += declaration.spans;
+    }
     for(var i: usize = 0; i < strlen(body); ++i) { utility_check(vector_push(&text, body[i]), "Canonical body fixture"); }
     utility_check(vector_push(&text, 0), "Canonical fixture terminator");
-    var StandardTypeBindingCount: usize = 13;
-    format_fixture_text(actual, text.data, count + StandardTypeBindingCount);
+    format_fixture_text(actual, text.data, count);
 }
 fn format_fixture_check(id: usize, actual: FormatResult*): void {
     if id == 0 {

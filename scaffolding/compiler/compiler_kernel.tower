@@ -16,20 +16,25 @@ struct CompilerKernel {
 // happen outside it. Finite isolated kernels need no semaphore trip when alone.
 fn compiler_kernel_dispatch(T: type, pool: WorkPool*, jobs: T**, count: usize): bool {
     if count == 0 { return true; }
-    if pool.running != 0 || pool.count == 0 { return false; }
-    defer compiler_kernel_join(pool);
-    for(var next: usize = 0; next < count; next++) {
-        if !compiler_kernel_send(pool, &jobs[next].kernel, count == 1) { return false; }
-    }
-    return compiler_kernel_join(pool);
+    // The existing capacity is a total lane ceiling, including this caller.
+    var extra = pool.count == 0 ? convert(usize, 0) : pool.count - 1;
+    return compiler_kernel_dispatch_admitted(pool, jobs, count, extra);
 }
 
-// Only typed component-to-kernel projection is generic. Keep the transport and
-// failure draining shared instead of compiling them once for every job type.
-fn compiler_kernel_send(pool: WorkPool*, kernel: CompilerKernel*, inline: bool): bool {
-    if inline { pool.execute(bits(void*, kernel)); return true; }
-    if pool.running == pool.count && work_pool_receive(pool, true) == null { return false; }
-    return work_pool_submit(pool, bits(void*, kernel));
+// The caller already owns its executing lane and reserves extra_lanes before
+// dispatch. Retained pool slots are capacity, not entitlement. This helper
+// borrows the grant; its owner publishes stages/releases leases before returning
+// the reservation. Zero extras keep finite work inline without waiting for a
+// permit. Workers and caller use the same isolated pre-leased job components.
+fn compiler_kernel_dispatch_admitted(T: type, pool: WorkPool*, jobs: T**, count: usize,
+    extra_lanes: usize): bool {
+    if count == 0 { return true; }
+    if pool.running != 0 || pool.count == 0 { return false; }
+    // A concrete T has one fixed kernel member offset. Share the serial loop
+    // as well as parallel transport across component types; the projection
+    // adds neither a second pointer array nor an aliasing guarantee.
+    var offset = bits(usize, &jobs[0].kernel) - bits(usize, jobs[0]);
+    return work_pool_batch(pool, bits(void**, jobs), count, offset, extra_lanes);
 }
 
 fn compiler_kernel_join(pool: WorkPool*): bool {

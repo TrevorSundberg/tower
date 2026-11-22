@@ -21,6 +21,6 @@ fn format_wasi_baseline(path: u8*, bedrock: bool): void {
 }
 export fn __main_argc_argv(argc: i32, argv: u8**): i32 {
     format_wasi_baseline("bedrock.tower", true); format_wasi_baseline("foundation.tower", false);
-    formatter_tests();
+    formatter_tests(".");
     return 0;
 }

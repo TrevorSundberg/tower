@@ -3,6 +3,7 @@ import tower;
 // Bound retained private stages independently of the host worker count.
 // Workers refill within this window; structural publication ends the window.
 var SemanticPreparationWindow: usize = 256;
+var BodyPreparationWindow: usize = 256;
 
 // Phase pumps join their workers before returning. Waiting is not proof of a
 // cycle: a different phase may own the unfinished producer.
@@ -16,7 +17,7 @@ enum SemanticQuery: u32 {
     ArrayType, TypeConstruction, IterationResolution, BodyDiscovery, IntegerArgument,
     KnownSnapshot,
     ExecutableFunction, BodyInputs, SourceBindings, SourceBindingProof, CaptureInput,
-    BodyPrefix, CheckedBinding
+    BodyPrefix, CheckedBinding, TypeExecution
 }
 
 enum SemanticWorkDomain: u64 { Compiler = 1 }

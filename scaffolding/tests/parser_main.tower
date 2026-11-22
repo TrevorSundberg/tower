@@ -16,7 +16,7 @@ extern fn interpreter_storage_tests(): i32;
 extern fn tower_tests(): void;
 extern fn parser_tests(): void;
 extern fn syntax_tests(): void;
-extern fn formatter_tests(): void;
+extern fn formatter_tests(resource_root: u8*): void;
 extern fn compiler_storage_tests(): void;
 extern fn regex_tests(): void;
 extern fn syntax_lexer_tests(): void;
@@ -26,7 +26,7 @@ extern fn syntax_validation_tests(): void;
 extern fn lr_analysis_tests(): void;
 extern fn lr_grammar_tests(): void;
 extern fn shared_entity_tests(): void;
-extern fn entity_registry_tests(): void;
+extern fn entity_registry_tests(resource_root: u8*): void;
 extern fn syntax_native_bedrock(): void*;
 extern fn syntax_component_type(): void*;
 extern fn syntax_emission_tests(input: SyntaxEmissionInput*): usize;
@@ -131,7 +131,7 @@ fn parser_main(argc: i32, argv: u8**): i32 {
     status = host_support_tests(); if status != 0 { parser_main_failure("Tower transport test failed: ", convert(i64, status)); return 1; }
     status = interpreter_storage_tests(); if status != 0 { parser_main_failure("Tower interpreter storage test failed: ", convert(i64, status)); return 1; }
     if host_only { puts("Tower host and interpreter storage tests passed."); return 0; }
-    tower_tests(); parser_tests(); syntax_tests(); formatter_tests(); compiler_storage_tests(); regex_tests(); syntax_lexer_tests(); syntax_nodes_tests(); syntax_reader_tests(); syntax_validation_tests();
+    tower_tests(); parser_tests(); syntax_tests(); formatter_tests("."); compiler_storage_tests(); regex_tests(); syntax_lexer_tests(); syntax_nodes_tests(); syntax_reader_tests(); syntax_validation_tests();
     var emission: SyntaxEmissionInput; fill(&emission, 0, sizeof(SyntaxEmissionInput));
     emission.root = syntax_native_bedrock(); emission.syntax_kind = syntax_component_type(); emission.rule_kind = parser_rule_get_type();
     emission.reference_kind = parser_reference_get_type(); emission.string_kind = parser_string_get_type(); emission.range_kind = parser_range_get_type();
@@ -140,5 +140,5 @@ fn parser_main(argc: i32, argv: u8**): i32 {
     utility_check(failure == 0, "Tower grammar emission test"); failure = parser_main_expansion();
     if failure != 0 { parser_main_failure("Tower replacement expansion test failed: ", convert(i64, failure)); }
     utility_check(failure == 0, "Tower replacement expansion test");
-    lr_analysis_tests(); shared_entity_tests(); entity_registry_tests(); puts("Tower and parser tests passed."); return 0;
+    lr_analysis_tests(); shared_entity_tests(); entity_registry_tests("."); puts("Tower and parser tests passed."); return 0;
 }

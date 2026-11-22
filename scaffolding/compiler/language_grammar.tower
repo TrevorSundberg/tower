@@ -1,3 +1,5 @@
+import completion_types;
+import language_grammar_types;
 import tower;
 import component_kinds;
 import language_components;
@@ -12,17 +14,6 @@ import semantic_context;
 import semantic_modules;
 import semantic_support;
 import .library.vector;
-
-// Disposable references into the shared grammar entities, captured at each
-// declaration boundary. Later overrides cannot rewrite an earlier hover.
-// A template retains its actual compiled tree followed by its ordered holes.
-struct LanguageGrammar {
-    node: void*;
-    targets: vector(void*);
-    total: usize;
-    category: vector(u8);
-    matched: bool;
-}
 
 extern fn syntax_inspection_match(session: void*, node: void*): void*;
 

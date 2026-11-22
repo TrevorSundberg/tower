@@ -1,4 +1,7 @@
+import completion_types;
+import language_grammar_types;
 import tower;
+import semantic_context_types;
 import component_kinds;
 import semantic_types;
 import language_query;
@@ -75,6 +78,9 @@ fn language_foundation_present(node: void*, candidate: LanguageCandidate*): void
         }
     }
     var kind = value.kind;
+    if kind == KTypeConstruct {
+        candidate.description = language_type_construction_description(value.op);
+    }
     var selected = kind == KProgram;
     if selected {
         candidate.structural = true;
@@ -299,6 +305,9 @@ fn language_kind(value: FoundationNode*): u8* {
     }
     if value.kind == KCall {
         return "call";
+    }
+    if value.kind == KTypeConstruct {
+        return "primitive type constructor";
     }
     if value.kind == KOperand {
         var member = value.constant;

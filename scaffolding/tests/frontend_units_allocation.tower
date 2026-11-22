@@ -1,0 +1,46 @@
+import tower;
+import frontend_units_memory;
+import .library.work_budget;
+import .library.work_budget_types;
+
+extern fn tower_test_buffer_fail_after(count: usize): void;
+extern fn tower_test_buffer_count(): usize;
+extern fn work_thread_available(): bool;
+
+// Link only with the existing serial allocator profile. The production overlap
+// suite uses the ordinary allocator; these counters are deliberately single-owner.
+export fn frontend_units_allocation_tests(bedrock: u8*, foundation: u8*, root: u8*): void {
+    units_memory_check(!work_thread_available(), "Snapshot failure checks require serial allocator transport");
+    var baseline = tower_test_buffer_count();
+    var source = "import tower; fn answer():i32{return 42;}";
+    var path = "allocation.tower";
+    var resources = strlen(bedrock) + strlen(foundation) + strlen(root) + 3;
+    var input = strlen(path) + strlen(source) + 2;
+    var batch = frontend_units_create_bounded(1, 1, resources + input * 2, 8, 1, 1,
+        bedrock, foundation, root);
+    units_memory_check(batch != null && frontend_units_source(batch, 1, path, source, strlen(source)),
+        "Allocation regression owns its initial source");
+    // Prime the ledger's replacement slot so fail_after selects snapshot storage,
+    // independently of the ledger vector's growth policy.
+    var receipt: WorkReservation = default;
+    var budget = frontend_units_work_budget(batch);
+    units_memory_check(work_budget_reserve_result(budget, 0, 0, 1, &receipt) == WorkBudgetError.None
+        && work_budget_release_result(budget, &receipt) == WorkBudgetError.None, "Replacement receipt slot");
+    var before = units_memory_snapshot(batch);
+    var buffers = tower_test_buffer_count();
+    for(var allowed: usize = 0; allowed < 2; allowed++) {
+        tower_test_buffer_fail_after(allowed);
+        var replaced = frontend_units_source(batch, 1, "invalid.tower", "@", 1);
+        tower_test_buffer_fail_after(~convert(usize, 0));
+        var after = units_memory_snapshot(batch);
+        units_memory_check(!replaced && after.used_bytes == before.used_bytes
+            && after.used_lanes == before.used_lanes && after.live == before.live
+            && tower_test_buffer_count() == buffers,
+            "Failed first/second snapshot allocation restores buffers and receipts");
+    }
+    while !frontend_units_step(batch, true) {}
+    units_memory_check(!frontend_units_cancelled(batch) && frontend_units_failed(batch) == 0,
+        "Old source remains configured after partial replacement allocation failure");
+    frontend_units_close(batch);
+    units_memory_check(tower_test_buffer_count() == baseline, "Snapshot allocation fixture releases ownership");
+}

@@ -1,3 +1,5 @@
+import completion_types;
+import language_grammar_types;
 import tower;
 import completion;
 import language_query;
@@ -8,6 +10,7 @@ import semantic_support;
 import semantic_types;
 import format_types;
 import foundation_types;
+import foundation_tags;
 import frontend_compilation;
 import inspection_policy;
 import source_comments;
@@ -128,6 +131,23 @@ fn language_generic_description(info: GenericInfo*): u8* {
     return "Describes which values can be stored here.";
 }
 
+// Both dependent previews and checked operations describe the same primitives.
+fn language_type_construction_description(kind: u32): u8* {
+    if kind == convert(u32, TypeConstructionKind.Integer) {
+        return "Constructs an integer type. Width is 8, 16, 32 or 64 bits; signedness is 0 for unsigned or 1 for signed.";
+    }
+    if kind == convert(u32, TypeConstructionKind.Floating) {
+        return "Constructs a floating-point type with a width of 32 or 64 bits.";
+    }
+    if kind == convert(u32, TypeConstructionKind.Pointer) {
+        return "Constructs a raw pointer type for the supplied element type.";
+    }
+    if kind == convert(u32, TypeConstructionKind.Array) {
+        return "Constructs an inline array type from an element type and an element count.";
+    }
+    return null;
+}
+
 fn language_generic_present(q: CompletionQuery*, node: void*, candidate: LanguageCandidate*): void {
     var info = generic_info(node, q.generic_info);
     candidate.generic = info;
@@ -136,14 +156,14 @@ fn language_generic_present(q: CompletionQuery*, node: void*, candidate: Languag
     if info.kind == GenericInfoKind.PrimitiveType {
         var name = sem_identifier(&q.context, sem_member(info.declaration, "name"));
         if sem_equal(name, "integer_type") {
-            candidate.description = "Constructs an integer type. Width is 8, 16, 32 or 64 bits; signedness is 0 for unsigned or 1 for signed.";
+            candidate.description = language_type_construction_description(convert(u32, TypeConstructionKind.Integer));
         }
-        if sem_equal(name, "float_type") { candidate.description = "Constructs a floating-point type with a width of 32 or 64 bits."; }
+        if sem_equal(name, "float_type") { candidate.description = language_type_construction_description(convert(u32, TypeConstructionKind.Floating)); }
         if sem_equal(name, "address_type") { candidate.description = "Constructs the target's unsigned address-sized integer type."; }
         if sem_equal(name, "boolean_type") { candidate.description = "Constructs the boolean type, whose values are true and false."; }
         if sem_equal(name, "empty_type") { candidate.description = "Constructs the type with no value, used for functions that return no result."; }
-        if sem_equal(name, "pointer_type") { candidate.description = "Constructs a raw pointer type for the supplied element type."; }
-        if sem_equal(name, "array_type") { candidate.description = "Constructs an inline array type from an element type and a compile-time element count."; }
+        if sem_equal(name, "pointer_type") { candidate.description = language_type_construction_description(convert(u32, TypeConstructionKind.Pointer)); }
+        if sem_equal(name, "array_type") { candidate.description = language_type_construction_description(convert(u32, TypeConstructionKind.Array)); }
     }
     candidate.structural = false;
 }

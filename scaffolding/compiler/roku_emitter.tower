@@ -767,11 +767,13 @@ export fn roku_emit(text: vector(u8)*, error: vector(u8)*, root: void*, pointer_
     r.common.text = text;
     r.common.error = error;
     r.common.comments = comments;
+    defer ce_dispose(&r.common);
     if pointer_bytes != 4 {
         re_fail(&r, "Roku source requires the explicit 32-bit little endian profile");
         return;
     }
     ce_collect(&r.common, root, root);
+    if error.length != 0 { return; }
     re_text(&r, "' Tower Roku profile 1: 32-bit byte addresses, exact integer arithmetic.\n' Generated platform source; canonical Foundation remains the program format.\n' Call TowerRun() from Main or a SceneGraph Task. Physical-device validation pending.\n\n");
     re_runtime(&r);
     re_text(&r, "function TowerRun(output = invalid as dynamic, memoryLimit = 67108864 as integer) as object\n    s = tr_state(output, memoryLimit)\n");
@@ -850,12 +852,5 @@ export fn roku_emit(text: vector(u8)*, error: vector(u8)*, root: void*, pointer_
     }
     if lines > 60000 {
         re_fail(&r, "Roku source exceeds the 60000-line profile limit; split the program");
-    }
-    vector_dispose(&r.common.nodes);
-    vector_dispose(&r.common.owners);
-    vector_dispose(&r.common.active);
-    vector_dispose(&r.common.returning);
-    if error.length != 0 {
-        text.length = 0;
     }
 }

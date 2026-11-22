@@ -15,7 +15,7 @@ import .library.bytes_interface;
 import .compiler.semantic_program_types;
 import .compiler.foundation_types;
 
-extern fn frontend_units_create(count: usize, budget: usize, width: u32, revision: u64,
+extern fn frontend_units_create_bounded(count: usize, budget: usize, retained_bytes: usize, width: u32, revision: u64,
     profile: u64, bedrock: u8*, foundation: u8*, library: u8*): void*;
 extern fn frontend_units_source(batch: void*, ordinal: usize, path: u8*, text: u8*, length: usize): bool;
 extern fn frontend_units_environment(batch: void*, ordinal: usize): void*;
@@ -106,22 +106,32 @@ fn driver_units_compile(request: DriverRequest*, timing: DriverTiming*): i32 {
     // A fresh request owns revision one; target width is an explicit profile
     // input. No cross-request cache or host-dependent evaluation is introduced.
     var width = backend_pointer_bytes(target);
-    batch.frontend = frontend_units_create(count, budget, width, 1, convert(u64, width),
+    batch.frontend = frontend_units_create_bounded(count, budget, options.unit_retained_bytes, width, 1, convert(u64, width),
         request.text[DriverBedrockText].data, request.text[DriverFoundationText].data, request.root);
-    if batch.frontend == null { driver_error("Unable to allocate compilation unit graph", ""); return 1; }
+    if batch.frontend == null { driver_error("Unable to create compilation units: check --unit-retained-bytes and allocation capacity", ""); return 1; }
     for (var i: usize = 0; i < count; i++) {
         var input = &batch.inputs.data[i];
         var path = driver_units_path(options, i);
-        if !frontend_units_source(batch.frontend, i + 1, path, input.data, input.length) {
-            driver_error("Cannot snapshot compilation unit (allocation failure or NUL byte): ", path); return 1;
+        var absolute: ByteBuffer = default;
+        defer bytes_dispose(&absolute);
+        if !driver_platform_absolute(path, &absolute) {
+            driver_error("Cannot resolve compilation unit path: ", path); return 1;
         }
-        driver_request_configure_modules(request, frontend_units_environment(batch.frontend, i + 1), path);
+        if !frontend_units_source(batch.frontend, i + 1, absolute.data, input.data, input.length) {
+            var error = frontend_units_error(batch.frontend);
+            if error[0] != 0 {
+                driver_units_report(&batch, request, i + 1, error, frontend_units_error_offset(batch.frontend));
+                return 1;
+            }
+            driver_error("Cannot snapshot unit (check --unit-retained-bytes, allocation capacity and NUL bytes): ", path); return 1;
+        }
+        driver_request_configure_modules(request, frontend_units_environment(batch.frontend, i + 1), absolute.data);
     }
     // Attach LLVM consumers before dispatch. The frontend and backend share
     // one ready graph and pool; a completed unit can advance immediately.
     batch.backend = backend_units_create(batch.frontend, count, budget, options.target, true, options.optimize);
     if batch.backend == null || !backend_units_library(batch.backend, 1, false) {
-        driver_error("Unable to allocate backend unit graph", ""); return 1;
+        driver_error("Unable to create backend units: check --unit-retained-bytes and allocation capacity", ""); return 1;
     }
     while !backend_units_step(batch.backend, true) { }
     if frontend_units_cancelled(batch.frontend) { driver_error("Compilation unit dispatch failed", ""); return 1; }

@@ -1,0 +1,52 @@
+import tower;
+import foundation_types;
+import interpreter_context_types;
+import semantic_context_types;
+import semantic_program_types;
+import semantic_evaluation_types;
+import semantic_declaration_types;
+import semantic_source_binding_types;
+import semantic_work_ids;
+import .library.vector;
+import .library.work_graph;
+
+// Linked clients borrow the same world-owned component types and call the
+// single production implementation. Imports here must remain declaration-only.
+// The coordinator owns context mutation; pumps join before returning. Callers
+// retain the program/world until sem_context_dispose has drained phase state.
+extern fn semantic_initialize(program: SemanticProgram*, root: void*, width: u32): void;
+extern fn semantic_program_dispose(program: SemanticProgram*): void;
+extern fn sem_get(node: void*): FoundationNode*;
+extern fn sem_attach(node: void*, kind: u32): FoundationNode*;
+extern fn sem_create(parent: void*): void*;
+extern fn sem_require(ok: bool): void;
+extern fn sem_equal(left: u8*, right: u8*): bool;
+extern fn generic_begin(root: void*): void*;
+extern fn entity_component_get(node: void*, kind: void*): void*;
+extern fn entity_component_add(node: void*, kind: void*): void*;
+extern fn entity_component_data(component: void*): void*;
+extern fn entity_attach(child: void*, parent: void*, name: u8*): bool;
+extern fn entity_release(node: void*): usize;
+
+extern fn sem_source_binding(c: SemanticContext*, subject: void*): SemanticSourceBinding*;
+extern fn sem_source_binding_request(c: SemanticContext*, subject: void*): usize;
+extern fn sem_source_bindings_pump(c: SemanticContext*): SemanticPumpResult;
+extern fn sem_context_init(c: SemanticContext*, program: SemanticProgram*): void;
+extern fn sem_context_dispose(c: SemanticContext*): void;
+extern fn sem_evaluation_begin(c: SemanticContext*): void;
+extern fn sem_evaluation_request(c: SemanticContext*, result: SemanticEvaluation*): void;
+extern fn sem_evaluations(c: SemanticContext*): void;
+extern fn sem_evaluation_pump(c: SemanticContext*): SemanticPumpResult;
+extern fn sem_evaluation_prepare_all(c: SemanticContext*): void;
+extern fn sem_evaluation_work_register(c: SemanticContext*, cloning: bool): void*;
+extern fn sem_declaration_state(c: SemanticContext*, node: void*): SemanticDeclaration*;
+extern fn sem_declarations_pump(c: SemanticContext*): SemanticPumpResult;
+extern fn sem_bodies_pump(c: SemanticContext*): SemanticPumpResult;
+extern fn sem_bodies_admitted(c: SemanticContext*): usize;
+extern fn sem_body_pipeline_finish(c: SemanticContext*): void;
+extern fn sem_lower_pump(c: SemanticContext*, signature: bool): SemanticPumpResult;
+extern fn sem_layout_discover(c: SemanticContext*, n: void*): usize;
+extern fn sem_layout_execute(c: SemanticContext*): usize;
+extern fn sem_push(v: vector(void*)*, n: void*): void;
+extern fn sem_type_execution_request(c: SemanticContext*, owner: void*, request: IMTypeConstruction*, receipt: WorkTicket*): usize;
+extern fn sem_type_execution_pump(c: SemanticContext*): SemanticPumpResult;

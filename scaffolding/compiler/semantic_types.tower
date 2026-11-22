@@ -1,4 +1,6 @@
 import tower;
+import semantic_context_types;
+import semantic_declaration_types;
 import type_primitives;
 import semantic_enums;
 import semantic_layout;
@@ -381,7 +383,7 @@ fn sem_type_call(c: SemanticContext*, n: void*): FoundationType* {
         return sem_ok(c) ? sem_array_intern(c, type, length) : type;
     }
     var definition: void* = sem_resolve(c, c.type_functions, step1, name);
-    if definition == null && sem_equal(name, "function") {
+    if definition == null && sem_equal(name, "function") && sem_type_identity_call(c, n) {
         var arguments = sem_collect(c, sem_member(n, "args"), sem_is(n, "CoreCall") ? "CoreCallArgument" : "CoreTypeArgument");
         if arguments.length == 0 {
             sem_fail(c, n, "function requires a return type followed by its parameter types");

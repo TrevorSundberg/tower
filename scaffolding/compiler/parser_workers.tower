@@ -2,9 +2,52 @@ import tower;
 import grammar_types;
 import worker_policy;
 import .library.work_pool;
+import .library.work_budget;
+import .library.work_budget_types;
+import .library.work_graph;
 
 extern fn compiler_node_world(node: void*): void*;
 extern fn compiler_world_grammar(world: void*): CompilerGrammarCache*;
+extern fn compiler_world_work_budget(world: void*): WorkBudget*;
+
+// A finite parser phase borrows the caller's already admitted lane. Reserve
+// only extra workers; retained thread slots do not confer admission rights.
+struct ParserAdmission {
+    reservation: WorkReservation;
+    extra: usize;
+}
+
+fn parser_admission_open(admission: ParserAdmission*, anchor: void*, preferred: usize): bool {
+    if admission.reservation.active || preferred == 0 { return false; }
+    *admission = default;
+    var capacity = compiler_worker_capacity(anchor);
+    if preferred > capacity { preferred = capacity; }
+    if preferred <= 1 { return true; }
+    var budget = compiler_world_work_budget(compiler_node_world(anchor));
+    if budget == null {
+        admission.extra = preferred - 1;
+        return true;
+    }
+    // Parser heap allocation remains unaccounted here. A zero byte reservation
+    // is lane admission only, not a promise to enforce a process memory limit.
+    var error = work_budget_reserve_result(budget, 0, preferred - 1, 0, &admission.reservation);
+    if error != WorkBudgetError.None { return false; }
+    admission.extra = admission.reservation.lanes;
+    return true;
+}
+
+// Every dispatch is synchronous and drains before returning. Keep this scope
+// alive through ordered result publication and lease/view release, also on error.
+fn parser_admission_close(admission: ParserAdmission*, graph: WorkGraph*): void {
+    // A setup/transport failure may leave taken tickets without results. Their
+    // jobs have already drained; cancel those logical leases before lane release.
+    if graph != null && graph.running != 0 { work_cancel(graph); }
+    if admission.reservation.active {
+        var error = work_budget_release_result(admission.reservation.owner, &admission.reservation);
+        if error != WorkBudgetError.None { trap("Cannot release parser worker budget reservation", 0); }
+    }
+    *admission = default;
+}
 
 // A coordinator lease, never shared by concurrently active parser requests.
 // The pool survives grammar revisions; jobs, views and scratch do not. A plain
@@ -17,7 +60,7 @@ struct ParserWorkers {
 
 fn parser_workers_open(lease: ParserWorkers*, anchor: void*, capacity: usize): bool {
     *lease = default;
-    if capacity == 0 || capacity > 256 { return false; }
+    if capacity == 0 || capacity > WorkPoolMaximumCapacity { return false; }
     var world = compiler_node_world(anchor);
     if world == null {
         if !work_pool_open(&lease.local, capacity) { return false; }

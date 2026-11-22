@@ -1,0 +1,183 @@
+import tower;
+import vector;
+
+import work_budget_types;
+
+// Start from default storage; reuse requires disposal and an increasing session
+// revision. Preserve the revision at disposal so stale receipts cannot revive.
+fn work_budget_init(budget: WorkBudget*, lanes: usize, bytes: usize, revision: u64): bool {
+    if budget == null { return false; }
+    if budget.initialized || lanes == 0 || revision <= budget.revision {
+        budget.error = WorkBudgetError.Invalid;
+        return false;
+    }
+    *budget = default;
+    budget.lanes = lanes;
+    budget.bytes = bytes;
+    budget.revision = revision;
+    budget.initialized = true;
+    return true;
+}
+
+fn work_budget_ok(budget: WorkBudget*): bool {
+    return budget != null && budget.initialized && budget.error == WorkBudgetError.None;
+}
+
+// Bind before reservations/dispatch. The gate and callbacks remain immutable
+// until all borrowers drain and disposal succeeds. Its owner closes the gate
+// afterwards. Host semaphores implement this boundary; serial users need none.
+fn work_budget_synchronize(budget: WorkBudget*, gate: void*,
+    enter: function(void, void*), leave: function(void, void*)): bool {
+    if budget == null { return false; }
+    if !budget.initialized || budget.entries.length != 0 || budget.gate != null
+        || gate == null || enter == null || leave == null {
+        budget.error = WorkBudgetError.Invalid;
+        return false;
+    }
+    budget.gate = gate;
+    budget.enter = enter;
+    budget.leave = leave;
+    budget.error = WorkBudgetError.None;
+    return true;
+}
+
+fn work_budget_snapshot(budget: WorkBudget*, output: WorkBudgetSnapshot*): bool {
+    if budget == null || output == null { return false; }
+    if budget.gate != null { budget.enter(budget.gate); }
+    defer { if budget.gate != null { budget.leave(budget.gate); } }
+    if !budget.initialized { return false; }
+    *output = init(WorkBudgetSnapshot) {lanes: budget.lanes, bytes: budget.bytes,
+        used_lanes: budget.used_lanes, used_bytes: budget.used_bytes,
+        peak_lanes: budget.peak_lanes, peak_bytes: budget.peak_bytes,
+        live: budget.live, retained: budget.entries.capacity * sizeof(WorkBudgetEntry)};
+    return true;
+}
+
+fn work_budget_dispose(budget: WorkBudget*): bool {
+    if budget == null { return false; }
+    if budget.live != 0 {
+        budget.error = WorkBudgetError.Busy;
+        return false;
+    }
+    var revision = budget.revision;
+    vector_dispose(&budget.entries);
+    *budget = default;
+    budget.revision = revision;
+    return true;
+}
+
+// Independent execution includes its executing lane in the grant. Nested EXTRA
+// grants may use minimum zero because their caller already owns a lane. A pure
+// bytes grant uses minimum/preferred zero. An empty grant succeeds with an
+// inactive default receipt: execute inline and do not release that empty grant.
+// Preferred is a ceiling, not a promise. Failure leaves output
+// untouched; Capacity is a temporary admission miss, Invalid cannot be retried
+// unchanged. No wait occurs here, so unavailable nested capacity falls inline.
+fn work_budget_reserve(budget: WorkBudget*, minimum: usize, preferred: usize,
+    bytes: usize, output: WorkReservation*): bool {
+    return work_budget_reserve_result(budget, minimum, preferred, bytes, output) == WorkBudgetError.None;
+}
+
+fn work_budget_reserve_result(budget: WorkBudget*, minimum: usize, preferred: usize,
+    bytes: usize, output: WorkReservation*): WorkBudgetError {
+    if budget == null { return WorkBudgetError.Invalid; }
+    if budget.gate != null { budget.enter(budget.gate); }
+    defer { if budget.gate != null { budget.leave(budget.gate); } }
+    work_budget_reserve_locked(budget, minimum, preferred, bytes, output);
+    return budget.error;
+}
+
+// Internal: caller owns the coordinator/gate for this complete transaction.
+fn work_budget_reserve_locked(budget: WorkBudget*, minimum: usize, preferred: usize,
+    bytes: usize, output: WorkReservation*): bool {
+    if budget == null { return false; }
+    if !budget.initialized || output == null || preferred < minimum
+        || minimum > budget.lanes || bytes > budget.bytes {
+        budget.error = WorkBudgetError.Invalid;
+        return false;
+    }
+    if output.active { budget.error = WorkBudgetError.Busy; return false; }
+    var available = budget.lanes - budget.used_lanes;
+    if available < minimum || bytes > budget.bytes - budget.used_bytes {
+        budget.error = WorkBudgetError.Capacity;
+        return false;
+    }
+    var lanes = preferred < available ? preferred : available;
+    if lanes == 0 && bytes == 0 {
+        *output = default;
+        budget.error = WorkBudgetError.None;
+        return true;
+    }
+    if budget.generation == ~convert(u64, 0) {
+        budget.error = WorkBudgetError.Exhausted;
+        return false;
+    }
+    var slot = budget.free_slot;
+    if slot == 0 {
+        var length = budget.entries.length + 1;
+        if length == 0 || !vector_reserve(&budget.entries, length) {
+            budget.error = WorkBudgetError.Memory;
+            return false;
+        }
+        slot = length;
+        budget.entries.length = length;
+    } else {
+        budget.free_slot = budget.entries.data[slot - 1].next;
+    }
+    var entry = &budget.entries.data[slot - 1];
+    *entry = default;
+    entry.lanes = lanes;
+    entry.bytes = bytes;
+    entry.generation = ++budget.generation;
+    entry.active = true;
+    budget.used_lanes += lanes;
+    budget.used_bytes += bytes;
+    budget.live++;
+    if budget.used_lanes > budget.peak_lanes { budget.peak_lanes = budget.used_lanes; }
+    if budget.used_bytes > budget.peak_bytes { budget.peak_bytes = budget.used_bytes; }
+    *output = init(WorkReservation) {owner: budget, revision: budget.revision,
+        slot: slot, generation: entry.generation, lanes: lanes, bytes: bytes, active: true};
+    budget.error = WorkBudgetError.None;
+    return true;
+}
+
+// Validate against the ledger, not just the caller's active flag: a copied old
+// receipt must not return another job's grant after a slot has been reused.
+// Errors do not poison cleanup; valid live reservations can always be released.
+fn work_budget_release(budget: WorkBudget*, receipt: WorkReservation*): bool {
+    return work_budget_release_result(budget, receipt) == WorkBudgetError.None;
+}
+
+fn work_budget_release_result(budget: WorkBudget*, receipt: WorkReservation*): WorkBudgetError {
+    if budget == null { return WorkBudgetError.Invalid; }
+    if budget.gate != null { budget.enter(budget.gate); }
+    defer { if budget.gate != null { budget.leave(budget.gate); } }
+    work_budget_release_locked(budget, receipt);
+    return budget.error;
+}
+
+// Internal: release validation and accounting are one locked transaction.
+fn work_budget_release_locked(budget: WorkBudget*, receipt: WorkReservation*): bool {
+    if budget == null { return false; }
+    if !budget.initialized || receipt == null || !receipt.active || receipt.owner != budget
+        || receipt.revision != budget.revision || receipt.slot == 0
+        || receipt.slot > budget.entries.length {
+        budget.error = WorkBudgetError.Stale;
+        return false;
+    }
+    var entry = &budget.entries.data[receipt.slot - 1];
+    if !entry.active || entry.generation != receipt.generation
+        || entry.lanes != receipt.lanes || entry.bytes != receipt.bytes {
+        budget.error = WorkBudgetError.Stale;
+        return false;
+    }
+    budget.used_lanes -= entry.lanes;
+    budget.used_bytes -= entry.bytes;
+    budget.live--;
+    entry.active = false;
+    entry.next = budget.free_slot;
+    budget.free_slot = receipt.slot;
+    receipt.active = false;
+    budget.error = WorkBudgetError.None;
+    return true;
+}

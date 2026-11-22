@@ -24,6 +24,9 @@ export fn driver_prepare(options: DriverOptions*, argc: usize, argv: u8**, targe
             DriverOptionError.Jobs => {
                 driver_error("Invalid worker count: ", options.argument);
             }
+            DriverOptionError.UnitRetainedBytes => {
+                driver_error("Invalid finite --unit-retained-bytes value: ", options.argument);
+            }
             _ => {
                 driver_error("Unable to allocate command-line inputs", "");
             }
@@ -37,6 +40,10 @@ export fn driver_prepare(options: DriverOptions*, argc: usize, argv: u8**, targe
     if options.help {
         driver_message(1, driver_help(), "", false);
         return 2;
+    }
+    if options.unit_retained_policy && options.unit_count == 0 {
+        driver_error("--unit-retained-bytes requires additional --unit sources", "");
+        return 1;
     }
     if options.link_executable {
         if options.output[0] == 0 || (options.source[0] == 0 && options.link_count == 0)

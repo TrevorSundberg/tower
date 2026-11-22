@@ -1,0 +1,43 @@
+import tower;
+import .library.work_pool;
+import .host.work_linux;
+import .host.work_dispatch;
+
+// Deliberately invalid negative control, never an ordinary passing test. Two
+// real workers reach the barrier before an intentional shared payload race.
+// The transport/allocator remain production pthread/semaphore/libc operations.
+struct RaceProbe { entered: void*; release: void*; counter: u64*; }
+
+export fn work_kernel_execute(payload: void*): void {
+    var job = bits(RaceProbe*, payload);
+    work_signal_post(job.entered);
+    work_signal_wait(job.release);
+    for(var i: usize = 0; i < 10000; i++) { *job.counter += 1; }
+}
+
+fn race_probe(): void {
+    var entered = work_signal_open();
+    var release = work_signal_open();
+    if entered == null || release == null { trap("Sanitizer barrier allocation failed", 0); }
+    defer work_signal_close(entered);
+    defer work_signal_close(release);
+    var pool: WorkPool;
+    if !work_pool_open(&pool, 2) || !pool.threaded || pool.count != 2 {
+        trap("Sanitizer race probe requires two real worker lanes", 0);
+    }
+    defer work_pool_close(&pool);
+    var counter: u64 = 0;
+    var jobs: RaceProbe[2];
+    for(var i: usize = 0; i < 2; i++) {
+        jobs[i] = { entered: entered, release: release, counter: &counter };
+        if !work_pool_submit(&pool, bits(void*, &jobs[i])) { trap("Sanitizer probe dispatch failed", 0); }
+    }
+    work_signal_wait(entered);
+    work_signal_wait(entered);
+    work_signal_post(release);
+    work_signal_post(release);
+    while pool.running != 0 { work_pool_receive(&pool, true); }
+    print(counter);
+}
+
+race_probe();

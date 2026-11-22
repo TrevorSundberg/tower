@@ -1,0 +1,110 @@
+import tower;
+import .library.work_budget;
+import .library.work_budget_types;
+import .library.work_pool;
+import .compiler.grammar_types;
+import .compiler.component_kinds;
+
+extern fn compiler_world_create_workers(limit: usize): void*;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn compiler_world_bind_budget(world: void*, budget: WorkBudget*): bool;
+extern fn compiler_world_work_budget(world: void*): WorkBudget*;
+extern fn compiler_world_worker_reserve(world: void*, preferred: usize, receipt: WorkReservation*): WorkBudgetError;
+extern fn compiler_world_worker_release(world: void*, receipt: WorkReservation*): WorkBudgetError;
+extern fn compiler_world_store(world: void*): void*;
+extern fn compiler_world_type(world: void*, kind: u32): void*;
+extern fn compiler_world_grammar(world: void*): CompilerGrammarCache*;
+extern fn entity_create(store: void*): void*;
+extern fn entity_release(node: void*): usize;
+
+fn world_budget_check(ok: bool): void {
+    if !ok { trap("Compiler world budget binding regression", 0); }
+}
+
+fn world_budget_tests(): void {
+    var budget: WorkBudget = default;
+    var receipt: WorkReservation = default;
+    world_budget_check(compiler_world_work_budget(null) == null);
+    world_budget_check(compiler_world_worker_reserve(null, 0, &receipt) == WorkBudgetError.Invalid
+        && compiler_world_worker_release(null, &receipt) == WorkBudgetError.Invalid && !receipt.active);
+    var world = compiler_world_create_workers(1);
+    world_budget_check(world != null && compiler_world_work_budget(world) == null);
+    world_budget_check(compiler_world_worker_reserve(world, 0, &receipt) == WorkBudgetError.Invalid);
+    world_budget_check(!compiler_world_bind_budget(world, null)
+        && !compiler_world_bind_budget(world, &budget));
+    world_budget_check(work_budget_init(&budget, 1, 0, 1));
+    world_budget_check(compiler_world_bind_budget(world, &budget));
+    world_budget_check(compiler_world_work_budget(world) == &budget
+        && !compiler_world_bind_budget(world, &budget));
+    world_budget_check(compiler_world_worker_reserve(world, 0, &receipt) == WorkBudgetError.None
+        && !receipt.active && compiler_world_worker_reserve(world, 1, &receipt) == WorkBudgetError.Invalid
+        && compiler_world_worker_release(world, &receipt) == WorkBudgetError.Invalid);
+    world_budget_check(compiler_world_dispose(world) && work_budget_dispose(&budget));
+
+    world = compiler_world_create_workers(2);
+    world_budget_check(world != null && work_budget_init(&budget, 1, 0, 2));
+    world_budget_check(!compiler_world_bind_budget(world, &budget));
+    world_budget_check(work_budget_dispose(&budget) && work_budget_init(&budget, 2, 0, 3));
+    world_budget_check(!compiler_world_bind_budget(world, &budget)); // No synchronization gate.
+    world_budget_check(compiler_world_dispose(world) && work_budget_dispose(&budget));
+
+    world_budget_check(work_budget_init(&budget, 1, 0, 4));
+    world = compiler_world_create_workers(1);
+    world_budget_check(world != null);
+    var node = entity_create(compiler_world_store(world));
+    world_budget_check(node != null && !compiler_world_bind_budget(world, &budget));
+    entity_release(node);
+    world_budget_check(!compiler_world_bind_budget(world, &budget)); // Historical identity stays frozen.
+    world_budget_check(compiler_world_dispose(world));
+
+    world = compiler_world_create_workers(1);
+    world_budget_check(world != null && compiler_world_type(world, CompilerFoundation) != null);
+    world_budget_check(!compiler_world_bind_budget(world, &budget));
+    world_budget_check(compiler_world_dispose(world));
+
+    world = compiler_world_create_workers(1);
+    world_budget_check(world != null);
+    var cache = compiler_world_grammar(world);
+    world_budget_check(work_pool_open(&cache.workers, 1));
+    world_budget_check(!compiler_world_bind_budget(world, &budget));
+    world_budget_check(compiler_world_dispose(world));
+    world_budget_check(work_budget_dispose(&budget));
+    if work_thread_available() { world_budget_receipt_tests(); }
+}
+
+// Actual synchronized ledgers, with two distinct worlds. No worker is started
+// here; production overlap is checked by unit/LR dispatch fixtures separately.
+fn world_budget_receipt_tests(): void {
+    var gate = work_signal_open();
+    var other_gate = work_signal_open();
+    world_budget_check(gate != null && other_gate != null);
+    defer work_signal_close(gate);
+    defer work_signal_close(other_gate);
+    work_signal_post(gate);
+    work_signal_post(other_gate);
+    var budget: WorkBudget = default;
+    var other: WorkBudget = default;
+    world_budget_check(work_budget_init(&budget, 2, 0, 1) && work_budget_init(&other, 2, 0, 1)
+        && work_budget_synchronize(&budget, gate, work_signal_wait, work_signal_post)
+        && work_budget_synchronize(&other, other_gate, work_signal_wait, work_signal_post));
+    var world = compiler_world_create_workers(2);
+    var other_world = compiler_world_create_workers(2);
+    world_budget_check(world != null && other_world != null
+        && compiler_world_bind_budget(world, &budget) && compiler_world_bind_budget(other_world, &other));
+    var receipt: WorkReservation = default;
+    world_budget_check(compiler_world_worker_reserve(world, 1, &receipt) == WorkBudgetError.None
+        && receipt.active && receipt.lanes == 1 && receipt.owner == &budget);
+    world_budget_check(compiler_world_worker_release(other_world, &receipt) == WorkBudgetError.Invalid
+        && receipt.active && compiler_world_worker_reserve(world, 1, &receipt) == WorkBudgetError.Busy
+        && compiler_world_worker_reserve(world, 2, &receipt) == WorkBudgetError.Invalid);
+    var stale = receipt;
+    world_budget_check(compiler_world_worker_release(world, &receipt) == WorkBudgetError.None
+        && !receipt.active && compiler_world_worker_release(world, &stale) == WorkBudgetError.Stale);
+    var occupied: WorkReservation = default;
+    world_budget_check(work_budget_reserve_result(&budget, 2, 2, 0, &occupied) == WorkBudgetError.None
+        && compiler_world_worker_reserve(world, 1, &receipt) == WorkBudgetError.None
+        && !receipt.active && receipt.lanes == 0);
+    world_budget_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None);
+    world_budget_check(compiler_world_dispose(other_world) && compiler_world_dispose(world)
+        && work_budget_dispose(&other) && work_budget_dispose(&budget));
+}

@@ -1,0 +1,205 @@
+import tower;
+import .library.entities;
+import .library.entity_stage;
+import .library.work_graph;
+import .library.work_pool;
+import .library.work_budget;
+import .library.work_budget_types;
+import .host.work_linux;
+import .host.work_dispatch;
+
+extern fn pthread_self(): usize;
+extern fn getrusage(who: i32, result: i64*): i32;
+
+enum StageOutcome: u32 { Publish, Cancel, WorkerFailure, NameCollision, PartialAdmission }
+var StageChildren: usize = 128;
+var StageReferenceLifecycle: usize = 1;
+struct StageState { finalized: usize; coordinator: usize; }
+
+struct StageReference { target: Entity*; ordinal: usize; }
+struct StageJob {
+    stage: EntityStage*;
+    owner: Entity*;
+    type: Entity*;
+    target: Entity*;
+    entered: void*;
+    release: void*;
+    ticket: WorkTicket;
+    outcome: StageOutcome;
+    ordinal: usize;
+    thread: usize;
+    holds: usize;
+    success: bool;
+}
+
+fn stage_check(ok: bool): void {
+    if !ok { trap("Concurrent stage ownership regression", 0); }
+}
+
+export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, data: u8*): void {
+    var state = bits(StageState*, entity_context(component.owner));
+    stage_check(lifecycle == StageReferenceLifecycle && entity_component_data(component) == data
+        && state != null && pthread_self() == state.coordinator);
+    var value = bits(StageReference*, data);
+    if value.target != null { entity_release(value.target); }
+    state.finalized++;
+}
+
+fn stage_reference(job: StageJob*, node: Entity*, ordinal: usize): bool {
+    var value = bits(StageReference*, entity_component_data(entity_component_add(node, job.type)));
+    if value == null { return false; }
+    *value = default;
+    var target = job.target;
+    if !entity_stage_references(job.stage, &target, 1) { return false; }
+    value.target = target;
+    value.ordinal = ordinal;
+    job.holds++;
+    return true;
+}
+
+export fn work_kernel_execute(payload: void*): void {
+    var job = bits(StageJob*, payload);
+    job.thread = pthread_self();
+    work_signal_post(job.entered);
+    work_signal_wait(job.release);
+    // Only private stage pools and a pre-leased owner's component list change.
+    // The input target's last ordinary reference is already gone; the view
+    // keeps it alive until the coordinator acquires these queued holds.
+    if !stage_reference(job, job.owner, 0) { return; }
+    for(var i: usize = 0; i < StageChildren; i++) {
+        var name: u8* = i == 0 || (i == 1 && job.outcome == StageOutcome.NameCollision
+            && job.ordinal == 0) ? "member" : null;
+        var node = entity_stage_create_named(job.stage, job.owner, name);
+        if node == null || !stage_reference(job, node, i + 1) { return; }
+    }
+    job.success = job.outcome != StageOutcome.WorkerFailure || job.ordinal != 0;
+}
+
+fn stage_trial(state: StageState*, lanes: usize, outcome: StageOutcome): void {
+    var budget: WorkBudget = default;
+    stage_check(work_budget_init(&budget, lanes + 1, 0, 1));
+    var outer: WorkReservation = default;
+    var workers: WorkReservation = default;
+    stage_check(work_budget_reserve(&budget, 1, 1, 0, &outer)
+        && work_budget_reserve(&budget, lanes, lanes, 0, &workers));
+    var store = entity_store_create();
+    stage_check(store != null && entity_store_set_context(store, bits(void*, state)));
+    var root = entity_create(store);
+    var type = entity_create(store);
+    var target = entity_create(store);
+    stage_check(root != null && type != null && target != null
+        && entity_register(type, sizeof(StageReference), alignof(StageReference), StageReferenceLifecycle));
+    var entered = work_signal_open();
+    var release = work_signal_open();
+    stage_check(entered != null && release != null);
+    var pool: WorkPool = default;
+    stage_check(work_pool_open(&pool, workers.lanes) && pool.threaded && pool.count == lanes);
+    var graph: WorkGraph;
+    work_init(&graph, 17, 29);
+    var jobs: StageJob[4];
+    var before = state.finalized;
+    for(var i: usize = 0; i < lanes; i++) {
+        var job = &jobs[i];
+        *job = default;
+        job.owner = entity_create(store);
+        stage_check(job.owner != null && entity_attach(job.owner, root, null));
+        entity_release(job.owner);
+        job.stage = entity_stage_open(root);
+        stage_check(job.stage != null && entity_stage_lease(job.stage, job.owner));
+        job.type = type;
+        job.target = target;
+        job.entered = entered;
+        job.release = release;
+        job.outcome = outcome;
+        job.ordinal = i;
+        var id = work_request(&graph, bits(void*, job.owner), 1, 0);
+        stage_check(id != 0 && work_access(&graph, id, 1, convert(u64, type.id),
+            job.owner.id, 1, WorkAccessMode.Write) && work_seal(&graph, id) && work_demand(&graph, id));
+        stage_check(work_take_task(&graph, &job.ticket, id));
+    }
+    var view = entity_view_open(root);
+    stage_check(view != null && entity_release(target) == 0);
+    var admitted = outcome == StageOutcome.PartialAdmission ? lanes - 1 : lanes;
+    for(var i: usize = 0; i < admitted; i++) { stage_check(work_pool_submit(&pool, bits(void*, &jobs[i]))); }
+    for(var i: usize = 0; i < admitted; i++) { work_signal_wait(entered); }
+    // All admitted threads are simultaneously inside their kernel, blocked on
+    // the same explicit release. Graph cancellation does not join transport.
+    var cancelled = outcome == StageOutcome.Cancel || outcome == StageOutcome.PartialAdmission;
+    if cancelled { work_cancel(&graph); }
+    stage_check(pool.running == admitted);
+    for(var i: usize = 0; i < admitted; i++) { work_signal_post(release); }
+    for(var i: usize = 0; i < admitted; i++) { stage_check(work_pool_receive(&pool, true) != null); }
+    stage_check(pool.running == 0 && entity_references(target) == 0 && state.finalized == before);
+    var holds: usize = 0;
+    for(var i: usize = 0; i < lanes; i++) {
+        var job = &jobs[i];
+        stage_check(job.owner.stage == bits(void*, job.stage) && entity_child_count(job.owner) == 0);
+        if i < admitted {
+            stage_check(job.holds == StageChildren + 1 && job.thread != state.coordinator);
+            for(var j: usize = 0; j < i; j++) { stage_check(job.thread != jobs[j].thread); }
+        } else { stage_check(job.holds == 0 && job.thread == 0); }
+        holds += job.holds;
+        entity_stage_hold(job.stage);
+        entity_stage_hold(job.stage);
+    }
+    stage_check(entity_references(target) == holds);
+    entity_view_close(view);
+    var published: usize = 0;
+    for(var i: usize = 0; i < lanes; i++) {
+        var job = &jobs[i];
+        var success = !cancelled && job.success;
+        if success {
+            success = entity_stage_publish(job.stage);
+            stage_check(success == (outcome != StageOutcome.NameCollision || i != 0));
+        }
+        if !success { entity_stage_discard(job.stage); }
+        job.stage = null;
+        stage_check(job.owner.stage == null && job.owner.storage == null);
+        if cancelled { stage_check(!work_finish(&graph, &job.ticket, true)); }
+        else { stage_check(work_finish(&graph, &job.ticket, success)); }
+        if success {
+            published++;
+            stage_check(entity_child_count(job.owner) == StageChildren
+                && entity_member_index(job.owner, "member") == 0);
+            for(var child: usize = 0; child < StageChildren; child++) {
+                var node = entity_child_at(job.owner, child);
+                var value = bits(StageReference*, entity_component_data(entity_component_get(node, type)));
+                stage_check(value != null && value.target == target && value.ordinal == child + 1);
+            }
+        } else {
+            stage_check(entity_child_count(job.owner) == 0 && entity_component_get(job.owner, type) == null);
+        }
+    }
+    stage_check(graph.running == 0 && state.finalized - before == holds - published * (StageChildren + 1));
+    // Publication/discard and ticket settlement precede receipt release.
+    stage_check(work_budget_release(&budget, &workers));
+    work_pool_close(&pool);
+    work_signal_close(release);
+    work_signal_close(entered);
+    work_dispose(&graph);
+    entity_release(root);
+    entity_release(type);
+    stage_check(state.finalized - before == holds && entity_store_count(store) == 0
+        && entity_store_component_count(store) == 0 && entity_store_dispose(store));
+    stage_check(work_budget_release(&budget, &outer) && work_budget_dispose(&budget));
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    stage_check(work_thread_available() && work_thread_capacity() >= 4);
+    var state: StageState = { finalized: 0, coordinator: pthread_self() };
+    for(var round: usize = 0; round < 16; round++) {
+        for(var lanes: usize = 2; lanes <= 4; lanes *= 2) {
+            for(var mode = convert(u32, StageOutcome.Publish); mode <= convert(u32, StageOutcome.PartialAdmission); mode++) {
+                stage_trial(&state, lanes, convert(StageOutcome, mode));
+            }
+        }
+    }
+    var usage: i64[18];
+    stage_check(getrusage(0, &usage[0]) == 0);
+    // Completed finalizers, process CPU us and process peak RSS KiB. Exact
+    // store/component teardown is checked per trial, not inferred from RSS.
+    print(state.finalized);
+    print((usage[0] + usage[2]) * 1000000 + usage[1] + usage[3]);
+    print(usage[4]);
+    return 0;
+}

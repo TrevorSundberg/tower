@@ -1,8 +1,12 @@
 import tower;
+import .library.work_budget_types;
+import semantic_context_types;
+import semantic_evaluation_types;
 import compiler_kernel;
 import semantic_context;
 import semantic_program_types;
 import semantic_evaluation;
+import semantic_capture_work;
 import semantic_control;
 import semantic_support;
 import semantic_work_ids;
@@ -26,6 +30,7 @@ struct SemanticEvaluationWork {
     query_reads: vector(usize);
     aliases: vector(SemanticEvaluationAlias);
     cloning: bool;
+    require_relocatable: bool;
 }
 
 // Each stage expression owns its checked semantic tree. Nested stages share
@@ -54,7 +59,7 @@ fn semantic_evaluation_prepare_kernel(result: SemanticEvaluationWork*): void {
     if result.cloning { sem_evaluation_clone_expression(&context, result.evaluation); }
     else {
         sem_evaluation_prepare(&context, result.evaluation);
-        if sem_ok(&context) { sem_evaluation_start(&context, result.evaluation); }
+        if sem_ok(&context) { sem_evaluation_start(&context, result.evaluation, result.require_relocatable); }
     }
     result.count = context.count;
     result.error = program.error;
@@ -67,7 +72,7 @@ fn semantic_evaluation_prepare_kernel(result: SemanticEvaluationWork*): void {
     vector_dispose(&context.allocations);
 }
 
-fn sem_evaluation_prepare_all(c: SemanticContext*): void {
+export fn sem_evaluation_prepare_all(c: SemanticContext*): void {
     sem_evaluation_work_all(c, false);
 }
 
@@ -78,7 +83,7 @@ fn sem_evaluation_clone_all(c: SemanticContext*): void {
 // Register each subject once. Preparation is demanded by evaluation, including
 // dependencies discovered later by executed interpreter reads. Clones snapshot
 // inferred inputs before ordinary lowering mutates their source expressions.
-fn sem_evaluation_work_register(c: SemanticContext*, cloning: bool): void* {
+export fn sem_evaluation_work_register(c: SemanticContext*, cloning: bool): void* {
     var kind = cloning ? &c.evaluation_clones : &c.evaluation_preparations;
     var registered = cloning ? &c.evaluation_clone_registered : &c.evaluation_registered;
     var query_kind = convert(u32, cloning ? SemanticQuery.KnownClone : SemanticQuery.EvaluationPrepare);
@@ -96,6 +101,9 @@ fn sem_evaluation_work_register(c: SemanticContext*, cloning: bool): void* {
         result.evaluation = evaluation;
         result.ordinal = i;
         result.cloning = cloning;
+        // Freeze producer policy before dispatch; workers do not inspect a
+        // different declaration's capture payload while preparing this job.
+        result.require_relocatable = evaluation.inferred || sem_capture_evaluation(c, evaluation);
         result.kernel.kind = CompilerKernelKind.PrepareEvaluation;
         result.kernel.payload = bits(void*, result);
         var id = work_find(&c.queries, evaluation.subject, query_kind, 0);
@@ -149,7 +157,10 @@ fn sem_evaluation_work_all(c: SemanticContext*, cloning: bool): void {
         sem_require(view != null);
         var context = *c;
         for(var i: usize = 0; i < count; i++) { batch.data[i].context = &context; }
-        sem_require(compiler_kernel_dispatch(&c.workers, batch.data, count));
+        var receipt: WorkReservation;
+        var extra = sem_workers_admit(c, count, &receipt);
+        defer sem_workers_release(c, &receipt);
+        sem_require(compiler_kernel_dispatch_admitted(&c.workers, batch.data, count, extra));
         entity_view_close(view);
         for(var i: usize = 0; i < count; i++) {
             var result = batch.data[i];

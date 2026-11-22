@@ -29,6 +29,18 @@ export fn foundation_node_dispose(value: FoundationNode*): void {
 // reconstructs the declarations and their bindings before this query is used.
 extern fn sem_get(node: void*): FoundationNode*;
 
+// Runtime consumers retain module effects and exported functions. Private
+// function declarations enter their derived indexes through bound calls/value
+// references, not merely because an imported module declared them. Canonical
+// formatting still traverses every declaration on the unchanged shared graph.
+export fn foundation_execution_item(parent: FoundationNode*, child: FoundationNode*): bool {
+    return child != null && (parent.kind != KProgram || child.kind != KFunction || child.exported);
+}
+
+export fn foundation_execution_reference(node: FoundationNode*): void* {
+    return node.kind == KCall || node.kind == KFunctionReference ? node.binding : null;
+}
+
 fn foundation_attribute_get(declaration: FoundationNode*, type: void*): FoundationNode* {
     foreach(var attribute in &declaration.attributes) {
         var value = sem_get(attribute);

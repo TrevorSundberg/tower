@@ -1,0 +1,191 @@
+import tower;
+import .compiler.semantic_query_api;
+import .compiler.semantic_context_types;
+import .compiler.semantic_program_types;
+import .compiler.semantic_layout_kernel;
+import .compiler.compiler_kernel;
+import .compiler.foundation_tags;
+import .library.entity_types;
+import .library.vector;
+import .library.work_graph;
+import .library.work_pool;
+import .library.work_budget;
+import .library.work_budget_types;
+
+extern fn compiler_world_create_workers(limit: usize): void*;
+extern fn compiler_world_store(world: void*): void*;
+extern fn compiler_world_bind_budget(world: void*, budget: WorkBudget*): bool;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn entity_create(store: void*): void*;
+extern fn entity_register(kind: void*, size: usize, alignment: usize, lifecycle: usize): bool;
+extern fn entity_member_index(node: void*, name: u8*): usize;
+extern fn entity_child_at(node: void*, index: usize): void*;
+extern fn clock_gettime(clock: i32, output: i64*): i32;
+extern fn getrusage(who: i32, output: i64*): i32;
+extern fn pthread_self(): usize;
+
+var LayoutProfileBranches: usize = 8;
+struct LayoutProfileSpan { begin: i64; end: i64; thread: usize; calls: usize; }
+
+fn layout_profile_check(ok: bool): void {
+    if !ok { trap("Semantic layout profile output or ownership mismatch", 0); }
+}
+
+fn layout_profile_clock(): i64 {
+    var stamp: i64[2];
+    layout_profile_check(clock_gettime(1, &stamp[0]) == 0);
+    return stamp[0] * 1000000000 + stamp[1];
+}
+
+fn layout_profile_observe(payload: void*): void {
+    var kernel = bits(CompilerKernel*, payload);
+    layout_profile_check(kernel.kind == CompilerKernelKind.Layout);
+    var job = bits(SemanticLayoutWork*, kernel.payload);
+    var root = bits(void*, bits(Entity*, job.subject).parent);
+    var kind = entity_child_at(root, entity_member_index(root, "layout_observation"));
+    var span = bits(LayoutProfileSpan*, entity_component_data(entity_component_get(job.subject, kind)));
+    layout_profile_check(span != null);
+    span.thread = pthread_self();
+    span.begin = layout_profile_clock();
+    // The production dispatcher and kernel perform all layout work. This
+    // callback writes only the observation component owned by that same job.
+    work_kernel_execute(payload);
+    span.end = layout_profile_clock();
+    span.calls++;
+}
+
+fn layout_profile_type(root: void*, kind: void*): void* {
+    var node = sem_create(root);
+    var value = sem_attach(node, KType);
+    value.type.scalar = SStruct;
+    value.type.record = node;
+    value.type.pointer_bytes = 8;
+    var span = bits(LayoutProfileSpan*, entity_component_data(entity_component_add(node, kind)));
+    layout_profile_check(span != null);
+    *span = default;
+    return node;
+}
+
+fn layout_profile_field(owner: void*, record: void*): void {
+    var node = sem_create(owner);
+    var value = sem_attach(node, KDeclare);
+    value.type.scalar = record == null ? SI32 : SStruct;
+    value.type.record = record;
+    value.type.pointer_bytes = 8;
+    sem_push(&sem_get(owner).items, node);
+}
+
+fn layout_profile_trial(workers: usize, fields: usize, occupied: bool, report: bool): void {
+    var budget: WorkBudget = default;
+    var outer: WorkReservation = default;
+    var other: WorkReservation = default;
+    var gate = work_signal_open();
+    layout_profile_check(gate != null);
+    work_signal_post(gate);
+    layout_profile_check(work_budget_init(&budget, workers, 0, 1)
+        && work_budget_synchronize(&budget, gate, work_signal_wait, work_signal_post)
+        && work_budget_reserve(&budget, 1, 1, 0, &outer));
+    if occupied { layout_profile_check(work_budget_reserve(&budget, workers - 1, workers - 1, 0, &other)); }
+    var world = compiler_world_create_workers(workers);
+    layout_profile_check(world != null && compiler_world_bind_budget(world, &budget));
+    var root = entity_create(compiler_world_store(world));
+    var program: SemanticProgram;
+    semantic_initialize(&program, root, 8);
+    var context: SemanticContext;
+    sem_context_init(&context, &program);
+    context.generics = generic_begin(root);
+    layout_profile_check(work_pool_open_kernel(&context.workers, workers, layout_profile_observe));
+    var kind = sem_create(root);
+    layout_profile_check(entity_attach(kind, root, "layout_observation")
+        && entity_register(kind, sizeof(LayoutProfileSpan), alignof(LayoutProfileSpan), 0));
+    var base = layout_profile_type(root, kind);
+    layout_profile_field(base, null);
+    var chain = layout_profile_type(root, kind);
+    layout_profile_field(chain, base);
+    var top = layout_profile_type(root, kind);
+    var branches: void*[8];
+    for(var index: usize = 0; index < LayoutProfileBranches; index++) {
+        var branch = layout_profile_type(root, kind);
+        branches[index] = branch;
+        layout_profile_field(branch, chain);
+        for(var field: usize = 1; field < fields; field++) { layout_profile_field(branch, null); }
+        layout_profile_field(top, branch);
+    }
+    var query = sem_layout_discover(&context, top);
+    var before: i64[18]; var after: i64[18];
+    layout_profile_check(getrusage(0, &before[0]) == 0);
+    var start = layout_profile_clock();
+    var completed = sem_layout_execute(&context);
+    var elapsed = layout_profile_clock() - start;
+    layout_profile_check(getrusage(0, &after[0]) == 0);
+    layout_profile_check(completed == LayoutProfileBranches + 3
+        && work_task(&context.queries, query).state == WorkState.Succeeded
+        && program.error.length == 0 && context.workers.running == 0 && context.queries.running == 0);
+    layout_profile_check(sem_get(base).size == 4 && sem_get(chain).size == 4
+        && sem_get(top).size == fields * 4 * LayoutProfileBranches && sem_get(top).alignment == 4);
+    for(var index: usize = 0; index < LayoutProfileBranches; index++) {
+        var value = sem_get(branches[index]);
+        layout_profile_check(value.size == fields * 4 && value.alignment == 4);
+        for(var field: usize = 0; field < fields; field++) {
+            layout_profile_check(sem_get(value.items.data[field]).byte_offset == field * 4);
+        }
+        layout_profile_check(sem_get(sem_get(top).items.data[index]).byte_offset == index * fields * 4);
+    }
+    var peak: usize = 0;
+    var caller: usize = 0;
+    var work_ns: i64 = 0;
+    var retained: usize = context.layout_jobs.capacity * sizeof(void*);
+    foreach(var payload in &context.layout_jobs) {
+        var job = bits(SemanticLayoutWork*, payload);
+        var span = bits(LayoutProfileSpan*, entity_component_data(entity_component_get(job.subject, kind)));
+        layout_profile_check(span.calls == 1 && span.end >= span.begin && span.thread != 0);
+        if span.thread == pthread_self() { caller++; }
+        work_ns += span.end - span.begin;
+        retained += job.offsets.capacity * sizeof(usize);
+        var overlap: usize = 0;
+        foreach(var other_payload in &context.layout_jobs) {
+            var other_job = bits(SemanticLayoutWork*, other_payload);
+            var other_span = bits(LayoutProfileSpan*, entity_component_data(entity_component_get(other_job.subject, kind)));
+            if other_span.begin <= span.begin && other_span.end > span.begin { overlap++; }
+        }
+        if overlap > peak { peak = overlap; }
+    }
+    layout_profile_check(peak <= workers && (!occupied || caller == completed));
+    var snapshot: WorkBudgetSnapshot = default;
+    layout_profile_check(work_budget_snapshot(&budget, &snapshot)
+        && snapshot.used_lanes == (occupied ? workers : 1));
+    // workers, field count, other-lane reservation, pump wall ns, CPU us,
+    // process peak RSS KiB, actual interval overlap, caller jobs, job span ns,
+    // retained derived layout bytes and ledger peak lanes. No timing threshold.
+    if report {
+        print(workers); print(fields); print(occupied); print(elapsed);
+        print((after[0] - before[0] + after[2] - before[2]) * 1000000
+            + after[1] - before[1] + after[3] - before[3]);
+        print(after[4]); print(peak); print(caller); print(work_ns); print(retained); print(snapshot.peak_lanes);
+    }
+    sem_context_dispose(&context);
+    semantic_program_dispose(&program);
+    entity_release(root);
+    layout_profile_check(compiler_world_dispose(world));
+    if occupied { layout_profile_check(work_budget_release(&budget, &other)); }
+    layout_profile_check(work_budget_release(&budget, &outer) && work_budget_dispose(&budget));
+    work_signal_close(gate);
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    for(var sample: usize = 0; sample < 5; sample++) {
+        var report = sample >= 2;
+        layout_profile_trial(1, 32, false, report);
+        layout_profile_trial(4, 32, false, report);
+        layout_profile_trial(1, 512, false, report);
+        layout_profile_trial(4, 512, false, report);
+        layout_profile_trial(1, 2048, false, report);
+        layout_profile_trial(4, 2048, false, report);
+        layout_profile_trial(1, 4096, false, report);
+        layout_profile_trial(4, 4096, false, report);
+        layout_profile_trial(1, 8192, false, report);
+        layout_profile_trial(4, 8192, false, report);
+        layout_profile_trial(4, 8192, true, report);
+    }
+    return 0;
+}

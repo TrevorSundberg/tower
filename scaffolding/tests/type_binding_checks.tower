@@ -11,6 +11,9 @@ extern fn frontend_modules_create(): void*;
 extern fn frontend_modules_destroy(environment: void*): void;
 extern fn frontend_modules_configure(environment: void*, entry: u8*, library: u8*): void;
 extern fn frontend_modules_source(environment: void*, path: u8*, source: u8*, length: usize): bool;
+extern fn type_object_abi_safe(type: FoundationType*): bool;
+extern fn type_object_program(root: void*): bool;
+extern fn entity_store_component_count(store: void*): usize;
 
 fn type_binding_tests(modules: void*, root: u8*): void {
     var source: vector(u8) = default;
@@ -58,11 +61,21 @@ fn type_binding_tests(modules: void*, root: u8*): void {
     var path: vector(u8) = default;
     defer vector_dispose(&path);
     for(var i: usize = 0; i < strlen(root); i++) { execution_check(vector_push(&path, root[i]), "Type source root"); }
-    var suffix = "/types/i32.tower";
+    var suffix = "/types.tower";
     for(var i: usize = 0; i < strlen(suffix); i++) { execution_check(vector_push(&path, suffix[i]), "Type source path"); }
     execution_check(vector_push(&path, 0), "Type source path terminator");
-    var replacement = "import .foundation_syntax;var i32:type=integer_type(64,1);";
-    execution_check(frontend_modules_source(environment, path.data, replacement, strlen(replacement)), "Tracked type source replacement");
+    var replacement: vector(u8) = default;
+    defer vector_dispose(&replacement);
+    units_read(root, suffix, &replacement);
+    var declaration = "var i32: type = signed_integer(32);";
+    var definition = strstr(replacement.data, declaration);
+    execution_check(definition != null && strstr(definition + strlen(declaration), declaration) == null,
+        "One source-bound i32 definition in the complete prelude");
+    var width = strstr(definition, "(32)");
+    execution_check(width != null, "Source-bound i32 width");
+    width[1] = *"6";
+    width[2] = *"4";
+    execution_check(frontend_modules_source(environment, path.data, replacement.data, replacement.length), "Tracked type source replacement");
     var changed: ExecutionSession = default;
     defer execution_session_close(&changed);
     execution_compile(&changed, "import tower;var value:i32=4294967296;print(sizeof(i32));print(value);", 8, environment);
@@ -73,7 +86,181 @@ fn type_binding_tests(modules: void*, root: u8*): void {
     execution_roundtrip(&changed, environment, false);
     computed_type_argument_tests(modules, root, bedrock.data, foundation.data);
     type_object_tests(modules, root, bedrock.data, foundation.data);
+    type_object_abi_tests(modules);
+    type_object_reachability_tests(modules);
+    type_construction_tests(modules, root, bedrock.data, foundation.data);
+    type_construction_runtime_tests(modules);
     puts("Source types: definitions, aliases, staging, target layouts, Foundation and workers pass.");
+}
+
+fn type_object_abi_tests(modules: void*): void {
+    // Internal signatures may contain metatypes. Check the completed descriptor
+    // graph independently of the foreign/export declaration rejection hook.
+    var source = "import tower;struct AbiSafe{next:AbiSafe*;value:i32;}struct AbiHidden{next:AbiHidden*;value:type;}fn abi_safe(value:AbiSafe*):void{}fn abi_record(value:AbiHidden*):void{}fn abi_array(value:AbiHidden[2]*):void{}fn abi_callback(value:function(type)):void{}fn abi_callback_parameter(value:function(void,AbiHidden*)):void{}";
+    for(var width: u32 = 4; width <= 8; width += 4) {
+        var session: ExecutionSession = default;
+        defer execution_session_close(&session);
+        execution_compile(&session, source, width, modules);
+        var checked: usize = 0;
+        foreach(var function in &session.program.functions) {
+            var node = sem_get(function);
+            if node.name.length < 4 || memcmp(node.name.data, "abi_", 4) != 0 { continue; }
+            execution_check(node.parameters.length == 1, "ABI descriptor fixture parameter");
+            var safe = type_object_abi_safe(&sem_get(node.parameters.data[0]).type);
+            var expected_safe = node.name.length == 8 && memcmp(node.name.data, "abi_safe", 8) == 0;
+            execution_check(safe == expected_safe, "Recursive type-object ABI descriptor result");
+            checked++;
+        }
+        execution_check(checked == 5, "Every ABI descriptor fixture checked");
+    }
+    struct_value_reject(modules, "import tower;struct Hidden{next:Hidden*;value:type;}extern fn take(value:Hidden*):void;", "foreign or exported ABI");
+    struct_value_reject(modules, "import tower;struct Hidden{value:type;}extern fn take(value:Hidden[2]*):void;", "foreign or exported ABI");
+    struct_value_reject(modules, "import tower;extern fn take(value:function(type)):void;", "foreign or exported ABI");
+    struct_value_reject(modules, "import tower;extern fn take(value:function(void,type)):void;", "foreign or exported ABI");
+    struct_value_reject(modules, "import tower;struct Hidden{value:type;}export fn take(value:Hidden*):void{}", "foreign or exported ABI");
+}
+
+fn type_object_reachability_trial(modules: void*, source: u8*, wanted: bool, width: u32): void {
+    var session: ExecutionSession = default;
+    defer execution_session_close(&session);
+    execution_compile(&session, source, width, modules);
+    var before: FormatResult = default;
+    var after: FormatResult = default;
+    defer format_dispose(&before);
+    defer format_dispose(&after);
+    format_entity(&before, session.program.root, syntax_component_type(), null, parser_match_get_type());
+    execution_check(!before.failed, "Reachability input formats");
+    var actual = type_object_program(session.program.root);
+    if actual != wanted {
+        puts(source);
+        puts(wanted ? "Expected runtime type values" : "Expected scalar-only runtime graph");
+        puts(actual ? "Observed runtime type values" : "Observed scalar-only runtime graph");
+    }
+    execution_check(actual == wanted, "Runtime type-value reachability");
+    format_entity(&after, session.program.root, syntax_component_type(), null, parser_match_get_type());
+    execution_check(!after.failed && before.text.length == after.text.length
+        && memcmp(before.text.data, after.text.data, before.text.length) == 0,
+        "Runtime reachability preserves complete canonical declarations");
+}
+
+fn type_object_reachability_tests(modules: void*): void {
+    for(var width: u32 = 4; width <= 8; width += 4) {
+        type_object_reachability_trial(modules, "import tower;print(42);", false, width);
+        type_object_reachability_trial(modules,
+            "import tower;fn unused():type{var result:type=i32;return result;}print(42);", false, width);
+        type_object_reachability_trial(modules,
+            "import tower;fn recursive(n:i32):i32{if n>0{return recursive(n-1);}return 0;}print(recursive(3));", false, width);
+        type_object_reachability_trial(modules,
+            "import tower;fn reached():i32{var value:type=i32;return 1;}print(reached());", false, width);
+        type_object_reachability_trial(modules,
+            "import tower;fn reached():type{var value:type=i32;return value;}print(reached()==i32);", true, width);
+        type_object_reachability_trial(modules,
+            "import tower;fn reached():type{var value:type=i32;return value;}var callback=reached;print(callback()==i32);", true, width);
+        type_object_reachability_trial(modules,
+            "import tower;export fn retained(flag:bool):bool{var value:type=i32;if flag{value=u32;}return value==i32;}print(42);", true, width);
+    }
+}
+
+fn type_construction_tests(modules: void*, root: u8*, bedrock: u8*, foundation: u8*): void {
+    var source: vector(u8) = default;
+    defer vector_dispose(&source);
+    units_read(root, "/tests/type_construction_execution.tower", &source);
+    for(var width: u32 = 4; width <= 8; width += 4) {
+        var graph: ExecutionSession = default;
+        var fast: ExecutionSession = default;
+        defer execution_session_close(&graph);
+        defer execution_session_close(&fast);
+        execution_compile(&graph, source.data, width, modules);
+        execution_compile(&fast, source.data, width, modules);
+        execution_check(execution_session_start(&graph) && execution_session_fast(&fast), "Executed constructor engines start");
+        execution_run(&graph, 1000, 100000);
+        execution_run(&fast, 1000, 100000);
+        execution_same(&graph, &fast);
+        execution_check(graph.machine.done && graph.error.length == 0 && execution_text(&graph.output, "0\n"), "Executed constructor behavior");
+        execution_roundtrip(&graph, modules, false);
+        var canonical: vector(u8) = default;
+        defer vector_dispose(&canonical);
+        for(var workers: usize = 1; workers <= 8; workers *= 2) {
+            body_runs_trial(source.data, workers, width, bedrock, foundation, root, &canonical);
+        }
+        type_construction_retention(modules, source.data, width);
+    }
+    struct_value_reject(modules, "import tower;fn make():type{var n:usize=24;var result:type=integer_type(n,1);return result;}var Bad:type=make();", "Unsupported primitive numeric width");
+    struct_value_reject(modules, "import tower;fn invalid():type{return integer_type(24,1);}fn selected():type{if true{return invalid();}return i32;}var Bad:type=selected();", "Unsupported primitive numeric width");
+    struct_value_reject(modules, "import tower;fn make():type{var sign:usize=2;var result:type=integer_type(32,sign);return result;}var Bad:type=make();", "Integer signedness");
+    struct_value_reject(modules, "import tower;fn make():type{var result:type=float_type(16);return result;}var Bad:type=make();", "Unsupported primitive numeric width");
+    struct_value_reject(modules, "import tower;fn make():type{var n:i8=-1;var result:type=array_type(u8,n);return result;}var Bad:type=make();", "Array length");
+    struct_value_reject(modules, "import tower;fn make():type{var result:type=array_type(u8,0);return result;}var Bad:type=make();", "Array length");
+    struct_value_reject(modules, "import tower;fn make():type{var result:type=array_type(u8,1048577);return result;}var Bad:type=make();", "Array length");
+    struct_value_reject(modules, "import tower;fn make():type{var result:type=array_type(void,1);return result;}var Bad:type=make();", "void elements");
+    struct_value_reject(modules, "import tower;fn make():type{var result:type=integer_type(true,1);return result;}", "integer argument");
+    struct_value_reject(modules, "import tower;fn make():type{var result:type=pointer_type(1);return result;}", "integer literal needs an integer type");
+    struct_value_reject(modules, "import tower;fn make():type{var result:type=integer_type(32);return result;}", "Wrong argument count");
+    struct_value_reject(modules, "import tower;fn make():type{return function();}var Bad:type=make();", "requires a return type");
+    struct_value_reject(modules, "import tower;fn make():type{return function(i32,void);}var Bad:type=make();", "parameter cannot have void type");
+    puts("Executed type constructors: stage requests, target widths, errors, canonical reconstruction and worker determinism pass.");
+}
+
+fn type_construction_retention(modules: void*, source: u8*, width: u32): void {
+    var store = compiler_world_store(frontend_modules_world(modules) ?? compiler_host_world());
+    var session: ExecutionSession = default;
+    defer execution_session_close(&session);
+    // Warm immutable grammar/module caches before measuring request retention.
+    execution_compile(&session, source, width, modules);
+    execution_close_checked(&session);
+    var nodes = entity_store_count(store);
+    var components = entity_store_component_count(store);
+    for(var trial: usize = 0; trial < 8; trial++) {
+        execution_compile(&session, source, width, modules);
+        execution_check(execution_session_start(&session), "Repeated constructor execution starts");
+        execution_run(&session, 7, 100000);
+        execution_check(session.machine.done && session.error.length == 0 && execution_text(&session.output, "0\n"),
+            "Repeated constructor checked output");
+        execution_close_checked(&session);
+        execution_check(entity_store_count(store) == nodes && entity_store_component_count(store) == components,
+            "Constructed type requests retain zero entities and components after close");
+    }
+}
+
+fn type_construction_runtime_trial(modules: void*, source: u8*, output: u8*, diagnostic: u8*, width: u32): void {
+    var graph: ExecutionSession = default;
+    var fast: ExecutionSession = default;
+    defer execution_session_close(&graph);
+    defer execution_session_close(&fast);
+    execution_compile(&graph, source, width, modules);
+    execution_compile(&fast, source, width, modules);
+    execution_check(execution_session_start(&graph) && execution_session_fast(&fast), "Runtime constructor engines start");
+    execution_run(&graph, 1000, 100000);
+    execution_run(&fast, 1000, 100000);
+    execution_same(&graph, &fast);
+    execution_check(graph.machine.done && execution_text(&graph.output, output)
+        && execution_text(&graph.error, diagnostic), "Reached constructor capability and operand order");
+}
+
+fn type_construction_runtime_tests(modules: void*): void {
+    var capability = "Type construction requires compile-stage capability";
+    for(var width: u32 = 4; width <= 8; width += 4) {
+        type_construction_runtime_trial(modules,
+            "import tower;fn function(width:usize):type{var result:type=integer_type(width,1);return result;}fn forwarded():type{return function(32);}var Selected:type=forwarded();print(sizeof(Selected));",
+            "4\n", "", width);
+        type_construction_runtime_trial(modules,
+            "import tower;fn numeric(width:usize):type{var result:type=integer_type(width,1);return result;}fn forwarded():type{var function=numeric;return function(16);}var Selected:type=forwarded();print(sizeof(Selected));",
+            "2\n", "", width);
+        // Constants must not let optional known-value inference erase an effect.
+        type_construction_runtime_trial(modules,
+            "import tower;fn make():void{var result:type=integer_type(32,1);print(9);}make();", "", capability, width);
+        type_construction_runtime_trial(modules,
+            "import tower;fn make():type{return integer_type(24,1);}var result=make();", "", capability, width);
+        type_construction_runtime_trial(modules,
+            "import tower;fn first():usize{print(1);return 32;}fn second():usize{print(2);return 1;}fn make():void{var result:type=integer_type(first(),second());print(9);}make();",
+            "1\n2\n", capability, width);
+        type_construction_runtime_trial(modules,
+            "import tower;fn first():usize{print(1);return 32;}fn second():usize{print(2);return 1/0;}fn make():void{var result:type=integer_type(first(),second());}make();",
+            "1\n2\n", "Division by zero", width);
+        type_construction_runtime_trial(modules,
+            "import tower;fn unused():void{var result:type=integer_type(24,2);}fn chosen(take:bool):void{if take {var result:type=integer_type(24,2);}print(0);}chosen(false);",
+            "0\n", "", width);
+    }
 }
 
 fn computed_type_argument_tests(modules: void*, root: u8*, bedrock: u8*, foundation: u8*): void {

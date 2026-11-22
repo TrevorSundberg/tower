@@ -7,6 +7,8 @@ import syntax_types;
 import foundation_types;
 import grammar_types;
 import .library.work_pool;
+import .library.work_budget;
+import .library.work_budget_types;
 
 extern fn node_payload_init(kind: u32, data: void*): void;
 
@@ -21,6 +23,7 @@ struct CompilerWorld {
     types: Entity*[9]; // CompilerComponentCount slots.
     registered: usize;
     worker_limit: usize;
+    work_budget: WorkBudget*; // Borrowed immutable binding; owner outlives this world.
     grammar: CompilerGrammarCache;
 }
 
@@ -53,6 +56,43 @@ export fn compiler_world_create(): CompilerWorld* {
 
 export fn compiler_world_worker_limit(world: CompilerWorld*): usize {
     return world.worker_limit;
+}
+
+// Bind only a fresh world. Nested kernels reserve extra lanes from this ledger;
+// their caller already owns one lane. A null binding keeps standalone policy.
+export fn compiler_world_bind_budget(world: CompilerWorld*, budget: WorkBudget*): bool {
+    if world == null || budget == null || !budget.initialized
+        || world.work_budget != null || world.registered != 0
+        || world.store.next_id != 0 || world.store.views != 0
+        || world.store.component_count != 0 || world.grammar.workers.slots != null
+        || world.grammar.workers_busy || world.grammar.bedrock != null
+        || world.grammar.patterns != null || world.grammar.syntax != null {
+        return false;
+    }
+    if world.worker_limit > budget.lanes
+        || (budget.lanes > 1 && (budget.gate == null || budget.enter == null || budget.leave == null)) {
+        return false;
+    }
+    world.work_budget = budget;
+    return true;
+}
+
+export fn compiler_world_work_budget(world: CompilerWorld*): WorkBudget* {
+    return world == null ? null : world.work_budget;
+}
+
+// Linked semantic clients use the one world-bound ledger without importing
+// its implementation. Standalone worlds have no shared receipt to reserve.
+export fn compiler_world_worker_reserve(world: CompilerWorld*, preferred: usize, receipt: WorkReservation*): WorkBudgetError {
+    if world == null || world.work_budget == null || receipt == null
+        || world.worker_limit == 0 || preferred >= world.worker_limit { return WorkBudgetError.Invalid; }
+    return work_budget_reserve_result(world.work_budget, 0, preferred, 0, receipt);
+}
+
+export fn compiler_world_worker_release(world: CompilerWorld*, receipt: WorkReservation*): WorkBudgetError {
+    if world == null || world.work_budget == null || receipt == null
+        || receipt.owner != world.work_budget { return WorkBudgetError.Invalid; }
+    return work_budget_release_result(world.work_budget, receipt);
 }
 
 // Entity identity determines its compiler world. Workers never switch a global
