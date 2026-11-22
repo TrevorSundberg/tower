@@ -1202,7 +1202,7 @@ assertions, and D1 registrations reuse the existing runners. No new D2
 benchmark/helper path or alternate scheduler was added in this integration.
 Full current-source instrumentation/browser/generation/publication remain open.
 
-### CURRENT remaining scope at 83ca8a6 (2026-11-22 23:43 UTC)
+### CURRENT remaining scope at 83ca8a6 (2026-11-22)
 
 This supersedes historical “missing helper” and pre-handoff gap statements,
 without removing their evidence. Production helper readiness is implemented.

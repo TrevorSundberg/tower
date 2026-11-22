@@ -48901,3 +48901,18 @@ closes the source-level unbounded-loop concern without weakening assertions.
 Owner normal15parser cases6.16s pass; D2 predecessor/normal/ASan still pending.
 D1 corrected aggregate registrationv3ec4e reverse-check confirms D2's selective
 v2hook plus exact25e source matches it; no duplicate fixture/import was applied.
+
+Root's final artifact plan is now explicit: root coordinates the final merged
+source, immutable pinned dependency inputs and compiler/runtime/IDE packaging.
+D2 must not duplicate LLVM/Binaryen/tablegen/WASI vendor builds; it retains
+independent own canonical native/tool measurement and later exact delivered
+package validation. No final source identity or browser pass yet exists.
+
+Read current browser callers while D1 owns heavy slot. compiletime.test.mjs
+still classifies semantic_invalid/comptime_capture (immutable initialized7) as
+invalid and expects retired aggregate-copy/type-constructor diagnostics in
+three other cases; compiler-threads also classifies inference_alias_invalid as
+negative. These are source-level concerns matching D1's initial audit, not
+newly executed failures. Routed exact paths/lines to D1 and coordinator for
+current native/WASI evidence before any minimal classification/oracle repair.
+No fixture or browser transport was changed; no skipped check is a pass.
