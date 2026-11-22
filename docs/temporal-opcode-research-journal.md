@@ -41141,3 +41141,26 @@ the real compiler import closure beyond the behavioral fixtures. Evidence:
 array-frontier-matrix.log and array-queries-self.log. No throughput improvement
 is claimed from these correctness/concurrency checks. Ready for publication of
 this batched protocol, module-initializer and array-query milestone.
+
+Next read-only tooling audit: format-tower.mjs remains reachable through the two
+npm formatting commands and contains idempotence/tree-preservation policy. Do
+not delete it as unused, and do not run its repository-wide write/check sweep in
+this migration. No existing native formatter CLI was found in the audited tool
+entry points; a future port should reuse the existing Tower formatting engine.
+setup-wasi.sh is a small live checksum/extraction bridge referenced by build-wasm
+and platform setup docs, so its name alone is not evidence for deletion. Remaining
+completion/hover candidate checks consume transport JSON; avoid a bespoke second
+semantic model or a large new validation framework merely to move those lines.
+
+Publication complete: Pages d6323a0e0ea3f66357d08495c25a558bfcf479af,
+workflow 44982583159 succeeded. Exact hosted manifest SHA256:
+ab6980b1cc36f6c1e7ca3ae18766ffe58f2da1734b0982d1925093c38be84062.
+Full verify-deployment.mjs https://tower-lang.org/ passes all 88 hosted asset
+checks and both desktop/mobile browser checks, including native downloads,
+completion/highlighting, compiler-project cancellation, persistence and target
+defaults. Runtime buildSourceCommit remains 2225c52; compiler project is 537637e.
+Source/validation 537637e and ff3cf96 are pushed. Publish used an isolated Git
+index and a normal fast-forward artifact commit; main remained the source branch.
+Release only this lane's agent1-candidate-537637e lock after hosted verification.
+Goal remains active: Python elimination is complete, remaining shell/CMake bridges
+and reusable JavaScript still require migration. todo.txt was not changed.
