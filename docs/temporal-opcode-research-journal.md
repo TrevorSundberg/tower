@@ -43070,3 +43070,21 @@ PowerShell inventory attempt accidentally matched each category name inside a
 switch instead of its file path and returned spurious zeroes; corrected direct
 path matching gives these counts. GitHub language percentages are not these
 source-line measurements. No todo.txt, bootstrap pin or runtime asset changes.
+
+Integration brings ac9503a's body admission queries and prepared-statement
+continuations; the cleanup rebases to 674ab53. Freeze that complete source in
+/cache/interpreter_measurement_integrated_checkout. With no private bootstrap
+environment variable, the documented build-native.sh produces a fresh successor
+in /cache/interpreter_measurement_integrated_native (48 steps), SHA256
+f8ea8a68df6d5e7ebb848b96b731fc40570af7db234053dae9044af7b23830f8.
+Build the affected LR/backend fixtures and measurement runner in ten more steps.
+type-smoke and control-smoke pass serial/worker execution, canonical reparse,
+cleanup, ordered failures and cycles; backend API and interpreted32/64/native/
+Wasm memory pass. After those checks finish, rerun all four new measurement groups
+alone with this successor: all pass, retaining the same exact outputs and fifteen
+pairs per group. The already passed browser checks remain explicitly tied to the
+published 89151aa runtime; this tooling publication will preserve those assets.
+No unrelated full release matrix or compiler asset rebuild is needed for the
+measurement-tool change. Remaining candidates include the standalone formatter
+port benchmark (only a self-reference found) and browser profiling workload
+strings; audit their current purpose before any translation or deletion.
