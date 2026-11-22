@@ -1,0 +1,275 @@
+import tower;
+import compiler_project_inputs;
+import compiler_project_files;
+import compiler_support;
+import tool_words;
+import tool_files_posix;
+import tool_files_linux;
+import tool_streams_posix;
+import .backend.wasm_bytes;
+import .backend.wasm_archive;
+import .backend.wasm_object;
+import .backend.wasm_object_types;
+import .backend.wasm_names;
+import .library.bytes;
+import .library.bytes_types;
+import .library.vector;
+import .library.ar_archive;
+import .library.gzip;
+import .compiler.host_text;
+import .compiler.utf8;
+import .host.driver_files;
+
+extern fn rename(source: u8*, destination: u8*): i32;
+extern fn puts(text: u8*): i32;
+
+var CompilerProjectBuildInputBytes: usize = 1073741824;
+var CompilerProjectRecipeVersion: u64 = 1;
+var CompilerProjectStackBytes: u64 = 8388608;
+var CompilerProjectInitialMemory: u64 = 33554432;
+var CompilerProjectMaximumMemory: u64 = 2147483648;
+var CompilerProjectLinkThreads: u64 = 1;
+
+struct CompilerProjectInput { path: ByteBuffer; bytes: ByteBuffer; }
+struct CompilerProjectInputs { files: vector(CompilerProjectInput*); names: WasmNameMap; }
+struct CompilerProjectPackage {
+    project: CompilerProjectFiles;
+    stage: ByteBuffer; output: u8*; entry: u8*;
+    products: vector(ByteBuffer); reactors: ByteBuffer;
+}
+
+fn compiler_project_inputs_close(inputs: CompilerProjectInputs*): void {
+    foreach(var input in &inputs.files) { bytes_dispose(&input.path); bytes_dispose(&input.bytes); free(input); }
+    vector_dispose(&inputs.files); wasm_names_dispose(&inputs.names);
+}
+fn compiler_project_input(inputs: CompilerProjectInputs*, path: u8*): CompilerProjectInput* {
+    var index = wasm_names_get(&inputs.names, wasm_text_bytes(path));
+    if index != WasmNoIndex { return inputs.files.data[convert(usize, index)]; }
+    if inputs.files.length >= convert(usize, WasmNoIndex) { return null; }
+    var input = alloc(CompilerProjectInput, 1); if input == null { return null; } *input = default;
+    var retained = false;
+    defer { if !retained { bytes_dispose(&input.path); bytes_dispose(&input.bytes); free(input); } }
+    if !bytes_assign_text(&input.path, path, strlen(path))
+        || !tool_read_file(path, CompilerProjectBuildInputBytes, &input.bytes) || !vector_push(&inputs.files, input) { return null; }
+    retained = true;
+    if !wasm_names_set(&inputs.names, wasm_text_bytes(input.path.data), convert(u32, inputs.files.length - 1)) { return null; }
+    return input;
+}
+fn compiler_project_span(buffer: ByteBuffer*): WasmBytes { return init(WasmBytes) { data: buffer.data, length: buffer.length }; }
+fn compiler_project_package_close(package: CompilerProjectPackage*): void {
+    compiler_project_files_close(&package.project); bytes_dispose(&package.stage);
+    tool_words_close(&package.products); bytes_dispose(&package.reactors);
+}
+
+fn compiler_project_stage(package: CompilerProjectPackage*, output: u8*): bool {
+    package.output = output;
+    if !tool_join(&package.stage, output, ".compiler_project_XXXXXX")
+        || !tool_output_parents(package.stage.data) || mkdtemp(package.stage.data) == null { return false; }
+    return true;
+}
+fn compiler_project_product(package: CompilerProjectPackage*, name: u8*, data: ByteBuffer*): bool {
+    var path: ByteBuffer = default; defer bytes_dispose(&path);
+    return tool_join(&path, package.stage.data, name) && driver_write_file(path.data, data.data, data.length)
+        && compiler_project_word(&package.products, name);
+}
+fn compiler_project_gzip(package: CompilerProjectPackage*, name: u8*, data: ByteBuffer*): bool {
+    var compressed: ByteBuffer = default; defer bytes_dispose(&compressed);
+    return gzip_compress(data.data, data.length, &compressed) && compiler_project_product(package, name, &compressed);
+}
+
+fn compiler_project_tower(project: CompilerProjectFiles*, inputs: CompilerProjectInputs*, support: CompilerSupport*,
+    names: vector(ByteBuffer)*, build: u8*, path: u8*): bool {
+    var unit = compiler_project_unit(project, build, path);
+    if unit == null { puts("Cannot collect Tower unit source/dependencies:"); puts(path); return false; }
+    if !compiler_project_word(names, unit.key.data) { return false; }
+    var input = compiler_project_input(inputs, path);
+    return input != null && compiler_support_object(support, wasm_text_bytes(input.path.data), default(WasmBytes),
+        compiler_project_span(&input.bytes), false, true);
+}
+fn compiler_project_support_input(inputs: CompilerProjectInputs*, support: CompilerSupport*, path: u8*): bool {
+    var input = compiler_project_input(inputs, path); if input == null { return false; }
+    var source = wasm_text_bytes(input.path.data); var bytes = compiler_project_span(&input.bytes);
+    return compiler_project_suffix(path, ".a") ? compiler_support_read_archive(support, source, bytes)
+        : compiler_support_object(support, source, default(WasmBytes), bytes, false, false);
+}
+fn compiler_project_memory(project: CompilerProjectFiles*, inputs: CompilerProjectInputs*, support: CompilerSupport*,
+    names: vector(ByteBuffer)*, build: u8*, path: u8*): bool {
+    var input = compiler_project_input(inputs, path); if input == null { return false; }
+    var archive: WasmArchive = default; defer wasm_archive_dispose(&archive);
+    var member_path: ByteBuffer = default; var name: ByteBuffer = default;
+    defer bytes_dispose(&member_path); defer bytes_dispose(&name);
+    if !wasm_archive_read(&archive, compiler_project_span(&input.bytes)) { return false; }
+    foreach(var & member in &archive.members) {
+        if member.special { continue; }
+        if wasm_bytes_text(member.name, "tower-compiler-host.o") || wasm_bytes_text(member.name, "tower_work_host.o") {
+            if !bytes_assign_text(&name, member.name.data, member.name.length) || !tool_join(&member_path, build, name.data)
+                || !compiler_project_tower(project, inputs, support, names, build, member_path.data) { return false; }
+        } else {
+            // Reserved-symbol runtime ABI objects remain exact prebuilt bytes.
+            if !compiler_support_object(support, wasm_text_bytes(input.path.data), member.name, member.bytes, false, false) { return false; }
+        }
+    }
+    return true;
+}
+
+fn compiler_project_collect(project: CompilerProjectFiles*, inputs: CompilerProjectInputs*, support: CompilerSupport*,
+    names: vector(ByteBuffer)*, build: u8*, linker: vector(ByteBuffer)*): bool {
+    var directories: vector(ByteBuffer) = default; var libraries: vector(ByteBuffer) = default;
+    var path: ByteBuffer = default; var filename: ByteBuffer = default;
+    defer tool_words_close(&directories); defer tool_words_close(&libraries);
+    defer bytes_dispose(&path); defer bytes_dispose(&filename);
+    for(var at: usize = 1; at < linker.length; at++) {
+        var argument = linker.data[at].data;
+        if compiler_project_suffix(argument, ".o") || compiler_project_suffix(argument, ".obj") || compiler_project_suffix(argument, ".a") {
+            if !compiler_project_path(&path, build, argument) { return false; }
+            var name = compiler_project_basename(path.data);
+            if compiler_project_tower_object(name) {
+                if !compiler_project_tower(project, inputs, support, names, build, path.data) { return false; }
+            } else {
+                if strcmp(name, "libtower-compiler-memory.a") == 0 {
+                    if !compiler_project_memory(project, inputs, support, names, build, path.data) { return false; }
+                } else { if !compiler_project_support_input(inputs, support, path.data) { return false; } }
+            }
+        } else {
+            if compiler_project_prefix(argument, "-L") {
+                if !compiler_project_path(&path, build, argument + strlen("-L")) || !compiler_project_word(&directories, path.data) { return false; }
+            } else {
+                if compiler_project_prefix(argument, "-l") && !compiler_project_word(&libraries, argument + strlen("-l")) { return false; }
+            }
+        }
+    }
+    foreach(var & library in &libraries) {
+        filename.length = 0;
+        if !compiler_project_text(&filename, "lib") || !compiler_project_text(&filename, library.data)
+            || !compiler_project_text(&filename, ".a") || !host_text_terminate(&filename) { return false; }
+        var found = false;
+        foreach(var & directory in &directories) {
+            if !tool_join(&path, directory.data, filename.data) { return false; }
+            var kind = tool_file_kind(path.data, true);
+            if kind == ToolFileKind.Missing { continue; }
+            if kind != ToolFileKind.Regular || !compiler_project_support_input(inputs, support, path.data) { return false; }
+            found = true; break;
+        }
+        if !found { puts("Missing link library:"); puts(filename.data); return false; }
+    }
+    return compiler_support_select(support);
+}
+
+fn compiler_project_json_words(out: ByteBuffer*, words: vector(ByteBuffer)*): bool {
+    if !compiler_project_text(out, "[") { return false; }
+    for(var at: usize = 0; at < words.length; at++) {
+        if tower_utf8_validate(words.data[at].data, words.data[at].length, 0) == 0
+            || (at != 0 && !compiler_project_text(out, ",")) || !host_json_quote(out, words.data[at].data, words.data[at].length) { return false; }
+    }
+    return compiler_project_text(out, "]");
+}
+fn compiler_project_argument_number(args: vector(ByteBuffer)*, prefix: u8*, value: u64): bool {
+    var word: ByteBuffer = default; defer bytes_dispose(&word);
+    return compiler_project_text(&word, prefix) && host_json_unsigned(&word, value) && tool_word_end(args, &word);
+}
+fn compiler_project_argument(args: vector(ByteBuffer)*, prefix: u8*, text: u8*): bool {
+    var word: ByteBuffer = default; defer bytes_dispose(&word);
+    return compiler_project_text(&word, prefix) && compiler_project_text(&word, text) && tool_word_end(args, &word);
+}
+fn compiler_project_exports(input: CompilerProjectInput*, exports: vector(ByteBuffer)*): bool {
+    // Final reactors have no relocatable-object linking metadata. Reuse the
+    // bounded standard-section reader without imposing that object-only rule.
+    var object: WasmObject = { start: WasmNoIndex, data_count: WasmNoIndex, code_section: WasmNoIndex, data_section: WasmNoIndex, ..default };
+    defer wasm_object_dispose(&object);
+    var reader: WasmReader = { bytes: compiler_project_span(&input.bytes), ..default };
+    wasm_object_sections(&object, &reader);
+    if reader.error != WasmReadError.None { puts("Cannot read final reactor sections:"); puts(input.path.data); print(convert(u32, reader.error)); return false; }
+    foreach(var & entry in &object.exports) {
+        if entry.kind != convert(u8, WasmExternal.Function) { continue; }
+        if convert(usize, entry.index) >= object.functions.length { return false; }
+        var name: ByteBuffer = default; defer bytes_dispose(&name);
+        if !bytes_append(&name, entry.name.data, entry.name.length) || !tool_word_end(exports, &name) { return false; }
+    }
+    return exports.length != 0;
+}
+
+fn compiler_project_reactor(whole: CompilerProjectPackage*, name: u8*, build: u8*, binary: u8*): bool {
+    var inputs: CompilerProjectInputs = default;
+    var support: CompilerSupport = default;
+    var order: vector(CompilerSupportMember*) = default;
+    var linker: vector(ByteBuffer) = default; var names: vector(ByteBuffer) = default;
+    var assets: vector(ByteBuffer) = default; var arguments: vector(ByteBuffer) = default; var exports: vector(ByteBuffer) = default;
+    var path: ByteBuffer = default; var file: ByteBuffer = default; var data: ByteBuffer = default;
+    defer compiler_project_inputs_close(&inputs); defer compiler_support_close(&support); defer vector_dispose(&order);
+    defer tool_words_close(&linker); defer tool_words_close(&names); defer tool_words_close(&assets);
+    defer tool_words_close(&arguments); defer tool_words_close(&exports);
+    defer bytes_dispose(&path); defer bytes_dispose(&file); defer bytes_dispose(&data);
+    puts(name);
+    if !compiler_project_linker(build, binary, &linker) { puts("Cannot discover final Ninja/Clang link recipe:"); puts(build); return false; }
+    if !compiler_project_collect(&whole.project, &inputs, &support, &names, build, &linker)
+        || !compiler_support_order(&support, &order) {
+        puts("Cannot collect compiler link inputs:"); print(convert(u32, support.error)); print(convert(u32, support.input_error)); print(support.offset);
+        if support.source.length != 0 && bytes_assign_text(&path, support.source.data, support.source.length) { puts(path.data); }
+        if support.member.length != 0 && bytes_assign_text(&path, support.member.data, support.member.length) { puts(path.data); }
+        return false;
+    }
+    var bytes: u64 = 0; var begin: usize = 0; var chunk: usize = 0;
+    loop {
+        var end = compiler_support_chunk(&order, begin);
+        if compiler_support_write(&order, begin, end, &data) != ArResult.Ok { return false; }
+        bytes += convert(u64, data.length); file.length = 0;
+        if !compiler_project_text(&file, "support-") || !compiler_project_text(&file, name)
+            || !compiler_project_text(&file, "-") || !ar_decimal(&file, chunk++)
+            || !compiler_project_text(&file, ".a.gz") || !host_text_terminate(&file)
+            || !compiler_project_gzip(whole, file.data, &data) || !compiler_project_word(&assets, file.data) { return false; }
+        begin = end; if begin == order.length { break; }
+    }
+    if !tool_join(&path, build, binary) { return false; }
+    var module = compiler_project_input(&inputs, path.data);
+    if module == null || !compiler_project_exports(module, &exports) { return false; }
+    var baseline = "wasm-ld --no-entry --export-memory --stack-first";
+    if !tool_shell_words(baseline, strlen(baseline), &arguments)
+        || !compiler_project_argument_number(&arguments, "--threads=", CompilerProjectLinkThreads)
+        || !compiler_project_word(&arguments, "-z") || !compiler_project_argument_number(&arguments, "stack-size=", CompilerProjectStackBytes)
+        || !compiler_project_argument_number(&arguments, "--initial-memory=", CompilerProjectInitialMemory)
+        || !compiler_project_argument_number(&arguments, "--max-memory=", CompilerProjectMaximumMemory)
+        || !compiler_project_word(&arguments, "--strip-all") { return false; }
+    foreach(var & exported in &exports) {
+        if !compiler_project_argument(&arguments, "--export-if-defined=", exported.data) { return false; }
+    }
+    foreach(var & argument in &linker) {
+        if argument.data[0] == *"@" {
+            var response: vector(ByteBuffer) = default; defer tool_words_close(&response);
+            if !compiler_project_path(&path, build, argument.data + 1) || !tool_read_file(path.data, CompilerProjectCommandBytes, &data)
+                || !tool_shell_words(data.data, data.length, &response) { return false; }
+            foreach(var & item in &response) { if !compiler_project_word(&arguments, item.data) { return false; } }
+        } else {
+            if compiler_project_prefix(argument.data, "--wrap=") && !compiler_project_word(&arguments, argument.data) { return false; }
+        }
+    }
+    foreach(var & key in &names) { if !compiler_project_argument(&arguments, key.data, ".o") { return false; } }
+    if !compiler_project_word(&arguments, "--whole-archive") { return false; }
+    foreach(var & asset in &assets) {
+        var gzip_suffix = strlen(".gz"); var word: ByteBuffer = default; defer bytes_dispose(&word);
+        if !bytes_append(&word, asset.data, asset.length - gzip_suffix) || !tool_word_end(&arguments, &word) { return false; }
+    }
+    if !compiler_project_word(&arguments, "--no-whole-archive") || !compiler_project_word(&arguments, "-o")
+        || !compiler_project_word(&arguments, "tower-output.bin") { return false; }
+    var allow_prefix = "--allow-undefined-file=";
+    for(var at: usize = 0; at < linker.length; at++) {
+        var argument = linker.data[at].data;
+        if !compiler_project_prefix(argument, allow_prefix) { continue; }
+        if !compiler_project_path(&path, build, argument + strlen(allow_prefix)) || !tool_read_file(path.data, CompilerProjectFileBytes, &data) { return false; }
+        file.length = 0;
+        if !compiler_project_text(&file, "imports-") || !compiler_project_text(&file, name)
+            || !compiler_project_text(&file, "-") || !ar_decimal(&file, at) || !compiler_project_text(&file, ".txt")
+            || !host_text_terminate(&file) || !compiler_project_argument(&arguments, allow_prefix, file.data)
+            || !compiler_project_text(&file, ".gz") || !host_text_terminate(&file)
+            || !compiler_project_gzip(whole, file.data, &data) || !compiler_project_word(&assets, file.data) { return false; }
+        bytes += convert(u64, data.length);
+    }
+    var out = &whole.reactors;
+    if (out.length != 0 && !compiler_project_text(out, ",")) || !host_json_quote(out, name, strlen(name))
+        || !compiler_project_text(out, ":{\"units\":") || !compiler_project_json_words(out, &names)
+        || !compiler_project_text(out, ",\"support\":") || !compiler_project_json_words(out, &assets)
+        || !compiler_project_text(out, ",\"arguments\":") || !compiler_project_json_words(out, &arguments)
+        || !compiler_project_text(out, ",\"supportBytes\":") || !host_json_unsigned(out, bytes)
+        || !compiler_project_text(out, ",\"exports\":") || !compiler_project_json_words(out, &exports)
+        || !compiler_project_text(out, "}") { return false; }
+    puts("Support bytes and Tower units:"); print(bytes); print(names.length); return true;
+}

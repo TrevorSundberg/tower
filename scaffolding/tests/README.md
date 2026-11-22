@@ -244,6 +244,19 @@ installer layer in favor of directly runnable checked-in files. Reader/installer
 experiments are preserved in Git history; they are not required build tooling.
 
 The same runtime/parser now also runs in the [static WASM playground](../../playground/README.md).
+`compiler_support_checks.tower` exercises deterministic indexed GNU ar output,
+archive symbol closure, duplicate member names, seed exclusion, chunk bounds and
+malformed inputs. Pass a new writable fixture directory and optionally a real
+Wasm archive; the optional differential checks every member with LLVM's reader.
+`compiler_support_program.tower` supplies executable Tower assertions for lazy
+and whole-archive links. `tool_words_checks.tower` checks distinct shell/Make
+argument decoding and captured Clang diagnostics; optional build-directory and
+binary arguments inspect a real final Ninja recipe. These checks link the same
+guest host object as the other tooling fixtures.
+`compiler_project_compare.tower OLD_DIRECTORY NEW_DIRECTORY` independently
+decompresses support packs with gzip and compares every object payload hash as
+a multiset. Full package validation also runs the two browser generations above.
+
 Native and WASM parser builds use explicit error returns with C++ exceptions disabled.
 
 The standalone `tower-bytes-tests` and `tower-utf8-tests` targets now run Tower

@@ -1,0 +1,291 @@
+import tower;
+import utility_checks;
+import wasm_link_fixture;
+import .tools.compiler_support;
+import .tools.tool_files_posix;
+import .tools.tool_streams_posix;
+import .tools.tool_capture_linux;
+import .tools.tool_process_linux;
+import .backend.wasm_bytes;
+import .backend.wasm_object_types;
+import .backend.wasm_archive;
+import .backend.wasm_names;
+import .library.ar_archive;
+import .library.bytes;
+import .library.bytes_types;
+import .library.vector;
+import .compiler.utf8;
+import .compiler.host_text;
+import .host.driver_files;
+
+struct SupportFixtureSymbol { name: u8*; flags: u32; }
+enum SupportCase: usize { TowerSeed, NativeSeed, First, Second, Tail, Native, Batch, Unused, Seeded, Later, Count }
+fn support_fixture_symbol(symbols: vector(SupportFixtureSymbol)*, name: u8*, flags: u32): void {
+    var symbol: SupportFixtureSymbol = { name: name, flags: flags };
+    utility_check(vector_push(symbols, symbol), "fixture symbol allocation");
+}
+fn support_fixture_object(symbols: vector(SupportFixtureSymbol)*, output: ByteBuffer*): void {
+    var undefined = convert(u32, WasmSymbolFlag.Undefined);
+    var imports: usize = 0;
+    foreach(var & symbol in symbols) { if (symbol.flags & undefined) != 0 { imports++; } }
+    var definitions = symbols.length - imports;
+    var header: u8[8] = default; var header_bytes: usize = 8;
+    header[1] = *"a"; header[2] = *"s"; header[3] = *"m"; header[4] = 1;
+    utility_check(bytes_append(output, &header[0], header_bytes), "fixture module header");
+    var section: ByteBuffer = default; var table: ByteBuffer = default;
+    defer bytes_dispose(&section); defer bytes_dispose(&table);
+    wasm_test_index(&section, 1); wasm_test_byte(&section, WasmFunctionType);
+    wasm_test_index(&section, 0); wasm_test_index(&section, 1); wasm_test_byte(&section, convert(u8, WasmValueType.I32));
+    wasm_test_section(output, WasmSection.Type, &section);
+    if imports != 0 {
+        wasm_test_index(&section, convert(u64, imports));
+        foreach(var & symbol in symbols) {
+            if (symbol.flags & undefined) == 0 { continue; }
+            wasm_test_name(&section, "env"); wasm_test_name(&section, symbol.name);
+            wasm_test_byte(&section, convert(u8, WasmExternal.Function)); wasm_test_index(&section, 0);
+        }
+        wasm_test_section(output, WasmSection.Import, &section);
+    }
+    if definitions != 0 {
+        wasm_test_index(&section, convert(u64, definitions));
+        for(var at: usize = 0; at < definitions; at++) { wasm_test_index(&section, 0); }
+        wasm_test_section(output, WasmSection.Function, &section);
+        wasm_test_index(&section, convert(u64, definitions));
+        var body_bytes: u64 = 4;
+        for(var at: usize = 0; at < definitions; at++) {
+            wasm_test_index(&section, body_bytes); wasm_test_index(&section, 0);
+            wasm_test_byte(&section, convert(u8, WasmOpcode.I32Const)); wasm_test_byte(&section, 42);
+            wasm_test_byte(&section, convert(u8, WasmOpcode.End));
+        }
+        wasm_test_section(output, WasmSection.Code, &section);
+    }
+    wasm_test_index(&table, convert(u64, symbols.length));
+    var imported: usize = 0; var defined = imports;
+    foreach(var & symbol in symbols) {
+        var reference = (symbol.flags & undefined) != 0;
+        wasm_test_byte(&table, convert(u8, WasmSymbolKind.Function)); wasm_test_index(&table, convert(u64, symbol.flags));
+        wasm_test_index(&table, convert(u64, reference ? imported++ : defined++));
+        if !reference { wasm_test_name(&table, symbol.name); }
+    }
+    wasm_test_name(&section, "linking"); wasm_test_index(&section, convert(u64, WasmLinkingVersion));
+    wasm_test_byte(&section, convert(u8, WasmLinkingSection.Symbols)); wasm_test_index(&section, convert(u64, table.length));
+    utility_check(bytes_append(&section, table.data, table.length), "fixture symbol table");
+    wasm_test_section(output, WasmSection.Custom, &section);
+}
+
+fn support_fixture_file(directory: u8*, name: u8*, data: ByteBuffer*): void {
+    var path: ByteBuffer = default; defer bytes_dispose(&path);
+    utility_check(tool_join(&path, directory, name) && tool_output_parents(path.data)
+        && driver_write_file(path.data, data.data, data.length), "persist support fixture");
+}
+fn support_fixture_span(data: ByteBuffer*): WasmBytes { return init(WasmBytes) { data: data.data, length: data.length }; }
+fn support_fixture_add(support: CompilerSupport*, path: u8*, name: u8*, data: ByteBuffer*, archive: bool, rebuild: bool): void {
+    utility_check(compiler_support_object(support, wasm_text_bytes(path), wasm_text_bytes(name), support_fixture_span(data), archive, rebuild), "read fixture object");
+}
+
+fn support_fixture_archive_checks(directory: u8*): void {
+    var output: ByteBuffer = default; var repeated: ByteBuffer = default;
+    defer bytes_dispose(&output); defer bytes_dispose(&repeated);
+    var limit: usize = 4096;
+    utility_check(ar32_write(null, 0, null, 0, limit, &output) == ArResult.Ok, "empty indexed archive");
+    support_fixture_file(directory, "empty.a", &output);
+    var name = "a long member name with spaces.o"; var payload = "odd";
+    var member: ArMember = { name: name, name_length: strlen(name), data: payload, length: strlen(payload) };
+    var symbol: ArSymbol = { name: "fixture_symbol", length: strlen("fixture_symbol"), member: 0 };
+    utility_check(ar32_write(&member, 1, &symbol, 1, limit, &output) == ArResult.Ok
+        && ar32_write(&member, 1, &symbol, 1, limit, &repeated) == ArResult.Ok
+        && wasm_bytes_equal(support_fixture_span(&output), support_fixture_span(&repeated)), "deterministic GNU names/index/odd bytes");
+    var archive: WasmArchive = default; defer wasm_archive_dispose(&archive);
+    utility_check(wasm_archive_read(&archive, support_fixture_span(&output)) && archive.indexed && archive.symbols.length == 1, "read GNU index");
+    var selected = &archive.members.data[archive.symbols.data[0].member];
+    utility_check(wasm_bytes_text(selected.name, name) && wasm_bytes_text(selected.bytes, payload), "long member and exact odd payload");
+    support_fixture_file(directory, "long.a", &output);
+    utility_check(ar32_write(&member, 1, &symbol, 1, output.length - 1, &output) == ArResult.Limit
+        && wasm_bytes_equal(support_fixture_span(&output), support_fixture_span(&repeated)), "archive limit preserves output");
+    symbol.member = 1;
+    utility_check(ar32_write(&member, 1, &symbol, 1, limit, &output) == ArResult.Input, "invalid symbol member rejected");
+    symbol.member = 0; member.name = "bad\nname"; member.name_length = strlen(member.name);
+    utility_check(ar32_write(&member, 1, &symbol, 1, limit, &output) == ArResult.Input, "newline member name rejected");
+    member.name = name; member.name_length = strlen(name);
+    member.data = output.data; member.length = output.length;
+    utility_check(ar32_write(&member, 1, null, 0, limit, &output) == ArResult.Ok, "archive may borrow old output");
+    wasm_archive_dispose(&archive);
+    utility_check(wasm_archive_read(&archive, support_fixture_span(&output))
+        && wasm_bytes_equal(archive.members.data[archive.members.length - 1].bytes, support_fixture_span(&repeated)), "aliased input bytes retained exactly");
+}
+
+fn support_fixture_boundaries(): void {
+    var object: ByteBuffer = default; var other: ByteBuffer = default; var demand: ByteBuffer = default; var archive: ByteBuffer = default;
+    defer bytes_dispose(&object); defer bytes_dispose(&other); defer bytes_dispose(&demand); defer bytes_dispose(&archive);
+    wasm_test_named_object(&object, "duplicate", 0);
+    wasm_test_named_object(&other, "different", 0);
+    var entries: vector(ArMember) = default; defer vector_dispose(&entries);
+    var name = "duplicate.o";
+    var entry: ArMember = { name: name, name_length: strlen(name), data: object.data, length: object.length };
+    utility_check(vector_push(&entries, entry), "first duplicate-name member");
+    entry.data = other.data; entry.length = other.length;
+    utility_check(vector_push(&entries, entry)
+        && ar32_write(entries.data, entries.length, null, 0, CompilerSupportInputBytes, &archive) == ArResult.Ok, "duplicate-name archive fixture");
+    var rejected: CompilerSupport = default; defer compiler_support_close(&rejected);
+    utility_check(compiler_support_read_archive(&rejected, wasm_text_bytes("duplicates.a"), support_fixture_span(&archive))
+        && rejected.members.length == 2, "duplicate names preserve physical member identity");
+    var symbols: vector(SupportFixtureSymbol) = default; defer vector_dispose(&symbols);
+    support_fixture_symbol(&symbols, "different", convert(u32, WasmSymbolFlag.Undefined)); support_fixture_object(&symbols, &demand);
+    support_fixture_add(&rejected, "demand.o", "", &demand, false, true);
+    var selected: vector(CompilerSupportMember*) = default; defer vector_dispose(&selected);
+    utility_check(compiler_support_select(&rejected) && compiler_support_order(&rejected, &selected)
+        && selected.length == 1 && wasm_bytes_equal(selected.data[0].bytes, support_fixture_span(&other)), "select exact second member without filename extraction ambiguity");
+    compiler_support_close(&rejected);
+    var invalid = support_fixture_span(&object); invalid.length--;
+    utility_check(!compiler_support_object(&rejected, wasm_text_bytes("truncated.o"), default(WasmBytes), invalid, false, true)
+        && rejected.error == CompilerSupportError.Object && !compiler_support_select(&rejected), "object failure prevents later selection");
+
+    var first: CompilerSupportMember = { bytes: { length: CompilerSupportChunkBytes - 1, ..default }, ..default };
+    var second: CompilerSupportMember = { bytes: { length: 1, ..default }, ..default };
+    var third: CompilerSupportMember = { bytes: { length: 1, ..default }, ..default };
+    var order: vector(CompilerSupportMember*) = default; defer vector_dispose(&order);
+    utility_check(vector_push(&order, &first) && vector_push(&order, &second) && vector_push(&order, &third), "chunk boundary fixture");
+    var exact_end: usize = 2;
+    utility_check(compiler_support_chunk(&order, 0) == exact_end
+        && compiler_support_chunk(&order, exact_end) == order.length, "exact chunk budget and next member boundary");
+    first.bytes.length = CompilerSupportChunkBytes + 1;
+    utility_check(compiler_support_chunk(&order, 0) == 1, "oversized single member gets its own chunk");
+    first.bytes = support_fixture_span(&object); first.selected = true; first.rebuild = true;
+    utility_check(compiler_support_write(&order, 0, 1, &archive) == ArResult.Input, "never package a rebuildable Tower seed");
+    first.rebuild = false; first.bytes.length = CompilerSupportInputBytes;
+    var retained = support_fixture_span(&archive);
+    utility_check(compiler_support_write(&order, 0, 1, &archive) == ArResult.Limit
+        && archive.data == retained.data && archive.length == retained.length, "64 MiB limit includes archive envelope and preserves output");
+}
+
+fn support_fixture_selection(directory: u8*): void {
+    var support: CompilerSupport = default; var order: vector(CompilerSupportMember*) = default;
+    var buffers: vector(ByteBuffer) = default; var symbols: vector(SupportFixtureSymbol) = default;
+    defer compiler_support_close(&support); defer vector_dispose(&order); defer vector_dispose(&symbols);
+    defer { foreach(var & buffer in &buffers) { bytes_dispose(buffer); } vector_dispose(&buffers); }
+    var undefined = convert(u32, WasmSymbolFlag.Undefined); var weak = convert(u32, WasmSymbolFlag.Weak);
+    var local = convert(u32, WasmSymbolFlag.Local);
+    // Pin all object allocations independently of growth of the buffer vector.
+    var fixture_count = convert(usize, SupportCase.Count);
+    for(var at: usize = 0; at < fixture_count; at++) {
+        var buffer: ByteBuffer = default;
+        utility_check(vector_push(&buffers, buffer), "fixture buffer ownership");
+    }
+    support_fixture_symbol(&symbols, "seed_defined", 0);
+    support_fixture_symbol(&symbols, "__real_entry", undefined); support_fixture_symbol(&symbols, "second", undefined);
+    support_fixture_symbol(&symbols, "weak_missing", undefined | weak);
+    support_fixture_object(&symbols, &buffers.data[convert(usize, SupportCase.TowerSeed)]); symbols.length = 0;
+    support_fixture_symbol(&symbols, "native_needed", undefined);
+    support_fixture_object(&symbols, &buffers.data[convert(usize, SupportCase.NativeSeed)]); symbols.length = 0;
+    support_fixture_symbol(&symbols, "entry", weak); support_fixture_symbol(&symbols, "second", weak);
+    support_fixture_symbol(&symbols, "tail", undefined); support_fixture_symbol(&symbols, "private_definition", local);
+    support_fixture_object(&symbols, &buffers.data[convert(usize, SupportCase.First)]); symbols.length = 0;
+    support_fixture_symbol(&symbols, "second", 0); support_fixture_symbol(&symbols, "batch_extra", undefined);
+    support_fixture_object(&symbols, &buffers.data[convert(usize, SupportCase.Second)]); symbols.length = 0;
+    support_fixture_symbol(&symbols, "tail", 0); support_fixture_symbol(&symbols, "entry", undefined);
+    support_fixture_object(&symbols, &buffers.data[convert(usize, SupportCase.Tail)]); symbols.length = 0;
+    support_fixture_symbol(&symbols, "native_needed", 0);
+    support_fixture_object(&symbols, &buffers.data[convert(usize, SupportCase.Native)]); symbols.length = 0;
+    support_fixture_symbol(&symbols, "batch_extra", 0);
+    support_fixture_object(&symbols, &buffers.data[convert(usize, SupportCase.Batch)]); symbols.length = 0;
+    support_fixture_symbol(&symbols, "weak_missing", 0);
+    support_fixture_object(&symbols, &buffers.data[convert(usize, SupportCase.Unused)]); symbols.length = 0;
+    support_fixture_symbol(&symbols, "seed_defined", 0);
+    support_fixture_object(&symbols, &buffers.data[convert(usize, SupportCase.Seeded)]); symbols.length = 0;
+    support_fixture_symbol(&symbols, "entry", 0);
+    support_fixture_object(&symbols, &buffers.data[convert(usize, SupportCase.Later)]);
+
+    support_fixture_add(&support, "tower.o", "", &buffers.data[convert(usize, SupportCase.TowerSeed)], false, true);
+    support_fixture_add(&support, "native.o", "", &buffers.data[convert(usize, SupportCase.NativeSeed)], false, false);
+    // The first provider of second is a different member than entry. Both must
+    // be chosen in the first wave even though entry also defines second.
+    support_fixture_add(&support, "a.a", "second.o", &buffers.data[convert(usize, SupportCase.Second)], true, false);
+    support_fixture_add(&support, "a.a", "first.o", &buffers.data[convert(usize, SupportCase.First)], true, false);
+    support_fixture_add(&support, "a.a", "tail.o", &buffers.data[convert(usize, SupportCase.Tail)], true, false);
+    support_fixture_add(&support, "a.a", "native.o", &buffers.data[convert(usize, SupportCase.Native)], true, false);
+    support_fixture_add(&support, "a.a", "batch.o", &buffers.data[convert(usize, SupportCase.Batch)], true, false);
+    support_fixture_add(&support, "a.a", "unused.o", &buffers.data[convert(usize, SupportCase.Unused)], true, false);
+    support_fixture_add(&support, "a.a", "seeded.o", &buffers.data[convert(usize, SupportCase.Seeded)], true, false);
+    support_fixture_add(&support, "b.a", "later.o", &buffers.data[convert(usize, SupportCase.Later)], true, false);
+    utility_check(compiler_support_select(&support) && compiler_support_order(&support, &order), "batched reference closure");
+    var selected_count: usize = 6;
+    utility_check(order.length == selected_count && !order.data[0].archive
+        && wasm_bytes_text(order.data[1].name, "batch.o") && wasm_bytes_text(order.data[2].name, "first.o")
+        && wasm_bytes_text(order.data[3].name, "native.o") && wasm_bytes_text(order.data[4].name, "second.o")
+        && wasm_bytes_text(order.data[5].name, "tail.o"), "native-first and stable archive/member order");
+    utility_check(wasm_names_get(&support.providers, wasm_text_bytes("private_definition")) == WasmNoIndex
+        && wasm_names_get(&support.needed, wasm_text_bytes("weak_missing")) == WasmNoIndex, "local definitions and weak references excluded");
+    utility_check(compiler_support_chunk(&order, 0) == order.length, "small members use one chunk");
+    var output: ByteBuffer = default; defer bytes_dispose(&output);
+    utility_check(compiler_support_write(&order, 0, order.length, &output) == ArResult.Ok, "selected indexed archive");
+    support_fixture_file(directory, "selected.a", &output);
+    support_fixture_file(directory, "selected_first.o", &buffers.data[convert(usize, SupportCase.NativeSeed)]);
+    var reread: CompilerSupport = default; defer compiler_support_close(&reread);
+    utility_check(compiler_support_read_archive(&reread, wasm_text_bytes("selected.a"), support_fixture_span(&output))
+        && reread.members.length == selected_count
+        && compiler_support_read_archive(&reread, wasm_text_bytes("selected.a"), support_fixture_span(&output))
+        && reread.members.length == selected_count, "indexed archive parse and repeated input deduplication");
+    var malformed = support_fixture_span(&output); malformed.length--;
+    var failed: CompilerSupport = default; defer compiler_support_close(&failed);
+    utility_check(!compiler_support_read_archive(&failed, wasm_text_bytes("truncated.a"), malformed)
+        && failed.error == CompilerSupportError.Archive, "truncated archive failure remains disposable");
+}
+
+fn support_reference_member(archive: u8*, name: WasmBytes, wanted: WasmBytes): void {
+    var member: ByteBuffer = default; var actual: ByteBuffer = default; var args: vector(u8*) = default;
+    defer bytes_dispose(&member); defer bytes_dispose(&actual); defer vector_dispose(&args);
+    var reference = "/usr/bin/llvm-ar-19";
+    utility_check(bytes_assign_text(&member, name.data, name.length)
+        && tool_process_argument(&args, reference) && tool_process_argument(&args, "p")
+        && tool_process_argument(&args, archive) && tool_process_argument(&args, member.data)
+        && tool_process_argument(&args, null), "reference ar arguments");
+    utility_check(tool_capture(reference, args.data, CompilerSupportInputBytes, &actual) == 0
+        && wasm_bytes_equal(support_fixture_span(&actual), wanted), "independent ar extraction equals exact input");
+}
+
+fn support_fixture_real(directory: u8*, path: u8*): void {
+    var input: ByteBuffer = default; defer bytes_dispose(&input);
+    utility_check(tool_read_file(path, CompilerSupportInputBytes, &input), "read real support archive");
+    var archive: WasmArchive = default; defer wasm_archive_dispose(&archive);
+    utility_check(wasm_archive_read(&archive, support_fixture_span(&input)), "read real archive envelope");
+    var support: CompilerSupport = default; defer compiler_support_close(&support);
+    var order: vector(CompilerSupportMember*) = default; defer vector_dispose(&order);
+    foreach(var & member in &archive.members) {
+        if member.special { continue; }
+        support_reference_member(path, member.name, member.bytes);
+        if !compiler_support_object(&support, wasm_text_bytes(path), member.name, member.bytes, false, false) {
+            puts("Real object reader failed"); print(convert(u32, support.input_error)); print(support.offset); utility_check(false, "real object reader");
+        }
+    }
+    utility_check(compiler_support_select(&support) && compiler_support_order(&support, &order), "real support metadata");
+    var output: ByteBuffer = default; var name: ByteBuffer = default; var output_path: ByteBuffer = default;
+    defer bytes_dispose(&output); defer bytes_dispose(&name); defer bytes_dispose(&output_path);
+    var begin: usize = 0; var chunk: usize = 0;
+    while begin < order.length {
+        var end = compiler_support_chunk(&order, begin);
+        utility_check(compiler_support_write(&order, begin, end, &output) == ArResult.Ok, "real deterministic support chunk");
+        name.length = 0;
+        utility_check(bytes_append(&name, "real_", 5) && ar_decimal(&name, chunk++)
+            && bytes_append(&name, ".a", 2) && host_text_terminate(&name), "real chunk name");
+        support_fixture_file(directory, name.data, &output);
+        utility_check(tool_join(&output_path, directory, name.data), "real output path");
+        var checked: WasmArchive = default; defer wasm_archive_dispose(&checked);
+        utility_check(wasm_archive_read(&checked, support_fixture_span(&output)) && checked.indexed, "real output index");
+        var row = begin;
+        foreach(var & member in &checked.members) {
+            if member.special { continue; }
+            utility_check(row < end && wasm_bytes_equal(member.bytes, order.data[row++].bytes), "exact unchanged real member bytes");
+            support_reference_member(output_path.data, member.name, member.bytes);
+        }
+        utility_check(row == end, "real member count"); begin = end;
+    }
+    puts("Real members and chunks:"); print(order.length); print(chunk);
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    var required: i32 = 2; var with_real: i32 = 3; var usage: i32 = 2;
+    if argc != required && argc != with_real { puts("Supply a fixture directory and optional real support archive"); return usage; }
+    support_fixture_archive_checks(argv[1]); support_fixture_boundaries(); support_fixture_selection(argv[1]);
+    if argc == with_real { support_fixture_real(argv[1], argv[2]); }
+    puts("Compiler support cases passed; independent ar/link verification still required"); return 0;
+}

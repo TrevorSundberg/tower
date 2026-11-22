@@ -1,0 +1,96 @@
+import tower;
+import .library.vector;
+import .library.bytes;
+import .library.bytes_types;
+
+enum ToolQuote: u32 { None, Single, Double }
+fn tool_words_close(words: vector(ByteBuffer)*): void {
+    foreach(var & word in words) { bytes_dispose(word); }
+    vector_dispose(words);
+}
+fn tool_word_end(words: vector(ByteBuffer)*, word: ByteBuffer*): bool {
+    var length = word.length;
+    if !bytes_push(word, 0) { return false; }
+    word.length = length;
+    if !vector_push(words, *word) { return false; }
+    *word = default; return true;
+}
+fn tool_word_space(byte: u8): bool { return byte == *" " || byte == *"\t" || byte == *"\r" || byte == *"\n"; }
+
+// Decode generated POSIX command/response words, never execute or expand them.
+// Shell operators remain literal words for the caller to recognize/reject.
+// Quotes can concatenate fragments and preserve an explicitly empty argument.
+fn tool_shell_words(data: u8*, length: usize, out: vector(ByteBuffer)*): bool {
+    if data == null && length != 0 { return false; }
+    var next: vector(ByteBuffer) = default; var word: ByteBuffer = default;
+    defer tool_words_close(&next); defer bytes_dispose(&word);
+    var quote = ToolQuote.None; var present = false;
+    for(var at: usize = 0; at < length; at++) {
+        var byte = data[at];
+        if byte == 0 { return false; }
+        if quote == ToolQuote.None && tool_word_space(byte) {
+            if present && !tool_word_end(&next, &word) { return false; }
+            present = false; continue;
+        }
+        if quote != ToolQuote.Double && byte == *"'" {
+            quote = quote == ToolQuote.Single ? ToolQuote.None : ToolQuote.Single;
+            present = true; continue;
+        }
+        if quote != ToolQuote.Single && byte == *"\"" {
+            quote = quote == ToolQuote.Double ? ToolQuote.None : ToolQuote.Double;
+            present = true; continue;
+        }
+        if quote != ToolQuote.Single && byte == *"\\" {
+            if ++at == length || data[at] == 0 { return false; }
+            byte = data[at];
+            if byte == *"\n" { continue; }
+            if quote == ToolQuote.Double && byte != *"\\" && byte != *"\"" && byte != *"$" && byte != *"`" {
+                if !bytes_push(&word, *"\\") { return false; }
+            }
+        }
+        present = true;
+        if !bytes_push(&word, byte) { return false; }
+    }
+    if quote != ToolQuote.None || (present && !tool_word_end(&next, &word)) { return false; }
+    tool_words_close(out); *out = next; next = default; return true;
+}
+
+// Tower/GCC Make depfiles have a different quoting contract from shell words:
+// apostrophes/quotes are ordinary path bytes, backslash escapes special bytes,
+// $$ is one literal dollar and backslash-newline separates continued words.
+// The target is discarded; dependencies preserve lexical path identity.
+fn tool_depfile_words(data: u8*, length: usize, out: vector(ByteBuffer)*): bool {
+    if data == null && length != 0 { return false; }
+    var at: usize = 0; var separated = false;
+    while at < length {
+        var byte = data[at++];
+        if byte == 0 { return false; }
+        if byte == *"\\" { if at == length || data[at] == 0 { return false; } at++; continue; }
+        if byte == *":" { separated = true; break; }
+    }
+    if !separated { return false; }
+    var next: vector(ByteBuffer) = default; var word: ByteBuffer = default;
+    defer tool_words_close(&next); defer bytes_dispose(&word);
+    while at < length {
+        var byte = data[at++];
+        if byte == 0 { return false; }
+        if byte == *"#" {
+            while at < length && data[at] != *"\n" { if data[at++] == 0 { return false; } }
+            byte = *" ";
+        }
+        var escaped = false;
+        if byte == *"\\" {
+            if at == length || data[at] == 0 { return false; }
+            byte = data[at++]; escaped = true;
+            if byte == *"\r" && at < length && data[at] == *"\n" { at++; byte = *"\n"; }
+            if byte == *"\n" { byte = *" "; escaped = false; }
+        } else {
+            if byte == *"$" { if at == length || data[at++] != *"$" { return false; } }
+        }
+        if !escaped && tool_word_space(byte) {
+            if word.length != 0 && !tool_word_end(&next, &word) { return false; }
+        } else { if !bytes_push(&word, byte) { return false; } }
+    }
+    if word.length != 0 && !tool_word_end(&next, &word) { return false; }
+    tool_words_close(out); *out = next; next = default; return true;
+}

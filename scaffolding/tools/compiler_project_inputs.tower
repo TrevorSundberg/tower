@@ -1,0 +1,92 @@
+import tower;
+import tool_words;
+import tool_capture_linux;
+import tool_process_linux;
+import .library.vector;
+import .library.bytes;
+import .library.bytes_types;
+
+extern fn strlen(text: u8*): usize;
+extern fn strcmp(left: u8*, right: u8*): i32;
+extern fn puts(text: u8*): i32;
+
+var CompilerProjectCommandBytes: usize = 16777216;
+
+fn compiler_project_basename(path: u8*): u8* {
+    var begin = path;
+    for(var at: usize = 0; path[at] != 0; at++) { if path[at] == *"/" { begin = path + at + 1; } }
+    return begin;
+}
+fn compiler_project_prefix(text: u8*, prefix: u8*): bool {
+    for(var at: usize = 0; prefix[at] != 0; at++) { if text[at] != prefix[at] { return false; } }
+    return true;
+}
+
+// Process cwd belongs to the child. env -C is the existing Linux host boundary;
+// generated commands are decoded into argv and never run as shell programs.
+fn compiler_project_capture(build: u8*, command: vector(ByteBuffer)*, first: usize, last: usize,
+    diagnostic: bool, out: ByteBuffer*): bool {
+    if first >= last || last > command.length { return false; }
+    var args: vector(u8*) = default; defer vector_dispose(&args);
+    var environment = "/usr/bin/env";
+    if !tool_process_argument(&args, environment) || !tool_process_argument(&args, "-C")
+        || !tool_process_argument(&args, build) { return false; }
+    for(var at = first; at < last; at++) { if !tool_process_argument(&args, command.data[at].data) { return false; } }
+    if diagnostic && !tool_process_argument(&args, "-###") { return false; }
+    if !tool_process_argument(&args, null) { return false; }
+    return (diagnostic ? tool_capture_stderr(environment, args.data, CompilerProjectCommandBytes, out)
+        : tool_capture(environment, args.data, CompilerProjectCommandBytes, out)) == 0;
+}
+
+fn compiler_project_word(words: vector(ByteBuffer)*, text: u8*): bool {
+    var word: ByteBuffer = default; defer bytes_dispose(&word);
+    return bytes_append(&word, text, strlen(text)) && tool_word_end(words, &word);
+}
+
+// Ninja's -s mode supplies only the real binary's final command, omitting its
+// potentially huge prerequisite command graph. Verify its output argument.
+fn compiler_project_driver(commands: ByteBuffer*, binary: u8*, out: vector(ByteBuffer)*): bool {
+    var selected: vector(ByteBuffer) = default; defer tool_words_close(&selected);
+    if !tool_shell_words(commands.data, commands.length, &selected) { return false; }
+    var matches = false;
+    for(var at: usize = 1; at < selected.length; at++) {
+        if strcmp(selected.data[at - 1].data, "-o") == 0 && strcmp(selected.data[at].data, binary) == 0 { matches = true; }
+    }
+    if !matches { return false; }
+    tool_words_close(out); *out = selected; selected = default; return true;
+}
+
+fn compiler_project_linker(build: u8*, binary: u8*, out: vector(ByteBuffer)*): bool {
+    var ninja: vector(ByteBuffer) = default; var driver: vector(ByteBuffer) = default;
+    var candidate: vector(ByteBuffer) = default;
+    var commands: ByteBuffer = default; var diagnostic: ByteBuffer = default;
+    defer tool_words_close(&ninja); defer tool_words_close(&driver); defer tool_words_close(&candidate);
+    defer bytes_dispose(&commands); defer bytes_dispose(&diagnostic);
+    if !compiler_project_word(&ninja, "/usr/bin/ninja") || !compiler_project_word(&ninja, "-t")
+        || !compiler_project_word(&ninja, "commands") || !compiler_project_word(&ninja, "-s") || !compiler_project_word(&ninja, binary)
+        || !compiler_project_capture(build, &ninja, 0, ninja.length, false, &commands) { puts("Ninja final-command query failed"); return false; }
+    if !compiler_project_driver(&commands, binary, &driver) { puts("Ninja final command has invalid words or does not name the requested output"); return false; }
+    var first: usize = 0; var last = driver.length; var noop_words: usize = 2;
+    if last >= noop_words && strcmp(driver.data[0].data, ":") == 0 && strcmp(driver.data[1].data, "&&") == 0 { first = noop_words; }
+    if last >= noop_words && strcmp(driver.data[last - noop_words].data, "&&") == 0 && strcmp(driver.data[last - 1].data, ":") == 0 { last -= noop_words; }
+    if first >= last { return false; }
+    for(var at = first; at < last; at++) {
+        if strcmp(driver.data[at].data, "&&") == 0 || strcmp(driver.data[at].data, ";") == 0
+            || strcmp(driver.data[at].data, "|") == 0 { return false; }
+    }
+    if !compiler_project_capture(build, &driver, first, last, true, &diagnostic) { puts("Clang diagnostic recipe query failed"); return false; }
+    var begin: usize = 0;
+    while begin < diagnostic.length {
+        var end = begin;
+        while end < diagnostic.length && diagnostic.data[end] != *"\n" { end++; }
+        if !tool_shell_words(diagnostic.data + begin, end - begin, &candidate) { puts("Malformed quoted Clang diagnostic line"); return false; }
+        if candidate.length != 0 {
+            var name = compiler_project_basename(candidate.data[0].data);
+            if strcmp(name, "wasm-ld") == 0 || compiler_project_prefix(name, "wasm-ld-") {
+                tool_words_close(out); *out = candidate; candidate = default; return true;
+            }
+        }
+        begin = end + 1;
+    }
+    puts("No wasm-ld command in Clang diagnostic output"); return false;
+}

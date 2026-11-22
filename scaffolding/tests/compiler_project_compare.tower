@@ -1,0 +1,72 @@
+import tower;
+import utility_checks;
+import .tools.tool_files_posix;
+import .tools.tool_files_linux;
+import .tools.tool_capture_linux;
+import .tools.tool_process_linux;
+import .tools.compiler_project_inputs;
+import .tools.compiler_project_files;
+import .tools.compiler_support;
+import .backend.wasm_bytes;
+import .backend.wasm_archive;
+import .library.bytes;
+import .library.bytes_types;
+import .library.vector;
+import .library.sha256;
+import .compiler.utf8;
+
+// Differential oracle over the old packager's actual output: compare complete
+// member-byte multisets, ignoring only container metadata/names/chunk boundaries.
+// gzip is an independent test decoder; production packaging uses Tower encoding.
+fn project_compare_members(directory: u8*, reactor: u8*, hashes: vector(u8*)*, payload: u64*): void {
+    var names: vector(u8*) = default; var args: vector(u8*) = default;
+    var path: ByteBuffer = default; var prefix: ByteBuffer = default; var decoded: ByteBuffer = default;
+    defer tool_paths_dispose(&names); defer vector_dispose(&args);
+    defer bytes_dispose(&path); defer bytes_dispose(&prefix); defer bytes_dispose(&decoded);
+    utility_check(compiler_project_text(&prefix, "./support-") && compiler_project_text(&prefix, reactor)
+        && compiler_project_text(&prefix, "-") && bytes_push(&prefix, 0)
+        && tool_tree_files(directory, ".", 0, &names), "enumerate support products");
+    var archives: usize = 0;
+    foreach(var name in &names) {
+        if !compiler_project_prefix(name, prefix.data) || !compiler_project_suffix(name, ".a.gz") { continue; }
+        archives++; args.length = 0;
+        utility_check(tool_join(&path, directory, name) && tool_process_argument(&args, "/usr/bin/gzip")
+            && tool_process_argument(&args, "-dc") && tool_process_argument(&args, path.data)
+            && tool_process_argument(&args, null) && tool_capture(args.data[0], args.data, CompilerSupportInputBytes, &decoded) == 0, "independent support decompression");
+        var archive: WasmArchive = default; defer wasm_archive_dispose(&archive);
+        utility_check(wasm_archive_read(&archive, init(WasmBytes) { data: decoded.data, length: decoded.length }), "read reference/generated archive");
+        foreach(var & member in &archive.members) {
+            if member.special { continue; }
+            var state: Sha256 = default; sha256_init(&state);
+            utility_check(sha256_update(&state, member.bytes.data, member.bytes.length), "member digest input");
+            var digest = sha256_finish(&state);
+            var hex_bytes = Sha256DigestBytes * 2;
+            var text = alloc(u8, hex_bytes + 1); utility_check(text != null, "member digest allocation");
+            sha256_hex(&digest, text);
+            utility_check(vector_push(hashes, text), "retain member digest");
+            *payload += convert(u64, member.bytes.length);
+        }
+    }
+    utility_check(archives != 0, "reactor support archives present");
+    tool_paths_sort(hashes);
+}
+fn project_compare_reactor(reference: u8*, actual: u8*, reactor: u8*): void {
+    var before: vector(u8*) = default; var after: vector(u8*) = default;
+    defer tool_paths_dispose(&before); defer tool_paths_dispose(&after);
+    var before_bytes: u64 = 0; var after_bytes: u64 = 0;
+    project_compare_members(reference, reactor, &before, &before_bytes);
+    project_compare_members(actual, reactor, &after, &after_bytes);
+    puts(reactor); puts("Reference/actual member counts and payload bytes:");
+    print(before.length); print(after.length); print(before_bytes); print(after_bytes);
+    utility_check(before.length == after.length && before_bytes == after_bytes, "support membership count/size mismatch");
+    for(var at: usize = 0; at < before.length; at++) {
+        utility_check(strcmp(before.data[at], after.data[at]) == 0, "support member bytes differ from the original packager");
+    }
+}
+export fn main(argc: i32, argv: u8**): i32 {
+    var arguments: i32 = 3; var usage: i32 = 2;
+    if argc != arguments { puts("Supply reference and generated compiler-project directories"); return usage; }
+    project_compare_reactor(argv[1], argv[2], "tower"); project_compare_reactor(argv[1], argv[2], "llvm");
+    project_compare_reactor(argv[1], argv[2], "cross");
+    puts("All compiler support member multisets match the original packager exactly"); return 0;
+}

@@ -1,0 +1,16 @@
+import tower;
+
+extern fn abort(): void;
+extern fn entry(): i32;
+extern fn second(): i32;
+extern fn tail(): i32;
+extern fn native_needed(): i32;
+extern fn batch_extra(): i32;
+
+// Link this compiler-produced object against the fixture archive using both
+// ordinary lazy extraction and --whole-archive. Assertions remain Tower code.
+export fn _start(): void {
+    var fixture_value: i32 = 42;
+    if entry() != fixture_value || second() != fixture_value || tail() != fixture_value
+        || native_needed() != fixture_value || batch_extra() != fixture_value { abort(); }
+}

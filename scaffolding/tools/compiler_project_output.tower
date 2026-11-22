@@ -1,0 +1,85 @@
+import tower;
+import compiler_project_package;
+import compiler_project_files;
+import compiler_support;
+import tool_files_posix;
+import tool_files_linux;
+import .backend.wasm_bytes;
+import .backend.wasm_names;
+import .backend.wasm_object_types;
+import .library.bytes;
+import .library.bytes_types;
+import .library.vector;
+import .compiler.host_text;
+
+fn compiler_project_json_file(out: ByteBuffer*, file: CompilerProjectFile*, heading: u8*): bool {
+    var combined: ByteBuffer = default; defer bytes_dispose(&combined);
+    var text = &file.text;
+    if heading != null {
+        if !compiler_project_text(&combined, heading) || !bytes_append(&combined, text.data, text.length) { return false; }
+        text = &combined;
+    }
+    return compiler_project_text(out, "{\"path\":") && host_json_quote(out, file.name.data, file.name.length)
+        && compiler_project_text(out, ",\"text\":") && host_json_quote(out, text.data, text.length) && compiler_project_text(out, "}");
+}
+
+fn compiler_project_json(package: CompilerProjectPackage*): bool {
+    var project = &package.project;
+    var entry_index = wasm_names_get(&project.names, wasm_text_bytes(package.entry));
+    if entry_index == WasmNoIndex { return false; }
+    var entry = project.files.data[convert(usize, entry_index)];
+    var ordered: vector(CompilerProjectFile*) = default; defer vector_dispose(&ordered);
+    foreach(var file in &project.files) {
+        if file == entry { continue; }
+        if !vector_push(&ordered, file) { return false; }
+        var at = ordered.length - 1;
+        while at != 0 && compiler_support_compare(compiler_project_span(&file.name), compiler_project_span(&ordered.data[at - 1].name)) < 0 {
+            ordered.data[at] = ordered.data[at - 1]; at--;
+        }
+        ordered.data[at] = file;
+    }
+    var out: ByteBuffer = default; defer bytes_dispose(&out);
+    if !compiler_project_text(&out, "{\"version\":") || !host_json_unsigned(&out, CompilerProjectRecipeVersion)
+        || !compiler_project_text(&out, ",\"entry\":") || !host_json_quote(&out, package.entry, strlen(package.entry))
+        || !compiler_project_text(&out, ",\"units\":[") { return false; }
+    for(var at: usize = 0; at < project.units.length; at++) {
+        var unit = project.units.data[at];
+        if (at != 0 && !compiler_project_text(&out, ",")) || !compiler_project_text(&out, "{\"entry\":")
+            || !host_json_quote(&out, unit.entry.data, unit.entry.length) || !compiler_project_text(&out, ",\"object\":")
+            || !host_json_quote(&out, unit.object.data, unit.object.length) || !compiler_project_text(&out, "}") { return false; }
+    }
+    var heading = "// Tower Compiler: editable compiler, interpreter, host and LLVM backend source.\n// import tower resolves the project file tower.tower, not the compiler binary.\n// Its ordinary imports load foundation.tower and then bedrock.tower.\n// The running compiler builds the next compiler generation from these files.\n// Rebuild compiler compiles each import unit and links fresh Wasm reactors.\n// New compiler generations are tested before use; Reset compiler recovers the original.\n\n";
+    if !compiler_project_text(&out, "],\"reactors\":{") || !bytes_append(&out, package.reactors.data, package.reactors.length)
+        || !compiler_project_text(&out, "},\"files\":[") || !compiler_project_json_file(&out, entry, heading) { return false; }
+    foreach(var file in &ordered) {
+        if !compiler_project_text(&out, ",") || !compiler_project_json_file(&out, file, null) { return false; }
+    }
+    return compiler_project_text(&out, "]}\n") && compiler_project_product(package, "project.json", &out);
+}
+
+// Build outputs are consumed after successful packaging. Stage the complete
+// generation first, replace each asset atomically, and install project.json last.
+// This is not a lock against concurrent packaging/consumption of this directory.
+// Retain the stage on error; remove only its now-empty directory after success.
+fn compiler_project_publish(package: CompilerProjectPackage*): bool {
+    var source: ByteBuffer = default; var output: ByteBuffer = default;
+    defer bytes_dispose(&source); defer bytes_dispose(&output);
+    foreach(var & product in &package.products) {
+        if !tool_join(&source, package.stage.data, product.data) || !tool_join(&output, package.output, product.data)
+            || rename(source.data, output.data) != 0 { return false; }
+    }
+    return rmdir(package.stage.data) == 0;
+}
+
+fn compiler_project_package(repository: u8*, parser_build: u8*, llvm_build: u8*, output: u8*): bool {
+    var package: CompilerProjectPackage = { entry: "units/compiler_parser_nodes.tower", ..default };
+    defer compiler_project_package_close(&package);
+    if compiler_project_stage(&package, output) && compiler_project_sources(&package.project, repository)
+        && compiler_project_reactor(&package, "tower", parser_build, "tower.wasm")
+        && compiler_project_reactor(&package, "llvm", llvm_build, "tower-llvm.wasm")
+        && compiler_project_reactor(&package, "cross", llvm_build, "tower-cross.wasm")
+        && compiler_project_json(&package) && compiler_project_publish(&package) { return true; }
+    puts("Compiler project packaging failed. Staged outputs, if present, remain at:");
+    if package.stage.data != null { puts(package.stage.data); }
+    return false;
+}

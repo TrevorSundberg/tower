@@ -38826,3 +38826,94 @@ This is the explicit source/API milestone receipt: existing runtime build source
 51c038e0d15480256f7dfd7991155874b97d2cab and all 86 asset hashes remain unchanged,
 as do the other lane's LLVM tooling/type-protocol receipts. No production LLD
 cutover is claimed. Own publication lock released after verification.
+
+### 2026-11-21: finish project-owned Python retirement with Tower compiler packaging
+
+The last required Python step was the browser compiler project packager: 219
+lines, called only by build-llvm.sh with cross compilation enabled. Deleting the
+step would remove editable compiler generations and downloadable support; retain
+that behavior, but remove its subprocess-heavy implementation. Historical source
+is playground/scripts/package-compiler-project.py at 9708b60. The build now
+requests only package_compiler_project through the public --tools entry point.
+Tracked project Python falls from dfe6ce3's 23 files/1,989 lines to zero. Prior
+inline bodies were removed separately; no owned Python execution remains outside
+historical documentation and the Docker package list. Keep that package: pinned
+upstream llvm/CMakeLists.txt:981 requires Python3 even with tests disabled.
+No owned C/C++ source is reintroduced; todo.txt is untouched.
+
+Simplifications before translation: query ninja -t commands -s for the actual
+binary, omitting its entire prerequisite graph; obtain argv from Clang -###,
+never execute decoded shell text; reuse compiler depfiles instead of another
+import resolver; read Wasm metadata with the existing Tower backend readers;
+retain object bytes in memory instead of extracting thousands of temporary files;
+write indexed GNU ar and deterministic gzip in Tower instead of invoking llvm-nm/
+llvm-ar or linking zlib. JSON uses existing host quoting. Only Linux process/file
+boundaries and existing Ninja/Clang queries remain external. No new Python,
+JavaScript, shell helper or native implementation is introduced.
+
+library/ar_archive.tower supplies bounded deterministic ar32 with a real symbol
+index, GNU long-name table, odd padding, checked offsets and atomic output.
+compiler_support.tower seeds from rebuilt Tower and retained native objects,
+selects first providers in whole unresolved-symbol waves, ignores weak undefined/
+local/section symbols, strips the established __real_ prefix and preserves bytes
+and aliases. Rebuilt Tower objects never enter support. Physical member rows are
+distinct: real WASI libc has two errno.c.obj members (1,077 and 1,132 bytes). The
+initial duplicate-name rejection failed on this valid archive; a regression now
+selects the second exact member. Equal-name ordering is stable. The old Python
+name map conflated these rows; current real payload multisets still match it.
+
+compiler_project_{inputs,files,package,output}.tower preserve build/source inputs,
+unit ordering, actual dependency closure, exports, wraps, foreign-import allowlists,
+24 MiB payload chunks and 64 MiB support envelopes. Module paths use underscores.
+Runtime ABI objects remain original bytes. tool_words distinguishes POSIX argv
+quotes from Make escapes; tool_capture_stderr adds bounded Clang diagnostics and
+failed-child reporting without replacing output. Stage the complete generation,
+replace each asset atomically and install project.json last; this is not a lock
+against concurrent packaging/consumption. Failed stages remain for diagnosis.
+Inputs must be stable. Host scope and caps are explicit, not a universal parser
+or portable compiler release. Fixed-Huffman compression may increase downloads.
+
+Focused checks used tower_build (Ubuntu24.04/LLVM19.1.1), owned Docker volume
+tower_agent1_tooling and frozen /cache/compiler_project_checkout at 0dafa52.
+Compile each changed unit with public bootstrap/linux-x64/towerc SOURCE --library
+--target x86_64-unknown-linux-gnu --bedrock scaffolding/bedrock.tower --foundation
+scaffolding/foundation.tower -o OBJECT; link clang-19 with guest-host-library.o.
+compiler_support_checks passes malformed/limit/alias, weak/local/wrap/cycle,
+whole-wave/provider/order/duplicate-row cases. Independent llvm-ar-19 extraction
+checks all 339 members of a real archive before and after repacking (678 exact
+comparisons). compiler_support_program's Tower assertions pass lazy and whole-
+archive LLVM19 links through host-wasi.mjs. tool_words_checks passes quoting,
+Make escapes, preserved failure output, Clang -### and a real 138-argument recipe.
+
+Full inputs were read-only /mnt/c/Sandbox/tower/build/browser-wasi and
+/home/trevo/.cache/tower/backend-wasi, SDK34 clang23.1.0. The initially selected
+llvm-wasi-1e57... cache lacked most objects; Clang correctly failed. Another trial
+used the relocatable-object validator for final exports, which lack linking
+metadata; corrected to the existing bounded standard-section reader plus function
+index validation. Unsupported fixture string escapes/named array bounds were
+corrected using supported byte data/arithmetic, without compiler changes.
+
+package_compiler_project ROOT PARSER_BUILD LLVM_BUILD OUTPUT writes 384 source
+entries, 21 units and three reactors (17/18/18 units). The old Python ran once as
+an oracle into build/compiler_project_reference; Tower output is
+build/compiler_project_trial. compiler_project_compare uses GNU gzip and checks
+SHA256 member multisets: portable 88/412351 bytes; LLVM 1712/104112041; cross
+1918/119114497. All 3,718 objects match exactly. Ordered units/support/arguments/
+exports and non-unit source text match. The first PowerShell comparison falsely
+differed on four Unicode files: Get-Content defaulted to ANSI; -Encoding UTF8
+fixes it. Unit comments differ editorially. GNU index/name layout changes total
+supportBytes: Tower 422666/113574790/129484148, old 422222/113562062/129469774.
+
+With TOWER_TEST_COMPILER_PROJECT=build/compiler_project_trial/,
+TOWER_TEST_COMPILER_WORKBENCH=build/compiler_project_tooling_generations/ and
+TOWER_TEST_LLVM_WASM=build/compiler_support/seed.wasm, the existing Node
+test-compiler-project.mjs passes two successive edited browser generations.
+Both have identical hashes: portable
+72c717200396c152039d475385a38c2aa9974236373c0778cd7a18663a65ddf2,
+LLVM 5130355bcb962f6e1f5e1245712d34575c433d1852b826cf7fca003c2a79cec6,
+cross 47031d6b2c567f523e8979ea9ada62e84fc1fc7cda61fc3d3a60ee6f58915f37;
+sizes 1168211/52668927/64226226. Receipts are in that workbench directory and
+build/compiler_support/generations.log. Input source checkout was 9708b60,
+whose TLS/jobs changes are now pulled into this lane. Fresh default successor,
+canonical tool-build integration, deterministic repeat/failure checks and
+publication verification follow this checkpoint.

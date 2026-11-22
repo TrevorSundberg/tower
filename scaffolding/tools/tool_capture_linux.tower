@@ -14,6 +14,17 @@ extern fn fseek(file: void*, offset: i64, origin: i32): i32;
 // writes. No shell, process cwd/environment mutation or named temporary path.
 // Nonzero exit/capture failure preserves out; child status is returned exactly.
 fn tool_capture(executable: u8*, args: u8**, limit: usize, out: ByteBuffer*): i32 {
+    return tool_capture_channel(executable, args, limit, out, false);
+}
+
+// Clang's -### driver recipe is diagnostic output. Preserve the same bounded,
+// anonymous-file capture contract without redirecting through a shell. On child
+// failure, relay bounded diagnostics to stderr while preserving the output buffer.
+fn tool_capture_stderr(executable: u8*, args: u8**, limit: usize, out: ByteBuffer*): i32 {
+    return tool_capture_channel(executable, args, limit, out, true);
+}
+
+fn tool_capture_channel(executable: u8*, args: u8**, limit: usize, out: ByteBuffer*, diagnostic: bool): i32 {
     var failure: i32 = 1;
     var file = tmpfile();
     if file == null { return failure; }
@@ -21,10 +32,24 @@ fn tool_capture(executable: u8*, args: u8**, limit: usize, out: ByteBuffer*): i3
     defer { if !closed { fclose(file); } }
     var descriptor = fileno(file);
     if descriptor < 0 { return failure; }
-    var result = tool_process_output(executable, args, descriptor);
+    var inherit_stream: i32 = -1;
+    var result = tool_process_streams(executable, args, diagnostic ? inherit_stream : descriptor,
+        diagnostic ? descriptor : inherit_stream);
     var status = tool_process_status(result);
-    if status != 0 { return status; }
     var seek_start: i32 = 0;
+    if status != 0 {
+        if diagnostic && fseek(file, 0, seek_start) == 0 {
+            var report: ByteBuffer = default; defer bytes_dispose(&report);
+            if tool_read_stream(file, limit, &report) {
+                var stderr_stream: i32 = 2; var sent: usize = 0;
+                while sent < report.length {
+                    var count = write(stderr_stream, report.data + sent, report.length - sent);
+                    if count <= 0 { break; } sent += convert(usize, count);
+                }
+            }
+        }
+        return status;
+    }
     if fseek(file, 0, seek_start) != 0 { return failure; }
     var next: ByteBuffer = default;
     defer bytes_dispose(&next);

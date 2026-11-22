@@ -45,6 +45,7 @@ cp "$cross/tower-llvm.wasm" "$repo/build/browser-wasi-llvm/tower-llvm.wasm"
 if [ "${TOWER_BROWSER_CROSS:-OFF}" = ON ]; then
   cp "$cross/tower-cross.wasm" "$repo/build/browser-wasi-llvm/tower-cross.wasm"
   "$sdk/bin/llvm-strip" "$repo/build/browser-wasi-llvm/tower-cross.wasm"
-  python3 "$repo/playground/scripts/package-compiler-project.py" \
-    --parser-build "$repo/build/browser-wasi" --llvm-build "$cross"
+  tools="$(TOWER_BOOTSTRAP_COMPILER="$bootstrap" bash "$repo/playground/scripts/build-bootstrap.sh" --tools package_compiler_project)"
+  "$tools/package_compiler_project" "$repo" "$repo/build/browser-wasi" "$cross" \
+    "$repo/build/compiler-project"
 fi

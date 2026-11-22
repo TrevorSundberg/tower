@@ -1,0 +1,211 @@
+import tower;
+import .backend.wasm_bytes;
+import .backend.wasm_archive;
+import .backend.wasm_object;
+import .backend.wasm_object_types;
+import .backend.wasm_names;
+import .library.vector;
+import .library.bytes;
+import .library.bytes_types;
+import .library.ar_archive;
+
+// Packaging policy, not final-link symbol resolution. Match the established
+// packager: first archive provider, both Tower/native seeds, strong undefined
+// references, and batched transitive closure. Final links retain their own weak,
+// COMDAT, wrap and unresolved-symbol rules. All names/bytes borrow pinned inputs.
+struct CompilerSupportMember {
+    source: WasmBytes; name: WasmBytes; bytes: WasmBytes;
+    definitions: vector(WasmBytes); references: vector(WasmBytes);
+    archive: bool; rebuild: bool; selected: bool;
+}
+enum CompilerSupportError: u32 { None, Object, Archive, Allocation }
+struct CompilerSupport {
+    members: vector(CompilerSupportMember*);
+    archives: vector(WasmBytes);
+    providers: WasmNameMap; defined: WasmNameMap; needed: WasmNameMap;
+    requests: vector(WasmBytes);
+    error: CompilerSupportError; input_error: WasmReadError;
+    source: WasmBytes; member: WasmBytes; offset: usize;
+}
+var CompilerSupportChunkBytes: usize = 25165824;
+var CompilerSupportInputBytes: usize = 67108864;
+
+fn compiler_support_member_close(member: CompilerSupportMember*): void {
+    vector_dispose(&member.definitions); vector_dispose(&member.references); free(member);
+}
+fn compiler_support_close(support: CompilerSupport*): void {
+    foreach(var member in &support.members) { compiler_support_member_close(member); }
+    vector_dispose(&support.members); vector_dispose(&support.archives); vector_dispose(&support.requests);
+    wasm_names_dispose(&support.providers); wasm_names_dispose(&support.defined); wasm_names_dispose(&support.needed);
+    *support = default;
+}
+fn compiler_support_fail(support: CompilerSupport*, error: CompilerSupportError): bool {
+    if support.error == CompilerSupportError.None { support.error = error; }
+    return false;
+}
+fn compiler_support_require(support: CompilerSupport*, name: WasmBytes): bool {
+    if wasm_names_get(&support.needed, name) != WasmNoIndex { return true; }
+    return wasm_names_set(&support.needed, name, 0) && vector_push(&support.requests, name);
+}
+fn compiler_support_publish(support: CompilerSupport*, member: CompilerSupportMember*): bool {
+    foreach(var & name in &member.definitions) { if !wasm_names_set(&support.defined, *name, 0) { return false; } }
+    foreach(var & name in &member.references) { if !compiler_support_require(support, *name) { return false; } }
+    return true;
+}
+
+// Collect every seed/archive before selection. Failure leaves the request
+// disposable; callers must not continue it. No
+// object bytes are rewritten or linked, preserving export/import-name metadata.
+fn compiler_support_object(support: CompilerSupport*, source: WasmBytes, name: WasmBytes,
+    bytes: WasmBytes, archive: bool, rebuild: bool): bool {
+    if support.error != CompilerSupportError.None { return false; }
+    support.source = source; support.member = name; support.offset = 0;
+    if support.members.length >= convert(usize, WasmNoIndex) { return compiler_support_fail(support, CompilerSupportError.Allocation); }
+    var object: WasmObject = default; defer wasm_object_dispose(&object);
+    if !wasm_object_read(&object, bytes) || !object.linking {
+        support.input_error = object.error; support.offset = object.error_offset;
+        return compiler_support_fail(support, CompilerSupportError.Object);
+    }
+    var member = alloc(CompilerSupportMember, 1);
+    if member == null { return compiler_support_fail(support, CompilerSupportError.Allocation); }
+    *member = init(CompilerSupportMember) { source: source, name: name, bytes: bytes, archive: archive,
+        rebuild: rebuild, selected: !archive, ..default };
+    var retained = false; defer { if !retained { compiler_support_member_close(member); } }
+    var real_prefix = wasm_text_bytes("__real_");
+    foreach(var & symbol in &object.symbols) {
+        if (symbol.flags & convert(u32, WasmSymbolFlag.Local)) != 0
+            || symbol.kind == convert(u8, WasmSymbolKind.Section) || symbol.name.length == 0 { continue; }
+        var symbol_name = symbol.name;
+        if (symbol.flags & convert(u32, WasmSymbolFlag.Undefined)) != 0 {
+            if (symbol.flags & convert(u32, WasmSymbolFlag.Weak)) != 0 { continue; }
+            if symbol_name.length >= real_prefix.length
+                && wasm_bytes_equal(init(WasmBytes) { data: symbol_name.data, length: real_prefix.length }, real_prefix) {
+                symbol_name.data += real_prefix.length; symbol_name.length -= real_prefix.length;
+            }
+            if !vector_push(&member.references, symbol_name) { return compiler_support_fail(support, CompilerSupportError.Allocation); }
+        } else {
+            if !vector_push(&member.definitions, symbol_name) { return compiler_support_fail(support, CompilerSupportError.Allocation); }
+        }
+    }
+    var index = convert(u32, support.members.length);
+    if !vector_push(&support.members, member) { return compiler_support_fail(support, CompilerSupportError.Allocation); }
+    retained = true;
+    if archive {
+        foreach(var & definition in &member.definitions) {
+            if wasm_names_get(&support.providers, *definition) == WasmNoIndex
+                && !wasm_names_set(&support.providers, *definition, index) { return compiler_support_fail(support, CompilerSupportError.Allocation); }
+        }
+    } else {
+        if !compiler_support_publish(support, member) { return compiler_support_fail(support, CompilerSupportError.Allocation); }
+    }
+    return true;
+}
+
+fn compiler_support_read_archive(support: CompilerSupport*, source: WasmBytes, bytes: WasmBytes): bool {
+    if support.error != CompilerSupportError.None { return false; }
+    foreach(var & previous in &support.archives) { if wasm_bytes_equal(*previous, source) { return true; } }
+    support.source = source; support.member = default; support.offset = 0;
+    var archive: WasmArchive = default; defer wasm_archive_dispose(&archive);
+    if !wasm_archive_read(&archive, bytes) {
+        support.input_error = archive.error; support.offset = archive.error_offset;
+        return compiler_support_fail(support, CompilerSupportError.Archive);
+    }
+    foreach(var & member in &archive.members) {
+        if member.special { continue; }
+        support.member = member.name;
+        // Read actual definitions, not unchecked claims from an archive index.
+        // Member identity is its physical row, not its possibly duplicated name
+        // (WASI libc contains two different errno.c.obj members). Equal names
+        // retain input order in the final stable ordering.
+        if !compiler_support_object(support, source, member.name, member.bytes, true, false) { return false; }
+    }
+    if !vector_push(&support.archives, source) { return compiler_support_fail(support, CompilerSupportError.Allocation); }
+    return true;
+}
+
+fn compiler_support_select(support: CompilerSupport*): bool {
+    if support.error != CompilerSupportError.None { return false; }
+    var chosen: vector(CompilerSupportMember*) = default; defer vector_dispose(&chosen);
+    loop {
+        chosen.length = 0;
+        // Finish the whole wave before publishing any of its definitions. A
+        // provider for another currently unresolved name must remain selected.
+        foreach(var & name in &support.requests) {
+            if wasm_names_get(&support.defined, *name) != WasmNoIndex { continue; }
+            var index = wasm_names_get(&support.providers, *name);
+            if index == WasmNoIndex { continue; }
+            var member = support.members.data[convert(usize, index)];
+            if member.selected { continue; }
+            member.selected = true;
+            if !vector_push(&chosen, member) { return compiler_support_fail(support, CompilerSupportError.Allocation); }
+        }
+        if chosen.length == 0 { return true; }
+        foreach(var member in &chosen) {
+            if !compiler_support_publish(support, member) { return compiler_support_fail(support, CompilerSupportError.Allocation); }
+        }
+    }
+}
+
+fn compiler_support_compare(left: WasmBytes, right: WasmBytes): i32 {
+    var count = left.length < right.length ? left.length : right.length;
+    for(var at: usize = 0; at < count; at++) {
+        if left.data[at] != right.data[at] { return left.data[at] < right.data[at] ? -1 : 1; }
+    }
+    return left.length == right.length ? 0 : left.length < right.length ? -1 : 1;
+}
+fn compiler_support_before(left: CompilerSupportMember*, right: CompilerSupportMember*): bool {
+    var order = compiler_support_compare(left.source, right.source);
+    return order < 0 || (order == 0 && compiler_support_compare(left.name, right.name) < 0);
+}
+fn compiler_support_order(support: CompilerSupport*, order: vector(CompilerSupportMember*)*): bool {
+    if support.error != CompilerSupportError.None || order.length != 0 { return false; }
+    foreach(var member in &support.members) {
+        if member.selected && !member.archive && !member.rebuild && !vector_push(order, member) { return false; }
+    }
+    var begin = order.length;
+    foreach(var member in &support.members) {
+        if !member.archive || !member.selected { continue; }
+        if !vector_push(order, member) { return false; }
+        var at = order.length - 1;
+        while at > begin && compiler_support_before(member, order.data[at - 1]) {
+            order.data[at] = order.data[at - 1]; at--;
+        }
+        order.data[at] = member;
+    }
+    return true;
+}
+
+fn compiler_support_chunk(order: vector(CompilerSupportMember*)*, begin: usize): usize {
+    var end = begin; var size: usize = 0;
+    while end < order.length {
+        var amount = order.data[end].bytes.length;
+        if end != begin && (amount > CompilerSupportChunkBytes || size > CompilerSupportChunkBytes - amount) { break; }
+        end++; size += amount;
+        if size >= CompilerSupportChunkBytes { break; }
+    }
+    return end;
+}
+
+fn compiler_support_write(order: vector(CompilerSupportMember*)*, begin: usize, end: usize, out: ByteBuffer*): ArResult {
+    if begin > end || end > order.length { return ArResult.Input; }
+    var members: vector(ArMember) = default; var symbols: vector(ArSymbol) = default;
+    var names: vector(ByteBuffer) = default;
+    defer vector_dispose(&members); defer vector_dispose(&symbols);
+    defer { foreach(var & name in &names) { bytes_dispose(name); } vector_dispose(&names); }
+    for(var at = begin; at < end; at++) {
+        var member = order.data[at];
+        if !member.selected || member.rebuild { return ArResult.Input; }
+        var name: ByteBuffer = default;
+        if !ar_decimal(&name, at) || !bytes_append(&name, ".o", 2) || !vector_push(&names, name) {
+            bytes_dispose(&name); return ArResult.Allocation;
+        }
+        var index = members.length;
+        var entry: ArMember = { name: name.data, name_length: name.length, data: member.bytes.data, length: member.bytes.length };
+        if !vector_push(&members, entry) { return ArResult.Allocation; }
+        foreach(var & definition in &member.definitions) {
+            var symbol: ArSymbol = { name: definition.data, length: definition.length, member: index };
+            if !vector_push(&symbols, symbol) { return ArResult.Allocation; }
+        }
+    }
+    return ar32_write(members.data, members.length, symbols.data, symbols.length, CompilerSupportInputBytes, out);
+}

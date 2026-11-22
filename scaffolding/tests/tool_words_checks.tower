@@ -1,0 +1,97 @@
+import tower;
+import utility_checks;
+import .tools.tool_words;
+import .tools.compiler_project_inputs;
+import .tools.tool_capture_linux;
+import .tools.tool_process_linux;
+import .library.vector;
+import .library.bytes;
+import .library.bytes_types;
+import .host.driver_files;
+
+extern fn strlen(text: u8*): usize;
+
+fn words_check(words: vector(ByteBuffer)*, at: usize, wanted: u8*): void {
+    utility_check(at < words.length && words.data[at].length == strlen(wanted)
+        && utility_equal(words.data[at].data, wanted, strlen(wanted)) && words.data[at].data[words.data[at].length] == 0, "exact owned word");
+}
+fn words_shell_checks(): void {
+    var words: vector(ByteBuffer) = default; defer tool_words_close(&words);
+    var command = ": && '/path with spaces/clang' a\\ b 'single $() ;' \"double\\\"quote\" '' joined' fragment' \"keep\\z\" \"dollar\\$\" && :";
+    utility_check(tool_shell_words(command, strlen(command), &words), "decode generated POSIX words");
+    var word_count: usize = 12; utility_check(words.length == word_count, "shell word count");
+    words_check(&words, 0, ":"); words_check(&words, 1, "&&"); words_check(&words, 2, "/path with spaces/clang");
+    words_check(&words, 3, "a b"); words_check(&words, 4, "single $() ;"); words_check(&words, 5, "double\"quote");
+    words_check(&words, 6, ""); words_check(&words, 7, "joined fragment"); words_check(&words, 8, "keep\\z");
+    words_check(&words, 9, "dollar$"); words_check(&words, 10, "&&"); words_check(&words, 11, ":");
+    var malformed = "unfinished'quote";
+    utility_check(!tool_shell_words(malformed, strlen(malformed), &words) && words.length == word_count, "unmatched quote preserves prior words");
+    malformed = "trailing\\";
+    utility_check(!tool_shell_words(malformed, strlen(malformed), &words), "trailing escape rejected");
+    var continuation = "con\\\ntinued";
+    utility_check(tool_shell_words(continuation, strlen(continuation), &words) && words.length == 1, "shell continuation concatenates");
+    words_check(&words, 0, "continued");
+    var nul: u8[3]; var nul_length: usize = 3;
+    nul[0] = *"a"; nul[1] = 0; nul[2] = *"b";
+    utility_check(!tool_shell_words(&nul[0], nul_length, &words), "embedded command NUL rejected");
+    utility_check(tool_shell_words(null, 0, &words) && words.length == 0, "empty command words");
+}
+fn words_depfile_checks(): void {
+    var words: vector(ByteBuffer) = default; defer tool_words_close(&words);
+    var depfile = "out\\:file.o: /source/a\\ b.tower /source/quote'\".tower /source/dollar$$.tower \\\n /source/hash\\#.tower /source/back\\\\slash.tower # comment\n";
+    utility_check(tool_depfile_words(depfile, strlen(depfile), &words), "decode actual Tower Make escaping");
+    var dependencies: usize = 5; utility_check(words.length == dependencies, "dependency count");
+    words_check(&words, 0, "/source/a b.tower"); words_check(&words, 1, "/source/quote'\".tower");
+    words_check(&words, 2, "/source/dollar$.tower"); words_check(&words, 3, "/source/hash#.tower");
+    words_check(&words, 4, "/source/back\\slash.tower");
+    var malformed = "no separator";
+    utility_check(!tool_depfile_words(malformed, strlen(malformed), &words) && words.length == dependencies, "missing target separator preserves output");
+    malformed = "target: $(UNTRACKED)";
+    utility_check(!tool_depfile_words(malformed, strlen(malformed), &words), "do not evaluate Make variables");
+    var continued = "out: one\\\r\n two\n";
+    utility_check(tool_depfile_words(continued, strlen(continued), &words) && words.length == 2, "CRLF continuation separates dependencies");
+    words_check(&words, 0, "one"); words_check(&words, 1, "two");
+    var nul: ByteBuffer = default; defer bytes_dispose(&nul);
+    var target = "tar\\_get: dep";
+    utility_check(bytes_assign_text(&nul, target, strlen(target)), "escaped target fixture");
+    var escaped_target_offset: usize = 4; nul.data[escaped_target_offset] = 0;
+    utility_check(!tool_depfile_words(nul.data, nul.length, &words), "NUL in escaped target rejected");
+}
+fn words_capture_checks(): void {
+    var args: vector(u8*) = default; var output: ByteBuffer = default;
+    defer vector_dispose(&args); defer bytes_dispose(&output);
+    var clang = "/usr/bin/clang-19"; var limit: usize = 1048576;
+    utility_check(tool_process_argument(&args, clang) && tool_process_argument(&args, "-###")
+        && tool_process_argument(&args, "--target=wasm32-unknown-unknown") && tool_process_argument(&args, "-nostdlib")
+        && tool_process_argument(&args, "/dev/null") && tool_process_argument(&args, "-o")
+        && tool_process_argument(&args, "/never written/output with spaces.wasm") && tool_process_argument(&args, null), "Clang recipe argv");
+    utility_check(tool_capture_stderr(clang, args.data, limit, &output) == 0 && output.length != 0, "capture real Clang diagnostic recipe without compiling");
+    var words: vector(ByteBuffer) = default; defer tool_words_close(&words);
+    utility_check(tool_shell_words(output.data, output.length, &words), "decode real Clang recipe words");
+    var found = false;
+    foreach(var & word in &words) {
+        var path = "/never written/output with spaces.wasm";
+        if word.length == strlen(path) && utility_equal(word.data, path, word.length) { found = true; }
+    }
+    utility_check(found, "Clang preserves spaced output as one literal argument");
+    var retained = output.data; var retained_length = output.length;
+    args.length = 0;
+    utility_check(tool_process_argument(&args, "/usr/bin/false") && tool_process_argument(&args, null), "failing diagnostic child argv");
+    utility_check(tool_capture_stderr(args.data[0], args.data, limit, &output) == 1
+        && output.data == retained && output.length == retained_length, "failed diagnostic capture preserves output/status");
+    args.length = 0;
+    utility_check(tool_process_argument(&args, "/usr/bin/printf") && tool_process_argument(&args, "%s")
+        && tool_process_argument(&args, "stdout retained") && tool_process_argument(&args, null), "stdout child argv");
+    utility_check(tool_capture(args.data[0], args.data, limit, &output) == 0
+        && output.length == strlen("stdout retained") && utility_equal(output.data, "stdout retained", output.length), "existing stdout capture preserved");
+}
+export fn main(argc: i32, argv: u8**): i32 {
+    words_shell_checks(); words_depfile_checks(); words_capture_checks();
+    var real_arguments: i32 = 3;
+    if argc == real_arguments {
+        var linker: vector(ByteBuffer) = default; defer tool_words_close(&linker);
+        utility_check(compiler_project_linker(argv[1], argv[2], &linker) && linker.length != 0, "real Ninja/Clang recipe discovery");
+        puts("Actual linker arguments:"); print(linker.length);
+    }
+    puts("Command/depfile words and real diagnostic capture passed"); return 0;
+}

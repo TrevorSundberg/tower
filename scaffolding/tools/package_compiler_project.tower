@@ -1,0 +1,18 @@
+import tower;
+import compiler_project_output;
+import tool_files_posix;
+
+extern fn puts(text: u8*): i32;
+
+// Explicit native Linux build inputs; never select a private compiler/cache.
+export fn main(argc: i32, argv: u8**): i32 {
+    var arguments: i32 = 5; var usage: i32 = 2; var failure: i32 = 1;
+    if argc != arguments {
+        puts("Usage: package_compiler_project REPOSITORY PARSER_BUILD LLVM_BUILD OUTPUT_DIRECTORY"); return usage;
+    }
+    var repository = realpath(argv[1], null); var parser = realpath(argv[2], null); var llvm = realpath(argv[3], null);
+    defer free(repository); defer free(parser); defer free(llvm);
+    if repository == null || parser == null || llvm == null || !tool_directory(repository)
+        || !tool_directory(parser) || !tool_directory(llvm) { puts("Build input directories must exist"); return failure; }
+    return compiler_project_package(repository, parser, llvm, argv[4]) ? 0 : failure;
+}

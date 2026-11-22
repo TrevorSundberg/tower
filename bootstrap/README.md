@@ -73,8 +73,8 @@ tools="$(bash playground/scripts/build-bootstrap.sh --tools)"
 ```
 
 Pass a tool name after `--tools` to build only `prepare_llvm`, `package_roku`,
-`package_bootstrap`, `verify_compiler` or `verify_bootstrap_symbols`.
-Omitting the name builds all five.
+`package_bootstrap`, `package_compiler_project`, `verify_compiler` or
+`verify_bootstrap_symbols`. Omitting the name builds all six.
 
 `build-llvm.sh` invokes `prepare_llvm` automatically for the guarded LLD backport
 and temporary CRLF normalization of upstream `config.guess`/`config.sub`. Files
@@ -95,8 +95,22 @@ Wider test and upstream build tooling still needs migration.
 to the same raw DEFLATE encoder and CRC32 implementation. It has no filename,
 timestamp or host metadata, and publishes output only after the complete member
 is available. It does not decode gzip. The existing fixed-Huffman encoder can
-produce larger files than a dynamic-Huffman compressor; the browser compiler
-packager still uses Python until its complete Tower replacement is validated.
+produce larger files than a dynamic-Huffman compressor. The browser compiler
+packager now uses this encoder and the Tower GNU ar writer. It follows actual
+Ninja/Clang recipes and compiler depfiles, preserving original support object
+bytes and explicit import/export lists. `build-llvm.sh` builds and runs it only
+when `TOWER_BROWSER_CROSS=ON`; it can also be invoked directly:
+
+```sh
+tools="$(bash playground/scripts/build-bootstrap.sh --tools package_compiler_project)"
+"$tools/package_compiler_project" "$PWD" build/browser-wasi /path/to/llvm-build \
+  build/compiler-project
+```
+
+No project-owned Python files or inline Python programs remain. Upstream LLVM's
+CMake configuration still requires Python; the Docker development image retains
+that upstream dependency. Tool compilation and compiler-project packaging do
+not execute Python, `llvm-nm` or `llvm-ar`.
 
 ## Publishing a replacement pin
 
