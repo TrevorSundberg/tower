@@ -2,11 +2,14 @@ import tower;
 
 extern fn puts(text: u8*): i32;
 
+extern fn fflush(stream: void*): i32;
+
 extern fn abort(): void;
 
 fn utility_check(ok: bool, message: u8*): void {
     if !ok {
         puts(message);
+        fflush(null);
         abort();
     }
 }

@@ -876,3 +876,21 @@ Exact object bytes, shared-budget limits, distinct-thread barrier assertions and
 the30-second internal deadline are unchanged. Phase messages identify baseline
 versus streaming work; directional deadline errors identify the waiting side.
 The focused selector does not replace the full backend matrix or its failures.
+
+The existing worker and execution runners accept `capture-policy` for the
+12 address/effect policy cases in the lifecycle fixture. This reuses the same
+32/64-bit, serial/worker and successful canonical reconstruction checks. The
+full42-case lifecycle gate remains in `type-smoke` and the broader body suites.
+The focused selector does not replace aggregate or full-suite acceptance.
+
+`aggregate_capture_inputs.tower` runs through the existing aggregate execution
+helper from the `types`, `known`, `aggregate-stages` and full execution selections.
+It checks nested aggregate/array, type/function/null-pointer and empty-field
+captures, repeated frame use and independent copies. Both engines, target widths,
+canonical reconstruction and worker1/2/4/8 comparisons reuse the original helper;
+the original aggregate rejection fixtures remain unchanged.
+
+`tower-frontend-tests RESOURCE_ROOT parser` runs the existing parser integration
+and failure suites without the unrelated body matrix. It includes valid trace
+output and serial allocation-failure/ownership checks. Use the serial frontend
+target for this fault allocator; it is not a threaded allocator sanitizer.

@@ -1296,3 +1296,92 @@ reproduced mutable/parameter source-proof diagnostics. Address/comparison/cycle
 programs and expected failures are byte-unchanged. All newer D1-side fixtures and
 registrations survive the merge; new runner execution is pending, not inferred
 from historical fulltypes results.
+
+### Joint capture, stage and parser source review after453d8b1
+
+All changes below are prepared after owned jobs drained; current local compilation
+and runtime remain pending. Owners' previous measurements are distinct receipts.
+
+| Path | Review and disposition |
+| --- | --- |
+| scaffolding/tests/compiler_storage.tower | Exactly three reset stimuli now use seed-valid single Bedrock declarations. Null provider,100iterations, retained original provenance pointer/text, exact EOF, injected failure diagnostic and complete buffer baseline stay unchanged. Fix follows actual cd8 assertion failure and independent root/L2 reproduction. |
+| scaffolding/tests/utility_checks.tower | Add portable existing libc fflush boundary only after failed puts and before original abort.107direct importers enumerated; success branch unchanged in source. Before helper/source snapshot retained for actual success/failure output/status and generated-code comparison. Cross-host final checks still required. |
+| scaffolding/tests/semantic_lifecycle_checks.tower | Exact full42 c25f9c36 retains old30 cases and adds12 executed/untaken address/effect tests, relocatable type/function values and explicit-address policy. Six new positives/six negatives; each pointer width compares workers1/4, only successful serial cases reparse. Full42 is168source trials+52canonical reparses; policy subset48+12. The added count is not acceptance. |
+| scaffolding/tests/body_runs.tower | New CapturePolicy enum mode reuses existing resource buffers/defer cleanup and owner policy helper, returning before unrelated body file reads. Existing full/type/control paths retain their checks. No new scheduler or alternate expected results. |
+| scaffolding/tests/lr_work_main.tower | Add only explicit capture-policy selection to existing native worker entry. Existing worker-host assertion/default/full paths and unknown-selector failure retained. |
+| scaffolding/tests/execution_main.tower | Same policy selection uses supported nested else/if, correcting an uncompiled else-if draft after root review. Existing aggregate positive helper now runs once for full/types/known/aggregate-stages. No separate binary, duplicate import or removed source-rejection reachability hook. |
+| scaffolding/tests/comptime_aggregate_checks.tower | Factor only the existing positive source loop by filename; preserve both engines, exact0 output, width4/8, canonical reconstruction, workers1/2/4/8 and all five negative source/oracle checks. New captured-input wrapper uses the same loop and owner source. |
+| scaffolding/tests/aggregate_capture_inputs.tower | New59-line L1 fixture, corrected v2 SHA25e8f5ab: nested pair/array/type/function/null-pointer/empty fields, global and local capture, repeated nested frame reads (22x32=704), ordinary copy mutation isolated from original and another capture. Empty struct size1 follows existing semantic_layout_kernel and independent old/new compiler evidence; the prior0 expectation was wrong. Independent0-failure output remains. Ordinary Tower values, not a new host representation or graph. |
+| scaffolding/tests/interpreter_call_query.tower | L1 consumer adds private-invocation, nested-frame snapshot lifetime, retained-root, cancellation/reuse, scalar store and ordinary copy/fill rejection checks with unchanged bytes. Correction ef0147df adds a local read before the nested return so storage survives an observable ix_step boundary; no original assertion is relaxed. Interleaving is not real parallel execution. Stack projections remain alive until both invocations dispose; world teardown checked. Owner query-smoke32/64 serial/threaded passes; D1 current local run pending. |
+| scaffolding/tests/entity_stage_concurrent.tower | Updated exact A2 fixtureca8cf683 adds one distinct pre-leased existing payload per worker, write access reservation and stable pointer/table assertions before/after publish/discard across original outcomes. Discard does not roll back payload writes; all stage pointers/leases clear. Root/type/plain ownership and original reference finalizer counts still close exactly. Prior26265ebb receipt does not cover these added assertions. |
+| scaffolding/tests/entity_tables.tower | A2 adds four modes for stable and empty leased owners: unchanged publication, mixed structural additions, duplicate-name failure and discard. Pinned view rejects publication/removal; after closing it, same payload/table identity and no pending rows remain. Repeated publication/complete store disposal checked. No claim that table indexes pack payloads. |
+| scaffolding/tests/parser_integration.tower | B1 valid trace fixture owns its world/table/stream, prints bounded trace and checks span before release; it adds no fault allocator dependency to the shared production parser object. |
+| scaffolding/tests/parser_trace_failures.tower | New47-line6df8c085 serial-only fixture warms trace toggles, injects every preceding allocation failure, requires no marker on rejection, checks owned marker/refcount, allocation-free repeat/remove, exact child/reference/buffer baseline and restoration of caller setting. Its success-seeking loop has no explicit bound; reported to B1 as a source-review failure-diagnostic gap, not an observed hang. |
+| scaffolding/tests/parser_failures.tower | Calls that trace fault fixture before the original explicit-world parser allocation/diagnostic tests; original teardown assertions remain. |
+| scaffolding/tests/parser_main.tower | Serial-only import/call of trace fault fixture; updated bool ABI detects failed trace configuration with nonzero diagnostic. Existing formatter and registry resource arguments preserved. |
+| scaffolding/tests/frontend_main.tower | Minimal parser selector calls the same integration/failure suites; no new executable or default-suite omission. Backend-index selector still waits the owner helper boundary. |
+| scaffolding/tests/known_binding_checks.tower | Only two address/comparison expected-message strings now match policy595 after B1 independent reproduction and root approval. Both source programs and negative checks unchanged; current local successor checks still required. |
+
+Producer/API/consumer integration was atomic: shared projection2792, A1
+publication997aa4 and L1 consumption27a71a9f after policy595/v3. Projections borrow
+frozen canonical leaves, all consumer invocations dispose before producer arrays,
+and frame-owned target copies reject mutation. No partial ABI build occurred.
+A2 stage452c still checks views/names/overflow before its zero-membership fast
+path; all ownership/lease cleanup remains. B1 tracea261 is the corrected complete
+six-path handoff, never stacked with withdrawn330. Final current instrumentation,
+roundtrip/matrix/performance and release evidence remain open.
+
+### Current remaining scope — 2026-11-22 23:44 UTC
+
+- **Implemented and measured, source-specific:** initial437/437 assigned paths
+  have substantive rows; prepared additions bring direct scope to472/472 and
+  repository census to1047 after staging. The baseline1011 owner ledger and14
+  deleted prelude forwarders remain explicit. No newly adopted D1 path lacks a
+  review; remotely inventoried unadopted owner files are separately listed,
+  not counted as executed or as production-owner audit credit.
+- **Ownership/locality evidence pending on current closure:**
+  `entity_stage_concurrent.stage_trial`, `entity_tables` publication modes and
+  `parser_benchmark.benchmark_retention` now cover stable payload addresses,
+  staged membership, held references and attributed page bytes. Prior native/
+  ASan/TSan receipts are real but predate current stage/trace changes. Rebuild
+  the changed closure and repeat the affected normal/instrumented/stress paths;
+  indexes alone do not establish packed storage or bounded allocator RSS.
+- **Implemented but unvalidated:** `semantic_lifecycle_checks.lifecycle_trial`
+  full42, `body_runs_capture_policy`, `aggregate_capture_tests`, and
+  `interpreter_call_query.input_query_tests` need joined32/64 execution,
+  serial/parallel canonical comparison, exactly-once effects and deterministic
+  rejection checks. Production helper readiness is implemented; its historical
+  absence is not an open gap. `semantic_source_proof_checks.source_proof_case`
+  still injects a worker mutation for invalidation: real generic-extension
+  source-write discovery remains an A1 production/fixture gate, not satisfied
+  by the injection test.
+- **Failure/cancellation/staleness:** earlier `work_pool` early-return drain and
+  stale ticket checks are measured. Current aggregate input cancellation,
+  immutable store/copy/fill and nested-frame observation must pass the revised
+  query fixture; A1 `semantic_world` failure-drain handoff remains pending.
+  B1 owns bounding `parser_trace_failure_tests` by a measured allocation count.
+  Do not weaken preserved graph cycles or infer race freedom from passing tests.
+- **Profitable scheduling remains unproven for affected compiler paths:**
+  `semantic_layout_profile` measured overlap1 despite requested workers4;
+  the root-ready layout/frontier admission gap belongs to A1. Independent
+  between-unit overlap has explicit barriers in `backend_units`, but final
+  coherent overlap/deadline and throughput checks remain. Two-worker whole
+  compiler samples can be slower; queue width is not useful scaling. Shared
+  budgets must still be measured on final sources with fast jobs1 retained.
+- **Serial CPU/memory and focused harness:** cd8 type-profile large queries
+  improved while tiny queries regressed; only one paired process/three inner
+  samples, not isolated attribution. Signed32 bytecode still exceeds the
+  original30s child deadline. Retry unchanged input/deadline on the stage/joint
+  successor and preserve both outcomes; investigate remaining failure with
+  backend owners. Current reset/flush/selectors/aggregate hooks need smallest
+  predecessor compile and equivalent-output/time/RSS evidence. Backend-index
+  fixture registration awaits B2's shared pure-helper linkage boundary.
+- **Host and release limits:** Linuxx64 Docker is canonical; direct host pin lacks
+  libLLVM19.1. Actual Tower-object ASan/TSan is supported in the documented scoped
+  native containers; source-language UBSan and browser/Windows/macOS sanitizer
+  coverage remain unsupported here, not passed. Full clean public-bootstrap,
+  native/browser/generation and final affected instrumentation evidence must
+  identify frozen merged inputs. Old browser JSON passes and population timeout
+  do not establish current browser completion. Publication is not requested;
+  coordinator named lease, atomic main+gh-pages push, workflow and exact served
+  manifest/assets/behavior verification remain required.

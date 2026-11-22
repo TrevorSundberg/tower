@@ -1263,3 +1263,12 @@ Including the two additions above gives1,045 tracked Tower paths and470 D1
 direct paths when staged. Generic registration is pending the owning backend
 object's narrow import handoff; presence is not an executed test. Updated
 registry/editor/parser/driver consumers are existing rows, not new inventory.
+
+After453d8b1, two additional D1 paths are fully reviewed: new
+`scaffolding/tests/aggregate_capture_inputs.tower` (L1 source0a47c49d) and
+`scaffolding/tests/parser_trace_failures.tower` (B1 source6df8c085). Their full
+ownership/coverage findings are in the audit. Once staged, totals are1,047
+tracked Tower files /472direct D1 files. Updated42-case lifecycle, call-query,
+entity tables/stage, parser/storage and generic runners remain existing paths.
+These totals exclude incoming unadopted backend helper files and do not imply
+runtime or release acceptance.

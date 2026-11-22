@@ -48804,3 +48804,100 @@ shared getrusage selector while preserving that new hook; no compiler algorithm
 or ABI bytes change in this merge. Clarified type-values documentation that
 0b6c90cb's complete type pass is historical, not current capture-v3 acceptance.
 No discarded newer fixes or failed pointer/aggregate oracles, no feature branch.
+
+### D1 joint aggregate and focused harness preparation after453d8b1
+
+All cd8 build/test jobs were drained and the shared Deck heavy lock released
+before these source edits. D2 currently owns that lock; D1 performed source
+review and preparation only. The previous cd8 storage failure, signed32 package
+SIGALRM and v3 invalid aggregate/address results remain failed receipts. No new
+performance or runtime acceptance follows from this integration.
+
+Integrated exact owner policy595209af and all three aggregate ABI components
+consecutively: shared2792eda5, A1 publication997aa4c9, L1 consumption27a71a9f.
+There was no partial-ABI build. The required capture policy is frozen after
+exact producer identity is assigned, before worker dispatch. Known projection
+arrays survive every consumer invocation, which disposes before producer arrays;
+private copies carry frame identity and reject writes through the staged input.
+Ordinary raw Foundation policy is unchanged. The full42 lifecycle fixturec25f
+retains every old30 case plus12 address/effect/type/function controls. Counts
+168 source trials and52 successful canonical reparses describe planned coverage,
+not executed passes; the focused12 policy subset comprises48+12.
+
+D1 added capture-policy selectors through the existing body helper/resource
+lifetime and both existing execution/LR entries, and a parser selector through
+existing frontend parser integration/failure helpers. Root caught unsupported
+else-if in the uncompiled draft; it was changed to ordinary nested else/if before
+any compilation. A malformed apply_patch hunk was rejected before mutation and
+corrected. Aggregate capture registration factors the existing positive-source
+loop by filename; both engines,32/64 layouts, workers1/2/4/8 and canonical
+reconstruction remain identical. Existing negative aggregate checks are intact.
+Two known address/comparison expected diagnostic strings change only after
+independent B1 policy595 reproductions and coordinator authorization; both
+negative source programs and rejection assertions remain unchanged. D1 local
+successor rejection checks are still required.
+
+Applied test-only owner corrections ef0147df and25e8f5ab after full review. The
+nested-input query now performs a local read so the callee snapshot remains
+observable across an interpreter step; all original lifetime assertions remain.
+The new59-line ordinary aggregate source expects empty-struct size1, consistent
+with semantic_layout_kernel and independently reported old/new CLI behavior;
+its previous0 expectation was a fixture defect. Global/local nested data,
+type/function/null pointers,704 repeated sum, copy independence and overall
+zero-failure output remain. Owner query-smoke passes do not cover D1's complete
+current closure. Corrected aggregate registration exportec4e8fd0 replaces24ce;
+an initial absolute-path normalization failed reverse-check because a slash was
+removed. Corrected export passes reverse-check; no failed patch mutated sources.
+
+The measured cd8 storage abort preceded registry and came from resetting a
+provider-free Bedrock session to bare print syntax. D1's minimal repair uses
+three seed-valid grammar declarations while retaining100resets, retained source
+pointer/text, exact EOF, original allocation-failure diagnostic and complete
+buffer teardown. utility_check adds fflush only on the existing failure path
+before abort;107direct importers and before-source snapshot are retained for
+success/failure and generated-code comparison. B2 has a stronger active Statement
+grammar variant; preserve it pending exact source reconciliation rather than
+silently replacing its valid coverage. Actual changed-unit/runtime measurements
+remain pending. The helper boundary is libc transport, not new non-Tower logic.
+
+Reviewed/adopted A2 stage452cfa58: zero-membership stages avoid table transitions
+after view/name/overflow checks; lease clearing, reference holds and cleanup
+remain. Its updated concurrent fixture checks stable per-worker payload/table
+identity under publish/discard, with the original finalizer count. Four table
+modes preserve pinned-view rejection and complete teardown. A2's actual
+native/ASan/TSan measurements are owner/source-specific; D1 must validate the
+new closure. B1 lexical49ec uses existing named/derived array extents. Corrected
+tracea261 keeps valid production trace tests separate from serial allocation
+fault instrumentation, checks failed enablement and writes formatted vectors by
+length. B1 owns the reported unbounded success-seeking fault-loop follow-up;
+this is a source-review gap, not an observed hang. No withdrawn330 trace patch
+was applied. Backend-index registration still waits the owner pure-helper link
+boundary and A1 failure-drain work remains separately pending.
+
+Audit and roster now cover two added D1 paths (aggregate_capture_inputs and
+parser_trace_failures) substantively. Expected staged inventory is1047tracked
+Tower paths/472direct D1 paths, including437initial audited files. Review is not
+runtime acceptance. Host still has139GiBfree,9.8GiBavailable RAM and6.2GiB
+preexisting swap; no new heavy command during D2's slot. Final coherent clean
+public bootstrap/native/browser/generation, applicable instrumentation and leased
+atomic publication remain open. Documentation itself adds no runtime work;
+code changes explicitly await before/after evidence on frozen inputs.
+
+D1 current remaining-scope checkpoint (23:44UTC) is appended to the lane audit:
+472/472 prepared direct paths,1047repository paths after staging, with current
+unvalidated policy42/query/aggregate/stage/trace/storage hooks separated from
+real older measurements. Explicit missing evidence/capabilities are source-level
+generic-write discovery, profitable layout/frontier overlap, current backend
+package deadline, semantic-world failure-drain handoff, bounded trace fault
+sweep, duplicate-free backend-index registration and final coherent release.
+These remain required acceptance work, not optional future enhancements.
+Unsupported non-native sanitizer coverage and host LLVM boundary remain honest
+limits. No new runtime timing is attributed to this documentation change.
+
+D2 released its lock after terminal0 build/runtime sessions61243/94580 and idle
+container census. D1 acquired atomic heavy.lock normally for its next bounded
+phase. D2 independently reports storage seed reset, exact-token hover, type/layout
+profiles, address rejection and global/local aggregate positives on compiler
+489761dd; these are separate owner receipts, not D1 execution or full42 proof.
+A read of nonexistent utility_files.tower exited2 during preparation; corrected
+to inspect actual storage_main/utility_checks, no validation result was affected.
