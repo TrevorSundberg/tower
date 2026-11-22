@@ -46506,3 +46506,118 @@ and `root_coordination_served_manifest.json`. This local browser run overlapped
 some local worker activity; affected timing samples must not be treated as quiet
 performance comparisons. Correctness results and remote-host measurements are
 separate. The receipt changes no assets or build identity.
+identities, then monitor sparse status updates and coordinate acceptance work.
+
+## 2026-11-22 — D2 tooling audit and modest-host baseline (in progress)
+
+Lane D2 starts from clean main 6282238779034442e0578d76b921ca117df819f1,
+with its own clone/cache/container. The active acceptance goal is the complete
+assigned tools/build/benchmark audit, measured fixes, independent validation and
+coordinated atomic publication, not a setup-only milestone. The per-file review
+is docs/compiler_ecs_audit_d2.md. Initial scope is 32 tool and five benchmark
+modules; measurement harness dependencies are being coordinated with D1.
+
+Read the services/handoff/current type-value continuation: production helper
+readiness already supersedes the earlier experiment's missing-helper claim.
+Consulted primary Flecs systems/component-traits and Unity Burst aliasing docs
+(linked in the audit); use explicit access/staging and appropriate payload
+storage, without assuming packed data or noalias from pointer indexes. Tool
+filesystem/process buffers are not compiler ASTs and need no cosmetic ECS port.
+
+The source/caller audit identifies unconditional selected-tool rebuilds in
+build_tools/CMake as a possible iteration bottleneck, not yet a measured finding
+or implementation decision. No production file has changed. Generic test harness
+and CMake changes require owner coordination before editing.
+
+SteamDeck baseline environment: 14.8 GiB RAM, initially 9.6 GiB available,
+5.6 GiB swap already used, /home 142 GiB free (85% used). Private image identity
+4be584fb42a6cefb921b8f8bd686f61ef6e7e721eee2393b2ab1dfce16a7f4f6;
+Clang 19.1.1. Public bootstrap runs in this supported image. GCC/GNU time were
+absent and installed in D2's private container for reference/CPU/RSS evidence.
+An early prerequisite probe returned 1 before GNU time installation finished;
+it ran no build. Its empty log is not validation. Installation and subsequent
+commands are preserved in build/d2_ecs/. The unrelated normal-clone container
+and cache were left untouched.
+
+D2 acquired the shared heavy.lock, restricted its container to physical cores
+0 and 1 (logical CPUs 0,2), and started the canonical build-native.sh with
+TOWER_BUILD_JOBS=1 and TOWER_DRIVER_TESTS=ON, without a private bootstrap override.
+Source closure is frozen at the reviewed commit; only documentation changes
+proceed during compilation. Native and measurement results are pending. This
+entry/audit alone changes no runtime path, so runtime performance comparisons
+are inapplicable to those documentation bytes. Final acceptance is not claimed.
+
+D2 clean native baseline passed all 51 steps from the default public pin (no
+override): 288.99 s wall, 302.85 s user, 20.75 s system, 829632 KiB peak RSS,
+zero job swaps; one sample from empty lane cache, one Ninja job, logical CPUs
+0 and 2. Scaffolding tree 9703a7c0264660e42831a41636fd6fe457dce1b0;
+public pin SHA-256 9653f8187a104ca84ab5d8601f336d7e1ed8200206544c70a81415018d623d02;
+result b9555aff99e132d85f86c5f4531fc229be8ce21761f17f22e738378416e72520.
+Logs/timing: build/d2_ecs/native_baseline.{log,time}. This proves a clean build,
+not all-core overlap/scaling or subsequent merged-source validation. Existing
+tower-driver-tests built in 14.70 s wall, 16.05 s user, 0.97 s system,
+321512 KiB peak RSS (driver_build.{log,time}).
+
+The existing --measure-c recurrence probe failed exit 1 against that public pin:
+generated recurrence.tower omitted its language import, yielding the precise
+line 1 column 1 declaration-seed diagnostic. The runner correctly withheld
+measurements.json. Logs, source and aggregate GNU time are retained in
+build/d2_ecs/measure_c/. Parent explicitly granted D2 the narrow D1-owned harness
+fix: prepend `import foundation;` in measure_kernel; expected behavior and
+iteration counts are unchanged. The implementation is one line; corrected
+reference validation remains pending. This is a failed-to-working fixture
+correction, not a speedup comparison against the rejecting program.
+
+A D2 scheduling mistake started tools_baseline_build while --measure-native was
+still active. The tool build finished before an attempted TERM (PID no longer
+existed); both jobs drained normally. Their overlapping timing samples are
+invalid as performance evidence and will not be used. Correctness results are
+separate. Preserve these logs and repeat only the affected profiles alone.
+This did not overlap two builds in a cache or touch the sibling's jobs/cache.
+
+D2 also reviewed B2's focused frontend link failure: runtime_instrumented
+intentionally selects the portable serial transport through TowerWorkHost;
+the unconditional semantics INTERFACE work_thread_entry export demands a symbol
+absent from that transport. Native Linux worker admission uses dlsym on that
+name, so removing the export globally would be wrong. D2 acknowledged a
+transport-specific B2 manifest fix; no CMake edits by D2. A2 owns actual Tower
+instrumentation investigation; CXX flags alone do not instrument direct objects.
+
+The authorized C generator correction passes both recurrence and memory through
+the existing runner: seven LLVM/Clang/GCC runtime samples and each short graph/
+fast-O0/fast-O2 comparison. Full report hash cf4ff8a4033fff92f3291e54bee1744b1cb2c38366083a3b7240fab346ac2310;
+aggregate 24.38 s wall, 20.72 user + 2.39 system, peak 123000 KiB. Separate
+three-sample equivalent-recurrence object compilation medians: Tower jobs1
+0.78 s /0.73 CPU/111364 KiB; Clang19 0.17 s /0.15 CPU/103992 KiB; GCC13
+0.21 s /0.18 CPU/27772 KiB. Exact commands/inputs and semantic differences are
+in the D2 audit. This is neither a comparison against the old rejecting fixture
+nor a claim of cross-language speed superiority.
+
+Direct worker experiments use explicit jobs1/2/8, not affinity as admission.
+All 18 small/large object outputs match. Small wall medians 2.36/3.12/3.05 s,
+CPU 2.31/3.59/3.57 s, RSS 180320/188908/194684 KiB. Large serial timing varies
+6.33/2.21/4.37 s, making a broad speedup claim unsound; host powersave frequency
+is a possible confounder (observed CPU0 1.078 GHz, CPU2 2.425 GHz), not a proven
+cause. Parallel CPU/wall above one is consumption evidence, not useful overlap.
+Raw times, phases, objects and reference outputs are retained in worker_complete.
+Staging/import 1/2-worker stdout agrees; wide graph/native output is 299.
+The complete wide fixture is a new small .tower wrapper over the existing stress
+generator. The first fragment-only attempt correctly failed without a language
+import; it is retained, not silently relabeled successful.
+
+D2 source review now covers 37 original tools/benchmarks, three D1 measurement
+modules, the new complete wide wrapper, and 45 copied resources by provenance
+only. Every copied bootstrap resource matches its scaffolding original; package
+SHA256SUMS passes and source 98ade8cc is reachable. No bootstrap resource edited.
+The audit reports actual ownership/storage/scheduling conclusions and gaps per
+file. A2 identified implicit build compiler workers ignoring affinity; D2 confirms
+CMake recipes omit --jobs and proposes explicit build budgets, pending shared
+manifest ownership approval. Existing default compilation may admit eight lanes
+on this two-core-affinity container. No claim of two admitted lanes was intended.
+
+All initial D2 jobs are now terminal; heavy.lock was released for D1 after
+checking container process state. The original lock owner record is retained.
+No more heavy work until sibling scheduling permits it. Remaining acceptance:
+scoped measured build improvement, stable useful-overlap evidence, supported
+instrumentation through A2, final merged build/browser/generation applicability,
+and coordinated atomic publication/host verification. The goal remains active.
