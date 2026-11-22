@@ -560,4 +560,30 @@ fn selection_sources(): i32 {
 
 if selection_sources() != 230 || comptime(selection_sources()) != 230 { failures++; }
 
+fn callback_value(value: i32): i32 { return value + 1; }
+
+fn callback_identity(value: function(i32, i32)): function(i32, i32) { return value; }
+
+struct CallbackFields {
+    apply: function(i32, i32);
+    select: function(function(i32, i32), function(i32, i32));
+}
+
+// Signature constructors publish private staged types, including nested return
+// and parameter signatures, before their consumers invoke the checked values.
+fn signature_queries(input: i32): i32 {
+    var apply: function(i32, i32) = callback_value;
+    var select: function(function(i32, i32), function(i32, i32)) = callback_identity;
+    var fields: CallbackFields = { apply: apply, select: select };
+    return fields.select(fields.apply)(input);
+}
+
+fn signature_peer(input: i32): i32 {
+    var apply: function(decltype(callback_value(0)), i32) = callback_value;
+    return apply(input);
+}
+
+if signature_queries(41) != 42 || signature_peer(41) != 42
+    || comptime(signature_queries(41)) != 42 || comptime(signature_peer(41)) != 42 { failures++; }
+
 print(failures);

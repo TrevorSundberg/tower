@@ -609,6 +609,7 @@ fn sem_declaration_expression(c: SemanticContext*, root: void*): bool {
             var name = sem_member(node, "name");
             var builtin = semantic_builtin_kind(sem_identifier(c, name));
             if builtin == 0 && !sem_declaration_function(c, node) { return false; }
+            if sem_call_uses_value(c, name) { sem_push(pending, name); }
             var prepared = sem_prepared_call(c, node);
             var args = prepared != null ? prepared.values
                 : sem_collect(c, sem_member(node, "args"), "CoreCallArgument");
@@ -675,11 +676,28 @@ fn sem_declaration_syntax(c: SemanticContext*, annotation: void*, nodes: vector(
             staged = true;
             continue;
         }
+        if type && (sem_is(node, "CoreType") || sem_is(node, "CoreCall")) && sem_member(node, "args") != null {
+            var name_node = sem_member(node, "name");
+            var name = sem_identifier(c, name_node);
+            if sem_equal(name, "function") && sem_resolve(c, c.type_functions, name_node, name) == null {
+                // Function signatures already use private staged entities and
+                // publish type observations after join. Recurse by type role;
+                // a user constructor with this name still needs preparation.
+                staged = true;
+                var arguments = sem_collect(c, sem_member(node, "args"),
+                    sem_is(node, "CoreCall") ? "CoreCallArgument" : "CoreTypeArgument");
+                foreach(var argument in arguments) { sem_declaration_scan_push(&pending, argument, true); }
+                continue;
+            }
+        }
         if !type && sem_is(node, "CoreCall") {
             var name = sem_member(node, "name");
             var builtin = semantic_builtin_kind(sem_identifier(c, name));
             if builtin == 0 && !sem_declaration_function(c, node) { return false; }
             staged = true;
+            // Indirect calls check and enrich the callee before arguments.
+            // Its original location tree needs the same stage lease as args.
+            if sem_call_uses_value(c, name) { sem_declaration_scan_push(&pending, name, false); }
             var prepared = sem_prepared_call(c, node);
             var args = prepared != null ? prepared.values
                 : sem_collect(c, sem_member(node, "args"), "CoreCallArgument");

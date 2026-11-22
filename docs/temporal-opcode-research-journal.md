@@ -40355,3 +40355,96 @@ Runtime fffdc85/all 89 assets and every prior receipt, including ecsHeaderStream
 are preserved. The initial hosted check observed the preceding manifest while
 Actions was still deploying; recheck after completion matches exact bytes.
 No runtime asset replacement or portable-release claim accompanies this receipt.
+
+Rebased the milestone over f2f85be without conflicts and pushed fffdc85 to main.
+Incoming changes replace fixed CMake import generators with checked-in Tower
+units and move target-pack tooling into Tower; the public bootstrap remains
+21f52712. A fresh default native build completed all 50 steps, with
+TOWER_BOOTSTRAP_COMPILER unset and TOWER_NATIVE_BUILD set to
+/tmp/tower-home/.cache/tower/ecs-header-stream-clean. CLI unit checks pass again
+against that rebuilt compiler. Native executable SHA-256 is
+706e88919faeac6baafc52dad359d059244df0431064b8d0cfda3a51f0f3150f;
+its complete resources are adjacent in build/native/share. Evidence:
+header-stream-clean.log. Portable/threaded/LLVM/cross builds and hosted
+publication are now in progress for this frozen source checkpoint.
+
+All browser variants and the compiler project for fffdc85 now build. The three
+shared-Wasm tests pass with zero skips, including real four-worker overlap,
+trap wakeup and 1/2/4/8-worker declaration/body/lowering/staging determinism.
+Project SHA-256 is 75b8c69feb88eaf932b57402342eaa7e1046c61abeee83118c1a45a560f5dc56.
+The two edited compiler generations are running from that frozen project in
+header-stream-workbench; subsequent source edits are not part of that package.
+
+## 2026-11-21: Staged function-type worker admission after the streaming checkpoint
+
+Continued the structural-admission audit while the frozen checkpoint runs its
+release checks. Built-in function signatures already construct private staged
+entities and publish type observations after joins, but the generic args guard
+still forced their annotations to the coordinator. The draft admits those
+signatures recursively by type role, retaining the fallback for a user type
+constructor named function and for nested structural constructors. Added nested
+signature, record-field, decltype and runtime/comptime indirect-call fixtures.
+This follow-up is not yet compiled, validated or published, and is excluded from
+the fffdc85 browser package.
+
+The follow-up small-unit preflight compiles, and its expanded runtime/comptime
+fixture reports zero failures using the public bootstrap. The affected native
+build, self-compilation of semantic_declarations and body matrix are running in
+signature-query-native.log. The invalid nested signature fixture also checks
+that a worker's partial type construction preserves the earlier void-parameter
+diagnostic ahead of a later unknown local.
+
+The frozen fffdc85 release completed both edited browser generations with
+identical hashes and was pushed as Pages b23ee50e332eb2195d868c4d6bf01ca5095a977e.
+Its manifest SHA-256 is 0252b634acb8e2768aca9afbac9601e17c748d70d4e0238d34d5d5d504cea8bc.
+Generation evidence is header-stream-generations.log; static packaging and source
+identity are header-stream-bundle.log and header-stream-deployment-manifest.json.
+Hosted verification is pending. The release manifest explicitly excludes the
+function-type follow-up.
+
+The first full follow-up matrix passed direct execution/canonical output at
+1/2/4/8 workers on the 32-bit target, then aborted during canonical reparsing.
+GDB locates the assertion in sem_node through sem_location/sem_indirect_call
+inside an expression query. Reduced it to signature_minimal.tower and its emitted
+Foundation file in build/language-next-audit. The published fffdc85 native
+compiler also aborts on that Foundation reproducer: this exposes an existing
+indirect-call admission omission, not a new function-type construction failure.
+Readiness already traversed callable locations, but expression eligibility and
+stage-node collection visited only arguments. The worker then enriched an
+unleased callee location while the store was pinned. Added the callee to both
+existing scans, preserving callee-before-argument semantics and private stage
+ownership. The corrected minimal round trip and affected matrix remain pending.
+Evidence: signature-query-debug.log and signature-minimal-checkpoint.log.
+
+The reduced Foundation reproducer now prints 42 twice, and canonical reparsing
+passes at both target widths in the corrected matrix; the remaining diagnostic
+groups are still running. Hosted verification of the frozen fffdc85 checkpoint
+also completed: all 89 assets match, desktop/mobile backend/editor/download/
+persistence checks pass, and real Linux target defaults pass. Pages workflow
+44977988877 succeeded. Evidence: header-stream-hosted.log and
+build/deployment-verification/report.json. That deployment verification does not
+cover the newly discovered indirect-call case; its fix remains local pending
+the affected checks and next publication.
+
+Next scheduling candidate from the source audit (not implemented):
+semantic_generic_body_work still joins worker-sized clone groups even though its
+whole demanded body window is already in the shared graph. Refill a larger
+frozen wave without increasing unbounded private-stage storage: derive/cache the
+immutable template body's node count on its existing template component, reserve
+the remaining GenericNodeLimit across a source-ordered wave, then refill idle
+slots and publish the completed stages in order. Cloning copies one syntax node
+per source node; body roots are excluded by the existing clone entry. Oversized
+or unmeasurable bodies can retain the existing bounded single-job failure path.
+Keep lazy decltype bodies unmeasured/unmaterialized until demanded. This would
+remove a concrete pool-width barrier while keeping graph reads immutable and
+staged clone storage within the compilation's existing node budget; it is not a
+new evaluator, language representation or measured speedup yet.
+
+The corrected function-type/callee milestone now passes the full native body
+matrix: targets 32/64, workers 1/2/4/8, canonical reparsing, runtime/comptime
+results, cycles and diagnostic ordering, including the new invalid nested
+signature. The preflight and candidate both compile semantic_declarations; their
+objects are not claimed identical (the public predecessor predates multiple
+semantic changes). The actual minimal Foundation reproducer prints 42/42 after
+the lease correction. Evidence: signature-query-{preflight,fixed}.log. Ready for
+the next source checkpoint and affected browser/bootstrap publication checks.
