@@ -52,6 +52,9 @@ export fn main(): i32 {
     symbol_case(BootstrapUnit.ParserNodes, false, " U generic_error_clear\n", "generic_error_clear");
     var empty: BootstrapSymbol = default; var rejected: BootstrapSymbol = default;
     symbol_case(BootstrapUnit.Interpreter, false, " U semantic_type_equal\n", null);
+    symbol_case(BootstrapUnit.Semantics, false, " U interpreter_function_result\n U ix_load\n", null);
+    symbol_case(BootstrapUnit.ParserNodes, false, " U interpreter_function_result\n", "interpreter_function_result");
+    symbol_case(BootstrapUnit.Bytes, false, " U ix_load\n", "ix_load");
     symbol_case(BootstrapUnit.Bytes, false, " U semantic_type_equal\n", "semantic_type_equal");
     symbol_target_case(BootstrapUnit.ParserNodes, "wasm32-unknown-unknown", " U __indirect_function_table\n", null);
     symbol_target_case(BootstrapUnit.ParserNodes, "wasm64-unknown-unknown", " U __indirect_function_table\n", null);

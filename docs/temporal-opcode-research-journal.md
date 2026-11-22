@@ -39498,3 +39498,41 @@ the post-Python baseline, six scripts and 192/483 lines (39.8%) are gone. Tracke
 Python and owned C/C++ remain zero. Update direct commands and release docs; no
 active references to the deleted runner remain. todo.txt is untouched. Publish
 this source/tooling receipt while preserving the verified runtime and 86 assets.
+
+Rebase correction: upstream 80873ef/e8aa452 changes compiler/grammar inputs and
+publishes the complete attribute-capable bootstrap, so the pre-rebase successor
+cannot serve as merged-source evidence. Preserve it, freeze sources in
+/cache/bootstrap_comparison_rebased_checkout and build from scratch in
+/cache/bootstrap_comparison_rebased_native using the default documented
+build-native.sh entry, no private bootstrap override. All 54 steps pass; the
+successor and new public pin are both SHA256
+21f527125bfa05a8cd6d4923d4fdc026a04553e919f2905c602a17691598dba5.
+The declaration_attributes fixture interprets to zero failures. The selected
+verifier's fresh five-step default build also passes and initially remains
+byte-identical (0c35e7a8) across the attribute rebase. Later upstream 4f74fbd is
+publication documentation only; no further compiler input changed.
+
+Inspecting the fresh semantic object exposes two newly merged attribute-staging
+imports: interpreter_function_result and ix_load. semantic_evaluation.tower and
+semantic_evaluation_aggregates.tower call the matching Tower exports in
+interpreter.tower for validated function relocation and typed aggregate reads.
+Add those exact names only to the semantic unit; new negative cases reject them
+in parser/byte units. The expanded policy fixture passes through the new public
+compiler, and its standalone CLI accepts the real fresh semantic object closure.
+The final verifier is SHA00324e2f6311a56a1c72af09dd1d8212b7584dc946dcb98a76310ba1acf14a7b.
+The incoming hosted runtime is now 9e7eb79 with 88 assets, superseding the earlier
+86-asset publication plan; preserve that runtime and its attribute receipt.
+
+Final merged-source comparison: /cache/bootstrap comparison rebased all/
+comparison.4lT3uB passes all four targets for utf8, bytes, entities, parser-nodes,
+host and interpreter, then correctly rejects the two new semantic imports under
+the old policy. With the reviewed correction, /cache/bootstrap comparison rebased
+semantic/comparison.xA2I3v passes all four semantic pairs plus custom/missing
+grammar. Thus all 28 pairs have matching predecessor/successor IR and objects on
+the merged source. Rebuilding the final verifier through the documented default
+bridge yields exactly the tested 00324e2f binary; child status 125 remains exact.
+No new production compiler change is introduced by the tooling correction.
+Shell counts remain 13 files/291 lines; the rechecked Python baseline dfe6ce3 is
+23 files/1,989 lines versus zero today. Next candidates are the remaining three
+validation/build wrappers and target-pack construction; retain required external
+SDK/build boundaries and remove duplicated staging before adding Tower code.

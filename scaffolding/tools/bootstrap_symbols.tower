@@ -106,6 +106,9 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
             || bootstrap_symbol_in("syntax_host_clear syntax_origin_text tower_node_attach tower_node_get_child_member work_kernel_execute work_thread_retention", symbol, length);
     }
     if unit == BootstrapUnit.Semantics {
+        // Attribute aggregate staging reads interpreter-owned bytes and validates
+        // function-reference relocation through these ordinary Tower exports.
+        if bootstrap_symbol_in("interpreter_function_result ix_load", symbol, length) { return true; }
         return bootstrap_symbol_in("syntax_create syntax_destroy syntax_next syntax_get_error syntax_get_revision syntax_get_error_offset bytes_append", symbol, length)
             || bootstrap_symbol_in("tower_allocate tower_trap sem_match core_component_type abort entity_component_get entity_component_data", symbol, length)
             || bootstrap_symbol_in("entity_component_add entity_register tower_node_create entity_attach entity_release entity_child_at entity_child_count", symbol, length)
