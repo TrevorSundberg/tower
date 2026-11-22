@@ -49,6 +49,7 @@ function(tower_driver_integrate)
   target_sources(towerc PRIVATE "${tower-driver_OBJECT}")
   if(TOWER_DRIVER_TESTS)
     # Keep fixtures out of the production object and use the Tower guest runtime.
+    set(source "${production_source}")
     string(APPEND source "import tests.driver_${platform};\n")
     string(APPEND source "import tests.driver;\n")
     set(test_input "${CMAKE_CURRENT_BINARY_DIR}/tower_driver_tests.tower")

@@ -14,7 +14,7 @@ features, including selective imports, dependency queries and returned errors.
 `import tower;` is an ordinary file import, equivalent to `import "tower.tower";` when no host override is selected.
 The name is not reserved and does not refer to `tower.wasm`, a compiler service,
 or the entire compiler project. It resolves `tower.tower` using the same search
-rules as every other module. That file defines surface syntax such as `const`,
+rules as every other module. That file defines surface syntax such as enums,
 `match` and `while`. Its dependency chain is:
 
 ```text
@@ -37,17 +37,15 @@ implementing its compiler is an ordinary dependency on source definitions.
 Some bootstrap machinery still is special. The immutable declaration seed reads
 the first grammar declarations and imports. Hosts install a compatibility
 Foundation baseline for files without imports, and native `--bedrock` and
-`--foundation` explicitly override module paths. Native runtime/adapters and
-LLVM/LLD also remain in the compiler's link support. None of these make `tower`
+`--foundation` explicitly override module paths. LLVM and platform libraries
+remain external dependencies. The compiler, runtime and byte link services are
+Tower implementations. None of these make `tower`
 a special import or make the compiler fully standalone today.
 
-Continue toward standalone builds by porting the remaining project-owned native
-code into imported Tower modules, replacing the native declaration seed after a
-validated Tower successor exists, and moving host-selected grammar setup into
-explicit entry dependencies. Keep bootstrap executables as the previous compiler
-generation, not as magic modules. Each step must retain source dependency tracking,
-round trips and successive-generation checks. These are remaining migration
-steps; ordinary `import tower;` resolution is already implemented.
+Keep bootstrap executables as the previous compiler generation, not as magic
+modules. Further external-dependency migration must retain source dependency
+tracking, round trips and successive-generation checks. Ordinary `import tower;`
+resolution and the project-owned implementation migration are already implemented.
 
 ## Import rules
 

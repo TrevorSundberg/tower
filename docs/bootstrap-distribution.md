@@ -4,7 +4,13 @@ All project-owned compiler/runtime implementation and functional fixtures are
 Tower. The last 469 C/C++ lines were retired in c53a077; there is no owned native
 seed or callback adapter left. A hash-pinned, Tower-built Linux x64 development
 compiler is checked in under `bootstrap/` and selected automatically by the
-Docker build. LLVM/lld and platform libraries remain third-party dependencies.
+Docker build. LLVM and platform libraries remain third-party dependencies.
+Production browser linking for Wasm, Linux ELF, Windows PE and macOS Mach-O
+executes in Tower. Windows x64 and macOS CLI executable defaults use the same
+byte services. The Linux hosted CLI and the compiler's external-library build
+still use host toolchain linking; LLVM emission and runtime-object compilation
+also remain external. LLD is retained only as a test/build-tool reference, not
+as a library linked into the production browser backend.
 
 The current policy is one Linux x64 bootstrap and a documented Docker build,
 usable from Windows/macOS/Linux. Native CLI packages for those hosts remain
