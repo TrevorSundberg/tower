@@ -831,3 +831,12 @@ sums do not establish portable host coverage or total live allocator bytes.
 Record exact source/artifact identity, repeats and runtime coverage alongside
 results. This registration does not itself validate any incoming source bundle;
 current implementation and execution receipts remain in the D1 audit/journal.
+
+For a focused frontend/backend streaming check, use
+`tower-lr-work-tests RESOURCE_ROOT backend-overlap` from the existing native
+worker runner. It builds the independent serial64-bit object baseline, then
+runs the same two-worker streaming case used by the full `backend` selector.
+Exact object bytes, shared-budget limits, distinct-thread barrier assertions and
+the30-second internal deadline are unchanged. Phase messages identify baseline
+versus streaming work; directional deadline errors identify the waiting side.
+The focused selector does not replace the full backend matrix or its failures.
