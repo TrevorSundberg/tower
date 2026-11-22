@@ -43845,3 +43845,36 @@ The first package_bootstrap attempt used the Windows-mounted /work/build output
 and failed its atomic publication step; it did not update the public pin. Use a
 new /cache output directory for the complete candidate and verify it before
 copying the checked package into the repository. Publication is still pending.
+
+Integrate the newer PE linker commits through 1f44ecfe before packaging. Final
+compiler source checkpoint is 23b919ef; the declaration/body/evaluation sources
+are unchanged by that linker rebase, so retain their passing focused checks.
+Rebuild the integrated native compiler and browser frontends/LLVM/cross package.
+package_bootstrap succeeds at /cache/computed_type_bootstrap_candidate; all
+checksums pass and its relocated compiler runs the new fixture from /tmp.
+The candidate's source_base_revision is 23b919ef and needs no source patch.
+The complete public Linux x64 development pin has executable SHA256
+18664657c3ff9142a6d59bef8ffa794fd10d12313d55f91dd47f5575141a29f9.
+Its inventory exactly matches the previous package; replace those files and
+remove the obsolete tracked source-changes.patch. Automatic review rejected a
+bulk replacement command; explicit inventory checking and copying succeeded.
+
+Fresh /cache/computed-type-successor-clean builds from that checked-in pin using
+build-native.sh with TOWER_BUILD_JOBS=3 and TOWER_EXECUTION_TESTS=ON, with no
+TOWER_BOOTSTRAP_COMPILER override. Both successor interpreter modes run the
+computed-type fixture from /tmp and print 0. This is still the documented
+Ubuntu 24.04/LLVM 19 Linux development bootstrap, not a portable release.
+
+Browser validation passes the existing three real worker overlap, interruption
+and 1/2/4/8-worker determinism checks, including the new Tower fixture registered
+in the existing browser transport. The focused LLVM/Wasm comparison passes
+both interpreters, canonical reparse and optimized/unoptimized execution.
+An initial worker-test invocation accidentally selected tower.wasm instead of
+tower-work-tests.wasm and failed on its missing foreign import; the corrected
+existing harness passes 3/3 with zero skips. Only fixture registration lines
+were added to JavaScript; feature code, test cases and their assertions are Tower.
+Two edited compiler-project generations pass with identical reactor hashes;
+generation 2 sizes are tower 1318190, LLVM 35095006 and cross 61087450 bytes.
+Logs: computed_type_arguments_{browser_checks,wasm,generations,successor}.log
+under build/. Required threaded/LLVM/cross site bundling passes. Local/hosted
+deployment receipts follow after verification.
