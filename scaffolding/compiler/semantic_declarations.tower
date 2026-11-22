@@ -68,6 +68,7 @@ struct SemanticDeclaration {
     worker_check: bool;
     checked: bool;
     storage_ready: bool;
+    storage_pending: bool;
     stage: void*;
     nodes: vector(void*);
     count: usize;
@@ -296,9 +297,28 @@ fn sem_declaration_type_projection(c: SemanticContext*, node: void*, depth: usiz
     return result;
 }
 
+// Project only an already published type operand. This performs no value
+// execution or interning and shares the same eligibility with worker admission.
+fn sem_declaration_builtin_projection(c: SemanticContext*, node: void*, builtin: u32): FoundationType* {
+    if builtin != KAllocate && builtin != KReallocate && builtin != KBits && builtin != KConvert { return null; }
+    var arguments = sem_collect(c, sem_member(node, "args"), "CoreCallArgument");
+    if arguments.length == 0 { return null; }
+    var element = sem_declaration_type_projection(c, arguments.data[0], 0);
+    if element == null { return null; }
+    var type = sem_type_copy(c, element);
+    if builtin == KAllocate || builtin == KReallocate { type.pointers++; }
+    return type;
+}
+
 fn sem_declaration_location(c: SemanticContext*, node: void*, waiting: usize*, layout: void**, depth: usize): FoundationType* {
     if node == null || depth > SemanticProjectionDepthLimit { return null; }
     node = sem_surface_unwrap(node);
+    if sem_is(node, "TowerExpression") && sem_member(node, "condition") != null {
+        var left = sem_declaration_location(c, sem_member(node, "body"), waiting, layout, depth + 1);
+        if left == null { return null; }
+        var right = sem_declaration_location(c, sem_member(node, "otherwise"), waiting, layout, depth + 1);
+        return right != null && semantic_type_equal(left, right) ? left : null;
+    }
     var operand: void* = null;
     var address = false;
     if sem_is(node, "CoreLoad") || sem_is(node, "CoreAddress") {
@@ -333,19 +353,9 @@ fn sem_declaration_location(c: SemanticContext*, node: void*, waiting: usize*, l
         if *waiting != 0 || *layout != null { return null; }
         if sem_is(node, "TowerInvoke") { return null; }
         var builtin = semantic_builtin_kind(sem_identifier(c, name));
-        if !sem_call_uses_value(c, name) && (builtin == KAllocate || builtin == KReallocate || builtin == KBits || builtin == KConvert) {
-            var arguments = sem_collect(c, sem_member(node, "args"), "CoreCallArgument");
-            if arguments.length != 0 {
-                var element = sem_declaration_type_projection(c, arguments.data[0], 0);
-                if element != null {
-                    // Project only a published identity. The enclosing member
-                    // lookup then requests fields/layout before checking its
-                    // value, including unevaluated decltype(alloc(T,...).field).
-                    var type = sem_type_copy(c, element);
-                    if builtin == KAllocate || builtin == KReallocate { type.pointers++; }
-                    return type;
-                }
-            }
+        if !sem_call_uses_value(c, name) {
+            var projected = sem_declaration_builtin_projection(c, node, builtin);
+            if projected != null { return projected; }
         }
         var function = sem_resolve(c, c.functions, name, sem_identifier(c, name));
         var prepared = sem_prepared_call(c, node);
@@ -740,13 +750,22 @@ fn sem_declaration_function(c: SemanticContext*, node: void*): bool {
 // A computed base whose type is not yet known needs a structural continuation
 // before field access can safely consume its record layout on a worker.
 fn sem_declaration_projectable(c: SemanticContext*, node: void*, depth: usize): bool {
-    if node == null || depth > 128 { return false; }
+    if node == null || depth > SemanticProjectionDepthLimit { return false; }
     node = sem_surface_unwrap(node);
+    if sem_is(node, "TowerExpression") && sem_member(node, "condition") != null {
+        return sem_declaration_projectable(c, sem_member(node, "body"), depth + 1)
+            && sem_declaration_projectable(c, sem_member(node, "otherwise"), depth + 1);
+    }
     if sem_is(node, "CoreLocation") || sem_is(node, "TowerNullAccess") {
         var base = sem_member(node, "base");
         return base == null || sem_namespace(c, node) != null || sem_declaration_projectable(c, base, depth + 1);
     }
-    if sem_is(node, "CoreCall") || sem_is(node, "TowerInvoke") { return sem_declaration_function(c, node); }
+    if sem_is(node, "CoreCall") || sem_is(node, "TowerInvoke") {
+        if sem_declaration_function(c, node) { return true; }
+        var name = sem_member(node, "name");
+        return !sem_call_uses_value(c, name)
+            && sem_declaration_builtin_projection(c, node, semantic_builtin_kind(sem_identifier(c, name))) != null;
+    }
     if sem_is(node, "CoreLoad") || sem_is(node, "CoreAddress") {
         return sem_declaration_projectable(c, sem_member(node, "name"), depth + 1);
     }
@@ -1058,6 +1077,13 @@ fn semantic_declaration_kernel(result: SemanticDeclaration*): void {
     if result.discover { sem_declaration_dependencies(&context, result.subject, result); }
     else {
         result.waiting = sem_declaration_waiting(&context, result, &result.layout);
+        if result.storage_pending && result.waiting == 0 && result.layout == null && sem_ok(&context) {
+            // The declaration's layout dependencies have published. Its body
+            // write claim and leases now permit exactly one frame allocation.
+            sem_require(result.checked && !result.storage_ready);
+            sem_declaration_storage(&context, result.subject);
+            result.storage_pending = false;
+        }
         if !result.checked && result.waiting == 0 && result.layout == null && sem_ok(&context) {
             if result.inference_pending { sem_declaration_infer(&context, result); }
             else {
@@ -1670,10 +1696,14 @@ fn sem_declarations_execute(c: SemanticContext*, statements: vector(void*)*): vo
             var result = sem_declaration_state(c, work_task(&c.queries, ticket.task).subject);
             copy(&result.ticket, &ticket, sizeof(WorkTicket));
             result.kernel.kind = result.worker_check ? CompilerKernelKind.DeclarationType : CompilerKernelKind.Declaration;
-            if result.nodes.length != 0 {
+            if result.nodes.length != 0 || result.storage_pending {
                 result.stage = entity_stage_open(c.program.root);
                 sem_require(result.stage != null);
                 foreach(var node in &result.nodes) { sem_require(entity_stage_lease(result.stage, node)); }
+                if result.storage_pending {
+                    sem_require(entity_stage_lease(result.stage, result.subject));
+                    sem_require(entity_stage_lease(result.stage, result.current));
+                }
             }
             batch.data[count] = result;
             count++;
@@ -1792,6 +1822,14 @@ fn sem_declarations_execute(c: SemanticContext*, statements: vector(void*)*): vo
                     result.waiting = sem_declaration_constructed(c, result);
                 }
             }
+            if success && result.checked && result.waiting == 0 && result.layout == null
+                && result.current != null && sem_is(node, "CoreDeclare")
+                && sem_get(node).kind == KDeclare && !sem_get(node).global && !result.storage_ready {
+                // Keep storage on this declaration continuation, after all
+                // constructed layouts and before admitting its initializer.
+                result.storage_pending = true;
+                readmit = true;
+            }
             if !success { sem_declaration_capture_error(c, result); }
             c.query_reads = saved_reads;
             sem_query_observe(c, &result.ticket, &result.query_reads);
@@ -1806,7 +1844,14 @@ fn sem_declarations_execute(c: SemanticContext*, statements: vector(void*)*): vo
                     sem_require(work_suspend_access(&c.queries, &result.ticket, result.waiting,
                         1, 4, result.waiting, 1, WorkAccessMode.Read));
                 } else {
-                    if success && readmit { sem_require(work_yield(&c.queries, &result.ticket)); }
+                    if success && readmit {
+                        if result.storage_pending && semantic_aggregate(&sem_get(node).type) {
+                            var layout = work_find(&c.queries, sem_get(node).type.record, convert(u32, SemanticQuery.Layout), 0);
+                            sem_require(layout != 0 && work_task(&c.queries, layout).state == WorkState.Succeeded);
+                            sem_require(work_suspend_access(&c.queries, &result.ticket, layout,
+                                convert(u64, SemanticWorkDomain.Compiler), convert(u64, SemanticAccess.Layout), layout, 1, WorkAccessMode.Read));
+                        } else { sem_require(work_yield(&c.queries, &result.ticket)); }
+                    }
                     else { sem_require(work_finish(&c.queries, &result.ticket, success)); }
                 }
             }

@@ -87,6 +87,25 @@ fn evaluation_query_tests(width: u32, workers: usize): u32 {
         "Appended stage reuses the graph and preparation components", &failures);
     evaluation_query_check(unused.function == null && !unused.started,
         "Appended demand leaves unrelated work dormant", &failures);
+    var frontier = context.evaluation_jobs.length;
+    for(var i: usize = 0; i <= SemanticPreparationWindow; i++) {
+        // Independent readers span more than one bounded publication window.
+        // Every third reader discovers a fresh producer only during execution.
+        var dependency = i % 3 == 0 ? evaluation_query_stage(&context, input, false).subject : consumer.subject;
+        evaluation_query_stage(&context, dependency, true);
+    }
+    sem_evaluations(&context);
+    evaluation_query_check(program.error.length == 0, "Ready evaluation windows drain dynamic dependencies", &failures);
+    for(var i = frontier; i < context.evaluation_jobs.length; i++) {
+        var result = bits(SemanticEvaluation*, context.evaluation_jobs.data[i]);
+        evaluation_query_check(result.ready.ready && !result.ready.failed && sem_get(result.subject).bits == 42,
+            "Refilled evaluation windows publish the ordinary interpreter result", &failures);
+        var prepared = work_find(&context.queries, result.subject, EvaluationPrepareQuery, 0);
+        evaluation_query_check(work_task(&context.queries, prepared).dispatch == 1,
+            "Refilled evaluation windows prepare each dependency once", &failures);
+    }
+    evaluation_query_check(unused.function == null && !unused.started,
+        "Refilled evaluation windows preserve undemanded work", &failures);
     work_pool_close(&context.workers);
     sem_context_dispose(&context);
     semantic_program_dispose(&program);

@@ -263,7 +263,7 @@ fn sem_evaluations(c: SemanticContext*): void {
     if c.workers.count == 0 { sem_require(sem_workers_open(c)); }
     var batch: vector(SemanticEvaluation*) = default;
     defer vector_dispose(&batch);
-    sem_require(vector_reserve(&batch, c.workers.count));
+    sem_require(vector_reserve(&batch, SemanticPreparationWindow));
     loop {
         // A suspended interpreter can demand another stage. Prepare only that
         // ready frontier before opening the next immutable execution view.
@@ -273,29 +273,32 @@ fn sem_evaluations(c: SemanticContext*): void {
         sem_require(view != null);
         var count: usize = 0;
         var ticket: WorkTicket;
-        while count < c.workers.count && work_take_query(&c.queries, &ticket, EvaluationQuery) {
+        while count < SemanticPreparationWindow && work_take_query(&c.queries, &ticket, EvaluationQuery) {
             var task = work_task(&c.queries, ticket.task);
             sem_require(task.query == EvaluationQuery);
             var result = sem_evaluation_get(c, task.subject);
             sem_require(result != null);
             result.ticket = ticket;
-            if !result.started {
-                interpreter_invocation_init(&result.invocation, result.function, convert(usize, c.program.pointer_bytes), null, 0, true, EvaluationFuel);
-                result.invocation.context.dependency_kind = c.evaluation_ready;
-                result.invocation.context.value_inputs = c.value_inputs;
-                result.invocation.context.require_relocatable = result.inferred;
-                result.invocation.context.retain_result_storage = result.aggregate;
-                result.started = true;
-            }
-            batch.data[count] = result;
-            sem_require(work_pool_submit(&c.workers, bits(void*, &result.kernel)));
-            count++;
+            batch.data[count++] = result;
         }
         if count == 0 { entity_view_close(view); break; }
-        index = 0;
-        while index < count {
+        // Reserve a bounded ready frontier, then refill each completed slot.
+        // No results become visible until all readers in this window join.
+        var next: usize = 0;
+        while next < count || c.workers.running != 0 {
+            while next < count && c.workers.running < c.workers.count {
+                var result = batch.data[next++];
+                if !result.started {
+                    interpreter_invocation_init(&result.invocation, result.function, convert(usize, c.program.pointer_bytes), null, 0, true, EvaluationFuel);
+                    result.invocation.context.dependency_kind = c.evaluation_ready;
+                    result.invocation.context.value_inputs = c.value_inputs;
+                    result.invocation.context.require_relocatable = result.inferred;
+                    result.invocation.context.retain_result_storage = result.aggregate;
+                    result.started = true;
+                }
+                sem_require(work_pool_submit(&c.workers, bits(void*, &result.kernel)));
+            }
             sem_require(work_pool_receive(&c.workers, true) != null);
-            index++;
         }
         index = 0;
         while index < count {

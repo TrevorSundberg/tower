@@ -723,6 +723,26 @@ if query_statement_return() != 1 || query_statement_effects != 11
     || query_statement_layout() != sizeof(void*) * 2 || query_statement_staged() != 42 { failures++; }
 if sizeof(decltype(query_projection_value)) != 4 { failures++; }
 if sizeof(decltype(query_projection_bits)) != 2 { failures++; }
+fn query_projection_choose(flag: bool, first: query_type_record(i32)*, second: query_type_record(i32)*): decltype((flag ? first : second).value) {
+    return (flag ? first : second).value;
+}
+fn query_projection_pick(value: query_type_record(i32)*, calls: i32*): query_type_record(i32)* {
+    calls[0]++;
+    return value;
+}
+fn query_projection_conditional(): i32 {
+    var first: query_type_record(i32);
+    var second: query_type_record(i32);
+    first.value = 19;
+    second.value = 23;
+    var calls: i32 = 0;
+    var left = (true ? query_projection_pick(&first, &calls) : query_projection_pick(&second, &calls)).value;
+    var right = (false ? identity(&first) : identity(&second)).value;
+    var result: decltype((true ? &first : &second).value) = left + right;
+    if query_projection_choose(false, &first, &second) != 23 { return 0; }
+    return calls == 1 ? result : 0;
+}
+if query_projection_conditional() != 42 || comptime(query_projection_conditional()) != 42 { failures++; }
 enum QuerySmall: u8 { First = 3, Second, Last = 255 }
 enum QuerySigned: i16 { Negative = -4, Next, Positive = 7 }
 fn query_enum_values(): i32 {

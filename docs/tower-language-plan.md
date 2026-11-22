@@ -1030,6 +1030,8 @@ containers. Benchmark representative compiler workloads before migrating them.
   General interpreted extent expressions remain a separate staging extension;
   current extents accept literal or bound integer values.
   Field-layout readiness projects pointers, arrays and published call results.
+  It also projects equal-typed conditional arms and prepared builtin allocation/
+  conversion types; ordinary checking retains validation and lazy effects.
   Computed field bases without that projection retain coordinator checking.
   Call continuations preserve enclosing evaluation depth
   so skipped nested stages remain lazy during deduction.
@@ -1039,11 +1041,16 @@ containers. Benchmark representative compiler workloads before migrating them.
   the values. Alias references and changed storage indexes publish after joins.
   Return/discard operands and Foundation assignment target/value phases now use
   expression queries; their statement construction, flow and deferred exits resume
-  on body workers after the checked value publishes. Independent enum member
-  checks also run on workers.
+  on body workers after the checked value publishes. Local names bind on body
+  workers before declaration queries; frame allocation is a final declaration
+  continuation after layout readiness. Ordinary declaration completion resumes
+  on body workers after initializer readiness; for-header intermediate projection
+  remains coordinated. Independent enum member checks also run on workers.
   Evaluation preparation has persistent components and activates only through
   demanded roots or interpreter-discovered dependencies. Repeated pumps retain
   completed work; inferred clones still snapshot before runtime lowering.
+  Interpreter evaluation refills worker slots within bounded ready windows and
+  publishes in query order after joining, preserving lazy dependency discovery.
   Shared entities now use stable component pages, exact-signature archetype rows,
   published component columns and view-owned multi-component query plans.
   These index stable payload pointers; they do not relocate component data.

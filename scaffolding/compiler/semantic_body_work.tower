@@ -178,6 +178,7 @@ struct SemanticBodyWork {
     boundary: usize;
     preparation: usize;
     declaration: SemanticDeclaration*;
+    bound_declaration: void*;
     initialization: SemanticDeclaration*;
     expression_header: void*;
     expression_statement: void*;
@@ -626,6 +627,12 @@ fn sem_body_run(c: SemanticContext*, result: SemanticBodyWork*): void {
                 sem_require(result.declaration_header == null);
                 result.declaration_header = header;
                 sem_control_for_scope(c, header, cursor.depth + 1, &result.declaration_loop);
+                header = sem_child(sem_member(header, "initial"), 0);
+            }
+            // The lexical name must exist before a type/initializer query can
+            // observe a self-reference. Only this body owns its scope table.
+            if sem_ok(c) && sem_is(header, "CoreDeclare") && sem_declaration_bind(c, header) {
+                result.bound_declaration = header;
             }
             return;
         }
@@ -634,10 +641,18 @@ fn sem_body_run(c: SemanticContext*, result: SemanticBodyWork*): void {
             // The operand query owns type construction. This worker owns the
             // statement, lexical flow and any deferred exits around that value.
             var value = result.prepared_value;
-            var flow = sem_is(node, "CoreReturn") ? sem_return_statement(c, node, value)
-                : sem_is(node, "TowerExpressionStatement") ? sem_expression_statement(c, node, value)
-                : sem_is(node, "CoreAssign") ? sem_assignment_value(c, node, value)
-                : sem_call_statement(c, node, value);
+            var flow = FlowNext;
+            if sem_is(node, "CoreDeclare") {
+                sem_require(sem_declaration_state(c, node).storage_ready);
+                if value != null { sem_get(node).value = value; }
+                sem_require(sem_member(node, "value") == null || sem_get(node).value != null);
+                sem_declaration_finish(c, node);
+            } else {
+                flow = sem_is(node, "CoreReturn") ? sem_return_statement(c, node, value)
+                    : sem_is(node, "TowerExpressionStatement") ? sem_expression_statement(c, node, value)
+                    : sem_is(node, "CoreAssign") ? sem_assignment_value(c, node, value)
+                    : sem_call_statement(c, node, value);
+            }
             flow = sem_statement_complete(c, node, flow);
             cursor.next++;
             sem_block_accept(c, cursor, node, flow);
@@ -1021,8 +1036,8 @@ fn sem_body_assignment_values(c: SemanticContext*, batch: SemanticBodyWork**, co
     sem_require(sem_ok(c));
 }
 
-// Bind independent local roots in source order, then release every preparation
-// claim before discovery/checking. Each declaration exclusively borrows its
+// Workers bind local names before suspension. Register those roots in source
+// order and release preparation claims before checking. Each declaration borrows
 // body's lexical descriptor until that producer and its dependencies settle.
 fn sem_body_declarations(c: SemanticContext*, batch: SemanticBodyWork**, count: usize, failed: usize): void {
     var saved_subjects = c.declaration_subjects;
@@ -1083,7 +1098,9 @@ fn sem_body_declarations(c: SemanticContext*, batch: SemanticBodyWork**, count: 
             sem_body_restore(c, &saved);
             continue;
         }
-        if sem_ok(c) && sem_declaration_bind(c, node) {
+        if sem_ok(c) {
+            sem_require(result.bound_declaration == node);
+            result.bound_declaration = null;
             var declaration = sem_declaration_state(c, node);
             declaration.scope = c.scope;
             declaration.current = c.current;
@@ -1148,19 +1165,7 @@ fn sem_body_declarations(c: SemanticContext*, batch: SemanticBodyWork**, count: 
         var value = sem_get(node);
         var source = sem_member(node, "value");
         if source == null || value.value != null { continue; }
-        var saved: SemanticBodyScope;
-        sem_body_save(c, &saved);
-        sem_body_restore(c, &declaration.lexical);
-        sem_declaration_storage(c, node);
-        sem_body_restore(c, &saved);
-        if !sem_ok(c) {
-            sem_require(work_fail(&c.queries, result.preparation));
-            sem_body_hold_error(c, result);
-            result.done = true;
-            result.preparation = 0;
-            result.declaration = null;
-            continue;
-        }
+        sem_require(declaration.storage_ready);
         result.initialization = sem_expression_add(c, source, &value.type, &declaration.lexical, SemanticExpressionMode.Initializer);
         sem_require(work_depend(&c.queries, result.initialization.query, declaration.query));
         initializers++;
@@ -1210,15 +1215,15 @@ fn sem_body_declarations(c: SemanticContext*, batch: SemanticBodyWork**, count: 
         sem_body_restore(c, &producer.lexical);
         var saved_reads = c.query_reads;
         c.query_reads = &result.query_reads;
-        if declaration != null && sem_ok(c) {
+        if declaration != null && result.declaration_header != null && sem_ok(c) {
             generic_error_clear(c.generics);
             if result.initialization != null { sem_get(node).value = result.initialization.value; }
             sem_declaration_finish(c, node);
         }
-        if result.expression_statement != null {
+        if result.expression_statement != null || declaration != null && result.declaration_header == null {
             if sem_ok(c) {
                 result.prepared_statement = node;
-                result.prepared_value = producer.value;
+                result.prepared_value = result.initialization != null ? result.initialization.value : sem_get(node).value;
             }
         } else {
             if result.expression_header != null {
@@ -1384,6 +1389,7 @@ fn semantic_body_kernel(result: SemanticBodyWork*): void {
 
 fn sem_body_clear(result: SemanticBodyWork*): void {
     result.declaration = null;
+    result.bound_declaration = null;
     result.initialization = null;
     result.expression_header = null;
     result.expression_statement = null;

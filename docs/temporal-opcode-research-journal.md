@@ -43104,3 +43104,54 @@ preserved. Integrated native report SHA256
 1c521b97406dd2ea6cd1d6ceca4e50b7cea499735663e8662328cc9d1107bee9.
 Release only our own publication lock. Final source totals remain Python/owned
 C/C++ zero, shell 9/230, CMake 39/1603, JavaScript 183/24310; todo.txt unchanged.
+Hosted89151aa verification is complete:104 assets match; desktop/mobile backend,
+grammar, completion, persistence, downloads and real Linux defaults pass. Evidence:
+control-protocol-hosted.log and build/deployment-verification/report.json. The
+body-admission/statement source checkpoint rebased onto6a52e7b's object-rule cleanup
+without compiler-source changes, passed its documented-bootstrap cache build with
+the new rules, and is pushed asac9503a. That checkpoint is not yet in the hosted
+runtime;89151aa remains the exact published build identity.
+
+Local name binding now runs on the body worker immediately before a structural
+local/type suspension, including declarations in for headers. The preparation
+component retains that bound declaration; coordinator registration verifies and
+consumes it without rebinding. Existing self-reference cases plus new duplicate
+local/earlier-resumed-error cases pass at one/four workers in type-smoke. Small
+public-bootstrap preflight passes too (body-binding-native.log).
+
+Follow-up: local frame storage becomes the final worker continuation of its
+existing declaration query. It waits until constructed layouts publish, claims
+its body and the exact aggregate layout read, leases the declaration/function,
+and allocates once before explicit initializers are admitted. No new storage AST,
+interpreter or constant-folding pass is introduced. Registration/type interning
+remain coordinated. Small-unit preflight, build and focused checks are running
+in local-storage-native.log. Source inputs are frozen during these checks.
+
+Local-storage preflight/build/type-smoke pass. Conditional field projection now
+shares the published type identities of its two equal-typed branches; prepared
+alloc/realloc/bits/convert projections use the same admission helper. The normal
+checker still validates conditions, argument shapes and branch compatibility.
+This only discovers type/layout readiness; it never evaluates values or folds
+expressions. A new fixture covers decltype of a conditional field, generic calls
+in the selected arm, exactly-once effects, and ordinary/comptime agreement at42.
+The public-bootstrap preflight/build/type-smoke pass at one/four workers with
+canonical reparsing and existing failure/cycle checks (conditional-projection-native.log).
+
+Ordinary local declaration completion now resumes on the body worker after its
+storage and initializer receipts. It attaches the checked initializer and advances
+lexical/deferred flow without rechecking it. For-header intermediate projection
+still retains coordinator ownership. The next focused build/self-compilation is
+running in local-completion-native.log. No new release is claimed by these local
+checks; hosted89151aa and pushedac9503a retain their recorded scopes.
+
+The local-completion preflight/type-smoke and candidate self-compilation pass.
+Audit found a separate compile-time scheduling bottleneck: evaluation admitted
+only one worker-sized batch and waited for its slowest member. It now reserves
+the existing bounded SemanticPreparationWindow and refills completed slots;
+ordered result publication still waits for all immutable readers to join. Late
+interpreter dependencies still suspend on the ordinary graph. The existing
+evaluation_query_checks fixture now spans two windows with mixed direct readers
+and dynamically discovered producers, verifies one preparation per producer,
+and retains an undemanded stage. This is a scheduling change, not a demonstrated
+end-to-end speedup. Current release inputs are frozen while the documented public
+bootstrap builds and body-smoke/self-compilation run in local-frontier-release-native.log.
