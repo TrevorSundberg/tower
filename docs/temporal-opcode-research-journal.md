@@ -48772,3 +48772,89 @@ existing puts/abort ABI; no successful-path call. D1's oldfailure is independent
 preserved, its newdraft unrun; D2 next smallest/storage check supplies independent
 evidence. Corrected B1parsertracea261 arrived later and is held for read-only
 review during this freeze, not partially applied or claimed tested.
+
+#### D2 independent joint aggregate checkpoint at 9ca5be6
+
+Frozen source9ca5be6b6d62ab23b6663c1f02ab1c054b7b1202, scaffolding
+21e9c79914d99375a658f5492d5604e398ab60fb. Own tower-d2-ecs Docker,
+LLVM19.1.1/public bootstrap9653f818, native-coherent-f13c8f6 cache, outer
+build jobs1/compiler jobs1, CPUs0,2. No private bootstrap override, competing
+heavy job or source mutation. All11 smallest changed units passed. Canonical
+native7steps81.54wall/80.19CPU/793128KiB and focused18steps77.80/76.16/
+349928KiB passed. All42 packaged resources match the preserved predecessor.
+Compiler SHA489761dde43a9b791062a30d5f751c14c74e0e766e49ac4b111943e5e6a7b7f9.
+Complete compiler/share preserved under build/d2_ecs/native_package_9ca5be6;
+recursive resource and compiler byte comparisons pass. Initial preservation
+command mistakenly requested nonexistent build/native/resources, failed1, then
+used actual share layout. No failed build or source check was hidden.
+
+Runtime session94580 finished0; logs build/d2_ecs/joint_aggregate. Original
+known_address and known_address_comparison sources now both reject1 with
+"Automatic compile-time value depends on an address representation", at
+3.03wall/2.99CPU/168500KiB and2.41/2.38/168456. Original aggregate_capture
+prints7,8 (5.62/5.42/171548); local_aggregate_capture prints15
+(2.27/2.24/171876). Expected bytes are the independently established unchanged
+oracles, not output captured from the successor. This resolves those four
+specific3f49 reproductions, not the full lifecycle matrix.
+
+Full storage CTest passes .87wall/.82CPU/93256KiB, including D1's exact
+Bedrock reset repair. Exact-token frontend editor passes34.31/33.56/257672.
+Standalone type reachability passes11.00/11.35/215768;9rows retain stable
+entity/component counts within each size, with1000-function query phase
+samples2.466/1.706/1.693s. This single mixed-source process is not an isolated
+performance comparison. Standalone layout passes2.33/2.24/94920, including
+offset/origin/teardown checks and explicit budget observation. Its recorded
+actual overlap/caller spans, not requested queue width, determine concurrency;
+no profitable scaling claim. All measured swaps0; host139GiB free and9.8GiB
+available RAM. Source hashes unchanged, sessions61243/94580 terminal and
+Docker children drained before normal heavy-lock handoff to D1.
+
+Coordinator explicitly prohibited rerunning two obsolete aggregate tests.
+Applied exact test-only ef0147df after review: a callee local read makes nested
+storage survive an observable ix_step boundary, retaining every lifetime,
+cancellation and immutable store/copy/fill assertion. Fixture25e8f5ab replaces
+only the empty-record sizeof expectation0→1 (existing layout contract, old/new
+owner compilers independently agree); overall result remains0. Those corrected
+tests are not yet run here. Old failure evidence belongs to L1/B2, not an
+invented local execution.
+
+Read and applied D1 capture-policy selector22eea8ae using supported nested
+else/if, aggregate registration24ce37a8 excluding its obsolete0a47 fixture
+hunk, parser selector2d944ee3, and exactly two known-address expected diagnostic
+strings3fe3fbd6 after independent rejection evidence above. Existing default/full
+paths, all negative source programs and assertions remain. Lifecycle scope
+correction: full42 has168source trials+52 successful canonical reparses;
+policy12 has48+12; predecessor30 had120+40, not60 canonical reparses.
+The remaining body/declaration cases in type-smoke are additional required
+checks, not omitted from the acceptance scope.
+
+Reviewed and applied A2 entity-stage452cfa58 (three paths) after all jobs
+drained. Fast return follows active-view/name/overflow checks. Since staged
+component membership only appends, unchanged component counts permit retaining
+published table membership without reserving/rebuilding the same row.
+Publication still clears stage/storage, retains/releases queued references,
+disposes private pools, and ends leases. New concurrent fixture reserves
+disjoint payload write ranges before dispatch, uses real worker barriers,
+checks stable pointer/table identity through publish/discard/cancellation and
+retains exact finalizers. Discard releases leases without rolling back already
+performed payload writes. entity_tables adds empty/stable/mixed/duplicate and
+discard cases. Owner native/ASan/TSan results and timing improvement are
+source-specific external evidence; D2 paired measurements and current
+instrumented valid workloads are still required. Preserved4897 package provides
+an immutable before input for those comparisons.
+
+Reviewed and applied corrected B1 parser_trace_checked a2618c72 only; withdrawn
+330/c8 never applied. Trace configuration returns allocation/attachment failure
+and existing-state success through the legacy world registry boundary. Formatter
+vector output uses its explicit length; NUL-terminated debug string calculates
+its own length. New fault fixture imports only into serial parser consumers;
+shared parser integration has a valid trace test and no serial allocation hook.
+All six touched paths and callers reviewed. D1 noted the fault sweep's unbounded
+loop as a source-level diagnostic gap; owner follow-up pending, no local hang
+observed. No generic parallel allocator claim. Corrected parser selector reuses
+existing frontend executable. Public-predecessor compile and focused native/
+ASan execution remain pending for this source, not inherited from B1's old run.
+
+No publication requested or lease held. Full42/query/aggregate canonical and
+worker matrices, current supported sanitizers, clean final public build,
+browser/generation and exact hosted publication remain open.

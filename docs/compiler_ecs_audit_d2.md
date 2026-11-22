@@ -1164,3 +1164,40 @@ buffer census checks complete teardown. Its direct lowering implementation
 import risks duplicate production exports at registration; B2/D1 own the scoped
 link boundary and selector. Keep this draft unregistered/unadopted until that
 handoff, not a silent skip or test pass.
+
+### Independent joint checkpoint and measured-stage handoff
+
+At reviewed source9ca5be6, all11 smallest public-predecessor units, canonical
+native build and focused targets pass. Source-specific runtime: both original
+address-derived negatives reject1 with actionable relocation diagnostics;
+global/local aggregates produce7,8/15; full storage reset and exact-token hover
+pass. Compiler489761dd and complete resources are preserved separately for
+paired measurements. Detailed commands/identities/times are in the journal and
+build/d2_ecs/joint_aggregate; no full lifecycle or sanitizer pass is inferred.
+
+The two opt-in measurement paths reviewed above now have independent D2
+execution evidence: type_reachability_profile9f1c9657 produces all9 checked
+rows (11.00wall/11.35CPU/215768KiB), semantic_layout_profiledc299e61 completes
+its two warmups and three retained samples per configuration
+(2.33wall/2.24CPU/94920KiB). Process peak RSS includes setup and earlier trials;
+stable entity/component counts do not census every temporary buffer.
+Actual span overlap, caller work and ledger observations remain necessary;
+a requested4-lane configuration alone proves no overlap or speedup.
+
+Integration review after this freeze includes owner A2 stage452cfa58 and B1
+tracea2618c72, plus their existing test consumers. They are outside D2 production
+ownership and were applied only through coordinator-approved exact handoffs.
+Stage publication now avoids redundant derived table reservations when an
+append-only lease did not change membership; stable sparse payload identity,
+leases and queued reference lifetime remain explicit. This does not turn an
+archetype index into packed payload storage. The preserved before package and
+existing frozen16/1000-function inputs will supply independent paired timings.
+Owner results are supporting evidence, not a D2 measurement.
+
+Trace output is an OS presentation boundary over canonical formatter bytes;
+explicit vector length fixes that boundary without another graph/formatter.
+Serial allocation-failure checks remain confined to serial consumers. Test-only
+aggregate corrections ef0147df/25e8f5ab retain original semantic/lifetime
+assertions, and D1 registrations reuse the existing runners. No new D2
+benchmark/helper path or alternate scheduler was added in this integration.
+Full current-source instrumentation/browser/generation/publication remain open.

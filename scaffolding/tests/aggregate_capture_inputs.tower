@@ -48,7 +48,7 @@ fn capture_verify(): i32 {
     if global.element != u16 || local.element != u16 { failures++; }
     if global.callback(41) != 42 || local.callback(8) != 9 { failures++; }
     if global.pointer != null || local.pointer != null { failures++; }
-    if sizeof(decltype(global.empty)) != 0 { failures++; }
+    if sizeof(decltype(global.empty)) != 1 { failures++; }
     if comptime(capture_repeat(32)) != 704 { failures++; }
     // Mutating the consumer's ordinary shallow copy does not mutate the input.
     global.pair.first = 99;

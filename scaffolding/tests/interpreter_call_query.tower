@@ -236,8 +236,12 @@ fn input_query_tests(width: u32): u32 {
     var nested_field = call_query_node(root, width, KField);
     sem_get(nested_field).left = call_query_read(root, width, bindings[1]);
     sem_get(nested_field).byte_offset = 4;
+    var nested_local = call_query_node(root, width, KDeclare);
+    sem_get(nested_local).value = nested_field;
+    call_query_push(&sem_get(nested).locals, nested_local);
+    call_query_push(&sem_get(nested_body).items, nested_local);
     var nested_return = call_query_node(root, width, KReturn);
-    sem_get(nested_return).value = nested_field;
+    sem_get(nested_return).value = call_query_read(root, width, nested_local);
     call_query_push(&sem_get(nested_body).items, nested_return);
     var call = call_query_node(root, width, KCall);
     sem_get(call).binding = nested;

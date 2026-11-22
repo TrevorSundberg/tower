@@ -20,6 +20,9 @@ struct StageReference { target: Entity*; ordinal: usize; }
 struct StageJob {
     stage: EntityStage*;
     owner: Entity*;
+    stable: Entity*;
+    payload: u64*;
+    table: EntityTable*;
     type: Entity*;
     target: Entity*;
     entered: void*;
@@ -62,6 +65,7 @@ export fn work_kernel_execute(payload: void*): void {
     job.thread = pthread_self();
     work_signal_post(job.entered);
     work_signal_wait(job.release);
+    *job.payload += 1;
     // Only private stage pools and a pre-leased owner's component list change.
     // The input target's last ordinary reference is already gone; the view
     // keeps it alive until the coordinator acquires these queued holds.
@@ -86,9 +90,11 @@ fn stage_trial(state: StageState*, lanes: usize, outcome: StageOutcome): void {
     stage_check(store != null && entity_store_set_context(store, bits(void*, state)));
     var root = entity_create(store);
     var type = entity_create(store);
+    var plain = entity_create(store);
     var target = entity_create(store);
-    stage_check(root != null && type != null && target != null
-        && entity_register(type, sizeof(StageReference), alignof(StageReference), StageReferenceLifecycle));
+    stage_check(root != null && type != null && plain != null && target != null
+        && entity_register(type, sizeof(StageReference), alignof(StageReference), StageReferenceLifecycle)
+        && entity_register(plain, sizeof(u64), alignof(u64), 0));
     var entered = work_signal_open();
     var release = work_signal_open();
     stage_check(entered != null && release != null);
@@ -104,8 +110,16 @@ fn stage_trial(state: StageState*, lanes: usize, outcome: StageOutcome): void {
         job.owner = entity_create(store);
         stage_check(job.owner != null && entity_attach(job.owner, root, null));
         entity_release(job.owner);
+        job.stable = entity_create(store);
+        stage_check(job.stable != null && entity_attach(job.stable, root, null));
+        entity_release(job.stable);
+        job.payload = bits(u64*, entity_component_data(entity_component_add(job.stable, plain)));
+        stage_check(job.payload != null);
+        *job.payload = 17;
+        job.table = job.stable.table;
         job.stage = entity_stage_open(root);
-        stage_check(job.stage != null && entity_stage_lease(job.stage, job.owner));
+        stage_check(job.stage != null && entity_stage_lease(job.stage, job.owner)
+            && entity_stage_lease(job.stage, job.stable));
         job.type = type;
         job.target = target;
         job.entered = entered;
@@ -114,7 +128,9 @@ fn stage_trial(state: StageState*, lanes: usize, outcome: StageOutcome): void {
         job.ordinal = i;
         var id = work_request(&graph, bits(void*, job.owner), 1, 0);
         stage_check(id != 0 && work_access(&graph, id, 1, convert(u64, type.id),
-            job.owner.id, 1, WorkAccessMode.Write) && work_seal(&graph, id) && work_demand(&graph, id));
+            job.owner.id, 1, WorkAccessMode.Write)
+            && work_access(&graph, id, 1, convert(u64, plain.id), job.stable.id, 1, WorkAccessMode.Write)
+            && work_seal(&graph, id) && work_demand(&graph, id));
         stage_check(work_take_task(&graph, &job.ticket, id));
     }
     var view = entity_view_open(root);
@@ -134,6 +150,8 @@ fn stage_trial(state: StageState*, lanes: usize, outcome: StageOutcome): void {
     for(var i: usize = 0; i < lanes; i++) {
         var job = &jobs[i];
         stage_check(job.owner.stage == bits(void*, job.stage) && entity_child_count(job.owner) == 0);
+        stage_check(job.stable.stage == bits(void*, job.stage) && job.stable.table == job.table
+            && *job.payload == (i < admitted ? 18 : 17));
         if i < admitted {
             stage_check(job.holds == StageChildren + 1 && job.thread != state.coordinator);
             for(var j: usize = 0; j < i; j++) { stage_check(job.thread != jobs[j].thread); }
@@ -155,6 +173,12 @@ fn stage_trial(state: StageState*, lanes: usize, outcome: StageOutcome): void {
         if !success { entity_stage_discard(job.stage); }
         job.stage = null;
         stage_check(job.owner.stage == null && job.owner.storage == null);
+        // Discard releases the lease; it does not roll back writes to existing
+        // payloads. Membership and pointer identity are stable in every outcome.
+        stage_check(job.stable.stage == null && job.stable.storage == null
+            && job.stable.table == job.table && job.stable.pending_table == null
+            && entity_component_data(entity_component_published(job.stable, plain)) == bits(u8*, job.payload)
+            && *job.payload == (i < admitted ? 18 : 17));
         if cancelled { stage_check(!work_finish(&graph, &job.ticket, true)); }
         else { stage_check(work_finish(&graph, &job.ticket, success)); }
         if success {
@@ -179,6 +203,7 @@ fn stage_trial(state: StageState*, lanes: usize, outcome: StageOutcome): void {
     work_dispose(&graph);
     entity_release(root);
     entity_release(type);
+    entity_release(plain);
     stage_check(state.finalized - before == holds && entity_store_count(store) == 0
         && entity_store_component_count(store) == 0 && entity_store_dispose(store));
     stage_check(work_budget_release(&budget, &outer) && work_budget_dispose(&budget));

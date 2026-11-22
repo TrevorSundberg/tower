@@ -174,6 +174,74 @@ fn reserved_tables():void {
     check(entity_store_dispose(store));
 }
 
+// A payload lease does not imply a component-membership change. Empty and
+// nonempty owners must keep their rows while other leases publish or discard.
+fn unchanged_tables(): void {
+    for(var mode: usize = 0; mode < 4; mode++) {
+        var store = entity_store_create();
+        var root = entity_create(store);
+        var a = entity_create(store);
+        var b = entity_create(store);
+        check(entity_register(a, sizeof(u64), 8, 1) && entity_register(b, sizeof(u64), 8, 1));
+        var stable = entity_create(store);
+        var empty = entity_create(store);
+        var changed = entity_create(store);
+        var component = entity_component_add(stable, a);
+        var payload = bits(u64*, entity_component_data(component));
+        *payload = 17;
+        check(entity_component_add(changed, a) != null);
+        var table = stable.table;
+        var stage = entity_stage_open(root);
+        check(entity_stage_lease(stage, stable) && entity_stage_lease(stage, empty));
+        if mode == 1 { check(entity_stage_lease(stage, changed)); }
+        var view = entity_view_open(root);
+        var terms: Entity*[1]; terms[0] = a;
+        var query = entity_view_tables(view, &terms[0], 1);
+        check(query != null && entity_table_query_count(query) == 2);
+        *payload = 29;
+        check(!entity_component_remove(stable, a) && !entity_stage_publish(stage));
+        if mode == 1 {
+            check(entity_component_add(changed, b) != null);
+            var child = entity_stage_create(stage, root);
+            check(child != null && entity_component_add(child, a) != null);
+        }
+        if mode == 2 {
+            check(entity_stage_create_named(stage, root, "duplicate") != null);
+            check(entity_stage_create_named(stage, root, "duplicate") != null);
+        }
+        check(entity_table_query_count(query) == 2 && stable.table == table
+            && entity_component_published(stable, a) == component);
+        entity_view_close(view);
+        if mode >= 2 {
+            if mode == 2 {
+                check(!entity_stage_publish(stage) && stable.stage != null && empty.stage != null);
+            }
+            entity_stage_discard(stage);
+        } else { check(entity_stage_publish(stage)); }
+        check(stable.stage == null && stable.storage == null && stable.table == table
+            && stable.pending_table == null && empty.table == null && empty.pending_table == null
+            && empty.stage == null && empty.storage == null && *payload == 29
+            && entity_component_published(stable, a) == component);
+        view = entity_view_open(root);
+        query = entity_view_tables(view, &terms[0], 1);
+        check(query != null && entity_table_query_count(query) == (mode == 1 ? 3 : 2));
+        check(entity_child_count(root) == (mode == 1 ? 1 : 0));
+        for(var bucket: usize = 0; bucket < 256; bucket++) {
+            for(var current = store.tables[bucket]; current != null; current = current.next) {
+                check(current.pending == 0);
+            }
+        }
+        entity_view_close(view);
+        stage = entity_stage_open(root);
+        check(entity_stage_lease(stage, stable) && entity_stage_lease(stage, empty));
+        check(entity_stage_publish(stage));
+        entity_release(stable); entity_release(empty); entity_release(changed);
+        entity_release(a); entity_release(b); entity_release(root);
+        check(entity_store_dispose(store));
+    }
+}
+
 tables();
 reserved_tables();
+unchanged_tables();
 print(failures);
