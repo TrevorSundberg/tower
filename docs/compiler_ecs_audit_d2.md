@@ -105,7 +105,7 @@ owner's production responsibility.
 
 | Path | Storage, ownership, scheduling and evidence disposition |
 | --- | --- |
-| `scaffolding/tests/parser_benchmark.tower` | D1 fixture/B1 parser. One legacy host-world boundary installs a fixed grammar; each accepted entity is released, session destroyed before source buffer free. Four input sizes, five discarded warmups and eleven retained samples report wall nanoseconds, allocation calls and live tracked buffers. Repeated retained counts must stabilize. Instrumented allocator and host-world use are serial measurement, not concurrent sanitizer evidence. It checks parse success/retention, not canonical tree equivalence; execution pending. |
+| `scaffolding/tests/parser_benchmark.tower` | D1 fixture/B1 parser. One legacy host-world boundary installs a fixed grammar; each accepted entity is released, session destroyed before source buffer free. Four input sizes, five discarded warmups and eleven retained samples report wall nanoseconds, allocation calls and live tracked buffers. Repeated retained counts must stabilize. Instrumented allocator and host-world use are serial measurement, not concurrent sanitizer evidence. It checks parse success/retention, not canonical tree equivalence. Current run aborts at size512 when retained buffers rise9521→9522; sizes1024/2048 are unrun. B1 attribution pending; no assertion/warmup change. |
 | `scaffolding/tests/compiler_project_units.tower` | D1 fixture/L2 reserved packager dependency. Local CompilerProjectFiles owns source text, unit records and derived dependency indexes. Duplicate collection must preserve unit identity/count; exported text comes from actual depfiles. All buffers close after synchronous writes. No second semantic graph. Source review only; exported closure needs separate compilation/object comparison before equivalence is established. |
 | `scaffolding/host/runtime_bind.tower` | B2-owned foreign object boundary, compiled through budgeted runtime helper. One LLVM context/module owns IR while reserved function names/types are checked and uses rewritten; module verification precedes file publication. Opaque LLVM handles are appropriate at this ABI, not an alternate Tower storage format. Error/message/module/context cleanup is explicit. Baseline native build exercised real runtime bindings; malformed-argument/ABI failure and allocator coverage remain B2-owned. |
 | `scaffolding/backend/embed_runtime.tower` | B2-owned streaming target-artifact encoder. Byte-at-a-time input/output has bounded stack retention, explicit overflow/read/write/close checks, and preserves exact hex bytes plus length. No compiler world/scheduling is needed. Output publication is serial and can leave partial files on failure; same-path input/output protection is absent in this internal tool. Current callers supply distinct generated paths. Browser build execution pending. |
@@ -139,8 +139,11 @@ reuse of prior products, and failed directories are retained. Its C11 template
 is an independently authored foreign-compiler reference input, not Tower's C
 backend output; it checks 32-bit `int`, avoids header expansion and uses explicit
 libc output ABI. Constants/calls/results match 16/1000-function Tower inputs.
-Public-pin producer compilation/generation and independent function counts pass;
-program execution and timing comparison are pending. Three initial producer
+Public-pin producer compilation/generation and independent function counts pass.
+At `d1b45da`, all eight initial Tower/C builds and 32 repeated builds pass known
+outputs and object comparisons; the measurements below show no useful two-worker
+speedup. ASan execution reproduces all six normal output files with leak detection
+enabled. Three initial producer
 contract failures (reserved name, missing explicit function imports, mutation of
 an imported initializer under `--library`) are preserved in the journal/logs.
 
@@ -416,3 +419,113 @@ The configured TSV initially recorded object/original-IR/instrumented-IR/mode;
 a subsequent metadata-only refinement adds each recipe's actual Tower source
 path. Generated source and original/bound LLVM remain distinct. This is a
 configuration inventory, never a claim that every configured target was built.
+
+### Matched independent frontend inputs and modest-host measurements
+
+Frozen source `d1b45da` and the public compiler/resources identified above produce
+16-function (558-byte Tower/806-byte C) and 1000-function (37699/45819-byte)
+inputs. Both languages contain the same constant-return functions and ordered
+calls; the only printed results are independently known15/999. The C is authored
+by the Tower input producer, not emitted by Tower's compiler. Its static functions,
+32-bit-int assertion and explicit libc declaration avoid header expansion.
+Tower loads its editable language/type prelude. These are deliberately simple
+body/front-end workloads, not representative of every compiler subsystem.
+
+Inside the same isolated image/CPU0,2 allocation, Tower uses `--jobs 1|2
+--target x86_64-unknown-linux-gnu --bedrock scaffolding/bedrock.tower
+--foundation scaffolding/foundation.tower --timings --emit object`; Clang19.1.1
+and GCC13.3 use `-std=c11 -m64 -O2 -fwrapv -c`. Tower's ordinary optimized pipeline
+and C `-O2` are not identical optimization algorithms. Each object is linked in a
+separate timed invocation; Tower uses its public runtime IR compiled once, C the
+matching compiler driver/system runtime. The runtime build is separately recorded
+(1.51s wall/1.42s CPU/95988KiB), not charged again to each Tower sample.
+
+All eight initial compiler/input combinations pass15/999. Four subsequent fresh
+process samples per combination pass again, including exact object equality to
+the initial reference and Tower1/2-worker equality. These are warm-filesystem
+runs after the initial correctness set, not OS-cold caches. Worker order is1,2
+for samples1/4 and2,1 for2/3; small then large cases, C after Tower. C phase-report
+flags are used only on the initial diagnostic set, excluded from this throughput
+table. Raw logs retain commands, phase output, wall/user/system/RSS, switches,
+zero swaps, object hashes and checked program output.
+
+| Input/compiler | Wall samples s | Median wall s | Median CPU s | Median peak RSS KiB |
+| --- | --- | ---: | ---: | ---: |
+| Small Tower1 | 6.03 / 2.32 / 3.09 / 2.15 | 2.705 | 2.645 | 177186 |
+| Small Tower2 | 3.17 / 2.73 / 3.02 / 2.74 | 2.880 | 3.410 | 186596 |
+| Small Clang | 0.04 / 0.04 / 0.07 / 0.07 | 0.055 | 0.040 | 97676 |
+| Small GCC | 0.02 / 0.02 / 0.02 / 0.03 | 0.020 | 0.010 | 21310 |
+| Large Tower1 | 6.49 / 2.39 / 2.37 / 3.32 | 2.855 | 2.810 | 193786 |
+| Large Tower2 | 3.12 / 3.13 / 3.21 / 3.32 | 3.170 | 3.730 | 218074 |
+| Large Clang | 0.35 / 0.17 / 0.35 / 0.23 | 0.290 | 0.270 | 108232 |
+| Large GCC | 0.16 / 0.16 / 0.08 / 0.13 | 0.145 | 0.130 | 32646 |
+
+Four-sample medians average the central pair; extra displayed digits do not
+improve GNU time's0.01s resolution. Serial first samples have severe CPU/wall
+variation and are retained. The powersave governor and variable clocks were
+observed, but their causal contribution is unproven. No robust two-worker speedup
+or general competitiveness claim follows. Clang/GCC are substantially faster on
+these matched minimal bodies. Tower2 adds CPU/RSS; no critical-path/idle attribution
+was measured by these aggregate timers. Actual useful overlap is independently
+asserted by the normal backend suite, not inferred from worker count.
+
+Separate link wall medians small/large: Tower1 0.04/0.03s, Tower2 0.04/0.04s,
+Clang0.06/0.08s and GCC0.035/0.035s. Link CPU/RSS and exact commands remain in raw
+receipts. Sample2 Tower phase measurements illustrate where the cost lies:
+
+| Input/workers | Bootstrap ms | Frontend parse+check ms | LLVM lowering ms | Optimization ms | Object emission ms |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Small1 | 342.584 | 1922.592 | 1.284 | 2.764 | 1.999 |
+| Small2 | 261.125 | 2412.508 | 1.156 | 2.762 | 1.820 |
+| Large1 | 174.157 | 2032.044 | 13.176 | 114.242 | 2.163 |
+| Large2 | 278.412 | 2629.847 | 13.835 | 112.547 | 2.314 |
+
+The CLI `parse` interval encloses `driver_compile_program`/`driver_execution_compile`
+and combines parsing with checking. `before`/`after` mean LLVM lowering/optimization;
+these are not separately sampled frontend medians. Root accepts this current
+combined timer while B2 owns finer attribution. GCC's initial large diagnostic
+sample reports0.05s parsing/0.26s optimization-and-generation; Clang's named
+front-end timer includes its compiler action and must not be compared as a pure
+parser timer. Logs: `build/d2_ecs/reference_checks`, `reference_profiles`, and
+`reference_checks/inputs.sha256`. Cold-cache frontend, realistic larger bodies,
+and profitable multi-unit scaling remain distinct gaps.
+
+### Valid workload instrumentation and retention follow-up
+
+At the unchanged production closure, three100-process samples of each normal,
+address and thread work-pool executable all pass,900 valid lifecycles total.
+Each mode retains the test's barrier/thread assertions; every sample's stdout
+matches the normal reference. Address mode enables leak detection, both modes
+halt on errors. Median100-run wall/CPU/peakRSS are normal1.14s/1.42s/34012KiB,
+address4.24s/4.74s/63588KiB and thread11.41s/17.21s/122332KiB. These include process
+startup, runtime and optimization-mode differences; they are not isolated
+instrumentation pass overhead. There are no new sensitivity runs after root's
+steering. Existing sensitivity receipts remain historical evidence only.
+
+The normal backend selector passes in142.39s wall/184.57s CPU/1142808KiB, with
+actual barrier-confirmed frontend/LLVM overlap, deterministic output/errors,
+budgets and cancellation assertions. The earlier instrumented180s timeout is
+still failed evidence. A justified bounded follow-up and profiling are pending;
+no timeout increase, omission or normal result has converted it into a sanitizer
+pass. Foreign LLVM/libc remain outside Tower object coverage.
+
+The current parser allocation/retention run aborts134: eleven256-symbol samples
+remain at803 allocation calls/live8748; size512 has1577 allocations/live9521 for
+six reported samples, then live9522. Sizes1024/2048 never run. This violates the
+existing repeated-input stability assertion but does not yet distinguish retained
+capacity from a leak. Unbuffered diagnostics and exact serial allocator link are
+preserved. GNU time's misleading Exit status0 accompanies signal6 and does not
+override raw134. B1/D1 own attribution; no assertion or warmup weakening occurred.
+
+Valid ASan build_tools/budget-regression execution passes five invalid-option
+rejections without products plus real1/2-worker object checks,12.01s wall/12.61s
+CPU/213924KiB including uninstrumented public compiler children. The paired source
+producer passes ASan and emits all six byte-identical files (0.02s/25128KiB).
+These cover the changed tools and guest runtime, not child compiler code. Full
+address-mode compiler coverage and source-language UBSan remain unclaimed.
+
+All owned processes drained before releasing the D2 host slot. Final resource
+snapshot:141GiB free,9.9GiB RAM available,5.8GiB preexisting swap use; measured
+commands report zero swaps. No generated-data cleanup was needed. Compilation
+and ownership fixes still require integration with other lanes, exact-source
+release validation and leased publication before campaign acceptance.

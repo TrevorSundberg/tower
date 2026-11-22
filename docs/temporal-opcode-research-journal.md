@@ -46896,3 +46896,72 @@ not coverage of the intended guard. A fresh probe keeps installed Clang++ while
 selecting installed GCC for C, reaching the intended native/Clang19 guard and
 exit1 (config_invalid_cc.log). No unsupported LLVM version was installed merely
 to simulate another guard. These are expected rejections, not successful builds.
+
+Normal backend selector passes142.39s wall,184.57s CPU,1142808KiB peakRSS,
+0swaps. Existing barrier/distinct-thread assertions prove frontend/LLVM overlap,
+shared budgets, deterministic objects/errors and cancellation. Aggregate suite
+CPU/wall alone is not the proof, and no isolated scaling ratio follows. Peak
+memory~1.09GiB is a concrete profiling concern. The TSan180s timeout remains open;
+ordinary release optimization versus instrumented-O1 is a mode comparison, not
+an isolated sanitizer-pass overhead measurement.
+
+Parser retention fails: raw exit134/signal6. Initial buffered CSV is empty;
+GNU time reports termination by signal6 but its Exit status field is0, which
+must not override the actual process failure. Unbuffered reproduction yields
+11stable256-symbol samples (803allocations/live8748), then512-symbol samples
+with1577allocations/live9521 for six reported iterations and9522 on the next,
+triggering the existing stability assertion.1024/2048 never execute. Preserve
+parser_retention{,_diagnostic} logs/times and exact link recipe. The historical
+complete four-size receipt is not current evidence. Root/B1/D1 receive this
+concrete regression; no assertion, warmup count or ownership code was changed.
+Bounded cache growth versus a leak has not yet been established.
+
+Valid owned-code ASan checks pass: instrumented build_tools plus its real budget
+regression and instrumented guest library complete five invalid-option/no-product
+checks and valid1/2-worker byte comparison with leak detection enabled. Aggregate
+12.01s wall,12.61s CPU,213924KiB RSS,0swaps; peak includes public compiler children,
+which are not instrumented by this parent check. The paired source producer also
+passes ASan (0.02s wall/0.02s CPU/25128KiB) and all six emitted files exactly match
+its normal execution. These are valid memory/cleanup workloads, not repetitions
+of the deliberate sensitivity probes. Logs: owned_address_build.log,
+owned_address_checks.log and owned_address_{regression,generator}.time.
+
+Root accepted combined frontend parse/check timing for the comparison while B2
+tracks finer production granularity. Root also authorized direct D1 handoff of
+the three exact draft patches; D2 appended paths/hashes/coverage limits to D1's
+shared inbox without touching its clone. Source receipt SHA c9df1fc9 is already
+validated by default/TSan no-op rebuild; source/build public ancestry and leased
+atomic publication remain future steps.
+
+At frozen d1b45da, paired-input correctness and profiling now pass: all8initial
+compiler/input combinations and32repeated object/link/output checks yield15/999;
+Tower1/2objects are equal. Four warm-filesystem, fresh-process samples use the
+public9653f818compiler, explicit target/grammar and worker1/2, and independent
+C11 throughClang19.1.1/GCC13.3 at-O2-fwrapv. Separate runtime/link measurements
+and raw phase/counter logs are retained under build/d2_ecs/reference_{checks,profiles}.
+The D2 audit contains the complete raw-wall/medianCPU/RSS table and semantic/
+optimization/toolchain differences. Median Tower1/2wall small2.705/2.880s,
+large2.855/3.170s; no useful2worker speedup. Serial first samples6.03/6.49s are
+retained outliers, not discarded. C substantially outperforms these minimal
+Tower inputs; no competitiveness claim. Frontend parse+checking dominates the
+Tower sample2phase timers; LLVMlowering/optimization/object emission and linking
+are separate. These timers do not attribute per-worker idle/critical-path cost.
+Cold-cache and more realistic/multi-unit performance remain explicit gaps.
+
+Valid pool stress now passes900fresh process lifecycles:3samples*100 each normal,
+address and thread modes, exact stdout,9time receipts all exit0. Median100run
+wall/CPU/RSS normal1.14s/1.42s/34012KiB,address4.24s/4.74s/63588KiB,
+thread11.41s/17.21s/122332KiB. ASan leak detection enabled. Startup/runtime/
+optimization-mode costs prevent interpreting this as isolated pass overhead;
+these are actual valid concurrent workloads, not sensitivity replays. Raw logs
+are sanitizers/pool_profiles. The session transport expired after completion;
+all9checked terminal receipts and container init/sleep-only process inventory
+were independently inspected before releasing heavy.lock toD1.
+
+Safe phase-boundary git pull --rebase --autostash passes, restores only this own
+journal edit, main unchangedd1b45da. Resources141GiBfree/9.9GiBavailable,
+5.8GiBpreexisting swap; measured commands swaps0. No publication requested yet.
+D1/root received full results, TSan backend timeout and B1 parser-retention gap.
+An inspection command guessed nonexistent reference_generator.time and exited2;
+this was a log lookup error, not a rerun or failed compiler check. The actual
+specific initial/import/global/pass receipts remain preserved under sanitizers.
