@@ -40101,3 +40101,12 @@ The edited diagnostic is asserted in each generation. These are test artifacts,
 not production assets. No todo.txt edits, private bootstrap override, grammar or
 compiler semantic change. Continue reducing the remaining platform generators
 and build boundaries before moving reusable JavaScript tooling.
+
+Publication verified: source 7b7a639 is pushed. Pages
+a18ebdc0080994dcdae1cafc8d27225cb9bc0f2c/action 44976680196 succeeds; hosted
+manifest SHA256 exactly matches
+0a35f3c0c804f4a1f60f0e29d47f7fa794db71a02e1546e403257432f61ab507.
+Runtime c7a7976/all 88 assets, target-pack and ECS expression/unit receipts remain
+unchanged. No identical runtime binary was republished and no edited-generation
+test compiler was substituted for production. Next inspect platform host/parser
+manifest selection for further removal of generation and duplicated source lists.
