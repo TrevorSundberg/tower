@@ -39332,3 +39332,30 @@ Upstream changes affect build/test tooling, not compiler semantics. Final releas
 packaging, clean default successor and browser-generation/publication checks
 follow. Standard-type protocol consumers/source modules are still outstanding;
 the attribute prerequisite must not be described as the completed type migration.
+
+Release validation catches an omitted editor consumer: host_entities.syntax_kind_name
+handled the original eight grammar kinds but asserted on the four new attribute
+kinds. The CLI and semantic suites passed because they do not serialize the editor
+tree. Existing wasm.test.mjs and the deployment check reproduce the trap while
+stepping Foundation or the token example. Add the four shared kind labels and
+Tower assertions for each; the smallest host_entities and regression units compile.
+Do not ship the browser assets from before this fix. Also update the two existing
+JavaScript transport checks' named semantics-version expectation from 5 to 6;
+cache encoding remains 5. Browser package checks then pass (4, one optional export
+skipped). No new JavaScript test logic is introduced.
+
+Before the editor-only fix, complete package 160660d6b0d76a0d0a4afd48205538d0a9a84dc00977e9c4f4cb4ed85d18318d
+passed all checksums and verify_compiler relocation from /tmp. The clean default
+/cache/attributes-published-successor builds all 54 steps with no private compiler
+override and produces that identical executable hash. Both attribute and aggregate
+fixtures pass the existing run-guest-runtime.mjs runner: widths 4/8 interpretation,
+native execution and emitted Wasm execution all print zero failures. The initial
+host-wasi runner trial was inappropriate for these guest imports and failed before
+execution; use the existing guest runner instead.
+
+The browser compiler-project check completes two edited-semantic generations at
+2/4 workers with identical output hashes: tower 9fdd88dc26db2dcd101c55d21b9a878913c2ac868ecd032b03cd247c171e057b,
+LLVM af39f4638b51f249686892caeae58b57eb5a1097662110ab33dbea0bf87a0760,
+cross aa91fb91efcaa0e4bc6268876fd19a0ff88711db7cbb512fa49586307afb33bb.
+These are pre-editor-fix evidence, not the final publication receipt; rebuild the
+affected host component/reactors and rerun editor/deployment checks below.

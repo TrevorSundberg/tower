@@ -7,6 +7,8 @@ import .library.bytes_interface;
 import storage_api;
 import utility_checks;
 
+extern fn syntax_kind_name(kind: u32): u8*;
+
 // Bootstrap-compatible activation: the predecessor still reads these ordinary
 // grammar declarations. Attribute syntax is exercised only by the successor.
 fn attribute_grammar_prefix(): u8* {
@@ -64,6 +66,14 @@ fn attribute_grammar_roundtrip(declaration: u8*, style: u8*, contextual: bool): 
 }
 
 export fn syntax_attribute_tests(): void {
+    utility_check(strcmp(syntax_kind_name(convert(u32, SyntaxKind.Attribute)), "attribute") == 0,
+        "Editor tree labels grammar attributes");
+    utility_check(strcmp(syntax_kind_name(convert(u32, SyntaxKind.AttributeName)), "attribute name") == 0,
+        "Editor tree labels named attribute arguments");
+    utility_check(strcmp(syntax_kind_name(convert(u32, SyntaxKind.AttributeString)), "attribute string") == 0,
+        "Editor tree labels string attribute arguments");
+    utility_check(strcmp(syntax_kind_name(convert(u32, SyntaxKind.AttributeInteger)), "attribute integer") == 0,
+        "Editor tree labels integer attribute arguments");
     attribute_grammar_roundtrip("[comment] skip Hash = /#[^\\r\\n]*/;", "comment", false);
     attribute_grammar_roundtrip("[contextual][style(\"custom style\")] token Word = /[a-z]+/;", "custom style", true);
     attribute_grammar_roundtrip("[keyword] token Word = /[a-z]+/ when expected;", "keyword", true);

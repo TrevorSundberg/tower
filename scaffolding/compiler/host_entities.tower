@@ -69,6 +69,10 @@ export fn syntax_kind_name(kind: u32): u8* {
         SyntaxKind.Import => {
             return "import";
         }
+        SyntaxKind.Attribute => { return "attribute"; }
+        SyntaxKind.AttributeName => { return "attribute name"; }
+        SyntaxKind.AttributeString => { return "attribute string"; }
+        SyntaxKind.AttributeInteger => { return "attribute integer"; }
         _ => {
             compiler_entity_require(false);
             return "";
