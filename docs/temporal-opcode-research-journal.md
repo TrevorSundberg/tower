@@ -39760,3 +39760,17 @@ explain that build/native is already relocated; shell syntax, active-reference
 searches and scoped diff checks pass. Compiler, runtime, grammar, library and
 bootstrap sources are unchanged; retain the validated 21f52712 successor and
 existing runtime assets. No todo.txt changes or shared-cache mutations.
+
+Rebase integration: incoming dbad41b/4a08566/69ad3ee changes threaded Wasm
+linker sources. Preserve those changes and repeat the required clean default
+successor in /cache/distribution_rebased_native from the frozen checkout
+/cache/distribution rebased checkout. All 54 steps pass without a private
+bootstrap override. Its compiler and build/native copy remain exactly 21f52712;
+the fresh default five-step verifier build remains exactly 8ef7020e. Run the
+new package mode directly against that build-native-produced copy, now in a
+real checkout path with spaces, with the original native cache share temporarily
+unavailable. Both modes pass under build/distribution/relocation.3K3wTh and the
+cache resources are restored. No second package staging operation is needed.
+Only tooling/docs changed in this lane; shell syntax/diff/reference checks pass.
+Preserve the coordinator's newly verified threaded-linker receipt and runtime
+9e7eb79/all 88 assets during source/tooling publication.
