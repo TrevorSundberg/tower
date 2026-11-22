@@ -42512,3 +42512,19 @@ result includes the explicit formatter/storage working-directory repair. The
 separately reproduced baseline module-path failure is not counted as passing.
 Publication must preserve newer Pages 19770a62, its 104 assets, runtime build
 source b5ba9f6 and demanded-query/type-preparation release evidence.
+
+Final pull integrates b9bc21c's array-constructor query work, and the source guard
+stops the attempted push before publication. Implementation/validation commits
+rebase to 8e7b78b/7736d7c. Freeze 7736d7c in /cache/driver_binding_final_checkout.
+Repeat a fresh default public-bootstrap successor build in
+/cache/driver_binding_final_native with TOWER_EXECUTION_TESTS=ON: 48 compiler
+steps and two execution-fixture steps PASS. Final compiler SHA256
+caa7ed18eb7e9b8a05111cf2aa91d5093f6bce99db8f7e74beee41f2781697e9.
+Run tower-execution-tests ROOT types and ROOT body-smoke: source types, aliases,
+staging/layout/Foundation/workers, serial/worker canonical output, execution and
+ordered diagnostics/cycles PASS. Repeat memory smoke: both interpreted widths,
+native and actual Wasm PASS. The broader six-CTest results above apply before
+this final three-module semantic integration; these focused checks cover its
+affected type/body behavior. Host/platform bindings, bootstrap and build rules
+are unchanged by that integration, preserving cross-object ABI evidence. No
+private compiler override or new bootstrap pin was used.
