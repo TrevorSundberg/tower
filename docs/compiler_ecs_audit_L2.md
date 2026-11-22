@@ -452,3 +452,18 @@ checks and bootstrap/browser/publication remain open. Third-party LLVM and
 subsequently generated target programs are outside this instrumentation receipt;
 source-language UBSan/browser coverage is unsupported. No intentional fault/race
 probes were rerun. Counts and passing checks do not prove universal safety.
+
+## Joined capture v3 integration boundary
+
+After the passing frozen ASan checkpoint, reviewed A1 capture/source-root/editor
+and B2 native path/backend root changes are integrated with their exact owner
+fixtures and explicit D1/D2 repairs. Public-pin smallest units, native compiler and
+runners pass. The original known_bindings source and source-proof query smoke pass.
+However, full known still fails an unchanged address-observation capability oracle
+(actual standalone output 32), and the lifecycle gate rejects valid global/local
+aggregate captures at 1:125/1:138. Two separately authorized rejection-message
+expectations are corrected only after independent source reproductions; all pointer,
+cycle and aggregate contracts remain intact. The journal records exact identities,
+raw outcomes and timings. This coherent local checkpoint is a shared debugging base,
+not a new sanitizer or release acceptance receipt. Final gates and publication stay
+open while A1/L1 investigate the interpreter/producer boundary.

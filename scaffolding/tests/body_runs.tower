@@ -1,4 +1,5 @@
 import tower;
+import semantic_lifecycle_checks;
 import frontend_units;
 import .library.vector;
 import .compiler.semantic_program_types;
@@ -414,6 +415,7 @@ fn body_runs_smoke_select(root: u8*, kind: BodySmokeKind): void {
     units_read(root, "/bedrock.tower", &bedrock);
     units_read(root, "/foundation.tower", &foundation);
     units_read(root, "/tests/body_continuation.tower", &source);
+    if kind != BodySmokeKind.Control { semantic_lifecycle_checks(root, bedrock.data, foundation.data); }
     body_runs_trial(source.data, 1, 8, bedrock.data, foundation.data, root, &canonical);
     body_runs_trial(source.data, 4, 8, bedrock.data, foundation.data, root, &canonical);
     units_check(vector_reserve(&canonical, canonical.length + 1), "Body Foundation text terminator");
@@ -511,6 +513,7 @@ fn body_runs_tests(root: u8*): void {
     units_read(root, "/bedrock.tower", &bedrock);
     units_read(root, "/foundation.tower", &foundation);
     units_read(root, "/tests/body_continuation.tower", &source);
+    semantic_lifecycle_checks(root, bedrock.data, foundation.data);
     for(var width: u32 = 4; width <= 8; width += 4) {
         puts(width == 4 ? "Body continuation matrix: 32-bit target" : "Body continuation matrix: 64-bit target");
         body_runs_statements(root, bedrock.data, foundation.data, width);

@@ -18,7 +18,7 @@ extern fn entity_create(store: void*): void*;
 extern fn node_match_set_label(value: ParserMatchData*, label: u8*): bool;
 extern fn puts(text: u8*): i32;
 
-enum SourceProofFixture: u32 { Resume, Failure, Cancel }
+enum SourceProofFixture: u32 { Resume, Failure, Cancel, Invalidate }
 
 fn source_proof_check(ok: bool, message: u8*, failures: u32*): void {
     if !ok { puts(message); (*failures)++; }
@@ -32,6 +32,7 @@ fn source_proof_case(width: u32, workers: usize, mode: SourceProofFixture): u32 
     semantic_initialize(&program, root, width);
     var context: SemanticContext;
     sem_context_init(&context, &program);
+    context.generics = generic_begin(root);
     var declaration = sem_create(root);
     var value = sem_attach(declaration, KDeclare);
     value.global = true;
@@ -46,6 +47,9 @@ fn source_proof_case(width: u32, workers: usize, mode: SourceProofFixture): u32 
         sem_push(&program.functions, function);
     }
     var proof = sem_source_binding_request(&context, declaration);
+    // Runtime publication can drop the executable root list. The source proof
+    // must still visit the original syntax retained by its own frozen index.
+    sem_get(root).items.length = 0;
     var pipeline = bits(SemanticSourceBindingPipeline*, entity_component_data(entity_component_get(root, context.source_binding_pipeline)));
     source_proof_check(sem_source_binding(&context, declaration) == null
         && !pipeline.published && context.workers.running == 0,
@@ -83,7 +87,7 @@ fn source_proof_case(width: u32, workers: usize, mode: SourceProofFixture): u32 
     } else {
         var ticket: WorkTicket;
         sem_require(work_take_task(&context.queries, &ticket, prerequisite));
-        sem_require(work_finish(&context.queries, &ticket, mode == SourceProofFixture.Resume));
+        sem_require(work_finish(&context.queries, &ticket, mode != SourceProofFixture.Failure));
         var outcome = sem_source_bindings_pump(&context);
         while outcome == SemanticPumpResult.Progress { outcome = sem_source_bindings_pump(&context); }
         if mode == SourceProofFixture.Failure {
@@ -108,6 +112,48 @@ fn source_proof_case(width: u32, workers: usize, mode: SourceProofFixture): u32 
                 source_proof_check(work_task(&context.queries, query).dispatch == 1,
                     "Independent proof scan is not replayed while an earlier scan waits", &failures);
             }
+            // A specialization introduced after the original proof needs its
+            // own scan and receipt without replaying the frozen root proof.
+            var function = sem_create(root);
+            var definition = sem_attach(function, KFunction);
+            sem_push(&program.functions, function);
+            var block = sem_create(function);
+            sem_require(entity_attach(block, function, "body"));
+            var syntax = bits(ParserMatchData*, compiler_world_component(world, block, CompilerParserMatch));
+            sem_require(node_match_set_label(syntax, "CoreBlock"));
+            var local = sem_create(block);
+            sem_attach(local, KDeclare);
+            syntax = bits(ParserMatchData*, compiler_world_component(world, local, CompilerParserMatch));
+            sem_require(node_match_set_label(syntax, "CoreDeclare"));
+            sem_push(&definition.locals, local);
+            var extension = sem_source_binding_request(&context, local);
+            sem_require(extension != proof && work_demand(&context.queries, extension));
+            source_proof_check(sem_source_bindings_pump(&context) == SemanticPumpResult.Progress
+                && sem_source_binding(&context, local) == null && context.workers.running == 0,
+                "Generic extension joins its own scan before publishing new facts", &failures);
+            var extra = bits(SemanticSourceBindingPipeline*, entity_component_data(
+                entity_component_get(function, context.source_binding_pipeline)));
+            if mode == SourceProofFixture.Invalidate {
+                // Inject an independently reported generic write at the joined
+                // worker-output boundary. Syntax/alias write discovery is also
+                // checked end to end by the lifecycle module fixtures.
+                sem_require(extra.jobs.length == 1);
+                sem_push(&extra.jobs.data[0].mutations, declaration);
+            }
+            var state = sem_source_bindings_pump(&context);
+            if mode == SourceProofFixture.Invalidate {
+                source_proof_check(state == SemanticPumpResult.Failed && program.error.length != 0
+                    && binding.immutable && work_task(&context.queries, proof).state == WorkState.Succeeded,
+                    "Specialization cannot silently invalidate an already consumed binding proof", &failures);
+            } else {
+                var added = sem_source_binding(&context, local);
+                source_proof_check(state == SemanticPumpResult.Progress && added != null
+                    && added.owner == function && added.immutable && extra.published
+                    && sem_source_binding_request(&context, local) == proof
+                    && work_task(&context.queries, proof).dispatch == 1
+                    && sem_source_bindings_pump(&context) == SemanticPumpResult.Complete,
+                    "New lexical proof preserves identity and never replays original publication", &failures);
+            }
         }
     }
     sem_context_dispose(&context);
@@ -120,5 +166,6 @@ fn source_proof_case(width: u32, workers: usize, mode: SourceProofFixture): u32 
 export fn semantic_source_proof_tests(width: u32, workers: usize): u32 {
     return source_proof_case(width, workers, SourceProofFixture.Resume)
         + source_proof_case(width, workers, SourceProofFixture.Failure)
-        + source_proof_case(width, workers, SourceProofFixture.Cancel);
+        + source_proof_case(width, workers, SourceProofFixture.Cancel)
+        + source_proof_case(width, workers, SourceProofFixture.Invalidate);
 }
