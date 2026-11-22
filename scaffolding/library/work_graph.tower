@@ -36,13 +36,15 @@ struct WorkTask {
     state: WorkState;
     demanded: bool;
     blocked: bool;
+    active: bool;
     dependencies: usize;
     consumers: usize;
     remaining: usize;
     visit: u64;
-    active: bool;
     access: usize;
     dispatch: u64;
+    // One-based position in the derived ready index; zero outside Ready.
+    ready_slot: usize;
 }
 
 struct WorkEdge {
@@ -343,6 +345,7 @@ fn work_enqueue(g: WorkGraph*, id: usize): bool {
             return false;
         }
         task.state = WorkState.Ready;
+        task.ready_slot = g.ready.length;
     }
     return true;
 }
@@ -511,18 +514,20 @@ fn work_demand(g: WorkGraph*, id: usize): bool {
 // coordinator-owned. Publish results in semantic/source order when order matters,
 // never in worker completion order. Ticket failure preserves the output.
 fn work_take(g: WorkGraph*, output: WorkTicket*): bool {
-    return work_take_matching(g, output, false, 0, 0);
+    return work_take_matching(g, output, false, 0);
 }
 
 fn work_take_query(g: WorkGraph*, output: WorkTicket*, query: u32): bool {
-    return work_take_matching(g, output, true, query, 0);
+    return work_take_matching(g, output, true, query);
 }
 
 // Select a requested structural job without consuming earlier independent work.
 // Readiness, access exclusions and ticket validation remain the ordinary path.
 fn work_take_task(g: WorkGraph*, output: WorkTicket*, task: usize): bool {
-    if task == 0 { return false; }
-    return work_take_matching(g, output, false, 0, task);
+    if !work_ok(g) || output == null { return false; }
+    var selected = work_task(g, task);
+    if selected == null || selected.state != WorkState.Ready { return false; }
+    return work_take_ready(g, output, task, selected.ready_slot - 1);
 }
 
 fn work_ready_sift(values: usize*, count: usize, parent: usize): void {
@@ -550,6 +555,7 @@ fn work_order_ready(g: WorkGraph*): bool {
         if id == 0 || work_task(g, id).state != WorkState.Ready { continue; }
         if count != 0 && g.ready.data[count - 1] > id { ordered = false; }
         g.ready.data[count++] = id;
+        work_task(g, id).ready_slot = count;
     }
     g.head = 0;
     g.ready.length = count;
@@ -564,10 +570,37 @@ fn work_order_ready(g: WorkGraph*): bool {
         g.ready.data[0] = value;
         work_ready_sift(g.ready.data, end, 0);
     }
+    for(var i: usize = 0; i < count; i++) {
+        work_task(g, g.ready.data[i]).ready_slot = i + 1;
+    }
     return true;
 }
 
-fn work_take_matching(g: WorkGraph*, output: WorkTicket*, filtered: bool, query: u32, wanted: usize): bool {
+// Both FIFO/filtered and targeted dispatch reserve the same access claims and
+// generation before returning a receipt. Removing the exact ready slot keeps
+// a yielded task's old position from changing its later FIFO admission order.
+fn work_take_ready(g: WorkGraph*, output: WorkTicket*, id: usize, at: usize): bool {
+    var task = work_task(g, id);
+    if !work_access_available(g, task) { return false; }
+    var dispatch = task.dispatch + 1;
+    if dispatch == 0 {
+        g.error = WorkError.Invalid;
+        return false;
+    }
+    if task.access != 0 && !work_memory(g, vector_push(&g.executing, id)) { return false; }
+    g.ready.data[at] = 0;
+    task.ready_slot = 0;
+    task.state = WorkState.Running;
+    task.dispatch = dispatch;
+    g.running++;
+    output.task = id;
+    output.revision = g.revision;
+    output.profile = g.profile;
+    output.dispatch = dispatch;
+    return true;
+}
+
+fn work_take_matching(g: WorkGraph*, output: WorkTicket*, filtered: bool, query: u32): bool {
     if !work_ok(g) {
         return false;
     }
@@ -585,34 +618,13 @@ fn work_take_matching(g: WorkGraph*, output: WorkTicket*, filtered: bool, query:
             }
             continue;
         }
-        if wanted != 0 && wanted != id { continue; }
         var task = work_task(g, id);
         if filtered && task.query != query { continue; }
         var ready = task.state == WorkState.Ready;
         if ready {
-            if !work_access_available(g, task) {
-                continue;
-            }
-            var dispatch = task.dispatch + 1;
-            if dispatch == 0 {
-                g.error = WorkError.Invalid;
-                return false;
-            }
-            var shared = task.access != 0;
-            if shared {
-                if !work_memory(g, vector_push(&g.executing, id)) {
-                    return false;
-                }
-            }
-            g.ready.data[at] = 0;
-            task.state = WorkState.Running;
-            task.dispatch = dispatch;
-            g.running++;
-            output.task = id;
-            output.revision = g.revision;
-            output.profile = g.profile;
-            output.dispatch = dispatch;
-            return true;
+            if work_take_ready(g, output, id, at) { return true; }
+            if !work_ok(g) { return false; }
+            continue;
         }
         g.ready.data[at] = 0;
     }
@@ -644,6 +656,7 @@ fn work_fail(g: WorkGraph*, id: usize): bool {
         task.blocked = true;
         if !building {
             task.state = WorkState.Failed;
+            task.ready_slot = 0;
         }
         var at = task.consumers;
         while at != 0 {
@@ -784,6 +797,7 @@ fn work_cancel(g: WorkGraph*): void {
     g.head = 0;
     g.executing.length = 0;
     foreach(var & task in &g.tasks) {
+        task.ready_slot = 0;
         if task.state != WorkState.Succeeded {
             task.state = WorkState.Cancelled;
         }

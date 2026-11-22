@@ -6,6 +6,7 @@ import .compiler.parser_markers;
 import .compiler.parser_diagnostic_types;
 import .compiler.component_kinds;
 import .library.vector;
+import utility_checks;
 
 // Deliberately declaration-only: exercise production objects, never compile a
 // second parser implementation into the fixture. Works in native and Wasm.
@@ -33,7 +34,7 @@ extern fn entity_child_count(node: void*): usize;
 
 extern fn entity_child_at(node: void*, index: usize): void*;
 
-extern fn entity_child_member(node: void*, name: u8*): void*;
+extern fn entity_member_index(node: void*, name: u8*): usize;
 
 extern fn entity_component_get(node: void*, kind: void*): void*;
 
@@ -99,7 +100,10 @@ extern fn tower_memory_get_allocated_count(): usize;
 
 extern fn tower_memory_free(memory: void*): void;
 
-extern fn parser_set_debug_trace(enabled: bool): void;
+extern fn parser_set_debug_trace(enabled: bool): bool;
+extern fn parser_match_get_type(): void*;
+extern fn tower_test_buffer_fail_after(count: usize): void;
+extern fn tower_test_buffer_count(): usize;
 
 struct ParserFixture {
     world: void*;
@@ -630,7 +634,42 @@ fn parser_suffix_depth_fixture(): void {
     parser_check(suffix[0] == 1 && suffix[1] == 2 && suffix[2] == 123, 613);
 }
 
+fn parser_trace_fixture(): void {
+    var owner = parser_match_get_type();
+    var enabled = entity_member_index(owner, "parser.trace") != ParserNoIndex();
+    utility_check(parser_set_debug_trace(false) && parser_set_debug_trace(true)
+        && parser_set_debug_trace(false), "Parser trace configuration warmup");
+    var children = entity_child_count(owner);
+    var references = entity_references(owner);
+    var buffers = tower_test_buffer_count();
+    var failures: usize = 0;
+    loop {
+        tower_test_buffer_fail_after(failures);
+        var ok = parser_set_debug_trace(true);
+        tower_test_buffer_fail_after(~convert(usize, 0));
+        var slot = entity_member_index(owner, "parser.trace");
+        var marker = slot == ParserNoIndex() ? null : entity_child_at(owner, slot);
+        if ok {
+            utility_check(failures != 0 && marker != null && entity_references(marker) == 1,
+                "Parser trace fault sweep reaches owned publication after actual failures");
+            tower_test_buffer_fail_after(0);
+            var repeated = parser_set_debug_trace(true);
+            var removed = parser_set_debug_trace(false);
+            tower_test_buffer_fail_after(~convert(usize, 0));
+            utility_check(repeated && removed, "Existing parser trace toggle needs no allocation");
+        } else {
+            utility_check(marker == null, "Failed parser trace enable publishes no marker");
+        }
+        utility_check(entity_child_count(owner) == children && entity_references(owner) == references
+            && tower_test_buffer_count() == buffers, "Parser trace failure and removal release ownership");
+        if ok { break; }
+        failures++;
+    }
+    utility_check(parser_set_debug_trace(enabled), "Restore caller parser trace configuration");
+}
+
 export fn parser_tests(): void {
+    parser_trace_fixture();
     var baseline = tower_memory_get_allocated_count();
     var prefix: bool = false;
     loop {

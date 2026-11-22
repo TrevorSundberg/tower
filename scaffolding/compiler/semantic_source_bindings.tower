@@ -1,4 +1,7 @@
 import tower;
+import semantic_known_types;
+import semantic_source_binding_types;
+import semantic_context_types;
 import semantic_context;
 import semantic_definitions;
 import semantic_statements;
@@ -15,14 +18,12 @@ import .library.stack;
 // Lexical mutation/escape facts do not require storage layout or initializer
 // values. The proof binds syntax to declaration identities, including shadows,
 // before a type consumer can require an immutable initializer from its own body.
-struct SemanticSourceBinding {
-    owner: void*;
-    query: usize;
-    ordinal: usize;
-    immutable: bool;
-}
 
-fn sem_source_binding(c: SemanticContext*, subject: void*): SemanticSourceBinding* {
+
+extern fn entity_query_count(kind: void*): usize;
+extern fn entity_query_at(kind: void*, index: usize): void*;
+
+export fn sem_source_binding(c: SemanticContext*, subject: void*): SemanticSourceBinding* {
     return c.source_bindings == null ? null : bits(SemanticSourceBinding*,
         entity_component_data(entity_component_get(subject, c.source_bindings)));
 }
@@ -163,7 +164,10 @@ fn semantic_source_binding_kernel(job: SemanticKnownWork*): void {
         foreach(var parameter in parameters) { sem_source_bind(&context, parameter); }
         sem_source_scan(&context, job, sem_member(job.owner, "body"), 0);
     } else {
-        foreach(var node in &sem_get(job.root).items) { sem_source_scan(&context, job, node, 0); }
+        var pipeline = bits(SemanticSourceBindingPipeline*, entity_component_data(
+            entity_component_get(job.root, context.source_binding_pipeline)));
+        sem_require(pipeline != null && pipeline.roots_ready);
+        foreach(var node in &pipeline.source_roots) { sem_source_scan(&context, job, node, 0); }
     }
     job.binding_incomplete ||= program.error.length != 0;
     vector_dispose(&program.error);
@@ -175,7 +179,7 @@ fn semantic_source_binding_kernel(job: SemanticKnownWork*): void {
     vector_dispose(&context.allocations);
 }
 
-fn sem_source_bindings_publish(c: SemanticContext*, jobs: vector(SemanticKnownWork*)*): void {
+fn sem_source_bindings_publish(c: SemanticContext*, jobs: vector(SemanticKnownWork*)*, extension: bool): void {
     var complete = true;
     foreach(var job in jobs) { complete &&= !job.binding_incomplete; }
     foreach(var job in jobs) {
@@ -189,7 +193,7 @@ fn sem_source_bindings_publish(c: SemanticContext*, jobs: vector(SemanticKnownWo
     foreach(var job in jobs) {
         foreach(var declaration in &job.mutations) {
             var binding = sem_source_binding(c, declaration);
-            if binding != null && binding.immutable && c.source_binding_proof != 0 && binding.owner != job.owner {
+            if binding != null && binding.immutable && extension && binding.owner != job.owner {
                 // A specialization must not invalidate a completed proof which
                 // a preceding staged result may already have consumed.
                 sem_fail(c, declaration, "Specialization invalidates a published binding proof");
@@ -200,47 +204,105 @@ fn sem_source_bindings_publish(c: SemanticContext*, jobs: vector(SemanticKnownWo
     }
 }
 
-fn sem_source_bindings(c: SemanticContext*): void {
-    if c.source_bindings != null { return; }
-    c.source_bindings = sem_create(c.program.root);
-    sem_require(entity_register(c.source_bindings, sizeof(SemanticSourceBinding), alignof(SemanticSourceBinding), 0));
-    var kind = sem_known_kind(c);
-    var count: usize = 0;
-    foreach(var function in &c.program.functions) {
-        sem_known_job(c, kind, function, function, function == c.program.root ? null : function, count++, SemanticKnownAction.Bind);
+// Runtime lowering may remove effect statements from its executable item list.
+// Retain their original ordered syntax identities before that list can change;
+// the program owns every referenced tree until this derived index is disposed.
+fn sem_source_binding_roots(c: SemanticContext*): void {
+    if c.source_bindings == null {
+        c.source_bindings = sem_create(c.program.root);
+        sem_require(entity_register(c.source_bindings, sizeof(SemanticSourceBinding), alignof(SemanticSourceBinding), 0));
+        c.source_binding_pipeline = sem_create(c.program.root);
+        sem_require(entity_register(c.source_binding_pipeline, sizeof(SemanticSourceBindingPipeline), alignof(SemanticSourceBindingPipeline), 0));
     }
-    foreach(var function in &c.template_nodes) {
-        sem_known_job(c, kind, function, function, function, count++, SemanticKnownAction.Bind);
-    }
-    var jobs = sem_known_jobs(c, kind, count, SemanticQuery.SourceBindings);
-    sem_source_bindings_publish(c, &jobs);
-    c.source_binding_proof = work_request(&c.queries, c.program.root, convert(u32, SemanticQuery.SourceBindingProof), 0);
-    foreach(var job in &jobs) {
-        sem_require(work_depend(&c.queries, c.source_binding_proof,
-            work_find(&c.queries, job.subject, convert(u32, SemanticQuery.SourceBindings), 0)));
-    }
-    sem_require(work_seal(&c.queries, c.source_binding_proof) && work_demand(&c.queries, c.source_binding_proof));
-    var ticket: WorkTicket;
-    sem_require(work_take_task(&c.queries, &ticket, c.source_binding_proof));
-    sem_require(work_finish(&c.queries, &ticket, true));
-    sem_known_jobs_dispose(&jobs);
+    var pipeline = bits(SemanticSourceBindingPipeline*, entity_component_data(entity_component_get(c.program.root, c.source_binding_pipeline)));
+    if pipeline != null { return; }
+    pipeline = bits(SemanticSourceBindingPipeline*, entity_component_data(entity_component_add(c.program.root, c.source_binding_pipeline)));
+    sem_require(pipeline != null);
+    *pipeline = default;
+    foreach(var node in &sem_get(c.program.root).items) { sem_push(&pipeline.source_roots, node); }
+    pipeline.roots_ready = true;
 }
 
-fn sem_source_binding_require(c: SemanticContext*, subject: void*): SemanticSourceBinding* {
-    sem_source_bindings(c);
-    var binding = sem_source_binding(c, subject);
-    if binding != null || sem_get(subject).global { return binding; }
-    foreach(var function in &c.program.functions) {
-        if work_find(&c.queries, function, convert(u32, SemanticQuery.SourceBindings), 0) != 0 { continue; }
-        foreach(var local in &sem_get(function).locals) {
-            if local != subject { continue; }
-            var kind = sem_known_kind(c);
-            sem_known_job(c, kind, function, function, function, 0, SemanticKnownAction.Bind);
-            var jobs = sem_known_jobs(c, kind, 1, SemanticQuery.SourceBindings);
-            sem_source_bindings_publish(c, &jobs);
-            sem_known_jobs_dispose(&jobs);
-            return sem_source_binding(c, subject);
+fn sem_source_bindings_begin(c: SemanticContext*, owner: void*): usize {
+    var subject = owner ?? c.program.root;
+    var existing = work_find(&c.queries, subject, convert(u32, SemanticQuery.SourceBindingProof), 0);
+    if existing != 0 { return existing; }
+    sem_source_binding_roots(c);
+    var pipeline = bits(SemanticSourceBindingPipeline*, entity_component_data(entity_component_get(subject, c.source_binding_pipeline)));
+    if pipeline == null {
+        pipeline = bits(SemanticSourceBindingPipeline*, entity_component_data(entity_component_add(subject, c.source_binding_pipeline)));
+        sem_require(pipeline != null);
+        *pipeline = default;
+    }
+    pipeline.extension = owner != null;
+    var kind = sem_known_kind(c);
+    var count: usize = 0;
+    if owner != null {
+        sem_known_job(c, kind, owner, owner, owner, count++, SemanticKnownAction.Bind);
+    } else {
+        foreach(var function in &c.program.functions) {
+            sem_known_job(c, kind, function, function, function == c.program.root ? null : function, count++, SemanticKnownAction.Bind);
+        }
+        foreach(var function in &c.template_nodes) {
+            sem_known_job(c, kind, function, function, function, count++, SemanticKnownAction.Bind);
         }
     }
-    return null;
+    pipeline.jobs = sem_known_jobs_begin(c, kind, count, SemanticQuery.SourceBindings);
+    pipeline.query = work_request(&c.queries, subject, convert(u32, SemanticQuery.SourceBindingProof), 0);
+    foreach(var job in &pipeline.jobs) {
+        sem_require(work_depend(&c.queries, pipeline.query,
+            work_find(&c.queries, job.subject, convert(u32, SemanticQuery.SourceBindings), 0)));
+    }
+    sem_require(work_seal(&c.queries, pipeline.query));
+    if owner == null { c.source_binding_proof = pipeline.query; }
+    return pipeline.query;
+}
+
+export fn sem_source_binding_request(c: SemanticContext*, subject: void*): usize {
+    if c.source_binding_proof == 0 { return sem_source_bindings_begin(c, null); }
+    if work_task(&c.queries, c.source_binding_proof).state != WorkState.Succeeded { return c.source_binding_proof; }
+    var binding = sem_source_binding(c, subject);
+    if binding != null || sem_get(subject).global { return c.source_binding_proof; }
+    foreach(var function in &c.program.functions) {
+        foreach(var local in &sem_get(function).locals) {
+            if local == subject {
+                if work_find(&c.queries, function, convert(u32, SemanticQuery.SourceBindings), 0) != 0 {
+                    var query = work_find(&c.queries, function, convert(u32, SemanticQuery.SourceBindingProof), 0);
+                    return query == 0 ? c.source_binding_proof : query;
+                }
+                return sem_source_bindings_begin(c, function);
+            }
+        }
+    }
+    return c.source_binding_proof;
+}
+
+export fn sem_source_bindings_pump(c: SemanticContext*): SemanticPumpResult {
+    if !sem_ok(c) || !work_ok(&c.queries) { return SemanticPumpResult.Failed; }
+    if c.source_binding_pipeline == null { return SemanticPumpResult.Complete; }
+    var waiting = false;
+    for(var index: usize = 0; index < entity_query_count(c.source_binding_pipeline); index++) {
+        var pipeline = bits(SemanticSourceBindingPipeline*, entity_component_data(entity_query_at(c.source_binding_pipeline, index)));
+        if pipeline.query == 0 || pipeline.published || !work_task(&c.queries, pipeline.query).demanded { continue; }
+        var state = sem_known_jobs_pump(c, &pipeline.jobs, SemanticQuery.SourceBindings, &pipeline.first);
+        if state == SemanticPumpResult.Progress || state == SemanticPumpResult.Failed { return state; }
+        if state == SemanticPumpResult.Waiting { waiting = true; continue; }
+        var ticket: WorkTicket;
+        if !work_take_task(&c.queries, &ticket, pipeline.query) { waiting = true; continue; }
+        sem_source_bindings_publish(c, &pipeline.jobs, pipeline.extension);
+        sem_require(work_finish(&c.queries, &ticket, sem_ok(c)));
+        pipeline.published = true;
+        sem_known_jobs_dispose(&pipeline.jobs);
+        return sem_ok(c) ? SemanticPumpResult.Progress : SemanticPumpResult.Failed;
+    }
+    return waiting ? SemanticPumpResult.Waiting : SemanticPumpResult.Complete;
+}
+
+fn sem_source_bindings_dispose(c: SemanticContext*): void {
+    if c.source_binding_pipeline == null { return; }
+    for(var index: usize = 0; index < entity_query_count(c.source_binding_pipeline); index++) {
+        var pipeline = bits(SemanticSourceBindingPipeline*, entity_component_data(entity_query_at(c.source_binding_pipeline, index)));
+        sem_known_jobs_dispose(&pipeline.jobs);
+        vector_dispose(&pipeline.source_roots);
+    }
 }

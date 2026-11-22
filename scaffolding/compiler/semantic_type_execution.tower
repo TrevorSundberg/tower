@@ -1,0 +1,243 @@
+import tower;
+import semantic_context_types;
+import semantic_context;
+import semantic_declarations;
+import semantic_evaluation;
+import semantic_layout;
+import semantic_support;
+import semantic_types;
+import semantic_work_ids;
+import foundation_types;
+import foundation_tags;
+import interpreter_context_types;
+import type_primitives;
+import .library.vector;
+import .library.work_graph;
+
+extern fn compiler_node_world(node: void*): void*;
+
+// One retained continuation per invocation owner. Completed queries retain their
+// sequence in WorkGraph; this payload is reused only for a later executed call.
+// The evaluation owns the invocation. Its published expression/clone is contained
+// under the program root; nominal/type descriptors belong to retained program or
+// module roots. Compilation retains those roots until every phase drains. No
+// stage-local payload or invocation-private descriptor index is borrowed here.
+struct SemanticTypeExecution {
+    owner: void*;
+    subject: void*;
+    sequence: usize;
+    receipt: WorkTicket;
+    request: IMTypeConstruction*;
+    kind: u32;
+    first: u64;
+    second: u64;
+    input: FoundationType;
+    extent: FoundationType;
+    type: FoundationType;
+    constructed: bool;
+}
+
+export fn sem_type_execution_request(c: SemanticContext*, owner: void*, request: IMTypeConstruction*, receipt: WorkTicket*): usize {
+    sem_require(c.entity_stage == null && c.workers.running == 0);
+    var valid = work_ticket_valid(&c.queries, receipt);
+    valid &&= request != null && owner != null;
+    if valid {
+        var task = work_task(&c.queries, receipt.task);
+        valid = task.subject == owner && task.query == EvaluationQuery
+            && request.owner == owner && request.subject != null && request.sequence != 0
+            && !request.ready && !request.failed;
+    }
+    var evaluation = valid ? sem_evaluation_get(c, owner) : null;
+    valid &&= evaluation != null;
+    if valid {
+        valid = request == &evaluation.invocation.context.type_construction
+            && evaluation.invocation.context.construct_types && evaluation.invocation.context.waiting_type
+            && evaluation.invocation.context.pointer_bytes == convert(usize, c.program.pointer_bytes)
+            && compiler_node_world(owner) == compiler_node_world(c.program.root)
+            && compiler_node_world(request.subject) == compiler_node_world(owner);
+    }
+    if !valid {
+        sem_fail(c, c.program.root, "Invalid or stale type construction receipt");
+        return 0;
+    }
+    var operation = sem_get(request.subject);
+    if operation == null || operation.kind != KTypeConstruct || operation.op != request.kind {
+        sem_fail(c, request.subject, "Type construction request does not match its operation");
+        return 0;
+    }
+    if c.type_executions == null {
+        c.type_executions = sem_create(c.program.root);
+        sem_require(entity_register(c.type_executions, sizeof(SemanticTypeExecution), alignof(SemanticTypeExecution), 0));
+    }
+    var component = entity_component_get(owner, c.type_executions);
+    var fresh = component == null;
+    if fresh { component = entity_component_add(owner, c.type_executions); }
+    var state = bits(SemanticTypeExecution*, entity_component_data(component));
+    sem_require(state != null);
+    if fresh { *state = default; }
+    var query = convert(u32, SemanticQuery.TypeExecution);
+    var existing = work_find(&c.queries, owner, query, convert(u64, request.sequence));
+    if existing != 0 {
+        if state.sequence == request.sequence && state.subject == request.subject && state.request == request
+            && state.receipt.revision == receipt.revision && state.receipt.profile == receipt.profile
+            && state.receipt.dispatch == receipt.dispatch && state.receipt.task == receipt.task { return existing; }
+        sem_fail(c, request.subject, "Stale type construction sequence");
+        return 0;
+    }
+    if request.sequence <= state.sequence {
+        sem_fail(c, request.subject, "Type construction sequence did not advance");
+        return 0;
+    }
+    *state = { owner: owner, subject: request.subject, sequence: request.sequence,
+        receipt: *receipt, request: request, kind: request.kind, first: request.first,
+        second: request.second, input: request.input, ..default };
+    if operation.right != null { state.extent = sem_get(operation.right).type; }
+    var id = work_request(&c.queries, owner, query, convert(u64, request.sequence));
+    sem_require(id != 0);
+    var domain = convert(u64, SemanticWorkDomain.Compiler);
+    // Interning is ordered coordinator publication. The invocation result has
+    // the same exclusive range as its suspended evaluation, never a worker view.
+    sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.TypeIndex),
+        0, ~convert(usize, 0), WorkAccessMode.Write));
+    sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Evaluation),
+        receipt.task, 1, WorkAccessMode.Write));
+    sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Expression),
+        0, ~convert(usize, 0), WorkAccessMode.Read));
+    sem_require(work_seal(&c.queries, id));
+    return id;
+}
+
+fn sem_type_execution_current(c: SemanticContext*, state: SemanticTypeExecution*, ticket: WorkTicket*): bool {
+    if !work_ticket_valid(&c.queries, ticket) || state == null { return false; }
+    var request = state.request;
+    var receipt = &state.receipt;
+    var owner = work_task(&c.queries, receipt.task);
+    var task = work_task(&c.queries, ticket.task);
+    var valid = owner != null && owner.state == WorkState.Waiting && owner.subject == state.owner
+        && owner.query == EvaluationQuery && receipt.revision == c.queries.revision
+        && receipt.profile == c.queries.profile && receipt.dispatch == owner.dispatch
+        && task.subject == state.owner && task.argument == convert(u64, state.sequence)
+        && request != null && request.owner == state.owner && request.subject == state.subject
+        && request.sequence == state.sequence && !request.ready && !request.failed;
+    if !valid { return false; }
+    if request.kind != state.kind || request.first != state.first || request.second != state.second
+        || request.input.scalar != state.input.scalar || request.input.pointers != state.input.pointers
+        || request.input.record != state.input.record || request.input.pointer_bytes != state.input.pointer_bytes { return false; }
+    var evaluation = sem_evaluation_get(c, state.owner);
+    if evaluation == null || request != &evaluation.invocation.context.type_construction
+        || !evaluation.invocation.context.waiting_type || !evaluation.invocation.context.construct_types
+        || evaluation.invocation.context.pointer_bytes != convert(usize, c.program.pointer_bytes) { return false; }
+    // Waiting on unrelated work is insufficient: this exact dispatch must have
+    // suspended on this sequence's producer before its invocation can be written.
+    var edge = owner.dependencies;
+    while edge != 0 {
+        var dependency = &c.queries.edges.data[edge - 1];
+        if dependency.consumer == receipt.task && dependency.dependency == ticket.task { return true; }
+        edge = dependency.next_dependency;
+    }
+    return false;
+}
+
+fn sem_type_execution_error(request: IMTypeConstruction*, message: u8*): void {
+    vector_dispose(&request.error);
+    var length: usize = 0;
+    while message[length] != 0 { length++; }
+    sem_require(vector_reserve(&request.error, length + 1));
+    copy(request.error.data, message, length + 1);
+    request.error.length = length;
+    request.failed = true;
+    request.ready = true;
+}
+
+fn sem_type_execution_input(c: SemanticContext*, input: FoundationType*): bool {
+    if input.pointer_bytes != c.program.pointer_bytes || input.scalar >= FoundationScalarLimit
+        || input.pointers > FoundationPointerDepthLimit { return false; }
+    if input.record != null {
+        if compiler_node_world(input.record) != compiler_node_world(c.program.root) { return false; }
+        var record = sem_get(input.record);
+        if record == null || record.kind != KType || record.type.record != input.record
+            || record.type.scalar != input.scalar || record.type.pointer_bytes != input.pointer_bytes { return false; }
+    } else {
+        if input.scalar == SStruct || input.scalar == SArray || input.scalar == SFunction { return false; }
+    }
+    return true;
+}
+
+export fn sem_type_execution_pump(c: SemanticContext*): SemanticPumpResult {
+    sem_require(c.entity_stage == null && c.workers.running == 0);
+    if !work_ok(&c.queries) { return SemanticPumpResult.Failed; }
+    if c.type_executions == null { return SemanticPumpResult.Complete; }
+    var query = convert(u32, SemanticQuery.TypeExecution);
+    var ticket: WorkTicket;
+    if !work_take_query(&c.queries, &ticket, query) {
+        return sem_query_pending(c, query) ? SemanticPumpResult.Waiting : SemanticPumpResult.Complete;
+    }
+    var owner = work_task(&c.queries, ticket.task).subject;
+    var state = bits(SemanticTypeExecution*, entity_component_data(entity_component_get(owner, c.type_executions)));
+    if !sem_type_execution_current(c, state, &ticket) {
+        sem_fail(c, owner, "Invalid or stale type construction continuation");
+        sem_require(work_finish(&c.queries, &ticket, false));
+        return SemanticPumpResult.Failed;
+    }
+    var request = state.request;
+    var integer = request.kind == convert(u32, TypeConstructionKind.Integer);
+    var floating = request.kind == convert(u32, TypeConstructionKind.Floating);
+    var pointer = request.kind == convert(u32, TypeConstructionKind.Pointer);
+    var array = request.kind == convert(u32, TypeConstructionKind.Array);
+    if !state.constructed {
+        if integer || floating {
+            var scalar = integer ? type_integer_scalar(request.first, request.second != 0) : type_float_scalar(request.first);
+            if integer && request.second > 1 {
+                sem_type_execution_error(request, "Integer signedness must be 0 (unsigned) or 1 (signed)");
+            } else {
+                if scalar == InvalidTypeScalar { sem_type_execution_error(request, "Unsupported primitive numeric width"); }
+                else { state.type = { scalar: scalar, pointer_bytes: c.program.pointer_bytes, ..default }; }
+            }
+        } else {
+            if (!pointer && !array) || !sem_type_execution_input(c, &request.input) {
+                sem_type_execution_error(request, "Invalid type construction descriptor or target");
+            } else {
+                state.type = request.input;
+                if pointer {
+                    if state.type.pointers == FoundationPointerDepthLimit {
+                        sem_type_execution_error(request, "Foundation pointer nesting limit is 16");
+                    } else { state.type.pointers++; }
+                } else {
+                    var extent = &state.extent;
+                    var negative = semantic_signed(extent) && (request.second & (semantic_mask(extent) / 2 + 1)) != 0;
+                    if negative || request.second == 0 || request.second > FoundationArrayLengthLimit {
+                        sem_type_execution_error(request, "Array length must be between 1 and 1,048,576");
+                    } else {
+                        if request.input.scalar == SVoid && request.input.pointers == 0 {
+                            sem_type_execution_error(request, "An array cannot have void elements");
+                        } else {
+                            if semantic_aggregate(&request.input) {
+                                var fields = sem_declaration_layout_waiting(c, request.input.record);
+                                if fields != 0 {
+                                    sem_declaration_discover(c);
+                                    sem_require(work_suspend(&c.queries, &ticket, fields));
+                                    return SemanticPumpResult.Progress;
+                                }
+                            }
+                            state.type = *sem_array_intern(c, &request.input, convert(usize, request.second));
+                        }
+                    }
+                }
+            }
+        }
+        state.constructed = true;
+    }
+    if array && !request.failed {
+        var layout = sem_layout_discover(c, state.type.record);
+        if work_task(&c.queries, layout).state != WorkState.Succeeded {
+            sem_require(work_suspend(&c.queries, &ticket, layout));
+            return SemanticPumpResult.Progress;
+        }
+        sem_require(work_observe(&c.queries, &ticket, layout));
+    }
+    if !request.failed { request.result = state.type; request.ready = true; }
+    // A delivered semantic error is a completed request. Resuming the ordinary
+    // interpreter preserves its diagnostic and existing inferred-stage policy.
+    sem_require(work_finish(&c.queries, &ticket, true));
+    return SemanticPumpResult.Progress;
+}

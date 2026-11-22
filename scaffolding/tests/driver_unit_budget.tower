@@ -1,0 +1,49 @@
+import tower;
+import .host.driver_types;
+import .host.driver_options;
+
+extern fn puts(text: u8*): i32;
+
+fn driver_unit_budget_check(ok: bool): void {
+    if !ok { trap("Driver unit byte policy regression", 0); }
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    var options: DriverOptions;
+    var arguments: u8*[6];
+    var argument_count = sizeof(decltype(arguments)) / sizeof(u8*);
+    arguments[0] = "towerc";
+    arguments[1] = "main.tower";
+    driver_unit_budget_check(driver_parse(&options, 2, &arguments[0], "target")
+        && options.unit_retained_bytes == DriverUnitRetainedByteLimit && !options.unit_retained_policy);
+    driver_dispose(&options);
+    arguments[2] = "--unit";
+    arguments[3] = "other.tower";
+    arguments[4] = "--unit-retained-bytes";
+    arguments[5] = "65536";
+    driver_unit_budget_check(driver_parse(&options, argument_count, &arguments[0], "target")
+        && options.unit_count == 1 && options.unit_retained_bytes == 65536 && options.unit_retained_policy);
+    driver_dispose(&options);
+    driver_unit_budget_check(!driver_parse(&options, argument_count - 1, &arguments[0], "target")
+        && options.error == convert(u32, DriverOptionError.MissingValue));
+    driver_dispose(&options);
+    var invalid: u8*[6];
+    invalid[0] = "0"; invalid[1] = "-1"; invalid[2] = "";
+    invalid[3] = "1MiB"; invalid[4] = "18446744073709551615"; invalid[5] = "184467440737095516160";
+    for(var i: usize = 0; i < sizeof(decltype(invalid)) / sizeof(u8*); i++) {
+        arguments[5] = invalid[i];
+        driver_unit_budget_check(!driver_parse(&options, argument_count, &arguments[0], "target")
+            && options.error == convert(u32, DriverOptionError.UnitRetainedBytes));
+        driver_dispose(&options);
+    }
+    arguments[4] = "--jobs";
+    arguments[5] = "4";
+    driver_unit_budget_check(driver_parse(&options, argument_count, &arguments[0], "target") && options.jobs == 4);
+    driver_dispose(&options);
+    arguments[5] = "0";
+    driver_unit_budget_check(!driver_parse(&options, argument_count, &arguments[0], "target")
+        && options.error == convert(u32, DriverOptionError.Jobs));
+    driver_dispose(&options);
+    puts("Driver unit retained-byte policy parsing passed");
+    return 0;
+}

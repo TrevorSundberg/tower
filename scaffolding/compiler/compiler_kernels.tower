@@ -1,6 +1,7 @@
 import tower;
+import semantic_known_types;
+import semantic_declaration_types;
 import compiler_kernel;
-import frontend_units;
 import semantic_layout_kernel;
 import semantic_declarations;
 import semantic_lowering_work;
@@ -14,6 +15,7 @@ import semantic_execution_work;
 import interpreter_context_types;
 
 extern fn interpreter_invocation_step(invocation: IMInvocation*, budget: usize): void;
+extern fn compiler_unit_kernel(payload: void*): void;
 
 extern fn compiler_lr_kernel(payload: void*): void;
 

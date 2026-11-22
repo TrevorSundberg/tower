@@ -37,6 +37,8 @@ var KTrap: u32 = 33;
 var KFunctionReference: u32 = 34;
 var KMetadataValue: u32 = 35;
 var KTypeReference: u32 = 36;
+var KTypeConstruct: u32 = 37;
+enum TypeConstructionKind: u32 { Integer = 0, Floating = 1, Pointer = 2, Array = 3 }
 var OAdd: u32 = 0;
 var OSub: u32 = 1;
 var OMul: u32 = 2;

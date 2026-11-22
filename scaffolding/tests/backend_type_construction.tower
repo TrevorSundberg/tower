@@ -1,0 +1,101 @@
+import tower;
+import utility_checks;
+import .backend.lowering;
+import .backend.target;
+import .backend.context;
+import .backend.bindings;
+import .backend.pipeline;
+import .backend.text;
+import .compiler.component_kinds;
+import .compiler.foundation_types;
+import .compiler.foundation_tags;
+import .library.vector;
+
+extern fn compiler_world_create_workers(limit: usize): void*;
+extern fn compiler_world_store(world: void*): void*;
+extern fn compiler_world_component(world: void*, owner: void*, kind: u32): void*;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn entity_create(store: void*): void*;
+extern fn entity_attach(node: void*, parent: void*, name: u8*): bool;
+extern fn entity_release(node: void*): usize;
+extern fn strstr(text: u8*, part: u8*): u8*;
+
+fn backend_constructor_node(world: void*, root: void*, kind: u32, type: FoundationType*): void* {
+    var node = entity_create(compiler_world_store(world));
+    utility_check(node != null, "constructor fixture entity");
+    var value = bits(FoundationNode*, compiler_world_component(world, node, CompilerFoundation));
+    utility_check(value != null && entity_attach(node, root, ""), "constructor fixture component and owner");
+    value.kind = kind;
+    value.type = *type;
+    entity_release(node);
+    return node;
+}
+
+fn backend_constructor_close(world: void*): void {
+    utility_check(compiler_world_dispose(world), "constructor fixture releases world ownership");
+}
+
+// This isolates the new lowering contract from frontend constructor syntax.
+// The inputs are actual world-owned Foundation entities, not a mock backend IR.
+fn backend_constructor_target(target: u8*, width: u32, optimize: bool): bool {
+    var world = compiler_world_create_workers(1);
+    if world == null { return false; }
+    defer backend_constructor_close(world);
+    var root = entity_create(compiler_world_store(world));
+    if root == null { return false; }
+    defer entity_release(root);
+    var b = backend_open(target);
+    if b == null { return false; }
+    defer backend_close(b);
+    if b.error.length != 0 || b.pointer_bytes != width { return false; }
+    backend_runtime_declarations(b);
+
+    var integer: FoundationType = { scalar: SI32, pointer_bytes: width, ..default };
+    var metatype: FoundationType = { scalar: SType, pointer_bytes: width, ..default };
+    var first = backend_constructor_node(world, root, KFunction, &integer);
+    var second = backend_constructor_node(world, root, KFunction, &integer);
+    sem_get(first).index = 0;
+    sem_get(second).index = 1;
+    var function_type = LLVMFunctionType(b.i32, null, 0, 0);
+    if !vector_push(&b.functions, LLVMAddFunction(b.module, "constructor_first", function_type))
+        || !vector_push(&b.functions, LLVMAddFunction(b.module, "constructor_second", function_type)) { return false; }
+    var left = backend_constructor_node(world, root, KCall, &integer);
+    var right = backend_constructor_node(world, root, KCall, &integer);
+    sem_get(left).binding = first;
+    sem_get(right).binding = second;
+    var construct = backend_constructor_node(world, root, KTypeConstruct, &metatype);
+    var value = sem_get(construct);
+    value.op = convert(u32, TypeConstructionKind.Integer);
+    value.left = left;
+    value.right = right;
+    value.start = 41;
+
+    b.current = LLVMAddFunction(b.module, "probe", LLVMFunctionType(LLVMVoidTypeInContext(b.context), null, 0, 0));
+    LLVMPositionBuilderAtEnd(b.builder, LLVMAppendBasicBlockInContext(b.context, b.current, "entry"));
+    b.source_offset = 17;
+    backend_expression(b, construct);
+    if b.source_offset != 17 || b.type_values.length != 0 { return false; }
+    LLVMBuildRetVoid(b.builder);
+    if !backend_optimize(b, optimize) { return false; }
+    var body = strstr(b.optimized, "define void @probe(");
+    if body == null { return false; }
+    var first_call = strstr(body, "@constructor_first()");
+    var second_call = strstr(body, "@constructor_second()");
+    var trap_call = strstr(body, "@tower_trap(");
+    if first_call == null || second_call == null || trap_call == null
+        || bits(usize, first_call) >= bits(usize, second_call)
+        || bits(usize, second_call) >= bits(usize, trap_call)
+        || strstr(first_call + 1, "@constructor_first()") != null
+        || strstr(second_call + 1, "@constructor_second()") != null { return false; }
+    if !backend_contains(b.optimized, "Type construction requires compile-stage capability")
+        || !backend_contains(trap_call, width == 4 ? "i32 41)" : "i64 41)")
+        || !backend_contains(trap_call, "unreachable") { return false; }
+    return backend_emit(b);
+}
+
+fn backend_type_construction_tests(): bool {
+    return backend_constructor_target("x86_64-unknown-linux-gnu", 8, false)
+        && backend_constructor_target("x86_64-unknown-linux-gnu", 8, true)
+        && backend_constructor_target("wasm32-unknown-unknown", 4, false)
+        && backend_constructor_target("wasm32-unknown-unknown", 4, true);
+}

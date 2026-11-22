@@ -1,2 +1,0 @@
-import .foundation_syntax;
-var f32: type = float_type(32);

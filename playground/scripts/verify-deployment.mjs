@@ -13,7 +13,7 @@ if (!base.pathname.endsWith('/')) throw new Error('Deployment URL must end in /'
 const output = new URL('../../build/deployment-verification/', import.meta.url);
 await mkdir(output, {recursive:true});
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
-const bytecodeContainerVersion = 1, bytecodeSemanticsVersion = 8, bytecodeExecutionCacheVersion = 5;
+const bytecodeContainerVersion = 1, bytecodeSemanticsVersion = 9, bytecodeExecutionCacheVersion = 6;
 // Completion runs asynchronous compiler work, like execution below.
 // Its language-service deadline already exceeds Playwright's default five seconds.
 const compilerResponseDeadline = {timeout:60000};

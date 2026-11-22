@@ -1,4 +1,8 @@
 import tower;
+import .library.work_budget_types;
+import semantic_declaration_types;
+import semantic_context_types;
+import semantic_evaluation_types;
 import compiler_kernel;
 import semantic_context;
 import semantic_program_types;
@@ -8,6 +12,7 @@ import foundation_tags;
 import semantic_support;
 import semantic_types;
 import semantic_declarations;
+import semantic_constructor_work;
 import semantic_layout;
 import semantic_statements;
 import semantic_control;
@@ -17,6 +22,7 @@ import semantic_iteration;
 import semantic_iteration_work;
 import semantic_evaluation;
 import semantic_type_values;
+import semantic_query_pipeline;
 import semantic_flow;
 import semantic_generic_body_work;
 import semantic_work_ids;
@@ -27,7 +33,6 @@ import .library.work_pool;
 
 var BodyQuery: u32 = convert(u32, SemanticQuery.Body);
 var BodyPrepareQuery: u32 = convert(u32, SemanticQuery.BodyPrepare);
-var BodyPreparationWindow: usize = 256;
 
 // Coordinator continuation on the compilation entity. Body workers retain
 // their own lexical cursors; this component owns only the derived admission
@@ -37,6 +42,7 @@ struct SemanticBodyPipeline {
     next: usize;
     evaluation: usize;
     complete: bool;
+    root_calls: bool;
     window: vector(SemanticBodyWork*);
     declarations: vector(void*);
 }
@@ -58,8 +64,13 @@ fn sem_bodies_begin(c: SemanticContext*): SemanticBodyPipeline* {
     c.body_demands = sem_create(c.program.root);
     sem_require(entity_register(c.body_demands, sizeof(SemanticBodyDemand), alignof(SemanticBodyDemand), 0));
     c.body_seen = sem_table(c);
-    sem_body_calls(c, c.program.root);
     return state;
+}
+
+// Observe retained admission without exposing lexical worker continuations or
+// creating new work. The owning coordinator calls this between joined pumps.
+export fn sem_bodies_admitted(c: SemanticContext*): usize {
+    return c.body_pipeline == null ? 0 : sem_bodies_begin(c).window.length;
 }
 
 // A signature can exist for an unevaluated query without demanding its body.
@@ -271,6 +282,10 @@ fn sem_body_type_structure(c: SemanticContext*, n: void*, names: SemanticTable*)
     for(var i: usize = 0; i < pending.length; i++) {
         var node = pending.data[i];
         if sem_body_type_name(c, node, names) { return true; }
+        // This walk is only for a type-role operand. Ordinary callable type
+        // producers need the same query frontier as annotations and arrays;
+        // their value-position calls remain execution-driven in sem_body_tree.
+        if sem_type_query_syntax(c, node) { return true; }
         if sem_member(node, "index") != null || sem_member(node, "count") != null {
             return true;
         }
@@ -300,16 +315,35 @@ fn sem_body_tree(c: SemanticContext*, source: void*, nodes: vector(void*)*, name
         if sem_is(node, "CoreArrayCount") {
             return false;
         }
+        if (sem_is(node, "CoreType") || sem_is(node, "CoreLocation"))
+            && sem_member(node, "args") == null && sem_member(node, "base") == null
+            && sem_value_binding(c, node) == null {
+            var declaration = generic_lookup(c.generics, node, node);
+            if declaration == null { declaration = sem_resolve(c, c.types, node, sem_identifier(c, node)); }
+            if declaration != null {
+                var type = sem_get(declaration);
+                var query = work_find(&c.queries, declaration, convert(u32, SemanticQuery.Declaration), 0);
+                // Early helper checking can overlap the module alias frontier.
+                // A worker consumes completed identities; the lexical query
+                // continuation requests any missing producer before checking.
+                if type.global && (query == 0 || work_task(&c.queries, query).state != WorkState.Succeeded) { return false; }
+                if sem_is(node, "CoreType") && semantic_aggregate(&type.type) {
+                    query = work_find(&c.queries, type.type.record, convert(u32, SemanticQuery.Layout), 0);
+                    if query == 0 || work_task(&c.queries, query).state != WorkState.Succeeded { return false; }
+                }
+            }
+        }
         if sem_is(node, "CoreType") &&(sem_member(node, "args") != null
         || sem_member(node, "count") != null || sem_member(node, "index") != null
         || sem_body_type_name(c, node, names)) {
             return false;
         }
         if sem_is(node, "CoreCall") {
+            if sem_type_identity_call(c, node) { return false; }
             var name = sem_member(node, "name");
             var text = sem_identifier(c, name);
             var builtin = semantic_builtin_kind(text);
-            if builtin == 0 {
+            if builtin == 0 && !sem_type_representation_name(text) {
                 if sem_resolve(c, c.templates, name, text) != null
                 || sem_resolve(c, c.type_functions, name, text) != null {
                     return false;
@@ -527,7 +561,10 @@ fn sem_body_sources_execute(c: SemanticContext*, batch: SemanticBodyWork**, coun
     var view = entity_view_open(c.program.root);
     sem_require(view != null);
     foreach(var result in &ready) { result.context = &context; }
-    sem_require(compiler_kernel_dispatch(&c.workers, ready.data, ready.length));
+    var receipt: WorkReservation;
+    var extra = sem_workers_admit(c, ready.length, &receipt);
+    defer sem_workers_release(c, &receipt);
+    sem_require(compiler_kernel_dispatch_admitted(&c.workers, ready.data, ready.length, extra));
     entity_view_close(view);
     foreach(var result in &ready) {
         sem_query_observe(c, &result.ticket, &result.query_reads);
@@ -1532,6 +1569,12 @@ fn semantic_body_kernel(result: SemanticBodyWork*): void {
     copy(&program, context.program, sizeof(SemanticProgram));
     context.program = &program;
     sem_editor_private(&context, &result.editor);
+    // A required producer can be outside the completion hole. Check its real
+    // body with private scratch, without capturing the caller's editor scope.
+    if context.editor != null && !sem_editor_contains(&context, result.subject) {
+        context.editor = null;
+        result.editor = default;
+    }
     context.type_observations = &result.type_observations;
     context.current = result.subject;
     context.entity_stage = result.stage;
@@ -1779,7 +1822,10 @@ fn sem_body_wave(c: SemanticContext*, batch: SemanticBodyWork**, count: usize, f
     var view = entity_view_open(c.program.root);
     sem_require(view != null);
     for(var i: usize = 0; i < active; i++) { running.data[i].context = &context; }
-    sem_require(compiler_kernel_dispatch(&c.workers, running.data, active));
+    var receipt: WorkReservation;
+    var extra = sem_workers_admit(c, active, &receipt);
+    defer sem_workers_release(c, &receipt);
+    sem_require(compiler_kernel_dispatch_admitted(&c.workers, running.data, active, extra));
     entity_view_close(view);
     // Publish every stage before any cross-body bookkeeping. Completion order
     // must not change diagnostics, nominal type identity or observation order.
@@ -1810,7 +1856,8 @@ fn sem_bodies(c: SemanticContext*): void {
         var bodies = sem_bodies_pump(c);
         if bodies == SemanticPumpResult.Failed || bodies == SemanticPumpResult.Complete { break; }
         var declarations = sem_declarations_pump(c);
-        var values = sem_type_values_execute(c);
+        var values = sem_query_pipeline_pump(c);
+        if values == SemanticPumpResult.Failed { break; }
         var layouts: usize = 0;
         if sem_ok(c) {
             layouts = sem_layout_execute(c);
@@ -1818,7 +1865,7 @@ fn sem_bodies(c: SemanticContext*): void {
             vector_dispose(&c.program.error);
             c.program.error_offset = 0;
         }
-        if declarations == SemanticPumpResult.Progress || values || layouts != 0
+        if declarations == SemanticPumpResult.Progress || values == SemanticPumpResult.Progress || layouts != 0
             || bodies == SemanticPumpResult.Progress { continue; }
         sem_body_pipeline_finish(c);
         break;
@@ -1826,11 +1873,18 @@ fn sem_bodies(c: SemanticContext*): void {
     sem_body_prune(c);
 }
 
-fn sem_bodies_pump(c: SemanticContext*): SemanticPumpResult {
+export fn sem_bodies_pump(c: SemanticContext*): SemanticPumpResult {
     if !sem_ok(c) || !work_ok(&c.queries) {
         return SemanticPumpResult.Failed;
     }
     var state = sem_bodies_begin(c);
+    // Early executed helpers can create this pipeline before module expressions
+    // are checked. Publish ordinary root calls only after that graph is final;
+    // an early traversal would cache incomplete ancestors in body_seen.
+    if c.body_roots && !state.root_calls {
+        sem_body_calls(c, c.program.root);
+        state.root_calls = true;
+    }
     var saved_subjects = c.declaration_subjects;
     c.declaration_subjects = &state.declarations;
     defer { c.declaration_subjects = saved_subjects; }
@@ -2001,7 +2055,7 @@ fn sem_bodies_dispose(c: SemanticContext*): void {
     vector_dispose(&state.declarations);
 }
 
-fn sem_body_pipeline_finish(c: SemanticContext*): void {
+export fn sem_body_pipeline_finish(c: SemanticContext*): void {
     if !sem_ok(c) { return; }
     var state = sem_bodies_begin(c);
     var first: SemanticBodyWork* = null;
@@ -2055,10 +2109,7 @@ fn sem_body_failure(c: SemanticContext*, subject: void*): bool {
     if c.body_pipeline == null { return false; }
     var state = sem_bodies_begin(c);
     var result = bits(SemanticBodyWork*, entity_component_data(entity_component_get(subject, state.kind)));
-    if result == null || result.error.length == 0 { return false; }
-    sem_fail(c, subject, result.error.data);
-    c.program.error_offset = result.error_offset;
-    return true;
+    return result != null && sem_restore_error(c, &result.error, result.error_offset);
 }
 
 // Registration never checks a body or waits for its producers. Executed stage

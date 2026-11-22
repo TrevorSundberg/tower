@@ -1,0 +1,216 @@
+import tower;
+import frontend_units;
+import .library.bytes_interface;
+import .library.bytes_types;
+import .library.vector;
+import .library.work_budget;
+import .library.work_budget_types;
+import .host.driver_types;
+import .library.compiler_work_types;
+import .compiler.semantic_program_types;
+import .compiler.foundation_types;
+import .compiler.component_kinds;
+import .compiler.format_types;
+import .compiler.interpreter_context_types;
+
+// Linux x64 observation ABI. Each invocation owns fresh worlds; filesystem
+// caches may be warm. Timed work ends before reference execution/formatting.
+struct UnitsProfileTime { seconds: i64; fraction: i64; }
+struct UnitsProfileUsage {
+    user: UnitsProfileTime;
+    system: UnitsProfileTime;
+    peak_rss: i64;
+    remaining: i64[13];
+}
+struct UnitsProfileSpan { start: u64; end: u64; thread: usize; }
+extern fn clock_gettime(clock: i32, out: UnitsProfileTime*): i32;
+extern fn getrusage(who: i32, out: UnitsProfileUsage*): i32;
+extern fn pthread_self(): usize;
+extern fn host_json_unsigned(out: ByteBuffer*, value: u64): bool;
+extern fn host_text_terminate(out: ByteBuffer*): bool;
+extern fn frontend_units_observer(batch: void*, context: void*,
+    callback: function(void, void*, CompilerQuery, usize, bool)): bool;
+extern fn compiler_world_store(world: void*): void*;
+extern fn entity_store_count(store: void*): usize;
+extern fn entity_store_component_count(store: void*): usize;
+extern fn frontend_units_create_bounded(count: usize, budget: usize, retained_bytes: usize, width: u32,
+    revision: u64, profile: u64, bedrock: u8*, foundation: u8*, library: u8*): void*;
+extern fn backend_units_create(frontend: void*, count: usize, budget: usize, target: u8*, library: bool, optimize: bool): void*;
+extern fn backend_units_close(batch: void*): void;
+extern fn backend_units_step(batch: void*, wait: bool): bool;
+extern fn backend_units_failed(batch: void*): usize;
+extern fn backend_units_cancelled(batch: void*): bool;
+extern fn backend_units_result(batch: void*, ordinal: usize): void*;
+extern fn backend_units_error(batch: void*): u8*;
+extern fn backend_bytes(backend: void*): u8*;
+extern fn backend_size(backend: void*): usize;
+
+fn units_profile_clock(): u64 {
+    var time: UnitsProfileTime;
+    units_check(clock_gettime(1, &time) == 0, "profile monotonic clock");
+    return convert(u64, time.seconds) * 1000000000 + convert(u64, time.fraction);
+}
+
+fn units_profile_cpu(usage: UnitsProfileUsage*): u64 {
+    return convert(u64, usage.user.seconds + usage.system.seconds) * 1000000
+        + convert(u64, usage.user.fraction + usage.system.fraction);
+}
+
+fn units_profile_event(context: void*, phase: CompilerQuery, ordinal: usize, entering: bool): void {
+    if phase == CompilerQuery.Backend { return; }
+    units_check(phase == CompilerQuery.Unit, "profile frontend phase");
+    var span = &bits(UnitsProfileSpan*, context)[ordinal - 1];
+    if entering { span.start = units_profile_clock(); span.thread = pthread_self(); }
+    else { span.end = units_profile_clock(); }
+}
+
+fn units_profile_text(out: ByteBuffer*, text: u8*): void {
+    units_check(bytes_append(out, text, strlen(text)), "profile text");
+}
+
+fn units_profile_number(out: ByteBuffer*, number: u64): void {
+    units_check(host_json_unsigned(out, number), "profile number");
+}
+
+fn units_profile_argument(text: u8*): usize {
+    var value: usize = 0;
+    for(var i: usize = 0; text[i] != 0; i++) {
+        units_check(text[i] >= 48 && text[i] <= 57 && value < 100000, "profile integer argument");
+        value = value * 10 + convert(usize, text[i] - 48);
+    }
+    return value;
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    if (argc != 5 && argc != 6) || sizeof(usize) != 8 { return 2; }
+    var backend_mode = argc == 6;
+    if backend_mode && strcmp(argv[5], "backend") != 0 { return 2; }
+    var count = units_profile_argument(argv[2]);
+    var budget = units_profile_argument(argv[3]);
+    var bodies = units_profile_argument(argv[4]);
+    units_check(count != 0 && count <= 32 && budget != 0 && budget <= 32 && bodies <= 4096,
+        "profile workload bounds");
+    var bedrock: vector(u8) = default;
+    var foundation: vector(u8) = default;
+    defer vector_dispose(&bedrock);
+    defer vector_dispose(&foundation);
+    units_read(argv[1], "/bedrock.tower", &bedrock);
+    units_read(argv[1], "/foundation.tower", &foundation);
+    var source: ByteBuffer = default;
+    defer bytes_dispose(&source);
+    units_profile_text(&source, "import tower; fn answer():i32{return comptime(later());} fn later():i32{return 42;}");
+    var small = source.length;
+    for(var i: usize = 0; i < bodies; i++) {
+        units_profile_text(&source, "fn body_"); units_profile_number(&source, convert(u64, i));
+        units_profile_text(&source, "(x:i32):i32{var y:decltype(x)=x;for(var j:i32=0;j<4;j++){y+=j;}return y;}");
+    }
+    units_check(host_text_terminate(&source), "profile source terminator");
+    var spans = alloc(UnitsProfileSpan, count);
+    units_check(spans != null, "profile spans");
+    fill(spans, 0, count * sizeof(UnitsProfileSpan));
+    defer free(spans);
+    var before: UnitsProfileUsage;
+    var after: UnitsProfileUsage;
+    units_check(getrusage(0, &before) == 0, "profile before usage");
+    var started = units_profile_clock();
+    var batch = backend_mode
+        ? frontend_units_create_bounded(count, budget, DriverUnitRetainedByteLimit, 8, 81, 19, bedrock.data, foundation.data, argv[1])
+        : frontend_units_create(count, budget, 8, 81, 19, bedrock.data, foundation.data, argv[1]);
+    units_check(batch != null, "profile batch");
+    defer frontend_units_close(batch);
+    units_check(frontend_units_observer(batch, bits(void*, spans), units_profile_event), "profile observer");
+    for(var i: usize = 1; i <= count; i++) {
+        units_check(frontend_units_source(batch, i, "profile_unit.tower", source.data,
+            i == count ? source.length : small), "profile source snapshot");
+    }
+    var backend: void* = null;
+    if backend_mode {
+        backend = backend_units_create(batch, count, budget, "x86_64-pc-linux-gnu", true, false);
+        units_check(backend != null, "profile bounded streaming backend");
+    }
+    defer { if backend != null { backend_units_close(backend); } }
+    while !frontend_units_step(batch, true) {}
+    if backend != null { while !backend_units_step(backend, true) {} }
+    var elapsed = units_profile_clock() - started;
+    units_check(getrusage(0, &after) == 0, "profile after usage");
+    // Read only after the timed region. The frozen workload and reference
+    // outputs stay identical to the earlier profile without ledger reporting.
+    var reservation: WorkBudgetSnapshot = default;
+    units_check(work_budget_snapshot(frontend_units_work_budget(batch), &reservation)
+        && reservation.used_lanes == 0, "profile joined budget snapshot");
+    if frontend_units_failed(batch) != 0 { puts(frontend_units_error(batch)); }
+    units_check(!frontend_units_cancelled(batch) && frontend_units_failed(batch) == 0, "profile compilation");
+    var object_bytes: usize = 0;
+    if backend != null {
+        if backend_units_failed(backend) != 0 { puts(backend_units_error(backend)); }
+        units_check(!backend_units_cancelled(backend) && backend_units_failed(backend) == 0, "profile backend compilation");
+        for(var ordinal: usize = 1; ordinal <= count; ordinal++) {
+            var result = backend_units_result(backend, ordinal);
+            units_check(result != null && backend_size(result) >= 4, "profile retained object");
+            var data = backend_bytes(result);
+            units_check(data != null && data[0] == 127 && data[1] == *"E" && data[2] == *"L" && data[3] == *"F",
+                "profile target object envelope");
+            object_bytes += backend_size(result);
+        }
+    }
+    var hash: u64 = 14695981039346656037;
+    var entities: usize = 0;
+    var components: usize = 0;
+    var peak: usize = 0;
+    var worker_ns: u64 = 0;
+    for(var i: usize = 1; i <= count; i++) {
+        var span = &spans[i - 1];
+        units_check(span.end >= span.start && span.start >= started && span.thread != 0, "profile event bounds");
+        worker_ns += span.end - span.start;
+        var active: usize = 0;
+        for(var j: usize = 0; j < count; j++) {
+            if spans[j].start <= span.start && spans[j].end > span.start { active++; }
+        }
+        if active > peak { peak = active; }
+        var program = frontend_units_program(batch, i);
+        units_check(program != null, "profile result");
+        var store = compiler_world_store(compiler_node_world(program.root));
+        entities += entity_store_count(store);
+        components += entity_store_component_count(store);
+        var answer: void* = null;
+        foreach(var function in &program.functions) {
+            var node = sem_get(function);
+            if node.name.length == 6 && strcmp(node.name.data, "answer") == 0 { answer = function; }
+        }
+        units_check(answer != null, "profile answer binding");
+        var invocation: IMInvocation = default;
+        units_check(interpreter_invocation_init(&invocation, answer, 8, null, 0, true, 10000), "profile invocation");
+        while !invocation.state.done && !invocation.state.failed { interpreter_invocation_step(&invocation, 7); }
+        units_check(!invocation.state.failed && invocation.context.result == 42, "profile independent result");
+        interpreter_invocation_dispose(&invocation);
+        var formatted: FormatResult = default;
+        format_entity(&formatted, program.root, compiler_node_type(program.root, CompilerSyntax),
+            compiler_node_type(program.root, CompilerFoundation), compiler_node_type(program.root, CompilerParserMatch));
+        units_check(!formatted.failed, "profile canonical output");
+        foreach(var byte in &formatted.text) { hash = (hash ^ convert(u64, byte)) * 1099511628211; }
+        format_dispose(&formatted);
+    }
+    var out: ByteBuffer = default;
+    defer bytes_dispose(&out);
+    units_profile_text(&out, "{\"units\":"); units_profile_number(&out, convert(u64, count));
+    units_profile_text(&out, ",\"budget\":"); units_profile_number(&out, convert(u64, budget));
+    units_profile_text(&out, ",\"bodies\":"); units_profile_number(&out, convert(u64, bodies));
+    units_profile_text(&out, ",\"backend\":"); units_profile_number(&out, backend_mode ? 1 : 0);
+    units_profile_text(&out, ",\"wall_ns\":"); units_profile_number(&out, elapsed);
+    units_profile_text(&out, ",\"cpu_us\":"); units_profile_number(&out, units_profile_cpu(&after) - units_profile_cpu(&before));
+    units_profile_text(&out, ",\"peak_rss_kib\":"); units_profile_number(&out, convert(u64, after.peak_rss));
+    units_profile_text(&out, ",\"outer_peak\":"); units_profile_number(&out, convert(u64, peak));
+    units_profile_text(&out, ",\"outer_ns\":"); units_profile_number(&out, worker_ns);
+    units_profile_text(&out, ",\"reserved_peak_lanes\":"); units_profile_number(&out, convert(u64, reservation.peak_lanes));
+    units_profile_text(&out, ",\"retained_bytes\":"); units_profile_number(&out, convert(u64, reservation.used_bytes));
+    units_profile_text(&out, ",\"object_bytes\":"); units_profile_number(&out, convert(u64, object_bytes));
+    units_profile_text(&out, ",\"reserved_peak_bytes\":"); units_profile_number(&out, convert(u64, reservation.peak_bytes));
+    units_profile_text(&out, ",\"ledger_storage_bytes\":"); units_profile_number(&out, convert(u64, reservation.retained));
+    units_profile_text(&out, ",\"entities\":"); units_profile_number(&out, convert(u64, entities));
+    units_profile_text(&out, ",\"components\":"); units_profile_number(&out, convert(u64, components));
+    units_profile_text(&out, ",\"canonical_hash\":"); units_profile_number(&out, hash);
+    units_profile_text(&out, "}");
+    units_check(host_text_terminate(&out), "profile JSON terminator");
+    puts(out.data);
+    return 0;
+}

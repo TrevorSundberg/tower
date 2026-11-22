@@ -1,0 +1,12 @@
+import tower;
+
+// Deliberately invalid negative control for the native sanitizer pipeline.
+// Run only expecting an AddressSanitizer heap-buffer-overflow and nonzero exit.
+// This is not an ordinary passing fixture or a language bounds-check policy.
+extern fn write(stream: i32, data: void*, length: usize): i64;
+var memory = alloc(u8, 8);
+if memory == null { trap("Sanitizer probe allocation failed", 0); }
+fill(memory, 42, 8);
+memory[8] = 1;
+write(1, bits(void*, memory), 9);
+free(memory);

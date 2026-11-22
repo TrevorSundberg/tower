@@ -1,0 +1,73 @@
+import tower;
+import .tools.tool_files_posix;
+import .library.bytes;
+import .library.bytes_types;
+
+extern fn mkstemp(pattern: u8*): i32;
+extern fn close(fd: i32): i32;
+extern fn link(source: u8*, output: u8*): i32;
+extern fn symlink(source: u8*, output: u8*): i32;
+extern fn unlink(path: u8*): i32;
+extern fn clock_gettime(clock: i32, result: i64*): i32;
+extern fn getrusage(who: i32, result: i64*): i32;
+
+fn identity_check(ok: bool): void {
+    if !ok { trap("Tool output identity regression", 0); }
+}
+
+fn identity_suffix(out: ByteBuffer*, base: u8*, suffix: u8*): void {
+    identity_check(bytes_append(out, base, strlen(base))
+        && bytes_append(out, suffix, strlen(suffix)) && bytes_push(out, 0));
+}
+
+fn identity_time(): i64 {
+    var stamp: i64[2];
+    identity_check(clock_gettime(1, &stamp[0]) == 0);
+    return stamp[0] * 1000000000 + stamp[1];
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    // Measurement mode reports the old defect without calling it a passing
+    // regression. Ordinary mode requires rejection of every existing alias.
+    var measure = argc == 2 && strcmp(argv[1], "measure") == 0;
+    if argc != 1 && !measure { return 2; }
+    var source: ByteBuffer = default;
+    var hard: ByteBuffer = default;
+    var soft: ByteBuffer = default;
+    var missing: ByteBuffer = default;
+    defer bytes_dispose(&source); defer bytes_dispose(&hard);
+    defer bytes_dispose(&soft); defer bytes_dispose(&missing);
+    identity_check(bytes_assign_text(&source, "/tmp/tower_a2_identity_XXXXXX", strlen("/tmp/tower_a2_identity_XXXXXX")));
+    var fd = mkstemp(source.data);
+    identity_check(fd >= 0 && close(fd) == 0);
+    defer unlink(source.data);
+    identity_suffix(&hard, source.data, ".hard");
+    identity_suffix(&soft, source.data, ".soft");
+    identity_suffix(&missing, source.data, ".missing");
+    identity_check(link(source.data, hard.data) == 0);
+    defer unlink(hard.data);
+    identity_check(symlink(source.data, soft.data) == 0);
+    defer unlink(soft.data);
+    identity_check(!tool_output_distinct(source.data, source.data));
+    identity_check(!tool_output_distinct(source.data, soft.data));
+    identity_check(tool_output_distinct(source.data, missing.data));
+    var accepted = tool_output_distinct(source.data, hard.data);
+    var before: i64[18]; var after: i64[18];
+    identity_check(getrusage(0, &before[0]) == 0);
+    var start = identity_time();
+    for(var round: usize = 0; round < 10000; round++) {
+        identity_check(tool_output_distinct(source.data, hard.data) == accepted);
+        identity_check(tool_output_distinct(source.data, missing.data));
+    }
+    var elapsed = identity_time() - start;
+    identity_check(getrusage(0, &after[0]) == 0);
+    print(accepted);
+    print(elapsed);
+    print((after[0] - before[0] + after[2] - before[2]) * 1000000
+        + after[1] - before[1] + after[3] - before[3]);
+    print(after[4]);
+    // Path buffers retain identical capacity; realpath allocations inside the
+    // old helper are not counted by this figure.
+    print(source.capacity + hard.capacity + soft.capacity + missing.capacity);
+    return !measure && accepted ? 1 : 0;
+}

@@ -1,4 +1,5 @@
 import tower;
+import semantic_context_types;
 import foundation_tags;
 import foundation_types;
 import frontend_compilation;
@@ -291,7 +292,7 @@ fn sem_set_name(n: FoundationNode*, name: u8*): void {
     n.name.length = count;
 }
 
-fn sem_push(v: vector(void*)*, n: void*): void {
+export fn sem_push(v: vector(void*)*, n: void*): void {
     sem_require(vector_push(v, n));
 }
 
@@ -581,6 +582,20 @@ fn sem_offset(c: SemanticContext*, n: void*): usize {
 
 fn sem_ok(c: SemanticContext*): bool {
     return c.program.error.length == 0;
+}
+
+// A producer receipt already contains its complete provenance. Restore that
+// diagnostic once after the join, without appending another instantiation trace
+// or replacing a previously selected message/offset.
+fn sem_restore_error(c: SemanticContext*, error: vector(u8)*, offset: usize): bool {
+    if error.length == 0 { return false; }
+    if sem_ok(c) {
+        sem_require(vector_reserve(&c.program.error, error.length + 1));
+        copy(c.program.error.data, error.data, error.length + 1);
+        c.program.error.length = error.length;
+        c.program.error_offset = offset;
+    }
+    return true;
 }
 
 fn sem_instantiation_use(c: SemanticContext*, n: void*): void* {

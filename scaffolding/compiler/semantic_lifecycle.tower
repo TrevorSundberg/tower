@@ -1,4 +1,5 @@
 import semantic_program_types;
+import semantic_context_types;
 import tower;
 import semantic_attributes;
 import foundation_tags;
@@ -18,6 +19,7 @@ import semantic_declarations;
 import semantic_generic_body_work;
 import semantic_execution_work;
 import semantic_capture_work;
+import semantic_source_bindings;
 import semantic_constructor_work;
 import semantic_known_bindings;
 import semantic_modules;
@@ -33,7 +35,7 @@ fn sem_track(c: SemanticContext*, data: u8*): void {
     sem_require(vector_push(&c.allocations, step1));
 }
 
-fn sem_context_init(c: SemanticContext*, program: SemanticProgram*): void {
+export fn sem_context_init(c: SemanticContext*, program: SemanticProgram*): void {
     var step1 = sizeof(SemanticContext);
     fill(c, 0, step1);
     c.program = program;
@@ -67,13 +69,14 @@ fn sem_context_init(c: SemanticContext*, program: SemanticProgram*): void {
     }
 }
 
-fn sem_context_dispose(c: SemanticContext*): void {
+export fn sem_context_dispose(c: SemanticContext*): void {
     sem_bodies_dispose(c);
     sem_layout_dispose(c);
     sem_lower_dispose(c);
     sem_evaluation_dispose(c);
     sem_executables_dispose(c);
     sem_captures_dispose(c);
+    sem_source_bindings_dispose(c);
     vector_dispose(&c.flow_dependencies);
     sem_declaration_dispose(c);
     sem_generic_body_dispose(c);
@@ -124,6 +127,7 @@ export fn semantic_compile_budget(program: SemanticProgram*, roots: void**, base
         step4.number = bases[i];
     }
     sem_run(c);
+    sem_foreign_signatures(c);
     sem_defer_hygiene(c);
     sem_known_infer(c);
     sem_lower_expressions(c);

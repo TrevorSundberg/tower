@@ -1,0 +1,179 @@
+import tower;
+import .compiler.lr_api;
+import .compiler.lr_types;
+import .library.entity_types;
+
+// Linux x64 measurement entry linked against the existing production LR test
+// objects. No allocator instrumentation is shared with native worker threads.
+extern fn compiler_world_create_workers(limit: usize): void*;
+extern fn compiler_world_store(world: void*): EntityStore*;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn entity_create(store: EntityStore*): void*;
+extern fn entity_release(node: void*): usize;
+extern fn lr_states_create_parallel(analysis: void*, anchor: void*): void*;
+extern fn lr_states_edge_count(states: void*, index: usize): usize;
+extern fn lr_states_edges(states: void*, index: usize): LRTransition*;
+extern fn work_thread_capacity(): usize;
+
+struct LRBenchmarkTime { seconds: i64; nanoseconds: i64; }
+struct LRBenchmarkUsage {
+    user_seconds: i64; user_microseconds: i64;
+    system_seconds: i64; system_microseconds: i64;
+    max_rss: i64; shared_rss: i64; data_rss: i64; stack_rss: i64;
+    minor_faults: i64; major_faults: i64; swaps: i64;
+    input_blocks: i64; output_blocks: i64; messages_sent: i64;
+    messages_received: i64; signals: i64; voluntary_switches: i64;
+    involuntary_switches: i64;
+}
+extern fn clock_gettime(clock: i32, value: LRBenchmarkTime*): i32;
+extern fn getrusage(who: i32, value: LRBenchmarkUsage*): i32;
+extern fn puts(text: u8*): i32;
+extern fn strcmp(left: u8*, right: u8*): i32;
+extern fn strtoul(text: u8*, end: u8**, radix: i32): usize;
+extern fn printf(format: u8*, case: u8*, workers: usize, sample: usize,
+    iterations: usize, wall: u64, cpu: u64, rss: i64, entities: usize, states: usize,
+    voluntary: i64, involuntary: i64): i32;
+
+var LRBenchmarkMonotonic: i32 = 1;
+var LRBenchmarkProcessCPU: i32 = 2;
+var LRBenchmarkWarmups: usize = 3;
+var LRBenchmarkSamples: usize = 15;
+var LRBenchmarkMaximumSymbols: usize = 4096;
+var LRBenchmarkNone: usize = 18446744073709551615;
+
+fn lr_benchmark_clock(clock: i32, output: u64*): bool {
+    var time: LRBenchmarkTime = default;
+    if clock_gettime(clock, &time) != 0 { return false; }
+    *output = convert(u64, time.seconds) * 1000000000 + convert(u64, time.nanoseconds);
+    return true;
+}
+
+// Compare every ordered item and transition with the ordinary serial algorithm,
+// outside timing. State numbers alone would miss a changed closure or edge.
+fn lr_benchmark_equal(left: void*, right: void*): bool {
+    if left == null || right == null || lr_states_count(left) != lr_states_count(right) { return false; }
+    for(var i: usize = 0; i < lr_states_count(left); i++) {
+        if lr_states_origin(left, i) != lr_states_origin(right, i)
+            || lr_states_edge_count(left, i) != lr_states_edge_count(right, i) { return false; }
+        var a = lr_states_items(left, i);
+        var b = lr_states_items(right, i);
+        if lr_items_count(a) != lr_items_count(b) { return false; }
+        var x = lr_items_data(a);
+        var y = lr_items_data(b);
+        for(var j: usize = 0; j < lr_items_count(a); j++) {
+            if x[j].rule != y[j].rule || x[j].position != y[j].position
+                || x[j].first != y[j].first || x[j].last != y[j].last { return false; }
+        }
+        var p = lr_states_edges(left, i);
+        var q = lr_states_edges(right, i);
+        for(var j: usize = 0; j < lr_states_edge_count(left, i); j++) {
+            if p[j].symbol != q[j].symbol || p[j].state != q[j].state { return false; }
+        }
+    }
+    return true;
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    if argc != 3 && argc != 4 {
+        puts("usage: lr-state-benchmark small|chain|wide|large WORKERS [WIDE_OR_LARGE_SYMBOLS]");
+        return 1;
+    }
+    var small = strcmp(argv[1], "small") == 0;
+    var chain = strcmp(argv[1], "chain") == 0;
+    var wide = strcmp(argv[1], "wide") == 0;
+    var large = strcmp(argv[1], "large") == 0;
+    var end: u8* = null;
+    var workers = strtoul(argv[2], &end, 10);
+    if (!small && !chain && !wide && !large) || end == argv[2] || *end != 0
+        || workers == 0 || workers > work_thread_capacity() {
+        puts("Invalid case or unavailable worker budget");
+        return 1;
+    }
+    var size: usize = small ? 16 : (chain ? 1024 : (large ? 512 : 128));
+    if argc == 4 {
+        size = strtoul(argv[3], &end, 10);
+        if (!wide && !large) || end == argv[3] || *end != 0 || size == 0 || size > LRBenchmarkMaximumSymbols {
+            puts("Invalid explicit grammar size"); return 1;
+        }
+    }
+    var iterations: usize = small ? 128 : (chain ? 16 : 1);
+    var count: usize = chain ? 1 : size * 2 + 1;
+    var length: usize = chain ? size : size * 3 + 1;
+    var rules = alloc(LRProduction, count);
+    var symbols = alloc(LRSymbol, length);
+    defer { free(rules); free(symbols); }
+    if rules == null || symbols == null { puts("Grammar allocation failed"); return 1; }
+    fill(rules, 0, count * sizeof(LRProduction));
+    fill(symbols, 0, length * sizeof(LRSymbol));
+    rules[0].count = chain ? size : 1;
+    if chain {
+        for(var i: usize = 0; i < size; i++) {
+            symbols[i] = { nonterminal: LRBenchmarkNone, first: convert(u32, i + 32), last: convert(u32, i + 32) };
+        }
+    } else {
+        // Root -> A; A -> distinct-token B; B -> distinct-token. The wide case
+        // exposes independent nontrivial closures; the small case stays serial.
+        symbols[0].nonterminal = 1;
+        for(var i: usize = 0; i < size; i++) {
+            var at = 1 + i * 3;
+            rules[1 + i * 2] = { owner: 1, begin: at, count: 2, precedence: 0, associativity: 0 };
+            rules[2 + i * 2] = { owner: 2, begin: at + 2, count: 1, precedence: 0, associativity: 0 };
+            symbols[at] = { nonterminal: LRBenchmarkNone, first: convert(u32, i + 32), last: convert(u32, i + 32) };
+            symbols[at + 1].nonterminal = 2;
+            symbols[at + 2] = { nonterminal: LRBenchmarkNone, first: convert(u32, i + 256), last: convert(u32, i + 256) };
+        }
+    }
+    var analysis = lr_analysis_create(rules, count, symbols, length, chain ? 1 : 3);
+    defer lr_analysis_destroy(analysis);
+    if analysis == null || !lr_analysis_compute(analysis) { puts("FIRST analysis failed"); return 1; }
+    var reference = lr_states_create(analysis);
+    defer lr_states_destroy(reference);
+    if reference == null { puts("Serial reference failed"); return 1; }
+    var world = compiler_world_create_workers(workers);
+    if world == null { puts("World creation failed"); return 1; }
+    var store = compiler_world_store(world);
+    var root = entity_create(store);
+    if root == null { compiler_world_dispose(world); puts("Anchor creation failed"); return 1; }
+    var ok = true;
+    puts("case,workers,sample,iterations,wall_ns,cpu_ns,peak_rss_kib,created_entities,states,voluntary_switches,involuntary_switches");
+    for(var sample: usize = 0; sample < LRBenchmarkWarmups + LRBenchmarkSamples && ok; sample++) {
+        var id = store.next_id;
+        var retained_entities = store.entity_count;
+        var retained_components = store.component_count;
+        var before: LRBenchmarkUsage = default;
+        var after: LRBenchmarkUsage = default;
+        var wall: u64 = 0;
+        var cpu: u64 = 0;
+        if getrusage(0, &before) != 0 { ok = false; break; }
+        // Sum construction intervals; equality checks and destruction remain
+        // outside timing. Repetition reduces sub-100us sampling instability.
+        for(var iteration: usize = 0; iteration < iterations && ok; iteration++) {
+            var start: u64 = 0;
+            var finish: u64 = 0;
+            var cpu_start: u64 = 0;
+            var cpu_finish: u64 = 0;
+            if !lr_benchmark_clock(LRBenchmarkProcessCPU, &cpu_start)
+                || !lr_benchmark_clock(LRBenchmarkMonotonic, &start) { ok = false; break; }
+            var result = lr_states_create_parallel(analysis, root);
+            ok = lr_benchmark_clock(LRBenchmarkMonotonic, &finish)
+                && lr_benchmark_clock(LRBenchmarkProcessCPU, &cpu_finish);
+            wall += finish - start;
+            cpu += cpu_finish - cpu_start;
+            ok &&= lr_benchmark_equal(reference, result);
+            lr_states_destroy(result);
+        }
+        ok &&= getrusage(0, &after) == 0;
+        ok &&= store.entity_count == retained_entities && store.component_count == retained_components;
+        if ok && sample >= LRBenchmarkWarmups {
+            printf("%s,%llu,%llu,%llu,%llu,%llu,%lld,%llu,%llu,%lld,%lld\n", argv[1], workers,
+                sample - LRBenchmarkWarmups, iterations, wall, cpu,
+                after.max_rss, store.next_id - id, lr_states_count(reference),
+                after.voluntary_switches - before.voluntary_switches,
+                after.involuntary_switches - before.involuntary_switches);
+        }
+    }
+    entity_release(root);
+    if !compiler_world_dispose(world) { puts("World did not drain"); return 1; }
+    if !ok { puts("Measurement, exact serial equivalence or retained ownership check failed"); return 1; }
+    return 0;
+}

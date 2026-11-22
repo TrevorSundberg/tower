@@ -1,15 +1,14 @@
 import tower;
+import .compiler.semantic_context_types;
+import .compiler.semantic_evaluation_types;
+import semantic_source_proof_checks;
+import type_execution_receipts;
+import semantic_world;
 import .compiler.foundation_tags;
 import .compiler.semantic_program_types;
 import .compiler.interpreter_context_types;
-import .compiler.semantic_context;
-import .compiler.semantic_support;
-import .compiler.semantic_lifecycle;
-import .compiler.semantic_evaluation;
-import .compiler.semantic_evaluation_work;
-import .compiler.semantic_declarations;
-import .compiler.semantic_body_work;
-import .compiler.semantic_lowering_work;
+import .compiler.semantic_query_api;
+import .compiler.semantic_declaration_types;
 import .compiler.component_kinds;
 import .compiler.parser_types;
 import .compiler.semantic_work_ids;
@@ -37,9 +36,9 @@ fn body_query_tests(width: u32, workers: usize, mode: BodyQueryFixture): u32 {
     var failures: u32 = 0;
     var world = compiler_world_create_workers(workers);
     var root = entity_create(compiler_world_store(world));
-    var program: SemanticProgram = default;
+    var program: SemanticProgram;
     semantic_initialize(&program, root, width);
-    var context: SemanticContext = default;
+    var context: SemanticContext;
     sem_context_init(&context, &program);
     context.generics = generic_begin(root);
     var headers: vector(usize) = default;
@@ -57,7 +56,7 @@ fn body_query_tests(width: u32, workers: usize, mode: BodyQueryFixture): u32 {
         sem_require(entity_attach(block, subject, "body"));
         var syntax = bits(ParserMatchData*, compiler_world_component(world, block, CompilerParserMatch));
         sem_require(node_match_set_label(syntax, mode == BodyQueryFixture.InvalidBody && i == 0 ? "UnsupportedBlock" : "CoreBlock"));
-        var header = work_request(&context.queries, subject, DeclarationQuery, 0);
+        var header = work_request(&context.queries, subject, convert(u32, SemanticQuery.Declaration), 0);
         var declaration = sem_declaration_state(&context, subject);
         declaration.subject = subject;
         declaration.query = header;
@@ -67,7 +66,7 @@ fn body_query_tests(width: u32, workers: usize, mode: BodyQueryFixture): u32 {
     context.body_roots = true;
     evaluation_query_check(sem_bodies_pump(&context) == SemanticPumpResult.Progress,
         "Body admission persists its source frontier before checking", &failures);
-    var state = sem_bodies_begin(&context);
+    var state = entity_component_data(entity_component_get(root, context.body_pipeline));
     if mode == BodyQueryFixture.LaterWindow {
         evaluation_query_check(sem_bodies_pump(&context) == SemanticPumpResult.Progress,
             "A blocked source window admits later function producers", &failures);
@@ -88,12 +87,12 @@ fn body_query_tests(width: u32, workers: usize, mode: BodyQueryFixture): u32 {
     if mode == BodyQueryFixture.Cycle {
         var ticket: WorkTicket = default;
         sem_require(work_take_task(&context.queries, &ticket, headers.data[0]));
-        var body = work_find(&context.queries, program.functions.data[1], BodyQuery, 0);
+        var body = work_find(&context.queries, program.functions.data[1], convert(u32, SemanticQuery.Body), 0);
         sem_require(work_suspend(&context.queries, &ticket, body));
     }
     evaluation_query_check(sem_bodies_pump(&context) == SemanticPumpResult.Waiting
         && program.error.length == 0 && context.workers.running == 0
-        && state.window.length == count,
+        && sem_bodies_admitted(&context) == count,
         "Body checking yields without forcing headers or prematurely selecting a cycle", &failures);
     // This structural write also verifies that no input view survives the pump.
     var marker = sem_create(root);
@@ -104,8 +103,8 @@ fn body_query_tests(width: u32, workers: usize, mode: BodyQueryFixture): u32 {
             sem_require(work_take_task(&context.queries, &ticket, headers.data[count - 1]));
             sem_require(work_finish(&context.queries, &ticket, true));
             evaluation_query_check(sem_bodies_pump(&context) == SemanticPumpResult.Progress
-                && work_task(&context.queries, work_find(&context.queries, program.functions.data[count], BodyQuery, 0)).state == WorkState.Succeeded
-                && work_task(&context.queries, work_find(&context.queries, program.functions.data[1], BodyQuery, 0)).state == WorkState.Waiting,
+                && work_task(&context.queries, work_find(&context.queries, program.functions.data[count], convert(u32, SemanticQuery.Body), 0)).state == WorkState.Succeeded
+                && work_task(&context.queries, work_find(&context.queries, program.functions.data[1], convert(u32, SemanticQuery.Body), 0)).state == WorkState.Waiting,
                 "A ready body beyond the original window executes while earlier headers wait", &failures);
         }
         foreach(var header in &headers) {
@@ -135,14 +134,15 @@ fn body_query_tests(width: u32, workers: usize, mode: BodyQueryFixture): u32 {
             }
             foreach(var header in &headers) {
                 var subject = work_task(&context.queries, header).subject;
-                var body = work_find(&context.queries, subject, BodyQuery, 0);
+                var body = work_find(&context.queries, subject, convert(u32, SemanticQuery.Body), 0);
                 evaluation_query_check(work_task(&context.queries, body).state == WorkState.Succeeded
                     && work_task(&context.queries, body).dispatch == 1 && sem_get(subject).body != null,
                     "Resumed body publishes exactly once", &failures);
             }
             evaluation_query_check(sem_bodies_pump(&context) == SemanticPumpResult.Complete
                 && sem_bodies_pump(&context) == SemanticPumpResult.Complete
-                && sem_bodies_begin(&context) == state && state.window.length == count,
+                && entity_component_data(entity_component_get(root, context.body_pipeline)) == state
+                && sem_bodies_admitted(&context) == count,
                 "Completed body pipeline keeps its identity without replay", &failures);
         }
     } else {
@@ -197,6 +197,8 @@ fn evaluation_query_stage(c: SemanticContext*, input: void*, requested: bool): S
 // acquire executable nodes; pumping a completed graph must not replay work.
 export fn evaluation_query_tests(width: u32, workers: usize): u32 {
     var failures: u32 = 0;
+    failures += semantic_source_proof_tests(width, workers);
+    type_execution_receipt_tests(width);
     failures += call_query_tests(width);
     failures += body_query_tests(width, workers, BodyQueryFixture.Resume);
     failures += body_query_tests(width, workers, BodyQueryFixture.Cycle);
@@ -205,9 +207,9 @@ export fn evaluation_query_tests(width: u32, workers: usize): u32 {
     failures += body_query_tests(width, workers, BodyQueryFixture.LaterWindow);
     var world = compiler_world_create_workers(workers);
     var root = entity_create(compiler_world_store(world));
-    var program: SemanticProgram = default;
+    var program: SemanticProgram;
     semantic_initialize(&program, root, width);
-    var context: SemanticContext = default;
+    var context: SemanticContext;
     sem_context_init(&context, &program);
     sem_evaluation_begin(&context);
     var input = sem_create(root);
@@ -220,17 +222,17 @@ export fn evaluation_query_tests(width: u32, workers: usize): u32 {
     var unused = evaluation_query_stage(&context, input, false);
     var consumer = evaluation_query_stage(&context, producer.subject, true);
     sem_evaluation_work_register(&context, false);
-    sem_require(work_demand(&context.queries, work_find(&context.queries, consumer.subject, EvaluationQuery, 0)));
+    sem_require(work_demand(&context.queries, work_find(&context.queries, consumer.subject, convert(u32, SemanticQuery.Evaluation), 0)));
     sem_evaluation_prepare_all(&context);
     evaluation_query_check(consumer.started && !consumer.ready.ready && !producer.started && !unused.started,
         "Demanded preparation owns interpreter startup without executing or starting unrelated stages", &failures);
     sem_evaluations(&context);
     evaluation_query_check(program.error.length == 0 && consumer.ready.ready && !consumer.ready.failed
         && sem_get(consumer.subject).bits == 42, "Interpreter demand prepares and resumes a nested stage", &failures);
-    var prepare = work_find(&context.queries, producer.subject, EvaluationPrepareQuery, 0);
+    var prepare = work_find(&context.queries, producer.subject, convert(u32, SemanticQuery.EvaluationPrepare), 0);
     evaluation_query_check(work_task(&context.queries, prepare).dispatch == 1,
         "Late dependency prepares exactly once", &failures);
-    var unused_prepare = work_find(&context.queries, unused.subject, EvaluationPrepareQuery, 0);
+    var unused_prepare = work_find(&context.queries, unused.subject, convert(u32, SemanticQuery.EvaluationPrepare), 0);
     evaluation_query_check(!work_task(&context.queries, unused_prepare).demanded && unused.function == null
         && !unused.started, "Unreachable stage has no prepared function or interpreter", &failures);
     var count = context.count;
@@ -259,7 +261,7 @@ export fn evaluation_query_tests(width: u32, workers: usize): u32 {
         var result = bits(SemanticEvaluation*, context.evaluation_jobs.data[i]);
         evaluation_query_check(result.ready.ready && !result.ready.failed && sem_get(result.subject).bits == 42,
             "Refilled evaluation windows publish the ordinary interpreter result", &failures);
-        var prepared = work_find(&context.queries, result.subject, EvaluationPrepareQuery, 0);
+        var prepared = work_find(&context.queries, result.subject, convert(u32, SemanticQuery.EvaluationPrepare), 0);
         evaluation_query_check(work_task(&context.queries, prepared).dispatch == 1,
             "Refilled evaluation windows prepare each dependency once", &failures);
     }
@@ -278,12 +280,12 @@ export fn evaluation_query_tests(width: u32, workers: usize): u32 {
     declaration.checked = true;
     declaration.calls_scanned = true;
     declaration.kernel.payload = bits(void*, declaration);
-    declaration.query = work_request(&context.queries, input, DeclarationQuery, 0);
+    declaration.query = work_request(&context.queries, input, convert(u32, SemanticQuery.Declaration), 0);
     sem_require(work_depend(&context.queries, declaration.query, prerequisite));
     sem_require(work_access(&context.queries, declaration.query, convert(u64, SemanticWorkDomain.Compiler),
         convert(u64, SemanticAccess.Declaration), declaration.query, 1, WorkAccessMode.Write));
     sem_require(work_seal(&context.queries, declaration.query));
-    var preparation = work_find(&context.queries, blocked.subject, EvaluationPrepareQuery, 0);
+    var preparation = work_find(&context.queries, blocked.subject, convert(u32, SemanticQuery.EvaluationPrepare), 0);
     sem_require(work_depend(&context.queries, preparation, declaration.query));
     evaluation_query_check(sem_evaluation_pump(&context) == SemanticPumpResult.Waiting
         && program.error.length == 0 && !blocked.started && context.workers.running == 0,

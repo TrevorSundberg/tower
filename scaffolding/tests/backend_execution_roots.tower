@@ -1,0 +1,32 @@
+import tower;
+
+var effects: i32 = 0;
+
+// This declaration stays in canonical Foundation, but it is not an executable
+// root and must not add its capability trap or strings to scalar normalization.
+fn unused_type(width: usize): type {
+    return integer_type(width, 1);
+}
+
+fn direct(value: i32): i32 {
+    effects++;
+    return value + 1;
+}
+
+fn callback(value: i32): i32 {
+    effects++;
+    return value * 2;
+}
+
+fn recursive(value: i32): i32 {
+    if value == 0 { return 0; }
+    return recursive(value - 1) + 1;
+}
+
+export fn retained_export(): i32 {
+    return 11;
+}
+
+var selected: function(i32, i32) = callback;
+print(direct(20) + selected(10) + recursive(4));
+print(effects);

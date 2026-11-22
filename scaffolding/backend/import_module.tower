@@ -159,7 +159,7 @@ export fn backend_import_foundation(b: Backend*, root: void*): bool {
                 if done {
                     break;
                 }
-                if backend_equal(name, b.symbols.data[i]) {
+                if b.symbols.data[i] != null && backend_equal(name, b.symbols.data[i]) {
                     var original = sem_get(b.source_functions.data[i]);
                     var public = original.external;
                     if original.exported {
