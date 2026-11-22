@@ -1,5 +1,6 @@
 import tower;
 import utility_checks;
+import macho_link_checks;
 import .backend.macho_types;
 import .backend.macho_world;
 import .backend.macho_link;
@@ -31,13 +32,14 @@ fn macho_test_file(path: u8*, data: ByteBuffer*): bool {
     data.length = convert(usize, length); return fread(data.data, 1, data.length, file) == data.length;
 }
 export fn main(argc: i32, argv: u8**): i32 {
-    var imports: u8* = "--- !tapi-tbd\ntbd-version: 4\ntargets: [ x86_64-macos, arm64-macos ]\ninstall-name: '/usr/lib/libSystem.B.dylib'\ncurrent-version: 1\ncompatibility-version: 1\nexports:\n  - targets: [ x86_64-macos ]\n    symbols: [ ___bzero, _bzero, _backtrace ]\n  - targets: [ arm64-macos ]\n    symbols: [ _bzero, _backtrace ]\n...\n";
+    var imports: u8* = "--- !tapi-tbd\ntbd-version: 4\ntargets: [ x86_64-macos, arm64-macos ]\ninstall-name: '/usr/lib/libSystem.B.dylib'\ncurrent-version: 1\ncompatibility-version: 1\nexports:\n  - targets: [ x86_64-macos ]\n    symbols: [ ___bzero, _bzero, __Unwind_Backtrace ]\n  - targets: [ arm64-macos ]\n    symbols: [ _bzero, __Unwind_Backtrace ]\n...\n";
     if argc == 3 && wasm_bytes_text(wasm_text_bytes(argv[2]), "--imports") {
         var bytes = wasm_text_bytes(imports); var file = fopen(argv[1], "wb"); utility_check(file != null, "TBD output");
         var written = fwrite(bytes.data, 1, bytes.length, file); utility_check(fclose(file) == 0 && written == bytes.length, "TBD write"); return 0;
     }
     var first_input: i32 = 4;
     if argc <= first_input { puts("usage: macho_link_driver output x64|arm64 workers object-or-archive-or-tbd ..."); return 1; }
+    var checks = wasm_bytes_text(wasm_text_bytes(argv[first_input]), "--checks"); if checks { first_input++; }
     var inputs: vector(ByteBuffer) = default;
     defer { foreach (var & buffer in &inputs) { bytes_dispose(buffer); } vector_dispose(&inputs); }
     var link: MachoLink = default; defer macho_link_close(&link);
@@ -54,6 +56,7 @@ export fn main(argc: i32, argv: u8**): i32 {
         puts(macho_message(link.error.kind)); var message: ByteBuffer = default; defer bytes_dispose(&message);
         bytes_assign_text(&message, link.error.name.data, link.error.name.length); puts(message.data); print(link.error.offset); return 1;
     }
+    if checks { macho_check_inputs(&inputs, &link); }
     var file = fopen(argv[1], "wb"); utility_check(file != null, "Mach-O output open");
     var written = fwrite(link.output.data, 1, link.output.length, file);
     utility_check(fclose(file) == 0 && written == link.output.length, "Mach-O output write");

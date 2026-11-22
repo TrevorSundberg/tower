@@ -39,7 +39,7 @@ jobs:
       - run: bootstrap/linux-x64/towerc scaffolding/tests/macho_link_library.tower --library --target ${{ matrix.architecture.triple }} ${{ matrix.optimization.flag }} -o build/macho_host/library.o
       - run: llvm-ar-19 --format=darwin rcs build/macho_host/library.a build/macho_host/library.o
       - run: clang-19 --target=${{ matrix.architecture.triple }} -O2 -ffreestanding -fno-builtin -fno-stack-protector -mllvm -disable-loop-idiom-all -c bootstrap/linux-x64/share/tower/runtime-macos-${{ matrix.architecture.cpu }}.ll -o build/macho_host/runtime.o
-      - run: build/macho_host/driver build/images/tower-${{ matrix.optimization.name }} ${{ matrix.architecture.cpu }} 4 build/macho_host/program.o build/macho_host/runtime.o build/macho_host/library.a scaffolding/targets/libSystem.tbd build/macho_host/imports.tbd
+      - run: build/macho_host/driver build/images/tower-${{ matrix.optimization.name }} ${{ matrix.architecture.cpu }} 4 --checks build/macho_host/program.o build/macho_host/runtime.o build/macho_host/library.a scaffolding/targets/libSystem.tbd build/macho_host/imports.tbd
       - run: ld64.lld-19 -arch ${{ matrix.architecture.lld }} -platform_version macos 11.0 11.0 -e _main build/macho_host/program.o build/macho_host/runtime.o build/macho_host/library.a scaffolding/targets/libSystem.tbd build/macho_host/imports.tbd -o build/images/reference-${{ matrix.optimization.name }}
       - uses: actions/upload-artifact@v4
         with:
@@ -66,5 +66,8 @@ jobs:
       - run: codesign --verify --strict --verbose=2 images/tower-optimized
       - run: images/reference-raw
       - run: images/tower-raw
+        if: ${{ !cancelled() }}
       - run: images/reference-optimized
+        if: ${{ !cancelled() }}
       - run: images/tower-optimized
+        if: ${{ !cancelled() }}

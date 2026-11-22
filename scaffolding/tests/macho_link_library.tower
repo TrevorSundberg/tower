@@ -1,6 +1,7 @@
 import tower;
-extern fn backtrace(frames: void**, count: i32): i32;
-var MachoTestTraceCapacity: i32 = 32;
+extern fn _Unwind_Backtrace(callback: function(i32, void*, void*), context: void*): i32;
+var MachoUnwindContinue: i32 = 0;
+fn macho_trace_frame(frame: void*, context: void*): i32 { var count = bits(i32*, context); *count += 1; return MachoUnwindContinue; }
 export fn macho_answer(): i32 { return 42; }
 export fn macho_frame(data: u8*, size: usize): i32 { return convert(i32, data[0]) + convert(i32, data[size - 1]); }
-export fn macho_trace(): i32 { var frames: void*[32]; return backtrace(&frames[0], MachoTestTraceCapacity); }
+export fn macho_trace(): i32 { var count: i32 = 0; _Unwind_Backtrace(macho_trace_frame, bits(void*, &count)); return count; }

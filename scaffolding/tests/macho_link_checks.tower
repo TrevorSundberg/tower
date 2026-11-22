@@ -1,0 +1,97 @@
+import tower;
+import utility_checks;
+import .backend.macho_types;
+import .backend.macho_world;
+import .backend.macho_link;
+import .backend.macho_symbols;
+import .backend.macho_layout;
+import .backend.macho_jobs;
+import .backend.macho_unwind;
+import .backend.macho_metadata;
+import .backend.macho_emit;
+import .backend.macho_sign;
+import .backend.elf_types;
+import .backend.wasm_bytes;
+import .library.bytes;
+import .library.vector;
+import .library.entity_api;
+import .library.work_pool;
+import .library.sha256;
+
+fn macho_check_load(link: MachoLink*, inputs: vector(ByteBuffer)*, cpu: MachoCpu): void {
+    utility_check(macho_link_open(link, cpu), "Mach-O check world opens");
+    foreach (var & buffer in inputs) {
+        utility_check(macho_link_input(link, wasm_text_bytes("input"), init(WasmBytes) { data: buffer.data, length: buffer.length }), "Mach-O check input");
+    }
+}
+struct MachoCancelProbe { link: MachoLink*; polls: usize; }
+fn macho_check_cancel(payload: void*): bool {
+    var probe = bits(MachoCancelProbe*, payload);
+    utility_check(probe.link.store.views != 0 && !macho_link_close(probe.link), "Mach-O cancellation pin"); probe.polls++; return probe.polls > 1;
+}
+struct MachoOverlapProbe { job: MachoLinkJob; entered: void*; release: void*; }
+fn macho_check_overlap_execute(payload: void*): void {
+    var probe = bits(MachoOverlapProbe*, payload); work_signal_post(probe.entered); work_signal_wait(probe.release); macho_job_execute(bits(void*, &probe.job));
+}
+fn macho_check_overlap(inputs: vector(ByteBuffer)*, reference: MachoLink*): void {
+    var overlap_jobs: usize = 2;
+    utility_check(work_thread_available() && work_thread_capacity() >= overlap_jobs, "Mach-O production thread transport");
+    var link: MachoLink = default; defer macho_link_close(&link); macho_check_load(&link, inputs, reference.cpu);
+    utility_check(macho_symbols(&link) && macho_layout(&link) && link.objects.length >= overlap_jobs, "Mach-O overlap layout");
+    var view = entity_view_open(link.object_type); utility_check(view != null, "Mach-O overlap input pin");
+    var entered = work_signal_open(); var release = work_signal_open(); utility_check(entered != null && release != null, "Mach-O overlap signals");
+    defer work_signal_close(entered); defer work_signal_close(release);
+    var pool: WorkPool = default; utility_check(work_pool_open_kernel(&pool, overlap_jobs, macho_check_overlap_execute) && pool.threaded, "Mach-O real threaded kernels"); defer work_pool_close(&pool);
+    var probes: MachoOverlapProbe[2] = default;
+    for (var at: usize = 0; at < overlap_jobs; at++) {
+        probes[at] = init(MachoOverlapProbe) { job: { link: &link, object: link.objects.data[at].object, ..default }, entered: entered, release: release };
+        utility_check(work_pool_submit(&pool, bits(void*, &probes[at])), "Mach-O overlap submit");
+    }
+    work_signal_wait(entered); work_signal_wait(entered); utility_check(pool.running == overlap_jobs, "both Mach-O kernels entered before release");
+    work_signal_post(release); work_signal_post(release);
+    for (var at: usize = 0; at < overlap_jobs; at++) {
+        var done = bits(MachoOverlapProbe*, work_pool_receive(&pool, true)); utility_check(done.job.error.kind == MachoError.None, "Mach-O overlapping relocation");
+    }
+    entity_view_close(view);
+    for (var at = overlap_jobs; at < link.objects.length; at++) {
+        var job: MachoLinkJob = { link: &link, object: link.objects.data[at].object, ..default }; macho_job_execute(bits(void*, &job));
+        utility_check(job.error.kind == MachoError.None, "Mach-O remaining relocation");
+    }
+    utility_check(macho_unwind(&link) && macho_metadata(&link) && macho_emit(&link) && link.output.length == reference.output.length
+        && utility_equal(link.output.data, reference.output.data, link.output.length), "Mach-O overlap exact output");
+}
+fn macho_check_signature(link: MachoLink*): void {
+    var slots = (link.signature_at + MachoSignBlock - 1) / MachoSignBlock;
+    for (var index: u64 = 0; index < slots; index++) {
+        var at = index * MachoSignBlock; var size = link.signature_at - at; if size > MachoSignBlock { size = MachoSignBlock; }
+        var state: Sha256 = default; sha256_init(&state);
+        utility_check(sha256_update(&state, link.output.data + convert(usize, at), convert(usize, size)), "signature hash input");
+        var digest = sha256_finish(&state);
+        utility_check(utility_equal(&digest.bytes[0], link.output.data + convert(usize, link.signature_at + MachoSignHeaders + index * MachoSignDigest), convert(usize, MachoSignDigest)), "every signature code slot");
+    }
+}
+fn macho_check_inputs(inputs: vector(ByteBuffer)*, reference: MachoLink*): void {
+    var worker_limit: usize = 8;
+    for (var workers: usize = 1; workers <= worker_limit; workers *= 2) {
+        var link: MachoLink = default; defer macho_link_close(&link); macho_check_load(&link, inputs, reference.cpu); link.workers = workers;
+        utility_check(macho_link_run(&link) && link.output.length == reference.output.length && utility_equal(link.output.data, reference.output.data, link.output.length), "Mach-O deterministic worker output");
+        utility_check(!macho_link_run(&link) && link.output.length == 0, "Mach-O single-use request clears stale output");
+    }
+    macho_check_overlap(inputs, reference); macho_check_signature(reference);
+    var cancel: MachoLink = default; defer macho_link_close(&cancel); macho_check_load(&cancel, inputs, reference.cpu); cancel.workers = worker_limit;
+    var cancellation: MachoCancelProbe = { link: &cancel, ..default }; cancel.cancel = macho_check_cancel; cancel.cancel_context = bits(void*, &cancellation);
+    utility_check(!macho_link_run(&cancel) && cancel.error.kind == MachoError.Cancelled && cancel.output.length == 0 && cancellation.polls > 1 && cancel.store.views == 0, "Mach-O cancellation drains active jobs");
+    var duplicate: MachoLink = default; defer macho_link_close(&duplicate); macho_check_load(&duplicate, inputs, reference.cpu);
+    utility_check(macho_link_input(&duplicate, wasm_text_bytes("duplicate"), init(WasmBytes) { data: inputs.data[0].data, length: inputs.data[0].length })
+        && !macho_link_run(&duplicate) && duplicate.error.kind == MachoError.Duplicate && duplicate.output.length == 0, "Mach-O duplicate definition");
+    var absent: MachoLink = default; defer macho_link_close(&absent); macho_check_load(&absent, inputs, reference.cpu); absent.entry = wasm_text_bytes("missing_entry");
+    utility_check(!macho_link_run(&absent) && absent.error.kind == MachoError.Undefined && absent.output.length == 0, "Mach-O missing entry");
+    var original: WasmBytes = { data: inputs.data[0].data, length: inputs.data[0].length };
+    for (var length: usize = 0; length < original.length; length = length == 0 ? 1 : length * 2) {
+        var truncated: MachoLink = default; defer macho_link_close(&truncated); utility_check(macho_link_open(&truncated, reference.cpu), "truncation world");
+        utility_check(!macho_link_input(&truncated, wasm_text_bytes("truncated.o"), init(WasmBytes) { data: original.data, length: length }), "Mach-O truncated input rejects");
+    }
+    var null_link: MachoLink = default; defer macho_link_close(&null_link);
+    utility_check(macho_link_open(&null_link, reference.cpu) && !macho_link_input(&null_link, wasm_text_bytes("null.o"), init(WasmBytes) { data: null, length: 1 }), "Mach-O null span rejects");
+    puts("Mach-O archives, workers, overlap, cancellation, signatures and failures passed");
+}
