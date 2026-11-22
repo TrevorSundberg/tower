@@ -3,8 +3,11 @@ import driver;
 import driver_platform_api;
 import .host.driver_support;
 import .host.driver_platform;
+import .host.driver_paths;
 import .library.bytes_types;
 import .library.bytes_interface;
+
+extern fn host_json_quote(out: ByteBuffer*, source: u8*, length: usize): bool;
 
 // This suite needs real filesystem lookup, not an in-memory module provider.
 // Reuse the driver runner and keep all fixtures inside one newly created root.
@@ -15,6 +18,40 @@ struct DriverImportFiles {
 }
 
 var DriverImportStdout: i32 = 1;
+
+// Both imports name one lexical file. A relative native entry must not make
+// its first dependency a different module from the absolute second spelling.
+fn driver_import_identity(compiler: u8*, resources: u8*): void {
+    var entry = "driver identity main.tower";
+    var helper = "driver identity helper.tower";
+    var absolute: ByteBuffer = default;
+    var source: ByteBuffer = default;
+    defer bytes_dispose(&absolute);
+    defer bytes_dispose(&source);
+    defer driver_platform_remove(entry);
+    defer driver_platform_remove(helper);
+    driver_check(driver_platform_absolute(helper, &absolute), "absolute import identity");
+    var dependency = "import tower; print(42);";
+    driver_check(driver_write_file(helper, dependency, strlen(dependency)), "shared import identity fixture");
+    driver_check(driver_text(&source, "import \"./driver identity helper.tower\"; import ")
+        && host_json_quote(&source, absolute.data, absolute.length)
+        && driver_text(&source, ";") && driver_write_file(entry, source.data, source.length),
+        "relative and absolute imports");
+    absolute.length = 0;
+    driver_check(driver_platform_absolute(entry, &absolute), "absolute entry identity");
+    for(var variant: usize = 0; variant < 2; variant++) {
+        var args: DriverArguments = default;
+        driver_arguments_init(&args);
+        defer driver_arguments_dispose(&args);
+        driver_argument(&args, "", compiler);
+        driver_argument(&args, "", variant == 0 ? entry : absolute.data);
+        driver_argument(&args, "", "--interpret");
+        driver_argument(&args, "", "--bedrock"); driver_argument(&args, resources, "/bedrock.tower");
+        driver_argument(&args, "", "--foundation"); driver_argument(&args, resources, "/foundation.tower");
+        driver_check(driver_test_capture(&args) == 0, "native lexical module identity compilation");
+        driver_test_read("driver stdout.txt", "42\n", true);
+    }
+}
 
 fn driver_import_close(files: DriverImportFiles*): void {
     for(var i = files.files.values.length; i != 0;) {
@@ -105,6 +142,7 @@ fn driver_import_checks(files: DriverImportFiles*, compiler: u8*, resources: u8*
 }
 
 fn driver_test_module_paths(compiler: u8*, resources: u8*): bool {
+    driver_import_identity(compiler, resources);
     var files: DriverImportFiles = default;
     var marker: ByteBuffer = default;
     defer bytes_dispose(&files.root); defer bytes_dispose(&marker);

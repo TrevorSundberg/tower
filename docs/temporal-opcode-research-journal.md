@@ -47859,3 +47859,41 @@ genuine upstream divergence, retain a real merge-preserving rebase and revalidat
 Every owned session drained; D2 released the slot for D1's actual ASan parser
 check. Paired current compiler profiles remain next-slot work. Full current
 capture/type/sanitizer/browser/generation and coordinated publication are open.
+
+After releasing the host slot, root delivered followup2218. Reviewed and applied
+B2_native_identity SHA77df2699: request-owned absolute lexical source/root and
+grammar paths live through world/module disposal; symlinks remain unresolved.
+Per-unit temporary absolute names are safe because frontend_units_source
+snapshots them and frontend_modules_configure calls module_path into its owned
+entry vector. No borrowed temporary path survives the iteration. New real CLI
+fixture requires relative/absolute imports of one lexical file to print42 once.
+Owner runtime receipts are separate; local changed-source validation is pending.
+Preserved the entire a224 compiler/resource package before later builds can
+overwrite it, at build/d2_ecs/native_package_a22499d, byte comparison passed.
+
+B2 fixture-import SHAea7bfd6a failed its full apply check at the already-fixed
+D2 measure_kernel import. Preserved our measured Foundation import unchanged;
+did not stack a Tower import or change the reference workload language. Applied
+only the other two files: one shared Tower source-prefix helper and its existing
+differential/C-validation callers, whose generated fragments lacked imports.
+Root received the exact overlap and reconciliation. Original return/output/error
+oracles remain intact; no runtime pass inferred from applying the patch.
+
+Reviewed all254lines of D1's parser_retention_validated SHA19da2e17 before
+adoption. It replaces a raw buffer-count equality with actual per-page owning
+component enumeration, precise requested/live/unused payload accounting and
+stable cache identities. Full pages are reached from owning components, not only
+partial-page pools. Private census scratch is disposed outside parse timing.
+An explicit one-worker world and required serial counter transport separate
+this ownership check from real multicore performance. Baseline/final session
+and world teardown remain exact; the live-owner page upper bound is explicitly
+loose, not a low-fragmentation claim. Original five warmups and timing CSV remain;
+normal/stress sizes are unchanged. D1's original134 and three normal/three
+stress passes are owner evidence, with actual ASan still pending at adoption.
+This updated measurement-tool source requires its own D2 receipt; no generic
+parser algorithm or retention allowance was changed by D2.
+
+Capture-range v2 is expressly review-only pending descendant payload leases and
+aggregate/terminal/memory evidence. Neither range version nor the partial
+late-capture prerequisite has been adopted here. D2's known capture failure
+therefore remains open while independent tooling/profile work continues.

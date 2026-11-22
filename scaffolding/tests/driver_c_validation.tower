@@ -153,7 +153,7 @@ fn driver_c_variant(context: DriverCValidation*, name: u8*, source: u8*, graph: 
 fn driver_c_case(context: DriverCValidation*, name: u8*, text: u8*, profile: bool, fails: bool): void {
     if !driver_c_selected(context, name) || (context.mode == DriverCMode.Profiles && !profile) { return; }
     var source = driver_c_path(name, ".tower"); defer bytes_dispose(&source);
-    driver_check(driver_write_file(source.data, text, strlen(text)), "write C differential fixture");
+    driver_execution_source(source.data, text);
     for(var index: usize = 0; index < DriverCProfileCount; index++) {
         var modern = context.mode == DriverCMode.Profiles;
         if !modern && index != 0 { break; }

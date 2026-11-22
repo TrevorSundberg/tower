@@ -879,3 +879,26 @@ and limitations are recorded in the journal with primary Git sources. No
 dependency suppression, output touching or generic build implementation change.
 Current paired compiler profiles, full instrumentation and release gates remain
 open. All owned jobs drained before D1 received the next host slot.
+
+### Subsequent measurement-source handoff review
+
+D1 parser_retention_validated patch19da2e17 updates the already-reviewed
+`scaffolding/tests/parser_benchmark.tower`. Its private page index enumerates
+every actual component owner, including full pages detached from free pools;
+checks each page's live count/type/layout/capacity; and accounts requested/live/
+unused bytes independently of RSS. It uses an explicit world with serial counter
+transport. Scratch census runs outside parse timing; unchanged warmup5 and exact
+session/world teardown prevent hiding accumulated ownership. Cache revision and
+compiled-version pointers remain stable. The page bound is deliberately loose,
+not packed-storage or low-fragmentation evidence. Adopted exact owner patch;
+D1's normal/stress passes and original134 keep their own provenance. D2 runtime
+and the owner's actual ASan gate remain pending, with no multicore claim.
+
+B2's shared differential/C fixture source prefix is reviewed and integrated.
+The overlapping measurement-kernel hunk was excluded because D2 already has a
+validated explicit Foundation import. Its source/language/oracles stay unchanged;
+adding a second Tower import would alter the matched input without necessity.
+The separate two-file fix reuses one owned ByteBuffer and existing synchronous
+file write. Local execution of the changed callers remains pending. Driver
+lexical path normalization is B2-owned; D2 checked that request paths outlive
+worlds and per-unit names are copied into owned module state before local disposal.

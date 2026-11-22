@@ -2,6 +2,7 @@ import tower;
 import driver_types;
 import driver_support;
 import driver_platform;
+import driver_paths;
 import .library.bytes_types;
 import .library.bytes_interface;
 
@@ -38,6 +39,8 @@ struct DriverRequest {
     world: void*;
     options: DriverOptions*;
     root: u8*;
+    source_path: ByteBuffer;
+    root_path: ByteBuffer;
     bedrock_path: ByteBuffer;
     foundation_path: ByteBuffer;
     text: ByteBuffer[5];
@@ -61,6 +64,20 @@ fn driver_request_path(out: ByteBuffer*, override: u8*, root: u8*, name: u8*): b
     }
     ok &&= host_text_terminate(out);
     return ok;
+}
+
+// Anchor native filesystem inputs once, without resolving symlinks. Module
+// lookup then sees one lexical spelling even when imports mix relative and
+// absolute paths. Browser/source-provider keys do not pass through this boundary.
+fn driver_request_absolute(path: ByteBuffer*): bool {
+    var absolute: ByteBuffer = default;
+    if !driver_platform_absolute(path.data, &absolute) {
+        bytes_dispose(&absolute);
+        return false;
+    }
+    bytes_dispose(path);
+    *path = absolute;
+    return true;
 }
 
 fn driver_request_failure(request: DriverRequest*, prefix: u8*, detail: u8*): bool {
@@ -127,6 +144,11 @@ export fn driver_request_open(request: DriverRequest*, options: DriverOptions*, 
     if !(driver_request_read(request, options.source, DriverSourceText)) {
         return false;
     }
+    if !driver_platform_absolute(options.source, &request.source_path)
+        || !driver_platform_absolute(root, &request.root_path)
+        || !driver_request_absolute(&request.bedrock_path)
+        || !driver_request_absolute(&request.foundation_path) { return false; }
+    request.root = request.root_path.data;
     return true;
 }
 
@@ -152,7 +174,7 @@ export fn driver_request_canonical(request: DriverRequest*): bool {
 }
 
 fn driver_request_configure(request: DriverRequest*): void {
-    driver_request_configure_modules(request, request.modules, request.options.source);
+    driver_request_configure_modules(request, request.modules, request.source_path.data);
 }
 
 fn driver_request_configure_modules(request: DriverRequest*, modules: void*, source: u8*): void {
@@ -209,7 +231,7 @@ export fn driver_request_modules(request: DriverRequest*): void* {
 export fn driver_request_stage(request: DriverRequest*): void {
     if request.generated is not null { return; }
     request.generated = frontend_modules_create();
-    frontend_modules_configure(request.generated, request.options.source, request.root);
+    frontend_modules_configure(request.generated, request.source_path.data, request.root);
     if request.world is not null {
         if !frontend_modules_bind_world(request.generated, request.world) { abort(); }
     }
@@ -231,11 +253,11 @@ export fn driver_request_close(request: DriverRequest*): void {
     if request.world is not null {
         if !frontend_world_clear(request.world) || !compiler_world_dispose(request.world) { abort(); }
     }
-    var i: usize = 0;
-    while i < 5 {
+    for(var i: usize = 0; i < sizeof(decltype(request.text)) / sizeof(ByteBuffer); i++) {
         bytes_dispose(&request.text[i]);
-        ++i;
     }
+    bytes_dispose(&request.source_path);
+    bytes_dispose(&request.root_path);
     bytes_dispose(&request.bedrock_path);
     bytes_dispose(&request.foundation_path);
     bytes_dispose(&request.error);
