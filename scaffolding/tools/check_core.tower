@@ -1,0 +1,115 @@
+import tower;
+import tool_process_linux;
+import tool_files_posix;
+import .library.vector;
+import .library.bytes;
+import .library.bytes_types;
+
+extern fn puts(text: u8*): i32;
+extern fn getenv(name: u8*): u8*;
+extern fn access(path: u8*, mode: i32): i32;
+
+enum CoreCheckExit: i32 { Success = 0, Failure = 1, Usage = 2 }
+
+// CMake/CTest and the portable WASI host retain their existing responsibilities.
+// env supplies ordinary PATH lookup, without a shell or command-string parsing.
+fn core_check_run(args: vector(u8*)*): i32 {
+    if !tool_process_argument(args, null) { return convert(i32, CoreCheckExit.Failure); }
+    var result = tool_process(args.data[0], args.data);
+    var status = tool_process_status(result);
+    var command_index: usize = 1;
+    if status != 0 { puts("Core check command failed:"); puts(args.data[command_index]); }
+    args.length = 0;
+    return status;
+}
+
+fn core_check_command(args: vector(u8*)*, command: u8*): bool {
+    return tool_process_argument(args, "/usr/bin/env") && tool_process_argument(args, command);
+}
+
+fn core_check_setting(out: ByteBuffer*, key: u8*, value: u8*): bool {
+    return bytes_append(out, "-D", strlen("-D")) && bytes_append(out, key, strlen(key))
+        && bytes_push(out, *"=") && bytes_append(out, value, strlen(value)) && bytes_push(out, 0);
+}
+
+fn core_check(root: u8*, build: u8*, compiler: u8*, sdk: u8*): i32 {
+    var args: vector(u8*) = default; defer vector_dispose(&args);
+    var bootstrap: ByteBuffer = default; defer bytes_dispose(&bootstrap);
+    var toolchain: ByteBuffer = default; defer bytes_dispose(&toolchain);
+    var toolchain_setting: ByteBuffer = default; defer bytes_dispose(&toolchain_setting);
+    var wasm = sdk is not null;
+    var failure = convert(i32, CoreCheckExit.Failure);
+    if !core_check_setting(&bootstrap, "TOWER_BOOTSTRAP_COMPILER", compiler) { return failure; }
+    if wasm {
+        if !tool_join(&toolchain, sdk, "share/cmake/wasi-sdk-p1.cmake")
+            || !core_check_setting(&toolchain_setting, "CMAKE_TOOLCHAIN_FILE", toolchain.data) { return failure; }
+        var readable: i32 = 4;
+        if access(toolchain.data, readable) != 0 { puts("WASI SDK toolchain is not readable"); return failure; }
+    }
+    if !core_check_command(&args, "cmake") || !tool_process_argument(&args, "-S") || !tool_process_argument(&args, root)
+        || !tool_process_argument(&args, "-B") || !tool_process_argument(&args, build)
+        || !tool_process_argument(&args, "-G") || !tool_process_argument(&args, "Ninja")
+        || !tool_process_argument(&args, "-DTOWER_PARSER_ONLY=ON") || !tool_process_argument(&args, bootstrap.data) { return failure; }
+    if wasm {
+        var wasi_stack = "-DCMAKE_EXE_LINKER_FLAGS=-Wl,-z,stack-size=8388608";
+        if !tool_process_argument(&args, toolchain_setting.data) || !tool_process_argument(&args, "-DCMAKE_BUILD_TYPE=Release")
+            || !tool_process_argument(&args, "-DCMAKE_CXX_FLAGS=-fno-exceptions")
+            || !tool_process_argument(&args, wasi_stack) { return failure; }
+    } else {
+        if !tool_process_argument(&args, "-DCMAKE_BUILD_TYPE=RelWithDebInfo")
+            || !tool_process_argument(&args, "-DCMAKE_C_COMPILER=clang") || !tool_process_argument(&args, "-DCMAKE_CXX_COMPILER=clang++")
+            || !tool_process_argument(&args, "-DCMAKE_CXX_FLAGS=") { return failure; }
+    }
+    var status = core_check_run(&args); if status != 0 { return status; }
+    var default_jobs = "4";
+    var jobs = getenv("TOWER_BUILD_JOBS");
+    if jobs is null || jobs[0] == 0 { jobs = default_jobs; }
+    if !core_check_command(&args, "cmake") || !tool_process_argument(&args, "--build") || !tool_process_argument(&args, build)
+        || !tool_process_argument(&args, "--parallel") || !tool_process_argument(&args, jobs) { return failure; }
+    if wasm {
+        if !tool_process_argument(&args, "--target") || !tool_process_argument(&args, "tower-parser-tests")
+            || !tool_process_argument(&args, "tower-interpreter-tests") { return failure; }
+    }
+    status = core_check_run(&args); if status != 0 { return status; }
+    if !wasm {
+        if !core_check_command(&args, "ctest") || !tool_process_argument(&args, "--test-dir")
+            || !tool_process_argument(&args, build) || !tool_process_argument(&args, "--output-on-failure") { return failure; }
+        return core_check_run(&args);
+    }
+    var runner: ByteBuffer = default; defer bytes_dispose(&runner);
+    var executable: ByteBuffer = default; defer bytes_dispose(&executable);
+    if !tool_join(&runner, root, "scaffolding/tests/host-wasi.mjs") || !tool_join(&executable, build, "tower-parser-tests")
+        || !core_check_command(&args, "node") || !tool_process_argument(&args, runner.data)
+        || !tool_process_argument(&args, executable.data) { return failure; }
+    status = core_check_run(&args); if status != 0 { return status; }
+    if !tool_join(&runner, root, "scaffolding/tests/interpreter-wasi.mjs") || !tool_join(&executable, build, "tower-interpreter-tests")
+        || !core_check_command(&args, "node") || !tool_process_argument(&args, runner.data)
+        || !tool_process_argument(&args, executable.data) { return failure; }
+    return core_check_run(&args);
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    var native_arguments: i32 = 5; var wasi_arguments: i32 = 6;
+    var mode_argument: usize = 1; var root_argument: usize = 2; var build_argument: usize = 3;
+    var compiler_argument: usize = 4; var sdk_argument: usize = 5;
+    var native = argc == native_arguments && strcmp(argv[mode_argument], "native") == 0;
+    var wasm = argc == wasi_arguments && strcmp(argv[mode_argument], "wasi") == 0;
+    if !native && !wasm {
+        puts("Usage: check_core native|wasi REPOSITORY BUILD_DIRECTORY VERIFIED_COMPILER [WASI_SDK]");
+        return convert(i32, CoreCheckExit.Usage);
+    }
+    var root = realpath(argv[root_argument], null); var compiler = realpath(argv[compiler_argument], null);
+    defer free(root); defer free(compiler);
+    var executable: i32 = 1;
+    if root is null || compiler is null || !tool_directory(root) || access(compiler, executable) != 0
+        || argv[build_argument][0] == 0 || !tool_output_distinct(root, argv[build_argument]) {
+        puts("Core checks need a source directory, executable compiler and separate build directory");
+        return convert(i32, CoreCheckExit.Failure);
+    }
+    var sdk: u8* = null; defer free(sdk);
+    if wasm {
+        sdk = realpath(argv[sdk_argument], null);
+        if sdk is null || !tool_directory(sdk) { puts("WASI SDK directory is missing"); return convert(i32, CoreCheckExit.Failure); }
+    }
+    return core_check(root, argv[build_argument], compiler, sdk);
+}

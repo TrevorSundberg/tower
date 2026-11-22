@@ -8,15 +8,17 @@ sdk="${WASI_SDK_PATH:-$HOME/.cache/tower/wasi-sdk/wasi-sdk-34.0-x86_64-linux}"
 llvm_bin="$("${LLVM_CONFIG:-llvm-config-19}" --bindir)"
 llvm_lib="$("${LLVM_CONFIG:-llvm-config-19}" --libdir)"
 bash playground/scripts/setup-wasi.sh
-bash playground/scripts/build-native.sh -DTOWER_DRIVER_TESTS=ON
-cmake --build "$native" --target tower-driver-tests --parallel "${TOWER_BUILD_JOBS:-2}"
+bash playground/scripts/build-native.sh -DTOWER_DRIVER_TESTS=ON -DTOWER_FORMAT_TESTS=ON
+cmake --build "$native" --target tower-driver-tests tower-format-tests --parallel "${TOWER_BUILD_JOBS:-2}"
+ctest --test-dir "$native" -R '^(tower-format|tower-driver-formatting)$' --output-on-failure
 tools="$(bash playground/scripts/build-bootstrap.sh --tools verify_compiler)"
 "$tools/verify_compiler" --development-package "$repo/build/native/towerc" "$repo/scaffolding/tests" "$repo/build/distribution"
-bash playground/scripts/test-native-core.sh
 bootstrap="$(bash playground/scripts/build-bootstrap.sh)"
+core_tools="$(bash playground/scripts/build-bootstrap.sh --tools check_core)"
+"$core_tools/check_core" native "$repo" "${TOWER_CORE_TEST_BUILD:-$HOME/.cache/tower/core}" "$bootstrap"
+"$core_tools/check_core" wasi "$repo" "${TOWER_HOST_WASI_TEST_BUILD:-$HOME/.cache/tower/host-wasi-tests}" "$bootstrap" "$sdk"
 tools="$(bash playground/scripts/build-bootstrap.sh --tools verify_bootstrap_symbols)"
 "$tools/verify_bootstrap_symbols" --compare "$bootstrap" "$native/towerc" "$repo/scaffolding" "$native" "$llvm_bin/llvm-nm" "$repo/build/bootstrap-check"
-bash playground/scripts/test-host-runtime.sh
 bash playground/scripts/build-wasm.sh
 TOWER_BROWSER_CROSS=ON bash playground/scripts/build-llvm.sh
 (cd build/linking && "$native/tower-driver-tests" --linking "$native/towerc" "$repo/scaffolding" \
@@ -31,7 +33,6 @@ npm ci --prefix playground
 TOWER_REQUIRE_BACKENDS=1 npm run build --prefix playground
 npm test --prefix playground
 (cd build/cross && "$native/tower-driver-tests" --browser-exports "$(command -v qemu-aarch64 || true)")
-npm run check:format --prefix playground
 (cd playground && npx playwright install chromium && npm run test:browser)
 npm run test:deployment --prefix playground
 printf 'Linux build and local deployment validation passed. Website: playground/dist/\n'

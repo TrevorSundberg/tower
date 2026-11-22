@@ -330,7 +330,7 @@ git submodule update --init --recursive
 TOWER_BUILD_JOBS=4 ./build.sh
 ```
 
-This builds the native compiler, sanitizer harness, browser parser, LLVM/Wasm
+This builds the native compiler, core test commands, browser parser, LLVM/Wasm
 and native-target browser compilers, and target support packs. It then runs the
 bootstrap comparisons, native linking/execution, Node tests, formatting checks,
 desktop/mobile Chromium tests and deployment verification against a local static
@@ -803,11 +803,28 @@ bootstrap="$(bash playground/scripts/build-bootstrap.sh)"
 tools="$(bash playground/scripts/build-bootstrap.sh --tools verify_bootstrap_symbols)"
 native="${TOWER_NATIVE_BUILD:-$HOME/.cache/tower/native}"
 "$tools/verify_bootstrap_symbols" --compare "$bootstrap" "$native/towerc" "$PWD/scaffolding" "$native" "$(llvm-config-19 --bindir)/llvm-nm" "$PWD/build/bootstrap-check"
-bash playground/scripts/test-native-core.sh
+tools="$(bash playground/scripts/build-bootstrap.sh --tools check_core)"
+"$tools/check_core" native "$PWD" "${TOWER_CORE_TEST_BUILD:-$HOME/.cache/tower/core}" "$bootstrap"
 node --test playground/tests/compiler-utf8.test.mjs
 node --test playground/tests/compiler-bytes.test.mjs
 node --test playground/tests/compiler-entities.test.mjs
 ```
+
+`check_core` replaces the native/WASI core shell wrappers. Its explicit inputs
+are the source checkout, separate build directory and verified bootstrap. Native
+mode configures the existing parser-only profile, builds it, and runs CTest.
+WASI mode additionally takes the SDK directory and runs both existing portable
+WASI host commands:
+
+```sh
+"$tools/check_core" wasi "$PWD" "${TOWER_HOST_WASI_TEST_BUILD:-$HOME/.cache/tower/host-wasi-tests}" \
+  "$bootstrap" "${WASI_SDK_PATH:-$HOME/.cache/tower/wasi-sdk/wasi-sdk-34.0-x86_64-linux}"
+```
+
+The Linux tool uses CMake, Ninja, Clang, CTest and (for WASI) Node from `PATH`.
+`TOWER_BUILD_JOBS` defaults to four. Arguments remain separate process arguments;
+the first failing configure/build/test status is returned. It does not install
+tools, rebuild the bootstrap, delete caches or run a repository formatter sweep.
 
 The Tower bootstrap verifier consumes the already-built pinned and successor
 compilers and compares optimized LLVM and object bytes for Linux, Windows, macOS

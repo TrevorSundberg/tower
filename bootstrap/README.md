@@ -79,7 +79,7 @@ tools="$(bash playground/scripts/build-bootstrap.sh --tools)"
 
 Pass a tool name after `--tools` to build only `prepare_llvm`, `package_roku`,
 `package_bootstrap`, `package_compiler_project`, `package_targets`, `verify_compiler` or
-`verify_bootstrap_symbols`. Omitting the name builds all seven.
+`verify_bootstrap_symbols` or `check_core`. Omitting the name builds all eight.
 
 `package_targets RUNTIME_RESOURCE_DIRECTORY TARGET_DESCRIPTION_DIRECTORY CLANG OUTPUT_DIRECTORY`
 uses the native package's existing bound runtime IR and the repository's target

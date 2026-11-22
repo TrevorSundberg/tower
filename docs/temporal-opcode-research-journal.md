@@ -41526,3 +41526,71 @@ focused suite and build the corrected publication, not the unrelated full matrix
 The retained-failure correction passes the focused suite at one/four workers,
 including the new structural-to-query case, alias cycles, nested failures and
 execution/canonical reparsing. Evidence: constructor-work-retained.log, exit 0.
+### 2026-11-21: Tower core-check orchestration and root pipeline correction
+
+Previous goal turn made progress: scoped formatting was implemented, validated,
+pushed and its publication verified. This turn starts from clean 5c58b90 after
+git pull --rebase reports up to date. The remaining shell inventory is live:
+Docker/platform bootstrap bridges, LLVM/SDK setup and two core-test wrappers.
+Keep the upstream SDK and CMake capabilities; do not replace them with a new
+installer or duplicate build graph merely to move their invocation language.
+
+Audit correction to the preceding formatter entry: internal.sh, outside the
+searched playground/scaffolding directories, still called npm run check:format.
+It was a fourth live caller missed by that audit. Remove the obsolete broad
+command; the root pipeline now enables/builds the existing focused native
+formatter targets and runs exactly tower-format/tower-driver-formatting. Both
+pass through that CTest selection (5.90s); bash -n internal.sh passes. A tracked
+repository-wide reference search now finds no active retired formatter/core
+wrapper calls. No broad formatting sweep or sanitizer was run.
+
+Retire test-native-core.sh (10 lines) and test-host-runtime.sh (16 lines), whose
+live callers are internal.sh and build/testing docs. Their required behavior is
+the same configure/build/test sequence, with different native/WASI profiles.
+The new 115-line tools/check_core.tower reuses tool_process_linux and POSIX path
+helpers, with a native|wasi mode, explicit source/build/compiler inputs and an
+explicit WASI SDK. Native keeps the parser-only RelWithDebInfo build and CTest;
+WASI keeps the Release toolchain, 8 MiB stack and both portable host commands.
+Those JS commands remain transport, while fixtures/assertions are already Tower.
+The ordinary build_tools entry point selects/builds check_core, including its
+default all-tools list. No new CMake code, dependency installer or test framework.
+
+The tool resolves existing inputs, rejects source/build aliases, passes separate
+argv values, uses /usr/bin/env for inherited PATH lookup without a shell, honors
+TOWER_BUILD_JOBS (default four), and stops/returns the first failing process status.
+It does not verify an arbitrary compiler itself: the documented bootstrap helper
+verifies the pin and resources before passing that explicit capability, just as
+the retired wrappers did. It does not delete build caches or mutate process cwd.
+
+Smallest changed Tower unit compiles with the checked-in public 21f527125bfa
+bootstrap in /cache/core_tool_focus before broader builds. Freeze staged tree
+6e29919253bacf1ec535a43d959de45bf59e81ed in /cache/core tool checkout. Build through
+build-bootstrap.sh --tools check_core with TOWER_BOOTSTRAP_COMPILER unset and
+TOWER_TOOLS_BUILD=/cache/core_tool_builder: all five bootstrap-tool steps pass.
+Tool SHA256 00b4e50dccfa5dde2c9a099496b00fc9d5f28fca15cb803d5fb23177b8d3d88e.
+An initial nested-shell command lost embedded quotes on the Windows boundary;
+use direct Docker argv calls instead. Both source and output directories contain
+spaces in the successful real build trials. SDK 34 was copied unchanged from the
+existing WSL cache into this lane's Docker volume, with no new install step.
+
+check_core native passes its full 63-step build and all 15 CTests (3.81s), using
+Clang 19.1.1 and TOWER_BUILD_JOBS=2 in tower_agent1_c_checks. check_core wasi passes
+its 40-step build with SDK 34/Clang 23.1.0, the complete parser suite and 156
+graph/fast interpreter trials. It then correctly fails at the existing full
+semantic field/edge fingerprint assertion in execution_semantics.tower:65. The
+unchanged interpreter-wasi.mjs command reproduces exit 1 directly against that
+same program, independently of the new runner. No production compiler, grammar
+or test fixture source changed here. Reported to the coordinator; no expected
+hash refresh or skipped assertion. Do not claim the full WASI suite passes.
+WASI parser SHA256 213789a13a3eb64c5b1c7af5351af50631527f865aef5cedbd6d73f28d1b8682;
+interpreter SHA256 f34b58650ec2ba5d73ef259ae1c6426912288e37df8e8eb7564b4b9e7f76d008.
+
+Negative probes verify usage=2, source/build alias rejection=1, missing SDK=1,
+missing PATH command=127, and real CMake configure failure=1. PowerShell's default
+nonzero-native status initially collapsed to 1; explicit exit $LASTEXITCODE
+confirms the exact 2/127 child statuses. Shared process fixtures already cover
+signals and exact argument bytes, so no duplicate mock command framework was
+added. Shell source is now 9 files/230 lines, a net 25-line reduction this batch
+and 253/483 lines (52.4%) below its post-Python baseline. CMake stays 43/2310,
+JavaScript 187/24364, Python and owned C/C++ stay zero. todo.txt is untouched.
+This Linux tooling milestone will preserve the current browser release assets.

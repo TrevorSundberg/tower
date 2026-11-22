@@ -87,9 +87,15 @@ Run from the repository root:
 ./build.sh bash playground/scripts/build-native.sh
 ./build.sh bash playground/scripts/build-bootstrap.sh --tools verify_compiler
 ./build.sh /tmp/tower-home/.cache/tower/tools/bin/verify_compiler --development-package "$PWD/build/native/towerc" "$PWD/scaffolding/tests" "$PWD/build/distribution"
-./build.sh bash playground/scripts/test-native-core.sh
-./build.sh bash playground/scripts/test-host-runtime.sh
+./build.sh bash playground/scripts/build-bootstrap.sh --tools check_core
+./build.sh /tmp/tower-home/.cache/tower/tools/bin/check_core native "$PWD" /tmp/tower-home/.cache/tower/core "$PWD/bootstrap/linux-x64/towerc"
+./build.sh /tmp/tower-home/.cache/tower/tools/bin/check_core wasi "$PWD" /tmp/tower-home/.cache/tower/host-wasi-tests "$PWD/bootstrap/linux-x64/towerc" /tmp/tower-home/.cache/tower/wasi-sdk/wasi-sdk-34.0-x86_64-linux
 ```
+
+`check_core` is the Tower-owned configure/build/test entry point for the existing
+native and WASI core profiles. The preceding tool build verifies the checked-in
+compiler and resources. WASI mode also requires the SDK installed by the normal
+setup step. CMake/CTest and Node remain external build/transport capabilities.
 
 The native build already copies the complete compiler/resources from its cache
 into `build/native`. Tower's `verify_compiler --development-package` consumes

@@ -456,7 +456,8 @@ disposal. Both run in the parser command, alongside the retained native
 reference comparisons. Their functional cases and storage implementations are
 Tower source.
 
-`bash playground/scripts/test-host-runtime.sh` builds and runs the complete
+The Tower `check_core wasi REPOSITORY BUILD_DIRECTORY VERIFIED_COMPILER WASI_SDK`
+command (built with `build-bootstrap.sh --tools check_core`) builds and runs the complete
 WASI parser and interpreter differential commands. The bootstrap comparison
 script also compares six Tower modules across Linux x64, wasm32, Windows x64
 and macOS ARM64 object targets. These object comparisons are distinct from
@@ -684,7 +685,7 @@ and request ownership. Package trials reconstruct checked Foundation, verify its
 execution cache, reproduce identical bytes, and reject checksum corruption and
 truncated envelopes. These tests use the production Tower execution session used
 by the CLI. The same suite runs on WASI through `execution_wasi.tower` and the
-existing `playground/scripts/test-host-runtime.sh` path. The native interpreter
+Tower `check_core wasi` path. The native interpreter
 adapter, reference interpreter and semantic reference seed have been retired.
 Before removal, the unmodified semantic reference suite passed at both widths.
 Tower fixtures retain its 53 exact invalid-program messages and offsets, complete
