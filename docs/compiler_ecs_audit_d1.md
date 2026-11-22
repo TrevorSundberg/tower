@@ -1024,3 +1024,25 @@ canonical before/after equality remains mandatory. Failure prints source and
 wanted/actual class before aborting. No production predicate or compiler semantics
 changed; owner's smallest compile passed, joined runtime remains unverified here.
 The original failure is retained as evidence of the incorrect fixture assumption.
+
+### B2 overlap isolation and editor fixture follow-up
+
+Root-authorized B2 backend_units full source SHA
+2e1774aebd81209ce801156525caac45578240512fd6f66788971e5afcabad90 was compared in
+full against the current reviewed fixture before adoption. Existing streaming
+loop body is extracted verbatim into backend_units_stream_trial, with identical
+world/input/signal lifetime and batch drain order. Full width/budget matrix calls
+that helper; new exported focused entry prepares the same independent serial
+64-bit object baseline and calls budget2. Shared ledger checks, every output
+byte, actual distinct worker identities and30s deadline remain. Only diagnostic
+messages become directional; phase output flushes are OS diagnostics. No test
+skip, timeout increase or production scheduler change. D1 lr_work_main adds one
+explicit backend-overlap selector, leaving `all`/`backend` coverage unchanged and
+reusing the same executable. Before/after runtime attribution remains pending.
+
+B2 editor_observations patchf862f1a46f8870d7c9d3f6ddb38bbd89837e3e7fe1033c270478ab1eaa575eaa
+only adds import tower to two completion source strings. Cursor still derives
+from strlen; expected valid parameter/field labels and serial-worker snapshot
+comparison unchanged. Original missing-import failure was owner-reproduced;
+current independent execution remains pending. No implicit source-prefix policy
+or editor-world ownership change.

@@ -47990,3 +47990,14 @@ already-authorized touched-file whitespace repair. Earlier local incremental
 checks passed but did not cover that incoming line; the full-base check is rerun
 rather than described as previously clean. No runtime profiling applies to this
 single documentation byte correction.
+
+D1 received B2 overlap/editor handoff after its own jobs were drained. Full source
+2e1774ae compared before adoption; existing streaming body/serial reference,
+shared budget, exact bytes, thread identities and30s deadline preserved. Added
+a backend-overlap selector only in existing lr_work_main (root-assigned D1
+boundary), no executable/scheduler duplication. This isolates expensive unrelated
+full-matrix work for diagnosis; current600s outer/30s internal failure remains
+until executed evidence says otherwise. Exported hook is initially unvalidated,
+and its smallest unit/runtime will run after D2's active slot drains. B2's two
+explicit completion imports were also adopted without changing cursor or typed
+oracles. No production source changed in this follow-up.

@@ -76,10 +76,10 @@ fn editor_observation_trial(workers: usize, root: u8*, bedrock: u8*, foundation:
     editor_units_snapshot(output, snapshot);
     completion_dispose(query);
     editor_observation_completion(world, environment,
-        "var value:i32=1;var valid:bool=true;fn check(flag:bool):void{}check(",
+        "import tower;var value:i32=1;var valid:bool=true;fn check(flag:bool):void{}check(",
         "\"label\":\"valid\"", snapshot);
     editor_observation_completion(world, environment,
-        "struct Pair{field:i32;}var value:Pair;value.", "\"label\":\"field\"", snapshot);
+        "import tower;struct Pair{field:i32;}var value:Pair;value.", "\"label\":\"field\"", snapshot);
     editor_observation_completion(world, environment,
         "import tower;struct Pair{field:i32;}fn sample(value:Pair*):i32{var first:i32=3;if first>0{var local:i32=7;value.",
         "field", snapshot);
