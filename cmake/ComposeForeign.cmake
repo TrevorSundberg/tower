@@ -1,6 +1,0 @@
-include("${CMAKE_CURRENT_LIST_DIR}/TowerModule.cmake")
-tower_import("${ROOT}/scaffolding/library/vector.tower")
-foreach(name IN ITEMS text foreign_reader foreign_declarators foreign_operators foreign_itanium foreign_microsoft foreign_api foreign_symbol foreign_tool)
-  tower_import("${ROOT}/scaffolding/backend/${name}.tower")
-endforeach()
-file(WRITE "${OUTPUT}" "${source}")

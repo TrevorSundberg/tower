@@ -1,7 +1,5 @@
 # Last compatibility adapters, implemented in Tower on the shared entity store.
-set(legacy_input "${CMAKE_CURRENT_BINARY_DIR}/tower_compiler_legacy.tower")
-file(GENERATE OUTPUT "${legacy_input}" CONTENT "import host.legacy;\n")
-tower_runtime_object(tower-compiler-legacy "${legacy_input}" "${triple}")
+tower_runtime_object(tower-compiler-legacy "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/host/legacy.tower" "${triple}")
 set(legacy_profile compiler-host)
 if(TOWER_PARSER_ONLY OR TOWER_BROWSER OR NOT CMAKE_BUILD_TYPE MATCHES "^(Release|RelWithDebInfo|MinSizeRel)$")
   set(legacy_profile compiler-host-debug)

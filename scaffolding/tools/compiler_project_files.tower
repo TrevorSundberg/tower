@@ -95,6 +95,11 @@ fn compiler_project_sources(project: CompilerProjectFiles*, repository: u8*): bo
 fn compiler_project_unit_source(name: u8*): u8* {
     if strcmp(name, "tower-compiler-utf8.o") == 0 { return "compiler/utf8.tower"; }
     if strcmp(name, "tower-compiler-bytes.o") == 0 { return "library/bytes.tower"; }
+    if strcmp(name, "tower-compiler-entities.o") == 0 { return "compiler/units/entities.tower"; }
+    if strcmp(name, "tower-compiler-semantics.o") == 0 { return "compiler/units/semantics_checks.tower"; }
+    if strcmp(name, "tower-compiler-interpreter.o") == 0 { return "compiler/units/interpreter_browser.tower"; }
+    if strcmp(name, "tower-compiler-evaluation.o") == 0 { return "compiler/units/evaluation.tower"; }
+    if strcmp(name, "tower-compiler-legacy.o") == 0 { return "host/legacy.tower"; }
     if strcmp(name, "tower-shared-lifecycle.o") == 0 { return "host/entity_lifecycle.tower"; }
     if strcmp(name, "tower-syntax-live-cases.o") == 0 { return "tests/syntax_live.tower"; }
     return null;
@@ -144,7 +149,7 @@ fn compiler_project_unit(project: CompilerProjectFiles*, build: u8*, object: u8*
     }
     var text: ByteBuffer = default; var path: ByteBuffer = default; var input: ByteBuffer = default;
     defer bytes_dispose(&text); defer bytes_dispose(&path); defer bytes_dispose(&input);
-    if !compiler_project_text(&text, "// Compiler build unit. Imports define its complete source closure.\n// Add compiler modules to the owning CMake import manifest;\n// the published project follows it. Browser edits to these imports also rebuild.\n") { return null; }
+    if !compiler_project_text(&text, "// Compiler build unit. Imports define its complete source closure.\n// Edit the owning Tower unit or remaining platform manifest;\n// the published project follows it. Browser edits to these imports also rebuild.\n") { return null; }
     var direct = compiler_project_unit_source(name);
     if direct != null {
         if !compiler_project_text(&text, "import tower;\nimport .") { return null; }

@@ -50,11 +50,11 @@ fn bootstrap_comparison_source(unit: BootstrapUnit): u8* {
     match unit {
         BootstrapUnit.Utf8 => { return "compiler/utf8.tower"; }
         BootstrapUnit.Bytes => { return "library/bytes.tower"; }
-        BootstrapUnit.Entities => { return "tower_compiler_entities.tower"; }
+        BootstrapUnit.Entities => { return "compiler/units/entities.tower"; }
         BootstrapUnit.ParserNodes => { return "tower_compiler_parser_nodes.tower"; }
         BootstrapUnit.Host => { return "tower_compiler_host.tower"; }
-        BootstrapUnit.Interpreter => { return "tower_compiler_interpreter.tower"; }
-        BootstrapUnit.Semantics => { return "tower_compiler_semantics.tower"; }
+        BootstrapUnit.Interpreter => { return "compiler/units/interpreter.tower"; }
+        BootstrapUnit.Semantics => { return "compiler/units/semantics.tower"; }
         _ => { return null; }
     }
 }
@@ -105,7 +105,8 @@ fn bootstrap_comparison_target(context: BootstrapComparison*, name: u8*, target:
     var before: ByteBuffer = default; var after: ByteBuffer = default;
     defer bytes_dispose(&source); defer bytes_dispose(&prefix);
     defer bytes_dispose(&before); defer bytes_dispose(&after);
-    var source_root = unit == BootstrapUnit.Utf8 || unit == BootstrapUnit.Bytes ? context.scaffolding : context.native;
+    var generated = unit == BootstrapUnit.ParserNodes || unit == BootstrapUnit.Host;
+    var source_root = generated ? context.native : context.scaffolding;
     if !tool_join(&source, source_root, bootstrap_comparison_source(unit))
         || !bytes_append(&prefix, name, strlen(name)) || !bytes_append(&prefix, "-", strlen("-"))
         || !bytes_append(&prefix, target, strlen(target)) || !host_text_terminate(&prefix)

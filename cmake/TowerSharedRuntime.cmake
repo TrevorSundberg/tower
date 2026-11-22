@@ -15,13 +15,8 @@ target_sources(tower-compiler-entities INTERFACE "${shared_lifecycle}")
 include("${CMAKE_CURRENT_LIST_DIR}/TowerLegacyHost.cmake")
 
 if(TOWER_PARSER_ONLY)
-  set(shared_tests "${CMAKE_CURRENT_BINARY_DIR}/tower_shared_runtime_tests.tower")
+  set(shared_tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/units/shared_checks.tower")
   set(shared_tests_object "${CMAKE_CURRENT_BINARY_DIR}/tower-shared-runtime-tests.o")
-  add_custom_command(OUTPUT "${shared_tests}"
-    COMMAND "${CMAKE_COMMAND}" -DROOT=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT=${shared_tests}
-      -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/ComposeSharedRuntimeTests.cmake"
-    DEPENDS scaffolding/library/vector.tower scaffolding/compiler/foundation_nodes.tower
-      scaffolding/tests/shared_entities.tower cmake/ComposeSharedRuntimeTests.cmake VERBATIM)
   add_custom_command(OUTPUT "${shared_tests_object}"
     COMMAND "${bootstrap}" "${shared_tests}"
       --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"

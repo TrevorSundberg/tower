@@ -1,7 +1,0 @@
-include("${CMAKE_CURRENT_LIST_DIR}/TowerModule.cmake")
-foreach(path IN ITEMS "${ENTITIES}" "${PARSER}" "${GENERICS}" "${HOST_ENTITIES}")
-  tower_import("${path}")
-endforeach()
-get_filename_component(entity_directory "${ENTITIES}" DIRECTORY)
-tower_import("${entity_directory}/entity_stage.tower")
-file(WRITE "${OUTPUT}" "${source}")

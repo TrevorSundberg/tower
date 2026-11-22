@@ -9,17 +9,13 @@ function(tower_compiler_interpreter)
     message(FATAL_ERROR "Set TOWER_BOOTSTRAP_COMPILER to an import-capable Tower-built host compiler.")
   endif()
   get_property(triple GLOBAL PROPERTY TOWER_COMPILER_TRIPLE)
-  set(input "${CMAKE_CURRENT_BINARY_DIR}/tower_compiler_interpreter.tower")
+  set(input "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/units/interpreter.tower")
+  if(TOWER_PARSER_ONLY)
+    set(input "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/units/interpreter_checks.tower")
+  elseif(TOWER_BROWSER)
+    set(input "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/units/interpreter_browser.tower")
+  endif()
   set(object "${CMAKE_CURRENT_BINARY_DIR}/tower-compiler-interpreter.o")
-  add_custom_command(OUTPUT "${input}"
-    COMMAND "${CMAKE_COMMAND}" -DROOT=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT=${input} -DTESTS=${TOWER_PARSER_ONLY} -DBROWSER=${TOWER_BROWSER}
-      -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/ComposeInterpreter.cmake"
-    DEPENDS scaffolding/compiler/interpreter.tower scaffolding/compiler/interpreter_abi.tower scaffolding/compiler/fast_interpreter.tower
-      scaffolding/compiler/interpreter_storage.tower scaffolding/tests/interpreter_storage.tower
-      scaffolding/compiler/interpreter_context.tower scaffolding/tests/interpreter_invocation.tower
-      scaffolding/compiler/bytecode_package.tower
-      scaffolding/library/vector.tower scaffolding/compiler/foundation_nodes.tower
-      scaffolding/compiler/foundation_tags.tower cmake/ComposeInterpreter.cmake VERBATIM)
   add_custom_command(OUTPUT "${object}"
     COMMAND "${bootstrap}" "${input}" --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
       --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
@@ -38,12 +34,11 @@ function(tower_compiler_evaluation)
     return()
   endif()
   get_property(triple GLOBAL PROPERTY TOWER_COMPILER_TRIPLE)
-  set(input "${CMAKE_CURRENT_BINARY_DIR}/tower_compiler_evaluation.tower")
+  set(input "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/units/evaluation.tower")
+  if(TOWER_PARSER_ONLY)
+    set(input "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/units/evaluation_checks.tower")
+  endif()
   set(object "${CMAKE_CURRENT_BINARY_DIR}/tower-compiler-evaluation.o")
-  add_custom_command(OUTPUT "${input}"
-    COMMAND "${CMAKE_COMMAND}" -DROOT=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT=${input} -DTESTS=${TOWER_PARSER_ONLY}
-      -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/ComposeEvaluation.cmake"
-    DEPENDS cmake/ComposeEvaluation.cmake scaffolding/tests/interpreter_storage.tower VERBATIM)
   add_custom_command(OUTPUT "${object}"
     COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${input}" --library --target "${triple}"
       --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"

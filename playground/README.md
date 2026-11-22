@@ -1126,7 +1126,10 @@ may take substantially longer than an ordinary program. LLVM workers permit up
 to 2 GiB of linear memory for compiler linking; actual allocation grows as needed.
 
 When adding compiler modules, add their Tower imports to the owning
-`cmake/Compose*.cmake` manifest. The Tower `package_compiler_project` tool follows those actual build
+`scaffolding/compiler/units/*.tower` module or remaining platform-specific
+`cmake/Compose*.cmake` manifest. Fixed entity, semantic, interpreter, evaluation
+and foreign-tool units are ordinary checked-in Tower files; they need no source
+generation step. The Tower `package_compiler_project` tool follows those actual build
 units, exposes new `.tower` files automatically, and excludes rebuilt Tower
 objects from the support packs. Existing files with browser edits are preserved
 when the bundled project updates; untouched files and new ports are refreshed.

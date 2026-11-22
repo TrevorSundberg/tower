@@ -47,17 +47,7 @@ function(tower_compiler_utilities)
     set(object "${CMAKE_CURRENT_BINARY_DIR}/tower-compiler-${name}.o")
     set(input "${CMAKE_CURRENT_SOURCE_DIR}/${source}")
     if(name STREQUAL "entities")
-      set(input "${CMAKE_CURRENT_BINARY_DIR}/tower_compiler_entities.tower")
-      add_custom_command(OUTPUT "${input}"
-        COMMAND "${CMAKE_COMMAND}"
-          -DENTITIES=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/library/entities.tower
-          -DPARSER=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/parse_tree.tower
-          -DGENERICS=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/generics.tower
-          -DHOST_ENTITIES=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/host_entities.tower
-          -DOUTPUT=${input} -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/ComposeTowerSources.cmake"
-        DEPENDS scaffolding/library/entities.tower scaffolding/compiler/parse_tree.tower scaffolding/compiler/generics.tower
-          scaffolding/compiler/host_entities.tower cmake/ComposeTowerSources.cmake
-        VERBATIM)
+      set(input "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/units/entities.tower")
     endif()
     add_custom_command(OUTPUT "${object}"
       COMMAND "${bootstrap}" "${input}"
@@ -182,17 +172,11 @@ function(tower_compiler_semantics)
     message(FATAL_ERROR "Set TOWER_BOOTSTRAP_COMPILER to an import-capable Tower-built host compiler.")
   endif()
   get_property(triple GLOBAL PROPERTY TOWER_COMPILER_TRIPLE)
-  set(input "${CMAKE_CURRENT_BINARY_DIR}/tower_compiler_semantics.tower")
+  set(input "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/units/semantics.tower")
+  if(TOWER_BROWSER OR TOWER_PARSER_ONLY)
+    set(input "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/units/semantics_checks.tower")
+  endif()
   set(object "${CMAKE_CURRENT_BINARY_DIR}/tower-compiler-semantics.o")
-  set(sources scaffolding/library/vector.tower scaffolding/compiler/foundation_nodes.tower scaffolding/compiler/parser_nodes.tower scaffolding/compiler/frontend_compilation.tower scaffolding/compiler/completion.tower scaffolding/compiler/services.tower)
-  list(APPEND sources scaffolding/compiler/source_comments.tower scaffolding/compiler/c_emitter.tower scaffolding/compiler/c_runtime.tower scaffolding/compiler/c_control.tower scaffolding/compiler/roku_emitter.tower scaffolding/compiler/roku_runtime.tower)
-  foreach(name IN ITEMS context definitions support types values statements lifecycle)
-    list(APPEND sources scaffolding/compiler/semantic_${name}.tower)
-  endforeach()
-  add_custom_command(OUTPUT "${input}"
-    COMMAND "${CMAKE_COMMAND}" -DROOT=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT=${input}
-      -DBROWSER=${TOWER_BROWSER} -DTESTS=${TOWER_PARSER_ONLY} -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/ComposeSemanticSources.cmake"
-    DEPENDS ${sources} cmake/ComposeSemanticSources.cmake VERBATIM)
   add_custom_command(OUTPUT "${object}"
     COMMAND "${bootstrap}" "${input}" --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
       --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"

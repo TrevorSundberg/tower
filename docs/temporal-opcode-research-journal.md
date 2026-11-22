@@ -40002,3 +40002,102 @@ Linux x64/ARM64 and Windows, including their separately linked libraries.
 An initial source push hit GitHub DNS resolution; command-scoped curloptResolve
 using the resolved IPv4 address completed pull/push without changing Git config.
 No unfinished deployment or portable-release claim is implied.
+
+## 2026-11-21: Remove fixed compiler-unit generation rather than port generators
+
+The preceding target-pack turn made verified source/publication progress. Begin
+this turn with a clean pull at 01e1358. Audit the remaining two test shell runners:
+they configure distinct native and WASI compiler/test profiles, so simply deleting
+them would drop coverage. Instead audit the CMake source-generation graph. Six
+Compose scripts only emit fixed import lists, with a small native/browser/test
+selection. Replace those generated roots with ordinary checked-in
+scaffolding/compiler/units/*.tower files. CMake retains only profile selection,
+compilation/linking and compiler-generated depfiles; no replacement generator or
+new build language is introduced. Also compile host/legacy.tower directly instead
+of generating its one-import wrapper. Keep the genuinely platform/configuration-
+dependent host, parser and LLVM target generators for a later milestone.
+
+Delete ComposeTowerSources, ComposeSemanticSources, ComposeInterpreter,
+ComposeEvaluation, ComposeForeign and ComposeSharedRuntimeTests. The owned CMake
+inventory falls from 54 files/2594 lines to 48/2515: six files and 79 lines removed.
+The native successor needs 50 build steps instead of 54. Python/C/C++ remain zero;
+shell remains 11 files/256 lines. Static roots explicitly preserve original import
+order and native/browser/test membership. They are ordinary Tower imports, not
+another graph or binary interchange format. The source comparator now reads the
+three static roots from scaffolding; only host/parser still come from the build
+directory. Browser packaging maps the existing object/unit keys to the same
+checked-in roots; the existing recursive compiler source tree and real depfiles
+include their imports. No generated-file fallback silently substitutes an old
+static root. Update the documented editing location accordingly.
+
+Freeze 01e1358 plus the changed files in /cache/static_units_checkout in the owned
+Docker volume. The first attempted two-parent import after import tower is rejected
+as an unexpected '..' token by the published reader. Do not change language
+semantics in this lane: retain the exact bare module names emitted by the prior
+generators, resolved through the explicitly configured scaffolding library root.
+The smallest entities unit then compiles and is byte-identical to its old object.
+Use the checked-in public 21f52712 compiler, explicit Bedrock/Foundation and LLVM
+19.1.1. Fresh documented build-native.sh in /cache/static_units_native passes
+50 steps. After removing the legacy wrapper, its focused object/link update passes.
+Entities, semantics, interpreter, foreign-tool and legacy objects all compare
+byte-for-byte against /cache/target_pack_rebased_native. The whole compiler is
+unchanged, SHA256 67386c33b78f48193e72eab236ca8bb6abb9414eedb42d0db67c2144ad5b20f1.
+This remains the Linux development successor, not a portable release or new pin.
+
+The native core runner initially selects GNU cc for its C compiler while explicitly
+selecting Clang only for C++; runtime IR compilation fails on cc's unsupported
+--target flag. Fix that existing bridge to select clang for C too. A fresh
+/cache/static_units_core_clang default test build passes all 65 steps and all
+15 CTest tests (4.79 seconds). No sanitizer or formatting sweep is run. This is a
+real default-path bug found while validating, not a failure in the static roots.
+
+Freeze the same source under WSL at
+/home/trevo/.cache/tower/agent1-tooling-static-units-src. Use the existing SDK34
+read-only, installed LLVM19 host tools, and explicit public bootstrap. Quote CMake
+-D arguments as argv strings; an initial PowerShell invocation split dotted paths
+and comma-containing flags before CMake, corrected without changing build logic.
+The isolated WASI test build passes 42 steps, and the existing Windows Node
+host-wasi/interpreter-wasi transports execute the full parser/host suite, 156
+graph/fast interpreter trials, package reconstruction and both-width semantic
+oracles. The isolated non-LLVM browser build passes, using the browser-specific
+interpreter root. Its tower.wasm SHA256 is
+78ad29259d9c1b822769ed6782099f54233082c28b2d172ccc4cbf9995c6dacc.
+
+Rebuild all seven tools through the default five-step route. The updated comparator
+is SHA256 0aa758f17b25c24ef21867f6f97d6c6579c9dbf51bf56096bc2d1b03846c4605;
+the project packager is 7b5237677fba7495584464c4531da8fc904b679fe351f5057f1a2ad68f9816a9.
+Run --compare for entities/interpreter/semantics: all twelve unit/target pairs
+pass predecessor/successor object and optimized IR identity, unchanged symbol
+policy, and custom/missing grammar checks. The logged missing-grammar diagnostic
+is the expected negative case. No public-bootstrap syntax migration is required.
+
+For test/browser roots, compare six Wasm outputs with the old generators from the
+frozen pre-change checkout: semantics_checks, interpreter_browser,
+interpreter_checks, evaluation, evaluation_checks and shared_checks all match
+exactly. An earlier comparison against the coordinator's live backend cache was
+not a valid frozen baseline (different semantic object; interpreter object absent).
+Use the actual frozen prior-generator outputs instead; do not claim identity
+against that live cache. Delete the six obsolete scripts from both isolated source
+trees and confirm native no-work behavior. Timestamp-only edits to the static
+entities root and a transitive entity_stage import each trigger an actual Ninja
+object rebuild with unchanged bytes; restore input timestamps and observe no work.
+An initial Ninja dry run stopped at its always-dirty CMake glob check, so use the
+actual focused rebuild rather than interpreting that truncated plan as evidence.
+
+Run the Tower project packager against the new isolated browser recipe and the
+coordinator's read-only upstream LLVM/WASI support recipes. The source root is the
+frozen owned checkout. Preserve the real support objects; no shared-cache writes
+or synthetic linker recipe. Its project.json is SHA256
+5f3d11dfdf2d81cda38d2ab0f41770ef58206879cb7109e40cece2093a153ab7.
+Use the previously verified published c7a7976 cross reactor (raw SHA256
+a71c14778a8e21bbf2199048489e94c11381565a719df5415be49d00fe194aca)
+to run the existing test-compiler-project.mjs against build/static_units_project/.
+Two real edited compiler generations pass at worker counts 2 then 4. Both yield
+identical tower/llvm/cross sizes 1204517/52706143/64263424 and hashes:
+tower 1c438ff004141dd66d94e70ed3d8a9688573e59569d5388a7b35773a114493a2,
+llvm 6e19227a90abe0c15294ec02e1f23096ea44e4c47189d3ec2e9fe15359be5979,
+cross 627dfb65b44170d05615849a7443c9d62790c18720ba5569a8f5a182f20cb16f.
+The edited diagnostic is asserted in each generation. These are test artifacts,
+not production assets. No todo.txt edits, private bootstrap override, grammar or
+compiler semantic change. Continue reducing the remaining platform generators
+and build boundaries before moving reusable JavaScript tooling.
