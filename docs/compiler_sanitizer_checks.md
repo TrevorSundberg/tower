@@ -13,7 +13,34 @@ universal race freedom is implied. See the primary [ASan documentation](https://
 [TSan documentation](https://clang.llvm.org/docs/ThreadSanitizer.html) and
 [UBSan documentation](https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html).
 
-## Reproduce the tool
+## Shared build entry
+
+D2's optional Linux x64 Clang/LLVM19 mode uses this same Tower policy with the
+existing native object recipes. Build the tool alone through
+`bash playground/scripts/build-bootstrap.sh --tools instrument_llvm`, or use a
+separate native cache with `-DTOWER_SANITIZER=address` or `thread`:
+
+```sh
+export TOWER_NATIVE_BUILD=/cache/native-address
+export TOWER_BUILD_JOBS=1
+bash playground/scripts/build-native.sh -DTOWER_SANITIZER=address \
+  -DTOWER_COMPILER_JOBS=1 -DTOWER_WORK_TESTS=ON -DTOWER_BACKEND_TESTS=ON
+cmake --build "$TOWER_NATIVE_BUILD" --target tower-work-tests tower-lr-work-tests --parallel 1
+ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 "$TOWER_NATIVE_BUILD/tower-work-tests"
+```
+
+For thread mode use a different cache and `TSAN_OPTIONS=halt_on_error=1`.
+Original LLVM is instrumented after foreign-symbol binding; final links supply
+compiler-rt. Build-host tools and distributed cross-target guest runtime assets
+remain uninstrumented. The mode does not instrument programs later compiled by
+the resulting compiler. Driver tests use their own instrumented guest library.
+Unsupported modes/targets/versions fail explicitly. `sanitizer-objects.tsv`
+lists configured inputs and outputs, not executed coverage; inspect actual link
+objects/archive members and preserved run logs. D2's owner receipts and A2's
+manual receipts below are distinct; changed merged inputs need fresh checks.
+This mode supplies no source-language UBSan coverage.
+
+## Manual reproduction of the tool
 
 Run from the frozen repository root in Linux x64. `/cache` must be an exclusively
 owned writable cache. A2 used Ubuntu24.04, LLVM/Clang19.1.1
