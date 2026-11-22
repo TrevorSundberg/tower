@@ -1220,14 +1220,14 @@
                    "worker.js":  "60156a2b9590f9d33063031b8f05f262fb17d16ad1ca81b80f123039dacb3bf9",
                    "worker.js.map":  "b10954322b0bff060865b66c3654f4f8f6d71ad613b741522e5a1cf642ef0de2"
                },
-    "sourceCommit":  "6bd00c025708761877eac515f3a0a8f83be1a12f",
+    "sourceCommit":  "4850d504a2880a1975c3b7ce5b33b6736bf2efa8",
     "buildSourceCommit":  "454c951f920ef0eab7488376b4bd5c9d2cfd8f07",
     "compilerProjectSourceCommit":  "454c951f920ef0eab7488376b4bd5c9d2cfd8f07",
     "compilerSourceTree":  "422742239b8d404772c2d21f6e64d0e1e60bf335",
-    "previousDeployment":  "c57fbb4aaf9c9b9068d5a063dddedfe2c076e357",
+    "previousDeployment":  "f7545d65b019fdbb1e42d28da5b013f1abaceae8",
     "bootstrapSha256":  "18664657c3ff9142a6d59bef8ffa794fd10d12313d55f91dd47f5575141a29f9",
     "scope":  "Tower Mach-O replaces the final production LLD library; Windows and macOS CLI defaults use Tower byte services.",
-    "publicationNote":  "Preserves all previous scoped receipts and publishes the verified 454c951 runtime and compiler-project assets. Hosted Linux and external-library build linking remain host toolchain operations.",
+    "publicationNote":  "Documentation and validation receipt only; preserves the verified 454c951 runtime and compiler-project build identities and all asset hashes. Increment display validation follows the preserved Bedrock teaching example.",
     "buildNote":  "Portable, shared-worker, LLVM and cross reactors plus compiler project were rebuilt from 454c951 through the public 18664657 Linux x64 development bootstrap. All target packs were regenerated from its clean successor resources. Later C-output and fixture changes are not represented as newly built browser assets.",
     "elfLinkerPort":  {
                           "sourceCommit":  "2439520f2a1b4dd479dc1bbe1bba0d85d92811bb",
@@ -1546,7 +1546,7 @@
                      },
     "machoLinkerPort":  {
                             "sourceCommit":  "993b0414eb79bd4e8b9a5d26d0eb1868f2fbe45f",
-                            "validationCommit":  "6bd00c025708761877eac515f3a0a8f83be1a12f",
+                            "validationCommit":  "4850d504a2880a1975c3b7ce5b33b6736bf2efa8",
                             "runtimeSourceCommit":  "454c951f920ef0eab7488376b4bd5c9d2cfd8f07",
                             "profile":  "macOS 11 x64/ARM64 PIE executable byte linking, indexed archives, TBD v4 imports, dyld metadata, compact/DWARF unwind and SHA-256 ad-hoc signatures",
                             "ownership":  "Request-owned ECS components, shared WorkGraph/WorkPool, frozen inputs, exclusive patches and drained cancellation",
@@ -1577,6 +1577,12 @@
                                                 "ms":  38699.814
                                             },
                             "benchmark":  "Three tiny serial links: Tower below 0.01 s, 1884-1888 KiB RSS; SDK34 ld64.lld 0.04/0.01/0.01 s, 28332-28700 KiB. No general large-link parallel speedup claim.",
-                            "rebasedNativeCompilerSha256":  "0675f4c97c6e236d566b59d774789b6a74eff0c24be6e40e16281b5a684393cb"
+                            "rebasedNativeCompilerSha256":  "0675f4c97c6e236d566b59d774789b6a74eff0c24be6e40e16281b5a684393cb",
+                            "hostedVerification":  {
+                                                       "pagesCommit":  "f7545d65b019fdbb1e42d28da5b013f1abaceae8",
+                                                       "workflow":  45037575010,
+                                                       "manifestSha256":  "f03363064b5575776f5ec5af5d95a8b7d9d51d75632896a11ed61214772a69b0",
+                                                       "result":  "PASS: all 104 asset hashes and desktop/mobile backend, grammar, completion, persistence and native download checks"
+                                                   }
                         }
 }
