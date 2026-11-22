@@ -20,8 +20,8 @@ for (const action of ['edit','recompile']) test(`a numeric ${action} keeps the e
   await editor.press('ControlOrMeta+Home');
   const line = page.locator('#editor .cm-line').filter({hasText:'first: 20, second: 22'});
   await line.click();
-  await editor.press('Home');
-  for (let at = 0; at < '    first: 20'.length; at++) await editor.press('ArrowRight');
+  await editor.press('End');
+  for (let at = 0; at < ', second: 22'.length; at++) await editor.press('ArrowLeft');
   await page.locator('#core-instructions .cm-scroller').evaluate(element => {element.scrollTop = 100;});
   await page.screenshot({path:`${directory}/before.png`});
   const protocol = await page.context().newCDPSession(page);

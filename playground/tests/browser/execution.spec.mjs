@@ -2,7 +2,7 @@ import { outputText } from './output-text.mjs';
 import {selectDocument, savedSource, revealDiagnostics} from './project-helpers.mjs';
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
-const grammar = ''; // Executable documents inherit the shared foundation module.
+const grammar = 'import tower;';
 async function setSource(page, text) {
   const editor = page.getByRole('textbox', { name: 'Tower source' });
   // Click the visible editor viewport: the contenteditable spans the entire
@@ -22,7 +22,7 @@ test('executes replacements and displays typed core instructions', async ({ page
   await expect(page.locator('#filename')).toHaveText('execution.tower');
   await expect(page.locator('#execution-status')).toContainText('Finished');
   await expect(page.locator('#execution-output')).toHaveText('15\n16\n');
-  await expect.poll(()=>outputText(page,'core-instructions')).toContain('count < 5');
+  await expect.poll(()=>outputText(page,'core-instructions')).toContain(' < 5;');
   await expect(page.locator('#execution-error')).toBeHidden();
   // Show executable source near the bottom, not just the editable core grammar.
   const editor = page.getByRole('textbox', { name: 'Tower source' });
@@ -40,8 +40,8 @@ test('initializer inference shows explicit checked types and clear dependency er
   await expect(page.getByRole('textbox',{name:'Tower source'})).toContainText('var answer = add_one(41);');
   // Shared-node lowering may name intermediate values. The UI contract is
   // explicit inferred types; matching execution above checks their values.
-  await expect.poll(()=>outputText(page,'core-instructions')).toContain('var answer: i32 =');
-  await expect.poll(()=>outputText(page,'core-instructions')).toContain('var pointer: i32* =');
+  await expect.poll(()=>outputText(page,'core-instructions')).toContain('var answer: integer_type(32, 1) =');
+  await expect.poll(()=>outputText(page,'core-instructions')).toContain('var pointer: pointer_type(integer_type(32, 1)) =');
   await page.screenshot({path:`../build/inference-${info.project.name}.png`});
   await setSource(page,'import tower; var a = b;\nvar b = a;');
   await expect(page.locator('.tw-inline-error-message')).toContainText('initializer dependency cycle a -> b -> a');
@@ -269,7 +269,7 @@ test('functions compile and execute off the UI thread with matching backends', a
   await selectDocument(page, 'functions.tower');
   await expect(page.locator('#execution-status')).toHaveText('Finished · backends match', { timeout: 30000 });
   await expect(page.locator('#execution-output')).toHaveText('720\n721\n');
-  await expect.poll(()=>outputText(page,'core-instructions')).toContain('fn factorial(n: i32): i32');
+  await expect.poll(()=>outputText(page,'core-instructions')).toContain('fn factorial(n: integer_type(32, 1)): integer_type(32, 1)');
   await expect.poll(()=>outputText(page,'llvm-before')).toContain('alloca');
   await expect.poll(()=>outputText(page,'llvm-after')).toContain('define void @tower_main');
   await expect.poll(()=>outputText(page,'llvm-after')).not.toContain('alloca');
@@ -413,7 +413,7 @@ test('LLVM warms on a syntax-only document and the first program reuses that wor
   const warmed=page.workers().find(worker=>worker.url().includes('execution-worker'));
   const requests=[];page.on('request',request=>requests.push(request.url()));
   await page.locator('#file-tree button[data-path="foundation.tower"]').click();
-  await setSource(page, 'print(42);');
+  await setSource(page, 'import tower; print(42);');
   await expect(page.locator('#execution-status')).toContainText('backends match');
   expect(page.workers()).toContain(warmed);
   // The Wasm worker is reused; the independent fast runner loads its LLVM

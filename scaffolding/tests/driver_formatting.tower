@@ -32,7 +32,7 @@ fn driver_format_rejected(compiler: u8*, source: u8*, diagnostic: u8*): void {
 
 fn driver_test_formatting(compiler: u8*, library: u8*): void {
     var source = "driver format with spaces.tower";
-    var input = "import foundation;// café λ\nvar value:i32=42;print(value);";
+    var input = "import foundation;\n// café λ\nvar value:i32=42;print(value);";
     var canonical = "import foundation;\n// café λ\nvar value: i32 = 42;\nprint(value);\n";
     driver_check(driver_write_file(source, input, strlen(input)), "write formatter fixture");
     driver_check(driver_format_command(compiler, source, null, true) == 1, "noncanonical check fails");

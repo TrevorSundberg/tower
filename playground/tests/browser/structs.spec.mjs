@@ -17,7 +17,7 @@ test('struct milestone executes automatically in both workers and round-trips vi
   await expect(page.locator('#llvm-output')).toHaveText('42\n22\n7\n');
   await expect.poll(()=>outputText(page,'core-instructions')).toContain('struct Pair {');
   await expect.poll(()=>outputText(page,'core-instructions')).toContain(' + ');
-  await expect.poll(()=>outputText(page,'core-instructions')).toContain('var field: i32* = &pair.second;');
+  await expect.poll(()=>outputText(page,'core-instructions')).toContain('var field: pointer_type(integer_type(32, 1)) =');
   await expect.poll(()=>outputText(page,'llvm-before')).toContain('tower.fn.accumulate');
   await expect.poll(()=>outputText(page,'llvm-after')).toContain('tower_main');
   await page.screenshot({ path: `../build/playground-structs-${info.project.name}.png` });
@@ -63,7 +63,7 @@ test('an untouched saved baseline upgrades while a customized foundation stays i
   const bundled = await (await request.get('/foundation.tower')).text();
   await page.evaluate(bundled => {
     localStorage.setItem('tower-playground-foundation-base-v1', bundled);
-    localStorage.setItem('tower-playground-foundation-v1', bundled.replace("'struct'", "'record'"));
+    localStorage.setItem('tower-playground-foundation-v1', bundled + "\nparse CoreStruct = 'record' $name:Identifier '{' $fields:CoreField* '}';\n");
     localStorage.removeItem('tower-project-migrated-v1');localStorage.setItem('tower-playground-source-v1', 'import foundation; record S { x: i32; } var s: S; s.x = 7; print(s.x);');
     localStorage.removeItem('tower-playground-document-v1'); // Exercise legacy source migration.
   }, bundled);

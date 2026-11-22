@@ -44925,3 +44925,21 @@ Windows Node could not directly execute the newly Tower-owned asset packager;
 add only the WSL process/path transport in build.mjs. Compression and hashing
 remain Tower, and the normal full package command now succeeds. No bootstrap
 syntax migration or private compiler pin is introduced by this work.
+
+After rebasing through 91c02f4, repeat the clean native successor build without
+TOWER_BOOTSTRAP_COMPILER and rebuild the portable/threaded browser compilers and
+both LLVM reactors. The finalized package contains 104 hashed assets. All nine
+executable examples pass in both native interpreters, the native editor-world
+and formatter suites pass, and all 43 focused Node increment/formatting/module
+tests pass. Two successive browser compiler generations also pass, rebuilding
+with two and four workers and checking the edited semantic diagnostic.
+
+Browser validation exposed stale fixtures: executable snippets need explicit
+imports, canonical types now use integer_type/pointer_type, and imported builtin
+counts include the ordinary type modules. Update those expectations rather than
+restoring an implicit prelude. Keep explicit generic arguments and binary
+assignment in the dedicated hover fixtures even though the examples now infer
+arguments and use decrement. Generic postfix hover currently identifies the
+expression but can omit its result type; that pre-existing query limitation is
+separate from the enclosing-function selection bug fixed here. The final browser,
+type-smoke and hosted publication receipts remain pending at this checkpoint.

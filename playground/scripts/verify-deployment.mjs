@@ -127,8 +127,8 @@ try {
     await expect.poll(()=>outputText(page,'llvm-after')).toContain('define');
     await page.screenshot({path:new URL(name+'-execution.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
     await expect(page.locator('#example-kind')).toHaveCount(0);
-    await expect(page.locator('.builtin-badge')).toHaveCount(2);
-    await expect(page.locator('.builtin-badge')).toHaveText(['library','library']);
+    await expect(page.locator('#file-tree button[data-path=".tower/bedrock.tower"]')).toBeVisible();
+    await expect(page.locator('#file-tree button[data-path=".tower/foundation.tower"]')).toBeVisible();
     await selectDocument(page, 'foundation.tower');
     await expect(page.locator('#status')).toContainText('Complete');
     await expect(page.locator('#execution-panel')).toBeVisible();
@@ -169,7 +169,7 @@ try {
     await expect(page.getByRole('button',{name:'Example',exact:true})).toHaveCount(0);
     await page.locator('#editor').click({position:{x:80,y:20}});
     await page.getByRole('textbox',{name:'Tower source'}).press('ControlOrMeta+a');
-    await page.keyboard.insertText("parse Statement |= '';\n");
+    await page.keyboard.insertText("parse Statement = '';\n");
     await revealDiagnostics(page);
     await expect(page.locator('.tw-inline-error-message')).toHaveText('Token literal is empty. Expected at least one character between the quotes.');
     await expect(page.locator('.tw-error-range')).toHaveText("''");

@@ -123,7 +123,8 @@ test('bundled Templates hovers survive an unrelated document error',async({page}
 
 test('Templates pop body exposes field, operator and dependent element types from the cached query',async({page},info)=>{
   await selectDocument(page,'templates.tower');
-  const original=await savedSource(page),tip=page.locator('.tw-language-hover');
+  // Keep explicit binary/assignment coverage while the example teaches --.
+  const original=(await savedSource(page)).replace('values.count--;','values.count = values.count - 1;'),tip=page.locator('.tw-language-hover');
   async function token(lineText,text) {
     const scroller=page.locator('#editor .cm-scroller');
     await scroller.evaluate(el=>el.scrollTop=0);
@@ -147,8 +148,8 @@ test('Templates pop body exposes field, operator and dependent element types fro
     await source(page,text);await ready(page,text);
     const count=await page.evaluate(()=>window.documentQueries.length);
     for(const [line,tokenText,signature,type] of [
-      ['values.count--;','count','count: usize','usize'],
-      ['values.count--;','-','values.count--','usize'],
+      ['values.count = values.count - 1;','count','count: usize','usize'],
+      ['values.count = values.count - 1;','-','values.count - 1','usize'],
       ['return values.storage.data[values.count];','data','data: T[4]','T[4]'],
       ['return values.storage.data[values.count];','[','values.storage.data[values.count]','T'],
     ]) {
@@ -163,7 +164,8 @@ test('Templates pop body exposes field, operator and dependent element types fro
 
 test('Templates call type arguments display their own type from the cached query',async({page},info)=>{
   await selectDocument(page,'templates.tower');
-  const original=await savedSource(page),tip=page.locator('.tw-language-hover');
+  // The example now infers T; this fixture still exercises a written type argument.
+  const original=(await savedSource(page)).replaceAll('pop(&values)','pop(i32, &values)'),tip=page.locator('.tw-language-hover');
   for(const text of [original,original+'\nmissing();']) {
     const editor=await source(page,text);await editor.press('ControlOrMeta+End');await ready(page,text);
     const count=await page.evaluate(()=>window.documentQueries.length);
@@ -217,7 +219,7 @@ test('member hover uses the resolved field and comments have no tooltip',async({
 test('keywords, operators and function braces use Tower services and one location spelling',async({page})=>{
   const text='import foundation;\nfn increment(p:i32*):i32 {\n  var old:i32 = *p;\n  *p = old + 1;\n  return old;\n}';
   await source(page,text);await ready(page,text);
-  await expect(page.locator('#position')).toHaveText('foreach.tower:5:2');
+  await expect(page.locator('#position')).toHaveText('foreach.tower:6:2');
   const tip=page.locator('.tw-language-hover');
   for(const [lineText,token,description] of [
     ['fn increment','fn','Parameters are the named inputs you supply'],
@@ -244,10 +246,14 @@ test('keywords, operators and function braces use Tower services and one locatio
     },token);
     await page.mouse.move(position.x,position.y);await expect(tip).toContainText(description);
     await expect(tip).not.toContainText(/Declared at|Defined in|Returns:|\nfunction\n/);
-    if(['fn','return','}'].includes(token)) {
+    if(['fn','}'].includes(token)) {
       await expect(tip).toContainText('fn increment(p: i32*): i32');
       await expect(tip).toContainText('Result: 4 bytes');
       await expect(tip).toContainText('foreach.tower:2:1');
+    }
+    if(token==='return') {
+      await expect(tip.locator('code')).toHaveText('return old;');
+      await expect(tip).toContainText('Type: i32');
     }
     await page.mouse.move(0,0);await expect(tip).toHaveCount(0);
   }

@@ -79,7 +79,7 @@ test('callable visibility is shared by ordinary functions and templates', () => 
 test('a lexical value shadows an alias and indexed calls are not name spellings', () => {
   succeeds('import tower; import left.tools as lib; struct Holder { count: i32; } fn local(): i32 { var lib: Holder; lib.count = 3; return lib.count; } print(local());', twins, '3\n');
   fails('import tower; import left.tools as lib; fn local(): i32 { var lib: i32 = 1; return lib.helper(); } print(local());', twins, /Field access requires a struct/);
-  fails('import tower; fn `values[0]`(): i32 { return 1; } var values: i32[1]; print(values[0]());', [], /Unknown function/);
+  fails('import tower; fn `values[0]`(): i32 { return 1; } var values: i32[1]; print(values[0]());', [], /Call requires a function value/);
 });
 
 test('aliases preserve canonical identity, dependency order and diamond initialization', () => {

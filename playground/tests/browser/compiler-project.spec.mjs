@@ -78,9 +78,9 @@ test('browser rebuild activates edited compiler behavior and reset recovers the 
   await expect(page.locator('#active-compiler')).toHaveText('Compiler generation 1');
   await page.locator('#project-kind').selectOption('example:execution');
   await page.locator('#auto-execute').uncheck();
-  await edit(page,'var value:i32 = 42; print(value);');await hoverValue(page);
+  await edit(page,'import tower; var value:i32 = 42; print(value);');await hoverValue(page);
   await expect(page.locator('.tw-hover-signature')).toHaveText('var value: i32');
-  await edit(page,'// rebuilt C note\nprint(42);');
+  await edit(page,'import tower;\n// rebuilt C note\nprint(42);');
   await page.locator('#build-targets summary').click();
   await page.locator('#target-c').check();
   await page.locator('#build-targets summary').click();
@@ -91,7 +91,7 @@ test('browser rebuild activates edited compiler behavior and reset recovers the 
   await page.locator('#build-targets summary').click();
   await page.locator('#target-c').uncheck();
   await page.locator('#build-targets summary').click();
-  await edit(page,'var value: i32 = null;'); await page.locator('#execute').click();
+  await edit(page,'import tower; var value: i32 = null;'); await page.locator('#execute').click();
   await expect(page.locator('#execution-error')).toContainText('Workbench says: null requires a pointer or function type');
   await page.locator('#project-kind').selectOption('tower:compiler');
   await page.locator('#auto-rebuild-compiler').uncheck();
@@ -109,7 +109,7 @@ test('browser rebuild activates edited compiler behavior and reset recovers the 
   await page.locator('#execute').click();
   await expect(page.locator('#execution-error')).toContainText('null requires a pointer or function type');
   await expect(page.locator('#execution-error')).not.toContainText('Workbench says');
-  await edit(page,'var value:bool = true; print(value);');await hoverValue(page);
+  await edit(page,'import tower; var value:bool = true; print(value);');await hoverValue(page);
   await expect(page.locator('.tw-hover-signature')).toHaveText('var value: bool');
   expect(errors).toEqual([]);
 });
