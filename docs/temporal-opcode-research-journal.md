@@ -44467,6 +44467,34 @@ still invoke Docker, SDK/vendor tools and the public CMake/bootstrap bridge;
 their live callers were checked. Remaining JavaScript includes UI/transport,
 host measurements and fixture data, so this is not a claim of universal shim-only
 JavaScript or completion of the longer-term language-ratio goal.
+
+Publish the tooling receipt as Pages 3ebede66e1f0c2d509b8dc6b127e536f4ba52b19;
+workflow 45039210219 succeeds. Exact hosted manifest SHA256 is
+b10b81588f507963d9223cce9ea00a0fba5ec8168ab7c7c0767fc3f7686a9315.
+Retain bf2a3e8's runtime/build-source identity, all 104 asset hashes and every
+earlier receipt. The publication lock is released after byte verification.
+
+## 2026-11-22: Retire unlinked non-temporal measurements
+
+Apply the user's removal-first instruction to four standalone research probes:
+benchmark-compiler-ownership.mjs (51 lines), benchmark-compiler-workers.mjs
+(41), benchmark-parser.mjs (38) and profile-diagnostics.mjs (31), all under
+playground/scripts. Repository-wide caller/artifact searches find only their own
+output statements and historical journal entries, with no current documentation,
+package script, CI, build or test callers. Their saved-before-reactor comparisons,
+worker RSS/timing report and warm-error sampling are experiments rather than
+required compiler behavior. Remove them instead of creating Tower replacements;
+recover exact source and historical methodology from ef7d8f9 and earlier journal
+entries. No reports are silently reclassified as current measurements.
+
+Keep the documented parser/replacement/interpreter/compiler/browser profiles and
+the live compiler-unit Node adapter. Existing compiler-workers, Wasm and
+diagnostics tests retain functional/identity/overlap coverage; no assertions or
+production entry points are removed. This is a reference-audited deletion, so
+do not repeat the unaffected native/browser matrices. Temporal research remains
+untouched. The extra 161 lines bring JavaScript to 174 files/23,500 lines, down
+930 lines from this lane's baseline; total non-Tower reduction is 4,284 lines
+(14.5%) and 64 files across Python, PowerShell, shell, CMake and JavaScript.
 Published-browser target execution is now PASS: workflow 45038423612 runs all
 four jobs successfully, consuming the exact f7545d6 browser backend and target
 packs. Both Intel and Apple Silicon Macs verify strict signatures and execute the
