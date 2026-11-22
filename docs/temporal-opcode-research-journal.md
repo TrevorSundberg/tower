@@ -42266,3 +42266,20 @@ Python and owned C/C++ zero. JS fell ten lines in our transport change; upstream
 added twelve lines, so the repository-wide net reduction from 24430 is now 64.
 Latest Pages is 1e827882 with 104 assets and runtime source 46b1da9f; preserve that
 newer release and its source-type provenance when publishing the tooling receipt.
+
+A second integration rebase receives 31371ae/a4e8be5's assignment/enum and demanded
+compile-time query scheduling. The source guard correctly stops publication.
+Implementation commits become ddc4b0e and 8d4767a; freeze the latter in
+/cache/unit_bridge_final_checkout. Repeat the clean documented default native
+successor build with the public 6022aa2b pin and no private override: 48/48 PASS.
+Final compiler SHA256 6f4f8b42e26dd0efa74e3e1a343400b66e60f6b6925524539c540c1cc54ebe48.
+Repeat memory execution smoke: interpreted 32/64, native and actual Wasm PASS.
+Integrate only the 12 incoming compiler/test files into the owned core snapshot;
+its depfiles rebuild the semantic object and affected links. All 17 native CTests
+pass (4.84s), and the complete Tower check_core wasi pipeline passes again,
+including 156 graph/fast trials, both-width semantic oracles and package contracts.
+Log: build/unit_bridge_wasi_integrated.log. Final WASI interpreter SHA256
+38bac1b0a983d24de91231d6cffd472c6ef6404d940f3dabc3893dd539d12772.
+The final five native and five WASI build objects still match the ten independently
+recompiled packaged outputs exactly; reuse that closure evidence. No repeated
+unaffected browser matrix or bootstrap repin is needed for this tooling receipt.
