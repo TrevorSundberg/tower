@@ -1385,5 +1385,32 @@
                                                                 "Published 3e12adb threaded semantic-world fixture passes at both pointer widths, including dynamic compile-time query windows"
                                                             ],
                                              "runtime":  "Preserved latest buildSourceCommit, all 104 asset records and prior receipts; tooling publication only"
-                                         }
+                                         },
+    "parserMeasurementToolingMigration":  {
+                                              "sourceCommit":  "a3a28bba95d77c43a3a74bdd2ce98dacdba29f44",
+                                              "scope":  "Use the shared Tower object rule for the retained parser measurement; retire the completed pre-view compiler reconstruction experiment",
+                                              "removedJavaScriptLines":  86,
+                                              "removedJavaScriptFiles":  1,
+                                              "removedCMakeLines":  13,
+                                              "trackedJavaScriptFiles":  181,
+                                              "trackedJavaScriptLines":  24148,
+                                              "trackedCMakeFiles":  39,
+                                              "trackedCMakeLines":  1590,
+                                              "trackedShellLines":  230,
+                                              "trackedPythonFiles":  0,
+                                              "trackedOwnedNativeFiles":  0,
+                                              "publicBootstrapSha256":  "6022aa2bdfc838ead9dd9507bea004b78568997f3a468f916a9bfa4310a0680a",
+                                              "reusedVerifiedNativeCompilerSha256":  "1f8d877945a604c1a926cc63eafc7fbc0c6bb57c865ea1217289c1daa12682e2",
+                                              "parserBenchmarkObjectSha256":  "42c8338f3b696184c971220ce1cb56483b8ef3005faeabdffed8cbeaa7d11219",
+                                              "parserBenchmarkExecutableSha256":  "3cfb45fb85553001926248ba700e2d9931be3022b206a6253917dab0c150d099",
+                                              "csvSha256":  "944f900963909859faf4a3116583db0c00c5d60ae5c9be7a179016dfdafcaa8f",
+                                              "validation":  [
+                                                                 "Reproduced baseline source-copy relative-import failure; shared rule builds and links in place with public bootstrap",
+                                                                 "Native list benchmark completes four sizes, five warmups and eleven recorded parses each, with stable allocation/live-buffer assertions",
+                                                                 "Verified serial worker transport and instrumented allocator in actual link",
+                                                                 "No-op build has no work; imported-source timestamp triggers one object rebuild with identical bytes",
+                                                                 "Historical world-view experiment has no live callers; current world/staging/threading tests remain"
+                                                             ],
+                                              "runtime":  "Tooling receipt only; preserve latest runtime identity, all 104 assets and previous receipts"
+                                          }
 }
