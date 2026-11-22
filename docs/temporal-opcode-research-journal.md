@@ -44943,3 +44943,39 @@ arguments and use decrement. Generic postfix hover currently identifies the
 expression but can omit its result type; that pre-existing query limitation is
 separate from the enclosing-function selection bug fixed here. The final browser,
 type-smoke and hosted publication receipts remain pending at this checkpoint.
+
+Rebase through ecc4333 incorporated lazy local type-argument binding proofs;
+repeat the public-bootstrap native and browser successor builds with those
+compiler inputs. Later upstream profiler retirement through ed691d9 changes
+documentation and unused scripts only. The new native editor-world, type-smoke
+and formatter checks pass, as do all nine examples in both native interpreters
+(`build/seed_final_native_checks.log`, `build/seed_final_examples.log`). Browser
+reactors link and explicit compiler-project packaging succeeds. The final full
+asset package is ready; repeat browser generation checks against these bytes.
+
+Preserve Foundation in the basic execution fixtures when replacing their old
+implicit prelude. Trying Tower there exposed an additional runtime-diagnostic
+issue: `import tower; var a: i32; a = 1 / 0;` produces Division by zero in all
+three backends but disagrees on errorOffset, which prevents the shared inline
+error. Record this separate provenance bug for a focused lowering/trap-location
+fix; do not weaken backend agreement or claim it is solved by this import work.
+The basic fixture must keep testing its original Foundation operations. Restore
+now correctly leaves the Bedrock-only foreach example in Syntax only mode.
+
+Final local validation: two successor browser compiler generations pass again
+with the rebased type-evaluation changes (`build/seed_final_generations.log`).
+All 94 selected desktop/mobile execution, template, struct, hover and viewport
+cases have passing evidence: 52 passed initially; the corrected rerun passes 36
+more; the remaining basic-operation and virtualized-hover cases pass focused
+six-case and two-case reruns. Wait for CodeMirror's new viewport after resetting
+scroll before testing whether a line is rendered. This fixes the mobile fixture
+race without changing product behavior. See `build/seed_final_browser_tests.log`,
+`build/seed_basic_execution_browser.log` and `build/seed_template_hover_browser.log`.
+
+Local deployment verification passes all 104 asset hashes and desktop/mobile
+execution, import persistence, archives, native-target downloads, highlighting,
+completion, diagnostics, compiler-project loading/cancellation and target
+defaults (`build/seed_final_verification.log`). Runtime and compiler-project
+inputs are e9d2bfab51d0a487cbe925ffe816926d0955d5f6, scaffolding tree
+d4d51121f987e68f727f56c4bab28568097c6e4b; later edits are validation fixtures and
+this receipt. Preserve these identities when recording the hosted publication.

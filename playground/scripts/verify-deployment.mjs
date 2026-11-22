@@ -311,11 +311,11 @@ try {
     await page.keyboard.press('Escape');await page.keyboard.press('ControlOrMeta+a');
     // Selecting all reveals the preceding fixture's pending error. Start from
     // valid source to distinguish a new hidden error from that retained one.
-    await page.keyboard.insertText('import tower; print(42);');
+    await page.keyboard.insertText('import foundation; print(42);');
     await expect(page.locator('#status')).toContainText('Complete');
     await expect(page.locator('#editor-error')).toBeHidden();
     await page.keyboard.press('ControlOrMeta+a');
-    await page.keyboard.insertText('import tower; print(42)');
+    await page.keyboard.insertText('import foundation; print(42)');
     await expect(page.locator('#status')).toContainText('Stopped');
     await expect(page.locator('#editor-error')).toBeHidden();
     await expect(page.locator('.tw-inline-error')).toHaveCount(0);

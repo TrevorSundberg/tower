@@ -2,7 +2,7 @@ import { outputText } from './output-text.mjs';
 import {selectDocument, savedSource, revealDiagnostics} from './project-helpers.mjs';
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
-const grammar = 'import tower;';
+const grammar = 'import foundation;'; // These fixtures exercise basic operations.
 async function setSource(page, text) {
   const editor = page.getByRole('textbox', { name: 'Tower source' });
   // Click the visible editor viewport: the contenteditable spans the entire

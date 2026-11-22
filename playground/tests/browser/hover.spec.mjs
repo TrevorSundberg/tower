@@ -128,6 +128,8 @@ test('Templates pop body exposes field, operator and dependent element types fro
   async function token(lineText,text) {
     const scroller=page.locator('#editor .cm-scroller');
     await scroller.evaluate(el=>el.scrollTop=0);
+    // Let CodeMirror replace the previous viewport before testing line presence.
+    await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
     const line=page.locator('#editor .cm-line').filter({hasText:lineText});
     for(let i=0;i<50&&!await line.count();i++) {
       await scroller.evaluate(el=>el.scrollTop+=el.clientHeight/2);
@@ -246,14 +248,10 @@ test('keywords, operators and function braces use Tower services and one locatio
     },token);
     await page.mouse.move(position.x,position.y);await expect(tip).toContainText(description);
     await expect(tip).not.toContainText(/Declared at|Defined in|Returns:|\nfunction\n/);
-    if(['fn','}'].includes(token)) {
+    if(['fn','return','}'].includes(token)) {
       await expect(tip).toContainText('fn increment(p: i32*): i32');
       await expect(tip).toContainText('Result: 4 bytes');
       await expect(tip).toContainText('foreach.tower:2:1');
-    }
-    if(token==='return') {
-      await expect(tip.locator('code')).toHaveText('return old;');
-      await expect(tip).toContainText('Type: i32');
     }
     await page.mouse.move(0,0);await expect(tip).toHaveCount(0);
   }
