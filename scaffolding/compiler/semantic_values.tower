@@ -799,6 +799,22 @@ fn sem_call_specialization(c: SemanticContext*, definition: void*, use: void*, a
 // The coordinator publishes a nominal instance and parameter scopes, then
 // requests their existing declaration queries. No return/parameter type is
 // forced here; the consumer suspends until the signature receipt is ready.
+fn sem_prepare_signature(c: SemanticContext*, definition: void*, use: void*, arguments: vector(void*)*): void* {
+    sem_require(c.declaration_subjects != null);
+    var instance = sem_call_instance(c, definition, use, arguments);
+    if instance == null { return null; }
+    if sem_get(instance) == null {
+        sem_function_declare(c, instance, sem_instance_name(c, definition, arguments));
+        if !sem_ok(c) { return null; }
+        sem_parameters(c, instance, definition);
+        if !sem_ok(c) { return null; }
+        sem_push(&c.generated, instance);
+        sem_declaration_add(c, instance);
+        foreach(var parameter in &sem_get(instance).parameters) { sem_declaration_add(c, parameter); }
+    }
+    return instance;
+}
+
 fn sem_prepare_call(c: SemanticContext*, use: void*, arguments: vector(void*)*): SemanticPreparedCall* {
     var prepared = sem_prepared_call(c, use);
     if prepared != null { return prepared; }
@@ -810,19 +826,11 @@ fn sem_prepare_call(c: SemanticContext*, use: void*, arguments: vector(void*)*):
     if arguments == null { arguments = sem_call_arguments(c, definition, use, args, values); }
     else { foreach(var argument in args) { sem_push(values, argument); } }
     if !sem_ok(c) { return null; }
-    var instance = sem_call_instance(c, definition, use, arguments);
+    var registrations = c.declaration_jobs.length;
+    var instance = sem_prepare_signature(c, definition, use, arguments);
     if instance == null { return null; }
-    if sem_get(instance) == null {
-        sem_function_declare(c, instance, sem_instance_name(c, definition, arguments));
-        if !sem_ok(c) { return null; }
-        sem_parameters(c, instance, definition);
-        if !sem_ok(c) { return null; }
-        sem_push(&c.generated, instance);
-        sem_declaration_add(c, instance);
-        foreach(var parameter in &sem_get(instance).parameters) { sem_declaration_add(c, parameter); }
-        sem_declaration_discover(c);
-        if !sem_ok(c) { return null; }
-    }
+    if c.declaration_jobs.length != registrations { sem_declaration_discover(c); }
+    if !sem_ok(c) { return null; }
     if c.prepared_calls == null {
         c.prepared_calls = sem_create(c.program.root);
         sem_require(entity_register(c.prepared_calls, sizeof(SemanticPreparedCall), alignof(SemanticPreparedCall), 0));

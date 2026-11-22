@@ -944,8 +944,11 @@ containers. Benchmark representative compiler workloads before migrating them.
   prepare separately from their branches. Surface while/for/foreach bodies,
   ordinary match arms/fallbacks and deferred blocks now share these continuations.
   Generated loop/iteration/match blocks receive leases before resumed mutation.
-  Foreach protocol setup, structural headers, extended structural match patterns
-  and individual structural expressions retain coordinator work. Eligible editor
+  Foreach generic protocol signatures now register declaration queries across
+  independent bodies; each body suspends on the ordinary parameter/return receipts.
+  Protocol roles preserve diagnostic order. Lookup/deduction and structural loop
+  setup, extended structural match patterns and individual structural expressions
+  retain coordinator work. Eligible editor
   declaration/body observations now use private worker buffers and publish after
   joins; captured lexical scopes live until the editor query is disposed.
   Already-instantiated generic bodies now use body workers when their immutable
@@ -958,12 +961,21 @@ containers. Benchmark representative compiler workloads before migrating them.
   shared query graph; body checking depends on their published receipts. Clone
   and checking state share the existing body-work component. Stages own copied
   names and queue provenance references for coordinator transfer before unpinning.
+  Clone waves refill idle slots within a source window and reserve the remaining
+  node budget across private stages. A demanded template's immutable body count
+  is cached on its template component; signature-only uses leave it unmeasured.
   Type-constructor copying and structural checking still need continuations.
   Eligible operator expressions, ordinary/prepared generic calls and scalar
   comptime expressions in inferred declarations and decltype annotations are
   checked on workers after declaration/signature and layout dependencies publish.
   Prepared consumers yield for worker readmission with explicit signature reads;
   worker-created evaluations publish into the same interpreter query graph.
+  Explicit initializers, if/while conditions, ordinary for initializer/condition/
+  update expressions, match subjects and foreach sources use these receipts too.
+  Lexical continuations consume checked results once, preserving effect order.
+  Built-in function signatures, nested function types and eligible indirect
+  invocations use private stages; callable locations participate in leases and
+  generic preparation before their arguments.
   Eligible generic argument deduction also runs on workers with private type
   constraints and alias diagnostics; the coordinator interns results and creates
   signatures. Role-aware declaration admission now includes value indexing and
@@ -986,8 +998,12 @@ containers. Benchmark representative compiler workloads before migrating them.
   fallback when isolation is unavailable. Local desktop loading/reload/fallback
   tests pass; the action-range checkpoint is published and hosted desktop/mobile
   verification passes. Later parser phases receive their own release checks.
-  Native CLI project recipes, structural semantic phases, query/storage migration and measured
-  SIMD remain open.
+  Native CLI `--unit` project recipes now use the unit services. Frontend and LLVM
+  jobs share one bounded pool and graph; each backend depends on its own frontend
+  receipt, permitting verified cross-unit frontend/backend overlap. Independent
+  units still own separate import closures. Shared import/query deduplication,
+  structural semantic phases, remaining ownership boundaries and measured SIMD
+  remain open.
   Tower expressions, numeric grammar precedence, compound assignments and lazy
   logical/null operators are implemented by the 2026-11-20 expression migration.
   The checked-in Linux x64 development bootstrap supports the expression/import
@@ -1074,16 +1090,17 @@ containers. Benchmark representative compiler workloads before migrating them.
    dispatch, dense storage and vectorization are independent claims. Continue
    the language milestones above on these same shared entities throughout.
 
-Current migration audit (after the isolated compiler-worker milestone):
+Current migration audit (2026-11-21, native checkpoint 2225c52; publication
+receipts and exact validation scope are recorded in the ongoing journal):
 
 | Area | Authoritative/shared data and present storage | Concurrency work still required |
 | --- | --- | --- |
 | Entities | Stable payloads, dense per-type pointer indexes, explicit worlds, pinned views, exclusive attachment leases and staged canonical creation | Complete host-world isolation and non-racing reference ownership |
-| Syntax/grammar | Shared entities; world-bound module/session/baseline/revision/cache ownership; worker-owned FIRST/nullable frontiers, LR(0) transitions, LR(1) kernel closures, dependency-link construction, wide lookahead frontiers, LALR actions and runtime action/direct-index/goto rows | Native CLI project recipes, runtime sequence specialization and source/effect order; link/seed merging and row interning publish after joins |
-| Semantics/layout | Shared query graph; parallel dependency discovery, precise layout/signature reads, eligible ordinary/generic bodies with loop/match/defer continuations, editor observations, aggregate signatures and expression lowering | Structural headers/protocols, expression/type-construction continuations and deterministic structural publication |
+| Syntax/grammar | Shared entities; world-bound module/session/baseline/revision/cache ownership; worker-owned FIRST/nullable frontiers, LR(0) transitions, LR(1) kernel closures, dependency-link construction, wide lookahead frontiers, LALR actions and runtime action/direct-index/goto rows; native CLI unit recipes use isolated worlds | Shared import/query deduplication and runtime sequence specialization; source/effect order, link/seed merging and row interning require ordered publication |
+| Semantics/layout | Shared query graph; parallel dependency discovery, precise layout/signature reads, eligible ordinary/generic bodies with loop/match/defer continuations, initializer/control-input queries, staged function signatures/callable locations, bounded clone refilling, editor observations, aggregate signatures and expression lowering | Foreach protocol construction, array/type-constructor preparation and remaining structural expressions; interning/publication remains coordinated |
 | Interpreter/staging | Per-invocation contexts over shared Foundation; ECS binding proofs, clone/preparation/lowering dependencies, threaded lazy scalar evaluation, executed-read capture checks and private execution caches | General ordinary-value execution, explicit effects/inputs and invalidation; no separate folding evaluator |
-| LLVM | Shared Foundation inputs; one mutable LLVM context/module per compiler instance; explicit-world source requests and Foundation reconstruction | Integrate backend job queries, coordinate upstream target registration, and avoid concurrent mutation of one LLVM module; preserve target legality |
-| Link/publication | Tower plans/artifacts plus upstream LLD and filesystem interfaces | Keep LLD globals and fixed temporary names isolated/serialized; publish a candidate only after its checks |
+| LLVM | Shared Foundation inputs; private LLVM contexts/modules per unit; backend queries stream from their frontend receipts on one bounded native pool; browser builds use the Tower coordinator | Shared-module work and upstream target registration retain ownership boundaries; measure end-to-end scaling and preserve target legality |
+| Link/publication | Tower plans/artifacts and the production Tower Wasm linker; other native formats retain upstream LLD and filesystem interfaces | Keep remaining LLD globals and temporary paths isolated/serialized; publish a candidate only after its checks |
 
 Do not replace the sparse payload store everywhere just to resemble an ECS
 library. Cached typed queries and measured hot/cold columns should preserve the

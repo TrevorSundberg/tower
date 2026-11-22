@@ -15,11 +15,63 @@ import semantic_call_inference;
 import .library.vector;
 
 var IterationSourceDepthLimit: u32 = 123;
+var IterationParameterCount: usize = 2;
+enum IterationRole: u32 { Begin, Next, Element, End }
+
+// A continuation on the owning body-work component. These are ordinary
+// function entities/signature receipts, never a second protocol representation.
+struct SemanticIterationPlan {
+    initial: void*;
+    module: void*;
+    prefix: u8*;
+    begin: void*;
+    next: void*;
+    element: void*;
+    end: void*;
+    ready: bool;
+}
+
+fn sem_iteration_slot(plan: SemanticIterationPlan*, role: IterationRole): void** {
+    match role {
+        IterationRole.Begin => { return &plan.begin; }
+        IterationRole.Next => { return &plan.next; }
+        IterationRole.Element => { return &plan.element; }
+        _ => { return &plan.end; }
+    }
+}
+
+fn sem_iteration_suffix(role: IterationRole): u8* {
+    match role {
+        IterationRole.Begin => { return "begin"; }
+        IterationRole.Next => { return "next"; }
+        IterationRole.Element => { return "element"; }
+        _ => { return "end"; }
+    }
+}
+
+fn sem_iteration_plan(c: SemanticContext*, n: void*, initial: void*, plan: SemanticIterationPlan*): bool {
+    *plan = default;
+    var type = &sem_get(initial).type;
+    if type.scalar != SStruct || type.pointers != 1 {
+        sem_fail(c, n, "foreach requires a pointer to a nominal collection; use &collection");
+        return false;
+    }
+    var declaration = generic_specialization(c.generics, type.record) ?? type.record;
+    declaration = generic_definition(c.generics, declaration);
+    plan.initial = initial;
+    plan.module = sem_owner(c, declaration);
+    plan.prefix = sem_cat(c, sem_identifier(c, sem_member(declaration, "name")), "_iterate_");
+    return true;
+}
 
 // The source's nominal declaration owns a statically resolved iteration protocol
 // in its module. Each compilation exclusively owns its scratch and ECS graph. These are ordinary functions, with no container-name cases or
 // independent iterator opcodes. The source pointer is evaluated exactly once.
 fn sem_iteration_function(c: SemanticContext*, module: void*, name: u8*, use: void*, source: void*): void* {
+    return sem_iteration_resolve(c, module, name, use, source, false);
+}
+
+fn sem_iteration_resolve(c: SemanticContext*, module: void*, name: u8*, use: void*, source: void*, pending: bool): void* {
     var function = sem_owned(c.functions, module, name);
     var definition = sem_owned(c.templates, module, name);
     if definition != null {
@@ -30,7 +82,7 @@ fn sem_iteration_function(c: SemanticContext*, module: void*, name: u8*, use: vo
                 runtime++;
             }
         }
-        if runtime != 2 {
+        if runtime != IterationParameterCount {
             sem_fail(c, use, "An iteration protocol function requires source and state pointer parameters");
             return null;
         }
@@ -41,7 +93,8 @@ fn sem_iteration_function(c: SemanticContext*, module: void*, name: u8*, use: vo
         if !sem_ok(c) {
             return null;
         }
-        function = sem_call_specialization(c, definition, use, arguments);
+        function = pending ? sem_prepare_signature(c, definition, use, arguments)
+            : sem_call_specialization(c, definition, use, arguments);
     }
     if function == null && sem_ok(c) {
         sem_fail(c, use, sem_cat(c, "Missing iteration protocol function '", sem_cat(c, name, "' in the source type's module")));
@@ -49,7 +102,7 @@ fn sem_iteration_function(c: SemanticContext*, module: void*, name: u8*, use: vo
     if !sem_ok(c) {
         return null;
     }
-    if sem_get(function).parameters.length != 2 {
+    if !pending && sem_get(function).parameters.length != IterationParameterCount {
         sem_fail(c, use, "An iteration protocol function requires source and state pointer parameters");
         return null;
     }
@@ -73,7 +126,7 @@ fn sem_iteration_call(c: SemanticContext*, parent: void*, function: void*, sourc
     sem_set_type(&value.type, &signature.type);
     sem_push(&value.items, sem_control_read(c, result, source));
     sem_push(&value.items, sem_iteration_address(c, result, state));
-    for(var i: usize = 0; i < 2; i++) {
+    for(var i: usize = 0; i < IterationParameterCount; i++) {
         if !semantic_type_equal(&sem_get(value.items.data[i]).type, &sem_get(signature.parameters.data[i]).type) {
             sem_fail(c, parent, "Iteration protocol source/state parameter types must agree exactly");
         }
@@ -93,6 +146,10 @@ fn sem_iteration_begin(c: SemanticContext*, n: void*, depth: u32, cursor: Semant
 }
 
 fn sem_iteration_value(c: SemanticContext*, n: void*, depth: u32, cursor: SemanticIterationCursor*, initial: void*): bool {
+    return sem_iteration_prepared(c, n, depth, cursor, initial, null);
+}
+
+fn sem_iteration_prepared(c: SemanticContext*, n: void*, depth: u32, cursor: SemanticIterationCursor*, initial: void*, prepared: SemanticIterationPlan*): bool {
     *cursor = default;
     if depth > IterationSourceDepthLimit {
         sem_fail(c, n, "foreach lowering exceeds Foundation block nesting limit of 128");
@@ -106,22 +163,19 @@ fn sem_iteration_value(c: SemanticContext*, n: void*, depth: u32, cursor: Semant
     if !sem_ok(c) {
         return false;
     }
-    var type = &sem_get(initial).type;
-    if type.scalar != SStruct || type.pointers != 1 {
-        sem_fail(c, n, "foreach requires a pointer to a nominal collection; use &collection");
-        return false;
+    var local: SemanticIterationPlan = default;
+    if prepared == null || !prepared.ready {
+        if !sem_iteration_plan(c, n, initial, &local) { return false; }
+        local.begin = sem_iteration_function(c, local.module, sem_cat(c, local.prefix, "begin"), n, initial);
+        local.next = sem_iteration_function(c, local.module, sem_cat(c, local.prefix, "next"), n, initial);
+        local.element = sem_iteration_function(c, local.module, sem_cat(c, local.prefix, "element"), n, initial);
+        local.end = sem_iteration_function(c, local.module, sem_cat(c, local.prefix, "end"), n, initial);
+        prepared = &local;
     }
-    var declaration = generic_specialization(c.generics, type.record);
-    if declaration == null {
-        declaration = type.record;
-    }
-    declaration = generic_definition(c.generics, declaration);
-    var module = sem_owner(c, declaration);
-    var prefix = sem_cat(c, sem_identifier(c, sem_member(declaration, "name")), "_iterate_");
-    var begin = sem_iteration_function(c, module, sem_cat(c, prefix, "begin"), n, initial);
-    var next = sem_iteration_function(c, module, sem_cat(c, prefix, "next"), n, initial);
-    var element = sem_iteration_function(c, module, sem_cat(c, prefix, "element"), n, initial);
-    var end = sem_iteration_function(c, module, sem_cat(c, prefix, "end"), n, initial);
+    var begin = prepared.begin;
+    var next = prepared.next;
+    var element = prepared.element;
+    var end = prepared.end;
     if !sem_ok(c) {
         return false;
     }

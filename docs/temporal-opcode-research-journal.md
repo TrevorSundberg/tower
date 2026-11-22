@@ -40834,3 +40834,77 @@ fetch its exact manifest Git blob and verify hosted bytes match SHA256
 The hosted tooling receipt also matches our published object exactly. Notify the
 coordinator of the lock overlap and release only our own lock after verification.
 No claim that we rebuilt or published the newer runtime is made.
+Merged milestone rebased cleanly onto a07bb6e (production Tower Wasm linking) as
+2225c52. The documented public-bootstrap build, override unset, rebuilt nine
+native targets in the existing ecs-local-query-new-pin cache and repackaged the
+complete compiler/resources. The affected body smoke, including generic-produced
+callable locations and aggregate nested invocations, passes; registry and
+function-values fixtures both print zero failures. Evidence:
+refill-callable-merged-native.log. Native SHA-256:
+6e0c1c56d97cf414533e07e652b0331eb50a447dc44df9d3ca111d6b44e76684.
+This is an incremental rebuild, not a new clean bootstrap claim. Frozen browser
+artifacts are now rebuilding from the merged milestone; subsequent work must
+wait until its compiler-project inputs are packaged.
+
+Hosted verification of the previous 0aeea65 deployment completed successfully:
+89 asset hashes, desktop/mobile checks (empty error arrays), and actual Linux
+browser defaults. Evidence: signature-hosted.log and the saved deployment report.
+No partial hosted result is being counted as completion of the wider compiler
+conversion or the newly merged refill/callable milestone.
+
+The frozen 2225c52 browser builds and three shared-Wasm checks pass without
+skips. Both actual edited compiler generations passed with identical Tower/LLVM/
+cross hashes (refill-callable-generations.log), including the merged Tower-only
+Wasm linker path. This package is frozen before the iteration-protocol work below.
+Updated tower-language-plan's implementation/audit rows to reflect production
+native unit streaming, control-input/signature receipts and bounded generic
+clone scheduling, while retaining explicit remaining boundaries.
+
+Next concrete structural preparation slice: foreach source queries existed, but
+sem_iteration_function still forced generic headers synchronously. Extracted the
+ordinary signature registration helper used by explicit calls. A body-work
+iteration plan now registers each protocol role across independent bodies,
+suspends its existing preparation receipt on parameter/return declarations, and
+uses the shared executor before continuing. Role order remains begin/next/element/
+end so later missing protocols cannot displace an earlier signature diagnostic.
+The existing loop builder consumes those published function entities once;
+nominal inference/registration, state layout and structural loop publication
+retain coordinator ownership. No independent protocol graph/evaluator is added.
+
+The smallest changed iteration unit compiles with the public bootstrap. The
+native affected smoke is running in iteration-signatures-native.log. Added
+serial/four-worker coverage for two bodies sharing a failed begin signature,
+which must retain MissingState ahead of missing later protocol roles and a later
+ordinary error. This follow-up is not yet validated or included in 2225c52's
+frozen browser assets.
+
+The foreach protocol signature slice passes the affected native body smoke,
+including the new shared MissingState diagnostic at one/four workers. Its full
+32/64-bit, 1/2/4/8-worker body matrix is running for the structural milestone.
+Signature registration is shared with ordinary call preparation; it does not
+force sem_header from protocol resolution. Protocol lookup/deduction still
+runs on the coordinator, and headers/parameters use the existing declaration
+admission rules (structural type constructors may still require coordinator
+continuations). This is a narrower verified claim than fully parallel protocol
+construction.
+
+The frozen 2225c52 release was pushed as Pages
+9275bd62bbab160083625a0f82e4fc52f37e70ac. Workflow 44980567672 succeeded.
+Manifest SHA-256: 4b47149e164e5902ca4fd780361539d474065584c01026d3f22ede1a5aaec009.
+Project SHA-256: ec971832bcd2a806adedcdcacc591e02cc33dba5a14a3909034f7936c299285d.
+Generation hashes (both edited generations identical):
+- Tower: 23d42b8789a874d445c42f40f6466714a96ba90eb0642d07cd6928b6eec18500
+- LLVM: d99d28e25218e05f3a8375277052cf16294c0989e06c2fd4cb75699ca7ab2cd6
+- cross: 0776dc04ab0c037db393b7393b97fc81fa96842c97af05dafd25ed11c56d271e
+Hosted verification is running. Further implementation will batch focused native
+checks before the next browser publication; repeating whole compiler packaging
+for each small scheduling slice would keep compiler inputs frozen too often.
+
+The iteration signature milestone's full native matrix now passes: 32/64-bit
+execution/canonical output at 1/2/4/8 workers, canonical reparsing, and both
+serial/parallel diagnostic/cycle groups, including shared failed protocol
+signatures. Evidence: iteration-signatures-{preflight,native,matrix}.log. The
+existing ordinary-call preparation path shares registration but retains its
+previous discovery timing when no new declarations were added. Successful
+protocol signature preparation is reused by the loop builder instead of replayed.
+Ready to commit/rebase and check the documented public-bootstrap route.

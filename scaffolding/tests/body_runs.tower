@@ -181,7 +181,7 @@ fn body_runs_arm_error(budget: usize, bedrock: u8*, foundation: u8*, root: u8*, 
     units_check(frontend_units_failed(batch) == 1 && strstr(error, mode == 2 ? "Duplicate match pattern" : "unknownMatch") is not null && strstr(error, "unknownSecond") is null, "Resumed arm and cleanup failures preserve source diagnostic order");
 }
 
-enum BodyDeclarationFailure: u32 { SelfReference, SharedSignature, SharedInitializer, HeaderSelfReference, SharedTypeInitializer, SharedTypeAlias, SharedNestedType, NestedFunctionSignature }
+enum BodyDeclarationFailure: u32 { SelfReference, SharedSignature, SharedInitializer, HeaderSelfReference, SharedTypeInitializer, SharedTypeAlias, SharedNestedType, NestedFunctionSignature, IterationSignature }
 var BodyDeclarationRevision: u64 = 90;
 var BodyDeclarationProfile: u64 = 23;
 
@@ -219,6 +219,12 @@ fn body_runs_declaration_error(budget: usize, bedrock: u8*, foundation: u8*, roo
     if mode == BodyDeclarationFailure.NestedFunctionSignature {
         source = "import tower;fn first():i32{var apply:function(i32,function(i32,void));return 0;}fn later():i32{return unknownLater;}";
         diagnostic_text = "A function parameter cannot have void type";
+    }
+    if mode == BodyDeclarationFailure.IterationSignature {
+        // Two bodies share the failed begin signature. Its parameter failure
+        // precedes the missing later protocol roles and a later ordinary error.
+        source = "import tower;fn id(T:type,x:T):T{return x;}fn collection(T:type):type{struct Value{value:T;}return Value;}fn collection_iterate_begin(T:type,source:collection(T)*,state:MissingState*):void{}fn first():i32{var x=id(1);var values:collection(i32);foreach(var value in &values){}return 0;}fn second():i32{var values:collection(i32);foreach(var value in &values){}return 0;}fn later():i32{return unknownLater;}";
+        diagnostic_text = "MissingState";
     }
     units_check(frontend_units_source(batch, 1, "local_dependency.tower", source, strlen(source)), "Local declaration dependency source");
     while !frontend_units_step(batch, true) {}
@@ -259,6 +265,8 @@ fn body_runs_smoke(root: u8*): void {
     body_runs_declaration_error(4, bedrock.data, foundation.data, root, BodyDeclarationFailure.HeaderSelfReference);
     body_runs_declaration_error(4, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedSignature);
     body_runs_declaration_error(4, bedrock.data, foundation.data, root, BodyDeclarationFailure.NestedFunctionSignature);
+    body_runs_declaration_error(1, bedrock.data, foundation.data, root, BodyDeclarationFailure.IterationSignature);
+    body_runs_declaration_error(4, bedrock.data, foundation.data, root, BodyDeclarationFailure.IterationSignature);
     body_runs_declaration_error(1, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedInitializer);
     body_runs_declaration_error(4, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedInitializer);
     body_runs_declaration_error(1, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedTypeInitializer);
@@ -311,6 +319,7 @@ fn body_runs_tests(root: u8*): void {
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.HeaderSelfReference);
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedSignature);
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.NestedFunctionSignature);
+        body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.IterationSignature);
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedInitializer);
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedTypeInitializer);
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedTypeAlias);

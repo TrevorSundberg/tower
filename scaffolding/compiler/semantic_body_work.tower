@@ -181,6 +181,7 @@ struct SemanticBodyWork {
     initialization: SemanticDeclaration*;
     expression_header: void*;
     prepared_value: void*;
+    iteration_plan: SemanticIterationPlan;
     declaration_header: void*;
     declaration_loop: SemanticLoopCursor;
     for_tail: bool;
@@ -512,7 +513,7 @@ fn sem_body_enter(c: SemanticContext*, result: SemanticBodyWork*, node: void*, p
             } else {
                 if iteration {
                     frame.kind = SemanticBodyBlockKind.Foreach;
-                    begun = sem_iteration_value(c, node, depth, &frame.iteration_state, result.prepared_value);
+                    begun = sem_iteration_prepared(c, node, depth, &frame.iteration_state, result.prepared_value, &result.iteration_plan);
                     depth += 3;
                 } else {
                     frame.kind = SemanticBodyBlockKind.Defer;
@@ -806,6 +807,90 @@ fn sem_body_for_tails(c: SemanticContext*, batch: SemanticBodyWork**, count: usi
     }
 }
 
+// Called only with no active preparation ticket. Retain the producer error and
+// let earlier body continuations settle before choosing the visible diagnostic.
+fn sem_body_iteration_failed(c: SemanticContext*, result: SemanticBodyWork*): void {
+    sem_require(work_fail(&c.queries, result.preparation));
+    sem_body_hold_error(c, result);
+    result.done = true;
+    result.preparation = 0;
+    result.initialization = null;
+    result.expression_header = null;
+    result.iteration_plan = default;
+}
+
+// Protocol roles retain their diagnostic order, but each role admits all
+// independent bodies before checking any pending signatures. Generic inference
+// and identity publication remain coordinated; parameter/return checking uses
+// the ordinary declaration graph and the body's preparation receipt suspends.
+fn sem_body_iteration_signatures(c: SemanticContext*, batch: SemanticBodyWork**, count: usize, failed: usize): void {
+    for(var role_id = convert(u32, IterationRole.Begin); role_id <= convert(u32, IterationRole.End); role_id++) {
+        var role = convert(IterationRole, role_id);
+        var registrations = c.declaration_jobs.length;
+        var active: usize = 0;
+        for(var i: usize = 0; i < count && i <= failed; i++) {
+            var result = batch[i];
+            var source = result.initialization;
+            if result.done || source == null || !sem_is(result.expression_header, "TowerForeach")
+                || work_task(&c.queries, source.query).state != WorkState.Succeeded { continue; }
+            active++;
+            var ticket: WorkTicket;
+            sem_require(work_take_task(&c.queries, &ticket, result.preparation));
+            var saved: SemanticBodyScope;
+            sem_body_save(c, &saved);
+            sem_body_restore(c, &source.lexical);
+            var reads = c.query_reads;
+            c.query_reads = &result.query_reads;
+            generic_error_clear(c.generics);
+            var plan = &result.iteration_plan;
+            if role == IterationRole.Begin { sem_iteration_plan(c, result.expression_header, source.value, plan); }
+            if sem_ok(c) {
+                var name = sem_cat(c, plan.prefix, sem_iteration_suffix(role));
+                *sem_iteration_slot(plan, role) = sem_iteration_resolve(c, plan.module, name,
+                    result.expression_header, plan.initial, true);
+            }
+            c.query_reads = reads;
+            sem_body_restore(c, &saved);
+            sem_query_observe(c, &ticket, &result.query_reads);
+            if sem_ok(c) { sem_require(work_yield(&c.queries, &ticket)); }
+            else {
+                sem_require(work_finish(&c.queries, &ticket, false));
+                sem_body_iteration_failed(c, result);
+            }
+        }
+        if active == 0 { return; }
+        if c.declaration_jobs.length != registrations { sem_declaration_discover(c); }
+        sem_require(sem_ok(c));
+        var pending = false;
+        for(var i: usize = 0; i < count && i <= failed; i++) {
+            var result = batch[i];
+            if result.done || result.iteration_plan.initial == null { continue; }
+            var function = *sem_iteration_slot(&result.iteration_plan, role);
+            var query = sem_declaration_query(c, function);
+            if query == 0 { continue; }
+            var state = work_task(&c.queries, query).state;
+            pending ||= state != WorkState.Succeeded && state != WorkState.Failed;
+            var ticket: WorkTicket;
+            sem_require(work_take_task(&c.queries, &ticket, result.preparation));
+            sem_require(work_suspend_access(&c.queries, &ticket, query,
+                convert(u64, SemanticWorkDomain.Compiler), convert(u64, SemanticAccess.Declaration), query, 1, WorkAccessMode.Read));
+        }
+        if pending { sem_declarations_execute(c, c.declaration_subjects); }
+        sem_require(sem_ok(c));
+        for(var i: usize = 0; i < count && i <= failed; i++) {
+            var result = batch[i];
+            if result.done || result.iteration_plan.initial == null { continue; }
+            var function = *sem_iteration_slot(&result.iteration_plan, role);
+            sem_declaration_report(c, function);
+            if sem_ok(c) && sem_get(function).parameters.length != IterationParameterCount {
+                sem_fail(c, result.expression_header, "An iteration protocol function requires source and state pointer parameters");
+            }
+            if !sem_ok(c) { sem_body_iteration_failed(c, result); }
+            else { result.iteration_plan.ready = role == IterationRole.End; }
+        }
+    }
+}
+
 // Bind independent local roots in source order, then release every preparation
 // claim before discovery/checking. Each declaration exclusively borrows its
 // body's lexical descriptor until that producer and its dependencies settle.
@@ -960,6 +1045,7 @@ fn sem_body_declarations(c: SemanticContext*, batch: SemanticBodyWork**, count: 
         sem_declarations_execute(c, c.declaration_subjects);
         sem_require(sem_ok(c));
     }
+    sem_body_iteration_signatures(c, batch, count, failed);
     if c.declaration_subjects.length == 0 {
         sem_body_for_tails(c, batch, count, failed);
         return;
@@ -1036,6 +1122,7 @@ fn sem_body_declarations(c: SemanticContext*, batch: SemanticBodyWork**, count: 
         result.declaration = null;
         result.initialization = null;
         result.expression_header = null;
+        result.iteration_plan = default;
         if !result.for_tail {
             result.declaration_header = null;
             result.declaration_loop = default;
@@ -1140,6 +1227,7 @@ fn sem_body_clear(result: SemanticBodyWork*): void {
     result.initialization = null;
     result.expression_header = null;
     result.prepared_value = null;
+    result.iteration_plan = default;
     result.declaration_header = null;
     result.declaration_loop = default;
     result.for_tail = false;
