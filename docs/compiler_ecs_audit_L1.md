@@ -220,3 +220,54 @@ integrated after drain, not represented by these passes. Its producer storage
 review is positive; aggregate consumer input/address handling requires current
 runtime diagnosis. The Linux-only type microprofile selector must move out of the
 portable default runner through the coordinated D1/L2 target handoff.
+### Required aggregate inputs and consumer lifetime
+
+Current-v3 d09 independently reproduces global/local aggregate rejection while
+scalar address-derived capture incorrectly succeeds. The joint L1/A1 draft now
+shares the existing canonical projection vector through explicit required-input
+metadata and materializes private target bytes in the consuming frame. Scalar,
+copy and fill writes share the strict immutable-range guard; nested returns drop
+only ended-frame copies and retained root storage survives result publication.
+Type/function references are re-interned in the consumer, never copied as producer
+indexes. The producer arrays remain alive until all consumer invocations are
+disposed. There is no new evaluator, authoritative IR, global state or scheduler.
+
+A1 freezes exact required-capture relocation policy before dispatch. The expanded
+42 lifecycle cases and new private invocation/source fixtures are current gates.
+Smallest predecessor units pass; full coherent native/runtime evidence is pending.
+The journal records exact source handoffs, measurements, failed experiments and
+remaining publication/instrumentation/performance requirements.
+
+### CURRENT remaining scope after coherent6b32 validation
+
+The path census is **34/34 reviewed production/unit/host-boundary Tower files**:
+30 compiler/unit paths in the inventory above, its three named host boundaries,
+and the newly enumerated L2-owned `semantic_type_execution.tower` boundary below.
+No newly discovered file in that explicit lane census remains unread. This is a
+read/audit count, not34 accepted release gates. Both changed aggregate regression
+files (`tests/interpreter_call_query.tower`, `tests/aggregate_capture_inputs.tower`)
+have complete source review; the new ordinary fixture's registration is still
+pending D1. Other lanes retain ownership/audit of their broader library/parser/
+backend/semantic families; this count does not claim those families were audited
+in full by L1. Current source is main72b1435 plus the reviewed joint delta; exact
+build manifests identify6b32. The older per-row baseline comments are historical.
+
+| Boundary or requirement | Current disposition and concrete remaining work |
+| --- | --- |
+| `semantic_type_execution.tower`: `sem_type_execution_request/current/pump` | Newly added boundary review: original owner/subject components, full revision/profile/dispatch/sequence and exact invocation-pointer validation; coordinator-owned interning/layout demand; suspended invocation operands never replay. Uses explicit world checks and canonical descriptors, not private numeric indexes. L2 implementation is present and query/lifecycle coverage passes; no historical missing-helper claim remains. Revalidate current joined stale/cancel/type-constructor cases under final instrumentation. |
+| `interpreter.tower`: `ix_input_storage`, `ix_returned`, invocation disposal; `interpreter_context.tower`: `ix_initialized` | Implemented and measured functional closure: private target bytes, exact required producer, ordinary leaf/reference reads, immutable scalar/copy/fill paths, caller/root retention and disposal. Original aggregate and full42 gates pass. Remaining evidence: D1-register complex32/64 graph/cache/canonical/worker matrix, an entire empty aggregate input (zero projections, distinct aggregate flag), strengthened exact guard diagnostics, supported final memory/thread instrumentation and independent owner verification. Non-null captured raw-pointer relocation remains an explicit unsupported staging capability, not a portable value or silent fallback. |
+| World/component storage and locality: `foundation_nodes.tower`, `interpreter_storage.tower`, `fast_interpreter.tower` | Original entities remain authoritative; private frame/task/map/memory/cache vectors are dense derived data. Foundation payloads are stable components with indirection, not a claim of packed SoA. Control counts show no retained entity/component growth. Remaining measurements: current large staged workload peak/live private bytes and allocation/retention, plus A2's table/stage profiling; no measured fragmentation/cache-locality/false-sharing conclusion for all compiler traversals yet. |
+| Ready-work scheduling: `semantic_evaluation_work.tower`, `semantic_execution_work.tower`, `compiler_kernel_dispatch_admitted` | Current source uses shared admitted dispatch and explicit stages; the old manual executable-loop row is superseded. Between-unit frontend/backend overlap has distinct-worker and exact-object evidence on246. Within-unit query readiness and deterministic42-case execution pass on6b32. Missing acceptance evidence remains useful end-to-end profitable-core scaling at1/2/4/8, idle/coordination costs and shared nested-budget behavior on the final source. A single ordered interpreter invocation remains intentionally serial to preserve effects. Browser nested workers have the documented inline inner-transport limit; browser overlap/cancellation coverage must be rerun. |
+| Decltype/comptime effects/invalidation: `semantic_evaluation.tower`, `semantic_capture_work.tower`, `semantic_type_execution.tower` | Required/optional producer roles, lazy executed-path discovery, prepared executable receipts, immutable initializer ranges and exact capture relocation policy are implemented; full42 includes untaken branches, early reads, effects, nominal/type/function captures and failures. Work tickets reject stale revision/profile/dispatch within a compilation. Persistent cross-session incremental invalidation is not provided by these tickets and must not be claimed. Confirm final cache/source/profile identities and unchanged diagnostics after owner integrations; coordinate any broader incremental capability requirement with A1/B2 rather than treating IDs as persistent validity. |
+| Fail/cancel/drain/stale: invocation/session disposal and A1 pumps | Query tests include waiting-body resumption, failure, cancellation/disposal and constructor stale-receipt cases; borrowed aggregate arrays now outlive all consumer disposals. Source review and focused tests are evidence, not universal race freedom. Final concurrent cancellation/failure stress and ASan/UBSan/TSan coverage on this exact ownership source remain mandatory. A1's scratch allocator migration is still pending here: worker cleanup in `semantic_evaluation_work.tower`/`semantic_execution_work.tower` currently calls `free` for context allocations; require its matched compiler_buffer allocation/free handoff before final closure. |
+| Serial cost and normalized packages: `execution_package.tower`, `bytecode_package.tower`; A2 `entity_stage_prepare/publish` | Canonical normalized source is byte-identical to the old118962-byte reference; the public30s emission gate still fails on6b32. A2's reviewed payload-only lease optimization452cfa58 is queued; next apply after drain, compile smallest stage unit, repeat original30s emit/load with matched resources, verify exact oracle/package/canonical output and run relevant concurrency/table cases. Current control CPU/RSS has no measured regression, but that does not close this actual package deadline failure. |
+| Native/browser cache and source emitters: `fast_interpreter_create/step`, `execution_package_load`, `c_emitter`, `roku_emitter` | Earlier core/session/envelope/source-rejection/root-preservation checks pass. New ownership still needs final current graph/cache/package/type/known matrix and browser differential/cancellation receipts. Raw runtime type construction unsupported by the packed cache must retain the explicit checked fallback/capability contract. Physical Roku-device execution is unavailable here; source/reference tests cannot be presented as hardware validation. |
+| Portable measurement and packaging | Existing `tests/type_reachability_profile.tower` imports Linux x64 getrusage through the shared execution runner. This is an actual portable-linkage defect pending the coordinated D1/L2 standalone target and exact L1 selector removal, not a runtime guard workaround. Preserve old Linux measurements, compile the smallest target/default runner and verify unsupported requested hosts fail honestly. |
+| Final source/bootstrap/browser/publication | No new syntax requires private adoption. Incremental public-pin builds pass; final clean documented Linux x64 build from the merged source, complete executable/resources/provenance and generation/browser matrix remain unrun. Keep actual source/build commits reachable from main, preserve concurrent publication receipts, obtain the named coordinator lease, atomically push main+gh-pages and verify served manifest/assets/behavior. No lease or hosted acceptance exists yet. |
+
+The34-file census is closed for reading; release acceptance remains open in the
+specific rows above. The next owned work is the private-input edge coverage and
+signed32 stage optimization validation, while L2 independently validates the
+joined source. Historical helper/readiness/aggregate bugs are not restated as
+unimplemented capabilities. No deliberate invalid-memory/race sensitivity probe
+will be repeated; supported valid-program instrumentation remains required.

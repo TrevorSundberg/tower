@@ -34,7 +34,7 @@ fn sem_evaluation_aggregate(c: SemanticContext*, result: SemanticEvaluation*, no
         var element = field == null ? &record.element : &sem_get(field).type;
         // Declaration inference can discover this result before layout runs.
         // Retain field identity, not an unpublished numeric byte offset.
-        var projection: SemanticEvaluationLeaf = default;
+        var projection: IMValueProjection = default;
         projection.field = field;
         projection.parent = parent;
         projection.index = index;
