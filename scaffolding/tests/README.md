@@ -425,15 +425,14 @@ require the working directory to contain Bedrock and Foundation. The emission
 suite retains its two-pass allocation/lifetime check. Fixture and oracle objects
 remain separately compiled, with the shared build helper tracking their imports.
 
-For WASI argument transport, use the existing runner (its historical filename
-does not restrict the supplied command):
+The shared WASI runner mounts the source tree and forwards command arguments:
 
 ```text
-node scaffolding/tests/interpreter-wasi.mjs path/to/tower-parser-tests --suite reader
+node scaffolding/tests/host-wasi.mjs path/to/tower-parser-tests --suite reader
 ```
 
-It mounts Bedrock/Foundation and forwards the remaining arguments. The full
-parser aggregate still uses `host-wasi.mjs` to mount its additional source files.
+The parser and interpreter suites use this same transport, including the complete
+Foundation/type prelude. The `source/` aliases preserve fixture file identities.
 
 The isolated `cmake/TowerDriver.cmake` fragment adds CLI checks with
 `-DTOWER_DRIVER_TESTS=ON` to a native compiler configuration. Build `towerc` and

@@ -1,7 +1,7 @@
 // Run the host/parser command with the browser's portable WASI host. The full
 // suite needs the source fixtures as well as its grammar modules. Its CMake
 // target maps __FILE__ to this mounted tree, independent of the build host.
-// Usage: node scaffolding/tests/host-wasi.mjs program.wasm
+// Usage: node scaffolding/tests/host-wasi.mjs program.wasm [arguments...]
 import {readFile, readdir} from 'node:fs/promises';
 import {Worker, workerData, parentPort} from 'node:worker_threads';
 import {TowerWASI, WASIExit} from '../../playground/src/wasi-host.mjs';
@@ -41,8 +41,19 @@ async function sources(folder = '') {
 }
 const host = new TowerWASI({log: text => process.stdout.write(text + '\n')});
 const files = await sources();
-host.mountFiles([...files.map(file => ({...file, path:'source/' + file.path})),
-  ...files.filter(file => file.path === 'bedrock.tower' || file.path === 'foundation.tower')]);
+host.mountFiles([...files.map(file => ({...file, path:'source/' + file.path})), ...files]);
+const argv = process.argv.slice(2).map(arg => new TextEncoder().encode(arg + '\0'));
+const pointerBytes = 4;
+host.wasiImport.args_sizes_get = (count, size) => {
+  host.put32(count, argv.length); host.put32(size, argv.reduce((sum, arg) => sum + arg.length, 0)); return 0;
+};
+host.wasiImport.args_get = (pointers, buffer) => {
+  for (const arg of argv) {
+    host.put32(pointers, buffer); host.memory(buffer, arg.length).set(arg);
+    pointers += pointerBytes; buffer += arg.length;
+  }
+  return 0;
+};
 const imports = {wasi_snapshot_preview1: host.wasiImport};
 // Explicit host-memory transport for linker fixtures; assertions stay in Tower.
 if (process.env.TOWER_TEST_MEMORY_MODULE !== undefined) {

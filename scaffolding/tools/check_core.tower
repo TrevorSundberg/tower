@@ -82,7 +82,7 @@ fn core_check(root: u8*, build: u8*, compiler: u8*, sdk: u8*): i32 {
         || !core_check_command(&args, "node") || !tool_process_argument(&args, runner.data)
         || !tool_process_argument(&args, executable.data) { return failure; }
     status = core_check_run(&args); if status != 0 { return status; }
-    if !tool_join(&runner, root, "scaffolding/tests/interpreter-wasi.mjs") || !tool_join(&executable, build, "tower-interpreter-tests")
+    if !tool_join(&executable, build, "tower-interpreter-tests")
         || !core_check_command(&args, "node") || !tool_process_argument(&args, runner.data)
         || !tool_process_argument(&args, executable.data) { return failure; }
     return core_check_run(&args);

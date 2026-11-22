@@ -42213,3 +42213,56 @@ full browser generation matrix, or resolution of the previously reported full
 WASI interpreter fingerprint failure. Preserve existing published runtime assets
 and their source identity for the validation receipt. Remaining generated platform
 entries and JS/tool callers still require removal/simplification audits.
+
+Integration rebase brings c442362 and its source-defined scalar types, resources,
+compiler/query changes and new public bootstrap. Implementation becomes f0ab31d;
+freeze it in /cache/unit_bridge_rebased_checkout. The published compiler SHA256
+is 6022aa2bdfc838ead9dd9507bea004b78568997f3a468f916a9bfa4310a0680a.
+A fresh default native build without a private override passes all 48 steps in
+/cache/unit_bridge_rebased_native; successor SHA256
+88b53bb8635a994f2fca1b70b8725d46bd229fce7686709408a576e7afbd016b.
+Its memory fixture passes 32/64-bit interpretation, native and Wasm execution.
+Fresh core+allocator build passes all 17 CTests (4.71s). Packager fixture preflight
+and the documented package_compiler_project tool build pass with the new pin.
+Re-export all five actual WASI unit closures, including the new type prelude, and
+repeat ten native/WASI packaged-object comparisons: all are byte-identical to
+the rebased build objects. The five browser-triple comparisons above precede this
+compiler integration; no new full browser-generation matrix is claimed.
+
+The fresh 40-step WASI parser/interpreter build succeeds, but running the parser
+first reports Cannot read imported module: foundation_syntax. The old host-wasi
+transport mounted all source files only under source/, plus just two root grammar
+files. Interpreter-wasi mounted only those same two files. Consolidate onto the
+existing host-wasi transport: retain source/ aliases, mount the same complete tree
+at the root, and move its existing argc/argv boundary there. Remove the duplicate
+24-line interpreter-wasi script and its live callers; check_core reuses the same
+runner path for both executables. Net JS reduction is ten lines and one file.
+No reusable compiler logic moves into JS; this remains source/argv/WASI binding.
+
+The parser then passes, exposing a second integration omission: the interpreter
+cannot instantiate because env.driver_platform_write is unresolved. Existing
+fixture diagnostics now reference that ABI. Bind it in execution_wasi.tower to
+the already-linked runtime_write_all; no new writer or native implementation.
+Rebuild only the fixture object/link. The full WASI interpreter then passes all
+156 graph/fast execution trials, semantic oracles at both widths, Foundation
+round trips and package contracts. This supersedes our earlier unresolved-WASI-
+fingerprint limitation: upstream source-type changes replaced the historical
+fingerprint oracle, and the complete current suite now passes. No fixture was
+skipped or expected value changed in this lane. llvm-readobj --all exposed the
+unresolved symbol but crashed while printing later metadata; the actual linker
+and execution checks provide the validation, not that failed inspection tool.
+
+Remove the retired script from the owned snapshot, rebuild check_core through
+the public --tools path, and run its full wasi pipeline again: PASS, log
+build/unit_bridge_wasi_final.log. The common transport also passes --suite reader,
+unknown-suite exit 1, allocator and runtime-ABI executables. Native CTests and
+compiler sources remain unchanged by these test-transport corrections. Current
+packager SHA256 266d01391e13c5d9cffa2f85b5cd73fc41083dc73e554b0990920d6b78269fbc;
+check_core SHA256 b49ee1ca05aafe9e905e1feccfdfd3e16b32262074d3eff33ddddfe4213a8f96;
+WASI interpreter SHA256 0cce7e5f69e04713b43b8ed731f7f1c18217a09cf6e57505db56ae1eff52fe4c.
+
+After upstream integration, inventory is CMake 39/1838, shell 9/230, JS186/24366,
+Python and owned C/C++ zero. JS fell ten lines in our transport change; upstream
+added twelve lines, so the repository-wide net reduction from 24430 is now 64.
+Latest Pages is 1e827882 with 104 assets and runtime source 46b1da9f; preserve that
+newer release and its source-type provenance when publishing the tooling receipt.
