@@ -46746,3 +46746,106 @@ owned init), then D1 released its heavy lock to D2 per coordinator scheduling.
 Browser matrices and reverse-order normal pool profiling are deferred until the
 next assigned slot. A2 production-pool positive sanitizer receipts do not yet
 validate D1's new cleanup paths. Audit now 296/437 with remaining gaps explicit.
+
+### 2026-11-22 D1 continued full-file review while D2 owns heavy slot
+
+Safe pull/rebase onto published 89d60388 preserved all four intended changes;
+CMake serial callback exports and documentation changed, no Tower compiler
+algorithm inputs. D1 committed reviewable test fixes/receipts as 316f62b after
+`git diff --check`, then pulled again successfully. This is a checkpoint, not
+publication or lane completion. Exact work_pool-only patch exported through the
+coordination directory for A2 instrumentation of the new cleanup failures.
+
+Source review reached 342/437: formatter exact-span/reference fixtures retain
+deliberate module-cache-detached legacy session semantics; IDE responses are
+borrowed slices over copied query output, not a semantic graph. Package API
+no-import input remains a repro hypothesis. ELF/PE/Mach-O and Wasm fixtures keep
+input buffers alive through owned linker worlds, test cancellation/unpinning,
+and use actual two-kernel gates separately from worker-budget byte equality.
+ELF's overlap helper silently returns without capability while its caller's text
+claims overlap; reported as a narrow test reporting defect for coordination.
+Wasm's serial wrapper deliberately omits overlap and emits no overlap receipt;
+its generic reader result must not be relabeled threaded evidence. Backend x86
+custom-section branch likewise conditionally omits unsupported target work;
+recorded capability-reporting gap. No speculative fixture rewrite or production
+compiler change was made. This review-only interval has no changed runtime path,
+so additional runtime performance/memory measurements are inapplicable. Raw
+build/test evidence stays at its original source identities; D2 heavy slot is
+respected, no overlap. Browser, actual D1 cleanup sanitizers, merged generation
+and integrated publication remain open.
+
+### 2026-11-22 D1 initial audit closure and driver fixture import repair
+
+At316f62b, continued direct source/caller review completes437/437initial assigned
+Tower paths; sorted audit receipts equal scope_initial.txt with no duplicates.
+This is review evidence only. LR/regex/reader/validation/emission independent
+Tower oracles are disposable derived indexes over shared records/entities, not
+alternate authoritative compiler graphs. Tests distinguish fixed-point grammar
+cycles from impossible staged execution, preserve active declaration boundaries,
+retain ordered/named relations and exact provenance, and bound failure/cleanup.
+Queue peaks are not simultaneous useful overlap. Serial allocation-injection
+checks are not race sanitizers. Some process-exit-only assertion paths retain
+fixtures on failure; these are recorded separately from the repaired pool's
+active workers borrowing stack inputs. No broad cleanup/formatting performed.
+Read-only audit additions require no new runtime performance measurements.
+
+After D2 released all jobs, D1 acquired heavy.lock, configured the canonical
+public-pin native build with TOWER_DRIVER_TESTS=ON and built the existing driver
+selector target(3/3). Host/container/compiler identities remain as above: image
+tower_build:latest, Clang19.1.1, x86_64 Linux, cpuset0,2, one outer build job, no
+private bootstrap override. The old build recipes do not forward explicit inner
+worker budgets; D2's validated successor boundary is pending integration.
+
+Frozen-before --package-differential ... print FAILED1 at execution_case.tower1:1
+with the required language-import diagnostic:0.41s wall/0.38s CPU/98936KiB RSS.
+--c-backend ... conversion FAILED1 in graph reference with identical cause,
+before any external compiler invocation. GCC/G++ were absent; installed their
+OS packages only in own container afterward, preserving install_c_tools.log.
+The hypothesized incomplete module-path resource closure was DISPROVED by the
+unchanged real filesystem selector:PASS23.08s/26.37s CPU/197036KiB. No edit there.
+
+After processes drained, changed exactly driver_execution_cases.tower literal
+fixtures and driver_c_cases.tower literals/generated integer/long-string source
+to explicitly import Foundation. All numeric/effect/alias/trap expressions and
+expectations are preserved; no implicit helper prefix, compiler policy, or new
+syntax. Smallest units compile with public pin/jobs1 (CLI7.599s and5.952s), then
+existing driver target rebuilt2/2. Focused independent external C output and
+canonical package tests passed as follows (fresh processes, warm filesystem,
+one sample each, all swaps0; raw logs build/d1_ecs/driver_fixtures):
+
+| Selector | Checks | Wall s | CPU s | Peak RSS KiB |
+| --- | ---: | ---: | ---: | ---: |
+| package print |4|22.57|21.34|113240|
+| package division_zero |4|22.47|21.32|116668|
+| native differential (all eligible cases) |16|26.75|25.39|114268|
+| C conversion |16|9.33|8.62|113132|
+| C generated integers |16|11.86|11.09|116136|
+| C trap_zero |16|7.79|7.24|111816|
+| C long_string |16|8.40|7.76|111644|
+| C comment_preprocessing |16|9.15|8.54|111460|
+
+Package checks include32/64target, optimized/raw fast execution, exact failure
+diagnostics, Foundation reconstruction and repeated byte-identical package.
+C checks exercise Clang19/GCC13, C/C++, O0/O2 plus raw/optimized Tower emission.
+A failing-before fixture cannot support a successful runtime speed comparison;
+these observations establish correctness/cost, not a speedup. Full package/C
+matrices remain unclaimed. Shared llvm-scalar-idioms.json separately reproduces
+missing-import on filtered absolute i32. Caller audit found native Tower driver,
+existing browser LLVM and Roku tests; proposed precise data repair routed to
+coordinator, no JSON/JS edit yet. Other lanes' reserved fixture/harness edits
+remain untouched.
+
+Reverse-order retained pool normal profiles ran after-then-before100processes
+per sample,3samples, same2coreaffinity/exact stdout, exit0 and swaps0. After
+wall1.42/1.48/1.16, CPU1.75/1.81/1.44, RSS33124/34424/34164KiB. Before
+wall1.50/1.17/1.19, CPU1.79/1.45/1.46, RSS34288/33984/33956KiB. Combined with
+previous three forward pairs, median wall1.45after versus1.33before (~9%), CPU
+1.78versus1.65 (~8%). Broad overlapping ranges and short thread/process lifetime
+workloads do not resolve whether this is a regression. Longer alternating runs
+are required before a no-regression claim; normal path adds an injection branch
+but no outstanding jobs at cleanup. No live-memory/retention proof from separate
+processes. Root reports A2 threeASan/threeTSan runs of exact cleanup fixture hash
+01a989f2b0ec41c1a023622d468419ce7777dc238917456ef5deb243a6dc0f8f; D1 verified
+hash match, exact copied instrumentation receipt pending. UBSan source-language
+coverage remains unsupported in A2 contract. Browser, new-file/merged-source
+revalidation, full generation and coordinated hosted publication still open.
