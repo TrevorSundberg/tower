@@ -1,9 +1,10 @@
 # Tower backend API
 
 The graph backend consumes existing validated Foundation entities through
-`sem_get`. LLVM remains upstream. Wasm, static Linux ELF and Windows x64 PE
-download linking are Tower; Mach-O still uses LLD. Native CLI compiler-driver
-and SDK build linkers remain separate dependencies. The Tower source service in
+`sem_get`. LLVM remains upstream. Wasm, static Linux ELF, Windows x64 PE and
+macOS x64/ARM64 Mach-O download linking are Tower. Windows/macOS CLI defaults
+use the same byte services; Linux hosted and SDK build linkers remain separate
+dependencies. The Tower source service in
 `source_session.tower` calls the existing frontend and formatter on these same
 entities; it does not define another semantic representation. The browser worker
 exports live in `host/llvm_worker.tower`. The native LLVM engine/worker adapters
@@ -68,7 +69,7 @@ once primitive; browser backends use one owner per isolated reactor instance.
 The Tower runtime binder's `backend-registry` profile emits the required zeroed
 control word. This is explicit platform object storage, separate from ordinary
 Tower module initialization and uninitialized Foundation variables. Each backend
-context/module still has one owner; this does not make the LLD linker concurrent.
+context/module still has one owner. Link services use separate request worlds.
 
 1. `backend_open(triple)` returns an owned `Backend*`. Check for null, then check
    `backend_error`; a target error still returns a disposable result.
@@ -142,7 +143,7 @@ the historical `wasm-ld` argument zero is also accepted by the byte service.
 Unsupported options fail without fallback.
 Two edited browser self-build generations pass with both whole and lazy archives,
 including identical successor bytes across two/four compilation workers. The
-Mach-O upstream path below remains until its Tower replacement lands.
+Mach-O path now uses the same explicit byte-service contract.
 See [linker checks](../tests/README.md) for supported
 profiles and executable fixtures. Link requests are single use; the BackendLink
 adapter creates a fresh world for each invocation. Finish or join readers before
@@ -234,25 +235,23 @@ layout and lifetime rules. No private replacement entity store is introduced.
 `backend_link_create`, `backend_link_add_input`, `backend_link_clear_inputs` and
 `backend_link_close` own link-input storage. `backend_link_plan` receives the
 target, shared function index, emitted object and target runtime object. It
-prepares deterministic arguments and, for Wasm, owns copies of generated object,
+prepares deterministic arguments and owns copies of generated object,
 runtime and allowed-import bytes separately from caller inputs. Reset/close frees
 the generated plan; caller inputs persist until cleared or closed. A failed
 request exposes no previous output. Clear/reset its error before retrying the
-direct byte service. Wasm planning and linking perform no filesystem operations.
+direct byte service. Planning and linking perform no filesystem operations.
 `backend_link_arguments` and `backend_link_argument_count` expose that vector.
-Native CLI compiler-driver linking remains a host operation. Process creation,
+Linux hosted CLI compiler-driver linking remains a host operation. Process creation,
 package discovery and CLI options belong to the host owner; the backend does
 not call a shell.
 
-For Wasm, Linux ELF and Windows PE, `backend_link_wasi` selects Tower byte
-services. Those plans retain generated inputs in memory. The Wasm-only reactor
-links no LLD library. For Mach-O, the cross reactor invokes the upstream library
-in the same worker and prepares deterministic temporary files.
-It captures linker diagnostics, destroys the upstream linker context after every
-invocation, and reads the linked output. Failed invocations cannot return stale
-bytes. Inputs retain deterministic lexical ordering and the existing filename,
-size and count limits. Use one active link operation per filesystem namespace;
-parallel native-link workers/processes must have separate namespaces.
+For Wasm, Linux ELF, Windows PE and macOS Mach-O, `backend_link_wasi` selects
+Tower byte services. Plans retain generated inputs in memory; neither reactor
+links an LLD library. Failed invocations cannot return stale bytes. Inputs retain
+deterministic lexical ordering and the existing filename, size and count limits.
+Independent requests own separate ECS worlds and immutable input lifetimes.
+See [Tower byte link services](../../docs/tower-linkers.md) for the Mach-O API,
+supported profile, worker ownership, native execution checks and CLI boundaries.
 
 `BackendSession` composes object generation, linking, disassembly and owned JSON
 results for the existing worker protocol. Create with borrowed runtime-object
@@ -296,20 +295,18 @@ C/C++ symbol declarations now use the [Tower foreign-name API and grammar](FOREI
 The pinned C++ names and linker wrap arguments are generated by Tower. Call
 signatures and opaque object storage below remain explicit foreign contracts.
 
-The direct C++ bindings are explicitly restricted to LLVM/lld revision
+The remaining LLVM support C++ bindings are explicitly restricted to revision
 `1e57ee22ca274b663eeb279fd86e7010a8441c99`, wasm32-wasip1 and WASI SDK 34/libc++.
 The build fragment rejects a different upstream revision. This profile uses
-indirect ArrayRef/StringRef arguments and explicit initial sret parameters.
-Upstream `raw_fd_ostream` storage is 64 bytes, aligned to 8; MemoryBlock is 12
-bytes, aligned to 4; libc++ error_code is 8 bytes, aligned to 4. Upstream
-constructors/destructors initialize and use the stream's opaque storage.
+explicit initial sret parameters. MemoryBlock is 12 bytes, aligned to 4;
+libc++ error_code is 8 bytes, aligned to 4. LLD ArrayRef/stream/context bindings
+and FileOutputBuffer output planning have been removed.
 
-Tower selects upstream FileOutputBuffer's `F_no_mmap` path and supplies its
-data-only allocation/release through three link-time `--wrap` bindings. Only
+Tower supplies data-only LLVM memory allocation/release through link-time
+`--wrap` bindings. Only
 read/write data allocation with no near-address hint is supported; executable
 memory is rejected. The original native output-buffer subclass is retired.
-Upstream file writing, vtables and linker implementations are unchanged. The
-three former WASI crash hooks are Tower definitions; unrecoverable failure still
+The three WASI crash hooks are Tower definitions; unrecoverable failure still
 terminates the disposable worker. This is a pinned foreign ABI, not portable
 C++ struct inference or a new Foundation operation. Revalidate it on SDK/upstream
 changes. It is not a general JIT-memory implementation.

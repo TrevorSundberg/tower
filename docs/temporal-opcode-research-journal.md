@@ -44276,3 +44276,54 @@ Retain wide signed intermediates in all other expression lowering. The smallest
 emitter unit compiles and the native successor rebuilds through the public pin;
 the focused signed_abi Clang/GCC C/C++ raw/optimized matrix passes. The next
 Windows run must still establish both old/new consumer parity before deletion.
+### Mach-O production integration and host CLI validation (2026-11-22)
+
+Production implementation 993b041 and integration 454c951 remove the final
+lldMachO library/bindings from both reactor recipes. All four supported browser
+link families are now Tower. Windows x64/macOS CLI defaults use the same byte
+services and explicit OS import metadata, including multi-unit compilation.
+No new owned native code or shim; todo.txt remains untouched.
+
+The final rebase integrated 49d75be compiler continuations and 5c67503 tooling.
+Build a clean successor with TOWER_BOOTSTRAP_COMPILER unset in the new
+coordinator-macho/published_successor cache through build-native.sh. All 51 steps
+pass using public bootstrap SHA256
+18664657c3ff9142a6d59bef8ffa794fd10d12313d55f91dd47f5575141a29f9.
+Successor SHA256:
+9fa5c6e482af9c3c16673107f7448499d053153469a1f31993476d1f88f47fc6.
+Backend API and native driver checks pass. Driver fixture wiring now imports the
+same target permission implementation as production; its POSIX fixture uses the
+platform chmod binding, preserving Darwin's narrower mode ABI.
+
+Workflow 45036789889 at 454c951 passes all eight jobs: four native producer
+profiles, a clean default-bootstrap CLI build, Windows execution, Intel Mac
+execution and Apple Silicon Mac execution. Both raw/optimized CLI binaries run
+on each platform; both Macs also run the standalone Tower/LLD references and
+verify strict signatures. These are real target executions, not header checks.
+Earlier complete standalone Mac matrix 45034229556 also passed.
+
+Rebuild portable, shared-worker and both LLVM reactors from the rebased public
+source. Browser affected matrix passes 34/34; shared workers 3/3, zero skips.
+Two edited compiler-project generations pass. Generation 2 sizes are Tower
+1,344,293, LLVM 35,139,601 and cross 56,283,792 bytes, with hashes:
+Tower 4d7ce55716109a863e376db4499ccb4fac1b5c873511cfcdbb5c164e6c455f28;
+LLVM e8696d71b270d3af30b2d472b216ec7aa11ce11a36369f8ae7839f29ae57111a;
+cross 84f0d38988729cd5b06014a2648b068d153445846e7443a0c501bae5ddc36152.
+Shipped cross reactor: 55,356,266 bytes, SHA256
+2c6af3362371c1b687a11008aadc3008ce4b0a3821a6306db542de6cf6cc50e7.
+Regenerate all five runtime objects and import descriptions with package_targets
+from the clean successor's complete resource directory, not a stale local cache.
+
+Release logs: build/macho_public_successor.log, macho_public_checks.log,
+macho_cross_rebased.log, macho_portable_rebased.log, macho_threads_rebased.log,
+macho_browser_final.log, macho_threads_final.log, macho_generations_final.log,
+macho_targets_final.log and macho_local_deployment.log. Scoped sanitizer and
+repository-wide formatter passes remain intentionally skipped per instruction.
+
+The supported Mach-O API/profile and limitations are now documented in
+[docs/tower-linkers.md](tower-linkers.md). LLD is absent from production browser
+linking; its upstream checkout remains part of LLVM and it remains a differential
+fixture/build-tool dependency. This does not claim arbitrary ld64 options,
+Mach-O dylib output, Linux hosted libc/shared-object linking, or replacement of
+host toolchain linking for LLVM/compiler builds. Those external build contracts
+are explicitly separate from the completed byte-linker migration.

@@ -79,7 +79,7 @@ if (compilerRecipe) {
 }
 let licenses = 'Tower playground: third-party notices\n\n';
 for (const [name, file] of [
-  ['LLVM / LLD / compiler-rt (Apache 2.0 with LLVM exceptions)', '../third_party/llvm-project/llvm/LICENSE.TXT'],
+  ['LLVM / compiler-rt (Apache 2.0 with LLVM exceptions)', '../third_party/llvm-project/llvm/LICENSE.TXT'],
   ['libc++ / libc++abi', '../third_party/llvm-project/libcxx/LICENSE.TXT'],
   ['wasi-libc (including musl)', 'licenses/wasi-libc.txt'],
   ['wasi-libc MIT license', 'licenses/wasi-libc-mit.txt'],
