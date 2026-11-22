@@ -41594,3 +41594,20 @@ added. Shell source is now 9 files/230 lines, a net 25-line reduction this batch
 and 253/483 lines (52.4%) below its post-Python baseline. CMake stays 43/2310,
 JavaScript 187/24364, Python and owned C/C++ stay zero. todo.txt is untouched.
 This Linux tooling milestone will preserve the current browser release assets.
+
+Integration rebase receives ed302d2's constructor/alias dependency queries; this
+tooling implementation is now 31475b9. Freeze it in
+/cache/core_tool_rebased_checkout and repeat the documented public-bootstrap
+native build with TOWER_BOOTSTRAP_COMPILER unset and
+TOWER_NATIVE_BUILD=/cache/core_tool_rebased_native. All 48 steps pass; compiler
+SHA256 6270afa28ea63f822af6869700ca4f936b4173354b0090949da54e96f639ff5d.
+The existing memory example passes 32/64-bit interpretation, native and real
+Wasm execution. Build the two focused formatter targets and run the root
+pipeline's CTest selection: 2/2 pass in 5.80s after this rebase.
+
+A separate clean --tools check_core build in /cache/core_tool_rebased_builder
+also passes all five steps and produces exactly the preceding 00b4e50d tool
+bytes. Reuse its unchanged process/argv and native/WASI orchestration evidence;
+do not claim the failing pre-rebase WASI semantic fingerprint suite passed or
+was rerun against the later compiler sources. No browser runtime is rebuilt for
+this tooling receipt. Latest inspected Pages base is c4d1c1be (runtime f13b167).
