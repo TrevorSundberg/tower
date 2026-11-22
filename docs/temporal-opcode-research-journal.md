@@ -45541,3 +45541,106 @@ compiler. Independent LLD comparisons, LLVM object emission, OS/SDK runtime inpu
 and explicitly requested external toolchain routes remain; these are not claims
 of a complete general-purpose replacement for every LLD option. todo.txt remains
 unchanged; no sanitizer or broad formatter was run.
+### 2026-11-22: Concise AGENTS policy audit
+
+The user requested an AGENTS.md audit covering shared ECS/component architecture,
+lazy dependencies and staging, threading across and within compilation units,
+Tower-only implementation, current language constructs, measured performance and
+memory, fail-fast diagnostics, independent validation/publication, final race and
+memory sanitization, Stronghold, and detailed ongoing journals. A follow-up asks
+for concision and research/tests supporting the policy, without delegating to
+other agents. This is a documentation audit; no Tower/compiler/runtime behavior
+or bootstrap inputs change, and no new helper implementation is needed.
+
+Start at main 4318a51 on Windows/PowerShell in C:\Sandbox\tower. Plain
+`git pull --rebase` is blocked by existing todo.txt edits; the subsequent
+`git pull --rebase --autostash` succeeds with identical before/after SHA-256 for
+that file. User edits continue during the turn; never stage or rewrite todo.txt.
+Read the November 22 ECS completion audit, phase-pump/query-check notes, clean
+staging checkpoint, hosted linker measurements/publication and latest increment
+receipt, plus the compiler handoff, services, language plan and simplification
+audit. Those entries distinguish implemented worker paths from remaining lifecycle
+barriers and unsupported helper calls in type construction; retain that boundary.
+
+Replace repeated feature specifications with six policy sections and a compact
+table linking the existing semantic contracts. AGENTS.md drops from 5,607 to
+2,083 whitespace-delimited words (about 63%) and from 544 to 227 nonblank lines
+using PowerShell Measure-Object. Preserve publish-before-adoption bootstrapping,
+Foundation as the sole semantic authority, exact imports, explicit world ownership,
+stage_hold-before-view-close, lease publication, cancellation draining, numeric
+semantics and target/capability contracts. Remove stale future-local-inference
+and initial-interpreter prototype instructions; the shipped language and handoff
+documents describe their current behavior. No new implementation is implied.
+
+New explicit requirements cover dense versus sparse storage decisions, locality,
+false sharing, alias-safe vectorization, shared outer/nested worker budgets,
+profitable core use and strong serial performance. Every code change needs
+affected-path before/after timing and memory evidence; scale milestone coverage
+to ownership/semantic changes and reuse unaffected checks. Documentation-only
+runtime timing/memory comparisons are inapplicable because executable inputs and
+assets are unchanged; textual size is measured above, not presented as compiler
+speedup. Compiler throughput comparable to C-like workloads is an objective to
+measure under comparable conditions, not an achieved result.
+
+The latest user request supersedes the earlier blanket sanitizer ban. Require
+supported final memory/undefined-behavior and race checks for code milestones,
+plus concurrency stress and explicit unsupported-coverage reporting. Update the
+handoff's contradictory instruction to link this policy; preserve historical
+journal receipts saying sanitizers were not run. Scoped source inspection finds
+no current sanitizer entry point in CMake/cmake, playground build scripts or the
+test README. The serial failure-injection allocator is not a race sanitizer and
+must not be presented as one. No sanitizer or compiler rebuild is warranted for
+this documentation change. Tests cannot establish race freedom for all executions.
+
+Primary research checked on 2026-11-22:
+
+- [Flecs systems](https://www.flecs.dev/flecs/Systems.html): staging protects
+  structural iteration, with explicit system/world threading configuration.
+  Direct payload access still needs a valid ownership/access contract.
+- [Flecs component traits](https://www.flecs.dev/flecs/ComponentTraits.html):
+  sparse storage provides stable addresses with query/mutation tradeoffs;
+  storage policy and archetype fragmentation are separate choices.
+- [Unity Burst memory aliasing](https://docs.unity3d.com/Packages/com.unity.burst@1.8/manual/aliasing.html):
+  vectorization depends on correct overlap information; false nonalias assumptions
+  can change results. Apply these principles to Tower without importing native
+  implementations or borrowing the sources' performance numbers.
+
+Several Unity overview/dependency URLs fail to load through the web tool; the
+specific official Burst aliasing page loads and supports the retained guidance.
+Local checks inspect compiler_kernel.tower's shared dispatch/join implementation,
+frontend_units.tower's outer/nested budgets, driver_units.tower's production use,
+and lr_work_main.tower/TowerWorkPolicyTests.cmake's real type-smoke,
+control-smoke and query-smoke selectors. The existing query suite covers 32/64-bit
+profiles at one/four workers; this audit does not relabel earlier runs as new tests.
+All linked local contract files exist. An initial unrestricted git diff --check
+reports whitespace in the user's ongoing todo.txt edits; scope final checks to
+the three documentation files without modifying that file.
+
+Publication will reuse the latest verified gh-pages snapshot and original runtime
+identities through the established Pages rebuild API, then run the existing exact
+asset and desktop/mobile deployment verifier. Source rebases and observed results
+are recorded below when complete.
+
+Validation/publication receipt: the final rebase incorporates 9401348/6201a8e's
+ELF fixture correction and publication journal without conflicts; all this turn's
+changes remain confined to AGENTS.md, the handoff policy and this journal. The
+before/after todo.txt hash again matches across the autostash/rebase. Scoped
+`git diff origin/main HEAD --check` passes. No compiler inputs or bootstrap
+requirement were introduced by this audit.
+
+Adopt the newly published Pages f4dfcf2da0d952703b6da66e9017c08682125dea snapshot,
+whose runtime build identity remains 8c51600fa6160e81aa2e7efd60bbebcd7b1be39d.
+Windows core.autocrlf initially converts text while archiving the new LF snapshot;
+raw manifest blob comparison catches it. Re-extract using
+`git -c core.autocrlf=false archive` before verification. The exact local and hosted
+manifest SHA-256 is 3464ca111e3ac087dd6626a77cab27a693625381b10a6111a7e32a62aa88b53f.
+Pages rebuild run 45050196165 succeeds. Existing
+`node playground/scripts/verify-deployment.mjs https://tower-lang.org/` exits 0:
+all 104 served assets match; desktop/mobile execution, forward bindings, editable
+grammar, persistence, downloads, completion/highlighting, compiler project and
+target defaults pass. HTTP apex, HTTPS www and the old GitHub Pages URL all
+resolve to the HTTPS apex with HTTP 200. Logs/report:
+build/agents_audit_hosted_verification.log and build/agents_audit_verification.json.
+These verify reused published assets, not a new compiler build or performance
+improvement. Final receipt synchronization reuses this evidence if runtime bytes
+remain unchanged; no additional implementation or broad check matrix is needed.
