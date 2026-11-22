@@ -41689,3 +41689,66 @@ values are constructed/evaluated by that projection. The focused suite passes
 (constructor-pointer-projection.log); imported vector named initialization also
 returns 0 in a direct check. Reuse the completed full matrix for unaffected paths
 and publish the combined statement/constructor corrections after browser checks.
+### 2026-11-21: remove duplicate parser test programs before porting generators
+
+Previous goal turn made progress: core-check orchestration moved to Tower and
+two shell wrappers were retired/published. Begin this turn on clean 8d26c75;
+git pull --rebase is up to date. Reconsider the proposed static-entry port first:
+nine focused executables only call suites already linked into tower-parser-tests.
+Their live callers are CTest and the focused testing documentation. Keep those
+CTest names and independently compiled fixtures/oracles, but remove the extra
+programs entirely instead of creating nine new Tower wrapper modules.
+
+parser_main.tower now accepts an exclusive --suite NAME invocation for regex,
+lexicon, lr-grammar, lr-analysis, nodes, emission, reader, live and validation.
+Selection occurs before the aggregate's host/setup checks. Preserve the old
+setup contracts exactly: reader/live/validation call parser_fixture_setup;
+emission calls its existing two-pass lifetime entry; the other suites initialize
+themselves. Aggregate, --trace, --host-only and --parse behavior remains intact.
+Missing/extra/unknown suite arguments fail before running a suite. Exit values
+are named ParserSuiteExit members, with conversion only at the i32 CLI boundary.
+
+Nine CMake fragments now invoke the existing tower_runtime_object helper and
+register focused commands against the shared executable. Retire nine generated
+entry sources/objects and nine links. The live and emission fixture objects keep
+their existing compiler-parser interface contract; all others remain separate
+objects on the parser target. No new CMake helper, JS transport or test framework.
+The existing interpreter-wasi.mjs already forwards argv and mounts both grammar
+files, so it runs these focused commands; host-wasi.mjs still mounts the full
+source tree for the aggregate. Update all tracked callers/documented executable
+names. History before retirement is 8d26c75.
+
+Freeze that baseline in /cache/parser_suites_baseline_checkout. The existing
+Tower check_core native runner builds its 63 steps and passes all 15 CTests
+(3.83s). Smallest changed parser_main unit compiles against the public 21f527125bfa
+bootstrap before broader builds. Freeze staged tree
+fcc42b91f9e1cce5a6971607a61231303e775de5 in /cache/parser_suites_checkout, then copy
+only the final named-exit parser_main correction after both builds finish and
+rebuild its object/link on both targets. Named-exit smallest-unit preflight passes.
+
+Candidate native build now has 45 steps instead of 63. All 15 CTests pass, with
+the final run 3.75s. Nine explicit comparisons against the old standalone binaries
+have exact stdout and exit 0. Ten fixture/oracle objects (regex, contextual lexer,
+LR grammar/analysis, reader, validation, nodes, emission oracle/cases and live
+syntax) are byte-identical before/after. Touching the transitive regex_oracle
+input rebuilds exactly tower-regex-suite.o and the shared executable; the rebuilt
+oracle object remains byte-identical. No depfile dependency was lost.
+
+The WASI SDK 34 parser-only target passes its 37-step build. All nine focused
+WASI invocations return 0 and exactly match the old native outputs. The full
+WASI parser aggregate also passes through host-wasi.mjs. Native and WASI missing
+or unknown suite errors return 1; extra native arguments return 1. In /tmp with
+no grammars, regex still passes while reader preserves its original missing-
+Bedrock failure (abort status 134). Native parser SHA256:
+fb95d438437e52c588a9911efe9d41f8027b7eea73481fd85d4ce2371449373c;
+WASI parser SHA256:
+297e3cd19949f3bb487a50ef7f98804f67a6bccd5ff2299bac52ba97a45751c6.
+An initial manual PowerShell CMake invocation split the unquoted SDK version
+path; quoting each -D argument fixed it. No project code change was needed.
+
+CMake shrinks by 313 lines, from 43 files/2310 lines to 43/1997: 597 lines (23.0%)
+below the post-Python 2594-line baseline. Shell remains 9/230, JavaScript
+187/24364, Python and owned C/C++ zero. The unrelated full WASI interpreter
+fingerprint failure reported last turn is not hidden or reclassified by these
+passing parser checks. No sanitizer, broad formatter sweep or todo.txt edit.
+Native/browser production build verification and receipt publication follow.

@@ -375,28 +375,28 @@ The broad repository formatting check remains available as the separate native
 source, idempotence, filename-relative modules, Bedrock/Foundation baselines and
 invalid syntax fixtures. It is off by default and was not run during this
 migration; a two-file check exercised its valid/invalid file-list path. The
-existing playground formatting tools remain available.
+scoped native `--emit source` / `--check-format` commands remain available.
 
-`tower-syntax-nodes-tests` is a focused native/WASI parser-configuration target.
+`tower-parser-tests --suite nodes` selects the focused native/WASI payload suite.
 It retains the native syntax-payload suite's independent equality traversal,
 all 17 exported field offsets, NUL-containing fields/comments, retained
 source/pattern/replacement ownership, 64-child comparisons and allocation-failure
-atomicity. The parser aggregate calls the same Tower cases. Run the native binary
-or pass the WASI binary to `host-wasi.mjs`.
+atomicity. The parser aggregate calls the same Tower cases.
 
-`tower-reader-tests` runs declaration-reader coverage against an independent Tower
-oracle verified against the retired native reference. It preserves all 1,000 seeded identifier/literal byte cases,
+`tower-parser-tests --suite reader` runs declaration-reader coverage against an
+independent Tower oracle verified against the retired native reference. It preserves
+all 1,000 seeded identifier/literal byte cases,
 in-place/aliased decoding, eight declaration fixtures, exact malformed-tree
 diagnostics, shared source provenance, canonical declaration output and allocation
-failures. Native CTest sets its working directory to the grammar resources;
-WASI uses `host-wasi.mjs`. The parser aggregate calls the same cases.
+failures. Native CTest sets its working directory to the grammar resources.
+The parser aggregate calls the same cases.
 
-`tower-validation-tests` checks grammar validation against the independent Tower
-oracle on Linux and WASI. It compares exact result/error/offset/pending-term
+`tower-parser-tests --suite validation` checks grammar validation against the
+independent Tower oracle on Linux and WASI. It compares exact result/error/offset/pending-term
 identity and order, required declaration captures, nullable/productive rules,
 forward references, NUL-containing names, 1,500 captures, 600 seeded dependency
 graphs and allocation-failure cleanup. It uses the same grammar setup and runner
-conventions as `tower-reader-tests`.
+conventions as the focused reader suite.
 The reference was translated from the frozen native seed with SHA-256
 `094f9e736b6ab469a30630a7effd81ddb9b706f9af6d85df6d870a4168eb8850`.
 Native/Tower-reference/production three-way comparisons passed on both targets
@@ -404,8 +404,8 @@ before removing the native seed; the permanent tests keep the independent
 reference comparison. Its sorted borrowed views and reference dependency scan
 do not reuse the production validator's indexes or checking policy.
 
-`tower-live-syntax-tests` runs the migrated live-session suite independently on
-native and WASI: sequential grammar installation, replacement provenance and
+`tower-parser-tests --suite live` runs the migrated live-session suite independently
+on native and WASI: sequential grammar installation, replacement provenance and
 ownership, LR boundaries, rejected edits, cache reuse and lexical definitions.
 Its separate Tower object also supplies `syntax_tests` through the existing
 parser interface. The aggregate entry and `--trace`, `--host-only`, `--parse`
@@ -415,6 +415,25 @@ reference-count and payload-lifetime assertions. A Tower lifecycle ID replaces
 the unused native callback registry; the fixture checks userdata/owner/type,
 exactly-once finalization, independent-store ownership and allocation balance.
 This does not introduce general first-class function pointers.
+
+The same command also selects `regex`, `lexicon`, `lr-grammar`, `lr-analysis`,
+and `emission`. These nine focused suites replace their duplicate executables
+and generated entry programs; their existing CTest names remain unchanged.
+`--suite NAME` is a separate invocation from the aggregate's other options.
+Each run uses the original suite's initialization; only reader/live/validation
+require the working directory to contain Bedrock and Foundation. The emission
+suite retains its two-pass allocation/lifetime check. Fixture and oracle objects
+remain separately compiled, with the shared build helper tracking their imports.
+
+For WASI argument transport, use the existing runner (its historical filename
+does not restrict the supplied command):
+
+```text
+node scaffolding/tests/interpreter-wasi.mjs path/to/tower-parser-tests --suite reader
+```
+
+It mounts Bedrock/Foundation and forwards the remaining arguments. The full
+parser aggregate still uses `host-wasi.mjs` to mount its additional source files.
 
 The isolated `cmake/TowerDriver.cmake` fragment adds CLI checks with
 `-DTOWER_DRIVER_TESTS=ON` to a native compiler configuration. Build `towerc` and

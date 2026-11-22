@@ -1,26 +1,5 @@
-# Functional reader tests and the independently translated oracle are Tower.
 get_property(reader_triple GLOBAL PROPERTY TOWER_COMPILER_TRIPLE)
-set(reader_entry main)
-if(reader_triple MATCHES "^wasm32-")
-  set(reader_entry __main_argc_argv)
-endif()
-set(reader_input "${CMAKE_CURRENT_BINARY_DIR}/tower_reader_main.tower")
-file(GENERATE OUTPUT "${reader_input}" CONTENT "import tower;\nimport tests.parser_fixture_setup;\nextern fn syntax_reader_tests(): void;\nexport fn ${reader_entry}(argc: i32, argv: u8**): i32 { parser_fixture_setup(); syntax_reader_tests(); return 0; }\n")
-tower_runtime_object(reader-main "${reader_input}" "${reader_triple}")
-set(reader_cases "${CMAKE_CURRENT_BINARY_DIR}/tower-reader-cases.o")
-add_custom_command(OUTPUT "${reader_cases}"
-  COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/syntax_reader.tower"
-    --library --target "${reader_triple}"
-    --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
-    --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
-    -o "${reader_cases}" --depfile "${reader_cases}.d"
-  DEPFILE "${reader_cases}.d" DEPENDS scaffolding/tests/syntax_reader.tower "${TOWER_BOOTSTRAP_COMPILER}" VERBATIM)
-set_source_files_properties("${reader_cases}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
-target_sources(tower-parser-tests PRIVATE "${reader_cases}")
-add_executable(tower-reader-tests "${reader-main_OBJECT}" "${reader_cases}")
-set_target_properties(tower-reader-tests PROPERTIES LINKER_LANGUAGE CXX)
-target_compile_options(tower-reader-tests PRIVATE -fno-exceptions)
-target_link_libraries(tower-reader-tests PRIVATE tower-compiler-parser-nodes tower-compiler-semantics
-  tower-compiler-entities tower-compiler-utilities tower-compiler-memory)
-add_test(NAME tower-reader COMMAND tower-reader-tests)
+tower_runtime_object(tower-reader-cases "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/syntax_reader.tower" "${reader_triple}")
+target_sources(tower-parser-tests PRIVATE "${tower-reader-cases_OBJECT}")
+add_test(NAME tower-reader COMMAND tower-parser-tests --suite reader)
 set_tests_properties(tower-reader PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")

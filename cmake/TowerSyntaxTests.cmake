@@ -1,30 +1,9 @@
-# A separate Tower translation unit keeps fixtures out of production lowering.
+# Keep the live fixtures' existing interface-object contract across profiles.
 get_property(live_triple GLOBAL PROPERTY TOWER_COMPILER_TRIPLE)
-set(live_cases "${CMAKE_CURRENT_BINARY_DIR}/tower-syntax-live-cases.o")
-add_custom_command(OUTPUT "${live_cases}"
-  COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/syntax_live.tower"
-    --library --target "${live_triple}"
-    --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
-    --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
-    -o "${live_cases}" --depfile "${live_cases}.d"
-  DEPFILE "${live_cases}.d" DEPENDS scaffolding/tests/syntax_live.tower "${TOWER_BOOTSTRAP_COMPILER}" VERBATIM)
-set_source_files_properties("${live_cases}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
-target_sources(tower-compiler-parser-nodes INTERFACE "${live_cases}")
+tower_runtime_object(tower-syntax-live-cases "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/syntax_live.tower" "${live_triple}")
+target_sources(tower-compiler-parser-nodes INTERFACE "${tower-syntax-live-cases_OBJECT}")
 
 function(tower_syntax_test_runner)
-get_property(live_triple GLOBAL PROPERTY TOWER_COMPILER_TRIPLE)
-set(live_entry main)
-if(live_triple MATCHES "^wasm32-")
-  set(live_entry __main_argc_argv)
-endif()
-set(live_input "${CMAKE_CURRENT_BINARY_DIR}/tower_syntax_live_main.tower")
-file(GENERATE OUTPUT "${live_input}" CONTENT "import tower;\nimport tests.parser_fixture_setup;\nextern fn syntax_tests(): void;\nexport fn ${live_entry}(argc: i32, argv: u8**): i32 { parser_fixture_setup(); syntax_tests(); return 0; }\n")
-tower_runtime_object(live-main "${live_input}" "${live_triple}")
-add_executable(tower-live-syntax-tests "${live-main_OBJECT}")
-set_target_properties(tower-live-syntax-tests PROPERTIES LINKER_LANGUAGE CXX)
-target_compile_options(tower-live-syntax-tests PRIVATE -fno-exceptions)
-target_link_libraries(tower-live-syntax-tests PRIVATE tower-compiler-parser-nodes tower-compiler-semantics
-  tower-compiler-entities tower-compiler-utilities tower-compiler-memory)
-add_test(NAME tower-live-syntax COMMAND tower-live-syntax-tests)
-set_tests_properties(tower-live-syntax PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")
+  add_test(NAME tower-live-syntax COMMAND tower-parser-tests --suite live)
+  set_tests_properties(tower-live-syntax PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")
 endfunction()

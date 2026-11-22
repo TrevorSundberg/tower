@@ -1,59 +1,6 @@
-# Keep the independent Tower oracle in its own unit. Its declarations preserve
-# the existing fixture boundary without growing the parser's bootstrap closure.
+# Preserve the independently compiled production-API fixtures and oracle.
 get_property(emission_triple GLOBAL PROPERTY TOWER_COMPILER_TRIPLE)
-set(emission_oracle "${CMAKE_CURRENT_BINARY_DIR}/tower-emission-oracle.o")
-add_custom_command(OUTPUT "${emission_oracle}"
-  COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/syntax_emission_oracle.tower"
-    --library --target "${emission_triple}"
-    --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
-    --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
-    -o "${emission_oracle}" --depfile "${emission_oracle}.d"
-  DEPFILE "${emission_oracle}.d"
-  DEPENDS scaffolding/tests/syntax_emission_oracle.tower "${TOWER_BOOTSTRAP_COMPILER}" VERBATIM)
-set_source_files_properties("${emission_oracle}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
-target_sources(tower-compiler-parser-nodes INTERFACE "${emission_oracle}")
-
-set(emission_cases "${CMAKE_CURRENT_BINARY_DIR}/tower-emission-cases.o")
-add_custom_command(OUTPUT "${emission_cases}"
-  COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/syntax_emission.tower"
-    --library --target "${emission_triple}"
-    --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
-    --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
-    -o "${emission_cases}" --depfile "${emission_cases}.d"
-  DEPFILE "${emission_cases}.d"
-  DEPENDS scaffolding/tests/syntax_emission.tower "${TOWER_BOOTSTRAP_COMPILER}" VERBATIM)
-set_source_files_properties("${emission_cases}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
-target_sources(tower-compiler-parser-nodes INTERFACE "${emission_cases}")
-
-# The standalone entry calls the independently compiled production-API fixtures.
-set(emission_entry main)
-if(emission_triple MATCHES "^wasm")
-  set(emission_entry __main_argc_argv)
-endif()
-set(emission_input "${CMAKE_CURRENT_BINARY_DIR}/tower_emission_main.tower")
-set(emission_main "${CMAKE_CURRENT_BINARY_DIR}/tower-emission-main.o")
-file(GENERATE OUTPUT "${emission_input}" CONTENT
-  "import tower;\nimport tests.syntax_emission_entry;\nexport fn ${emission_entry}(argc: i32, argv: u8**): i32 { syntax_emission_test_entry(); return 0; }\n")
-add_custom_command(OUTPUT "${emission_main}"
-  COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${emission_input}" --library --target "${emission_triple}"
-    --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
-    --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
-    -o "${emission_main}" --depfile "${emission_main}.d"
-  DEPFILE "${emission_main}.d"
-  DEPENDS "${emission_input}" scaffolding/tests/syntax_emission_entry.tower
-    scaffolding/tests/syntax_emission.tower scaffolding/tests/syntax_emission_oracle.tower
-    "${TOWER_BOOTSTRAP_COMPILER}" VERBATIM)
-set_source_files_properties("${emission_main}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
-get_target_property(emission_sources tower-parser-tests SOURCES)
-list(FILTER emission_sources EXCLUDE REGEX "scaffolding/tests/|scaffolding/bootstrap/|\\.(o|obj)$")
-add_executable(tower-emission-tests ${emission_sources} "${emission_main}")
-set_target_properties(tower-emission-tests PROPERTIES LINKER_LANGUAGE CXX)
-if(MSVC)
-  target_compile_options(tower-emission-tests PRIVATE /UNDEBUG)
-  target_compile_definitions(tower-emission-tests PRIVATE _HAS_EXCEPTIONS=0)
-else()
-  target_compile_options(tower-emission-tests PRIVATE -UNDEBUG -fno-exceptions)
-endif()
-target_link_libraries(tower-emission-tests PRIVATE tower-compiler-parser-nodes tower-compiler-semantics
-  tower-compiler-entities tower-compiler-utilities tower-compiler-memory)
-add_test(NAME tower-emission-tests COMMAND tower-emission-tests)
+tower_runtime_object(tower-emission-oracle "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/syntax_emission_oracle.tower" "${emission_triple}")
+tower_runtime_object(tower-emission-cases "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/syntax_emission.tower" "${emission_triple}")
+target_sources(tower-compiler-parser-nodes INTERFACE "${tower-emission-oracle_OBJECT}" "${tower-emission-cases_OBJECT}")
+add_test(NAME tower-emission-tests COMMAND tower-parser-tests --suite emission)
