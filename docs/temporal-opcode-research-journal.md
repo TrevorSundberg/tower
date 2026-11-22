@@ -48127,3 +48127,88 @@ Existing production driver composition must supply platform paths/stat at link;
 reuse the ordinary helper, not a new adapter. D1 owns gatedtarget/README; generic
 execution selector remains unapplied. This is review-only while D1's existing
 frozen measurements finish, not completed portability validation.
+
+#### D2 current v3 validation at3f49d4a, aggregate failure retained
+
+Frozen scaffolding1eeae348, canonical publicpin9653f818, same Docker/LLVM19.1.1
+and CPUs0/2 with explicit outer/compiler jobs1. Smallest capture unit passes
+23.74wall/23.55CPU/738560KiB, lifecycle30fixture10.00/9.71/202916 and actual
+tests/source-proof unit raw0. Canonical incremental native4steps47.63/46.66/
+791932; seven focused LR/execution/request steps28.57/27.98/337864. Raw0,
+all process swaps0, source manifest unchanged; complete42resource tree equals
+preserved5d4. CompilerSHAc56400b17293457b7ed13927bc1b6b9af1c3e674ab0bcb4f1a939a36458988f2,
+LR6b41e4d5, execution2ebf8f8d, requestca9bdfff. This is incremental validation,
+not a clean-cache/public generation release receipt.
+
+Actual current query-smoke passes with full41454429proof fixture at1/4workers,
+32/64bits (.20wall/.20CPU/60608KiB). Request fault/ownership sweep passes
+(.09/.07/50272). Execution editor passes typed document/retained scope observations
+at1/2/4/8workers (38.65/44.04/202988). These are normal production checks, not
+current ASan/TSan coverage.
+
+Copied only exact existing lifecycle source literals into ignored .tower probes
+for fail-fast attribution. EarlyCapture and ComplexCapture return expected1
+with initialization-order diagnostic at the actual input file,2.09wall/2.06CPU/
+168532KiB and2.08/2.05/168112. This closes those specific former generic-rejection
+failures locally; precision beyond the observed source position is not claimed.
+Valid module AggregateCapture still fails1 at1:125 with runtime-storage capture
+rejection, expected7and8 (3.81/3.70/167388). Separate local aggregate variant
+also fails1 at1:138, expected15 (3.99/3.88/168660). Neither is timeout or sanitizer
+failure; all swaps0. Runtimegroup1798 and local13045 ended1, all children drained.
+Full30case type-smoke has not run at this point because a required positive
+already fails; it is not a pass or waived gate. Root/A1/L1 received exact inputs,
+times/errors/source/binary identity in D2/capture_v3_failure_receipt.
+
+Two JS orchestration syntax failures and one later template-variable ReferenceError
+occurred before tools executed; corrected isolated/heredoc commands launched only
+one actual workload each. No compiler failure was silently retried or normalized.
+Source manifest still matches after probes.
+
+Independent staging measurement continues while the aggregate owner works.
+Public interpreter generated existing workers/window producers once,10260/21603
+source bytes, with frozen exact output oracles. Their shared implementation and
+browser reference sums were already reviewed; no new generator logic. Paired
+preserved5d4/current3f49 samples use identical runtime IR/object and explicit1/2
+workers, fresh processes/warm filesystem, one warmup plus three retained samples.
+The profile command is active; no sample result or all-pass claim is assumed.
+
+#### D2 staged profile completion and required capture policy failures
+
+Session38060 completed raw0 with all32 checked workers16/window260 outputs and
+repeat/serial-parallel object identity. Subsequent session13477 raw0 establishes
+cross-version object identity too, exact current Foundation1vs2, and reparsed
+execution matching original independent oracles. Full sample table/environment
+is in compiler_ecs_audit_d2.md, current3f49d4a/c564 vs preserved5d4/50f58954 with
+identical42resources, explicit1/2jobs, CPUs0/2, one warmup+three retained samples.
+Current medians workers1/2:2.19/3.33wall,2.17/3.77CPU,177612/190076KiB;
+window1/2:2.34/4.01wall,2.31/4.64CPU,198160/211344KiB. Two workers remain
+unprofitable. Combined parse/check dominates; phase counters do not separate
+parser/semantic contention or idle. Window parallel median grows~6%wall/~4.5%CPU
+over predecessor with overlapping ranges and powersave variance; serial window
+improves in this small sample. No isolated algorithm or general speed claim.
+RSS grows only388/412KiB in window, but full eager capture allocation census is
+not provided by peak RSS. All swaps0, frozen source/input manifests unchanged.
+
+Coordinator reported address-derived captured values incorrectly accepted.
+B2 repro archive remains absent on this host despite delivery note; existing
+known_binding_checks literals independently suffice. Copied exact address and
+address-comparison sources into ignored .tower files, never changed production
+or oracle. Currentc564 wrongly prints32 andfalse, each raw0. Expected-rejection
+checker session55791 ends1. Address2.95wall/2.92CPU/171472KiB; comparison2.36/
+2.34/168228; no swaps. Existing negative contracts remain required. Root/A1/L1
+received actual source/status/output and owner attribution: A1 capture
+relocation/effect provenance, L1 aggregate materialization. Do not set inferred
+true, restore unfinished queries, ban direct explicit-comptime address policy
+or reject unexecuted branches. Full30case type-smoke remains unrun because
+required positives already fail, not waived or passed.
+
+Completec564 package preserved under native_package_3f49d4a, recursive comparison
+matches build/native.344-member successful evidence archive in external
+D2/staged_capture_v3_receipt/logs.tgz, SHAba999db3c1f904877ad7728e5b3d16b01f6320b56af1e9e96783ca9e7f447796.
+All owned sessions drained; Docker census init/sleep only, heavy.lock released
+normally for D1.139GiB diskfree/~9.9GiB available RAM, no cleanup necessary.
+This docs-only receipt causes no runtime change; profiling is the completed
+frozen-code work above, not a new documentation performance claim. Next review
+stable owner measurement/harness handoffs while D1 owns its independent slot;
+current final clean/public/native/browser/generation/sanitizer release gates
+remain open.

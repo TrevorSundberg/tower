@@ -1055,3 +1055,65 @@ foreign ABI. It must link the existing production driver composition (including
 paths/stat providers) with compiler units; the earlier generic selector must
 remain absent. D1 owns that opt-in target. This supersedes the helper-only source
 review for the same incoming path, not an extra coverage count or runtime pass.
+
+### Staged workload and capture successor receipt, 3f49d4a
+
+Reviewed/compiled source is scaffolding tree1eeae3489c5603963786744d87cd448c1397e039,
+publicpin9653f818, current compiler c56400b17293457b7ed13927bc1b6b9af1c3e674ab0bcb4f1a939a36458988f2.
+The preceding5d4 compiler50f58954 and current compiler use byte-identical42-file
+runtime resources. Docker tower_build image4be584fb, LLVM19.1.1,
+x86_64-unknown-linux-gnu, CPUs0/2, explicit jobs1/2, no quota; container UID0.
+Each existing workers16/window260 Tower producer is generated once with the
+public compiler. Inputs/oracles are hashed. Both compilers receive identical
+sources and runtime object, alternating order, one warmup plus three retained
+fresh-process/warm-filesystem samples. GNU time records compiler-only wall,
+user+system CPU and peak RSS; link/execute are separate checked commands.
+
+| Input/compiler/jobs | Median wall (range), seconds | Median CPU seconds | Median RSS KiB |
+| --- | ---: | ---: | ---: |
+| workers/before/1 |2.17 (2.14–3.21)|2.15|177952|
+| workers/current/1 |2.19 (2.14–4.14)|2.17|177612|
+| workers/before/2 |3.52 (3.27–3.64)|4.00|191028|
+| workers/current/2 |3.33 (3.27–3.43)|3.77|190076|
+| window/before/1 |2.61 (2.31–2.64)|2.57|197772|
+| window/current/1 |2.34 (2.30–2.53)|2.31|198160|
+| window/before/2 |3.77 (3.20–3.92)|4.44|210932|
+| window/current/2 |4.01 (3.74–4.09)|4.64|211344|
+
+All32 output checks pass, including the independent staged/defer arithmetic
+oracles described above. Repeated, serial/parallel and cross-version objects
+are byte-identical. Current canonical Foundation bytes match at jobs1/2, and
+both reparse/execute to the original output (workers1.22wall/1.18CPU/139200KiB;
+window0.96/0.94/165780). All measured process swaps are zero; source/input
+manifests remain unchanged. Logs: build/d2_ecs/capture_v3_3f49d4a.
+
+Two workers are slower and consume more CPU/RSS for both inputs; capacity is
+not profitable scaling. Current combined frontend parse/check median is
+1.943/2.983seconds for workers1/2 and2.046/3.441 for window1/2, dominating
+the compilation. The CLI does not independently attribute parser/checker
+contention or worker idle time. Window two-worker median wall grows about6%
+against predecessor, CPU about4.5%, with overlapping wall ranges. Three samples
+and variable powersave frequency do not isolate capture policy from the
+co-integrated editor/path/layout changes. Serial window is faster in this small
+sample; neither observation establishes a general improvement/regression.
+Current window RSS grows388KiB serial/412KiB parallel; no excessive peak
+growth appears here, but this is not live allocation/retention accounting for
+the eager per-initializer capture records. Owner profiling remains necessary.
+
+Current public-pin incremental build, actual source-proof query-smoke, request
+ownership/fault sweep and editor1/2/4/8 pass. The full lifecycle gate does not:
+both global and local aggregate positive probes reject runtime storage, while
+two existing known-binding address negatives falsely succeed. Exact unmodified
+source literals from known_binding_checks.tower produce32 andfalse, rawexit0,
+where rejection is required. The independent rejection checker exits1 and
+preserves raw statuses. Address2.95wall/2.92CPU/171472KiB; comparison2.36/2.34/
+168228; no swaps. A1 owns capture effect/relocation policy, L1 aggregate consumer
+materialization. No expected-result weakening or inferred-capability workaround.
+
+All owned sessions terminated and children drained before the D2 heavy lock
+was released to D1. Complete current package preserved at
+build/d2_ecs/native_package_3f49d4a with recursive byte comparison. External
+D2/staged_capture_v3_receipt/logs.tgz contains344 listed members,
+SHAba999db3c1f904877ad7728e5b3d16b01f6320b56af1e9e96783ca9e7f447796.
+Current full type-smoke, ASan/TSan, fresh clean/public build, browser/generation
+and publication remain open. No source-specific historical pass closes them.
