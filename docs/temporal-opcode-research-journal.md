@@ -47755,3 +47755,19 @@ capture regression validation are pending the next host slot. The optional
 partial late-capture patch is deliberately not adopted while A1 supplies its
 general initializer-range successor; its unresolved cases remain acceptance
 requirements, not exclusions. No new D2 production policy or syntax is added.
+
+Root approved D1's stage registration SHA
+f4c981aba73329cf72a47d067504f6291601376ff8f692dd2961d845398d4363 after the
+native freeze. Applied that exact patch over focused_registration_v2; no
+competing manifest edit. Read the complete205-line A2 fixture: each trial owns
+its store, graph, budget, stages and signals; tickets/access ranges and exclusive
+owner leases precede dispatch. Barrier-confirmed distinct threads keep input
+views alive, coordinator calls hold twice to test idempotence before closing the
+last view, then publishes/discards and settles tickets before releasing grants.
+Success/cancel/worker-failure/name-collision/partial-admission modes check exact
+finalizer accounting and zero store/component residue. The common object/runtime
+recipe and worker-entry export preserve actual sanitizer coverage. Fixed2/4
+workers on two physical cores are concurrency stress, not a4core speed claim.
+D1's earlier native/ASan/TSan passes retain their original sources; D2 has not
+yet executed the fixture in the integrated closure. The fixture and generic
+harness remain A2/D1-owned; source integration does not close release acceptance.

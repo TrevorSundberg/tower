@@ -796,17 +796,17 @@ replacement source provenance, semantic ABI syntax changes and grammar reuse.
 
 With `TOWER_WORK_TESTS=ON`, native Linux x64 builds register the ready-index,
 reservation ledger, shared-ledger overlap, admitted kernel dispatch, tool output
-identity and semaphore observer fixtures through the common Tower object/runtime
-rules. `TOWER_SANITIZER=address` or `thread` uses the same targets and production
+identity, semaphore observer and concurrent entity-stage fixtures through the
+common Tower object/runtime rules. `TOWER_SANITIZER=address` or `thread` uses the same targets and production
 allocator; configured object manifests alone are not execution evidence.
 
 ```sh
 cmake --build "$TOWER_NATIVE_BUILD" --parallel 1 --target \
   tower-work-ready-tests tower-work-budget-tests tower-work-budget-shared-tests \
   tower-work-kernel-admission-tests tower-tool-output-identity-tests \
-  tower-work-signal-observe-tests
+  tower-work-signal-observe-tests tower-entity-stage-concurrent-tests
 ctest --test-dir "$TOWER_NATIVE_BUILD" --output-on-failure \
-  -R '^tower-(work-(ready|budget|budget-shared|kernel-admission)-tests|tool-output-identity-tests|work-signal-observe-tests-(try|wait))$'
+  -R '^tower-(work-(ready|budget|budget-shared|kernel-admission)-tests|tool-output-identity-tests|work-signal-observe-tests-(try|wait)|entity-stage-concurrent-tests)$'
 ```
 
 These checks preserve explicit stale/owner receipts, independent budget totals,
