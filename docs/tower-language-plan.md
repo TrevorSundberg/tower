@@ -973,9 +973,13 @@ containers. Benchmark representative compiler workloads before migrating them.
   Generated loop/iteration/match blocks receive leases before resumed mutation.
   Foreach generic protocol signatures now register declaration queries across
   independent bodies; each body suspends on the ordinary parameter/return receipts.
-  Protocol roles preserve diagnostic order. Lookup/deduction and structural loop
-  setup, extended structural match patterns and individual structural expressions
-  retain coordinator work. Eligible editor
+  Protocol roles preserve diagnostic order. Lookup/deduction now has role-specific
+  worker queries on the foreach entity, consuming its published source type;
+  canonical inferred types/signatures publish after join. Prepared if/while/match/
+  foreach construction, for scope creation and prepared for body entry run on
+  body workers with retained lexical continuations. State layout preparation,
+  extended structural match patterns and individual structural expressions retain
+  coordinator work. Eligible editor
   declaration/body observations now use private worker buffers and publish after
   joins; captured lexical scopes live until the editor query is disposed.
   Already-instantiated generic bodies now use body workers when their immutable
@@ -1144,7 +1148,7 @@ receipts and exact validation scope are recorded separately in the ongoing journ
 | --- | --- | --- |
 | Entities | Stable payloads, dense per-type pointer indexes, explicit worlds, pinned views, exclusive attachment leases and staged canonical creation | Complete host-world isolation and non-racing reference ownership |
 | Syntax/grammar | Shared entities; world-bound module/session/baseline/revision/cache ownership; worker-owned FIRST/nullable frontiers, LR(0) transitions, LR(1) kernel closures, dependency-link construction, wide lookahead frontiers, LALR actions and runtime action/direct-index/goto rows; native CLI unit recipes use isolated worlds | Shared import/query deduplication and runtime sequence specialization; source/effect order, link/seed merging and row interning require ordered publication |
-| Semantics/layout | Shared query graph; parallel discovery, layout/signature reads, resumable bodies and expression operands, assignment target/value phases, enum checking, prepared source type bindings, both array spellings/constructor continuations, shared generic cloning, editor observations, aggregate signatures, expression lowering and deferred-depth validation | Foreach lookup/deduction and loop construction and remaining structural expressions; canonical interning/publication remains coordinated |
+| Semantics/layout | Shared query graph; parallel discovery, layout/signature reads, resumable bodies and expression operands, assignment target/value phases, enum checking, prepared source type bindings, both array spellings/constructor continuations, shared generic cloning, editor observations, aggregate signatures, expression lowering, deferred-depth validation, iteration protocol deduction and prepared control construction | Iteration storage/layout preparation, extended structural patterns and remaining structural expressions; canonical interning/publication remains coordinated |
 | Interpreter/staging | Per-invocation contexts over shared Foundation; ECS binding proofs, clone/lowering dependencies, persistent demanded preparation, threaded scalar/aggregate evaluation, executed-read capture checks and private execution caches | Early general value execution during type construction, explicit effects/inputs and persistent invalidation; no separate folding evaluator |
 | LLVM | Shared Foundation inputs; private LLVM contexts/modules per unit; backend queries stream from their frontend receipts on one bounded native pool; browser builds use the Tower coordinator | Shared-module work and upstream target registration retain ownership boundaries; measure end-to-end scaling and preserve target legality |
 | Link/publication | Tower plans/artifacts and the production Tower Wasm linker; other native formats retain upstream LLD and filesystem interfaces | Keep remaining LLD globals and temporary paths isolated/serialized; publish a candidate only after its checks |

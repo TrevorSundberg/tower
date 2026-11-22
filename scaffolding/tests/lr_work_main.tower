@@ -11,7 +11,7 @@ extern fn work_thread_available(): bool;
 
 export fn lr_work_test_main(argc: i32, argv: u8**): i32 {
     if argc < 2 || argc > 3 {
-        puts("usage: tower-lr-work-tests RESOURCE_ROOT [all|lr|units|backend|editor|bodies|body-smoke|type-smoke]");
+        puts("usage: tower-lr-work-tests RESOURCE_ROOT [all|lr|units|backend|editor|bodies|body-smoke|type-smoke|control-smoke]");
         return 1;
     }
     utility_check(work_thread_available(), "LR comparison uses the uninstrumented native worker profile");
@@ -24,7 +24,8 @@ export fn lr_work_test_main(argc: i32, argv: u8**): i32 {
     var bodies = strcmp(suite, "bodies") == 0;
     var smoke = strcmp(suite, "body-smoke") == 0;
     var type_smoke = strcmp(suite, "type-smoke") == 0;
-    if !all && !lr && !units && !backend && !editor && !bodies && !smoke && !type_smoke {
+    var control_smoke = strcmp(suite, "control-smoke") == 0;
+    if !all && !lr && !units && !backend && !editor && !bodies && !smoke && !type_smoke && !control_smoke {
         puts("Unknown worker test suite");
         return 1;
     }
@@ -38,5 +39,6 @@ export fn lr_work_test_main(argc: i32, argv: u8**): i32 {
     if all || bodies { body_runs_tests(argv[1]); }
     if smoke { body_runs_smoke(argv[1]); }
     if type_smoke { body_runs_type_smoke(argv[1]); }
+    if control_smoke { body_runs_control_smoke(argv[1]); }
     return 0;
 }

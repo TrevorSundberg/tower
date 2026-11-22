@@ -29,6 +29,8 @@ struct SemanticIterationPlan {
     element: void*;
     end: void*;
     ready: bool;
+    state_type: FoundationType;
+    state_ready: bool;
 }
 
 fn sem_iteration_slot(plan: SemanticIterationPlan*, role: IterationRole): void** {
@@ -149,6 +151,32 @@ fn sem_iteration_value(c: SemanticContext*, n: void*, depth: u32, cursor: Semant
     return sem_iteration_prepared(c, n, depth, cursor, initial, null);
 }
 
+// Signature/layout preparation publishes immutable storage information before
+// a body worker constructs its private loop, locals and cleanup. Immediate
+// callers use this same path; no worker may discover a new shared layout.
+fn sem_iteration_storage(c: SemanticContext*, n: void*, plan: SemanticIterationPlan*): bool {
+    if plan.state_ready { return true; }
+    var state_type = &plan.state_type;
+    *state_type = sem_get(sem_get(plan.begin).parameters.data[1]).type;
+    if state_type.pointers != 1 {
+        sem_fail(c, n, "iterate_begin requires a pointer to its local iterator state");
+        return false;
+    }
+    state_type.pointers--;
+    var nothing = sem_type_new(c, SVoid, 0, null);
+    var boolean = sem_type_new(c, SBool, 0, null);
+    if !semantic_type_equal(&sem_get(plan.begin).type, nothing) || !semantic_type_equal(&sem_get(plan.end).type, nothing) ||
+    !semantic_type_equal(&sem_get(plan.next).type, boolean) || sem_get(plan.element).type.pointers == 0 ||
+    (sem_get(plan.element).type.pointers == 1 && sem_get(plan.element).type.scalar == SVoid) ||
+    (state_type.pointers == 0 && state_type.scalar == SVoid) {
+        sem_fail(c, n, "Iteration requires begin/end: void, next: bool, element: pointer, and concrete state storage");
+        return false;
+    }
+    if semantic_aggregate(state_type) { sem_layout(c, state_type.record); }
+    plan.state_ready = sem_ok(c);
+    return plan.state_ready;
+}
+
 fn sem_iteration_prepared(c: SemanticContext*, n: void*, depth: u32, cursor: SemanticIterationCursor*, initial: void*, prepared: SemanticIterationPlan*): bool {
     *cursor = default;
     if depth > IterationSourceDepthLimit {
@@ -179,27 +207,8 @@ fn sem_iteration_prepared(c: SemanticContext*, n: void*, depth: u32, cursor: Sem
     if !sem_ok(c) {
         return false;
     }
-    var state_type = sem_type_copy(c, &sem_get(sem_get(begin).parameters.data[1]).type);
-    if state_type.pointers != 1 {
-        sem_fail(c, n, "iterate_begin requires a pointer to its local iterator state");
-        return false;
-    }
-    state_type.pointers--;
-    var nothing = sem_type_new(c, SVoid, 0, null);
-    var boolean = sem_type_new(c, SBool, 0, null);
-    if !semantic_type_equal(&sem_get(begin).type, nothing) || !semantic_type_equal(&sem_get(end).type, nothing) ||
-    !semantic_type_equal(&sem_get(next).type, boolean) || sem_get(element).type.pointers == 0 ||
-    (sem_get(element).type.pointers == 1 && sem_get(element).type.scalar == SVoid) ||
-    (state_type.pointers == 0 && state_type.scalar == SVoid) {
-        sem_fail(c, n, "Iteration requires begin/end: void, next: bool, element: pointer, and concrete state storage");
-        return false;
-    }
-    if semantic_aggregate(state_type) {
-        sem_layout(c, state_type.record);
-    }
-    if !sem_ok(c) {
-        return false;
-    }
+    if !sem_iteration_storage(c, n, prepared) { return false; }
+    var state_type = &prepared.state_type;
     var value = sem_node(c, n, KBlock);
     var source = sem_control_local(c, n, initial);
     var state = sem_control_node(c, n, KDeclare);

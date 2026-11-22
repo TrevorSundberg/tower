@@ -158,30 +158,34 @@ fn body_runs_surface_error(budget: usize, bedrock: u8*, foundation: u8*, root: u
     units_check(frontend_units_failed(batch) == 1 && strstr(error, mode == BodyLoopFailure.ForCondition ? "Recursive by-value layout": "unknownLoop") is not null && strstr(error, "unknownSecond") is null, "Loop header failure preserves scopes, cleanup and error order");
 }
 
-fn body_runs_arm_error(budget: usize, bedrock: u8*, foundation: u8*, root: u8*, mode: u32): void {
-    var batch = frontend_units_create(1, budget, 8, 89, 23, bedrock, foundation, root);
+enum BodyArmFailure: u32 { Value, EarlierArm, DuplicatePattern, DeferredBody, IterationBody, Count }
+var BodyArmRevision: u64 = 89;
+var BodyArmProfile: u64 = 23;
+
+fn body_runs_arm_error(budget: usize, bedrock: u8*, foundation: u8*, root: u8*, mode: BodyArmFailure): void {
+    var batch = frontend_units_create(1, budget, 8, BodyArmRevision, BodyArmProfile, bedrock, foundation, root);
     units_check(batch is not null, "Match/defer/iteration diagnostic batch");
     defer frontend_units_close(batch);
     var source: u8* = "import tower; fn id(T:type,x:T):T{return x;} fn first():i32 {match id(unknownMatch) {0=>{return id(1);} _=>{return 0;}}} fn later():i32{return unknownSecond;}";
-    if mode == 1 {
+    if mode == BodyArmFailure.EarlierArm {
         source = "import tower; fn id(T:type,x:T):T{return x;} fn first():i32 {match id(0) {0=>{var a=id(1);return unknownMatch;} 0=>{return 1;} _=>{return 0;}}} fn later():i32{return unknownSecond;}";
     }
-    if mode == 2 {
+    if mode == BodyArmFailure.DuplicatePattern {
         source = "import tower; fn id(T:type,x:T):T{return x;} fn first():i32 {match id(0) {0=>{return id(1);} 0=>{return unknownMatch;} _=>{return 0;}}} fn later():i32{return unknownSecond;}";
     }
-    if mode == 3 {
+    if mode == BodyArmFailure.DeferredBody {
         source = "import tower; fn id(T:type,x:T):T{return x;} fn first():i32 {defer {var a=id(1);var b=id(unknownMatch);} return 0;} fn later():i32{return unknownSecond;}";
     }
-    if mode == 4 {
+    if mode == BodyArmFailure.IterationBody {
         source = "import tower; import library.vector; fn id(T:type,x:T):T{return x;} fn first(values:vector(i32)*):i32 {foreach(var item in values) {var a=id(item);return unknownMatch;} return 0;} fn later():i32{return unknownSecond;}";
     }
     units_check(frontend_units_source(batch, 1, "arm_error.tower", source, strlen(source)), "Match/defer/iteration diagnostic source");
     while !frontend_units_step(batch, true) {}
     var error = frontend_units_error(batch);
-    units_check(frontend_units_failed(batch) == 1 && strstr(error, mode == 2 ? "Duplicate match pattern" : "unknownMatch") is not null && strstr(error, "unknownSecond") is null, "Resumed arm and cleanup failures preserve source diagnostic order");
+    units_check(frontend_units_failed(batch) == 1 && strstr(error, mode == BodyArmFailure.DuplicatePattern ? "Duplicate match pattern" : "unknownMatch") is not null && strstr(error, "unknownSecond") is null, "Resumed arm and cleanup failures preserve source diagnostic order");
 }
 
-enum BodyDeclarationFailure: u32 { SelfReference, SharedSignature, SharedInitializer, HeaderSelfReference, SharedTypeInitializer, SharedTypeAlias, SharedNestedType, NestedFunctionSignature, IterationSignature, ModuleInitializer, ModuleStatement, ArrayExtent, ArrayCycle, ModuleArrayExtent, ArrayFields, ConstructorCycle, StructuralTypeFailure, VoidReturn, DeferredReturn, AssignmentTarget, AssignmentStore, EnumNames, EnumOverflow }
+enum BodyDeclarationFailure: u32 { SelfReference, SharedSignature, SharedInitializer, HeaderSelfReference, SharedTypeInitializer, SharedTypeAlias, SharedNestedType, NestedFunctionSignature, IterationSignature, ModuleInitializer, ModuleStatement, ArrayExtent, ArrayCycle, ModuleArrayExtent, ArrayFields, ConstructorCycle, StructuralTypeFailure, VoidReturn, DeferredReturn, AssignmentTarget, AssignmentStore, EnumNames, EnumOverflow, IterationSource, IterationLookup, IterationInference }
 var BodyDeclarationRevision: u64 = 90;
 var BodyDeclarationProfile: u64 = 23;
 
@@ -225,6 +229,18 @@ fn body_runs_declaration_error(budget: usize, bedrock: u8*, foundation: u8*, roo
         // precedes the missing later protocol roles and a later ordinary error.
         source = "import tower;fn id(T:type,x:T):T{return x;}fn collection(T:type):type{struct Value{value:T;}return Value;}fn collection_iterate_begin(T:type,source:collection(T)*,state:MissingState*):void{}fn first():i32{var x=id(1);var values:collection(i32);foreach(var value in &values){}return 0;}fn second():i32{var values:collection(i32);foreach(var value in &values){}return 0;}fn later():i32{return unknownLater;}";
         diagnostic_text = "MissingState";
+    }
+    if mode == BodyDeclarationFailure.IterationSource {
+        source = "import tower;fn first():i32{var source=1;foreach(var value in source){}return 0;}fn second():i32{var source=2;foreach(var value in source){}return 0;}fn later():i32{return unknownLater;}";
+        diagnostic_text = "foreach requires a pointer to a nominal collection";
+    }
+    if mode == BodyDeclarationFailure.IterationLookup {
+        source = "import tower;struct Collection{value:i32;}fn first():i32{var source:Collection;foreach(var value in &source){}return 0;}fn second():i32{var source:Collection;foreach(var value in &source){}return 0;}fn later():i32{return unknownLater;}";
+        diagnostic_text = "Missing iteration protocol function 'Collection_iterate_begin'";
+    }
+    if mode == BodyDeclarationFailure.IterationInference {
+        source = "import tower;struct Collection{value:i32;}fn Collection_iterate_begin(T:type,source:Collection*,state:i32*):void{}fn first():i32{var source:Collection;foreach(var value in &source){}return 0;}fn second():i32{var source:Collection;foreach(var value in &source){}return 0;}fn later():i32{return unknownLater;}";
+        diagnostic_text = "Cannot infer type argument 'T'";
     }
     if mode == BodyDeclarationFailure.ModuleInitializer {
         source = "import tower;var first:i32=unknownFirst;var second:i32=unknownSecond;fn later():i32{return unknownLater;}";
@@ -292,13 +308,26 @@ fn body_runs_declaration_error(budget: usize, bedrock: u8*, foundation: u8*, roo
 
 // A short edit/build/run path uses the same fixture and assertions as the full
 // matrix. It is intentionally separate from the release coverage below.
+fn body_runs_iteration_errors(budget: usize, bedrock: u8*, foundation: u8*, root: u8*): void {
+    body_runs_declaration_error(budget, bedrock, foundation, root, BodyDeclarationFailure.IterationSignature);
+    body_runs_declaration_error(budget, bedrock, foundation, root, BodyDeclarationFailure.IterationSource);
+    body_runs_declaration_error(budget, bedrock, foundation, root, BodyDeclarationFailure.IterationLookup);
+    body_runs_declaration_error(budget, bedrock, foundation, root, BodyDeclarationFailure.IterationInference);
+}
+
 fn body_runs_smoke(root: u8*): void {
-    body_runs_smoke_select(root, false);
+    body_runs_smoke_select(root, BodySmokeKind.All);
 }
 
 // Keep type/dependency edits focused; release coverage still uses bodies.
 fn body_runs_type_smoke(root: u8*): void {
-    body_runs_smoke_select(root, true);
+    body_runs_smoke_select(root, BodySmokeKind.Types);
+}
+
+enum BodySmokeKind: u32 { All, Types, Control }
+
+fn body_runs_control_smoke(root: u8*): void {
+    body_runs_smoke_select(root, BodySmokeKind.Control);
 }
 
 fn body_runs_defer_depth(root: u8*, bedrock: u8*, foundation: u8*): void {
@@ -348,7 +377,7 @@ fn body_runs_statements(root: u8*, bedrock: u8*, foundation: u8*, width: u32): v
     body_runs_trial(source.data, 4, width, bedrock, foundation, root, &canonical);
 }
 
-fn body_runs_smoke_select(root: u8*, types_only: bool): void {
+fn body_runs_smoke_select(root: u8*, kind: BodySmokeKind): void {
     var bedrock: vector(u8) = default;
     var foundation: vector(u8) = default;
     var source: vector(u8) = default;
@@ -365,7 +394,22 @@ fn body_runs_smoke_select(root: u8*, types_only: bool): void {
     units_check(vector_reserve(&canonical, canonical.length + 1), "Body Foundation text terminator");
     canonical.data[canonical.length] = 0;
     body_runs_trial(canonical.data, 4, 8, bedrock.data, foundation.data, root, &canonical);
-    if types_only {
+    if kind == BodySmokeKind.Control {
+        body_runs_header_error(4, bedrock.data, foundation.data, root);
+        body_runs_defer_depth(root, bedrock.data, foundation.data);
+        for(var budget: usize = 1; budget <= 4; budget *= 4) {
+            for(var mode = convert(u32, BodyLoopFailure.WhileValue); mode < convert(u32, BodyLoopFailure.Count); mode++) {
+                body_runs_surface_error(budget, bedrock.data, foundation.data, root, convert(BodyLoopFailure, mode));
+            }
+            body_runs_arm_error(budget, bedrock.data, foundation.data, root, BodyArmFailure.EarlierArm);
+            body_runs_arm_error(budget, bedrock.data, foundation.data, root, BodyArmFailure.DuplicatePattern);
+            body_runs_arm_error(budget, bedrock.data, foundation.data, root, BodyArmFailure.IterationBody);
+            body_runs_iteration_errors(budget, bedrock.data, foundation.data, root);
+        }
+        puts("Control continuation smoke: serial/worker execution, canonical reparse, cleanup and ordered errors passed.");
+        return;
+    }
+    if kind == BodySmokeKind.Types {
         for(var budget: usize = 1; budget <= 4; budget *= 4) {
             body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.ArrayExtent);
             body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.ArrayCycle);
@@ -397,14 +441,14 @@ fn body_runs_smoke_select(root: u8*, types_only: bool): void {
     body_runs_surface_error(4, bedrock.data, foundation.data, root, BodyLoopFailure.ForCondition);
     body_runs_surface_error(4, bedrock.data, foundation.data, root, BodyLoopFailure.ForUpdate);
     body_runs_surface_error(4, bedrock.data, foundation.data, root, BodyLoopFailure.ForInitialExpression);
-    body_runs_arm_error(4, bedrock.data, foundation.data, root, 1);
-    body_runs_arm_error(4, bedrock.data, foundation.data, root, 2);
+    body_runs_arm_error(4, bedrock.data, foundation.data, root, BodyArmFailure.EarlierArm);
+    body_runs_arm_error(4, bedrock.data, foundation.data, root, BodyArmFailure.DuplicatePattern);
     body_runs_declaration_error(1, bedrock.data, foundation.data, root, BodyDeclarationFailure.SelfReference);
     body_runs_declaration_error(4, bedrock.data, foundation.data, root, BodyDeclarationFailure.HeaderSelfReference);
     body_runs_declaration_error(4, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedSignature);
     body_runs_declaration_error(4, bedrock.data, foundation.data, root, BodyDeclarationFailure.NestedFunctionSignature);
-    body_runs_declaration_error(1, bedrock.data, foundation.data, root, BodyDeclarationFailure.IterationSignature);
-    body_runs_declaration_error(4, bedrock.data, foundation.data, root, BodyDeclarationFailure.IterationSignature);
+    body_runs_iteration_errors(1, bedrock.data, foundation.data, root);
+    body_runs_iteration_errors(4, bedrock.data, foundation.data, root);
     body_runs_declaration_error(1, bedrock.data, foundation.data, root, BodyDeclarationFailure.ModuleInitializer);
     body_runs_declaration_error(4, bedrock.data, foundation.data, root, BodyDeclarationFailure.ModuleInitializer);
     body_runs_declaration_error(4, bedrock.data, foundation.data, root, BodyDeclarationFailure.ModuleStatement);
@@ -469,7 +513,7 @@ fn body_runs_tests(root: u8*): void {
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.HeaderSelfReference);
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedSignature);
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.NestedFunctionSignature);
-        body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.IterationSignature);
+        body_runs_iteration_errors(budget, bedrock.data, foundation.data, root);
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.ModuleInitializer);
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.ModuleStatement);
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.ArrayExtent);
@@ -488,8 +532,8 @@ fn body_runs_tests(root: u8*): void {
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedTypeInitializer);
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedTypeAlias);
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedNestedType);
-        for(var mode: u32 = 0; mode < 5; mode++) {
-            body_runs_arm_error(budget, bedrock.data, foundation.data, root, mode);
+        for(var mode: u32 = 0; mode < convert(u32, BodyArmFailure.Count); mode++) {
+            body_runs_arm_error(budget, bedrock.data, foundation.data, root, convert(BodyArmFailure, mode));
         }
         for(var mode: u32 = 0; mode < convert(u32, BodyLoopFailure.Count); mode++) {
             body_runs_surface_error(budget, bedrock.data, foundation.data, root, convert(BodyLoopFailure, mode));

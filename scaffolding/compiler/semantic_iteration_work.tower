@@ -1,0 +1,196 @@
+import tower;
+import compiler_kernel;
+import foundation_types;
+import semantic_context;
+import semantic_body_work;
+import semantic_iteration;
+import semantic_call_inference;
+import semantic_declarations;
+import semantic_modules;
+import semantic_program_types;
+import semantic_support;
+import semantic_types;
+import semantic_values;
+import semantic_work_ids;
+import .library.vector;
+import .library.stack;
+import .library.work_graph;
+import .library.work_pool;
+
+// Embedded in the owning body-work component. Each protocol role has a query
+// on the original foreach entity; only one role of a body runs at a time.
+struct SemanticIterationResolution {
+    kernel: CompilerKernel;
+    ticket: WorkTicket;
+    context: SemanticContext*;
+    owner: SemanticBodyWork*;
+    role: IterationRole;
+    definition: void*;
+    function: void*;
+    types: vector(FoundationType);
+    order: vector(FoundationType);
+    allocations: vector(void*);
+    lists: vector(void*);
+    query_reads: vector(usize);
+    error: vector(u8);
+    error_offset: usize;
+}
+
+fn sem_iteration_resolution_check(c: SemanticContext*, result: SemanticIterationResolution*): void {
+    var owner = result.owner;
+    var use = owner.expression_header;
+    var plan = &owner.iteration_plan;
+    var source = owner.initialization.value;
+    if result.role == IterationRole.Begin && !sem_iteration_plan(c, use, source, plan) { return; }
+    var name = sem_cat(c, plan.prefix, sem_iteration_suffix(result.role));
+    result.definition = sem_owned(c.templates, plan.module, name);
+    result.function = sem_owned(c.functions, plan.module, name);
+    if result.definition != null {
+        var count = generic_parameter_count(c.generics, result.definition);
+        var runtime: usize = 0;
+        for(var i: usize = 0; i < count; i++) {
+            if !generic_type_parameter(c.generics, result.definition, i) { runtime++; }
+        }
+        if runtime != IterationParameterCount {
+            sem_fail(c, use, "An iteration protocol function requires source and state pointer parameters");
+            return;
+        }
+        var actual: vector(FoundationType*) = default;
+        defer vector_dispose(&actual);
+        sem_require(vector_push(&actual, &sem_get(source).type));
+        sem_require(vector_push(&actual, null));
+        var order = sem_list(c);
+        var types = sem_infer_typed(c, result.definition, use, &actual, order);
+        if !sem_ok(c) { return; }
+        foreach(var type in types) {
+            sem_require(vector_push(&result.types, *bits(FoundationType*, type)));
+        }
+        foreach(var type in order) {
+            sem_require(vector_push(&result.order, *bits(FoundationType*, type)));
+        }
+    } else {
+        if result.function == null {
+            sem_fail(c, use, sem_cat(c, "Missing iteration protocol function '", sem_cat(c, name, "' in the source type's module")));
+        }
+    }
+}
+
+fn semantic_iteration_kernel(result: SemanticIterationResolution*): void {
+    var context = *result.context;
+    var program = *context.program;
+    context.program = &program;
+    context.editor = null;
+    context.query_reads = &result.query_reads;
+    context.allocations = default;
+    context.lists = default;
+    context.token_text = default;
+    context.scan = default;
+    program.error = default;
+    sem_body_restore(&context, &result.owner.initialization.lexical);
+    // This path consumes the published source type. It never checks an operand,
+    // interns a type, instantiates a function or attaches a semantic component.
+    sem_iteration_resolution_check(&context, result);
+    result.error = program.error;
+    result.error_offset = program.error_offset;
+    result.allocations = context.allocations;
+    result.lists = context.lists;
+    stack_dispose(&context.scan);
+    vector_dispose(&context.token_text);
+}
+
+fn sem_iteration_resolution_publish(c: SemanticContext*, result: SemanticIterationResolution*): void {
+    var owner = result.owner;
+    foreach(var allocation in &result.allocations) { sem_push(&c.allocations, allocation); }
+    foreach(var list in &result.lists) { sem_push(&c.lists, list); }
+    vector_dispose(&result.allocations);
+    vector_dispose(&result.lists);
+    if result.error.length != 0 {
+        c.program.error = result.error;
+        result.error = default;
+        c.program.error_offset = result.error_offset;
+        sem_body_preparation_failed(c, owner);
+    } else {
+        var ticket: WorkTicket;
+        sem_require(work_take_task(&c.queries, &ticket, owner.preparation));
+        var saved: SemanticBodyScope;
+        sem_body_save(c, &saved);
+        sem_body_restore(c, &owner.initialization.lexical);
+        var reads = c.query_reads;
+        c.query_reads = &owner.query_reads;
+        generic_error_clear(c.generics);
+        if result.definition != null {
+            foreach(var &type in &result.order) { sem_type_entity(c, type); }
+            var arguments = sem_list(c);
+            foreach(var &type in &result.types) { sem_push(arguments, sem_type_entity(c, type)); }
+            result.function = sem_prepare_signature(c, result.definition, owner.expression_header, arguments);
+        }
+        *sem_iteration_slot(&owner.iteration_plan, result.role) = result.function;
+        c.query_reads = reads;
+        sem_body_restore(c, &saved);
+        sem_query_observe(c, &ticket, &owner.query_reads);
+        if sem_ok(c) { sem_require(work_yield(&c.queries, &ticket)); }
+        else {
+            sem_require(work_finish(&c.queries, &ticket, false));
+            sem_body_preparation_failed(c, owner);
+        }
+    }
+    vector_dispose(&result.types);
+    vector_dispose(&result.order);
+    vector_dispose(&result.query_reads);
+    vector_dispose(&result.error);
+    result.owner = null;
+    result.definition = null;
+    result.function = null;
+}
+
+fn sem_iteration_resolutions(c: SemanticContext*, batch: SemanticBodyWork**, count: usize, failed: usize, role: IterationRole): usize {
+    var jobs: vector(SemanticIterationResolution*) = default;
+    defer vector_dispose(&jobs);
+    var domain = convert(u64, SemanticWorkDomain.Compiler);
+    for(var i: usize = 0; i < count && i <= failed; i++) {
+        var owner = batch[i];
+        var source = owner.initialization;
+        if owner.done || source == null || !sem_is(owner.expression_header, "TowerForeach")
+            || work_task(&c.queries, source.query).state != WorkState.Succeeded { continue; }
+        var result = &owner.iteration_resolution;
+        *result = default;
+        result.owner = owner;
+        result.role = role;
+        result.kernel.kind = CompilerKernelKind.Iteration;
+        result.kernel.payload = bits(void*, result);
+        var id = work_request(&c.queries, owner.expression_header, convert(u32, SemanticQuery.IterationResolution), convert(u64, role));
+        sem_require(id != 0 && work_depend(&c.queries, id, source.query));
+        sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Iteration), owner.ordinal, 1, WorkAccessMode.Write));
+        sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Body), owner.ordinal, 1, WorkAccessMode.Write));
+        sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.TypeIndex), 0, ~convert(usize, 0), WorkAccessMode.Read));
+        sem_require(work_seal(&c.queries, id));
+        var ticket: WorkTicket;
+        sem_require(work_take_task(&c.queries, &ticket, owner.preparation));
+        sem_require(work_suspend(&c.queries, &ticket, id));
+        sem_require(vector_push(&jobs, result));
+    }
+    if jobs.length == 0 { return 0; }
+    var context = *c;
+    var view = entity_view_open(c.program.root);
+    sem_require(view != null);
+    var next: usize = 0;
+    while next < jobs.length || c.workers.running != 0 {
+        while next < jobs.length && c.workers.running < c.workers.count {
+            var result = jobs.data[next++];
+            result.context = &context;
+            var id = work_find(&c.queries, result.owner.expression_header, convert(u32, SemanticQuery.IterationResolution), convert(u64, role));
+            sem_require(work_take_task(&c.queries, &result.ticket, id));
+            sem_require(work_pool_submit(&c.workers, bits(void*, &result.kernel)));
+        }
+        sem_require(work_pool_receive(&c.workers, true) != null);
+    }
+    entity_view_close(view);
+    // Release every type-index read before any preparation takes write ownership.
+    foreach(var result in &jobs) {
+        result.context = null;
+        sem_query_observe(c, &result.ticket, &result.query_reads);
+        sem_require(work_finish(&c.queries, &result.ticket, result.error.length == 0));
+    }
+    foreach(var result in &jobs) { sem_iteration_resolution_publish(c, result); }
+    return jobs.length;
+}

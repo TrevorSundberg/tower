@@ -221,17 +221,54 @@ fn sem_infer_contextual(c: SemanticContext*, argument: void*): bool {
 
 // Bindings are ordinary FoundationType copies in query-local scratch. Serial
 // callers intern immediately; workers publish constraints for coordinator interning.
-fn sem_infer_types(c: SemanticContext*, definition: void*, use: void*, values: vector(void*)*, intern: bool, order: vector(void*)*): vector(void*)* {
+fn sem_infer_begin(c: SemanticContext*, definition: void*, use: void*, intern: bool, order: vector(void*)*): SemanticCallInference {
     var parameters = sem_collect(c, sem_member(definition, "params"), "CoreParameter");
     var bindings = sem_list(c);
-    var result = sem_list(c);
     for(var i: usize = 0; i < parameters.length; i++) {
         sem_push(bindings, null);
     }
-    var inference: SemanticCallInference = {
+    return init(SemanticCallInference) {
         context: c, definition: definition, use: use, parameters: parameters,
         bindings: bindings, intern: intern, order: order
     };
+}
+
+fn sem_infer_finish(inference: SemanticCallInference*): vector(void*)* {
+    var c = inference.context;
+    var result = sem_list(c);
+    for(var i: usize = 0; i < inference.parameters.length && sem_ok(c); i++) {
+        if generic_type_parameter(c.generics, inference.definition, i) {
+            if inference.bindings.data[i] == null {
+                var name = sem_identifier(c, sem_member(inference.parameters.data[i], "name"));
+                sem_fail(c, inference.use, sem_cat(c, "Cannot infer type argument '", sem_cat(c, name, "'; pass explicit type arguments")));
+                break;
+            }
+            sem_push(result, inference.bindings.data[i]);
+        }
+    }
+    return result;
+}
+
+// Already checked implicit arguments constrain types directly. In particular,
+// protocol deduction must not revisit source expressions or create entities.
+// Null entries provide no constraint, just like an omitted iterator-state value.
+fn sem_infer_typed(c: SemanticContext*, definition: void*, use: void*, actual: vector(FoundationType*)*, order: vector(void*)*): vector(void*)* {
+    var inference = sem_infer_begin(c, definition, use, false, order);
+    var index: usize = 0;
+    for(var i: usize = 0; i < inference.parameters.length && sem_ok(c); i++) {
+        if generic_type_parameter(c.generics, definition, i) { continue; }
+        sem_require(index < actual.length);
+        var type = actual.data[index++];
+        if type != null { sem_infer_match(&inference, sem_member(inference.parameters.data[i], "type"), type, null, 0); }
+    }
+    if sem_ok(c) { sem_require(index == actual.length); }
+    return sem_infer_finish(&inference);
+}
+
+fn sem_infer_types(c: SemanticContext*, definition: void*, use: void*, values: vector(void*)*, intern: bool, order: vector(void*)*): vector(void*)* {
+    var inference = sem_infer_begin(c, definition, use, intern, order);
+    var parameters = inference.parameters;
+    var bindings = inference.bindings;
     // Analyze typed arguments first, without evaluating runtime code. The call's
     // item list is still emitted in source order, exactly once per argument.
     var value_index: usize = 0;
@@ -274,17 +311,7 @@ fn sem_infer_types(c: SemanticContext*, definition: void*, use: void*, values: v
             }
         }
     }
-    for(var i: usize = 0; i < parameters.length && sem_ok(c); i++) {
-        if generic_type_parameter(c.generics, definition, i) {
-            if bindings.data[i] == null {
-                var name = sem_identifier(c, sem_member(parameters.data[i], "name"));
-                sem_fail(c, use, sem_cat(c, "Cannot infer type argument '", sem_cat(c, name, "'; pass explicit type arguments")));
-                break;
-            }
-            sem_push(result, bindings.data[i]);
-        }
-    }
-    return result;
+    return sem_infer_finish(&inference);
 }
 
 fn sem_infer_arguments(c: SemanticContext*, definition: void*, use: void*, values: vector(void*)*): vector(void*)* {

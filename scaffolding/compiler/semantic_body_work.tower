@@ -14,6 +14,7 @@ import semantic_control;
 import semantic_expressions;
 import semantic_defer;
 import semantic_iteration;
+import semantic_iteration_work;
 import semantic_evaluation;
 import semantic_flow;
 import semantic_generic_body_work;
@@ -23,8 +24,8 @@ import .library.stack;
 import .library.work_graph;
 import .library.work_pool;
 
-var BodyQuery: u32 = 6;
-var BodyPrepareQuery: u32 = 9;
+var BodyQuery: u32 = convert(u32, SemanticQuery.Body);
+var BodyPrepareQuery: u32 = convert(u32, SemanticQuery.BodyPrepare);
 var BodyPreparationWindow: usize = 256;
 
 // A signature can exist for an unevaluated query without demanding its body.
@@ -181,7 +182,9 @@ struct SemanticBodyWork {
     expression_header: void*;
     expression_statement: void*;
     prepared_value: void*;
+    prepared_header: void*;
     iteration_plan: SemanticIterationPlan;
+    iteration_resolution: SemanticIterationResolution;
     declaration_header: void*;
     declaration_loop: SemanticLoopCursor;
     for_tail: bool;
@@ -218,7 +221,7 @@ fn sem_body_type_structure(c: SemanticContext*, n: void*): bool {
     return false;
 }
 
-// Structural construction still belongs to the coordinator. This scan only
+// Unprepared types/protocols require coordinator admission. This scan only
 // admits immutable inputs; it does not check/retry operands to discover effects.
 fn sem_body_tree(c: SemanticContext*, source: void*, nodes: vector(void*)*): bool {
     var first = nodes.length;
@@ -229,7 +232,8 @@ fn sem_body_tree(c: SemanticContext*, source: void*, nodes: vector(void*)*): boo
             return false;
         }
         // Protocol lookup can instantiate generic functions even when the loop
-        // source is an already typed parameter. It needs structural ownership.
+        // source is typed. Its preparation publishes signatures/state layout
+        // before the body worker constructs the loop.
         if sem_is(node, "TowerForeach") {
             return false;
         }
@@ -548,11 +552,27 @@ fn sem_body_run(c: SemanticContext*, result: SemanticBodyWork*): void {
         }
         var source = sem_child(cursor.subject, cursor.next);
         if source == result.stop {
+            var header = sem_unwrap(source);
+            if sem_is(header, "TowerFor") && result.boundaries.data[result.boundary].header {
+                // Open this body's private loop scope before suspending. Its
+                // initializer/type queries borrow that retained lexical state.
+                sem_require(result.declaration_header == null);
+                result.declaration_header = header;
+                sem_control_for_scope(c, header, cursor.depth + 1, &result.declaration_loop);
+            }
             return;
         }
         var node = sem_is(source, "Statement") ? sem_unwrap(source): null;
-        if !sem_body_enter(c, result, node, null) {
-            sem_block_step(c, cursor);
+        if node == result.prepared_header && node != null {
+            var prepared_loop = sem_is(node, "TowerFor") ? &result.declaration_loop : null;
+            sem_require(sem_body_enter(c, result, node, prepared_loop));
+            result.prepared_header = null;
+            result.prepared_value = null;
+            result.iteration_plan = default;
+            result.declaration_header = null;
+            result.declaration_loop = default;
+        } else {
+            if !sem_body_enter(c, result, node, null) { sem_block_step(c, cursor); }
         }
     }
 }
@@ -788,20 +808,17 @@ fn sem_body_for_tails(c: SemanticContext*, batch: SemanticBodyWork**, count: usi
         if !result.done {
             var ticket: WorkTicket;
             sem_require(work_take_task(&c.queries, &ticket, result.preparation));
-            var saved: SemanticBodyScope;
-            sem_body_save(c, &saved);
-            sem_body_restore(c, &result.lexical);
-            sem_require(sem_body_enter(c, result, result.declaration_header, &result.declaration_loop));
+            result.prepared_header = result.declaration_header;
             result.boundary++;
-            sem_body_save(c, &result.lexical);
-            sem_body_restore(c, &saved);
             sem_query_observe(c, &ticket, &result.query_reads);
             sem_require(work_finish(&c.queries, &ticket, sem_ok(c)));
             if !sem_ok(c) { sem_body_hold_error(c, result); result.done = true; }
         }
         result.preparation = 0;
-        result.declaration_header = null;
-        result.declaration_loop = default;
+        if result.prepared_header == null {
+            result.declaration_header = null;
+            result.declaration_loop = default;
+        }
         result.for_tail = false;
         result.for_initial = null;
     }
@@ -820,45 +837,14 @@ fn sem_body_preparation_failed(c: SemanticContext*, result: SemanticBodyWork*): 
     result.iteration_plan = default;
 }
 
-// Protocol roles retain their diagnostic order, but each role admits all
-// independent bodies before checking any pending signatures. Generic inference
-// and identity publication remain coordinated; parameter/return checking uses
-// the ordinary declaration graph and the body's preparation receipt suspends.
+// Protocol roles retain their diagnostic order. Lookup/deduction and signature
+// checking admit independent bodies together; only canonical identity publication
+// requires structural ownership. Preparation suspends on the same query graph.
 fn sem_body_iteration_signatures(c: SemanticContext*, batch: SemanticBodyWork**, count: usize, failed: usize): void {
     for(var role_id = convert(u32, IterationRole.Begin); role_id <= convert(u32, IterationRole.End); role_id++) {
         var role = convert(IterationRole, role_id);
         var registrations = c.declaration_jobs.length;
-        var active: usize = 0;
-        for(var i: usize = 0; i < count && i <= failed; i++) {
-            var result = batch[i];
-            var source = result.initialization;
-            if result.done || source == null || !sem_is(result.expression_header, "TowerForeach")
-                || work_task(&c.queries, source.query).state != WorkState.Succeeded { continue; }
-            active++;
-            var ticket: WorkTicket;
-            sem_require(work_take_task(&c.queries, &ticket, result.preparation));
-            var saved: SemanticBodyScope;
-            sem_body_save(c, &saved);
-            sem_body_restore(c, &source.lexical);
-            var reads = c.query_reads;
-            c.query_reads = &result.query_reads;
-            generic_error_clear(c.generics);
-            var plan = &result.iteration_plan;
-            if role == IterationRole.Begin { sem_iteration_plan(c, result.expression_header, source.value, plan); }
-            if sem_ok(c) {
-                var name = sem_cat(c, plan.prefix, sem_iteration_suffix(role));
-                *sem_iteration_slot(plan, role) = sem_iteration_resolve(c, plan.module, name,
-                    result.expression_header, plan.initial, true);
-            }
-            c.query_reads = reads;
-            sem_body_restore(c, &saved);
-            sem_query_observe(c, &ticket, &result.query_reads);
-            if sem_ok(c) { sem_require(work_yield(&c.queries, &ticket)); }
-            else {
-                sem_require(work_finish(&c.queries, &ticket, false));
-                sem_body_preparation_failed(c, result);
-            }
-        }
+        var active = sem_iteration_resolutions(c, batch, count, failed, role);
         if active == 0 { return; }
         if c.declaration_jobs.length != registrations { sem_declaration_discover(c); }
         sem_require(sem_ok(c));
@@ -982,8 +968,7 @@ fn sem_body_declarations(c: SemanticContext*, batch: SemanticBodyWork**, count: 
         var saved: SemanticBodyScope;
         sem_body_save(c, &saved);
         sem_body_restore(c, &result.lexical);
-        result.declaration_header = header;
-        if header != null { sem_control_for_scope(c, header, cursor.depth + 1, &result.declaration_loop); }
+        sem_require(result.declaration_header == header);
         if header != null && !sem_is(node, "CoreDeclare") {
             generic_error_clear(c.generics);
             var saved_reads = c.query_reads;
@@ -1163,8 +1148,26 @@ fn sem_body_declarations(c: SemanticContext*, batch: SemanticBodyWork**, count: 
             if result.expression_header != null {
                 if sem_ok(c) {
                     result.prepared_value = producer.value;
-                    sem_require(sem_body_enter(c, result, node, null));
-                    result.prepared_value = null;
+                    if sem_is(node, "TowerForeach") && result.iteration_plan.ready {
+                        // All implicit signatures are published. Resolve state
+                        // layout before handing control construction back to
+                        // this body's staged worker; never replay its source.
+                        if sem_iteration_storage(c, node, &result.iteration_plan) {
+                            result.prepared_header = node;
+                        }
+                    } else {
+                        if sem_is(node, "TowerForeach") {
+                            // Unprepared extension paths retain structural
+                            // ownership. Standard protocols always arrive ready.
+                            sem_require(sem_body_enter(c, result, node, null));
+                            result.prepared_value = null;
+                        } else {
+                            // If/while/match already run in body workers when
+                            // their operands need no preparation. A completed
+                            // expression receipt grants the same ownership.
+                            result.prepared_header = node;
+                        }
+                    }
                 }
             } else {
                 if result.declaration_header != null {
@@ -1203,7 +1206,7 @@ fn sem_body_declarations(c: SemanticContext*, batch: SemanticBodyWork**, count: 
         result.initialization = null;
         result.expression_header = null;
         result.expression_statement = null;
-        result.iteration_plan = default;
+        if result.prepared_header == null { result.iteration_plan = default; }
         if !result.for_tail {
             result.declaration_header = null;
             result.declaration_loop = default;
@@ -1309,6 +1312,7 @@ fn sem_body_clear(result: SemanticBodyWork*): void {
     result.expression_header = null;
     result.expression_statement = null;
     result.prepared_value = null;
+    result.prepared_header = null;
     result.iteration_plan = default;
     result.declaration_header = null;
     result.declaration_loop = default;

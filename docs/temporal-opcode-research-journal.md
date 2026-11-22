@@ -42700,3 +42700,75 @@ found no stale paths, so publication copied only manifest-listed files and delet
 nothing. Other agents' release receipts remain intact. No todo.txt changes;
 blob045d1e620edf7c67b653fec19df850b370246b1d is unchanged. No sanitizer or broad
 formatter run. The publication lock is released after this verified receipt.
+Hosted b5ba9f6 verification passed: all 104 published assets match, desktop and
+mobile execution/completion/persistence and native downloads pass, and a real
+Linux browser selects Wasm plus Linux x64 by default. Evidence:
+import-grammar-hosted.log and build/deployment-verification/report.json. The array
+query candidate also self-compiles semantic_declarations.tower successfully;
+that source checkpoint is now pushed as b9bc21c.
+
+The next ownership change transfers prepared foreach control construction to its
+body worker. Protocol signatures and state layout are established under the
+existing preparation query. The body-work component retains the checked source,
+plan and pending header; the next staged body dispatch creates loop/state/item
+locals and cleanup exactly once, then clears that continuation. Immediate root
+checking shares the same storage validation. Generic protocol lookup/deduction
+and shared identity publication still belong to preparation. This preserves
+source/error order, lexical scratch transfer and the existing entity stage;
+there is no new loop AST or independent protocol graph. Small-unit preflight
+first caught unsupported `else if` spelling; using the existing braced form
+passes. Native body smoke is running in iteration-header-native.log, reusing its
+existing foreach once-only effects, generic calls, deferred cleanup, canonical
+comparison and ordered diagnostics/cycles rather than adding duplicate fixtures.
+
+The foreach construction smoke passed. Prepared if/while/match headers now use
+the same retained worker continuation: their source expressions stay checked
+once, and the next body dispatch constructs the control structure. The new
+control-smoke selector reuses the full successful continuation fixture, canonical
+reparse, deferred-depth and relevant ordered match/iteration errors, omitting
+unrelated type/assignment negatives during iteration. Its first run passed
+(control-header-native.log); AGENTS.md names this focused route.
+
+Next, protocol lookup and generic deduction use a worker result embedded in the
+body-work component and role-specific dependency queries on the original foreach
+entity. Each role waits for its checked source; independent bodies resolve in
+parallel against immutable type/module metadata. Deduction consumes the source's
+published type through the existing unifier, without rechecking an expression or
+interning anything on a worker. Scratch, constraints and diagnostics return after
+join; all query read claims finish before source-ordered canonical interning and
+signature preparation take write ownership. The original role order remains.
+The common inference setup/result helpers also serve ordinary calls. Added
+serial/four-worker failures for invalid source type, missing protocol and failed
+type deduction alongside the existing shared-signature case. A first preflight
+identified missing direct interface imports; the corrected unit passes. Focused
+native validation is running in iteration-resolution-native.log. This work is
+not yet committed or deployed.
+
+The protocol-resolution control smoke passed, including serial/four-worker
+invalid-source, missing-protocol, inference and shared-signature diagnostics.
+Evidence: iteration-resolution-native.log. The complete body selector now reuses
+those same focused negatives. Startup pull required autostash for this retained
+work and integrated upstream through 2caa482 (Tower ELF and direct driver changes)
+without conflicts; all local changes were restored. The merged documented native
+bootstrap rebuild is running with TOWER_BOOTSTRAP_COMPILER unset. Earlier receipts
+remain evidence for their stated inputs, not the newly merged compiler. The
+remaining early type/value execution boundary still requires body/capture proof
+and lowering dependencies; removing the owner-body edge alone is not correct.
+
+The merged native build passed all33 steps through the public bootstrap. Its
+first test launch omitted RESOURCE_ROOT and aborted; that invocation is not a
+compiler regression or a passing test. The corrected invocation is
+`.../tower-lr-work-tests /home/deck/tower/scaffolding control-smoke`.
+
+Extended the same worker continuation to for headers: a body worker opens its
+private loop scope before suspension; initializer/condition/update queries retain
+that lexical state, and the next body dispatch enters the prepared loop exactly
+once. The coordinator no longer creates that scope or enters the prepared body.
+Protocol queries now explicitly claim Body write ownership for their embedded
+plan/result, in addition to their role access. Small-unit public preflight and
+the corrected control-smoke pass (control-for-native.log), including existing
+serial/four-worker loop initializer/condition/update errors. Candidate
+self-compilation of semantic_iteration_work.tower also passes
+(control-protocol-self.log). The implementation ledger records this narrower
+completed scope and retains early staging, structural-expression and cross-unit
+ownership/invalidation gaps. No completion percentage or throughput claim.

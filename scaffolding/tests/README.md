@@ -436,8 +436,10 @@ This does not introduce general first-class function pointers.
 The same command also selects `regex`, `lexicon`, `lr-grammar`, `lr-analysis`,
 and `emission`. These nine focused suites replace their duplicate executables
 and generated entry programs; their existing CTest names remain unchanged.
+`--suite modules` additionally isolates import resolution, grammar/syntax cache
+ownership, invalidation and overlapping parser-session lifetime checks.
 `--suite NAME` is a separate invocation from the aggregate's other options.
-Each run uses the original suite's initialization; only reader/live/validation
+Each run uses the original suite's initialization; reader/live/validation/modules
 require the working directory to contain Bedrock and Foundation. The emission
 suite retains its two-pass allocation/lifetime check. Fixture and oracle objects
 remain separately compiled, with the shared build helper tracking their imports.

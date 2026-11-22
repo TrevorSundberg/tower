@@ -5,6 +5,7 @@ import semantic_layout_kernel;
 import semantic_declarations;
 import semantic_lowering_work;
 import semantic_body_work;
+import semantic_iteration_work;
 import semantic_flow;
 import semantic_evaluation_work;
 import semantic_generic_body_work;
@@ -97,6 +98,10 @@ export fn work_kernel_execute(payload: void*): void {
     }
     if kernel.kind == CompilerKernelKind.KnownBinding {
         semantic_known_kernel(bits(SemanticKnownWork*, kernel.payload));
+        return;
+    }
+    if kernel.kind == CompilerKernelKind.Iteration {
+        semantic_iteration_kernel(bits(SemanticIterationResolution*, kernel.payload));
         return;
     }
     trap("Invalid compiler kernel", 0);
