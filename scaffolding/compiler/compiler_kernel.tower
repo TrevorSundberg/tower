@@ -30,15 +30,9 @@ fn compiler_kernel_dispatch_admitted(T: type, pool: WorkPool*, jobs: T**, count:
     extra_lanes: usize): bool {
     if count == 0 { return true; }
     if pool.running != 0 || pool.count == 0 { return false; }
-    // Keep the single/serial path typed and free of synchronization. A concrete
-    // T has one fixed kernel member offset; the batch borrows that projection,
-    // not a second pointer array or an aliasing guarantee.
-    if count == 1 || extra_lanes == 0 || !pool.threaded {
-        for(var next: usize = 0; next < count; next++) {
-            pool.execute(bits(void*, &jobs[next].kernel));
-        }
-        return true;
-    }
+    // A concrete T has one fixed kernel member offset. Share the serial loop
+    // as well as parallel transport across component types; the projection
+    // adds neither a second pointer array nor an aliasing guarantee.
     var offset = bits(usize, &jobs[0].kernel) - bits(usize, jobs[0]);
     return work_pool_batch(pool, bits(void**, jobs), count, offset, extra_lanes);
 }

@@ -3,7 +3,7 @@
 This is an **in-progress audit**, not lane acceptance or publication evidence.
 Owner: A2 on KinmenA, exclusive `C:\Sandbox\tower-agent-2`, main.
 Reviewed source baseline: `6282238779034442e0578d76b921ca117df819f1`;
-current local `21c2b43d` includes the measured A2 changes listed below, on
+current local `d284abce` plus the generic projection reduction includes the measured A2 changes below, on
 published60741c51. Unmodified receipt rows retain the baseline reviewed identity;
 later changed-file receipts state their implementation commit. Session
 `01a2046f-fec2-7c71-be46-cad28f9ac147`, resumed Codex PID 15056.
@@ -44,8 +44,8 @@ not independently validated runtime acceptance. Runtime evidence remains open.
 | `library/compiler_work.tower` | World-owned coordinator store and ordered child subjects; exclusive unit ranges and join dependencies use WorkGraph. Results accept dispatch 1 only under the once-per-unit transport contract. Close relies on executor draining. | Reviewed create/accept/failure-prefix/graph-extension/cancel/close. Audit callers for terminal cancellation and stale transport receipts; preserve API pending B2 coordination. |
 | `library/compiler_work_types.tower` | Shared unit/backend identities and opaque transport callback descriptor. Payload lifetime belongs to caller, execute and receive have separate roles. | Reviewed all definitions. No duplicate semantic graph or implicit capture; cross-lane changes need agreement. |
 | `library/work_graph.tower` | Packed task/edge/access vectors and hash/ready indexes are derived scheduling data, borrowing subjects. One coordinator mutates; handles survive growth, pointers do not. Dispatch tickets include revision/profile/generation. Declared access claims precede execution. | Reviewed all functions. Baseline targeted take scanned the frontier; measured replacement uses a derived ready slot with unchanged task size (evidence below). Cancellation invalidates receipts but does not join transport; callers must drain. Cycle detection requires owning-pipeline quiescence. |
-| `library/work_pool.tower` | Stable slot array with per-slot start/finished and shared completion semaphores. Coordinator owns busy/running and writes job/callback only before start. Finite pre-leased batches borrow a frozen pointer view and stack descriptor; a pool-owned claim gate protects the derived next index. Named callbacks reject this descriptor; normal admission restores pool.execute. Close drains and joins before destroying gates/slots. | Full source/callback-consumer review at60741c51 plus A2 batch patch. D1 normal/early-failure fixture passes3ASan+3TSan on the prior protocol; the new batch fixture separately passes3ASan+3TSan with production allocator/transport, nonfirst-member projection, caller overlap and pool reuse. Nine-pair useful-work profile recovers scaling; tiny-job checks pending. False sharing and pool startup still unmeasured. |
-| `library/entity_types.tower` | Stable paged component payloads; dense archetype rows and component-pointer columns are derived membership indexes, not packed archetype payloads. Store/stage own allocation indexes. Views pin lifetime only. | Reviewed all layouts. World context explicit; budgets/locality/fragmentation measurements pending. |
+| `library/work_pool.tower` | Stable slot array with per-slot start/finished and shared completion semaphores. Coordinator owns busy/running and writes job/callback only before start. Finite pre-leased batches borrow a frozen pointer view and stack descriptor; a pool-owned claim gate protects the derived next index. Named callbacks reject this descriptor; normal admission restores pool.execute. Close drains and joins before destroying gates/slots. | Full source/callback-consumer review through07246521. D1 normal/early-failure fixture and full LR each pass3TSan on this protocol; the batch fixture separately passes3ASan+3TSan with production allocator/transport, nonfirst-member projection, caller overlap and pool reuse. Nine-pair useful-work and tiny-job profiles are recorded below/in the journal. False sharing and pool startup remain unmeasured. |
+| `library/entity_types.tower` | Stable paged component payloads; dense archetype rows and component-pointer columns are derived membership indexes, not packed archetype payloads. Store/stage own allocation indexes. Views pin lifetime only. | Reviewed all layouts. World context explicit; locality/fragmentation microbenchmark below measures the distinction. Representative compiler phase retention remains open. |
 | `library/entity_api.tower` | Typed external declarations for separately compiled clients; no alternate implementation or storage ownership. | Reviewed all declarations against implementation signatures read so far. Retained subset is intentionally narrow. |
 | `library/entity_stage.tower` | Worker-private canonical nodes, lease list and component pool. Coordinator reserves all table/child/type capacity before publishing. Queued payload references are held before closing final input pin; discard runs finalizers and detaches private pools. | Reviewed full create/lease/prepare/publish/discard/names/reference/hold paths. Caller proof and failed-publication/concurrency instrumentation remain pending; no defect asserted yet. |
 | `library/storage.tower` | Caller-owned fixed byte arena and open-addressed integer map; no shared mutation or world registry. Reset invalidates arena borrows; map growth relocates slots. | Reviewed complete source. Arithmetic/allocation limits and target alignment need focused reference coverage. No scheduling parallelism is implied. |
@@ -69,7 +69,7 @@ not independently validated runtime acceptance. Runtime evidence remains open.
 | `library/coff_import_object.tower` | Bounded name metadata writer with local next buffer and final ownership transfer; old output may be borrowed as input until commit. | Complete review. Explicit COFF widths/endian machine fields; only by-name code imports, no data/ordinal fallback. No shared scheduler state. |
 | `library/crc32.tower` | Allocation-free streaming state value, immutable input bytes and fixed wrapping integer operations. | Complete review. Caller owns data lifetime; no world needed for this pure value algorithm. Reference coverage must remain independent. |
 | `library/deflate.tower` | Per-call head/ring scratch, bounded match search, fixed/stored encoders; output committed only on success. Ring entries store absolute offsets and reject stale/future links. | Complete review. Packed scratch improves locality but is not entity storage. Memory cost is per concurrent call; include in caller budget. Allocation failures do not silently substitute stored compression. |
-| `library/entities.tower` | Explicit store/context, ordered named owning children, stable component pages, type-instance pointer arrays and derived exact-signature tables. Table capacity/reservations precede mutation; pinned views defer reclamation and own query plans. | Complete source review after reconciling all spans. Stable pages may retain holes until last live slot dies; published stage pages detach from stage pool. No compaction/dense payload claim. Caller ownership must be acyclic; payload aliases/leases remain external to view lifetime. Fragmentation/locality and finalizer stress still open. |
+| `library/entities.tower` | Explicit store/context, ordered named owning children, stable component pages, type-instance pointer arrays and derived exact-signature tables. Table capacity/reservations precede mutation; pinned views defer reclamation and own query plans. | Complete source review after reconciling all spans. Stable pages may retain holes until last live slot dies; published stage pages detach from stage pool. No compaction/dense payload claim. Caller ownership must be acyclic; payload aliases/leases remain external to view lifetime. Locality fixture plus pages/tables/stage-ownership pass actualASan; concurrent publication/finalizer integration remains open. |
 | `library/float_bits.tower` | Strict integer-based floating representation operations with local value scratch; no allocator, shared mutation or host floating environment. | Complete review. Runtime/staging share this implementation; NaN/signed zero/width conversions retain explicit policies. Numeric validation belongs existing differential corpus, not ECS scheduling claims. |
 | `library/float_text.tower` | Caller-local bounded bigint/decimal arrays and output buffer; no locale/global parsing state or per-value heap allocation. | Complete review. Digit/exponent/scratch limits are explicit; parallel callers require private output/status. Immutable type-producing helpers contain only storage bounds. |
 | `library/gzip.tower` | Per-call raw compressed and envelope buffers; zero timestamp/portable OS metadata, explicit CRC and modulo-size trailer. Final output transfer supports old-output input borrow. | Complete review. No platform clock or hidden IO; concurrent compressor scratch must be budgeted by caller. |
@@ -272,3 +272,40 @@ worst-case retention microbenchmark, not a measured compiler memory regression.
 Actual compiler phase retention is requested from B2 before changing page reuse
 or payload policy. Pointer columns must not be described as packed payloads.
 This result supplies no alias optimization promise.
+
+### Shared instrumented compiler and generic projection (2026-11-22)
+
+At d284abce plus routed D1 cleanup, D2 compiler-budget/sanitizer and B2 world
+patches, D2's shared native thread mode built the full compiler and all work/LR
+objects. Three work and three LR executions plus query-smoke pass actual TSan.
+All four memory archive members and explicit linked test objects are covered;
+system LLVM, build-host tools and distributed guest resources are outside that
+instrumented execution. Full compiler binary7027fda6c2d9aad9c0296bebf823e59d610c03d69010b703da61d4800de8a843.
+Valid CLI body_continuation/decltype_lazy_body/imports run with jobs1/4 under
+TSan and emit byte-identical canonical Foundation. Public-pin roundtrips print
+0/0 and41,42,true respectively. The original final script incorrectly expected
+numeric1 for bool and failed; the corrected expectation matches preserved output.
+No compiler failure is hidden and no intentional sensitivity probe was repeated.
+This freeze predates semantic/parser/unit shared-budget adoption.
+
+Root/A1 reported generic dispatcher expansion as one contributor to their public
+semantic-unit128MiB cap failure. A2 reduced compiler_kernel_dispatch_admitted to
+its existing guards, fixed typed member projection and nongeneric work_pool_batch.
+The single/serial loop now exists once in that shared transport; there is no new
+scheduler, ABI/layout change or cap override. Reviewed source hash
+f2e92744bfceeeb6626959f62f08d96cba0df258ec6fb9c29ed93ea43bccc144.
+The unchanged admission fixture passes native and3ASan+leaks/3TSan, including
+nonzero kernel offset, grants0/1/3, caller overlap, named-entry rejection and
+ordinary pool reuse. A1 must independently establish aggregate compile-cap relief.
+
+Nine alternating frozen before/after pairs preserve useful SHA work: one job
+2.824574/2.824485ms;32jobs at1/2/4/8lanes90.091604/90.250187,
+45.833451/45.565585,23.234449/23.228916,12.304186/12.072851ms.
+After scaling is1.98/3.89/7.48x versus own serial, actual overlap2/4/8,
+caller median16/8/4 jobs. RSS before2356..2668/after2328..2668KiB;
+retained job/input/slot capacities unchanged, no new allocations. Tiny single-job
+100kdispatch medians348.085/409.866us(pool1),367.472/467.158us(pool8):
++0.62/+1.00ns per call, overlapping ranges, explicitly recorded overhead rather
+than a speed claim. Serial32x1000 remains50.749/50.720us. Parallel tiny-job
+results remain approximately unchanged and still require profitable grain sizes.
+Full CPU values, identities, environments and logs are recorded in the journal.

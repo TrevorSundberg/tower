@@ -46932,3 +46932,86 @@ and the upcoming defining-type import split. A2 asked A1 to prove strong source
 ownership through close-before-hold or acquire queued-reference holds before the
 last pin close in body/lowering/evaluation/executable stages; no observed UAF is
 claimed from the source pattern alone. These are review notes, with no cross-owner production edits.
+
+## 2026-11-22 A2: shared compiler TSan and reduced generic dispatch closure
+
+Frozen d284abce plus routed D1 cleanup/D2 bounded compiler and sanitizer mode/
+B2 world binding built through the documented native entry with
+-DTOWER_SANITIZER=thread. Linuxx64/LLVM-Clang19.1.1, public pin
+9653f8187a104ca84ab5d8601f336d7e1ed8200206544c70a81415018d623d02,
+Docker CPU12-23/24GiB, compilerjobs1/outer2. Full native78steps wall101.608s,
+user124.949s/system12.744s; work/LR14steps15.745/11.419/2.693s.
+Three work and three LR runs plus query-smoke pass actual TSan, production
+allocator/transport, including D1 partial/full failure cleanup. Link review covers
+all four memory archive members,26LRobjects and4workobjects; generated manifest
+alone is not the evidence. System LLVM/build-host tools/distributed guest runtime
+resources are outside the instrumented executed compiler. Ordinary artifact
+restoration through the default native entry also passed. No negative probes rerun.
+Logs shared_native_thread.log,shared_work_tsan_{1,2,3}.log,
+shared_lr_tsan_{1,2,3}.log,shared_query_tsan.log. Binaries towerc
+7027fda6c2d9aad9c0296bebf823e59d610c03d69010b703da61d4800de8a843,
+work2b1394a4c131aaf2f164759217b1bf3550511bdce8f44538339649fc5aac6bf2,
+LRf637339760f1296f300484495dda97c015e278c6a8358933a3b9dadd0f1b925d;
+coverage manifest7be0b930dd6ac2b6e38d4d62ef176ab4219975b1bfa11383dd42a0394b510bdb.
+
+Instrumented CLI emits identical jobs1/4 canonical Foundation for body_continuation,
+decltype_lazy_body and imports/main. Public-pin compile/execute of these outputs
+prints0,0 and41/42/true. Final script failed because its expected bool was1;
+source prints a bool, so the corrected expected file matches preserved output.
+Original shared_cli_tsan.log remains failed and unchanged; corrected check appears
+in kernel_projection_checks.log. Canonical hashes in order:
+4b99835a459c8e81a6456f7fdc9f70878bc61c3bb5fcb315f09ab1fd8c9d2387,
+bf2c3eb004fbaeb1c1eac8142eacf0e0aef69fcd622973ce77f9664453095296,
+cbff2e549840aab2259cc294cb0737d8c07391c8145b27d758506b3f6efe5131.
+This validates current standalone compilation, not merged outer/nested budget
+adoption or universal race freedom. Source-level UBSan coverage remains unsupported.
+
+A1 reported public semantic-unit cap failure after mechanical WorkBudget type
+extraction, and root requested removal of per-T serial-loop specialization.
+A2's minimal compiler_kernel_dispatch_admitted change keeps empty/drained-pool
+guards and typed fixed kernel-member offset, then delegates serial and parallel
+to existing nongeneric work_pool_batch. No scheduler/layout/ownership contract
+changes, private compiler, cap override or noalias. A1 extraction patch reviewed:
+definitions/layout/enum values preserved, world wrapper rejects null ledger,
+semantic helper explicitly uses standalone capacity and releases only active
+receipts. Its comment must preserve newer join-and-publication requirement;
+full patch also needs B2 owner input not yet adopted in this clone. B1 vector
+complete-reset patch reviewed, not part of this comparison. Root gets exact
+projection delta19ddf885590763d28a41ef43bbf7a9d253825e2f7125a8f27d835dac1d6d5fee;
+aggregate semantic compile-cap benefit is pending A1's independent measurement.
+
+Smallest admission unit compiles2.260s wall/1.621user/0.130sys and passes native.
+Frozen profile and overhead fixtures compile1.991/1.457/0.142 and
+1.960/1.377/0.193s. Actual whole-fixture ASan+leaks and TSan each pass3runs,
+using unchanged already-instrumented public runtime object and freshly emitted
+fixture/host definitions. Logs kernel_projection_checks.log and
+work_kernel_projection_{address,thread}_{1,2,3}.log. No benchmark formulas changed.
+Projection sourcef2e92744bfceeeb6626959f62f08d96cba0df258ec6fb9c29ed93ea43bccc144;
+rawLLVM250c38efe2d53035b94e4a71d6a6b1b11befc15ceb1519b2d81a625d02b044f2;
+SHA fixture binary33ec662982730f2be04c7f6c87ee42cfdb5c9daa1127ce22fcc8af6f7a98bf13,
+tiny fixture15fb96fb4d1b8898ac3afe1478ef0ae50710b1e4e3b738961bfc3f164f850544.
+
+Nine alternating warm-pool pairs, CPU12-23/24GiB, native public-pin/default
+optimization, each SHA digest independently checked, compare previous batch to
+projection. Wall medians singlejob2.824574/2.824485ms;32jobs1lane
+90.091604/90.250187,2lanes45.833451/45.565585,4lanes23.234449/23.228916,
+8lanes12.304186/12.072851ms. CPUus2830/2830,90082/90219,90644/90422,
+91438/91676,94881/94237. Actualoverlap2/4/8 and after caller median16/8/4jobs;
+after useful scaling1.98/3.89/7.48x relative to own serial. PeakRSS before
+2356..2668/after2328..2668KiB. Retained job/input/slot bytes unchanged;
+existing+8Bpool/+32Bclaim allocation remains, no new runtime allocation.
+
+Tiny checked workload before/after:100k single dispatches pool1
+348.085/409.866us, pool8 367.472/467.158us; CPU354/414 and401/498us.
+This is approximately+0.62/+1.00ns per call; sample ranges overlap and useful
+SHA single path is flat, but the median overhead is explicitly retained.
+Serial32jobs1000rounds50.749/50.720us,CPU52/52us. Parallel32x1000 wall
+2lanes54.987881/54.372853ms,4lanes93.063139/92.915920,8lanes
+165.906498/165.924007;CPU48945/48970,101276/100802,204890/204144us.
+1024x100at8lanes16.590487/16.520982ms,CPU21881/22291us. RSS before
+1308..1648/after1308..1648KiB, retained capacities identical. Tiny parallel
+still much slower than inline; existing grain policy remains necessary.
+Logs kernel_projection_{profile,overhead}_{paired,summary}.log;
+summary is the existing Tower parser, original label means prior batch and
+batch label means projection in these two-group comparisons. This is measured
+shared-transport cost, not a whole-compiler speed claim. All jobs exited0/PID0.
