@@ -42048,3 +42048,56 @@ Primitive execution kernels and literal default representations remain Foundatio
 semantics. Ordinary comptime value evaluation uses the shared interpreter; general
 runtime metatype values, arbitrary interpreted functions returning types and
 computed constructor integer arguments are future work, not claimed here.
+The combined release is source 64829894844b585f9bd30af60d232a001da16088,
+scaffolding tree 483d5ffaad619ad5e4858e99f73f57f47a502222. Its documented native
+build passes; native SHA-256 is
+4ed22e357c0f02a177460c940355e8351361ee2590d73583adb84467bd3eec15.
+All three browser threading tests now pass, including the previously failing
+field fixture. Two edited bootstrap generations agree: tower
+6facec50d3a5c551509df7e139140b5880c4f90315ffef70dcc7dd52089aea70,
+LLVM 3e9949216e6a91d67a5062be64d918e47de4f5b340e1dbd14210b9bf150db8f5,
+cross b3e3877d55db092f7f9bc5ab1a04d091439528ff01f627669c49de85e1e084ec.
+Project SHA-256: 7df6e41d33c51053b51bcef0ce934ffb1b9408a418fbb4819b1322d72927ec7b.
+Pages 2e5e4ee6f75b9b7b8579893b859db6564538e895 was pushed over befad0e,
+preserving upstream tooling receipts. Workflow 44986855147/hosted verification
+are pending. Evidence: statement-projection-{browser-build,browser-checks,
+generations,bundle}.log and statement-projection-workbench/. Assignment changes
+below were excluded from this frozen runtime and project package.
+
+Foundation CoreAssign now has a target expression receipt followed by a value
+receipt depending on it. Target checking and immediate checking share one helper;
+only after a valid destination exists are RHS signatures prepared. The second
+receipt inherits the target's published lexical state and expected type, and the
+statement publishes once after both phases. This uses existing expression work
+components on the original entities, with existing body/stage ownership claims.
+The new Foundation-only statement_queries.tower exercises local, indirect and
+field destinations with once-only effects; negative cases require target errors
+before an invalid RHS signature. Small-unit preflight passes. The first smoke
+stopped on the fixture parameter named `expected`, a declaration-reader keyword
+in Foundation; renamed it to `wanted`. Direct execution now prints 0, and focused
+smoke/self-compilation are running in assignment-query-{fixed,self}.log.
+
+6482989 is now verified live: workflow 44986855147 succeeded for Pages 2e5e4ee,
+and hosted verification passed all 88 hashes, desktop/mobile execution/completion,
+native builds/downloads, persistence and Linux defaults. Evidence:
+statement-projection-hosted.log and build/deployment-verification/report.json.
+
+Assignment continuation smoke and candidate self-compilation both passed. Added
+worker admission for independent enum member checking using the existing staged
+declaration kernel. Each enum retains its sequential discriminant order; separate
+enums can run together. Its derived member-name index keeps worker scratch alive
+by transferring those lists/strings to the compilation at publication, instead of
+leaving pointers to freed worker storage. The existing shared entities still own
+all enum semantics. Signed/narrow values, later member lookup and ordered
+duplicate/overflow failures pass the focused type suite. Evidence:
+enum-query-{preflight,native}.log. The combined changed-ownership matrix and enum
+self-compilation are running in assignment-enum-matrix.log and enum-query-self.log.
+
+Assignment/enum milestone validation completed: assignment-enum-matrix.log passes
+execution/canonical agreement at 1/2/4/8 workers on both 32-bit and 64-bit targets,
+canonical reparsing, and serial/four-worker diagnostic ordering and cycles. The
+Foundation assignment fixture passes both target widths at one/four workers.
+The candidate also compiles semantic_declarations.tower successfully
+(enum-query-self.log). These checks establish correctness of the changed worker
+ownership and continuations; they do not establish a throughput improvement or
+completion of the compiler-wide migration.

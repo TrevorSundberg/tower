@@ -32,7 +32,7 @@ var ArrayTypeQuery: u32 = convert(u32, SemanticQuery.ArrayType);
 var TypeConstructionQuery: u32 = convert(u32, SemanticQuery.TypeConstruction);
 var SemanticProjectionDepthLimit: usize = 128;
 
-enum SemanticExpressionMode: u32 { Value, Operand, Initializer, Discard }
+enum SemanticExpressionMode: u32 { Value, Operand, Initializer, Discard, AssignmentTarget }
 
 struct SemanticDeclaration {
     number: usize;
@@ -183,6 +183,10 @@ fn sem_declaration_roots(c: SemanticContext*, result: SemanticDeclaration*, scan
         return;
     }
     if result.expression {
+        if result.expression_mode == SemanticExpressionMode.AssignmentTarget {
+            sem_declaration_scan_push(scan, sem_member(sem_member(subject, "target"), "name"), false);
+            return;
+        }
         sem_declaration_scan_push(scan, subject, false);
         return;
     }
@@ -193,6 +197,10 @@ fn sem_declaration_roots(c: SemanticContext*, result: SemanticDeclaration*, scan
             sem_declaration_scan_push(scan, sem_member(fields.data[index], "type"), true);
             index++;
         }
+    }
+    if sem_is(subject, "CoreEnum") {
+        var members = sem_collect(c, sem_member(subject, "fields"), "CoreEnumMember");
+        foreach(var member in members) { sem_declaration_scan_push(scan, sem_member(member, "value"), false); }
     }
     var annotation = sem_member(subject, "type");
     if annotation != null { sem_declaration_scan_push(scan, annotation, true); }
@@ -892,7 +900,8 @@ fn sem_declaration_worker(c: SemanticContext*, result: SemanticDeclaration*): bo
     // the usual declaration-query edges and isolated read-only workers.
     if sem_type_binding(c, subject) { return false; }
     var record = sem_is(subject, "CoreStruct");
-    if !result.array_type && !result.expression && !record && !sem_is(subject, "CoreDeclare") && !sem_is(subject, "CoreParameter") && !sem_function_syntax(subject) { return false; }
+    var enumeration = sem_is(subject, "CoreEnum");
+    if !result.array_type && !result.expression && !record && !enumeration && !sem_is(subject, "CoreDeclare") && !sem_is(subject, "CoreParameter") && !sem_function_syntax(subject) { return false; }
     var previous_scope = c.scope;
     c.scope = result.scope;
     defer { c.scope = previous_scope; }
@@ -901,19 +910,27 @@ fn sem_declaration_worker(c: SemanticContext*, result: SemanticDeclaration*): bo
             && sem_declaration_syntax(c, sem_array_count(subject), &result.nodes, true, false);
     }
     if result.expression {
+        if result.expression_mode == SemanticExpressionMode.AssignmentTarget {
+            var target = sem_member(subject, "target");
+            var source = sem_member(target, "name");
+            var ready = sem_declaration_expression(c, source)
+                && sem_declaration_syntax(c, source, &result.nodes, true, false);
+            if ready { sem_push(&result.nodes, subject); sem_push(&result.nodes, target); }
+            return ready;
+        }
         return sem_declaration_expression(c, subject)
             && sem_declaration_syntax(c, subject, &result.nodes, true, false);
     }
-    var annotation = sem_member(subject, record ? "fields" : "type");
-    var type = annotation != null;
-    var staged = record || !type;
+    var annotation = sem_member(subject, record || enumeration ? "fields" : "type");
+    var type = !enumeration && annotation != null;
+    var staged = record || enumeration || !type;
     if annotation == null {
         annotation = sem_member(subject, "value");
         if annotation == null || !sem_declaration_expression(c, annotation) { return false; }
     }
     if !sem_declaration_syntax(c, annotation, &result.nodes, staged, type) { return false; }
     // A worker may update its existing field state, never grow the shared index.
-    if record { sem_state(c, c.fields_done, subject); }
+    if record || enumeration { sem_state(c, c.fields_done, subject); }
     return true;
 }
 
@@ -972,6 +989,7 @@ fn sem_expression_check(c: SemanticContext*, result: SemanticDeclaration*): void
         SemanticExpressionMode.Operand => { result.value = sem_operand(c, result.subject, result.expected_type); }
         SemanticExpressionMode.Initializer => { result.value = sem_initial_value(c, result.subject, result.expected_type); }
         SemanticExpressionMode.Discard => { result.value = sem_surface_discard(c, result.subject); }
+        SemanticExpressionMode.AssignmentTarget => { result.value = sem_assignment_target(c, result.subject); }
         _ => { result.value = sem_expression(c, result.subject, result.expected_type); }
     }
 }
@@ -1020,7 +1038,10 @@ fn semantic_declaration_kernel(result: SemanticDeclaration*): void {
                                 if sem_function_syntax(result.subject) { sem_header(&context, result.subject, "", null); }
                                 else {
                                     if sem_is(result.subject, "CoreStruct") { sem_type_fields(&context, result.subject); }
-                                    else { sem_declaration_type(&context, result.subject); }
+                                    else {
+                                        if sem_is(result.subject, "CoreEnum") { sem_enum_fields(&context, result.subject); }
+                                        else { sem_declaration_type(&context, result.subject); }
+                                    }
                                 }
                             }
                         }
@@ -1037,7 +1058,10 @@ fn semantic_declaration_kernel(result: SemanticDeclaration*): void {
     result.error_offset = program.error_offset;
     // Body continuations and completion may retain newly created lexical data.
     // Transfer that ownership at publication; ordinary jobs reclaim scratch.
-    if result.current != null || context.editor != null && context.editor.found {
+    // Enum member lookup retains its derived name table until this context
+    // closes. Its private strings/tables must survive the worker publication.
+    if result.current != null || result.checked && sem_is(result.subject, "CoreEnum")
+        || context.editor != null && context.editor.found {
         result.allocations = context.allocations;
         result.lists = context.lists;
         context.allocations = default;
@@ -1383,7 +1407,7 @@ fn sem_declaration_add(c: SemanticContext*, node: void*): void {
     sem_require(vector_push(&c.declaration_jobs, bits(void*, result)));
     var domain = convert(u64, SemanticWorkDomain.Compiler);
     sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Declaration), id, 1, WorkAccessMode.Write));
-    if result.array_type || result.constructor != null {
+    if result.array_type || result.constructor != null || sem_is(node, "CoreEnum") {
         sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.TypeIndex),
             0, ~convert(usize, 0), WorkAccessMode.Read));
     }

@@ -509,6 +509,33 @@ fn sem_return_statement(c: SemanticContext*, n: void*, prepared: void*): u32 {
     return FlowReturn;
 }
 
+fn sem_assignment_target(c: SemanticContext*, n: void*): void* {
+    if !sem_shape(c, n, "target") || !sem_shape(c, n, "value") || !sem_shape(c, sem_member(n, "target"), "name") { return null; }
+    var value = sem_node(c, n, KAssign);
+    var target = sem_member(n, "target");
+    value.target = sem_location(c, sem_member(target, "name"), 0);
+    if !sem_ok(c) { return null; }
+    var expected_type = sem_type_copy(c, &sem_get(value.target).type);
+    if sem_equal(sem_tokens(c, sem_child(target, 0)), "*") {
+        var destination = sem_node(c, target, KLoad);
+        destination.value = value.target;
+        if expected_type.pointers == 0 { sem_fail(c, target, "Store requires a pointer"); }
+        else { expected_type.pointers--; }
+        destination.type = *expected_type;
+        value.target = target;
+    }
+    if expected_type.pointers == 0 && expected_type.scalar == SArray {
+        sem_fail(c, target, "Array values require indexing or a pointer; wrap an array in a struct for copying");
+    }
+    return value.target;
+}
+
+fn sem_assignment_value(c: SemanticContext*, n: void*, prepared: void*): u32 {
+    var value = sem_get(n);
+    value.value = prepared ?? sem_expression(c, sem_member(n, "value"), &sem_get(value.target).type);
+    return FlowNext;
+}
+
 fn sem_statement_impl(c: SemanticContext*, n: void*, depth: u32): u32 {
     var label_call = sem_control_call(c, n, "label");
     if label_call != null {
@@ -571,34 +598,8 @@ fn sem_statement_impl(c: SemanticContext*, n: void*, depth: u32): u32 {
         sem_declaration_finish(c, n);
     } else {
         if sem_equal(kind, "CoreAssign") {
-            if !sem_shape(c, n, "target") || !sem_shape(c, n, "value") || !sem_shape(c, sem_member(n, "target"), "name") {
-                return 1;
-            }
-            var value: FoundationNode* = sem_node(c, n, KAssign);
-            var target: void* = sem_member(n, "target");
-            var step43 = sem_location(c, sem_member(target, "name"), 0);
-            value.target = step43;
-            if !sem_ok(c) {
-                return 1;
-            }
-            var step46 = sem_get(value.target);
-            var expected_type: FoundationType* = sem_type_copy(c, &step46.type);
-            if sem_equal(sem_tokens(c, sem_child(target, 0)), "*") {
-                var dest: FoundationNode* = sem_node(c, target, KLoad);
-                dest.value = value.target;
-                if expected_type.pointers == 0 {
-                    sem_fail(c, target, "Store requires a pointer");
-                } else {
-                    expected_type.pointers--;
-                }
-                sem_set_type(&dest.type, expected_type);
-                value.target = target;
-            }
-            if expected_type.pointers == 0 && expected_type.scalar == SArray {
-                sem_fail(c, target, "Array values require indexing or a pointer; wrap an array in a struct for copying");
-            }
-            var step55 = sem_expression(c, sem_member(n, "value"), expected_type);
-            value.value = step55;
+            if sem_assignment_target(c, n) != null && sem_ok(c) { return sem_assignment_value(c, n, null); }
+            return FlowNext;
         } else {
             if sem_equal(kind, "CoreCallStatement") {
                 return sem_call_statement(c, n, null);

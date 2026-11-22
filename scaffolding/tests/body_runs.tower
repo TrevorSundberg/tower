@@ -181,7 +181,7 @@ fn body_runs_arm_error(budget: usize, bedrock: u8*, foundation: u8*, root: u8*, 
     units_check(frontend_units_failed(batch) == 1 && strstr(error, mode == 2 ? "Duplicate match pattern" : "unknownMatch") is not null && strstr(error, "unknownSecond") is null, "Resumed arm and cleanup failures preserve source diagnostic order");
 }
 
-enum BodyDeclarationFailure: u32 { SelfReference, SharedSignature, SharedInitializer, HeaderSelfReference, SharedTypeInitializer, SharedTypeAlias, SharedNestedType, NestedFunctionSignature, IterationSignature, ModuleInitializer, ModuleStatement, ArrayExtent, ArrayCycle, ModuleArrayExtent, ArrayFields, ConstructorCycle, StructuralTypeFailure, VoidReturn, DeferredReturn }
+enum BodyDeclarationFailure: u32 { SelfReference, SharedSignature, SharedInitializer, HeaderSelfReference, SharedTypeInitializer, SharedTypeAlias, SharedNestedType, NestedFunctionSignature, IterationSignature, ModuleInitializer, ModuleStatement, ArrayExtent, ArrayCycle, ModuleArrayExtent, ArrayFields, ConstructorCycle, StructuralTypeFailure, VoidReturn, DeferredReturn, AssignmentTarget, AssignmentStore, EnumNames, EnumOverflow }
 var BodyDeclarationRevision: u64 = 90;
 var BodyDeclarationProfile: u64 = 23;
 
@@ -266,6 +266,22 @@ fn body_runs_declaration_error(budget: usize, bedrock: u8*, foundation: u8*, roo
         source = "import tower;fn id(T:type,value:T):T{return value;}fn first():i32{defer{return id(1);}return 0;}fn later():i32{return unknownLater;}";
         diagnostic_text = "A deferred cleanup cannot return";
     }
+    if mode == BodyDeclarationFailure.AssignmentTarget {
+        source = "import foundation;fn broken(T:type,value:T):MissingReturn{return value;}fn first():i32{unknownTarget=broken(i32,1);return 0;}fn later():i32{return unknownLater;}";
+        diagnostic_text = "unknownTarget";
+    }
+    if mode == BodyDeclarationFailure.AssignmentStore {
+        source = "import foundation;fn broken(T:type,value:T):MissingReturn{return value;}fn first():i32{var value:i32=0;*value=broken(i32,1);return 0;}fn later():i32{return unknownLater;}";
+        diagnostic_text = "Store requires a pointer";
+    }
+    if mode == BodyDeclarationFailure.EnumNames {
+        source = "import tower;enum First:u8{firstMember,firstMember}enum Later:u8{unknownLater,unknownLater}";
+        diagnostic_text = "Duplicate enum member 'firstMember'";
+    }
+    if mode == BodyDeclarationFailure.EnumOverflow {
+        source = "import tower;enum First:u8{last=255,next}enum Later:u8{unknownLater,unknownLater}";
+        diagnostic_text = "Enum discriminant overflow";
+    }
     units_check(frontend_units_source(batch, 1, "local_dependency.tower", source, strlen(source)), "Local declaration dependency source");
     while !frontend_units_step(batch, true) {}
     var error = frontend_units_error(batch);
@@ -283,6 +299,16 @@ fn body_runs_smoke(root: u8*): void {
 // Keep type/dependency edits focused; release coverage still uses bodies.
 fn body_runs_type_smoke(root: u8*): void {
     body_runs_smoke_select(root, true);
+}
+
+fn body_runs_statements(root: u8*, bedrock: u8*, foundation: u8*, width: u32): void {
+    var source: vector(u8) = default;
+    var canonical: vector(u8) = default;
+    defer vector_dispose(&source);
+    defer vector_dispose(&canonical);
+    units_read(root, "/tests/statement_queries.tower", &source);
+    body_runs_trial(source.data, 1, width, bedrock, foundation, root, &canonical);
+    body_runs_trial(source.data, 4, width, bedrock, foundation, root, &canonical);
 }
 
 fn body_runs_smoke_select(root: u8*, types_only: bool): void {
@@ -312,14 +338,21 @@ fn body_runs_smoke_select(root: u8*, types_only: bool): void {
             body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedNestedType);
             body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.ConstructorCycle);
             body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.StructuralTypeFailure);
+            body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.EnumNames);
+            body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.EnumOverflow);
         }
         puts("Type query smoke: serial/worker execution, canonical reparse and focused failures/cycles passed.");
         return;
     }
     body_runs_header_error(4, bedrock.data, foundation.data, root);
+    body_runs_statements(root, bedrock.data, foundation.data, 8);
     for(var budget: usize = 1; budget <= 4; budget *= 4) {
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.VoidReturn);
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.DeferredReturn);
+        body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.AssignmentTarget);
+        body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.AssignmentStore);
+        body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.EnumNames);
+        body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.EnumOverflow);
     }
     body_runs_header_cycle(4, bedrock.data, foundation.data, root, false);
     body_runs_header_cycle(4, bedrock.data, foundation.data, root, true);
@@ -368,6 +401,7 @@ fn body_runs_tests(root: u8*): void {
     units_read(root, "/tests/body_continuation.tower", &source);
     for(var width: u32 = 4; width <= 8; width += 4) {
         puts(width == 4 ? "Body continuation matrix: 32-bit target" : "Body continuation matrix: 64-bit target");
+        body_runs_statements(root, bedrock.data, foundation.data, width);
         var canonical: vector(u8) = default;
         defer vector_dispose(&canonical);
         for(var budget: usize = 1; budget <= 8; budget *= 2) {
@@ -407,6 +441,10 @@ fn body_runs_tests(root: u8*): void {
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.StructuralTypeFailure);
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.VoidReturn);
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.DeferredReturn);
+        body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.AssignmentTarget);
+        body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.AssignmentStore);
+        body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.EnumNames);
+        body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.EnumOverflow);
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedInitializer);
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedTypeInitializer);
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedTypeAlias);

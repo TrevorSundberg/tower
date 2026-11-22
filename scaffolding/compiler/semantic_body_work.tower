@@ -901,20 +901,56 @@ fn sem_body_statement_query(c: SemanticContext*, result: SemanticBodyWork*, node
     var returned = sem_is(node, "CoreReturn");
     var discarded = sem_is(node, "TowerExpressionStatement");
     var called = sem_is(node, "CoreCallStatement");
-    if depth >= ControlBlockNestingLimit || !returned && !discarded && !called { return false; }
+    var assigned = sem_is(node, "CoreAssign");
+    if depth >= ControlBlockNestingLimit || !returned && !discarded && !called && !assigned { return false; }
     if sem_control_call(c, node, "label") != null || sem_control_call(c, node, "jump") != null { return false; }
     var saved: SemanticBodyScope;
     sem_body_save(c, &saved);
     sem_body_restore(c, &result.lexical);
-    var source = returned ? sem_return_source(c, node) : sem_member(node, discarded ? "value" : "call");
+    if assigned {
+        sem_shape(c, node, "target");
+        if sem_ok(c) { sem_shape(c, node, "value"); }
+        if sem_ok(c) { sem_shape(c, sem_member(node, "target"), "name"); }
+    }
+    var source = assigned ? node : returned ? sem_return_source(c, node) : sem_member(node, discarded ? "value" : "call");
     var expected_type = returned ? &sem_get(c.current).type : null;
     sem_body_restore(c, &saved);
     if !sem_ok(c) { sem_body_preparation_failed(c, result); return false; }
     if source == null { return false; }
-    var mode = returned ? SemanticExpressionMode.Initializer : discarded ? SemanticExpressionMode.Discard : SemanticExpressionMode.Value;
+    var mode = assigned ? SemanticExpressionMode.AssignmentTarget : returned ? SemanticExpressionMode.Initializer : discarded ? SemanticExpressionMode.Discard : SemanticExpressionMode.Value;
     result.expression_statement = node;
     result.initialization = sem_expression_add(c, source, expected_type, &result.lexical, mode);
     return true;
+}
+
+// An assignment's destination is checked before even preparing RHS signatures.
+// Publish that lexical state once, then demand the value with its target type.
+// Independent bodies share each frontier; no target or operand is replayed.
+fn sem_body_assignment_values(c: SemanticContext*, batch: SemanticBodyWork**, count: usize, failed: usize): void {
+    var values: usize = 0;
+    for(var i: usize = 0; i < count && i <= failed; i++) {
+        var result = batch[i];
+        var target = result.initialization;
+        if result.done || target == null || target.expression_mode != SemanticExpressionMode.AssignmentTarget
+            || work_task(&c.queries, target.query).state != WorkState.Succeeded { continue; }
+        var source = sem_member(result.expression_statement, "value");
+        result.initialization = sem_expression_add(c, source, &sem_get(target.value).type, &target.lexical, SemanticExpressionMode.Value);
+        sem_require(work_depend(&c.queries, result.initialization.query, target.query));
+        values++;
+    }
+    if values == 0 { return; }
+    sem_declaration_discover(c);
+    sem_require(sem_ok(c));
+    for(var i: usize = 0; i < count && i <= failed; i++) {
+        var result = batch[i];
+        if result.done || !sem_is(result.expression_statement, "CoreAssign") || result.initialization == null
+            || result.initialization.expression_mode != SemanticExpressionMode.Value { continue; }
+        var ticket: WorkTicket;
+        sem_require(work_take_task(&c.queries, &ticket, result.preparation));
+        sem_require(work_suspend(&c.queries, &ticket, result.initialization.query));
+    }
+    sem_declarations_execute(c, c.declaration_subjects);
+    sem_require(sem_ok(c));
 }
 
 // Bind independent local roots in source order, then release every preparation
@@ -1075,6 +1111,7 @@ fn sem_body_declarations(c: SemanticContext*, batch: SemanticBodyWork**, count: 
         sem_declarations_execute(c, c.declaration_subjects);
         sem_require(sem_ok(c));
     }
+    sem_body_assignment_values(c, batch, count, failed);
     sem_body_iteration_signatures(c, batch, count, failed);
     if c.declaration_subjects.length == 0 {
         sem_body_for_tails(c, batch, count, failed);
@@ -1115,6 +1152,7 @@ fn sem_body_declarations(c: SemanticContext*, batch: SemanticBodyWork**, count: 
             if sem_ok(c) {
                 var flow = sem_is(node, "CoreReturn") ? sem_return_statement(c, node, producer.value)
                     : sem_is(node, "TowerExpressionStatement") ? sem_expression_statement(c, node, producer.value)
+                    : sem_is(node, "CoreAssign") ? sem_assignment_value(c, node, producer.value)
                     : sem_call_statement(c, node, producer.value);
                 flow = sem_statement_complete(c, node, flow);
                 var cursor = sem_body_cursor(result);

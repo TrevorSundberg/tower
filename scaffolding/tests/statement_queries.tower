@@ -1,0 +1,32 @@
+import foundation;
+
+fn identity(T: type, value: T): T { return value; }
+fn box(T: type): type { struct Box { value: T; } return Box; }
+var effects: i32 = 0;
+fn step(): i32 { effects = effects + 1; return effects; }
+fn first(): i32 {
+    var result: i32 = 0;
+    result = identity(i32, step());
+    return result;
+}
+fn second(): i32 {
+    var result: i32 = 0;
+    var pointer: i32* = &result;
+    *pointer = identity(i32, step());
+    return result;
+}
+fn third(): i32 {
+    var record: box(i32);
+    record.value = identity(i32, step());
+    return record.value;
+}
+var failures: i32 = 0;
+fn check(value: i32, wanted: i32): void {
+    var same: bool = value == wanted;
+    if same {} else { failures = failures + 1; }
+}
+check(first(), 1);
+check(second(), 2);
+check(third(), 3);
+check(effects, 3);
+print(failures);

@@ -723,4 +723,12 @@ if query_statement_return() != 1 || query_statement_effects != 11
     || query_statement_layout() != sizeof(void*) * 2 || query_statement_staged() != 42 { failures++; }
 if sizeof(decltype(query_projection_value)) != 4 { failures++; }
 if sizeof(decltype(query_projection_bits)) != 2 { failures++; }
+enum QuerySmall: u8 { First = 3, Second, Last = 255 }
+enum QuerySigned: i16 { Negative = -4, Next, Positive = 7 }
+fn query_enum_values(): i32 {
+    var small: QuerySmall = QuerySmall.Second;
+    var signed: QuerySigned = QuerySigned.Next;
+    return convert(i32, small) == 4 && convert(i32, signed) == -3 ? 42 : 0;
+}
+if query_enum_values() != 42 || comptime(query_enum_values()) != 42 { failures++; }
 print(failures);
