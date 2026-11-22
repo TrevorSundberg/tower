@@ -118,7 +118,21 @@ This command can link the complete Tower compiler against the LLVM DSO.
 
 The checked-in Linux bootstrap includes this interface. Linux native compiler,
 test and build-tool executables link through Tower, including runtime binding
-and foreign-name tools used by cross builds. The WASI reactor final link is the
-remaining SDK link boundary. LLVM/object generation and third-party library
-builds remain external toolchain responsibilities. There are no project-owned
-C/C++ sources or native linker shims.
+and foreign-name tools used by cross builds. WASI reactor, command and allocator
+fixture links use the Tower `link_wasi` tool. It expands the explicit SDK library
+and builtins paths, startup profile and response arguments into the same byte
+service used in the browser. Compiler-project packaging consumes that shared
+recipe directly, without invoking Clang to discover an LLD command. LLVM/object
+generation, third-party library builds and OS/SDK runtime libraries remain
+external responsibilities. LLD is retained only in independent reference checks;
+the canonical Linux/Docker build and browser compiler do not require it.
+
+`link_wasi SDK_LIBRARY_DIRECTORY BUILTINS_ARCHIVE ...` selects the command
+startup by default, or the reactor startup with `-mexec-model=reactor`.
+`-nostartfiles` omits startup, and `link_wasi --freestanding ...` adds no SDK
+inputs. The Linux tool maps immutable input bytes through completion and accepts
+the documented Wasm linker options; unsupported flags fail. Forced `--undefined=`
+roots retain archive members or permitted imports without creating exports.
+Response parsing is bounded and never executes shell text. Parallel relocation
+uses the same `WorkPool`, pinned world components and deterministic publication
+as browser byte-service requests.

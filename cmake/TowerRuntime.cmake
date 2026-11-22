@@ -9,6 +9,59 @@ function(tower_host_linker output fallback)
   endif()
 endfunction()
 
+function(tower_wasi_link_tool)
+  if(TARGET tower-wasi-link)
+    return()
+  endif()
+  tower_runtime_tools()
+  execute_process(COMMAND "${TOWER_RUNTIME_HOST_CC}" -print-target-triple
+    OUTPUT_VARIABLE host_triple OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND_ERROR_IS_FATAL ANY)
+  tower_guest_runtime(host-library "${host_triple}" posix OFF)
+  get_property(runtime GLOBAL PROPERTY TOWER_GUEST_host-library_OBJECT)
+  set(object "${CMAKE_CURRENT_BINARY_DIR}/link_wasi.o")
+  set(program "${CMAKE_CURRENT_BINARY_DIR}/link_wasi")
+  add_custom_command(OUTPUT "${object}" "${program}"
+    COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tools/link_wasi.tower"
+      --library --target "${host_triple}" -o "${object}" --depfile "${object}.d"
+    COMMAND "${TOWER_BOOTSTRAP_COMPILER}" --link-executable "${object}" "${runtime}" -o "${program}"
+      -ldl -Wl,--export-dynamic-symbol=work_thread_entry
+    DEPFILE "${object}.d"
+    DEPENDS scaffolding/tools/link_wasi.tower "${runtime}" "${TOWER_BOOTSTRAP_COMPILER}" VERBATIM)
+  add_custom_target(tower-wasi-link DEPENDS "${program}")
+  set_property(GLOBAL PROPERTY TOWER_WASI_LINK_TOOL "${program}")
+endfunction()
+
+function(tower_wasi_linker)
+  tower_wasi_link_tool()
+  get_property(program GLOBAL PROPERTY TOWER_WASI_LINK_TOOL)
+  execute_process(COMMAND "${CMAKE_C_COMPILER}" "--target=${CMAKE_C_COMPILER_TARGET}" --print-file-name=libc.a
+    OUTPUT_VARIABLE wasi_libc OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND_ERROR_IS_FATAL ANY)
+  execute_process(COMMAND "${CMAKE_C_COMPILER}" "--target=${CMAKE_C_COMPILER_TARGET}" --print-libgcc-file-name
+    OUTPUT_VARIABLE wasi_builtins OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND_ERROR_IS_FATAL ANY)
+  get_filename_component(wasi_libraries "${wasi_libc}" DIRECTORY)
+  if(NOT EXISTS "${wasi_libc}" OR NOT EXISTS "${wasi_builtins}")
+    message(FATAL_ERROR "The explicit WASI target must provide libc and compiler builtins")
+  endif()
+  get_property(targets DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
+  foreach(target IN LISTS targets)
+    get_target_property(kind ${target} TYPE)
+    if(kind STREQUAL "EXECUTABLE")
+      add_dependencies(${target} tower-wasi-link)
+      set_property(TARGET ${target} APPEND PROPERTY LINK_DEPENDS "${program}")
+    endif()
+  endforeach()
+  set(profile "")
+  if(TOWER_BROWSER_THREADS)
+    set(profile "--shared-memory")
+  endif()
+  # Set after the upstream LLVM subdirectory is configured: only owned reactor
+  # targets inherit this link recipe, not third-party compiler/tool builds.
+  set(rule "\"${program}\" \"${wasi_libraries}\" \"${wasi_builtins}\" ${profile} --threads=4 <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
+  set(CMAKE_LINK_DEPENDS_USE_LINKER FALSE PARENT_SCOPE)
+  set(CMAKE_C_LINK_EXECUTABLE "${rule}" PARENT_SCOPE)
+  set(CMAKE_CXX_LINK_EXECUTABLE "${rule}" PARENT_SCOPE)
+endfunction()
+
 function(tower_runtime_tools)
   if(TARGET tower-runtime-bind)
     return()

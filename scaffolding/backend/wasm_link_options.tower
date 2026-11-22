@@ -140,6 +140,10 @@ fn wasm_link_option(link: WasmLink*, options: WasmLinkOptions*, argument: WasmBy
         return wasm_option_wrap_name(link, "__wrap_", wrap.name, &wrap.wrapper) && wasm_option_wrap_name(link, "__real_", wrap.name, &wrap.real)
             && wasm_link_push(link, &link.wraps, wrap);
     }
+    if wasm_option_prefix(argument, "--undefined=") {
+        var name = wasm_option_suffix(argument, "--undefined=");
+        return name.length != 0 ? wasm_link_push(link, &link.roots, name) : wasm_link_fail(link, WasmLinkError.Input, argument);
+    }
     if wasm_option_prefix(argument, "--allow-undefined-file=") {
         *item = init(WasmLinkOption) { action: WasmOptionAction.AllowedNames, name: wasm_option_suffix(argument, "--allow-undefined-file="), ..default }; return true;
     }

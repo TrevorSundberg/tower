@@ -40,17 +40,21 @@ if(TOWER_ALLOCATOR_TESTS)
   # intrinsics. No runtime.c allocator or native test implementation is linked.
   set(TOWER_ALLOCATOR_WASI_SDK "" CACHE PATH "WASI SDK for focused wasm32 growth checks")
   if(TOWER_ALLOCATOR_WASI_SDK)
+    tower_wasi_link_tool()
+    get_property(wasi_linker GLOBAL PROPERTY TOWER_WASI_LINK_TOOL)
+    execute_process(COMMAND "${TOWER_ALLOCATOR_WASI_SDK}/bin/clang" --print-file-name=libc.a
+      OUTPUT_VARIABLE wasi_libc OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND_ERROR_IS_FATAL ANY)
     find_program(TOWER_ALLOCATOR_NODE NAMES node REQUIRED)
     set(wasm_module "${CMAKE_CURRENT_BINARY_DIR}/tower-allocator-wasm.wasm")
     set(wasm_imports "${CMAKE_CURRENT_BINARY_DIR}/tower-allocator-wasm.imports")
     file(GENERATE OUTPUT "${wasm_imports}" CONTENT "tower_trap\n")
     tower_runtime_object(tower-allocator-wasm "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/allocator_wasm.tower" wasm32-unknown-unknown)
     add_custom_command(OUTPUT "${wasm_module}"
-      COMMAND "${TOWER_ALLOCATOR_WASI_SDK}/bin/clang" "${tower-allocator-wasm_OBJECT}" -nostartfiles
+      COMMAND "${wasi_linker}" --freestanding "${tower-allocator-wasm_OBJECT}" "${wasi_libc}"
         -Wl,--no-entry -Wl,--export=allocator_wasm_tests
         "-Wl,--allow-undefined-file=${wasm_imports}"
         -Wl,--initial-memory=131072 -Wl,--max-memory=524288 -o "${wasm_module}"
-      DEPENDS "${tower-allocator-wasm_OBJECT}" "${wasm_imports}" VERBATIM)
+      DEPENDS "${tower-allocator-wasm_OBJECT}" "${wasm_imports}" "${wasi_libc}" "${wasi_linker}" VERBATIM)
     add_custom_target(tower-allocator-wasm DEPENDS "${wasm_module}")
     add_test(NAME tower-allocator-wasm COMMAND "${TOWER_ALLOCATOR_NODE}"
       "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/run-allocator-wasm.mjs" "${wasm_module}")

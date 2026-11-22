@@ -1,0 +1,80 @@
+import tower;
+import .compiler.utf8;
+import wasi_link_recipe;
+import tool_words;
+import tool_files_posix;
+import .backend.wasm_bytes;
+import .backend.wasm_object_types;
+import .backend.wasm_link_types;
+import .backend.wasm_link_prepare;
+import .backend.wasm_link_options;
+import .backend.wasm_link;
+import .library.entities;
+import .library.entity_types;
+import .library.vector;
+import .library.bytes;
+import .library.bytes_types;
+import .host.driver_files;
+import .host.driver_mapped_file;
+import .host.driver_map_posix;
+import .host.work_linux;
+import .host.work_dispatch;
+
+extern fn puts(text: u8*): i32;
+extern fn abort(): void;
+export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, data: u8*): void { abort(); }
+export fn work_kernel_execute(job: void*): void { abort(); }
+
+fn wasi_link_command(argc: i32, argv: u8**): bool {
+    var mappings: vector(DriverMappedFile) = default;
+    defer { foreach (var & mapping in &mappings) { driver_platform_unmap(mapping); } vector_dispose(&mappings); }
+    var filenames: vector(u8*) = default; defer vector_dispose(&filenames);
+    var arguments: vector(ByteBuffer) = default; defer tool_words_close(&arguments);
+    var link: WasmLink = default; defer wasm_link_close(&link);
+    var options: WasmLinkOptions = default;
+    var first_argument: i32 = 3;
+    var raw = argc > 1 && strcmp(argv[1], "--freestanding") == 0;
+    if raw { first_argument = 2; }
+    if argc <= first_argument || !wasm_link_init(&link) {
+        puts("Usage: link_wasi SDK_LIBRARY_DIRECTORY BUILTINS_ARCHIVE link-arguments... | --freestanding link-arguments..."); return false;
+    }
+    var count = convert(usize, argc - first_argument);
+    var prepared = raw ? wasi_link_raw_recipe(".", argv + first_argument, count, &arguments)
+        : wasi_link_recipe(".", argv[1], argv[2], argv + first_argument, count, &arguments);
+    if !prepared { puts("Invalid WASI link recipe or response file"); return false; }
+    for (var at: usize = 1; at < arguments.length; at++) {
+        var item: WasmLinkOption = default;
+        if !wasm_link_option(&link, &options, wasm_text_bytes(arguments.data[at].data), &item) { break; }
+        if item.action == WasmOptionAction.None { continue; }
+        var mapping: DriverMappedFile = default;
+        if !driver_platform_map(item.name.data, &mapping) {
+            wasm_link_fail(&link, WasmLinkError.Input, item.name); break;
+        }
+        if !vector_push(&mappings, mapping) {
+            driver_platform_unmap(&mapping); wasm_link_fail(&link, WasmLinkError.Allocation, item.name); break;
+        }
+        if !vector_push(&filenames, item.name.data) { wasm_link_fail(&link, WasmLinkError.Allocation, item.name); break; }
+        var input: WasmBytes = { data: mapping.data, length: mapping.length };
+        if !wasm_link_option_bytes(&link, &item, input) { break; }
+    }
+    if options.output.length == 0 { wasm_link_fail(&link, WasmLinkError.Input, wasm_text_bytes("provide -o output.wasm")); }
+    if link.error == WasmLinkError.None {
+        // Protect every explicit file before opening the output. Keep the
+        // mapped owners alive until the linker has drained all workers.
+        foreach (var name in &filenames) {
+            if !tool_output_distinct(name, options.output.data) {
+                wasm_link_fail(&link, WasmLinkError.Input, wasm_text_bytes("output aliases a link input")); break;
+            }
+        }
+    }
+    if !wasm_link_options_finish(&link, &options) || !wasm_link_run(&link) {
+        puts(wasm_link_message(link.error));
+        var name: ByteBuffer = default; defer bytes_dispose(&name);
+        if bytes_assign_text(&name, link.error_name.data, link.error_name.length) { puts(name.data); }
+        if link.world.error != WasmReadError.None { puts(wasm_read_message(link.world.error)); print(link.world.error_offset); }
+        return false;
+    }
+    return driver_write_file(options.output.data, link.output.data, link.output.length);
+}
+
+export fn main(argc: i32, argv: u8**): i32 { return wasi_link_command(argc, argv) ? 0 : 1; }

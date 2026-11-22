@@ -21,13 +21,10 @@ if [ -n "$(git_source status --porcelain)" ]; then
 fi
 if [ ! -f "$destination/.tower-revision" ]; then
   mkdir -p "$destination"
-  git_source archive HEAD llvm lld libunwind/include cmake third-party wasi-include | tar -x -C "$destination"
+  git_source archive HEAD llvm libunwind/include cmake third-party wasi-include | tar -x -C "$destination"
   printf '%s\n' "$revision" > "$destination/.tower-revision"
 fi
 test "$(cat "$destination/.tower-revision")" = "$revision"
-if [ ! -f "$destination/lld/CMakeLists.txt" ]; then
-  git_source archive HEAD lld | tar -x -C "$destination"
-fi
 if [ ! -f "$destination/libunwind/include/mach-o/compact_unwind_encoding.h" ]; then
   git_source archive HEAD libunwind/include | tar -x -C "$destination"
 fi

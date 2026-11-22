@@ -2,6 +2,7 @@ import tower;
 import tool_words;
 import tool_capture_linux;
 import tool_process_linux;
+import wasi_link_recipe;
 import .library.vector;
 import .library.bytes;
 import .library.bytes_types;
@@ -24,18 +25,15 @@ fn compiler_project_prefix(text: u8*, prefix: u8*): bool {
 
 // Process cwd belongs to the child. env -C is the existing Linux host boundary;
 // generated commands are decoded into argv and never run as shell programs.
-fn compiler_project_capture(build: u8*, command: vector(ByteBuffer)*, first: usize, last: usize,
-    diagnostic: bool, out: ByteBuffer*): bool {
+fn compiler_project_capture(build: u8*, command: vector(ByteBuffer)*, first: usize, last: usize, out: ByteBuffer*): bool {
     if first >= last || last > command.length { return false; }
     var args: vector(u8*) = default; defer vector_dispose(&args);
     var environment = "/usr/bin/env";
     if !tool_process_argument(&args, environment) || !tool_process_argument(&args, "-C")
         || !tool_process_argument(&args, build) { return false; }
     for(var at = first; at < last; at++) { if !tool_process_argument(&args, command.data[at].data) { return false; } }
-    if diagnostic && !tool_process_argument(&args, "-###") { return false; }
     if !tool_process_argument(&args, null) { return false; }
-    return (diagnostic ? tool_capture_stderr(environment, args.data, CompilerProjectCommandBytes, out)
-        : tool_capture(environment, args.data, CompilerProjectCommandBytes, out)) == 0;
+    return tool_capture(environment, args.data, CompilerProjectCommandBytes, out) == 0;
 }
 
 fn compiler_project_word(words: vector(ByteBuffer)*, text: u8*): bool {
@@ -58,13 +56,12 @@ fn compiler_project_driver(commands: ByteBuffer*, binary: u8*, out: vector(ByteB
 
 fn compiler_project_linker(build: u8*, binary: u8*, out: vector(ByteBuffer)*): bool {
     var ninja: vector(ByteBuffer) = default; var driver: vector(ByteBuffer) = default;
-    var candidate: vector(ByteBuffer) = default;
-    var commands: ByteBuffer = default; var diagnostic: ByteBuffer = default;
-    defer tool_words_close(&ninja); defer tool_words_close(&driver); defer tool_words_close(&candidate);
-    defer bytes_dispose(&commands); defer bytes_dispose(&diagnostic);
+    var commands: ByteBuffer = default;
+    defer tool_words_close(&ninja); defer tool_words_close(&driver);
+    defer bytes_dispose(&commands);
     if !compiler_project_word(&ninja, "/usr/bin/ninja") || !compiler_project_word(&ninja, "-t")
         || !compiler_project_word(&ninja, "commands") || !compiler_project_word(&ninja, "-s") || !compiler_project_word(&ninja, binary)
-        || !compiler_project_capture(build, &ninja, 0, ninja.length, false, &commands) { puts("Ninja final-command query failed"); return false; }
+        || !compiler_project_capture(build, &ninja, 0, ninja.length, &commands) { puts("Ninja final-command query failed"); return false; }
     if !compiler_project_driver(&commands, binary, &driver) { puts("Ninja final command has invalid words or does not name the requested output"); return false; }
     var first: usize = 0; var last = driver.length; var noop_words: usize = 2;
     if last >= noop_words && strcmp(driver.data[0].data, ":") == 0 && strcmp(driver.data[1].data, "&&") == 0 { first = noop_words; }
@@ -74,19 +71,14 @@ fn compiler_project_linker(build: u8*, binary: u8*, out: vector(ByteBuffer)*): b
         if strcmp(driver.data[at].data, "&&") == 0 || strcmp(driver.data[at].data, ";") == 0
             || strcmp(driver.data[at].data, "|") == 0 { return false; }
     }
-    if !compiler_project_capture(build, &driver, first, last, true, &diagnostic) { puts("Clang diagnostic recipe query failed"); return false; }
-    var begin: usize = 0;
-    while begin < diagnostic.length {
-        var end = begin;
-        while end < diagnostic.length && diagnostic.data[end] != *"\n" { end++; }
-        if !tool_shell_words(diagnostic.data + begin, end - begin, &candidate) { puts("Malformed quoted Clang diagnostic line"); return false; }
-        if candidate.length != 0 {
-            var name = compiler_project_basename(candidate.data[0].data);
-            if strcmp(name, "wasm-ld") == 0 || compiler_project_prefix(name, "wasm-ld-") {
-                tool_words_close(out); *out = candidate; candidate = default; return true;
-            }
-        }
-        begin = end + 1;
+    var recipe_prefix: usize = 3;
+    if last - first <= recipe_prefix || strcmp(compiler_project_basename(driver.data[first].data), "link_wasi") != 0 {
+        puts("Expected the Tower WASI reactor link recipe"); return false;
     }
-    puts("No wasm-ld command in Clang diagnostic output"); return false;
+    var arguments: vector(u8*) = default; defer vector_dispose(&arguments);
+    for (var at = first + recipe_prefix; at < last; at++) {
+        if !vector_push(&arguments, driver.data[at].data) { return false; }
+    }
+    return wasi_link_recipe(build, driver.data[first + 1].data, driver.data[first + 2].data,
+        arguments.data, arguments.length, out);
 }

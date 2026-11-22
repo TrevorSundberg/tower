@@ -78,7 +78,7 @@ source through the default clean build before publishing.
 
 ## Tower build tools
 
-The same environment builds the LLD compatibility patcher, Roku and bootstrap
+The same environment builds the LLVM script preparer, Roku and bootstrap
 packagers, and compiler/bootstrap verifiers through the public compiler and
 existing runtime:
 
