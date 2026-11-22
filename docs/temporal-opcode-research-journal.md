@@ -46396,3 +46396,20 @@ identity, preserving concurrent receipts and CNAME. Full-history Pages fetches
 were stopped and drained after making no useful progress; a single-snapshot
 fetch avoids downloading obsolete binary history. Source and runtime-build
 ancestry, atomic refs and hosted verification are checked before lease release.
+
+Publication outcome: atomic push published main `7409b33` with unchanged Pages
+`6f142bef15f58380831ed344ab5eac5c4b3c2840`. Its recorded publication source
+`013ae550` and runtime build source `98ade8cc` are reachable from main. Pages
+rebuild workflow `45055486523` succeeded. The existing hosted verifier exited 0:
+all 104 assets matched, and both desktop/mobile passed execution, forward module
+bindings, editable grammar, persistence, native builds/downloads, completion,
+highlighting and target-default checks. The served manifest was fetched again
+after the workflow and matched SHA-256
+`eb70f5388bee6b7ca318583eddfaa8e9a8a907c642a14a6fde85375ac8b1643c`.
+HTTP apex, HTTPS www and the historical GitHub Pages URL redirect to the HTTPS
+apex with status 200. Logs/report: `build/b2_serial_hosted_preflight.log` (the
+verification spanned the atomic push), `build/b2_serial_hosted_report.json`, and
+`build/b2_serial_served_manifest.json`. This final documentation receipt reuses
+those unchanged bytes. B1 separately reports a full frontend fixture failure in
+`body_runs` on missing language imports; that broader matrix is not passed and
+is outside these isolated link/editor/unit checks.
