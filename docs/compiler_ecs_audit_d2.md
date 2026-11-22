@@ -12,7 +12,10 @@ shared build/measurement entry points reviewed below. These categories
 are not interchangeable. The subsequently handed-off sanitizer tool and two
 negative probes add three source reviews; A2 retains their ownership. The shared
 stress-source generator adds one further caller review. The new independent
-Tower/C input producer brings coverage to 98 paths.
+Tower/C input producer brings coverage to 98 paths. Two existing D1-owned
+tooling caller fixtures were subsequently reviewed/executed as supplemental
+evidence; their receipts below do not transfer harness ownership. Incoming
+draft reviews remain separate from integrated local coverage.
 
 ## Contracts and method
 
@@ -47,11 +50,11 @@ receipts. “Source review” means inspection, not a newly executed test.
 | `scaffolding/tools/build_tools.tower` | Local contiguous argv/path vectors borrow strings through synchronous children; `defer` releases all buffers. Child compile precedes link and outputs are checked against resolved inputs. No compiler world or private scheduler. Every invocation rebuilds selected tools even when CMake has no changed prerequisites; audit callers and measure this before introducing reuse. | Called by root CMake tools bridge and selected-tool shell wrapper. Source review only; no cancellation/deadline in this generic process helper, and output safety explicitly excludes hard-link/racing replacement guarantees. |
 | `scaffolding/tools/check_core.tower` | Local command vectors and path buffers; external CMake/CTest/Node are explicit capabilities. Each child joins before args reset or buffers close. Configure/build/test order is required. Worker build count comes from environment; no competing compiler scheduler. | Native/WASI dispatch source-reviewed. Existing `CMAKE_CXX_FLAGS=` is not Tower sanitizer instrumentation. Runtime checks pending. |
 | `scaffolding/tools/tool_process_linux.tower` | Explicit Linux fork/exec/wait ABI; borrowed argv remains live until reap. Close-on-exec failure pipe distinguishes launch errors from child exit; EINTR retries; read errors still drain child before returning. No global world/state and no async jobs. | Shared by tools and process fixtures. Wait failure needs honest error propagation; generic transport has no cancellation/deadline. Review does not prove all signal/descriptor combinations. |
-| `scaffolding/tools/tool_capture_linux.tower` | Anonymous file avoids pipe backpressure; bounded reads publish a replacement buffer only after successful process/read/close. Child joins before file teardown. Diagnostic capture and stdout capture share one implementation. | No disk-write quota; limit bounds retained bytes only. Nonzero child status preserves old output. Diagnostic relay stops on write failure; source review only. |
+| `scaffolding/tools/tool_capture_linux.tower` | Anonymous file avoids pipe backpressure; bounded reads publish a replacement buffer only after successful process/read/close. Child joins before file teardown. Diagnostic capture and stdout capture share one implementation. | No disk-write quota; limit bounds retained bytes only. Nonzero child status preserves old output. Real Clang diagnostic capture and failed-child output preservation pass through tool_words_checks at4540a08; this does not exhaust descriptor/write failures. |
 | `scaffolding/tools/tool_files_linux.tower` | Owned path strings plus contiguous pointer index; insertion sorting does not pack string payloads. Recursive traversal retains directory handles until child traversal returns, bounded depth 128; lexical names preserved, directory symlinks skipped. Atomic no-replace directory rename is an explicit OS boundary. | `statx` layout is Linux x64 little-endian. Partial path collection stays caller-owned on failure. Sorting cost and allocation/fragmentation not yet measured; no speculative conversion. |
 | `scaffolding/tools/tool_files_posix.tower` | `tool_join` constructs a separate buffer before replacing aliased output. Paths and realpath results have explicit ownership; mkdir/lookup run in written order. This is filesystem identity protection, not module identity. | Missing output is permitted, existing symlink aliases rejected. Hard links and concurrent path replacement remain outside this protection. |
-| `scaffolding/tools/tool_streams_posix.tower` | 4 KiB stack chunk and growing contiguous ByteBuffer; bounds checked before append, complete result published on success. Caller owns input stream; file wrapper closes before replacing output. No compiler world needed. | Handles error, no-progress and exact limit; maximum transient retention includes old output plus new buffer. Read tests pending. |
-| `scaffolding/tools/tool_words.tower` | Contiguous vector of separately owned byte strings, never executed. Distinct shell/Make decoders preserve lexical identity; partial words close on failure; publication replaces output only after full parse. No global state. | Existing word fixtures cover quoting and malformed inputs. No subprocess or compiler graph constructed here; runtime checks pending. |
+| `scaffolding/tools/tool_streams_posix.tower` | 4 KiB stack chunk and growing contiguous ByteBuffer; bounds checked before append, complete result published on success. Caller owns input stream; file wrapper closes before replacing output. No compiler world needed. | Handles error, no-progress and exact limit; maximum transient retention includes old output plus new buffer. Existing tool_files_checks passes over-limit rejection preserving prior output and exact-limit successful read at4540a08. |
+| `scaffolding/tools/tool_words.tower` | Contiguous vector of separately owned byte strings, never executed. Distinct shell/Make decoders preserve lexical identity; partial words close on failure; publication replaces output only after full parse. No global state. | Existing word fixture passes quoting, malformed/NUL/escape/Make-variable input, continuations, real Clang argument capture and cyclic response rejection at4540a08. Optional real WASI Ninja recipe remains unrun locally. |
 | `scaffolding/tools/bootstrap_comparison.tower` | Explicit predecessor/successor/resource/native-build inputs; local buffers and synchronous children. Ordered target/unit comparisons use fresh retained directories and compare nonempty exact IR/object bytes; no extra compiler build. | Calls shared process/capture; unknown units fail. Missing-grammar check expects exit 1. No child deadline here; full comparison is a milestone check, not an iteration prerequisite. |
 | `scaffolding/tools/bootstrap_symbols.tower` | Allocation-free spans borrow captured nm text. Exact per-unit/platform allowlists, deterministic first rejection, no world/global mutable registry. | Current allowlist includes shared production staged-helper dependencies. Changes require reviewing owning exports; underscore normalization is an explicit existing object-format policy. |
 | `scaffolding/tools/bootstrap_package.tower` | Owned heap records and pointer index retain complete compiler/resource snapshots up to aggregate 1 GiB, then serialize hashes/provenance and atomically rename a new directory. This retention ensures publication uses the captured bytes; it is not packed ECS. | Captures tracked source hashes, patch, predecessor, dynamic dependencies. Failure removes only its private known stage paths. Source and ldd reads require frozen external inputs; whole OS closure is not established. |
@@ -76,9 +79,9 @@ receipts. “Source review” means inspection, not a newly executed test.
 | `scaffolding/tools/target_pack_imports.tower` | Bounded state machine and owned DLL/symbol buffers; archive/member spans borrow owners until synchronous write. Shared COFF and ar libraries, no registry or duplicate linker. | Strict subset rejects duplicates, aliases/ordinals/flags; at most 256 symbols. Existing malformed/import fixtures relevant. |
 | `scaffolding/tools/package_targets.tower` | CLI resolves resource/description/Clang capabilities and keeps them live until package close. | Retains failed stage and exact process status. Output success does not assert target execution. |
 | `scaffolding/tools/remove_const.tower` | Historical one-time migration scanner with local vectors/names; sequential inventory, validation and rewrite passes. Not a production parser/AST or dependency scheduler. | No current build/caller found. Reads are unbounded despite “bounded” header; three passes can observe changed files and direct writes are not transactional. Preserve as historical inactive tool; do not use for campaign rewrites or optimize without an active need. |
-| `scaffolding/benchmarks/interpreter_arithmetic.tower` | Foundation scalar locals, 10,000 wrapping-u32 iterations and one output; no graph/storage ownership beyond normal execution. | Shared native/browser interpreter fixture. Sequential recurrence is intentional; comparing worker counts here alone cannot show compiler overlap. Independent expected-output check pending. |
-| `scaffolding/benchmarks/interpreter_branch.tower` | Foundation scalar locals and executed branch selection, 10,000 iterations; deterministic effects. | Same shared runner; signed counts fit i32. Expected result can be derived from complete seven-element periods; pending execution. |
-| `scaffolding/benchmarks/interpreter_calls.tower` | Ordinary nested calls and local frames, 3,000 iterations; callee/argument order is compiler/interpreter responsibility. | No helper body implementation duplicated in benchmark. Sum of 1 through 3,000 is independent reference; pending execution. |
+| `scaffolding/benchmarks/interpreter_arithmetic.tower` | Foundation scalar locals, 10,000 wrapping-u32 iterations and one output; no graph/storage ownership beyond normal execution. | Shared native/browser interpreter fixture. Sequential recurrence is intentional; comparing worker counts here alone cannot show compiler overlap. Graph/fast/native agree on49995064 at4540a08/public pin; differential agreement is not an independent mathematical oracle. |
+| `scaffolding/benchmarks/interpreter_branch.tower` | Foundation scalar locals and executed branch selection, 10,000 iterations; deterministic effects. | Graph/fast/native equal independent-1426 oracle:1428complete seven-element periods contribute-1428, remaining four iterations contribute+2. Signed counts fit i32. |
+| `scaffolding/benchmarks/interpreter_calls.tower` | Ordinary nested calls and local frames, 3,000 iterations; callee/argument order is compiler/interpreter responsibility. | No helper body implementation duplicated in benchmark. Graph/fast/native equal independent sum3000*3001/2=4501500 at4540a08/public pin. |
 | `scaffolding/benchmarks/interpreter_memory.tower` | One explicitly allocated 1,024-u32 buffer, every read follows same-iteration write, freed before final output. No safety policy added to raw Foundation. | 10,000 iterations, expected sum of 0 through 9,999. No uninitialized-read claim depends on allocator zeroing. |
 | `scaffolding/benchmarks/interpreter_profile.tower` | Intentional 500,000-iteration scalar recurrence and ordinary function calls; all state belongs to one execution. | Browser CPU sampling input, not a compiler throughput benchmark or a multicore fixture. Wrapping signed arithmetic contract must be preserved by independent oracle. |
 | `scaffolding/benchmarks/compiler_wide_functions.tower` | New D2 complete-file measurement wrapper: one local ByteBuffer, lexical cleanup, existing Tower stress generator and explicit Tower import. No duplicated generator, world, scheduler or IR. | Initial direct fragment compilation failed without the language import; preserved as failure. New emitted 300-function file compiles to identical objects at jobs 1/2/8 and prints independently known 299 in graph/native execution. |
@@ -700,3 +703,47 @@ covered separately by the owner's frontend-unit fixtures. The local driver lacks
 the new option fields, so the draft is not applied or compiled against a partial
 API closure. Existing D2 compiler-job plumbing remains a distinct policy from
 this retained-source byte limit.
+
+### Existing tooling fixtures and benchmark outputs validated
+
+Frozen clean source4540a0841ea67dea65a006d35f4450f35deea065,
+scaffolding tree421342a1a6b8a9d4427b9715dc25dd70faab9123; compiler/library/type
+production sources still match60741c5. The original public pin9653f818 and every
+listed public resource passed SHA256SUMS verification. D2's existing own guest
+host object is`f74001da316e6d14af4f699033e8239ee70a3f597ce442675c63737f225459ff`.
+No compiler rebuild, private bootstrap override or source change was needed.
+
+| Existing caller fixture / SHA-256 | World/storage/ownership and result |
+| --- | --- |
+| `scaffolding/tests/tool_files_checks.tower` — `fa1187967fd0abfd9797967ee56d5f8bf166ceb636488c1dc2e9dabad63d5609` | D1-owned, full source read. Fresh isolated filesystem tree, lexical deferred ownership of path/data/name vectors; local aliases remain valid until replacement. Real bounded reads preserve old destination on rejection. Symlink-follow/traversal policy and atomic publication collision cases check both candidate and existing destination. Serial filesystem side effects need no compiler world or worker queue. PASS through documented public compile/link with own guest object; no hardlink/racing-path coverage inferred. |
+| `scaffolding/tests/tool_words_checks.tower` — `fd486c019b561c4f4a2b67e54303769892f1f7c0a6a8e904fe0c6f29eb6557c3` | D1-owned, full source read. Local owned word/buffer vectors close after synchronous capture; borrowed argv stays live until child reap. Exact literal oracles test shell/Make parsing, malformed inputs, preservation on failure, actual Clang diagnostics and bounded cyclic response expansion. Scratch response file is removed on exit within a new owned cwd. PASS without optional real-build arguments; real WASI Ninja/linker integration remains separate. No command string is executed as a shell program by the parser under test. |
+
+Same SteamDeck image/affinity as above, jobs1, Linux x64; one sample per command,
+warm filesystem/fresh process. Exact GNUtime commands, stdout/stderr, raw statuses
+and input hashes are in`build/d2_ecs/tool_validation_4540a08`. Files/words compile
+wall4.66/5.78s, CPU4.53/5.66s, RSS188864/310592KiB. Links wall0.04/0.02s,
+CPU0.03/0.01s,RSS50912/51012KiB. Runs wall<0.01/0.04s,CPU<0.01/0.02s,
+RSS1608/73176KiB. All raw statuses0 and swaps0. Word-run RSS includes its real
+Clang child; this is not retained Tower allocation or whole-lifetime leak evidence.
+
+Four unchanged benchmark sources also pass graph/fast/native byte-equal stdout
+with explicit jobs1 and default optimization. Branch-1426, calls4501500 and
+memory49995000 match independent algebraic results; memory is9999*10000/2.
+Arithmetic49995064 is differential evidence only. No new reference implementation
+or alternate interpreter was introduced. Per-mode diagnostic samples are:
+
+| Fixture | Graph wall / CPU / RSS | Fast wall / CPU / RSS | Native compile+link wall / CPU / RSS |
+| --- | --- | --- | --- |
+| branch |1.10s /1.02s /104012KiB|0.68s /0.65s /114040KiB|1.18s /1.12s /113308KiB|
+| calls |1.09s /1.02s /104104KiB|1.04s /0.98s /113832KiB|2.11s /2.00s /111012KiB|
+| memory |0.84s /0.79s /104308KiB|0.70s /0.66s /115012KiB|1.82s /1.72s /113180KiB|
+| arithmetic |0.86s /0.79s /104164KiB|1.04s /0.98s /113880KiB|1.24s /1.18s /112408KiB|
+
+Native execution is below GNUtime's0.01s reporting resolution, RSS1484–1612KiB.
+These one-sample correctness checks do not establish throughput differences,
+speedup, cold-cache behavior or useful multicore scaling. CLI phase logs remain
+available. No source or runtime was changed, so before/after optimization claims
+would be inappropriate. All jobs drained before the D2 lock was released;
+140GiB disk free,9.8GiB RAM available,5.9GiB host swap used at final observation,
+with zero swaps reported by the measured processes. These checks do not validate
+the incoming capture/snapshot, prelude, budget or hardlink-helper changes.

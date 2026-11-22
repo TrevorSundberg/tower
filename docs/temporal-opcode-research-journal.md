@@ -47093,3 +47093,37 @@ was applied or executed; audit count is98local paths plus17incoming reviews.
 Documentation-only review has no runtime performance/memory change. An initial
 rg lookup used a nonexistent playground/tests/performance* glob and exited2;
 the corrected existing-directory search succeeded without changing files.
+
+Root identifies the current D2 integration dependency precisely: A1/L1
+IMValueInput publisher/reader and lowered-snapshot changes must freeze and
+validate before the complete owner bundle arrives. Several named prerequisite
+patches in the integration receipt are not on this host; a receipt listing alone
+does not provide their source. D2 requested the complete consistent API/ABI/
+resource closure and will use a fresh public-bootstrap cache, excluding deleted
+prelude forwarders. No inevitably stale full compiler build was started.
+
+After D1 drained/released heavy.lock, D2 acquired it for the approved bounded
+existing tooling checks. Frozen clean4540a08/scaffolding421342a1, original public
+compiler9653f818 with full SHA256SUMS verified, own existing guest objectf74001da.
+No compiler rebuild or code changes. Both existing tool_files_checks and
+tool_words_checks compile/link/run successfully through publicjobs1. Full source
+reviews and exact SHA/ownership/limits are recorded in the D2 audit as two
+supplemental D1-owned caller checks. Filesystem over-limit preservation, exact
+reads, lexical symlink/traversal/atomic collision behavior, malformed shell/Make
+words, real Clang capture and cyclic response handling pass. Optional real WASI
+Ninja recipe was not selected; no current WASI build exists here. File/word
+compile wall4.66/5.78s,CPU4.53/5.66s,RSS188864/310592KiB; runtime<0.01/0.04s,
+RSS1608/73176KiB,0swaps. Capture RSS includes the Clang subprocess, not just
+retained Tower memory.
+
+Existing branch/calls/memory/arithmetic benchmarks each pass graph/fast/native
+exact stdout at explicitjobs1: -1426,4501500,49995000,49995064. The first three
+have independent algebraic expected values; arithmetic is differential only.
+Single samples, warm filesystem/fresh processes, full GNUtime/CLI phase logs
+retained in build/d2_ecs/tool_validation_4540a08. These are correctness and cost
+observations, not a speedup profile. Audit table records each wall/CPU/RSS;
+all commands raw0/swaps0. No new project logic, test harness or private override.
+Sessions31549/40368 terminal, own Docker init/sleep only before releasing the
+D2-owned lock for D1. Final140GiBfree/9.8GiBavailable/5.9GiBhost swap; no cleanup
+needed. Old compiler results remain separate from incoming capture/snapshot
+changes and final integrated/publication acceptance.
