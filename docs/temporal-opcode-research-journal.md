@@ -47496,3 +47496,99 @@ was fully reviewed. It preserves the erased unused alias as a scalar-only case
 and adds actual runtime type-return/function-value/exported mutable-body cases;
 independent canonical inspection by owners explains the corrected expectation.
 No production predicate relaxation. Apply incrementally after consumer3e7c7527.
+
+After own evidence commit c7c30cd646d05bad5699f0e37d4776bf7f31158c and successful
+pull --rebase --autostash (public60741c51), applied L1 c3066f54 only to16 missing
+paths. Full reverse-check now passes, proving the five already-held paths were
+preserved. Applied L2 reachability3e7c7527 then retained fixture13f3b7e1 (-p2),
+D1 recursion22f651f4, and only the derived-count work_ready delta from registration
+v2. Reverse-check confirms existing harness/other fixture equivalence; preserve
+four work_budget_types imports absent from the full baseline-relative bundle.
+All git diff --check passes. No todo edits or unexpected source incorporation.
+
+Next source-frozen native run tower-a2-reachability launched21:51:14Z/PID6064,
+same CPU12-23/24GiB/jobs1/outer2; recipe cache/joined_reachability.sh and log
+cache/logs/joined_reachability.log. Smallest foundation_nodes/type_objects/
+execution_session/c_emitter pass1.377/1.367/1.499/1.786wall respectively.
+Affected native53steps79.406wall/109.444user/8.149sys; LR/execution/ready9steps
+12.613/13.436/1.181. Compilerbfaedcad0dbb6eb0ce91bab6fc18b344dc090d5303e76ffc8f8695ec9253c884,
+LRdb58db15b979e93795e3d907ee0098c8322ba9afe790623268e00e82497fec68,
+execution1d4725592431874d46bc82d9201d838c729fd0cb4e7c37805cd41d10359ccd17,
+ready140ced6301ad9bcfbd329d76eb87aef4749f227c95ab19fc9ad01d8d0a53ab52.
+Ready check passes; query .073wall, type-smoke32.759, control31.839 all PASS.
+Execution rejection1.124, encoder rejection1.028, source rejection1.173 and
+constructor protocol1.098 pass. Full types/semantics/canonical roundtrip remain
+running/unrun at this receipt; do not infer their outcome. These are validation
+runs, not new isolated optimization profiles. Prior ASan input identity remains
+separate. Full reads of new Foundation/type-object shared traversal boundaries
+are recorded in the A2 audit.
+
+B2 editor f862f1a4 and full backend overlap helper2e1774ae received/read while
+frozen. Editor adds two missing import tower prefixes, keeps cursor/oracles.
+Backend extracts the existing exact-object/two-worker barrier case and adds
+phase-specific deadline diagnostics, with unchanged30s bound. D1 owns selector
+entry registration. Neither incoming change is applied during this run.
+
+The reachability run subsequently completed21:55:13.619Z, exit0/PID0. Full types
+43.937wall/38.322user/4.378sys, semantics15.635/4.597/3.150 and
+core-static6.840/3.540/1.335 all pass. Constructor jobs1/4 return0 at1.272/1.175s.
+Canonical emission takes1.162/1.035s and both files have SHA256
+1d52fae5eb4b8752f26af714a51fc2cd92488f9f6821391c9251be98ef26c09c.
+Canonical recompile/interpret-fast returns0 (.368wall/.247user/.061sys).
+These are single validation samples, not equivalent-input optimization profiles.
+Exact logs joined_reachability_* and recipe remain in the A2 cache.
+
+After drain, applied B2 editor prefix patchf862f1a4 and reviewed full backend
+helper2e1774ae. The latter extracts the existing streaming overlap case without
+relaxing object comparisons, barriers or30s deadlines, and adds phase-specific
+deadline diagnostics. D1's focused selector is pending. Applied stage registration
+f4c981aba7 only to CMake/README after verifying the included fixture is exactly
+our existing26265ebb. No owner fixture was overwritten by a different copy.
+
+Started current fresh TSan build21:58:56.219Z, tower-a2-joined-thread PID20970,
+CPU12-23/24GiB/directjobs1/outer2, recipe cache/joined_thread_build.sh and
+aggregate log cache/logs/joined_thread_build.log. Smallest public predecessor
+editor/backend test objects pass. Native registered concurrent stage test passes.
+However the first native backend/editor preflight receipt requires correction:
+Copy-Item preserved backend_units.tower's21:37:42Z timestamp, older than the
+21:52:47Z lr-work-main object. Build output confirms only the new stage target
+regenerated; the new backend helper was not exercised. Also LR editor invokes
+editor_units, not the changed editor_observations; the latter is selected by
+tower-execution-tests editor. The raw passes cover the previous/unaffected tests,
+not these incoming changes. No inference from a successful build to source
+coverage is retained. After the live frozen run drains, invalidate exactly the
+owned generated lr-work-main-unbound.ll, rebuild the LR and execution targets,
+then run backend and execution editor. Touching already-emitted IR alone would
+only relink stale code and is insufficient; regenerate from the imported source.
+
+Fresh TSan output did compile the current LR entry. Compiler
+cb615e21f8fe69249b4c9cbf35e799f397038d770e43f02671bb0e78ada60066,
+LR816e7ad2b466c17bd83c2345f8290e7ea6fd3dd6e57bbd836f6b3868d61d99f8,
+stage7c0cbc6aca9b3e726b4dba03a427ddb1178e94d96facf566bb661dd75292c02c,
+configured manifestd853a53813e4d046aee816ee28df7efbcdf823864523c18f0ffa40e03e0b4893.
+Nine focused CTest cases pass, zero skips,1.07s. Query smoke passes
+.761wall/.672user/.090sys; type smoke is active at this receipt. Other caller
+tests are pending, so this is not a full current TSan milestone. No unsafe
+sensitivity probes or suppressions are used. The build script copies selected
+towerc to ignored build/native, so release preparation must restore normal
+artifacts; never publish this instrumented development copy. Foreign LLVM and
+source-level UBSan remain explicit coverage limits.
+
+Current TSan type-smoke terminated at the unchanged600s outer deadline,
+22:12:15.828Z, exit124/PID0. Aggregate timing600.036wall/656.452user/20.295sys;
+the unbuffered per-suite log is empty. No TSan diagnostic appeared, but no pass
+is claimed. At8:06 elapsed the process had8:50 CPU and715048KiB RSS; this proves
+CPU activity, not which case was slow, whole-run peak memory or race freedom.
+The script stopped, so control/LR/units/backend/constructor were not run.
+Nine focused concurrency tests and query smoke retain their exact earlier
+results. Request D1 case-level progress/focus using the existing body fixture,
+preserving all assertions/deadlines and production behavior. No blind larger
+timeout or full type-smoke repeat is proposed. Continue independent pending
+native correction and other unchanged valid-path sanitizer suites separately.
+
+Rechecked complete compiler_work, compiler_work_types and compiler_kernels with
+source-specific audit rows. Current caller cancellation invalidates graph tickets,
+drains transport, then releases views/worlds and execution grants. CompilerWork
+dispatch1 remains an explicit once-per-unit contract, distinct from resumable
+WorkTickets. No newly demonstrated defect or runtime edit arose from this review.
+The documentation-only review has no applicable before/after runtime profile.

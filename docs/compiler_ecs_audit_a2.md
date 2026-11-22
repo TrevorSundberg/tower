@@ -3,7 +3,7 @@
 This is an **in-progress audit**, not lane acceptance or publication evidence.
 Owner: A2 on KinmenA, exclusive `C:\Sandbox\tower-agent-2`, main.
 Reviewed source baseline: `6282238779034442e0578d76b921ca117df819f1`;
-current local `85aafd8e` includes the measured A2 changes below, on
+current local `c7c30cd6` includes the measured A2 changes below, on
 published60741c51. Unmodified receipt rows retain the baseline reviewed identity;
 later changed-file receipts state their implementation commit. Session
 `01a2046f-fec2-7c71-be46-cad28f9ac147`, resumed Codex PID 15056.
@@ -614,3 +614,57 @@ constructor jobs1/4 9.111/7.650s. Control RSS observation828024KiB and backend
 1082148KiB are point samples, not process peaks/live-byte census. Shared-library
 LLVM is not rebuilt with ASan; source-level UBSan and universal race freedom are
 not established. Exact recipes, source hashes and limitations are in the journal.
+
+## Runtime-index interface review after c7c30cd6
+
+| Newly reviewed full path | Storage, world and ownership conclusion | Source/evidence |
+| --- | --- | --- |
+| `compiler/foundation_nodes.tower` | Whole module read. Payload init/dispose owns vector allocations; semantic edges remain world-owned graph relations. Prepend handles an interior source by preserving its offset across reserve/shift and checks its live bounds. New execution predicates select runtime roots and call/function-reference bindings for derived consumers; they do not erase canonical declarations. Attribute identity uses bound type entities. | Source7ce41fc04aaac90415ceddd508edc54c5480d9836934edb194a84caaac18e7a4. L1 owns production; smallest public-pin unit passes. No noalias guarantee or serialized address identity. |
+| `compiler/type_objects.tower` | Whole module read. ABI checks walk completed signature/field producers with private pending/visited vectors; recursive nominal records are visited once. Runtime type detection shares Foundation execution predicates and tracks function cycles privately. Type-value interning copies descriptors into an invocation-owned vector; integer indexes never become global type identities. Canonical records remain borrowed from the owning graph. | Source0b09c88ad1f1e9d5cbcbcd23beceb0dcf56003df89f7542a4f13583597b4b950. L2 owns production. Visited lookup/interning remain linear; no unmeasured speed claim. Caller must keep referenced world alive and not mutate signatures during read. Current full type/reachability execution is pending at this receipt. |
+
+L1 full bundle was applied only to16 missing paths after exact reverse-check of
+five already-held production paths; full bundle now reverse-checks. L2 consumer
+and retained-runtime fixture, D1 recursion oracle and derived array count followed.
+Four defining work_budget_types imports remain. No other lane's changes were
+committed as A2. Source changes are owner-attributed pending merged publication.
+
+The joined native run completed21:55:13Z, exit0/PID0: full types, semantics,
+core-static, query/type/control smoke and rejection suites pass. Constructor
+jobs1/4 both return0 and emit identical canonical Foundation
+1d52fae5eb4b8752f26af714a51fc2cd92488f9f6821391c9251be98ef26c09c;
+recompiling that Foundation also returns0. This completes the previously pending
+normal reachability test receipt for compilerbfaedcad0dbb6eb0ce91bab6fc18b344dc090d5303e76ffc8f8695ec9253c884.
+It does not extend the older ASan snapshot to these changed traversal paths.
+
+Validation correction: after this run, copying B2's current backend fixture
+preserved an older file timestamp. The next native build did not regenerate its
+LR entry object. Its passing backend result therefore does not cover that newly
+copied helper. Likewise LR's editor selector runs editor_units, while the changed
+editor_observations belongs to tower-execution-tests. Direct smallest-unit
+compiles did pass; affected native runtime checks must be repeated using fresh
+objects and the correct entrypoint. Raw earlier results are preserved. A fresh
+TSan cache compiled the current LR source; its nine focused concurrency checks
+and query smoke pass so far, with the other caller suites still running. No full
+current TSan acceptance or publication claim follows from that partial result.
+
+Rechecked the complete shared coordinator and kernel modules at this merged
+snapshot. The exact identities and disposition below supersede the initial
+caller-review gaps without changing their APIs.
+
+| Path relative to scaffolding | Current ownership review | Source/evidence |
+| --- | --- | --- |
+| `library/compiler_work.tower` | Entire module reread. Ordered unit children own recipe identities; join dependencies and access ranges are reserved before taking work. Unit dispatch is exactly once, so reconstructing dispatch1 is valid only for this API. Revision/profile/duplicate/cancelled receipts are rejected. Failure settles the source-order diagnostic prefix; done does not promise later transports have drained. Close owns metadata reclamation, while executor close must drain first. | Source d75b53b62cba1773735fb73f4114cb992683f0fa8f9e88ea4eda76024f32b297. Reviewed current frontend cancel/receive/close and backend attached/standalone cleanup: invalidate, drain, settle/unpin/release, then destroy worlds/coordinator. Existing compiler_work test covers stale and failure order; compiler_work_owner exhausts constructor allocation failures on serial instrumentation. Current units/backend ASan covers actual caller transport at its separately recorded snapshot. No new defect demonstrated. |
+| `library/compiler_work_types.tower` | Entire defining module reread. Stable query/domain constants are internal graph namespaces. Callback descriptor borrows a pinned payload; execute runs on its admitted worker and receive remains coordinator-owned. This split is not a transferable entity owner or resumable ticket. | Source4722bb941550f1076c0a13e8e85a14a294574dfa67e5bd8853790daf6b141572. Frontend releases execution grants only after receipt acceptance; cancellation drains without publishing stale callbacks. |
+| `compiler/compiler_kernels.tower` | Entire dispatcher reread after A1's import-boundary handoff. Every tag routes to the existing semantic/parser/unit kernel; the ordinary interpreter uses a bounded1024-step quantum. Exact extern unit ABI avoids importing its implementation into semantic compilation. No admission, lease release or structural publication is hidden in this dispatcher. | Sourcece1d9d759900c1bffdfee9917499b78d055e95366ff213a0cf18508c273d96ba. Invalid kind traps; eligibility and typed payload lifetime remain the owning pump's obligations. Current native/query/type/control/units coverage and separately identified sanitizer snapshots apply; no universal race claim. |
+
+This additional source review and correction are documentation-only. No runtime
+algorithm changed, so an additional before/after runtime profile is inapplicable.
+
+The current TSan aggregate stopped at type smoke: timeout exit124 at22:12:15Z,
+600.036wall/656.452user/20.295sys, container PID0. The test log is empty, with no
+sanitizer diagnostic or successful completion. A preceding observed RSS715048KiB
+is only a point sample. Query and nine focused passes remain valid; control, LR,
+units, backend and constructor were not run after this fail-fast termination.
+CPU activity does not locate the slow case or prove absence of a deadlock in
+another thread. Preserve this failure and request D1's case-level attribution
+through existing fixtures; do not relax the deadline or relabel it a pass.
