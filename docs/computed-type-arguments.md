@@ -38,15 +38,24 @@ typed operands such as `sizeof` constrain their literal peers. Typed values stil
 require explicit conversions. Existing bare integer argument spellings retain
 their previous contextual typing.
 
-Closed expressions, bound numeric type parameters and proved immutable scalar
-locals can supply integer type arguments. Local proofs account for writes and
-address escapes throughout the containing function, including later statements,
-deferred cleanup and loop updates. Shadowed declarations retain their own identity.
-An initializer alone is not an immutability proof; a mutable or runtime input is
-rejected only when execution reads it. Unknown statement contracts conservatively
-decline early proofs. Module captures and executed helper calls during type
-construction still need earlier body/global-proof scheduling. Functions returning
-arbitrary computed type values and runtime metatype storage are separate work.
+Expressions can call ordinary helpers, including recursive calls, typed indirect
+calls and helpers using aggregate values. They can capture ordinary `var` bindings
+when the compiler proves both immutability and a compile-time-known initializer.
+The proof rejects later writes and address escapes, including writes in generic
+definitions, deferred cleanup and loop updates. Unknown statement contracts
+conservatively decline early proofs. It distinguishes shadowed declarations. Module captures retain
+initializer order; reading a later initializer is an error.
+
+Helper checking, executable snapshots, binding proofs and initializer evaluation
+are suspended dependencies in the shared graph. A local capture depends on its
+completed lexical prefix, so a body may use an earlier immutable local in a type
+without depending on its own unfinished whole-body query. Worker stages join before
+publication. The ordinary interpreter discovers executed calls and captures; a
+skipped branch does not demand their evaluation.
+
+Functions returning arbitrary computed type values and mutable metatype storage
+remain separate work. This milestone extends integer inputs to type construction;
+it does not yet remove the restricted return shape of type-producing functions.
 
 Expression checking and preparation use existing ECS query components and
 isolated workers. The coordinator seals dependencies before demand, publishes

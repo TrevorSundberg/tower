@@ -73,6 +73,14 @@ fn sem_capture_pump(c: SemanticContext*): SemanticPumpResult {
     }
     if sem_ok(c) && result.evaluation == null {
         var value = binding.value;
+        if value != null && !binding.global {
+            var checked = work_find(&c.queries, subject, convert(u32, SemanticQuery.CheckedBinding), 0);
+            // A for initializer can publish through its expression query before
+            // the enclosing body resumes. That completed producer is the same
+            // checked-prefix evidence, without depending on the whole body.
+            if checked == 0 { checked = sem_declaration_query(c, sem_member(subject, "value")); }
+            sem_require(checked != 0 && work_observe(&c.queries, &ticket, checked));
+        }
         if value == null {
             if result.expression == null {
                 var declaration = sem_declaration_state(c, subject);

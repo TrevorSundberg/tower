@@ -33,6 +33,15 @@ struct Measure { count: usize; }
 fn measure(value: usize): Measure { return { count: value }; }
 fn measured(value: usize): usize { var result = measure(value); return result.count; }
 fn module_bound(): usize { return module_count; }
+fn header_capture(): usize {
+    for (var count: usize = 3; sizeof(u8[count]) == count;) { return count; }
+    return 1;
+}
+fn generic_capture(T: type, value: T): usize {
+    var count = twice(2);
+    var bytes: u8[count];
+    return sizeof(decltype(bytes));
+}
 
 fn signed_word(width: usize): type { return integer_type(width * 2, 1); }
 fn buffer(T: type, length: usize): type {
@@ -88,6 +97,8 @@ fn verify(): i32 {
     var local_count = twice(3);
     var helper_captured: u8[local_count + 1];
     var through_call: u8[module_bound()];
+    var header_captured: u8[header_capture()];
+    var generic_captured: u8[generic_capture(i32, 0)];
     { var local_count: usize = 9; local_count++; }
     if sizeof(decltype(first)) != 20 || sizeof(decltype(second)) != 7 { failures++; }
     if sizeof(Word) != 4 || sizeof(Bytes) != 8 { failures++; }
@@ -106,6 +117,7 @@ fn verify(): i32 {
     if sizeof(decltype(aggregate_call)) != 5 { failures++; }
     if sizeof(CapturedBytes) != 5 || sizeof(decltype(helper_captured)) != 7 { failures++; }
     if sizeof(decltype(through_call)) != 4 { failures++; }
+    if sizeof(decltype(header_captured)) != 3 || sizeof(decltype(generic_captured)) != 4 { failures++; }
     return failures;
 }
 print(verify());

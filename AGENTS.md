@@ -449,12 +449,13 @@ Do NOT modify todo.txt
   unrestricted computed/runtime type values are not implemented by this step.
   Evaluate ordinary value computations with the existing interpreter and query
   graph. Never add a separate constant folder to extend type arguments.
-  Closed integer expressions and bound numeric type parameters now work in type
-  arguments and array extents. Prefer these expressions to duplicated derived
-  sizes after publishing a compatible bootstrap. Scalar local captures use lazy
-  lexical proof queries; module captures and executed helper calls during type
-  construction still require earlier body/global-proof scheduling. Never substitute
-  an initializer for an immutability proof. See docs/computed-type-arguments.md.
+  Integer expressions, bound numeric type parameters, ordinary helper calls and
+  proved immutable captures work in type arguments and array extents. Prefer
+  these expressions to duplicated derived sizes after publishing a compatible
+  bootstrap. Early helpers and captures use body, checked-prefix, binding-proof
+  and interpreter dependencies; never substitute an initializer for an
+  immutability proof or recursively force an unfinished body. Keep initializer
+  order and executed-branch dependency discovery. See docs/computed-type-arguments.md.
   Include the complete type prelude and `foundation_syntax.tower` in bootstrap,
   browser and compiler resources, and validate a changed definition, target
   layouts, canonical round trips and serial/parallel checking before publication.

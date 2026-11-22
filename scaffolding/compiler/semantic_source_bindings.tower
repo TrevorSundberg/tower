@@ -172,6 +172,12 @@ fn sem_source_bindings_publish(c: SemanticContext*, jobs: vector(SemanticKnownWo
     foreach(var job in jobs) {
         foreach(var declaration in &job.mutations) {
             var binding = sem_source_binding(c, declaration);
+            if binding != null && binding.immutable && c.source_binding_proof != 0 && binding.owner != job.owner {
+                // A specialization must not invalidate a completed proof which
+                // a preceding staged result may already have consumed.
+                sem_fail(c, declaration, "Specialization invalidates a published binding proof");
+                return;
+            }
             if binding != null { binding.immutable = false; }
         }
     }

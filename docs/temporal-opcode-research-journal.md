@@ -45597,3 +45597,32 @@ continue those producers while retaining source-order diagnostic selection.
 The id(2)/0 bound reports Division by zero before unknownLater. The body smoke
 matrix and existing known-binding suite passed after that correction. No
 publication or complete-type-protocol claim is made by these intermediate checks.
+
+Rebased the helper/capture checkpoint onto 49d75bee, including the upstream
+retained body/lowering pumps and KnownSnapshot prerequisite. The combined body
+pump retains bounded discovery/checking, persistent declaration roots and the
+upstream rejection of non-CoreBlock function bodies. It also retains early
+helper demand and per-boundary preparation phases. Source-order failure choice
+uses function ordinals, not the order in which an executed helper was requested.
+The first merged body-smoke run exposed a less-specific cycle diagnostic: the
+body finalizer must ask its unfinished declaration producer to diagnose layout
+and initializer cycles before falling back to a generic body cycle.
+
+Captures now observe a CheckedBinding receipt from the completed lexical prefix,
+or the completed for-initializer expression receipt. Prefixes depend on prior
+prefixes and the worker's observed inputs, without depending on the unfinished
+whole body. A later specialization cannot silently invalidate an already consumed
+immutability proof; contradictory new mutations fail compilation. Tests include
+immutable for-header captures, instantiated generic locals, generic writes to a
+module binding, and executed helper failure order differing from declaration
+order. These exercise actual behavior rather than a second folding algorithm.
+
+Post-rebase validation with the public predecessor and frozen inputs: the smallest
+semantic_body_work unit compiled; the native compiler/execution harness built;
+types passed both interpreters, target pointer widths 4/8, canonical Foundation
+reparse and worker counts 1/2/4/8; body-smoke passed canonical output, execution,
+ordered diagnostics and cycles. Logs: build/type-pipeline-prefix-build.log,
+build/type-pipeline-prefix-types.log, build/type-pipeline-prefix-body.log.
+The computed fixture prints 0 under the fast interpreter. General type-valued
+execution and the reflected operation protocol are still outstanding; these
+checks do not constitute complete milestone or browser/bootstrap publication.

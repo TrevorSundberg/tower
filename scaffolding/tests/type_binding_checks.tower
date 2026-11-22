@@ -108,12 +108,14 @@ fn computed_type_argument_tests(modules: void*, root: u8*, bedrock: u8*, foundat
     struct_value_reject(modules, "import tower;fn test():void{var n=4;var a:u8[n];for(;false;n++) {}}test();", "runtime storage");
     struct_value_reject(modules, "import tower;fn test():void{var n:i32=n;var a:u8[n];}test();", "dependency cycle");
     struct_value_reject(modules, "import tower;var length:usize=4;fn change():void{length++;}var a:u8[length+1];", "runtime storage");
+    struct_value_reject(modules, "import tower;var length:usize=4;fn change(T:type,value:T):void{length++;}var a:u8[length];", "runtime storage");
     struct_value_reject(modules, "import tower;fn f():void{var length:usize=4;var a:u8[length];length++;}", "runtime storage");
     struct_value_reject(modules, "import tower;fn f():void{var length:usize=4;var p=&length;var a:u8[length];}", "runtime storage");
     struct_value_reject(modules, "import tower;var first:usize=second;var second:usize=4;var a:u8[first];", "before its initialization");
     struct_value_reject(modules, "import tower;var count:usize=count;var a:u8[count];", "cycle");
     struct_value_reject(modules, "import tower;fn count():usize{var a:u8[count()];return sizeof(decltype(a));}var a:u8[count()];", "cycle");
     struct_value_reject(modules, "import tower;fn size():usize{return 4/0;}var a:u8[size()];", "Division by zero");
+    struct_value_reject(modules, "import tower;var a:u8[first()+second()];fn second():usize{return unknownSecond;}fn first():usize{return unknownFirst;}", "unknownFirst");
     struct_value_reject(modules, "import tower;var a:u8[comptime(1/0)];", "zero");
     puts("Computed type arguments: interpreter, target widths, Foundation round trips and worker determinism pass.");
 }

@@ -215,6 +215,9 @@ struct SemanticBodyWork {
     resumed: bool;
     done: bool;
     calls_published: bool;
+    prefix: usize;
+    prefix_generation: u64;
+    checked_locals: usize;
     stop: void*;
     boundary: usize;
     preparation: usize;
@@ -1633,10 +1636,39 @@ fn sem_body_hold_error(c: SemanticContext*, result: SemanticBodyWork*): void {
     c.program.error_offset = 0;
 }
 
+// A captured local can belong to the body currently waiting for its type.
+// Publish its completed lexical prefix as a dependency instead of requiring
+// the unfinished whole body or reading an initializer without a receipt.
+fn sem_body_prefix(c: SemanticContext*, result: SemanticBodyWork*): void {
+    if result.error.length != 0 { return; }
+    result.prefix_generation++;
+    var prefix = work_request(&c.queries, result.subject, convert(u32, SemanticQuery.BodyPrefix), result.prefix_generation);
+    var previous = result.prefix != 0 ? result.prefix
+        : work_find(&c.queries, result.subject, convert(u32, SemanticQuery.BodyDiscovery), 0);
+    sem_require(previous != 0 && work_depend(&c.queries, prefix, previous));
+    foreach(var query in &result.query_reads) { sem_require(work_depend(&c.queries, prefix, query)); }
+    sem_require(work_seal(&c.queries, prefix) && work_demand(&c.queries, prefix));
+    var ticket: WorkTicket;
+    sem_require(work_take_task(&c.queries, &ticket, prefix) && work_finish(&c.queries, &ticket, true));
+    result.prefix = prefix;
+    var locals = &sem_get(result.subject).locals;
+    while result.checked_locals < locals.length {
+        var subject = locals.data[result.checked_locals];
+        if sem_member(subject, "value") != null && sem_get(subject).value == null { break; }
+        result.checked_locals++;
+        if sem_get(subject).kind != KDeclare || sem_get(subject).value == null { continue; }
+        var query = work_request(&c.queries, subject, convert(u32, SemanticQuery.CheckedBinding), 0);
+        sem_require(work_depend(&c.queries, query, prefix));
+        sem_require(work_seal(&c.queries, query) && work_demand(&c.queries, query));
+        sem_require(work_take_task(&c.queries, &ticket, query) && work_finish(&c.queries, &ticket, true));
+    }
+}
+
 fn sem_body_publish(c: SemanticContext*, result: SemanticBodyWork*): void {
     // All stages in this worker batch have already published. Continuations
     // exclusively own their lexical payloads between dispatches; the compilation
     // owns their storage and reclaims it once checking completes.
+    sem_body_prefix(c, result);
     sem_query_observe(c, &result.ticket, &result.query_reads);
     sem_evaluation_aliases(c, &result.evaluation_aliases);
     sem_type_observations_publish(c, &result.type_observations);
@@ -1822,9 +1854,12 @@ fn sem_bodies_pump(c: SemanticContext*): SemanticPumpResult {
             result.kernel.kind = CompilerKernelKind.Body;
             result.kernel.payload = bits(void*, result);
             sem_body_request(c, subject);
+            progress = true;
             state.next++;
         }
-        progress = prepared != 0;
+        // Advancing a bounded admission window is progress; rescanning an
+        // unresolved signature from its beginning is not.
+        progress ||= state.next < c.program.functions.length && prepared == BodyPreparationWindow;
     }
     var batch = state.window.data;
     var count = state.window.length;
@@ -1863,7 +1898,8 @@ fn sem_bodies_pump(c: SemanticContext*): SemanticPumpResult {
         sem_body_declarations(c, preparing.data, preparing.length, preparing.length);
         progress = true;
     }
-    var pending = false;
+    var first_pending = ~convert(usize, 0);
+    var failure: SemanticBodyWork* = null;
     for(var i: usize = 0; i < count; i++) {
         var result = batch[i];
         if !result.done && result.preparation != 0 {
@@ -1877,19 +1913,19 @@ fn sem_bodies_pump(c: SemanticContext*): SemanticPumpResult {
             if result.error.length == 0 { sem_body_demand(c, &result.calls); }
             result.calls_published = true;
         }
-        if result.error.length != 0 {
-            if !pending {
-                c.program.error = result.error;
-                result.error = default;
-                c.program.error_offset = result.error_offset;
-                return SemanticPumpResult.Failed;
-            }
-        }
-        pending ||= !result.done;
+        if result.error.length != 0 && (failure == null || result.ordinal < failure.ordinal) { failure = result; }
+        if !result.done && result.ordinal < first_pending { first_pending = result.ordinal; }
+    }
+    // Early helper demand is ordered by execution, not source. Retain failures
+    // on their receipts for the type consumer; ordinary body roots select the
+    // earliest source diagnostic after its preceding continuations settle.
+    if c.body_roots && failure != null && failure.ordinal < first_pending {
+        sem_body_failure(c, failure.subject);
+        return SemanticPumpResult.Failed;
     }
     if !sem_ok(c) { return SemanticPumpResult.Failed; }
     if progress { return SemanticPumpResult.Progress; }
-    if pending { return SemanticPumpResult.Waiting; }
+    if first_pending != ~convert(usize, 0) { return SemanticPumpResult.Waiting; }
     state.complete = true;
     return SemanticPumpResult.Complete;
 }
@@ -1949,8 +1985,17 @@ fn sem_bodies_dispose(c: SemanticContext*): void {
 fn sem_body_pipeline_finish(c: SemanticContext*): void {
     if !sem_ok(c) { return; }
     var state = sem_bodies_begin(c);
+    var first: SemanticBodyWork* = null;
     foreach(var result in &state.window) {
-        if result.done { continue; }
+        if !result.done && (first == null || result.ordinal < first.ordinal) { first = result; }
+    }
+    if first != null {
+        var result = first;
+        var producer = result.initialization ?? result.declaration;
+        // Declaration finalization recognizes by-value layout and initializer
+        // cycles and preserves their specific diagnostic at this frontier.
+        if producer != null { sem_declaration_report(c, producer.subject); }
+        if !sem_ok(c) { return; }
         var id = work_find(&c.queries, result.subject, BodyQuery, 0);
         if sem_declaration_failure(c, id) { return; }
         var producer = result.initialization ?? result.declaration;
