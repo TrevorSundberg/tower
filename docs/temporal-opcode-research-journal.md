@@ -44772,3 +44772,39 @@ successfully; exact hosted manifest SHA256 is
 All 104 assets, ecc4333 runtime/build/project identities and all 76 prior
 manifest fields are preserved. Release the owned publication lock after this
 verification. This final journal receipt reuses the same verified runtime.
+### 2026-11-22 — Restore the Bedrock-only increment lesson
+
+Pulled main through 49d75be with Git autostash preserving the pre-existing
+todo.txt edit. The increment example had been changed to import Tower and use
+its built-in operators, leaving the helper functions disconnected from the
+actual increments. Restore explicit prefix/postfix CoreCall replacements that
+invoke those helpers. Bedrock provides grammar declarations only, so the example
+defines the small executable grammar it uses and its signed 32-bit type locally.
+It imports neither Foundation nor Tower. The pre-increment helper uses an ordinary
+addition before either ++ rule is installed. The example intentionally covers
+simple i32 variables, assigned results, standalone calls and call arguments.
+
+Keep the existing broader built-in expression/diagnostic tests on a separate
+Tower fixture, and use the existing custom replacement fixture for the wider
+formatting cases. JavaScript changes only select the source fixtures; executable
+example/helper changes are Tower. No compiler implementation or bootstrap changes.
+
+Validate against the published e4dc15e Pages assets extracted with git archive
+into build/increment_published, selecting its tower.wasm and tower-llvm.wasm with
+TOWER_TEST_WASM and TOWER_TEST_LLVM_WASM. The first example check exposed a missing
+CoreCallArgument wrapper in the minimal grammar: without that semantic node the
+type constructor saw the wrong argument count. Restoring the ordinary wrapper
+fixed it. The formatter also required the number attribute on its own line.
+
+All six increment.test.mjs checks pass, including canonical Foundation reparsing
+and LLVM/Wasm comparison. Focused increment checks in fast-interpreter.test.mjs,
+c-source.test.mjs and llvm-execution.test.mjs pass; the formatting check passes
+after the local attribute layout correction (build/increment_format.log).
+The graph/fast comparison includes both pointer widths and sliced execution.
+The existing browser execution check passes on desktop and mobile, checking
+5/6/7/7/9 output, the replacement tree, and subsequent edits/execution:
+`npx playwright test tests/browser/execution.spec.mjs --grep 'increment demonstrates' --workers=1`.
+
+Publication reuses the complete e4dc15e distribution and its existing runtime
+source identity, changing only increment.tower and its manifest hash. No compiler
+rebuild, full bootstrap matrix, sanitizer or broad formatting sweep is needed.
