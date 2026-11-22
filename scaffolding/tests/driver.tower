@@ -12,6 +12,7 @@ import driver_compilation;
 import driver_module_paths;
 import driver_differentials;
 import driver_c_validation;
+import driver_msvc;
 import driver_measure_cases;
 import driver_linking;
 import driver_targets;
@@ -54,6 +55,7 @@ fn driver_quote_check(input: u8*, wanted: u8*): void {
 }
 
 fn driver_test_policies(): void {
+    driver_msvc_checks();
     driver_quote_check("", "\"\"");
     driver_quote_check("a b", "\"a b\"");
     driver_quote_check("a\"b", "\"a\\\"b\"");
@@ -510,6 +512,11 @@ export fn driver_tests(argc: i32, argv: u8**): i32 {
             if argc != required_arguments && argc != filtered_arguments { return usage; }
             var filter: u8* = argc == filtered_arguments ? argv[6] : null;
             return driver_test_c_validation(DriverCMode.Downloads, null, null, argv + 2, filter);
+        }
+        if driver_same(argv[1], "--c-msvc") {
+            var required_arguments: i32 = 3; var filtered_arguments: i32 = 4; var usage: i32 = 2;
+            if argc != required_arguments && argc != filtered_arguments { return usage; }
+            return driver_test_msvc(argv[2], argc == filtered_arguments ? argv[3] : null);
         }
         if driver_same(argv[1], "--native-differential") || driver_same(argv[1], "--package-differential") {
             var required_arguments: i32 = 4; var filtered_arguments: i32 = 5; var usage: i32 = 2;

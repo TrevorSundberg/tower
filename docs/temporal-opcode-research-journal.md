@@ -44126,3 +44126,80 @@ work, and the top-level declaration/body/proof pipeline still has phase barriers
 Early executed helper calls and ordinary captures in type arguments therefore
 remain unsupported; removing their diagnostic before those producers can suspend
 would be incorrect. Publication checks and the next integration follow below.
+
+## 2026-11-22: Tower stress producers and Windows runner candidate
+
+The user asked to finish the remaining tooling while retaining temporal research.
+The long declaration/worker tests require distinct syntax and dependency nodes;
+runtime loops cannot replace their stress cases. Port their generators to the
+shared Tower stress_sources module and ten small entry programs. Existing Node
+code only transports emitted text through the existing interpreter. Reuse bytes,
+unsigned decimal formatting and platform output instead of adding a native tool,
+installer or another serializer. Keep the exact 1,024/256/260/16 workload sizes,
+execution results, failure/cycle checks and worker/canonical-output comparisons.
+This removes 45 net JavaScript lines after adding the shared transport adapter.
+
+Preflight caught an omitted enum representation and an incorrect --library flag
+on an executable producer; supply u32 and compile an ordinary object. The first
+browser attempt needed fully qualified project imports because its entry is a
+virtual source rather than the on-disk tests directory. An initial combined JSON
+output exceeded the existing 65,536-byte per-execution host output limit and was
+truncated. Keep the bound unchanged: each producer now emits one program, checks
+its size in Tower, and the transport rejects outputTruncated. No combined JSON
+format remains. A native interpreted combined-output probe ran too long and was
+terminated without claiming success; compiled native generation worked. Neither
+this observation nor the browser results establish an interpreter speedup.
+
+The three selected compiletime.test.mjs stress checks pass, zero skips. The first
+check initially exposed a stale assertion also reproduced unchanged on the old
+JavaScript generator: canonical u64 is now integer_type(64, 0), not the alias u64.
+Update that exact expectation, preserving the type assertion. The threaded
+semantic check passes at 1/2/4/8 workers, both pointer widths and both engines,
+including generated ordinary/generic bodies, imported queries and error ordering.
+Logs: build/stress_sources_{baseline,compiletime_pass,threads_final}.log.
+The final producer preflight used the public 18664657 bootstrap; existing verified
+portable/threaded/LLVM reactors are unchanged. No temporal file or todo.txt edits.
+
+The remaining c-backend-msvc.ps1 is a real artifact consumer, not dead research.
+Implement --c-msvc CL [CASE] in the existing Tower driver test executable. It reads
+the same expected.json artifact table, validates all rows before starting tools,
+then compiles and executes /TC and /TP at /Od and /O2 with /W4 /WX. Reuse the
+existing quoting, raw-status capture and 30-second child deadline. Preserve exact
+exit/stdout/stderr comparisons with CRLF normalization. Reject duplicate/missing
+fields, duplicate output names, out-of-range statuses, malformed tables and paths
+that escape the artifact directory. JSON strings use the existing ASCII fixture
+reader's supported escape subset; the owned artifact writer produces that subset.
+Names/files must be basenames; the working directory itself may contain spaces.
+MSVC environment setup remains the platform's Developer Command Prompt capability,
+with an explicit cl.exe path, instead of generating an installation/batch script.
+
+The smallest driver_msvc unit compiles with the public pin. A fresh documented
+48-step native successor at /cache/windows_runner_native builds with no private
+bootstrap override. The rebuilt Tower driver passes its policy/process checks
+and new table/normalization cases; the deliberate missing-tool diagnostic is an
+expected negative check. Correct a reserved contextual parameter name (expected)
+to wanted during preflight. Windows driver/standalone/byte-buffer objects compile
+for x86_64-pc-windows-msvc. Build the guest runtime without its program entry and
+bind it with the existing runtime_bind tool. Initial invocation needed explicit
+source Foundation/Bedrock resources; installed bootstrap libraries intentionally
+do not include test/host modules. A mistaken target name tower-runtime-bind was
+corrected to the executable runtime_bind. No compiler/bootstrap implementation
+changes were required.
+
+Add an isolated windows_tooling workflow: Linux produces the Tower runner objects
+and C differential artifacts through the public path; windows-2022 links them
+with the platform CRT and runs both the old PowerShell consumer and new Tower
+consumer in an artifact directory containing a space. Keep the PowerShell script
+until the real MSVC comparison succeeds. Cross-compilation and Linux parser
+checks alone are not Windows execution evidence. Windows execution, retirement
+of the old consumer, the parser wrapper and publication remain pending.
+
+The full local C-output matrix passes 416 comparisons and emits the real artifact
+table (build/windows_runner_c_baseline.log). That handoff exposed a missing case:
+host_json_quote emits newline as Unicode ASCII escapes, which the old scalar-row
+reader rejected. Extend the shared fixture reader for non-NUL ASCII Unicode
+escapes, preserving rejection of unsupported code points and malformed hex. Add
+round-trip/manifest coverage. The rebuilt native policy/parser suite passes; the
+new --c-msvc reader accepts all real rows and reaches an intentionally failing
+/usr/bin/false compiler, preserving exit 1 and its compilation diagnostic. This
+is writer/reader and failure-propagation evidence, not an MSVC execution claim.

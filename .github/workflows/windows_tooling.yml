@@ -1,0 +1,64 @@
+name: Tower Windows tooling
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'scaffolding/tests/driver*.tower'
+      - 'scaffolding/tests/fixture_json_rows.tower'
+      - 'scaffolding/tests/guest_windows_library.tower'
+      - 'scaffolding/tests/c-backend-msvc.ps1'
+      - '.github/workflows/windows_tooling.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update
+      - run: sudo apt-get install -y clang-19 llvm-19-dev lld-19 ninja-build
+      - run: bash playground/scripts/build-native.sh -DTOWER_DRIVER_TESTS=ON
+        env:
+          TOWER_NATIVE_BUILD: ${{ github.workspace }}/build/native_host
+      - run: cmake --build build/native_host --target tower-driver-tests --parallel 2
+      - run: mkdir -p build/msvc_cases
+      - run: ../native_host/tower-driver-tests --c-backend ../native_host/towerc ../../scaffolding /usr/bin/clang-19 /usr/bin/gcc /usr/bin/clang++-19 /usr/bin/g++
+        working-directory: build/msvc_cases
+      - run: bootstrap/linux-x64/towerc scaffolding/tests/driver_windows_unit.tower --foundation scaffolding/foundation.tower --bedrock scaffolding/bedrock.tower --library --target x86_64-pc-windows-msvc -o build/msvc_cases/driver.obj
+      - run: bootstrap/linux-x64/towerc scaffolding/tests/driver_standalone.tower --foundation scaffolding/foundation.tower --bedrock scaffolding/bedrock.tower --library --target x86_64-pc-windows-msvc -o build/msvc_cases/standalone.obj
+      - run: bootstrap/linux-x64/towerc scaffolding/library/bytes.tower --foundation scaffolding/foundation.tower --bedrock scaffolding/bedrock.tower --library --target x86_64-pc-windows-msvc -o build/msvc_cases/bytes.obj
+      - run: bootstrap/linux-x64/towerc scaffolding/tests/guest_windows_library.tower --foundation scaffolding/foundation.tower --bedrock scaffolding/bedrock.tower --library --target x86_64-pc-windows-msvc --emit llvm -o build/msvc_cases/runtime_unbound.ll
+      - run: build/native_host/runtime_bind build/msvc_cases/runtime_unbound.ll build/msvc_cases/runtime.ll guest_runtime_allocate tower_allocate guest_runtime_reallocate tower_reallocate guest_runtime_deallocate tower_deallocate guest_runtime_float_binary tower_strict_float_binary guest_runtime_float_convert tower_strict_float_convert guest_runtime_float_from_integer tower_strict_float_from_integer guest_runtime_float_to_integer tower_strict_float_to_integer guest_runtime_float_print tower_strict_float_print --declare guest_runtime_output tower_print guest_runtime_print tower_print guest_runtime_trap tower_trap guest_runtime_copy memcpy guest_runtime_move memmove guest_runtime_fill memset --exports private
+      - run: clang-19 --target=x86_64-pc-windows-msvc -O2 -ffreestanding -fno-builtin -fno-stack-protector -mllvm -disable-loop-idiom-all -c build/msvc_cases/runtime.ll -o build/msvc_cases/runtime.obj
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-tooling-inputs
+          path: |
+            build/msvc_cases/*.obj
+            build/msvc_cases/*.c
+            build/msvc_cases/expected.json
+
+  execute:
+    needs: prepare
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-tooling-inputs
+          path: MSVC cases
+      - run: powershell -File scaffolding/tests/c-backend-msvc.ps1 "MSVC cases"
+      - shell: cmd
+        working-directory: MSVC cases
+        run: |
+          call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" -no_logo -arch=amd64
+          if errorlevel 1 exit /b 1
+          cl /nologo driver.obj standalone.obj bytes.obj runtime.obj kernel32.lib /Fe:tower-driver-tests.exe
+          if errorlevel 1 exit /b 1
+          tower-driver-tests.exe
+          if errorlevel 1 exit /b 1
+          tower-driver-tests.exe --c-msvc "%VCToolsInstallDir%bin\Hostx64\x64\cl.exe"

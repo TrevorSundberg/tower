@@ -1,0 +1,121 @@
+import tower;
+import tests.utility_checks;
+import library.bytes;
+import library.bytes_types;
+import library.platform;
+import compiler.host_text;
+
+// These sizes describe compiler syntax/dependency workloads, not runtime loops.
+var StressDeclarationDepth: usize = 1024;
+var StressGenericDepth: usize = 256;
+var StressFieldDepth: usize = 256;
+var StressWindowBodies: usize = 260;
+var StressIndependentBodies: usize = 16;
+var StressOutput: u32 = 1;
+var StressOutputLimit: usize = 65536;
+enum StressChain: u32 { Annotated, Inferred, GenericInferred, GenericExplicit }
+
+fn stress_text(out: ByteBuffer*, text: u8*): void {
+    var length: usize = 0;
+    while text[length] != 0 { length++; }
+    utility_check(bytes_append(out, text, length), "stress source text allocation");
+}
+fn stress_number(out: ByteBuffer*, value: usize): void {
+    utility_check(host_json_unsigned(out, convert(u64, value)), "stress source number allocation");
+}
+fn stress_name(out: ByteBuffer*, prefix: u8*, index: usize, suffix: u8*): void {
+    stress_text(out, prefix); stress_number(out, index); stress_text(out, suffix);
+}
+fn stress_chain(out: ByteBuffer*, kind: StressChain, operators: bool): void {
+    var generic = kind == StressChain.GenericInferred || kind == StressChain.GenericExplicit;
+    var count = generic ? StressGenericDepth : StressDeclarationDepth;
+    stress_text(out, "import tower;\n");
+    if generic { stress_text(out, "fn identity(T:type, value:T):T { return value; }\n"); }
+    for (var index: usize = 0; index < count; index++) {
+        stress_name(out, "var value", index, kind == StressChain.Annotated ? ": decltype(" : " = ");
+        if generic { stress_text(out, kind == StressChain.GenericExplicit ? "identity(bool, " : "identity("); }
+        stress_name(out, "value", index + 1, operators ? " + 1" : "");
+        if generic || kind == StressChain.Annotated { stress_text(out, ")"); }
+        stress_text(out, ";\n");
+    }
+    stress_name(out, "var value", count, operators ? ": u64 = 0;\n" : ": bool = false;\n");
+}
+fn stress_fields(out: ByteBuffer*): void {
+    // The short decltype_type_fields fixture remains useful for focused checks.
+    // This variant keeps the same field/layout cases behind a longer chain.
+    stress_text(out, "import tower;\nfn box(T:type):type { struct Item { seed:decltype(seed0); value:T; } return Item; }\nfn alias(T:type):type { return box(T); }\nfn outer(T:type):type { struct Item { inner:alias(T); tail:u64; } return Item; }\nfn node(T:type):type { struct Item { value:T; next:node(T)*; } return Item; }\nfn simple(T:type):type { struct Item { value:T; } return Item; }\nfn nested(T:type):type { struct Item { inner:simple(T); } return Item; }\nvar small:box(u32); var large:alias(u64); var wrapped:outer(u64); var array:box(u64)[2]; var recursive:node(u64);\nvar direct:decltype(alloc(nested(u32),1).inner.value);\nfn read(T:type, item:T*):decltype(item.inner.value) { return item.inner.value; }\nvar selected:decltype(read(&wrapped));\n");
+    for (var index: usize = 0; index < StressFieldDepth; index++) {
+        stress_name(out, "var seed", index, ":decltype(seed");
+        stress_name(out, "", index + 1, ");\n");
+    }
+    stress_name(out, "var seed", StressFieldDepth, ":u64=0;\n");
+    stress_text(out, "var failures:i32=0;\nsmall.value=7; large.value=11; wrapped.inner.value=13; recursive.next=&recursive;\nif small.value!=7 || large.value!=11 || read(&wrapped)!=13 { failures++; }\nif sizeof(box(u32))!=16 || sizeof(alias(u64))!=16 { failures++; }\nif sizeof(outer(u64))!=24 || sizeof(box(u64)[2])!=32 { failures++; }\nif recursive.next!=&recursive || sizeof(decltype(direct))!=4 || sizeof(decltype(selected))!=8 { failures++; }\nprint(failures);\n");
+}
+fn stress_window(out: ByteBuffer*): void {
+    stress_text(out, "import tower; fn identity(T:type,value:T):T { return value; }\n");
+    for (var index: usize = 0; index < StressWindowBodies; index++) {
+        stress_name(out, "fn window", index, "():i32 { var value=identity(");
+        stress_name(out, "", index, "); return value+1; }\n");
+    }
+    stress_text(out, "var total:i32=0;\n");
+    for (var index: usize = 0; index < StressWindowBodies; index++) {
+        stress_name(out, "total+=window", index, "();\n");
+    }
+    stress_text(out, "print(total);\n");
+}
+fn stress_sum(out: ByteBuffer*, prefix: u8*, suffix: u8*): void {
+    for (var index: usize = 0; index < StressIndependentBodies; index++) {
+        if index != 0 { stress_text(out, " + "); }
+        stress_name(out, prefix, index, suffix);
+    }
+}
+fn stress_workers(out: ByteBuffer*): void {
+    stress_text(out, "import tower;\nstruct Shared { value: u64; }\nfn identity(T:type, value:T):T { return value; }\n");
+    for (var index: usize = 0; index < StressIndependentBodies; index++) {
+        stress_name(out, "struct Record", index, " { value:decltype(seed); next:Record");
+        stress_name(out, "", index, "*; }\n");
+    }
+    for (var index: usize = 0; index < StressIndependentBodies; index++) {
+        stress_name(out, "fn f", index, "(value: decltype(seed)): decltype(value) {\n var state: Shared; state.value = value;\n var address = &state.value;\n var result: decltype(address[0]) = address[0];\n var bonus: u64 = comptime(1 + 2); result += bonus;\n { defer { result += comptime(3); } }\n defer { result += bonus; }\n for(var j: u64 = 0; j < 3; j++) { result += j + ");
+        stress_name(out, "", index, "; }\n if comptime(true) { return result; }\n}\n");
+    }
+    for (var index: usize = 0; index < StressIndependentBodies; index++) {
+        stress_name(out, "fn typed", index, "(value:Shared*, extra:u64):decltype(value.value) { return value.value + extra + ");
+        stress_name(out, "", index, "; }\n");
+    }
+    stress_text(out, "var seed: u64 = 0;\nvar `control value 1.0`: u64 = 7;\nvar inferredType: decltype(identity(seed));\nvar total = comptime(identity(");
+    stress_sum(out, "f", "(0)");
+    stress_text(out, "));\nprint(total); print(`control value 1.0`);\nprint(comptime(comptime(10) + comptime(comptime(20) + 12)));\nprint(comptime(false ? comptime(1 / 0) : comptime(42)));\nprint(comptime(false && comptime(1 / 0 == 0)) ? 1 : 0);\nvar typed:Shared; typed.value=1; print(");
+    stress_sum(out, "typed", "(&typed,0)"); stress_text(out, ");\n");
+    for (var index: usize = 0; index < StressIndependentBodies; index++) {
+        stress_name(out, "var leaf", index, " = -("); stress_name(out, "", index, "); var copy");
+        stress_name(out, "", index, " = leaf"); stress_name(out, "", index, ";\n");
+    }
+    stress_text(out, "print("); stress_sum(out, "copy", "");
+    stress_text(out, ");\nvar smallest = -2147483648; var copied = smallest; var exact:decltype(copied)=copied; print(exact);\n");
+}
+fn stress_generic_workers(out: ByteBuffer*): void {
+    stress_text(out, "import tower;\nfn box(T:type):type { struct Item { value:T; } return Item; }\nfn measure(T:type):usize { return sizeof(T); }\nfn record_value(T:type, value:T*):u64 { return value.value; }\n");
+    for (var index: usize = 0; index < StressIndependentBodies; index++) {
+        stress_name(out, "fn generic", index, "(T:type, value:T):T {\n var result:decltype(value) = value;\n result += comptime(convert(T,3));\n { defer { result += comptime(convert(T,2)); } }\n for(var j:usize=0;j<3;j++) { result += convert(T,j+");
+        stress_name(out, "", index, "); }\n return result;\n}\n");
+    }
+    // Root calls construct array types after the initial layout barrier.
+    stress_text(out, "var record:box(u64); record.value=73;\nprint(measure(u32[7])); print(measure(u32[9]));\nprint(comptime(");
+    stress_sum(out, "generic", "(u64,1)"); stress_text(out, "));\nprint(comptime(");
+    stress_sum(out, "generic", "(i32,1)"); stress_text(out, "));\nprint(record_value(&record));\n");
+}
+fn stress_publish(source: ByteBuffer*): void {
+    // The existing interpreter host bounds output per execution. Keep each
+    // producer separate instead of truncating a combined JSON document.
+    utility_check(source.length <= StressOutputLimit, "stress source exceeds interpreter output capacity");
+    utility_check(platform_write(StressOutput, source.data, source.length) == convert(i64, source.length), "write stress source");
+}
+fn stress_emit_chain(kind: StressChain, operators: bool): void {
+    var source: ByteBuffer = default; defer bytes_dispose(&source);
+    stress_chain(&source, kind, operators); stress_publish(&source);
+}
+fn stress_emit(generate: function(void, ByteBuffer*)): void {
+    var source: ByteBuffer = default; defer bytes_dispose(&source);
+    generate(&source); stress_publish(&source);
+}

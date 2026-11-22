@@ -31,3 +31,16 @@ export async function loadLLVM(bytes, log, bootstrap, foundation, bedrock = buil
   host.configureModules({files});
   return host;
 }
+
+// Execute a Tower fixture producer and transport its source output unchanged.
+export async function generatedSource(tower, path) {
+  const handle = tower.compile(await readFile(path, 'utf8'));
+  try {
+    tower.useFast(handle);
+    let output = '', result;
+    do { result = tower.execute(handle, 100000); output += result.output; } while (result.status === 'executing');
+    if (result.status !== 'done') throw new Error(result.error);
+    if (result.outputTruncated) throw new Error('Tower fixture output was truncated');
+    return output;
+  } finally { tower.destroyExecution(handle); }
+}

@@ -3,8 +3,8 @@ import .library.bytes_types;
 import .library.bytes_interface;
 import .host.driver_support;
 
-// Reader for the existing ASCII string/null fixture table. Reject unsupported
-// JSON values/escapes; this is not a second general-purpose JSON framework.
+// Reader for owned ASCII fixture strings/null. Accept ASCII Unicode escapes
+// emitted by host_json_quote, but reject NUL and non-ASCII code points.
 struct FixtureJson { data: u8*; length: usize; at: usize; }
 var FixtureJsonInvalidEscape: u8 = 0;
 
@@ -32,6 +32,21 @@ fn fixture_json_take(input: FixtureJson*, delimiter: u8*): bool {
     input.at++; return true;
 }
 
+fn fixture_json_ascii_escape(input: FixtureJson*): u8 {
+    var digits: usize = 4; var base: u32 = 16; var ascii_limit: u32 = 128; var decimal_digits: u32 = 10;
+    if input.length - input.at < digits { return FixtureJsonInvalidEscape; }
+    var value: u32 = 0;
+    for (var index: usize = 0; index < digits; index++) {
+        var byte = input.data[input.at++]; var digit: u32 = 0;
+        if byte >= *"0" && byte <= *"9" { digit = convert(u32, byte - *"0"); }
+        else { if byte >= *"a" && byte <= *"f" { digit = convert(u32, byte - *"a") + decimal_digits; }
+        else { if byte >= *"A" && byte <= *"F" { digit = convert(u32, byte - *"A") + decimal_digits; }
+        else { return FixtureJsonInvalidEscape; } } }
+        value = value * base + digit;
+    }
+    return value != 0 && value < ascii_limit ? convert(u8, value) : FixtureJsonInvalidEscape;
+}
+
 fn fixture_json_string(input: FixtureJson*, out: ByteBuffer*): bool {
     out.length = 0;
     if !fixture_json_take(input, "\"") { return false; }
@@ -42,7 +57,8 @@ fn fixture_json_string(input: FixtureJson*, out: ByteBuffer*): bool {
         if byte < first_printable || byte >= ascii_limit { return false; }
         if byte == *"\\" {
             if input.at == input.length { return false; }
-            byte = fixture_json_escape(input.data[input.at++]);
+            var escaped = input.data[input.at++];
+            byte = escaped == *"u" ? fixture_json_ascii_escape(input) : fixture_json_escape(escaped);
             if byte == FixtureJsonInvalidEscape { return false; }
         }
         if !bytes_push(out, byte) { return false; }
@@ -74,7 +90,10 @@ fn fixture_json_checks(): bool {
     var truncated = "\"unfinished\\";
     input = init(FixtureJson) { data: truncated, length: strlen(truncated), at: 0 };
     if fixture_json_string(&input, &out) { return false; }
-    var unsupported = "\"\\u0041\"";
+    var encoded = "\"\\u0041\\u000a\"";
+    input = init(FixtureJson) { data: encoded, length: strlen(encoded), at: 0 };
+    if !fixture_json_string(&input, &out) || !fixture_json_end(&input) || !driver_same(out.data, "A\n") { return false; }
+    var unsupported = "\"\\u00e9\"";
     input = init(FixtureJson) { data: unsupported, length: strlen(unsupported), at: 0 };
     if fixture_json_string(&input, &out) { return false; }
     var control = "\"unescaped\n\"";

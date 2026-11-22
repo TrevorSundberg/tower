@@ -1,0 +1,151 @@
+import tower;
+import driver;
+import driver_differentials;
+import fixture_json_rows;
+import .host.driver_support;
+import .host.driver_platform;
+import .library.bytes_interface;
+import .library.bytes_types;
+import .library.vector;
+
+struct DriverMsvcCase { name: ByteBuffer; file: ByteBuffer; output: ByteBuffer; error: ByteBuffer; code: i64; }
+enum DriverMsvcField: u32 { Name = 1, File = 2, Output = 4, Error = 8, Code = 16 }
+var DriverMsvcComplete: u32 = 31;
+var DriverMsvcLanguages: usize = 2;
+
+fn driver_msvc_close(row: DriverMsvcCase*): void {
+    bytes_dispose(&row.name); bytes_dispose(&row.file); bytes_dispose(&row.output); bytes_dispose(&row.error);
+}
+fn driver_msvc_rows_close(rows: vector(DriverMsvcCase)*): void {
+    foreach (var &row in rows) { driver_msvc_close(row); }
+    vector_dispose(rows);
+}
+fn driver_msvc_integer(input: FixtureJson*, result: i64*): bool {
+    fixture_json_space(input);
+    var negative = fixture_json_take(input, "-");
+    var begin = input.at; var magnitude: u64 = 0;
+    var maximum: u64 = 9223372036854775807;
+    if negative { maximum++; }
+    var base: u64 = 10;
+    while input.at < input.length && input.data[input.at] >= *"0" && input.data[input.at] <= *"9" {
+        var digit = convert(u64, input.data[input.at++] - *"0");
+        if magnitude > (maximum - digit) / base { return false; }
+        magnitude = magnitude * base + digit;
+    }
+    if input.at == begin || (input.at - begin > 1 && input.data[begin] == *"0") { return false; }
+    *result = bits(i64, negative ? convert(u64, 0) - magnitude : magnitude);
+    return true;
+}
+fn driver_msvc_basename(name: ByteBuffer*): bool {
+    if name.length == 0 || driver_same(name.data, ".") || driver_same(name.data, "..") { return false; }
+    for (var at: usize = 0; at < name.length; at++) {
+        var byte = name.data[at];
+        if byte == *"/" || byte == *"\\" || byte == *":" || byte == 0 { return false; }
+    }
+    return true;
+}
+fn driver_msvc_row(input: FixtureJson*, row: DriverMsvcCase*): bool {
+    if !fixture_json_take(input, "{") { return false; }
+    var seen: u32 = 0; var key: ByteBuffer = default; defer bytes_dispose(&key);
+    loop {
+        if !fixture_json_string(input, &key) || !fixture_json_take(input, ":") { return false; }
+        var field: u32 = 0; var text: ByteBuffer* = null;
+        if driver_same(key.data, "name") { field = convert(u32, DriverMsvcField.Name); text = &row.name; }
+        else { if driver_same(key.data, "file") { field = convert(u32, DriverMsvcField.File); text = &row.file; }
+        else { if driver_same(key.data, "stdout") { field = convert(u32, DriverMsvcField.Output); text = &row.output; }
+        else { if driver_same(key.data, "stderr") { field = convert(u32, DriverMsvcField.Error); text = &row.error; }
+        else { if driver_same(key.data, "code") { field = convert(u32, DriverMsvcField.Code); } } } } }
+        if field == 0 || (seen & field) != 0 { return false; }
+        seen |= field;
+        if text != null { if !fixture_json_string(input, text) { return false; } }
+        else { if !driver_msvc_integer(input, &row.code) { return false; } }
+        if fixture_json_take(input, "}") { break; }
+        if !fixture_json_take(input, ",") { return false; }
+    }
+    return seen == DriverMsvcComplete && driver_msvc_basename(&row.name) && driver_msvc_basename(&row.file);
+}
+fn driver_msvc_manifest(input: FixtureJson*, rows: vector(DriverMsvcCase)*): bool {
+    if !fixture_json_take(input, "[") { return false; }
+    if fixture_json_take(input, "]") { return false; }
+    loop {
+        var row: DriverMsvcCase = default; defer driver_msvc_close(&row);
+        if !driver_msvc_row(input, &row) { return false; }
+        foreach (var &previous in rows) { if driver_same(previous.name.data, row.name.data) { return false; } }
+        if !vector_push(rows, row) { return false; }
+        row = default;
+        if fixture_json_take(input, "]") { return fixture_json_end(input); }
+        if !fixture_json_take(input, ",") { return false; }
+    }
+}
+fn driver_msvc_normalize(text: ByteBuffer*): void {
+    var destination: usize = 0;
+    for (var at: usize = 0; at < text.length; at++) {
+        if text.data[at] == *"\r" && at + 1 < text.length && text.data[at + 1] == *"\n" { continue; }
+        text.data[destination++] = text.data[at];
+    }
+    text.length = destination;
+}
+fn driver_msvc_variant(cl: u8*, row: DriverMsvcCase*, cpp: bool, optimize: bool): void {
+    var stem: ByteBuffer = default; var executable: ByteBuffer = default; var object: ByteBuffer = default;
+    defer bytes_dispose(&stem); defer bytes_dispose(&executable); defer bytes_dispose(&object);
+    driver_check(driver_text(&stem, row.name.data) && driver_text(&stem, cpp ? "-TP" : "-TC")
+        && driver_text(&stem, optimize ? "-O2" : "-Od") && host_text_terminate(&stem), "MSVC artifact stem");
+    driver_check(driver_text(&executable, stem.data) && driver_text(&executable, ".exe") && host_text_terminate(&executable)
+        && driver_text(&object, stem.data) && driver_text(&object, ".obj") && host_text_terminate(&object), "MSVC artifact paths");
+    var args: DriverArguments = default; driver_arguments_init(&args); defer driver_arguments_dispose(&args);
+    driver_argument(&args, "", cl); driver_argument(&args, "", "/nologo");
+    driver_argument(&args, "", "/W4"); driver_argument(&args, "", "/WX");
+    driver_argument(&args, "", cpp ? "/TP" : "/TC"); driver_argument(&args, "", optimize ? "/O2" : "/Od");
+    driver_argument(&args, "/Fo", object.data); driver_argument(&args, "/Fe", executable.data);
+    driver_argument(&args, "./", row.file.data);
+    driver_platform_remove(executable.data); driver_platform_remove(object.data);
+    var compiled = driver_execution_capture(&args); defer driver_execution_close(&compiled);
+    driver_check(compiled.code == DriverExecutionSuccess, "MSVC /W4 /WX compilation");
+    driver_arguments_dispose(&args); driver_arguments_init(&args);
+    driver_argument(&args, "./", executable.data);
+    var actual = driver_execution_capture(&args); defer driver_execution_close(&actual);
+    driver_msvc_normalize(&actual.output); driver_msvc_normalize(&actual.error);
+    driver_check(actual.code == row.code && driver_execution_equal(&actual.output, &row.output)
+        && driver_execution_equal(&actual.error, &row.error), "MSVC differential output and exit status");
+    driver_message(DriverDifferentialStdout, "MSVC C/C++ passed: ", stem.data, true);
+}
+fn driver_test_msvc(cl: u8*, filter: u8*): i32 {
+    var text: ByteBuffer = default; defer bytes_dispose(&text);
+    var rows: vector(DriverMsvcCase) = default; defer driver_msvc_rows_close(&rows);
+    driver_check(driver_read_file("expected.json", &text), "read MSVC expectations");
+    var input: FixtureJson = { data: text.data, length: text.length, at: 0 };
+    // Validate the complete artifact table before starting any compiler.
+    driver_check(driver_msvc_manifest(&input, &rows), "valid MSVC artifact table");
+    var selected: usize = 0;
+    foreach (var &row in &rows) {
+        if filter != null && !driver_same(row.name.data, filter) { continue; }
+        selected++;
+        for (var language: usize = 0; language < DriverMsvcLanguages; language++) {
+            for (var option: usize = 0; option < DriverOptimizationVariants; option++) {
+                driver_msvc_variant(cl, row, language != 0, option != 0);
+            }
+        }
+    }
+    driver_check(selected != 0, "MSVC filter selects a case");
+    return 0;
+}
+fn driver_msvc_parse_check(text: u8*, wanted: bool): void {
+    var rows: vector(DriverMsvcCase) = default; defer driver_msvc_rows_close(&rows);
+    var input: FixtureJson = { data: text, length: strlen(text), at: 0 };
+    driver_check(driver_msvc_manifest(&input, &rows) == wanted, "MSVC manifest parser");
+}
+fn driver_msvc_checks(): void {
+    driver_msvc_parse_check("[{\"code\":0,\"file\":\"a b.c\",\"name\":\"a b\",\"stderr\":\"\",\"stdout\":\"42\\u000a\"}]", true);
+    driver_msvc_parse_check("[{\"name\":\"a\",\"file\":\"a.c\",\"stdout\":\"\",\"stderr\":\"\",\"code\":-9223372036854775808}]", true);
+    driver_msvc_parse_check("[{\"name\":\"a\",\"file\":\"a.c\",\"stdout\":\"\",\"stderr\":\"\",\"code\":9223372036854775808}]", false);
+    driver_msvc_parse_check("[{\"name\":\"a\",\"file\":\"a.c\",\"stdout\":\"\",\"stderr\":\"\",\"code\":00}]", false);
+    driver_msvc_parse_check("[{\"name\":\"a\",\"file\":\"../a.c\",\"stdout\":\"\",\"stderr\":\"\",\"code\":0}]", false);
+    driver_msvc_parse_check("[{\"name\":\"a\",\"file\":\"a.c\",\"stdout\":\"\",\"stderr\":\"\",\"code\":0,\"code\":0}]", false);
+    driver_msvc_parse_check("[{\"name\":\"a\",\"file\":\"a.c\",\"stdout\":\"\",\"code\":0}]", false);
+    driver_msvc_parse_check("[]", false); driver_msvc_parse_check("[{}]", false);
+    driver_msvc_parse_check("[{\"name\":\"a\",\"file\":\"a.c\",\"stdout\":\"\",\"stderr\":\"\",\"code\":0}]x", false);
+    var normalized: ByteBuffer = default; defer bytes_dispose(&normalized);
+    driver_check(driver_text(&normalized, "a\r\nb\rc\n"), "MSVC newline fixture");
+    driver_msvc_normalize(&normalized); host_text_terminate(&normalized);
+    driver_check(driver_same(normalized.data, "a\nb\rc\n"), "MSVC CRLF normalization preserves lone CR");
+}

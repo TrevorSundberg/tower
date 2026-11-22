@@ -42,7 +42,7 @@ test('a worker trap interrupts a blocked coordinator through shared failure stat
 });
 
 test('declaration, body checking, lowering and staging are deterministic at 1/2/4/8 workers', {skip:!bytes, timeout:120000}, async () => {
- const {loadTower} = await import('./compiler-fixtures.mjs');
+ const {loadTower, generatedSource} = await import('./compiler-fixtures.mjs');
  const compiler = await readFile('build/browser-wasi-threads/tower.wasm');
  const foundation = await readFile('scaffolding/foundation.tower', 'utf8');
  const delayedLayout = await readFile('scaffolding/tests/decltype_layout.tower', 'utf8');
@@ -62,74 +62,26 @@ test('declaration, body checking, lowering and staging are deterministic at 1/2/
  const structValues = await readFile('scaffolding/tests/struct_values.tower', 'utf8');
  const knownBindings = await readFile('scaffolding/tests/known_bindings.tower', 'utf8');
  const computedTypeArguments = await readFile('scaffolding/tests/computed_type_arguments.tower', 'utf8');
- const typeFields = (await readFile('scaffolding/tests/decltype_type_fields.tower', 'utf8')).replace('var seed12:u64=0;',
-  Array.from({length:244},(_,i)=>`var seed${i+12}:decltype(seed${i+13});`).join('\n')+'\nvar seed256:u64=0;');
+ let stress;
  const dependencyCanonical = new Map();
  let windowCanonical;
- const windowFunctions = Array.from({length:260},(_,i)=>
-  `fn window${i}():i32 { var value=identity(${i}); return value+1; }`);
- const windowSource = 'import tower; fn identity(T:type,value:T):T { return value; }\n'
-  + windowFunctions.join('\n') + '\nvar total:i32=0;\n'
-  + windowFunctions.map((_,i)=>`total+=window${i}();`).join('\n') + '\nprint(total);';
  let genericCycleDiagnostic;
  let genericBodyBudgetDiagnostic;
  let operatorCycleDiagnostic;
  const continuationDiagnostics = new Map();
- const functions = Array.from({length:16}, (_, i) => `
-fn f${i}(value: decltype(seed)): decltype(value) {
- var state: Shared;
- state.value = value;
- var address = &state.value;
- var result: decltype(address[0]) = address[0];
- var bonus: u64 = comptime(1 + 2);
- result += bonus;
- { defer { result += comptime(3); } }
- defer { result += bonus; }
- for(var j: u64 = 0; j < 3; j++) { result += j + ${i}; }
- if comptime(true) { return result; }
-}`);
- const typedFunctions = Array.from({length:16}, (_,i) => `
-fn typed${i}(value:Shared*, extra:u64):decltype(value.value) { return value.value + extra + ${i}; }`);
- const leaves = Array.from({length:16}, (_,i) => `var leaf${i} = -(${i}); var copy${i} = leaf${i};`);
- const records = Array.from({length:16}, (_,i) => `struct Record${i} { value:decltype(seed); next:Record${i}*; }`);
- const source = 'import tower;\nstruct Shared { value: u64; }\nfn identity(T:type, value:T):T { return value; }\n' + records.join('\n') + functions.join('\n') + typedFunctions.join('\n') +
-  '\nvar seed: u64 = 0;\nvar `control value 1.0`: u64 = 7;\n' +
-  'var inferredType: decltype(identity(seed));\n' +
-  'var total = comptime(identity(' + functions.map((_,i) => `f${i}(0)`).join(' + ') + '));\n' +
-  'print(total); print(`control value 1.0`);' +
-  'print(comptime(comptime(10) + comptime(comptime(20) + 12)));' +
-  'print(comptime(false ? comptime(1 / 0) : comptime(42)));' +
-  'print(comptime(false && comptime(1 / 0 == 0)) ? 1 : 0);' +
-  'var typed:Shared; typed.value=1; print(' + typedFunctions.map((_,i)=>`typed${i}(&typed,0)`).join('+') + ');' +
-  leaves.join('\n') + '\nprint(' + leaves.map((_,i)=>`copy${i}`).join('+') + ');' +
-  'var smallest = -2147483648; var copied = smallest; var exact:decltype(copied)=copied; print(exact);';
  const canonical = new Map();
  const moduleCanonical = new Map();
  let iterationCanonical;
  const genericCanonical = new Map();
- const genericFunctions = Array.from({length:16}, (_, i) => `
-fn generic${i}(T:type, value:T):T {
- var result:decltype(value) = value;
- result += comptime(convert(T,3));
- { defer { result += comptime(convert(T,2)); } }
- for(var j:usize=0;j<3;j++) { result += convert(T,j+${i}); }
- return result;
-}`);
- const genericSource = `import tower;
-fn box(T:type):type { struct Item { value:T; } return Item; }
-fn measure(T:type):usize { return sizeof(T); }
-fn record_value(T:type, value:T*):u64 { return value.value; }
-${genericFunctions.join('\n')}
-var record:box(u64); record.value=73;
-// These root calls create array types after the initial layout barrier.
-// Their consumers must publish layouts before later leaf bodies run in workers.
-print(measure(u32[7])); print(measure(u32[9]));
-print(comptime(${genericFunctions.map((_,i)=>`generic${i}(u64,1)`).join('+')}));
-print(comptime(${genericFunctions.map((_,i)=>`generic${i}(i32,1)`).join('+')}));
-print(record_value(&record));`;
  for (const capacity of [1,2,4,8]) {
   const tower = await loadTower(compiler, undefined, foundation, undefined, undefined, {threads:{capacity}});
   try {
+   if (!stress) {
+    stress = {};
+    for (const name of ['workers', 'generic_workers', 'window', 'type_fields'])
+     stress[name] = await generatedSource(tower, `scaffolding/tests/stress/${name}.tower`);
+   }
+   const {workers:source, generic_workers:genericSource, window:windowSource, type_fields:typeFields} = stress;
    assert.equal(tower.exports.lr_work_tests(), 0, `LR tables and ECS cleanup at ${capacity} workers`);
    for (const width of [4,8]) {
     assert.equal(tower.exports.semantic_world_tests(width), 0, `World budgets and shared kernels at ${capacity} workers, width ${width}`);

@@ -1,0 +1,3 @@
+import tower;
+import tests.stress_sources;
+stress_emit(stress_generic_workers);

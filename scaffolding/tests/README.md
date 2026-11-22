@@ -17,6 +17,15 @@ output comparisons. Existing declaration-cycle, alias and staged-failure files
 are shared where they exercise the same case. Deliberate errors in these fixtures
 test diagnostic ordering and lazy demand; do not repair them as ordinary code.
 
+`stress_sources.tower` owns the larger generated programs: 1,024-declaration
+chains, 256 generic/field dependencies, 260 body-window functions and 16 independent
+ordinary/generic bodies. The `stress/*.tower` entry programs each emit one source
+within the interpreter's 64 KiB output contract. Browser tests execute those Tower
+producers through the shared transport; they no longer construct these programs
+in JavaScript. The emitted forward initializers are checked without executing
+reads before initialization. The smaller fixed fixtures remain useful for focused
+compiler checks.
+
 ## Native CLI execution and package comparisons
 
 Configure the native build with `-DTOWER_DRIVER_TESTS=ON` and build
