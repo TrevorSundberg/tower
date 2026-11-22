@@ -48016,3 +48016,23 @@ match, Docker census init/sleep only. Lock released normally to D1. Disk140GiB
 free/RAM9GiBavailable; no cleanup. Capture/type/current sanitized/browser/
 generation and publication gates remain open. Next harmless owner handoffs will
 have a new source identity; these results must not be relabeled as their tests.
+
+After all D2 jobs drained and its host lock was released, preserved the complete
+5d4a665 compiler/resource package by nonoverwriting in-workspace copy and exact
+recursive comparison. Reviewed/adopted root-routed B2 path diagnostics1110c19f:
+four distinct absolute-path failure messages use the existing owned error buffer
+and static OOM fallback, with an assertion for every injected failed request's
+nonempty diagnostic. No cleanup or failure oracle was weakened. Owner fault
+sweeps pass, but this newer local source has not yet run.
+
+Also adopted A1 harmless layout exports/APIbc7525c7 (two existing functions,
+no algorithm/layout change), and editor background-body fix6a6eeed6 after
+checking SemanticEditor and private/publish/contains helpers. SemanticEditor
+contains borrowed observation handles only; clearing the worker's private copy
+outside the completion hole prevents publishing inherited caller observations
+while checking the required producer normally. It does not release owned vectors
+or suppress body checking. Existing found guard prevents default publication.
+A1's reported editor1/2/4/8 and query passes retain owner source provenance;
+D2's same closure runtime is pending. The descendant-capture lease/range v3 is
+separate and has not been delivered/adopted. D1 owns profile/file-fixture generic
+registration; no competing manifest or duplicated fixture implementation here.

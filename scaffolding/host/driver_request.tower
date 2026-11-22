@@ -144,10 +144,18 @@ export fn driver_request_open(request: DriverRequest*, options: DriverOptions*, 
     if !(driver_request_read(request, options.source, DriverSourceText)) {
         return false;
     }
-    if !driver_platform_absolute(options.source, &request.source_path)
-        || !driver_platform_absolute(root, &request.root_path)
-        || !driver_request_absolute(&request.bedrock_path)
-        || !driver_request_absolute(&request.foundation_path) { return false; }
+    if !driver_platform_absolute(options.source, &request.source_path) {
+        return driver_request_failure(request, "Cannot resolve source path: ", options.source);
+    }
+    if !driver_platform_absolute(root, &request.root_path) {
+        return driver_request_failure(request, "Cannot resolve resource root: ", root);
+    }
+    if !driver_request_absolute(&request.bedrock_path) {
+        return driver_request_failure(request, "Cannot resolve Bedrock path: ", request.bedrock_path.data);
+    }
+    if !driver_request_absolute(&request.foundation_path) {
+        return driver_request_failure(request, "Cannot resolve Foundation path: ", request.foundation_path.data);
+    }
     request.root = request.root_path.data;
     return true;
 }

@@ -1569,6 +1569,12 @@ fn semantic_body_kernel(result: SemanticBodyWork*): void {
     copy(&program, context.program, sizeof(SemanticProgram));
     context.program = &program;
     sem_editor_private(&context, &result.editor);
+    // A required producer can be outside the completion hole. Check its real
+    // body with private scratch, without capturing the caller's editor scope.
+    if context.editor != null && !sem_editor_contains(&context, result.subject) {
+        context.editor = null;
+        result.editor = default;
+    }
     context.type_observations = &result.type_observations;
     context.current = result.subject;
     context.entity_stage = result.stage;
