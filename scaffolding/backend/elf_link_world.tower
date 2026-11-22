@@ -1,6 +1,7 @@
 import tower;
 import elf_types;
 import elf_object;
+import elf_shared;
 import wasm_bytes;
 import wasm_names;
 import wasm_archive;
@@ -10,7 +11,7 @@ import .library.entity_types;
 import .library.entity_api;
 
 fn elf_link_open(link: ElfLink*, machine: ElfMachine): bool {
-    link.machine = machine; link.entry = wasm_text_bytes("_start"); link.workers = 1;
+    link.machine = machine; link.entry = wasm_text_bytes("_start"); link.workers = 1; link.base = ElfBase;
     link.page_size = machine == ElfMachine.X64 ? ElfX64Page : ElfPage;
     link.store = entity_store_create();
     if link.store == null || !entity_store_set_context(link.store, bits(void*, link)) { return elf_fail(&link.error, ElfError.Allocation, default(WasmBytes), 0); }
@@ -28,11 +29,35 @@ fn elf_link_close(link: ElfLink*): bool {
         wasm_archive_dispose(&entry.archive.archive); vector_dispose(&entry.archive.selected); entity_release(entry.node);
     }
     vector_dispose(&link.objects); vector_dispose(&link.archives); vector_dispose(&link.globals);
+    foreach (var & entry in &link.dylibs) { elf_shared_dispose(entry.library); entity_release(entry.node); }
+    vector_dispose(&link.dylibs); vector_dispose(&link.imports); vector_dispose(&link.export_names);
     wasm_names_dispose(&link.names); wasm_names_dispose(&link.groups); bytes_dispose(&link.output);
     if link.object_type != null { entity_release(link.object_type); }
     if link.archive_type != null { entity_release(link.archive_type); }
+    if link.dylib_type != null { entity_release(link.dylib_type); }
     if link.store != null && !entity_store_dispose(link.store) { return false; }
     *link = default; return true;
+}
+
+fn elf_link_shared(link: ElfLink*, name: WasmBytes, bytes: WasmBytes): bool {
+    if !link.dynamic { return elf_fail(&link.error, ElfError.Unsupported, name, 0); }
+    if link.error.kind != ElfError.None || link.store == null || link.store.views != 0 { return false; }
+    if link.dylib_type == null {
+        link.dylib_type = entity_create(link.store);
+        if link.dylib_type == null || !entity_register(link.dylib_type, sizeof(ElfDylib), alignof(ElfDylib), 0) { return elf_fail(&link.error, ElfError.Allocation, name, 0); }
+    }
+    var node = entity_create(link.store); if node == null { return elf_fail(&link.error, ElfError.Allocation, name, 0); }
+    var component = entity_component_add(node, link.dylib_type);
+    if component == null { entity_release(node); return elf_fail(&link.error, ElfError.Allocation, name, 0); }
+    var library = bits(ElfDylib*, entity_component_data(component));
+    *library = init(ElfDylib) { name: name, bytes: bytes, needed: true, ..default };
+    var entry: ElfDylibEntry = { node: node, library: library };
+    if !vector_push(&link.dylibs, entry) { entity_release(node); return elf_fail(&link.error, ElfError.Allocation, name, 0); }
+    if !elf_shared_read(library, link.machine, &link.error) { return false; }
+    foreach (var & prior in &link.dylibs) {
+        if prior.library != library && wasm_bytes_equal(prior.library.soname, library.soname) { return elf_fail(&link.error, ElfError.Duplicate, library.soname, 0); }
+    }
+    return true;
 }
 
 fn elf_link_object(link: ElfLink*, name: WasmBytes, bytes: WasmBytes): bool {
@@ -42,7 +67,7 @@ fn elf_link_object(link: ElfLink*, name: WasmBytes, bytes: WasmBytes): bool {
     var component = entity_component_add(node, link.object_type);
     if component == null { entity_release(node); return elf_fail(&link.error, ElfError.Allocation, name, 0); }
     var object = bits(ElfObject*, entity_component_data(component));
-    *object = init(ElfObject) { name: name, bytes: bytes, ..default };
+    *object = init(ElfObject) { name: name, bytes: bytes, hosted: link.dynamic, ..default };
     var entry: ElfObjectEntry = { node: node, object: object };
     if !vector_push(&link.objects, entry) {
         entity_release(node); return elf_fail(&link.error, ElfError.Allocation, name, 0);
@@ -81,5 +106,7 @@ fn elf_link_input(link: ElfLink*, name: WasmBytes, bytes: WasmBytes): bool {
     if bytes.length >= magic_size && wasm_bytes_text(init(WasmBytes) { data: bytes.data, length: magic_size }, "!<arch>\n") {
         return elf_link_archive(link, name, bytes);
     }
+    if elf_span(bytes, 0, ElfHeaderBytes) && elf_header(bytes, ElfHeaderAt.Magic, ElfWordBytes) == ElfMagic
+        && elf_header(bytes, ElfHeaderAt.Type, ElfHalfBytes) == ElfShared { return elf_link_shared(link, name, bytes); }
     return elf_link_object(link, name, bytes);
 }

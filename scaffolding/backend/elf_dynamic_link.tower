@@ -1,0 +1,23 @@
+import tower;
+import elf_types;
+import elf_link_world;
+import elf_link_symbols;
+import elf_dynamic_emit;
+import wasm_bytes;
+import .library.work_pool;
+
+fn elf_dynamic_link_open(link: ElfLink*, machine: ElfMachine, interpreter: WasmBytes): bool {
+    if !elf_link_open(link, machine) { return false; }
+    link.dynamic = true; link.base = 0; link.interpreter = interpreter; return true;
+}
+fn elf_dynamic_link_run(link: ElfLink*): bool {
+    link.output.length = 0;
+    if !link.dynamic || link.started || link.workers == 0 || link.workers > WorkPoolMaximumCapacity {
+        return elf_fail(&link.error, ElfError.Input, wasm_text_bytes("invalid hosted ELF request or worker budget"), 0);
+    }
+    link.started = true;
+    if link.error.kind == ElfError.None && elf_link_symbols(link) && elf_dynamic_emit(link) { return true; }
+    link.output.length = 0;
+    if link.error.kind == ElfError.None { elf_fail(&link.error, ElfError.Allocation, default(WasmBytes), 0); }
+    return false;
+}

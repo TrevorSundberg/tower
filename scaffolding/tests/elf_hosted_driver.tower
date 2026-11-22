@@ -1,0 +1,47 @@
+import tower;
+import utility_checks;
+import link_fixture_file;
+import elf_hosted_checks;
+import .backend.elf_types;
+import .backend.elf_dynamic_link;
+import .backend.elf_link_world;
+import .backend.wasm_bytes;
+import .library.bytes;
+import .library.bytes_types;
+import .library.vector;
+import .library.entities;
+import .library.entity_types;
+import .host.work_linux;
+import .host.work_dispatch;
+
+export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, data: u8*): void { abort(); }
+export fn work_kernel_execute(job: void*): void { abort(); }
+export fn main(argc: i32, argv: u8**): i32 {
+    var first_input: i32 = 4;
+    if argc <= first_input { puts("usage: elf_hosted_driver output x64|arm64 workers object-or-archive-or-DSO ..."); return 1; }
+    var machine = wasm_bytes_text(wasm_text_bytes(argv[2]), "arm64") ? ElfMachine.Arm64 : ElfMachine.X64;
+    var interpreter = machine == ElfMachine.X64 ? "/lib64/ld-linux-x86-64.so.2" : "/lib/ld-linux-aarch64.so.1";
+    var inputs: vector(ByteBuffer) = default;
+    defer { foreach (var & input in &inputs) { bytes_dispose(input); } vector_dispose(&inputs); }
+    var link: ElfLink = default; defer elf_link_close(&link);
+    utility_check(elf_dynamic_link_open(&link, machine, wasm_text_bytes(interpreter)), "hosted ELF world");
+    link.workers = convert(usize, *argv[3] - *"0");
+    link.export_all = true;
+    for (var at = first_input; at < argc; at++) {
+        var bytes: ByteBuffer = default;
+        utility_check(link_fixture_read(argv[at], &bytes), "read explicit hosted input");
+        utility_check(vector_push(&inputs, bytes), "own hosted input bytes");
+    }
+    for (var index: usize = 0; index < inputs.length; index++) {
+        var bytes = &inputs.data[index];
+        if !elf_link_input(&link, wasm_text_bytes(argv[first_input + convert(i32, index)]), init(WasmBytes) { data: bytes.data, length: bytes.length }) { break; }
+    }
+    if !elf_dynamic_link_run(&link) {
+        puts(elf_message(link.error.kind)); print(link.error.offset);
+        var name: ByteBuffer = default; defer bytes_dispose(&name);
+        bytes_assign_text(&name, link.error.name.data, link.error.name.length); puts(name.data); return 1;
+    }
+    utility_check(link_fixture_write(argv[1], &link.output), "write hosted executable");
+    elf_hosted_checks(&link, &inputs);
+    puts("Tower hosted ELF image linked"); print(link.jobs_run); print(link.jobs_peak); return 0;
+}

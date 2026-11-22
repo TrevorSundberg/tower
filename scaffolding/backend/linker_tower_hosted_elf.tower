@@ -1,0 +1,73 @@
+import tower;
+import link_types;
+import text;
+import elf_types;
+import elf_dynamic_link;
+import elf_link_world;
+import wasm_bytes;
+import .library.vector;
+import .library.work_pool;
+
+fn backend_hosted_elf_input(backend: BackendLink*, link: ElfLink*, name: u8*): bool {
+    var found: BackendLinkInput* = null;
+    foreach (var & input in &backend.inputs) {
+        if backend_equal(input.name.data, name) { if found != null { return elf_fail(&link.error, ElfError.Input, wasm_text_bytes(name), 0); } found = input; }
+    }
+    foreach (var & input in &backend.generated) {
+        if backend_equal(input.name.data, name) { if found != null { return elf_fail(&link.error, ElfError.Input, wasm_text_bytes(name), 0); } found = input; }
+    }
+    if found == null { return elf_fail(&link.error, ElfError.Input, wasm_text_bytes(name), 0); }
+    var bytes: WasmBytes = { data: found.bytes.data, length: found.bytes.length };
+    return elf_link_input(link, wasm_text_bytes(name), bytes);
+}
+
+// Transport-independent hosted ELF service. The caller supplies startup objects,
+// shared libraries, loader path and optional runpath explicitly as request data.
+export fn backend_link_tower_hosted_elf(backend: BackendLink*, triple: u8*): bool {
+    backend.output.length = 0;
+    if backend.error.length != 0 { return false; }
+    var link: ElfLink = default; defer elf_link_close(&link);
+    var machine = backend_prefix(triple, "aarch64-") ? ElfMachine.Arm64 : ElfMachine.X64;
+    var ok = elf_dynamic_link_open(&link, machine, default(WasmBytes));
+    if !backend_contains(triple, "linux") || (!backend_prefix(triple, "x86_64-") && !backend_prefix(triple, "aarch64-")) {
+        ok = elf_fail(&link.error, ElfError.Unsupported, wasm_text_bytes(triple), 0);
+    }
+    if backend.arguments.length == 0 { ok = elf_fail(&link.error, ElfError.Input, wasm_text_bytes("missing hosted ELF arguments"), 0); }
+    for (var at: usize = 1; at < backend.arguments.length && ok; at++) {
+        var arg = backend.arguments.data[at];
+        if backend_equal(arg, "-pie") || backend_equal(arg, "--build-id=none") { continue; }
+        if backend_equal(arg, "--export-dynamic") { link.export_all = true; continue; }
+        if backend_prefix(arg, "--export-dynamic-symbol=") {
+            ok = vector_push(&link.export_names, wasm_text_bytes(arg + backend_length("--export-dynamic-symbol="))); continue;
+        }
+        if backend_equal(arg, "--dynamic-linker") || backend_equal(arg, "-rpath") || backend_equal(arg, "-e") || backend_equal(arg, "-o") {
+            if ++at == backend.arguments.length { ok = elf_fail(&link.error, ElfError.Input, wasm_text_bytes(arg), 0); break; }
+            var value = wasm_text_bytes(backend.arguments.data[at]);
+            if backend_equal(arg, "--dynamic-linker") { link.interpreter = value; }
+            if backend_equal(arg, "-rpath") { link.runpath = value; }
+            if backend_equal(arg, "-e") { link.entry = value; }
+            continue;
+        }
+        var threads = "--threads=";
+        if backend_prefix(arg, threads) {
+            var count: usize = 0; var first = backend_length(threads); var cursor = first; var radix: usize = 10;
+            while arg[cursor] != 0 {
+                if arg[cursor] < *"0" || arg[cursor] > *"9" || count > WorkPoolMaximumCapacity / radix { break; }
+                count = count * radix + convert(usize, arg[cursor++] - *"0");
+            }
+            if cursor == first || arg[cursor] != 0 || count == 0 || count > WorkPoolMaximumCapacity { ok = elf_fail(&link.error, ElfError.Input, wasm_text_bytes(arg), 0); break; }
+            link.workers = count; continue;
+        }
+        if *arg == *"-" { ok = elf_fail(&link.error, ElfError.Unsupported, wasm_text_bytes(arg), 0); break; }
+        ok = backend_hosted_elf_input(backend, &link, arg);
+    }
+    ok &&= elf_dynamic_link_run(&link);
+    if !ok {
+        backend_text(&backend.error, "Link failed: "); backend_text(&backend.error, elf_message(link.error.kind));
+        if link.error.name.length != 0 { backend_text(&backend.error, ": "); backend_text_append(&backend.error, link.error.name.data, link.error.name.length); }
+        return false;
+    }
+    vector_dispose(&backend.output);
+    backend.output.data = link.output.data; backend.output.length = link.output.length; backend.output.capacity = link.output.capacity;
+    link.output = default; return true;
+}

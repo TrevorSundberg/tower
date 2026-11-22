@@ -31,4 +31,5 @@ struct DriverOptions {
     argument: u8*;
     comments: bool;
     check_format: bool;
+    link_executable: bool;
 }

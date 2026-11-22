@@ -1,0 +1,32 @@
+import tower;
+import driver_mapped_file;
+
+extern fn fopen(path: u8*, mode: u8*): void*;
+extern fn fclose(file: void*): i32;
+extern fn _fseeki64(file: void*, offset: i64, origin: i32): i32;
+extern fn _ftelli64(file: void*): i64;
+extern fn _fileno(file: void*): i32;
+extern fn _get_osfhandle(descriptor: i32): i64;
+extern fn CreateFileMappingW(file: void*, attributes: void*, protection: u32, high: u32, low: u32, name: u16*): void*;
+extern fn MapViewOfFile(mapping: void*, access: u32, high: u32, low: u32, length: usize): void*;
+extern fn UnmapViewOfFile(address: void*): i32;
+extern fn CloseHandle(handle: void*): i32;
+
+export fn driver_platform_map(path: u8*, out: DriverMappedFile*): bool {
+    var file = fopen(path, "rb"); if file == null { return false; } defer fclose(file);
+    var seek_end: i32 = 2; var page_read_only: u32 = 2; var map_read: u32 = 4;
+    if _fseeki64(file, 0, seek_end) != 0 { return false; }
+    var length = _ftelli64(file); if length < 0 { return false; }
+    var next: DriverMappedFile = { length: convert(usize, length), ..default };
+    if length != 0 {
+        var handle = _get_osfhandle(_fileno(file)); if handle == -1 { return false; }
+        var mapping = CreateFileMappingW(bits(void*, handle), null, page_read_only, 0, 0, null);
+        if mapping == null { return false; } defer CloseHandle(mapping);
+        next.data = bits(u8*, MapViewOfFile(mapping, map_read, 0, 0, next.length)); if next.data == null { return false; }
+    }
+    *out = next; return true;
+}
+export fn driver_platform_unmap(file: DriverMappedFile*): void {
+    if file.data != null { UnmapViewOfFile(bits(void*, file.data)); }
+    *file = default;
+}

@@ -97,55 +97,12 @@ fn backend_filename(name: u8*): bool {
     }
 }
 
+var BackendLinkInputByteLimit: usize = 67108864;
+var BackendLinkInputLimit: usize = 64;
 export fn backend_link_add_input(link: BackendLink*, name: u8*, data: u8*, length: usize): bool {
-    var invalid = name == null;
-    if invalid {
-        return false;
-    }
-    invalid = data == null;
-    if invalid {
-        return false;
-    }
-    invalid = length > 67108864;
-    if invalid {
-        return false;
-    }
-    invalid = link.inputs.length >= 64;
-    if invalid {
-        return false;
-    }
-    invalid = backend_filename(name) == false;
-    if invalid {
-        return false;
-    }
-    invalid = backend_prefix(name, "tower-");
-    if invalid {
-        return false;
-    }
-    var i: usize = 0;
-    var found: BackendLinkInput* = null;
-    for(; i != link.inputs.length; i++) {
-        if backend_equal(link.inputs.data[i].name.data, name) {
-            found = &link.inputs.data[i];
-            break;
-        }
-    }
-    if found == null {
-        var needed = link.inputs.length + 1;
-        var ok = vector_reserve(&link.inputs, needed);
-        invalid = !ok;
-        if invalid {
-            return false;
-        }
-        found = &link.inputs.data[link.inputs.length];
-        *found = default;
-        backend_text(&found.name, name);
-        link.inputs.length = needed;
-    }
-    found.bytes.length = 0;
-    backend_text_append(&found.bytes, data, length);
-    var complete = found.bytes.length == length;
-    return complete;
+    if name == null || data == null || length > BackendLinkInputByteLimit || link.inputs.length >= BackendLinkInputLimit
+        || !backend_filename(name) || backend_prefix(name, "tower-") { return false; }
+    return backend_link_input_store(&link.inputs, name, data, length);
 }
 
 fn backend_link_generated(link: BackendLink*, name: u8*, data: u8*, length: usize): bool {

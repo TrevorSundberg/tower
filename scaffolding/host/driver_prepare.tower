@@ -38,6 +38,16 @@ export fn driver_prepare(options: DriverOptions*, argc: usize, argv: u8**, targe
         driver_message(1, driver_help(), "", false);
         return 2;
     }
+    if options.link_executable {
+        if options.output[0] == 0 || (options.source[0] == 0 && options.link_count == 0)
+            || options.interpret || options.library || options.unit_count != 0 || options.check_format
+            || !driver_same(options.emit, "exe") || options.linker[0] != 0 || options.raw[0] != 0
+            || options.optimized[0] != 0 || options.depfile[0] != 0 || !options.comments
+            || (options.source[0] != 0 && driver_same(options.source, options.output)) {
+            driver_error("--link-executable requires object inputs and -o, without compilation or external-linker options", ""); return 1;
+        }
+        return 0;
+    }
     if !driver_output_valid(options.emit) {
         driver_error("Unknown output kind: ", options.emit);
         return 1;

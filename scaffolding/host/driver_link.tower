@@ -5,6 +5,9 @@ import driver_support;
 import driver_timing;
 import driver_platform;
 import driver_paths;
+import driver_linux_libraries;
+import driver_link_input;
+import driver_mapped_file;
 import .backend.link_types;
 import .backend.link_inputs;
 import .library.vector;
@@ -26,6 +29,7 @@ struct DriverLink {
     imports: ByteBuffer;
     exports: DriverArguments;
     inputs: DriverArguments;
+    system_inputs: DriverArguments;
     ok: bool;
     wasm_link: function(bool, BackendLink*);
     native_link: function(bool, BackendLink*, u8*);
@@ -34,6 +38,7 @@ struct DriverLink {
 fn driver_link_uses_tower(link: DriverLink*): bool {
     if link.wasm { return link.linker[0] == 0 || driver_same(link.linker, "tower-wasm-ld"); }
     if link.windows { return link.linker[0] == 0 || driver_same(link.linker, "tower-pe-link"); }
+    if strstr(link.target, "linux") != null { return link.linker[0] == 0 || driver_same(link.linker, "tower-elf-link"); }
     return strstr(link.target, "apple") != null && (driver_same(link.linker, "tower-macho-link") || (link.linker[0] == 0 && link.sysroot[0] == 0));
 }
 
@@ -68,6 +73,7 @@ export fn driver_link_open(target: u8*, cc: u8*, linker: u8*, sysroot: u8*, outp
     link.timings = timings;
     driver_arguments_init(&link.exports);
     driver_arguments_init(&link.inputs);
+    driver_arguments_init(&link.system_inputs);
     link.ok = driver_text(&link.imports, "tower_print\ntower_trap\n");
     return link;
 }
@@ -147,7 +153,7 @@ fn driver_link_arguments(link: DriverLink*, args: DriverArguments*): void {
         if link.wasm {
             linker = "tower-wasm-ld";
         }
-        if !link.wasm && !link.windows && driver_link_uses_tower(link) { linker = "tower-macho-link"; }
+        if !link.wasm && !link.windows && driver_link_uses_tower(link) { linker = strstr(link.target, "linux") != null ? "tower-elf-link" : "tower-macho-link"; }
     }
     driver_argument(args, "", linker);
     if link.wasm {
@@ -166,20 +172,28 @@ fn driver_link_arguments(link: DriverLink*, args: DriverArguments*): void {
             driver_argument(args, "/out:", link.output);
         } else {
             if driver_link_uses_tower(link) {
+                if strstr(link.target, "linux") != null {
+                    driver_argument(args, "", "-pie"); driver_argument(args, "", "--dynamic-linker");
+                    driver_argument(args, "", strstr(link.target, "aarch64") == link.target ? "/lib/ld-linux-aarch64.so.1" : "/lib64/ld-linux-x86-64.so.2");
+                    foreach (var input in &link.system_inputs.values) { driver_argument(args, "", input); }
+                } else {
                 driver_argument(args, "", "-arch"); driver_argument(args, "", strstr(link.target, "x86_64") == link.target ? "x86_64" : "arm64");
                 driver_argument(args, "", "-platform_version"); driver_argument(args, "", "macos");
                 driver_argument(args, "", "11.0"); driver_argument(args, "", "11.0"); driver_argument(args, "", "-e"); driver_argument(args, "", "_main");
+                }
             } else { driver_argument(args, "--target=", link.target); }
         }
     }
     driver_argument(args, "", link.program.data);
     driver_argument(args, "", link.runtime.data);
-    var exports = link.wasm;
+    var linux = !link.wasm && !link.windows && strstr(link.target, "linux") != null && driver_link_uses_tower(link);
+    var exports = link.wasm || linux;
     if link.windows {
         exports = true;
     }
     if exports {
         var prefix = "--export=";
+        if linux { prefix = "--export-dynamic-symbol="; }
         if link.windows {
             prefix = "/export:";
         }
@@ -214,6 +228,14 @@ fn driver_link_execute(link: DriverLink*, data: u8*, length: usize): i32 {
         return 1;
     }
     var internal = driver_link_uses_tower(link);
+    if internal && !link.wasm && !link.windows && strstr(link.target, "linux") != null {
+        var path: ByteBuffer = default; defer bytes_dispose(&path);
+        if !driver_linux_library(link.target, link.sysroot, "Scrt1.o", &path) { return 1; }
+        driver_argument(&link.system_inputs, "", path.data);
+        if !driver_linux_library(link.target, link.sysroot, "libc.so.6", &path) { return 1; }
+        driver_argument(&link.system_inputs, "", path.data);
+        if !link.system_inputs.ok { return 1; }
+    }
     if internal {
         if !driver_link_generated_name(link, &link.program, "tower-input.o")
             || !driver_link_generated_name(link, &link.allowed, "tower-allowed.txt") { return 1; }
@@ -254,20 +276,23 @@ fn driver_link_execute(link: DriverLink*, data: u8*, length: usize): i32 {
 fn driver_link_bytes(link: DriverLink*, args: DriverArguments*, data: u8*, length: usize): i32 {
     if !args.ok || (link.wasm ? link.wasm_link == null : link.native_link == null) { driver_error("Tower linker service unavailable", ""); return 1; }
     var backend: BackendLink = { arguments: args.values, ..default };
-    var input: ByteBuffer = default;
-    defer bytes_dispose(&input);
+    var views: vector(DriverMappedFile) = default; defer driver_link_files_close(&views);
     defer {
         backend_link_inputs_release(&backend.generated); vector_dispose(&backend.generated);
         vector_dispose(&backend.output); vector_dispose(&backend.error);
     }
     var ok = backend_link_input_store(&backend.generated, link.program.data, data, length)
         && (!link.wasm || backend_link_input_store(&backend.generated, link.allowed.data, link.imports.data, link.imports.length))
-        && driver_read_file(link.runtime.data, &input)
-        && backend_link_input_store(&backend.generated, link.runtime.data, input.data, input.length);
+        && driver_link_file(&backend, &views, link.runtime.data);
     foreach (var name in &link.inputs.values) {
         if !ok { break; }
-        ok = driver_read_file(name, &input) && backend_link_input_store(&backend.generated, name, input.data, input.length);
+        ok = driver_link_file(&backend, &views, name);
         if !ok { driver_error("Cannot read linker input: ", name); }
+    }
+    foreach (var name in &link.system_inputs.values) {
+        if !ok { break; }
+        ok = driver_link_file(&backend, &views, name);
+        if !ok { driver_error("Cannot read target SDK input: ", name); }
     }
     if !ok { driver_error("Cannot prepare linker bytes", ""); return 1; }
     if !(link.wasm ? link.wasm_link(&backend) : link.native_link(&backend, link.target)) { driver_error("", backend.error.data); return 1; }
@@ -295,6 +320,7 @@ export fn driver_link_close(link: DriverLink*): void {
     bytes_dispose(&link.imports);
     driver_arguments_dispose(&link.exports);
     driver_arguments_dispose(&link.inputs);
+    driver_arguments_dispose(&link.system_inputs);
     free(link);
 }
 

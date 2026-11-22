@@ -1,0 +1,132 @@
+import tower;
+import elf_types;
+import elf_relocate;
+import elf_link_emit;
+import wasm_bytes;
+import .library.vector;
+
+// A derived lookup index over retained input CFI, owned by one link request.
+// The CFI itself is copied and relocated by the ordinary object jobs.
+var ElfEhHeaderBytes: u64 = 12;
+var ElfEhEntryBytes: u64 = 8;
+var ElfEhRecordHeader: u64 = 8;
+var ElfEhProgram: u64 = 1685382480;
+var ElfEhVersion: u64 = 1;
+var ElfEhPcSigned4: u64 = 27;
+var ElfEhPcSigned8: u64 = 28;
+var ElfEhPcPointer: u64 = 16;
+var ElfEhUnsigned4: u64 = 3;
+var ElfEhDataSigned4: u64 = 59;
+var ElfEhLebBits: u64 = 64;
+var ElfEhCieVersion3: u8 = 3;
+struct ElfEhCie { offset: u64; width: u64; }
+struct ElfEhFrame { section: ElfSection*; offset: u64; width: u64; address: u64; size: u64; }
+struct ElfEhTable { frames: vector(ElfEhFrame); section: ElfSection*; at: u64; size: u64; }
+
+fn elf_eh_cie(bytes: WasmBytes, offset: u64, size: u64): u64 {
+    // Restrict each decoder to this record, never a following CIE or FDE.
+    var record: WasmBytes = { data: bytes.data + convert(usize, offset), length: convert(usize, size + ElfWordBytes) };
+    if record.length <= convert(usize, ElfEhRecordHeader) { return 0; }
+    var version = record.data[convert(usize, ElfEhRecordHeader)];
+    if version != convert(u8, ElfEhVersion) && version != ElfEhCieVersion3 { return 0; }
+    var augmentation: WasmBytes = default;
+    if !elf_text(record, ElfEhRecordHeader + 1, &augmentation)
+        || (!wasm_bytes_text(augmentation, "zR") && !wasm_bytes_text(augmentation, "zRS")) { return 0; }
+    var reader: WasmReader = { bytes: record, at: convert(usize, ElfEhRecordHeader) + augmentation.length + 2, ..default };
+    wasm_read_uleb(&reader, ElfEhLebBits); wasm_read_sleb(&reader, ElfEhLebBits);
+    if version == convert(u8, ElfEhVersion) { wasm_read_byte(&reader); } else { wasm_read_uleb(&reader, ElfEhLebBits); }
+    if wasm_read_uleb(&reader, ElfEhLebBits) != 1 { return 0; }
+    var encoding = convert(u64, wasm_read_byte(&reader));
+    if reader.error != WasmReadError.None { return 0; }
+    if encoding == ElfEhPcSigned4 { return ElfWordBytes; }
+    return encoding == ElfEhPcSigned8 || encoding == ElfEhPcPointer ? ElfAddressBytes : 0;
+}
+fn elf_eh_prepare(link: ElfLink*, table: ElfEhTable*): bool {
+    var cies: vector(ElfEhCie) = default; defer vector_dispose(&cies);
+    foreach (var & input in &link.objects) {
+        foreach (var & section in &input.object.sections) {
+            if section.discarded || (section.flags & ElfFlagAlloc) == 0 || !wasm_bytes_text(section.name, ".eh_frame") { continue; }
+            if section.kind != ElfSectionType.Program && section.kind != ElfSectionType.X64Unwind { return elf_fail(&link.error, ElfError.Input, section.name, 0); }
+            if table.section == null { table.section = section; }
+            cies.length = 0;
+            for (var at: u64 = 0; at < section.size;) {
+                if !elf_span(section.bytes, at, ElfWordBytes) { return elf_fail(&link.error, ElfError.Input, section.name, at); }
+                var size = elf_uint(section.bytes, at, ElfWordBytes);
+                if size == 0 { at += ElfWordBytes; continue; }
+                if size < ElfWordBytes || !elf_span(section.bytes, at + ElfWordBytes, size) { return elf_fail(&link.error, ElfError.Input, section.name, at); }
+                var cie = elf_uint(section.bytes, at + ElfWordBytes, ElfWordBytes);
+                if cie == 0 {
+                    var width = elf_eh_cie(section.bytes, at, size);
+                    if width == 0 { return elf_fail(&link.error, ElfError.Unsupported, section.name, at); }
+                    var definition: ElfEhCie = { offset: at, width: width };
+                    if !vector_push(&cies, definition) { return false; }
+                } else {
+                    if cie > at + ElfWordBytes { return elf_fail(&link.error, ElfError.Input, section.name, at); }
+                    var target = at + ElfWordBytes - cie; var first: usize = 0; var end = cies.length;
+                    while first < end { var middle = first + (end - first) / 2; if cies.data[middle].offset < target { first = middle + 1; } else { end = middle; } }
+                    if first == cies.length || cies.data[first].offset != target { return elf_fail(&link.error, ElfError.Input, section.name, at); }
+                    var width = cies.data[first].width;
+                    if size < ElfWordBytes + width * 2 { return elf_fail(&link.error, ElfError.Input, section.name, at); }
+                    var length = elf_uint(section.bytes, at + ElfEhRecordHeader + width, width);
+                    var frame: ElfEhFrame = { section: section, offset: at, width: width, size: length, ..default };
+                    if length != 0 && !vector_push(&table.frames, frame) { return false; }
+                }
+                at += ElfWordBytes + size;
+            }
+        }
+    }
+    if table.frames.length != 0 { table.size = ElfEhHeaderBytes + convert(u64, table.frames.length) * ElfEhEntryBytes; }
+    return table.size < ElfImageLimit || elf_fail(&link.error, ElfError.Range, wasm_text_bytes("ELF unwind index"), 0);
+}
+fn elf_eh_less(left: ElfEhFrame*, right: ElfEhFrame*): bool {
+    return left.address < right.address || (left.address == right.address && left.size < right.size);
+}
+fn elf_eh_heap(values: vector(ElfEhFrame)*, root: usize, count: usize): void {
+    var at = root;
+    while at < count / 2 {
+        var child = at * 2 + 1;
+        if child + 1 < count && elf_eh_less(&values.data[child], &values.data[child + 1]) { child++; }
+        if !elf_eh_less(&values.data[at], &values.data[child]) { break; }
+        var swap = values.data[at]; values.data[at] = values.data[child]; values.data[child] = swap; at = child;
+    }
+}
+fn elf_eh_emit(link: ElfLink*, table: ElfEhTable*): bool {
+    if table.size == 0 { return true; }
+    foreach (var & frame in &table.frames) {
+        var field = frame.offset + ElfEhRecordHeader;
+        var bytes: WasmBytes = { data: link.output.data + convert(usize, frame.section.output), length: convert(usize, frame.section.size) };
+        var delta = elf_uint(bytes, field, frame.width);
+        if frame.width == ElfWordBytes { delta = bits(u64, convert(i64, bits(i32, convert(u32, delta)))); }
+        frame.address = frame.section.address + field + delta;
+        if frame.address < link.execute_address || frame.address - link.execute_address >= link.execute_end - link.execute_begin
+            || frame.size > link.execute_address + link.execute_end - link.execute_begin - frame.address {
+            return elf_fail(&link.error, ElfError.Input, frame.section.name, frame.offset);
+        }
+    }
+    var values = &table.frames; var at = values.length / 2;
+    while at != 0 { elf_eh_heap(values, --at, values.length); }
+    var end = values.length;
+    while end > 1 { end--; var swap = values.data[0]; values.data[0] = values.data[end]; values.data[end] = swap; elf_eh_heap(values, 0, end); }
+    // At equal starts retain the longest interval. Zero-sized FDEs were omitted
+    // before layout, so they cannot hide a real function from binary search.
+    var count: usize = 0;
+    for (var index: usize = 0; index < values.length; index++) {
+        if index + 1 < values.length && values.data[index].address == values.data[index + 1].address { continue; }
+        values.data[count++] = values.data[index];
+    }
+    var output = link.output.data + convert(usize, table.at);
+    elf_put(output, 0, 1, ElfEhVersion); elf_put(output, 1, 1, ElfEhPcSigned4);
+    elf_put(output, 2, 1, ElfEhUnsigned4); elf_put(output, 3, 1, ElfEhDataSigned4);
+    var delta = table.section.address - table.at - ElfWordBytes;
+    if !elf_signed(delta, ElfWordBytes * ElfByteBits) { return elf_fail(&link.error, ElfError.Range, table.section.name, 0); }
+    elf_put(output, ElfWordBytes, ElfWordBytes, delta); elf_put(output, ElfAddressBytes, ElfWordBytes, convert(u64, count));
+    for (var index: usize = 0; index < count; index++) {
+        var frame = &values.data[index]; var record = frame.section.address + frame.offset;
+        if !elf_signed(frame.address - table.at, ElfWordBytes * ElfByteBits) || !elf_signed(record - table.at, ElfWordBytes * ElfByteBits) {
+            return elf_fail(&link.error, ElfError.Range, frame.section.name, frame.offset);
+        }
+        var entry = ElfEhHeaderBytes + convert(u64, index) * ElfEhEntryBytes;
+        elf_put(output, entry, ElfWordBytes, frame.address - table.at); elf_put(output, entry + ElfWordBytes, ElfWordBytes, record - table.at);
+    }
+    return true;
+}

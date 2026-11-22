@@ -1,0 +1,70 @@
+import tower;
+import utility_checks;
+import elf_link_checks;
+import .backend.elf_types;
+import .backend.elf_dynamic_link;
+import .backend.elf_link_world;
+import .backend.elf_link_emit;
+import .backend.elf_object;
+import .backend.elf_properties;
+import .backend.wasm_bytes;
+import .library.bytes_types;
+import .library.vector;
+
+fn elf_hosted_check_load(link: ElfLink*, reference: ElfLink*, inputs: vector(ByteBuffer)*): void {
+    utility_check(elf_dynamic_link_open(link, reference.machine, reference.interpreter), "isolated hosted ELF world");
+    link.export_all = reference.export_all;
+    foreach (var & input in inputs) {
+        var bytes: WasmBytes = { data: input.data, length: input.length };
+        utility_check(elf_link_input(link, wasm_text_bytes("fixture"), bytes), "hosted immutable byte inputs");
+    }
+}
+fn elf_hosted_checks(reference: ElfLink*, inputs: vector(ByteBuffer)*): void {
+    var maximum_workers: usize = 8;
+    for (var workers: usize = 1; workers <= maximum_workers; workers *= 2) {
+        var link: ElfLink = default; defer elf_link_close(&link);
+        elf_hosted_check_load(&link, reference, inputs); link.workers = workers;
+        utility_check(elf_dynamic_link_run(&link), "hosted worker-count link");
+        utility_check(link.output.length == reference.output.length && utility_equal(link.output.data, reference.output.data, link.output.length), "hosted bytes identical at 1/2/4/8 workers");
+        utility_check(!elf_dynamic_link_run(&link) && link.output.length == 0, "hosted request cannot be replayed");
+    }
+    elf_check_overlap(reference);
+    var cancelled: ElfLink = default; defer elf_link_close(&cancelled);
+    elf_hosted_check_load(&cancelled, reference, inputs);
+    var probe: ElfCancelProbe = { link: &cancelled, ..default };
+    cancelled.cancel = elf_check_cancel; cancelled.cancel_context = bits(void*, &probe);
+    utility_check(!elf_dynamic_link_run(&cancelled) && cancelled.error.kind == ElfError.Cancelled
+        && cancelled.output.length == 0 && probe.polls != 0, "hosted cancellation drains pinned input jobs");
+    var missing: ElfLink = default; defer elf_link_close(&missing);
+    elf_hosted_check_load(&missing, reference, inputs);
+    utility_check(vector_push(&missing.export_names, wasm_text_bytes("hosted_intentionally_missing_export")), "requested export fixture");
+    utility_check(!elf_dynamic_link_run(&missing) && missing.error.kind == ElfError.Undefined && missing.output.length == 0, "missing requested export diagnosed");
+    var malformed: ElfLink = default; defer elf_link_close(&malformed);
+    elf_hosted_check_load(&malformed, reference, inputs); var changed = false;
+    foreach (var & input in &malformed.objects) {
+        foreach (var & section in &input.object.sections) {
+            if !wasm_bytes_text(section.name, ".note.gnu.property") { continue; }
+            section.bytes.length = convert(usize, ElfPropertyHeaderBytes - 1); changed = true; break;
+        }
+        if changed { break; }
+    }
+    utility_check(changed && !elf_dynamic_link_run(&malformed) && malformed.error.kind == ElfError.Input && malformed.output.length == 0, "truncated property note rejected");
+    var image: WasmBytes = { data: reference.output.data, length: reference.output.length };
+    var programs = elf_header(image, ElfHeaderAt.Programs, ElfAddressBytes);
+    var count = elf_header(image, ElfHeaderAt.ProgramCount, ElfHalfBytes); var end: u64 = 0;
+    for (var index: u64 = 0; index < count; index++) {
+        var at = programs + index * ElfProgramBytes;
+        var flags = elf_uint(image, at + convert(u64, ElfProgramAt.Flags), ElfWordBytes);
+        utility_check((flags & (ElfPermissionWrite | ElfPermissionExecute)) != (ElfPermissionWrite | ElfPermissionExecute), "hosted image has no writable executable segment");
+        if elf_uint(image, at + convert(u64, ElfProgramAt.Type), ElfWordBytes) != ElfProgramLoad { continue; }
+        var address = elf_uint(image, at + convert(u64, ElfProgramAt.Address), ElfAddressBytes);
+        var file = elf_uint(image, at + convert(u64, ElfProgramAt.Offset), ElfAddressBytes);
+        var size = elf_uint(image, at + convert(u64, ElfProgramAt.FileSize), ElfAddressBytes);
+        var memory = elf_uint(image, at + convert(u64, ElfProgramAt.MemorySize), ElfAddressBytes);
+        var alignment = elf_uint(image, at + convert(u64, ElfProgramAt.Align), ElfAddressBytes);
+        utility_check(elf_power(alignment) && address % alignment == file % alignment && size <= memory
+            && elf_span(image, file, size) && (address & ~(alignment - 1)) >= end, "hosted load bounds and page congruence");
+        end = elf_align(address + memory, alignment);
+    }
+    puts("Hosted ELF ownership, determinism and malformed-input checks passed");
+}

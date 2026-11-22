@@ -6,6 +6,7 @@ import .host.driver_support;
 import .host.driver_timing;
 import .host.driver_link;
 import .host.driver_platform;
+import .host.driver_mapped_file;
 import .host.driver_windows_arguments;
 import driver_platform_api;
 import driver_compilation;
@@ -75,7 +76,7 @@ fn driver_test_policies(): void {
     driver_check_text(out.data, "Tower timings (ms): {\"after\":0.000009,\"compile\":1.000001,\"total\":1234.567890}\n");
     bytes_dispose(&out);
 
-    var link = driver_link_open("x86_64-unknown-linux-gnu", "cc path", "", "/sdk path", "output path", "/resource path", false, false, null, false);
+    var link = driver_link_open("x86_64-unknown-linux-gnu", "cc path", "cc path", "/sdk path", "output path", "/resource path", false, false, null, false);
     var check1 = link != null;
     driver_check(check1, "link allocation");
     if link == null {
@@ -102,6 +103,14 @@ fn driver_test_policies(): void {
     driver_check_argument(&args, 4, "--sysroot=/sdk path");
     driver_check_argument(&args, 5, "external lib.o");
     driver_check_argument(&args, 7, "output path");
+    driver_arguments_dispose(&args);
+    link.linker = "";
+    driver_arguments_init(&args);
+    driver_link_arguments(link, &args);
+    driver_check_argument(&args, 0, "tower-elf-link");
+    driver_check_argument(&args, 2, "--dynamic-linker");
+    driver_check_argument(&args, 3, "/lib64/ld-linux-x86-64.so.2");
+    driver_check_argument(&args, 6, "--export-dynamic-symbol=hello");
     driver_arguments_dispose(&args);
     link.wasm = true;
     driver_arguments_init(&args);
@@ -130,6 +139,17 @@ fn driver_test_policies(): void {
 }
 
 fn driver_test_process(self: u8*): void {
+    var mapping: DriverMappedFile = default; var payload: u8[3];
+    payload[0] = *"a"; payload[1] = 0; payload[2] = *"z"; var payload_length: usize = 3;
+    driver_check(driver_write_file("driver mapped input.bin", &payload[0], payload_length)
+        && driver_platform_map("driver mapped input.bin", &mapping), "map explicit binary input");
+    driver_check(mapping.length == payload_length && mapping.data[0] == payload[0] && mapping.data[1] == 0
+        && mapping.data[2] == payload[2], "mapped input preserves embedded NUL and exact extent");
+    driver_platform_unmap(&mapping);
+    driver_check(mapping.data == null && mapping.length == 0, "mapping closes without retaining a view");
+    driver_check(driver_write_file("driver mapped input.bin", &payload[0], 0)
+        && driver_platform_map("driver mapped input.bin", &mapping) && mapping.length == 0, "empty input mapping");
+    driver_platform_unmap(&mapping); driver_platform_remove("driver mapped input.bin");
     var args: DriverArguments;
     driver_arguments_init(&args);
     driver_argument(&args, "", self);

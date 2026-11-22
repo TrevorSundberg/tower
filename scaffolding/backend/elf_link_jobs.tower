@@ -49,7 +49,7 @@ fn elf_link_jobs(link: ElfLink*): bool {
         *job = init(ElfLinkJob) { link: link, object: link.objects.data[at].object, output: link.output.data, ..default };
         if !vector_push(&jobs, job) { return false; }
         var task = work_request(&graph, bits(void*, node), ElfPatchQuery, convert(u64, at));
-        if task == 0 || !work_access(&graph, task, ElfInputDomain, ElfWorkComponent, 0, link.objects.length, WorkAccessMode.Read)
+        if task == 0 || !work_access(&graph, task, ElfInputDomain, ElfWorkComponent, 0, link.objects.length + link.dylibs.length, WorkAccessMode.Read)
             || !work_access(&graph, task, ElfJobDomain, ElfWorkComponent, at, 1, WorkAccessMode.Write) { return false; }
         foreach (var & section in &job.object.sections) {
             if !section.discarded && (section.flags & ElfFlagAlloc) != 0 && section.kind != ElfSectionType.NoBits && section.size != 0 {
@@ -60,8 +60,9 @@ fn elf_link_jobs(link: ElfLink*): bool {
     }
     var view = entity_view_open(kind);
     if view == null { return false; }
-    // The pin covers this world, its symbol indexes and every borrowed input.
-    // No structural mutation until all kernels are drained, including failures.
+    // Coordinator-frozen object/DSO payloads and symbol indexes remain immutable
+    // until every kernel drains. The view prevents structural changes; it is
+    // not a payload lock. Jobs own disjoint output ranges and private diagnostics.
     defer { while pool.running != 0 { work_pool_receive(&pool, true); } entity_view_close(view); }
     var complete: usize = 0;
     while complete < jobs.length {

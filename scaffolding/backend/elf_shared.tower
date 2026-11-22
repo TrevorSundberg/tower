@@ -1,0 +1,175 @@
+import tower;
+import elf_types;
+import elf_object;
+import wasm_names;
+import .library.vector;
+
+enum ElfDynamicTag: u64 {
+    Null = 0, Needed = 1, Hash = 4, Strings = 5, Symbols = 6, Rela = 7,
+    RelaSize = 8, RelaEntry = 9, StringSize = 10, SymbolEntry = 11, Init = 12,
+    Fini = 13, Soname = 14, Debug = 21, BindNow = 24, InitArray = 25,
+    FiniArray = 26, InitArraySize = 27, FiniArraySize = 28, Runpath = 29,
+    Flags = 30, PreinitArray = 32, PreinitArraySize = 33,
+    VersionSymbols = 1879048176, Flags1 = 1879048187,
+    VersionNeeds = 1879048190, VersionNeedCount = 1879048191
+}
+var ElfDynamicBytes: u64 = 16;
+var ElfVersionDefinitionBytes: u64 = 20;
+var ElfVersionAuxiliaryBytes: u64 = 8;
+var ElfVersionHidden: u64 = 32768;
+var ElfVersionIndexMask: u64 = 32767;
+var ElfVersionGlobal: u64 = 1;
+var ElfTypeFunction: u8 = 2;
+var ElfTypeObject: u8 = 1;
+var ElfVisibilityHidden: u8 = 2;
+var ElfVisibilityInternal: u8 = 1;
+enum ElfVersionDefinitionAt: u64 { Version = 0, Flags = 2, Index = 4, Count = 6, Hash = 8, Auxiliary = 12, Next = 16 }
+
+struct ElfSharedSection { kind: ElfSectionType; bytes: WasmBytes; link: u32; count: u32; stride: u64; }
+struct ElfVersionName { index: u16; name: WasmBytes; }
+
+fn elf_shared_section(bytes: WasmBytes, first: u64, count: u64, index: u64, out: ElfSharedSection*): bool {
+    if index >= count { return false; }
+    var at = first + index * ElfSectionBytes;
+    out.kind = convert(ElfSectionType, convert(u32, elf_section_field(bytes, at, ElfSectionAt.Type, ElfWordBytes)));
+    out.link = convert(u32, elf_section_field(bytes, at, ElfSectionAt.Link, ElfWordBytes));
+    out.count = convert(u32, elf_section_field(bytes, at, ElfSectionAt.Info, ElfWordBytes));
+    out.stride = elf_section_field(bytes, at, ElfSectionAt.EntrySize, ElfAddressBytes);
+    var begin = elf_section_field(bytes, at, ElfSectionAt.Offset, ElfAddressBytes);
+    var length = elf_section_field(bytes, at, ElfSectionAt.Size, ElfAddressBytes);
+    if out.kind == ElfSectionType.NoBits { out.bytes = default; return true; }
+    if !elf_span(bytes, begin, length) { return false; }
+    out.bytes = init(WasmBytes) { data: bytes.data + convert(usize, begin), length: convert(usize, length) };
+    return true;
+}
+
+fn elf_shared_versions(definitions: ElfSharedSection*, strings: WasmBytes, names: vector(ElfVersionName)*): bool {
+    var at: u64 = 0;
+    for (var index: u32 = 0; index < definitions.count; index++) {
+        if !elf_span(definitions.bytes, at, ElfVersionDefinitionBytes)
+            || elf_uint(definitions.bytes, at + convert(u64, ElfVersionDefinitionAt.Version), ElfHalfBytes) != ElfVersion { return false; }
+        var ordinal = elf_uint(definitions.bytes, at + convert(u64, ElfVersionDefinitionAt.Index), ElfHalfBytes);
+        var count = elf_uint(definitions.bytes, at + convert(u64, ElfVersionDefinitionAt.Count), ElfHalfBytes);
+        var auxiliary = elf_uint(definitions.bytes, at + convert(u64, ElfVersionDefinitionAt.Auxiliary), ElfWordBytes);
+        var next = elf_uint(definitions.bytes, at + convert(u64, ElfVersionDefinitionAt.Next), ElfWordBytes);
+        var end = convert(u64, definitions.bytes.length);
+        if index + 1 != definitions.count {
+            if next < ElfVersionDefinitionBytes || !elf_span(definitions.bytes, at, next) { return false; }
+            end = at + next;
+        } else { if next != 0 { return false; } }
+        if ordinal == 0 || ordinal > ElfVersionIndexMask || count == 0 || auxiliary < ElfVersionDefinitionBytes
+            || !elf_span(definitions.bytes, at + auxiliary, ElfVersionAuxiliaryBytes) { return false; }
+        var name: WasmBytes = default;
+        if !elf_text(strings, elf_uint(definitions.bytes, at + auxiliary, ElfWordBytes), &name) || name.length == 0 { return false; }
+        var auxiliary_at = at + auxiliary;
+        for (var item: u64 = 0; item < count; item++) {
+            if auxiliary_at > end || ElfVersionAuxiliaryBytes > end - auxiliary_at { return false; }
+            var dependency: WasmBytes = default;
+            if !elf_text(strings, elf_uint(definitions.bytes, auxiliary_at, ElfWordBytes), &dependency) || dependency.length == 0 { return false; }
+            var advance = elf_uint(definitions.bytes, auxiliary_at + ElfWordBytes, ElfWordBytes);
+            if item + 1 == count { if advance != 0 { return false; } }
+            else { if advance < ElfVersionAuxiliaryBytes || advance > end - auxiliary_at { return false; } }
+            auxiliary_at += advance;
+        }
+        foreach (var & prior in names) { if prior.index == convert(u16, ordinal) { return false; } }
+        var value: ElfVersionName = { index: convert(u16, ordinal), name: name };
+        if !vector_push(names, value) { return false; }
+        if index + 1 == definitions.count { return next == 0; }
+        at += next;
+    }
+    return definitions.bytes.length == 0;
+}
+
+fn elf_shared_dispose(library: ElfDylib*): void {
+    vector_dispose(&library.symbols); wasm_names_dispose(&library.names);
+}
+
+// DSO exports are borrowed physical metadata. The host loader owns the actual
+// implementation, TLS and transitive dependencies; none are copied into output.
+fn elf_shared_read(library: ElfDylib*, machine: ElfMachine, error: ElfDiagnostic*): bool {
+    var bytes = library.bytes; var linux_abi: u64 = 3;
+    if !elf_span(bytes, 0, ElfHeaderBytes) || elf_header(bytes, ElfHeaderAt.Magic, ElfWordBytes) != ElfMagic {
+        return elf_fail(error, ElfError.Input, library.name, 0);
+    }
+    var osabi = elf_header(bytes, ElfHeaderAt.OsAbi, 1);
+    if elf_header(bytes, ElfHeaderAt.Class, 1) != ElfClass64 || elf_header(bytes, ElfHeaderAt.Endian, 1) != ElfLittleEndian
+        || elf_header(bytes, ElfHeaderAt.Version, 1) != ElfVersion || elf_header(bytes, ElfHeaderAt.FileVersion, ElfWordBytes) != ElfVersion
+        || elf_header(bytes, ElfHeaderAt.Type, ElfHalfBytes) != ElfShared || elf_header(bytes, ElfHeaderAt.Machine, ElfHalfBytes) != convert(u64, machine)
+        || (osabi != 0 && osabi != linux_abi) || elf_header(bytes, ElfHeaderAt.Flags, ElfWordBytes) != 0 {
+        return elf_fail(error, ElfError.Unsupported, library.name, 0);
+    }
+    var first = elf_header(bytes, ElfHeaderAt.Sections, ElfAddressBytes);
+    var count = elf_header(bytes, ElfHeaderAt.SectionCount, ElfHalfBytes);
+    if count == 0 || count >= convert(u64, ElfReserved) || elf_header(bytes, ElfHeaderAt.Size, ElfHalfBytes) != ElfHeaderBytes
+        || elf_header(bytes, ElfHeaderAt.SectionSize, ElfHalfBytes) != ElfSectionBytes || !elf_span(bytes, first, count * ElfSectionBytes) {
+        return elf_fail(error, ElfError.Input, library.name, first);
+    }
+    var symbols: ElfSharedSection = default; var dynamic: ElfSharedSection = default;
+    var versions: ElfSharedSection = default; var definitions: ElfSharedSection = default;
+    var symbol_index: u32 = ElfNoIndex;
+    for (var index: u64 = 0; index < count; index++) {
+        var section: ElfSharedSection = default;
+        if !elf_shared_section(bytes, first, count, index, &section) { return elf_fail(error, ElfError.Input, library.name, first + index * ElfSectionBytes); }
+        if section.kind == ElfSectionType.DynamicSymbols {
+            if symbol_index != ElfNoIndex { return elf_fail(error, ElfError.Input, library.name, index); }
+            symbol_index = convert(u32, index); symbols = section;
+        }
+        if section.kind == ElfSectionType.Dynamic { if dynamic.bytes.length != 0 { return elf_fail(error, ElfError.Input, library.name, index); } dynamic = section; }
+        if section.kind == ElfSectionType.VersionSymbols { if versions.bytes.length != 0 { return elf_fail(error, ElfError.Input, library.name, index); } versions = section; }
+        if section.kind == ElfSectionType.VersionDefinitions { if definitions.bytes.length != 0 { return elf_fail(error, ElfError.Input, library.name, index); } definitions = section; }
+    }
+    var strings: ElfSharedSection = default; var dynamic_strings: ElfSharedSection = default;
+    if symbol_index == ElfNoIndex || symbols.stride != ElfSymbolBytes || symbols.bytes.length % convert(usize, ElfSymbolBytes) != 0
+        || !elf_shared_section(bytes, first, count, convert(u64, symbols.link), &strings) || strings.kind != ElfSectionType.Strings
+        || dynamic.bytes.length == 0 || dynamic.stride != ElfDynamicBytes || dynamic.bytes.length % convert(usize, ElfDynamicBytes) != 0
+        || !elf_shared_section(bytes, first, count, convert(u64, dynamic.link), &dynamic_strings) || dynamic_strings.kind != ElfSectionType.Strings {
+        return elf_fail(error, ElfError.Input, library.name, first);
+    }
+    var terminated = false;
+    for (var at: u64 = 0; at < convert(u64, dynamic.bytes.length); at += ElfDynamicBytes) {
+        var tag = convert(ElfDynamicTag, elf_uint(dynamic.bytes, at, ElfAddressBytes));
+        if tag == ElfDynamicTag.Null { terminated = true; break; }
+        if tag == ElfDynamicTag.Soname {
+            if library.soname.length != 0 || !elf_text(dynamic_strings.bytes, elf_uint(dynamic.bytes, at + ElfAddressBytes, ElfAddressBytes), &library.soname)
+                || library.soname.length == 0 { return elf_fail(error, ElfError.Input, library.name, at); }
+        }
+    }
+    if !terminated { return elf_fail(error, ElfError.Input, library.name, 0); }
+    // A DSO without SONAME is named by its explicit input identity, as required
+    // by the loader contract. Absolute identities remain explicit host choices.
+    if library.soname.length == 0 { library.soname = library.name; }
+    if library.soname.length == 0 { return elf_fail(error, ElfError.Input, library.name, 0); }
+    var symbol_count = symbols.bytes.length / convert(usize, ElfSymbolBytes);
+    if versions.bytes.length != 0 && (versions.link != symbol_index || versions.stride != ElfHalfBytes
+        || versions.bytes.length / convert(usize, ElfHalfBytes) != symbol_count || versions.bytes.length % convert(usize, ElfHalfBytes) != 0) {
+        return elf_fail(error, ElfError.Input, library.name, 0);
+    }
+    var version_names: vector(ElfVersionName) = default; defer vector_dispose(&version_names);
+    if definitions.bytes.length != 0 && (definitions.link != symbols.link || !elf_shared_versions(&definitions, strings.bytes, &version_names)) {
+        return elf_fail(error, ElfError.Input, library.name, 0);
+    }
+    for (var index: usize = 1; index < symbol_count; index++) {
+        var at = convert(u64, index) * ElfSymbolBytes;
+        var info = convert(u8, elf_symbol_field(symbols.bytes, at, ElfSymbolAt.Info, 1));
+        var binding = convert(ElfBinding, info >> ElfBindingShift);
+        var other = convert(u8, elf_symbol_field(symbols.bytes, at, ElfSymbolAt.Other, 1));
+        var section = convert(u32, elf_symbol_field(symbols.bytes, at, ElfSymbolAt.Section, ElfHalfBytes));
+        if binding == ElfBinding.Local || section == ElfUndefined || (other & ElfVisibilityMask) == ElfVisibilityHidden || (other & ElfVisibilityMask) == ElfVisibilityInternal { continue; }
+        if binding != ElfBinding.Global && binding != ElfBinding.Weak && binding != ElfBinding.UniqueGnu { return elf_fail(error, ElfError.Unsupported, library.name, at); }
+        var version: u64 = ElfVersionGlobal;
+        if versions.bytes.length != 0 { version = elf_uint(versions.bytes, convert(u64, index) * ElfHalfBytes, ElfHalfBytes); }
+        if version == 0 || (version & ElfVersionHidden) != 0 { continue; }
+        var symbol: ElfSymbol = { binding: binding, kind: info & ElfTypeMask, other: other, section: ElfAbsolute,
+            size: elf_symbol_field(symbols.bytes, at, ElfSymbolAt.Size, ElfAddressBytes), library: library, ..default };
+        if !elf_text(strings.bytes, elf_symbol_field(symbols.bytes, at, ElfSymbolAt.Name, ElfWordBytes), &symbol.name) || symbol.name.length == 0 { return elf_fail(error, ElfError.Input, library.name, at); }
+        if version > ElfVersionGlobal {
+            foreach (var & name in &version_names) { if convert(u64, name.index) == version { symbol.version = name.name; break; } }
+            if symbol.version.length == 0 { return elf_fail(error, ElfError.Input, symbol.name, at); }
+        }
+        if library.symbols.length >= convert(usize, ElfNoIndex) || wasm_names_get(&library.names, symbol.name) != ElfNoIndex { return elf_fail(error, ElfError.Duplicate, symbol.name, at); }
+        if !wasm_names_set(&library.names, symbol.name, convert(u32, library.symbols.length)) || !vector_push(&library.symbols, symbol) {
+            return elf_fail(error, ElfError.Allocation, library.name, at);
+        }
+    }
+    return true;
+}

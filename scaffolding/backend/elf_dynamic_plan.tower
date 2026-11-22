@@ -1,0 +1,234 @@
+import tower;
+import elf_types;
+import elf_shared;
+import elf_link_symbols;
+import elf_link_emit;
+import elf_relocate;
+import elf_unwind;
+import elf_properties;
+import wasm_bytes;
+import .library.vector;
+import .library.bytes_interface;
+
+var ElfDynamicProgramCount: u64 = 8;
+var ElfProgramDynamic: u64 = 2;
+var ElfProgramInterpreter: u64 = 3;
+var ElfProgramNote: u64 = 4;
+var ElfProgramHeaders: u64 = 6;
+var ElfProgramRelro: u64 = 1685382482;
+var ElfProgramProperty: u64 = 1685382483;
+var ElfDynamicNow: u64 = 8;
+var ElfDynamicNowPie: u64 = 134217729;
+var ElfX64StubBytes: u64 = 8;
+var ElfArmStubBytes: u64 = 16;
+var ElfVersionNeedBytes: u64 = 16;
+var ElfVersionNeedAuxBytes: u64 = 16;
+var ElfVersionWeak: u64 = 2;
+var ElfDynamicTrailerCapacity: u64 = 32;
+enum ElfDynamicRelocX64: u32 { Absolute = 1, Global = 6, Relative = 8 }
+enum ElfDynamicRelocArm: u32 { Absolute = 257, Global = 1025, Relative = 1027 }
+struct ElfDynamicVersion { library: ElfDylib*; name: WasmBytes; ordinal: u16; weak: bool; }
+struct ElfDynamicImage {
+    symbols: vector(ElfSymbol*); got: vector(ElfSymbol*); stubs: vector(ElfSymbol*);
+    versions: vector(ElfDynamicVersion);
+    strings: ByteBuffer; table: ByteBuffer; hash: ByteBuffer; versym: ByteBuffer; needs: ByteBuffer;
+    rela: ByteBuffer; dynamic: ByteBuffer;
+    interpreter_at: u64; strings_at: u64; symbols_at: u64; hash_at: u64; versions_at: u64;
+    needs_at: u64; rela_at: u64; dynamic_at: u64; dynamic_address: u64;
+    stubs_at: u64; stubs_address: u64; relro_end: u64;
+    programs: u64; version_libraries: u64; stub_bytes: u64;
+    init_address: u64; fini_address: u64; init_array: u64; init_size: u64;
+    fini_array: u64; fini_size: u64; preinit_array: u64; preinit_size: u64;
+    unwind: ElfEhTable;
+    properties: ByteBuffer; properties_at: u64;
+}
+fn elf_dynamic_dispose(image: ElfDynamicImage*): void {
+    vector_dispose(&image.symbols); vector_dispose(&image.got); vector_dispose(&image.stubs); vector_dispose(&image.versions);
+    bytes_dispose(&image.strings); bytes_dispose(&image.table); bytes_dispose(&image.hash); bytes_dispose(&image.versym);
+    bytes_dispose(&image.needs); bytes_dispose(&image.rela); bytes_dispose(&image.dynamic);
+    vector_dispose(&image.unwind.frames);
+    bytes_dispose(&image.properties);
+}
+fn elf_dynamic_function(symbol: ElfSymbol*): bool { return symbol.kind == ElfTypeFunction || symbol.kind == ElfTypeIfunc; }
+fn elf_dynamic_call(machine: ElfMachine, kind: u32): bool {
+    if machine == ElfMachine.X64 { return kind == convert(u32, ElfX64Reloc.Plt32); }
+    return kind == convert(u32, ElfArmReloc.Call26) || kind == convert(u32, ElfArmReloc.Jump26);
+}
+fn elf_dynamic_absolute(machine: ElfMachine, kind: u32): bool {
+    return kind == (machine == ElfMachine.X64 ? convert(u32, ElfX64Reloc.Abs64) : convert(u32, ElfArmReloc.Abs64));
+}
+fn elf_dynamic_narrow_absolute(machine: ElfMachine, kind: u32): bool {
+    if machine == ElfMachine.X64 { return kind == convert(u32, ElfX64Reloc.Abs32) || kind == convert(u32, ElfX64Reloc.Signed32); }
+    return kind == convert(u32, ElfArmReloc.Abs32) || kind == convert(u32, ElfArmReloc.Abs16);
+}
+fn elf_dynamic_got(image: ElfDynamicImage*, symbol: ElfSymbol*): bool {
+    if symbol.needs_got { return true; }
+    symbol.got = convert(u64, image.got.length); symbol.needs_got = true;
+    return vector_push(&image.got, symbol);
+}
+fn elf_dynamic_hash(name: WasmBytes): u32 {
+    var value: u32 = 0; var shift: u32 = 4; var high: u32 = 4026531840; var down: u32 = 24;
+    for (var at: usize = 0; at < name.length; at++) {
+        value = (value << shift) + convert(u32, name.data[at]);
+        var top = value & high; value ^= top >> down; value &= ~top;
+    }
+    return value;
+}
+fn elf_dynamic_tag(image: ElfDynamicImage*, tag: ElfDynamicTag, value: u64): bool {
+    var at = convert(u64, image.dynamic.length);
+    if !elf_emit_zero(&image.dynamic, ElfDynamicBytes) { return false; }
+    elf_put(image.dynamic.data, at, ElfAddressBytes, convert(u64, tag));
+    elf_put(image.dynamic.data, at + ElfAddressBytes, ElfAddressBytes, value); return true;
+}
+fn elf_dynamic_symbol(image: ElfDynamicImage*, symbol: ElfSymbol*): bool {
+    if image.symbols.length >= convert(usize, ElfNoIndex) - 1 { return false; }
+    symbol.dynamic_index = convert(u32, image.symbols.length + 1);
+    return vector_push(&image.symbols, symbol);
+}
+fn elf_dynamic_version(image: ElfDynamicImage*, symbol: ElfSymbol*): bool {
+    symbol.version_index = convert(u16, ElfVersionGlobal);
+    if symbol.version.length == 0 { return true; }
+    foreach (var & version in &image.versions) {
+        if version.library == symbol.library && wasm_bytes_equal(version.name, symbol.version) {
+            symbol.version_index = version.ordinal; version.weak &&= symbol.weak_import; return true;
+        }
+    }
+    var first_version: usize = 2;
+    if image.versions.length >= convert(usize, ElfVersionIndexMask) - first_version { return false; }
+    var version: ElfDynamicVersion = { library: symbol.library, name: symbol.version,
+        ordinal: convert(u16, image.versions.length + first_version), weak: symbol.weak_import };
+    symbol.version_index = version.ordinal; return vector_push(&image.versions, version);
+}
+fn elf_dynamic_prepare(link: ElfLink*, image: ElfDynamicImage*): bool {
+    image.programs = ElfDynamicProgramCount;
+    if !elf_properties(link, &image.properties) { return false; }
+    if image.properties.length != 0 { image.programs++; }
+    if !elf_eh_prepare(link, &image.unwind) { return false; }
+    if image.unwind.size != 0 { image.programs++; }
+    image.stub_bytes = link.machine == ElfMachine.X64 ? ElfX64StubBytes : ElfArmStubBytes;
+    foreach (var & name in &link.export_names) {
+        var symbol = elf_link_lookup(link, *name);
+        if symbol == null { return elf_fail(&link.error, ElfError.Undefined, *name, 0); }
+        if (symbol.other & ElfVisibilityMask) == ElfVisibilityInternal || (symbol.other & ElfVisibilityMask) == ElfVisibilityHidden {
+            return elf_fail(&link.error, ElfError.Unsupported, *name, 0);
+        }
+    }
+    foreach (var symbol in &link.globals) {
+        if symbol.section == ElfCommon && symbol.value > link.page_size { link.page_size = symbol.value; }
+        var visible = (symbol.other & ElfVisibilityMask) != ElfVisibilityInternal && (symbol.other & ElfVisibilityMask) != ElfVisibilityHidden;
+        var exported = link.export_all;
+        foreach (var & name in &link.export_names) { if wasm_bytes_equal(symbol.name, *name) { exported = true; break; } }
+        if visible && exported && !elf_dynamic_symbol(image, symbol) { return false; }
+    }
+    foreach (var symbol in &link.imports) { if !elf_dynamic_symbol(image, symbol) || !elf_dynamic_version(image, symbol) { return false; } }
+    foreach (var & entry in &link.objects) {
+        foreach (var & section in &entry.object.sections) {
+            if section.discarded || (section.flags & ElfFlagAlloc) == 0 { continue; }
+            if wasm_bytes_text(section.name, ".ctors") || wasm_bytes_text(section.name, ".dtors") {
+                return elf_fail(&link.error, ElfError.Unsupported, section.name, 0);
+            }
+            if section.kind == ElfSectionType.Note { image.programs++; }
+            if section.alignment > link.page_size { link.page_size = section.alignment; }
+        }
+        foreach (var & relocation in &entry.object.relocations) {
+            var section = &entry.object.sections.data[convert(usize, relocation.section)];
+            if section.discarded || relocation.kind == 0 { continue; }
+            var symbol = elf_relocation_symbol(link, entry.object, relocation, &link.error);
+            if symbol == null { return false; }
+            if elf_dynamic_narrow_absolute(link.machine, relocation.kind) && (symbol.library != null || (symbol.section != ElfAbsolute && symbol.section != ElfUndefined)) {
+                return elf_fail(&link.error, ElfError.Unsupported, section.name, relocation.offset);
+            }
+            if elf_got_relocation(link.machine, relocation.kind) {
+                if !elf_dynamic_got(image, symbol) { return false; }
+            } else { if elf_dynamic_absolute(link.machine, relocation.kind) {
+                if symbol.library != null || (symbol.section != ElfAbsolute && symbol.section != ElfUndefined) {
+                    if (section.flags & ElfFlagWrite) == 0 || section.kind == ElfSectionType.NoBits {
+                        return elf_fail(&link.error, ElfError.Unsupported, section.name, relocation.offset);
+                    }
+                    relocation.runtime = true;
+                    if !elf_emit_zero(&image.rela, ElfRelaBytes) { return false; }
+                }
+            } else { if symbol.library != null {
+                if !elf_dynamic_call(link.machine, relocation.kind) || !elf_dynamic_function(symbol) {
+                    return elf_fail(&link.error, ElfError.Unsupported, symbol.name, relocation.offset);
+                }
+                if !symbol.needs_stub {
+                    symbol.needs_stub = true; symbol.stub = convert(u64, image.stubs.length);
+                    if !vector_push(&image.stubs, symbol) || !elf_dynamic_got(image, symbol) { return false; }
+                }
+            } } }
+        }
+    }
+    foreach (var symbol in &image.got) {
+        if symbol.library != null || (symbol.section != ElfUndefined && symbol.section != ElfAbsolute) {
+            if !elf_emit_zero(&image.rela, ElfRelaBytes) { return false; }
+        }
+    }
+    if !bytes_push(&image.strings, 0) || !elf_emit_zero(&image.table, ElfSymbolBytes) || !elf_emit_zero(&image.versym, ElfHalfBytes) { return false; }
+    foreach (var symbol in &image.symbols) {
+        var name = elf_emit_name(&image.strings, symbol.name); var at = convert(u64, image.table.length);
+        if name == ElfImageLimit || !elf_emit_zero(&image.table, ElfSymbolBytes) { return false; }
+        elf_put(image.table.data, at + convert(u64, ElfSymbolAt.Name), ElfWordBytes, name);
+        var kind = symbol.kind; var binding = symbol.binding;
+        if symbol.library != null { kind = elf_dynamic_function(symbol) ? ElfTypeFunction : symbol.kind; binding = symbol.weak_import ? ElfBinding.Weak : ElfBinding.Global; }
+        elf_put(image.table.data, at + convert(u64, ElfSymbolAt.Info), 1, convert(u64, (convert(u8, binding) << ElfBindingShift) | kind));
+        elf_put(image.table.data, at + convert(u64, ElfSymbolAt.Other), 1, symbol.library != null ? 0 : convert(u64, symbol.other));
+        var version_at = convert(u64, image.versym.length);
+        if !elf_emit_zero(&image.versym, ElfHalfBytes) { return false; }
+        elf_put(image.versym.data, version_at, ElfHalfBytes, symbol.library == null ? ElfVersionGlobal : convert(u64, symbol.version_index));
+    }
+    foreach (var & input in &link.dylibs) {
+        var library = input.library;
+        var name = elf_emit_name(&image.strings, library.soname);
+        if name == ElfImageLimit || !elf_dynamic_tag(image, ElfDynamicTag.Needed, name) { return false; }
+        var count: u64 = 0;
+        foreach (var & version in &image.versions) { if version.library == library { count++; } }
+        if count == 0 { continue; }
+        var at = convert(u64, image.needs.length); var total = ElfVersionNeedBytes + count * ElfVersionNeedAuxBytes;
+        if !elf_emit_zero(&image.needs, total) { return false; }
+        // Elf64_Verneed: version/count/file/aux/next. Aux records preserve each
+        // dependency's hash, weak contract, output version index and name.
+        elf_put(image.needs.data, at, ElfHalfBytes, ElfVersion);
+        elf_put(image.needs.data, at + ElfHalfBytes, ElfHalfBytes, count);
+        elf_put(image.needs.data, at + ElfWordBytes, ElfWordBytes, name);
+        elf_put(image.needs.data, at + ElfAddressBytes, ElfWordBytes, ElfVersionNeedBytes);
+        elf_put(image.needs.data, at + ElfAddressBytes + ElfWordBytes, ElfWordBytes, total);
+        var auxiliary = at + ElfVersionNeedBytes; var emitted: u64 = 0;
+        foreach (var & version in &image.versions) {
+            if version.library != library { continue; }
+            var text = elf_emit_name(&image.strings, version.name); if text == ElfImageLimit { return false; }
+            elf_put(image.needs.data, auxiliary, ElfWordBytes, convert(u64, elf_dynamic_hash(version.name)));
+            elf_put(image.needs.data, auxiliary + ElfWordBytes, ElfHalfBytes, version.weak ? ElfVersionWeak : 0);
+            elf_put(image.needs.data, auxiliary + ElfWordBytes + ElfHalfBytes, ElfHalfBytes, convert(u64, version.ordinal));
+            elf_put(image.needs.data, auxiliary + ElfAddressBytes, ElfWordBytes, text);
+            elf_put(image.needs.data, auxiliary + ElfAddressBytes + ElfWordBytes, ElfWordBytes, ++emitted == count ? 0 : ElfVersionNeedAuxBytes);
+            auxiliary += ElfVersionNeedAuxBytes;
+        }
+        image.version_libraries++;
+    }
+    if image.needs.length != 0 {
+        var at: u64 = 0;
+        for (var index: u64 = 0; index < image.version_libraries; index++) {
+            var next_at = at + ElfAddressBytes + ElfWordBytes;
+            var next = elf_uint(init(WasmBytes) { data: image.needs.data, length: image.needs.length }, next_at, ElfWordBytes);
+            if index + 1 == image.version_libraries { elf_put(image.needs.data, next_at, ElfWordBytes, 0); }
+            at += next;
+        }
+    }
+    if link.runpath.length != 0 {
+        var name = elf_emit_name(&image.strings, link.runpath);
+        if name == ElfImageLimit || !elf_dynamic_tag(image, ElfDynamicTag.Runpath, name) { return false; }
+    }
+    var chains = convert(u64, image.symbols.length) + 1; var buckets = chains;
+    var header_words: u64 = 2;
+    if !elf_emit_zero(&image.hash, (header_words + buckets + chains) * ElfWordBytes) { return false; }
+    elf_put(image.hash.data, 0, ElfWordBytes, buckets); elf_put(image.hash.data, ElfWordBytes, ElfWordBytes, chains);
+    for (var index: usize = 0; index < image.symbols.length; index++) {
+        var bucket = convert(u64, elf_dynamic_hash(image.symbols.data[index].name)) % buckets;
+        var at = (header_words + bucket) * ElfWordBytes;
+        var prior = elf_uint(init(WasmBytes) { data: image.hash.data, length: image.hash.length }, at, ElfWordBytes);
+        elf_put(image.hash.data, (header_words + buckets + convert(u64, index) + 1) * ElfWordBytes, ElfWordBytes, prior);
+        elf_put(image.hash.data, at, ElfWordBytes, convert(u64, index) + 1);
+    }
+    return image.programs < convert(u64, ElfExtended) || elf_fail(&link.error, ElfError.Range, wasm_text_bytes("ELF program headers"), 0);
+}

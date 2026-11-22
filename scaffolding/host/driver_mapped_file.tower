@@ -1,0 +1,7 @@
+import tower;
+
+// Read-only host file view. The file owner must not truncate or mutate an input
+// during compilation/linking. Replacement by rename leaves the open view pinned.
+struct DriverMappedFile { data: u8*; length: usize; }
+extern fn driver_platform_map(path: u8*, out: DriverMappedFile*): bool;
+extern fn driver_platform_unmap(file: DriverMappedFile*): void;

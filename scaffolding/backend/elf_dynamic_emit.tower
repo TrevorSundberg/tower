@@ -1,0 +1,178 @@
+import tower;
+import elf_types;
+import elf_shared;
+import elf_dynamic_plan;
+import elf_dynamic_layout;
+import elf_dynamic_metadata;
+import elf_dynamic_symbols;
+import elf_link_symbols;
+import elf_link_jobs;
+import elf_link_emit;
+import elf_unwind;
+import wasm_bytes;
+import .library.bytes_interface;
+
+fn elf_dynamic_section(headers: ByteBuffer*, names: ByteBuffer*, name: u8*, kind: ElfSectionType,
+    file: u64, address: u64, size: u64, flags: u64, related: u32, info: u32, stride: u64): bool {
+    var section: ElfSection = { name: wasm_text_bytes(name), kind: kind, output: file, address: address,
+        size: size, flags: flags, link: related, info: info, entry_size: stride, alignment: ElfAddressBytes, ..default };
+    if kind == ElfSectionType.Strings { section.alignment = 1; }
+    if kind == ElfSectionType.Hash || kind == ElfSectionType.VersionNeeds { section.alignment = ElfWordBytes; }
+    if kind == ElfSectionType.VersionSymbols { section.alignment = ElfHalfBytes; }
+    return elf_emit_section(headers, names, &section);
+}
+fn elf_dynamic_sections(link: ElfLink*, image: ElfDynamicImage*, headers: ByteBuffer*, names: ByteBuffer*): bool {
+    if !elf_emit_zero(headers, ElfSectionBytes) || !bytes_push(names, 0) { return false; }
+    foreach (var & input in &link.objects) {
+        foreach (var & section in &input.object.sections) {
+            if section.discarded || (section.flags & ElfFlagAlloc) == 0 { continue; }
+            section.output_index = convert(u32, convert(u64, headers.length) / ElfSectionBytes);
+            var output = *section; output.link = 0; output.info = 0;
+            if !elf_emit_section(headers, names, &output) { return false; }
+        }
+    }
+    var common = false;
+    foreach (var symbol in &link.globals) { common ||= symbol.section == ElfCommon; }
+    if common {
+        link.common_index = convert(u32, convert(u64, headers.length) / ElfSectionBytes);
+        if !elf_dynamic_section(headers, names, ".bss.common", ElfSectionType.NoBits, link.common_begin,
+            link.write_address + link.common_begin - link.write_begin, link.memory_end - link.common_begin,
+            ElfFlagAlloc | ElfFlagWrite, 0, 0, 0) { return false; }
+    }
+    if !elf_dynamic_metadata(link, image) { return false; }
+    var strings_index = convert(u32, convert(u64, headers.length) / ElfSectionBytes);
+    var symbols_index = strings_index + 1;
+    if !elf_dynamic_section(headers, names, ".dynstr", ElfSectionType.Strings, image.strings_at, image.strings_at,
+        convert(u64, image.strings.length), ElfFlagAlloc, 0, 0, 0)
+        || !elf_dynamic_section(headers, names, ".dynsym", ElfSectionType.DynamicSymbols, image.symbols_at, image.symbols_at,
+        convert(u64, image.table.length), ElfFlagAlloc, strings_index, 1, ElfSymbolBytes)
+        || !elf_dynamic_section(headers, names, ".hash", ElfSectionType.Hash, image.hash_at, image.hash_at,
+        convert(u64, image.hash.length), ElfFlagAlloc, symbols_index, 0, ElfWordBytes)
+        || !elf_dynamic_section(headers, names, ".gnu.version", ElfSectionType.VersionSymbols, image.versions_at, image.versions_at,
+        convert(u64, image.versym.length), ElfFlagAlloc, symbols_index, 0, ElfHalfBytes)
+        || !elf_dynamic_section(headers, names, ".rela.dyn", ElfSectionType.Rela, image.rela_at, image.rela_at,
+        convert(u64, image.rela.length), ElfFlagAlloc, symbols_index, 0, ElfRelaBytes)
+        || !elf_dynamic_section(headers, names, ".dynamic", ElfSectionType.Dynamic, image.dynamic_at, image.dynamic_address,
+        convert(u64, image.dynamic.length), ElfFlagAlloc | ElfFlagWrite, strings_index, 0, ElfDynamicBytes) { return false; }
+    if image.needs.length != 0 && !elf_dynamic_section(headers, names, ".gnu.version_r", ElfSectionType.VersionNeeds,
+        image.needs_at, image.needs_at, convert(u64, image.needs.length), ElfFlagAlloc, strings_index, convert(u32, image.version_libraries), 0) { return false; }
+    if image.got.length != 0 && !elf_dynamic_section(headers, names, ".got", ElfSectionType.Program, link.got_begin,
+        link.got_address, convert(u64, image.got.length) * ElfAddressBytes, ElfFlagAlloc | ElfFlagWrite, 0, 0, ElfAddressBytes) { return false; }
+    if image.stubs.length != 0 && !elf_dynamic_section(headers, names, ".plt", ElfSectionType.Program, image.stubs_at,
+        image.stubs_address, convert(u64, image.stubs.length) * image.stub_bytes, ElfFlagAlloc | ElfFlagExecute, 0, 0, image.stub_bytes) { return false; }
+    if image.unwind.size != 0 && !elf_dynamic_section(headers, names, ".eh_frame_hdr", ElfSectionType.Program,
+        image.unwind.at, image.unwind.at, image.unwind.size, ElfFlagAlloc, 0, 0, 0) { return false; }
+    if image.properties.length != 0 && !elf_dynamic_section(headers, names, ".note.gnu.property", ElfSectionType.Note,
+        image.properties_at, image.properties_at, convert(u64, image.properties.length), ElfFlagAlloc, 0, 0, 0) { return false; }
+    return true;
+}
+fn elf_dynamic_debug_symbols(link: ElfLink*, headers: ByteBuffer*, names: ByteBuffer*): bool {
+    var symbols: ByteBuffer = default; var strings: ByteBuffer = default;
+    defer bytes_dispose(&symbols); defer bytes_dispose(&strings);
+    if !elf_emit_zero(&symbols, ElfSymbolBytes) || !bytes_push(&strings, 0) { return false; }
+    var local_count: u32 = 1; var local_pass: usize = 0; var global_pass: usize = 1;
+    for (var pass = local_pass; pass <= global_pass; pass++) {
+        foreach (var & input in &link.objects) {
+            foreach (var & symbol in &input.object.symbols) {
+                if (symbol.binding == ElfBinding.Local) != (pass == local_pass) || symbol.section == ElfUndefined { continue; }
+                if symbol.binding != ElfBinding.Local && symbol.resolved != symbol { continue; }
+                var section_index = ElfAbsolute;
+                if symbol.section == ElfCommon { section_index = link.common_index; }
+                else { if symbol.section != ElfAbsolute {
+                    var section = &input.object.sections.data[convert(usize, symbol.section)];
+                    if section.discarded || (section.flags & ElfFlagAlloc) == 0 { continue; }
+                    section_index = section.output_index;
+                } }
+                if !elf_emit_symbol(&symbols, &strings, symbol, section_index) { return false; }
+                if pass == local_pass { local_count++; }
+            }
+        }
+    }
+    var index = convert(u32, convert(u64, headers.length) / ElfSectionBytes);
+    if !elf_emit_align(&link.output, ElfAddressBytes)
+        || !elf_dynamic_section(headers, names, ".symtab", ElfSectionType.Symbols, convert(u64, link.output.length), 0,
+        convert(u64, symbols.length), 0, index + 1, local_count, ElfSymbolBytes)
+        || !bytes_append(&link.output, symbols.data, symbols.length)
+        || !elf_dynamic_section(headers, names, ".strtab", ElfSectionType.Strings, convert(u64, link.output.length), 0,
+        convert(u64, strings.length), 0, 0, 0, 0)
+        || !bytes_append(&link.output, strings.data, strings.length) { return false; }
+    return true;
+}
+fn elf_dynamic_headers(link: ElfLink*, image: ElfDynamicImage*, sections_at: u64, section_count: u64, names: u64): bool {
+    var out = link.output.data;
+    elf_put(out, convert(u64, ElfHeaderAt.Magic), ElfWordBytes, ElfMagic);
+    elf_put(out, convert(u64, ElfHeaderAt.Class), 1, ElfClass64);
+    elf_put(out, convert(u64, ElfHeaderAt.Endian), 1, ElfLittleEndian);
+    elf_put(out, convert(u64, ElfHeaderAt.Version), 1, ElfVersion);
+    elf_put(out, convert(u64, ElfHeaderAt.Type), ElfHalfBytes, ElfShared);
+    elf_put(out, convert(u64, ElfHeaderAt.Machine), ElfHalfBytes, convert(u64, link.machine));
+    elf_put(out, convert(u64, ElfHeaderAt.FileVersion), ElfWordBytes, ElfVersion);
+    elf_put(out, convert(u64, ElfHeaderAt.Entry), ElfAddressBytes, elf_link_lookup(link, link.entry).address);
+    elf_put(out, convert(u64, ElfHeaderAt.Programs), ElfAddressBytes, ElfHeaderBytes);
+    elf_put(out, convert(u64, ElfHeaderAt.Sections), ElfAddressBytes, sections_at);
+    elf_put(out, convert(u64, ElfHeaderAt.Size), ElfHalfBytes, ElfHeaderBytes);
+    elf_put(out, convert(u64, ElfHeaderAt.ProgramSize), ElfHalfBytes, ElfProgramBytes);
+    elf_put(out, convert(u64, ElfHeaderAt.ProgramCount), ElfHalfBytes, image.programs);
+    elf_put(out, convert(u64, ElfHeaderAt.SectionSize), ElfHalfBytes, ElfSectionBytes);
+    elf_put(out, convert(u64, ElfHeaderAt.SectionCount), ElfHalfBytes, section_count);
+    elf_put(out, convert(u64, ElfHeaderAt.Names), ElfHalfBytes, names);
+    var index: u64 = 0; var programs_end = ElfHeaderBytes + image.programs * ElfProgramBytes;
+    elf_emit_program(out, index++, ElfProgramHeaders, ElfPermissionRead, ElfHeaderBytes, programs_end, programs_end, ElfHeaderBytes, ElfAddressBytes);
+    var interpreter_end = image.interpreter_at + convert(u64, link.interpreter.length) + 1;
+    elf_emit_program(out, index++, ElfProgramInterpreter, ElfPermissionRead, image.interpreter_at, interpreter_end, interpreter_end, image.interpreter_at, 1);
+    elf_emit_program(out, index++, ElfProgramLoad, ElfPermissionRead, 0, link.read_end, link.read_end, 0, link.page_size);
+    elf_emit_program(out, index++, ElfProgramLoad, ElfPermissionRead | ElfPermissionExecute, link.execute_begin, link.execute_end, link.execute_end, link.execute_address, link.page_size);
+    elf_emit_program(out, index++, ElfProgramLoad, ElfPermissionRead | ElfPermissionWrite, link.write_begin, link.write_end, link.memory_end, link.write_address, link.page_size);
+    var dynamic_end = image.dynamic_at + convert(u64, image.dynamic.length);
+    elf_emit_program(out, index++, ElfProgramDynamic, ElfPermissionRead | ElfPermissionWrite, image.dynamic_at, dynamic_end, dynamic_end, image.dynamic_address, ElfAddressBytes);
+    elf_emit_program(out, index++, ElfProgramStack, ElfPermissionRead | ElfPermissionWrite, 0, 0, 0, 0, link.page_size);
+    elf_emit_program(out, index++, ElfProgramRelro, ElfPermissionRead, link.write_begin, image.relro_end, image.relro_end, link.write_address, 1);
+    if image.unwind.size != 0 {
+        var end = image.unwind.at + image.unwind.size;
+        elf_emit_program(out, index++, ElfEhProgram, ElfPermissionRead, image.unwind.at, end, end, image.unwind.at, ElfWordBytes);
+    }
+    if image.properties.length != 0 {
+        var end = image.properties_at + convert(u64, image.properties.length);
+        elf_emit_program(out, index++, ElfProgramProperty, ElfPermissionRead, image.properties_at, end, end, image.properties_at, ElfAddressBytes);
+    }
+    foreach (var & input in &link.objects) {
+        foreach (var & section in &input.object.sections) {
+            if section.discarded || (section.flags & ElfFlagAlloc) == 0 || section.kind != ElfSectionType.Note { continue; }
+            elf_emit_program(out, index++, ElfProgramNote, ElfPermissionRead, section.output, section.output + section.size,
+                section.output + section.size, section.address, section.alignment);
+        }
+    }
+    return index == image.programs;
+}
+fn elf_dynamic_emit(link: ElfLink*): bool {
+    if link.interpreter.length == 0 || link.interpreter.data == null || *link.interpreter.data != *"/" {
+        return elf_fail(&link.error, ElfError.Input, wasm_text_bytes("explicit absolute ELF interpreter required"), 0);
+    }
+    for (var at: usize = 0; at < link.interpreter.length; at++) { if link.interpreter.data[at] == 0 { return elf_fail(&link.error, ElfError.Input, link.interpreter, convert(u64, at)); } }
+    var image: ElfDynamicImage = default; defer elf_dynamic_dispose(&image);
+    if !elf_dynamic_symbols(link) || !elf_dynamic_prepare(link, &image) || !elf_dynamic_layout(link, &image)
+        || !elf_emit_zero(&link.output, link.write_end) { return false; }
+    var headers: ByteBuffer = default; var names: ByteBuffer = default;
+    defer bytes_dispose(&headers); defer bytes_dispose(&names);
+    if !elf_dynamic_sections(link, &image, &headers, &names) || !elf_dynamic_debug_symbols(link, &headers, &names) { return false; }
+    var names_index = convert(u64, headers.length) / ElfSectionBytes;
+    var name = ".shstrtab";
+    var string_name = wasm_text_bytes(name);
+    if !elf_dynamic_section(&headers, &names, name, ElfSectionType.Strings, convert(u64, link.output.length), 0,
+        convert(u64, names.length + string_name.length + 1), 0, 0, 0, 0)
+        || !bytes_append(&link.output, names.data, names.length) || !elf_emit_align(&link.output, ElfAddressBytes) { return false; }
+    var sections_at = convert(u64, link.output.length); var count = convert(u64, headers.length) / ElfSectionBytes;
+    if count >= convert(u64, ElfReserved) || !bytes_append(&link.output, headers.data, headers.length)
+        || !elf_dynamic_headers(link, &image, sections_at, count, names_index) { return false; }
+    copy(link.output.data + convert(usize, image.interpreter_at), link.interpreter.data, link.interpreter.length);
+    copy(link.output.data + convert(usize, image.strings_at), image.strings.data, image.strings.length);
+    copy(link.output.data + convert(usize, image.symbols_at), image.table.data, image.table.length);
+    copy(link.output.data + convert(usize, image.hash_at), image.hash.data, image.hash.length);
+    copy(link.output.data + convert(usize, image.versions_at), image.versym.data, image.versym.length);
+    if image.needs.length != 0 { copy(link.output.data + convert(usize, image.needs_at), image.needs.data, image.needs.length); }
+    if image.rela.length != 0 { copy(link.output.data + convert(usize, image.rela_at), image.rela.data, image.rela.length); }
+    copy(link.output.data + convert(usize, image.dynamic_at), image.dynamic.data, image.dynamic.length);
+    if image.properties.length != 0 { copy(link.output.data + convert(usize, image.properties_at), image.properties.data, image.properties.length); }
+    return elf_dynamic_code_padding(link, ElfDynamicRegion.Init) && elf_dynamic_code_padding(link, ElfDynamicRegion.Fini)
+        && elf_dynamic_stubs(link, &image) && elf_link_jobs(link) && elf_eh_emit(link, &image.unwind);
+}

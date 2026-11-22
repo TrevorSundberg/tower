@@ -6,7 +6,7 @@ import .library.vector;
 fn backend_link_inputs_release(inputs: vector(BackendLinkInput)*): void {
     foreach (var & input in inputs) {
         vector_dispose(&input.name);
-        vector_dispose(&input.bytes);
+        if !input.borrowed { vector_dispose(&input.bytes); }
     }
     inputs.length = 0;
 }
@@ -23,10 +23,28 @@ fn backend_link_input_store(inputs: vector(BackendLinkInput)*, name: u8*, data: 
     if input.name.data == null || input.name.length != name_length || input.bytes.data == null || input.bytes.length != length { return false; }
     foreach (var & previous in inputs) {
         if backend_equal(previous.name.data, name) {
-            vector_dispose(&previous.name); vector_dispose(&previous.bytes);
+            vector_dispose(&previous.name); if !previous.borrowed { vector_dispose(&previous.bytes); }
             *previous = input; input = default; return true;
         }
     }
     if !vector_push(inputs, input) { return false; }
     input = default; return true;
+}
+
+// Explicit immutable borrow. The caller keeps the allocation/file mapping alive
+// and unchanged until the synchronous service returns and drains all jobs.
+fn backend_link_input_borrow(inputs: vector(BackendLinkInput)*, name: u8*, data: u8*, length: usize): bool {
+    if name == null || (data == null && length != 0) { return false; }
+    var input: BackendLinkInput = { bytes: { data: data, length: length, capacity: length }, borrowed: true, ..default };
+    defer vector_dispose(&input.name);
+    var name_length = backend_length(name); backend_text_append(&input.name, name, name_length);
+    if input.name.data == null || input.name.length != name_length { return false; }
+    foreach (var & previous in inputs) {
+        if backend_equal(previous.name.data, name) {
+            vector_dispose(&previous.name); if !previous.borrowed { vector_dispose(&previous.bytes); }
+            *previous = input; input.name = default; return true;
+        }
+    }
+    if !vector_push(inputs, input) { return false; }
+    input.name = default; return true;
 }

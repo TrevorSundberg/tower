@@ -1,0 +1,31 @@
+import tower;
+import elf_types;
+import elf_shared;
+import wasm_names;
+import .library.vector;
+
+fn elf_dynamic_symbols(link: ElfLink*): bool {
+    foreach (var & entry in &link.objects) {
+        foreach (var & relocation in &entry.object.relocations) {
+            if relocation.kind == 0 || entry.object.sections.data[convert(usize, relocation.section)].discarded { continue; }
+            var source = &entry.object.symbols.data[convert(usize, relocation.symbol)];
+            if source.binding == ElfBinding.Local || source.resolved != null || source.section != ElfUndefined
+                || (source.other & ElfVisibilityMask) == ElfVisibilityHidden || (source.other & ElfVisibilityMask) == ElfVisibilityInternal { continue; }
+            foreach (var & library in &link.dylibs) {
+                var index = wasm_names_get(&library.library.names, source.name);
+                if index == ElfNoIndex { continue; }
+                var target = &library.library.symbols.data[convert(usize, index)];
+                if target.kind != 0 && target.kind != ElfTypeObject && target.kind != ElfTypeFunction && target.kind != ElfTypeIfunc {
+                    return elf_fail(&link.error, ElfError.Unsupported, target.name, relocation.offset);
+                }
+                source.resolved = target;
+                if !target.needed {
+                    if !vector_push(&link.imports, target) { return elf_fail(&link.error, ElfError.Allocation, target.name, 0); }
+                    target.needed = true; target.weak_import = source.binding == ElfBinding.Weak;
+                } else { target.weak_import &&= source.binding == ElfBinding.Weak; }
+                break;
+            }
+        }
+    }
+    return true;
+}

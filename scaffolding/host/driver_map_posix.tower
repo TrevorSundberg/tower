@@ -1,0 +1,28 @@
+import tower;
+import driver_mapped_file;
+
+extern fn fopen(path: u8*, mode: u8*): void*;
+extern fn fclose(file: void*): i32;
+extern fn fileno(file: void*): i32;
+extern fn fseeko(file: void*, offset: i64, origin: i32): i32;
+extern fn ftello(file: void*): i64;
+extern fn mmap(address: void*, length: usize, protection: i32, flags: i32, descriptor: i32, offset: i64): void*;
+extern fn munmap(address: void*, length: usize): i32;
+
+export fn driver_platform_map(path: u8*, out: DriverMappedFile*): bool {
+    var file = fopen(path, "rb"); if file == null { return false; } defer fclose(file);
+    var seek_end: i32 = 2; var read_only: i32 = 1; var private_mapping: i32 = 2;
+    if fseeko(file, 0, seek_end) != 0 { return false; }
+    var length = ftello(file); if length < 0 { return false; }
+    var descriptor = fileno(file); if descriptor < 0 { return false; }
+    var next: DriverMappedFile = { length: convert(usize, length), ..default };
+    if length != 0 {
+        next.data = bits(u8*, mmap(null, next.length, read_only, private_mapping, descriptor, 0));
+        if bits(usize, next.data) == ~convert(usize, 0) { return false; }
+    }
+    *out = next; return true;
+}
+export fn driver_platform_unmap(file: DriverMappedFile*): void {
+    if file.data != null && file.length != 0 { munmap(bits(void*, file.data), file.length); }
+    *file = default;
+}

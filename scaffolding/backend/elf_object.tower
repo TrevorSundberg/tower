@@ -66,6 +66,8 @@ fn elf_object_read(object: ElfObject*, error: ElfDiagnostic*): bool {
             var allowed = ElfFlagWrite | ElfFlagAlloc | ElfFlagExecute | ElfFlagMerge | ElfFlagStrings | ElfFlagGroup;
             var contents = section.kind == ElfSectionType.Program || section.kind == ElfSectionType.NoBits
                 || (object.machine == ElfMachine.X64 && section.kind == ElfSectionType.X64Unwind);
+            if object.hosted && (section.kind == ElfSectionType.Note || section.kind == ElfSectionType.InitArray
+                || section.kind == ElfSectionType.FiniArray || section.kind == ElfSectionType.PreinitArray) { contents = true; }
             if (section.flags & ~allowed) != 0 || !contents
                 || (section.kind == ElfSectionType.NoBits && (section.flags & ElfFlagWrite) == 0)
                 || ((section.flags & ElfFlagWrite) != 0 && (section.flags & ElfFlagExecute) != 0) {
@@ -79,13 +81,24 @@ fn elf_object_read(object: ElfObject*, error: ElfDiagnostic*): bool {
         if !vector_push(&object.sections, section) { return elf_fail(error, ElfError.Allocation, object.name, at); }
     }
     var section_names = &object.sections.data[convert(usize, names)];
-    if section_names.kind != ElfSectionType.Strings || object.symtab == ElfNoIndex { return elf_fail(error, ElfError.Input, object.name, first); }
+    if section_names.kind != ElfSectionType.Strings { return elf_fail(error, ElfError.Input, object.name, first); }
     for (var index: usize = 0; index < object.sections.length; index++) {
         var name = elf_section_field(bytes, first + convert(u64, index) * ElfSectionBytes, ElfSectionAt.Name, ElfWordBytes);
         if !elf_text(section_names.bytes, name, &object.sections.data[index].name) { return elf_fail(error, ElfError.Input, object.name, name); }
         if wasm_bytes_text(object.sections.data[index].name, ".note.GNU-stack") && (object.sections.data[index].flags & ElfFlagExecute) != 0 {
             return elf_fail(error, ElfError.Unsupported, object.sections.data[index].name, 0);
         }
+    }
+    if object.symtab == ElfNoIndex {
+        // CRT epilogues can contain only section bytes, with no symbol table.
+        // Relocations/groups still require a real symbol table, even if empty.
+        if !object.hosted { return elf_fail(error, ElfError.Input, object.name, first); }
+        foreach (var & section in &object.sections) {
+            if section.kind == ElfSectionType.Rel || section.kind == ElfSectionType.Rela || section.kind == ElfSectionType.Group {
+                return elf_fail(error, ElfError.Input, section.name, 0);
+            }
+        }
+        return true;
     }
     var table = &object.sections.data[convert(usize, object.symtab)];
     var strings = &object.sections.data[convert(usize, table.link)];
@@ -134,7 +147,7 @@ fn elf_object_read(object: ElfObject*, error: ElfDiagnostic*): bool {
             var relocation: ElfRelocation = {
                 section: section.info, offset: elf_uint(section.bytes, at + convert(u64, ElfRelaAt.Offset), ElfAddressBytes),
                 symbol: convert(u32, info >> ElfSymbolIndexShift), kind: convert(u32, info & convert(u64, ~convert(u32, 0))),
-                addend: bits(i64, elf_uint(section.bytes, at + convert(u64, ElfRelaAt.Addend), ElfAddressBytes)) };
+                addend: bits(i64, elf_uint(section.bytes, at + convert(u64, ElfRelaAt.Addend), ElfAddressBytes)), ..default };
             if relocation.symbol >= convert(u32, object.symbols.length) || relocation.offset > target.size { return elf_fail(error, ElfError.Input, section.name, at); }
             if !vector_push(&object.relocations, relocation) { return elf_fail(error, ElfError.Allocation, section.name, at); }
         }

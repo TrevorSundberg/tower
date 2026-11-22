@@ -1,0 +1,89 @@
+import tower;
+import elf_types;
+import elf_link_emit;
+import wasm_bytes;
+import .library.vector;
+import .library.bytes_interface;
+
+var ElfPropertyHeaderBytes: u64 = 16;
+var ElfPropertyEntryBytes: u64 = 16;
+var ElfPropertyNoteType: u64 = 5;
+var ElfPropertyGnuName: u64 = 5590599;
+var ElfPropertyAndFirst: u64 = 2952790016;
+var ElfPropertyAndLast: u64 = 2952822783;
+var ElfPropertyOrFirst: u64 = 2952822784;
+var ElfPropertyOrLast: u64 = 2952855551;
+var ElfPropertyArmFeature: u64 = 3221225472;
+var ElfPropertyX64Feature: u64 = 3221225474;
+var ElfPropertyX64Needed: u64 = 3221258242;
+var ElfPropertyX64Used: u64 = 3221291010;
+enum ElfPropertyMerge: u32 { Reject, All, Any, AnyIfAll }
+struct ElfProperty { kind: u64; value: u64; inputs: usize; merge: ElfPropertyMerge; }
+fn elf_property_merge(machine: ElfMachine, kind: u64): ElfPropertyMerge {
+    if kind >= ElfPropertyAndFirst && kind <= ElfPropertyAndLast { return ElfPropertyMerge.All; }
+    if kind >= ElfPropertyOrFirst && kind <= ElfPropertyOrLast { return ElfPropertyMerge.Any; }
+    if machine == ElfMachine.Arm64 && kind == ElfPropertyArmFeature { return ElfPropertyMerge.All; }
+    if machine == ElfMachine.X64 {
+        if kind == ElfPropertyX64Feature { return ElfPropertyMerge.All; }
+        if kind == ElfPropertyX64Needed { return ElfPropertyMerge.Any; }
+        if kind == ElfPropertyX64Used { return ElfPropertyMerge.AnyIfAll; }
+    }
+    return ElfPropertyMerge.Reject;
+}
+fn elf_properties(link: ElfLink*, output: ByteBuffer*): bool {
+    var values: vector(ElfProperty) = default; defer vector_dispose(&values);
+    foreach (var & input in &link.objects) {
+        var seen = false;
+        foreach (var & section in &input.object.sections) {
+            if section.discarded || !wasm_bytes_text(section.name, ".note.gnu.property") { continue; }
+            var bytes = section.bytes;
+            if seen || section.kind != ElfSectionType.Note || !elf_span(bytes, 0, ElfPropertyHeaderBytes)
+                || elf_uint(bytes, 0, ElfWordBytes) != ElfWordBytes
+                || elf_uint(bytes, ElfWordBytes, ElfWordBytes) != convert(u64, bytes.length) - ElfPropertyHeaderBytes
+                || elf_uint(bytes, ElfAddressBytes, ElfWordBytes) != ElfPropertyNoteType
+                || elf_uint(bytes, ElfAddressBytes + ElfWordBytes, ElfWordBytes) != ElfPropertyGnuName {
+                return elf_fail(&link.error, ElfError.Input, section.name, 0);
+            }
+            seen = true; var previous: u64 = 0;
+            for (var at = ElfPropertyHeaderBytes; at < convert(u64, bytes.length); at += ElfPropertyEntryBytes) {
+                if !elf_span(bytes, at, ElfPropertyEntryBytes) || elf_uint(bytes, at + ElfWordBytes, ElfWordBytes) != ElfWordBytes {
+                    return elf_fail(&link.error, ElfError.Input, section.name, at);
+                }
+                var kind = elf_uint(bytes, at, ElfWordBytes); var merge = elf_property_merge(link.machine, kind);
+                if kind <= previous { return elf_fail(&link.error, ElfError.Input, section.name, at); }
+                previous = kind;
+                if merge == ElfPropertyMerge.Reject { return elf_fail(&link.error, ElfError.Unsupported, section.name, at); }
+                var value = elf_uint(bytes, at + ElfAddressBytes, ElfWordBytes); var index: usize = 0;
+                while index < values.length && values.data[index].kind < kind { index++; }
+                if index != values.length && values.data[index].kind == kind {
+                    var property = &values.data[index]; property.inputs++;
+                    if merge == ElfPropertyMerge.All { property.value &= value; } else { property.value |= value; }
+                } else {
+                    var property: ElfProperty = { kind: kind, value: value, inputs: 1, merge: merge };
+                    if !vector_push(&values, property) { return false; }
+                    for (var move = values.length - 1; move > index; move--) { values.data[move] = values.data[move - 1]; }
+                    values.data[index] = property;
+                }
+            }
+            // Only the merged property note may describe this image. In
+            // particular, CRT BTI/CET flags cannot enable checks on plain Tower
+            // functions. Referenced discarded metadata is rejected normally.
+            section.discarded = true;
+        }
+    }
+    foreach (var & property in &values) {
+        if property.value == 0 || (property.merge != ElfPropertyMerge.Any && property.inputs != link.objects.length) { continue; }
+        if output.length == 0 && !elf_emit_zero(output, ElfPropertyHeaderBytes) { return false; }
+        var at = convert(u64, output.length);
+        if !elf_emit_zero(output, ElfPropertyEntryBytes) { return false; }
+        elf_put(output.data, at, ElfWordBytes, property.kind); elf_put(output.data, at + ElfWordBytes, ElfWordBytes, ElfWordBytes);
+        elf_put(output.data, at + ElfAddressBytes, ElfWordBytes, property.value);
+    }
+    if output.length != 0 {
+        elf_put(output.data, 0, ElfWordBytes, ElfWordBytes);
+        elf_put(output.data, ElfWordBytes, ElfWordBytes, convert(u64, output.length) - ElfPropertyHeaderBytes);
+        elf_put(output.data, ElfAddressBytes, ElfWordBytes, ElfPropertyNoteType);
+        elf_put(output.data, ElfAddressBytes + ElfWordBytes, ElfWordBytes, ElfPropertyGnuName);
+    }
+    return true;
+}

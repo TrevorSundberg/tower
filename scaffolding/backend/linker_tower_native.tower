@@ -8,6 +8,7 @@ import .library.vector;
 import .library.coff_import_object;
 
 extern fn backend_link_tower_macho(link: BackendLink*, triple: u8*): bool;
+extern fn backend_link_tower_hosted_elf(link: BackendLink*, triple: u8*): bool;
 
 fn backend_native_input(link: BackendLink*, name: u8*, bytes: u8*, length: usize): bool {
     var key: vector(u8) = default; defer vector_dispose(&key);
@@ -26,6 +27,7 @@ fn backend_native_input(link: BackendLink*, name: u8*, bytes: u8*, length: usize
 // no SDK linker search, compiler wrapper or replacement native runtime is used.
 export fn backend_link_tower_native(link: BackendLink*, triple: u8*): bool {
     link.output.length = 0; if link.error.length != 0 { return false; }
+    if backend_contains(triple, "linux") { return backend_link_tower_hosted_elf(link, triple); }
     var borrowed = link.arguments; var arguments: vector(u8*) = default;
     foreach (var argument in &borrowed) { if !vector_push(&arguments, argument) { vector_dispose(&arguments); return false; } }
     link.arguments = arguments;

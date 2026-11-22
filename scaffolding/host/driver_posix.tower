@@ -3,6 +3,7 @@ import .library.bytes_types;
 import .library.bytes_interface;
 import driver_support;
 import driver_posix_api;
+import driver_map_posix;
 
 // Native POSIX services. Explicit libc ABI; no guest JIT or shell invocation.
 // Linux/macOS native builds use their pointer-sized time_t/long profile.
