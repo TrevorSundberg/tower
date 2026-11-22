@@ -999,3 +999,17 @@ These are updated source receipts; owner runtime reports remain separate.
 D1 new incoming scope is three tracked paths from this handoff, of which two
 already had full source reviews. Latest type reachability and lifecycle failures
 remain acceptance gaps. No production semantic change authored by D1.
+
+### Shared harness boundary refresh at e4505ba
+
+Reviewed coherent-base changes against60741c5 after the constructor handoff;
+these update existing-path receipts rather than adding files or runtime passes.
+
+| Path under scaffolding/tests | Boundary and coverage conclusion |
+| --- | --- |
+| `backend.tower` | Calls owner constructor-lowering regression before existing object-format/foreign tests; dedicated nonzero failure92 preserves attribution. Uses existing backend context, no extra runtime/scheduler. |
+| `backend_units.tower` | Added retained-byte admission rejection, exact target-byte threshold, denial-before-publication and output receipt retention after join. Streaming batches borrow frontend ledger; independent later targets own their ledger. Explicit early close resets batch to avoid double cleanup and must restore baseline receipts before frontend destruction. Existing timed overlap barrier remains, including its current600s outer timeout/30s internal failed receipt on owner host; root has requested isolated helper extraction without deadline changes. |
+| `driver_units.tower` | Existing multi-unit inputs include decltype, comptime and generic nominal types. Added tiny retained-byte rejection and positive finite budget on the worker run. Original depfile/serial-worker executable result checks remain; CLI budget option itself is not RSS enforcement or concurrency evidence. |
+| `frontend_units.tower` | Worlds remain distinct, now share one WorkBudget and use the total ceiling rather than dividing static outer lanes. Checks joined zero execution lanes with retained input grants, cancellation drains workers while inputs remain owned, and exact ledger identity per world. Source byte and world-budget tests run before existing widths/serial-worker comparisons. Peak admission remains distinct from actual overlap. |
+| `evaluation_query_checks.tower` | Reuses extracted shared types/API and named SemanticQuery tags. Body pipeline identity is obtained through its owning component, admitted count through public query, preserving no-replay and later-frontier tests. Added current source-proof/type-receipt hooks; unused stages must remain unstarted and real graph cycles are retained. Initializers own complete setup before reads; structural marker still proves view release at pump boundary. |
+| `semantic_world.tower` | Removes heavy implementation import cycle in favor of exact public declarations/types and external evaluation_query_tests. Existing explicit world/kind/stage checks preserved, query code linked separately by owner manifest. The split reduces import closure rather than deleting validation; whole-link validation remains pending locally. |
