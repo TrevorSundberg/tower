@@ -41426,3 +41426,22 @@ while browser generation work also ran; this is not an isolated speedup measure.
 The full ownership matrix above remains the release evidence. AGENTS now names
 this focused mode; full matrices remain required for changed ownership contracts
 and coherent publications. Evidence: type-query-smoke.log.
+
+Publication complete: source 567767e and validation e4df027 pushed to main.
+Pages receipt commit 4364458f3ae109e1c7a1e654a8b33109f2657a58, action 44984538477,
+succeeded. The hosted manifest exactly matches SHA256
+c512ea0206cb4655819ca2641ac83d705ca1e2c517ae2b6c8512d6abff30b7c9;
+its complete asset map matches the preceding verified 4e2017c4 release. Runtime
+and compiler-project source remain 7503718. This is manifest-only publication,
+so the prior full hosted asset/browser checks remain the runtime evidence; no
+claim of rerunning them for a receipt-only edit. Release this lane's
+agent1-formatter-567767e lock after verification. Goal remains active.
+
+The recorded post-Python JavaScript baseline was 188 files/24430 lines; current
+187/24364 is 66 net lines lower (25 candidate checks plus 41 formatter lines).
+Shell is 228 lines lower and CMake 284 lines lower than their post-Python
+baselines. Python's separate original baseline remains 23 files/1989 lines.
+Next audit retains format-benchmark.mjs pending a decision about its manual
+pre-port comparison purpose; absence of an automated caller alone does not make
+an explicitly manual benchmark obsolete. test-ide.mjs is already a minimal
+capability/export bridge with its assertions and fixtures in Tower.
