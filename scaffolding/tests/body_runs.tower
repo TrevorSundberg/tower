@@ -181,7 +181,7 @@ fn body_runs_arm_error(budget: usize, bedrock: u8*, foundation: u8*, root: u8*, 
     units_check(frontend_units_failed(batch) == 1 && strstr(error, mode == 2 ? "Duplicate match pattern" : "unknownMatch") is not null && strstr(error, "unknownSecond") is null, "Resumed arm and cleanup failures preserve source diagnostic order");
 }
 
-enum BodyDeclarationFailure: u32 { SelfReference, SharedSignature, SharedInitializer, HeaderSelfReference, SharedTypeInitializer, SharedTypeAlias, SharedNestedType, NestedFunctionSignature, IterationSignature, ModuleInitializer, ModuleStatement, ArrayExtent, ArrayCycle, ModuleArrayExtent, ArrayFields, ConstructorCycle, StructuralTypeFailure }
+enum BodyDeclarationFailure: u32 { SelfReference, SharedSignature, SharedInitializer, HeaderSelfReference, SharedTypeInitializer, SharedTypeAlias, SharedNestedType, NestedFunctionSignature, IterationSignature, ModuleInitializer, ModuleStatement, ArrayExtent, ArrayCycle, ModuleArrayExtent, ArrayFields, ConstructorCycle, StructuralTypeFailure, VoidReturn, DeferredReturn }
 var BodyDeclarationRevision: u64 = 90;
 var BodyDeclarationProfile: u64 = 23;
 
@@ -258,6 +258,14 @@ fn body_runs_declaration_error(budget: usize, bedrock: u8*, foundation: u8*, roo
         source = "import tower;fn id(T:type,value:T):T{return value;}fn broken(T:type):type{struct Item{value:MissingField;}return Item;}fn first():i32{if id(true){var size:usize=sizeof(broken(i32));return unknownFirst;}return 0;}fn later():usize{return sizeof(broken(i32));}";
         diagnostic_text = "MissingField";
     }
+    if mode == BodyDeclarationFailure.VoidReturn {
+        source = "import tower;fn id(T:type,value:T):T{return value;}fn first():void{return id(unknownFirst);}fn later():i32{return unknownLater;}";
+        diagnostic_text = "A void function cannot return a value";
+    }
+    if mode == BodyDeclarationFailure.DeferredReturn {
+        source = "import tower;fn id(T:type,value:T):T{return value;}fn first():i32{defer{return id(1);}return 0;}fn later():i32{return unknownLater;}";
+        diagnostic_text = "A deferred cleanup cannot return";
+    }
     units_check(frontend_units_source(batch, 1, "local_dependency.tower", source, strlen(source)), "Local declaration dependency source");
     while !frontend_units_step(batch, true) {}
     var error = frontend_units_error(batch);
@@ -309,6 +317,10 @@ fn body_runs_smoke_select(root: u8*, types_only: bool): void {
         return;
     }
     body_runs_header_error(4, bedrock.data, foundation.data, root);
+    for(var budget: usize = 1; budget <= 4; budget *= 4) {
+        body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.VoidReturn);
+        body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.DeferredReturn);
+    }
     body_runs_header_cycle(4, bedrock.data, foundation.data, root, false);
     body_runs_header_cycle(4, bedrock.data, foundation.data, root, true);
     body_runs_surface_error(4, bedrock.data, foundation.data, root, BodyLoopFailure.ForCondition);
@@ -393,6 +405,8 @@ fn body_runs_tests(root: u8*): void {
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.ArrayFields);
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.ConstructorCycle);
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.StructuralTypeFailure);
+        body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.VoidReturn);
+        body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.DeferredReturn);
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedInitializer);
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedTypeInitializer);
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedTypeAlias);

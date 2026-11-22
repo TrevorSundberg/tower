@@ -699,4 +699,26 @@ fn query_type_layout(): i32 {
 if query_type_value() != 42 || comptime(query_type_value()) != 42
     || query_type_layout() != 42 || comptime(query_type_layout()) != 42
     || query_type_callback_value() != 42 || comptime(query_type_callback_value()) != 42 { failures++; }
+var query_statement_effects: i32 = 0;
+fn query_statement_step(): i32 { query_statement_effects++; return query_statement_effects; }
+fn query_statement_return(): i32 {
+    defer { query_statement_effects += 10; }
+    return identity(query_statement_step());
+}
+fn query_statement_discard(): i32 {
+    identity(query_statement_step());
+    sizeof(query_type_record(i64));
+    return query_statement_effects;
+}
+fn query_statement_layout(): usize { return sizeof(query_type_record(i8)); }
+fn query_statement_staged(): i32 { return comptime(identity(42)); }
+fn query_projection_outer(T: type): type {
+    struct Outer { inner: query_type_record(T); }
+    return Outer;
+}
+var query_projection_value: decltype(alloc(query_projection_outer(u32), 1).inner.value);
+if query_statement_return() != 1 || query_statement_effects != 11
+    || query_statement_discard() != 12 || query_statement_effects != 12
+    || query_statement_layout() != sizeof(void*) * 2 || query_statement_staged() != 42 { failures++; }
+if sizeof(decltype(query_projection_value)) != 4 { failures++; }
 print(failures);

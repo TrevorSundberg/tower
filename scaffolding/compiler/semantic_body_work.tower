@@ -179,6 +179,7 @@ struct SemanticBodyWork {
     declaration: SemanticDeclaration*;
     initialization: SemanticDeclaration*;
     expression_header: void*;
+    expression_statement: void*;
     prepared_value: void*;
     iteration_plan: SemanticIterationPlan;
     declaration_header: void*;
@@ -808,13 +809,14 @@ fn sem_body_for_tails(c: SemanticContext*, batch: SemanticBodyWork**, count: usi
 
 // Called only with no active preparation ticket. Retain the producer error and
 // let earlier body continuations settle before choosing the visible diagnostic.
-fn sem_body_iteration_failed(c: SemanticContext*, result: SemanticBodyWork*): void {
+fn sem_body_preparation_failed(c: SemanticContext*, result: SemanticBodyWork*): void {
     sem_require(work_fail(&c.queries, result.preparation));
     sem_body_hold_error(c, result);
     result.done = true;
     result.preparation = 0;
     result.initialization = null;
     result.expression_header = null;
+    result.expression_statement = null;
     result.iteration_plan = default;
 }
 
@@ -854,7 +856,7 @@ fn sem_body_iteration_signatures(c: SemanticContext*, batch: SemanticBodyWork**,
             if sem_ok(c) { sem_require(work_yield(&c.queries, &ticket)); }
             else {
                 sem_require(work_finish(&c.queries, &ticket, false));
-                sem_body_iteration_failed(c, result);
+                sem_body_preparation_failed(c, result);
             }
         }
         if active == 0 { return; }
@@ -886,10 +888,33 @@ fn sem_body_iteration_signatures(c: SemanticContext*, batch: SemanticBodyWork**,
             if sem_ok(c) && sem_get(function).parameters.length != IterationParameterCount {
                 sem_fail(c, result.expression_header, "An iteration protocol function requires source and state pointer parameters");
             }
-            if !sem_ok(c) { sem_body_iteration_failed(c, result); }
+            if !sem_ok(c) { sem_body_preparation_failed(c, result); }
             else { result.iteration_plan.ready = role == IterationRole.End; }
         }
     }
+}
+
+// Return and discarded operands use the same expression graph as initializers.
+// Only statement publication/flow remains on the coordinator, after the checked
+// value and its type/layout dependencies have completed.
+fn sem_body_statement_query(c: SemanticContext*, result: SemanticBodyWork*, node: void*, depth: u32): bool {
+    var returned = sem_is(node, "CoreReturn");
+    var discarded = sem_is(node, "TowerExpressionStatement");
+    var called = sem_is(node, "CoreCallStatement");
+    if depth >= ControlBlockNestingLimit || !returned && !discarded && !called { return false; }
+    if sem_control_call(c, node, "label") != null || sem_control_call(c, node, "jump") != null { return false; }
+    var saved: SemanticBodyScope;
+    sem_body_save(c, &saved);
+    sem_body_restore(c, &result.lexical);
+    var source = returned ? sem_return_source(c, node) : sem_member(node, discarded ? "value" : "call");
+    var expected_type = returned ? &sem_get(c.current).type : null;
+    sem_body_restore(c, &saved);
+    if !sem_ok(c) { sem_body_preparation_failed(c, result); return false; }
+    if source == null { return false; }
+    var mode = returned ? SemanticExpressionMode.Initializer : discarded ? SemanticExpressionMode.Discard : SemanticExpressionMode.Value;
+    result.expression_statement = node;
+    result.initialization = sem_expression_add(c, source, expected_type, &result.lexical, mode);
+    return true;
 }
 
 // Bind independent local roots in source order, then release every preparation
@@ -994,7 +1019,11 @@ fn sem_body_declarations(c: SemanticContext*, batch: SemanticBodyWork**, count: 
         if declaration == null {
             var cursor = sem_body_cursor(result);
             var header = sem_unwrap(sem_child(cursor.subject, cursor.next));
-            if !result.boundaries.data[result.boundary].header || cursor.depth >= ControlBlockNestingLimit { continue; }
+            if !result.boundaries.data[result.boundary].header {
+                if sem_body_statement_query(c, result, header, cursor.depth) { initializers++; }
+                continue;
+            }
+            if cursor.depth >= ControlBlockNestingLimit { continue; }
             var branch = sem_is(header, "CoreIf");
             var condition = branch || sem_is(header, "TowerWhile");
             var matching = sem_is(header, "TowerMatch");
@@ -1059,7 +1088,7 @@ fn sem_body_declarations(c: SemanticContext*, batch: SemanticBodyWork**, count: 
         var result = batch[i];
         var declaration = result.declaration;
         if declaration == null && result.initialization == null { continue; }
-        var node = declaration == null ? result.expression_header : declaration.subject;
+        var node = declaration == null ? (result.expression_header ?? result.expression_statement) : declaration.subject;
         var ticket: WorkTicket = default;
         var producer = declaration ?? result.initialization;
         sem_declaration_report(c, producer.subject);
@@ -1082,23 +1111,35 @@ fn sem_body_declarations(c: SemanticContext*, batch: SemanticBodyWork**, count: 
             if result.initialization != null { sem_get(node).value = result.initialization.value; }
             sem_declaration_finish(c, node);
         }
-        if result.expression_header != null {
+        if result.expression_statement != null {
             if sem_ok(c) {
-                result.prepared_value = producer.value;
-                sem_require(sem_body_enter(c, result, node, null));
-                result.prepared_value = null;
-            }
-        } else {
-            if result.declaration_header != null {
-                var header = result.declaration_header;
-                if sem_ok(c) {
-                    sem_control_for_accept(c, header, node, sem_statement_complete(c, node, FlowNext), &result.declaration_loop);
-                    result.for_tail = sem_ok(c);
-                }
-            } else {
+                var flow = sem_is(node, "CoreReturn") ? sem_return_statement(c, node, producer.value)
+                    : sem_is(node, "TowerExpressionStatement") ? sem_expression_statement(c, node, producer.value)
+                    : sem_call_statement(c, node, producer.value);
+                flow = sem_statement_complete(c, node, flow);
                 var cursor = sem_body_cursor(result);
                 cursor.next++;
-                sem_block_accept(c, cursor, node, FlowNext);
+                sem_block_accept(c, cursor, node, flow);
+            }
+        } else {
+            if result.expression_header != null {
+                if sem_ok(c) {
+                    result.prepared_value = producer.value;
+                    sem_require(sem_body_enter(c, result, node, null));
+                    result.prepared_value = null;
+                }
+            } else {
+                if result.declaration_header != null {
+                    var header = result.declaration_header;
+                    if sem_ok(c) {
+                        sem_control_for_accept(c, header, node, sem_statement_complete(c, node, FlowNext), &result.declaration_loop);
+                        result.for_tail = sem_ok(c);
+                    }
+                } else {
+                    var cursor = sem_body_cursor(result);
+                    cursor.next++;
+                    sem_block_accept(c, cursor, node, FlowNext);
+                }
             }
         }
         if !result.for_tail { result.boundary++; }
@@ -1123,6 +1164,7 @@ fn sem_body_declarations(c: SemanticContext*, batch: SemanticBodyWork**, count: 
         result.declaration = null;
         result.initialization = null;
         result.expression_header = null;
+        result.expression_statement = null;
         result.iteration_plan = default;
         if !result.for_tail {
             result.declaration_header = null;
@@ -1227,6 +1269,7 @@ fn sem_body_clear(result: SemanticBodyWork*): void {
     result.declaration = null;
     result.initialization = null;
     result.expression_header = null;
+    result.expression_statement = null;
     result.prepared_value = null;
     result.iteration_plan = default;
     result.declaration_header = null;

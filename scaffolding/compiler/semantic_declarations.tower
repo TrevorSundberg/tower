@@ -263,6 +263,22 @@ fn sem_declaration_location(c: SemanticContext*, node: void*, waiting: usize*, l
         }
         if *waiting != 0 || *layout != null { return null; }
         if sem_is(node, "TowerInvoke") { return null; }
+        var builtin = semantic_builtin_kind(sem_identifier(c, name));
+        if !sem_call_uses_value(c, name) && (builtin == KAllocate || builtin == KReallocate) {
+            var arguments = sem_collect(c, sem_member(node, "args"), "CoreCallArgument");
+            if arguments.length != 0 {
+                var element = sem_constructor_prepared(c, arguments.data[0]);
+                if element == null { element = sem_array_type_prepared(c, arguments.data[0]); }
+                if element != null {
+                    // Project only a published identity. The enclosing member
+                    // lookup then requests fields/layout before checking its
+                    // value, including unevaluated decltype(alloc(T,...).field).
+                    var type = sem_type_copy(c, element);
+                    type.pointers++;
+                    return type;
+                }
+            }
+        }
         var function = sem_resolve(c, c.functions, name, sem_identifier(c, name));
         var prepared = sem_prepared_call(c, node);
         if prepared != null { function = prepared.instance; }

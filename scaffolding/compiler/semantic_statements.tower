@@ -471,6 +471,44 @@ fn sem_expression_statement(c: SemanticContext*, n: void*, prepared: void*): u32
     return FlowNext;
 }
 
+fn sem_call_statement(c: SemanticContext*, n: void*, prepared: void*): u32 {
+    var call = prepared ?? sem_call(c, sem_member(n, "call"));
+    var value = sem_get(call);
+    return value != null && value.kind == KTrap ? FlowStop : FlowNext;
+}
+
+// Validate the return shape before admitting its operand query. This is shared
+// with immediate checking so void/missing-value errors keep their ordering.
+fn sem_return_source(c: SemanticContext*, n: void*): void* {
+    var returned = sem_member(n, "value");
+    var present = sem_length(sem_tokens(c, returned)) != 0;
+    var function = sem_get(c.current);
+    if function.type.pointers == 0 && function.type.scalar == SVoid {
+        if present { sem_fail(c, n, "A void function cannot return a value"); }
+        return null;
+    }
+    if !present {
+        sem_fail(c, n, "A non-void function must return a value");
+        return null;
+    }
+    var operands = sem_collect(c, returned, "CoreOperand");
+    if operands.length != 1 {
+        sem_fail(c, n, "A return value must contain one Foundation operand");
+        return null;
+    }
+    return operands.data[0];
+}
+
+fn sem_return_statement(c: SemanticContext*, n: void*, prepared: void*): u32 {
+    var value = sem_node(c, n, KReturn);
+    if prepared != null { value.value = prepared; }
+    else {
+        var source = sem_return_source(c, n);
+        if source != null && sem_ok(c) { value.value = sem_initial_value(c, source, &sem_get(c.current).type); }
+    }
+    return FlowReturn;
+}
+
 fn sem_statement_impl(c: SemanticContext*, n: void*, depth: u32): u32 {
     var label_call = sem_control_call(c, n, "label");
     if label_call != null {
@@ -563,38 +601,10 @@ fn sem_statement_impl(c: SemanticContext*, n: void*, depth: u32): u32 {
             value.value = step55;
         } else {
             if sem_equal(kind, "CoreCallStatement") {
-                var step57 = sem_member(n, "call");
-                sem_call(c, step57);
-                var call_node = sem_get(step57);
-                if call_node != null {
-                    if call_node.kind == 33 {
-                        return 0;
-                    }
-                }
+                return sem_call_statement(c, n, null);
             } else {
                 if sem_equal(kind, "CoreReturn") {
-                    var value: FoundationNode* = sem_node(c, n, KReturn);
-                    var returned: void* = sem_member(n, "value");
-                    var present: bool = sem_length(sem_tokens(c, returned)) != 0;
-                    var function: FoundationNode* = sem_get(c.current);
-                    if function.type.pointers == 0 && function.type.scalar == SVoid {
-                        if present {
-                            sem_fail(c, n, "A void function cannot return a value");
-                        }
-                    } else {
-                        if !present {
-                            sem_fail(c, n, "A non-void function must return a value");
-                        } else {
-                            var operands = sem_collect(c, returned, "CoreOperand");
-                            if operands.length == 1 {
-                                value.value = sem_initial_value(c, operands.data[0], &function.type);
-                            }
-                            else {
-                                sem_fail(c, n, "A return value must contain one Foundation operand");
-                            }
-                        }
-                    }
-                    return 8;
+                    return sem_return_statement(c, n, null);
                 } else {
                     if sem_function_syntax(n) {
                         sem_fail(c, n, "Functions must be declared at top level");

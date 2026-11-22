@@ -41641,3 +41641,38 @@ Static Tower entry modules can remove those generators, preserving the distinct
 native main/WASI __main_argc_argv ABI. Validate actual objects/exports and existing
 focused native/WASI fixtures before replacing those recipes; no such replacement
 is included in this core-runner milestone.
+
+Correction to the proposed bf14704 publication: both edited browser generations
+passed, but the browser threading suite failed its existing decltype_type_fields
+fixture with `Unknown field 'inner' in 'nested(u32)'`. The allocation call's
+published type identity was not projected by readiness, so a containing field
+access could synchronously inspect it before nested field receipts completed.
+Readiness now projects alloc/realloc results from their prepared constructor or
+array identity; the enclosing member access then demands its existing field and
+layout queries. This computes no values and introduces no evaluator. Added the
+same nested allocation/decltype case to the shared native body fixture.
+The corrected native CLI runs decltype_type_fields.tower and prints 0; the focused
+suite is running in constructor-projection-native.log. The failing bf14704 browser
+assets were not deployed; f13b167 remains the verified live compiler. Generation
+receipts were moved into constructor-retained-workbench after a missing trailing
+slash put them one directory higher; both generations were executed fresh.
+
+In parallel with the frozen browser generation checks, return and discarded-call
+operands were moved onto the existing expression graph. Their statement flow and
+deferred cleanup publish once after operand completion. Return shape checking
+and statement finalization share helpers with immediate checking, preserving
+void/missing operands, trap flow and deferred-return rejection. Labels/jumps and
+unsupported structural statements retain their established path. New fixtures
+exercise once-only side effects, return-before-cleanup values, discarded generic
+calls, hidden type layouts and staged returns. Small-unit preflight and the native
+body smoke pass (statement-query-{preflight,native}.log). Candidate self-compilation
+is running in statement-query-self.log. This work remains uncommitted/unpublished.
+
+The allocation projection correction passes its focused type suite and the
+candidate successfully compiles the changed body-work unit. Native interpretation
+of decltype_expressions, named_initialization, declaration_operands and
+struct_values also prints 0 for each. These target the changed expression/type
+boundary before another browser publication, avoiding a repeated browser build
+as the first check of those cases. The full changed-body ownership matrix is
+running in statement-query-matrix.log. Prior constructor multi-unit checks remain
+valid; no source/world ownership interface changed in this follow-up.
