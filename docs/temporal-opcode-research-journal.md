@@ -39002,7 +39002,7 @@ internal.sh builds/invokes the existing driver and retains necessary upstream
 tool discovery. build-native.sh forwards CMake arguments like the existing Wasm
 wrapper, avoiding another option/environment policy or resetting cached options.
 The two old runners are deleted: shell source falls from 19 files/483 lines to
-17/416 (75 removed runner lines, eight added invocation lines, net 67 fewer).
+17/414 (75 removed runner lines, six added invocation lines, net 69 fewer).
 Python and owned C/C++ remain zero. Also change test-native-core.sh's default
 cache from core-asan to core and clear obsolete CXX sanitizer flags. The old
 flags no longer instrument Tower-owned objects and conflict with the explicit
@@ -39057,3 +39057,14 @@ Changed shell syntax checks pass. Core CMake configuration with the new argument
 passes and its generated Ninja file contains no -fsanitize. The complete core/
 browser/release matrix is not rerun for this test-runner-only change. Publication
 will preserve the existing runtime assets and Python-retirement receipt.
+
+Final inventory corrects the preliminary 67-line estimate: internal.sh gains six
+net lines, so the actual shell reduction is 69 lines (483 to 414, 14.3%). Source
+commit 94869ec contains no compiler/host/backend/library/bootstrap changes, so the
+already verified b3775dab successor remains applicable. The source pull/rebase
+is up to date. New native Wasm SHA256
+b0303c4a397cbe97387a4e62169b2021fd3f5cc0733d65e3dea22ba17046488a;
+shared Wasm archive 20ec53c525f01b934c17816721ab6ef9801f926cb166e4b8c498519d97116228.
+Actual Windows linking/memory PE hashes are
+c9f211e865d0b5c35ca205803a5f054646edbe54e8e777cb793a82e2e378a246 and
+ebb83316633163885949d5ccb2997dd12daff5d30395900a064bc681ee78a7b4.
