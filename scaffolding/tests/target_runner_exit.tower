@@ -1,0 +1,13 @@
+import tower;
+
+extern fn puts(text: u8*): i32;
+
+// Stand in for Wine only in the negative transport trial. A real child exit
+// equal to the old shell skip code must not turn a failed execution into a skip.
+export fn main(argc: i32, argv: u8**): i32 {
+    var required_arguments: i32 = 2; var usage: i32 = 2;
+    var historical_skip_code: i32 = 77;
+    if argc != required_arguments { return usage; }
+    puts(argv[1]);
+    return historical_skip_code;
+}

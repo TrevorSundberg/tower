@@ -1,4 +1,10 @@
 import tower;
+import .library.bytes_types;
+
+enum DriverWindowsRunner: u32 { Unavailable, Direct, Wine }
+// PATH discovery is a POSIX host capability used by Linux cross-target tests.
+extern fn driver_test_posix_tool(out: ByteBuffer*, name: u8*): bool;
+extern fn driver_test_windows_runner(out: ByteBuffer*): DriverWindowsRunner;
 
 extern fn driver_test_cli_platform(compiler: u8*): void;
 

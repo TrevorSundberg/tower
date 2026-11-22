@@ -1,0 +1,9 @@
+import tower;
+
+enum DriverTargetCase: u32 { Linking, Memory }
+
+// Shared output data for native, Windows and standalone target-runtime checks.
+fn driver_target_output(kind: DriverTargetCase): u8* {
+    if kind == DriverTargetCase.Linking { return "33\ntrue\ntrue\n42\n42\n18446744073709551615\n0\ntrue\n5\n42\n"; }
+    return "5\n84\n42\n";
+}

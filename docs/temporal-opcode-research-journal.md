@@ -39079,3 +39079,95 @@ No newer production binary is claimed. GitHub push again needed a transient,
 command-scoped DNS resolution override; no permanent Git configuration changed.
 Next: audit shared Windows/target-pack assertions and optional execution policy,
 then remove their remaining shell runners without dropping platform validation.
+
+### 2026-11-21: remove Windows and target-pack shell validation/transport
+
+Audit at e9d2132: internal.sh calls test-target-packs.sh and
+test-windows-linking.sh; those are the only run-windows.sh callers. Target-pack
+construction remains required by browser exports, so keep build-targets.sh's
+existing CMake/LLVM boundary. Move its invocation out of the validator: repeated
+validation consumes explicit, already-built packs. backend/coff_import.tower is
+an existing Tower single-symbol short-import writer, not a general replacement
+for the seven-export kernel32.def packaging step. A later production-pack port
+should reuse its metadata construction and the shared ar writer rather than add
+a C library or another independent archive implementation. No backend semantics
+or production pack format changes are made here.
+
+The new driver_targets.tower adds --windows-linking and --target-packs to the
+existing Tower runner. Native and Windows cases share driver_target_cases.tower
+output data; remove the native runner's temporary expected.txt/memory-expected.txt
+production entirely. Windows checks now work independently of the native test.
+Reuse the common compile/capture logic, adding the second link input needed for
+the Windows fixture archive plus kernel32 library. Explicit Clang/linker inputs
+apply to cross-target runtime compilation too. Each generated object/executable
+is removed before its command; success must create the requested output.
+
+The target matrix retains Linux x64/ARM64 static ELF entry/startup, Windows x64
+PE entry/subsystem/machine/timestamp, and macOS x64/ARM64 architecture/minimum-OS
+contracts. It consumes explicit compiler, scaffolding, LLVM-bin and pack paths.
+Linux x64 executes directly; POSIX tool discovery reuses driver_find_tool for
+QEMU and the previous cmd.exe-before-Wine policy. New nominal DriverWindowsRunner
+separates unavailable/direct/Wine capability from child status. Native Windows
+selects direct execution. A selected transport's nonzero exit, signal or wrong
+stdout always fails. In particular, program exit 77 was previously confused with
+the shell helper's skip marker; the new Tower path never treats it as absence.
+No new platform implementation beyond wrappers around existing lookup/transport.
+
+Delete test-target-packs.sh (36 lines), test-windows-linking.sh (26) and
+run-windows.sh (11); internal.sh gains three net invocation lines. Shell source
+falls from 17 files/414 lines to 14/344: 70 fewer lines in this milestone, 139
+fewer than the 19-file/483-line post-Python baseline. Python and owned C/C++ stay
+zero. The full internal runner and documented commands invoke Tower directly;
+searches find no active references to the deleted scripts or generated expected
+files. Historical scripts remain at e9d2132. No todo.txt or sanitizer changes.
+
+Freeze /cache/target_tooling_checkout at e9d2132 plus the new test modules.
+Compile driver_targets.tower first with public bootstrap SHA9bf8779, --library,
+--target x86_64-unknown-linux-gnu and explicit bedrock/foundation: passes first
+attempt. Update only test inputs in the owned compiler_project_final_checkout/
+native cache and rebuild tower-driver-tests. Build the five existing guest object
+targets through the unchanged build-targets.sh, into target_tooling_checkout's
+own build/targets. Docker tower_build, Ubuntu24.04/LLVM19.1.1, Python unavailable.
+
+In /cache/target_tooling_cases, invoke tower-driver-tests --target-packs with the
+unchanged b3775dab compiler, its matching scaffolding, /usr/lib/llvm-19/bin and
+those packs. All five link; native Linux x64 and QEMU ARM64 run and match exact
+Tower output. Windows capability is correctly unavailable in this container.
+--windows-linking independently builds its archive and two PEs in
+/cache/target_tooling_windows and reports that same execution limitation.
+llvm-readobj-19 confirms both Mac artifacts are 64-bit executable Mach-O with
+the requested x86_64/aarch64 CPU types. This is link/header validation, not Mac
+execution. Windows/macOS object compilation of the changed test module and the
+Windows transport also passes through the public compiler.
+
+For real interop, copy only the existing Docker LLD executable and runner into
+owned build/target_tooling_support (no installation/global PATH/cache changes),
+with ld.lld/ld64.lld aliases. Use the complete previously verified native package
+in build/linking_native_seed. WSL --windows-linking in
+build/target_tooling_windows spaced passes both actual Windows executables through
+the new direct transport, with no expected-output files. WSL --target-packs in
+build/target_tooling_checks spaced links all five and actually executes Linux x64,
+QEMU ARM64 and the Windows target pack successfully. Thus both build directories
+with spaces and actual host/target boundaries are exercised. All shared upstream
+source/caches and root artifacts are read only.
+
+Negative transport fixture target_runner_exit.tower prints its literal program
+argument and returns the named historical code 77. Compile it with the same
+public compiler and guest host object, then select it as Wine through a private
+PATH directory. Its direct invocation returns exactly 77. The real
+--windows-linking command invokes it with ./tower-linking.exe, retains that
+stdout evidence, and fails status 1 rather than reporting a skip. A fake
+successful ld.lld (/usr/bin/true) cannot pass using an old target executable:
+the old output is removed and the required-output check fails. With PATH entirely
+unavailable, all five target links and direct Linux execution still pass while
+Windows/QEMU are explicitly skipped. Optional-host absence never hides linking
+failures; tests do not fabricate execution coverage.
+
+The modified common native --linking suite passes in a fresh output directory
+and creates neither obsolete expected file. Its native-produced Wasm is exactly
+the prior verified SHA b0303c4a397cbe97387a4e62169b2021fd3f5cc0733d65e3dea22ba17046488a,
+so reuse the previous 26 browser consumer checks instead of repeating that matrix.
+The ordinary driver CTest passes again (10.61 seconds). Changed shell syntax and
+scoped diff checks pass. Compiler/host/backend/library/bootstrap sources are
+unchanged; the already verified public successor remains applicable. Publish
+source/test-tooling evidence while preserving the current runtime/86 assets.

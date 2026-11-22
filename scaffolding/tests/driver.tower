@@ -14,6 +14,7 @@ import driver_differentials;
 import driver_c_validation;
 import driver_measure_cases;
 import driver_linking;
+import driver_targets;
 
 extern fn strstr(text: u8*, part: u8*): u8*;
 
@@ -439,11 +440,24 @@ fn driver_test_cli(compiler: u8*): void {
 
 export fn driver_tests(argc: i32, argv: u8**): i32 {
     if argc > 1 {
+        if driver_same(argv[1], "--windows-linking") {
+            var required_arguments: i32 = 8; var usage: i32 = 2;
+            if argc != required_arguments { return usage; }
+            var context: DriverLinking = { compiler: { compiler: argv[2], grammar: argv[3], ..default },
+                clang: argv[4], ar: argv[5], target_linker: argv[6], ..default };
+            return driver_test_windows_linking(&context, argv[7]);
+        }
+        if driver_same(argv[1], "--target-packs") {
+            var required_arguments: i32 = 6; var usage: i32 = 2;
+            if argc != required_arguments { return usage; }
+            var context: DriverLinking = { compiler: { compiler: argv[2], grammar: argv[3], ..default }, ..default };
+            return driver_test_target_packs(&context, argv[4], argv[5]);
+        }
         if driver_same(argv[1], "--linking") {
             var required_arguments: i32 = 9; var usage: i32 = 2;
             if argc != required_arguments { return usage; }
             var context: DriverLinking = { compiler: { compiler: argv[2], grammar: argv[3], ..default },
-                clang: argv[4], ar: argv[5], wasm_linker: argv[6], wasm_archive: argv[7], llvm: argv[8] };
+                clang: argv[4], ar: argv[5], target_linker: argv[6], wasm_archive: argv[7], llvm: argv[8] };
             return driver_test_linking(&context);
         }
         if driver_same(argv[1], "--browser-exports") {

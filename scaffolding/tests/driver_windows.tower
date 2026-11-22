@@ -4,6 +4,10 @@ import .host.driver_windows_arguments;
 import .library.bytes_types;
 import .library.bytes_interface;
 import .library.vector;
+import driver_platform_api;
+
+export fn driver_test_posix_tool(out: ByteBuffer*, name: u8*): bool { return false; }
+export fn driver_test_windows_runner(out: ByteBuffer*): DriverWindowsRunner { return DriverWindowsRunner.Direct; }
 
 extern fn _fileno(file: void*): i32;
 

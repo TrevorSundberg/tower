@@ -38,6 +38,8 @@ The runner also replaces the native linking and browser-export shell tests:
 ```sh
 tower-driver-tests --linking COMPILER SCAFFOLDING CLANG LLVM_AR WASM_LD WASM_ARCHIVE LLVM_LIBRARY
 tower-driver-tests --browser-exports [QEMU_AARCH64]
+tower-driver-tests --windows-linking COMPILER SCAFFOLDING CLANG LLVM_AR LLD_LINK KERNEL32_LIBRARY
+tower-driver-tests --target-packs COMPILER SCAFFOLDING LLVM_BIN PACK_DIRECTORY
 ```
 
 These modes execute on Linux x64, using absolute compiler/tool/input paths and
@@ -45,8 +47,7 @@ the same 30-second child deadline. For `--linking`, run in `build/linking` after
 `build-wasm.sh`; pass its `wasm-fixture.a` rather than rebuilding that archive.
 The checks exercise archive callbacks, separate runtime linking, native/interpreter
 agreement, LLVM's C API and native-to-Wasm output. They preserve
-`native-compiled.wasm` for the browser test and the two expected-output files
-still consumed by the Windows shell test. Each newly compiled output is removed
+`native-compiled.wasm` for the browser test. Each newly compiled output is removed
 before the command, and every command must succeed. stdout comparisons use exact
 byte lengths. The last child logs remain as `driver stdout.txt`/`driver stderr.txt`.
 
@@ -56,6 +57,22 @@ QEMU. An omitted/empty QEMU argument reports an explicit skip; a supplied but
 missing/failing emulator fails. Expected text stays in Tower instead of temporary
 shell-generated files. `internal.sh` builds the existing runner and invokes both
 modes; no additional tool binary or CMake target is needed.
+
+`--windows-linking` independently compiles the foreign archive and two PE programs;
+its expected output is shared Tower data, with no prerequisite native test or
+generated text files. `--target-packs` consumes the five runtime objects and import
+descriptions produced by `build-targets.sh`. It compiles and links all five target
+programs, executes Linux x64, and detects `qemu-aarch64` for Linux ARM64 execution.
+This separates artifact construction from validation; repeating a test does not
+rebuild the packs. Run each mode in its own writable output directory.
+
+Both modes select direct Windows execution when `cmd.exe` is found on POSIX PATH,
+otherwise Wine when available; native Windows uses direct execution. Absence is
+reported explicitly after successful compilation/linking. A selected transport's
+failure, wrong output or child exit 77 fails the test. macOS outputs are linked
+only; execution still requires a Mac. `target_runner_exit.tower` is the negative
+Wine-transport fixture that returns the former shell skip code; it must fail when
+selected as the runner. The journal records real WSL/Windows and QEMU trials.
 
 ## Native measurements
 

@@ -2,6 +2,7 @@ import tower;
 import driver;
 import driver_differentials;
 import driver_platform_api;
+import driver_target_cases;
 import .host.driver_support;
 import .host.driver_platform;
 import .host.driver_link;
@@ -14,7 +15,7 @@ extern fn driver_resource_root(out: ByteBuffer*, executable: u8*): bool;
 // driver capture transport and its child deadline; do not invoke a shell.
 struct DriverLinking {
     compiler: DriverDifferentials;
-    clang: u8*; ar: u8*; wasm_linker: u8*; wasm_archive: u8*; llvm: u8*;
+    clang: u8*; ar: u8*; target_linker: u8*; wasm_archive: u8*; llvm: u8*;
 }
 var DriverLinkingStdout: i32 = 1;
 
@@ -33,7 +34,7 @@ fn driver_linking_execute(executable: u8*, wanted: u8*): void {
 }
 
 fn driver_linking_compile(context: DriverLinking*, relative: u8*, output: u8*, target: u8*,
-    library: bool, object: bool, link: u8*): void {
+    library: bool, object: bool, link: u8*, second_link: u8*): void {
     var path: ByteBuffer = default; defer bytes_dispose(&path);
     driver_check(driver_text(&path, context.compiler.grammar) && driver_text(&path, relative)
         && host_text_terminate(&path), "linking source path");
@@ -43,18 +44,18 @@ fn driver_linking_compile(context: DriverLinking*, relative: u8*, output: u8*, t
         object ? "object" : null, output, true, null);
     if library { driver_argument(&args, "", "--library"); }
     if link != null { driver_argument(&args, "", "--link"); driver_argument(&args, "", link); }
-    if target != null {
-        driver_argument(&args, "", "--linker"); driver_argument(&args, "", context.wasm_linker);
-    } else {
-        driver_argument(&args, "", "--cc"); driver_argument(&args, "", context.clang);
+    if second_link != null { driver_argument(&args, "", "--link"); driver_argument(&args, "", second_link); }
+    if target != null && !object {
+        driver_argument(&args, "", "--linker"); driver_argument(&args, "", context.target_linker);
     }
+    if context.clang != null { driver_argument(&args, "", "--cc"); driver_argument(&args, "", context.clang); }
     driver_linking_run(&args, null);
     driver_check(driver_platform_exists(output), "linking command produced its output");
 }
 
 fn driver_linking_case(context: DriverLinking*, source: u8*, executable: u8*, wanted: u8*, interpret: bool): void {
     driver_message(DriverLinkingStdout, "Linking case: ", source, true);
-    driver_linking_compile(context, source, executable, null, false, false, null);
+    driver_linking_compile(context, source, executable, null, false, false, null, null);
     driver_linking_execute(executable, wanted);
     if interpret {
         var path: ByteBuffer = default; defer bytes_dispose(&path);
@@ -72,21 +73,21 @@ fn driver_test_linking(context: DriverLinking*): i32 {
     // build-wasm already produces this real archive for browser ABI tests.
     // Consume it explicitly instead of building the same fixture a second time.
     driver_check(driver_platform_exists(context.wasm_archive), "required build-wasm archive");
-    var linked = "33\ntrue\ntrue\n42\n42\n18446744073709551615\n0\ntrue\n5\n42\n";
-    var memory = "5\n84\n42\n";
+    var linked = driver_target_output(DriverTargetCase.Linking);
+    var memory = driver_target_output(DriverTargetCase.Memory);
     var args: DriverArguments = default; driver_arguments_init(&args); defer driver_arguments_dispose(&args);
     driver_message(DriverLinkingStdout, "Linking case: ", "native archive and exported callback", true);
-    driver_linking_compile(context, "/tests/foreign_fixture.tower", "native-fixture.o", null, true, true, null);
+    driver_linking_compile(context, "/tests/foreign_fixture.tower", "native-fixture.o", null, true, true, null, null);
     driver_platform_remove("native-fixture.a");
     driver_argument(&args, "", context.ar); driver_argument(&args, "", "rcsD");
     driver_argument(&args, "", "native-fixture.a"); driver_argument(&args, "", "native-fixture.o");
     driver_linking_run(&args, null);
-    driver_linking_compile(context, "/tests/linking.tower", "native-linking", null, false, false, "native-fixture.a");
+    driver_linking_compile(context, "/tests/linking.tower", "native-linking", null, false, false, "native-fixture.a", null);
     driver_linking_execute("native-linking", linked);
     // Keep the browser consumer's existing native-produced Wasm artifact.
     driver_linking_compile(context, "/tests/linking.tower", "native-compiled.wasm", "wasm32-unknown-unknown",
-        false, false, context.wasm_archive);
-    driver_linking_compile(context, "/tests/linking.tower", "tower.o", null, false, true, null);
+        false, false, context.wasm_archive, null);
+    driver_linking_compile(context, "/tests/linking.tower", "tower.o", null, false, true, null, null);
     var resources: ByteBuffer = default; var runtime: ByteBuffer = default;
     defer bytes_dispose(&resources); defer bytes_dispose(&runtime);
     driver_check(driver_resource_root(&resources, context.compiler.compiler)
@@ -101,16 +102,12 @@ fn driver_test_linking(context: DriverLinking*): i32 {
     driver_linking_case(context, "/examples/memory.tower", "native-memory", memory, true);
     driver_linking_case(context, "/tests/storage.tower", "native-storage",
         "true\ntrue\n10\n84\ntrue\n0\ntrue\n16\ntrue\ntrue\n42\n200\ntrue\n597\n42\nfalse\n200\n", true);
-    driver_linking_compile(context, "/library/storage.tower", "storage.o", null, true, true, null);
-    driver_linking_compile(context, "/library/bytes.tower", "bytes.o", null, true, true, null);
-    driver_linking_compile(context, "/tests/llvm_c.tower", "llvm-c-api", null, false, false, context.llvm);
+    driver_linking_compile(context, "/library/storage.tower", "storage.o", null, true, true, null, null);
+    driver_linking_compile(context, "/library/bytes.tower", "bytes.o", null, true, true, null, null);
+    driver_linking_compile(context, "/tests/llvm_c.tower", "llvm-c-api", null, false, false, context.llvm, null);
     driver_linking_execute("llvm-c-api", "42\n");
     driver_linking_case(context, "/tests/platform.tower", "platform", "hello from Tower\n17\n-1\n", true);
     driver_linking_case(context, "/tests/forward.tower", "module-forward", "42\n", false);
-    // Transitional data contract for test-windows-linking.sh; retire these files
-    // when that consumer's assertions move into Tower as well.
-    driver_check(driver_write_file("expected.txt", linked, strlen(linked))
-        && driver_write_file("memory-expected.txt", memory, strlen(memory)), "Windows comparison fixtures");
     driver_message(DriverLinkingStdout, "Native/archive/runtime/interpreter and native-to-Wasm linking passed", "", true);
     return 0;
 }

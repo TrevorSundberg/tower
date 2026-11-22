@@ -1,0 +1,110 @@
+import tower;
+import driver;
+import driver_linking;
+import driver_target_cases;
+import driver_platform_api;
+import .host.driver_support;
+import .host.driver_platform;
+import .library.bytes_types;
+import .library.bytes_interface;
+
+enum DriverTargetFormat: u32 { Elf, Coff, MachO }
+
+fn driver_target_path(directory: u8*, suffix: u8*): ByteBuffer {
+    var path: ByteBuffer = default;
+    driver_check(driver_text(&path, directory) && driver_text(&path, suffix)
+        && host_text_terminate(&path), "target artifact path");
+    return path;
+}
+
+// Capability detection precedes execution. A child exit (including the old
+// shell convention 77) is always a failure, never an unavailable-host result.
+fn driver_target_windows(file: u8*, wanted: u8*, mode: DriverWindowsRunner, runner: ByteBuffer*): void {
+    if mode == DriverWindowsRunner.Unavailable {
+        driver_message(DriverLinkingStdout, "SKIP Windows execution: requires WSL interop or Wine: ", file, true);
+        return;
+    }
+    var args: DriverArguments = default; driver_arguments_init(&args); defer driver_arguments_dispose(&args);
+    if mode == DriverWindowsRunner.Wine { driver_argument(&args, "", runner.data); }
+    driver_argument(&args, "./", file); driver_linking_run(&args, wanted);
+    driver_message(DriverLinkingStdout, "Windows executable passed: ", file, true);
+}
+
+fn driver_test_windows_linking(context: DriverLinking*, kernel: u8*): i32 {
+    driver_check(driver_platform_exists(kernel), "required Windows import library");
+    var target = "x86_64-pc-windows-msvc";
+    driver_linking_compile(context, "/tests/foreign_fixture.tower", "windows-fixture.obj", target, true, true, null, null);
+    driver_platform_remove("windows-fixture.lib");
+    var args: DriverArguments = default; driver_arguments_init(&args); defer driver_arguments_dispose(&args);
+    driver_argument(&args, "", context.ar); driver_argument(&args, "", "rcsD");
+    driver_argument(&args, "", "windows-fixture.lib"); driver_argument(&args, "", "windows-fixture.obj");
+    driver_linking_run(&args, null);
+    driver_linking_compile(context, "/tests/linking.tower", "tower-linking.exe", target, false, false, "windows-fixture.lib", kernel);
+    driver_linking_compile(context, "/examples/memory.tower", "tower-memory.exe", target, false, false, kernel, null);
+    var runner: ByteBuffer = default; defer bytes_dispose(&runner);
+    var mode = driver_test_windows_runner(&runner);
+    driver_target_windows("tower-linking.exe", driver_target_output(DriverTargetCase.Linking), mode, &runner);
+    driver_target_windows("tower-memory.exe", driver_target_output(DriverTargetCase.Memory), mode, &runner);
+    driver_message(DriverLinkingStdout, "Windows PE compilation/linking passed", "", true);
+    return 0;
+}
+
+fn driver_target_pack(context: DriverLinking*, tools: u8*, packs: u8*, triple: u8*, format: DriverTargetFormat, arch: u8*): void {
+    var object = driver_target_path(triple, ".o"); defer bytes_dispose(&object);
+    var runtime_name = driver_target_path(triple, "-runtime.o"); defer bytes_dispose(&runtime_name);
+    var runtime = driver_target_path(packs, "/"); defer bytes_dispose(&runtime);
+    driver_check(driver_text(&runtime, runtime_name.data) && host_text_terminate(&runtime), "target runtime path");
+    driver_check(driver_platform_exists(runtime.data), "required prebuilt target runtime");
+    driver_message(DriverLinkingStdout, "Target pack: ", triple, true);
+    driver_linking_compile(context, "/examples/memory.tower", object.data, triple, false, true, null, null);
+    var suffix = format == DriverTargetFormat.Elf ? ".elf" : format == DriverTargetFormat.Coff ? ".exe" : ".macho";
+    var output = driver_target_path(triple, suffix); defer bytes_dispose(&output);
+    var tool_name = format == DriverTargetFormat.Elf ? "/ld.lld" : format == DriverTargetFormat.Coff ? "/lld-link" : "/ld64.lld";
+    var linker = driver_target_path(tools, tool_name); defer bytes_dispose(&linker);
+    var import_name = format == DriverTargetFormat.Coff ? "/kernel32.lib" : "/libSystem.tbd";
+    var imports = driver_target_path(packs, import_name); defer bytes_dispose(&imports);
+    driver_platform_remove(output.data);
+    var args: DriverArguments = default; driver_arguments_init(&args); defer driver_arguments_dispose(&args);
+    driver_argument(&args, "", linker.data);
+    if format == DriverTargetFormat.Elf {
+        driver_argument(&args, "", "-static"); driver_argument(&args, "", "--build-id=none");
+        driver_argument(&args, "", "-e"); driver_argument(&args, "", "_start");
+    } else {
+        if format == DriverTargetFormat.Coff {
+            driver_argument(&args, "", "/entry:mainCRTStartup"); driver_argument(&args, "", "/subsystem:console");
+            driver_argument(&args, "", "/machine:x64"); driver_argument(&args, "", "/timestamp:0");
+        } else {
+            var minimum_macos = "11.0";
+            driver_argument(&args, "", "-arch"); driver_argument(&args, "", arch);
+            driver_argument(&args, "", "-platform_version"); driver_argument(&args, "", "macos");
+            driver_argument(&args, "", minimum_macos); driver_argument(&args, "", minimum_macos);
+            driver_argument(&args, "", "-e"); driver_argument(&args, "", "_main");
+        }
+    }
+    driver_argument(&args, "", object.data); driver_argument(&args, "", runtime.data);
+    if format != DriverTargetFormat.Elf { driver_argument(&args, "", imports.data); }
+    if format == DriverTargetFormat.Coff { driver_argument(&args, "/out:", output.data); }
+    else { driver_argument(&args, "", "-o"); driver_argument(&args, "", output.data); }
+    driver_linking_run(&args, null);
+    driver_check(driver_platform_exists(output.data), "linker produced the target executable");
+}
+
+fn driver_test_target_packs(context: DriverLinking*, tools: u8*, packs: u8*): i32 {
+    driver_target_pack(context, tools, packs, "x86_64-unknown-linux-gnu", DriverTargetFormat.Elf, "x86_64");
+    driver_target_pack(context, tools, packs, "aarch64-unknown-linux-gnu", DriverTargetFormat.Elf, "aarch64");
+    driver_target_pack(context, tools, packs, "x86_64-pc-windows-msvc", DriverTargetFormat.Coff, "x86_64");
+    driver_target_pack(context, tools, packs, "x86_64-apple-macos11", DriverTargetFormat.MachO, "x86_64");
+    driver_target_pack(context, tools, packs, "arm64-apple-macos11", DriverTargetFormat.MachO, "arm64");
+    var wanted = driver_target_output(DriverTargetCase.Memory);
+    driver_linking_execute("x86_64-unknown-linux-gnu.elf", wanted);
+    var runner: ByteBuffer = default; var qemu: ByteBuffer = default;
+    defer bytes_dispose(&runner); defer bytes_dispose(&qemu);
+    var windows = driver_test_windows_runner(&runner);
+    driver_target_windows("x86_64-pc-windows-msvc.exe", wanted, windows, &runner);
+    if driver_test_posix_tool(&qemu, "qemu-aarch64") {
+        driver_download_execute("aarch64-unknown-linux-gnu.elf", qemu.data, wanted);
+        driver_message(DriverLinkingStdout, "ARM64 Linux target pack passed under QEMU", "", true);
+    } else { driver_message(DriverLinkingStdout, "SKIP ARM64 Linux execution: install qemu-user", "", true); }
+    driver_message(DriverLinkingStdout, "All five target packs link; x64 Linux executes. macOS execution requires a Mac.", "", true);
+    return 0;
+}

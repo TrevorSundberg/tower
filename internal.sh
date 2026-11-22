@@ -18,8 +18,11 @@ bash playground/scripts/build-wasm.sh
 TOWER_BROWSER_CROSS=ON bash playground/scripts/build-llvm.sh
 (cd build/linking && "$native/tower-driver-tests" --linking "$native/towerc" "$repo/scaffolding" \
   "$llvm_bin/clang" "$llvm_bin/llvm-ar" "$sdk/bin/wasm-ld" "$repo/build/linking/wasm-fixture.a" "$llvm_lib/libLLVM.so")
-bash playground/scripts/test-target-packs.sh
-bash playground/scripts/test-windows-linking.sh
+bash playground/scripts/build-targets.sh
+mkdir -p build/target-checks
+(cd build/target-checks && "$native/tower-driver-tests" --target-packs "$native/towerc" "$repo/scaffolding" "$llvm_bin" "$repo/build/targets")
+(cd build/linking && "$native/tower-driver-tests" --windows-linking "$native/towerc" "$repo/scaffolding" \
+  "$llvm_bin/clang" "$llvm_bin/llvm-ar" "$llvm_bin/lld-link" "${TOWER_KERNEL32:-$repo/build/targets/kernel32.lib}")
 npm ci --prefix playground
 TOWER_REQUIRE_BACKENDS=1 npm run build --prefix playground
 npm test --prefix playground
