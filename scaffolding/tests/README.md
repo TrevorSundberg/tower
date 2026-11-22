@@ -854,6 +854,20 @@ exactly-once job observations and complete world/budget teardown are checked.
 RSS is cumulative across trials; derived vector bytes are not total live memory.
 This is a layout-pump measurement, not end-to-end compilation or a speed claim.
 
+With `TOWER_EXECUTION_TESTS=ON`, the native Linux x64 build also provides the
+opt-in `tower-type-reachability-profile RESOURCE_ROOT` executable and
+`tower-measure-type-reachability` target. It shares the execution runner's
+compiler/interpreter link closure; its platform ABI is not imported by that
+runner and it is absent from default builds and CTest.
+
+The profile compiles16/256/1000 sequentially called functions, checks the
+independent output, then reports three samples of256 serial reachability queries
+as JSON lines. It checks unchanged canonical Foundation and retained entity and
+component counts, then closes each session. Query wall/CPU exclude compilation,
+execution and formatting. Process peak RSS includes them; entity/component
+counts do not measure all temporary buffer allocations. No parallel-query or
+end-to-end speedup is implied.
+
 For a focused frontend/backend streaming check, use
 `tower-lr-work-tests RESOURCE_ROOT backend-overlap` from the existing native
 worker runner. It builds the independent serial64-bit object baseline, then

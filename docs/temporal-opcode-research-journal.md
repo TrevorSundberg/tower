@@ -48243,3 +48243,63 @@ source/diagnostics remain in registration_followup/known_diagnostics.
 Sessions and containers drained; released heavy slot normally to D2. Scope
 acceptance remains open for general capture30cases/known/aggregate, final
 instrumentation/browser/generation, clean merged bootstrap and publication.
+
+### D1 capture-v3 and independent harness preparation, 2026-11-22 23:03 UTC
+
+After dd87's build/runtime jobs drained and receipt2451cfd was committed,
+preserved compiler6a336968 and complete42-resource package under
+build/d1_ecs/native_package_dd87f79. Guarded merge-preserving pull passes without
+replaying history or touching compiler input mtimes. D2 owns the shared heavy
+slot; D1 has no active build. Disk139GiB free, RAM9.9GiB available, preexisting
+hostswap6.2GiB; no unrelated cache cleanup or host-policy change.
+
+Reviewed/adopted exact late_capture prerequisite378cae immediately followed by
+corrected capture-v3f5d3f2bd, never building the partial state. This correction
+leases each descendant initializer declaration before worker range writes;
+a parent function lease is not recursive. Full30-case lifecycle942947e8,
+module3019815e and sourceproof41454429 preserve all positive/negative/canonical
+oracles. Sourceproof's injected invalidation still does not prove discovery of
+an actual source generic write. General aggregate materialization and current
+memory/race validation stay owner gates, not established by source review.
+
+Prepared the exact153-line standalone Linuxx64 type-query profile9f1c9657,
+using the existing execution object/library composition and explicit resource
+root. Opt-in target is excluded from all/CTest, gated by native/Linux/x64;
+execution_main never adopts the rejected unconditional getrusage selector518.
+Nine timed samples cover16/256/1000 called functions, each256 serial queries,
+independent output, canonical invariance and retained entity/component counts.
+RSS is cumulative process high-water including compilation, and these counts
+are not complete buffer allocation measurements. Draft registration f54255a1
+is source preparation, not yet local executable evidence.
+
+Applied exact B1 named parser capacities and explicit-Foundation registry/provider
+handoff64d55417, reconciling both parser/storage callers and preserving exact
+teardown oracles. B1's independent evidence does not replace current D1 target
+execution. Existing parser actual ASan receipts remain tied to their original
+algorithm/source; no redundant full instrumentation matrix is planned for two
+ABI-equivalent named array extents.
+
+B2 hoverdffdad44 plus followup5f43191c retain exact-token ordinary function
+classification and all four constructor descriptions. New104-line backend index
+fixturedb1807dd is fully reviewed: derived retained/dead function roots, mismatched
+caller index rejection, serial fault sweep, canonical byte stability and complete
+world teardown. Directly importing lowering into frontend_main would duplicate
+backend_lower already linked through the backend object. Routed a concrete
+one-line existing-backend-checks import proposal to B2/root; D1 will use only an
+extern plus full-suite/selector calls. No new executable or private parallel
+fault allocator. This linkage proposal is not implemented or link-tested yet.
+
+Failure-only package diagnostics now add target/optimization/signed raw status
+for all failed emissions, preserving the original30-second child deadline and
+nonzero assertion. Compilation/profiling remains pending. B2's missing root_source
+Foundation import is already fixed and validated at old07e0a30; exported just
+that exact hunk9dcff8a7, preserving newer lifecycle/recursion edits.
+
+D2's current3f49d4a/c56400b1 v3 query/request/editor checks pass and early/complex
+captures reject at actual source locations, but required global/local aggregate
+positives fail runtime-storage capture. Coordinator additionally reports false
+acceptance of existing address-derived integer/comparison negatives. Preserve
+these contracts; A1 owns capture policy and L1 owns aggregate materialization.
+L2 owns only the two independently justified diagnostic-message corrections.
+Full known/type/lifecycle, final clean public bootstrap/generation/browser,
+supported production instrumentation and named-lease publication remain open.

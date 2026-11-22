@@ -4,6 +4,9 @@ import semantic_source_binding_types;
 import semantic_context_types;
 import semantic_evaluation_types;
 import semantic_context;
+import semantic_known_bindings;
+import semantic_types;
+import semantic_expression_lowering;
 import semantic_source_bindings;
 import semantic_declarations;
 import semantic_defer;
@@ -24,6 +27,10 @@ struct SemanticCapture {
     evaluation: SemanticEvaluation*;
     error: vector(u8);
     error_offset: usize;
+    block: void*;
+    begin: usize;
+    end: usize;
+    lowering: WorkTicket;
 }
 
 extern fn entity_query_count(kind: void*): usize;
@@ -45,14 +52,99 @@ fn sem_capture_request(c: SemanticContext*, subject: void*): usize {
     var query = convert(u32, SemanticQuery.CaptureInput);
     var existing = work_find(&c.queries, subject, query, 0);
     if existing != 0 { return existing; }
-    var result = bits(SemanticCapture*, entity_component_data(entity_component_add(subject, c.capture_inputs)));
-    sem_require(result != null);
-    *result = default;
+    // Membership on the program (never a declaration) closes new admission.
+    // Only the successful producer-drain boundary may attach that component.
+    sem_require(entity_component_get(c.program.root, c.capture_inputs) == null);
+    var result = sem_capture_storage(c, subject);
     result.subject = subject;
     var id = work_request(&c.queries, subject, query, 0);
     sem_require(id != 0);
     sem_require(work_seal(&c.queries, id));
     return id;
+}
+
+fn sem_capture_storage(c: SemanticContext*, subject: void*): SemanticCapture* {
+    var result = bits(SemanticCapture*, entity_component_data(entity_component_get(subject, c.capture_inputs)));
+    if result == null {
+        result = bits(SemanticCapture*, entity_component_data(entity_component_add(subject, c.capture_inputs)));
+        sem_require(result != null);
+        *result = default;
+    }
+    return result;
+}
+
+// Reserve metadata before the function's exclusive lowering lease and view.
+// Only source initializers need a range; generated locals belong to that range.
+fn sem_capture_ranges(c: SemanticContext*, block: void*, ticket: WorkTicket*, stage: void*): void {
+    sem_captures_begin(c);
+    var pending: vector(void*) = default;
+    defer vector_dispose(&pending);
+    sem_push(&pending, block);
+    while pending.length != 0 {
+        var node = pending.data[--pending.length];
+        var value = sem_get(node);
+        if value == null { continue; }
+        if value.kind == KDeclare && value.value != null && sem_member(node, "value") != null {
+            var result = sem_capture_storage(c, node);
+            sem_require(result.block == null);
+            result.lowering = *ticket;
+            // A function lease is not recursive. Reserve this declaration's
+            // payload too before a worker can record its initializer range.
+            sem_require(entity_stage_lease(stage, node));
+        }
+        sem_known_edges(&pending, value);
+    }
+}
+
+// The owning lowering worker writes only already-attached declaration payloads.
+// Its exact dispatch receipt is published after all generated stages have joined.
+fn sem_capture_range(c: SemanticContext*, node: void*, block: void*, begin: usize): void {
+    if c.capture_inputs == null { return; }
+    var result = bits(SemanticCapture*, entity_component_data(entity_component_get(node, c.capture_inputs)));
+    if result == null || result.lowering.task == 0 { return; }
+    sem_require(work_task(&c.queries, result.lowering.task).subject == c.current);
+    result.block = block;
+    result.begin = begin;
+    result.end = sem_get(block).items.length;
+}
+
+fn sem_capture_clone_range(c: SemanticContext*, result: SemanticCapture*): void {
+    var output = sem_control_node(c, result.subject, KOperand);
+    sem_evaluation_expression(c, output, result.subject, null, false);
+    if !sem_ok(c) { return; }
+    var evaluation = sem_evaluation_get(c, output);
+    var function = sem_evaluation_function(c, evaluation);
+    var body = sem_control_node(c, function, KBlock);
+    sem_get(function).body = body;
+    var previous = c.current;
+    var preserve = c.preserve_clone_storage;
+    c.current = function;
+    c.preserve_clone_storage = false;
+    var clones = sem_table(c);
+    var nodes = sem_list(c);
+    var source = sem_get(result.block);
+    sem_require(result.begin < result.end && result.end <= source.items.length);
+    for(var at = result.begin; at < result.end; at++) {
+        sem_lift_append(body, sem_defer_clone(c, body, source.items.data[at], clones, nodes));
+    }
+    foreach(var node in nodes) {
+        var value = sem_get(node);
+        if value.kind == KDeclare { value.global = false; }
+        if value.binding == null || sem_get(value.binding).kind == KFunction { continue; }
+        var local = sem_find(clones, null, value.binding);
+        if local != null { value.binding = local.value; }
+    }
+    var declaration = sem_find(clones, null, result.subject);
+    sem_require(declaration != null && declaration.value != null);
+    var value = sem_control_read(c, body, declaration.value);
+    if evaluation.aggregate { value = sem_get(sem_lift_target(c, body, value)).value; }
+    var returned = sem_control_node(c, body, KReturn);
+    sem_get(returned).value = value;
+    sem_lift_append(body, returned);
+    c.preserve_clone_storage = preserve;
+    c.current = previous;
+    evaluation.expression = null;
+    result.evaluation = evaluation;
 }
 
 fn sem_capture_pump(c: SemanticContext*): SemanticPumpResult {
@@ -79,6 +171,31 @@ fn sem_capture_pump(c: SemanticContext*): SemanticPumpResult {
     }
     if result.proof == null || !result.proof.immutable || sem_member(subject, "value") == null {
         sem_fail(c, subject, "Compile-time expression cannot capture runtime storage: binding is mutable, escaped or lacks an initializer");
+    }
+    if sem_ok(c) && result.evaluation == null {
+        if result.lowering.task != 0 {
+            var lowering = work_task(&c.queries, result.lowering.task);
+            // A closed admission component is published only after required
+            // producers drain. Query registration is not a finalization signal.
+            sem_require(result.lowering.revision == c.queries.revision
+                && result.lowering.profile == c.queries.profile
+                && result.lowering.dispatch == lowering.dispatch
+                && entity_component_get(c.program.root, c.capture_inputs) == null);
+            if lowering.state != WorkState.Succeeded {
+                sem_require(work_suspend(&c.queries, &ticket, result.lowering.task));
+                return SemanticPumpResult.Progress;
+            }
+            sem_require(work_observe(&c.queries, &ticket, result.lowering.task));
+            sem_capture_clone_range(c, result);
+            if sem_ok(c) {
+                result.evaluation.capture_order = result.proof.owner == null;
+                result.evaluation.capture_ordinal = result.proof.ordinal;
+                sem_evaluation_work_register(c, false);
+                sem_require(work_suspend(&c.queries, &ticket,
+                    work_find(&c.queries, result.evaluation.subject, EvaluationQuery, 0)));
+                return SemanticPumpResult.Progress;
+            }
+        }
     }
     if sem_ok(c) && result.evaluation == null {
         var value = binding.value;
@@ -148,6 +265,26 @@ fn sem_capture_pump(c: SemanticContext*): SemanticPumpResult {
 fn sem_capture_failure(c: SemanticContext*, subject: void*): bool {
     var result = bits(SemanticCapture*, entity_component_data(entity_component_get(subject, c.capture_inputs)));
     return result != null && sem_restore_error(c, &result.error, result.error_offset);
+}
+
+// The sole KnownPublish caller follows the complete evaluation pump/finalizer.
+// Attribute publication only changes metadata tags; subsequent module/flow
+// checks consume completed receipts and never create captures or generic bodies.
+// Assert the terminal boundary before any initializer range can be compacted.
+fn sem_captures_finalize(c: SemanticContext*): void {
+    sem_require(c.workers.running == 0 && c.queries.running == 0);
+    foreach(var &task in &c.queries.tasks) {
+        if !task.demanded { continue; }
+        if task.query == convert(u32, SemanticQuery.CaptureInput) {
+            sem_require(task.state == WorkState.Succeeded);
+        }
+        if task.query == EvaluationQuery {
+            var evaluation = sem_evaluation_get(c, task.subject);
+            if !evaluation.inferred { sem_require(task.state == WorkState.Succeeded); }
+        }
+    }
+    sem_captures_begin(c);
+    sem_capture_storage(c, c.program.root).subject = c.program.root;
 }
 
 fn sem_captures_dispose(c: SemanticContext*): void {

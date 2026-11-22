@@ -1227,3 +1227,48 @@ source hashes and failure/retry history are in the journal and
 build/d1_ecs/registration_followup. No full known/capture acceptance follows:
 pre-range CLI diagnostics also reject pointer/cycle controls generically, so
 no existing rejection expectation has yet changed.
+
+### Capture v3 and standalone type profile preparation after2451cfd
+
+The exact corrected four-path v3 patchf5d3f2bd was reviewed against v2.
+Its new declaration lease is substantive: function leases are not recursive,
+so each source-initializer declaration payload is leased on the already-open
+lowering stage before dispatch. Metadata remains allocated before pinning and
+worker writes; exact ticket/publication ordering is retained. Program-root
+successful-drain marker remains the final capture-admission boundary. L1's
+aggregate private-storage review and current runtime/memory/race evidence remain
+required. D1 adopted only after all own jobs drained, with partial-late-capture
+prerequisite immediately replaced before any build.
+
+| Path | Current review and evidence boundary |
+| --- | --- |
+| scaffolding/tests/semantic_lifecycle_checks.tower | Full30-case owner replacement SHA942947e8; earlier complete v2 review remains applicable. Independent expected values, mutable/escaped/module aliases, complex early capture and global/local aggregates, serial/worker widths and canonical reconstruction retained. Current v3 runtime pending. |
+| scaffolding/tests/semantic_capture_module.tower | Full5-line new resource SHA3019815e, explicit Tower and the shared Captured initializer/helper. It supplies one nominal module identity to both aliases; actual effects and mutation/escape behavior are checked by lifecycle cases, not inferred from filename. |
+| scaffolding/tests/semantic_source_proof_checks.tower | Exact171-line SHA41454429. Original roots survive runtime-item clearing; later declarations/generic extension and joined invalidation covered. Invalidate explicitly injects mutation in worker output; preserve the stated gap for real source generic-write discovery. |
+| scaffolding/tests/type_reachability_profile.tower | Exact153-line standalone SHA9f1c9657. Serial queries over executed fanout16/256/1000, independent output, canonical byte stability, stable entity/component counts, then checked session teardown. Three samples of256 queries after warm query; process high-water RSS includes checking/compilation. Count invariance does not measure every temporary buffer. The standalone entry reuses existing driver snapshot/grammar/environment setup with deferred cleanup and explicit resource root. CMake now gates Linuxx64 and excludes default/CTest; ordinary execution_main is unchanged. No fake unsupported-host stub or skip. |
+| scaffolding/tests/parser_benchmark.tower | B1 changes only two array extents to already-existing BenchmarkCacheCapacity64, retaining all bounds, census, exact teardown and failure flushing. Prior actual ASan source receipt remains precisely identified; new smallest compile/object/normal equivalence pending. |
+
+Neither the30-case fixture count nor exported helper visibility supplies
+integrated acceptance. Body_runs hooks and the separate ordinary-recursion
+diagnostic remain byte-identical. All known-binding rejection strings remain
+unchanged pending actual range-successor evidence.
+
+### Incoming owner checks reviewed after2451cfd
+
+| Path | Review, disposition and evidence boundary |
+| --- | --- |
+| scaffolding/tests/backend_execution_index.tower | Full104-line B2 fixture from patchdb1807dd. One private frontend world owns the original graph; retained function bits and a deliberately mismatched caller vector are disposable derived indexes. Checks unused type omission, direct/callback/recursive/export retention, exact canonical bytes after both success/failure, serial allocation-failure cleanup and complete outer buffer baseline. No concurrent allocator or packed-payload claim. Its lowering import includes backend exports, so register the helper in the existing backend checks object, with only an extern in frontend_main; owner coordination pending before that unit edit. Runtime pending. |
+| scaffolding/tests/editor_world.tower | Exact B2 hoverdffdad44 plus review5f43191c. Ordinary parameter and exact return/call token function kinds are retained assertions; all four constructors check selected-token operation kind and description. Query owns observations until disposed before world. Shared text describes ordinary array element count without imposing compile-time-only constructor policy. Current focused frontend check pending. |
+| scaffolding/tests/entity_registry.tower | Exact B1 registry64d55417: explicit Foundation fixture, explicit resource root and owned module provider. Destroy provider before unchanged node/component baseline; still intentionally exercises legacy default-world registry boundary. B1 independent parser/storage pass, D1 current dependent build/runtime pending. |
+| scaffolding/tests/parser_main.tower | Exact registry caller now passes its existing current-directory resource root; formatter resource argument preserved. No new runner, skipped test or changed oracle. |
+| scaffolding/tests/storage_main.tower | Exact registry caller forwards existing argv resource root. Comments reflect owned module snapshots; actual counts still enforce teardown. |
+| scaffolding/tests/driver_differentials.tower | Failure-only package context now records target, optimization and signed raw child status, including normal nonzero exits. Existing capture, 30-second deadline, success comparisons and failure assertion remain unchanged. No fresh pass claimed until changed-unit/target and current package run. |
+
+The newly reported missing body root import is already fixed here in07e0a30;
+exported only that original one-line hunk for B2. Its old279.50-second body
+matrix remains old-source evidence. Current v3 valid global/local aggregate
+captures fail in D2's independent run, and the coordinator reports incorrect
+acceptance of existing address/comparison negatives. Preserve all these oracles;
+only L2's separately justified two message corrections are reserved. The old
+semantic_world boundary patch is already present and is not the outstanding
+failure-drain fix.

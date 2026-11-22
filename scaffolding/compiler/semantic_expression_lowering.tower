@@ -12,6 +12,7 @@ import .library.vector;
 import semantic_lowering_work;
 import semantic_aggregates;
 import semantic_known_bindings;
+import semantic_capture_work;
 import semantic_evaluation;
 import .library.float_bits;
 
@@ -621,6 +622,7 @@ fn sem_lift_block(c: SemanticContext*, block: void*): void {
             }
         }
         var declaration = statement.kind == KDeclare;
+        var begin = value.items.length;
         var known = declaration ? sem_known_binding(c, n) : null;
         if known != null && known.evaluation != null {
             known.block = block;
@@ -631,6 +633,7 @@ fn sem_lift_block(c: SemanticContext*, block: void*): void {
             statement.value = null;
             sem_lift_append(block, n);
             sem_lift_initialization(c, block, sem_control_read(c, n, n), initial);
+            sem_capture_range(c, n, block, begin);
             continue;
         }
         if declaration && statement.value != null && sem_lift_self_reference(statement.value, n) {
@@ -640,6 +643,7 @@ fn sem_lift_block(c: SemanticContext*, block: void*): void {
             var lifted = sem_lift_value(c, block, initial);
             sem_lift_store(c, block, sem_control_read(c, n, n), lifted);
             if known != null && known.evaluation != null { known.end = value.items.length; }
+            sem_capture_range(c, n, block, begin);
             continue;
         }
         var assignment = statement.kind == KAssign;
@@ -685,6 +689,7 @@ fn sem_lift_block(c: SemanticContext*, block: void*): void {
             sem_lift_append(block, n);
         }
         if known != null && known.evaluation != null { known.end = value.items.length; }
+        if declaration { sem_capture_range(c, n, block, begin); }
     }
 }
 

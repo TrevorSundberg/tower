@@ -1249,3 +1249,17 @@ When these prepared additions enter the index, totals are1,042 Tower paths and
 467 D1 direct paths. Pending A1 semantic_capture_module remains unintegrated
 and would add one more D1 path; its lifecycle/source-proof consumers are updates,
 not additional files. These counts are scope accounting, not runtime acceptance.
+
+Post2451cfd preparation adds semantic_capture_module.tower (A1 implementation,
+D1 audit, full5-line3019815e) and standalone type_reachability_profile.tower
+(L2 implementation/D1 harness, full153-line9f1c9657). Lifecycle/source-proof
+updates are not new paths. Once staged, totals are1,044 tracked Tower paths
+and469 D1 direct paths; all added bodies have substantive D1 review above.
+This is review coverage, not full v3 or cross-host runtime acceptance.
+
+B2's additional104-line `scaffolding/tests/backend_execution_index.tower` is
+now fully reviewed and adopted (patchdb1807dd), D1 roster/B2 implementation.
+Including the two additions above gives1,045 tracked Tower paths and470 D1
+direct paths when staged. Generic registration is pending the owning backend
+object's narrow import handoff; presence is not an executed test. Updated
+registry/editor/parser/driver consumers are existing rows, not new inventory.

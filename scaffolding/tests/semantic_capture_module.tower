@@ -1,0 +1,5 @@
+import tower;
+
+var Captured: i32 = 7;
+
+fn read(): i32 { return Captured; }
