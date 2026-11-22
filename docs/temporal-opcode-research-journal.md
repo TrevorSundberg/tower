@@ -47871,3 +47871,36 @@ from final performance comparisons. Raw logs, exit statuses and assertions stay
 preserved. Neither the real assertion failure nor the explicit dependency cycle
 is dismissed as a resume artifact. Final performance still needs quiet, frozen,
 equivalent before/after inputs and the unresolved constructor fix.
+
+### D1 coherent checkpoint reconciliation (2026-11-23 UTC)
+
+Integrated coordinator bundle0817375 atop the D1 checkpoint4b42bd7, preserving
+all focused registrations, parser oracle draft, scalar/import repairs and both
+journal histories. The first reviewed merge5906130 was flattened by the required
+subsequent pull/rebase into3b15d76; eleven repeated conflicts use the exact prior
+reviewed resolutions. `git diff 5906130 HEAD` is empty before restoring the
+saved follow-up edits. Newer D2 sanitizer source-receipt APIs stay intact, as do
+D1 derived work_ready bounds, budget quiescence and join/publication comments.
+The four touched new-file extra blank EOF lines were removed with root approval.
+
+Applied the required stage continuation, paired IMValueInput reader/publisher
+ABI, executable-lowering receipt, and23-case lifecycle fixture in the prescribed
+order with no intervening builds. Replaced the old parser and formatter patches
+rather than stacking full replacements. The parser_workers/lr_budget blobs were
+already exactly refined postimages a7945b2/f65c79a (types import and EOF); excluded
+only those two identical blobs from reverse/apply, and reconciled the other six
+paths normally. D2 found a handoff omission: consolidated formatter patch lacks
+parser_main's resource argument. Preserved its exact existing declaration/call;
+format_main, format_wasi and parser_main now all match format_suite. No competing
+production implementation was introduced; these are owner-provided integrations.
+`git diff --check` passes. Todo remains untouched.
+
+This source checkpoint is not runtime acceptance. Known lifecycle EarlyCapture,
+old native signed32 deadline and population-count Roku timeout remain explicit.
+A fresh cache/resource tree is required because the14 removed prelude forwarders
+can survive configure_file in an old tree. Public bootstrap remains unchanged;
+no private override or successor adoption. Current L1 emitter/type consumer and
+B2 cache follow-ups are still pending. Next independent checks are smallest units,
+A2's authorized real staged-ownership fixture registration, and the D1 parser
+retention census using this complete closure. Earlier performance and sanitizer
+receipts retain their original source identities; they do not cover this merge.
