@@ -1,425 +1,439 @@
 {
-    "coldWarmProfiling":  {
-                              "sourceCommit":  "8a26cb7c1a1b5a3ace66ce63863215dfb0cb1f28",
-                              "report":  "playground/PERFORMANCE.md",
-                              "measuredDeployment":  "c4ae2174586b9a039dc1facecd11c2aa82f612ff",
-                              "measuredBuildSource":  "85c8a138e098f2dd84706d3f9d6e7bbcfa592887",
-                              "validation":  "Five cold samples and 50 warm actions per device; three alternating portable/threaded desktop pairs; separate CPU and deterministic LLVM object probes; final fresh-process transport validation passes.",
-                              "findings":  "Small-program shared-memory/worker overhead, repeated frontend compilation and fast package reconstruction; warm ECS entities compilation remains frontend dominated. Detailed scope and limitations are in the report.",
-                              "runtimeAssetsChanged":  false
-                          },
-    "toolingMigration":  {
-                             "sourceCommit":  "d64b91d58c1ec8d7d1c0a544d5fcf4ea385fab02",
-                             "validationCommit":  "a4ef899515d986626bb51165208dbabdd9d5bcf6",
-                             "report":  "docs/temporal-opcode-research-journal.md",
-                             "retired":  [
-                                             "playground/scripts/prepare-lld-compat.py",
-                                             "playground/scripts/package-roku.py"
-                                         ],
-                             "entryPoint":  "playground/scripts/build-bootstrap.sh --tools",
-                             "implementation":  "Tower builder, Linux process runner, LLD patcher and in-house CRC/ZIP/DEFLATE Roku packager.",
-                             "validation":  "Fresh public 2292 bootstrap tool build and 53-step native successor; exact LLD output, deterministic ZIP and child-process checks pass on Linux x64.",
-                             "policy":  "Prefer practical in-house Tower libraries; grow minimal correct subsets. Aim for actual Tower source migration, with essential platform/browser binding shims.",
-                             "remaining":  "Bootstrap installation, wider shell/CMake and reusable JavaScript migration. Native Windows/macOS distribution remains future work.",
-                             "runtimeAssetsChanged":  false
-                         },
-    "vectorLanguageDirection":  {
-                                    "sourceCommit":  "7d50641a286959a2f6916e7fee552b1e77abdaa2",
-                                    "report":  "docs/tower-language-plan.md",
-                                    "journal":  "docs/temporal-opcode-research-journal.md",
-                                    "scope":  "Proposed fixed-size CPU/GPU vector values, f32_4 naming, swizzles and automatic SIMD on shared Foundation/ECS operations. Design direction only; runtime assets unchanged."
-                                },
-    "bootstrapToolingMigration":  {
-                                      "sourceCommit":  "baff98d91534cb73653af82e89e61bfbac93f73a",
-                                      "report":  "docs/temporal-opcode-research-journal.md",
-                                      "retired":  [
-                                                      "bootstrap/package.py"
-                                                  ],
-                                      "entryPoint":  "playground/scripts/build-bootstrap.sh --tools",
-                                      "implementation":  "Tower bootstrap candidate packager with in-house SHA-256, ustar and gzip over Tower CRC32/DEFLATE; Linux filesystem and process capabilities.",
-                                      "validation":  "Public 2292 bootstrap builds the tools and a fresh 53-step native successor. Raw tar and source/member/predecessor hashes match the former Python packager; repeated Tower archives/manifests match. Independent installer, relocation/execution, SHA vectors and 260 differential fixtures, archive/process/filesystem rejection checks pass.",
-                                      "limits":  "Linux x64 Ubuntu 24.04 LLVM 19.1.1 candidate workflow; buffered 1 GiB ustar bound, no PAX/extractor, fixed-Huffman compression. Existing compiler LLVM dependencies remain.",
-                                      "remainingPythonFiles":  19,
-                                      "priority":  "Eliminate remaining Python installation, packaging, verification, benchmark and test drivers before wider shell/CMake/JavaScript migration.",
-                                      "runtimeAssetsChanged":  false
-                                  },
-    "bootstrapSimplification":  {
-                                    "sourceCommit":  "261fab235813d67db8a1b37e9cf3bc5f99d48d4a",
-                                    "report":  "docs/temporal-opcode-research-journal.md",
-                                    "policy":  "Before translating any Python or other-language script, eliminate unnecessary steps or simplify with existing capabilities; translate only the smallest required remainder.",
-                                    "layout":  "Directly runnable checked-in Linux x64 compiler and 30 accompanying resources/license, verified by platform sha256sum; no installer, archive decoding or bootstrap cache.",
-                                    "compilerSha256":  "7ef1e6da14b9de1c5e06df2cc75ff8cb1058fb6ea5bd4c57a0a0f243ca28dc16",
-                                    "previousArchiveSha256":  "2292bd8abc4761ba0e62f6c2fb8fee2f482c5273f2a267402fe09d5d34d9913a",
-                                    "manifestSchema":  2,
-                                    "retired":  [
-                                                    "bootstrap/install.py",
-                                                    "bootstrap archive and cache installation step",
-                                                    "experimental Tower installer and unused JSON/archive reader/writer code"
-                                                ],
-                                    "validation":  "Clean Git checkout, executable mode 755 and all 31 pinned file hashes verified. Default native build passes 54 steps with Python unavailable after rebase; graph/fast/native fixtures print zero. Direct candidate directories repeat byte-for-byte and checksum guard rejects changed resources.",
-                                    "remainingPythonFiles":  18,
-                                    "remaining":  "Inline Python and remaining packaging, verification, benchmark and test scripts; audit necessity before translating. Wider shell/CMake/JavaScript follows.",
-                                    "runtimeAssetsChanged":  false,
-                                    "supersedes":  "The earlier bootstrapToolingMigration archive-based candidate layout is historical; candidates and the canonical pin now use direct directories."
-                                },
-    "pythonStepRetirement":  {
-                                 "sourceCommit":  "644ad2005c442838402d095b96f8e43354576e92",
-                                 "report":  "docs/temporal-opcode-research-journal.md",
-                                 "policy":  "Audit every script for removal or simplification before translating only required behavior to Tower.",
-                                 "retired":  [
-                                                 "docs/research/audit_tower_loops.py",
-                                                 "docs/research/audit_tower_cleanup.py",
-                                                 "docs/research/audit_tower_simplification.py",
-                                                 "playground/scripts/inventory-native.py",
-                                                 "playground/scripts/self-build-compiler.py",
-                                                 "playground/scripts/test-distribution-recipe.py"
-                                             ],
-                                 "removedPythonLines":  866,
-                                 "remainingPythonFiles":  12,
-                                 "initialPythonFiles":  23,
-                                 "implementation":  "Historical scanners archived in Git; inventory uses existing Git/Ninja commands; unused standalone recipe frontend and mock schema tests removed. No replacement implementation.",
-                                 "validation":  "Active caller and recipe-input audit; Git/Ninja listings; corrected stale fixture references in retained verifier. All 16 development relocation checks pass; restricted check rejects missing clang at link after ten passing checks.",
-                                 "limits":  "Inline Python and live packaging, verification, benchmark and test drivers remain. Standalone release requirements retained; this is not a portable release.",
-                                 "runtimeAssetsChanged":  false
-                             },
-    "wasmLinkerPort":  {
-                           "sourceCommit":  "bca1ab60d3f3c844a249610205558345cde5032b",
-                           "implementationCommit":  "4f5f553",
-                           "status":  "Experimental Tower static wasm32 linker supports TLS32 layout/ABI/init, retained templates, TLS offsets and pointer/GOT fixups, plus deterministic typed parallel copy/relocation jobs. Production LLD dispatch retained.",
-                           "validation":  "Public-bootstrap native successor, native reader/backend API and 8 affected native checks pass. Portable WASI reader, real native/shared-Wasm relocation overlap, ordered errors/cancellation and 128 shared-Wasm linker lifecycles pass. Three compiler worker checks, six raw/optimized LLVM/interpreter checks, seven cross-target checks and two byte-identical edited browser compiler generations pass.",
-                           "remaining":  "Production cutover; full thread-runtime TLS/profile compatibility and deterministic wait schedules; parallel parsing/symbol phases; wider Wasm/debug profiles. Native ELF/COFF/Mach-O remain later work.",
-                           "runtimeAssetsChanged":  false,
-                           "availability":  "Source/API milestone receipt only; hosted runtime 51c038e0d15480256f7dfd7991155874b97d2cab and all current asset hashes preserved. Isolated LLVM reactors retain one lane; actual linker overlap is verified with native and shared-Wasm transports.",
-                           "benchmark":  "Frozen LLVM-reactor inputs, five uninstrumented paired runs: previous Tower median 0.53 s; optimized Tower 0.42 s; SDK34 LLD 0.44 s. About 21% faster than previous Tower and 5% faster than LLD on this workload, with identical output. Callgrind executed instructions fall 27.1%, 3.173B to 2.315B. Cached indexes add about 6 MiB; optimized RSS about 343 MiB versus LLD 368 MiB. No universal platform/workload speed claim.",
-                           "sharedMemoryBenchmark":  "Frozen LLVM reactor, three previous/current pairs: medians 0.43/0.44 s; RSS approximately 351640 KiB; output byte-identical. No speedup claim.",
-                           "tlsValidation":  "Eight real Wasm instances check alignment, padding, repeated initialization, region isolation, GOT updates and TLS-to-TLS pointers. Common offset/GOT profile also passes SDK34 LLD; its static shared pointer-fixup behavior differs, so the full pointer case is additional Tower coverage, not a differential pass.",
-                           "parallelBenchmark":  "Frozen LLVM-reactor image is byte-identical at 1/2/4/8 lanes and to the previous Tower binary. Five-run medians 0.45/0.51/0.44/0.47 seconds with scheduling noise; no parallel speedup claim. Default remains one lane, with explicit --threads=N and cost grain. Peak RSS grows about 2 MiB at multiple lanes.",
-                           "generationHashes":  {
-                                                    "tower":  "f185efd06a54bede94584c7588bb98c9bc5a8edee4a5a45b54af5cafc875c00b",
-                                                    "llvm":  "65f58393bdb43e59cc8dfadb2e438e025076205e1a97c193e0dbae8803b88683",
-                                                    "cross":  "aff8f4f62b51dba5d6caa427c295e65ea1182db414e81fea81158ced18390270"
-                                                }
-                       },
-    "verifierToolingMigration":  {
-                                     "sourceCommit":  "7aa2e56cb825e830f9f934b76da07dc4ed7b69d0",
-                                     "report":  "docs/temporal-opcode-research-journal.md",
-                                     "retired":  [
-                                                     "playground/scripts/verify-compiler.py",
-                                                     "inline Python distribution report assertions"
-                                                 ],
-                                     "implementation":  "Tower CLI verifier writes command logs and directly asserts the expected missing-Clang failure; JSON report/parser step removed. Build only the selected required Tower tool.",
-                                     "entryPoint":  "playground/scripts/test-compiler-distribution.sh",
-                                     "validation":  "After rebase, a clean checkout passes all 54 native and five tool build steps with Python unavailable. Successor is byte-identical to the public bootstrap; all 16 development checks, the restricted expected-failure gate and binary stdout/stderr process checks pass.",
-                                     "compilerSha256":  "1a5b58879eb247e0c2e3ab33804d965b8b157f170af49f71b53a611b7762d8bb",
-                                     "remainingPythonFiles":  11,
-                                     "remainingTrackedPythonLines":  777,
-                                     "initialTrackedPythonLines":  1989,
-                                     "inventoryBase":  "dfe6ce3",
-                                     "limits":  "Linux x64 runner uses existing GNU env/timeout. Restricted PATH is not OS isolation; native Windows/macOS release runners and complete portable dependency closure remain work. Inline Python remains in two other build/test scripts.",
-                                     "runtimeAssetsChanged":  false
-                                 },
-    "uiPublication":  {
-                          "scope":  "Stable editor/output geometry, quiet progress, on-demand timing details, retained output scroll and in-place native artifacts.",
-                          "runtimeDeployment":  "09a46e0941588309c283e960c40b04354cb4a417",
-                          "runtimeAssetsChanged":  false,
-                          "validation":  "26 focused browser checks, six final frame/storage checks, four integrated captures and all four live desktop/mobile edit/recompile captures pass. Full local and hosted deployment verification passes all 84 asset hashes and behavior checks.",
-                          "verifiedDeployment":  "43bd0b25d854775d0db5911095d18c083ee92365"
-                      },
-    "bootstrapSymbolToolingMigration":  {
-                                            "sourceCommit":  "d20583c372b3bed39ff27608dbc17386ebb65524",
-                                            "change":  "Replace the bootstrap undefined-symbol gate\u0027s 201 inline Python lines with a bounded Tower checker and selected tool build.",
-                                            "trackedPython":  {
-                                                                  "files":  11,
-                                                                  "lines":  777,
-                                                                  "baselineFiles":  23,
-                                                                  "baselineLines":  1989
-                                                              },
-                                            "validation":  {
-                                                               "publicBootstrapSha256":  "1a5b58879eb247e0c2e3ab33804d965b8b157f170af49f71b53a611b7762d8bb",
-                                                               "rebasedSuccessorSha256":  "587ce30678c0ef71ad09f1c43affac2bef627dcdaadb813e5bea4f48268a6f7a",
-                                                               "checks":  "Clean default native/selected-tool builds and body/custom-grammar execution without Python; Tower symbol fixtures; all 12 affected component/target symbol closures.",
-                                                               "comparisonLimit":  "All 28 predecessor/successor pairs agreed before the compiler scheduling rebase. After rebase, entities and semantics agree on all four targets. Parser IR/object bytes differ in specialization order on all four targets; llvm-diff reports no structural differences, and the same-successor Linux parser repeat is byte-identical. The strict cmp gate remains unchanged and does not pass the complete rebased matrix."
-                                                           },
-                                            "publication":  "Metadata only; preserve all 84 runtime assets, build-source identity and concurrent UI/compiler publication notes."
-                                        },
-    "filesystemImportToolingMigration":  {
-                                             "sourceCommit":  "717b25b57398a5df0504f4f2cb1767e9629fdac1",
-                                             "implementationCommit":  "81d46002ad4606da572545cad5593576dd95bb7c",
-                                             "change":  "Remove the 55-line module_paths.py driver; run its eleven real-filesystem import cases through the existing Tower driver executable and CTest.",
-                                             "trackedPython":  {
-                                                                   "files":  10,
-                                                                   "lines":  722,
-                                                                   "baselineFiles":  23,
-                                                                   "baselineLines":  1989
-                                                               },
-                                             "validation":  {
-                                                                "publicBootstrapSha256":  "1a5b58879eb247e0c2e3ab33804d965b8b157f170af49f71b53a611b7762d8bb",
-                                                                "cleanSuccessorSha256":  "86c314e71f96f53dcaa7130c933d8e4ad234b8851e1c920cdd7a226cc08dc858",
-                                                                "checks":  "Fresh documented native build (54 steps), driver test build (3 steps), full driver and filesystem import CTests all pass with Python unavailable after the final source rebase. Temporary paths with spaces and cleanup after successful/failed trials pass. Windows x64 and macOS ARM64 binding object compilation passes; linked execution on those platforms is not claimed."
-                                                            },
-                                             "publication":  "Metadata only; preserve all 84 runtime assets, build-source identity and concurrent linker, profiling, UI and tooling notes."
-                                         },
-    "ecsCompletionAudit":  {
-                               "sourceCommit":  "174894afb3170d9d3981f536d91f7a3a20e7fd62",
-                               "report":  "docs/temporal-opcode-research-journal.md",
-                               "estimatePercent":  70,
-                               "estimateRangePercent":  [
-                                                            65,
-                                                            75
-                                                        ],
-                               "method":  "Engineering estimate from production callers, remaining semantic boundaries, validation and release evidence; not a line-count ratio or measured parallel fraction.",
-                               "scope":  "Current compiler ECS/dependency/threading conversion plus scoped decltype/scalar staging; excludes future Stronghold, backend translation and arbitrary staged values.",
-                               "open":  [
-                                            "Structural expression/protocol/type preparation queries",
-                                            "Native CLI/project integration of tested unit services",
-                                            "Persistent query identity and broader staged value/effect contracts",
-                                            "Measured worker/allocation overhead and production ownership coverage",
-                                            "Uncommitted nested failed-type diagnostic correction still fails its new focused regression"
-                                        ],
-                               "runtimeAssetsChanged":  false
-                           },
-    "nativePackageToolingMigration":  {
-                                          "sourceCommit":  "afd25cfecc579aec0bffe251495789287a5197c5",
-                                          "implementationCommit":  "365a279d7fa96b6fba4aec557ebd0ee66f4699a6",
-                                          "change":  "Remove interpreter-llvm.py and bytecode-llvm.py (128 Python lines); reuse the existing Tower driver for native executable and serialized-package comparisons.",
-                                          "trackedPython":  {
-                                                                "files":  8,
-                                                                "lines":  594,
-                                                                "baselineFiles":  23,
-                                                                "baselineLines":  1989
-                                                            },
-                                          "validation":  {
-                                                             "bootstrapAndCleanSuccessorSha256":  "0d752e7dc35a0a8951872cf52d96873bb1e1cab2b3fe63d9b147e64e5deecca8",
-                                                             "checks":  "Fresh documented native build (54 steps), driver test build (3 steps), full driver regression, 16 native comparisons and 184 package comparisons pass with Python unavailable after rebase. Raw exit 127 is preserved; a nonterminating fixture is rejected after 30 seconds. Windows x64 and macOS ARM64 test-binding objects compile; linked execution there is not claimed."
-                                                         },
-                                          "publication":  "Metadata only; preserve the 6c03edd runtime, all 86 asset records and concurrent linker/UI/profiling/tooling notes."
-                                      },
-    "cOutputToolingMigration":  {
-                                    "implementationCommit":  "0f61bb1cb3908738dc1ebafb8d1d88bba00f4e38",
-                                    "validationCommit":  "fb20d608fbe97349f801e2ff976de213928dc87c",
-                                    "summary":  "Three Python C-output validators consolidated into the existing Tower driver; shared compiler matrices and self-contained target-profile inputs.",
-                                    "python":  {
-                                                   "files":  5,
-                                                   "lines":  401,
-                                                   "baselineFiles":  23,
-                                                   "baselineLines":  1989,
-                                                   "removedLines":  1588,
-                                                   "reductionPercent":  79.8
-                                               },
-                                    "bootstrapSha256":  "0d752e7dc35a0a8951872cf52d96873bb1e1cab2b3fe63d9b147e64e5deecca8",
-                                    "cleanSuccessorSha256":  "0d752e7dc35a0a8951872cf52d96873bb1e1cab2b3fe63d9b147e64e5deecca8",
-                                    "checks":  {
-                                                   "nativeBuildSteps":  54,
-                                                   "driverBuildSteps":  3,
-                                                   "legacyCComparisons":  416,
-                                                   "modernProfileComparisons":  96,
-                                                   "layoutRejections":  3,
-                                                   "savedBrowserCComparisons":  32,
-                                                   "pythonUnavailable":  true,
-                                                   "fullDriver":  true,
-                                                   "spacesInPaths":  true,
-                                                   "staleOutputRejected":  true,
-                                                   "unknownFilterRejected":  true,
-                                                   "msvcJsonRows":  52,
-                                                   "browserJsonRows":  4
-                                               },
-                                    "limitations":  "Saved browser captures reused; Windows/macOS objects compile but no fresh linked execution or MSVC compilation is claimed.",
-                                    "publication":  "Metadata-only receipt; existing runtime build identity, all assets and concurrent notes preserved."
-                                },
-    "assets":  {
-                   ".nojekyll":  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-                   "CNAME":  "98b2dc87ce088779cec3fd8c72bab57b6a45b4c1df747ded3a55d4205fecc34c",
-                   "THIRD-PARTY-NOTICES.txt":  "d02400e3a701dfe8511bc139902735b1089fafa3247d67f49840ac1b9bc59b84",
-                   "app.js":  "b636b62cbd12e33d8391bdf2d6d990e1607ba23e0226d7c001efeb52082a0467",
-                   "app.js.map":  "fff9e00e8aacadd77cb32d0ec931e902564b873a1342af1c27af2214c90d5609",
-                   "backend/foreign_grammar.tower":  "96e26dced6f26545723e8f76fff61c7eed897a752c941d32937571f28110e11a",
-                   "bedrock.tower":  "13d36b8bfa7d47355b430ea461ed5e16759b7e63adcf79078e03154e2e89af09",
-                   "builtins.json":  "e21f66d37b5716296296e19434c65bdff1502fec4619ad780fb39b06fefb3de3",
-                   "capabilities.json":  "beb929d7896b760e4a190875af67a895bc6599978a1566614dc7f39df7277bb2",
-                   "collections.tower":  "f6e2bceb516d9ff9f073aa5504827db60f55d113a2389e9a0e2c17a25d26aef7",
-                   "compiler/imports-tower-18.txt.gz":  "0fca0647149fdb009d542136fd37c0d0d37d73c50352efd08c0d1a5659f614ef",
-                   "compiler/project.json":  "43af2c00f664c65f35438398cf13a6c8ba4b2cb78897c129d9bdc1682bc4b155",
-                   "compiler/support-cross-0.a.gz":  "c98eb0b618751e762fe135ad5c8979855e11567d4890aa8f49155b15f11bb7d0",
-                   "compiler/support-cross-1.a.gz":  "015302cd33bd6b3b18148678106b78ff86351475eb604928329cb079b88ebf4a",
-                   "compiler/support-cross-2.a.gz":  "04c0fd15f850c41cbeaefc2bb4f15362fddee8a5bed246a5145df4f34ffd53fb",
-                   "compiler/support-cross-3.a.gz":  "659e9169dc98ee8cb4077a058bfd77781f257216c57d1b2f0c81ce2f003867d5",
-                   "compiler/support-cross-4.a.gz":  "77af4f0ff07711c15046d4cdb31cf609ccaf2c9edba53f2be83872da9a19a547",
-                   "compiler/support-llvm-0.a.gz":  "92671452d6abb579fbceaf9a871aa83cbed0faca623f7a03aaa11c07d62ddcfe",
-                   "compiler/support-llvm-1.a.gz":  "898cda8e4f5728653e041426d288707a84aa12a0ad7cc882e76912247eeaf928",
-                   "compiler/support-llvm-2.a.gz":  "318821580c4488dba5ae9506d36e707eee8011befc4ce1c00c942f711e447145",
-                   "compiler/support-llvm-3.a.gz":  "5a4cc029fe7ff880ec571eb49263a0e76e4e3d3de9425dbf9997647a1bb099ca",
-                   "compiler/support-llvm-4.a.gz":  "1df5b67e3485e9c524d70801e823524026e4087191d00963cd6b607c6a6370df",
-                   "compiler/support-tower-0.a.gz":  "616698b734a6b13395428804a97c8774c5c6d94f735b14df383858f46cb98e27",
-                   "compiler-build-worker.js":  "25b6481df93a89bff0a6af816f0c41666a37b19cacb84757a0bef1cc1e494d08",
-                   "compiler-build-worker.js.map":  "b0b7e29e54a68fd44895d9c11de65ec2c3d76ce54743cfb162e9349f5cf94b2a",
-                   "compiler-isolation-worker.js":  "735b5aed5d46be215c7d192205a24bb260151467a38b0ef354817530617456eb",
-                   "compiler-isolation-worker.js.map":  "abfa9b625a5aebf4e502f458196329f01c259433d8234b36f00f2b5539b7021c",
-                   "compiler-thread-worker.js":  "1c1796111486b389bab03726ec746636d6934d66174731b03907f37777bbaa40",
-                   "compiler-thread-worker.js.map":  "b27efaccc6d27b5d7d66b0ec085fa0bdfa0c8edbeda8d63a262e0dea8660e79e",
-                   "execution-worker.js":  "025bf14a988894b9dee0abe164a6747c9039a95688a8d4c3bff2f9eda1963a94",
-                   "execution-worker.js.map":  "8c9522e2f879ac58525bd878083188510df45fe0d1c4ae7f7a7e391555fda28c",
-                   "execution.tower":  "4e5826ee6c031c10fe669ba76df9d80835b44da590c783c8c818638b5955fa5f",
-                   "foreach.tower":  "7a28c9cbb7f1822c65db344ad02237ba61ab8cd9d60b5e9c50015f6fa0b2de7e",
-                   "foundation.tower":  "a12773f1c7d82cf18a6d36ff5ebc1a6c47e60f9f780bc28bc03288fb03c0358c",
-                   "functions.tower":  "d16cefd898edf41e63055823fa794e2c3264242320522adc6a7385ced492d168",
-                   "increment.tower":  "779886c26b1450ffc8aa1fd9b389720c2a7072a41741b0aa9f633b3926736fb6",
-                   "index.html":  "1a328669e3343da7420bf79b5b71cb49debe1159ec27e15c1a8c7942a10f634e",
-                   "inference.tower":  "121921e7c66b2686175434b7a08dfab079a70d79490554f9c367a4dd1cf544b5",
-                   "language-worker.js":  "9a915570c2faa4c37b92025265d69876a1c4d357f81f0292cb4ce410a35d5779",
-                   "language-worker.js.map":  "73f46c10e24a0cb63ef31f0beb17feab3b5bf923dfd96f8abf6ecb25f27b984b",
-                   "library/bytes.tower":  "06dc60d568aaa993fc5eadc9a9d2398d0f9d1b6d6272d8d704deb1a8b1d630a8",
-                   "library/bytes_interface.tower":  "2af7f862478f9cba7d19c58280ef67a3b8e556134cb0219376164e712fbaf3a8",
-                   "library/bytes_types.tower":  "877a2d3b97f1937045b172bc973716a34a45c739907d4aae2084ea025f3af496",
-                   "library/compiler_work.tower":  "881be88ffa9d40a6fb295457eb58539e4567ddd3e90a879a036c8e3b3df13a94",
-                   "library/compiler_work_types.tower":  "ca720529043c1f03022798eb32ad860a30f70d0a487061742797dfe7a95b9332",
-                   "library/crc32.tower":  "00c755d91c69cd0176115e12cf261da055c54dc4900eafb588bcb4f4953a0b49",
-                   "library/deflate.tower":  "b345cba845322cbe3d7556cff1836283c0f8607a55a53823e8b9b85db90b7157",
-                   "library/entities.tower":  "977be3904fecde65df4d62d18b99a75c2a42704f02b8c9f0008690db2547d79b",
-                   "library/entity_api.tower":  "2063d227b2e126e5430f83fb22149871454a86f7b55860eb133bcca1e98762ba",
-                   "library/entity_stage.tower":  "6c5cc03341bc9c9bc4804818f5f2aba38c9e3f0624208c2820e3f8fe505695c9",
-                   "library/entity_types.tower":  "dcaf31592f1d29f72ee21582699d4879074e2e328fe29c93b3cf5864acf6574a",
-                   "library/float_bits.tower":  "267d0deb1aeb37a1908e7b4d26b7459171b083b8559dc7519b33d23d7eb70051",
-                   "library/float_text.tower":  "bf672013862b1b94ce75a8210e79f4c451226762aabd8e207fb8a1526ce3ff4e",
-                   "library/platform.tower":  "7b8183c3f1ecc5f2f3c1a243da1d4f803c54987b9a87f5832c3cb04b94c5fa2c",
-                   "library/queue.tower":  "d61ca3b9a861c42e7489d03cfd8a990d0bfcc999e528e05f18c597292a700280",
-                   "library/sha256.tower":  "ec310a630345d0488c28a18e92e169c87042c29fdd67940e4a84087821d16778",
-                   "library/stack.tower":  "2d4282e03e15457e2e9a1937600e9459f63f9417f5252f298eca6eaaf438a020",
-                   "library/storage.tower":  "396ec2ba1cb681be28013b3d5262abd7936d058c0ec6db8f5ca334cde462bfe5",
-                   "library/vector.tower":  "84fde652626c0e80d64c198fe1083d1857f3863574cef63988931b6b2c5225cc",
-                   "library/work_graph.tower":  "3bffd0f8c2f3076a1f606d8d482c8908869b878100c24e8ecea7ad491a8ab505",
-                   "library/work_pool.tower":  "870a51a8ccca52498bc03dcab6f505b37639968cb6d4f7fcb83c82e2d71d38f0",
-                   "library/zip_archive.tower":  "071262db47385855a84a0796a75d3c5ab217495b00549289e53d13f4953f5cc8",
-                   "match.tower":  "19f6aee5f8644fb50fba43e5a1bca7c3be198d58fdf9157251a821518f5cf8f7",
-                   "memory.tower":  "c2092554220705cf28f101e9ab245a15612eb8352243aedfca3c9c0dd15bfa73",
-                   "replacements.tower":  "5023f85155842c1042c7e36d382624e2a19c761db088031cef79f4694159942e",
-                   "structs.tower":  "a4e848409b99a58af8457a30dda76dd7e277ab681b3758b16fa788b8ae0e7d6a",
-                   "style.css":  "20722aa02c97a5ebf1b36f395a8c586e6a5dcb00f3aa54449701ff4f4a63aee4",
-                   "target-worker.js":  "6578a3807320fd9c6cb8e4c7cc094b94b29a7b072a84883cff6727ae5035581e",
-                   "target-worker.js.map":  "1fecba66c3e264c0f56311633184419eaa5644f3d72d9a724a07302598be707d",
-                   "targets/aarch64-unknown-linux-gnu-runtime.o":  "0d6160f9b6b33e7549e5974f767bf3274aec75229c161e87fbb439b4549884b7",
-                   "targets/arm64-apple-macos11-runtime.o":  "4f2d33a41bdb36669a1a0eda88f01999a30bc64adb158aaca02f2e568adbdc89",
-                   "targets/kernel32.lib":  "759a9d3d5585d6b128b02a22c3a066cad51b515b847c16b8dc1d078bc2db4f07",
-                   "targets/libSystem.tbd":  "b38b11a1f50135d58f17a5436e255bd7a70ac68ef7380c5abab28612612c2009",
-                   "targets/x86_64-apple-macos11-runtime.o":  "6a7b29947a7952b7894a288523ff5acb11a7d389388812c5d8db37f5dba6612b",
-                   "targets/x86_64-pc-windows-msvc-runtime.o":  "471e3233ea7d10326b13fa62de772d78b64f285cf75a16478a1c2c5ce3a3c735",
-                   "targets/x86_64-unknown-linux-gnu-runtime.o":  "dd9017a54b2e683f35ed8289eebf6d13175beddd9020ddbdfba3c4933e5c847b",
-                   "templates.tower":  "2045b87e45eda35945fea88cf70b904d8f695c93e36eea08aa0a14b4354682dc",
-                   "tokens.tower":  "594b7d7efd13e3568819e6830e4fda1651f102ee9f2a633339d092f2c4721774",
-                   "tower-cross.wasm.gz":  "0a7c286f6adde9f6ddfbcd0e3e3b55c199e7be21d9aacdbad0f19fa1dfbfda29",
-                   "tower-llvm.wasm":  "641817966d4a8f4b83c784ac0a0f98627447cd0000085a17f27caa9d2c07073a",
-                   "tower-llvm.wasm.gz":  "1ea1edd0cfb5d528d0bc9d900e6dfef9e06578b9c189670e6c494c3f71dc96cc",
-                   "tower-threads.wasm":  "43a9d8c87f1960399ddc1ec8aeccd334b042c675fc3c8c0792bb199091178b60",
-                   "tower.tower":  "a8546244311665e35fbb8b413b51fc722c0043c468e76588f7f1fb161b38ba2e",
-                   "tower.wasm":  "7dba6be45bc6963adf19fff62bf21ea472a5c5c6fb03784d86396b84c8233ba5",
-                   "worker.js":  "e594bbca317abe35a6bf2419a07f4620729e83a31cb6544aa7f7525c2247c9d7",
-                   "worker.js.map":  "a69e39f4d57298eeedfc50875328dffe0bffcb280f9522a3bc0917a242cf8874"
-               },
-    "pipelineOptimization":  {
-                                 "uiSourceCommit":  "a00fbce3dc2a3a896d21a812d4c85667a42029db",
-                                 "reproduceBuildSource":  {
-                                                              "patchTo":  "1baa366eefda486e3245dcc6d32cd55394b1531f",
-                                                              "paths":  [
-                                                                            "scaffolding"
-                                                                        ],
-                                                              "patchFrom":  "19174dd3acd1256608d658a36c8700dd6b21cc3e",
-                                                              "base":  "7425a1403070ce1358ed0ba2aeb8aff3e8df1284"
-                                                          },
-                                 "report":  "playground/PERFORMANCE.md",
-                                 "buildSnapshot":  "797f54a46984d160fb768dc5dc8d8451ed486fe9",
-                                 "sourceCommit":  "1baa366eefda486e3245dcc6d32cd55394b1531f",
-                                 "viewportFix":  "Offscreen whole-document replacement retained 3564 native disassembly DOM lines. Reset the derived CodeMirror view and restore its scroll anchor; the same complete 92798-character document now renders 36 lines.",
-                                 "pairedBenchmark":  "Three alternating pairs, 30 warm actions per device; loopback, warm OS cache, fresh browser cold runs. Desktop cold complete 4405.2 to 2899.4 ms; Memory edit 228.3 to 120.3 ms; Structs value edit 173.4 to 123.8 ms. Frozen 717b25b plus isolated patch; final release confirmation recorded separately.",
-                                 "finalConfirmation":  "One cold observation and ten warm actions per device, loopback, no concurrent builds/tests. Desktop/mobile cold completion 3092.5/2658.1 ms; median Execute 74.0/67.3, Memory edit 135.6/110.7, Structs value edit 115.1/68.9 ms. All 110 actions have expected outputs and no page errors. This confirmation is not an additional paired speedup estimate.",
-                                 "runtimeAssetsChanged":  true,
-                                 "validation":  "79 runtime/LLVM/package checks; eight threaded package/worker checks; two edited browser compiler generations; four final worker-reuse/stale-permit browser checks; ten output/viewport/frame checks. Fresh native successor after final compiler-source rebase. All 86 local deployment asset hashes and full desktop/mobile flows pass."
-                             },
-    "scope":  "Typed function values and indirect calls, integrated shared-memory linker and frontend improvements; standard Tower-defined types before vectors.",
-    "previousDeployment":  "7a1283714cfd7bec348faad987b189d25a42367c",
-    "measurementToolingMigration":  {
-                                        "implementationCommit":  "1007d4179107c6c5372afcb9d1233a406695e992",
-                                        "validationCommit":  "824af121b0441df8c2a6af9e6a328bd6a0164018",
-                                        "summary":  "Four Python measurement scripts consolidated into the existing Tower driver, sharing capture, exact comparisons, timing decoding and statistics.",
-                                        "python":  {
-                                                       "files":  1,
-                                                       "lines":  219,
-                                                       "baselineFiles":  23,
-                                                       "baselineLines":  1989,
-                                                       "removedLines":  1770,
-                                                       "reductionPercent":  89
-                                                   },
-                                        "remainingPython":  "playground/scripts/package-compiler-project.py",
-                                        "bootstrapSha256":  "0d752e7dc35a0a8951872cf52d96873bb1e1cab2b3fe63d9b147e64e5deecca8",
-                                        "cleanSuccessorSha256":  "0d752e7dc35a0a8951872cf52d96873bb1e1cab2b3fe63d9b147e64e5deecca8",
-                                        "checks":  {
-                                                       "nativeBuildSteps":  54,
-                                                       "driverBuildSteps":  3,
-                                                       "workloadGroups":  13,
-                                                       "series":  38,
-                                                       "retainedSamples":  260,
-                                                       "pythonUnavailable":  true,
-                                                       "independentMediansAndHashes":  true,
-                                                       "timingDecoderCases":  14,
-                                                       "fullDriver":  true,
-                                                       "focusedNativeAndPackage":  true,
-                                                       "spacesInPaths":  true,
-                                                       "staleArtifactRejected":  true,
-                                                       "missingTimingRejected":  true,
-                                                       "wrongOutputRejected":  true,
-                                                       "unknownFilterRejected":  true
-                                                   },
-                                        "limitations":  "Linux measurement commands; Windows/macOS object compilation only. Functional measurement validation is not a performance improvement claim; wall capture overhead differs from retired Python probes.",
-                                        "publication":  "Metadata only; preserve latest runtime build identity, all assets and concurrent profiling/UI/linker notes."
-                                    },
-    "uiSourceCommit":  "21290667fd678a9de4ba930aeb5c8f218431665c",
-    "bootstrapExecutableSha256":  "81928f54125bd182cad2e0f52a0b6a543d59fa454ab87b18a0b69fd28a5e59c8",
-    "publishedBootstrapSha256":  "9bf8779c9b5844e6f5b0df6688a3ac517b2b4f9924b84c36f19c572b93b8e459",
-    "bootstrapSha256":  "81928f54125bd182cad2e0f52a0b6a543d59fa454ab87b18a0b69fd28a5e59c8",
-    "sourceCommit":  "bca1ab60d3f3c844a249610205558345cde5032b",
-    "publicationNote":  "Tooling-only validation receipt: retire inline Python in LLVM script preparation and add the tested Tower gzip envelope. Preserve the verified runtime buildSourceCommit and all assets.",
-    "buildNote":  "Built from source identical to rebased 51c038e using the validated 81928f54 intermediate bootstrap. Final 9bf8779c pin passes relocation and a fresh default successor. Two edited browser compiler generations agree byte-for-byte; callback/worker/native/Wasm checks and all 86 local assets plus desktop/mobile flows pass.",
-    "buildSourceCommit":  "51c038e0d15480256f7dfd7991155874b97d2cab",
-    "compilerSourceTree":  "20c6c50153808034b10941b27b9523e05ba68624",
-    "functionValues":  {
-                           "validation":  "Graph/cache, staged callbacks, nullable calls, inferred signatures, struct values, 1/2/4/8 workers, Foundation/package round trips, native/Wasm separate-object callbacks, relocated pin, clean successor and browser self-builds.",
-                           "sourceCommit":  "21290667fd678a9de4ba930aeb5c8f218431665c",
-                           "runtimeAssetsChanged":  true,
-                           "limits":  "Noncapturing callbacks; C/BrightScript source emission, external aggregate callback ABI and JS host adaptation remain separate work.",
-                           "report":  "docs/function-values.md",
-                           "validationCommit":  "d357f3be54a435025807cc7abba5cd2521661d02"
-                       },
-    "typeProtocolDiscussion":  {
-                                   "status":  "Proposal: typed ECS components and ordinary Tower implementations; attributes and programmatic construction populate the same protocol.",
-                                   "sourceCommit":  "ccb245f18cfcbea2dc62858f7d5f1bee7a330534",
-                                   "runtimeAssetsChanged":  false,
-                                   "report":  "docs/temporal-opcode-research-journal.md"
-                               },
-    "llvmPreparationToolingMigration":  {
-                                            "sourceCommit":  "118610b764473e1af971183c619e3b5e50647b1d",
-                                            "validationCommit":  "981bfc4a57563e6ca66eb8963eb4893209c8dbde",
-                                            "journal":  "docs/temporal-opcode-research-journal.md",
-                                            "trackedPython":  {
-                                                                  "baselineFiles":  23,
-                                                                  "baselineLines":  1989,
-                                                                  "remainingFiles":  1,
-                                                                  "remainingLines":  219
-                                                              },
-                                            "inlinePythonLinesRemoved":  17,
-                                            "remainingPythonEntry":  "playground/scripts/package-compiler-project.py",
-                                            "preparation":  "Existing build-llvm.sh EXIT trap now calls Tower prepare_llvm. LF files unchanged; CRLF exact restoration; changed/missing sources retain recovery backups; 1 MiB per script.",
-                                            "gzip":  "Deterministic single-member envelope reusing Tower DEFLATE and CRC32; no new zlib dependency. Production browser packager has not switched yet.",
-                                            "validation":  {
-                                                               "publicBootstrapSha256":  "9bf8779c9b5844e6f5b0df6688a3ac517b2b4f9924b84c36f19c572b93b8e459",
-                                                               "cleanNativeSuccessor":  "54 build steps; byte-identical public successor; no private bootstrap; Python unavailable",
-                                                               "driver":  "Three build steps and ordinary driver suite passed (11.24 seconds)",
-                                                               "llvmScripts":  "Focused cases, real upstream config.guess, paths with spaces, actual build-llvm.sh configure-failure EXIT restoration passed",
-                                                               "gzip":  "Five synthetic payloads and real 27145038-byte archive: deterministic repeats, aliased input, invalid input preservation, independent GNU gzip verification/decompression and exact byte comparison passed",
-                                                               "referenceCompressedBytes":  7491477,
-                                                               "towerCompressedBytes":  8797774
-                                                           },
-                                            "limitations":  [
-                                                                "Linux/POSIX preparation uses documented Docker bootstrap route.",
-                                                                "Gzip envelope encodes only; existing fixed-Huffman output was 17.4% larger for the tested real archive.",
-                                                                "No production packager cutover or new browser runtime build is claimed."
-                                                            ]
-                                        }
+  "coldWarmProfiling": {
+    "sourceCommit": "8a26cb7c1a1b5a3ace66ce63863215dfb0cb1f28",
+    "report": "playground/PERFORMANCE.md",
+    "measuredDeployment": "c4ae2174586b9a039dc1facecd11c2aa82f612ff",
+    "measuredBuildSource": "85c8a138e098f2dd84706d3f9d6e7bbcfa592887",
+    "validation": "Five cold samples and 50 warm actions per device; three alternating portable/threaded desktop pairs; separate CPU and deterministic LLVM object probes; final fresh-process transport validation passes.",
+    "findings": "Small-program shared-memory/worker overhead, repeated frontend compilation and fast package reconstruction; warm ECS entities compilation remains frontend dominated. Detailed scope and limitations are in the report.",
+    "runtimeAssetsChanged": false
+  },
+  "toolingMigration": {
+    "sourceCommit": "d64b91d58c1ec8d7d1c0a544d5fcf4ea385fab02",
+    "validationCommit": "a4ef899515d986626bb51165208dbabdd9d5bcf6",
+    "report": "docs/temporal-opcode-research-journal.md",
+    "retired": [
+      "playground/scripts/prepare-lld-compat.py",
+      "playground/scripts/package-roku.py"
+    ],
+    "entryPoint": "playground/scripts/build-bootstrap.sh --tools",
+    "implementation": "Tower builder, Linux process runner, LLD patcher and in-house CRC/ZIP/DEFLATE Roku packager.",
+    "validation": "Fresh public 2292 bootstrap tool build and 53-step native successor; exact LLD output, deterministic ZIP and child-process checks pass on Linux x64.",
+    "policy": "Prefer practical in-house Tower libraries; grow minimal correct subsets. Aim for actual Tower source migration, with essential platform/browser binding shims.",
+    "remaining": "Bootstrap installation, wider shell/CMake and reusable JavaScript migration. Native Windows/macOS distribution remains future work.",
+    "runtimeAssetsChanged": false
+  },
+  "vectorLanguageDirection": {
+    "sourceCommit": "7d50641a286959a2f6916e7fee552b1e77abdaa2",
+    "report": "docs/tower-language-plan.md",
+    "journal": "docs/temporal-opcode-research-journal.md",
+    "scope": "Proposed fixed-size CPU/GPU vector values, f32_4 naming, swizzles and automatic SIMD on shared Foundation/ECS operations. Design direction only; runtime assets unchanged."
+  },
+  "bootstrapToolingMigration": {
+    "sourceCommit": "baff98d91534cb73653af82e89e61bfbac93f73a",
+    "report": "docs/temporal-opcode-research-journal.md",
+    "retired": [
+      "bootstrap/package.py"
+    ],
+    "entryPoint": "playground/scripts/build-bootstrap.sh --tools",
+    "implementation": "Tower bootstrap candidate packager with in-house SHA-256, ustar and gzip over Tower CRC32/DEFLATE; Linux filesystem and process capabilities.",
+    "validation": "Public 2292 bootstrap builds the tools and a fresh 53-step native successor. Raw tar and source/member/predecessor hashes match the former Python packager; repeated Tower archives/manifests match. Independent installer, relocation/execution, SHA vectors and 260 differential fixtures, archive/process/filesystem rejection checks pass.",
+    "limits": "Linux x64 Ubuntu 24.04 LLVM 19.1.1 candidate workflow; buffered 1 GiB ustar bound, no PAX/extractor, fixed-Huffman compression. Existing compiler LLVM dependencies remain.",
+    "remainingPythonFiles": 19,
+    "priority": "Eliminate remaining Python installation, packaging, verification, benchmark and test drivers before wider shell/CMake/JavaScript migration.",
+    "runtimeAssetsChanged": false
+  },
+  "bootstrapSimplification": {
+    "sourceCommit": "261fab235813d67db8a1b37e9cf3bc5f99d48d4a",
+    "report": "docs/temporal-opcode-research-journal.md",
+    "policy": "Before translating any Python or other-language script, eliminate unnecessary steps or simplify with existing capabilities; translate only the smallest required remainder.",
+    "layout": "Directly runnable checked-in Linux x64 compiler and 30 accompanying resources/license, verified by platform sha256sum; no installer, archive decoding or bootstrap cache.",
+    "compilerSha256": "7ef1e6da14b9de1c5e06df2cc75ff8cb1058fb6ea5bd4c57a0a0f243ca28dc16",
+    "previousArchiveSha256": "2292bd8abc4761ba0e62f6c2fb8fee2f482c5273f2a267402fe09d5d34d9913a",
+    "manifestSchema": 2,
+    "retired": [
+      "bootstrap/install.py",
+      "bootstrap archive and cache installation step",
+      "experimental Tower installer and unused JSON/archive reader/writer code"
+    ],
+    "validation": "Clean Git checkout, executable mode 755 and all 31 pinned file hashes verified. Default native build passes 54 steps with Python unavailable after rebase; graph/fast/native fixtures print zero. Direct candidate directories repeat byte-for-byte and checksum guard rejects changed resources.",
+    "remainingPythonFiles": 18,
+    "remaining": "Inline Python and remaining packaging, verification, benchmark and test scripts; audit necessity before translating. Wider shell/CMake/JavaScript follows.",
+    "runtimeAssetsChanged": false,
+    "supersedes": "The earlier bootstrapToolingMigration archive-based candidate layout is historical; candidates and the canonical pin now use direct directories."
+  },
+  "pythonStepRetirement": {
+    "sourceCommit": "644ad2005c442838402d095b96f8e43354576e92",
+    "report": "docs/temporal-opcode-research-journal.md",
+    "policy": "Audit every script for removal or simplification before translating only required behavior to Tower.",
+    "retired": [
+      "docs/research/audit_tower_loops.py",
+      "docs/research/audit_tower_cleanup.py",
+      "docs/research/audit_tower_simplification.py",
+      "playground/scripts/inventory-native.py",
+      "playground/scripts/self-build-compiler.py",
+      "playground/scripts/test-distribution-recipe.py"
+    ],
+    "removedPythonLines": 866,
+    "remainingPythonFiles": 12,
+    "initialPythonFiles": 23,
+    "implementation": "Historical scanners archived in Git; inventory uses existing Git/Ninja commands; unused standalone recipe frontend and mock schema tests removed. No replacement implementation.",
+    "validation": "Active caller and recipe-input audit; Git/Ninja listings; corrected stale fixture references in retained verifier. All 16 development relocation checks pass; restricted check rejects missing clang at link after ten passing checks.",
+    "limits": "Inline Python and live packaging, verification, benchmark and test drivers remain. Standalone release requirements retained; this is not a portable release.",
+    "runtimeAssetsChanged": false
+  },
+  "wasmLinkerPort": {
+    "sourceCommit": "bca1ab60d3f3c844a249610205558345cde5032b",
+    "implementationCommit": "4f5f553",
+    "status": "Experimental Tower static wasm32 linker supports TLS32 layout/ABI/init, retained templates, TLS offsets and pointer/GOT fixups, plus deterministic typed parallel copy/relocation jobs. Production LLD dispatch retained.",
+    "validation": "Public-bootstrap native successor, native reader/backend API and 8 affected native checks pass. Portable WASI reader, real native/shared-Wasm relocation overlap, ordered errors/cancellation and 128 shared-Wasm linker lifecycles pass. Three compiler worker checks, six raw/optimized LLVM/interpreter checks, seven cross-target checks and two byte-identical edited browser compiler generations pass.",
+    "remaining": "Production cutover; full thread-runtime TLS/profile compatibility and deterministic wait schedules; parallel parsing/symbol phases; wider Wasm/debug profiles. Native ELF/COFF/Mach-O remain later work.",
+    "runtimeAssetsChanged": false,
+    "availability": "Source/API milestone receipt only; hosted runtime 51c038e0d15480256f7dfd7991155874b97d2cab and all current asset hashes preserved. Isolated LLVM reactors retain one lane; actual linker overlap is verified with native and shared-Wasm transports.",
+    "benchmark": "Frozen LLVM-reactor inputs, five uninstrumented paired runs: previous Tower median 0.53 s; optimized Tower 0.42 s; SDK34 LLD 0.44 s. About 21% faster than previous Tower and 5% faster than LLD on this workload, with identical output. Callgrind executed instructions fall 27.1%, 3.173B to 2.315B. Cached indexes add about 6 MiB; optimized RSS about 343 MiB versus LLD 368 MiB. No universal platform/workload speed claim.",
+    "sharedMemoryBenchmark": "Frozen LLVM reactor, three previous/current pairs: medians 0.43/0.44 s; RSS approximately 351640 KiB; output byte-identical. No speedup claim.",
+    "tlsValidation": "Eight real Wasm instances check alignment, padding, repeated initialization, region isolation, GOT updates and TLS-to-TLS pointers. Common offset/GOT profile also passes SDK34 LLD; its static shared pointer-fixup behavior differs, so the full pointer case is additional Tower coverage, not a differential pass.",
+    "parallelBenchmark": "Frozen LLVM-reactor image is byte-identical at 1/2/4/8 lanes and to the previous Tower binary. Five-run medians 0.45/0.51/0.44/0.47 seconds with scheduling noise; no parallel speedup claim. Default remains one lane, with explicit --threads=N and cost grain. Peak RSS grows about 2 MiB at multiple lanes.",
+    "generationHashes": {
+      "tower": "f185efd06a54bede94584c7588bb98c9bc5a8edee4a5a45b54af5cafc875c00b",
+      "llvm": "65f58393bdb43e59cc8dfadb2e438e025076205e1a97c193e0dbae8803b88683",
+      "cross": "aff8f4f62b51dba5d6caa427c295e65ea1182db414e81fea81158ced18390270"
+    }
+  },
+  "verifierToolingMigration": {
+    "sourceCommit": "7aa2e56cb825e830f9f934b76da07dc4ed7b69d0",
+    "report": "docs/temporal-opcode-research-journal.md",
+    "retired": [
+      "playground/scripts/verify-compiler.py",
+      "inline Python distribution report assertions"
+    ],
+    "implementation": "Tower CLI verifier writes command logs and directly asserts the expected missing-Clang failure; JSON report/parser step removed. Build only the selected required Tower tool.",
+    "entryPoint": "playground/scripts/test-compiler-distribution.sh",
+    "validation": "After rebase, a clean checkout passes all 54 native and five tool build steps with Python unavailable. Successor is byte-identical to the public bootstrap; all 16 development checks, the restricted expected-failure gate and binary stdout/stderr process checks pass.",
+    "compilerSha256": "1a5b58879eb247e0c2e3ab33804d965b8b157f170af49f71b53a611b7762d8bb",
+    "remainingPythonFiles": 11,
+    "remainingTrackedPythonLines": 777,
+    "initialTrackedPythonLines": 1989,
+    "inventoryBase": "dfe6ce3",
+    "limits": "Linux x64 runner uses existing GNU env/timeout. Restricted PATH is not OS isolation; native Windows/macOS release runners and complete portable dependency closure remain work. Inline Python remains in two other build/test scripts.",
+    "runtimeAssetsChanged": false
+  },
+  "uiPublication": {
+    "scope": "Stable editor/output geometry, quiet progress, on-demand timing details, retained output scroll and in-place native artifacts.",
+    "runtimeDeployment": "09a46e0941588309c283e960c40b04354cb4a417",
+    "runtimeAssetsChanged": false,
+    "validation": "26 focused browser checks, six final frame/storage checks, four integrated captures and all four live desktop/mobile edit/recompile captures pass. Full local and hosted deployment verification passes all 84 asset hashes and behavior checks.",
+    "verifiedDeployment": "43bd0b25d854775d0db5911095d18c083ee92365"
+  },
+  "bootstrapSymbolToolingMigration": {
+    "sourceCommit": "d20583c372b3bed39ff27608dbc17386ebb65524",
+    "change": "Replace the bootstrap undefined-symbol gate's 201 inline Python lines with a bounded Tower checker and selected tool build.",
+    "trackedPython": {
+      "files": 11,
+      "lines": 777,
+      "baselineFiles": 23,
+      "baselineLines": 1989
+    },
+    "validation": {
+      "publicBootstrapSha256": "1a5b58879eb247e0c2e3ab33804d965b8b157f170af49f71b53a611b7762d8bb",
+      "rebasedSuccessorSha256": "587ce30678c0ef71ad09f1c43affac2bef627dcdaadb813e5bea4f48268a6f7a",
+      "checks": "Clean default native/selected-tool builds and body/custom-grammar execution without Python; Tower symbol fixtures; all 12 affected component/target symbol closures.",
+      "comparisonLimit": "All 28 predecessor/successor pairs agreed before the compiler scheduling rebase. After rebase, entities and semantics agree on all four targets. Parser IR/object bytes differ in specialization order on all four targets; llvm-diff reports no structural differences, and the same-successor Linux parser repeat is byte-identical. The strict cmp gate remains unchanged and does not pass the complete rebased matrix."
+    },
+    "publication": "Metadata only; preserve all 84 runtime assets, build-source identity and concurrent UI/compiler publication notes."
+  },
+  "filesystemImportToolingMigration": {
+    "sourceCommit": "717b25b57398a5df0504f4f2cb1767e9629fdac1",
+    "implementationCommit": "81d46002ad4606da572545cad5593576dd95bb7c",
+    "change": "Remove the 55-line module_paths.py driver; run its eleven real-filesystem import cases through the existing Tower driver executable and CTest.",
+    "trackedPython": {
+      "files": 10,
+      "lines": 722,
+      "baselineFiles": 23,
+      "baselineLines": 1989
+    },
+    "validation": {
+      "publicBootstrapSha256": "1a5b58879eb247e0c2e3ab33804d965b8b157f170af49f71b53a611b7762d8bb",
+      "cleanSuccessorSha256": "86c314e71f96f53dcaa7130c933d8e4ad234b8851e1c920cdd7a226cc08dc858",
+      "checks": "Fresh documented native build (54 steps), driver test build (3 steps), full driver and filesystem import CTests all pass with Python unavailable after the final source rebase. Temporary paths with spaces and cleanup after successful/failed trials pass. Windows x64 and macOS ARM64 binding object compilation passes; linked execution on those platforms is not claimed."
+    },
+    "publication": "Metadata only; preserve all 84 runtime assets, build-source identity and concurrent linker, profiling, UI and tooling notes."
+  },
+  "ecsCompletionAudit": {
+    "sourceCommit": "174894afb3170d9d3981f536d91f7a3a20e7fd62",
+    "report": "docs/temporal-opcode-research-journal.md",
+    "estimatePercent": 70,
+    "estimateRangePercent": [
+      65,
+      75
+    ],
+    "method": "Engineering estimate from production callers, remaining semantic boundaries, validation and release evidence; not a line-count ratio or measured parallel fraction.",
+    "scope": "Current compiler ECS/dependency/threading conversion plus scoped decltype/scalar staging; excludes future Stronghold, backend translation and arbitrary staged values.",
+    "open": [
+      "Structural expression/protocol/type preparation queries",
+      "Native CLI/project integration of tested unit services",
+      "Persistent query identity and broader staged value/effect contracts",
+      "Measured worker/allocation overhead and production ownership coverage",
+      "Uncommitted nested failed-type diagnostic correction still fails its new focused regression"
+    ],
+    "runtimeAssetsChanged": false
+  },
+  "nativePackageToolingMigration": {
+    "sourceCommit": "afd25cfecc579aec0bffe251495789287a5197c5",
+    "implementationCommit": "365a279d7fa96b6fba4aec557ebd0ee66f4699a6",
+    "change": "Remove interpreter-llvm.py and bytecode-llvm.py (128 Python lines); reuse the existing Tower driver for native executable and serialized-package comparisons.",
+    "trackedPython": {
+      "files": 8,
+      "lines": 594,
+      "baselineFiles": 23,
+      "baselineLines": 1989
+    },
+    "validation": {
+      "bootstrapAndCleanSuccessorSha256": "0d752e7dc35a0a8951872cf52d96873bb1e1cab2b3fe63d9b147e64e5deecca8",
+      "checks": "Fresh documented native build (54 steps), driver test build (3 steps), full driver regression, 16 native comparisons and 184 package comparisons pass with Python unavailable after rebase. Raw exit 127 is preserved; a nonterminating fixture is rejected after 30 seconds. Windows x64 and macOS ARM64 test-binding objects compile; linked execution there is not claimed."
+    },
+    "publication": "Metadata only; preserve the 6c03edd runtime, all 86 asset records and concurrent linker/UI/profiling/tooling notes."
+  },
+  "cOutputToolingMigration": {
+    "implementationCommit": "0f61bb1cb3908738dc1ebafb8d1d88bba00f4e38",
+    "validationCommit": "fb20d608fbe97349f801e2ff976de213928dc87c",
+    "summary": "Three Python C-output validators consolidated into the existing Tower driver; shared compiler matrices and self-contained target-profile inputs.",
+    "python": {
+      "files": 5,
+      "lines": 401,
+      "baselineFiles": 23,
+      "baselineLines": 1989,
+      "removedLines": 1588,
+      "reductionPercent": 79.8
+    },
+    "bootstrapSha256": "0d752e7dc35a0a8951872cf52d96873bb1e1cab2b3fe63d9b147e64e5deecca8",
+    "cleanSuccessorSha256": "0d752e7dc35a0a8951872cf52d96873bb1e1cab2b3fe63d9b147e64e5deecca8",
+    "checks": {
+      "nativeBuildSteps": 54,
+      "driverBuildSteps": 3,
+      "legacyCComparisons": 416,
+      "modernProfileComparisons": 96,
+      "layoutRejections": 3,
+      "savedBrowserCComparisons": 32,
+      "pythonUnavailable": true,
+      "fullDriver": true,
+      "spacesInPaths": true,
+      "staleOutputRejected": true,
+      "unknownFilterRejected": true,
+      "msvcJsonRows": 52,
+      "browserJsonRows": 4
+    },
+    "limitations": "Saved browser captures reused; Windows/macOS objects compile but no fresh linked execution or MSVC compilation is claimed.",
+    "publication": "Metadata-only receipt; existing runtime build identity, all assets and concurrent notes preserved."
+  },
+  "assets": {
+    ".nojekyll": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "CNAME": "98b2dc87ce088779cec3fd8c72bab57b6a45b4c1df747ded3a55d4205fecc34c",
+    "THIRD-PARTY-NOTICES.txt": "d02400e3a701dfe8511bc139902735b1089fafa3247d67f49840ac1b9bc59b84",
+    "app.js": "b636b62cbd12e33d8391bdf2d6d990e1607ba23e0226d7c001efeb52082a0467",
+    "app.js.map": "fff9e00e8aacadd77cb32d0ec931e902564b873a1342af1c27af2214c90d5609",
+    "backend/foreign_grammar.tower": "96e26dced6f26545723e8f76fff61c7eed897a752c941d32937571f28110e11a",
+    "bedrock.tower": "13d36b8bfa7d47355b430ea461ed5e16759b7e63adcf79078e03154e2e89af09",
+    "builtins.json": "e21f66d37b5716296296e19434c65bdff1502fec4619ad780fb39b06fefb3de3",
+    "capabilities.json": "beb929d7896b760e4a190875af67a895bc6599978a1566614dc7f39df7277bb2",
+    "collections.tower": "f6e2bceb516d9ff9f073aa5504827db60f55d113a2389e9a0e2c17a25d26aef7",
+    "compiler/imports-tower-18.txt.gz": "0fca0647149fdb009d542136fd37c0d0d37d73c50352efd08c0d1a5659f614ef",
+    "compiler/project.json": "43af2c00f664c65f35438398cf13a6c8ba4b2cb78897c129d9bdc1682bc4b155",
+    "compiler/support-cross-0.a.gz": "c98eb0b618751e762fe135ad5c8979855e11567d4890aa8f49155b15f11bb7d0",
+    "compiler/support-cross-1.a.gz": "015302cd33bd6b3b18148678106b78ff86351475eb604928329cb079b88ebf4a",
+    "compiler/support-cross-2.a.gz": "04c0fd15f850c41cbeaefc2bb4f15362fddee8a5bed246a5145df4f34ffd53fb",
+    "compiler/support-cross-3.a.gz": "659e9169dc98ee8cb4077a058bfd77781f257216c57d1b2f0c81ce2f003867d5",
+    "compiler/support-cross-4.a.gz": "77af4f0ff07711c15046d4cdb31cf609ccaf2c9edba53f2be83872da9a19a547",
+    "compiler/support-llvm-0.a.gz": "92671452d6abb579fbceaf9a871aa83cbed0faca623f7a03aaa11c07d62ddcfe",
+    "compiler/support-llvm-1.a.gz": "898cda8e4f5728653e041426d288707a84aa12a0ad7cc882e76912247eeaf928",
+    "compiler/support-llvm-2.a.gz": "318821580c4488dba5ae9506d36e707eee8011befc4ce1c00c942f711e447145",
+    "compiler/support-llvm-3.a.gz": "5a4cc029fe7ff880ec571eb49263a0e76e4e3d3de9425dbf9997647a1bb099ca",
+    "compiler/support-llvm-4.a.gz": "1df5b67e3485e9c524d70801e823524026e4087191d00963cd6b607c6a6370df",
+    "compiler/support-tower-0.a.gz": "616698b734a6b13395428804a97c8774c5c6d94f735b14df383858f46cb98e27",
+    "compiler-build-worker.js": "25b6481df93a89bff0a6af816f0c41666a37b19cacb84757a0bef1cc1e494d08",
+    "compiler-build-worker.js.map": "b0b7e29e54a68fd44895d9c11de65ec2c3d76ce54743cfb162e9349f5cf94b2a",
+    "compiler-isolation-worker.js": "735b5aed5d46be215c7d192205a24bb260151467a38b0ef354817530617456eb",
+    "compiler-isolation-worker.js.map": "abfa9b625a5aebf4e502f458196329f01c259433d8234b36f00f2b5539b7021c",
+    "compiler-thread-worker.js": "1c1796111486b389bab03726ec746636d6934d66174731b03907f37777bbaa40",
+    "compiler-thread-worker.js.map": "b27efaccc6d27b5d7d66b0ec085fa0bdfa0c8edbeda8d63a262e0dea8660e79e",
+    "execution-worker.js": "025bf14a988894b9dee0abe164a6747c9039a95688a8d4c3bff2f9eda1963a94",
+    "execution-worker.js.map": "8c9522e2f879ac58525bd878083188510df45fe0d1c4ae7f7a7e391555fda28c",
+    "execution.tower": "4e5826ee6c031c10fe669ba76df9d80835b44da590c783c8c818638b5955fa5f",
+    "foreach.tower": "7a28c9cbb7f1822c65db344ad02237ba61ab8cd9d60b5e9c50015f6fa0b2de7e",
+    "foundation.tower": "a12773f1c7d82cf18a6d36ff5ebc1a6c47e60f9f780bc28bc03288fb03c0358c",
+    "functions.tower": "d16cefd898edf41e63055823fa794e2c3264242320522adc6a7385ced492d168",
+    "increment.tower": "779886c26b1450ffc8aa1fd9b389720c2a7072a41741b0aa9f633b3926736fb6",
+    "index.html": "1a328669e3343da7420bf79b5b71cb49debe1159ec27e15c1a8c7942a10f634e",
+    "inference.tower": "121921e7c66b2686175434b7a08dfab079a70d79490554f9c367a4dd1cf544b5",
+    "language-worker.js": "9a915570c2faa4c37b92025265d69876a1c4d357f81f0292cb4ce410a35d5779",
+    "language-worker.js.map": "73f46c10e24a0cb63ef31f0beb17feab3b5bf923dfd96f8abf6ecb25f27b984b",
+    "library/bytes.tower": "06dc60d568aaa993fc5eadc9a9d2398d0f9d1b6d6272d8d704deb1a8b1d630a8",
+    "library/bytes_interface.tower": "2af7f862478f9cba7d19c58280ef67a3b8e556134cb0219376164e712fbaf3a8",
+    "library/bytes_types.tower": "877a2d3b97f1937045b172bc973716a34a45c739907d4aae2084ea025f3af496",
+    "library/compiler_work.tower": "881be88ffa9d40a6fb295457eb58539e4567ddd3e90a879a036c8e3b3df13a94",
+    "library/compiler_work_types.tower": "ca720529043c1f03022798eb32ad860a30f70d0a487061742797dfe7a95b9332",
+    "library/crc32.tower": "00c755d91c69cd0176115e12cf261da055c54dc4900eafb588bcb4f4953a0b49",
+    "library/deflate.tower": "b345cba845322cbe3d7556cff1836283c0f8607a55a53823e8b9b85db90b7157",
+    "library/entities.tower": "977be3904fecde65df4d62d18b99a75c2a42704f02b8c9f0008690db2547d79b",
+    "library/entity_api.tower": "2063d227b2e126e5430f83fb22149871454a86f7b55860eb133bcca1e98762ba",
+    "library/entity_stage.tower": "6c5cc03341bc9c9bc4804818f5f2aba38c9e3f0624208c2820e3f8fe505695c9",
+    "library/entity_types.tower": "dcaf31592f1d29f72ee21582699d4879074e2e328fe29c93b3cf5864acf6574a",
+    "library/float_bits.tower": "267d0deb1aeb37a1908e7b4d26b7459171b083b8559dc7519b33d23d7eb70051",
+    "library/float_text.tower": "bf672013862b1b94ce75a8210e79f4c451226762aabd8e207fb8a1526ce3ff4e",
+    "library/platform.tower": "7b8183c3f1ecc5f2f3c1a243da1d4f803c54987b9a87f5832c3cb04b94c5fa2c",
+    "library/queue.tower": "d61ca3b9a861c42e7489d03cfd8a990d0bfcc999e528e05f18c597292a700280",
+    "library/sha256.tower": "ec310a630345d0488c28a18e92e169c87042c29fdd67940e4a84087821d16778",
+    "library/stack.tower": "2d4282e03e15457e2e9a1937600e9459f63f9417f5252f298eca6eaaf438a020",
+    "library/storage.tower": "396ec2ba1cb681be28013b3d5262abd7936d058c0ec6db8f5ca334cde462bfe5",
+    "library/vector.tower": "84fde652626c0e80d64c198fe1083d1857f3863574cef63988931b6b2c5225cc",
+    "library/work_graph.tower": "3bffd0f8c2f3076a1f606d8d482c8908869b878100c24e8ecea7ad491a8ab505",
+    "library/work_pool.tower": "870a51a8ccca52498bc03dcab6f505b37639968cb6d4f7fcb83c82e2d71d38f0",
+    "library/zip_archive.tower": "071262db47385855a84a0796a75d3c5ab217495b00549289e53d13f4953f5cc8",
+    "match.tower": "19f6aee5f8644fb50fba43e5a1bca7c3be198d58fdf9157251a821518f5cf8f7",
+    "memory.tower": "c2092554220705cf28f101e9ab245a15612eb8352243aedfca3c9c0dd15bfa73",
+    "replacements.tower": "5023f85155842c1042c7e36d382624e2a19c761db088031cef79f4694159942e",
+    "structs.tower": "a4e848409b99a58af8457a30dda76dd7e277ab681b3758b16fa788b8ae0e7d6a",
+    "style.css": "20722aa02c97a5ebf1b36f395a8c586e6a5dcb00f3aa54449701ff4f4a63aee4",
+    "target-worker.js": "6578a3807320fd9c6cb8e4c7cc094b94b29a7b072a84883cff6727ae5035581e",
+    "target-worker.js.map": "1fecba66c3e264c0f56311633184419eaa5644f3d72d9a724a07302598be707d",
+    "targets/aarch64-unknown-linux-gnu-runtime.o": "0d6160f9b6b33e7549e5974f767bf3274aec75229c161e87fbb439b4549884b7",
+    "targets/arm64-apple-macos11-runtime.o": "4f2d33a41bdb36669a1a0eda88f01999a30bc64adb158aaca02f2e568adbdc89",
+    "targets/kernel32.lib": "759a9d3d5585d6b128b02a22c3a066cad51b515b847c16b8dc1d078bc2db4f07",
+    "targets/libSystem.tbd": "b38b11a1f50135d58f17a5436e255bd7a70ac68ef7380c5abab28612612c2009",
+    "targets/x86_64-apple-macos11-runtime.o": "6a7b29947a7952b7894a288523ff5acb11a7d389388812c5d8db37f5dba6612b",
+    "targets/x86_64-pc-windows-msvc-runtime.o": "471e3233ea7d10326b13fa62de772d78b64f285cf75a16478a1c2c5ce3a3c735",
+    "targets/x86_64-unknown-linux-gnu-runtime.o": "dd9017a54b2e683f35ed8289eebf6d13175beddd9020ddbdfba3c4933e5c847b",
+    "templates.tower": "2045b87e45eda35945fea88cf70b904d8f695c93e36eea08aa0a14b4354682dc",
+    "tokens.tower": "594b7d7efd13e3568819e6830e4fda1651f102ee9f2a633339d092f2c4721774",
+    "tower-cross.wasm.gz": "0a7c286f6adde9f6ddfbcd0e3e3b55c199e7be21d9aacdbad0f19fa1dfbfda29",
+    "tower-llvm.wasm": "641817966d4a8f4b83c784ac0a0f98627447cd0000085a17f27caa9d2c07073a",
+    "tower-llvm.wasm.gz": "1ea1edd0cfb5d528d0bc9d900e6dfef9e06578b9c189670e6c494c3f71dc96cc",
+    "tower-threads.wasm": "43a9d8c87f1960399ddc1ec8aeccd334b042c675fc3c8c0792bb199091178b60",
+    "tower.tower": "a8546244311665e35fbb8b413b51fc722c0043c468e76588f7f1fb161b38ba2e",
+    "tower.wasm": "7dba6be45bc6963adf19fff62bf21ea472a5c5c6fb03784d86396b84c8233ba5",
+    "worker.js": "e594bbca317abe35a6bf2419a07f4620729e83a31cb6544aa7f7525c2247c9d7",
+    "worker.js.map": "a69e39f4d57298eeedfc50875328dffe0bffcb280f9522a3bc0917a242cf8874"
+  },
+  "pipelineOptimization": {
+    "uiSourceCommit": "a00fbce3dc2a3a896d21a812d4c85667a42029db",
+    "reproduceBuildSource": {
+      "patchTo": "1baa366eefda486e3245dcc6d32cd55394b1531f",
+      "paths": [
+        "scaffolding"
+      ],
+      "patchFrom": "19174dd3acd1256608d658a36c8700dd6b21cc3e",
+      "base": "7425a1403070ce1358ed0ba2aeb8aff3e8df1284"
+    },
+    "report": "playground/PERFORMANCE.md",
+    "buildSnapshot": "797f54a46984d160fb768dc5dc8d8451ed486fe9",
+    "sourceCommit": "1baa366eefda486e3245dcc6d32cd55394b1531f",
+    "viewportFix": "Offscreen whole-document replacement retained 3564 native disassembly DOM lines. Reset the derived CodeMirror view and restore its scroll anchor; the same complete 92798-character document now renders 36 lines.",
+    "pairedBenchmark": "Three alternating pairs, 30 warm actions per device; loopback, warm OS cache, fresh browser cold runs. Desktop cold complete 4405.2 to 2899.4 ms; Memory edit 228.3 to 120.3 ms; Structs value edit 173.4 to 123.8 ms. Frozen 717b25b plus isolated patch; final release confirmation recorded separately.",
+    "finalConfirmation": "One cold observation and ten warm actions per device, loopback, no concurrent builds/tests. Desktop/mobile cold completion 3092.5/2658.1 ms; median Execute 74.0/67.3, Memory edit 135.6/110.7, Structs value edit 115.1/68.9 ms. All 110 actions have expected outputs and no page errors. This confirmation is not an additional paired speedup estimate.",
+    "runtimeAssetsChanged": true,
+    "validation": "79 runtime/LLVM/package checks; eight threaded package/worker checks; two edited browser compiler generations; four final worker-reuse/stale-permit browser checks; ten output/viewport/frame checks. Fresh native successor after final compiler-source rebase. All 86 local deployment asset hashes and full desktop/mobile flows pass."
+  },
+  "scope": "Typed function values and indirect calls, integrated shared-memory linker and frontend improvements; standard Tower-defined types before vectors.",
+  "previousDeployment": "c8b4290e3f5f3ed56e714e88f05ed54e1d5ecc26",
+  "measurementToolingMigration": {
+    "implementationCommit": "1007d4179107c6c5372afcb9d1233a406695e992",
+    "validationCommit": "824af121b0441df8c2a6af9e6a328bd6a0164018",
+    "summary": "Four Python measurement scripts consolidated into the existing Tower driver, sharing capture, exact comparisons, timing decoding and statistics.",
+    "python": {
+      "files": 1,
+      "lines": 219,
+      "baselineFiles": 23,
+      "baselineLines": 1989,
+      "removedLines": 1770,
+      "reductionPercent": 89
+    },
+    "remainingPython": "playground/scripts/package-compiler-project.py",
+    "bootstrapSha256": "0d752e7dc35a0a8951872cf52d96873bb1e1cab2b3fe63d9b147e64e5deecca8",
+    "cleanSuccessorSha256": "0d752e7dc35a0a8951872cf52d96873bb1e1cab2b3fe63d9b147e64e5deecca8",
+    "checks": {
+      "nativeBuildSteps": 54,
+      "driverBuildSteps": 3,
+      "workloadGroups": 13,
+      "series": 38,
+      "retainedSamples": 260,
+      "pythonUnavailable": true,
+      "independentMediansAndHashes": true,
+      "timingDecoderCases": 14,
+      "fullDriver": true,
+      "focusedNativeAndPackage": true,
+      "spacesInPaths": true,
+      "staleArtifactRejected": true,
+      "missingTimingRejected": true,
+      "wrongOutputRejected": true,
+      "unknownFilterRejected": true
+    },
+    "limitations": "Linux measurement commands; Windows/macOS object compilation only. Functional measurement validation is not a performance improvement claim; wall capture overhead differs from retired Python probes.",
+    "publication": "Metadata only; preserve latest runtime build identity, all assets and concurrent profiling/UI/linker notes."
+  },
+  "uiSourceCommit": "21290667fd678a9de4ba930aeb5c8f218431665c",
+  "bootstrapExecutableSha256": "81928f54125bd182cad2e0f52a0b6a543d59fa454ab87b18a0b69fd28a5e59c8",
+  "publishedBootstrapSha256": "9bf8779c9b5844e6f5b0df6688a3ac517b2b4f9924b84c36f19c572b93b8e459",
+  "bootstrapSha256": "81928f54125bd182cad2e0f52a0b6a543d59fa454ab87b18a0b69fd28a5e59c8",
+  "sourceCommit": "60c4f48db8aa4e2bbc3d23263d7b97e17d5674d4",
+  "publicationNote": "Tooling-only source milestone: retire the final project-owned Python packager in favor of validated Tower tooling. Preserve the existing runtime buildSourceCommit and all 86 verified asset hashes.",
+  "buildNote": "Built from source identical to rebased 51c038e using the validated 81928f54 intermediate bootstrap. Final 9bf8779c pin passes relocation and a fresh default successor. Two edited browser compiler generations agree byte-for-byte; callback/worker/native/Wasm checks and all 86 local assets plus desktop/mobile flows pass.",
+  "buildSourceCommit": "51c038e0d15480256f7dfd7991155874b97d2cab",
+  "compilerSourceTree": "20c6c50153808034b10941b27b9523e05ba68624",
+  "functionValues": {
+    "validation": "Graph/cache, staged callbacks, nullable calls, inferred signatures, struct values, 1/2/4/8 workers, Foundation/package round trips, native/Wasm separate-object callbacks, relocated pin, clean successor and browser self-builds.",
+    "sourceCommit": "21290667fd678a9de4ba930aeb5c8f218431665c",
+    "runtimeAssetsChanged": true,
+    "limits": "Noncapturing callbacks; C/BrightScript source emission, external aggregate callback ABI and JS host adaptation remain separate work.",
+    "report": "docs/function-values.md",
+    "validationCommit": "d357f3be54a435025807cc7abba5cd2521661d02"
+  },
+  "typeProtocolDiscussion": {
+    "status": "Proposal: typed ECS components and ordinary Tower implementations; attributes and programmatic construction populate the same protocol.",
+    "sourceCommit": "ccb245f18cfcbea2dc62858f7d5f1bee7a330534",
+    "runtimeAssetsChanged": false,
+    "report": "docs/temporal-opcode-research-journal.md"
+  },
+  "llvmPreparationToolingMigration": {
+    "sourceCommit": "118610b764473e1af971183c619e3b5e50647b1d",
+    "validationCommit": "981bfc4a57563e6ca66eb8963eb4893209c8dbde",
+    "journal": "docs/temporal-opcode-research-journal.md",
+    "trackedPython": {
+      "baselineFiles": 23,
+      "baselineLines": 1989,
+      "remainingFiles": 1,
+      "remainingLines": 219
+    },
+    "inlinePythonLinesRemoved": 17,
+    "remainingPythonEntry": "playground/scripts/package-compiler-project.py",
+    "preparation": "Existing build-llvm.sh EXIT trap now calls Tower prepare_llvm. LF files unchanged; CRLF exact restoration; changed/missing sources retain recovery backups; 1 MiB per script.",
+    "gzip": "Deterministic single-member envelope reusing Tower DEFLATE and CRC32; no new zlib dependency. Production browser packager has not switched yet.",
+    "validation": {
+      "publicBootstrapSha256": "9bf8779c9b5844e6f5b0df6688a3ac517b2b4f9924b84c36f19c572b93b8e459",
+      "cleanNativeSuccessor": "54 build steps; byte-identical public successor; no private bootstrap; Python unavailable",
+      "driver": "Three build steps and ordinary driver suite passed (11.24 seconds)",
+      "llvmScripts": "Focused cases, real upstream config.guess, paths with spaces, actual build-llvm.sh configure-failure EXIT restoration passed",
+      "gzip": "Five synthetic payloads and real 27145038-byte archive: deterministic repeats, aliased input, invalid input preservation, independent GNU gzip verification/decompression and exact byte comparison passed",
+      "referenceCompressedBytes": 7491477,
+      "towerCompressedBytes": 8797774
+    },
+    "limitations": [
+      "Linux/POSIX preparation uses documented Docker bootstrap route.",
+      "Gzip envelope encodes only; existing fixed-Huffman output was 17.4% larger for the tested real archive.",
+      "No production packager cutover or new browser runtime build is claimed."
+    ]
+  },
+  "compilerProjectToolingMigration": {
+    "implementation": "c0594da",
+    "validation": "60c4f48db8aa4e2bbc3d23263d7b97e17d5674d4",
+    "trackedPythonFilesBefore": 23,
+    "trackedPythonLinesBefore": 1989,
+    "trackedPythonFilesAfter": 0,
+    "tool": "scaffolding/tools/package_compiler_project.tower",
+    "validationSummary": "Fresh default public-bootstrap native successor; selected/all-six tool builds with Python unavailable; focused ar/symbol/argv/depfile checks; exact 3718 support-object payload multiset; exact repeat with PATH=/nonexistent and spaced output; failure preserves previous project; two identical edited browser compiler generations.",
+    "successorSha256": "b3775dabaced622e58a6f67095f8e29889b97a4a362011838707f23582b9343a",
+    "projectSha256": "1957b6ae0cb9da485715353923e470112a337d8479762dc2b7b2bdb48452bc2f",
+    "compressedSupportBytes": 79680058,
+    "previousCompressedSupportBytes": 67611227,
+    "limitations": "Linux x64 tool; fixed-Huffman support packs are 17.85% larger; upstream LLVM still requires Python; no new runtime assets or production linker cutover."
+  }
 }
