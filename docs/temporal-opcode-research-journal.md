@@ -48197,3 +48197,49 @@ entity/component checks are otherwise appropriate focused evidence.
 Root requested two known-binding diagnostic corrections only after independent
 successor evidence; exact effect-count and parameter-capture cases identified.
 Pointer/address rejections and dependency-cycle fixtures remain unchanged.
+
+dd87f79 current validation: four smallest units pass (driver differential,
+layout profile, body work, backend lowering). First native configuration failed1
+because an explicitly empty CMAKE_PROJECT_INCLUDE was treated as a directory.
+Preserved native.attempt1 log/time/status; all children drained. Unset that owned
+cache entry with CMake -U rather than passing empty. Retried only remaining
+configuration/build phases, exact source hashes unchanged.
+
+Public-pin incremental native5steps passes61.39wall/59.79CPU/786812KiB,
+four focused targets10steps47.11/45.57/337440. Compiler6a336968; all42resources
+equal preserved127 package0377c5da. This is incremental documented build evidence,
+not a clean-cache receipt. Actual Ninja graph shows profile excluded from all,
+feeding only its opt-in measurement target.
+
+Current request fault sweep passes1/1,0.11wall/.07CPU/50252KiB. Three alternating
+old/current native fixture pairs all pass independent45,2 reference and both
+raw/optimized outputs, unchanged30s child cap. Before wall11.40/11.20/10.78,
+CPU13.01/12.75/12.44,RSS197080/201580/197088KiB; after12.06/10.73/11.05,
+CPU13.51/12.24/12.56,RSS201768/196288/197932. Default CLI jobs0 auto-admits up to
+host cpuset capacity2; no scaling or isolated-change speed claim from the mixed
+A1/B2 delta. All swaps0; same source/resource bytes and full retained logs.
+
+Layout profile checks all55trials (22warmup/33reported),1.76wall/1.71CPU,
+94816KiB. Every reported requested1/4/occupied case has interval peak1 and
+caller11: no concurrency. Unoccupied ledger peak1, occupied4. Source confirms
+the one-ready initial dependency fixes the admission grant through the later
+eight-branch frontier. Routed actual evidence to A1; its grant-refresh/grain
+experiments remain unadopted. The discrepancy is not hidden by requested width.
+Derived retained layout vectors range2368 to524608bytes; process high-water
+RSS94812-94816KiB is cumulative, not per-layout allocator use.
+
+Affected LR target2steps passes6.99wall/6.82CPU/254944KiB. Query smoke passes
+serial/threaded32/64 readiness0.09/.09/59120; current execution editor passes
+workers1/2/4/8 typed scope/determinism38.95/44.06/198004. All0swaps.
+
+Direct known-diagnostic probes at this deliberately pre-range checkpoint are
+not final oracle evidence: both effect/parameter change from unfinished-query
+diagnostics in127 to generic capture rejection indd87, but pointer and cycle
+controls also return that generic rejection, often at Bedrock1:1. Keep ALL
+existing fixture expectations unchanged until actual range-v3 successor
+validation. No broad message alternative or pointer/cycle weakening. Captured
+source/diagnostics remain in registration_followup/known_diagnostics.
+
+Sessions and containers drained; released heavy slot normally to D2. Scope
+acceptance remains open for general capture30cases/known/aggregate, final
+instrumentation/browser/generation, clean merged bootstrap and publication.

@@ -1217,3 +1217,13 @@ closure. Root explicitly authorized this registration and the one-line request
 manifest correction. B2 native/backend index and diagnostic patches remain
 owner implementations; D1 does not claim their full production audit or runtime
 acceptance from integration.
+
+The dd87 registrations now compile and execute. Request fault sweep1/1,
+three alternating old/current native fixture pairs and all55layout trials pass
+their correctness oracles. Actual layout overlap remains1/caller11 for every
+requested width: this measures a scheduler admission limitation, not speedup.
+The same current source passes query smoke and editor1/2/4/8. Exact timings,
+source hashes and failure/retry history are in the journal and
+build/d1_ecs/registration_followup. No full known/capture acceptance follows:
+pre-range CLI diagnostics also reject pointer/cycle controls generically, so
+no existing rejection expectation has yet changed.
