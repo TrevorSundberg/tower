@@ -45341,3 +45341,16 @@ its published interface. Validate those default clean builds, refresh affected
 browser assets once, and deploy/push/verify. Native SDK/WASI final build link steps
 remain work until those concrete paths are replaced and tested; do not describe
 the local executable as a completed no-external-linker bootstrap yet.
+
+Hosted ELF bootstrap publication continuation: rebased source 53070f4 rebuilt
+through the checked-in predecessor with no private bootstrap override in
+/home/trevo/.cache/tower/coordinator-hosted-elf/rebased. Backend API and driver
+policy/process/mapping checks pass. That successor linked the complete compiler
+with --link-executable; the Tower-linked compiler compiled and Tower-linked the
+bootstrap packager. Packaging provenance correction is 730fe7a. Packaged on the
+Linux filesystem: atomic no-replace directory publication failed on the Windows
+mounted output, then succeeded on ext4. No package was published at the failed
+path. The complete pin relocated to bootstrap/linux-x64, passed SHA256SUMS and
+compiled/linked/executed cross_target_program with output 5/84/42/8/41/42.
+Build recipe migration follows this pin; a clean default successor with the
+changed recipes will validate the complete public path before push.
