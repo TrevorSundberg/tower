@@ -236,8 +236,9 @@ Do NOT modify todo.txt
   Publish a compatible bootstrap before adopting f32/f64 in compiler/build source.
   See docs/floating-point.md for the current contract and target limitations.
 - Keep this syntax in `tower.tower` and its shared-node checking/lowering above
-  Foundation. Numeric grammar annotations (`@ N left/right/nonassoc`, including
-  `L>R`/`R<L`) resolve eligible conflicts during table construction; ordinary
+  Foundation. Numeric grammar attributes (`[precedence(N, left)]`, with right,
+  nonassoc or quoted `L>R`/`R<L`) resolve eligible conflicts during table construction;
+  the old `@` spelling remains a compatibility form. Ordinary
   recursive precedence rules remain supported. Associativity does not authorize
   commuting/reordering effects. Foundation and Bedrock stay small.
 - When adding an operator, reuse the common operation classification, type

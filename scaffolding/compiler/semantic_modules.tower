@@ -4,6 +4,8 @@ import frontend_compilation;
 import semantic_context;
 import semantic_definitions;
 import semantic_support;
+import semantic_known_bindings;
+import semantic_evaluation;
 
 // Ownership/import components live on the same retained parse entities. The
 // registry and lookup tables are compilation-local indexes, not another IR.
@@ -89,8 +91,8 @@ fn sem_module_position(program: SemanticProgram*, module: void*, base: usize): v
 }
 
 // Parsing defers ordinary variable initialization in cycles to the same semantic
-// proof used everywhere else. Any surviving declaration still needs runtime
-// storage/initialization and has no dependency-first module execution order.
+// proof used everywhere else. Metadata-bearing fixed bindings retain their
+// declarations; their proved values have no initialization-order dependency.
 fn sem_module_initializers(c: SemanticContext*): void {
     if !sem_ok(c) || c.program.modules == null { return; }
     foreach(var node in &sem_get(c.program.root).items) {
@@ -99,6 +101,11 @@ fn sem_module_initializers(c: SemanticContext*): void {
         if owner == null { continue; }
         var link = bits(SemanticModuleLink*, entity_component_data(entity_component_get(owner, c.program.modules.owner_kind)));
         if link != null && link.cyclic {
+            var binding = sem_known_binding(c, node);
+            if binding != null && binding.immutable && binding.ordered && binding.evaluation != null {
+                var evaluation = sem_evaluation_get(c, binding.evaluation);
+                if evaluation.ready.ready && !evaluation.ready.failed { continue; }
+            }
             sem_fail(c, node, "Import cycle requires fixed compile-time variable initializers; runtime initialization has no dependency-first order");
             return;
         }

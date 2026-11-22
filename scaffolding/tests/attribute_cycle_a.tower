@@ -1,0 +1,9 @@
+import tower;
+import attribute_cycle_b;
+
+struct CycleAttribute { value: i32; }
+fn cycle_attribute(): CycleAttribute { return { value: 7 }; }
+[cycle_attribute()]
+var AttributeIncrement: i32 = 2;
+[cycle_attribute()]
+fn attribute_total(): i32 { return AttributeBase + AttributeIncrement; }

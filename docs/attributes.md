@@ -28,6 +28,10 @@ attributes. Attribute expressions must produce structs and satisfy the normal
 strict staging rules. Uninstantiated templates and local declaration attributes
 are not yet supported. Metadata on a declaration is distinct from metadata on a
 referenced type; annotating a variable does not alter its type.
+Attributes also leave the ordinary immutability and compile-time-value proofs
+available. Fixed annotated bindings keep their declarations for metadata while
+executable uses can fold normally. Declaration-only import cycles accept these
+bindings under the same staged-value checks as unannotated bindings.
 
 Values may contain nested structs, arrays, numeric/bool/enum fields, null pointers
 and typed noncapturing function references. Non-null raw pointers cannot escape

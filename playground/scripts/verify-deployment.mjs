@@ -153,7 +153,7 @@ try {
     await expect(page.locator('.tw-inline-error-message')).toContainText('No token rule matches source');
     await expect(page.locator('.has-bubble-outline')).toBeVisible();
     const badLine = bedrock.slice(0,bedrock.indexOf('token String')).split('\n').length;
-    await expect(page.locator('.tw-inline-error-heading')).toHaveText(`Error${await page.locator('#filename').innerText()}:${badLine}:7`);
+    await expect(page.locator('.tw-inline-error-heading')).toHaveText(`Error${await page.locator('#filename').innerText()}:${badLine}:2`);
     await page.screenshot({path:new URL(name+'-bedrock-identifier.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
     await page.getByRole('button',{name:'Restore',exact:true}).click();
     await expect(page.locator('#status')).toContainText('Complete');

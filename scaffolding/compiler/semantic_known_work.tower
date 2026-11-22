@@ -54,7 +54,6 @@ extern fn entity_table_query_column(query: void*, index: usize, term: usize): vo
 fn sem_known_candidate(subject: void*): bool {
     var value = sem_get(subject);
     return value != null && value.kind == KDeclare && value.value != null
-        && value.attributes.length == 0
         && value.type.pointers == 0 && !semantic_aggregate(&value.type)
         && !semantic_enum(&value.type) && sem_known_surface(sem_member(subject, "value"));
 }
@@ -174,6 +173,9 @@ fn sem_known_storage(c: SemanticContext*, result: SemanticKnownWork*, nodes: vec
     var dead = sem_list(c);
     foreach(var &patch in &result.patches) {
         if !patch.declaration { continue; }
+        // Retain the declaration and its metadata without disabling the normal
+        // immutability/staging proof or substituting its executable uses.
+        if sem_get(patch.subject).attributes.length != 0 { continue; }
         var binding = sem_known_binding(c, patch.subject);
         if binding.block == null { continue; }
         var block = sem_get(binding.block);

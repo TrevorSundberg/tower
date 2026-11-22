@@ -1126,6 +1126,10 @@ fn module_validate_cycles(graph: ModuleGraph*): void {
                         node = entity_child_at(node, 0);
                         span = syntax_reader_span(&reader, node);
                     }
+                    if module_equal(span.label.data, "CoreAttributed") {
+                        node = entity_child_at(syntax_reader_member(node, "declaration"), 0);
+                        span = syntax_reader_span(&reader, node);
+                    }
                     var declaration = module_equal(span.label.data, "CoreFunction");
                     declaration ||= module_equal(span.label.data, "CoreExternal");
                     declaration ||= module_equal(span.label.data, "CoreExport");

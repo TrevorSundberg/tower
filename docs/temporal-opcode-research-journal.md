@@ -39359,3 +39359,32 @@ LLVM af39f4638b51f249686892caeae58b57eb5a1097662110ab33dbea0bf87a0760,
 cross aa91fb91efcaa0e4bc6268876fd19a0ff88711db7cbb512fa49586307afb33bb.
 These are pre-editor-fix evidence, not the final publication receipt; rebuild the
 affected host component/reactors and rerun editor/deployment checks below.
+
+The editor fix passes all 15 existing Wasm parser/editor checks. Desktop/mobile
+deployment verification passes after its intentionally broken Identifier fixture
+expects column 2 for the new [string] prefix rather than column 7 for the former
+token-name position. This is a changed diagnostic location, not a relaxed check.
+
+An audit of declaration consumers finds two compatibility gaps. Import-cycle
+validation must unwrap CoreAttributed before classifying the underlying declaration.
+Also, excluding annotated variables from optional known-binding analysis wrongly
+disabled their ordinary compile-time dependency proofs. Restore the same worker
+analysis/staging; keep metadata-bearing declarations during storage compaction,
+while substituting proved executable uses. Cyclic modules allow a retained binding
+only after its immutable/ordered value evaluation succeeds. Mutation still blocks
+staging. New attribute_cycle_a/b fixtures exercise attributed functions and fixed
+variables across a real import cycle, explicit comptime, retained metadata and
+canonical reconstruction. Attribute checks pass at both widths and all existing
+worker budgets. The first cycle trial omitted the Tower import needed for comptime;
+correct the fixture. The added allocation pattern also exposed a test-only missing
+NUL terminator before strstr/strlen on formatter bytes; add a terminator in that
+caller without changing the formatter's counted-buffer contract.
+
+These final consumer fixes require a refreshed complete package and browser assets.
+The standard-type protocol remains the next implementation boundary: attributes
+are checked after declaration/layout checking today, so moving i32/f32 into source
+requires a distinct type-construction dependency stage and an explicit execution
+primitive bootstrap, not simply treating an attribute's spelling as a scalar tag.
+Foundation's grammar-baseline installer also currently rejects executable prelude
+declarations. Keep that loader split, type identity and canonical construction
+contract explicit before migrating named types; Bedrock must stay independent.

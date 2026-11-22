@@ -1,0 +1,5 @@
+import tower;
+import attribute_cycle_a;
+
+[cycle_attribute()]
+var AttributeBase: i32 = 40;
