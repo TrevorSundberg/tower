@@ -30,7 +30,7 @@ Do NOT modify todo.txt
   sweeps. Keep edits and formatting scoped to the requested implementation.
   Documentation-only deployment reuses verified runtime assets and preserves
   their build-source identity; do not rebuild identical compiler binaries.
-- Compile the smallest changed Tower unit first with its inputs frozen; batch related fixes, reuse unaffected checks, and keep polling and release builds from displacing the next concrete blocker.
+- Compile the smallest changed Tower unit with frozen inputs; use `type-smoke` for type/query edits, reuse unaffected checks, and reserve full body/bootstrap/browser matrices for publication or changed ownership contracts.
 
 ## Implementation language
 

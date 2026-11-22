@@ -41400,3 +41400,29 @@ runtime and compiler project identify 7503718. Preserve that newer publication
 and all its receipts/assets; do not restore the earlier local dist tree. Only a
 native formatter validation receipt is needed. No portable bootstrap replacement
 or browser formatter rebuild is implied by this source-tooling milestone.
+The correction was pushed as f13b167cf09356f649d0045b686827ce819481cc after
+an up-to-date pull and successful documented public-bootstrap package build.
+Native SHA-256:
+483fa19822f43f756982ef4a532f022dada54b06723c9b29469ab79de158508e.
+Scaffolding tree: 7c9eab22b1e903dee590b38fe4a27a3101c722c2.
+Portable/threaded/LLVM/cross rebuilds are running with that compiler import
+closure frozen, in array-owner-browser-build.log. This release also includes
+f5ca50e's shared instance clone executor, still without constructor continuations.
+
+The f13b167 browser build, all three threading checks and both edited compiler
+generations passed. Generation hashes agree: tower
+66d23bf92150b94f524f94e1bdefca9fdfac1a9615a897e26beaf572e22bbc97,
+LLVM cb915fa4f1b2bbb10ce112457e674e7444cfe923410ed1b9de9e8b5deb6b0582,
+cross a871baeb1461e6e4557dfb1ff1b4b98dcccf080b19eca66d390566315b03150b.
+Project SHA-256 is e87e64afdc0eae901ef2c98c87df31bcb0bcdda17b685447cd30af0ab01203bf.
+Pages c4d1c1be354ab0f4e27015b59d186d3fac9d9def preserves the intervening
+4364458 tooling receipts. Hosted verification is pending, not yet claimed.
+
+Added native `type-smoke` to avoid rerunning unrelated body/control diagnostics
+for each type/query edit. It shares the success fixture, serial/four-worker
+execution and canonical reparse, then runs six relevant ordered failures/cycles
+at both worker counts (15 frontend invocations). It passed in 41.870 seconds
+while browser generation work also ran; this is not an isolated speedup measure.
+The full ownership matrix above remains the release evidence. AGENTS now names
+this focused mode; full matrices remain required for changed ownership contracts
+and coherent publications. Evidence: type-query-smoke.log.

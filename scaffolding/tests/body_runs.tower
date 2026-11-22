@@ -261,6 +261,15 @@ fn body_runs_declaration_error(budget: usize, bedrock: u8*, foundation: u8*, roo
 // A short edit/build/run path uses the same fixture and assertions as the full
 // matrix. It is intentionally separate from the release coverage below.
 fn body_runs_smoke(root: u8*): void {
+    body_runs_smoke_select(root, false);
+}
+
+// Keep type/dependency edits focused; release coverage still uses bodies.
+fn body_runs_type_smoke(root: u8*): void {
+    body_runs_smoke_select(root, true);
+}
+
+fn body_runs_smoke_select(root: u8*, types_only: bool): void {
     var bedrock: vector(u8) = default;
     var foundation: vector(u8) = default;
     var source: vector(u8) = default;
@@ -277,6 +286,18 @@ fn body_runs_smoke(root: u8*): void {
     units_check(vector_reserve(&canonical, canonical.length + 1), "Body Foundation text terminator");
     canonical.data[canonical.length] = 0;
     body_runs_trial(canonical.data, 4, 8, bedrock.data, foundation.data, root, &canonical);
+    if types_only {
+        for(var budget: usize = 1; budget <= 4; budget *= 4) {
+            body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.ArrayExtent);
+            body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.ArrayCycle);
+            body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.ModuleArrayExtent);
+            body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.ArrayFields);
+            body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedTypeAlias);
+            body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedNestedType);
+        }
+        puts("Type query smoke: serial/worker execution, canonical reparse and focused failures/cycles passed.");
+        return;
+    }
     body_runs_header_error(4, bedrock.data, foundation.data, root);
     body_runs_header_cycle(4, bedrock.data, foundation.data, root, false);
     body_runs_header_cycle(4, bedrock.data, foundation.data, root, true);
