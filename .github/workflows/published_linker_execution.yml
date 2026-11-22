@@ -1,0 +1,60 @@
+name: Published Tower byte linker execution
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  emit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: f7545d65b019fdbb1e42d28da5b013f1abaceae8
+          path: published
+          sparse-checkout: |
+            tower-cross.wasm.gz
+            targets
+          sparse-checkout-cone-mode: false
+      - run: mkdir -p build/browser-wasi-llvm build/targets
+      - run: gzip -dc published/tower-cross.wasm.gz > build/browser-wasi-llvm/tower-cross.wasm
+      - run: cp published/targets/* build/targets/
+      - run: node --test playground/tests/cross-compilation.test.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: published-target-executables
+          path: build/cross/
+
+  mac:
+    needs: emit
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { key: mac, runner: macos-15-intel }
+          - { key: mac-arm, runner: macos-15 }
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: published-target-executables
+          path: images
+      - run: chmod +x images/${{ matrix.key }}.macho images/library-${{ matrix.key }}.macho
+      - run: codesign --verify --strict --verbose=2 images/${{ matrix.key }}.macho
+      - run: codesign --verify --strict --verbose=2 images/library-${{ matrix.key }}.macho
+      - run: images/${{ matrix.key }}.macho
+      - run: images/library-${{ matrix.key }}.macho
+
+  windows:
+    needs: emit
+    runs-on: windows-2025
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: published-target-executables
+          path: images
+      - run: ./images/windows.exe
+      - run: ./images/library-windows.exe

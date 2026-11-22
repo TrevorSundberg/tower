@@ -44413,3 +44413,12 @@ reuse the verified 454c951 runtime and project identities. Preserve every earlie
 publication receipt and all exact asset hashes; do not rebuild compiler binaries
 for this documentation/test-transport receipt. Agent1's separate tooling receipt
 will follow after this publication lock is released.
+
+Close the remaining browser/native-emitter validation distinction with
+published_linker_execution.yml. It consumes the exact f7545d6 published reactor
+and target packs, uses the existing byte-service test transport, and executes its
+actual downloaded PE/Mach-O files on all three native hosts. The memory, width
+and mutation assertions are in cross_target_program.tower; this also removes the
+cross-target test's inline source concatenation. Focused cross checks pass 7/7,
+and the emitted Windows fixture executes locally with 5/84/42/8/41/42 output.
+This adds target execution evidence without rebuilding any published runtime.

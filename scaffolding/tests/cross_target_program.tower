@@ -1,0 +1,31 @@
+import tower;
+
+struct Bytes { data: u8*; length: usize; capacity: usize; }
+fn check(ok: bool): void { if !ok { trap("cross-target runtime assertion", 1); } }
+fn append(buffer: Bytes*, value: u8): void {
+    if buffer.length == buffer.capacity {
+        var growth: usize = 2; var initial: usize = 8;
+        var capacity = buffer.capacity * growth;
+        if capacity == 0 { capacity = initial; }
+        buffer.data = realloc(u8, buffer.data, capacity);
+        check(buffer.data != null);
+        buffer.capacity = capacity;
+    }
+    buffer.data[buffer.length++] = value;
+}
+fn increment(p: i32*): i32 { var old = *p; *p = old + 1; return old; }
+
+var buffer: Bytes = default;
+var text = "Tower"; var text_length: usize = 5;
+for (var index: usize = 0; index < text_length; index++) { append(&buffer, text[index]); }
+check(buffer.length == text_length);
+for (var index: usize = 0; index < text_length; index++) { check(buffer.data[index] == text[index]); }
+print(buffer.length); print(buffer.data[0]);
+free(buffer.data);
+var fixed: i32[3]; fixed[0] = 10; fixed[1] = 20; fixed[2] = 12;
+var values = &fixed[0]; var result = values[0] + values[1] + values[2];
+check(result == 42); print(result);
+var width = sizeof(void*); var narrow_pointer: usize = 4; var wide_pointer: usize = 8;
+check(width == narrow_pointer || width == wide_pointer); print(width);
+var value: i32 = 41; var previous = increment(&value);
+check(previous == 41 && value == 42); print(previous); print(value);
