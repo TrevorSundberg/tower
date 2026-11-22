@@ -41623,3 +41623,21 @@ No tool source/import changed in this second rebase. Failure probes additionally
 confirm missing CMake creates no build directory, and configure failure creates
 no Ninja build output. Keep the separately recorded WASI fingerprint failure
 visible; these successor checks do not turn that suite into a passing result.
+
+Publication complete: implementation 43befe5 and validation through eadb4b5 are
+pushed. Pages befad0e6911a4cf36c65a0d1e91ad276546eb592/action 44985852829 succeeds;
+hosted manifest SHA256 exactly matches
+87a0649b8b48c463dd213694bd09a998dcdaeca04876babf6ab62a83c8f509fb.
+Its complete asset map matches c4d1c1be and runtime/project provenance remains
+f13b167. This changes only the tooling receipt; retain that release's previous
+full asset/browser verification rather than repeat it for metadata. The receipt
+explicitly records the full WASI suite failure. Release only this lane's
+agent1-core-43befe5 publication lock after verification. Goal remains active.
+
+Next read-only audit finds regex/lexicon/LR standalone main functions still
+generated as Tower text by their CMake files. The shared tower_runtime_object
+helper already handles ordinary source depfiles and optional LLVM symbol binding.
+Static Tower entry modules can remove those generators, preserving the distinct
+native main/WASI __main_argc_argv ABI. Validate actual objects/exports and existing
+focused native/WASI fixtures before replacing those recipes; no such replacement
+is included in this core-runner milestone.
