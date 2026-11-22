@@ -9,6 +9,7 @@ import .compiler.foundation_types;
 import .library.bytes_types;
 import .library.bytes_interface;
 import .library.vector;
+import .host.driver_support;
 
 extern fn host_json_unsigned(out: ByteBuffer*, value: u64): bool;
 extern fn entity_child_count(node: void*): usize;
@@ -83,6 +84,9 @@ fn execution_semantic_tests(modules: void*): void {
                 puts(source); puts(session.error.data);
                 var detail: ByteBuffer = default;
                 host_json_unsigned(&detail, convert(u64, session.machine.error_offset));
+                driver_text(&detail, " (entry base ");
+                host_json_unsigned(&detail, convert(u64, execution_semantic_entry_base(modules)));
+                driver_text(&detail, ")");
                 host_text_terminate(&detail); puts(detail.data); bytes_dispose(&detail);
             }
             execution_check(exact, "exact semantic diagnostic/offset");

@@ -41959,3 +41959,30 @@ operations are excluded from user-body cloning while source constructors that
 compose them use the ordinary query path. Smallest-unit constructor compilation
 and the default /cache/source-types-release build pass. Exposed the existing
 type-smoke suite through the execution harness for this integrated validation.
+
+Release validation of source snapshot 2996ddd:
+- Published-path bootstrap candidate is complete, hash-checked and relocatable;
+  towerc SHA-256 is 7245d5189cb0d41e8c87fa31dcd654f5f1274af8609b01c7349cfc723bcb5252.
+  The manifest records that clean source revision without a patch. A new
+  /cache/source-types-final-clean build with no bootstrap override passes.
+  The resulting compiler passes type_bindings.tower under interpretation,
+  native execution and Wasm, with explicit 32/64-bit target checks.
+- Parser CTest passes 15/15. The full execution run passes editor observations,
+  types, both attribute suites, staged aggregates, callbacks, narrow integers,
+  negation, named initialization, struct values, floats, known bindings and
+  legacy graph/fast/package/round-trip checks before an obsolete exact semantic
+  diagnostic assertion. Upstream's constructor query now reports a dependency
+  cycle at the demanding declaration (entry offset 41), not the former recursive
+  specialization diagnostic at offset 31. Updated that exact fixture; the
+  remaining semantic/world checks still need their final rerun.
+- WASI, threaded WASI and LLVM/cross reactors build with the checkout pin.
+  Two successive browser generations pass, including edited semantic behavior;
+  generation sizes agree: parser 1278602, LLVM 35055526, cross 65026054 bytes.
+- Browser grammar/diagnostic tests pass 24/24. Updated old host assertions for
+  attributes, Foundation's grammar module location, constructor spellings and
+  package semantics version 7. The deployment archive fixture must include the
+  complete builtins manifest, just like a real exported project; two files are
+  no longer a complete Foundation source distribution. Local deployment checks
+  pass desktop/mobile execution, completion, persistence and native downloads
+  with all 104 served assets matching. Logs are build/source_types_release_*.
+  Publication remains pending the final pull/rebase and integrated checks.

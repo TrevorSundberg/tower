@@ -1,5 +1,5 @@
 import tower;
-enum SemanticInvalidCase: u32 { StructPrint = 39 }
+enum SemanticInvalidCase: u32 { StructPrint = 39, RecursiveType = 50 }
 // Fixtures retained from the native semantic port oracle.
 fn execution_semantic_valid(index: usize): u8* {
     if index == 0 { return "             \n\n// Forward module bindings and effects retain source order.\nlater = 0;\nvar result = twice(later);\nvar later: i32 = 21;\nprint(result);\nprint(twice(later));\n\nfn twice(value: i32): i32 {\n    var doubled = value + value;\n    return doubled;\n}\n\n// Layout is explicit for the selected pointer width.\nstruct Record {\n    tag: u8;\n    pointer: i32*;\n    values: i32[3];\n}\n\nvar record: Record;\nrecord.tag = 7;\nrecord.values[2] = 42;\nprint(record.tag);\nprint(record.values[2]);\nprint(sizeof(Record));\nprint(alignof(Record));\n\n// Type constructors preserve nominal instance identity and recursive pointers.\nfn box(T: type): type {\n    struct Box {\n        value: T;\n        next: Box*;\n    }\n    return Box;\n}\n\nfn identity(T: type, value: T): T {\n    return value;\n}\n\nvar item: box(i32);\nitem.value = identity(i32, 42);\nitem.next = null;\nprint(item.value);\n\n// Lexical scopes, early returns, loop control and signed literal bounds.\nfn choose(value: i32): i32 {\n    loop {\n        var positive = value > 0;\n        if positive {\n            return value;\n        }\n        break;\n    }\n    return -2147483648;\n}\n\nprint(choose(3));\nprint(choose(0));\n"; }
@@ -68,7 +68,7 @@ fn execution_semantic_invalid(index: usize): u8* {
     // Inference accepts one runtime argument; zero still tests invalid arity.
     if index == 48 { return "fn f(T: type, v: T): T { return v; } f();"; }
     if index == 49 { return "fn typefn(T: type): type { return T; } print(typefn(i32));"; }
-    if index == 50 { return "fn bad(T: type): type { return bad(T); } var a: bad(i32);"; }
+    if index == convert(usize, SemanticInvalidCase.RecursiveType) { return "fn bad(T: type): type { return bad(T); } var a: bad(i32);"; }
     if index == 51 { return "fn bad(T: type): T { return true; } print(bad(i32));"; }
     if index == 52 { return "fn a(T: type, n: bool): type { return T; } var a: a(i32, true);"; }
     if index == 53 { return "fn f(T: type, v: T): T { return v; } f(i32);"; }
@@ -127,7 +127,7 @@ fn execution_semantic_message(index: usize): u8* {
     if index == 47 { return "Duplicate template parameter 'T'"; }
     if index == 48 { return "Wrong argument count for template 'f'"; }
     if index == 49 { return "Type constructor 'typefn' produces a type, not a runtime value"; }
-    if index == 50 { return "Recursive type constructor 'bad' has no concrete struct to resolve\nInstantiated by bad(i32) at line 1, column 49."; }
+    if index == convert(usize, SemanticInvalidCase.RecursiveType) { return "Cannot resolve type constructor: dependency cycle bad -> bad -> bad"; }
     if index == 51 { return "Expected i32, got bool; use an explicit conversion\nInstantiated by bad(i32) at line 1, column 43."; }
     if index == 52 { return "Unexpected 'true'. Expected Identifier, Number or '-'."; }
     // Generic inference admits the single value argument, then name resolution
@@ -186,7 +186,7 @@ fn execution_semantic_offset(index: usize): usize {
     if index == 47 { return 14; }
     if index == 48 { return 37; }
     if index == 49 { return 45; }
-    if index == 50 { return 31; }
+    if index == convert(usize, SemanticInvalidCase.RecursiveType) { return 41; }
     if index == 51 { return 28; }
     if index == 52 { return 57; }
     if index == 53 { return 39; }

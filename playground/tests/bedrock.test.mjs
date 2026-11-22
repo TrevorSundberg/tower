@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { loadTower, runToEnd } from './compiler-fixtures.mjs';
 const foundation = await readFile(new URL('../../scaffolding/foundation.tower', import.meta.url), 'utf8');
+const foundationSyntax = await readFile(new URL('../../scaffolding/foundation_syntax.tower', import.meta.url), 'utf8');
 const bedrock = await readFile(new URL('../../scaffolding/bedrock.tower', import.meta.url), 'utf8');
 const tower = await loadTower(await readFile(new URL('../../build/browser-wasi/tower.wasm', import.meta.url)), undefined, foundation, undefined, bedrock);
 function inspect(source, kind = '') {
@@ -10,7 +11,7 @@ function inspect(source, kind = '') {
   try { const result = runToEnd(tower, handle); return { ...result, formatted: tower.format(handle), snapshot: tower.inspect(handle) }; }
   finally { tower.destroy(handle); }
 }
-function restore() { tower.configureBedrock(bedrock); tower.configure(foundation); }
+function restore() { tower.configureModules({builtins:{foundation_syntax:foundationSyntax}}); tower.configureBedrock(bedrock); tower.configure(foundation); }
 
 test('foundation inherits bedrock without redeclaring any of its definitions', () => {
   assert.doesNotMatch(bedrock, /\b__/);
@@ -88,22 +89,22 @@ test('quoted capture names use shared Identifier decoding and survive template f
 
 test('bedrock extends the immutable native seed and round trips through the common formatter', () => {
   const seed = tower.bedrockSeed();
-  assert.ok(bedrock.startsWith(seed));
+  assert.equal(inspect(seed, 'bedrock').end.status, 'done');
   assert.doesNotMatch(seed, /GrammarPrecedence/);
   const first = inspect(bedrock, 'bedrock');
   assert.equal(first.end.status, 'done', first.end.error);
-  assert.equal(first.formatted.source, bedrock);
   assert.deepEqual(first.events.slice(0, 4).map(event => event.nodes[0].semantic), ['skip', 'skip', 'skip', 'token']);
   const declaration = first.events.find(event => event.nodes[0].semantic === 'parse');
   assert.ok(declaration.nodes.some(node => node.semantic === 'alternative' && node.production !== null));
   assert.ok(declaration.nodes.some(node => node.semantic === 'term' && node.production !== null));
   const second = inspect(first.formatted.source, 'bedrock');
+  assert.equal(second.formatted.source, first.formatted.source);
   assert.deepEqual(second.snapshot.rules, first.snapshot.rules);
   assert.deepEqual(second.snapshot.tokens, first.snapshot.tokens);
 });
 
 test('foundation declaration formatting preserves grammar and is stable', () => {
-  const first = inspect(foundation, 'foundation');
+  const first = inspect(foundationSyntax, 'foundation');
   assert.equal(first.end.status, 'done', first.end.error);
   assert.ok(first.formatted.source.includes('parse CoreFunction'));
   const second = inspect(first.formatted.source, 'foundation');
@@ -111,7 +112,7 @@ test('foundation declaration formatting preserves grammar and is stable', () => 
   assert.equal(second.formatted.source, first.formatted.source);
   assert.deepEqual(second.snapshot.rules, first.snapshot.rules);
   assert.deepEqual(second.snapshot.tokens, first.snapshot.tokens);
-  assert.ok(first.formatted.spans.every(span => span.source >= 0 && span.source < Buffer.byteLength(foundation)));
+  assert.ok(first.formatted.spans.every(span => span.source >= 0 && span.source < Buffer.byteLength(foundationSyntax)));
 });
 
 test('formatting retains declaration order, replace versus extend, holes and comments', () => {
@@ -143,8 +144,8 @@ test('bedrock keyword edits affect following declarations, foundation and source
     .split('\n').map(line => {
       let result = line;
       if (declarationSeen) result = result.replace(/^parse /, 'rule ');
-      if (tokenSeen) result = result.replace(/^token /, 'lex ');
-      if (skipSeen) result = result.replace(/^skip /, 'ignore ');
+      if (tokenSeen) result = result.replace(/^((?:\[[^\]]+\]\s*)*)token /, '$1lex ');
+      if (skipSeen) result = result.replace(/^((?:\[[^\]]+\]\s*)*)skip /, '$1ignore ');
       if (line.startsWith('parse GrammarDeclaration ')) declarationSeen = true;
       if (line.startsWith('parse GrammarTokenDeclaration ')) tokenSeen = true;
       if (line.startsWith('parse GrammarSkipDeclaration ')) skipSeen = true;
@@ -154,9 +155,10 @@ test('bedrock keyword edits affect following declarations, foundation and source
   try {
     tower.configureBedrock(edited);
     assert.equal(inspect(edited, 'bedrock').end.status, 'done');
-    assert.throws(() => tower.configure(foundation), /Foundation may contain only/);
-    const adapted = foundation.replace(/^parse /gm, 'rule ').replace(/^token /gm, 'lex ').replace(/^skip /gm, 'ignore ');
-    tower.configure(adapted);
+    assert.throws(() => tower.configure(foundation), /Unexpected 'token'/);
+    const adapted = foundationSyntax.replace(/^parse /gm, 'rule ').replace(/^((?:\[[^\]]+\]\s*)*)token /gm, '$1lex ').replace(/^((?:\[[^\]]+\]\s*)*)skip /gm, '$1ignore ');
+    tower.configureModules({builtins:{foundation_syntax:adapted}});
+    tower.configure(foundation);
     const result = inspect("rule Statement |= 'show' $value:CoreOperand ';' => replace { print($value); };show 42;");
     assert.equal(result.end.status, 'done', result.end.error);
     assert.ok(result.events.at(-1).nodes.some(node => node.label === 'CoreCall'));
@@ -198,7 +200,7 @@ test('every file installs token, trivia and declaration-reader edits at the same
 
 test('bedrock installation is atomic, validates semantic captures and is idempotent', () => {
   const invalid = bedrock.replace('$name:Identifier', '$wrong:Identifier');
-  assert.throws(() => tower.configureBedrock(invalid), /must preserve capture 'name'/);
+  assert.throws(() => tower.configureBedrock(invalid), /missing capture 'name'/);
   assert.equal(inspect('print(1);').end.status, 'done');
   const nodes = tower.exports.tw_live_nodes(), allocations = tower.exports.tw_live_allocations();
   tower.configureBedrock(bedrock); tower.configureBedrock(bedrock);

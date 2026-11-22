@@ -13,7 +13,7 @@ if (!base.pathname.endsWith('/')) throw new Error('Deployment URL must end in /'
 const output = new URL('../../build/deployment-verification/', import.meta.url);
 await mkdir(output, {recursive:true});
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
-const bytecodeContainerVersion = 1, bytecodeSemanticsVersion = 6, bytecodeExecutionCacheVersion = 5;
+const bytecodeContainerVersion = 1, bytecodeSemanticsVersion = 7, bytecodeExecutionCacheVersion = 5;
 const report = {url:base.href, assets:[], browsers:[]};
 const manifest = JSON.parse(await readFile(new URL('../dist/deployment-manifest.json', import.meta.url), 'utf8'));
 // .nojekyll is a hosting marker; GitHub Pages does not serve dotfiles.
@@ -29,8 +29,10 @@ for (const name of assets) {
   report.assets.push({name,bytes:remote.length,sha256:digest(remote)});
 }
 console.log(`All ${assets.length} deployed assets match the local build.`);
-const foundation = await readFile(new URL('../dist/foundation.tower', import.meta.url), 'utf8');
-const bedrock = await readFile(new URL('../dist/bedrock.tower', import.meta.url), 'utf8');
+const builtinNames = JSON.parse(await readFile(new URL('../dist/builtins.json', import.meta.url), 'utf8'));
+const builtins = Object.fromEntries(await Promise.all(builtinNames.map(async name =>
+  [name, await readFile(new URL('../dist/' + name + '.tower', import.meta.url), 'utf8')])));
+const {foundation, bedrock} = builtins;
 const legacy = await readFile(new URL('../tests/fixtures/foundation_legacy.tower', import.meta.url), 'utf8');
 const program = '// deployment C comment\nfn answer(): i32 { return state.value; }\nvar state: Later;\nstate.value = add(20, 22);\nvar result: i32 = answer();\nprint(result);\nstruct Later { value: i32; }\nfn add(a: i32, b: i32): i32 { var sum: i32 = a + b; return sum; }';
 const browser = await chromium.launch();
@@ -177,7 +179,7 @@ try {
     await page.keyboard.insertText('print(42)\nvar answer: i32;');
     await revealDiagnostics(page);
     await expect(page.locator('.tw-inline-error-message')).toContainText("Missing ';' before 'var'.");
-    await expect(page.locator('.tw-inline-error-message')).toContainText('foundation.tower:');
+    await expect(page.locator('.tw-inline-error-message')).toContainText('foundation_syntax.tower:');
     await expect(page.locator('.tw-inline-error-heading')).toHaveText(`Error${await page.locator('#filename').innerText()}:1:10`);
     await expect(page.locator('.tw-error-point')).toHaveCount(1);
     await page.screenshot({path:new URL(name+'-missing-semicolon.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
@@ -204,9 +206,9 @@ try {
     await expect(page.locator('#execution-status')).toContainText('backends match',{timeout:60000});
     await expect(page.locator('#execution-output')).toHaveText('42\ntrue\n43\n42\n');
     await expect(page.locator('#llvm-output')).toHaveText('42\ntrue\n43\n42\n');
-    await expect.poll(()=>outputText(page,'core-instructions')).toContain('var answer: i32 = ');
+    await expect.poll(()=>outputText(page,'core-instructions')).toContain('var answer: integer_type(32, 1) = ');
     await expect.poll(()=>outputText(page,'core-instructions')).toContain(' = add_one(41);');
-    await expect.poll(()=>outputText(page,'core-instructions')).toContain('var pointer: i32* = ');
+    await expect.poll(()=>outputText(page,'core-instructions')).toContain('var pointer: pointer_type(integer_type(32, 1)) = ');
     await expect.poll(()=>outputText(page,'core-instructions')).toContain(' = &answer;');
     await page.screenshot({path:new URL(name+'-inference.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
     await selectDocument(page, 'templates.tower');
@@ -230,7 +232,7 @@ try {
       await expect(timing).toContainText('(cached)');
       assert.ok(Number((await timing.textContent()).match(/([\d.]+) ms/)[1])<20);
     }
-    const project = newProject('Deployment project', {bedrock,foundation}, [
+    const project = newProject('Deployment project', builtins, [
       {path:'main.tower',text:'import foundation; import lib.answer as left; import other.answer as right; import lib.answer as again; var total: i32 = left.answer() + right.answer(); print(total);'},
       {path:'lib/answer.tower',text:'import foundation; fn answer(): i32 { return 20; }'},
       {path:'other/answer.tower',text:'import foundation; fn answer(): i32 { return 22; }'},
