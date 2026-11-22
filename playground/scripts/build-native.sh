@@ -8,7 +8,7 @@ config="${LLVM_CONFIG:-llvm-config-19}"
 compiler_bin="$("$config" --bindir)"
 export PATH="$compiler_bin:$PATH"
 native="${TOWER_NATIVE_BUILD:-$HOME/.cache/tower/native}"
-cmake -S "$repo" -B "$native" -G Ninja -DTOWER_NATIVE=ON -DTOWER_BOOTSTRAP_COMPILER="$bootstrap" \
+cmake "$@" -S "$repo" -B "$native" -G Ninja -DTOWER_NATIVE=ON -DTOWER_BOOTSTRAP_COMPILER="$bootstrap" \
   -DCMAKE_PROJECT_scaffolding_INCLUDE="$repo/cmake/TowerBackend.cmake" \
   -DLLVM_DIR="$("$config" --cmakedir)" -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_C_COMPILER="$compiler_bin/clang" -DCMAKE_CXX_COMPILER="$compiler_bin/clang++"

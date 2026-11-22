@@ -73,6 +73,9 @@ export fn driver_test_close(fd: i32): void {
 
 export fn driver_test_platform_cases(): void {}
 
+// ELF browser-export execution is a Linux host test, not a Windows capability.
+export fn driver_test_make_executable(path: u8*): bool { return false; }
+
 // The module-path suite attempts symlinks and reports unavailable privileges.
 // Executable relocation cases below remain POSIX-only; ordinary argv cases use
 // the same driver suite and GetModuleFileNameA implementation.

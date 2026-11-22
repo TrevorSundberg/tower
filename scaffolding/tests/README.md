@@ -33,6 +33,30 @@ and MSVC artifact handoff. These modes use the same raw-status capture and
 30-second child limit. They keep generated sources and outputs in their working
 directory; run different modes concurrently only in separate directories.
 
+The runner also replaces the native linking and browser-export shell tests:
+
+```sh
+tower-driver-tests --linking COMPILER SCAFFOLDING CLANG LLVM_AR WASM_LD WASM_ARCHIVE LLVM_LIBRARY
+tower-driver-tests --browser-exports [QEMU_AARCH64]
+```
+
+These modes execute on Linux x64, using absolute compiler/tool/input paths and
+the same 30-second child deadline. For `--linking`, run in `build/linking` after
+`build-wasm.sh`; pass its `wasm-fixture.a` rather than rebuilding that archive.
+The checks exercise archive callbacks, separate runtime linking, native/interpreter
+agreement, LLVM's C API and native-to-Wasm output. They preserve
+`native-compiled.wasm` for the browser test and the two expected-output files
+still consumed by the Windows shell test. Each newly compiled output is removed
+before the command, and every command must succeed. stdout comparisons use exact
+byte lengths. The last child logs remain as `driver stdout.txt`/`driver stderr.txt`.
+
+Run `--browser-exports` in `build/cross` after the browser cross-compilation test.
+It executes both x64 Linux exports and, when supplied, both ARM64 exports through
+QEMU. An omitted/empty QEMU argument reports an explicit skip; a supplied but
+missing/failing emulator fails. Expected text stays in Tower instead of temporary
+shell-generated files. `internal.sh` builds the existing runner and invokes both
+modes; no additional tool binary or CMake target is needed.
+
 ## Native measurements
 
 Build the same `tower-driver-tests` target with `TOWER_DRIVER_TESTS=ON`. Run under

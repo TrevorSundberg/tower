@@ -27,6 +27,7 @@ var DriverTestPrivateMode: u32 = 448;
 export fn driver_test_directory(path: u8*): bool { return mkdir(path, DriverTestPrivateMode) == 0; }
 export fn driver_test_remove_directory(path: u8*): void { rmdir(path); }
 export fn driver_test_symlink(target: u8*, path: u8*): bool { return symlink(target, path) == 0; }
+export fn driver_test_make_executable(path: u8*): bool { return chmod(path, DriverTestPrivateMode) == 0; }
 
 extern fn fork(): i32;
 extern fn execv(path: u8*, argv: u8**): i32;

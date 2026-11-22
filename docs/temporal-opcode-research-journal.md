@@ -38970,3 +38970,90 @@ Tower. test-native-core.sh retains obsolete sanitizer naming/flags after native
 retirement; it was inspected only, never run. Simplify that path before any test
 execution, honoring the no-sanitizer instruction. No shell/CMake cutover is claimed
 in this Python milestone.
+
+### 2026-11-21: consolidate native linking and downloaded-export shell tests into Tower
+
+Caller audit at c5beba4: internal.sh and the playground guide invoke
+test-linking.sh; internal.sh invokes test-browser-exports.sh after browser cross
+tests. The native runner's memory/storage/platform/forward checks overlap some
+browser/C fixtures, but those do not establish native archive callbacks, separate
+runtime-object linkage or exact native/interpreter agreement. Preserve those
+contracts. Remove duplicate Wasm archive construction: build-wasm.sh already
+produces the archive required by browser tests, and the full pipeline runs it
+first. New --linking takes that artifact as an explicit input. Remove unused raw/
+optimized-IR outputs and redundant expected-text/output files; retain only the
+two expected files still consumed by test-windows-linking.sh. That consumer is a
+future Tower port, not silently dropped coverage. Historical runners are at
+c5beba4:playground/scripts/{test-linking,test-browser-exports}.sh.
+
+New tests/driver_linking.tower extends the existing Tower driver runner; no new
+tool executable, CMake target or implementation language. It reuses owned argv,
+raw-status capture and the 30-second child deadline. --linking accepts explicit
+compiler, scaffolding, Clang, llvm-ar, wasm-ld, Wasm archive and LLVM library
+paths. Its native contract is Linux x64; separate linkage derives the packaged
+runtime path through the existing resource helper. Compile outputs are removed
+before invocation; a successful command must actually create its output. Exact
+stdout checks include byte length. --browser-exports runs both x64 outputs and
+both ARM64 outputs when QEMU is supplied. Omitted/empty QEMU is an explicit skip;
+a supplied unavailable/failing emulator is a failure. POSIX chmod is the only new
+platform-test operation; Windows reports this ELF execution capability absent.
+
+internal.sh builds/invokes the existing driver and retains necessary upstream
+tool discovery. build-native.sh forwards CMake arguments like the existing Wasm
+wrapper, avoiding another option/environment policy or resetting cached options.
+The two old runners are deleted: shell source falls from 19 files/483 lines to
+17/416 (75 removed runner lines, eight added invocation lines, net 67 fewer).
+Python and owned C/C++ remain zero. Also change test-native-core.sh's default
+cache from core-asan to core and clear obsolete CXX sanitizer flags. The old
+flags no longer instrument Tower-owned objects and conflict with the explicit
+no-sanitizer instruction. No sanitizer execution or formatter sweep occurred.
+
+Freeze initial inputs in /cache/linking_tooling_checkout (clone c5beba4 plus
+the affected Tower modules). Compile the smallest driver_linking unit first via
+the public bootstrap SHA9bf8779 with --library, --target x86_64-unknown-linux-gnu,
+explicit bedrock/foundation and -o /cache/driver_linking.o. The first compile
+correctly rejected reserved identifier expected; rename that local to reference,
+with no compiler/grammar change. The isolated unit passes. Copy the frozen test
+modules into the existing owned /cache/compiler_project_final_checkout and enable
+TOWER_DRIVER_TESTS in its matching native cache. Rebuild only tower-driver-tests,
+then run in /cache/linking_tooling_cases with /usr/bin/{clang,llvm-ar,wasm-ld}-19
+and /usr/lib/llvm-19/lib/libLLVM.so. All archive/callback, separate-runtime,
+native/interpreter, storage/bytes library emission, LLVM C API and native-to-Wasm
+checks pass. The ordinary tower-driver CTest also passes (10.89 seconds).
+
+Repeat the actual --linking CLI through WSL in the spaced owned directory
+/home/trevo/.cache/tower/agent1-tooling-linking spaced using SDK34's wasm-ld and
+the complete native package copied into build/linking_native_seed. This validates
+the production SDK and argument/path behavior; all cases pass. Its input
+wasm-fixture.a was produced once by the public Tower compiler/llvm-ar and is
+consumed by both the Tower and browser tests. No shared backend cache is modified.
+
+Read-only copies of root's four existing browser exports into
+build/linking_browser_downloads pass actual x64 execution and qemu-aarch64
+execution through the new Tower mode. A zero-exit /usr/bin/true substituted for
+linux.elf fails exact-output checking. Missing explicit QEMU fails; omitted QEMU
+passes x64 and reports ARM64 skipped. An incomplete --linking argv returns 2.
+A fake successful compiler with a stale native-fixture.o fails the required-output
+check after removing the stale object. Logs remain in each isolated directory.
+The new shared test module also compiles for Windows x64 and macOS ARM64, and
+the Windows transport compiles; these object checks are not claimed host execution.
+
+Consumer verification: the unchanged Windows runner initially cannot find
+lld-link-19 in WSL. Run its compile/link stage in the existing LLVM19 Docker
+environment, where it reports the expected unavailable execution transport.
+Then execute both produced PEs directly on Windows; both stdout files match the
+new Tower-produced expected files byte for byte. Browser raw-memory tests initially
+pass 25/26 with root's old build/browser-wasi-llvm/tower-llvm.wasm; the unrelated
+floating_foreign case reports Unknown type f32. Selecting the previously verified
+current backend-wasi seed via TOWER_TEST_LLVM_WASM=build/compiler_support/seed.wasm
+passes all 26, including the new native-produced Wasm and shared archive consumers.
+The stale local runtime observation is sent to the coordinator; it is not evidence
+about the hosted site's runtime. No production runtime is rebuilt/relabelled.
+
+The documented build-native.sh -DTOWER_DRIVER_TESTS=ON entry verifies the public
+pin and reuses the unchanged compiler successfully: ninja has no production work;
+successor SHA remains b3775dabaced622e58a6f67095f8e29889b97a4a362011838707f23582b9343a.
+Changed shell syntax checks pass. Core CMake configuration with the new arguments
+passes and its generated Ninja file contains no -fsanitize. The complete core/
+browser/release matrix is not rerun for this test-runner-only change. Publication
+will preserve the existing runtime assets and Python-retirement receipt.

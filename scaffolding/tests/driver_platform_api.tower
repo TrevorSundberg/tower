@@ -17,6 +17,7 @@ extern fn driver_test_directory(path: u8*): bool;
 extern fn driver_test_remove_directory(path: u8*): void;
 
 extern fn driver_test_symlink(target: u8*, path: u8*): bool;
+extern fn driver_test_make_executable(path: u8*): bool;
 
 // Explicit executable paths; preserve exit codes and negative transport/signals.
 extern fn driver_test_run_status(argv: u8**): i64;

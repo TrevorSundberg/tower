@@ -676,10 +676,20 @@ token and recursive grammar definitions, using the same nodes and formatter.
 Validation commands:
 
 ```sh
-bash playground/scripts/test-linking.sh
+bash playground/scripts/build-native.sh -DTOWER_DRIVER_TESTS=ON
+native="${TOWER_NATIVE_BUILD:-$HOME/.cache/tower/native}"
+cmake --build "$native" --target tower-driver-tests
+repo="$PWD"
+llvm_bin="$(llvm-config-19 --bindir)"
+llvm_lib="$(llvm-config-19 --libdir)"
+sdk="${WASI_SDK_PATH:-$HOME/.cache/tower/wasi-sdk/wasi-sdk-34.0-x86_64-linux}"
+bash playground/scripts/build-wasm.sh
+(cd build/linking && "$native/tower-driver-tests" --linking "$native/towerc" "$repo/scaffolding" \
+  "$llvm_bin/clang" "$llvm_bin/llvm-ar" "$sdk/bin/wasm-ld" "$repo/build/linking/wasm-fixture.a" "$llvm_lib/libLLVM.so")
 bash playground/scripts/test-windows-linking.sh
 node --test playground/tests/raw-memory.test.mjs
 node --test playground/tests/cross-compilation.test.mjs
+(cd build/cross && "$native/tower-driver-tests" --browser-exports "$(command -v qemu-aarch64 || true)")
 ```
 
 The checked-pointer prototype is preserved at commit `8571a8d`; the migration
