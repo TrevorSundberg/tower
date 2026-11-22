@@ -46240,3 +46240,79 @@ PowerShell and nvm Codex. No credentials are copied or logged.
 No code, full audit, sanitizer, new build or completion claim is made here.
 Next: finish clean synchronization and launch verification, record thread/process
 identities, then monitor sparse status updates and coordinate acceptance work.
+
+Distributed setup validation: the first local processes stopped at an inherited
+TERM=dumb warning; no task had started. Reap only those owned idle processes,
+set TERM=xterm-256color/COLORTERM=truecolor, and relaunch. The next launch
+correctly required clone trust; add trust only for the two explicitly assigned
+clone paths, then relaunch. Both local workers now consume their prompts and
+have active completion goals. Visible screenshots show GPT-6-Astra xhigh and
+colored tool output; exact command lines set service_tier=default, --yolo and
+--no-daemon. Local L1/L2 windows occupy 960x1032 halves of the display.
+
+Local thread identities: L1 01a2046b-af35-7150-8229-9147f081df98 (CLI PID 24132),
+L2 01a2046b-afe5-7441-85f3-9aaab990b850 (PID 23792). Both separate filtered
+main clones pulled 6282238 clean before work. OS transport scripts and prompts
+live outside the repository under C:/Sandbox/build/codex_ecs_20261122.
+A missing initial local build-owner file was reported by both workers; it is
+now initialized with an atomic directory claim and owner/drain protocol.
+
+KinmenB B1/B2 are active in the user's reattached physical console Session 1,
+with two visible 1280x1552 terminal halves. B1 thread is
+01a2046b-9c6d-72b2-bec2-85145b4e8b86 and B2 is
+01a2046b-992b-70b3-80e4-82b7f0949423. CLI records confirm model/effort and
+command arguments confirm default tier. Its ordinary tower plus three existing
+main agent clones synchronized cleanly to 6282238. Existing unrelated legacy
+branch checkouts remain untouched. SSH IPv4 removes measured tens-of-seconds
+connection setup stalls (~0.7 s on B). Git's intermittent resolver failure was
+handled with a process-local HTTPS address from live DNS, preserving TLS hostname
+verification; no global network or security change.
+
+SteamDeck initial detached SSH GUI launches exited without consuming prompts;
+they are failed starts, not running workers. User-systemd terminal services now
+survive logout on the physical KDE desktop. D1/D2 threads are
+01a2046a-4644-7ab1-a0ae-abd80210f013 and
+01a2046a-45eb-7452-8fb0-6d924bb320a6. Actual process arguments and stored
+model/effort confirm the requested configuration; both consumed exact lane
+prompts. Konsole client windows are 632x722 at (1,28)/(641,28) on 1280x800.
+Normal tower and both independent filtered agent clones pulled 6282238 clean.
+One heavy Docker baseline is admitted at a time, initially two assigned CPUs;
+other work remains audit/lightweight. D1 reconciles all tracked Tower paths
+against lane coverage and substantive file-level review receipts.
+
+Baseline source publication 6282238779034442e0578d76b921ca117df819f1 was pushed
+atomically with unchanged Pages 6f142bef15f58380831ed344ab5eac5c4b3c2840.
+Extract that exact snapshot using core.autocrlf=false; its manifest SHA-256 is
+eb70f5388bee6b7ca318583eddfaa8e9a8a907c642a14a6fde85375ac8b1643c.
+Existing hosted verifier exits 0: all 104 served assets and desktop/mobile
+backend agreement, forward bindings, grammar editing, persistence, native
+exports, completion, highlighting and target defaults pass. Evidence:
+C:/Sandbox/build/codex_ecs_20261122/baseline_hosted_verification.log. The latest
+Pages build reports built at the same ref. Runtime build identity remains
+98ade8cc; no unchanged binaries were rebuilt or relabeled as new compiler tests.
+An initial documentation diff check found a final CR from PowerShell Add-Content;
+that check was not a pass. Normalize only that appended line ending and repeat
+scoped diff validation successfully. Further launch receipts remain pending.
+
+All eight workers verified active: KinmenA A1 thread
+01a2046f-fec2-7cd1-bdc9-0a0c6127c6f7 (CLI 10064, PowerShell 11908), A2
+01a2046f-fec2-7c71-be46-cad28f9ac147 (CLI 25572, PowerShell 28264).
+Both execute tools/pursue active goals on the physical active console; visible
+windows occupy halves of 2560x1600. Trust was accepted only for the exact
+assigned clone paths. Explicit default tier overrides that host's saved fast
+default. Its Docker VM exposes about 60.65 GiB, not the host's 123.65 GiB;
+cap each lane initially at 12 CPU lanes/24 GiB with headroom and separate caches.
+A2 receives final actual-Tower-code sanitizer/instrumentation investigation.
+
+The coordinator approved full-audit residual ownership: language seed modules,
+lexer/parse-tree/regex/UTF8/source comments to B1; inspection policy and
+parser_frontend/parser_modules units to B2; Foundation types/Roku/source-emitter
+and evaluation units to L1; component kinds/entity requirements/world/worker
+policy and entities/shared-check units to A2; constructor work to L2 with A1
+context/lifecycle coordination; semantics units to A1. Bootstrap's copied Tower
+resources belong to D2's provenance audit against original source, not hand edits.
+D1 reconciles file-level receipts, including additions. Initial 79/437 fixture
+reviews are review progress only; suspected stale negative expectations require
+reproduction before changes. L2 has narrowly reserved prelude packaging manifests
+for the journal-directed types.tower consolidation. No compiler acceptance gate
+is declared closed by these setup observations.
