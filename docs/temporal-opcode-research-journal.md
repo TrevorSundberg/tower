@@ -42528,3 +42528,20 @@ this final three-module semantic integration; these focused checks cover its
 affected type/body behavior. Host/platform bindings, bootstrap and build rules
 are unchanged by that integration, preserving cross-object ABI evidence. No
 private compiler override or new bootstrap pin was used.
+
+Publication complete: implementation 8e7b78b and validation 7736d7c/61ab154 pushed
+on main. The first push hit GitHub DNS resolution failure; a per-command
+http.curloptResolve using a freshly resolved address succeeded, with another
+pull/rebase and source guard first. No persistent Git configuration changed.
+Under our exclusive shared publication lock, preserve Pages 19770a62's runtime
+source b5ba9f6174629dfac4742033874527ee2c8ebde4, all 104 assets and existing
+provenance. Manifest-only driverBindingToolingMigration receipt published at
+187c527a1ca5c76d70863fc8281f3a1998e1522d; action 44990885862 succeeds. Fetch
+https://tower-lang.org/deployment-manifest.json?driver-bindings=187c527a1ca5c76d70863fc8281f3a1998e1522d
+and verify exact prepared/hosted SHA256
+a53062e75a9d87cd1fe47fdf360da13503d27c50a6d74aa17b8f555da0548b47,
+plus unchanged asset map/build identity. Release only our own lock after this
+verification. Final inventory remains Python/owned C/C++ zero, shell9/230,
+CMake39/1783 and JS186/24366. todo.txt is unchanged. Tooling migration remains
+active; continue the live-caller/removal-first audit for remaining build rules
+and reusable JavaScript.
