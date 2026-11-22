@@ -15,7 +15,6 @@ fn description(value: i32): i32 {
     }
 }
 
-var value = 0;
-for (; value < 4; value++) {
+for (var value = 0; value < 4; value++) {
     print(description(value));
 }

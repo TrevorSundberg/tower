@@ -10,6 +10,7 @@ fn buffer(T: type, size: usize): type {
 
 fn stack(T: type): type {
     struct Result {
+        // Four inline slots are enough for the two sample values below.
         storage: buffer(T, 4);
         count: usize;
     }
@@ -27,9 +28,10 @@ fn pop(T: type, values: stack(T)*): T {
     return values.storage.data[values.count];
 }
 
-var values: stack(i32);
-values.count = 0;
-push(i32, &values, 10);
-push(i32, &values, 20);
-print(pop(i32, &values));
-print(pop(i32, &values));
+// This stack stores its fixed array inline; it never allocates heap memory.
+var values: stack(i32) = default;
+// The typed stack argument lets Tower infer T = i32 for these calls.
+push(&values, 10);
+push(&values, 20);
+print(pop(&values));
+print(pop(&values));

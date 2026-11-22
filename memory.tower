@@ -7,42 +7,47 @@ struct Bytes {
     capacity: usize;
 }
 
-fn append(buffer: Bytes*, value: u8): void {
+var InitialByteCapacity: usize = 8;
+var TextLength: usize = 5;
+
+// realloc may move the buffer. Keep its old address until growth succeeds;
+// on failure it still owns its old storage and the caller can safely free it.
+fn append(buffer: Bytes*, value: u8): bool {
     if buffer.length == buffer.capacity {
-        var capacity: usize = buffer.capacity *2;
-        if capacity == 0 {
-            capacity = 8;
+        var maximum = ~convert(usize, 0);
+        if buffer.capacity > maximum / 2 {
+            return false;
         }
-        buffer.data = realloc(u8, buffer.data, capacity);
+        var capacity = buffer.capacity == 0 ? InitialByteCapacity: buffer.capacity *2;
+        var grown = realloc(u8, buffer.data, capacity);
+        if grown is null {
+            return false;
+        }
+        buffer.data = grown;
         buffer.capacity = capacity;
     }
     buffer.data[buffer.length] = value;
     buffer.length++;
+    return true;
 }
 
-var buffer: Bytes;
-buffer.data = null;
-buffer.length = 0;
-buffer.capacity = 0;
-var ref: Bytes* = &buffer;
+// Zero initialization creates an empty buffer; append allocates on first use.
+var buffer: Bytes = default;
 var text: u8* = "Tower";
-var i: usize = 0;
-loop {
-    var done: bool = i == 5;
-    if done {
+for (var i: usize = 0; i < TextLength; i++) {
+    if !append(&buffer, text[i]) {
+        print("Byte buffer allocation failed");
         break;
     }
-    append(ref, text[i]);
-    i++;
 }
 print(buffer.length);
-print(buffer.data[0]);
+if buffer.length != 0 {
+    print(buffer.data[0]);
+}
 var fixed: i32[3];
 fixed[0] = 10;
 fixed[1] = 20;
 fixed[2] = 12;
 var values: i32* = &fixed[0];
-var result: i32 = values[0] + values[1];
-result = result + values[2];
-print(result);
+print(values[0] + values[1] + values[2]);
 free(buffer.data);

@@ -1,27 +1,19 @@
 import tower;
 
-// Uses the shared foundation.tower module.
-// This syntax has no native execution handler: it expands into CoreAssign.
+// Tower supplies expressions and control flow. Add one small statement ourselves:
+// the replacement expands into an ordinary assignment before execution.
 parse Statement |= 'increment' $name:Identifier ';'
     => replace { $name = $name + 1; };
 
-var count: i32;
-var total: i32;
-var finished: bool;
-count = 0;
-total = 0;
-loop {
+var count = 0;
+var total = 0;
+while count < 5 {
     increment count;
-    total = total + count;
-    finished = count == 5;
-    if finished {
-        break;
-    }
+    total += count;
 }
 print(total);
 
 // Aliases share the same typed storage.
-var alias: i32*;
-alias = &total;
-*alias = total + 1;
+var alias = &total;
+(*alias)++;
 print(total);

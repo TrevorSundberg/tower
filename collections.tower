@@ -4,27 +4,30 @@ import library.queue;
 
 var lifo: stack(i32);
 var fifo: queue(i32);
-stack_init(i32, &lifo);
-queue_init(i32, &fifo);
-var value = 10;
-while value <= 30 {
-    var stored = stack_push(i32, &lifo, value);
-    if !stored {
+stack_init(&lifo);
+queue_init(&fifo);
+
+// Init leaves both containers empty; the first push allocates their heap storage.
+// The stack grows with realloc. The queue allocates a larger buffer and copies
+// its values in order. Both start with room for eight values and grow as needed.
+// Push returns false if memory is unavailable or the requested size is too large.
+// A failed push keeps the old values; dispose below releases each owned buffer.
+for (var value = 10; value <= 30; value += 10) {
+    if !stack_push(&lifo, value) {
         print("Stack allocation failed");
     }
-    stored = queue_push(i32, &fifo, value);
-    if !stored {
+    if !queue_push(&fifo, value) {
         print("Queue allocation failed");
     }
-    value = value + 10;
 }
 
 // Empty pop returns false and leaves the output unchanged.
-while stack_pop(i32, &lifo, &value) {
+var value = 0;
+while stack_pop(&lifo, &value) {
     print(value);
 }
-while queue_pop(i32, &fifo, &value) {
+while queue_pop(&fifo, &value) {
     print(value);
 }
-stack_dispose(i32, &lifo);
-queue_dispose(i32, &fifo);
+stack_dispose(&lifo);
+queue_dispose(&fifo);
