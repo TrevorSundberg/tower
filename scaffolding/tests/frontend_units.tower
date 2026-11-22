@@ -36,6 +36,7 @@ extern fn strlen(text: u8*): usize;
 extern fn strcmp(a: u8*, b: u8*): i32;
 extern fn strstr(text: u8*, query: u8*): u8*;
 extern fn puts(text: u8*): i32;
+extern fn fflush(stream: void*): i32;
 extern fn abort(): void;
 extern fn fopen(path: u8*, mode: u8*): void*;
 extern fn fseek(file: void*, offset: i64, origin: i32): i32;
@@ -44,7 +45,7 @@ extern fn fread(data: void*, size: usize, count: usize, file: void*): usize;
 extern fn fclose(file: void*): i32;
 
 fn units_check(ok: bool, message: u8*): void {
-    if !ok { puts(message); abort(); }
+    if !ok { puts(message); fflush(null); abort(); }
 }
 
 fn units_read(root: u8*, name: u8*, out: vector(u8)*): void {

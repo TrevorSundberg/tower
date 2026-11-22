@@ -47908,3 +47908,28 @@ D1 parser changes and D2's original measured Foundation kernel. Prior adoption
 remains in commit history; it had no validation pass. Requested exact owner
 fixture-language handoff rather than inventing prefix detection or overriding
 Foundation-only cases. Root independently issued the same reconciliation rule.
+
+Read and adopted D1's exact replacement caller repairs after reversing the
+generic writers: driver_fixture_imports SHAfd0966b3 and scalar_fixture_imports
+SHA6b575c81. The two Tower caller files now match ownerSHAac1d6b55/bf84876f,
+and10JSON Tower-source fixtures match3b43b4dc; numeric/output/IR oracles remain
+unchanged. Adopted D1 assertion_diagnostics SHAcb26ef0b after parser19da2e17:
+the two existing failing assertion paths flush before the unchanged abort.
+D1 measured three paired valid/failing tiny imported-helper checks; valid
+helper machine bytes are identical. Those are owner receipts, not local reruns.
+This avoids requiring another full selector solely to recover buffered failure
+text; no claim that abort/core-delivery timing is compiler performance.
+
+Also read all134lines and adopted root-routed B2 backend_execution_roots
+SHA5d3e769c for independent validation. The backend owns a byte retention index
+and private traversal stack over frozen Foundation entities; calls/function
+values use existing shared execution edges, foreign/exports remain roots, and
+function index/identity is checked. Root is KProgram, so initial retained0 does
+not suppress root traversal. All source-function slots now remain aligned with
+LLVM/symbol slots, including omitted entries; import lookup guards null symbols.
+Canonical Foundation is unchanged, not pruned into a second graph. The exact
+32line fixture expects45and2 while retaining an unused export and excluding a
+dead private type helper from executable lowering. D1 owns its generic runner
+registration. Local runtime/performance and final sanitizer/browser/generation
+validation of these new inputs are pending; owner single-emission improvement
+is not independently reproduced here. Capture-range v2 remains unapplied.
