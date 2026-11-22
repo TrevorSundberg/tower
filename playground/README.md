@@ -106,8 +106,9 @@ from an empty writable artifact directory. The existing Tower measurement engine
 validates outputs and writes `measurements.json`, with raw samples, input hashes
 and medians in nanoseconds; see [native measurements](../scaffolding/tests/README.md#native-measurements).
 `node scripts/profile-interpreters.mjs` writes separate
-CPU profiles under `build/`; `TOWER_PROFILE_REACTOR` can select an unstripped
-reactor for function names. See the research journal for measured results and
+CPU profiles under `build/`, using `scaffolding/benchmarks/interpreter_profile.tower`;
+`TOWER_PROFILE_REACTOR` can select an unstripped reactor for function names.
+Inspect the saved `.cpuprofile` captures in a CPU profile viewer. See the research journal for measured results and
 platform coverage; portability does not imply a measured speed guarantee on
 every phone, console or CPU.
 
@@ -1059,7 +1060,9 @@ Tower/LLVM function names. The script measures ordinary functions, collections
 and three compiler units with six warmups and sixteen alternating pairs. Both
 versions receive identical current recipe inputs and must emit identical object
 bytes. Reports include startup, compile/phase timings, artifact/source hashes and
-a separate `.cpuprofile`; sampling runs after timing. Module-file registration,
+a separate `.cpuprofile`; sampling runs after timing. Inspect that standard capture
+for call trees and hotspots; the JSON report no longer duplicates sample counts or
+truncated function-name rankings. Module-file registration,
 network transfer and page rendering are outside these compile measurements.
 Run without concurrent builds or tests. Omit the baseline argument for an initial
 profile. `TOWER_PROFILE_CASE` and `TOWER_PROFILE_EXCLUDE` filter workload paths;

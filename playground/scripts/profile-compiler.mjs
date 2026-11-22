@@ -17,13 +17,14 @@ const read = path => readFile(join(assets, path));
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const recipeBytes = await read('compiler/project.json');
 const {files} = JSON.parse(recipeBytes);
-const grammar = Object.fromEntries(['bedrock', 'foundation', 'tower'].map(name =>
-  [name, files.find(file => file.path === name + '.tower').text]));
+const grammar = Object.fromEntries(files
+  .filter(file => /^(?:[^/]+|types\/[^/]+)\.tower$/.test(file.path))
+  .map(file => [file.path.slice(0, -'.tower'.length), file.text]));
 const paths = baseline ? {baseline, current} : {current};
 const compilers = {}, hashes = {}, startup = {};
 for (const [name, path] of Object.entries(paths)) {
   const bytes = await readFile(path), start = performance.now();
-  compilers[name] = await loadLLVM(bytes, undefined, grammar.foundation, undefined, grammar.bedrock, {tower:grammar.tower});
+  compilers[name] = await loadLLVM(bytes, undefined, grammar.foundation, undefined, grammar.bedrock, {tower:grammar.tower, builtins:grammar});
   startup[name] = performance.now() - start;
   hashes[name] = hash(bytes);
 }
@@ -97,17 +98,5 @@ try {
     }
   const {profile} = await post('Profiler.stop');
   await writeFile(destination + '.cpuprofile', JSON.stringify(profile));
-  const hits = new Map();
-  for (const node of profile.nodes) {
-    const name = node.callFrame.functionName;
-    hits.set(name, (hits.get(name) ?? 0) + (node.hitCount ?? 0));
-  }
-  const ranked = [...hits].sort((a, b) => b[1] - a[1]);
-  const entries = values => values.map(([name, samples]) => ({function:name, samples}));
-  report.sampleCount = [...hits.values()].reduce((sum, count) => sum + count, 0);
-  report.hotspots = entries(ranked.slice(0, 50));
-  report.towerHotspots = entries(ranked.filter(([name]) =>
-    /^(tower\.|sem_|entity_|generic_|compiler_|frontend_|lr_|bytes_|syntax_|node_|backend_)/.test(name)).slice(0, 40));
-  console.log(JSON.stringify(report.hotspots.slice(0, 25), null, 2));
 } finally { session.disconnect(); }
 await writeFile(destination, JSON.stringify(report, null, 2) + '\n');

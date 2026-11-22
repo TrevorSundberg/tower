@@ -5,7 +5,7 @@ import {loadTower, loadLLVM} from '../tests/compiler-fixtures.mjs';
 import assert from 'node:assert/strict';
 const root=new URL('../../',import.meta.url);
 const tower=await loadTower(await readFile(new URL(process.env.TOWER_PROFILE_REACTOR ?? 'build/browser-wasi/tower.wasm',root)),undefined,(await readFile(new URL('scaffolding/foundation.tower',root),'utf8')));
-const source='fn add(a: i32, b: i32): i32 { var sum = a + b; return sum; } var i = 0; var sum = 0; loop { var stop = i == 500000; if stop { break; } sum = add(sum,i); sum = sum ^ 17; i = i + 1; } print(sum);';
+const source=await readFile(new URL('scaffolding/benchmarks/interpreter_profile.tower',root),'utf8');
 const session=new Session();session.connect();
 const post=(method,params={})=>new Promise((resolve,reject)=>session.post(method,params,(error,result)=>error?reject(error):resolve(result)));
 await post('Profiler.enable');await post('Profiler.setSamplingInterval',{interval:100});
@@ -19,6 +19,5 @@ for(const mode of ['graph','fast','llvm-fast']){
   const {profile}=await post('Profiler.stop');
   for(const handle of handles)tower.destroyExecution(handle);
   await writeFile(new URL(`build/${mode}-interpreter.cpuprofile`,root),JSON.stringify(profile));
-  console.log(mode,profile.nodes.filter(n=>n.hitCount).toSorted((a,b)=>b.hitCount-a.hitCount).slice(0,14).map(n=>({name:n.callFrame.functionName,hits:n.hitCount})));
 }
 session.disconnect();

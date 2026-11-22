@@ -43155,3 +43155,81 @@ and dynamically discovered producers, verifies one preparation per producer,
 and retains an undemanded stage. This is a scheduling change, not a demonstrated
 end-to-end speedup. Current release inputs are frozen while the documented public
 bootstrap builds and body-smoke/self-compilation run in local-frontier-release-native.log.
+
+### 2026-11-21: retire completed formatter probe and simplify CPU profiling
+
+Begin on main 0e9717a with pull/rebase up to date. The prior goal turn made
+authoritative progress: interpreter measurement migration was committed, checked,
+pushed and published. Audit the remaining manual probes before translating them.
+The 64-line format-benchmark.mjs has no live build, package or documentation
+caller outside this journal. Absence of automation alone was deliberately not
+enough for the earlier formatter audit: read its original purpose and completed
+trials here. It compared the old C++ formatter with the Tower port, including
+the recorded paired declaration/comment/string measurements. That migration is
+complete and the C++ implementation is retired. Decide to retire this historical
+comparison, preserving its script at 0e9717a and all earlier measurements here.
+The maintained Tower format_suite/format_expected fixtures retain exact text,
+ordered spans, canonical round trips, comments and failure cleanup. No assertion,
+formatter implementation or release gate is removed. Reuse the prior verified
+formatter evidence; do not run a repository-wide formatting sweep for deletion.
+
+CPU profiling remains useful, but the profilers already save standard
+.cpuprofile captures. Search finds no consumer of profile-compiler's sampleCount,
+hotspots or towerHotspots fields, nor of profile-interpreters' console ranking.
+Remove the duplicate function-name aggregation, sorting, regex filtering and
+truncation instead of porting it. Preserve raw samples/call trees in the captures,
+compiler timing/source/object hashes in its existing JSON report and timing versus
+sampling separation. Document inspecting the saved captures. The standard raw
+profile is the evidence; no in-house profile analyzer is required by this task.
+
+Move the interpreter profiler's inline Foundation program into
+scaffolding/benchmarks/interpreter_profile.tower with an explicit Foundation import
+and named iteration count/mask. Keep its arithmetic, wrapping i32 behavior, calls
+and control flow. JavaScript now reads this file through its existing I/O boundary.
+The workload's text changes, so retain frozen inputs when comparing profiles; no
+historical compile-time or speedup equivalence is claimed. Other parser, diagnostic,
+replacement and compiler probes have distinct useful manual purposes; do not
+delete them solely because they are not automated. Their remaining reusable logic
+and generated cases still require removal-or-Tower review in later milestones.
+
+Freeze index f257675102fed735a036382f892096d4390086ec in owned
+/cache/profiling_cleanup_checkout, container tower_agent1_c_checks. Public checked-in
+bootstrap 6022aa2b emits Foundation successfully for the new workload. Compare the
+old literal program (copied verbatim to an ignored .tower fixture) and the new file
+using current verified native successor f8ea8a68: graph and fast each print
+445698544. No new foreign-language helper or installation step is introduced.
+
+Validate against exact published 89151aa assets from Pages 1923c4ee. Verify hashes
+for the reused interpreter/LLVM reactors and downloaded compiler/project.json,
+functions.tower and collections.tower against the published manifest. Recipe hash
+6bb32ed6ca69670c6e4ead51f278aacd80a05b1aaf503c6adf37846a440fd54f.
+The unchanged baseline profile-compiler fails before measuring anything with
+"Cannot read imported module: foundation_syntax". It supplies only Bedrock,
+Foundation and Tower while Foundation now imports the rest of its prelude.
+Fix only this file-capability transport: pass the saved recipe's root and types/
+Tower sources as builtins during LLVM initialization. Compilation continues to
+receive the same complete saved recipe, not live checkout compiler files. After
+all readers stop, update only that script in the frozen snapshot (index
+06c8fa1b3603c1407ca0731e4a20a5c075abb2a7). No language/import semantics change.
+
+With no concurrent builds/tests, run profile-compiler on functions with one warmup,
+two paired samples, one sampling repeat and the same reactor as baseline/current.
+It passes deterministic object comparison and writes timing JSON plus a valid raw
+profile (384 nodes/81 samples). Run its sampling-only path on compiler_entities
+with one repeat: full recipe imports compile and the capture has 17668 nodes/
+25567 samples. Each capture has matching sample/timeDelta counts. The new report
+retains its timing/hash metadata and has none of the removed summary fields.
+Run profile-interpreters unchanged in its three modes/eight executions each:
+graph, fast and LLVM-optimized Foundation complete; captures contain respectively
+20266, 5050 and 1182 samples with corresponding time deltas. These counts show
+successful capture, not performance improvements. Logs and artifacts use
+build/profiling_cleanup_* and /cache/profiling_cleanup_*; all runs exit zero after
+the baseline capability repair. Reuse unchanged compiler/runtime build evidence.
+
+Net deletion is 76 JavaScript lines and one file; current tracked JavaScript is
+182 files/24234 lines, 196 lines (0.80%) below the 24430-line baseline. Python and
+owned C/C++ remain zero, shell 9/230 and CMake 39/1603. No todo.txt or bootstrap pin
+changes. Publication must preserve the latest verified runtime assets and append
+only a tooling receipt. Next consolidation candidates include the remaining
+parser measurement CMake bridge and reusable browser measurement aggregation;
+retain explicit host timing versus compiler timing contracts when simplifying.

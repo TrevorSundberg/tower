@@ -1,0 +1,19 @@
+import foundation;
+
+fn add(a: i32, b: i32): i32 {
+    var sum = a + b;
+    return sum;
+}
+
+var iterations: i32 = 500000;
+var xor_mask: i32 = 17;
+var i = 0;
+var sum = 0;
+loop {
+    var stop = i == iterations;
+    if stop { break; }
+    sum = add(sum, i);
+    sum = sum ^ xor_mask;
+    i = i + 1;
+}
+print(sum);
