@@ -48369,3 +48369,438 @@ rejection type-object hook. Obsolete shared profile selector must be removed
 while retaining that hook and the standalone target. No publication lease or
 final acceptance; aggregate/address bugs and final coherent instrumentation,
 clean bootstrap/browser/generation and hosted publication remain required.
+The reviewed integration is now local main commit
+`0817375496d2dd6841107c1b91133058eaf12f8d`; its post-commit pull/rebase is current.
+This is a source checkpoint, with all previously stated acceptance gates still
+open. No publication request, lease or push follows from it. Additional short
+CLI checks on c7b8 confirm a local callable named `function` shadows the static
+signature form (sizeof result 2), and malformed empty/void-parameter signatures
+produce their specific diagnostics. The local-callable case is added to the
+existing two-target graph/fast harness; the updated unit is not yet compiled.
+No benchmark conclusion is drawn from these short validation runs.
+
+The required-stage continuation join now independently passes the original full
+constructor fixture and the complete `types` suite. Compiler SHA-256 is
+`f0d2921995f9d580e43befee602127795f3336d6c5b462ab314d7d5c3ced7447`.
+Smallest evaluation compilation passes in 19.48 s wall / 15.97 s CPU /
+729828 KiB RSS; native two-step rebuild takes 30.81 s / 21.46 s / 783604 KiB;
+three runner steps take 10.11 s / 7.28 s / 317448 KiB. Exact resource-copy diff
+passes. The full type suite takes 44.14 s / 52.03 s / 395872 KiB and verifies
+both interpreter engines and pointer widths, source-bound i32 replacement,
+canonical reconstruction, workers 1/2/4/8, malformed/ABI cases, operand effects,
+runtime capability boundaries and eight repeated zero-entity/component-retention
+compile/run/close cycles per width. Query smoke also passes. This is source-specific
+feature acceptance, not final provenance, sanitizer, performance or publication
+closure. A1/L1 still own distinct required/optional capture failures.
+
+Scalar artifact investigation found a separate consequence of ordinary type
+helpers: imported but uncalled functions caused both the opaque-type scan and
+C/Roku collection to reject/preserve otherwise scalar programs. L1 and L2 agree
+on two shared root/reference predicates in existing `foundation_nodes`: module
+effects and exports remain roots, private functions enter through bound calls or
+function references. Canonical formatting and the shared graph are unchanged.
+L2 consumes those predicates in `type_object_program`, with a visited set only
+for function identities to bound recursive reference edges. A proposed extra
+reachability module was not implemented; existing consumer indexes are retained.
+
+The smallest L2 consumer compiles (1.99 s / 1.75 s / 182484 KiB). Its source-level
+capability tests cover scalar/unused helpers, recursive calls, reached opaque
+values, indirect references and exports at both target widths, comparing complete
+canonical text before and after the query. An initial parameter named `expected`
+hit the grammar's reserved word; the diagnostic is preserved. Renaming it to
+`wanted` yields a passing smallest harness (4.31 s / 3.61 s / 241464 KiB).
+These are not joined runtime receipts. Narrow handoffs are
+`L2_runtime_type_reachability.patch` and `L2_reachability_fixture.patch`.
+
+B1's consolidated-prelude formatter expectations replace the previous five
+overlapping files after exact reverse checks; the prior parser entry-point
+resource propagation remains because it is absent from that replacement. A
+private asset-packager tool builds from the public pin in five steps. The existing
+Windows Node22 packaging check then fails before bundling because the pinned LLVM
+submodule is uninitialized and its license file is absent. The exact repository
+submodule is being initialized; no stand-in license, skipped assertion or passing
+packaging claim is substituted.
+
+The LLVM submodule checkout subsequently completes at the repository's exact pin,
+`1e57ee22ca274b663eeb279fd86e7010a8441c99`. The same packaging test then passes
+under verified Windows Node22 and the private public-bootstrap-built packager
+through the existing WSL transport: one test, zero skips, 2.84 s elapsed. Its
+initial missing-license failure remains in the logs. This is packaging-fixture
+evidence, not a release build or hosted verification.
+
+L1's role reader and A1's matching publishers are adopted together, followed by
+the executable-lowering receipt fix. Required source proof and optional known
+proof now occupy separate producer fields; new component layouts require fresh
+dependents. B1's refined parser-budget replacement restores both defining-type
+imports after exact reversal of the previous bundle. L1's incremental execution
+validation exposed missing earlier implementation and fixture prerequisites in
+this clone. The complete 21-path owner bundle is now merged against its recorded
+60741c5 base with Git's three-way application, preserving already integrated
+hunks; its complete reverse check passes with no conflicts. No L2 type-object or
+A1 publisher file is replaced by that bundle. These are unvalidated new joined
+inputs, not extensions of the earlier f0d292 runtime receipt.
+
+### L2 merged role/reachability validation and corrected retained-value oracle
+
+L1 independently found that the first reachability harness incorrectly expected
+an unused local type binding to survive checking. The saved canonical Foundation
+contains only `return 1` in that function. The production predicate stays unchanged;
+the old case remains a negative regression. Seven cases now cover scalar roots,
+unused private helpers, recursive calls, erased bindings, actual returned type
+values, callbacks and a scalar-ABI export with input-dependent mutable type values.
+Each query must preserve the complete canonical text at target widths 4 and 8.
+The initial failed assertion and its canonical evidence remain in lane logs.
+
+The coherent public-pin build includes the paired L1/A1 required/optional input
+roles, executable lowering receipts, refined B1 parser budget, complete L1 execution
+bundle and the corrected L2 fixture. Native compiler SHA-256 is
+`0b6c90cb340929368b5fa8a3b2db878b57b2e71ae12450fb08780d8362266ae2`.
+No private bootstrap override is used. On the same WSL/LLVM19 host, 32 native
+steps pass in 71.81 s wall / 104.03 s CPU / 785084 KiB peak RSS; five runner steps
+pass in 15.95 s / 17.01 s / 332912 KiB. Build timings are operational observations,
+not quiet paired performance: L1's pinned dependency checkout overlapped part of
+this interval. A fresh Linux scaffolding copy passes an exact `diff -qr`.
+
+All following checks finish with exit zero; raw logs/timing records use the
+`role_reachability` prefix in the external L2 evidence directory:
+
+| Check | Wall s | CPU s | Peak RSS KiB |
+| --- | ---: | ---: | ---: |
+| Source rejection plus both consumers' reachability/canonical cases | 1.48 | 1.70 | 181696 |
+| Complete types suite | 44.36 | 52.47 | 426188 |
+| Query smoke | 0.06 | 0.06 | 59632 |
+| Control smoke | 39.59 | 44.36 | 251964 |
+| Full semantics | 5.48 | 6.57 | 301104 |
+
+The type suite retains the existing 1/2/4/8-worker, graph/fast, target-width,
+canonical reconstruction, nested ABI, constructor/effect and zero-retained-entity/
+component checks. Full semantics includes the formerly crashing independent-world
+fixture. These results validate the merged source snapshot, not universal race
+freedom or final publication. Owned processes drain before releasing the local
+heavy-build slot. Pull/rebase with autostash preserves all changes and reports
+main current. The D1 ordinary-recursion diagnostic-only patch is then reviewed
+and adopted; its own type-smoke rerun remains pending, so it inherits no pass.
+
+The complete two-file owner handoff is now
+`L2_runtime_reachability_validated.patch`, SHA-256
+`c92f7a67ec6125db3ca88e53247c8936b8b67494ae37b69370e6b1530e7506a6`,
+relative to checkpoint 0817375. It replaces the earlier combined consumer/fixture
+or separate patches and passes an exact reverse check. The accompanying handoff
+states prerequisites and replacement rules. Large-function scan cost, equivalent
+before/after profiles, positive compiler sanitizer/stress runs, clean bootstrap
+publication and browser/hosted verification remain explicit acceptance gates.
+
+### L2 frozen type-path performance and opt-in reachability profile
+
+The passing merged role/reachability snapshot is now local main commit
+649a1c1219e0010b7788f1a44d8f20c585329c94 (parent 0817375). Pull/rebase preserves
+pending owner fixtures; no publication or public pin is implied. D1's recursion
+oracle and L1's explicit opt-in selector are subsequently integrated. The owned
+profile helper compiles with the public pin in 2.72 s wall / 2.36 s CPU /
+188244 KiB RSS. Its defining type/API imports are explicit. The helper's Linux
+x64 rusage ABI is a native measurement boundary, not browser/portable coverage.
+
+The existing runner receives only an explicit type-reachability-profile mode,
+excluded from all and CTest. The Tower helper constructs checked programs with
+16, 256 and 1000 ordinary private functions, an exported parameter-dependent
+caller and known output equal to the function count. Calls are sequential to
+avoid measuring the guest stack bound. After a warm query it runs three samples
+of 256 read-only queries. Checking/execution/formatting/reporting stay outside
+the timed regions. All nine samples return the scalar result, retain identical
+entity/component counts, preserve complete canonical text and close the session
+through the ownership assertion.
+
+| Reachable generated functions | Median wall/query us | Median CPU/query us | Process peak RSS KiB | Live entities / components |
+| ---: | ---: | ---: | ---: | ---: |
+| 16 | 11.233 | 11.277 | 182964 | 17256 / 19848 |
+| 256 | 318.443 | 318.723 | 185908 | 34535 / 41926 |
+| 1000 | 2906.145 | 2900.758 | 211764 | 88103 / 110374 |
+
+This measures the function-vector's quadratic growth, not constant-time lookup
+or parallel speedup. At 1000 functions one query takes about 2.9 ms. Keep the
+concise implementation for now; this result does not explain the much larger
+normalized-package regression reported independently by L1. RSS includes the
+checked graphs and runtime; transient allocator call counts are not measured.
+The complete profile finishes in 4.00 s wall / 4.41 s CPU / 211764 KiB.
+Raw records are L2/logs/type_reachability_profile.*; helper SHA-256 is
+05a442e8180ba30a35c0ee6d1b923259f6726215d0fbd5e1c22dac0dfa723e77.
+
+The public-pin runner rebuild completes nine steps in 43.81 s wall / 64.97 s
+CPU / 783736 KiB (including unchanged common objects whose mtimes changed).
+A fresh exact resource copy passes diff. Updated type smoke passes in
+40.64 s / 45.42 s / 252616 KiB, preserving genuine declaration/capture cycles.
+Execution runner SHA-256 is
+d0b55bff98fc573a3954607ae65fc5c75ea80f57a621e2bdc690a0dee6126b47;
+worker runner is
+6e6df95d063930492240f93a6bbfb84cf4a6a18d31884ab082e3ca1c60e56aa7.
+B2's editor-import fixture exposes a separate body-worker abort in L1's newer
+source-root build; that known failure is not redundantly rerun or called fixed.
+
+Whole-compiler measurements then run alone under the local host lease on
+WSL Linux 6.18.33.2 x86_64, Ubuntu Clang/LLVM 19.1.1, the assigned 8-core/16-thread
+host and 15.3 GiB WSL memory limit. Baseline compiler SHA-256 is
+37ca7ab55e4755d1158edc733277b7b7bcafc6e452e8711f41db5072dc2ffd67;
+current is 0b6c90cb340929368b5fa8a3b2db878b57b2e71ae12450fb08780d8362266ae2.
+Each has complete, byte-identical adjacent language/library/runtime resources
+copied from the same frozen snapshot, with no retired types/ forwarders.
+Explicit source, Bedrock and Foundation inputs are also identical. The target
+is the default Linux x64 profile. Fresh processes reuse warm filesystem caches;
+there is no cold-cache claim and no hibernation overlap.
+
+Each fixture/worker setting has one warmup pair followed by four retained pairs
+with balanced before/after order: 80 executions total, 16 warmups and 64 retained
+samples. Graph mode measures source bindings, computed arguments and the 22147-byte
+body-continuation program; cached mode measures actual runtime type values.
+Every exit is zero and every stdout equals the independent expected zero.
+Compiler hashes and adjacent-resource parity still match after the campaign.
+The following are medians; CPU is user plus system and RSS is per-process peak.
+
+| Fixture / workers | Wall s before -> after | CPU s before -> after | RSS KiB before -> after |
+| --- | ---: | ---: | ---: |
+| Type bindings / 1 | 1.415 -> 1.450 | 1.390 -> 1.445 | 169584 -> 172194 |
+| Type bindings / 4 | 1.200 -> 1.205 | 1.510 -> 1.500 | 186228 -> 191506 |
+| Computed arguments / 1 | 1.345 -> 1.385 | 1.415 -> 1.435 | 172202 -> 172246 |
+| Computed arguments / 4 | 1.265 -> 1.235 | 1.565 -> 1.530 | 191480 -> 192676 |
+| Body continuations / 1 | 1.505 -> 1.515 | 1.495 -> 1.510 | 179698 -> 181808 |
+| Body continuations / 4 | 1.305 -> 1.275 | 1.665 -> 1.585 | 204648 -> 204044 |
+| Runtime type values / 1 | 1.590 -> 1.585 | 1.560 -> 1.565 | 178192 -> 178326 |
+| Runtime type values / 4 | 1.370 -> 1.345 | 1.685 -> 1.645 | 193104 -> 198200 |
+
+The two small graph cases show a modest 2.5-3% serial wall cost; do not describe
+this as a universal speedup. Larger-body and type-value serial medians change
+by less than 1%. Current four-worker wall medians improve 1.12-1.20x over current
+serial, with roughly 4-7% extra CPU and 11-12% additional process RSS. Compared
+with the baseline, the largest median RSS increase is about 2.8% in four-worker
+type bindings. These are whole-compiler comparisons across the integrated
+changes, not isolated attribution to one handler. Existing checked worker
+overlap/ownership tests and zero-retention type loops provide separate evidence;
+CLI timings alone do not establish per-phase overlap, idle time or race freedom.
+
+Inputs, host metadata, raw phase/CPU/wall/RSS samples and final identity checks
+are in L2/logs/type_pairs_* and type_pairs_649a1c1/. Both owned sessions drain
+successfully before the host slot is released. A1's newer source-root/capture-range
+changes are deliberately not in this frozen production snapshot. Their final
+coherent validation, supported positive sanitizer/stress passes, public-bootstrap
+closure and leased atomic deployment remain required.
+
+### L2 positive compiler instrumentation and backend root review
+
+At local main 6aa8ffb23218f311a5152add6926668d2430595b, pull/rebase reports
+current and the working tree is clean. Production inputs remain the validated
+649a1c1 snapshot. The local host slot is acquired after L1 drains its six
+same-Foundation comparisons. A fresh own cache, /root/.cache/tower/l2_ecs_address,
+is configured with TOWER_SANITIZER=address, compiler jobs 1, outer build jobs 2,
+work/backend/execution tests enabled and no private bootstrap override. The
+public pin remains 9653f8187a104ca84ab5d8601f336d7e1ed8200206544c70a81415018d623d02.
+The canonical build-native.sh entry point uses Clang/LLVM 19.1.1. Source inputs
+stay frozen through build and execution; later source-root/capture candidates
+are not part of this receipt. Build logs are L2/logs/sanitizer_address_build.*.
+Instrumentation and execution are pending at this entry; the configured object
+manifest alone establishes no sanitizer coverage. No intentional invalid-memory
+or deliberate-race probes are repeated. Linux x64 ASan/TSan positive workloads
+are the intended checks; source-language UBSan and browser sanitizer coverage
+remain unsupported by the current implementation.
+
+L1 independently reports three balanced pairs on identical 118962-byte canonical
+Foundation input (SHA256 6f2571a1821e3d7f93a2ced1bc6433b64a685b6eb1b927fab3420858e277b3e5),
+with identical adjacent resources, explicit grammar, wasm32, graph mode and one
+worker. Baseline 36342 versus b28 medians are 11.05 versus 16.27 s wall,
+10.89 versus 16.46 s CPU, and 180024 versus 215356 KiB peak RSS. All six outputs
+match the exact saturation oracle. This attributes about 47% wall, 51% CPU and 20%
+RSS growth to compilation of identical canonical input, in addition to the
+separately observed generated-source growth. It does not isolate a handler;
+both snapshots precede the proposed 120-byte capture metadata. The original
+package 30-second deadline remains a real failed gate. Logs and method are
+L1/logs/signed32_same_foundation_* and L1/profile_same_foundation.sh.
+
+Read-only review of B2_backend_execution_roots.patch 5d3e769c finds its executable
+edges consistent with the shared Foundation helper contract: module effects,
+direct calls, callback references, exported/foreign signatures, argument values
+and control bodies remain reachable. The function-indexed admission array checks
+identity, source_functions preserves every original slot, and import lookup
+skips null symbols for omitted private functions. KType and metadata attributes
+are not backend executable operations. This is a disposable index over frozen
+entities and does not change canonical declarations. Static review finds no
+edge-contract blocker; owner runtime/export/address/effect and allocation tests
+remain necessary. This candidate is not applied during the sanitizer freeze.
+The separately routed blanket driver fixture language-prefix patch is also not
+applied: coordinator/D1/D2 review found existing explicit Foundation imports
+whose activation and source offsets must remain intact.
+
+### L2 completed positive ASan receipt on frozen type implementation
+
+The fresh address-mode compiler build completes 82 steps, 177.69 s wall /
+298.87 s CPU / 820780 KiB peak RSS. The three existing runners build in 17 steps,
+27.44 s /35.85 s / 335548 KiB. These are validation-build costs, not production
+performance comparisons. Compiler SHA256 is 2797171f94e32610ed5c0a8afafd8c749817977ba522a69c5b2ee14b0eba82c7;
+execution runner fa4dcc4d739cc078ec6f1234e95449b8760796760a0c7030afcbf1d035ed689c;
+worker runner ea3a936c43ebb0eca0da6048b414382e7530c2303ca7fdbb3c8f97d3ebefa056;
+pool runner a017cb90bca800597c6446e203950002f7b1001a7ea6aafe9f89b2f4a90c587d.
+All use public-pin compiled inputs at source 6aa8ffb, production 649a1c1.
+
+The actual link commands contain -fsanitize=address. Saved llvm-nm output for
+individual Tower objects and archives contains the inserted __asan load/store
+hooks, including the semantic/interpreter/runtime inputs. The object manifest,
+full build commands, hashes, stdout/stderr and time/status records remain in
+L2/logs/sanitizer_address_*. Third-party LLVM itself is not rebuilt with ASan,
+and target programs subsequently compiled by this compiler are not implicitly
+instrumented. The matching source resource tree passes byte-for-byte diff.
+
+Every following process exits zero with ASAN_OPTIONS=detect_leaks=1:halt_on_error=1:
+
+| Actual instrumented workload | Wall s | CPU s | Peak RSS KiB |
+| --- | ---: | ---: | ---: |
+| Executed constructor operands/suspension/receipts/capabilities, both widths | 10.71 | 13.46 | 766352 |
+| Source rejection, runtime roots and seven type-reachability cases per width | 10.42 | 13.86 | 770828 |
+| Query smoke, serial/threaded 32/64-bit staging and resumable dependencies | 0.53 | 0.59 | 166876 |
+| Complete types, canonical reconstruction, 1/2/4/8 workers and repeated cleanup | 410.87 | 492.78 | 1033672 |
+| Production pool, 16 overlap/allocation rounds plus early failure drains, trial 1 | 0.05 | 0.07 | 95516 |
+| Same pool, trial 2 | 0.04 | 0.07 | 95840 |
+| Same pool, trial 3 | 0.04 | 0.07 | 95568 |
+| Standalone compiler, type_object_values, four workers, fast execution | 11.21 | 14.33 | 778700 |
+
+The standalone stdout is byte-compared with the independent exact zero oracle.
+The full type fixture retains target-width, graph/fast, ordinary source-bound
+prelude, generic/constructor/effect/ABI/error, canonical and repeated zero-entity/
+component-delta assertions. The pool checks distinct real worker identities and
+barrier overlap; its deliberate early function returns exercise lawful cleanup,
+not invalid memory or intentional races. No sanitizer finding or leak is reported
+in these runs. This evidence is specific to these inputs and schedules, not proof
+of universal memory safety or race freedom. No sensitivity probes are rerun.
+
+All owned processes 43227/13344/94318/52218 drain before the local slot is released
+to L1 for queued backend/editor checks. Separate actual TSan compiler/runners are
+still required. New A1 source-root/capture/editor and B2 backend-root candidates
+are not part of this frozen receipt; changed ownership needs its affected final
+checks. The build/native staging directory now contains the address validation
+variant because build-native.sh stages its selected cache; the ordinary native
+cache and complete 0b6c90 comparison packages remain preserved. Restore/rebuild
+ordinary assets before packaging. No public bootstrap pin or deployment is
+claimed. This journal/audit update changes no runtime code, so additional runtime
+performance measurements for the documentation itself are inapplicable.
+
+### L2 next coherent capture and host integration freeze
+
+After all address-mode jobs drain and receipt commit 8391a52 is pulled/rebased,
+L2 integrates the coordinator-reviewed corrected capture v3 patch f5d3f2bd.
+No v1/v2 or withdrawn b30 candidate was applied here. Exact source_roots4784413a,
+evaluation_failure_walk and late_capture prerequisites apply first; the partial
+late-capture implementation is immediately replaced by v3 before any build.
+Forward/reverse checks pass. The new lowering stage explicitly leases each
+initializer declaration whose existing capture payload the worker writes; a
+function lease alone is not treated as recursive. Terminal admission and
+aggregate/private-frame behavior remain required dynamic gates.
+
+The same freeze includes A1 editor background checks 6a6eeed6, the 30-case lifecycle
+fixture/module and reviewed source-proof root/extension/invalidation fixture,
+B2 native path identity 77df2699 plus actionable diagnostics 1110c19f, and backend
+execution roots 5d3e769c. Exact D1 per-fixture Foundation imports, scalar fixtures,
+request production-source property, parser retention census and failure-message
+flush are integrated with D2's explicit measurement-input repair. The rejected
+blanket Tower-prefix patch was never applied. Every patch check passes and
+existing D1 recursion/source-reachability oracles remain intact. These edits are
+not covered by the earlier 6aa ASan receipt.
+
+The host slot is acquired after L1 drains all jobs. Public-pin smallest capture
+and lifecycle units precede the coherent native rebuild in the own l2_ecs_native
+cache, compiler jobs 1 and outer jobs 2. Source snapshot and untracked hashes are
+L2/capture_v3_source.patch and capture_v3_untracked_hashes.txt; build logs use
+L2/logs/capture_v3_*. Inputs are frozen. Known/query/lifecycle/types and affected
+ownership checks must pass before final instrumented validation. TSan is now
+queued against this updated ownership implementation; repeating an old-source
+full matrix just before replacing those contracts would not close the final gate.
+
+Separately, D1/D2 found that the opt-in profile's unconditional import still
+introduced Linux getrusage into the portable execution runner. L2 prepares a
+standalone entry in the same Tower helper, preserving the exact measured workload
+and setup, with explicit ABI size checks. Draft SHA256 is
+9f1c96574312e3fea1d6f018dd248b03d5583b56fbc57129048bd6c1e9bd3a0a.
+D1 owns the shared linked-compiler target registration and Linux x64 admission;
+L1 owns removal of its four selector hunks. That target prerequisite is pending,
+so the draft is external and the running source freeze is unchanged. Prior Linux
+profile receipts remain valid; no portable profile claim is made.
+
+L1's independent backend-root validation preserves graph/package/native output 45,2,
+uncalled export value 11 and native symbol presence; canonical Foundation retains
+the unused type helper while LLVM omits it. The original signed32 emission still
+fails its unchanged 30-second deadline with status 124. A separately identified
+longer diagnostic run finishes emission 33.86 s and load 16.17 s with exact output;
+canonical text is now byte-identical to the old 118962-byte baseline. Thus generated
+source growth is fixed while the remaining compilation regression is not.
+No timeout relaxation is used as acceptance evidence.
+
+### L2 joined v3 failures and exact source checkpoint
+
+The smallest capture unit passes in 19.24 s wall / 16.29 s CPU / 735560 KiB RSS;
+the 30-case lifecycle unit passes in 3.02 s / 2.73 s / 203224 KiB. Normal public-pin
+native rebuild passes five steps in 32.12 s / 38.78 s / 788300 KiB. Four existing
+runners build in ten steps, 18.71 s / 25.81 s / 341040 KiB. Fresh resource diff is
+empty. The normal native staging directory is restored by this build.
+Compiler SHA256 is d09bad2c15560ccf00b70f4b7ae8987f1ffc377e745f17e79afac4fa6dc4fe44;
+the initial execution runner is 0c75bf2b3b88648b115bce1750a58182e8b836de6389306bb31931a67bec713f;
+LR runner is b06413dac691b212d980a137c31fefb3be88a7d322065be55541518e781daeaa.
+These establish build success, not acceptance of the new ownership behavior.
+
+The original known_bindings.tower now compiles/runs independently and prints the
+exact zero oracle. Query smoke, including new frozen-root retention, generic proof
+extension and joined invalidation cases, passes. The full known suite first fails
+in 21.71 s / 25.47 s / 298660 KiB because a rejection oracle expects the old generic
+Compile-time input failed text instead of the precise source-proof failure.
+The coordinator authorizes exactly two oracle updates after independent checks:
+
+- Effect-count source SHA256 ea4c09900e0d570930824058f3598354c5511dec091e1ded1aaa4de61efe7f6a
+  rejects with exit 1 at 1:14.
+- Parameter-capture source SHA256 6529ef339217b8e3cb2b8f45397db1f5ca3da6a36afbc96cc3c47dc490b54301
+  rejects with exit 1 at 1:23.
+
+Both report Compile-time expression cannot capture runtime storage: binding is
+mutable, escaped or lacks an initializer. Only those two expected strings change;
+the source programs, pointer/cycle expectations and diagnostic offsets remain.
+The minimal handoff L2_known_capture_oracles.patch has SHA256
+ eee891ac0315e6e9267b9606a1d6da212115320d87855288be7455fb3ec79f23.
+An initial one-off source written by Windows PowerShell included a UTF-8 BOM and
+was rejected at byte zero for missing language syntax. That transport failure is
+preserved as capture_v3_known_effect.*, and supplies no semantic evidence; the
+separately named no-BOM reproduction supplies the result above.
+
+After the two narrow corrections, the complete known suite still FAILS in
+21.56 s / 24.95 s / 300404 KiB. Its next unchanged pointer-capability case is
+accepted: address() returns bits(usize, &x) for its local x, a binding captures that
+result, and comptime(binding) is printed. Independent current CLI execution exits
+zero and prints 32, whereas this existing fixture requires rejection. Source SHA256
+is af85480bfd7944d51e3deebd8c74b6ce9e78fc14859207bd1dd67f1afb684329.
+The pointer oracle is preserved. Logs capture_v3_known_address.* and
+capture_v3_known_oracle.* are sent to A1/L1/D1; no root cause is assumed from the
+output alone.
+
+The independently run type-smoke lifecycle gate also FAILS by signal 6 after
+76.09 s / 83.36 s / 212776 KiB, with a valid-source compilation assertion.
+Exact A1 global and local aggregate fixtures independently reproduce rejection
+at 1:125 and 1:138 with Compile-time expression cannot capture runtime storage;
+pass explicit compile-time arguments. Each CLI exits 1. Their required outputs
+remain 7 then 8, and 15, respectively. The owner receipt and input hashes are in
+L2/aggregate_receipt/A1_aggregate_v3_receipt; own logs are capture_v3_aggregate_exact.*
+and capture_v3_local_aggregate_exact.*. This is an implementation failure, not an
+expected-message correction. Untested later lifecycle cases are not called passed.
+
+All build, runner and reproduction jobs drain before the local slot is released
+to L1 for the interpreter/aggregate/capability investigation. Final instrumentation
+awaits valid ordinary gates; the prior 6aa ASan receipt remains specific to that
+older source. At coordinator request, all reviewed imported source producing this
+compiler and the revised runner is checkpointed locally with its patch roster and
+source manifest. Pending standalone profile registration, B2 hover follow-ups,
+entity-registry fixture repairs and backend-index registration are excluded because
+they have not been integrated or built. This checkpoint is not final acceptance,
+a public bootstrap pin, a deployment, or permission to weaken failed contracts.
+
+Merged exact coherent checkpoint7ac22f4 after all cd8 jobs drained. Twenty
+conflicted paths were reconciled against the complete reviewed diff: retained
+newer D1/A2/B1/B2/D2 registrations, backend overlap helper, named capacities,
+allocation wrapper, Tower-source sanitizer mappings, ownership comments and
+standalone profile. Kept all119 new L2 audit lines and423 journal lines. Only
+test code changes relative to b56adea are the exact two L2 known-error messages
+and the source-rejection type-object reachability hook. Removed the obsolete
+shared getrusage selector while preserving that new hook; no compiler algorithm
+or ABI bytes change in this merge. Clarified type-values documentation that
+0b6c90cb's complete type pass is historical, not current capture-v3 acceptance.
+No discarded newer fixes or failed pointer/aggregate oracles, no feature branch.

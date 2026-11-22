@@ -1287,3 +1287,12 @@ minimal Bedrock reset-stimulus repair and failure-only utility flush; pending
 implementation/retest. This does not weaken any lifetime/failure assertion or
 relabel B1's older storage pass. Detailed measurements/failures are in the journal
 and capture_harness_cd8a30c logs; no full compiler release claim follows.
+
+The reviewed7ac integration adds no new Tower path. `execution_main.tower` now
+also calls the existing type-object reachability oracle in source-rejection;
+it retains the standalone profile boundary without the obsolete shared Linux
+import. `known_binding_checks.tower` accepts L2's exact two independently
+reproduced mutable/parameter source-proof diagnostics. Address/comparison/cycle
+programs and expected failures are byte-unchanged. All newer D1-side fixtures and
+registrations survive the merge; new runner execution is pending, not inferred
+from historical fulltypes results.
