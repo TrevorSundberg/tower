@@ -334,7 +334,7 @@
     "validation": "79 runtime/LLVM/package checks; eight threaded package/worker checks; two edited browser compiler generations; four final worker-reuse/stale-permit browser checks; ten output/viewport/frame checks. Fresh native successor after final compiler-source rebase. All 86 local deployment asset hashes and full desktop/mobile flows pass."
   },
   "scope": "Typed function values and indirect calls, integrated shared-memory linker and frontend improvements; standard Tower-defined types before vectors.",
-  "previousDeployment": "d671a0b7e1bbe09458dbb2a192e007613f8440f2",
+  "previousDeployment": "6db66ec2a707b474710532c2c52a1750c5a91565",
   "measurementToolingMigration": {
     "implementationCommit": "1007d4179107c6c5372afcb9d1233a406695e992",
     "validationCommit": "824af121b0441df8c2a6af9e6a328bd6a0164018",
@@ -374,8 +374,8 @@
   "bootstrapExecutableSha256": "81928f54125bd182cad2e0f52a0b6a543d59fa454ab87b18a0b69fd28a5e59c8",
   "publishedBootstrapSha256": "9bf8779c9b5844e6f5b0df6688a3ac517b2b4f9924b84c36f19c572b93b8e459",
   "bootstrapSha256": "81928f54125bd182cad2e0f52a0b6a543d59fa454ab87b18a0b69fd28a5e59c8",
-  "sourceCommit": "8c863a4eaeb009d48c465512792a63804e043d9a",
-  "publicationNote": "Test-tooling source milestone: replace native linking and browser-export shell checks with the existing Tower driver. Preserve the current runtime buildSourceCommit, all 86 verified assets and previous tooling receipts.",
+  "sourceCommit": "dcfaa3330a8bf1d8513b8995e7c56a6e20ecc82a",
+  "publicationNote": "Source/test-tooling receipt only: retire Windows/target-pack shell runners in favor of validated Tower driver commands. Preserve runtime build identity, all 86 assets and all other lane receipts.",
   "buildNote": "Built from source identical to rebased 51c038e using the validated 81928f54 intermediate bootstrap. Final 9bf8779c pin passes relocation and a fresh default successor. Two edited browser compiler generations agree byte-for-byte; callback/worker/native/Wasm checks and all 86 local assets plus desktop/mobile flows pass.",
   "buildSourceCommit": "51c038e0d15480256f7dfd7991155874b97d2cab",
   "compilerSourceTree": "20c6c50153808034b10941b27b9523e05ba68624",
@@ -449,5 +449,65 @@
     "successorSha256": "b3775dabaced622e58a6f67095f8e29889b97a4a362011838707f23582b9343a",
     "nativeWasmSha256": "b0303c4a397cbe97387a4e62169b2021fd3f5cc0733d65e3dea22ba17046488a",
     "limitations": "Linux x64 execution modes; omitted QEMU explicitly skips ARM64. Windows shell runner still consumes two expected files. No compiler or runtime changes; no full release rebuild. Core wrapper no longer requests sanitizers."
+  },
+  "targetValidationToolingMigration": {
+    "sourceCommit": "dcfaa3330a8bf1d8513b8995e7c56a6e20ecc82a",
+    "scope": "Windows and five-target validation; no production compiler or runtime asset change",
+    "removedScripts": [
+      "playground/scripts/test-target-packs.sh",
+      "playground/scripts/test-windows-linking.sh",
+      "playground/scripts/run-windows.sh"
+    ],
+    "entryPoints": [
+      "tower-driver-tests --windows-linking",
+      "tower-driver-tests --target-packs"
+    ],
+    "shellBefore": {
+      "files": 17,
+      "lines": 414
+    },
+    "shellAfter": {
+      "files": 14,
+      "lines": 344
+    },
+    "postPythonBaseline": {
+      "files": 19,
+      "lines": 483
+    },
+    "pythonFiles": 0,
+    "ownedNativeSourceFiles": 0,
+    "validation": {
+      "publicBootstrapSha256": "9bf8779c9b5844e6f5b0df6688a3ac517b2b4f9924b84c36f19c572b93b8e459",
+      "unchangedNativeCompilerSha256": "b3775dabaced622e58a6f67095f8e29889b97a4a362011838707f23582b9343a",
+      "objectCompilation": [
+        "Linux x64",
+        "Windows x64 and Windows test transport",
+        "macOS ARM64"
+      ],
+      "targetLinks": [
+        "Linux x64",
+        "Linux ARM64",
+        "Windows x64",
+        "macOS x64",
+        "macOS ARM64"
+      ],
+      "actualExecution": [
+        "Linux x64",
+        "Linux ARM64 through QEMU",
+        "Windows x64 through WSL interop"
+      ],
+      "limitations": [
+        "macOS link/header validation only; no actual macOS execution"
+      ],
+      "negatives": [
+        "Wine child exit 77 is failure",
+        "successful linker without new output cannot reuse stale executable",
+        "unavailable optional QEMU/Windows execution explicitly skips"
+      ],
+      "nativeLinking": "PASS; obsolete expected-output files eliminated",
+      "driverCtest": "PASS (10.61s)",
+      "unchangedNativeCompiledWasmSha256": "b0303c4a397cbe97387a4e62169b2021fd3f5cc0733d65e3dea22ba17046488a",
+      "browserChecks": "Previous 26 checks reused because compiler, browser inputs and native-compiled Wasm are unchanged"
+    }
   }
 }
