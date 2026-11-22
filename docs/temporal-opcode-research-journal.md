@@ -46577,3 +46577,172 @@ claimed. An exploratory search included absent scaffolding/CMakeLists.txt and
 returned 2; actual build entry is root CMakeLists.txt. This affected no check.
 Documentation checkpoint has no executable behavior change; runtime profiling
 remains inapplicable until implementing the proposed harness change.
+
+### 2026-11-22 D1 continuation: frozen baseline and fixture contracts
+
+D1 source-review ledger now covers 261/437 assigned Tower files, individually in
+`docs/compiler_ecs_audit_d1.md`, reviewed against initial `6282238779034442e0578d76b921ca117df819f1`.
+Additional reviews cover entity storage/ownership, body and execution harnesses,
+ordinary values/control, strict numeric references, guest/runtime allocation and
+source-defined types. These are source findings, not newly executed checks. The
+tracked 1,011-file roster has complete coordinator-confirmed ownership; D2's new
+wide-source wrapper awaits its commit before adding a tracked-file receipt.
+
+The first docs checkpoint commit needed clone-local author configuration (git
+initially rejected unknown author identity). Set the author to the existing
+recent-history identity, committed, then rebased over coordinator documentation
+`d3ec5a4` without compiler changes. Current D1 HEAD is `f32e3c7c59555a7f45e187c2ac6fdedd9a73ea01`.
+A subsequent pull --rebase --autostash preserved only D1's own uncommitted audit.
+No unrelated edits or todo changes observed. Documentation-only audit changes
+have no runtime performance/memory effect; no such measurements are attributed
+to them.
+
+Coordinator authorized D1's work_pool cleanup fix. Source shows early returns
+can leave admitted workers blocked behind a semaphore while borrowing stack
+jobs. work_pool_close drains workers, so callers must first release that barrier.
+Proposed regression forces partial/full-admission early return after actual worker
+entry, retains the original nonzero status and checks joined completion receipts
+before the stack owner expires. This remains a proposal until baseline and code
+validation; no production A2 files will be edited. A native normal-workload
+selector will preserve equivalent before/after profiling input separately from
+the extra regression cases. Existing browser main calls without arguments must
+keep working.
+
+Source audit located further legacy no-import literal sources in execution_core,
+execution_packages and execution_semantics/semantic_cases. L1 owns coordinated
+case-table import migration and source-rejection/package selector; D1 sent exact
+additional paths through status, avoiding competing edits. D2 owns the narrow
+measure_kernel explicit Foundation import fix. Foundation-only numeric rejection
+cases must remain Foundation; struct_value_reject does not silently add imports.
+Do not weaken required negative tests or treat syntax errors as intended semantic
+failures. storage_main deliberately uses installed host syntax with its module
+cache detached, so its no-import legacy sources need their actual harness setup
+when reproduced. body_runs line 529 root_source remains queued for reproduction.
+
+After D2 reported all initial heavy jobs drained and released its lock, D1
+atomically acquired `/home/deck/tower_coord_ecs_20261122/heavy.lock`. Created only
+own Docker container `tower-d1-ecs` from image
+`sha256:4be584fb42a6cefb921b8f8bd686f61ef6e7e721eee2393b2ab1dfce16a7f4f6`, binding
+this clone and private cache `/home/deck/.cache/tower-d1-ecs-20261122`. Installed
+GNU time in that container (successful log `build/d1_ecs/install_tools.log`). Host
+missing LLVM remains a boundary; no sibling cache or unrelated container used.
+
+Active frozen command (not yet a passing receipt): Docker user 1000:1000,
+`unset TOWER_BOOTSTRAP_COMPILER; /usr/bin/time -v -o build/d1_ecs/native_baseline.time bash playground/scripts/build-native.sh -DTOWER_WORK_TESTS=ON -DTOWER_BACKEND_TESTS=ON -DTOWER_EXECUTION_TESTS=ON`.
+Log `build/d1_ecs/native_baseline.log`, tool session 88468, time PID 2696480,
+Ninja PID 2696570. Empty D1 cache, one Ninja job, CPUs 0,2. Existing CMake recipes
+omit --jobs and get_nprocs ignores this affinity for admission: this is NOT an
+explicit two-worker measurement. Focused direct compiler profiles will set jobs1/2.
+Initial disk 142 GiB free, memory 9.8 GiB available, existing swap 5.6 GiB; last
+mid-build observation 9.0 GiB available with no increased swap. No compiler/test
+input edited during build. Final browser/generation/sanitizer/stress/publication
+acceptance remains open; A2 coordinates actual emitted Tower instrumentation.
+
+### 2026-11-22 D1 work-pool failure cleanup: implementation and measured evidence
+
+Clean public-bootstrap native build completed 51/51, no private override, in the
+isolated Docker environment above: 292.94 s wall, 307.93 s user, 20.41 s system,
+854,564 KiB peak RSS, zero swaps. Public pin SHA256
+`9653f8187a104ca84ab5d8601f336d7e1ed8200206544c70a81415018d623d02`;
+D1 native output `36342c85f4febd28bb0897db63776ee5f2d0934561bdd1ff499e45e1cffc93e8`.
+Scaffolding tree before changes `9703a7c0264660e42831a41636fd6fe457dce1b0`.
+This is a development bootstrap receipt, not a portable release claim. Baseline
+work-pool target then built six steps, 16.64 s wall, 19.04 s CPU, 233,308 KiB RSS.
+
+Implemented only the D1 test harness `tests/work_pool.tower`: local pool/signals
+start empty, one lexical defer releases all outstanding barrier waiters, receives
+their results, closes the pool, then destroys signals. This runs before the
+stack-backed jobs leave scope. Existing error return values remain intact. New
+cases force return after one admitted job and after all available fixture lanes,
+waiting for actual worker entry first; caller checks the original injected error
+and joined result receipt. Normal full-width barrier/distinct-thread checks and
+production allocator remain. Native `--normal` selects the identical original
+16-round workload; argument-free browser main continues through argc=0.
+
+The first cleanup-block implementation compiled successfully but repeated the
+large deferred body at each exit. Factoring it into a typed helper cut emitted
+object size from 20,144 to 16,632 bytes; single CLI timing observations were
+6.844 s versus 3.940 s. These single observations are not a robust speedup claim.
+Both intermediate build logs remain under `build/d1_ecs/pool_after/`.
+
+All jobs drained before edits/build changes. Three warm samples per direct object
+profile, x86_64-pc-linux-gnu, public pin, ordinary optimization, explicit jobs1/2,
+fixed Bedrock/Foundation/resource inputs; all six before objects match each other
+byte-for-byte and all six final objects match each other. Final code legitimately
+changes object bytes. Measurements (wall seconds, user+system seconds, KiB RSS):
+
+| Profile | Before samples | After samples |
+| --- | --- | --- |
+| jobs1 compile wall | 3.51, 4.36, 5.74 | 3.80, 3.65, 4.28 |
+| jobs1 compile CPU | 3.45, 4.26, 5.56 | 3.72, 3.59, 4.17 |
+| jobs1 compile RSS | 192884, 192712, 192776 | 194192, 193992, 193976 |
+| jobs2 compile wall | 3.87, 4.00, 4.36 | 4.04, 3.89, 4.19 |
+| jobs2 compile CPU | 4.51, 4.57, 4.95 | 4.65, 4.53, 4.82 |
+| jobs2 compile RSS | 217516, 217480, 217020 | 217756, 218328, 218096 |
+| Paired normal runtime wall, 100 processes | 1.54, 1.44, 1.22 | 1.58, 1.53, 1.21 |
+| Paired normal runtime CPU | 1.92, 1.83, 1.51 | 1.94, 1.92, 1.48 |
+| Paired normal runtime RSS | 33976, 33232, 33504 | 34316, 33240, 34100 |
+
+Initial unpaired baseline runtime samples were slower (2.25/2.54/2.00 s), so the
+retained original executable was rerun adjacent to the new normal-only command.
+Every command returned zero and stdout matched exactly. Fixture runtime uses four
+actual workers on the two-core affinity; its barrier proves simultaneous admitted
+waiters and thread IDs, not useful compiler speedup. Parallel compiler samples
+consume more CPU and memory; the small parse-heavy fixture establishes no useful
+scaling. Runtime ranges overlap and small overhead needs reverse-order pairing
+before a strong regression conclusion. Peak memory remains approximately 33 MiB
+for four concurrent 8 MiB allocations. This is RSS evidence, not a live allocation
+counter or proof of absence of all retained memory. Raw timings/phase logs are in
+`pool_before/` and `pool_after/`; no global failure allocator was used concurrently.
+
+New regression passed once and for 100 timeout-bounded full lifecycles, including
+200 injected early returns, wall 2.18 s, CPU 2.64 s, peak 34,876 KiB RSS. Independent
+negative control is Tower source under `build/d1_ecs/negative_control/tests/`:
+copy the final fixture and omit only barrier release. Normal workload still
+passes; the forced early-return case times out with status 124 at three seconds.
+Its process was reaped before further work. This expected failed mutation proves
+normal success alone misses the problem; it is not labeled a passing unmodified
+suite. Native and wasm transport null-signal-close contracts were read before
+using unconditional cleanup. Browser and actual Tower-code sanitizer coverage
+remain open (A2 owns the latter investigation).
+
+### 2026-11-22 D1 body-root import repair and continuing audit
+
+Coordinator/B1/B2 confirmed the source hypothesis in body_runs line 529. D1 built
+the focused LR harness (3/3 steps), ran the complete bodies selector and reproduced
+SIGABRT/134 after 17.57 s wall, 17.51 s CPU and 263,492 KiB RSS. Block-buffered
+stdout lost diagnostic text on abort; logs are preserved. GNU time's footer says
+Exit status 0 despite its signal-6 header: the tool/process result is FAILED.
+Rerunning only that failing selector with `stdbuf -oL -eL` captured four successful
+32-bit source/canonical trials, canonical reparse, then the exact missing-language-
+import diagnostic and `Body continuation compilation` assertion. Both failed
+processes drained before editing.
+
+After reading modules/Foundation seed/import contracts, prefixed this one literal
+with `import foundation;`. Its raw layout/sizeof/function/output logic and every
+matrix assertion are unchanged. No implicit prefix was added to a helper. The
+smallest body_runs unit compiled using the public pin/jobs1; complete bodies
+rerun is in progress under the same 300-second limit. A failing-before versus
+completed-after matrix cannot be presented as an equivalent successful runtime
+speed comparison. Logs are `body_runs_before*`, `body_runs_unit*`, and
+`body_runs_after*` under D1 build logs.
+
+Canonical WASI SDK 34.0 downloaded through existing setup-wasi.sh to the private
+D1 cache, verifying SHA256 `b761e3a0721dbae9c09a0059e5fdb2bf917d1b4a8a7b430fb3b5aafb0984b2c4`.
+No sibling cache used. Disk now 141 GiB free, available memory about 9.9 GiB;
+preexisting swap varied from 5.6 to 5.7 GiB at host level while measured commands
+reported zero swaps. The source audit now covers 293/437 files. Historical
+C++/global-world claims still in Foundation/modules docs were reported to the
+coordinator; they do not override current Tower/world implementation evidence.
+No final sanitizer/browser/generation/publication completion claimed.
+
+The complete repaired bodies selector subsequently passed (exit 0): 32/64-bit
+source execution and canonical round trips at 1/2/4/8 workers, plus both
+serial/parallel diagnostic ordering/cycle groups. GNU time: wall 279.50 s,
+user 296.85 s, system 9.00 s, peak RSS 318,640 KiB, zero swaps. Deliberate worker
+widths exceed two-core affinity in some cases; this is deterministic correctness
+coverage, not profitable scaling evidence. All jobs drained (Docker top only
+owned init), then D1 released its heavy lock to D2 per coordinator scheduling.
+Browser matrices and reverse-order normal pool profiling are deferred until the
+next assigned slot. A2 production-pool positive sanitizer receipts do not yet
+validate D1's new cleanup paths. Audit now 296/437 with remaining gaps explicit.
