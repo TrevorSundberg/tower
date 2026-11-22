@@ -747,3 +747,38 @@ would be inappropriate. All jobs drained before the D2 lock was released;
 140GiB disk free,9.8GiB RAM available,5.9GiB host swap used at final observation,
 with zero swaps reported by the measured processes. These checks do not validate
 the incoming capture/snapshot, prelude, budget or hardlink-helper changes.
+
+### Coherent integration and affected D2 source review
+
+Merge43f2354 retains incoming owner checkpoint0817375 and all earlier D2 work.
+Followup a3dbf2a applies the required continuation, paired input-role ABI,
+lowering receipt, lifecycle, parser/formatter replacements and approved D1
+fixture updates. It preserves both journals and the newer D2 sanitizer source
+column. Plain pull/rebase tried to flatten the merge; its uncommitted attempt
+was aborted, then `git pull --rebase=merges --autostash` completed with the same
+HEAD/tree and0817375 still reachable. No source work was discarded. Runtime
+results above retain their earlier source identities.
+
+Two assigned tool modules changed through owner integration:
+
+| Path / integrated SHA-256 | Review and disposition |
+| --- | --- |
+| `scaffolding/tools/tool_files_posix.tower` — `dfb5eaec963944eadbf711d4ef76ab8c950009aa634fc85320e4e023fcb50fd5` | A2's previously reviewed identity handoff is now integrated. Two fixed stack statx buffers, explicit Linux device/inode fields and required inode-valid mask reject same inode through hardlinks/symlinks. Only ENOENT permits a new output; no path-race guarantee. No heap storage/world/scheduler added. Actual local runtime validation of these new bytes remains pending; earlier tool_files_checks used the old helper. build_tools' comment now matches the shared helper, without changing builder logic. |
+| `scaffolding/tools/compiler_project_files.tower` — `fe687948292be4eb2263f0268989604bdf6365aaca29c78d2f71de6f2262e236` | L2 removes enumeration of deleted type forwarders; root types.tower and foundation_syntax remain included. A1 maps the new frontend-unit/query-check objects to their exact existing Tower sources, consistent with CMake INTERFACE objects. Owned buffers, synchronous resource traversal and lexical module identity remain unchanged. This is package-source mapping, not another authoritative graph. Browser/compiler-generation packaging and exact new resource closure require fresh validation. |
+
+Parser replacement initially failed its reverse check because the checkpoint had
+two additional defining-type imports. Read-only postimage comparisons verified
+the exact old source after removing only those imports; the successor restores
+them. Formatter replacement omitted an existing parser_main resource argument;
+its exact prior caller hunk was retained and all three callers were checked.
+The coordinator acknowledged that handoff correction. Four authorized EOF-only
+repairs plus one stray journal CR make the default whole-base whitespace check
+pass; earlier failures remain recorded.
+
+The source-defined prelude removes14forwarders, while the public predecessor's
+complete resources remain untouched. Both CMake configure_file and the native
+wrapper's recursive copy can retain stale output files. Final clean validation
+therefore needs a new cache **and** a fresh relocated build/native destination;
+preserve the old owned package as evidence before the wrapper recreates it.
+The current source integration still lacks final runtime/instrumentation/browser/
+generation/hosted evidence and is not publication readiness.

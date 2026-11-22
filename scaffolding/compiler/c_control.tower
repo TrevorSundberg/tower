@@ -7,7 +7,7 @@ import source_emitter_api;
 // another label on the next pass; no independent instruction graph is created.
 fn ce_reach(c: CEmitter*, entity: void*): void {
     var n = sem_get(entity);
-    if n == null {
+    if n == null || n.kind == KFunction {
         return;
     }
     var index = ce_id(c, entity);

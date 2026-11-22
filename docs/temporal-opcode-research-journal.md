@@ -47652,3 +47652,29 @@ cp-R can retain deleted type forwarders in build/native even with a fresh cache.
 Before the next canonical build, preserve the inactive old relocated package in
 an exact D2-owned artifact path, then let the wrapper create a fresh destination;
 do not delete the old evidence or reuse its resources as new-source acceptance.
+
+Followups committed a3dbf2a/scaffolding2d15430a. Ordinary pull--rebase attempted
+to flatten the owner merge and repeated the five known sanitizer conflicts even
+though origin remained60741c5. Aborted that uncommitted rebase only, restoring
+the exact committed checkpoint, then pull--rebase=merges--autostash passed with
+unchanged HEAD/tree and0817375 still an ancestor. Subsequent synchronization
+must preserve the explicitly requested owner merge topology.
+
+Before any new D2 build, root delivered execution_reachability_handoff.tgz.
+The full L1 base607 patchSHAc3066f54 applied cleanly using Git three-way merge;
+already present interpreter/type-request/input-role bytes remained unchanged.
+The incremental L2 type_objects/fixture patchSHA3e7c7527 then applied once.
+Retained A1 publishers/lowering receipts and current defining imports. The
+separate D1 oracle/registration copies in that archive are identical to those
+already integrated and were not stacked again. Source/caller review confirms
+runtime traversal uses a disposable index over the shared canonical graph,
+while formatter traversal keeps declarations. No source-pruning pass, new IR or
+constant folder was introduced. New source_execution_reachability fixture is
+L1-owned and must enter D1's final roster.
+
+Root reports the L1 closure passes its source-rejection/semantics/query/control
+checks but the new fulltypes reachability oracle still fails. These are owner
+receipts, not D2 executions; no failure or case is removed. D1 owns the current
+heavy slot for its smallest-unit checks. D2 has no active process and has not
+started a stale full build. Fresh local smallest-unit/canonical build and final
+instrumentation/release validation remain required.
