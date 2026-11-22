@@ -903,3 +903,91 @@ has a validated explicit Foundation import. Its source/language/oracles stay
 unchanged. Missing per-fixture language repairs remain pending here. Driver
 lexical path normalization is B2-owned; D2 checked that request paths outlive
 worlds and per-unit names are copied into owned module state before local disposal.
+
+### Subsequent owner handoff updates at5d4a665
+
+The exact D1 per-fixture Foundation repairsfd0966b3/6b575c81 are now integrated;
+the preceding pending-language note describes the earlier handoff only. Numeric
+and diagnostic oracles are unchanged. Failure-only assertion flushcb26ef0b
+retains abort/nonzero and adds no successful-path work; D1's three paired helper
+checks and identical successful helper bytes are owner evidence. D1's subsequent
+parser ASan receipt at4635241 covers actual26direct objects plus four memory
+archive members, three normal/three stress runs and exact teardown. Its measured
+stress RSS reduction with smaller quarantine is attribution only; default-mode
+samples remain the acceptance evidence. Neither receipt validates D2's newer
+backend inputs automatically.
+
+Incoming `scaffolding/tests/semantic_layout_profile.tower` is reviewed as A1
+v2 source SHA dc299e613dc2df5648bb51af82133e74e6f6c38dab7f67ba3eb2bfd5d152dee3,
+191lines, superseding the owner's older185line version. It constructs an explicit
+world, synchronized shared budget and11dependent layout tasks; the observer
+writes per-job component spans around the real production kernel. Discovery
+precedes timing. Exact size/alignment/field-offset oracles, task completion,
+post-join budget counts and world/budget teardown check results and ownership.
+Two warmups and three reported samples cover32/512/2048/4096/8192fields, serial,
+requested4workers and an occupied-budget case. Overlapping measured intervals
+establish simultaneous execution when observed; requested4 alone does not.
+RSS is a cumulative process high-water mark; retained bytes count layout-vector
+capacity only, excluding other world storage. Thread/clock/rusage bindings are
+Linux64 ABI boundaries, not portable-host evidence. Owned observer records are
+read after drain; no alias guarantees are inferred. The fixed8element branch
+array matches the named8branch limit. D1 owns opt-in registration; D2 source and
+runtime adoption remain pending. A1's separate experimental scheduler tuning is
+not part of this harmless export/measurement handoff. This is D2's first full
+receipt for this incoming path, bringing supplemental incoming reviews from17
+to18; D1's earlier185line review is its own evidence, not D2 coverage.
+
+### Current paired compiler profiles,5d4a665 versusa22499d
+
+Frozen compilerSHA50f58954 versus preserved15600fe0; same42resource bytes and
+identical once-compiled runtime IR. Exact existing16/1000function Tower inputs
+and15/999oracles, x86_64-unknown-linux-gnu, explicit grammar paths, object output,
+separate link, --timings and --jobs1/2. Linux Docker image4be584fb, LLVM19.1.1,
+physical CPU affinity0,2; one owned heavy job. One warmup plus three retained
+fresh-process/warm-filesystem samples per combination; compiler and worker order
+alternate. No OS-cold claim. Actual docker exec UID0 (Config.User empty), host
+controllerUID1000; both compilers use the same environment. The earlier assumed
+UID1000 container setting was not established by configuration. No permission or
+governor changes. All32executables pass exact output; repeated and serial/parallel
+objects match within each compiler. All process swap counts0, input/source hashes
+unchanged. Session27463 terminates0 and all children drain.
+
+| Input/compiler/workers | Median wall s (range) | Median CPU s | Median peak RSS KiB |
+| --- | --- | --- | --- |
+| small/a224/1 |2.13 (2.10–5.18)|2.11|176812|
+| small/current/1 |3.38 (2.10–4.47)|3.29|176264|
+| small/a224/2 |3.64 (3.42–3.66)|4.02|187520|
+| small/current/2 |3.51 (3.23–3.58)|4.14|188164|
+| large/a224/1 |2.42 (2.41–3.35)|2.39|202420|
+| large/current/1 |2.42 (2.40–3.00)|2.39|202372|
+| large/a224/2 |4.05 (3.86–4.06)|4.58|214520|
+| large/current/2 |3.88 (3.43–4.46)|4.52|215096|
+
+Two workers provide no useful speedup on these inputs and increase CPU/memory.
+Small serial variance is substantial; its median difference alone cannot
+establish a regression. Powersave governor and differing instantaneous CPU
+frequencies were observed, with low CPU pressure and zero memory pressure;
+these are potential contributors, not a measured causal attribution. Current
+large serial combined parse/check median2.065s versus predecessor2.064s dominates
+execution; LLVM lowering/optimization is much shorter. No worker-idle/critical-
+path trace or allocation census is exposed by this ordinary CLI timing path.
+Raw phase/time/context-switch/resource/output artifacts are retained under
+build/d2_ecs/current_f89bfc9/paired_profiles. A host observation write there failed
+because Docker-created files are root-owned; the explicit retry saved to its
+host-owned parent, preserving the original transport error. Compiler samples
+were unaffected. Prior independently authored Clang/GCC comparison retains its
+own earlier source/host receipt; it is not new execution or a competitiveness
+claim for this compiler. Backend-root fixture validation remains separate.
+
+Current backend-root fixture source is reviewed at5d4a665 by its B2/D1 owners;
+D2 independently exercises the compiler boundary. Graph/fast/raw native/optimized
+native all produce45and2. Both native symbol tables retain the exported function.
+Canonical Foundation retains unused_type and reparses to the same output in
+0.44wall/.42CPU/104560KiB. Predecessor raw LLVM has eight definitions (including
+signed_integer, unsigned_integer and unused_type); current has the five executable
+entry/direct/callback/recursive/export definitions. Raw file bytes8885→6416
+include different ModuleID output paths, so the difference is not an exact
+normalized payload saving. Predecessor raw-native output also passes in
+3.71wall/3.66CPU/174904KiB; this single observation versus current2.99s is
+correctness evidence, not a statistical speedup claim. All children drain and
+D2 releases the shared slot to D1 before changing further production inputs.

@@ -47944,3 +47944,75 @@ request fault sweep still pending. D1 has now independently completed actual
 ASan parser normal/stress checks at its own source freeze; that receipt does not
 validate D2's newer backend/source closure. Next D2 freeze will capture precise
 Ninja rebuild reasons and paired current/predecessor workload outputs/profiles.
+
+#### D2 precise incremental-build receipt, source5d4a665
+
+After D1 released its actual ASan parser slot, D2 acquired the host lock normally.
+Same public bootstrap9653f818, Docker image4be584fb/LLVM19.1.1, CPUs0/2,
+outer/compiler jobs1, no override. Smallest backend/lowering compiles in7.26wall/
+7.20CPU/259180KiB and parser_benchmark in3.55/3.50/187304, raw0. Source manifest
+covers tracked scaffolding, CMake and build-native inputs; it remains unchanged.
+
+Unlike the preceding timestamp-invalidated53step rebuild, actual Ninja explain
+now identifies precisely two dirty objects: driver_units.tower's newer imported
+source invalidates tower-driver.o; lowering.tower invalidates backend-native.o.
+The changed request-test manifest first regenerates CMake. Three final steps
+(two compiles and link) pass in17.95wall/17.61CPU/374248KiB/0swaps. Canonical
+build-native.sh then passes with no compiler work,0.61wall/.54CPU/73800KiB.
+The complete relocated compilerSHA is50f589543d65395a3bcaeacccae9e946b3b634210271ce318f669176625c9bb1;
+all42resources byte-equal both preserveda224/f13 packages. This is incremental,
+not clean-cache evidence. Logs current_f89bfc9 record the exact5d4a665 source
+identity despite the earlier directory label. Session77428 terminal0 and child
+census drained before the next measurement command.
+
+The guarded merge-preserving fast-forward-only pull preserved current source
+mtimes without suppressing dependencies: real changed imports still rebuilt,
+and an unchanged configure/build did not. The earlier53step cost cannot be
+numerically subtracted as a controlled speedup; that source freeze differed.
+No generic CMake rewrite, touch/cache deletion or altered import dependency was
+needed. On actual upstream divergence the ff-only pull must fail, then a real
+merge-preserving rebase is required with affected-input revalidation.
+
+Paired runtime/profile command now uses nearest preserved predecessora22499d
+and current5d4a665, the exact existing16/1000function input/oracle files, identical
+current resource/runtime bytes, and alternating compiler/worker order. Sample0
+is a correctness warmup; three subsequent samples are fresh processes on a warm
+filesystem, not OS-cold. Every executable output and per-compiler repeated/
+serial-parallel object identity is checked. No result is assumed until the
+command terminates; previous C measurements retain their own public-source
+identity and are not relabeled as new execution.
+
+D2 paired profile phase terminates0: eight warmup and24retained executable
+checks pass outputs15/999, all repeated/serial-parallel objects match, and even
+cross-version first objects match (smallSHAcdc5a6ec; largeSHAae9e824d). Full
+three-sample median/range/CPU/RSS table is in compiler_ecs_audit_d2.md. Large
+serial median2.42s/2.39CPU/202372KiB is unchanged; current2workers3.88s/4.52CPU/
+215096KiB is slower. Small serial has2.10–5.18s predecessor and2.10–4.47s current
+ranges; do not attribute the noisy median difference to code. Powersave and
+variable frequency are observations, not proven causes; no timing sample was
+discarded. All process swaps0; source/input hashes unchanged. Actual Docker
+Config.User is empty and these commands executeUID0, with hostUID1000; both
+versions share that environment. A failed host observation-file write into the
+root-owned Docker log directory is retained, then explicitly retried in its
+host-owned parent. No ownership/permission workaround or sample mutation.
+
+Samefreeze backend execution roots fixture independently passes graph3.02wall/
+2.98CPU/171684KiB, fast2.48/2.45/177680, raw native2.99/2.94/175560 and optimized
+native2.62/2.59/177996. Exact45and2 match the arithmetic/effect oracle; nm confirms
+retained_export is a defined global symbol in both native binaries. Canonical
+emission2.91/2.84/168624 retains unused_type while raw LLVM does not lower it.
+This exercises the new private retention index without pruning Foundation.
+Session60118/raw0/drained; subsequent canonical reparse and predecessor raw-IR
+comparison are separately running, not presumed passed. No sanitizer, browser,
+full-suite or universal race-freedom claim follows from these normal checks.
+
+Canonical roundtrip now passes0.44wall/.42CPU/104560KiB and predecessor raw-native
+output passes3.71/3.66/174904, raw0/0swaps. Predecessor raw LLVM has eight functions,
+including the two prelude type helpers and unused_type; current raw LLVM has
+five executable definitions, preserving direct/callback/recursion/export. Raw
+files8885and6416bytes include differing ModuleID paths; no normalized-byte or
+single-sample speedup claim. All owned sessions terminated0, input hashes still
+match, Docker census init/sleep only. Lock released normally to D1. Disk140GiB
+free/RAM9GiBavailable; no cleanup. Capture/type/current sanitized/browser/
+generation and publication gates remain open. Next harmless owner handoffs will
+have a new source identity; these results must not be relabeled as their tests.
