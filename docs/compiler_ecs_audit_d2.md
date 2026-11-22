@@ -1044,3 +1044,14 @@ another generator or JS measurement logic. They extend six supplemental caller
 reviews (previous two tool fixtures plus these four), separate from98original
 local reviews and19incoming measurement reviews. Current native/paired staged
 execution is queued after D1's owned slot; no pass or scaling claim yet.
+
+L2's subsequent standalone profile SHA9f1c96574312e3fea1d6f018dd248b03d5583b56fbc57129048bd6c1e9bd3a0a
+preserves the exact workload and adds the existing execution runner's explicit
+resource setup/main. D2 reviewed the complete delta: path outlives borrowed
+options, request/grammar diagnostics close before path disposal, and the legacy
+host-world binding remains confined to that setup. Explicit time/usage structure
+size checks supplement width8; only a Linux64 build-target guard establishes the
+foreign ABI. It must link the existing production driver composition (including
+paths/stat providers) with compiler units; the earlier generic selector must
+remain absent. D1 owns that opt-in target. This supersedes the helper-only source
+review for the same incoming path, not an extra coverage count or runtime pass.

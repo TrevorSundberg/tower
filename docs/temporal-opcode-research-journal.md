@@ -48118,3 +48118,12 @@ invalidation cases. Its injected mutation tests the publication boundary, not
 actual late-generic alias-write discovery; the end-to-end gap stays explicit.
 Existing query-smoke hook already calls this fixture; next run must compile the
 changed tests path. No previous source-proof success has been relabeled.
+
+Reviewed L2 standalone type-profile successor9f1c9657: workload unchanged, explicit
+resource path/DriverRequest/grammar setup copied from the established execution
+entry; deferred path/request/diagnostic lifetimes are ordered correctly. Width
+and144byte usage structure checks still require a Linux64-only build guard.
+Existing production driver composition must supply platform paths/stat at link;
+reuse the ordinary helper, not a new adapter. D1 owns gatedtarget/README; generic
+execution selector remains unapplied. This is review-only while D1's existing
+frozen measurements finish, not completed portability validation.
