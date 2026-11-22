@@ -42101,3 +42101,40 @@ The candidate also compiles semantic_declarations.tower successfully
 (enum-query-self.log). These checks establish correctness of the changed worker
 ownership and continuations; they do not establish a throughput improvement or
 completion of the compiler-wide migration.
+
+The assignment/enum push was rejected because main advanced to d978b49 with
+source-defined primitive types and its complete compatible bootstrap. Rebased
+without conflicts (assignment/enum source is now 91f4a65). The earlier browser
+package completed but is superseded before testing/publication; it is not a
+release receipt for the new type prelude. Batch the following evaluation change
+with the required rebuilt publication instead of publishing two adjacent builds.
+
+Compile-time preparation now registers persistent per-compilation component kinds
+and only new evaluation subjects. Preparation no longer demands every stage:
+requested evaluation roots and interpreter-discovered dependencies activate its
+existing query. The evaluator pumps newly ready preparation between joined
+interpreter waves, closing immutable views before structural stage publication.
+Inferred-expression clones still snapshot before runtime lowering; this preserves
+their borrowed-input lifetime. No value evaluator or folding pass was introduced.
+Named work-domain/access/query IDs replace numeric IDs in the touched requests.
+
+Added low-level Tower checks for late dependency discovery, an untouched dormant
+stage, repeated scheduler calls, appended consumers and world cleanup; existing
+browser world/kernel tests invoke them. Added nested/short-circuit staged values
+to known_bindings.tower. An initial test import through execution_support exposed
+incompatible existing bytes_append foreign declarations (ByteBuffer vs vector)
+when mixed with compiler internals. Keep this internal graph test in the existing
+semantic-world test unit, separate from the execution interface harness; the
+language-level cases remain in that harness. Small-unit compiler preflight passed;
+test preflight and native build/known/body checks are in evaluation-demand and
+evaluation-query-test logs. Validation is in progress; not yet published.
+
+The internal test also needed explicit puts and semantic_support imports; its
+final small-unit preflight passes (evaluation-query-test-imports.log). The native
+build using the new public bootstrap passes, and the known-binding suite passes
+both interpreters, 32/64-bit targets, 1/2/4/8 workers, ordered capture/effect errors
+and dependency cycles, including the new dormant nested stages. Candidate
+self-compilation of semantic_evaluation_work.tower passes. Browser builds and the
+combined aggregate/body publication matrix are in progress. Source-defined type
+bindings still use coordinator checking where constructor interning requires it;
+worker admission for prepared aliases/primitive representations is a next step.

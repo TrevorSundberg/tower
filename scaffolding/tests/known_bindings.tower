@@ -79,4 +79,8 @@ check(lazy_pointer(null) == 42, "untaken pointer capture");
 var lazy_cycle_a: i32 = comptime(false ? lazy_cycle_b : 42);
 var lazy_cycle_b: i32 = lazy_cycle_a;
 check(comptime(lazy_cycle_b) == 42, "untaken dependency does not introduce a cycle");
+check(comptime(false ? comptime(1 / 0) : comptime(comptime(40) + 2)) == 42,
+    "nested stages prepare only through executed dependencies");
+check(comptime(true || comptime(1 / 0 == 0)) && !comptime(false && comptime(1 / 0 == 0)),
+    "short-circuit stages keep unused dependencies dormant");
 print(failures);

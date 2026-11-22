@@ -1,4 +1,5 @@
 import tower;
+import evaluation_query_checks;
 import .compiler.foundation_types;
 import .compiler.foundation_tags;
 import .compiler.component_kinds;
@@ -37,6 +38,7 @@ export fn semantic_world_tests(width: u32): u32 {
     var failures: u32 = 0;
     var index: usize = 0;
     while index < 2 {
+        failures += evaluation_query_tests(width, index + 1);
         worlds[index] = compiler_world_create_workers(index + 1);
         roots[index] = entity_create(compiler_world_store(worlds[index]));
         var policy: SemanticContext = default;

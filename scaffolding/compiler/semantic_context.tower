@@ -169,6 +169,10 @@ struct SemanticContext {
     evaluation_results: void*;
     evaluation_ready: void*;
     evaluation_jobs: vector(void*);
+    evaluation_preparations: void*;
+    evaluation_clones: void*;
+    evaluation_registered: usize;
+    evaluation_clone_registered: usize;
     evaluation_aliases: vector(SemanticEvaluationAlias)*;
     evaluation_depth: usize;
     unevaluated: bool;

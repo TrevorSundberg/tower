@@ -24,7 +24,7 @@ extern fn interpreter_function_result(invocation: IMInvocation*, reference: u64,
 extern fn entity_view_open(anchor: void*): void*;
 extern fn entity_view_close(view: void*): void;
 
-var EvaluationQuery: u32 = 2;
+var EvaluationQuery: u32 = convert(u32, SemanticQuery.Evaluation);
 var EvaluationFuel: u64 = 1000000;
 
 struct SemanticEvaluation {
@@ -113,8 +113,9 @@ fn sem_evaluation_request(c: SemanticContext*, result: SemanticEvaluation*): voi
         sem_require(proof != 0 && clone != 0 && work_depend(&c.queries, clone, proof));
         sem_require(work_depend(&c.queries, preparation, clone));
     }
-    sem_require(work_access(&c.queries, id, 1, 2, id, 1, WorkAccessMode.Write));
-    sem_require(work_access(&c.queries, id, 1, 3, 0, ~convert(usize, 0), WorkAccessMode.Read));
+    var domain = convert(u64, SemanticWorkDomain.Compiler);
+    sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Evaluation), id, 1, WorkAccessMode.Write));
+    sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Expression), 0, ~convert(usize, 0), WorkAccessMode.Read));
     sem_require(work_seal(&c.queries, id));
 }
 
@@ -248,7 +249,7 @@ fn sem_evaluation_cycle(c: SemanticContext*, id: usize): void {
 
 fn sem_evaluations(c: SemanticContext*): void {
     if !sem_ok(c) || c.evaluation_jobs.length == 0 { return; }
-    sem_evaluation_prepare_all(c);
+    sem_evaluation_work_register(c, false);
     if !sem_ok(c) { return; }
     var index: usize = 0;
     while index < c.evaluation_jobs.length && sem_ok(c) {
@@ -260,10 +261,16 @@ fn sem_evaluations(c: SemanticContext*): void {
     }
     if !sem_ok(c) { return; }
     if c.workers.count == 0 { sem_require(sem_workers_open(c)); }
-    var view = entity_view_open(c.program.root);
-    sem_require(view != null);
-    var batch: SemanticEvaluation*[256];
+    var batch: vector(SemanticEvaluation*) = default;
+    defer vector_dispose(&batch);
+    sem_require(vector_reserve(&batch, c.workers.count));
     loop {
+        // A suspended interpreter can demand another stage. Prepare only that
+        // ready frontier before opening the next immutable execution view.
+        sem_evaluation_prepare_all(c);
+        if !sem_ok(c) { break; }
+        var view = entity_view_open(c.program.root);
+        sem_require(view != null);
         var count: usize = 0;
         var ticket: WorkTicket;
         while count < c.workers.count && work_take_query(&c.queries, &ticket, EvaluationQuery) {
@@ -280,11 +287,11 @@ fn sem_evaluations(c: SemanticContext*): void {
                 result.invocation.context.retain_result_storage = result.aggregate;
                 result.started = true;
             }
-            batch[count] = result;
+            batch.data[count] = result;
             sem_require(work_pool_submit(&c.workers, bits(void*, &result.kernel)));
             count++;
         }
-        if count == 0 { break; }
+        if count == 0 { entity_view_close(view); break; }
         index = 0;
         while index < count {
             sem_require(work_pool_receive(&c.workers, true) != null);
@@ -292,7 +299,7 @@ fn sem_evaluations(c: SemanticContext*): void {
         }
         index = 0;
         while index < count {
-            var result = batch[index];
+            var result = batch.data[index];
             var invocation = &result.invocation;
             if invocation.state.failed {
                 result.ready.failed = true;
@@ -334,9 +341,9 @@ fn sem_evaluations(c: SemanticContext*): void {
             }
             index++;
         }
+        entity_view_close(view);
         if !sem_ok(c) { break; }
     }
-    entity_view_close(view);
     index = 0;
     while index < c.queries.tasks.length && sem_ok(c) {
         var task = work_task(&c.queries, index + 1);

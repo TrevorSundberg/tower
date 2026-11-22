@@ -1,0 +1,96 @@
+import tower;
+import .compiler.foundation_tags;
+import .compiler.semantic_program_types;
+import .compiler.interpreter_context_types;
+import .compiler.semantic_context;
+import .compiler.semantic_support;
+import .compiler.semantic_lifecycle;
+import .compiler.semantic_evaluation;
+import .compiler.semantic_evaluation_work;
+import .compiler.semantic_work_ids;
+import .compiler.compiler_kernel;
+import .library.work_graph;
+import .library.work_pool;
+
+extern fn compiler_world_create_workers(limit: usize): void*;
+extern fn compiler_world_store(world: void*): void*;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn entity_create(store: void*): void*;
+extern fn puts(text: u8*): i32;
+
+fn evaluation_query_check(ok: bool, message: u8*, failures: u32*): void {
+    if !ok { puts(message); *failures += 1; }
+}
+
+fn evaluation_query_stage(c: SemanticContext*, input: void*, requested: bool): SemanticEvaluation* {
+    var subject = sem_create(c.program.root);
+    var value = sem_attach(subject, KOperand);
+    value.type = sem_get(input).type;
+    value.constant = true;
+    var result = bits(SemanticEvaluation*, entity_component_data(entity_component_add(subject, c.evaluation_results)));
+    *result = default;
+    result.subject = subject;
+    result.owner = c.program.root;
+    result.literal = subject;
+    result.expression = input;
+    result.requested = requested;
+    result.ready = bits(IMDependency*, entity_component_data(entity_component_add(subject, c.evaluation_ready)));
+    *result.ready = default;
+    result.ready.subject = subject;
+    result.kernel.kind = CompilerKernelKind.Evaluate;
+    result.kernel.payload = bits(void*, &result.invocation);
+    sem_push(&c.evaluation_jobs, bits(void*, result));
+    sem_evaluation_request(c, result);
+    return result;
+}
+
+// Exercise a dependency discovered after its consumer has already started, then
+// append another consumer to the same graph. An unreachable stage must never
+// acquire executable nodes; pumping a completed graph must not replay work.
+fn evaluation_query_tests(width: u32, workers: usize): u32 {
+    var failures: u32 = 0;
+    var world = compiler_world_create_workers(workers);
+    var root = entity_create(compiler_world_store(world));
+    var program: SemanticProgram = default;
+    semantic_initialize(&program, root, width);
+    var context: SemanticContext = default;
+    sem_context_init(&context, &program);
+    sem_evaluation_begin(&context);
+    var input = sem_create(root);
+    var value = sem_attach(input, KOperand);
+    value.type.scalar = SI32;
+    value.type.pointer_bytes = width;
+    value.constant = true;
+    value.bits = 42;
+    var producer = evaluation_query_stage(&context, input, false);
+    var unused = evaluation_query_stage(&context, input, false);
+    var consumer = evaluation_query_stage(&context, producer.subject, true);
+    sem_evaluations(&context);
+    evaluation_query_check(program.error.length == 0 && consumer.ready.ready && !consumer.ready.failed
+        && sem_get(consumer.subject).bits == 42, "Interpreter demand prepares and resumes a nested stage", &failures);
+    var prepare = work_find(&context.queries, producer.subject, EvaluationPrepareQuery, 0);
+    evaluation_query_check(work_task(&context.queries, prepare).dispatch == 1,
+        "Late dependency prepares exactly once", &failures);
+    var unused_prepare = work_find(&context.queries, unused.subject, EvaluationPrepareQuery, 0);
+    evaluation_query_check(!work_task(&context.queries, unused_prepare).demanded && unused.function == null
+        && !unused.started, "Unreachable stage has no prepared function or interpreter", &failures);
+    var count = context.count;
+    var kind = context.evaluation_preparations;
+    var function = consumer.function;
+    sem_evaluations(&context);
+    evaluation_query_check(context.count == count && context.evaluation_preparations == kind
+        && consumer.function == function, "Repeated scheduler pump retains published work", &failures);
+    var late = evaluation_query_stage(&context, consumer.subject, true);
+    sem_evaluations(&context);
+    evaluation_query_check(program.error.length == 0 && late.ready.ready && !late.ready.failed
+        && sem_get(late.subject).bits == 42 && context.evaluation_preparations == kind,
+        "Appended stage reuses the graph and preparation components", &failures);
+    evaluation_query_check(unused.function == null && !unused.started,
+        "Appended demand leaves unrelated work dormant", &failures);
+    work_pool_close(&context.workers);
+    sem_context_dispose(&context);
+    semantic_program_dispose(&program);
+    entity_release(root);
+    evaluation_query_check(compiler_world_dispose(world), "Demanded stage workers release world ownership", &failures);
+    return failures;
+}

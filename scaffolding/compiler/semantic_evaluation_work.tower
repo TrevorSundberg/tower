@@ -11,7 +11,7 @@ import .library.stack;
 import .library.work_graph;
 import .library.work_pool;
 
-var EvaluationPrepareQuery: u32 = 8;
+var EvaluationPrepareQuery: u32 = convert(u32, SemanticQuery.EvaluationPrepare);
 
 struct SemanticEvaluationWork {
     kernel: CompilerKernel;
@@ -72,23 +72,24 @@ fn sem_evaluation_clone_all(c: SemanticContext*): void {
     sem_evaluation_work_all(c, true);
 }
 
-fn sem_evaluation_work_all(c: SemanticContext*, cloning: bool): void {
-    if !sem_ok(c) { return; }
-    sem_control_names(c);
-    var kind: void* = null;
+// Register each subject once. Preparation is demanded by evaluation, including
+// dependencies discovered later by executed interpreter reads. Clones snapshot
+// inferred inputs before ordinary lowering mutates their source expressions.
+fn sem_evaluation_work_register(c: SemanticContext*, cloning: bool): void* {
+    var kind = cloning ? &c.evaluation_clones : &c.evaluation_preparations;
+    var registered = cloning ? &c.evaluation_clone_registered : &c.evaluation_registered;
     var query_kind = convert(u32, cloning ? SemanticQuery.KnownClone : SemanticQuery.EvaluationPrepare);
-    for(var i: usize = 0; i < c.evaluation_jobs.length; i++) {
+    for(var i = *registered; i < c.evaluation_jobs.length; i++) {
         var evaluation = bits(SemanticEvaluation*, c.evaluation_jobs.data[i]);
         if cloning && !evaluation.inferred { continue; }
-        if kind == null {
-            kind = sem_create(c.program.root);
-            sem_require(entity_register(kind, sizeof(SemanticEvaluationWork), alignof(SemanticEvaluationWork), 0));
+        if *kind == null {
+            *kind = sem_create(c.program.root);
+            sem_require(entity_register(*kind, sizeof(SemanticEvaluationWork), alignof(SemanticEvaluationWork), 0));
         }
-        var component = entity_component_add(evaluation.subject, kind);
+        var component = entity_component_add(evaluation.subject, *kind);
         var result = bits(SemanticEvaluationWork*, entity_component_data(component));
         sem_require(result != null);
         fill(result, 0, sizeof(SemanticEvaluationWork));
-        result.context = c;
         result.evaluation = evaluation;
         result.ordinal = i;
         result.cloning = cloning;
@@ -97,8 +98,8 @@ fn sem_evaluation_work_all(c: SemanticContext*, cloning: bool): void {
         var id = work_find(&c.queries, evaluation.subject, query_kind, 0);
         sem_require(id != 0);
         // Disjoint expression output, immutable types and nested placeholders.
-        // Evaluation reads component 3 and writes component 2, so the graph
-        // also excludes evaluation while a preparation wave owns these inputs.
+        // Evaluation reads expressions and writes results, so the graph also
+        // excludes evaluation while a preparation wave owns these inputs.
         var domain = convert(u64, SemanticWorkDomain.Compiler);
         sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Expression), i, 1, WorkAccessMode.Write));
         sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Layout), 0, ~convert(usize, 0), WorkAccessMode.Read));
@@ -108,9 +109,18 @@ fn sem_evaluation_work_all(c: SemanticContext*, cloning: bool): void {
         sem_require(work_access(&c.queries, id, domain,
             convert(u64, SemanticAccess.Aggregate), 0, ~convert(usize, 0), WorkAccessMode.Read));
         sem_require(work_seal(&c.queries, id));
-        sem_require(work_demand(&c.queries, id));
+        if cloning { sem_require(work_demand(&c.queries, id)); }
     }
+    *registered = c.evaluation_jobs.length;
+    return *kind;
+}
+
+fn sem_evaluation_work_all(c: SemanticContext*, cloning: bool): void {
+    if !sem_ok(c) { return; }
+    var kind = sem_evaluation_work_register(c, cloning);
     if kind == null { return; }
+    sem_control_names(c);
+    var query_kind = convert(u32, cloning ? SemanticQuery.KnownClone : SemanticQuery.EvaluationPrepare);
     if c.workers.count == 0 { sem_require(sem_workers_open(c)); }
     var batch: vector(SemanticEvaluationWork*) = default;
     defer vector_dispose(&batch);
@@ -170,10 +180,5 @@ fn sem_evaluation_work_all(c: SemanticContext*, cloning: bool): void {
             vector_dispose(&result.query_reads);
             vector_dispose(&result.aliases);
         }
-    }
-    foreach(var job in &c.evaluation_jobs) {
-        var evaluation = bits(SemanticEvaluation*, job);
-        var data = entity_component_data(entity_component_get(evaluation.subject, kind));
-        if data != null { bits(SemanticEvaluationWork*, data).context = null; }
     }
 }
