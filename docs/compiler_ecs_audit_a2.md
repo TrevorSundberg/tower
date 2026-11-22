@@ -3,13 +3,13 @@
 This is an **in-progress audit**, not lane acceptance or publication evidence.
 Owner: A2 on KinmenA, exclusive `C:\Sandbox\tower-agent-2`, main.
 Reviewed source baseline: `6282238779034442e0578d76b921ca117df819f1`;
-current local `d284abce` plus the generic projection reduction includes the measured A2 changes below, on
+current local `a548dfb8` includes the measured A2 changes below, on
 published60741c51. Unmodified receipt rows retain the baseline reviewed identity;
 later changed-file receipts state their implementation commit. Session
 `01a2046f-fec2-7c71-be46-cad28f9ac147`, resumed Codex PID 15056.
 
 The production library is `scaffolding/library`, with 25 baseline files plus
-the new `work_budget.tower` (26 current files). Scope also
+the new `work_budget.tower` and routed `work_budget_types.tower` (27 current files). Scope also
 includes both compiler kernel files, component kinds, entity requirements,
 world/worker policy, and the entities/shared-check units. Imported semantic
 kernels remain A1/L2 ownership; frontend units and host transports remain B2
@@ -173,7 +173,7 @@ integrated caller acceptance remain distinct.
 | Path | Storage/ownership conclusion | Evidence and disposition |
 | --- | --- | --- |
 | `library/work_budget.tower` | Packed derived reservation entries and free-slot index; owner never copied, receipts identify owner/revision/slot/generation. Private serial ledger or immutable caller-owned gate serializes transactions. No payload store or scheduler is introduced. Zero grant creates no live entry; bytes-only reservations retain ownership until actual release. | Entire source reviewed. Seeded reference, malformed/stale/copy/foreign/revision/overflow/disposal tests pass; production concurrent allocator/transport fixture passes3ASan+3TSan. Last-error field is serial diagnostics only; shared callers use result/snapshot APIs. Caller integration, memory-accounting completeness and contention/scaling remain open. |
-| `tests/work_budget.tower` | Private owner and deterministic reference counters independent of ledger slots. Tests deliberately copy receipts to reject stale ownership. | Entire source reviewed; native passes, including optional extra lanes and bytes-only retention. OOM injection remains a separate pending case. |
+| `tests/work_budget.tower` | Private owner and deterministic reference counters independent of ledger slots. Tests deliberately copy receipts to reject stale ownership. | Entire source reviewed; native passes, including optional extra lanes and bytes-only retention. The separate work_budget_allocation fixture below now covers allocation failure. |
 | `tests/work_budget_shared.tower` | Four barrier-confirmed pthread jobs have private receipts/results/allocation, share only the gated ledger. Outer grants precede dispatch; joins precede outer release, ledger disposal and gate destruction. | Entire source reviewed. Checked conversion bug in initial fixture fixed with explicit byte modulo. Native and3ASan+3TSan pass; this stresses accounting, not useful nested compiler speedup. |
 | `tests/work_budget_profile.tower` | Frozen Linux x64 serial ledger-cost fixture, every grant and final counter checked. Caller-private timing/receipt storage. | Entire source reviewed. Nine paired executions: one-lane+0.153ns per reserve/release pair; twelve-lane median+0.37%;320/640B retained capacities unchanged. No integrated compiler comparison yet. |
 
@@ -309,3 +309,126 @@ retained job/input/slot capacities unchanged, no new allocations. Tiny single-jo
 than a speed claim. Serial32x1000 remains50.749/50.720us. Parallel tiny-job
 results remain approximately unchanged and still require profitable grain sizes.
 Full CPU values, identities, environments and logs are recorded in the journal.
+
+### Routed ownership boundaries and additional full-file receipts
+
+Reviewed at a548dfb8 plus the named coordinator handoffs, all still separate
+uncommitted owner inputs. A1 WorkBudget extraction preserves every enum value,
+field order and algorithm; work_budget_types source hash
+faa18b85e2d7c67bfc1f8fc8bf4cfe44d13681ca9adaaf0aa53dc956f2ed32dd.
+B1 vector_reset source2e5fa2c9826c2a4e0f02a3659c237080b3571209dc9b152dac2cca7b1b64f0f6
+uses complete default for exactly three existing fields after free. B2v2 bundle
+2a1b4d89b9e01ccce40d23c22aeb3c4f37195e2b2f45a66b0ee426c374d8b93b
+and B1 parser bundle12ed8cfc76fb5f79e4f9ba07b260d72163c5c41bdbe118578d626295f3c7e469
+were read completely before applying. Only defining-type imports and preservation
+of the newer release-after-publication comment were reconciled. No owner
+algorithm was changed by A2. The later coherent-join receipt below supersedes
+this first boundary checkpoint.
+
+| Path relative to scaffolding | Full-file review conclusion and disposition |
+| --- | --- |
+| `library/work_budget_types.tower` | New defining module contains only the existing ledger/receipt/error/snapshot layouts and vector declaration dependency. Lifetime, serial diagnostic field and borrowed immutable gate remain explicit. No alternative ledger or type registry. Source fully reviewed; native/reference/concurrent tests pass after extraction. |
+| `compiler/parser_workers.tower` | Full routed source. ParserAdmission distinguishes host/world capacity from extra-lane grant. Zero grant succeeds without live receipt; standalone worlds explicitly use capacity. Synchronous dispatch must drain before close; close cancels unfinished logical tickets then releases the active receipt. Retained pool grows only between exclusive cache leases. Parser heap bytes remain unaccounted, not silently capped. |
+| `compiler/lr_first_work.tower` | Full routed source. Stable ECS job payloads borrow a frozen frontier/analysis and write distinct nonterminal results. Each wave reserves extras and all graph ranges/tickets before dispatch; coordinator swaps result vectors and builds next frontier after joins. Legal grammar fixed points do not imply scheduler cycles. Zero extras take ordinary serial computation. Upfront scratch cost before that decision remains an unmeasured admission cost. |
+| `compiler/lr_state_work.tower` | Full routed source. Job components are allocated lazily only after useful-work and grant admission. Worker-private analysis failure flag and disjoint result slots; coordinator interns states/ordered transitions after joins, then resets revision before reuse. Scope defers retain grant through result publication and cleanup. B1 owns the measured grain threshold and end-to-end performance evidence. |
+| `compiler/lr_runtime_work.tower` | Full routed source. Private row/goto/conflict outputs, deterministic state-order conflict selection and coordinator hash interning. Graph ranges/tickets and grant precede dispatch. Transferred rows/vectors are detached from cleanup; all remaining scratch drains/frees on failure. Explicit work executor still constructs private jobs/pool for a zero-extra grant; its cost needs representative owner measurement before changing policy. |
+| `compiler/lr_work.tower` | Full routed source, both halves read. Closure/link/action/propagation use immutable grammar inputs and disjoint derived outputs, then ordered publication after joins. Closure tickets are all taken before batch dispatch. Propagation's unique destination index proves disjoint result headers; no noalias inferred from pins. Every phase's receipt survives publication; setup failure cancels outstanding logical leases after the synchronous helper drains. Grammar cycles are monotone fixed points, not work-graph cycles. |
+
+B2's full14-path delta preserves old snapshots/receipts until all replacement
+copies succeed and reserves exact new capacities before allocation. Backend
+execution receipts now release after output/graph publication; denied exposed
+LLVM output is destroyed before failed publication. The finite CLI256MiB default
+is provisional and covers declared snapshots/targets/exposed objects, not all
+compiler/LLVM heaps or RSS. The world wrapper fixture covers null/standalone,
+empty/active/stale/foreign receipts and binding after historical identities.
+Smallest LR4units, LR/world budget fixtures, frontend/backend units all compile
+with public pin/jobs1. Full nested runtime acceptance still needs A1 semantic
+callers and the coherent linked boundary; these objects are not merged-run proof.
+
+L1's later trace refines the earlier queued-reference note: executable/evaluation
+snapshots use sem_defer_clone -> sem_control_node -> entity_stage_create, without
+copying provenance metadata onto the stage queue. A2 reread these exact paths.
+Generic cloning instead calls compiler_node_copy_metadata_staged and needs the
+explicit hold before the last pin closes. Current snapshots borrow the strongly
+owned program/declaration tree through joined publication. No missing-hold defect
+is established for those snapshot paths; re-audit if generic/provenance cloning
+is admitted there. Body/lowering owner proofs remain A1's responsibility.
+
+New `tests/work_budget_allocation.tower` is a complete reviewed fixture (hash
+fe6f08420e7937439e90bad7fc8e03c407ea76a09b0d1d4e8f3d9d425352a8cd).
+It checks first-entry and growth failure rollback, unchanged inactive output,
+live receipt validity, allocation-free empty grants/free-slot reuse, stale copied
+receipts and exact final buffer ownership. Three runs of16rounds pass with the
+existing serial memory_instrumented/work_portable recipe, alongside the existing
+worker fault sweep. This is allocation-failure coverage, not threaded sanitation.
+No production algorithm changes; runtime profiling of the added test does not
+measure a production before/after change. Bash wall3..4ms/user1ms/system0ms;
+no peakRSS claim for this tiny check. Production ledger/profile/concurrency
+measurements are separate. D1 owns future generic harness registration.
+
+### Coherent owner join and additional scheduler receipts
+
+Reviewed at a548dfb8 plus the coordinator's named source handoffs. The full A1
+type/query/world/frontend split, ten semantic admissions, L2 generic admission,
+L1 constructor/interpreter changes, B2 lowering and current B1 formatter are now
+applied. Owner patches remain separately attributed working changes; this is not
+a published commit identity. The external coordinator_integration_receipt.txt
+records exact bundle hashes and prerequisites. Its missing consolidated L2
+prelude and pending nominal-role fixes remain acceptance gaps.
+
+| Path relative to scaffolding | Source review and ownership conclusion | Evidence/gap |
+| --- | --- | --- |
+| `compiler/semantic_context_types.tower` | Full defining module reviewed. Semantic entities remain authoritative; scope/lexical continuations, observation vectors, scratch and work graph are compilation-owned indexes. Shallow copies borrow many fields and need per-kernel private replacement. | Mechanical A1 boundary; component128MiB policy is not whole-process memory. Kernel isolation needs caller-specific review. |
+| `compiler/semantic_declaration_types.tower` | Full module reviewed. Stable component owns ticket, declaration/frame capture, query reads, private error/scratch/stage and resumable discovery/admission state. | Type/initializer meaning remains A1; offsets alone do not establish capture identity. |
+| `compiler/semantic_evaluation_types.tower` | Full module reviewed. One world-owned evaluation retains ordinary interpreter invocation, dependency pointer, aliases and aggregate leaves across suspension. | L1/A1 jointly own invocation lifetime; no second evaluator introduced. |
+| `compiler/semantic_known_types.tower` | Full module reviewed. Derived proof work holds private ordered candidates/mutations/patches, with coordinator publication after joins. | Shared semantic payloads are borrowed; pinning supplies no write permission. |
+| `compiler/semantic_source_binding_types.tower` | Full module reviewed. Proof facts identify the original declaration and owning query; pipeline retains jobs across suspension. | No copied runtime frame or duplicate binding authority. Publication only after applicable proof. |
+| `compiler/semantic_constructor_types.tower` | Full module reviewed. Call/clone/alias/execute/ready continuation references the ordinary instance and evaluation component. | A1/L2 own constructor/cycle correctness; current nominal cycle failure is open. |
+| `compiler/semantic_query_api.tower` | Full declaration boundary reviewed. Linked clients share defining types and the single production implementation. Context/program/world survive disposal drain. | No implementation fork or new scheduler. Exact linking passes current query smoke. |
+| `compiler/semantic_layout_kernel.tower` | Full source reviewed. Stable result component owns offset vector; kernel reads published type layouts and produces size/alignment/error without structural mutation. | Layout payload is sparse/stable; ordered fields remain explicit. Kernel grain may be too small for useful parallelism. |
+| `compiler/semantic_layout.tower` | Full source reviewed. Dependencies/access/tickets precede dispatch; disjoint completed layouts publish before work_finish unlocks consumers while unrelated jobs may run. Source-order task ordinal selects failures after drain. | A1 owns production. Initial ready frontier determines one grant for the whole pump: initial one-ready chain can leave later fanout serial. Measurement proposed, no speculative fix. |
+| `compiler/semantic_execution_work.tower` | Full source reviewed. Executable snapshots are derived Foundation entities. Frozen context is copied, mutable scratch/diagnostics replaced, root leased before dispatch; all stages publish before ready inputs/work_finish. Grant survives joins and publication. | Strong source tree ownership supplies snapshot lifetime; this clone path does not queue provenance holds. Final merged concurrent failure/cancel checks remain open. |
+| `compiler/semantic_generic_body_work.tower` | Full source reviewed. One ECS clone executor handles function/type instances; node budget bounds each wave. Grants/tickets/stages precede dispatch. Queued references are held before last view closes; accepted stages publish, failures discard, then tickets finish. | L2 generic admission included explicitly. Node quota is distinct from declared-byte/RSS ledger. No second AST or clone scheduler. |
+
+The first coherent build rebuilt42 affected native steps and7 work/LR steps with
+the documented public pin, jobs1/outer2, CPU12-23/24GiB. Work and query smoke pass.
+Type smoke aborted on a nominal constructor treated as a runtime value; the
+unbuffered diagnostic is preserved. Applying the exact A1 nominal-expression
+frontier compiled the smallest lifecycle and affected semantics/native link;
+query smoke passes again. Control smoke now reports the known recursive nominal
+identity/layout cycle in query_type_record/query_type_alias. Later suites did
+not run in those fail-fast scripts. No type/control acceptance is claimed.
+
+D1's focused_registration.patch was read and applied after jobs drained. It only
+wraps existing fixture entry points and registers ordinary checks/opt-in profiles
+through the existing object/runtime rules. Defining-type imports are preserved;
+historical unsafe probes are not registered or rerun. Current linked execution
+is recorded separately from D1's handoff evidence.
+
+### Real parser retention attribution
+
+B1's exact parser_retention.tower and raw host/owned-world CSV were reviewed.
+At512rows, iteration10->11 adds one buffer and one56-slot component page while
+entities2048/components2047/cache entries2 stay fixed. The observer enumerates
+actual unique pages outside timing; its private index is disposed before the
+next iteration. Full isolated-world teardown restores the initial buffer count.
+Source f0033081ec3a8623b01d0ecc38c4d00e3f92b436b50c6ef57a4e2cb7086c4688,
+binary2790d0c7e3b693413c2c77235fbf80014aa82d6147b34efc908fc576c18cd50d.
+These are B1 serial allocation measurements, not A2 threaded sanitizer results.
+
+The actual entities.tower allocator was reread: A=max(type alignment,pointer
+size), stride=align_up(payload size+pointer size,A), slot=stride+component header,
+C=min(16384/slot,64). Paging is used only for C>=2. Requested page bytes are
+page header+C*slot+pointer size+(A-1). Used slots grow monotonically; a full page
+detaches from the allocation pool. Every last-component release frees its page.
+At joined/published/discarded quiescence each retained page has at least one live
+component, hence per-type page count<=pooled live components. Store counts omit
+unpublished private components, so the bound cannot blindly use store counters
+while stages are live. Requested bytes also differ from allocator usable bytes.
+
+D1 received this source-derived bound for its oracle: attribute buffer deltas
+to actual page allocations, preserve stable entity/component/cache ownership,
+and require exact final teardown. Flat page count or an arbitrary extra-page
+allowance would not model this stable-address allocator. No production allocator
+rewrite is justified by this bounded retained page alone. Documentation of this
+receipt changes no runtime behavior and requires no before/after runtime profile.

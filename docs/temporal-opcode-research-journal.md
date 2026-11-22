@@ -47015,3 +47015,161 @@ Logs kernel_projection_{profile,overhead}_{paired,summary}.log;
 summary is the existing Tower parser, original label means prior batch and
 batch label means projection in these two-group comparisons. This is measured
 shared-transport cost, not a whole-compiler speed claim. All jobs exited0/PID0.
+
+## 2026-11-22 A2: owner handoff review and allocation rollback coverage
+
+Applied A1's approved mechanical WorkBudget defining-type extraction to the
+library, four shared fixtures and world wrapper boundary, retaining the newer
+join-and-publication comment. B1's exact three-field vector reset is also applied.
+Owner patches remain separately dirty, with no silent authorship transfer. Public
+smallest budget/shared/admission/profile/world object compiles pass, then3ASan+
+leaks and3TSan shared-ledger runs using real production allocation/transport.
+Logs budget_boundary_checks.log,work_budget_boundary_{address,thread}_{1,2,3}.log.
+Shared raw IR0cf29686ea08a95f02d779445bdcebb5871168e931d7d42ca698156d8b3ff217;
+world objectb190bf41a5b8a3a1c8062da303c86470a4f4ec77a08211329bf28a1949a8c018.
+These world exports compile; wrapper runtime coverage awaits a coherent link.
+
+Nine alternating pairs on the unchanged reference ledger workload compare the
+previous gated implementation to extraction+vector reset. Linuxx64/public pin,
+default optimization, CPU12-23/24GiB, one executing lane, warm process inputs.
+1,048,576one-lane reserve/release pairs wall4.647997/4.771770ms,
+CPU4653/4779us;12lane87382rounds4.997575/5.211706ms,CPU4999/5213us.
+PeakRSS before1048..1332/after1048..1328KiB, retained ledger320/640B unchanged.
+Median shifts are approximately0.12/0.20ns per transaction pair with overlapping
+ranges. No algorithm/layout change or speedup claim; vector compile-expansion
+benefit needs B1's source-closure receipt. Profile binary
+e018fdc78e154019b68b23256b5329812fc83534fe06a30896d12b52c0b4d03c;
+logs budget_boundary_paired.log/budget_boundary_summary.log. No exact allocator
+call/critical-path counters were added to this frozen timing workload.
+
+B2v2 handoff and all14path changes fully read, then applied cleanly. The old
+B2 unit bundle was never applied here; existing world binding/wrappers preserved.
+Finite exact snapshot reservations precede replacement allocations; failure
+preserves old configured input and receipt. Backend grants now survive graph and
+output publication, and denied exposed output is reclaimed immediately. CLI cap
+256MiB is provisional declared-byte accounting, explicitly not process RSS/opaque
+LLVM/parser heap enforcement. World wrapper tests exercise receipt semantics.
+B1 parser_budget_derived full8path bundle read/applied with two defining-type
+imports; all five production scheduler files then reread in full. Source findings
+and remaining measured-admission questions are in compiler_ecs_audit_a2.md.
+
+Public --library --emit object/jobs1 compile preflight of lr_first_work,
+lr_state_work,lr_runtime_work,lr_work,lr_budget,world_budget,frontend_units and
+backend/units passes. Wall seconds3.495,3.391,3.624,3.303,2.026,1.662,17.360,
+4.580; user2.605,2.543,2.728,2.536,1.416,1.170,12.899,3.531;
+system0.214,0.204,0.216,0.169,0.146,0.101,0.891,0.264.
+These are smallest-unit build checks, not runtime or compile-memory speed claims.
+Log owner_boundary_compile.log; container exited0/PID0. A1's further frontend
+linked API boundary has been reviewed but not applied; its prior type/query stack
+must be reconciled first. Semantic nested grants are not yet integrated here.
+No wide outer-unit runtime acceptance is claimed while that work is outstanding.
+
+L1 clarified provenance queue behavior; A2 reread sem_defer_clone,
+sem_control_node and compiler_clone_node. Current executable/evaluation snapshot
+cloning creates ordinary stage nodes without the staged provenance-copy queue.
+Their source tree stays strongly owned through join/publication. Generic cloning
+uses compiler_node_copy_metadata_staged and already holds queued references.
+Missing explicit hold on the first paths alone is not an observed defect;
+re-audit if their admission expands to generic/provenance copying. Earlier notes
+remain historical questions, not an asserted UAF. Worker-policy comment corrected
+to capacity ceiling plus separately reserved extras, with no runtime change.
+
+New focused work_budget_allocation.tower fills the ledger failure-transaction gap:
+initial allocation and growth rejection preserve counters, storage, generation,
+live receipts and inactive output; empty grants/free-slot reuse work with all
+allocations denied; copied stale receipt cannot free its replacement. Existing
+host/memory_instrumented and explicit portable transport are used, with no new
+allocator or test scheduler. Compile through public pin --library --emit object;
+link using the existing tower-work-instrumented-tests recipe with this main object:
+host_memory.o,runtime-instrumented.o,runtime-trap.o,tower_work_serial.o,-ldl.
+Three executions each cover16rounds and restore exact initial live-buffer count;
+existing worker fault sweep also passes three runs. Logs budget_allocation_build/
+budget_allocation_run.log. New binarybc92d3699ce0d0d68395f0784a8cfada73898e48f1c61e607adc8b66d06848ee;
+sourcefe6f08420e7937439e90bad7fc8e03c407ea76a09b0d1d4e8f3d9d425352a8cd.
+Wall3..4ms/user1ms/system0ms, no peakRSS measurement for this tiny check. The
+addition changes test coverage only; there is no production before/after runtime
+change to profile. It is neither ASan nor threaded allocator coverage, and never
+replaces the separate real concurrent ledger/pool runs. D1 registration requested.
+
+## 2026-11-22 A2: coherent caller join, honest failures and parser retention
+
+The prior boundary checkpoint is superseded by the current a548dfb8 working
+join of coordinator-routed owner patches. Read the exact full bundles and
+coordinator_integration_receipt.txt; applied L1 primitives/interpreter/version,
+B2 lowering, B1 current formatter, L2 interfaces_v4/receipt_v2/helper arguments/
+classification, A1 semantic_bridge_v2/shared types/source proof/query split/
+helper_v2/world/root demand/initializer reuse/frontend API/admission/body frontier,
+and L2_generic_budget. Existing B2v2/B1 parser/vector/A2 pool/budget inputs remain.
+The L2 generic caller is explicitly included; no legacy semantic dispatch call
+remains. New defining-type imports were checked. These are attributed owner
+handoffs, not an A2 claim of independently authored semantic implementations.
+
+coherent_owner_apply.log preserves an initial duplicate-interpreter-hunk check
+rejection and two incorrect patch-prefix check failures. Duplicate primitive
+hunks were reverse-checked as exact existing changes before exclusion; prefixes
+were corrected from the complete patch headers. No source reset/discard or
+partial failed application. The new constructor fixture is the routed exact file.
+The consolidated L2 type prelude remains missing, and source version9/cache6 is
+not the currently published runtime8/5. No bootstrap or constructor closure claim.
+
+joined_budget_native.sh uses the documented public bootstrap, direct jobs1,
+outer2, Linuxx64 LLVM19 on Windows11/WSL Docker, CPU12-23/24GiB, own cache only.
+Smallest frontend/lifecycle compilation passes2.814/15.472s wall,
+1.892/11.028user,.189/.795system. Affected42-step native build passes
+75.992wall/98.590user/8.648system;7-step work/LR link passes7.305/8.489/.886.
+Production work and query-smoke pass. Type smoke exits134 with buffered abort;
+same frozen binary under stdbuf reveals: Type constructor 'query_type_record'
+produces a type, not a runtime value; Body continuation compilation. Logs
+joined_budget_native.log,joined_type-smoke.log,joined_type-smoke_unbuffered.log
+retain the original failure. The script stopped, so its later suites are unrun.
+
+After that process drained, read/applied exact A1_nominal_expression_frontier
+840d19007fdd4cc227a7fd7561e619c7d7c6d9e9a4368ab3356e0a1305c4a444.
+Smallest lifecycle passes16.086wall/11.511user/.791system; two affected native
+steps pass27.856/15.866/1.869 and LR relink1.020/.036/.139. Work/query pass.
+Control smoke aborts134 with known nominal dependency cycle query_type_record(u32)
+through query_type_alias(u32) and query_type_record(T) back to the same record.
+Log joined_nominal_control-smoke.log preserves the exact full path. A1's pending
+nominal-role correction owns this failure; no scheduler/allocator bug inferred
+from it. Stop repeating type/control matrices until changed inputs address it.
+The above timings characterize build/check execution, not runtime before/after
+speed claims or measured peak RSS. Full shared-budget compiler profiles and
+merged ASan/TSan/browser/generation/publication remain open.
+
+Read/applied D1 focused_registration.patch after all jobs drained. Only existing
+entry points and shared CMake/test documentation are changed, with current type
+imports preserved. Independent shared, LR and unit checks continue while the
+semantic owner fixes the known cycle. Historical invalid-memory/race probes are
+neither registered nor rerun. A2 new allocation rollback fixture remains a
+separate serial-allocation registration request.
+
+B1 provided real parser phase retention evidence, reviewed against the allocator
+source rather than tolerating arbitrary growth. Exact fixture
+f0033081ec3a8623b01d0ecc38c4d00e3f92b436b50c6ef57a4e2cb7086c4688,
+binary2790d0c7e3b693413c2c77235fbf80014aa82d6147b34efc908fc576c18cd50d,
+raw parser_retention_host.csv/owned_teardown.csv and link/hash receipts.
+512-row iteration10->11 changes9521->9522 buffers,40->41 pages,
+2516->2572 slots, while entities2048/components2047/cache entries2 stay fixed.
+128 resets each256/512/1024/2048 and full owned-world teardown restore the exact
+pre-world live-buffer baseline. This is one attributed retained page, not a leak
+or packed-payload proof. The observer's private census is outside timed work.
+
+Re-read entities.tower275-370 and entity_types. With A=max(type alignment,pointer
+size), stride=align_up(data size+pointer size,A), slot=stride+component header,
+C=min(16384/slot,64), requested bytes=page header+C*slot+pointer size+(A-1).
+Only C>=2 uses pages. Used slots never recycle; the last live release always
+frees the page. At joined/published/discarded quiescence, P_t<=N_pooled,t because
+every retained page has at least one live component. Include private stage owners
+if observing before publication; store component_count alone omits them. Actual
+allocator usable bytes are separate from requested bytes. Sent D1/B1 this bound,
+buffer/page reconciliation and exact teardown requirement for their test oracle.
+No production allocator rewrite proposed without measured benefit. Documentation
+changes themselves have no runtime before/after profile requirement.
+
+Full source-review receipts added for routed semantic defining types/query API,
+layout kernel/pump, executable snapshot and generic clone scheduler. A1 layout
+admission currently fixes extras from the initial frontier; a one-ready chain
+can leave later broad work inline. A2 proposed an actual shared-layout fixture
+with checked offsets/sizes and wall/CPU/RSS/admission observation. Pool width or
+peak admission alone will not be described as overlap. No A1 production edit is
+authorized by this proposal; measurement and owner agreement precede a fix.
