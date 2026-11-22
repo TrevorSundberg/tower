@@ -18,4 +18,19 @@ function(tower_execution_tests)
   target_link_libraries(tower-execution-tests PRIVATE ${libraries})
   enable_testing()
   add_test(NAME tower-execution COMMAND tower-execution-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")
+
+  # The measurement owns a Linux x64 getrusage ABI. Keep it outside the
+  # portable execution runner and reuse this same production link closure.
+  if(TOWER_NATIVE AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND triple MATCHES "^x86_64-.*linux")
+    set(profile_input "${CMAKE_CURRENT_BINARY_DIR}/tower_type_reachability_profile.tower")
+    file(GENERATE OUTPUT "${profile_input}" CONTENT "${source}import tests.type_reachability_profile;\n")
+    tower_runtime_object(tower-type-reachability-profile "${profile_input}" "${triple}")
+    add_executable(tower-type-reachability-profile EXCLUDE_FROM_ALL
+      ${sources} "${tower-type-reachability-profile_OBJECT}")
+    set_target_properties(tower-type-reachability-profile PROPERTIES LINKER_LANGUAGE CXX)
+    target_link_libraries(tower-type-reachability-profile PRIVATE ${libraries})
+    add_custom_target(tower-measure-type-reachability
+      COMMAND "$<TARGET_FILE:tower-type-reachability-profile>" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding"
+      DEPENDS tower-type-reachability-profile USES_TERMINAL VERBATIM)
+  endif()
 endfunction()

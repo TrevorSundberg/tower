@@ -64,8 +64,11 @@ Foundation before execution.
 
 LLVM machine output can optimize type indexes internally. Its scalar return path
 cannot reconstruct their type identities, so CLI and browser Foundation/bytecode
-requests retain the checked canonical graph with optimization profile 0 when it
-contains type values. They do not serialize the lowered indexes as integer types.
+requests retain the checked canonical graph with optimization profile 0 when its
+runtime roots reach type values. Module effects and exported functions are roots;
+bound calls and function references admit private functions. Unused private type
+helpers do not force this profile. This read-only query leaves the complete
+canonical graph intact. It does not serialize lowered indexes as integer types.
 Direct LLVM-to-Foundation import diagnoses this unsupported reconstruction.
 
 Type-valued foreign/exported parameters and returns are rejected, including
@@ -90,9 +93,11 @@ Construction currently requires compile-stage capability. Reaching one at runtim
 evaluates its operands in order, preserving earlier effects and operand failures,
 then reports the missing capability. It is not silently constant-folded. Static
 signature and nominal identity forms retain their existing preparation, with
-ordinary callee bindings taking precedence. The successor's complete type suite,
-public pin and deployment remain pending in the L2 audit; the published bootstrap
-does not gain a capability merely because these source changes are present.
+ordinary callee bindings taking precedence. The frozen `6aa8ffb` successor passes
+the complete type suite; the newer capture integration still fails required
+aggregate and address-observation cases. Final coherent validation, public pin
+and deployment remain pending in the L2 audit. The published bootstrap does not
+gain a capability merely because these source changes are present.
 
 The Tower fixture is `scaffolding/tests/type_object_values.tower`. The `types`
 execution suite checks both interpreter engines, target pointer widths 4/8,

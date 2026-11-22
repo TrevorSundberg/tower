@@ -1,0 +1,153 @@
+import tower;
+import execution_support;
+import .compiler.execution_session;
+import .compiler.execution_package;
+import .compiler.format_types;
+import .compiler.syntax_version_types;
+import .host.driver_platform;
+import .host.driver_types;
+import .host.driver_support;
+import .host.driver_request;
+import .host.driver_api;
+import .host.syntax_baseline_api;
+import .library.bytes_interface;
+import .library.bytes_types;
+
+extern fn type_object_program(root: void*): bool;
+extern fn entity_store_component_count(store: void*): usize;
+extern fn compiler_node_world(node: void*): void*;
+extern fn host_json_unsigned(out: ByteBuffer*, value: u64): bool;
+extern fn frontend_modules_configure(environment: void*, entry: u8*, library: u8*): void;
+
+// Linux x64 getrusage ABI; RSS is the process high-water mark, including checking.
+struct TypeProfileTime { seconds: i64; fraction: i64; }
+struct TypeProfileUsage {
+    user: TypeProfileTime;
+    system: TypeProfileTime;
+    peak_rss: i64;
+    remaining: i64[13];
+}
+extern fn getrusage(who: i32, out: TypeProfileUsage*): i32;
+var TypeProfileRepeats: usize = 256;
+var TypeProfileSamples: usize = 3;
+
+fn type_profile_text(out: ByteBuffer*, text: u8*): void {
+    execution_check(execution_append_text(out, text), "Type profile text");
+}
+
+fn type_profile_number(out: ByteBuffer*, value: u64): void {
+    execution_check(host_json_unsigned(out, value), "Type profile number");
+}
+
+fn type_profile_cpu(usage: TypeProfileUsage*): u64 {
+    return convert(u64, usage.user.seconds + usage.system.seconds) * 1000000
+        + convert(u64, usage.user.fraction + usage.system.fraction);
+}
+
+fn type_profile_trial(modules: void*, count: usize): void {
+    var source: ByteBuffer = default;
+    defer bytes_dispose(&source);
+    type_profile_text(&source, "import tower;");
+    for(var i: usize = 0; i < count; i++) {
+        type_profile_text(&source, "fn work_"); type_profile_number(&source, convert(u64, i));
+        type_profile_text(&source, "(value:i32):i32{return value+1;}");
+    }
+    // The exported, parameter-dependent caller retains all actual call edges.
+    // Calls are sequential so this workload does not hit the guest stack limit.
+    type_profile_text(&source, "export fn fanout(seed:i32):i32{var total=seed;");
+    for(var i: usize = 0; i < count; i++) {
+        type_profile_text(&source, "total=work_"); type_profile_number(&source, convert(u64, i));
+        type_profile_text(&source, "(total);");
+    }
+    type_profile_text(&source, "return total;}print(fanout(0));");
+    execution_check(host_text_terminate(&source), "Type profile source terminator");
+    var session: ExecutionSession = default;
+    defer execution_session_close(&session);
+    execution_compile(&session, source.data, 8, modules);
+    execution_check(execution_session_start(&session), "Type profile execution starts");
+    execution_run(&session, 1000, 100000);
+    var output: ByteBuffer = default;
+    defer bytes_dispose(&output);
+    type_profile_number(&output, convert(u64, count)); type_profile_text(&output, "\n");
+    execution_check(session.machine.done && session.error.length == 0
+        && execution_equal(&session.output, &output), "Type profile independent output");
+    var canonical: FormatResult = default;
+    var after: FormatResult = default;
+    defer format_dispose(&canonical);
+    defer format_dispose(&after);
+    format_entity(&canonical, session.program.root, syntax_component_type(), null, parser_match_get_type());
+    execution_check(!canonical.failed && !type_object_program(session.program.root), "Type profile warm scalar query");
+    var store = compiler_world_store(compiler_node_world(session.program.root));
+    var entities = entity_store_count(store);
+    var components = entity_store_component_count(store);
+    for(var sample: usize = 0; sample < TypeProfileSamples; sample++) {
+        var before_usage: TypeProfileUsage;
+        var after_usage: TypeProfileUsage;
+        execution_check(getrusage(0, &before_usage) == 0, "Type profile before usage");
+        var started = driver_clock();
+        execution_check(started != 0, "Type profile monotonic clock");
+        for(var repeat: usize = 0; repeat < TypeProfileRepeats; repeat++) {
+            execution_check(!type_object_program(session.program.root), "Type profile scalar result");
+        }
+        var finished = driver_clock();
+        execution_check(finished >= started, "Type profile monotonic interval");
+        var elapsed = finished - started;
+        execution_check(getrusage(0, &after_usage) == 0, "Type profile after usage");
+        execution_check(entity_store_count(store) == entities && entity_store_component_count(store) == components,
+            "Type profile query retains zero entities and components");
+        output.length = 0;
+        type_profile_text(&output, "{\"functions\":"); type_profile_number(&output, convert(u64, count));
+        type_profile_text(&output, ",\"sample\":"); type_profile_number(&output, convert(u64, sample));
+        type_profile_text(&output, ",\"queries\":"); type_profile_number(&output, convert(u64, TypeProfileRepeats));
+        type_profile_text(&output, ",\"wall_ns\":"); type_profile_number(&output, elapsed);
+        type_profile_text(&output, ",\"cpu_us\":"); type_profile_number(&output, type_profile_cpu(&after_usage) - type_profile_cpu(&before_usage));
+        type_profile_text(&output, ",\"process_peak_rss_kib\":"); type_profile_number(&output, convert(u64, after_usage.peak_rss));
+        type_profile_text(&output, ",\"entities\":"); type_profile_number(&output, convert(u64, entities));
+        type_profile_text(&output, ",\"components\":"); type_profile_number(&output, convert(u64, components));
+        type_profile_text(&output, "}");
+        execution_check(host_text_terminate(&output), "Type profile report terminator");
+        puts(output.data);
+    }
+    format_entity(&after, session.program.root, syntax_component_type(), null, parser_match_get_type());
+    execution_check(!after.failed && canonical.text.length == after.text.length
+        && memcmp(canonical.text.data, after.text.data, canonical.text.length) == 0,
+        "Type profile queries preserve canonical graph");
+    execution_close_checked(&session);
+}
+
+// Opt-in microprofile: query work is serial, independently of compiler workers.
+// Compilation/output checking and formatting are outside each measured region.
+fn type_reachability_profile(modules: void*): void {
+    execution_check(sizeof(usize) == 8 && sizeof(TypeProfileTime) == 16 && sizeof(TypeProfileUsage) == 144,
+        "Type profile requires the Linux x64 measurement ABI");
+    type_profile_trial(modules, 16);
+    type_profile_trial(modules, 256);
+    type_profile_trial(modules, 1000);
+}
+
+// Registered only by the opt-in Linux x64 measurement target. The ordinary
+// execution runner must not import this platform-specific foreign ABI.
+export fn main(argc: i32, argv: u8**): i32 {
+    execution_check(argc == 2, "usage: tower-type-reachability-profile RESOURCE_ROOT");
+    var path: ByteBuffer = default;
+    defer bytes_dispose(&path);
+    execution_check(driver_text(&path, argv[1]) && driver_text(&path, "/foundation.tower")
+        && host_text_terminate(&path), "Type profile resource path");
+    var options: DriverOptions = default;
+    options.source = path.data;
+    options.bedrock = "";
+    options.foundation = "";
+    var request: DriverRequest;
+    execution_check(driver_request_open(&request, &options, argv[1]), "Type profile bootstrap snapshots");
+    defer driver_request_close(&request);
+    driver_request_bind(&request, syntax_host_environment(compiler_host_world()));
+    var diagnostic: SyntaxVersionDiagnostic = default;
+    defer syntax_version_diagnostic_dispose(&diagnostic);
+    execution_check(syntax_host_install(compiler_host_world(), request.text[DriverBedrockText].data, false, &diagnostic),
+        "Type profile installs Bedrock");
+    execution_check(syntax_host_install(compiler_host_world(), request.text[DriverFoundationText].data, true, &diagnostic),
+        "Type profile installs Foundation");
+    frontend_modules_configure(request.modules, "named_initialization_input.tower", argv[1]);
+    type_reachability_profile(request.modules);
+    return 0;
+}

@@ -348,3 +348,122 @@ correction; the fixture remains unchanged. This is not type-suite acceptance.
 Final retention, paired current-input performance, sanitizer, bootstrap pin and
 publication gates remain open. Logs use the `identity_readiness` prefix in the
 external L2 evidence directory.
+
+## Full type gate and scalar reachability follow-up
+
+With A1's required-stage continuation fix, compiler
+`f0d2921995f9d580e43befee602127795f3336d6c5b462ab314d7d5c3ced7447`
+passes the unchanged full constructor fixture, query smoke and the complete type
+suite. The type suite takes 44.14 s wall / 52.03 s CPU / 395872 KiB RSS on an
+exactly copied Linux resource tree. Both engines, target widths 4/8, canonical
+round trips and worker counts 1/2/4/8 pass. Eight repeated compile/run/close
+cycles per width return to the same entity and component counts. Source-bound
+prelude overrides, nested ABI rejection, operand effects, runtime capabilities,
+malformed constructors and callable shadowing all pass. This supersedes the
+earlier open constructor-fixture gate for this precise source snapshot.
+
+A separate scalar output regression remains: imported ordinary type helpers
+were treated as runtime roots even when unused. L1's shared Foundation root and
+reference predicates now define the policy for both source emitters and L2's
+`type_object_program`. The latter retains its disposable owned-edge traversal
+and adds only a function visited index for recursive calls. It neither prunes
+canonical entities nor ignores reached opaque type values. The smallest unit
+and six-case/two-target canonical-preservation harness compile; joined runtime
+and performance evidence for this follow-up are pending.
+
+The newest matching required/optional input-role ABI and executable-lowering
+receipt handoffs are integrated after the passing freeze. They require fresh
+dependent objects and do not inherit f0d292's acceptance. Early-capture failures,
+source-emitter validation prerequisites, final sanitizer/stress checks, equivalent
+paired profiles and the public bootstrap/deployment remain open.
+
+## Merged reachability and input-role receipt
+
+Compiler `0b6c90cb340929368b5fa8a3b2db878b57b2e71ae12450fb08780d8362266ae2`
+now passes source rejection/reachability, the complete type suite, query/control
+smoke and full semantics on a fresh exact resource copy. This includes the paired
+required/optional producer ABI, executable lowering receipt and all complete L1
+fixture prerequisites. The full type suite takes 44.36 s wall / 52.47 s CPU /
+426188 KiB RSS; its zero-retention and worker/engine/target checks still pass.
+Full semantics includes the previously failing independent-world execution case.
+
+The six-case harness had one incorrect new oracle: an unused local type binding
+is erased before runtime. Canonical output independently confirms this. Seven
+corrected cases retain it as a negative and use actual returned/callback/exported
+type values as positives. Both target widths pass with complete canonical text
+unchanged. The production consumer did not change to accommodate the failed test.
+Current owner handoff is `L2_runtime_reachability_validated.patch` (c92f7a67).
+
+The function visited vector remains quadratic in reachable function count;
+large actual-function measurement is still required before any scaling claim.
+Final equivalent performance, supported sanitizer/stress, bootstrap pin and
+integrated browser/publication evidence remain open. D1's narrow recursion oracle
+is adopted after the passing freeze and awaits its own type-smoke execution.
+
+## Frozen performance receipt and profile file audit
+
+The source snapshot is now local commit 649a1c1219e0010b7788f1a44d8f20c585329c94.
+D1's narrow recursion oracle subsequently passes type smoke (40.64 s wall /
+45.42 s CPU / 252616 KiB). The editor-import correction exposes another actual
+body-worker abort on L1's newer snapshot; editor acceptance stays open.
+
+| New owned file | Storage, scheduling and ownership review | Evidence |
+| --- | --- | --- |
+| tests/type_reachability_profile.tower | Reuses execution sessions, shared type-object predicate and canonical formatter. Generated programs own their normal checked graphs; timed queries stay serial and read-only. Invocation-local source/report buffers and format results close lexically; execution_close_checked verifies request ownership. Linux x64 rusage is an explicit measurement ABI. No new graph, allocator, scheduler or all/CTest work is added. | Public-pin smallest unit passes; exact helper 05a442e passes all 16/256/1000-function output/canonical/count/close checks. Three warmed samples of 256 queries per size. |
+
+At 16/256/1000 functions, median query wall time is 11.233/318.443/2906.145 us.
+This confirms quadratic function-vector cost. Retain the small implementation at
+the measured sizes; no constant-time or scalable-throughput claim is made.
+All samples retain the same entity/component counts. Peak RSS includes the
+checked source programs; transient allocation counts are not measured.
+
+Four balanced before/after pairs per fixture/worker setting compare preserved
+compiler 37ca7a with 0b6c90, identical complete adjacent resources, explicit
+frozen grammar/source inputs and warm filesystem caches. All 80 processes
+(including 16 warmups) exit zero and print the exact expected zero. Serial
+binding/computed medians rise about 2.5-3%; large-body/runtime-type medians change
+by under 1%. Current four-worker medians improve 1.12-1.20x over current serial
+with roughly 4-7% extra CPU and 11-12% additional RSS. Maximum median RSS increase
+versus the older compiler is about 2.8%. The journal records every wall/CPU/RSS
+median and raw evidence paths. These integrated measurements do not isolate a
+single handler or prove per-phase overlap.
+
+The newer A1 source-root/capture-range successor is outside this frozen receipt.
+Its coherent validation, supported positive sanitizer/stress checks, clean public
+bootstrap, browser release and leased atomic publication remain required.
+
+## Positive address instrumentation receipt
+
+Frozen source 6aa8ffb (production 649a1c1) builds through the public pin with
+TOWER_SANITIZER=address in a fresh own cache. Actual Tower IR/object hooks and
+final compiler/runner ASan links are inspected, beyond the configured manifest.
+With leak detection enabled, executed constructors, source-rejection/reachability,
+query smoke and complete types all pass. The full type suite takes 410.87 s wall /
+492.78 s CPU / 1033672 KiB RSS and retains target-width, canonical, 1/2/4/8-worker
+and zero-retention checks. Three production pool runs also pass barrier-confirmed
+overlap/allocation and early-return worker drains. The standalone instrumented
+compiler passes four-worker fast type_object_values with exact stdout zero.
+Hashes, commands, outputs and complete timings are in the journal and
+L2/logs/sanitizer_address_*. No sanitizer finding or leak is reported.
+
+This covers the frozen type/generic implementation, not the newer unmerged
+capture/source-root/editor/backend candidates. TSan, final coherent ownership
+checks and bootstrap/browser/publication remain open. Third-party LLVM and
+subsequently generated target programs are outside this instrumentation receipt;
+source-language UBSan/browser coverage is unsupported. No intentional fault/race
+probes were rerun. Counts and passing checks do not prove universal safety.
+
+## Joined capture v3 integration boundary
+
+After the passing frozen ASan checkpoint, reviewed A1 capture/source-root/editor
+and B2 native path/backend root changes are integrated with their exact owner
+fixtures and explicit D1/D2 repairs. Public-pin smallest units, native compiler and
+runners pass. The original known_bindings source and source-proof query smoke pass.
+However, full known still fails an unchanged address-observation capability oracle
+(actual standalone output 32), and the lifecycle gate rejects valid global/local
+aggregate captures at 1:125/1:138. Two separately authorized rejection-message
+expectations are corrected only after independent source reproductions; all pointer,
+cycle and aggregate contracts remain intact. The journal records exact identities,
+raw outcomes and timings. This coherent local checkpoint is a shared debugging base,
+not a new sanitizer or release acceptance receipt. Final gates and publication stay
+open while A1/L1 investigate the interpreter/producer boundary.
