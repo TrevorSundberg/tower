@@ -8,16 +8,8 @@ function(tower_driver_request_tests)
   get_property(source GLOBAL PROPERTY TOWER_DRIVER_SOURCE)
   string(APPEND source "import tests.driver_request;\n")
   set(input "${CMAKE_CURRENT_BINARY_DIR}/tower_driver_request_tests.tower")
-  set(object "${CMAKE_CURRENT_BINARY_DIR}/tower-driver-request-tests.o")
   file(GENERATE OUTPUT "${input}" CONTENT "${source}")
-  add_custom_command(OUTPUT "${object}"
-    COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${input}" --library --target "${triple}"
-      --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
-      --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
-      -o "${object}" --depfile "${object}.d"
-    DEPFILE "${object}.d"
-    DEPENDS "${input}" "${TOWER_BOOTSTRAP_COMPILER}" VERBATIM)
-  set_source_files_properties("${object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
+  tower_runtime_object(tower-driver-request-tests "${input}" "${triple}")
   get_target_property(sources towerc SOURCES)
   list(REMOVE_ITEM sources "${CMAKE_CURRENT_BINARY_DIR}/tower-driver.o")
   get_target_property(libraries towerc LINK_LIBRARIES)
@@ -25,7 +17,7 @@ function(tower_driver_request_tests)
   tower_compiler_evaluation()
   list(APPEND libraries tower-compiler-evaluation)
   get_property(runtime_instrumented GLOBAL PROPERTY TOWER_RUNTIME_INSTRUMENTED_OBJECT)
-  add_executable(tower-driver-request-tests ${sources} "${object}" "${runtime_instrumented}")
+  add_executable(tower-driver-request-tests ${sources} "${tower-driver-request-tests_OBJECT}" "${runtime_instrumented}")
   set_target_properties(tower-driver-request-tests PROPERTIES LINKER_LANGUAGE CXX)
   target_compile_options(tower-driver-request-tests PRIVATE -fno-exceptions)
   target_compile_definitions(tower-driver-request-tests PRIVATE TOWER_COMPILER_MEMORY_TESTS=1)

@@ -31,7 +31,6 @@ function(tower_driver_integrate)
     set(stat_profile macos_${architecture})
   endif()
   set(input "${CMAKE_CURRENT_BINARY_DIR}/tower_driver.tower")
-  file(GLOB sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/host/driver_*.tower")
   set(source "import tower;\n")
   foreach(name IN ITEMS support timing windows_arguments ${platform} ${profile} link prepare)
     set(path "host.driver_${name}")
@@ -60,18 +59,8 @@ function(tower_driver_integrate)
       if(unit STREQUAL "standalone")
         set(unit_input "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/driver_standalone.tower")
       endif()
-      set(unit_object "${CMAKE_CURRENT_BINARY_DIR}/tower-driver-${unit}.o")
-      add_custom_command(OUTPUT "${unit_object}"
-        COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${unit_input}" --library --target "${triple}"
-          --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
-          --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
-          -o "${unit_object}" --depfile "${unit_object}.d"
-        DEPFILE "${unit_object}.d"
-        DEPENDS "${unit_input}" ${sources} scaffolding/tests/driver.tower
-          scaffolding/tests/driver_${platform}.tower scaffolding/tests/driver_main.tower
-          "${TOWER_BOOTSTRAP_COMPILER}" VERBATIM)
-      set_source_files_properties("${unit_object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
-      list(APPEND test_objects "${unit_object}")
+      tower_runtime_object(tower-driver-${unit} "${unit_input}" "${triple}")
+      list(APPEND test_objects "${tower-driver-${unit}_OBJECT}")
     endforeach()
     get_property(guest_runtime GLOBAL PROPERTY TOWER_GUEST_host-library_OBJECT)
     add_executable(tower-driver-tests "${guest_runtime}" ${test_objects}

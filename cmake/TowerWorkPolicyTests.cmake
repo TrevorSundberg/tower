@@ -10,17 +10,8 @@ endif()
 set(policy_objects)
 foreach(unit IN ITEMS tests/work_instrumented host/memory)
   string(REPLACE "/" "_" name "${unit}")
-  set(object "${CMAKE_CURRENT_BINARY_DIR}/${name}.o")
-  add_custom_command(OUTPUT "${object}"
-    COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/${unit}.tower"
-      --library --target "${policy_triple}"
-      --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
-      --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
-      -o "${object}" --depfile "${object}.d"
-    DEPFILE "${object}.d"
-    DEPENDS "${TOWER_BOOTSTRAP_COMPILER}" "scaffolding/${unit}.tower" VERBATIM)
-  set_source_files_properties("${object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
-  list(APPEND policy_objects "${object}")
+  tower_runtime_object(${name} "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/${unit}.tower" "${policy_triple}")
+  list(APPEND policy_objects "${${name}_OBJECT}")
 endforeach()
 get_property(policy_trap GLOBAL PROPERTY TOWER_RUNTIME_TRAP_OBJECT)
 add_executable(tower-work-instrumented-tests ${policy_objects} "${policy_runtime}" "${policy_trap}")

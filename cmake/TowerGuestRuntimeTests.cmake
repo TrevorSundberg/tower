@@ -14,13 +14,7 @@ function(tower_guest_runtime_tests)
       set(maximum 524288)
     endif()
     set(base "${CMAKE_CURRENT_BINARY_DIR}/guest-runtime-${mode}-tests")
-    add_custom_command(OUTPUT "${base}.o"
-      COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${source}.tower"
-        --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
-        --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
-        --library --target wasm32-unknown-unknown -o "${base}.o" --depfile "${base}.d"
-      DEPFILE "${base}.d"
-      DEPENDS "${TOWER_BOOTSTRAP_COMPILER}" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${source}.tower" VERBATIM)
+    tower_runtime_object(guest-runtime-${mode}-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${source}.tower" wasm32-unknown-unknown)
     file(GENERATE OUTPUT "${base}.imports" CONTENT "tower_trap\n")
     add_custom_command(OUTPUT "${base}.wasm"
       COMMAND "${TOWER_ALLOCATOR_WASI_SDK}/bin/wasm-ld" --no-entry --export=${function}

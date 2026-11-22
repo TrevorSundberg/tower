@@ -42772,3 +42772,102 @@ self-compilation of semantic_iteration_work.tower also passes
 (control-protocol-self.log). The implementation ledger records this narrower
 completed scope and retains early staging, structural-expression and cross-unit
 ownership/invalidation gaps. No completion percentage or throughput claim.
+
+## 2026-11-21: Retire duplicate plain-object build commands
+
+The previous goal turn made authoritative progress: direct driver bindings were
+pushed and their hosted receipt verified. This turn starts with a clean main
+1021acf and successful pull/rebase. Audit all remaining CMake compilation rules
+and their actual callers before considering another tool implementation. Fourteen
+fragments still repeat the existing tower_runtime_object plain-object behavior.
+Replace those command copies for worker transports/policies, driver fixtures,
+allocator/runtime ABI fixtures, frontend/backend fixture entries, parser utility/
+service/formatter units, WASI execution and browser IDE/work units. Keep target
+and object names, generated profile contents, link order and allocator ownership.
+No Tower/JavaScript implementation or shared helper changes are needed.
+
+Remove the driver/IDE source globs and redundant manually listed imported files;
+the actual compiler depfiles already track these imports. Preserve explicit
+prerequisites for generated backend inputs, foreign wrappers and embedded runtime
+sources, whose first-build ordering is not supplied by a future depfile. Keep
+standalone entity finalizer ownership, conditional WASI entry symbols, bare-Wasm
+allocator exports, serial failure-injection transport and threaded browser
+bindings intact. Guest runtime test depfiles now use the common object.o.d name;
+their object and executable identities are unchanged. Record this contract in
+docs/bootstrap-distribution.md. This is deletion/simplification, not another
+foreign-language implementation or a port of redundant machinery.
+
+Validation freezes staged tree 61daae3c8ceade2aea432bb7c3a48d2e03d00817 in
+/cache/object_rules_checkout inside owned tower_agent1_c_checks. Baseline source
+/cache/driver_binding_final_checkout has identical production sources at main
+1021acf. Linux Ubuntu 24.04, Clang/LLVM19.1.1 and public bootstrap SHA256
+6022aa2bdfc838ead9dd9507bea004b78568997f3a468f916a9bfa4310a0680a remain fixed.
+The default build-native.sh path, with private bootstrap override unset, builds
+/cache/object_rules_native in 48 steps. Enable TOWER_DRIVER_TESTS, TOWER_WORK_TESTS,
+TOWER_ALLOCATOR_TESTS, TOWER_BACKEND_TESTS and SDK34 allocator growth checks;
+36 additional selected fixture build steps pass on both baseline and candidate.
+Twenty affected native objects compare byte-for-byte equal, as does complete
+towerc: SHA256 d45743b02d9daff39467c0956f3adb8937a39764c9f9ce7ca98d524e403d3e98.
+This hash includes the selected test-enabled build profile. The memory fixture
+passes interpreted32/64, native and actual Wasm execution.
+
+The existing Tower check_core native entry builds separate baseline/candidate
+core caches; all 15 CTests pass on each. Seven core objects and the complete
+parser executable are byte-identical (parser SHA256
+1057f9afd293bf56b26f57e5e511d19115c506536debb4a7ba3ee36d79e9494b).
+Nine selected native allocator/runtime/real-worker/registry-once/instrumented/
+driver-request checks pass on both builds. The additional tower-frontend fixture
+aborts on both; unbuffered baseline output is 'Bedrock may contain only token,
+skip and parse declarations', followed by 'baseline installation'. Its unchanged
+frontend_session_world.world_session_prepare formats frontend_world_bedrock and
+reinstalls that output with syntax_baseline_install(..., false). The frontend
+object bytes match exactly; report this pre-existing fixture/compiler issue to
+the coordinator rather than changing compiler semantics in the tooling lane.
+Do not count that fixture as passing. ctest -N also lists optional LR tests whose
+executables were not selected for this focused build; they were not run or claimed.
+
+SDK34 uses wasi-sdk-p1.cmake. The existing check_core wasi pipeline builds and
+passes the full parser and interpreter suites, including 156 graph/fast trials,
+both-width semantic oracles, Foundation round trips and package contracts.
+Configure TOWER_ALLOCATOR_TESTS and build/run the additional WASI formatter,
+allocator, runtime ABI, UTF-8, lexer and entity executables: all pass. Build the
+same baseline targets. Twelve WASI objects plus complete parser/interpreter/
+formatter executables are byte-identical. Interpreter SHA256
+06dcd37fdfc7449bff19523816239eed5165cc074c6b2bec79e9842ee9b9d782.
+An initial comparison selected standalone utility objects that check_core's WASI
+target list had not built; explicitly build those targets in both caches before
+comparing, and check presence as well as bytes. This was a selection mistake,
+not an object mismatch.
+
+The documented build-threads.sh path builds the browser reactor with both IDE
+fixture options enabled. The three affected live browser objects (IDE, worker
+fixture, platform transport) match the separately built baseline exactly. The
+unused serial transport has no generated browser build target, so remove it from
+the initial comparison selection. A first baseline CMake invocation also exposed
+PowerShell splitting an unquoted toolchain path at '.cmake'; quoting the entire
+-D argument resolves it. No repository code changes for either invocation error.
+Run existing compiler-threads.test.mjs from the frozen repository root: 3/3 PASS,
+including real four-worker overlap/reuse, injected worker trap and deterministic
+1/2/4/8-worker checking/lowering/staging (66.25s). Existing test-ide.mjs also PASS.
+Browser reactor SHA256
+f806e7b371cebedb23b0cb71dc175dd57a13bffa9ed6f9779e67d47cd06fb35d.
+Total equivalence evidence is 42 object and five executable comparisons across
+native/core/WASI/browser configurations. No full browser self-generation or new
+portable bootstrap release is claimed for this build-rule cleanup.
+
+After all readers finish, touch only cached mt19937.tower, ide_state.tower and
+driver_support.tower in turn. Build the corresponding lexer/IDE/driver-test
+object: each emits exactly the requested one-object rebuild and reproduces the
+baseline bytes. A second lexer build reports no work. Removing broad globs and
+manual import lists preserved transitive dependency rebuilding. No source text
+was modified during these probes. Logs: build/object_rules_native.log,
+object_rules_native_tests.log, object_rules_core.log, object_rules_wasi.log,
+object_rules_threads.log and object_rules_threads_tests.log.
+
+CMake falls another 181 lines, from39/1783 to39/1602: 992/2594 lines (38.2%) below
+the recorded baseline. Python and owned C/C++ remain zero; shell9/230 and
+JS186/24366 are unchanged. No sanitizer, repository formatting sweep or todo edit.
+Preserve the latest published browser assets/source identity for the tooling
+receipt. Remaining CMake handles real linking/generated-input ordering/platform
+selection; future audits should address those responsibilities and reusable JS
+rather than create substitute wrappers for these deleted commands.

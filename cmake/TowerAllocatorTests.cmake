@@ -3,9 +3,7 @@
 option(TOWER_ALLOCATOR_TESTS "Build focused Tower allocator ABI tests" OFF)
 if(TOWER_ALLOCATOR_TESTS)
   include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/TowerGuestRuntimeTests.cmake")
-  set(allocator_test_object "${CMAKE_CURRENT_BINARY_DIR}/tower-allocator-tests.o")
-  set(allocator_policy_object "${CMAKE_CURRENT_BINARY_DIR}/tower-allocator-policy.o")
-  foreach(unit IN ITEMS test policy)
+  foreach(unit IN ITEMS tests policy)
     set(input "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/allocator_glue.tower")
     if(triple MATCHES "^wasm32")
       set(input "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/allocator_wasi_entry.tower")
@@ -13,32 +11,18 @@ if(TOWER_ALLOCATOR_TESTS)
     if(unit STREQUAL "policy")
       set(input "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/host/memory.tower")
     endif()
-    set(object "${allocator_${unit}_object}")
-    add_custom_command(OUTPUT "${object}"
-      COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${input}" --library --target "${triple}"
-        --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
-        --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
-        -o "${object}" --depfile "${object}.d"
-      DEPFILE "${object}.d"
-      DEPENDS "${TOWER_BOOTSTRAP_COMPILER}" "${input}" VERBATIM)
-    set_source_files_properties("${object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
+    tower_runtime_object(tower-allocator-${unit} "${input}" "${triple}")
   endforeach()
   get_property(runtime_trap GLOBAL PROPERTY TOWER_RUNTIME_TRAP_OBJECT)
   get_property(runtime_instrumented GLOBAL PROPERTY TOWER_RUNTIME_INSTRUMENTED_OBJECT)
   add_executable(tower-allocator-tests "${runtime_instrumented}"
-    "${allocator_test_object}" "${allocator_policy_object}" "${runtime_trap}")
+    "${tower-allocator-tests_OBJECT}" "${tower-allocator-policy_OBJECT}" "${runtime_trap}")
   set_target_properties(tower-allocator-tests PROPERTIES LINKER_LANGUAGE C)
   # This fragment is included inside tower_compiler_host. Enable discovery in
   # directory scope too, including browser-only configurations.
   cmake_language(DEFER CALL enable_testing)
-  set(runtime_test_object "${CMAKE_CURRENT_BINARY_DIR}/runtime-abi-tests.o")
-  add_custom_command(OUTPUT "${runtime_test_object}"
-    COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/runtime_abi.tower"
-      --library --target "${triple}" -o "${runtime_test_object}" --depfile "${runtime_test_object}.d"
-    DEPFILE "${runtime_test_object}.d"
-    DEPENDS "${TOWER_BOOTSTRAP_COMPILER}" scaffolding/tests/runtime_abi.tower VERBATIM)
-  set_source_files_properties("${runtime_test_object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
-  add_executable(tower-runtime-abi-tests "${runtime_test_object}")
+  tower_runtime_object(runtime-abi-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/runtime_abi.tower" "${triple}")
+  add_executable(tower-runtime-abi-tests "${runtime-abi-tests_OBJECT}")
   set_target_properties(tower-runtime-abi-tests PROPERTIES LINKER_LANGUAGE C)
   target_link_libraries(tower-runtime-abi-tests PRIVATE tower-compiler-memory tower-compiler-utilities)
   if(triple MATCHES "^wasm32")
@@ -57,24 +41,16 @@ if(TOWER_ALLOCATOR_TESTS)
   set(TOWER_ALLOCATOR_WASI_SDK "" CACHE PATH "WASI SDK for focused wasm32 growth checks")
   if(TOWER_ALLOCATOR_WASI_SDK)
     find_program(TOWER_ALLOCATOR_NODE NAMES node REQUIRED)
-    set(wasm_object "${CMAKE_CURRENT_BINARY_DIR}/tower-allocator-wasm.o")
     set(wasm_module "${CMAKE_CURRENT_BINARY_DIR}/tower-allocator-wasm.wasm")
     set(wasm_imports "${CMAKE_CURRENT_BINARY_DIR}/tower-allocator-wasm.imports")
     file(GENERATE OUTPUT "${wasm_imports}" CONTENT "tower_trap\n")
-    add_custom_command(OUTPUT "${wasm_object}"
-      COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/allocator_wasm.tower"
-        --library --target wasm32-unknown-unknown
-        --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
-        --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
-        -o "${wasm_object}" --depfile "${wasm_object}.d"
-      DEPFILE "${wasm_object}.d"
-      DEPENDS "${TOWER_BOOTSTRAP_COMPILER}" scaffolding/tests/allocator_wasm.tower VERBATIM)
+    tower_runtime_object(tower-allocator-wasm "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/allocator_wasm.tower" wasm32-unknown-unknown)
     add_custom_command(OUTPUT "${wasm_module}"
-      COMMAND "${TOWER_ALLOCATOR_WASI_SDK}/bin/clang" "${wasm_object}" -nostartfiles
+      COMMAND "${TOWER_ALLOCATOR_WASI_SDK}/bin/clang" "${tower-allocator-wasm_OBJECT}" -nostartfiles
         -Wl,--no-entry -Wl,--export=allocator_wasm_tests
         "-Wl,--allow-undefined-file=${wasm_imports}"
         -Wl,--initial-memory=131072 -Wl,--max-memory=524288 -o "${wasm_module}"
-      DEPENDS "${wasm_object}" "${wasm_imports}" VERBATIM)
+      DEPENDS "${tower-allocator-wasm_OBJECT}" "${wasm_imports}" VERBATIM)
     add_custom_target(tower-allocator-wasm DEPENDS "${wasm_module}")
     add_test(NAME tower-allocator-wasm COMMAND "${TOWER_ALLOCATOR_NODE}"
       "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/run-allocator-wasm.mjs" "${wasm_module}")

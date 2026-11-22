@@ -91,6 +91,11 @@ Driver objects also compile directly. The Tower platform modules select the libc
 `stat` call, including `stat$INODE64` on Intel macOS, without a separate LLVM
 symbol-rewrite pass. The existing target-specific stat layouts remain explicit.
 
+Plain compiler, worker, IDE and fixture objects share `tower_runtime_object`.
+Its compiler-generated depfile tracks transitive Tower imports; separate source
+globs and repeated compilation commands are unnecessary for those objects.
+Keep explicit prerequisites for generated inputs that must exist before compilation.
+
 ## Validation and measurement
 
 Run from the repository root:

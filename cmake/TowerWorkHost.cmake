@@ -3,17 +3,9 @@
 # the existing portable transport directly, before archive extraction.
 function(tower_work_host_object name triple imports)
   set(input "${CMAKE_CURRENT_BINARY_DIR}/${name}.tower")
-  set(object "${CMAKE_CURRENT_BINARY_DIR}/${name}.o")
   file(GENERATE OUTPUT "${input}" CONTENT "import tower;\n${imports}")
-  add_custom_command(OUTPUT "${object}"
-    COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${input}" --library --target "${triple}"
-      --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
-      --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
-      -o "${object}" --depfile "${object}.d"
-    DEPFILE "${object}.d"
-    DEPENDS "${TOWER_BOOTSTRAP_COMPILER}" "${input}" VERBATIM)
-  set_source_files_properties("${object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
-  set(${name}_OBJECT "${object}" PARENT_SCOPE)
+  tower_runtime_object(${name} "${input}" "${triple}")
+  set(${name}_OBJECT "${${name}_OBJECT}" PARENT_SCOPE)
 endfunction()
 
 function(tower_compiler_work_host triple platform)

@@ -161,13 +161,7 @@ function(tower_backend_integrate)
   if(TARGET towerc)
     target_link_libraries(towerc PRIVATE tower-backend-native)
     if(TOWER_BACKEND_TESTS)
-      set(test_object "${CMAKE_CURRENT_BINARY_DIR}/tower-backend-test-main.o")
-      add_custom_command(OUTPUT "${test_object}"
-        COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/backend_main.tower"
-          --library --target "${triple}" -o "${test_object}" --depfile "${test_object}.d"
-        DEPFILE "${test_object}.d"
-    DEPENDS scaffolding/tests/backend_main.tower "${TOWER_BOOTSTRAP_COMPILER}" VERBATIM)
-      set_source_files_properties("${test_object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
+      tower_runtime_object(tower-backend-test-main "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/backend_main.tower" "${triple}")
       get_target_property(test_sources towerc SOURCES)
       if(NOT test_sources)
         set(test_sources "")
@@ -179,7 +173,7 @@ function(tower_backend_integrate)
       # semantic staging still needs the ordinary invocation interpreter.
       tower_compiler_evaluation()
       list(APPEND test_libraries tower-compiler-evaluation)
-      add_executable(tower-backend-tests ${test_sources} "${test_object}")
+      add_executable(tower-backend-tests ${test_sources} "${tower-backend-test-main_OBJECT}")
       set_target_properties(tower-backend-tests PROPERTIES LINKER_LANGUAGE CXX)
       target_compile_options(tower-backend-tests PRIVATE -fno-exceptions)
       target_link_libraries(tower-backend-tests PRIVATE ${test_libraries})
