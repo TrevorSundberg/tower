@@ -47302,3 +47302,156 @@ A1 must reserve/lease those declarations or publish private receipts after joins
 Current optional-candidate admission excludes aggregates, so the older known.end
 aggregate omission is not an active optional-aggregate bug. Terminal finalize
 assertions align with the reviewed one-shot lifecycle, pending dynamic coverage.
+### L1 remaining execution gates and identical-Foundation cost attribution
+
+The frozen a78b474f compiler passed query/control smoke, early-session rejection,
+encoder rejection, constructor operand/receipt checks at both widths, and core
+execution/canonical round trips. Control smoke took39.24s wall/43.93s CPU/245804KiB;
+core-static took4.07s/5.01s/300484KiB. These precede the newer queued owner patches.
+The original known-binding failure is at known_bindings.tower:22:7, the explicit
+stage calling answer(). An ordinary minimal source with Answer=42 prints42;
+Answer=40+2 and Answer=calculate(36) both fail before execution with an unfinished
+compiler-query diagnostic. The separate forward-read/required-type scenario
+prints exactly0,9, independently confirming the split producer roles. Minimal
+Tower inputs and raw logs remain in L1's external lane directory.
+
+A first attempt to load the same old normalized package with both compilers
+stopped correctly at the newer compiler's semantics-version check. No envelope
+or cache header was changed to bypass validation; the failed attempt is retained.
+The following valid comparison instead compiles the exact118962-byte extracted
+canonical Foundation text as ordinary source on both compilers. Its SHA256 is
+6f2571a1821e3d7f93a2ced1bc6433b64a685b6eb1b927fab3420858e277b3e5.
+Both use byte-identical adjacent baseline resources and explicit grammar inputs,
+wasm32 target, graph interpretation and jobs1 on the same quiet WSL host. Three
+pairs alternate execution order; all six exit0 with the exact saturation output.
+
+| Compiler | Wall seconds, three samples | CPU seconds | Peak RSS KiB |
+| --- | --- | --- | --- |
+| baseline36342 | 11.05,10.86,11.61 | 10.72,10.89,11.20 | 179924,180024,180052 |
+| integrated b28 | 16.27,16.16,16.68 | 16.19,16.46,16.77 | 215356,215624,215332 |
+
+Median wall cost rises about47%, CPU51% and peak RSS20% on identical input.
+Reported compile time is10.697-11.020s versus15.992-16.515s; graph execution is
+6-8ms. Thus increased normalized source size is an additional cost, not the sole
+cause. This does not isolate a specific semantic, parser, storage or scheduler
+change. In particular b28 predates source-root refinement and the unadopted120B
+capture-range draft. Raw profiles, exact scripts and all outputs are exported in
+L1_signed32_control/, including the failed old-envelope attempt. The earlier
+69s emission/33s load of the larger current package remains a separate valid
+workload failure against D1's unchanged30s deadline.
+
+Code review counted only three old defined functions versus five new functions;
+the two extra private type helpers reference two52-byte diagnostic globals.
+Their58 body lines expand into about1005 additional initializer lines, explaining
+most of the40KB text growth. B2 is investigating derived executable/global
+reachability without pruning shared canonical Foundation. A1/A2/B1 received the
+identical-source checker/storage regression evidence. No performance fix is
+claimed from this attribution.
+
+After all jobs drained, L1 released the host slot for L2's valid-workload compiler
+instrumentation. New inputs were reviewed and queued: diagnostic failure walk,
+30-case lifecycle fixture and source-proof extension fixture, final opt-in query
+microprofile, B2 native lexical-path identity and fixture imports, D1 parser
+retention census, and focused backend overlap registration. DriverRequest ABI
+changed; the next validation must rebuild all affected clients. The range-v2
+terminal sentinel is a stronger actual-finalization receipt than query presence,
+but its unchanged declaration payload lease gap remains open. No partial capture
+fallback, deliberate invalid-memory/race sensitivity probe, public pin or
+publication acceptance was introduced.
+L1 integrated the reviewed B2 backend execution-root index (5d3e769c) after
+owned jobs drained. It follows shared executable children/direct-call/function-
+reference edges, preserves exported and foreign functions and module effects,
+aligns every source function slot, and leaves shared canonical nodes intact.
+Independent normalized-package validation is pending the host slot. The redundant
+blanket Tower fixture prefix ea7bfd6a was reversed exactly after coordinator review;
+the missing original D1/D2 explicit Foundation fixture imports were then applied
+(fd0966b3,6b575c81,0caf05cc), retaining their numeric oracles and language contracts.
+The driver-request target now consumes its existing production-source property
+(87f875de); assertion diagnostics flush already-written text before existing
+failure exits (cb26ef0b). Patch checks and whitespace validation pass, but none of
+these newly queued inputs is represented by the prior a78 binary validation.
+
+The coordinator requested targeted attribution for the identical-Foundation
+regression. Local tool inspection found GDB15.1 and native compiler symbols;
+perf and Valgrind are absent. Periodic debugger stack samples on the preserved
+complete36342/b28 packages are planned after L2 releases its valid-workload
+instrumentation slot. Sampling overhead must not replace the prior uninstrumented
+wall/CPU/RSS evidence. No deliberate sensitivity probes or blocked action retries
+were performed. Start-of-turn pull/rebase preserved all integration edits through
+autostash7e3664e; remote main had no new changes.
+### L1 native editor/backend closure and remaining normalized-package deadline
+
+Frozen public-pin compiler2460878ebc85ef456ab468cc8e5d6f99e81d80e46d8c53705f5ddb786055a324
+was rebuilt with reviewed backend execution roots, explicit D1/D2 fixture imports,
+native lexical path identity and diagnostics, parser retention, and A1's six-line
+private editor-background fix. No capture-range successor was present. Smallest
+lifecycle/profile/lowering units passed3.11/2.42/4.70s; affected unit build51.92s,
+main build56.26s, runners19.77s. Input SHA manifests matched before/after, and a
+fresh resource snapshot diff was empty. Full raw wall/CPU/RSS and commands are in
+L1/logs/backend_roots_* and build_backend_roots.sh. This is an incremental coherent
+public-pin development build, not the final clean bootstrap/browser publication.
+
+| Frozen246 check | Wall seconds | CPU seconds | Peak RSS KiB | Result |
+| --- | --- | --- | --- | --- |
+| Editor observations, workers1/2/4/8 | 13.92 | 17.27 | 192160 | pass |
+| Source rejection/retained execution roots | 1.25 | 1.64 | 182304 | pass |
+| Core execution/canonical round trips | 3.93 | 4.99 | 299164 | pass |
+| Final type reachability helper, Linux wrapper | 4.05 | 4.52 | 210628 | pass |
+| Query continuation smoke | 0.06 | 0.06 | 59388 | pass |
+| Backend streaming overlap, exact objects/distinct workers | 10.48 | 13.02 | 489564 | pass |
+| CLI request ownership/path diagnostics | 0.01 | 0.00 | 50940 | pass |
+| Backend API checks | 0.03 | 0.02 | 70736 | pass |
+
+The original imported-editor abort is resolved on this snapshot. The helper's
+getrusage declaration is Linux-specific and was imported by the portable runner;
+coordinator review correctly identified this as a packaging defect. L2/D1 are
+moving the same measured helper to a separately opt-in Linuxx64 target. This
+Linux receipt remains valid for its old wrapper; no cross-host ABI support or
+portable default-runner acceptance is claimed. L1 will remove only its shared
+selector after the agreed target handoff, without changing the measured workload.
+
+Independent backend_execution_roots source returns45,2 through graph execution,
+normalized package reload and a compiled native executable. LLVM retains the
+uncalled retained_export function returning11, also visible as a native symbol.
+The unused type helper remains in canonical Foundation and is absent from LLVM.
+Package6b3ca77a and native3f7fc55f identify these artifacts; complete hashes and
+raw commands/results are in backend_roots_fixture_* and check_backend_roots_fixture.sh.
+No physical Roku or browser result is inferred from native tests.
+
+The original652-byte signed32 input still fails its UNCHANGED30s emission limit
+with timeout124. A separate90s diagnostic completed in33.86s wall/33.82s CPU/
+275572KiB; reload took16.17s/16.41s/207504KiB, with exact2147483647,-2147483648,3.
+Its1/9/6/4/profile2 envelope has118962 source bytes,14765 cache words and178846 total
+bytes. Canonical source SHA6f2571a1821e3d7f93a2ced1bc6433b64a685b6eb1b927fab3420858e277b3e5
+is BYTE-IDENTICAL to the original36342 baseline, eliminating the prior40232-byte
+growth. Packagebd877ce561eb4a09f4b4ad61dd60bc29180950857fd8fddc0e75c6a556d0da4f
+reflects the current semantic/cache versions. The size fix roughly halves the
+prior68.68s emission, but performance acceptance remains failed. No timeout was
+relaxed to turn that gate into a pass.
+
+Matched GDB15.1 sampling on the exact old canonical input and preserved complete
+36342/b28 packages found18 baseline versus28 current top-frame samples. Baseline:
+entity_table_prepare12, entity_stage_lease4, entity_stage_publish2. Current:
+entity_table_prepare17, entity_stage_lease6, entity_stage_publish2,
+entity_table_publish2, work_enqueue1. All46 debugger commands exited0 and both
+programs matched the oracle. Missing reliable unwind data makes deeper frames
+untrustworthy; periodic sample proportions are approximate. Debugger-stopped wall
+times12.79/20.19s are not substituted for the prior uninstrumented paired timings.
+This points A2 toward table/stage costs, without isolating the causal change.
+Compact raw handoff L1_same_foundation_stacks.tgz SHA
+9d6a861f347d10fdb5061f5dae9921931a1e432cea3476416d71f4ea0be7e927
+contains the command, source, identities, outputs, all samples and limitations.
+
+All jobs drained before the host lock was released to L2. A complete246/d73/e470
+package was preserved for capture-range before/after measurements. Only then were
+the prepared-body guard378cae and corrected four-file rangev3f5d3f2bd applied;
+the withdrawn patch adding an existing file was never applied. No intermediate
+partial capture fallback was built or run. Explicit descendant leases resolve
+the reviewed payload ownership gap. The producer's fresh cloned locals and final
+aggregate frame match existing relocation contracts. A subsequent static review
+identified a separate possible consumer gap: IMValueInput publishes a canonical
+aggregate initializer, while ix_address rejects published scalar inputs and
+ix_read has no aggregate-initializer path. This is a hypothesis pending current-v3
+reproduction, not an accepted change or permission to weaken address checks.
+Known/30-case lifecycle/aggregate/generic, metadata cardinality/performance,
+final instrumentation, portable packaging and publication gates remain open.

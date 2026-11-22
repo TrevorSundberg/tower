@@ -208,3 +208,15 @@ current post-evaluation publication boundary, subject to dynamic late/generic
 regressions and range ownership/memory evidence. The matched-resource signed32
 control still has substantial normalized reconstruction cost; exact artifacts
 are retained. Final acceptance and publication remain open.
+The later frozen2460878 build resolves the editor body-admission abort and passes
+editor observations at1/2/4/8 workers, source roots, core round trips, query smoke,
+request ownership and actual backend overlap. The B2 root index also preserves
+45,2 effects across graph/package/native execution and the uncalled export11.
+Normalized signed32 source is now byte-identical to the old118962-byte baseline;
+remaining33.86s emission misses the unchanged30s limit. Periodic native samples
+point to table preparation/stage ownership, with limited unwind evidence; A2 owns
+attribution. Exact receipts and gaps are in the journal. Capture-rangev3 is newly
+integrated after drain, not represented by these passes. Its producer storage
+review is positive; aggregate consumer input/address handling requires current
+runtime diagnosis. The Linux-only type microprofile selector must move out of the
+portable default runner through the coordinated D1/L2 target handoff.

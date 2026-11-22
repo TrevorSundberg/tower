@@ -99,8 +99,13 @@ fn execution_semantic_tests(modules: void*): void {
             var prefix = strstr(source, "import foundation; ") == source
                 ? strlen("import foundation; ") : strlen("import tower; ");
             var located = session.machine.error_offset == execution_semantic_entry_base(modules) + prefix + offset;
-            // Layout failures on generated representations have no source span.
+            // Generated layout failures can have no source span.
             located ||= offset == 0 && session.machine.error_offset == 0;
+            if i == convert(usize, SemanticInvalidCase.RecursiveType) {
+                // The interpreter limit has no expression span. Its generated
+                // diagnostic maps to the first byte of this entry source.
+                located = session.machine.error_offset == execution_semantic_entry_base(modules);
+            }
             var exact = execution_text(&session.error, execution_semantic_message(i)) && located;
             if !exact {
                 puts(source); puts(session.error.data);
