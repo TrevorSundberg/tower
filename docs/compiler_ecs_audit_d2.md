@@ -11,7 +11,8 @@ wide-function benchmark wrapper, the tool-budget regression, and six additional
 shared build/measurement entry points reviewed below. These categories
 are not interchangeable. The subsequently handed-off sanitizer tool and two
 negative probes add three source reviews; A2 retains their ownership. The shared
-stress-source generator adds one further caller review, for 97 tracked paths.
+stress-source generator adds one further caller review. The new independent
+Tower/C input producer brings coverage to 98 paths.
 
 ## Contracts and method
 
@@ -126,6 +127,22 @@ boundary. Existing 300-function generation and checked graph/native output299
 exercise that branch; other generator branches retain D1's independent test
 responsibility. Mutable size variables permit larger frozen experiments without
 copying generator logic, but the output bound remains mandatory.
+
+`scaffolding/benchmarks/compiler_reference_inputs.tower` is a new D2 source
+reviewed over `4aef575`, SHA256
+`86eb23867a65a06381622898a094f1696ab26f0f477014eb006b12aaaf628381`.
+It reuses parameterized `stress_functions` and shared number/text/path/file
+helpers, with caller-owned contiguous buffers and lexical cleanup after ordered
+writes. One call-list loop supplies both languages; no imported mutable state,
+compiler world or scheduler is introduced. Fresh-directory creation prevents
+reuse of prior products, and failed directories are retained. Its C11 template
+is an independently authored foreign-compiler reference input, not Tower's C
+backend output; it checks 32-bit `int`, avoids header expansion and uses explicit
+libc output ABI. Constants/calls/results match 16/1000-function Tower inputs.
+Public-pin producer compilation/generation and independent function counts pass;
+program execution and timing comparison are pending. Three initial producer
+contract failures (reserved name, missing explicit function imports, mutation of
+an imported initializer under `--library`) are preserved in the journal/logs.
 
 ### Copied bootstrap resources: provenance-only review
 

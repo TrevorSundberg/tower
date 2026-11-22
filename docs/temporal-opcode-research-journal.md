@@ -46851,3 +46851,48 @@ retains its existing completed sensitivity evidence without replay. Remaining
 sanitizer work uses actual valid compiler/builder/regression workloads; this does
 not waive production threading/lifetime acceptance. No such follow-up has yet
 run while D1 owns the host slot.
+
+At the next D2 slot, canonical default native reconfiguration/build reports no
+work and its compiler remains byte-identical to the saved baseline. The TSan
+metadata update also reports no work after CMake regeneration; its configured
+TSV now contains actual Tower inputs. Durations0.75/0.76s, peakRSS73868/73812KiB
+are configuration/no-op observations, not rebuild speedups.
+
+Root clarified the remaining frontend reference requirement: Tower-emitted C is
+not alone independent frontend parity. D2 added a Tower-only paired source
+producer, reusing stress_wide_functions at16/1000 functions and independently
+authored C11 reference syntax with matched values/calls/results15/999. Its first
+smallest-unit compile failed at local name `expected`, a reserved identifier.
+The failed compile drained; original diagnostic/time were preserved as
+sanitizers/reference_generator_initial.{log,time}, then the local was renamed
+expected_output. No source generator output or correctness result existed before
+this fix. The unexecuted ignored1000-function-only experiment was removed after
+absolute-path/SHA verification; the paired producer replaces that duplicate entry.
+
+The second smallest-unit attempt rejected bytes_dispose: imported helper modules
+do not implicitly expose their own imported function bindings. Preserve that
+failure as reference_generator_import.{log,time}; add explicit imports of shared
+bytes/types and utility assertions before retrying. This corrects the producer's
+module contract without changing the shared generator or language syntax.
+
+The third attempt exposed the library-entry contract: mutating imported
+StressFunctionCount makes its initializer a top-level executable statement, which
+--library correctly rejects. Preserve reference_generator_global.{log,time}.
+Use the already parameterized stress_functions helper instead, and emit matched
+Tower/C call lists in one shared loop. No imported mutable state or language
+change is needed. The generated workload remains identical in shape to the
+existing wide-functions case, with explicit counts and separate reference syntax.
+
+The paired producer now compiles through the public pin (5.69s wall,5.58s CPU,
+187192KiB RSS) and emits its six inputs/data files (under0.01s,1460KiB RSS).
+Independent counts find16/1000 functions in both languages; Tower sizes558/37699
+bytes and C806/45819 bytes, expected files15/999. Executing/compiling the emitted
+programs remains pending; generation/counts alone are not semantic equivalence.
+
+Sanitizer configuration rejects undefined mode and non-native profile with the
+intended diagnostics/exit1. The first non-Clang probe instead failed because
+/usr/bin/g++ is absent; this is preserved in config_invalid_compiler.log and is
+not coverage of the intended guard. A fresh probe keeps installed Clang++ while
+selecting installed GCC for C, reaching the intended native/Clang19 guard and
+exit1 (config_invalid_cc.log). No unsupported LLVM version was installed merely
+to simulate another guard. These are expected rejections, not successful builds.
