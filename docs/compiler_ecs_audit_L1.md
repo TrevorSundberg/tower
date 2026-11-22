@@ -113,7 +113,16 @@ which rebuilt successfully. Fresh valid-input profiles, remaining malformed
 source/encoder tests, instrumentation and publication are still pending.
 
 ### Current checkpoint
-The journal records current evidence. All156 graph/cache trials plus canonical-package subphase passed; focused core-static and its negative binding oracle pass against recorded pre-integration objects. Two historical invalid fixtures require Foundation imports; the remaining case51 failure duplicates an instantiation trace. A1v2's receipt-copy fix and shared declaration/query-unit split are integrated and await a fresh joined build with the original exact oracle. Published8/5 assets remain distinct from current9/6 source; no final acceptance, clean successor, full compiler instrumentation or deployment pass is claimed.
+The journal records current evidence. All 156 graph/cache trials plus the
+canonical-package subphase passed; focused core-static and its negative binding
+oracle passed against recorded pre-integration objects. A fresh joined public
+bootstrap build includes A1v2's receipt-copy fix, shared declaration/query-unit
+split and root-demand fix. Query smoke and the complete semantic corpus pass at
+both target widths, preserving the exact single-instantiation diagnostic oracle.
+The corpus also checks inferred type-value arguments through graph execution,
+fast execution and canonical reconstruction. Published 8/5 assets remain distinct
+from current 9/6 source. Shared budget integration, final profiles, instrumentation,
+successor publication and hosted acceptance remain open.
 
 
 ### Execution ownership boundary

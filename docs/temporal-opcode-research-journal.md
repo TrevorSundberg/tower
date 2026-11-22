@@ -46834,3 +46834,29 @@ This L1 snapshot deliberately does not adopt L2's still-unaccepted generic-call
 classification candidate. Its successful query receipts do not establish complete
 source constructor support, final performance, whole-compiler lifetime/thread
 validation, public pin, deployment or hosted verification.
+
+### L1 complete semantic corpus after root-demand integration
+
+With A1_root_demand's exact three changes, the smallest semantic unit and dependent
+compiler/test targets rebuilt using the public predecessor. Query smoke passes:
+0.09s wall, 0.10s CPU, 62228KiB peak RSS. The complete semantic corpus passes at
+both target widths: 144.17s wall, 23.79s CPU, 323312KiB peak RSS, exit0. This includes
+the unchanged exact single-instantiation trace oracle. Logs are
+`L1/logs/semantics_current_{build,query,run}.*` in the coordination directory.
+
+Two stale negative expectations were updated to current language contracts:
+a boolean compile-time parameter still rejects with the precise semantic error;
+`identity(i32)` is valid because type names are ordinary values and generic type
+inference applies. A positive test verifies that result in graph/cache execution
+and canonical reconstruction; the negative call now supplies three arguments and
+checks the independently observed exact arity error. No production behavior was
+changed to make a historical fixture pass.
+
+The run spent only 16% of wall time on CPU and recorded 1,118,851 voluntary context
+switches while loading resources from the Windows mount. Observed `p9_client_rpc`
+waits suggest a filesystem transport cost. A proposed byte-identical frozen Linux
+resource snapshot will be measured against this result; no improvement is claimed
+yet. The process drained before the build slot was released to L2. Pull/rebase
+preserved all working changes and local checkpoint8346a77. Whole-compiler shared
+budget adoption, valid-workload instrumentation, final comparative measurements
+and public successor/browser deployment remain separate acceptance gates.

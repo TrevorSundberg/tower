@@ -1,77 +1,81 @@
 import tower;
-enum SemanticInvalidCase: u32 { StructPrint = 39, RecursiveType = 50 }
+enum SemanticInvalidCase: u32 { UnsignedNegativeLiteral = 19, StructPrint = 39, RecursiveType = 50 }
 // Fixtures retained from the native semantic port oracle.
 fn execution_semantic_valid(index: usize): u8* {
-    if index == 0 { return "             \n\n// Forward module bindings and effects retain source order.\nlater = 0;\nvar result = twice(later);\nvar later: i32 = 21;\nprint(result);\nprint(twice(later));\n\nfn twice(value: i32): i32 {\n    var doubled = value + value;\n    return doubled;\n}\n\n// Layout is explicit for the selected pointer width.\nstruct Record {\n    tag: u8;\n    pointer: i32*;\n    values: i32[3];\n}\n\nvar record: Record;\nrecord.tag = 7;\nrecord.values[2] = 42;\nprint(record.tag);\nprint(record.values[2]);\nprint(sizeof(Record));\nprint(alignof(Record));\n\n// Type constructors preserve nominal instance identity and recursive pointers.\nfn box(T: type): type {\n    struct Box {\n        value: T;\n        next: Box*;\n    }\n    return Box;\n}\n\nfn identity(T: type, value: T): T {\n    return value;\n}\n\nvar item: box(i32);\nitem.value = identity(i32, 42);\nitem.next = null;\nprint(item.value);\n\n// Lexical scopes, early returns, loop control and signed literal bounds.\nfn choose(value: i32): i32 {\n    loop {\n        var positive = value > 0;\n        if positive {\n            return value;\n        }\n        break;\n    }\n    return -2147483648;\n}\n\nprint(choose(3));\nprint(choose(0));\n"; }
-    if index == 1 { return "var `odd name`: i32 = 42; print(`odd name`);"; }
-    if index == 2 { return "fn f(x: i32): i32 { var z = x; var a = z; { var z = a; print(z); } return a; } print(f(42));"; }
-    if index == 3 { return "struct A { b: B; } struct B { value: u64; } var a: A; a.b.value = 42; print(a.b.value);"; }
-    if index == 4 { return "fn arr(T: type, n: usize): type { return T[n]; } var a: arr(i32, 3); a[2] = 42; print(a[2]);"; }
-    if index == 5 { return "fn alias(T: type): type { return T; } var a: alias(i32) = 42; print(a);"; }
-    if index == 6 { return "var p = alloc(i32, 2); p[1] = 42; var q = p + 1; print(*q); p = realloc(i32, p, 3); free(p);"; }
-    if index == 7 { return "var p: u8* = null; var q: u8* = null; var same = p == q; print(same);"; }
-    if index == 8 { return "fn f(): i32 { if true { return 1; } } print(f());"; }
-    if index == 9 { return "var a: u8[3]; fill(&a, 7, 3); var b: u8[3]; copy(&b, &a, 3); print(b[2]);"; }
-    if index == 10 { return "var a: u64 = 18446744073709551615; var b: i64 = -9223372036854775808; print(a); print(b);"; }
-    if index == 11 { return "fn f(): void { loop { if false { continue; } break; } return; } f();"; }
+    if index == 0 { return "import tower;\n\n// Forward module bindings and effects retain source order.\nlater = 0;\nvar result = twice(later);\nvar later: i32 = 21;\nprint(result);\nprint(twice(later));\n\nfn twice(value: i32): i32 {\n    var doubled = value + value;\n    return doubled;\n}\n\n// Layout is explicit for the selected pointer width.\nstruct Record {\n    tag: u8;\n    pointer: i32*;\n    values: i32[3];\n}\n\nvar record: Record;\nrecord.tag = 7;\nrecord.values[2] = 42;\nprint(record.tag);\nprint(record.values[2]);\nprint(sizeof(Record));\nprint(alignof(Record));\n\n// Type constructors preserve nominal instance identity and recursive pointers.\nfn box(T: type): type {\n    struct Box {\n        value: T;\n        next: Box*;\n    }\n    return Box;\n}\n\nfn identity(T: type, value: T): T {\n    return value;\n}\n\nvar item: box(i32);\nitem.value = identity(i32, 42);\nitem.next = null;\nprint(item.value);\n\n// Lexical scopes, early returns, loop control and signed literal bounds.\nfn choose(value: i32): i32 {\n    loop {\n        var positive = value > 0;\n        if positive {\n            return value;\n        }\n        break;\n    }\n    return -2147483648;\n}\n\nprint(choose(3));\nprint(choose(0));\n"; }
+    if index == 1 { return "import tower; var `odd name`: i32 = 42; print(`odd name`);"; }
+    if index == 2 { return "import tower; fn f(x: i32): i32 { var z = x; var a = z; { var z = a; print(z); } return a; } print(f(42));"; }
+    if index == 3 { return "import tower; struct A { b: B; } struct B { value: u64; } var a: A; a.b.value = 42; print(a.b.value);"; }
+    if index == 4 { return "import tower; fn arr(T: type, n: usize): type { return T[n]; } var a: arr(i32, 3); a[2] = 42; print(a[2]);"; }
+    if index == 5 { return "import tower; fn alias(T: type): type { return T; } var a: alias(i32) = 42; print(a);"; }
+    if index == 6 { return "import tower; var p = alloc(i32, 2); p[1] = 42; var q = p + 1; print(*q); p = realloc(i32, p, 3); free(p);"; }
+    if index == 7 { return "import tower; var p: u8* = null; var q: u8* = null; var same = p == q; print(same);"; }
+    if index == 8 { return "import tower; fn f(): i32 { if true { return 1; } } print(f());"; }
+    if index == 9 { return "import tower; var a: u8[3]; fill(&a, 7, 3); var b: u8[3]; copy(&b, &a, 3); print(b[2]);"; }
+    if index == 10 { return "import tower; var a: u64 = 18446744073709551615; var b: i64 = -9223372036854775808; print(a); print(b);"; }
+    if index == 11 { return "import tower; fn f(): void { loop { if false { continue; } break; } return; } f();"; }
     return null;
 }
 fn execution_semantic_invalid(index: usize): u8* {
-    if index == 0 { return "var a: Mystery;"; }
-    if index == 1 { return "var a: void;"; }
-    if index == 2 { return "var a: i32; var a: i32;"; }
-    if index == 3 { return "var a = b; var b = a;"; }
-    if index == 4 { return "var a = a;"; }
-    if index == 5 { return "var a = f(); fn f(): void {}"; }
-    if index == 6 { return "fn f(): i32 {}"; }
-    if index == 7 { return "break;"; }
-    if index == 8 { return "continue;"; }
-    if index == 9 { return "fn f(a: i32): void {} f(true);"; }
-    if index == 10 { return "fn f(): void {} f(1);"; }
-    if index == 11 { return "unknown();"; }
-    if index == 12 { return "print();"; }
-    if index == 13 { return "struct A { a: void; }"; }
-    if index == 14 { return "var a: i32[0];"; }
-    if index == 15 { return "var a: i32[1048577];"; }
-    if index == 16 { return "var a: void[1];"; }
-    if index == 17 { return "var a: i32[1048576][2];"; }
-    if index == 18 { return "var a: u8 = 256;"; }
-    if index == 19 { return "var a: u64 = -1;"; }
-    if index == 20 { return "var a: i64 = 9223372036854775808;"; }
-    if index == 21 { return "var a: i32 = true;"; }
-    if index == 22 { return "var a: i32 = null;"; }
-    if index == 23 { return "var a: bool = 1;"; }
-    if index == 24 { return "var a: i32; print(a.no);"; }
-    if index == 25 { return "struct A { a: i32; } var a: A; print(a.no);"; }
-    if index == 26 { return "var a: i32; print(a[0]);"; }
-    if index == 27 { return "var a: void*; print(a[0]);"; }
-    if index == 28 { return "var a: i32*; print(a[true]);"; }
-    if index == 29 { return "var a: i32; print(*a);"; }
-    if index == 30 { return "var a: i32; *a = 1;"; }
-    if index == 31 { return "print(alloc(void, 1));"; }
-    if index == 32 { return "free(1);"; }
-    if index == 33 { return "var a: i32; copy(&a, 1, 4);"; }
-    if index == 34 { return "var a: i32; print(convert(usize, &a));"; }
-    if index == 35 { return "print(bits(u8, 1));"; }
-    if index == 36 { return "print(bits(bool, true));"; }
-    if index == 37 { return "var a: void*; a = a + 1;"; }
-    if index == 38 { return "var a: bool = true; var b = a + a;"; }
-    if index == convert(usize, SemanticInvalidCase.StructPrint) { return "struct A { a: i32; } var a: A; print(a);"; }
-    if index == 40 { return "fn f(): void { return 1; }"; }
-    if index == 41 { return "fn f(): i32 { return; }"; }
-    if index == 42 { return "fn f(): void { fn g(): void {} }"; }
-    if index == 43 { return "fn f(): void { struct S { a: i32; } }"; }
-    if index == 44 { return "fn f(a: i32, a: i32): void {}"; }
-    if index == 45 { return "fn print(): void {}"; }
-    if index == 46 { return "fn f(): void {} fn f(): void {}"; }
-    if index == 47 { return "fn f(T: type, T: type): T { return 1; }"; }
+    if index == 0 { return "import tower; var a: Mystery;"; }
+    if index == 1 { return "import tower; var a: void;"; }
+    if index == 2 { return "import tower; var a: i32; var a: i32;"; }
+    if index == 3 { return "import tower; var a = b; var b = a;"; }
+    if index == 4 { return "import tower; var a = a;"; }
+    if index == 5 { return "import tower; var a = f(); fn f(): void {}"; }
+    if index == 6 { return "import tower; fn f(): i32 {}"; }
+    if index == 7 { return "import tower; break;"; }
+    if index == 8 { return "import tower; continue;"; }
+    if index == 9 { return "import tower; fn f(a: i32): void {} f(true);"; }
+    if index == 10 { return "import tower; fn f(): void {} f(1);"; }
+    if index == 11 { return "import tower; unknown();"; }
+    if index == 12 { return "import tower; print();"; }
+    if index == 13 { return "import tower; struct A { a: void; }"; }
+    if index == 14 { return "import tower; var a: i32[0];"; }
+    if index == 15 { return "import tower; var a: i32[1048577];"; }
+    if index == 16 { return "import tower; var a: void[1];"; }
+    if index == 17 { return "import tower; var a: i32[1048576][2];"; }
+    if index == 18 { return "import tower; var a: u8 = 256;"; }
+    // Foundation's signed literal remains invalid; Tower's ordinary unary
+    // operation wraps the unsigned value and is tested by integer_negation.
+    if index == convert(usize, SemanticInvalidCase.UnsignedNegativeLiteral) { return "import foundation; var a: u64 = -1;"; }
+    if index == 20 { return "import tower; var a: i64 = 9223372036854775808;"; }
+    if index == 21 { return "import tower; var a: i32 = true;"; }
+    if index == 22 { return "import tower; var a: i32 = null;"; }
+    if index == 23 { return "import tower; var a: bool = 1;"; }
+    if index == 24 { return "import tower; var a: i32; print(a.no);"; }
+    if index == 25 { return "import tower; struct A { a: i32; } var a: A; print(a.no);"; }
+    if index == 26 { return "import tower; var a: i32; print(a[0]);"; }
+    if index == 27 { return "import tower; var a: void*; print(a[0]);"; }
+    if index == 28 { return "import tower; var a: i32*; print(a[true]);"; }
+    if index == 29 { return "import tower; var a: i32; print(*a);"; }
+    if index == 30 { return "import foundation; var a: i32; *a = 1;"; }
+    if index == 31 { return "import tower; print(alloc(void, 1));"; }
+    if index == 32 { return "import tower; free(1);"; }
+    if index == 33 { return "import tower; var a: i32; copy(&a, 1, 4);"; }
+    if index == 34 { return "import tower; var a: i32; print(convert(usize, &a));"; }
+    if index == 35 { return "import tower; print(bits(u8, 1));"; }
+    if index == 36 { return "import tower; print(bits(bool, true));"; }
+    if index == 37 { return "import tower; var a: void*; a = a + 1;"; }
+    if index == 38 { return "import tower; var a: bool = true; var b = a + a;"; }
+    if index == convert(usize, SemanticInvalidCase.StructPrint) { return "import tower; struct A { a: i32; } var a: A; print(a);"; }
+    if index == 40 { return "import tower; fn f(): void { return 1; }"; }
+    if index == 41 { return "import tower; fn f(): i32 { return; }"; }
+    if index == 42 { return "import tower; fn f(): void { fn g(): void {} }"; }
+    if index == 43 { return "import tower; fn f(): void { struct S { a: i32; } }"; }
+    if index == 44 { return "import tower; fn f(a: i32, a: i32): void {}"; }
+    if index == 45 { return "import tower; fn print(): void {}"; }
+    if index == 46 { return "import tower; fn f(): void {} fn f(): void {}"; }
+    if index == 47 { return "import tower; fn f(T: type, T: type): T { return 1; }"; }
     // Inference accepts one runtime argument; zero still tests invalid arity.
-    if index == 48 { return "fn f(T: type, v: T): T { return v; } f();"; }
-    if index == 49 { return "fn typefn(T: type): type { return T; } print(typefn(i32));"; }
-    if index == convert(usize, SemanticInvalidCase.RecursiveType) { return "fn bad(T: type): type { return bad(T); } var a: bad(i32);"; }
-    if index == 51 { return "fn bad(T: type): T { return true; } print(bad(i32));"; }
-    if index == 52 { return "fn a(T: type, n: bool): type { return T; } var a: a(i32, true);"; }
-    if index == 53 { return "fn f(T: type, v: T): T { return v; } f(i32);"; }
+    if index == 48 { return "import tower; fn f(T: type, v: T): T { return v; } f();"; }
+    if index == 49 { return "import tower; fn typefn(T: type): type { return T; } print(typefn(i32));"; }
+    if index == convert(usize, SemanticInvalidCase.RecursiveType) { return "import tower; fn bad(T: type): type { return bad(T); } var a: bad(i32);"; }
+    if index == 51 { return "import tower; fn bad(T: type): T { return true; } print(bad(i32));"; }
+    if index == 52 { return "import tower; fn a(T: type, n: bool): type { return T; } var a: a(i32, true);"; }
+    // A type name is now an ordinary value, so f(i32) can infer T = type.
+    // Three supplied arguments still exceed explicit or inferred arity.
+    if index == 53 { return "import tower; fn f(T: type, v: T): T { return v; } f(i32, 1, 2);"; }
     return null;
 }
 
@@ -128,11 +132,9 @@ fn execution_semantic_message(index: usize): u8* {
     if index == 48 { return "Wrong argument count for template 'f'"; }
     if index == 49 { return "Type constructor 'typefn' produces a type, not a runtime value"; }
     if index == convert(usize, SemanticInvalidCase.RecursiveType) { return "Cannot resolve type constructor: dependency cycle bad -> bad -> bad"; }
-    if index == 51 { return "Expected i32, got bool; use an explicit conversion\nInstantiated by bad(i32) at line 1, column 43."; }
-    if index == 52 { return "Unexpected 'true'. Expected Identifier, Number or '-'."; }
-    // Generic inference admits the single value argument, then name resolution
-    // rejects i32 in value position (also verified with the published bootstrap).
-    if index == 53 { return "Unknown local 'i32'"; }
+    if index == 51 { return "Expected i32, got bool; use an explicit conversion\nInstantiated by bad(i32) at line 1, column 57."; }
+    if index == 52 { return "Compile-time value parameters currently require an integer type"; }
+    if index == 53 { return "Wrong argument count for template 'f'"; }
     return null;
 }
 fn execution_semantic_offset(index: usize): usize {
@@ -188,8 +190,8 @@ fn execution_semantic_offset(index: usize): usize {
     if index == 49 { return 45; }
     if index == convert(usize, SemanticInvalidCase.RecursiveType) { return 41; }
     if index == 51 { return 28; }
-    if index == 52 { return 57; }
-    if index == 53 { return 39; }
+    if index == 52 { return 14; }
+    if index == 53 { return 37; }
     return 0;
 }
 
