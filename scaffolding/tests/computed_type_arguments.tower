@@ -1,4 +1,5 @@
 import tower;
+import library.vector;
 
 var Word: type = integer_type(4 * 8, 1);
 var Bytes: type = array_type(u8, 1 << 3);
@@ -13,6 +14,18 @@ fn buffer(T: type, length: usize): type {
     return Buffer;
 }
 
+fn first_capture(): usize {
+    var count = 3;
+    var values: u8[comptime(count)];
+    return sizeof(decltype(values));
+}
+
+fn second_capture(): usize {
+    var count = 6;
+    var values: u8[count];
+    return sizeof(decltype(values));
+}
+
 fn verify(): i32 {
     var failures: i32 = 0;
     var first: i32[2 + 3];
@@ -21,12 +34,37 @@ fn verify(): i32 {
     var lazy: u8[true ? 7 : 1 / 0];
     var lazy_call: u8[true ? 7 : unavailable()];
     var target: u8[sizeof(usize) * 2];
+    var count = 5;
+    var extended = count + 2;
+    var captured: u8[extended];
+    var selected = true ? count : unavailable();
+    var captured_lazy: u8[selected];
+    {
+        var count = 9;
+        count++;
+    }
+    var after_shadow: u8[count];
+    for(var count = 0; count < 2; count++) {}
+    var values: vector(u8) = default;
+    vector_push(&values, convert(u8, 1));
+    foreach(var count in &values) { count = 0; }
+    vector_dispose(&values);
+    var after_loops: u8[count];
+    var runtime = 3;
+    runtime++;
+    var lazy_capture: u8[true ? count : runtime];
+    var explicit_capture: u8[comptime(count + 1)];
     if sizeof(decltype(first)) != 20 || sizeof(decltype(second)) != 7 { failures++; }
     if sizeof(Word) != 4 || sizeof(Bytes) != 8 { failures++; }
     if sizeof(Float) != 4 || sizeof(signed_word(16)) != 4 { failures++; }
     if sizeof(Tag) != 4 || sizeof(decltype(lazy_call)) != 7 { failures++; }
     if sizeof(decltype(nested)) != 5 || sizeof(decltype(lazy)) != 7 { failures++; }
     if sizeof(decltype(target)) != sizeof(usize) * 2 { failures++; }
+    if sizeof(decltype(captured)) != 7 || sizeof(decltype(captured_lazy)) != 5
+        || sizeof(decltype(after_shadow)) != 5 || sizeof(decltype(after_loops)) != 5
+        || sizeof(decltype(lazy_capture)) != 5 { failures++; }
+    if first_capture() != 3 || second_capture() != 6
+        || sizeof(decltype(explicit_capture)) != 6 { failures++; }
     return failures;
 }
 print(verify());

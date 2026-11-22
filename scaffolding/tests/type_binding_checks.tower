@@ -103,6 +103,11 @@ fn computed_type_argument_tests(modules: void*, root: u8*, bedrock: u8*, foundat
     struct_value_reject(modules, "import tower;var a:u8[1/0];", "zero");
     struct_value_reject(modules, "import tower;var a:u8[true?true:false];", "compile-time integer argument");
     struct_value_reject(modules, "import tower;var length:usize=4;var a:u8[length+1];", "runtime storage");
+    struct_value_reject(modules, "import tower;fn test():void{var n=4;var a:u8[n];n++;}test();", "runtime storage");
+    struct_value_reject(modules, "import tower;fn test():void{var n=4;var a:u8[n];var p=&n;}test();", "runtime storage");
+    struct_value_reject(modules, "import tower;fn test():void{var n=4;var a:u8[n];defer n++;}test();", "runtime storage");
+    struct_value_reject(modules, "import tower;fn test():void{var n=4;var a:u8[n];for(;false;n++) {}}test();", "runtime storage");
+    struct_value_reject(modules, "import tower;fn test():void{var n:i32=n;var a:u8[n];}test();", "dependency cycle");
     struct_value_reject(modules, "import tower;fn size():usize{return 4;}var a:u8[size()];", "staged body scheduling");
     struct_value_reject(modules, "import tower;var a:u8[comptime(1/0)];", "zero");
     puts("Computed type arguments: interpreter, target widths, Foundation round trips and worker determinism pass.");

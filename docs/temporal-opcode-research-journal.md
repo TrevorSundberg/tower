@@ -44639,3 +44639,79 @@ The defer correction passes the successor self-compilation of semantic_body_work
 ordered signature-failure cases. Log: body-preparation-defer-native.log. Keep
 the failed candidate logs; do not reuse its browser assets as evidence for this
 correction. Refresh the frozen publication once with the corrected sources.
+
+### 2026-11-22 — Body preparation publication and early binding proofs
+
+The corrected frozen compiler passes the public-bootstrap native successor and
+successor body-unit compilation, real browser workers (3/3, no skips), and two
+edited browser generations with identical bytes. Rebase integrates upstream
+Windows tooling and published-linker execution receipts; the compiler/runtime
+Tower closure is unchanged. Repeat the default-bootstrap successor build and
+body-unit compilation, update site packaging, preserve the latest Mach-O target
+packs and deployment receipts. Source bf2a3e8 and Pages e1aea98 are atomically
+pushed; Pages action 45038817058 succeeds. Native compiler SHA-256 is
+994503518323a0619bb02adda26032461893cb8e54d7a867455a52f04174ba77;
+compiler-project SHA-256 is
+057ac9f03cd06d1f738d68b397293aded42ee5191b1b19ff05e9a00d6383be03.
+The manifest explicitly records the original 0b8db4a artifact build and the
+source-equivalent rebased closure. Logs: body-preparation-final-*,
+body-preparation-rebased-* and body-preparation-hosted.log. Hosted verification
+has passed all 104 asset hashes and desktop behavior; mobile is pending here.
+
+Continue with the local-value/type dependency gap. A whole-program immutability
+proof after body checking cannot supply a value needed to type that same body.
+Add lexical mutation/escape facts to the existing parallel body discovery query,
+using private scopes and original declaration identities. Track declaration-before-
+initializer binding, block/for/defer scopes and foreach shadow markers; unknown
+statement contracts conservatively decline proofs. Publish facts on declaration
+entities after joins. These facts establish eligibility only, never values.
+
+Demanded integer arguments register eligible local producers and clone their
+checked initializers before runtime lowering. Clone/evaluation dependencies use
+the completed discovery proof instead of waiting for the containing body. The
+ordinary interpreter still discovers executed capture dependencies and computes
+all results. Executed helper calls and module captures retain their existing
+restrictions at this step. Add focused positive chain/lazy/shadowing fixtures and
+negative later-write/address/defer/for-update cases. First integrated compilation
+rejects an aggregate foreach without an explicit borrow; correct that syntax and
+rerun the affected native build/type suite. This new staging work is not yet
+validated or published; it is not a completion or speedup claim.
+
+Hosted verification completes successfully: all 104 assets and both desktop and
+mobile checks pass (body-preparation-hosted.log). The first early-binding build
+passes type-smoke and the computed-type fixture with captured initializer chains,
+lexical shadowing and an untaken helper call (prints zero, four workers). Extend
+that fixture with for/foreach shadowing and an untaken mutable capture; include
+the self-capture cycle in rejection coverage. Run the existing execution `types`
+suite for both interpreters, layouts, canonical round trips and 1/2/4/8 workers.
+
+Supersede eager proof scanning during discovery: it needlessly scans every body
+and allocates per-local metadata even without captured type arguments. The final
+design requests a BindingProof query only for an integer argument that references
+local storage. Its function-owned component and private scopes use the shared
+finite-kernel dispatcher; the body coordinator services ready proof batches.
+The worker has private scratch, diagnostics and a frozen context. Publication
+attaches proof facts after the join. No additional pool or evaluator is introduced.
+
+The expanded `types` suite passes both engines/layouts, canonical round trips,
+1/2/4/8-worker determinism and mutation/escape/defer/update/self-cycle rejections
+(binding-proofs-types-final.log). Earlier fixture attempts incorrectly iterated
+a raw array and used a relative import from the synthetic test filename; use
+the existing nominal vector protocol and library.vector import. A missing view
+ABI declaration also blocked one build; those attempts are not passes.
+
+An isolated nested comptime(count) extent then exposes missing capture discovery:
+the typed stage placeholder hid its executable expression. Reproduced the runtime
+storage diagnostic in binding-proofs-nested-isolated.log. Follow the existing
+stage readiness link for capture admission, without demanding its execution, and
+retain visited identities. The corrected native fixture prints zero; the final
+types/query checks are running in binding-proofs-nested-fixed.log. This extends
+capture discovery only, not interpreter semantics or constant folding.
+
+The final nested-capture `types` and query-smoke suites pass, and the successor
+compiles semantic_binding_proofs to LLVM successfully (binding-proofs-successor.log).
+The existing real-browser threaded matrix already consumes the expanded Tower
+computed-type fixture, so it will exercise the new path without another JS
+implementation or test driver. Freeze this coherent capture milestone for the
+public-bootstrap/browser/generation publication checks before proceeding to
+executed helper-body readiness.

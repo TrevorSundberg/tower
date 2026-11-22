@@ -11,6 +11,8 @@ import semantic_types;
 import semantic_control;
 import semantic_defer;
 import semantic_work_ids;
+import semantic_known_bindings;
+import semantic_binding_proofs;
 import foundation_types;
 import foundation_tags;
 import .library.vector;
@@ -99,6 +101,12 @@ fn sem_type_value_finish(c: SemanticContext*, result: SemanticDeclaration*): usi
             sem_fail(c, result.subject, "Expected a compile-time integer argument");
             return 0;
         }
+        if result.current != null && result.current != c.program.root && sem_binding_needed(c, result.value) {
+            var proof = sem_binding_request(c, result.current);
+            if work_task(&c.queries, proof).state != WorkState.Succeeded { return proof; }
+        }
+        sem_known_captures(c, result.value);
+        if !sem_ok(c) { return 0; }
         var subject = sem_control_node(c, result.subject, KOperand);
         var clones = sem_table(c);
         var nodes = sem_list(c);

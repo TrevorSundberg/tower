@@ -14,7 +14,7 @@ enum SemanticQuery: u32 {
     Flow, EvaluationPrepare, BodyPrepare, GenericBody, KnownScan, KnownOrder,
     KnownPublish, KnownProof, AggregatePrepare, KnownClone, KnownInputs, Expression,
     ArrayType, TypeConstruction, IterationResolution, BodyDiscovery, IntegerArgument,
-    KnownSnapshot
+    KnownSnapshot, BindingProof
 }
 
 enum SemanticWorkDomain: u64 { Compiler = 1 }

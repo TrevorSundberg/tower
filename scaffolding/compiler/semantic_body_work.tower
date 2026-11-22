@@ -19,6 +19,7 @@ import semantic_evaluation;
 import semantic_flow;
 import semantic_generic_body_work;
 import semantic_work_ids;
+import semantic_binding_proofs;
 import .library.vector;
 import .library.stack;
 import .library.work_graph;
@@ -1977,6 +1978,7 @@ fn sem_bodies(c: SemanticContext*): void {
         c.declaration_subjects = &state.declarations;
         c.declaration_isolated = true;
         var declarations = sem_declarations_pump(c);
+        var bindings = sem_binding_pump(c);
         var evaluations = sem_evaluation_pump_inputs(c, false);
         var layouts: usize = 0;
         if sem_ok(c) {
@@ -1989,7 +1991,7 @@ fn sem_bodies(c: SemanticContext*): void {
         c.declaration_subjects = saved_subjects;
         c.declaration_isolated = saved_isolated;
         if body == SemanticPumpResult.Progress || declarations == SemanticPumpResult.Progress
-            || evaluations == SemanticPumpResult.Progress || layouts != 0 { continue; }
+            || evaluations == SemanticPumpResult.Progress || bindings != 0 || layouts != 0 { continue; }
         sem_body_pipeline_finish(c);
         return;
     }
