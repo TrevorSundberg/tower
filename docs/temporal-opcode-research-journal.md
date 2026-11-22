@@ -44327,3 +44327,19 @@ fixture/build-tool dependency. This does not claim arbitrary ld64 options,
 Mach-O dylib output, Linux hosted libc/shared-object linking, or replacement of
 host toolchain linking for LLVM/compiler builds. Those external build contracts
 are explicitly separate from the completed byte-linker migration.
+
+Final publication rebase includes d72d5ac C ABI narrowing and 668675b/01b9c4a
+platform fixture fixes. A second completely new public-bootstrap cache,
+coordinator-macho/rebased_successor, builds all 51 steps successfully; executable
+SHA256 0675f4c97c6e236d566b59d774789b6a74eff0c24be6e40e16281b5a684393cb.
+Browser assets intentionally keep their validated build source 454c951 and its
+scaffolding tree 422742239b8d404772c2d21f6e64d0e1e60bf335. These newer C-output
+and fixture changes are not relabeled as part of the browser runtime build.
+
+Local deployment verification passes all 104 assets plus desktop/mobile backend,
+grammar, completion, persistence and native-download checks. The asset diff
+also caught a previously published Bedrock-only increment example (Pages90f80fc)
+that main's older source would have replaced. Preserve the exact published asset
+and bring that existing Tower example back into main so subsequent builds retain
+it. The new clean CLI interprets it with exact 5/6/7/7/9 output. No new parser or
+language implementation is introduced by this source/publication reconciliation.
