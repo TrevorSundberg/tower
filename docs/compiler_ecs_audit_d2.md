@@ -529,3 +529,59 @@ snapshot:141GiB free,9.9GiB RAM available,5.8GiB preexisting swap use; measured
 commands report zero swaps. No generated-data cleanup was needed. Compilation
 and ownership fixes still require integration with other lanes, exact-source
 release validation and leased publication before campaign acceptance.
+
+### Incoming measurement companion (reviewed draft, not integrated coverage)
+
+B1's `scaffolding/tests/parser_retention.tower` is delivered externally with
+SHA256`f0033081ec3a8623b01d0ecc38c4d00e3f92b436b50c6ef57a4e2cb7086c4688`.
+It is additional source review, separate from the98tracked-path count. A private
+vector deduplicates component-page pointers reached through all live entity-table
+rows, including full pages detached from the open-page list. This is a derived
+observer, not another owner or authoritative graph. Allocation counts are sampled
+before observer allocation and the vector is disposed after every snapshot.
+Serial transport is asserted; the observer does not mutate payloads or outlive
+its world/session. The original reset/declaration/statement/release sequence is
+preserved. An explicit owned-world path requires frontend cleanup, world disposal
+and exact allocator-baseline restoration.
+
+Independently inspected B1 host/owned CSVs (128resets for each of four sizes)
+attribute the reported increase to component-page churn with stable entity,
+component and revision-cache counts. Host session teardown returns4546tracked
+buffers; owned-world teardown returns its exact initial count. This is B1 runtime
+evidence, not a D2 execution. A2's source-derived page/byte bound and D1's precise
+benchmark oracle remain integration prerequisites; finite observations alone
+cannot justify an arbitrarygrowth allowance. No B1 experiment is copied into the
+production build or independently modified by D2.
+
+Four additional A2/D1 measurement drafts are reviewed from
+`validated_checkpoints.patch` and D1's entry-point-only `focused_registration.patch`.
+They remain outside the98locally tracked paths until integrated. D1's seven
+CTest passes and64balanced fixture/profile executions are cross-lane evidence;
+D2 has not run this incoming closure. Existing shared CMake object/runtime rules
+and opt-in measurement targets avoid a second harness or compiler manifest.
+
+| Incoming measurement path | Reviewed identity and storage/world/scheduling/ownership disposition | Evidence limits |
+| --- | --- | --- |
+| `scaffolding/tests/work_select.tower` | A2`0b57994d`, blob`dfc04fbf`, then D1 exported-main wrapper. One local WorkGraph owns contiguous derived task/ready/index/scratch vectors, disposed after the trial; no new world or semantic graph. Timed setup plus forward/reverse targeted admission/finish checks use shared tickets at32/4096/65536tasks, require empty ready/running state. | Monotonic/getrusage failures trap. Reported capacity sum covers the named graph vectors in this no-edge workload, not all process memory. Serial ready selection is deliberately not parallel speedup evidence. |
+| `scaffolding/tests/work_budget_profile.tower` | A2`8d8faee3`, blob`3791624a`, then D1 wrapper. Local budget and initialized receipt array survive all reserve/reverse-release operations; receipts close before budget disposal. Every grant and final/peak accounting is checked. No global world or alternate scheduler. | One/twelve ledger lanes are reservation workload sizes, not actual concurrent workers. Measures ledger overhead; reported retained ledger capacity excludes separate receipt storage. |
+| `scaffolding/tests/work_kernel_overhead.tower` | A2`07246521`, blob`5650b1ca`, then D1 wrapper. Contiguous jobs plus borrowed pointer index use production pool/typed kernel projection. One warm dispatch precedes timed1/32/1024-job repetitions; each arithmetic result checked. Synchronous dispatch must drain before returning and before job buffers free; later pool close releases idle transport. | Worker1/2/4/8 are explicit stress cases, not host recommendations. Capacity accounting omits opaque semaphore/thread-stack storage; peak RSS is process-wide. No lease/alias permission is inferred from pointer adjacency. |
+| `scaffolding/tests/work_kernel_profile.tower` | A2`07246521`, blob`af0c348d`, then D1 wrapper. One immutable million-byte input is borrowed by independent per-job SHA states/results/timestamps. Job array and pointer index outlive pool close; all trials finish before input free. Shared dispatch and actual pthread identities are used, with independent million-a SHA oracle. | Reports overlapping job intervals/caller count and cold batch setup, not a barrier proving simultaneous CPU execution or compiler end-to-end scaling. Capacity sum omits opaque transport/stack memory; rusage high-water carries across cases. Raw timing/output remains necessary. |
+
+The root integration receipt requires current dispatcher batch/projection,
+budget-types, vector-reset and owning compiler/type handoffs. It explicitly
+supersedes older bundle versions. D2 has reviewed the relevant boundaries but
+has not assembled an incomplete mixed-ABI compiler, rerun discarded fixtures or
+attributed existing checks to these pending source changes.
+
+`scaffolding/tests/tool_output_identity.tower` is a sixth incoming measurement/
+regression draft, reviewed at A2`5911d9cc`, blob`5c1d8ed3`. Four owned path buffers
+and one closed mkstemp file establish same-path/symlink/hardlink/missing-output
+cases. Deferred unlink runs while path owners remain live, and measured loops
+only query identity; they never overwrite the aliased input. Normal mode requires
+hardlink rejection; explicit `measure` mode can report the old defect without
+claiming regression success. Linux x64 clock/rusage errors trap. The reported
+path-capacity sum intentionally excludes old realpath allocations and OS state.
+Existing library helper owns the inode/device policy; there is no file identity
+registry, new world, compiler scheduler or claim against concurrent renames.
+D1's shared ordinary/sanitized target registration is preferred over a second
+standalone build path. Local execution awaits the coherent owner handoff.

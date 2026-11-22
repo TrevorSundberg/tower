@@ -46965,3 +46965,34 @@ D1/root received full results, TSan backend timeout and B1 parser-retention gap.
 An inspection command guessed nonexistent reference_generator.time and exited2;
 this was a log lookup error, not a rerun or failed compiler check. The actual
 specific initial/import/global/pass receipts remain preserved under sanitizers.
+
+Coordinator supplied B1 parser-retention attribution source/data. D2 independently
+reviewed sourceSHAf0033081ec3a8623b01d0ecc38c4d00e3f92b436b50c6ef57a4e2cb7086c4688
+and both128reset-per-size CSVs; these are B1 executions, not local reruns. The
+observer finds all live component pages through entitytables, including full
+pages detached from the open-page list, and releases its private derived vector
+after each snapshot. Buffercount is sampled before observer allocation. The
+owned-world path drains frontend ownership, disposes the world and asserts the
+exact original count. Data attributes the512-size increase to one56slotpage with
+stable entities/components/cache, and shows complete session/world teardown.
+A2 reviews the source-derived bound and D1 owns the corrected oracle; no arbitrary
++1slack, warmup increase or local production change is made. The current local
+benchmark134failure remains evidence of the old stability assertion, not proof
+of a leak or a substitute for validating the revised check.
+
+D2 read root's coordinator_integration_receipt before any new coherent build:
+current shared budget/dispatch/type extraction/vector-reset and owner admission
+patches have explicit prerequisites/replacement rules; several final nominal/
+function-signature/u8fixes remain pending. No automatic apply or publication
+lease follows from the inventory. D2's current compiler closure is still unchanged
+from published60741c5 (git diff--quiet of compiler/library/host/types/grammar
+paths passes), and original runtime build98ade8cc remains an ancestor.
+
+D2 additionally reviewed all four incoming measurement modules work_select,
+work_budget_profile,work_kernel_overhead,work_kernel_profile from A2's validated
+patch and D1's entrypoint wrappers. Per-file source IDs, ownership, shared
+scheduler use, output checks and memory/timing limits are added to its audit.
+These are four pending draft reviews beyond98tracked paths, alongside the B1
+retention companion. No new code or performance result is implied; D1 owns
+registration and its before/after runs. Current bookkeeping/documentation edits
+have no runtime behavior and therefore require no new runtime profiling.
