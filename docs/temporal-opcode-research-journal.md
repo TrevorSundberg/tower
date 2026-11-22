@@ -43878,3 +43878,24 @@ generation 2 sizes are tower 1318190, LLVM 35095006 and cross 61087450 bytes.
 Logs: computed_type_arguments_{browser_checks,wasm,generations,successor}.log
 under build/. Required threaded/LLVM/cross site bundling passes. Local/hosted
 deployment receipts follow after verification.
+
+Final asset comparison caught stale local build/targets support files: their
+runtime objects were much smaller than the latest published packs, and the
+cached kernel32 archive predated the Tower PE publication. Restore the exact
+verified target assets from fbe2665d instead of publishing this unrelated
+regression. Hash-check each restored pack against that deployment's manifest;
+repeat local deployment verification on the corrected bundle. All 104 hashes
+and desktop/mobile backend, grammar, completion, persistence, target download
+and default-selection checks pass.
+
+Publish main d9de7345 and Pages b930fb7f66bca47f520ba4d64ba676088560a8cf in one
+atomic fast-forward push. An initial GitHub DNS failure clears on retry.
+Pages run 45031108723 succeeds; the hosted manifest exactly matches the prepared
+bytes. computed_type_arguments_deployment_hosted.log passes all 104 asset
+hashes and the same desktop/mobile checks. Preserve previous scoped receipts,
+runtime/compiler-project source 23b919ef and its scaffolding tree identity,
+the public 18664657 bootstrap hash, and target-support provenance fbe2665d.
+This journal-only receipt reuses those verified runtime assets without rebuilding
+identical compilers. No todo.txt changes. The next language milestone remains
+ordinary immutable staged captures and helper calls during type construction,
+followed by general type-valued execution and the shared type protocol.
