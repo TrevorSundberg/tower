@@ -394,6 +394,9 @@ fn ce_collect(c: CEmitter*, entity: void*, owner: void*): void {
     if n.kind == KType {
         return;
     }
+    // ce_id marks the function before descending, including recursive calls.
+    var reference = foundation_execution_reference(n);
+    if reference != null { ce_collect(c, reference, reference); }
     ce_collect(c, n.left, owner);
     ce_collect(c, n.right, owner);
     ce_collect(c, n.value, owner);
@@ -413,7 +416,8 @@ fn ce_collect(c: CEmitter*, entity: void*, owner: void*): void {
         if i == n.items.length {
             break;
         }
-        ce_collect(c, n.items.data[i], owner);
+        var item = n.items.data[i];
+        if foundation_execution_item(n, sem_get(item)) { ce_collect(c, item, owner); }
         i++;
     }
 }
@@ -862,6 +866,7 @@ fn ce_statement(c: CEmitter*, entity: void*): void {
                 break;
             }
             var child = n.items.data[i];
+            if sem_get(child).kind == KFunction { i++; continue; }
             var index = ce_id(c, child);
             if c.active.data[index] {
                 ce_statement(c, child);

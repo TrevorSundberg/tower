@@ -37,6 +37,7 @@ design inputs, not evidence of Tower performance or race freedom.
 | `execution_profiles.tower` | Explicit canonical/optimized/normalized ABI values; no state, allocation or scheduling. |
 | `semantic_evaluation.tower` | Original subject owns result/invocation/readiness components. Shared WorkGraph access/tickets reserve bounded ready frontiers; dispatcher joins before readiness/result publication. Executed calls/bindings demand producers. Cycle diagnosis is separate from pumping. Alias, aggregate and relocation results publish after join. Review failure propagation and demand scans with A1 before edits. |
 | `semantic_evaluation_work.tower` | Private context/program diagnostic and scratch copies; stages lease subject/function before dispatch, views close after join, all stages publish before aliases. Typed expression vectors are derived queues. Shared finite dispatcher is already used. |
+| `semantic_evaluation_types.tower` | A1's extracted declaration module preserves the same evaluation/result component identities and invocation ownership. It supplies shared payload types without importing execution implementation into fixture clients. Joined query receipts and the complete semantic corpus pass with this split. |
 | `semantic_execution_work.tower` | Checked source identity maps to derived executable Foundation snapshot. Body dependency/access is reserved before dispatch. Context/scratch/errors are private; stages publish after drain. Contains a manual refill loop equivalent to shared dispatch; do not rewrite without measured need. Failure readiness semantics require comparison with graph failure propagation. |
 | `semantic_evaluation_aggregates.tower` | Projection records retain original field identity until layout exists. Final frame is retained until scalar leaf relocation; no padding or interpreter address is serialized. Rejects nonzero raw pointers; type/function values relocate via shared interpreter. |
 | `units/interpreter.tower` | Import-only production closure; includes ordinary call-readiness fixture. Changing membership requires manifest coordination. |
@@ -115,7 +116,7 @@ source/encoder tests, instrumentation and publication are still pending.
 ### Current checkpoint
 The journal records current evidence. All 156 graph/cache trials plus the
 canonical-package subphase passed; focused core-static and its negative binding
-oracle passed against recorded pre-integration objects. A fresh joined public
+oracle now also pass against the fresh joined compiler. A fresh joined public
 bootstrap build includes A1v2's receipt-copy fix, shared declaration/query-unit
 split and root-demand fix. Query smoke and the complete semantic corpus pass at
 both target widths, preserving the exact single-instantiation diagnostic oracle.
@@ -142,3 +143,68 @@ lookup table are private derived indexes; they do not turn the world component
 store into packed SoA storage. No new cache-locality or parallel-scaling improvement
 is claimed from this audit. The relevant fresh measurements and integrated overlap
 checks remain separate release evidence.
+
+The joined snapshot also passes the session, emitter, envelope and constructor
+protocol suites, plus type/control smoke with serial/worker equivalence and
+canonical reconstruction. A five-pair ordinary call profile shows overlapping
+before/after execution times and essentially unchanged peak RSS; it establishes
+no material regression or speedup. Moving byte-identical test resources from the
+Windows mount to the owned Linux cache reduced one complete semantic run from
+144.17s to 7.05s with identical output. This is filesystem transport evidence.
+
+New shared-budget owner patches are integrated after that tested snapshot and
+still require a complete coherent build. The earlier successful semantic-unit
+preflight preceded B2's second bounded-input bundle. It must not be used to
+discount the newer aggregate's reported public-bootstrap component limit.
+### Current integrated-source limits and reconstruction finding
+
+New owner handoffs change shared WorkTask, SemanticDeclaration and FrontendUnits
+layouts and consolidate the standard prelude. They require fresh dependent objects
+and matching resources. Old complete execution receipts above remain tied to their
+recorded source identities. A1's required-stage continuation fix is still pending;
+full constructor acceptance, final instrumentation/profiles and publication remain
+open. The current semantic executable pump now uses shared admitted dispatch,
+replacing the earlier manual-loop observation in the inventory.
+
+Exact valid signed32 attribution reproduced D1's baseline package byte for byte.
+Its normalized Foundation is118962bytes and reconstruction dominates runtime.
+The newer fast package uses a different profile because imported type helpers
+trigger Foundation preservation; it is not equivalent normalized coverage. Both
+outputs match the independent saturation oracle. See the journal for timings,
+identities, unresolved reconstruction cost and limited debugger observations.
+
+ExecutionSession's input snapshot is temporary and is disposed after synchronous
+frontend compilation. The newly bounded frontend owns SyntaxSource storage.
+The session's extra copy is now a potential simplification, not a demonstrated
+retention requirement or measured bottleneck. No unvalidated removal was made.
+
+### Current role and runtime-root corrections
+
+The subsequent f17 identity/readiness compiler fails the original independent-world
+semantic fixture at an unfinished staged callee, and scalar C emission rejects
+unused imported type helpers. These supersede earlier snapshot passes as current
+acceptance blockers. Required-stage readiness, separate required/optional producers
+in the same IMValueInput component, and shared runtime root/reference policy are
+now integrated drafts. All readers and publishers require a matching ABI rebuild.
+Private execution indexes preserve graph identity; Foundation declarations remain
+intact. Exact failures, owner changes and pending verification are recorded in the
+journal and lane status. No newer full semantic, control, browser or publication
+pass is claimed.
+
+The next coherent b28 compiler passes the original semantic/world crash case,
+query/control smoke and source emitter ownership/capability cases. Required-stage
+snapshot receipts prevent repeated lowering. These are concrete partial results;
+full types currently fails a new unused-alias reachability expectation, and editor
+completion's unimported fixture fails its candidate assertion. Owner review is
+pending. The journal retains exact binary/source identities and failed logs.
+
+The corrected seven-case reachability oracle now preserves the unused local alias
+as a negative and tests retained type values positively. L2's independent full
+suite passes; L1's a78b474f source-root/parser rebuild passes source-rejection,
+type-smoke and full semantics. The imported editor fixture exposes a separate
+body-admission assertion, routed to A1/B2. This supersedes the prior fixture-only
+status without hiding either failure. Terminal capture review supports the
+current post-evaluation publication boundary, subject to dynamic late/generic
+regressions and range ownership/memory evidence. The matched-resource signed32
+control still has substantial normalized reconstruction cost; exact artifacts
+are retained. Final acceptance and publication remain open.

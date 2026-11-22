@@ -118,9 +118,15 @@ fn sem_capture_pump(c: SemanticContext*): SemanticPumpResult {
         }
     }
     if sem_ok(c) {
-        var input = bits(IMValueInput*, entity_component_data(entity_component_add(subject, c.value_inputs)));
-        sem_require(input != null);
-        *input = { producer: result.evaluation.literal, owner: result.proof.owner, ordinal: result.proof.ordinal };
+        var input = bits(IMValueInput*, entity_component_data(entity_component_get(subject, c.value_inputs)));
+        if input == null {
+            input = bits(IMValueInput*, entity_component_data(entity_component_add(subject, c.value_inputs)));
+            sem_require(input != null);
+            *input = default;
+        }
+        input.producer = result.evaluation.literal;
+        input.owner = result.proof.owner;
+        input.ordinal = result.proof.ordinal;
     } else {
         result.error = c.program.error;
         result.error_offset = c.program.error_offset;

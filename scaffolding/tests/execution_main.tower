@@ -91,7 +91,10 @@ export fn main(argc: i32, argv: u8**): i32 {
     frontend_modules_configure(request.modules, "named_initialization_input.tower", argv[1]);
     if all || rejection { execution_rejection_tests(request.modules); }
     if rejection { return 0; }
-    if all || source_rejection { execution_source_rejection_tests(request.modules); }
+    if all || source_rejection {
+        execution_source_rejection_tests(request.modules);
+        execution_source_reachability_tests(request.modules, argv[1]);
+    }
     if source_rejection { return 0; }
     if all || encoder_rejection { execution_encoder_rejection_tests(request.modules); }
     if encoder_rejection { return 0; }

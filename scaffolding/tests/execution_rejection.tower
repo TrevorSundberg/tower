@@ -1,10 +1,13 @@
 import tower;
 import execution_support;
+import execution_graph;
+import frontend_units;
 import .compiler.execution_session;
 import .compiler.execution_package;
 import .host.driver_api;
 import .library.bytes_types;
 import .library.bytes_interface;
+import .library.vector;
 
 // Exercise failures before any executable graph exists, then reuse the same
 // owner. A rejected request must be safe to step, select an engine and close.
@@ -103,4 +106,45 @@ fn execution_source_rejection_tests(modules: void*): void {
     execution_run(&session, 7, 1000);
     execution_check(execution_text(&session.output, "42\n"), "rejected emitters preserve the checked graph");
     puts("C/Roku unsupported graph rejection and retained input ownership passed.");
+}
+
+fn execution_source_reachability_tests(modules: void*, root: u8*): void {
+    var source: vector(u8) = default;
+    defer vector_dispose(&source);
+    units_read(root, "/tests/source_execution_reachability.tower", &source);
+    var session: ExecutionSession = default;
+    defer execution_session_close(&session);
+    var text: ByteBuffer = default;
+    var error: ByteBuffer = default;
+    defer bytes_dispose(&text);
+    defer bytes_dispose(&error);
+    execution_compile(&session, source.data, 4, modules);
+    var original = execution_graph_hash(&session.program);
+    c_emit(&text, &error, session.program.root, 4, true);
+    execution_check(error.length == 0 && text.length != 0 && host_text_terminate(&text),
+        "scalar C retains calls without unused private type helpers");
+    execution_check(strstr(text.data, "visible_answer(void)\n{") != null,
+        "uncalled exported function keeps its definition");
+    text.length = 0;
+    roku_emit(&text, &error, session.program.root, 4, true);
+    execution_check(error.length == 0 && text.length != 0
+        && execution_graph_hash(&session.program) == original,
+        "source emitters use derived reachability without pruning Foundation");
+    execution_run(&session, 7, 10000);
+    execution_check(execution_text(&session.output, "42\n1\n"),
+        "recursive direct calls and module effects remain executable");
+    execution_compile(&session,
+        "import tower; fn runtime_type():type{return i32;} print(runtime_type()==i32);", 4, modules);
+    for(var trial: usize = 0; trial < 2; trial++) {
+        text.length = 0;
+        error.length = 0;
+        if trial == 0 { c_emit(&text, &error, session.program.root, 4, true); }
+        else { roku_emit(&text, &error, session.program.root, 4, true); }
+        execution_check(text.length == 0 && execution_text(&error,
+            "This source backend does not yet implement type values; use LLVM native/Wasm output"),
+            "reached type values retain their source capability diagnostic");
+    }
+    execution_run(&session, 7, 10000);
+    execution_check(execution_text(&session.output, "true\n"), "rejected type emission retains its checked graph");
+    puts("Source execution roots, exports, recursion and capability checks passed.");
 }

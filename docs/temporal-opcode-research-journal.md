@@ -46860,3 +46860,445 @@ yet. The process drained before the build slot was released to L2. Pull/rebase
 preserved all working changes and local checkpoint8346a77. Whole-compiler shared
 budget adoption, valid-workload instrumentation, final comparative measurements
 and public successor/browser deployment remain separate acceptance gates.
+### L1 joined execution checks and filesystem iteration measurement
+
+The fresh joined execution runner (`e53f303e1c4d38c64c250d10f2abfd3cffa8c3ce77cd5bd79d0cdbdd3aa26968`)
+passes session rejection, C/Roku rejection with graph reuse, package envelope
+rejection/current and prior versions, staged constructor protocol, and core-static
+round trips with the binding-negative oracle. These now use the joined compiler
+objects, superseding the earlier isolated pre-integration evidence for those
+specific checks. Type smoke and control smoke also pass serial/worker execution,
+canonical reparse, focused failures/cycles and ordered cleanup. Their times were
+41.76s wall/47.31s CPU/255968KiB and40.36s/45.82s/272060KiB. Focused execution suites
+were1.20-1.39s wall; core-static4.64s/5.80s CPU/326236KiB. Exact logs are
+`L1/logs/joined_focused_*`. No newer budget source is covered by these binaries.
+
+A byte-identical7MiB copy of scaffolding in the exclusively owned Linux cache
+removed the measured Windows-mount bottleneck. Recursive byte comparison passed
+before execution; complete semantic suite stdout matched exactly with `cmp`.
+The same binary took7.05s wall/8.61s CPU/322480KiB versus144.17s/23.79s/323312KiB
+from `/mnt/c`. Voluntary context switches fell from1,118,851 to55,414. This is one
+paired transport comparison, not a compiler algorithm speedup or a statistical
+scaling study. Initial shell-variable transport lost a diff operand and failed
+before testing; explicit absolute paths corrected the command. Future snapshots
+must be refreshed and byte-verified when relevant resource inputs change.
+
+### L1 ordinary interpreter call profile
+
+The existing Foundation `benchmarks/interpreter_calls.tower` exercises3,000 loop
+iterations with two nested calls and the independently checked result4501500.
+One warmup and five alternating predecessor/current pairs per graph/fast mode
+all matched that output (24 processes). Explicit flags: Linux x64, `--jobs 1`,
+default optimization, `--interpret` or `--interpret-fast`, `--timings`; identical
+frozen Linux resource tree. No other heavy lane job overlapped these samples.
+The saved initial compiler SHA36342c85f4febd28bb0897db63776ee5f2d0934561bdd1ff499e45e1cffc93e8
+was compared with joined compiler3b3229bdc2be5a2f2830c9033317fa02c846dee43357a51d0f1cba68cc0c5636.
+Logs `interpreter_calls_pair_*` retain stdout, CLI phases, GNU time and exit status.
+
+| Mode | Median wall before/after | Median CPU before/after | Median peak RSS before/after | Median execute before/after |
+| --- | --- | --- | --- | --- |
+| Graph | 0.24/0.25s | 0.24/0.24s | 105080/105124KiB | 5.988600/5.982759ms |
+| Fast | 0.34/0.34s | 0.34/0.33s | 114940/114948KiB | 0.669708/0.676816ms |
+
+Ranges overlap; these small samples establish neither speedup nor material
+regression. This is a call microbenchmark, not an end-to-end compiler throughput
+or multicore claim. Existing16-request entity-retention/core-static checks pass;
+RSS is not allocator live-byte accounting. Invocation effects remain ordered and
+serial; parallel throughput belongs to independent ready requests/units and still
+requires the complete shared-budget integration measurements.
+
+After draining, checked and applied exact owner handoffs: A2 work budget/admitted
+dispatcher, B2 full unit/world budget, A1 data-only budget boundary/helperv2, B1
+vector reset and L2's compiled generic-clone grant delta. The full B2 patch already
+contains world binding, so the standalone duplicate was not applied. The WorkPool
+layout changed; no old-object/new-source mixture or fresh build pass is claimed.
+Matching remaining semantic/parser callsites and closure-size fixes remain pending.
+### L1 remaining ownership-path review
+
+An ordinary staged generic with an incompatible bool return correctly rejects
+with one instantiation trace on the frozen joined compiler. The proposed analogue
+of the earlier duplicated body receipt did not reproduce; no new formatting fix
+is justified by that example. The Tower source and diagnostic/time logs are
+retained in the external L1 lane as `staged_generic_diagnostic.*`.
+
+Evaluation/executable snapshot publication was also traced through sem_defer_clone
+and sem_control_node. These paths copy Foundation payload and owned vectors under
+the retained source root; they do not currently call the staged provenance-copy
+API that queues shared reference ownership. That API's current caller is generics,
+whose coordinator holds queued references before closing its input view. Therefore
+absence of an explicit hold in those two snapshot pumps is not itself a demonstrated
+bug. A1 received this refinement; future worker admission involving metadata cloning
+must retain the same hold-before-last-pin contract. No speculative ownership rewrite
+or additional evaluator was introduced.
+
+Root-routed dispatcher projection sharing and the semantic-world query-unit split
+were applied after clean patch checks and drained jobs. The latter retains all test
+exports in the existing linked query object. Its owner standalone-unit receipt is
+not a fresh joined L1 compiler pass. The public 128MiB bootstrap closure limit stays
+unchanged; remaining owner caller/preparation changes must compile before acceptance.
+### L1 budget preflight and successor owner bundles
+
+A current semantic/query preflight passed five steps (including changed host
+prerequisites):36.85s wall,28.89s CPU,794496KiB peakRSS. The first command named a
+nonexistent query target and failed before compilation; the corrected target was
+`tower-compiler-query-checks.o`. Both logs remain under `budget_preflight_*`.
+This pass included B2v1, data-only budget declarations, generic-clone admission,
+shared projection and query-object splitting. It PRECEDES B2v2 and parser-budget
+adoption, so it does not contradict the owner's later128MiB aggregate failure.
+No mixed-object executable was linked or run. The build slot was released first.
+
+Then integrated root-routed B2v2 (verified SHA2a1b4d89b9e01ccce40d23c22aeb3c4f37195e2b2f45a66b0ee426c374d8b93b),
+replacing the exact prior six owned unit/test paths while preserving world binding
+and A1's worker wrappers. Only the five relevant defining-type import hunks were
+temporarily reversed; v2 includes them. B1's exact older formatter/fixture bundle
+was replaced with its current complete bundle. A1's initializer-reuse fix and B1's
+parser budget patch were applied, including the two documented work_budget_types
+imports. Patch checks and diff checks passed. These owner drafts are not runtime
+acceptance. A1's pending completion/frontend-unit interface split addresses the
+new aggregate import cost without raising the public component cap or removing
+tests. Avoid repeating the known failed full aggregate until that boundary arrives.
+### L1 current shared-budget build and focused runtime receipts
+
+With all matching A1 admitted callers/body TYPE frontier, L2 classifierv2 and
+B2v2/B1 parser/formatter plus the frontend interface split, the smallest semantic
+and frontend units compiled. The documented public native build passed18 steps:
+70.70s wall,93.85s CPU,638528KiB peakRSS. Execution/work/driver runners then passed
+eight build steps. Compiler SHA256 is
+64fd00df5be5abbeb1fde589a36b6f60707966e9c230a3ff4735c58b9e431a37.
+Exact receipts are `coherent_budget_source.patch`, basebc4f942, untracked hashes,
+binary hashes and `L1/logs/coherent_budget_*`. No private bootstrap override.
+
+Query smoke, isolated staged-constructor protocol and package-envelope checks
+pass. The integrated units suite passes independent worlds, nested shared budgets,
+decltype/comptime, deterministic failures and cancellation:21.70s wall,36.14s CPU,
+641852KiB peakRSS. This is actual joined execution, not a queue-width speedup claim.
+The resource snapshot remains byte-identical to this build's OLD split standard
+prelude. L1 discovered that L2's updated source-bound harness expects a consolidated
+prelude not previously handed off. That explicit input gap is routed; no current
+L1 type-suite result is represented as equivalent to L2's consolidated resources.
+
+The exact semantic corpus advances to49 and rejects with the current rule:
+`Type values have opaque identity and cannot be printed as numbers`, at the same
+relative45+import14 offset. A separate ordinary CLI check of case50 now rejects
+`Tower call stack limit exceeded` at1:1: classifierv2 makes this an executed
+recursive helper instead of a static type alias. Updated only these precise
+expectations (case50 no-span offset0), preserving both rejection cases and the
+separate nominal/layout cycle coverage. The original failed corpus and independent
+CLI logs are retained. Updated runner assertions still require a fresh rerun.
+
+Browser environment preparation installed the402 locked npm packages using a
+lane-local official Node22.23.5 archive after SHA256 verification
+(4a191082e9706866830379d577d2cc8a50c776fcd9436a8d061b063ed0d9a0e3).
+The first attempt under global Node21 stopped on an engine warning; its failure
+was not a test result. Global tool selection and package-lock were unchanged.
+No browser runtime or hosted validation is claimed from dependency installation.### L1 coherent owner handoffs and valid signed32 attribution
+
+After draining the previous jobs, applied exact reviewed owner handoffs for the
+consolidated prelude and resource references, nominal identity versus layout,
+function-signature identity API plus matching A1 consumer/readiness hooks, and
+B2's direct bounded source service. Patch checks and reverse checks pass. The
+SemanticDeclaration, FrontendUnits and WorkTask layouts changed; earlier linked
+executables do not validate this newer closure. D1's focused registration includes
+only ordinary scheduler/budget/identity/semaphore fixtures. Its six missing A2
+prerequisites were selected explicitly from the reviewed checkpoint, preserving
+newer admission/budget/projection work. The valid early-return worker cleanup was
+also integrated. No deliberate invalid-memory or intentional-race probe ran.
+
+D1 supplied the exact signed saturating i32 add source and old compiler/resource
+identities. On the same quiet Ryzen/WSL host, using frozen Linux resource snapshot
+`l1_resources_budget_20261122`, explicit wasm32 target, jobs1 and no optimization:
+
+- Baseline compiler36342c85 emission:21.89s wall,22.06s CPU,215340KiB peak RSS.
+  Its178846-byte package SHA256fb08cca757d9e3c65554b4c74aaf1a8c0ec29d1463dfe00c9c0f52e0e0f31b94
+  exactly matches D1's artifact. Header profile2, Foundation118962bytes,
+  cache14765words. D1's slower-host child30s deadline therefore remains relevant.
+- Fully linked pre-latest-drafts compiler64fd00df emission:0.50s wall,0.38s CPU,
+  109284KiB peak RSS. However, its2511-byte package is profile0, Foundation1987
+  bytes/cache101words. The checked graph now retains ordinary imported type
+  helpers, so type_object_program triggers canonical Foundation preservation.
+  This is NOT an equivalent normalized-path speedup or a timeout fix.
+- Both packages execute exactly2147483647,-2147483648,3. Baseline load10.87s
+  wall/10.67s CPU/171952KiB; current load has230.234ms CLI total.
+- Extracted the unchanged baseline canonical source using its validated header
+  span. Current compiler graph execution of that source passes the same oracle:
+  16.58s wall/16.50s CPU/213068KiB. CLI compile16282.778ms versus execute6.039ms
+  attributes almost all elapsed time to reconstruction. Baseline package loading
+  and this graph-only command are not an exact-mode regression comparison.
+
+These are one-run attribution measurements, not statistical speedup claims or
+complete live-allocation accounting. Cold executable faults appear in the logs.
+`L1/logs/signed32_*` retains commands, timings, outputs, identities and headers;
+`L1/signed32_baseline_canonical.tower` is the exact generated source for further
+owner profiling. Two paused debugger observations landed in entity_stage_lease
+under sem_bodies_pump and entity_stage_publish. The optimized binary has incomplete
+unwind information; these are leads, not statistical call-tree attribution. That
+run exited normally and its paused timing is excluded from measurements. All
+owned jobs drained before the host slot was released to L2.
+
+The required-stage review in `L1/required_stage_review.txt` records the constraints
+for A1's local-type continuation fix: derive required capability from !inferred,
+initialize capture/executable component maps on the coordinator before workers
+freeze their context, preserve optional Body/KnownProof/KnownClone prerequisites,
+retain declaration/frame identity and capture-order checks, and resume existing
+interpreter tasks without replaying effects. No L1 cross-owner semantic edit.
+The full constructor suite still needs this fix and fresh coherent validation.
+
+B2's new bounded frontend copies into SyntaxSource, so the previous rationale for
+ExecutionSession's extra temporary copy must be revisited. Those buffers are
+released immediately after frontend compilation; they are not retained for later
+interpreter execution. Retained graph/source ownership belongs to the frontend.
+No copy-removal change or performance benefit is claimed here; source-length and
+first-diagnostic regressions must remain intact if that code is simplified.
+
+### L1 required-stage, input-role and runtime-root integration
+
+The coherent identity/readiness build completed 45 native steps in 81.07s wall,
+125.31s CPU and 637428KiB peak RSS; the three runners then linked. Compiler SHA256
+f17fd050b41c87e6e320ce230b5f676a2c28e37fbb3a2f58dc8d855ed92ab4c4.
+Its original full semantics failure was an exact location-oracle mismatch:
+RecursiveType reports the entry base (19137), not absolute zero. Corrected only
+that case's expected offset, retaining its call-stack-limit diagnostic. After the
+test-only rebuild, the ordinary full suite exited139 in execution_world.tower's
+existing staged-answer/generic-identity fixture. The corpus had reached both
+widths. Debugger source tracing found ix_enter with a null unfinished body on
+both coordinator/worker observations. Debugger exit0 is not a passing test.
+Logs identity_readiness_semantics* retain both failures. No deliberate invalid-
+memory or intentional-race sensitivity probe ran, and all debugger jobs drained.
+
+A1's required-stage patch initializes capture/executable services before worker
+preparation, derives capability from !inferred and keeps optional proof/clone
+prerequisites. It is applied but has not yet passed the original suite in L1.
+A1 independently found required capture metadata contaminating optional inferred
+values: an earlier initializer read a later global as9 instead of runtime zero.
+The agreed shared IMValueInput now appends known_producer. Required source proof
+owns producer/owner/ordinal; optional known-value proof owns known_producer.
+L1's reader selects the correct field and retains exact local-declaration/frame
+identity and required source-order checks. A1's two publishers preserve the other
+role and initialize only fresh components. These are implementation drafts with
+a full dependent ABI rebuild pending. Failed optional producers remain marked
+failed in the existing dependency receipt; the retention/cleanup contract is
+being confirmed with A1. No alternate evaluator or producer map was introduced.
+
+The same f17 compiler also rejected ordinary import tower; print(42) for C output:
+unreachable imported type helpers triggered the type-value capability diagnostic.
+This corroborates the profile0 package observation above; changing the old
+function-value negative oracle would conceal a real regression. Two small shared
+Foundation predicates now define executable root items and bound function-call/
+function-reference edges. C/Roku retain their existing private visited/owner
+indexes; L2's type-value capability traversal adds only visited function identities
+for recursive calls. Module effects and exports remain roots. Canonical graph and
+formatter declarations are unchanged. New Tower tests cover private recursive
+calls, exports, module effects, reached unsupported values and unchanged graph/
+Foundation output. They still need compilation and runtime validation.
+
+Owner bundle receipts and exact source/untracked hashes are under L1's external
+role_reachability_* files. B1's old full formatter fixture bundle was replaced,
+after exact reverse checks, with its consolidated-prelude bundle e51e5db8.
+The shared local build slot was acquired after L2 released it; current smallest
+units use the public predecessor, compiler jobs1 and outer jobs2. All measurements
+above finished before hibernation or started after resume; none spans suspension.
+Final coherent control/type/semantic checks, equivalent normalized-package
+profiles, supported valid-workload instrumentation, clean bootstrap/browser and
+leased publication remain open. Earlier successful receipts do not validate these
+newer source layouts or resource closure.
+
+### L1 joined role/reachability results and remaining fixture failures
+
+After the smallest units passed, A1 supplied executable lowering receipts:
+prepared/lowered state comes from completed graph queries, the snapshot remaps
+an aggregate result parameter, and already-lowered bodies are not lifted twice.
+Applied this before the coherent dependent build. Native45 steps passed in
+76.48s wall/116.66s CPU/425512KiB peak RSS; runners7 steps passed. This is build
+cost, not a quiet paired performance result: L2's pinned-source network checkout
+could affect disk activity. Compiler b28ce8987534e2ee5aee5d48b385d85106f8c7f351aaf423b629561b41579d1b,
+initial execution runner095aa9e9 and work runner73dda5e9; complete hashes and source
+receipts live in role_reachability_*. The fresh Linux resource copy matched the
+then-frozen scaffolding tree byte for byte.
+
+Original full semantics now passes both widths AND execution_world, the exact
+previous crash. Query smoke and control continuation smoke pass; the latter
+includes the staged array that exposed double lowering. Original function-value
+source rejection and new C/Roku root/export/recursive-call/module-effect/reached-
+type checks all pass. Their checked input graph hash is unchanged after emission.
+The valid unused helper fixture uses integer signedness1, correcting the draft's
+unsupported bool argument before runtime validation.
+
+A WSL nested-shell orchestration error expanded suite/status variables before the
+inner loop. It accidentally invoked the default all suite twice, which exited by
+signal6, while the wrapper returned0. No pass was claimed. Raw role_reachability_
+logs remain; subsequent commands use explicit arguments or a literal OS-only shell
+script with correct status capture. The default failure is now identified: the
+existing editor_observations first completion fragment has no import tower and
+returns {"from":68,"to":68,"options":[]}; its typed-candidate assertion aborts.
+Debugger source trace/disassembly and unbuffered normal execution agree. This is
+an assertion failure, not evidence of another interpreter memory fault. It is
+routed for editor/harness owner review; L1 made no editor production change.
+
+Full types progresses through existing computed-type/type-object tests, then
+fails the NEW runtime-reachability fixture. Added source/expected/actual reporting
+and a focused source-rejection hook to identify the exact case without repeating
+the preceding large matrix. Source fn reached():i32{var value:type=i32;return 1;}
+contains an unused local alias and reports scalar-only runtime. L2 is reviewing
+that oracle and will replace the source with a genuinely reached type value if
+confirmed. The unchanged production capability test for a helper returning type
+already passes. This is not a full types pass, and no production relaxation is
+proposed to satisfy source spelling alone.
+
+The consolidated formatter replacement omitted an older parser_main prerequisite.
+Restored ONLY its exact formatter_tests(resource_root) declaration and dot-root
+call from the old bundle; format_main and format_wasi already pass their roots.
+No newer production source was rebuilt merely for these test caller changes.
+The full L1 implementation/test prerequisite bundle was handed to L2 against
+60741c5 (SHA c3066f54d08f05c5549655a1602aefe7ae59bb6f6259f8358f0758daaa416560),
+which confirmed exact reverse applicability after its scoped three-way merge.
+All L1 jobs/debuggers drained and the build lock was released for L2. Final
+profiles, known/source-order edge cases, full types/editor, instrumentation,
+bootstrap/browser and publication remain open.
+
+### L1 late-capture review and frozen role/output measurements
+
+Reviewed A1's proposed general lowered-initializer ranges against the current
+interpreter/lowering/publication code. The detailed review is retained externally
+as L1/late_capture_range_review.txt and routed to A1/root. Concrete hazards:
+aggregate declaration lowering skips its current range-end assignment; a terminal
+binding.value is insufficient after lifted temporaries/stores; cloned module
+storage must become actual invocation locals with remapped identities; aggregate
+leaf publication must retain the root frame; KnownPublish compacts item/local
+vectors and rewrites payloads, so old indexes or retained handles alone are not a
+revision-safe snapshot. Coordinator registration, declared access/leases, staged
+publication and demand-only allocation remain requirements. No semantic edit or
+new evaluator was made by L1. The earlier partial KnownClone fallback was read
+but not adopted as general capture acceptance.
+
+On the quiet Ryzen5900HX/WSL Ubuntu24.04 LLVM19 host, three balanced before/after
+pairs ran the existing interpreter_calls (3000 iterations) and interpreter_profile
+(500000 iterations), jobs1, explicit Linux x64, graph and fast CLI modes. Saved
+f17fd050 and b28ce898 executables used byte-identical adjacent resources and the
+same frozen role source/grammar snapshot. All24 runs returned0; every paired
+stdout and graph/fast output matched (4501500 and445698544 respectively). Logs
+roles_interpreter_* contain wall/user/system/RSS and CLI phase measurements.
+First executable/page faults are retained; this is not a cold-cache throughput
+study. Representative ranges and limitations:
+
+| Existing workload/mode | Before wall/CPU seconds | After wall/CPU seconds | Peak RSS before/after KiB |
+| --- | --- | --- | --- |
+| calls / graph | .24-.37 / .22-.28 | .22-.24 / .20-.22 |105224 /105204 |
+| large / graph | .60-.68 / .58-.66 | .61-.66 / .59-.63 |105412 /105348 |
+| calls / fast | .31-.33 / .29-.31 | .30 / .28-.29 |114528 /114564 |
+| large / fast | .44 / .43 | .33-.34 / .32-.33 |114780 /114888 |
+
+Graph intervals overlap; these three pairs establish no reliable graph speedup
+or regression. The large fast execution phase changes from121.0-129.7ms to
+34.2-35.0ms because the corrected runtime-type reachability restores the optimized
+normalization route. fast_interpreter code itself did not change between these
+snapshots. Do not attribute this to an interpreter-loop optimization or multicore
+scaling. RSS is process high-water usage, not live allocation/fragmentation data.
+
+The first experiment copied only executables. Graph pairs succeeded, but fast
+reconstruction explicitly failed to find adjacent share/tower/bedrock.tower even
+though original grammar options were supplied. Archived all first-attempt logs
+under role_profile_incomplete_package, assembled complete identical-resource
+packages, then reran all pairs. The failed attempt is not performance evidence.
+
+The saved complete b28 compiler also emits the recursive/export/module-effect
+fixture as C; Clang19 -O2 executes exactly42,1 and nm confirms visible_answer stays
+exported. BrightScript CLI emission succeeds. Direct C/Roku graph emission already
+passed unchanged graph hash and capability diagnostics. Physical Roku execution
+is not claimed.
+
+The exact D1 signed32 input now emits normalized profile2 (container1/semantics9/
+cache6/width4) with complete current adjacent resources:69.72s wall/69.50s CPU,
+342948KiB RSS; load33.31s wall/33.14s CPU/244320KiB, correct saturation output.
+Load compilation32716.749ms versus execution0.757ms again identifies reconstruction
+as dominant. Canonical source159194bytes versus old baseline118962; package SHA
+14409f70aeffbf634bcfdd9078bb2a18cee15fd957dec6535a8e261ac4dc19cd.
+This is a real performance blocker, not a fixed30s harness deadline. Internal
+reconstruction uses adjacent resources, so comparing old split-prelude baseline
+with current consolidated resources is not isolated engine attribution. A control
+with exact baseline adjacent resources is currently running; its evidence will
+follow. No timeout limit was increased to declare this workload passing.
+
+### L1 source-root integration, terminal-phase review and matched-resource control
+
+The complete role/reachability owner fixture was corrected without weakening the
+original unused-alias case: an unused local type alias is erased and remains a
+negative, while returned, callback and exported mutable type values are positive
+capability cases. L2 independently passed all seven cases per width, full types,
+query/control smoke and full semantics with compiler0b6c90cb340929368b5fa8a3b2db878b57b2e71ae12450fb08780d8362266ae2;
+its complete two-file patch c92f7a67 reverse-checks in L1. This supersedes the
+previous draft-oracle failure, not the retained failure log.
+
+L1 then integrated the reviewed A1 source-root snapshot4784413a, B1 refined parser
+budget836fee7f, missing parser formatter resource argument, D1 body recursion
+oracle22f651f4 and B2 editor import fixture f862f1a4. The source-root vector is a
+derived ordered index captured before lowering, owned/disposed by its existing
+pipeline. Shared ABI dependents were rebuilt coherently with the public pin.
+Smallest optional profile helper passed2.59s wall/2.17s CPU/188052KiB peakRSS;
+semantic/parser objects28.32s/41.89s/785752KiB, incremental native9.27s/3.95s/
+222896KiB and runners10.80s/12.46s/335412KiB, all exit0. Compiler SHA256
+`a78b474f7ed28c05351d287ad49fa57a51e7fab4b814720965408de3ebcdbaae`;
+execution runner `db179a764ddbdfc3c14401598ccaee497a316edd51a6a8d5e53d4abb528b6026`.
+Resources were copied to a fresh lane-owned Linux snapshot and diffed exactly.
+
+Corrected source-rejection/capability, type-smoke and full semantics pass in this
+new snapshot. Editor still fails134 after importing Tower in the two old fragments.
+GDB now identifies an actual semantic_body_kernel assertion on the first imported
+completion fragment, rather than the previous missing candidate assertion.
+The inlined sem_editor_contains path leads to sem_require(sem_function_begin),
+whose false return is legitimate for functions outside an editor hole. Admission
+versus this skip contract is routed to A1/B2; no production workaround or weaker
+candidate oracle was introduced. Raw failure and debugger traces remain under
+L1/logs/source_roots_editor*. Debugger exit0 is not a target pass. Remaining
+independent gates run separately; the default all suite remains unvalidated.
+
+Read-only terminal capture review: semantic_compile_budget calls sem_evaluations
+before attributes, KnownPublish, module initialization checks and flow checks.
+Evaluation repeatedly drains requested roots and dynamically discovered type,
+capture, source, executable and layout producers while progress remains. Required
+consumers suspend on their dependencies; unfinished required evaluations fail at
+quiescence. Attributes publication rewrites existing metadata only. KnownPublish
+reads already-existing evaluations: sem_query_input only observes succeeded tasks,
+never requests or demands a producer. Remaining module/flow checks likewise do
+not instantiate generics or create captures. Thus the current one-shot lifecycle
+supports a terminal publication invariant after successful quiescence, not a new
+user-visible rejection merely because a query was registered. This static audit
+is not dynamic coverage of late/generic demands. General capture ranges still
+need exact revisions, complete initializer operations, private destination locals,
+aggregate lifetime and allocation/cardinality measurements; A1 owns that pending
+implementation. Any future live-context extension after terminal publication
+must retain operations or reopen the existing graph revision. No second evaluator
+or partial KnownClone fallback was added.
+
+The signed32 matched-resource control eliminates the adjacent-prelude confound:
+new b28 with exact baseline adjacent resources emits in68.68s wall/68.28s CPU/
+342804KiB and loads in32.78s/32.74s/244260KiB, producing the same159194-byte canonical
+payload and byte-identical package14409f70aeffbf634bcfdd9078bb2a18cee15fd957dec6535a8e261ac4dc19cd
+as b28 with current adjacent resources. The original36342 baseline emitted in
+21.89s and loaded in10.87s, with118962-byte canonical payload. Same input, explicit
+grammar, Linux host, jobs1 and normalized profile2; exact saturation output remains
+2147483647,-2147483648,3. These are single-run controls, not an isolated engine speed
+ratio. New normalized source retains private signed_integer/unsigned_integer
+bodies and diagnostic bytes; backend no-optimize import retains remaining LLVM
+functions/globals. Derived executable-root pruning is an owner hypothesis, not an
+implemented fix. Shared canonical declarations stay intact and D1's30s deadline
+stays unchanged. Both canonical artifacts, command scripts, raw logs and identity
+manifest are exported as sharedparent L1_signed32_control/. Performance acceptance,
+late capture closure, instrumentation, public bootstrap/browser and publication
+remain open. No deliberate invalid-memory or race sensitivity probes were run.
+The a78b474f full types gate also passed44.05s wall/51.79s CPU/397664KiB;
+type-smoke40.42s/45.33s/247884KiB. Original known_bindings compilation failed1
+in1.60s/2.04s/188428KiB with an unfinished compiler-query diagnostic, before
+execution. This remains a general-capture regression gate. All owned jobs drained;
+L1 released the lock for L2's frozen paired profiles. Final microprofile helper
+05a442e was adopted after drain; the prior runner contains a7d251b and is not
+claimed to validate the final close/ABI assertions.
+
+The general A1 range successor8a6829e1 was reviewed, not applied. Its aggregate
+consumer uses the existing private-frame retention and leaf relocation correctly
+in structure; partial initialization still needs runtime cases. A concrete
+ownership gap was sent back: metadata is attached before dispatch but descendant
+SemanticCapture payloads are written under only the nonrecursive function lease.
+A1 must reserve/lease those declarations or publish private receipts after joins.
+Current optional-candidate admission excludes aggregates, so the older known.end
+aggregate omission is not an active optional-aggregate bug. Terminal finalize
+assertions align with the reviewed one-shot lifecycle, pending dynamic coverage.
