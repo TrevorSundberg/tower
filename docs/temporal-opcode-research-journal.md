@@ -38814,3 +38814,15 @@ coverage, deterministic wait-schedule coverage, parallel parsing/symbol phases,
 wider Wasm/debug profiles, then native ELF/COFF/Mach-O. This milestone supplies
 TLS32 and real typed relocation jobs, not complete LLD removal. Source/API
 publication will preserve the current hosted runtime and other agents' receipts.
+
+TLS/jobs publication complete: implementation 4f5f553 and integration bca1ab6
+pushed to main after a clean pull/rebase. The fresh native successor additionally
+compiles the entire current reader/job suite and runs it successfully with actual
+thread overlap (reader-successor-tls), validating the successor's own codegen.
+Pages c8b4290e3f5f3ed56e714e88f05ed54e1d5ecc26, action 44966280133, succeeds.
+Hosted deployment-manifest.json exactly matches SHA-256
+6d2770356824079f8d629ce492eaf087773f32db0debf380dc97344486ea2d61.
+This is the explicit source/API milestone receipt: existing runtime build source
+51c038e0d15480256f7dfd7991155874b97d2cab and all 86 asset hashes remain unchanged,
+as do the other lane's LLVM tooling/type-protocol receipts. No production LLD
+cutover is claimed. Own publication lock released after verification.
