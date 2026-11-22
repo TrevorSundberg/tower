@@ -147,22 +147,15 @@ print(record_value(&record));`;
      assert.equal(text, canonical.get(pointerBytes), `workers=${capacity}, width=${pointerBytes}, repeat=${repeat}`);
     } finally { tower.destroyExecution(handle); }
    }
-   const invalid = tower.compile('import tower; fn earlier():i32 { return unknownFirst; } fn later():i32 { return unknownSecond; }');
+   const invalid = tower.compile(await readFile('scaffolding/tests/semantic_invalid/worker_body_errors.tower','utf8'));
    try {
     const result = tower.execute(invalid);
     assert.equal(result.status, 'error');
     assert.match(result.error, /unknownFirst/);
     assert.doesNotMatch(result.error, /unknownSecond/);
    } finally { tower.destroyExecution(invalid); }
-   for (const prefixFailure of [false,true]) {
-    const broken = tower.compile(`import tower;
-fn identity(T:type,value:T):T { return value; }
-fn first():i32 {
- defer { var cleanup:i32=comptime(3); }
- var value=identity(${prefixFailure ? 'unknownFirst' : '1'});
- return ${prefixFailure ? 'value' : 'unknownFirst'};
-}
-fn later():i32 { var value=identity(unknownSecond); return value; }`);
+   for (const name of ['worker_suffix_error','worker_prefix_error']) {
+    const broken = tower.compile(await readFile(`scaffolding/tests/semantic_invalid/${name}.tower`,'utf8'));
     try {
      const result=tower.execute(broken);
      assert.equal(result.status,'error');
@@ -171,10 +164,7 @@ fn later():i32 { var value=identity(unknownSecond); return value; }`);
     } finally { tower.destroyExecution(broken); }
    }
    for (const firstFails of [false,true]) {
-    const broken = tower.compile(`import tower;
-fn identity(T:type,value:T):T { return value; }
-fn first():i32 { var value=identity(1); return ${firstFails ? 'unknownFirst' : 'value'}; }
-fn later():i32 { return identity(unknownSecond); }`);
+    const broken = tower.compile(await readFile(`scaffolding/tests/semantic_invalid/worker_${firstFails ? 'first' : 'later'}_error.tower`,'utf8'));
     try {
      const result=tower.execute(broken);
      assert.equal(result.status,'error');
@@ -192,19 +182,7 @@ fn later():i32 { return identity(unknownSecond); }`);
     windowCanonical ??= source;
     assert.equal(source,windowCanonical,`body preparation windows at ${capacity} workers`);
    } finally { tower.destroyExecution(window); }
-   // The body alone has no written generic call or parameterized local type.
-   // foreach still instantiates its implicit nominal protocol functions.
-   const iteration = tower.compile(`import tower; import library.vector;
-fn plain():u64 { return 7; }
-fn first(values:vector(u64)*):u64 {
- var total:u64=0; foreach(var item in values) { total += item + comptime(2); } return total;
-}
-fn second(values:vector(u64)*):u64 {
- var total:u64=0; foreach(var item in values) { total += item + comptime(2); } return total;
-}
-var values:vector(u64); vector_init(&values); defer vector_dispose(&values);
-vector_push(&values,20); vector_push(&values,22);
-print(first(&values)); print(second(&values)); print(plain());`);
+   const iteration = tower.compile(await readFile('scaffolding/tests/worker_iteration.tower','utf8'));
    try {
     let result, output = '';
     do { result = tower.execute(iteration, 10000); output += result.output; } while (result.status === 'executing');
@@ -227,45 +205,38 @@ print(first(&values)); print(second(&values)); print(plain());`);
      assert.equal(text, genericCanonical.get(pointerBytes), `generic bodies: workers=${capacity}, width=${pointerBytes}, fast=${fast}`);
     } finally { tower.destroyExecution(handle); }
    }
-   const genericInvalid = tower.compile(`import tower;
-fn badFirst(T:type, value:T):T { return unknownFirst; }
-fn badSecond(T:type, value:T):T { return unknownSecond; }
-print(badFirst(1)); print(badSecond(2));`);
+   const genericInvalid = tower.compile(await readFile('scaffolding/tests/semantic_invalid/worker_generic_errors.tower','utf8'));
    try {
     const result = tower.execute(genericInvalid);
     assert.equal(result.status, 'error');
     assert.match(result.error, /unknownFirst/);
     assert.doesNotMatch(result.error, /unknownSecond/);
    } finally { tower.destroyExecution(genericInvalid); }
-   const typeInvalid = tower.compile(`import tower;
-fn badFirst(value:MissingFirst):void {}
-fn badSecond(value:MissingSecond):void {}`);
+   const typeInvalid = tower.compile(await readFile('scaffolding/tests/semantic_invalid/worker_type_errors.tower','utf8'));
    try {
     const result = tower.execute(typeInvalid);
     assert.equal(result.status, 'error');
     assert.match(result.error, /Unknown type 'MissingFirst'/);
     assert.doesNotMatch(result.error, /MissingSecond/);
    } finally { tower.destroyExecution(typeInvalid); }
-   const leafInvalid = tower.compile('import tower; var first=unknownFirst; var second=unknownSecond;');
+   const leafInvalid = tower.compile(await readFile('scaffolding/tests/semantic_invalid/worker_leaf_errors.tower','utf8'));
    try {
     const result = tower.execute(leafInvalid);
     assert.equal(result.status, 'error');
     assert.match(result.error, /Unknown local 'unknownFirst'/);
     assert.doesNotMatch(result.error, /unknownSecond/);
    } finally { tower.destroyExecution(leafInvalid); }
-   const leafCycle = tower.compile('import tower; var first:decltype(second); var second:decltype(first);');
+   const leafCycle = tower.compile(await readFile('scaffolding/tests/semantic_invalid/decltype_cycle.tower','utf8'));
    try {
     const result = tower.execute(leafCycle);
     assert.equal(result.status, 'error');
     assert.match(result.error, /initializer dependency cycle first -> second -> first/);
    } finally { tower.destroyExecution(leafCycle); }
-   for (const source of [
-    'import tower; fn identity(T:type,value:T):T { return value; } var value=comptime(true ? identity(comptime(1/0)) : 42);',
-    'import tower; fn identity(T:type,value:T):T { return value; } var warm:decltype(identity(u64,1)); var first=identity(i32,false); var second=identity(u64,false);',
-    'import tower; fn alias(T:type):type { var value:i32=1; return T; } fn read(T:type,value:alias(T)):T { return value; } var actual:i32=1; var first=read(actual); var second=read(actual);',
-    'import tower; var first:decltype(second[0]); var second:decltype(first[0]);',
-    'import tower; var values:i32[4]; var flag:bool=true; var first:decltype(values[flag]); var second:decltype(values[flag]);',
+   for (const name of [
+    'comptime_generic_selected', 'worker_generic_mismatch', 'inference_alias_invalid',
+    'declaration_index_cycle', 'worker_index_errors',
    ]) {
+    const source=await readFile(`scaffolding/tests/semantic_invalid/${name}.tower`,'utf8');
     const handle=tower.compile(source);
     try {
      const result=tower.execute(handle);
@@ -276,7 +247,7 @@ fn badSecond(value:MissingSecond):void {}`);
      assert.deepEqual(diagnostic,continuationDiagnostics.get(source),`declaration continuation errors at ${capacity} workers`);
     } finally { tower.destroyExecution(handle); }
    }
-   const fieldsInvalid = tower.compile('import tower; struct First { first:i32; first:u64; } struct Second { second:i32; second:u64; }');
+   const fieldsInvalid = tower.compile(await readFile('scaffolding/tests/semantic_invalid/worker_field_errors.tower','utf8'));
    try {
     const result = tower.execute(fieldsInvalid);
     assert.equal(result.status, 'error');
@@ -298,7 +269,7 @@ fn badSecond(value:MissingSecond):void {}`);
      assert.equal(text, dependencyCanonical.get(key), `generic/layout dependencies: workers=${capacity}, width=${pointerBytes}, fast=${fast}`);
     } finally { tower.destroyExecution(handle); }
    }
-   const operatorCycle=tower.compile('import tower; var left=right+1; var right=left+1;');
+   const operatorCycle=tower.compile(await readFile('scaffolding/tests/semantic_invalid/worker_operator_cycle.tower','utf8'));
    try {
     const result=tower.execute(operatorCycle);
     assert.equal(result.status,'error');
@@ -336,24 +307,10 @@ fn badSecond(value:MissingSecond):void {}`);
     assert.match(result.error,/initializer dependency cycle/);
    } finally { tower.destroyExecution(typeCycle); }
    tower.configureModules({entry:'main.tower', files:[
-    {path:'left.tower', text:'import tower; var seed:u64=3; var marker:u32=11; struct Item { value:decltype(seed); next:Item*; } fn read(T:type,item:T*):decltype(item.value) { return item.value; } fn unused(T:type,value:T):T { return missing_import_body; } fn box(T:type):type { struct Box { value:T; stamp:decltype(marker); } return Box; }'},
-    {path:'right.tower', text:'import tower; var seed:u64=7; var marker:u64=13; struct Item { value:decltype(seed); next:Item*; } fn box(T:type):type { struct Box { value:T; stamp:decltype(marker); } return Box; }'},
+    {path:'left.tower', text:await readFile('scaffolding/tests/worker_modules/left.tower','utf8')},
+    {path:'right.tower', text:await readFile('scaffolding/tests/worker_modules/right.tower','utf8')},
    ]});
-   const modules = `import tower; import left as l; import right as r;
-struct Pair { first:decltype(l.seed); second:decltype(r.seed); }
-var from_left=l.seed; var from_right=r.seed;
-var pair:Pair; pair.first=from_left; pair.second=from_right;
-// Parameter l hides the module alias. This needs the record's field/layout
-// dependencies, so admission must use the signature's actual lexical scope.
-fn shadow(l:r.Item*):decltype(l.value) { return l.value; }
-var returned:decltype(l.read(&item));
-var inspected:decltype(l.unused(1));
-fn staged():u64 { var local:r.Item; local.value=17; return l.read(&local); }
-var item:r.Item; item.value=9; print(shadow(&item)); print(pair.first+pair.second);
-print(l.read(&item)); print(comptime(staged()));
-var left_box:l.box(u32); var right_box:r.box(u64);
-left_box.value=1; left_box.stamp=l.marker; right_box.value=2; right_box.stamp=r.marker;
-print(sizeof(l.box(u32))); print(sizeof(r.box(u64)));`;
+   const modules = await readFile('scaffolding/tests/worker_modules/main.tower','utf8');
    for (const pointerBytes of [4,8]) for (let fast=0; fast<2; fast++) {
     const handle=tower.compile(modules,{pointerBytes});
     try {

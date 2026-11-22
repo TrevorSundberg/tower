@@ -140,7 +140,7 @@ test('forward declaration queries resolve long annotated and inferred chains wit
  }
 });
 
-test('inferred generic call arguments retain forward declaration dependencies and cycle diagnostics', () => {
+test('inferred generic call arguments retain forward declaration dependencies and cycle diagnostics', async () => {
  for (const explicit of [false, true]) {
   const lines = ['import tower; fn identity(T:type, value:T):T { return value; }'];
   for (let index = 0; index < 256; index++) {
@@ -156,7 +156,7 @@ test('inferred generic call arguments retain forward declaration dependencies an
    assert.match(canonical.source, /var value0: bool/);
   } finally { tower.destroyExecution(handle); }
  }
- const handle = tower.compile('import tower; fn identity(T:type, value:T):T { return value; } var a = identity(b); var b = identity(a);');
+ const handle = tower.compile(await readFile('scaffolding/tests/semantic_invalid/inference_generic_cycle.tower','utf8'));
  try {
   const result = tower.execute(handle);
   assert.equal(result.status, 'error');

@@ -1,0 +1,8 @@
+import tower;
+var seed: u64 = 7;
+var marker: u64 = 13;
+struct Item { value: decltype(seed); next: Item*; }
+fn box(T: type): type {
+    struct Box { value: T; stamp: decltype(marker); }
+    return Box;
+}

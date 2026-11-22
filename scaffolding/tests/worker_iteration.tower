@@ -1,0 +1,24 @@
+import tower;
+import library.vector;
+
+// Neither body writes a generic call or parameterized local type. Iteration
+// still instantiates the nominal protocol and must publish its dependencies.
+fn plain(): u64 { return 7; }
+fn first(values: vector(u64)*): u64 {
+    var total: u64 = 0;
+    foreach (var item in values) { total += item + comptime(2); }
+    return total;
+}
+fn second(values: vector(u64)*): u64 {
+    var total: u64 = 0;
+    foreach (var item in values) { total += item + comptime(2); }
+    return total;
+}
+var values: vector(u64);
+vector_init(&values);
+defer vector_dispose(&values);
+vector_push(&values, 20);
+vector_push(&values, 22);
+print(first(&values));
+print(second(&values));
+print(plain());

@@ -1,0 +1,8 @@
+import tower;
+fn identity(T: type, value: T): T { return value; }
+fn first(): i32 {
+    defer { var cleanup: i32 = comptime(3); }
+    var value = identity(1);
+    return unknownFirst;
+}
+fn later(): i32 { var value = identity(unknownSecond); return value; }

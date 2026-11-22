@@ -1,0 +1,10 @@
+import tower;
+var seed: u64 = 3;
+var marker: u32 = 11;
+struct Item { value: decltype(seed); next: Item*; }
+fn read(T: type, item: T*): decltype(item.value) { return item.value; }
+fn unused(T: type, value: T): T { return missing_import_body; }
+fn box(T: type): type {
+    struct Box { value: T; stamp: decltype(marker); }
+    return Box;
+}

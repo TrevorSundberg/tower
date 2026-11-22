@@ -1,0 +1,5 @@
+import tower;
+fn badFirst(T: type, value: T): T { return unknownFirst; }
+fn badSecond(T: type, value: T): T { return unknownSecond; }
+print(badFirst(1));
+print(badSecond(2));

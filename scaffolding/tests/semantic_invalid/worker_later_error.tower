@@ -1,0 +1,4 @@
+import tower;
+fn identity(T: type, value: T): T { return value; }
+fn first(): i32 { var value = identity(1); return value; }
+fn later(): i32 { return identity(unknownSecond); }

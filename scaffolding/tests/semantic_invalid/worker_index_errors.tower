@@ -1,0 +1,5 @@
+import tower;
+var values: i32[4];
+var flag: bool = true;
+var first: decltype(values[flag]);
+var second: decltype(values[flag]);

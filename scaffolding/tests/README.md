@@ -10,6 +10,13 @@ complete without copying the unused bodies; demanding every body must report the
 65,536-node limit before producing output. The browser compile-time and worker
 tests read these same Tower files instead of generating programs in JavaScript.
 
+The fixed worker programs also live here: `worker_iteration.tower`,
+`worker_modules/*.tower`, and `semantic_invalid/worker_*.tower`. The browser
+transport retains worker-count, pointer-width, execution-engine and canonical
+output comparisons. Existing declaration-cycle, alias and staged-failure files
+are shared where they exercise the same case. Deliberate errors in these fixtures
+test diagnostic ordering and lazy demand; do not repair them as ordinary code.
+
 ## Native CLI execution and package comparisons
 
 Configure the native build with `-DTOWER_DRIVER_TESTS=ON` and build

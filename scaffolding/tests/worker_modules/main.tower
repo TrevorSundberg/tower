@@ -1,0 +1,34 @@
+import tower;
+import left as l;
+import right as r;
+
+struct Pair { first: decltype(l.seed); second: decltype(r.seed); }
+var from_left = l.seed;
+var from_right = r.seed;
+var pair: Pair;
+pair.first = from_left;
+pair.second = from_right;
+// Parameter l hides the module alias. Admission must use the signature's
+// lexical scope when resolving the record's field and layout dependencies.
+fn shadow(l: r.Item*): decltype(l.value) { return l.value; }
+var returned: decltype(l.read(&item));
+var inspected: decltype(l.unused(1));
+fn staged(): u64 {
+    var local: r.Item;
+    local.value = 17;
+    return l.read(&local);
+}
+var item: r.Item;
+item.value = 9;
+print(shadow(&item));
+print(pair.first + pair.second);
+print(l.read(&item));
+print(comptime(staged()));
+var left_box: l.box(u32);
+var right_box: r.box(u64);
+left_box.value = 1;
+left_box.stamp = l.marker;
+right_box.value = 2;
+right_box.stamp = r.marker;
+print(sizeof(l.box(u32)));
+print(sizeof(r.box(u64)));

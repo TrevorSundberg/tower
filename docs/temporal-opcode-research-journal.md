@@ -43977,3 +43977,46 @@ hosted manifest exactly matches the prepared SHA256
 37f5edb92b28ada36cd03d61a65f5c118a1c8b9ea23e1d61c45fe671918348c2.
 The receipt preserves the 23b919ef runtime, all 104 asset entries and earlier
 receipts. Publication lock released. This journal receipt reuses those assets.
+
+## 2026-11-22: fixed worker programs move out of JavaScript
+
+Continue the removal-first audit after the generic fixture milestone. The fixed
+worker programs are required coverage, but JavaScript interpolation is unnecessary
+for their finite variants. Move 17 programs/module files into Tower and reuse four
+existing negative fixtures (decltype cycle, selected staged division, invalid
+alias constructor and indexed declaration cycle). This includes both sides of
+continuation failures, source-order diagnostic selection, implicit iteration
+protocol publication, imported aliases/shadowing/layouts and an undemanded invalid
+generic body. The compile-time inference cycle now also reads a Tower fixture.
+Keep the browser's worker/pointer-width/engine/canonical-output assertions and
+virtual module mapping. Dynamic stress generators are still present and are not
+claimed migrated. No new generator, installation step or tool binary is added.
+
+Frozen candidate tree 59c48fb84fe91e5e7236f86962c0762f87127031 is archived in
+/cache/worker_fixture_checkout, using the previously hash-verified published
+reactors. Smallest positive Tower entry emits Foundation through the public
+bootstrap. Native graph/fast runs of worker_iteration print 46/46/7; imported
+worker_modules/main prints 9/10/9/17/8/16 in both engines. Browser worker semantic
+determinism passes at capacities 1/2/4/8 with both pointer widths and engines;
+the selected compile-time forward-generic/cycle test also passes. Each selected
+Node test reports 1/1, zero skips. Logs: build/worker_fixture_threads.log and
+build/worker_fixture_compiletime.log. Reuse the preceding clean successor,
+type-smoke/query-smoke/backend evidence: compiler and build inputs did not change.
+
+This batch removes 43 more JavaScript lines and moves the programs into 17 Tower
+files, reusing four existing fixtures. Current JavaScript: 178 files / 23,717
+lines, 713 fewer lines than the lane's 24,430-line inventory (2.9%). Together with
+the preceding retirement this continuation removes 433 JavaScript lines. Python
+and owned C/C++ remain zero; shell 9/230, CMake 39/1,591 and PowerShell 2/117 are
+unchanged. All temporal research and todo.txt remain unchanged.
+
+The two remaining PowerShell runners still own real Windows parser/MSVC handoffs.
+This environment currently has neither cl on PATH nor the documented VS installer
+and vswhere location. Do not delete the handoffs, claim MSVC validation or replace
+them with untested Tower code. Linux/Docker remains the canonical compiler path.
+The browser measurement scripts audited here still exercise real DOM/worker/paint
+boundaries; their absence from package scripts does not make those experiments
+unused. Continue migration of their reusable logic separately from this fixture
+extraction. The preceding publication receipt push briefly hit GitHub DNS failure;
+a fresh DNS lookup with a per-command curloptResolve override succeeded, without
+changing Git configuration or force-pushing.

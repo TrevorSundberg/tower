@@ -1,0 +1,4 @@
+import tower;
+fn identity(T: type, value: T): T { return value; }
+var a = identity(b);
+var b = identity(a);

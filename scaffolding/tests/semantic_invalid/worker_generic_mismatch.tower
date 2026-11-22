@@ -1,0 +1,5 @@
+import tower;
+fn identity(T: type, value: T): T { return value; }
+var warm: decltype(identity(u64, 1));
+var first = identity(i32, false);
+var second = identity(u64, false);
