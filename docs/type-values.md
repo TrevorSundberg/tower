@@ -64,18 +64,39 @@ Foundation before execution.
 
 LLVM machine output can optimize type indexes internally. Its scalar return path
 cannot reconstruct their type identities, so CLI and browser Foundation/bytecode
-requests retain the checked canonical graph with optimization profile 0 when it
-contains type values. They do not serialize the lowered indexes as integer types.
+requests retain the checked canonical graph with optimization profile 0 when its
+runtime roots reach type values. Module effects and exported functions are roots;
+bound calls and function references admit private functions. Unused private type
+helpers do not force this profile. This read-only query leaves the complete
+canonical graph intact. It does not serialize lowered indexes as integer types.
 Direct LLVM-to-Foundation import diagnoses this unsupported reconstruction.
 
-Direct type-valued foreign/exported parameters and returns, including direct
-pointers to type values, are rejected. There is no supported cross-module or
-foreign representation contract for these private indexes; enclosing raw memory
-and callback ABIs must not be used to transfer them. The C/BrightScript source
-emitters diagnose type values as unsupported. This checkpoint does not implement
-general reflected layouts, dynamically executed representation constructors such
-as `integer_type(local_width, 1)`, or the complete source-defined type/operation
-protocol. Those remain milestones before fixed vectors.
+Type-valued foreign/exported parameters and returns are rejected, including
+metatypes nested in records, arrays, pointer payloads and callback signatures.
+The descriptor scan follows recursive records once and checks function results
+and parameters. There is no supported foreign representation contract for these
+private indexes. The C/BrightScript source emitters diagnose type values as
+unsupported. General reflected layouts and the complete source-defined
+type/operation protocol remain milestones before fixed vectors.
+
+The current source successor adds ordinary executed representation constructors:
+`integer_type`, `float_type`, `pointer_type` and `array_type`. Their operands use
+the ordinary interpreter, including mutable locals and executed control flow.
+An evaluation-owned component suspends the interpreter on the shared work graph;
+the coordinator validates the request and publishes its type identity. Array
+layout requests use that same graph. Untaken branches make no construction
+request. Numeric widths, signedness, array bounds and element legality remain
+checked; this does not make arbitrary layouts or dynamic function signatures
+available.
+
+Construction currently requires compile-stage capability. Reaching one at runtime
+evaluates its operands in order, preserving earlier effects and operand failures,
+then reports the missing capability. It is not silently constant-folded. Static
+signature and nominal identity forms retain their existing preparation, with
+ordinary callee bindings taking precedence. The merged successor passes the
+complete type suite; final performance, sanitizer, public pin and deployment
+receipts remain pending in the L2 audit. The published bootstrap does not gain a
+capability merely because these source changes are present.
 
 The Tower fixture is `scaffolding/tests/type_object_values.tower`. The `types`
 execution suite checks both interpreter engines, target pointer widths 4/8,

@@ -164,7 +164,10 @@ fn semantic_source_binding_kernel(job: SemanticKnownWork*): void {
         foreach(var parameter in parameters) { sem_source_bind(&context, parameter); }
         sem_source_scan(&context, job, sem_member(job.owner, "body"), 0);
     } else {
-        foreach(var node in &sem_get(job.root).items) { sem_source_scan(&context, job, node, 0); }
+        var pipeline = bits(SemanticSourceBindingPipeline*, entity_component_data(
+            entity_component_get(job.root, context.source_binding_pipeline)));
+        sem_require(pipeline != null && pipeline.roots_ready);
+        foreach(var node in &pipeline.source_roots) { sem_source_scan(&context, job, node, 0); }
     }
     job.binding_incomplete ||= program.error.length != 0;
     vector_dispose(&program.error);
@@ -201,19 +204,36 @@ fn sem_source_bindings_publish(c: SemanticContext*, jobs: vector(SemanticKnownWo
     }
 }
 
-fn sem_source_bindings_begin(c: SemanticContext*, owner: void*): usize {
-    var subject = owner ?? c.program.root;
-    var existing = work_find(&c.queries, subject, convert(u32, SemanticQuery.SourceBindingProof), 0);
-    if existing != 0 { return existing; }
+// Runtime lowering may remove effect statements from its executable item list.
+// Retain their original ordered syntax identities before that list can change;
+// the program owns every referenced tree until this derived index is disposed.
+fn sem_source_binding_roots(c: SemanticContext*): void {
     if c.source_bindings == null {
         c.source_bindings = sem_create(c.program.root);
         sem_require(entity_register(c.source_bindings, sizeof(SemanticSourceBinding), alignof(SemanticSourceBinding), 0));
         c.source_binding_pipeline = sem_create(c.program.root);
         sem_require(entity_register(c.source_binding_pipeline, sizeof(SemanticSourceBindingPipeline), alignof(SemanticSourceBindingPipeline), 0));
     }
-    var pipeline = bits(SemanticSourceBindingPipeline*, entity_component_data(entity_component_add(subject, c.source_binding_pipeline)));
+    var pipeline = bits(SemanticSourceBindingPipeline*, entity_component_data(entity_component_get(c.program.root, c.source_binding_pipeline)));
+    if pipeline != null { return; }
+    pipeline = bits(SemanticSourceBindingPipeline*, entity_component_data(entity_component_add(c.program.root, c.source_binding_pipeline)));
     sem_require(pipeline != null);
     *pipeline = default;
+    foreach(var node in &sem_get(c.program.root).items) { sem_push(&pipeline.source_roots, node); }
+    pipeline.roots_ready = true;
+}
+
+fn sem_source_bindings_begin(c: SemanticContext*, owner: void*): usize {
+    var subject = owner ?? c.program.root;
+    var existing = work_find(&c.queries, subject, convert(u32, SemanticQuery.SourceBindingProof), 0);
+    if existing != 0 { return existing; }
+    sem_source_binding_roots(c);
+    var pipeline = bits(SemanticSourceBindingPipeline*, entity_component_data(entity_component_get(subject, c.source_binding_pipeline)));
+    if pipeline == null {
+        pipeline = bits(SemanticSourceBindingPipeline*, entity_component_data(entity_component_add(subject, c.source_binding_pipeline)));
+        sem_require(pipeline != null);
+        *pipeline = default;
+    }
     pipeline.extension = owner != null;
     var kind = sem_known_kind(c);
     var count: usize = 0;
@@ -263,7 +283,7 @@ export fn sem_source_bindings_pump(c: SemanticContext*): SemanticPumpResult {
     var waiting = false;
     for(var index: usize = 0; index < entity_query_count(c.source_binding_pipeline); index++) {
         var pipeline = bits(SemanticSourceBindingPipeline*, entity_component_data(entity_query_at(c.source_binding_pipeline, index)));
-        if pipeline.published || !work_task(&c.queries, pipeline.query).demanded { continue; }
+        if pipeline.query == 0 || pipeline.published || !work_task(&c.queries, pipeline.query).demanded { continue; }
         var state = sem_known_jobs_pump(c, &pipeline.jobs, SemanticQuery.SourceBindings, &pipeline.first);
         if state == SemanticPumpResult.Progress || state == SemanticPumpResult.Failed { return state; }
         if state == SemanticPumpResult.Waiting { waiting = true; continue; }
@@ -283,5 +303,6 @@ fn sem_source_bindings_dispose(c: SemanticContext*): void {
     for(var index: usize = 0; index < entity_query_count(c.source_binding_pipeline); index++) {
         var pipeline = bits(SemanticSourceBindingPipeline*, entity_component_data(entity_query_at(c.source_binding_pipeline, index)));
         sem_known_jobs_dispose(&pipeline.jobs);
+        vector_dispose(&pipeline.source_roots);
     }
 }

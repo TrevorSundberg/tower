@@ -15,6 +15,19 @@ universal race freedom is implied. See the primary [ASan documentation](https://
 
 ## Shared build entry
 
+D2 also exposes the tool through the canonical Docker/public-bootstrap entry:
+
+```sh
+tools=$(bash playground/scripts/build-bootstrap.sh --tools instrument_llvm)
+"$tools/instrument_llvm" address INPUT.ll OUTPUT.ll
+```
+
+This selection supplies the configured compiler worker budget, depfile and
+explicit grammar inputs. Linking reuses the normal guest-library object and
+the same discovered LLVM library as `runtime_bind`; ordinary packaging does
+not build the tool. D2 validated this entry independently of the manual A2
+receipts below. Use a separate cache for each active build and sanitizer mode.
+
 D2's optional Linux x64 Clang/LLVM19 mode uses this same Tower policy with the
 existing native object recipes. Build the tool alone through
 `bash playground/scripts/build-bootstrap.sh --tools instrument_llvm`, or use a
