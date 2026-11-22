@@ -23,11 +23,11 @@ if(TOWER_TOOLS_ONLY)
       --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
       --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
       -o "${tool_object}" --depfile "${tool_object}.d"
-    COMMAND "${CMAKE_C_COMPILER}" "${tool_object}" "${tool_runtime}" -o "${tool_builder}"
+    COMMAND "${TOWER_BOOTSTRAP_COMPILER}" --link-executable "${tool_object}" "${tool_runtime}" -o "${tool_builder}"
     DEPFILE "${tool_object}.d"
     DEPENDS scaffolding/tools/build_tools.tower "${TOWER_BOOTSTRAP_COMPILER}" "${tool_runtime}" VERBATIM)
   add_custom_target(tower-tools
-    COMMAND "${tool_builder}" "${TOWER_BOOTSTRAP_COMPILER}" "${CMAKE_C_COMPILER}"
+    COMMAND "${tool_builder}" "${TOWER_BOOTSTRAP_COMPILER}"
       "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/bin" "${tool_runtime}" ${TOWER_TOOL}
     DEPENDS "${tool_builder}" VERBATIM)
   return()
@@ -38,6 +38,13 @@ include(cmake/TowerInterpreter.cmake)
 
 option(TOWER_NATIVE "Build Tower's native compiler/linker driver against an installed LLVM" OFF)
 if(TOWER_NATIVE)
+  if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    # Only owned native targets use this rule. Third-party builds keep their
+    # toolchain. The Tower linker has no compiler-driver flags or linker depfile.
+    set(CMAKE_LINK_DEPENDS_USE_LINKER FALSE)
+    set(CMAKE_C_LINK_EXECUTABLE "\"${TOWER_BOOTSTRAP_COMPILER}\" --link-executable <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
+    set(CMAKE_CXX_LINK_EXECUTABLE "${CMAKE_C_LINK_EXECUTABLE}")
+  endif()
   find_package(LLVM REQUIRED CONFIG)
   # Relocatable resources include the generated Tower runtime target artifacts.
   file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/share/tower")

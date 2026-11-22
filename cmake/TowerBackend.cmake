@@ -49,6 +49,7 @@ function(tower_backend_integrate)
   # Build the Tower foreign-name expander for the build host, including when
   # the compiler being assembled is a WASI reactor. No native mangler/shim.
   find_program(TOWER_BACKEND_HOST_CC NAMES clang REQUIRED)
+  tower_host_linker(host_link "${TOWER_BACKEND_HOST_CC}")
   execute_process(COMMAND "${TOWER_BACKEND_HOST_CC}" -print-target-triple
     OUTPUT_VARIABLE foreign_host_triple OUTPUT_STRIP_TRAILING_WHITESPACE
     COMMAND_ERROR_IS_FATAL ANY)
@@ -65,7 +66,7 @@ function(tower_backend_integrate)
     COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${foreign_source}" --library --target "${foreign_host_triple}"
       --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
       --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower" -o "${foreign_object}" --depfile "${foreign_object}.d"
-    COMMAND "${TOWER_BACKEND_HOST_CC}" "${foreign_object}" "${foreign_runtime}" -o "${foreign_tool}"
+    COMMAND ${host_link} "${foreign_object}" "${foreign_runtime}" -o "${foreign_tool}"
     DEPFILE "${foreign_object}.d"
     DEPENDS "${foreign_source}" "${TOWER_BOOTSTRAP_COMPILER}" "${foreign_runtime}" VERBATIM)
   set(runtime_source "")
@@ -78,7 +79,7 @@ function(tower_backend_integrate)
     add_custom_command(OUTPUT "${embed_tool}"
       COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/backend/embed_runtime.tower"
         --library --target "${foreign_host_triple}" -o "${embed_object}" --depfile "${embed_object}.d"
-      COMMAND "${TOWER_BACKEND_HOST_CC}" "${embed_object}" "${foreign_runtime}" -o "${embed_tool}"
+      COMMAND ${host_link} "${embed_object}" "${foreign_runtime}" -o "${embed_tool}"
       DEPFILE "${embed_object}.d"
       DEPENDS scaffolding/backend/embed_runtime.tower "${TOWER_BOOTSTRAP_COMPILER}" "${foreign_runtime}"
       BYPRODUCTS "${embed_object}" VERBATIM)
