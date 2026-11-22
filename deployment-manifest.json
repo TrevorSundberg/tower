@@ -1220,11 +1220,11 @@
                    "worker.js":  "60156a2b9590f9d33063031b8f05f262fb17d16ad1ca81b80f123039dacb3bf9",
                    "worker.js.map":  "b10954322b0bff060865b66c3654f4f8f6d71ad613b741522e5a1cf642ef0de2"
                },
-    "sourceCommit":  "d9de7345addfddd7b5adef6d0f9c9dcbd59a9e60",
+    "sourceCommit":  "cf6b2049c40df5fb0df4fca892a699098c43ba97",
     "buildSourceCommit":  "23b919ef748b5d7b998f788cd7599d4fba5e7d82",
     "compilerProjectSourceCommit":  "23b919ef748b5d7b998f788cd7599d4fba5e7d82",
     "compilerSourceTree":  "848f2dc918eeafe926f15ba3aed1c4c6f650567e",
-    "previousDeployment":  "fbe2665da4b9bcd29bc07277607a7db9908bbc55",
+    "previousDeployment":  "b930fb7f66bca47f520ba4d64ba676088560a8cf",
     "bootstrapSha256":  "6022aa2bdfc838ead9dd9507bea004b78568997f3a468f916a9bfa4310a0680a",
     "scope":  "Computed integer type arguments through shared ECS queries and ordinary interpreter staging; closed expressions and numeric type parameters, with a complete validated development bootstrap.",
     "publicationNote":  "Preserves prior scoped receipts and replaces current asset identities with the validated 6850468 release. General production phase interleaving remains unfinished.",
@@ -1494,6 +1494,13 @@
                                                      "Fresh successor with no private bootstrap override",
                                                      "Local desktop/mobile and 104 asset hashes"
                                                  ],
-                                  "targetSupportDeployment":  "fbe2665da4b9bcd29bc07277607a7db9908bbc55"
+                                  "targetSupportDeployment":  "fbe2665da4b9bcd29bc07277607a7db9908bbc55",
+                                  "hostedVerification":  {
+                                                             "deployment":  "b930fb7f66bca47f520ba4d64ba676088560a8cf",
+                                                             "workflowRun":  45031108723,
+                                                             "assets":  104,
+                                                             "desktop":  "passed",
+                                                             "mobile":  "passed"
+                                                         }
                               }
 }
