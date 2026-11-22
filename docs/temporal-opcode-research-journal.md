@@ -39388,3 +39388,31 @@ primitive bootstrap, not simply treating an attribute's spelling as a scalar tag
 Foundation's grammar-baseline installer also currently rejects executable prelude
 declarations. Keep that loader split, type identity and canonical construction
 contract explicit before migrating named types; Bedrock must stay independent.
+
+Final attribute milestone validation on rebased source 9e7eb79 (upstream 262b740):
+the complete package SHA-256 is
+21f527125bfa05a8cd6d4923d4fdc026a04553e919f2905c602a17691598dba5.
+Checksums and relocated verify_compiler development checks pass. Install the whole
+package as e8aa452; a fresh /cache/attributes-complete-successor build using only
+the documented default pin completes all 54 steps and produces the identical
+executable hash. The newest upstream changes are Tower test-runner migrations,
+not compiler changes; the clean successor includes their current checkout.
+
+Final browser, threaded browser, LLVM and cross builds pass. wasm.test.mjs,
+bytecode.test.mjs and compiler-threads.test.mjs report 22 passed, zero failed,
+one optional package-test export skipped. Both compiler-project generations pass
+with edited semantic behavior and identical bytes at 2/4 workers: tower
+f1cc10bd016374a6300e4773de8f830283ed79b441729c82a537df3ad32f23d6,
+LLVM 014e86f054ede17fe69f22a3741545f1253922682539b25c786578b6ff43646e,
+cross b981b490cddf05a5b8d872a7c3622537f941ad1b19f2bb27977a36e297b0813a.
+The attributed import-cycle fixture also passes the existing guest runner's
+32/64-bit interpretation, native and Wasm execution checks. Final local deployment
+verification matches all 88 assets and passes desktop/mobile editing, execution,
+completion, persistence, backend agreement, builds and downloads. The earlier
+unrelated broad formatting failure remains recorded above; no formatting sweep.
+
+Runtime assets were built from compiler source 9e7eb79, scaffolding tree
+80823ceb675e1dfc24272665b04c42118c9b2594, using predecessor bootstrap 160660d6.
+The deployment receipt must distinguish that build predecessor from published pin
+21f52712 and preserve other lanes' receipt fields. Source and Pages publication
+and hosted verification follow; this entry does not yet claim they succeeded.
