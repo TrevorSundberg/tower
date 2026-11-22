@@ -30,6 +30,7 @@ struct SemanticIterationPlan {
     end: void*;
     ready: bool;
     state_type: FoundationType;
+    state_checked: bool;
     state_ready: bool;
 }
 
@@ -154,8 +155,8 @@ fn sem_iteration_value(c: SemanticContext*, n: void*, depth: u32, cursor: Semant
 // Signature/layout preparation publishes immutable storage information before
 // a body worker constructs its private loop, locals and cleanup. Immediate
 // callers use this same path; no worker may discover a new shared layout.
-fn sem_iteration_storage(c: SemanticContext*, n: void*, plan: SemanticIterationPlan*): bool {
-    if plan.state_ready { return true; }
+fn sem_iteration_state(c: SemanticContext*, n: void*, plan: SemanticIterationPlan*): bool {
+    if plan.state_checked { return true; }
     var state_type = &plan.state_type;
     *state_type = sem_get(sem_get(plan.begin).parameters.data[1]).type;
     if state_type.pointers != 1 {
@@ -172,7 +173,14 @@ fn sem_iteration_storage(c: SemanticContext*, n: void*, plan: SemanticIterationP
         sem_fail(c, n, "Iteration requires begin/end: void, next: bool, element: pointer, and concrete state storage");
         return false;
     }
-    if semantic_aggregate(state_type) { sem_layout(c, state_type.record); }
+    plan.state_checked = true;
+    return true;
+}
+
+fn sem_iteration_storage(c: SemanticContext*, n: void*, plan: SemanticIterationPlan*): bool {
+    if plan.state_ready { return true; }
+    if !sem_iteration_state(c, n, plan) { return false; }
+    if semantic_aggregate(&plan.state_type) { sem_layout(c, plan.state_type.record); }
     plan.state_ready = sem_ok(c);
     return plan.state_ready;
 }

@@ -352,15 +352,8 @@ fn sem_evaluation_pump_inputs(c: SemanticContext*, demand_roots: bool): Semantic
         }
         // Reserve a bounded ready frontier, then refill each completed slot.
         // No results become visible until all readers in this window join.
-        var next: usize = 0;
-        while next < count || c.workers.running != 0 {
-            while next < count && c.workers.running < c.workers.count {
-                var result = batch.data[next++];
-                sem_require(result.started);
-                sem_require(work_pool_submit(&c.workers, bits(void*, &result.kernel)));
-            }
-            sem_require(work_pool_receive(&c.workers, true) != null);
-        }
+        for(var i: usize = 0; i < count; i++) { sem_require(batch.data[i].started); }
+        sem_require(compiler_kernel_dispatch(&c.workers, batch.data, count));
         index = 0;
         while index < count {
             var result = batch.data[index];

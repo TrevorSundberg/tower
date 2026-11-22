@@ -170,20 +170,16 @@ fn sem_iteration_resolutions(c: SemanticContext*, batch: SemanticBodyWork**, cou
         sem_require(vector_push(&jobs, result));
     }
     if jobs.length == 0 { return 0; }
+    // Reserve every receipt before a worker can observe the shared graph.
+    foreach(var result in &jobs) {
+        var id = work_find(&c.queries, result.owner.expression_header, convert(u32, SemanticQuery.IterationResolution), convert(u64, role));
+        sem_require(work_take_task(&c.queries, &result.ticket, id));
+    }
     var context = *c;
     var view = entity_view_open(c.program.root);
     sem_require(view != null);
-    var next: usize = 0;
-    while next < jobs.length || c.workers.running != 0 {
-        while next < jobs.length && c.workers.running < c.workers.count {
-            var result = jobs.data[next++];
-            result.context = &context;
-            var id = work_find(&c.queries, result.owner.expression_header, convert(u32, SemanticQuery.IterationResolution), convert(u64, role));
-            sem_require(work_take_task(&c.queries, &result.ticket, id));
-            sem_require(work_pool_submit(&c.workers, bits(void*, &result.kernel)));
-        }
-        sem_require(work_pool_receive(&c.workers, true) != null);
-    }
+    foreach(var result in &jobs) { result.context = &context; }
+    sem_require(compiler_kernel_dispatch(&c.workers, jobs.data, jobs.length));
     entity_view_close(view);
     // Release every type-index read before any preparation takes write ownership.
     foreach(var result in &jobs) {

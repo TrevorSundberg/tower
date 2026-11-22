@@ -90,7 +90,7 @@ fn sem_layout_cycle(c: SemanticContext*, root: usize): void {
     sem_fail(c, subject, sem_cat(c, "Recursive by-value layout: ", sem_cat(c, chain, "; use a pointer")));
 }
 
-fn sem_layout_execute(c: SemanticContext*): void {
+fn sem_layout_execute(c: SemanticContext*): usize {
     if c.workers.count == 0 {
         sem_require(sem_workers_open(c));
     }
@@ -99,6 +99,7 @@ fn sem_layout_execute(c: SemanticContext*): void {
     var view = entity_view_open(c.program.root);
     sem_require(view != null);
     var failed: SemanticLayoutWork* = null;
+    var completed_count: usize = 0;
     loop {
         var ticket: WorkTicket;
         while c.workers.running < c.workers.count
@@ -131,9 +132,11 @@ fn sem_layout_execute(c: SemanticContext*): void {
             if failed == null || result.ticket.task < failed.ticket.task { failed = result; }
         }
         sem_require(work_finish(&c.queries, &result.ticket, success));
+        completed_count++;
     }
     entity_view_close(view);
     if failed != null { sem_fail(c, failed.error_node, failed.error); }
+    return completed_count;
 }
 
 fn sem_layout(c: SemanticContext*, n: void*): void {

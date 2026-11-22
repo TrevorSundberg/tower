@@ -44451,3 +44451,89 @@ matrix. No runtime code, bootstrap or distributed asset bytes changed for this
 additional check. The prior receipt 3d60a0e/workflow45038132734 also succeeded;
 its hosted manifest exactly matched SHA256
 47f6bde0460d856e1df7ecf350ccce661a01b36e6996eab1055fccc1095e8be8.
+The publication rebase integrates upstream through 7abe428 (worker fixtures and
+isolated Mach-O work); implementation checkpoint is 49d75be. The public bootstrap
+build succeeds after this rebase, and its successor compiles semantic_body_work.
+Native SHA256 is 2aa93823d58e776c659c52e9ddea09b8c85c0198a881a583bc8672f9200f5a8d.
+Browser builds succeed and the real-worker suite passes 3/3 with zero skips,
+including overlap, interruption and 1/2/4/8-worker determinism. Restore the latest
+published target support packs and verify all seven hashes before site bundling.
+The frozen compiler project and browser modules continue their two-generation
+publication check while the next source changes receive focused native checks.
+
+### 2026-11-22 — Shared finite-kernel dispatch and frozen query frontiers
+
+Continue implementation without ending at the preceding publication milestone.
+Introduce compiler_kernel_dispatch in Tower, parameterized by the concrete work
+component type. Callers retain query admission, views, stages and publication;
+the helper only refills the existing pool and joins, draining admitted work on a
+failed submission. A lone finite independent kernel executes inline with the
+same receipt/ownership contract. No additional pool, atomics or evaluator.
+Use it for body discovery/checking, declarations, evaluation preparation/execution,
+lowering, iteration resolution, known-binding analysis and final flow checking.
+
+The dispatch audit found iteration resolution selecting tickets during active
+workers, and known-binding analysis publishing graph observations/completions
+during its worker window. Reserve iteration tickets before dispatch. Bound known
+analysis to the shared preparation window, reserve all tickets before freezing
+the context and publish graph receipts only after joining that window. Preserve
+the source-ordered component result index. Flow checking now reserves bounded
+windows and refills available slots instead of waiting at every pool-sized batch.
+Replace the touched flow query/access/depth numeric tags with named definitions.
+
+Native compilation and query-smoke pass. An attempted control-smoke invocation
+through tower-execution-tests rejects the unknown suite; it belongs to
+tower-lr-work-tests. Run that existing entry directly without rebuilding.
+Further focused control/known-binding results and publication follow below.
+
+The dispatcher follow-up passes query-smoke, control-smoke and the known-bindings
+fixture through graph/faster interpreters at worker counts 4/1. Logs:
+kernel-dispatch-native.log and kernel-dispatch-control.log. No speedup claim.
+
+The preceding frozen 49d75be milestone is pushed with Pages
+e4dc15eeb88676e8870f79cae2151e4050b787a0. Pages action 45035468170 succeeds.
+Both edited compiler generations pass with identical bytes (tower 1,344,293,
+LLVM 35,141,204 and cross 61,135,938 bytes). Hosted verification passes all 104
+asset hashes plus desktop/mobile backend, grammar, completion, persistence,
+downloads and default-target checks. Receipts are body-pipeline-publication-*
+under build/language-next-audit/. New dispatcher/preparation work below is not
+included in that deployed runtime; retain its exact build-source identity.
+
+Continue through structural body preparation: declaration registration, explicit
+initializers, assignment RHS values, for initial/condition/update and each
+iteration protocol signature now retain their phase/role on the body-work
+component. Suspend on the corresponding ordinary query and return to the body
+coordinator instead of draining declarations recursively. The body scheduler
+recovers failed dependency diagnostics separately, preserving earlier pending
+bodies for source-order selection. Quiescent declaration/expression cycles use
+their existing specific diagnostic path. Transient admission lists are local
+derived vectors, released at the pump boundary; no-op groups return immediately.
+Canonical scope/frame/interpreter state remains owned by its existing components.
+
+An intermediate declaration/initializer-only build passes control-smoke but
+aborts in type-smoke; the old output was buffered, so no diagnostic text was
+retained. Do not call that run passing. Preserve declaration-cycle reporting in
+the body finalizer and run the consolidated preparation checks with line-buffered
+output. The remaining type-smoke result, for/protocol continuation checks and
+publication are still pending at this entry. Early executed type helpers are
+still gated; top-level phase integration and iteration state/layout preparation
+remain before broadening that staging capability.
+
+The consolidated type-smoke and control-smoke checks pass after restoring the
+specific declaration-cycle reporting path (body-preparation-pump-complete.log).
+Move iterator-state shape validation from layout execution: the body continuation
+now waits first for fields, then for the ordinary layout receipt, and publishes
+state_ready before its worker constructs storage. Layout execution reports actual
+completed work so the body coordinator can service it without confusing waiting
+with a cycle. Failed layout diagnostics stay on their work component until the
+owning body's source-ordered selection. query-smoke, type-smoke and control-smoke
+all pass this ownership change (body-preparation-layout-native.log).
+
+Finally, service declaration, demanded evaluation and layout producers after
+every joined body frontier, not only once all body work stalls. This connects the
+retained preparations to the production phase coordinator without a nested drain
+or worker-held borrow. Worker count still does not choose publication boundaries.
+No sem_declarations_execute calls remain in semantic_body_work. The final
+interleaving change proceeds through the milestone publication checks below;
+whole-program known-value proof and top-level module/header readiness still
+constrain early captured values and executed helper calls in type arguments.

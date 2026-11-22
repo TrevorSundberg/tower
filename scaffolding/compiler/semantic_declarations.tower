@@ -1552,25 +1552,8 @@ fn sem_declaration_add(c: SemanticContext*, node: void*): void {
 // see one immutable graph. Pool width changes execution, never the query wave.
 fn sem_declaration_dispatch(c: SemanticContext*, batch: SemanticDeclaration**, count: usize): void {
     var context = *c;
-    // A lone ready query cannot overlap another job here. Run its same frozen
-    // kernel inline, keeping the ticket, stage and joined publication contract
-    // while avoiding a semaphore round trip along a narrow dependency chain.
-    if count == 1 && c.workers.running == 0 {
-        var result = batch[0];
-        result.context = &context;
-        c.workers.execute(bits(void*, &result.kernel));
-        result.context = null;
-        return;
-    }
-    var next: usize = 0;
-    while next < count || c.workers.running != 0 {
-        while next < count && c.workers.running < c.workers.count {
-            var result = batch[next++];
-            result.context = &context;
-            sem_require(work_pool_submit(&c.workers, bits(void*, &result.kernel)));
-        }
-        sem_require(work_pool_receive(&c.workers, true) != null);
-    }
+    for(var i: usize = 0; i < count; i++) { batch[i].context = &context; }
+    sem_require(compiler_kernel_dispatch(&c.workers, batch, count));
     for(var i: usize = 0; i < count; i++) { batch[i].context = null; }
 }
 

@@ -8,6 +8,7 @@ import semantic_control;
 import semantic_evaluation;
 import semantic_aggregates;
 import semantic_support;
+import semantic_work_ids;
 import .library.vector;
 import .library.work_graph;
 import .library.work_pool;
@@ -18,7 +19,8 @@ extern fn entity_table_query_ranges(query: void*): usize;
 extern fn entity_table_query_range_count(query: void*, index: usize): usize;
 extern fn entity_table_query_column(query: void*, index: usize, term: usize): void**;
 
-var FlowQuery: u32 = 7;
+var FlowQuery: u32 = convert(u32, SemanticQuery.Flow);
+var SemanticFlowDepthLimit: usize = 1024;
 
 struct SemanticFlow {
     kernel: CompilerKernel;
@@ -64,8 +66,9 @@ fn sem_flow_request(c: SemanticContext*, subject: void*, dependencies: vector(vo
         var dependency = work_find(&c.queries, dependencies.data[i], EvaluationQuery, 0);
         sem_require(dependency != 0 && work_depend(&c.queries, query, dependency));
     }
-    sem_require(work_access(&c.queries, query, 1, 8, c.flow_count, 1, WorkAccessMode.Write));
-    sem_require(work_access(&c.queries, query, 1, 3, 0, ~convert(usize, 0), WorkAccessMode.Read));
+    var domain = convert(u64, SemanticWorkDomain.Compiler);
+    sem_require(work_access(&c.queries, query, domain, convert(u64, SemanticAccess.Flow), c.flow_count, 1, WorkAccessMode.Write));
+    sem_require(work_access(&c.queries, query, domain, convert(u64, SemanticAccess.Expression), 0, ~convert(usize, 0), WorkAccessMode.Read));
     sem_require(work_seal(&c.queries, query));
     c.flow_count++;
 }
@@ -75,7 +78,7 @@ fn sem_flow_request(c: SemanticContext*, subject: void*, dependencies: vector(vo
 // loop exits retain the same flow contract as the initial body checker.
 fn sem_flow_node(result: SemanticFlow*, node: void*, depth: usize): u32 {
     if node == null { return FlowNext; }
-    if depth > 1024 { result.excessive_depth = node; return FlowNext; }
+    if depth > SemanticFlowDepthLimit { result.excessive_depth = node; return FlowNext; }
     var value = sem_get(node);
     if value == null { return FlowNext; }
     if value.kind == KReturn { return FlowReturn; }
@@ -155,14 +158,13 @@ fn sem_flows(c: SemanticContext*): void {
     var next: usize = 0;
     while next < c.flow_count {
         var count = c.flow_count - next;
-        if count > c.workers.count { count = c.workers.count; }
+        if count > SemanticPreparationWindow { count = SemanticPreparationWindow; }
         for(var i: usize = 0; i < count; i++) {
             var result = jobs.data[next + i];
             sem_require(work_take_query(&c.queries, &result.ticket, FlowQuery));
             sem_require(work_task(&c.queries, result.ticket.task).subject == result.subject);
-            sem_require(work_pool_submit(&c.workers, bits(void*, &result.kernel)));
         }
-        for(var i: usize = 0; i < count; i++) { sem_require(work_pool_receive(&c.workers, true) != null); }
+        sem_require(compiler_kernel_dispatch(&c.workers, &jobs.data[next], count));
         for(var i: usize = 0; i < count; i++) {
             var result = jobs.data[next + i];
             var function = sem_get(result.subject);
@@ -174,7 +176,8 @@ fn sem_flows(c: SemanticContext*): void {
                 sem_fail(c, result.invalid_label, "A labeled block must end with jump or return before the next label");
             } else {
                 if result.excessive_depth != null {
-                    sem_fail(c, result.excessive_depth, "Foundation control-flow analysis nesting exceeds 1024");
+                    sem_fail(c, result.excessive_depth, sem_cat(c, "Foundation control-flow analysis nesting exceeds ",
+                        sem_decimal(c, convert(u64, SemanticFlowDepthLimit))));
                 } else {
                     if missing {
                         sem_fail(c, result.subject, sem_cat(c, "Function '", sem_cat(c, sem_name(function),

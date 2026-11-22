@@ -269,6 +269,8 @@ Do NOT modify todo.txt
   its process-wide state safe to share.
   Freeze context descriptors before dispatch; copying a changing coordinator
   context on a worker does not create a thread-safe snapshot.
+  Reuse `compiler_kernel_dispatch` for finite independent semantic batches; reserve
+  tickets first, freeze contexts, then join before publishing graph receipts.
 - Schedule compiler queries through the shared dependency graph. Request only
   needed type/body/layout/evaluation work; suspend on newly discovered dependencies
   rather than blocking a worker or recursively forcing completion. Diagnose cycles

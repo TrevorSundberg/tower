@@ -1,4 +1,5 @@
 import tower;
+import .library.work_pool;
 
 enum CompilerKernelKind: u32 {
     Layout, Evaluate, Declaration, Lower, LRClosure, Body, LRState, Flow, LRAction, LRPropagation, LRFirst, PrepareEvaluation, DeclarationType, GenericBody, LRRuntime, CompileUnit, LRLink, KnownBinding, Iteration, BodyDiscovery
@@ -7,4 +8,30 @@ enum CompilerKernelKind: u32 {
 struct CompilerKernel {
     kind: CompilerKernelKind;
     payload: void*;
+}
+
+// Callers reserve query tickets/leases and freeze every job context before
+// dispatch. T retains the concrete component type and embeds its kernel.
+// This helper only refills transport slots and joins; graph/publication changes
+// happen outside it. Finite isolated kernels need no semaphore trip when alone.
+fn compiler_kernel_dispatch(T: type, pool: WorkPool*, jobs: T**, count: usize): bool {
+    if count == 0 { return true; }
+    if pool.running != 0 || pool.count == 0 { return false; }
+    if count == 1 {
+        pool.execute(bits(void*, &jobs[0].kernel));
+        return true;
+    }
+    defer {
+        // A failed submission still owns all previously admitted inputs.
+        while pool.running != 0 { work_pool_receive(pool, true); }
+    }
+    var next: usize = 0;
+    while next < count || pool.running != 0 {
+        while next < count && pool.running < pool.count {
+            if !work_pool_submit(pool, bits(void*, &jobs[next].kernel)) { return false; }
+            next++;
+        }
+        if work_pool_receive(pool, true) == null { return false; }
+    }
+    return true;
 }
