@@ -56,6 +56,10 @@ export fn work_kernel_execute(payload: void*): void {
         semantic_body_kernel(bits(SemanticBodyWork*, kernel.payload));
         return;
     }
+    if kernel.kind == CompilerKernelKind.BodyDiscovery {
+        semantic_body_sources_kernel(bits(SemanticBodyWork*, kernel.payload));
+        return;
+    }
     if kernel.kind == CompilerKernelKind.LRState {
         compiler_lr_state_kernel(kernel.payload);
         return;

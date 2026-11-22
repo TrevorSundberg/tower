@@ -183,6 +183,7 @@ struct SemanticBodyWork {
     expression_statement: void*;
     prepared_value: void*;
     prepared_header: void*;
+    prepared_statement: void*;
     iteration_plan: SemanticIterationPlan;
     iteration_resolution: SemanticIterationResolution;
     declaration_header: void*;
@@ -392,6 +393,72 @@ fn sem_body_sources(c: SemanticContext*, result: SemanticBodyWork*): void {
     }
 }
 
+// Admission inspects immutable syntax and published names. Its node/boundary
+// indexes belong to the existing body component; no semantic nodes are created.
+fn semantic_body_sources_kernel(result: SemanticBodyWork*): void {
+    var context = *result.context;
+    var program = *context.program;
+    context.program = &program;
+    context.editor = null;
+    context.allocations = default;
+    context.lists = default;
+    context.token_text = default;
+    context.scan = default;
+    context.query_reads = &result.query_reads;
+    program.error = default;
+    sem_body_sources(&context, result);
+    result.error = program.error;
+    result.error_offset = program.error_offset;
+    stack_dispose(&context.scan);
+    vector_dispose(&context.token_text);
+    foreach(var list in &context.lists) { vector_dispose(bits(vector(void*)*, list)); }
+    vector_dispose(&context.lists);
+    foreach(var allocation in &context.allocations) { free(allocation); }
+    vector_dispose(&context.allocations);
+}
+
+fn sem_body_sources_request(c: SemanticContext*, result: SemanticBodyWork*): usize {
+    var id = work_request(&c.queries, result.subject, convert(u32, SemanticQuery.BodyDiscovery), 0);
+    sem_require(id != 0);
+    sem_generic_body_dependency(c, result.subject, id);
+    var declaration = work_find(&c.queries, result.subject, convert(u32, SemanticQuery.Declaration), 0);
+    if declaration != 0 { sem_require(work_depend(&c.queries, id, declaration)); }
+    var domain = convert(u64, SemanticWorkDomain.Compiler);
+    sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Body), result.ordinal, 1, WorkAccessMode.Write));
+    sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.TypeIndex), 0, ~convert(usize, 0), WorkAccessMode.Read));
+    sem_require(work_seal(&c.queries, id));
+    return id;
+}
+
+fn sem_body_sources_execute(c: SemanticContext*, batch: SemanticBodyWork**, count: usize): void {
+    if count == 0 { return; }
+    var context = *c;
+    var view = entity_view_open(c.program.root);
+    sem_require(view != null);
+    var next: usize = 0;
+    while next < count || c.workers.running != 0 {
+        while next < count && c.workers.running < c.workers.count {
+            var result = batch[next++];
+            result.context = &context;
+            result.kernel.kind = CompilerKernelKind.BodyDiscovery;
+            var id = work_find(&c.queries, result.subject, convert(u32, SemanticQuery.BodyDiscovery), 0);
+            sem_require(work_take_task(&c.queries, &result.ticket, id));
+            sem_require(work_pool_submit(&c.workers, bits(void*, &result.kernel)));
+        }
+        sem_require(work_pool_receive(&c.workers, true) != null);
+    }
+    entity_view_close(view);
+    for(var i: usize = 0; i < count; i++) {
+        var result = batch[i];
+        sem_query_observe(c, &result.ticket, &result.query_reads);
+        result.done = result.error.length != 0;
+        sem_require(work_finish(&c.queries, &result.ticket, !result.done));
+        result.ticket = default;
+        result.context = null;
+        result.kernel.kind = CompilerKernelKind.Body;
+    }
+}
+
 fn sem_body_stop(result: SemanticBodyWork*): void* {
     return result.boundary < result.boundaries.length ? result.boundaries.data[result.boundary].subject: null;
 }
@@ -563,6 +630,21 @@ fn sem_body_run(c: SemanticContext*, result: SemanticBodyWork*): void {
             return;
         }
         var node = sem_is(source, "Statement") ? sem_unwrap(source): null;
+        if node == result.prepared_statement && node != null {
+            // The operand query owns type construction. This worker owns the
+            // statement, lexical flow and any deferred exits around that value.
+            var value = result.prepared_value;
+            var flow = sem_is(node, "CoreReturn") ? sem_return_statement(c, node, value)
+                : sem_is(node, "TowerExpressionStatement") ? sem_expression_statement(c, node, value)
+                : sem_is(node, "CoreAssign") ? sem_assignment_value(c, node, value)
+                : sem_call_statement(c, node, value);
+            flow = sem_statement_complete(c, node, flow);
+            cursor.next++;
+            sem_block_accept(c, cursor, node, flow);
+            result.prepared_statement = null;
+            result.prepared_value = null;
+            continue;
+        }
         if node == result.prepared_header && node != null {
             var prepared_loop = sem_is(node, "TowerFor") ? &result.declaration_loop : null;
             sem_require(sem_body_enter(c, result, node, prepared_loop));
@@ -881,8 +963,8 @@ fn sem_body_iteration_signatures(c: SemanticContext*, batch: SemanticBodyWork**,
 }
 
 // Return and discarded operands use the same expression graph as initializers.
-// Only statement publication/flow remains on the coordinator, after the checked
-// value and its type/layout dependencies have completed.
+// After the operand and type/layout dependencies complete, a body worker resumes
+// statement construction and lexical flow without checking that operand again.
 fn sem_body_statement_query(c: SemanticContext*, result: SemanticBodyWork*, node: void*, depth: u32): bool {
     var returned = sem_is(node, "CoreReturn");
     var discarded = sem_is(node, "TowerExpressionStatement");
@@ -1135,14 +1217,8 @@ fn sem_body_declarations(c: SemanticContext*, batch: SemanticBodyWork**, count: 
         }
         if result.expression_statement != null {
             if sem_ok(c) {
-                var flow = sem_is(node, "CoreReturn") ? sem_return_statement(c, node, producer.value)
-                    : sem_is(node, "TowerExpressionStatement") ? sem_expression_statement(c, node, producer.value)
-                    : sem_is(node, "CoreAssign") ? sem_assignment_value(c, node, producer.value)
-                    : sem_call_statement(c, node, producer.value);
-                flow = sem_statement_complete(c, node, flow);
-                var cursor = sem_body_cursor(result);
-                cursor.next++;
-                sem_block_accept(c, cursor, node, flow);
+                result.prepared_statement = node;
+                result.prepared_value = producer.value;
             }
         } else {
             if result.expression_header != null {
@@ -1313,6 +1389,7 @@ fn sem_body_clear(result: SemanticBodyWork*): void {
     result.expression_statement = null;
     result.prepared_value = null;
     result.prepared_header = null;
+    result.prepared_statement = null;
     result.iteration_plan = default;
     result.declaration_header = null;
     result.declaration_loop = default;
@@ -1529,20 +1606,25 @@ fn sem_bodies(c: SemanticContext*): void {
                 sem_body_clear(result);
                 continue;
             }
-            sem_body_sources(c, result);
+            var discovery = sem_body_sources_request(c, result);
             var id = work_request(&c.queries, subject, BodyQuery, 0);
-            sem_require(id != 0);
+            sem_require(id != 0 && work_depend(&c.queries, id, discovery));
             sem_generic_body_dependency(c, subject, id);
             var declaration = work_find(&c.queries, subject, convert(u32, SemanticQuery.Declaration), 0);
             if declaration != 0 { sem_require(work_depend(&c.queries, id, declaration)); }
-            sem_require(work_access(&c.queries, id, 1, 7, next, 1, WorkAccessMode.Write));
-            sem_require(work_access(&c.queries, id, 1, 1, 0, ~convert(usize, 0), WorkAccessMode.Read));
-            sem_require(work_access(&c.queries, id, 1, 9, 0, ~convert(usize, 0), WorkAccessMode.Read));
+            var domain = convert(u64, SemanticWorkDomain.Compiler);
+            sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Body), next, 1, WorkAccessMode.Write));
+            sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Layout), 0, ~convert(usize, 0), WorkAccessMode.Read));
+            sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.TypeIndex), 0, ~convert(usize, 0), WorkAccessMode.Read));
             sem_require(work_seal(&c.queries, id) && work_demand(&c.queries, id));
             batch[count++] = result;
             next++;
         }
+        sem_body_sources_execute(c, &batch[0], count);
         var failed = count;
+        for(var i: usize = 0; i < count; i++) {
+            if batch[i].error.length != 0 { failed = i; break; }
+        }
         var pending = count != 0;
         while pending {
             pending = false;

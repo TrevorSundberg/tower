@@ -42948,3 +42948,51 @@ benchmark-interpreters still consumes inline Tower workloads from
 interpreter-workloads.mjs and implements result aggregation in JavaScript. Examine
 existing Tower benchmark capabilities and callers before deciding what to remove
 or move, while retaining required browser/worker measurement transport.
+Control/protocol checkpoint rebased onto documentation-only c0f6ab4, preserving
+all validated compiler inputs, and is pushed as89151aa. The documented public
+native build and portable/threaded/LLVM/cross package builds pass. Native SHA256
+6d0f5dc9eca601dd43cf02f308885ed48918b2ea764ce09379b88ef911b6cab7;
+compiler-project SHA256
+6bb32ed6ca69670c6e4ead51f278aacd80a05b1aaf503c6adf37846a440fd54f.
+The browser threading suite passes3/3 with zero skips in56.379s, including real
+four-thread overlap/failure transport and 1/2/4/8-worker canonical agreement.
+Both edited browser self-build generations pass with identical hashes:
+tower4ff4a2ad63b191ebdbe2eebcb99c059a3a56f2bb0b79978d146bd9d243efabec,
+llvm cba38030b47e8f0af57c52d28c1868a6a5d10985eed45e31c21ff12a51dfed40,
+cross e5cf7f73013861330f955b262b85a79cdf4a813fa68c736c4cc6a7b1990b73a2.
+Evidence: control-protocol-{release-build,browser-checks,generations,bundle}.log
+and control-protocol-workbench/generation{1,2}.json. These timings include other
+validation activity; they are not isolated performance comparisons. The release
+manifest merges latest upstream Pages175e4bd history and replaces only current
+asset/build identities. Hosted verification follows publication.
+
+The next source milestone is excluded from that frozen release. Admission was
+still a serial walk of every selected function's syntax to derive body boundaries
+and lease indexes. It now has a BodyDiscovery query on the same function entity,
+depending on its signature and clone receipts. Workers read immutable syntax and
+name indexes, own traversal/error buffers, and fill their existing body component.
+Body checking depends on that receipt. Join releases claims and publishes ordered
+failures before body dispatch; no separate AST or shared mutable scan is added.
+Admission scratch is released after each job instead of persisting in compiler
+scratch. The smallest changed unit passes public-bootstrap preflight.
+
+Prepared return/discard/call/assignment statements now retain their checked value
+on that same body component. Their worker resumes statement construction, lexical
+flow and deferred exits without rechecking the operand. Binding/storage publication
+and for-header intermediate projections remain coordinated. The combined affected
+native body-smoke is building in body-admission-native.log; this next milestone
+is neither committed nor deployed yet. build/native and the packaged project
+remain frozen at89151aa while cache-only native targets test newer sources.
+
+The combined body-admission/prepared-statement milestone passes native body-smoke:
+serial/four-worker canonical output, ordinary execution, ordered diagnostics and
+cycles. The candidate compiles its own semantic_body_work.tower successfully.
+Evidence: body-admission-{native,self}.log. These checks include the existing
+return/discard/assignment and deferred-cleanup fixtures; no duplicate test matrix
+or sanitizer sweep was added. The source unit preflight, native tests and candidate
+self-compilation are distinct from89151aa's frozen browser-generation receipts.
+
+Pages e1b3e963b406eb385a0acf43c2dfe1e5eea5a692 was pushed without force for89151aa.
+Workflow44992545084 succeeded; hosted verification has matched all104 assets and
+passed desktop backend, grammar, completion, persistence and native-download
+checks. Mobile/default verification remains running in control-protocol-hosted.log.

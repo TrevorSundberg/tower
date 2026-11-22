@@ -971,6 +971,9 @@ containers. Benchmark representative compiler workloads before migrating them.
   prepare separately from their branches. Surface while/for/foreach bodies,
   ordinary match arms/fallbacks and deferred blocks now share these continuations.
   Generated loop/iteration/match blocks receive leases before resumed mutation.
+  Body admission itself now scans syntax and derives boundary/lease indexes on
+  workers through BodyDiscovery receipts on the same function entities. Checking
+  depends on discovery, with source-ordered failures and private traversal scratch.
   Foreach generic protocol signatures now register declaration queries across
   independent bodies; each body suspends on the ordinary parameter/return receipts.
   Protocol roles preserve diagnostic order. Lookup/deduction now has role-specific
@@ -1035,7 +1038,9 @@ containers. Benchmark representative compiler workloads before migrating them.
   precedes inferred clone/preparation queries; ordinary interpreter jobs produce
   the values. Alias references and changed storage indexes publish after joins.
   Return/discard operands and Foundation assignment target/value phases now use
-  expression queries; independent enum member checks also run on workers.
+  expression queries; their statement construction, flow and deferred exits resume
+  on body workers after the checked value publishes. Independent enum member
+  checks also run on workers.
   Evaluation preparation has persistent components and activates only through
   demanded roots or interpreter-discovered dependencies. Repeated pumps retain
   completed work; inferred clones still snapshot before runtime lowering.

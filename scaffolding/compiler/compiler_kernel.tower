@@ -1,7 +1,7 @@
 import tower;
 
 enum CompilerKernelKind: u32 {
-    Layout, Evaluate, Declaration, Lower, LRClosure, Body, LRState, Flow, LRAction, LRPropagation, LRFirst, PrepareEvaluation, DeclarationType, GenericBody, LRRuntime, CompileUnit, LRLink, KnownBinding, Iteration
+    Layout, Evaluate, Declaration, Lower, LRClosure, Body, LRState, Flow, LRAction, LRPropagation, LRFirst, PrepareEvaluation, DeclarationType, GenericBody, LRRuntime, CompileUnit, LRLink, KnownBinding, Iteration, BodyDiscovery
 }
 
 struct CompilerKernel {
