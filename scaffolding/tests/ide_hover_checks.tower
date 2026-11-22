@@ -1,0 +1,239 @@
+import tower;
+import ide_query_support;
+import ide_hover_generic_checks;
+import ide_hover_grammar_checks;
+import utility_checks;
+import .host.ide_text;
+import .host.ide_state;
+import .host.ide_execution;
+import .host.ide_api;
+import .library.bytes_types;
+import .library.bytes_interface;
+
+fn ide_hover_checks(): void {
+    var f: QueryFixture; q_init(&f); defer q_dispose(&f);
+    q_case(&f, "hover: lexical shadowing, parameters and inferred locals");
+    q_document(&f, "import foundation;\nvar value: bool = true; fn demo(value:i32):i32 { var local = value; return local; } print(value);");
+    var parameter = q_get(&f, "= value;", 3);
+    q_expect(parameter, "signature", "value: i32"); q_expect(parameter, "kind", "parameter");
+    q_match(parameter, "description", "Each call supplies a value");
+    q_expect(q_tail(&f, "local;"), "signature", "var local: i32");
+    var global = q_tail(&f, "value);");
+    q_expect(global, "type", "bool"); q_expect(global, "kind", "global variable");
+    q_match(global, "description", "change it later by assigning a new value");
+    utility_check(q_number(q_field(global, "entity")) > 0 && q_number(q_field(global, "binding")) > 0
+        && !q_equal(q_field(global, "entity"), q_field(global, "binding")), "Distinct source entity and binding identities");
+    q_expect(global, "syntax", "CoreLocation"); utility_check(q_number(q_field(global, "components")) >= 2, "Semantic entity components");
+
+    q_case(&f, "hover: canonical functions and return descriptions");
+    q_document(&f, "import foundation;\nfn add(a:i32,b:i32):i32 { var sum = a + b; return sum; } print(add(1,2)); fn idle():void { return; } fn answer():i32 { return 42; } fn sink(value:i32):void { return; } fn address():void* { return null; }");
+    q_expect(q_tail(&f, "add(1"), "signature", "fn add(a: i32, b: i32): i32"); q_expect(q_tail(&f, "i32 {"), "signature", "i32");
+    q_match(q_get(&f, "fn add", 3), "description", "Parameters are the named inputs");
+    q_match(q_get(&f, "fn add", 3), "description", "sends a result back");
+    q_match(q_get(&f, "fn idle", 3), "description", "no inputs"); q_match(q_get(&f, "fn idle", 3), "description", "without returning a value");
+    q_match(q_get(&f, "fn answer", 3), "description", "no inputs"); q_match(q_get(&f, "fn answer", 3), "description", "sends a result back");
+    q_match(q_get(&f, "fn sink", 3), "description", "named inputs"); q_match(q_get(&f, "fn sink", 3), "description", "without returning a value");
+    q_match(q_get(&f, "fn address", 3), "description", "sends a result back");
+    utility_check(!q_contains(q_field(q_get(&f, "fn address", 3), "description"), "without returning a value"), "Pointer return is a value");
+
+    q_case(&f, "hover: resolved type arguments before and after errors");
+    {
+        var example = q_explicit_templates(); defer bytes_dispose(&example);
+        var broken = q_join(example.data, "\nmissing();"); defer bytes_dispose(&broken);
+        var versions: usize = 2;
+        for(var version: usize = 0; version < versions; version++) {
+            var variant = convert(QuerySourceCase, version);
+            q_entry(&f, "templates.tower"); q_document(&f, variant == QuerySourceCase.Valid ? example.data : broken.data);
+            var length = ide_length(f.source);
+            var arguments: usize = 0;
+            for(var i: usize = 0; i < length; i++) {
+                var argument: usize = 0;
+                if i + ide_length("push(i32") <= length && utility_equal(f.source + i, "push(i32", ide_length("push(i32")) { argument = i + ide_length("push("); }
+                if i + ide_length("pop(i32") <= length && utility_equal(f.source + i, "pop(i32", ide_length("pop(i32")) { argument = i + ide_length("pop("); }
+                if argument != 0 {
+                    arguments++;
+                    var entry = q_hover(&f, argument);
+                    q_expect(entry, "kind", "type"); q_expect(entry, "signature", "i32"); q_expect(entry, "type", "i32"); q_num(entry, "size", 4);
+                    q_match(entry, "description", "whole number");
+                    utility_check(!q_contains(q_field(entry, "description"), "function") && !q_contains(q_field(entry, "description"), "Runs"), "Type description is not callable");
+                }
+            }
+            var explicit_calls: usize = 4;
+            utility_check(arguments == explicit_calls, "Explicit push/pop type-use fixtures were exercised");
+        }
+    }
+    q_case(&f, "hover: builtin, pointer and imported type-use metadata");
+    q_file(&f, "models.tower", "import tower; struct Point { x:i32; }");
+    q_document(&f, "import tower; import models as model;\nfn accept(T:type, value:T):T { return value; }\nvar address:i32* = null;\nprint(accept(i32,1)); print(accept(bool,true));\nvar same = accept(i32*,address);\nvar width = sizeof(model.Point); var aligned = alignof(i32);\nvar heap = alloc(i32,1); var widened = convert(i64,7); free(heap);");
+    q_hover_type(&f, "accept(i32,", 7, "i32", 4); q_hover_type(&f, "accept(bool,", 7, "bool", 1);
+    q_hover_type(&f, "accept(i32*,", 10, "i32*", 4); q_hover_type(&f, "sizeof(model.Point)", 13, "Point", 4);
+    q_hover_type(&f, "alignof(i32)", 9, "i32", 4); q_hover_type(&f, "alloc(i32,", 7, "i32", 4); q_hover_type(&f, "convert(i64,", 9, "i64", 8);
+    q_document(&f, "import foundation;\nvar i32:bool = true; print(i32);"); q_expect(q_tail(&f, "i32);"), "kind", "global variable"); q_expect(q_tail(&f, "i32);"), "type", "bool");
+
+    q_case(&f, "hover: source punctuation shares checked entity ownership");
+    q_entry(&f, "advance.tower");
+    q_document(&f, "import foundation;\nfn advance(p:i32*):i32 {\n var old:i32 = *p;\n *p = old + 1;\n return old;\n}\nvar value:i32 = 1;\nprint(advance(&value));");
+    q_coverage(&f, 0);
+    var declaration = q_get(&f, "var old", 0);
+    q_match(declaration, "description", "change it later by assigning a new value"); q_expect(declaration, "type", "i32");
+    q_same(q_get(&f, "= *p", 0), "entity", declaration, "entity"); q_same(q_get(&f, "= *p", 0), "description", declaration, "description");
+    q_match(q_get(&f, "= old", 0), "description", "previous value is overwritten"); q_expect(q_get(&f, "= old", 0), "type", "i32");
+    q_expect(q_get(&f, "*p;", 0), "kind", "pointer dereference"); q_expect(q_get(&f, "*p;", 0), "type", "i32");
+    q_match(q_get(&f, "*p =", 0), "description", "changes the value at that address");
+    q_hover_function_location(q_get(&f, "return old", 0), "advance.tower", 2);
+    q_hover_function_location(q_get(&f, "}", 0), "advance.tower", 2);
+    q_match(q_get(&f, "}", 0), "description", "statements run when this function is called");
+
+    q_case(&f, "hover: renamed keyword and delimiter syntax");
+    q_entry(&f, "custom.tower");
+    q_document(&f, "import foundation;\nparse CoreDeclare = 'let' $name:Identifier ':' $type:CoreType ':=' $value:CoreValue '!';\nparse CoreAssign = $target:CoreTarget ':=' $value:CoreValue '!';\nparse CoreReturn = 'give' $value:CoreOperand? '!';\nparse CoreFunction = 'procedure' $name:Identifier '[' $params:CoreParameters? ']' '->' $type:CoreType $body:CoreBlock;\nprocedure advance[] -> i32 {\n  let counter:i32 := 1!\n  counter := counter + 1!\n  give counter!\n}");
+    var body = q_find(f.source, "procedure advance"); q_coverage(&f, body);
+    declaration = q_hover(&f, q_locate(f.source, "let counter", body, false));
+    q_same(q_hover(&f, q_locate(f.source, "let counter", body, false) + 4), "entity", declaration, "entity");
+    q_same(q_get(&f, ":= 1", 0), "entity", declaration, "entity"); q_same(q_get(&f, "1!", 1), "entity", declaration, "entity");
+    q_expect(declaration, "signature", "var counter: i32"); q_expect(declaration, "type", "i32");
+    q_match(q_get(&f, ":= counter", 0), "description", "previous value is overwritten"); q_expect(q_get(&f, ":= counter", 0), "type", "i32");
+    q_custom_function(&f, body, "procedure"); q_custom_function(&f, body, "["); q_custom_function(&f, body, "]");
+    q_custom_function(&f, body, "->"); q_custom_function(&f, body, "{"); q_custom_function(&f, body, "}"); q_custom_function(&f, body, "give");
+    var opening = q_hover(&f, q_locate(f.source, "{", body, false)); var closing = q_hover(&f, q_locate(f.source, "}", body, false));
+    q_same(opening, "entity", closing, "entity"); q_same(opening, "description", closing, "description");
+
+    q_case(&f, "hover: control flow has descriptions without invented types");
+    q_document(&f, "import foundation;\nfn repeat():void { var ready:bool = true; loop { if ready { break; } else { continue; } } return; } repeat();");
+    q_control(&f, "loop"); q_control(&f, "if"); q_control(&f, "break"); q_control(&f, "else"); q_control(&f, "continue"); q_all_details(&f);
+
+    ide_hover_generic_checks(&f);
+
+    q_case(&f, "hover: checked members, pointers and nominal layouts");
+    q_document(&f, "import foundation;\nstruct Point { first:i32; ready:bool; } var p:Point; var pointer = &p; pointer.ready = true; print(pointer.ready);");
+    var field = q_tail(&f, "ready);"); q_expect(field, "signature", "ready: bool"); q_expect(field, "kind", "field"); q_num(field, "offset", 4); q_num(field, "size", 1);
+    q_match(field, "description", "Each value of that struct has its own copy");
+    q_expect(q_tail(&f, "pointer.ready);"), "type", "Point*"); q_expect(q_tail(&f, "Point;"), "kind", "type");
+
+    q_case(&f, "hover: imported bindings keep declaration ownership");
+    q_file(&f, "helper.tower", "import tower; fn answer():i32 { return 42; }");
+    q_document(&f, "import tower; import helper; var result = answer(); print(result);");
+    var call = q_get(&f, "answer", 2); q_expect(call, "signature", "fn answer(): i32"); q_expect(call, "declaration", null);
+    q_expect(call, "declarationFile", "helper.tower"); q_num(call, "declarationLine", 1); q_num(call, "declarationColumn", 15);
+    q_expect(q_tail(&f, "result"), "type", "i32"); q_ranges(&f);
+
+    q_case(&f, "hover: dotted imports retain distinct segment entities");
+    q_file(&f, "helpers/answer.tower", "import tower; fn answer():i32 { return 42; }");
+    q_document(&f, "import tower; import helpers.answer; import helpers.answer; print(answer());");
+    var first = q_get(&f, "tower", 1); var second = q_get(&f, "helpers", 1); var third = q_get(&f, "answer", 1);
+    q_import_segment(&f, first, "tower"); q_import_segment(&f, second, "helpers"); q_import_segment(&f, third, "answer");
+    utility_check(!q_equal(q_field(first, "entity"), q_field(second, "entity")) && !q_equal(q_field(first, "entity"), q_field(third, "entity")) && !q_equal(q_field(second, "entity"), q_field(third, "entity")), "Three distinct import entities");
+    q_expect(q_tail(&f, "answer"), "signature", "fn answer(): i32");
+
+    q_case(&f, "hover: enum declarations and accesses");
+    q_document(&f, "import foundation;\nenum State:u32 { Idle = 0, Busy = 4 } var state:State = State.Busy;");
+    var member = q_tail(&f, "Busy"); q_expect(member, "signature", "State.Busy"); q_expect(member, "kind", "enum member"); q_expect(member, "type", "State"); q_num(member, "size", 4);
+    q_expect(q_get(&f, "Busy", 1), "signature", "State.Busy");
+    q_case(&f, "hover: explicit target widths and invalid input");
+    q_document(&f, "import foundation;\nvar pointer:i32*;"); q_num(q_tail(&f, "pointer"), "size", convert(usize, QueryPointerBytes));
+    f.width = QueryWidePointerBytes; q_document(&f, "import foundation;\nvar pointer:i32*;"); q_num(q_tail(&f, "pointer"), "size", convert(usize, QueryWidePointerBytes));
+    var invalid_width: u32 = 3; var pointer_source = "import foundation;\nvar pointer:i32*;";
+    utility_check(language_document(pointer_source, ide_length(pointer_source), f.mode, invalid_width) is null, "Reject invalid pointer width");
+    {
+        var nul_source = q_join("var x:i32;", " print(x);"); defer bytes_dispose(&nul_source);
+        nul_source.data[ide_length("var x:i32;")] = 0;
+        utility_check(language_document(nul_source.data, nul_source.length, f.mode, QueryPointerBytes) is null, "Reject embedded NUL source");
+    }
+
+    q_case(&f, "hover: partial diagnostics and changed types");
+    q_document(&f, "import foundation;\nvar answer:i32 = 42; print(answer); var unfinished:"); q_expect(q_tail(&f, "answer);"), "type", "i32");
+    q_document(&f, "import foundation;\nvar answer:bool = true; print(answer);"); q_expect(q_tail(&f, "answer);"), "type", "bool");
+    q_document(&f, "import foundation;\nvar answer:i32 = true; print(answer);");
+    var entries = q_entries(&f); var at: usize = 1;
+    loop {
+        var item = q_next(entries, &at); if item.length == 0 { break; }
+        if q_field(item, "type").length != 0 { q_source_text(&f, item, "i32"); }
+    }
+    q_expect(q_get(&f, "i32", 0), "type", "i32"); q_expect(q_tail(&f, "answer"), "type", null);
+
+    ide_hover_grammar_checks(&f);
+    ide_hover_documentation_checks(&f);
+}
+
+fn q_hover_type(f: QueryFixture*, needle: u8*, offset: usize, name: u8*, size: usize): void {
+    var item = q_get(f, needle, offset); q_expect(item, "kind", "type"); q_expect(item, "type", name); q_num(item, "size", size);
+    utility_check(q_field(item, "description").length > QueryJsonQuoteBytes, "Type description");
+}
+fn q_hover_function_location(item: QueryJson, file: u8*, line: usize): void {
+    q_expect(item, "signature", "fn advance(p: i32*): i32"); q_expect(item, "declarationFile", file); q_num(item, "declarationLine", line); q_num(item, "declarationColumn", 1);
+}
+fn q_custom_function(f: QueryFixture*, start: usize, needle: u8*): void {
+    var item = q_hover(f, q_locate(f.source, needle, start, false));
+    q_expect(item, "signature", "fn advance(): i32"); q_expect(item, "declarationFile", "custom.tower"); q_num(item, "declarationLine", 6);
+}
+fn q_control(f: QueryFixture*, needle: u8*): void {
+    var item = q_get(f, needle, 0); q_expect(item, "type", null); utility_check(q_field(item, "description").length > QueryJsonQuoteBytes, needle);
+}
+fn q_ranges(f: QueryFixture*): usize {
+    var entries = q_entries(f); var at: usize = 1; var count: usize = 0; var size = ide_length(f.source);
+    loop {
+        var item = q_next(entries, &at); if item.length == 0 { return count; }
+        var from = q_number(q_field(item, "from")); var to = q_number(q_field(item, "to"));
+        utility_check(from < to && to <= size, "Document source range"); count++;
+    }
+}
+fn q_source_text(f: QueryFixture*, item: QueryJson, text: u8*): void {
+    var from = q_number(q_field(item, "from")); var to = q_number(q_field(item, "to"));
+    utility_check(to - from == ide_length(text) && utility_equal(f.source + from, text, to - from), "Exact source range spelling");
+}
+fn q_import_segment(f: QueryFixture*, item: QueryJson, name: u8*): void {
+    q_expect(item, "signature", name); q_expect(item, "type", null); q_source_text(f, item, name);
+    utility_check(q_number(q_field(item, "entity")) > 0 && q_number(q_field(item, "components")) > 0, "Import source entity metadata");
+}
+
+fn ide_hover_documentation_checks(f: QueryFixture*): void {
+    q_case(f, "hover: repeated inspection releases temporary entities");
+    var source = "import foundation;\n// Point documentation\nstruct Point { x:i32; }\n// Instance documentation\nvar p:Point; print(p.x);\n// A parameterized container.\nfn box(T:type):type { struct R { value:T; count:usize; } return R; } var b:box(i32); fn advance(T:type,p:box(T)*):usize { var next = p.count + 1; return next; }";
+    var broken = q_join(source, "\nmissing();"); defer bytes_dispose(&broken);
+    var versions: usize = 2;
+    for(var version: usize = 0; version < versions; version++) {
+        var variant = convert(QuerySourceCase, version);
+        var text = variant == QuerySourceCase.Valid ? source : broken.data; q_document(f, text);
+        var nodes = tw_live_nodes(); var allocations = tw_live_allocations();
+        for(var i: usize = 0; i < QueryLifetimeRepeats; i++) { q_document(f, text); }
+        utility_check(tw_live_nodes() == nodes && tw_live_allocations() == allocations, "Document query ownership after repeated checks");
+    }
+    q_case(f, "hover: attached local and imported documentation");
+    q_document(f, "import foundation;\n// Adds a value.\n// Keeps the original.\nfn increment(value:i32):i32 { var result = value + 1; return result; }\nprint(increment(41));");
+    q_expect(q_tail(f, "increment(41"), "documentation", "Adds a value.\nKeeps the original.");
+    q_expect(q_get(f, "increment", 1), "documentation", "Adds a value.\nKeeps the original.");
+    q_file(f, "helper.tower", "import tower;\n// The imported answer.\nfn answer():i32 { return 42; }");
+    q_document(f, "import tower; import helper; print(answer());"); q_expect(q_tail(f, "answer()"), "documentation", "The imported answer.");
+    q_case(f, "hover: Templates docs and symbolic metadata survive errors");
+    var example = q_read("examples/templates.tower"); defer bytes_dispose(&example);
+    q_document(f, example.data);
+    q_match(q_get(f, "push(", 1), "documentation", "This small example assumes there is space to push and a value to pop");
+    q_match(q_tail(f, "push("), "documentation", "This small example assumes there is space to push and a value to pop");
+    q_match(q_tail(f, "push("), "signature", "i32");
+    var missing = q_join(example.data, "\nmissing();"); defer bytes_dispose(&missing);
+    var invalid = q_join(example.data, "\nvar invalid:buffer(i32,0);"); defer bytes_dispose(&invalid);
+    var changed = q_replace(example.data, "var values:", "var broken:bool = 42;\nvar values:"); defer bytes_dispose(&changed);
+    var variants: usize = 4;
+    for(var version: usize = 0; version < variants; version++) {
+        var variant = convert(QuerySourceCase, version);
+        var text = variant == QuerySourceCase.Valid ? example.data : variant == QuerySourceCase.MissingCall ? missing.data : variant == QuerySourceCase.InvalidExtent ? invalid.data : changed.data;
+        q_entry(f, "templates.tower"); q_document(f, text);
+        var buffer = q_get(f, "buffer(", 0); var field = q_get(f, "data:", 0);
+        q_expect(buffer, "kind", "type function"); q_expect(buffer, "signature", "fn buffer(T: type, size: usize): type"); q_expect(buffer, "matchedRule", null); q_expect(buffer, "declarationFile", "templates.tower"); q_match(buffer, "documentation", "Type and integer arguments");
+        q_expect(field, "type", "T[size]"); q_expect(field, "size", null);
+        q_expect(q_get(f, "T[size]", 0), "kind", "type parameter"); q_expect(q_get(f, "size]", 0), "kind", "compile-time parameter"); q_expect(q_get(f, "size]", 0), "type", "usize");
+        if variant == QuerySourceCase.Valid { q_num(q_get(f, "size]", 0), "size", 4); } else { q_expect(q_get(f, "size]", 0), "size", null); }
+        q_expect(q_get(f, "push(", 0), "kind", "function template"); q_match(q_get(f, "push(", 0), "documentation", "space to push");
+        var handle = tw_exec_create(text, ide_length(text)); utility_check(handle != 0, "Templates execution handle"); defer tw_exec_destroy(handle);
+        var result = q_view(tw_exec_step(handle, QueryExecutionBudget)); q_expect(result, "status", variant == QuerySourceCase.Valid ? "done" : "error");
+        if variant == QuerySourceCase.MissingCall { q_match(result, "error", "Unknown function 'missing'"); q_expect(q_tail(f, "missing"), "type", null); }
+    }
+    q_case(f, "hover: failed named layouts remain unavailable");
+    q_failed_layout(f, "missing:Missing"); q_failed_layout(f, "cycle:Broken");
+}
+fn q_failed_layout(f: QueryFixture*, field: u8*): void {
+    var text = q_join("import foundation;\nstruct Broken { ", field); defer bytes_dispose(&text);
+    ide_text(&text, "; } fn demo(T:type,value:Broken):void {}"); q_document(f, ide_result(&text));
+    var value = q_tail(f, "value:"); q_expect(value, "signature", "value: Broken"); q_expect(value, "type", "Broken");
+    q_expect(value, "size", null); q_expect(value, "alignment", null); q_expect(value, "matchedRule", null);
+}

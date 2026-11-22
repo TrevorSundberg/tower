@@ -25,16 +25,16 @@ fn ide_candidate_checks(): void {
     var profile_count: u32 = 2;
     for(var profile: u32 = 0; profile < profile_count; profile++) {
         var fast = profile != 0;
-        candidate_fixture("// candidate C metadata\nprint(42);", fast, "");
+        candidate_fixture("import foundation;\n// candidate C metadata\nprint(42);", fast, "");
         // A valid result spanning multiple graph-interpreter chunks must pass.
         candidate_fixture("// candidate C metadata\nimport tower; var i:i32=0; while i < 20000 { i=i+1; } print(42);", fast, "");
-        candidate_fixture("print(42);", fast, "C output/comment check failed");
-        candidate_fixture("// candidate C metadata\nprint(41);", fast, "interpreter failed the output check");
-        candidate_fixture("// candidate C metadata\nprint(42); print(42);", fast, "interpreter failed the output check");
-        candidate_fixture("// candidate C metadata\nunknown();", fast, "fresh valid execution");
+        candidate_fixture("import foundation;\nprint(42);", fast, "C output/comment check failed");
+        candidate_fixture("import foundation;\n// candidate C metadata\nprint(41);", fast, "interpreter failed the output check");
+        candidate_fixture("import foundation;\n// candidate C metadata\nprint(42); print(42);", fast, "interpreter failed the output check");
+        candidate_fixture("import foundation;\n// candidate C metadata\nunknown();", fast, "fresh valid execution");
         candidate_fixture("// candidate C metadata\nimport tower; while true {}", fast, "interpreter failed the output check");
     }
-    var source = "// candidate C metadata\nprint(42);";
+    var source = "import foundation;\n// candidate C metadata\nprint(42);";
     var handle = tw_exec_create(source, ide_length(source));
     var invalid_flag: u32 = 2;
     utility_check(tw_candidate_check(handle, invalid_flag, 0) == 0, "candidate rejects invalid engine flag");

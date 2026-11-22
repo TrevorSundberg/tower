@@ -25,11 +25,16 @@ compiler world. `frontend_world_clear` releases that state after readers and
 workers join. The explicit-world session/baseline APIs remain independent of the
 IDE transport; no C++ string or vector layouts cross this boundary.
 
-Focused fixtures are implemented in `scaffolding/tests/ide.tower`. Configure the
-WASI build with `-DTOWER_IDE_TESTS=ON`, rebuild, then run
-`node playground/scripts/test-ide.mjs path/to/tower.wasm`. Production builds leave
-that option off. The test runner supplies normal module inputs and calls Tower;
-all assertions and lifetime/execution fixtures are Tower code.
+Focused fixtures are implemented in `scaffolding/tests/ide.tower`, including
+`ide_completion_checks.tower` and the `ide_hover_*_checks.tower` modules. Configure
+the WASI build with `-DTOWER_IDE_TESTS=ON`, rebuild, then run `npm run test:ide`
+from `playground`, or `node playground/scripts/test-ide.mjs path/to/tower.wasm`.
+`npm test` runs these Tower checks before the Node transport tests and fails if
+the test export is missing. Reconfigure with `-DTOWER_IDE_TESTS=OFF` before building
+release assets. The runner supplies source capabilities through the existing
+module and WASI file transports. Tower owns query fixtures, response assertions
+and lifetime/execution checks; JavaScript retains editor-offset and async-cache
+transport coverage.
 
 | Export | Contract |
 | --- | --- |

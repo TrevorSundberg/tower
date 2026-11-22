@@ -1,0 +1,147 @@
+import tower;
+import ide_query_support;
+import utility_checks;
+import .host.ide_text;
+import .host.ide_state;
+import .library.bytes_types;
+import .library.bytes_interface;
+import .compiler.frontend_revision_types;
+
+var QueryGrammarMinimumEntries: usize = 300;
+var QueryLoopMinimumEntries: usize = 20;
+var QueryTemplateMinimumEntries: usize = 10;
+
+fn q_grammar_repetition(f: QueryFixture*, needle: u8*, offset: usize, description: u8*): void {
+    var entry = q_get(f, needle, offset); q_expect(entry, "kind", "repetition"); q_match(entry, "description", description);
+}
+fn q_grammar_reference(f: QueryFixture*, statement: u8*): QueryJson { return q_get(f, statement, ide_length(statement) - 2); }
+fn q_foreach_capture(f: QueryFixture*, start: usize, needle: u8*, capture: u8*): void {
+    var entry = q_hover(f, q_locate(f.source, needle, start, false) + 1);
+    q_expect(entry, "kind", "captured syntax"); q_expect(entry, "capture", capture); q_expect(entry, "category", capture);
+    q_expect(entry, "capturedBy", "ForEach"); q_expect(entry, "definition", "Identifier");
+}
+fn q_whole_grammar(f: QueryFixture*, file: u8*, mode: u32, minimum: usize): void {
+    var text = q_read(file); defer bytes_dispose(&text); f.mode = mode; q_document(f, text.data);
+    var entries = q_entries(f); var at: usize = 1; var count: usize = 0;
+    loop {
+        var entry = q_next(entries, &at); if entry.length == 0 { break; }
+        var from = q_number(q_field(entry, "from")); var to = q_number(q_field(entry, "to"));
+        utility_check(from < to && to <= text.length, "Grammar source bounds");
+        utility_check(q_field(entry, "description").length > QueryJsonQuoteBytes, "Meaningful grammar description");
+        utility_check(!q_text(q_field(entry, "kind"), "grammar") && !q_text(q_field(entry, "kind"), "syntax"), "Specific grammar role"); count++;
+    }
+    utility_check(count >= minimum, file);
+}
+
+fn ide_hover_grammar_checks(f: QueryFixture*): void {
+    q_case(f, "hover: grammar baselines retain entity metadata");
+    for(var mode = SyntaxBedrockBaseline; mode <= SyntaxSeedBaseline; mode++) {
+        f.mode = mode; q_document(f, "import bedrock;\nparse Example = Identifier ';';");
+        var entries = q_entries(f); var at: usize = 1; var count: usize = 0;
+        loop {
+            var item = q_next(entries, &at); if item.length == 0 { break; }
+            utility_check(q_number(q_field(item, "entity")) > 0 && q_number(q_field(item, "components")) > 0, "Grammar source entity metadata"); count++;
+        }
+        utility_check(count != 0, "Grammar entries exist");
+    }
+    q_case(f, "hover: increment grammar references and replacement roles");
+    {
+        var text = q_read("tests/increment_rules.tower"); defer bytes_dispose(&text); q_document(f, text.data);
+        var capture = q_get(f, "$target:CoreLocation", 1); q_expect(capture, "kind", "capture binding"); q_expect(capture, "capture", "target"); q_expect(capture, "category", "CoreLocation"); q_expect(capture, "type", null);
+        var reference = q_get(f, "$target:CoreLocation", 10); q_expect(reference, "kind", "grammar reference"); q_match(reference, "definition", "$name:Identifier");
+        utility_check(q_number(q_field(reference, "alternatives")) >= 3, "CoreLocation alternatives"); q_match(reference, "definedIn", "foundation");
+        q_expect(q_get(f, "'++'", 1), "kind", "literal token");
+        var rule = q_get(f, "parse CoreCall", 7); q_expect(rule, "kind", "parse rule"); utility_check(q_number(q_field(rule, "alternatives")) >= 2, "CoreCall alternatives");
+        q_match(rule, "documentation", "CoreLocation matches variables"); q_match(q_get(f, "parse CoreCall", 1), "documentation", "CoreLocation matches variables");
+        utility_check(!q_contains(q_field(rule, "signature"), "=>") && !q_contains(q_field(rule, "signature"), "//"), "Grammar signature omits templates and comments");
+        q_expect(q_get(f, "|=", 1), "kind", "grammar assignment"); q_match(q_get(f, "|=", 1), "description", "Adds another way");
+        var call = q_get(f, "replace { post_increment", 12); q_expect(call, "signature", "fn post_increment(p: i32*): i32"); q_expect(call, "type", "i32"); q_expect(call, "replacementCategory", "CoreCall");
+        q_expect(q_get(f, "&$target", 1), "kind", "capture substitution"); q_expect(q_get(f, "&$target", 0), "kind", "address of");
+        var hole = q_get(f, "&$target", 2); q_expect(hole, "capture", "target"); q_expect(hole, "category", "CoreLocation"); q_expect(hole, "type", null); q_match(hole, "description", "after substitution");
+        var entries = q_entries(f); var at: usize = 1;
+        loop { var item = q_next(entries, &at); if item.length == 0 { break; }
+            if q_field(item, "description").length > QueryJsonQuoteBytes { utility_check(!q_text(q_field(item, "kind"), "grammar"), "Specific grammar description role"); } }
+    }
+    q_case(f, "hover: token metadata, exclusions, repetitions and alternatives");
+    for(var mode = SyntaxBedrockBaseline; mode <= SyntaxSeedBaseline; mode++) {
+        f.mode = mode;
+        q_document(f, "import bedrock;\n// Word documentation\ntoken Word = /[a-z]+/ when expected as string;\nskip Space = /[ ]+/;\nparse Example = $word:Word? '!'* Word+ | [^'{' '}'];");
+        q_expect(q_get(f, "Word =", 0), "kind", "token declaration"); q_expect(q_get(f, "Word =", 0), "documentation", "Word documentation");
+        q_expect(q_get(f, "/[a-z]+/", 3), "kind", "lexical pattern"); q_expect(q_get(f, "when", 1), "kind", "contextual token");
+        q_expect(q_get(f, "string", 1), "kind", "highlight style"); q_match(q_get(f, "string", 1), "description", "not declare a semantic type"); q_expect(q_get(f, "Space", 1), "kind", "skip declaration");
+        q_grammar_repetition(f, "?", 0, "zero or one"); q_grammar_repetition(f, "*", 0, "zero or more"); q_grammar_repetition(f, "Word+", 4, "one or more");
+        q_expect(q_get(f, "'!'", 1), "kind", "literal token"); q_expect(q_get(f, "[^", 1), "kind", "token exclusion set"); q_expect(q_get(f, "'{'", 1), "kind", "excluded token"); q_expect(q_get(f, "|", 0), "kind", "alternative separator");
+        var reference = q_get(f, "$word:Word", 7); q_expect(reference, "kind", "grammar reference"); q_expect(reference, "definition", "token Word = /[a-z]+/"); q_expect(reference, "documentation", "Word documentation");
+    }
+    q_case(f, "hover: grammar revision snapshots and pending references");
+    q_document(f, "import bedrock;\n// First\nparse Item = 'first';\nparse Before = Item;\n// Second\nparse Item = 'second';\nparse Middle = Item;\nparse Item |= 'third';\nparse After = Item;\nparse Pending = Future;\nparse Future = 'later';");
+    var before = q_grammar_reference(f, "Before = Item;"); q_expect(before, "definition", "'first'"); q_expect(before, "documentation", "First");
+    var middle = q_grammar_reference(f, "Middle = Item;"); q_expect(middle, "definition", "'second'"); q_expect(middle, "documentation", "Second");
+    var after = q_grammar_reference(f, "After = Item;"); q_expect(after, "definition", "'second' | 'third'"); q_num(after, "alternatives", 2);
+    var pending = q_grammar_reference(f, "Pending = Future;"); q_match(pending, "resolution", "Not resolved at this declaration"); q_expect(pending, "definition", null);
+
+    q_case(f, "hover: nested replacement roles, captures and lifetime");
+    var source = "import foundation;\nfn sink(x:i32):void { print(x); }\nparse Statement |= 'twice' $value:CoreOperand ';' => replace { { sink($value); if true { sink($value); } } };\ntwice 3;";
+    q_document(f, source); q_expect(q_get(f, "sink($value)", 1), "signature", "fn sink(x: i32): void"); q_expect(q_get(f, "if true", 1), "kind", "replacement conditional");
+    var entries = q_entries(f); var at: usize = 1; var holes: usize = 0; var body_count: usize = 0;
+    var start = q_find(source, "replace {") + ide_length("replace {"); var end = q_last(source, "};");
+    loop {
+        var item = q_next(entries, &at); if item.length == 0 { break; }
+        if q_text(q_field(item, "kind"), "capture substitution") { holes++; q_expect(item, "capture", "value"); q_expect(item, "category", "CoreOperand"); q_expect(item, "type", null); }
+        if q_number(q_field(item, "from")) >= start && q_number(q_field(item, "to")) <= end { body_count++; utility_check(q_field(item, "description").length > QueryJsonQuoteBytes, "Replacement body description"); }
+    }
+    utility_check(holes == 2 && body_count > QueryTemplateMinimumEntries, "Nested replacement capture and body counts");
+    var nodes = tw_live_nodes(); var allocations = tw_live_allocations();
+    for(var i: usize = 0; i < QueryLifetimeRepeats; i++) { q_document(f, source); }
+    utility_check(tw_live_nodes() == nodes && tw_live_allocations() == allocations, "Replacement inspection lifetime");
+
+    q_case(f, "hover: complete Bedrock, Foundation wrapper and grammar files");
+    q_whole_grammar(f, "bedrock.tower", SyntaxSeedBaseline, QueryGrammarMinimumEntries);
+    q_whole_grammar(f, "foundation.tower", SyntaxBedrockBaseline, 1);
+    q_whole_grammar(f, "foundation_syntax.tower", SyntaxBedrockBaseline, QueryGrammarMinimumEntries);
+
+    q_case(f, "hover: imports are module descriptions"); q_document(f, "import foundation;"); entries = q_entries(f); at = 1;
+    loop { var item = q_next(entries, &at); if item.length == 0 { break; }
+        q_expect(item, "kind", "module import"); q_expect(item, "module", "foundation"); q_expect(item, "category", null); q_expect(item, "alternatives", null); }
+
+    q_case(f, "hover: syntax-only captures follow actual rules across overrides");
+    {
+        var text = q_read("examples/foreach.tower"); defer bytes_dispose(&text); q_entry(f, "foreach.tower"); q_document(f, text.data);
+        start = q_find(f.source, "for (item"); end = q_find(f.source, "// Change the spelling"); entries = q_entries(f); at = 1; var count: usize = 0;
+        loop {
+            var item = q_next(entries, &at); if item.length == 0 { break; }
+            if q_number(q_field(item, "from")) >= start && q_number(q_field(item, "to")) < end {
+                count++; utility_check(q_field(item, "description").length > QueryJsonQuoteBytes && q_field(item, "definition").length > QueryJsonQuoteBytes && q_details(item), "Matched syntax details"); q_expect(item, "type", null);
+            }
+        }
+        utility_check(count >= QueryLoopMinimumEntries, "Foreach syntax coverage");
+        var first = q_get(f, "for (item", 1); q_expect(first, "matchedRule", "ForEach"); utility_check(q_prefix(q_field(first, "definition"), "'for'"), "Original loop definition"); q_expect(first, "documentation", null); q_expect(first, "definedIn", "foreach.tower");
+        q_foreach_capture(f, start, "item in", "Variable"); q_foreach_capture(f, start, "items)", "Expression"); q_foreach_capture(f, start, "child in", "Variable"); q_foreach_capture(f, start, "children)", "Expression");
+        var later = q_get(f, "foreach (entry", 1); utility_check(q_prefix(q_field(later, "definition"), "'foreach'") && !q_equal(q_field(later, "definition"), q_field(first, "definition")), "Later override preserves earlier snapshot");
+        nodes = tw_live_nodes(); allocations = tw_live_allocations();
+        for(var i: usize = 0; i < QueryLifetimeRepeats; i++) { q_document(f, text.data); }
+        utility_check(tw_live_nodes() == nodes && tw_live_allocations() == allocations, "Syntax inspection lifetime");
+    }
+    q_case(f, "hover: imported grammar terminal captures and selected alternatives");
+    q_file(f, "grammar.tower", "import foundation; parse Value = Number | Identifier; // Bind a syntactic name and value.\nparse Statement = 'bind' $name:Identifier '=' $value:Value ';';");
+    q_document(f, "import grammar; bind result = 42; bind other = result;");
+    var name = q_get(f, "result =", 1); q_expect(name, "capture", "name"); q_expect(name, "category", "Identifier"); q_expect(name, "capturedBy", "Statement"); q_expect(name, "type", null); q_match(name, "documentation", "Bind a syntactic name");
+    var number = q_get(f, "42;", 1); q_expect(number, "capture", "value"); q_expect(number, "matchedRule", "Value"); q_expect(number, "definition", "Number"); q_expect(number, "definedIn", "grammar.tower");
+    q_expect(q_get(f, "result;", 1), "definition", "Identifier"); q_expect(q_get(f, "result;", 1), "type", null);
+
+    q_case(f, "hover: shared replacement categories and delayed activation");
+    q_document(f, "import foundation;\nparse Statement |= 'one' $x:Number ';' | 'two' $x:CoreOperand ';' => replace { print($x); }; one 2; two 3;");
+    var entry = q_tail(f, "$x);"); q_expect(entry, "kind", "capture substitution"); q_expect(entry, "category", "Number | CoreOperand"); q_num(entry, "replacementAlternatives", 2); q_expect(entry, "type", null);
+    q_document(f, "import foundation;\nfn sink(x:i32):void { print(x); } parse Later = 'later' $value:CoreOperand ';' => replace { sink($value); }; parse Statement |= Later; later 4;");
+    var call = q_get(f, "sink($value)", 1); q_expect(call, "signature", "fn sink(x: i32): void"); q_expect(call, "replacementCategory", "Statement"); q_expect(q_tail(f, "$value);"), "kind", "capture substitution");
+    q_document(f, "import foundation;\nparse Unused = 'unused' $value:CoreOperand ';' => replace { print($value); };"); q_expect(q_tail(f, "$value);"), "kind", "replacement template");
+
+    q_case(f, "hover: generated function, declaration and return roles");
+    // Tower's implementation no longer contains these incidental templates.
+    // Exercise the same public roles with a small, explicit source fixture.
+    q_document(f, "import foundation;\nparse Statement |= 'make' $name:Identifier ';' => replace { fn $name():i32 { var result:i32 = 42; return result; } }; make answer; print(answer());");
+    q_generated_role(f, "fn $name", "replacement function"); q_generated_role(f, "var result", "replacement declaration"); q_generated_role(f, "return result", "replacement return");
+}
+fn q_generated_role(f: QueryFixture*, needle: u8*, kind: u8*): void {
+    var item = q_get(f, needle, 1); q_expect(item, "kind", kind); utility_check(q_field(item, "description").length > QueryJsonQuoteBytes, "Generated role description");
+}

@@ -1,0 +1,110 @@
+import tower;
+import ide_query_support;
+import utility_checks;
+import .host.ide_text;
+import .library.bytes_types;
+import .library.bytes_interface;
+
+fn q_from(f: QueryFixture*, start: usize, text: u8*, offset: usize): QueryJson {
+    return q_hover(f, q_locate(f.source, text, start, false) + offset);
+}
+fn q_symbolic_body(f: QueryFixture*, needle: u8*): void {
+    var entry = q_get(f, needle, 0); utility_check(q_details(entry), needle);
+    q_expect(entry, "type", "T"); q_expect(entry, "size", null); q_expect(entry, "matchedRule", null);
+}
+
+fn ide_hover_generic_checks(f: QueryFixture*): void {
+    q_case(f, "hover: uninstantiated symbolic signatures and parameters");
+    q_document(f, "import foundation;\nfn unused(T:type,value:T):T { print(1); return value; }"); q_all_details(f);
+    var definition = q_get(f, "unused", 0);
+    q_expect(definition, "signature", "fn unused(T: type, value: T): T"); q_expect(definition, "kind", "function template"); q_expect(definition, "size", null);
+    var value = q_tail(f, "value"); q_expect(value, "signature", "value: T"); q_expect(value, "type", "T"); q_expect(value, "size", null); q_num(value, "declarationColumn", 18);
+
+    q_case(f, "hover: specializations preserve symbolic definition identity");
+    q_document(f, "import foundation;\nfn identity(T:type,value:T):T { return value; } print(identity(i32,1)); print(identity(bool,true));");
+    definition = q_get(f, "identity", 0); q_expect(definition, "kind", "function template"); q_expect(definition, "signature", "fn identity(T: type, value: T): T");
+    q_symbolic_body(f, "{"); q_symbolic_body(f, "return"); q_symbolic_body(f, "value;"); q_symbolic_body(f, "}");
+    q_expect(q_get(f, "identity(i32", 0), "type", "i32"); q_expect(q_get(f, "identity(bool", 0), "type", "bool");
+
+    q_case(f, "hover: type function source bindings and dependent docs");
+    q_entry(f, "templates.tower");
+    q_document(f, "import foundation;\n// Makes a fixed-size buffer.\nfn buffer(T: type, size: usize): type {\n  struct Result {\n    // The stored elements.\n    data: T[size];\n  }\n  return Result;\n}");
+    definition = q_get(f, "buffer(", 0); q_expect(definition, "signature", "fn buffer(T: type, size: usize): type");
+    q_expect(definition, "kind", "type function"); q_expect(definition, "documentation", "Makes a fixed-size buffer.");
+    q_expect(definition, "declarationFile", "templates.tower"); q_num(definition, "declarationLine", 3);
+    var type = q_get(f, "T[size]", 0); var size = q_get(f, "size]", 0); var field = q_get(f, "data:", 0);
+    q_expect(type, "kind", "type parameter"); q_expect(type, "signature", "T: type"); q_same(type, "binding", q_get(f, "T: type", 0), "binding");
+    q_expect(size, "kind", "compile-time parameter"); q_expect(size, "type", "usize"); q_num(size, "size", 4); q_same(size, "binding", q_get(f, "size:", 0), "binding");
+    q_expect(field, "signature", "data: T[size]"); q_expect(field, "type", "T[size]"); q_expect(field, "size", null); q_expect(field, "documentation", "The stored elements."); q_match(field, "resolution", "arguments");
+    var returned = q_tail(f, "Result"); q_expect(returned, "signature", "struct Result { data: T[size]; }"); q_same(returned, "binding", q_get(f, "Result {", 0), "binding"); q_expect(returned, "size", null); q_all_details(f);
+
+    q_case(f, "hover: dependent annotations, shadowing and explicit widths");
+    var source = "import foundation;\nfn example(T:type, value:T):void { var first:T = value; { var value:bool = true; print(value); } print(value); }\nfn box(T:type, size:usize):type { struct Result { items:T*[size]; } return Result; }";
+    q_document(f, source);
+    q_expect(q_get(f, "value); }", 0), "type", "bool"); q_expect(q_get(f, "value); }\n", 0), "type", "T");
+    q_expect(q_get(f, "first:T", 0), "type", "T"); q_expect(q_get(f, "first:T", 0), "size", null); q_expect(q_get(f, "items:", 0), "type", "T*[size]");
+    f.width = QueryWidePointerBytes; q_document(f, source); q_num(q_get(f, "size:", 0), "size", convert(usize, QueryWidePointerBytes)); f.width = QueryPointerBytes;
+    q_document(f, "import foundation;\nfn box(T:type):type { struct Result { field:T; } return Result; } fn wrap(T:type):type { struct Result { field:box(T)*; } return Result; }");
+    q_expect(q_tail(f, "field:box"), "signature", "field: box(T)*");
+    q_document(f, "import foundation;\nfn buffer(T:type,size:usize):type { struct Result { data:T[size]; } return Result; } fn wrap(T:type,size:usize):type { struct Result { nested:buffer(T,size); } return Result; }");
+    q_expect(q_tail(f, "size);"), "kind", "compile-time parameter");
+
+    q_case(f, "hover: renamed generic declaration captures");
+    q_document(f, "import foundation;\nparse CoreFunction = 'procedure' $name:Identifier '[' $params:CoreParameters? ']' '->' $type:CoreType $body:CoreBlock;\nprocedure unused[T:type,value:T]->T { return value; }");
+    definition = q_get(f, "unused", 0); q_expect(definition, "signature", "fn unused(T: type, value: T): T"); q_expect(definition, "kind", "function template"); q_expect(q_tail(f, "value"), "signature", "value: T");
+
+    q_case(f, "hover: distinct concrete type-function layouts");
+    q_document(f, "import foundation;\nfn buffer(T:type,size:usize):type { struct Result { data:T[size]; } return Result; } var a:buffer(i32,4); var b:buffer(bool,2); print(sizeof(buffer(i32,4)));");
+    q_expect(q_get(f, "buffer(T", 0), "kind", "type function"); q_expect(q_get(f, "data:", 0), "type", "T[size]"); q_expect(q_get(f, "data:", 0), "size", null);
+    q_expect(q_get(f, "a:buffer", 0), "type", "buffer(i32, 4)"); q_num(q_get(f, "a:buffer", 0), "size", 16);
+    q_expect(q_get(f, "b:buffer", 0), "type", "buffer(bool, 2)"); q_num(q_get(f, "b:buffer", 0), "size", 2);
+
+    q_case(f, "hover: template field paths, operators and indexed elements");
+    {
+        var original = q_explicit_templates(); defer bytes_dispose(&original);
+        var example = q_replace(original.data, "values.count--;", "values.count = values.count - 1;"); defer bytes_dispose(&example);
+        var broken = q_join(example.data, "\nmissing();"); defer bytes_dispose(&broken);
+        var versions: usize = 2;
+        for(var version: usize = 0; version < versions; version++) {
+            var variant = convert(QuerySourceCase, version);
+            q_entry(f, "templates.tower"); q_document(f, variant == QuerySourceCase.Valid ? example.data : broken.data); var start = q_find(f.source, "fn pop(");
+            var count = q_from(f, start, "values.count =", 7);
+            q_expect(count, "kind", "field"); q_expect(count, "signature", "count: usize"); q_expect(count, "type", "usize"); q_num(count, "size", 4); q_num(count, "declarationLine", 15); q_expect(count, "resolution", null);
+            var subtract = q_from(f, start, " - ", 1); q_expect(subtract, "kind", "binary operation"); q_expect(subtract, "signature", "values.count - 1"); q_expect(subtract, "type", "usize");
+            q_expect(q_from(f, start, " = ", 1), "kind", "assignment"); q_expect(q_from(f, start, " = ", 1), "type", "usize");
+            q_expect(q_from(f, start, "storage.data", 0), "type", "buffer(T, 4)"); q_expect(q_from(f, start, "data[values", 0), "signature", "data: T[4]"); q_expect(q_from(f, start, "data[values", 0), "type", "T[4]");
+            var element = q_from(f, start, "[values.count]", 0); q_expect(element, "kind", "indexed element"); q_expect(element, "type", "T"); q_expect(element, "size", null);
+        }
+    }
+    q_case(f, "hover: forward symbolic constructors and inferred locals");
+    q_document(f, "import foundation;\nfn demo(U:type,p:wrap(U)*):U { var next = p.storage.count - 1; var empty = p.storage.count == 0; return p.storage.data[next]; }\nfn wrap(Item:type):type { struct R { storage:bucket(Item,4); } return R; }\nfn bucket(Element:type,n:usize):type { struct R { // Stored elements.\ndata:Element[n]; count:usize; } return R; }");
+    q_expect(q_get(f, "storage.count", 0), "type", "bucket(U, 4)"); q_expect(q_get(f, "count -", 0), "type", "usize");
+    q_expect(q_get(f, "data[next]", 0), "type", "U[4]"); q_expect(q_get(f, "data[next]", 0), "documentation", "Stored elements."); q_expect(q_get(f, "[next]", 0), "type", "U");
+    q_expect(q_get(f, "next =", 0), "signature", "var next: usize"); q_expect(q_get(f, "next]", 0), "type", "usize"); q_expect(q_get(f, "empty =", 0), "signature", "var empty: bool"); q_expect(q_get(f, "==", 0), "type", "bool");
+
+    q_case(f, "hover: ambiguous shapes and invalid concrete operations stay unresolved");
+    q_document(f, "import foundation;\nfn choice(T:type):type { struct A { count:usize; } struct B { count:bool; } if true { return A; } return B; } fn use(T:type,p:choice(T)*):void { print(p.count); }");
+    q_expect(q_tail(f, "count);"), "kind", "member access"); q_expect(q_tail(f, "count);"), "type", null);
+    q_document(f, "import foundation;\nfn box(T:type):type { struct R { count:usize; } return R; } fn use(T:type,p:box(T)**):void { print(p.count); }"); q_expect(q_tail(f, "count);"), "type", null);
+    q_invalid_operator(f, "bool", "1"); q_invalid_operator(f, "u8", "256");
+
+    q_case(f, "hover: imported template fields and target layouts");
+    q_entry(f, "main.tower"); f.width = QueryWidePointerBytes;
+    q_file(f, "helper.tower", "import tower; fn box(E:type):type { struct R {\n// Number of stored entries.\ncount:usize; value:E; } return R; }");
+    q_document(f, "import tower; import helper; fn demo(T:type,p:box(T)*):usize { return p.count; }");
+    field = q_get(f, "p.count", 2); q_expect(field, "kind", "field"); q_expect(field, "type", "usize"); q_num(field, "size", 8);
+    q_expect(field, "declarationFile", "helper.tower"); q_expect(field, "documentation", "Number of stored entries.");
+
+    q_case(f, "hover: pointer stores retain element types and reject array dereference");
+    q_document(f, "import foundation;\nfn demo(T:type,p:i32*,q:T*,items:i32[4]):void { *p = 1; *q = *q; var item = *p; var invalid = *items; }");
+    q_expect(q_get(f, "*p =", 0), "type", "i32"); q_expect(q_get(f, "*p =", 3), "type", "i32");
+    q_expect(q_get(f, "*q =", 0), "type", "T"); q_expect(q_get(f, "*q =", 3), "type", "T");
+    q_expect(q_get(f, "*p;", 0), "type", "i32"); q_expect(q_get(f, "item =", 0), "type", "i32"); q_expect(q_get(f, "*items;", 0), "type", null);
+}
+
+fn q_invalid_operator(f: QueryFixture*, type: u8*, number: u8*): void {
+    var text = q_join("import foundation;\nfn box(T:type):type { struct R { count:", type); defer bytes_dispose(&text);
+    ide_text(&text, "; } return R; } fn use(T:type,p:box(T)*):void { var value = p.count + "); ide_text(&text, number); ide_text(&text, "; }");
+    q_document(f, ide_result(&text)); var entry = q_get(f, " + ", 1);
+    q_expect(entry, "kind", "binary operation"); q_expect(entry, "type", null); q_expect(entry, "size", null);
+}

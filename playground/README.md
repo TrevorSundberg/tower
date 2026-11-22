@@ -917,6 +917,14 @@ Run broader compiler/bootstrap/browser checks at coherent release milestones or
 when changed code invalidates their previous results. No sanitizer or repository
 formatting sweep is part of this development path.
 
+Hover and completion semantic checks use the existing Tower IDE test export.
+Before `npm test`, build the test reactor with
+`bash playground/scripts/build-wasm.sh -DTOWER_IDE_TESTS=ON` from the repository
+root. The script uses the public bootstrap. `npm run test:ide` runs just the
+Tower session, completion, hover, candidate and lifetime checks; `npm test` runs
+them before the Node transport suite. A missing export fails explicitly.
+Reconfigure with `-DTOWER_IDE_TESTS=OFF` before building release assets.
+
 ```powershell
 npm test
 npx playwright install chromium

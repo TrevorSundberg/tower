@@ -12,6 +12,9 @@ import .host.ide_selftest;
 import .library.bytes_types;
 import .library.bytes_interface;
 import ide_candidate_checks;
+import ide_completion_checks;
+import ide_hover_checks;
+import .compiler.frontend_revision_types;
 
 // Functional tests call the production tw_* exports. The host only installs
 // ordinary source modules and invokes ide_tests; no native/JS test policy.
@@ -72,9 +75,9 @@ fn ide_test_consume(handle: u32): bool {
 }
 
 fn ide_test_sessions(): u32 {
-    var source = "var a: i32 = 42; print(a);";
+    var source = "import foundation;\nvar a: i32 = 42; print(a);";
     var one = ide_test_create(source);
-    var two = ide_test_create("print(7);");
+    var two = ide_test_create("import foundation;\nprint(7);");
     var bad = one == 0;
     if bad {
         return 1;
@@ -91,7 +94,7 @@ fn ide_test_sessions(): u32 {
     }
     var response = tw_format(one);
     var saved = ide_copy(response, ide_length(response));
-    if !ide_test_contains(response, "\"source\":\"var a: i32 = 42;") {
+    if !ide_test_contains(response, "\"source\":\"import foundation;") || !ide_test_contains(response, "var a: i32 = 42;") {
         return 5;
     }
     tw_inspect(two);
@@ -100,7 +103,8 @@ fn ide_test_sessions(): u32 {
         return 6;
     }
     free(saved);
-    var result = tw_reset(one, "print(43);", 10);
+    var reset_source = "import foundation;\nprint(43);";
+    var result = tw_reset(one, reset_source, ide_length(reset_source));
     bad = result != 1;
     if bad {
         return 7;
@@ -120,7 +124,7 @@ fn ide_test_sessions(): u32 {
     if !ide_test_contains(tw_step(one), "Invalid session handle") {
         return 11;
     }
-    var replacement = ide_test_create("print(9);");
+    var replacement = ide_test_create("import foundation;\nprint(9);");
     bad = replacement == one;
     if bad {
         return 12;
@@ -131,8 +135,8 @@ fn ide_test_sessions(): u32 {
     }
     tw_destroy(replacement);
     tw_destroy(two);
-    var invalid = ide_test_create("var x: i32 = ;");
-    if !ide_test_contains(tw_step(invalid), "\"status\":\"error\"") {
+    var invalid = ide_test_create("import foundation;\nvar x: i32 = ;");
+    if ide_test_consume(invalid) || !ide_test_contains(tw_step(invalid), "\"status\":\"error\"") {
         return 14;
     }
     response = tw_step(invalid);
@@ -191,7 +195,7 @@ fn ide_test_sessions(): u32 {
 fn ide_test_execution(): u32 {
     var width: u32 = 4;
     while width <= 8 {
-        var source = "var a: i32 = 20; a = a + 22; print(a);";
+        var source = "import foundation;\nvar a: i32 = 20; a = a + 22; print(a);";
         var graph = ide_test_compile(source, width);
         var fast = ide_test_compile(source, width);
         var bad = graph == 0;
@@ -266,7 +270,7 @@ fn ide_test_execution(): u32 {
         tw_exec_destroy(fast);
         width = width + 4;
     }
-    var errors = ide_test_compile("var a: i32 = unknown;", 4);
+    var errors = ide_test_compile("import foundation;\nvar a: i32 = unknown;", 4);
     if !ide_test_contains(tw_exec_step(errors, 1), "\"status\":\"error\"") {
         return 43;
     }
@@ -275,7 +279,7 @@ fn ide_test_execution(): u32 {
         return 44;
     }
     tw_exec_destroy(errors);
-    var bounded = ide_test_compile("loop {}", 4);
+    var bounded = ide_test_compile("import foundation;\nloop {}", 4);
     tw_exec_step(bounded, 0);
     var session = ide_execution(bounded);
     bad = session.machine.steps != 0;
@@ -338,22 +342,24 @@ fn ide_test_requests(): u32 {
     var nodes: usize = 0;
     var allocations: usize = 0;
     for(; i < 16; i++) {
-        var handle = ide_test_create("print(42);");
+        var handle = ide_test_create("import foundation;\nprint(42);");
         if !ide_test_consume(handle) {
             return 60;
         }
         tw_inspect(handle);
         tw_format(handle);
         tw_destroy(handle);
-        var response = tw_complete("pri", 3, 3, 0, null, null, 0);
+        var request_source = "import foundation;\npri";
+        var request_length = ide_length(request_source);
+        var response = tw_complete(request_source, request_length, request_length, SyntaxFoundationBaseline, null, null, 0);
         if !ide_test_contains(response, "print") {
             return 61;
         }
-        response = tw_complete("pri", 3, 4, 0, null, null, 0);
+        response = tw_complete(request_source, request_length, request_length + 1, SyntaxFoundationBaseline, null, null, 0);
         if !ide_test_contains(response, "Invalid completion request") {
             return 62;
         }
-        handle = ide_test_compile("print(42);", 4);
+        handle = ide_test_compile("import foundation;\nprint(42);", 4);
         tw_exec_step(handle, 100000);
         tw_exec_destroy(handle);
         var now = tw_live_nodes();
@@ -375,6 +381,8 @@ fn ide_test_requests(): u32 {
 }
 
 export fn ide_tests(): u32 {
+    ide_completion_checks();
+    ide_hover_checks();
     ide_candidate_checks();
     var result = ide_test_sessions();
     var failed = result != 0;

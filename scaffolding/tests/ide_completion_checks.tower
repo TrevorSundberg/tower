@@ -1,0 +1,167 @@
+import tower;
+import ide_query_support;
+import utility_checks;
+import .host.ide_text;
+import .host.ide_state;
+import .host.ide_completion;
+import .library.bytes_types;
+import .library.bytes_interface;
+import .compiler.frontend_revision_types;
+
+fn q_nested_completion(f: QueryFixture*, depth: usize): void {
+    var text: ByteBuffer = default; defer bytes_dispose(&text); ide_text(&text, "import foundation;\nfn f(local:i32): void { ");
+    for(var i: usize = 0; i < depth; i++) { ide_text(&text, "{ "); }
+    ide_text(&text, "loc|"); q_labels(f, ide_result(&text), "local");
+}
+
+fn ide_completion_checks(): void {
+    var f: QueryFixture; q_init(&f); defer q_dispose(&f);
+    q_case(&f, "completion: builtin and type definitions");
+    q_offer(&f, "import foundation;\npri|", "print", true);
+    q_labels(&f, "import foundation;\nvar count: u|", "u16|u32|u64|u8|usize");
+    q_offer(&f, "import foundation;\nvar count: p|", "print", false);
+
+    q_case(&f, "completion: recovered scopes and forward globals");
+    var names = q_complete(&f, "import foundation;\nfn demo(parameter: i32): i32 { var local: i32 = 1; { var hidden: i32 = 0; } | }\nfn later(): i32 { return 1; }\nvar global: i32 = 2;");
+    utility_check(q_has(names, "parameter") && q_has(names, "local") && q_has(names, "later") && q_has(names, "global") && !q_has(names, "hidden"), "Recovered lexical candidates");
+    q_offer(&f, "import foundation;\nfn other(secret: i32): void { var private: i32 = 1; } |", "secret", false);
+    q_offer(&f, "import foundation;\nfn demo(parameter: i32): void { var local: i32 = 1; loc|", "local", true);
+
+    q_case(&f, "completion: typed member declarations");
+    q_labels(&f, "import foundation;\nstruct Point { x: i32; y: i32; } var point: Point; point.|", "x|y");
+    q_labels(&f, "import foundation;\nfn f(point: Point*): void { point.x| } struct Point { x: i32; y: i32; }", "x");
+    q_labels(&f, "import foundation;\nstruct A { first: i32; } struct B { second: i32; } fn f(point: A*): void { point.| } var point: B;", "first");
+
+    q_case(&f, "completion: nominal enums");
+    {
+        var source = q_read("tests/language_enums.tower"); defer bytes_dispose(&source);
+        var a = q_join(source.data, "\nState.|"); defer bytes_dispose(&a); q_labels(&f, a.data, "Idle|Busy|Done");
+        var b = q_join(source.data, "\nvar state: St|"); defer bytes_dispose(&b); q_offer(&f, b.data, "State", true);
+        var c = q_join(source.data, "\n|"); defer bytes_dispose(&c); q_offer(&f, c.data, "Busy", false);
+        var d = q_join(source.data, "\nvar state: State = State.Idle; state.|"); defer bytes_dispose(&d); q_labels(&f, d.data, "");
+    }
+    q_case(&f, "completion: imported declarations and argument roles");
+    q_file(&f, "lib/helper.tower", "import tower; fn helper(secret: i32): void {} struct Point { x: i32; } var shared: i32 = 1;");
+    names = q_complete(&f, "import tower; import lib.helper; |");
+    utility_check(q_has(names, "helper") && q_has(names, "shared") && !q_has(names, "Point") && !q_has(names, "secret"), "Imported visible declarations");
+    q_labels(&f, "import tower; import lib.helper; var point: Po|", "Point");
+    q_offer(&f, "import foundation;\nhe|", "helper", false);
+    q_labels(&f, "import tower; import lib.helper; helper(sh|", "shared");
+    q_labels(&f, "import tower; import lib.helper as helpers; helpers.he|", "helper");
+    q_labels(&f, "import tower; import lib.helper as helpers; print(helpers.he|);", "");
+    q_offer(&f, "import tower; import lib.helper; 1 + he|;", "helper", false);
+
+    q_case(&f, "completion: imported generic registry");
+    q_offer(&f, "import tower; import library.vector; vector_i|", "vector_init", true);
+    q_offer(&f, "import tower; import library.vector; print(vector_i|", "vector_init", false);
+
+    q_case(&f, "completion: LR lookahead inside calls");
+    q_labels(&f, "import foundation;\nvar value: i32 = 1; print(va|", "value");
+    q_labels(&f, "import foundation;\nvar value: i32 = 1; print(va|lue);", "value");
+    names = q_complete(&f, "import foundation;\nvar value: i32; print(|");
+    q_forbid(names, "var|fn|struct|return|i32|print|free|fill|copy|label|jump|trap");
+    utility_check(q_has(names, "value"), "Value in print argument");
+    q_offer(&f, "import foundation;\nva|", "var", true);
+
+    q_case(&f, "completion: expected types and declaration holes");
+    var prefix = "import foundation;\nvar value: i32 = 1; var valid: bool = true; ";
+    { var text = q_join(prefix, "if va|"); defer bytes_dispose(&text); q_labels(&f, text.data, "valid"); }
+    { var text = q_join(prefix, "var target: bool = va|"); defer bytes_dispose(&text); q_labels(&f, text.data, "valid"); }
+    { var text = q_join(prefix, "var target: bool; target = va|"); defer bytes_dispose(&text); q_labels(&f, text.data, "valid"); }
+    { var text = q_join(prefix, "fn f(): bool { return va|"); defer bytes_dispose(&text); q_labels(&f, text.data, "valid"); }
+    { var text = q_join(prefix, "fn f(first: bool, next: i32): void {} f(va|"); defer bytes_dispose(&text); q_labels(&f, text.data, "valid"); }
+    { var text = q_join(prefix, "fn f(first: i32, next: bool): void {} f(0, va|"); defer bytes_dispose(&text); q_labels(&f, text.data, "valid"); }
+    { var text = q_join(prefix, "fn f(v: i32): void {} f(va|"); defer bytes_dispose(&text); q_labels(&f, text.data, "value"); }
+    { var text = q_join(prefix, "var va|"); defer bytes_dispose(&text); q_labels(&f, text.data, ""); }
+    { var text = q_join(prefix, "fn f(va|"); defer bytes_dispose(&text); q_labels(&f, text.data, ""); }
+
+    q_case(&f, "completion: inferred and nested field receivers");
+    q_labels(&f, "import foundation;\nstruct Point { x: i32; y: bool; } var point: Point; var inferred = &point; inferred.|", "x|y");
+    q_labels(&f, "import foundation;\nstruct Inner { inside: i32; } struct Outer { nested: Inner; } var object: Outer; object.nested.|", "inside");
+    q_labels(&f, "import foundation;\nstruct Point { x: i32; y: bool; } var points: Point[2]; points[0].|", "x|y");
+    q_labels(&f, "import foundation;\nstruct Point { x: i32; y: bool; } var point: Point; var flag: bool = point.|", "y");
+
+    q_case(&f, "completion: Tower control flow and lexical scopes");
+    q_labels(&f, "import tower; var value: i32 = 1; var valid: bool = true; while va|", "valid");
+    q_labels(&f, "import tower; var value: i32 = 1; var valid: bool = true; match value { 1 => { var flag: bool = va|; } _ => {} }", "valid");
+    q_offer(&f, "import tower; while true { var local:i32 = 1; loc|", "local", true);
+    q_case(&f, "completion: for header visibility and expected types");
+    q_labels(&f, "import tower; var valid: bool; var value: i32; for (; va|; ) {}", "valid");
+    q_offer(&f, "import tower; for (var index = 0; index < 2; ind|) {}", "index", true);
+    q_offer(&f, "import tower; for (var index = 0; index < 2; index++) { ind| }", "index", true);
+    q_offer(&f, "import tower; for (var index = 0; index < 2; index++) {} ind|", "index", false);
+    q_offer(&f, "import tower; for (; true; hid|) { var hidden = 0; }", "hidden", false);
+    q_offer(&f, "import tower; fn action(): void {} for (; true; ac|) {}", "action", true);
+    q_offer(&f, "import tower; fn action(): void {} for (; ac|; ) {}", "action", false);
+
+    q_case(&f, "completion: Foundation control operations");
+    q_offer(&f, "import foundation;\nla|", "label", false); q_offer(&f, "import foundation;\nju|", "jump", false);
+    q_offer(&f, "import foundation;\nfn f():void { la|", "label", true); q_offer(&f, "import foundation;\nfn f():void { { la|", "label", false);
+    q_labels(&f, "import foundation;\nvar value:u32; var valid:bool; var message:u8*; var mistake:i32*; trap(m|", "message");
+    q_labels(&f, "import foundation;\nvar value:u32; var valid:bool; var message:u8*; var mistake:i32*; trap(message, va|", "value");
+    q_case(&f, "completion: shadowing, address and pointer load");
+    q_labels(&f, "import foundation;\nvar value:i32; fn f():void { var value:bool; var target:i32 = va|", "");
+    q_labels(&f, "import foundation;\nvar value:i32; var pointer:i32* = &va|", "value");
+    q_labels(&f, "import foundation;\nvar pointer:i32*; var plain:i32; var value:i32 = *p|", "pointer");
+
+    q_case(&f, "completion: builtin argument roles");
+    prefix = "import foundation;\nvar count: usize; var byte: u8; var number: i32; var pointer: i32*; ";
+    { var text = q_join(prefix, "alloc(i|"); defer bytes_dispose(&text); q_offer(&f, text.data, "i32", true); }
+    { var text = q_join(prefix, "alloc(i32, c|"); defer bytes_dispose(&text); q_labels(&f, text.data, "count|convert"); }
+    { var text = q_join(prefix, "sizeof(n|"); defer bytes_dispose(&text); q_labels(&f, text.data, ""); }
+    { var text = q_join(prefix, "sizeof(|"); defer bytes_dispose(&text); names = q_complete(&f, text.data);
+      utility_check(q_has(names, "i32") && !q_has(names, "false") && !q_has(names, "true") && !q_has(names, "null") && !q_has(names, "pointer"), "Type-only sizeof argument"); }
+    { var text = q_join(prefix, "free(p|"); defer bytes_dispose(&text); q_labels(&f, text.data, "pointer"); }
+    { var text = q_join(prefix, "fill(pointer, b|"); defer bytes_dispose(&text); q_labels(&f, text.data, "byte|bits"); }
+
+    q_case(&f, "completion: incremental grammar and lexer declarations");
+    q_labels(&f, "import foundation;\nparse Statement = 'only' ';'; va|", "");
+    prefix = "import foundation;\nparse Choice = 'alpha' 'omega'; parse Statement |= Choice ';'; ";
+    { var text = q_join(prefix, "al|"); defer bytes_dispose(&text); names = q_complete(&f, text.data); utility_check(q_has(names, "alpha") && !q_has(names, "omega"), "Grammar lookahead"); }
+    { var text = q_join(prefix, "alpha om|"); defer bytes_dispose(&text); q_labels(&f, text.data, "omega"); }
+    { var text = q_join(prefix, "alpha va|"); defer bytes_dispose(&text); q_labels(&f, text.data, ""); }
+    q_labels(&f, "import foundation;\nparse CoreOperand |= 'special'; print(sp|", "special");
+    q_offer(&f, "import foundation;\nprint(sp|); parse CoreOperand |= 'special';", "special", false);
+    q_labels(&f, "import foundation;\ntoken Identifier = /[A-Z][A-Za-z]*/; var Value: I32; print(V|", "");
+    q_labels(&f, "import foundation;\ntoken Identifier = /[a-z][a-z]+/; var value: i32; print(va|", "");
+    q_labels(&f, "import foundation;\ntoken Identifier = /[a-z][a-z0-9]+/; var value: i32; print(va|", "value");
+
+    q_case(&f, "completion: suffix recovery and nested unfinished blocks");
+    q_labels(&f, "import foundation;\nfn target(flag: bool): void {} var value:i32; var valid:bool; target(va|); fn later():void {}", "valid");
+    q_offer(&f, "import foundation;\nfn broken():void { unknown(); } var value:i32; print(va|);", "value", true);
+    q_nested_completion(&f, 1); q_nested_completion(&f, 3); q_nested_completion(&f, 6);
+    q_case(&f, "completion: unfinished signatures and loop context");
+    q_labels(&f, "import foundation;\nfn f(value: i|", "i16|i32|i64|i8");
+    q_labels(&f, "import foundation;\nfn f(): i|", "i16|i32|i64|i8");
+    q_labels(&f, "import foundation;\nstruct Point { x: i|", "i16|i32|i64|i8");
+    prefix = "import foundation;\nfn good(): bool { return true; } fn gone(): void {} fn amount(): i32 { return 1; } ";
+    { var text = q_join(prefix, "var flag: bool = g|"); defer bytes_dispose(&text); q_labels(&f, text.data, "good"); }
+    { var text = q_join(prefix, "print(go|"); defer bytes_dispose(&text); q_labels(&f, text.data, "good"); }
+    q_offer(&f, "import foundation;\nbr|", "break", false); q_offer(&f, "import foundation;\nloop { br|", "break", true);
+    q_offer(&f, "import foundation;\nfn f(): void { st|", "struct", false);
+
+    q_case(&f, "completion: opaque tokens and presentation styles");
+    q_labels(&f, "import foundation;\n// pri|", ""); q_labels(&f, "import foundation;\n/* pri| */", ""); q_labels(&f, "import foundation;\n/* pri|", "");
+    q_labels(&f, "import foundation;\nprint(\"pri|\");", ""); q_labels(&f, "import foundation;\nprint(\"pri|", "");
+    q_offer(&f, "import foundation;\ntoken Identifier = /[A-Za-z_][A-Za-z0-9_]*/ as string; pri|", "print", true);
+    q_offer(&f, "import foundation;\ntoken Identifier = /[A-Za-z_][A-Za-z0-9_]*/ as pattern; pri|", "print", true);
+    q_labels(&f, "import foundation;\ntoken String = /\"[^\"]*\"/ as identifier; print(\"pri|\");", "");
+    q_labels(&f, "import foundation;\nskip LineComment = /\\/\\/[^\\n]*/; // pri|", "");
+    q_case(&f, "completion: grammar references and UTF-8 byte positions");
+    q_offer(&f, "import foundation;\nparse Greeting = 'greet'; parse Statement |= Greeting ';'; gre|", "greet", true);
+    q_offer(&f, "import foundation;\nparse Something = CoreO|;", "CoreOperand", true);
+    f.mode = SyntaxSeedBaseline; q_offer(&f, "import bedrock;\nparse Something = Id|;", "Identifier", true); f.mode = SyntaxFoundationBaseline;
+    var unicode_source = "import foundation;\n// 🙂\npri|nt";
+    var unicode = q_complete(&f, unicode_source); var word = q_find(unicode_source, "pri|nt");
+    q_num(unicode, "from", word); q_num(unicode, "to", word + ide_length("print"));
+    utility_check(q_has(unicode, "print"), "Unicode completion candidate");
+
+    q_case(&f, "completion: temporary query lifetimes and invalid UTF-8 boundaries");
+    q_complete(&f, "import foundation;\npri|");
+    var nodes = tw_live_nodes(); var allocations = tw_live_allocations();
+    for(var i: usize = 0; i < QueryLifetimeRepeats; i++) { q_complete(&f, "import foundation;\nfn demo(a: i32): void { var local: i32 = 1; loc|"); }
+    utility_check(tw_live_nodes() == nodes && tw_live_allocations() == allocations, "Completion releases temporary query ownership");
+    var invalid_cursor: usize = 5;
+    var invalid_source = "// 🙂";
+    q_match(q_view(tw_complete(invalid_source, ide_length(invalid_source), invalid_cursor, SyntaxFoundationBaseline, null, null, 0)), "error", "UTF-8");
+}

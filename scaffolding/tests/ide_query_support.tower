@@ -1,0 +1,300 @@
+import tower;
+import utility_checks;
+import .host.ide_api;
+import .host.ide_text;
+import .host.ide_state;
+import .host.ide_completion;
+import .host.ide_execution;
+import .library.bytes_types;
+import .library.bytes_interface;
+import .compiler.syntax_session_types;
+import .compiler.frontend_revision_types;
+
+// These existing host ABI handles are opaque here; tests never access payloads.
+extern fn compiler_host_world(): void*;
+extern fn syntax_host_environment(world: void*): void**;
+extern fn frontend_modules_create(): void*;
+extern fn frontend_modules_destroy(environment: void*): void;
+extern fn frontend_modules_clear(environment: void*): void;
+extern fn frontend_modules_configure(environment: void*, entry: u8*, library: u8*): void;
+extern fn frontend_modules_source(environment: void*, name: u8*, text: u8*, size: usize): bool;
+extern fn language_document(source: u8*, size: usize, mode: u32, width: u32): void*;
+extern fn language_document_result(query: void*): u8*;
+extern fn fopen(path: u8*, mode: u8*): void*;
+extern fn fread(data: u8*, size: usize, count: usize, file: void*): usize;
+extern fn ferror(file: void*): i32;
+extern fn fclose(file: void*): i32;
+extern fn fflush(file: void*): i32;
+
+var QueryPointerBytes: u32 = 4;
+var QueryWidePointerBytes: u32 = 8;
+var QueryLifetimeRepeats: usize = 30;
+var QueryMissing: usize = ~convert(usize, 0);
+var QueryReadBlock: usize = 4096;
+var QueryJsonQuoteBytes: usize = 2;
+var QueryExecutionBudget: u32 = 100000;
+enum QuerySourceCase: u32 { Valid = 0, MissingCall = 1, InvalidExtent = 2, InvalidInitializer = 3 }
+
+// Borrowed views of the public response, not a second semantic model. The small
+// reader only locates JSON values; quoted strings are compared in encoded form.
+struct QueryJson { data: u8*; length: usize; }
+struct QueryFixture {
+    environment: void*;
+    previous: void*;
+    response: ByteBuffer;
+    source: u8*;
+    mode: u32;
+    width: u32;
+}
+
+fn q_space(byte: u8): bool { return byte == *" " || byte == *"\n" || byte == *"\r" || byte == *"\t"; }
+fn q_view(text: u8*): QueryJson { return init(QueryJson) { data: text, length: ide_length(text) }; }
+fn q_equal(a: QueryJson, b: QueryJson): bool {
+    return a.length == b.length && utility_equal(a.data, b.data, a.length);
+}
+
+fn q_next(input: QueryJson, at: usize*): QueryJson {
+    while *at < input.length && (q_space(input.data[*at]) || input.data[*at] == *",") { (*at)++; }
+    var start = *at;
+    var depth: usize = 0;
+    var quoted = false;
+    while *at < input.length {
+        var byte = input.data[*at];
+        if quoted {
+            if byte == *"\\" {
+                (*at)++;
+                utility_check(*at < input.length, "Truncated query JSON escape");
+            } else { if byte == *"\"" { quoted = false; } }
+        } else {
+            if byte == *"\"" { quoted = true; }
+            else { if byte == *"{" || byte == *"[" { depth++; }
+            else { if byte == *"}" || byte == *"]" {
+                if depth == 0 { break; }
+                depth--;
+            } else { if depth == 0 && (byte == *"," || byte == *":" || q_space(byte)) { break; } } } }
+        }
+        (*at)++;
+    }
+    utility_check(!quoted && depth == 0, "Incomplete query JSON value");
+    return init(QueryJson) { data: input.data + start, length: *at - start };
+}
+
+fn q_field(object: QueryJson, name: u8*): QueryJson {
+    var missing: QueryJson = default;
+    if object.length == 0 { return missing; }
+    utility_check(object.data[0] == *"{", "Expected query JSON object");
+    var at: usize = 1;
+    var name_size = ide_length(name);
+    while at < object.length {
+        var key = q_next(object, &at);
+        if key.length == 0 { break; }
+        utility_check(key.data[0] == *"\"", "Expected query JSON key");
+        while at < object.length && q_space(object.data[at]) { at++; }
+        utility_check(at < object.length && object.data[at] == *":", "Expected query JSON colon");
+        at++;
+        var value = q_next(object, &at);
+        if key.length == name_size + QueryJsonQuoteBytes && utility_equal(key.data + 1, name, name_size) { return value; }
+    }
+    return missing;
+}
+
+fn q_number(value: QueryJson): usize {
+    utility_check(value.length != 0, "Missing numeric query field");
+    var result: usize = 0;
+    var decimal_base: usize = 10;
+    for(var i: usize = 0; i < value.length; i++) {
+        var byte = value.data[i];
+        utility_check(byte >= *"0" && byte <= *"9", "Expected unsigned query field");
+        result = result * decimal_base + convert(usize, byte - *"0");
+    }
+    return result;
+}
+
+fn q_text(value: QueryJson, wanted: u8*): bool {
+    if wanted is null { return value.length == 0; }
+    var encoded: ByteBuffer = default; defer bytes_dispose(&encoded);
+    ide_quote(&encoded, wanted);
+    return q_equal(value, init(QueryJson) { data: encoded.data, length: encoded.length });
+}
+
+fn q_contains(value: QueryJson, wanted: u8*): bool {
+    if value.length == 0 { return false; }
+    var encoded: ByteBuffer = default; defer bytes_dispose(&encoded);
+    ide_quote(&encoded, wanted);
+    var size = encoded.length - QueryJsonQuoteBytes;
+    for(var i: usize = 1; i + size < value.length; i++) {
+        if utility_equal(value.data + i, encoded.data + 1, size) { return true; }
+    }
+    return false;
+}
+
+fn q_prefix(value: QueryJson, wanted: u8*): bool {
+    var encoded: ByteBuffer = default; defer bytes_dispose(&encoded); ide_quote(&encoded, wanted);
+    var size = encoded.length - QueryJsonQuoteBytes;
+    return value.length >= size + QueryJsonQuoteBytes && utility_equal(value.data + 1, encoded.data + 1, size);
+}
+
+fn q_expect(object: QueryJson, field: u8*, wanted: u8*): void {
+    utility_check(object.length != 0, "Expected query object exists");
+    var value = q_field(object, field);
+    if !q_text(value, wanted) {
+        puts(field); puts(wanted ?? "<absent>");
+        var actual = ide_copy(value.data, value.length); puts(actual); free(actual);
+        utility_check(false, "Query field mismatch");
+    }
+}
+fn q_match(object: QueryJson, field: u8*, part: u8*): void {
+    utility_check(q_contains(q_field(object, field), part), field);
+}
+fn q_num(object: QueryJson, field: u8*, wanted: usize): void {
+    utility_check(q_number(q_field(object, field)) == wanted, field);
+}
+fn q_same(a: QueryJson, a_field: u8*, b: QueryJson, b_field: u8*): void {
+    var left = q_field(a, a_field); var right = q_field(b, b_field);
+    utility_check(left.length != 0 && q_equal(left, right), a_field);
+}
+
+fn q_init(f: QueryFixture*): void {
+    *f = default;
+    f.environment = frontend_modules_create();
+    var slot = syntax_host_environment(compiler_host_world());
+    f.previous = *slot;
+    *slot = f.environment;
+}
+fn q_dispose(f: QueryFixture*): void {
+    *syntax_host_environment(compiler_host_world()) = f.previous;
+    frontend_modules_destroy(f.environment);
+    bytes_dispose(&f.response);
+}
+fn q_case(f: QueryFixture*, name: u8*): void {
+    puts(name);
+    utility_check(fflush(null) == 0, "Flush query fixture progress");
+    frontend_modules_clear(f.environment);
+    frontend_modules_configure(f.environment, "input.tower", ".tower");
+    f.mode = SyntaxFoundationBaseline;
+    f.width = QueryPointerBytes;
+}
+fn q_entry(f: QueryFixture*, name: u8*): void { frontend_modules_configure(f.environment, name, ".tower"); }
+fn q_file(f: QueryFixture*, path: u8*, source: u8*): void {
+    utility_check(frontend_modules_source(f.environment, path, source, ide_length(source)), "Query fixture source capability");
+}
+fn q_read(name: u8*): ByteBuffer {
+    var path: ByteBuffer = default; defer bytes_dispose(&path);
+    ide_text(&path, ".tower/"); ide_text(&path, name);
+    var file = fopen(ide_result(&path), "rb");
+    utility_check(file is not null, name);
+    defer utility_check(fclose(file) == 0, "Close query fixture");
+    var result: ByteBuffer = default;
+    var chunk = alloc(u8, QueryReadBlock); defer free(chunk);
+    loop {
+        var count = fread(chunk, 1, QueryReadBlock, file);
+        ide_require(bytes_append(&result, chunk, count));
+        if count < QueryReadBlock { break; }
+    }
+    utility_check(ferror(file) == 0, "Read query fixture");
+    ide_result(&result);
+    return result;
+}
+fn q_join(a: u8*, b: u8*): ByteBuffer {
+    var result: ByteBuffer = default; ide_text(&result, a); ide_text(&result, b); ide_result(&result); return result;
+}
+fn q_locate(source: u8*, needle: u8*, start: usize, last: bool): usize {
+    var length = ide_length(source); var size = ide_length(needle); var found = QueryMissing;
+    for(var i = start; i + size <= length; i++) {
+        if utility_equal(source + i, needle, size) { found = i; if !last { break; } }
+    }
+    utility_check(found != QueryMissing, needle); return found;
+}
+fn q_find(source: u8*, needle: u8*): usize { return q_locate(source, needle, 0, false); }
+fn q_last(source: u8*, needle: u8*): usize { return q_locate(source, needle, 0, true); }
+fn q_replace(source: u8*, before: u8*, after: u8*): ByteBuffer {
+    var at = q_find(source, before); var result: ByteBuffer = default;
+    ide_require(bytes_append(&result, source, at)); ide_text(&result, after);
+    ide_text(&result, source + at + ide_length(before)); ide_result(&result); return result;
+}
+
+fn q_replace_all(source: u8*, before: u8*, after: u8*): ByteBuffer {
+    var result: ByteBuffer = default; var length = ide_length(source); var size = ide_length(before);
+    utility_check(size != 0, "Nonempty replacement fixture text");
+    var at: usize = 0;
+    while at < length {
+        if at + size <= length && utility_equal(source + at, before, size) { ide_text(&result, after); at += size; }
+        else { ide_require(bytes_push(&result, source[at])); at++; }
+    }
+    ide_result(&result); return result;
+}
+fn q_explicit_templates(): ByteBuffer {
+    var source = q_read("examples/templates.tower"); defer bytes_dispose(&source);
+    var pushed = q_replace_all(source.data, "push(&values", "push(i32, &values"); defer bytes_dispose(&pushed);
+    return q_replace_all(pushed.data, "pop(&values", "pop(i32, &values");
+}
+
+fn q_document(f: QueryFixture*, source: u8*): QueryJson {
+    f.source = source;
+    var query = language_document(source, ide_length(source), f.mode, f.width);
+    utility_check(query is not null, "Create language document query");
+    defer completion_dispose(query);
+    ide_assign(&f.response, language_document_result(query));
+    return q_field(q_view(ide_result(&f.response)), "entries");
+}
+fn q_entries(f: QueryFixture*): QueryJson { return q_field(q_view(ide_result(&f.response)), "entries"); }
+fn q_hover(f: QueryFixture*, position: usize): QueryJson {
+    var entries = q_entries(f); var at: usize = 1; var best: QueryJson = default;
+    var best_size = QueryMissing; var best_from: usize = 0;
+    loop {
+        var entry = q_next(entries, &at); if entry.length == 0 { break; }
+        var first = q_number(q_field(entry, "from")); var end = q_number(q_field(entry, "to"));
+        if first <= position && position < end && (end - first < best_size || (end - first == best_size && first >= best_from)) {
+            best = entry; best_size = end - first; best_from = first;
+        }
+    }
+    return best;
+}
+fn q_get(f: QueryFixture*, needle: u8*, offset: usize): QueryJson { return q_hover(f, q_find(f.source, needle) + offset); }
+fn q_tail(f: QueryFixture*, needle: u8*): QueryJson { return q_hover(f, q_last(f.source, needle) + 1); }
+fn q_details(entry: QueryJson): bool {
+    return q_field(entry, "type").length > QueryJsonQuoteBytes || q_field(entry, "documentation").length > QueryJsonQuoteBytes || q_field(entry, "description").length > QueryJsonQuoteBytes;
+}
+fn q_all_details(f: QueryFixture*): void {
+    var entries = q_entries(f); var at: usize = 1;
+    loop { var entry = q_next(entries, &at); if entry.length == 0 { break; } utility_check(q_details(entry), "Every entry has details"); }
+}
+fn q_coverage(f: QueryFixture*, start: usize): void {
+    for(var i = start; f.source[i] != 0; i++) {
+        if !q_space(f.source[i]) { utility_check(q_details(q_hover(f, i)), "Every nonspace source byte has details"); }
+    }
+}
+fn q_complete(f: QueryFixture*, marked: u8*): QueryJson {
+    var cursor = q_last(marked, "|"); var text: ByteBuffer = default; defer bytes_dispose(&text);
+    ide_require(bytes_append(&text, marked, cursor)); ide_text(&text, marked + cursor + 1);
+    var response = tw_complete(ide_result(&text), text.length, cursor, f.mode, null, null, 0);
+    ide_assign(&f.response, response);
+    var result = q_view(ide_result(&f.response)); q_expect(result, "error", null); return result;
+}
+fn q_suggestions(result: QueryJson, wanted: u8*): void {
+    var options = q_field(result, "options"); var at: usize = 1; var offset: usize = 0;
+    loop {
+        var item = q_next(options, &at); if item.length == 0 { break; }
+        var end = offset; while wanted[end] != 0 && wanted[end] != *"|" { end++; }
+        var name = ide_copy(wanted + offset, end - offset);
+        q_expect(item, "label", name); free(name);
+        utility_check(end != offset, "Unexpected extra completion candidate");
+        offset = end; if wanted[offset] != 0 { offset++; }
+    }
+    utility_check(wanted[offset] == 0, "Missing completion candidate");
+}
+fn q_has(result: QueryJson, name: u8*): bool {
+    var options = q_field(result, "options"); var at: usize = 1;
+    loop { var item = q_next(options, &at); if item.length == 0 { return false; } if q_text(q_field(item, "label"), name) { return true; } }
+}
+fn q_labels(f: QueryFixture*, source: u8*, wanted: u8*): void { q_suggestions(q_complete(f, source), wanted); }
+fn q_offer(f: QueryFixture*, source: u8*, name: u8*, present: bool): void { utility_check(q_has(q_complete(f, source), name) == present, name); }
+fn q_forbid(result: QueryJson, names: u8*): void {
+    var at: usize = 0;
+    while names[at] != 0 {
+        var end = at; while names[end] != 0 && names[end] != *"|" { end++; }
+        var name = ide_copy(names + at, end - at);
+        utility_check(!q_has(result, name), name); free(name);
+        at = end; if names[at] != 0 { at++; }
+    }
+}

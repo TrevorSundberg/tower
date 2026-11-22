@@ -44989,3 +44989,89 @@ previous publication history and records this milestone's bootstrap hash,
 runtime/compiler-project source commit and scaffolding tree. This receipt-only
 commit reuses that verified deployment; it does not rebuild or relabel its
 runtime assets. todo.txt remains untouched by this work.
+
+### 2026-11-22 - Hover and completion semantic fixtures move to Tower
+
+Audit the existing IDE fixtures before translating the JavaScript tests. The
+existing Tower suite covers sessions, candidates and basic request lifetimes;
+the lexical/type/grammar/inspection contracts in completion.test.mjs and most
+of hover.test.mjs are distinct coverage. Move those fixtures and assertions
+into ide_completion_checks, ide_hover_checks, ide_hover_generic_checks and
+ide_hover_grammar_checks, sharing ide_query_support. These are 59 named Tower
+groups, including the original completion cases, concrete/symbolic hover metadata,
+32/64-bit target layouts, imported ownership, grammar revisions, recovery and
+repeated-query lifetime checks. Use the public completion/document exports;
+the small borrowed JSON views are test response readers, not another semantic
+graph. Fixture environments restore the previous host environment on teardown.
+
+Reuse the existing TOWER_IDE_TESTS build and test-ide.mjs execution path. The
+runner additionally mounts its existing source capabilities for Tower fixture
+file reads. No new installer, runtime dependency, CMake target or helper script
+is needed. npm test:ide calls the Tower suite; npm test requires it before the
+Node checks. A production reactor without ide_tests fails explicitly before
+the Node suite starts. README.md and ABI.md document the test build and require
+turning the option off again for release assets.
+
+Delete completion.test.mjs (207 lines). Reduce hover.test.mjs from 580 to 61
+lines, retaining six host tests for invalid-request exceptions, UTF-8/UTF-16
+offset translation, presentation eligibility, interval lookup and async cache
+sharing/cancellation/retry. Existing browser interaction tests remain. The one
+additional transport line in test-ide.mjs makes the net reduction 725 JavaScript
+lines and one file. All new fixture/assertion/helper implementation is Tower.
+
+Run the original tests before changing them against published reactor SHA256
+4c5666cf069b38bf3c096a60a3b29c66f1354d251054b746dfb50cceaa25e7bf:
+66/70 pass. Four stale fixtures fail before migration. Completion expectations
+omit published i16/u16/i8 names. Foundation is now an import wrapper, so inspect
+that wrapper plus the actual foundation_syntax grammar instead of requiring
+300 entries in the wrapper. Tower no longer contains the old generated-function
+replacement example; an explicit small replacement fixture now checks the same
+function/declaration/return roles. Preserve the baseline failure log rather than
+claiming that original run passed.
+
+The public bootstrap compiles the changed Tower unit and a complete WASI IDE
+test reactor. The full Tower IDE suite passes, including all 59 named query
+groups and the earlier session/candidate checks. npm run test:ide passes too.
+Retained hover, completion-query and language-service transport tests pass 13/13
+with zero skips; npm test's missing-export guard fails before Node as required.
+Evidence: build/ide_queries_baseline.log, ide_query_wasm_build.log,
+ide_query_wasm_focused.log, ide_queries_checked_run.log, ide_queries_npm.log,
+ide_queries_transport.log and ide_queries_missing_export.log. Final named-bound
+and case-enum refinements pass public-bootstrap unit compilation; the frozen
+post-rebase validation and publication receipts follow below.
+
+Before publication rebase, owned inventory: JavaScript 168 files/22,433 lines; Python and PowerShell zero;
+shell 9/230; CMake 39/1,599. From the original tooling baseline, JavaScript is
+down 1,997 lines and 20 files. The five measured languages are down 5,351 lines
+(18.1%) and 70 files. All 26 temporal JavaScript files/8,488 lines and todo.txt
+are unchanged. Production compiler and browser source are unchanged by this
+test migration; preserve the latest verified runtime assets during publication.
+
+Publication rebase integrates the Bedrock seed/explicit-import milestone through
+9d84f04. Update the actual Tower fixture sources with explicit Foundation or
+Bedrock imports; do not reinstate an implicit prelude in the test harness.
+Adjust declaration locations and UTF-8 offsets for those imports. The current
+Templates example infers generic arguments, so retain explicit push/pop variants
+for the dedicated type-use checks and require that all four uses were visited.
+Keep its binary decrement/assignment probe, and update its field declaration line.
+The existing IDE session/candidate fixtures now import Foundation explicitly too;
+invalid-session checks consume the import before asserting the stable error.
+
+A fresh public-bootstrap native build and complete WASI IDE test build both pass
+with no private bootstrap override. The successor compiles frontend_modules, and
+native editor-world, type-smoke and query-smoke pass. The final npm test:ide run
+passes all 59 query groups plus the existing IDE suite. Retained transport tests
+pass 13/13 with zero skips. Logs: build/ide_query_seed_{native,wasm,checks_build,
+successor,editor,type-smoke,query-smoke}.log and ide_queries_seed_{run,transport}.log.
+Native compiler SHA256:
+5ec7c5f7be75e20bb77faa69ed970d622e87a19bd500626770f9745fed56ebcf.
+Opt-in WASI test reactor SHA256:
+95b1a89dee282cd6302272578e403e71ddfc123d80ebdf63c07606f3c261940b.
+That test reactor is validation output, not a replacement production release.
+
+Upstream browser fixture/integration changes add 37 JavaScript lines during this
+rebase. This migration still removes 725 lines; the resulting current inventory
+is 168 JavaScript files/22,470 lines. Net reduction from the original baseline is
+1,960 JavaScript lines/20 files, or 5,314 lines (17.9%)/70 files across the five
+measured languages. Python/PowerShell remain zero, shell 9/230 and CMake 39/1,599.
+Temporal research and todo.txt remain unchanged.
