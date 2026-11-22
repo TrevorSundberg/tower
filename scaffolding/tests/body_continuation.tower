@@ -617,4 +617,13 @@ fn signature_callee(input: i32): i32 {
 
 if signature_callee(41) != 42 || comptime(signature_callee(41)) != 42 { failures++; }
 
+// The module loop checks this specialization before body queries begin. Body
+// loops must reuse that completed signature without inventing a missing ticket.
+var module_iteration_storage: i32[1];
+module_iteration_storage[0] = 42;
+var module_iteration_values: vector(i32) = { data: &module_iteration_storage[0], length: 1, capacity: 1 };
+var module_iteration_sum = 0;
+foreach(var value in &module_iteration_values) { module_iteration_sum += value; }
+if module_iteration_sum != 42 { failures++; }
+
 print(failures);

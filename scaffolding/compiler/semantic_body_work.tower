@@ -881,7 +881,9 @@ fn sem_body_iteration_signatures(c: SemanticContext*, batch: SemanticBodyWork**,
             var result = batch[i];
             if result.done || result.iteration_plan.initial == null { continue; }
             var function = *sem_iteration_slot(&result.iteration_plan, role);
-            sem_declaration_report(c, function);
+            // Root-level or other synchronous consumers may already have
+            // checked this signature before body query registration begins.
+            if sem_declaration_query(c, function) != 0 { sem_declaration_report(c, function); }
             if sem_ok(c) && sem_get(function).parameters.length != IterationParameterCount {
                 sem_fail(c, result.expression_header, "An iteration protocol function requires source and state pointer parameters");
             }

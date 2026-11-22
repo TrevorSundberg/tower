@@ -40908,3 +40908,35 @@ existing ordinary-call preparation path shares registration but retains its
 previous discovery timing when no new declarations were added. Successful
 protocol signature preparation is reused by the loop builder instead of replayed.
 Ready to commit/rebase and check the documented public-bootstrap route.
+
+The protocol milestone rebased onto backend module/tooling changes and passed
+the documented public-bootstrap incremental build plus body execution (zero
+failures). An upstream documentation push caused a non-fast-forward rejection;
+rebased again, confirmed the scaffolding tree was identical, and pushed e0234f0.
+Native SHA-256 before the follow-up below:
+2232ad49d347da78f7d868c4719be9a84feddf41e8279f84f1fab2bd81400c19.
+Evidence: iteration-signatures-default-build.log. It is source-published, not
+browser-deployed; 2225c52 remains the deployed runtime.
+
+Follow-up source audit found a real missing integration case: a root-level
+foreach may already have synchronously checked an iteration specialization,
+leaving no declaration-query ticket. A later function-body loop reused it and
+unconditionally reported query zero. The minimal Tower reproducer
+iteration_shared_root.tower aborts with e0234f0 (exit134; empty diagnostic),
+confirming this was absent from the passing matrix. Guard receipt reporting when
+there is no query, matching the existing completed-signature reuse contract.
+Added a module-level borrowed vector loop to the shared body fixture so its
+function-body loops exercise this path. Small-unit preflight passes; the reduced
+case and affected body smoke are rebuilding in iteration-root-fixed.log. Do not
+claim the published e0234f0 revision covers this case until its fix is pushed.
+
+Hosted verification of 2225c52 completed: all 88 assets match; desktop/mobile
+checks pass with no browser errors; actual Linux defaults pass. The asset count
+changed from 89 after upstream linker packaging retired an unused asset.
+Evidence: refill-callable-hosted.log and build/deployment-verification/report.json.
+
+The root/body signature reuse correction now passes: the documented public-
+bootstrap rebuild succeeds, the reduced case prints 42/42, and the expanded
+serial/four-worker body smoke passes execution, canonical reparsing and all
+ordered diagnostic/cycle cases. Evidence: iteration-root-fixed.log. This closes
+the reproduced e0234f0 integration failure; retain the failing log as provenance.
