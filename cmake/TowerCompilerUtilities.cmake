@@ -114,13 +114,18 @@ function(tower_compiler_semantics)
   if(triple MATCHES "linux")
     find_package(Threads REQUIRED)
     target_link_libraries(tower-compiler-semantics INTERFACE Threads::Threads ${CMAKE_DL_LIBS})
-    target_link_options(tower-compiler-semantics INTERFACE -Wl,--export-dynamic-symbol=work_thread_entry)
+    # The final consumer profile may deliberately select the serial allocator
+    # transport, which has no worker callback to export.
+    target_link_options(tower-compiler-semantics INTERFACE
+      "$<$<NOT:$<BOOL:$<TARGET_PROPERTY:TOWER_SERIAL_WORK_TRANSPORT>>>:-Wl,--export-dynamic-symbol=work_thread_entry>")
   elseif(triple MATCHES "apple|darwin")
-    target_link_options(tower-compiler-semantics INTERFACE -Wl,-exported_symbol,_work_thread_entry)
+    target_link_options(tower-compiler-semantics INTERFACE
+      "$<$<NOT:$<BOOL:$<TARGET_PROPERTY:TOWER_SERIAL_WORK_TRANSPORT>>>:-Wl,-exported_symbol,_work_thread_entry>")
   elseif(triple MATCHES "windows")
     target_link_libraries(tower-compiler-semantics INTERFACE kernel32)
     if(MSVC)
-      target_link_options(tower-compiler-semantics INTERFACE /EXPORT:work_windows_entry)
+      target_link_options(tower-compiler-semantics INTERFACE
+        "$<$<NOT:$<BOOL:$<TARGET_PROPERTY:TOWER_SERIAL_WORK_TRANSPORT>>>:/EXPORT:work_windows_entry>")
     else()
       target_link_options(tower-compiler-semantics INTERFACE -Wl,--export-all-symbols)
     endif()

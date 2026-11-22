@@ -17,7 +17,6 @@ get_property(policy_trap GLOBAL PROPERTY TOWER_RUNTIME_TRAP_OBJECT)
 add_executable(tower-work-instrumented-tests ${policy_objects} "${policy_runtime}" "${policy_trap}")
 set_target_properties(tower-work-instrumented-tests PROPERTIES LINKER_LANGUAGE C)
 target_link_libraries(tower-work-instrumented-tests PRIVATE tower-compiler-work-serial Threads::Threads ${CMAKE_DL_LIBS})
-target_link_options(tower-work-instrumented-tests PRIVATE -Wl,--export-dynamic-symbol=work_thread_entry)
 add_test(NAME tower-worker-instrumented COMMAND tower-work-instrumented-tests)
 set_tests_properties(tower-worker-instrumented PROPERTIES TIMEOUT 30)
 
