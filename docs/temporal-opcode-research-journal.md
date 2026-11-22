@@ -45436,3 +45436,14 @@ latest published parser/LLVM reactors (`build/increment_foundation_node.log`).
 The existing desktop/mobile increment browser cases pass as well
 (`build/increment_foundation_browser.log`). The only changed site assets are
 increment.tower and its manifest entry/publication receipt.
+
+Published as Pages 11ebf6b4293f0bdd022ee287ea3d23c140f852fe; workflow
+45048944003 succeeded. The live increment source and manifest hashes match the
+local publication, and both hosted desktop/mobile increment cases pass
+(`build/increment_foundation_hosted.log`). All other asset hashes and compiler
+build identities remain unchanged. This receipt reuses that verified deployment.
+
+The final rebase incorporates 8c51600's newly published Tower-linked bootstrap.
+Verify its documented hashes and rerun the example in both native interpreters:
+both still print 5, 6, 7, 7, 9. The example bytes and hosted runtime are unchanged;
+update only publication provenance to refer to the rebased example source commit.
