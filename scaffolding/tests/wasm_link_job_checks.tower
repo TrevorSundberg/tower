@@ -116,10 +116,10 @@ fn wasm_test_job_errors(): void {
     }
 }
 
-enum TlsProfileCase: u32 { Shared = 0, Unshared = 1, SymbolMismatch = 2, ImmutableBase = 3, WrongArgument = 4, NonTlsTarget = 5, Overflow = 6 }
+enum TlsProfileCase: u32 { Shared = 0, Unshared = 1, SymbolMismatch = 2, ImmutableBase = 3, WrongArgument = 4, NonTlsTarget = 5, Overflow = 6, MutableLayout = 7 }
 
 fn wasm_test_tls_profiles(): void {
-    for (var scenario: u32 = 0; scenario <= convert(u32, TlsProfileCase.Overflow); scenario++) {
+    for (var scenario: u32 = 0; scenario <= convert(u32, TlsProfileCase.MutableLayout); scenario++) {
         var mode = convert(TlsProfileCase, scenario);
         var input: ByteBuffer = default; defer bytes_dispose(&input); wasm_tls_object(&input, true);
         var link: WasmLink = default;
@@ -131,6 +131,7 @@ fn wasm_test_tls_profiles(): void {
         match mode {
             TlsProfileCase.SymbolMismatch => { object.symbols.data[convert(usize, TlsSymbol.First)].flags = 0; error = WasmLinkError.Input; }
             TlsProfileCase.ImmutableBase => { object.globals.data[0].mutable = false; error = WasmLinkError.Signature; }
+            TlsProfileCase.MutableLayout => { object.symbols.data[convert(usize, TlsSymbol.Base)].name = wasm_text_bytes("__tls_size"); error = WasmLinkError.Signature; }
             TlsProfileCase.WrongArgument => { object.types.data[0].bytes.data[2] = convert(u8, WasmValueType.I64); error = WasmLinkError.Signature; }
             TlsProfileCase.NonTlsTarget => {
                 foreach (var & relocation in &object.relocations) {

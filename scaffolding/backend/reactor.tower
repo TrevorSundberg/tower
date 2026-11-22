@@ -2,8 +2,10 @@ import tower;
 import link_types;
 import linker_wasi;
 import linker;
-import linker_tower_wasm;
 import text;
+
+// The byte-only Tower linker is compiled once as its own backend unit.
+extern fn backend_link_tower_wasm(link: BackendLink*): bool;
 
 // Host build service for compiler reactors. Inputs and arguments are explicit
 // capabilities supplied by the build recipe, never filesystem/tool searches.

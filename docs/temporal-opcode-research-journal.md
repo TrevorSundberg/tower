@@ -38752,3 +38752,65 @@ artifacts under /home/trevo/.cache/tower/coordinator-wasm-linker/{static-tls-job
 reader-tls-jobs,tls-generate,jobs*.wasm}. Time via /usr/bin/time %e,%M, no concurrent
 builds. Full clean successor, legacy WorkPool and browser-generation gates remain
 pending at this checkpoint; production LLD selection is unchanged.
+
+### 2026-11-21: TLS/jobs integration and release validation
+
+Rebased implementation to 4f5f553 over other lane's 0dafa52 tooling release.
+The direct raw CMake clean configuration without a bootstrap path rejected its
+missing prerequisite, as designed; the documented build-native.sh path verifies
+and selects the public pin automatically. With TOWER_BOOTSTRAP_COMPILER unset,
+TOWER_NATIVE_BUILD=/home/trevo/.cache/tower/coordinator-wasm-linker/successor-tls-public
+and TOWER_BUILD_JOBS=3, that clean build completes. No private bootstrap used.
+
+Browser aggregate compilation initially exceeded the unchanged 65536-node template
+expansion budget after importing all linker jobs into each backend unit. Fixed
+by compiling linker_tower_wasm.tower once as tower-backend-linker.o and declaring
+its existing typed BackendLink boundary in reactor.tower. Eight mechanical lines
+in the isolated TowerBackend.cmake reuse tower_runtime_object; no new build tool
+or packager parser. The existing packager discovers the unit/import closure and
+makes it editable in both successor reactors. Both backend aggregates now build.
+A final TLS ABI review also rejects mutable __tls_size/__tls_align declarations;
+the new negative profile passes. Source changes remain Tower except the essential
+existing worker ordinal transport and mechanical compilation-unit connection.
+
+Native affected CTest selection passes 8/8 in 36.63s: actual pool overlap,
+target registry once, instrumented transport, LR equivalence, compilation units,
+backend units, editor units and body continuations. Backend API passes separately.
+The first CTest regex invocation hit WSL shell parentheses parsing; --exec fixes
+argument transport. Reader suite passes native and portable WASI, including the
+expanded TLS signature checks. Current public pin remains 9bf8779c.
+
+Portable, threaded, LLVM and cross reactors rebuilt. Existing shared-Wasm worker
+suite passes 3/3 with zero skips (14.98s), including 128 pool lifecycles, worker
+trap interruption and 1/2/4/8-worker compiler determinism. New Tower-only
+wasm_link_reader_threads wrapper additionally runs the linker reader/job suite
+through that SAME shared transport, using TOWER_TEST_WORK_WASM and test-name
+pattern 'pool overlaps': 128 lifecycle calls pass in 0.28s. This checks actual
+relocation overlap on Wasm as well as native, not only generic pool overlap.
+An initial extra --export=main selected libc's main wrapper in addition to the
+Tower export and produced a duplicate export; removing the redundant flag
+matches the existing work fixture recipe. Production isolated LLVM reactors
+still advertise one lane; this is not a full shared LLVM runtime conversion.
+
+Browser LLVM/interpreter checks pass 6/6 in 43.64s: function/struct values,
+resumable control, recursion, division and source diagnostics, each raw/optimized
+and graph/fast interpreter paths. Cross-target suite passes 7/7 in 1.62s, including
+native object/executable formats, imports, repeat output and recoverable errors.
+These checks use refreshed build/wasm_link_tls_{seed,cross}.wasm, not stale builds.
+
+Two edited browser compiler generations PASS with lazy archive recipes selecting
+tower-wasm-ld and the new linker unit. Generation 2 takes 26.04s at four compilation
+workers, and produces the same hashes as generation 1 at two workers:
+tower f185efd06a54bede94584c7588bb98c9bc5a8edee4a5a45b54af5cafc875c00b,
+llvm 65f58393bdb43e59cc8dfadb2e438e025076205e1a97c193e0dbae8803b88683,
+cross aff8f4f62b51dba5d6caa427c295e65ea1182db414e81fea81158ced18390270.
+Sizes 1202387 / 53656570 / 65312337 bytes. Evidence:
+build/wasm_link_tls_{generations,threads,llvm_checks,cross_checks}.log and
+build/compiler-workbench-tls/generation{1,2}.json. No sanitizer/formatter sweep;
+todo.txt hash remains 045d1e620edf7c67b653fec19df850b370246b1d.
+
+Remaining work is explicit: production cutover, full thread-runtime TLS/profile
+coverage, deterministic wait-schedule coverage, parallel parsing/symbol phases,
+wider Wasm/debug profiles, then native ELF/COFF/Mach-O. This milestone supplies
+TLS32 and real typed relocation jobs, not complete LLD removal. Source/API
+publication will preserve the current hosted runtime and other agents' receipts.

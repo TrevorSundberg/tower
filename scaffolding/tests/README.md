@@ -173,6 +173,18 @@ TLS ABI globals, unshared segment modes and invalid TLS signatures/offsets.
 Portable hosts run the same functional suite at their advertised single-lane
 capacity; the native overlap probe does not claim overlap on those hosts.
 
+`wasm_link_reader_threads.tower` supplies the existing shared-Wasm work/memory
+transport. Compile with `--library --target wasm32-unknown-unknown`, then link
+using the same SDK 34 arguments/runtime objects as `tower-work-tests` in
+`cmake/TowerWorkTests.cmake`. Its Tower `main` is already exported; adding the
+linker `--export=main` also selects wasi-libc's wrapper and causes a duplicate.
+Set `TOWER_TEST_WORK_WASM` to this image and `TOWER_REQUIRE_THREADS=1`, then run
+`node --test --test-name-pattern='pool overlaps' playground/tests/compiler-threads.test.mjs`.
+This reuses the transport's 128 lifecycle calls; the reader's Tower assertions
+require two real relocation kernels at their barrier and test ordered failure,
+cancellation and TLS validation. It does not turn the isolated LLVM reactor into
+a shared-memory compiler or replace wasi-libc's thread startup.
+
 `backend/wasm_link_plan.tower` accepts length-delimited arguments and explicitly
 named input bytes, including allow/export lists. Its keys need no NUL terminator.
 `backend/linker_tower_wasm.tower` adapts the existing `BackendLink` ownership API;
@@ -192,9 +204,10 @@ Package current compiler units with the existing packager into an isolated
 directory, set each reactor recipe's argument zero to `tower-wasm-ld`, and select
 those paths. Two generations with two/four workers now pass for both whole and
 lazy archives, including edited semantic behavior, executable compiler checks
-and identical successor hashes. Shared-memory/TLS and actual parallel linker
-jobs remain production cutover gates; compilation workers do not establish
-parallel execution inside one link request.
+and identical successor hashes. TLS and actual linker-kernel overlap have separate
+fixtures above; compilation worker counts do not establish parallel execution
+inside one link request. Complete thread-runtime compatibility and wider object
+profiles remain production cutover gates.
 
 The isolated tooling check `lld_compat_checks.tower` validates the Tower LLD
 compatibility patcher against exact output and rejection fixtures, including

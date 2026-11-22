@@ -176,7 +176,10 @@ typed noncapturing kernels. `job_grain` defaults to 262144 estimated work units
 (bytes plus 64 per relocation); small workloads avoid creating threads. Results
 and errors join in input order and output bytes do not depend on worker count.
 `jobs_run` and `jobs_peak` count admitted batches, not measured CPU overlap.
-Isolated browser LLVM workers currently report capacity one.
+Isolated browser LLVM workers currently report capacity one; the same kernels
+also pass real overlap checks through the existing shared-Wasm worker transport.
+The browser build compiles `linker_tower_wasm.tower` as its own unit, shared by
+the LLVM and cross-target reactors and included in editable self-build recipes.
 
 An optional `cancel: function(bool, void*)` callback runs on the coordinator with
 `cancel_context` at emission boundaries and between job completions. It must

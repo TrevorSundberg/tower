@@ -65,6 +65,9 @@ fn wasm_link_synthetic_symbol(link: WasmLink*, name: WasmBytes, required: bool):
         if global.type != convert(u8, WasmValueType.I32) || ((synthetic == WasmSynthetic.Stack || synthetic == WasmSynthetic.TlsBase) && !global.mutable) {
             return wasm_link_fail(link, WasmLinkError.Signature, name);
         }
+        if (synthetic == WasmSynthetic.TlsSize || synthetic == WasmSynthetic.TlsAlign) && global.mutable {
+            return wasm_link_fail(link, WasmLinkError.Signature, name);
+        }
     }
     if kind == WasmSymbolKind.Function && symbol.declaration.object != WasmNoIndex {
         var object = link.world.objects.data[convert(usize, symbol.declaration.object)].object;
