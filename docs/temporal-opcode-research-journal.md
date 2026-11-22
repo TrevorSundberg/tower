@@ -46012,3 +46012,22 @@ edited semantic behavior. Refreshed browser type/computed execution and backend
 world checks pass; bytecode/worker checks pass seven cases with only the explicitly
 disabled optional package-test export skipped. No failed or skipped case is
 counted as passing. Logs: build/type-objects-linker-*.
+
+Final rebase includes the SDK-independent ELF property fixture and hosted
+completion-check deadlines through 98e1cf1a. Compiler, library, backend, host,
+CMake and runtime implementation inputs are unchanged from cbcd24a9. The new
+ELF fixture compiles with the public pin. Refreshed package provenance to the
+reachable 438d30ce snapshot; its complete executable/resource checksum list is
+byte-identical to the already validated package. No runtime bytes were rebuilt
+merely to update provenance. A fresh default successor build was nevertheless
+repeated after the rebase at /cache/type_values_public_successor_438d30ce, with
+the same successful 51-step build and relocated type-value execution. This
+preserves the new Tower linker path and the type-value implementation together.
+
+Local verification of the final compiler/browser assets passes all 104 assets
+and desktop/mobile execution, native downloads, grammar edits, persistence,
+completion and output highlighting. The eight-step type-protocol handoff above
+is the next-session plan. Do not start those features as part of this closeout.
+Publish source and deployment refs atomically, verify hosted bytes and flows,
+and leave main clean. The AGENTS.md atomic-publication rule is included in this
+same checkpoint; no separate unpushed guidance is intended to remain.

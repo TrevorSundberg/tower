@@ -8,7 +8,8 @@ no installer, unpacking step, bootstrap cache or Python dependency on this path.
 
 The current pin includes the Tower hosted ELF linker and `--link-executable`.
 The complete compiler executable was linked by Tower against the system LLVM
-library, from rebased source `cbcd24a9`. Its
+library, with source provenance refreshed to `438d30ce` after a fixture-only
+rebase whose compiler/build inputs are unchanged from `cbcd24a9`. Its
 executable and adjacent resources are hashed together in `development.json`.
 An empty-cache successor build through the default path, without a private
 bootstrap override, builds and links the compiler and its Linux helper tools
