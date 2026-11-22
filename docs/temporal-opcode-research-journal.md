@@ -46150,3 +46150,29 @@ build/agents_audit_hosted_verification.log and build/agents_audit_verification.j
 These verify reused published assets, not a new compiler build or performance
 improvement. Final receipt synchronization reuses this evidence if runtime bytes
 remain unchanged; no additional implementation or broad check matrix is needed.
+
+### 2026-11-22 - Published type-value stopping point
+
+Source 67db975a8ce80f3dab7910beb9ba57b86baec91d and Pages
+7f3da4a735e0bb05b6e0671e6a7933ee86b8e37b were pushed together successfully
+with git push --atomic. This includes the condensed AGENTS.md policy, its concise
+atomic source/deployment rule, and the type-definition direction. GitHub Pages
+workflow 45050992938 completed successfully; the served deployment manifest
+matches SHA-256 9d757d733c52ff82e0c0444690be5e49b4af8596e14782c60f348b2d3a765605.
+All 104 served assets match the locally verified build. The source/build identity
+98ade8cc and complete published bootstrap are reachable from main, which is clean
+and synchronized after the atomic push. Hosted desktop/mobile verification also
+passes execution/backend agreement, native downloads, editable grammar,
+persistence, completion, output highlighting and target defaults. The verifier
+exits 0; evidence is in build/type-objects-final-hosted-verification.log.
+This receipt-only closeout retains the exact verified runtime assets and their
+build identity; it requires no runtime rebuild or repeated browser matrix.
+
+This is a stopping point for ordinary opaque type values, staged helper/capture
+evaluation and identity-preserving canonical output, integrated with the latest
+Tower linker and ECS continuation work. The detailed eight-step “Remaining work
+after the type-value checkpoint” entry above is the continuation plan. Start with
+consolidating types.tower, then construction and operator/conversion/literal
+protocols; runtime constructor execution, all type-family policies and complete
+metatype ABI legality remain unfinished. Do not claim the full type architecture
+or vectors are complete. todo.txt was not modified.
