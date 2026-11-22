@@ -361,7 +361,7 @@
                                  "validation":  "79 runtime/LLVM/package checks; eight threaded package/worker checks; two edited browser compiler generations; four final worker-reuse/stale-permit browser checks; ten output/viewport/frame checks. Fresh native successor after final compiler-source rebase. All 86 local deployment asset hashes and full desktop/mobile flows pass."
                              },
     "scope":  "Source-defined standard types, compile-time bindings, complete Foundation prelude and compatible bootstrap.",
-    "previousDeployment":  "efa324e9687e0fb48635034dad2035127c6ad85e",
+    "previousDeployment":  "582bbf2704d7d27aefd264933fa462934cfc2eb4",
     "measurementToolingMigration":  {
                                         "implementationCommit":  "1007d4179107c6c5372afcb9d1233a406695e992",
                                         "validationCommit":  "824af121b0441df8c2a6af9e6a328bd6a0164018",
@@ -401,7 +401,7 @@
     "bootstrapExecutableSha256":  "21f527125bfa05a8cd6d4923d4fdc026a04553e919f2905c602a17691598dba5",
     "publishedBootstrapSha256":  "21f527125bfa05a8cd6d4923d4fdc026a04553e919f2905c602a17691598dba5",
     "bootstrapSha256":  "21f527125bfa05a8cd6d4923d4fdc026a04553e919f2905c602a17691598dba5",
-    "sourceCommit":  "d978b49ba65b9952f8034ec121d585a1f11660b6",
+    "sourceCommit":  "c442362797bbef61258ff7b7c93c696abb2d4409",
     "publicationNote":  "Type-constructor/alias dependency queries, shared parallel instance cloning, return/discard expression continuations and constructed field readiness. Uncommitted assignment phases excluded. Historical tooling receipts preserved.",
     "buildNote":  "Verified runtime assets built from the integrated source-type snapshot. Subsequent rebases changed test packaging and documentation only. Bootstrap source reconstruction uses the recorded published base and hashed patch; native clean builds and both browser generations pass.",
     "buildSourceCommit":  "46b1da9f7073298ff3dbba438107ba0bc632b3aa",
@@ -1129,6 +1129,8 @@
                                                     8
                                                 ],
                                "nativeWasmGuest":  "passed",
-                               "localDesktopMobile":  "passed"
+                               "localDesktopMobile":  "passed",
+                               "hostedDesktopMobile":  "passed",
+                               "publishedAssetHashes":  104
                            }
 }
