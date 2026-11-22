@@ -472,11 +472,15 @@ construction. The separate LLVM experiment is not part of the live typing path.
 
 ## Reproduce and verify
 
-Build the modules and bundle as described in [README.md](README.md), then keep
-`npm run serve` running and execute `npm run profile`. The profiler writes
-`build/playground-profile.json`; pass another path after `--` to retain a run.
-The before/after runs from this change are in
+These historical measurements used the archived
+[parser/typing profiler](https://github.com/TrevorSundberg/tower/blob/91c02f47c52c426bc5c4e4c98d3baef2eaa5c0a3/playground/scripts/profile.mjs).
+Use Git history to recover the tool and compiler revision for a historical run.
+The before/after runs from this change were retained locally in
 `build/playground-profile-before.json` and `build/playground-profile-after.json`.
+For current browser measurements, build and serve as described in
+[README.md](README.md), then run `npm run profile`. This invokes the existing
+execution profiler and writes `build/execution-profile.json`; its workloads and
+timing boundaries differ from the historical parser-only measurements above.
 
 All 10 WASM tests and 12 browser checks passed. Regression coverage checks that
 continuous typing produces updates before the burst ends; delayed responses
@@ -534,10 +538,11 @@ JSON decoding, excluding reset and grammar declarations. Local medians:
 | Repetition, 2,048 items | 95.28 ms | 9.77 ms |
 
 These wall times are illustrative and affected by machine load; operation counts
-provide the deterministic scaling check. Run `node scripts/profile-parser.mjs`
-from `playground`, optionally passing an old WASM path for comparison. Results
-are written to `build/playground-parser-scaling.json`. The local before module is
-`build/tower-before-lookahead.wasm`.
+provide the deterministic scaling check. The supplementary
+[timing experiment](https://github.com/TrevorSundberg/tower/blob/91c02f47c52c426bc5c4e4c98d3baef2eaa5c0a3/playground/scripts/profile-parser.mjs)
+is archived in Git history. Its local results were written to
+`build/playground-parser-scaling.json`, comparing against the local
+`build/tower-before-lookahead.wasm`. The parser regression checks remain active.
 
 ## Tree replacements
 
@@ -555,11 +560,13 @@ warm runs rebuilt no grammars and recorded 16 cache hits. This is compiler/host
 time, not browser input-to-paint latency. Editing grammar or template definitions
 can require more work; source positions currently participate in template keys.
 
-Run `node scripts/profile-replacements.mjs` from `playground` to reproduce and
-write `build/replacements-profile.json`. Expansion has additional work and output
-costs beyond LR recognition, with explicit limits for recursive/growing output.
-This is the reference expander; replacement-chain shortcut composition is not
-implemented yet.
+The supplementary
+[timing experiment](https://github.com/TrevorSundberg/tower/blob/91c02f47c52c426bc5c4e4c98d3baef2eaa5c0a3/playground/scripts/profile-replacements.mjs)
+is archived in Git history; its local output was `build/replacements-profile.json`.
+The replacement regression checks remain active. Expansion has additional work
+and output costs beyond LR recognition, with explicit limits for recursive/growing
+output. This measured the reference expander before replacement-chain shortcut
+composition.
 
 ## Typed core execution example
 

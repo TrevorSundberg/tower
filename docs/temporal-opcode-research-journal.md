@@ -44715,3 +44715,52 @@ computed-type fixture, so it will exercise the new path without another JS
 implementation or test driver. Freeze this coherent capture milestone for the
 public-bootstrap/browser/generation publication checks before proceeding to
 executed helper-body readiness.
+
+### 2026-11-22 - Retire historical JavaScript profiling experiments
+
+Audit the remaining JavaScript before translating it. Retire profile.mjs
+(127 lines), profile-parser.mjs (38) and profile-replacements.mjs (30) from
+playground/scripts. These were supplementary measurement programs, referenced
+by historical documentation and, for profile.mjs, the npm profile alias; they
+were not build inputs or automated regression checks. They are not described
+as having had no callers. Recover all three at source commit
+91c02f47c52c426bc5c4e4c98d3baef2eaa5c0a3. PERFORMANCE.md retains direct links
+to those files and distinguishes their historical workloads and report formats.
+
+Point npm run profile to the existing profile-execution.mjs, already used for
+current cold/warm browser measurements. Its default output is now
+build/execution-profile.json, with the optional destination still passed after
+--. Update README.md accordingly. No replacement tool or implementation language
+is added. The parser's Tower operation-count/recursion checks and replacement
+regressions remain. Every remaining playground/src module has a source/build
+reference; remaining scripts serve documented measurements, build/serve,
+compiler workers/tests, or deployment verification. Do not remove those live
+interfaces merely to lower the language count.
+
+Validate the actual npm alias against the published site with one repeat on
+desktop and Pixel 7 emulation: both complete all ten actions, including cold
+load, execution, project selection/creation, edits and grammar-only typing,
+with zero page errors. Evidence: build/profile_alias_verified.json and .log.
+These are smoke results, not a speed comparison. Reference audit finds only
+archival links/journal mentions of the deleted programs. git diff --check passes.
+The cleanup itself leaves compiler sources, bootstrap and runtime assets
+unchanged. Publication preserves the latest verified runtime; any compiler
+changes integrated by the required source rebase need fresh native validation.
+
+Owned inventory now: JavaScript 169 files/23,158 lines; Python and PowerShell
+zero; shell 9/230; CMake 39/1,599. This batch deletes 195 JavaScript lines and
+three files. Against the original tooling baseline, JavaScript is down 1,272
+lines and 19 files; the five measured languages are down 4,626 lines (15.6%)
+and 69 files. All 26 temporal JavaScript files/8,488 lines and todo.txt remain
+unchanged. Browser integration and active test code still remain; this is not
+a claim that the repository is already reduced to binding shims.
+
+Publication rebase integrates ecc4333's lazy local binding proofs. A fresh
+50-step native build uses the checked-in public bootstrap with the private
+override unset. Its successor compiles semantic_binding_proofs (19 MiB LLVM),
+and type-smoke, control-smoke and query-smoke all pass. Native compiler SHA256:
+7343162d925e0abe9a1449f5cf42028e84b30a46bb6cd53060e9284275658d68.
+Logs: build/profile_retirement_native.log, _checks_build.log, _successor.log
+and the three named smoke logs. The npm alias's earlier browser run used the
+verified bf2a3e8 deployment; the receipt will preserve the latest published
+ecc4333 runtime and its separate validation provenance.

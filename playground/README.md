@@ -1012,16 +1012,12 @@ and 44 desktop/mobile browser checks pass. These include real Tower-to-LLVM
 compilation/execution, interpreter comparisons, our WASI host, worker cancellation
 and inline errors. Functions screenshots were visually inspected.
 
-To profile parsing and live typing, keep the static server running and use
-`npm run profile`. Results go to `build/playground-profile.json`. The script
-measures WASM phases and real keyboard edits in desktop/mobile browser emulation,
-including the single trailing update after continuous typing. Browser timings start at the editor
-text mutation and end at the result DOM update or the next animation frame;
-they do not measure physical display latency. Native timings include the ABI and
-JSON transport. See [performance notes](PERFORMANCE.md) for the before/after run.
-
-For first-page load, file selection, Tower instructions and complete execution,
-run `node scripts/profile-execution.mjs ../build/execution-profile.json`.
+To profile first-page load, file selection, Tower instructions, execution and
+live typing, keep the static server running and use `npm run profile`.
+Results go to `build/execution-profile.json`; pass another path after `--` to
+retain a run. Browser timings end at the result DOM update or an animation-frame
+callback, not physical display latency. Historical parser-only measurements and
+their archived tools are recorded in [performance notes](PERFORMANCE.md).
 Set `TOWER_PROFILE_URL` to compare another served build. The probe measures desktop
 and mobile emulation separately, waiting for each result; it also records individual
 worker phase timings and grammar-only typing. File opening executes immediately
