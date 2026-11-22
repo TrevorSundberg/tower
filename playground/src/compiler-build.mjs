@@ -101,32 +101,13 @@ export async function linkCompiler({compiler, recipe, files, inputs, support, pr
   try { const {end} = runToEnd(tower,parse); if (end.status !== 'done') throw new Error('Candidate parser: '+end.error); }
   finally { tower.destroy(parse); }
   const handle = tower.compile(fixture);
-  const checkC = handle => {
-    const output = tower.cSource(handle);
-    if (!output.includes('int main(void)') || !output.includes('candidate C metadata') ||
-        tower.cSource(handle,{comments:false}).includes('candidate C metadata'))
-      throw new Error('Candidate C output/comment check failed');
-  };
   let foundation;
   try {
     foundation = tower.foundation(handle).source;
-    checkC(handle);
-    const roku = tower.rokuSource(handle);
-    if (!roku.includes('function TowerRun(') || !roku.includes('candidate C metadata') ||
-        tower.rokuSource(handle,{comments:false}).includes('candidate C metadata'))
-      throw new Error('Candidate Roku output/comment check failed');
-    for (const fast of [false,true]) {
-      const run = fast ? tower.compile(fixture) : handle;
-      try {
-        if (fast) tower.useFast(run);
-        let output = '', status;
-        for (let i = 0; i < 100; ++i) {
-          const result = tower.execute(run,10000); output += result.output; status = result.status;
-          if (status !== 'executing') break;
-        }
-        if (status !== 'done' || output !== '42\n') throw new Error('Candidate interpreter failed the import check');
-      } finally { if (fast) tower.destroyExecution(run); }
-    }
+    tower.checkCandidate(handle,{roku:true});
+    const fast = tower.compile(fixture);
+    try { tower.checkCandidate(fast,{fast:true}); }
+    finally { tower.destroyExecution(fast); }
   } finally { tower.destroyExecution(handle); }
   const qualified = 'import tower; import helpers.answer as left; left.an';
   const members = tower.complete(qualified,new TextEncoder().encode(qualified).length);
@@ -175,14 +156,7 @@ export async function linkCompiler({compiler, recipe, files, inputs, support, pr
     if (lowered.status === 'error') throw new Error('Candidate LLVM Foundation: '+lowered.error);
     const optimized = tower.compile(lowered.foundation);
     try {
-      checkC(optimized);
-      tower.useFast(optimized);
-      let output = '', status;
-      for (let i = 0; i < 100; ++i) {
-        const run = tower.execute(optimized,10000); output += run.output; status = run.status;
-        if (status !== 'executing') break;
-      }
-      if (status !== 'done' || output !== '42\n') throw new Error('Candidate LLVM interpreter check failed');
+      tower.checkCandidate(optimized,{fast:true});
       const restored = tower.loadBytecode(tower.bytecode(optimized,{optimizationProfile:lowered.optimizationProfile}));
       tower.destroyExecution(restored);
     } finally { tower.destroyExecution(optimized); }

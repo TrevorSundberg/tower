@@ -268,14 +268,10 @@ export fn tw_exec_output(handle: u32, data: u8*, length: usize): void {
     session.machine.output_bytes = session.machine.output_bytes + length;
 }
 
-export fn tw_exec_step(handle: u32, budget: u32): u8* {
-    var session = ide_execution(handle);
-    if session == null {
-        return "{\"status\":\"error\",\"error\":\"Invalid execution handle\"}";
-    }
-    if budget > 100000 {
-        budget = 100000;
-    }
+var IdeExecutionStepLimit: u32 = 100000;
+
+fn ide_execution_step(session: IdeExecution*, budget: u32): void {
+    if budget > IdeExecutionStepLimit { budget = IdeExecutionStepLimit; }
     session.machine.failed = session.error.length != 0;
     var fast = session.fast != null;
     if fast {
@@ -284,6 +280,14 @@ export fn tw_exec_step(handle: u32, budget: u32): u8* {
     else {
         interpreter_step(&session.machine, convert(usize, budget));
     }
+}
+
+export fn tw_exec_step(handle: u32, budget: u32): u8* {
+    var session = ide_execution(handle);
+    if session == null {
+        return "{\"status\":\"error\",\"error\":\"Invalid execution handle\"}";
+    }
+    ide_execution_step(session, budget);
     var state = ide_state();
     var out = &state.execution;
     ide_require(host_execution_json(out, session.error.data, session.error.length, session.machine.error_offset, session.machine.done, session.output.data, session.output.length, session.machine.steps, session.machine.output_truncated));

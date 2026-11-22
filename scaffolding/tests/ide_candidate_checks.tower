@@ -1,0 +1,45 @@
+import tower;
+import utility_checks;
+import .host.ide_candidate;
+import .host.ide_execution;
+import .host.ide_state;
+import .host.ide_text;
+
+fn candidate_fixture(source: u8*, fast: bool, failure: u8*): void {
+    var accept = failure[0] == 0;
+    var handle = tw_exec_create(source, ide_length(source));
+    utility_check(handle != 0, "candidate fixture handle");
+    defer tw_exec_destroy(handle);
+    var result = tw_candidate_check(handle, fast ? 1 : 0, 1);
+    if (result != 0) != accept { puts(tw_last_error()); }
+    utility_check((result != 0) == accept, "candidate fixture acceptance");
+    if accept {
+        utility_check(tw_candidate_check(handle, 0, 0) == 0, "candidate rejects reused execution");
+    } else {
+        utility_check(candidate_contains(tw_last_error(), failure), "candidate failure reports expected diagnostic");
+    }
+}
+
+fn ide_candidate_checks(): void {
+    utility_check(tw_candidate_check(0, 0, 0) == 0, "candidate rejects missing handle");
+    var profile_count: u32 = 2;
+    for(var profile: u32 = 0; profile < profile_count; profile++) {
+        var fast = profile != 0;
+        candidate_fixture("// candidate C metadata\nprint(42);", fast, "");
+        // A valid result spanning multiple graph-interpreter chunks must pass.
+        candidate_fixture("// candidate C metadata\nimport tower; var i:i32=0; while i < 20000 { i=i+1; } print(42);", fast, "");
+        candidate_fixture("print(42);", fast, "C output/comment check failed");
+        candidate_fixture("// candidate C metadata\nprint(41);", fast, "interpreter failed the output check");
+        candidate_fixture("// candidate C metadata\nprint(42); print(42);", fast, "interpreter failed the output check");
+        candidate_fixture("// candidate C metadata\nunknown();", fast, "fresh valid execution");
+        candidate_fixture("// candidate C metadata\nimport tower; while true {}", fast, "interpreter failed the output check");
+    }
+    var source = "// candidate C metadata\nprint(42);";
+    var handle = tw_exec_create(source, ide_length(source));
+    var invalid_flag: u32 = 2;
+    utility_check(tw_candidate_check(handle, invalid_flag, 0) == 0, "candidate rejects invalid engine flag");
+    utility_check(tw_candidate_check(handle, 0, invalid_flag) == 0, "candidate rejects invalid emitter flag");
+    utility_check(tw_candidate_check(handle, 0, 0) != 0, "invalid flags preserve fresh execution");
+    tw_exec_destroy(handle);
+    utility_check(tw_candidate_check(handle, 0, 0) == 0, "candidate rejects stale handle");
+}

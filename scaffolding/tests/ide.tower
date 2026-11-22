@@ -11,6 +11,7 @@ import .host.ide_artifacts;
 import .host.ide_selftest;
 import .library.bytes_types;
 import .library.bytes_interface;
+import ide_candidate_checks;
 
 // Functional tests call the production tw_* exports. The host only installs
 // ordinary source modules and invokes ide_tests; no native/JS test policy.
@@ -373,49 +374,8 @@ fn ide_test_requests(): u32 {
     return 0;
 }
 
-fn ide_test_requests(): u32 {
-    var i: usize = 0;
-    var nodes: usize = 0;
-    var allocations: usize = 0;
-    while i < 16 {
-        var handle = ide_test_create("print(42);");
-        if !ide_test_consume(handle) {
-            return 60;
-        }
-        tw_inspect(handle);
-        tw_format(handle);
-        tw_destroy(handle);
-        var response = tw_complete("pri", 3, 3, 0, null, null, 0);
-        if !ide_test_contains(response, "print") {
-            return 61;
-        }
-        response = tw_complete("pri", 3, 4, 0, null, null, 0);
-        if !ide_test_contains(response, "Invalid completion request") {
-            return 62;
-        }
-        handle = ide_test_compile("print(42);", 4);
-        tw_exec_step(handle, 100000);
-        tw_exec_destroy(handle);
-        var now = tw_live_nodes();
-        var memory = tw_live_allocations();
-        if i >= 2 {
-            var grew = now != nodes;
-            if grew {
-                return 63;
-            }
-            grew = memory != allocations;
-            if grew {
-                return 64;
-            }
-        }
-        nodes = now;
-        allocations = memory;
-        i = i + 1;
-    }
-    return 0;
-}
-
 export fn ide_tests(): u32 {
+    ide_candidate_checks();
     var result = ide_test_sessions();
     var failed = result != 0;
     if failed {

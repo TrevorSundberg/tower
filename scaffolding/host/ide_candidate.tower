@@ -1,0 +1,65 @@
+import tower;
+import ide_types;
+import ide_state;
+import ide_text;
+import ide_execution;
+import ide_artifacts;
+
+// The compiler workbench's fixed candidate fixture is checked here, using the
+// same sessions and execution path as the IDE. The host owns/destroys the handle
+// and still checks cross-instance compilation and actual WebAssembly execution.
+var CandidateStepBudget: u32 = 10000;
+var CandidateStepChunks: usize = 100;
+var CandidateKeepComments: u32 = 0;
+var CandidateOmitComments: u32 = 1;
+var CandidateEnabled: u32 = 1;
+
+fn candidate_contains(text: u8*, wanted: u8*): bool {
+    if text == null { return false; }
+    var length = ide_length(text); var count = ide_length(wanted);
+    if count > length { return false; }
+    for(var at: usize = 0; at <= length - count; at++) {
+        var matched: usize = 0;
+        while matched < count && text[at + matched] == wanted[matched] { matched++; }
+        if matched == count { return true; }
+    }
+    return false;
+}
+
+fn candidate_source(handle: u32, roku: bool): bool {
+    var output = roku ? tw_exec_roku(handle, CandidateKeepComments) : tw_exec_c(handle, CandidateKeepComments);
+    var entry = roku ? "function TowerRun(" : "int main(void)";
+    if !candidate_contains(output, entry) || !candidate_contains(output, "candidate C metadata") { return false; }
+    // The next emission replaces the borrowed output; consume it before calling.
+    output = roku ? tw_exec_roku(handle, CandidateOmitComments) : tw_exec_c(handle, CandidateOmitComments);
+    return output != null && !candidate_contains(output, "candidate C metadata");
+}
+
+fn candidate_failure(message: u8*): i32 { ide_error(message); return 0; }
+
+export fn tw_candidate_check(handle: u32, fast: u32, roku: u32): i32 {
+    var session = ide_execution(handle);
+    if session == null || fast > CandidateEnabled || roku > CandidateEnabled {
+        return candidate_failure("Invalid candidate check request");
+    }
+    if session.error.length != 0 || session.machine.steps != 0 || session.machine.done {
+        return candidate_failure("Candidate check requires a fresh valid execution");
+    }
+    if !candidate_source(handle, false) { return candidate_failure("Candidate C output/comment check failed"); }
+    if roku != 0 && !candidate_source(handle, true) { return candidate_failure("Candidate Roku output/comment check failed"); }
+    if fast != 0 && tw_exec_fast(handle) == 0 { return candidate_failure("Candidate fast interpreter unavailable"); }
+    defer { session.output.length = 0; }
+    for(var chunk: usize = 0; chunk < CandidateStepChunks; chunk++) {
+        ide_execution_step(session, CandidateStepBudget);
+        if session.machine.done || session.machine.failed { break; }
+    }
+    var wanted = "42\n";
+    if !session.machine.done || session.machine.failed || session.error.length != 0
+        || session.machine.output_truncated || session.output.length != ide_length(wanted) {
+        return candidate_failure("Candidate interpreter failed the output check");
+    }
+    for(var at: usize = 0; at < session.output.length; at++) {
+        if session.output.data[at] != wanted[at] { return candidate_failure("Candidate interpreter failed the output check"); }
+    }
+    return 1;
+}

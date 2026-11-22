@@ -40985,3 +40985,63 @@ the unfavorable result; do not market additional query coverage as performance.
 Evidence: module-initializers-{native,candidate,measure}.log and
 module_initializer_measure/measurements.json. Source inputs stayed frozen and
 no compiler builds/tests were run concurrently with this measurement.
+
+### 2026-11-21 — workbench candidate checks move from JavaScript into Tower
+
+Audit compiler-build.mjs through compiler-build-worker.mjs, the browser rebuild
+controls, test-compiler-project.mjs and both compiler benchmarks. These checks
+are live acceptance gates for user-edited compiler generations, so deleting them
+would weaken activation. Keep WebAssembly instantiation, worker cancellation,
+cross-instance calls and actual Wasm execution in the existing host transport.
+Remove duplicate graph/fast execution loops and put their smallest shared policy
+in host/ide_candidate.tower. tw_candidate_check checks C/Roku entry/comment
+emission, then the existing IDE execution session with the same 100 chunks of
+10000 steps and exact 42-newline result. The host retains handle ownership and
+cleanup. ide_execution_step is shared with tw_exec_step; no second interpreter,
+JSON parser, semantic model or new external library is introduced. Reject stale,
+already-run, malformed and failing sessions before candidate publication.
+
+Public bootstrap 21f527... compiles the smallest changed Tower unit and its
+Tower-written checks first in Docker /cache/candidate_checks_focus. Freeze main
+8c11900 plus the scoped edits in agent1-tooling-candidate-src and configure the
+owned WASI browser build with SDK34 wasi-sdk-p1.cmake, Release, public bootstrap
+path and TOWER_IDE_TESTS=ON. Initial configure used the obsolete wasi-sdk.cmake
+name and omitted the explicitly required browser bootstrap setting; correct
+both to the documented build-wasm.sh arguments. No private compiler is required.
+
+The optional suite exposed a pre-existing duplicate ide_test_requests function
+(a while copy beside its for migration). Remove the duplicate, preserving its
+live checks. New positive and negative fixtures cover graph/fast execution,
+output across multiple chunks, missing metadata, wrong/extra output, invalid
+source, exhausted execution budget, invalid flags, stale/reused handles and
+expected failure diagnostics. Initial loop fixtures accidentally used Tower
+syntax without import tower; requiring the expected error exposed the false
+negative. Fix those fixture imports. The complete existing IDE suite plus these
+cases passes via node playground/scripts/test-ide.mjs
+build/candidate_checks/tower-ide-tests.wasm. Its runner now forwards existing
+WASI diagnostics to the console so failed Tower checks are visible.
+
+Build the ordinary browser profile with IDE tests off and package its actual
+Ninja/depfile recipe together with the unchanged, previously verified owned
+backend-units-rebased-wasi backend recipes/support. Project sources are the new
+frozen checkout, including current 2225c52 semantics. This is a compiler-project
+update; retained hosted reactors keep their original build-source identity.
+The first two edited generations, workers 2 and 4, pass in 46.7/33.8 seconds,
+including import visibility, completion/hover, both interpreters, C/Roku comments,
+actual Wasm execution, native object emission, optimized/unoptimized Foundation
+round trips and bytecode loading. Hashes agree across both generations:
+Tower 084bf5a05c7452e7c99bcc26b13c9fe9fcadf3b7840041b6cd3e81b7de3f5371;
+LLVM 482654dea0880df6edbe447ecfeffc06f00a3635b63e07636d5b1260f2ff3a86;
+cross 9715a1a1bcd226cdee9c6908842f7874976b8ae094bef6a3ba38e75f8c8ad367.
+Final named-flag/count declarations and publication validation are recorded below.
+
+The real browser compiler-project checks also contained obsolete generator-comment
+assertions and an outdated null diagnostic replacement. Remove the redundant
+comment assertions (source/module/entry checks remain) and update the existing
+edit to the current pointer-or-function diagnostic. No new JavaScript test logic.
+compiler-build.mjs is 196 -> 170 lines; across the host shim and browser checks,
+this milestone removes 25 net JavaScript lines. Python remains 0 files/0 lines
+(from 23/1989), shell 11/255 (from 19/483), CMake 43/2305 (recent baseline 54/2594).
+No new percentage claim for GitHub's language chart: Tower recognition is separate.
+Hover/completion fixtures and other reusable JavaScript remain future migration;
+this does not claim the browser boundary or all candidate validation is ported.

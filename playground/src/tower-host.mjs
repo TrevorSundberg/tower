@@ -129,6 +129,9 @@ export async function loadTower(bytes, log = () => {}, bootstrap, foundation, be
     useFast(handle) {
       if (!exports.tw_exec_fast(handle)) throw new Error('Select the fast interpreter before executing a program');
     },
+    checkCandidate(handle, {fast=false, roku=false}={}) {
+      if (!exports.tw_candidate_check(handle,Number(fast),Number(roku))) throw new Error(string(exports.tw_last_error()));
+    },
     fastStats: handle => JSON.parse(string(exports.tw_exec_fast_stats(handle))),
     bytecode(handle, {optimizationProfile=0}={}) {
       const size = exports.tw_exec_bytecode_options(handle,optimizationProfile);

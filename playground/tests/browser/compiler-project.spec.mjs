@@ -24,7 +24,6 @@ test('compiler sources, migration comments, cancellation and persistence are ava
   await page.locator('#project-kind').selectOption('tower:compiler');
   await expect(page.locator('#compiler-controls')).toBeVisible();
   await expect(page.locator('#filename')).toHaveText('units/compiler_parser_nodes.tower');
-  await expect(page.getByRole('textbox',{name:'Tower source'})).toContainText('Continue adding ports');
   await expect(page.getByRole('textbox',{name:'Tower source'})).toContainText('import tower resolves the project file tower.tower');
   await expect(page.locator('button[data-path="tower.tower"]')).toBeVisible();
   await expect(page.locator('button[data-path=".tower/tower.tower"]')).toHaveCount(0);
@@ -59,7 +58,6 @@ test('compiler sources, migration comments, cancellation and persistence are ava
   await page.locator('#auto-rebuild-compiler').uncheck();
   await page.locator('#restore').click();
   await expect(page.getByRole('textbox',{name:'Tower source'})).not.toContainText('saved browser edit');
-  await expect(page.getByRole('textbox',{name:'Tower source'})).toContainText('Continue adding ports');
 });
 
 test('browser rebuild activates edited compiler behavior and reset recovers the original',async({page},info) => {
@@ -73,7 +71,7 @@ test('browser rebuild activates edited compiler behavior and reset recovers the 
   await page.locator('button[data-path="compiler/semantic_values.tower"]').click();
   const project = await savedProject(page);
   const file = project.files.find(f=>f.path==='compiler/semantic_values.tower');
-  await edit(page,file.text.replace('null requires a pointer type','Workbench says: null requires a pointer type'));
+  await edit(page,file.text.replace('null requires a pointer or function type','Workbench says: null requires a pointer or function type'));
   await page.locator('#auto-rebuild-compiler').check();
   await expect(page.locator('#compiler-build-status')).toContainText(/generation 1 active|Build failed:/,{timeout:540000});
   await expect(page.locator('#compiler-build-status')).toContainText('generation 1 active');
@@ -94,7 +92,7 @@ test('browser rebuild activates edited compiler behavior and reset recovers the 
   await page.locator('#target-c').uncheck();
   await page.locator('#build-targets summary').click();
   await edit(page,'var value: i32 = null;'); await page.locator('#execute').click();
-  await expect(page.locator('#execution-error')).toContainText('Workbench says: null requires a pointer type');
+  await expect(page.locator('#execution-error')).toContainText('Workbench says: null requires a pointer or function type');
   await page.locator('#project-kind').selectOption('tower:compiler');
   await page.locator('#auto-rebuild-compiler').uncheck();
   expect((await savedProject(page)).files.find(f=>f.path==='compiler/semantic_values.tower').text).toContain('Workbench says');
@@ -109,7 +107,7 @@ test('browser rebuild activates edited compiler behavior and reset recovers the 
   await expect(page.getByRole('textbox',{name:'Tower source'})).toContainText('missing_compiler_source');
   await page.locator('#project-kind').selectOption('example:execution');
   await page.locator('#execute').click();
-  await expect(page.locator('#execution-error')).toContainText('null requires a pointer type');
+  await expect(page.locator('#execution-error')).toContainText('null requires a pointer or function type');
   await expect(page.locator('#execution-error')).not.toContainText('Workbench says');
   await edit(page,'var value:bool = true; print(value);');await hoverValue(page);
   await expect(page.locator('.tw-hover-signature')).toHaveText('var value: bool');
