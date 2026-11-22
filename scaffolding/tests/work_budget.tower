@@ -1,0 +1,141 @@
+import tower;
+import .library.work_budget;
+
+fn budget_check(ok: bool): void {
+    if !ok { trap("Work budget reservation regression", 0); }
+}
+
+fn budget_receipts(): void {
+    var budget: WorkBudget = default;
+    var other: WorkBudget = default;
+    budget_check(work_budget_init(&budget, 8, 4096, 1));
+    budget_check(work_budget_init(&other, 8, 4096, 1));
+    defer work_budget_dispose(&budget);
+    defer work_budget_dispose(&other);
+    var first: WorkReservation = default;
+    var second: WorkReservation = default;
+    budget_check(work_budget_reserve(&budget, 1, 3, 1024, &first) && first.lanes == 3);
+    var stale = first;
+    budget_check(!work_budget_dispose(&budget) && budget.error == WorkBudgetError.Busy);
+    budget_check(!work_budget_reserve(&budget, 1, 1, 0, &first) && budget.error == WorkBudgetError.Busy);
+    budget_check(work_budget_reserve(&budget, 2, 8, 3072, &second) && second.lanes == 5);
+    var spare: WorkReservation = default;
+    budget_check(!work_budget_reserve(&budget, 1, 1, 0, &spare) && budget.error == WorkBudgetError.Capacity);
+    budget_check(budget.used_lanes == 8 && budget.used_bytes == 4096 && budget.live == 2);
+    budget_check(!work_budget_release(&other, &first) && other.error == WorkBudgetError.Stale);
+    budget_check(work_budget_release(&budget, &first));
+    budget_check(!work_budget_release(&budget, &stale) && budget.error == WorkBudgetError.Stale);
+    budget_check(!work_budget_release(&budget, &first) && budget.error == WorkBudgetError.Stale);
+    budget_check(work_budget_reserve(&budget, 1, 3, 1024, &first));
+    budget_check(first.slot == stale.slot && first.generation != stale.generation);
+    budget_check(!work_budget_release(&budget, &stale) && budget.used_lanes == 8);
+    var altered = first;
+    altered.bytes++;
+    budget_check(!work_budget_release(&budget, &altered) && budget.used_bytes == 4096);
+    budget_check(!work_budget_init(&budget, 1, 0, 2) && budget.used_lanes == 8);
+    budget_check(work_budget_release(&budget, &first) && work_budget_release(&budget, &second));
+    budget_check(budget.peak_lanes == 8 && budget.peak_bytes == 4096 && budget.live == 0);
+    stale = first;
+    stale.active = true;
+    budget_check(work_budget_dispose(&budget));
+    budget_check(!work_budget_init(&budget, 8, 4096, 1));
+    budget_check(work_budget_init(&budget, 8, 4096, 2));
+    budget_check(work_budget_reserve(&budget, 1, 3, 1024, &first));
+    budget_check(!work_budget_release(&budget, &stale) && budget.used_lanes == 3);
+    budget_check(work_budget_release(&budget, &first));
+}
+
+fn budget_reference(): void {
+    var budget: WorkBudget = default;
+    budget_check(work_budget_init(&budget, 12, 3072, 7));
+    defer work_budget_dispose(&budget);
+    var receipts: WorkReservation[17];
+    fill(&receipts, 0, sizeof(WorkReservation[17]));
+    var lanes: usize = 0;
+    var bytes: usize = 0;
+    var live: usize = 0;
+    var seed: u32 = 314159;
+    for(var round: usize = 0; round < 8192; round++) {
+        seed = seed * 1664525 + 1013904223;
+        var index = convert(usize, seed % 17);
+        var receipt = &receipts[index];
+        if receipt.active {
+            lanes -= receipt.lanes;
+            bytes -= receipt.bytes;
+            live--;
+            budget_check(work_budget_release(&budget, receipt));
+        } else {
+            var minimum = 1 + convert(usize, (seed >> 16) % 3);
+            var preferred = minimum + convert(usize, (seed >> 20) % 9);
+            var requested = convert(usize, (seed >> 6) % 1024);
+            var fits = minimum <= 12 - lanes && requested <= 3072 - bytes;
+            var granted = preferred < 12 - lanes ? preferred : 12 - lanes;
+            budget_check(work_budget_reserve(&budget, minimum, preferred, requested, receipt) == fits);
+            if fits {
+                budget_check(receipt.active && receipt.lanes == granted && receipt.bytes == requested);
+                lanes += granted;
+                bytes += requested;
+                live++;
+            } else {
+                budget_check(!receipt.active && budget.error == WorkBudgetError.Capacity);
+            }
+        }
+        budget_check(budget.used_lanes == lanes && budget.used_bytes == bytes && budget.live == live);
+        budget_check(budget.entries.length <= 12);
+    }
+    for(var i: usize = 0; i < 17; i++) {
+        if receipts[i].active { budget_check(work_budget_release(&budget, &receipts[i])); }
+    }
+    budget_check(budget.used_lanes == 0 && budget.used_bytes == 0 && budget.live == 0);
+}
+
+fn budget_limits(): void {
+    var budget: WorkBudget = default;
+    budget_check(!work_budget_init(&budget, 0, 0, 1));
+    budget_check(!work_budget_init(&budget, 1, 0, 0));
+    var maximum = ~convert(usize, 0);
+    budget_check(work_budget_init(&budget, maximum, maximum, 1));
+    defer work_budget_dispose(&budget);
+    var receipt: WorkReservation = default;
+    budget_check(!work_budget_reserve(&budget, 2, 1, 0, &receipt));
+    budget_check(!work_budget_reserve(&budget, 1, 1, 0, null));
+    budget_check(work_budget_reserve(&budget, 1, maximum, maximum, &receipt));
+    budget_check(budget.used_lanes == maximum && budget.used_bytes == maximum);
+    var spare: WorkReservation = default;
+    budget_check(!work_budget_reserve(&budget, 1, 1, 0, &spare));
+    budget_check(work_budget_release(&budget, &receipt));
+    budget.generation = ~convert(u64, 0);
+    budget_check(!work_budget_reserve(&budget, 1, 1, 0, &receipt) && budget.error == WorkBudgetError.Exhausted);
+    budget_check(budget.live == 0 && budget.used_lanes == 0 && budget.used_bytes == 0);
+}
+
+fn budget_optional(): void {
+    var budget: WorkBudget = default;
+    budget_check(work_budget_init(&budget, 1, 4096, 1));
+    defer work_budget_dispose(&budget);
+    var outer: WorkReservation = default;
+    var extra: WorkReservation = default;
+    var retained: WorkReservation = default;
+    budget_check(work_budget_reserve(&budget, 1, 1, 0, &outer));
+    budget_check(work_budget_reserve(&budget, 0, 8, 0, &extra));
+    budget_check(!extra.active && extra.lanes == 0 && budget.live == 1);
+    budget_check(work_budget_reserve(&budget, 0, 0, 4096, &retained));
+    budget_check(retained.active && retained.lanes == 0 && budget.live == 2);
+    budget_check(work_budget_release(&budget, &outer) && budget.used_bytes == 4096);
+    budget_check(work_budget_reserve_result(&budget, 0, 0, 1, &extra) == WorkBudgetError.Capacity);
+    budget_check(!extra.active && budget.used_lanes == 0);
+    var snapshot: WorkBudgetSnapshot = default;
+    budget_check(work_budget_snapshot(&budget, &snapshot));
+    budget_check(snapshot.used_lanes == 0 && snapshot.used_bytes == 4096 && snapshot.live == 1);
+    budget_check(work_budget_release(&budget, &retained) && budget.used_bytes == 0);
+    budget_check(work_budget_reserve(&budget, 0, 8, 0, &extra) && extra.active && extra.lanes == 1);
+    budget_check(work_budget_release(&budget, &extra));
+    budget_check(work_budget_reserve(&budget, 0, 0, 0, &extra) && !extra.active);
+    budget_check(work_budget_release_result(&budget, &extra) == WorkBudgetError.Stale);
+}
+
+budget_receipts();
+budget_reference();
+budget_limits();
+budget_optional();
+print(0);
