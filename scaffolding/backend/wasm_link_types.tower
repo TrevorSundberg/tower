@@ -89,6 +89,7 @@ struct WasmLink {
     imported_globals: u32;
     export_memory: bool;
     export_table: bool;
+    growable_table: bool;
     emit_names: bool;
     import_memory: bool;
     memory_module: WasmBytes;

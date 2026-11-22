@@ -41,6 +41,9 @@ struct WasmFunctionTypeRecord { bytes: WasmBytes; parameters: u32; results: u32;
 struct WasmFunctionRecord {
     type_index: u32; imported: bool; module: WasmBytes; name: WasmBytes;
     code: WasmBytes; code_offset: u32;
+    // One-based export-section row; zero means no override. Keep the name in
+    // the authoritative export record instead of duplicating it per function.
+    export_entry: u32;
 }
 struct WasmLimits { flags: u32; minimum: u64; maximum: u64; }
 struct WasmTableRecord { type: u8; limits: WasmLimits; imported: bool; module: WasmBytes; name: WasmBytes; }

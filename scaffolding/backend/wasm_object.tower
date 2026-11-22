@@ -106,7 +106,8 @@ fn wasm_object_validate(object: WasmObject*, reader: WasmReader*): void {
             wasm_read_fail(reader, WasmReadError.Index); return;
         }
     }
-    foreach (var & exported in &object.exports) {
+    for (var row: usize = 0; row < object.exports.length; row++) {
+        var exported = &object.exports.data[row];
         var limit: usize = 0;
         var kind = convert(WasmExternal, exported.kind);
         match kind {
@@ -118,6 +119,10 @@ fn wasm_object_validate(object: WasmObject*, reader: WasmReader*): void {
             _ => { }
         }
         if convert(usize, exported.index) >= limit { wasm_read_fail(reader, WasmReadError.Index); return; }
+        if kind == WasmExternal.Function {
+            var function = &object.functions.data[convert(usize, exported.index)];
+            function.export_entry = convert(u32, row + 1);
+        }
     }
     foreach (var & entry in &object.comdat_entries) {
         var kind = convert(WasmComdatKind, entry.kind);

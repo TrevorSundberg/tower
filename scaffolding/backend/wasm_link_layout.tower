@@ -234,20 +234,28 @@ fn wasm_link_export_layout(link: WasmLink*): bool {
         var exported: WasmOutputExport = { name: request.name, index: symbol.output_index, ..default };
         var kind = convert(WasmSymbolKind, symbol.kind);
         match kind {
-            WasmSymbolKind.Function => { exported.kind = convert(u8, WasmExternal.Function); }
+            WasmSymbolKind.Function => {
+                exported.kind = convert(u8, WasmExternal.Function);
+                if symbol.definition.object != WasmNoIndex {
+                    var object = link.world.objects.data[convert(usize, symbol.definition.object)].object;
+                    var original = &object.symbols.data[convert(usize, symbol.definition.symbol)];
+                    var function = &object.functions.data[convert(usize, original.index)];
+                    if function.export_entry != 0 { exported.name = object.exports.data[convert(usize, function.export_entry) - 1].name; }
+                }
+            }
             WasmSymbolKind.Global => { exported.kind = convert(u8, WasmExternal.Global); }
             WasmSymbolKind.Data => { exported.kind = convert(u8, WasmExternal.Global); exported.index = symbol.got_index; }
             WasmSymbolKind.Table => { exported.kind = convert(u8, WasmExternal.Table); }
             _ => { return wasm_link_fail(link, WasmLinkError.Unsupported, request.name); }
         }
-        var previous = wasm_names_get(&names, request.name);
+        var previous = wasm_names_get(&names, exported.name);
         if previous != WasmNoIndex {
             var old = &link.output_exports.data[convert(usize, previous)];
-            if old.kind != exported.kind || old.index != exported.index { return wasm_link_fail(link, WasmLinkError.Duplicate, request.name); }
+            if old.kind != exported.kind || old.index != exported.index { return wasm_link_fail(link, WasmLinkError.Duplicate, exported.name); }
             continue;
         }
         if exported.index == WasmNoIndex { return wasm_link_fail(link, WasmLinkError.Layout, request.name); }
-        if !wasm_names_set(&names, request.name, convert(u32, link.output_exports.length)) || !wasm_link_push(link, &link.output_exports, exported) {
+        if !wasm_names_set(&names, exported.name, convert(u32, link.output_exports.length)) || !wasm_link_push(link, &link.output_exports, exported) {
             return wasm_link_fail(link, WasmLinkError.Allocation, request.name);
         }
     }

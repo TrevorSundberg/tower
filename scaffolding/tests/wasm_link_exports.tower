@@ -1,0 +1,79 @@
+import tower;
+import utility_checks;
+import wasm_link_fixture;
+import .backend.wasm_bytes;
+import .backend.wasm_object;
+import .backend.wasm_object_types;
+import .backend.wasm_link_types;
+import .backend.wasm_link_prepare;
+import .backend.wasm_link_world;
+import .backend.wasm_link_options;
+import .backend.wasm_link;
+import .library.bytes_types;
+import .library.bytes_interface;
+
+enum WasmExportCase: u32 { Fixed = 0, Growable = 1, EmptyName = 2, Collision = 3, InvalidIndex = 4 }
+
+// Keep the symbol spelling separate from the export-section spelling, just as
+// LLVM's main adaptation and wasm-export-name attribute do in real objects.
+fn wasm_test_export_object(output: ByteBuffer*, symbol: u8*, name: u8*, index: u32): void {
+    var source: ByteBuffer = default; defer bytes_dispose(&source);
+    wasm_test_named_object(&source, symbol, convert(u32, WasmSymbolFlag.Exported));
+    var object: WasmObject = default; defer wasm_object_dispose(&object);
+    utility_check(wasm_object_read(&object, init(WasmBytes) { data: source.data, length: source.length }), "export fixture source");
+    var header_bytes: usize = 8;
+    utility_check(bytes_append(output, source.data, header_bytes), "export fixture header");
+    var section: ByteBuffer = default; defer bytes_dispose(&section);
+    foreach (var & record in &object.sections) {
+        if record.kind == convert(u8, WasmSection.Code) {
+            wasm_test_index(&section, 1); wasm_test_name(&section, name);
+            wasm_test_byte(&section, convert(u8, WasmExternal.Function)); wasm_test_index(&section, convert(u64, index));
+            wasm_test_section(output, WasmSection.Export, &section);
+        }
+        utility_check(bytes_append(&section, record.bytes.data, record.bytes.length), "copy export fixture section");
+        wasm_test_section(output, convert(WasmSection, record.kind), &section);
+    }
+}
+
+fn wasm_test_export_profiles(): void {
+    for (var scenario: u32 = 0; scenario <= convert(u32, WasmExportCase.InvalidIndex); scenario++) {
+        var mode = convert(WasmExportCase, scenario);
+        var public_name = mode == WasmExportCase.EmptyName ? "" : "public_entry";
+        var input: ByteBuffer = default; defer bytes_dispose(&input);
+        var other: ByteBuffer = default; defer bytes_dispose(&other);
+        wasm_test_export_object(&input, "private_entry", public_name, mode == WasmExportCase.InvalidIndex ? 1 : 0);
+        var link: WasmLink = default;
+        utility_check(wasm_link_init(&link), "export profile world"); defer wasm_link_close(&link);
+        var read = wasm_link_read_object(&link.world, wasm_text_bytes("renamed.o"), init(WasmBytes) { data: input.data, length: input.length });
+        if mode == WasmExportCase.InvalidIndex {
+            utility_check(!read && link.world.error == WasmReadError.Index && link.output.length == 0, "bad export index rejected before linking"); continue;
+        }
+        utility_check(read && link.world.objects.data[0].object.functions.data[0].export_entry == 1, "decoded export override retained");
+        var options: WasmLinkOptions = default; var action: WasmLinkOption = default;
+        utility_check(wasm_link_option(&link, &options, wasm_text_bytes("--export-table"), &action), "table export option");
+        if mode == WasmExportCase.Growable { utility_check(wasm_link_option(&link, &options, wasm_text_bytes("--growable-table"), &action), "growable table option"); }
+        // The explicit request and the object's flag must coalesce after renaming.
+        utility_check(wasm_link_option(&link, &options, wasm_text_bytes("--export=private_entry"), &action), "symbol export request");
+        if mode == WasmExportCase.Collision {
+            wasm_test_export_object(&other, "different_entry", public_name, 0);
+            utility_check(wasm_link_read_object(&link.world, wasm_text_bytes("collision.o"), init(WasmBytes) { data: other.data, length: other.length }), "colliding export input");
+            utility_check(!wasm_link_run(&link) && link.error == WasmLinkError.Duplicate && wasm_bytes_text(link.error_name, public_name)
+                && link.output.length == 0, "distinct functions cannot publish the same export name"); continue;
+        }
+        utility_check(wasm_link_run(&link), "export profile link");
+        var output: WasmObject = default; defer wasm_object_dispose(&output);
+        var reader: WasmReader = { bytes: { data: link.output.data, length: link.output.length }, ..default };
+        wasm_object_sections(&output, &reader);
+        utility_check(reader.error == WasmReadError.None && output.tables.length == 1, "export profile output sections");
+        var table = &output.tables.data[0];
+        var maximum = (table.limits.flags & convert(u32, WasmLimitFlag.Maximum)) != 0;
+        utility_check(table.limits.minimum == convert(u64, WasmTableBase) && maximum == (mode != WasmExportCase.Growable)
+            && (!maximum || table.limits.maximum == table.limits.minimum), "growable table omits maximum; default remains fixed");
+        var functions: usize = 0;
+        foreach (var & exported in &output.exports) {
+            if exported.kind != convert(u8, WasmExternal.Function) { continue; }
+            utility_check(wasm_bytes_text(exported.name, public_name) && exported.index == 0, "public spelling targets original function index"); functions++;
+        }
+        utility_check(functions == 1, "renamed exports deduplicate without exposing private spelling");
+    }
+}

@@ -239,6 +239,20 @@ require two real relocation kernels at their barrier and test ordered failure,
 cancellation and TLS validation. It does not turn the isolated LLVM reactor into
 a shared-memory compiler or replace wasi-libc's thread startup.
 
+`wasm_link_exports.tower`, included in the reader suite, exercises real encoded
+export-name overrides, empty names, explicit/automatic export deduplication,
+collision diagnostics, invalid indexes and fixed/growable table limits.
+Thread-runtime integration links the shared reader and the real threaded
+portable compiler with Tower, including SDK 34's `crt1-reactor.o`, pthread/libc
+and compiler-builtins archives. Preserve the build's allocator wraps, allowed
+host imports, exported table, `--growable-table`, shared imported memory and
+stack/memory limits. Use `--no-entry --export=_initialize` for the reactor.
+Run the existing compiler-threads test transport with `TOWER_TEST_WORK_WASM`
+pointing to the Tower-linked reader, `TOWER_TEST_WASM` to the Tower-linked
+compiler and `TOWER_REQUIRE_THREADS=1`. It covers actual overlap, worker failure,
+and compiler determinism at one/two/four/eight workers. These links still use
+the third-party wasi-libc thread ABI; Tower owns job scheduling and the linker.
+
 `backend/wasm_link_plan.tower` accepts length-delimited arguments and explicitly
 named input bytes, including allow/export lists. Its keys need no NUL terminator.
 `backend/linker_tower_wasm.tower` adapts the existing `BackendLink` ownership API;

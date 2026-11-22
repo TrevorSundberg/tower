@@ -140,6 +140,12 @@ profiles and executable fixtures. Link requests are single use; the BackendLink
 adapter creates a fresh world for each invocation. Finish or join readers before
 closing input owners; a pinned view prevents structural mutation and disposal.
 
+`--growable-table` leaves the defined function table's maximum unspecified so
+the host can append callback slots. Without it the table retains its fixed size.
+Function export-section names override link-symbol spellings, including empty
+names; duplicate final names are checked after that override. Link-symbol lookup
+and relocations keep their original bindings.
+
 Static wasm32 output may define memory or import it with `--import-memory`
 (`env.memory`) or `--import-memory=module,name`. Both paths preserve explicit
 initial/maximum limits and optional memory export. Imported memory does not make
@@ -178,6 +184,9 @@ and errors join in input order and output bytes do not depend on worker count.
 `jobs_run` and `jobs_peak` count admitted batches, not measured CPU overlap.
 Isolated browser LLVM workers currently report capacity one; the same kernels
 also pass real overlap checks through the existing shared-Wasm worker transport.
+The Tower linker also links that transport's actual SDK 34 wasi-libc thread
+runtime and the shared portable compiler. Both run through the existing host;
+this does not change the isolated LLVM reactor's execution model.
 The browser build compiles `linker_tower_wasm.tower` as its own unit, shared by
 the LLVM and cross-target reactors and included in editable self-build recipes.
 

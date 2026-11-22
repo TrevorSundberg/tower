@@ -39548,3 +39548,72 @@ changed. The next audit confirms the native-core and host-WASI scripts are mostl
 required CMake/SDK configuration boundaries, while distribution validation owns
 relocation staging around an existing Tower verifier. Consider reusing those
 resource/verification capabilities before translating any wrapper line for line.
+
+### 2026-11-21: threaded runtime linker compatibility plan
+
+Pull/rebase through 262b740, preserving the other lane's completed Python packager
+and target-test migration. Continue the TLS/jobs milestone with actual wasi-libc
+thread runtime links. This uses existing Tower ECS/WorkGraph/WorkPool admission,
+pinned inputs and deterministic joins; no separate scheduler is proposed.
+Audit real SDK34 reactor arguments and support objects, reproduce the first
+unsupported profile, implement only the required Tower linker behavior and
+functional checks, then execute the ordinary shared-worker fixtures against
+Tower-linked images. Full threaded LLVM hosting remains a separate transport
+question; linking the thread runtime must not claim that conversion. Preserve
+explicit target legality, public bootstrap, upstream comparison and output
+identity across linker worker budgets. No todo.txt edits or new native/scripts.
+
+### 2026-11-21: real threaded runtime compatibility implemented
+
+SDK34 clang -### for the existing threaded reader exposes the first gap:
+--growable-table. Added an explicit request field/option and omit only the table
+maximum when requested; default table limits remain fixed. Next actual execution
+failed because instance.exports.main was absent. llvm-readobj-19 shows the Tower
+object's exported link symbol is __original_main (LLVM's main adaptation), while
+its export section names that function main. The old linker discarded this
+override and exported the internal spelling. Keep a derived one-based row into
+the object's existing export records and select that spelling after symbol
+resolution. Lookup/relocation bindings remain unchanged; deduplicate/conflict-check
+FINAL export names, including empty names. New encoded object fixtures cover the
+profile and malformed export indexes. No alternate node model or frontend change.
+
+Research/reference: https://github.com/WebAssembly/wasi-threads and
+https://lld.llvm.org/WebAssembly.html; pinned LLVM1e57ee22's
+llvm/lib/Object/WasmObjectFile.cpp parseExportSection and lld/wasm/Writer.cpp
+export calculation confirm the function override behavior. SDK34 clang is23.1.0;
+llvm-readobj is host19 because SDK34 does not ship llvm-readobj. An exploratory
+llvm-objdump -x command does not support Wasm; its failure was not validation.
+
+Real Tower-linked reader image passes 128 repeated linker/ECS-job lifecycles and
+injected worker-trap interruption via the existing Node shared-Wasm transport.
+It includes actual crt1-reactor.o, libpthread.a, libc.a and compiler-builtins,
+plus the existing Tower allocator/work bindings. One/four linker workers emit
+identical debug image SHA bc68c8994460bb2bdcc18f69b9b4d0f3b0115b6b9ccde6e61eac82a7b9fbb0f3.
+The complete portable threaded compiler also links and executes: existing
+compiler-threads suite passes3/3, zero skipped,13.81s, including declaration/body
+checking/lowering/staging determinism at1/2/4/8 execution workers. Its image is
+identical at1/2/4/8 LINK workers: SHA
+157de5a456cc456db3b842883621408a28b4a59cd4eda91a74ae2c51fbe4c638.
+Link times0.09/0.08/0.08/0.08s; too short for a general speed claim.
+
+Reproducible frozen normalized arguments: build/wasm_link_thread_runtime_args.json
+and build/wasm_link_thread_compiler_args.json. Normalize Clang's reactor entry to
+--no-entry --export=_initialize, resolve library paths explicitly, and preserve
+allocator wraps, host-import lists, shared/imported memory, growable table and
+stack limits. The compiler's tw_foreign_call already has a live strong relocation;
+the redundant --undefined retention flag is not needed for this byte-plan test.
+This does NOT claim complete clang-driver/LLD CLI option compatibility. Inputs
+are existing build/browser-wasi-threads objects and SDK34 archives; output tests
+select TOWER_TEST_WORK_WASM and TOWER_TEST_WASM, with TOWER_REQUIRE_THREADS=1.
+Logs build/wasm_link_thread_{runtime,compiler}.log. No new JS transport required.
+
+Performance audit caught an avoidable4.8MiB RSS cost from storing a WasmBytes plus
+presence flag on EVERY function. Replaced that prototype with one u32 export-row
+cache, using existing struct padding; names remain in the authoritative export
+record. Preliminary frozen LLVM-reactor medians previous0.56/current0.54s, with
+large scheduling noise. The final indexed representation restores prior RSS;
+final measurement/validation recorded below. The existing nonthreaded image
+remains byte-identical SHA361466038559fa5d295268fb38fc3fbe3af7ae3993523974056933b32b378133.
+Native export-profile/reader checks pass. Public clean successor, updated Wasm
+reader, final threaded links and browser self-build gates follow the frozen
+source checkpoint. Production LLD selection remains unchanged.

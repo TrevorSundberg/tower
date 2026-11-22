@@ -175,8 +175,10 @@ fn wasm_link_emit_sections(link: WasmLink*, output: ByteBuffer*): bool {
     }
     if link.table_live || link.export_table {
         var count = convert(u64, link.table_functions.length) + convert(u64, WasmTableBase);
+        var flags = link.growable_table ? convert(u64, 0) : convert(u64, WasmLimitFlag.Maximum);
         if !wasm_write_uleb(&section, 1) || !bytes_push(&section, convert(u8, WasmValueType.FuncRef))
-            || !wasm_write_uleb(&section, 1) || !wasm_write_uleb(&section, count) || !wasm_write_uleb(&section, count)
+            || !wasm_write_uleb(&section, flags) || !wasm_write_uleb(&section, count)
+            || (!link.growable_table && !wasm_write_uleb(&section, count))
             || !wasm_emit_section(output, WasmSection.Table, &section) { return false; }
     }
     if !link.import_memory && (!wasm_write_uleb(&section, 1) || !wasm_emit_memory_limits(link, &section)

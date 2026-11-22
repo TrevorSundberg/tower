@@ -123,6 +123,7 @@ fn wasm_link_option(link: WasmLink*, options: WasmLinkOptions*, argument: WasmBy
         return true;
     }
     if wasm_bytes_text(argument, "--export-table") { link.export_table = true; return true; }
+    if wasm_bytes_text(argument, "--growable-table") { link.growable_table = true; return true; }
     if wasm_bytes_text(argument, "--stack-first") { link.stack_first = true; return true; }
     if wasm_bytes_text(argument, "--debug-names") { link.emit_names = true; return true; }
     if wasm_bytes_text(argument, "--allow-undefined") { link.allow_undefined = true; return true; }
