@@ -41986,3 +41986,29 @@ Release validation of source snapshot 2996ddd:
   pass desktop/mobile execution, completion, persistence and native downloads
   with all 104 served assets matching. Logs are build/source_types_release_*.
   Publication remains pending the final pull/rebase and integrated checks.
+
+Final integration rebased cleanly onto 6482989 (prepared pointer projections and
+statement operand/field dependency scheduling). The earlier 2996ddd snapshot
+was rebased, so refreshed the packaged compiler again to retain reproducible,
+published-ancestry provenance rather than pinning an unreachable local revision.
+The complete candidate is built from 46b1da9, SHA-256
+6022aa2bdfc838ead9dd9507bea004b78568997f3a468f916a9bfa4310a0680a.
+Its SHA256SUMS and relocated /tmp invocation pass. With that package installed
+at bootstrap/linux-x64, /cache/source-types-pinned-clean builds successfully
+using the default bootstrap path and no private override. This remains a Linux
+x64 development bootstrap, not a portable Windows/macOS release.
+
+The integrated compiler passes source-type tests, exact semantic fixtures at
+both widths, world isolation, type-smoke and body-smoke serial/worker execution,
+canonical reparsing and ordered diagnostics/cycles. The real native/Wasm guest
+fixture passes again. The first attempted post-rebase browser generation began
+before recipe packaging had completed; stopped that process and restarted from
+frozen completed inputs. Do not count the interrupted attempt as validation.
+Final browser generation/publication results follow below.
+
+Both integrated browser generations pass with identical successive reactor
+hashes, including the deliberately edited semantic diagnostic. Sizes are
+1282473 (parser), 35059400 (LLVM) and 65029925 (cross) bytes. The final local
+browser verifier passed desktop checks but timed out on a mobile Restore error
+marker while self-build workers were active. Rerunning unchanged checks with
+self-builds finished; this timeout is not yet classified as a compiler failure.
