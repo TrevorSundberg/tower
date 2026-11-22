@@ -43970,3 +43970,10 @@ bytes match SHA256 99f9fd454516f4582ef72133b067334c606c19fa4909dd4c0782e2a4b235f
 with runtime source 23b919ef and all 104 assets retained. Evidence is
 build/parser_measurement_latest_{manifest,hosted}.json. Publication of the current
 fixture/retirement receipt follows without rebuilding those runtime assets.
+
+Generic fixture/research retirement source 5d3ec0f is pushed. Pages
+822ecc600c7c91fbe066b8f4c453656edcc4162d workflow 45033106344 succeeded;
+hosted manifest exactly matches the prepared SHA256
+37f5edb92b28ada36cd03d61a65f5c118a1c8b9ea23e1d61c45fe671918348c2.
+The receipt preserves the 23b919ef runtime, all 104 asset entries and earlier
+receipts. Publication lock released. This journal receipt reuses those assets.
