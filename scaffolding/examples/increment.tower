@@ -1,36 +1,6 @@
-import bedrock;
+import foundation;
 
-// Bedrock supplies grammar declarations, not executable statements or ++.
-// Define only the basic Foundation forms this example needs. Core* names and
-// captures connect these rules to the compiler's ordinary typed operations.
-[number]
-token Number = /[0-9]+/;
-parse CoreTypeName = $name:Identifier;
-parse CoreType = $name:CoreTypeName | $base:CoreType '*';
-parse CoreLocation = $name:Identifier;
-parse CoreOperand = CoreLocation | Number;
-parse CoreOperator = '+';
-parse CoreBinary = $left:CoreOperand $op:CoreOperator $right:CoreOperand;
-parse CoreAddress = '&' $name:CoreLocation;
-parse CoreLoad = '*' $name:CoreLocation;
-parse CoreValue = CoreOperand | CoreBinary;
-parse CoreTarget = $name:CoreLocation | '*' $name:CoreLocation;
-parse CoreDeclare = 'var' $name:Identifier ':' $type:CoreType '=' $value:CoreValue ';';
-parse CoreAssign = $target:CoreTarget '=' $value:CoreValue ';';
-parse CoreParameter = $name:Identifier ':' $type:CoreType;
-parse CoreParameters = CoreParameter | CoreParameters ',' CoreParameter;
-parse CoreCallArgument = CoreOperand;
-parse CoreArguments = CoreCallArgument | CoreArguments ',' CoreCallArgument;
-parse CoreCall = $name:CoreLocation '(' $args:CoreArguments? ')';
-parse CoreOperand |= CoreCall | CoreAddress | CoreLoad;
-parse CoreBlock = '{' Statement* '}';
-parse CoreFunction = 'fn' $name:Identifier '(' $params:CoreParameters? ')' ':' $type:CoreType $body:CoreBlock;
-parse CoreReturn = 'return' $value:CoreOperand ';';
-parse CoreCallStatement = $call:CoreCall ';';
-parse Statement = CoreDeclare | CoreAssign | CoreFunction | CoreReturn | CoreCallStatement;
-
-// Define the example's signed 32-bit integer type without a standard-type import.
-var i32: type = integer_type(32, 1);
+// Foundation supplies basic statements, functions and types. Add ++ below.
 
 // These helpers increment i32 locations; postfix returns old, prefix returns new.
 fn post_increment(p: i32*): i32 {

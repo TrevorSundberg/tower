@@ -45414,3 +45414,25 @@ retained explicit env imports, then passed with that required input supplied.
 The real shared-worker Node suite passes3/3 (26.26s), zero skipped, including
 128 pool lifecycles, injected worker failure and1/2/4/8-worker determinism.
 Two-generation browser compiler and hosted deployment validation follow.
+
+### Increment example correction: import Foundation
+
+The user clarified that increment.tower should import Foundation, not Bedrock.
+Replace its Bedrock import and duplicated basic grammar/type declarations with
+`import foundation;`. Keep the two prefix/postfix CoreCall extensions and their
+ordinary pointer helpers, so the example still demonstrates adding ++ itself.
+Foundation supplies statements, functions and standard types; the example no
+longer needs to rebuild them. This supersedes the earlier Bedrock-only request
+for increment, without changing the declaration seed model or other examples.
+
+The published Linux bootstrap executes the simplified source and prints
+5, 6, 7, 7, 9. This is an example-only correction: reuse the latest verified
+published compiler assets and their build identities for deployment. Focused
+browser and hosted verification follow; do not rebuild unchanged compilers.
+
+Both native interpreters pass. The existing increment example test passes its
+execution, canonical Foundation round trip and LLVM output checks against the
+latest published parser/LLVM reactors (`build/increment_foundation_node.log`).
+The existing desktop/mobile increment browser cases pass as well
+(`build/increment_foundation_browser.log`). The only changed site assets are
+increment.tower and its manifest entry/publication receipt.
