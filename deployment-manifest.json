@@ -1517,5 +1517,15 @@
                                            "remainingJavaScriptFiles":  178,
                                            "remainingJavaScriptLines":  23760,
                                            "runtimeAssetsChanged":  false
-                                       }
+                                       },
+    "workerFixtureToolingMigration":  {
+                                          "sourceCommit":  "bca0b1adf6edd3206a9971b4cce6a08daafd5f5f",
+                                          "report":  "docs/temporal-opcode-research-journal.md",
+                                          "implementation":  "Fixed browser worker programs and generic inference cycle read Tower files; reuse four existing failure fixtures. No generator or extra tool binary.",
+                                          "validation":  "Smallest Tower entry emits Foundation. Native graph/fast iteration and imported-module outputs match. Published browser worker determinism at 1/2/4/8 workers, both widths and engines passes; selected forward-generic/cycle check passes. Existing clean public successor evidence remains applicable.",
+                                          "remainingJavaScriptFiles":  178,
+                                          "remainingJavaScriptLines":  23717,
+                                          "temporalSourcesChanged":  false,
+                                          "runtimeAssetsChanged":  false
+                                      }
 }
