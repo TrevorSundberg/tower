@@ -344,7 +344,7 @@
     "validation": "79 runtime/LLVM/package checks; eight threaded package/worker checks; two edited browser compiler generations; four final worker-reuse/stale-permit browser checks; ten output/viewport/frame checks. Fresh native successor after final compiler-source rebase. All 86 local deployment asset hashes and full desktop/mobile flows pass."
   },
   "scope": "Expression dependency queries for initializers and if/while conditions; retained type failures and self-reference round trips; native unit worker integration.",
-  "previousDeployment": "218bad95c7dd8563369823103789b8cc6bf70962",
+  "previousDeployment": "9ced85534540c83b18d6e04852f80d3259e97d02",
   "measurementToolingMigration": {
     "implementationCommit": "1007d4179107c6c5372afcb9d1233a406695e992",
     "validationCommit": "824af121b0441df8c2a6af9e6a328bd6a0164018",
@@ -384,8 +384,8 @@
   "bootstrapExecutableSha256": "21f527125bfa05a8cd6d4923d4fdc026a04553e919f2905c602a17691598dba5",
   "publishedBootstrapSha256": "21f527125bfa05a8cd6d4923d4fdc026a04553e919f2905c602a17691598dba5",
   "bootstrapSha256": "21f527125bfa05a8cd6d4923d4fdc026a04553e919f2905c602a17691598dba5",
-  "sourceCommit": "c7a7976a00510316fd0b1082c8fc183f92d6b9e2",
-  "publicationNote": "Verified runtime checkpoint. Preserve other lanes historical receipts. Subsequent for-header work is not included in these assets.",
+  "sourceCommit": "b0e4aa7961b5be48168113120cd3889dd7959081",
+  "publicationNote": "Target-pack tooling milestone: remove build-targets.sh and llvm-dlltool; Tower consumes existing runtime IR and writes bounded COFF imports/indexed ar. Source/tooling validation update only; preserve the current c7a7976 runtime, all 88 assets, and every earlier receipt.",
   "buildNote": "Runtime and compiler-project assets built from c7a7976 using complete public bootstrap 21f52712. Fresh 54-step native build and two edited browser compiler generations pass; generation artifacts are identical. Includes merged threaded Wasm-linker changes.",
   "buildSourceCommit": "c7a7976a00510316fd0b1082c8fc183f92d6b9e2",
   "compilerSourceTree": "4611f77896c7eaa2e5ffa689a152ebabc1d7898e",
@@ -645,5 +645,49 @@
     "cleanNativeSha256": "c56472b3e284ed3f8cce8a321e87dd8ebd39f8d0655474a39a8fb65ea6acceda",
     "projectSha256": "cc2ec155f5ea8b14f0776e263e459fad61dc68331976c56b2a10dc08f634edc7",
     "limits": "Some structural semantic work remains on the coordinator; no persistent cross-revision cache or cross-unit import deduplication. Whole-compiler completion is not claimed."
+  },
+  "targetPackagingToolingMigration": {
+    "sourceCommit": "b0e4aa7961b5be48168113120cd3889dd7959081",
+    "implementationCommit": "2c8bce6",
+    "entryPoint": "package_targets RUNTIME_RESOURCE_DIRECTORY TARGET_DESCRIPTION_DIRECTORY CLANG OUTPUT_DIRECTORY",
+    "removedScript": "playground/scripts/build-targets.sh",
+    "removedSteps": [
+      "configured native CMake build directory requirement for packaging",
+      "profile selection and runtime-object copy loop",
+      "llvm-dlltool invocation"
+    ],
+    "implementation": "Reuse installed bound IR, shared Tower COFF metadata and indexed GNU ar writer; Clang remains the target code generator.",
+    "shellBefore": {
+      "files": 12,
+      "lines": 276
+    },
+    "shellAfter": {
+      "files": 11,
+      "lines": 256
+    },
+    "postPythonBaseline": {
+      "files": 19,
+      "lines": 483
+    },
+    "removedShellLinesSincePythonRetirement": 227,
+    "pythonFiles": 0,
+    "ownedNativeSourceFiles": 0,
+    "validation": {
+      "publicBootstrapSha256": "21f527125bfa05a8cd6d4923d4fdc026a04553e919f2905c602a17691598dba5",
+      "defaultRebasedSuccessorSha256": "67386c33b78f48193e72eab236ca8bb6abb9414eedb42d0db67c2144ad5b20f1",
+      "packagerSha256": "437dc10d7a2c173512d36f8c6632ffca08ae715044e4a84831372622752d35de",
+      "cleanBuild": "PASS: documented default public-bootstrap 54-step successor and fresh five-step tool build after c7a7976 rebase; all seven default tools also built.",
+      "native": "PASS: five target links; actual Linux x64, QEMU ARM64 and WSL Windows; separate Windows foreign-archive and memory programs.",
+      "browser": "PASS: all seven cross tests with verified published c7a7976 reactor; six targets/repeat bytes/library links/recoverable errors; actual Linux x64/ARM64 and Windows downloads.",
+      "sharedCoff": "PASS: original stack-probe archive byte identity, then checksum across both interpreter widths, native and Wasm after rebase.",
+      "determinism": "All seven pack products repeat identically. Four runtime objects and macOS description match the previous recipe; Windows runtime differs only by removing the current-time COFF timestamp.",
+      "negatives": [
+        "unsupported/duplicate definitions and 256/257 boundary",
+        "invalid metadata preserves output and output-borrowing input",
+        "child failure/empty successful output/status125 preserve published packs",
+        "output symlink and source-description alias rejected before replacement"
+      ],
+      "limits": "Minimal by-name code-import definition subset; per-file atomic replacement requires external generation locking for concurrent consumers. macOS link-only. Linux development successor is not a portable compiler release."
+    }
   }
 }
