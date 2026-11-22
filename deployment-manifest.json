@@ -1502,5 +1502,20 @@
                                                              "desktop":  "passed",
                                                              "mobile":  "passed"
                                                          }
-                              }
+                              },
+    "genericFixtureToolingMigration":  {
+                                           "sourceCommit":  "5d3ec0f4ba2121bb303f7d898e209d431f63fec9",
+                                           "report":  "docs/temporal-opcode-research-journal.md",
+                                           "retired":  [
+                                                           "docs/research/replacement-shortcuts.mjs",
+                                                           "docs/research/replacement-shortcuts.test.mjs",
+                                                           "playground/tests/generic_body_cases.mjs"
+                                                       ],
+                                           "implementation":  "Unlinked replacement experiment archived in Git history; fixed generic body workloads shared as Tower fixtures without a generator.",
+                                           "validation":  "Old/new focused browser checks pass 2/2; modified threaded determinism check passes at 1/2/4/8 workers, both widths. Clean public bootstrap successor, native graph/fast positive and negative budget, type-smoke, query-smoke and backend API pass.",
+                                           "temporalSourcesChanged":  false,
+                                           "remainingJavaScriptFiles":  178,
+                                           "remainingJavaScriptLines":  23760,
+                                           "runtimeAssetsChanged":  false
+                                       }
 }
