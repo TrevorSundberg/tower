@@ -782,3 +782,30 @@ therefore needs a new cache **and** a fresh relocated build/native destination;
 preserve the old owned package as evidence before the wrapper recreates it.
 The current source integration still lacks final runtime/instrumentation/browser/
 generation/hosted evidence and is not publication readiness.
+
+### Coherent clean-build receipt
+
+At f13c8f6916ee86fa3381291f6a508d9775176bd1 (scaffolding92ac1f33),
+the public predecessor produced a fresh53step native compiler in250.64s wall,
+245.03s CPU and786524KiB peakRSS,0swaps, raw0. Explicit outer/compiler jobs1;
+same private Docker/LLVM19.1.1 and two-core affinity described above. This is one
+empty-build-cache sample, not a same-input before/after performance comparison.
+Smallest changed tool_files_posix and corrected frontend_main objects also pass
+(5.90s/184224KiB and12.14s/347848KiB respectively). Runtime checks remain separate.
+
+Compiler4736a486e6337065a52ba78be2a993348af84ca5b234899228fd94156c6b3a5f and
+all42resources match between fresh cache and relocated build/native. Both omit
+the entire deleted types directory; the five root language/type files equal
+current scaffolding. Old inactive package is preserved in D2 build artifacts,
+public bootstrap resources unchanged. This closes stale-forwarder packaging for
+this native build only; browser/compiler-generation packaging is still pending.
+Exact commands, raw exits, source hashes and measurements are retained under
+build/d2_ecs/coherent_f13c8f6; no full-suite, sanitizer or hosted result is implied.
+
+Incoming fixture changes after that freeze are explicitly separate: L2's
+retained-runtime reachability oracle and B2's shared focused overlap helper and
+editor-language imports. B1's corrected six-path formatter handoff already
+matches integrated bytes. These are owner-authored tests, not new D2 tool logic;
+D1 maintains their direct-scope audit and generic registration. D2 checked the
+overlap helper preserves reference objects, budget accounting, actual barriers,
+drain ordering and the30s deadline before adopting it. Local runtime is pending.

@@ -47687,3 +47687,56 @@ remains recorded in its lane. D2 acquired the normally released heavy.lock for
 smallest changed tooling/frontend units before any larger native build. The
 sources will remain frozen through that command group; all new runtime results
 still pending at this entry.
+
+### D2 coherent public-bootstrap build and fixture followups (2026-11-22)
+
+Frozen main f13c8f6916ee86fa3381291f6a508d9775176bd1, scaffolding tree
+92ac1f33ca453c76e97651082d3bcca88c44be54 passed the documented Linux/Docker
+public-bootstrap build in a new native-coherent-f13c8f6 cache. The inactive
+build/native package was preserved at the verified own-workspace path
+build/d2_ecs/native_package_pre_integration_43f2354 before the wrapper recreated
+its destination. Public pin9653f818 and its complete SHA256SUMS passed; no
+private bootstrap override. Outer build and compiler jobs were explicitly1,
+container CPUs0,2, LLVM19.1.1, existing tower_build image4be584fb. Sources stayed
+frozen until every owned child drained.
+
+Smallest tool_files_posix object passed5.90s wall/5.69s CPU/184224KiB RSS;
+frontend_main passed12.14s/11.88s/347848KiB. The latter independently closes the
+missing root-wrapper compile failure, not its runtime acceptance. The canonical
+native53step build passed raw0:250.64s wall,234.36s user+10.67s system,
+786524KiB peakRSS,383major faults,0swaps. One empty-build-cache sample with warm
+filesystem is not a paired speedup result against older compiler sources.
+The execution session later detached; saved run.status0/native.time0 and the
+complete final link log were recovered independently. Docker census showed only
+init/sleep, so no job was restarted or left consuming frozen sources.
+
+New compiler SHA2564736a486e6337065a52ba78be2a993348af84ca5b234899228fd94156c6b3a5f
+matches in cache and relocated package. Recursive resource comparison passes;
+both contain42files and no types directory, excluding all14deleted forwarders.
+Root bedrock/foundation/foundation_syntax/tower/types files equal current source.
+Logs, exact input hashes and time output are under
+build/d2_ecs/coherent_f13c8f6. Final observed140GiB disk free,9.9GiB RAM available,
+6.1GiB host swap used (distinct from process swaps0). Heavy slot released for
+D1 after drain. Merge-preserving pull/rebase passed with unchanged source.
+
+After the freeze drained, reviewed fixture_handoff_followup and
+B2_overlap_editor_handoff archives. B1 six-path formatter SHA222cc74e reverse
+check passes with default-p1: current source already includes the preserved
+parser_main argument. An initial wrong-p2 read-only check failed on missing
+paths, then the correct strip succeeded; no source churn or redundant build.
+Applied L2 retained-runtime oracle SHA13f3b7e1 after its predecessor: an unused
+type alias is canonically erased and correctly expects scalar false; direct
+and indirect type-return and conditional exported-body positives remain, with
+case-specific failure diagnostics. Production reachability is unchanged.
+
+Adopted exact B2 backend_units fixture SHA2e1774ae. Its helper extracts the same
+stream trial, preserving full-suite width/budget loops, independent serial
+objects, byte equality, retained-byte accounting, distinct-worker barrier and
+original30s deadline. The focused entry adds phase messages and identifies which
+signal timed out. Joined backend disposal precedes signal/front-end disposal.
+D1 owns the selector hook; no alternative runner or duplicated scheduler added.
+Applied B2 editor fixture SHAf862f1a4: two explicit language imports, unchanged
+strlen-derived cursor and typed completion oracles. These newly integrated
+fixtures still require local smallest-unit/runtime validation; the successful
+native compiler build does not execute them. Known EarlyCapture and current
+instrumentation/browser/generation/publication acceptance remain open.
