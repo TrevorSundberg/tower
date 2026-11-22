@@ -1,0 +1,69 @@
+import tower;
+import .compiler.generic_registry;
+import .compiler.entity_require;
+import .library.entities;
+import .library.entity_types;
+
+fn body_budget_child(parent: Entity*): Entity* {
+    var child = entity_create(parent.store);
+    compiler_entity_require(child != null && entity_attach(child, parent, null));
+    entity_release(child);
+    return child;
+}
+
+fn body_budget_instance(context: GenericContext*, definition: Entity*, body: Entity*): Entity* {
+    var node = body_budget_child(context.root);
+    var instance = bits(GenericInstance*, generic_component_add(node, context.instance_type));
+    *instance = default;
+    instance.definition = definition;
+    instance.node = node;
+    instance.body_source = body;
+    return node;
+}
+
+// Independent trees check root exclusion, exact/insufficient budgets, shared
+// template estimates and an empty body after the entire budget is consumed.
+fn registry_body_budget(): bool {
+    var store = entity_store_create();
+    var root = entity_create(store);
+    var context = generic_begin(root);
+    var definition = body_budget_child(root);
+    var template = bits(GenericTemplate*, generic_component_add(definition, context.template_type));
+    *template = default;
+    template.kind = GenericKind.Function;
+    var body = body_budget_child(definition);
+    var empty = generic_body_measure(body, 0) == 0;
+    var branch = body_budget_child(body);
+    body_budget_child(branch);
+    body_budget_child(branch);
+    body_budget_child(body);
+    var exact = generic_body_measure(body, 4) == 4;
+    var short_budget = generic_body_measure(body, 3) == 4;
+    var zero_budget = generic_body_measure(body, 0) == 1;
+    var first = body_budget_instance(context, definition, body);
+    var second = body_budget_instance(context, definition, body);
+    var lazy = !template.body_measured;
+    var first_cost = generic_body_cost(context, first);
+    var second_cost = generic_body_cost(context, second);
+    var same = first_cost == 4 && second_cost == first_cost && template.body_measured;
+    // Estimation never consumes the compilation budget or materializes a body.
+    var first_instance = bits(GenericInstance*, compiler_component_get(first, context.instance_type));
+    var untouched = context.copied == 0 && !first_instance.body_ready && entity_child_count(first) == 0;
+    var deep = body_budget_child(root);
+    var cursor = deep;
+    var depth: usize = 1024;
+    for(var i: usize = 0; i < depth; i++) { cursor = body_budget_child(cursor); }
+    var iterative = generic_body_measure(deep, depth) == depth;
+    var bounded = generic_body_measure(deep, depth - 1) == depth;
+    // Reclaim leaf first so the library's ordinary recursive release does not
+    // consume the interpreter call stack in this deliberately deep fixture.
+    while cursor != deep {
+        var parent = entity_parent(cursor);
+        entity_release(entity_take_last_child(parent));
+        cursor = parent;
+    }
+    entity_release(root);
+    var reclaimed = entity_store_count(store) == 0 && entity_store_component_count(store) == 0;
+    var disposed = entity_store_dispose(store);
+    return empty && exact && short_budget && zero_budget && lazy && same && untouched && iterative && bounded && reclaimed && disposed;
+}

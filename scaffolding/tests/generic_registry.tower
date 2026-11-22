@@ -2,6 +2,7 @@ import tower;
 import .compiler.generic_registry;
 import .library.entities;
 import .library.entity_types;
+import generic_body_budget;
 
 fn registry_check(ok: bool, code: i32, failure: i32*): void {
     if !ok {
@@ -12,6 +13,8 @@ fn registry_check(ok: bool, code: i32, failure: i32*): void {
 }
 
 var failure: i32 = 0;
+var BodyBudgetFailure: i32 = 29;
+registry_check(registry_body_budget(), BodyBudgetFailure, &failure);
 var store = entity_store_create();
 var other_store = entity_store_create();
 var first = entity_create(store);

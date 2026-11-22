@@ -6,13 +6,14 @@ import semantic_program_types;
 import semantic_declarations;
 import semantic_support;
 import semantic_body_work;
+import semantic_work_ids;
+import .library.vector;
 import .library.work_graph;
 import .library.work_pool;
 
-var GenericBodyQuery: u32 = 10;
-
 extern fn generic_body_pending(context: void*, node: void*): bool;
 extern fn generic_body_limit(context: void*): usize;
+extern fn generic_body_cost(context: void*, node: void*): usize;
 extern fn generic_body_complete(context: void*, node: void*, copied: usize): void;
 extern fn compiler_generic_body_kernel(payload: void*): void;
 extern fn entity_stage_hold(stage: void*): void;
@@ -25,7 +26,7 @@ struct SemanticGenericBodyWork {
 }
 
 fn sem_generic_body_dependency(c: SemanticContext*, subject: void*, id: usize): void {
-    var cloned = work_find(&c.queries, subject, GenericBodyQuery, 0);
+    var cloned = work_find(&c.queries, subject, convert(u32, SemanticQuery.GenericBody), 0);
     if cloned != 0 { sem_require(work_depend(&c.queries, id, cloned)); }
 }
 
@@ -33,8 +34,9 @@ fn sem_generic_body_dependency(c: SemanticContext*, subject: void*, id: usize): 
 // decltype use leaves the body descendants unmaterialized. A source window
 // bounds retained work independently of the host's worker capacity.
 fn sem_generic_bodies(c: SemanticContext*, next: usize, kind: void*): void {
-    var batch: SemanticGenericBodyWork*[256];
-    var count: usize = 0;
+    var batch: vector(SemanticGenericBodyWork*);
+    vector_init(&batch);
+    defer vector_dispose(&batch);
     var end = next + BodyPreparationWindow;
     if end > c.program.functions.length { end = c.program.functions.length; }
     for(var i = next; i < end; i++) {
@@ -45,41 +47,56 @@ fn sem_generic_bodies(c: SemanticContext*, next: usize, kind: void*): void {
         result.kernel.payload = bits(void*, &result.request);
         result.request.context = c.generics;
         result.request.node = subject;
-        var id = work_request(&c.queries, subject, GenericBodyQuery, 0);
+        var id = work_request(&c.queries, subject, convert(u32, SemanticQuery.GenericBody), 0);
         sem_require(id != 0);
         var signature = sem_declaration_query(c, subject);
         if signature != 0 { sem_require(work_depend(&c.queries, id, signature)); }
         // Immutable syntax/type inputs, one private output per function.
-        sem_require(work_access(&c.queries, id, 1, 1, 0, ~convert(usize, 0), WorkAccessMode.Read));
-        sem_require(work_access(&c.queries, id, 1, 9, 0, ~convert(usize, 0), WorkAccessMode.Read));
-        sem_require(work_access(&c.queries, id, 1, 10, i, 1, WorkAccessMode.Write));
+        var domain = convert(u64, SemanticWorkDomain.Compiler);
+        sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Layout), 0, ~convert(usize, 0), WorkAccessMode.Read));
+        sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.TypeIndex), 0, ~convert(usize, 0), WorkAccessMode.Read));
+        sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.GenericBody), i, 1, WorkAccessMode.Write));
         sem_require(work_seal(&c.queries, id) && work_demand(&c.queries, id));
-        batch[count++] = result;
+        sem_require(vector_push(&batch, result));
     }
-    for(var first: usize = 0; first < count && sem_ok(c);) {
-        var stop = first + c.workers.count;
-        if stop > count { stop = count; }
+    for(var first: usize = 0; first < batch.length && sem_ok(c);) {
+        // Retained stages share the existing clone budget. This lets idle slots
+        // take the next ready body without waiting for a worker-sized group,
+        // while bounding private syntax storage even with a large source window.
+        var available = generic_body_limit(c.generics);
+        var stop = first;
+        while stop < batch.length {
+            var request = &batch.data[stop].request;
+            var cost = generic_body_cost(c.generics, request.node);
+            if stop != first && cost > available { break; }
+            request.limit = cost < available ? cost : available;
+            available -= request.limit;
+            stop++;
+            if cost > request.limit { break; }
+        }
         for(var i = first; i < stop; i++) {
-            var result = batch[i];
+            var result = batch.data[i];
             var subject = result.request.node;
             sem_require(work_take_task(&c.queries, &result.ticket,
-                work_find(&c.queries, subject, GenericBodyQuery, 0)));
+                work_find(&c.queries, subject, convert(u32, SemanticQuery.GenericBody), 0)));
             result.request.stage = entity_stage_open(c.program.root);
             sem_require(result.request.stage != null);
-            result.request.limit = generic_body_limit(c.generics);
         }
         var view = entity_view_open(c.program.root);
         sem_require(view != null);
-        for(var i = first; i < stop; i++) {
-            sem_require(work_pool_submit(&c.workers, bits(void*, &batch[i].kernel)));
+        var dispatched = first;
+        while dispatched < stop || c.workers.running != 0 {
+            while dispatched < stop && c.workers.running < c.workers.count {
+                sem_require(work_pool_submit(&c.workers, bits(void*, &batch.data[dispatched++].kernel)));
+            }
+            sem_require(work_pool_receive(&c.workers, true) != null);
         }
-        for(var i = first; i < stop; i++) { sem_require(work_pool_receive(&c.workers, true) != null); }
         // Histories can have zero references pending reclamation under this pin.
         // Acquire their queued payload ownership before releasing the last view.
-        for(var i = first; i < stop; i++) { entity_stage_hold(batch[i].request.stage); }
+        for(var i = first; i < stop; i++) { entity_stage_hold(batch.data[i].request.stage); }
         entity_view_close(view);
         for(var i = first; i < stop; i++) {
-            var result = batch[i];
+            var result = batch.data[i];
             var request = &result.request;
             var accepted = sem_ok(c) && request.success && request.copied <= generic_body_limit(c.generics);
             if accepted {

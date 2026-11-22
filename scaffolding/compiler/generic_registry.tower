@@ -1,6 +1,7 @@
 import tower;
 import .library.entities;
 import .library.entity_types;
+import .library.vector;
 import entity_require;
 
 fn compiler_component_get(node: Entity*, type: Entity*): void* {
@@ -47,6 +48,9 @@ struct GenericTemplate {
     count: usize;
     type_count: usize;
     kind: GenericKind;
+    // Derived from immutable body syntax, measured only after a body is demanded.
+    body_nodes: usize;
+    body_measured: bool;
 }
 
 struct GenericInstance {
@@ -148,4 +152,42 @@ export fn generic_argument(context: GenericContext*, node: Entity*, index: usize
         return null;
     }
     return instance.arguments[index];
+}
+
+// Count precisely the descendants copied by the body kernel, excluding its
+// destination root. An over-budget or unmeasurable body gets a conservative
+// reservation; only the ordinary clone kernel decides whether it can compile.
+fn generic_body_measure(body: Entity*, limit: usize): usize {
+    compiler_entity_require(limit <= GenericNodeLimit);
+    var pending: vector(Entity*);
+    vector_init(&pending);
+    defer vector_dispose(&pending);
+    var count: usize = 0;
+    var current = body;
+    while current != null {
+        var children = entity_child_count(current);
+        if children > limit - count - pending.length { return limit + 1; }
+        if !vector_reserve(&pending, pending.length + children) { return limit + 1; }
+        for(var i: usize = 0; i < children; i++) {
+            pending.data[pending.length++] = entity_child_at(current, i);
+        }
+        if pending.length == 0 { break; }
+        current = pending.data[--pending.length];
+        count++;
+    }
+    return count;
+}
+
+// Coordinator-only preparation before pinning worker inputs. All instances of
+// the same definition share this estimate, never a second semantic body graph.
+export fn generic_body_cost(context: GenericContext*, node: Entity*): usize {
+    var instance = bits(GenericInstance*, compiler_component_get(node, context.instance_type));
+    compiler_entity_require(instance != null && instance.body_source != null);
+    var template = bits(GenericTemplate*, compiler_component_get(instance.definition, context.template_type));
+    compiler_entity_require(template != null);
+    if !template.body_measured {
+        template.body_nodes = generic_body_measure(instance.body_source, GenericNodeLimit);
+        template.body_measured = true;
+    }
+    return template.body_nodes;
 }

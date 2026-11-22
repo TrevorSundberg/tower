@@ -40506,3 +40506,75 @@ native Wasm artifact. The LLVM/interpreter checks already passed in the first
 run; their semantics did not change in these fixes. Two browser self-build
 generations are the remaining milestone gate. Source/tests remain all Tower;
 CMake and the shell change only connect/remove existing build interfaces.
+Rebased onto 14ca673 (checked-in host/parser profile roots, no semantic overlap)
+and pushed 0aeea65. The documented default public-bootstrap build, with the
+bootstrap override unset, rebuilt the five affected targets in the previously
+clean ecs-header-stream-clean directory. The rebuilt compiler prints 42/42 for
+the reduced Foundation case and zero failures for the expanded body fixture at
+four workers. This was an incremental public-bootstrap rebuild, not another
+fresh 50-step build. SHA-256:
+1fadbf9ad4a4e1c308b859be142fdd98bae85ff2f8d8de06085dc3dd276510f8.
+Evidence: signature-default-build.log. Browser artifacts and the compiler project
+are now rebuilding from frozen 0aeea65 for publication of the callee-lease fix.
+
+The 0aeea65 portable/threaded/LLVM/cross browser builds and frozen compiler
+project packaging completed. Shared-Wasm threading checks pass all three cases
+without skips. The two edited compiler generations are running from that frozen
+project; subsequent generic-clone edits below are excluded from these artifacts.
+
+Implemented the next generic-body scheduling slice in Tower. Demanded bodies
+now reserve exact immutable-source descendant counts (excluding the body root)
+on their existing template components. Estimates are shared between instances
+and remain absent for signature-only uses. A wave reserves no more than the
+remaining GenericNodeLimit, refills free pool slots from ready body queries and
+publishes in source order after all stage ownership has been held and the input
+view closed. Oversized/unmeasurable bodies receive the remaining allowance alone;
+the existing clone kernel still determines success. This removes the worker-width
+barrier without allowing each retained stage a separate full compilation budget.
+The window uses a vector and named shared query/access identifiers. No new
+semantic graph, native helper, evaluator or constant-folding pass was introduced.
+
+Smallest-unit public-bootstrap preflight passes (generic-refill-preflight.log).
+The registry fixture now exercises exact/short/zero bounds, an empty body, shared
+estimates, untouched lazy instance state, deep iterative counting and complete
+reclamation. Its first run exposed a missing direct test import; after correction,
+a deliberately 1024-deep tree hit the existing recursive entity-release call-stack
+limit at cleanup. The test now releases that chain leaf-first; this does not
+change production reclamation. Affected native rebuild/body checks are running
+in generic-refill-native.log. No generic-clone throughput improvement is claimed
+before measurement; the estimate adds one bounded coordinator traversal per
+demanded template definition, and its cache is compilation-local.
+
+Generic refill validation completed: both target widths, every 1/2/4/8-worker
+execution/canonical case, canonical reparse and serial/parallel diagnostic/cycle
+groups pass. The public-bootstrap registry fixture and rebuilt successor both
+print zero failures. The nested-invocation follow-up now leases TowerInvoke
+callees and arguments through the same declaration syntax scan, and discovers
+its callee signature/layout readiness before dispatch. Previously expression
+eligibility accepted this shape but the generic args guard forced coordinator
+checking. Added aggregate-return/argument and callee-before-argument single-effect
+coverage to body_continuation. Its smallest-unit preflight passes; the affected
+native body smoke and function-values fixture are running, reusing the already
+completed full generic matrix.
+
+The frozen 0aeea65 browser release completed two actual edited generations with
+identical hashes (signature-generations.log):
+- Tower: 4c6844a4d25f17171208c8b6b3fd5166f08107135acbb2186258899a7ce05b89
+- LLVM: b9c05125a5d4ed61466c188634c4360f82dc5cbe77084f23b681c9a9a3dfcb8d
+- cross: 24d7c39f758dc2a984b31d8fb9ae150f01d7eb13b8e708938432e35fd2f42711
+Frozen project: 17488061fa1c4ab74caafe5029a95226c5e0c7d670805fda24edab18b40eef9d.
+Pushed Pages 94c9632728d317ff329279a739d09a17fa16cf4d, preserving prior lane
+receipts. Manifest: 4f23f0bc586c057d7da78017234c76905f4f1c50939738ebfb7bd1dc354a59a0.
+Hosted verification remains pending; local clone-refill/invocation edits are
+explicitly excluded from this frozen deployment.
+
+Nested TowerInvoke admission passed its affected native body smoke (serial and
+four-worker canonical/reparse, ordered errors/cycles) and function_values prints
+zero failures. A further source audit found the analogous generic-preparation
+scan visited indirect-call arguments but skipped the callable location. Added
+that location to the existing stack in callee-before-argument order, preserving
+unevaluated/evaluation-depth state, and added a generic-produced callback record
+used by both decltype and an ordinary call. Small-unit preflight passes; this
+last preparation change awaits the merged milestone's affected execution check.
+The 0aeea65 Pages workflow 44979550849 succeeded and hosted verification has
+matched all 89 assets so far; browser/host checks are still running.

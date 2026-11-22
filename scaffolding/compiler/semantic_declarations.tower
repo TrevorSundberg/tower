@@ -349,6 +349,9 @@ fn sem_declaration_waiting(c: SemanticContext*, result: SemanticDeclaration*, la
             sem_declaration_scan_push(&scan, sem_member(node, "value"), false);
             continue;
         }
+        if !type && sem_is(node, "TowerInvoke") {
+            sem_declaration_location(c, node, &waiting, layout, 0);
+        }
         if !type && sem_is(node, "CoreCall") {
             sem_declaration_location(c, node, &waiting, layout, 0);
             var name_node = sem_member(node, "name");
@@ -689,6 +692,13 @@ fn sem_declaration_syntax(c: SemanticContext*, annotation: void*, nodes: vector(
                 foreach(var argument in arguments) { sem_declaration_scan_push(&pending, argument, true); }
                 continue;
             }
+        }
+        if !type && sem_is(node, "TowerInvoke") {
+            staged = true;
+            sem_declaration_scan_push(&pending, sem_member(node, "callee"), false);
+            var arguments = sem_collect(c, sem_member(node, "args"), "CoreCallArgument");
+            foreach(var argument in arguments) { sem_declaration_scan_push(&pending, argument, false); }
+            continue;
         }
         if !type && sem_is(node, "CoreCall") {
             var name = sem_member(node, "name");
@@ -1066,6 +1076,11 @@ fn sem_declaration_calls(c: SemanticContext*, result: SemanticDeclaration*): voi
                     type = generic_type_parameter(c.generics, definition, index);
                 }
                 sem_declaration_call_push(&scan, args.data[index], type, entry.unevaluated, false, entry.evaluation_depth);
+            }
+            // The stack visits this last push first: callable locations may
+            // themselves contain generic calls, prepared before their args.
+            if sem_call_uses_value(c, name_node) {
+                sem_declaration_call_push(&scan, name_node, false, entry.unevaluated, false, entry.evaluation_depth);
             }
             continue;
         }

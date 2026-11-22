@@ -586,4 +586,35 @@ fn signature_peer(input: i32): i32 {
 if signature_queries(41) != 42 || signature_peer(41) != 42
     || comptime(signature_queries(41)) != 42 || comptime(signature_peer(41)) != 42 { failures++; }
 
+struct InvokeRecord { value: i32; visits: i32; }
+
+fn callback_record(value: InvokeRecord): InvokeRecord { value.value++; return value; }
+
+fn choose_record(visits: i32*): function(InvokeRecord, InvokeRecord) {
+    (*visits)++;
+    return callback_record;
+}
+
+// The nested invocation consumes a published signature/layout and evaluates
+// the callee before the contextual aggregate argument, exactly once.
+fn signature_invokes(input: i32): i32 {
+    var visits = 0;
+    var value = choose_record(&visits)({ value: input, visits: visits });
+    if visits != 1 || value.visits != 1 { return 0; }
+    return value.value;
+}
+
+if signature_invokes(41) != 42 || comptime(signature_invokes(41)) != 42 { failures++; }
+
+fn callback_fields(T: type, input: T): CallbackFields {
+    return { apply: callback_value, select: callback_identity };
+}
+
+fn signature_callee(input: i32): i32 {
+    var value: decltype(callback_fields(input).apply(input)) = input;
+    return callback_fields(value).apply(value);
+}
+
+if signature_callee(41) != 42 || comptime(signature_callee(41)) != 42 { failures++; }
+
 print(failures);
