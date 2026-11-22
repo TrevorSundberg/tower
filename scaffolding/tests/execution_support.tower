@@ -74,7 +74,10 @@ fn execution_text(text: ByteBuffer*, wanted: u8*): bool {
 
 fn execution_compile(session: ExecutionSession*, text: u8*, width: u32, modules: void*): void {
     var ok = execution_session_compile(session, text, strlen(text), width, modules);
-    if !ok { execution_error("Compilation: ", session.error.data ?? "allocation failure"); }
+    if !ok {
+        execution_error("Compilation: ", session.error.data ?? "allocation failure");
+        execution_error("Fixture source:", text);
+    }
     execution_check(ok, "fixture compiles");
 }
 

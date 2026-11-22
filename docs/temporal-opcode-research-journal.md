@@ -41895,3 +41895,14 @@ representation and are excluded from canonical type-value interning: a mutable
 producer payload is not a type identity. That hardening alone did not fix the
 aggregate failure. The compiler-project packager explicitly includes the type
 directory and both Foundation/type-prelude roots for browser self-hosting.
+
+Rebased again onto c0202d9, including upstream array-type frontier queries and
+Tower-owned candidate checks. Merged the independently introduced non-interning
+constant-value helpers into sem_constant_value, retained array query scheduling,
+and shared array extent validation/canonical interning with array_type(T, N).
+Smallest-unit semantic_types compilation and /cache/source-types-rebased native
+build pass. The earlier full suite reached struct values before Unknown type f32;
+the isolated floating suite passes. That full run overlapped the rebase's changes
+to source resources and is invalid evidence of a compiler regression. Freeze
+source resources as well as binaries during subsequent suites. Added source text
+to failed execution fixture diagnostics; no special filesystem debug output.
