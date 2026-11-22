@@ -136,8 +136,50 @@ export fn frontend_bedrock_create(kinds: FrontendKinds*): void* {
     frontend_bedrock_comment(&b, "// GrammarPattern reads /patterns/ for token and skip rules.");
     frontend_bedrock_comment(&b, "// GrammarTemplate reads {replacement bodies} with balanced braces.");
 
+    // Attributes share one reader across grammar and ordinary declarations.
+    // Bedrock arguments have only lexical values; Foundation extends their
+    // evaluation without importing the standard type prelude into Bedrock.
+    frontend_bedrock_token(&b, convert(u32, SyntaxKind.Token), "AttributeInteger", "[0-9]+", "number", true);
+    frontend_bedrock_rule(&b, "Attributes");
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "AttributeList", "list", false);
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_rule(&b, "AttributeList");
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "AttributeList", "previous", false);
+    frontend_bedrock_term(&b, b.alternative, "Attribute", "attribute", false);
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "Attribute", "attribute", false);
+    frontend_bedrock_rule(&b, "Attribute");
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "[", "", true);
+    frontend_bedrock_term(&b, b.alternative, "Identifier", "name", false);
+    frontend_bedrock_term(&b, b.alternative, "]", "", true);
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "[", "", true);
+    frontend_bedrock_term(&b, b.alternative, "Identifier", "name", false);
+    frontend_bedrock_term(&b, b.alternative, "(", "", true);
+    frontend_bedrock_term(&b, b.alternative, "AttributeArguments", "args", false);
+    frontend_bedrock_term(&b, b.alternative, ")", "", true);
+    frontend_bedrock_term(&b, b.alternative, "]", "", true);
+    frontend_bedrock_rule(&b, "AttributeArguments");
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "AttributeArguments", "previous", false);
+    frontend_bedrock_term(&b, b.alternative, ",", "", true);
+    frontend_bedrock_term(&b, b.alternative, "AttributeArgument", "argument", false);
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "AttributeArgument", "argument", false);
+    frontend_bedrock_rule(&b, "AttributeArgument");
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "Identifier", "name", false);
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "String", "string", false);
+    frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "AttributeInteger", "integer", false);
+
     frontend_bedrock_rule(&b, "GrammarDeclaration");
     frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "Attributes", "attributes", false);
     frontend_bedrock_term(&b, b.alternative, "parse", "", true);
     frontend_bedrock_term(&b, b.alternative, "Identifier", "name", false);
     frontend_bedrock_term(&b, b.alternative, "GrammarAssignment", "op", false);
@@ -173,6 +215,7 @@ export fn frontend_bedrock_create(kinds: FrontendKinds*): void* {
 
     frontend_bedrock_rule(&b, "GrammarTokenDeclaration");
     frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "Attributes", "attributes", false);
     frontend_bedrock_term(&b, b.alternative, "token", "", true);
     frontend_bedrock_term(&b, b.alternative, "Identifier", "name", false);
     frontend_bedrock_term(&b, b.alternative, "=", "", true);
@@ -183,6 +226,7 @@ export fn frontend_bedrock_create(kinds: FrontendKinds*): void* {
 
     frontend_bedrock_rule(&b, "GrammarSkipDeclaration");
     frontend_bedrock_alternative(&b);
+    frontend_bedrock_term(&b, b.alternative, "Attributes", "attributes", false);
     frontend_bedrock_term(&b, b.alternative, "skip", "", true);
     frontend_bedrock_term(&b, b.alternative, "Identifier", "name", false);
     frontend_bedrock_term(&b, b.alternative, "=", "", true);

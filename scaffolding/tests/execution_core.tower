@@ -61,13 +61,17 @@ fn execution_structure(a: void*, b: void*): bool {
     if !execution_structure(left.left, right.left) || !execution_structure(left.right, right.right)
     || !execution_structure(left.value, right.value) || !execution_structure(left.target, right.target)
     || !execution_structure(left.body, right.body) || !execution_structure(left.otherwise, right.otherwise)
-    || left.parameters.length != right.parameters.length || left.items.length != right.items.length {
+    || left.parameters.length != right.parameters.length || left.items.length != right.items.length
+    || left.attributes.length != right.attributes.length {
         return false;
     }
     for(var i: usize = 0; i < left.parameters.length; i++) {
         if !execution_structure(left.parameters.data[i], right.parameters.data[i]) {
             return false;
         }
+    }
+    for(var index: usize = 0; index < left.attributes.length; index++) {
+        if !execution_structure(left.attributes.data[index], right.attributes.data[index]) { return false; }
     }
     for(var i: usize = 0; i < left.items.length; i++) {
         if !execution_structure(left.items.data[i], right.items.data[i]) {

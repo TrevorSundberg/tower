@@ -103,7 +103,6 @@ fn ix_strict_node(m: IMExecution*, n: FoundationNode*, offset: usize): bool {
     // representation and initialization checks; they never expose host memory.
     var unsupported = n.kind == KString;
     unsupported ||= n.kind == KAllocate || n.kind == KReallocate || n.kind == KFree;
-    unsupported ||= n.kind == KCopy || n.kind == KFill;
     if unsupported {
         ix_fail(m, "This operation needs a compile-time storage or value capability", offset);
         return false;
@@ -843,8 +842,14 @@ fn ix_enter(m: IMExecution*, node: void*): void {
 
 fn ix_returned(m: IMExecution*, value: u64): void {
     var call = im_frame_call(m.state);
-    m.state.stack = im_base(m.state);
-    if ix_strict(m) { m.context.initialized.length = m.state.stack; }
+    // A staged aggregate producer owns its final frame until its fields have
+    // been copied into relocatable Foundation values. Guest callers still pop
+    // normally; this private result buffer never becomes a program pointer.
+    var retained = m.context != null && m.context.retain_result_storage && m.state.frame_count == 1;
+    if !retained {
+        m.state.stack = im_base(m.state);
+        if ix_strict(m) { m.context.initialized.length = m.state.stack; }
+    }
     im_frame_pop(m.state);
     if m.state.frame_count == 0 && m.context != null {
         m.context.result = value;
@@ -1461,6 +1466,10 @@ fn ix_copy_values(m: IMExecution*, dest: u64, source: u64, size: u64, copying: b
         return;
     }
     var count = convert(usize, size);
+    // Strict stages may copy/fill their own live local storage. Validate the
+    // complete source before marking any destination byte initialized.
+    if copying && !ix_initialized(m, source, count, false, offset) { return; }
+    if !ix_initialized(m, dest, count, true, offset) { return; }
     var p = ix_bytes(m, dest, count, offset);
     var q: u8* = null;
     if copying {

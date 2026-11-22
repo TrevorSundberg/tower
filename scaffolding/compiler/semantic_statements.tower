@@ -1,4 +1,5 @@
 import tower;
+import semantic_attributes;
 import semantic_control;
 import semantic_defer;
 import semantic_iteration;
@@ -691,6 +692,7 @@ fn sem_function_body(c: SemanticContext*, n: void*): void {
 }
 
 fn sem_run(c: SemanticContext*): void {
+    sem_attributes_declarations(c);
     sem_validate_aliases(c);
     var step1 = sem_get(c.program.root);
     var statements: vector(void*)* = &step1.items;
@@ -807,6 +809,7 @@ fn sem_run(c: SemanticContext*): void {
     }
     sem_defer_emit(c, c.program.root, null, 0);
     c.deferred = null;
+    sem_attributes_check(c);
     sem_bodies(c);
     sem_layout_all(c);
     var step90 = foundation_nodes_prepend(statements, c.generated.data, c.generated.length);

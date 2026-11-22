@@ -1,4 +1,5 @@
 import tower;
+import grammar_attributes;
 import .library.vector;
 import syntax_emission;
 import syntax_emission_types;
@@ -88,7 +89,9 @@ fn emission_lexical_rows(value: SyntaxEmission*, ordered: SyntaxEmissionEntry**)
         var word = lexicon_word(entry.text.data, entry.text.length);
         if entry.start {
             ok &&= lr_append(SyntaxEmissionEntry*, &out.starts, &entry);
-            out.keyword_starts &&= word;
+            // A declaration may begin with the shared attribute delimiter.
+            var attributes = entry.text.length == 1 && entry.text.data[0] == AttributeOpenByte;
+            out.keyword_starts &&= word || attributes;
         }
         if entry.literal != convert(u32, SyntaxTokenId.End) {
             var row: SyntaxEmissionLiteral = { text: entry.text.data, length: entry.text.length, id: entry.literal };

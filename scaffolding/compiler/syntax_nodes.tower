@@ -132,6 +132,7 @@ export fn syntax_node_dispose(value: SyntaxNode*): void {
     vector_dispose(&value.capture);
     vector_dispose(&value.style);
     vector_dispose(&value.items);
+    vector_dispose(&value.attributes);
     foreach(var & comment in &value.comments) {
         vector_dispose(comment);
     }
@@ -240,6 +241,7 @@ export fn syntax_nodes_equal(left: void*, right: void*, kind: void*, locations: 
         same &&= x.terminal_set == y.terminal_set;
         same &&= x.repetition == y.repetition;
         same &&= x.items.length == y.items.length;
+        same &&= x.attributes.length == y.attributes.length;
         if locations {
             if x.kind == 6 {
                 same &&= x.start == y.start;
@@ -258,6 +260,9 @@ export fn syntax_nodes_equal(left: void*, right: void*, kind: void*, locations: 
             }
         }
         ok &&= syntax_comparison_push(&pending, x.replacement, y.replacement);
+        for(var index: usize = 0; index < x.attributes.length && ok; index++) {
+            ok = syntax_comparison_push(&pending, x.attributes.data[index], y.attributes.data[index]);
+        }
     }
     vector_dispose(&pending);
     return result;

@@ -4,7 +4,8 @@ import tower;
 // Shared component layouts for grammar construction, formatting and inspection.
 // Native adapters borrow these exact payloads; there is only one grammar model.
 enum SyntaxKind: u32 {
-    Document, Rule, Token, Skip, Alternative, Term, Template, Import
+    Document, Rule, Token, Skip, Alternative, Term, Template, Import,
+    Attribute, AttributeName, AttributeString, AttributeInteger
 }
 
 struct LexerTable {
@@ -45,6 +46,7 @@ struct SyntaxNode {
     compiled: SyntaxPattern*;
     precedence: u32;
     associativity: u32;
+    attributes: vector(void*);
 }
 
 // Provenance is metadata on shared entities, retained independently of sessions.

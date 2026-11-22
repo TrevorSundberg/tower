@@ -1,5 +1,6 @@
 import semantic_program_types;
 import tower;
+import semantic_attributes;
 import foundation_tags;
 import foundation_types;
 import semantic_context;
@@ -136,6 +137,7 @@ export fn semantic_compile_budget(program: SemanticProgram*, roots: void**, base
     sem_lower_expressions(c);
     sem_defer_validate(c);
     sem_evaluations(c);
+    sem_attributes_publish(c);
     sem_known_publish(c);
     sem_module_initializers(c);
     sem_flows(c);

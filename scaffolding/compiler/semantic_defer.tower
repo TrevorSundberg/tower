@@ -55,6 +55,7 @@ fn sem_defer_clone(c: SemanticContext*, parent: void*, original: void*, clones: 
     fill(&value.items, 0, sizeof(vector(void*)));
     fill(&value.locals, 0, sizeof(vector(void*)));
     fill(&value.parameters, 0, sizeof(vector(void*)));
+    fill(&value.attributes, 0, sizeof(vector(void*)));
     value.left = sem_defer_clone(c, entity, source.left, clones, to);
     value.right = sem_defer_clone(c, entity, source.right, clones, to);
     value.value = sem_defer_clone(c, entity, source.value, clones, to);

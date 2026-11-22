@@ -39181,3 +39181,105 @@ Runtime buildSourceCommit 51c038e0d15480256f7dfd7991155874b97d2cab, all
 test-bootstrap.sh still owns required cross-stage object/IR agreement and grammar
 checks, but its repeated build and named expected/symbol files can be eliminated
 by extending the existing Tower verifier with explicit already-built inputs.
+### 2026-11-21: shared grammar attributes and typed-metadata prerequisites
+
+Begin the accepted standard-type protocol migration on main after pulling
+0dafa52. Implement all new behavior and fixtures in Tower. Preserve the public
+9bf8779c9b5844e6f5b0df6688a3ac517b2b4f9924b84c36f19c572b93b8e459 bootstrap
+and its resources while implementing successor support; live Bedrock/Foundation
+sources have not yet adopted syntax that this predecessor cannot read.
+
+The Tower-owned Bedrock seed now defines bracket attributes. Attribute, name,
+string and integer arguments enrich the original parse entities through the
+shared SyntaxNode component. Declaration attributes retain order, source spans,
+formatting and structural equality. Initial grammar consumers support highlight
+markers such as [comment], [style("custom")], [contextual], and
+[precedence(20,left)] / right / nonassoc. Existing as, when expected and @ forms
+remain accepted. These are resolved grammar metadata, not yet the general typed
+declaration attribute protocol. Bedrock does not acquire the standard-type prelude.
+
+The declaration reader accepts the shared bracket delimiter, then classifies the
+actual parsed construct before deciding whether it is a grammar update. This is
+needed so future attributed ordinary declarations can share the delimiter.
+Formatting suppresses a legacy clause only when its matching bracket attribute
+is present, preserving mixed old/new declarations and canonical round trips.
+
+Focused compilation with the public predecessor passes for grammar_attributes,
+syntax_reader, frontend_bedrock, format_grammar and syntax_live_attributes. Early
+unit trials diagnosed a parameter accidentally named the reserved expected token
+and missing direct imports for vector and syntax_bytes_compare; correct those
+before integration. On Ubuntu24/LLVM19 in tower-c-validation, build through
+TOWER_NATIVE_BUILD=/cache/attributes-native TOWER_BUILD_JOBS=3 build-native.sh,
+enable TOWER_EXECUTION_TESTS, then run tower-execution-tests /work/scaffolding
+attributes. This passes lexical effects, comment skipping, left/right numeric
+precedence, diagnostics, shared entity provenance and canonical reparsing.
+Fixtures activate new declaration roots in guest source; no private bootstrap
+is needed to compile the test implementation. Broader checks/publication remain.
+
+Audit finds the next concrete prerequisite: explicit staged results reject structs
+and arrays, although ordinary functions already lower aggregate calls/returns.
+Typed metadata must be an ordinary Tower value, so extend that same interpreter
+path instead of introducing an annotation-expression evaluator. Work in progress
+reconstructs staged aggregates as typed field initializers whose scalar leaves
+depend on the producer query. Nested structs/arrays, enum conversions and bound
+function references must preserve ordinary Foundation spellings; interpreter
+addresses and padding must never be serialized. Retain only the private producer's
+completed root frame until field extraction; ordinary guest frames retain their
+existing lifetime. Strict copy/fill may access checked live local storage, with
+source initialization checked before destination publication. This aggregate
+extension is not yet validated at this entry; subsequent results follow below.
+
+Aggregate staging validation: the first integrated fixture aborted while
+relocating a callback field. Rebuild only the semantic unit with --no-optimize
+and inspect with GDB: the alleged function value was 0x8000000000000015, the
+preceding i32=21/f32=-0 fields. Root cause was capturing field offsets during
+declaration inference, before layout publication. Retain bound field identities
+and parent projection indexes instead; compute byte offsets from completed target
+layouts when publishing. Do not introduce a serial layout walk in body workers.
+Restore the normal optimized build. aggregate-stages now passes at pointer widths
+4/8 and workers 1/2/4/8, including nested structs/arrays, enum fields, null raw
+pointers, typed callback relocation, nested stages and deferred cleanup clones.
+Uninitialized fields, escaping raw pointers, output and dependency cycles are
+rejected. Canonical Foundation recompilation passes. The complete execution suite
+then passes, including 156 graph/fast trials, packages and prior language fixtures.
+The former named-initializer rejection for staged ..default is superseded: checked
+local fill/copy now uses the same interpreter initialization tracking as stores.
+
+Typed declaration attributes now stage ordinary functions returning structs and
+attach their immutable typed results to the original declaration entity. Duplicate
+nominal attribute types are diagnosed; spelling alone never identifies a type.
+The canonical aggregate spelling is init(Type, { field: value, ... }) inside an
+attribute, including indexed array members and bound function references. An
+initial metadata(...) spelling unnecessarily reserved the common local name
+metadata and broke existing compiler units; reject that spelling and reuse init.
+Attributed variable bindings must remain available for metadata/reflection rather
+than disappearing through optional constant-binding substitution.
+
+An initial integration trial with separate grammar/ordinary bracket parsers failed
+in the grammar-attribute roundtrip fixture. Unify Attribute and AttributeList on
+the existing nodes: Bedrock supplies lexical arguments, Foundation extends the
+shared attribute value to ordinary operands, and both declaration readers consume
+the same bracket/list grammar. Grammar consumers still validate their narrow
+name/string/integer contract; ordinary declaration values use semantic checking
+and interpreter dependency evaluation. The integrated unification check is still
+running at this entry. Standard-type modules/protocol consumers remain the next
+migration work; generic user-defined attributes alone do not implement that work.
+
+The unified grammar and typed declaration suites now pass at both target widths
+and workers 1/2/4/8. Canonical reparsing initially doubled ordinary temporary
+operations because metadata checking set the program-wide surface-lowering flag.
+Keep that flag scoped to executable source; metadata construction lowers only in
+its own staged producer. The full execution suite passes again after this fix.
+The metadata fixture initially printed 42 while the existing worker harness
+expects a zero failure count; correct the fixture to check 42 and print that count.
+
+Configure /cache/attributes-parser with TOWER_PARSER_ONLY=ON and the public pin,
+build, then run ctest --output-on-failure. Two initial failures shared an obsolete
+seed fixture assertion that the first grammar term was the parse keyword. Check
+the new shared Attributes capture first and retain the keyword semantic-edit,
+immutability and provenance assertions. All 15 parser/reader/validation/regex/LR
+tests pass. Additional attribute cases cover quoted L>R/R<L, duplicate legacy/new
+precedence, and rejection of nonassociative chaining. Bytecode semantics version
+advances to 6; private execution encoding remains 5 because metadata stays solely
+in canonical Foundation text. Publication and clean successor validation follow;
+the live Bedrock source still uses predecessor-compatible clauses at this point.

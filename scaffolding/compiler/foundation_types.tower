@@ -43,4 +43,5 @@ struct FoundationNode {
     exported: bool;
     global: bool;
     comments: vector(u8); // Lexer-derived source metadata, never an operation.
+    attributes: vector(void*); // Typed immutable values on this declaration entity.
 }

@@ -7,6 +7,7 @@ import syntax_lexer;
 import syntax_nodes;
 import syntax_types;
 import syntax_validation;
+import grammar_attributes;
 import .library.vector;
 
 // Interpret declaration parse trees on their existing shared entities.
@@ -475,6 +476,164 @@ fn syntax_reader_sequence(reader: SyntaxReader*, node: void*): bool {
     return true;
 }
 
+fn syntax_reader_attribute_value(reader: SyntaxReader*, node: void*): bool {
+    var source = syntax_reader_member(node, "name");
+    var kind = SyntaxKind.AttributeName;
+    if source == null { source = syntax_reader_member(node, "string"); kind = SyntaxKind.AttributeString; }
+    if source == null { source = syntax_reader_member(node, "integer"); kind = SyntaxKind.AttributeInteger; }
+    if source == null {
+        source = node;
+        loop {
+            var span = syntax_reader_span(reader, source);
+            if span == null { return false; }
+            if grammar_attribute_equal(&span.label, "Identifier") { kind = SyntaxKind.AttributeName; break; }
+            if grammar_attribute_equal(&span.label, "String") { kind = SyntaxKind.AttributeString; break; }
+            if grammar_attribute_equal(&span.label, "Number") { kind = SyntaxKind.AttributeInteger; break; }
+            if span.rule == AttributeTerminalRule && span.length != 0 {
+                var first = reader.source.text.data[span.start];
+                if first == AttributeSingleQuote || first == AttributeDoubleQuote { kind = SyntaxKind.AttributeString; }
+                else {
+                    if first >= AttributeDecimalZero && first <= AttributeDecimalNine { kind = SyntaxKind.AttributeInteger; }
+                    else { kind = SyntaxKind.AttributeName; }
+                }
+                break;
+            }
+            if entity_child_count(source) != 1 {
+                return syntax_reader_fail(reader, "Grammar attribute requires a name, string or integer argument");
+            }
+            source = entity_child_at(source, 0);
+        }
+    }
+    var value = syntax_reader_attach(reader, node, convert(u32, kind));
+    if value == null { return false; }
+    if kind == SyntaxKind.AttributeString { return syntax_reader_quoted(reader, source, &value.text); }
+    return syntax_reader_name(reader, source, &value.text);
+}
+
+fn syntax_reader_expression_attribute(reader: SyntaxReader*, expression: void*, value: SyntaxNode*): bool {
+    var node = expression;
+    loop {
+        var span = syntax_reader_span(reader, node);
+        if span == null { return false; }
+        if grammar_attribute_equal(&span.label, "Identifier") { return syntax_reader_name(reader, node, &value.name); }
+        if span.rule == AttributeTerminalRule { return syntax_reader_name(reader, node, &value.name); }
+        if grammar_attribute_equal(&span.label, "CoreCall") { break; }
+        if entity_child_count(node) != 1 { return syntax_reader_fail(reader, "Grammar attribute requires a name or named call"); }
+        node = entity_child_at(node, 0);
+    }
+    if !syntax_reader_name(reader, syntax_reader_required(reader, node, "name"), &value.name) { return false; }
+    var pending: vector(void*) = default;
+    defer vector_dispose(&pending);
+    var arguments = syntax_reader_member(node, "args");
+    if arguments != null && !syntax_reader_ok(reader, vector_push(&pending, arguments)) { return false; }
+    while pending.length != 0 {
+        var argument = pending.data[--pending.length];
+        var span = syntax_reader_span(reader, argument);
+        if span == null { return false; }
+        if grammar_attribute_equal(&span.label, "CoreCallArgument") {
+            if !syntax_reader_attribute_value(reader, argument)
+                || !syntax_reader_ok(reader, vector_push(&value.items, argument)) { return false; }
+        } else {
+            var count = entity_child_count(argument);
+            while count != 0 {
+                if !syntax_reader_ok(reader, vector_push(&pending, entity_child_at(argument, --count))) { return false; }
+            }
+        }
+    }
+    return true;
+}
+
+fn syntax_reader_attributes(reader: SyntaxReader*, node: void*, owner: SyntaxNode*): bool {
+    var attributes = syntax_reader_member(node, "attributes");
+    var list = syntax_reader_member(attributes, "list");
+    if list != null { attributes = list; }
+    while attributes != null {
+        var attribute = syntax_reader_member(attributes, "attribute");
+        if attribute == null { break; }
+        var value = syntax_reader_attach(reader, attribute, convert(u32, SyntaxKind.Attribute));
+        if value == null { return false; }
+        var expression = syntax_reader_member(attribute, "value");
+        if expression != null {
+            if !syntax_reader_expression_attribute(reader, expression, value) { return false; }
+        } else {
+            if !syntax_reader_name(reader, syntax_reader_required(reader, attribute, "name"), &value.name) { return false; }
+            var arguments = syntax_reader_member(attribute, "args");
+            while arguments != null {
+                var argument = syntax_reader_required(reader, arguments, "argument");
+                if argument == null || !syntax_reader_attribute_value(reader, argument)
+                    || !syntax_reader_ok(reader, vector_push(&value.items, argument)) { return false; }
+                arguments = syntax_reader_member(arguments, "previous");
+            }
+            syntax_reader_reverse(&value.items);
+        }
+        if !syntax_reader_ok(reader, vector_push(&owner.attributes, attribute)) { return false; }
+        attributes = syntax_reader_member(attributes, "previous");
+    }
+    syntax_reader_reverse(&owner.attributes);
+    return true;
+}
+
+fn syntax_reader_attribute_node(reader: SyntaxReader*, entity: void*): SyntaxNode* {
+    return bits(SyntaxNode*, entity_component_data(entity_component_get(entity, reader.syntax_kind)));
+}
+
+fn syntax_reader_attribute_precedence(reader: SyntaxReader*, attribute: SyntaxNode*, owner: SyntaxNode*): bool {
+    if owner.kind != convert(u32, SyntaxKind.Rule) { return syntax_reader_fail(reader, "Precedence applies only to parse declarations"); }
+    if owner.precedence != 0 { return syntax_reader_fail(reader, "Duplicate grammar precedence"); }
+    if attribute.items.length != 2 { return syntax_reader_fail(reader, "precedence requires a positive integer and associativity"); }
+    var number = syntax_reader_attribute_node(reader, attribute.items.data[0]);
+    var direction = syntax_reader_attribute_node(reader, attribute.items.data[1]);
+    if number.kind != convert(u32, SyntaxKind.AttributeInteger) { return syntax_reader_fail(reader, "Grammar precedence requires decimal digits"); }
+    var maximum = ~convert(u32, 0);
+    foreach(var digit in &number.text) {
+        if digit < AttributeDecimalZero || convert(u32, digit - AttributeDecimalZero) >= AttributeDecimalBase {
+            return syntax_reader_fail(reader, "Grammar precedence requires decimal digits");
+        }
+        var value = convert(u32, digit - AttributeDecimalZero);
+        if owner.precedence > (maximum - value) / AttributeDecimalBase { return syntax_reader_fail(reader, "Grammar precedence exceeds u32"); }
+        owner.precedence = owner.precedence * AttributeDecimalBase + value;
+    }
+    if owner.precedence == 0 { return syntax_reader_fail(reader, "Grammar precedence must be positive"); }
+    owner.associativity = convert(u32, grammar_attribute_direction(&direction.text));
+    if owner.associativity == convert(u32, GrammarAssociativity.None) { return syntax_reader_fail(reader, "Unknown grammar associativity"); }
+    return true;
+}
+
+fn syntax_reader_apply_attributes(reader: SyntaxReader*, owner: SyntaxNode*, explicit_style: bool): bool {
+    foreach(var entity in &owner.attributes) {
+        var attribute = syntax_reader_attribute_node(reader, entity);
+        var kind = grammar_attribute_kind(&attribute.name);
+        if kind == GrammarAttributeKind.Unknown {
+            return syntax_reader_detail(reader, "Unknown grammar attribute '", attribute.name.data, attribute.name.length, "'");
+        }
+        if kind == GrammarAttributeKind.Precedence {
+            if !syntax_reader_attribute_precedence(reader, attribute, owner) { return false; }
+            continue;
+        }
+        if owner.kind != convert(u32, SyntaxKind.Token) && owner.kind != convert(u32, SyntaxKind.Skip) {
+            return syntax_reader_fail(reader, "Lexical attributes apply only to token and skip declarations");
+        }
+        if kind == GrammarAttributeKind.Contextual {
+            if attribute.items.length != 0 { return syntax_reader_fail(reader, "contextual takes no arguments"); }
+            if owner.contextual { return syntax_reader_fail(reader, "Duplicate contextual attribute"); }
+            if owner.kind == convert(u32, SyntaxKind.Skip) { return syntax_reader_fail(reader, "Skip rules cannot be contextual"); }
+            owner.contextual = true;
+            continue;
+        }
+        if explicit_style { return syntax_reader_fail(reader, "Duplicate highlight style"); }
+        explicit_style = true;
+        var text = &attribute.name;
+        if grammar_attribute_equal(text, "style") {
+            if attribute.items.length != 1 { return syntax_reader_fail(reader, "style requires one name or string"); }
+            var argument = syntax_reader_attribute_node(reader, attribute.items.data[0]);
+            if argument.kind == convert(u32, SyntaxKind.AttributeInteger) { return syntax_reader_fail(reader, "style requires one name or string"); }
+            text = &argument.text;
+        } else { if attribute.items.length != 0 { return syntax_reader_fail(reader, "Highlight markers take no arguments"); } }
+        if !syntax_reader_ok(reader, bytes_assign_text(&owner.style, text.data, text.length)) { return false; }
+    }
+    return true;
+}
+
 fn syntax_reader_rule(reader: SyntaxReader*, node: void*): bool {
     var name = syntax_reader_required(reader, node, "name");
     var assignment = syntax_reader_required(reader, node, "op");
@@ -567,6 +726,7 @@ fn syntax_reader_rule(reader: SyntaxReader*, node: void*): bool {
             return syntax_reader_fail(reader, "Unknown grammar associativity");
         }
     }
+    if !syntax_reader_attributes(reader, node, rule) || !syntax_reader_apply_attributes(reader, rule, false) { return false; }
     loop {
         if alternatives == null {
             break;
@@ -699,7 +859,7 @@ fn syntax_reader_token(reader: SyntaxReader*, node: void*, skipped: bool): bool 
             return syntax_reader_fail(reader, "Skip rules cannot be contextual");
         }
     }
-    return true;
+    return syntax_reader_attributes(reader, node, value) && syntax_reader_apply_attributes(reader, value, label != null);
 }
 
 export fn syntax_read_token(node: void*, source: SyntaxSource*, match_kind: void*, syntax_kind: void*, skipped: bool, error: vector(u8)*): bool {

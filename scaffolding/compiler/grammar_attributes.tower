@@ -1,0 +1,43 @@
+import tower;
+import syntax_types;
+import syntax_validation;
+import .library.vector;
+
+var AttributeOpenByte: u8 = 91;
+var AttributeDecimalBase: u32 = 10;
+var AttributeDecimalZero: u8 = 48;
+var AttributeDecimalNine: u8 = 57;
+var AttributeSingleQuote: u8 = 39;
+var AttributeDoubleQuote: u8 = 34;
+var AttributeTerminalRule: usize = ~convert(usize, 0);
+
+enum GrammarAttributeKind: u32 { Unknown, Style, Contextual, Precedence }
+enum GrammarAssociativity: u32 { None, Left, Right, Nonassociative }
+
+fn grammar_attribute_equal(text: vector(u8)*, spelling: u8*): bool {
+    var length: usize = 0;
+    while spelling[length] != 0 { length++; }
+    return syntax_bytes_compare(text.data, text.length, spelling, length) == 0;
+}
+
+fn grammar_attribute_style(name: vector(u8)*): bool {
+    return grammar_attribute_equal(name, "comment") || grammar_attribute_equal(name, "identifier")
+        || grammar_attribute_equal(name, "keyword") || grammar_attribute_equal(name, "string")
+        || grammar_attribute_equal(name, "number") || grammar_attribute_equal(name, "operator")
+        || grammar_attribute_equal(name, "pattern") || grammar_attribute_equal(name, "type")
+        || grammar_attribute_equal(name, "rule") || grammar_attribute_equal(name, "capture");
+}
+
+fn grammar_attribute_kind(name: vector(u8)*): GrammarAttributeKind {
+    if grammar_attribute_equal(name, "style") || grammar_attribute_style(name) { return GrammarAttributeKind.Style; }
+    if grammar_attribute_equal(name, "contextual") { return GrammarAttributeKind.Contextual; }
+    if grammar_attribute_equal(name, "precedence") { return GrammarAttributeKind.Precedence; }
+    return GrammarAttributeKind.Unknown;
+}
+
+fn grammar_attribute_direction(text: vector(u8)*): GrammarAssociativity {
+    if grammar_attribute_equal(text, "left") || grammar_attribute_equal(text, "L>R") { return GrammarAssociativity.Left; }
+    if grammar_attribute_equal(text, "right") || grammar_attribute_equal(text, "R<L") { return GrammarAssociativity.Right; }
+    if grammar_attribute_equal(text, "nonassoc") { return GrammarAssociativity.Nonassociative; }
+    return GrammarAssociativity.None;
+}

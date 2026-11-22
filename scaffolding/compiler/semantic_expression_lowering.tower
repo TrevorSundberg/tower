@@ -334,12 +334,20 @@ fn sem_lift_initialization(c: SemanticContext*, block: void*, target: void*, n: 
         if initial.op != 0 { sem_lift_default(c, block, target); }
         foreach(var entry in &initial.items) {
             var field = sem_get(entry);
-            var place = sem_control_node(c, entry, KField);
+            var array = initial.type.scalar == SArray;
+            var place = sem_control_node(c, entry, array ? KIndex : KField);
             var location = sem_get(place);
             location.left = sem_get(target).value;
             location.indirect = true;
             location.binding = field.binding;
-            location.byte_offset = sem_get(field.binding).byte_offset;
+            if array {
+                var cast = sem_control_node(c, entry, KBits);
+                sem_get(cast).value = location.left;
+                sem_get(cast).type = field.type;
+                sem_get(cast).type.pointers++;
+                location.left = sem_lift_snapshot(c, block, cast);
+                location.right = sem_surface_constant(c, entry, sem_type_new(c, SUSize, 0, null), convert(u64, field.index));
+            } else { location.byte_offset = sem_get(field.binding).byte_offset; }
             sem_set_name(location, sem_name(field));
             sem_set_type(&location.type, &field.type);
             if semantic_aggregate(&field.type) {

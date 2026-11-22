@@ -1,4 +1,5 @@
 import tower;
+import semantic_attributes;
 import semantic_work_ids;
 import foundation_tags;
 import foundation_types;
@@ -243,6 +244,7 @@ fn sem_operand_impl(c: SemanticContext*, n: void*, expected_type: FoundationType
     }
     n = sem_surface_unwrap(n);
     if sem_is(n, "TowerComptime") { return sem_comptime(c, n, expected_type); }
+    if sem_is(n, "CoreMetadataValue") { return sem_metadata_literal(c, n, expected_type); }
     if sem_is(n, "TowerDefault") { return sem_default(c, n, expected_type, true); }
     if sem_is(n, "TowerInitializer") { return sem_named_initialization(c, n, expected_type, true); }
     if sem_is(n, "TowerNullAccess") {

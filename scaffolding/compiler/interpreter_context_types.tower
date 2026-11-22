@@ -19,6 +19,7 @@ struct IMContext {
     value_inputs: void*;
     require_relocatable: bool;
     waiting: void*;
+    retain_result_storage: bool;
 }
 
 // Shared query metadata; the evaluator reads readiness, while only the

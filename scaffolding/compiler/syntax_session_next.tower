@@ -254,6 +254,12 @@ export fn syntax_next(opaque: void*): void* {
     var rule = syntax_session_text(label, "GrammarDeclaration");
     var skipped = syntax_session_text(label, "GrammarSkipDeclaration");
     var lexical = skipped || syntax_session_text(label, "GrammarTokenDeclaration");
+    // Attribute prefixes can precede ordinary declarations as well. Classify
+    // the actual parsed construct before recording it or mutating the grammar.
+    value.declaration = importing || rule || lexical;
+    if value.bootstrapping && !value.declaration {
+        return syntax_session_fail(value, value.building_bedrock ? "Bedrock may contain only token, skip and parse declarations" : "Foundation may contain only token, skip and parse declarations");
+    }
     if importing {
         syntax_session_inputs_module(&value.inputs, value.inputs.source.text.data, null);
         var module = bits(FrontendModule*, value.inputs.module);

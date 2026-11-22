@@ -41,6 +41,7 @@ fn sem_surface_unwrap(n: void*): void* {
         wrapper ||= sem_is(n, "CoreOperand");
         wrapper ||= sem_is(n, "CoreCallArgument");
         wrapper ||= sem_is(n, "CoreValue");
+        wrapper ||= sem_is(n, "CoreMetadataOperand");
         if !wrapper {
             return n;
         }

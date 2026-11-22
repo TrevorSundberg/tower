@@ -3,7 +3,7 @@ import fast_interpreter;
 import interpreter;
 
 var BytecodeContainerVersion: u64 = 1;
-var BytecodeSemanticsVersion: u64 = 5;
+var BytecodeSemanticsVersion: u64 = 6;
 var BytecodeExecutionCacheVersion: u64 = 5;
 
 // .towerbc v1: portable, versioned distribution envelope. Canonical Foundation

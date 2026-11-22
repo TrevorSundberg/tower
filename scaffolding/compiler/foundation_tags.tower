@@ -35,6 +35,7 @@ var KLabel: u32 = 31;
 var KJump: u32 = 32;
 var KTrap: u32 = 33;
 var KFunctionReference: u32 = 34;
+var KMetadataValue: u32 = 35;
 var OAdd: u32 = 0;
 var OSub: u32 = 1;
 var OMul: u32 = 2;

@@ -1,6 +1,7 @@
 import tower;
 
 import foundation_types;
+import foundation_tags;
 import .library.vector;
 
 export fn foundation_node_size(): usize {
@@ -20,6 +21,20 @@ export fn foundation_node_dispose(value: FoundationNode*): void {
     vector_dispose(&value.locals);
     vector_dispose(&value.parameters);
     vector_dispose(&value.comments);
+    vector_dispose(&value.attributes);
+}
+
+// Metadata is addressed by its bound type entity within this graph. Spelling
+// and host addresses never serve as serialized type identity; Foundation text
+// reconstructs the declarations and their bindings before this query is used.
+extern fn sem_get(node: void*): FoundationNode*;
+
+fn foundation_attribute_get(declaration: FoundationNode*, type: void*): FoundationNode* {
+    foreach(var attribute in &declaration.attributes) {
+        var value = sem_get(attribute);
+        if value.kind == KMetadataValue && value.type.record == type { return value; }
+    }
+    return null;
 }
 
 export fn foundation_nodes_push(values: vector(void*)*, node: void*): bool {

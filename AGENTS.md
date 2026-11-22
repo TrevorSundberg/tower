@@ -405,9 +405,17 @@ Do NOT modify todo.txt
   concepts shared. Generated parser symbols must avoid collisions without reserving
   a source-name prefix. Local overrides do not mutate an imported entity, but do
   change the current file's declaration lexer as well as its ordinary tokens.
-- The current `as style` clause is provisional highlighting metadata, not a general
-  attribute design or a semantic type annotation. Reconsider extensible attributes
-  on the same shared nodes before expanding this syntax into unrelated semantics.
+- Prefer bracket grammar attributes such as `[comment]`, `[contextual]` and
+  `[precedence(20, left)]` once the complete compatible bootstrap is published.
+  Keep old `as style`/`when expected`/`@` forms only where compatibility is under
+  test. See docs/attributes.md. Grammar attributes and ordinary declaration
+  attributes share parse entities; typed declaration values use ordinary Tower
+  functions and interpreter dependency evaluation, not a second evaluator.
+- Identify declaration attributes by their bound nominal type, not spelling.
+  Keep declaration metadata distinct from type-object metadata. Protocol consumers
+  must define and validate each attribute's semantics explicitly; an arbitrary
+  annotation does not silently change layout, arithmetic or target legality.
+  Preserve typed metadata and callback bindings in compilable Foundation output.
 - Intended declaration syntax is `var name: Type`, parameters `name: Type`, and
   `fn name(...): ReturnType`. Type names, including i32/u32/bool, should eventually
   resolve to reflected type objects through ordinary name lookup, not reserved

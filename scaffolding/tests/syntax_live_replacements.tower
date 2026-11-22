@@ -38,11 +38,15 @@ fn live_seed_tests(): void {
         var declaration: void* = null; var data = syntax_get(document);
         for (var index: usize = 0; index < data.items.length; ++index) { if live_text(&syntax_get(data.items.data[index]).name, "GrammarDeclaration") { declaration = data.items.data[index]; } }
         utility_check(declaration is not null, "Find declaration semantic entity");
-        var literal = syntax_get(syntax_get(declaration).items.data[0]).items.data[0];
+        var terms = &syntax_get(syntax_get(declaration).items.data[0]).items;
+        var prefix = syntax_get(terms.data[0]);
+        utility_check(!prefix.literal && live_text(&prefix.text, "Attributes")
+            && live_text(&prefix.capture, "attributes"), "Shared declaration attribute prefix");
+        var literal = terms.data[1];
         utility_check(live_text(&syntax_get(literal).text, "parse"), "Grammar literal semantic text"); live_match(literal);
         utility_check(storage_assign(&syntax_get(literal).text, "rule", 4), "Edit shared grammar semantic text");
         var changed: FormatResult; fill(&changed, 0, sizeof(FormatResult)); defer format_dispose(&changed); live_format(&changed, document);
-        utility_check(strstr(changed.text.data, "= 'rule'") is not null, "Formatter observes semantic edit");
+        utility_check(strstr(changed.text.data, "$attributes:Attributes 'rule'") is not null, "Formatter observes semantic edit");
         format_dispose(&actual); live_format(&actual, syntax_native_bedrock()); live_format_equal(&actual, &source);
         syntax_destroy(bits(void*, session)); session = null;
         format_dispose(&actual); live_format(&actual, document); live_format_equal(&actual, &changed);

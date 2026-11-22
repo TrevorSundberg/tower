@@ -1,0 +1,108 @@
+import tower;
+import foundation_tags;
+import foundation_types;
+import semantic_context;
+import semantic_evaluation;
+import semantic_control;
+import semantic_types;
+import semantic_support;
+import semantic_expressions;
+import semantic_expression_lowering;
+import semantic_aggregates;
+import interpreter_context_types;
+import .library.vector;
+
+extern fn ix_load(m: IMExecution*, address: u64, type: FoundationType*, offset: usize): u64;
+
+var EvaluationRootProjection: usize = ~convert(usize, 0);
+struct SemanticEvaluationLeaf {
+    subject: void*;
+    field: void*;
+    parent: usize;
+    index: usize;
+    type: FoundationType;
+    byte_offset: usize;
+}
+
+// A pending aggregate is a tree of ordinary field initializers. Only scalar
+// leaves are shared between consuming lowering jobs and the staged producer;
+// each leaf carries the producer's dependency. No interpreter address or padding
+// byte is ever published in the canonical Foundation graph.
+fn sem_evaluation_aggregate(c: SemanticContext*, result: SemanticEvaluation*, node: void*, type: FoundationType*, parent: usize): void {
+    var value = sem_get(node);
+    value.type = *type;
+    value.constant = false;
+    value.kind = SurfaceInitializer;
+    var record = sem_get(type.record);
+    var count = type.scalar == SArray ? record.length : record.items.length;
+    for(var index: usize = 0; index < count && sem_ok(c); index++) {
+        var field = type.scalar == SArray ? null : record.items.data[index];
+        var element = field == null ? &record.element : &sem_get(field).type;
+        // Declaration inference can discover this result before layout runs.
+        // Retain field identity, not an unpublished numeric byte offset.
+        var projection: SemanticEvaluationLeaf = default;
+        projection.field = field;
+        projection.parent = parent;
+        projection.index = index;
+        projection.type = *element;
+        var projection_index = result.leaves.length;
+        sem_require(vector_push(&result.leaves, projection));
+        var entry = sem_control_node(c, node, KAssign);
+        var assignment = sem_get(entry);
+        assignment.type = *element;
+        assignment.binding = field;
+        assignment.index = index;
+        if field != null { sem_set_name(assignment, sem_name(sem_get(field))); }
+        if semantic_aggregate(element) {
+            assignment.value = sem_control_node(c, entry, SurfaceInitializer);
+            sem_evaluation_aggregate(c, result, assignment.value, element, projection_index);
+        } else {
+            assignment.value = sem_surface_constant(c, entry, element, 0);
+            var leaf = assignment.value;
+            if sem_get(leaf).kind == KConvert { leaf = sem_get(leaf).value; }
+            result.leaves.data[projection_index].subject = leaf;
+            var dependency = bits(IMDependency*, entity_component_data(entity_component_add(leaf, c.evaluation_ready)));
+            sem_require(dependency != null);
+            *dependency = default;
+            dependency.subject = leaf;
+            dependency.source = result.ready;
+        }
+        sem_push(&value.items, entry);
+    }
+    c.surface_expressions = true;
+}
+
+// Evaluate once into a private root-frame local. The interpreter retains that
+// frame only until publication. Returning its address is an implementation detail
+// of the staged query, never a public Foundation constant or a guest lifetime rule.
+fn sem_evaluation_aggregate_prepare(c: SemanticContext*, result: SemanticEvaluation*): void {
+    var function = sem_evaluation_function(c, result);
+    var definition = sem_get(function);
+    definition.body = sem_control_node(c, function, KBlock);
+    var previous = c.current;
+    c.current = function;
+    var local = sem_aggregate_local(c, definition.body, &result.aggregate_type);
+    sem_lift_initialization(c, definition.body, local, result.expression);
+    var returned = sem_control_node(c, definition.body, KReturn);
+    sem_get(returned).value = sem_get(sem_lift_target(c, definition.body, local)).value;
+    sem_lift_append(definition.body, returned);
+    c.current = previous;
+}
+
+fn sem_evaluation_aggregate_publish(c: SemanticContext*, result: SemanticEvaluation*): void {
+    var invocation = &result.invocation;
+    var execution: IMExecution = { state: &invocation.state, context: &invocation.context };
+    foreach(var &leaf in &result.leaves) {
+        var parent_offset = leaf.parent == EvaluationRootProjection ? 0 : result.leaves.data[leaf.parent].byte_offset;
+        leaf.byte_offset = parent_offset + (leaf.field == null ? leaf.index * semantic_size(&leaf.type) : sem_get(leaf.field).byte_offset);
+        if leaf.subject == null { continue; }
+        var value = sem_get(leaf.subject);
+        var bits_value = ix_load(&execution, invocation.context.result + convert(u64, leaf.byte_offset), &value.type, value.start);
+        if invocation.state.failed { sem_fail(c, result.subject, invocation.context.error.data); return; }
+        if value.type.pointers != 0 && bits_value != 0 {
+            sem_fail(c, result.subject, "Compile-time aggregate contains a non-relocatable raw pointer");
+            return;
+        }
+        sem_evaluation_value(leaf.subject, invocation, bits_value);
+    }
+}

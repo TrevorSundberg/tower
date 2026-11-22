@@ -4,6 +4,42 @@ import format_types;
 import format;
 import syntax_tags;
 import syntax_types;
+import grammar_attributes;
+
+fn format_grammar_attribute(f: FormatEngine*, attribute: SyntaxNode*): void {
+    format_text(f, "[");
+    format_identifier(f, &attribute.name);
+    if attribute.items.length != 0 {
+        format_text(f, "(");
+        for(var index: usize = 0; index < attribute.items.length; index++) {
+            if index != 0 { format_text(f, ", "); }
+            var value = format_syntax(f, attribute.items.data[index]);
+            if value.kind == convert(u32, SyntaxKind.AttributeString) { format_quote(f, &value.text); }
+            else { if value.kind == convert(u32, SyntaxKind.AttributeInteger) { format_bytes(f, &value.text); }
+            else { format_identifier(f, &value.text); } }
+        }
+        format_text(f, ")");
+    }
+    format_text(f, "]");
+}
+
+fn format_grammar_has_attribute(f: FormatEngine*, node: SyntaxNode*, kind: GrammarAttributeKind): bool {
+    foreach(var entity in &node.attributes) {
+        if grammar_attribute_kind(&format_syntax(f, entity).name) == kind { return true; }
+    }
+    return false;
+}
+
+fn format_grammar_attributes(f: FormatEngine*, node: SyntaxNode*): void {
+    foreach(var entity in &node.attributes) {
+        var attribute = format_syntax(f, entity);
+        var start = f.result.text.length;
+        format_grammar_attribute(f, attribute);
+        format_span(f, start, attribute.start);
+        format_text(f, "\n");
+        format_indent(f);
+    }
+}
 
 // Grammar terms, alternatives and declarations retain shared entity identity.
 fn format_grammar_term(f: FormatEngine*, entity: void*): void {
@@ -75,7 +111,7 @@ fn format_alternative(f: FormatEngine*, entity: void*): void {
 }
 
 fn format_precedence(f: FormatEngine*, n: SyntaxNode*): void {
-    if n.precedence == 0 {
+    if n.precedence == 0 || format_grammar_has_attribute(f, n, GrammarAttributeKind.Precedence) {
         return;
     }
     format_text(f, " @ ");
@@ -137,6 +173,8 @@ fn format_grammar(f: FormatEngine*, entity: void*): void {
     format_comments(f, n);
     format_indent(f);
     var begin = f.result.text.length;
+    format_grammar_attributes(f, n);
+    if n.kind == convert(u32, SyntaxKind.Attribute) { format_grammar_attribute(f, n); return; }
     if n.kind == 7 {
         format_text(f, "import ");
         if n.literal {
@@ -244,10 +282,10 @@ fn format_grammar(f: FormatEngine*, entity: void*): void {
             format_text(f, " = /");
             format_bytes(f, &n.text);
             format_text(f, "/");
-            if n.contextual {
+            if n.contextual && !format_grammar_has_attribute(f, n, GrammarAttributeKind.Contextual) {
                 format_text(f, " when expected");
             }
-            if n.style.length != 0 {
+            if n.style.length != 0 && !format_grammar_has_attribute(f, n, GrammarAttributeKind.Style) {
                 format_text(f, " as ");
                 format_identifier(f, &n.style);
             }
@@ -286,6 +324,7 @@ export fn format_grammar_preview(result: FormatResult*, entity: void*, syntax: v
     if n == null {
         return;
     }
+    format_grammar_attributes(&f, n);
     if n.kind == SyntaxAlternative {
         format_alternative(&f, entity);
         format_precedence(&f, n);

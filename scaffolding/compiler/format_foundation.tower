@@ -332,6 +332,21 @@ fn format_number(f: FormatEngine*, n: FoundationNode*): void {
 
 fn format_expression(f: FormatEngine*, entity: void*): void {
     var n = format_foundation(f, entity);
+    if n.kind == KMetadataValue {
+        format_text(f, "init(");
+        format_type(f, &n.type);
+        format_text(f, ", { ");
+        for(var index: usize = 0; index < n.items.length; index++) {
+            if index != 0 { format_text(f, ", "); }
+            var field = format_foundation(f, n.items.data[index]);
+            if n.type.scalar == SArray { format_unsigned(f, convert(u64, field.index)); }
+            else { format_identifier(f, &field.name); }
+            format_text(f, ": ");
+            format_expression(f, field.value);
+        }
+        format_text(f, " })");
+        return;
+    }
     var builtin = format_builtin(n);
     if builtin != null {
         format_text(f, builtin);
@@ -718,6 +733,12 @@ fn format_statement_body(f: FormatEngine*, entity: void*): void {
 fn format_statement(f: FormatEngine*, entity: void*): void {
     var n = format_foundation(f, entity);
     format_node_comments(f, n);
+    foreach(var attribute in &n.attributes) {
+        format_indent(f);
+        format_text(f, "[");
+        format_expression(f, attribute);
+        format_text(f, "]\n");
+    }
     format_indent(f);
     var begin = f.result.text.length;
     format_statement_body(f, entity);

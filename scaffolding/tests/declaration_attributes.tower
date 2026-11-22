@@ -1,0 +1,26 @@
+import tower;
+
+struct Representation { bytes: usize; alignment: usize; }
+struct Behavior { invoke: function(i32, i32); flags: u8[2]; }
+fn representation(width: usize): Representation {
+    return { bytes: width, alignment: width };
+}
+fn twice(value: i32): i32 { return value * 2; }
+fn behavior(): Behavior {
+    var result: Behavior = default;
+    result.invoke = twice;
+    result.flags[0] = 3;
+    result.flags[1] = 7;
+    return result;
+}
+
+[representation(4)]
+struct Word { value: i32; }
+
+[behavior()]
+fn answer(value: i32): i32 { return twice(value); }
+
+[representation(8)]
+var storage: i64 = 42;
+var word: Word = { value: answer(21) };
+print(convert(i32, word.value != 42 || storage != 42));

@@ -1,0 +1,44 @@
+import tower;
+
+enum Mode: u8 { Off, On }
+struct Pair { x: i32; y: f32; }
+struct Metadata {
+    pair: Pair;
+    values: i16[3];
+    callback: function(i32, i32);
+    optional: i32*;
+    mode: Mode;
+}
+
+fn twice(value: i32): i32 { return value * 2; }
+fn metadata(value: i32): Metadata {
+    var result: Metadata = default;
+    result.pair = { x: value, y: -0.0 };
+    result.values[0] = -32768;
+    result.values[1] = 17;
+    result.values[2] = 32767;
+    result.callback = twice;
+    result.mode = Mode.On;
+    return result;
+}
+fn nested(): Pair {
+    var value = comptime(metadata(21));
+    return { x: value.callback(value.pair.x), y: value.pair.y };
+}
+fn cleaned(): i32 {
+    var value: i32 = 0;
+    defer {
+        var data = comptime(metadata(21));
+        value = data.callback(data.pair.x);
+    }
+    return value;
+}
+var failures: i32 = 0;
+var data = comptime(metadata(21));
+if data.pair.x != 21 || bits(u32, data.pair.y) != 2147483648 { failures++; }
+if data.values[0] != -32768 || data.values[1] != 17 || data.values[2] != 32767 { failures++; }
+if data.callback(data.pair.x) != 42 || data.optional != null || data.mode != Mode.On { failures++; }
+var next = comptime(nested());
+if next.x != 42 || bits(u32, next.y) != 2147483648 { failures++; }
+if cleaned() != 0 { failures++; }
+print(failures);

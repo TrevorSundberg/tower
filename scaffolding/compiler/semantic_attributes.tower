@@ -1,0 +1,127 @@
+import tower;
+import foundation_tags;
+import foundation_types;
+import semantic_context;
+import semantic_control;
+import semantic_types;
+import semantic_values;
+import semantic_support;
+import semantic_expressions;
+import semantic_evaluation;
+import semantic_evaluation_aggregates;
+import .library.vector;
+
+// Declaration identity remains the original function/type/variable parse node.
+// Attribute wrappers retain syntax/provenance and are only an index of inputs.
+fn sem_attributes_declarations(c: SemanticContext*): void {
+    foreach(var &statement in &sem_get(c.program.root).items) {
+        if !sem_is(*statement, "CoreAttributed") { continue; }
+        if c.attribute_sources == null { c.attribute_sources = sem_list(c); }
+        sem_push(c.attribute_sources, *statement);
+        *statement = sem_child(sem_member(*statement, "declaration"), 0);
+    }
+}
+
+fn sem_attributes_check(c: SemanticContext*): void {
+    if c.attribute_sources == null || !sem_ok(c) { return; }
+    var previous = c.current;
+    var scope = c.scope;
+    var surface = c.surface_expressions;
+    c.current = c.program.root;
+    c.scope = null;
+    foreach(var wrapper in c.attribute_sources) {
+        var declaration = sem_child(sem_member(wrapper, "declaration"), 0);
+        var target = sem_get(declaration);
+        if target == null {
+            sem_fail(c, wrapper, "Attributes on uninstantiated templates are not yet supported");
+            break;
+        }
+        var attributes = sem_collect(c, sem_member(wrapper, "attributes"), "Attribute");
+        foreach(var attribute in attributes) {
+            sem_comptime(c, attribute, null);
+            if !sem_ok(c) { break; }
+            var value = sem_get(attribute);
+            if value.type.pointers != 0 || value.type.scalar != SStruct {
+                sem_fail(c, attribute, "A declaration attribute must produce a struct value");
+                break;
+            }
+            foreach(var earlier in &target.attributes) {
+                if semantic_type_equal(&sem_get(earlier).type, &value.type) {
+                    sem_fail(c, attribute, "Duplicate attribute type on this declaration");
+                    break;
+                }
+            }
+            if !sem_ok(c) { break; }
+            sem_push(&target.attributes, attribute);
+        }
+        if !sem_ok(c) { break; }
+    }
+    c.current = previous;
+    c.scope = scope;
+    // Attribute construction is lowered in its own staged producer. It must
+    // not request a second lowering of an already-canonical Foundation program.
+    c.surface_expressions = surface;
+}
+
+// Canonical metadata literals reconstruct the same typed value using ordinary
+// staged execution. This reader only binds/checks fields; it computes no values.
+fn sem_metadata_literal(c: SemanticContext*, node: void*, expected_type: FoundationType*): void* {
+    var type = sem_type(c, sem_member(node, "type"));
+    var value = sem_node(c, node, SurfaceInitializer);
+    value.type = *type;
+    if !semantic_aggregate(type) {
+        sem_fail(c, node, "metadata requires a struct or array type");
+        return node;
+    }
+    sem_surface_expected(c, node, expected_type);
+    if !sem_ok(c) { return node; }
+    var record = sem_get(type.record);
+    var supplied = sem_table(c);
+    var fields = sem_collect(c, sem_member(node, "fields"), "CoreMetadataField");
+    var count = type.scalar == SArray ? record.length : record.items.length;
+    if fields.length != count { sem_fail(c, node, "Metadata must supply every field exactly once"); return node; }
+    for(var index: usize = 0; index < fields.length && sem_ok(c); index++) {
+        var entry = fields.data[index];
+        var assignment = sem_node(c, entry, KAssign);
+        var array = type.scalar == SArray;
+        var name_node = sem_member(entry, array ? "index" : "name");
+        if name_node == null { sem_fail(c, entry, "Metadata field kind does not match its aggregate type"); break; }
+        var name = sem_identifier(c, name_node);
+        if !sem_put(c, supplied, name, entry) { sem_fail(c, entry, "Duplicate metadata field"); break; }
+        var element = &record.element;
+        if array {
+            if !sem_equal(name, sem_decimal(c, convert(u64, index))) {
+                sem_fail(c, entry, "Metadata array elements must be in index order");
+                break;
+            }
+            assignment.index = index;
+        } else {
+            foreach(var field in &record.items) {
+                if sem_equal(name, sem_name(sem_get(field))) { assignment.binding = field; }
+            }
+            if assignment.binding == null { sem_fail(c, entry, "Unknown metadata field"); break; }
+            element = &sem_get(assignment.binding).type;
+            sem_set_name(assignment, name);
+        }
+        assignment.type = *element;
+        assignment.value = sem_operand(c, sem_member(entry, "value"), element);
+        sem_push(&value.items, entry);
+    }
+    c.surface_expressions = true;
+    return node;
+}
+
+fn sem_metadata_publish(node: void*): void {
+    var value = sem_get(node);
+    if !semantic_aggregate(&value.type) { return; }
+    value.kind = KMetadataValue;
+    foreach(var entry in &value.items) { sem_metadata_publish(sem_get(entry).value); }
+}
+
+fn sem_attributes_publish(c: SemanticContext*): void {
+    if !sem_ok(c) || c.attribute_sources == null { return; }
+    foreach(var wrapper in c.attribute_sources) {
+        var declaration = sem_child(sem_member(wrapper, "declaration"), 0);
+        foreach(var attribute in &sem_get(declaration).attributes) { sem_metadata_publish(attribute); }
+    }
+}

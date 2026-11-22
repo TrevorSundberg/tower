@@ -7,6 +7,7 @@ import semantic_expressions;
 import semantic_control;
 import semantic_expression_lowering;
 import semantic_evaluation_work;
+import semantic_evaluation_aggregates;
 import semantic_defer;
 import compiler_kernel;
 import semantic_work_ids;
@@ -38,7 +39,10 @@ struct SemanticEvaluation {
     requested: bool;
     started: bool;
     inferred: bool;
-    aliases: vector(void*);
+    aliases: vector(SemanticEvaluationAlias);
+    leaves: vector(SemanticEvaluationLeaf);
+    aggregate_type: FoundationType;
+    aggregate: bool;
 }
 
 fn sem_evaluation_dependency(c: SemanticContext*, node: void*): IMDependency* {
@@ -56,12 +60,13 @@ fn sem_evaluation_clone(c: SemanticContext*, original: void*, clone: void*): voi
     if dependency == null { return; }
     var result = sem_evaluation_get(c, dependency.subject);
     sem_require(result != null);
+    var alias: SemanticEvaluationAlias = default;
+    alias.producer = dependency.subject;
+    alias.original = original;
+    alias.clone = clone;
     if c.evaluation_aliases != null {
-        var alias: SemanticEvaluationAlias = default;
-        alias.producer = dependency.subject;
-        alias.clone = clone;
         sem_require(vector_push(c.evaluation_aliases, alias));
-    } else { sem_push(&result.aliases, clone); }
+    } else { sem_require(vector_push(&result.aliases, alias)); }
     var link = bits(IMDependency*, entity_component_data(entity_component_add(clone, c.evaluation_ready)));
     sem_require(link != null);
     fill(link, 0, sizeof(IMDependency));
@@ -75,7 +80,7 @@ fn sem_evaluation_aliases(c: SemanticContext*, aliases: vector(SemanticEvaluatio
     foreach(var &alias in aliases) {
         var result = sem_evaluation_get(c, alias.producer);
         sem_require(result != null);
-        sem_push(&result.aliases, alias.clone);
+        sem_require(vector_push(&result.aliases, *alias));
     }
     aliases.length = 0;
 }
@@ -136,8 +141,8 @@ fn sem_comptime(c: SemanticContext*, n: void*, expected_type: FoundationType*): 
         value.value = literal;
     }
     if c.unevaluated { return n; }
-    if input.type.pointers != 0 || semantic_aggregate(&input.type) || input.type.scalar == SVoid {
-        sem_fail(c, n, "Compile-time results currently require a numeric or bool value");
+    if input.type.pointers != 0 || input.type.scalar == SVoid {
+        sem_fail(c, n, "Compile-time results require a relocatable value, not a raw pointer or void");
         return n;
     }
     sem_evaluation_begin(c);
@@ -153,6 +158,11 @@ fn sem_comptime(c: SemanticContext*, n: void*, expected_type: FoundationType*): 
     sem_require(result.ready != null);
     fill(result.ready, 0, sizeof(IMDependency));
     result.ready.subject = n;
+    result.aggregate = semantic_aggregate(&input.type);
+    if result.aggregate {
+        result.aggregate_type = input.type;
+        sem_evaluation_aggregate(c, result, n, &input.type, EvaluationRootProjection);
+    }
     if literal != n {
         // Lowering may materialize the typed integer before its enum conversion.
         // That initializer must suspend too, before it can capture a stale zero.
@@ -177,6 +187,10 @@ fn sem_evaluation_function(c: SemanticContext*, result: SemanticEvaluation*): vo
     if result.function == null {
         result.function = sem_control_node(c, result.subject, KFunction);
         sem_set_type(&sem_get(result.function).type, &sem_get(result.subject).type);
+        if result.aggregate {
+            sem_get(result.function).type = result.aggregate_type;
+            sem_get(result.function).type.pointers++;
+        }
     }
     return result.function;
 }
@@ -201,6 +215,7 @@ fn sem_evaluation_clone_expression(c: SemanticContext*, result: SemanticEvaluati
 }
 
 fn sem_evaluation_prepare(c: SemanticContext*, result: SemanticEvaluation*): void {
+    if result.aggregate { sem_evaluation_aggregate_prepare(c, result); return; }
     var function = sem_evaluation_function(c, result);
     var definition = sem_get(function);
     definition.body = sem_control_node(c, function, KBlock);
@@ -261,6 +276,7 @@ fn sem_evaluations(c: SemanticContext*): void {
                 result.invocation.context.dependency_kind = c.evaluation_ready;
                 result.invocation.context.value_inputs = c.value_inputs;
                 result.invocation.context.require_relocatable = result.inferred;
+                result.invocation.context.retain_result_storage = result.aggregate;
                 result.started = true;
             }
             batch[count] = result;
@@ -285,13 +301,24 @@ fn sem_evaluations(c: SemanticContext*): void {
                 interpreter_invocation_dispose(invocation);
             } else {
                 if invocation.state.done {
-                    sem_evaluation_value(result.subject, invocation);
-                    sem_evaluation_value(result.literal, invocation);
-                    for(var alias: usize = 0; alias < result.aliases.length; alias++) {
-                        sem_evaluation_value(result.aliases.data[alias], invocation);
+                    if result.aggregate { sem_evaluation_aggregate_publish(c, result); }
+                    else {
+                        sem_evaluation_value(result.subject, invocation, invocation.context.result);
+                        sem_evaluation_value(result.literal, invocation, invocation.context.result);
                     }
+                    foreach(var &alias in &result.aliases) {
+                        var original = sem_get(alias.original);
+                        if original.constant || original.kind == KFunctionReference {
+                            var target = sem_get(alias.clone);
+                            target.bits = original.bits;
+                            target.binding = original.binding;
+                            target.kind = original.kind;
+                            target.constant = original.constant;
+                        }
+                    }
+                    result.ready.failed = !sem_ok(c);
                     result.ready.ready = true;
-                    sem_require(work_finish(&c.queries, &result.ticket, true));
+                    sem_require(work_finish(&c.queries, &result.ticket, sem_ok(c)));
                     interpreter_invocation_dispose(invocation);
                 } else {
                     var waiting = invocation.context.waiting;
@@ -324,9 +351,9 @@ fn sem_evaluations(c: SemanticContext*): void {
 
 // Function results relocate through their bound Foundation declaration. The
 // interpreter's private numeric reference never becomes a serialized constant.
-fn sem_evaluation_value(node: void*, invocation: IMInvocation*): void {
+fn sem_evaluation_value(node: void*, invocation: IMInvocation*, bits_value: u64): void {
     var value = sem_get(node);
-    value.bits = invocation.context.result;
+    value.bits = bits_value;
     if value.type.scalar == SFunction && value.type.pointers == 0 && value.bits != 0 {
         sem_require(value.bits <= convert(u64, invocation.state.function_values.length));
         value.binding = invocation.state.function_values.data[convert(usize, value.bits - 1)];
@@ -342,7 +369,8 @@ fn sem_evaluation_dispose(c: SemanticContext*): void {
     while index < c.evaluation_jobs.length {
         var result = bits(SemanticEvaluation*, c.evaluation_jobs.data[index]);
         interpreter_invocation_dispose(&result.invocation);
-        vector_dispose(void*, &result.aliases);
+        vector_dispose(&result.aliases);
+        vector_dispose(&result.leaves);
         index++;
     }
     vector_dispose(void*, &c.evaluation_jobs);
