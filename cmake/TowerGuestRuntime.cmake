@@ -1,6 +1,9 @@
 # Platform artifacts assembled entirely by Tower, using upstream LLVM APIs for
 # explicit startup / foreign-data ABI connections. These are target outputs.
 function(tower_guest_runtime name triple profile entry)
+  if(ARGN AND NOT ARGN STREQUAL "UNINSTRUMENTED")
+    message(FATAL_ERROR "Unknown guest runtime build policy: ${ARGN}")
+  endif()
   if(TARGET tower-guest-${name})
     return()
   endif()
@@ -66,10 +69,15 @@ function(tower_guest_runtime name triple profile entry)
     COMMAND "${bind}" "${base}-unbound.ll" "${base}.ll" ${pairs}
     DEPFILE "${base}.d"
     DEPENDS "${input}" "${bind}" tower-runtime-bind "${TOWER_BOOTSTRAP_COMPILER}" VERBATIM)
-  add_custom_command(OUTPUT "${base}.o"
-    COMMAND "${TOWER_RUNTIME_HOST_CC}" --target=${triple} -O2 -ffreestanding -fno-builtin
-      -fno-stack-protector -mllvm -disable-loop-idiom-all -c "${base}.ll" -o "${base}.o"
-    DEPENDS "${base}.ll" VERBATIM)
+  if(TOWER_SANITIZER AND NOT ARGN)
+    tower_sanitizer_object(guest-${name} "${base}.ll" "${triple}"
+      -ffreestanding -fno-builtin -fno-stack-protector -mllvm -disable-loop-idiom-all)
+  else()
+    add_custom_command(OUTPUT "${base}.o"
+      COMMAND "${TOWER_RUNTIME_HOST_CC}" --target=${triple} -O2 -ffreestanding -fno-builtin
+        -fno-stack-protector -mllvm -disable-loop-idiom-all -c "${base}.ll" -o "${base}.o"
+      DEPENDS "${base}.ll" VERBATIM)
+  endif()
   set_source_files_properties("${base}.o" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
   add_custom_target(tower-guest-${name} DEPENDS "${base}.o")
   set_property(GLOBAL PROPERTY TOWER_GUEST_${name}_OBJECT "${base}.o")
@@ -82,7 +90,7 @@ function(tower_guest_native_resources triple)
   else()
     set(profile posix)
   endif()
-  tower_guest_runtime(host-library "${triple}" "${profile}" OFF)
+  tower_guest_runtime(host-library "${triple}" "${profile}" OFF UNINSTRUMENTED)
   foreach(spec IN ITEMS
       "wasm32|wasm32-unknown-unknown|wasm"
       "linux-x64|x86_64-unknown-linux-gnu|linux-x64"
@@ -101,7 +109,8 @@ function(tower_guest_native_resources triple)
     if(platform STREQUAL "wasm")
       set(entry OFF)
     endif()
-    tower_guest_runtime("${name}" "${target}" "${platform}" "${entry}")
+    # Distributed guest programs are target resources, not compiler/test objects.
+    tower_guest_runtime("${name}" "${target}" "${platform}" "${entry}" UNINSTRUMENTED)
     get_property(ir GLOBAL PROPERTY TOWER_GUEST_${name}_IR)
     set(resource "${CMAKE_CURRENT_BINARY_DIR}/share/tower/runtime-${name}.ll")
     add_custom_command(OUTPUT "${resource}"

@@ -93,7 +93,13 @@ tools="$(bash playground/scripts/build-bootstrap.sh --tools)"
 Pass a tool name after `--tools` to build only `prepare_llvm`, `package_roku`,
 `package_bootstrap`, `package_compiler_project`, `package_targets`,
 `package_playground_assets`, `verify_compiler`, `verify_bootstrap_symbols` or
-`check_core`. Omitting the name builds all nine.
+`check_core`. Omitting the name builds these nine ordinary tools.
+
+The opt-in `build-bootstrap.sh --tools instrument_llvm` entry builds A2's
+Linux x64 LLVM sanitizer tool using the same public compiler, guest-library
+runtime and discovered LLVM shared library. It does not rebuild the ordinary
+tool set. See [actual Tower instrumentation](../docs/compiler_sanitizer_checks.md)
+for supported modes, sensitivity controls and coverage limits.
 
 Build children use CMake's `TOWER_COMPILER_JOBS` worker budget (default `1`),
 independently of outer `TOWER_BUILD_JOBS`/Ninja parallelism. For a two-worker

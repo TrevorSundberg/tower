@@ -9,7 +9,8 @@ Coverage now includes 37 initial tool/benchmark source reviews, three shared
 measurement modules, 45 provenance-only resource reviews, the new complete
 wide-function benchmark wrapper, the tool-budget regression, and six additional
 shared build/measurement entry points reviewed below. These categories
-are not interchangeable.
+are not interchangeable. The subsequently handed-off sanitizer tool and two
+negative probes add three source reviews, for 96 paths; A2 retains their ownership.
 
 ## Contracts and method
 
@@ -80,6 +81,9 @@ receipts. “Source review” means inspection, not a newly executed test.
 | `scaffolding/benchmarks/interpreter_profile.tower` | Intentional 500,000-iteration scalar recurrence and ordinary function calls; all state belongs to one execution. | Browser CPU sampling input, not a compiler throughput benchmark or a multicore fixture. Wrapping signed arithmetic contract must be preserved by independent oracle. |
 | `scaffolding/benchmarks/compiler_wide_functions.tower` | New D2 complete-file measurement wrapper: one local ByteBuffer, lexical cleanup, existing Tower stress generator and explicit Tower import. No duplicated generator, world, scheduler or IR. | Initial direct fragment compilation failed without the language import; preserved as failure. New emitted 300-function file compiles to identical objects at jobs 1/2/8 and prints independently known 299 in graph/native execution. |
 | `scaffolding/tests/build_tool_budget_checks.tower` | New D2 regression invokes the real builder/compiler synchronously with borrowed argument strings; all local path/product buffers close after child reap. Invalid-budget calls must fail and leave products absent; valid budgets 1/2 must yield equal object bytes. | Public-pin compile/link and real regression pass at `6a2536b`; independent executable-byte comparison also passes. Existing tool transport/files/utility assertions; no fake compiler, alternate scheduler or generic harness modification. |
+| `scaffolding/tools/instrument_llvm.tower` | A2 handoff SHA `93cee185`, reviewed/applied over `3af3cea`. One LLVM context/module owns target IR and attribute/pass state; context, module, pass options and errors close through explicit/deferred cleanup. Sequential mutation of this foreign target artifact needs no second Tower world/AST. Only defined functions receive address/thread attributes, then LLVM passes and module verification run. | A2 reports actual positive/negative ASan/TSan runs; D2 has not yet executed the handoff. Linux x64 only, no source-language UBSan coverage. Already instrumented/no-definition modules reject. LLVM file loading has no explicit byte quota; use trusted frozen generated IR. Output path guard initially excludes hardlink identity; A2 owns its follow-up. Writes may leave failed artifacts; no atomic publication claim. |
+| `scaffolding/tests/sanitizer_memory_probe.tower` | A2-owned deliberate invalid fixture: one eight-byte allocation followed by out-of-bounds access. Raw Tower/Foundation policy is not changed to make it valid. The ordinary passing suite must not execute it. | Expected ASan overflow diagnostic and nonzero status prove sensitivity; A2 evidence is separate from pending D2 execution. Allocation failure traps explicitly. |
+| `scaffolding/tests/sanitizer_race_probe.tower` | A2-owned deliberate shared-payload race, two production workers and real barrier signals; stack job/counter lifetime encloses pool drain, signals close after pool. The intentional unsynchronized writes are the sensitivity target, not a scheduler design. | Requires exactly two real lanes; unsupported admission traps rather than skipping as pass. Expected TSan data-race diagnostic/nonzero status, never successful ordinary-suite acceptance. A2 reports success of sensitivity control; D2 execution pending. |
 
 ## Environment and evidence
 

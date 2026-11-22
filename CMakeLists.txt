@@ -6,22 +6,45 @@ set(TOWER_COMPILER_JOBS "1" CACHE STRING "Worker budget for each bootstrap compi
 if(NOT TOWER_COMPILER_JOBS MATCHES "^[1-9][0-9]*$")
   message(FATAL_ERROR "TOWER_COMPILER_JOBS must be a positive decimal worker count; outer parallelism is controlled by TOWER_BUILD_JOBS")
 endif()
+set(TOWER_SANITIZER "" CACHE STRING "Optional native Tower object instrumentation: address or thread")
+if(NOT TOWER_SANITIZER STREQUAL "" AND NOT TOWER_SANITIZER MATCHES "^(address|thread)$")
+  message(FATAL_ERROR "TOWER_SANITIZER must be empty, address or thread")
+endif()
 
 project(scaffolding LANGUAGES C CXX VERSION 1)
+
+if(TOWER_SANITIZER)
+  if(NOT TOWER_NATIVE OR NOT CMAKE_SYSTEM_NAME STREQUAL "Linux"
+      OR NOT CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux"
+      OR NOT CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64)$"
+      OR NOT CMAKE_C_COMPILER_ID STREQUAL "Clang"
+      OR NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang"
+      OR CMAKE_C_COMPILER_VERSION VERSION_LESS 19 OR NOT CMAKE_C_COMPILER_VERSION VERSION_LESS 20
+      OR CMAKE_CXX_COMPILER_VERSION VERSION_LESS 19 OR NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS 20)
+    message(FATAL_ERROR "TOWER_SANITIZER requires the native Linux x64 profile and Clang/LLVM 19")
+  endif()
+  # Object IR is instrumented explicitly; only the final link gets this flag.
+  add_link_options("-fsanitize=${TOWER_SANITIZER}")
+endif()
 
 # Minimal bootstrap bridge: Tower owns the tool recipes and process execution.
 # Requires only the published compiler and installed host LLVM.
 option(TOWER_TOOLS_ONLY "Bootstrap the Linux x64 Tower build tools" OFF)
 if(TOWER_TOOLS_ONLY)
-  set(TOWER_TOOL "" CACHE STRING "Optional Tower tool selected by build_tools")
+  set(TOWER_TOOL "" CACHE STRING "Optional Tower build tool")
   if(NOT TOWER_BOOTSTRAP_COMPILER OR NOT CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux"
       OR NOT CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64)$")
     message(FATAL_ERROR "Tower tools require the verified Linux x64 bootstrap; see bootstrap/README.md")
   endif()
   include(cmake/TowerRuntime.cmake)
   set(tool_triple x86_64-unknown-linux-gnu)
-  tower_guest_runtime(host-library "${tool_triple}" posix OFF)
+  tower_guest_runtime(host-library "${tool_triple}" posix OFF UNINSTRUMENTED)
   get_property(tool_runtime GLOBAL PROPERTY TOWER_GUEST_host-library_OBJECT)
+  if(TOWER_TOOL STREQUAL "instrument_llvm")
+    tower_instrumentation_tool()
+    add_custom_target(tower-tools DEPENDS tower-instrument-llvm)
+    return()
+  endif()
   set(tool_object "${CMAKE_CURRENT_BINARY_DIR}/build_tools.o")
   set(tool_builder "${CMAKE_CURRENT_BINARY_DIR}/build_tools")
   add_custom_command(OUTPUT "${tool_object}" "${tool_builder}"
@@ -43,7 +66,7 @@ endif()
 include(cmake/TowerCompilerUtilities.cmake)
 include(cmake/TowerInterpreter.cmake)
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NOT TOWER_SANITIZER)
   # Owned native compiler, parser and test targets use the published Tower
   # linker. Object emission and third-party compiler tools keep their toolchain.
   set(CMAKE_LINK_DEPENDS_USE_LINKER FALSE)
@@ -54,6 +77,9 @@ endif()
 option(TOWER_NATIVE "Build Tower's native compiler/linker driver against an installed LLVM" OFF)
 if(TOWER_NATIVE)
   find_package(LLVM REQUIRED CONFIG)
+  if(TOWER_SANITIZER AND NOT LLVM_PACKAGE_VERSION MATCHES "^19\\.")
+    message(FATAL_ERROR "Tower sanitizer mode requires LLVM 19; configured package is ${LLVM_PACKAGE_VERSION}")
+  endif()
   # Relocatable resources include the generated Tower runtime target artifacts.
   file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/share/tower")
   foreach(resource IN ITEMS bedrock.tower foundation.tower foundation_syntax.tower types.tower tower.tower)

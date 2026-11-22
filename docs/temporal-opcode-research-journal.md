@@ -46748,3 +46748,52 @@ public-bootstrap build, but no lane completion/publication is claimed. Remaining
 checks include the serial allocation/retention benchmark, actual compiler overlap,
 A2 emitted-code instrumentation and helper integration, applicable generation/
 browser/hosted validation and the coordinated atomic source/Pages publication.
+
+After the bounded budget phase drained, root delivered A2's four-file sanitizer
+handoff (SHA-256 93cee185858581ccac9381557b057a1e641fd12db8e2d0e17c774950e1fd4331).
+D2 reviewed/applied it, preserving the three Tower sources exactly, and added
+per-file audit receipts (96 total reviewed paths with categories kept distinct).
+A2's positive/negative ASan/TSan evidence is not a D2 execution. Source-language
+UBSan and non-Linux-x64 support remain outside this implemented tool.
+
+D2 implements the authorized narrow shared entry as explicit
+build-bootstrap.sh --tools instrument_llvm. It reuses tower_runtime_object,
+tower_host_linker, the existing guest library and the LLVM shared-library path
+already discovered by runtime_bind. Ordinary nine-tool selection and the now
+validated builder JOBS ABI remain unchanged; no sanitizer build occurs during
+unrelated packaging. CMake handles only the foreign compile/link boundary, while
+all instrumentation/error policy remains A2 Tower. Source checks pass; execution
+and instrumented positive/negative validation await D1's current heavy slot.
+
+Root then assigned D2 the optional native Linux x64 LLVM19 sanitizer mode using
+existing unit manifests, including direct backend objects and foreign-bound
+runtime/archive units. TOWER_SANITIZER=address|thread selects original LLVM,
+foreign binding where required, the A2 Tower pass and plain Clang-O1 object
+compilation. Only final executable linking uses -fsanitize. Build-host tools
+and distributed cross-target runtime resources remain explicitly uninstrumented;
+driver tests request a separate instrumented guest library. The generated
+sanitizer-objects.tsv records configured objects/IR/mode, not executed coverage.
+No A1 reserved query-unit/manifest changes were touched.
+
+The canonical instrument_llvm entry passed (5.03s wall,4.87s CPU,188324KiB RSS),
+then shared address-mode tower-work-tests built13 steps (33.05s wall,32.00s CPU,
+197680KiB RSS). Its four linked Tower objects each contain ASan references;
+recorded link contains those four plus libdl and the final ASan runtime flag.
+ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 execution exits0 with checked
+continuation-order output (0.06s wall,0.07s CPU,58012KiB RSS). No swaps. These
+are isolated SteamDeck cpuset0,2 observations, not speedup claims or full compiler
+coverage. Logs/commands/symbols are under build/d2_ecs/sanitizers. A subsequent
+pull preserved all changes and rebased onto docs-only60741c5; the tested production
+import closure is unchanged. TSan, sensitivity and larger linked targets remain
+pending; the configured39-object manifest must not be called a build receipt.
+
+Shared thread-mode work-pool build also passes13 steps (29.37s wall,28.48s CPU,
+197600KiB RSS). The production test passes with TSAN_OPTIONS=halt_on_error=1,
+0.16s wall/0.23s CPU/100052KiB RSS, under this container's default seccomp.
+A2's earlier personality startup failure is host-specific and was not reproduced
+here; no security/ASLR change was necessary. The two deliberate probes were
+compiled from original LLVM and linked with fully instrumented published guest
+runtime definitions. Memory probe exits1 with ASan heap-buffer-overflow; real
+worker race exits66 with TSan data race in work_kernel_execute. Raw diagnostics,
+exit statuses and build logs remain in sanitizers/{memory_address,race_thread}.*
+and probes_build.log. These establish sensitivity, not full-program correctness.

@@ -60,7 +60,7 @@ function(tower_backend_integrate)
   if(foreign_host_triple MATCHES "windows")
     set(foreign_runtime_profile windows)
   endif()
-  tower_guest_runtime(host-library "${foreign_host_triple}" "${foreign_runtime_profile}" OFF)
+  tower_guest_runtime(host-library "${foreign_host_triple}" "${foreign_runtime_profile}" OFF UNINSTRUMENTED)
   get_property(foreign_runtime GLOBAL PROPERTY TOWER_GUEST_host-library_OBJECT)
   add_custom_command(OUTPUT "${foreign_object}" "${foreign_tool}"
     COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${foreign_source}" --jobs "${TOWER_COMPILER_JOBS}" --library --target "${foreign_host_triple}"
@@ -140,12 +140,18 @@ function(tower_backend_integrate)
     endif()
     # Only profile selection remains here; Tower imports own member ordering.
     file(GENERATE OUTPUT "${input}" CONTENT "${source}")
-    add_custom_command(OUTPUT "${object}"
-      COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${expanded}" --jobs "${TOWER_COMPILER_JOBS}" --library --target "${triple}"
-        --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
-        --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower" -o "${object}" --depfile "${object}.d"
-      DEPFILE "${object}.d"
-    DEPENDS "${expanded}" ${targets} ${runtime_source} "${TOWER_BOOTSTRAP_COMPILER}" scaffolding/bedrock.tower scaffolding/foundation.tower VERBATIM)
+    if(TOWER_SANITIZER)
+      tower_runtime_object(tower-backend-${flavor} "${expanded}" "${triple}")
+      add_custom_command(OUTPUT "${tower-backend-${flavor}_PRIMARY_OUTPUT}" APPEND
+        DEPENDS ${targets} ${runtime_source})
+    else()
+      add_custom_command(OUTPUT "${object}"
+        COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${expanded}" --jobs "${TOWER_COMPILER_JOBS}" --library --target "${triple}"
+          --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
+          --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower" -o "${object}" --depfile "${object}.d"
+        DEPFILE "${object}.d"
+      DEPENDS "${expanded}" ${targets} ${runtime_source} "${TOWER_BOOTSTRAP_COMPILER}" scaffolding/bedrock.tower scaffolding/foundation.tower VERBATIM)
+    endif()
     set_source_files_properties("${object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
     add_library(tower-backend-${flavor} INTERFACE)
     target_sources(tower-backend-${flavor} INTERFACE "${object}")
