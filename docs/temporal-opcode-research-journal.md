@@ -42921,3 +42921,30 @@ claim it was rerun on this final compiler. Build recipes/platform bindings are
 unchanged by the compiler integration, and the new continuation module is found
 by the existing import/depfile machinery in this clean build. Publication can now
 proceed with the latest verified runtime assets preserved.
+
+Publication verified: source/validation commits0ab812b,3029c6d andd10a97f pushed.
+Acquire our shared publication lock and append objectRuleToolingMigration to the
+latest ELF release manifest without changing its assets or runtime identity.
+Pages175e4bdc445237e0dcb9322f0a0aa44257942818 publishes successfully via action
+44992482610; exact prepared/published manifest SHA256
+5c1d416250ff900d466503b74ef1e1e3c62dbd46fc06ce472aeb8a062be96985.
+The initial hosted-byte comparison differs because a concurrent compiler release
+has already superseded our commit, not because the receipt was lost. Current
+Pages e1b3e963b406eb385a0acf43c2dfe1e5eea5a692 is a direct child of175e4bdc,
+retains our receipt exactly and updates runtime source to89151aa. This advancement
+occurred while our own lock file still contained agent1-object-rules-d10a97f;
+report that coordination observation and never overwrite the newer release.
+Action44992545084 succeeds. Compare the exact current published manifest with
+https://tower-lang.org/deployment-manifest.json?object-rules-current=e1b3e963b406eb385a0acf43c2dfe1e5eea5a692:
+SHA256b29e5522ee0b1bfbe44e29fd07107c870022008a18f7aac2c07f5179a5049fd7
+matches, all104 asset records and build identity match that current publication,
+and objectRuleToolingMigration equals our prepared receipt. No second publication
+or asset rollback is needed. Release only our own lock after verification.
+
+Final scope remains180 CMake lines removed; current39/1603, Python/owned native0,
+shell9/230, JS186/24368. The separate frontend baseline failure remains documented;
+no assertion was removed to make a gate pass. todo.txt unchanged. Next audit:
+benchmark-interpreters still consumes inline Tower workloads from
+interpreter-workloads.mjs and implements result aggregation in JavaScript. Examine
+existing Tower benchmark capabilities and callers before deciding what to remove
+or move, while retaining required browser/worker measurement transport.
