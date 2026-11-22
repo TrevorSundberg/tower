@@ -41445,3 +41445,13 @@ Next audit retains format-benchmark.mjs pending a decision about its manual
 pre-port comparison purpose; absence of an automated caller alone does not make
 an explicitly manual benchmark obsolete. test-ide.mjs is already a minimal
 capability/export bridge with its assertions and fixtures in Tower.
+
+Final journal push raced upstream 4c95bc7 and was rejected without force. Rebase
+preserves its type-smoke test entry point and workflow guidance. Production
+compiler/host/backend/library, grammars, CMake/bootstrap and playground paths are
+unchanged from validated 567767e, so reuse that native successor and the recorded
+upstream focused type-smoke result rather than rebuild identical compiler bytes.
+The coordinator also published successor Pages c4d1c1be/action 44984608388
+(success); the served manifest identifies runtime f13b167 and retains the exact
+formatter source/native-successor receipt. No rollback or second deployment is
+needed for this final journal update. The shared publication lock remains released.
