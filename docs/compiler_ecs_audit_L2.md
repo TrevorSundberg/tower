@@ -348,3 +348,54 @@ correction; the fixture remains unchanged. This is not type-suite acceptance.
 Final retention, paired current-input performance, sanitizer, bootstrap pin and
 publication gates remain open. Logs use the `identity_readiness` prefix in the
 external L2 evidence directory.
+
+## Full type gate and scalar reachability follow-up
+
+With A1's required-stage continuation fix, compiler
+`f0d2921995f9d580e43befee602127795f3336d6c5b462ab314d7d5c3ced7447`
+passes the unchanged full constructor fixture, query smoke and the complete type
+suite. The type suite takes 44.14 s wall / 52.03 s CPU / 395872 KiB RSS on an
+exactly copied Linux resource tree. Both engines, target widths 4/8, canonical
+round trips and worker counts 1/2/4/8 pass. Eight repeated compile/run/close
+cycles per width return to the same entity and component counts. Source-bound
+prelude overrides, nested ABI rejection, operand effects, runtime capabilities,
+malformed constructors and callable shadowing all pass. This supersedes the
+earlier open constructor-fixture gate for this precise source snapshot.
+
+A separate scalar output regression remains: imported ordinary type helpers
+were treated as runtime roots even when unused. L1's shared Foundation root and
+reference predicates now define the policy for both source emitters and L2's
+`type_object_program`. The latter retains its disposable owned-edge traversal
+and adds only a function visited index for recursive calls. It neither prunes
+canonical entities nor ignores reached opaque type values. The smallest unit
+and six-case/two-target canonical-preservation harness compile; joined runtime
+and performance evidence for this follow-up are pending.
+
+The newest matching required/optional input-role ABI and executable-lowering
+receipt handoffs are integrated after the passing freeze. They require fresh
+dependent objects and do not inherit f0d292's acceptance. Early-capture failures,
+source-emitter validation prerequisites, final sanitizer/stress checks, equivalent
+paired profiles and the public bootstrap/deployment remain open.
+
+## Merged reachability and input-role receipt
+
+Compiler `0b6c90cb340929368b5fa8a3b2db878b57b2e71ae12450fb08780d8362266ae2`
+now passes source rejection/reachability, the complete type suite, query/control
+smoke and full semantics on a fresh exact resource copy. This includes the paired
+required/optional producer ABI, executable lowering receipt and all complete L1
+fixture prerequisites. The full type suite takes 44.36 s wall / 52.47 s CPU /
+426188 KiB RSS; its zero-retention and worker/engine/target checks still pass.
+Full semantics includes the previously failing independent-world execution case.
+
+The six-case harness had one incorrect new oracle: an unused local type binding
+is erased before runtime. Canonical output independently confirms this. Seven
+corrected cases retain it as a negative and use actual returned/callback/exported
+type values as positives. Both target widths pass with complete canonical text
+unchanged. The production consumer did not change to accommodate the failed test.
+Current owner handoff is `L2_runtime_reachability_validated.patch` (c92f7a67).
+
+The function visited vector remains quadratic in reachable function count;
+large actual-function measurement is still required before any scaling claim.
+Final equivalent performance, supported sanitizer/stress, bootstrap pin and
+integrated browser/publication evidence remain open. D1's narrow recursion oracle
+is adopted after the passing freeze and awaits its own type-smoke execution.

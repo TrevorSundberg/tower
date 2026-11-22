@@ -140,4 +140,3 @@ fn lr_shared_worker_budget(): bool {
     return work_budget_snapshot(&budget, &snapshot) && snapshot.used_lanes == outer.lanes
         && snapshot.live == 1 && snapshot.used_bytes == 0 && snapshot.peak_lanes <= limit;
 }
-

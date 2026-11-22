@@ -1,0 +1,150 @@
+import tower;
+import execution_support;
+import execution_graph;
+import frontend_units;
+import .compiler.execution_session;
+import .compiler.execution_package;
+import .host.driver_api;
+import .library.bytes_types;
+import .library.bytes_interface;
+import .library.vector;
+
+// Exercise failures before any executable graph exists, then reuse the same
+// owner. A rejected request must be safe to step, select an engine and close.
+fn execution_rejection_tests(modules: void*): void {
+    var session: ExecutionSession = default;
+    defer execution_session_close(&session);
+    var invalid: u8[56] = default;
+    for(var trial: usize = 0; trial < 2; trial++) {
+        execution_check(!execution_package_load(&session, &invalid[0], trial == 0 ? 55 : 56, modules),
+            "invalid envelope fails before reconstruction");
+        execution_session_step(&session, 1);
+        execution_check(!execution_session_start(&session) && !execution_session_fast(&session),
+            "failed envelope cannot start either engine");
+        execution_check(session.machine.failed && session.machine.done && session.machine.steps == 0
+            && session.program.root == null && session.machine.memory.length == 0 && session.output.length == 0,
+            "early package failure is terminal without executable storage");
+    }
+    execution_compile(&session, "import tower; print(42);", 8, modules);
+    execution_run(&session, 7, 1000);
+    execution_check(execution_text(&session.output, "42\n"), "session recovers through a new compilation");
+    var source = "import tower; print(42);";
+    var bounded: ByteBuffer = default;
+    defer bytes_dispose(&bounded);
+    execution_check(bytes_append(&bounded, source, strlen(source)) && bytes_push(&bounded, 0)
+        && bytes_append(&bounded, "print(99);", 10), "bounded source fixture storage");
+    execution_check(execution_session_compile(&session, bounded.data, strlen(source), 8, modules),
+        "explicit source length excludes trailing bytes");
+    execution_run(&session, 7, 1000);
+    execution_check(execution_text(&session.output, "42\n"), "only bytes inside the source bound execute");
+    execution_check(!execution_session_compile(&session, bounded.data, bounded.length, 8, modules),
+        "embedded NUL cannot silently truncate a bounded source");
+    execution_check(execution_text(&session.error, "NUL in compiler source")
+        && session.machine.error_offset == strlen(source), "bounded source diagnostic preserves byte offset");
+    execution_session_step(&session, 1);
+    execution_check(session.machine.failed && session.machine.done && session.machine.steps == 0,
+        "rejected bounded input has no effects");
+    execution_session_close(&session);
+    execution_check(!execution_session_start(&session) && session.machine.failed && session.machine.done,
+        "closed session cannot initialize an absent graph");
+    puts("Early execution rejection, terminal state and owner reuse passed.");
+}
+
+fn execution_encoder_rejection_tests(modules: void*): void {
+    var session: ExecutionSession = default;
+    defer execution_session_close(&session);
+    var source = "import tower; print(42);";
+    execution_compile(&session, source, 8, modules);
+    execution_check(execution_session_fast(&session), "encoder input cache starts");
+    var size: usize = 1;
+    var data = bytecode_encode(session.fast, source, strlen(source), 8, 3, &size);
+    execution_check(data == null && size == 0, "invalid profile clears encoded length");
+    for(var width: usize = 0; width < 10; width++) {
+        if width == 4 || width == 8 { continue; }
+        size = 1;
+        data = bytecode_encode(session.fast, source, strlen(source), width, 0, &size);
+        execution_check(data == null && size == 0, "encoder rejects unsupported target width");
+    }
+    size = 1;
+    data = bytecode_encode(session.fast, source, ~convert(usize, 0), 8, 0, &size);
+    execution_check(data == null && size == 0, "oversized source rejects before size arithmetic or reads");
+    data = bytecode_encode(session.fast, source, strlen(source), 8, 0, &size);
+    execution_check(data != null && bytecode_validate(data, size) == 0, "valid envelope remains encodable");
+    execution_check(data[8] == 1 && data[12] == 9 && data[16] == 6,
+        "constructor packages carry current container, semantics and cache versions");
+    data[12] = 8;
+    execution_check(bytecode_validate(data, size) == 4, "previous semantics rejected before cache access");
+    data[12] = 9;
+    data[16] = 5;
+    execution_check(bytecode_validate(data, size) == 5, "previous cache encoding rejected before execution");
+    data[16] = 6;
+    execution_check(bytecode_validate(data, size) == 0, "restored package retains original checksum");
+    bytecode_free(data);
+    puts("Encoder profile, target and bounded-size rejection passed.");
+}
+
+fn execution_source_rejection_tests(modules: void*): void {
+    var source = "import tower; fn answer():i32{return 42;} fn invoke(callback:function(i32)):i32{return callback();} print(invoke(answer));";
+    var session: ExecutionSession = default;
+    defer execution_session_close(&session);
+    var text: ByteBuffer = default;
+    var error: ByteBuffer = default;
+    defer bytes_dispose(&text);
+    defer bytes_dispose(&error);
+    execution_compile(&session, source, 4, modules);
+    for(var trial: usize = 0; trial < 4; trial++) {
+        text.length = 0;
+        error.length = 0;
+        execution_check(bytes_append(&text, "x", 1), "seed output before rejected emission");
+        if trial % 2 == 0 { c_emit(&text, &error, session.program.root, 4, true); }
+        else { roku_emit(&text, &error, session.program.root, 4, true); }
+        var diagnostic = "This source backend does not yet implement function values; use LLVM native/Wasm output";
+        execution_check(text.length == 0 && error.length == strlen(diagnostic)
+            && memcmp(error.data, diagnostic, error.length) == 0,
+            "source backend rejects unsupported graph before control or output traversal");
+    }
+    execution_run(&session, 7, 1000);
+    execution_check(execution_text(&session.output, "42\n"), "rejected emitters preserve the checked graph");
+    puts("C/Roku unsupported graph rejection and retained input ownership passed.");
+}
+
+fn execution_source_reachability_tests(modules: void*, root: u8*): void {
+    var source: vector(u8) = default;
+    defer vector_dispose(&source);
+    units_read(root, "/tests/source_execution_reachability.tower", &source);
+    var session: ExecutionSession = default;
+    defer execution_session_close(&session);
+    var text: ByteBuffer = default;
+    var error: ByteBuffer = default;
+    defer bytes_dispose(&text);
+    defer bytes_dispose(&error);
+    execution_compile(&session, source.data, 4, modules);
+    var original = execution_graph_hash(&session.program);
+    c_emit(&text, &error, session.program.root, 4, true);
+    execution_check(error.length == 0 && text.length != 0 && host_text_terminate(&text),
+        "scalar C retains calls without unused private type helpers");
+    execution_check(strstr(text.data, "visible_answer(void)\n{") != null,
+        "uncalled exported function keeps its definition");
+    text.length = 0;
+    roku_emit(&text, &error, session.program.root, 4, true);
+    execution_check(error.length == 0 && text.length != 0
+        && execution_graph_hash(&session.program) == original,
+        "source emitters use derived reachability without pruning Foundation");
+    execution_run(&session, 7, 10000);
+    execution_check(execution_text(&session.output, "42\n1\n"),
+        "recursive direct calls and module effects remain executable");
+    execution_compile(&session,
+        "import tower; fn runtime_type():type{return i32;} print(runtime_type()==i32);", 4, modules);
+    for(var trial: usize = 0; trial < 2; trial++) {
+        text.length = 0;
+        error.length = 0;
+        if trial == 0 { c_emit(&text, &error, session.program.root, 4, true); }
+        else { roku_emit(&text, &error, session.program.root, 4, true); }
+        execution_check(text.length == 0 && execution_text(&error,
+            "This source backend does not yet implement type values; use LLVM native/Wasm output"),
+            "reached type values retain their source capability diagnostic");
+    }
+    execution_run(&session, 7, 10000);
+    execution_check(execution_text(&session.output, "true\n"), "rejected type emission retains its checked graph");
+    puts("Source execution roots, exports, recursion and capability checks passed.");
+}

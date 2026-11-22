@@ -6,6 +6,8 @@ import .library.vector;
 extern fn semantic_type_equal(left: FoundationType*, right: FoundationType*): bool;
 extern fn sem_get(node: void*): FoundationNode*;
 extern fn sem_require(ok: bool): void;
+extern fn foundation_execution_item(parent: FoundationNode*, child: FoundationNode*): bool;
+extern fn foundation_execution_reference(node: FoundationNode*): void*;
 
 // Call after signature/field producers complete. Pointer transport still exposes
 // its declared payload, including callback signatures and recursive records.
@@ -46,25 +48,37 @@ export fn type_object_abi_safe(type: FoundationType*): bool {
 
 // LLVM's scalar return path cannot reconstruct opaque type identity after it
 // lowers to an integer index. Preserve the checked Foundation program instead.
-// Traverse owned semantic edges only; bindings and nominal records can cycle.
+// Runtime roots and function references share the source emitters' policy.
+// Keep canonical declarations intact; this is a disposable derived traversal.
 export fn type_object_program(root: void*): bool {
     var pending: vector(void*) = default;
+    var functions: vector(void*) = default;
     defer vector_dispose(&pending);
+    defer vector_dispose(&functions);
     sem_require(vector_push(&pending, root));
     while pending.length != 0 {
         var subject = pending.data[--pending.length];
         if subject == null { continue; }
         var node = sem_get(subject);
         if node == null { continue; }
+        if node.kind == KFunction {
+            var seen = false;
+            foreach(var function in &functions) { if function == subject { seen = true; break; } }
+            if seen { continue; }
+            sem_require(vector_push(&functions, subject));
+        }
         if node.kind == KTypeReference || node.type.scalar == SType || node.element.scalar == SType { return true; }
         if node.kind == KLabel { continue; }
+        sem_require(vector_push(&pending, foundation_execution_reference(node)));
         sem_require(vector_push(&pending, node.left));
         sem_require(vector_push(&pending, node.right));
         sem_require(vector_push(&pending, node.value));
         sem_require(vector_push(&pending, node.target));
         sem_require(vector_push(&pending, node.body));
         sem_require(vector_push(&pending, node.otherwise));
-        foreach(var item in &node.items) { sem_require(vector_push(&pending, item)); }
+        foreach(var item in &node.items) {
+            if foundation_execution_item(node, sem_get(item)) { sem_require(vector_push(&pending, item)); }
+        }
         foreach(var parameter in &node.parameters) { sem_require(vector_push(&pending, parameter)); }
         foreach(var attribute in &node.attributes) { sem_require(vector_push(&pending, attribute)); }
     }

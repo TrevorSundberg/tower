@@ -16,8 +16,11 @@ import .compiler.execution_package;
 import .compiler.execution_session;
 import execution_support;
 import execution_suite;
+import execution_core;
 import execution_semantics;
 import execution_world;
+import execution_rejection;
+import execution_type_construction;
 import named_initialization_checks;
 import struct_value_checks;
 import comptime_aggregate_checks;
@@ -47,6 +50,7 @@ export fn main(argc: i32, argv: u8**): i32 {
     var functions = strcmp(suite, "functions") == 0;
     var semantics = strcmp(suite, "semantics") == 0;
     var core = strcmp(suite, "core") == 0;
+    var core_static = strcmp(suite, "core-static") == 0;
     var attributes = strcmp(suite, "attributes") == 0;
     var type_bindings = strcmp(suite, "types") == 0;
     var aggregates = strcmp(suite, "aggregate-stages") == 0;
@@ -55,7 +59,11 @@ export fn main(argc: i32, argv: u8**): i32 {
     var bodies = strcmp(suite, "body-smoke") == 0;
     var type_smoke = strcmp(suite, "type-smoke") == 0;
     var editor = strcmp(suite, "editor") == 0;
-    execution_check(all || known || bodies || type_smoke || editor || floating || oracle || negation || narrow || functions || semantics || core || attributes || aggregates || type_bindings, "known execution suite");
+    var rejection = strcmp(suite, "rejection") == 0;
+    var source_rejection = strcmp(suite, "source-rejection") == 0;
+    var encoder_rejection = strcmp(suite, "encoder-rejection") == 0;
+    var type_construction = strcmp(suite, "type-construction") == 0;
+    execution_check(all || known || bodies || type_smoke || editor || rejection || source_rejection || encoder_rejection || type_construction || floating || oracle || negation || narrow || functions || semantics || core || core_static || attributes || aggregates || type_bindings, "known execution suite");
     if all || editor { editor_observation_tests(argv[1]); }
     if editor { return 0; }
     if bodies || type_smoke {
@@ -81,6 +89,18 @@ export fn main(argc: i32, argv: u8**): i32 {
     execution_check(syntax_host_install(compiler_host_world(), request.text[DriverBedrockText].data, false, &result), "install Bedrock" );
     execution_check(syntax_host_install(compiler_host_world(), request.text[DriverFoundationText].data, true, &result), "install Foundation" );
     frontend_modules_configure(request.modules, "named_initialization_input.tower", argv[1]);
+    if all || rejection { execution_rejection_tests(request.modules); }
+    if rejection { return 0; }
+    if all || source_rejection {
+        execution_source_rejection_tests(request.modules);
+        execution_source_reachability_tests(request.modules, argv[1]);
+        type_object_reachability_tests(request.modules);
+    }
+    if source_rejection { return 0; }
+    if all || encoder_rejection { execution_encoder_rejection_tests(request.modules); }
+    if encoder_rejection { return 0; }
+    if all || type_construction { execution_type_construction_tests(request.modules); }
+    if type_construction { return 0; }
     if all || type_bindings { type_binding_tests(request.modules, argv[1]); }
     if type_bindings { return 0; }
     if all || attributes { syntax_attribute_tests(); declaration_attribute_tests(request.modules, argv[1]); }
@@ -88,10 +108,11 @@ export fn main(argc: i32, argv: u8**): i32 {
     if all || aggregates { comptime_aggregate_tests(request.modules, argv[1]); }
     if aggregates { return 0; }
     if oracle { floating_oracle_tests(request.modules); return 0; }
-    if semantics || core {
+    if semantics || core || core_static {
         frontend_modules_configure(request.modules, "execution_input.tower", argv[1]);
         if core { execution_tests(request.modules); }
-        else { execution_semantic_tests(request.modules); }
+        else { if core_static { execution_core_tests(request.modules); }
+        else { execution_semantic_tests(request.modules); } }
         execution_world_tests(&request);
         return 0;
     }

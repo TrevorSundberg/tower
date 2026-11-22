@@ -28,11 +28,17 @@ fn ix_value_input(m: IMExecution*, n: FoundationNode*): void* {
     if m.context == null || m.context.value_inputs == null || n.kind != KOperand || n.binding == null { return null; }
     var input = bits(IMValueInput*, entity_component_data(entity_component_get(n.binding, m.context.value_inputs)));
     if input == null || input.owner != null && m.state.frames.length != 0 && im_frame(m.state).function == input.owner { return null; }
-    if m.context.capture_order && input.owner == null && input.ordinal >= m.context.capture_ordinal {
+    // Optional-only inputs need no source-proof owner. The actual declaration
+    // identity still prevents substituting a capture for this frame's local.
+    if ix_local_binding(m, n.binding) { return null; }
+    var required = m.context.type_arguments;
+    var producer = required ? input.producer : input.known_producer;
+    if producer == null { return null; }
+    if required && m.context.capture_order && input.owner == null && input.ordinal >= m.context.capture_ordinal {
         ix_fail(m, "Compile-time initializer reads a module binding before its initialization", n.start);
         return null;
     }
-    return input.producer;
+    return producer;
 }
 
 fn ix_local_binding(m: IMExecution*, binding: void*): bool {

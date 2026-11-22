@@ -96,10 +96,13 @@ fn sem_known_stage(c: SemanticContext*, node: void*, binding: SemanticKnownBindi
     sem_require(work_depend(&c.queries,
         work_find(&c.queries, subject, convert(u32, SemanticQuery.KnownClone), 0), binding.input_query));
     binding.evaluation = subject;
-    var input = bits(IMValueInput*, entity_component_data(entity_component_add(node, c.value_inputs)));
-    sem_require(input != null);
-    input.producer = subject;
-    input.owner = binding.owner;
+    var input = bits(IMValueInput*, entity_component_data(entity_component_get(node, c.value_inputs)));
+    if input == null {
+        input = bits(IMValueInput*, entity_component_data(entity_component_add(node, c.value_inputs)));
+        sem_require(input != null);
+        *input = default;
+    }
+    input.known_producer = subject;
     result.expression = sem_get(node).value;
     c.surface_expressions = true;
 }

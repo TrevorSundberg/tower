@@ -113,13 +113,20 @@ export fn sem_evaluation_request(c: SemanticContext*, result: SemanticEvaluation
     sem_require(id != 0);
     var preparation = work_request(&c.queries, result.subject, EvaluationPrepareQuery, 0);
     sem_require(preparation != 0 && work_depend(&c.queries, id, preparation));
-    var body = work_find(&c.queries, result.owner, convert(u32, SemanticQuery.Body), 0);
-    if body != 0 { sem_require(work_depend(&c.queries, preparation, body)); }
     if result.inferred {
+        var body = work_find(&c.queries, result.owner, convert(u32, SemanticQuery.Body), 0);
+        if body != 0 { sem_require(work_depend(&c.queries, preparation, body)); }
         var proof = work_find(&c.queries, c.program.root, convert(u32, SemanticQuery.KnownProof), 0);
         var clone = work_request(&c.queries, result.subject, convert(u32, SemanticQuery.KnownClone), 0);
         sem_require(proof != 0 && clone != 0 && work_depend(&c.queries, clone, proof));
         sem_require(work_depend(&c.queries, preparation, clone));
+    } else {
+        // Required expressions are checked and published before registration.
+        // Their lexical owner remains provenance, not a whole-body barrier:
+        // a later declaration may need this earlier prefix's staged value.
+        // Executed reads request existing capture/function producers instead.
+        sem_executables_begin(c);
+        sem_captures_begin(c);
     }
     var domain = convert(u64, SemanticWorkDomain.Compiler);
     sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Evaluation), id, 1, WorkAccessMode.Write));
@@ -254,10 +261,10 @@ fn sem_evaluation_start(c: SemanticContext*, result: SemanticEvaluation*): void 
     result.invocation.context.dependency_kind = c.evaluation_ready;
     result.invocation.context.value_inputs = c.value_inputs;
     result.invocation.context.require_relocatable = result.inferred;
-    result.invocation.context.type_arguments = result.type_argument;
+    result.invocation.context.type_arguments = !result.inferred;
     result.invocation.context.capture_order = result.capture_order;
     result.invocation.context.capture_ordinal = result.capture_ordinal;
-    result.invocation.context.executable_functions = result.type_argument ? c.executable_ready : null;
+    result.invocation.context.executable_functions = result.inferred ? null : c.executable_ready;
     result.invocation.context.retain_result_storage = result.aggregate;
     // Required stages (explicit comptime, type arguments and their captures)
     // have compiler capability. Optional known-value inference must retain a

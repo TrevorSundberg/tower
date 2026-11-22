@@ -3,70 +3,70 @@ import tower;
 // Existing core harness sources, including intentionally invalid programs.
 fn execution_core_source(index: usize): u8* {
     if index == 0 {
-        return "print(1);";
+        return "import tower; print(1);";
     }
     if index == 1 {
-        return "var a: i32; var b: i32; a = 1; b = a + 2; print(b);";
+        return "import tower; var a: i32; var b: i32; a = 1; b = a + 2; print(b);";
     }
     if index == 2 {
-        return "var a: i32; var p: i32*; var q: i32*; p = &a; q = p; *q = 42; print(a);";
+        return "import tower; var a: i32; var p: i32*; var q: i32*; p = &a; q = p; *q = 42; print(a);";
     }
     if index == 3 {
-        return "var a: i32; var b: u32; a = b;";
+        return "import tower; var a: i32; var b: u32; a = b;";
     }
     if index == 4 {
-        return "var a: i32; var stop: bool; a = 0; loop { a = a + 1; stop = a == 4; if stop { break; } } print(a);";
+        return "import tower; var a: i32; var stop: bool; a = 0; loop { a = a + 1; stop = a == 4; if stop { break; } } print(a);";
     }
     if index == 5 {
-        return "loop {}";
+        return "import tower; loop {}";
     }
     if index == 6 {
-        return "loop { print(1); break; loop { print(99); break; } print(2); } print(3);";
+        return "import tower; loop { print(1); break; loop { print(99); break; } print(2); } print(3);";
     }
     if index == 7 {
-        return "var x: i32; x = f(6); print(x); fn f(n: i32): i32 { var b: bool; b = n <= 1; if b { return 1; } var p: i32; p = n - 1; p = f(p); p = p * n; return p; }";
+        return "import tower; var x: i32; x = f(6); print(x); fn f(n: i32): i32 { var b: bool; b = n <= 1; if b { return 1; } var p: i32; p = n - 1; p = f(p); p = p * n; return p; }";
     }
     if index == 8 {
-        return "fn f(b: bool): i32 { if b { return 1; } }";
+        return "import tower; fn f(b: bool): i32 { if b { return 1; } }";
     }
     if index == 9 {
-        return "fn f(n: i32): void {} f(true);";
+        return "import tower; fn f(n: i32): void {} f(true);";
     }
     if index == 10 {
-        return "fn call(value: i32): i32 { return value; } var call: i32 = call(4); print(call);";
+        return "import tower; fn call(value: i32): i32 { return value; } var call: i32 = call(4); print(call);";
     }
     if index == 11 {
-        return "fn next(p: i32*): i32 { var old: i32 = *p; *p = old + 1; return old; } parse CoreCall |= $target:CoreLocation '++' => replace { next(&$target) }; var a: i32 = 1; a++; print(a++); print(a);";
+        return "import foundation; fn next(p: i32*): i32 { var old: i32 = *p; *p = old + 1; return old; } parse CoreCall |= $target:CoreLocation '++' => replace { next(&$target) }; var a: i32 = 1; a++; print(a++); print(a);";
     }
     if index == 12 {
-        return "fn field(): i32 { return state.value; } fn index(): i32 { return values[1]; } var state: Later; state.value = 42; var values: i32[2]; values[1] = 73; var a: i32 = field(); var b: i32 = index(); print(a); print(b); struct Later { value: i32; }";
+        return "import tower; fn field(): i32 { return state.value; } fn index(): i32 { return values[1]; } var state: Later; state.value = 42; var values: i32[2]; values[1] = 73; var a: i32 = field(); var b: i32 = index(); print(a); print(b); struct Later { value: i32; }";
     }
     if index == 13 {
-        return "var i32: i32 = 4; { var i32: i32 = 9; print(i32); } print(i32);";
+        return "import tower; var i32: i32 = 4; { var i32: i32 = 9; print(i32); } print(i32);";
     }
     if index == 14 {
-        return "later = 40; var early = later + 2; var later = seed(); var p = &early; print(*p); print(later); fn seed(): i32 { var result = 7; return result; }";
+        return "import tower; later = 40; var early = later + 2; var later = seed(); var p = &early; print(*p); print(later); fn seed(): i32 { var result = 7; return result; }";
     }
     if index == 15 {
-        return "print(99); var a = b; var b = a;";
+        return "import tower; print(99); var a = b; var b = a;";
     }
     if index == 16 {
-        return "var x: Unknown;";
+        return "import tower; var x: Unknown;";
     }
     if index == 17 {
-        return "struct Pair { x: i32; y: i32; } var p: Pair; p.x = 20; p.y = 22; var ref: Pair* = &p; add(ref); print(p.x); fn add(p: Pair*): void { p.x = p.x + p.y; }";
+        return "import tower; struct Pair { x: i32; y: i32; } var p: Pair; p.x = 20; p.y = 22; var ref: Pair* = &p; add(ref); print(p.x); fn add(p: Pair*): void { p.x = p.x + p.y; }";
     }
     if index == 18 {
-        return "struct Inner { flag: bool; value: i32; } struct Outer { lead: bool; nested: Inner; tail: bool; link: Outer*; }";
+        return "import tower; struct Inner { flag: bool; value: i32; } struct Outer { lead: bool; nested: Inner; tail: bool; link: Outer*; }";
     }
     if index == 19 {
-        return "var a: i32[3]; a[1] = 42; var p: i32* = &a[1]; var raw_address: usize = bits(usize, p); var q: i32* = bits(i32*, raw_address); *q = 7; print(a[1]); var b: u8* = alloc(u8, 4); fill(b, 9, 4); b = realloc(u8, b, 32); print(b[3]); free(b);";
+        return "import tower; var a: i32[3]; a[1] = 42; var p: i32* = &a[1]; var raw_address: usize = bits(usize, p); var q: i32* = bits(i32*, raw_address); *q = 7; print(a[1]); var b: u8* = alloc(u8, 4); fill(b, 9, 4); b = realloc(u8, b, 32); print(b[3]); free(b);";
     }
     if index == 20 {
-        return "struct A { a: A; }";
+        return "import tower; struct A { a: A; }";
     }
     if index == 21 {
-        return "parse CoreIf = 'broken'; broken";
+        return "import foundation; parse CoreIf = 'broken'; broken";
     }
     return null;
 }

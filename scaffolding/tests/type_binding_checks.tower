@@ -12,6 +12,7 @@ extern fn frontend_modules_destroy(environment: void*): void;
 extern fn frontend_modules_configure(environment: void*, entry: u8*, library: u8*): void;
 extern fn frontend_modules_source(environment: void*, path: u8*, source: u8*, length: usize): bool;
 extern fn type_object_abi_safe(type: FoundationType*): bool;
+extern fn type_object_program(root: void*): bool;
 extern fn entity_store_component_count(store: void*): usize;
 
 fn type_binding_tests(modules: void*, root: u8*): void {
@@ -86,6 +87,7 @@ fn type_binding_tests(modules: void*, root: u8*): void {
     computed_type_argument_tests(modules, root, bedrock.data, foundation.data);
     type_object_tests(modules, root, bedrock.data, foundation.data);
     type_object_abi_tests(modules);
+    type_object_reachability_tests(modules);
     type_construction_tests(modules, root, bedrock.data, foundation.data);
     type_construction_runtime_tests(modules);
     puts("Source types: definitions, aliases, staging, target layouts, Foundation and workers pass.");
@@ -116,6 +118,47 @@ fn type_object_abi_tests(modules: void*): void {
     struct_value_reject(modules, "import tower;extern fn take(value:function(type)):void;", "foreign or exported ABI");
     struct_value_reject(modules, "import tower;extern fn take(value:function(void,type)):void;", "foreign or exported ABI");
     struct_value_reject(modules, "import tower;struct Hidden{value:type;}export fn take(value:Hidden*):void{}", "foreign or exported ABI");
+}
+
+fn type_object_reachability_trial(modules: void*, source: u8*, wanted: bool, width: u32): void {
+    var session: ExecutionSession = default;
+    defer execution_session_close(&session);
+    execution_compile(&session, source, width, modules);
+    var before: FormatResult = default;
+    var after: FormatResult = default;
+    defer format_dispose(&before);
+    defer format_dispose(&after);
+    format_entity(&before, session.program.root, syntax_component_type(), null, parser_match_get_type());
+    execution_check(!before.failed, "Reachability input formats");
+    var actual = type_object_program(session.program.root);
+    if actual != wanted {
+        puts(source);
+        puts(wanted ? "Expected runtime type values" : "Expected scalar-only runtime graph");
+        puts(actual ? "Observed runtime type values" : "Observed scalar-only runtime graph");
+    }
+    execution_check(actual == wanted, "Runtime type-value reachability");
+    format_entity(&after, session.program.root, syntax_component_type(), null, parser_match_get_type());
+    execution_check(!after.failed && before.text.length == after.text.length
+        && memcmp(before.text.data, after.text.data, before.text.length) == 0,
+        "Runtime reachability preserves complete canonical declarations");
+}
+
+fn type_object_reachability_tests(modules: void*): void {
+    for(var width: u32 = 4; width <= 8; width += 4) {
+        type_object_reachability_trial(modules, "import tower;print(42);", false, width);
+        type_object_reachability_trial(modules,
+            "import tower;fn unused():type{var result:type=i32;return result;}print(42);", false, width);
+        type_object_reachability_trial(modules,
+            "import tower;fn recursive(n:i32):i32{if n>0{return recursive(n-1);}return 0;}print(recursive(3));", false, width);
+        type_object_reachability_trial(modules,
+            "import tower;fn reached():i32{var value:type=i32;return 1;}print(reached());", false, width);
+        type_object_reachability_trial(modules,
+            "import tower;fn reached():type{var value:type=i32;return value;}print(reached()==i32);", true, width);
+        type_object_reachability_trial(modules,
+            "import tower;fn reached():type{var value:type=i32;return value;}var callback=reached;print(callback()==i32);", true, width);
+        type_object_reachability_trial(modules,
+            "import tower;export fn retained(flag:bool):bool{var value:type=i32;if flag{value=u32;}return value==i32;}print(42);", true, width);
+    }
 }
 
 fn type_construction_tests(modules: void*, root: u8*, bedrock: u8*, foundation: u8*): void {
@@ -200,6 +243,9 @@ fn type_construction_runtime_tests(modules: void*): void {
         type_construction_runtime_trial(modules,
             "import tower;fn function(width:usize):type{var result:type=integer_type(width,1);return result;}fn forwarded():type{return function(32);}var Selected:type=forwarded();print(sizeof(Selected));",
             "4\n", "", width);
+        type_construction_runtime_trial(modules,
+            "import tower;fn numeric(width:usize):type{var result:type=integer_type(width,1);return result;}fn forwarded():type{var function=numeric;return function(16);}var Selected:type=forwarded();print(sizeof(Selected));",
+            "2\n", "", width);
         // Constants must not let optional known-value inference erase an effect.
         type_construction_runtime_trial(modules,
             "import tower;fn make():void{var result:type=integer_type(32,1);print(9);}make();", "", capability, width);

@@ -46969,3 +46969,124 @@ from final performance comparisons. Raw logs, exit statuses and assertions stay
 preserved. Neither the real assertion failure nor the explicit dependency cycle
 is dismissed as a resume artifact. Final performance still needs quiet, frozen,
 equivalent before/after inputs and the unresolved constructor fix.
+
+The reviewed integration is now local main commit
+`0817375496d2dd6841107c1b91133058eaf12f8d`; its post-commit pull/rebase is current.
+This is a source checkpoint, with all previously stated acceptance gates still
+open. No publication request, lease or push follows from it. Additional short
+CLI checks on c7b8 confirm a local callable named `function` shadows the static
+signature form (sizeof result 2), and malformed empty/void-parameter signatures
+produce their specific diagnostics. The local-callable case is added to the
+existing two-target graph/fast harness; the updated unit is not yet compiled.
+No benchmark conclusion is drawn from these short validation runs.
+
+The required-stage continuation join now independently passes the original full
+constructor fixture and the complete `types` suite. Compiler SHA-256 is
+`f0d2921995f9d580e43befee602127795f3336d6c5b462ab314d7d5c3ced7447`.
+Smallest evaluation compilation passes in 19.48 s wall / 15.97 s CPU /
+729828 KiB RSS; native two-step rebuild takes 30.81 s / 21.46 s / 783604 KiB;
+three runner steps take 10.11 s / 7.28 s / 317448 KiB. Exact resource-copy diff
+passes. The full type suite takes 44.14 s / 52.03 s / 395872 KiB and verifies
+both interpreter engines and pointer widths, source-bound i32 replacement,
+canonical reconstruction, workers 1/2/4/8, malformed/ABI cases, operand effects,
+runtime capability boundaries and eight repeated zero-entity/component-retention
+compile/run/close cycles per width. Query smoke also passes. This is source-specific
+feature acceptance, not final provenance, sanitizer, performance or publication
+closure. A1/L1 still own distinct required/optional capture failures.
+
+Scalar artifact investigation found a separate consequence of ordinary type
+helpers: imported but uncalled functions caused both the opaque-type scan and
+C/Roku collection to reject/preserve otherwise scalar programs. L1 and L2 agree
+on two shared root/reference predicates in existing `foundation_nodes`: module
+effects and exports remain roots, private functions enter through bound calls or
+function references. Canonical formatting and the shared graph are unchanged.
+L2 consumes those predicates in `type_object_program`, with a visited set only
+for function identities to bound recursive reference edges. A proposed extra
+reachability module was not implemented; existing consumer indexes are retained.
+
+The smallest L2 consumer compiles (1.99 s / 1.75 s / 182484 KiB). Its source-level
+capability tests cover scalar/unused helpers, recursive calls, reached opaque
+values, indirect references and exports at both target widths, comparing complete
+canonical text before and after the query. An initial parameter named `expected`
+hit the grammar's reserved word; the diagnostic is preserved. Renaming it to
+`wanted` yields a passing smallest harness (4.31 s / 3.61 s / 241464 KiB).
+These are not joined runtime receipts. Narrow handoffs are
+`L2_runtime_type_reachability.patch` and `L2_reachability_fixture.patch`.
+
+B1's consolidated-prelude formatter expectations replace the previous five
+overlapping files after exact reverse checks; the prior parser entry-point
+resource propagation remains because it is absent from that replacement. A
+private asset-packager tool builds from the public pin in five steps. The existing
+Windows Node22 packaging check then fails before bundling because the pinned LLVM
+submodule is uninitialized and its license file is absent. The exact repository
+submodule is being initialized; no stand-in license, skipped assertion or passing
+packaging claim is substituted.
+
+The LLVM submodule checkout subsequently completes at the repository's exact pin,
+`1e57ee22ca274b663eeb279fd86e7010a8441c99`. The same packaging test then passes
+under verified Windows Node22 and the private public-bootstrap-built packager
+through the existing WSL transport: one test, zero skips, 2.84 s elapsed. Its
+initial missing-license failure remains in the logs. This is packaging-fixture
+evidence, not a release build or hosted verification.
+
+L1's role reader and A1's matching publishers are adopted together, followed by
+the executable-lowering receipt fix. Required source proof and optional known
+proof now occupy separate producer fields; new component layouts require fresh
+dependents. B1's refined parser-budget replacement restores both defining-type
+imports after exact reversal of the previous bundle. L1's incremental execution
+validation exposed missing earlier implementation and fixture prerequisites in
+this clone. The complete 21-path owner bundle is now merged against its recorded
+60741c5 base with Git's three-way application, preserving already integrated
+hunks; its complete reverse check passes with no conflicts. No L2 type-object or
+A1 publisher file is replaced by that bundle. These are unvalidated new joined
+inputs, not extensions of the earlier f0d292 runtime receipt.
+
+### L2 merged role/reachability validation and corrected retained-value oracle
+
+L1 independently found that the first reachability harness incorrectly expected
+an unused local type binding to survive checking. The saved canonical Foundation
+contains only `return 1` in that function. The production predicate stays unchanged;
+the old case remains a negative regression. Seven cases now cover scalar roots,
+unused private helpers, recursive calls, erased bindings, actual returned type
+values, callbacks and a scalar-ABI export with input-dependent mutable type values.
+Each query must preserve the complete canonical text at target widths 4 and 8.
+The initial failed assertion and its canonical evidence remain in lane logs.
+
+The coherent public-pin build includes the paired L1/A1 required/optional input
+roles, executable lowering receipts, refined B1 parser budget, complete L1 execution
+bundle and the corrected L2 fixture. Native compiler SHA-256 is
+`0b6c90cb340929368b5fa8a3b2db878b57b2e71ae12450fb08780d8362266ae2`.
+No private bootstrap override is used. On the same WSL/LLVM19 host, 32 native
+steps pass in 71.81 s wall / 104.03 s CPU / 785084 KiB peak RSS; five runner steps
+pass in 15.95 s / 17.01 s / 332912 KiB. Build timings are operational observations,
+not quiet paired performance: L1's pinned dependency checkout overlapped part of
+this interval. A fresh Linux scaffolding copy passes an exact `diff -qr`.
+
+All following checks finish with exit zero; raw logs/timing records use the
+`role_reachability` prefix in the external L2 evidence directory:
+
+| Check | Wall s | CPU s | Peak RSS KiB |
+| --- | ---: | ---: | ---: |
+| Source rejection plus both consumers' reachability/canonical cases | 1.48 | 1.70 | 181696 |
+| Complete types suite | 44.36 | 52.47 | 426188 |
+| Query smoke | 0.06 | 0.06 | 59632 |
+| Control smoke | 39.59 | 44.36 | 251964 |
+| Full semantics | 5.48 | 6.57 | 301104 |
+
+The type suite retains the existing 1/2/4/8-worker, graph/fast, target-width,
+canonical reconstruction, nested ABI, constructor/effect and zero-retained-entity/
+component checks. Full semantics includes the formerly crashing independent-world
+fixture. These results validate the merged source snapshot, not universal race
+freedom or final publication. Owned processes drain before releasing the local
+heavy-build slot. Pull/rebase with autostash preserves all changes and reports
+main current. The D1 ordinary-recursion diagnostic-only patch is then reviewed
+and adopted; its own type-smoke rerun remains pending, so it inherits no pass.
+
+The complete two-file owner handoff is now
+`L2_runtime_reachability_validated.patch`, SHA-256
+`c92f7a67ec6125db3ca88e53247c8936b8b67494ae37b69370e6b1530e7506a6`,
+relative to checkpoint 0817375. It replaces the earlier combined consumer/fixture
+or separate patches and passes an exact reverse check. The accompanying handoff
+states prerequisites and replacement rules. Large-function scan cost, equivalent
+before/after profiles, positive compiler sanitizer/stress runs, clean bootstrap
+publication and browser/hosted verification remain explicit acceptance gates.
