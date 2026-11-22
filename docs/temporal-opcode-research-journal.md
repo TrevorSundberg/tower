@@ -43746,3 +43746,25 @@ the shared byte utilities, ECS request ownership and job scheduler, not PE/ELF
 semantics or a new IR. Both x64 and ARM64 output must be compared with current
 LLD and executed on macOS before claiming that dependency removed; this Windows
 machine has not supplied macOS execution evidence. Mach-O remains linked today.
+
+PE release published and verified: main implementation bdcaf79 and correction
+79623fa (the source-identical rebases of 04b7902 and 6323790); documentation
+03c0c83. The intervening 8ba3138 upstream commit changed only the journal, and
+the complete frozen source/build/bootstrap/browser input diff is empty. Pages
+fbe2665da4b9bcd29bc07277607a7db9908bbc55, workflow 45029561719: success.
+https://tower-lang.org/ passes exact verification of all 104 hosted assets and
+the full desktop/mobile behavior matrix. Hosted manifest SHA256:
+04bd070baaa1a61c834cc3a4bfe54262360ee19979cfc7906f102ee79b4be12f.
+Build and compiler-project identity is public commit 79623fa; source identity is
+03c0c83. HTTP apex and HTTPS www redirect to HTTPS apex and return 200.
+
+The final native CLI's resource pack was regenerated with package_targets and
+clang19: all five runtime objects plus kernel32.lib/libSystem.tbd exactly match
+the already-tested release inputs. These restore the complete current runtimes
+over the smaller packs in the previous 6850468 publication. No checks were
+silently reused across changed bytes. The generated cross link rule contains
+lldMachO and no lldCOFF/lldELF/lldWasm. Main and Pages worktrees are clean; the
+publication lock is released after this receipt. todo.txt retains blob
+045d1e620edf7c67b653fec19df850b370246b1d. Owned C/C++ source count remains zero.
+Mach-O replacement and host/SDK linker retirement are still outstanding; this
+receipt claims only the validated Windows download-linking milestone.
