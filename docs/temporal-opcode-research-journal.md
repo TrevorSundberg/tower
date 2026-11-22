@@ -42030,3 +42030,21 @@ source-changes.patch. Git application in an isolated index reconstructs exactly
 the built 46b1da9 scaffolding/cmake/CMakeLists snapshot; the existing per-file
 source hashes and executable/resource hashes remain unchanged. This supersedes
 the preceding clean-revision-only provenance description.
+
+Publication completed: implementation/bootstrap pushed to main at d978b49;
+runtime assets published at gh-pages 582bbf2. The first Pages push encountered
+a transient GitHub DNS failure; the ordinary retry succeeded without force.
+The published manifest matches, and verify-deployment.mjs https://tower-lang.org/
+passes all 104 served asset hashes plus desktop/mobile backend agreement,
+completion, editable grammar, persistence/project archives, native downloads,
+target defaults and layout checks. The corrected local verifier also passes.
+Logs: build/source_types_publish_site_verified.log and
+build/source_types_hosted_verification.log. A documentation/receipt-only update
+records these results while retaining the exact verified runtime asset hashes.
+
+Remaining deliberate boundary: source files now own all thirteen standard scalar
+names and choose their representations through shared type/declaration queries.
+Primitive execution kernels and literal default representations remain Foundation
+semantics. Ordinary comptime value evaluation uses the shared interpreter; general
+runtime metatype values, arbitrary interpreted functions returning types and
+computed constructor integer arguments are future work, not claimed here.
