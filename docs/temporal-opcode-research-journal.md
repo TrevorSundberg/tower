@@ -41773,3 +41773,24 @@ The nine exact focused-output comparisons precede this compiler-only rebase;
 the dispatch/fixture objects themselves are unchanged. No full browser compiler
 generation matrix is needed for a receipt that reuses deployed runtime assets.
 Latest Pages is 2e5e4ee6, with runtime/project 6482989; preserve that newer release.
+
+Publication receipt: implementation 179e9b8 and integration validation 6f6f38d
+are pushed. Under the shared publication lock, update only the manifest from
+Pages 2e5e4ee6 to efa324e9687e0fb48635034dad2035127c6ad85e. Preserve all 88 asset
+identities and runtime/project source 64829894844b585f9bd30af60d232a001da16088.
+Action 44987359193 completes successfully. Fetch
+https://tower-lang.org/deployment-manifest.json?parser-suites=efa324e9687e0fb48635034dad2035127c6ad85e
+and verify exact prepared/hosted SHA256
+5794c35f6ad00a5e57778e4801148a612a830e6c764c8188ba50c06a9e5b00cb,
+plus the unchanged asset map. This is a tooling validation receipt; reuse the
+coordinator's newer verified browser runtime without claiming a new full browser
+matrix. Release our own publication lock after verification.
+
+Final tracked-file inventory: Python and owned C/C++ zero; shell 9 files/230
+lines (253 below 483, 52.4%); CMake 43/1997 (597 below 2594, 23.0%); JavaScript
+187/24364 (66 below 24430). This milestone removes 313 CMake lines, nine
+standalone executable links and nine generated entries/entry objects. Tower
+retains the smallest required selector, using existing fixtures and transports.
+Continue auditing remaining generated build entries and live JS/tooling callers
+for removable steps before translating them. The unrelated full WASI interpreter
+fingerprint failure remains recorded above.
