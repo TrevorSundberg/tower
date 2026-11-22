@@ -42138,3 +42138,78 @@ self-compilation of semantic_evaluation_work.tower passes. Browser builds and th
 combined aggregate/body publication matrix are in progress. Source-defined type
 bindings still use coordinator checking where constructor interning requires it;
 worker admission for prepared aliases/primitive representations is a next step.
+
+### 2026-11-22: remove redundant compiler object generators
+
+Previous goal turn was progress: parser-suite consolidation was implemented,
+validated, pushed and published. Begin at clean 47eef84; pull --rebase reports
+up to date. Audit remaining live CMake generators and all tracked callers before
+translation. Four single-import wrappers have no required standalone source
+identity: parser presentation, parser integration, its fixtures and syntax host.
+Compile those existing Tower modules directly. Move the necessary three-import
+template composition to compiler/units/template_build.tower. Delete the four
+CMake fragments that only generate/compile these five units. Preserve object
+names, target membership/order and production/fixture separation.
+
+Reuse the existing tower_runtime_object rule for utilities, host, parser,
+semantics, interpreter/evaluation, shared lifecycle and focused world checks.
+Do not add another build helper or Tower generator. Keep the host/parser profile
+files: bootstrap_comparison.tower actually consumes them. The allocator fragment
+used an inherited bootstrap alias; replace it with the explicit shared setting,
+then exercise both native and WASI allocator profiles. The shared rule retains
+compiler-produced depfiles, explicit compiler/input dependencies and VERBATIM
+argv quoting. All source/member and platform selection contracts remain unchanged.
+
+The caller audit also finds an indirect dependency: compiler_project_files derives
+unmapped generated filenames from object names. Add the five direct-source entries
+to its existing Tower map. Retain stable browser unit keys/entries/object names,
+and collect the actual transitive depfile closure. The new Tower fixture
+compiler_project_units reads real object depfiles, checks repeated collection
+identity and exports the complete packaged source closure for independent
+compilation; no duplicate JS test logic or packaging implementation is introduced.
+
+Freeze staged tree 879cf21cec027b8e6dc8165c78dd3d3916fa3ab0 in owned Docker
+/cache/unit_bridge_checkout. Public bootstrap 21f527125bfa compiles the smallest
+new template unit for native and WASI; both object bytes equal the previous
+wrapper outputs. Build the documented default successor with private override
+unset and TOWER_NATIVE_BUILD=/cache/unit_bridge_native: all 48 steps pass.
+The complete compiler is byte-identical to the previously verified successor,
+SHA256 da65c1dbca7970c97135bb6e53202b2d8e5f021b1bf228e7d6fe78d2d1e1faaf.
+Reuse that exact compiler's already-passing native/Wasm execution smoke evidence.
+
+Native core configure enables TOWER_ALLOCATOR_TESTS, then the existing Tower
+check_core native runner builds 50 steps and passes 17/17 CTests (3.91s).
+WASI SDK 34 configures the same profile and builds the parser/allocator/runtime
+ABI targets in 42 steps. host-wasi.mjs runs the full parser aggregate successfully;
+ctest -R '^tower-(allocator|runtime-abi)$' passes 2/2 (0.61s). Fifteen affected
+WASI objects and the full parser executable are byte-identical to the previous
+milestone. Native parser SHA c6b3536e9052f493c7aefb2d3bb8f1df75f830a659feb04465d0768c2d03864d;
+WASI parser SHA 41ae6fbf7b54f9222db15b37ba327315d906fcd18c73e7354010d0c71c7dc24c.
+Touching the transitive syntax_inspection.tower input and building only
+tower-compiler-template-build.o recompiles precisely that target and reproduces
+its exact previous bytes: removal of explicit wrapper dependencies did not lose
+this dependency. All builds use frozen source inputs and owned cache directories.
+
+After those builds finish, copy only the packager map and its new test into the
+owned snapshot. Public-bootstrap --library compilation of compiler_project_units
+and Clang linking with the existing guest-host-library.o pass. Invoke it with
+/cache/unit_bridge_checkout /cache/unit_bridge_wasi /cache/unit_bridge_packaged
+and the five tower-compiler-{parser-format,parser-integration,parser-fixtures,
+template-build,syntax-host}.o filenames. Recompile each exported units/*.tower
+with the exported Bedrock/Foundation on x86_64-unknown-linux-gnu and
+wasm32-unknown-wasi: all ten objects match the actual build outputs exactly.
+Compile those five packaged entries and the retired wrappers again for
+wasm32-unknown-unknown: all five browser object comparisons match exactly.
+The documented --tools package_compiler_project path passes its clean five-step
+build, with SHA256 d5ced68ecf285f155b24c611a08d1fd42c54504dd4fa192a664d39b8a5abbd86.
+Fixture SHA256 44127c0ad41555a76f6c8d42f6a90818ded88df785d3b7a9aaaf30727f53e8f3.
+
+CMake drops 159 lines and four files, from 43/1997 to 39/1838: 756 lines (29.1%)
+below the 2594-line baseline. Python and owned C/C++ remain zero, shell 9/230,
+JavaScript 187/24364. No compiler semantics change, new native library, sanitizer,
+repository formatting sweep or todo edit. This is Linux tooling plus native,
+WASI and browser-object equivalence evidence; do not claim a new portable pin,
+full browser generation matrix, or resolution of the previously reported full
+WASI interpreter fingerprint failure. Preserve existing published runtime assets
+and their source identity for the validation receipt. Remaining generated platform
+entries and JS/tool callers still require removal/simplification audits.

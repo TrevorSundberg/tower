@@ -15,12 +15,12 @@ if(TOWER_ALLOCATOR_TESTS)
     endif()
     set(object "${allocator_${unit}_object}")
     add_custom_command(OUTPUT "${object}"
-      COMMAND "${bootstrap}" "${input}" --library --target "${triple}"
+      COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${input}" --library --target "${triple}"
         --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
         --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
         -o "${object}" --depfile "${object}.d"
       DEPFILE "${object}.d"
-      DEPENDS "${bootstrap}" "${input}" VERBATIM)
+      DEPENDS "${TOWER_BOOTSTRAP_COMPILER}" "${input}" VERBATIM)
     set_source_files_properties("${object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
   endforeach()
   get_property(runtime_trap GLOBAL PROPERTY TOWER_RUNTIME_TRAP_OBJECT)
@@ -33,10 +33,10 @@ if(TOWER_ALLOCATOR_TESTS)
   cmake_language(DEFER CALL enable_testing)
   set(runtime_test_object "${CMAKE_CURRENT_BINARY_DIR}/runtime-abi-tests.o")
   add_custom_command(OUTPUT "${runtime_test_object}"
-    COMMAND "${bootstrap}" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/runtime_abi.tower"
+    COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/runtime_abi.tower"
       --library --target "${triple}" -o "${runtime_test_object}" --depfile "${runtime_test_object}.d"
     DEPFILE "${runtime_test_object}.d"
-    DEPENDS "${bootstrap}" scaffolding/tests/runtime_abi.tower VERBATIM)
+    DEPENDS "${TOWER_BOOTSTRAP_COMPILER}" scaffolding/tests/runtime_abi.tower VERBATIM)
   set_source_files_properties("${runtime_test_object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
   add_executable(tower-runtime-abi-tests "${runtime_test_object}")
   set_target_properties(tower-runtime-abi-tests PROPERTIES LINKER_LANGUAGE C)
@@ -62,13 +62,13 @@ if(TOWER_ALLOCATOR_TESTS)
     set(wasm_imports "${CMAKE_CURRENT_BINARY_DIR}/tower-allocator-wasm.imports")
     file(GENERATE OUTPUT "${wasm_imports}" CONTENT "tower_trap\n")
     add_custom_command(OUTPUT "${wasm_object}"
-      COMMAND "${bootstrap}" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/allocator_wasm.tower"
+      COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/allocator_wasm.tower"
         --library --target wasm32-unknown-unknown
         --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
         --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
         -o "${wasm_object}" --depfile "${wasm_object}.d"
       DEPFILE "${wasm_object}.d"
-      DEPENDS "${bootstrap}" scaffolding/tests/allocator_wasm.tower VERBATIM)
+      DEPENDS "${TOWER_BOOTSTRAP_COMPILER}" scaffolding/tests/allocator_wasm.tower VERBATIM)
     add_custom_command(OUTPUT "${wasm_module}"
       COMMAND "${TOWER_ALLOCATOR_WASI_SDK}/bin/clang" "${wasm_object}" -nostartfiles
         -Wl,--no-entry -Wl,--export=allocator_wasm_tests

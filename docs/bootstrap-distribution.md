@@ -79,6 +79,14 @@ The constant-return `scaffolding/main.cpp` experiment and its old default CMake
 target have been removed. Real Tower compilation/linking/execution tests exercise
 LLVM. No project-owned native bootstrap reference remains.
 
+Compiler objects use the shared CMake object rule and compiler-generated depfiles.
+Single-module objects compile their Tower source directly; template orchestration
+uses `compiler/units/template_build.tower`. The generated host and parser profile
+entries remain inputs to bootstrap comparison. Browser packaging maps direct
+objects to the same Tower sources and collects their real dependency closure.
+The `scaffolding/tests/compiler_project_units.tower` fixture exports that closure
+from `REPOSITORY BUILD OUTPUT OBJECT ...` for independent object comparison.
+
 ## Validation and measurement
 
 Run from the repository root:

@@ -1,0 +1,35 @@
+import tower;
+import utility_checks;
+import .tools.compiler_project_files;
+import .tools.tool_files_posix;
+import .host.driver_files;
+import .library.bytes;
+import .library.bytes_types;
+
+// Exercise the real object depfiles and project packager. The exported closure
+// can be recompiled independently and compared with the original build objects.
+export fn main(argc: i32, argv: u8**): i32 {
+    var repository_argument: usize = 1; var build_argument: usize = 2; var output_argument: usize = 3;
+    var first_object: i32 = 4;
+    if argc <= first_object {
+        puts("Usage: compiler_project_units REPOSITORY BUILD OUTPUT OBJECT ...");
+        var usage: i32 = 2; return usage;
+    }
+    var project: CompilerProjectFiles = default;
+    var path: ByteBuffer = default;
+    defer compiler_project_files_close(&project); defer bytes_dispose(&path);
+    utility_check(tool_join(&project.source, argv[repository_argument], "scaffolding"), "project source root");
+    for(var index = first_object; index < argc; index++) {
+        utility_check(tool_join(&path, argv[build_argument], argv[index]), "object path");
+        var unit = compiler_project_unit(&project, argv[build_argument], path.data);
+        utility_check(unit is not null, "collect real unit and transitive source closure");
+        var count = project.units.length;
+        utility_check(compiler_project_unit(&project, argv[build_argument], path.data) == unit
+            && project.units.length == count, "repeated unit collection retains identity");
+    }
+    foreach(var file in &project.files) {
+        utility_check(tool_join(&path, argv[output_argument], file.name.data) && tool_output_parents(path.data)
+            && driver_write_file(path.data, file.text.data, file.text.length), "export packaged source closure");
+    }
+    puts("Collected compiler units and exported their source closure"); return 0;
+}

@@ -13,8 +13,6 @@ function(tower_compiler_utilities)
     if(NOT EXISTS "${TOWER_BOOTSTRAP_COMPILER}")
       message(FATAL_ERROR "TOWER_BOOTSTRAP_COMPILER does not exist: ${TOWER_BOOTSTRAP_COMPILER}")
     endif()
-    set(bootstrap "${TOWER_BOOTSTRAP_COMPILER}")
-    set(bootstrap_dependency "${TOWER_BOOTSTRAP_COMPILER}")
   else()
     message(FATAL_ERROR "Set TOWER_BOOTSTRAP_COMPILER to an import-capable Tower-built host towerc; see docs/modules.md.")
   endif()
@@ -38,31 +36,21 @@ function(tower_compiler_utilities)
   include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/TowerRuntime.cmake")
   tower_compiler_runtime("${triple}")
   include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/TowerHost.cmake")
-  tower_compiler_host("${bootstrap}" "${bootstrap_dependency}" "${triple}")
+  tower_compiler_host("${triple}")
   set_property(GLOBAL PROPERTY TOWER_COMPILER_TRIPLE "${triple}")
   add_library(tower-compiler-utilities INTERFACE)
   add_library(tower-compiler-entities INTERFACE)
   foreach(source IN ITEMS scaffolding/compiler/utf8.tower scaffolding/library/bytes.tower scaffolding/library/entities.tower)
     get_filename_component(name "${source}" NAME_WE)
-    set(object "${CMAKE_CURRENT_BINARY_DIR}/tower-compiler-${name}.o")
     set(input "${CMAKE_CURRENT_SOURCE_DIR}/${source}")
     if(name STREQUAL "entities")
       set(input "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/units/entities.tower")
     endif()
-    add_custom_command(OUTPUT "${object}"
-      COMMAND "${bootstrap}" "${input}"
-        --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
-        --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
-        --library --target "${triple}" -o "${object}" --depfile "${object}.d"
-      DEPFILE "${object}.d"
-    DEPENDS ${bootstrap_dependency} "${source}" "${input}"
-        scaffolding/bedrock.tower scaffolding/foundation.tower
-      COMMENT "Compiling Tower-written ${name} compiler code for ${triple}" VERBATIM)
-    set_source_files_properties("${object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
+    tower_runtime_object(tower-compiler-${name} "${input}" "${triple}")
     if(name STREQUAL "entities")
-      target_sources(tower-compiler-entities INTERFACE "${object}")
+      target_sources(tower-compiler-entities INTERFACE "${tower-compiler-${name}_OBJECT}")
     else()
-      target_sources(tower-compiler-utilities INTERFACE "${object}")
+      target_sources(tower-compiler-utilities INTERFACE "${tower-compiler-${name}_OBJECT}")
     endif()
   endforeach()
   include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/TowerSharedRuntime.cmake")
@@ -73,10 +61,7 @@ function(tower_compiler_parser_nodes)
   if(TARGET tower-compiler-parser-nodes)
     return()
   endif()
-  if(TOWER_BOOTSTRAP_COMPILER)
-    set(bootstrap "${TOWER_BOOTSTRAP_COMPILER}")
-    set(dependency "${TOWER_BOOTSTRAP_COMPILER}")
-  else()
+  if(NOT TOWER_BOOTSTRAP_COMPILER)
     message(FATAL_ERROR "Parser components require an import-capable Tower-built host compiler.")
   endif()
   get_property(triple GLOBAL PROPERTY TOWER_COMPILER_TRIPLE)
@@ -93,24 +78,21 @@ function(tower_compiler_parser_nodes)
   # Keep the configured entry visible to comparison and browser packaging.
   # Module membership/order lives in ordinary Tower, not generated source lists.
   set(input "${CMAKE_CURRENT_BINARY_DIR}/tower_compiler_parser_nodes.tower")
-  set(object "${CMAKE_CURRENT_BINARY_DIR}/tower-compiler-parser-nodes.o")
   file(GENERATE OUTPUT "${input}" CONTENT "import compiler.units.${profile};\n")
-  add_custom_command(OUTPUT "${object}"
-    COMMAND "${bootstrap}" "${input}"
-      --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
-      --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
-      --library --target "${triple}" -o "${object}" --depfile "${object}.d"
-    DEPFILE "${object}.d"
-    DEPENDS ${dependency} "${input}" scaffolding/bedrock.tower scaffolding/foundation.tower
-    COMMENT "Compiling Tower-owned parser components for ${triple}" VERBATIM)
-  set_source_files_properties("${object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
+  tower_runtime_object(tower-compiler-parser-nodes "${input}" "${triple}")
   tower_compiler_semantics()
   add_library(tower-compiler-parser-nodes INTERFACE)
-  target_sources(tower-compiler-parser-nodes INTERFACE "${object}")
+  target_sources(tower-compiler-parser-nodes INTERFACE "${tower-compiler-parser-nodes_OBJECT}")
   include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/TowerSyntaxTests.cmake")
-  include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/TowerParserFormatting.cmake")
-  include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/TowerParserIntegration.cmake")
-  include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/TowerTemplateBuild.cmake")
+  tower_runtime_object(tower-compiler-parser-format "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/parser_presentation.tower" "${triple}")
+  tower_runtime_object(tower-compiler-parser-integration "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/parser_integration.tower" "${triple}")
+  tower_runtime_object(tower-compiler-parser-fixtures "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/parser_integration.tower" "${triple}")
+  tower_runtime_object(tower-compiler-template-build "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/units/template_build.tower" "${triple}")
+  tower_runtime_object(tower-compiler-syntax-host "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/host/syntax_baseline.tower" "${triple}")
+  target_sources(tower-compiler-parser-nodes INTERFACE
+    "${tower-compiler-parser-format_OBJECT}" "${tower-compiler-parser-integration_OBJECT}"
+    "${tower-compiler-parser-fixtures_OBJECT}" "${tower-compiler-template-build_OBJECT}"
+    "${tower-compiler-syntax-host_OBJECT}")
   include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/TowerFrontendTests.cmake")
 endfunction()
 
@@ -118,10 +100,7 @@ function(tower_compiler_semantics)
   if(TARGET tower-compiler-semantics)
     return()
   endif()
-  if(TOWER_BOOTSTRAP_COMPILER)
-    set(bootstrap "${TOWER_BOOTSTRAP_COMPILER}")
-    set(dependency "${TOWER_BOOTSTRAP_COMPILER}")
-  else()
+  if(NOT TOWER_BOOTSTRAP_COMPILER)
     message(FATAL_ERROR "Set TOWER_BOOTSTRAP_COMPILER to an import-capable Tower-built host compiler.")
   endif()
   get_property(triple GLOBAL PROPERTY TOWER_COMPILER_TRIPLE)
@@ -129,17 +108,9 @@ function(tower_compiler_semantics)
   if(TOWER_BROWSER OR TOWER_PARSER_ONLY)
     set(input "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/units/semantics_checks.tower")
   endif()
-  set(object "${CMAKE_CURRENT_BINARY_DIR}/tower-compiler-semantics.o")
-  add_custom_command(OUTPUT "${object}"
-    COMMAND "${bootstrap}" "${input}" --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
-      --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
-      --library --target "${triple}" -o "${object}" --depfile "${object}.d"
-    DEPFILE "${object}.d"
-    DEPENDS ${dependency} "${input}" scaffolding/bedrock.tower scaffolding/foundation.tower
-    COMMENT "Compiling Tower semantic compiler for ${triple}" VERBATIM)
-  set_source_files_properties("${object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
+  tower_runtime_object(tower-compiler-semantics "${input}" "${triple}")
   add_library(tower-compiler-semantics INTERFACE)
-  target_sources(tower-compiler-semantics INTERFACE "${object}")
+  target_sources(tower-compiler-semantics INTERFACE "${tower-compiler-semantics_OBJECT}")
   if(triple MATCHES "linux")
     find_package(Threads REQUIRED)
     target_link_libraries(tower-compiler-semantics INTERFACE Threads::Threads ${CMAKE_DL_LIBS})

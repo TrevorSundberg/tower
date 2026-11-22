@@ -101,6 +101,11 @@ fn compiler_project_unit_source(name: u8*): u8* {
     if strcmp(name, "tower-compiler-semantics.o") == 0 { return "compiler/units/semantics_checks.tower"; }
     if strcmp(name, "tower-compiler-interpreter.o") == 0 { return "compiler/units/interpreter_browser.tower"; }
     if strcmp(name, "tower-compiler-evaluation.o") == 0 { return "compiler/units/evaluation.tower"; }
+    if strcmp(name, "tower-compiler-parser-format.o") == 0 { return "compiler/parser_presentation.tower"; }
+    if strcmp(name, "tower-compiler-parser-integration.o") == 0 { return "compiler/parser_integration.tower"; }
+    if strcmp(name, "tower-compiler-parser-fixtures.o") == 0 { return "tests/parser_integration.tower"; }
+    if strcmp(name, "tower-compiler-template-build.o") == 0 { return "compiler/units/template_build.tower"; }
+    if strcmp(name, "tower-compiler-syntax-host.o") == 0 { return "host/syntax_baseline.tower"; }
     if strcmp(name, "tower-compiler-legacy.o") == 0 { return "host/legacy.tower"; }
     if strcmp(name, "tower-shared-lifecycle.o") == 0 { return "host/entity_lifecycle.tower"; }
     if strcmp(name, "tower-syntax-live-cases.o") == 0 { return "tests/syntax_live.tower"; }

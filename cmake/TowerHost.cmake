@@ -1,7 +1,6 @@
 # Select the platform profile; implementation and fixture composition are Tower.
-function(tower_compiler_host bootstrap dependency triple)
+function(tower_compiler_host triple)
   set(input "${CMAKE_CURRENT_BINARY_DIR}/tower_compiler_host.tower")
-  set(object "${CMAKE_CURRENT_BINARY_DIR}/tower-compiler-host.o")
   set(module_platform linux)
   if(triple MATCHES "wasm")
     set(module_platform wasi)
@@ -19,14 +18,8 @@ function(tower_compiler_host bootstrap dependency triple)
     string(APPEND profile "_driver")
   endif()
   file(GENERATE OUTPUT "${input}" CONTENT "import compiler.units.${profile};\n")
-  add_custom_command(OUTPUT "${object}"
-    COMMAND "${bootstrap}" "${input}" --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
-      --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
-      --library --target "${triple}" -o "${object}" --depfile "${object}.d"
-    DEPFILE "${object}.d"
-    DEPENDS ${dependency} "${input}" scaffolding/bedrock.tower scaffolding/foundation.tower VERBATIM)
-  set_source_files_properties("${object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
-  target_sources(tower-compiler-memory PRIVATE "${object}")
+  tower_runtime_object(tower-compiler-host "${input}" "${triple}")
+  target_sources(tower-compiler-memory PRIVATE "${tower-compiler-host_OBJECT}")
   include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/TowerWorkHost.cmake")
   tower_compiler_work_host("${triple}" "${module_platform}")
   include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/TowerAllocatorTests.cmake")
