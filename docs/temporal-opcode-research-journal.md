@@ -41501,3 +41501,28 @@ effects rather than replaying checked expressions. General staged type/value
 execution and persistent invalidation remain unfinished. This milestone makes
 constructor identity/alias dependencies and cloning schedulable; it is not a
 claim that the entire compiler or all type execution is fully parallel.
+
+The complete constructor native matrix and multi-unit suite passed, including
+both diagnostic groups. After rebasing onto documentation-only upstream changes,
+the documented public-bootstrap build passed and source ed302d2d706bfda84f78e05a0f59587d80d77e2c
+was pushed. Scaffolding tree: c07da325321c80cb644babbf2ff7eea121c923f4.
+Native SHA-256: dfb5867d1dcbb874975e9f2dcbb3b139852967508248884a5e077770457c5bd7.
+The compiler closure is frozen for constructor-work-browser-build.log. Browser
+generations/publication are pending; f13b167 remains the last verified runtime.
+
+The ed302d2 browser build completed, but publication was held for a reproduced
+compatibility-boundary failure. In constructor_structural_failure.tower, a later
+direct return synchronously checks broken(i32) while an earlier body is suspended
+on an if-condition. When that earlier body subsequently requests the same type
+through the graph, fresh discovery overwrote the old instance's retained error
+and exposed unknownFirst instead of MissingField. Before registering an instance
+that has no query yet, its syntax consumer now restores that prior failure.
+Already registered instances still propagate errors through graph dependencies.
+This avoids treating a partial cached identity as valid. The new regression is
+in the focused/full failure suites; constructor-work-retained.log is running.
+Prior full matrix and multi-unit evidence remain applicable; rerun the affected
+focused suite and build the corrected publication, not the unrelated full matrix.
+
+The retained-failure correction passes the focused suite at one/four workers,
+including the new structural-to-query case, alias cycles, nested failures and
+execution/canonical reparsing. Evidence: constructor-work-retained.log, exit 0.

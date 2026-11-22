@@ -135,6 +135,11 @@ fn sem_constructor_step(c: SemanticContext*, result: SemanticDeclaration*): bool
             if !sem_generic_ok(c, result.subject) || work.instance == null { return false; }
             sem_state(c, c.source_bases, work.instance).number = sem_source_base(c, work.definition);
         }
+        // Structural statement checking can have reached this instance first.
+        // Its retained failure predates query registration; discovery must not
+        // overwrite it with an empty diagnostic or reuse its partial identity.
+        var prior = sem_declaration_state(c, work.instance);
+        if prior.query == 0 && sem_declaration_restore_error(c, prior) { return false; }
         var instance = sem_constructor_instance(c, result);
         sem_declaration_discover(c);
         if sem_declaration_input(result, instance.query)
