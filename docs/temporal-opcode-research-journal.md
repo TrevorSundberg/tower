@@ -44441,6 +44441,32 @@ name now collides with the primitive type and serializes as `f32@input.tower`.
 Allow that canonical qualified spelling (also f64), retaining exact comment/name
 association. The corrected comment check passes, zero skips. Logs are
 stress_wide_{preflight,browser}.log and stress_comments_{baseline,pass}.log.
+
+The retired-script workflow also succeeds at ef7d8f9 (45038480959), including
+all 208 MSVC combinations without PowerShell. Download its published Windows
+runner (SHA256 31935410bba7459aa7fb6175516135eaa41390c7a4eafa8f8f5fbb39cb016ccf)
+and execute the policy/process suite on this Windows host: exit zero, including
+the deliberate missing-tool diagnostic. This verifies the distributed test tool,
+not a portable compiler release.
+
+Final rebase bf2a3e8 brings upstream body preparation continuations. Build a fresh
+50-step public-pin successor without a private bootstrap override; its SHA256 is
+994503518323a0619bb02adda26032461893cb8e54d7a867455a52f04174ba77.
+Type, control and query smoke plus backend and driver checks all pass. Download
+the newly published portable/LLVM reactors, verify their manifest hashes, and
+repeat the three affected wide/comment/LLVM fixture checks: 3/3, zero skips.
+Logs: build/tooling_windows_final_*.log, tooling_windows_latest_browser.log and
+windows_tooling_local_execution.log. Reuse already passing unaffected checks.
+
+Tracked owned-source inventory now has Python 0/0 files/lines, PowerShell 0/0,
+C/C++/headers 0/0, JavaScript 178/23,661, shell 9/230 and CMake 39/1,599. JavaScript
+is 769 lines below this lane's 24,430-line baseline, including 56 removed in this
+continuation. The 26 protected temporal JavaScript files remain exactly 8,488
+lines. Neither temporal sources nor todo.txt changed. The nine shell entry points
+still invoke Docker, SDK/vendor tools and the public CMake/bootstrap bridge;
+their live callers were checked. Remaining JavaScript includes UI/transport,
+host measurements and fixture data, so this is not a claim of universal shim-only
+JavaScript or completion of the longer-term language-ratio goal.
 Published-browser target execution is now PASS: workflow 45038423612 runs all
 four jobs successfully, consuming the exact f7545d6 browser backend and target
 packs. Both Intel and Apple Silicon Macs verify strict signatures and execute the
