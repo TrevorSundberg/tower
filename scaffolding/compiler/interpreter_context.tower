@@ -36,6 +36,16 @@ fn ix_initialized(m: IMExecution*, address: u64, size: usize, writing: bool, off
         ix_fail(m, "Strict evaluation access is outside live local storage", offset);
         return false;
     }
+    if writing && size != 0 {
+        var end = address + convert(u64, size);
+        foreach(var &input in &m.context.input_storage) {
+            if address < convert(u64, input.address + input.bytes)
+                && convert(u64, input.address) < end {
+                ix_fail(m, "Compile-time evaluation cannot modify an immutable captured value", offset);
+                return false;
+            }
+        }
+    }
     var first = convert(usize, address);
     var i: usize = 0;
     while i < size {

@@ -47464,3 +47464,143 @@ evidence. Full lifecycle remains blocked by the separately recorded aggregate
 and captured-address failures, so no known-failing matrix is repeated. Pending
 aggregate ABI, required-capture policy, opt-in measurement target, final sanitizer,
 public-bootstrap closure and leased publication remain open.
+
+### L2 queued policy integration after e83fb27
+
+The independently built hover/fixture checkpoint is e83fb2791e17872fe1cadfb61bdc239266281be0.
+Its verified incremental bundle from 7ac22f4 has SHA256
+8cf25b9c5e6a64ddcd3ea07c375a1d4b6c7677fda14dca6e3d39bb2ca66443ee.
+A first bundle command used a mistyped full parent hash and failed before creating
+an artifact; the corrected HEAD^..HEAD command and bundle verification pass.
+A complete adjacent-resource comparison package is preserved at
+/root/.cache/tower/l2_capture_before_e83fb27; its compiler is185044e3 and resource
+diff is empty. This is the before image for subsequent ownership validation.
+
+After all own jobs drain, coordinator-reviewed A1 capture policy595209af and the
+exact42-case lifecycle filec25f9c36 apply cleanly. The work registrar freezes
+require_relocatable from inferred status or exact captured-initializer producer
+identity before dispatch; the preparation worker receives the frozen boolean.
+The required/optional producer roles and type_arguments setting are unchanged.
+The twelve new cases distinguish taken/untaken address, comparison and output
+operations, preserve explicit comptime address behavior, and include type/function
+positives. Original30 sources and contracts remain. A1's twelve-case pass is owner
+evidence only; L2 has not built this candidate or passed the full42-case gate.
+
+B1 lexical_derived_extents49ec56f5 also applies cleanly. Array counts and loop
+bounds derive from existing supported declarations; B1 supplies public-predecessor
+compile and identical-object evidence. L2 does not adopt the withdrawn standalone
+parser tracing change or link serial instrumentation into production workers.
+The complete aggregate projection/publisher/consumer ABI is still pending, so the
+next build will use that coherent closure. These five pending files are outside
+the185044e3 receipt. Three external .tower draft inputs separately cover captured
+nominal type identity, callbacks and nested array/null-pointer leaves; they remain
+uncompiled proposals until the shared implementation can be validated.
+
+The preserved e83 comparison package was initially a source-only resource copy.
+A pre-measurement inspection found that its nine generated runtime LLVM resources
+were absent. They are now copied from the matching e83 native cache, with hashes
+in hover_registry_runtime_assets.sha256. The full source snapshot is byte-identical
+when excluding only runtime-*.ll; hover_registry_package_source.diff is empty.
+The broader comparison against CMake's smaller deployed resource subset records
+only the deliberately retained extra compiler/test sources. No CLI or timing
+sample used the incomplete package, so no measured result is relabeled.
+
+The complete API2792/publisher997aa4/consumer27a71 aggregate change now applies
+cleanly in L2, together with the0a47 source fixture. All consumer invocations close
+before producer vectors are freed; no SemanticEvaluationLeaf references remain.
+Type/function leaves are read through the consumer's ordinary relocation path,
+not copied as producer indexes. Snapshot cache entries publish after all checked
+scalar writes succeed, and per-frame cleanup retains caller data across nested
+returns. Failure states terminate ix_step, including the interleaved fixture.
+This is static review only; L1 owns the first coherent runtime build.
+
+Corrected B1 parser_trace_checkeda2618c72 applies once after review; neither
+withdrawn predecessor was applied. It returns trace allocation/attachment failure
+explicitly and bounds formatter-vector output. Fault injection remains in serial
+parser_main/parser_failures; shared parser tests only exercise valid trace output.
+The focused frontend parser selector and D1 storage reset repair are still pending.
+
+L1's first complete94a867c0 build passes the original aggregate pair and the three
+independent L2 type/callback/nested inputs at one worker. Its first low-level
+lifetime test fails a transient observation: the return instruction both creates
+and releases the callee snapshot before the harness can inspect it. Incremental
+owned test patchef0147df introduces a callee local at a statement boundary; it
+preserves the15 result and lifetime assertions. L1 then passes query smoke,
+including strict scalar/copy/fill rejection and cancellation at both widths.
+The combined new source's empty-struct size expectation was also wrong: both old
+and new compilers report1, matching semantic_layout_kernel's minimum size1.
+Exact fixture25e8f5ab changes only that new expectation, keeping stdout0. Both
+owner failures are preserved; these corrections do not change production code.
+L2 has reviewed and integrated both, but has not yet run the joint candidate.
+
+The reviewed stage optimization452cfa58 initially fails L2's dry-run because this
+clone lacks the older D1 concurrent-stage fixture prerequisite. Nothing is applied
+partially. Exact D1 stage_registrationf4c981ab is reviewed and applied first, using
+the existing Linux x64 Tower fixture helper; then stage452 and storage_seed_reset
+9685f4d3 apply cleanly. The stage fast path retains view/name/overflow checks,
+all leases/reference holds and stage cleanup, skipping only unchanged membership
+reservation/publication under the append-only staging contract. A2 supplies native,
+ASan and TSan real-worker stress receipts plus matched improvement; L2's independent
+merged validation is pending. The storage repair changes only three reset inputs
+to seed-valid declarations and flushes failure text before aborting. Its original
+hundred resets, retained pointer/text, EOF/fault and exact buffer checks remain.
+
+### L2 independent joined aggregate and stage validation
+
+The frozen successor includes the complete aggregate API/publisher/consumer,
+capture policy and42-case fixture, both reviewed test corrections, stage452 with
+its D1 registration prerequisite, tracea261, lexical extents and storage9685.
+L2 acquires the host only after L1's authoritative drain. Public-pin smallest
+interpreter and stage units pass in3.45/1.96 s wall,3.19/1.91 s CPU and
+188140/196268 KiB RSS. Normal native rebuild passes11 steps in52.50 s wall /
+74.28 s CPU /790436 KiB; five runners build13 steps in25.57 s /35.89 s /348356 KiB.
+Compiler jobs1, outer jobs2, own l2_ecs_native cache, public bootstrap without
+override, same Linux x64/LLVM19 host. Source remains frozen through every run.
+
+Compiler SHA256 is ba48c54fa609a29986bf5d0fb06748ad5cc7b4832b94491edddc39f00c1d95b3;
+execution runner63da435d45b1ac18dec71a578a834d7314c2bceae4ec40aa8d3074ecc0a75611;
+LR runner4e161aa4a5d72d0427153a24ba9e5b0e7296c69ac590d026a766ce469c5332d5.
+All exact commands, hashes, stdout/stderr and GNU time records are in
+L2/logs/aggregate_stage_*. Both resource comparisons are empty; the snapshot is
+/root/.cache/tower/l2_resources_aggregate_stage_20261122.
+
+| Independently run check | Wall s | CPU s | Peak RSS KiB |
+| --- | ---: | ---: | ---: |
+| Query smoke, including private snapshot lifetime and strict stores/copies/fills | 0.19 | 0.13 | 59292 |
+| Whole storage, including repaired resets and registry/provider teardown | 0.23 | 0.22 | 93628 |
+| Editor worlds, typed constructors, mixed workers and cancellation | 14.63 | 14.87 | 258244 |
+| LR production worker policy and graph/lifetime equivalence | 2.74 | 3.62 | 125560 |
+| Stage real-worker overlap and ownership stress, trial1 | 0.06 | 0.05 | 1944 |
+| Same stage stress, trial2 | 0.06 | 0.05 | 2008 |
+| Same stage stress, trial3 | 0.05 | 0.05 | 1944 |
+| Complete type suite, constructors, both widths, canonical and workers | 44.17 | 52.26 | 384848 |
+| Full42-case lifecycle/type smoke, serial/worker32/64 and canonical reparse | 264.72 | 294.14 | 256420 |
+
+Every process exits zero. Stage trials retain the real2/4-worker barrier checks,
+published/discarded payload identity, cancellation/partial admission, held-reference
+finalization and zero entity/component teardown. These are positive production
+allocator checks, not sanitizer execution or proof of universal race freedom.
+
+Fourteen separate CLI runs also exit zero with byte-compared independent oracles:
+the original global/local aggregate examples produce7,8 and15 at jobs1/4;
+the three separate L2 nominal-type/callback/nested-array/null-pointer sources each
+produce0 at jobs1/4; the combined corrected fixture produces0 in both graph and
+fast engines at jobs1/4. The full42 gate additionally preserves required capture
+address/comparison rejection, explicit direct-stage address behavior, executed and
+untaken effects/dependencies, failures/cycles and all original30 cases. No source
+or assertion is weakened to obtain these passes.
+
+These timings characterize checked workloads. They are not matched before/after
+speedup evidence for all integrated changes; the earlier failed aggregate and
+storage runs cannot be compared as equivalent successful work. The existing
+80-process type/generic campaign and A2's separate matched stage receipt retain
+their own source boundaries. Final integrated paired performance and actual
+ASan/TSan remain required.
+
+Both sessions38591/23292 drain before the slot returns to L1. The queued focused
+parser/capture/aggregate registrations, bounded trace sweep, two precise known
+address diagnostics, standalone profile target and L1's later whole-empty edge
+tests are excluded from this receipt. Complete known has not been rerun against
+its two obsolete expected strings. The final bootstrap pin, clean successor,
+browser/deployment and publication lease remain open. This local source checkpoint
+records an independently passing ownership milestone, not final acceptance.

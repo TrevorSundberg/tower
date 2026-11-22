@@ -486,3 +486,25 @@ earlier at the unchanged Session reset parses assertion. GDB and an unbuffered
 retry identify seed-only print fixtures in compiler_storage_tests; D1/B1 own the
 repair. The registry case is unrun in this process, not passed. Final integrated
 capture correctness, instrumentation, bootstrap and publication remain open.
+
+## Independent aggregate/type integration receipt
+
+The complete shared projection ABI, required-capture relocation policy and
+invocation-private snapshot storage now pass L2's independent public-pin build
+and runtime checks. Type and function leaves retain canonical bindings and are
+rematerialized in each consumer; no private numeric identity is transported.
+Consumer disposal precedes release of every producer projection vector. Frame
+cleanup, immutable scalar/copy/fill checks and cancellation pass query smoke.
+
+Original global/local aggregate examples and three separate nominal-type,
+callback and nested-array/null-pointer inputs pass at workers1/4. The combined
+fixture passes both engines at workers1/4. The complete type suite passes in
+44.17 s wall /52.26 s CPU /384848 KiB RSS; full42-case lifecycle/type smoke passes
+in264.72 s /294.14 s /256420 KiB, preserving both widths, serial/worker canonical
+equivalence, address/effect policy and failure/cycle cases. Whole storage and
+three real-worker stage stress runs also pass their exact ownership/teardown
+checks. The journal records compilerba48c54f, all source boundaries and raw logs.
+
+Later focused-harness/profile portability edits are outside this frozen receipt.
+Known-suite precise-message updates, final paired performance, actual updated
+ASan/TSan, public-bootstrap closure and leased publication remain required.
