@@ -280,7 +280,10 @@ deterministic—not that every loop runs on multiple threads.
   lexical control changes. Reuse passing unaffected evidence.
 - Run the complete public-bootstrap/native/browser/generation publication checks
   once per coherent milestone. Do not repeatedly restart them for each handler.
-  No sanitizers, repository-wide formatting, or broad cleanup sweeps.
+  Follow [AGENTS.md](../AGENTS.md#validation-and-performance) for profiling and
+  final supported memory/race sanitization; the 2026-11-22 policy audit supersedes
+  this handoff's former sanitizer prohibition. No repository-wide formatting or
+  broad cleanup sweeps.
 - Keep runtime build identity distinct from documentation publication identity.
   Documentation-only deploys reuse verified assets. Preserve concurrent manifest
   receipts; if a newer manifest appears, compare assets/build identity before
