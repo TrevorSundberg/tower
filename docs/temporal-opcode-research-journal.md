@@ -39665,3 +39665,16 @@ verified. Remaining production work: default byte-link service selection, wider
 object/debug profiles and explicit CLI support; shared LLVM hosting is a separate
 transport conversion. Native ELF/COFF/Mach-O translation remains later. Publish
 this source/API milestone without replacing the other lane's new hosted runtime.
+
+Final tooling rebase through bf6865c changes only bootstrap verification tools
+and documentation, not the compiler/linker inputs exercised above. The required
+fresh default build in successor-thread-final completes; rerunning the documented
+build entry reports no work. That successor compiles the current reader and its
+native executable passes, including real relocation-kernel overlap. Current
+successor SHA256 ff096a8a9c1587c3b6b9d763e5f04edccfe876a51a80b78e448451056eff1612;
+this is a local development artifact, not a new public bootstrap release.
+The unchanged browser gates remain applicable; do not rerun them for journal
+updates. Agent1 released the publication lock after its verified tooling receipt.
+The coordinator acquired it for this source/API receipt and will preserve the
+current attribute runtime 9e7eb79, all 88 assets and the other lane's receipts.
+todo.txt remains blob 045d1e620edf7c67b653fec19df850b370246b1d.
