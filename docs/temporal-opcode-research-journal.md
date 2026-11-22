@@ -48849,3 +48849,119 @@ failures pending coordinated policy/producer-consumer fixes. Merge source review
 is not runtime validation; next compile smallest changed units and validate the
 fully joined ABI after pending authorized handoffs, with prior results scoped
 to their exact earlier source hashes. No publication lease is held.
+
+### 2026-11-22 A2 joint capture ownership review after2ea669e9
+
+Integrated only the coordinator-routed owner changes after all A2 jobs drained:
+A1 capture policy595209af and complete42-case lifecyclec25f9c36; joint L1 API
+2792eda5/A1 producer997aa4c9/L1 consumer27a71a9f; B2 hoverdffdad44+5f43191c;
+B1 registry64d55417, lexical extents49ec56f5 and corrected tracea2618c72; D1
+root-source9dcff8a7 and storage reset draft9685f4d3. No withdrawn capturev1/v2,
+trace330/c8, or blanket import writer was applied. None of these patches is
+attributed to A2; own stage optimization remains isolated45bf1d33.
+
+Read the full shared type/interpreter/context/semantic publisher/disposal diffs.
+IMValueProjection replaces the identical semantic leaf representation rather
+than adding another graph. Exact producer identity, frame-owned target bytes
+and frozen borrowed projections establish storage lifetime. Optional inference
+keeps known_producer and cannot overwrite the required capture role/projections.
+All fresh publishers use default initialization. Two-pass evaluation disposal
+releases every consumer invocation before any producer leaves; semantic layout
+cleanup closes the shared worker pool before evaluation disposal, and phase
+pumps join/publish before returning. Strict immutable-capture write checks leave
+non-strict raw Foundation behavior intact. No address-coincidence cache or
+noalias promise was introduced. Entire dependent ABI closure must rebuild.
+
+The capture policy freezes require_relocatable from the exact producer before
+dispatch, so an initializer-derived captured address cannot stand in for a runtime
+binding, while explicit comptime calls retain their separate capability policy.
+Executed-branch effects/addresses and scalar/type/function positives remain
+covered by the expanded owner fixture. The shared stage optimization does not
+permit removing any of these payload leases.
+
+Two owner test corrections arrived before runtime: ef0147df inserts a callee
+local so nested storage lifetime is visible at an interpreter step boundary;
+all original ownership assertions remain. Aggregate fixture25e8f5ab replaces the
+old incorrect empty-layout0 expectation with existing layout1; stdout0 and all
+aggregate/function/type/pointer/alias checks remain. Original old fixture was
+never run here. Initial five smallest units passed, then the optional generic
+CMake include cleared with an empty cache path caused configure exit1; no native
+or runtime pass followed. Preserved log/recipe/manifest, removed that cache entry
+with -U, and resumed only the changed query unit plus native build. Current
+fully joined validation is running; final acceptance remains open.
+
+### Current completion scope after the joined native check (2026-11-22 23:40Z)
+
+Current core census: **29/29 paths reviewed** (27/27 `scaffolding/library/*.tower`
+including compiler_work/types and both budget files, plus2/2 compiler_kernel*.tower).
+The expanded scheduling/ownership boundary census is **98/98 production or
+composition paths with per-file receipts**, including those29. These are the90
+unique production/composition paths already named in the tables plus the8 below;
+duplicates and20 earlier test/tool receipts are excluded from98. No newly
+introduced core library/kernel file is unreviewed in this frozen tree. This
+count does not claim a full audit of every other lane's compiler source or every
+transitive non-scheduling import. New files discovered in later handoffs must be
+added and reviewed before increasing the numerator.
+
+The following complete-source reviews close missing explicit per-file rows.
+Paths are relative to scaffolding; reviewed commit2ea669e9, unchanged by the
+subsequent joint ABI patch except interpreter_context (27a71a9f).
+
+| Path / source identity | Ownership/storage/scheduling conclusion | Evidence and disposition |
+| --- | --- | --- |
+| `compiler/semantic_constructor_work.tower`,90eb0638 | World-owned constructor components; separate syntax and instance receipts, lexical/module capture identity, immutable ready type copy. Call/Clone/Alias/Execute continuation uses declaration inputs and ordinary evaluation; waits record dependencies, nominal identity precedes layout. Coordinator registers/publishes, cloned bodies use shared staged executor. | Full source read; new42-case type/lifecycle run passes. L2/A1 production ownership; no new registry, folder or local scheduler. Final joined instrumentation remains open. |
+| `compiler/host_world.tower`,ef8ca078 | Explicit world store/types behind the legacy host handle. Creation registers provenance kinds and unwinds failure; component access derives owner world from the entity. | Complete source read. B2 owns remaining legacy transport migration; no ambient default world added to new paths. |
+| `compiler/frontend_world.tower`,abb4fa89 | World grammar cache owns immutable seed/pattern compiler/pool. Reset rejects pins or busy workers, clears syntax then closes pool and releases cache owners; retained parse output survives separately. | Complete source read. B1/B2 owner; ordinary storage/reset and current source lifetime checks pass, final threaded/browser invalidation remains a gate. |
+| `compiler/units/parser_work.tower`,20702b7e | Composes parser core/frontend and existing LR work tests; owns no additional queue/world/payload. | Complete import unit read; B1/D1 keep manifest/link ownership. |
+| `compiler/units/parser_work_checks.tower`,76aaff42 | Adds existing parser case/replacement checks to the same parser/LR closure. No execution policy or independent storage. | Complete import unit read; source composition is not a runtime receipt. |
+| `compiler/units/parser_modules_work.tower`,07401df2 | Composes module ownership checks with shared parser/frontend/LR work. | Complete import unit read; module worlds remain B2, generic registration D1. |
+| `compiler/units/parser_modules_work_checks.tower`,1c60dcf7 | Combines module/parser replacement checks with existing LR worker closure. | Complete import unit read; no second scheduler or changed callback identity. |
+| `compiler/interpreter_context.tower`,27a71a9f delta | Invocation-owned initialization bitmap and captured input intervals. Bounds validated before writes; strict captured ranges reject scalar/copy/fill mutation. Non-strict Foundation remains raw. | Full source read after joint ABI. Current query smoke checks immutable storage, nested frame retention/disposal; final ASan/TSan execution still required. |
+
+Remaining acceptance is substantive, not optional follow-up:
+
+| State / requirement | Exact source or boundary | Next concrete work/evidence |
+| --- | --- | --- |
+| Implemented and measured: ready selection, finite dispatch, shared admissions, unchanged-stage optimization | library/work_graph.tower targeted take/ready index; work_pool.tower work_pool_batch; compiler_kernel_dispatch_admitted; work_budget*.tower; entity_stage_prepare/publish | Retain the recorded reference checks, actual overlap and paired profiles. Independently revalidate after incoming shared ABI/transport changes; do not relabel old hashes. Current normal9focused/query/fullbackend passes strengthen integration, not final release. |
+| Implemented storage; production locality/retention acceptance incomplete | entities.tower entity_component_allocate/table-query columns; entity_types.tower EntityComponentPage/EntityTable | Stable payload pages and packed pointer indexes are implemented. There is no selectable packed archetype-payload policy; the private packed scratch microbenchmark is not one. Next measure a real bulk compiler phase's traversal/copy cost and page occupancy, then propose a common dense API if it pays while preserving existing stable-pointer leases. One survivor/page retention is measured and still present. No unsafe compaction or noalias inference. |
+| Measured scheduling gaps remain | semantic_layout.tower sem_layout_execute; semantic_body_work.tower admitted result.nodes leases; semantic_context.tower sem_workers_admit; parser_workers/lr_state_work | A1 must narrow lease sets only with ownership proof and attribute109M leases before changing callers. Pending ready-field grain and safe joined grant refresh must fix tiny layout overhead and initial narrow-chain underadmission. Shared batch scales on useful work; end-to-end profitable1/2/4/8/12+ core use is not established, and current large4worker run is slower than1. Measure refill/idle/critical path on representative body/parser/import/staging inputs, retaining inline serial path. |
+| Explicit reservations implemented; complete retained-byte accounting unvalidated | world.tower compiler_world_bind_budget; work_budget.tower; frontend_units/backend/units; semantic_support.tower sem_allocate | Ledger reservations are not allocator/RSS limits. B2 retained-output and queued-input accounting needs final mixed outer/nested stress. A1's authorized scratch compiler_buffer migration is still pending here; audit every matching owned free,32-byte header/cardinality/RSS cost and explicit owner policy before adoption. Preserve vector allocator ownership. |
+| Producer model implemented; latest full instrumentation pending | semantic_query_pipeline, declaration/body/constructor/capture/evaluation pumps; interpreter ix_value_input/ix_input_storage | Current42-case lifecycle/type matrix, query, aggregate1/4 and canonical roundtrip pass. This supersedes missing-helper/aggregate-failure historical claims for this source. Preserve executed-branch effects, exact producer/frame identity, revision/profile/dispatch and owning-quiescence cycles; validate new borrowed leaves and two-pass disposal under actual concurrent ASan/TSan. No second evaluator. |
+| Failure/cancellation/stale contracts implemented; host coverage incomplete | compiler_work.tower accept/cancel/close; WorkGraph tickets; entity_stage holds/discard; host/work_windows and work_wasi | Current native backend suite passes real overlap, deterministic objects/errors and cancellation. Focused stage3ASan/3TSan passes pre-joint ABI. Need current aggregate/window cancellation stress plus supported native/browser transports. Windows transport has source review but no actual A2 Windows stress; coordinate B2's necessary thread-identity boundary rather than claim tooling unavailable. |
+| Serial regression partially addressed, broader costs open | stage/table measured input; parser/semantic compile and frontend world startup | Fixed input serial6.096->1.752s and lower RSS is isolated evidence; small1.122->1.124s is unchanged. L1 must repeat its original normalized backend workload/deadline with this fix. Compare equivalent small/large frozen inputs and C-like references with checked outputs, CPU/RSS/allocation retention; do not generalize microbenchmarks or debugger samples. |
+| Supported instrumentation incomplete at final source | tools/instrument_llvm.tower; cmake/TowerSanitizers.cmake; current shared ABI | Run current ASan/leaks and TSan on actual production allocator/transport, including new query/aggregate paths and backend overlap. Prior full type/control/backend TSan600s failures remain exact failed receipts. New normal42-case type run is214s, so coordinate D1 case selection/progress rather than blindly repeating an oversized opaque aggregate or raising deadlines. Source-level UBSan/system LLVM and untested platforms remain explicit unsupported coverage. |
+| Canonical native build passed; clean multi-target release still open | public bootstrap/build-native; playground build-wasm/build-threads/checks; generation and served manifests | Current documented public-pin native build and canonical outputs pass, but this dirty joined source is not a clean final release. Commit/rebase and validate affected inputs; acquire immutable SDK/backend dependencies into A2's own cache, build portable/threaded browser and generation checks, then request named publication lease and atomically push reachable main+gh-pages. Node/Chromium dependencies are prepared; no browser/hosted pass or publication lease yet. |
+
+Current host limit is the coordinated12CPU/24GiB A2 Docker slot on the16-core/
+32-thread123.65GiB Windows host, not a claimed compiler scalability ceiling.
+No new agents, terminals, sibling caches or duplicate LLVM build were used.
+
+Current joined native receipt: tower-a2-joined-aggregate-stage-v2 exited0/PID0
+at2026-11-22T23:40:04.446Z; final full .tower SHA256 verification passed. Public
+predecessor native53steps82.951wall/113.191user/8.651sys; dependent runners27steps
+24.848/33.504/2.763. Compiler
+c14a5a67e5c7cf608209194c36bb3980110b28f8d29a369a021d371aba380c55,
+LRee1cac79d85a227c20ccbb948ab7dcda721b816c26636dfd0f742f9d359ca7f7,
+execution340589f06ffd6896e4bf079bbb32bba4b0f0a85146ecff480ed21533d212fc70,
+storage3c57c11f6e0fea1317cdc8ac03eda852fd980a06ea452c600e6370b056a54e78.
+All9 focused/storage CTests pass with zero skips(.52s); query smoke passes.081s.
+Aggregate input fixture25e8f5ab yields0 at jobs1/4(1.146/1.032s); both canonical
+files SHAfe35a452a34db107976d6ea497dc2bfdb184d67fd93b425bf374abe356cb01f6,
+ordinary Foundation roundtrip yields0(.270s). Full42-case lifecycle/type smoke
+passes214.397/219.157/9.518, control31.807/32.839/1.506, full backend
+48.634/63.081/6.399 and editor1/2/4/8 at16.263/12.833/1.118. Backend retains
+actual frontend/LLVM rendezvous, deterministic objects/errors, budgets and
+cancellation. These are correctness timings on the integrated source, not an
+isolated before/after performance claim. Old small type smoke is not equivalent
+to the new42-case run. All logs/recipes/source manifests remain A2/cache/logs.
+
+Original configure failure remains joined_aggregate_stage_first.log: all five
+smallest units pass(1.743/1.838/16.474/2.851/1.533wall), then CMake rejects an
+empty generic project include as a directory. A proposed stop was issued only
+after that process had already exited1; it did not cancel a running compiler.
+Fixed by removing the cache entry with -U, not changing production code. Only
+the newly corrected query fixture was recompiled before the successful build.
+Locked npm402-package and own Chromium installation also exit0; they establish
+browser dependency readiness only. No compiler browser/generation/publication
+check has run on this source. A1 receives the next quiet profiling slot; A2 has
+no active build during that window.

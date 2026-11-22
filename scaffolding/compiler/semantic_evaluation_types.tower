@@ -6,15 +6,6 @@ import semantic_context_types;
 import .library.vector;
 import .library.work_graph;
 
-struct SemanticEvaluationLeaf {
-    subject: void*;
-    field: void*;
-    parent: usize;
-    index: usize;
-    type: FoundationType;
-    byte_offset: usize;
-}
-
 struct SemanticEvaluation {
     kernel: CompilerKernel;
     ticket: WorkTicket;
@@ -34,7 +25,7 @@ struct SemanticEvaluation {
     error: vector(u8);
     error_offset: usize;
     aliases: vector(SemanticEvaluationAlias);
-    leaves: vector(SemanticEvaluationLeaf);
+    leaves: vector(IMValueProjection);
     aggregate_type: FoundationType;
     aggregate: bool;
 }

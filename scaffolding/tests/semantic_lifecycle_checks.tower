@@ -7,7 +7,7 @@ import .compiler.interpreter_context_types;
 
 extern fn ix_init(execution: IMExecution*): void;
 
-enum SemanticLifecycleCase: u32 { RootCall, RootFailure, SignatureOnly, Initializer, Mismatch, Nominal, TypeOperand, Untaken, RecursiveNominal, NominalDefault, NominalCycle, CapturedAlias, ShadowedAlias, LocalStageType, NestedStage, UntakenForward, EarlyRead, CaptureReuse, EarlyCapture, MutableCapture, EscapedCapture, ParameterCapture, UntakenMutable, StagedArray, ModuleCapture, ModuleWrite, ModuleEscape, ComplexCapture, AggregateCapture, LocalAggregateCapture }
+enum SemanticLifecycleCase: u32 { RootCall, RootFailure, SignatureOnly, Initializer, Mismatch, Nominal, TypeOperand, Untaken, RecursiveNominal, NominalDefault, NominalCycle, CapturedAlias, ShadowedAlias, LocalStageType, NestedStage, UntakenForward, EarlyRead, CaptureReuse, EarlyCapture, MutableCapture, EscapedCapture, ParameterCapture, UntakenMutable, StagedArray, ModuleCapture, ModuleWrite, ModuleEscape, ComplexCapture, CaptureAddress, CaptureComparison, LocalCaptureAddress, UntakenCaptureAddress, UntakenCaptureComparison, CaptureFunction, CaptureType, ExplicitAddresses, CaptureEffect, ExecutedCaptureAddress, UntakenCaptureEffect, ExecutedCaptureEffect, AggregateCapture, LocalAggregateCapture }
 
 fn lifecycle_output(program: SemanticProgram*, wanted: u8*): void {
     var invocation: IMInvocation = default;
@@ -152,6 +152,54 @@ fn lifecycle_trial(mode: SemanticLifecycleCase, budget: usize, width: u32, root:
         source = "import tower;var Earlier:i32=Later+1;var Later:i32=9;print(comptime(Earlier));";
         wanted = "Compile-time initializer reads a module binding before its initialization";
     }
+    if mode == SemanticLifecycleCase.CaptureAddress {
+        source = "import tower;fn address():usize{var x=1;return bits(usize,&x);}var fixed=address();print(comptime(fixed));";
+        wanted = "Automatic compile-time value depends on an address representation";
+    }
+    if mode == SemanticLifecycleCase.CaptureComparison {
+        source = "import tower;fn equal():bool{var a=1;var b=2;return &a==&b;}var fixed=equal();print(comptime(fixed));";
+        wanted = "Automatic compile-time value depends on an address representation";
+    }
+    if mode == SemanticLifecycleCase.LocalCaptureAddress {
+        source = "import tower;fn address():usize{var x=1;return bits(usize,&x);}fn run():usize{var fixed=address();return comptime(fixed);}print(run());";
+        wanted = "Automatic compile-time value depends on an address representation";
+    }
+    if mode == SemanticLifecycleCase.UntakenCaptureAddress {
+        source = "import tower;fn value(take:bool):usize{var x=1;if take{return bits(usize,&x);}return 42;}var fixed=value(false);print(comptime(fixed));";
+        wanted = "42\n";
+    }
+    if mode == SemanticLifecycleCase.UntakenCaptureComparison {
+        source = "import tower;fn value(take:bool):bool{var a=1;var b=2;if take{return &a==&b;}return true;}var fixed=value(false);print(comptime(fixed));";
+        wanted = "true\n";
+    }
+    if mode == SemanticLifecycleCase.CaptureFunction {
+        source = "import tower;fn answer():i32{return 42;}fn selected():function(i32){return answer;}var chosen=selected();var fixed=comptime(chosen);print(fixed());";
+        wanted = "42\n";
+    }
+    if mode == SemanticLifecycleCase.CaptureType {
+        source = "import tower;fn word():type{return integer_type(16,0);}var chosen:type=word();var fixed=comptime(chosen);print(sizeof(fixed));";
+        wanted = "2\n";
+    }
+    if mode == SemanticLifecycleCase.ExplicitAddresses {
+        source = "import tower;fn address():usize{var x=1;return bits(usize,&x);}fn equal():bool{var a=1;var b=2;return &a==&b;}print(comptime(address())!=0);print(comptime(equal()));";
+        wanted = "true\nfalse\n";
+    }
+    if mode == SemanticLifecycleCase.CaptureEffect {
+        source = "import tower;var count=0;fn value():i32{count++;return 7;}var fixed=value();print(comptime(fixed));";
+        wanted = "cannot capture runtime storage";
+    }
+    if mode == SemanticLifecycleCase.ExecutedCaptureAddress {
+        source = "import tower;fn value(take:bool):usize{var x=1;if take{return bits(usize,&x);}return 42;}var fixed=value(true);print(comptime(fixed));";
+        wanted = "Automatic compile-time value depends on an address representation";
+    }
+    if mode == SemanticLifecycleCase.UntakenCaptureEffect {
+        source = "import tower;fn value(take:bool):i32{if take{print(9);}return 7;}var fixed=value(false);print(comptime(fixed));";
+        wanted = "7\n";
+    }
+    if mode == SemanticLifecycleCase.ExecutedCaptureEffect {
+        source = "import tower;fn value(take:bool):i32{if take{print(9);}return 7;}var fixed=value(true);print(comptime(fixed));";
+        wanted = "Compile-time output requires an explicit effect capability";
+    }
     if mode == SemanticLifecycleCase.AggregateCapture {
         source = "import tower;struct Pair{first:i32;second:i32;}fn value():Pair{return {first:7,second:8};}var Value:Pair=value();var staged=comptime(Value);print(staged.first);print(staged.second);";
         wanted = "7\n8\n";
@@ -171,7 +219,10 @@ fn lifecycle_trial(mode: SemanticLifecycleCase, budget: usize, width: u32, root:
         || mode == SemanticLifecycleCase.NominalCycle || mode == SemanticLifecycleCase.EarlyCapture
         || mode == SemanticLifecycleCase.MutableCapture || mode == SemanticLifecycleCase.EscapedCapture
         || mode == SemanticLifecycleCase.ParameterCapture || mode == SemanticLifecycleCase.ModuleWrite
-        || mode == SemanticLifecycleCase.ModuleEscape || mode == SemanticLifecycleCase.ComplexCapture;
+        || mode == SemanticLifecycleCase.ModuleEscape || mode == SemanticLifecycleCase.ComplexCapture
+        || mode == SemanticLifecycleCase.CaptureAddress || mode == SemanticLifecycleCase.CaptureComparison
+        || mode == SemanticLifecycleCase.LocalCaptureAddress || mode == SemanticLifecycleCase.CaptureEffect
+        || mode == SemanticLifecycleCase.ExecutedCaptureAddress || mode == SemanticLifecycleCase.ExecutedCaptureEffect;
     if invalid {
         if frontend_units_failed(batch) != 1 || strstr(error, wanted) == null { puts(error); }
         units_check(frontend_units_failed(batch) == 1 && strstr(error, wanted) != null
@@ -207,13 +258,21 @@ fn lifecycle_trial(mode: SemanticLifecycleCase, budget: usize, width: u32, root:
     lifecycle_output(frontend_units_program(reconstructed, 1), wanted);
 }
 
-fn semantic_lifecycle_checks(root: u8*, bedrock: u8*, foundation: u8*): void {
+fn semantic_lifecycle_range(root: u8*, bedrock: u8*, foundation: u8*, first: SemanticLifecycleCase, last: SemanticLifecycleCase): void {
     for(var width: u32 = 4; width <= 8; width *= 2) {
-        for(var mode: u32 = convert(u32, SemanticLifecycleCase.RootCall); mode <= convert(u32, SemanticLifecycleCase.LocalAggregateCapture); mode++) {
+        for(var mode = convert(u32, first); mode <= convert(u32, last); mode++) {
             var baseline: vector(u8) = default;
             defer vector_dispose(&baseline);
             lifecycle_trial(convert(SemanticLifecycleCase, mode), 1, width, root, bedrock, foundation, &baseline);
             lifecycle_trial(convert(SemanticLifecycleCase, mode), 4, width, root, bedrock, foundation, &baseline);
         }
     }
+}
+
+fn semantic_lifecycle_checks(root: u8*, bedrock: u8*, foundation: u8*): void {
+    semantic_lifecycle_range(root, bedrock, foundation, SemanticLifecycleCase.RootCall, SemanticLifecycleCase.LocalAggregateCapture);
+}
+
+fn semantic_capture_policy_checks(root: u8*, bedrock: u8*, foundation: u8*): void {
+    semantic_lifecycle_range(root, bedrock, foundation, SemanticLifecycleCase.CaptureAddress, SemanticLifecycleCase.ExecutedCaptureEffect);
 }

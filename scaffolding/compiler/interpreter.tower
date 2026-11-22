@@ -533,13 +533,86 @@ fn ix_address_component(m: IMExecution*, node: void*, n: FoundationNode*, offset
     return ix_address_uncached(m, node, n, offset);
 }
 
+// Copy only published scalar leaves into this invocation's target-byte storage.
+// Initializers have already executed through the ordinary dependency graph;
+// their private addresses and reference indexes are never transport values.
+fn ix_input_storage(m: IMExecution*, n: FoundationNode*, producer: void*, offset: usize): u64 {
+    var input = bits(IMValueInput*, entity_component_data(entity_component_get(n.binding, m.context.value_inputs)));
+    if input == null || !input.aggregate || input.producer != producer || !m.context.type_arguments
+        || m.state.frame_count == 0 || (input.projection_count != 0 && input.projections == null)
+        || !semantic_type_equal(&im_cached_node(m.state, producer).type, &n.type) {
+        ix_fail(m, "Compile-time aggregate input lacks a published value snapshot", offset);
+        return 0;
+    }
+    foreach(var &stored in &m.context.input_storage) {
+        if stored.producer == producer { return convert(u64, stored.address); }
+    }
+    var size = im_type_size(&n.type);
+    if size > InterpreterStackBytes {
+        ix_fail(m, "Compile-time aggregate input exceeds interpreter stack storage", offset);
+        return 0;
+    }
+    var bytes = im_align(size == 0 ? 1 : size);
+    var base = m.state.stack;
+    if base > InterpreterStackBytes || bytes > InterpreterStackBytes - base {
+        ix_fail(m, "Compile-time aggregate input exceeds interpreter stack storage", offset);
+        return 0;
+    }
+    var end = base + bytes;
+    if !im_memory_resize(m.state, end) || !ix_initialize_frame(m, base, bytes) {
+        if ix_ok(m) { ix_fail(m, "Cannot allocate private compile-time input storage", offset); }
+        return 0;
+    }
+    m.state.stack = end;
+    var target = ix_bytes(m, convert(u64, base), bytes, offset);
+    if target == null || !ix_initialized(m, convert(u64, base), bytes, true, offset) { return 0; }
+    // Padding has no public value. Initialize this private copy so ordinary
+    // aggregate copy operations can read its full target-layout extent.
+    fill(target, 0, bytes);
+    for(var index: usize = 0; index < input.projection_count; index++) {
+        var leaf = &input.projections[index];
+        if leaf.subject == null { continue; }
+        var count = im_type_size(&leaf.type);
+        if leaf.byte_offset > size || count > size - leaf.byte_offset {
+            ix_fail(m, "Compile-time input projection exceeds its aggregate layout", offset);
+            return 0;
+        }
+        var value = im_cached_node(m.state, leaf.subject);
+        if !(value.kind == KOperand && value.constant)
+            && value.kind != KTypeReference && value.kind != KFunctionReference {
+            ix_fail(m, "Compile-time input projection is not a published scalar value", offset);
+            return 0;
+        }
+        var bits_value = ix_read(m, leaf.subject, offset);
+        if !ix_ok(m) { return 0; }
+        if leaf.type.pointers != 0 && bits_value != 0 {
+            ix_fail(m, "Compile-time aggregate input contains a non-relocatable pointer", offset);
+            return 0;
+        }
+        ix_write(m, convert(u64, base + leaf.byte_offset), bits_value, &leaf.type, offset);
+        if !ix_ok(m) { return 0; }
+    }
+    var storage: IMValueStorage = { producer: producer, address: base, bytes: bytes, frame: m.state.frame_count };
+    if !vector_push(&m.context.input_storage, storage) {
+        ix_fail(m, "Cannot retain private compile-time input storage", offset);
+        return 0;
+    }
+    return convert(u64, base);
+}
+
 fn ix_address_uncached(m: IMExecution*, node: void*, n: FoundationNode*, offset: usize): u64 {
     if !ix_strict_node(m, n, offset) { return 0; }
     // A published scalar input supplies a value, not storage in this invocation.
     // In particular, taking its address must not borrow a helper-frame slot.
-    if ix_strict(m) && ix_value_input(m, n) != null {
-        ix_fail(m, "Compile-time expression cannot capture runtime storage; pass explicit compile-time arguments", offset);
-        return 0;
+    if ix_strict(m) {
+        var input = ix_value_input(m, n);
+        if input != null {
+            if n.type.pointers == 0 && (n.type.scalar == SStruct || n.type.scalar == SArray) {
+                return ix_input_storage(m, n, input, offset);
+            }
+            ix_fail(m, "Compile-time expression cannot capture runtime storage; pass explicit compile-time arguments", offset);
+            return 0;
+        }
     }
     if n.kind == KLoad {
         return ix_read(m, n.value, offset);
@@ -943,6 +1016,12 @@ fn ix_returned(m: IMExecution*, value: u64): void {
     // normally; this private result buffer never becomes a program pointer.
     var retained = m.context != null && m.context.retain_result_storage && m.state.frame_count == 1;
     if !retained {
+        if m.context != null {
+            var inputs = &m.context.input_storage;
+            while inputs.length != 0 && inputs.data[inputs.length - 1].frame >= m.state.frame_count {
+                inputs.length--;
+            }
+        }
         m.state.stack = im_base(m.state);
         if ix_strict(m) { m.context.initialized.length = m.state.stack; }
     }
@@ -1674,6 +1753,7 @@ export fn interpreter_invocation_dispose(invocation: IMInvocation*): void {
     vector_dispose(u8, &invocation.context.output);
     vector_dispose(u8, &invocation.context.initialized);
     vector_dispose(&invocation.context.type_construction.error);
+    vector_dispose(&invocation.context.input_storage);
     *invocation = default;
 }
 
