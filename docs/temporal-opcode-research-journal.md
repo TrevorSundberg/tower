@@ -41752,3 +41752,24 @@ below the post-Python 2594-line baseline. Shell remains 9/230, JavaScript
 fingerprint failure reported last turn is not hidden or reclassified by these
 passing parser checks. No sanitizer, broad formatter sweep or todo.txt edit.
 Native/browser production build verification and receipt publication follow.
+
+Integration rebase receives a058cc5/6482989's statement operand scheduling and
+prepared pointer projection; implementation becomes 179e9b8. Freeze that commit
+in /cache/parser_suites_rebased_checkout. A clean documented default public
+bootstrap build (TOWER_BOOTSTRAP_COMPILER unset,
+TOWER_NATIVE_BUILD=/cache/parser_suites_rebased_native) passes all 48 steps.
+Successor SHA256 da65c1dbca7970c97135bb6e53202b2d8e5f021b1bf228e7d6fe78d2d1e1faaf.
+The memory fixture passes both interpreted widths, native and actual Wasm execution.
+
+Copy the three changed compiler units from that frozen commit into the owned
+core fixture snapshot; recompile the semantic object and relink on each target.
+Native CTest again passes 15/15 (4.53s), and the full WASI parser aggregate passes.
+The WASI build also consumes the earlier oracle timestamp change, exercising its
+same transitive dependency. Final native parser SHA256
+c6b3536e9052f493c7aefb2d3bb8f1df75f830a659feb04465d0768c2d03864d;
+WASI parser SHA256
+41ae6fbf7b54f9222db15b37ba327315d906fcd18c73e7354010d0c71c7dc24c.
+The nine exact focused-output comparisons precede this compiler-only rebase;
+the dispatch/fixture objects themselves are unchanged. No full browser compiler
+generation matrix is needed for a receipt that reuses deployed runtime assets.
+Latest Pages is 2e5e4ee6, with runtime/project 6482989; preserve that newer release.
