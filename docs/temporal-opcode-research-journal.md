@@ -43088,3 +43088,19 @@ No unrelated full release matrix or compiler asset rebuild is needed for the
 measurement-tool change. Remaining candidates include the standalone formatter
 port benchmark (only a self-reference found) and browser profiling workload
 strings; audit their current purpose before any translation or deletion.
+
+Publication complete: cleanup 674ab53 and integration receipt e456571 pushed.
+The first push hit a transient github.com DNS error; resolve its address and use
+a per-command http.curloptResolve override, pull/rebase and compare validated
+source paths before retrying. No persistent configuration or force-push.
+Under owner agent1-interpreter-measurement-e456571, append only
+interpreterMeasurementToolingMigration to the latest manifest via the established
+GitHub contents publication path. Pages 1923c4ee852ec8828902a27aae9edcf54afb0128,
+workflow 44994163791 succeeds. Hosted deployment-manifest.json with that commit's
+cache key matches the prepared bytes exactly, SHA256
+6650da04abc5062551453e69d6b9b7887bcdf8c81576a60692f23be165a3ee11.
+All 104 asset records, runtime buildSourceCommit 89151aa and prior provenance are
+preserved. Integrated native report SHA256
+1c521b97406dd2ea6cd1d6ceca4e50b7cea499735663e8662328cc9d1107bee9.
+Release only our own publication lock. Final source totals remain Python/owned
+C/C++ zero, shell 9/230, CMake 39/1603, JavaScript 183/24310; todo.txt unchanged.
