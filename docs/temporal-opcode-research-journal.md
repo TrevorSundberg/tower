@@ -42659,3 +42659,26 @@ Evidence: build/compiler_workbench_elf_final/generation{1,2}.json and
 build/elf_final_generations.log. Publication is pending desktop/mobile and hosted
 checks. Upstream direct-driver cleanup1021acf landed during these gates; preserve
 the validated browser inputs and repeat the native public successor after rebase.
+
+Final integration through1021acf passes a fresh default-public successor in
+coordinator-elf/successor-driver-merged; towerc SHA256
+e27d099eef1e8cb1cb3bde98dd93ffcf3ba0b91b934e3ac9c2e84bdb725be6b3.
+Backend API and complete focused native/archive/runtime/interpreter/native-to-Wasm
+linking pass again. Rebuilding portable/threaded/backend artifacts after the
+runtime binding tool change produces identical deployed bytes and support packs.
+Only compiler/project.json changes: five unused native driver binding sources,
+the build-only runtime_bind source and removal of runtime_driver. The reactor/unit
+declarations and all compiled browser input closures remain unchanged (depfiles
+identify only the native runtime-bind build tool as affected). Retain the passing
+two-generation/worker/34-case evidence; no redundant repeat of unchanged images.
+Local desktop/mobile deployment verification passes all104 assets, backend
+agreement, editable grammar, completion, persistence and native downloads.
+The updated project resource will receive exact hosted verification with the
+publication. Previous Pages187c527a and other agents' provenance are preserved.
+
+Next LLD retirement boundary is the Windows x64 COFF/PE download profile: checked
+object/import-library readers, symbol/COMDAT selection, PE imports/base relocations
+and shared ECS output jobs, with actual Windows execution and LLD differential
+fixtures before removing lldCOFF. Mach-O follows separately. Native host-driver
+dynamic linking and SDK/build linkers remain explicit dependencies; neither this
+ELF milestone nor the earlier Wasm milestone claims they have been replaced.
