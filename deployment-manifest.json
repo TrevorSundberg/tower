@@ -1698,7 +1698,7 @@
                    "worker.js":  "45c36f38576f487ed7adde647ef7387d4d45373c31a1ecf75ee6faa44a9361a0",
                    "worker.js.map":  "57ca429e2230f51f55a5f58e5b2d76ce31f499059daca004466fe33c749de98e"
                },
-    "sourceCommit":  "4da1e44e4d383d2fccec7f4c78566131d0d26e70",
+    "sourceCommit":  "104a27b9f4ca16850a20ff0deab447d9ec59d0b0",
     "buildSourceCommit":  "cf47b568f34c39249aee8e4377d47a1c3fbeddd0",
     "compilerProjectSourceCommit":  "cf47b568f34c39249aee8e4377d47a1c3fbeddd0",
     "uiSourceCommit":  "cf47b568f34c39249aee8e4377d47a1c3fbeddd0",
@@ -1764,7 +1764,7 @@
                                  "limits":  "Production type-argument evaluation does not install call_inputs yet. Executed helper-body producer integration, module captures and whole-pipeline completion remain. 80-85 percent is an engineering estimate, not measured throughput or completion."
                              },
     "incrementFoundation":  {
-                                "sourceCommit":  "4da1e44e4d383d2fccec7f4c78566131d0d26e70",
+                                "sourceCommit":  "104a27b9f4ca16850a20ff0deab447d9ec59d0b0",
                                 "import":  "foundation",
                                 "change":  "Remove duplicated basic grammar and integer type declarations; retain both increment replacement rules and helpers.",
                                 "validation":  "Both native interpreters, canonical Foundation round trip, LLVM execution, and desktop/mobile increment browser cases passed."
