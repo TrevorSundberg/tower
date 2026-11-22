@@ -8,6 +8,7 @@ on:
       - 'scaffolding/tests/driver*.tower'
       - 'scaffolding/tests/fixture_json_rows.tower'
       - 'scaffolding/tests/guest_windows_library.tower'
+      - 'scaffolding/compiler/c_emitter.tower'
       - 'scaffolding/tests/c-backend-msvc.ps1'
       - '.github/workflows/windows_tooling.yml'
 

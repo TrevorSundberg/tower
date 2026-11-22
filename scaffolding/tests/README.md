@@ -551,40 +551,40 @@ This runner mounts the checked-out Tower fixtures in the same portable WASI host
 used by the playground. CMake makes the formatter fixture's source paths relative
 to that mount; the test does not require the original build machine's filesystem.
 
-Run the native tree/parser checks without building LLVM or the WASI runtime:
-
-```powershell
-./scaffolding/tests/run.ps1
-./scaffolding/tests/run.ps1 -Trace
-./scaffolding/tests/run.ps1 -Sanitize
-./scaffolding/tests/run.ps1 -Sanitize -Optimize
-./scaffolding/tests/run.ps1 -Source scaffolding/examples/foreach.tower
-./scaffolding/tests/run.ps1 -Source scaffolding/examples/replacements.tower
-```
-
-The Windows script uses Visual Studio 2022 Build Tools; `-VcVars` can select a
-different developer environment. `-Trace` enables table construction and individual
-shift/reduce events. `-Sanitize` enables MSVC AddressSanitizer.
-The script now uses CMake to compile and link the Tower-written compiler modules.
-Supply a template-capable native compiler with `-BootstrapCompiler` (or
-`TOWER_BOOTSTRAP_COMPILER`); otherwise it builds the intermediate host compiler in
-WSL and cross-compiles those modules to Windows COFF before linking with MSVC.
+Run the native tree/parser checks without building LLVM or the WASI runtime with
+`check_core native REPOSITORY BUILD_DIRECTORY VERIFIED_COMPILER`. Build this Tower
+tool with `build-bootstrap.sh --tools check_core`. The documented Linux bootstrap
+and Docker route also works from a Windows host; no generated PowerShell/cmd
+compiler adapter is needed.
 
 The syntax suite also checks replacement chains, named/repeated captures, empty
 bodies, duplicate-use ownership, unused captures, named helper activation, atomic
 template errors, recursion limits, and provenance surviving session destruction.
 The WASM suite additionally checks parsed-tree shape against ordinary source,
 grammar/lexer edits, source-offset changes, optional captures and deep identity
-expansion without subtree copying. These are production C++/WASM checks, separate
-from the earlier JavaScript replacement-shortcut research model.
+expansion without subtree copying. These exercise the production Tower modules
+on native and Wasm hosts.
 
-Alternatively, with CMake and a C++20 compiler:
+Alternatively, use CMake directly with a verified Tower compiler and the platform
+linker toolchain:
 
 ```text
 cmake -S . -B build/parser-cmake -DTOWER_PARSER_ONLY=ON -DTOWER_BOOTSTRAP_COMPILER=/path/to/towerc
-cmake --build build/parser-cmake --config Debug
-ctest --test-dir build/parser-cmake -C Debug --output-on-failure
+cmake --build build/parser-cmake --config Release
+ctest --test-dir build/parser-cmake -C Release --output-on-failure
 ```
+
+For a native Windows build, run these commands in the Visual Studio Developer
+Command Prompt, supply a compatible Windows `towerc.exe`, and select `-G Ninja
+-DCMAKE_CXX_COMPILER=cl -DTOWER_UTILITIES_TARGET=x86_64-pc-windows-msvc` at configure
+time. A native Windows bootstrap is optional; the checked-in Linux bootstrap is
+the canonical build path.
+
+The executable accepts `--parse FILE` for one source and `--trace` for table
+construction and shift/reduce events. Run it with `scaffolding` as the working
+directory, for example `../build/parser-cmake/tower-parser-tests --trace --parse
+examples/replacements.tower` (append `.exe` on Windows). These are ordinary Tower
+entry-point options; they do not require a wrapper or installation step.
 
 The test executable prints the complete tree for `1+2*3`:
 

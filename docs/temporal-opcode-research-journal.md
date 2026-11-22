@@ -44245,3 +44245,34 @@ round-trip/manifest coverage. The rebuilt native policy/parser suite passes; the
 new --c-msvc reader accepts all real rows and reaches an intentionally failing
 /usr/bin/false compiler, preserving exit 1 and its compilation diagnostic. This
 is writer/reader and failure-propagation evidence, not an MSVC execution claim.
+
+After rebasing onto 49d75be (body/lowering continuations), build another clean
+48-step native successor from the public 18664657 pin with the private bootstrap
+override unset. Focused type-smoke, control-smoke and query-smoke all pass; backend
+API and driver policy/process checks pass. Logs are windows_runner_rebased_*.log.
+Push candidate 5c67503 so the real Windows runner can establish MSVC parity.
+
+Audit run.ps1 callers before retirement: only current README instructions and
+historical journal commands reference it. The wrapper generates two compiler
+adapters and a batch file around existing CMake and parser options. Remove that
+70-line wrapper instead of translating those extra installation steps. Document
+the canonical Linux/Docker Tower check_core path and direct CMake invocation;
+retain the optional native Windows compiler/MSVC target configuration. Native
+parser builds from the frozen 5c67503 source pass all 15 CTest checks. Direct
+--parse foreach.tower and --trace --parse replacements.tower both exit zero.
+Logs: build/windows_runner_parser{,_parse,_trace}.log. These establish the Linux
+replacement route, not a newly tested native Windows parser release. Historical
+journal commands remain as provenance; todo.txt and all temporal sources stay
+unchanged.
+
+Windows workflow 45036323199 passed its fresh public bootstrap/native build and
+416 Linux comparisons, then the OLD PowerShell consumer failed MSVC /W4 /WX on
+language_enums_raw.c. Its signed i32 returns used the i64 tc_signed helper without
+an explicit ABI-width cast (C4244). Keep the strict warnings; add ce_abi_value at
+call/return boundaries in the Tower C emitter. The helper's mathematical result
+is already in the declared signed range, so the cast does not change Tower
+arithmetic or depend on implementation-defined unsigned-to-signed conversion.
+Retain wide signed intermediates in all other expression lowering. The smallest
+emitter unit compiles and the native successor rebuilds through the public pin;
+the focused signed_abi Clang/GCC C/C++ raw/optimized matrix passes. The next
+Windows run must still establish both old/new consumer parity before deletion.

@@ -996,8 +996,8 @@ including LLVM on desktop and mobile emulation. The emitted `sum.o` was also
 linked with WASI SDK's `wasm-ld --no-entry --export=mainCRTStartup` and executed;
 `mainCRTStartup()` returned the expected constant `124`.
 
-Native checks remain available through `scaffolding/tests/run.ps1 -Sanitize` and
-the `TOWER_PARSER_ONLY` CMake target. Build products, screenshots and test traces
+Native checks use the Tower `check_core native` command or the
+[`TOWER_PARSER_ONLY` CMake target](../scaffolding/tests/README.md). Build products, screenshots and test traces
 are ignored under `build/` and `playground/dist/`.
 
 Validation on 2026-11-16: native AddressSanitizer checks, all 55 WASM/host tests

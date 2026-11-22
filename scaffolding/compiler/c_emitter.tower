@@ -513,6 +513,16 @@ fn ce_signed_value(c: CEmitter*, entity: void*): void {
     }
 }
 
+fn ce_abi_value(c: CEmitter*, entity: void*): void {
+    var n = sem_get(entity);
+    if semantic_signed(&n.type) {
+        // tc_signed reconstructs an in-range value in i64. Make its narrowing
+        // to the declared call/return ABI explicit, including for MSVC /WX.
+        ce_text(c, "("); ce_abi_type(c, &n.type); ce_text(c, ")");
+    }
+    ce_signed_value(c, entity);
+}
+
 fn ce_address(c: CEmitter*, entity: void*): void {
     var n = sem_get(entity);
     if n.kind == KLoad {
@@ -618,7 +628,7 @@ fn ce_expression(c: CEmitter*, entity: void*): void {
             if i != 0 {
                 ce_text(c, ", ");
             }
-            ce_signed_value(c, n.items.data[i]);
+            ce_abi_value(c, n.items.data[i]);
             i++;
         }
         ce_text(c, ")");
@@ -933,7 +943,7 @@ fn ce_statement(c: CEmitter*, entity: void*): void {
         ce_text(c, "return");
         if n.value != null {
             ce_text(c, " ");
-            ce_signed_value(c, n.value);
+            ce_abi_value(c, n.value);
         }
         ce_text(c, ";\n");
         return;
