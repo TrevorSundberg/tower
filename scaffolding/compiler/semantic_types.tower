@@ -31,6 +31,7 @@ fn sem_type_binding_header(c: SemanticContext*, n: void*): void {
     var name = sem_identifier(c, sem_member(n, "name"));
     var value = sem_node(c, n, KType);
     value.global = true;
+    value.type.scalar = InvalidTypeScalar;
     value.type.pointer_bytes = c.program.pointer_bytes;
     sem_set_name(value, sem_output_name(c, n, name));
     if sem_equal(name, "type") || !sem_define(c, c.types, n, name) {
@@ -78,6 +79,10 @@ fn sem_type_entity(c: SemanticContext*, t: FoundationType*): void* {
     for(; i < c.program.types.length; i++) {
         var n: void* = c.program.types.data[i];
         var step3 = sem_get(n);
+        // A binding is a producer, not the canonical identity of its result.
+        // Other aliases can still be unresolved here (for example in an enum
+        // header). Never intern a mutable declaration payload as a type value.
+        if step3.global { continue; }
         if semantic_type_equal(&step3.type, t) {
             return n;
         }

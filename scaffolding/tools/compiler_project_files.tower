@@ -85,10 +85,12 @@ fn compiler_project_tree(project: CompilerProjectFiles*, directory: u8*): bool {
 fn compiler_project_sources(project: CompilerProjectFiles*, repository: u8*): bool {
     if !tool_join(&project.source, repository, "scaffolding") || !compiler_project_tree(project, "compiler")
         || !compiler_project_tree(project, "host") || !compiler_project_tree(project, "backend")
-        || !compiler_project_tree(project, "library") { return false; }
+        || !compiler_project_tree(project, "library") || !compiler_project_tree(project, "types") { return false; }
     var path: ByteBuffer = default; defer bytes_dispose(&path);
     return tool_join(&path, project.source.data, "bedrock.tower") && compiler_project_read_source(project, "bedrock.tower", path.data)
         && tool_join(&path, project.source.data, "foundation.tower") && compiler_project_read_source(project, "foundation.tower", path.data)
+        && tool_join(&path, project.source.data, "foundation_syntax.tower") && compiler_project_read_source(project, "foundation_syntax.tower", path.data)
+        && tool_join(&path, project.source.data, "types.tower") && compiler_project_read_source(project, "types.tower", path.data)
         && tool_join(&path, project.source.data, "tower.tower") && compiler_project_read_source(project, "tower.tower", path.data);
 }
 

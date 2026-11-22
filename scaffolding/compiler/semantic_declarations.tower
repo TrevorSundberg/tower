@@ -433,6 +433,22 @@ fn sem_declaration_waiting(c: SemanticContext*, result: SemanticDeclaration*, la
                 continue;
             }
         }
+        if !type && sem_is(node, "TowerComptime") {
+            // A staged aggregate immediately enumerates its scalar leaves.
+            // A callable's return identity can publish before record fields;
+            // wait for those producers before building the staged initializer.
+            var expression = sem_member(node, "value");
+            var result_type = sem_declaration_location(c, expression, &waiting, layout, 0);
+            if waiting == 0 && *layout == null && result_type != null && semantic_aggregate(result_type) {
+                waiting = sem_declaration_layout_waiting(c, result_type.record);
+                var query = work_find(&c.queries, result_type.record, convert(u32, SemanticQuery.Layout), 0);
+                if waiting == 0 && (query == 0 || work_task(&c.queries, query).state != WorkState.Succeeded) {
+                    *layout = result_type.record;
+                }
+            }
+            sem_declaration_scan_push(&scan, expression, false);
+            continue;
+        }
         if !type && sem_is(node, "TowerExpression")
             && sem_is(sem_surface_unwrap(sem_member(node, "right")), "TowerInitializer")
             && sem_equal(sem_surface_operator(c, node, sem_member(node, "left")), "=") {

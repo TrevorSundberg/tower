@@ -8,6 +8,12 @@ var Flag: type = boolean_type();
 var Nothing: type = empty_type();
 var Address: type = address_type();
 
+fn same_type(T: type): type { return T; }
+// Enum headers resolve before declaration queries. Intern the representation,
+// never an unrelated alias whose producer has not published its type yet.
+enum EarlyType: same_type(integer_type(32, 1)) { First }
+var EarlyAlias: type = same_type(integer_type(32, 1));
+
 fn identity(value: Word): Word { return value; }
 fn staged(value: Word): Word { return value * 3; }
 
@@ -17,8 +23,13 @@ var Bytes: type = u8[4];
 enum Choice: Word { First, Second }
 var ChoiceAlias: type = Choice;
 
+var staged_pair = comptime(make_pair());
+fn make_pair(): Pair { return { first: 19, second: 23 }; }
+
 fn verify(): i32 {
     var failures = 0;
+    if sizeof(EarlyAlias) != 4 { failures++; }
+    if staged_pair.first + staged_pair.second != 42 { failures++; }
     var value: Word = 65535;
     value++;
     if value != 0 || sizeof(Word) != 2 { failures++; }

@@ -41868,3 +41868,30 @@ Experiments/root causes, Linux Docker tower-c-validation, LLVM 19:
   size 8 and the value 4294967296, proving the source is authoritative. An explicit
   grammar-only import rejects an undeclared i32. Full regression and publication
   validation follow; no bootstrap/deployment success is claimed yet.
+
+The full suite exposed indirect-callee lease/signature admission failures in
+staged aggregate callbacks (GDB: sem_node -> sem_location -> sem_indirect_call on
+a declaration worker). Upstream independently landed the corresponding fixes,
+plus bounded generic work, foreach signature queries, module initializer queries
+and the production Tower Wasm linker. Rebased the source-type implementation onto
+806ab67; retained upstream callee admission and integrated type-only declarations
+with the new initializer batching (skip their non-runtime initializers). The
+merged native build at /cache/source-types-merged passes; focused/full regressions
+are being rerun against that merged compiler. Runtime package semantics version
+is now 7; the canonical source/type-binding contract changed, without introducing
+a new public graph ABI or changing the private cache encoding.
+
+The merged aggregate suite also exposed a distinct missing dependency: a staged
+aggregate inspected a function's published return identity before its record
+fields/layout were ready. Depending on scheduling this omitted staged leaves,
+produced different graph/fast results, or skipped rejection of a forged callback
+leaf. Readiness for TowerComptime now waits for those field/layout producers
+through the existing declaration query graph. Two focused aggregate-stages runs
+pass, including workers 1/2/4/8 and malformed callback rejection; the full native
+suite is running. Use stdbuf -oL for the native suite: abort otherwise discards
+its buffered assertion diagnostics. The temporary graph-to-/cache debug writer
+has been removed. Separately, unresolved type aliases start with an invalid
+representation and are excluded from canonical type-value interning: a mutable
+producer payload is not a type identity. That hardening alone did not fix the
+aggregate failure. The compiler-project packager explicitly includes the type
+directory and both Foundation/type-prelude roots for browser self-hosting.
