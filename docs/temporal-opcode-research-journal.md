@@ -48762,3 +48762,13 @@ not validation of this source. Full42cases remain unproven. No parsertrace330
 or partial aggregate source is present. Next: smallest changed interpreter/query/
 evaluation units, canonical public-pin build then focused failure/correctness
 checks. D1storage reset/utility draft is separate, still awaiting its own check.
+
+Before the aggregate validation freeze, adopted D1storage_seed_reset9685f4d3
+after complete review and explicit coordinator ownership grant. Exactly three
+reset stimuli now use single Bedrock declarations, preserving100resets, retained
+original source/pointer, one-node/EOF, OOM diagnostic and final census. The
+shared utility_check adds failure-only fflush before the unchanged abort, matching
+existing puts/abort ABI; no successful-path call. D1's oldfailure is independently
+preserved, its newdraft unrun; D2 next smallest/storage check supplies independent
+evidence. Corrected B1parsertracea261 arrived later and is held for read-only
+review during this freeze, not partially applied or claimed tested.
