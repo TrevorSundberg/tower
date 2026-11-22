@@ -44764,3 +44764,11 @@ Logs: build/profile_retirement_native.log, _checks_build.log, _successor.log
 and the three named smoke logs. The npm alias's earlier browser run used the
 verified bf2a3e8 deployment; the receipt will preserve the latest published
 ecc4333 runtime and its separate validation provenance.
+
+Profiler retirement is pushed as ffdc22f. Pages receipt
+5d359d231eba75f4fee31bb4007da59227803067 completes workflow 45043598322
+successfully; exact hosted manifest SHA256 is
+478f66a8e02069d2121693d90de1f7b21d0416676e1dc81723d58cc955ef3ff5.
+All 104 assets, ecc4333 runtime/build/project identities and all 76 prior
+manifest fields are preserved. Release the owned publication lock after this
+verification. This final journal receipt reuses the same verified runtime.
