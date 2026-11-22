@@ -47173,3 +47173,184 @@ can leave later broad work inline. A2 proposed an actual shared-layout fixture
 with checked offsets/sizes and wall/CPU/RSS/admission observation. Pool width or
 peak admission alone will not be described as overlap. No A1 production edit is
 authorized by this proposal; measurement and owner agreement precede a fix.
+
+## 2026-11-22 A2: consolidated resources, identity ABI and actual layout measurement
+
+This continuation supersedes the earlier missing-prelude status, while preserving
+its failed checks. HEAD04a87781 is the own-only rollback/audit checkpoint; owner
+implementation remains separately attributed working changes. Pull/rebase with
+autostash passed and restored all owner changes. No todo changes or publication.
+Reviewed and applied L2_prelude_resources (c8c9eadb...), exact current type binding
+checks, A1_nominal_identity_ownership, L2_signature_identity, B2_source_bounds,
+A1_body_type_readiness then A1_signature_identity_hooks. The consolidated prelude
+SHA256 is7683478fa002ecec079f1ddf2d7232bacdda249307ba6951b60a831f68e9acc9.
+Old bootstrap resources stay intact; source syntax is supported by the public
+predecessor. These resource/ABI changes required rebuilding all affected units.
+The type-binding patch's strict context check failed despite exact base blob
+3960ee7eadec9ee76ec0122efc1c9737313b4a3e; ignore-space-change applied its unchanged
+owner assertions. core.autocrlf=false; the cause was patch context whitespace,
+not a differing semantic base. No weakened test or silently discarded hunk.
+
+The independent earlier joined checks passed seven D1-registered CTests with
+zero skips, actual LR1.780wall/1.944user/.292sys, units21.623/25.436/2.216,
+backend62.447/63.996/9.833. Their compiler46a076f4... and LRb2ccdcce... predate
+the new prelude/identity ABI and are not current merged acceptance.
+
+With the new ABI/resources, public bootstrap jobs1/outer2 rebuilt53 native steps
+in78.599wall/110.718user/8.981sys and3 LR steps in4.630/5.269/.474. Compiler
+4438d38c43eda542eab070465595a0bd53dc58b8a670133bc62f8085fb6c28d4 and LR
+b665448bb619cb202d72e47ffd06c4f324f2c35b350a2173ea107c77a62aaacd identify this
+freeze. Query smoke passes. Type smoke exits134 after16.321wall/15.045user/.508sys:
+'Tower call stack limit exceeded', followed by the local binding/shared signature
+suspension assertion. A1/L2 received the exact log; expected constructor-cycle
+diagnosis is being isolated without changing their production files. Control,
+units and constructor execution were unrun in that fail-fast script, and have
+separate follow-up checks. No blanket sanitizer/constructor acceptance inferred.
+
+The new opt-in tests/layout_frontier_profile.tower invokes actual sem_layout_execute
+on canonical world-owned type entities and ordered, uniquely owned fields. It
+constructs one leaf,32 independent branches and a sink; chained mode makes each
+branch need the initially sole ready leaf. Wide mode exposes33 initial producers.
+Every size/alignment/field offset is independently checked, all34 tasks finish,
+pool and graph drain, reservations return to the outer owner, then world and
+ledger dispose. This is a targeted layout microbenchmark, not end-to-end compiler
+performance or a second scheduler. Shared ledger includes the caller and each
+world limit is1/2/4/8. Stable payloads remain sparse; no new noalias assertion.
+
+Fixture preflight failures are preserved: missing semantic_context import;
+aggregate foreach needed an explicit borrowed task; first native link lacked
+tower_print. Each process exited and drained before correction. The fixture now
+uses existing runtime_print_value, which is already linked by the production
+runtime. No new formatting adapter. Logs layout_frontier_compile_missing_import,
+layout_frontier_compile_aggregate_borrow and joined_identity_native retain them.
+It compiles with the public bootstrap into a custom semantics unit, replacing
+that one object plus test main in the exact native LR link. Other dependent
+objects were freshly rebuilt; no private compiler override or stale ABI mixing.
+
+First3 checked runs (source46bdbdee..., binary1fbd3508...) included pool startup
+inside the timer. Small8-field and1024-field branches showed no useful cold
+parallel gain. Initial chained frontier keeps pool peak0 and ledger peak1 at
+all limits, confirming the source-level under-admission observation. Pool peak
+is admission, not proof of simultaneous execution. Logs layout_frontier_1..3
+finished20:42:07Z, before the coordinator's20:58Z hibernation notice; those samples
+do not cross suspension.
+
+The next fixture revision a72e2c09868f80e4290b162c34ee89d59c203d7054153f18f52644f1a981f6e9
+adds an explicit warm mode using existing sem_workers_open before the pump timer,
+reports that startup separately, and adds4096 fields per branch. All3 cold/warm
+pairs pass at21:04:22..25Z on the awake host. Binary197f0b8e31d4fcf774b23f46634943b02757b289e130ff8c511c1836e9d87d7f;
+objectc28a40db7cbf32470651a7bbbf255a6bc553fea5fb8b857b94c7b43fc5c6a25f.
+Public object compilation19.884wall/14.780user/.879sys. Whole-process samples
+.588..616wall/.314..335user/.155..189sys include construction/check/teardown.
+Fixed case order, fresh worlds, host/process caches warm across samples;
+getrusage RSS is a process high-water value, not per-pump allocated/live bytes.
+CPU excludes the synchronous warm-pool open, though worker startup may finish
+asynchronously. No allocation-count or exact live-byte census is claimed.
+
+The shared semantic_layout source is frozen at552730f15b6a8a835a5140569b60277f706ba58dc4bb302b4dfb102629758fc7.
+Raw13-column output order: warm,workers,fields,chained,initial-ready,wall-ns,
+CPU-us,RSS-KiB,pool-admission-peak,ledger-peak,entities,components,startup-ns.
+Cache layout_profile_summary.tower computes medians from the3 paired samples;
+all new measurement/analysis logic is Tower. No production layout edit yet:
+reacquisition or grain changes require A1 agreement and equivalent before/after
+checked inputs. The fixture is test/measurement-only, so it makes no production
+runtime change requiring a claimed speed improvement. Final valid concurrent
+ASan/TSan, unsupported UB coverage disclosure, clean bootstrap/native/browser/
+generation and leased publication remain open.
+
+### A2 follow-up: interpreted recursion oracle, required stages and ownership stress
+
+Coordinator/A1/L2 confirmed first_type/second_type is ordinary executed recursive
+function code, not itself a WorkGraph cycle. A2 reproduced jobs1/4 exit1 with
+'Tower call stack limit exceeded' and no unknownLater. D1 owns the narrow stale
+oracle correction while preserving genuine dependency-cycle cases. The earlier
+type-smoke failure is retained but is not evidence for a production scheduler
+rewrite. Actual Deck suspension was20:42:51..20:56:19Z; A2's first layout samples
+ended20:42:07Z and later pairs began21:04Z, neither crossing that interval.
+
+Applied fully reviewed A1_required_stage_continuation.patch
+(d7b08e5a05e1df97d48d65e8a09be9c3863540c6c00243a39f72c5225a10533a) after
+all jobs drained. Required checked expressions no longer wait for their complete
+lexical body; executed capture/function requests use existing services. Optional
+inference retains body/proof/clone prerequisites. All478 lines of the resulting
+semantic_evaluation were reviewed for lifetime, private state, joins, publication,
+ticket suspension and grant return. No second evaluator or static branch effect
+execution. Smallest public-pin unit passes15.759wall/11.600user/.772sys;
+affected native53steps77.859/109.020/8.649, LR3steps4.635/5.240/.524. Compiler
+a44478f6e30ae5d3f03722ffe090742049786c5e13875686f6e05ece3f9552fc and LR
+269552f6a629eb72014b64bb905920bfb252c875167cffabb68a866e6d96787e identify it.
+Query smoke passes. Control smoke REGRESSES from the previous31.596s passing
+run to abort134 after1.532s: 'Strict evaluation reads an uninitialized local',
+'Body continuation compilation'. Root/A1 notified; inferred capture collision
+is under owner investigation, not proved here. Full constructor fixture was
+run independently afterwards and outputs0 at jobs1/4 (1.262/1.187s wall).
+No type/control/full semantics closure claimed; original failure logs retained.
+
+The measured layout table and source limitations are in compiler_ecs_audit_a2.
+Warm32x4096-field graph scales4.593843->2.847308ms at four lanes, stalls at
+2.845794ms at eight; CPU rises4.599->6.170->7.287ms.1024-field branches regress
+with workers, and8-field jobs are far too small. Shared grant refresh/grain
+proposal was sent to A1; no owner production layout change. Queue width/admission
+is never described as measured overlap. Full per-file source reads also completed
+for semantic_declarations, semantic_work_ids and generic_body_types, with hashes.
+
+New own tests/entity_stage_concurrent.tower closes a focused coverage gap left
+by the serial entity_stage_ownership/fault fixtures. It reuses EntityStage,
+WorkGraph, WorkPool and WorkBudget, no scheduler/allocator substitute. Each of
+160 trials reserves caller+workers, takes access claims/tickets and leases before
+dispatch. Private stage pages allocate on2/4 real pthreads behind an entry
+barrier. The input target loses its last ordinary reference while pinned; each
+worker queues payload holds without touching shared reference counts. After all
+joins the coordinator holds every stage twice (idempotence), closes the last
+input view, publishes/discards, settles tickets, then releases lane receipts.
+Cases include successful publication, cancellation while admitted, worker failure,
+duplicate named-member publication rejection, and cancellation after partial
+admission. Cancelled tickets cannot publish success. Every finalizer resolves
+explicit store context and runs on its owning coordinator thread; no mutable
+ambient test counter. Ordered children/payloads and exact empty-store teardown
+are checked, including releasing private pools before stage destruction.
+
+First preflight linked a generated entry with exported main and failed duplicate
+ELF main. Corrected to existing --library object/no-entry runtime recipe; next
+compile correctly rejected mutable module initializers. Moved state into an
+explicit StageState installed before entities via entity_store_set_context.
+Both failures exited1/PID0 before source corrections, with logs
+entity_stage_concurrent_duplicate_entry.log and entity_stage_concurrent_global_init.log.
+No test assertion was weakened. Public compilation then passed2.141wall/
+1.834user/.116sys and3native+3ASan+3TSan runs passed. Before claiming current
+runtime identity, noticed guest-work-tests.d still referenced the pre-consolidation
+resource files. Regenerated only existing tower-guest-work-tests target (2steps,
+2.443wall/1.749user/.202sys), relinked and repeated3native/3ASan/3TSan on unchanged
+fixture IR. Guest IR7a789b65...->5a2a23a0688568a402bdb6fb7ec5f7126e26b4a4d198e5b44b52f6e2fc927b93;
+its native object remained f74001da316e6d14af4f699033e8239ee70a3f597ce442675c63737f225459ff.
+Instrumented object/executable bytes also remained identical. This is explicit
+resource reconciliation, not an assumption that old objects cover changed inputs.
+
+Recipe cache/entity_stage_concurrent_retry.sh then entity_stage_current_guest.sh:
+public pin --library --emit object/llvm --jobs1 --target x86_64-pc-linux-gnu with
+explicit Bedrock/Foundation; link existing guest-work-tests.o, exported
+work_thread_entry, pthread/dl. tools/instrument_llvm applies address/thread passes
+to both complete fixture IR (199 defined functions) and current guest IR (47).
+Clang19 -O1 compiles that transformed IR without a second -fsanitize pass; final
+link selects the matching runtime. ASAN_OPTIONS=detect_leaks=1:halt_on_error=1,
+TSAN_OPTIONS=halt_on_error=1; timeout120; Docker CPU12-23/24GiB,
+seccomp=unconfined only for the already established TSan personality requirement.
+No intentional invalid-memory or race sensitivity probes were repeated.
+
+Final source26265ebb52427481465d0fe88101e4ccded781e356be71cc9244b84d5882f0e7;
+fixture raw IR72678f8d547069a116da4029ea8e46b7e44fc8e3e00ea48f65d60cd2b30cbcf4;
+native5461cc16af794f8729fdead5653cd390608e36b7a34f3bec1d779f3459159797;
+ASan af811cf489ed7f46f3c03d66f1d95c7134408df8e72844126bd2f9e431ee2af2;
+TSan7c0cbc6aca9b3e726b4dba03a427ddb1178e94d96facf566bb661dd75292c02c.
+Allocator runtime objects address9974b5fcabb4e892ad3c349a5051de52af5c61e9fb361e759a1e6f729d6a34db,
+thread57de4a939a351818ccbafc98b8c77eec8037d649c3f6d8b2d60505685a76b47b.
+All runs check57,792 finalizers. Latest native .102..103wall/95.625..95.960ms
+process CPU/1372..1652KiB RSS; ASan .270..277wall/315.022..316.082ms CPU/
+61236..61900KiB; TSan .254..270wall/243.653..255.330ms CPU/25724..26184KiB.
+Raw per-run numbers remain entity_stage_concurrent_{native,address,thread}_{1,2,3}.log;
+prior aggregate log and exact executable hashes preserved. Exact object/store
+teardown is stronger here than RSS retention inference, but no general allocator
+live-byte census or source-level UBSan claim. This new test changes no production
+runtime behavior, so there is no production before/after speed claim. D1 generic
+registration/independent execution is requested; whole merged compiler/browser/
+generation/bootstrap/publication gates remain open.

@@ -3,7 +3,7 @@
 This is an **in-progress audit**, not lane acceptance or publication evidence.
 Owner: A2 on KinmenA, exclusive `C:\Sandbox\tower-agent-2`, main.
 Reviewed source baseline: `6282238779034442e0578d76b921ca117df819f1`;
-current local `a548dfb8` includes the measured A2 changes below, on
+current local `04a87781` includes the measured A2 changes below, on
 published60741c51. Unmodified receipt rows retain the baseline reviewed identity;
 later changed-file receipts state their implementation commit. Session
 `01a2046f-fec2-7c71-be46-cad28f9ac147`, resumed Codex PID 15056.
@@ -390,6 +390,25 @@ prelude and pending nominal-role fixes remain acceptance gaps.
 | `compiler/semantic_execution_work.tower` | Full source reviewed. Executable snapshots are derived Foundation entities. Frozen context is copied, mutable scratch/diagnostics replaced, root leased before dispatch; all stages publish before ready inputs/work_finish. Grant survives joins and publication. | Strong source tree ownership supplies snapshot lifetime; this clone path does not queue provenance holds. Final merged concurrent failure/cancel checks remain open. |
 | `compiler/semantic_generic_body_work.tower` | Full source reviewed. One ECS clone executor handles function/type instances; node budget bounds each wave. Grants/tickets/stages precede dispatch. Queued references are held before last view closes; accepted stages publish, failures discard, then tickets finish. | L2 generic admission included explicitly. Node quota is distinct from declared-byte/RSS ledger. No second AST or clone scheduler. |
 
+The following additional complete source reads use04a87781 plus the subsequent
+nominal-identity/readiness/signature handoffs. They audit shared scheduling and
+ownership; A1/L1/L2 retain production semantics and independent acceptance.
+
+| Path relative to scaffolding | Source review and ownership conclusion | Evidence/gap |
+| --- | --- | --- |
+| `compiler/semantic_evaluation_work.tower` | Stable preparation component owns private scratch, aliases, diagnostics and stage. Expression/function leases and every ticket precede dispatch; frozen context copied per worker. All stages publish before observations/results finish; failed generated nodes remain program-owned for cleanup. | Full185-line source read. Current clone source roots stay strongly owned; adding staged provenance requires renewed hold audit. Final concurrent failure/cancel evidence pending. |
+| `compiler/semantic_iteration_work.tower` | Protocol resolution is embedded in the owning body's stable work component. Only one role per body runs. Workers consume published source types, retain private inferred type vectors and lexical scratch; all type-index read claims finish before coordinator signature publication. | Full197-line source read. Role/ordinal, not coincident frame offset, identifies ownership. No worker interning or second protocol scheduler. |
+| `compiler/semantic_lowering_work.tower` | Stable per-function results register body/snapshot/signature dependencies. Function/parameter leases precede dispatch; private generated names/errors/aliases. Every stage publishes before cross-function bookkeeping or query completion. | Full253-line source read. Compatibility wrapper finalizes only its complete phase; pipeline callers use the waiting pump. Lifetime pins are not write permission. |
+| `compiler/semantic_flow.tower` | Read-only traversal of lowered canonical operations, not constant folding. Archetype pointer columns build a private source-ordinal job index before dispatch. Tickets/grants precede work; joined validation publishes deterministic diagnostics and finishes claims. | Full198-line source read. Bounded recursive depth is explicit; table rows remain derived pointer indexes. Runtime control/diagnostic matrix currently blocked by unrelated nominal fixes. |
+| `compiler/semantic_known_work.tower` | World-owned analysis components contain private candidates/mutations/patches and replacement vectors. Frozen source traversal collects query observations; a retained ordered frontier admits later independent work while earlier producers wait. Coordinator alone attaches facts and swaps compacted indexes. | Full359-line source read. Graph result publication precedes grant return; later ordered patch application consumes those owned results. Program semantics stay on Foundation entities. Grain/scan allocation overhead remains unmeasured. |
+| `compiler/semantic_capture_work.tower` | Coordinator continuation waits for source-binding proof and exact checked initializer producer. Captured value records retain owning declaration/frame and ordinal; ordinary interpreter evaluation supplies value. Suspension precedes producer work, and checked initialization is reused once. | Full153-line source read. Mutable/escaped/missing initializers fail explicitly. No worker blocking or offset-only capture identity. |
+| `compiler/semantic_type_execution.tower` | Executed interpreter requests map to the same WorkGraph. Owner/world/sequence/revision/profile/dispatch, exact invocation request address and actual suspension edge are validated before publication. Type interning remains ordered coordinator work; layout waits suspend the continuation. | Full243-line source read. Private component stores a continuation, not another type registry/folder. Existing stale receipt tests passed in the earlier query freeze; latest ABI/resource runtime still pending. |
+| `compiler/semantic_query_pipeline.tower` | Joins each phase frontier, combines progress/waiting/failure, and services cross-phase producers before the owning caller diagnoses quiescence. Layout errors remain on their owning receipts for deterministic selection. | Full53-line source read. No independent scheduler or early cycle diagnosis here. |
+| `compiler/semantic_body_work.tower` | Complete current source read in contiguous spans. Stable work components own lexical/control cursors, preparation phases, frames and checked-prefix generations. Workers replace shared scratch with private buffers; suspended scopes transfer ownership after joins without replay. Tickets and leases include generated control blocks. All stages publish before observations, type identities and cross-body bookkeeping; all reader claims suspend before coordinator preparation. | A1 primary owner. Original syntax discovery chooses eligibility only; executed staged dependencies remain interpreter-driven. Ordered diagnostics wait for preceding continuations, and cycles are selected only by owning-pipeline finalization. New implicit type/signature readiness hooks require current type/control/concurrency checks; source review is not universal race proof. |
+| `compiler/semantic_declarations.tower` | Complete source read in contiguous spans. Stable declaration components retain discovery and execution tickets, lexical capture identity and private scratch/stages. Every stage publishes before coordinator structural continuation; grants span graph publication and release before nested layout work. Source-order failures wait for preceding eligible producers. Nominal identity and layout completion now have separate obligations. | A1 primary owner; reviewed04a87781 plus routed nominal identity/readiness/hooks, source6083aaa709ea8e6f61be5459c6d7eb3cf98fac94ec6c494be3a81ead2a694eb9. Syntax walks choose admission; they do not authorize effects from untaken interpreter branches. The ordinary recursive constructor correctly reaches an interpreter limit; D1 owns correction of the stale graph-cycle test oracle. Genuine dependency-cycle coverage remains required. |
+| `compiler/semantic_work_ids.tower` | Complete defining module read. Named query/access domains identify the same graph; fixed preparation windows bound retained private stages independently of worker capacity. Progress/waiting/complete/failed pumps explicitly require owning-pipeline quiescence before cycle diagnosis. | Source5e4b4e028e25d4f91606fed87266ae999745e79cf8174fd77492e19e78244597. A window is neither worker entitlement nor a byte/RSS limit. No second scheduler or global registry. |
+| `compiler/generic_body_types.tower` | Complete defining module read. Small derived worker descriptor borrows canonical context/node and private stage, with explicit copy quota, count and success. It owns no second AST or shared mutable index. | Source716bdc88f70d7f037cf1ee869b62d86b4ec69ea3b98a1aef6f5b5f28b0e95988. Lifetime and publication follow the fully reviewed generic-body caller, including queued-reference holds. |
+
 The first coherent build rebuilt42 affected native steps and7 work/LR steps with
 the documented public pin, jobs1/outer2, CPU12-23/24GiB. Work and query smoke pass.
 Type smoke aborted on a nominal constructor treated as a runtime value; the
@@ -432,3 +451,61 @@ and require exact final teardown. Flat page count or an arbitrary extra-page
 allowance would not model this stable-address allocator. No production allocator
 rewrite is justified by this bounded retained page alone. Documentation of this
 receipt changes no runtime behavior and requires no before/after runtime profile.
+
+## Current layout and concurrent stage evidence
+
+The full current library inventory remains 27 files. Shared compiler filename
+search finds compiler_kernel/compiler_kernels and library compiler_work/types;
+the two similarly named test files are test coverage, not missing production
+schedulers. Complete additional imported-pump review:
+
+| Path relative to scaffolding | Source review and ownership conclusion | Evidence/gap |
+| --- | --- | --- |
+| `compiler/semantic_evaluation.tower` | All 478 lines reviewed after the required-stage handoff. Stable world-owned evaluations retain private interpreter state, aliases and errors. Tickets precede dispatch; input view survives joins; the coordinator publishes values/aliases, then finishes/suspends receipts before releasing the grant. Executed function/capture/type requests use the existing graph; optional inference retains proof/clone/body prerequisites. | Source d6a1e37119c4e57a957a49a857926b47d5bca1d10fa537690b28fa2302b60f39. A1/L1 own semantics. Query smoke passes and full constructor runs output0 at jobs1/4; control smoke currently reports an uninitialized local. No full semantic acceptance. |
+| `tests/layout_frontier_profile.tower` | Own opt-in measurement invokes the actual layout pump with canonical ordered fields and one shared caller/worker ledger. Checks every field offset, size, alignment, completion and teardown. Cold and pre-opened pool modes distinguish startup from pump cost. | Source a72e2c09868f80e4290b162c34ee89d59c203d7054153f18f52644f1a981f6e9; three paired runs pass. Results below are microbenchmark evidence, not packed storage or whole-compiler speed. |
+| `tests/entity_stage_concurrent.tower` | Own focused test uses the production allocator/transport, pre-dispatch graph tickets/access and exclusive entity leases. Private stages queue references to a zero-reference pinned input. Workers drain before holds/view close/publication; finalizers run on the store's explicit coordinator context. Covers publish, cancellation/stale tickets, worker failure, name collision and partial admission. | Source26265ebb52427481465d0fe88101e4ccded781e356be71cc9244b84d5882f0e7. Three native, three ASan+leak and three TSan executions pass with current regenerated guest runtime; no deliberate invalid-memory/race probe. This closes focused concurrent stage cleanup coverage, not all compiler caller lifetimes. |
+
+Warm-pool wide-frontier medians from three samples (32 branches, same checked
+input per worker comparison):
+
+| Fields per branch | 1 lane wall / CPU ms | 2 lanes wall / CPU ms | 4 lanes wall / CPU ms | 8 lanes wall / CPU ms |
+| --- | --- | --- | --- | --- |
+| 8 | .005390 / .007 | .130846 / .150 | .503067 / .684 | .628629 / .891 |
+| 1024 | .518945 / .521 | .630783 / .859 | .842407 / 1.417 | .909990 / 1.538 |
+| 4096 | 4.593843 / 4.599 | 3.778017 / 5.723 | 2.847308 / 6.170 | 2.845794 / 7.287 |
+
+The largest case gains about1.61x at four lanes and no useful additional wall
+improvement at eight. This unusually large-record workload does not justify
+parallelizing ordinary small records. The chain-to-fanout case reserves zero
+extras throughout; at4096 fields/8-lane capacity it takes4.640724ms warm versus
+2.845794ms for the different wide graph. That comparison identifies a candidate,
+not a before/after speedup on identical input. Proposed to A1: preserve a grain
+threshold and consider refreshing grants only at a joined/published frontier
+when substantial newly ready field work exists. Production change awaits owner
+agreement and equivalent-input measurement. Pool peak is admission only.
+
+Process RSS for the large profile is about140,400KiB (~137MiB); it is a
+high-water value including graph creation and prior cases, not live pump memory.
+The profile has fixed case order and three samples; no precise allocation census
+or cache-counter/false-sharing attribution. These limits prevent broader claims.
+
+Concurrent stage runs each execute160 trials (16 rounds,2/4 workers,5 outcomes),
+57,792 finalizers, distinct simultaneous worker IDs at a barrier, exact ordered
+published child values and zero final store/component counts. Native wall
+.102..103s, reported process CPU95.625..95.960ms, peak RSS1372..1652KiB.
+ASan+leaks wall.270..277s/CPU315.022..316.082ms/RSS61236..61900KiB;
+TSan wall.254..270s/CPU243.653..255.330ms/RSS25724..26184KiB. Instrumented IR
+covers199 fixture/imported library/transport functions plus47 guest-runtime
+functions, including the production allocator. No serial failure counter is
+used. The ledger counts the coordinator plus worker permits through publication.
+Source-level UBSan and universal race freedom are not established.
+
+The first fixture build had duplicate main; --library then exposed mutable
+module initializers. Both failed before execution. Corrected to the established
+object/no-entry guest-runtime link and explicit store-owned StageState. Native
+and instrumented runs then passed. A stale guest-runtime resource receipt was
+noticed and regenerated through tower-guest-work-tests before repeating checks;
+IR changed, native/instrumented object and executable bytes remained identical.
+Exact commands/hashes and logs are in the journal and A2 cache. Generic harness
+registration remains a D1 request. These are test additions with no production
+runtime behavior change; timings characterize coverage cost, not an improvement.
