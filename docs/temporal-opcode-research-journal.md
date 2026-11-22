@@ -47933,3 +47933,14 @@ dead private type helper from executable lowering. D1 owns its generic runner
 registration. Local runtime/performance and final sanitizer/browser/generation
 validation of these new inputs are pending; owner single-emission improvement
 is not independently reproduced here. Capture-range v2 remains unapplied.
+
+D2 pre-build follow-up: adopted D1's corrected single-property request-test
+composition patch87f875de after reading the production composition/caller.
+It uses the existing TOWER_DRIVER_PRODUCTION_SOURCE, which already includes
+platform paths/stat required by the newly integrated driver identity handling;
+no duplicated ABI/import adapter or new runner. The original source property
+omitted that production boundary. This is root-routed owner source, with the
+request fault sweep still pending. D1 has now independently completed actual
+ASan parser normal/stress checks at its own source freeze; that receipt does not
+validate D2's newer backend/source closure. Next D2 freeze will capture precise
+Ninja rebuild reasons and paired current/predecessor workload outputs/profiles.
