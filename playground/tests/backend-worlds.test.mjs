@@ -4,6 +4,7 @@ import {readFile} from 'node:fs/promises';
 import {TowerWASI} from '../src/wasi-host.mjs';
 import {configureBedrock, configureTower} from '../src/bootstrap.mjs';
 import {moduleInputs} from '../src/module-inputs.mjs';
+import {builtins, files} from './compiler-fixtures.mjs';
 
 // Byte transport only; ownership, reconstruction and cleanup assertions are Tower.
 test('backend source requests retain their explicit ECS world', async context => {
@@ -13,12 +14,13 @@ test('backend source requests retain their explicit ECS world', async context =>
   const wasi = new TowerWASI();
   const {instance} = await WebAssembly.instantiate(bytes, {wasi_snapshot_preview1:wasi.wasiImport});
   wasi.initialize(instance);
+  wasi.mountFiles(files);
   const e = instance.exports;
   if (!e.backend_source_world_tests && process.env.TOWER_REQUIRE_BACKEND_TESTS !== '1') {
     context.skip('Build with TOWER_BACKEND_TESTS=ON to run Tower backend fixtures');
     return;
   }
-  const modules = moduleInputs(e, {bedrock, foundation});
+  const modules = moduleInputs(e, builtins);
   configureBedrock(e, bedrock);
   configureTower(e, foundation, modules.environment);
   const pointers = [];
@@ -30,7 +32,7 @@ test('backend source requests retain their explicit ECS world', async context =>
       pointers.push(pointer);
       new Uint8Array(e.memory.buffer).set(input, pointer);
     }
-    assert.equal(e.backend_source_tests(), 0);
+    assert.equal(e.backend_source_tests(modules.environment), 0);
     assert.equal(e.backend_source_world_tests(...pointers), 0);
   } finally { for (const pointer of pointers) e.free(pointer); }
 });

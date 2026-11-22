@@ -6,7 +6,7 @@ import {loadLLVM as createLLVM} from '../src/llvm-host.mjs';
 export {runToEnd} from '../src/tower-host.mjs';
 export {executeWasm} from '../src/llvm-host.mjs';
 const root = new URL('../../scaffolding/', import.meta.url);
-const builtins = Object.fromEntries(await Promise.all(['bedrock','foundation','tower'].map(async name =>
+export const builtins = Object.fromEntries(await Promise.all(['bedrock','foundation','tower'].map(async name =>
   [name, await readFile(new URL(name + '.tower', root), 'utf8')])));
 async function sources(directory = '') {
   const result = [];
@@ -17,7 +17,7 @@ async function sources(directory = '') {
   }
   return result;
 }
-const files = await sources();
+export const files = await sources();
 Object.assign(builtins, Object.fromEntries(files.filter(file => /^\.tower\/(?:[^/]+|types\/[^/]+)\.tower$/.test(file.path)).map(file => [file.path.slice('.tower/'.length, -'.tower'.length), file.text])));
 export async function loadTower(bytes, log, bootstrap, foundation, bedrock = builtins.bedrock, options = {}) {
   if (process.env.TOWER_TEST_WASM) bytes = await readFile(process.env.TOWER_TEST_WASM);

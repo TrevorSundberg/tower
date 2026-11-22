@@ -53,11 +53,11 @@ export fn backend_source_world_tests(bedrock: u8*, foundation: u8*): i32 {
         fixture.modules = frontend_modules_create();
         fixture.source = backend_source_create(backend_worker_runtime(), backend_worker_runtime_size());
         if fixture.world == null || fixture.modules == null || fixture.source == null { return convert(i32, BackendWorldFailure.Allocation); }
-        if !frontend_modules_source(fixture.modules, "bedrock.tower", bedrock, strlen(bedrock))
-            || !frontend_modules_source(fixture.modules, "foundation.tower", foundation, strlen(foundation)) {
+        if !frontend_modules_source(fixture.modules, ".tower/bedrock.tower", bedrock, strlen(bedrock))
+            || !frontend_modules_source(fixture.modules, ".tower/foundation.tower", foundation, strlen(foundation)) {
             return convert(i32, BackendWorldFailure.Baseline);
         }
-        frontend_modules_configure(fixture.modules, "world_input.tower", "");
+        frontend_modules_configure(fixture.modules, "world_input.tower", ".tower");
         if !syntax_baseline_install(fixture.world, fixture.modules, bedrock, false, &diagnostic)
             || !syntax_baseline_install(fixture.world, fixture.modules, foundation, true, &diagnostic) {
             return convert(i32, BackendWorldFailure.Baseline);
@@ -90,9 +90,9 @@ fn backend_source_test_has(text: u8*, wanted: u8*): bool {
     return text != null && strstr(text, wanted) != null;
 }
 
-export fn backend_source_tests(): i32 {
+export fn backend_source_tests(environment: void*): i32 {
     var link_failure: i32 = 16;
-    if !backend_source_link_tests() { return link_failure; }
+    if !backend_source_link_tests(environment) { return link_failure; }
     var left = backend_source_create(backend_worker_runtime(), backend_worker_runtime_size());
     var right = backend_source_create(backend_worker_runtime(), backend_worker_runtime_size());
     if left == null || right == null {
@@ -103,7 +103,7 @@ export fn backend_source_tests(): i32 {
     var failure: i32 = 0;
     var first: u8* = "var answer: i32 = 42; print(answer);";
     var second: u8* = "var answer: i32 = 99; print(answer);";
-    var result = backend_source_compile(left, first, strlen(first), BackendSourceImport, null, null);
+    var result = backend_source_compile(left, first, strlen(first), BackendSourceImport, environment, null);
     if !backend_source_test_has(result, "\"format\":\"foundation\"") {
         failure = 2;
     }
@@ -118,7 +118,7 @@ export fn backend_source_tests(): i32 {
         return 4;
     }
     copy(saved, original, strlen(original) + 1);
-    result = backend_source_compile(right, second, strlen(second), BackendSourceImport | BackendSourceUnoptimized, null, null);
+    result = backend_source_compile(right, second, strlen(second), BackendSourceImport | BackendSourceUnoptimized, environment, null);
     if !backend_source_test_has(result, "\"optimizationProfile\":2") {
         failure = 5;
     }
@@ -128,22 +128,22 @@ export fn backend_source_tests(): i32 {
     if strcmp(backend_source_foundation(left), saved) != 0 {
         failure = 7;
     }
-    result = backend_source_compile(left, null, 1, 0, null, null);
+    result = backend_source_compile(left, null, 1, 0, environment, null);
     if !backend_source_test_has(result, "Invalid foundation source length") {
         failure = 8;
     }
     var zero: u8[2];
     zero[0] = 0;
     zero[1] = 1;
-    result = backend_source_compile(left, &zero[0], 2, 0, null, null);
+    result = backend_source_compile(left, &zero[0], 2, 0, environment, null);
     if !backend_source_test_has(result, "Foundation source cannot contain NUL bytes") {
         failure = 9;
     }
-    result = backend_source_compile(left, first, 8388609, 0, null, null);
+    result = backend_source_compile(left, first, 8388609, 0, environment, null);
     if !backend_source_test_has(result, "Invalid foundation source length") {
         failure = 10;
     }
-    result = backend_source_compile(left, first, strlen(first), 0, null, "fixture grammar failure");
+    result = backend_source_compile(left, first, strlen(first), 0, environment, "fixture grammar failure");
     if !backend_source_test_has(result, "fixture grammar failure") {
         failure = 11;
     }
@@ -153,14 +153,14 @@ export fn backend_source_tests(): i32 {
     // The caller's span is followed by invalid syntax and has no terminator at
     // its boundary. Compilation must consume exactly the supplied byte count.
     var clipped: u8* = "print(42);?";
-    result = backend_source_compile(left, clipped, strlen(clipped) -1, BackendSourceObjectOutput | BackendSourceUnoptimized, null, null);
+    result = backend_source_compile(left, clipped, strlen(clipped) -1, BackendSourceObjectOutput | BackendSourceUnoptimized, environment, null);
     if !backend_source_test_has(result, "\"status\":\"compiled\"") {
         failure = 13;
     }
     if backend_source_foundation(left)[0] != 0 {
         failure = 14;
     }
-    result = backend_source_compile(left, first, strlen(first), 0, null, null);
+    result = backend_source_compile(left, first, strlen(first), 0, environment, null);
     if !backend_source_test_has(result, "\"status\":\"compiled\"") {
         failure = 15;
     }
@@ -171,7 +171,7 @@ export fn backend_source_tests(): i32 {
     return failure;
 }
 
-fn backend_source_link_tests(): bool {
+fn backend_source_link_tests(environment: void*): bool {
     var source = backend_source_create(backend_worker_runtime(), backend_worker_runtime_size());
     if source == null { return false; }
     defer backend_source_close(source);
@@ -180,17 +180,17 @@ fn backend_source_link_tests(): bool {
     var wasm_header_bytes: usize = 8;
     for (var optimize: usize = 0; optimize < 2; optimize++) {
         var flags: u32 = optimize == 0 ? BackendSourceUnoptimized : 0;
-        var result = backend_source_compile(source, text, strlen(text), flags, null, null);
+        var result = backend_source_compile(source, text, strlen(text), flags, environment, null);
         var link = source.backend.linker;
         if !backend_source_test_has(result, "\"status\":\"compiled\"") || link.file_plan
             || link.generated.length != generated_inputs || link.output.length < wasm_header_bytes
             || !backend_source_test_has(link.generated.data[2].bytes.data, "imported") { return false; }
         var malformed: u8 = 0;
         if !backend_link_add_input(link, "broken.o", &malformed, sizeof(u8)) { return false; }
-        result = backend_source_compile(source, text, strlen(text), flags, null, null);
+        result = backend_source_compile(source, text, strlen(text), flags, environment, null);
         if !backend_source_test_has(result, "broken.o") || link.output.length != 0 { return false; }
         backend_link_clear_inputs(link);
-        result = backend_source_compile(source, text, strlen(text), flags, null, null);
+        result = backend_source_compile(source, text, strlen(text), flags, environment, null);
         if !backend_source_test_has(result, "\"status\":\"compiled\"") || link.output.length < wasm_header_bytes { return false; }
         backend_session_reset(source.backend);
         if link.generated.length != 0 || link.output.length != 0 || link.error.length != 0 { return false; }

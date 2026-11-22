@@ -136,7 +136,7 @@ test('browser semantic compilation uses the selected target width, not the brows
   const handle = tower.compile(source, {pointerBytes:8});
   try {
     assert.equal(tower.execute(handle).output, '8\n4294967296\n');
-    assert.match(tower.foundation(handle).source, /sizeof\(void\*\)/);
+    assert.match(tower.foundation(handle).source, /sizeof\(pointer_type\(empty_type\(\)\)\)/);
   } finally { tower.destroyExecution(handle); }
   const narrow = tower.compile(source);
   try { assert.equal(tower.execute(narrow).status, 'error'); } finally { tower.destroyExecution(narrow); }

@@ -42618,3 +42618,14 @@ are40bytes in this fixture; no claim that all images are size optimal.
 Reproduction uses /home/trevo/.cache/tower/coordinator-elf/driver, program-{x64,
 arm64}.o, the existing build/targets/*-runtime.o and library-{x64,arm64}.o. The
 reference is SDK34/bin/ld.lld --threads=1 -static -e _start --build-id=none.
+
+Publication follow-up: rebased onto the source-defined scalar type prelude and
+then b9bc21c's threaded array constructor resolution. The first merged browser
+matrix passed32/34; the failures were fixture capabilities and an obsolete
+canonical spelling, not ELF linking. Backend world tests now mount the existing
+shared builtin files, use the .tower library path and pass their explicit module
+environment into source requests. Assertions remain Tower; the JavaScript change
+only connects existing byte transport. The raw-memory expectation now names
+pointer_type(empty_type()) instead of the retired canonical void* spelling.
+The focused world fixture passes after this correction. Final rebased builds,
+output execution, browser generations and publication are still pending below.
