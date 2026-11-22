@@ -40649,3 +40649,23 @@ the existing link-world components, pinned-input jobs and deterministic join
 contracts; retain unsupported-profile diagnostics and the native reference until
 actual native execution/import/export/ABI and bootstrap checks pass. Removing a
 library name or delegating to another upstream linker is not that translation.
+
+Publication complete: Pages f573e708dc9ee2ab71b15f1f5b5aacb029f01d34, workflow
+44980100325 successful, runtime source a07bb6e. Manifest SHA-256 is
+48dff34d2b380099b130755d9d19e9df5ed12c7fc44e4a8213dde7a3f24fe1b4.
+The full verify-deployment.mjs https://tower-lang.org/ run passes: all 88 exact
+hosted assets, desktop/mobile backends, raw/optimized artifacts, native downloads,
+editable grammar, completion/highlighting, persistence and detected defaults.
+Evidence: build/wasm_default_hosted_deployment.log and
+build/deployment-verification/report.json. HTTP apex, HTTPS www and the old
+GitHub Pages URL each end at HTTPS tower-lang.org with HTTP 200. The first broad
+Pages-directory replacement was rejected by automatic review; publication instead
+updated tracked artifacts in place and removed only compiler/support-llvm-4.a.gz.
+
+The final journal pull brought in 2225c52's generic-query changes. Repeated the
+required clean public-bootstrap successor build in coordinator-wasm-linker/
+successor-default-rebased, then its backend API and driver functional linking
+checks: all pass. Logs: build/wasm_default_rebased_{native,tests}.log. The hosted
+runtime remains explicitly a07bb6e; these later semantic changes are validated
+in the merged native source and are not relabeled as part of this deployment.
+No sanitizer or formatter sweep ran; todo.txt is untouched.
