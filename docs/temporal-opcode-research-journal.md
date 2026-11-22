@@ -47732,3 +47732,203 @@ All processes drained before applying owner handoffs; D1's existing focused
 backend-overlap selector will allow direct barrier validation without another
 full backend run or relaxed timeout. Current complete sanitizer acceptance stays
 open, including affected paths after upcoming semantic ownership fixes.
+
+Post-drain integration checkpointa125c03e commits only A2 audit/journal; normal
+pull--rebase--autostash passes with public60741c51 unchanged. Applied exact checked
+handoffs430d6654 backend selector,19da2e17 parser census,cb26ef0b failure flush,
+77df2699 native paths,1110c19f path diagnostics,87f875de request source property,
+fd0966b3 explicit Foundation driver fixtures,6b575c81 scalar fixtures and0caf05cc
+measurement source repair. Rejected ea7 blanket prefix remains unapplied. No
+capture-range candidate was adopted. All source changes retain routed ownership.
+
+Read and applied A1 editor_background6a6eeed6 after inspecting SemanticEditor,
+private-copy/publication helpers and the complete affected kernel. For a required
+producer outside the completion span, clear only the private editor context and
+result observation. The real body still checks; the shared caller observation
+does not escape into that producer. The struct owns no allocated members and
+publication requires found, so defaulting its private copy omits no destructor.
+This is separate from the still-pending exact descendant capture leases.
+
+Started tower-a2-owner-handoffs22:41:29.215Z/PID36207, CPU12–23/24GiB, directjobs1,
+outer2. Recipe/log cache/joined_owner_handoffs.sh and logs/joined_owner_handoffs.log.
+Smallest public-pin compile passes: semantic_body_work15.286wall/11.159user/.784sys,
+driver_request1.500/1.239/.096, parser_benchmark1.810/1.505/.117. Frozen source
+hashes body6cf7bb9e, request6c664c8a, units4ae25481, LRmain96cae207, parser0870e6b5.
+Normal native build then editor/query/focused overlap, request/module paths and
+parser census; affected TSan LR overlap/control follow. No source changes during
+this freeze and no repeated full backend/type timeout. Diskfree356785266688B.
+
+The prebuild Ninja -d explain -n trace again stops at VerifyGlobs/CMake regeneration
+and does not expose downstream dirty compile edges. Preserve that limitation;
+it cannot prove a generic build-graph defect. No build logic was changed. The
+documented optional parser benchmark is configured with backend inclusion before
+its deferred target, preserving the shared builder and production test linkage.
+
+Current normal native53steps pass81.948wall/112.506user/8.421sys, affected test
+14steps16.854/21.495/1.852. Compilerb48bcd0e0ccab73d6c645cb5e0ab22c79cf7de4e62cf78f897c2029c05e23d71,
+LRb18a350aad6a496bd11450662bc92bf3e5a7cd5ed13059c9c03d1a34684d2ce8,
+executionbad71f50ecf9f620646a96bd35ac8a86b7eff8266eab7f820a96832c08c4df3c.
+Correct editor now passes16.636/13.173/1.185, exact retained-scope checks at1/2/4/8;
+query.071/.040/.022; focused backend overlap7.818/8.571/1.397. Module-path and
+request CTest both pass,9.66s total, zero skips. Parser census and full teardown
+pass.081/.045/.008; sample2048 retains65pages/529375requestedbytes/227936livebytes,
+3582entities/3583components. These are source-specific validations, not a measured
+optimization claim; earlier editor failure remains preserved as the before case.
+
+Affected TSan LR rebuild64steps88.047/115.790/9.843 yields
+cb8509bd2d232a04af95ca98901f067b5e9883d39c2662990eaf313d3e1154dd.
+Focused backend-overlap passes142.877/166.737/25.819, retaining exact serial object
+oracle, distinct worker barrier and original30s rendezvous. Full backend600s
+timeout stays open; control continues under unchanged600s outer limit. System
+LLVM/source UBSan remain unsupported coverage, not inferred from this pass.
+
+Verified L1_same_foundation_stacks.tgz9d6a861f347d10fdb5061f5dae9921931a1e432cea3476416d71f4ea0be7e927.
+Read README/recipe and representative raw traces:18before/28after GDB attachments,
+all46 exit0, exact oracle outputs. Most reliable top symbols are table preparation
+and stage ownership, but broken deeper unwind prevents caller attribution and
+periodic attachment bias prevents precise time shares. Debugger-inflated wall
+times are not performance evidence. Original three uninstrumented pairs remain
+the regression baseline. A2's next measurement will count table lookup probes,
+cardinality/reservations, unchanged leases and stage index allocation requests.
+
+Prepared only private Tower diagnostics in A2/cache/ecs_profile_source, copied
+from the frozen current scaffolding. EntityProfileOwner contains the unchanged
+EntityStore prefix plus explicit counters; the sole entity_store_create owns its
+allocation and dispose emits counters. Verified no other EntityStore allocator,
+by-value store or sizeof use in project source. Other objects see the same public
+prefix and unchanged function ABIs; no global counter or shared API is added.
+Only the private entity object will be relinked, and the original normal compiler
+remains unchanged. Counter instrumentation is intrusive and not a speed sample.
+GNU time is absent from the image: the private ecs_process_profile.tower wrapper
+reuses existing tools/tool_process_linux, monotonic time and Linux x64 getrusage
+for exactly one child. It preserves nonzero/signal status and reports wall/CPU/
+peakRSS/faults/switches. Requested a sibling quiet window before running the
+warmup/three normal samples and one counter observation; no overlap with TSan.
+
+Read corrected capturev3 f5d3f2bd plus source_roots478/evaluation_failure_walke4db/
+late_capture378 prerequisites without applying during the freeze. V3 leases the
+exact writable declaration descendants before pinning; same-stage acquisition
+is idempotent and conflicting owners fail. All affected stages publish before
+receipt completion, and exact lowering revision/profile/dispatch gates range use.
+Owned executable traversal avoids binding backreferences. Aggregate private
+clone storage remains L1/A1 review and runtime work. Also acknowledged the new
+A1 scratch allocator migration reservation: every matching owned free must move
+with sem_allocate, vector backing storage remains separate, and the32-byte x64
+header requires real allocation/RSS cost evidence. No allocator patch received
+or adopted yet.
+
+Current control TSan ended22:57:58.445Z, exit124/PID0 after600.041wall/
+658.201user/20.506sys, empty diagnostic log. Focused overlap passes remain valid;
+aggregate control and type timeouts remain open. No blanket sanitizer acceptance
+or attribution to a particular case follows from CPU activity. The current
+validation container is fully drained before subsequent work.
+
+Private observer preflight failures: ecs_profile_build_first.log records public
+predecessor rejection of a C-style variadic extern at1.360s; second.log records
+missing explicit strlen at1.320s. Both exit1/PID0 before runtime. Replaced only
+those private diagnostics with the existing fixed typed foreign ABI pattern and
+explicit externs. Third build succeeds23:00:51Z/PID0: process object1.345s,
+link.028s, entity object4.221s, private compiler link.116s. Wrapper
+b77d1f750cdc3072261f186f0c8b999abf20a834b075ed8c938a2cebb7994ccd,
+entityobject1ae871042602aef87304c8579e668ac97b86b052e4e3e1c7fd5d0aff013a4a90,
+privatecompiler95c36994cdd354dca55d79e49428d28841c1852a0bb75f8f907ddbac86cf917c.
+The complete unchanged normalb48 package and exact original objects/archive are
+preserved in own cache/ecs_profile_normal and ecs_profile_original_objects,
+including an object hash receipt. Its adjacent resources match the observer's.
+Counter sources3f9344b7/ade91bc0/975c8d10 and process source2656a951 are frozen;
+no runtime samples yet. Existing process helper owns fork/exec/drain behavior;
+the Tower wrapper only measures one child and preserves its result. Pending
+quiet-window request avoids interference with A1's workload before using wall,
+CPU and peakRSS data. Incoming v3 address-derived capture failures stay an
+explicit A1/L1 correctness gate; no production patch adopted based on review.
+
+### 2026-11-22 A2 redundant stage table work: measured cause and candidate
+
+Normalb48bcd0e and exact118962-byte6f257 Foundation source were frozen before
+editing shared stages. Warmup+3 normal jobs1 samples pass the independent
+saturation oracle (2147483647,-2147483648,3). Normal medians6.771409469wall/
+6.713762CPU seconds,214764KiB peak RSS. Resource types7683478 differs from L1's
+old39437231 package, so this is not the isolated old/new L1 comparison. The first
+quiet grant arrived during the run; actual Docker observations before/during
+showed idle sibling, and root independently confirmed only A1 sleep66612.
+Released the window at23:04:09Z after all child processes drained.
+
+The separate per-store Tower observer measured109623644 table preparations,
+109452157 unchanged (99.84%). Lookup probe counts show no long hash chains.
+This supports skipping unchanged stage membership, not a new index. Root
+reviewed the append-only invariant: removals reject stage ownership and kinds
+are immutable. Implemented only3 shared-stage changes: early prepare return for
+zero new entities/components; destination reservation only when a lease gained
+components; publish those components/table only when gained, but always clear
+all leases. Holds, joined publication, pre-reserved changes/failure rollback,
+store-owned identities, stable sparse payloads and finalizers remain intact.
+
+Private after observer (6338edae, stage665eaf1a) uses the exact same diagnostic
+sites plus those3 hunks and frozen original other objects/resources. It passes
+at23:20:37Z: table prepare/publish171487, unchanged0;109460399 leases still held;
+6025 stages,8242 component additions,60 tables created/pruned,0 live,peak23.
+Reserve growth275->271/requestedbytes13734048->8573088/copiedpointers715757->535428;
+count-map requestedbytes1331712->724224; instance growth/requests unchanged.
+These are cumulative structural counts, not peak memory or true realloc copies.
+The intrusive observer timing is not speed evidence. Raw before receipt
+A2/ecs_table_receipt.tgz SHA129f851331149de6903ec44ed96d5e883542333fb9db8cf9403f5660edc13af1
+was exported for coordinator/A1 caller narrowing; no semantic producer changes
+were made by A2. Separate before/after source directories preserve both probes.
+
+Candidate compilerda72aad4 changes only the entity object from frozenb48:
+public predecessor smallest stage1.587s, extended table interpreter1.547s
+stdout0, entity object4.008s, link.120s. Initial test else-if was unsupported by
+that predecessor; failure preserved and rewritten as nested if, no new syntax.
+New table regression covers unchanged/full/empty and mixed membership, pinning,
+duplicate publication failure/discard, identity/pending reservations and teardown.
+The existing real concurrent stage fixture adds separately leased payload writes
+and all outcome checks; every one of3normal/3ASan+leaks/3TSan executions passes
+with57792 finalizers. Actual production allocator/transport,199 Tower and47guest
+functions instrumented. Native wall .102/.100/.100s, ASan .270/.268/.263s,
+TSan .267/.266/.260s are correctness-run observations, not paired benchmarks.
+Table ASan initially failed link missingmain because the library runtime was
+selected. Fixed only the OS link recipe to matching public program runtime;
+three exact-output/leak runs pass .025/.024/.025s at23:14:50Z. All failed logs
+retained; no repeated already-passing stress, no sourceUBSan/foreignLLVM claim.
+
+Current whole control TSan600s, type TSan600s and full backend TSan600s failures
+remain open. Requesting D1 case attribution is separate from these passing
+focused tests. Prepared frozen normalb48/afterda72 small42/large6f257 alternating
+warmup+3pairs at jobs1/4, exact output eachrun, canonical byte identity and ordinary
+Foundation roundtrip. Awaiting sibling quiet confirmation; no speed claim yet.
+
+Paired performance completed23:23:47Z, exit0/PID0,105.36s within the180s quiet
+window; sibling containers remained idle. Host AMD Ryzen AI MAX+395, Windows11
+Docker Linux x64, tower_build:latest/LLVM19, CPU12-23/24GiB cap. Public predecessor
+built normalb48bcd0e and candidateda72aad4; only the entity object changes, other
+objects and adjacent resources are identical. Target wasm32-unknown-unknown,
+ordinary graph interpreter, --timings --jobs1/4, explicit frozen Bedrock/Foundation.
+Each size/worker/version has one warmup and3 warm samples in alternating pair
+order (before/after, after/before, before/after). Warm means repeated process/OS
+cache use, not a retained compiler session or zero page faults; faults and
+context switches are retained in every raw log. No sample crossed hibernation.
+
+| Input / workers | Before wall / CPU seconds / peak RSS KiB | After wall / CPU seconds / peak RSS KiB |
+| --- | --- | --- |
+| Small ordinary42 /1 | 1.122001225 /1.052234 /168068 | 1.124235063 /1.052700 /168160 |
+| Small ordinary42 /4 | 1.022195634 /1.175444 /189300 | 1.026712627 /1.181098 /187900 |
+| Large staged6f257 /1 | 6.096356977 /6.040956 /213960 | 1.752030252 /1.691002 /212856 |
+| Large staged6f257 /4 | 6.722258325 /6.700666 /216396 | 2.010829742 /1.985281 /216144 |
+
+Entries are medians of each metric, not a synthetic single sample. Large wall
+improves3.480x at1worker and3.343x at4, with72.0% less serial CPU. Small wall
+changes+0.20%/+0.44%, so no small-input improvement is established by3 samples.
+Large4worker scaling is0.871x versus1 after the fix: more lanes remain slower.
+The near-single-core CPU/wall and surviving109M leases motivate A1 caller/grain
+analysis, not claims that queue width proves useful overlap. Small4worker
+scaling1.095x is limited by setup and adds CPU/RSS. Real overlap is separately
+established by the unchanged rendezvous stress; no exact idle/critical-path
+percentage or universal compiler scaling is inferred from these process totals.
+
+All32 measured invocations match independent expected stdout. Four serial/
+parallel before/after canonical emissions are byte-identical to original118962B
+SHA6f2571a1821e3d7f93a2ced1bc6433b64a685b6eb1b927fab3420858e277b3e5;
+the candidate reinterprets that canonical Foundation with exact saturation
+output. This is a measured shared-stage improvement on two frozen workloads,
+not cross-language superiority or whole-compiler release acceptance. Final
+merged ownership/bootstrap/browser/generation and instrumentation gates remain.

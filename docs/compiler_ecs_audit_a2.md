@@ -3,7 +3,7 @@
 This is an **in-progress audit**, not lane acceptance or publication evidence.
 Owner: A2 on KinmenA, exclusive `C:\Sandbox\tower-agent-2`, main.
 Reviewed source baseline: `6282238779034442e0578d76b921ca117df819f1`;
-A2 review checkpoint `366b1f98` includes the measured A2 changes below, on
+A2 review checkpoint `a125c03e` includes the measured A2 changes below, on
 published60741c51. Unmodified receipt rows retain the baseline reviewed identity;
 later changed-file receipts state their implementation commit. Session
 `01a2046f-fec2-7c71-be46-cad28f9ac147`, resumed Codex PID 15056.
@@ -37,7 +37,9 @@ Primary references consulted 2026-11-22:
 ## File review receipts
 
 All paths below are relative to `scaffolding/`. Reviewed means a source review,
-not independently validated runtime acceptance. Runtime evidence remains open.
+not independently validated runtime acceptance. These baseline rows retain the
+original review status; later dated receipts supersede their pending evidence.
+Integrated runtime and publication acceptance remain open.
 
 | Path | Storage, ownership and scheduling conclusion | Evidence/gap and disposition |
 | --- | --- | --- |
@@ -747,3 +749,174 @@ No sanitizer diagnostic or completed backend result was observed. This is not
 D2's older internal30s assertion, and no barrier attribution follows from silence.
 Control was not reached. Preserve the current constructor/LR/unit/focused passes
 separately, and adopt D1's focused backend-overlap selector for direct evidence.
+
+## Applied owner handoffs after a125c03e
+
+After the current TSan process exited, checked and applied D1's backend selector,
+parser census and failure-output flush; B2's native path ownership and diagnostic
+followup; the validated driver-request production-source manifest correction;
+and D1/D2's explicit Foundation fixture/measurement repairs. The rejected blanket
+Tower prefix remains absent. These are coordinated owner changes, not new A2
+algorithms. Their patches and exact hashes are preserved in the external status.
+
+A1 editor_background6a6eeed6 was read with the full affected kernel and editor
+context/type helpers, then applied. Current semantic_body_work source is
+6cf7bb9eee192bcaf8b07c58f1d11a7c2663a3215985bb9a4c55eb817193787d.
+Only a required producer outside the completion span clears its worker-private
+editor pointer and observation copy. Its real body still executes; shared editor
+state remains untouched. SemanticEditor contains borrowed references and scalar
+observations, no owned vectors, so resetting that copy omits no disposal. The
+coordinator's found guard prevents publishing its empty observation. This fixes
+the identified admission mismatch without skipping dependency validation or
+changing the separate descendant-capture lease contract. Independent runtime
+validation is running, not yet a pass.
+
+The public predecessor compiles the smallest changed semantic body, request and
+parser benchmark units. Current request6c664c8a and parser0870e6b5 include the
+reviewed owned buffers and outside-timer census respectively. Final validation
+must distinguish the request's serial allocation-failure sweep from production
+TSan overlap; neither substitutes for the other.
+
+Independent current normal results now pass: execution editor at workers1/2/4/8
+including retained completion scopes; query smoke; backend streaming's exact
+objects/distinct-worker rendezvous; driver-request lifetime/fault sweep; real
+filesystem module identity; parser owner census and exact session/world teardown.
+Compilerb48bcd0e, LRb18a350a, executionbad71f50 identify this closure. The parser's
+2048-symbol sample retains3582entities/3583components,65pages,529375 requested
+page bytes versus227936 live payload bytes; these are current input/resource
+counts, not an isolated comparison to the older B1 snapshot.
+
+Updated TSan LRcb8509bd passes the focused backend overlap in142.877wall/
+166.737user/25.819sys with the original30s rendezvous and checked exact objects.
+Control remains running. This direct concurrency evidence does not turn the
+earlier full backend timeout into a pass or establish system LLVM instrumentation.
+
+Matched L1 GDB receipt9d6a861f has46 successful periodic attachments, exact target
+outputs and original binaries/resources. Reliable top symbols repeatedly locate
+entity_table_prepare and stage ownership. Broken deeper unwind and periodic
+bias preclude caller-chain or time-share claims; debugger wall time is excluded
+from speed comparisons. A2 is preparing per-store Tower diagnostic counters for
+table search/reservation and stage publication. One hypothesis is repeated
+unchanged lease preparation; another is exact-sized stage index growth. Neither
+is a demonstrated bottleneck until the fixed-input counters and paired profiles
+support it. The private observer preserves the public store prefix/API, allocates
+its own diagnostic tail through the sole store constructor, and never replaces
+the normal compiler used for performance acceptance.
+
+A1's corrected capturev3 f5d3f2bd and prerequisites were read in full, pending
+adoption after frozen measurements. Exact descendant leases before dispatch now
+address the previous v2 ownership gap. Owned executable-edge traversal excludes
+function/type/label binding backreferences; tickets retain revision/profile/
+dispatch, and every affected stage publishes before work completion. Ordered
+source-root borrows remain under program containment until pipeline disposal.
+Aggregate clone storage, producer closure and final runtime/instrumentation gates
+remain with A1/L1 and integrated validation; source review is not their pass.
+
+Control TSan subsequently timed out at600s: exit124/PID0,22:57:58Z,
+600.041wall/658.201user/20.506sys with an empty diagnostic log. It remains failed,
+as does the earlier aggregate type timeout. The focused overlap pass remains
+valid. D1 case-level progress/selection is requested before repeating either
+large suite; no deadline or oracle has been relaxed.
+
+The private counter/process observer now compiles and links with the public
+predecessor. Initial unsupported variadic syntax and a missing explicit strlen
+declaration failed before execution and were corrected only in private Tower
+measurement sources; both logs are preserved. Complete normalb48 compiler,
+resources and original link objects are frozen in A2's own cache. No counter or
+timing run has yet occurred, and no production optimization follows from the
+source hypothesis alone. Awaiting sibling quiet scheduling is separate from
+publication approval.
+
+### 2026-11-22 A2 measured unchanged stage membership (a125c03e plus candidate)
+
+Re-reviewed `library/entity_stage.tower`, `library/entities.tower` and
+`library/entity_types.tower` against the actual append-only stage contract.
+`entity_component_remove` rejects leased entities; registered kinds are immutable.
+Consequently an unchanged leased component count proves unchanged membership for
+this API. It would not prove equality for arbitrary replaceable component sets.
+The new candidate skips destination-table preparation/publication for that case,
+and skips the count-map allocation when there are no new nodes/components.
+Every lease still clears its stage/storage on publication. New nodes, additions,
+pre-commit reservation, rollback, queued holds, pool detachment and finalizers
+retain their previous ordering. No shared API/layout, identity or noalias change.
+
+The fixed 118962-byte Foundation input6f2571a1, compiled with normalb48bcd0e,
+exposed109623644 table prepare/publication calls;109452157 were unchanged.
+Private per-store Tower counters show one bucket/signature probe per nonempty
+lookup, so collision chains do not justify a new hash index. After the exact
+three candidate hunks, prepare/publication falls to171487, with0 unchanged calls.
+All109460399 leases remain, over6025 stages;8242 added components,152976 next-id,
+60 created/pruned tables,0 live at teardown,23 peak tables and maximum arity5
+are unchanged. A1 separately owns narrowing caller lease cardinality; these
+counters do not identify every contributing caller or justify removing leases.
+
+Table reserve growth275->271, requested capacity bytes13734048->8573088 and
+explicit copied pointers715757->535428. Count-map requested bytes1331712->724224.
+Instance growth stays14 requests/437368 bytes; previous reserved436984 bytes do
+not establish realloc's actual copy count. Cumulative requested/copy counters
+are not peak live memory or RSS. Private after observer6338edae/public-prefix
+source665eaf1a produces the same expected saturation outputs and exact teardown;
+its intrusive timing is excluded from speed comparisons. All original normal
+objects, resources, counter sources/logs and before receipt remain preserved.
+
+Focused owned tests now exercise payload-only full/empty leases, mixed component
+additions/new children, pinned-view refusal, duplicate-name failure, discard,
+repeated publication, pointer/index stability, zero pending reservations and
+exact teardown. Public predecessor compiles the smallest changed library and
+interprets the extended `tests/entity_tables.tower` with output0. The initial
+unsupported else-if spelling failed before runtime and was rewritten using the
+supported nested form; the original failure log remains.
+
+`tests/entity_stage_concurrent.tower` adds a preexisting payload entity per job,
+its explicit graph write range and pre-dispatch stage lease. Actual synchronized
+workers mutate those payloads; all publication/cancellation/discard/partial
+submission/name-failure outcomes check unchanged membership/pointers and cleared
+leases. Existing writes are not transactionally rolled back by discard. All
+original queued-reference and exact57792-finalizer assertions remain. Three
+normal, three actual ASan+leak and three actual TSan runs pass, using production
+allocator/transport;199 fixture/library and47 guest functions are instrumented.
+Three extended table ASan+leak runs also pass,103 table+49 program-runtime
+functions. Initial table linking selected the library runtime and failed missing
+main; corrected only that runtime selection, retained the failure, and did not
+repeat the already-passing concurrency matrix. Source UBSan/foreign LLVM and
+universal race freedom remain unsupported claims. Whole compiler type/control/
+full-backend TSan timeouts remain open; focused passes do not erase them.
+
+Frozen normalb48/candidateda72 paired small/large jobs1/4 timings and canonical
+roundtrip are prepared but not yet run. Performance acceptance remains pending.
+
+Paired performance completed23:23:47Z, exit0/PID0,105.36s within the180s quiet
+window; sibling containers remained idle. Host AMD Ryzen AI MAX+395, Windows11
+Docker Linux x64, tower_build:latest/LLVM19, CPU12-23/24GiB cap. Public predecessor
+built normalb48bcd0e and candidateda72aad4; only the entity object changes, other
+objects and adjacent resources are identical. Target wasm32-unknown-unknown,
+ordinary graph interpreter, --timings --jobs1/4, explicit frozen Bedrock/Foundation.
+Each size/worker/version has one warmup and3 warm samples in alternating pair
+order (before/after, after/before, before/after). Warm means repeated process/OS
+cache use, not a retained compiler session or zero page faults; faults and
+context switches are retained in every raw log. No sample crossed hibernation.
+
+| Input / workers | Before wall / CPU seconds / peak RSS KiB | After wall / CPU seconds / peak RSS KiB |
+| --- | --- | --- |
+| Small ordinary42 /1 | 1.122001225 /1.052234 /168068 | 1.124235063 /1.052700 /168160 |
+| Small ordinary42 /4 | 1.022195634 /1.175444 /189300 | 1.026712627 /1.181098 /187900 |
+| Large staged6f257 /1 | 6.096356977 /6.040956 /213960 | 1.752030252 /1.691002 /212856 |
+| Large staged6f257 /4 | 6.722258325 /6.700666 /216396 | 2.010829742 /1.985281 /216144 |
+
+Entries are medians of each metric, not a synthetic single sample. Large wall
+improves3.480x at1worker and3.343x at4, with72.0% less serial CPU. Small wall
+changes+0.20%/+0.44%, so no small-input improvement is established by3 samples.
+Large4worker scaling is0.871x versus1 after the fix: more lanes remain slower.
+The near-single-core CPU/wall and surviving109M leases motivate A1 caller/grain
+analysis, not claims that queue width proves useful overlap. Small4worker
+scaling1.095x is limited by setup and adds CPU/RSS. Real overlap is separately
+established by the unchanged rendezvous stress; no exact idle/critical-path
+percentage or universal compiler scaling is inferred from these process totals.
+
+All32 measured invocations match independent expected stdout. Four serial/
+parallel before/after canonical emissions are byte-identical to original118962B
+SHA6f2571a1821e3d7f93a2ced1bc6433b64a685b6eb1b927fab3420858e277b3e5;
+the candidate reinterprets that canonical Foundation with exact saturation
+output. This is a measured shared-stage improvement on two frozen workloads,
+not cross-language superiority or whole-compiler release acceptance. Final
+merged ownership/bootstrap/browser/generation and instrumentation gates remain.
