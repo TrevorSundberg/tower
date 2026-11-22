@@ -10,7 +10,8 @@ measurement modules, 45 provenance-only resource reviews, the new complete
 wide-function benchmark wrapper, the tool-budget regression, and six additional
 shared build/measurement entry points reviewed below. These categories
 are not interchangeable. The subsequently handed-off sanitizer tool and two
-negative probes add three source reviews, for 96 paths; A2 retains their ownership.
+negative probes add three source reviews; A2 retains their ownership. The shared
+stress-source generator adds one further caller review, for 97 tracked paths.
 
 ## Contracts and method
 
@@ -81,9 +82,9 @@ receipts. “Source review” means inspection, not a newly executed test.
 | `scaffolding/benchmarks/interpreter_profile.tower` | Intentional 500,000-iteration scalar recurrence and ordinary function calls; all state belongs to one execution. | Browser CPU sampling input, not a compiler throughput benchmark or a multicore fixture. Wrapping signed arithmetic contract must be preserved by independent oracle. |
 | `scaffolding/benchmarks/compiler_wide_functions.tower` | New D2 complete-file measurement wrapper: one local ByteBuffer, lexical cleanup, existing Tower stress generator and explicit Tower import. No duplicated generator, world, scheduler or IR. | Initial direct fragment compilation failed without the language import; preserved as failure. New emitted 300-function file compiles to identical objects at jobs 1/2/8 and prints independently known 299 in graph/native execution. |
 | `scaffolding/tests/build_tool_budget_checks.tower` | New D2 regression invokes the real builder/compiler synchronously with borrowed argument strings; all local path/product buffers close after child reap. Invalid-budget calls must fail and leave products absent; valid budgets 1/2 must yield equal object bytes. | Public-pin compile/link and real regression pass at `6a2536b`; independent executable-byte comparison also passes. Existing tool transport/files/utility assertions; no fake compiler, alternate scheduler or generic harness modification. |
-| `scaffolding/tools/instrument_llvm.tower` | A2 handoff SHA `93cee185`, reviewed/applied over `3af3cea`. One LLVM context/module owns target IR and attribute/pass state; context, module, pass options and errors close through explicit/deferred cleanup. Sequential mutation of this foreign target artifact needs no second Tower world/AST. Only defined functions receive address/thread attributes, then LLVM passes and module verification run. | A2 reports actual positive/negative ASan/TSan runs; D2 has not yet executed the handoff. Linux x64 only, no source-language UBSan coverage. Already instrumented/no-definition modules reject. LLVM file loading has no explicit byte quota; use trusted frozen generated IR. Output path guard initially excludes hardlink identity; A2 owns its follow-up. Writes may leave failed artifacts; no atomic publication claim. |
-| `scaffolding/tests/sanitizer_memory_probe.tower` | A2-owned deliberate invalid fixture: one eight-byte allocation followed by out-of-bounds access. Raw Tower/Foundation policy is not changed to make it valid. The ordinary passing suite must not execute it. | Expected ASan overflow diagnostic and nonzero status prove sensitivity; A2 evidence is separate from pending D2 execution. Allocation failure traps explicitly. |
-| `scaffolding/tests/sanitizer_race_probe.tower` | A2-owned deliberate shared-payload race, two production workers and real barrier signals; stack job/counter lifetime encloses pool drain, signals close after pool. The intentional unsynchronized writes are the sensitivity target, not a scheduler design. | Requires exactly two real lanes; unsupported admission traps rather than skipping as pass. Expected TSan data-race diagnostic/nonzero status, never successful ordinary-suite acceptance. A2 reports success of sensitivity control; D2 execution pending. |
+| `scaffolding/tools/instrument_llvm.tower` | A2 handoff SHA `93cee185`, reviewed/applied over `3af3cea`, retained in D2 `599e8a8`. One LLVM context/module owns target IR and attribute/pass state; context, module, pass options and errors close through explicit/deferred cleanup. Sequential mutation of this foreign target artifact needs no second Tower world/AST. Only defined functions receive address/thread attributes, then LLVM passes and module verification run. | D2 shared-entry build and real work-pool ASan/TSan positives pass, with both negative controls below. Linux x64 only, no source-language UBSan coverage. Already instrumented/no-definition modules reject. LLVM file loading has no explicit byte quota; use trusted frozen generated IR. Output path guard initially excludes hardlink identity; A2 owns its follow-up. Writes may leave failed artifacts; no atomic publication claim. |
+| `scaffolding/tests/sanitizer_memory_probe.tower` | A2-owned deliberate invalid fixture: one eight-byte allocation followed by out-of-bounds access. Raw Tower/Foundation policy is not changed to make it valid. The ordinary passing suite must not execute it. | D2 observes required ASan heap-buffer-overflow and exit1 with instrumented fixture/runtime. This establishes sensitivity, not a successful program run. Allocation failure traps explicitly. |
+| `scaffolding/tests/sanitizer_race_probe.tower` | A2-owned deliberate shared-payload race, two production workers and real barrier signals; stack job/counter lifetime encloses pool drain, signals close after pool. The intentional unsynchronized writes are the sensitivity target, not a scheduler design. | Requires exactly two real lanes; unsupported admission traps rather than skipping as pass. D2 observes required TSan data race in work_kernel_execute and exit66 with instrumented fixture/runtime, never ordinary-suite acceptance. |
 
 ## Environment and evidence
 
@@ -109,6 +110,22 @@ owner's production responsibility.
 | `scaffolding/backend/embed_runtime.tower` | B2-owned streaming target-artifact encoder. Byte-at-a-time input/output has bounded stack retention, explicit overflow/read/write/close checks, and preserves exact hex bytes plus length. No compiler world/scheduling is needed. Output publication is serial and can leave partial files on failure; same-path input/output protection is absent in this internal tool. Current callers supply distinct generated paths. Browser build execution pending. |
 | `scaffolding/backend/target_registry_tool.tower` | B2-owned registry generator invoked by foreign_tool. Three bounded 1 MiB reads complete before opening output; local buffers close lexically. Configured LLVM target declarations are emitted as ordinary Tower, with no ambient type registry or runtime scheduler. Baseline native build exercised generation. Generated output and transient aggregate input retention are separate from each read bound; malformed registry checks belong to B2. |
 | `scaffolding/backend/foreign_tool.tower` | B2-owned Foundation text/foreign-name bridge. Mutable input, expanded bytes and wrap-response buffers are caller-owned contiguous vectors; temporary foreign-name objects close per token, extra modules contribute wraps only. All reads/expansion finish before serial output writes, preserving source order. Native baseline exercises target expansion. Review hypothesis: expansion calls void backend_text helpers without checking retained length, unlike the input reader; allocator-failure truncation needs B2 reproduction. No independent change made. |
+
+An additional caller review at `599e8a8` covers
+`scaffolding/tests/stress_sources.tower` (unchanged from the initial baseline,
+D1-owned). Its 169 lines append deterministic text into one caller-owned
+contiguous ByteBuffer; named sizes and enum cases describe syntax workloads.
+The emit wrappers dispose buffers after synchronous output, and publication
+requires an exact write within the 65536-byte interpreter output limit. Allocation
+failure traps through the shared test assertions. There is no extra compiler
+world, semantic graph or scheduler; generated program text becomes normal input
+to the real compiler. Chain/field/worker generators include `import tower`, while
+wide-function/declaration/register fragments intentionally depend on their
+caller to supply a language. D2's complete benchmark wrapper supplies that
+boundary. Existing 300-function generation and checked graph/native output299
+exercise that branch; other generator branches retain D1's independent test
+responsibility. Mutable size variables permit larger frozen experiments without
+copying generator logic, but the output bound remains mandatory.
 
 ### Copied bootstrap resources: provenance-only review
 
@@ -348,3 +365,37 @@ execution; the corrected comparisons use the existing `wide_checked.stdout` and
 The original runtime publication identity remains unchanged. Allocation/retention,
 actual compiler overlap, supported instrumentation, applicable generation/browser
 release checks and coordinated publication remain outstanding.
+
+## Optional native object sanitizer integration
+
+Root assigned D2 the shared CMake transport for A2's Tower policy tool. The
+ordinary empty mode preserves the validated production recipes. Address/thread
+mode emits original LLVM, applies existing foreign bindings, instruments every
+owned linked module, compiles with plain Clang-O1 and links compiler-rt only at
+the final executable. Build-host tools and distributed cross-target runtime
+resources are explicitly excluded. Driver tests receive a separate instrumented
+guest library; the serial allocator fixture keeps its existing serial transport.
+No alternate manifest parser, compiler graph, scheduler or `noalias` was added.
+
+At checkpoint `599e8a8`, both four-object work-pool targets pass ASan/TSan; the
+heap-overflow/race probes report the required errors with exit1/66. The TSan LR
+target builds through existing CMake recipes: its22 direct objects and all4
+memory archive members contain instrumentation references. Three LR runs pass
+with identical output; query-smoke passes32/64-bit,1/4-worker cases. Exact
+commands, per-object symbols/hashes and GNU-time logs are retained under
+`build/d2_ecs/sanitizers`. System LLVM/libc/compiler-rt are foreign dependencies,
+not instrumented Tower modules. Source-language UBSan is unsupported.
+
+The backend selector fails its180s timeout, exit124:180.06s wall,178.04s CPU,
+564220KiB RSS,0swaps, no diagnostic. At the late snapshot only the main thread
+was busy, alongside TSan's sleeping maintenance thread. This does not establish
+backend overlap or diagnose a race. Follow-up needs a normal-mode baseline and
+longer bounded instrumented run; neither existing assertions nor timeout evidence
+were erased. D1's next heavy slot precedes that investigation. Full address-mode
+compiler checks, changed-builder instrumentation, configuration rejection tests
+and final integrated publication remain pending.
+
+The configured TSV initially recorded object/original-IR/instrumented-IR/mode;
+a subsequent metadata-only refinement adds each recipe's actual Tower source
+path. Generated source and original/bound LLVM remain distinct. This is a
+configuration inventory, never a claim that every configured target was built.

@@ -46797,3 +46797,57 @@ runtime definitions. Memory probe exits1 with ASan heap-buffer-overflow; real
 worker race exits66 with TSan data race in work_kernel_execute. Raw diagnostics,
 exit statuses and build logs remain in sanitizers/{memory_address,race_thread}.*
 and probes_build.log. These establish sensitivity, not full-program correctness.
+
+At frozen599e8a8, the shared TSan LR target builds56 steps in272.10s wall,
+264.78s CPU,788776KiB peakRSS,0swaps. The actual final command links22 direct
+Tower objects plus libtower-compiler-memory.a's runtime-allocate, runtime-trap,
+tower-compiler-host and tower_work_host objects, matching the26-unit production
+closure. System LLVM/libc/compiler-rt remain external uninstrumented libraries;
+this is actual project-owned Tower instrumentation, not instrumentation of all
+foreign dependencies. Link/command/archive evidence is retained separately.
+Three LR runs exit0 with byte-identical success output: wall12.30/8.90/8.05s,
+CPU12.05/8.78/7.95s, peakRSS149180/147104/150332KiB. Query-smoke also passes
+32/64-bit and1/4-worker staged dependency checks (2.02s wall,1.99s CPU,115508KiB).
+These validate the frozen existing production sources, not other lanes' pending
+constructor/query/parser changes. The backend overlap selector is still running.
+
+The backend TSan selector hit its180s deadline: exit124,180.06s wall,178.04s
+CPU,564220KiB RSS,0swaps; no success or sanitizer diagnostic was printed.
+A late process snapshot showed only the busy main thread and TSan's sleeping
+maintenance thread, so this run establishes neither backend overlap nor a race.
+The failure is retained in sanitizers/backend_thread.{log,time}. All processes
+were drained before releasing inputs. A normal-mode baseline and longer bounded
+instrumented run are needed to distinguish instrumentation cost from a stall;
+no timeout/assertion was weakened. The26 actual direct/archive Tower objects
+all contain __tsan references; per-object symbols and SHA256 are retained in
+lr_thread_object_coverage.txt and *.thread.symbols. Foreign LLVM/libc remain
+outside that object coverage. D1 receives the next heavy slot before follow-up.
+
+After all owned jobs drained and D1 took the next heavy slot, D2 refined only
+the coverage transport metadata: each existing sanitizer object call now supplies
+its known Tower input path alongside original/bound LLVM. All three caller forms
+(common runtime, guest runtime and guarded bytes fixture) were updated together;
+no compile flags/commands or dependency semantics changed. Configure/no-op
+validation is pending the next D2 slot. The earlier exported mode patch is left
+unchanged so recipients do not receive a silently revised draft.
+
+Rebase receipt mapping: original measured6a2536b became73840ac, original
+17c0a06 became392bd60, and evidence checkpoint3af3cea became36d1b50 after
+integrating docs-only60741c5. Exact git diff of the eight budget implementation
+paths, two generator-fix paths, and complete scaffolding tree at the respective
+pairs all exits0. Historical execution receipts retain their actual original
+commit identifiers; the rebased implementation bytes are independently equal.
+This does not relabel old compiler checks as validation of changed algorithms.
+
+A final caller inventory added the unchanged169line D1 stress_sources.tower to
+D2's substantive audit (97 tracked paths). An ignored .tower-only larger-input
+experiment reuses its generator with1000functions and the same64KiB output
+limit; SHA2562bb1252ff86abb6f86ae041ca83e6b362bdf1460606b2b647a3aa570e08316a4.
+It is prepared but unexecuted while D1 profiles; no result or speedup is claimed.
+
+Coordinator validation steering received: do not repeat deliberate invalid-memory
+or intentional-race probes, and do not retry/rephrase app-blocked requests. D2
+retains its existing completed sensitivity evidence without replay. Remaining
+sanitizer work uses actual valid compiler/builder/regression workloads; this does
+not waive production threading/lifetime acceptance. No such follow-up has yet
+run while D1 owns the host slot.

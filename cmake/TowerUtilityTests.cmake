@@ -52,7 +52,8 @@ add_custom_command(OUTPUT ${bytes_products}
   DEPENDS scaffolding/tests/bytes.tower scaffolding/tests/bytes_oracle.tower scaffolding/tests/utility_checks.tower
     "${TOWER_BOOTSTRAP_COMPILER}" "${utility_bind}" VERBATIM)
 if(TOWER_SANITIZER)
-  tower_sanitizer_object(tower-bytes-tests "${bytes_bound}" "${utility_triple}")
+  tower_sanitizer_object(tower-bytes-tests "${bytes_bound}" "${utility_triple}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/bytes.tower")
 endif()
 set_source_files_properties("${bytes_object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
 add_executable(tower-bytes-tests "${bytes_object}" "${utility_trap}")
