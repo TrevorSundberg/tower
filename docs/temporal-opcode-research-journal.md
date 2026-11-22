@@ -48725,3 +48725,40 @@ exact pinnedSHA b761e3a0721dbae9c09a0059e5fdb2bf917d1b4a8a7b430fb3b5aafb0984b2c4
 verified. No extraction/compiler/vendorcheckout overlapped D1measurements.
 D1released heavylock afterdrain; own Docker init/sleeponly before nextfreeze.
 SDK installation/browser/release acceptance not yet claimed.
+
+#### D2 atomic aggregate input handoff before the next source freeze
+
+The complete joint source handoff arrived before any next compiler process.
+Read all API2792/publisher997aa4/consumer27a71a9f and ordinary fixture0a47c49d,
+then applied all three consecutively after policy595; no partial-ABI build.
+Shared IMValueProjection replaces the same semantic leaf payload, not another
+authoritative IR. Required capture publishes frozen canonical leaves after exact
+producer success; optional known-producer metadata preserves the required role.
+Every invocation is disposed before any producer projection vector is freed.
+
+Consumer storage belongs to an invocation/frame, bounded by existing target
+stack size. It materializes only canonical scalar/type/function/null-pointer
+leaves at checked offsets, initializes private padding, and caches by producer
+within surviving frame lifetime. Nested return drops only matching/deeper
+storage entries; retained root lives until disposal. Initialization happens
+before the new immutable range is registered; subsequent stores/copy/fill share
+the existing strict access check. Raw Foundation outside strict evaluation is
+unchanged. This is reviewed intended behavior, not executed safety evidence.
+
+Expanded existing interpreter_call_query covers independent interleaved copies,
+nested frame cleanup, retained root, three disposal/cancellation attempts and
+immutable store/copy/fill rejection at both target widths through query-smoke.
+It uses explicit world/components and stack-owned frozen projections; no actual
+parallelism claim follows from interleaving. Ordinary aggregate_capture_inputs
+checks nested records/arrays, type and function references, null pointer, empty
+record, global/local copies and32repeated sum22calls=704; expected0. D1 owns its
+existing-runner registration. D2 may execute the exact fixture directly before
+the hook arrives, without duplicate harness/imports.
+
+The broader IMContext/IMValueInput ABI invalidates dependent build objects and
+requires fresh current query/lifecycle/type/native and positive supported
+sanitizer evidence. Prior3f49 profiles/failures remain a frozen predecessor,
+not validation of this source. Full42cases remain unproven. No parsertrace330
+or partial aggregate source is present. Next: smallest changed interpreter/query/
+evaluation units, canonical public-pin build then focused failure/correctness
+checks. D1storage reset/utility draft is separate, still awaiting its own check.

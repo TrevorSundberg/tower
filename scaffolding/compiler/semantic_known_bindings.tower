@@ -103,6 +103,9 @@ fn sem_known_stage(c: SemanticContext*, node: void*, binding: SemanticKnownBindi
         sem_require(input != null);
         *input = default;
     }
+    // Fresh components initialize every role and projection field above. A
+    // preexisting required capture keeps its own producer and borrowed leaves;
+    // optional inference must not overwrite that proof or consume its storage.
     input.known_producer = subject;
     result.expression = sem_get(node).value;
     c.surface_expressions = true;
