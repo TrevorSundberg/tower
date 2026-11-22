@@ -751,4 +751,21 @@ fn query_enum_values(): i32 {
     return convert(i32, small) == 4 && convert(i32, signed) == -3 ? 42 : 0;
 }
 if query_enum_values() != 42 || comptime(query_enum_values()) != 42 { failures++; }
+struct DeferredQueryStorage { values: vector(void*); }
+fn deferred_query_values(storage: DeferredQueryStorage*, visits: i32*): vector(void*)* {
+    visits[0]++;
+    return &storage.values;
+}
+fn deferred_query_release(storage: DeferredQueryStorage*, visits: i32*): void {
+    // This specialization has no prior ordinary call to prepare its signature.
+    // The argument executes at cleanup, once, after the body changes visits.
+    defer vector_dispose(deferred_query_values(storage, visits));
+    visits[0] += 10;
+}
+var deferred_query_storage: DeferredQueryStorage = default;
+var deferred_query_visits: i32 = 0;
+vector_push(&deferred_query_storage.values, null);
+deferred_query_release(&deferred_query_storage, &deferred_query_visits);
+if deferred_query_visits != 11 || deferred_query_storage.values.length != 0
+    || deferred_query_storage.values.data != null { failures++; }
 print(failures);

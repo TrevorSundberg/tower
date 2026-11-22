@@ -185,7 +185,7 @@ fn body_runs_arm_error(budget: usize, bedrock: u8*, foundation: u8*, root: u8*, 
     units_check(frontend_units_failed(batch) == 1 && strstr(error, mode == BodyArmFailure.DuplicatePattern ? "Duplicate match pattern" : "unknownMatch") is not null && strstr(error, "unknownSecond") is null, "Resumed arm and cleanup failures preserve source diagnostic order");
 }
 
-enum BodyDeclarationFailure: u32 { SelfReference, SharedSignature, SharedInitializer, HeaderSelfReference, SharedTypeInitializer, SharedTypeAlias, SharedNestedType, NestedFunctionSignature, IterationSignature, ModuleInitializer, ModuleStatement, ArrayExtent, ArrayCycle, ModuleArrayExtent, ArrayFields, ConstructorCycle, StructuralTypeFailure, VoidReturn, DeferredReturn, AssignmentTarget, AssignmentStore, EnumNames, EnumOverflow, IterationSource, IterationLookup, IterationInference, DuplicateLocal, LaterDuplicateLocal, ComputedArrayExtent }
+enum BodyDeclarationFailure: u32 { SelfReference, SharedSignature, SharedInitializer, HeaderSelfReference, SharedTypeInitializer, SharedTypeAlias, SharedNestedType, NestedFunctionSignature, IterationSignature, ModuleInitializer, ModuleStatement, ArrayExtent, ArrayCycle, ModuleArrayExtent, ArrayFields, ConstructorCycle, StructuralTypeFailure, VoidReturn, DeferredReturn, AssignmentTarget, AssignmentStore, EnumNames, EnumOverflow, IterationSource, IterationLookup, IterationInference, DuplicateLocal, LaterDuplicateLocal, ComputedArrayExtent, DeferredSignature }
 var BodyDeclarationRevision: u64 = 90;
 var BodyDeclarationProfile: u64 = 23;
 
@@ -293,6 +293,10 @@ fn body_runs_declaration_error(budget: usize, bedrock: u8*, foundation: u8*, roo
     if mode == BodyDeclarationFailure.DeferredReturn {
         source = "import tower;fn id(T:type,value:T):T{return value;}fn first():i32{defer{return id(1);}return 0;}fn later():i32{return unknownLater;}";
         diagnostic_text = "A deferred cleanup cannot return";
+    }
+    if mode == BodyDeclarationFailure.DeferredSignature {
+        source = "import tower;fn bad(T:type,value:T):MissingReturn{return value;}fn first():void{defer bad(1);}fn later():i32{return unknownLater;}";
+        diagnostic_text = "MissingReturn";
     }
     if mode == BodyDeclarationFailure.AssignmentTarget {
         source = "import foundation;fn broken(T:type,value:T):MissingReturn{return value;}fn first():i32{unknownTarget=broken(i32,1);return 0;}fn later():i32{return unknownLater;}";
@@ -424,6 +428,7 @@ fn body_runs_smoke_select(root: u8*, kind: BodySmokeKind): void {
             body_runs_arm_error(budget, bedrock.data, foundation.data, root, BodyArmFailure.DuplicatePattern);
             body_runs_arm_error(budget, bedrock.data, foundation.data, root, BodyArmFailure.IterationBody);
             body_runs_iteration_errors(budget, bedrock.data, foundation.data, root);
+            body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.DeferredSignature);
         }
         puts("Control continuation smoke: serial/worker execution, canonical reparse, cleanup and ordered errors passed.");
         return;

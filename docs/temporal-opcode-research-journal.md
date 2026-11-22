@@ -44537,3 +44537,31 @@ No sem_declarations_execute calls remain in semantic_body_work. The final
 interleaving change proceeds through the milestone publication checks below;
 whole-program known-value proof and top-level module/header readiness still
 constrain early captured values and executed helper calls in type arguments.
+
+Publication rebase integrates upstream 454c951, including production Tower
+Mach-O linking and stress fixture producers, as a7f5d90. Public-bootstrap native
+compilation succeeds, but the successor's compilation of semantic_body_work
+reports an unfinished vector_dispose signature. Hold publication. GDB on that
+successor breaks at sem_fail: sem_declaration_report <- sem_call_specialization
+<- sem_call <- sem_expression_statement <- sem_statement <- sem_defer_register
+<- sem_block_step <- sem_bodies_pump. The body finalizer is not reached.
+This identifies the remaining single-expression defer fallback: unlike deferred
+blocks, it recursively checked its generic call while other header queries waited.
+Logs: body-preparation-publication-native.log and body-preparation-gdb-failure.log.
+
+Retain a single-expression defer cursor on the body work component. Its worker
+opens the deferred checking context once, the ordinary expression query waits for
+signatures/types, and the resumed worker registers the checked cleanup without
+executing its arguments. Dependency failure restores the prototype frame before
+selecting the diagnostic. Existing control-call rejection keeps its structural
+path. Extend body_continuation with a fresh vector(void*) disposal specialization
+and a deferred argument that must execute exactly once after a preceding body
+effect. Add an ordered failed-generic-defer case to the control suite. All owned
+implementation/regression code remains Tower. The successor/control results and
+refreshed frozen release assets remain pending here.
+
+The defer correction passes the successor self-compilation of semantic_body_work
+(18 MiB LLVM output) and control-smoke, including the new cleanup timing and
+ordered signature-failure cases. Log: body-preparation-defer-native.log. Keep
+the failed candidate logs; do not reuse its browser assets as evidence for this
+correction. Refresh the frozen publication once with the corrected sources.

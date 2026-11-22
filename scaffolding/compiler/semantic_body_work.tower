@@ -190,6 +190,8 @@ struct SemanticBodyWork {
     prepared_value: void*;
     prepared_header: void*;
     prepared_statement: void*;
+    deferred_statement: void*;
+    statement_defer_state: SemanticDeferCursor;
     iteration_plan: SemanticIterationPlan;
     iteration_resolution: SemanticIterationResolution;
     iteration_role: IterationRole;
@@ -648,6 +650,16 @@ fn sem_body_run(c: SemanticContext*, result: SemanticBodyWork*): void {
         var source = sem_child(cursor.subject, cursor.next);
         if source == result.stop {
             var header = sem_unwrap(source);
+            if sem_is(header, "TowerDefer") {
+                var statement = sem_member(header, "body");
+                if sem_is(statement, "TowerExpressionStatement") && sem_control_call(c, statement, "label") == null
+                    && sem_control_call(c, statement, "jump") == null {
+                    sem_require(result.deferred_statement == null);
+                    if sem_defer_begin(c, header, cursor.depth + 1, &result.statement_defer_state) {
+                        result.deferred_statement = header;
+                    }
+                }
+            }
             if sem_is(header, "TowerFor") && result.boundaries.data[result.boundary].header {
                 // Open this body's private loop scope before suspending. Its
                 // initializer/type queries borrow that retained lexical state.
@@ -669,18 +681,25 @@ fn sem_body_run(c: SemanticContext*, result: SemanticBodyWork*): void {
             // statement, lexical flow and any deferred exits around that value.
             var value = result.prepared_value;
             var flow = FlowNext;
-            if sem_is(node, "CoreDeclare") {
-                sem_require(sem_declaration_state(c, node).storage_ready);
-                if value != null { sem_get(node).value = value; }
-                sem_require(sem_member(node, "value") == null || sem_get(node).value != null);
-                sem_declaration_finish(c, node);
+            var statement = result.deferred_statement != null ? sem_member(node, "body") : node;
+            if sem_is(statement, "CoreDeclare") {
+                sem_require(sem_declaration_state(c, statement).storage_ready);
+                if value != null { sem_get(statement).value = value; }
+                sem_require(sem_member(statement, "value") == null || sem_get(statement).value != null);
+                sem_declaration_finish(c, statement);
             } else {
-                flow = sem_is(node, "CoreReturn") ? sem_return_statement(c, node, value)
-                    : sem_is(node, "TowerExpressionStatement") ? sem_expression_statement(c, node, value)
-                    : sem_is(node, "CoreAssign") ? sem_assignment_value(c, node, value)
-                    : sem_call_statement(c, node, value);
+                flow = sem_is(statement, "CoreReturn") ? sem_return_statement(c, statement, value)
+                    : sem_is(statement, "TowerExpressionStatement") ? sem_expression_statement(c, statement, value)
+                    : sem_is(statement, "CoreAssign") ? sem_assignment_value(c, statement, value)
+                    : sem_call_statement(c, statement, value);
             }
-            flow = sem_statement_complete(c, node, flow);
+            flow = sem_statement_complete(c, statement, flow);
+            if result.deferred_statement != null {
+                flow = sem_defer_finish(c, node, &result.statement_defer_state, flow);
+                flow = sem_statement_complete(c, node, flow);
+                result.deferred_statement = null;
+                result.statement_defer_state = default;
+            }
             cursor.next++;
             sem_block_accept(c, cursor, node, flow);
             result.prepared_statement = null;
@@ -976,6 +995,16 @@ fn sem_body_for_pump(c: SemanticContext*, batch: SemanticBodyWork**, count: usiz
 // let earlier body continuations settle before choosing the visible diagnostic.
 fn sem_body_preparation_failed(c: SemanticContext*, result: SemanticBodyWork*): void {
     sem_require(work_fail(&c.queries, result.preparation));
+    if result.deferred_statement != null {
+        var saved: SemanticBodyScope;
+        sem_body_save(c, &saved);
+        sem_body_restore(c, &result.lexical);
+        sem_defer_finish(c, result.deferred_statement, &result.statement_defer_state, FlowNext);
+        sem_body_save(c, &result.lexical);
+        sem_body_restore(c, &saved);
+        result.deferred_statement = null;
+        result.statement_defer_state = default;
+    }
     sem_body_hold_error(c, result);
     result.done = true;
     result.preparation = 0;
@@ -1080,6 +1109,10 @@ fn sem_body_iteration_layouts(c: SemanticContext*, batch: SemanticBodyWork**, co
 // After the operand and type/layout dependencies complete, a body worker resumes
 // statement construction and lexical flow without checking that operand again.
 fn sem_body_statement_query(c: SemanticContext*, result: SemanticBodyWork*, node: void*, depth: u32): bool {
+    if node == result.deferred_statement && node != null {
+        node = sem_member(node, "body");
+        depth++;
+    }
     var returned = sem_is(node, "CoreReturn");
     var discarded = sem_is(node, "TowerExpressionStatement");
     var called = sem_is(node, "CoreCallStatement");
@@ -1365,7 +1398,7 @@ fn sem_body_declarations_publish(c: SemanticContext*, batch: SemanticBodyWork**,
         }
         if result.expression_statement != null || declaration != null && result.declaration_header == null {
             if sem_ok(c) {
-                result.prepared_statement = node;
+                result.prepared_statement = result.deferred_statement ?? node;
                 result.prepared_value = result.initialization != null ? result.initialization.value : sem_get(node).value;
             }
         } else {
@@ -1541,6 +1574,8 @@ fn sem_body_clear(result: SemanticBodyWork*): void {
     result.prepared_value = null;
     result.prepared_header = null;
     result.prepared_statement = null;
+    result.deferred_statement = null;
+    result.statement_defer_state = default;
     result.iteration_plan = default;
     result.declaration_header = null;
     result.declaration_loop = default;
