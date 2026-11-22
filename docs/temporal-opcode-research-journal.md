@@ -40814,3 +40814,23 @@ WebAssembly instantiation and worker cancellation as host transport. Audit the
 actual exported calls and existing Tower checks before choosing removal or the
 smallest required Tower replacement. Do not infer that the 1081-line app UI is
 unused or promise an entire UI rewrite in this lane.
+
+Publication verified: documentation-only ac47066/5a48e96 integration rebases the
+implementation to c368ab0, validation to 99bc04f, and final bootstrap receipt to
+4305d57. A source-diff guard confirms that no implementation changed since the
+last clean successor. All three are pushed. Pages
+555d7c473c8a0dbe9d0c9071f668a56d966eec71/action 44980505048 succeeds; its
+manifest SHA256 is
+835c093b4879f0aee770bd8474ac00accc8c36e21be3444f0e1764f8470fd337.
+That write preserves a07bb6e runtime identity, all 88 assets and every prior receipt.
+
+Hosted verification initially differs because another lane advances Pages to
+9275bd62bbab160083625a0f82e4fc52f37e70ac while our cooperative publication lock
+is still held. Its parent is our 555d7c47 commit, and it preserves our entire
+backendCompositionToolingMigration receipt unchanged while publishing runtime
+2225c52. Do not roll back the newer release. Its action 44980567672 succeeds;
+fetch its exact manifest Git blob and verify hosted bytes match SHA256
+4b47149e164e5902ca4fd780361539d474065584c01026d3f22ede1a5aaec009.
+The hosted tooling receipt also matches our published object exactly. Notify the
+coordinator of the lock overlap and release only our own lock after verification.
+No claim that we rebuilt or published the newer runtime is made.
