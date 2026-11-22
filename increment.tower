@@ -1,7 +1,38 @@
-import tower;
+import bedrock;
 
-// tower.tower supplies typed prefix/postfix ++ and -- for integer and pointer
-// locations. These ordinary helpers show the equivalent i32 operations.
+// Bedrock supplies grammar declarations, not executable statements or ++.
+// Define only the basic Foundation forms this example needs. Core* names and
+// captures connect these rules to the compiler's ordinary typed operations.
+[number]
+token Number = /[0-9]+/;
+parse CoreTypeName = $name:Identifier;
+parse CoreType = $name:CoreTypeName | $base:CoreType '*';
+parse CoreLocation = $name:Identifier;
+parse CoreOperand = CoreLocation | Number;
+parse CoreOperator = '+';
+parse CoreBinary = $left:CoreOperand $op:CoreOperator $right:CoreOperand;
+parse CoreAddress = '&' $name:CoreLocation;
+parse CoreLoad = '*' $name:CoreLocation;
+parse CoreValue = CoreOperand | CoreBinary;
+parse CoreTarget = $name:CoreLocation | '*' $name:CoreLocation;
+parse CoreDeclare = 'var' $name:Identifier ':' $type:CoreType '=' $value:CoreValue ';';
+parse CoreAssign = $target:CoreTarget '=' $value:CoreValue ';';
+parse CoreParameter = $name:Identifier ':' $type:CoreType;
+parse CoreParameters = CoreParameter | CoreParameters ',' CoreParameter;
+parse CoreCallArgument = CoreOperand;
+parse CoreArguments = CoreCallArgument | CoreArguments ',' CoreCallArgument;
+parse CoreCall = $name:CoreLocation '(' $args:CoreArguments? ')';
+parse CoreOperand |= CoreCall | CoreAddress | CoreLoad;
+parse CoreBlock = '{' Statement* '}';
+parse CoreFunction = 'fn' $name:Identifier '(' $params:CoreParameters? ')' ':' $type:CoreType $body:CoreBlock;
+parse CoreReturn = 'return' $value:CoreOperand ';';
+parse CoreCallStatement = $call:CoreCall ';';
+parse Statement = CoreDeclare | CoreAssign | CoreFunction | CoreReturn | CoreCallStatement;
+
+// Define the example's signed 32-bit integer type without a standard-type import.
+var i32: type = integer_type(32, 1);
+
+// These helpers increment i32 locations; postfix returns old, prefix returns new.
 fn post_increment(p: i32*): i32 {
     var old: i32 = *p;
     *p = old + 1;
@@ -10,10 +41,17 @@ fn post_increment(p: i32*): i32 {
 
 fn pre_increment(p: i32*): i32 {
     var next: i32 = *p;
-    next++;
+    next = next + 1;
     *p = next;
     return next;
 }
+
+// Extending CoreCall covers assigned results, standalone statements and arguments.
+// Neither spelling exists until these rules expand it into an ordinary call.
+parse CoreCall |= $target:CoreLocation '++'
+    => replace { post_increment(&$target) };
+parse CoreCall |= '++' $target:CoreLocation
+    => replace { pre_increment(&$target) };
 
 var value: i32 = 5;
 var before: i32 = value++;
