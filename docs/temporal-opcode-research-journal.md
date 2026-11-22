@@ -47592,3 +47592,143 @@ drains transport, then releases views/worlds and execution grants. CompilerWork
 dispatch1 remains an explicit once-per-unit contract, distinct from resumable
 WorkTickets. No newly demonstrated defect or runtime edit arose from this review.
 The documentation-only review has no applicable before/after runtime profile.
+
+Own docs checkpoint366b1f98 committed only the A2 audit/journal, then
+pull --rebase --autostash succeeded against unchanged public60741c51. All routed
+owner edits were preserved. After verifying the absolute owned cache path,
+removed only generated native/lr-work-main-unbound.ll to force its changed
+import to compile. Normal build regenerated53steps78.821wall/108.393user/8.356sys
+and affected test5steps11.103/10.244/.924. Compiler hash remains exactlybfaedcad;
+LR now6d94c04e34b11b267f7ce938a269513be14af3da626b56c4a70501aa61600441,
+execution09e015d2cd054b9f0fdace7619c69f42f43a6cc23600e0d83f94c1800e2ed126,
+LR emitted IR8716790b17e4da63dd12fd4c567675e310efbee370963ab20688ae1a5bcfce29.
+The new backend_units_overlap_tests definition is now present. Correct current
+backend suite passes47.114wall/61.162user/6.258sys. Correct execution editor aborts
+134 after2.018wall/1.391user/.156sys, with only timeout/core text in its log.
+Container tower-a2-test-source-refresh exited/PID0 at22:15:59Z. The earlier false
+editor coverage claim is not restored. Normal build/native artifacts are restored.
+
+The53-step recompile has identical compiler bytes; autostash-restored source
+mtimes are a plausible cause, but the dirty-edge trace was not captured before
+that build. Subsequent ninja -d explain -n records only the VerifyGlobs/CMake
+phony recheck at that point. Root requests exact dirty-edge attribution on the
+next unexpected rebuild before a build-system fix; no generic write-if-changed
+change or suppressed import dependency is justified by this observation alone.
+
+Existing execution capture hides compiler trap output. No gdb/lldb is installed
+in the image. Added only a private Tower diagnostic OS boundary under A2/cache:
+editor_abort_diagnostic.tower wraps abort with libc backtrace/backtrace_symbols_fd
+and _Exit(134), and forwards compiler_runtime_write to fd2. Original compiler and
+fixture objects are unchanged. Smallest public-pin object compiles1.187s; the
+first link fails because the predecessor's link driver rejects GNU --wrap.
+Preserved joined_editor_abort_trace.log and drained the failed container. Reused
+that object and the original link input list with installed Clang19 for this
+private diagnostic link only (.987wall/.369user/.173sys). This is an OS diagnostic
+boundary, not a compiler/scheduler implementation or a production replacement.
+
+Diagnostic source dad465b15da9d3f3db0a2df30d15d485cd36e3ef2922b1be4749cad3aa8e81c6,
+object c58fbfca97a5e98c41734de423ae0f39f309e7df517aef6beb29eae8268c81b3,
+binary f9519f52fe6396bb3de3bd74d8f9bf77dc48fc7fa65a3d8978ca3b813bc8bc57.
+It retains failure134 (1.708wall/1.374user/.088sys). Stack and llvm-symbolizer:
+semantic_body_kernel -> work_pool_batch -> sem_bodies_pump -> query pipeline ->
+declarations -> sem_run -> completion_analyze -> editor_observation_completion.
+Disassembly atd4872 locates inlined sem_require(sem_function_begin(...)); the
+preceding branches include editor source-range rejection and external functions.
+semantic_statements sem_function_begin returnsfalse for those legitimate skips,
+while the body kernel requires success. This localizes an admission-contract
+mismatch but does not identify which predicate/candidate without further evidence.
+Routed to A1/B2, preserving source hashes bacfbc71 body_work, da4ba1a2 statements,
+f6d39bf9 editor fixture. No cross-owner production edit. Logs
+joined_editor_abort_system.log and joined_editor_abort_symbols.log, and exact
+Tower source/link recipes, are retained in A2/cache. Diagnostic timing is not a
+before/after optimization profile; only the failure-reporting boundary differs.
+
+Started independent current TSan continuation22:21:15Z/PID31450, container
+tower-a2-thread-remaining, same12CPU/24GiB cap, seccomp=unconfined. Reuses exact
+cb615e21 compiler/816e7ad2 LR, no source or binary rebuild: constructor1/4, LR,
+units, backend and control under unchanged240/600s deadlines. Prior type-smoke
+timeout stays open; no passing focused tests are repeated. Imports remain frozen
+and source-specific results are pending. Recipe/log joined_thread_remaining.
+
+Current TSan continuation passes unchanged constructor jobs1/4, both stdout0:
+20.689wall/20.041user/.524sys and17.568/21.363/1.092. Actual LR passes
+45.667/75.232/.621. Units is active; these are elapsed validation samples, not
+optimization comparisons. Root/L1 independently localized the same editor body
+admission assertion with GDB, so no further broad diagnosis is repeated here.
+
+Incoming coordination_followup_2218 bundles were read, not applied while frozen:
+D1 backend selector430d6654 pairs B2's current helper without reducing full
+coverage; D1 parser retention19da2e17 validates actual page/type/owner census and
+exact session/world teardown outside the existing timing interval. A2 reviewed
+its formula against entities.tower, including individually allocated components.
+Requested total bytes are page requests plus individual requests, distinct from
+allocator usable/live/RSS data. Owner normal/stress passes do not establish
+thread sanitization; owner actual ASan remains pending. A1 capture range candidate
+0d04fe88 retains exact lowering tickets/finalized admission but descendant payload
+leases are unresolved, so remains review-only. A2 proposed existing exact leases
+before dispatch or worker-private typed range results published by coordinator
+after all affected stage joins/publication; A1 owns the algorithm and measurement.
+
+B2 native lexical identity77df2699 was reviewed for owned path buffers and
+snapshot lifetime, pending adoption/merged validation. Blanket fixture import
+ea7bfd6a was reviewed but NEVER applied. Root then rejected it after D1/D2 showed
+their current differential/C cases already explicitly import Foundation and
+measure_kernel has measured Foundation repair0caf05cc. A Tower prefix changes
+activation/source offsets. Preserve those owner choices and await a minimal
+reconciled handoff; no automatic import heuristic or silent fixture weakening.
+
+Root assigned A2 initial checker/storage/dispatch attribution for L1's measured
+same-input regression after the live TSan run drains. Exact118962-byte canonical
+Foundation SHA6f2571a1821e3d7f93a2ced1bc6433b64a685b6eb1b927fab3420858e277b3e5,
+old36342/newb28, identical old adjacent resources, wasm32/jobs1/graph: three balanced
+pairs report about47% wall,51% CPU and20% RSS regression, with only6-8ms execution.
+This predates new capture-range/source-root drafts; changed canonical byte counts
+cannot explain a comparison on identical input. These are L1 owner receipts,
+not yet independently reproduced here. Requested the complete immutable
+binary/resources/input/script/log bundle and established sampling environment.
+Need phase timings/hotspots before any algorithm change; B1 handles parser
+contribution. Quiet profiling must not overlap the current validation processes.
+
+Release preparation remains separate: this clone's pinned vendor submodules are
+uninitialized and there is no local browser dependency cache. Coordinator has
+the exact pinned upstream revisions and will arrange immutable reuse into an
+A2-owned location. Do not use sibling caches or start a duplicate heavyweight
+LLVM build. Final normal public-bootstrap/browser/generation checks still need
+the final committed merged source and leased atomic publication/verification.
+
+Receipt followup: L1_same_foundation_receipt.tgz
+bf12770c7199d783ed1426623af35e48fe1aee0deb3b05c3d9c33d8d453a2377
+was verified and its immutable contents copied to A2/cache/handoff_l1_same_foundation.
+All SHA256SUMS entries verify. Read all six raw time/phase/status/output files,
+resource hashes and the balanced-pair shell recipe. Exact old36342/newb28 medians:
+wall11.05→16.27s, CPU10.89→16.46s, RSS180024→215356KiB; compile phase
+10.758351→16.105004s. The requested source remains byte-identical118962 bytes.
+Old first-run major faults30 versus new1, then zero in subsequent pairs; the
+persistent slowdown is not explained by those initial input reads. This is
+owner evidence; complete binary packages stay in L1's cache and are not accessed
+by A2. Root assigned L1 matched hotspot sampling after its sibling releases the
+host slot. A2's current compiler/resource closure differs and cannot silently
+substitute for the exact old/new comparison. Docker perf_event_paranoid reads2;
+no sampler installation or kernel policy change was made.
+
+Current TSan units passed328.735wall/514.297user/18.665sys. Backend remains active
+under its original deadlines, control later. Read new B2 path diagnostics1110c19f
+in full while keeping source frozen: four precise path failure messages, existing
+static OOM fallback, and nonempty diagnostic assertion for every injected failure.
+Root now confirms the request-source-property87f875de build/fault sweep, replacing
+its earlier draft status. D1 also reports actual parser ASan3normal/3stress passes
+on its exact older closure; default stress RSS442–449MiB versus115240KiB with a
+separate16MiB quarantine experiment. Accept this as allocation-quarantine context
+and owner-scoped memory evidence, not pending capture/current compiler coverage.
+This receipt review changes documentation only; runtime profiling is inapplicable.
+
+TSan continuation terminated22:38:08.417Z, container exited124/PID0. Backend
+reached its unchanged600s outer timeout:600.094wall/748.965user/106.099sys, empty
+per-suite log, no sanitizer diagnostic. Last RSS1386200KiB was a point observation,
+not peak. It did not reach control. Do not conflate this with D2's older internal
+30s overlap assertion; this log does not locate its last case. Preserve current
+constructor/LR/units passes, type/backend failures and unrun control explicitly.
+All processes drained before applying owner handoffs; D1's existing focused
+backend-overlap selector will allow direct barrier validation without another
+full backend run or relaxed timeout. Current complete sanitizer acceptance stays
+open, including affected paths after upcoming semantic ownership fixes.

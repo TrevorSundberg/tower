@@ -3,7 +3,7 @@
 This is an **in-progress audit**, not lane acceptance or publication evidence.
 Owner: A2 on KinmenA, exclusive `C:\Sandbox\tower-agent-2`, main.
 Reviewed source baseline: `6282238779034442e0578d76b921ca117df819f1`;
-current local `c7c30cd6` includes the measured A2 changes below, on
+A2 review checkpoint `366b1f98` includes the measured A2 changes below, on
 published60741c51. Unmodified receipt rows retain the baseline reviewed identity;
 later changed-file receipts state their implementation commit. Session
 `01a2046f-fec2-7c71-be46-cad28f9ac147`, resumed Codex PID 15056.
@@ -668,3 +668,82 @@ units, backend and constructor were not run after this fail-fast termination.
 CPU activity does not locate the slow case or prove absence of a deadlock in
 another thread. Preserve this failure and request D1's case-level attribution
 through existing fixtures; do not relax the deadline or relabel it a pass.
+
+## Current caller failure and pending handoff review
+
+Fresh native LR6d94c04e34b11b267f7ce938a269513be14af3da626b56c4a70501aa61600441
+contains B2's new backend helper and passes the full backend suite. The correct
+editor-observation runner09e015d2cd054b9f0fdace7619c69f42f43a6cc23600e0d83f94c1800e2ed126
+fails134. A private Tower/Linux abort backtrace over unchanged test/compiler
+objects locates semantic_body_kernel's requirement that sem_function_begin
+succeed. That function legitimately rejects noncontaining editor declarations;
+its admission caller needs A1/B2 investigation. This agrees with L1's independent
+trace. No test oracle was weakened and no semantic production file changed here.
+Exact commands, failure timings and diagnostic artifacts are in the journal.
+
+The continuation using the same current TSan binaries passes constructor jobs1/4
+(both output0) and actual threaded LR. Units/backend/control remain pending at
+this receipt; type timeout remains a failure. These narrower passes do not close
+the editor or complete current sanitizer gates.
+
+| Incoming path / handoff | Review and disposition |
+| --- | --- |
+| `tests/parser_benchmark.tower`, D1 patch19da2e17 | Complete patch reviewed against entities.tower allocation formula. Private observer walks actual table rows/components, including full pages detached from allocation pools; validates component owner/world, page type/stride/capacity and observed live count. Samples buffer count before observer allocation, disposes scratch outside timing, keeps cache pointer identities and nonpage-buffer count stable, then requires exact session/world teardown. Requested bytes differ from usable heap/RSS; total requested/live ratio includes individual allocations. Serial instrumentation is asserted. Ready for adoption after frozen tests; D1 normal/stress passes are owner receipts, actual ASan still pending. |
+| `compiler/semantic_capture_work.tower`, candidate0d04fe88 | Whole four-file candidate reviewed, not applied. Metadata is attached before input views; range records retain exact lowering revision/profile/dispatch, and final admission closes only after required producers drain. Shared payload writes to descendant declaration components still need explicit ownership. entity_stage_lease protects only the named entity, never descendants transitively. Proposed existing exact descendant leases before dispatch, or typed range results in worker-private lowering scratch followed by coordinator publication after all affected stages. A1 owns this choice and validation. |
+| `compiler/semantic_expression_lowering.tower`, candidate0d04fe88 | Reviewed every added range hook: before/after indexes cover actual generated initialization in each declaration branch, using the same canonical block. Range collection must not replay effects or survive compaction without its retained lowering receipt. No candidate runtime acceptance is claimed. |
+| `compiler/semantic_known_bindings.tower`, candidate0d04fe88 | Reviewed new finalize call before known-value compaction. Required producer completion and late-generic/capture admission need owner tests; program-root membership is a final boundary marker, not registration readiness. |
+| `compiler/semantic_lowering_work.tower`, candidate0d04fe88 | Reviewed new coordinator range preparation after taking the ticket and before opening views. Existing function/parameter stage leases are exact entities. New descendant metadata must have an explicit mutation contract; a pin alone is insufficient. No candidate adopted before that resolution. |
+| `host/driver_request.tower` and `host/driver_units.tower`, B2 patch77df2699 | Changed ownership paths reviewed: owned absolute lexical source/root buffers survive environment borrows and are freed after world/session teardown; each unit snapshots its temporary absolute path before disposal. This normalizes native lexical spelling without resolving symlinks or changing browser source-provider keys. Full CLI fault-sweep/final validation remains B2 and integrated work; no A2 production edit. |
+
+D1's focused backend selector430d6654 preserves the full selector and existing
+object/barrier/deadline checks. B2 driver fixture prefixea7bfd6a restores explicit
+Tower imports without changing expected outputs. Both are reviewed and pending
+adoption after the live source freeze. They do not retroactively validate earlier
+binaries. The review itself changes no runtime and needs no runtime profile.
+
+Coordinator correction after D1/D2 caller review: the blanket B2 fixture prefix
+ea7bfd6a is not accepted. Their current cases already select Foundation; adding
+Tower changes activation and source offsets. D2's measured kernel source repair
+already adds Foundation. A2 reviewed but never applied this patch. The earlier
+description of restoring Tower imports is therefore not a correctness finding
+for those callers. Preserve their explicit languages and await a revised minimal
+owner handoff; no heuristic import detection or competing fixture rewrite.
+
+Additional owner receipts: D1 completed the parser census on its frozen older
+127ca98/4635241 closure, three normal and three stress ASan executions, with
+unchanged retention output and exact teardown. Default-quarantine stress RSS was
+442–449 MiB; a separate 16 MiB quarantine diagnostic reduced it to 115240 KiB.
+These distinguish retained allocator quarantine from live world ownership; they
+do not validate the pending semantic capture changes. No redundant standalone
+parser sanitizer matrix is needed on that unchanged source.
+
+B2's diagnostic followup1110c19f was read in full: four lexical absolute-path
+failures now call the existing request failure reporter, whose static OOM fallback
+remains available. Its fault sweep requires every failed request to expose a
+nonempty diagnostic and still checks exact buffer balance. The owner now reports
+the request-production-source CMake correction87f875de built and independently
+swept; it is no longer waiting for an unimplemented prerequisite. Both changes
+remain pending local adoption until the current frozen TSan process drains.
+
+The current TSan unit suite passed328.735wall/514.297user/18.665sys using the
+production allocator and worker transport. Backend/control remain pending at
+this update. The earlier type timeout and editor failure remain open.
+
+L1's immutable same-Foundation receipt is copied into A2's own cache and every
+SHA256SUMS entry verifies. Three balanced pairs use the exact118962-byte source
+6f2571a1821e3d7f93a2ced1bc6433b64a685b6eb1b927fab3420858e277b3e5,
+identical old adjacent resources, wasm32, graph interpreter and jobs1. Median
+wall11.05→16.27s, CPU10.89→16.46s, peak RSS180024→215356KiB; compile phase
+10.758351→16.105004s accounts for the regression. Bootstrap remains about116ms
+and execution6–8ms. First-pair old input faults are higher, while subsequent pairs
+have zero major faults, so cold input I/O does not explain the persistent gap.
+These are L1 owner measurements, not an A2 isolated reproduction. Matched hotspot
+samples are pending under the coordinator's shared host slot; no storage or
+scheduler tuning is justified solely by this aggregate result.
+
+The current TSan backend run subsequently hit the unchanged600s outer limit:
+exit124/PID0 at22:38:08Z,600.094wall/748.965user/106.099sys, empty test log.
+No sanitizer diagnostic or completed backend result was observed. This is not
+D2's older internal30s assertion, and no barrier attribution follows from silence.
+Control was not reached. Preserve the current constructor/LR/unit/focused passes
+separately, and adopt D1's focused backend-overlap selector for direct evidence.
