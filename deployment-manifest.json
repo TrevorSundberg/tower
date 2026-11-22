@@ -246,7 +246,7 @@
     "capabilities.json": "beb929d7896b760e4a190875af67a895bc6599978a1566614dc7f39df7277bb2",
     "collections.tower": "f6e2bceb516d9ff9f073aa5504827db60f55d113a2389e9a0e2c17a25d26aef7",
     "compiler/imports-tower-18.txt.gz": "b18ec98ce40c786ff2c58916789929f975351b339b2bb5fe222597587be658aa",
-    "compiler/project.json": "75b8c69feb88eaf932b57402342eaa7e1046c61abeee83118c1a45a560f5dc56",
+    "compiler/project.json": "17488061fa1c4ab74caafe5029a95226c5e0c7d670805fda24edab18b40eef9d",
     "compiler/support-cross-0.a.gz": "928f5a57d9e69f0715e5f2d55ab30996eed53f10e7b82c776fe3228e7ac7bfa6",
     "compiler/support-cross-1.a.gz": "132105cc4b357ea31ebe98fa3e9ace159987be752ece02ae7726970df3eb754c",
     "compiler/support-cross-2.a.gz": "ad27052bc1e486752118e6c7d7227004242679166dbd6b3474ef4d8f3f4c5de4",
@@ -316,12 +316,12 @@
     "targets/x86_64-unknown-linux-gnu-runtime.o": "dd9017a54b2e683f35ed8289eebf6d13175beddd9020ddbdfba3c4933e5c847b",
     "templates.tower": "2045b87e45eda35945fea88cf70b904d8f695c93e36eea08aa0a14b4354682dc",
     "tokens.tower": "bc640f8bbda23848b098288f3a4525fea01a7ee7ff938c38aff02b538d0ca81d",
-    "tower-cross.wasm.gz": "a913b44ae8ddad7429867b74f79cd04583a1ec46944240c9c553dd71f6ebc957",
-    "tower-llvm.wasm": "d97d42fea751cd855f458a176613ef4759a7e689ff2070cd8ecbc4baaaea35ed",
-    "tower-llvm.wasm.gz": "17f5cac09c4205ec2fdb520bf6597daee4d98381134e35eadaecf32a99eaa5c6",
-    "tower-threads.wasm": "d7209b3e655795ca37d464fdccae60494ce045eca073583b65faf1a5e91575ab",
+    "tower-cross.wasm.gz": "6ba9372ae18454952fb8dd0758fdcdf619bbcb062712a7cc3cac8edd0afca1e9",
+    "tower-llvm.wasm": "d848e8af5c33c71d490929add41927a83bedd2b54ba4486ba296c63dd2c4c92d",
+    "tower-llvm.wasm.gz": "d12d33cb44a25f6d2c80a4d8980b09914a33b920270eebf1e00873e30c29fb22",
+    "tower-threads.wasm": "a45bf5ac53bcb6500123cb5b22b28789f1e529da499578d79bd9e2592b7684c1",
     "tower.tower": "bda8b4278e67cf94444556cfe29ea6b4a1627b1ee0bda3a4d23404478e074f04",
-    "tower.wasm": "8ea04364f1cd48c43025e50b04ad8d73a0130f7143d147eb89b02997bfb43fee",
+    "tower.wasm": "d855cf091a5e3ddd0a4f3103c23db918f170a2607a66a174d92aad83338d169a",
     "worker.js": "e594bbca317abe35a6bf2419a07f4620729e83a31cb6544aa7f7525c2247c9d7",
     "worker.js.map": "a69e39f4d57298eeedfc50875328dffe0bffcb280f9522a3bc0917a242cf8874"
   },
@@ -345,7 +345,7 @@
     "validation": "79 runtime/LLVM/package checks; eight threaded package/worker checks; two edited browser compiler generations; four final worker-reuse/stale-permit browser checks; ten output/viewport/frame checks. Fresh native successor after final compiler-source rebase. All 86 local deployment asset hashes and full desktop/mobile flows pass."
   },
   "scope": "Dependency queries for ordinary control headers and initializer expressions; streaming native frontend/LLVM unit scheduling with a shared graph and worker budget.",
-  "previousDeployment": "b23ee50e332eb2195d868c4d6bf01ca5095a977e",
+  "previousDeployment": "86042e3c59fe3ee5ab97dd369a6ad5b71bfbda75",
   "measurementToolingMigration": {
     "implementationCommit": "1007d4179107c6c5372afcb9d1233a406695e992",
     "validationCommit": "824af121b0441df8c2a6af9e6a328bd6a0164018",
@@ -385,11 +385,11 @@
   "bootstrapExecutableSha256": "21f527125bfa05a8cd6d4923d4fdc026a04553e919f2905c602a17691598dba5",
   "publishedBootstrapSha256": "21f527125bfa05a8cd6d4923d4fdc026a04553e919f2905c602a17691598dba5",
   "bootstrapSha256": "21f527125bfa05a8cd6d4923d4fdc026a04553e919f2905c602a17691598dba5",
-  "sourceCommit": "e61eb68bfc6d1403ac5a5f7364c880904a1c6e73",
-  "publicationNote": "Host/parser import membership moved to ordinary Tower profiles; preserve verified fffdc85 runtime and all 89 assets. Tooling-only receipt; no runtime rebuild or asset replacement.",
-  "buildNote": "Runtime and compiler project built from fffdc85 with public bootstrap 21f52712. Fresh default 50-step native build, real native/Wasm overlap, deterministic results and two identical edited browser compiler generations pass.",
-  "buildSourceCommit": "fffdc85f8c59a08464c3a49faa5d14a160a61eed",
-  "compilerSourceTree": "c6309a750928f9faea6bb4ecfa7555bcf894c5da",
+  "sourceCommit": "0aeea65c92cc2c214ef7f48a75fe8b4a5cff660e",
+  "publicationNote": "Publishes function-signature worker admission and indirect-callee stage leases. Prior lane receipts are preserved as historical evidence.",
+  "buildNote": "Fresh portable/threaded/LLVM/cross browser builds and frozen compiler project from 0aeea65, using the checked-in public bootstrap. Later generic-clone and nested invocation changes are excluded.",
+  "buildSourceCommit": "0aeea65c92cc2c214ef7f48a75fe8b4a5cff660e",
+  "compilerSourceTree": "599a1d3d482e7b270ea02108ce1d56bd56cd7112",
   "functionValues": {
     "validation": "Graph/cache, staged callbacks, nullable calls, inferred signatures, struct values, 1/2/4/8 workers, Foundation/package round trips, native/Wasm separate-object callbacks, relocated pin, clean successor and browser self-builds.",
     "sourceCommit": "21290667fd678a9de4ba930aeb5c8f218431665c",
@@ -802,5 +802,19 @@
       },
       "limits": "Linux development successor only. One-import profile selectors and upstream/backend generation remain. Existing runtime assets retained; test compilers not published."
     }
+  },
+  "ecsFunctionQueries": {
+    "sourceCommit": "0aeea65c92cc2c214ef7f48a75fe8b4a5cff660e",
+    "implementation": "Built-in function signatures and nested type arguments use declaration workers; indirect callable locations join the existing syntax lease and eligibility scans.",
+    "validation": "Native body matrix at 32/64-bit targets and 1/2/4/8 workers, canonical reparsing, runtime/comptime, cycles and ordered nested-signature diagnostics; reduced Foundation reproducer prints 42/42. Three shared-Wasm threading checks pass without skips; two edited compiler generations have identical hashes.",
+    "nativeBuild": "Incremental public-bootstrap rebuild after host/parser profile rebase, bootstrap override unset; not a new clean build.",
+    "nativeSha256": "1fadbf9ad4a4e1c308b859be142fdd98bae85ff2f8d8de06085dc3dd276510f8",
+    "projectSha256": "17488061fa1c4ab74caafe5029a95226c5e0c7d670805fda24edab18b40eef9d",
+    "generationHashes": {
+      "tower": "4c6844a4d25f17171208c8b6b3fd5166f08107135acbb2186258899a7ce05b89",
+      "llvm": "b9c05125a5d4ed61466c188634c4360f82dc5cbe77084f23b681c9a9a3dfcb8d",
+      "cross": "24d7c39f758dc2a984b31d8fb9ae150f01d7eb13b8e708938432e35fd2f42711"
+    },
+    "limits": "General staged type/effect capabilities and persistent cross-revision caching remain incomplete; structural publication remains coordinated. No whole-compiler completion or new throughput claim."
   }
 }
