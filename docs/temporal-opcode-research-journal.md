@@ -39990,3 +39990,15 @@ and passes all seven cross tests with the new packs. Preserve its runtime identi
 all 88 assets and ECS expression/unit receipt during tooling publication. The
 remaining two test shell files are live CMake/SDK build boundaries; audit whether
 their operations can join existing entry points before adding another Tower tool.
+
+Publication verified: implementation 2c8bce6 and rebased-validation b0e4aa7 are
+pushed. Pages 5ad995a756abce1a48b068b9979b1fcdf9953fcf/action 44975269517 succeeds;
+the hosted manifest exactly matches SHA256
+aaba87b4b0807214c7ed7529e368bb840240d5926ca5aa24c245271d8016acdb.
+Preserve runtime c7a7976a00510316fd0b1082c8fc183f92d6b9e2/all 88 assets and
+the concurrent ECS expression/unit receipt. This is a source/tooling publication;
+existing runtime assets were reused. Rebased browser downloads also execute on
+Linux x64/ARM64 and Windows, including their separately linked libraries.
+An initial source push hit GitHub DNS resolution; command-scoped curloptResolve
+using the resolved IPv4 address completed pull/push without changing Git config.
+No unfinished deployment or portable-release claim is implied.
