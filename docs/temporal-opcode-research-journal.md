@@ -46413,3 +46413,83 @@ verification spanned the atomic push), `build/b2_serial_hosted_report.json`, and
 those unchanged bytes. B1 separately reports a full frontend fixture failure in
 `body_runs` on missing language imports; that broader matrix is not passed and
 is outside these isolated link/editor/unit checks.
+
+### 2026-11-22: coordinated constructor integration and sanitizer evidence
+
+The coordinator continues the same eight CLI workers on KinmenA, KinmenB,
+SteamDeck and the local host. No additional contexts or replacement workers
+were launched. Each lane retains its own main clone and cache. Publication
+remains serialized; working patches below are development inputs, not a new
+published compiler or completion of the campaign.
+
+A1 reports a public-predecessor native build of the joined constructor,
+interpreter, semantic and backend inputs linking successfully. An ordinary
+type-producing helper that mutates its width argument before `integer_type`
+executes and prints 42. Runtime construction preserves operand output 1 then 2
+before its capability diagnostic. A nested type-producing helper in an untaken
+branch is still rejected during call admission; L2 owns that actual failing
+fixture. This is incomplete ordinary type-value execution, not a passing
+untaken-branch result. Invocation receipt, stale dependency, repeated-request
+retention, ABI and full canonical/runtime matrices remain integration gates.
+
+The first joined link failed because importing `type_objects` into the semantic
+implementation emitted its exported helpers in both semantic and interpreter
+objects. Removing one export was an incomplete proposal: symbol inspection
+identified all affected exports. The implemented boundary keeps the interpreter
+exports and uses an external declaration from semantic statements. Its successful
+link supersedes the abandoned remove-export patch. The enlarged semantic test
+closure also exceeds the predecessor's fixed Foundation payload allowance.
+A provisional separate query object duplicated transitive semantic exports;
+it is not an accepted split. A1 is measuring redundant full initialization
+removal before a scoped API/type-boundary refactor. Checks must remain intact;
+no private bootstrap limit, symbol-localization workaround or skipped test is
+accepted as validation.
+
+A2's actual LLVM instrumentation tool and reproduction instructions were
+reviewed and routed to the existing lanes. The tool instruments emitted Tower
+definitions, including the linked runtime; final Clang sanitizer flags supply
+the runtime rather than reinstrumenting the LLVM. Independent deliberate
+memory/race probes establish sensitivity. The coordinator retrieved
+`A2/cache/logs/instrument_pool_cleanup.log`: three ASan and three TSan runs pass
+the production pool's normal and injected partial/full failure cleanup paths.
+The tested `work_pool.tower` SHA-256 is
+`01a989f2b0ec41c1a023622d468419ce7777dc238917456ef5deb243a6dc0f8f`.
+This validates that frozen fixture, not every compiler path or every schedule.
+
+A2 additionally reports three LR and one query-smoke TSan runs passing after
+instrumenting all 26 emitted/bound Tower objects in its actual LR link closure.
+The frozen transport recipe is `A2/cache/lr_tsan_build.sh`; logs are
+`lr_tsan_build.log` and `lr_tsan_{1,2,3,query_smoke}.log`. B1's changed parser
+closure still requires matching coverage. B1's Helgrind failures survive a
+system-linker control, so repeated text-section mapping is not an explanation.
+A2's separate two-thread semaphore control passes native and TSan in both wait
+and successful-try modes; Helgrind 3.22 reports zero errors for wait and two
+contexts for try. This establishes a missing observed handoff in that environment,
+not dismissal of every original LR context. Raw failing logs are retained.
+Source-language UBSan and the full joined compiler remain coverage gaps.
+
+The shared budget ledger has a validated source handoff, but integration is
+unfinished. B2's fresh-world binding exposes `compiler_world_work_budget`;
+A2 owns admitted-width dispatch, B1 parser adoption, and A1 semantic adoption.
+Retained pool capacity must not become permission to run beyond a current grant.
+Outer and nested work share execution permits; retained memory reservations
+outlive joins when their inputs or outputs remain live. Declared byte budgets
+are not measured or enforced RSS limits. Representative serial/parallel scaling,
+idle time, contention and memory still require integrated measurements.
+
+D2 reports the clean public-bootstrap 51-step build with explicit per-compiler
+jobs passing: 294.59 s wall, 285.20 s CPU, 777296 KiB peak RSS, zero swaps.
+The earlier single cold observation was 288.99 s, 323.60 s CPU and 829632 KiB;
+these samples do not establish an end-to-end speedup. Compiler executable bytes
+match. Nine runtime LLVM files differ only in cache-path ModuleID comments;
+the complete packages are not byte-identical. D2 now owns the optional shared
+native sanitizer build transport, including direct and foreign-bound objects,
+with explicit exclusions for distributed target resources.
+
+These coordinator changes record evidence and remaining work only. No executable
+input changed here, so new coordinator runtime performance/memory measurements
+are inapplicable. The publication reuses the verified Pages assets and their
+original build identity; none of the unpublished lane checks is relabeled as
+validation of the hosted compiler. The full audit, integrated correctness and
+scaling, supported sanitizer milestone, public successor/bootstrap and hosted
+publication remain open.
