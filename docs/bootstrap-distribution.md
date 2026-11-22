@@ -144,10 +144,14 @@ caller tested schema validation with a pretend linker. The
 and the former schema remain in Git history. A second build-description format
 is unnecessary for the current Linux/Docker route.
 
-Use the existing build path for successors. `test-bootstrap.sh` compares selected
-compiler components built by the public predecessor and its native successor;
-its Tower `verify_bootstrap_symbols` check enforces exact reviewed cross-unit and
-platform dependencies from `llvm-nm` output before comparing objects and LLVM IR.
+Use the existing build path for successors. Tower's
+`verify_bootstrap_symbols --compare BOOTSTRAP SUCCESSOR SCAFFOLDING NATIVE_BUILD LLVM_NM OUTPUT_DIRECTORY [UNIT ...]`
+consumes prebuilt inputs and compares selected compiler components built by the
+public predecessor and its native successor. It enforces exact reviewed cross-unit
+and platform dependencies from captured `llvm-nm` output before comparing nonempty
+objects and LLVM IR. Omitted unit names select all seven units across four targets.
+Each invocation creates a fresh retained child directory, checks explicit/missing
+grammar inputs, and avoids the old script's duplicate build and expected files.
 The tables live in `scaffolding/tools/bootstrap_symbols.tower`; review new imports
 against their declarations/implementations rather than allowing name prefixes.
 `test-compiler-project.mjs` builds two successive edited browser compilers and

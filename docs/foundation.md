@@ -829,7 +829,7 @@ canonical Foundation round trips on native and WASI. The fingerprints are test
 evidence; they are not a semantic interchange format.
 The Tower fixtures in `scaffolding/tests/semantics.tower` and `semantic_invalid/`
 exercise valid and invalid programs; browser tests compare interpretation, LLVM,
-and canonical Foundation round trips. `test-bootstrap.sh` compares optimized LLVM
+and canonical Foundation round trips. Tower's `verify_bootstrap_symbols --compare` compares optimized LLVM
 and object bytes for the semantic compiler itself across four targets. The
 Tower's `tower-driver-tests --measure-semantics BEFORE AFTER SCAFFOLDING` and the
 browser `benchmark-semantics.mjs` accept saved before/after compilers and report

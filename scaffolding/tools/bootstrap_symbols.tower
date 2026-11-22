@@ -9,6 +9,7 @@ struct BootstrapSymbol { data: u8*; length: usize; }
 extern fn strlen(text: u8*): usize;
 extern fn memcmp(left: u8*, right: u8*, count: usize): i32;
 extern fn strcmp(left: u8*, right: u8*): i32;
+extern fn strstr(text: u8*, needle: u8*): u8*;
 
 fn bootstrap_unit(name: u8*): BootstrapUnit {
     if strcmp(name, "utf8") == 0 { return BootstrapUnit.Utf8; }
@@ -38,12 +39,16 @@ fn bootstrap_symbol_in(names: u8*, symbol: u8*, length: usize): bool {
     return false;
 }
 
-fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, symbol: u8*, length: usize): bool {
+fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symbol: u8*, length: usize): bool {
     // Mach-O/COFF/Wasm spellings may prefix underscores. Preserve the previous
     // check's normalization, including __stack_pointer and __memory_base.
     while length != 0 && *symbol == convert(u8, SymbolByte.Underscore) { symbol++; length--; }
     if unit == BootstrapUnit.Unknown || unit == BootstrapUnit.Utf8 || length == 0 { return false; }
     if bootstrap_symbol_in("tower_reallocate tower_deallocate memcpy memmove memset bzero stack_pointer memory_base", symbol, length) { return true; }
+    // Parser/semantic jobs use typed function values. This is Wasm's indirect-call table,
+    // not an external native implementation or permission for other platforms.
+    if wasm && (unit == BootstrapUnit.ParserNodes || unit == BootstrapUnit.Semantics)
+        && bootstrap_symbol_in("indirect_function_table", symbol, length) { return true; }
     // Current ECS/query workers call these Tower host transports. Keep their
     // exact interfaces explicit; never allow an arbitrary work_* dependency.
     if unit == BootstrapUnit.Entities || unit == BootstrapUnit.ParserNodes || unit == BootstrapUnit.Semantics {
@@ -62,7 +67,7 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, symbol: u8*, len
     if unit == BootstrapUnit.Interpreter {
         return bootstrap_symbol_in("abort tower_allocate tower_trap im_append im_fail im_foreign im_has_foreign im_missing_foreign", symbol, length)
             || bootstrap_symbol_in("im_pointer_bytes im_root sem_get semantic_alignment semantic_mask semantic_signed semantic_size", symbol, length)
-            || bootstrap_symbol_in("entity_component_data entity_component_get semantic_float semantic_width", symbol, length);
+            || bootstrap_symbol_in("entity_component_data entity_component_get semantic_float semantic_width semantic_type_equal", symbol, length);
     }
     if unit == BootstrapUnit.Host {
         return bootstrap_symbol_in("malloc realloc free tower_allocate abort bytes_reserve bytes_push bytes_append bytes_dispose tower_utf8_validate", symbol, length)
@@ -135,9 +140,11 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, symbol: u8*, len
 
 // llvm-nm --undefined-only emits one symbol per line. Preserve its final token
 // and return the first rejected span for a deterministic, allocation-free error.
-fn bootstrap_symbols_check(unit: BootstrapUnit, windows: bool, input: BootstrapSymbol, rejected: BootstrapSymbol*): bool {
+fn bootstrap_symbols_check(unit: BootstrapUnit, target: u8*, input: BootstrapSymbol, rejected: BootstrapSymbol*): bool {
     *rejected = default;
     if unit == BootstrapUnit.Unknown { return false; }
+    var windows = strstr(target, "windows") != null;
+    var wasm = strstr(target, "wasm32-") == target || strstr(target, "wasm64-") == target;
     var at: usize = 0;
     while at < input.length {
         var begin = at;
@@ -149,7 +156,7 @@ fn bootstrap_symbols_check(unit: BootstrapUnit, windows: bool, input: BootstrapS
         if end == begin { continue; }
         begin = end;
         while begin != 0 && !bootstrap_symbol_space(input.data[begin - 1]) { begin--; }
-        if !bootstrap_symbol_allowed(unit, windows, input.data + begin, end - begin) {
+        if !bootstrap_symbol_allowed(unit, windows, wasm, input.data + begin, end - begin) {
             // Borrowed view into input, never a separately owned buffer.
             *rejected = init(BootstrapSymbol) { data: input.data + begin, length: end - begin };
             return false;

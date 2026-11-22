@@ -74,6 +74,19 @@ only; execution still requires a Mac. `target_runner_exit.tower` is the negative
 Wine-transport fixture that returns the former shell skip code; it must fail when
 selected as the runner. The journal records real WSL/Windows and QEMU trials.
 
+Bootstrap component agreement uses the existing Tower tool instead of a shell
+test: `verify_bootstrap_symbols --compare BOOTSTRAP SUCCESSOR SCAFFOLDING NATIVE_BUILD LLVM_NM OUTPUT_DIRECTORY [UNIT ...]`.
+Build it through `build-bootstrap.sh --tools verify_bootstrap_symbols`. Omit
+unit names for UTF-8, bytes, entities, parser nodes, host, interpreter and semantics;
+otherwise supply `utf8`, `bytes`, `entities`, `parser-nodes`, `host`, `interpreter`
+or `semantics`. Each selected unit checks predecessor/successor optimized IR and
+object bytes on Linux x64, Wasm32, Windows x64 and macOS ARM64, plus exact symbol
+policy. Only the parser/semantic Wasm units permit the indirect function table;
+other targets/units and suffixed names remain rejected. The verifier consumes
+prebuilt inputs, creates a fresh retained child under the output directory, and
+checks explicit/missing Foundation inputs without named symbol/expected files.
+It does not execute cross-target objects or establish a portable CLI release.
+
 ## Native measurements
 
 Build the same `tower-driver-tests` target with `TOWER_DRIVER_TESTS=ON`. Run under

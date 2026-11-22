@@ -12,7 +12,9 @@ bash playground/scripts/build-native.sh -DTOWER_DRIVER_TESTS=ON
 cmake --build "$native" --target tower-driver-tests --parallel "${TOWER_BUILD_JOBS:-2}"
 bash playground/scripts/test-compiler-distribution.sh
 bash playground/scripts/test-native-core.sh
-bash playground/scripts/test-bootstrap.sh
+bootstrap="$(bash playground/scripts/build-bootstrap.sh)"
+tools="$(bash playground/scripts/build-bootstrap.sh --tools verify_bootstrap_symbols)"
+"$tools/verify_bootstrap_symbols" --compare "$bootstrap" "$native/towerc" "$repo/scaffolding" "$native" "$llvm_bin/llvm-nm" "$repo/build/bootstrap-check"
 bash playground/scripts/test-host-runtime.sh
 bash playground/scripts/build-wasm.sh
 TOWER_BROWSER_CROSS=ON bash playground/scripts/build-llvm.sh

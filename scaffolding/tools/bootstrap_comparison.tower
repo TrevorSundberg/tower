@@ -1,0 +1,208 @@
+import tower;
+import bootstrap_symbols;
+import tool_capture_linux;
+import tool_process_linux;
+import tool_files_posix;
+import tool_streams_posix;
+import .library.bytes;
+import .library.bytes_types;
+import .library.vector;
+import .host.driver_files;
+import .compiler.host_text;
+
+extern fn puts(text: u8*): i32;
+extern fn remove(path: u8*): i32;
+extern fn mkdtemp(pattern: u8*): u8*;
+
+var BootstrapComparisonInputLimit: usize = 268435456;
+var BootstrapComparisonSymbolLimit: usize = 8388608;
+
+struct BootstrapComparison {
+    predecessor: u8*; successor: u8*; scaffolding: u8*; native: u8*;
+    nm: u8*; directory: u8*; bedrock: u8*; foundation: u8*;
+    failure_status: i32;
+}
+
+fn bootstrap_comparison_run(context: BootstrapComparison*, args: vector(u8*)*, output: ByteBuffer*): bool {
+    var status = output == null ? tool_process_status(tool_process(args.data[0], args.data))
+        : tool_capture(args.data[0], args.data, BootstrapComparisonSymbolLimit, output);
+    if status != 0 { context.failure_status = status; }
+    return status == 0;
+}
+
+fn bootstrap_verify_report(unit: BootstrapUnit, target: u8*, input: ByteBuffer*): bool {
+    var remaining: BootstrapSymbol = { data: input.data, length: input.length };
+    var rejected: BootstrapSymbol = default; var accepted = true;
+    var stderr_stream: i32 = 2;
+    while !bootstrap_symbols_check(unit, target, remaining, &rejected) {
+        accepted = false;
+        var message = "Unexpected runtime dependency: ";
+        write(stderr_stream, message, strlen(message));
+        write(stderr_stream, rejected.data, rejected.length); write(stderr_stream, "\n", 1);
+        if rejected.length == 0 { break; }
+        var consumed = bits(usize, rejected.data) - bits(usize, remaining.data) + rejected.length;
+        remaining.data += consumed; remaining.length -= consumed;
+    }
+    return accepted;
+}
+
+fn bootstrap_comparison_source(unit: BootstrapUnit): u8* {
+    match unit {
+        BootstrapUnit.Utf8 => { return "compiler/utf8.tower"; }
+        BootstrapUnit.Bytes => { return "library/bytes.tower"; }
+        BootstrapUnit.Entities => { return "tower_compiler_entities.tower"; }
+        BootstrapUnit.ParserNodes => { return "tower_compiler_parser_nodes.tower"; }
+        BootstrapUnit.Host => { return "tower_compiler_host.tower"; }
+        BootstrapUnit.Interpreter => { return "tower_compiler_interpreter.tower"; }
+        BootstrapUnit.Semantics => { return "tower_compiler_semantics.tower"; }
+        _ => { return null; }
+    }
+}
+
+// Fresh invocation directories and per-stage removal prevent old files from
+// satisfying a successful command that did not actually produce its outputs.
+fn bootstrap_comparison_stage(context: BootstrapComparison*, source: u8*, compiler: u8*,
+    target: u8*, base: u8*, unit: BootstrapUnit): bool {
+    var object: ByteBuffer = default; var ir: ByteBuffer = default;
+    var symbols: ByteBuffer = default; var args: vector(u8*) = default;
+    defer bytes_dispose(&object); defer bytes_dispose(&ir);
+    defer bytes_dispose(&symbols); defer vector_dispose(&args);
+    if !tool_join(&object, context.directory, base) || !bytes_append(&object, ".o", strlen(".o"))
+        || !host_text_terminate(&object) || !tool_join(&ir, context.directory, base)
+        || !bytes_append(&ir, ".ll", strlen(".ll")) || !host_text_terminate(&ir) { return false; }
+    remove(object.data); remove(ir.data);
+    if !tool_process_argument(&args, compiler) || !tool_process_argument(&args, source)
+        || !tool_process_argument(&args, "--library") || !tool_process_argument(&args, "--target")
+        || !tool_process_argument(&args, target) || !tool_process_argument(&args, "--bedrock")
+        || !tool_process_argument(&args, context.bedrock) || !tool_process_argument(&args, "--foundation")
+        || !tool_process_argument(&args, context.foundation) || !tool_process_argument(&args, "--optimized-ir")
+        || !tool_process_argument(&args, ir.data) || !tool_process_argument(&args, "-o")
+        || !tool_process_argument(&args, object.data) || !tool_process_argument(&args, null)
+        || !bootstrap_comparison_run(context, &args, null) { return false; }
+    args.length = 0;
+    if !tool_process_argument(&args, context.nm) || !tool_process_argument(&args, "--undefined-only")
+        || !tool_process_argument(&args, object.data) || !tool_process_argument(&args, null)
+        || !bootstrap_comparison_run(context, &args, &symbols) { return false; }
+    return bootstrap_verify_report(unit, target, &symbols);
+}
+
+fn bootstrap_comparison_equal(directory: u8*, left: u8*, right: u8*, suffix: u8*): bool {
+    var a: ByteBuffer = default; var b: ByteBuffer = default;
+    var a_path: ByteBuffer = default; var b_path: ByteBuffer = default;
+    defer bytes_dispose(&a); defer bytes_dispose(&b);
+    defer bytes_dispose(&a_path); defer bytes_dispose(&b_path);
+    if !tool_join(&a_path, directory, left) || !bytes_append(&a_path, suffix, strlen(suffix))
+        || !host_text_terminate(&a_path) || !tool_join(&b_path, directory, right)
+        || !bytes_append(&b_path, suffix, strlen(suffix)) || !host_text_terminate(&b_path)
+        || !tool_read_file(a_path.data, BootstrapComparisonInputLimit, &a)
+        || !tool_read_file(b_path.data, BootstrapComparisonInputLimit, &b) { return false; }
+    return a.length != 0 && a.length == b.length && memcmp(a.data, b.data, a.length) == 0;
+}
+
+fn bootstrap_comparison_target(context: BootstrapComparison*, name: u8*, target: u8*): bool {
+    var unit = bootstrap_unit(name);
+    var source: ByteBuffer = default; var prefix: ByteBuffer = default;
+    var before: ByteBuffer = default; var after: ByteBuffer = default;
+    defer bytes_dispose(&source); defer bytes_dispose(&prefix);
+    defer bytes_dispose(&before); defer bytes_dispose(&after);
+    var source_root = unit == BootstrapUnit.Utf8 || unit == BootstrapUnit.Bytes ? context.scaffolding : context.native;
+    if !tool_join(&source, source_root, bootstrap_comparison_source(unit))
+        || !bytes_append(&prefix, name, strlen(name)) || !bytes_append(&prefix, "-", strlen("-"))
+        || !bytes_append(&prefix, target, strlen(target)) || !host_text_terminate(&prefix)
+        || !bytes_append(&before, prefix.data, prefix.length) || !bytes_append(&before, "-bootstrap", strlen("-bootstrap"))
+        || !host_text_terminate(&before) || !bytes_append(&after, prefix.data, prefix.length)
+        || !bytes_append(&after, "-tower", strlen("-tower")) || !host_text_terminate(&after) { return false; }
+    puts(prefix.data);
+    return bootstrap_comparison_stage(context, source.data, context.predecessor, target, before.data, unit)
+        && bootstrap_comparison_stage(context, source.data, context.successor, target, after.data, unit)
+        && bootstrap_comparison_equal(context.directory, before.data, after.data, ".ll")
+        && bootstrap_comparison_equal(context.directory, before.data, after.data, ".o");
+}
+
+fn bootstrap_comparison_unit(context: BootstrapComparison*, name: u8*): bool {
+    return bootstrap_comparison_target(context, name, "x86_64-pc-linux-gnu")
+        && bootstrap_comparison_target(context, name, "wasm32-unknown-unknown")
+        && bootstrap_comparison_target(context, name, "x86_64-pc-windows-msvc")
+        && bootstrap_comparison_target(context, name, "aarch64-apple-darwin");
+}
+
+fn bootstrap_comparison_grammar(context: BootstrapComparison*): bool {
+    var foundation: ByteBuffer = default; var source: ByteBuffer = default;
+    var missing: ByteBuffer = default; var text: ByteBuffer = default;
+    var output: ByteBuffer = default; var args: vector(u8*) = default;
+    defer bytes_dispose(&foundation); defer bytes_dispose(&source);
+    defer bytes_dispose(&missing); defer bytes_dispose(&text);
+    defer bytes_dispose(&output); defer vector_dispose(&args);
+    var declaration = "\nparse Statement |= 'bootstrap_check' ';' => replace { print(42); };\n";
+    var program = "bootstrap_check;\n"; var wanted = "42\n";
+    if !tool_join(&foundation, context.directory, "custom_foundation.tower")
+        || !tool_join(&source, context.directory, "custom_source.tower")
+        || !tool_join(&missing, context.directory, "does_not_exist.tower")
+        || !tool_read_file(context.foundation, BootstrapComparisonInputLimit, &text)
+        || !bytes_append(&text, declaration, strlen(declaration))
+        || !driver_write_file(foundation.data, text.data, text.length)
+        || !driver_write_file(source.data, program, strlen(program)) { return false; }
+    if !tool_process_argument(&args, context.successor) || !tool_process_argument(&args, source.data)
+        || !tool_process_argument(&args, "--interpret") || !tool_process_argument(&args, "--bedrock")
+        || !tool_process_argument(&args, context.bedrock) || !tool_process_argument(&args, "--foundation")
+        || !tool_process_argument(&args, foundation.data) || !tool_process_argument(&args, null)
+        || !bootstrap_comparison_run(context, &args, &output)
+        || output.length != strlen(wanted) || memcmp(output.data, wanted, output.length) != 0 { return false; }
+    var foundation_argument: usize = 6;
+    args.data[foundation_argument] = missing.data;
+    var result = tool_process(context.successor, args.data);
+    var rejected_input: i32 = 1;
+    var status = tool_process_status(result);
+    if status != 0 { context.failure_status = status; }
+    return result.kind == ToolProcessKind.Exited && result.exit_code == rejected_input;
+}
+
+// Consume explicit prebuilt inputs. Building and installing belong to the
+// shared build entry point; this verifier neither rebuilds nor installs tools.
+fn bootstrap_comparison_main(argc: i32, argv: u8**): i32 {
+    var required_arguments: i32 = 8; var first_unit = required_arguments;
+    var usage: i32 = 2; var failure: i32 = 1;
+    if argc < required_arguments {
+        puts("Usage: verify_bootstrap_symbols --compare BOOTSTRAP SUCCESSOR SCAFFOLDING NATIVE_BUILD LLVM_NM OUTPUT_DIRECTORY [UNIT ...]");
+        return usage;
+    }
+    for (var i = first_unit; i < argc; i++) {
+        if bootstrap_unit(argv[i]) == BootstrapUnit.Unknown { puts("Unknown bootstrap unit"); return usage; }
+    }
+    var predecessor = realpath(argv[2], null); var successor = realpath(argv[3], null);
+    var scaffolding = realpath(argv[4], null); var native = realpath(argv[5], null); var nm = realpath(argv[6], null);
+    defer free(predecessor); defer free(successor); defer free(scaffolding); defer free(native); defer free(nm);
+    if predecessor == null || successor == null || scaffolding == null || native == null || nm == null
+        || !tool_directory(scaffolding) || !tool_directory(native) {
+        puts("Bootstrap comparison inputs must exist"); return failure;
+    }
+    var pattern: ByteBuffer = default; defer bytes_dispose(&pattern);
+    if !tool_join(&pattern, argv[7], "comparison.XXXXXX") || !tool_output_parents(pattern.data)
+        || mkdtemp(pattern.data) == null {
+        puts("Cannot create a fresh bootstrap comparison directory"); return failure;
+    }
+    var directory = realpath(pattern.data, null); defer free(directory);
+    var bedrock: ByteBuffer = default; var foundation: ByteBuffer = default;
+    defer bytes_dispose(&bedrock); defer bytes_dispose(&foundation);
+    if directory == null || !tool_join(&bedrock, scaffolding, "bedrock.tower")
+        || !tool_join(&foundation, scaffolding, "foundation.tower") { return failure; }
+    puts(directory);
+    var context: BootstrapComparison = { predecessor: predecessor, successor: successor,
+        scaffolding: scaffolding, native: native, nm: nm, directory: directory,
+        bedrock: bedrock.data, foundation: foundation.data, failure_status: failure };
+    var agreed = true;
+    if argc == required_arguments {
+        agreed = bootstrap_comparison_unit(&context, "utf8") && bootstrap_comparison_unit(&context, "bytes")
+            && bootstrap_comparison_unit(&context, "entities") && bootstrap_comparison_unit(&context, "parser-nodes")
+            && bootstrap_comparison_unit(&context, "host") && bootstrap_comparison_unit(&context, "interpreter")
+            && bootstrap_comparison_unit(&context, "semantics");
+    } else {
+        for (var i = first_unit; agreed && i < argc; i++) { agreed = bootstrap_comparison_unit(&context, argv[i]); }
+    }
+    if !agreed || !bootstrap_comparison_grammar(&context) {
+        puts("Bootstrap object/IR, symbol or explicit grammar comparison failed; inspect the retained output directory");
+        return context.failure_status;
+    }
+    puts("Bootstrap object/IR agreement, symbol policy and explicit grammar inputs passed");
+    return 0;
+}

@@ -39427,3 +39427,74 @@ LLVM reactor with its advisory 50 MiB warning; neither push is blocked. Publish
 this documentation receipt with the same verified runtime assets and preserved
 9e7eb79 build identity. Attributes/aggregate staging are shipped; the source-defined
 standard-type protocol/prelude remains the next language implementation work.
+### 2026-11-21: consolidate bootstrap comparison in its Tower verifier
+
+Audit at 262b740: internal.sh is test-bootstrap.sh's sole executable caller;
+the remaining references are documentation. Its predecessor/successor object/IR
+and symbol-policy matrix and explicit grammar checks are required. The repeated
+build-native invocation, symbol-file handoff and generated expected-output files
+are not. Extend the existing verify_bootstrap_symbols tool with --compare over
+explicit prebuilt inputs; keep its original single-symbol-file CLI. Reuse the
+existing Linux process, anonymous capture, bounded file and symbol-policy APIs.
+No new executable, CMake target, library dependency or installer is needed.
+
+bootstrap_comparison.tower maps seven reviewed components to four target triples,
+compiles both stages with explicit Bedrock/Foundation, checks undefined symbols
+in captured memory and compares nonempty optimized IR/object bytes. It creates
+a private fresh comparison.XXXXXX directory under the supplied output root and
+retains artifacts. Per-stage removal also prevents duplicate selected units from
+reusing old output. Custom Foundation still prints exactly 42; missing Foundation
+must exit normally with status 1, so a signal/exec failure is not that evidence.
+Expected bytes remain Tower data. Process failures preserve child status (tested
+with 125), while policy, missing-output and comparison failures return 1; invalid
+unit selection returns 2 before creating output. These are Linux host tools and
+cross-object checks, not execution or portable-release claims.
+
+Freeze new modules in /cache/target_tooling_checkout with the published 9bf8779
+bootstrap. The first small-unit compile caught an incorrectly written match arm
+and extra closing parenthesis; correct them to Tower's existing match value /
+pattern => block syntax, then compile successfully. Build the selected existing
+tool through build_tools plus the compatible guest host object. Frozen compiler
+inputs are /cache/compiler_project_final_checkout/scaffolding and generated unit
+manifests in /cache/compiler_project_final_native; successor SHA remains b3775dab.
+All builds run in owned tower_agent1_c_checks/cache with Python unavailable.
+
+The first matrix exposed stale reviewed-symbol policy, not a new compiler defect:
+parser-nodes and semantics Wasm objects import __indirect_function_table, and
+interpreter imports semantic_type_equal. Inspect their optimized IR: typed work
+pool dispatch emits indirect calls (work_pool.tower's execute function fields).
+interpreter_abi.tower/im_call_type_equal and interpreter.tower call the Tower
+definition in semantic_support.tower. Add only these exact dependencies. Pass the
+explicit target into policy checking so the function table is accepted only for
+Wasm32/Wasm64 parser/semantic units. Linux/Windows, other units and suffixed names
+remain rejected. The extended Tower symbol fixture passes, and the standalone
+CLI accepts actual parser Wasm nm output while rejecting it for Linux.
+
+Verification covers all 28 component/target pairs with both stages: utf8/bytes/
+entities pass in /cache/bootstrap comparison full; host passes in comparison
+remaining/comparison.dmaIvO; corrected parser/interpreter pass in comparison
+required targets/comparison.lrJxLU; corrected semantics passes in comparison
+semantics corrected/comparison.LvYvpI. Reuse unaffected passing pairs instead of
+rerunning the whole matrix after the narrow allowlist corrections. Grammar checks
+pass after the corrected batches. Paths with spaces for tools, source/build roots
+and output pass all four UTF-8 target pairs. Successful /usr/bin/true as successor
+cannot pass without outputs; /usr/bin/false as symbol tool, missing inputs and
+unknown units fail. No named symbols.txt or custom-expected.txt is produced.
+
+Finally run the documented default entry point with no private compiler override:
+docker exec tower_agent1_c_checks env -u TOWER_BOOTSTRAP_COMPILER
+TOWER_TOOLS_BUILD=/cache/bootstrap_comparison_bridge bash
+/work/playground/scripts/build-bootstrap.sh --tools verify_bootstrap_symbols.
+Its fresh five-step public-bootstrap tool build passes; the final bridge verifier
+passes four UTF-8 pairs and explicit grammar checks. /usr/bin/timeout supplied as
+a deliberately invalid compiler exits 125 and the verifier preserves exactly 125.
+The actual policy fixture and standalone CLI checks pass; internal.sh parses and
+scoped diff checks pass. Production compiler/host/backend/library/bootstrap pin
+sources are unchanged, so existing successor and browser evidence remain valid.
+
+Remove test-bootstrap.sh's 55 lines; internal.sh gains two net invocation lines.
+Shell falls from 14 files/344 lines to 13/291, another 53 lines removed. Against
+the post-Python baseline, six scripts and 192/483 lines (39.8%) are gone. Tracked
+Python and owned C/C++ remain zero. Update direct commands and release docs; no
+active references to the deleted runner remain. todo.txt is untouched. Publish
+this source/tooling receipt while preserving the verified runtime and 86 assets.

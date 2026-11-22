@@ -81,6 +81,12 @@ Pass a tool name after `--tools` to build only `prepare_llvm`, `package_roku`,
 `package_bootstrap`, `package_compiler_project`, `verify_compiler` or
 `verify_bootstrap_symbols`. Omitting the name builds all six.
 
+`verify_bootstrap_symbols --compare` consumes an explicit predecessor, successor,
+source/build directories and `llvm-nm`; it compares seven compiler components
+across four targets without rebuilding the native compiler. It also verifies
+custom/missing grammar inputs. See the [comparison command](../docs/bootstrap-distribution.md#whole-compiler-release-requirements).
+The original single-unit symbol-file mode remains available.
+
 `build-llvm.sh` invokes `prepare_llvm` automatically for the guarded LLD backport
 and temporary CRLF normalization of upstream `config.guess`/`config.sub`. Files
 already using LF are untouched. Its EXIT trap restores exact original bytes;

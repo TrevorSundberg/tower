@@ -794,15 +794,24 @@ required. Existing build/package tooling and complete dependency bundling remain
 work beyond the completed owned C/C++ source retirement.
 
 ```sh
-bash playground/scripts/test-bootstrap.sh
+bash playground/scripts/build-native.sh
+bootstrap="$(bash playground/scripts/build-bootstrap.sh)"
+tools="$(bash playground/scripts/build-bootstrap.sh --tools verify_bootstrap_symbols)"
+native="${TOWER_NATIVE_BUILD:-$HOME/.cache/tower/native}"
+"$tools/verify_bootstrap_symbols" --compare "$bootstrap" "$native/towerc" "$PWD/scaffolding" "$native" "$(llvm-config-19 --bindir)/llvm-nm" "$PWD/build/bootstrap-check"
 bash playground/scripts/test-native-core.sh
 node --test playground/tests/compiler-utf8.test.mjs
 node --test playground/tests/compiler-bytes.test.mjs
 node --test playground/tests/compiler-entities.test.mjs
 ```
 
-The bootstrap check compares the pinned and successor compiler's optimized LLVM
-and object bytes for Linux, Windows, macOS and Wasm. UTF-8 has no runtime dependencies;
+The Tower bootstrap verifier consumes the already-built pinned and successor
+compilers and compares optimized LLVM and object bytes for Linux, Windows, macOS
+and Wasm. Append unit names to select a subset; omitted names check all seven.
+Each invocation creates a fresh retained directory under the output root, checks
+exact symbol policy and explicit grammar inputs, and requires nonempty matching
+artifacts. It does not rebuild the native compiler or write expected-output files.
+UTF-8 has no runtime dependencies;
 byte buffers allow only allocation/copy primitives and the Wasm stack-pointer symbol.
 The entity/parser module also permits the allocation and component-lifecycle
 interfaces. These module checks are distinct from the whole-compiler successor tests.
