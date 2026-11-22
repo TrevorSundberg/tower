@@ -10,9 +10,7 @@
     "test:browser": "playwright test",
     "test:compiler": "node scripts/test-compiler-project.mjs",
     "test:deployment": "node scripts/verify-local.mjs",
-    "profile": "node scripts/profile.mjs",
-    "format:tower": "node scripts/format-tower.mjs --write",
-    "check:format": "node scripts/format-tower.mjs"
+    "profile": "node scripts/profile.mjs"
   },
   "dependencies": {
     "@codemirror/autocomplete": "6.20.4",

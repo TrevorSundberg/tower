@@ -30,4 +30,5 @@ struct DriverOptions {
     error: u32;
     argument: u8*;
     comments: bool;
+    check_format: bool;
 }

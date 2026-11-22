@@ -1060,10 +1060,26 @@ assertions off; Tower's development assertions and opt-in parser tracing are
 separate. LLVM's O2 pass pipeline controls the generated Tower program, not the
 optimization level of the compiler's own Wasm binary.
 
-`npm run check:format` requires every current Tower file under `scaffolding`
-(Bedrock, Foundation, examples, libraries and test programs) to equal its formatted
-source. `npm run format:tower` updates them. The normal test suite also enforces this
-and checks formatting twice is stable and parsed statement trees stay unchanged.
+Use the native Tower driver for a selected file:
+
+```sh
+build/native/towerc input.tower --emit source -o formatted.tower
+build/native/towerc formatted.tower --check-format
+```
+
+`--emit source` preserves surface syntax and comments without type-checking or
+selecting a machine target. Its default output is `formatted.tower`; the output
+must differ from the input path. `--check-format` writes nothing and returns a
+nonzero status when formatting is needed or parsing/validation fails. Imports and
+explicit `--bedrock`/`--foundation` inputs use the normal compiler request. Files
+named `bedrock.tower` and `foundation.tower` select their respective reader modes.
+Both commands use the shared formatter's reparse/tree-preservation check.
+
+The repository-walking JavaScript formatter and its npm commands are retired.
+Focused native formatter and CLI tests use `TOWER_FORMAT_TESTS=ON` and
+`TOWER_DRIVER_TESTS=ON`; select `tower-format` and `tower-driver-formatting` with
+CTest. The existing broad native sweep remains separately opt-in. Normal browser
+tests retain focused formatting checks; they no longer traverse the repository.
 Historical migration fixtures intentionally retain their old spelling.
 
 The shared formatter separates functions and structs with a blank line before

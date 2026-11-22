@@ -70,6 +70,3 @@ parse CoreCall |= $a:CoreLocation '%%' $b:CoreLocation => replace { combine($a, 
  assert.ok(formatted.includes('var c: i32 = x %% y;'));
  assert.equal(format(formatted),formatted);
 });
-test('every bundled Tower module, example and test equals its formatted source',async()=>{
- await import('../scripts/format-tower.mjs');
-});

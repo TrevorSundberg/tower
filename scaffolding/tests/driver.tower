@@ -16,6 +16,7 @@ import driver_measure_cases;
 import driver_linking;
 import driver_targets;
 import driver_units;
+import driver_formatting;
 
 extern fn strstr(text: u8*, part: u8*): u8*;
 
@@ -442,6 +443,11 @@ fn driver_test_cli(compiler: u8*): void {
 
 export fn driver_tests(argc: i32, argv: u8**): i32 {
     if argc > 1 {
+        if driver_same(argv[1], "--formatting") {
+            var required_arguments: i32 = 4; var usage: i32 = 2;
+            if argc != required_arguments { return usage; }
+            driver_test_formatting(argv[2], argv[3]); return 0;
+        }
         if driver_same(argv[1], "--units") {
             var required_arguments: i32 = 3;
             if argc != required_arguments { return 2; }

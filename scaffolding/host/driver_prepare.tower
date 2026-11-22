@@ -42,6 +42,19 @@ export fn driver_prepare(options: DriverOptions*, argc: usize, argv: u8**, targe
         driver_error("Unknown output kind: ", options.emit);
         return 1;
     }
+    var formatting = driver_same(options.emit, "source");
+    if options.check_format && (!formatting || options.output[0] != 0) {
+        driver_error("--check-format requires source output without -o", "");
+        return 1;
+    }
+    if formatting {
+        if options.interpret || options.library || options.link_count != 0 || options.unit_count != 0
+            || options.raw[0] != 0 || options.optimized[0] != 0 || options.depfile[0] != 0 || !options.comments {
+            driver_error("Source formatting accepts one source and preserves comments; compilation/link options are not supported", "");
+            return 1;
+        }
+        return 0;
+    }
     if driver_same(options.target, "roku") {
         var valid = driver_same(options.emit, "exe");
         valid ||= driver_same(options.emit, "brightscript");

@@ -41317,3 +41317,69 @@ unit successfully. Evidence: array-owner-{preflight,matrix,self}.log. The reduce
 output is 8/12/16; fresh body-local sizeof/alignof/nested arrays also pass under
 ordinary execution and comptime. Publish this correction before extending the
 constructor continuations.
+
+### 2026-11-21: scoped native source formatting replaces the JavaScript sweep
+
+Audit correction: format-tower.mjs had three live callers, not just its two npm
+commands: formatting.test.mjs also imported it to walk every scaffolding source.
+Remove that bulk traversal and duplicate idempotence/tree assertions instead of
+porting them. Keep selected-file formatting through the existing native driver:
+--emit source (default formatted.tower) and read-only --check-format. Both reuse
+syntax_format_into, which already reparses and compares the shared syntax trees.
+No second formatting engine, JSON tree model or recursive traversal is added.
+The browser retains its focused formatter tests; the existing native broad sweep
+remains opt-in and was not run. History before this retirement is c0202d9.
+
+The Tower adapter owns its request/session/result and explicit file policy. It
+checks UTF-8/NUL, keeps imports and comments, and avoids semantic compilation,
+machine selection and external compiler invocation. Parse/validation errors leave
+existing output untouched; lexically equivalent input/output paths are rejected.
+This is not an atomic writer or physical symlink identity guarantee. Check mode
+writes nothing. Compilation/link/comment-stripping flags are rejected. The new
+source mode is distinct from existing lowered --emit foundation output.
+
+Initial focused compilation caught an incompatible duplicate entity_release
+declaration (void instead of usize); reuse driver_api's declaration. Initial CLI
+fixtures needed the ordinary puts declaration and separate argv entries (the
+existing driver_argument helper concatenates prefix/value). Canonical imports
+use single quotes, so correct the fixture's spelling. Real Bedrock formatting
+exposed eager Foundation installation importing the entry Bedrock again. The
+driver now installs only the requested reader's lower baseline, using existing
+SyntaxSeedBaseline/BedrockBaseline/FoundationBaseline values. Ordinary compilation
+continues to install both lower grammars. No compiler grammar semantics changed.
+
+Validation in owned Docker tower_agent1_c_checks (Ubuntu 24.04/LLVM 19): freeze
+the staged tree e2d098cb20492e5a6ea58d28c9898437f9e2df33 in
+/cache/format_driver_checkout, with the three corrected driver/test units copied
+into that owned snapshot. TOWER_BOOTSTRAP_COMPILER is unset and
+TOWER_NATIVE_BUILD=/cache/format_driver_native selects the documented
+playground/scripts/build-native.sh path. The public 21f527125bfa bootstrap passes
+all 48 native build steps; affected units are rebuilt after the fixes. Native
+successor SHA256 91f83f63eca362dc65f416ecf87cf5a4fc68e8ab320482bf060ea4226f1359cc.
+This is Linux development validation, not a newly pinned portable release.
+
+CTest tower-driver-formatting passes (5.61s): exact Unicode/comments, read-only
+canonical checks/idempotence, quoted relative import with a space filename,
+default output, syntactic-only formatting, syntax/missing-import/unsafe lexical
+grammar/UTF-8/NUL errors, output preservation, unsupported flags, write failure,
+empty input, and only the selected real Bedrock/Foundation grammar files.
+An explicit -o /dev/full probe exits 1 with Cannot write formatted source.
+Existing tower-format (0.17s) and tower-driver (31.55s) pass. Public-bootstrap
+driver_format object-only probes pass for Windows x86_64 and macOS ARM64; no
+execution claim for those platforms. Eight focused browser formatter tests pass
+against the previously verified candidate IDE test reactor (2.19s); no browser
+runtime source changed and no repository formatting sweep was performed.
+
+Known unrelated failure: tower-driver-module-paths exits 1 on
+`import .one; import ..two;`, reporting Unexpected '..' at 1:21. Repeat the same
+driver harness against the previous verified dc8d77c5 compiler and its frozen
+resources: identical failure/exit 1. Reported to the coordinator; do not hide it,
+skip its fixture, or change the other lane's grammar in this migration.
+
+This batch removes 38 JavaScript script lines and its three-line test caller,
+41 net JavaScript lines. Current tracked working sources: Python 0 files/0 lines;
+shell 11/255 (from 19/483); CMake 43/2310 (recent baseline 54/2594, including five
+new focused CTest registration lines); JavaScript 187/24364. These are source
+counts, not GitHub language percentages. No todo.txt change. Publication will
+preserve verified browser/runtime assets and their existing build identities;
+the native formatter is obtained through the documented source build.

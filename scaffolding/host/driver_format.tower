@@ -1,0 +1,68 @@
+import tower;
+import driver_types;
+import driver_request;
+import driver_support;
+import driver_platform;
+import driver_paths;
+import driver_api;
+import .compiler.syntax_session_types;
+import .compiler.frontend_revision_types;
+import .compiler.format_types;
+
+// The syntax service owns source reparsing/tree preservation. This driver owns
+// only the request/session/result and file policy; no second formatter or graph.
+extern fn syntax_session_open(world: void*, environment: void*, source: u8*, module: void*, mode: u32): SyntaxSession*;
+extern fn syntax_next(session: void*): void*;
+extern fn syntax_destroy(session: void*): void;
+extern fn syntax_get_error(session: void*): u8*;
+extern fn syntax_get_error_offset(session: void*): usize;
+extern fn syntax_format_into(session: void*, output: FormatResult*, error: u8**): bool;
+extern fn tower_utf8_validate(source: u8*, count: usize, reject_nul: u32): u32;
+
+fn driver_format_grammar(path: u8*): u32 {
+    var name = path;
+    for(var at: usize = 0; path[at] != 0; at++) {
+        if path[at] == *"/" || driver_platform_separator(path[at]) { name = path + at + 1; }
+    }
+    if driver_same(name, "bedrock.tower") { return SyntaxSeedBaseline; }
+    if driver_same(name, "foundation.tower") { return SyntaxBedrockBaseline; }
+    return SyntaxFoundationBaseline;
+}
+
+fn driver_format(request: DriverRequest*): i32 {
+    var input = &request.text[DriverSourceText];
+    var reject_nul: u32 = 1;
+    if tower_utf8_validate(input.data, input.length, reject_nul) == 0 {
+        driver_error("Formatting source must be valid UTF-8 without NUL bytes", ""); return 1;
+    }
+    var options = request.options;
+    var mode = driver_format_grammar(options.source);
+    var session = syntax_session_open(request.world, request.modules, input.data, null, mode);
+    if session is null { driver_error("Unable to allocate source formatter session", ""); return 1; }
+    defer syntax_destroy(bits(void*, session));
+    session.formatting = true;
+    loop { var root = syntax_next(bits(void*, session)); if root is null { break; } entity_release(root); }
+    var error = syntax_get_error(bits(void*, session));
+    if error[0] != 0 {
+        driver_report(error, syntax_get_error_offset(bits(void*, session)), input.data, input.length,
+            options.source, request.modules);
+        return 1;
+    }
+    var output: FormatResult = default;
+    defer format_dispose(&output);
+    if !syntax_format_into(bits(void*, session), &output, &error) {
+        driver_error(error[0] == 0 ? "Unable to format source" : error, ""); return 1;
+    }
+    if options.check_format {
+        var same = input.length == output.text.length;
+        for(var at: usize = 0; same && at < input.length; at++) { same = input.data[at] == output.text.data[at]; }
+        if !same { driver_error("Source needs formatting: ", options.source); return 1; }
+        return 0;
+    }
+    var path = options.output[0] == 0 ? "formatted.tower" : options.output;
+    if !driver_output_safe(options.source, path) { return 1; }
+    if !driver_write_file(path, output.text.data, output.text.length) {
+        driver_error("Cannot write formatted source: ", path); return 1;
+    }
+    return 0;
+}

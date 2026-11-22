@@ -1,6 +1,7 @@
 import tower;
 import .backend.linker_wasi;
 import .compiler.syntax_version_types;
+import .compiler.frontend_revision_types;
 import .compiler.component_kinds;
 import driver_api;
 import driver_execution;
@@ -14,6 +15,7 @@ import driver_types;
 import driver_units;
 import driver_support;
 import driver_platform;
+import driver_format;
 import .library.bytes_types;
 import .library.bytes_interface;
 import .compiler.semantic_program_types;
@@ -38,7 +40,8 @@ extern fn syntax_baseline_install(world: void*, environment: void*, source: u8*,
 extern fn syntax_version_diagnostic_text(diagnostic: SyntaxVersionDiagnostic*): u8*;
 extern fn syntax_version_diagnostic_dispose(diagnostic: SyntaxVersionDiagnostic*): void;
 
-fn driver_install_grammar(request: DriverRequest*, canonical: bool): bool {
+fn driver_install_grammar(request: DriverRequest*, canonical: bool, baseline: u32): bool {
+    if baseline == SyntaxSeedBaseline { return true; }
     if canonical && !driver_request_canonical(request) {
         driver_error("", driver_request_error(request));
         return false;
@@ -49,7 +52,9 @@ fn driver_install_grammar(request: DriverRequest*, canonical: bool): bool {
     defer syntax_version_diagnostic_dispose(&diagnostic);
     var modules = driver_request_modules(request);
     var ok = syntax_baseline_install(request.world, modules, request.text[first].data, false, &diagnostic);
-    ok &&= syntax_baseline_install(request.world, modules, request.text[first + 1].data, true, &diagnostic);
+    if ok && baseline == SyntaxFoundationBaseline {
+        ok = syntax_baseline_install(request.world, modules, request.text[first + 1].data, true, &diagnostic);
+    }
     if !ok { driver_error("", syntax_version_diagnostic_text(&diagnostic)); }
     return ok;
 }
@@ -138,7 +143,7 @@ fn driver_compile_normalize(state: DriverCompilation*): bool {
     }
     semantic_program_dispose(&imported);
     entity_release(root);
-    if !ok || !driver_install_grammar(state.request, true) {
+    if !ok || !driver_install_grammar(state.request, true, SyntaxFoundationBaseline) {
         return false;
     }
     driver_request_stage(state.request);
@@ -148,7 +153,7 @@ fn driver_compile_normalize(state: DriverCompilation*): bool {
 }
 
 fn driver_compile_package(state: DriverCompilation*): bool {
-    if !driver_install_grammar(state.request, true) {
+    if !driver_install_grammar(state.request, true, SyntaxFoundationBaseline) {
         return false;
     }
     var data = state.text;
@@ -212,7 +217,7 @@ fn driver_compile_text_output(state: DriverCompilation*): i32 {
     error = default;
     var ok = true;
     if driver_same(emit, "bytecode") {
-        ok = driver_install_grammar(state.request, true);
+        ok = driver_install_grammar(state.request, true, SyntaxFoundationBaseline);
         var profile = state.packaged ? state.profile:(options.optimize ? convert(u32, 1): convert(u32, 2));
         ok &&= execution_package_encode(program, driver_request_modules(state.request), profile, &text, &error);
     } else {
@@ -406,10 +411,13 @@ export fn driver_compile(options: DriverOptions*, resources: u8*, timing: Driver
         driver_error("", driver_request_error(request));
         return 1;
     }
-    if !driver_install_grammar(request, false) {
+    var formatting = driver_same(options.emit, "source");
+    var baseline = formatting ? driver_format_grammar(options.source) : SyntaxFoundationBaseline;
+    if !driver_install_grammar(request, false, baseline) {
         return 1;
     }
     driver_timing_mark(timing, options.timings, "bootstrap");
+    if formatting { return driver_format(request); }
     var state: DriverCompilation = default;
     state.request = request;
     state.timing = timing;

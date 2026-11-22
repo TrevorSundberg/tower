@@ -20,7 +20,7 @@ fn driver_equal(a: u8*, b: u8*): bool {
 }
 
 export fn driver_help(): u8* {
-    return "towerc source.tower -o output [--target triple|roku] [--emit object|llvm|llvm-optimized|exe|bytecode|foundation|c|brightscript]\n  [--unit library-source.tower] [--jobs count] [--link object-or-library] [--cc clang] [--linker tool] [--sysroot path]\n  [--raw-ir file] [--optimized-ir file] [--no-optimize] [--strip-comments] [--interpret|--interpret-fast] [--library] [--timings]\n  [--bedrock file] [--foundation file] [--depfile file] [--help] [--version]\n";
+    return "towerc source.tower -o output [--target triple|roku] [--emit object|llvm|llvm-optimized|exe|bytecode|foundation|source|c|brightscript]\n  [--unit library-source.tower] [--jobs count] [--link object-or-library] [--cc clang] [--linker tool] [--sysroot path]\n  [--raw-ir file] [--optimized-ir file] [--no-optimize] [--strip-comments] [--interpret|--interpret-fast] [--library] [--timings]\n  [--bedrock file] [--foundation file] [--depfile file] [--check-format] [--help] [--version]\n";
 }
 
 export fn driver_version(): u8* {
@@ -78,6 +78,7 @@ export fn driver_parse(options: DriverOptions*, argc: usize, argv: u8**, target:
     options.error = convert(u32, DriverOptionError.None);
     options.argument = "";
     options.comments = true;
+    options.check_format = false;
     var index: usize = 1;
     loop {
         if index >= argc {
@@ -95,6 +96,11 @@ export fn driver_parse(options: DriverOptions*, argc: usize, argv: u8**, target:
         }
         if driver_equal(arg, "--no-optimize") {
             options.optimize = false;
+            continue;
+        }
+        if driver_equal(arg, "--check-format") {
+            options.check_format = true;
+            options.emit = "source";
             continue;
         }
         if driver_equal(arg, "--strip-comments") {

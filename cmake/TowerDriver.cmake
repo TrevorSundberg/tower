@@ -106,6 +106,11 @@ function(tower_driver_integrate)
       "$<TARGET_FILE:towerc>" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")
     set_tests_properties(tower-driver-module-paths PROPERTIES
       WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/tower-module-path-checks")
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/tower-format-driver-checks")
+    add_test(NAME tower-driver-formatting COMMAND tower-driver-tests --formatting
+      "$<TARGET_FILE:towerc>" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")
+    set_tests_properties(tower-driver-formatting PROPERTIES
+      WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/tower-format-driver-checks")
     foreach(check IN ITEMS native package)
       file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/tower-${check}-differential-checks")
       add_test(NAME tower-driver-${check}-differential COMMAND tower-driver-tests --${check}-differential
