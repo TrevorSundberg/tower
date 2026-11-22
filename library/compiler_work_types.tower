@@ -5,3 +5,16 @@ enum CompilerQuery: u32 { Unit, Join, Backend, BackendJoin }
 var CompilerUnitDomain: u64 = 1;
 var CompilerProgramComponent: u64 = 1;
 var CompilerBackendComponent: u64 = 2;
+
+// A transport recipe, not a second semantic graph. Its payload is a pinned
+// component; execute runs on a worker and receive only on the graph owner.
+struct CompilerWorkKernel {
+    payload: void*;
+    execute: function(void, void*);
+    receive: function(void, void*);
+}
+
+fn compiler_work_kernel_execute(payload: void*): void {
+    var kernel = bits(CompilerWorkKernel*, payload);
+    kernel.execute(kernel.payload);
+}
