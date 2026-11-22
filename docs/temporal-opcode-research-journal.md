@@ -47338,3 +47338,18 @@ B1 snapshot6e8ee34e.... This local integration checkpoint records tested focused
 bytes. Full compiler ABI rebuild, new constructor/prelude owner closure, target
 matrices and release publication remain outstanding; no partial closure is called
 a completed release.
+
+Isolated Roku JSON compatibility now PASS1/1,0skips: all ten unchanged output
+oracles complete.53.73wall44.23CPU548552KiB,0swaps; raw scalar_roku_isolated
+logs/time/status. The separate population test remains in the ordinary suite with
+its original180s deadline, unchanged source reduction and output assertion; its
+combined240s timeout is unresolved. Browser11/11 and this Roku check validate
+corrected fixture data against verified published reactors, not current merged
+compiler sources. Native signed32 child30s alarm remains routed L1; no full
+native scalar corpus pass is claimed.
+
+Local prerequisite checkpoint b8ae879 and focused registration0313651 preserve
+owner attribution and actual tested bytes. Updated narrow registration handoff
+5ae06f78753754314bcfb57dbb4adefd8286d488c108697e11735b97bb5f0c34 includes
+B1 derived array count. No publication lease exists. Further source integration
+must rebuild changed ABI/import closures and revalidate affected evidence.
