@@ -199,7 +199,7 @@ try {
     await expect(page.locator('#execution-status')).toContainText('backends match',{timeout:60000});
     await expect(page.locator('#execution-output')).toHaveText('5\n6\n7\n7\n9\n');
     await expect(page.locator('#llvm-output')).toHaveText('5\n6\n7\n7\n9\n');
-    await expect.poll(()=>outputText(page,'core-instructions')).toContain(' = &value;');
+    await expect.poll(()=>outputText(page,'core-instructions')).toContain('post_increment(&value)');
     await expect.poll(()=>outputText(page,'core-instructions')).toContain(' + 1;');
     await expect.poll(()=>outputText(page,'llvm-after')).not.toContain('post_increment');
     await expect(page.locator('.tw-inline-error')).toHaveCount(0);

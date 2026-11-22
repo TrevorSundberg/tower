@@ -311,10 +311,10 @@ terminates the disposable worker. This is a pinned foreign ABI, not portable
 C++ struct inference or a new Foundation operation. Revalidate it on SDK/upstream
 changes. It is not a general JIT-memory implementation.
 
-## Build and ownership handoff
+## Build integration
 
-Task 4 owns broad build/bootstrap/package integration. Opt into the isolated
-fragment with a validated pre-port compiler or an existing Tower-backed compiler:
+The documented native build registers the isolated backend fragment. For a
+separate build directory with a validated complete Tower bootstrap:
 
 ```sh
 cmake -S . -B build/backend-native -G Ninja -DTOWER_NATIVE=ON \
@@ -334,12 +334,12 @@ browser modules retain their Wasm-only and Wasm/X86/AArch64 target closures.
 The API test implementation and runner are Tower. The browser test build exports
 `backend_tests` for invocation through its ordinary Wasm interface.
 
-The removed C++ backend cannot build the old native seed from nothing. Task 4
-must register this fragment and replace the old seed build with its validated
-compiler distribution; do not add a native fallback. This work does not claim
-the complete compiler/bootstrap/package migration. Task 1 still owns source
-compilation, and task 3 owns runtime objects, shared entity lifetime and the
-existing semantic/layout accessors. No shared layouts or operation IDs changed.
+The checked-in Linux x64 compiler and resources supply the canonical development
+bootstrap; no project-owned C/C++ seed remains. See the
+[bootstrap distribution](../../docs/bootstrap-distribution.md) for its external
+dependency closure and the separate standalone-package requirements. Source
+compilation, runtime objects and semantic/layout accessors retain their shared
+entity contracts. Linker metadata describes physical files, not a semantic IR.
 
 Backend fixtures include `tests/backend_semantics.tower` and its expected output,
 `tests/backend.tower` for direct API/error checks, and the separately compiled

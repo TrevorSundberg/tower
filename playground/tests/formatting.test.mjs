@@ -36,7 +36,7 @@ test('formatting refuses a layout that changes custom lexical meaning',()=>{
 
 test('custom prefix and postfix operators attach to their operand, including increment',async()=>{
  const example=(await read('scaffolding/examples/increment.tower')).toString();
- const definitions=example.slice(0,example.indexOf('\nvar value:'));
+ const definitions=(await read('scaffolding/tests/increment_builtin.tower')).toString();
  const source=definitions+`\nvar value:i32=5; ++ value; value ++;
 var before:i32=value ++; var after:i32=++ value;
 print(value ++); print(++ value);

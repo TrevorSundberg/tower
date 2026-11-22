@@ -7,7 +7,7 @@ const read=name=>readFile(new URL('../../'+name,import.meta.url));
 const foundation=(await read('scaffolding/foundation.tower')).toString();
 const tower=await loadTower(await read('build/browser-wasi/tower.wasm'),undefined,foundation);
 const example=(await read('scaffolding/examples/increment.tower')).toString();
-const definitions=example.slice(0,example.indexOf('\nvar value:'));
+const definitions=(await read('scaffolding/tests/increment_builtin.tower')).toString();
 let llvm;
 if(!process.env.TOWER_INTERPRETER_ONLY)llvm=await loadLLVM(await read('build/browser-wasi-llvm/tower-llvm.wasm'),undefined,foundation);
 async function compare(source,output){

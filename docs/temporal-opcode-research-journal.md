@@ -44384,3 +44384,15 @@ library directives. Name the installed MSVC/UCRT startup libraries explicitly in
 the workflow's platform link command. This is ordinary platform linkage, not a
 new project library or a native source implementation. Windows execution of the
 new consumer remains pending the corrected link.
+Hosted verification first confirmed all 104 exact assets, then correctly stopped
+on an obsolete display assertion expecting built-in ++ lowering in the preserved
+Bedrock example. Its canonical result now contains post_increment(&value), as
+intended by the example's explicit replacement rule. Update only that UI expected
+text. Move the richer increment tests' existing helper prelude to
+scaffolding/tests/increment_builtin.tower so they no longer borrow the deliberately
+minimal example grammar. All eight focused increment/formatting/comment tests pass,
+including graph/LLVM execution and Foundation round trips. A broader diagnostic
+run passes 15/17; the two unrelated pre-existing expectations assume old Foundation
+formatting (bulk note_32/f32 naming and omission of reflected primitive declarations).
+No formatter implementation or broad formatting sweep is part of this linker work.
+The hosted verification rerun uses the exact same published runtime and asset map.

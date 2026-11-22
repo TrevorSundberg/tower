@@ -1,0 +1,14 @@
+import tower;
+
+// Tower's place-aware increment fixtures use the full language. The standalone
+// Bedrock teaching example deliberately defines a smaller grammar of its own.
+fn post_increment(p: i32*): i32 {
+    var old = *p;
+    *p = old + 1;
+    return old;
+}
+
+fn pre_increment(p: i32*): i32 {
+    *p += 1;
+    return *p;
+}
