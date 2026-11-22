@@ -973,13 +973,24 @@ containers. Benchmark representative compiler workloads before migrating them.
   Explicit initializers, if/while conditions, ordinary for initializer/condition/
   update expressions, match subjects and foreach sources use these receipts too.
   Lexical continuations consume checked results once, preserving effect order.
+  Explicit module initializers use independent expression queries within runs
+  bounded by executable statements; effects and diagnostic selection retain
+  source order. Their workers read the allocated module frame and own their
+  expression stages.
   Built-in function signatures, nested function types and eligible indirect
   invocations use private stages; callable locations participate in leases and
   generic preparation before their arguments.
   Eligible generic argument deduction also runs on workers with private type
   constraints and alias diagnostics; the coordinator interns results and creates
   signatures. Role-aware declaration admission now includes value indexing and
-  ordinary builtins; type arguments still exclude array/type construction.
+  ordinary builtins. Array spellings now have dependency queries: workers check
+  eligible element types and integer extents, then the coordinator interns the
+  canonical identity. Independent array fields share a bounded ready frontier;
+  nested arrays suspend on their element receipts. Consumers reuse those types,
+  with storage layout and recursive-layout diagnostics remaining separate.
+  User type-constructor copying/registration still requires coordinator work.
+  General interpreted extent expressions remain a separate staging extension;
+  current extents accept literal or bound integer values.
   Field-layout readiness projects pointers, arrays and published call results.
   Computed field bases without that projection retain coordinator checking.
   Call continuations preserve enclosing evaluation depth
@@ -1090,14 +1101,14 @@ containers. Benchmark representative compiler workloads before migrating them.
    dispatch, dense storage and vectorization are independent claims. Continue
    the language milestones above on these same shared entities throughout.
 
-Current migration audit (2026-11-21, native checkpoint 2225c52; publication
-receipts and exact validation scope are recorded in the ongoing journal):
+Current migration audit (2026-11-21; native checkpoints, browser publication
+receipts and exact validation scope are recorded separately in the ongoing journal):
 
 | Area | Authoritative/shared data and present storage | Concurrency work still required |
 | --- | --- | --- |
 | Entities | Stable payloads, dense per-type pointer indexes, explicit worlds, pinned views, exclusive attachment leases and staged canonical creation | Complete host-world isolation and non-racing reference ownership |
 | Syntax/grammar | Shared entities; world-bound module/session/baseline/revision/cache ownership; worker-owned FIRST/nullable frontiers, LR(0) transitions, LR(1) kernel closures, dependency-link construction, wide lookahead frontiers, LALR actions and runtime action/direct-index/goto rows; native CLI unit recipes use isolated worlds | Shared import/query deduplication and runtime sequence specialization; source/effect order, link/seed merging and row interning require ordered publication |
-| Semantics/layout | Shared query graph; parallel dependency discovery, precise layout/signature reads, eligible ordinary/generic bodies with loop/match/defer continuations, initializer/control-input queries, staged function signatures/callable locations, bounded clone refilling, editor observations, aggregate signatures and expression lowering | Foreach protocol construction, array/type-constructor preparation and remaining structural expressions; interning/publication remains coordinated |
+| Semantics/layout | Shared query graph; parallel dependency discovery, precise layout/signature reads, eligible ordinary/generic bodies with loop/match/defer continuations, local/module initializer and control-input queries, array element/extent frontiers, staged function/protocol signatures and callable locations, bounded clone refilling, editor observations, aggregate signatures and expression lowering | Foreach lookup/deduction and loop construction, user type-constructor preparation and remaining structural expressions; canonical interning/publication remains coordinated |
 | Interpreter/staging | Per-invocation contexts over shared Foundation; ECS binding proofs, clone/preparation/lowering dependencies, threaded lazy scalar evaluation, executed-read capture checks and private execution caches | General ordinary-value execution, explicit effects/inputs and invalidation; no separate folding evaluator |
 | LLVM | Shared Foundation inputs; private LLVM contexts/modules per unit; backend queries stream from their frontend receipts on one bounded native pool; browser builds use the Tower coordinator | Shared-module work and upstream target registration retain ownership boundaries; measure end-to-end scaling and preserve target legality |
 | Link/publication | Tower plans/artifacts and the production Tower Wasm linker; other native formats retain upstream LLD and filesystem interfaces | Keep remaining LLD globals and temporary paths isolated/serialized; publish a candidate only after its checks |

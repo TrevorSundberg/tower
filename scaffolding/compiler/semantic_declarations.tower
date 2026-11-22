@@ -26,6 +26,7 @@ import compiler_kernel;
 var DeclarationQuery: u32 = convert(u32, SemanticQuery.Declaration);
 var DeclarationDiscoveryQuery: u32 = convert(u32, SemanticQuery.DeclarationDiscovery);
 var ExpressionQuery: u32 = convert(u32, SemanticQuery.Expression);
+var ArrayTypeQuery: u32 = convert(u32, SemanticQuery.ArrayType);
 
 enum SemanticExpressionMode: u32 { Value, Operand, Initializer, Discard }
 
@@ -47,6 +48,11 @@ struct SemanticDeclaration {
     subject: void*;
     expression: bool;
     module_initializer: bool;
+    array_type: bool;
+    array_ready: bool;
+    array_element: FoundationType;
+    array_length: usize;
+    array_result: FoundationType;
     expression_mode: SemanticExpressionMode;
     expected_type: FoundationType*;
     value: void*;
@@ -60,6 +66,7 @@ struct SemanticDeclaration {
     surface: bool;
     calls_scanned: bool;
     call_index: usize;
+    type_frontier: usize;
     calls: vector(DeclarationCall);
     evaluations: vector(void*);
     inference_pending: bool;
@@ -83,6 +90,7 @@ struct DeclarationScan {
 
 struct DeclarationCall {
     node: void*;
+    type: bool;
     unevaluated: bool;
     evaluation_depth: usize;
 }
@@ -119,6 +127,33 @@ fn sem_declaration_query(c: SemanticContext*, node: void*): usize {
     return bits(SemanticDeclaration*, data).query;
 }
 
+fn sem_array_type_prepared(c: SemanticContext*, node: void*): FoundationType* {
+    node = sem_surface_unwrap(node);
+    while (sem_is(node, "CoreTypeArgument") || sem_is(node, "CoreCallArgument") || sem_is(node, "CoreOperand"))
+        && sem_child_count(node) == 1 { node = sem_surface_unwrap(sem_child(node, 0)); }
+    if c.declaration_state == null { return null; }
+    var result = bits(SemanticDeclaration*, entity_component_data(entity_component_get(node, c.declaration_state)));
+    if result == null || !result.array_ready { return null; }
+    sem_query_input(c, node, ArrayTypeQuery);
+    return &result.array_result;
+}
+
+fn sem_array_type_add(c: SemanticContext*, node: void*, parent: SemanticDeclaration*): SemanticDeclaration* {
+    var result = sem_declaration_state(c, node);
+    if result.query != 0 { sem_require(result.array_type); return result; }
+    result.array_type = true;
+    result.scope = parent.scope;
+    result.current = parent.current;
+    result.lexical = parent.lexical;
+    sem_declaration_add(c, node);
+    return result;
+}
+
+fn sem_array_type_check(c: SemanticContext*, result: SemanticDeclaration*): void {
+    result.array_element = *sem_type(c, sem_member(result.subject, "base"));
+    if sem_ok(c) { result.array_length = sem_array_length(c, result.subject, &result.array_element); }
+}
+
 fn sem_declaration_scan_push(scan: vector(DeclarationScan)*, node: void*, type: bool): void {
     if node == null { return; }
     sem_require(vector_reserve(DeclarationScan, scan, scan.length + 1));
@@ -129,6 +164,11 @@ fn sem_declaration_scan_push(scan: vector(DeclarationScan)*, node: void*, type: 
 
 fn sem_declaration_roots(c: SemanticContext*, result: SemanticDeclaration*, scan: vector(DeclarationScan)*): void {
     var subject = result.subject;
+    if result.array_type {
+        sem_declaration_scan_push(scan, sem_member(subject, "base"), true);
+        sem_declaration_scan_push(scan, sem_array_count(subject), false);
+        return;
+    }
     if result.expression {
         sem_declaration_scan_push(scan, subject, false);
         return;
@@ -319,6 +359,15 @@ fn sem_declaration_waiting(c: SemanticContext*, result: SemanticDeclaration*, la
         scan.length--;
         var node = scan.data[scan.length].node;
         var type = scan.data[scan.length].type;
+        if type && sem_array_syntax(node) {
+            var query = sem_declaration_query(c, node);
+            if query != 0 && query != result.query {
+                // The call continuation consumes these receipts in source
+                // order. This reverse dependency scan must not choose a later
+                // array's failure while an earlier extent is still pending.
+                continue;
+            }
+        }
         if !type && sem_is(node, "TowerExpression")
             && sem_is(sem_surface_unwrap(sem_member(node, "right")), "TowerInitializer")
             && sem_equal(sem_surface_operator(c, node, sem_member(node, "left")), "=") {
@@ -404,6 +453,13 @@ fn sem_declaration_dependencies(c: SemanticContext*, subject: void*, result: Sem
         scan.length--;
         var node = scan.data[scan.length].node;
         var type = scan.data[scan.length].type;
+        if type && sem_array_syntax(node) {
+            var query = sem_declaration_query(c, node);
+            if query != 0 && query != result.query {
+                sem_declaration_input(result, query);
+                continue;
+            }
+        }
         if sem_is(node, "TowerDefault") || sem_is(node, "TowerInitializer") {
             var annotation = sem_member(node, "type");
             if sem_is(node, "TowerInitializer") {
@@ -664,7 +720,14 @@ fn sem_declaration_syntax(c: SemanticContext*, annotation: void*, nodes: vector(
     for(var i: usize = 0; i < pending.length; i++) {
         var node = pending.data[i].node;
         var type = pending.data[i].type;
+        if type && sem_array_type_prepared(c, node) != null { continue; }
         evaluates ||= sem_is(node, "TowerComptime");
+        if !type && sem_is(node, "CoreArrayCount") {
+            for(var j: usize = 0; j < sem_child_count(node); j++) {
+                sem_declaration_scan_push(&pending, sem_child(node, j), false);
+            }
+            continue;
+        }
         if sem_is(node, "TowerDefault") || sem_is(node, "TowerInitializer") {
             if sem_is(node, "TowerInitializer") {
                 staged = true;
@@ -732,10 +795,14 @@ fn sem_declaration_syntax(c: SemanticContext*, annotation: void*, nodes: vector(
 fn sem_declaration_worker(c: SemanticContext*, result: SemanticDeclaration*): bool {
     var subject = result.subject;
     var record = sem_is(subject, "CoreStruct");
-    if !result.expression && !record && !sem_is(subject, "CoreDeclare") && !sem_is(subject, "CoreParameter") && !sem_function_syntax(subject) { return false; }
+    if !result.array_type && !result.expression && !record && !sem_is(subject, "CoreDeclare") && !sem_is(subject, "CoreParameter") && !sem_function_syntax(subject) { return false; }
     var previous_scope = c.scope;
     c.scope = result.scope;
     defer { c.scope = previous_scope; }
+    if result.array_type {
+        return sem_declaration_syntax(c, sem_member(subject, "base"), &result.nodes, true, true)
+            && sem_declaration_syntax(c, sem_array_count(subject), &result.nodes, true, false);
+    }
     if result.expression {
         return sem_declaration_expression(c, subject)
             && sem_declaration_syntax(c, subject, &result.nodes, true, false);
@@ -847,12 +914,15 @@ fn semantic_declaration_kernel(result: SemanticDeclaration*): void {
             else {
                 if result.worker_check {
                     result.checked = true;
-                    if result.expression { sem_expression_check(&context, result); }
+                    if result.array_type { sem_array_type_check(&context, result); }
                     else {
-                        if sem_function_syntax(result.subject) { sem_header(&context, result.subject, "", null); }
+                        if result.expression { sem_expression_check(&context, result); }
                         else {
-                            if sem_is(result.subject, "CoreStruct") { sem_type_fields(&context, result.subject); }
-                            else { sem_declaration_type(&context, result.subject); }
+                            if sem_function_syntax(result.subject) { sem_header(&context, result.subject, "", null); }
+                            else {
+                                if sem_is(result.subject, "CoreStruct") { sem_type_fields(&context, result.subject); }
+                                else { sem_declaration_type(&context, result.subject); }
+                            }
                         }
                     }
                 }
@@ -936,8 +1006,10 @@ fn sem_declaration_failure(c: SemanticContext*, id: usize): bool {
     for(var i: usize = 0; i < pending.length; i++) {
         var task = work_task(&c.queries, pending.data[i]);
         if task.state != WorkState.Failed { continue; }
-        if task.query == DeclarationQuery || task.query == DeclarationDiscoveryQuery || task.query == ExpressionQuery {
-            var result = sem_declaration_state(c, task.subject);
+        var result = bits(SemanticDeclaration*, entity_component_data(entity_component_get(task.subject, c.declaration_state)));
+        // The component identifies its producer and discovery tickets. New
+        // declaration query kinds must retain failures through this same path.
+        if result != null && (result.query == pending.data[i] || result.discovery == pending.data[i]) {
             if sem_declaration_restore_error(c, result) { return true; }
         }
         if task.query == convert(u32, SemanticQuery.Layout) {
@@ -1049,9 +1121,16 @@ fn sem_declaration_calls(c: SemanticContext*, result: SemanticDeclaration*): voi
             sem_require(vector_reserve(&result.calls, result.calls.length + 1));
             var call = &result.calls.data[result.calls.length];
             call.node = node;
+            call.type = entry.type;
             call.unevaluated = entry.unevaluated;
             call.evaluation_depth = entry.evaluation_depth;
             result.calls.length++;
+            continue;
+        }
+        if entry.type && sem_array_syntax(node) {
+            // The child query owns its element/count dependencies. The parent
+            // resumes with its canonical identity, without checking it twice.
+            sem_declaration_call_push(&scan, node, true, entry.unevaluated, true, entry.evaluation_depth);
             continue;
         }
         if sem_is(node, "TowerDecltype") {
@@ -1104,6 +1183,29 @@ fn sem_declaration_prepare(c: SemanticContext*, result: SemanticDeclaration*): u
         var call = &result.calls.data[result.call_index];
         c.unevaluated = call.unevaluated;
         c.evaluation_depth = call.evaluation_depth;
+        if call.type {
+            if result.call_index >= result.type_frontier {
+                // Independent array spellings in one record/signature also
+                // share a ready frontier. Bound registration and dispatch by
+                // the ordinary window, without one wait per array field.
+                var end = result.call_index;
+                while end < result.calls.length && end - result.call_index < SemanticPreparationWindow
+                    && result.calls.data[end].type {
+                    sem_array_type_add(c, result.calls.data[end].node, result);
+                    end++;
+                }
+                sem_declaration_discover(c);
+                for(var i = result.call_index; i < end; i++) {
+                    sem_require(work_demand(&c.queries, sem_declaration_query(c, result.calls.data[i].node)));
+                }
+                result.type_frontier = end;
+            }
+            var array = sem_array_type_add(c, call.node, result);
+            if sem_declaration_input(result, array.query)
+                || work_task(&c.queries, array.query).state != WorkState.Succeeded { return array.query; }
+            result.call_index++;
+            continue;
+        }
         var arguments: vector(void*)* = null;
         if result.inference_ready {
             // Preserve first-binding interning order before assembling the
@@ -1151,7 +1253,8 @@ fn sem_declaration_add(c: SemanticContext*, node: void*): void {
     var result = sem_declaration_state(c, node);
     if result.query != 0 { return; }
     sem_push(c.declaration_subjects, node);
-    var id = work_request(&c.queries, node, result.expression ? ExpressionQuery : DeclarationQuery, 0);
+    var kind = result.array_type ? ArrayTypeQuery : result.expression ? ExpressionQuery : DeclarationQuery;
+    var id = work_request(&c.queries, node, kind, 0);
     sem_require(id != 0);
     result.query = id;
     result.context = c;
@@ -1161,18 +1264,23 @@ fn sem_declaration_add(c: SemanticContext*, node: void*): void {
     result.discover = true;
     result.worker_check = sem_declaration_worker(c, result);
     sem_require(vector_push(&c.declaration_jobs, bits(void*, result)));
-    sem_require(work_access(&c.queries, id, 1, 4, id, 1, WorkAccessMode.Write));
+    var domain = convert(u64, SemanticWorkDomain.Compiler);
+    sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Declaration), id, 1, WorkAccessMode.Write));
+    if result.array_type {
+        sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.TypeIndex),
+            0, ~convert(usize, 0), WorkAccessMode.Read));
+    }
     if result.current != null {
         // Module initializer expressions read the already allocated root frame;
         // their own leased syntax holds all writes. Statement publication and
         // runtime effects still follow source order on the coordinator.
-        sem_require(work_access(&c.queries, id, convert(u64, SemanticWorkDomain.Compiler),
+        sem_require(work_access(&c.queries, id, domain,
             convert(u64, SemanticAccess.Body), sem_get(result.current).index, 1,
-            result.module_initializer ? WorkAccessMode.Read : WorkAccessMode.Write));
+            result.module_initializer || result.array_type ? WorkAccessMode.Read : WorkAccessMode.Write));
     }
     result.discovery = work_request(&c.queries, node, DeclarationDiscoveryQuery, 0);
-    sem_require(work_access(&c.queries, result.discovery, 1, 5, id, 1, WorkAccessMode.Write));
-    sem_require(work_access(&c.queries, result.discovery, 1, 3, 0, ~convert(usize, 0), WorkAccessMode.Read));
+    sem_require(work_access(&c.queries, result.discovery, domain, convert(u64, SemanticAccess.Discovery), id, 1, WorkAccessMode.Write));
+    sem_require(work_access(&c.queries, result.discovery, domain, convert(u64, SemanticAccess.Expression), 0, ~convert(usize, 0), WorkAccessMode.Read));
     sem_require(work_seal(&c.queries, result.discovery));
     sem_require(work_demand(&c.queries, result.discovery));
 }
@@ -1274,7 +1382,16 @@ fn sem_declarations(c: SemanticContext*, statements: vector(void*)*): void {
         index++;
     }
     sem_declaration_discover(c);
+    // A later ready declaration must not choose its diagnostic while an earlier
+    // declaration is suspended on an array/signature/type dependency.
+    var previous_isolated = c.declaration_isolated;
+    c.declaration_isolated = true;
     sem_declarations_execute(c, c.declaration_subjects);
+    c.declaration_isolated = previous_isolated;
+    foreach(var node in c.declaration_subjects) {
+        if !sem_ok(c) { break; }
+        if sem_declaration_query(c, node) != 0 { sem_declaration_report(c, node); }
+    }
 }
 
 extern fn generic_error_clear(context: void*): void;
@@ -1369,7 +1486,8 @@ fn sem_declarations_execute(c: SemanticContext*, statements: vector(void*)*): vo
         var count: usize = 0;
         var ticket: WorkTicket;
         while count < SemanticPreparationWindow && (work_take_query(&c.queries, &ticket, DeclarationQuery)
-            || work_take_query(&c.queries, &ticket, ExpressionQuery)) {
+            || work_take_query(&c.queries, &ticket, ExpressionQuery)
+            || work_take_query(&c.queries, &ticket, ArrayTypeQuery)) {
             var result = sem_declaration_state(c, work_task(&c.queries, ticket.task).subject);
             copy(&result.ticket, &ticket, sizeof(WorkTicket));
             result.kernel.kind = result.worker_check ? CompilerKernelKind.DeclarationType : CompilerKernelKind.Declaration;
@@ -1440,14 +1558,17 @@ fn sem_declarations_execute(c: SemanticContext*, statements: vector(void*)*): vo
                             result.worker_check = true;
                             readmit = true;
                         } else {
-                            if result.expression { sem_expression_check(c, result); }
+                            if result.array_type { sem_array_type_check(c, result); }
                             else {
-                                if sem_is(node, "CoreDeclare") || sem_is(node, "CoreParameter") { sem_declaration_type(c, node); }
+                                if result.expression { sem_expression_check(c, result); }
                                 else {
-                                    if sem_function_syntax(node) { sem_header(c, node, "", null); }
+                                    if sem_is(node, "CoreDeclare") || sem_is(node, "CoreParameter") { sem_declaration_type(c, node); }
                                     else {
-                                        if sem_is(node, "CoreStruct") { sem_type_fields(c, node); }
-                                        else { sem_enum_fields(c, node); }
+                                        if sem_function_syntax(node) { sem_header(c, node, "", null); }
+                                        else {
+                                            if sem_is(node, "CoreStruct") { sem_type_fields(c, node); }
+                                            else { sem_enum_fields(c, node); }
+                                        }
                                     }
                                 }
                             }
@@ -1459,7 +1580,16 @@ fn sem_declarations_execute(c: SemanticContext*, statements: vector(void*)*): vo
                 if result.current != null { sem_body_save(c, &result.lexical); }
                 sem_body_restore(c, &saved_lexical);
             }
-            if c.declaration_isolated {
+            if success && result.array_type && result.checked && !result.array_ready {
+                result.array_result = *sem_array_intern(c, &result.array_element, result.array_length);
+                result.array_ready = true;
+                sem_type_use(c, result.subject, &result.array_result);
+            }
+            // Array identity does not require element layout. Making its
+            // producer wait for the containing record's fields would create
+            // a false declaration cycle before the layout graph can diagnose
+            // an actual by-value cycle. Storage consumers demand that layout.
+            if c.declaration_isolated && !result.array_type {
                 for(var i = type_first; i < c.program.types.length; i++) {
                     var node = c.program.types.data[i];
                     if sem_get(node).type.record != null { sem_push(&result.constructed, node); }

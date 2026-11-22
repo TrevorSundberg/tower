@@ -80,7 +80,9 @@ fn sem_type_observations_publish(c: SemanticContext*, observations: vector(Seman
     vector_dispose(observations);
 }
 
-fn sem_constant_argument(c: SemanticContext*, n: void*, expected_type: FoundationType*): void* {
+// Resolve the ordinary checked value without mutating the shared argument
+// interner. Array query workers need this value, not a generic argument identity.
+fn sem_constant_value(c: SemanticContext*, n: void*, expected_type: FoundationType*): void* {
     n = sem_surface_unwrap(n);
     loop {
         var step9 =(sem_is(n, "CoreTypeArgument") || sem_is(n, "CoreCallArgument") || sem_is(n, "CoreOperand") || sem_is(n, "CoreArrayCount")) && sem_child_count(n) == 1;
@@ -119,6 +121,13 @@ fn sem_constant_argument(c: SemanticContext*, n: void*, expected_type: Foundatio
         sem_fail(c, n, step45);
         return null;
     }
+    return value;
+}
+
+fn sem_constant_argument(c: SemanticContext*, n: void*, expected_type: FoundationType*): void* {
+    var value = sem_constant_value(c, n, expected_type);
+    if value == null { return null; }
+    var constant = sem_get(value);
     foreach(var existing in &c.constant_arguments) {
         var e: FoundationNode* = sem_get(existing);
         if semantic_type_equal(&e.type, &constant.type) && e.bits == constant.bits {
@@ -373,12 +382,62 @@ fn sem_type(c: SemanticContext*, n: void*): FoundationType* {
         return sem_type_new(c, SI32, 0, null);
     }
     c.type_depth++;
-    var result: FoundationType* = sem_type_impl(c, n);
+    var result = sem_array_type_prepared(c, n);
+    if result == null { result = sem_type_impl(c, n); }
     c.type_depth--;
     if sem_ok(c) {
         sem_type_use(c, n, result);
     }
     return result;
+}
+
+var SemanticArrayLengthLimit: u64 = 1048576;
+
+fn sem_array_count(node: void*): void* {
+    return sem_member(node, "count") ?? sem_member(node, "index");
+}
+
+fn sem_array_syntax(node: void*): bool {
+    return sem_member(node, "base") != null && sem_array_count(node) != null;
+}
+
+fn sem_array_length(c: SemanticContext*, node: void*, element: FoundationType*): usize {
+    var value = sem_constant_value(c, sem_array_count(node), null);
+    if value == null { return 0; }
+    var constant = sem_get(value);
+    var length = constant.bits;
+    var sign = semantic_mask(&constant.type) / 2 + 1;
+    if semantic_signed(&constant.type) && (length & sign) != 0 { length = 0; }
+    if length == 0 || length > SemanticArrayLengthLimit {
+        sem_fail(c, node, "Array length must be between 1 and 1,048,576");
+        return 0;
+    }
+    if element.pointers == 0 && element.scalar == SVoid {
+        sem_fail(c, node, "An array cannot have void elements");
+        return 0;
+    }
+    return convert(usize, length);
+}
+
+// Canonical identity publication is coordinator-owned. Worker receipts carry
+// the checked element type and extent; no private array identity escapes.
+fn sem_array_intern(c: SemanticContext*, element: FoundationType*, length: usize): FoundationType* {
+    sem_require(c.entity_stage == null && length != 0);
+    foreach(var entry in &c.program.types) {
+        var array = sem_get(entry);
+        if array.type.scalar == SArray && semantic_type_equal(&array.element, element) && array.length == length {
+            return &array.type;
+        }
+    }
+    var entity = sem_create(c.program.root);
+    var array = sem_attach(entity, KType);
+    sem_set_name(array, sem_cat(c, sem_cat(c, sem_type_name(c, element), "["),
+        sem_cat(c, sem_decimal(c, convert(u64, length)), "]")));
+    array.element = *element;
+    array.length = length;
+    array.type = *sem_type_new(c, SArray, 0, entity);
+    sem_push(&c.program.types, entity);
+    return &array.type;
 }
 
 fn sem_type_impl(c: SemanticContext*, n: void*): FoundationType* {
@@ -466,51 +525,10 @@ fn sem_type_impl(c: SemanticContext*, n: void*): FoundationType* {
     if base != null {
         var step24 = sem_type(c, base);
         var t: FoundationType* = sem_type_copy(c, step24);
-        var count: void* = sem_member(n, "count");
-        if count == null {
-            count = sem_member(n, "index");
-        }
+        var count = sem_array_count(n);
         if count != null {
-            var value: void* = sem_constant_argument(c, count, null);
-            if value == null {
-                return t;
-            }
-            var v: FoundationNode* = sem_get(value);
-            var length: u64 = v.bits;
-            var sign: u64 = semantic_mask(&v.type) / 2;
-            sign++;
-            if semantic_signed(&v.type) &&(length &sign) != 0 {
-                length = 0;
-            }
-            if length == 0 || length > 1048576 {
-                sem_fail(c, n, "Array length must be between 1 and 1,048,576");
-                return t;
-            }
-            if t.pointers == 0 && t.scalar == SVoid {
-                sem_fail(c, n, "An array cannot have void elements");
-                return t;
-            }
-            var step46 = sem_type_name(c, t);
-            var step47 = sem_cat(c, step46, "[");
-            var step48 = sem_decimal(c, length);
-            var step49 = sem_cat(c, step47, step48);
-            var name: u8* = sem_cat(c, step49, "]");
-            foreach(var & entry in &c.program.types) {
-                var a: FoundationNode* = sem_get(*entry);
-                if a.type.scalar == SArray && semantic_type_equal(&a.element, t) && convert(u64, a.length) == length {
-                    return &a.type;
-                }
-            }
-            var entity: void* = sem_create(c.program.root);
-            var a: FoundationNode* = sem_attach(entity, KType);
-            sem_set_name(a, name);
-            sem_set_type(&a.element, t);
-            var step61 = convert(usize, length);
-            a.length = step61;
-            var step62 = sem_type_new(c, SArray, 0, entity);
-            sem_set_type(&a.type, step62);
-            sem_push(&c.program.types, entity);
-            return &a.type;
+            var length = sem_array_length(c, n, t);
+            return sem_ok(c) ? sem_array_intern(c, t, length) : t;
         }
         if sem_member(n, "field") != null {
             sem_fail(c, n, "Expected a type name, not field access");

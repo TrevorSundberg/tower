@@ -636,4 +636,31 @@ var module_query_stage: i32 = comptime(callback_value(41));
 if module_query_first != 1 || module_query_second != 2 || module_query_third != 12
     || module_query_record.value != 12 || module_query_record.visits != 2 || module_query_stage != 42 { failures++; }
 
+fn query_array_record(N: usize): type {
+    struct Array { values: i32[N]; }
+    return Array;
+}
+fn query_array_sum(values: i32[2]*): i32 { return (*values)[0] + (*values)[1]; }
+fn query_arrays_first(): i32 {
+    var record: query_array_record(2);
+    record.values[0] = 20;
+    record.values[1] = 22;
+    var alias: i32[2]* = &record.values;
+    return query_array_sum(alias);
+}
+fn query_arrays_second(): i32 {
+    var values: i32[2][3];
+    values[2][1] = 42;
+    var alias: decltype(values)* = &values;
+    return (*alias)[2][1];
+}
+struct QueryArrayFields { first: i32[2]; second: i32[3]; nested: i32[2][3]; }
+fn query_arrays_fields(): i32 {
+    var value: QueryArrayFields;
+    value.first[0] = 10;
+    value.second[2] = 12;
+    value.nested[2][1] = 20;
+    return value.first[0] + value.second[2] + value.nested[2][1];
+}
+if query_arrays_first() != 42 || query_arrays_second() != 42 || query_arrays_fields() != 42 { failures++; }
 print(failures);

@@ -41082,3 +41082,62 @@ GitHub DNS resolution plus a depth-one fetch succeeded. No persistent Git config
 feature branch, force push or new non-Tower helper script was introduced.
 
 Final local verify-local.mjs passes all 88 asset checks and desktop/mobile runtime, native downloads, completion, persistence, compiler-project cancellation and detected defaults. Manifest provenance/validation metadata is finalized after these functional checks; runtime/project/bundle bytes stay unchanged. Hosted verification follows publication.
+The module initializer slice is published as 806ab67. The final pull was up to
+date and the documented public-bootstrap incremental package command succeeded
+without rebuilding unchanged objects. It joins the protocol/root correction in
+the next browser release; browser assets still identify verified 2225c52.
+
+Next slice: array type spellings now have ArrayType queries on their existing
+syntax entities. Parent declaration/call continuations suspend on those receipts;
+nested array elements have their own dependencies. Eligible workers check the
+element and extent using ordinary semantic operations and private stages, while
+the coordinator interns one canonical array identity at publication. Consumers
+reuse the receipt rather than creating arrays under pinned worker views. Generic
+argument identity interning remains separate from resolving its checked value;
+array workers do not write the shared generic-constant index. This does not add
+an evaluator or extend the currently literal/bound-integer extent language.
+
+Array identity deliberately does not wait for element layout. A recursive
+by-value array must reach the existing layout-cycle diagnostic, rather than
+creating an artificial field-declaration cycle. Storage consumers retain their
+layout dependencies. Added nested-array, generic-extent and canonical pointer
+identity coverage, plus ordered invalid extents and recursive array layout.
+The first preflight caught unsupported `else if` syntax; changed to the existing
+nested form before proceeding. The public bootstrap then compiled the changed
+declaration unit. Candidate native build/smoke is running in array-queries-native.log;
+these changes are not yet claimed validated or published.
+
+The first candidate executes the expanded success fixture with 0 failures, but
+its smoke aborts on an invalid array. GDB identifies sem_declaration_report:
+the failed-query walker recognized only the old declaration/discovery/expression
+kind list, so it lost the ArrayType diagnostic and incorrectly entered cycle
+reporting. Changed failure lookup to match the component's actual producer or
+discovery ticket, avoiding another closed kind list. Evidence:
+array-queries-{native,fixture-before,abort}.log.
+
+A separate minimal global case (`var first:i32[0];var later:MissingLater;`)
+confirmed that a later ready type error overtook an earlier suspended array
+producer. Global declaration execution now keeps independent diagnostics
+isolated until source-ordered reporting, as body continuations already do.
+Added serial/parallel coverage; retained array-global-failure-before.log.
+The corrected candidate is building in array-queries-fixed.log.
+
+The corrected candidate passes the affected smoke, including serial/four-worker
+global invalid-array ordering and the recursive-array layout diagnostic.
+Array registration now also batches consecutive independent type spellings in
+one record/signature within SemanticPreparationWindow, demanding that frontier
+together. The parent consumes receipts in source order; the reverse dependency
+scan does not select a later array's failure. Added multiple array fields and
+earlier-invalid-element versus later-invalid-extent coverage. Array jobs declare
+the shared type-index read, with canonical interning still after joins. The
+expanded 32/64-bit, 1/2/4/8-worker matrix is running in array-frontier-matrix.log.
+
+The final array frontier passes that full matrix: both target widths and all
+four worker counts produce matching canonical output, execute successfully,
+and reparse; both diagnostic/cycle groups pass, including source-ordered array
+field errors. The candidate also compiles its own semantic_declarations.tower
+unit to an object with `--library --emit object --no-optimize` (exit0), covering
+the real compiler import closure beyond the behavioral fixtures. Evidence:
+array-frontier-matrix.log and array-queries-self.log. No throughput improvement
+is claimed from these correctness/concurrency checks. Ready for publication of
+this batched protocol, module-initializer and array-query milestone.

@@ -181,7 +181,7 @@ fn body_runs_arm_error(budget: usize, bedrock: u8*, foundation: u8*, root: u8*, 
     units_check(frontend_units_failed(batch) == 1 && strstr(error, mode == 2 ? "Duplicate match pattern" : "unknownMatch") is not null && strstr(error, "unknownSecond") is null, "Resumed arm and cleanup failures preserve source diagnostic order");
 }
 
-enum BodyDeclarationFailure: u32 { SelfReference, SharedSignature, SharedInitializer, HeaderSelfReference, SharedTypeInitializer, SharedTypeAlias, SharedNestedType, NestedFunctionSignature, IterationSignature, ModuleInitializer, ModuleStatement }
+enum BodyDeclarationFailure: u32 { SelfReference, SharedSignature, SharedInitializer, HeaderSelfReference, SharedTypeInitializer, SharedTypeAlias, SharedNestedType, NestedFunctionSignature, IterationSignature, ModuleInitializer, ModuleStatement, ArrayExtent, ArrayCycle, ModuleArrayExtent, ArrayFields }
 var BodyDeclarationRevision: u64 = 90;
 var BodyDeclarationProfile: u64 = 23;
 
@@ -234,6 +234,22 @@ fn body_runs_declaration_error(budget: usize, bedrock: u8*, foundation: u8*, roo
         source = "import tower;unknownStatement();var later:i32=unknownLater;";
         diagnostic_text = "unknownStatement";
     }
+    if mode == BodyDeclarationFailure.ArrayExtent {
+        source = "import tower;fn first():i32{var invalid:i32[0];return 0;}fn later():i32{return unknownLater;}";
+        diagnostic_text = "Array length must be between";
+    }
+    if mode == BodyDeclarationFailure.ArrayCycle {
+        source = "import tower;fn recursive(T:type):type{struct Record{values:Record[1];}return Record;}fn first():i32{var invalid:recursive(i32);return 0;}fn later():i32{return unknownLater;}";
+        diagnostic_text = "Recursive by-value layout";
+    }
+    if mode == BodyDeclarationFailure.ModuleArrayExtent {
+        source = "import tower;var first:i32[0];var later:MissingLater;";
+        diagnostic_text = "Array length must be between";
+    }
+    if mode == BodyDeclarationFailure.ArrayFields {
+        source = "import tower;struct Record{first:MissingArrayFirst[2];second:i32[0];}var value:Record;";
+        diagnostic_text = "MissingArrayFirst";
+    }
     units_check(frontend_units_source(batch, 1, "local_dependency.tower", source, strlen(source)), "Local declaration dependency source");
     while !frontend_units_step(batch, true) {}
     var error = frontend_units_error(batch);
@@ -278,6 +294,13 @@ fn body_runs_smoke(root: u8*): void {
     body_runs_declaration_error(1, bedrock.data, foundation.data, root, BodyDeclarationFailure.ModuleInitializer);
     body_runs_declaration_error(4, bedrock.data, foundation.data, root, BodyDeclarationFailure.ModuleInitializer);
     body_runs_declaration_error(4, bedrock.data, foundation.data, root, BodyDeclarationFailure.ModuleStatement);
+    body_runs_declaration_error(1, bedrock.data, foundation.data, root, BodyDeclarationFailure.ArrayExtent);
+    body_runs_declaration_error(4, bedrock.data, foundation.data, root, BodyDeclarationFailure.ArrayExtent);
+    body_runs_declaration_error(4, bedrock.data, foundation.data, root, BodyDeclarationFailure.ArrayCycle);
+    body_runs_declaration_error(1, bedrock.data, foundation.data, root, BodyDeclarationFailure.ModuleArrayExtent);
+    body_runs_declaration_error(4, bedrock.data, foundation.data, root, BodyDeclarationFailure.ModuleArrayExtent);
+    body_runs_declaration_error(1, bedrock.data, foundation.data, root, BodyDeclarationFailure.ArrayFields);
+    body_runs_declaration_error(4, bedrock.data, foundation.data, root, BodyDeclarationFailure.ArrayFields);
     body_runs_declaration_error(1, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedInitializer);
     body_runs_declaration_error(4, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedInitializer);
     body_runs_declaration_error(1, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedTypeInitializer);
@@ -333,6 +356,10 @@ fn body_runs_tests(root: u8*): void {
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.IterationSignature);
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.ModuleInitializer);
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.ModuleStatement);
+        body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.ArrayExtent);
+        body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.ArrayCycle);
+        body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.ModuleArrayExtent);
+        body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.ArrayFields);
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedInitializer);
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedTypeInitializer);
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedTypeAlias);
