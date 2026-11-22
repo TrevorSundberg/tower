@@ -45897,3 +45897,36 @@ added to the exact allowlist. The comparator's custom-grammar fixture also now
 explicitly imports Foundation, as required by the upstream declaration seed.
 The remaining semantics/grammar checks and post-rebase successor validation
 are being completed before publication; earlier successful checks are retained.
+
+Final frozen build source is 6992406d731826b07c214cdd43133582d3ffceab,
+after integrating the upstream IDE migration and its journal closeout. The new
+complete package at /cache/type_values_pin_6992406 has executable SHA-256
+3393e73a61b5ed8220127f0c05b7e5f25bd3e21dd46153a7459c90ce16c9fd60 and
+records that reachable source revision. It supersedes the earlier rebased-away
+25413363 provenance. Packaging checksums and execution from /tmp pass. The fresh
+default build at /cache/type_values_pinned_successor_6992406 used this checked-in
+pin without a private bootstrap override, completed all 50 steps, produced an
+executable byte-identical to the pin, and executed both the type-value and
+computed-argument fixtures with result 0. Log: build/type-objects-pinned-successor-final.log.
+This is still the documented Linux x64 development bootstrap, not a portable release.
+
+The upstream Tower IDE suite passes against the integrated compiler; production
+parser assets were then rebuilt with TOWER_IDE_TESTS=OFF. Threaded and LLVM/cross
+assets and the compiler project were refreshed from the same frozen compiler
+source. Required backend-world/source checks pass without skips. Published target
+support packs are reused byte-for-byte from Pages 3937cadf: this checkpoint changes
+no runtime implementation or target-pack source. The compiler project passed two
+successive browser generations before the IDE-test-only rebase; that evidence
+applies to unchanged compiler algorithms, not to the newly merged IDE fixtures.
+
+The semantics comparator additionally exposed Wasm's __table_base relocation for
+typed kernel callbacks. It is allowed only for the existing Wasm parser/semantics
+profiles; Tower tests confirm that native and unrelated profiles still reject it.
+The browser bytecode transport checks now expect semantics version 8 and explicitly
+import their language. Their custom Foundation fixture previously replaced an
+import that no longer existed; it now appends the Identifier override to the
+actual Foundation module. All four transport cases pass, including both pointer
+widths, invalid envelope/cache rejection and grammar replacement. The optional
+ide_package_tests export is absent in the production profile and its separate
+case remains skipped; this is not counted as tested coverage. No new evaluator,
+runtime feature or implementation language was introduced by these fixture fixes.

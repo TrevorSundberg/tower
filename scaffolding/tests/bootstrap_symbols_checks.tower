@@ -59,6 +59,9 @@ export fn main(): i32 {
     symbol_target_case(BootstrapUnit.ParserNodes, "wasm32-unknown-unknown", " U __indirect_function_table\n", null);
     symbol_target_case(BootstrapUnit.ParserNodes, "wasm64-unknown-unknown", " U __indirect_function_table\n", null);
     symbol_target_case(BootstrapUnit.Semantics, "wasm32-unknown-unknown", " U __indirect_function_table\n", null);
+    symbol_target_case(BootstrapUnit.Semantics, "wasm32-unknown-unknown", " U __table_base\n", null);
+    symbol_case(BootstrapUnit.Semantics, false, " U __table_base\n", "__table_base");
+    symbol_target_case(BootstrapUnit.Bytes, "wasm32-unknown-unknown", " U __table_base\n", "__table_base");
     symbol_case(BootstrapUnit.Semantics, false, " U __indirect_function_table\n", "__indirect_function_table");
     symbol_case(BootstrapUnit.ParserNodes, false, " U __indirect_function_table\n", "__indirect_function_table");
     symbol_case(BootstrapUnit.ParserNodes, true, " U __indirect_function_table\n", "__indirect_function_table");

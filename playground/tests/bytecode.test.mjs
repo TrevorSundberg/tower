@@ -3,12 +3,12 @@ import assert from 'node:assert/strict';
 import {readFile,writeFile} from 'node:fs/promises';
 import {loadTower} from './compiler-fixtures.mjs';
 const read=path=>readFile(new URL('../../'+path,import.meta.url));
-const bytecodeContainerVersion=1, bytecodeSemanticsVersion=6, bytecodeExecutionCacheVersion=5;
+const bytecodeContainerVersion=1, bytecodeSemanticsVersion=8, bytecodeExecutionCacheVersion=5;
 const tower=await loadTower(await read('build/browser-wasi/tower.wasm'),undefined,(await read('scaffolding/foundation.tower')).toString());
 test('Tower package preparation owns independent verified execution sessions', {skip:!tower.exports.ide_package_tests}, () => {
   assert.equal(tower.exports.ide_package_tests(),0);
 });
-const source='struct Pair { x: i32; y: i32; } fn sum(p: Pair*): i32 { var sum = p.x + p.y; return sum; } var pair: Pair; pair.x = 20; pair.y = 22; print(sum(&pair)); var text = "snow 雪"; print(text[5]); print(sizeof(usize));';
+const source='import tower; struct Pair { x: i32; y: i32; } fn sum(p: Pair*): i32 { var sum = p.x + p.y; return sum; } var pair: Pair; pair.x = 20; pair.y = 22; print(sum(&pair)); var text = "snow 雪"; print(text[5]); print(sizeof(usize));';
 function finish(handle){let result,output='';do{result=tower.execute(handle,7);output+=result.output;}while(result.status==='executing');assert.equal(result.status,'done',result.error);return output;}
 function checksum(bytes){const data=bytes.slice();let hash=14695981039346656037n;for(let i=0;i<data.length;i++){hash^=BigInt(i>=48&&i<56?0:data[i]);hash=BigInt.asUintN(64,hash*1099511628211n);}new DataView(data.buffer).setBigUint64(48,hash,true);return data;}
 for(const width of [4,8])test('.towerbc v1 round trip, target layout and deterministic cache '+width,async()=>{
@@ -28,7 +28,7 @@ for(const width of [4,8])test('.towerbc v1 round trip, target layout and determi
   }finally{for(const h of [input,loaded,round])if(h)tower.destroyExecution(h);}
 });
 test('untrusted packages validate bounds, versions, checksums and actual code before executing',()=>{
-  const handle=tower.compile('print(42);'), bytes=tower.bytecode(handle);tower.destroyExecution(handle);
+  const handle=tower.compile('import foundation; print(42);'), bytes=tower.bytecode(handle);tower.destroyExecution(handle);
   for(const size of [0,7,55,bytes.length-1])assert.throws(()=>tower.loadBytecode(bytes.slice(0,size)),/length/);
   for(const [offset,value,pattern] of [[0,0,/magic/],[8,2,/container version/],[12,1,/semantics version/],[16,1,/cache version/],[20,16,/target layout/],[24,3,/profile/],[28,0xffffffff,/bounds/],[32,0xffffffff,/bounds/],[36,0xffffffff,/bounds/],[40,1,/bounds/],[44,1,/flags/]]){
     const bad=bytes.slice();new DataView(bad.buffer).setUint32(offset,value,true);assert.throws(()=>tower.loadBytecode(bad),pattern);
@@ -43,9 +43,9 @@ test('untrusted packages validate bounds, versions, checksums and actual code be
 
 test('canonical packages preserve checked handles across custom grammar installation',async()=>{
   const foundation=(await read('scaffolding/foundation.tower')).toString();
-  const customized=foundation.replace('import bedrock;', 'import bedrock;\ntoken Identifier = /[A-Za-z_][A-Za-z0-9_-]*/ as identifier;');
+  const customized=foundation+'\n[identifier] token Identifier = /[A-Za-z_][A-Za-z0-9_-]*/;';
   tower.configure(customized);
-  const handle=tower.compile('var player-name: i32 = 42; print(player-name);');
+  const handle=tower.compile('import foundation; var player-name: i32 = 42; print(player-name);');
   let loaded;
   try{
     tower.useFast(handle);

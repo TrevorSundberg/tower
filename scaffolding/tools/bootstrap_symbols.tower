@@ -45,10 +45,10 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
     while length != 0 && *symbol == convert(u8, SymbolByte.Underscore) { symbol++; length--; }
     if unit == BootstrapUnit.Unknown || unit == BootstrapUnit.Utf8 || length == 0 { return false; }
     if bootstrap_symbol_in("tower_reallocate tower_deallocate memcpy memmove memset bzero stack_pointer memory_base", symbol, length) { return true; }
-    // Parser/semantic jobs use typed function values. This is Wasm's indirect-call table,
-    // not an external native implementation or permission for other platforms.
+    // Parser/semantic jobs use typed function values. Wasm supplies the indirect
+    // table and its relocation base; neither is an external implementation.
     if wasm && (unit == BootstrapUnit.ParserNodes || unit == BootstrapUnit.Semantics)
-        && bootstrap_symbol_in("indirect_function_table", symbol, length) { return true; }
+        && bootstrap_symbol_in("indirect_function_table table_base", symbol, length) { return true; }
     // Current ECS/query workers call these Tower host transports. Keep their
     // exact interfaces explicit; never allow an arbitrary work_* dependency.
     if unit == BootstrapUnit.Entities || unit == BootstrapUnit.ParserNodes || unit == BootstrapUnit.Semantics {
