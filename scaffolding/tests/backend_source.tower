@@ -63,7 +63,7 @@ export fn backend_source_world_tests(bedrock: u8*, foundation: u8*): i32 {
             return convert(i32, BackendWorldFailure.Baseline);
         }
     }
-    var source: u8* = "fn answer():i32{return 42;}print(answer());";
+    var source: u8* = "import foundation;fn answer():i32{return 42;}print(answer());";
     for(var index: usize = 0; index < 2; index++) {
         var fixture = &fixtures[index];
         var result = backend_source_compile(fixture.source, source, strlen(source), BackendSourceImport, fixture.modules, null);
@@ -103,8 +103,8 @@ export fn backend_source_tests(environment: void*): i32 {
         return 1;
     }
     var failure: i32 = 0;
-    var first: u8* = "var answer: i32 = 42; print(answer);";
-    var second: u8* = "var answer: i32 = 99; print(answer);";
+    var first: u8* = "import foundation;var answer: i32 = 42; print(answer);";
+    var second: u8* = "import foundation;var answer: i32 = 99; print(answer);";
     var result = backend_source_compile(left, first, strlen(first), BackendSourceImport, environment, null);
     if !backend_source_test_has(result, "\"format\":\"foundation\"") {
         failure = 2;
@@ -154,7 +154,7 @@ export fn backend_source_tests(environment: void*): i32 {
     }
     // The caller's span is followed by invalid syntax and has no terminator at
     // its boundary. Compilation must consume exactly the supplied byte count.
-    var clipped: u8* = "print(42);?";
+    var clipped: u8* = "import foundation;print(42);?";
     result = backend_source_compile(left, clipped, strlen(clipped) -1, BackendSourceObjectOutput | BackendSourceUnoptimized, environment, null);
     if !backend_source_test_has(result, "\"status\":\"compiled\"") {
         failure = 13;
@@ -177,7 +177,7 @@ fn backend_source_link_tests(environment: void*): bool {
     var source = backend_source_create(backend_worker_runtime(), backend_worker_runtime_size());
     if source == null { return false; }
     defer backend_source_close(source);
-    var text = "extern fn imported(value:i32):i32;export fn public_answer():i32{return imported(42);}print(public_answer());";
+    var text = "import foundation;extern fn imported(value:i32):i32;export fn public_answer():i32{return imported(42);}print(public_answer());";
     var generated_inputs: usize = 3;
     var wasm_header_bytes: usize = 8;
     for (var optimize: usize = 0; optimize < 2; optimize++) {
@@ -204,7 +204,7 @@ fn backend_source_type_values(environment: void*): bool {
     var source = backend_source_create(backend_worker_runtime(), backend_worker_runtime_size());
     if source == null { return false; }
     defer backend_source_close(source);
-    var text = "var selected:type_type()=type_value(integer_type(8,0));var expected:type_type()=type_value(integer_type(8,0));var equal:bool=selected==expected;print(equal);";
+    var text = "import foundation;var selected:type_type()=type_value(integer_type(8,0));var expected:type_type()=type_value(integer_type(8,0));var equal:bool=selected==expected;print(equal);";
     for(var optimize: usize = 0; optimize < 2; optimize++) {
         var flags = BackendSourceImport | (optimize == 0 ? BackendSourceUnoptimized : 0);
         var result = backend_source_compile(source, text, strlen(text), flags, environment, null);
