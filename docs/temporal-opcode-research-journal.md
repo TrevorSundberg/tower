@@ -47183,3 +47183,99 @@ successfully before the host slot is released. A1's newer source-root/capture-ra
 changes are deliberately not in this frozen production snapshot. Their final
 coherent validation, supported positive sanitizer/stress passes, public-bootstrap
 closure and leased atomic deployment remain required.
+
+### L2 positive compiler instrumentation and backend root review
+
+At local main 6aa8ffb23218f311a5152add6926668d2430595b, pull/rebase reports
+current and the working tree is clean. Production inputs remain the validated
+649a1c1 snapshot. The local host slot is acquired after L1 drains its six
+same-Foundation comparisons. A fresh own cache, /root/.cache/tower/l2_ecs_address,
+is configured with TOWER_SANITIZER=address, compiler jobs 1, outer build jobs 2,
+work/backend/execution tests enabled and no private bootstrap override. The
+public pin remains 9653f8187a104ca84ab5d8601f336d7e1ed8200206544c70a81415018d623d02.
+The canonical build-native.sh entry point uses Clang/LLVM 19.1.1. Source inputs
+stay frozen through build and execution; later source-root/capture candidates
+are not part of this receipt. Build logs are L2/logs/sanitizer_address_build.*.
+Instrumentation and execution are pending at this entry; the configured object
+manifest alone establishes no sanitizer coverage. No intentional invalid-memory
+or deliberate-race probes are repeated. Linux x64 ASan/TSan positive workloads
+are the intended checks; source-language UBSan and browser sanitizer coverage
+remain unsupported by the current implementation.
+
+L1 independently reports three balanced pairs on identical 118962-byte canonical
+Foundation input (SHA256 6f2571a1821e3d7f93a2ced1bc6433b64a685b6eb1b927fab3420858e277b3e5),
+with identical adjacent resources, explicit grammar, wasm32, graph mode and one
+worker. Baseline 36342 versus b28 medians are 11.05 versus 16.27 s wall,
+10.89 versus 16.46 s CPU, and 180024 versus 215356 KiB peak RSS. All six outputs
+match the exact saturation oracle. This attributes about 47% wall, 51% CPU and 20%
+RSS growth to compilation of identical canonical input, in addition to the
+separately observed generated-source growth. It does not isolate a handler;
+both snapshots precede the proposed 120-byte capture metadata. The original
+package 30-second deadline remains a real failed gate. Logs and method are
+L1/logs/signed32_same_foundation_* and L1/profile_same_foundation.sh.
+
+Read-only review of B2_backend_execution_roots.patch 5d3e769c finds its executable
+edges consistent with the shared Foundation helper contract: module effects,
+direct calls, callback references, exported/foreign signatures, argument values
+and control bodies remain reachable. The function-indexed admission array checks
+identity, source_functions preserves every original slot, and import lookup
+skips null symbols for omitted private functions. KType and metadata attributes
+are not backend executable operations. This is a disposable index over frozen
+entities and does not change canonical declarations. Static review finds no
+edge-contract blocker; owner runtime/export/address/effect and allocation tests
+remain necessary. This candidate is not applied during the sanitizer freeze.
+The separately routed blanket driver fixture language-prefix patch is also not
+applied: coordinator/D1/D2 review found existing explicit Foundation imports
+whose activation and source offsets must remain intact.
+
+### L2 completed positive ASan receipt on frozen type implementation
+
+The fresh address-mode compiler build completes 82 steps, 177.69 s wall /
+298.87 s CPU / 820780 KiB peak RSS. The three existing runners build in 17 steps,
+27.44 s /35.85 s / 335548 KiB. These are validation-build costs, not production
+performance comparisons. Compiler SHA256 is 2797171f94e32610ed5c0a8afafd8c749817977ba522a69c5b2ee14b0eba82c7;
+execution runner fa4dcc4d739cc078ec6f1234e95449b8760796760a0c7030afcbf1d035ed689c;
+worker runner ea3a936c43ebb0eca0da6048b414382e7530c2303ca7fdbb3c8f97d3ebefa056;
+pool runner a017cb90bca800597c6446e203950002f7b1001a7ea6aafe9f89b2f4a90c587d.
+All use public-pin compiled inputs at source 6aa8ffb, production 649a1c1.
+
+The actual link commands contain -fsanitize=address. Saved llvm-nm output for
+individual Tower objects and archives contains the inserted __asan load/store
+hooks, including the semantic/interpreter/runtime inputs. The object manifest,
+full build commands, hashes, stdout/stderr and time/status records remain in
+L2/logs/sanitizer_address_*. Third-party LLVM itself is not rebuilt with ASan,
+and target programs subsequently compiled by this compiler are not implicitly
+instrumented. The matching source resource tree passes byte-for-byte diff.
+
+Every following process exits zero with ASAN_OPTIONS=detect_leaks=1:halt_on_error=1:
+
+| Actual instrumented workload | Wall s | CPU s | Peak RSS KiB |
+| --- | ---: | ---: | ---: |
+| Executed constructor operands/suspension/receipts/capabilities, both widths | 10.71 | 13.46 | 766352 |
+| Source rejection, runtime roots and seven type-reachability cases per width | 10.42 | 13.86 | 770828 |
+| Query smoke, serial/threaded 32/64-bit staging and resumable dependencies | 0.53 | 0.59 | 166876 |
+| Complete types, canonical reconstruction, 1/2/4/8 workers and repeated cleanup | 410.87 | 492.78 | 1033672 |
+| Production pool, 16 overlap/allocation rounds plus early failure drains, trial 1 | 0.05 | 0.07 | 95516 |
+| Same pool, trial 2 | 0.04 | 0.07 | 95840 |
+| Same pool, trial 3 | 0.04 | 0.07 | 95568 |
+| Standalone compiler, type_object_values, four workers, fast execution | 11.21 | 14.33 | 778700 |
+
+The standalone stdout is byte-compared with the independent exact zero oracle.
+The full type fixture retains target-width, graph/fast, ordinary source-bound
+prelude, generic/constructor/effect/ABI/error, canonical and repeated zero-entity/
+component-delta assertions. The pool checks distinct real worker identities and
+barrier overlap; its deliberate early function returns exercise lawful cleanup,
+not invalid memory or intentional races. No sanitizer finding or leak is reported
+in these runs. This evidence is specific to these inputs and schedules, not proof
+of universal memory safety or race freedom. No sensitivity probes are rerun.
+
+All owned processes 43227/13344/94318/52218 drain before the local slot is released
+to L1 for queued backend/editor checks. Separate actual TSan compiler/runners are
+still required. New A1 source-root/capture/editor and B2 backend-root candidates
+are not part of this frozen receipt; changed ownership needs its affected final
+checks. The build/native staging directory now contains the address validation
+variant because build-native.sh stages its selected cache; the ordinary native
+cache and complete 0b6c90 comparison packages remain preserved. Restore/rebuild
+ordinary assets before packaging. No public bootstrap pin or deployment is
+claimed. This journal/audit update changes no runtime code, so additional runtime
+performance measurements for the documentation itself are inapplicable.

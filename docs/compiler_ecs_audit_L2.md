@@ -431,3 +431,24 @@ single handler or prove per-phase overlap.
 The newer A1 source-root/capture-range successor is outside this frozen receipt.
 Its coherent validation, supported positive sanitizer/stress checks, clean public
 bootstrap, browser release and leased atomic publication remain required.
+
+## Positive address instrumentation receipt
+
+Frozen source 6aa8ffb (production 649a1c1) builds through the public pin with
+TOWER_SANITIZER=address in a fresh own cache. Actual Tower IR/object hooks and
+final compiler/runner ASan links are inspected, beyond the configured manifest.
+With leak detection enabled, executed constructors, source-rejection/reachability,
+query smoke and complete types all pass. The full type suite takes 410.87 s wall /
+492.78 s CPU / 1033672 KiB RSS and retains target-width, canonical, 1/2/4/8-worker
+and zero-retention checks. Three production pool runs also pass barrier-confirmed
+overlap/allocation and early-return worker drains. The standalone instrumented
+compiler passes four-worker fast type_object_values with exact stdout zero.
+Hashes, commands, outputs and complete timings are in the journal and
+L2/logs/sanitizer_address_*. No sanitizer finding or leak is reported.
+
+This covers the frozen type/generic implementation, not the newer unmerged
+capture/source-root/editor/backend candidates. TSan, final coherent ownership
+checks and bootstrap/browser/publication remain open. Third-party LLVM and
+subsequently generated target programs are outside this instrumentation receipt;
+source-language UBSan/browser coverage is unsupported. No intentional fault/race
+probes were rerun. Counts and passing checks do not prove universal safety.
