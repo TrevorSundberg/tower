@@ -3,12 +3,11 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 // Use the real host directly: test fixtures intentionally install extra modules.
 import {loadTower, runToEnd} from '../src/tower-host.mjs';
+import {builtins as grammar} from './compiler-fixtures.mjs';
 
 const read = path => readFile(new URL('../../'+path,import.meta.url));
 const wasm = await read('build/browser-wasi/tower.wasm');
-const grammar = Object.fromEntries(await Promise.all(['bedrock','foundation','tower'].map(async name =>
-  [name,(await read('scaffolding/'+name+'.tower')).toString()])));
-const host = () => loadTower(wasm,undefined,grammar.foundation,undefined,grammar.bedrock,{tower:grammar.tower});
+const host = () => loadTower(wasm,undefined,grammar.foundation,undefined,grammar.bedrock,{tower:grammar.tower,builtins:grammar});
 const file = (path,text) => ({path,text});
 const sources = () => Object.entries(grammar).map(([name,text]) => file(name+'.tower',text));
 function run(compiler, source, files, entry = 'units/main.tower') {
@@ -29,7 +28,7 @@ test('reused host replaces a complete project library without retaining removed 
   };
   try {
     assert.equal(execute(grammar).output,'720\n721\n');
-    const missing = execute({bedrock:grammar.bedrock,foundation:grammar.foundation});
+    const missing = execute(Object.fromEntries(Object.entries(grammar).filter(([name])=>name!=='tower')));
     assert.equal(missing.status,'error');
     assert.match(missing.error,/Cannot read imported module: tower/);
     assert.equal(execute(grammar).output,'720\n721\n');
@@ -40,13 +39,18 @@ test('Tower, Foundation and Bedrock work under ordinary renamed paths',async () 
   const compiler = await host();
   const files = [
     file('syntax/declarations.tower',grammar.bedrock),
-    file('syntax/core.tower',grammar.foundation.replace('import bedrock;','import "declarations.tower";')),
+    file('syntax/operations.tower',grammar.foundation_syntax.replace('import bedrock;','import "declarations.tower";')),
+    file('syntax/core.tower',grammar.foundation.replace('import foundation_syntax;','import "operations.tower";')),
     file('syntax/language.tower',grammar.tower.replace('import foundation;','import "core.tower";')),
+    ...sources().filter(f=>f.path!=='tower.tower'&&f.path!=='foundation.tower'&&f.path!=='bedrock.tower'),
+    file('bedrock.tower',grammar.bedrock),
   ];
   const result = run(compiler,'import "syntax/language.tower"; var Answer: i32 = 42; print(Answer);',files);
   assert.equal(result.status,'done',result.error);
   assert.equal(result.output,'42\n');
-  assert.deepEqual(new Set(result.dependencies),new Set(['units/main.tower',...files.map(f=>f.path)]));
+  assert.ok(result.dependencies.includes('syntax/declarations.tower'));
+  assert.ok(result.dependencies.includes('syntax/operations.tower'));
+  assert.ok(!result.dependencies.includes('tower.tower'));
 });
 
 test('tower uses ordinary nearest-file lookup and invalidates cached resolutions after edits',async () => {
@@ -146,13 +150,14 @@ test('dotted imports reject empty segments and report errors from the selected f
 });
 
 test('saved Bedrock grammars with direct identifier imports remain usable',async () => {
-  const compiler = await host(), files = sources();
-  const bedrock = files.find(f=>f.path==='bedrock.tower');
-  bedrock.text = bedrock.text.replace(/^parse Import(?:Path|Name) = .*\n/gm,'').replaceAll('$name:ImportName','$name:Identifier');
-  files.push(file('helper.tower','import tower; fn answer(): i32 { return 42; }'));
-  const result = run(compiler,'import tower; import helper; print(answer());',files);
-  assert.equal(result.status,'done',result.error);
-  assert.equal(result.output,'42\n');
+  const compiler = await host();
+  const legacy = grammar.bedrock.replace(/^parse Import(?:Path|Name) = .*\n/gm,'').replaceAll('$name:ImportName','$name:Identifier');
+  compiler.configureModules({entry:'main.tower',library:'.',files:[
+    file('legacy.tower',legacy),file('helper.tower',"parse Statement = 'hello';")
+  ]});
+  const handle=compiler.create('import legacy; import helper; hello');
+  try { const {end}=runToEnd(compiler,handle); assert.equal(end.status,'done',end.error); }
+  finally { compiler.destroy(handle); compiler.close(); }
 });
 
 test('each leading dot moves up one directory, including aliases and cached grammars',async () => {

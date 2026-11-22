@@ -3,6 +3,7 @@ import component_kinds;
 import language_components;
 import syntax_types;
 import syntax_tags;
+import grammar_attributes;
 import format_types;
 import completion;
 import frontend_compilation;
@@ -419,6 +420,31 @@ fn language_grammar_targets(q: CompletionQuery*, entry: LanguageGrammar*, docume
 fn language_grammar_details(q: CompletionQuery*, leaf: void*, node: void*): void {
     var syntax = language_syntax(node);
     if syntax == null {
+        return;
+    }
+    if syntax.kind == convert(u32, SyntaxKind.Attribute) {
+        var attribute = grammar_attribute_kind(&syntax.name);
+        language_string(q, "kind", "grammar attribute");
+        language_string(q, "name", syntax.name.data);
+        var description: u8* = "Metadata attached to this grammar declaration.";
+        if attribute == GrammarAttributeKind.Style {
+            description = "Chooses how matching text is highlighted. It does not change the token's meaning or runtime type.";
+        }
+        if attribute == GrammarAttributeKind.Contextual {
+            description = "Recognizes this token only where the parser expects it.";
+        }
+        if attribute == GrammarAttributeKind.Precedence {
+            description = "Sets binding strength and associativity for eligible parser conflicts. Larger levels bind more tightly; it does not reorder execution.";
+        }
+        language_string(q, "description", description);
+        return;
+    }
+    if syntax.kind == convert(u32, SyntaxKind.AttributeName)
+        || syntax.kind == convert(u32, SyntaxKind.AttributeString)
+        || syntax.kind == convert(u32, SyntaxKind.AttributeInteger) {
+        language_string(q, "kind", "grammar attribute argument");
+        language_string(q, "description", "An argument to this grammar attribute, interpreted by that attribute's rule.");
+        language_string(q, "value", syntax.text.data);
         return;
     }
     var imported = language_ancestor(node, "ImportDeclaration");

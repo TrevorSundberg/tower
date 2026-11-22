@@ -34,9 +34,10 @@ files and emits the **next compiler**. After that successor passes validation,
 it can compile the following generation. Importing a language's syntax while
 implementing its compiler is an ordinary dependency on source definitions.
 
-Some bootstrap machinery still is special. The immutable declaration seed reads
-the first grammar declarations and imports. Hosts install a compatibility
-Foundation baseline for files without imports, and native `--bedrock` and
+Some bootstrap machinery still is special. Every file starts with the immutable
+Bedrock declaration seed, including Bedrock itself. With no imports, a file can
+define a new language with token, skip and parse declarations; executable Tower
+syntax and standard types are not installed implicitly. Native `--bedrock` and
 `--foundation` explicitly override module paths. LLVM and platform libraries
 remain external dependencies. The compiler, runtime and byte link services are
 Tower implementations. None of these make `tower`
@@ -119,8 +120,10 @@ require an unambiguous dependency-first order. Self imports remain errors.
 Grammar updates are local to the file being parsed. Importing a module applies
 its dependencies and local declaration changes, preserving `=` versus `|=`.
 Overriding a rule in one sibling does not change the grammar used to parse another
-sibling. Files without explicit imports retain the installed Foundation baseline
-for compatibility. Small grammar examples can import Bedrock alone.
+sibling. Files without imports retain only the seed declaration grammar. Import
+Tower for ordinary programs, Foundation for basic executable forms, or Bedrock
+for its editable declaration grammar. A custom language module can supply its own
+syntax instead; there is no mandatory import or filename exception for Bedrock.
 
 Use `var Name: Type = value;` and read `Name` for named values. The former `const`
 function shorthand is removed. Independent mutation/escape analysis and ordinary
@@ -230,11 +233,12 @@ milestone does not add hygienic macro bindings.
 
 The first Tower file is the project entry. Other files are available to imports;
 they are not silently appended. Moving a file to the top changes the entry.
-The library tree displays the project's actual dependency closure and refreshes
+The library tree displays the project's actual dependency closure in import
+completion order: each dependency precedes the files that import it. It refreshes
 after edits. Imported bundled modules, including Tower and library modules, can
 be selected, viewed, edited, restored and saved with the project. Unused bundled
-modules are available to import but absent from the tree. Legacy projects without
-imports show their implicit Bedrock/Foundation dependencies.
+modules are available to import but absent from the tree. A file without imports
+has no implicit library entries. Cached imports retain the same order.
 
 ## Native import checks
 

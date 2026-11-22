@@ -47,13 +47,13 @@ test.beforeEach(async({page})=>{
 });
 
 test('cached mouse hover shows resolved types and declaration locations without debug metadata or a worker round trip',async({page},info)=>{
-  const text='var value = 42;\nprint(value);';await source(page,text);await ready(page,text);
+  const text='import tower;\nvar value = 42;\nprint(value);';await source(page,text);await ready(page,text);
   const count=await page.evaluate(()=>window.documentQueries.length);
   const position=await point(page,'value');await page.mouse.move(position.x,position.y);
   const tip=page.locator('.tw-language-hover');await expect(tip).toBeVisible();
   await expect(tip.locator('code')).toHaveText('var value: i32');
   await expect(tip).toContainText('global variable');await expect(tip).toContainText('4 bytes');
-  await expect(tip).toContainText('Type: i32');await expect(tip).toContainText('foreach.tower:1:1');
+  await expect(tip).toContainText('Type: i32');await expect(tip).toContainText('foreach.tower:2:1');
   await expect(tip).not.toContainText(/entity|components|Syntax|CoreLocation/);
   expect(await page.evaluate(()=>window.documentQueries.length)).toBe(count);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
@@ -62,7 +62,7 @@ test('cached mouse hover shows resolved types and declaration locations without 
 });
 
 test('template hover explains symbolic types, compile-time parameters and docs from the cached tree',async({page},info)=>{
-  const text='// Builds fixed-size arrays.\nfn buffer(T:type, size:usize):type {\n  struct Result {\n    // The stored elements.\n    data:T[size];\n  }\n  return Result;\n}';
+  const text='import tower;\n// Builds fixed-size arrays.\nfn buffer(T:type, size:usize):type {\n  struct Result {\n    // The stored elements.\n    data:T[size];\n  }\n  return Result;\n}';
   await source(page,text);await ready(page,text);
   const count=await page.evaluate(()=>window.documentQueries.length),tip=page.locator('.tw-language-hover');
   for(const [token,last,expected] of [
@@ -80,6 +80,24 @@ test('template hover explains symbolic types, compile-time parameters and docs f
     if(token==='data')await page.screenshot({path:'../build/generic-template-hover-'+info.project.name+'.png'});
   }
   expect(await page.evaluate(()=>window.documentQueries.length)).toBe(count);
+});
+
+test('type constructor calls and grammar attributes show the hovered part',async({page},info)=>{
+  const text='import foundation;\nfn unsigned_integer(width: address_type()): type {\n  return integer_type(width, 0);\n}';
+  await source(page,text);await ready(page,text);
+  const tip=page.locator('.tw-language-hover');
+  for(const [token,description] of [['integer_type','Constructs an integer type'],['width','compile-time parameter']]) {
+    await page.mouse.move(0,0);const position=await point(page,token);await page.mouse.move(position.x,position.y);
+    await expect(tip).toBeVisible();await expect(tip).toContainText(description);
+    await expect(tip).not.toContainText('fn unsigned_integer');
+  }
+  await page.screenshot({path:'../build/constructor-hover-'+info.project.name+'.png'});
+  const grammar='[comment] skip Remark = /#[^\\n]*/;\n[precedence(10, left)] parse Choice = \'x\';';
+  await source(page,grammar);await ready(page,grammar);
+  await expect(page.locator('#editor .tw-attribute').filter({hasText:'comment'})).toHaveCount(1);
+  const position=await point(page,'comment');await page.mouse.move(position.x,position.y);
+  await expect(tip).toContainText('highlighted');
+  await page.screenshot({path:'../build/attribute-hover-'+info.project.name+'.png'});
 });
 
 test('bundled Templates hovers survive an unrelated document error',async({page},info)=>{
@@ -129,8 +147,8 @@ test('Templates pop body exposes field, operator and dependent element types fro
     await source(page,text);await ready(page,text);
     const count=await page.evaluate(()=>window.documentQueries.length);
     for(const [line,tokenText,signature,type] of [
-      ['values.count = values.count - 1;','count','count: usize','usize'],
-      ['values.count = values.count - 1;','-','values.count - 1','usize'],
+      ['values.count--;','count','count: usize','usize'],
+      ['values.count--;','-','values.count--','usize'],
       ['return values.storage.data[values.count];','data','data: T[4]','T[4]'],
       ['return values.storage.data[values.count];','[','values.storage.data[values.count]','T'],
     ]) {
@@ -161,7 +179,7 @@ test('Templates call type arguments display their own type from the cached query
 });
 
 test('grammar hover follows each parsed part and shows referenced types without a hover-time worker query',async({page},info)=>{
-  const text='// Increment a location.\nfn increment(p:i32*):i32 { var result = *p; return result; }\n// Match an assignable location.\nparse CoreCall |= $target:CoreLocation \'++\'\n    => replace { increment(&$target) };\nvar value:i32 = 2;\nprint(value++);';
+  const text='import foundation;\n// Increment a location.\nfn increment(p:i32*):i32 { var result = *p; return result; }\n// Match an assignable location.\nparse CoreCall |= $target:CoreLocation \'++\'\n    => replace { increment(&$target) };\nvar value:i32 = 2;\nprint(value++);';
   await source(page,text);await ready(page,text);
   const count=await page.evaluate(()=>window.documentQueries.length),tip=page.locator('.tw-language-hover');
   for(const [name,last,expected] of [
@@ -187,7 +205,7 @@ test('grammar hover follows each parsed part and shows referenced types without 
 });
 
 test('member hover uses the resolved field and comments have no tooltip',async({page})=>{
-  const text='struct P { x:i32; ready:bool; }\nvar p:P;\np.ready = true;\n// comment';
+  const text='import tower;\nstruct P { x:i32; ready:bool; }\nvar p:P;\np.ready = true;\n// comment';
   await source(page,text);await ready(page,text);
   let position=await point(page,'ready');await page.mouse.move(position.x,position.y);
   const tip=page.locator('.tw-language-hover');await expect(tip.locator('code')).toHaveText('ready: bool');
@@ -197,7 +215,7 @@ test('member hover uses the resolved field and comments have no tooltip',async({
 });
 
 test('keywords, operators and function braces use Tower services and one location spelling',async({page})=>{
-  const text='fn increment(p:i32*):i32 {\n  var old:i32 = *p;\n  *p = old + 1;\n  return old;\n}';
+  const text='import foundation;\nfn increment(p:i32*):i32 {\n  var old:i32 = *p;\n  *p = old + 1;\n  return old;\n}';
   await source(page,text);await ready(page,text);
   await expect(page.locator('#position')).toHaveText('foreach.tower:5:2');
   const tip=page.locator('.tw-language-hover');
@@ -229,14 +247,14 @@ test('keywords, operators and function braces use Tower services and one locatio
     if(['fn','return','}'].includes(token)) {
       await expect(tip).toContainText('fn increment(p: i32*): i32');
       await expect(tip).toContainText('Result: 4 bytes');
-      await expect(tip).toContainText('foreach.tower:1:1');
+      await expect(tip).toContainText('foreach.tower:2:1');
     }
     await page.mouse.move(0,0);await expect(tip).toHaveCount(0);
   }
 });
 
 test('custom surface keywords and punctuation use the same component presenters',async({page})=>{
-  const text=`parse CoreDeclare = 'let' $name:Identifier ':' $type:CoreType ':=' $value:CoreValue '!';
+  const text=`import foundation;\nparse CoreDeclare = 'let' $name:Identifier ':' $type:CoreType ':=' $value:CoreValue '!';
 parse CoreReturn = 'give' $value:CoreOperand? '!';
 fn answer():i32 {
   let result:i32 := 42!
@@ -260,13 +278,13 @@ test('foreach imports, compact alternatives and syntax-only loop tokens have use
   await source(page,text);await ready(page,text);
   const count=await page.evaluate(()=>window.documentQueries.length),tip=page.locator('.tw-language-hover');
   for(const [token,last,expected] of [
-    ['foundation',false,'Module: foundation'],['Expression',false,'Identifier | Number'],
+    ['bedrock',false,'Module: bedrock'],['Expression',false,'Identifier | Number'],
     ['for',false,'Matched rule: ForEach'],['item',false,'Capture: $Variable'],
     ['items',true,'Capture: $Expression'],['child',false,'Capture: $Variable'],
     ['children',true,'Capture: $Expression'],
   ]) {
     await page.mouse.move(0,0);
-    const lineText=token==='foundation'?'import foundation':token==='Expression'?'parse Expression':
+    const lineText=token==='bedrock'?'import bedrock':token==='Expression'?'parse Expression':
       token==='child'||token==='children'?'for (child in children)':'for (item in items)';
     await page.locator('#editor .cm-line').filter({hasText:lineText}).scrollIntoViewIfNeeded();
     // Scroll events deliberately dismiss hover. Let the programmatic scroll
@@ -286,7 +304,7 @@ test('foreach imports, compact alternatives and syntax-only loop tokens have use
     await expect(tip).not.toContainText(/active alternative|entity|components/);
     await expect(tip).not.toContainText(/matched syntax|captured syntax|C\+\+/);
     if(['item','items','child','children'].includes(token))await expect(tip).not.toContainText(/Matched rule:|Grammar category:/);
-    if(token==='foundation')await expect(tip).not.toContainText('Grammar category');
+    if(token==='bedrock')await expect(tip).not.toContainText('Grammar category');
     if(token==='Expression')await expect(tip.locator('.tw-hover-definition')).toHaveText('Identifier | Number');
     if(token==='items')await page.screenshot({path:`../build/foreach-hover-${info.project.name}.png`});
   }
@@ -294,10 +312,10 @@ test('foreach imports, compact alternatives and syntax-only loop tokens have use
 });
 
 test('editing dismisses hover and the next snapshot contains the new type',async({page})=>{
-  let text='var value:i32 = 42;\nprint(value);';await source(page,text);await ready(page,text);
+  let text='import tower;\nvar value:i32 = 42;\nprint(value);';await source(page,text);await ready(page,text);
   let position=await point(page,'value');await page.mouse.move(position.x,position.y);
   await expect(page.locator('.tw-hover-signature')).toHaveText('var value: i32');
-  text='var value:bool = true;\nprint(value);';await source(page,text);
+  text='import tower;\nvar value:bool = true;\nprint(value);';await source(page,text);
   await expect(page.locator('.tw-language-hover')).toHaveCount(0);await ready(page,text);
   position=await point(page,'value');await page.mouse.move(position.x,position.y);
   await expect(page.locator('.tw-hover-signature')).toHaveText('var value: bool');
@@ -328,10 +346,10 @@ test('late document replies cannot show a tooltip from the previous source',asyn
   });
   // Reload so the route also delays the first language worker.
   await page.reload();await expect(page.locator('#status')).toContainText('Complete');
-  const old='var previous:i32 = 42;\nprint(previous);';await source(page,old);
+  const old='import tower;\nvar previous:i32 = 42;\nprint(previous);';await source(page,old);
   await page.waitForFunction(text=>window.documentQueries.some(query=>query.source===text),old);
   let position=await point(page,'previous');await page.mouse.move(position.x,position.y);
-  const text='var current:bool = true;\nprint(current);';await source(page,text);await ready(page,text);
+  const text='import tower;\nvar current:bool = true;\nprint(current);';await source(page,text);await ready(page,text);
   position=await point(page,'current');await page.mouse.move(position.x,position.y);
   await expect(page.locator('.tw-hover-signature')).toHaveText('var current: bool');
   await expect(page.locator('.tw-language-hover')).not.toContainText('previous');
@@ -347,16 +365,16 @@ test('a slow background inspection yields the worker when typing needs completio
     await route.fulfill({response,body:await response.text()+'\nconst receive=self.onmessage;self.onmessage=event=>{if(event.data.method===\'document\')setTimeout(()=>receive(event),2500);else receive(event);};'});
   });
   await page.reload();await expect(page.locator('#status')).toContainText('Complete');
-  const text='var value:i32 = 42;';await source(page,text);
+  const text='import tower;\nvar value:i32 = 42;';await source(page,text);
   await page.waitForFunction(text=>window.documentQueries.some(query=>query.source===text&&!query.done),text);
   const retired=await page.evaluate(()=>window.retiredWorkers);
-  await source(page,'pri');await page.keyboard.press('Control+Space');
+  await source(page,'import tower; pri');await page.keyboard.press('Control+Space');
   await expect(page.getByRole('option').filter({hasText:'print'})).toBeVisible();
   expect(await page.evaluate(()=>window.retiredWorkers)).toBeGreaterThan(retired);
 });
 
 test('preview follows the mouse and becomes opaque after dwelling on a moving symbol',async({page},info)=>{
-  const text='\n\n\n\nvar movingSymbol:i32 = 42;\nprint(movingSymbol);';
+  const text='import tower;\n\n\n\nvar movingSymbol:i32 = 42;\nprint(movingSymbol);';
   await source(page,text);await ready(page,text);
   await page.clock.install({time:new Date('2030-01-01T00:00:00Z')});
   await page.clock.pauseAt(new Date('2030-01-01T00:01:00Z'));
@@ -384,7 +402,7 @@ test('preview follows the mouse and becomes opaque after dwelling on a moving sy
 });
 
 test('a pinned panel allows interaction and exactly a five pixel dismissal margin',async({page})=>{
-  const text='\n\n\n\nvar stickySymbol:i32 = 42;\nprint(stickySymbol);';
+  const text='import tower;\n\n\n\nvar stickySymbol:i32 = 42;\nprint(stickySymbol);';
   await source(page,text);await ready(page,text);
   const position=await point(page,'stickySymbol'),panel=page.locator('.tw-hover-panel');
   await page.mouse.move(position.x,position.y);await expect(panel).toHaveClass(/tw-hover-pinned/);
@@ -403,8 +421,8 @@ test('a pinned panel allows interaction and exactly a five pixel dismissal margi
 
 test('above and below bubbles keep at least two pixels of grace around the pointer',async({page})=>{
   for(const above of [true,false]) {
-    const text=above?'\n\n\n\nvar borderSymbol:i32 = 42;\nprint(borderSymbol);':
-      'print(borderSymbol());\n'+'// Documentation for this function.\n'.repeat(10)+'fn borderSymbol():i32 { return 42; }';
+    const text=above?'import tower;\n\n\n\nvar borderSymbol:i32 = 42;\nprint(borderSymbol);':
+      'import tower; print(borderSymbol());\n'+'// Documentation for this function.\n'.repeat(10)+'fn borderSymbol():i32 { return 42; }';
     await source(page,text);await ready(page,text);
     await page.locator('#editor .cm-line').filter({hasText:above?'print(borderSymbol);':'print(borderSymbol());'}).scrollIntoViewIfNeeded();
     await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
@@ -425,7 +443,7 @@ test('above and below bubbles keep at least two pixels of grace around the point
 });
 
 test('another symbol inside the margin dims the border and replaces the pinned tooltip after continuous dwell',async({page},info)=>{
-  const text='\n\n\n\nvar original:i32 = 1;\nvar target:i32 = 2;\nvar third:i32 = 3;\noriginal = target + third;';
+  const text='import tower;\n\n\n\nvar original:i32 = 1;\nvar target:i32 = 2;\nvar third:i32 = 3;\noriginal = target + third;';
   await source(page,text);await ready(page,text);
   await page.clock.install({time:new Date('2030-01-01T00:00:00Z')});
   await page.clock.pauseAt(new Date('2030-01-01T00:01:00Z'));
@@ -456,7 +474,7 @@ test('another symbol inside the margin dims the border and replaces the pinned t
 });
 
 test('hover shows attached documentation and typed signatures, suppressing name-only syntax',async({page},info)=>{
-  const text='// Doubles the input. <b>This is plain text.</b>\nfn twice(value:i32):i32 { var result = value + value; return result; }\nprint(twice(21));';
+  const text='import tower;\n// Doubles the input. <b>This is plain text.</b>\nfn twice(value:i32):i32 { var result = value + value; return result; }\nprint(twice(21));';
   await source(page,text);await ready(page,text);
   const position=await point(page,'twice'),tip=page.locator('.tw-language-hover');
   await page.mouse.move(position.x,position.y);
@@ -469,13 +487,13 @@ test('hover shows attached documentation and typed signatures, suppressing name-
   await page.keyboard.press('Escape');
   const keyword=await point(page,'return');await page.mouse.move(keyword.x,keyword.y);
   await expect(tip).toContainText('sends this value back to the code that called it');
-  const broken='var unknown = missing;';await source(page,broken);await ready(page,broken);
+  const broken='import tower; var unknown = missing;';await source(page,broken);await ready(page,broken);
   const missing=await point(page,'missing');await page.mouse.move(missing.x,missing.y);
   await expect(tip).toContainText('This code matches the pattern shown below.');await expect(tip).not.toContainText('Type:');
 });
 
 test('changing symbols restarts dwell and blank space or Escape dismisses the preview',async({page})=>{
-  const text='var first:i32 = 1;\nvar second:bool = true;\nprint(first);\nprint(second);';
+  const text='import tower;\nvar first:i32 = 1;\nvar second:bool = true;\nprint(first);\nprint(second);';
   await source(page,text);await ready(page,text);
   await page.clock.install({time:new Date('2030-01-01T00:00:00Z')});
   await page.clock.pauseAt(new Date('2030-01-01T00:01:00Z'));
@@ -493,7 +511,7 @@ test('changing symbols restarts dwell and blank space or Escape dismisses the pr
 });
 
 test('scrolling or editing closes a pinned panel and discards its dwell timer',async({page})=>{
-  const text='var pinned:i32 = 1;\nprint(pinned);';await source(page,text);await ready(page,text);
+  const text='import tower;\nvar pinned:i32 = 1;\nprint(pinned);';await source(page,text);await ready(page,text);
   const position=await point(page,'pinned'),panel=page.locator('.tw-hover-panel');
   await page.mouse.move(position.x,position.y);await expect(panel).toHaveClass(/tw-hover-pinned/);
   await page.locator('#editor .cm-scroller').dispatchEvent('scroll');await expect(panel).toHaveCount(0);

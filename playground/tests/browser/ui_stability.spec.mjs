@@ -18,10 +18,10 @@ for (const action of ['edit','recompile']) test(`a numeric ${action} keeps the e
   await expect(page.locator('#project-storage')).toHaveText('Saved in browser');
   const editor = page.getByRole('textbox', {name:'Tower source'});
   await editor.press('ControlOrMeta+Home');
-  const line = page.locator('#editor .cm-line').filter({hasText:'pair.first = 20;'});
+  const line = page.locator('#editor .cm-line').filter({hasText:'first: 20, second: 22'});
   await line.click();
-  await editor.press('End');
-  await editor.press('ArrowLeft');
+  await editor.press('Home');
+  for (let at = 0; at < '    first: 20'.length; at++) await editor.press('ArrowRight');
   await page.locator('#core-instructions .cm-scroller').evaluate(element => {element.scrollTop = 100;});
   await page.screenshot({path:`${directory}/before.png`});
   const protocol = await page.context().newCDPSession(page);

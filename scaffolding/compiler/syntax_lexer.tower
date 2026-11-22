@@ -192,6 +192,7 @@ export fn lexicon_choose(value: SyntaxLexicon*, source: u8*, length: usize, star
         }
     }
     index = 0;
+    var punctuation = false;
     for(; index != value.literals.length; index++) {
         var literal = &value.literals.data[index];
         var eligible = !declaration;
@@ -210,8 +211,25 @@ export fn lexicon_choose(value: SyntaxLexicon*, source: u8*, length: usize, star
                     choice.style = "keyword";
                 }
                 choice.skipped = false;
+                punctuation = !literal.word;
             }
         }
+    }
+    // Attributes can reuse ordinary expressions, making their punctuation
+    // reachable from declarations too. An unavailable compound punctuation
+    // must not swallow an accepted shorter literal (e.g. dots in an import).
+    // Keep longest-match behavior for ordinary code, words and explicit tokens;
+    // retain the original token for diagnostics if no accepted prefix exists.
+    if declaration && punctuation && runtime is not null
+        && !lexicon_accepts(runtime, state, choice.id, choice) {
+        var selected: LexiconLiteral* = null;
+        foreach (var &literal in &value.literals) {
+            if literal.word || literal.length >= choice.length { continue; }
+            if selected is not null && literal.length <= selected.length { continue; }
+            if lexicon_prefix(source, length, start, literal.text, literal.length)
+                && lexicon_accepts(runtime, state, literal.id, choice) { selected = literal; }
+        }
+        if selected is not null { choice.length = selected.length; choice.id = selected.id; }
     }
 }
 

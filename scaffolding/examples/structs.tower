@@ -1,24 +1,24 @@
 import tower;
 
-// Structs and built-in types use the same type registry.
+// A struct groups typed fields. A pointer lets a function update the original.
 struct Pair {
     first: i32;
     second: i32;
 }
 
 fn accumulate(pair: Pair*): void {
-    pair.first = pair.first + pair.second;
+    pair.first += pair.second;
 }
 
-var pair: Pair;
-pair.first = 20;
-pair.second = 22;
-var pointer: Pair* = &pair;
+var pair: Pair = {
+    first: 20, second: 22
+};
+var pointer = &pair;
 accumulate(pointer);
 print(pair.first);
 print(pointer.second);
 
 // A pointer to a field aliases its original storage.
-var field: i32* = &pair.second;
+var field = &pair.second;
 *field = 7;
 print(pair.second);

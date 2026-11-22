@@ -71,7 +71,7 @@ print(index); print(array[0]); print(array[1]);
 `, '11\n2\nfalse\n4\n2\n1\n20\n');
 });
 test('address operands share checking and lowering for user and builtin calls',async()=>{
- await compare(`
+ await compare(`import foundation;
 fn set(p: i32*): void { *p = 42; }
 var value: i32; set(&value); print(value);
 struct S { field: i32; } var s: S; set(&s.field); print(s.field);
@@ -92,6 +92,6 @@ test('increment and nested calls retain static errors before execution',()=>{
  ]){const h=tower.compile(definitions+'\nprint(99);'+source);try{const result=tower.execute(h);assert.equal(result.status,'error');assert.equal(result.steps,0);assert.equal(result.output,'');assert.match(result.error,message);}finally{tower.destroyExecution(h);}}
 });
 test('an infinite nested call stays resumable with one-step budgets',()=>{
- const h=tower.compile('fn forever(): i32 { loop {} } print(forever());');
+ const h=tower.compile('import foundation; fn forever(): i32 { loop {} } print(forever());');
  try{for(let i=1;i<=20;i++){const result=tower.execute(h,1);assert.equal(result.status,'executing');assert.equal(result.steps,i);assert.equal(result.output,'');}}finally{tower.destroyExecution(h);}
 });

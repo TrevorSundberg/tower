@@ -50,7 +50,6 @@ export function moduleInputs(exports, initial = {}) {
         const pointer = exports.frontend_modules_used_name(environment, i), memory = new Uint8Array(exports.memory.buffer);
         result.push(decodeBytes(new TextDecoder(), memory.subarray(pointer, memory.indexOf(0, pointer))));
       }
-      if (exports.frontend_modules_implicit(environment)) result.push('.tower/bedrock.tower', '.tower/foundation.tower');
       return [...new Set(result)];
     },
   };

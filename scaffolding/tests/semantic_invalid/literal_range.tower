@@ -1,1 +1,3 @@
+import foundation;
+
 var value: u8 = 256;

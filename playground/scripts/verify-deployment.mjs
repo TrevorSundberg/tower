@@ -34,7 +34,7 @@ const builtins = Object.fromEntries(await Promise.all(builtinNames.map(async nam
   [name, await readFile(new URL('../dist/' + name + '.tower', import.meta.url), 'utf8')])));
 const {foundation, bedrock} = builtins;
 const legacy = await readFile(new URL('../tests/fixtures/foundation_legacy.tower', import.meta.url), 'utf8');
-const program = '// deployment C comment\nfn answer(): i32 { return state.value; }\nvar state: Later;\nstate.value = add(20, 22);\nvar result: i32 = answer();\nprint(result);\nstruct Later { value: i32; }\nfn add(a: i32, b: i32): i32 { var sum: i32 = a + b; return sum; }';
+const program = 'import foundation; import types;\n// deployment C comment\nfn answer(): i32 { return state.value; }\nvar state: Later;\nstate.value = add(20, 22);\nvar result: i32 = answer();\nprint(result);\nstruct Later { value: i32; }\nfn add(a: i32, b: i32): i32 { var sum: i32 = a + b; return sum; }';
 const browser = await chromium.launch();
 try {
   for (const [name, options] of [
@@ -176,11 +176,11 @@ try {
     await page.screenshot({path:new URL(name+'-empty-literal.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
     await page.locator('#editor').click({position:{x:80,y:20}});
     await page.getByRole('textbox',{name:'Tower source'}).press('ControlOrMeta+a');
-    await page.keyboard.insertText('print(42)\nvar answer: i32;');
+    await page.keyboard.insertText('import foundation;\nprint(42)\nvar answer: i32;');
     await revealDiagnostics(page);
     await expect(page.locator('.tw-inline-error-message')).toContainText("Missing ';' before 'var'.");
     await expect(page.locator('.tw-inline-error-message')).toContainText('foundation_syntax.tower:');
-    await expect(page.locator('.tw-inline-error-heading')).toHaveText(`Error${await page.locator('#filename').innerText()}:1:10`);
+    await expect(page.locator('.tw-inline-error-heading')).toHaveText(`Error${await page.locator('#filename').innerText()}:2:10`);
     await expect(page.locator('.tw-error-point')).toHaveCount(1);
     await page.screenshot({path:new URL(name+'-missing-semicolon.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
     await page.getByRole('button',{name:'Restore',exact:true}).click();
@@ -190,7 +190,7 @@ try {
     await expect(page.locator('.tw-inline-error-message')).toHaveText("No execution semantics for 'ForEach'; replace it with a foundation operation", {timeout:60000});
     await page.locator('#editor').click({position:{x:80,y:20}});
     await page.getByRole('textbox',{name:'Tower source'}).press('ControlOrMeta+a');
-    await page.keyboard.insertText('var alias: i32*;;');
+    await page.keyboard.insertText('import foundation; var alias: i32*;;');
     await revealDiagnostics(page);
     await expect(page.locator('.tw-inline-error-message')).toHaveText("Unexpected ';'. Expected a statement or grammar declaration.");
     await expect(page.locator('.tw-error-range')).toHaveText(';');
@@ -199,7 +199,8 @@ try {
     await expect(page.locator('#execution-status')).toContainText('backends match',{timeout:60000});
     await expect(page.locator('#execution-output')).toHaveText('5\n6\n7\n7\n9\n');
     await expect(page.locator('#llvm-output')).toHaveText('5\n6\n7\n7\n9\n');
-    await expect.poll(()=>outputText(page,'core-instructions')).toContain('post_increment(&value)');
+    await expect.poll(()=>outputText(page,'core-instructions')).toContain(' = post_increment(&value);');
+    await expect.poll(()=>outputText(page,'core-instructions')).toContain(' = pre_increment(&value);');
     await expect.poll(()=>outputText(page,'core-instructions')).toContain(' + 1;');
     await expect.poll(()=>outputText(page,'llvm-after')).not.toContain('post_increment');
     await expect(page.locator('.tw-inline-error')).toHaveCount(0);
@@ -284,17 +285,17 @@ try {
     await page.locator('#auto-execute').uncheck();
     const editor = page.locator('#editor .cm-content');
     await editor.focus(); await page.keyboard.press('ControlOrMeta+a');
-    await page.keyboard.insertText('pri'); await page.keyboard.press('Control+Space');
+    await page.keyboard.insertText('import tower; pri'); await page.keyboard.press('Control+Space');
     await expect(page.locator('.cm-tooltip-autocomplete [role=option]').filter({hasText:'print'})).toBeVisible();
-    await page.keyboard.press('Tab'); await expect(editor.locator('.cm-line')).toHaveText('print');
+    await page.keyboard.press('Tab'); await expect(editor.locator('.cm-line')).toHaveText('import tower; print');
     await page.keyboard.press('ControlOrMeta+a');
-    await page.keyboard.insertText('struct Point { x: i32; y: i32; } var point: Point; point.');
+    await page.keyboard.insertText('import tower; struct Point { x: i32; y: i32; } var point: Point; point.');
     await page.keyboard.press('Control+Space');
     await expect(page.locator('.cm-tooltip-autocomplete [role=option]')).toHaveCount(2);
     await page.screenshot({path:new URL(name+'-completion.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
     await page.keyboard.press('Escape');
     await page.keyboard.press('ControlOrMeta+a');
-    await page.keyboard.insertText('var value: i32 = 1; print(va');
+    await page.keyboard.insertText('import tower; var value: i32 = 1; print(va');
     await page.keyboard.press('Control+Space');
     const contextualOptions = page.locator('.cm-tooltip-autocomplete [role=option]');
     await expect(contextualOptions).toHaveCount(1);
@@ -303,25 +304,25 @@ try {
     await page.screenshot({path:new URL(name+'-context-completion.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
     await page.keyboard.press('Escape');
     await page.keyboard.press('ControlOrMeta+a');
-    await page.keyboard.insertText('var value: i32 = 1; var valid: bool = true; fn check(flag: bool): void {} check(va');
+    await page.keyboard.insertText('import tower; var value: i32 = 1; var valid: bool = true; fn check(flag: bool): void {} check(va');
     await page.keyboard.press('Control+Space');
     await expect(contextualOptions).toHaveCount(1);
     await expect(contextualOptions).toContainText('valid');
     await page.keyboard.press('Escape');await page.keyboard.press('ControlOrMeta+a');
     // Selecting all reveals the preceding fixture's pending error. Start from
     // valid source to distinguish a new hidden error from that retained one.
-    await page.keyboard.insertText('print(42);');
+    await page.keyboard.insertText('import tower; print(42);');
     await expect(page.locator('#status')).toContainText('Complete');
     await expect(page.locator('#editor-error')).toBeHidden();
     await page.keyboard.press('ControlOrMeta+a');
-    await page.keyboard.insertText('print(42)');
+    await page.keyboard.insertText('import tower; print(42)');
     await expect(page.locator('#status')).toContainText('Stopped');
     await expect(page.locator('#editor-error')).toBeHidden();
     await expect(page.locator('.tw-inline-error')).toHaveCount(0);
     await page.keyboard.press('ArrowLeft');
     await expect(page.locator('.tw-inline-error-message')).toContainText("Missing ';'");
     await page.keyboard.press('ControlOrMeta+a');
-    await page.keyboard.insertText('struct Point { instant:i32; } var point:Point; point');
+    await page.keyboard.insertText('import tower; struct Point { instant:i32; } var point:Point; point');
     await page.keyboard.press('Escape');await page.waitForTimeout(200);
     await page.keyboard.press('.');
     await expect(page.locator('.cm-completionLabel')).toHaveText(['instant']);

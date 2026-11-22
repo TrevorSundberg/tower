@@ -27,6 +27,10 @@ test('Tower match and collection examples execute and expose imported libraries'
   await expect(page.locator('#execution-status')).toHaveText('Finished · backends match');
  }
  await expect(page.locator('#file-tree button[data-path=".tower/library/queue.tower"]')).toBeVisible();
+ const dependencies = await page.locator('#file-tree > button.file-entry').evaluateAll(items=>items.map(item=>item.dataset.path));
+ expect(dependencies.indexOf('.tower/bedrock.tower')).toBeLessThan(dependencies.indexOf('.tower/foundation.tower'));
+ expect(dependencies.indexOf('.tower/foundation.tower')).toBeLessThan(dependencies.indexOf('.tower/tower.tower'));
+ expect(dependencies.indexOf('.tower/library/vector.tower')).toBeLessThan(dependencies.indexOf('.tower/library/stack.tower'));
  await selectDocument(page,'library/queue.tower');
  await expect(page.locator('.cm-content')).toContainText('fn queue(T: type): type');
  await selectDocument(page,'match.tower');

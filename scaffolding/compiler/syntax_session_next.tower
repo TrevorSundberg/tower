@@ -236,6 +236,11 @@ export fn syntax_next(opaque: void*): void* {
                 syntax_session_completion(value, parser_recognizer_take_completion(recognizer));
                 syntax_session_pin_version(&value.pins.completion_version, value.pins.version);
             }
+            if !value.bootstrapping && !value.declaration && value.inputs.module is not null
+                && frontend_module_seed_only(bits(FrontendModule*, value.inputs.module)) {
+                value.error_offset = start;
+                return syntax_session_fail(value, "This syntax needs a language import. Use 'import tower;' for normal code, 'import foundation;' for basic operations, or 'import bedrock;' to define a grammar.");
+            }
             var message = syntax_session_diagnostic(value, recognizer, true);
             defer compiler_buffer_free(bits(void*, message));
             return syntax_session_fail(value, message);
@@ -289,6 +294,20 @@ export fn syntax_next(opaque: void*): void* {
         for (var i: usize = 0; i < value.highlights.items.length; ++i) {
             var row = &value.highlights.items.data[i];
             if row.start < start || row.start >= template_start || syntax_session_text(row.kind, "comment") { continue; }
+            var attribute_name = false;
+            if syntax_session_text(row.kind, "identifier") {
+                foreach (var attribute in &declaration.attributes) {
+                    var span = syntax_session_match(attribute);
+                    if span is not null && row.start >= span.start && row.end <= span.start + span.length {
+                        attribute_name = true;
+                        break;
+                    }
+                }
+            }
+            if attribute_name {
+                syntax_highlights_style(&value.highlights, i, "attribute");
+                continue;
+            }
             if syntax_session_text(row.kind, "identifier") {
                 if rule { syntax_highlights_style(&value.highlights, i, capture ? "capture" : "rule"); }
                 else {

@@ -231,6 +231,24 @@ fn lexicon_test_failures(table: LexerTable*): void {
     utility_check(!start && !lexicon_declaration(value, "a", 1, 0), "Failed declaration insertion leaves no partial state");
 }
 
+fn lexicon_test_declaration_prefix(): void {
+    var value = lexicon_create();
+    utility_check(value is not null, "Declaration punctuation fixture");
+    defer lexicon_destroy(value);
+    utility_check(lexicon_literal(value, "+", 1, TestPlus, true)
+        && lexicon_literal(value, "++", 2, TestPlusPlus, true), "Declaration punctuation literals");
+    var accepted = TestPlus;
+    var runtime = lexicon_test_runtime(&accepted, 1);
+    defer lr_runtime_destroy(runtime);
+    var choice: TestLexiconChoice = default;
+    lexicon_choose(value, "++", 2, 0, true, runtime, 0, &choice);
+    utility_check(choice.id == TestPlus && choice.length == 1, "Declaration accepts the shorter punctuation prefix");
+    lexicon_choose(value, "++", 2, 0, false, runtime, 0, &choice);
+    utility_check(choice.id == TestPlusPlus && choice.length == 2, "Ordinary code retains longest punctuation");
+    lexicon_choose(value, "++", 2, 0, true, null, 0, &choice);
+    utility_check(choice.id == TestPlusPlus && choice.length == 2, "Preview without parser context retains longest punctuation");
+}
+
 export fn syntax_lexer_tests(): void {
     test_random_check();
     var baseline = tower_test_buffer_count();
@@ -246,6 +264,7 @@ export fn syntax_lexer_tests(): void {
         var nodes = entity_store_count(compiler_world_store(world));
         var buffers = tower_test_buffer_count();
         lexicon_test_differential(world);
+        lexicon_test_declaration_prefix();
         lexicon_test_failures(warm.table);
         utility_check(entity_store_count(compiler_world_store(world)) == nodes, "Lexicon fixtures release grammar references and pins");
         utility_check(tower_test_buffer_count() == buffers, "Lexicon fixtures release all temporary tables and buffers");

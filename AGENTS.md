@@ -401,8 +401,10 @@ Do NOT modify todo.txt
   and tokens without mutating that seed. Use the same update path for all files.
   Explicit modules start from the declaration seed and import the grammar they
   need: Foundation imports Bedrock, Tower imports Foundation, and user modules
-  import these ordinary files. The host-installed Foundation baseline remains a
-  compatibility path for files without imports, separate from module resolution.
+  import these ordinary files. Files without imports start from the same immutable
+  Bedrock declaration seed, not Foundation. They may define their own language;
+  ordinary code must import the syntax and type definitions it uses. Missing
+  language syntax should suggest Tower, Foundation or Bedrock imports helpfully.
 - Bedrock rules are public, reusable definitions, not an internal `__` namespace.
   Foundation inherits shared token/skip/grammar entities from bedrock instead of
   redeclaring identical rules. Use descriptive names such as GrammarAssignment

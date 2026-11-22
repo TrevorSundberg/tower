@@ -153,7 +153,8 @@ Other source files are available to import and are not silently appended.
 Dependencies run once in dependency-first import order, with functions, types and
 module variables binding across the resulting program. Each file imports its own
 grammar; local declarations do not leak into siblings. Files without imports
-retain the installed Foundation baseline for compatibility. See
+start with only the immutable Bedrock declaration seed. Use `import tower;` for
+ordinary programs, or define/import your own grammar. See
 [module resolution and compiler bootstrapping](../docs/modules.md).
 Non-`.tower` text files remain project assets. The inspector analyzes the
 selected file; Execute compiles the project, except when inspecting a built-in,
@@ -283,8 +284,9 @@ the current native handler contract. Grammar errors install atomically; existing
 sessions pin their original module versions. Bedrock declaration-rule replacement
 handlers are not implemented; ordinary source replacements remain supported.
 Explicit imports now express this load order: Foundation imports Bedrock, Tower
-imports Foundation, and user/compiler files import the grammar they need. Hosts
-still install a compatibility baseline for source without imports.
+imports Foundation, and user/compiler files import the grammar they need.
+Files without imports start from the same declaration seed as Bedrock itself;
+they do not implicitly acquire Foundation's executable syntax or standard types.
 
 Choose **Replacements** to try `=> replace { ... }` in the real
 WASM compiler. The example expands `increment`, an `add_one` chain, nested
@@ -935,6 +937,8 @@ compression and the SHA-256 asset manifest. `build.mjs` bootstraps it through
 The compressor uses the in-house deterministic DEFLATE/gzip implementation, with
 no zlib dependency. `TOWER_PLAYGROUND_ASSET_PACKAGER` can name an already built
 tool for isolated packaging checks; ordinary builds use the public bootstrap.
+On Windows, Node invokes that Linux tool through WSL while keeping its native
+esbuild binding. The optional packager override is then a path inside WSL.
 
 Build the shared-memory frontend with `bash playground/scripts/build-threads.sh`
 from the repository root. `TOWER_REQUIRE_THREADS=1 npm run build` checks that its

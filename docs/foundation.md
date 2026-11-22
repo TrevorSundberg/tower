@@ -24,14 +24,14 @@ storage does not acquire a guaranteed value or a guaranteed Tower diagnostic
 under this direction. Invalid-access policy and strict compile-time execution
 rules still need an explicit definition; raw pointers alone do not settle them.
 
-The current loading boundary is C++ seed -> bedrock.tower -> foundation.tower ->
-source. The seed initializes Bedrock's reader. Each completed declaration updates
+The declaration seed is implemented in Tower on the shared grammar entities.
+It initializes every file's reader, including Bedrock itself. Each completed declaration updates
 the active reader for subsequent input, including within Bedrock, without mutating
-the immutable seed. Its resulting rules initialize Foundation and later source.
+the immutable seed. Imports bring the resulting rules into other files.
 Foundation now explicitly imports Bedrock; Tower imports Foundation, and compiler
 and user modules can import Tower. The seed still initializes declaration reading.
 See [modules and named values](modules.md) for import order, grammar isolation,
-dependency tracking and the compatibility baseline for files without imports.
+dependency tracking and the seed-only baseline for files without imports.
 
 Bedrock is a public vocabulary, without a reserved `__` prefix. Foundation inherits
 its shared Whitespace, comment, Identifier and String definitions by reference,

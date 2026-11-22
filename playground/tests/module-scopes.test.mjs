@@ -4,12 +4,11 @@ import {readFile} from 'node:fs/promises';
 import {loadTower, runToEnd} from '../src/tower-host.mjs';
 import {loadLLVM, executeWasm} from '../src/llvm-host.mjs';
 import {hoverAt, hoverIndex} from '../src/language-queries.mjs';
+import {builtins as grammar} from './compiler-fixtures.mjs';
 
 const read = name => readFile(new URL('../../' + name, import.meta.url));
-const grammar = Object.fromEntries(await Promise.all(['bedrock', 'foundation', 'tower'].map(async name =>
-  [name, (await read('scaffolding/' + name + '.tower')).toString()])));
 const compiler = await loadTower(await read(process.env.TOWER_TEST_WASM || 'build/browser-wasi/tower.wasm'), undefined, grammar.foundation,
-  undefined, grammar.bedrock, {tower: grammar.tower});
+  undefined, grammar.bedrock, {tower: grammar.tower, builtins: grammar});
 const file = (path, text) => ({path, text});
 const libraries = Object.entries(grammar).map(([name, text]) => file(name + '.tower', text));
 function configure(files) { compiler.configureModules({entry: 'main.tower', library: '.', files: [...libraries, ...files]}); }
@@ -79,7 +78,7 @@ test('callable visibility is shared by ordinary functions and templates', () => 
 
 test('a lexical value shadows an alias and indexed calls are not name spellings', () => {
   succeeds('import tower; import left.tools as lib; struct Holder { count: i32; } fn local(): i32 { var lib: Holder; lib.count = 3; return lib.count; } print(local());', twins, '3\n');
-  fails('import tower; import left.tools as lib; fn local(): i32 { var lib: i32 = 1; return lib.helper(); } print(local());', twins, /Unknown function/);
+  fails('import tower; import left.tools as lib; fn local(): i32 { var lib: i32 = 1; return lib.helper(); } print(local());', twins, /Field access requires a struct/);
   fails('import tower; fn `values[0]`(): i32 { return 1; } var values: i32[1]; print(values[0]());', [], /Unknown function/);
 });
 
@@ -116,12 +115,12 @@ test('module cleanup retains dependency bindings and runs once after program sta
 });
 
 test('qualified templates resolve their own dependencies and keep concrete type identity', () => {
-  const files = [file('types.tower', `import tower;
+  const files = [file('model_types.tower', `import tower;
 fn Box(T: type): type { struct Result { value: T; } return Result; }
 fn identity(T: type, value: T): T { return value; }
 fn hidden(): i32 { return 9; }
 fn local(T: type, value: T): i32 { return hidden(); }`)];
-  succeeds(`import tower; import types as types; fn hidden(): i32 { return 99; }
+  succeeds(`import tower; import model_types as types; fn hidden(): i32 { return 99; }
 var box: types.Box(i32); box.value = types.identity(i32, 42);
 print(box.value); print(types.local(i32, 1));
 var p = alloc(types.Box(i32), 1); p.value = 7; print(p.value); free(p);`, files, '42\n9\n7\n');
@@ -137,7 +136,8 @@ test('qualified enums bind nominal types and members across module scopes', () =
 test('alias collisions and duplicate aliases are diagnosed, including imported-file coordinates', () => {
   fails('import tower; import left.tools as lib; import right.tools as lib;', twins, /Duplicate import alias/);
   fails('import tower; import left.tools as helper; fn helper(): i32 { return 0; }', twins, /alias conflicts/i);
-  fails('import tower; import left.tools as i32;', twins, /alias conflicts/i);
+  // Standard type names are ordinary imports and can be shadowed by an alias.
+  succeeds('import tower; import left.tools as i32; print(i32.helper());', twins, '1\n');
   const files = [...twins, file('bad.tower', 'import tower; import left.tools as helper; fn helper(): i32 { return 0; }')];
   fails('import tower; import bad;', files, /alias conflicts/i, 'bad.tower');
 });
@@ -244,7 +244,7 @@ test('colliding names round trip through compilable Foundation and raw/optimized
   try { assert.equal(compiler.foundation(second).source, foundation); }
   finally { compiler.destroyExecution(second); }
   const llvm = await loadLLVM(await read('build/browser-wasi-llvm/tower-llvm.wasm'), undefined, grammar.foundation,
-    undefined, grammar.bedrock, {tower: grammar.tower});
+    undefined, grammar.bedrock, {tower: grammar.tower, builtins: grammar});
   for (const optimize of [false, true]) {
     llvm.configureModules({entry:'main.tower', library:'.', files:[...libraries,...twins]});
     const result = llvm.compile(source, {optimize});

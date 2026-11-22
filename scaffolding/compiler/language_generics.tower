@@ -18,6 +18,9 @@ extern fn format_dependent_summary(result: FormatResult*, entity: void*, match_k
 extern fn format_dependent_view(result: FormatResult*, entity: void*, subject: void*, annotation: void*, match_kind: void*, substitutions: FormatSubstitution*): void;
 
 fn language_generic_kind(info: GenericInfo*): u8* {
+    if info.kind == GenericInfoKind.PrimitiveType { return "primitive type constructor"; }
+    if info.kind == GenericInfoKind.Call { return "call"; }
+    if info.kind == GenericInfoKind.Return { return "return"; }
     if info.kind == GenericInfoKind.Member {
         return "member access";
     }
@@ -67,6 +70,10 @@ fn language_generic_kind(info: GenericInfo*): u8* {
 }
 
 fn language_generic_description(info: GenericInfo*): u8* {
+    if info.kind == GenericInfoKind.Call { return "Calls this function with the supplied arguments."; }
+    if info.kind == GenericInfoKind.PrimitiveType {
+        return "Constructs a type from an explicit representation. Its arguments are evaluated during compilation.";
+    }
     if info.kind == GenericInfoKind.Member {
         return "Accesses a named field. Its type is not yet known for this template.";
     }
@@ -126,6 +133,18 @@ fn language_generic_present(q: CompletionQuery*, node: void*, candidate: Languag
     candidate.generic = info;
     candidate.subject = info.declaration;
     candidate.description = language_generic_description(info);
+    if info.kind == GenericInfoKind.PrimitiveType {
+        var name = sem_identifier(&q.context, sem_member(info.declaration, "name"));
+        if sem_equal(name, "integer_type") {
+            candidate.description = "Constructs an integer type. Width is 8, 16, 32 or 64 bits; signedness is 0 for unsigned or 1 for signed.";
+        }
+        if sem_equal(name, "float_type") { candidate.description = "Constructs a floating-point type with a width of 32 or 64 bits."; }
+        if sem_equal(name, "address_type") { candidate.description = "Constructs the target's unsigned address-sized integer type."; }
+        if sem_equal(name, "boolean_type") { candidate.description = "Constructs the boolean type, whose values are true and false."; }
+        if sem_equal(name, "empty_type") { candidate.description = "Constructs the type with no value, used for functions that return no result."; }
+        if sem_equal(name, "pointer_type") { candidate.description = "Constructs a raw pointer type for the supplied element type."; }
+        if sem_equal(name, "array_type") { candidate.description = "Constructs an inline array type from an element type and a compile-time element count."; }
+    }
     candidate.structural = false;
 }
 

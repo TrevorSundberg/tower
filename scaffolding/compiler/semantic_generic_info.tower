@@ -14,7 +14,7 @@ import .library.vector;
 enum GenericInfoKind: u32 {
     Function, Constructor, TypeParameter, ConstantParameter, Parameter,
     Structure, Field, Variable, TypeExpression, Return,
-    Member, Index, Binary, Value, Load, Assignment
+    Member, Index, Binary, Value, Load, Assignment, Call, PrimitiveType
 }
 
 enum GenericShapeState: u32 {
@@ -196,7 +196,19 @@ fn generic_info_walk(a: GenericAnalysis*, node: void*, values: SemanticScope*, t
         declaration.annotation = node;
     }
     if sem_is(node, "CoreReturn") {
-        declaration = generic_info_add(a, node, a.definition, GenericInfoKind.Return);
+        declaration = generic_info_add(a, node, node, GenericInfoKind.Return);
+        declaration.annotation = sem_member(a.definition, "type");
+    }
+    if sem_is(node, "CoreCall") {
+        var callee = sem_member(node, "name");
+        var representation = sem_type_representation_name(sem_identifier(c, callee));
+        declaration = generic_info_add(a, node, node, representation ? GenericInfoKind.PrimitiveType : GenericInfoKind.Call);
+        // Attach the callable meaning to the callee, not its argument leaves.
+        // Argument traversal below can independently bind parameters and literals.
+        generic_info_bind(a, callee, node);
+    }
+    if sem_is(node, "Number") || sem_is(node, "FloatNumber") {
+        declaration = generic_info_add(a, node, node, GenericInfoKind.Value);
     }
     // Bind names by their semantic tree roles, not token spelling. In particular
     // a member name is never mistaken for a same-named parameter or local.

@@ -39,7 +39,6 @@ extern fn frontend_module_root_world(world: void*, source: u8*, environment: voi
 extern fn compiler_node_world(node: void*): void*;
 
 extern fn frontend_module_finish(module: void*): void;
-extern fn frontend_module_prelude(module: void*): void;
 
 extern fn frontend_module_count(module: void*): usize;
 

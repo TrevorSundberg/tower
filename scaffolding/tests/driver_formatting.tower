@@ -32,8 +32,8 @@ fn driver_format_rejected(compiler: u8*, source: u8*, diagnostic: u8*): void {
 
 fn driver_test_formatting(compiler: u8*, library: u8*): void {
     var source = "driver format with spaces.tower";
-    var input = "// café λ\nvar value:i32=42;print(value);";
-    var canonical = "// café λ\nvar value: i32 = 42;\nprint(value);\n";
+    var input = "import foundation;// café λ\nvar value:i32=42;print(value);";
+    var canonical = "import foundation;\n// café λ\nvar value: i32 = 42;\nprint(value);\n";
     driver_check(driver_write_file(source, input, strlen(input)), "write formatter fixture");
     driver_check(driver_format_command(compiler, source, null, true) == 1, "noncanonical check fails");
     driver_test_read("driver stderr.txt", "Source needs formatting:", false);
@@ -57,7 +57,7 @@ fn driver_test_formatting(compiler: u8*, library: u8*): void {
     driver_check(driver_write_file(source, unchecked, strlen(unchecked)), "syntactic formatting fixture");
     driver_check(driver_format_command(compiler, source, null, false) == 0, "formatter does not require semantic compilation");
 
-    var invalid = "var value:i32=;";
+    var invalid = "import foundation; var value:i32=;";
     driver_check(driver_write_file(source, invalid, strlen(invalid)), "invalid syntax fixture");
     driver_format_rejected(compiler, source, source);
     invalid = "import tower; import missing_formatter_module;";

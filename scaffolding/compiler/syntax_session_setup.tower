@@ -64,22 +64,15 @@ export fn syntax_session_open(world: void*, environment: void*, source: u8*, mod
     }
     if mode == SyntaxFoundationBaseline {
         syntax_session_inputs_module(&value.inputs, source, module);
-        var grammar = module is null ? null : frontend_module_grammar(module);
-        if grammar is not null {
-            value.pins.baseline = syntax_revision_create(grammar.rules.data, grammar.rules.length, grammar.tokens.data, grammar.tokens.length);
-            value.pins.bedrock = syntax_world_revision(world, SyntaxSeedBaseline);
-        } else {
-            value.pins.baseline = syntax_world_revision(world, SyntaxFoundationBaseline);
-            if value.pins.baseline is null {
-                syntax_session_error(value, "Load foundation.tower before creating a syntax session");
-                return value;
-            }
-            value.pins.bedrock = syntax_world_revision(world, SyntaxBedrockBaseline);
-        }
+        var grammar = frontend_module_grammar(bits(FrontendModule*, value.inputs.module));
+        value.pins.baseline = syntax_revision_create(grammar.rules.data, grammar.rules.length, grammar.tokens.data, grammar.tokens.length);
+        value.pins.bedrock = syntax_world_revision(world, SyntaxSeedBaseline);
     } else {
         value.bootstrapping = true;
         value.building_bedrock = mode == SyntaxSeedBaseline;
-        value.pins.bedrock = syntax_world_revision(world, mode);
+        // Bedrock and Foundation files start from the same immutable seed as
+        // any user-defined language. Their imports select all further syntax.
+        value.pins.bedrock = syntax_world_revision(world, SyntaxSeedBaseline);
         syntax_session_pin_revision(&value.pins.baseline, value.pins.bedrock);
     }
     if value.pins.bedrock is null {

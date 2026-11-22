@@ -51,6 +51,71 @@ extern fn entity_release(node: void*): usize;
 
 extern fn tower_test_buffer_count(): usize;
 
+extern fn host_json_unsigned(text: vector(u8)*, value: u64): bool;
+
+// Check the entry for this exact token, so a surrounding function's details
+// cannot accidentally satisfy an assertion about its body.
+fn editor_world_entry(output: u8*, source: u8*, spelling: u8*, detail_text: u8*): void {
+    var position = strstr(source, spelling);
+    units_check(position is not null, "Inspection fixture token exists");
+    var key: vector(u8) = default;
+    defer vector_dispose(&key);
+    var prefix: u8* = "{\"from\":";
+    for (var i: usize = 0; i < strlen(prefix); i++) {
+        units_check(vector_push(&key, prefix[i]), "Inspection entry prefix");
+    }
+    units_check(host_json_unsigned(&key, convert(u64, bits(usize, position) - bits(usize, source)))
+        && vector_push(&key, *",") && vector_push(&key, 0), "Inspection entry offset");
+    var entry = strstr(output, key.data);
+    var matches = false;
+    if entry is not null {
+        var end = strstr(entry + 1, "{\"from\":");
+        var detail = strstr(entry, detail_text);
+        matches = detail is not null && (end is null || bits(usize, detail) < bits(usize, end));
+    }
+    if !matches { puts(spelling); puts(detail_text); puts(output); }
+    units_check(matches, "Inspection describes the selected token");
+}
+
+fn editor_world_inspection(world: void*, environment: void*, width: u32): void {
+    var source: u8* = "import foundation; fn unsigned_integer(width: address_type()): type { return integer_type(width, 0); } fn narrow(width: address_type()): type { return unsigned_integer(width); }";
+    var query = language_document_world(world, environment, source, strlen(source), 0, width);
+    units_check(query is not null, "Type constructor inspection query");
+    defer completion_dispose(query);
+    var output = language_document_result(query);
+    editor_world_entry(output, source, "integer_type(width", "\"kind\":\"primitive type constructor\"");
+    editor_world_entry(output, source, "integer_type(width", "Constructs an integer type");
+    editor_world_entry(output, source, "width, 0", "\"kind\":\"compile-time parameter\"");
+    editor_world_entry(output, source, "0);", "\"signature\":\"0\"");
+    editor_world_entry(output, source, "return integer_type", "\"kind\":\"return\"");
+    editor_world_entry(output, source, "unsigned_integer(width);", "\"kind\":\"call\"");
+
+    var grammar: u8* = "[comment] skip Remark = /#[^\\n]*/; [precedence(10, left)] parse Choice = 'x';";
+    var attributes = language_document_world(world, environment, grammar, strlen(grammar), 0, width);
+    units_check(attributes is not null, "Grammar attribute inspection query");
+    defer completion_dispose(attributes);
+    var details = language_document_result(attributes);
+    editor_world_entry(details, grammar, "comment", "\"kind\":\"grammar attribute\"");
+    editor_world_entry(details, grammar, "comment", "highlighted");
+    editor_world_entry(details, grammar, "precedence", "binding strength");
+    editor_world_entry(details, grammar, "left", "\"kind\":\"grammar attribute argument\"");
+    var session = syntax_session_open(world, environment, grammar, null, 0);
+    units_check(session is not null, "Attribute highlighting session");
+    defer syntax_destroy(bits(void*, session));
+    loop {
+        var node = syntax_next(bits(void*, session));
+        if node is null { break; }
+        entity_release(node);
+    }
+    units_check(session.error.length == 0, "Attribute fixture parses");
+    var styled: usize = 0;
+    foreach (var &span in &session.highlights.items) {
+        if strcmp(span.kind, "attribute") == 0 { styled++; }
+    }
+    var attribute_name_count: usize = 3;
+    units_check(styled == attribute_name_count, "Attribute names and name arguments are highlighted");
+}
+
 fn editor_world_install(world: void*, environment: void*, source: u8*, foundation: bool): void {
     var diagnostic: SyntaxVersionDiagnostic = default;
     defer syntax_version_diagnostic_dispose(&diagnostic);
@@ -112,6 +177,7 @@ export fn editor_world_tests(root: u8*): void {
         }
         units_check(strstr(output, "function template") is not null && strstr(output, "field") is not null && strstr(output, "\"complete\":true") is not null, "Editor generic and typed component inspection");
         editor_world_completion(worlds[i], environments[i]);
+        editor_world_inspection(worlds[i], environments[i], convert(u32, 4 + i * 4));
         var grammar: u8* = "parse Choice = 'first' | 'second';";
         for(var mode: u32 = 1; mode <= 2; mode++) {
             var grammar_query = language_document_world(worlds[i], environments[i], grammar, strlen(grammar), mode, 4);

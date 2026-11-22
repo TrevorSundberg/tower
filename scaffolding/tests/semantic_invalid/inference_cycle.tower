@@ -1,2 +1,4 @@
+import foundation;
+
 var first = second;
 var second = first;

@@ -29,7 +29,7 @@ for (let generation = 1; generation <= 2; ++generation) {
     support:async name => gunzipSync(await readFile(new URL(name,project))),
     progress:phase => console.log(generation,Math.round(performance.now()-started)+'ms',phase)});
   const candidate = await loadTower(result.modules.tower,undefined,grammar.foundation,undefined,grammar.bedrock,{tower:grammar.tower,builtins:grammar});
-  const handle = candidate.compile('var value: i32 = null;');
+  const handle = candidate.compile('import tower; var value: i32 = null;');
   try { assert.match(candidate.execute(handle,0).error,/Compiler project generation says/); }
   finally { candidate.destroyExecution(handle); }
   compiler = await loadLLVM(result.modules.llvm,undefined,grammar.foundation,undefined,grammar.bedrock,{tower:grammar.tower,builtins:grammar});

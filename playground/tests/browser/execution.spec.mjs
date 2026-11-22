@@ -22,7 +22,7 @@ test('executes replacements and displays typed core instructions', async ({ page
   await expect(page.locator('#filename')).toHaveText('execution.tower');
   await expect(page.locator('#execution-status')).toContainText('Finished');
   await expect(page.locator('#execution-output')).toHaveText('15\n16\n');
-  await expect.poll(()=>outputText(page,'core-instructions')).toContain('if finished {');
+  await expect.poll(()=>outputText(page,'core-instructions')).toContain('count < 5');
   await expect(page.locator('#execution-error')).toBeHidden();
   // Show executable source near the bottom, not just the editable core grammar.
   const editor = page.getByRole('textbox', { name: 'Tower source' });
@@ -43,17 +43,17 @@ test('initializer inference shows explicit checked types and clear dependency er
   await expect.poll(()=>outputText(page,'core-instructions')).toContain('var answer: i32 =');
   await expect.poll(()=>outputText(page,'core-instructions')).toContain('var pointer: i32* =');
   await page.screenshot({path:`../build/inference-${info.project.name}.png`});
-  await setSource(page,'var a = b;\nvar b = a;');
+  await setSource(page,'import tower; var a = b;\nvar b = a;');
   await expect(page.locator('.tw-inline-error-message')).toContainText('initializer dependency cycle a -> b -> a');
   await page.screenshot({path:`../build/inference-cycle-${info.project.name}.png`});
-  await setSource(page,'var answer = 42; print(answer);');
+  await setSource(page,'import tower; var answer = 42; print(answer);');
   await expect(page.locator('#execution-status')).toHaveText('Finished \u00b7 backends match');
   await expect(page.locator('.tw-inline-error')).toHaveCount(0);
   await expect(page.locator('#execution-output')).toHaveText('42\n');
 });
 
 test('replacement errors explain the required syntax inline and recover after correction', async ({ page }, info) => {
-  const source = "parse Statement |= 'fart' $name:Identifier ';'\n    => replace { $name - $name; };\n\nvar value: i32 = 5;\nfart value;\nprint(value);";
+  const source = "import foundation; parse Statement |= 'fart' $name:Identifier ';'\n    => replace { $name - $name; };\n\nvar value: i32 = 5;\nfart value;\nprint(value);";
   await setSource(page, source);
   await expect(page.locator('.tw-inline-error-message')).toContainText('Replacement for Statement must produce a valid Statement.');
   await expect(page.locator('.tw-inline-error-message')).toContainText('"$name - $name;" is not a valid Statement.');
@@ -69,13 +69,13 @@ test('replacement errors explain the required syntax inline and recover after co
 });
 
 test('extra semicolons have concise context and increment demonstrates both returned values', async ({page},info) => {
-  await setSource(page,'// Aliases share the same typed storage.\nvar alias: i32*;;');
+  await setSource(page,'import foundation; // Aliases share the same typed storage.\nvar alias: i32*;;');
   await expect(page.locator('.tw-inline-error-message')).toHaveText("Unexpected ';'. Expected a statement or grammar declaration.");
   await expect(page.locator('.tw-inline-error-heading')).toHaveText(`Error${await page.locator('#filename').innerText()}:2:17`);
   await expect(page.locator('.tw-error-range')).toHaveText(';');
   expect(await page.locator('.tw-inline-error-card').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
   await page.locator('#editor').screenshot({path:`../build/extra-semicolon-${info.project.name}.png`});
-  await setSource(page,'var answer: i32 = 42\nprint(answer);');
+  await setSource(page,'import foundation; var answer: i32 = 42\nprint(answer);');
   await expect(page.locator('.tw-inline-error-message')).toContainText("Possible missing ';' before 'print'.");
   await expect(page.locator('.tw-error-point')).toHaveCount(1);
   await selectDocument(page, 'increment.tower');
@@ -95,12 +95,12 @@ test('extra semicolons have concise context and increment demonstrates both retu
   await setSource(page,source+'\nvalue++;\nprint(value++);');
   await expect(page.locator('#execution-output')).toHaveText('5\n6\n7\n7\n9\n11\n');
   await expect(page.locator('#execution-status')).toHaveText('Finished \u00b7 backends match');
-  await setSource(page,'fn forever(): i32 { loop {} } print(forever());');
+  await setSource(page,'import foundation; fn forever(): i32 { loop {} } print(forever());');
   await expect.poll(()=>outputText(page,'core-instructions')).toContain('print(forever());');
   await expect(page.locator('#execution-status')).toContainText('Updating');
   await page.locator('#cancel-execution').click();
   await expect(page.locator('#execution-status')).toHaveText('Cancelled');
-  await setSource(page,'print(42);');
+  await setSource(page,'import tower; print(42);');
   await expect(page.locator('#execution-status')).toHaveText('Finished \u00b7 backends match');
 });
 

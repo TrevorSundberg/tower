@@ -119,17 +119,17 @@ export async function linkCompiler({compiler, recipe, files, inputs, support, pr
       throw new Error('Candidate module visibility check failed');
   } finally { tower.destroyExecution(hidden); }
   tower.configureModules({entry:'completion.tower',files:[],builtins:grammar});
-  const partial = 'var value: i32 = 1; var valid: bool = true; fn check(flag: bool): void {} check(va';
+  const partial = 'import foundation; var value: i32 = 1; var valid: bool = true; fn check(flag: bool): void {} check(va';
   const completion = tower.complete(partial,new TextEncoder().encode(partial).length);
   if (completion.error || completion.options?.length !== 1 || completion.options[0].label !== 'valid')
     throw new Error('Candidate typed completion check failed');
-  const hoverSource = '// Documented value.\nvar value: i32 = 42; print(value);';
+  const hoverSource = 'import foundation;\n// Documented value.\nvar value: i32 = 42; print(value);';
   const inspected = tower.inspectDocument(hoverSource);
   if (!inspected.entries.some(entry => entry.type === 'i32' && entry.documentation === 'Documented value.'))
     throw new Error('Candidate attached hover documentation check failed');
   if (!inspected.entries?.some(entry => entry.from === hoverSource.lastIndexOf('value') && entry.signature === 'var value: i32' && entry.type === 'i32' && entry.binding))
     throw new Error('Candidate typed hover check failed');
-  const grammarHover = tower.inspectDocument("fn identity(p:i32*):i32 { return *p; } parse CoreCall |= 'read' $target:CoreLocation => replace { identity(&$target) }; var value:i32=42; print(read value);");
+  const grammarHover = tower.inspectDocument("import foundation; fn identity(p:i32*):i32 { return *p; } parse CoreCall |= 'read' $target:CoreLocation => replace { identity(&$target) }; var value:i32=42; print(read value);");
   if (!grammarHover.entries?.some(entry => entry.kind === 'capture substitution' && entry.category === 'CoreLocation') ||
       !grammarHover.entries.some(entry => entry.kind === 'address of') ||
       !grammarHover.entries.some(entry => entry.replacementCategory === 'CoreCall' && entry.signature === 'fn identity(p: i32*): i32'))
@@ -140,7 +140,7 @@ export async function linkCompiler({compiler, recipe, files, inputs, support, pr
       !syntaxHover.entries.some(entry=>entry.from>loop && entry.capture==='Variable' && entry.capturedBy==='ForEach') ||
       !syntaxHover.entries.some(entry=>entry.module==='foundation' && entry.category===undefined))
     throw new Error('Candidate custom syntax hover check failed');
-  const enumHover = tower.inspectDocument('enum State:u32 { Idle = 0, Busy = 4 } var state:State = State.Busy;');
+  const enumHover = tower.inspectDocument('import tower; enum State:u32 { Idle = 0, Busy = 4 } var state:State = State.Busy;');
   if (!enumHover.entries?.some(entry => entry.signature === 'State.Busy' && entry.type === 'State'))
     throw new Error('Candidate enum hover check failed');
   const llvm = await loadLLVM(modules.llvm, undefined, grammar.foundation, undefined, grammar.bedrock, {tower:grammar.tower,builtins:grammar});

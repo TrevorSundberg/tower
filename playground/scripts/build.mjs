@@ -6,8 +6,13 @@ import { execFileSync } from 'node:child_process';
 import { targets, targetInputs } from '../src/targets.mjs';
 const root = fileURLToPath(new URL('..', import.meta.url));
 const dist = path.join(root, 'dist');
-const packager = process.env.TOWER_PLAYGROUND_ASSET_PACKAGER || path.join(execFileSync('bash',
-  [path.join(root, 'scripts/build-bootstrap.sh'), '--tools', 'package_playground_assets'],
+// The published tool bootstrap runs on Linux. Windows Node keeps its native
+// esbuild binding and transports tool invocations through the existing WSL host.
+const windows = process.platform === 'win32';
+const toolPath = value => windows ? execFileSync('wsl.exe', ['--exec', 'wslpath', '-a', value], {encoding:'utf8'}).trim() : value;
+const tool = (command, args, options) => windows ? execFileSync('wsl.exe', ['--exec', command, ...args], options) : execFileSync(command, args, options);
+const packager = process.env.TOWER_PLAYGROUND_ASSET_PACKAGER || path.posix.join(tool('bash',
+  [toolPath(path.join(root, 'scripts/build-bootstrap.sh')), '--tools', 'package_playground_assets'],
   {encoding:'utf8', stdio:['ignore','pipe','inherit']}).trim(), 'package_playground_assets');
 // dist is generated output. Never publish stale optional backends/target packs.
 await rm(dist, { recursive: true, force: true });
@@ -96,5 +101,5 @@ for (const name of ['@codemirror/view', '@codemirror/state', '@codemirror/comman
 }
 await writeFile(path.join(dist, 'THIRD-PARTY-NOTICES.txt'), licenses);
 await writeFile(path.join(dist, '.nojekyll'), '');
-execFileSync(packager, [dist], {stdio:'inherit'});
+tool(packager, [toolPath(dist)], {stdio:'inherit'});
 console.log(`Static playground built: ${dist} (LLVM module ${llvm ? 'included' : 'not built'})`);

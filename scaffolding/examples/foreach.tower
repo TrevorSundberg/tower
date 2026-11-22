@@ -1,5 +1,9 @@
-import foundation;
+import bedrock;
 
+// This is a grammar lesson: define the loop syntax ourselves, without importing
+// Tower's executable foreach. The parse tree works; execution needs a replacement.
+[number]
+token Number = /[0-9]+/;
 // Define the pieces used by the loop below.
 parse Variable = Identifier;
 parse Expression = Identifier | Number;

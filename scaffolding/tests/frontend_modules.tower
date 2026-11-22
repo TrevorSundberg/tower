@@ -36,6 +36,37 @@ fn module_test_parse(environment: ModuleEnvironment*, source: u8*, count: usize,
     return ok;
 }
 
+var ModuleOrderFailure: usize = 844;
+var ModuleSeedFailure: usize = 845;
+
+fn module_test_order(environment: ModuleEnvironment*): bool {
+    var names: u8*[4];
+    names[0] = "shared.tower";
+    names[1] = "left.tower";
+    names[2] = "right.tower";
+    names[3] = "main.tower";
+    var diamond_module_count: usize = 4;
+    if frontend_modules_used_count(environment) != diamond_module_count { return false; }
+    for (var i: usize = 0; i < diamond_module_count; i++) {
+        if !module_equal(frontend_modules_used_name(environment, i), names[i]) { return false; }
+    }
+    return !frontend_modules_implicit(environment);
+}
+
+fn module_test_seed(environment: ModuleEnvironment*): bool {
+    // No import is needed to define an unrelated language from the seed.
+    if !module_test_parse(environment, "parse Statement = 'hello'; hello", 1, true) { return false; }
+    if !module_test_parse(environment, "", 1, true) { return false; }
+    var source: u8* = "print(42);";
+    var module = frontend_module_root(source, environment);
+    defer frontend_module_destroy(module);
+    var session = syntax_create(source, module);
+    defer syntax_destroy(session);
+    var root = syntax_next(session);
+    if root is not null { entity_release(root); return false; }
+    return module_equal(syntax_get_error(session), "This syntax needs a language import. Use 'import tower;' for normal code, 'import foundation;' for basic operations, or 'import bedrock;' to define a grammar.");
+}
+
 export fn frontend_modules_tests(): usize {
     var environment = frontend_modules_create();
     frontend_modules_configure(environment, "main.tower", "");
@@ -48,6 +79,11 @@ export fn frontend_modules_tests(): usize {
     if !ok {
         result = 801;
     }
+    if !module_test_order(environment) { return ModuleOrderFailure; }
+    // Repeat with cached imports; shared appears once, before both importers.
+    if !module_test_parse(environment, "import left; import right;", 4, true)
+        || !module_test_order(environment) { return ModuleOrderFailure; }
+    if !module_test_seed(environment) { return ModuleSeedFailure; }
     // A grammar import may contain ordinary roots, but semantic attachments
     // must never leak from one requesting graph into its cached snapshot.
     if !module_cache_isolation(environment) { return ModuleCacheFailure; }

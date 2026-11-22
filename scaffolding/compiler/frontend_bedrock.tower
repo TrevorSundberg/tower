@@ -132,9 +132,9 @@ export fn frontend_bedrock_create(kinds: FrontendKinds*): void* {
     frontend_bedrock_token(&b, 2, "String", "\"([^\"\\\\\\r\\n]|\\\\[nrt\\\\'\"])*\"|'([^'\\\\\\r\\n]|\\\\[nrt\\\\'\"])*'", "string", false);
     frontend_bedrock_token(&b, 2, "GrammarPattern", "\\/([^/\\\\\\[\\r\\n]|\\\\[^\\r\\n]|\\[([^\\\\\\]\\r\\n]|\\\\[^\\r\\n])*\\])*\\/", "pattern", true);
     frontend_bedrock_token(&b, 2, "GrammarCharacter", "[^{}\\r\\n]", "operator", true);
-    frontend_bedrock_comment(&b, "// This bedrock.tower is loaded first, then foundation.tower.");
-    frontend_bedrock_comment(&b, "// GrammarPattern reads /patterns/ for token and skip rules.");
-    frontend_bedrock_comment(&b, "// GrammarTemplate reads {replacement bodies} with balanced braces.");
+    frontend_bedrock_comment(&b, "// Every file starts with these seed declaration rules.");
+    frontend_bedrock_comment(&b, "// GrammarPattern keeps a /regex/ literal together; Tower's regex parser reads its contents.");
+    frontend_bedrock_comment(&b, "// GrammarTemplate is a recursive rule for {replacement bodies}, including nested braces.");
 
     // Attributes share one reader across grammar and ordinary declarations.
     // Bedrock arguments have only lexical values; Foundation extends their

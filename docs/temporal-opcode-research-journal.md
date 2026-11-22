@@ -44808,3 +44808,120 @@ The existing browser execution check passes on desktop and mobile, checking
 Publication reuses the complete e4dc15e distribution and its existing runtime
 source identity, changing only increment.tower and its manifest hash. No compiler
 rebuild, full bootstrap matrix, sanitizer or broad formatting sweep is needed.
+
+### 2026-11-22 — Explicit language imports, example audit and inspection follow-ups
+
+The user refined the no-import policy during implementation. Supersede the earlier
+proposal to reject every import-free file with a Bedrock exception: every file
+instead starts from the same immutable declaration seed. Bedrock is an ordinary
+file that can redefine that grammar, and an unrelated language can do so under
+any filename. No import is required for grammar-only source; ordinary executable
+syntax and named types must come from explicit imports or local definitions.
+Remove the implicit Foundation prelude and the host's invented dependency entries.
+Keep the existing parser/semantic operations and shared graph as the authority.
+
+Record a usability requirement: missing language syntax needs helpful import
+errors, including `import tower;`, `import foundation;` and `import bedrock;`.
+The initial diagnostic covers executable-looking input while only the seed is
+active. Richer contextual suggestions, such as suggesting Tower when Foundation
+does not recognize an expression operator, remain follow-up work. Do not reject
+valid custom-language source merely because it has no imports.
+
+The library tree must follow actual dependency completion order, including cached
+imports and diamonds, rather than discovery order or a hardcoded Bedrock-first
+sort. Use the compiler's existing module completion path and keep JavaScript as
+transport. New Tower checks cover the cold/cached diamond order, a custom language
+without imports, an empty file, and the initial missing-language diagnostic.
+
+Audit all twelve bundled example projects. Ordinary programs retain Tower imports
+and use direct conditions, nested expressions, inferred generic calls, compound
+updates, counted loops and complete initialization where appropriate. Foreach,
+increment, replacements and tokens remain grammar lessons. Explain collection
+allocation in short comments: initialization is empty, stack growth uses realloc,
+queue growth allocates/copies, failure preserves old values, and dispose frees
+owned memory. Fix the raw memory example to retain its old pointer when realloc
+fails and guard the first-element read if no append succeeded. Public-bootstrap
+preflight runs of templates, memory, functions and collections produce their
+expected outputs (build/example_audit_preflight.log). A trial using a captured
+named capacity in a type argument was rejected by the current staging contract;
+retain the four-slot fixture and infer only supported generic type arguments.
+
+Investigated the Bedrock header comments. GrammarTemplate already is an ordinary
+recursive parse rule, with nested braces and a contextual character fallback.
+GrammarPattern is an ordinary contextual token that captures a delimited regex;
+syntax_reader_token passes its interior span to the Tower regex implementation.
+regex_grammar builds shared LR grammar entities over Unicode scalars and
+regex_lowering derives the lexer automaton. This is not a host regex engine or
+an independent handwritten brace scanner. A parse-rule pattern form is possible
+in principle, but must preserve raw whitespace, escapes, character classes and
+delimiter boundaries. The reader still expects delimiters around the captured
+span, and syntax_session_scan marks GrammarPattern opaque for highlighting by
+name. Journal that remaining special case rather than claiming arbitrary embedded
+language syntax is already fully generic. Clarify both the Bedrock file comments
+and the seed builder's matching comments; a larger lexical-boundary design is a
+separate change, not required merely to rephrase these comments.
+
+Additional requested inspection fixes: bracket attributes need highlighting,
+specific hover information and tree-query presentation; integer_type and its
+width/signedness arguments must not inherit the enclosing function's return
+description. The latter is a general hover selection problem in type-function
+bodies, not just one missing builtin description. Investigate the existing shared
+attribute entities and generic inspection metadata, with all reusable behavior
+and assertions in Tower. These requests remain in progress at this entry.
+
+Increment publication receipt: Pages c57fbb4 completed workflow 45036216336.
+All 104 live assets matched the local manifest, and desktop/mobile execution
+checks passed. The deployment checker needed its old temporary-address assertion
+updated to require post_increment/pre_increment calls. The complete hosted check
+then passed on both devices (build/increment_hosted_verification.log). Windows
+Git archive line-ending conversion was caught by manifest verification and fixed
+using `git -c core.autocrlf=false archive`; no runtime bytes were replaced.
+
+The first seed-policy native build identified completion.tower's remaining call
+to the retired implicit-prelude hook. Remove that call: incomplete-document
+inspection must use only its real imports too. The earlier isolated changed
+units compiled through the public bootstrap (build/import_seed_units.log).
+Further native/browser validation and publication are pending for this combined
+milestone; the initial build failure is in build/import_seed_native.log.
+
+The inspection implementation now attaches calls and returns in type-function
+bodies to their own shared syntax entities. Primitive representation calls expose
+their actual purpose (integer width/signedness, float width, pointer/array shape);
+argument names retain parameter bindings and literals retain their own entries.
+The enclosing function no longer supplies every body's signature. Grammar
+attribute and argument components now supply distinct query/hover descriptions,
+and declaration highlighting uses their captured spans. Narrow the attribute
+classification module's dependencies so inspection does not import parser-session
+implementations across the foreign API boundary merely to compare a name.
+
+Native editor-world tests check exact token offsets, both pointer widths,
+independent worlds, deterministic unit inspection and cleanup. They pass
+(`build/inspection_tests.log`). Desktop and mobile browser hovers also pass for
+integer_type, width and [comment], with screenshots in build/. These checks use
+the same cached document query that the parse-tree inspection consumes.
+
+The missing-import audit found executable warm-up and candidate-compiler probes
+that relied on implicit Foundation; make those imports explicit too. All actual
+scaffolding Tower files now import their dependencies except Bedrock, which is
+the intended declaration-seed case. Migrate affected invalid fixtures so they
+still test their intended semantic errors. Keep old custom grammar fixtures free
+to define their own language without imports. Source-format only the nine edited
+examples, using the ordinary Tower formatter, without a repository-wide sweep.
+
+The native module suite passes cold/warm diamond dependency ordering, empty and
+custom-language files, the missing-language hint, and existing cache/session
+checks (`build/import_seed_modules.log`). Expanded module checks also found a
+punctuation collision: once attributes reuse Tower expressions, '..' becomes
+reachable from declarations and could swallow two parent-import dots. In a
+declaration, fall back from an unavailable compound punctuation literal to the
+longest parser-accepted shorter literal; preserve normal-code maximal matching,
+word/token matching and the original diagnostic token when no prefix is valid.
+The focused lexer fixture and independent selection oracle pass, including
+allocation/lifetime checks (`build/import_seed_lexicon.log`).
+
+The public Linux bootstrap built native, portable WASI, threaded WASI and both
+LLVM reactors. Further publication validation will use the finalized lexer fix.
+Windows Node could not directly execute the newly Tower-owned asset packager;
+add only the WSL process/path transport in build.mjs. Compression and hashing
+remain Tower, and the normal full package command now succeeds. No bootstrap
+syntax migration or private compiler pin is introduced by this work.

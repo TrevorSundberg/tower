@@ -96,7 +96,7 @@ export function warmCompiler(url, options = {}) {
   if (!warmRuns.has(key)) {
     const pending = (async () => {
       const {compiler} = await getCompiler(url);
-      const compiled = compiler.compile('var warm: i32 = 42; print(warm);', options);
+      const compiled = compiler.compile('import tower; var warm: i32 = 42; print(warm);', options);
       if (compiled.status === 'error') throw new Error(compiled.error);
       if (!options.target) {
         const result = await executeWasm(compiled);

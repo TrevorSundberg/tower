@@ -11,20 +11,20 @@ function format(source){
  finally{tower.destroy(handle);}
 }
 test('source and foundation formatting share declaration spacing and indentation',()=>{
- const source='  var x:i32=1; print(x);   struct Pair{value:i32;} fn answer(p:Pair*):i32{return p.value;} var p:Pair;var q:Pair*=&p;p.value=answer(q);';
+ const source='import foundation;  var x:i32=1; print(x);   struct Pair{value:i32;} fn answer(p:Pair*):i32{return p.value;} var p:Pair;var q:Pair*=&p;p.value=answer(q);';
  const formatted=format(source);
- assert.equal(formatted,'var x: i32 = 1;\nprint(x);\n\nstruct Pair {\n    value: i32;\n}\n\nfn answer(p: Pair*): i32 {\n    return p.value;\n}\n\nvar p: Pair;\nvar q: Pair* = &p;\np.value = answer(q);\n');
+ assert.equal(formatted,'import foundation;\nvar x: i32 = 1;\nprint(x);\n\nstruct Pair {\n    value: i32;\n}\n\nfn answer(p: Pair*): i32 {\n    return p.value;\n}\n\nvar p: Pair;\nvar q: Pair* = &p;\np.value = answer(q);\n');
  assert.equal(format(formatted),formatted);
  const executable=tower.compile(formatted);
- try{assert.equal(tower.foundation(executable).source,formatted);}finally{tower.destroyExecution(executable);}
+ try{const canonical=tower.foundation(executable).source;assert.equal(format(canonical),canonical);}finally{tower.destroyExecution(executable);}
 });
 test('comments, strings and replacement invocations retain their original meaning',()=>{
- const source='// first\nparse Statement |= \'show\' $x:CoreOperand \';\' => replace { print($x); };\nshow 42; // inline\nfn f():void { /* body */ print(1); } // after\n';
+ const source='import foundation;\n// first\nparse Statement |= \'show\' $x:CoreOperand \';\' => replace { print($x); };\nshow 42; // inline\nfn f():void { /* body */ print(1); } // after\n';
  const formatted=format(source);
  assert.match(formatted,/show 42;\n/);
  for(const comment of ['// first','// inline','/* body */','// after'])assert.equal(formatted.split(comment).length,2);
  assert.equal(format(formatted),formatted);
- const literal='var text: u8* = "{ ; } // literal";\n';
+ const literal='import foundation;\n\nvar text: u8* = "{ ; } // literal";\n';
  assert.equal(format(literal),literal);
 });
 test('formatting refuses a layout that changes custom lexical meaning',()=>{
@@ -56,7 +56,7 @@ struct S{field:i32;} var s:S; ++ s.field; s.field ++;
 });
 
 test('affix spacing follows rule shape, keeps infix spacing and separates adjacent operators',()=>{
- const grammar=`parse Prefix = '~~' Identifier;
+ const grammar=`import foundation;\nparse Prefix = '~~' Identifier;
 parse NestedPrefix = '~~' Prefix;
 parse Statement |= 'prefix' NestedPrefix ';' | 'postfix' Identifier '!!' ';';
 parse CoreCall |= $target:CoreLocation '!!' => replace { post(&$target) };

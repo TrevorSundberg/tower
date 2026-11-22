@@ -117,6 +117,7 @@ fn oracle_lexicon_choose(value: OracleLexicon*, source: u8*, length: usize, star
             choice.skipped = entry.skipped;
         }
     }
+    var punctuation = false;
     for (var index: usize = 0; index < value.literals.length; ++index) {
         var literal = &value.literals.data[index];
         if (!declaration || literal.declaration || oracle_lexicon_accepts(runtime, state, literal.id, choice))
@@ -125,8 +126,19 @@ fn oracle_lexicon_choose(value: OracleLexicon*, source: u8*, length: usize, star
             choice.id = literal.id;
             choice.style = literal.word ? "keyword" : "operator";
             choice.skipped = false;
+            punctuation = !literal.word;
         }
     }
+    if !declaration || !punctuation || runtime is null { return; }
+    if oracle_lexicon_accepts(runtime, state, choice.id, choice) { return; }
+    var selected: OracleLexiconLiteral* = null;
+    foreach (var &literal in &value.literals) {
+        if literal.word || literal.length >= choice.length { continue; }
+        if selected is not null && literal.length <= selected.length { continue; }
+        if oracle_lexicon_prefix(source, length, start, literal.text, literal.length)
+            && oracle_lexicon_accepts(runtime, state, literal.id, choice) { selected = literal; }
+    }
+    if selected is not null { choice.length = selected.length; choice.id = selected.id; }
 }
 
 fn oracle_lexicon_skip(value: OracleLexicon*, source: u8*, length: usize, start: usize, choice: TestLexiconChoice*): void {

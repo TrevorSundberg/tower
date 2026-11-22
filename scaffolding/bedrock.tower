@@ -1,6 +1,6 @@
-// This bedrock.tower is loaded first, then foundation.tower.
-// GrammarPattern reads /patterns/ for token and skip rules.
-// GrammarTemplate reads {replacement bodies} with balanced braces.
+// Every file starts with these seed declaration rules.
+// GrammarPattern keeps a /regex/ literal together; Tower's regex parser reads its contents.
+// GrammarTemplate is a recursive rule for {replacement bodies}, including nested braces.
 skip Whitespace = /[ \t\r\n]+/;
 [comment] skip LineComment = /\/\/[^\r\n]*/;
 [comment] skip BlockComment = /\/\*([^*]|\*+[^*/])*\*+\//;
