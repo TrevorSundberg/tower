@@ -42682,3 +42682,21 @@ and shared ECS output jobs, with actual Windows execution and LLD differential
 fixtures before removing lldCOFF. Mach-O follows separately. Native host-driver
 dynamic linking and SDK/build linkers remain explicit dependencies; neither this
 ELF milestone nor the earlier Wasm milestone claims they have been replaced.
+
+Publication complete: source2caa482 pushed, Pages248f24a22bc71019a10632fb46a20ca7bbfc0fdf
+deployed successfully by workflow44991435535. The hosted manifest SHA256 is
+d7aa8a22d96a0a13f97c9d3b6b69438aed385b0675e1d15ec36e5fef8b4306d5;
+its build-source identity remains06f207e, compiler tree704a0215a65a77276dc1ac65256b682be48dbeed.
+Full verify-deployment.mjs https://tower-lang.org/ passes: all104 assets match the
+tested bundle exactly; both desktop/mobile verify backend agreement, forward
+bindings, editable grammar, persistence, completion/highlighting and native
+builds/downloads. HTTP apex, HTTPS www and the old GitHub Pages URL redirect to
+HTTPS apex with200. Evidence: build/elf_hosted_deployment.log and
+build/deployment-verification/report.json. The source push briefly hit GitHub DNS
+failure; a command-scoped curloptResolve using the resolved GitHub IPv4 address
+succeeded normally, without force-push. Automatic command review rejected the
+initial combined publication copy/delete command before execution; the asset audit
+found no stale paths, so publication copied only manifest-listed files and deleted
+nothing. Other agents' release receipts remain intact. No todo.txt changes;
+blob045d1e620edf7c67b653fec19df850b370246b1d is unchanged. No sanitizer or broad
+formatter run. The publication lock is released after this verified receipt.
