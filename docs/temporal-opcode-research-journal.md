@@ -46909,3 +46909,216 @@ agreement. Existing selected browser LLVM and Roku tests assert those independen
 expected outputs, and LLVM checks the named intrinsics. Keep these evidence
 categories distinct. No new JavaScript test logic or generic harness API change
 is introduced to repair the data.
+
+### D1: balanced long work-pool investigation
+
+At `ce4527a`, retained before/after binaries each ran 4,000 normal lifecycles
+(1,000 per sample), with four balanced pairs ordered before/after, after/before,
+before/after, after/before. Both received `--normal`; the original zero-argument
+main ignores the argument and executes its unchanged sixteen-round workload.
+All8,000processes returned0 and each paired stdout file compared byte-identical.
+Same Docker image/Clang19-produced binaries, Linux x64, cpuset0,2, four actual
+barrier-gated workers; fresh processes/warm filesystem, no competing D2 heavy job.
+Host frequency policy remained powersave, configured1702569–3501250kHz; no host
+policy changed. Inputs/hashes, GNU time and disassembly are retained under
+`build/d1_ecs/pool_after/long_*`, `before_main.disassembly.txt` and
+`after_run.disassembly.txt`.
+
+| Variant | Wall seconds (four samples) | CPU seconds | Peak RSS KiB |
+| --- | --- | --- | --- |
+| before |21.22,19.33,20.10,18.59|29.56,25.92,27.55,24.90|34392,34420,34392,34392|
+| after |20.34,20.52,20.35,17.31|28.29,28.58,28.14,22.19|34136,34392,34392,34364|
+
+All swaps0. Paired wall changes range from about−6.9% to+6.2%, with two pairs
+faster and two slower. Aggregate before/after wall is79.24/78.52s and CPU
+107.93/107.20s; medians are19.715/20.345s wall and26.735/28.215s CPU. Thus the
+short-run apparent9% slowdown does not reproduce consistently; medians alone
+still show3.2% wall/5.5% CPU difference, so do not claim a speedup or exclude a
+small effect. System CPU dominates these process/thread/allocation lifecycles.
+Disassembly confirms unchanged kernel size and the factored normal/failure helper;
+normal cleanup has no outstanding jobs or additional allocation. No speculative
+payload padding or unrelated pool implementation change is justified by this
+variable result. Peak memory remains within the baseline range. Separate-process
+RSS is not in-process retained-memory evidence; fresh Wasm128-lifecycle validation
+remains pending. This closes the investigation of the observed short timing
+signal with its measurement limits, not a universal no-regression assertion.
+
+Scalar after checks stopped at a real harness failure: absolute i32, unsigned
+saturating add i32 and unsigned saturating subtract i32 each pass4package variants
+(wall61.36/60.69/59.81s; CPU59.41/58.69/57.79s; RSS139044/136252/136044KiB).
+Signed saturating add i32 fails `package emission` at50.00s wall/48.63CPU/
+215396KiB, exit1. Child stdout/stderr are empty; rows5–10 were not run. Directly
+running its first raw wasm32 package emission succeeds in37.20s wall/36.52CPU/
+232448KiB and emits178846bytes, SHA256
+`fb08cca757d9e3c65554b4c74aaf1a8c0ec29d1463dfe00c9c0f52e0e0f31b94`.
+`driver_posix.tower` arms a30second alarm per child, returning negative signals;
+the package assertion currently omits that numeric status. The observed timing
+and successful direct command support deadline exhaustion, but the original raw
+signal was not logged. Preserve that distinction. Exact command/source/status/
+GNU-time logs are in `build/d1_ecs/driver_fixtures/scalar_after_4/`. No timeout or
+assertion changed, no failed matrix counted as pass. Routed the cost/diagnostic
+issue to coordinator and continued independent fixture work after both sessions
+drained; a full scalar package claim remains open.
+
+Fresh changed pool Wasm target built8/8 through the existing canonical CMake
+threaded-WASI profile, checked-in public pin (no override), SDK34.0, outerjobs1,
+own `build/browser-wasi-threads` cache. It builds the smallest affected
+`tower-work-tests` target, not an unchanged frontend/LLVM reactor. Wall36.30s,
+CPU40.85s, RSS504776KiB, swaps0. Artifact SHA256
+`b8a187c629a73845f19584e462034c2c9c58b65e57e80b9971b3d8901e5db67f`.
+Node22.23.5 command with `TOWER_REQUIRE_THREADS=1`, existing
+`compiler-threads.test.mjs`, name pattern `the Tower pool|a worker trap`, passes
+2/2, skipped0. The first runs128complete lifecycles in one host with four actual
+barrier workers, including new partial/full early-return cleanup; the second
+checks injected worker-trap propagation to blocked coordinator and transport close.
+Wall3.07s, CPU4.51s, RSS151788KiB, swaps0. Logs `pool_after/wasm_build.*` and
+`pool_after/wasm_test.*` retain command/output. These are actual repeated-host
+lifetime checks, not a general compiler threading matrix, per-allocation live
+counter proof, or browser sanitizer coverage. All owned jobs drained between
+build and execution. No deliberate invalid-memory/race probe was repeated.
+
+Selected existing scalar browser checks pass11/11, skipped0, using the two
+hash-verified published reactors whose production inputs match this checkpoint.
+Command: Node22.23.5 --test with name pattern "LLVM matches interpreter:
+(absolute|unsigned saturating|signed saturating)|scalar idioms exercise",
+playground/tests/llvm-execution.test.mjs, with240s outer bound. All ten stored
+output oracles and requested LLVM intrinsics pass, alongside graph/fast/compiled
+Wasm execution, canonical roundtrip and optimized/raw package reconstruction.
+JSON SHA256 3b43b4dc48adb3dc19877cf2ee983ca0e138bbed3e9d87e5f1e0163ccc406bfe.
+Wall193.37s, CPU194.24s, peakRSS381884KiB, swaps0; signed saturating add/sub i32
+consume70.561/66.469s of those checks. This supplies independent expected-output
+coverage and identifies a substantial valid-workload cost; it does not turn the
+native driver's30s child-alarm failure into a pass. No JavaScript source changed.
+Roku compatibility, focused negation repair, raw failed-child status reporting
+and final integrated-source/publication gates remain open. All D1 jobs drained
+before removing its own heavy lock and yielding the host to D2. Host disk141GiB,
+availableRAM9.9GiB, preexisting swap5.8GiB; no generated artifacts removed.
+
+After draining all jobs, implemented a narrow generic driver diagnostic:
+driver_test_capture_result now reports negative subprocess status after restoring
+caller descriptors and closing captured files. Shared ByteBuffer and existing
+host_json_unsigned format the number; lexical defer disposes the buffer, and
+format-allocation failure gets an explicit fallback diagnostic. The returned raw
+status, original child logs, child deadline and all assertions remain unchanged.
+This addresses the measured failure's missing signal detail; it does not repair
+the expensive valid workload or expand its deadline. No production file changed.
+Smallest-unit compilation, real timeout-signal observation and a healthy child
+regression/profile remain pending the next D1 host slot. No supported sanitizer
+coverage of this new diagnostic is claimed before applicable validation.
+
+Before compilation, a further caller audit showed the generic capture helper
+also serves C trap cases with intentionally expected negative statuses.
+Narrowed the diagnostic to driver_differentials.tower immediately before its
+package-emission success assertion, and restored driver.tower exactly. This
+keeps expected signals quiet and targets the observed unexpected failure.
+Neither draft was compiled/run during this edit. Existing shared-buffer formatting,
+fallback, raw status, captured child bytes and30second policy remain unchanged.
+The retained pre-edit driver binary SHA256 is
+7a678c733634046c4e85403204970a30ee94f4ab42800a830bcf762e55491608.
+
+Root explicitly authorized the D2 shared validation drafts at19:55:30UTC.
+After all owned jobs drained, verified and applied sequentially:
+compiler_budget_6a2536b.patch SHA256
+0eb43211d08bd6428916f6ed8b831c9689e66b6f55e755930a6c25af0d66de55;
+native_sanitizer_mode.patch SHA256
+77ac626a93c11473b8b34c84147395d6dc1f8d30ab679882267eb24e8adf8b24;
+sanitizer_source_receipt.patch SHA256
+c9df1fc90a2ebfe407f49a545240eaea3cd82eb20da0ba98d174e624723619c1.
+Every apply-check succeeds. No A2 file had already been imported, so its four
+originals were added once. This is source integration for positive-workload
+validation, not a D1 build/sanitizer pass. Do not repeat the deliberate memory/
+race negative controls. D2/A2 implementation ownership remains; no private
+bootstrap or new syntax adoption. Compiler algorithms are unchanged by these
+build/tool drafts. Root also reserves six existing Foundation numeric-rejection
+strings in floating_checks/narrow_checks for D1, in addition to two negation
+strings. Baseline/precise import fixes and focused validation are pending. The
+requested A2 validated_checkpoints patch for durable focused test registration
+has not yet been delivered; no source/runner/coverage assumptions were made.
+
+## 2026-11-22 D1 incoming scheduler fixtures and parser retention review
+
+At own source ce4527a over published60741c5, all jobs drained; pull --rebase
+--autostash completed and preserved authorized changes. D2 holds the one shared
+heavy lock. Applied earlier coordinator-authorized D2 build-budget/sanitizer/
+source-receipt drafts remain unbuilt locally; no instrumentation pass is inferred
+from configured manifest entries. Their exact hashes and sources are in D1 status.
+
+New coordinator bundle validated_checkpoints.patch SHA256
+9809853d1cfe6802e0427671a7c1e6d7dcd6dc74a89bd6f1352f20885f7fe011
+was read in full for its ten new tests. Audit receipts now distinguish thirteen
+incoming test reviews from the initial437source audit. The baseline1011file
+inventory is unchanged; nineteen exact incoming paths are listed separately.
+Production graph/pool/kernel/tool-file edits retain owner responsibility. The
+A1 budget-types extraction has foreign world/unit hunks not present in D1's
+baseline; do not blindly apply them or overwrite the already imported newer
+sanitizer docs. None of this bundle has been applied or executed by D1 yet.
+
+Runner caller audit found an important integration boundary: the shared
+sanitizer-capable tower_runtime_object always uses --library, while eight incoming
+fixtures have top-level executable statements. Proposal sent to root: scoped
+exported-main wrappers preserve all existing assertions, reuse shared CMake
+native Linux work registration and production allocator, and keep four timing
+fixtures explicit instead of turning timing into a pass oracle. Five ordinary
+regressions plus two valid semaphore observer modes are useful focused gates.
+Deliberate invalid-memory/race controls remain historical and must not be rerun.
+No production implementation or fixture-entry change was made pending ownership
+handoff. Review-only measurements are inapplicable: this phase changes documents,
+not executable behavior.
+
+D2's parser benchmark failure is preserved as failure:512symbols live9521->9522
+on the seventh measured row, actualSIGABRT/134; sizes1024/2048 unrun. D1 read the
+unchanged fixture, reset/next APIs and actual memory_instrumented counter owner.
+The contract excludes reset/declaration timing, includes statement/tree release,
+and compares retained session/world tracked buffers after five warmups; counts
+are neither bytes nor all heap allocations. The session does not request EOF
+before reset. Root/B1 received this precise contract without a guessed leak or
+weakened assertion. Historical journal parser-port stable counts establish the
+fixture's intent, not that newer storage must have the same allocation counts.
+Copied raw logs are still pending; no sibling clone/cache was accessed. A guessed
+allocator.tower read failed with ENOENT, then rg located the actual host boundary;
+that read failure has no effect on measured test results.
+
+Next bounded D1 slot: focused eight Foundation-literal baselines/repairs, smallest
+unit compilation for package child-status reporting and healthy before/after
+profiles, selected Roku scalar-oracle compatibility. Native signed32 package
+harness deadline failure remains open despite passing browser stored-oracle
+checks; source manifests, final merged build/generation/browser validation and
+publication lease are not complete.
+
+Root then supplied exact parser diagnostic/link logs. Independently checked
+SHAa4be48f0297e93efd9a679323a9ca012daf3e2f8673e8c400076c342f9dbce60
+and SHAf8906e142caafedadd3fab734d0cb1c41c20edf3790f3f63f7cefae366084745:
+all18reported rows match, last512row retains9522, and the link explicitly selects
+runtime-instrumented plus tower_work_serial. Actual exit134 remains D2's process
+receipt; the supplied CSV itself only reports a core dump. No test edit follows.
+
+Refreshed the required primary research references on2026-11-22:
+[Flecs systems](https://www.flecs.dev/flecs/Systems.html#staging) explains deferred
+structural changes while iterating frozen storage; direct payload writes still
+need their own access contract. [Flecs component traits](https://www.flecs.dev/flecs/ComponentTraits.html#sparse-trait)
+distinguishes stable sparse payloads from table storage and query tradeoffs.
+[Burst aliasing](https://docs.unity3d.com/Packages/com.unity.burst@1.8/manual/aliasing.html)
+shows optimization depends on justified alias facts. Applied review principles:
+ready indexes are not packed payload evidence; projected kernel pointers carry
+no invented noalias promise; barrier/thread/result checks establish narrower
+properties than queue width or a race-free proof. No foreign implementation or
+reported external performance ratio was copied into Tower claims.
+
+Root granted the scoped fixture entry-point adaptations and existing CMake
+registration. Applied supplied A2 graph/budget/pool/kernel/tool-file prerequisites
+and ten test sources, excluding already imported tool/probes/newer docs; then
+applied exact projection delta19ddf885.... Selective A1 budget-types --check
+failed at the header: this bundle's updated comment requires release after join
+AND stage publication, while A1's earlier patch had different prose. No partial
+application occurred. Current standalone fixtures need no extraction, so deferred
+all A1 boundary hunks instead of dropping the stronger publication contract.
+Earlier runtime receipts do not cover these newly applied production inputs.
+
+Implemented only D1-owned CMake registration draft in TowerWorkTests: six
+native Linux x64 executables/seven ordinary tests, four EXCLUDE_FROM_ALL profile
+targets, production guest runtime and common sanitizer-aware object rule. Callback
+exports are limited to actual imported/named thread entries. No timing threshold,
+negative probe registration or foreign test logic added. README records exact
+commands and coverage limits. Eight top-level fixture entry adaptations still
+await their before measurements; no new target was built against those unwrapped
+sources. D2 retains heavy lock and no D1 compiler process is active.

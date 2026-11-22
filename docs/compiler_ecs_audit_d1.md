@@ -734,3 +734,84 @@ existing output root. D2 retains implementation ownership. D2's status records
 actual execution and independent executable-byte comparison; D1 has reviewed
 the draft, not run or integrated it. Add its exact integrated path to the roster
 when the source arrives.
+
+Fresh D1 repaired-pool browser receipt at source `ce4527a` (fixture hash unchanged
+from the A2 exact-source receipt): public-pin smallest Wasm target8/8, followed by
+existing required-thread pool/failure tests2/2, skipped0. The pool completes128
+normal+partial/full failure lifecycles in one host with real four-worker barriers;
+worker-trap propagation also passes. Peak Node/process RSS151788KiB, runtime3.07s;
+artifact SHA256 `b8a187c629a73845f19584e462034c2c9c58b65e57e80b9971b3d8901e5db67f`.
+This closes the previously pending fixture-level browser repetition check. It
+is not the full browser compiler matrix, live allocation accounting or final
+merged-source release validation. Long balanced native normal profiles and their
+remaining small-effect uncertainty are recorded in the journal.
+
+### Additional A2 fixture review at D1 ce4527a (incoming drafts)
+
+Reviewed the complete ten new test sources from the coordinator's five-commit
+`validated_checkpoints.patch`, SHA256
+`9809853d1cfe6802e0427671a7c1e6d7dcd6dc74a89bd6f1352f20885f7fe011`.
+The table identifies their original implementation commit. None has been built
+or run by D1, and none is added to the initial 437-file integrated scope. With
+the three prior incoming test reviews, thirteen draft test sources have receipts.
+The existing owners retain implementation responsibility; D1 owns generic runner
+registration after coordination. No new race/invalid-memory sensitivity execution
+is planned or authorized by this review.
+
+| Path (under scaffolding/tests) | Reviewed commit | Storage, ownership, scheduling and evidence disposition |
+| --- | --- | --- |
+| `work_ready.tower` | `0b57994d` | One private WorkGraph and bounded private ticket array; exact FIFO after targeted yield, reverse producer completion, sorted/compacted ready positions at 2/3/33/513 tasks, stale dispatch/revision and post-cancellation rejection. Serial coordinator mutations preserve task authority; the new ready-slot field is a derived index, not packed entity storage. No timing/parallel execution claim. Fatal assertion exits are distinct from recoverable worker cancellation. |
+| `work_select.tower` | `0b57994d` | Forward/reverse exact targeted admission for 32/4096/65536 independent tasks verifies identity, completion and empty ready/running state. Linux x64 clock/rusage ABI reports wall/CPU/peak RSS plus retained graph capacities; the capacity sum omits allocator overhead and other allocations. Pure scheduler microbenchmark with assertions, not useful compiler overlap or universal constant-time proof. Keep explicit measurement registration separate from timing pass criteria. |
+| `work_budget.tower` | `8d8faee3` | Private ledgers and receipt array check owner/revision/generation/slot identity, duplicate/altered/stale release, busy disposal, exact lane/byte saturation and overflow/exhaustion. Seed314159 drives8192 reserve/release choices checked against independent scalar totals and a bounded entry count. Optional zero-lane retained-byte grants and snapshots preserve separate memory/lane lifetime. Declared reservations are not actual allocator/RSS limits; this is serial reference coverage. |
+| `work_budget_profile.tower` | `8d8faee3` | Private ledger and zeroed receipt allocation, repeated reserve-all/release-all for1 and12 lanes; checks every grant and exact final/peak totals. Linux timing and retained entry capacity isolate ledger overhead; no threads or compiler work execute. Fixture allocation ends before ledger teardown, and no copied live ownership is treated as transferable. Measurements belong in an explicit target, with no speed threshold. |
+| `work_budget_shared.tower` | `8d8faee3` | Four distinct pthreads must enter a barrier before release; shared ledger operations use the same semaphore gate and per-call errors, with private8KiB scratch, copied stale receipt rejection and locked snapshots.2048 iterations/worker assert exact completion and bounded lanes/bytes; coordinator reads job outputs after receiving all workers. Defers release blocked workers, close/drain pool, release outer permits, dispose ledger, then close signals. Allocation failure marks a failed job without retaining its grant. Fatal assertion traps are not recoverable cleanup evidence; production allocator and independent sanitizer receipt remain required. |
+| `work_kernel_admission.tower` | `07246521` | Typed job array includes a nonzero kernel-member offset, distinct private results/256KiB scratch and coordinator-owned explicit lane/byte grants. Gate-protected active/caller counts and barriers prove simultaneous caller+worker admission under1/4-lane cases, including count0/1/2/8, sixteen rounds. Exact results/prefixes and distinct thread IDs checked only after dispatch joins; permits persist through verification/publication. Subsequent ordinary callback must work; a separately named callback rejects incompatible batch transport without dispatch. Fixed8-thread pool is stress coverage, not a profitable host budget/default. Requires incoming dispatcher/projection and shared-budget source, not baseline compiler APIs. |
+| `work_kernel_overhead.tower` | `07246521` | Preallocated typed jobs and pointers are initialized before dispatch, reused only after joins, and every trivial arithmetic result is checked. One warm dispatch separates retained transport overhead from first use.1/2/4/8-worker cases report wall/CPU/RSS plus partial retained bytes; no barrier or independent-work duration proves useful overlap. Pool closes before borrowed arrays leave lifetime. Explicit profile target only; no speed assertion. |
+| `work_kernel_profile.tower` | `07246521` | Frozen million-byte input shared read-only; each typed job owns SHA state/digest/time/thread fields. Every result matches the independent FIPS million-a vector; timestamp intervals report observed overlap and caller work across1/2/4/8 configured workers. Join precedes result reading and input release. Pairwise interval inspection is after measured dispatch; first-use transport cost remains inside measurement. Capacity sum is partial retained storage, not live allocator accounting; sample results/speedup must be measured on each host. |
+| `tool_output_identity.tower` | `5911d9cc` | Unique mkstemp source plus hardlink/symlink/missing paths live through synchronous identity checks and are removed in reverse deferred cleanup. Exact alias outcomes and ten thousand repeat comparisons exercise frozen paths with shared ByteBuffers. Ordinary mode returns nonzero if hardlink is accepted; explicit measure mode can expose the old defect but is never a passing regression. Linux clock/rusage fields and buffer capacities exclude former realpath allocations. Does not claim immunity to filesystem rename races. Requires A2 statx helper prerequisite; do not register measure mode as correctness. |
+| `work_signal_observe.tower` | `21c2b43d` | Valid native semaphore handoff: worker writes42, signals completion, waits before reading coordinator's84. Both blocking-wait and polling-try acquisitions must publish the same payload. Named thread is joined in a defer before stack/signals expire even on return5; initialization failures return explicit3/4. No WorkPool edges obscure the semaphore under observation. This is ordinary valid synchronization coverage, distinct from deliberate race probes; needs exported named symbol and production pthread transport. |
+
+Registration design, not implementation: use the existing native Linux
+`TOWER_WORK_TESTS`, `tower_runtime_object`, production guest runtime and
+Threads/dl linkage. The common object rule compiles `--library`, while eight
+incoming fixtures currently use top-level calls. A scoped entry-point adaptation
+must wrap those unchanged calls in an exported main before shared registration;
+`tool_output_identity` and `work_signal_observe` already export main. Five ordinary
+regressions are ready/budget/shared/admission/identity; selection and three other
+profiles should have explicit measurement targets with no elapsed-time oracle.
+The observer's two valid modes can be registered separately. No second scheduler,
+compiler implementation or test language is needed. D1 requested the entry-point
+handoff before touching A2-owned sources or shared CMake registration.
+
+### Parser retained-buffer failure: fixture contract, no root-cause claim
+
+D2 reported a failing run of the unchanged `parser_benchmark.tower` against
+production source `60741c5` and public pin `9653f818...`, cpuset0,2, normal
+release compiler with the explicit serial test allocator. At256 symbols all11
+measured rows retain8748 buffers/803 allocation calls; at512, six rows retain9521
+buffers/1577 calls and the seventh retains9522, then the existing assertion aborts
+with actual exit134.1024/2048 were not run. These are D2 status receipts pending
+copied raw logs, not D1 execution evidence. GNU time's printed Exit status0 does
+not override the signaled process status.
+
+D1 reviewed `syntax_session_setup/next` and `host/memory_instrumented`: each
+iteration resets the session, consumes/releases the grammar declaration outside
+timing, then measures the generated statement and root release. After five
+warmups it compares the single-owner allocator's live-buffer count between
+identical requests. This deliberately includes retained session/world storage,
+not merely live returned parse trees; it does not count bytes or every libc
+allocation. The session is not advanced through EOF after the statement.
+The one-buffer increase therefore violates the fixture's existing stability
+contract but does not establish whether a leak, bounded index growth or another
+retained allocation caused it. B1 owns production attribution. Keep assertions,
+warmup count and errors unchanged; historical stable parser-port measurements
+are not a correctness guarantee for the current storage implementation.
+
+Copied raw receipts subsequently reviewed independently: diagnostic log SHA256
+`a4be48f0297e93efd9a679323a9ca012daf3e2f8673e8c400076c342f9dbce60`
+contains those exact18CSV rows and a core-dump report; link log SHA256
+`f8906e142caafedadd3fab734d0cb1c41c20edf3790f3f63f7cefae366084745`
+explicitly links `runtime-instrumented.o` and `tower_work_serial.o`. Exit134
+still comes from D2's process receipt, since the CSV file lacks a status field.
+This confirms the observed retained-count step and serial allocator boundary,
+without resolving its cause or claiming a local rerun.

@@ -22,7 +22,8 @@ not substantive audit completion. Each section is sorted by exact repository pat
 
 Incoming draft paths are listed separately until their commits integrate;
 they do not change the tracked count above. D1 has substantive source receipts
-for the three test files in `compiler_ecs_audit_d1.md`.
+for thirteen incoming test files in `compiler_ecs_audit_d1.md`; these are draft
+reviews, not integrated execution receipts.
 
 | Incoming path | Roster owner | Specific implementation reservation | Exact draft |
 | --- | --- | --- | --- |
@@ -31,6 +32,33 @@ for the three test files in `compiler_ecs_audit_d1.md`.
 | `scaffolding/tools/instrument_llvm.tower` | D2 | A2 | same instrumentation handoff |
 | `scaffolding/tests/build_tool_budget_checks.tower` | D1 | D2 | budget source `6a2536b`, patch SHA256 `0eb43211d08bd6428916f6ed8b831c9689e66b6f55e755930a6c25af0d66de55` |
 | `scaffolding/benchmarks/compiler_wide_functions.tower` | D2 | D2 | exact path reported in D2 status; source/commit receipt pending, not reviewed by D1 |
+| `scaffolding/tests/semantic_lifecycle_checks.tower` | D1 | A1 | exact path and body_runs hooks reserved in root inbox; source/commit receipt pending, not reviewed by D1 |
+| `scaffolding/benchmarks/compiler_reference_inputs.tower` | D2 | D2 | exact path reported in D2 status; source/commit receipt pending, not reviewed by D1 |
+| `scaffolding/tests/work_ready.tower` | D1 | A2 | `0b57994d`, validated checkpoints bundle |
+| `scaffolding/tests/work_select.tower` | D1 | A2 | `0b57994d`, measurement fixture |
+| `scaffolding/library/work_budget.tower` | A2 | A2 | `8d8faee3`, validated checkpoints bundle |
+| `scaffolding/tests/work_budget.tower` | D1 | A2 | `8d8faee3` |
+| `scaffolding/tests/work_budget_profile.tower` | D1 | A2 | `8d8faee3`, measurement fixture |
+| `scaffolding/tests/work_budget_shared.tower` | D1 | A2 | `8d8faee3` |
+| `scaffolding/tests/work_kernel_admission.tower` | D1 | A2 | `07246521` |
+| `scaffolding/tests/work_kernel_overhead.tower` | D1 | A2 | `07246521`, measurement fixture |
+| `scaffolding/tests/work_kernel_profile.tower` | D1 | A2 | `07246521`, measurement fixture |
+| `scaffolding/tests/tool_output_identity.tower` | D1 | A2 | `5911d9cc` |
+| `scaffolding/tests/work_signal_observe.tower` | D1 | A2 | `21c2b43d`, valid semaphore observer |
+| `scaffolding/library/work_budget_types.tower` | A2 | A1 extraction, A2 shared contract | A1 boundary patch SHA256 `8263db9a9050823b31619952ccdad3fed43e554d54d091fd4b12ceeba4dbce47` |
+
+The ten new A2 test sources above were reviewed from
+`validated_checkpoints.patch`, SHA256
+`9809853d1cfe6802e0427671a7c1e6d7dcd6dc74a89bd6f1352f20885f7fe011`.
+Existing-path graph, pool, kernel and tool-file changes retain their established
+owners and require refreshed owner receipts. The projection delta is SHA256
+`19ddf885590763d28a41ef43bbf7a9d253825e2f7125a8f27d835dac1d6d5fee`.
+After source review, D1 applied the A2 graph/budget/pool/kernel/tool-file and ten
+fixture prerequisites plus projection delta, preserving the earlier D2
+build/sanitizer drafts. They remain unvalidated locally. The A1 extraction did
+not pass its header-context check and remains unapplied; no partial application
+or foreign world/unit change occurred. Nineteen exact incoming paths are now
+listed; additional owner additions still need source identities.
 
 Other reported new cross-lane files need exact integrated paths and content
 receipts; a status mention alone is not an inventory or review claim.
@@ -42,6 +70,9 @@ supplemented by implementation/validation sections in the D1 audit and journal.
 Production Tower source is unchanged at this checkpoint. A1 semantic data/API
 modules, L2 constructor producer/receipts and the other reported backend/source
 proof fixtures require exact incoming path/commit lists before reconciliation.
+A1's reserved lifecycle hooks will change `body_runs.tower`; D1's earlier full
+body matrix does not validate that incoming fixture/call until integrated checks
+run. Preserve D1's explicit Foundation root import when merging those hooks.
 
 ## A1
 
