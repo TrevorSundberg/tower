@@ -20,9 +20,57 @@ extern fn entity_stage_hold(stage: void*): void;
 extern fn entity_stage_discard(stage: void*): void;
 
 struct SemanticGenericBodyWork {
+    query: usize;
     kernel: CompilerKernel;
     ticket: WorkTicket;
     request: GenericBodyCopy;
+    error: u8*;
+}
+
+// Clone work belongs to the instance, independently of function-only lexical
+// state. Type constructors can use this same component and staged copy kernel.
+fn sem_generic_body_work(c: SemanticContext*, subject: void*): SemanticGenericBodyWork* {
+    sem_require(c.entity_stage == null);
+    if c.generic_copies == null {
+        c.generic_copies = sem_create(c.program.root);
+        sem_require(entity_register(c.generic_copies, sizeof(SemanticGenericBodyWork), alignof(SemanticGenericBodyWork), 0));
+    }
+    var component = entity_component_get(subject, c.generic_copies);
+    if component != null { return bits(SemanticGenericBodyWork*, entity_component_data(component)); }
+    var result = bits(SemanticGenericBodyWork*, entity_component_data(entity_component_add(subject, c.generic_copies)));
+    sem_require(result != null);
+    *result = default;
+    result.kernel.kind = CompilerKernelKind.GenericBody;
+    result.kernel.payload = bits(void*, &result.request);
+    result.request.context = c.generics;
+    result.request.node = subject;
+    return result;
+}
+
+fn sem_generic_body_dispose(c: SemanticContext*): void {
+    if c.generic_copies == null { return; }
+    for(var i: usize = 0; i < entity_query_count(c.generic_copies); i++) {
+        var result = bits(SemanticGenericBodyWork*, entity_component_data(entity_query_at(c.generic_copies, i)));
+        sem_require(result.request.stage == null);
+        *result = default;
+    }
+}
+
+fn sem_generic_body_request(c: SemanticContext*, subject: void*, predecessor: usize): SemanticGenericBodyWork* {
+    var result = sem_generic_body_work(c, subject);
+    if result.query != 0 { return result; }
+    var id = work_request(&c.queries, subject, convert(u32, SemanticQuery.GenericBody), 0);
+    sem_require(id != 0);
+    result.query = id;
+    if predecessor != 0 { sem_require(work_depend(&c.queries, id, predecessor)); }
+    // Immutable inputs and one private output per instance. Query identity
+    // keeps function and type-instance write ranges in the same namespace.
+    var domain = convert(u64, SemanticWorkDomain.Compiler);
+    sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Layout), 0, ~convert(usize, 0), WorkAccessMode.Read));
+    sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.TypeIndex), 0, ~convert(usize, 0), WorkAccessMode.Read));
+    sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.GenericBody), id, 1, WorkAccessMode.Write));
+    sem_require(work_seal(&c.queries, id) && work_demand(&c.queries, id));
+    return result;
 }
 
 fn sem_generic_body_dependency(c: SemanticContext*, subject: void*, id: usize): void {
@@ -30,10 +78,18 @@ fn sem_generic_body_dependency(c: SemanticContext*, subject: void*, id: usize): 
     if cloned != 0 { sem_require(work_depend(&c.queries, id, cloned)); }
 }
 
+fn sem_generic_body_failure(c: SemanticContext*, subject: void*): bool {
+    if c.generic_copies == null { return false; }
+    var result = bits(SemanticGenericBodyWork*, entity_component_data(entity_component_get(subject, c.generic_copies)));
+    if result == null || result.error == null { return false; }
+    sem_fail(c, subject, result.error);
+    return true;
+}
+
 // Demand only bodies that ordinary checked calls require. Signature-only
 // decltype use leaves the body descendants unmaterialized. A source window
 // bounds retained work independently of the host's worker capacity.
-fn sem_generic_bodies(c: SemanticContext*, next: usize, kind: void*): void {
+fn sem_generic_bodies(c: SemanticContext*, next: usize): void {
     var batch: vector(SemanticGenericBodyWork*);
     vector_init(&batch);
     defer vector_dispose(&batch);
@@ -42,24 +98,31 @@ fn sem_generic_bodies(c: SemanticContext*, next: usize, kind: void*): void {
     for(var i = next; i < end; i++) {
         var subject = c.program.functions.data[i];
         if !sem_body_needed(c, subject) || !generic_body_pending(c.generics, subject) { continue; }
-        var result = &sem_body_work(c, subject, kind).cloning;
-        result.kernel.kind = CompilerKernelKind.GenericBody;
-        result.kernel.payload = bits(void*, &result.request);
-        result.request.context = c.generics;
-        result.request.node = subject;
-        var id = work_request(&c.queries, subject, convert(u32, SemanticQuery.GenericBody), 0);
-        sem_require(id != 0);
         var signature = sem_declaration_query(c, subject);
-        if signature != 0 { sem_require(work_depend(&c.queries, id, signature)); }
-        // Immutable syntax/type inputs, one private output per function.
-        var domain = convert(u64, SemanticWorkDomain.Compiler);
-        sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Layout), 0, ~convert(usize, 0), WorkAccessMode.Read));
-        sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.TypeIndex), 0, ~convert(usize, 0), WorkAccessMode.Read));
-        sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.GenericBody), i, 1, WorkAccessMode.Write));
-        sem_require(work_seal(&c.queries, id) && work_demand(&c.queries, id));
+        var result = sem_generic_body_request(c, subject, signature);
         sem_require(vector_push(&batch, result));
     }
-    for(var first: usize = 0; first < batch.length && sem_ok(c);) {
+    while sem_generic_copies_execute(c) {}
+    foreach(var result in &batch) {
+        if !sem_ok(c) { break; }
+        sem_generic_body_failure(c, result.request.node);
+    }
+}
+
+// One graph-driven executor serves function and type-instance consumers. Clone
+// errors stay on their receipts so the consumer selects its source diagnostic.
+fn sem_generic_copies_execute(c: SemanticContext*): bool {
+    if !sem_ok(c) { return false; }
+    var batch: vector(SemanticGenericBodyWork*) = default;
+    defer vector_dispose(&batch);
+    var ticket: WorkTicket;
+    while batch.length < SemanticPreparationWindow
+        && work_take_query(&c.queries, &ticket, convert(u32, SemanticQuery.GenericBody)) {
+        var result = sem_generic_body_work(c, work_task(&c.queries, ticket.task).subject);
+        result.ticket = ticket;
+        sem_require(vector_push(&batch, result));
+    }
+    for(var first: usize = 0; first < batch.length;) {
         // Retained stages share the existing clone budget. This lets idle slots
         // take the next ready body without waiting for a worker-sized group,
         // while bounding private syntax storage even with a large source window.
@@ -76,9 +139,6 @@ fn sem_generic_bodies(c: SemanticContext*, next: usize, kind: void*): void {
         }
         for(var i = first; i < stop; i++) {
             var result = batch.data[i];
-            var subject = result.request.node;
-            sem_require(work_take_task(&c.queries, &result.ticket,
-                work_find(&c.queries, subject, convert(u32, SemanticQuery.GenericBody), 0)));
             result.request.stage = entity_stage_open(c.program.root);
             sem_require(result.request.stage != null);
         }
@@ -98,19 +158,18 @@ fn sem_generic_bodies(c: SemanticContext*, next: usize, kind: void*): void {
         for(var i = first; i < stop; i++) {
             var result = batch.data[i];
             var request = &result.request;
-            var accepted = sem_ok(c) && request.success && request.copied <= generic_body_limit(c.generics);
+            var accepted = request.success && request.copied <= generic_body_limit(c.generics);
             if accepted {
                 sem_require(entity_stage_publish(request.stage));
                 generic_body_complete(c.generics, request.node, request.copied);
             } else {
                 entity_stage_discard(request.stage);
-                if sem_ok(c) {
-                    sem_fail(c, request.node, "Template expansion exceeds 65536 nodes or could not allocate its work stack");
-                }
+                result.error = "Template expansion exceeds 65536 nodes or could not allocate its work stack";
             }
             request.stage = null;
             sem_require(work_finish(&c.queries, &result.ticket, accepted));
         }
         first = stop;
     }
+    return batch.length != 0;
 }

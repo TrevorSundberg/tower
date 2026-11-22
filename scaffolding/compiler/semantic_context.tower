@@ -133,6 +133,7 @@ struct SemanticContext {
     value_inputs: void*;
     body_demands: void*;
     body_seen: SemanticTable*;
+    generic_copies: void*;
     defer_type_fields: bool;
     control_names: SemanticTable*;
     control_reserved: SemanticTable*;

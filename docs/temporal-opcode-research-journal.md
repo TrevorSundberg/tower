@@ -41175,3 +41175,106 @@ The already verified hosted project remains the explicit 537637e build, and
 runtime remains 2225c52; do not relabel either as containing this later change.
 Publication lock is released. No further runtime rebuild or deployment is needed
 for this journal-only receipt.
+Rebased onto upstream 537637e/ff3cf96 (candidate-output checks moved to Tower).
+The compiler sources and affected body fixtures are byte-identical to the
+validated pre-rebase tree; reused the full matrix/self-compilation evidence.
+The documented public-bootstrap incremental native rebuild succeeds after the
+rebase. Native SHA-256:
+f8a59e241567b6a2187b1e3b940d83b9e5e6fbef4b71287d07979efe629838a8.
+The milestone is 75037186c07af25e4ea5a0fd2a3d6d52ce39206a, scaffolding tree
+ed9da8914b98e5a570f18a7fcaf167b175a6249a. Browser compiler inputs are frozen at
+that source while portable, threaded, LLVM and cross assets/package rebuild
+through the public bootstrap in array-queries-browser-build.log. Further
+compiler edits wait until packaging finishes; documentation does not alter the
+runtime build identity.
+
+Next coordinator bottleneck identified from source inspection: generic type
+constructors still clone their complete bodies inside generic_instantiate, then
+sem_type_call checks the alias/record result synchronously. Planned next slice,
+not implemented by 7503718: reuse the existing staged lazy body-copy kernel for
+type instances; make its work component independent of function-only body-work
+storage; request type results on the shared instance entity after canonical
+argument interning. Constructor syntax/alias consumers should suspend on those
+receipts, with clone budgeting/publication shared with generic function bodies.
+Publish a nominal record identity before its field/layout work, and represent
+alias dependencies/cycles in the graph. A type clone must not depend on its own
+unfinished result query. Preserve the synchronous adapter only where no pending
+instance can be observed; never block a worker or clone the same pending body
+again. This requires actual continuations, not enabling worker admission around
+the current mutating interner. General ordinary-value extent/type execution and
+early staging across the existing body/evaluation phase boundary remain larger
+unfinished work; the array milestone does not silently implement them.
+
+Portable/threaded/LLVM/cross builds and package creation finish successfully.
+The first generation-test launch started one second before project.json's final
+write; stopped that process and retained its partial log, then restarted with
+a fresh workbench directory after the packaging process exited0. Its incomplete
+results are not validation evidence. The final recipe is frozen in
+build/compiler-project; generation checks use array-query-final-workbench and
+array-queries-generations.log. This avoids attributing a mixed input run to the
+new compiler.
+
+All three browser threading checks pass (four-thread overlap/reuse, trap
+interruption and compiler determinism). The first edited reactor generation
+passes. During the frozen generation checks, began the next source slice:
+generic clone receipts now have their own instance component, independent of
+function lexical continuations, with shared request registration and explicit
+disposal of borrowed context pointers. Function cloning still uses the same
+bounded scheduler; type-constructor admission is not implemented by this
+refactor alone. The changed generic-work unit passes public-bootstrap preflight;
+its affected native smoke is building in generic-copy-component-native.log.
+These local changes are not part of the frozen 7503718 browser release, and
+build/native remains the complete 7503718 package for that release.
+
+The second edited generation passes and matches the first byte for byte:
+- Tower: efbe7f9812c7e891fe03ed176038b5e9d0217a5f92a80db83c27c7a4225ff3a3
+- LLVM: 9a576aa293a6a2cbeaba91178a395c760b79e67ff74f42c8578d7c43c6e06cf2
+- cross: 948abfb112bcece4bc73212eae2182aa8ccdb6f08be0053fe6060d515881bc5f
+Final project SHA-256:
+0bc3c95237acebfe264a4ab7580833434b38afa932ca2bcde53d074022da839e.
+The bundle has 88 assets and preserves the complete 7503718 Linux package.
+Merged the latest d6323a0 Pages manifest/receipts, preserving upstream candidate
+tooling publication, and pushed Pages 4e2017c4f8f148116ea7f86c5d0973245efe5562
+without force. Workflow 44983035300 succeeded. Manifest SHA-256:
+3470649c78d5885465ac6a7400f479697833bdf27433b920d03a90dd5795c0d7.
+Hosted verification is running in array-queries-hosted.log.
+
+The next clone-component refactor passes public-bootstrap preflight and the
+affected native body smoke (canonical/reparse, execution, diagnostics/cycles).
+Added a separate deferred-instance entry point sharing the existing canonical
+instance interner; its type bodies will be demanded through the same body-copy
+kernel. That entry point is not yet wired into constructor query continuations
+or validated as a type-constructor feature. None of this follow-up is in the
+7503718 browser release.
+
+Hosted verification of 7503718 is complete: all 88 assets match; desktop/mobile
+backend, grammar, completion, persistence and download checks pass with no browser
+errors; real Linux defaults pass. Evidence: array-queries-hosted.log and
+build/deployment-verification/report.json. The receipt above is now verified.
+
+Follow-up clone work now pulls ready GenericBody queries from the shared graph,
+retains clone failures on the instance component, and lets declaration consumers
+report them through the ordinary failed-dependency walker. Function consumers
+continue source-ordered reporting. Both the executor and deferred-instance units
+compile with the public bootstrap; the updated native smoke is rebuilding in
+generic-copy-pump-native.log. The prior component-only smoke remains valid only
+for that narrower earlier refactor.
+
+Constructor continuation design needs one additional ownership distinction:
+an instance's nominal type result must complete before its fields/layout, while
+the originating declaration retains responsibility for newly created types'
+validation. Carry that originating producer through nested constructor/alias
+queries, attaching constructed-record work to it. Otherwise an alias to a record
+with a recursive pointer can be turned into a false cycle by waiting for fields
+inside the nominal-result receipt. Canonical instance interning should deduplicate
+concurrent uses; syntax consumers depend on the instance result, and only storage
+or the owning declaration waits for field/layout completion. This is a design
+constraint for the next implementation, not a claim of completed constructor
+scheduling.
+
+The shared clone executor/deferred-instance refactor now passes its native body
+smoke as well as both small-unit preflights. Ordinary lazy generic functions
+retain execution, canonical reparsing and ordered diagnostic/cycle behavior.
+Evidence: generic-{work-pump,deferred-instance}-preflight.log and
+generic-copy-pump-native.log. This is a validated infrastructure checkpoint;
+constructor syntax/result continuations are still the next implementation.

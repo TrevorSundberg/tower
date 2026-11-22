@@ -151,7 +151,6 @@ struct SemanticBodyBoundary {
 }
 
 struct SemanticBodyWork {
-    cloning: SemanticGenericBodyWork;
     kernel: CompilerKernel;
     ticket: WorkTicket;
     context: SemanticContext*;
@@ -1400,7 +1399,7 @@ fn sem_bodies(c: SemanticContext*): void {
         if c.workers.count == 0 {
             sem_require(sem_workers_open(c));
         }
-        sem_generic_bodies(c, next, kind);
+        sem_generic_bodies(c, next);
         if !sem_ok(c) {
             break;
         }
@@ -1523,8 +1522,8 @@ fn sem_bodies(c: SemanticContext*): void {
     sem_body_prune(c);
 }
 
-// One component owns a function's clone and checking work. Its phase queries
-// share the same subject and preserve completed clone receipts during checking.
+// Checking and clone components share the same subject. Clone receipts remain
+// reusable independently of the function's lexical checking continuation.
 fn sem_body_work(c: SemanticContext*, subject: void*, kind: void*): SemanticBodyWork* {
     var existing = entity_component_get(subject, kind);
     if existing != null {

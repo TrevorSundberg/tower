@@ -15,6 +15,7 @@ import semantic_call_inference;
 import semantic_values;
 import semantic_statements;
 import semantic_body_work;
+import semantic_generic_body_work;
 import semantic_layout_kernel;
 import semantic_enums;
 import .library.vector;
@@ -1012,6 +1013,7 @@ fn sem_declaration_failure(c: SemanticContext*, id: usize): bool {
         if result != null && (result.query == pending.data[i] || result.discovery == pending.data[i]) {
             if sem_declaration_restore_error(c, result) { return true; }
         }
+        if task.query == convert(u32, SemanticQuery.GenericBody) && sem_generic_body_failure(c, task.subject) { return true; }
         if task.query == convert(u32, SemanticQuery.Layout) {
             var layout = bits(SemanticLayoutWork*, entity_component_data(entity_component_get(task.subject, c.layout_results)));
             if layout != null && layout.error != null {
@@ -1506,7 +1508,10 @@ fn sem_declarations_execute(c: SemanticContext*, statements: vector(void*)*): vo
         // dispatch so workers read an immutable graph throughout this wave.
         sem_declaration_dispatch(c, batch.data, count);
         entity_view_close(view);
-        if count == 0 { break; }
+        if count == 0 {
+            if sem_generic_copies_execute(c) { continue; }
+            break;
+        }
         var layouts: vector(usize);
         vector_init(&layouts);
         defer vector_dispose(&layouts);

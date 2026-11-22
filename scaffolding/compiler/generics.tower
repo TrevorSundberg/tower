@@ -202,6 +202,17 @@ export fn compiler_clone_tree(source: Entity*, limit: usize, copied: usize*): En
 }
 
 export fn generic_instantiate(context: GenericContext*, definition: Entity*, use: Entity*, arguments: Entity**, count: usize): Entity* {
+    return generic_instantiate_body(context, definition, use, arguments, count, false);
+}
+
+// Query preparation reserves canonical instance identity and its header only.
+// The shared body-copy receipt must publish before a type-result consumer reads
+// the constructor body. Existing eager adapters keep their ordinary behavior.
+export fn generic_instantiate_deferred(context: GenericContext*, definition: Entity*, use: Entity*, arguments: Entity**, count: usize): Entity* {
+    return generic_instantiate_body(context, definition, use, arguments, count, true);
+}
+
+fn generic_instantiate_body(context: GenericContext*, definition: Entity*, use: Entity*, arguments: Entity**, count: usize, defer_type_body: bool): Entity* {
     var data = compiler_component_get(definition, context.template_type);
     var template = bits(GenericTemplate*, data);
     var needed = template.type_count;
@@ -240,7 +251,9 @@ export fn generic_instantiate(context: GenericContext*, definition: Entity*, use
     // Preserve the body root's shape/provenance for the signature. Descendants
     // are copied only when execution demands this function's body.
     var body_source: Entity* = null;
-    if template.kind == GenericKind.Function { body_source = compiler_node_member(definition, "body"); }
+    if template.kind == GenericKind.Function || defer_type_body && template.kind == GenericKind.TypeConstructor {
+        body_source = compiler_node_member(definition, "body");
+    }
     var node = compiler_clone_branch(definition, &remaining, context, use, null, null, null, body_source);
     var copied = before -remaining;
     context.copied = context.copied + copied;
