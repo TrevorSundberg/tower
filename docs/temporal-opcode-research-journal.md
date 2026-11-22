@@ -47243,3 +47243,32 @@ heavy slot. Preserve original fixture source and run equivalent before/after
 against one frozen rebuilt compiler object closure; do not mix changed WorkPool
 ABIs. Need normal/stress output correctness, retention attribution, exact teardown,
 wall/CPU/RSS including observer overhead, and supported positive instrumentation.
+
+## 2026-11-22 D1 resume and ten incoming source reviews
+
+Host hibernation crossed the selected Roku run. It eventually exited124 after
+17:25.62 wall with a20:42:48→20:56:20 log gap; this is not a valid timing sample or
+a pass. Confirmed all child processes drained, preserved original log/time/status,
+then repeated the identical240s command as scalar_roku_awake on the stable awake
+host. No competing heavy job was admitted. Other completed pre-suspend evidence
+retains its original source-specific limits.
+
+Read all ten coordinator snapshots under audit_source_snapshots, including exact
+receipt hashes and owner HEADs; per-file review is in compiler_ecs_audit_d1.
+They cover real locality/fragmentation and derived dense-copy cost, ready/chained
+layout frontiers, serial reservation rollback, exact serial LR table equivalence,
+page byte attribution, staged multi-unit profiles, source length/replacement
+ownership, source snapshot allocation failure, diamond cache invalidation and
+foreign-output allocation cleanup. These are source reviews, not local execution
+or proof of corresponding owner production fixes. B2 allocation registration
+awaits its coherent work_budget_types/frontend memory definitions. Runtime
+profiling is inapplicable to these documentation-only audit additions.
+
+Prepared a separate own Docker container for supported positive instrumentation:
+tower_build image4be584fb...,cpuset0,2,8GiB memory/no extra swap, isolated
+seccomp=unconfined as required by this host's TSan startup. No host-wide setting
+changed; no negative sensitivity probe repeated. Own GNUtime transport binary
+SHA2563b11dec50514a8473e9f6efa7a34d584d0657538c09988f61b72d38ad4991a10.
+The shared sanitizer mode must instrument actual linked Tower objects and runtime;
+a configured manifest alone is not coverage. Workloads remain pending at this
+entry. Disk140GiB free,9.7GiB available RAM,5.7GiB preexisting swap.

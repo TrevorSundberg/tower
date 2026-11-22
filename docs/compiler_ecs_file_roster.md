@@ -59,8 +59,65 @@ After source review, D1 applied the A2 graph/budget/pool/kernel/tool-file and te
 fixture prerequisites plus projection delta, preserving the earlier D2
 build/sanitizer drafts. They remain unvalidated locally. The A1 extraction did
 not pass its header-context check and remains unapplied; no partial application
-or foreign world/unit change occurred. Twenty exact incoming/experimental paths
-are now listed; additional owner additions still need source identities.
+or foreign world/unit change occurred. The twenty supplied/reported paths above
+are supplemented by the coordinator's live inventory below. Additional source
+identities and substantive receipts are still required.
+
+### Live eight-clone reconciliation, 2026-11-22 20:38 UTC
+
+Coordinator inventory `new_tower_audit_inventory.json`, SHA256
+`3ee5aa6b5afad479e24db33b7e89d36391b6b164a028379054638343f65cee63`,
+reports 51 distinct added/nonignored-untracked Tower paths relative to main
+`60741c5` (the baseline remains1,011). Physical occurrence in several clones is
+neither ownership nor review credit. The following31 paths complete that live
+inventory alongside the20 above. These sources are not all delivered to D1.
+Production ownership follows the agreed domain rules; ambiguous regression
+implementation reservations need coordinator confirmation. All test paths retain
+D1 substantive audit responsibility even where another lane implements them.
+
+| Additional path | Roster owner | Implementation/source evidence and remaining receipt |
+| --- | --- | --- |
+| `scaffolding/compiler/completion_types.tower` | B2 | A1 API extraction, patch `899a10ae`; defining types remain B2 domain |
+| `scaffolding/compiler/language_grammar_types.tower` | B2 | Same A1 API extraction; owner source audit required |
+| `scaffolding/compiler/semantic_constructor_types.tower` | L2 | Constructor/shared-context boundary; exact owner receipt needed |
+| `scaffolding/compiler/semantic_context_types.tower` | A1 | Semantic API extraction; exact owner receipt needed |
+| `scaffolding/compiler/semantic_declaration_types.tower` | A1 | Semantic API extraction; exact owner receipt needed |
+| `scaffolding/compiler/semantic_evaluation_types.tower` | A1 | Semantic query types; interpreter implementation remains L1 |
+| `scaffolding/compiler/semantic_known_types.tower` | A1 | Known-query shared declarations; exact owner receipt needed |
+| `scaffolding/compiler/semantic_query_api.tower` | A1 | Query boundary; exact owner receipt needed |
+| `scaffolding/compiler/semantic_query_pipeline.tower` | A1 | Query lifecycle boundary; exact owner receipt needed |
+| `scaffolding/compiler/semantic_source_binding_types.tower` | A1 | Declaration/frame proof boundary; exact owner receipt needed |
+| `scaffolding/compiler/semantic_type_execution.tower` | L2 | Type-execution domain; coordinate L1 interpreter contract |
+| `scaffolding/tests/backend_type_construction.tower` | D1 | L2/B2 implementation reservation needs confirmation; source not supplied |
+| `scaffolding/tests/driver_unit_budget.tower` | D1 | B2 unit/driver budget handoff; source and full audit pending |
+| `scaffolding/tests/entity_locality.tower` | D1 | A2 source reported by coordinator; source and full audit pending |
+| `scaffolding/tests/execution_rejection.tower` | D1 | L1 execution rejection reservation; source and full audit pending |
+| `scaffolding/tests/execution_type_construction.tower` | D1 | L1/L2 implementation reservation needs confirmation; source not supplied |
+| `scaffolding/tests/foreign_tool_checks.tower` | D1 | B2 source reported by coordinator; source and full audit pending |
+| `scaffolding/tests/frontend_units_allocation.tower` | D1 | B2 implementation, D1 generic hook authorized; exact helper pending |
+| `scaffolding/tests/frontend_units_memory.tower` | D1 | B2 unit budget domain; source and full audit pending |
+| `scaffolding/tests/frontend_units_profile.tower` | D1 | B2 unit measurement domain; source and full audit pending |
+| `scaffolding/tests/layout_frontier_profile.tower` | D1 | A2 source reported by coordinator; source and full audit pending |
+| `scaffolding/tests/lr_budget.tower` | D1 | B1 parser budget handoff; source and full audit pending |
+| `scaffolding/tests/lr_state_benchmark.tower` | D1 | B1 measurement source reported; full audit pending |
+| `scaffolding/tests/module_cache_checks.tower` | D1 | B2 source reported by coordinator; source and full audit pending |
+| `scaffolding/tests/module_cache_profile.tower` | D1 | B2 source reported by coordinator; source and full audit pending |
+| `scaffolding/tests/parser_retention_observer.tower` | D1 | B1 experiment reported; distinct from delivered combined diagnostic, source pending |
+| `scaffolding/tests/semantic_source_proof_checks.tower` | D1 | A1 v2 source-proof fixture; current source and full audit pending |
+| `scaffolding/tests/type_construction_execution.tower` | D1 | L2/L1 implementation reservation needs confirmation; source not supplied |
+| `scaffolding/tests/type_execution_receipts.tower` | D1 | L2 current receipt fixture; exact source and full audit pending |
+| `scaffolding/tests/work_budget_allocation.tower` | D1 | A2 source reported by coordinator; source and full audit pending |
+| `scaffolding/tests/world_budget.tower` | D1 | B2 world-budget domain; exact source and full audit pending |
+
+The L2 prelude handoff SHA256
+`c8c9eadb518f9ff96edd9b4a63bd1c15f106492fdc67e4e7ac4693164c8a9fc6`
+deletes these14 baseline L2 paths while consolidating their definitions in
+`scaffolding/types.tower`: `scaffolding/types/{bool,f32,f64,i8,i16,i32,i64,integer,u8,u16,u32,u64,usize,void}.tower`.
+They remain in the historical1,011-file roster below until actual integration;
+do not edit or delete the complete pinned bootstrap copies independently.
+Prelude source changes do not imply a new published bootstrap or a passing
+current type/constructor matrix. The live51 include experiments that may not
+ship; do not turn inventory arithmetic into a final release count.
 
 Other reported new cross-lane files need exact integrated paths and content
 receipts; a status mention alone is not an inventory or review claim.
