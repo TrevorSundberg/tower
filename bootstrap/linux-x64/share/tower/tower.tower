@@ -120,4 +120,4 @@ parse TowerFor = 'for' '(' $initial:TowerForInitial $condition:TowerForCondition
 parse Statement = CoreDeclare | CoreBlock | CoreIf | CoreLoop | CoreBreak | CoreContinue | CoreFunction
                  | CoreReturn | CoreStruct | CoreEnum | CoreExternal | CoreExport
                  | TowerMatch | TowerWhile | TowerFor | TowerForeach | TowerDefer
-                 | TowerExpressionStatement;
+                 | TowerExpressionStatement | CoreAttributed;
