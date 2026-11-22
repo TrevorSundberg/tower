@@ -40250,3 +40250,80 @@ the bounded inline path because it removes a provably unnecessary handoff with
 no available parallel work and preserves existing query semantics. Full samples,
 input hashes, commands and platform are preserved in
 build/language-next-audit/inline-query-measurements.json. Publication checks follow.
+## 2026-11-21: Host and parser profiles become ordinary Tower modules
+
+Continue the removal-first audit from f2f85be after the initial clean pull.
+ComposeHost and ComposeParserNodes only select imports; TowerFrontend repeats
+the frontend member list. Delete all three rather than translating their
+generation programs. The 31 small compiler/units roots and shared import groups
+preserve platform, module-test, work-test and parser-check membership and order.
+CMake selects a profile and emits one import at configure time under the existing
+tower_compiler_host/tower_compiler_parser_nodes names. Those selectors keep the
+actual configured profile visible to bootstrap comparison and browser packaging.
+Do not hardcode another profile table in either tool. Work transport admission,
+serial allocation-failure policy and unsupported-platform diagnostics are unchanged.
+
+Owned CMake falls from 48 files/2515 lines to 45/2384: three files and 131 net
+lines removed. Together with the preceding milestone, nine CMake files and 210
+lines are gone from the 54/2594 baseline. Shell remains 11 files/256 lines versus
+19/483 after Python retirement. Python remains zero versus 23 files/1989 lines.
+These are tracked source measurements, not GitHub Linguist percentages.
+
+Freeze f2f85be plus this change in /cache/profile_units_checkout and
+/home/trevo/.cache/tower/agent1-tooling-profile-units-src. Use public bootstrap
+21f52712, LLVM19.1.1 and SDK34. The smallest default host/parser objects match
+the prior frozen static_units_native objects exactly. The fresh documented
+native build passes 48 steps instead of 50; whole compiler SHA256 remains
+67386c33b78f48193e72eab236ca8bb6abb9414eedb42d0db67c2144ad5b20f1.
+The 63-step native core build passes all 15 CTest checks. WASI passes its 40-step
+build, the full existing host/parser suite, 156 graph/fast execution trials,
+canonical package reconstruction and both-width semantic oracles. No new test
+transport is introduced.
+
+Compare all twelve host platform/profile objects with ComposeHost from the
+frozen preceding checkout: Linux x64, Windows x64, macOS ARM64 and Wasm, each
+base/driver/checks, all match bytes. These cross objects do not claim macOS
+execution. Compile all eight parser profile combinations. Production/default
+and the module/work-only variants match bytes. Parser-check variants initially
+fail exact comparison: llvm-objdump -dr isolates one immediate in
+frontend_test_cache_node, the source-position argument to tower_trap. The added
+import layers shift expanded-source offsets; backend_guard explicitly passes
+b.source_offset. Instructions and relocation targets otherwise match. Preserve
+real provenance rather than padding files to disguise it; do not claim these
+test objects are byte-identical. Also configure BACKEND_TESTS=ON/WORK_TESTS=OFF
+and verify parser_work selection, preserving the original OR condition.
+
+The unchanged verify_bootstrap_symbols --compare tool consumes the new configured
+selectors. All eight host/parser unit-target pairs pass object/optimized-IR
+agreement between public predecessor and fresh successor, symbol policy and
+custom/missing-grammar checks. Missing-grammar output is the expected negative
+case. Timestamp-only edits to parser_frontend and host_platform_linux in the
+owned frozen checkout trigger actual Ninja parser/host object rebuilds; both
+remain byte-identical, and the original timestamps are restored.
+
+The non-LLVM browser rebuild passes 24 scheduled steps (23 executed); complete
+tower.wasm still hashes to
+78ad29259d9c1b822769ed6782099f54233082c28b2d172ccc4cbf9995c6dacc.
+Initial manual WSL configuration used the wrong bootstrap option, then an
+unquoted dotted -D path was split by PowerShell. Correct to the existing
+TOWER_BOOTSTRAP_COMPILER option with quoted argv; no build-code fix is needed.
+
+For the browser project exercise, snapshot the coordinator's real Ninja recipes,
+objects, response files and reactor export inputs into owned
+agent1-tooling-profile-units-recipes, with read-only upstream archive access.
+Refresh only the host/parser selectors, objects and depfiles from our current
+browser build, so a stale flat selector cannot hide the changed imports.
+Keep the actual final linker commands and support bytes. An initial snapshot
+omitted final reactors; packaging correctly fails while reading their exports.
+Copy those real inputs and retry successfully. No shared cache is modified.
+The unchanged Tower packager produces project.json SHA256
+8186c6e256080d4f7a926bb3f5ad79dc59790e344dd0bf234023c9d8d72d9a31.
+Inspect the packaged unit entries: they import compiler.units.parser and
+compiler.units.host_wasi, and include the new ordinary Tower source closure.
+The existing edited two-generation browser test is running against this frozen
+project; record its outcome and post-rebase successor separately below.
+
+Documentation now names the Tower membership roots and the retained one-import
+selectors precisely. Historical bootstrap provenance remains intact. No
+todo.txt edit, compiler semantics change, new dependency or unpublished syntax.
+

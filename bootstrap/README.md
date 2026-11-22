@@ -118,12 +118,13 @@ both development and expected-missing-Clang checks against the package already
 copied by the native build, creating fresh reports without staging another copy.
 Wider test and upstream build tooling still needs migration.
 
-Fixed compiler import lists live in `scaffolding/compiler/units/`. CMake selects
-the native, browser or test root and consumes the compiler's depfile for its
-transitive imports. The bootstrap comparator reads these roots directly; only
-the still-configured parser and platform host roots come from the native build
-directory. The browser packager includes the same checked-in roots and preserves
-the existing unit/object names used by browser builds.
+Compiler import lists, including host platforms and parser test profiles, live
+in `scaffolding/compiler/units/`. CMake selects the native, browser or test root
+and consumes the compiler's depfile for its transitive imports. Host and parser
+selection produces a one-import entry in the build directory so the bootstrap
+comparator and browser packager consume the actual configured profile. Other
+fixed roots are read directly. No source-member lists are generated for these
+units; the browser packager preserves their existing unit/object names.
 
 `scaffolding/library/gzip.tower` adds a deterministic single-member gzip envelope
 to the same raw DEFLATE encoder and CRC32 implementation. It has no filename,
