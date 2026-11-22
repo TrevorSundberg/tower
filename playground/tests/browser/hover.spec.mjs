@@ -281,7 +281,7 @@ fn answer():i32 {
 
 test('foreach imports, compact alternatives and syntax-only loop tokens have useful cached hovers',async({page},info)=>{
   const text=await readFile(new URL('../../../scaffolding/examples/foreach.tower',import.meta.url),'utf8');
-  await source(page,text);await ready(page,text);
+  const editor=await source(page,text);await ready(page,text);
   const count=await page.evaluate(()=>window.documentQueries.length),tip=page.locator('.tw-language-hover');
   for(const [token,last,expected] of [
     ['bedrock',false,'Module: bedrock'],['Expression',false,'Identifier | Number'],
@@ -290,6 +290,7 @@ test('foreach imports, compact alternatives and syntax-only loop tokens have use
     ['children',true,'Capture: $Expression'],
   ]) {
     await page.mouse.move(0,0);
+    await editor.press(token==='bedrock'||token==='Expression'?'ControlOrMeta+Home':'ControlOrMeta+End');
     const lineText=token==='bedrock'?'import bedrock':token==='Expression'?'parse Expression':
       token==='child'||token==='children'?'for (child in children)':'for (item in items)';
     await page.locator('#editor .cm-line').filter({hasText:lineText}).scrollIntoViewIfNeeded();

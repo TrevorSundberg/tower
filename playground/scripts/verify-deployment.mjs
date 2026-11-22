@@ -185,9 +185,9 @@ try {
     await page.screenshot({path:new URL(name+'-missing-semicolon.png',output).pathname.replace(/^\/([A-Za-z]:)/,'$1')});
     await page.getByRole('button',{name:'Restore',exact:true}).click();
     await expect(page.locator('#status')).toContainText('Complete');
-    // This example defines syntax without a Foundation replacement. Restore
-    // clears the parse failure, then execution reports its missing semantics.
-    await expect(page.locator('.tw-inline-error-message')).toHaveText("No execution semantics for 'ForEach'; replace it with a foundation operation", {timeout:60000});
+    // Bedrock-only examples describe syntax and opt out of automatic execution.
+    await expect(page.locator('#execution-status')).toHaveText('Syntax only');
+    await expect(page.locator('.tw-inline-error-message')).toHaveCount(0);
     await page.locator('#editor').click({position:{x:80,y:20}});
     await page.getByRole('textbox',{name:'Tower source'}).press('ControlOrMeta+a');
     await page.keyboard.insertText('import foundation; var alias: i32*;;');

@@ -309,12 +309,12 @@ test('projects and edits reuse idle execution workers with replaced environments
   expect([...new Set(frontends.filter(item=>item.shared).map(item=>item.backend))].sort()).toEqual(['fast','llvm']);
   // Focus now prewarms the independent completion compiler. Finish a language
   // query before measuring execution-worker reuse, so its first load is excluded.
-  await setSource(page,'pri');await page.keyboard.press('Control+Space');
+  await setSource(page,'import tower; pri');await page.keyboard.press('Control+Space');
   await expect(page.getByRole('option').filter({hasText:'print'})).toBeVisible();
   await page.keyboard.press('Escape');
   requests.length = 0;
   for (const value of [42, 43]) {
-    await setSource(page, `var value: i32 = ${value}; print(value);`);
+    await setSource(page, `import tower; var value: i32 = ${value}; print(value);`);
     await expect(page.locator('#llvm-output')).toHaveText(value + '\n');
     await expect(page.locator('#execution-status')).toContainText('backends match');
   }
