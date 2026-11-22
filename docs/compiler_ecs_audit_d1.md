@@ -1084,3 +1084,40 @@ the census touches storage outside timing and can warm caches: no speedup claim.
 Actual ASan of this new census remains pending; fault-allocator assertions are
 not sanitizer evidence. Patch19da2e17e5c896c8d6bccd1e5629697ed7736a7ed8784eb0b9081179ea3ee75c
 and raw receipt are in coordinator D1/parser_retention_receipt.
+
+### Capture successor reviewed as an incoming draft
+
+Read all296 lines of A1 capture_ranges8a6829e1f34e6ce37027f60b50d8eeb22f355a5971aa90eded2dbf9811bec161,
+full lifecycle replacement0ceb023afed073550bad34f8facc891074a7fdda62b2bf60a74dd0c9196575df
+and source-proof fixture41454429a6ec1a68094cb289bb0f81a230a2996eb7debd11fc31392eda8c927c.
+No implementation applied during review. Root explicitly tracks unresolved
+aggregate consumer/lifetime, terminal invariant and120-byte eager per-initializer
+metadata measurement; source inspection does not close those gates.
+
+| Incoming test path | Full review conclusion |
+| --- | --- |
+| `scaffolding/tests/semantic_capture_module.tower` | New5-line ordinary resource imports Tower, owns Captured=7 and read() returning that binding. Two lexical module aliases must resolve this same nominal declaration, so a write/escape via either invalidates required capture via the other. No world/scheduler/heap implementation; lifetime belongs to importing frontend session. D1 roster/A1 fixture ownership, pending integration. |
+| `scaffolding/tests/semantic_lifecycle_checks.tower` | Replacement expands23 to30cases, preserving serial/four-worker32/64-bit exact canonical or diagnostic comparisons and ordinary-interpreter Foundation reconstruction. Adds nested staged array7, aliased module read14, module write/escape rejection, complex Earlier=Later+1 early-initializer rejection, returned global Pair7/8 and local aggregate capture15. Original signature-only, exactly-once initializer, nominal/cycle, untaken/mutable/owner-frame cases remain. Module inputs are snapshotted by existing frontend loader; batches/buffers outlive consumers and dispose. Expected wanted values are independent concrete references; general range acceptance remains pending. Preserve separate D1 ordinary-recursion oracle when replacing hooks. |
+| `scaffolding/tests/semantic_source_proof_checks.tower` | New171-line version clears runtime root.items after requesting proof, requiring retained source identities to publish immutable declaration facts. Holds one scan while later frontier joins, rejects stale ticket, checks no view survives pump boundary, exact dispatch counts and no replay. Creates a later lexical function/local to exercise generic-extension protocol; separate Invalidate mode injects mutations only after scan join and requires error without silently rewriting an already consumed proof. Context/program/root/world close in order. Injected mutation checks publication handling, not discovery in real generic syntax: actual specialization write/alias discovery remains a requested end-to-end regression. Worker count/frontier size alone is not overlap proof. |
+
+Range review: coordinator attaches source initializer metadata before that
+function's lowering lease/view; worker writes preattached range payload, and
+capture observes exact revision/profile/dispatch before cloning only that range.
+Cloned declarations/bindings are remapped under an ordinary evaluation function,
+not a second interpreter. The publication==0 and all-demanded-required-succeeded
+checks are asserted lifecycle invariants awaiting joined evidence, not accepted
+source-language restrictions. Requested persistent generic-alias-write coverage
+through coordinator; no competing A1 implementation or weakened oracle.
+
+### Current acceptance evidence boundaries
+
+| Contract | Representative evidence and remaining gate |
+| --- | --- |
+| Executed/untaken staging dependencies | Lifecycle untaken forward/mutable/invalid-helper and type-construction ordinary loops/branches exist with independent expected outputs. Current source query/type/lifecycle execution remains pending; old passes retain original identities. |
+| Cycles versus ordinary recursion | Genuine SelfReference/HeaderSelfReference, by-value layout and graph failure cases remain. Ordinary constructor recursion now expects interpreter call limit. Newest full type/capture matrix remains open. |
+| Stale/cancelled requests and aliases | Type execution receipts cover revision/profile/dispatch/operand/sequence ownership; source-proof fixture covers suspended dispatch and cancellation. Generic syntax write discovery still needs an end-to-end case, separately from injected joined-output invalidation. |
+| Stage leases and reference lifetime | Exact A2 concurrent-stage source passes direct/registered native plus3actual ASan/3TSan runs, including cancellation/partial admission/failure/collision and57792 finalizers per run. Source-specific evidence does not certify whole compiler race freedom. |
+| Parser retention and fragmentation | Three normal/three128-reset stress samples pass per-page ownership census and exact session/world teardown at127ca98. Extra page16223bytes is attributed, no packed-storage or speedup claim. Actual parser census ASan pending. |
+| Canonical serial/worker behavior | Existing LR tables, lifecycle canonical text, type protocols and execution binding-correspondence oracles preserve bindings/order/effects. New focused runners compile; latest joined runtime receipts are pending. |
+| Scalar external callers | Explicit-language JSON10 passes published browser11checks and isolated Roku JSON test; old native signed32 timeout and separate Roku population timeout remain. Current rebuilt compiler caller validation still required. |
+| Bootstrap/package/release | Clean documented native build127ca98 passes with verified42resources and no stale forwarders/private override. Final newer compiler freeze, browser/generation/full supported instrumentation and atomic published/hosted verification remain open. |

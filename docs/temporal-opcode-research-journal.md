@@ -48056,3 +48056,11 @@ index under program ownership, distinct from rewritten executable items; source
 pipeline ABI changes need affected rebuilds after adoption. Requested persistent
 module-alias-write and generic-extension regressions from A1, without competing
 edits to its lifecycle fixture.
+
+D1 completed read-only review of capture successor8a6829e1/lifecycle0ceb023a/
+source-proof41454429 while D2 owns the heavy slot. Added exact incoming resource
+and per-file audit plus an evidence-boundary table. The fixture's joined mutation
+injection tests invalidation publication but not real generic write discovery;
+that remaining end-to-end case was routed to A1/root. No range implementation
+adopted or runtime pass inferred. This documentation-only review has no runtime
+performance path to profile; pending eager metadata cost stays explicit.

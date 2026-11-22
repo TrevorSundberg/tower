@@ -1229,3 +1229,10 @@ rows to integrated, third is new and substantively reviewed in the D1 audit.
 After this handoff commit:1,039 total tracked Tower paths,465 D1 direct paths.
 These arithmetic counts preserve the separate14 deleted forwarders and do not
 include unintegrated owner measurement snapshots as tracked files.
+
+Incoming A1 capture successor adds `scaffolding/tests/semantic_capture_module.tower`
+(D1 roster/A1 implementation), delivered in full lifecycle patch0ceb023a and
+reviewed with its30-case consumer. It is not yet integrated: tracked totals stay
+1,039/465direct at3125aaf; eventual adoption adds exactly one path, not three,
+since lifecycle/source-proof files already exist. Their new hashes are update
+receipts, not duplicate inventory rows.
