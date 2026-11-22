@@ -40327,3 +40327,22 @@ Documentation now names the Tower membership roots and the retained one-import
 selectors precisely. Historical bootstrap provenance remains intact. No
 todo.txt edit, compiler semantics change, new dependency or unpublished syntax.
 
+Both edited browser generations pass at worker counts 2 and 4 (51.0 and 40.9
+seconds), including the changed diagnostic. Sizes/hashes match each other and
+the preceding fixed-root milestone: Tower 1204517/1c438ff004141dd6, LLVM
+52706143/6e19227a90abe0c1, cross 64263424/627dfb65b44170d0. These frozen
+pre-rebase test artifacts are not production runtimes.
+
+Rebase the implementation to 2588af2 over incoming fffdc85 compiler/control and
+backend streaming work, preserving both journal histories. Repeat the default
+public-bootstrap build from git-archived source in
+/cache/profile_units_rebased_checkout with TOWER_BOOTSTRAP_COMPILER explicitly
+unset and TOWER_NATIVE_BUILD=/cache/profile_units_rebased_native. All 48 steps
+pass. Successor SHA256 is
+706e88919faeac6baafc52dad359d059244df0431064b8d0cfda3a51f0f3150f.
+The existing memory example compiles, links and executes through that successor.
+Do not compare its whole binary with the pre-rebase compiler: upstream semantics
+changed. Preserve published fffdc85 runtime identity, all 89 assets and the new
+ecsHeaderStream receipt during tooling publication. The remaining ComposeBackend
+contains actual upstream target-list discovery and platform selection; audit its
+callers and separate removable fixed membership from required behavior next.
