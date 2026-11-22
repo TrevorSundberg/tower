@@ -135,6 +135,8 @@ fn format_test_generated(): void {
     utility_check(!actual.failed && actual.spans.length == 1, "Generated entities need no fabricated provenance");
     format_fixture_check(13, &actual);
 }
+struct FormatConstructorCase { op: u32; left: void*; right: void*; second_bits: u64; wanted: u8*; }
+
 fn format_test_type_constructors(): void {
     var entity = tower_node_create(); defer tower_node_release_ref(entity);
     var left = tower_node_create(); defer tower_node_release_ref(left);
@@ -148,23 +150,25 @@ fn format_test_type_constructors(): void {
     width.type.scalar = SU64; width.constant = true; width.bits = 32;
     second.type.scalar = SU64; second.constant = true;
     type.type.scalar = SType; type.element.scalar = SI32;
-    for(var kind: u32 = 0; kind < 8; kind++) {
-        operation.op = kind < 4 ? kind : convert(u32, TypeConstructionKind.Integer);
-        operation.left = kind < 2 || kind >= 4 ? left : reference;
-        operation.right = kind == 0 || kind == 3 || kind >= 4 ? right : null;
-        second.bits = kind == 3 ? 8 : 0;
-        var wanted = kind == 0 ? "integer_type(32, 0);\n"
-            : kind == 1 ? "float_type(32);\n"
-            : kind == 2 ? "pointer_type(type_value(integer_type(32, 1)));\n"
-            : "array_type(type_value(integer_type(32, 1)), 8);\n";
-        if kind == 4 { operation.op = ~convert(u32, 0); }
-        if kind == 5 { operation.left = null; }
-        if kind == 6 { operation.right = null; }
-        if kind == 7 { operation.op = convert(u32, TypeConstructionKind.Floating); }
+    var cases: FormatConstructorCase[8];
+    cases[0] = { op: convert(u32, TypeConstructionKind.Integer), left: left, right: right, second_bits: 0, wanted: "integer_type(32, 0);\n" };
+    cases[1] = { op: convert(u32, TypeConstructionKind.Floating), left: left, right: null, second_bits: 0, wanted: "float_type(32);\n" };
+    cases[2] = { op: convert(u32, TypeConstructionKind.Pointer), left: reference, right: null, second_bits: 0, wanted: "pointer_type(type_value(integer_type(32, 1)));\n" };
+    cases[3] = { op: convert(u32, TypeConstructionKind.Array), left: reference, right: right, second_bits: 8, wanted: "array_type(type_value(integer_type(32, 1)), 8);\n" };
+    cases[4] = { op: ~convert(u32, 0), left: left, right: right, second_bits: 0, wanted: null };
+    cases[5] = { op: convert(u32, TypeConstructionKind.Integer), left: null, right: right, second_bits: 0, wanted: null };
+    cases[6] = { op: convert(u32, TypeConstructionKind.Integer), left: left, right: null, second_bits: 0, wanted: null };
+    cases[7] = { op: convert(u32, TypeConstructionKind.Floating), left: left, right: right, second_bits: 0, wanted: null };
+    for(var index: usize = 0; index < sizeof(decltype(cases)) / sizeof(FormatConstructorCase); index++) {
+        var test = &cases[index];
+        operation.op = test.op;
+        operation.left = test.left;
+        operation.right = test.right;
+        second.bits = test.second_bits;
         var actual: FormatResult = default;
         defer format_dispose(&actual);
         format_test_entity(&actual, entity);
-        if kind < 4 { format_fixture_text(&actual, wanted, 1); }
+        if test.wanted != null { format_fixture_text(&actual, test.wanted, 1); }
         else { utility_check(actual.failed, "Malformed type constructor formatting fails"); }
     }
 }

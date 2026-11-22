@@ -45,4 +45,3 @@ struct CompletionQuery {
     output: vector(u8);
     count: usize;
 }
-

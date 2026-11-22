@@ -37,6 +37,8 @@ struct SemanticExecutable {
     error_offset: usize;
     query_reads: vector(usize);
     aliases: vector(SemanticEvaluationAlias);
+    prepared: bool;
+    lowered: bool;
 }
 
 fn sem_executables_begin(c: SemanticContext*): void {
@@ -108,13 +110,22 @@ fn semantic_executable_kernel(result: SemanticExecutable*): void {
     }
     context.current = result.function;
     context.preserve_clone_storage = false;
-    if sem_ok(&context) && sem_aggregate_needed(result.function) {
+    if sem_ok(&context) && (result.prepared || sem_aggregate_needed(result.function)) {
         var signature = bits(SemanticAggregateSignature*, entity_component_data(entity_component_add(result.function, context.aggregate_signatures)));
         sem_require(signature != null);
         *signature = default;
-        sem_aggregate_function(&context, result.function);
+        if result.prepared {
+            *signature = *sem_aggregate_signature(&context, result.subject);
+            if signature.result_parameter != null {
+                var parameter = sem_find(clones, null, signature.result_parameter);
+                sem_require(parameter != null && parameter.value != null);
+                signature.result_parameter = parameter.value;
+            }
+        } else {
+            sem_aggregate_function(&context, result.function);
+        }
     }
-    if sem_ok(&context) { sem_lift_block(&context, sem_get(result.function).body); }
+    if sem_ok(&context) && !result.lowered { sem_lift_block(&context, sem_get(result.function).body); }
     result.count = context.count;
     result.error = program.error;
     result.error_offset = program.error_offset;
@@ -139,6 +150,14 @@ fn sem_executables_pump(c: SemanticContext*): SemanticPumpResult {
         var subject = work_task(&c.queries, ticket.task).subject;
         var result = bits(SemanticExecutable*, entity_component_data(entity_component_get(subject, c.executable_functions)));
         result.ticket = ticket;
+        // A late stage can request a function after ordinary lowering. Its
+        // canonical operations must be copied once, never lifted a second time.
+        var preparation = work_find(&c.queries, subject, convert(u32, SemanticQuery.AggregatePrepare), 0);
+        result.prepared = preparation != 0 && work_task(&c.queries, preparation).state == WorkState.Succeeded;
+        var lowering = work_find(&c.queries, subject, convert(u32, SemanticQuery.Lowering), 0);
+        result.lowered = lowering != 0 && work_task(&c.queries, lowering).state == WorkState.Succeeded;
+        if result.prepared { sem_require(vector_push(&result.query_reads, preparation)); }
+        if result.lowered { sem_require(vector_push(&result.query_reads, lowering)); }
         result.stage = entity_stage_open(c.program.root);
         sem_require(result.stage != null && entity_stage_lease(result.stage, result.root));
         sem_require(vector_push(&batch, result));

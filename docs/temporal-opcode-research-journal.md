@@ -47618,3 +47618,37 @@ public-bootstrap validation follows the complete sequence and host-slot handoff.
 EarlyCapture remains a known failure, and newer emitter/module-cache/stage-fixture
 drafts are explicitly absent. This merge is source integration, not final lane
 acceptance or publication authorization.
+
+The ordered followups are now applied without an intermediate build. Parser
+reverse-check first failed on the two later work_budget_types imports. Removing
+only those imports produced complete old postimage hashes523fdfc7/9c7c74b5;
+the checked full replacement then restored both imports. Formatter reverse/apply
+exposed a handoff omission: the old patch includes parser_main's resource-root
+argument, while the replacement omits that caller despite retaining the callee
+parameter. Reapplied only the old parser_main hunks; its checkpoint bytes are
+preserved and all three callers match. Coordinator acknowledged and routed this
+correction to B1/D1/other integrations.
+
+Root authorized the four narrow incoming EOF repairs; the parser replacement
+already removed one, and the three remaining type-definition files were trimmed
+only at EOF. Also removed one stray CR on an existing D2 journal line after the
+whole-base check identified it. Default git diff60741c5 --check now passes; the
+earlier warnings/failures remain recorded. No whitespace policy was disabled.
+
+Root approved adopting D1's exact ordinary-recursion expectation patch22f651f4
+and focused registrationv2 patch5ae06f78. The recursion hunk applies directly.
+Registration is already present except the work_ready derived-count update and
+four later defining-type imports. Reverse checks confirm all other hunks; removing
+only each import from a read-only comparison yields exact v2 postimage blobs
+24a86367,c1eac8e6,4258374a,4fd1cb91. Retained those required imports, adopted the
+owner's exact work_ready snapshotSHA6e8ee34e, and preserved all graph-cycle and
+EarlyCapture assertions. These are integration checks, not local runtime passes.
+
+D2's own build_tools comment now describes the imported A2 hardlink identity
+guard and its frozen-path limitation; executable tool logic is unchanged by that
+comment edit. Fresh validation must cover the integrated helper separately from
+the earlier public-baseline tool checks. Native wrapper inspection also finds
+cp-R can retain deleted type forwarders in build/native even with a fresh cache.
+Before the next canonical build, preserve the inactive old relocated package in
+an exact D2-owned artifact path, then let the wrapper create a fresh destination;
+do not delete the old evidence or reuse its resources as new-source acceptance.

@@ -664,7 +664,8 @@ export fn lr_work_tests(): u32 {
     if !lr_state_serial_admission(root) {
         failures++;
     }
-    if !lr_state_wide_admission(root, 128, false) || !lr_state_wide_admission(root, 512, true) {
+    if !lr_state_wide_admission(root, 128, false) || !lr_state_wide_admission(root, 256, false)
+        || !lr_state_wide_admission(root, 512, true) {
         failures++;
     }
     for(var mode: usize = 0; mode < 3; mode++) {
