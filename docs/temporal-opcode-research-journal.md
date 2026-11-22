@@ -45950,3 +45950,30 @@ the overlapping compiler changes require a refreshed bootstrap, clean successor
 and affected query/type/browser checks. The concurrent comparator reached its
 last target when the rebase changed its input files; that interrupted run is not
 claimed as a passing frozen comparison and must be repeated on the final inputs.
+
+The merged implementation is frozen at d2c8ef966e2b8f345712cf45a1f4fb20be4fd1be.
+The complete replacement bootstrap records this source and executable SHA-256
+dc826f2921553a0bab05b2d7edd9137a4e1f74db3e6c9cd00f958fb73b1bd00e. Its
+fresh default successor at /cache/type_values_successor_d2c8ef96 completes all
+50 build steps, has identical executable bytes, and runs the type-value and
+computed-argument fixtures from /tmp with result 0. Packaged checksums pass.
+Native query-smoke (including the upstream staged-call retry/failure/lifetime
+fixture) and the full types suite pass. Browser type/computed-argument execution
+and required backend-world checks pass; the three real worker overlap, trap and
+determinism checks also pass. Logs use build/type-objects-final-integrated-*
+and build/type-objects-integrated-*.
+
+The upstream production interpreter unit imports its continuation fixture, so
+the symbol-policy audit now explicitly lists that fixture's existing Tower world
+and Foundation builders and its puts transport. It does not permit arbitrary
+symbols or add a native implementation. This allowlist correction changes only
+the comparison tool, not the frozen compiler/bootstrap or browser recipe.
+
+The final merged browser compiler passes two successive generations, including
+edited semantic behavior; both generations produce the same sizes (Tower
+1,356,000, LLVM 35,152,748 and cross 56,296,917 bytes). Local deployment validation
+passes all 104 assets and both desktop/mobile flows. The explicit custom grammar
+and missing-grammar-input checks pass, alongside byte-identical UTF-8 IR/object
+output for Linux x64, Wasm32, Windows x64 and macOS arm64. The expected missing
+grammar diagnostic is part of that passing negative test. The final interpreter
+and semantics cross-target comparison is the remaining publication gate.
