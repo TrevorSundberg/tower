@@ -2,18 +2,24 @@
 // GrammarPattern reads /patterns/ for token and skip rules.
 // GrammarTemplate reads {replacement bodies} with balanced braces.
 skip Whitespace = /[ \t\r\n]+/;
-skip LineComment = /\/\/[^\r\n]*/ as comment;
-skip BlockComment = /\/\*([^*]|\*+[^*/])*\*+\// as comment;
-token Identifier = /[A-Za-z_][A-Za-z0-9_]*|`([^`\\\r\n]|\\[nrt\\`])*`/ as identifier;
-token String = /"([^"\\\r\n]|\\[nrt\\'"])*"|'([^'\\\r\n]|\\[nrt\\'"])*'/ as string;
-token GrammarPattern = /\/([^/\\\[\r\n]|\\[^\r\n]|\[([^\\\]\r\n]|\\[^\r\n])*\])*\// when expected as pattern;
-token GrammarCharacter = /[^{}\r\n]/ when expected as operator;
-parse GrammarDeclaration = 'parse' $name:Identifier $op:GrammarAssignment $alternatives:GrammarAlternatives $replacement:GrammarReplacement ';';
+[comment] skip LineComment = /\/\/[^\r\n]*/;
+[comment] skip BlockComment = /\/\*([^*]|\*+[^*/])*\*+\//;
+[identifier] token Identifier = /[A-Za-z_][A-Za-z0-9_]*|`([^`\\\r\n]|\\[nrt\\`])*`/;
+[string] token String = /"([^"\\\r\n]|\\[nrt\\'"])*"|'([^'\\\r\n]|\\[nrt\\'"])*'/;
+[contextual][pattern] token GrammarPattern = /\/([^/\\\[\r\n]|\\[^\r\n]|\[([^\\\]\r\n]|\\[^\r\n])*\])*\//;
+[contextual][operator] token GrammarCharacter = /[^{}\r\n]/;
+[contextual][number] token AttributeInteger = /[0-9]+/;
+parse Attributes = $list:AttributeList | ;
+parse AttributeList = $previous:AttributeList $attribute:Attribute | $attribute:Attribute;
+parse Attribute = '[' $name:Identifier ']' | '[' $name:Identifier '(' $args:AttributeArguments ')' ']';
+parse AttributeArguments = $previous:AttributeArguments ',' $argument:AttributeArgument | $argument:AttributeArgument;
+parse AttributeArgument = $name:Identifier | $string:String | $integer:AttributeInteger;
+parse GrammarDeclaration = $attributes:Attributes 'parse' $name:Identifier $op:GrammarAssignment $alternatives:GrammarAlternatives $replacement:GrammarReplacement ';';
 parse GrammarTemplate = '{' GrammarTemplateItems '}';
 parse GrammarTemplateItems = GrammarTemplateItems GrammarTemplateItem | ;
 parse GrammarTemplateItem = GrammarTemplate | [^'{' '}'] | GrammarCharacter;
-parse GrammarTokenDeclaration = 'token' $name:Identifier '=' $pattern:GrammarPattern $mode:GrammarTokenMode $style:GrammarStyle ';';
-parse GrammarSkipDeclaration = 'skip' $name:Identifier '=' $pattern:GrammarPattern $mode:GrammarTokenMode $style:GrammarStyle ';';
+parse GrammarTokenDeclaration = $attributes:Attributes 'token' $name:Identifier '=' $pattern:GrammarPattern $mode:GrammarTokenMode $style:GrammarStyle ';';
+parse GrammarSkipDeclaration = $attributes:Attributes 'skip' $name:Identifier '=' $pattern:GrammarPattern $mode:GrammarTokenMode $style:GrammarStyle ';';
 parse GrammarTokenMode = | 'when' 'expected';
 parse GrammarAssignment = '=' | '|=';
 parse GrammarReplacement = | '=>' 'replace' $body:GrammarTemplate;
@@ -34,7 +40,7 @@ parse ImportDeclaration = 'import' $name:ImportName ';' | 'import' $name:String 
 
 // Optional production binding power. Larger numbers bind more tightly.
 // Ordinary recursive/chained grammars need no annotation.
-token GrammarPrecedenceNumber = /[0-9]+/ when expected as number;
-token GrammarAssociativity = /left|right|nonassoc|L>R|R<L/ when expected as keyword;
+[contextual][number] token GrammarPrecedenceNumber = /[0-9]+/;
+[contextual][keyword] token GrammarAssociativity = /left|right|nonassoc|L>R|R<L/;
 parse GrammarPrecedence = | '@' $level:GrammarPrecedenceNumber $direction:GrammarAssociativity;
-parse GrammarDeclaration = 'parse' $name:Identifier $op:GrammarAssignment $alternatives:GrammarAlternatives $precedence:GrammarPrecedence $replacement:GrammarReplacement ';';
+parse GrammarDeclaration = $attributes:Attributes 'parse' $name:Identifier $op:GrammarAssignment $alternatives:GrammarAlternatives $precedence:GrammarPrecedence $replacement:GrammarReplacement ';';

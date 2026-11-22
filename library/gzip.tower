@@ -1,0 +1,44 @@
+import tower;
+import bytes;
+import bytes_types;
+import crc32;
+import deflate;
+
+// Deterministic RFC 1952 single-member envelope around the existing raw encoder.
+// No filename, comment, timestamp or host identity. No file/platform capability.
+var GzipHeaderBytes: usize = 10;
+var GzipWordBytes: usize = 4;
+var GzipByteBits: u32 = 8;
+var GzipMagicFirst: u8 = 31;
+var GzipMagicSecond: u8 = 139;
+var GzipDeflateMethod: u8 = 8;
+var GzipPortableOS: u8 = 255;
+
+fn gzip_word(out: ByteBuffer*, value: u32): bool {
+    var byte_mask = convert(u32, ~convert(u8, 0));
+    for(var at: usize = 0; at < GzipWordBytes; at++) {
+        if !bytes_push(out, convert(u8, value & byte_mask)) { return false; }
+        value >>= GzipByteBits;
+    }
+    return true;
+}
+
+// Publish only a complete member; input may borrow the previous output buffer.
+// ISIZE is the input size modulo 2^32 as required by gzip, not a language limit.
+fn gzip_compress(data: u8*, length: usize, out: ByteBuffer*): bool {
+    if data == null && length != 0 { return false; }
+    var compressed: ByteBuffer = default; var next: ByteBuffer = default;
+    defer bytes_dispose(&compressed); defer bytes_dispose(&next);
+    if !deflate_compress(data, length, &compressed) || !bytes_reserve(&next, GzipHeaderBytes) { return false; }
+    fill(next.data, 0, GzipHeaderBytes); next.length = GzipHeaderBytes;
+    var magic_first_offset: usize = 0; var magic_second_offset: usize = 1;
+    var method_offset: usize = 2; var os_offset: usize = 9;
+    next.data[magic_first_offset] = GzipMagicFirst; next.data[magic_second_offset] = GzipMagicSecond;
+    next.data[method_offset] = GzipDeflateMethod; next.data[os_offset] = GzipPortableOS;
+    var size_mask = convert(usize, ~convert(u32, 0));
+    if !bytes_append(&next, compressed.data, compressed.length)
+        || !gzip_word(&next, crc32_update(0, data, length))
+        || !gzip_word(&next, convert(u32, length & size_mask)) { return false; }
+    bytes_dispose(out); *out = next; next = default;
+    return true;
+}

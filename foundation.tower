@@ -2,8 +2,8 @@ import bedrock;
 
 // Shares Whitespace, LineComment, BlockComment, Identifier and String from bedrock.tower.
 // The import applies Bedrock declarations before Foundation adds executable syntax.
-token Number = /[0-9]+/ as number;
-token FloatNumber = /[0-9]+\.[0-9]+([eE][+-]?[0-9]+)?|[0-9]+[eE][+-]?[0-9]+/ as number;
+[number] token Number = /[0-9]+/;
+[number] token FloatNumber = /[0-9]+\.[0-9]+([eE][+-]?[0-9]+)?|[0-9]+[eE][+-]?[0-9]+/;
 
 // Bootstrap semantic ABI: these Core* tree labels and captures name typed ops.
 // No precedence hierarchy: a binary value has two operands and one operator.
@@ -64,3 +64,17 @@ parse Statement |= CoreEnum;
 parse CoreExternal = 'extern' 'fn' $name:Identifier '(' $params:CoreParameters? ')' ':' $type:CoreType ';';
 parse CoreExport = 'export' 'fn' $name:Identifier '(' $params:CoreParameters? ')' ':' $type:CoreType $body:CoreBlock;
 parse Statement |= CoreExternal | CoreExport;
+
+// Attributes are ordinary staged typed values attached to a declaration.
+// The explicit aggregate spelling is also their canonical Foundation form.
+parse CoreMetadataField = $name:Identifier ':' $value:CoreMetadataOperand
+                        | $index:Number ':' $value:CoreMetadataOperand;
+parse CoreMetadataFields = CoreMetadataFields ',' CoreMetadataField | CoreMetadataField;
+parse CoreMetadataValue = 'init' '(' $type:CoreType ',' '{' $fields:CoreMetadataFields? '}' ')';
+parse CoreMetadataOperand = CoreOperand | CoreMetadataValue;
+parse Attribute = '[' $value:CoreMetadataOperand ']';
+parse AttributeList = $previous:AttributeList $attribute:Attribute | $attribute:Attribute;
+parse Attributes = $list:AttributeList | ;
+parse CoreAttributeTarget = CoreFunction | CoreExternal | CoreExport | CoreStruct | CoreEnum | CoreDeclare;
+parse CoreAttributed = $attributes:AttributeList $declaration:CoreAttributeTarget;
+parse Statement |= CoreAttributed;

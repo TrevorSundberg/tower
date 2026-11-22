@@ -2,19 +2,19 @@ import bedrock;
 
 // These are ordinary Tower declarations, editable while you type.
 // Add hyphens and non-ASCII Unicode characters to identifiers.
-token Identifier = /[A-Za-z_\u{80}-\u{10ffff}][A-Za-z_0-9\u{80}-\u{10ffff}-]*/ as identifier;
+[identifier] token Identifier = /[A-Za-z_\u{80}-\u{10ffff}][A-Za-z_0-9\u{80}-\u{10ffff}-]*/;
 // Decimal numbers, with an optional fractional part.
-token Number = /[0-9]+(\.[0-9]+)?/ as number;
+[number] token Number = /[0-9]+(\.[0-9]+)?/;
 // Extra token types work too. Longest match makes 0xff a Hex, not Number 0.
-token Hex = /0x[0-9A-Fa-f]+/ as number;
-skip HashComment = /#[^\r\n]*/ as comment;
+[number] token Hex = /0x[0-9A-Fa-f]+/;
+[comment] skip HashComment = /#[^\r\n]*/;
 
 parse Value = Identifier | Number | String | Hex;
 parse Statement = Value ';';
 parse Pair = Identifier ':' Number ';';
 parse Statement |= Pair;
 // Later grammar literals would use backticks too, so define the rules above first.
-token String = /`[^`\r\n]*`/ as string;
+[string] token String = /`[^`\r\n]*`/;
 player-name;
 café;
 3.14;
@@ -22,7 +22,7 @@ café;
 0xff;
 # Comments are defined in Tower too.
 // Token replacement takes effect only after this declaration.
-token Identifier = /@[A-Za-z_][A-Za-z_0-9]*/ as identifier;
+[identifier] token Identifier = /@[A-Za-z_][A-Za-z_0-9]*/;
 @player;
 // This also changes subsequent declaration names; the rules above are already installed.
 @score: 42.5;

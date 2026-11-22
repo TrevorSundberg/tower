@@ -1,0 +1,131 @@
+import tower;
+import bytes;
+import bytes_types;
+import vector;
+
+// Deterministic GNU ar32 envelope. Inputs borrow caller storage until return;
+// output publishes atomically and may own those inputs. No filesystem capability.
+struct ArMember { name: u8*; name_length: usize; data: u8*; length: usize; }
+struct ArSymbol { name: u8*; length: usize; member: usize; }
+enum ArResult: u32 { Ok, Input, Limit, Allocation }
+var ArMagicBytes: usize = 8;
+var ArHeaderBytes: usize = 60;
+var ArNameWidth: usize = 16;
+var ArTimestampWidth: usize = 12;
+var ArOwnerWidth: usize = 6;
+var ArModeWidth: usize = 8;
+var ArSizeWidth: usize = 10;
+var ArWordBytes: usize = 4;
+var ArByteBits: u32 = 8;
+var ArMaximumOffset = convert(usize, ~convert(u32, 0));
+
+fn ar_text_valid(data: u8*, length: usize, member: bool): bool {
+    if data == null || length == 0 { return false; }
+    for(var at: usize = 0; at < length; at++) {
+        var byte = data[at];
+        if byte == 0 || (member && (byte == *"\n" || byte == *"\r")) { return false; }
+    }
+    return true;
+}
+
+fn ar_decimal(out: ByteBuffer*, number: usize): bool {
+    var base: usize = 10; var divisor: usize = 1;
+    while number / divisor >= base { divisor *= base; }
+    loop {
+        if !bytes_push(out, *"0" + convert(u8, (number / divisor) % base)) { return false; }
+        if divisor == 1 { return true; }
+        divisor /= base;
+    }
+}
+
+fn ar_field(out: ByteBuffer*, data: u8*, length: usize, width: usize): bool {
+    if length > width || !bytes_append(out, data, length) { return false; }
+    for(var at = length; at < width; at++) { if !bytes_push(out, *" ") { return false; } }
+    return true;
+}
+
+fn ar_header(out: ByteBuffer*, name: u8*, name_length: usize, length: usize): bool {
+    var size: ByteBuffer = default; defer bytes_dispose(&size);
+    return ar_decimal(&size, length) && ar_field(out, name, name_length, ArNameWidth)
+        && ar_field(out, "0", 1, ArTimestampWidth) && ar_field(out, "0", 1, ArOwnerWidth)
+        && ar_field(out, "0", 1, ArOwnerWidth) && ar_field(out, "644", 3, ArModeWidth)
+        && ar_field(out, size.data, size.length, ArSizeWidth) && bytes_append(out, "`\n", 2);
+}
+
+fn ar_word(out: u8*, value: usize): void {
+    var byte_mask = convert(usize, ~convert(u8, 0));
+    for(var at = ArWordBytes; at != 0; ) { out[--at] = convert(u8, value & byte_mask); value >>= ArByteBits; }
+}
+
+fn ar_extent(total: usize*, length: usize, limit: usize): bool {
+    var padding = length & 1;
+    if *total > limit || ArHeaderBytes > limit - *total { return false; }
+    var left = limit - *total - ArHeaderBytes;
+    if length > left || padding > left - length { return false; }
+    *total += ArHeaderBytes + length + padding;
+    return true;
+}
+
+fn ar_member_data(out: ByteBuffer*, data: u8*, length: usize): bool {
+    return bytes_append(out, data, length) && ((length & 1) == 0 || bytes_push(out, *"\n"));
+}
+
+// The explicit symbol index preserves lazy archive use as well as whole-archive
+// linking. Caller supplies defined external symbols in deterministic order.
+fn ar32_write(members: ArMember*, count: usize, symbols: ArSymbol*, symbol_count: usize,
+    limit: usize, out: ByteBuffer*): ArResult {
+    if (count != 0 && members == null) || (symbol_count != 0 && symbols == null) { return ArResult.Input; }
+    if limit > ArMaximumOffset { limit = ArMaximumOffset; }
+    if limit < ArMagicBytes || count > limit / ArHeaderBytes
+        || symbol_count > (limit - ArWordBytes) / ArWordBytes { return ArResult.Limit; }
+    var index_size = ArWordBytes + symbol_count * ArWordBytes;
+    for(var at: usize = 0; at < symbol_count; at++) {
+        var symbol = &symbols[at];
+        if symbol.member >= count || !ar_text_valid(symbol.name, symbol.length, false) { return ArResult.Input; }
+        if index_size >= limit || symbol.length > limit - index_size - 1 { return ArResult.Limit; }
+        index_size += symbol.length + 1;
+    }
+    var names: ByteBuffer = default; var name_offsets: vector(usize) = default;
+    var offsets: vector(usize) = default; var next: ByteBuffer = default; var name: ByteBuffer = default;
+    defer bytes_dispose(&names); defer vector_dispose(&name_offsets); defer vector_dispose(&offsets);
+    defer bytes_dispose(&next); defer bytes_dispose(&name);
+    var total = ArMagicBytes;
+    if !ar_extent(&total, index_size, limit) { return ArResult.Limit; }
+    for(var at: usize = 0; at < count; at++) {
+        var member = &members[at];
+        if !ar_text_valid(member.name, member.name_length, true) || (member.length != 0 && member.data == null) { return ArResult.Input; }
+        // All names use the GNU string table: no basename truncation/ambiguity.
+        var name_suffix_bytes: usize = 2;
+        if member.name_length > limit || names.length > limit - member.name_length
+            || name_suffix_bytes > limit - names.length - member.name_length { return ArResult.Limit; }
+        if !vector_push(&name_offsets, names.length) || !bytes_append(&names, member.name, member.name_length)
+            || !bytes_append(&names, "/\n", name_suffix_bytes) { return ArResult.Allocation; }
+    }
+    if names.length != 0 && !ar_extent(&total, names.length, limit) { return ArResult.Limit; }
+    for(var at: usize = 0; at < count; at++) {
+        if !vector_push(&offsets, total) { return ArResult.Allocation; }
+        if !ar_extent(&total, members[at].length, limit) { return ArResult.Limit; }
+    }
+    if !bytes_reserve(&next, total) || !bytes_append(&next, "!<arch>\n", ArMagicBytes)
+        || !ar_header(&next, "/", 1, index_size) { return ArResult.Allocation; }
+    var index_begin = next.length;
+    fill(next.data + next.length, 0, index_size); next.length += index_size;
+    ar_word(next.data + index_begin, symbol_count);
+    var text_at = index_begin + ArWordBytes + symbol_count * ArWordBytes;
+    for(var at: usize = 0; at < symbol_count; at++) {
+        var symbol = &symbols[at];
+        ar_word(next.data + index_begin + ArWordBytes + at * ArWordBytes, offsets.data[symbol.member]);
+        copy(next.data + text_at, symbol.name, symbol.length); text_at += symbol.length + 1;
+    }
+    if (index_size & 1) != 0 && !bytes_push(&next, *"\n") { return ArResult.Allocation; }
+    if names.length != 0 && (!ar_header(&next, "//", 2, names.length)
+        || !ar_member_data(&next, names.data, names.length)) { return ArResult.Allocation; }
+    for(var at: usize = 0; at < count; at++) {
+        name.length = 0;
+        if !bytes_push(&name, *"/") || !ar_decimal(&name, name_offsets.data[at])
+            || !ar_header(&next, name.data, name.length, members[at].length)
+            || !ar_member_data(&next, members[at].data, members[at].length) { return ArResult.Allocation; }
+    }
+    bytes_dispose(out); *out = next; next = default;
+    return ArResult.Ok;
+}

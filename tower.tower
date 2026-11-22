@@ -27,53 +27,53 @@ parse Statement |= TowerMatch | TowerWhile;
 parse Statement = ';';
 parse TowerExpression = CoreLocation | CoreCall | Number | FloatNumber | String | 'true' | 'false' | 'null'
                        | '(' $value:TowerComma ')';
-parse TowerPostfixOperator = '++' | '--' @ 150 left;
-parse TowerExpression |= $left:TowerExpression TowerPostfixOperator @ 150 left;
-parse TowerPrefixOperator = '+' | '-' | '!' | '~' | '&' | '++' | '--' | 'not' | 'compl' | 'bitand' @ 140 right;
-parse TowerExpression |= TowerPrefixOperator $right:TowerExpression | '*' $right:TowerExpression @ 140 right;
-parse TowerExpression |= '*' @ 140 right;
-parse TowerExpression |= $left:TowerExpression '*' @ 130 left;
-parse TowerProductOperator = '/' | '%' @ 130 left;
-parse TowerExpression |= $left:TowerExpression '*' $right:TowerExpression
-                        | $left:TowerExpression TowerProductOperator $right:TowerExpression @ 130 left;
-parse TowerAdditiveOperator = '+' | '-' @ 120 left;
-parse TowerExpression |= $left:TowerExpression TowerAdditiveOperator $right:TowerExpression @ 120 left;
-parse TowerShiftOperator = '<<' | '>>' | '>>>' @ 110 left;
-parse TowerExpression |= $left:TowerExpression TowerShiftOperator $right:TowerExpression @ 110 left;
-parse TowerExpression |= $left:TowerExpression '<=>' $right:TowerExpression @ 100 left;
-parse TowerRelationalOperator = '<' | '<=' | '>' | '>=' @ 90 left;
-parse TowerExpression |= $left:TowerExpression TowerRelationalOperator $right:TowerExpression @ 90 left;
-parse TowerExpression |= $left:TowerExpression 'is' 'null' @ 90 left
+[precedence(150, left)] parse TowerPostfixOperator = '++' | '--';
+[precedence(150, left)] parse TowerExpression |= $left:TowerExpression TowerPostfixOperator;
+[precedence(140, right)] parse TowerPrefixOperator = '+' | '-' | '!' | '~' | '&' | '++' | '--' | 'not' | 'compl' | 'bitand';
+[precedence(140, right)] parse TowerExpression |= TowerPrefixOperator $right:TowerExpression | '*' $right:TowerExpression;
+[precedence(140, right)] parse TowerExpression |= '*';
+[precedence(130, left)] parse TowerExpression |= $left:TowerExpression '*';
+[precedence(130, left)] parse TowerProductOperator = '/' | '%';
+[precedence(130, left)] parse TowerExpression |= $left:TowerExpression '*' $right:TowerExpression
+                        | $left:TowerExpression TowerProductOperator $right:TowerExpression;
+[precedence(120, left)] parse TowerAdditiveOperator = '+' | '-';
+[precedence(120, left)] parse TowerExpression |= $left:TowerExpression TowerAdditiveOperator $right:TowerExpression;
+[precedence(110, left)] parse TowerShiftOperator = '<<' | '>>' | '>>>';
+[precedence(110, left)] parse TowerExpression |= $left:TowerExpression TowerShiftOperator $right:TowerExpression;
+[precedence(100, left)] parse TowerExpression |= $left:TowerExpression '<=>' $right:TowerExpression;
+[precedence(90, left)] parse TowerRelationalOperator = '<' | '<=' | '>' | '>=';
+[precedence(90, left)] parse TowerExpression |= $left:TowerExpression TowerRelationalOperator $right:TowerExpression;
+[precedence(90, left)] parse TowerExpression |= $left:TowerExpression 'is' 'null'
     => replace { $left == null };
-parse TowerExpression |= $left:TowerExpression 'is' 'not' 'null' @ 90 left
+[precedence(90, left)] parse TowerExpression |= $left:TowerExpression 'is' 'not' 'null'
     => replace { $left != null };
-parse TowerEqualityOperator = '==' | '!=' | 'not_eq' @ 80 left;
-parse TowerExpression |= $left:TowerExpression TowerEqualityOperator $right:TowerExpression @ 80 left;
-parse TowerBitAndOperator = '&' | 'bitand' @ 70 left;
-parse TowerExpression |= $left:TowerExpression TowerBitAndOperator $right:TowerExpression @ 70 left;
-parse TowerBitXorOperator = '^' | 'xor' @ 60 left;
-parse TowerExpression |= $left:TowerExpression TowerBitXorOperator $right:TowerExpression @ 60 left;
-parse TowerBitOrOperator = '|' | 'bitor' @ 50 left;
-parse TowerExpression |= $left:TowerExpression TowerBitOrOperator $right:TowerExpression @ 50 left;
-parse TowerAndOperator = '&&' | 'and' @ 40 left;
-parse TowerExpression |= $left:TowerExpression TowerAndOperator $right:TowerExpression @ 40 left;
-parse TowerOrOperator = '||' | 'or' @ 30 left;
-parse TowerExpression |= $left:TowerExpression TowerOrOperator $right:TowerExpression @ 30 left;
-parse TowerExpression |= $left:TowerExpression '??' $right:TowerExpression @ 20 right;
-parse TowerExpression |= $condition:TowerExpression '?' $body:TowerComma ':' $otherwise:TowerExpression @ 10 right;
-parse TowerAssignmentOperator = '=' | '+=' | '-=' | '*=' | '/=' | '%=' | '<<=' | '>>=' | '>>>=' | '&=' | '^='
-                               | '|=' | '&&=' | '||=' | '??=' | 'and_eq' | 'xor_eq' | 'or_eq' @ 10 right;
-parse TowerExpression |= $left:TowerExpression TowerAssignmentOperator $right:TowerExpression @ 10 right;
+[precedence(80, left)] parse TowerEqualityOperator = '==' | '!=' | 'not_eq';
+[precedence(80, left)] parse TowerExpression |= $left:TowerExpression TowerEqualityOperator $right:TowerExpression;
+[precedence(70, left)] parse TowerBitAndOperator = '&' | 'bitand';
+[precedence(70, left)] parse TowerExpression |= $left:TowerExpression TowerBitAndOperator $right:TowerExpression;
+[precedence(60, left)] parse TowerBitXorOperator = '^' | 'xor';
+[precedence(60, left)] parse TowerExpression |= $left:TowerExpression TowerBitXorOperator $right:TowerExpression;
+[precedence(50, left)] parse TowerBitOrOperator = '|' | 'bitor';
+[precedence(50, left)] parse TowerExpression |= $left:TowerExpression TowerBitOrOperator $right:TowerExpression;
+[precedence(40, left)] parse TowerAndOperator = '&&' | 'and';
+[precedence(40, left)] parse TowerExpression |= $left:TowerExpression TowerAndOperator $right:TowerExpression;
+[precedence(30, left)] parse TowerOrOperator = '||' | 'or';
+[precedence(30, left)] parse TowerExpression |= $left:TowerExpression TowerOrOperator $right:TowerExpression;
+[precedence(20, right)] parse TowerExpression |= $left:TowerExpression '??' $right:TowerExpression;
+[precedence(10, right)] parse TowerExpression |= $condition:TowerExpression '?' $body:TowerComma ':' $otherwise:TowerExpression;
+[precedence(10, right)] parse TowerAssignmentOperator = '=' | '+=' | '-=' | '*=' | '/=' | '%=' | '<<=' | '>>=' | '>>>=' | '&=' | '^='
+                               | '|=' | '&&=' | '||=' | '??=' | 'and_eq' | 'xor_eq' | 'or_eq';
+[precedence(10, right)] parse TowerExpression |= $left:TowerExpression TowerAssignmentOperator $right:TowerExpression;
 parse TowerComma = TowerExpression | $left:TowerComma ',' $right:TowerExpression;
 // Invoke computed function values without adding precedence to Foundation.
 parse TowerInvoke = '(' $callee:TowerComma ')' '(' $args:CoreArguments? ')'
                   | $callee:CoreCall '(' $args:CoreArguments? ')'
                   | $callee:TowerInvoke '(' $args:CoreArguments? ')';
 parse TowerExpression |= TowerInvoke;
-parse TowerNullAccess = $base:TowerExpression '?.' $field:Identifier
-                       | $base:TowerExpression '?[' $index:TowerExpression ']' @ 150 left;
-parse TowerNullAccess |= $base:TowerNullAccess '.' $field:Identifier
-                        | $base:TowerNullAccess '[' $index:TowerExpression ']' @ 150 left;
+[precedence(150, left)] parse TowerNullAccess = $base:TowerExpression '?.' $field:Identifier
+                       | $base:TowerExpression '?[' $index:TowerExpression ']';
+[precedence(150, left)] parse TowerNullAccess |= $base:TowerNullAccess '.' $field:Identifier
+                        | $base:TowerNullAccess '[' $index:TowerExpression ']';
 parse TowerExpression |= TowerNullAccess;
 parse CoreLocation |= '(' $base:TowerComma ')' '.' $field:Identifier
                      | '(' $base:TowerComma ')' '[' $index:TowerExpression ']'
@@ -120,4 +120,4 @@ parse TowerFor = 'for' '(' $initial:TowerForInitial $condition:TowerForCondition
 parse Statement = CoreDeclare | CoreBlock | CoreIf | CoreLoop | CoreBreak | CoreContinue | CoreFunction
                  | CoreReturn | CoreStruct | CoreEnum | CoreExternal | CoreExport
                  | TowerMatch | TowerWhile | TowerFor | TowerForeach | TowerDefer
-                 | TowerExpressionStatement;
+                 | TowerExpressionStatement | CoreAttributed;
