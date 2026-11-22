@@ -43392,3 +43392,125 @@ local-frontier-workbench/generation{1,2}.json. Concurrent validation ran during
 self-builds; these elapsed times are not comparative speed measurements. Pages
 9e817d2f6120ac872f6aac84fbf05dbb818dddb7 is pushed with all104 fresh asset hashes
 and upstream1923c4e's scoped history retained. Hosted verification is pending.
+
+Hosted3e12adb verification finishes: all104 assets, desktop/mobile backend,
+grammar/completion/persistence/download checks and real Linux defaults pass.
+Actions44994858110 succeeded for exact Pages head9e817d2. Evidence:
+local-frontier-hosted.log and build/deployment-verification/report.json.
+
+The next declaration-admission change removes coordinator syntax eligibility/
+lease scans. Initial discovery workers derive them; prepared queries yield to an
+explicit Pending/Ready admission continuation before leased checking. Workers
+report evaluation-registration requirements, and the coordinator creates shared
+metadata only after joining. Field-state entries are reserved at registration.
+The first smallest-unit preflight caught an extra closing brace introduced while
+nesting the new continuation; corrected before any compiler build/test used it.
+Evidence: declaration-admission-native.log (failed preflight) and
+declaration-admission-fixed-native.log (subsequent validation). This change and
+a0df9f6's startup/call-discovery follow-up remain outside the frozen3e12adb runtime.
+
+Ordinary declaration admission passes type-smoke and candidate self-compilation
+after that preflight correction. Generic argument eligibility/lease discovery is
+now using the same worker continuation, retaining the call's stage/unevaluated
+context. The coordinator still assembles the argument list and interns deduced
+types. Combined checks are running in generic-admission-native.log.
+
+The a0df9f6 push was rejected because origin advanced to45e804f with profiling
+tool cleanup. No force push was attempted; the local commit and admission edits
+are preserved while validation finishes, before rebasing. The frozen3e12adb
+published runtime remains intact. A focused audit also reproduced an existing
+abort in that published native compiler for sizeof(array_type(i32, identity(2))).
+General computed extents are unsupported, but must diagnose that limitation
+rather than abort. The retained Tower-only reproducer is
+build/language-next-audit/generic_extent.tower; the process exited134 in
+generic-extent-before.log. The admission path's partial lease list is under review.
+
+Generic admission passes the same type-smoke and candidate self-compilation.
+The negative extent's native backtrace reaches sem_declarations_execute, matching
+the generic-inference admission invariant: a successful array-element scan left
+leases behind when its count scan failed. Admission now discards those partial
+lease indexes before another query phase uses the component. A focused case in
+the existing serial/four-worker failure matrix requires the unsupported computed
+extent diagnostic to precede a later-body error. No computed-extent evaluator is
+introduced. Validation is running in admission-leases-native.log; the debugger
+trace is retained in generic-extent-backtrace.log.
+
+## 2026-11-22: ECS/threading completion audit against the current checkout
+
+The user requested an audit before more implementation. Initial plain pull was
+blocked by the preserved local admission patch; pull --rebase --autostash with
+the established committer identity rebased a0df9f6 to0dc3f09 ontoa3a28bb, restoring
+all edits without conflicts. Upstream changed profiling/parser benchmark tooling
+and documentation, not compiler/library/backend/host source. The full admission
+patch passes native type-smoke at one/four workers; the retained reproducer now
+exits with the expected unsupported compile-time-integer diagnostic instead of
+SIGABRT (admission-leases-native.log, generic-extent-after.log). A default-public-
+bootstrap cache build after rebase is recorded in admission-audit-rebased-build.log.
+
+Scope is the current compiler's ECS/dependency/threading migration, including
+working decltype and lazy interpreter staging. Estimate approximately80%, with
+a75–85% range. This is engineering judgment about architectural acceptance work,
+not measured throughput, time remaining, or a fraction of lines already threaded.
+It advances the last corrected audit's approximately70% estimate at journal
+entry37388. That earlier correction from85% remains valid for its older baseline;
+this audit does not restore an unsupported almost-finished claim. Full arbitrary
+type-producing execution/effects, Stronghold, parser/regex specialization, GPU
+expansion and translating LLVM are not hidden inside the final20%.
+
+For an explicit planning denominator, the following100-point weighting produces
+78 points, rounded to80 rather than presenting78 as measured precision:
+
+| Acceptance area | Weight | Estimated completed | Evidence and remaining boundary |
+| --- | ---: | ---: | --- |
+| Shared entity/component storage and ownership | 20 | 17 | Stable payload pages, exact-signature archetype rows/columns, view-owned queries and staged leases exist; legacy default-world callers and complete explicit-session coverage remain. |
+| Dependency scheduling and worker transport | 15 | 14 | Demand, dynamic edges, suspend/resume, cycle paths, access ranges, stale tickets and draining cancellation exist; phase-specific executors are not yet one fully interleaved pipeline. |
+| Parser and compilation units | 15 | 12 | FIRST/nullable, states/closures, links/lookahead/actions/runtime rows use workers; native CLI recipes now call the unit services. Imports remain separate closures and some construction remains coordinated. |
+| Semantic checking and lowering | 25 | 20 | Body/declaration/generic admission, local binding/storage/completion, type/array queries, iteration protocol deduction, lowering and flow have worker paths. For-header intermediates, iteration state/layout preparation and structural extension fallbacks remain. |
+| Scoped decltype/staging integration | 15 | 9 | Unevaluated type queries, inferred binding proofs, ordinary interpreter scalar/aggregate jobs, lazy executed-read dependencies and cycles work. Body/proof/lowering barriers still prevent general early values feeding type construction. |
+| Backend, release and scaling evidence | 10 | 6 | Private per-unit LLVM contexts, frontend/backend streaming, production Tower Wasm/ELF linking, overlap/determinism and self-build evidence exist. No representative end-to-end1/2/4/8-core scaling result; COFF/Mach-O and shared-module boundaries remain. |
+
+Concrete source checks:
+
+- library/entity_types.tower:95 stores dense rows and component-pointer columns.
+  Payloads remain stable; this is archetype indexing, not universally packed SoA
+  data or proof that every traversal is a bulk table query. The architecture
+  should preserve useful sparse storage; compulsory packing is not a completion gate.
+- library/work_graph.tower rejects revision/profile/dispatch mismatches and
+  provides dynamic dependency/cycle handling. semantic_lifecycle.tower still
+  creates a compilation-local graph and calls sem_run, known inference, lowering
+  and evaluation in phases. Existing caches are real; a persistent cross-unit
+  semantic-query cache/invalidation service is not implemented by those tickets.
+- semantic_evaluation.tower:109 makes preparation depend on its owning body;
+  inferred work also waits on KnownProof/clone. Removing those edges without
+  replacement would break mutation/capture validity and is not completion.
+- semantic_types.tower:146 still accepts literal/bound integer arguments;
+  generics.tower:361 diagnoses general type-function execution as unimplemented.
+  The fixed computed-extent abort is improved error handling, not support for
+  computed extents. No custom pre-LLVM constant evaluator was added.
+- host/driver_units.tower:109/122 now calls the production frontend/backend unit
+  services, closing the earlier audit's test-only integration gap. Each unit
+  retains its own world/import cache (frontend_units.tower:76).
+- host_world, frontend_world, frontend_modules, execution_session and backend/
+  source_session retain explicit legacy default-world entry points/fallbacks.
+  entity_retain/release are ordinary counters under ownership contracts, not
+  permission for concurrent unsynchronized reference mutation. This audit found
+  remaining boundaries, not a demonstrated race in the covered worker paths.
+
+Source inventory: rg --files over scaffolding/{compiler,backend,host,library},
+filtered to .tower, yields424 files/81,633 physical lines. Sixteen files around
+the known integration boundaries total9,266 lines: semantic_{lifecycle,
+declarations,body_work,iteration,constructor_work,types,evaluation,known_bindings,
+lowering_work}, frontend_{modules,units}, execution_session, host_world,
+backend/{units,source_session}, host/legacy. These are inspection surfaces
+containing substantial completed code; they are not9,266 lines left to rewrite.
+
+Verified release baseline remains3e12adb: native/public-bootstrap and browser
+builds, real worker overlap/failure interruption,1/2/4/8-worker agreement, lazy
+dependency windows, two identical edited browser generations, and hosted104-
+asset desktop/mobile checks. Startup/call/admission follow-ups have focused
+native evidence but are not yet in that runtime. Keep source and deployment
+status distinct. Required ordered source/grammar/effect handling and small joined
+structural publication are legitimate serial work, not unfinished parallelization.
+Prioritize early dependency integration, remaining structural continuations,
+explicit production-world coverage/shared import ownership, then measured scaling.
+No new benchmark suite, sanitizer or broad audit helper was added; todo.txt is unchanged.

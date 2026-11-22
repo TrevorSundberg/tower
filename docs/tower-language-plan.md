@@ -1055,6 +1055,10 @@ containers. Benchmark representative compiler workloads before migrating them.
   the coordinator only resumes ready jobs. Structural declaration call indexes
   are discovered by workers in operand order and retained across suspensions;
   alias-root changes rebuild the index before coordinated interning resumes.
+  Declaration and generic-argument admission also run as worker continuations:
+  they derive lease indexes and registration requirements privately, then yield
+  for coordinated registration and leased checking. Rejected composite admission
+  discards partial lease indexes before the next phase.
   Shared entities now use stable component pages, exact-signature archetype rows,
   published component columns and view-owned multi-component query plans.
   These index stable payload pointers; they do not relocate component data.
@@ -1157,17 +1161,17 @@ containers. Benchmark representative compiler workloads before migrating them.
    dispatch, dense storage and vectorization are independent claims. Continue
    the language milestones above on these same shared entities throughout.
 
-Current migration audit (2026-11-21; native checkpoints, browser publication
+Current migration audit (2026-11-22; native checkpoints, browser publication
 receipts and exact validation scope are recorded separately in the ongoing journal):
 
 | Area | Authoritative/shared data and present storage | Concurrency work still required |
 | --- | --- | --- |
 | Entities | Stable payloads, dense per-type pointer indexes, explicit worlds, pinned views, exclusive attachment leases and staged canonical creation | Complete host-world isolation and non-racing reference ownership |
 | Syntax/grammar | Shared entities; world-bound module/session/baseline/revision/cache ownership; worker-owned FIRST/nullable frontiers, LR(0) transitions, LR(1) kernel closures, dependency-link construction, wide lookahead frontiers, LALR actions and runtime action/direct-index/goto rows; native CLI unit recipes use isolated worlds | Shared import/query deduplication and runtime sequence specialization; source/effect order, link/seed merging and row interning require ordered publication |
-| Semantics/layout | Shared query graph; parallel discovery, layout/signature reads, resumable bodies and expression operands, assignment target/value phases, enum checking, prepared source type bindings, both array spellings/constructor continuations, shared generic cloning, editor observations, aggregate signatures, expression lowering, deferred-depth validation, iteration protocol deduction and prepared control construction | Iteration storage/layout preparation, extended structural patterns and remaining structural expressions; canonical interning/publication remains coordinated |
-| Interpreter/staging | Per-invocation contexts over shared Foundation; ECS binding proofs, clone/lowering dependencies, persistent demanded preparation, threaded scalar/aggregate evaluation, executed-read capture checks and private execution caches | Early general value execution during type construction, explicit effects/inputs and persistent invalidation; no separate folding evaluator |
+| Semantics/layout | Shared query graph; parallel body/declaration/call admission, layout/signature reads, resumable bodies and expression operands, local binding/storage/completion, assignment target/value phases, enum checking, prepared source type bindings, both array spellings/constructor continuations, shared generic cloning, editor observations, aggregate signatures, expression lowering, deferred-depth validation, iteration protocol deduction and prepared control construction | For-header intermediate projection, iteration storage/layout preparation, extended structural patterns and remaining structural expressions; canonical interning/publication remains coordinated |
+| Interpreter/staging | Per-invocation contexts over shared Foundation; ECS binding proofs, clone/lowering dependencies, persistent demanded preparation and worker startup, refilled scalar/aggregate evaluation windows, executed-read capture checks and private execution caches | Phase-boundary integration for early general value execution during type construction, explicit effects/inputs and persistent invalidation; no separate folding evaluator |
 | LLVM | Shared Foundation inputs; private LLVM contexts/modules per unit; backend queries stream from their frontend receipts on one bounded native pool; browser builds use the Tower coordinator | Shared-module work and upstream target registration retain ownership boundaries; measure end-to-end scaling and preserve target legality |
-| Link/publication | Tower plans/artifacts and the production Tower Wasm linker; other native formats retain upstream LLD and filesystem interfaces | Keep remaining LLD globals and temporary paths isolated/serialized; publish a candidate only after its checks |
+| Link/publication | Tower plans/artifacts and production Tower Wasm/Linux ELF byte linkers; COFF/Mach-O retain upstream LLD and filesystem interfaces | Keep remaining LLD globals and temporary paths isolated/serialized; publish a candidate only after its checks |
 
 Do not replace the sparse payload store everywhere just to resemble an ECS
 library. Cached typed queries and measured hot/cold columns should preserve the
