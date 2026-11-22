@@ -47897,3 +47897,14 @@ Capture-range v2 is expressly review-only pending descendant payload leases and
 aggregate/terminal/memory evidence. Neither range version nor the partial
 late-capture prerequisite has been adopted here. D2's known capture failure
 therefore remains open while independent tooling/profile work continues.
+
+Correction after9aa4a43: D1's current caller audit and the coordinator's explicit
+hold supersede the two generic source-prefix hunks described above. D1 has newer
+explicit Foundation repairs in34differential cases,10JSON idioms and C cases,
+which this bundle did not yet contain. A blanket Tower prefix would change
+activation/offsets when those arrive. Reversed only the just-adopted two generic
+writer hunks, before any execution, preserving all unrelated B2 driver identity,
+D1 parser changes and D2's original measured Foundation kernel. Prior adoption
+remains in commit history; it had no validation pass. Requested exact owner
+fixture-language handoff rather than inventing prefix detection or overriding
+Foundation-only cases. Root independently issued the same reconciliation rule.

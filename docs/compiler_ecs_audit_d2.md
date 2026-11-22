@@ -894,11 +894,12 @@ not packed-storage or low-fragmentation evidence. Adopted exact owner patch;
 D1's normal/stress passes and original134 keep their own provenance. D2 runtime
 and the owner's actual ASan gate remain pending, with no multicore claim.
 
-B2's shared differential/C fixture source prefix is reviewed and integrated.
-The overlapping measurement-kernel hunk was excluded because D2 already has a
-validated explicit Foundation import. Its source/language/oracles stay unchanged;
-adding a second Tower import would alter the matched input without necessity.
-The separate two-file fix reuses one owned ByteBuffer and existing synchronous
-file write. Local execution of the changed callers remains pending. Driver
+B2's shared differential/C fixture prefix was reviewed, briefly adopted in
+9aa4a43, then exactly reversed without execution after D1/root identified newer
+explicit Foundation caller repairs missing from this handoff. Those owner fixes
+must be reconciled directly; no blanket prefix or language-detection heuristic.
+The overlapping measurement-kernel hunk was never applied because D2 already
+has a validated explicit Foundation import. Its source/language/oracles stay
+unchanged. Missing per-fixture language repairs remain pending here. Driver
 lexical path normalization is B2-owned; D2 checked that request paths outlive
 worlds and per-unit names are copied into owned module state before local disposal.
