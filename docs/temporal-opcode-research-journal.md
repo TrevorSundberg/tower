@@ -45472,3 +45472,20 @@ Production linker bytes are unchanged by this fixture correction.
 Preserve the exact published Foundation increment example from Pages11ebf6b4
 (source4da1e44), which arrived separately from main, together with every previous
 receipt. Do not replace it with the older root-checkout example during deployment.
+
+### Production linker publication closure
+
+Hosted ELF CI45049623864 passes all six jobs: raw/optimized x64 and ARM64 links,
+then actual execution on both Linux architectures. Together with Mach-O/Windows
+CI45049057956 (eight passing jobs), these verify the native execution profiles.
+The broader Windows-tooling workflow45049057810 still fails in its Linux C-output
+reference fixture immediately after collections. The preceding upstream run
+45045758116 fails at the identical assertion; this is a recorded separate failure,
+not a passing Windows-tooling matrix or evidence of an LLD dependency.
+
+The final source is94013481; compiler/runtime assets remain frozen at8c51600f.
+Later commits only change the increment example, journal and ELF fixture.
+Pages86a63a30 supplies the current increment provenance104a27b9, superseding the
+pre-rebase4da1e44 reference above without changing its verified example bytes.
+Preserve all existing publication receipts while replacing the runtime assets.
+No additional compiler rebuild is needed for these fixture/documentation changes.
