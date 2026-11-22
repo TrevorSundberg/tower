@@ -9846,5 +9846,13 @@ shithub
  - ai made repostories
  - joking, but kind of not!
 
+- because of a test? continue
+
+Need to make sure all array/struct initializers work, I saw this and asked, got this response
+-    var order: usize[4] = { 1, 3, 4, 2 };
++    var order: usize[4];
++    order[0] = 1; order[1] = 3; order[2] = 4; order[3] = 2;
+  - Yes—the test used a positional array initializer that Tower’s current grammar doesn’t support. The public compiler rejected { 1, 3, 4, 2 }, so I used explicit element assignments to preserve the test’s values with supported syntax. No production behavior changed.
+
 
 
