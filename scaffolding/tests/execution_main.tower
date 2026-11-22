@@ -53,12 +53,14 @@ export fn main(argc: i32, argv: u8**): i32 {
     var oracle = strcmp(suite, "floating-oracle") == 0;
     var negation = strcmp(suite, "negation") == 0;
     var bodies = strcmp(suite, "body-smoke") == 0;
+    var type_smoke = strcmp(suite, "type-smoke") == 0;
     var editor = strcmp(suite, "editor") == 0;
-    execution_check(all || known || bodies || editor || floating || oracle || negation || narrow || functions || semantics || core || attributes || aggregates || type_bindings, "known execution suite");
+    execution_check(all || known || bodies || type_smoke || editor || floating || oracle || negation || narrow || functions || semantics || core || attributes || aggregates || type_bindings, "known execution suite");
     if all || editor { editor_observation_tests(argv[1]); }
     if editor { return 0; }
-    if bodies {
-        body_runs_smoke(argv[1]);
+    if bodies || type_smoke {
+        if type_smoke { body_runs_type_smoke(argv[1]); }
+        else { body_runs_smoke(argv[1]); }
         return 0;
     }
     var path: ByteBuffer;

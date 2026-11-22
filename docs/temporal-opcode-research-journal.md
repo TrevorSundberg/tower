@@ -41950,3 +41950,12 @@ Milestone checks and integration findings:
   signed_integer declarations. Collect each imported lexical module once while
   preserving every entry fragment and its source/comment base. Validation of
   this final integration and final publication are still in progress.
+
+The multi-source semantic fixtures now pass at both widths, including exact
+outputs, bindings, diagnostics and independent graph determinism. Final pull
+rebased onto eadb4b5 after Git's automatic repack completed. Retained the new
+upstream constructor/alias query executor and clone receipts; representation
+operations are excluded from user-body cloning while source constructors that
+compose them use the ordinary query path. Smallest-unit constructor compilation
+and the default /cache/source-types-release build pass. Exposed the existing
+type-smoke suite through the execution harness for this integrated validation.
