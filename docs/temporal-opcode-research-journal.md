@@ -43710,3 +43710,39 @@ agent1-parser-measurement-a3a28bb. Its Pages receipt exists at ad2214f; the owne
 has been notified through the existing coordinator inbox. Do not overwrite that
 lock or replace another publisher's runtime/receipts. Mach-O remains the next
 implementation boundary and host/SDK linkers remain afterward.
+
+Final frozen 6323790 cross rebuild passed the seven cross-target/download checks;
+the final raw/optimized PE fixtures and all expanded relocation/API checks passed.
+Two successive edited compiler generations again passed with identical outputs:
+tower 1329133 bytes / e1e1ab4d996a8fb6b2fa6e24a8c96835763b854631bec92da816c7b0fa0e75cc,
+llvm 35123620 / 208afee0b4f1cc771681e7c1d02f09d6ef187fee67973e7bfbde9945e7437aa3,
+cross 61115909 / 7a041659b192f4fcabc1d25fd99359c6e380061cd937af4e6afd882b781c275c.
+Full generation durations: 48.49 and 39.81 seconds. Local release verification
+passes all 104 asset hashes and the full desktop/mobile matrix.
+
+Release native successor SHA256:
+ad7776bd0f37f635ef1689fd119c7a50619e3804fda141736f73b4e24a7248ca.
+Cross reactor SHA256:
+ed844b7c7bfee7d9a7521d436950ca7f309e45a7c2508cfda0b29ce7465df074.
+Native successor built after source rebase at 04b7902; final 6323790 only changes
+the cross-specific absolute-symbol guard and focused test/documentation files.
+No syntax or bootstrap pin changed. No sanitizer or formatter sweep was run.
+
+Publication-lock resolution: inspected the existing tooling agent's last turn,
+which failed on its usage limit. Its ad2214f receipt workflow 44995736177 succeeded;
+the currently hosted 704543c/workflow45028594573 is also successful, preserves
+that receipt exactly and matches origin's complete asset manifest. The coordinator
+completed that outstanding verification, recorded the handoff in the existing
+inbox, checked the unchanged owner and acquired coordinator-pe-6323790. No live
+publisher's work was discarded. Latest 6850468 compiler changes and all historical
+receipts must remain in the PE publication.
+
+Next boundary audit: actual macOS x64 runtime contains __TEXT/__text, literals,
+__cstring, __DATA/__data, __LD/__compact_unwind and __eh_frame, with external and
+local-section relocations. The Mach-O port therefore needs checked 64-bit load
+commands/nlist/relocations, archive/TBD symbol selection, dyld imports and rebases,
+unwind preservation and architecture-specific executable signing/layout. Reuse
+the shared byte utilities, ECS request ownership and job scheduler, not PE/ELF
+semantics or a new IR. Both x64 and ARM64 output must be compared with current
+LLD and executed on macOS before claiming that dependency removed; this Windows
+machine has not supplied macOS execution evidence. Mach-O remains linked today.
