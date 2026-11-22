@@ -47972,3 +47972,21 @@ e4505ba against60741c5 while D2 owns the heavy build slot. This is source review
 only; documentation changes have no runtime performance/memory path to profile.
 The root-authorized backend-overlap selector awaits B2's exact extracted helper
 before any hook edit/compile, avoiding a second missing-definition handoff.
+
+D1 received root fixture follow-up13f3b7e1 and reviewed the exact source change.
+L2 canonical inspection shows unused alias nodes are erased, so the old positive
+was not a runtime type-value input. Preserved that source as scalar false; added
+retained direct/indirect type returns and conditional exported comparison, plus
+failure-specific source/class diagnostics. Seven cases per width retain exact
+canonical stability checks. This is an owner-provided fixture repair, not removal
+of the runtime capability oracle; independent runtime remains pending. The new
+six-path formatter patch222cc74e reverse-checks against this tree, confirming
+our preserved parser_main argument already supplies exactly the missing hunk;
+no formatter source churn/rebuild.
+
+A whole-base `git diff --check 60741c5 HEAD` found one inherited CR at journal
+line46509. Preserved its text and removed only that terminal CR, matching the
+already-authorized touched-file whitespace repair. Earlier local incremental
+checks passed but did not cover that incoming line; the full-base check is rerun
+rather than described as previously clean. No runtime profiling applies to this
+single documentation byte correction.

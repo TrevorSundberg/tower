@@ -1013,3 +1013,14 @@ these update existing-path receipts rather than adding files or runtime passes.
 | `frontend_units.tower` | Worlds remain distinct, now share one WorkBudget and use the total ceiling rather than dividing static outer lanes. Checks joined zero execution lanes with retained input grants, cancellation drains workers while inputs remain owned, and exact ledger identity per world. Source byte and world-budget tests run before existing widths/serial-worker comparisons. Peak admission remains distinct from actual overlap. |
 | `evaluation_query_checks.tower` | Reuses extracted shared types/API and named SemanticQuery tags. Body pipeline identity is obtained through its owning component, admitted count through public query, preserving no-replay and later-frontier tests. Added current source-proof/type-receipt hooks; unused stages must remain unstarted and real graph cycles are retained. Initializers own complete setup before reads; structural marker still proves view release at pump boundary. |
 | `semantic_world.tower` | Removes heavy implementation import cycle in favor of exact public declarations/types and external evaluation_query_tests. Existing explicit world/kind/stage checks preserved, query code linked separately by owner manifest. The split reduces import closure rather than deleting validation; whole-link validation remains pending locally. |
+
+L2 follow-up13f3b7e1c6b61301683c9f99ebbb0d2ff8b46f94e32c751ca4d56059bf105703
+updates type_binding_checks after canonical inspection: an unused local type
+alias is erased from the executable graph, so that source remains a scalar-only
+negative. Adds an actually returned runtime type value, indirect return and an
+export whose mutable local type participates in a conditional comparison. Seven
+cases per width now distinguish erased aliases from retained runtime values;
+canonical before/after equality remains mandatory. Failure prints source and
+wanted/actual class before aborting. No production predicate or compiler semantics
+changed; owner's smallest compile passed, joined runtime remains unverified here.
+The original failure is retained as evidence of the incorrect fixture assumption.

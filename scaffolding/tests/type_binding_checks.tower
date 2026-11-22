@@ -130,7 +130,13 @@ fn type_object_reachability_trial(modules: void*, source: u8*, wanted: bool, wid
     defer format_dispose(&after);
     format_entity(&before, session.program.root, syntax_component_type(), null, parser_match_get_type());
     execution_check(!before.failed, "Reachability input formats");
-    execution_check(type_object_program(session.program.root) == wanted, "Runtime type-value reachability");
+    var actual = type_object_program(session.program.root);
+    if actual != wanted {
+        puts(source);
+        puts(wanted ? "Expected runtime type values" : "Expected scalar-only runtime graph");
+        puts(actual ? "Observed runtime type values" : "Observed scalar-only runtime graph");
+    }
+    execution_check(actual == wanted, "Runtime type-value reachability");
     format_entity(&after, session.program.root, syntax_component_type(), null, parser_match_get_type());
     execution_check(!after.failed && before.text.length == after.text.length
         && memcmp(before.text.data, after.text.data, before.text.length) == 0,
@@ -145,11 +151,13 @@ fn type_object_reachability_tests(modules: void*): void {
         type_object_reachability_trial(modules,
             "import tower;fn recursive(n:i32):i32{if n>0{return recursive(n-1);}return 0;}print(recursive(3));", false, width);
         type_object_reachability_trial(modules,
-            "import tower;fn reached():i32{var value:type=i32;return 1;}print(reached());", true, width);
+            "import tower;fn reached():i32{var value:type=i32;return 1;}print(reached());", false, width);
         type_object_reachability_trial(modules,
-            "import tower;fn reached():i32{var value:type=i32;return 1;}var callback=reached;print(callback());", true, width);
+            "import tower;fn reached():type{var value:type=i32;return value;}print(reached()==i32);", true, width);
         type_object_reachability_trial(modules,
-            "import tower;export fn retained():i32{var value:type=i32;return 1;}print(42);", true, width);
+            "import tower;fn reached():type{var value:type=i32;return value;}var callback=reached;print(callback()==i32);", true, width);
+        type_object_reachability_trial(modules,
+            "import tower;export fn retained(flag:bool):bool{var value:type=i32;if flag{value=u32;}return value==i32;}print(42);", true, width);
     }
 }
 
