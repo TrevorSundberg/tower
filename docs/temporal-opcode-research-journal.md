@@ -48891,3 +48891,13 @@ No heavy work runs in D2 while D1 owns the slot. This documentation records
 existing source/measurement evidence; it changes no runtime behavior, so no
 new runtime performance/memory sample is applicable to this documentation
 update. It does not close the pending implementation/release gates.
+
+B1 bounded trace follow-up323ae806 arrived during D1's slot and was read/applied
+after D2 drain. It measures a successful enable's allocation count after warmup,
+requires every earlier fail-after prefix to reject, requires the terminal prefix
+to succeed, resets injection before every ownership check, and preserves exact
+marker/reference/buffer cleanup and original configuration restoration. This
+closes the source-level unbounded-loop concern without weakening assertions.
+Owner normal15parser cases6.16s pass; D2 predecessor/normal/ASan still pending.
+D1 corrected aggregate registrationv3ec4e reverse-check confirms D2's selective
+v2hook plus exact25e source matches it; no duplicate fixture/import was applied.
