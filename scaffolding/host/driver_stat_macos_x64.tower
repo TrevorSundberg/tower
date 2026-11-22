@@ -1,0 +1,8 @@
+import tower;
+import driver_stat_macos;
+
+extern fn `stat$INODE64`(path: u8*, data: void*): i32;
+
+export fn driver_stat(path: u8*, data: void*): i32 {
+    return `stat$INODE64`(path, data);
+}

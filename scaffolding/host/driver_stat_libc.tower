@@ -1,0 +1,7 @@
+import tower;
+
+extern fn stat(path: u8*, data: void*): i32;
+
+export fn driver_stat(path: u8*, data: void*): i32 {
+    return stat(path, data);
+}

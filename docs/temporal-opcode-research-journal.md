@@ -42406,3 +42406,81 @@ Pages commit 19770a6297a6b79d923d26a506314dcf84003015 was pushed and workflow
 44990149611 succeeded. Its manifest preserves prior receipts and records exact
 runtime/project/bootstrap identities. Hosted verification is running; the array
 call changes above remain excluded from this deployment.
+## 2026-11-21: Compile driver objects directly with Tower libc bindings
+
+Audit the four remaining driver-object LLVM rewrite pipelines before translating
+anything. Their private runtime_driver module now only renames driver_stat to
+stat (or stat$INODE64 on Intel macOS); the old C++ ABI spellings no longer describe
+an actual C++ dependency. Remove that 43-line module and runtime_bind's unused
+--driver branch. Tower platform modules declare the actual libc symbol, retaining
+the existing stat layouts and explicit x64/arm64 profile selection. macOS x64 uses
+the existing quoted-identifier spelling `stat$INODE64`; Linux and macOS arm64 share
+a seven-line libc wrapper. Windows needs no stat wrapper. Name the Linux mode
+field offsets without changing their ABI values. No new native library is added.
+
+Production driver and execution/format/storage fixture objects now reuse
+TowerRuntime.cmake's direct object rule. Preserve object names, target membership,
+compiler depfiles and fixture/runtime ownership. CMake retains the explicit
+64-bit Linux/Windows-MSVC/Apple target admission contract. runtime_bind still
+owns its needed state, reserved-symbol and entry-point transformations. Search
+all live tracked callers, including root entry points: no retired --driver mode,
+runtime_driver import or TOWER_DRIVER_SYNTAX_ABI reference remains. Historical
+journal/bootstrap provenance is intentionally retained.
+
+Validation uses owned tower_agent1_c_checks Docker caches, Ubuntu 24.04,
+Clang/LLVM 19.1.1 and the documented Linux public bootstrap SHA256
+6022aa2bdfc838ead9dd9507bea004b78568997f3a468f916a9bfa4310a0680a.
+Start from main d92b322 and freeze staged implementation tree
+2242592e8dcd8858974eb2d1fa28a0c500d62a11 into /cache/driver_binding_checkout.
+Compile each of the four stat modules first with the public compiler. llvm-nm
+confirms stat on both Linux architectures, _stat$INODE64 on macOS x64 and _stat
+on macOS arm64. Then build a clean successor through the existing command:
+
+env -u TOWER_BOOTSTRAP_COMPILER TOWER_NATIVE_BUILD=/cache/driver_binding_native
+bash /cache/driver_binding_checkout/playground/scripts/build-native.sh
+-DTOWER_DRIVER_TESTS=ON -DTOWER_EXECUTION_TESTS=ON
+-DTOWER_FORMAT_TESTS=ON -DTOWER_STORAGE_TESTS=ON
+
+All 48 compiler steps and the 15 additional fixture build steps pass. Successor
+SHA256 861b26b1e483ae5fa48c5a03685e7068b1587c3fcc370b9fa8891eb516f67c9f.
+run-guest-runtime.mjs with examples/memory.tower and expected 5/84/42 passes
+32/64-bit interpretation, native execution and actual Wasm execution. These are
+Linux development successor checks, not a new portable release/bootstrap pin.
+
+Configure separate driver_binding_{linux_arm64,macos_x64,macos_arm64,
+windows_x64,windows_arm64} caches with TOWER_UTILITIES_TARGET and build only
+tower-driver.o. All five whole driver cross-object builds pass in addition to
+native Linux x64. Undefined-symbol inspection confirms the expected stat symbols
+and no stat requirement on Windows. This is cross-compilation/ABI evidence,
+not execution on those other operating systems. Unsupported FreeBSD configure
+is rejected earlier by the module-filesystem ABI guard; the first probe expected
+the later driver diagnostic, so its assertion failed even though rejection was
+correct. Do not claim that probe directly executed the new driver guard.
+
+Compare seven affected CTests on unchanged /cache/unit_bridge_final_native and
+/cache/driver_binding_native. Both pass tower-driver, driver-formatting,
+driver-request and the full tower-execution suite (346.04s baseline, 353.14s
+candidate, running concurrently; these are not a performance comparison).
+Both reproduce the existing module-path fixture failure at import ..two,
+Unexpected '..'. Reported to coordinator; compiler grammar remains outside this
+lane. Both initially abort format/storage because CTest starts in the build
+directory. Source-defined Foundation types exposed their independent fixture
+module environments resolving implicit imports from the current directory.
+Running the unchanged baseline binaries from scaffolding passes both fixtures;
+no compiler behavior, expected assertion or ownership needs changing. Add explicit
+scaffolding CTest working directories, matching the existing parser convention,
+and document direct invocation requirements. After the running suites finish,
+copy only those two CMake changes into the frozen candidate, reconfigure, and
+rerun just tower-format/tower-storage: 2/2 PASS (1.08s). Earlier passing tests
+remain applicable; the module-path failure remains a known baseline limitation.
+
+Measured tracked source inventory: Python 0, owned C/C++ 0, shell 9 files/230
+lines, CMake 39/1783, JavaScript 186/24366. This batch removes 55 CMake lines and
+28 Tower lines net. CMake is 811/2594 lines (31.3%) below the post-Python baseline;
+shell remains 253/483 lines (52.4%) lower. Python's original 23 files/1989 lines
+remain eliminated. The first inventory command accidentally shadowed PowerShell's
+pipeline item inside a switch and printed zeros; corrected direct-pattern
+counting produced these actual counts. No blanket GitHub language percentage is
+claimed. No sanitizer, broad format sweep or todo.txt edit. Publish a tooling
+receipt while retaining the latest verified browser assets and their build-source
+identity. Continue auditing remaining generated entries and reusable JS callers.

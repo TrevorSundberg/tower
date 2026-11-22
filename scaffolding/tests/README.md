@@ -434,6 +434,11 @@ node scaffolding/tests/host-wasi.mjs path/to/tower-parser-tests --suite reader
 The parser and interpreter suites use this same transport, including the complete
 Foundation/type prelude. The `source/` aliases preserve fixture file identities.
 
+The focused `tower-format` and `tower-storage` CTests run with `scaffolding` as
+their working directory. Their independent fixture module environments resolve
+the Foundation/type prelude there. Direct executable invocations need that same
+working directory as well as the resource-root argument.
+
 The isolated `cmake/TowerDriver.cmake` fragment adds CLI checks with
 `-DTOWER_DRIVER_TESTS=ON` to a native compiler configuration. Build `towerc` and
 `tower-driver-tests`, then run `ctest --test-dir <build> -R tower-driver

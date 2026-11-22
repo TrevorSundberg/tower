@@ -87,6 +87,10 @@ objects to the same Tower sources and collects their real dependency closure.
 The `scaffolding/tests/compiler_project_units.tower` fixture exports that closure
 from `REPOSITORY BUILD OUTPUT OBJECT ...` for independent object comparison.
 
+Driver objects also compile directly. The Tower platform modules select the libc
+`stat` call, including `stat$INODE64` on Intel macOS, without a separate LLVM
+symbol-rewrite pass. The existing target-specific stat layouts remain explicit.
+
 ## Validation and measurement
 
 Run from the repository root:

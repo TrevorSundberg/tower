@@ -1,6 +1,5 @@
 import tower;
 import runtime_platform;
-import runtime_driver;
 
 // Private build tool: connect Tower implementations to reserved runtime symbols
 // in emitted target LLVM output. This is object production, not Tower storage.
@@ -114,11 +113,6 @@ export fn main(argc: i32, argv: u8**): i32 {
             break;
         }
         var platform = strcmp(argv[i], "--platform") == 0;
-        if strcmp(argv[i], "--driver") == 0 {
-            ok = runtime_driver(context, module, argv[next]);
-            i += 2;
-            continue;
-        }
         if platform {
             ok = runtime_platform(context, module, argv[next]);
             i = i + 2;
