@@ -42484,3 +42484,31 @@ counting produced these actual counts. No blanket GitHub language percentage is
 claimed. No sanitizer, broad format sweep or todo.txt edit. Publish a tooling
 receipt while retaining the latest verified browser assets and their build-source
 identity. Continue auditing remaining generated entries and reusable JS callers.
+
+Integration rebase brings b5ba9f6's prepared type binding/caching changes and
+rewrites this implementation commit to 07a2dba. Freeze that commit in
+/cache/driver_binding_integrated_checkout, then repeat the documented default
+public-bootstrap build in a fresh /cache/driver_binding_integrated_native with
+no private override. All 48 steps pass, followed by all 15 fixture build steps.
+Final successor SHA256
+98bef28a69a4cb08a0e81e37e64eddc0597dd9d0892091cd9143a6f3722aca57.
+Its memory smoke again passes interpreted 32/64-bit, native and actual Wasm.
+The compiler integration does not change the bootstrap, host platform bindings,
+backend or CMake, so retain the five cross-object ABI checks above. Repeat the
+six passing driver/format/storage/execution CTests on this integrated source;
+record their completion below. The old/new module-path failure has already been
+isolated and this upstream change contains no module-import grammar correction.
+
+Follow-up removal audit: run-allocator-wasm.mjs remains an eight-line live
+bare-Wasm export/trap transport for allocator and guest runtime growth fixtures.
+It is not interchangeable with host-wasi.mjs's WASI _start and mounted-source
+contract. Retain this already-minimal boundary. TowerDriverRequestTests still
+contains a duplicated direct object command that can reuse tower_runtime_object
+in a later focused cleanup. Do not expand this validated milestone mid-build.
+
+Integrated focused suite completes: 6/6 PASS in 191.16s, including the full native
+execution suite (147.96s). Log: build/driver_binding_integrated_tests.log. This
+result includes the explicit formatter/storage working-directory repair. The
+separately reproduced baseline module-path failure is not counted as passing.
+Publication must preserve newer Pages 19770a62, its 104 assets, runtime build
+source b5ba9f6 and demanded-query/type-preparation release evidence.
