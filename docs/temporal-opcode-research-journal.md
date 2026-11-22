@@ -44979,3 +44979,13 @@ defaults (`build/seed_final_verification.log`). Runtime and compiler-project
 inputs are e9d2bfab51d0a487cbe925ffe816926d0955d5f6, scaffolding tree
 d4d51121f987e68f727f56c4bab28568097c6e4b; later edits are validation fixtures and
 this receipt. Preserve these identities when recording the hosted publication.
+
+Hosted publication receipt: Pages b40bb382afc2ac7e66fda30a6dd1202284afa463 passed
+workflow 45045337355. All 104 hosted assets match the final local manifest, and
+the complete desktop/mobile deployment checks pass
+(`build/seed_hosted_verification.log`). HTTP, www and the former GitHub Pages
+address each return a 301 to https://tower-lang.org/. The manifest retains the
+previous publication history and records this milestone's bootstrap hash,
+runtime/compiler-project source commit and scaffolding tree. This receipt-only
+commit reuses that verified deployment; it does not rebuild or relabel its
+runtime assets. todo.txt remains untouched by this work.
