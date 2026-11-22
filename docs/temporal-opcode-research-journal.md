@@ -47090,3 +47090,96 @@ or separate patches and passes an exact reverse check. The accompanying handoff
 states prerequisites and replacement rules. Large-function scan cost, equivalent
 before/after profiles, positive compiler sanitizer/stress runs, clean bootstrap
 publication and browser/hosted verification remain explicit acceptance gates.
+
+### L2 frozen type-path performance and opt-in reachability profile
+
+The passing merged role/reachability snapshot is now local main commit
+649a1c1219e0010b7788f1a44d8f20c585329c94 (parent 0817375). Pull/rebase preserves
+pending owner fixtures; no publication or public pin is implied. D1's recursion
+oracle and L1's explicit opt-in selector are subsequently integrated. The owned
+profile helper compiles with the public pin in 2.72 s wall / 2.36 s CPU /
+188244 KiB RSS. Its defining type/API imports are explicit. The helper's Linux
+x64 rusage ABI is a native measurement boundary, not browser/portable coverage.
+
+The existing runner receives only an explicit type-reachability-profile mode,
+excluded from all and CTest. The Tower helper constructs checked programs with
+16, 256 and 1000 ordinary private functions, an exported parameter-dependent
+caller and known output equal to the function count. Calls are sequential to
+avoid measuring the guest stack bound. After a warm query it runs three samples
+of 256 read-only queries. Checking/execution/formatting/reporting stay outside
+the timed regions. All nine samples return the scalar result, retain identical
+entity/component counts, preserve complete canonical text and close the session
+through the ownership assertion.
+
+| Reachable generated functions | Median wall/query us | Median CPU/query us | Process peak RSS KiB | Live entities / components |
+| ---: | ---: | ---: | ---: | ---: |
+| 16 | 11.233 | 11.277 | 182964 | 17256 / 19848 |
+| 256 | 318.443 | 318.723 | 185908 | 34535 / 41926 |
+| 1000 | 2906.145 | 2900.758 | 211764 | 88103 / 110374 |
+
+This measures the function-vector's quadratic growth, not constant-time lookup
+or parallel speedup. At 1000 functions one query takes about 2.9 ms. Keep the
+concise implementation for now; this result does not explain the much larger
+normalized-package regression reported independently by L1. RSS includes the
+checked graphs and runtime; transient allocator call counts are not measured.
+The complete profile finishes in 4.00 s wall / 4.41 s CPU / 211764 KiB.
+Raw records are L2/logs/type_reachability_profile.*; helper SHA-256 is
+05a442e8180ba30a35c0ee6d1b923259f6726215d0fbd5e1c22dac0dfa723e77.
+
+The public-pin runner rebuild completes nine steps in 43.81 s wall / 64.97 s
+CPU / 783736 KiB (including unchanged common objects whose mtimes changed).
+A fresh exact resource copy passes diff. Updated type smoke passes in
+40.64 s / 45.42 s / 252616 KiB, preserving genuine declaration/capture cycles.
+Execution runner SHA-256 is
+d0b55bff98fc573a3954607ae65fc5c75ea80f57a621e2bdc690a0dee6126b47;
+worker runner is
+6e6df95d063930492240f93a6bbfb84cf4a6a18d31884ab082e3ca1c60e56aa7.
+B2's editor-import fixture exposes a separate body-worker abort in L1's newer
+source-root build; that known failure is not redundantly rerun or called fixed.
+
+Whole-compiler measurements then run alone under the local host lease on
+WSL Linux 6.18.33.2 x86_64, Ubuntu Clang/LLVM 19.1.1, the assigned 8-core/16-thread
+host and 15.3 GiB WSL memory limit. Baseline compiler SHA-256 is
+37ca7ab55e4755d1158edc733277b7b7bcafc6e452e8711f41db5072dc2ffd67;
+current is 0b6c90cb340929368b5fa8a3b2db878b57b2e71ae12450fb08780d8362266ae2.
+Each has complete, byte-identical adjacent language/library/runtime resources
+copied from the same frozen snapshot, with no retired types/ forwarders.
+Explicit source, Bedrock and Foundation inputs are also identical. The target
+is the default Linux x64 profile. Fresh processes reuse warm filesystem caches;
+there is no cold-cache claim and no hibernation overlap.
+
+Each fixture/worker setting has one warmup pair followed by four retained pairs
+with balanced before/after order: 80 executions total, 16 warmups and 64 retained
+samples. Graph mode measures source bindings, computed arguments and the 22147-byte
+body-continuation program; cached mode measures actual runtime type values.
+Every exit is zero and every stdout equals the independent expected zero.
+Compiler hashes and adjacent-resource parity still match after the campaign.
+The following are medians; CPU is user plus system and RSS is per-process peak.
+
+| Fixture / workers | Wall s before -> after | CPU s before -> after | RSS KiB before -> after |
+| --- | ---: | ---: | ---: |
+| Type bindings / 1 | 1.415 -> 1.450 | 1.390 -> 1.445 | 169584 -> 172194 |
+| Type bindings / 4 | 1.200 -> 1.205 | 1.510 -> 1.500 | 186228 -> 191506 |
+| Computed arguments / 1 | 1.345 -> 1.385 | 1.415 -> 1.435 | 172202 -> 172246 |
+| Computed arguments / 4 | 1.265 -> 1.235 | 1.565 -> 1.530 | 191480 -> 192676 |
+| Body continuations / 1 | 1.505 -> 1.515 | 1.495 -> 1.510 | 179698 -> 181808 |
+| Body continuations / 4 | 1.305 -> 1.275 | 1.665 -> 1.585 | 204648 -> 204044 |
+| Runtime type values / 1 | 1.590 -> 1.585 | 1.560 -> 1.565 | 178192 -> 178326 |
+| Runtime type values / 4 | 1.370 -> 1.345 | 1.685 -> 1.645 | 193104 -> 198200 |
+
+The two small graph cases show a modest 2.5-3% serial wall cost; do not describe
+this as a universal speedup. Larger-body and type-value serial medians change
+by less than 1%. Current four-worker wall medians improve 1.12-1.20x over current
+serial, with roughly 4-7% extra CPU and 11-12% additional process RSS. Compared
+with the baseline, the largest median RSS increase is about 2.8% in four-worker
+type bindings. These are whole-compiler comparisons across the integrated
+changes, not isolated attribution to one handler. Existing checked worker
+overlap/ownership tests and zero-retention type loops provide separate evidence;
+CLI timings alone do not establish per-phase overlap, idle time or race freedom.
+
+Inputs, host metadata, raw phase/CPU/wall/RSS samples and final identity checks
+are in L2/logs/type_pairs_* and type_pairs_649a1c1/. Both owned sessions drain
+successfully before the host slot is released. A1's newer source-root/capture-range
+changes are deliberately not in this frozen production snapshot. Their final
+coherent validation, supported positive sanitizer/stress passes, public-bootstrap
+closure and leased atomic deployment remain required.

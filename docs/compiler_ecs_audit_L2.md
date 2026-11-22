@@ -399,3 +399,35 @@ large actual-function measurement is still required before any scaling claim.
 Final equivalent performance, supported sanitizer/stress, bootstrap pin and
 integrated browser/publication evidence remain open. D1's narrow recursion oracle
 is adopted after the passing freeze and awaits its own type-smoke execution.
+
+## Frozen performance receipt and profile file audit
+
+The source snapshot is now local commit 649a1c1219e0010b7788f1a44d8f20c585329c94.
+D1's narrow recursion oracle subsequently passes type smoke (40.64 s wall /
+45.42 s CPU / 252616 KiB). The editor-import correction exposes another actual
+body-worker abort on L1's newer snapshot; editor acceptance stays open.
+
+| New owned file | Storage, scheduling and ownership review | Evidence |
+| --- | --- | --- |
+| tests/type_reachability_profile.tower | Reuses execution sessions, shared type-object predicate and canonical formatter. Generated programs own their normal checked graphs; timed queries stay serial and read-only. Invocation-local source/report buffers and format results close lexically; execution_close_checked verifies request ownership. Linux x64 rusage is an explicit measurement ABI. No new graph, allocator, scheduler or all/CTest work is added. | Public-pin smallest unit passes; exact helper 05a442e passes all 16/256/1000-function output/canonical/count/close checks. Three warmed samples of 256 queries per size. |
+
+At 16/256/1000 functions, median query wall time is 11.233/318.443/2906.145 us.
+This confirms quadratic function-vector cost. Retain the small implementation at
+the measured sizes; no constant-time or scalable-throughput claim is made.
+All samples retain the same entity/component counts. Peak RSS includes the
+checked source programs; transient allocation counts are not measured.
+
+Four balanced before/after pairs per fixture/worker setting compare preserved
+compiler 37ca7a with 0b6c90, identical complete adjacent resources, explicit
+frozen grammar/source inputs and warm filesystem caches. All 80 processes
+(including 16 warmups) exit zero and print the exact expected zero. Serial
+binding/computed medians rise about 2.5-3%; large-body/runtime-type medians change
+by under 1%. Current four-worker medians improve 1.12-1.20x over current serial
+with roughly 4-7% extra CPU and 11-12% additional RSS. Maximum median RSS increase
+versus the older compiler is about 2.8%. The journal records every wall/CPU/RSS
+median and raw evidence paths. These integrated measurements do not isolate a
+single handler or prove per-phase overlap.
+
+The newer A1 source-root/capture-range successor is outside this frozen receipt.
+Its coherent validation, supported positive sanitizer/stress checks, clean public
+bootstrap, browser release and leased atomic publication remain required.
