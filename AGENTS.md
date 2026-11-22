@@ -12,6 +12,9 @@ Do NOT modify todo.txt
 - Use the established deployment process and verify the published result. If a
   pull, rebase, deployment or push is blocked, report the specific blocker;
   never claim an unfinished step succeeded or force-push to bypass it.
+- Require deployment source/build commits to be reachable from the `main` being
+  published; push both refs together with `git push --atomic origin main
+  <deployment-commit>:refs/heads/gh-pages`, then verify the asynchronous Pages deployment.
 - Never push compiler sources that require a newer bootstrap unless that bootstrap
   is already available through the repository's documented build path. Implement
   new syntax using the previous language first, build and validate a successor,

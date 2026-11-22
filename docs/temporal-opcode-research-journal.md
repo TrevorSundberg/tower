@@ -45745,3 +45745,11 @@ per-width arithmetic duplication. Keep all built-in definitions in types.tower
 until it becomes unwieldy; this supersedes the earlier one-file-per-type preference.
 Finish and publish this identity checkpoint first, then consolidate the prelude
 and implement that full protocol. Neither task is represented as already complete.
+
+Publication audit found gh-pages b40bb382 naming source f34b73a and build e9d2bfab,
+neither present in this checkout's main history; fetching f34b73a directly also
+returned "not our ref". The bundled compiler project contains additional Bedrock
+seed/inspection changes. Do not overwrite those changes with an older runtime.
+At the user's request, AGENTS.md now requires source/build commits reachable from
+the main being published and one atomic push of main plus gh-pages. This makes ref
+publication transactional; GitHub Pages remains asynchronous and must be verified.
