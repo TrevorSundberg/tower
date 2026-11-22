@@ -704,17 +704,6 @@ fn sem_function_finish(c: SemanticContext*, n: void*, cursor: SemanticBlockCurso
     }
 }
 
-fn sem_function_body(c: SemanticContext*, n: void*): void {
-    var cursor: SemanticBlockCursor;
-    if !sem_function_begin(c, n, &cursor) {
-        return;
-    }
-    while cursor.next < sem_child_count(cursor.subject) && sem_ok(c) {
-        sem_block_step(c, &cursor);
-    }
-    sem_function_finish(c, n, &cursor);
-}
-
 fn sem_run(c: SemanticContext*): void {
     sem_attributes_declarations(c);
     sem_validate_aliases(c);

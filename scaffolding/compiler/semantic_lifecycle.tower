@@ -6,9 +6,11 @@ import foundation_types;
 import semantic_context;
 import semantic_definitions;
 import semantic_statements;
+import semantic_body_work;
 import semantic_defer;
 import semantic_support;
 import semantic_expression_lowering;
+import semantic_lowering_work;
 import semantic_layout;
 import semantic_evaluation;
 import semantic_flow;
@@ -65,6 +67,8 @@ fn sem_context_init(c: SemanticContext*, program: SemanticProgram*): void {
 
 fn sem_context_dispose(c: SemanticContext*): void {
     sem_layout_dispose(c);
+    sem_body_pipeline_dispose(c);
+    sem_lower_dispose(c);
     sem_evaluation_dispose(c);
     vector_dispose(&c.flow_dependencies);
     sem_declaration_dispose(c);

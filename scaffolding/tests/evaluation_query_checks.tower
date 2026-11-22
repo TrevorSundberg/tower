@@ -8,16 +8,161 @@ import .compiler.semantic_lifecycle;
 import .compiler.semantic_evaluation;
 import .compiler.semantic_evaluation_work;
 import .compiler.semantic_declarations;
+import .compiler.semantic_body_work;
+import .compiler.semantic_lowering_work;
+import .compiler.component_kinds;
+import .compiler.parser_types;
 import .compiler.semantic_work_ids;
 import .compiler.compiler_kernel;
 import .library.work_graph;
 import .library.work_pool;
+import .library.vector;
 
 extern fn compiler_world_create_workers(limit: usize): void*;
 extern fn compiler_world_store(world: void*): void*;
 extern fn compiler_world_dispose(world: void*): bool;
 extern fn entity_create(store: void*): void*;
 extern fn puts(text: u8*): i32;
+extern fn compiler_world_component(world: void*, node: void*, kind: u32): void*;
+extern fn node_match_set_label(value: ParserMatchData*, label: u8*): bool;
+
+enum BodyQueryFixture: u32 { Resume, Cycle, Cancel, InvalidBody, LaterWindow }
+var BodyQueryFixtureCount: usize = 4;
+var BodyQueryWindowCount: usize = BodyPreparationWindow + 1;
+
+// A small real CoreBlock tree avoids reparsing a grammar for scheduler tests.
+// Its declared void header is published separately, then ordinary discovery and
+// body kernels must execute, join and retire the same ECS continuation once.
+fn body_query_tests(width: u32, workers: usize, mode: BodyQueryFixture): u32 {
+    var failures: u32 = 0;
+    var world = compiler_world_create_workers(workers);
+    var root = entity_create(compiler_world_store(world));
+    var program: SemanticProgram = default;
+    semantic_initialize(&program, root, width);
+    var context: SemanticContext = default;
+    sem_context_init(&context, &program);
+    context.generics = generic_begin(root);
+    var headers: vector(usize) = default;
+    defer vector_dispose(&headers);
+    var count = mode == BodyQueryFixture.LaterWindow ? BodyQueryWindowCount : BodyQueryFixtureCount;
+    for(var i: usize = 0; i < count; i++) {
+        var subject = sem_create(root);
+        var function = sem_attach(subject, KFunction);
+        function.type.scalar = SVoid;
+        function.type.pointer_bytes = width;
+        function.index = program.functions.length;
+        sem_push(&program.functions, subject);
+        var block = sem_create(subject);
+        function.body = block;
+        sem_require(entity_attach(block, subject, "body"));
+        var syntax = bits(ParserMatchData*, compiler_world_component(world, block, CompilerParserMatch));
+        sem_require(node_match_set_label(syntax, mode == BodyQueryFixture.InvalidBody && i == 0 ? "UnsupportedBlock" : "CoreBlock"));
+        var header = work_request(&context.queries, subject, DeclarationQuery, 0);
+        var declaration = sem_declaration_state(&context, subject);
+        declaration.subject = subject;
+        declaration.query = header;
+        sem_require(work_seal(&context.queries, header));
+        sem_require(vector_push(&headers, header));
+    }
+    evaluation_query_check(sem_bodies_pump(&context) == SemanticPumpResult.Progress,
+        "Body admission persists its source frontier before checking", &failures);
+    var state = sem_body_pipeline(&context);
+    if mode == BodyQueryFixture.LaterWindow {
+        evaluation_query_check(sem_bodies_pump(&context) == SemanticPumpResult.Progress
+            && sem_bodies_pump(&context) == SemanticPumpResult.Progress,
+            "A blocked source window admits later function producers", &failures);
+    }
+    if mode == BodyQueryFixture.Resume {
+        context.surface_expressions = true;
+        var snapshot = work_request(&context.queries, root, convert(u32, SemanticQuery.KnownSnapshot), 0);
+        sem_require(work_seal(&context.queries, snapshot));
+        evaluation_query_check(sem_lower_pump(&context, false) == SemanticPumpResult.Waiting,
+            "Lowering cannot mutate expressions before inferred captures are cloned", &failures);
+        var ticket: WorkTicket = default;
+        sem_require(work_take_task(&context.queries, &ticket, snapshot));
+        sem_require(work_finish(&context.queries, &ticket, true));
+        evaluation_query_check(sem_lower_pump(&context, false) == SemanticPumpResult.Progress
+            && sem_lower_pump(&context, false) == SemanticPumpResult.Waiting,
+            "Lowering publishes a ready root while function bodies remain suspended", &failures);
+    }
+    if mode == BodyQueryFixture.Cycle {
+        var ticket: WorkTicket = default;
+        sem_require(work_take_task(&context.queries, &ticket, headers.data[0]));
+        var body = work_find(&context.queries, program.functions.data[1], BodyQuery, 0);
+        sem_require(work_suspend(&context.queries, &ticket, body));
+    }
+    evaluation_query_check(sem_bodies_pump(&context) == SemanticPumpResult.Waiting
+        && program.error.length == 0 && context.workers.running == 0
+        && state.batch.length == count,
+        "Body checking yields without forcing headers or prematurely selecting a cycle", &failures);
+    // This structural write also verifies that no input view survives the pump.
+    var marker = sem_create(root);
+    sem_attach(marker, KOperand);
+    if mode == BodyQueryFixture.Resume || mode == BodyQueryFixture.InvalidBody || mode == BodyQueryFixture.LaterWindow {
+        if mode == BodyQueryFixture.LaterWindow {
+            var ticket: WorkTicket = default;
+            sem_require(work_take_task(&context.queries, &ticket, headers.data[count - 1]));
+            sem_require(work_finish(&context.queries, &ticket, true));
+            evaluation_query_check(sem_bodies_pump(&context) == SemanticPumpResult.Progress
+                && work_task(&context.queries, work_find(&context.queries, program.functions.data[count], BodyQuery, 0)).state == WorkState.Succeeded
+                && work_task(&context.queries, work_find(&context.queries, program.functions.data[1], BodyQuery, 0)).state == WorkState.Waiting,
+                "A ready body beyond the original window executes while earlier headers wait", &failures);
+        }
+        foreach(var header in &headers) {
+            if work_task(&context.queries, header).state == WorkState.Succeeded { continue; }
+            var ticket: WorkTicket = default;
+            sem_require(work_take_task(&context.queries, &ticket, header));
+            sem_require(work_finish(&context.queries, &ticket, true));
+        }
+        var outcome = sem_bodies_pump(&context);
+        if mode == BodyQueryFixture.InvalidBody {
+            evaluation_query_check(outcome == SemanticPumpResult.Failed && program.error.length != 0
+                && sem_equal(program.error.data, "Expected a CoreBlock tree") && context.workers.running == 0,
+                "Malformed bodies fail through joined discovery components", &failures);
+        } else {
+            evaluation_query_check(outcome == SemanticPumpResult.Progress
+                && program.error.length == 0 && context.workers.running == 0,
+                "Published headers resume real body discovery and checking kernels", &failures);
+            if mode == BodyQueryFixture.Resume {
+                var lowering_kind = context.lowering_results;
+                evaluation_query_check(sem_lower_pump(&context, false) == SemanticPumpResult.Progress
+                    && sem_lower_pump(&context, false) == SemanticPumpResult.Complete
+                    && context.lowering_results == lowering_kind && context.workers.running == 0,
+                    "Body receipts release existing lowering components without replaying the root", &failures);
+                var root_lowering = work_find(&context.queries, root, convert(u32, SemanticQuery.Lowering), 0);
+                evaluation_query_check(work_task(&context.queries, root_lowering).dispatch == 1,
+                    "Repeated lowering pumps execute the completed root only once", &failures);
+            }
+            foreach(var header in &headers) {
+                var subject = work_task(&context.queries, header).subject;
+                var body = work_find(&context.queries, subject, BodyQuery, 0);
+                evaluation_query_check(work_task(&context.queries, body).state == WorkState.Succeeded
+                    && work_task(&context.queries, body).dispatch == 1 && sem_get(subject).body != null,
+                    "Resumed body publishes exactly once", &failures);
+            }
+            evaluation_query_check(sem_bodies_pump(&context) == SemanticPumpResult.Complete
+                && sem_bodies_pump(&context) == SemanticPumpResult.Complete
+                && sem_body_pipeline(&context) == state && state.batch.length == 0,
+                "Completed body pipeline keeps its identity without replay", &failures);
+        }
+    } else {
+        if mode == BodyQueryFixture.Cycle {
+            sem_body_pipeline_finish(&context);
+            evaluation_query_check(program.error.length != 0
+                && sem_equal(program.error.data, "Body checking dependency cycle"),
+                "Quiescent body/header cycle is diagnosed by the shared graph", &failures);
+        } else {
+            work_cancel(&context.queries);
+            evaluation_query_check(sem_bodies_pump(&context) == SemanticPumpResult.Failed
+                && context.workers.running == 0, "Cancelled body pipeline has no outstanding worker borrow", &failures);
+        }
+    }
+    sem_context_dispose(&context);
+    semantic_program_dispose(&program);
+    entity_release(root);
+    evaluation_query_check(compiler_world_dispose(world), "Suspended body pipeline releases its work and world", &failures);
+    return failures;
+}
 
 fn evaluation_query_check(ok: bool, message: u8*, failures: u32*): void {
     if !ok { puts(message); *failures += 1; }
@@ -50,6 +195,11 @@ fn evaluation_query_stage(c: SemanticContext*, input: void*, requested: bool): S
 // acquire executable nodes; pumping a completed graph must not replay work.
 export fn evaluation_query_tests(width: u32, workers: usize): u32 {
     var failures: u32 = 0;
+    failures += body_query_tests(width, workers, BodyQueryFixture.Resume);
+    failures += body_query_tests(width, workers, BodyQueryFixture.Cycle);
+    failures += body_query_tests(width, workers, BodyQueryFixture.Cancel);
+    failures += body_query_tests(width, workers, BodyQueryFixture.InvalidBody);
+    failures += body_query_tests(width, workers, BodyQueryFixture.LaterWindow);
     var world = compiler_world_create_workers(workers);
     var root = entity_create(compiler_world_store(world));
     var program: SemanticProgram = default;

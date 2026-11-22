@@ -44079,3 +44079,50 @@ build/worker_fixture_rebased_{build,backend_build,archive}.log. Unchanged fronte
 and published browser fixture evidence is reused. The upstream Mach-O candidate
 is not connected to production; its platform execution remains the owner's work.
 This integration check does not replace the hosted 23b919ef runtime assets.
+### 2026-11-22 — Persistent body and lowering query continuations
+
+Rebase this work onto cf6b204 and the published 18664657 Linux x64 development
+bootstrap. Body admission/checking now retain their coordinator continuation on
+the program entity. Bounded pumps return waiting without throwing away lexical
+scratch, replaying checked statements or forcing unfinished headers. A blocked
+256-body source window admits later producers; ready dispatch stays bounded.
+The ordinary body entry point drains these pumps and services declaration and
+already-demanded interpreter inputs before diagnosing a quiescent dependency.
+Cycles use the shared graph; an acyclic unfinished producer has a separate error.
+
+Discovery now selects all tickets before dispatch, freezes its context, joins
+workers and publishes receipts before another phase runs. This fixes graph
+mutation during discovery dispatch. Malformed bodies also use that worker path;
+remove the obsolete whole-function serial checker and its structural adapter.
+Aggregate preparation and expression lowering retain per-function work components
+and expose bounded pumps, registering newly available bodies without replaying
+published functions. Context disposal releases suspended work after pool shutdown.
+
+Add a KnownSnapshot join over the existing immutability proof and inferred-value
+clone queries. Lowering depends on that receipt instead of an implicit phase-order
+assumption while expressions still borrow runtime nodes. The join is demanded
+after clone producer registration, avoiding premature demand of unsealed work.
+There is no new evaluator or initializer-as-constant shortcut.
+
+Focused checks use Docker tower-parser-retirement and native cache
+/tmp/tower-home/.cache/tower/ecs-local-query-new-pin. query-smoke exercises the
+actual discovery/body/lowering kernels at target widths 4/8 and worker counts
+1/4: unresolved headers, resumption, no replay, capture-snapshot waits, a genuine
+header/body cycle, cancellation, malformed bodies and a ready 257th body beyond
+a blocked window. All pass. control-smoke and type-smoke pass parsed programs,
+canonical reparsing, serial/threaded behavior and ordered failures. The inferred
+known-bindings fixture prints 0 through both interpreters. Small changed units
+compile through the public bootstrap. Logs are body-pipeline-native.log,
+body-pipeline-query-fixed.log, body-lowering-pipeline-native.log,
+pipeline-snapshot-native.log, body-admission-unified.log and body-window-query.log
+under build/language-next-audit/. Initial focused builds caught missing direct
+imports in lifecycle/test code; a synthetic test header also needed the ordinary
+declaration component so discovery could observe its dependency. Correct these
+before the passing runs. No sanitizers or broad formatting passes.
+
+This is a connected production scheduler milestone, not completion of the whole
+compiler conversion. Structural body preparation still drains nested declaration
+work, and the top-level declaration/body/proof pipeline still has phase barriers.
+Early executed helper calls and ordinary captures in type arguments therefore
+remain unsupported; removing their diagnostic before those producers can suspend
+would be incorrect. Publication checks and the next integration follow below.

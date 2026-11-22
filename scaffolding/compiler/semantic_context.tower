@@ -130,9 +130,12 @@ struct SemanticContext {
     declaration_isolated: bool;
     prepared_calls: void*;
     aggregate_signatures: void*;
+    aggregate_preparations: void*;
+    lowering_results: void*;
     known_bindings: void*;
     value_inputs: void*;
     body_demands: void*;
+    body_pipeline: void*;
     body_seen: SemanticTable*;
     generic_copies: void*;
     type_constructors: void*;

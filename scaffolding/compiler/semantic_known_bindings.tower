@@ -212,7 +212,26 @@ fn sem_known_infer(c: SemanticContext*): void {
         result.expression = sem_get(node).value;
         c.surface_expressions = true;
     }
+    // Lowering consumes this joined receipt, rather than relying on a hidden
+    // phase-order rule while inferred expressions still borrow runtime nodes.
+    // One shared edge per function avoids a functions-times-captures graph.
+    var snapshot = work_request(&c.queries, c.program.root, convert(u32, SemanticQuery.KnownSnapshot), 0);
+    sem_require(work_depend(&c.queries, snapshot, proof));
+    foreach(var job in &c.evaluation_jobs) {
+        var evaluation = bits(SemanticEvaluation*, job);
+        if !evaluation.inferred { continue; }
+        var clone = work_find(&c.queries, evaluation.subject, convert(u32, SemanticQuery.KnownClone), 0);
+        sem_require(clone != 0 && work_depend(&c.queries, snapshot, clone));
+    }
+    sem_require(work_seal(&c.queries, snapshot));
     sem_evaluation_clone_all(c);
+    if sem_ok(c) {
+        // Clone registration seals its producers before this join is demanded.
+        sem_require(work_demand(&c.queries, snapshot));
+        var ticket: WorkTicket = default;
+        sem_require(work_take_task(&c.queries, &ticket, snapshot));
+        sem_require(work_finish(&c.queries, &ticket, true));
+    }
 }
 
 fn sem_known_publish(c: SemanticContext*): void {

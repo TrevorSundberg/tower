@@ -8,6 +8,7 @@ import semantic_expression_lowering;
 import semantic_aggregates;
 import semantic_defer;
 import semantic_evaluation;
+import semantic_declarations;
 import semantic_work_ids;
 import .library.vector;
 import .library.stack;
@@ -78,21 +79,43 @@ fn sem_lower_parallel(c: SemanticContext*): void {
 }
 
 fn sem_lower_transform(c: SemanticContext*, signature: bool): void {
-    if !sem_ok(c) || (!signature && !c.surface_expressions && !c.has_defer) { return; }
+    var outcome = sem_lower_pump(c, signature);
+    while outcome == SemanticPumpResult.Progress { outcome = sem_lower_pump(c, signature); }
+    if outcome != SemanticPumpResult.Waiting { return; }
+    // This compatibility entry owns the complete phase. A pipeline coordinator
+    // uses the pump directly and services other producers before finalization.
+    var query = convert(u32, signature ? SemanticQuery.AggregatePrepare : SemanticQuery.Lowering);
+    foreach(var subject in &c.program.functions) {
+        var id = work_find(&c.queries, subject, query, 0);
+        if id == 0 || work_task(&c.queries, id).state == WorkState.Succeeded { continue; }
+        if sem_declaration_failure(c, id) { return; }
+        var cycle: vector(usize) = default;
+        defer vector_dispose(&cycle);
+        sem_fail(c, subject, work_cycle(&c.queries, id, &cycle)
+            ? "Lowering dependency cycle" : "Lowering is waiting for an unfinished compiler query");
+        return;
+    }
+}
+
+// Stable per-function components allow newly ready bodies to join the same
+// phase without rebuilding jobs or lowering previously published functions.
+fn sem_lower_register(c: SemanticContext*, signature: bool): void* {
+    var kind = signature ? &c.aggregate_preparations : &c.lowering_results;
+    if !sem_ok(c) || (!signature && !c.surface_expressions && !c.has_defer) { return *kind; }
     // Source spellings and names produced by earlier control lowering are frozen
     // before dispatch. Every function owns its generated-name table and prefix.
     sem_control_names(c);
-    var kind: void* = null;
     var query_kind = convert(u32, signature ? SemanticQuery.AggregatePrepare : SemanticQuery.Lowering);
     for(var i: usize = 0; i < c.program.functions.length; ++i) {
         var subject = c.program.functions.data[i];
         var block = i == 0 ? subject : sem_get(subject).body;
         if block == null { continue; }
         if signature && (i == 0 || !sem_aggregate_needed(subject)) { continue; }
-        if kind == null {
-            kind = sem_create(c.program.root);
-            sem_require(entity_register(kind, sizeof(SemanticLowering), alignof(SemanticLowering), 0));
+        if *kind == null {
+            *kind = sem_create(c.program.root);
+            sem_require(entity_register(*kind, sizeof(SemanticLowering), alignof(SemanticLowering), 0));
         }
+        if entity_component_get(subject, *kind) != null { continue; }
         if signature {
             if c.aggregate_signatures == null {
                 c.aggregate_signatures = sem_create(c.program.root);
@@ -102,10 +125,9 @@ fn sem_lower_transform(c: SemanticContext*, signature: bool): void {
             sem_require(metadata != null);
             *metadata = default;
         }
-        var result = bits(SemanticLowering*, entity_component_data(entity_component_add(subject, kind)));
+        var result = bits(SemanticLowering*, entity_component_data(entity_component_add(subject, *kind)));
         sem_require(result != null);
         fill(result, 0, sizeof(SemanticLowering));
-        result.context = c;
         result.subject = subject;
         result.block = block;
         result.ordinal = i;
@@ -116,6 +138,8 @@ fn sem_lower_transform(c: SemanticContext*, signature: bool): void {
         sem_require(id != 0);
         var body = work_find(&c.queries, subject, convert(u32, SemanticQuery.Body), 0);
         if body != 0 { sem_require(work_depend(&c.queries, id, body)); }
+        var snapshot = work_find(&c.queries, c.program.root, convert(u32, SemanticQuery.KnownSnapshot), 0);
+        if snapshot != 0 { sem_require(work_depend(&c.queries, id, snapshot)); }
         if !signature {
             var preparation = work_find(&c.queries, subject, convert(u32, SemanticQuery.AggregatePrepare), 0);
             if preparation != 0 { sem_require(work_depend(&c.queries, id, preparation)); }
@@ -133,13 +157,20 @@ fn sem_lower_transform(c: SemanticContext*, signature: bool): void {
         sem_require(work_seal(&c.queries, id));
         sem_require(work_demand(&c.queries, id));
     }
-    if kind == null { return; }
-    if signature { c.surface_expressions = true; }
+    if signature && *kind != null { c.surface_expressions = true; }
+    return *kind;
+}
+
+fn sem_lower_pump(c: SemanticContext*, signature: bool): SemanticPumpResult {
+    if !sem_ok(c) || !work_ok(&c.queries) { return SemanticPumpResult.Failed; }
+    var kind = sem_lower_register(c, signature);
+    if kind == null { return SemanticPumpResult.Complete; }
+    var query_kind = convert(u32, signature ? SemanticQuery.AggregatePrepare : SemanticQuery.Lowering);
     if c.workers.count == 0 { sem_require(sem_workers_open(c)); }
     var batch: vector(SemanticLowering*) = default;
     defer vector_dispose(&batch);
     sem_require(vector_reserve(&batch, SemanticPreparationWindow));
-    while sem_ok(c) {
+    {
         var count: usize = 0;
         var ticket: WorkTicket;
         while count < SemanticPreparationWindow && work_take_query(&c.queries, &ticket, query_kind) {
@@ -159,7 +190,9 @@ fn sem_lower_transform(c: SemanticContext*, signature: bool): void {
             batch.data[count] = result;
             count++;
         }
-        if count == 0 { break; }
+        if count == 0 {
+            return sem_query_pending(c, query_kind) ? SemanticPumpResult.Waiting : SemanticPumpResult.Complete;
+        }
         var view = entity_view_open(kind);
         sem_require(view != null);
         var context = *c;
@@ -200,9 +233,23 @@ fn sem_lower_transform(c: SemanticContext*, signature: bool): void {
             vector_dispose(&result.evaluation_aliases);
         }
     }
-    for(var i: usize = 0; i < c.program.functions.length; ++i) {
-        var data = entity_component_data(entity_component_get(c.program.functions.data[i], kind));
-        if data != null { bits(SemanticLowering*, data).context = null; }
-    }
+    return sem_ok(c) ? SemanticPumpResult.Progress : SemanticPumpResult.Failed;
+}
 
+fn sem_lower_dispose_kind(kind: void*): void {
+    if kind == null { return; }
+    for(var i: usize = 0; i < entity_query_count(kind); i++) {
+        var result = bits(SemanticLowering*, entity_component_data(entity_query_at(kind, i)));
+        sem_require(result.stage == null);
+        result.context = null;
+        vector_dispose(&result.error);
+        vector_dispose(&result.query_reads);
+        vector_dispose(&result.evaluation_aliases);
+    }
+}
+
+fn sem_lower_dispose(c: SemanticContext*): void {
+    sem_require(c.workers.running == 0);
+    sem_lower_dispose_kind(c.aggregate_preparations);
+    sem_lower_dispose_kind(c.lowering_results);
 }
