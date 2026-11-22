@@ -1,0 +1,3 @@
+import tower;
+export fn elf_answer(): i32 { return 42; }
+export fn pe_probe(data: u8*, size: usize): i32 { return convert(i32, data[0]) + convert(i32, data[size - 1]); }

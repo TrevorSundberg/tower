@@ -56,9 +56,22 @@ fn backend_test_elf_plan(): bool {
     return link.generated.length == 0 && link.arguments.length == 0;
 }
 
+fn backend_test_pe_plan(): bool {
+    var link = backend_link_create(); if link == null { return false; }
+    defer backend_link_close(link);
+    var object: u8[2] = default; object[0] = 42;
+    if !backend_link_plan(link, "x86_64-pc-windows-msvc", null, 0, &object[0], sizeof(u8[2]), null, 0) { return false; }
+    var generated_count: usize = 2;
+    if link.file_plan || link.generated.length != generated_count || !backend_equal(link.arguments.data[0], "tower-pe-link") { return false; }
+    object[0] = 7;
+    if link.generated.data[0].bytes.data[0] != 42 || !backend_equal(link.generated.data[1].name.data, "tower-stack-probe.lib") { return false; }
+    backend_link_reset_plan(link);
+    return link.generated.length == 0 && link.arguments.length == 0;
+}
+
 export fn backend_tests(): i32 {
     var plan_failure: i32 = 91;
-    if !backend_test_wasm_plan() || !backend_test_elf_plan() { return plan_failure; }
+    if !backend_test_wasm_plan() || !backend_test_elf_plan() || !backend_test_pe_plan() { return plan_failure; }
     var foreign_failures = foreign_tests();
     if foreign_failures != 0 {
         return 90;

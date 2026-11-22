@@ -1,0 +1,165 @@
+import tower;
+import pe_types;
+import pe_link_layout;
+import pe_link_jobs;
+import pe_link_symbols;
+import elf_types;
+import wasm_bytes;
+import .library.vector;
+
+enum PeOptionalAt: u64 { Magic = 0, CodeSize = 4, DataSize = 8, Entry = 16, Code = 20, ImageBase = 24, SectionAlign = 32, FileAlign = 36, OsVersion = 40, SubsystemVersion = 48, ImageSize = 56, Headers = 60, Subsystem = 68, DllFlags = 70, StackReserve = 72, StackCommit = 80, HeapReserve = 88, HeapCommit = 96, DirectoryCount = 108, Directories = 112 }
+enum PeDirectory: u64 { Export = 0, Import = 1, Exception = 3, Relocation = 5, Iat = 12 }
+enum PeExportAt: u64 { Name = 12, Base = 16, Functions = 20, Names = 24, AddressTable = 28, NameTable = 32, OrdinalTable = 36 }
+var PeDirectoryBytes: u64 = 8;
+var PeDirectoryCount: u64 = 16;
+var PeDosMagic: u64 = 23117;
+var PeSignature: u64 = 17744;
+var PeDosPointerAt: u64 = 60;
+var PeMagic64: u64 = 523;
+var PeExecutableLarge: u64 = 34;
+var PeConsole: u64 = 3;
+var PeNxDynamicHigh: u64 = 352;
+var PeVersion: u64 = 6;
+var PeReserve: u64 = 1048576;
+var PeCommit: u64 = 4096;
+var PeIndirectJump: u64 = 9727;
+
+fn pe_directory(link: PeLink*, kind: PeDirectory, rva: u64, size: u64): void {
+    var at = PeDosBytes + PeSignatureBytes + PeObjectHeaderBytes + convert(u64, PeOptionalAt.Directories) + convert(u64, kind) * PeDirectoryBytes;
+    elf_put(link.output.data, at, PeWord, rva); elf_put(link.output.data, at + PeWord, PeWord, size);
+}
+fn pe_emit_headers(link: PeLink*): bool {
+    var out = link.output.data; var header = PeDosBytes + PeSignatureBytes; var optional = header + PeObjectHeaderBytes;
+    elf_put(out, 0, PeHalf, PeDosMagic); elf_put(out, PeDosPointerAt, PeWord, PeDosBytes); elf_put(out, PeDosBytes, PeSignatureBytes, PeSignature);
+    elf_put(out, header + convert(u64, PeObjectAt.Machine), PeHalf, PeMachineX64);
+    elf_put(out, header + convert(u64, PeObjectAt.Sections), PeHalf, convert(u64, link.sections.length));
+    elf_put(out, header + convert(u64, PeObjectAt.Optional), PeHalf, PeOptionalBytes);
+    elf_put(out, header + convert(u64, PeObjectAt.Flags), PeHalf, PeExecutableLarge);
+    elf_put(out, optional + convert(u64, PeOptionalAt.Magic), PeHalf, PeMagic64);
+    var entry = pe_link_lookup(link, link.entry);
+    if entry == null || entry.section <= 0 || (link.objects.data[entry.object].object.sections.data[convert(usize, entry.section - 1)].flags & PeExecute) == 0 {
+        return pe_fail(&link.error, PeError.Unsupported, link.entry, 0);
+    }
+    elf_put(out, optional + convert(u64, PeOptionalAt.Entry), PeWord, entry.rva);
+    elf_put(out, optional + convert(u64, PeOptionalAt.Code), PeWord, link.sections.data[convert(usize, link.text_index)].rva);
+    elf_put(out, optional + convert(u64, PeOptionalAt.ImageBase), PeAddress, PeImageBase);
+    elf_put(out, optional + convert(u64, PeOptionalAt.SectionAlign), PeWord, PePage);
+    elf_put(out, optional + convert(u64, PeOptionalAt.FileAlign), PeWord, PeFileAlign);
+    elf_put(out, optional + convert(u64, PeOptionalAt.OsVersion), PeHalf, PeVersion);
+    elf_put(out, optional + convert(u64, PeOptionalAt.SubsystemVersion), PeHalf, PeVersion);
+    elf_put(out, optional + convert(u64, PeOptionalAt.ImageSize), PeWord, link.image_size);
+    elf_put(out, optional + convert(u64, PeOptionalAt.Headers), PeWord, link.headers);
+    elf_put(out, optional + convert(u64, PeOptionalAt.Subsystem), PeHalf, PeConsole);
+    elf_put(out, optional + convert(u64, PeOptionalAt.DllFlags), PeHalf, PeNxDynamicHigh);
+    elf_put(out, optional + convert(u64, PeOptionalAt.StackReserve), PeAddress, PeReserve);
+    elf_put(out, optional + convert(u64, PeOptionalAt.StackCommit), PeAddress, PeCommit);
+    elf_put(out, optional + convert(u64, PeOptionalAt.HeapReserve), PeAddress, PeReserve);
+    elf_put(out, optional + convert(u64, PeOptionalAt.HeapCommit), PeAddress, PeCommit);
+    elf_put(out, optional + convert(u64, PeOptionalAt.DirectoryCount), PeWord, PeDirectoryCount);
+    var code: u64 = 0; var data: u64 = 0;
+    for (var index: usize = 0; index < link.sections.length; index++) {
+        var section = &link.sections.data[index]; var at = optional + PeOptionalBytes + convert(u64, index) * PeSectionBytes;
+        copy(out + convert(usize, at), section.name.data, section.name.length);
+        elf_put(out, at + convert(u64, PeSectionAt.VirtualSize), PeWord, section.size);
+        elf_put(out, at + convert(u64, PeSectionAt.Address), PeWord, section.rva);
+        elf_put(out, at + convert(u64, PeSectionAt.Size), PeWord, section.file_size);
+        elf_put(out, at + convert(u64, PeSectionAt.Data), PeWord, section.output);
+        elf_put(out, at + convert(u64, PeSectionAt.Flags), PeWord, convert(u64, section.flags));
+        if (section.flags & PeCode) != 0 { code += section.file_size; } else { data += section.file_size; }
+    }
+    elf_put(out, optional + convert(u64, PeOptionalAt.CodeSize), PeWord, code);
+    elf_put(out, optional + convert(u64, PeOptionalAt.DataSize), PeWord, data); return true;
+}
+fn pe_emit_imports(link: PeLink*): void {
+    if link.imports.length == 0 { return; }
+    var section = &link.sections.data[convert(usize, link.import_index)]; var text = &link.sections.data[convert(usize, link.text_index)]; var out = link.output.data;
+    var name_at: u64 = 12; var iat_at: u64 = 16;
+    for (var index: usize = 0; index < link.dlls.length; index++) {
+        var dll = &link.dlls.data[index]; var at = section.output + convert(u64, index) * PeImportDescriptorBytes;
+        elf_put(out, at, PeWord, section.rva + dll.lookup); elf_put(out, at + name_at, PeWord, section.rva + dll.offset);
+        elf_put(out, at + iat_at, PeWord, section.rva + dll.iat);
+        copy(out + convert(usize, section.output + dll.offset), dll.name.data, dll.name.length);
+        var count: u64 = 0;
+        foreach (var & entry in &link.imports) {
+            var value = entry.value; if value.group != index { continue; }
+            elf_put(out, section.output + dll.lookup + count++ * PeAddress, PeAddress, section.rva + value.hint);
+            elf_put(out, section.output + value.iat, PeAddress, section.rva + value.hint);
+            copy(out + convert(usize, section.output + value.hint + PeHalf), value.name.data, value.name.length);
+            if value.code {
+                var at = text.output + value.thunk;
+                elf_put(out, at, PeHalf, PeIndirectJump);
+                var delta = bits(u64, convert(i64, section.rva + value.iat) - convert(i64, text.rva + value.thunk + PeThunkBytes));
+                elf_put(out, at + PeHalf, PeWord, delta);
+            }
+        }
+    }
+    pe_directory(link, PeDirectory.Import, section.rva, (convert(u64, link.dlls.length) + 1) * PeImportDescriptorBytes);
+    pe_directory(link, PeDirectory.Iat, section.rva + link.iat_begin, link.iat_size);
+}
+fn pe_emit_exports(link: PeLink*): void {
+    if link.exports.length == 0 { return; }
+    var section = &link.sections.data[convert(usize, link.export_index)]; var out = link.output.data + convert(usize, section.output);
+    var count = convert(u64, link.exports.length); var functions = PeExportHeaderBytes; var names = functions + count * PeWord; var ordinals = names + count * PeWord;
+    var cursor = ordinals + count * PeHalf; var dll_name = wasm_text_bytes("tower.exe");
+    elf_put(out, convert(u64, PeExportAt.Name), PeWord, section.rva + cursor); copy(out + convert(usize, cursor), dll_name.data, dll_name.length); cursor += convert(u64, dll_name.length) + 1;
+    elf_put(out, convert(u64, PeExportAt.Base), PeWord, 1); elf_put(out, convert(u64, PeExportAt.Functions), PeWord, count); elf_put(out, convert(u64, PeExportAt.Names), PeWord, count);
+    elf_put(out, convert(u64, PeExportAt.AddressTable), PeWord, section.rva + functions); elf_put(out, convert(u64, PeExportAt.NameTable), PeWord, section.rva + names); elf_put(out, convert(u64, PeExportAt.OrdinalTable), PeWord, section.rva + ordinals);
+    for (var index: usize = 0; index < link.exports.length; index++) {
+        var name = link.exports.data[index]; var symbol = pe_link_lookup(link, name); var at = convert(u64, index);
+        elf_put(out, functions + at * PeWord, PeWord, symbol.rva);
+        elf_put(out, names + at * PeWord, PeWord, section.rva + cursor); elf_put(out, ordinals + at * PeHalf, PeHalf, at);
+        copy(out + convert(usize, cursor), name.data, name.length); cursor += convert(u64, name.length) + 1;
+    }
+    pe_directory(link, PeDirectory.Export, section.rva, section.size);
+}
+struct PeBasePatch { rva: u64; kind: u64; }
+fn pe_emit_relocations(link: PeLink*): bool {
+    if link.reloc_index == PeNoIndex { return true; }
+    var patches: vector(PeBasePatch) = default; defer vector_dispose(&patches);
+    foreach (var & input in &link.objects) {
+        foreach (var & patch in &input.object.patches) {
+            var section = &input.object.sections.data[patch.section];
+            if section.discarded || (patch.kind != PeRelocation.Address64 && patch.kind != PeRelocation.Address32) { continue; }
+            var symbol = input.object.symbols.data[patch.symbol].resolved; if symbol.section == PeAbsolute { continue; }
+            var item: PeBasePatch = { rva: section.rva + patch.offset, kind: patch.kind == PeRelocation.Address64 ? PeBaseRelocationType64 : PeBaseRelocationType32 };
+            if !vector_push(&patches, item) { return false; }
+        }
+    }
+    for (var index: usize = 1; index < patches.length; index++) {
+        var item = patches.data[index]; var cursor = index;
+        while cursor != 0 && patches.data[cursor - 1].rva > item.rva { patches.data[cursor] = patches.data[cursor - 1]; cursor--; }
+        patches.data[cursor] = item;
+    }
+    var section = &link.sections.data[convert(usize, link.reloc_index)]; var out = link.output.data + convert(usize, section.output); var cursor: u64 = 0; var index: usize = 0;
+    while index < patches.length {
+        var page = patches.data[index].rva & ~(PePage - 1); var start = cursor; cursor += PeWord * 2;
+        while index < patches.length && (patches.data[index].rva & ~(PePage - 1)) == page {
+            elf_put(out, cursor, PeHalf, patches.data[index].kind | (patches.data[index].rva - page)); cursor += PeHalf; index++;
+        }
+        cursor = elf_align(cursor, PeWord); elf_put(out, start, PeWord, page); elf_put(out, start + PeWord, PeWord, cursor - start);
+    }
+    if cursor != 0 { pe_directory(link, PeDirectory.Relocation, section.rva, cursor); }
+    return true;
+}
+fn pe_emit_unwind(link: PeLink*): bool {
+    foreach (var & section in &link.sections) {
+        if !wasm_bytes_text(section.name, ".pdata") || section.size == 0 { continue; }
+        if section.size % PeRuntimeFunctionBytes != 0 { return pe_fail(&link.error, PeError.Input, section.name, 0); }
+        var bytes: WasmBytes = { data: link.output.data + convert(usize, section.output), length: convert(usize, section.size) };
+        // RUNTIME_FUNCTION must be sorted by BeginAddress for Windows unwinding.
+        for (var at = PeRuntimeFunctionBytes; at < section.size; at += PeRuntimeFunctionBytes) {
+            var begin = elf_uint(bytes, at, PeWord); var end = elf_uint(bytes, at + PeWord, PeWord); var unwind = elf_uint(bytes, at + PeWord * 2, PeWord); var cursor = at;
+            while cursor != 0 && elf_uint(bytes, cursor - PeRuntimeFunctionBytes, PeWord) > begin {
+                copy(bytes.data + convert(usize, cursor), bytes.data + convert(usize, cursor - PeRuntimeFunctionBytes), convert(usize, PeRuntimeFunctionBytes)); cursor -= PeRuntimeFunctionBytes;
+            }
+            elf_put(bytes.data, cursor, PeWord, begin); elf_put(bytes.data, cursor + PeWord, PeWord, end); elf_put(bytes.data, cursor + PeWord * 2, PeWord, unwind);
+        }
+        pe_directory(link, PeDirectory.Exception, section.rva, section.size);
+    }
+    return true;
+}
+fn pe_link_emit(link: PeLink*): bool {
+    if !pe_layout(link) || !pe_emit_headers(link) || !pe_link_jobs(link) { return false; }
+    pe_emit_imports(link); pe_emit_exports(link);
+    return pe_emit_relocations(link) && pe_emit_unwind(link);
+}

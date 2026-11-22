@@ -266,7 +266,7 @@ export fn backend_link_plan(link: BackendLink*, triple: u8*, functions: void**, 
         backend_link_argument(link, "", "tower-input.o");
         backend_link_argument(link, "", "tower-runtime.o");
     } else {
-        if elf {
+        if elf || windows {
             if !backend_link_generated(link, "tower-input.o", object, object_size) { return false; }
         } else {
             link.file_plan = true;
@@ -275,7 +275,7 @@ export fn backend_link_plan(link: BackendLink*, triple: u8*, functions: void**, 
             if !backend_write_file(link, "tower-input.o", object, object_size) { return false; }
         }
         if windows {
-            backend_link_argument(link, "", "lld-link");
+            backend_link_argument(link, "", "tower-pe-link");
             backend_link_argument(link, "", "/entry:mainCRTStartup");
             backend_link_argument(link, "", "/subsystem:console");
             backend_link_argument(link, "", "/machine:x64");
@@ -353,7 +353,7 @@ export fn backend_link_plan(link: BackendLink*, triple: u8*, functions: void**, 
     i = 0;
     for(; i != order.length; i++) {
         var input = &link.inputs.data[order.data[i]];
-        if !wasm && !elf && !backend_write_file(link, input.name.data, input.bytes.data, input.bytes.length) {
+        if mac && !backend_write_file(link, input.name.data, input.bytes.data, input.bytes.length) {
             vector_dispose(&order); return false;
         }
         backend_link_argument(link, "", input.name.data);
@@ -367,7 +367,7 @@ export fn backend_link_plan(link: BackendLink*, triple: u8*, functions: void**, 
         vector_init(&archive);
         ok = coff_import_archive(&archive, CoffMachineAmd64, "__chkstk", "kernelbase.dll");
         if ok {
-            ok = backend_write_file(link, "tower-stack-probe.lib", archive.data, archive.length);
+            ok = backend_link_generated(link, "tower-stack-probe.lib", archive.data, archive.length);
         } else {
             backend_text(&link.error, "Unable to allocate Windows stack-probe import metadata");
         }

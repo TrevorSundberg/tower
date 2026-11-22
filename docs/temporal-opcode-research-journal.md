@@ -43625,3 +43625,53 @@ desktop/mobile backend agreement, grammar editing, completion, persistence,
 target downloads and default selection, with no browser errors. The final
 journal receipt changes no runtime inputs; retain the verified6850468 assets
 and their build-source identity without another identical compiler rebuild.
+# Windows COFF/PE retirement plan (2026-11-22)
+
+Starting from main a3a28bb after the required pull/rebase. The next LLD boundary
+is the browser's Windows x64 byte-link service, followed by Mach-O; host/SDK
+linkers remain separate dependencies. No native shim or fallback is planned.
+The checked-in Linux bootstrap remains the publication prerequisite.
+
+Implement checked COFF object and lazy archive/import readers, request-owned
+entity components, deterministic symbol/COMDAT resolution, PE32+ layout,
+imports/exports, unwind directory, base relocations and x64 patches in Tower.
+Copy/relocation work must use the shared WorkGraph/WorkPool with immutable inputs,
+exclusive output ranges and drained cancellation. Preserve __chkstk as an import
+from kernelbase.dll. Reject unsupported profiles explicitly. Validate raw and
+optimized real programs on Windows, reference LLD output, malformed input,
+archive selection and serial/parallel identity before replacing production LLD.
+Then rebuild the public-bootstrap successor and browser milestone, remove only
+the proven LLD boundary, publish and verify. Mach-O and host/SDK removal require
+their own actual target and bootstrap evidence.
+
+Primary format reference: Microsoft PE/COFF specification,
+https://learn.microsoft.com/en-us/windows/win32/debug/pe-format . Local reference
+objects: build/targets/x86_64-pc-windows-msvc-runtime.o and kernel32.lib, inspected
+with llvm-readobj-19. Runtime uses REL32 and ADDR32NB, ordinary and ANY COMDAT
+sections, .pdata/.xdata, and by-name short code imports. This records a plan,
+not a claim that the replacement or dependency removal has passed.
+
+COFF implementation checkpoint: request-owned object/archive/import/job components,
+shared WorkGraph/WorkPool copy/relocation, PE32+ headers/directories and byte API
+are now implemented. Focused public-bootstrap driver compiles and runs. Raw and
+optimized Windows programs print 42/50/42; the dedicated fixture uses a 64 KiB
+stack frame and imports __chkstk from kernelbase.dll. Serial/2/4/8 exact output,
+barrier-proven kernel overlap, cancellation after dispatch, duplicate/undefined,
+truncated headers, null spans, relocation matrix and API fail/retry pass. Actual
+llvm-lib-19 Microsoft archive also links and executes. Windows rejected the first
+image although llvm-readobj accepted it: an empty trailing .reloc section was the
+cause. Giving it storage proved the diagnosis; final layout omits unused optional
+synthetic sections. This is not a compiler or OS execution fallback.
+
+Sources: Microsoft PE/COFF specification above; LLVM 19 llvm-readobj/llvm-lib and
+WASI SDK34 lld-link as external references. Driver built by checked-in bootstrap,
+linked against the previously validated guest-host-library.o with clang19,
+pthread/dl/export-dynamic. Cache: ~/.cache/tower/coordinator-pe; output EXEs:
+build/cross/tower-pe{,-probe,-probe-raw,-ms}.exe. First compiler attempts caught
+borrow/value mismatches and unsupported enum ordering; explicit borrows and
+representation conversions resolved them. No native implementation was added.
+
+Production switch removes lldCOFF and its C++ foreign call; Mach-O and host/SDK
+linkers remain. Before publication, complete clean successor/backend/browser
+validation, reference stack-probe linking and release checks. Unsupported COFF
+profiles are documented in backend/README.md rather than silently delegated.

@@ -1,0 +1,119 @@
+import tower;
+import wasm_bytes;
+import wasm_names;
+import wasm_archive;
+import elf_types;
+import .library.vector;
+import .library.bytes_types;
+import .library.entity_types;
+
+// Object metadata on a request world, never another Foundation graph. Reuse the
+// existing checked byte/LE integer utilities (elf_span/uint/put/text/align).
+enum PeError: u32 { None, Input, Unsupported, Allocation, Duplicate, Undefined, Range, Cancelled }
+enum PeStorage: u8 { External = 2, Static = 3, File = 103, Weak = 105 }
+enum PeComdat: u8 { None = 0, Unique = 1, Any = 2, SameSize = 3, Exact = 4, Associate = 5, Largest = 6, Newest = 7 }
+enum PeRelocation: u16 { Absolute = 0, Address64 = 1, Address32 = 2, Rva32 = 3, Relative32 = 4, Relative32_1 = 5, Relative32_2 = 6, Relative32_3 = 7, Relative32_4 = 8, Relative32_5 = 9, Section = 10, SectionRelative = 11 }
+var PeMachineX64: u64 = 34404;
+var PeObjectHeaderBytes: u64 = 20;
+var PeSectionBytes: u64 = 40;
+var PeSymbolBytes: u64 = 18;
+var PeRelocationBytes: u64 = 10;
+var PeNameBytes: u64 = 8;
+var PeHalf: u64 = 2;
+var PeWord: u64 = 4;
+var PeAddress: u64 = 8;
+var PeNoIndex: u32 = ~convert(u32, 0);
+var PeAbsolute: i32 = -1;
+var PeDebug: i32 = -2;
+var PeImportSection: i32 = -3;
+var PeCode: u32 = 32;
+var PeInitialized: u32 = 64;
+var PeUninitialized: u32 = 128;
+var PeLinkInfo: u32 = 512;
+var PeLinkRemove: u32 = 2048;
+var PeLinkComdat: u32 = 4096;
+var PeAlignMask: u32 = 15728640;
+var PeAlignShift: u32 = 20;
+var PeRelocationOverflow: u32 = 16777216;
+var PeDiscardable: u32 = 33554432;
+var PeExecute: u32 = 536870912;
+var PeRead: u32 = 1073741824;
+var PeWrite: u32 = 2147483648;
+var PePage: u64 = 4096;
+var PeFileAlign: u64 = 512;
+var PeImageBase: u64 = 5368709120;
+var PeImageLimit: u64 = 2147483648;
+var PeSectionLimit: usize = 96;
+var PeDefaultAlign: u64 = 16;
+var PeMaxAlignCode: u32 = 14;
+var PeImportCodeName: u64 = 4;
+var PeImportDataName: u64 = 5;
+var PeShortSignature: u64 = 65535;
+var PeThunkBytes: u64 = 6;
+var PeImportDescriptorBytes: u64 = 20;
+var PeRuntimeFunctionBytes: u64 = 12;
+var PeBaseRelocationType64: u64 = 40960;
+var PeBaseRelocationType32: u64 = 12288;
+
+enum PeObjectAt: u64 { Machine = 0, Sections = 2, Symbols = 8, SymbolCount = 12, Optional = 16, Flags = 18 }
+enum PeSectionAt: u64 { VirtualSize = 8, Address = 12, Size = 16, Data = 20, Relocations = 24, Lines = 28, RelocationCount = 32, LineCount = 34, Flags = 36 }
+enum PeSymbolAt: u64 { Value = 8, Section = 12, Type = 14, Storage = 16, Aux = 17 }
+enum PeAuxAt: u64 { Association = 12, Selection = 14 }
+
+struct PeSection {
+    name: WasmBytes; bytes: WasmBytes; size: u64; alignment: u64; flags: u32;
+    selection: PeComdat; association: u32; key: WasmBytes; discarded: bool;
+    output_index: u32; offset: u64; rva: u64; output: u64;
+}
+struct PeSymbol {
+    name: WasmBytes; value: u64; section: i32; storage: PeStorage; auxiliary: bool;
+    object: usize; resolved: PeSymbol*; rva: u64; output_index: u32;
+    import_index: usize; import_address: bool;
+}
+struct PePatch { section: usize; offset: u64; symbol: usize; kind: PeRelocation; }
+struct PeObject { name: WasmBytes; bytes: WasmBytes; sections: vector(PeSection); symbols: vector(PeSymbol); patches: vector(PePatch); }
+struct PeObjectEntry { node: Entity*; object: PeObject*; }
+struct PeArchive { name: WasmBytes; archive: WasmArchive; selected: vector(bool); }
+struct PeArchiveEntry { node: Entity*; archive: PeArchive*; }
+struct PeImport { name: WasmBytes; dll: WasmBytes; pointer_name: ByteBuffer; code: bool; thunk: u64; iat: u64; hint: u64; group: usize; }
+struct PeImportEntry { node: Entity*; value: PeImport*; }
+struct PeDll { name: WasmBytes; offset: u64; lookup: u64; iat: u64; count: u64; }
+struct PeOutputSection { name: WasmBytes; flags: u32; size: u64; file_size: u64; output: u64; rva: u64; }
+struct PeDiagnostic { kind: PeError; name: WasmBytes; offset: u64; }
+struct PeLink {
+    store: EntityStore*; object_type: Entity*; archive_type: Entity*; import_type: Entity*;
+    objects: vector(PeObjectEntry); archives: vector(PeArchiveEntry); imports: vector(PeImportEntry);
+    names: WasmNameMap; groups: WasmNameMap; globals: vector(PeSymbol*); comdats: vector(PeSection*);
+    sections: vector(PeOutputSection); dlls: vector(PeDll); exports: vector(WasmBytes);
+    output: ByteBuffer; error: PeDiagnostic; entry: WasmBytes; started: bool;
+    workers: usize; jobs_run: usize; jobs_peak: usize;
+    cancel: function(bool, void*); cancel_context: void*;
+    text_index: u32; import_index: u32; export_index: u32; reloc_index: u32;
+    iat_begin: u64; iat_size: u64; headers: u64; image_size: u64;
+}
+fn pe_fail(error: PeDiagnostic*, kind: PeError, name: WasmBytes, offset: u64): bool {
+    if error.kind == PeError.None { *error = init(PeDiagnostic) { kind: kind, name: name, offset: offset }; }
+    return false;
+}
+fn pe_message(kind: PeError): u8* {
+    match kind {
+        PeError.Input => { return "invalid COFF input"; }
+        PeError.Unsupported => { return "unsupported COFF/PE profile"; }
+        PeError.Allocation => { return "PE linker allocation failed"; }
+        PeError.Duplicate => { return "duplicate COFF symbol"; }
+        PeError.Undefined => { return "undefined COFF symbol"; }
+        PeError.Range => { return "PE layout or relocation out of range"; }
+        PeError.Cancelled => { return "PE link cancelled"; }
+        _ => { return "PE link failed"; }
+    }
+}
+fn pe_prefix(name: WasmBytes, prefix: u8*): bool {
+    var value = wasm_text_bytes(prefix);
+    return name.length >= value.length && wasm_bytes_equal(init(WasmBytes) { data: name.data, length: value.length }, value);
+}
+fn pe_compare(a: WasmBytes, b: WasmBytes): i32 {
+    for (var at: usize = 0; at < a.length && at < b.length; at++) {
+        if a.data[at] != b.data[at] { return a.data[at] < b.data[at] ? -1 : 1; }
+    }
+    return a.length == b.length ? 0 : (a.length < b.length ? -1 : 1);
+}

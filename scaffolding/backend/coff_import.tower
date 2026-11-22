@@ -5,8 +5,8 @@ import .library.bytes_types;
 import .library.coff_import_object;
 
 // COFF short-import metadata in a deterministic single-symbol archive. This
-// contains no owned machine-code implementation: upstream LLD builds the import
-// thunk and Windows supplies the function. The archive makes the import lazy.
+// describes the import: the Tower PE linker builds the thunk and Windows supplies
+// the function. The archive makes the import lazy.
 // PE/COFF specification: archive linker member and import library header.
 var CoffArchiveMagicBytes: usize = 8;
 var CoffArchiveHeaderBytes: usize = 60;

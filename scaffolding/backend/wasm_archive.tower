@@ -81,7 +81,7 @@ fn wasm_archive_symbols(archive: WasmArchive*, reader: WasmReader*, width: usize
     }
 }
 
-fn wasm_archive_read(archive: WasmArchive*, bytes: WasmBytes): bool {
+fn wasm_archive_read_profile(archive: WasmArchive*, bytes: WasmBytes, coff: bool): bool {
     archive.bytes = bytes;
     var reader: WasmReader = { bytes: bytes, ..default };
     var magic = wasm_read_bytes(&reader, 8);
@@ -115,9 +115,11 @@ fn wasm_archive_read(archive: WasmArchive*, bytes: WasmBytes): bool {
                 if reader.error != WasmReadError.None { break; }
                 if offset >= names.length { wasm_read_fail(&reader, WasmReadError.Index); break; }
                 var end = offset;
-                while end < names.length && names.data[end] != 10 { end++; }
-                if end == names.length || end == offset || names.data[end - 1] != 47 { wasm_read_fail(&reader, WasmReadError.Encoding); break; }
-                member.name = init(WasmBytes) { data: names.data + offset, length: end - offset - 1 };
+                while end < names.length && names.data[end] != *"\n" && (!coff || names.data[end] != 0) { end++; }
+                if end == names.length || end == offset { wasm_read_fail(&reader, WasmReadError.Encoding); break; }
+                var null_terminated = coff && names.data[end] == 0;
+                if !null_terminated && names.data[end - 1] != *"/" { wasm_read_fail(&reader, WasmReadError.Encoding); break; }
+                member.name = init(WasmBytes) { data: names.data + offset, length: end - offset - (null_terminated ? 0 : 1) };
             } else {
                 if member.name.length >= 3 && member.name.data[0] == 35 && member.name.data[1] == 49 && member.name.data[2] == 47 {
                     var length = wasm_decimal(&reader, init(WasmBytes) { data: member.name.data + 3, length: member.name.length - 3 });
@@ -137,13 +139,19 @@ fn wasm_archive_read(archive: WasmArchive*, bytes: WasmBytes): bool {
         }
     }
     if reader.error == WasmReadError.None {
+        var coff_second = false;
         foreach (var & member in &archive.members) {
             var width: usize = wasm_bytes_text(member.name, "/") ? 4 : 8;
             if !wasm_bytes_text(member.name, "/") && !wasm_bytes_text(member.name, "/SYM64/") { continue; }
-            if archive.indexed { wasm_read_fail(&reader, WasmReadError.Duplicate); break; }
-            archive.indexed = true;
             var sub: WasmReader = { bytes: member.bytes, ..default };
-            wasm_archive_symbols(archive, &sub, width);
+            if archive.indexed {
+                if !coff || coff_second || !wasm_bytes_text(member.name, "/") { wasm_read_fail(&reader, WasmReadError.Duplicate); break; }
+                coff_second = true;
+                wasm_archive_coff_second(archive, &sub);
+            } else {
+                archive.indexed = true;
+                wasm_archive_symbols(archive, &sub, width);
+            }
             if sub.error != WasmReadError.None {
                 reader.error = sub.error; reader.error_offset = member.header_offset + WasmArchiveHeaderBytes + sub.error_offset; break;
             }
@@ -152,3 +160,36 @@ fn wasm_archive_read(archive: WasmArchive*, bytes: WasmBytes): bool {
     archive.error = reader.error; archive.error_offset = reader.error_offset;
     return reader.error == WasmReadError.None;
 }
+
+fn wasm_archive_coff_integer(reader: WasmReader*, width: usize): u64 {
+    var result: u64 = 0; var byte_bits: u64 = 8;
+    for (var at: usize = 0; at < width; at++) { result |= convert(u64, wasm_read_byte(reader)) << (convert(u64, at) * byte_bits); }
+    return result;
+}
+// Microsoft archives add a little-endian member/index table after the first
+// big-endian ar index. Validate its references without publishing duplicate
+// symbol candidates; the first table remains the authoritative derived index.
+fn wasm_archive_coff_second(archive: WasmArchive*, reader: WasmReader*): void {
+    var word: usize = 4; var half: usize = 2;
+    var members = wasm_archive_coff_integer(reader, word);
+    if members > convert(u64, (reader.bytes.length - reader.at) / word) { wasm_read_fail(reader, WasmReadError.Truncated); return; }
+    var offsets: WasmReader = { bytes: wasm_read_bytes(reader, convert(usize, members) * word), ..default };
+    for (var at: u64 = 0; at < members; at++) {
+        var offset = wasm_archive_coff_integer(&offsets, word);
+        if offset > convert(u64, ~convert(usize, 0)) { wasm_read_fail(reader, WasmReadError.Index); return; }
+        var index = wasm_archive_header_member(archive, convert(usize, offset));
+        if index == archive.members.length || archive.members.data[index].special { wasm_read_fail(reader, WasmReadError.Index); return; }
+    }
+    var count = wasm_archive_coff_integer(reader, word);
+    if count > convert(u64, (reader.bytes.length - reader.at) / half) { wasm_read_fail(reader, WasmReadError.Truncated); return; }
+    var indexes: WasmReader = { bytes: wasm_read_bytes(reader, convert(usize, count) * half), ..default };
+    for (var at: u64 = 0; at < count && reader.error == WasmReadError.None; at++) {
+        var index = wasm_archive_coff_integer(&indexes, half);
+        if index == 0 || index > members { wasm_read_fail(reader, WasmReadError.Index); return; }
+        while reader.at < reader.bytes.length && reader.bytes.data[reader.at] != 0 { reader.at++; }
+        if wasm_read_byte(reader) != 0 { wasm_read_fail(reader, WasmReadError.Encoding); return; }
+    }
+    while reader.at < reader.bytes.length { if wasm_read_byte(reader) != 0 { wasm_read_fail(reader, WasmReadError.Encoding); return; } }
+}
+fn wasm_archive_read(archive: WasmArchive*, bytes: WasmBytes): bool { return wasm_archive_read_profile(archive, bytes, false); }
+fn wasm_archive_read_coff(archive: WasmArchive*, bytes: WasmBytes): bool { return wasm_archive_read_profile(archive, bytes, true); }

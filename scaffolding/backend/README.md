@@ -1,8 +1,9 @@
 # Tower backend API
 
 The graph backend consumes existing validated Foundation entities through
-`sem_get`. LLVM remains upstream; LLD is retained for native ELF/COFF/Mach-O
-linking. Wasm linking is Tower. The Tower source service in
+`sem_get`. LLVM remains upstream. Wasm, static Linux ELF and Windows x64 PE
+download linking are Tower; Mach-O still uses LLD. Native CLI compiler-driver
+and SDK build linkers remain separate dependencies. The Tower source service in
 `source_session.tower` calls the existing frontend and formatter on these same
 entities; it does not define another semantic representation. The browser worker
 exports live in `host/llvm_worker.tower`. The native LLVM engine/worker adapters
@@ -141,7 +142,7 @@ the historical `wasm-ld` argument zero is also accepted by the byte service.
 Unsupported options fail without fallback.
 Two edited browser self-build generations pass with both whole and lazy archives,
 including identical successor bytes across two/four compilation workers. The
-COFF/Mach-O upstream path below remains until its Tower replacements land.
+Mach-O upstream path below remains until its Tower replacement lands.
 See [linker checks](../tests/README.md) for supported
 profiles and executable fixtures. Link requests are single use; the BackendLink
 adapter creates a fresh world for each invocation. Finish or join readers before
@@ -239,13 +240,14 @@ the generated plan; caller inputs persist until cleared or closed. A failed
 request exposes no previous output. Clear/reset its error before retrying the
 direct byte service. Wasm planning and linking perform no filesystem operations.
 `backend_link_arguments` and `backend_link_argument_count` expose that vector.
-Native package hosts execute the corresponding bundled upstream linker, then
-call `backend_link_read_output`. Process creation, package discovery and CLI
-options belong to the host owner; the backend does not call a shell.
+Native CLI compiler-driver linking remains a host operation. Process creation,
+package discovery and CLI options belong to the host owner; the backend does
+not call a shell.
 
-For Wasm, `backend_link_wasi` selects the Tower byte service. The Wasm-only
-reactor links no LLD library. For native formats, the cross reactor invokes the
-upstream library in the same worker and prepares deterministic temporary files.
+For Wasm, Linux ELF and Windows PE, `backend_link_wasi` selects Tower byte
+services. Those plans retain generated inputs in memory. The Wasm-only reactor
+links no LLD library. For Mach-O, the cross reactor invokes the upstream library
+in the same worker and prepares deterministic temporary files.
 It captures linker diagnostics, destroys the upstream linker context after every
 invocation, and reads the linked output. Failed invocations cannot return stale
 bytes. Inputs retain deterministic lexical ordering and the existing filename,
@@ -263,6 +265,29 @@ the response, before/after LLVM, disassembly and downloadable bytes. Reset/close
 invalidate all result views. The service contains no DOM, worker, CLI, frontend
 or interpreter algorithms. Its WASI clock only measures execution; clock values
 never affect compilation decisions or artifacts.
+
+## Windows PE byte linker
+
+`pe_link.tower` owns each request's COFF objects, archives, short imports and jobs
+as ECS components. `linker_tower_pe.tower` exposes the transport-independent
+`BackendLink` byte service. Windows x64 download planning no longer writes files
+or calls `lldCOFF`. Jobs share WorkGraph/WorkPool with ELF and the compiler, pin
+immutable inputs, declare disjoint output ranges and drain before releasing them.
+
+The current profile emits deterministic PE32+ console executables, preserving
+by-name code/data imports, named exports, NX permissions, ASLR base relocations,
+sorted unwind records, common symbols and ANY/SAME_SIZE/associative COMDATs.
+It reads GNU and Microsoft indexed archives lazily, including long member names
+and Microsoft's second linker member. x64 patches include ADDR64/ADDR32,
+ADDR32NB, REL32 through REL32_5, SECTION and SECREL. The special `__chkstk` ABI
+remains an ordinary imported jump thunk into kernelbase.dll.
+
+Other architectures, bigobj, weak externals, other COMDAT selection modes,
+TLS/CRT constructors, directives, delay imports, ordinal imports, resources and
+PDB/debug emission are not this profile; required unsupported behavior is
+diagnosed, with no LLD fallback. Discardable debug/link-remove inputs are omitted.
+Low-level requests are single-use and borrow inputs until close; the byte service
+creates a fresh world on retry and never publishes partial or stale output.
 
 ## Upstream WASI ABI profile
 

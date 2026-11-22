@@ -1,0 +1,14 @@
+import tower;
+extern fn elf_answer(): i32;
+extern fn pe_probe(data: u8*, size: usize): i32;
+var PeProbeBytes: usize = 65536;
+fn large_frame(): i32 {
+    var data: u8[65536];
+    data[0] = 17; data[PeProbeBytes - 1] = 25;
+    return pe_probe(&data[0], PeProbeBytes);
+}
+var callback: function(i32) = elf_answer;
+var values: i32[4];
+values[0] = callback(); values[1] = 8;
+print(values[0]); print(values[0] + values[1]);
+var allocated = alloc(i32, 1); *allocated = large_frame(); print(*allocated); free(allocated);

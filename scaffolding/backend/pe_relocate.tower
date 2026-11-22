@@ -1,0 +1,52 @@
+import tower;
+import pe_types;
+import pe_link_symbols;
+import elf_types;
+
+fn pe_patch_width(kind: PeRelocation): u64 {
+    if kind == PeRelocation.Absolute { return 0; }
+    if kind == PeRelocation.Address64 { return PeAddress; }
+    if kind == PeRelocation.Section { return PeHalf; }
+    if convert(u16, kind) >= convert(u16, PeRelocation.Address32) && convert(u16, kind) <= convert(u16, PeRelocation.SectionRelative) { return PeWord; }
+    return 0;
+}
+fn pe_patch_symbol(link: PeLink*, object: PeObject*, patch: PePatch, error: PeDiagnostic*): PeSymbol* {
+    var symbol = object.symbols.data[patch.symbol].resolved;
+    if symbol == null || !pe_symbol_defined(link, symbol) {
+        pe_fail(error, PeError.Undefined, object.symbols.data[patch.symbol].name, patch.offset); return null;
+    }
+    return symbol;
+}
+fn pe_patch_one(link: PeLink*, object: PeObject*, patch: PePatch, output: u8*, error: PeDiagnostic*): bool {
+    if patch.kind == PeRelocation.Absolute { return true; }
+    var section = &object.sections.data[patch.section]; var width = pe_patch_width(patch.kind);
+    if width == 0 { return pe_fail(error, PeError.Unsupported, section.name, patch.offset); }
+    if (section.flags & PeUninitialized) != 0 || patch.offset > section.size || width > section.size - patch.offset {
+        return pe_fail(error, PeError.Input, section.name, patch.offset);
+    }
+    var symbol = pe_patch_symbol(link, object, patch, error); if symbol == null { return false; }
+    var addend = elf_uint(section.bytes, patch.offset, width);
+    var value = symbol.rva;
+    if patch.kind == PeRelocation.Address64 || patch.kind == PeRelocation.Address32 {
+        if symbol.section != PeAbsolute { value += PeImageBase; }
+        value += addend;
+    } else {
+        if patch.kind == PeRelocation.Rva32 { value += addend; }
+        else {
+            if convert(u16, patch.kind) >= convert(u16, PeRelocation.Relative32) && convert(u16, patch.kind) <= convert(u16, PeRelocation.Relative32_5) {
+                var delta = convert(u64, patch.kind) - convert(u64, PeRelocation.Relative32);
+                var signed = convert(i64, value) + convert(i64, bits(i32, convert(u32, addend)))
+                    - convert(i64, section.rva + patch.offset + PeWord + delta);
+                var minimum: i64 = -2147483648; var maximum: i64 = 2147483647;
+                if signed < minimum || signed > maximum { return pe_fail(error, PeError.Range, symbol.name, patch.offset); }
+                value = convert(u64, bits(u32, convert(i32, signed)));
+            } else {
+                if symbol.output_index == 0 { return pe_fail(error, PeError.Unsupported, symbol.name, patch.offset); }
+                if patch.kind == PeRelocation.Section { value = convert(u64, symbol.output_index) + addend; }
+                else { value = symbol.rva - link.sections.data[convert(usize, symbol.output_index - 1)].rva + addend; }
+            }
+        }
+    }
+    if width < PeAddress && value > (convert(u64, 1) << (width * ElfByteBits)) - 1 { return pe_fail(error, PeError.Range, symbol.name, patch.offset); }
+    elf_put(output, section.output + patch.offset, width, value); return true;
+}

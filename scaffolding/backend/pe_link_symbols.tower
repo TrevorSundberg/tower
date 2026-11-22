@@ -1,0 +1,113 @@
+import tower;
+import pe_types;
+import pe_link_world;
+import elf_types;
+import wasm_names;
+import wasm_bytes;
+import .library.vector;
+
+fn pe_link_lookup(link: PeLink*, name: WasmBytes): PeSymbol* {
+    var index = wasm_names_get(&link.names, name);
+    return index == PeNoIndex ? null : link.globals.data[convert(usize, index)];
+}
+fn pe_symbol_defined(link: PeLink*, symbol: PeSymbol*): bool {
+    if symbol.auxiliary || symbol.section == PeDebug { return false; }
+    if symbol.section <= 0 { return symbol.section != 0 || symbol.value != 0; }
+    return !link.objects.data[symbol.object].object.sections.data[convert(usize, symbol.section - 1)].discarded;
+}
+fn pe_link_groups(link: PeLink*, object: PeObject*): bool {
+    foreach (var & section in &object.sections) {
+        if (section.flags & PeLinkComdat) == 0 || section.discarded { continue; }
+        if section.selection == PeComdat.Associate { continue; }
+        if section.key.length == 0 || (section.selection != PeComdat.Any && section.selection != PeComdat.Unique && section.selection != PeComdat.SameSize) {
+            return pe_fail(&link.error, PeError.Unsupported, section.name, 0);
+        }
+        var prior = wasm_names_get(&link.groups, section.key);
+        if prior != PeNoIndex {
+            if section.selection == PeComdat.Unique { return pe_fail(&link.error, PeError.Duplicate, section.key, 0); }
+            var previous = link.comdats.data[convert(usize, prior)];
+            if previous.selection != section.selection || (section.selection == PeComdat.SameSize && previous.size != section.size) {
+                return pe_fail(&link.error, PeError.Duplicate, section.key, 0);
+            }
+            section.discarded = true;
+        } else {
+            if link.comdats.length >= convert(usize, PeNoIndex) || !wasm_names_set(&link.groups, section.key, convert(u32, link.comdats.length))
+                || !vector_push(&link.comdats, section) { return false; }
+        }
+    }
+    foreach (var & section in &object.sections) {
+        if section.selection != PeComdat.Associate { continue; }
+        var parent = section;
+        for (var depth: usize = 0; parent.selection == PeComdat.Associate; depth++) {
+            if depth >= object.sections.length || parent.association == 0 || convert(usize, parent.association) > object.sections.length {
+                return pe_fail(&link.error, PeError.Input, section.name, 0);
+            }
+            parent = &object.sections.data[convert(usize, parent.association - 1)];
+            if (parent.flags & PeLinkComdat) == 0 { return pe_fail(&link.error, PeError.Input, section.name, 0); }
+        }
+        section.discarded = parent.discarded;
+    }
+    return true;
+}
+fn pe_link_index(link: PeLink*, object: PeObject*, pending: vector(WasmBytes)*): bool {
+    if !pe_link_groups(link, object) { return false; }
+    foreach (var & symbol in &object.symbols) {
+        if symbol.storage != PeStorage.External || !pe_symbol_defined(link, symbol) { continue; }
+        var index = wasm_names_get(&link.names, symbol.name);
+        if index == PeNoIndex {
+            if link.globals.length >= convert(usize, PeNoIndex) || !wasm_names_set(&link.names, symbol.name, convert(u32, link.globals.length))
+                || !vector_push(&link.globals, symbol) { return false; }
+        } else {
+            var prior = link.globals.data[convert(usize, index)];
+            if symbol.section == 0 {
+                if prior.section == 0 && symbol.value > prior.value { prior.value = symbol.value; }
+                continue;
+            }
+            if prior.section != 0 { return pe_fail(&link.error, PeError.Duplicate, symbol.name, 0); }
+            link.globals.data[convert(usize, index)] = symbol;
+        }
+    }
+    foreach (var & patch in &object.patches) {
+        if patch.kind == PeRelocation.Absolute || object.sections.data[patch.section].discarded { continue; }
+        var symbol = &object.symbols.data[patch.symbol];
+        if symbol.storage == PeStorage.External && symbol.section == 0 && symbol.value == 0 && !vector_push(pending, symbol.name) { return false; }
+    }
+    return true;
+}
+struct PeArchiveCandidate { archive: usize; member: usize; next: u32; tail: u32; }
+fn pe_link_symbols(link: PeLink*): bool {
+    var names: WasmNameMap = default; var candidates: vector(PeArchiveCandidate) = default; var pending: vector(WasmBytes) = default;
+    defer wasm_names_dispose(&names); defer vector_dispose(&candidates); defer vector_dispose(&pending);
+    for (var index: usize = 0; index < link.archives.length; index++) {
+        foreach (var & symbol in &link.archives.data[index].archive.archive.symbols) {
+            if candidates.length >= convert(usize, PeNoIndex) { return false; }
+            var next = convert(u32, candidates.length); var first = wasm_names_get(&names, symbol.name);
+            var candidate: PeArchiveCandidate = { archive: index, member: symbol.member, next: PeNoIndex, tail: next };
+            if !vector_push(&candidates, candidate) { return false; }
+            if first == PeNoIndex { if !wasm_names_set(&names, symbol.name, next) { return false; } }
+            else { var head = &candidates.data[convert(usize, first)]; candidates.data[convert(usize, head.tail)].next = next; head.tail = next; }
+        }
+    }
+    foreach (var & entry in &link.objects) { if !pe_link_index(link, entry.object, &pending) { return false; } }
+    if !vector_push(&pending, link.entry) { return false; }
+    foreach (var & name in &link.exports) { if !vector_push(&pending, *name) { return false; } }
+    for (var demand: usize = 0; demand < pending.length; demand++) {
+        var name = pending.data[demand];
+        if pe_link_lookup(link, name) != null { continue; }
+        var next = wasm_names_get(&names, name);
+        while next != PeNoIndex && pe_link_lookup(link, name) == null {
+            var candidate = candidates.data[convert(usize, next)]; next = candidate.next;
+            var archive = link.archives.data[candidate.archive].archive;
+            if archive.selected.data[candidate.member] { continue; }
+            archive.selected.data[candidate.member] = true;
+            var member = &archive.archive.members.data[candidate.member];
+            if !pe_link_object(link, member.name, member.bytes) || !pe_link_index(link, link.objects.data[link.objects.length - 1].object, &pending) { return false; }
+        }
+    }
+    foreach (var & entry in &link.objects) {
+        foreach (var & symbol in &entry.object.symbols) {
+            symbol.resolved = symbol.storage == PeStorage.External ? pe_link_lookup(link, symbol.name) : symbol;
+        }
+    }
+    return pe_link_lookup(link, link.entry) != null || pe_fail(&link.error, PeError.Undefined, link.entry, 0);
+}

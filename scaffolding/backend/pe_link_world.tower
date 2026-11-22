@@ -1,0 +1,105 @@
+import tower;
+import pe_types;
+import coff_object;
+import elf_types;
+import wasm_bytes;
+import wasm_archive;
+import wasm_names;
+import .library.vector;
+import .library.bytes_interface;
+import .library.entity_api;
+
+fn pe_link_open(link: PeLink*): bool {
+    link.entry = wasm_text_bytes("mainCRTStartup"); link.workers = 1;
+    link.store = entity_store_create();
+    if link.store == null || !entity_store_set_context(link.store, bits(void*, link)) { return pe_fail(&link.error, PeError.Allocation, default(WasmBytes), 0); }
+    link.object_type = entity_create(link.store); link.archive_type = entity_create(link.store); link.import_type = entity_create(link.store);
+    var ok = link.object_type != null && link.archive_type != null && link.import_type != null
+        && entity_register(link.object_type, sizeof(PeObject), alignof(PeObject), 0)
+        && entity_register(link.archive_type, sizeof(PeArchive), alignof(PeArchive), 0)
+        && entity_register(link.import_type, sizeof(PeImport), alignof(PeImport), 0);
+    return ok || pe_fail(&link.error, PeError.Allocation, default(WasmBytes), 0);
+}
+fn pe_link_close(link: PeLink*): bool {
+    if link.store != null && link.store.views != 0 { return false; }
+    foreach (var & entry in &link.objects) { pe_object_dispose(entry.object); entity_release(entry.node); }
+    foreach (var & entry in &link.archives) { wasm_archive_dispose(&entry.archive.archive); vector_dispose(&entry.archive.selected); entity_release(entry.node); }
+    foreach (var & entry in &link.imports) { bytes_dispose(&entry.value.pointer_name); entity_release(entry.node); }
+    vector_dispose(&link.objects); vector_dispose(&link.archives); vector_dispose(&link.imports);
+    vector_dispose(&link.globals); vector_dispose(&link.comdats); vector_dispose(&link.sections); vector_dispose(&link.dlls); vector_dispose(&link.exports);
+    wasm_names_dispose(&link.names); wasm_names_dispose(&link.groups); bytes_dispose(&link.output);
+    if link.object_type != null { entity_release(link.object_type); }
+    if link.archive_type != null { entity_release(link.archive_type); }
+    if link.import_type != null { entity_release(link.import_type); }
+    if link.store != null && !entity_store_dispose(link.store) { return false; }
+    *link = default; return true;
+}
+fn pe_link_short_import(link: PeLink*, object: PeObject*): bool {
+    var bytes = object.bytes;
+    var version_at: u64 = 4; var machine_at: u64 = 6; var size_at: u64 = 12; var flags_at: u64 = 18;
+    if !elf_span(bytes, 0, PeObjectHeaderBytes) || elf_uint(bytes, version_at, PeHalf) != 0
+        || elf_uint(bytes, machine_at, PeHalf) != PeMachineX64 { return pe_fail(&link.error, PeError.Unsupported, object.name, 0); }
+    var size = elf_uint(bytes, size_at, PeWord); var flags = elf_uint(bytes, flags_at, PeHalf);
+    if size != convert(u64, bytes.length) - PeObjectHeaderBytes || (flags != PeImportCodeName && flags != PeImportDataName) {
+        return pe_fail(&link.error, PeError.Unsupported, object.name, flags_at);
+    }
+    var node = entity_create(link.store);
+    if node == null { return false; }
+    var component = entity_component_add(node, link.import_type);
+    if component == null { entity_release(node); return false; }
+    var value = bits(PeImport*, entity_component_data(component)); *value = default;
+    var entry: PeImportEntry = { node: node, value: value };
+    if !vector_push(&link.imports, entry) { entity_release(node); return false; }
+    if !elf_text(bytes, PeObjectHeaderBytes, &value.name)
+        || !elf_text(bytes, PeObjectHeaderBytes + convert(u64, value.name.length) + 1, &value.dll)
+        || value.name.length == 0 || value.dll.length == 0
+        || PeObjectHeaderBytes + convert(u64, value.name.length + value.dll.length) + 2 != convert(u64, bytes.length) {
+        return pe_fail(&link.error, PeError.Input, object.name, PeObjectHeaderBytes);
+    }
+    value.code = flags == PeImportCodeName;
+    var prefix = wasm_text_bytes("__imp_");
+    if !bytes_append(&value.pointer_name, prefix.data, prefix.length) || !bytes_append(&value.pointer_name, value.name.data, value.name.length) { return false; }
+    var pointer: PeSymbol = {
+        name: { data: value.pointer_name.data, length: value.pointer_name.length }, section: PeImportSection,
+        storage: PeStorage.External, import_index: link.imports.length - 1, import_address: true, ..default
+    };
+    if !vector_push(&object.symbols, pointer) { return false; }
+    if value.code {
+        var code: PeSymbol = { name: value.name, section: PeImportSection, storage: PeStorage.External, import_index: link.imports.length - 1, ..default };
+        if !vector_push(&object.symbols, code) { return false; }
+    }
+    return true;
+}
+fn pe_link_object(link: PeLink*, name: WasmBytes, bytes: WasmBytes): bool {
+    if link.error.kind != PeError.None || link.store == null || link.store.views != 0 { return false; }
+    var node = entity_create(link.store); if node == null { return false; }
+    var component = entity_component_add(node, link.object_type);
+    if component == null { entity_release(node); return false; }
+    var object = bits(PeObject*, entity_component_data(component));
+    *object = init(PeObject) { name: name, bytes: bytes, ..default };
+    var entry: PeObjectEntry = { node: node, object: object };
+    if !vector_push(&link.objects, entry) { entity_release(node); return false; }
+    var short = elf_span(bytes, 0, PeObjectHeaderBytes) && elf_uint(bytes, 0, PeHalf) == 0 && elf_uint(bytes, PeHalf, PeHalf) == PeShortSignature;
+    if !(short ? pe_link_short_import(link, object) : pe_object_read(object, &link.error)) { return false; }
+    foreach (var & symbol in &object.symbols) { symbol.object = link.objects.length - 1; }
+    return true;
+}
+fn pe_link_input(link: PeLink*, name: WasmBytes, bytes: WasmBytes): bool {
+    if link.started || link.store == null || link.store.views != 0 || !elf_span(bytes, 0, convert(u64, bytes.length)) {
+        return pe_fail(&link.error, PeError.Input, name, 0);
+    }
+    var magic = wasm_text_bytes("!<arch>\n");
+    if bytes.length < magic.length || !wasm_bytes_equal(init(WasmBytes) { data: bytes.data, length: magic.length }, magic) { return pe_link_object(link, name, bytes); }
+    var node = entity_create(link.store); if node == null { return false; }
+    var component = entity_component_add(node, link.archive_type);
+    if component == null { entity_release(node); return false; }
+    var archive = bits(PeArchive*, entity_component_data(component)); *archive = init(PeArchive) { name: name, ..default };
+    var entry: PeArchiveEntry = { node: node, archive: archive };
+    if !vector_push(&link.archives, entry) { entity_release(node); return false; }
+    if !wasm_archive_read_coff(&archive.archive, bytes) { return pe_fail(&link.error, PeError.Input, name, convert(u64, archive.archive.error_offset)); }
+    if !archive.archive.indexed { return pe_fail(&link.error, PeError.Unsupported, name, 0); }
+    if !vector_reserve(&archive.selected, archive.archive.members.length) { return false; }
+    archive.selected.length = archive.archive.members.length;
+    if archive.selected.length != 0 { fill(archive.selected.data, 0, archive.selected.length * sizeof(bool)); }
+    return true;
+}

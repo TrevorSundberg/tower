@@ -1,0 +1,183 @@
+import tower;
+import pe_types;
+import pe_relocate;
+import pe_link_symbols;
+import elf_types;
+import wasm_bytes;
+import .library.vector;
+import .library.bytes_interface;
+
+var PeDosBytes: u64 = 64;
+var PeSignatureBytes: u64 = 4;
+var PeOptionalBytes: u64 = 240;
+var PeExportHeaderBytes: u64 = 40;
+
+fn pe_output_section(link: PeLink*, name: WasmBytes, flags: u32): u32 {
+    for (var at: usize = 0; at < link.sections.length; at++) {
+        if wasm_bytes_equal(link.sections.data[at].name, name) {
+            if link.sections.data[at].flags != flags { pe_fail(&link.error, PeError.Unsupported, name, 0); return PeNoIndex; }
+            return convert(u32, at);
+        }
+    }
+    if link.sections.length >= PeSectionLimit { pe_fail(&link.error, PeError.Range, name, 0); return PeNoIndex; }
+    var section: PeOutputSection = { name: name, flags: flags, ..default };
+    if !vector_push(&link.sections, section) { pe_fail(&link.error, PeError.Allocation, name, 0); return PeNoIndex; }
+    return convert(u32, link.sections.length - 1);
+}
+fn pe_grow(section: PeOutputSection*, size: u64, alignment: u64, offset: u64*): bool {
+    if section.size > PeImageLimit || alignment > PeImageLimit - section.size { return false; }
+    var at = elf_align(section.size, alignment);
+    if size > PeImageLimit - at { return false; }
+    *offset = at; section.size = at + size; return true;
+}
+fn pe_layout_inputs(link: PeLink*): bool {
+    // Stable lexical '$' ordering within each output section, object order for
+    // equal names. This index borrows the world-owned section components.
+    var ordered: vector(PeSection*) = default; defer vector_dispose(&ordered);
+    foreach (var & input in &link.objects) {
+        foreach (var & section in &input.object.sections) {
+            if section.discarded { continue; }
+            if !vector_push(&ordered, section) { return false; }
+        }
+    }
+    for (var at: usize = 1; at < ordered.length; at++) {
+        var item = ordered.data[at]; var cursor = at;
+        while cursor != 0 && pe_compare(ordered.data[cursor - 1].name, item.name) > 0 { ordered.data[cursor] = ordered.data[cursor - 1]; cursor--; }
+        ordered.data[cursor] = item;
+    }
+    var flags_mask = PeExecute | PeRead | PeWrite | PeCode | PeInitialized | PeUninitialized;
+    foreach (var section in &ordered) {
+        var name = section.name;
+        for (var at: usize = 0; at < name.length; at++) { if name.data[at] == *"$" { name.length = at; break; } }
+        if name.length == 0 || name.length > convert(usize, PeNameBytes) || section.alignment > PePage { return pe_fail(&link.error, PeError.Unsupported, section.name, 0); }
+        var flags = section.flags & flags_mask;
+        // Keep zero-fill in a writable initialized image section; zeros are
+        // represented explicitly, retaining the full section-relative contract.
+        if (flags & PeUninitialized) != 0 { name = wasm_text_bytes(".data"); flags = PeRead | PeWrite | PeInitialized; }
+        if wasm_bytes_text(name, ".idata") || wasm_bytes_text(name, ".edata") || wasm_bytes_text(name, ".reloc") {
+            return pe_fail(&link.error, PeError.Unsupported, name, 0);
+        }
+        var index = pe_output_section(link, name, flags); if index == PeNoIndex { return false; }
+        section.output_index = index + 1;
+        if !pe_grow(&link.sections.data[convert(usize, index)], section.size, section.alignment, &section.offset) { return pe_fail(&link.error, PeError.Range, section.name, 0); }
+    }
+    var data_index = pe_output_section(link, wasm_text_bytes(".data"), PeRead | PeWrite | PeInitialized);
+    if data_index == PeNoIndex { return false; }
+    foreach (var symbol in &link.globals) {
+        if symbol.section == 0 {
+            symbol.output_index = data_index + 1;
+            if !pe_grow(&link.sections.data[convert(usize, data_index)], symbol.value, PeDefaultAlign, &symbol.rva) { return false; }
+        }
+    }
+    return true;
+}
+fn pe_layout_imports(link: PeLink*): bool {
+    link.text_index = pe_output_section(link, wasm_text_bytes(".text"), PeRead | PeExecute | PeCode);
+    if link.text_index == PeNoIndex { return false; }
+    if link.imports.length == 0 { link.import_index = PeNoIndex; return true; }
+    link.import_index = pe_output_section(link, wasm_text_bytes(".idata"), PeRead | PeWrite | PeInitialized);
+    if link.text_index == PeNoIndex || link.import_index == PeNoIndex { return false; }
+    foreach (var & entry in &link.imports) {
+        var value = entry.value; var group = link.dlls.length;
+        for (var at: usize = 0; at < link.dlls.length; at++) { if wasm_bytes_equal(link.dlls.data[at].name, value.dll) { group = at; break; } }
+        if group == link.dlls.length { var dll: PeDll = { name: value.dll, ..default }; if !vector_push(&link.dlls, dll) { return false; } }
+        value.group = group; link.dlls.data[group].count++;
+        if value.code && !pe_grow(&link.sections.data[convert(usize, link.text_index)], PeThunkBytes, PeHalf, &value.thunk) { return false; }
+    }
+    var section = &link.sections.data[convert(usize, link.import_index)];
+    section.size = (convert(u64, link.dlls.length) + 1) * PeImportDescriptorBytes;
+    var ignored: u64 = 0;
+    foreach (var & dll in &link.dlls) {
+        if !pe_grow(section, convert(u64, dll.name.length) + 1, 1, &dll.offset)
+            || !pe_grow(section, (dll.count + 1) * PeAddress, PeAddress, &dll.lookup) { return false; }
+    }
+    link.iat_begin = elf_align(section.size, PeAddress); section.size = link.iat_begin;
+    foreach (var & dll in &link.dlls) { if !pe_grow(section, (dll.count + 1) * PeAddress, PeAddress, &dll.iat) { return false; } }
+    link.iat_size = section.size - link.iat_begin;
+    for (var group: usize = 0; group < link.dlls.length; group++) {
+        var count: u64 = 0;
+        foreach (var & entry in &link.imports) {
+            var value = entry.value; if value.group != group { continue; }
+            value.iat = link.dlls.data[group].iat + count++ * PeAddress;
+            if !pe_grow(section, PeHalf + convert(u64, value.name.length) + 1, PeHalf, &value.hint) { return false; }
+        }
+    }
+    return true;
+}
+fn pe_layout_exports(link: PeLink*): bool {
+    for (var at: usize = 1; at < link.exports.length; at++) {
+        var name = link.exports.data[at]; var cursor = at;
+        while cursor != 0 && pe_compare(link.exports.data[cursor - 1], name) > 0 { link.exports.data[cursor] = link.exports.data[cursor - 1]; cursor--; }
+        link.exports.data[cursor] = name;
+    }
+    var ordinal_limit: usize = 65535;
+    if link.exports.length > ordinal_limit { return false; }
+    if link.exports.length == 0 { link.export_index = PeNoIndex; return true; }
+    link.export_index = pe_output_section(link, wasm_text_bytes(".edata"), PeRead | PeInitialized);
+    if link.export_index == PeNoIndex { return false; }
+    var section = &link.sections.data[convert(usize, link.export_index)];
+    var dll_name = wasm_text_bytes("tower.exe");
+    section.size = PeExportHeaderBytes + convert(u64, link.exports.length) * (PeWord * 2 + PeHalf) + convert(u64, dll_name.length) + 1;
+    for (var at: usize = 0; at < link.exports.length; at++) {
+        var name = link.exports.data[at]; var symbol = pe_link_lookup(link, name);
+        if symbol == null { return pe_fail(&link.error, PeError.Undefined, name, 0); }
+        if at != 0 && wasm_bytes_equal(link.exports.data[at - 1], name) { return pe_fail(&link.error, PeError.Duplicate, name, 0); }
+        section.size += convert(u64, name.length) + 1;
+    }
+    return section.size <= PeImageLimit;
+}
+fn pe_layout(link: PeLink*): bool {
+    if !pe_layout_inputs(link) || !pe_layout_imports(link) || !pe_layout_exports(link) { return false; }
+    link.reloc_index = PeNoIndex;
+    // Reserve a conservative block per absolute patch. The final directory
+    // uses only actual block bytes, while this section retains zero padding.
+    var block_bound: u64 = 12;
+    foreach (var & input in &link.objects) {
+        foreach (var & patch in &input.object.patches) {
+            if input.object.sections.data[patch.section].discarded || patch.kind == PeRelocation.Absolute { continue; }
+            var symbol = pe_patch_symbol(link, input.object, *patch, &link.error); if symbol == null { return false; }
+            if (patch.kind == PeRelocation.Address64 || patch.kind == PeRelocation.Address32) && symbol.section != PeAbsolute {
+                if link.reloc_index == PeNoIndex {
+                    link.reloc_index = pe_output_section(link, wasm_text_bytes(".reloc"), PeRead | PeInitialized | PeDiscardable);
+                    if link.reloc_index == PeNoIndex { return false; }
+                }
+                link.sections.data[convert(usize, link.reloc_index)].size += block_bound;
+            }
+        }
+    }
+    link.headers = elf_align(PeDosBytes + PeSignatureBytes + PeObjectHeaderBytes + PeOptionalBytes + convert(u64, link.sections.length) * PeSectionBytes, PeFileAlign);
+    var file = link.headers; var address = elf_align(link.headers, PePage);
+    foreach (var & section in &link.sections) {
+        // Retained zero-size input sections need an address for section symbols.
+        // Optional synthetic sections are omitted when unused.
+        if section.size == 0 { section.size = 1; }
+        if section.size > PeImageLimit || file > PeImageLimit - section.size || address > PeImageLimit - section.size { return pe_fail(&link.error, PeError.Range, section.name, 0); }
+        section.output = file; section.rva = address; section.file_size = elf_align(section.size, PeFileAlign);
+        file += section.file_size; address += elf_align(section.size == 0 ? 1 : section.size, PePage);
+    }
+    link.image_size = address;
+    foreach (var & input in &link.objects) {
+        foreach (var & section in &input.object.sections) {
+            if section.discarded { continue; }
+            var output = &link.sections.data[convert(usize, section.output_index - 1)];
+            section.rva = output.rva + section.offset; section.output = output.output + section.offset;
+        }
+        foreach (var & symbol in &input.object.symbols) {
+            if symbol.auxiliary { continue; }
+            if symbol.section > 0 {
+                var section = &input.object.sections.data[convert(usize, symbol.section - 1)];
+                symbol.rva = section.rva + symbol.value; symbol.output_index = section.output_index;
+            } else {
+                if symbol.section == PeAbsolute { symbol.rva = symbol.value; }
+                if symbol.section == PeImportSection {
+                    var value = link.imports.data[symbol.import_index].value;
+                    symbol.output_index = (symbol.import_address ? link.import_index : link.text_index) + 1;
+                    symbol.rva = link.sections.data[convert(usize, symbol.output_index - 1)].rva + (symbol.import_address ? value.iat : value.thunk);
+                }
+            }
+        }
+    }
+    foreach (var symbol in &link.globals) { if symbol.section == 0 { symbol.rva += link.sections.data[convert(usize, symbol.output_index - 1)].rva; } }
+    if file > convert(u64, ~convert(usize, 0)) || !bytes_reserve(&link.output, convert(usize, file)) { return false; }
+    link.output.length = convert(usize, file); fill(link.output.data, 0, link.output.length); return true;
+}

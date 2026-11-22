@@ -1,0 +1,108 @@
+import tower;
+import pe_types;
+import elf_types;
+import wasm_bytes;
+import .library.vector;
+
+fn pe_object_dispose(object: PeObject*): void {
+    vector_dispose(&object.sections); vector_dispose(&object.symbols); vector_dispose(&object.patches);
+}
+fn pe_object_name(bytes: WasmBytes, at: u64, strings: WasmBytes, section: bool, name: WasmBytes*): bool {
+    if section && bytes.data[convert(usize, at)] == *"/" {
+        var offset: u64 = 0; var cursor: u64 = 1; var radix: u64 = 10;
+        while cursor < PeNameBytes && bytes.data[convert(usize, at + cursor)] != 0 {
+            var digit = bytes.data[convert(usize, at + cursor++)];
+            if digit < *"0" || digit > *"9" { return false; }
+            offset = offset * radix + convert(u64, digit - *"0");
+        }
+        return cursor > 1 && offset >= PeWord && elf_text(strings, offset, name);
+    }
+    if !section && elf_uint(bytes, at, PeWord) == 0 {
+        var offset = elf_uint(bytes, at + PeWord, PeWord);
+        return offset >= PeWord && elf_text(strings, offset, name);
+    }
+    *name = init(WasmBytes) { data: bytes.data + convert(usize, at), length: 0 };
+    while name.length < convert(usize, PeNameBytes) && name.data[name.length] != 0 { name.length++; }
+    return true;
+}
+fn pe_object_read(object: PeObject*, error: PeDiagnostic*): bool {
+    var bytes = object.bytes;
+    if !elf_span(bytes, 0, PeObjectHeaderBytes) { return pe_fail(error, PeError.Input, object.name, 0); }
+    if elf_uint(bytes, convert(u64, PeObjectAt.Machine), PeHalf) != PeMachineX64
+        || elf_uint(bytes, convert(u64, PeObjectAt.Optional), PeHalf) != 0
+        || elf_uint(bytes, convert(u64, PeObjectAt.Flags), PeHalf) != 0 { return pe_fail(error, PeError.Unsupported, object.name, 0); }
+    var sections = elf_uint(bytes, convert(u64, PeObjectAt.Sections), PeHalf);
+    var symbols = elf_uint(bytes, convert(u64, PeObjectAt.Symbols), PeWord);
+    var count = elf_uint(bytes, convert(u64, PeObjectAt.SymbolCount), PeWord);
+    var strings_at = symbols + count * PeSymbolBytes;
+    if !elf_span(bytes, PeObjectHeaderBytes, sections * PeSectionBytes) || !elf_span(bytes, symbols, count * PeSymbolBytes)
+        || !elf_span(bytes, strings_at, PeWord) { return pe_fail(error, PeError.Input, object.name, symbols); }
+    var string_size = elf_uint(bytes, strings_at, PeWord);
+    if string_size < PeWord || !elf_span(bytes, strings_at, string_size) { return pe_fail(error, PeError.Input, object.name, strings_at); }
+    var strings: WasmBytes = { data: bytes.data + convert(usize, strings_at), length: convert(usize, string_size) };
+    for (var index: u64 = 0; index < sections; index++) {
+        var at = PeObjectHeaderBytes + index * PeSectionBytes;
+        var section: PeSection = default;
+        if !pe_object_name(bytes, at, strings, true, &section.name) { return pe_fail(error, PeError.Input, object.name, at); }
+        section.flags = convert(u32, elf_uint(bytes, at + convert(u64, PeSectionAt.Flags), PeWord));
+        section.size = elf_uint(bytes, at + convert(u64, PeSectionAt.Size), PeWord);
+        var data = elf_uint(bytes, at + convert(u64, PeSectionAt.Data), PeWord);
+        var alignment = (section.flags & PeAlignMask) >> PeAlignShift;
+        if alignment > PeMaxAlignCode || (section.flags & PeRelocationOverflow) != 0 { return pe_fail(error, PeError.Unsupported, section.name, at); }
+        section.alignment = alignment == 0 ? PeDefaultAlign : convert(u64, 1) << (alignment - 1);
+        section.discarded = (section.flags & PeLinkRemove) != 0 || pe_prefix(section.name, ".debug");
+        if pe_prefix(section.name, ".tls") || pe_prefix(section.name, ".CRT") || wasm_bytes_text(section.name, ".drectve")
+            || (!section.discarded && (section.flags & PeLinkInfo) != 0)
+            || (section.flags & (PeExecute | PeWrite)) == (PeExecute | PeWrite) {
+            return pe_fail(error, PeError.Unsupported, section.name, at);
+        }
+        if (section.flags & PeUninitialized) == 0 {
+            if !elf_span(bytes, data, section.size) { return pe_fail(error, PeError.Input, section.name, data); }
+            section.bytes = init(WasmBytes) { data: bytes.data + convert(usize, data), length: convert(usize, section.size) };
+        }
+        var patches = elf_uint(bytes, at + convert(u64, PeSectionAt.Relocations), PeWord);
+        var patch_count = elf_uint(bytes, at + convert(u64, PeSectionAt.RelocationCount), PeHalf);
+        if !elf_span(bytes, patches, patch_count * PeRelocationBytes) { return pe_fail(error, PeError.Input, section.name, patches); }
+        for (var r: u64 = 0; r < patch_count; r++) {
+            var patch_at = patches + r * PeRelocationBytes;
+            var patch: PePatch = {
+                section: convert(usize, index), offset: elf_uint(bytes, patch_at, PeWord),
+                symbol: convert(usize, elf_uint(bytes, patch_at + PeWord, PeWord)),
+                kind: convert(PeRelocation, elf_uint(bytes, patch_at + PeWord * 2, PeHalf))
+            };
+            if convert(u64, patch.symbol) >= count { return pe_fail(error, PeError.Input, section.name, patch_at); }
+            if !vector_push(&object.patches, patch) { return pe_fail(error, PeError.Allocation, object.name, 0); }
+        }
+        if !vector_push(&object.sections, section) { return pe_fail(error, PeError.Allocation, object.name, 0); }
+    }
+    if !vector_reserve(&object.symbols, convert(usize, count)) { return pe_fail(error, PeError.Allocation, object.name, 0); }
+    object.symbols.length = convert(usize, count);
+    if count != 0 { fill(object.symbols.data, 0, convert(usize, count) * sizeof(PeSymbol)); }
+    for (var index: u64 = 0; index < count;) {
+        var at = symbols + index * PeSymbolBytes;
+        var symbol = &object.symbols.data[convert(usize, index)];
+        if !pe_object_name(bytes, at, strings, false, &symbol.name) { return pe_fail(error, PeError.Input, object.name, at); }
+        symbol.value = elf_uint(bytes, at + convert(u64, PeSymbolAt.Value), PeWord);
+        symbol.section = convert(i32, bits(i16, convert(u16, elf_uint(bytes, at + convert(u64, PeSymbolAt.Section), PeHalf))));
+        symbol.storage = convert(PeStorage, elf_uint(bytes, at + convert(u64, PeSymbolAt.Storage), 1));
+        var auxiliary = elf_uint(bytes, at + convert(u64, PeSymbolAt.Aux), 1);
+        if auxiliary >= count - index || symbol.section < PeDebug || symbol.section > convert(i32, sections) { return pe_fail(error, PeError.Input, symbol.name, at); }
+        if symbol.storage == PeStorage.Weak { return pe_fail(error, PeError.Unsupported, symbol.name, at); }
+        if symbol.section > 0 {
+            var section = &object.sections.data[convert(usize, symbol.section - 1)];
+            if symbol.value > section.size { return pe_fail(error, PeError.Input, symbol.name, at); }
+            if symbol.storage == PeStorage.Static && auxiliary != 0 {
+                if auxiliary != 1 || symbol.value != 0 { return pe_fail(error, PeError.Unsupported, symbol.name, at); }
+                section.selection = convert(PeComdat, elf_uint(bytes, at + PeSymbolBytes + convert(u64, PeAuxAt.Selection), 1));
+                section.association = convert(u32, elf_uint(bytes, at + PeSymbolBytes + convert(u64, PeAuxAt.Association), PeHalf));
+            }
+            if symbol.storage == PeStorage.External && section.key.length == 0 { section.key = symbol.name; }
+        }
+        for (var aux: u64 = 1; aux <= auxiliary; aux++) { object.symbols.data[convert(usize, index + aux)].auxiliary = true; }
+        index += auxiliary + 1;
+    }
+    foreach (var & patch in &object.patches) {
+        if object.symbols.data[patch.symbol].auxiliary { return pe_fail(error, PeError.Input, object.name, patch.offset); }
+    }
+    return true;
+}

@@ -1,0 +1,66 @@
+import tower;
+import link_types;
+import text;
+import pe_types;
+import pe_link_world;
+import pe_link;
+import wasm_bytes;
+import .library.vector;
+
+fn backend_pe_input(backend: BackendLink*, link: PeLink*, name: u8*): bool {
+    var found: BackendLinkInput* = null;
+    foreach (var & input in &backend.inputs) {
+        if backend_equal(input.name.data, name) {
+            if found != null { return pe_fail(&link.error, PeError.Input, wasm_text_bytes(name), 0); }
+            found = input;
+        }
+    }
+    foreach (var & input in &backend.generated) {
+        if backend_equal(input.name.data, name) {
+            if found != null { return pe_fail(&link.error, PeError.Input, wasm_text_bytes(name), 0); }
+            found = input;
+        }
+    }
+    if found == null { return pe_fail(&link.error, PeError.Input, wasm_text_bytes(name), 0); }
+    return pe_link_input(link, wasm_text_bytes(name), init(WasmBytes) { data: found.bytes.data, length: found.bytes.length });
+}
+export fn backend_link_tower_pe(backend: BackendLink*, triple: u8*): bool {
+    backend.output.length = 0;
+    if backend.error.length != 0 { return false; }
+    var link: PeLink = default; defer pe_link_close(&link);
+    var ok = pe_link_open(&link);
+    if !backend_equal(triple, "x86_64-pc-windows-msvc") { ok = pe_fail(&link.error, PeError.Unsupported, wasm_text_bytes(triple), 0); }
+    if backend.arguments.length == 0 { ok = pe_fail(&link.error, PeError.Input, wasm_text_bytes("missing PE arguments"), 0); }
+    for (var at: usize = 1; at < backend.arguments.length && ok; at++) {
+        var arg = backend.arguments.data[at];
+        if backend_equal(arg, "/subsystem:console") || backend_equal(arg, "/machine:x64") || backend_equal(arg, "/timestamp:0") { continue; }
+        var entry: u8* = "/entry:"; var exported: u8* = "/export:"; var output: u8* = "/out:"; var threads: u8* = "/threads:";
+        if backend_prefix(arg, entry) { link.entry = wasm_text_bytes(arg + backend_length(entry)); continue; }
+        if backend_prefix(arg, output) { continue; }
+        if backend_prefix(arg, exported) {
+            var name = wasm_text_bytes(arg + backend_length(exported));
+            if name.length == 0 || backend_contains(arg, ",") || backend_contains(arg, "=") { ok = pe_fail(&link.error, PeError.Unsupported, name, 0); break; }
+            ok = vector_push(&link.exports, name); continue;
+        }
+        if backend_prefix(arg, threads) {
+            var count: usize = 0; var first = backend_length(threads); var cursor = first; var radix: usize = 10; var maximum: usize = 256;
+            while arg[cursor] != 0 {
+                if arg[cursor] < *"0" || arg[cursor] > *"9" || count > maximum / radix { break; }
+                count = count * radix + convert(usize, arg[cursor++] - *"0");
+            }
+            if cursor == first || arg[cursor] != 0 || count == 0 || count > maximum { ok = pe_fail(&link.error, PeError.Input, wasm_text_bytes(arg), 0); break; }
+            link.workers = count; continue;
+        }
+        if *arg == *"/" || *arg == *"-" { ok = pe_fail(&link.error, PeError.Unsupported, wasm_text_bytes(arg), 0); break; }
+        ok = backend_pe_input(backend, &link, arg);
+    }
+    ok &&= pe_link_run(&link);
+    if !ok {
+        backend_text(&backend.error, "Link failed: "); backend_text(&backend.error, pe_message(link.error.kind));
+        if link.error.name.length != 0 { backend_text(&backend.error, ": "); backend_text_append(&backend.error, link.error.name.data, link.error.name.length); }
+        return false;
+    }
+    vector_dispose(&backend.output);
+    backend.output.data = link.output.data; backend.output.length = link.output.length; backend.output.capacity = link.output.capacity;
+    link.output = default; return true;
+}

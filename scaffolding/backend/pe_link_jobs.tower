@@ -1,0 +1,73 @@
+import tower;
+import pe_types;
+import pe_relocate;
+import .library.vector;
+import .library.entity_api;
+import .library.work_graph;
+import .library.work_pool;
+
+struct PeLinkJob { link: PeLink*; object: PeObject*; output: u8*; ticket: WorkTicket; error: PeDiagnostic; }
+var PeInputDomain: u64 = 1;
+var PeOutputDomain: u64 = 2;
+var PeJobDomain: u64 = 3;
+var PeWorkComponent: u64 = 1;
+var PePatchQuery: u32 = 1;
+fn pe_link_job_execute(payload: void*): void {
+    var job = bits(PeLinkJob*, payload);
+    foreach (var & section in &job.object.sections) {
+        if !section.discarded && section.bytes.length != 0 { copy(job.output + convert(usize, section.output), section.bytes.data, section.bytes.length); }
+    }
+    foreach (var & patch in &job.object.patches) {
+        if job.object.sections.data[patch.section].discarded { continue; }
+        if !pe_patch_one(job.link, job.object, *patch, job.output, &job.error) { return; }
+    }
+}
+fn pe_link_jobs(link: PeLink*): bool {
+    var pool: WorkPool = default;
+    if !work_pool_open_kernel(&pool, link.workers, pe_link_job_execute) { return false; }
+    defer work_pool_close(&pool);
+    var graph: WorkGraph = default; work_init(&graph, 1, 1); defer work_dispose(&graph);
+    var kind = entity_create(link.store); if kind == null { return false; }
+    defer entity_release(kind);
+    if !entity_register(kind, sizeof(PeLinkJob), alignof(PeLinkJob), 0) { return false; }
+    var nodes: vector(Entity*) = default; var jobs: vector(PeLinkJob*) = default;
+    defer { foreach (var node in &nodes) { entity_release(node); } vector_dispose(&nodes); vector_dispose(&jobs); }
+    for (var at: usize = 0; at < link.objects.length; at++) {
+        var node = entity_create(link.store); if node == null { return false; }
+        if !vector_push(&nodes, node) { entity_release(node); return false; }
+        var component = entity_component_add(node, kind); if component == null { return false; }
+        var job = bits(PeLinkJob*, entity_component_data(component));
+        *job = init(PeLinkJob) { link: link, object: link.objects.data[at].object, output: link.output.data, ..default };
+        if !vector_push(&jobs, job) { return false; }
+        var task = work_request(&graph, bits(void*, node), PePatchQuery, convert(u64, at));
+        if task == 0 || !work_access(&graph, task, PeInputDomain, PeWorkComponent, 0, link.objects.length, WorkAccessMode.Read)
+            || !work_access(&graph, task, PeJobDomain, PeWorkComponent, at, 1, WorkAccessMode.Write) { return false; }
+        foreach (var & section in &job.object.sections) {
+            if !section.discarded && section.size != 0
+                && !work_access(&graph, task, PeOutputDomain, PeWorkComponent, convert(usize, section.output), convert(usize, section.size), WorkAccessMode.Write) { return false; }
+        }
+        if !work_seal(&graph, task) || !work_demand(&graph, task) { return false; }
+    }
+    var view = entity_view_open(kind); if view == null { return false; }
+    // No component/index mutation after this pin. Inputs, resolved symbols and
+    // layout are frozen; jobs own their diagnostic and disjoint output ranges.
+    defer { while pool.running != 0 { work_pool_receive(&pool, true); } entity_view_close(view); }
+    var completed: usize = 0;
+    while completed < jobs.length {
+        if link.cancel != null && link.cancel(link.cancel_context) {
+            work_cancel(&graph); return pe_fail(&link.error, PeError.Cancelled, default(WasmBytes), 0);
+        }
+        while pool.running < pool.count {
+            var ticket: WorkTicket = default; if !work_take(&graph, &ticket) { break; }
+            var job = jobs.data[convert(usize, work_task(&graph, ticket.task).argument)]; job.ticket = ticket;
+            if !work_pool_submit(&pool, bits(void*, job)) { return false; }
+        }
+        if pool.running == 0 { return false; }
+        var done = bits(PeLinkJob*, work_pool_receive(&pool, true));
+        if !work_finish(&graph, &done.ticket, true) { return false; }
+        completed++;
+    }
+    link.jobs_run = jobs.length; link.jobs_peak = pool.peak;
+    foreach (var job in &jobs) { if job.error.kind != PeError.None { link.error = job.error; return false; } }
+    return true;
+}

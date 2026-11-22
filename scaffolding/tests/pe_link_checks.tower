@@ -1,0 +1,145 @@
+import tower;
+import utility_checks;
+import .backend.pe_types;
+import .backend.coff_object;
+import .backend.pe_link;
+import .backend.pe_link_world;
+import .backend.pe_link_symbols;
+import .backend.pe_link_jobs;
+import .backend.pe_link_emit;
+import .backend.linker_tower_pe;
+import .backend.link_inputs;
+import .backend.link_types;
+import .backend.elf_types;
+import .backend.wasm_bytes;
+import .library.bytes;
+import .library.vector;
+import .library.entity_api;
+import .library.work_pool;
+import .library.ar_archive;
+
+fn pe_check_load(link: PeLink*, inputs: vector(ByteBuffer)*, probe: WasmBytes): void {
+    utility_check(pe_link_open(link), "PE check world opens");
+    foreach (var & buffer in inputs) {
+        utility_check(pe_link_input(link, wasm_text_bytes("check.o"), init(WasmBytes) { data: buffer.data, length: buffer.length }), "PE check input");
+    }
+    utility_check(pe_link_input(link, wasm_text_bytes("probe.lib"), probe), "PE probe input");
+    var exported = wasm_text_bytes("elf_answer"); utility_check(vector_push(&link.exports, exported), "PE export demand");
+}
+struct PeCancelProbe { link: PeLink*; polls: usize; }
+fn pe_check_cancel(payload: void*): bool {
+    var probe = bits(PeCancelProbe*, payload);
+    utility_check(probe.link.store.views != 0 && !pe_link_close(probe.link), "PE cancellation pin"); probe.polls++; return probe.polls > 1;
+}
+struct PeOverlapProbe { job: PeLinkJob; entered: void*; release: void*; }
+fn pe_check_overlap_execute(payload: void*): void {
+    var probe = bits(PeOverlapProbe*, payload); work_signal_post(probe.entered); work_signal_wait(probe.release); pe_link_job_execute(bits(void*, &probe.job));
+}
+fn pe_check_overlap(link: PeLink*): void {
+    utility_check(work_thread_available() && work_thread_capacity() >= 2 && link.objects.length >= 2, "PE real overlap transport required");
+    var view = entity_view_open(link.object_type); utility_check(view != null, "PE overlap pin"); defer entity_view_close(view);
+    var entered = work_signal_open(); var release = work_signal_open(); utility_check(entered != null && release != null, "PE overlap signals");
+    defer work_signal_close(entered); defer work_signal_close(release);
+    var pool: WorkPool = default; utility_check(work_pool_open_kernel(&pool, 2, pe_check_overlap_execute) && pool.threaded, "PE threaded kernels"); defer work_pool_close(&pool);
+    var probes: PeOverlapProbe[2] = default; var buffers: ByteBuffer[2] = default;
+    defer { bytes_dispose(&buffers[0]); bytes_dispose(&buffers[1]); }
+    for (var at: usize = 0; at < 2; at++) {
+        utility_check(bytes_append(&buffers[at], link.output.data, link.output.length), "PE overlap copy");
+        foreach (var & section in &link.objects.data[at].object.sections) {
+            if !section.discarded && section.bytes.length != 0 { fill(buffers[at].data + convert(usize, section.output), 0, section.bytes.length); }
+        }
+        probes[at] = init(PeOverlapProbe) { job: { link: link, object: link.objects.data[at].object, output: buffers[at].data, ..default }, entered: entered, release: release };
+        utility_check(work_pool_submit(&pool, bits(void*, &probes[at])), "PE overlap submit");
+    }
+    work_signal_wait(entered); work_signal_wait(entered); utility_check(pool.running == 2, "both PE kernels entered before release");
+    work_signal_post(release); work_signal_post(release);
+    for (var at: usize = 0; at < 2; at++) {
+        var done = bits(PeOverlapProbe*, work_pool_receive(&pool, true));
+        utility_check(done.job.error.kind == PeError.None && utility_equal(done.job.output, link.output.data, link.output.length), "PE overlap exact output");
+    }
+}
+fn pe_check_archive(library: ByteBuffer*, output: ByteBuffer*): void {
+    var junk: u8[3] = default;
+    var members: ArMember[2] = default;
+    var object_name = wasm_text_bytes("a_library_with_a_long_name.obj"); var unused_name = wasm_text_bytes("unused.obj");
+    members[0] = init(ArMember) { name: object_name.data, name_length: object_name.length, data: library.data, length: library.length };
+    members[1] = init(ArMember) { name: unused_name.data, name_length: unused_name.length, data: &junk[0], length: sizeof(u8[3]) };
+    var symbol = wasm_text_bytes("elf_answer"); var symbols: ArSymbol[1] = default;
+    symbols[0] = init(ArSymbol) { name: symbol.data, length: symbol.length, member: 0 };
+    utility_check(ar32_write(&members[0], 2, &symbols[0], 1, ArMaximumOffset, output) == ArResult.Ok, "PE lazy archive fixture");
+}
+fn pe_check_inputs(inputs: vector(ByteBuffer)*, probe: WasmBytes, reference: PeLink*): void {
+    var image: WasmBytes = { data: reference.output.data, length: reference.output.length };
+    utility_check(elf_uint(image, 0, PeHalf) == PeDosMagic, "PE DOS magic");
+    foreach (var & section in &reference.sections) {
+        utility_check((section.flags & (PeWrite | PeExecute)) != (PeWrite | PeExecute)
+            && (section.rva % PePage) == 0 && (section.output % PeFileAlign) == 0
+            && elf_span(image, section.output, section.file_size), "PE permissions/alignment/extents");
+    }
+    var maximum_workers: usize = 8;
+    for (var workers: usize = 1; workers <= maximum_workers; workers *= 2) {
+        var link: PeLink = default; defer pe_link_close(&link); pe_check_load(&link, inputs, probe); link.workers = workers;
+        utility_check(pe_link_run(&link) && link.output.length == reference.output.length && utility_equal(link.output.data, reference.output.data, link.output.length), "PE deterministic worker output");
+        utility_check(!pe_link_run(&link) && link.output.length == 0, "PE single-use request clears stale result");
+    }
+    pe_check_overlap(reference);
+    var cancel: PeLink = default; defer pe_link_close(&cancel); pe_check_load(&cancel, inputs, probe); cancel.workers = 4;
+    var cancellation: PeCancelProbe = { link: &cancel, ..default }; cancel.cancel = pe_check_cancel; cancel.cancel_context = bits(void*, &cancellation);
+    utility_check(!pe_link_run(&cancel) && cancel.error.kind == PeError.Cancelled && cancel.output.length == 0 && cancellation.polls > 1 && cancel.store.views == 0, "PE cancellation drains active work");
+    var duplicate: PeLink = default; defer pe_link_close(&duplicate); pe_check_load(&duplicate, inputs, probe);
+    utility_check(pe_link_input(&duplicate, wasm_text_bytes("duplicate.o"), init(WasmBytes) { data: inputs.data[0].data, length: inputs.data[0].length })
+        && !pe_link_run(&duplicate) && duplicate.error.kind == PeError.Duplicate && duplicate.output.length == 0, "PE duplicate definition");
+    var absent: PeLink = default; defer pe_link_close(&absent); pe_check_load(&absent, inputs, probe); absent.entry = wasm_text_bytes("absent_entry");
+    utility_check(!pe_link_run(&absent) && absent.error.kind == PeError.Undefined && absent.output.length == 0, "PE missing entry");
+    var input: WasmBytes = { data: inputs.data[0].data, length: inputs.data[0].length };
+    for (var size: u64 = 0; size < PeObjectHeaderBytes; size++) {
+        var object: PeObject = { bytes: { data: input.data, length: convert(usize, size) }, ..default }; var error: PeDiagnostic = default;
+        utility_check(!pe_object_read(&object, &error) && error.kind == PeError.Input, "PE truncated header"); pe_object_dispose(&object);
+    }
+    var null_link: PeLink = default; defer pe_link_close(&null_link);
+    utility_check(pe_link_open(&null_link) && !pe_link_input(&null_link, wasm_text_bytes("null.o"), init(WasmBytes) { data: null, length: 1 }), "PE rejects null span");
+    puts("PE reader, archives, workers, overlap, cancellation and failures passed");
+}
+fn pe_check_patch_matrix(inputs: vector(ByteBuffer)*, probe: WasmBytes): void {
+    var data: u8[32] = default;
+    var link: PeLink = default; defer pe_link_close(&link); pe_check_load(&link, inputs, probe);
+    var object = link.objects.data[0].object;
+    var section: PeSection = { name: wasm_text_bytes(".rdata$patch"), bytes: { data: &data[0], length: sizeof(u8[32]) }, size: convert(u64, sizeof(u8[32])), flags: PeRead | PeInitialized, alignment: PeAddress, ..default };
+    var section_index = object.sections.length; utility_check(vector_push(&object.sections, section), "PE patch section");
+    var symbol_index = object.symbols.length; var symbol: PeSymbol = { name: wasm_text_bytes("elf_answer"), storage: PeStorage.External, ..default };
+    utility_check(vector_push(&object.symbols, symbol), "PE patch symbol");
+    var patch: PePatch = { section: section_index, symbol: symbol_index, kind: PeRelocation.Address64, ..default };
+    utility_check(vector_push(&object.patches, patch), "PE absolute patch");
+    patch.offset = PeAddress; patch.kind = PeRelocation.Rva32; utility_check(vector_push(&object.patches, patch), "PE RVA patch");
+    patch.offset += PeWord; patch.kind = PeRelocation.SectionRelative; utility_check(vector_push(&object.patches, patch), "PE section-relative patch");
+    patch.offset += PeWord; patch.kind = PeRelocation.Section; utility_check(vector_push(&object.patches, patch), "PE section patch");
+    utility_check(pe_link_run(&link), "PE patch matrix links");
+    var target = pe_link_lookup(&link, wasm_text_bytes("elf_answer")); var base = object.sections.data[section_index].output;
+    var image: WasmBytes = { data: link.output.data, length: link.output.length };
+    utility_check(elf_uint(image, base, PeAddress) == PeImageBase + target.rva && elf_uint(image, base + PeAddress, PeWord) == target.rva
+        && elf_uint(image, base + PeAddress + PeWord, PeWord) == target.rva - link.sections.data[convert(usize, target.output_index - 1)].rva
+        && elf_uint(image, base + PeAddress + PeWord * 2, PeHalf) == convert(u64, target.output_index), "PE relocation values");
+    utility_check(link.reloc_index != PeNoIndex, "PE address relocation emits ASLR directory");
+}
+
+fn pe_check_byte_service(inputs: vector(ByteBuffer)*, probe: WasmBytes, reference: PeLink*): void {
+    var backend: BackendLink = default;
+    defer { backend_link_inputs_release(&backend.inputs); vector_dispose(&backend.inputs); vector_dispose(&backend.arguments); vector_dispose(&backend.output); vector_dispose(&backend.error); }
+    var names: u8*[4] = default; names[0] = "program.o"; names[1] = "runtime.o"; names[2] = "library.lib"; names[3] = "kernel32.lib";
+    utility_check(inputs.length == 4, "PE byte fixture input count");
+    var driver: u8* = "tower-pe-link"; var export_argument: u8* = "/export:elf_answer";
+    utility_check(vector_push(&backend.arguments, driver) && vector_push(&backend.arguments, export_argument), "PE byte arguments");
+    for (var at: usize = 0; at < inputs.length; at++) {
+        utility_check(backend_link_input_store(&backend.inputs, names[at], inputs.data[at].data, inputs.data[at].length)
+            && vector_push(&backend.arguments, names[at]), "PE byte input ownership");
+    }
+    var probe_name: u8* = "probe.lib";
+    utility_check(backend_link_input_store(&backend.inputs, probe_name, probe.data, probe.length) && vector_push(&backend.arguments, probe_name), "PE byte probe");
+    utility_check(backend_link_tower_pe(&backend, "x86_64-pc-windows-msvc") && backend.output.length == reference.output.length
+        && utility_equal(backend.output.data, reference.output.data, reference.output.length), "PE byte API matches direct request");
+    var unknown: u8* = "/unknown"; utility_check(vector_push(&backend.arguments, unknown), "PE invalid argument");
+    utility_check(!backend_link_tower_pe(&backend, "x86_64-pc-windows-msvc") && backend.output.length == 0 && backend.error.length != 0, "PE byte failure clears artifact");
+    backend.arguments.length--; backend.error.length = 0;
+    utility_check(backend_link_tower_pe(&backend, "x86_64-pc-windows-msvc") && backend.output.length == reference.output.length, "PE byte service retry uses fresh world");
+    utility_check(!backend_link_tower_pe(&backend, "aarch64-pc-windows-msvc") && backend.output.length == 0, "PE target profile legality");
+}

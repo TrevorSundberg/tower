@@ -718,6 +718,24 @@ grammar imports, general character-range partitioning and syntax-error recovery
 remain separate work. Checked table creation now reports unresolved rules and
 conflicting actions; internal assertions still guard unsupported table invariants.
 
+## Windows COFF/PE linker
+
+`pe_link_driver.tower` is a Linux-hosted byte-service runner producing real
+Windows x64 executables. Compile it with the documented bootstrap using
+`--library --emit object`, link the existing guest-host-library.o with pthread/dl,
+then run `pe_link_driver output.exe 4 --checks program.o runtime.o library.o kernel32.lib`.
+Use `pe_link_program.tower` and `pe_link_library.tower` as Windows target objects;
+repeat the program compilation with `--no-optimize`. Run both resulting EXEs on
+Windows: each must print 42, 50, 42. The 64 KiB frame exercises the actual imported
+OS stack probe. Compare with SDK lld-link using the same object/import inputs.
+
+`pe_link_checks.tower` checks lazy archives (including an unused invalid member),
+raw object bounds, byte API equivalence/failure/retry, target rejection, named
+exports, relocation values/base-relocation generation, worker counts 1/2/4/8,
+barrier-proven real overlap and cancellation while work is active. Every check
+and fixture is Tower. The existing backend test covers generated input ownership
+and plan reset; browser cross-compilation tests cover actual download transport.
+
 ## Typed core interpreter
 
 The Tower execution suite (`execution_main.tower`) replaces the native

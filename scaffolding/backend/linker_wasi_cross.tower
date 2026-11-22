@@ -5,8 +5,9 @@ import linker_wasi;
 import linker;
 import text;
 import linker_tower_elf;
+import linker_tower_pe;
 
-// Remaining COFF/Mach-O LLD ABI. Wasm and Linux ELF use Tower byte linkers;
+// Remaining Mach-O LLD ABI. Wasm, Linux ELF and Windows PE use Tower byte linkers;
 // those paths never construct an LLD stream or process-global context.
 struct BackendLldArguments { data: u8**; count: usize; }
 struct BackendLldStream { opaque: u64[8]; }
@@ -25,14 +26,9 @@ extern fn `cpp_name(dtor(base) llvm::raw_fd_ostream())`(self: BackendLldStream*)
 extern fn `cpp_name(static void lld::CommonLinkerContext::destroy())`(): void;
 extern fn `cpp_name(llvm::raw_ostream& llvm::nulls())`(): BackendLldStream*;
 
-extern fn `cpp_name(bool lld::coff::link(llvm::ArrayRef<char const*>, llvm::raw_ostream&, llvm::raw_ostream&, bool, bool))`(args: BackendLldArguments*, output: BackendLldStream*, error: BackendLldStream*, exit_early: bool, disable_output: bool): bool;
-
 extern fn `cpp_name(bool lld::macho::link(llvm::ArrayRef<char const*>, llvm::raw_ostream&, llvm::raw_ostream&, bool, bool))`(args: BackendLldArguments*, output: BackendLldStream*, error: BackendLldStream*, exit_early: bool, disable_output: bool): bool;
 
 fn backend_lld_dispatch(triple: u8*, args: BackendLldArguments*, output: BackendLldStream*, error: BackendLldStream*): bool {
-    if backend_contains(triple, "windows") {
-        return `cpp_name(bool lld::coff::link(llvm::ArrayRef<char const*>, llvm::raw_ostream&, llvm::raw_ostream&, bool, bool))`(args, output, error, false, false);
-    }
     if backend_contains(triple, "apple") {
         return `cpp_name(bool lld::macho::link(llvm::ArrayRef<char const*>, llvm::raw_ostream&, llvm::raw_ostream&, bool, bool))`(args, output, error, false, false);
     }
@@ -43,6 +39,7 @@ export fn backend_link_wasi(link: BackendLink*, triple: u8*): bool {
     link.output.length = 0;
     if link.error.length != 0 { return false; }
     if backend_prefix(triple, "wasm") { return backend_link_tower_wasm(link); }
+    if backend_contains(triple, "windows") { return backend_link_tower_pe(link, triple); }
     if !backend_contains(triple, "windows") && !backend_contains(triple, "apple") { return backend_link_tower_elf(link, triple); }
     var error_file = fopen("tower-link.stderr", "wb");
     if error_file == null { backend_text(&link.error, "Cannot open linker diagnostics"); return false; }
