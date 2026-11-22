@@ -48916,3 +48916,26 @@ negative. These are source-level concerns matching D1's initial audit, not
 newly executed failures. Routed exact paths/lines to D1 and coordinator for
 current native/WASI evidence before any minimal classification/oracle repair.
 No fixture or browser transport was changed; no skipped check is a pass.
+
+After independent A1/L1/B1/D1 investigation, coordinator resolved the later-read
+known gate against existing contracts: optional automatic inference may fail
+without rejecting the runtime initializer. Demanding comptime(later) evaluates
+its initializer7, not the earlier runtime read; demanding comptime(earlier)
+must reject the executed before-initialization read. Read exact owner observed
+and demanded sources/logs and struct-values-and-bindings optional-evaluation
+contract plus computed-type-arguments captured-order rule. Owner current and
+pre-policy compilers agree. D1 owns exact original-positive7, strengthened
+runtime observation0,7,7, and demanded-negative registration; D2 preserves the
+failed old-oracle receipt and awaits the owner patch, not a competing production
+whole-program rejection. Final paired/canonical/width checks remain required.
+
+Read/applied L1 aggregate edge d9827cd8 after25e/ef014: whole-empty capture now
+exercises a zero-projection aggregate and checks existing one-byte empty layout.
+The existing strict store/copy/fill checks additionally require the exact
+immutable-capture diagnostic, retaining failure/byte-stability/lifetime/cancel
+assertions. No interpreter semantics or new fixture path changed. Owner current
+query/aggregate matrix passes; D2 independent execution is queued after D1
+drains. Broader full42 still incomplete after D1's180s outer timeout; a case/range
+progress handoff is being prepared in shared existing runners, not a timeout
+waiver. Original signed32 package child30s gate independently passes all4variants
+on D1 current86bf,209.26wall/204.42CPU/287224KiB; not a full backend release.
