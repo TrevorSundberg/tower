@@ -1,0 +1,69 @@
+import tower;
+import link_types;
+import text;
+import elf_types;
+import elf_link_world;
+import elf_link;
+import wasm_bytes;
+import .library.vector;
+
+fn backend_elf_input(backend: BackendLink*, link: ElfLink*, name: u8*): bool {
+    var found: BackendLinkInput* = null;
+    foreach (var & input in &backend.inputs) {
+        if backend_equal(input.name.data, name) {
+            if found != null { return elf_fail(&link.error, ElfError.Input, wasm_text_bytes(name), 0); }
+            found = input;
+        }
+    }
+    foreach (var & input in &backend.generated) {
+        if backend_equal(input.name.data, name) {
+            if found != null { return elf_fail(&link.error, ElfError.Input, wasm_text_bytes(name), 0); }
+            found = input;
+        }
+    }
+    if found == null { return elf_fail(&link.error, ElfError.Input, wasm_text_bytes(name), 0); }
+    return elf_link_input(link, wasm_text_bytes(name), init(WasmBytes) { data: found.bytes.data, length: found.bytes.length });
+}
+
+export fn backend_link_tower_elf(backend: BackendLink*, triple: u8*): bool {
+    backend.output.length = 0;
+    if backend.error.length != 0 { return false; }
+    var link: ElfLink = default; defer elf_link_close(&link);
+    var machine = backend_prefix(triple, "aarch64-") ? ElfMachine.Arm64 : ElfMachine.X64;
+    var ok = elf_link_open(&link, machine);
+    if !backend_contains(triple, "linux") || (!backend_prefix(triple, "x86_64-") && !backend_prefix(triple, "aarch64-")) {
+        ok = elf_fail(&link.error, ElfError.Unsupported, wasm_text_bytes(triple), 0);
+    }
+    if backend.arguments.length == 0 { ok = elf_fail(&link.error, ElfError.Input, wasm_text_bytes("missing ELF arguments"), 0); }
+    for (var at: usize = 1; at < backend.arguments.length && ok; at++) {
+        var arg = backend.arguments.data[at];
+        if backend_equal(arg, "-static") || backend_equal(arg, "--build-id=none") { continue; }
+        if backend_equal(arg, "-e") || backend_equal(arg, "--entry") || backend_equal(arg, "-o") {
+            if ++at == backend.arguments.length { ok = elf_fail(&link.error, ElfError.Input, wasm_text_bytes(arg), 0); break; }
+            if !backend_equal(arg, "-o") { link.entry = wasm_text_bytes(backend.arguments.data[at]); }
+            continue;
+        }
+        var threads: u8* = "--threads=";
+        if backend_prefix(arg, threads) {
+            var count: usize = 0; var first = backend_length(threads); var cursor = first;
+            var radix: usize = 10; var maximum: usize = 256;
+            while arg[cursor] != 0 {
+                if arg[cursor] < *"0" || arg[cursor] > *"9" || count > maximum / radix { break; }
+                count = count * radix + convert(usize, arg[cursor++] - *"0");
+            }
+            if cursor == first || arg[cursor] != 0 || count == 0 || count > maximum { ok = elf_fail(&link.error, ElfError.Input, wasm_text_bytes(arg), 0); break; }
+            link.workers = count; continue;
+        }
+        if *arg == *"-" { ok = elf_fail(&link.error, ElfError.Unsupported, wasm_text_bytes(arg), 0); break; }
+        ok = backend_elf_input(backend, &link, arg);
+    }
+    ok &&= elf_link_run(&link);
+    if !ok {
+        backend_text(&backend.error, "Link failed: "); backend_text(&backend.error, elf_message(link.error.kind));
+        if link.error.name.length != 0 { backend_text(&backend.error, ": "); backend_text_append(&backend.error, link.error.name.data, link.error.name.length); }
+        return false;
+    }
+    vector_dispose(&backend.output);
+    backend.output.data = link.output.data; backend.output.length = link.output.length; backend.output.capacity = link.output.capacity;
+    link.output = default; return true;
+}

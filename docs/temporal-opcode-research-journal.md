@@ -42545,3 +42545,76 @@ verification. Final inventory remains Python/owned C/C++ zero, shell9/230,
 CMake39/1783 and JS186/24366. todo.txt is unchanged. Tooling migration remains
 active; continue the live-caller/removal-first audit for remaining build rules
 and reusable JavaScript.
+### 2026-11-22: native ELF replacement plan
+
+Pulled main through 47eef84. Begin with the existing static Linux x86-64/AArch64
+download profiles: relocatable objects plus Tower's syscall runtime. Implement
+checked ELF64 little-endian readers, world-owned input components, deterministic
+symbol/archive resolution, section layout, target relocations and executable
+emission in Tower. Reuse the existing byte/name/archive utilities and shared
+WorkGraph/WorkPool, pin inputs before exclusive output jobs, join before error
+publication. Keep the byte service independent of browser/CLI transport. Do not
+claim dynamic host-compiler linking, native TLS or unimplemented relocations;
+reject unsupported profiles explicitly. Remove the production ELF LLD binding
+only after real x86-64/AArch64 output execution and differential tests pass.
+
+References: System V [ELF header](https://gabi.xinuos.com/elf/02-eheader.html),
+[symbol table](https://gabi.xinuos.com/elf/05-symtab.html), LLVM's
+[x86-64 relocation IDs](https://github.com/llvm/llvm-project/blob/main/llvm/include/llvm/BinaryFormat/ELFRelocs/x86_64.def),
+and Arm's [AAELF64](https://github.com/ARM-software/abi-aa/blob/main/aaelf64/aaelf64.rst).
+The attempted GitLab x86-64 ABI raw URLs returned 404; use installed upstream
+LLVM relocation implementation and published ABI sources for cross-checks.
+No new native/script implementation, no todo.txt edits, no sanitizer/format sweep.
+
+Implementation now covers the static download profile in elf_{types,object,
+link_world,link_symbols,relocate,link_jobs,link_emit,link}.tower and the ordinary
+BackendLink adapter. Object/archive payloads belong to an explicit entity store;
+symbol maps and section vectors are derived physical-link indexes, not compiler
+IR. Retained object copy/relocation kernels declare immutable input reads and
+exclusive output ranges through WorkGraph, use the existing WorkPool and keep a
+world view pinned until every job is joined. Failures publish in input order.
+Readers/symbol/layout publication remain coordinated; no parallel speedup claim.
+GNU/BSD archive parsing and byte/name indexing reuse existing Tower utilities.
+
+Production Linux plans now retain generated object bytes instead of temporary
+files. Cross dispatch calls backend_link_tower_elf, removing lld::elf::link and
+the cross reactor's lldELF dependency. COFF/Mach-O still use LLD. Native CLI host
+compiler-driver linking and SDK/build linkers remain unchanged. This milestone
+does not implement dynamic ELF/PIE, ELF TLS, IFUNC, init arrays, scripts, extended
+section indexes, compressed sections or all relocation kinds; unsupported load
+semantics/options fail without fallback. Non-allocated debug sections are omitted.
+
+Initial functional x86-64 object exposed LLVM's processor-specific X86_64_UNWIND
+section type for .eh_frame; retain its bytes/relocations. The public predecessor
+also exposed two unrelated compiler limitations: inline struct initialization
+inside inferred vector_push crashed sem_lift_initialization, and a string literal
+passed directly to inferred vector_push emitted doubled text ("-static-static").
+Named typed locals avoid both; report sent to the language lane, no semantic
+compiler change made here. GDB and coordinator-elf/driver.ll recorded the roots.
+An overlap fixture initially compared buffers in submission order before their
+individual jobs joined; compare the returned completed job's output instead.
+
+Native ELF checks pass for optimized/raw x86-64 and AArch64 Tower programs and
+separately compiled libraries. The runner constructs a real indexed archive
+containing an unneeded malformed member, checks backward extraction, symbols,
+1/2/4/8-worker byte identity, barrier-proven real overlap, cancellation with a
+pinned world, deterministic errors, bounded malformed input and byte-service
+failure/retry. Tower outputs execute directly and via qemu-aarch64, printing
+42/50/42; SDK34 ld.lld reference outputs for all four profiles print the same.
+The actual browser cross/world/raw-memory matrix passes34/34, zero skips,6.692s;
+its Linux executables and linked-library downloads pass the Tower driver's real
+execution assertions on both architectures. Native backend API and a clean
+public-bootstrap successor build pass. Final publication gates remain below.
+
+Initial three alternating tiny x86-64 links measured Tower below /usr/bin/time's
+0.01s resolution with1924KiB peak RSS; SDK34 LLD took0.04/0.01/0.01s and
+28956/28876/28844KiB. Both include process/file overhead; this is not general
+throughput evidence. The first image was9984bytes versus LLD4864 due to padding
+each segment to a file page. Corrected layout separates permission pages in
+virtual addresses while retaining file/address p_align congruence. x86-64 now
+4904bytes and ARM64 4728; both execute correctly with distinct R/RX/RW mappings
+and a non-executable stack. The only extra x86-64 bytes versus that reference
+are40bytes in this fixture; no claim that all images are size optimal.
+Reproduction uses /home/trevo/.cache/tower/coordinator-elf/driver, program-{x64,
+arm64}.o, the existing build/targets/*-runtime.o and library-{x64,arm64}.o. The
+reference is SDK34/bin/ld.lld --threads=1 -static -e _start --build-id=none.

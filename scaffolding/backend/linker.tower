@@ -231,6 +231,7 @@ export fn backend_link_plan(link: BackendLink*, triple: u8*, functions: void**, 
     var wasm = backend_prefix(triple, "wasm");
     var windows = backend_contains(triple, "windows");
     var mac = backend_contains(triple, "apple");
+    var elf = !wasm && !windows && !mac;
     var ok = true;
     if wasm {
         if !backend_link_generated(link, "tower-input.o", object, object_size)
@@ -265,10 +266,14 @@ export fn backend_link_plan(link: BackendLink*, triple: u8*, functions: void**, 
         backend_link_argument(link, "", "tower-input.o");
         backend_link_argument(link, "", "tower-runtime.o");
     } else {
-        link.file_plan = true;
-        // A failed native invocation cannot expose an old executable.
-        remove("tower-output.bin");
-        if !backend_write_file(link, "tower-input.o", object, object_size) { return false; }
+        if elf {
+            if !backend_link_generated(link, "tower-input.o", object, object_size) { return false; }
+        } else {
+            link.file_plan = true;
+            // A failed file-based invocation cannot expose an old executable.
+            remove("tower-output.bin");
+            if !backend_write_file(link, "tower-input.o", object, object_size) { return false; }
+        }
         if windows {
             backend_link_argument(link, "", "lld-link");
             backend_link_argument(link, "", "/entry:mainCRTStartup");
@@ -294,7 +299,7 @@ export fn backend_link_plan(link: BackendLink*, triple: u8*, functions: void**, 
                 backend_link_argument(link, "", "-e");
                 backend_link_argument(link, "", "_main");
             } else {
-                backend_link_argument(link, "", "ld.lld");
+                backend_link_argument(link, "", "tower-elf-ld");
                 backend_link_argument(link, "", "--threads=1");
                 backend_link_argument(link, "", "-static");
                 backend_link_argument(link, "", "--build-id=none");
@@ -348,7 +353,7 @@ export fn backend_link_plan(link: BackendLink*, triple: u8*, functions: void**, 
     i = 0;
     for(; i != order.length; i++) {
         var input = &link.inputs.data[order.data[i]];
-        if !wasm && !backend_write_file(link, input.name.data, input.bytes.data, input.bytes.length) {
+        if !wasm && !elf && !backend_write_file(link, input.name.data, input.bytes.data, input.bytes.length) {
             vector_dispose(&order); return false;
         }
         backend_link_argument(link, "", input.name.data);

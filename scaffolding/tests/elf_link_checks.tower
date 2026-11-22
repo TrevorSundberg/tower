@@ -1,0 +1,213 @@
+import tower;
+import utility_checks;
+import .backend.elf_types;
+import .backend.elf_object;
+import .backend.elf_link;
+import .backend.elf_link_world;
+import .backend.elf_link_symbols;
+import .backend.elf_link_jobs;
+import .backend.elf_link_emit;
+import .backend.link_types;
+import .backend.link_inputs;
+import .backend.linker_tower_elf;
+import .backend.wasm_bytes;
+import .library.bytes;
+import .library.bytes_types;
+import .library.vector;
+import .library.entity_types;
+import .library.entity_api;
+import .library.work_pool;
+import .library.ar_archive;
+
+fn elf_check_load(link: ElfLink*, machine: ElfMachine, inputs: vector(ByteBuffer)*): void {
+    utility_check(elf_link_open(link, machine), "check world opens");
+    foreach (var & buffer in inputs) {
+        utility_check(elf_link_input(link, wasm_text_bytes("check.o"), init(WasmBytes) { data: buffer.data, length: buffer.length }), "check object reads");
+    }
+}
+fn elf_check_invalid(bytes: WasmBytes, wanted: ElfError): void {
+    var object: ElfObject = { bytes: bytes, ..default }; var error: ElfDiagnostic = default;
+    defer elf_object_dispose(&object);
+    utility_check(!elf_object_read(&object, &error) && error.kind == wanted, "malformed ELF rejected before publishing an object");
+}
+struct ElfCancelProbe { link: ElfLink*; polls: usize; }
+fn elf_check_cancel(payload: void*): bool {
+    var probe = bits(ElfCancelProbe*, payload);
+    utility_check(probe.link.store.views != 0 && !elf_link_close(probe.link), "ELF cancellation observes pinned input ownership");
+    probe.polls++; return true;
+}
+struct ElfOverlapProbe { job: ElfLinkJob; entered: void*; release: void*; }
+fn elf_check_overlap_execute(payload: void*): void {
+    var probe = bits(ElfOverlapProbe*, payload);
+    work_signal_post(probe.entered); work_signal_wait(probe.release);
+    elf_link_job_execute(bits(void*, &probe.job));
+}
+fn elf_check_overlap(link: ElfLink*): void {
+    if !work_thread_available() || work_thread_capacity() < 2 || link.objects.length < 2 { return; }
+    var view = entity_view_open(link.object_type); utility_check(view != null, "overlap input pin"); defer entity_view_close(view);
+    var entered = work_signal_open(); var release = work_signal_open();
+    utility_check(entered != null && release != null, "ELF overlap signals");
+    defer work_signal_close(entered); defer work_signal_close(release);
+    var pool: WorkPool = default;
+    utility_check(work_pool_open_kernel(&pool, 2, elf_check_overlap_execute) && pool.threaded && pool.count == 2, "ELF real threaded kernels");
+    defer work_pool_close(&pool);
+    var probes: ElfOverlapProbe[2] = default; var buffers: ByteBuffer[2] = default;
+    defer { bytes_dispose(&buffers[0]); bytes_dispose(&buffers[1]); }
+    for (var at: usize = 0; at < 2; at++) {
+        utility_check(bytes_append(&buffers[at], link.output.data, link.output.length), "overlap private output");
+        foreach (var & section in &link.objects.data[at].object.sections) {
+            if !section.discarded && (section.flags & ElfFlagAlloc) != 0 && section.kind != ElfSectionType.NoBits && section.size != 0 {
+                fill(buffers[at].data + convert(usize, section.output), 0, convert(usize, section.size));
+            }
+        }
+        probes[at] = init(ElfOverlapProbe) { job: { link: link, object: link.objects.data[at].object, output: buffers[at].data, ..default }, entered: entered, release: release };
+        utility_check(work_pool_submit(&pool, bits(void*, &probes[at])), "ELF overlap submit");
+    }
+    work_signal_wait(entered); work_signal_wait(entered);
+    utility_check(pool.running == 2, "both ELF kernels entered before either is released");
+    work_signal_post(release); work_signal_post(release);
+    for (var at: usize = 0; at < 2; at++) {
+        var done = bits(ElfOverlapProbe*, work_pool_receive(&pool, true));
+        utility_check(done.job.error.kind == ElfError.None, "ELF overlapped relocation success");
+        utility_check(utility_equal(done.job.output, link.output.data, link.output.length), "overlapped ELF bytes match serial emission");
+    }
+}
+
+fn elf_check_inputs(machine: ElfMachine, inputs: vector(ByteBuffer)*, reference: ElfLink*): void {
+    var image: WasmBytes = { data: reference.output.data, length: reference.output.length };
+    var headers_at = elf_header(image, ElfHeaderAt.Programs, ElfAddressBytes);
+    var headers_count = elf_header(image, ElfHeaderAt.ProgramCount, ElfHalfBytes);
+    var previous_end: u64 = 0;
+    for (var index: u64 = 0; index < headers_count; index++) {
+        var at = headers_at + index * ElfProgramBytes;
+        var flags = elf_uint(image, at + convert(u64, ElfProgramAt.Flags), ElfWordBytes);
+        utility_check((flags & (ElfPermissionWrite | ElfPermissionExecute)) != (ElfPermissionWrite | ElfPermissionExecute), "ELF segments never combine write/execute");
+        if elf_uint(image, at + convert(u64, ElfProgramAt.Type), ElfWordBytes) != ElfProgramLoad { continue; }
+        var address = elf_uint(image, at + convert(u64, ElfProgramAt.Address), ElfAddressBytes);
+        var offset = elf_uint(image, at + convert(u64, ElfProgramAt.Offset), ElfAddressBytes);
+        var alignment = elf_uint(image, at + convert(u64, ElfProgramAt.Align), ElfAddressBytes);
+        var file_size = elf_uint(image, at + convert(u64, ElfProgramAt.FileSize), ElfAddressBytes);
+        var memory_size = elf_uint(image, at + convert(u64, ElfProgramAt.MemorySize), ElfAddressBytes);
+        utility_check(elf_power(alignment) && (address & (alignment - 1)) == (offset & (alignment - 1))
+            && (address & ~(alignment - 1)) >= previous_end && memory_size >= file_size && elf_span(image, offset, file_size), "ELF load extents, page congruence and permission separation");
+        previous_end = elf_align(address + memory_size, alignment);
+    }
+    var null_input: ElfLink = default; defer elf_link_close(&null_input);
+    utility_check(elf_link_open(&null_input, machine) && !elf_link_input(&null_input, wasm_text_bytes("null.o"), init(WasmBytes) { data: null, length: 8 })
+        && null_input.error.kind == ElfError.Input, "null input span rejected before magic decoding");
+    for (var workers: usize = 1; workers <= 8; workers *= 2) {
+        var link: ElfLink = default; defer elf_link_close(&link);
+        elf_check_load(&link, machine, inputs); link.workers = workers;
+        utility_check(elf_link_run(&link), "ELF serial/parallel link succeeds");
+        utility_check(link.output.length == reference.output.length && utility_equal(link.output.data, reference.output.data, link.output.length), "ELF output identical at 1/2/4/8 workers");
+        utility_check(!elf_link_run(&link) && link.output.length == 0, "reusing an ELF request rejects and clears the artifact");
+    }
+    elf_check_overlap(reference);
+    var cancel: ElfLink = default; defer elf_link_close(&cancel);
+    elf_check_load(&cancel, machine, inputs); cancel.workers = 4;
+    var probe: ElfCancelProbe = { link: &cancel, ..default }; cancel.cancel = elf_check_cancel; cancel.cancel_context = bits(void*, &probe);
+    utility_check(!elf_link_run(&cancel) && cancel.error.kind == ElfError.Cancelled && cancel.output.length == 0 && probe.polls != 0, "cancelled ELF request publishes nothing");
+    var duplicate: ElfLink = default; defer elf_link_close(&duplicate);
+    elf_check_load(&duplicate, machine, inputs);
+    var first: WasmBytes = { data: inputs.data[0].data, length: inputs.data[0].length };
+    utility_check(elf_link_input(&duplicate, wasm_text_bytes("duplicate.o"), first), "duplicate parses independently");
+    utility_check(!elf_link_run(&duplicate) && duplicate.error.kind == ElfError.Duplicate && duplicate.output.length == 0, "duplicate strong definition diagnosed");
+    var missing: ElfLink = default; defer elf_link_close(&missing);
+    utility_check(elf_link_open(&missing, machine) && elf_link_input(&missing, wasm_text_bytes("missing.o"), first), "unresolved input parses");
+    utility_check(!elf_link_run(&missing) && missing.error.kind == ElfError.Undefined && missing.output.length == 0, "unresolved input has no artifact");
+    for (var length: usize = 0; length < convert(usize, ElfHeaderBytes); length++) {
+        elf_check_invalid(init(WasmBytes) { data: first.data, length: length }, ElfError.Input);
+    }
+    var corrupt: ByteBuffer = default; defer bytes_dispose(&corrupt);
+    utility_check(bytes_append(&corrupt, first.data, first.length), "malformed fixture storage");
+    var bytes: WasmBytes = { data: corrupt.data, length: corrupt.length };
+    elf_put(corrupt.data, convert(u64, ElfHeaderAt.Sections), ElfAddressBytes, ~convert(u64, 0));
+    elf_check_invalid(bytes, ElfError.Input);
+    copy(corrupt.data, first.data, first.length);
+    elf_put(corrupt.data, convert(u64, ElfHeaderAt.Endian), 1, ElfLittleEndian + 1);
+    elf_check_invalid(bytes, ElfError.Unsupported);
+    copy(corrupt.data, first.data, first.length);
+    var section_base = elf_header(first, ElfHeaderAt.Sections, ElfAddressBytes);
+    var section_count = elf_header(first, ElfHeaderAt.SectionCount, ElfHalfBytes);
+    for (var index: u64 = 0; index < section_count; index++) {
+        var at = section_base + index * ElfSectionBytes;
+        var flags = elf_section_field(first, at, ElfSectionAt.Flags, ElfAddressBytes);
+        if (flags & ElfFlagAlloc) != 0 {
+            elf_put(corrupt.data, at + convert(u64, ElfSectionAt.Flags), ElfAddressBytes, flags | ElfFlagTls);
+            elf_check_invalid(bytes, ElfError.Unsupported); break;
+        }
+    }
+    var errors: ElfLink = default; defer elf_link_close(&errors);
+    elf_check_load(&errors, machine, inputs); errors.workers = 4;
+    var first_error_name: WasmBytes = default; var count: usize = 0;
+    foreach (var & entry in &errors.objects) {
+        if entry.object.relocations.length == 0 { continue; }
+        var relocation = &entry.object.relocations.data[0]; relocation.kind = ~convert(u32, 0);
+        var section = &entry.object.sections.data[convert(usize, relocation.section)];
+        section.name = count == 0 ? wasm_text_bytes("first ELF job") : wasm_text_bytes("later ELF job");
+        if count++ == 0 { first_error_name = section.name; }
+    }
+    utility_check(count > 1 && !elf_link_run(&errors) && errors.error.kind == ElfError.Unsupported
+        && wasm_bytes_equal(errors.error.name, first_error_name) && errors.output.length == 0, "independent ELF worker errors join in input order without partial output");
+    puts("ELF checked inputs, deterministic workers, cancellation and real overlap passed");
+}
+
+fn elf_check_byte_service(machine: ElfMachine, inputs: vector(ByteBuffer)*, reference: ElfLink*): void {
+    var backend: BackendLink = default;
+    defer {
+        backend_link_inputs_release(&backend.inputs); backend_link_inputs_release(&backend.generated);
+        vector_dispose(&backend.arguments); vector_dispose(&backend.error); vector_dispose(&backend.output);
+    }
+    var command: u8* = "tower-elf-ld"; var static_option: u8* = "-static"; var threads: u8* = "--threads=4";
+    utility_check(vector_push(&backend.arguments, command) && vector_push(&backend.arguments, static_option)
+        && vector_push(&backend.arguments, threads), "ELF service options");
+    var names: u8*[3]; names[0] = "first.o"; names[1] = "second.o"; names[2] = "third.a";
+    utility_check(inputs.length == 3, "ELF service fixture inputs");
+    for (var at: usize = 0; at < inputs.length; at++) {
+        var source = &inputs.data[at];
+        utility_check(backend_link_input_store(&backend.inputs, names[at], source.data, source.length)
+            && vector_push(&backend.arguments, names[at]), "ELF service owns input copies");
+    }
+    var triple = machine == ElfMachine.X64 ? "x86_64-unknown-linux-gnu" : "aarch64-unknown-linux-gnu";
+    var linked = backend_link_tower_elf(&backend, triple);
+    if !linked { puts(backend.error.data); }
+    utility_check(linked && backend.output.length == reference.output.length
+        && utility_equal(backend.output.data, reference.output.data, backend.output.length), "ELF public byte service matches direct API");
+    var unsupported: u8* = "--relocatable";
+    utility_check(vector_push(&backend.arguments, unsupported), "unsupported service fixture");
+    utility_check(!backend_link_tower_elf(&backend, triple) && backend.error.length != 0 && backend.output.length == 0, "ELF service rejects unsupported options without fallback or stale output");
+    backend.arguments.length--; backend.error.length = 0;
+    utility_check(backend_link_tower_elf(&backend, triple) && backend.output.length == reference.output.length
+        && utility_equal(backend.output.data, reference.output.data, backend.output.length), "ELF service retry creates a fresh deterministic world");
+}
+
+fn elf_check_symbol_policies(reference: ElfLink*): void {
+    var library = reference.objects.data[reference.objects.length - 1].object;
+    var entry = wasm_text_bytes("elf_answer");
+    for (var mode: usize = 0; mode < 2; mode++) {
+        var link: ElfLink = default; defer elf_link_close(&link);
+        utility_check(elf_link_open(&link, reference.machine), "symbol policy world"); link.entry = entry;
+        utility_check(elf_link_input(&link, wasm_text_bytes("first.o"), library.bytes)
+            && elf_link_input(&link, wasm_text_bytes("second.o"), library.bytes), "two definitions parse");
+        for (var object_index: usize = 0; object_index < link.objects.length; object_index++) {
+            foreach (var & symbol in &link.objects.data[object_index].object.symbols) {
+                if !wasm_bytes_equal(symbol.name, entry) { continue; }
+                if mode == 0 { if object_index == 0 { symbol.binding = ElfBinding.Weak; } }
+                else { symbol.section = ElfCommon; symbol.size = object_index == 0 ? 8 : 24; symbol.value = object_index == 0 ? 8 : 32; }
+            }
+        }
+        utility_check(elf_link_symbols(&link), "weak/common resolution");
+        var winner = elf_link_lookup(&link, entry);
+        utility_check(winner != null && (mode == 0 ? winner.object == 1 && winner.binding == ElfBinding.Global : winner.size == 24 && winner.value == 32), "strong beats weak and common merges size/alignment");
+    }
+}
+
+// Build a real indexed archive from the separately Tower-compiled library. The
+// malformed unused member must never be parsed during lazy selection.
+fn elf_check_archive(library: ByteBuffer*, output: ByteBuffer*): void {
+    var members: ArMember[2] = default;
+    members[0] = init(ArMember) { name: "answer.o", name_length: 8, data: library.data, length: library.length };
+    members[1] = init(ArMember) { name: "unused.o", name_length: 8, data: "invalid ELF", length: 11 };
+    var symbol: ArSymbol = { name: "elf_answer", length: 10, member: 0 };
+    utility_check(ar32_write(&members[0], 2, &symbol, 1, ArMaximumOffset, output) == ArResult.Ok, "GNU indexed ELF archive fixture");
+}

@@ -1,0 +1,12 @@
+import tower;
+extern fn elf_answer(): i32;
+var callback: function(i32) = elf_answer;
+var values: i32[4];
+values[0] = callback();
+values[1] = 8;
+print(values[0]);
+print(values[0] + values[1]);
+var allocated = alloc(i32, 1);
+*allocated = values[0];
+print(*allocated);
+free(allocated);

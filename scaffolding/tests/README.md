@@ -140,7 +140,24 @@ bytes through its owned ECS world. Keep those input allocations immutable and
 alive until `wasm_link_close`; the request is not a shallow-copyable owner.
 `wasm_link_run` publishes a complete image only on success. It performs no file
 access or native linker calls. Production Wasm backend dispatch and native CLI
-Wasm output use it; native ELF/COFF/Mach-O still use upstream linkers.
+Wasm output use it; COFF/Mach-O still use upstream linkers. Linux downloads use
+the Tower ELF linker described below; dynamic native CLI linking is separate.
+
+`elf_link_driver.tower` is a native functional runner for `backend/elf_link.tower`.
+Compile with the public bootstrap, `--library --emit object`, then link with
+`guest-host-library.o -pthread -ldl -Wl,--export-dynamic`; its imports provide
+the existing Linux work transport and callback. Arguments are
+`OUTPUT x64|arm64 WORKERS [--checks] OBJECT...`. Compile `elf_link_program.tower`
+and `elf_link_library.tower` separately for each target, then pass `--checks`
+followed by program object, the corresponding `build/targets/*-runtime.o`, and
+library object. The Tower checks construct an indexed archive with an unused
+malformed member and validate backward lazy extraction, byte-identical 1/2/4/8
+worker outputs, barrier-proven overlap, deterministic worker failures, cancellation,
+single-use/reset rules, truncation/overflow/target rejection and symbol policies.
+Run the resulting x86-64 executable directly and ARM64 with `qemu-aarch64`;
+both print `42`, `50`, `42`. Repeat with `--no-optimize` program objects and compare
+execution with SDK34's `ld.lld -static -e _start`. Browser cross-compilation and
+download execution checks exercise the actual production service.
 
 `wasm_link_reader.tower` checks bounded LEB/object/archive decoding, independent
 worlds and pinned disposal, symbol selection, wrapping, direct-call signature

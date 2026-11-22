@@ -1,0 +1,20 @@
+import tower;
+import elf_types;
+import elf_link_symbols;
+import elf_link_emit;
+import wasm_bytes;
+import .library.work_pool;
+
+// One explicit request owns the link world; inputs remain borrowed until close.
+// Only complete images are published. No files, subprocesses or fallback linker.
+fn elf_link_run(link: ElfLink*): bool {
+    link.output.length = 0;
+    if link.started || link.workers == 0 || link.workers > WorkPoolMaximumCapacity {
+        return elf_fail(&link.error, ElfError.Input, wasm_text_bytes("invalid ELF request or worker budget"), 0);
+    }
+    link.started = true;
+    if link.error.kind == ElfError.None && elf_link_symbols(link) && elf_link_emit(link) { return true; }
+    link.output.length = 0;
+    if link.error.kind == ElfError.None { elf_fail(&link.error, ElfError.Allocation, default(WasmBytes), 0); }
+    return false;
+}

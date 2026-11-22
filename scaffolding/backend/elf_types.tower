@@ -1,0 +1,139 @@
+import tower;
+import wasm_bytes;
+import wasm_names;
+import wasm_archive;
+import .library.vector;
+import .library.bytes_types;
+import .library.entity_types;
+
+// Physical object-file metadata, not another compiler IR. Byte views/name maps
+// reuse the existing linker's immutable utilities; the historical Wasm prefix
+// does not change their byte-string or hash-table contract.
+enum ElfError: u32 { None, Input, Unsupported, Allocation, Duplicate, Undefined, Range, Cancelled }
+enum ElfMachine: u16 { X64 = 62, Arm64 = 183 }
+enum ElfSectionType: u32 { Null = 0, Program = 1, Symbols = 2, Strings = 3, Rela = 4, NoBits = 8, Rel = 9, Group = 17, SymbolIndexes = 18, X64Unwind = 1879048193 }
+enum ElfBinding: u8 { Local = 0, Global = 1, Weak = 2 }
+var ElfFlagWrite: u64 = 1;
+var ElfFlagAlloc: u64 = 2;
+var ElfFlagExecute: u64 = 4;
+var ElfFlagMerge: u64 = 16;
+var ElfFlagStrings: u64 = 32;
+var ElfFlagInfoLink: u64 = 64;
+var ElfFlagLinkOrder: u64 = 128;
+var ElfFlagGroup: u64 = 512;
+var ElfFlagTls: u64 = 1024;
+var ElfFlagCompressed: u64 = 2048;
+var ElfFlagExclude: u64 = 2147483648;
+var ElfUndefined: u32 = 0;
+var ElfAbsolute: u32 = 65521;
+var ElfCommon: u32 = 65522;
+var ElfExtended: u32 = 65535;
+var ElfReserved: u32 = 65280;
+var ElfHeaderBytes: u64 = 64;
+var ElfSectionBytes: u64 = 64;
+var ElfSymbolBytes: u64 = 24;
+var ElfRelaBytes: u64 = 24;
+var ElfProgramBytes: u64 = 56;
+var ElfByteBits: u64 = 8;
+var ElfWordBytes: u64 = 4;
+var ElfHalfBytes: u64 = 2;
+var ElfAddressBytes: u64 = 8;
+var ElfVersion: u64 = 1;
+var ElfRelocatable: u64 = 1;
+var ElfExecutable: u64 = 2;
+var ElfClass64: u64 = 2;
+var ElfLittleEndian: u64 = 1;
+var ElfMagic: u64 = 1179403647;
+var ElfNoIndex: u32 = ~convert(u32, 0);
+var ElfBase: u64 = 4194304;
+var ElfPage: u64 = 65536;
+var ElfX64Page: u64 = 4096;
+var ElfBindingShift: u8 = 4;
+var ElfTypeMask: u8 = 15;
+var ElfTypeTls: u8 = 6;
+var ElfTypeIfunc: u8 = 10;
+var ElfGroupComdat: u64 = 1;
+var ElfSymbolIndexShift: u64 = 32;
+var ElfVisibilityMask: u8 = 3;
+
+enum ElfHeaderAt: u64 { Magic = 0, Class = 4, Endian = 5, Version = 6, OsAbi = 7, AbiVersion = 8, Type = 16, Machine = 18, FileVersion = 20, Entry = 24, Programs = 32, Sections = 40, Flags = 48, Size = 52, ProgramSize = 54, ProgramCount = 56, SectionSize = 58, SectionCount = 60, Names = 62 }
+enum ElfSectionAt: u64 { Name = 0, Type = 4, Flags = 8, Address = 16, Offset = 24, Size = 32, Link = 40, Info = 44, Align = 48, EntrySize = 56 }
+enum ElfSymbolAt: u64 { Name = 0, Info = 4, Other = 5, Section = 6, Value = 8, Size = 16 }
+enum ElfRelaAt: u64 { Offset = 0, Info = 8, Addend = 16 }
+
+struct ElfSection {
+    name: WasmBytes; bytes: WasmBytes; kind: ElfSectionType; flags: u64;
+    size: u64; alignment: u64; link: u32; info: u32; entry_size: u64;
+    output: u64; address: u64; output_index: u32; discarded: bool;
+}
+struct ElfSymbol {
+    name: WasmBytes; binding: ElfBinding; kind: u8; other: u8; section: u32;
+    value: u64; size: u64; object: usize; resolved: ElfSymbol*;
+    address: u64; got: u64; needs_got: bool;
+}
+struct ElfRelocation { section: u32; offset: u64; symbol: u32; kind: u32; addend: i64; }
+struct ElfObject {
+    name: WasmBytes; bytes: WasmBytes; machine: ElfMachine;
+    sections: vector(ElfSection); symbols: vector(ElfSymbol); relocations: vector(ElfRelocation);
+    symtab: u32;
+}
+struct ElfObjectEntry { node: Entity*; object: ElfObject*; }
+struct ElfArchive { archive: WasmArchive; selected: vector(bool); name: WasmBytes; }
+struct ElfArchiveEntry { node: Entity*; archive: ElfArchive*; }
+struct ElfDiagnostic { kind: ElfError; name: WasmBytes; offset: u64; }
+struct ElfLink {
+    store: EntityStore*; object_type: Entity*; archive_type: Entity*;
+    objects: vector(ElfObjectEntry); names: WasmNameMap; groups: WasmNameMap;
+    archives: vector(ElfArchiveEntry);
+    globals: vector(ElfSymbol*); output: ByteBuffer; error: ElfDiagnostic;
+    machine: ElfMachine; entry: WasmBytes; started: bool; page_size: u64;
+    workers: usize; jobs_run: usize; jobs_peak: usize;
+    cancel: function(bool, void*); cancel_context: void*;
+    read_end: u64; execute_begin: u64; execute_end: u64; execute_address: u64;
+    write_begin: u64; write_end: u64; memory_end: u64; write_address: u64; got_begin: u64;
+    common_begin: u64; common_index: u32;
+}
+
+fn elf_fail(error: ElfDiagnostic*, kind: ElfError, name: WasmBytes, offset: u64): bool {
+    if error.kind == ElfError.None { *error = init(ElfDiagnostic) { kind: kind, name: name, offset: offset }; }
+    return false;
+}
+
+fn elf_span(bytes: WasmBytes, at: u64, size: u64): bool {
+    return at <= convert(u64, bytes.length) && size <= convert(u64, bytes.length) - at && (size == 0 || bytes.data != null);
+}
+
+// Callers establish the complete record extent before accessing its fields.
+fn elf_uint(bytes: WasmBytes, at: u64, width: u64): u64 {
+    var value: u64 = 0;
+    for (var i: u64 = 0; i < width; i++) { value |= convert(u64, bytes.data[convert(usize, at + i)]) << (i * ElfByteBits); }
+    return value;
+}
+fn elf_put(bytes: u8*, at: u64, width: u64, value: u64): void {
+    var mask = convert(u64, ~convert(u8, 0));
+    for (var i: u64 = 0; i < width; i++) { bytes[convert(usize, at + i)] = convert(u8, (value >> (i * ElfByteBits)) & mask); }
+}
+fn elf_power(value: u64): bool { return value != 0 && (value & (value - 1)) == 0; }
+fn elf_align(value: u64, alignment: u64): u64 { return (value + alignment - 1) & ~(alignment - 1); }
+fn elf_text(bytes: WasmBytes, at: u64, result: WasmBytes*): bool {
+    if at >= convert(u64, bytes.length) { return false; }
+    var end = convert(usize, at);
+    while end < bytes.length && bytes.data[end] != 0 { end++; }
+    if end == bytes.length { return false; }
+    *result = init(WasmBytes) { data: bytes.data + convert(usize, at), length: end - convert(usize, at) };
+    return true;
+}
+
+fn elf_message(error: ElfError): u8* {
+    match error {
+        ElfError.None => { return "success"; }
+        ElfError.Input => { return "invalid ELF input"; }
+        ElfError.Unsupported => { return "unsupported ELF profile or relocation"; }
+        ElfError.Allocation => { return "ELF linker allocation failed"; }
+        ElfError.Duplicate => { return "duplicate ELF symbol"; }
+        ElfError.Undefined => { return "undefined ELF symbol"; }
+        ElfError.Range => { return "ELF layout or relocation out of range"; }
+        ElfError.Cancelled => { return "ELF link cancelled"; }
+        _ => { return "ELF link failed"; }
+    }
+}

@@ -1,0 +1,86 @@
+import tower;
+import elf_types;
+import elf_relocate;
+import wasm_bytes;
+import .library.vector;
+import .library.entity_types;
+import .library.entity_api;
+import .library.work_graph;
+import .library.work_pool;
+
+struct ElfLinkJob { link: ElfLink*; object: ElfObject*; output: u8*; ticket: WorkTicket; error: ElfDiagnostic; }
+var ElfInputDomain: u64 = 1;
+var ElfOutputDomain: u64 = 2;
+var ElfJobDomain: u64 = 3;
+var ElfWorkComponent: u64 = 1;
+var ElfPatchQuery: u32 = 1;
+
+fn elf_link_job_execute(payload: void*): void {
+    var job = bits(ElfLinkJob*, payload);
+    foreach (var & section in &job.object.sections) {
+        if !section.discarded && (section.flags & ElfFlagAlloc) != 0 && section.kind != ElfSectionType.NoBits && section.size != 0 {
+            copy(job.output + convert(usize, section.output), section.bytes.data, section.bytes.length);
+        }
+    }
+    foreach (var & relocation in &job.object.relocations) {
+        if job.object.sections.data[convert(usize, relocation.section)].discarded { continue; }
+        if !elf_relocate_one(job.link, job.object, relocation, job.output, &job.error) { return; }
+    }
+}
+
+fn elf_link_jobs(link: ElfLink*): bool {
+    var pool: WorkPool = default;
+    if !work_pool_open_kernel(&pool, link.workers, elf_link_job_execute) { return elf_fail(&link.error, ElfError.Allocation, wasm_text_bytes("ELF workers"), 0); }
+    defer work_pool_close(&pool);
+    var graph: WorkGraph = default; work_init(&graph, 1, 1); defer work_dispose(&graph);
+    var kind = entity_create(link.store);
+    if kind == null { return false; }
+    defer entity_release(kind);
+    if !entity_register(kind, sizeof(ElfLinkJob), alignof(ElfLinkJob), 0) { return false; }
+    var nodes: vector(Entity*) = default; var jobs: vector(ElfLinkJob*) = default;
+    defer { foreach (var node in &nodes) { entity_release(node); } vector_dispose(&nodes); vector_dispose(&jobs); }
+    for (var at: usize = 0; at < link.objects.length; at++) {
+        var node = entity_create(link.store);
+        if node == null { return false; }
+        if !vector_push(&nodes, node) { entity_release(node); return false; }
+        var component = entity_component_add(node, kind);
+        if component == null { return false; }
+        var job = bits(ElfLinkJob*, entity_component_data(component));
+        *job = init(ElfLinkJob) { link: link, object: link.objects.data[at].object, output: link.output.data, ..default };
+        if !vector_push(&jobs, job) { return false; }
+        var task = work_request(&graph, bits(void*, node), ElfPatchQuery, convert(u64, at));
+        if task == 0 || !work_access(&graph, task, ElfInputDomain, ElfWorkComponent, 0, link.objects.length, WorkAccessMode.Read)
+            || !work_access(&graph, task, ElfJobDomain, ElfWorkComponent, at, 1, WorkAccessMode.Write) { return false; }
+        foreach (var & section in &job.object.sections) {
+            if !section.discarded && (section.flags & ElfFlagAlloc) != 0 && section.kind != ElfSectionType.NoBits && section.size != 0 {
+                if !work_access(&graph, task, ElfOutputDomain, ElfWorkComponent, convert(usize, section.output), convert(usize, section.size), WorkAccessMode.Write) { return false; }
+            }
+        }
+        if !work_seal(&graph, task) || !work_demand(&graph, task) { return false; }
+    }
+    var view = entity_view_open(kind);
+    if view == null { return false; }
+    // The pin covers this world, its symbol indexes and every borrowed input.
+    // No structural mutation until all kernels are drained, including failures.
+    defer { while pool.running != 0 { work_pool_receive(&pool, true); } entity_view_close(view); }
+    var complete: usize = 0;
+    while complete < jobs.length {
+        if link.cancel != null && link.cancel(link.cancel_context) {
+            work_cancel(&graph); return elf_fail(&link.error, ElfError.Cancelled, default(WasmBytes), 0);
+        }
+        while pool.running < pool.count {
+            var ticket: WorkTicket = default;
+            if !work_take(&graph, &ticket) { break; }
+            var job = jobs.data[convert(usize, work_task(&graph, ticket.task).argument)];
+            job.ticket = ticket;
+            if !work_pool_submit(&pool, bits(void*, job)) { return false; }
+        }
+        if pool.running == 0 { return false; }
+        var done = bits(ElfLinkJob*, work_pool_receive(&pool, true));
+        if !work_finish(&graph, &done.ticket, true) { return false; }
+        complete++;
+    }
+    link.jobs_run = jobs.length; link.jobs_peak = pool.peak;
+    foreach (var job in &jobs) { if job.error.kind != ElfError.None { link.error = job.error; return false; } }
+    return true;
+}

@@ -1,0 +1,143 @@
+import tower;
+import elf_types;
+import wasm_bytes;
+
+enum ElfX64Reloc: u32 { None = 0, Abs64 = 1, Pc32 = 2, Plt32 = 4, GotPc32 = 9, Abs32 = 10, Signed32 = 11, Pc64 = 24, GotOffset64 = 25, GotBasePc32 = 26, Got64 = 27, GotPc64 = 28, GotBasePc64 = 29, Size32 = 32, Size64 = 33, GotPcRelax = 41, GotPcRexRelax = 42 }
+enum ElfArmReloc: u32 { None = 0, Abs64 = 257, Abs32 = 258, Abs16 = 259, Pc64 = 260, Pc32 = 261, Pc16 = 262, Load19 = 273, Adr21 = 274, Page21 = 275, Page21NoCheck = 276, Add12 = 277, Load8 = 278, Test14 = 279, Cond19 = 280, Jump26 = 282, Call26 = 283, Load16 = 284, Load32 = 285, Load64 = 286, Load128 = 299, GotLoad19 = 309, GotPage21 = 311, GotLoad64 = 312 }
+var ElfSigned32Bits: u64 = 32;
+var ElfArmInstructionBytes: u64 = 4;
+var ElfArmPageBits: u64 = 12;
+var ElfArmPageSize: u64 = 4096;
+var ElfArmBranchBits: u64 = 26;
+var ElfArmConditionalBits: u64 = 19;
+var ElfArmTestBits: u64 = 14;
+var ElfArmAdrBits: u64 = 21;
+var ElfArmImmediateAt: u64 = 5;
+var ElfArmLowImmediateAt: u64 = 10;
+var ElfArmAdrLowAt: u64 = 29;
+var ElfArmAdrHighAt: u64 = 5;
+var ElfArmAdrLowBits: u64 = 2;
+var ElfArmAdrHighBits: u64 = 19;
+
+fn elf_mask(width: u64): u64 { return (convert(u64, 1) << width) - 1; }
+fn elf_signed(value: u64, width: u64): bool {
+    var signed = bits(i64, value); var limit = convert(i64, convert(u64, 1) << (width - 1));
+    return signed >= -limit && signed < limit;
+}
+fn elf_got_relocation(machine: ElfMachine, kind: u32): bool {
+    if machine == ElfMachine.X64 {
+        var value = convert(ElfX64Reloc, kind);
+        return value == ElfX64Reloc.GotPc32 || value == ElfX64Reloc.GotPc64 || value == ElfX64Reloc.Got64
+            || value == ElfX64Reloc.GotPcRelax || value == ElfX64Reloc.GotPcRexRelax;
+    }
+    var value = convert(ElfArmReloc, kind);
+    return value == ElfArmReloc.GotLoad19 || value == ElfArmReloc.GotPage21 || value == ElfArmReloc.GotLoad64;
+}
+fn elf_relocation_symbol(link: ElfLink*, object: ElfObject*, relocation: ElfRelocation*, error: ElfDiagnostic*): ElfSymbol* {
+    var source = &object.symbols.data[convert(usize, relocation.symbol)];
+    var symbol = source.resolved;
+    if symbol == null {
+        if source.binding == ElfBinding.Weak { return source; }
+        elf_fail(error, ElfError.Undefined, source.name, relocation.offset); return null;
+    }
+    if symbol.section == ElfUndefined && relocation.symbol != 0 && source.binding != ElfBinding.Weak {
+        elf_fail(error, ElfError.Undefined, source.name, relocation.offset); return null;
+    }
+    if symbol.section != ElfUndefined && symbol.section != ElfAbsolute && symbol.section != ElfCommon {
+        var section = &link.objects.data[symbol.object].object.sections.data[convert(usize, symbol.section)];
+        if section.discarded || (section.flags & ElfFlagAlloc) == 0 { elf_fail(error, ElfError.Input, symbol.name, relocation.offset); return null; }
+    }
+    return symbol;
+}
+
+fn elf_relocate_one(link: ElfLink*, object: ElfObject*, relocation: ElfRelocation*, output: u8*, error: ElfDiagnostic*): bool {
+    if relocation.kind == 0 { return true; }
+    var section = &object.sections.data[convert(usize, relocation.section)];
+    var symbol = elf_relocation_symbol(link, object, relocation, error);
+    if symbol == null { return false; }
+    var absolute = symbol.address + bits(u64, relocation.addend);
+    var place = section.address + relocation.offset;
+    var relative = absolute - place;
+    var got = ElfBase + link.got_begin;
+    var slot = got + symbol.got * ElfAddressBytes;
+    var value = absolute; var width = ElfWordBytes; var signed_bits: u64 = 0; var unsigned_bits: u64 = 0;
+    var instruction = false; var mask: u64 = 0;
+    if link.machine == ElfMachine.X64 {
+        match convert(ElfX64Reloc, relocation.kind) {
+            ElfX64Reloc.Abs64 => { width = ElfAddressBytes; }
+            ElfX64Reloc.Pc64 => { width = ElfAddressBytes; value = relative; }
+            ElfX64Reloc.Pc32 => { value = relative; signed_bits = ElfSigned32Bits; }
+            ElfX64Reloc.Plt32 => { value = relative; signed_bits = ElfSigned32Bits; }
+            ElfX64Reloc.Abs32 => { unsigned_bits = ElfSigned32Bits; }
+            ElfX64Reloc.Signed32 => { signed_bits = ElfSigned32Bits; }
+            ElfX64Reloc.GotPc32 => { value = slot + bits(u64, relocation.addend) - place; signed_bits = ElfSigned32Bits; }
+            ElfX64Reloc.GotPcRelax => { value = slot + bits(u64, relocation.addend) - place; signed_bits = ElfSigned32Bits; }
+            ElfX64Reloc.GotPcRexRelax => { value = slot + bits(u64, relocation.addend) - place; signed_bits = ElfSigned32Bits; }
+            ElfX64Reloc.GotPc64 => { value = slot + bits(u64, relocation.addend) - place; width = ElfAddressBytes; }
+            ElfX64Reloc.Got64 => { value = slot + bits(u64, relocation.addend) - got; width = ElfAddressBytes; }
+            ElfX64Reloc.GotOffset64 => { value = absolute - got; width = ElfAddressBytes; }
+            ElfX64Reloc.GotBasePc32 => { value = got + bits(u64, relocation.addend) - place; signed_bits = ElfSigned32Bits; }
+            ElfX64Reloc.GotBasePc64 => { value = got + bits(u64, relocation.addend) - place; width = ElfAddressBytes; }
+            ElfX64Reloc.Size32 => { value = symbol.size + bits(u64, relocation.addend); unsigned_bits = ElfSigned32Bits; }
+            ElfX64Reloc.Size64 => { value = symbol.size + bits(u64, relocation.addend); width = ElfAddressBytes; }
+            _ => { return elf_fail(error, ElfError.Unsupported, section.name, relocation.offset); }
+        }
+    } else {
+        var kind = convert(ElfArmReloc, relocation.kind);
+        if kind == ElfArmReloc.Abs64 || kind == ElfArmReloc.Pc64 {
+            width = ElfAddressBytes; value = kind == ElfArmReloc.Abs64 ? absolute : relative;
+        } else { if kind == ElfArmReloc.Abs32 || kind == ElfArmReloc.Abs16 || kind == ElfArmReloc.Pc32 || kind == ElfArmReloc.Pc16 {
+            width = kind == ElfArmReloc.Abs16 || kind == ElfArmReloc.Pc16 ? ElfHalfBytes : ElfWordBytes;
+            value = kind == ElfArmReloc.Abs32 || kind == ElfArmReloc.Abs16 ? absolute : relative;
+            // AAELF accepts the union of signed and unsigned ranges for ABS.
+            if (kind == ElfArmReloc.Abs32 || kind == ElfArmReloc.Abs16) && value <= elf_mask(width * ElfByteBits) { unsigned_bits = width * ElfByteBits; }
+            else { signed_bits = width * ElfByteBits; }
+        } else {
+            instruction = true;
+            if (relocation.offset & (ElfArmInstructionBytes - 1)) != 0 { return elf_fail(error, ElfError.Range, section.name, relocation.offset); }
+            var target = elf_got_relocation(link.machine, relocation.kind) ? slot + bits(u64, relocation.addend) : absolute;
+            var delta = target - place;
+            if kind == ElfArmReloc.Call26 || kind == ElfArmReloc.Jump26 {
+                if (delta & (ElfArmInstructionBytes - 1)) != 0 || !elf_signed(delta, ElfArmBranchBits + ElfArmAdrLowBits) { return elf_fail(error, ElfError.Range, symbol.name, relocation.offset); }
+                mask = elf_mask(ElfArmBranchBits); value = (delta >> ElfArmAdrLowBits) & mask;
+            } else { if kind == ElfArmReloc.Cond19 || kind == ElfArmReloc.Load19 || kind == ElfArmReloc.GotLoad19 || kind == ElfArmReloc.Test14 {
+                var bits_count = kind == ElfArmReloc.Test14 ? ElfArmTestBits : ElfArmConditionalBits;
+                if (delta & (ElfArmInstructionBytes - 1)) != 0 || !elf_signed(delta, bits_count + ElfArmAdrLowBits) { return elf_fail(error, ElfError.Range, symbol.name, relocation.offset); }
+                mask = elf_mask(bits_count) << ElfArmImmediateAt; value = ((delta >> ElfArmAdrLowBits) << ElfArmImmediateAt) & mask;
+            } else { if kind == ElfArmReloc.Adr21 || kind == ElfArmReloc.Page21 || kind == ElfArmReloc.Page21NoCheck || kind == ElfArmReloc.GotPage21 {
+                if kind != ElfArmReloc.Adr21 { delta = bits(u64, bits(i64, (target & ~(ElfArmPageSize - 1)) - (place & ~(ElfArmPageSize - 1))) >> convert(i64, ElfArmPageBits)); }
+                if kind != ElfArmReloc.Page21NoCheck && !elf_signed(delta, ElfArmAdrBits) { return elf_fail(error, ElfError.Range, symbol.name, relocation.offset); }
+                mask = (elf_mask(ElfArmAdrLowBits) << ElfArmAdrLowAt) | (elf_mask(ElfArmAdrHighBits) << ElfArmAdrHighAt);
+                value = ((delta & elf_mask(ElfArmAdrLowBits)) << ElfArmAdrLowAt) | (((delta >> ElfArmAdrLowBits) & elf_mask(ElfArmAdrHighBits)) << ElfArmAdrHighAt);
+            } else {
+                var scale: u64 = 0;
+                match kind {
+                    ElfArmReloc.Add12 => { scale = 0; }
+                    ElfArmReloc.Load8 => { scale = 0; }
+                    ElfArmReloc.Load16 => { scale = 1; }
+                    ElfArmReloc.Load32 => { scale = 2; }
+                    ElfArmReloc.Load64 => { scale = 3; }
+                    ElfArmReloc.GotLoad64 => { scale = 3; }
+                    ElfArmReloc.Load128 => { scale = 4; }
+                    _ => { return elf_fail(error, ElfError.Unsupported, section.name, relocation.offset); }
+                }
+                if (target & elf_mask(scale)) != 0 { return elf_fail(error, ElfError.Range, symbol.name, relocation.offset); }
+                mask = elf_mask(ElfArmPageBits) << ElfArmLowImmediateAt;
+                value = ((target & (ElfArmPageSize - 1)) >> scale) << ElfArmLowImmediateAt;
+            }
+            } }
+        }
+        }
+    }
+    if relocation.offset > section.size || width > section.size - relocation.offset
+        || section.kind == ElfSectionType.NoBits { return elf_fail(error, ElfError.Input, section.name, relocation.offset); }
+    if (signed_bits != 0 && !elf_signed(value, signed_bits)) || (unsigned_bits != 0 && value > elf_mask(unsigned_bits)) {
+        return elf_fail(error, ElfError.Range, symbol.name, relocation.offset);
+    }
+    var at = section.output + relocation.offset;
+    if instruction {
+        var existing: WasmBytes = { data: output + convert(usize, at), length: convert(usize, ElfArmInstructionBytes) };
+        value = (elf_uint(existing, 0, ElfArmInstructionBytes) & ~mask) | value;
+    }
+    elf_put(output, at, width, value); return true;
+}

@@ -1,0 +1,2 @@
+import tower;
+export fn elf_answer(): i32 { return 42; }

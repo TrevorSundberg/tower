@@ -1,0 +1,115 @@
+import tower;
+import elf_types;
+import elf_link_world;
+import wasm_bytes;
+import wasm_names;
+import wasm_archive;
+import .library.vector;
+
+fn elf_link_groups(link: ElfLink*, object: ElfObject*): bool {
+    foreach (var & group in &object.sections) {
+        if group.kind != ElfSectionType.Group { continue; }
+        if group.link != object.symtab || group.info >= convert(u32, object.symbols.length) || group.size < ElfWordBytes
+            || group.size % ElfWordBytes != 0 || elf_uint(group.bytes, 0, ElfWordBytes) != ElfGroupComdat {
+            return elf_fail(&link.error, ElfError.Unsupported, group.name, 0);
+        }
+        var signature = object.symbols.data[convert(usize, group.info)].name;
+        var duplicate = wasm_names_get(&link.groups, signature) != ElfNoIndex;
+        if !duplicate && !wasm_names_set(&link.groups, signature, 0) { return elf_fail(&link.error, ElfError.Allocation, signature, 0); }
+        for (var at = ElfWordBytes; at < group.size; at += ElfWordBytes) {
+            var index = elf_uint(group.bytes, at, ElfWordBytes);
+            if index == 0 || index >= convert(u64, object.sections.length) { return elf_fail(&link.error, ElfError.Input, group.name, at); }
+            object.sections.data[convert(usize, index)].discarded = duplicate;
+        }
+    }
+    return true;
+}
+
+fn elf_symbol_defined(link: ElfLink*, symbol: ElfSymbol*): bool {
+    if symbol.section == ElfUndefined { return false; }
+    if symbol.section == ElfAbsolute || symbol.section == ElfCommon { return true; }
+    return !link.objects.data[symbol.object].object.sections.data[convert(usize, symbol.section)].discarded;
+}
+fn elf_link_lookup(link: ElfLink*, name: WasmBytes): ElfSymbol* {
+    var index = wasm_names_get(&link.names, name);
+    return index == ElfNoIndex ? null : link.globals.data[convert(usize, index)];
+}
+fn elf_link_index(link: ElfLink*, object: ElfObject*, pending: vector(WasmBytes)*): bool {
+    if !elf_link_groups(link, object) { return false; }
+    foreach (var & symbol in &object.symbols) {
+        if symbol.binding == ElfBinding.Local || !elf_symbol_defined(link, symbol) { continue; }
+        var index = wasm_names_get(&link.names, symbol.name);
+        if index == ElfNoIndex {
+            if link.globals.length >= convert(usize, ElfNoIndex) || !wasm_names_set(&link.names, symbol.name, convert(u32, link.globals.length))
+                || !vector_push(&link.globals, symbol) { return elf_fail(&link.error, ElfError.Allocation, symbol.name, 0); }
+        } else {
+            var prior = link.globals.data[convert(usize, index)];
+            if symbol.binding == ElfBinding.Weak { continue; }
+            if symbol.section == ElfCommon && prior.binding != ElfBinding.Weak {
+                if prior.section == ElfCommon {
+                    if symbol.size > prior.size { prior.size = symbol.size; }
+                    if symbol.value > prior.value { prior.value = symbol.value; }
+                }
+                continue;
+            }
+            if prior.binding != ElfBinding.Weak && prior.section != ElfCommon { return elf_fail(&link.error, ElfError.Duplicate, symbol.name, 0); }
+            link.globals.data[convert(usize, index)] = symbol;
+        }
+    }
+    foreach (var & relocation in &object.relocations) {
+        if relocation.kind == 0 || object.sections.data[convert(usize, relocation.section)].discarded { continue; }
+        var symbol = &object.symbols.data[convert(usize, relocation.symbol)];
+        if symbol.binding == ElfBinding.Global && symbol.section == ElfUndefined && !vector_push(pending, symbol.name) {
+            return elf_fail(&link.error, ElfError.Allocation, symbol.name, 0);
+        }
+    }
+    return true;
+}
+
+struct ElfArchiveCandidate { archive: usize; member: usize; next: u32; tail: u32; }
+
+fn elf_link_symbols(link: ElfLink*): bool {
+    var candidates: vector(ElfArchiveCandidate) = default; var names: WasmNameMap = default;
+    var pending: vector(WasmBytes) = default;
+    defer vector_dispose(&candidates); defer wasm_names_dispose(&names); defer vector_dispose(&pending);
+    for (var index: usize = 0; index < link.archives.length; index++) {
+        foreach (var & symbol in &link.archives.data[index].archive.archive.symbols) {
+            if candidates.length >= convert(usize, ElfNoIndex) { return elf_fail(&link.error, ElfError.Range, symbol.name, 0); }
+            var next = convert(u32, candidates.length);
+            var first = wasm_names_get(&names, symbol.name);
+            var item: ElfArchiveCandidate = { archive: index, member: symbol.member, next: ElfNoIndex, tail: next };
+            if !vector_push(&candidates, item) { return elf_fail(&link.error, ElfError.Allocation, symbol.name, 0); }
+            if first == ElfNoIndex {
+                if !wasm_names_set(&names, symbol.name, next) { return elf_fail(&link.error, ElfError.Allocation, symbol.name, 0); }
+            } else {
+                var head = &candidates.data[convert(usize, first)];
+                candidates.data[convert(usize, head.tail)].next = next; head.tail = next;
+            }
+        }
+    }
+    foreach (var & entry in &link.objects) { if !elf_link_index(link, entry.object, &pending) { return false; } }
+    if !vector_push(&pending, link.entry) { return elf_fail(&link.error, ElfError.Allocation, link.entry, 0); }
+    for (var demand: usize = 0; demand < pending.length; demand++) {
+        var name = pending.data[demand];
+        if elf_link_lookup(link, name) != null { continue; }
+        var next = wasm_names_get(&names, name);
+        while next != ElfNoIndex && elf_link_lookup(link, name) == null {
+            var candidate = candidates.data[convert(usize, next)]; next = candidate.next;
+            var archive = link.archives.data[candidate.archive].archive;
+            if archive.selected.data[candidate.member] { continue; }
+            archive.selected.data[candidate.member] = true;
+            var member = &archive.archive.members.data[candidate.member];
+            if !elf_link_object(link, member.name, member.bytes)
+                || !elf_link_index(link, link.objects.data[link.objects.length - 1].object, &pending) { return false; }
+        }
+    }
+    foreach (var & entry in &link.objects) {
+        foreach (var & symbol in &entry.object.symbols) {
+            if symbol.binding == ElfBinding.Local { symbol.resolved = symbol; }
+            else { symbol.resolved = elf_link_lookup(link, symbol.name); }
+            // Undefineds are checked when referenced by retained sections, so
+            // a discarded COMDAT member cannot create a false failure.
+        }
+    }
+    return elf_link_lookup(link, link.entry) != null || elf_fail(&link.error, ElfError.Undefined, link.entry, 0);
+}

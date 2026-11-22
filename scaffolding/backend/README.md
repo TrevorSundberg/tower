@@ -141,11 +141,32 @@ the historical `wasm-ld` argument zero is also accepted by the byte service.
 Unsupported options fail without fallback.
 Two edited browser self-build generations pass with both whole and lazy archives,
 including identical successor bytes across two/four compilation workers. The
-native-format upstream path below remains until its Tower replacements land.
+COFF/Mach-O upstream path below remains until its Tower replacements land.
 See [linker checks](../tests/README.md) for supported
 profiles and executable fixtures. Link requests are single use; the BackendLink
 adapter creates a fresh world for each invocation. Finish or join readers before
 closing input owners; a pinned view prevents structural mutation and disposal.
+
+Linux downloads use the Tower ELF64 byte linker in `elf_link.tower` and
+`linker_tower_elf.tower`; the cross reactor no longer links `lldELF`. The current
+profile is static little-endian x86-64/AArch64 with ordinary object files,
+indexed GNU/BSD archives, COMDAT selection, local/global/weak/common symbols,
+checked relocations and static GOT entries. It emits separate read, execute and
+write load segments, a non-executable stack, zero-filled BSS and a symbol table.
+Input objects and archives are world-owned components. Copy/relocation jobs use
+the shared WorkGraph/WorkPool with frozen symbol/layout data and exclusive output
+ranges; cancellation drains jobs before releasing the world, and diagnostics
+publish in input order. Default requests use one worker; explicit `--threads=N`
+uses the same transport where available, with no claimed universal speedup.
+
+This is the freestanding download profile. Native CLI links that need libc or
+shared libraries still use their explicit compiler-driver path. ELF TLS, dynamic
+linking/PIE, IFUNC, constructors, compressed/debug output, linker scripts,
+extended section indexes and unimplemented relocation kinds are not supported.
+Unsupported load semantics/options fail explicitly; non-allocated debug sections
+are omitted from this executable profile. There is no silent LLD fallback.
+The existing Wasm-prefixed byte views, name indexes and ar reader are shared
+target-independent utilities, not a second semantic graph or Wasm translation.
 
 `--growable-table` leaves the defined function table's maximum unspecified so
 the host can append callback slots. Without it the table retains its fixed size.
