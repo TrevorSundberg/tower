@@ -1,0 +1,61 @@
+import tower;
+import .library.work_graph;
+
+// Linux x64 measurement boundary: timespec is two signed words; rusage is
+// eighteen signed words (user/system timeval, then ru_maxrss and counters).
+// Scheduler behavior, frozen inputs and output checks remain ordinary Tower.
+extern fn clock_gettime(clock: i32, result: i64*): i32;
+extern fn getrusage(who: i32, result: i64*): i32;
+
+fn selection_check(ok: bool): void {
+    if !ok { trap("Targeted ready selection regression", 0); }
+}
+
+fn selection_time(): i64 {
+    var stamp: i64[2];
+    selection_check(clock_gettime(1, &stamp[0]) == 0);
+    return stamp[0] * 1000000000 + stamp[1];
+}
+
+fn selection_trial(count: usize, reverse: bool): void {
+    var graph: WorkGraph;
+    work_init(&graph, 1, 8);
+    defer work_dispose(&graph);
+    var before: i64[18];
+    var after: i64[18];
+    selection_check(getrusage(0, &before[0]) == 0);
+    var start = selection_time();
+    for(var i: usize = 0; i < count; i++) {
+        var id = work_request(&graph, null, 1, convert(u64, i));
+        selection_check(id == i + 1 && work_seal(&graph, id) && work_demand(&graph, id));
+    }
+    var admitted: usize = 0;
+    for(var i: usize = 0; i < count; i++) {
+        var selected = reverse ? count - i : i + 1;
+        var ticket: WorkTicket;
+        selection_check(work_take_task(&graph, &ticket, selected) && ticket.task == selected);
+        selection_check(work_finish(&graph, &ticket, true));
+        admitted++;
+    }
+    var spare: WorkTicket = default;
+    selection_check(admitted == count && !work_take(&graph, &spare));
+    selection_check(graph.running == 0 && graph.ready.length == 0 && work_ok(&graph));
+    var elapsed = selection_time() - start;
+    selection_check(getrusage(0, &after[0]) == 0);
+    print(count);
+    print(reverse);
+    print(elapsed);
+    print((after[0] - before[0] + after[2] - before[2]) * 1000000
+        + after[1] - before[1] + after[3] - before[3]);
+    print(after[4]);
+    print(graph.tasks.capacity * sizeof(WorkTask) + graph.task_index.capacity * sizeof(usize)
+        + graph.ready.capacity * sizeof(usize) + graph.scratch.capacity * sizeof(usize));
+}
+
+// count, reverse, wall ns, CPU us, process peak RSS KiB, retained graph bytes.
+selection_trial(32, false);
+selection_trial(32, true);
+selection_trial(4096, false);
+selection_trial(4096, true);
+selection_trial(65536, false);
+selection_trial(65536, true);
