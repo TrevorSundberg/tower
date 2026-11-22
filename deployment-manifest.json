@@ -344,7 +344,7 @@
     "validation": "79 runtime/LLVM/package checks; eight threaded package/worker checks; two edited browser compiler generations; four final worker-reuse/stale-permit browser checks; ten output/viewport/frame checks. Fresh native successor after final compiler-source rebase. All 86 local deployment asset hashes and full desktop/mobile flows pass."
   },
   "scope": "Expression dependency queries for initializers and if/while conditions; retained type failures and self-reference round trips; native unit worker integration.",
-  "previousDeployment": "9ced85534540c83b18d6e04852f80d3259e97d02",
+  "previousDeployment": "5ad995a756abce1a48b068b9979b1fcdf9953fcf",
   "measurementToolingMigration": {
     "implementationCommit": "1007d4179107c6c5372afcb9d1233a406695e992",
     "validationCommit": "824af121b0441df8c2a6af9e6a328bd6a0164018",
@@ -384,8 +384,8 @@
   "bootstrapExecutableSha256": "21f527125bfa05a8cd6d4923d4fdc026a04553e919f2905c602a17691598dba5",
   "publishedBootstrapSha256": "21f527125bfa05a8cd6d4923d4fdc026a04553e919f2905c602a17691598dba5",
   "bootstrapSha256": "21f527125bfa05a8cd6d4923d4fdc026a04553e919f2905c602a17691598dba5",
-  "sourceCommit": "b0e4aa7961b5be48168113120cd3889dd7959081",
-  "publicationNote": "Target-pack tooling milestone: remove build-targets.sh and llvm-dlltool; Tower consumes existing runtime IR and writes bounded COFF imports/indexed ar. Source/tooling validation update only; preserve the current c7a7976 runtime, all 88 assets, and every earlier receipt.",
+  "sourceCommit": "7b7a6390a134ec0782510def076042953ca80658",
+  "publicationNote": "Compiler-unit tooling milestone: six fixed CMake import generators and the generated legacy wrapper removed in favor of ordinary checked-in Tower roots. Source/tooling validation update; existing runtime assets and all prior validation receipts retain their build identities.",
   "buildNote": "Runtime and compiler-project assets built from c7a7976 using complete public bootstrap 21f52712. Fresh 54-step native build and two edited browser compiler generations pass; generation artifacts are identical. Includes merged threaded Wasm-linker changes.",
   "buildSourceCommit": "c7a7976a00510316fd0b1082c8fc183f92d6b9e2",
   "compilerSourceTree": "4611f77896c7eaa2e5ffa689a152ebabc1d7898e",
@@ -689,5 +689,56 @@
       ],
       "limits": "Minimal by-name code-import definition subset; per-file atomic replacement requires external generation locking for concurrent consumers. macOS link-only. Linux development successor is not a portable compiler release."
     }
+  },
+  "compilerUnitToolingMigration": {
+    "sourceCommit": "7b7a6390a134ec0782510def076042953ca80658",
+    "removedGenerators": [
+      "ComposeTowerSources.cmake",
+      "ComposeSemanticSources.cmake",
+      "ComposeInterpreter.cmake",
+      "ComposeEvaluation.cmake",
+      "ComposeForeign.cmake",
+      "ComposeSharedRuntimeTests.cmake"
+    ],
+    "staticRoots": "scaffolding/compiler/units/*.tower",
+    "removedSteps": [
+      "fixed import-list code generation",
+      "generated one-import legacy wrapper"
+    ],
+    "cmakeBefore": {
+      "files": 54,
+      "lines": 2594
+    },
+    "cmakeAfter": {
+      "files": 48,
+      "lines": 2515
+    },
+    "shell": {
+      "files": 11,
+      "lines": 256
+    },
+    "pythonFiles": 0,
+    "ownedNativeSourceFiles": 0,
+    "nativeBuildStepsBefore": 54,
+    "nativeBuildStepsAfter": 50,
+    "validation": {
+      "publicBootstrapSha256": "21f527125bfa05a8cd6d4923d4fdc026a04553e919f2905c602a17691598dba5",
+      "nativeSuccessorSha256": "67386c33b78f48193e72eab236ca8bb6abb9414eedb42d0db67c2144ad5b20f1",
+      "nativeIdentity": "Five affected native objects and the complete successor match the previous generated-root build byte-for-byte.",
+      "testProfiles": "PASS: fresh 65-step native core build and all 15 CTests; 42-step WASI host/interpreter build, full parser suite, 156 graph/fast execution trials, package and both-width semantic checks.",
+      "wasmIdentity": "Six static browser/test roots match outputs from the frozen prior generators byte-for-byte.",
+      "bootstrapComparison": "PASS: entities/interpreter/semantics across four targets (12 predecessor/successor pairs), exact object/IR identity, symbol policy and grammar-input checks.",
+      "dependencyTracking": "Static-root and transitive-import timestamp changes each rebuild the real Ninja object with identical bytes; unchanged inputs produce no work.",
+      "projectSha256": "5f3d11dfdf2d81cda38d2ab0f41770ef58206879cb7109e40cece2093a153ab7",
+      "browserGenerations": "PASS: two actual edited compiler generations at workers 2/4; Tower, LLVM and cross output hashes identical.",
+      "generationHashes": {
+        "tower": "1c438ff004141dd66d94e70ed3d8a9688573e59569d5388a7b35773a114493a2",
+        "llvm": "6e19227a90abe0c15294ec02e1f23096ea44e4c47189d3ec2e9fe15359be5979",
+        "cross": "627dfb65b44170d05615849a7443c9d62790c18720ba5569a8f5a182f20cb16f"
+      },
+      "defaultTools": "All seven tools pass the documented default bootstrap route.",
+      "limits": "Host/parser/backend configuration generators and wider CMake/SDK build bridges remain. Linux development successor only; edited compiler-generation artifacts are tests, not published production runtimes."
+    },
+    "fix": "Native-core runner explicitly selects Clang for C as well as C++; default GNU cc cannot consume LLVM IR with --target."
   }
 }
