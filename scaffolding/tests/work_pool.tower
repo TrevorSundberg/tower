@@ -3,6 +3,12 @@ import .library.work_pool;
 import work_order;
 
 extern fn pthread_self(): usize;
+extern fn strcmp(left: u8*, right: u8*): i32;
+
+var PoolTestInjectedFailure: i32 = 11;
+var PoolTestInvalidArguments: i32 = 12;
+var PoolTestMissingFailure: i32 = 13;
+var PoolTestIncompleteDrain: i32 = 14;
 
 struct PoolTestJob {
     entered: void*;
@@ -30,21 +36,30 @@ export fn work_kernel_execute(payload: void*): void {
     free(memory);
 }
 
-export fn main(): i32 {
-    work_order_tests();
-    // Native one-lane hosts cannot exercise overlap under their policy.
-    // CTest records this explicitly as skipped, not a concurrency proof.
-    var lanes = work_thread_capacity();
-    if lanes < 2 { return 77; }
-    if lanes > 4 { lanes = 4; }
-    var pool: WorkPool;
+fn pool_test_close(pool: WorkPool*, entered: void*, release: void*, drained: usize*): void {
+    // An early return can leave kernels waiting on release. Unblock and
+    // join them while their stack jobs and both signals are still alive.
+    for (var i: usize = 0; i < pool.running; i++) { work_signal_post(release); }
+    while pool.running != 0 {
+        var job = bits(PoolTestJob*, work_pool_receive(pool, true));
+        if job != null && job.result == job.input * job.input { (*drained)++; }
+    }
+    work_pool_close(pool);
+    work_signal_close(entered);
+    work_signal_close(release);
+}
+
+fn pool_test_run(lanes: usize, fail_after: usize, drained: usize*): i32 {
+    var pool: WorkPool = default;
+    var entered: void* = null;
+    var release: void* = null;
+    var jobs: PoolTestJob[4] = default;
+    defer pool_test_close(&pool, entered, release, drained);
     if !work_pool_open(&pool, 4) { return 1; }
     if !pool.threaded || pool.count != lanes { return 2; }
-    var entered = work_signal_open();
-    var release = work_signal_open();
+    entered = work_signal_open();
+    release = work_signal_open();
     if entered == null || release == null { return 3; }
-    var jobs: PoolTestJob[4];
-    fill(&jobs, 0, sizeof(PoolTestJob[4]));
     var round: u64 = 1;
     while round < 17 {
         var i: usize = 0;
@@ -55,6 +70,10 @@ export fn main(): i32 {
             jobs[i].bytes = round == 1 ? 8388608 : convert(usize, round * 257);
             if !work_pool_submit(&pool, bits(void*, &jobs[i])) { return 4; }
             i++;
+            if i == fail_after {
+                for (var waiting: usize = 0; waiting < i; waiting++) { work_signal_wait(entered); }
+                return PoolTestInjectedFailure;
+            }
         }
         if work_pool_submit(&pool, bits(void*, &jobs[0])) { return 5; }
         // Every admitted worker must reach this barrier simultaneously. The
@@ -84,8 +103,28 @@ export fn main(): i32 {
         round++;
     }
     if pool.peak != pool.count || pool.running != 0 { return 10; }
-    work_pool_close(&pool);
-    work_signal_close(entered);
-    work_signal_close(release);
+    return 0;
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    // Wasm invokes main without arguments. Native profiling can retain exactly
+    // the original sixteen-round workload independently of the new failures.
+    var normal_only = argc == 2 && strcmp(argv[1], "--normal") == 0;
+    if argc > 1 && !normal_only { return PoolTestInvalidArguments; }
+    work_order_tests();
+    // CTest records one-lane hosts as skipped, not as concurrency evidence.
+    var lanes = work_thread_capacity();
+    if lanes < 2 { return 77; }
+    if lanes > 4 { lanes = 4; }
+    var drained: usize = 0;
+    var status = pool_test_run(lanes, 0, &drained);
+    if status != 0 || normal_only { return status; }
+    for (var trial: usize = 0; trial < 2; trial++) {
+        var admitted = trial == 0 ? convert(usize, 1) : lanes;
+        drained = 0;
+        status = pool_test_run(lanes, admitted, &drained);
+        if status != PoolTestInjectedFailure { return status == 0 ? PoolTestMissingFailure : status; }
+        if drained != admitted { return PoolTestIncompleteDrain; }
+    }
     return 0;
 }
