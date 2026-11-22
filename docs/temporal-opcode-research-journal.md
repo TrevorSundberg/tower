@@ -43577,3 +43577,51 @@ type-smoke checks exercise actual syntax/type checking. No whole-body proof edge
 was removed and the production pipeline is not yet generally interleaved.
 The native runner also registers query-smoke with CTest. Full native/browser
 publication remains one frozen milestone after these affected checks pass.
+
+Milestone6850468 is committed, rebased against main without new upstream changes,
+and pushed. declaration-pump-native.log passes the public-bootstrap small unit,
+query-smoke (32/64-bit layouts, one/four workers), and type-smoke's real syntax,
+canonical reparsing and ordered failure/cycle checks. pump-release-native.log
+passes the documented public-bootstrap native build and candidate compilation
+of semantic_declarations.tower, without a private bootstrap override.
+pump-release-browser.log passes ordinary/threaded Wasm, LLVM/cross reactors and
+compiler-project packaging. pump-browser-checks.log passes3/3 with no skips in
+54.425seconds: actual overlap, trapped-worker interruption and1/2/4/8-worker
+determinism, including the new phase-chain fixture. Frozen scaffolding tree:
+c0431ed407f4265901748933891c35646a0b37a9. Native SHA256:
+6141685a2fca77dc7de9baf2a1f212a163d7705d3e7421f1e2df45c2818e2846.
+Compiler-project SHA256:
+845f8b36649d5d144a1eb9e221438cba648cee6f67e02ecaecad6f612438b81a.
+Public Linux x64 bootstrap remains6022aa2bdfc838ead9dd9507bea004b78568997f3a468f916a9bfa4310a0680a.
+These are platform-specific development/release assets, not a newly portable
+bootstrap. Remaining production phase barriers, general early type/value
+execution, shared-import invalidation and measured scaling are still open; this
+milestone is not compiler-wide100% completion.
+
+pump-generations.log passes two edited browser compiler generations; generation2
+matches generation1 byte-for-byte (tower1329133bytes, llvm35123402bytes,
+cross62473701bytes). Hashes: tower
+e1e1ab4d996a8fb6b2fa6e24a8c96835763b854631bec92da816c7b0fa0e75cc;
+llvm531aec8e93478566a0d0e950439c9d08bd088347e0c558f6e3df711c9222ca11;
+cross0f3e867c438463a8ebd8fada2062ef0a359bf00eaeda095231c9757abd201df3.
+pump-bundle.log passes with threaded/LLVM/cross assets required. The publication
+manifest preserves earlier scoped receipts and identifies6850468 as both runtime
+and compiler-project source. It records the existing80% engineering estimate
+without treating these pumps as proof of further percentage completion.
+
+Next integration milestone: move sem_bodies' stack-local window cursor,
+evaluation frontier and continuation-kind identity into compilation-owned ECS
+work state so the coordinator can resume it alongside declaration/evaluation
+pumps. Preserve lexical diagnostics and body/proof/lowering edges; making a
+phase resumable does not authorize evaluating captures before their ownership
+and mutation proofs exist. Select work through the existing graph, then diagnose
+stalls only after every eligible producer phase stops making progress. Avoid
+another standalone scheduler, pool, graph, safety framework or evaluator.
+
+Publication completed at Pages704543c4b4b8593ce402e8873895cda8ca6d1a45;
+GitHub Actions run45028594573 succeeded. pump-hosted.log and
+build/deployment-verification/report.json verify all104 deployed assets and
+desktop/mobile backend agreement, grammar editing, completion, persistence,
+target downloads and default selection, with no browser errors. The final
+journal receipt changes no runtime inputs; retain the verified6850468 assets
+and their build-source identity without another identical compiler rebuild.
