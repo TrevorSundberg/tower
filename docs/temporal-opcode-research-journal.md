@@ -46316,3 +46316,46 @@ reviews are review progress only; suspected stale negative expectations require
 reproduction before changes. L2 has narrowly reserved prelude packaging manifests
 for the journal-directed types.tower consolidation. No compiler acceptance gate
 is declared closed by these setup observations.
+
+### 2026-11-22: direct coordination after launch correction
+
+The user rejected inconsistent launch styles and additional setup contexts.
+KinmenA's classic consoles were replaced with tabbed Windows Terminal after
+both workers checkpointed and drained; same thread identities were resumed.
+The handoff interrupted their goals and required explicit resume. Colored tabs
+were an unrequested setup choice. The user subsequently said to leave the
+terminals as they are. No further appearance changes are planned.
+
+Stop the three host-manager contexts; only the eight requested CLI workers
+continue, with the original coordinator directly reading status/inbox files,
+routing interfaces, allocating publication leases and taking over unfinished
+work as lanes finish. Do not launch replacement workers or extra contexts.
+Normal main pulls clean at d3ec5a4. The user reactivated coordinator monitoring.
+The prior unchanged Pages rebuild reached built at 6f142bef; runtime identity
+and exact manifest remain unchanged from the verified startup baseline.
+
+Worker-reported implementation evidence is not yet integrated publication:
+L1 reproduces signal11 on emitter rejection/session startup and passes new
+focused regressions after fail-fast guards/cleanup. L2 consolidates the prelude,
+passes a clean 51-step public-bootstrap build and full type checks; complete
+pin/browser publication remains pending. B2 removes repeated shared-import
+cache graph traversal, with controlled adversarial microbenchmark evidence and
+unchanged retained entities; whole-compiler speedup is not claimed. B1's first
+candidate crashed; its corrected candidate passes LR equivalence, while small
+wall-time differences remain noisy. A2 measures quadratic targeted-ready-task
+selection before implementing a derived ready-row index. D1's full roster maps
+1,011 initial Tower files; substantive file reviews continue. D2 fixes the
+missing Foundation import in its C reference source, records successful
+reference/output comparisons, and rejects overlapped/noisy timing conclusions.
+
+The coordinator assigns D2 narrow explicit per-compiler job-budget plumbing;
+CPU affinity did not constrain get_nprocs-derived logical admission. B2 owns
+conditional exports for intentionally serial allocator-test transport, preserving
+real-thread runners. A2 owns actual Tower-emitted-object sanitizer investigation;
+ordinary CXX flags do not establish instrumentation. Constructor request design
+requires invocation owner/sequence and full WorkTicket validation, ordered
+once-only operands, coordinator-owned publication and canonical Foundation.
+Cross-lane capability/formatter/backend agreement and ABI readiness hooks remain
+tracked before adoption. No lane or overall compiler completion is claimed.
+These are coordination/documentation changes; no coordinator-authored executable
+input changed, so coordinator runtime performance measurements are inapplicable.
