@@ -90,6 +90,10 @@ parse CoreType |= TowerDecltype;
 parse TowerExpression |= TowerDecltype;
 parse TowerComptime = 'comptime' '(' $value:TowerExpression ')';
 parse TowerExpression |= TowerComptime;
+// Type positions accept the same operands as calls. Semantic parameter roles
+// decide whether an operand denotes a type or a staged integer value.
+parse CoreTypeArgument = CoreOperand;
+parse CoreArrayCount = CoreOperand;
 // Contextual zero value. Aggregate defaults initialize their destination in place.
 parse TowerDefault = 'default' | 'default' '(' $type:CoreType ')';
 parse TowerExpression |= TowerDefault;
