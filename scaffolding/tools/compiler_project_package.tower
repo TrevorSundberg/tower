@@ -200,7 +200,7 @@ fn compiler_project_reactor(whole: CompilerProjectPackage*, name: u8*, build: u8
     defer tool_words_close(&arguments); defer tool_words_close(&exports);
     defer bytes_dispose(&path); defer bytes_dispose(&file); defer bytes_dispose(&data);
     puts(name);
-    if !compiler_project_linker(build, binary, &linker) { puts("Cannot discover final Ninja/Clang link recipe:"); puts(build); return false; }
+    if !compiler_project_linker(build, binary, &linker) { puts("Cannot discover final Ninja/Tower link recipe:"); puts(build); return false; }
     if !compiler_project_collect(&whole.project, &inputs, &support, &names, build, &linker)
         || !compiler_support_order(&support, &order) {
         puts("Cannot collect compiler link inputs:"); print(convert(u32, support.error)); print(convert(u32, support.input_error)); print(support.offset);
@@ -239,7 +239,8 @@ fn compiler_project_reactor(whole: CompilerProjectPackage*, name: u8*, build: u8
                 || !tool_shell_words(data.data, data.length, &response) { return false; }
             foreach(var & item in &response) { if !compiler_project_word(&arguments, item.data) { return false; } }
         } else {
-            if compiler_project_prefix(argument.data, "--wrap=") && !compiler_project_word(&arguments, argument.data) { return false; }
+            if (compiler_project_prefix(argument.data, "--wrap=") || compiler_project_prefix(argument.data, "--undefined="))
+                && !compiler_project_word(&arguments, argument.data) { return false; }
         }
     }
     foreach(var & key in &names) { if !compiler_project_argument(&arguments, key.data, ".o") { return false; } }

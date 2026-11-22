@@ -36,15 +36,16 @@ endif()
 include(cmake/TowerCompilerUtilities.cmake)
 include(cmake/TowerInterpreter.cmake)
 
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  # Owned native compiler, parser and test targets use the published Tower
+  # linker. Object emission and third-party compiler tools keep their toolchain.
+  set(CMAKE_LINK_DEPENDS_USE_LINKER FALSE)
+  set(CMAKE_C_LINK_EXECUTABLE "\"${TOWER_BOOTSTRAP_COMPILER}\" --link-executable <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
+  set(CMAKE_CXX_LINK_EXECUTABLE "${CMAKE_C_LINK_EXECUTABLE}")
+endif()
+
 option(TOWER_NATIVE "Build Tower's native compiler/linker driver against an installed LLVM" OFF)
 if(TOWER_NATIVE)
-  if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    # Only owned native targets use this rule. Third-party builds keep their
-    # toolchain. The Tower linker has no compiler-driver flags or linker depfile.
-    set(CMAKE_LINK_DEPENDS_USE_LINKER FALSE)
-    set(CMAKE_C_LINK_EXECUTABLE "\"${TOWER_BOOTSTRAP_COMPILER}\" --link-executable <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
-    set(CMAKE_CXX_LINK_EXECUTABLE "${CMAKE_C_LINK_EXECUTABLE}")
-  endif()
   find_package(LLVM REQUIRED CONFIG)
   # Relocatable resources include the generated Tower runtime target artifacts.
   file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/share/tower")
@@ -159,6 +160,7 @@ if(TOWER_BROWSER)
       target_link_libraries(tower-browser-cross PRIVATE LLVMX86CodeGen LLVMAArch64CodeGen LLVMX86Disassembler LLVMAArch64Disassembler LLVMMCDisassembler)
     endif()
   endif()
+  cmake_language(DEFER CALL tower_wasi_linker)
   return()
 endif()
 
@@ -202,6 +204,9 @@ if(TOWER_PARSER_ONLY)
   include(cmake/TowerLRAnalysisTests.cmake)
   include(cmake/TowerInterpreterTests.cmake)
   include(cmake/TowerParserEvaluation.cmake)
+  if(CMAKE_CXX_COMPILER_TARGET MATCHES "^wasm")
+    cmake_language(DEFER CALL tower_wasi_linker)
+  endif()
   return()
 endif()
 

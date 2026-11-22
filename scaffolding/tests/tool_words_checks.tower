@@ -2,6 +2,7 @@ import tower;
 import utility_checks;
 import .tools.tool_words;
 import .tools.compiler_project_inputs;
+import .tools.wasi_link_recipe;
 import .tools.tool_capture_linux;
 import .tools.tool_process_linux;
 import .library.vector;
@@ -10,6 +11,7 @@ import .library.bytes_types;
 import .host.driver_files;
 
 extern fn strlen(text: u8*): usize;
+extern fn remove(path: u8*): i32;
 
 fn words_check(words: vector(ByteBuffer)*, at: usize, wanted: u8*): void {
     utility_check(at < words.length && words.data[at].length == strlen(wanted)
@@ -86,12 +88,37 @@ fn words_capture_checks(): void {
         && output.length == strlen("stdout retained") && utility_equal(output.data, "stdout retained", output.length), "existing stdout capture preserved");
 }
 export fn main(argc: i32, argv: u8**): i32 {
-    words_shell_checks(); words_depfile_checks(); words_capture_checks();
+    words_shell_checks(); words_depfile_checks(); words_capture_checks(); words_wasi_recipe_checks();
     var real_arguments: i32 = 3;
     if argc == real_arguments {
         var linker: vector(ByteBuffer) = default; defer tool_words_close(&linker);
-        utility_check(compiler_project_linker(argv[1], argv[2], &linker) && linker.length != 0, "real Ninja/Clang recipe discovery");
+        utility_check(compiler_project_linker(argv[1], argv[2], &linker) && linker.length != 0, "real Ninja/Tower recipe discovery");
         puts("Actual linker arguments:"); print(linker.length);
     }
     puts("Command/depfile words and real diagnostic capture passed"); return 0;
+}
+
+fn words_wasi_recipe_checks(): void {
+    var response = "'--wrap=callback' --undefined=retained\n";
+    var response_path = "wasi_recipe_fixture.rsp";
+    utility_check(driver_write_file(response_path, response, strlen(response)), "write response fixture");
+    defer remove(response_path);
+    var args: u8*[6];
+    args[0] = "-mexec-model=reactor"; args[1] = "-Wl,-z,stack-size=65536";
+    args[2] = "-Wl,@wasi_recipe_fixture.rsp"; args[3] = "unit with spaces.o";
+    args[4] = "-o"; args[5] = "output with spaces.wasm";
+    var plan: vector(ByteBuffer) = default; defer tool_words_close(&plan);
+    utility_check(wasi_link_recipe(".", "/explicit sdk", "/explicit builtins.a", &args[0], 6, &plan), "Tower reactor recipe");
+    var plan_words: usize = 14; utility_check(plan.length == plan_words, "expanded recipe word count");
+    words_check(&plan, 0, "tower-wasm-ld"); words_check(&plan, 1, "--export=_initialize");
+    words_check(&plan, 2, "/explicit sdk/crt1-reactor.o"); words_check(&plan, 3, "-z");
+    words_check(&plan, 4, "stack-size=65536"); words_check(&plan, 5, "--wrap=callback");
+    words_check(&plan, 6, "--undefined=retained"); words_check(&plan, 7, "unit with spaces.o");
+    words_check(&plan, 9, "output with spaces.wasm"); words_check(&plan, 10, "/explicit sdk/noeh/libc++.a");
+    words_check(&plan, 11, "/explicit sdk/noeh/libc++abi.a"); words_check(&plan, 12, "/explicit sdk/libc.a");
+    words_check(&plan, 13, "/explicit builtins.a");
+    var cyclic = "@wasi_recipe_fixture.rsp";
+    utility_check(driver_write_file(response_path, cyclic, strlen(cyclic)), "write cyclic response fixture");
+    utility_check(!wasi_link_recipe(".", "/explicit sdk", "/explicit builtins.a", &args[0], 6, &plan)
+        && plan.length == plan_words, "bounded response cycle preserves previous plan");
 }

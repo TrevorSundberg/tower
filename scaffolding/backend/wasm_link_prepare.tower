@@ -18,7 +18,7 @@ fn wasm_link_close(link: WasmLink*): bool {
     wasm_names_dispose(&link.variants); vector_dispose(&link.warnings);
     wasm_names_dispose(&link.feature_names); vector_dispose(&link.features);
     vector_dispose(&link.symbols); vector_dispose(&link.types);
-    vector_dispose(&link.exports); vector_dispose(&link.wraps);
+    vector_dispose(&link.exports); vector_dispose(&link.roots); vector_dispose(&link.wraps);
     vector_dispose(&link.functions); vector_dispose(&link.globals);
     vector_dispose(&link.output_exports); vector_dispose(&link.table_functions);
     vector_dispose(&link.pending); vector_dispose(&link.initializers);

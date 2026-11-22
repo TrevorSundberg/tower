@@ -161,6 +161,9 @@ fn wasm_link_extract_archives(link: WasmLink*): bool {
     foreach (var & request in &link.exports) {
         if !wasm_archive_demand(link, &selection, request.name) || !wasm_archive_drain(link, &selection) { return false; }
     }
+    foreach (var & name in &link.roots) {
+        if !wasm_archive_demand(link, &selection, *name) || !wasm_archive_drain(link, &selection) { return false; }
+    }
     // Physical components stay stable. Only the derived publication order moves;
     // later weak/COMDAT selection sees the same order as lazy extraction.
     var ordered: vector(WasmObjectEntry) = default;

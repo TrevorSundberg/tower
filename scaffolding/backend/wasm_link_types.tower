@@ -64,6 +64,7 @@ struct WasmLink {
     types: vector(WasmBytes);
     owned: vector(ByteBuffer);
     exports: vector(WasmExportRequest);
+    roots: vector(WasmBytes);
     wraps: vector(WasmWrapRequest);
     allowed: WasmNameMap;
     functions: vector(WasmOutputFunction);

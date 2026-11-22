@@ -45257,3 +45257,31 @@ passes: build_tools no longer takes or invokes a separate LINKER executable.
 Clang remains only for target queries and LLVM text-to-object emission in these
 recipes. WASI SDK reactor final links are the next remaining production boundary;
 third-party object/archive compilation and independent reference tools remain.
+
+WASI SDK link retirement milestone (2026-11-22): link_wasi.tower now drives the
+existing world-owned Wasm linker directly. Explicit SDK library/builtins paths,
+command/reactor/no-startup profiles and bounded response expansion form one
+Tower recipe shared with compiler-project packaging. The packager no longer
+executes Clang -### or looks for an LLD command. The unused wasm_link_static
+experiment was removed rather than retaining another command implementation.
+Read-only mapped owners survive through WorkPool drain; output/input alias checks
+precede output writes. Existing wrap/import/export/memory/TLS contracts remain.
+
+Forced --undefined roots now participate in archive demand and liveness without
+inventing exports; normal live-symbol checks still enforce import permissions.
+The first real reactor link exposed an overly strict defined-only root check:
+tw_foreign_call is an explicitly permitted host import. Fixed that check and
+added Tower cases for lazy archive roots, missing roots, denied and allowed
+imports. Native reader/world checks pass, including real overlap and ownership.
+Tower recipe fixtures pass spaced paths, response expansion and bounded cycles;
+actual Ninja/Tower recipe discovery passes without spawning a compiler driver.
+
+Plain, threaded and both LLVM reactor final links passed with the Tower tool;
+compiler-project packaging also completed. Final execution/publication checks
+follow the frozen source milestone. The final caller audit found allocator ABI
+fixtures still invoking wasm-ld/Clang for final links; those now use the same
+Tower tool with explicit freestanding inputs. CMake native/parser test executable
+rules use Tower too. Docker no longer installs lld-19 and source-cache setup no
+longer extracts/requires LLD sources. Independent LLVM/LLD reference workflows
+remain comparisons, not production fallbacks. LLVM object emission, SDK runtime
+libraries and upstream LLVM build tools remain external dependencies.

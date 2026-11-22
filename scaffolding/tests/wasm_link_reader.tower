@@ -778,6 +778,7 @@ fn wasm_test_memory_imports(): void {
 }
 
 export fn main(): i32 {
+    wasm_test_forced_roots();
     wasm_test_leb(); wasm_test_objects(); wasm_test_archives(); wasm_test_names(); wasm_test_name_encoding(); wasm_test_resolution();
     wasm_test_variants(); wasm_test_relocation_patches(); wasm_test_import_policy();
     wasm_test_padded_encoding(); wasm_test_relocation_owner();
@@ -790,4 +791,38 @@ export fn main(): i32 {
     wasm_test_export_profiles();
     puts("Wasm linker reader and world checks passed");
     return 0;
+}
+
+enum WasmRootCase: u8 { Archive, Missing, ImportDenied, ImportAllowed, Count }
+fn wasm_test_forced_roots(): void {
+    for (var mode = WasmRootCase.Archive; mode != WasmRootCase.Count; mode = convert(WasmRootCase, convert(u8, mode) + 1)) {
+        var object: ByteBuffer = default; var archive: ByteBuffer = default;
+        defer bytes_dispose(&object); defer bytes_dispose(&archive);
+        var link: WasmLink = default; defer wasm_link_close(&link);
+        utility_check(wasm_link_init(&link), "forced-root world");
+        var source: WasmLinkInputBytes = { name: wasm_text_bytes("unit.o"), ..default };
+        if mode == WasmRootCase.Archive {
+            wasm_test_named_object(&object, "answer", 0);
+            var name = "answer";
+            wasm_test_indexed_archive(&archive, &object, &name, 1, true);
+            source.name = wasm_text_bytes("root.a"); source.bytes = init(WasmBytes) { data: archive.data, length: archive.length };
+        } else {
+            if mode == WasmRootCase.Missing { wasm_test_named_object(&object, "other", 0); }
+            else { wasm_test_import_object(&object, WasmValueType.I32, 0, true); }
+            source.bytes = init(WasmBytes) { data: object.data, length: object.length };
+        }
+        var args: WasmBytes[2]; args[0] = wasm_text_bytes("--undefined=answer"); args[1] = source.name;
+        if mode == WasmRootCase.ImportAllowed { utility_check(wasm_names_set(&link.allowed, wasm_text_bytes("answer"), 0), "explicit forced-import permission"); }
+        var ok = wasm_link_plan(&link, &args[0], 2, &source, 1);
+        if mode == WasmRootCase.Missing || mode == WasmRootCase.ImportDenied {
+            utility_check(!ok && link.error == WasmLinkError.Undefined && link.output.length == 0, "forced roots obey missing/import diagnostics");
+        } else {
+            utility_check(ok, "forced archive or permitted import links");
+            foreach (var & item in &link.output_exports) {
+                utility_check(!wasm_bytes_text(item.name, "answer"), "root retention does not create an export");
+            }
+            if mode == WasmRootCase.Archive { utility_check(link.world.objects.length == 1 && link.functions.length == 1, "forced root extracts and retains archive member"); }
+            else { utility_check(link.imported_functions == 1, "forced permitted import retains typed binding"); }
+        }
+    }
 }

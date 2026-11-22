@@ -1,0 +1,99 @@
+import tower;
+import tool_words;
+import tool_files_posix;
+import tool_streams_posix;
+import .library.vector;
+import .library.bytes;
+import .library.bytes_types;
+import .host.driver_files;
+import .backend.wasm_bytes;
+import .backend.wasm_link_options;
+
+// The reactor recipe is shared by the native linker command and browser
+// compiler packaging. SDK paths are explicit inputs, never host-discovered.
+var WasiRecipeResponseDepth: usize = 8;
+var WasiRecipeResponseBytes: usize = 1048576;
+var WasiRecipeArgumentLimit: usize = 65536;
+
+fn wasi_recipe_word(out: vector(ByteBuffer)*, data: u8*, length: usize): bool {
+    var word: ByteBuffer = default; defer bytes_dispose(&word);
+    return out.length < WasiRecipeArgumentLimit && bytes_append(&word, data, length) && tool_word_end(out, &word);
+}
+fn wasi_recipe_text(out: vector(ByteBuffer)*, text: u8*): bool { return wasi_recipe_word(out, text, strlen(text)); }
+fn wasi_recipe_file(out: vector(ByteBuffer)*, directory: u8*, name: u8*): bool {
+    var path: ByteBuffer = default; defer bytes_dispose(&path);
+    return tool_join(&path, directory, name) && wasi_recipe_text(out, path.data);
+}
+
+fn wasi_recipe_argument(out: vector(ByteBuffer)*, directory: u8*, argument: u8*, depth: usize): bool {
+    var text = wasm_text_bytes(argument);
+    if wasm_option_prefix(text, "-Wl,") {
+        var first = strlen("-Wl,");
+        for (var at = first; at <= text.length; at++) {
+            if at != text.length && argument[at] != *"," { continue; }
+            var part: ByteBuffer = default; defer bytes_dispose(&part);
+            if at == first || !bytes_assign_text(&part, argument + first, at - first)
+                || !wasi_recipe_argument(out, directory, part.data, depth) { return false; }
+            first = at + 1;
+        }
+        return true;
+    }
+    if text.length != 0 && argument[0] == *"@" {
+        if depth == WasiRecipeResponseDepth { return false; }
+        var path: ByteBuffer = default; var input: ByteBuffer = default;
+        var words: vector(ByteBuffer) = default;
+        defer bytes_dispose(&path); defer bytes_dispose(&input); defer tool_words_close(&words);
+        if argument[1] == 0 { return false; }
+        if argument[1] == *"/" {
+            if !bytes_assign_text(&path, argument + 1, text.length - 1) { return false; }
+        } else { if !tool_join(&path, directory, argument + 1) { return false; } }
+        if !tool_read_file(path.data, WasiRecipeResponseBytes, &input)
+            || !tool_shell_words(input.data, input.length, &words) { return false; }
+        foreach (var & word in &words) {
+            if !wasi_recipe_argument(out, directory, word.data, depth + 1) { return false; }
+        }
+        return true;
+    }
+    if strcmp(argument, "-mexec-model=reactor") == 0 || strcmp(argument, "-mexec-model=command") == 0
+        || strcmp(argument, "-nostartfiles") == 0 { return true; }
+    return wasi_recipe_text(out, argument);
+}
+
+fn wasi_link_recipe(directory: u8*, libraries: u8*, builtins: u8*, arguments: u8**, count: usize, out: vector(ByteBuffer)*): bool {
+    var next: vector(ByteBuffer) = default; defer tool_words_close(&next);
+    var reactor = false; var startup = true;
+    for (var at: usize = 0; at < count; at++) {
+        if strcmp(arguments[at], "-mexec-model=reactor") == 0 { reactor = true; }
+        if strcmp(arguments[at], "-mexec-model=command") == 0 { reactor = false; }
+        if strcmp(arguments[at], "-nostartfiles") == 0 { startup = false; }
+    }
+    if libraries == null || libraries[0] == 0 || builtins == null || builtins[0] == 0
+        || !wasi_recipe_text(&next, "tower-wasm-ld") { return false; }
+    if startup && (!wasi_recipe_text(&next, reactor ? "--export=_initialize" : "--export=_start")
+        || !wasi_recipe_file(&next, libraries, reactor ? "crt1-reactor.o" : "crt1-command.o")) { return false; }
+    // Resolve only the SDK libraries used by owned reactor builds. Rejecting
+    // other -l flags avoids accidentally binding a host or unrelated sysroot.
+    for (var at: usize = 0; at < count; at++) {
+        var arg = arguments[at];
+        if strcmp(arg, "-lrt") == 0 { if !wasi_recipe_file(&next, libraries, "librt.a") { return false; } }
+        else {
+            if strcmp(arg, "-ldl") == 0 { if !wasi_recipe_file(&next, libraries, "libdl.a") { return false; } }
+            else {
+                if strcmp(arg, "-lpthread") == 0 { if !wasi_recipe_file(&next, libraries, "libpthread.a") { return false; } }
+                else { if !wasi_recipe_argument(&next, directory, arg, 0) { return false; } }
+            }
+        }
+    }
+    if !wasi_recipe_file(&next, libraries, "noeh/libc++.a") || !wasi_recipe_file(&next, libraries, "noeh/libc++abi.a")
+        || !wasi_recipe_file(&next, libraries, "libc.a") || !wasi_recipe_text(&next, builtins) { return false; }
+    tool_words_close(out); *out = next; next = default; return true;
+}
+
+fn wasi_link_raw_recipe(directory: u8*, arguments: u8**, count: usize, out: vector(ByteBuffer)*): bool {
+    var next: vector(ByteBuffer) = default; defer tool_words_close(&next);
+    if !wasi_recipe_text(&next, "tower-wasm-ld") { return false; }
+    for (var at: usize = 0; at < count; at++) {
+        if !wasi_recipe_argument(&next, directory, arguments[at], 0) { return false; }
+    }
+    tool_words_close(out); *out = next; next = default; return true;
+}

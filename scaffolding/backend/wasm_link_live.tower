@@ -114,6 +114,16 @@ fn wasm_link_roots(link: WasmLink*): bool {
         }
         if !wasm_link_mark(link, index) { return false; }
     }
+    // Forced roots participate in archive extraction and liveness without
+    // inventing a public export. Import permissions are checked by the same
+    // live-symbol validation as ordinary references.
+    foreach (var & name in &link.roots) {
+        var index = wasm_names_get(&link.names, *name);
+        if index == WasmNoIndex {
+            return wasm_link_fail(link, WasmLinkError.Undefined, *name);
+        }
+        if !wasm_link_mark(link, index) { return false; }
+    }
     var stack = wasm_names_get(&link.names, wasm_text_bytes("__stack_pointer"));
     if stack != WasmNoIndex && !wasm_link_mark(link, stack) { return false; }
     for (var input: usize = 0; input < link.world.objects.length; input++) {
