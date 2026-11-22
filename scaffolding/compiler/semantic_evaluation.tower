@@ -7,6 +7,7 @@ import semantic_capture_work;
 import semantic_type_execution;
 import semantic_query_pipeline;
 import semantic_context;
+import semantic_declarations;
 import semantic_support;
 import semantic_types;
 import semantic_values;
@@ -437,7 +438,9 @@ fn sem_evaluation_finish(c: SemanticContext*): void {
             if result != null && result.inferred {
                 result.ready.failed = true;
                 result.ready.ready = true;
-            } else { sem_evaluation_cycle(c, index + 1); }
+            } else {
+                if !sem_declaration_failure(c, index + 1) { sem_evaluation_cycle(c, index + 1); }
+            }
         }
         index++;
     }

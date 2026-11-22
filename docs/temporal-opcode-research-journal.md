@@ -47740,3 +47740,18 @@ strlen-derived cursor and typed completion oracles. These newly integrated
 fixtures still require local smallest-unit/runtime validation; the successful
 native compiler build does not execute them. Known EarlyCapture and current
 instrumentation/browser/generation/publication acceptance remain open.
+
+After checkpoint bc4901f, root delivered A1's corrected source-roots patch
+SHA4784413a and evaluation-failure walk SHAe4dbf386. Both apply cleanly in the
+specified order. Reviewed the pipeline ABI, begin/pump/dispose paths and context
+cleanup: the existing component gains a derived ordered syntax-root index,
+captured before runtime item rewriting, with no second AST. Program hierarchy
+owns those roots; context disposal joins known jobs before freeing the index.
+Undemanded query0 records are skipped explicitly. Failure traversal now asks the
+shared declaration failure graph before emitting a cycle at quiescence.
+These source changes invalidate affected compiler object/closure evidence;
+f13's successful native build remains its own receipt. Smallest-unit, query and
+capture regression validation are pending the next host slot. The optional
+partial late-capture patch is deliberately not adopted while A1 supplies its
+general initializer-range successor; its unresolved cases remain acceptance
+requirements, not exclusions. No new D2 production policy or syntax is added.
