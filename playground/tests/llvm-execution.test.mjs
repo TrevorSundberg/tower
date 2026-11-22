@@ -14,7 +14,7 @@ try { llvm = await loadLLVM(await read('build/browser-wasi-llvm/tower-llvm.wasm'
 catch (error) { if (error.code !== 'ENOENT') throw error; }
 
 const cases = [
-  ['type objects', (await read('scaffolding/tests/type_object_values.tower')).toString(), '0\n'],
+  ['type objects', (await read('scaffolding/tests/type_object_values.tower')).toString(), '0\n', null, 0],
   ['computed type arguments', (await read('scaffolding/tests/computed_type_arguments.tower')).toString(), '0\n'],
   ['function values', (await read('scaffolding/tests/function_values.tower')).toString(), '0\n'],
   ['integer negation', (await read('scaffolding/tests/integer_negation.tower')).toString(), '0\n'],
@@ -55,7 +55,7 @@ const cases = [
   ['replacement trap source mapping', "parse Statement |= 'bad' => replace { var a: i32 = 1 / 0; };\n// λ雪\nbad", '', /Division by zero/],
   ['bounded output', 'var n: i32; var b: bool; n = 0; loop { print(123456789); n = n + 1; b = n == 7000; if b { break; } }', '123456789\n'.repeat(6553)],
 ];
-for (const [name, source, expected, failure] of cases) test(`LLVM matches interpreter: ${name}`, { skip: !llvm }, async () => {
+for (const [name, source, expected, failure, canonicalProfile] of cases) test(`LLVM matches interpreter: ${name}`, { skip: !llvm }, async () => {
   const handle = tower.compile(source);
   try {
     let reference, output = '';
@@ -85,7 +85,7 @@ for (const [name, source, expected, failure] of cases) test(`LLVM matches interp
         for(const key of ['status','error','errorOffset','outputTruncated'])assert.equal(state[key],reference[key],`LLVM bytecode ${optimize} ${key}`);
         assert.equal(text,output,`LLVM bytecode ${optimize} output`);
         const packageBytes=tower.bytecode(guest,{optimizationProfile:optimized.optimizationProfile});
-        assert.equal(new DataView(packageBytes.buffer).getUint32(24,true),optimize?1:2);
+        assert.equal(new DataView(packageBytes.buffer).getUint32(24,true),canonicalProfile??(optimize?1:2));
       } finally {tower.destroyExecution(guest);}
     }
     const roundtrip = tower.compileFoundation(formatted.source);

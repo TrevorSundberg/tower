@@ -45765,3 +45765,17 @@ published. Browser validation exposed a missing direct source-service declaratio
 for type_object_program and a stale transport expectation for the now-executable
 generic type function; both were corrected. The corresponding diagnostic already
 has its precise expectation in Tower's body_runs fixture. Publication is pending.
+
+Pinned the complete 25413363 candidate locally with executable SHA-256
+7070546577829feee0705578d635bfd01c4fd77fd76b8347fb3bf8dd3e5f61d1. The 50-step
+fresh /cache/type_values_clean_25413363 build used the default verified repository
+bootstrap and no TOWER_BOOTSTRAP_COMPILER override. Its CLI executes both the type
+value and computed-argument fixtures from /tmp with result 0. This remains the
+Ubuntu 24.04/LLVM 19 Linux x64 development bootstrap, not a portable native release.
+The previous complete pin is retained locally in build/bootstrap_before_type_values
+for predecessor comparisons. Browser computed-type execution passes, and type
+values pass both interpreter/LLVM execution and canonical package reconstruction
+after the transport fixture explicitly expected profile 0. Browser worker overlap,
+worker-trap interruption and 1/2/4/8-worker determinism also pass. The optional
+backend-service test initially skipped because its exports were disabled; that
+skip is not counted as validation, and its checked profile is being built next.
