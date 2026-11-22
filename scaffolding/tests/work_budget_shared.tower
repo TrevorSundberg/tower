@@ -1,0 +1,99 @@
+import tower;
+import .library.work_budget;
+import .library.work_pool;
+import .host.work_linux;
+import .host.work_dispatch;
+
+extern fn pthread_self(): usize;
+
+struct BudgetJob {
+    budget: WorkBudget*;
+    entered: void*;
+    release: void*;
+    thread: usize;
+    completed: usize;
+    success: bool;
+}
+
+fn budget_shared_check(ok: bool): void {
+    if !ok { trap("Shared work budget regression", 0); }
+}
+
+export fn work_kernel_execute(payload: void*): void {
+    var job = bits(BudgetJob*, payload);
+    job.thread = pthread_self();
+    work_signal_post(job.entered);
+    work_signal_wait(job.release);
+    for(var round: usize = 0; round < 2048; round++) {
+        var extra: WorkReservation = default;
+        if work_budget_reserve_result(job.budget, 0, 8, 8192, &extra) != WorkBudgetError.None { return; }
+        var memory = alloc(u8, 8192);
+        if memory == null { work_budget_release(job.budget, &extra); return; }
+        var value = convert(u8, round % 256);
+        fill(memory, value, 8192);
+        var correct = memory[0] == value && memory[8191] == value;
+        free(memory);
+        var old = extra;
+        if work_budget_release_result(job.budget, &extra) != WorkBudgetError.None { return; }
+        if work_budget_release_result(job.budget, &old) != WorkBudgetError.Stale || !correct { return; }
+        var snapshot: WorkBudgetSnapshot;
+        if !work_budget_snapshot(job.budget, &snapshot) || snapshot.used_lanes > 12 || snapshot.used_bytes > 32768 { return; }
+        job.completed++;
+    }
+    job.success = true;
+}
+
+fn budget_shared(): void {
+    var gate = work_signal_open();
+    var entered = work_signal_open();
+    var release = work_signal_open();
+    budget_shared_check(gate != null && entered != null && release != null);
+    defer work_signal_close(gate);
+    defer work_signal_close(entered);
+    defer work_signal_close(release);
+    work_signal_post(gate);
+    var budget: WorkBudget = default;
+    budget_shared_check(work_budget_init(&budget, 12, 32768, 1));
+    budget_shared_check(work_budget_synchronize(&budget, gate, work_signal_wait, work_signal_post));
+    defer work_budget_dispose(&budget);
+    var outer: WorkReservation[4];
+    fill(&outer, 0, sizeof(WorkReservation[4]));
+    defer {
+        for(var i: usize = 0; i < 4; i++) {
+            if outer[i].active { budget_shared_check(work_budget_release(&budget, &outer[i])); }
+        }
+    }
+    var jobs: BudgetJob[4];
+    fill(&jobs, 0, sizeof(BudgetJob[4]));
+    var pool: WorkPool = default;
+    budget_shared_check(work_pool_open(&pool, 4) && pool.threaded && pool.count == 4);
+    defer work_pool_close(&pool);
+    // Release blocked workers before pool cleanup even on an early return.
+    defer { for(var i: usize = 0; i < 4; i++) { work_signal_post(release); } }
+    for(var i: usize = 0; i < 4; i++) {
+        budget_shared_check(work_budget_reserve(&budget, 1, 1, 0, &outer[i]));
+        jobs[i].budget = &budget;
+        jobs[i].entered = entered;
+        jobs[i].release = release;
+        budget_shared_check(work_pool_submit(&pool, bits(void*, &jobs[i])));
+    }
+    for(var i: usize = 0; i < 4; i++) { work_signal_wait(entered); }
+    budget_shared_check(work_pool_receive(&pool, false) == null);
+    for(var i: usize = 0; i < 4; i++) { work_signal_post(release); }
+    while pool.running != 0 { work_pool_receive(&pool, true); }
+    for(var i: usize = 0; i < 4; i++) {
+        budget_shared_check(jobs[i].success && jobs[i].completed == 2048 && jobs[i].thread != pthread_self());
+        for(var j: usize = 0; j < i; j++) { budget_shared_check(jobs[i].thread != jobs[j].thread); }
+        budget_shared_check(work_budget_release(&budget, &outer[i]));
+    }
+    var snapshot: WorkBudgetSnapshot;
+    budget_shared_check(work_budget_snapshot(&budget, &snapshot));
+    budget_shared_check(snapshot.used_lanes == 0 && snapshot.used_bytes == 0 && snapshot.live == 0);
+    budget_shared_check(snapshot.peak_lanes == 12 && snapshot.peak_bytes <= 32768);
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    budget_shared();
+    print(0);
+    return 0;
+}

@@ -47272,3 +47272,69 @@ SHA2563b11dec50514a8473e9f6efa7a34d584d0657538c09988f61b72d38ad4991a10.
 The shared sanitizer mode must instrument actual linked Tower objects and runtime;
 a configured manifest alone is not coverage. Workloads remain pending at this
 entry. Disk140GiB free,9.7GiB available RAM,5.7GiB preexisting swap.
+
+## 2026-11-22 D1 focused registration instrumentation and remaining failures
+
+Quiet awake follow-up for the eight entry wrappers: SHA profile32 executions per
+variant, four alternating pairs of eight, same retained binaries/FIPS million-a
+input, cpuset0,2 and unchanged powersave governor. Before group wall5.50,4.36,4.60,
+4.42s; after5.16,4.67,4.61,5.17. Totals18.88/19.61(+3.9%); CPU29.11/28.78s,
+zero swaps. Shell-inclusive peakRSS3128–3260KiB; raw per-worker timings/actual
+span overlap/retained capacity remain in registration/long. Inconsistent pairs
+and lower CPU do not demonstrate a consistent CPU regression, speedup or zero
+small wall-time effect. No production scheduler change was made for this result.
+
+Shared positive mode now builds actual ten linked Tower objects: pool fixture,
+Linux work transport, dispatch, guest runtime and six new fixture objects. Seven
+executables give eight tests (observer try/wait). Exact link commands, source and
+object hashes, original/instrumented IR and llvm-nm references retained under
+registration/sanitizers; every linked object has mode-specific instrumentation.
+Host bootstrap/binder/instrumentation tools intentionally stay uninstrumented.
+ASan31/31 build54.51wall52.99CPU197448KiB; eight checks pass0skips0.70s
+(aggregate0.75wall0.75CPU187704KiB). TSan31/31 build51.06wall49.67CPU197552KiB;
+eight checks pass0skips1.19s(aggregate1.21wall1.49CPU98304KiB). All measured jobs
+swaps0. Address mode uses detect_leaks=1:halt_on_error=1; thread mode halt_on_error=1.
+Targeted repeated concurrency stress is separate and pending at this entry.
+No source-language UBSan, browser sanitization or universal race-freedom claim.
+
+Smallest parser draft compile initially rejects aggregate foreach without an
+explicit borrow. Fixed that source mistake using existing borrowed iteration.
+Next publicpin9653f818/jobs1 compile exits139/SIGSEGV after8.33wall7.16CPU176008KiB,
+no diagnostic; GNUtime prints Exit status0 after Signal11, so the process receipt
+139 is authoritative. Saved exact crashing source and input hashes in
+parser_retention. No worker survives; stage/source isolation remains open.
+
+Root/L2 independently confirmed jobs1/4 ordinary first_type/second_type recursion
+reaches the existing interpreter stack limit under classifier-v2. D1 changed only
+that body_runs expectation to Tower call stack limit exceeded and preserved the
+first diagnostic/unknownLater and genuine declaration/header/layout/query cycles.
+Public-pin smallest unit passes4.08wall4.03CPU195536KiB. Patch22f651f48013e513570d1496478d4c4cefb7725de2dbe6a18cafeceeec337e84
+is routed A1 for actual new-classifier type-smoke. Local old runtime is not that
+validation; semantic implementation remains owner-controlled.
+
+Awake Roku combined test also exits124 at240s after entering separate reduced
+population-count simulator case. All ten preceding JSON assertions finish before
+its eleventh validation call, but combined TAP is not a pass. GNUtime's0.14CPU and
+48196KiB reflect the waiting outer node on killed descendants, not total simulator
+cost. Root granted a transport-only split preserving population source/reduction,
+expected output and180s test deadline. Isolated JSON TAP run is pending; old failed
+combined logs stay visible and splitting does not cure population performance.
+
+Focused concurrency stress completed: three valid production-allocator targets
+(pool normal/failure-drain, shared budget, admission) each20repeats in both modes,
+120passing executions,0skips. ASan8.64wall10.67CPU187716KiB; TSan18.37wall24.46CPU
+119516KiB;0swaps. New work_ready source uses the owner-supplied derived array count
+with all expected order/stale/reset/cancel checks unchanged. Source/body hashes
+and raw receipts copied to coordinator D1/registration_receipt.
+
+Checkpoint attribution: coordinated prerequisites are D2 compiler_budget_6a2536b
+0eb43211..., native_sanitizer_mode77ac626a..., source_receiptc9df1fc9..., plus
+A2 validated_checkpoints9809853d... selected work graph/budget/pool/kernel/file
+identity/observer/instrumentation portions and dispatcher_projection_delta19ddf885....
+D1 does not author their production algorithms. Historical negative probe sources
+remain imported opt-in resources and were not executed. Entry wrappers, focused
+CMake registration and README are D1 adaptations; new work_ready count follows
+B1 snapshot6e8ee34e.... This local integration checkpoint records tested focused
+bytes. Full compiler ABI rebuild, new constructor/prelude owner closure, target
+matrices and release publication remain outstanding; no partial closure is called
+a completed release.
