@@ -3,6 +3,7 @@ import semantic_program_types;
 import semantic_context;
 import semantic_lifecycle;
 import semantic_modules;
+import semantic_support;
 import .library.vector;
 
 // Source/module orchestration over the same semantic program and parse entities.
@@ -38,6 +39,7 @@ extern fn frontend_module_root_world(world: void*, source: u8*, environment: voi
 extern fn compiler_node_world(node: void*): void*;
 
 extern fn frontend_module_finish(module: void*): void;
+extern fn frontend_module_prelude(module: void*): void;
 
 extern fn frontend_module_count(module: void*): usize;
 
@@ -70,6 +72,10 @@ export fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendS
     var roots: vector(void*);
     var bases: vector(usize);
     var modules: vector(void*);
+    var published: vector(void*) = default;
+    var published_bases: vector(usize) = default;
+    defer vector_dispose(&published);
+    defer vector_dispose(&published_bases);
     vector_init(&source);
     vector_init(&roots);
     vector_init(&bases);
@@ -112,7 +118,6 @@ export fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendS
             frontend_compile_error(program, error);
             break;
         }
-        sem_module_graph(program, module);
         var dependency: usize = 0;
         var dependencies = frontend_module_count(module);
         loop {
@@ -121,7 +126,19 @@ export fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendS
                 break;
             }
             var current = frontend_module_at(module, dependency);
+            // Source fragments share imported lexical modules. Their own roots
+            // still contribute in order, even when they use the same entry name.
+            var duplicate = false;
+            if current != module {
+                foreach(var previous in &published) {
+                    if sem_equal(frontend_module_name(previous), frontend_module_name(current)) { duplicate = true; break; }
+                }
+            }
+            if duplicate { dependency++; continue; }
+            sem_module_record(program, current);
             var base = source.length;
+            sem_require(vector_push(&published, current));
+            sem_require(vector_push(&published_bases, base));
             frontend_module_position(current, base);
             sem_module_position(program, current, base);
             var data = frontend_module_source(current);
@@ -160,31 +177,12 @@ export fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendS
         semantic_compile(program, roots.data, bases.data, roots.length, source.data);
     }
     if program.error.length == 0 {
-        var base: usize = 0;
-        var m: usize = 0;
-        loop {
-            if m == modules.length {
-                break;
+        for(var i: usize = 0; i < published.length; ++i) {
+            var current = published.data[i];
+            // Grammar-only files retain trivia on their grammar/source nodes.
+            if frontend_module_roots(current) != 0 {
+                frontend_module_attach_comments(current, program.root, published_bases.data[i]);
             }
-            var module = modules.data[m];
-            var count = frontend_module_count(module);
-            var d: usize = 0;
-            loop {
-                if d == count {
-                    break;
-                }
-                var current = frontend_module_at(module, d);
-                var ordinary = frontend_module_roots(current) != 0;
-                // Grammar-only files keep trivia on their grammar/source nodes.
-                // Do not substitute that source for executable Foundation output.
-                if ordinary {
-                    frontend_module_attach_comments(current, program.root, base);
-                }
-                base = base + frontend_module_size(current);
-                base++;
-                d++;
-            }
-            m++;
         }
     }
     index = 0;

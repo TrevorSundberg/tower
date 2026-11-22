@@ -14,7 +14,7 @@ export async function compileUnits({compiler, recipe, files, workers = 1, create
   files = files.map(({path,text}) => ({path,text}));
   recipe = {units:recipe.units.map(unit => ({...unit}))};
   const inputs = {}, sources = new Map(files.map(file => [file.path, file.text]));
-  const grammar = Object.fromEntries(['bedrock','foundation','tower'].map(name => [name,sources.get(name+'.tower')]));
+  const grammar = Object.fromEntries(files.filter(file => /^(?:[^/]+|types\/[^/]+)\.tower$/.test(file.path)).map(file => [file.path.slice(0,-6),file.text]));
   for (const unit of recipe.units) if (!sources.has(unit.entry)) throw new Error('Missing compiler entry: '+unit.entry);
   if (new Set(recipe.units.map(unit => unit.object)).size !== recipe.units.length) throw new Error('Duplicate compiler object name');
   const revision = ++nextRevision, profile = 1n; // Current wasm32 optimized object recipe.
@@ -77,7 +77,7 @@ export async function buildCompiler(options) {
 }
 
 export async function linkCompiler({compiler, recipe, files, inputs, support, progress = () => {}}) {
-  const grammar = Object.fromEntries(['bedrock','foundation','tower'].map(name => [name,files.find(file => file.path === name+'.tower')?.text]));
+  const grammar = Object.fromEntries(files.filter(file => /^(?:[^/]+|types\/[^/]+)\.tower$/.test(file.path)).map(file => [file.path.slice(0,-6),file.text]));
   const modules = {}, bytes = {};
   for (const [name, reactor] of Object.entries(recipe.reactors)) {
     progress('Linking '+name+'.wasm');
@@ -91,7 +91,7 @@ export async function linkCompiler({compiler, recipe, files, inputs, support, pr
   progress('Checking new compiler');
   // Instantiate every candidate before publishing any of them. A failed build
   // leaves the previous generation active; reset never depends on candidate code.
-  const tower = await loadTower(modules.tower, undefined, grammar.foundation, undefined, grammar.bedrock, {tower:grammar.tower});
+  const tower = await loadTower(modules.tower, undefined, grammar.foundation, undefined, grammar.bedrock, {tower:grammar.tower,builtins:grammar});
   const fixture = '// candidate C metadata\nimport tower; import helpers.answer as left; import other.answer as right; import helpers.answer as again; var total = left.answer() + right.answer(); print(total);';
   const probeFiles = [{path:'probe.tower',text:fixture},
     {path:'helpers/answer.tower',text:'import tower; fn answer(): i32 { return hidden(); } fn hidden(): i32 { return 20; }'},
@@ -143,7 +143,7 @@ export async function linkCompiler({compiler, recipe, files, inputs, support, pr
   const enumHover = tower.inspectDocument('enum State:u32 { Idle = 0, Busy = 4 } var state:State = State.Busy;');
   if (!enumHover.entries?.some(entry => entry.signature === 'State.Busy' && entry.type === 'State'))
     throw new Error('Candidate enum hover check failed');
-  const llvm = await loadLLVM(modules.llvm, undefined, grammar.foundation, undefined, grammar.bedrock, {tower:grammar.tower});
+  const llvm = await loadLLVM(modules.llvm, undefined, grammar.foundation, undefined, grammar.bedrock, {tower:grammar.tower,builtins:grammar});
   const result = llvm.compile(foundation);
   if (result.status === 'error') throw new Error('Candidate LLVM: '+result.error);
   const executed = await executeWasm(result);
@@ -161,7 +161,7 @@ export async function linkCompiler({compiler, recipe, files, inputs, support, pr
       tower.destroyExecution(restored);
     } finally { tower.destroyExecution(optimized); }
   }
-  const cross = await loadLLVM(modules.cross, undefined, grammar.foundation, undefined, grammar.bedrock, {tower:grammar.tower});
+  const cross = await loadLLVM(modules.cross, undefined, grammar.foundation, undefined, grammar.bedrock, {tower:grammar.tower,builtins:grammar});
   const native = cross.compile(foundation,{emit:'object',target:'x86_64-unknown-linux-gnu'});
   if (native.status === 'error' || !native.object?.length) throw new Error('Candidate native target check failed: '+native.error);
   const hashes = Object.fromEntries(await Promise.all(Object.entries(bytes).map(async ([key,data]) =>

@@ -6,12 +6,12 @@ import { platformImports } from './platform.mjs';
 import { moduleInputs, moduleDiagnostic } from './module-inputs.mjs';
 
 // LLVM and LLD run in their own WASM instance, with only an in-memory filesystem.
-export async function loadLLVM(bytes, log = () => {}, bootstrap, foundation, bedrock, {tower} = {}) {
+export async function loadLLVM(bytes, log = () => {}, bootstrap, foundation, bedrock, {tower, builtins = {}} = {}) {
   const wasi = new TowerWASI({ log });
   const module = bytes instanceof WebAssembly.Module ? bytes : await WebAssembly.compile(bytes);
   const instance = await WebAssembly.instantiate(module, { wasi_snapshot_preview1: wasi.wasiImport });
   wasi.initialize(instance);
-  const modules = moduleInputs(instance.exports, {bedrock, foundation:foundation ?? bootstrap, tower});
+  const modules = moduleInputs(instance.exports, {...builtins, bedrock, foundation:foundation ?? bootstrap, tower});
   if (bedrock !== undefined) configureBedrock(instance.exports, bedrock);
   configureTower(instance.exports, foundation ?? bootstrap, modules.environment);
   const e = instance.exports, decoder = new TextDecoder();

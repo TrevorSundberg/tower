@@ -347,13 +347,17 @@ export fn ix_allocate(m: IMExecution*, count: usize): u64 {
 }
 
 export fn ix_deallocate(m: IMExecution*, at: u64): void {
+    ix_deallocate_at(m, at, 0);
+}
+
+fn ix_deallocate_at(m: IMExecution*, at: u64, offset: usize): void {
     if at == 0 {
         return;
     }
     var found = false;
     var count = im_allocations_take(m.state, at, &found);
     if !found {
-        ix_fail(m, "Invalid allocation passed to free", 0);
+        ix_fail(m, "Invalid allocation passed to free", offset);
         return;
     }
     var neighbors: IMNeighbors;
@@ -381,17 +385,21 @@ export fn ix_deallocate(m: IMExecution*, at: u64): void {
 }
 
 export fn ix_reallocate(m: IMExecution*, at: u64, count: usize): u64 {
+    return ix_reallocate_at(m, at, count, 0);
+}
+
+fn ix_reallocate_at(m: IMExecution*, at: u64, count: usize, offset: usize): u64 {
     if at == 0 {
         return ix_allocate(m, count);
     }
     if count == 0 {
-        ix_deallocate(m, at);
+        ix_deallocate_at(m, at, offset);
         return 0;
     }
     var found = false;
     var previous = im_allocations_get(m.state, at, &found);
     if !found {
-        ix_fail(m, "Invalid allocation passed to realloc", 0);
+        ix_fail(m, "Invalid allocation passed to realloc", offset);
         return 0;
     }
     if convert(u64, count) <= previous {
@@ -405,7 +413,7 @@ export fn ix_reallocate(m: IMExecution*, at: u64, count: usize): u64 {
     var to = convert(usize, result);
     var from = convert(usize, at);
     copy(&memory[to], &memory[from], convert(usize, previous));
-    ix_deallocate(m, at);
+    ix_deallocate_at(m, at, offset);
     return result;
 }
 
@@ -617,7 +625,7 @@ fn ix_evaluate_uncached(m: IMExecution*, node: void*, n: FoundationNode*, offset
         if n.kind == KAllocate {
             return ix_allocate(m, convert(usize, count));
         }
-        return ix_reallocate(m, p, convert(usize, count));
+        return ix_reallocate_at(m, p, convert(usize, count), offset);
     }
     var input_node = n.value;
     if n.kind == KBinary {
@@ -1315,7 +1323,7 @@ fn ix_statement(m: IMExecution*, task: IMTask*, n: FoundationNode*): void {
         return;
     }
     if n.kind == KFree {
-        ix_deallocate(m, ix_read(m, n.left, n.start));
+        ix_deallocate_at(m, ix_read(m, n.left, n.start), n.start);
         return;
     }
     var memory = n.kind == KCopy;

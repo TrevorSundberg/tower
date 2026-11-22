@@ -41906,3 +41906,47 @@ the isolated floating suite passes. That full run overlapped the rebase's change
 to source resources and is invalid evidence of a compiler regression. Freeze
 source resources as well as binaries during subsequent suites. Added source text
 to failed execution fixture diagnostics; no special filesystem debug output.
+
+Milestone checks and integration findings:
+- Native source-type execution passes graph/fast, explicit 32/64-bit targets,
+  canonical reconstruction and workers 1/2/4/8. run-guest-runtime.mjs passes
+  interpretation, real native execution and real Wasm for type_bindings.tower.
+- Packaged a complete candidate, verified SHA256SUMS and ran it from /tmp. The
+  Tower packager could not publish on the Windows-mounted /work path; the same
+  inputs publish on Linux /cache. Added stage-specific Tower diagnostics and
+  copied the verified package into the checkout. /cache/source-types-clean
+  builds with TOWER_BOOTSTRAP_COMPILER unset and executes the type fixture.
+  This is intermediate release evidence; subsequent integration fixes need
+  their own final candidate/successor before publication.
+- Browser loaders/workers now receive the complete source prelude before
+  installing Foundation. These are file-transport changes in existing JS;
+  parsing, resolution and execution remain Tower. Two browser generations from
+  the completion-fixed snapshot pass with identical successive reactor bytes,
+  including edited semantic behavior. Generic trace/multifile fixes below are
+  later changes and are not covered by that generation run yet.
+- Completion recovery does not call ordinary module finish. Added the same
+  idempotent implicit-prelude attachment before recovered scopes are checked.
+  Native editor observations now include Foundation-only incomplete calls and
+  member access at workers 1/2/4/8; browser typed/member completion passes too.
+- Source prelude text shifted flattened offsets, exposing graph free/realloc
+  failures hardcoded to zero while the fast runner used the actual operation
+  location. Graph execution now supplies that location through the shared
+  allocation helpers; host adapters still use their existing unlocated API.
+  Generic instantiation traces likewise count lines from the defining file's
+  source base instead of the start of concatenated imports.
+- The old execution harness named arbitrary snippets foundation.tower, causing
+  a self-import cycle after implicit prelude loading. It now uses a distinct
+  entry name. A stale JS operator assertion rejecting legal struct copies was
+  removed; Tower's struct-copy checks pass. Canonical formatter expectations now
+  include source type bindings and explicit representation spellings. The full
+  parser CTest matrix passes 15/15, preserving exact source-format spans, new
+  exact canonical text, round trips, generated-name and cleanup checks.
+- Semantic diagnostics compare entry-relative offsets through the source map;
+  generated layout failures still have unlocated zero spans. Retired registry
+  fingerprints cannot describe source declarations. The semantic fixtures now
+  compare complete graph fingerprints between independent compilations, retain
+  exact diagnostics/outputs and Foundation round trips, and test multi-source
+  bindings/effect order. Multi-source compilation initially duplicated imported
+  signed_integer declarations. Collect each imported lexical module once while
+  preserving every entry fragment and its source/comment base. Validation of
+  this final integration and final publication are still in progress.

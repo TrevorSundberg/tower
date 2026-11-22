@@ -155,6 +155,9 @@ fn completion_parse(q: CompletionQuery*, source: u8*, mode: u32, future: bool): 
     var clean = error[0] == 0;
     var parsed_module = syntax_completion_module(session);
     if parsed_module != null {
+        // Recovery can stop before normal module completion. It still needs
+        // the same source-defined type prelude as a complete Foundation file.
+        frontend_module_prelude(parsed_module);
         sem_module_graph(&q.program, parsed_module);
         // Entry statements collected during recovery may not be in the normal
         // module roots yet; retain their same explicit owner before teardown.

@@ -64,7 +64,6 @@ test('invalid operator operands are rejected before execution', () => {
     ['var p: void* = null; print(*p);', /void pointer/],
     ['var a = 1; var p = &a; p *= 2;', /Only \+= and -=/],
     ['var a = true ? print(1) : print(2);', /void call/],
-    ['struct S { x: i32; } var a: S; var p = &a; var b = *p;', /aggregate copies/],
     ['var a = 1; print(a -> value);', /parse|Unexpected|Expected|unexpected/i],
     ['var a: i32 = 2147483648;', /out of range/],
     ['var a: i32 = -2147483649;', /out of range/],

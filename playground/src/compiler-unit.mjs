@@ -11,7 +11,7 @@ export function compilerUnitMessages(send) {
         if (compiler) throw new Error('Compiler worker is already initialized');
         ({files,grammar,revision,profile} = data);
         sources = new Map(files.map(file => [file.path,file.text]));
-        compiler = await loadLLVM(data.module,undefined,grammar.foundation,undefined,grammar.bedrock,{tower:grammar.tower});
+        compiler = await loadLLVM(data.module,undefined,grammar.foundation,undefined,grammar.bedrock,{tower:grammar.tower,builtins:grammar});
         send({type:'ready',revision,profile});
         return;
       }

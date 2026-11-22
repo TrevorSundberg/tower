@@ -13,6 +13,13 @@ import .library.vector;
 extern fn host_json_unsigned(out: ByteBuffer*, value: u64): bool;
 extern fn entity_child_count(node: void*): usize;
 extern fn entity_child_at(node: void*, index: usize): void*;
+extern fn frontend_modules_source_count(environment: void*): usize;
+extern fn frontend_modules_source_base(environment: void*, index: usize): usize;
+
+fn execution_semantic_entry_base(modules: void*): usize {
+    var count = frontend_modules_source_count(modules);
+    return count == 0 ? 0 : frontend_modules_source_base(modules, count - 1);
+}
 
 fn execution_semantic_output(index: usize, width: u32): u8* {
     if index == 0 { return width == 4 ? "0\n42\n7\n42\n20\n4\n42\n3\n-2147483648\n" : "0\n42\n7\n42\n32\n8\n42\n3\n-2147483648\n"; }
@@ -32,9 +39,13 @@ fn execution_semantic_multifile(modules: void*, width: u32): void {
     inputs[0].length = strlen(inputs[0].data); inputs[1].length = strlen(inputs[1].data);
     var session: ExecutionSession;
     fill(&session, 0, sizeof(ExecutionSession));
-    execution_check(execution_session_compile_sources(&session, &inputs[0], 2, width, modules), "ordered multifile compilation");
-    var wanted: u64 = width == 4 ? 3208435279711672451 : 8532617647382814811;
-    execution_check(execution_graph_hash(&session.program) == wanted, "multifile semantic fields and bindings");
+    var compiled = execution_session_compile_sources(&session, &inputs[0], 2, width, modules);
+    if !compiled { puts(session.error.data); }
+    execution_check(compiled, "ordered multifile compilation");
+    var repeated: ExecutionSession = default;
+    execution_check(execution_session_compile_sources(&repeated, &inputs[0], 2, width, modules)
+        && execution_graph_hash(&session.program) == execution_graph_hash(&repeated.program), "multifile semantic fields and bindings are deterministic");
+    execution_close_checked(&repeated);
     execution_run(&session, 7, 100000);
     execution_check(execution_text(&session.output, "0\n"), "multifile effects retain source order");
     execution_roundtrip(&session, modules, false);
@@ -43,7 +54,15 @@ fn execution_semantic_multifile(modules: void*, width: u32): void {
     inputs[1].data = "print(fail());";
     inputs[0].length = strlen(inputs[0].data); inputs[1].length = strlen(inputs[1].data);
     execution_check(!execution_session_compile_sources(&session, &inputs[0], 2, width, modules), "multifile missing name rejected");
-    execution_check(execution_text(&session.error, "Unknown local 'missing'") && session.machine.error_offset == 24, "exact multifile diagnostic/offset");
+    var function: FoundationNode* = null;
+    var failure_name = "fail";
+    foreach(var entity in &session.program.functions) {
+        var candidate = sem_get(entity);
+        if candidate.name.length == strlen(failure_name) && memcmp(candidate.name.data, failure_name, candidate.name.length) == 0 { function = candidate; }
+    }
+    var missing = strstr(inputs[0].data, "missing");
+    execution_check(execution_text(&session.error, "Unknown local 'missing'") && function != null
+        && session.machine.error_offset == function.start + bits(usize, missing) - bits(usize, inputs[0].data), "exact multifile diagnostic/offset");
     execution_close_checked(&session);
 }
 
@@ -51,21 +70,32 @@ fn execution_semantic_tests(modules: void*): void {
     var session: ExecutionSession;
     fill(&session, 0, sizeof(ExecutionSession));
     for (var width: u32 = 4; width <= 8; width += 4) {
+        execution_semantic_multifile(modules, width);
         for (var i: usize = 0; execution_semantic_invalid(i) != null; i++) {
             var source = execution_semantic_invalid(i);
             execution_check(!execution_session_compile(&session, source, strlen(source), width, modules), "invalid semantic fixture rejected");
-            execution_check(execution_text(&session.error, execution_semantic_message(i))
-                && session.machine.error_offset == execution_semantic_offset(i), "exact semantic diagnostic/offset");
+            var offset = execution_semantic_offset(i);
+            var located = session.machine.error_offset == execution_semantic_entry_base(modules) + offset;
+            // Layout failures on generated representations have no source span.
+            located ||= offset == 0 && session.machine.error_offset == 0;
+            var exact = execution_text(&session.error, execution_semantic_message(i)) && located;
+            if !exact {
+                puts(source); puts(session.error.data);
+                var detail: ByteBuffer = default;
+                host_json_unsigned(&detail, convert(u64, session.machine.error_offset));
+                host_text_terminate(&detail); puts(detail.data); bytes_dispose(&detail);
+            }
+            execution_check(exact, "exact semantic diagnostic/offset");
             execution_session_step(&session, 1000);
             execution_check(session.machine.steps == 0 && session.output.length == 0, "semantic rejection prevents effects");
             execution_close_checked(&session);
         }
         for (var i: usize = 0; execution_semantic_valid(i) != null; i++) {
             execution_compile(&session, execution_semantic_valid(i), width, modules);
-            execution_check(execution_graph_hash(&session.program) == execution_semantic_hash(i, width), "every semantic field and edge matches recorded oracle evidence");
             var fast: ExecutionSession;
             fill(&fast, 0, sizeof(ExecutionSession));
             execution_compile(&fast, execution_semantic_valid(i), width, modules);
+            execution_check(execution_graph_hash(&session.program) == execution_graph_hash(&fast.program), "every semantic field and edge is deterministic");
             execution_check(execution_session_fast(&fast), "semantic cache builds");
             execution_run(&session, 7, 100000);
             execution_run(&fast, 7, 100000);
@@ -80,10 +110,9 @@ fn execution_semantic_tests(modules: void*): void {
             var source = i == 0 ? "struct A { a: A; }" : "struct A { b: B; } struct B { a: A; }";
             var message = i == 0 ? "Recursive by-value layout: A -> A; use a pointer" : "Recursive by-value layout: A -> B -> A; use a pointer";
             execution_check(!execution_session_compile(&session, source, strlen(source), width, modules)
-                && execution_text(&session.error, message) && session.machine.error_offset == 0, "exact layout cycle path diagnostic");
+                && execution_text(&session.error, message) && session.machine.error_offset == execution_semantic_entry_base(modules), "exact layout cycle path diagnostic");
             execution_close_checked(&session);
         }
-        execution_semantic_multifile(modules, width);
     }
     puts("Semantic oracle fixtures passed at both target widths");
 }

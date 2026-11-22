@@ -1,0 +1,26 @@
+diff --git a/scaffolding/tools/bootstrap_package.tower b/scaffolding/tools/bootstrap_package.tower
+index ad551a98f3fab90e08597ffe8a51b1faed3cdd09..7e606bdfb715685dd4072d87725916dd7c89e322 100644
+--- a/scaffolding/tools/bootstrap_package.tower
++++ b/scaffolding/tools/bootstrap_package.tower
+@@ -32,6 +32,7 @@ struct BootstrapInputs {
+ }
+ 
+ extern fn chmod(path: u8*, mode: u32): i32;
++extern fn puts(text: u8*): i32;
+ 
+ fn bootstrap_text(out: ByteBuffer*, text: u8*): bool { return bytes_append(out, text, strlen(text)); }
+ fn bootstrap_string(out: ByteBuffer*, text: u8*, length: usize): bool {
+@@ -266,7 +267,10 @@ fn bootstrap_package(input: BootstrapInputs*): bool {
+     var files: vector(BootstrapFile*) = default;
+     var manifest: ByteBuffer = default; var patch: ByteBuffer = default;
+     defer bootstrap_files_dispose(&files); defer bytes_dispose(&manifest); defer bytes_dispose(&patch);
+-    return tool_file_kind(input.output, false) == ToolFileKind.Missing && bootstrap_collect(input, &files)
+-        && bootstrap_git(input, "patch", &patch) && bootstrap_manifest(input, &files, &patch, &manifest)
+-        && bootstrap_publish(input, &files, &manifest, &patch);
++    if tool_file_kind(input.output, false) != ToolFileKind.Missing { puts("Bootstrap output already exists."); return false; }
++    if !bootstrap_collect(input, &files) { puts("Cannot collect compiler resources."); return false; }
++    if !bootstrap_git(input, "patch", &patch) { puts("Cannot capture compiler source changes."); return false; }
++    if !bootstrap_manifest(input, &files, &patch, &manifest) { puts("Cannot capture compiler provenance."); return false; }
++    if !bootstrap_publish(input, &files, &manifest, &patch) { puts("Cannot publish complete bootstrap directory."); return false; }
++    return true;
+ }

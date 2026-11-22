@@ -1057,11 +1057,11 @@ export fn frontend_module_record(module: FrontendModule*, root: void*, declarati
     module.body = true;
 }
 
-export fn frontend_module_finish(module: FrontendModule*): void {
+export fn frontend_module_prelude(module: FrontendModule*): void {
     // The compatibility grammar baseline also needs Foundation's ordinary
     // declarations. Explicit imports choose their own prelude; Bedrock remains
     // independent. Retain the implicit edge on the shared module graph.
-    if !module.explicit && module.roots.length != 0 {
+    if !module.explicit && module.dependencies.length == 0 {
         var dependency = module_load(module, "foundation", false);
         if dependency != null {
             var node = entity_create(compiler_world_store(module.graph.world));
@@ -1072,6 +1072,10 @@ export fn frontend_module_finish(module: FrontendModule*): void {
             module_require(vector_push(&module.imports, node));
         }
     }
+}
+
+export fn frontend_module_finish(module: FrontendModule*): void {
+    if module.roots.length != 0 { frontend_module_prelude(module); }
     module.state = ModuleLoaded;
     module_require(vector_push(&module.graph.order, module));
     module_validate_cycles(module.graph);

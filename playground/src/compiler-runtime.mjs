@@ -33,11 +33,16 @@ async function bundledTowerBytes() {
   catch (error) { if (bundledTower === pending) bundledTower = undefined; throw error; }
 }
 function getCanonicalSources() {
-  canonicalSources ??= Promise.all(['foundation','bedrock','tower'].map(async name => {
-    const response = await fetch('./'+name+'.tower');
-    if (!response.ok) throw new Error(name+'.tower is unavailable');
-    return response.text();
-  }));
+  canonicalSources ??= (async () => {
+    const manifest = await fetch('./builtins.json');
+    if (!manifest.ok) throw new Error('Builtin module manifest is unavailable');
+    const builtins = Object.fromEntries(await Promise.all((await manifest.json()).map(async name => {
+      const response = await fetch('./'+name+'.tower');
+      if (!response.ok) throw new Error(name+'.tower is unavailable');
+      return [name, await response.text()];
+    })));
+    return [builtins.foundation, builtins.bedrock, builtins.tower, builtins];
+  })();
   return canonicalSources;
 }
 // Canonical packages use the bundled grammar, regardless of editor overrides.
@@ -47,12 +52,13 @@ export async function getCanonicalTower() {
   return getTower(foundation,bedrock,tower);
 }
 export async function getTower(foundation, bedrock, towerSource) {
-  towerSource ??= (await getCanonicalSources())[2];
+  const canonical = await getCanonicalSources();
+  towerSource ??= canonical[2];
   const start = performance.now();
   const cached = !!towerReady && installedFoundation === foundation && installedBedrock === bedrock;
   if (!towerReady) {
     towerReady = Promise.resolve(selected.tower ?? bundledTowerBytes()).then(bytes =>
-      loadTower(bytes, undefined, foundation, undefined, bedrock, {tower:towerSource}));
+      loadTower(bytes, undefined, foundation, undefined, bedrock, {tower:towerSource,builtins:canonical[3]}));
     installedFoundation = foundation; installedBedrock = bedrock;
   }
   const pending = towerReady;
@@ -70,8 +76,8 @@ export async function getCompiler(url) {
   const start = performance.now();
   const cached = compilers.has(url);
   if (!compilers.has(url)) compilers.set(url, (async () => {
-    const [wasm, [canonical, seed]] = await Promise.all([selected[url.includes('cross') ? 'cross' : 'llvm'] ?? fetchBytes(url), getCanonicalSources()]);
-    return loadLLVM(wasm, undefined, canonical, undefined, seed);
+    const [wasm, [canonical, seed, tower, builtins]] = await Promise.all([selected[url.includes('cross') ? 'cross' : 'llvm'] ?? fetchBytes(url), getCanonicalSources()]);
+    return loadLLVM(wasm, undefined, canonical, undefined, seed, {tower,builtins});
   })());
   const pending = compilers.get(url);
   try {

@@ -606,7 +606,7 @@ fn sem_fail(c: SemanticContext*, n: void*, text: u8*): void {
         var at: usize = sem_offset(c, use);
         var line: u64 = 1;
         var column: u64 = 1;
-        var i: usize = 0;
+        var i = sem_source_base(c, use);
         loop {
             if !(i < at && c.source[i] != 0) {
                 break;

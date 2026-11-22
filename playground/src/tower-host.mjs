@@ -7,7 +7,7 @@ import { platformImports } from './platform.mjs';
 import { moduleInputs, moduleDiagnostic } from './module-inputs.mjs';
 
 /** The only module which knows about Wasm pointers and the C ABI. */
-export async function loadTower(bytes, log = () => {}, bootstrap, foundation, bedrock, { imports = {}, tower, threads = {} } = {}) {
+export async function loadTower(bytes, log = () => {}, bootstrap, foundation, bedrock, { imports = {}, tower, builtins = {}, threads = {} } = {}) {
   const available = {...platformImports((_stream, data, context) => context.output(data)),...imports};
   const wasi = new TowerWASI({ log });
   const module = bytes instanceof WebAssembly.Module ? bytes : await WebAssembly.compile(bytes);
@@ -41,7 +41,7 @@ export async function loadTower(bytes, log = () => {}, bootstrap, foundation, be
   const exports = instance.exports;
   let modules;
   try {
-    modules = moduleInputs(exports, {bedrock, foundation:foundation ?? bootstrap, tower});
+    modules = moduleInputs(exports, {...builtins, bedrock, foundation:foundation ?? bootstrap, tower});
     if (exports.tw_abi_version() !== 3) throw new Error('Unsupported Tower IDE ABI');
     if (bedrock !== undefined) configureBedrock(exports, bedrock);
     configureTower(exports, bootstrap, modules.environment);

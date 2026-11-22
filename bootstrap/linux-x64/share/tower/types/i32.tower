@@ -1,0 +1,3 @@
+import .foundation_syntax;
+import integer;
+var i32: type = signed_integer(32);

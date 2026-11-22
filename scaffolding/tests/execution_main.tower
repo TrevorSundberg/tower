@@ -46,6 +46,7 @@ export fn main(argc: i32, argv: u8**): i32 {
     var narrow = strcmp(suite, "narrow") == 0;
     var functions = strcmp(suite, "functions") == 0;
     var semantics = strcmp(suite, "semantics") == 0;
+    var core = strcmp(suite, "core") == 0;
     var attributes = strcmp(suite, "attributes") == 0;
     var type_bindings = strcmp(suite, "types") == 0;
     var aggregates = strcmp(suite, "aggregate-stages") == 0;
@@ -53,7 +54,7 @@ export fn main(argc: i32, argv: u8**): i32 {
     var negation = strcmp(suite, "negation") == 0;
     var bodies = strcmp(suite, "body-smoke") == 0;
     var editor = strcmp(suite, "editor") == 0;
-    execution_check(all || known || bodies || editor || floating || oracle || negation || narrow || functions || semantics || attributes || aggregates || type_bindings, "known execution suite");
+    execution_check(all || known || bodies || editor || floating || oracle || negation || narrow || functions || semantics || core || attributes || aggregates || type_bindings, "known execution suite");
     if all || editor { editor_observation_tests(argv[1]); }
     if editor { return 0; }
     if bodies {
@@ -85,9 +86,10 @@ export fn main(argc: i32, argv: u8**): i32 {
     if all || aggregates { comptime_aggregate_tests(request.modules, argv[1]); }
     if aggregates { return 0; }
     if oracle { floating_oracle_tests(request.modules); return 0; }
-    if semantics {
-        frontend_modules_configure(request.modules, options.source, argv[1]);
-        execution_semantic_tests(request.modules);
+    if semantics || core {
+        frontend_modules_configure(request.modules, "execution_input.tower", argv[1]);
+        if core { execution_tests(request.modules); }
+        else { execution_semantic_tests(request.modules); }
         execution_world_tests(&request);
         return 0;
     }
@@ -105,7 +107,7 @@ export fn main(argc: i32, argv: u8**): i32 {
     if floating { return 0; }
     known_binding_tests(request.modules, argv[1]);
     if !all { return 0; }
-    frontend_modules_configure(request.modules, options.source, argv[1]);
+    frontend_modules_configure(request.modules, "execution_input.tower", argv[1]);
     execution_tests(request.modules);
     execution_world_tests(&request);
     return 0;

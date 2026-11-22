@@ -11,8 +11,8 @@ const read = name => readFile(new URL(name,root));
 const project = new URL(process.env.TOWER_TEST_COMPILER_PROJECT || 'build/compiler-project/',root);
 const workbench = new URL(process.env.TOWER_TEST_COMPILER_WORKBENCH || 'build/compiler-workbench/',root);
 const recipe = JSON.parse(await readFile(new URL('project.json',project)));
-const grammar = Object.fromEntries(await Promise.all(['bedrock','foundation','tower'].map(async name => [name,(await read('scaffolding/'+name+'.tower')).toString()])));
-let compiler = await loadLLVM(await read(process.env.TOWER_TEST_LLVM_WASM || 'build/browser-wasi-llvm/tower-llvm.wasm'),undefined,grammar.foundation,undefined,grammar.bedrock,{tower:grammar.tower});
+const grammar = Object.fromEntries(recipe.files.filter(file => /^(?:[^/]+|types\/[^/]+)\.tower$/.test(file.path)).map(file => [file.path.slice(0,-6),file.text]));
+let compiler = await loadLLVM(await read(process.env.TOWER_TEST_LLVM_WASM || 'build/browser-wasi-llvm/tower-llvm.wasm'),undefined,grammar.foundation,undefined,grammar.bedrock,{tower:grammar.tower,builtins:grammar});
 const files = structuredClone(recipe.files);
 const values = files.find(file => file.path === 'compiler/semantic_values.tower');
 assert.ok(values.text.includes('null requires a pointer or function type'));
@@ -28,11 +28,11 @@ for (let generation = 1; generation <= 2; ++generation) {
     onObject:(unit,bytes) => writeFile(new URL(unit.object,objects),bytes),
     support:async name => gunzipSync(await readFile(new URL(name,project))),
     progress:phase => console.log(generation,Math.round(performance.now()-started)+'ms',phase)});
-  const candidate = await loadTower(result.modules.tower,undefined,grammar.foundation,undefined,grammar.bedrock,{tower:grammar.tower});
+  const candidate = await loadTower(result.modules.tower,undefined,grammar.foundation,undefined,grammar.bedrock,{tower:grammar.tower,builtins:grammar});
   const handle = candidate.compile('var value: i32 = null;');
   try { assert.match(candidate.execute(handle,0).error,/Compiler project generation says/); }
   finally { candidate.destroyExecution(handle); }
-  compiler = await loadLLVM(result.modules.llvm,undefined,grammar.foundation,undefined,grammar.bedrock,{tower:grammar.tower});
+  compiler = await loadLLVM(result.modules.llvm,undefined,grammar.foundation,undefined,grammar.bedrock,{tower:grammar.tower,builtins:grammar});
   console.log('Generation',generation,'passed',result.sizes);
   if (previous) assert.deepEqual(result.hashes,previous,'Successive reactor generations must have identical bytes');
   previous = result.hashes;

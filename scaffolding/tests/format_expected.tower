@@ -2,12 +2,19 @@ import tower;
 import .compiler.format_types;
 import storage_api;
 import utility_checks;
+import .library.vector;
 
 // Frozen exact text and ordered spans, independently checked against unchanged
 // native format-seed.cpp from 3167766 (SHA-256 recorded in the project journal).
 // Generated names deliberately contain NUL, represented as bytes rather than a
 // terminated string. Expected data does not call formatter implementation code.
 fn format_fixture_bytes(actual: FormatResult*, text: u8*, length: usize, count: usize): void {
+    if actual.text.length != length || !utility_equal(actual.text.data, text, length) {
+        puts("Expected formatter text:"); puts(text);
+        utility_check(vector_push(&actual.text, 0), "Formatter diagnostic terminator");
+        --actual.text.length;
+        puts("Actual formatter text:"); puts(actual.text.data);
+    }
     utility_check(!actual.failed && actual.text.length == length && utility_equal(actual.text.data, text, length), "Frozen formatter reference text");
     utility_check(actual.spans.length == count, "Frozen formatter reference span count");
 }
@@ -17,6 +24,19 @@ fn format_fixture_text(actual: FormatResult*, text: u8*, count: usize): void {
 fn format_fixture_span(actual: FormatResult*, index: usize, begin: usize, end: usize, source: usize): void {
     var span = &actual.spans.data[index];
     utility_check(span.begin == begin && span.end == end && span.source == source, "Frozen formatter reference ordered span triple");
+}
+
+// Canonical Foundation spells physical representations independently of names.
+// Source-format fixtures below retain their frozen spelling and exact spans.
+fn format_fixture_canonical(actual: FormatResult*, body: u8*, count: usize): void {
+    var prelude = "import foundation_syntax;\n\n/* Signedness is part of the primitive representation contract, not a host*/\n/* promotion rule. Widths are target bits; supported widths are 8, 16, 32 and 64.*/\nvar i8: type = integer_type(8, 1);\n\nvar u8: type = integer_type(8, 0);\n\nvar i16: type = integer_type(16, 1);\n\nvar u16: type = integer_type(16, 0);\n\nvar i32: type = integer_type(32, 1);\n\nvar u32: type = integer_type(32, 0);\n\nvar i64: type = integer_type(64, 1);\n\nvar u64: type = integer_type(64, 0);\n\nvar f32: type = float_type(32);\n\nvar f64: type = float_type(64);\n\nvar bool: type = boolean_type();\n\nvar void: type = empty_type();\n\n/* This representation takes its width from the explicit target description.*/\nvar usize: type = address_type();\n\n";
+    var text: vector(u8) = default;
+    defer vector_dispose(&text);
+    for(var i: usize = 0; i < strlen(prelude); ++i) { utility_check(vector_push(&text, prelude[i]), "Canonical prelude fixture"); }
+    for(var i: usize = 0; i < strlen(body); ++i) { utility_check(vector_push(&text, body[i]), "Canonical body fixture"); }
+    utility_check(vector_push(&text, 0), "Canonical fixture terminator");
+    var StandardTypeBindingCount: usize = 13;
+    format_fixture_text(actual, text.data, count + StandardTypeBindingCount);
 }
 fn format_fixture_check(id: usize, actual: FormatResult*): void {
     if id == 0 {
@@ -198,42 +218,19 @@ fn format_fixture_check(id: usize, actual: FormatResult*): void {
         return;
     }
     if id == 9 {
-        format_fixture_text(actual, "var lo: i64 = -9223372036854775808;\nvar hi: u64 = 18446744073709551615;\nvar b: bool = true;\nvar p: i32* = null;\n", 4);
-        format_fixture_span(actual, 0, 0, 35, 0);
-        format_fixture_span(actual, 1, 36, 71, 33);
-        format_fixture_span(actual, 2, 72, 91, 66);
-        format_fixture_span(actual, 3, 92, 111, 83);
+        format_fixture_canonical(actual, "var lo: integer_type(64, 1) = -9223372036854775808;\nvar hi: integer_type(64, 0) = 18446744073709551615;\nvar b: boolean_type() = true;\nvar p: pointer_type(integer_type(32, 1)) = null;\n", 4);
         return;
     }
     if id == 10 {
-        format_fixture_text(actual, "struct S {\n    x: i32;\n}\n\nextern fn ext(a: i32): i32;\n\nexport fn f(a: i32): i32 {\n    var x: i32 = ext(a);\n    return x;\n}\n", 5);
-        format_fixture_span(actual, 0, 0, 24, 0);
-        format_fixture_span(actual, 1, 26, 53, 20);
-        format_fixture_span(actual, 2, 86, 106, 71);
-        format_fixture_span(actual, 3, 111, 120, 89);
-        format_fixture_span(actual, 4, 55, 122, 46);
+        format_fixture_canonical(actual, "struct S {\n    x: integer_type(32, 1);\n}\n\nextern fn ext(a: integer_type(32, 1)): integer_type(32, 1);\n\nexport fn f(a: integer_type(32, 1)): integer_type(32, 1) {\n    var x: integer_type(32, 1) = ext(a);\n    return x;\n}\n", 5);
         return;
     }
     if id == 11 {
-        format_fixture_text(actual, "var p: i32* = alloc(i32, 2);\np = realloc(i32, p, 3);\nfill(p, 0, 12);\ncopy(p, p, 12);\nvar x: usize = sizeof(i32);\nx = alignof(i32);\nfree(p);\n", 7);
-        format_fixture_span(actual, 0, 0, 28, 0);
-        format_fixture_span(actual, 1, 29, 52, 25);
-        format_fixture_span(actual, 2, 53, 68, 45);
-        format_fixture_span(actual, 3, 69, 84, 59);
-        format_fixture_span(actual, 4, 85, 112, 73);
-        format_fixture_span(actual, 5, 113, 130, 98);
-        format_fixture_span(actual, 6, 131, 139, 114);
+        format_fixture_canonical(actual, "var p: pointer_type(integer_type(32, 1)) = alloc(integer_type(32, 1), 2);\np = realloc(integer_type(32, 1), p, 3);\nfill(p, 0, 12);\ncopy(p, p, 12);\nvar x: address_type() = sizeof(integer_type(32, 1));\nx = alignof(integer_type(32, 1));\nfree(p);\n", 7);
         return;
     }
     if id == 12 {
-        format_fixture_text(actual, "var x: u32 = convert(u32, 1);\nvar y: i32 = bits(i32, x);\nloop {\n    if true {\n        break;\n    } else {\n        continue;\n    }\n}\nprint(y);\n", 7);
-        format_fixture_span(actual, 0, 0, 29, 0);
-        format_fixture_span(actual, 1, 30, 56, 26);
-        format_fixture_span(actual, 2, 86, 92, 66);
-        format_fixture_span(actual, 3, 114, 123, 82);
-        format_fixture_span(actual, 4, 68, 129, 56);
-        format_fixture_span(actual, 5, 57, 131, 49);
-        format_fixture_span(actual, 6, 132, 141, 96);
+        format_fixture_canonical(actual, "var x: integer_type(32, 0) = convert(integer_type(32, 0), 1);\nvar y: integer_type(32, 1) = bits(integer_type(32, 1), x);\nloop {\n    if true {\n        break;\n    } else {\n        continue;\n    }\n}\nprint(y);\n", 7);
         return;
     }
     if id == 13 {
@@ -286,8 +283,15 @@ fn format_fixture_check(id: usize, actual: FormatResult*): void {
         bytes[45] = 39;
         bytes[46] = 59;
         bytes[47] = 10;
-        format_fixture_bytes(actual, &bytes[0], 48, 1);
-        format_fixture_span(actual, 0, 0, 47, 0);
+        var wanted: vector(u8) = default;
+        defer vector_dispose(&wanted);
+        var name_end: usize = 22; var legacy_type_end: usize = 25;
+        var type = "pointer_type(integer_type(8, 0))";
+        for(var i: usize = 0; i < name_end; ++i) { utility_check(vector_push(&wanted, bytes[i]), "Generated name fixture"); }
+        for(var i: usize = 0; i < strlen(type); ++i) { utility_check(vector_push(&wanted, type[i]), "Generated type fixture"); }
+        for(var i = legacy_type_end; i < sizeof(decltype(bytes)); ++i) { utility_check(vector_push(&wanted, bytes[i]), "Generated value fixture"); }
+        format_fixture_bytes(actual, wanted.data, wanted.length, 1);
+        format_fixture_span(actual, 0, 0, wanted.length - 1, 0);
         return;
     }
     if id == 14 {
@@ -311,10 +315,7 @@ fn format_fixture_check(id: usize, actual: FormatResult*): void {
         return;
     }
     if id == 15 {
-        format_fixture_text(actual, "fn f(): i32 {\n    return 42;\n}\n\nvar x: i32 = f();\n", 3);
-        format_fixture_span(actual, 0, 18, 28, 13);
-        format_fixture_span(actual, 1, 0, 30, 0);
-        format_fixture_span(actual, 2, 32, 49, 26);
+        format_fixture_canonical(actual, "fn f(): integer_type(32, 1) {\n    return 42;\n}\n\nvar x: integer_type(32, 1) = f();\n", 3);
         return;
     }
     utility_check(false, "Unknown formatter fixture");
