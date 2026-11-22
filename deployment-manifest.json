@@ -1156,9 +1156,9 @@
                                                              },
                                            "javascript":  {
                                                               "currentFiles":  186,
-                                                              "upstreamAddedLines":  12,
+                                                              "upstreamAddedLines":  15,
                                                               "baselineLines":  24430,
-                                                              "removedLines":  10,
+                                                              "removedLines":  13,
                                                               "currentLines":  24366,
                                                               "removedFiles":  1
                                                           },
