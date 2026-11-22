@@ -1117,3 +1117,50 @@ D2/staged_capture_v3_receipt/logs.tgz contains344 listed members,
 SHAba999db3c1f904877ad7728e5b3d16b01f6320b56af1e9e96783ca9e7f447796.
 Current full type-smoke, ASan/TSan, fresh clean/public build, browser/generation
 and publication remain open. No source-specific historical pass closes them.
+
+### Reviewed owner measurement and harness integration after 8202eb4
+
+The coordinator7ac checkpoint is merged by ancestry, preserving all newer local
+tools/build changes. The sole conflict in execution_main is resolved with its
+source-rejection reachability check preserved and the obsolete Linux-profile
+selector absent. The original98-path audit and19 incoming measurement reviews
+remain historical coverage sets, not a sum of disjoint current paths. The two
+previously reviewed incoming measurement files are now checked in:
+
+| Path and exact reviewed source | Ownership/storage/scheduling conclusion | Disposition |
+| --- | --- | --- |
+| scaffolding/tests/type_reachability_profile.tower,9f1c9657 |153-line standalone L2 successor; ordinary execution session owns the checked graph, buffer/format ownership closes lexically, source and query phases are distinct. Explicit world store counts, serial read-only shared reachability, no second graph/scheduler. Linux x64 rusage144-byte ABI; RSS includes setup and counts omit transient buffers.|D1-gated existing execution link closure adopted, opt-in/no CTest. Current local build/run pending; older shared-selector evidence is source-specific.|
+| scaffolding/tests/semantic_layout_profile.tower,dc299e61 |191-line A1 fixture reviewed completely. One explicit world and synchronized shared budget;11 jobs over a two-link dependency plus8branches use existing layout pump/kernel. Per-job observation component is private to that job, frozen setup and post-join span traversal. Offsets/layout independently checked; context/program/root/world/budget/signal close in ownership order. Pointer/job vectors are derived indexes, not packed node payload. |D1 existing worker link closure adopted, opt-in/Linux x64. D1 actual33 reported trials pass but all requested4-lane cases had peak1/caller11; not a speedup. D2 runtime still pending.|
+
+Read D1 native_roots_registration1c4c5e8a completely: existing
+driver_differentials.tower owns temporary source/path buffers, snapshots the
+exact fixture into its existing isolated child directory, independently checks
+45,2 before both native optimization variants, and retains child exit/deadline
+behavior. It adds no generator, scheduler or alternate fixture language.
+B2 backend_execution_roots fixture was already directly validated at5d4; newly
+registered execution still needs its own build/run. No duplicate source helper.
+
+Reviewed B1 registry64d55417 and both parser/storage callers: explicit Foundation
+import matches immutable per-file seed; a private module provider lives through
+compilation and is destroyed before original entity/component census. Neither
+caller borrows the driver's cache for this fixture. The named parser benchmark
+extents reuse existing BenchmarkCacheCapacity64, preserving previous successful
+per-page counts/flush/oracles; no algorithm or retention policy changes.
+
+Reviewed B2 hover dffdad44 plus5f43191c: checked Foundation KTypeConstruct uses
+the existing nominal operation tag and shared descriptions; dependent preview
+retains its existing generic protocol boundary. Borrowed descriptions require
+no new world or allocation. Exact-token editor tests preserve ordinary parameter
+and function identity and cover integer/floating/pointer/array constructors.
+Array text does not impose a blanket compile-time-only count contract. These
+owner fixes are integrated after the source freeze; previous editor-observation
+passes do not validate the changed editor_world hover fixtures.
+
+The separate104-line backend_execution_index db1807dd is fully reviewed:
+one explicit frontend batch owns frozen source/program, a disposable byte map
+and mismatched caller vector are derived only, canonical graph unchanged,
+single-owner allocation failure injection resets before cleanup, and final
+buffer census checks complete teardown. Its direct lowering implementation
+import risks duplicate production exports at registration; B2/D1 own the scoped
+link boundary and selector. Keep this draft unregistered/unadopted until that
+handoff, not a silent skip or test pass.

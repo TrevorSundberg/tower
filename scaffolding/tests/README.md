@@ -832,6 +832,21 @@ Record exact source/artifact identity, repeats and runtime coverage alongside
 results. This registration does not itself validate any incoming source bundle;
 current implementation and execution receipts remain in the D1 audit/journal.
 
+The Linux x64 worker-test build also provides the opt-in
+`tower-semantic-layout-profile` executable and `tower-measure-semantic-layout`
+target. They reuse the existing compiler/worker link closure and are excluded
+from default builds and CTest. Two warmups and three reported samples cover
+32/512/2048/4096/8192 fields, one/four requested workers and a fully occupied
+shared budget. Each trial checks actual layout results and exactly-once job
+observations, then closes the world and budget.
+
+Each report contains eleven lines: requested workers, fields, occupied flag,
+pump wall nanoseconds, CPU microseconds, process peak RSS KiB, actual interval
+overlap, caller jobs, summed job span nanoseconds, retained derived layout bytes
+and ledger peak lanes. Requested workers do not establish overlap. RSS is
+cumulative; derived vector capacity is not total live allocation. This measures
+the layout pump, not end-to-end compilation.
+
 With `TOWER_EXECUTION_TESTS=ON`, the native Linux x64 build also provides the
 opt-in `tower-type-reachability-profile RESOURCE_ROOT` executable and
 `tower-measure-type-reachability` target. It shares the execution runner's

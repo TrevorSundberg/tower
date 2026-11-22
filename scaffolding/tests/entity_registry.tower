@@ -7,22 +7,28 @@ import utility_checks;
 extern fn semantic_initialize(program: SemanticProgram*, root: void*, width: u32): void;
 extern fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendSource*, count: usize, modules: void*): void;
 extern fn semantic_program_dispose(program: SemanticProgram*): void;
+extern fn frontend_modules_create(): void*;
+extern fn frontend_modules_configure(modules: void*, source: u8*, library: u8*): void;
+extern fn frontend_modules_destroy(modules: void*): void;
 extern fn tower_component_get_allocated_count(): usize;
 extern fn tower_component_type_count(type: void*): usize;
 extern fn tower_component_type_at(type: void*, index: usize): void*;
 extern fn tower_component_get_owner(component: void*): void*;
 extern fn tower_component_get_userdata(component: void*): void*;
 
-export fn entity_registry_tests(): void {
+export fn entity_registry_tests(resource_root: u8*): void {
     var kind = core_component_type();
     var nodes = tower_node_get_allocated_count();
     var components = tower_component_get_allocated_count();
+    var modules = frontend_modules_create();
+    utility_check(modules != null, "Entity registry module environment");
+    frontend_modules_configure(modules, "entity_registry_fixture.tower", resource_root);
     var program: SemanticProgram;
     semantic_initialize(&program, tower_node_create(), 4);
     var source: FrontendSource;
-    source.data = "var answer: i32 = 42; print(answer);";
+    source.data = "import foundation; var answer: i32 = 42; print(answer);";
     source.length = strlen(source.data);
-    frontend_compile_sources(&program, &source, 1, null);
+    frontend_compile_sources(&program, &source, 1, modules);
     utility_check(program.error.length == 0, "Entity registry fixture compiles");
     var found = false;
     for (var index: usize = 0; index < tower_component_type_count(kind); ++index) {
@@ -34,5 +40,6 @@ export fn entity_registry_tests(): void {
     utility_check(found, "Compiled Foundation root inhabits shared entity registry");
     semantic_program_dispose(&program);
     tower_node_release_ref(program.root);
+    frontend_modules_destroy(modules);
     utility_check(tower_node_get_allocated_count() == nodes && tower_component_get_allocated_count() == components, "Compiled registry fixture releases entities/components");
 }

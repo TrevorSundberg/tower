@@ -48664,3 +48664,23 @@ inputs; they require smallest-unit/link/runtime checks in the next allowed
 heavy slot. D1 currently owns that slot, so none is claimed here. The profile
 ABI and raw query/canonical/retention behavior still need independent D2 build.
 No runtime profiling applies to the prose reconciliation itself.
+
+D2 subsequent owner integration at8202eb4: all exact patches apply cleanly after
+the completed freeze. B1registry64d55417 plus named parser capacity preserves
+module-provider lifetime and exact original counts. B2hoverdffdad44+5f43191c
+uses checked kind/op classification/shared text and exact-token assertions;
+no syntax or ordinary type policy changes. D1nativeroots1c4c5e8a registers the
+existing45,2fixture in the existing native differential path. D1layout hookaaf20102
+adopts exact191line dc299e61 fixture with existing compiler/worker closure,
+Linuxx64/opt-in/noCTest. README explains actual overlap, cumulativeRSS and
+derived-capacity limits. Per-file/caller review is in the D2audit.
+
+These are integrated source, not new local execution evidence. D1 currently
+owns one hostheavy slot and is building equivalent affected harness sources;
+D2 starts no build and does not mutate D1clone/cache. Currentc564 package and
+all prior before/after receipts remain frozen. B2execution-index104line draft
+reviewed but not adopted while its backend import/link boundary is unresolved.
+No conflicting owner implementation or unrelated cleanup. Next D2 heavy phase
+will compile smallest new measurement/hover/registry units then affected
+targets and check gated/no-op build behavior. Production capture positives and
+address negatives still block final coherence, sanitizer and release acceptance.

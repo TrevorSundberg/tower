@@ -52,5 +52,21 @@ function(tower_lr_work_policy_test)
   add_custom_target(tower-body-smoke
     COMMAND "$<TARGET_FILE:tower-lr-work-tests>" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" body-smoke
     DEPENDS tower-lr-work-tests USES_TERMINAL VERBATIM)
+
+  # Explicit Linux x64 clock/rusage measurement, using this same compiler closure.
+  # No default build, CTest registration or timing pass threshold.
+  if(triple MATCHES "^x86_64-.*linux")
+    tower_runtime_object(semantic-layout-profile
+      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/semantic_layout_profile.tower" "${triple}")
+    get_property(profile_runtime GLOBAL PROPERTY TOWER_GUEST_work-tests_OBJECT)
+    add_executable(tower-semantic-layout-profile EXCLUDE_FROM_ALL
+      ${sources} "${semantic-layout-profile_OBJECT}" "${profile_runtime}")
+    set_target_properties(tower-semantic-layout-profile PROPERTIES LINKER_LANGUAGE CXX)
+    target_link_libraries(tower-semantic-layout-profile PRIVATE ${libraries})
+    target_link_options(tower-semantic-layout-profile PRIVATE -Wl,--export-dynamic-symbol=work_thread_entry)
+    add_custom_target(tower-measure-semantic-layout
+      COMMAND "$<TARGET_FILE:tower-semantic-layout-profile>"
+      DEPENDS tower-semantic-layout-profile USES_TERMINAL VERBATIM)
+  endif()
 endfunction()
 cmake_language(DEFER CALL tower_lr_work_policy_test)

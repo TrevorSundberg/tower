@@ -26,7 +26,7 @@ extern fn syntax_validation_tests(): void;
 extern fn lr_analysis_tests(): void;
 extern fn lr_grammar_tests(): void;
 extern fn shared_entity_tests(): void;
-extern fn entity_registry_tests(): void;
+extern fn entity_registry_tests(resource_root: u8*): void;
 extern fn syntax_native_bedrock(): void*;
 extern fn syntax_component_type(): void*;
 extern fn syntax_emission_tests(input: SyntaxEmissionInput*): usize;
@@ -140,5 +140,5 @@ fn parser_main(argc: i32, argv: u8**): i32 {
     utility_check(failure == 0, "Tower grammar emission test"); failure = parser_main_expansion();
     if failure != 0 { parser_main_failure("Tower replacement expansion test failed: ", convert(i64, failure)); }
     utility_check(failure == 0, "Tower replacement expansion test");
-    lr_analysis_tests(); shared_entity_tests(); entity_registry_tests(); puts("Tower and parser tests passed."); return 0;
+    lr_analysis_tests(); shared_entity_tests(); entity_registry_tests("."); puts("Tower and parser tests passed."); return 0;
 }
