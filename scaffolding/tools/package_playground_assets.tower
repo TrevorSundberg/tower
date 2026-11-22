@@ -1,0 +1,88 @@
+import tower;
+import tool_files_posix;
+import tool_files_linux;
+import tool_streams_posix;
+import .library.bytes;
+import .library.bytes_types;
+import .library.vector;
+import .library.gzip;
+import .library.sha256;
+import .compiler.host_text;
+import .host.driver_files;
+
+extern fn puts(text: u8*): i32;
+extern fn rename(source: u8*, destination: u8*): i32;
+
+var PlaygroundAssetLimit: usize = 1073741824;
+var PlaygroundHashCharacters: usize = 64;
+var PlaygroundHashBufferBytes: usize = 65;
+enum PlaygroundAssetExit: i32 { Success = 0, Failure = 1, Usage = 2 }
+
+fn playground_asset_text(out: ByteBuffer*, text: u8*): bool { return bytes_append(out, text, strlen(text)); }
+
+// These are generated products in an already prepared dist directory. Refuse
+// symlink destinations; never remove source trees or follow a link for writing.
+fn playground_asset_write(root: u8*, name: u8*, bytes: ByteBuffer*): bool {
+    var path: ByteBuffer = default; defer bytes_dispose(&path);
+    if !tool_join(&path, root, name) { return false; }
+    var kind = tool_file_kind(path.data, false);
+    return (kind == ToolFileKind.Missing || kind == ToolFileKind.Regular)
+        && driver_write_file(path.data, bytes.data, bytes.length);
+}
+
+fn playground_asset_compress(root: u8*, name: u8*, remove_source: bool): bool {
+    var path: ByteBuffer = default; var output: ByteBuffer = default;
+    var bytes: ByteBuffer = default; var compressed: ByteBuffer = default;
+    defer bytes_dispose(&path); defer bytes_dispose(&output);
+    defer bytes_dispose(&bytes); defer bytes_dispose(&compressed);
+    if !tool_join(&path, root, name) { return false; }
+    var kind = tool_file_kind(path.data, false);
+    if kind == ToolFileKind.Missing { return true; }
+    if kind != ToolFileKind.Regular || !tool_read_file(path.data, PlaygroundAssetLimit, &bytes)
+        || !gzip_compress(bytes.data, bytes.length, &compressed)
+        || !playground_asset_text(&output, name) || !playground_asset_text(&output, ".gz")
+        || !host_text_terminate(&output) || !playground_asset_write(root, output.data, &compressed) { return false; }
+    return !remove_source || remove(path.data) == 0;
+}
+
+fn playground_asset_manifest(root: u8*): bool {
+    var names: vector(u8*) = default; defer tool_paths_dispose(&names);
+    var path: ByteBuffer = default; var bytes: ByteBuffer = default; var json: ByteBuffer = default; var hex: ByteBuffer = default;
+    defer bytes_dispose(&path); defer bytes_dispose(&bytes); defer bytes_dispose(&json);
+    defer bytes_dispose(&hex);
+    if !bytes_reserve(&hex, PlaygroundHashBufferBytes)
+        || !tool_tree_files(root, "", 0, &names) || !playground_asset_text(&json, "{\"assets\":{") { return false; }
+    tool_paths_sort(&names);
+    var count: usize = 0;
+    foreach (var relative in &names) {
+        // tool_tree_files joins the empty relative root with one leading slash.
+        var name = relative + 1;
+        if strcmp(name, "deployment-manifest.json") == 0 || strcmp(name, ".deployment_manifest.tmp") == 0 { continue; }
+        if !tool_join(&path, root, name) || !tool_read_file(path.data, PlaygroundAssetLimit, &bytes) { return false; }
+        var state: Sha256 = default; sha256_init(&state);
+        if !sha256_update(&state, bytes.data, bytes.length) { return false; }
+        var digest = sha256_finish(&state); sha256_hex(&digest, hex.data);
+        if (count != 0 && !playground_asset_text(&json, ","))
+            || !host_json_quote(&json, name, strlen(name)) || !playground_asset_text(&json, ":")
+            || !host_json_quote(&json, hex.data, PlaygroundHashCharacters) { return false; }
+        count++;
+    }
+    if !playground_asset_text(&json, "}}\n") || !playground_asset_write(root, ".deployment_manifest.tmp", &json) { return false; }
+    var destination: ByteBuffer = default; defer bytes_dispose(&destination);
+    return tool_join(&path, root, ".deployment_manifest.tmp") && tool_join(&destination, root, "deployment-manifest.json")
+        && rename(path.data, destination.data) == 0;
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    var arguments: i32 = 2;
+    if argc != arguments { puts("Usage: package_playground_assets DIST_DIRECTORY"); return convert(i32, PlaygroundAssetExit.Usage); }
+    var root = realpath(argv[1], null); defer free(root);
+    if root == null || !tool_directory(root)
+        || !playground_asset_compress(root, "tower-llvm.wasm", false)
+        || !playground_asset_compress(root, "tower-cross.wasm", true)
+        || !playground_asset_manifest(root) {
+        puts("Playground asset compression/checksums failed"); return convert(i32, PlaygroundAssetExit.Failure);
+    }
+    puts("Tower packaged deterministic gzip assets and SHA-256 manifest");
+    return convert(i32, PlaygroundAssetExit.Success);
+}

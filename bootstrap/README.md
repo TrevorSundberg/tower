@@ -113,7 +113,10 @@ already using LF are untouched. Its EXIT trap restores exact original bytes;
 if a source has since changed or restoration fails, the tool reports and retains
 the private backup directory for recovery. Each script has a 1 MiB input limit.
 The Roku ZIP/CRC/DEFLATE implementation is Tower with no zlib link; see the [Roku guide](../docs/roku-backend.md)
-for codec scope and device-testing limits. `TOWER_TOOLS_BUILD` selects the tools
+for codec scope and device-testing limits. `package_playground_assets DIST_DIRECTORY`
+uses the same codec to compress compiler reactors and writes the deployment's
+SHA-256 manifest in Tower. It consumes a prepared generated directory; esbuild
+and browser asset collection still use Node. `TOWER_TOOLS_BUILD` selects the tools
 build directory (default `$HOME/.cache/tower/tools`), and `LLVM_CONFIG` selects
 the host LLVM installation (default `llvm-config-19`). Wrapper stdout is only the
 resulting directory; build output goes to stderr. A small existing CMake bridge

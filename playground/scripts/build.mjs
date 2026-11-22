@@ -2,11 +2,13 @@ import { build } from 'esbuild';
 import { mkdir, copyFile, readFile, writeFile, readdir, rm } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { gzipSync } from 'node:zlib';
-import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import { targets, targetInputs } from '../src/targets.mjs';
 const root = fileURLToPath(new URL('..', import.meta.url));
 const dist = path.join(root, 'dist');
+const packager = process.env.TOWER_PLAYGROUND_ASSET_PACKAGER || path.join(execFileSync('bash',
+  [path.join(root, 'scripts/build-bootstrap.sh'), '--tools', 'package_playground_assets'],
+  {encoding:'utf8', stdio:['ignore','pipe','inherit']}).trim(), 'package_playground_assets');
 // dist is generated output. Never publish stale optional backends/target packs.
 await rm(dist, { recursive: true, force: true });
 await mkdir(dist, { recursive: true });
@@ -41,7 +43,6 @@ for (const name of ['execution', 'increment', 'inference', 'templates', 'match',
 let llvm = false;
 try {
   await copyFile(path.join(root, '../build/browser-wasi-llvm/tower-llvm.wasm'), path.join(dist, 'tower-llvm.wasm'));
-  await writeFile(path.join(dist, 'tower-llvm.wasm.gz'), gzipSync(await readFile(path.join(dist, 'tower-llvm.wasm')), {level:9}));
   llvm = true;
 } catch (error) { if (error.code !== 'ENOENT') throw error; }
 let cross = false;
@@ -56,7 +57,7 @@ if (crossBytes) {
     const inputs = await targetInputs(target, name => readFile(path.join(root, '../build', name)));
     for (const [name, bytes] of Object.entries(inputs)) await writeFile(path.join(dist, 'targets', name), bytes);
   }
-  await writeFile(path.join(dist, 'tower-cross.wasm.gz'), gzipSync(crossBytes, {level:9}));
+  await writeFile(path.join(dist, 'tower-cross.wasm'), crossBytes);
   cross = true;
 }
 await writeFile(path.join(dist, 'capabilities.json'), JSON.stringify({ llvm, cross, threads }));
@@ -95,15 +96,5 @@ for (const name of ['@codemirror/view', '@codemirror/state', '@codemirror/comman
 }
 await writeFile(path.join(dist, 'THIRD-PARTY-NOTICES.txt'), licenses);
 await writeFile(path.join(dist, '.nojekyll'), '');
-const assets = {};
-async function collect(directory) {
-  for (const entry of (await readdir(directory, { withFileTypes: true })).sort((a,b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0)) {
-    const file = path.join(directory, entry.name);
-    if (entry.isDirectory()) await collect(file);
-    else assets[path.relative(dist, file).split(path.sep).join('/')] =
-      createHash('sha256').update(await readFile(file)).digest('hex');
-  }
-}
-await collect(dist);
-await writeFile(path.join(dist, 'deployment-manifest.json'), JSON.stringify({assets}, null, 2) + '\n');
+execFileSync(packager, [dist], {stdio:'inherit'});
 console.log(`Static playground built: ${dist} (LLVM module ${llvm ? 'included' : 'not built'})`);

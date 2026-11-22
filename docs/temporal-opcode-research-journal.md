@@ -44343,3 +44343,44 @@ that main's older source would have replaced. Preserve the exact published asset
 and bring that existing Tower example back into main so subsequent builds retain
 it. The new clean CLI interprets it with exact 5/6/7/7/9 output. No new parser or
 language implementation is introduced by this source/publication reconciliation.
+
+Rebase 454c951 brought the coordinator's completed Mach-O linker and driver
+permission services. A clean public-pin successor builds all 50 steps. Its
+driver test build found two remaining bare chmod calls after the declaration was
+renamed upstream; route both through driver_posix_chmod. Backend and driver
+policy/process checks then pass. Windows cross-compilation also found a newly
+added function above imports in driver_paths_windows.tower; put it after the
+imports and include the current path service in driver_windows_unit. Push these
+fixes through 01b9c4a and run the Windows comparison again (45037212047).
+
+The playground bundler still needs esbuild, filesystem transport and the compiler
+recipe's JSON interface. Its gzip and SHA-256 implementations can use existing
+Tower libraries immediately: add package_playground_assets through build_tools
+and reduce build.mjs to invoking it after asset collection. No new compression
+library, installation wrapper or serializer is needed. The Tower command hashes
+sorted relative asset names, excludes its own manifest, writes the manifest last,
+and rejects symlink compression destinations. Only the temporary raw cross
+reactor is removed after successful gzip creation; the ordinary LLVM raw module
+remains available. Directory clearing stays at the existing bundler entry.
+
+The smallest tool preflight initially rejected a global quantity used as an
+array bound under the public bootstrap. Use one reserved ByteBuffer for the hex
+digest, retaining the named size and avoiding unpublished staging support. The
+documented public tool build passes. The existing bundling check passes with
+complete/incomplete packs, stale-output removal, missing compiler recipe and
+every manifest hash. Its fixture was missing foundation_syntax/types files and
+the existing threads capability; align that setup/expectation with current
+packaging. A real 33 MiB LLVM reactor compresses to 13 MiB, decompresses byte for
+byte through system gzip in both output slots, and repeated packaging produces
+an identical manifest. This simple codec is not a claim of zlib-level compression
+ratio. Existing published runtime assets remain unchanged by this tooling work.
+
+The ordinary npm build also passes with no bootstrap or packager override; it
+builds the selected Tower tool through the documented bridge before bundling.
+Windows run 45037212047 passes all 416 Linux comparisons and the old PowerShell
+consumer's MSVC cases. Linking the Tower-only objects then reports missing CRT
+symbols: unlike a cl-compiled C source, those objects do not inject default CRT
+library directives. Name the installed MSVC/UCRT startup libraries explicitly in
+the workflow's platform link command. This is ordinary platform linkage, not a
+new project library or a native source implementation. Windows execution of the
+new consumer remains pending the corrected link.

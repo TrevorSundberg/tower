@@ -119,14 +119,15 @@ export fn main(argc: i32, argv: u8**): i32 {
     var selected_count: i32 = 7;
     var usage = convert(i32, BuildToolExit.Usage);
     if argc != required_count && argc != selected_count {
-        puts("Usage: build_tools COMPILER LINKER REPOSITORY OUTPUT_DIRECTORY GUEST_HOST_OBJECT [prepare_llvm|package_roku|package_bootstrap|package_compiler_project|package_targets|verify_compiler|verify_bootstrap_symbols|check_core]");
+        puts("Usage: build_tools COMPILER LINKER REPOSITORY OUTPUT_DIRECTORY GUEST_HOST_OBJECT [prepare_llvm|package_roku|package_bootstrap|package_compiler_project|package_targets|package_playground_assets|verify_compiler|verify_bootstrap_symbols|check_core]");
         return usage;
     }
     if argc == selected_count {
         if strcmp(argv[6], "prepare_llvm") != 0 && strcmp(argv[6], "package_roku") != 0
             && strcmp(argv[6], "package_bootstrap") != 0 && strcmp(argv[6], "verify_compiler") != 0
             && strcmp(argv[6], "verify_bootstrap_symbols") != 0 && strcmp(argv[6], "package_compiler_project") != 0
-            && strcmp(argv[6], "package_targets") != 0 && strcmp(argv[6], "check_core") != 0 { return usage; }
+            && strcmp(argv[6], "package_targets") != 0 && strcmp(argv[6], "package_playground_assets") != 0
+            && strcmp(argv[6], "check_core") != 0 { return usage; }
         return build_tool(argv[1], argv[2], argv[3], argv[4], argv[5], argv[6]);
     }
     var status = build_tool(argv[1], argv[2], argv[3], argv[4], argv[5], "prepare_llvm");
@@ -138,6 +139,8 @@ export fn main(argc: i32, argv: u8**): i32 {
     status = build_tool(argv[1], argv[2], argv[3], argv[4], argv[5], "package_compiler_project");
     if status != 0 { return status; }
     status = build_tool(argv[1], argv[2], argv[3], argv[4], argv[5], "package_targets");
+    if status != 0 { return status; }
+    status = build_tool(argv[1], argv[2], argv[3], argv[4], argv[5], "package_playground_assets");
     if status != 0 { return status; }
     status = build_tool(argv[1], argv[2], argv[3], argv[4], argv[5], "verify_compiler");
     if status != 0 { return status; }

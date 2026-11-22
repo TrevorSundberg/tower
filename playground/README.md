@@ -929,6 +929,13 @@ execution, exports and editor interactions. Build release bundles with
 Bundling clears generated `dist/` contents so stale optional backends cannot
 silently survive a rebuild. A present cross compiler requires all target packs.
 
+The Linux/Docker build uses Tower's `package_playground_assets` tool for gzip
+compression and the SHA-256 asset manifest. `build.mjs` bootstraps it through
+`build-bootstrap.sh --tools`; esbuild and browser asset transport remain in Node.
+The compressor uses the in-house deterministic DEFLATE/gzip implementation, with
+no zlib dependency. `TOWER_PLAYGROUND_ASSET_PACKAGER` can name an already built
+tool for isolated packaging checks; ordinary builds use the public bootstrap.
+
 Build the shared-memory frontend with `bash playground/scripts/build-threads.sh`
 from the repository root. `TOWER_REQUIRE_THREADS=1 npm run build` checks that its
 artifact is included alongside the portable frontend. The playground selects it
