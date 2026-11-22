@@ -47783,3 +47783,79 @@ the4540a08/public-pin interpreter/native checks or validate newer compiler code.
 For the separate500000iteration signed-wrapping profile, the same proof gives
 445698544; execution remains unrun. No source logic changed and no runtime
 performance/memory measurement applies to this documentation-only reasoning.
+
+### D2 current native checks and capture failure (2026-11-22)
+
+Frozen a22499d8ae15d3b03001a80bef1bb84e4b21421e, scaffolding
+33efdae1eaf24ed6a31dea2682fc2534d8046fd0 includes source-roots/failure-walk,
+the exact B2 focused overlap helper/D1 selector, retained-type oracle and stage
+fixture. It excludes the subsequently delivered capture-range successor. D2
+acquired heavy.lock after D1's clean native/parser phase drained; public pin,
+image/LLVM and CPUs0,2 remain as above. All sources stayed frozen throughout
+build and runtime commands. Raw evidence: build/d2_ecs/current_a22499d.
+
+Five smallest public-pin objects passed (wall/CPU/peakRSS): source_bindings
+26.31s/25.92s/734988KiB, evaluation24.02/23.74/733860, lr_work_main8.57/8.39/254936,
+type_binding_checks5.66/5.62/251864, entity_stage_concurrent4.10/4.05/229208.
+The documented native command reused native-coherent-f13c8f6 incrementally;
+it nevertheless regenerated53steps, passing274.18wall/268.10CPU/782048KiB.
+Nine focused steps passed26.97wall/26.45CPU/255104KiB. Explicit outer/compiler
+jobs1; no private override. These are not fresh-cache or speedup claims.
+Compiler15600fe0ef0d39ee2789d214dd77304c022ba62258fb0bf162b3f46181213070;
+runner6bceafc50094471082010f8205d119f694ea1ba5763c23aba6e9e05bfe71e1f3.
+All42resources exactly match the preserved f13 package. Its complete43file
+executable/resource manifest SHA00eceeccacb0e330930964649748b76b7cab997e21eb3eecce64aa52eaf42b91
+is stored with the original coherent build logs, not published as a new pin.
+
+Normal checks passed: tool-output-identity0.18wall/0.16CPU/1612KiB;
+concurrent-stage0.09/0.09/2092; query-smoke0.20/0.21/61420;
+control-smoke88.02/95.44/255664; focused backend-overlap20.35/28.67/480432.
+All measured swaps0. Stage160trials produced57792finalizers and exact teardown;
+its earlier in-process RSS sample1964KiB precedes the wrapper peak2092.
+Query covers existing serial/four-worker32/64bit fixtures, control checks
+execution/canonical reparse/cleanup/errors. The focused backend preserves exact
+serial-reference objects, shared budget and barrier-confirmed distinct threads.
+Its20.35s is not comparable to the older142.39s full backend workload as speedup;
+it demonstrates the smaller diagnostic scope works. No sanitizer pass implied.
+
+Type-smoke failed raw134/signal6 at116.23wall/123.09CPU/213804KiB. Its redirected
+stdout lost the assertion: units_check prints with puts then aborts without a
+flush. After drain, repeated only this selector with stdbuf-oL-eL and unchanged
+180s timeout/source/cases. It again failed134 at113.56wall/120.91CPU/224288KiB,
+printing the generic mutable/escaped/missing-initializer capture diagnostic and
+"Lifecycle failure prevents incomplete graph publication". GNUtime's trailing
+Exit status0 on signal termination is not success. Reported the shared diagnostic
+boundary to D1; no competing harness edit or longer deadline.
+
+Copied the exact existing EarlyCapture source to an ignored .tower reproducer,
+SHA3a2ef1f6aa7e25f936815e8d320186459b876a2c811ccbe6f4fba335c04408e9.
+Current native --interpret--jobs1 with explicit root grammar fails1 in
+5.66wall/5.47CPU/168596KiB, reporting the same generic capture error at
+scaffolding/bedrock.tower:1:1 instead of the required initialization-order text.
+This is an independently reproduced defect, not proof of the buffered suite's
+exact case index. Root/A1 received logs and identity. New range8a6829e1,
+lifecycle0ceb023a and source-proof41454429 were reviewed, not applied during
+this freeze; aggregate/terminal/eager-metadata acceptance remains open.
+
+Investigated the unexpected full incremental build without changing build
+logic. Repeated merge-preserving pulls replay local merge topology even when
+the final commit/tree is unchanged; common unchanged input mtimes now match
+the last pull. The [Git2.50.1 implementation](https://github.com/git/git/blob/v2.50.1/builtin/pull.c#L1054)
+and [pull documentation](https://git-scm.com/docs/git-pull) distinguish a
+fast-forward-only synchronization from actual divergent-history rebasing.
+After all children drained, git pull--rebase=merges--autostash--ff-only returned
+Already up to date in0.438wall/0.063CPU, preserving HEAD/scaffolding/origin and
+the recorded common-input mtimes. Host GNUtime was absent (first attempt127
+before Git); explicit Bash timing supplies no peakRSS. No failure was hidden.
+The following real Ninja-d-explain check reports only VerifyGlobs then no work:
+0.07wall/0.04CPU/17500KiB, raw0. Dry-run alone predicts CMake regeneration from
+the phony VerifyGlobs edge, so it does not establish53dirty object edges.
+Ninja-t-deps also has no entry for the custom runtime-bind output; preserve that
+diagnostic instead of inventing dependency evidence. The timestamp hypothesis
+is supported, not yet a controlled measured build-time saving. No emitted files
+were touched, dependencies suppressed or generic build helper rewritten. On
+genuine upstream divergence, retain a real merge-preserving rebase and revalidate.
+
+Every owned session drained; D2 released the slot for D1's actual ASan parser
+check. Paired current compiler profiles remain next-slot work. Full current
+capture/type/sanitizer/browser/generation and coordinated publication are open.

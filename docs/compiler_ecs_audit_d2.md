@@ -844,3 +844,38 @@ The same derivation gives the unexecuted profile fixture's expected i32 result:
 contract; the final bit pattern is positive. Runtime confirmation for that
 500000iteration fixture remains pending. This is documentation/independent
 reasoning only, so new runtime performance or memory measurements do not apply.
+
+### Current closure validation at a22499d
+
+Public-pin native/focused builds pass on scaffolding33efdae1, compiler15600fe0,
+runner6bceafc5. Five smallest source-proof/evaluation/LR/type/stage units pass.
+The reused native cache rebuilt53steps in274.18wall/268.10CPU/782048KiB;
+nine focused steps26.97/26.45/255104. All42resources equal the preservedf13
+package. This is incremental evidence, not another fresh-cache build.
+
+| Normal check | Wall / CPU / peakRSS | Result and limit |
+| --- | --- | --- |
+| tool-output-identity |0.18s /0.16s /1612KiB|PASS current A2 hardlink/symlink identity helper; prior old-helper gap closed for this fixture. No path-race guarantee.|
+| concurrent-stage |0.09 /0.09 /2092|PASS160trials,57792finalizers, exact store teardown; normal production allocator, not sanitizer coverage.|
+| query-smoke |0.20 /0.21 /61420|PASS existing1/4worker32/64bit query cases; newer source-proof successor unintegrated.|
+| control-smoke |88.02 /95.44 /255664|PASS execution/canonical reparse/cleanup/ordered errors.|
+| backend-overlap |20.35 /28.67 /480432|PASS independent serial objects, byte equality, shared budget, distinct-thread barrier; smaller scope than full backend, not a speedup comparison.|
+| type-smoke |116.23 /123.09 /213804|FAIL134/signal6; buffered diagnostic lost.|
+| same type-smoke with line buffering |113.56 /120.91 /224288|FAIL134; generic capture diagnostic violates lifecycle expectation. No test/deadline change.|
+
+All process swap counts0. Exact EarlyCapture .tower reproduction independently
+returns the wrong generic capture diagnostic (expected initialization-order text)
+in5.66wall/5.47CPU/168596KiB, exit1. It also points at bedrock:1:1. The complete
+input/hash/log and original/repeated failures are retained in
+build/d2_ecs/current_a22499d; root/A1 notified. D1 owns the shared puts/abort
+diagnostic buffering boundary; no competing harness edit.
+
+Build-iteration review found unchanged common-input timestamps reset by the
+required merge-preserving pull. A guarded fast-forward-only pull preserved both
+history and mtimes; actual Ninja then reports no work in0.07wall/0.04CPU/17500KiB.
+This is a validated no-op, not a measured53step saving. Dry-run's phony glob
+regeneration prevents an exact dirty-object explanation here; the hypothesis
+and limitations are recorded in the journal with primary Git sources. No
+dependency suppression, output touching or generic build implementation change.
+Current paired compiler profiles, full instrumentation and release gates remain
+open. All owned jobs drained before D1 received the next host slot.
