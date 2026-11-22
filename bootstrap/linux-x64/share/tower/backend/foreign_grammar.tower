@@ -4,7 +4,7 @@ import foreign_reader;
 // Optional surface syntax. A single colon separates adjacent words, so
 // the shared name reader and formatter preserve their lexical boundaries:
 // cpp_name(int:foo(void*:bar)). The API and quoted Foundation name accept spaces.
-token ForeignWord = /[A-Za-z_][A-Za-z0-9_]*|[0-9]+/ when expected as identifier;
+[contextual][identifier] token ForeignWord = /[A-Za-z_][A-Za-z0-9_]*|[0-9]+/;
 parse ForeignGroup = '(' ForeignPieces ')';
 parse ForeignPunctuation = ':' | '::' | '*' | '&' | '&&' | '<' | '>' | ',' | ';' | '=' | '[' | ']' | '~'
                           | '...' | '-' | '+' | '/' | '%' | '^' | '!' | '|' | '.';

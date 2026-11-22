@@ -1,4 +1,4 @@
-; ModuleID = '/cache/attributes-native/guest-windows-arm64-unbound.ll'
+; ModuleID = '/cache/attributes-clean-final/guest-windows-arm64-unbound.ll'
 source_filename = "Tower"
 target datalayout = "e-m:w-p:64:64-i32:32-i64:64-i128:128-n32:64-S128-Fn32"
 target triple = "aarch64-pc-windows-msvc"
@@ -713,7 +713,7 @@ valid:                                            ; preds = %entry
   br label %loop
 
 error:                                            ; preds = %entry
-  call void @tower_trap(ptr @0, i64 16788)
+  call void @tower_trap(ptr @0, i64 17819)
   unreachable
 
 loop:                                             ; preds = %if.end, %valid
@@ -1403,7 +1403,7 @@ valid:                                            ; preds = %entry
   br label %loop
 
 error:                                            ; preds = %entry
-  call void @tower_trap(ptr @1, i64 16788)
+  call void @tower_trap(ptr @1, i64 17819)
   unreachable
 
 loop:                                             ; preds = %if.end, %valid
@@ -1565,7 +1565,7 @@ valid4:                                           ; preds = %if.body1
   br i1 %177, label %if.body6, label %if.else7
 
 error5:                                           ; preds = %if.body1
-  call void @tower_trap(ptr @2, i64 16788)
+  call void @tower_trap(ptr @2, i64 17819)
   unreachable
 
 if.body6:                                         ; preds = %valid4
@@ -1927,7 +1927,7 @@ valid17:                                          ; preds = %if.end16
   br label %loop12
 
 error18:                                          ; preds = %if.end16
-  call void @tower_trap(ptr @3, i64 16788)
+  call void @tower_trap(ptr @3, i64 17819)
   unreachable
 
 valid19:                                          ; preds = %loop.end13
@@ -1946,7 +1946,7 @@ valid19:                                          ; preds = %loop.end13
   br label %if.end11
 
 error20:                                          ; preds = %loop.end13
-  call void @tower_trap(ptr @4, i64 16788)
+  call void @tower_trap(ptr @4, i64 17819)
   unreachable
 
 if.body21:                                        ; preds = %if.else10
@@ -2279,7 +2279,7 @@ valid:                                            ; preds = %if.body1
   ret i64 %27
 
 error:                                            ; preds = %if.body1
-  call void @tower_trap(ptr @5, i64 16788)
+  call void @tower_trap(ptr @5, i64 17819)
   unreachable
 
 valid4:                                           ; preds = %if.end3
@@ -2296,7 +2296,7 @@ valid4:                                           ; preds = %if.end3
   br label %loop
 
 error5:                                           ; preds = %if.end3
-  call void @tower_trap(ptr @6, i64 16788)
+  call void @tower_trap(ptr @6, i64 17819)
   unreachable
 
 loop:                                             ; preds = %if.end8, %valid4
@@ -2395,7 +2395,7 @@ valid14:                                          ; preds = %if.end13
   br label %loop9
 
 error15:                                          ; preds = %if.end13
-  call void @tower_trap(ptr @7, i64 16788)
+  call void @tower_trap(ptr @7, i64 17819)
   unreachable
 
 valid16:                                          ; preds = %loop.end10
@@ -2409,7 +2409,7 @@ valid16:                                          ; preds = %loop.end10
   ret i64 %79
 
 error17:                                          ; preds = %loop.end10
-  call void @tower_trap(ptr @8, i64 16788)
+  call void @tower_trap(ptr @8, i64 17819)
   unreachable
 }
 
@@ -2946,7 +2946,7 @@ valid:                                            ; preds = %if.end
   br label %loop
 
 error:                                            ; preds = %if.end
-  call void @tower_trap(ptr @9, i64 16788)
+  call void @tower_trap(ptr @9, i64 17819)
   unreachable
 
 loop:                                             ; preds = %if.end3, %valid
@@ -3289,7 +3289,7 @@ valid35:                                          ; preds = %if.body32
   br label %if.end34
 
 error36:                                          ; preds = %if.body32
-  call void @tower_trap(ptr @10, i64 16788)
+  call void @tower_trap(ptr @10, i64 17819)
   unreachable
 
 loop37:                                           ; preds = %valid42, %if.end34
@@ -3337,7 +3337,7 @@ valid42:                                          ; preds = %if.end41
   br label %loop37
 
 error43:                                          ; preds = %if.end41
-  call void @tower_trap(ptr @11, i64 16788)
+  call void @tower_trap(ptr @11, i64 17819)
   unreachable
 
 loop44:                                           ; preds = %if.end48, %loop.end38
@@ -3581,7 +3581,7 @@ valid71:                                          ; preds = %if.end70
   br label %loop66
 
 error72:                                          ; preds = %if.end70
-  call void @tower_trap(ptr @12, i64 16788)
+  call void @tower_trap(ptr @12, i64 17819)
   unreachable
 
 if.body73:                                        ; preds = %if.end65
@@ -3815,7 +3815,7 @@ valid79:                                          ; preds = %if.body76
   br label %loop81
 
 error80:                                          ; preds = %if.body76
-  call void @tower_trap(ptr @13, i64 16788)
+  call void @tower_trap(ptr @13, i64 17819)
   unreachable
 
 loop81:                                           ; preds = %if.end85, %valid79
@@ -6047,7 +6047,7 @@ valid:                                            ; preds = %loop.end44
   br i1 %936, label %if.body48, label %if.else49
 
 error:                                            ; preds = %loop.end44
-  call void @tower_trap(ptr @14, i64 16788)
+  call void @tower_trap(ptr @14, i64 17819)
   unreachable
 
 if.body48:                                        ; preds = %valid
@@ -6413,7 +6413,7 @@ valid:                                            ; preds = %if.end
   br label %loop
 
 error:                                            ; preds = %if.end
-  call void @tower_trap(ptr @15, i64 16788)
+  call void @tower_trap(ptr @15, i64 17819)
   unreachable
 
 loop1:                                            ; preds = %valid6, %loop.end
@@ -6467,7 +6467,7 @@ valid6:                                           ; preds = %if.end5
   br label %loop1
 
 error7:                                           ; preds = %if.end5
-  call void @tower_trap(ptr @16, i64 16788)
+  call void @tower_trap(ptr @16, i64 17819)
   unreachable
 
 loop8:                                            ; preds = %valid13, %loop.end2
@@ -6515,7 +6515,7 @@ valid13:                                          ; preds = %if.end12
   br label %loop8
 
 error14:                                          ; preds = %if.end12
-  call void @tower_trap(ptr @17, i64 16788)
+  call void @tower_trap(ptr @17, i64 17819)
   unreachable
 
 loop15:                                           ; preds = %valid20, %loop.end9
@@ -6571,7 +6571,7 @@ valid20:                                          ; preds = %if.end19
   br label %loop15
 
 error21:                                          ; preds = %if.end19
-  call void @tower_trap(ptr @18, i64 16788)
+  call void @tower_trap(ptr @18, i64 17819)
   unreachable
 
 loop22:                                           ; preds = %if.end26, %loop.end16
@@ -6673,7 +6673,7 @@ valid32:                                          ; preds = %if.end31
   br label %loop27
 
 error33:                                          ; preds = %if.end31
-  call void @tower_trap(ptr @19, i64 16788)
+  call void @tower_trap(ptr @19, i64 17819)
   unreachable
 
 valid34:                                          ; preds = %loop.end28
@@ -6712,7 +6712,7 @@ valid34:                                          ; preds = %loop.end28
   br label %loop36
 
 error35:                                          ; preds = %loop.end28
-  call void @tower_trap(ptr @20, i64 16788)
+  call void @tower_trap(ptr @20, i64 17819)
   unreachable
 
 loop36:                                           ; preds = %if.end40, %valid34
@@ -6815,7 +6815,7 @@ valid46:                                          ; preds = %if.end45
   br label %loop41
 
 error47:                                          ; preds = %if.end45
-  call void @tower_trap(ptr @21, i64 16788)
+  call void @tower_trap(ptr @21, i64 17819)
   unreachable
 
 valid48:                                          ; preds = %loop.end42
@@ -6889,7 +6889,7 @@ valid48:                                          ; preds = %loop.end42
   ret void
 
 error49:                                          ; preds = %loop.end42
-  call void @tower_trap(ptr @22, i64 16788)
+  call void @tower_trap(ptr @22, i64 17819)
   unreachable
 }
 
@@ -10056,7 +10056,7 @@ valid:                                            ; preds = %loop.end35
   ret i64 %720
 
 error:                                            ; preds = %loop.end35
-  call void @tower_trap(ptr @23, i64 16788)
+  call void @tower_trap(ptr @23, i64 17819)
   unreachable
 }
 
@@ -10833,7 +10833,7 @@ valid:                                            ; preds = %if.body10
   br i1 %329, label %if.body13, label %if.else14
 
 error:                                            ; preds = %if.body10
-  call void @tower_trap(ptr @24, i64 16788)
+  call void @tower_trap(ptr @24, i64 17819)
   unreachable
 
 if.body13:                                        ; preds = %valid
@@ -10887,7 +10887,7 @@ valid19:                                          ; preds = %if.end18
   br i1 %349, label %if.body21, label %if.else22
 
 error20:                                          ; preds = %if.end18
-  call void @tower_trap(ptr @25, i64 16788)
+  call void @tower_trap(ptr @25, i64 17819)
   unreachable
 
 if.body21:                                        ; preds = %valid19
@@ -11222,7 +11222,7 @@ valid:                                            ; preds = %entry
   br i1 %59, label %if.body, label %if.else
 
 error:                                            ; preds = %entry
-  call void @tower_trap(ptr @26, i64 16788)
+  call void @tower_trap(ptr @26, i64 17819)
   unreachable
 
 if.body:                                          ; preds = %valid
@@ -11720,7 +11720,7 @@ valid13:                                          ; preds = %if.body10
   ret i64 %339
 
 error14:                                          ; preds = %if.body10
-  call void @tower_trap(ptr @27, i64 16788)
+  call void @tower_trap(ptr @27, i64 17819)
   unreachable
 
 if.body15:                                        ; preds = %if.end12
@@ -11757,7 +11757,7 @@ valid18:                                          ; preds = %if.body15
   ret i64 %355
 
 error19:                                          ; preds = %if.body15
-  call void @tower_trap(ptr @28, i64 16788)
+  call void @tower_trap(ptr @28, i64 17819)
   unreachable
 
 if.body20:                                        ; preds = %if.end17
@@ -11794,7 +11794,7 @@ valid23:                                          ; preds = %if.body20
   ret i64 %371
 
 error24:                                          ; preds = %if.body20
-  call void @tower_trap(ptr @29, i64 16788)
+  call void @tower_trap(ptr @29, i64 17819)
   unreachable
 
 if.body25:                                        ; preds = %if.end22
@@ -11852,7 +11852,7 @@ valid31:                                          ; preds = %if.end30
   ret i64 %395
 
 error32:                                          ; preds = %if.end30
-  call void @tower_trap(ptr @30, i64 16788)
+  call void @tower_trap(ptr @30, i64 17819)
   unreachable
 
 if.body33:                                        ; preds = %if.end27
@@ -11889,7 +11889,7 @@ valid36:                                          ; preds = %if.body33
   ret i64 %411
 
 error37:                                          ; preds = %if.body33
-  call void @tower_trap(ptr @31, i64 16788)
+  call void @tower_trap(ptr @31, i64 17819)
   unreachable
 
 if.body38:                                        ; preds = %if.end35
@@ -11940,7 +11940,7 @@ valid44:                                          ; preds = %if.end43
   ret i64 %429
 
 error45:                                          ; preds = %if.end43
-  call void @tower_trap(ptr @32, i64 16788)
+  call void @tower_trap(ptr @32, i64 17819)
   unreachable
 }
 
@@ -11996,7 +11996,7 @@ valid:                                            ; preds = %if.body
   br label %if.end
 
 error:                                            ; preds = %if.body
-  call void @tower_trap(ptr @33, i64 16788)
+  call void @tower_trap(ptr @33, i64 17819)
   unreachable
 
 valid1:                                           ; preds = %if.else
@@ -12013,7 +12013,7 @@ valid1:                                           ; preds = %if.else
   br label %loop
 
 error2:                                           ; preds = %if.else
-  call void @tower_trap(ptr @34, i64 16788)
+  call void @tower_trap(ptr @34, i64 17819)
   unreachable
 
 loop:                                             ; preds = %if.end5, %valid1
@@ -12368,7 +12368,7 @@ valid:                                            ; preds = %if.end3
   br label %loop
 
 error:                                            ; preds = %if.end3
-  call void @tower_trap(ptr @35, i64 16788)
+  call void @tower_trap(ptr @35, i64 17819)
   unreachable
 
 if.body4:                                         ; preds = %if.end
@@ -12413,7 +12413,7 @@ valid7:                                           ; preds = %if.body4
   br label %if.end6
 
 error8:                                           ; preds = %if.body4
-  call void @tower_trap(ptr @36, i64 16788)
+  call void @tower_trap(ptr @36, i64 17819)
   unreachable
 
 if.body9:                                         ; preds = %if.end6
@@ -12536,7 +12536,7 @@ valid22:                                          ; preds = %if.end21
   br label %loop17
 
 error23:                                          ; preds = %if.end21
-  call void @tower_trap(ptr @37, i64 16788)
+  call void @tower_trap(ptr @37, i64 17819)
   unreachable
 
 if.body24:                                        ; preds = %loop.end13
@@ -12705,7 +12705,7 @@ valid32:                                          ; preds = %if.end26
   ret i64 %242
 
 error33:                                          ; preds = %if.end26
-  call void @tower_trap(ptr @38, i64 16788)
+  call void @tower_trap(ptr @38, i64 17819)
   unreachable
 }
 
@@ -14222,7 +14222,7 @@ valid:                                            ; preds = %if.body7
   br i1 %186, label %if.body10, label %if.else11
 
 error:                                            ; preds = %if.body7
-  call void @tower_trap(ptr @39, i64 16788)
+  call void @tower_trap(ptr @39, i64 17819)
   unreachable
 
 if.body10:                                        ; preds = %valid
@@ -14263,7 +14263,7 @@ valid13:                                          ; preds = %if.end12
   br i1 %203, label %if.body15, label %if.else16
 
 error14:                                          ; preds = %if.end12
-  call void @tower_trap(ptr @40, i64 16788)
+  call void @tower_trap(ptr @40, i64 17819)
   unreachable
 
 if.body15:                                        ; preds = %valid13
@@ -14386,7 +14386,7 @@ valid26:                                          ; preds = %if.end25
   br label %loop21
 
 error27:                                          ; preds = %if.end25
-  call void @tower_trap(ptr @41, i64 16788)
+  call void @tower_trap(ptr @41, i64 17819)
   unreachable
 
 if.body28:                                        ; preds = %if.end9
@@ -14466,7 +14466,7 @@ valid36:                                          ; preds = %if.end35
   br label %loop31
 
 error37:                                          ; preds = %if.end35
-  call void @tower_trap(ptr @42, i64 16788)
+  call void @tower_trap(ptr @42, i64 17819)
   unreachable
 
 valid38:                                          ; preds = %loop.end32
@@ -14481,7 +14481,7 @@ valid38:                                          ; preds = %loop.end32
   br label %if.end30
 
 error39:                                          ; preds = %loop.end32
-  call void @tower_trap(ptr @43, i64 16788)
+  call void @tower_trap(ptr @43, i64 17819)
   unreachable
 
 if.body40:                                        ; preds = %if.end30
@@ -14594,7 +14594,7 @@ valid55:                                          ; preds = %if.body52
   br label %if.end54
 
 error56:                                          ; preds = %if.body52
-  call void @tower_trap(ptr @44, i64 16788)
+  call void @tower_trap(ptr @44, i64 17819)
   unreachable
 }
 
@@ -14696,7 +14696,7 @@ valid:                                            ; preds = %if.end
   br i1 %33, label %if.body1, label %if.else2
 
 error:                                            ; preds = %if.end
-  call void @tower_trap(ptr @45, i64 30273)
+  call void @tower_trap(ptr @45, i64 31304)
   unreachable
 
 if.body1:                                         ; preds = %valid
@@ -14762,7 +14762,7 @@ valid7:                                           ; preds = %if.end6
   br label %loop
 
 error8:                                           ; preds = %if.end6
-  call void @tower_trap(ptr @46, i64 30273)
+  call void @tower_trap(ptr @46, i64 31304)
   unreachable
 
 valid9:                                           ; preds = %loop.end
@@ -14781,7 +14781,7 @@ valid9:                                           ; preds = %loop.end
   br label %if.end3
 
 error10:                                          ; preds = %loop.end
-  call void @tower_trap(ptr @47, i64 30273)
+  call void @tower_trap(ptr @47, i64 31304)
   unreachable
 }
 
@@ -14863,7 +14863,7 @@ valid:                                            ; preds = %entry
   br label %loop
 
 error:                                            ; preds = %entry
-  call void @tower_trap(ptr @48, i64 30273)
+  call void @tower_trap(ptr @48, i64 31304)
   unreachable
 
 loop:                                             ; preds = %if.end, %valid
@@ -14945,7 +14945,7 @@ valid1:                                           ; preds = %if.body
   br i1 %52, label %valid3, label %error4
 
 error2:                                           ; preds = %if.body
-  call void @tower_trap(ptr @49, i64 30273)
+  call void @tower_trap(ptr @49, i64 31304)
   unreachable
 
 valid3:                                           ; preds = %valid1
@@ -14986,7 +14986,7 @@ valid3:                                           ; preds = %valid1
   br i1 %75, label %valid5, label %error6
 
 error4:                                           ; preds = %valid1
-  call void @tower_trap(ptr @50, i64 30273)
+  call void @tower_trap(ptr @50, i64 31304)
   unreachable
 
 valid5:                                           ; preds = %valid3
@@ -15009,7 +15009,7 @@ valid5:                                           ; preds = %valid3
   br label %loop7
 
 error6:                                           ; preds = %valid3
-  call void @tower_trap(ptr @51, i64 30273)
+  call void @tower_trap(ptr @51, i64 31304)
   unreachable
 
 loop7:                                            ; preds = %valid12, %valid5
@@ -15050,7 +15050,7 @@ valid12:                                          ; preds = %if.end11
   br label %loop7
 
 error13:                                          ; preds = %if.end11
-  call void @tower_trap(ptr @52, i64 30273)
+  call void @tower_trap(ptr @52, i64 31304)
   unreachable
 
 if.body14:                                        ; preds = %loop.end
@@ -15122,7 +15122,7 @@ valid20:                                          ; preds = %if.end19
   br label %if.end16
 
 error21:                                          ; preds = %if.end19
-  call void @tower_trap(ptr @53, i64 30273)
+  call void @tower_trap(ptr @53, i64 31304)
   unreachable
 }
 
@@ -15230,7 +15230,7 @@ valid:                                            ; preds = %if.end
   br label %loop
 
 error:                                            ; preds = %if.end
-  call void @tower_trap(ptr @54, i64 30273)
+  call void @tower_trap(ptr @54, i64 31304)
   unreachable
 
 loop:                                             ; preds = %if.end3, %valid
@@ -15320,7 +15320,7 @@ valid9:                                           ; preds = %if.end8
   br label %loop4
 
 error10:                                          ; preds = %if.end8
-  call void @tower_trap(ptr @55, i64 30273)
+  call void @tower_trap(ptr @55, i64 31304)
   unreachable
 }
 
@@ -15499,7 +15499,7 @@ valid:                                            ; preds = %if.end4
   br i1 %27, label %valid5, label %error6
 
 error:                                            ; preds = %if.end4
-  call void @tower_trap(ptr @56, i64 30273)
+  call void @tower_trap(ptr @56, i64 31304)
   unreachable
 
 valid5:                                           ; preds = %valid
@@ -15516,7 +15516,7 @@ valid5:                                           ; preds = %valid
   br i1 %33, label %valid7, label %error8
 
 error6:                                           ; preds = %valid
-  call void @tower_trap(ptr @57, i64 30273)
+  call void @tower_trap(ptr @57, i64 31304)
   unreachable
 
 valid7:                                           ; preds = %valid5
@@ -15550,7 +15550,7 @@ valid7:                                           ; preds = %valid5
   br i1 %51, label %if.body9, label %if.else10
 
 error8:                                           ; preds = %valid5
-  call void @tower_trap(ptr @58, i64 30273)
+  call void @tower_trap(ptr @58, i64 31304)
   unreachable
 
 if.body9:                                         ; preds = %valid7
@@ -15647,7 +15647,7 @@ valid15:                                          ; preds = %if.body12
   br label %loop17
 
 error16:                                          ; preds = %if.body12
-  call void @tower_trap(ptr @59, i64 30273)
+  call void @tower_trap(ptr @59, i64 31304)
   unreachable
 
 loop17:                                           ; preds = %if.end21, %valid15
@@ -15719,7 +15719,7 @@ valid22:                                          ; preds = %loop.end18
   br i1 %129, label %valid24, label %error25
 
 error23:                                          ; preds = %loop.end18
-  call void @tower_trap(ptr @60, i64 30273)
+  call void @tower_trap(ptr @60, i64 31304)
   unreachable
 
 valid24:                                          ; preds = %valid22
@@ -15742,7 +15742,7 @@ valid24:                                          ; preds = %valid22
   br label %loop26
 
 error25:                                          ; preds = %valid22
-  call void @tower_trap(ptr @61, i64 30273)
+  call void @tower_trap(ptr @61, i64 31304)
   unreachable
 
 loop26:                                           ; preds = %valid31, %valid24
@@ -15783,7 +15783,7 @@ valid31:                                          ; preds = %if.end30
   br label %loop26
 
 error32:                                          ; preds = %if.end30
-  call void @tower_trap(ptr @62, i64 30273)
+  call void @tower_trap(ptr @62, i64 31304)
   unreachable
 
 valid33:                                          ; preds = %loop.end27
@@ -15795,7 +15795,7 @@ valid33:                                          ; preds = %loop.end27
   br label %if.end14
 
 error34:                                          ; preds = %loop.end27
-  call void @tower_trap(ptr @63, i64 30273)
+  call void @tower_trap(ptr @63, i64 31304)
   unreachable
 
 if.body35:                                        ; preds = %loop.end
@@ -16400,7 +16400,7 @@ valid:                                            ; preds = %if.body1
   br label %if.end3
 
 error:                                            ; preds = %if.body1
-  call void @tower_trap(ptr @64, i64 30273)
+  call void @tower_trap(ptr @64, i64 31304)
   unreachable
 
 valid4:                                           ; preds = %if.end3
@@ -16437,7 +16437,7 @@ valid4:                                           ; preds = %if.end3
   br i1 %82, label %valid6, label %error7
 
 error5:                                           ; preds = %if.end3
-  call void @tower_trap(ptr @65, i64 30273)
+  call void @tower_trap(ptr @65, i64 31304)
   unreachable
 
 valid6:                                           ; preds = %valid4
@@ -16463,7 +16463,7 @@ valid6:                                           ; preds = %valid4
   br i1 %95, label %valid8, label %error9
 
 error7:                                           ; preds = %valid4
-  call void @tower_trap(ptr @66, i64 30273)
+  call void @tower_trap(ptr @66, i64 31304)
   unreachable
 
 valid8:                                           ; preds = %valid6
@@ -16475,7 +16475,7 @@ valid8:                                           ; preds = %valid6
   br label %if.end
 
 error9:                                           ; preds = %valid6
-  call void @tower_trap(ptr @67, i64 30273)
+  call void @tower_trap(ptr @67, i64 31304)
   unreachable
 
 loop10:                                           ; preds = %if.end17, %loop.end
@@ -16811,7 +16811,7 @@ valid:                                            ; preds = %if.end10
   br label %loop6
 
 error:                                            ; preds = %if.end10
-  call void @tower_trap(ptr @68, i64 30273)
+  call void @tower_trap(ptr @68, i64 31304)
   unreachable
 
 if.body11:                                        ; preds = %loop.end
@@ -17080,7 +17080,7 @@ valid:                                            ; preds = %loop.end2
   br i1 %74, label %valid6, label %error7
 
 error:                                            ; preds = %loop.end2
-  call void @tower_trap(ptr @69, i64 30273)
+  call void @tower_trap(ptr @69, i64 31304)
   unreachable
 
 valid6:                                           ; preds = %valid
@@ -17092,7 +17092,7 @@ valid6:                                           ; preds = %valid
   br i1 %78, label %valid8, label %error9
 
 error7:                                           ; preds = %valid
-  call void @tower_trap(ptr @70, i64 30273)
+  call void @tower_trap(ptr @70, i64 31304)
   unreachable
 
 valid8:                                           ; preds = %valid6
@@ -17104,7 +17104,7 @@ valid8:                                           ; preds = %valid6
   br i1 %82, label %valid10, label %error11
 
 error9:                                           ; preds = %valid6
-  call void @tower_trap(ptr @71, i64 30273)
+  call void @tower_trap(ptr @71, i64 31304)
   unreachable
 
 valid10:                                          ; preds = %valid8
@@ -17124,7 +17124,7 @@ valid10:                                          ; preds = %valid8
   br i1 %90, label %valid12, label %error13
 
 error11:                                          ; preds = %valid8
-  call void @tower_trap(ptr @72, i64 30273)
+  call void @tower_trap(ptr @72, i64 31304)
   unreachable
 
 valid12:                                          ; preds = %valid10
@@ -17136,7 +17136,7 @@ valid12:                                          ; preds = %valid10
   br i1 %94, label %valid14, label %error15
 
 error13:                                          ; preds = %valid10
-  call void @tower_trap(ptr @73, i64 30273)
+  call void @tower_trap(ptr @73, i64 31304)
   unreachable
 
 valid14:                                          ; preds = %valid12
@@ -17148,7 +17148,7 @@ valid14:                                          ; preds = %valid12
   br label %if.end
 
 error15:                                          ; preds = %valid12
-  call void @tower_trap(ptr @74, i64 30273)
+  call void @tower_trap(ptr @74, i64 31304)
   unreachable
 
 if.body16:                                        ; preds = %loop.end
@@ -17226,7 +17226,7 @@ valid22:                                          ; preds = %if.end21
   ret i8 %134
 
 error23:                                          ; preds = %if.end21
-  call void @tower_trap(ptr @75, i64 30273)
+  call void @tower_trap(ptr @75, i64 31304)
   unreachable
 }
 
@@ -18233,7 +18233,7 @@ valid:                                            ; preds = %if.end27
   br label %if.end24
 
 error:                                            ; preds = %if.end27
-  call void @tower_trap(ptr @76, i64 30273)
+  call void @tower_trap(ptr @76, i64 31304)
   unreachable
 
 if.body28:                                        ; preds = %loop.end
@@ -18533,7 +18533,7 @@ valid54:                                          ; preds = %if.body51
   br i1 %346, label %valid56, label %error57
 
 error55:                                          ; preds = %if.body51
-  call void @tower_trap(ptr @77, i64 30273)
+  call void @tower_trap(ptr @77, i64 31304)
   unreachable
 
 valid56:                                          ; preds = %valid54
@@ -18549,7 +18549,7 @@ valid56:                                          ; preds = %valid54
   br label %if.end53
 
 error57:                                          ; preds = %valid54
-  call void @tower_trap(ptr @78, i64 30273)
+  call void @tower_trap(ptr @78, i64 31304)
   unreachable
 
 if.body58:                                        ; preds = %loop.end47
@@ -18717,7 +18717,7 @@ valid67:                                          ; preds = %if.end66
   br i1 %436, label %if.body69, label %if.else70
 
 error68:                                          ; preds = %if.end66
-  call void @tower_trap(ptr @79, i64 30273)
+  call void @tower_trap(ptr @79, i64 31304)
   unreachable
 
 if.body69:                                        ; preds = %valid67
@@ -18957,7 +18957,7 @@ valid86:                                          ; preds = %loop.end79
   br i1 %546, label %valid88, label %error89
 
 error87:                                          ; preds = %loop.end79
-  call void @tower_trap(ptr @80, i64 30273)
+  call void @tower_trap(ptr @80, i64 31304)
   unreachable
 
 valid88:                                          ; preds = %valid86
@@ -18985,7 +18985,7 @@ valid88:                                          ; preds = %valid86
   br label %loop90
 
 error89:                                          ; preds = %valid86
-  call void @tower_trap(ptr @81, i64 30273)
+  call void @tower_trap(ptr @81, i64 31304)
   unreachable
 
 loop90:                                           ; preds = %if.end94, %valid88
@@ -19366,7 +19366,7 @@ valid113:                                         ; preds = %if.body110
   br label %if.end112
 
 error114:                                         ; preds = %if.body110
-  call void @tower_trap(ptr @82, i64 30273)
+  call void @tower_trap(ptr @82, i64 31304)
   unreachable
 
 valid115:                                         ; preds = %if.else111
@@ -19377,7 +19377,7 @@ valid115:                                         ; preds = %if.else111
   br label %if.end112
 
 error116:                                         ; preds = %if.else111
-  call void @tower_trap(ptr @83, i64 30273)
+  call void @tower_trap(ptr @83, i64 31304)
   unreachable
 
 if.body117:                                       ; preds = %if.end112
@@ -19432,7 +19432,7 @@ valid120:                                         ; preds = %if.end119
   br i1 %778, label %if.body122, label %if.else123
 
 error121:                                         ; preds = %if.end119
-  call void @tower_trap(ptr @84, i64 30273)
+  call void @tower_trap(ptr @84, i64 31304)
   unreachable
 
 if.body122:                                       ; preds = %valid120
@@ -19485,7 +19485,7 @@ valid125:                                         ; preds = %if.body122
   br label %if.end124
 
 error126:                                         ; preds = %if.body122
-  call void @tower_trap(ptr @85, i64 30273)
+  call void @tower_trap(ptr @85, i64 31304)
   unreachable
 
 valid127:                                         ; preds = %if.else123
@@ -19496,7 +19496,7 @@ valid127:                                         ; preds = %if.else123
   br label %if.end124
 
 error128:                                         ; preds = %if.else123
-  call void @tower_trap(ptr @86, i64 30273)
+  call void @tower_trap(ptr @86, i64 31304)
   unreachable
 
 loop129:                                          ; preds = %if.end133, %if.end124
@@ -19737,7 +19737,7 @@ valid144:                                         ; preds = %if.body141
   br label %loop146
 
 error145:                                         ; preds = %if.body141
-  call void @tower_trap(ptr @87, i64 30273)
+  call void @tower_trap(ptr @87, i64 31304)
   unreachable
 
 loop146:                                          ; preds = %if.end150, %valid144
@@ -20418,7 +20418,7 @@ valid:                                            ; preds = %loop14
   br i1 %184, label %valid16, label %error17
 
 error:                                            ; preds = %loop14
-  call void @tower_trap(ptr @88, i64 30273)
+  call void @tower_trap(ptr @88, i64 31304)
   unreachable
 
 valid16:                                          ; preds = %valid
@@ -20429,7 +20429,7 @@ valid16:                                          ; preds = %valid
   br i1 %188, label %valid18, label %error19
 
 error17:                                          ; preds = %valid
-  call void @tower_trap(ptr @89, i64 30273)
+  call void @tower_trap(ptr @89, i64 31304)
   unreachable
 
 valid18:                                          ; preds = %valid16
@@ -20443,7 +20443,7 @@ valid18:                                          ; preds = %valid16
   br i1 %194, label %valid20, label %error21
 
 error19:                                          ; preds = %valid16
-  call void @tower_trap(ptr @90, i64 30273)
+  call void @tower_trap(ptr @90, i64 31304)
   unreachable
 
 valid20:                                          ; preds = %valid18
@@ -20468,7 +20468,7 @@ valid20:                                          ; preds = %valid18
   br i1 %206, label %valid22, label %error23
 
 error21:                                          ; preds = %valid18
-  call void @tower_trap(ptr @91, i64 30273)
+  call void @tower_trap(ptr @91, i64 31304)
   unreachable
 
 valid22:                                          ; preds = %valid20
@@ -20479,7 +20479,7 @@ valid22:                                          ; preds = %valid20
   br i1 %209, label %valid24, label %error25
 
 error23:                                          ; preds = %valid20
-  call void @tower_trap(ptr @92, i64 30273)
+  call void @tower_trap(ptr @92, i64 31304)
   unreachable
 
 valid24:                                          ; preds = %valid22
@@ -20490,7 +20490,7 @@ valid24:                                          ; preds = %valid22
   br i1 %213, label %valid26, label %error27
 
 error25:                                          ; preds = %valid22
-  call void @tower_trap(ptr @93, i64 30273)
+  call void @tower_trap(ptr @93, i64 31304)
   unreachable
 
 valid26:                                          ; preds = %valid24
@@ -20510,7 +20510,7 @@ valid26:                                          ; preds = %valid24
   br i1 %222, label %if.body28, label %if.else29
 
 error27:                                          ; preds = %valid24
-  call void @tower_trap(ptr @94, i64 30273)
+  call void @tower_trap(ptr @94, i64 31304)
   unreachable
 
 if.body28:                                        ; preds = %valid26
@@ -21353,7 +21353,7 @@ valid:                                            ; preds = %if.end9
   br i1 %240, label %if.body19, label %if.else20
 
 error:                                            ; preds = %if.end9
-  call void @tower_trap(ptr @95, i64 30273)
+  call void @tower_trap(ptr @95, i64 31304)
   unreachable
 
 if.body19:                                        ; preds = %valid
@@ -21392,7 +21392,7 @@ valid22:                                          ; preds = %if.body19
   br label %if.end21
 
 error23:                                          ; preds = %if.body19
-  call void @tower_trap(ptr @96, i64 30273)
+  call void @tower_trap(ptr @96, i64 31304)
   unreachable
 
 loop24:                                           ; preds = %if.end28, %if.else20
@@ -21540,7 +21540,7 @@ valid37:                                          ; preds = %if.else35
   br label %if.end36
 
 error38:                                          ; preds = %if.else35
-  call void @tower_trap(ptr @97, i64 30273)
+  call void @tower_trap(ptr @97, i64 31304)
   unreachable
 
 if.body39:                                        ; preds = %if.end36
@@ -22115,7 +22115,7 @@ valid:                                            ; preds = %entry
   br i1 %19, label %valid1, label %error2
 
 error:                                            ; preds = %entry
-  call void @tower_trap(ptr @98, i64 42368)
+  call void @tower_trap(ptr @98, i64 43399)
   unreachable
 
 valid1:                                           ; preds = %valid
@@ -22128,7 +22128,7 @@ valid1:                                           ; preds = %valid
   ret void
 
 error2:                                           ; preds = %valid
-  call void @tower_trap(ptr @99, i64 42368)
+  call void @tower_trap(ptr @99, i64 43399)
   unreachable
 }
 
@@ -22373,7 +22373,7 @@ valid:                                            ; preds = %if.body
   br i1 %28, label %if.body1, label %if.else2
 
 error:                                            ; preds = %if.body
-  call void @tower_trap(ptr @100, i64 42368)
+  call void @tower_trap(ptr @100, i64 43399)
   unreachable
 
 if.body1:                                         ; preds = %valid
@@ -22912,7 +22912,7 @@ valid:                                            ; preds = %if.end9
   br i1 %76, label %if.body10, label %if.else11
 
 error:                                            ; preds = %if.end9
-  call void @tower_trap(ptr @101, i64 44728)
+  call void @tower_trap(ptr @101, i64 45759)
   unreachable
 
 if.body10:                                        ; preds = %valid
@@ -22963,7 +22963,7 @@ valid16:                                          ; preds = %if.body13
   ret i64 %94
 
 error17:                                          ; preds = %if.body13
-  call void @tower_trap(ptr @102, i64 44728)
+  call void @tower_trap(ptr @102, i64 45759)
   unreachable
 
 valid18:                                          ; preds = %if.end12
@@ -22987,7 +22987,7 @@ valid18:                                          ; preds = %if.end12
   br i1 %106, label %if.body20, label %if.else21
 
 error19:                                          ; preds = %if.end12
-  call void @tower_trap(ptr @103, i64 44728)
+  call void @tower_trap(ptr @103, i64 45759)
   unreachable
 
 if.body20:                                        ; preds = %valid18
@@ -23005,7 +23005,7 @@ valid23:                                          ; preds = %loop.end
   ret i64 %107
 
 error24:                                          ; preds = %loop.end
-  call void @tower_trap(ptr @104, i64 44728)
+  call void @tower_trap(ptr @104, i64 45759)
   unreachable
 }
 
@@ -23031,7 +23031,7 @@ valid:                                            ; preds = %entry
   ret void
 
 error:                                            ; preds = %entry
-  call void @tower_trap(ptr @105, i64 44728)
+  call void @tower_trap(ptr @105, i64 45759)
   unreachable
 }
 
@@ -23368,7 +23368,7 @@ valid:                                            ; preds = %entry
   br label %loop
 
 error:                                            ; preds = %entry
-  call void @tower_trap(ptr @106, i64 46831)
+  call void @tower_trap(ptr @106, i64 47862)
   unreachable
 
 loop:                                             ; preds = %if.end, %valid
@@ -23724,7 +23724,7 @@ valid3:                                           ; preds = %if.body
   br i1 %35, label %if.body4, label %if.else5
 
 error:                                            ; preds = %if.body
-  call void @tower_trap(ptr @107, i64 49695)
+  call void @tower_trap(ptr @107, i64 50726)
   unreachable
 
 if.body4:                                         ; preds = %valid3
@@ -23774,7 +23774,7 @@ valid7:                                           ; preds = %if.end6
   ret i64 %57
 
 error8:                                           ; preds = %if.end6
-  call void @tower_trap(ptr @108, i64 49695)
+  call void @tower_trap(ptr @108, i64 50726)
   unreachable
 
 if.body9:                                         ; preds = %if.end
@@ -24100,7 +24100,7 @@ valid36:                                          ; preds = %if.end35
   br label %loop
 
 error37:                                          ; preds = %if.end35
-  call void @tower_trap(ptr @109, i64 49695)
+  call void @tower_trap(ptr @109, i64 50726)
   unreachable
 
 loop:                                             ; preds = %valid43, %valid36
@@ -24174,7 +24174,7 @@ valid41:                                          ; preds = %if.end40
   br i1 true, label %valid43, label %error44
 
 error42:                                          ; preds = %if.end40
-  call void @tower_trap(ptr @110, i64 49695)
+  call void @tower_trap(ptr @110, i64 50726)
   unreachable
 
 valid43:                                          ; preds = %valid41
@@ -24186,7 +24186,7 @@ valid43:                                          ; preds = %valid41
   br label %loop
 
 error44:                                          ; preds = %valid41
-  call void @tower_trap(ptr @111, i64 49695)
+  call void @tower_trap(ptr @111, i64 50726)
   unreachable
 
 if.body45:                                        ; preds = %if.else28
@@ -24273,7 +24273,7 @@ valid54:                                          ; preds = %if.end53
   br label %loop56
 
 error55:                                          ; preds = %if.end53
-  call void @tower_trap(ptr @112, i64 49695)
+  call void @tower_trap(ptr @112, i64 50726)
   unreachable
 
 loop56:                                           ; preds = %valid61, %valid54
@@ -24338,7 +24338,7 @@ valid61:                                          ; preds = %if.end60
   br label %loop56
 
 error62:                                          ; preds = %if.end60
-  call void @tower_trap(ptr @113, i64 49695)
+  call void @tower_trap(ptr @113, i64 50726)
   unreachable
 
 if.body63:                                        ; preds = %loop.end57
@@ -24480,7 +24480,7 @@ valid80:                                          ; preds = %if.end79
   br label %loop75
 
 error81:                                          ; preds = %if.end79
-  call void @tower_trap(ptr @114, i64 49695)
+  call void @tower_trap(ptr @114, i64 50726)
   unreachable
 
 if.body82:                                        ; preds = %if.end74
@@ -24561,7 +24561,7 @@ valid87:                                          ; preds = %loop85
   br i1 %386, label %valid89, label %error90
 
 error88:                                          ; preds = %loop85
-  call void @tower_trap(ptr @115, i64 49695)
+  call void @tower_trap(ptr @115, i64 50726)
   unreachable
 
 valid89:                                          ; preds = %valid87
@@ -24587,7 +24587,7 @@ valid89:                                          ; preds = %valid87
   br i1 true, label %valid91, label %error92
 
 error90:                                          ; preds = %valid87
-  call void @tower_trap(ptr @116, i64 49695)
+  call void @tower_trap(ptr @116, i64 50726)
   unreachable
 
 valid91:                                          ; preds = %valid89
@@ -24611,7 +24611,7 @@ valid91:                                          ; preds = %valid89
   br i1 %408, label %if.body93, label %if.else94
 
 error92:                                          ; preds = %valid89
-  call void @tower_trap(ptr @117, i64 49695)
+  call void @tower_trap(ptr @117, i64 50726)
   unreachable
 
 if.body93:                                        ; preds = %valid91
@@ -24908,7 +24908,7 @@ valid10:                                          ; preds = %if.end9
   br i1 %70, label %valid11, label %error12
 
 error:                                            ; preds = %if.end9
-  call void @tower_trap(ptr @118, i64 49695)
+  call void @tower_trap(ptr @118, i64 50726)
   unreachable
 
 valid11:                                          ; preds = %valid10
@@ -24923,7 +24923,7 @@ valid11:                                          ; preds = %valid10
   br i1 %76, label %if.body13, label %if.else14
 
 error12:                                          ; preds = %valid10
-  call void @tower_trap(ptr @119, i64 49695)
+  call void @tower_trap(ptr @119, i64 50726)
   unreachable
 
 if.body13:                                        ; preds = %valid11
@@ -24955,7 +24955,7 @@ valid16:                                          ; preds = %if.end15
   br label %loop
 
 error17:                                          ; preds = %if.end15
-  call void @tower_trap(ptr @120, i64 49695)
+  call void @tower_trap(ptr @120, i64 50726)
   unreachable
 }
 
