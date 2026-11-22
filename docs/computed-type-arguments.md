@@ -62,11 +62,12 @@ isolated workers. The coordinator seals dependencies before demand, publishes
 results after joins and interns the resulting types. A nested explicit stage in
 a type argument depends on its own expression, rather than the unfinished body
 whose declaration needs that type.
-Local binding proofs are demanded per function and run through the shared worker
-dispatcher. Their receipts permit initializer snapshots and ordinary interpreter
-execution while the containing body is suspended. Nested explicit stages use the
-same inputs; untaken captures add no evaluation dependency. Cycles are diagnosed
-through the shared graph, without recursively completing queries on a worker.
+Executed capture reads demand shared lexical binding proofs, including module
+and generic-definition writes. Independent scans use the shared worker dispatcher;
+their joined receipts permit initializer snapshots while the containing body is
+suspended. Nested explicit stages use the same inputs; untaken captures add no
+evaluation dependency. Cycles are diagnosed through the shared graph, without
+recursively completing queries on a worker.
 
 Compiler/build sources must continue using predecessor-compatible syntax until
 a complete compatible bootstrap is published through the documented build path.

@@ -20,7 +20,6 @@ import semantic_type_values;
 import semantic_flow;
 import semantic_generic_body_work;
 import semantic_work_ids;
-import semantic_binding_proofs;
 import .library.vector;
 import .library.stack;
 import .library.work_graph;
@@ -1864,11 +1863,6 @@ fn sem_bodies_pump(c: SemanticContext*): SemanticPumpResult {
                 state.next++;
                 continue;
             }
-            var signature = sem_declaration_query(c, subject);
-            if signature != 0 && work_task(&c.queries, signature).state != WorkState.Succeeded {
-                state.next++;
-                continue;
-            }
             if generic_body_pending(c.generics, subject) {
                 break;
             }
@@ -1882,8 +1876,8 @@ fn sem_bodies_pump(c: SemanticContext*): SemanticPumpResult {
             progress = true;
             state.next++;
         }
-        // Advancing a bounded admission window is progress; rescanning an
-        // unresolved signature from its beginning is not.
+        // Register waiting headers once, retaining their receipts across pumps.
+        // Advancing a bounded admission window is progress.
         progress ||= state.next < c.program.functions.length && prepared == BodyPreparationWindow;
     }
     var batch = state.window.data;

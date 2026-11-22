@@ -45682,3 +45682,32 @@ operation consumers and migration of every type family remain open. Fixed vector
 still follow that work. All implementation/fixtures are Tower, the browser change
 only wires the Tower fixture into its existing execution transport, and todo.txt
 is unchanged. See docs/type-values.md for the current compatibility boundaries.
+
+### 2026-11-22: integrating early type execution with local-proof scheduling
+
+Rebased the checkpoint through ed691d9d, including ecc4333c's local binding
+proofs and its deferred-write, loop-shadow, explicit-stage and untaken-capture
+fixtures. Keeping both new proof pipelines exceeded the public predecessor's
+128 MiB component policy in the semantics test unit. Factoring the worker
+transport alone did not make that unit fit. The joined source-binding/capture
+path now supersedes the duplicate local-only proof components and preregistration:
+executed interpreter reads request the initializer and its proof. The shared scan
+retains lexical identities, module/generic writes, deferred and loop mutations,
+and conservative refusal for extension statements without binding contracts.
+Untaken captures still create no evaluation dependency. All upstream behavioral
+fixtures remain; only obsolete expectations that reject supported immutable
+module captures/helper calls were removed during the rebase.
+
+The typed worker dispatcher shares refill/join code through an explicitly selected
+CompilerKernel pointer. It does not cast a containing job to its first field,
+allocate pointer arrays or assume a component layout. Waiting body headers now
+register their receipts once, so later ready bodies can run without repeatedly
+rescanning blocked headers. Query tests use the retained pipeline/window API and
+explicit ordinary-body demand. Existing capture inputs are preserved when the
+later inferred-known-value analysis creates its own binding index.
+
+The public predecessor compiled the complete semantics_checks Tower unit after
+consolidation (build/type-objects-unified-unit.log). Scheduler, type and publication
+checks follow on frozen inputs; this records a compiler-unit result, not a completed
+release. The earlier dispatch-only attempt and memory failure are retained in
+build/type-objects-rebase-unit-full.log and build/type-objects-rebase-workers.log.

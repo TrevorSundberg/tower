@@ -12,7 +12,6 @@ import semantic_expressions;
 import interpreter_context_types;
 import compiler_kernel;
 import semantic_known_work;
-import semantic_binding_proofs;
 import semantic_work_ids;
 import .library.vector;
 import .library.work_graph;
@@ -48,17 +47,6 @@ fn sem_known_edges(pending: vector(void*)*, node: FoundationNode*): void {
     foreach(var item in &node.items) { sem_push(pending, item); }
 }
 
-// Nested explicit stages hide their executable expressions behind typed result
-// placeholders. Capture admission must inspect those expressions too, without
-// demanding them: an untaken stage still has no executed value dependency.
-fn sem_known_capture_edges(c: SemanticContext*, pending: vector(void*)*, subject: void*, node: FoundationNode*): void {
-    sem_known_edges(pending, node);
-    var dependency = sem_evaluation_dependency(c, subject);
-    if dependency != null {
-        var evaluation = sem_evaluation_get(c, dependency.subject);
-        if evaluation != null { sem_push(pending, evaluation.expression); }
-    }
-}
 
 fn sem_known_register(c: SemanticContext*, subject: void*, owner: void*, ordinal: usize): void {
     if !sem_known_candidate(subject) { return; }
@@ -66,8 +54,10 @@ fn sem_known_register(c: SemanticContext*, subject: void*, owner: void*, ordinal
     if c.known_bindings == null {
         c.known_bindings = sem_create(c.program.root);
         sem_require(entity_register(c.known_bindings, sizeof(SemanticKnownBinding), alignof(SemanticKnownBinding), 0));
-        c.value_inputs = sem_create(c.program.root);
-        sem_require(entity_register(c.value_inputs, sizeof(IMValueInput), alignof(IMValueInput), 0));
+        if c.value_inputs == null {
+            c.value_inputs = sem_create(c.program.root);
+            sem_require(entity_register(c.value_inputs, sizeof(IMValueInput), alignof(IMValueInput), 0));
+        }
     }
     var binding = bits(SemanticKnownBinding*, entity_component_data(entity_component_add(subject, c.known_bindings)));
     sem_require(binding != null);
@@ -78,7 +68,7 @@ fn sem_known_register(c: SemanticContext*, subject: void*, owner: void*, ordinal
     binding.ordered = true;
 }
 
-fn sem_known_stage(c: SemanticContext*, node: void*, binding: SemanticKnownBinding*, proof_query: usize): void {
+fn sem_known_stage(c: SemanticContext*, node: void*, binding: SemanticKnownBinding*): void {
     sem_evaluation_begin(c);
     var subject = sem_control_node(c, node, KOperand);
     var literal = sem_get(subject);
@@ -90,10 +80,8 @@ fn sem_known_stage(c: SemanticContext*, node: void*, binding: SemanticKnownBindi
     result.subject = subject;
     result.owner = binding.owner == null ? c.program.root : binding.owner;
     result.literal = subject;
-    result.requested = proof_query == 0;
+    result.requested = true;
     result.inferred = true;
-    result.proof_query = proof_query;
-    result.type_argument = proof_query != 0;
     result.ready = bits(IMDependency*, entity_component_data(entity_component_add(subject, c.evaluation_ready)));
     sem_require(result.ready != null);
     *result.ready = default;
@@ -113,36 +101,6 @@ fn sem_known_stage(c: SemanticContext*, node: void*, binding: SemanticKnownBindi
     c.surface_expressions = true;
 }
 
-// Register eligible captured producers without evaluating any arm. Executed
-// interpreter reads demand their values; merely mentioning a capture adds no
-// evaluation dependency or cycle. Clone receipts protect the borrowed sources.
-fn sem_known_captures(c: SemanticContext*, expression: void*): void {
-    if c.binding_proofs == null { return; }
-    var pending: vector(void*) = default;
-    defer vector_dispose(&pending);
-    var seen = sem_table(c);
-    sem_push(&pending, expression);
-    while pending.length != 0 {
-        var node = pending.data[--pending.length];
-        var entry = sem_state(c, seen, node);
-        if entry.number != 0 { continue; }
-        entry.number = 1;
-        var value = sem_get(node);
-        if value == null { continue; }
-        sem_known_capture_edges(c, &pending, node, value);
-        if value.kind != KOperand || value.constant || value.binding == null { continue; }
-        var declaration = value.binding;
-        var proof = bits(SemanticBindingProof*, entity_component_data(entity_component_get(declaration, c.binding_proofs)));
-        if proof == null || !proof.immutable || !sem_known_candidate(declaration) { continue; }
-        sem_require(work_task(&c.queries, proof.query).state == WorkState.Succeeded);
-        sem_known_register(c, declaration, proof.owner, 0);
-        var binding = sem_known_binding(c, declaration);
-        if binding.evaluation != null { continue; }
-        binding.input_query = proof.query;
-        sem_known_stage(c, declaration, binding, proof.query);
-        sem_push(&pending, sem_get(declaration).value);
-    }
-}
 
 // Reuse Foundation's declaration rule. The initializer's existing surface
 // expression metadata identifies Tower analysis without another var grammar or
@@ -259,7 +217,7 @@ fn sem_known_infer(c: SemanticContext*): void {
     foreach(var node in nodes) {
         var binding = sem_known_binding(c, node);
         if binding == null || binding.input_query == 0 { continue; }
-        if binding.evaluation == null { sem_known_stage(c, node, binding, 0); }
+        if binding.evaluation == null { sem_known_stage(c, node, binding); }
         else {
             var result = sem_evaluation_get(c, binding.evaluation);
             result.requested = true;

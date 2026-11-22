@@ -43,7 +43,6 @@ struct SemanticEvaluation {
     requested: bool;
     started: bool;
     inferred: bool;
-    proof_query: usize;
     type_argument: bool;
     capture_order: bool;
     capture_ordinal: usize;
@@ -138,10 +137,9 @@ fn sem_evaluation_request(c: SemanticContext*, result: SemanticEvaluation*): voi
     var preparation = work_request(&c.queries, result.subject, EvaluationPrepareQuery, 0);
     sem_require(preparation != 0 && work_depend(&c.queries, id, preparation));
     var body = work_find(&c.queries, result.owner, convert(u32, SemanticQuery.Body), 0);
-    if body != 0 && result.proof_query == 0 { sem_require(work_depend(&c.queries, preparation, body)); }
+    if body != 0 { sem_require(work_depend(&c.queries, preparation, body)); }
     if result.inferred {
-        var proof = result.proof_query != 0 ? result.proof_query
-            : work_find(&c.queries, c.program.root, convert(u32, SemanticQuery.KnownProof), 0);
+        var proof = work_find(&c.queries, c.program.root, convert(u32, SemanticQuery.KnownProof), 0);
         var clone = work_request(&c.queries, result.subject, convert(u32, SemanticQuery.KnownClone), 0);
         sem_require(proof != 0 && clone != 0 && work_depend(&c.queries, clone, proof));
         sem_require(work_depend(&c.queries, preparation, clone));

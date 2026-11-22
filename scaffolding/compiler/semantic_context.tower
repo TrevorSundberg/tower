@@ -133,8 +133,6 @@ struct SemanticContext {
     aggregate_preparations: void*;
     lowering_results: void*;
     known_bindings: void*;
-    binding_proofs: void*;
-    binding_work: void*;
     value_inputs: void*;
     body_demands: void*;
     body_pipeline: void*;

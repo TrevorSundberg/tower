@@ -10,7 +10,6 @@ import semantic_flow;
 import semantic_evaluation_work;
 import semantic_generic_body_work;
 import semantic_known_work;
-import semantic_binding_proofs;
 import semantic_execution_work;
 import interpreter_context_types;
 
@@ -64,10 +63,6 @@ export fn work_kernel_execute(payload: void*): void {
     }
     if kernel.kind == CompilerKernelKind.BodyDiscovery {
         semantic_body_sources_kernel(bits(SemanticBodyWork*, kernel.payload));
-        return;
-    }
-    if kernel.kind == CompilerKernelKind.BindingProof {
-        semantic_binding_kernel(bits(SemanticBindingWork*, kernel.payload));
         return;
     }
     if kernel.kind == CompilerKernelKind.LRState {

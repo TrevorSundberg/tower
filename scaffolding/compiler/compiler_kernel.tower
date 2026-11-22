@@ -2,7 +2,7 @@ import tower;
 import .library.work_pool;
 
 enum CompilerKernelKind: u32 {
-    Layout, Evaluate, Declaration, Lower, LRClosure, Body, LRState, Flow, LRAction, LRPropagation, LRFirst, PrepareEvaluation, DeclarationType, GenericBody, LRRuntime, CompileUnit, LRLink, KnownBinding, Iteration, BodyDiscovery, BindingProof, PrepareFunction
+    Layout, Evaluate, Declaration, Lower, LRClosure, Body, LRState, Flow, LRAction, LRPropagation, LRFirst, PrepareEvaluation, DeclarationType, GenericBody, LRRuntime, CompileUnit, LRLink, KnownBinding, Iteration, BodyDiscovery, PrepareFunction
 }
 
 struct CompilerKernel {

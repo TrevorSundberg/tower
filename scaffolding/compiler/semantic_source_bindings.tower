@@ -75,7 +75,22 @@ fn sem_source_bind(c: SemanticContext*, node: void*): void {
 fn sem_source_scan(c: SemanticContext*, job: SemanticKnownWork*, node: void*, depth: usize): void {
     if node == null { return; }
     if depth > SourceBindingDepthLimit { job.binding_incomplete = true; return; }
-    if sem_is(node, "Statement") { node = sem_unwrap(node); }
+    if sem_is(node, "Statement") {
+        node = sem_unwrap(node);
+        // Extension statements need an explicit binding/effect contract before
+        // they can establish early immutability. Preserve the local-proof
+        // admission rule even though global and local captures share this scan.
+        if !sem_is(node, "CoreBlock") && !sem_is(node, "CoreDeclare")
+            && !sem_is(node, "CoreIf") && !sem_is(node, "CoreLoop")
+            && !sem_is(node, "TowerWhile") && !sem_is(node, "TowerFor")
+            && !sem_is(node, "TowerForeach") && !sem_is(node, "TowerMatch")
+            && !sem_is(node, "TowerDefer") && !sem_is(node, "CoreAssign")
+            && !sem_is(node, "TowerExpressionStatement") && !sem_is(node, "CoreCallStatement")
+            && !sem_is(node, "CoreReturn") && !sem_is(node, "CoreBreak")
+            && !sem_is(node, "CoreContinue") {
+            job.binding_incomplete = true;
+        }
+    }
     if sem_is(node, "CoreFunction") || sem_is(node, "CoreExport") || sem_is(node, "CoreExternal") { return; }
     if sem_is(node, "CoreBlock") || sem_is(node, "TowerFor") || sem_is(node, "TowerForeach") {
         var previous = c.scope;

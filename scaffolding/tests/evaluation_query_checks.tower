@@ -64,12 +64,12 @@ fn body_query_tests(width: u32, workers: usize, mode: BodyQueryFixture): u32 {
         sem_require(work_seal(&context.queries, header));
         sem_require(vector_push(&headers, header));
     }
+    context.body_roots = true;
     evaluation_query_check(sem_bodies_pump(&context) == SemanticPumpResult.Progress,
         "Body admission persists its source frontier before checking", &failures);
-    var state = sem_body_pipeline(&context);
+    var state = sem_bodies_begin(&context);
     if mode == BodyQueryFixture.LaterWindow {
-        evaluation_query_check(sem_bodies_pump(&context) == SemanticPumpResult.Progress
-            && sem_bodies_pump(&context) == SemanticPumpResult.Progress,
+        evaluation_query_check(sem_bodies_pump(&context) == SemanticPumpResult.Progress,
             "A blocked source window admits later function producers", &failures);
     }
     if mode == BodyQueryFixture.Resume {
@@ -93,7 +93,7 @@ fn body_query_tests(width: u32, workers: usize, mode: BodyQueryFixture): u32 {
     }
     evaluation_query_check(sem_bodies_pump(&context) == SemanticPumpResult.Waiting
         && program.error.length == 0 && context.workers.running == 0
-        && state.batch.length == count,
+        && state.window.length == count,
         "Body checking yields without forcing headers or prematurely selecting a cycle", &failures);
     // This structural write also verifies that no input view survives the pump.
     var marker = sem_create(root);
@@ -142,7 +142,7 @@ fn body_query_tests(width: u32, workers: usize, mode: BodyQueryFixture): u32 {
             }
             evaluation_query_check(sem_bodies_pump(&context) == SemanticPumpResult.Complete
                 && sem_bodies_pump(&context) == SemanticPumpResult.Complete
-                && sem_body_pipeline(&context) == state && state.batch.length == 0,
+                && sem_bodies_begin(&context) == state && state.window.length == count,
                 "Completed body pipeline keeps its identity without replay", &failures);
         }
     } else {

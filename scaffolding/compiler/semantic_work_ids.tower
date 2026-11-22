@@ -14,7 +14,7 @@ enum SemanticQuery: u32 {
     Flow, EvaluationPrepare, BodyPrepare, GenericBody, KnownScan, KnownOrder,
     KnownPublish, KnownProof, AggregatePrepare, KnownClone, KnownInputs, Expression,
     ArrayType, TypeConstruction, IterationResolution, BodyDiscovery, IntegerArgument,
-    KnownSnapshot, BindingProof,
+    KnownSnapshot,
     ExecutableFunction, BodyInputs, SourceBindings, SourceBindingProof, CaptureInput,
     BodyPrefix, CheckedBinding
 }
