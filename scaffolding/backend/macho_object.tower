@@ -1,0 +1,130 @@
+import tower;
+import macho_types;
+import elf_types;
+import wasm_bytes;
+import .library.vector;
+import .library.bytes_interface;
+
+fn macho_object_dispose(object: MachoObject*): void {
+    vector_dispose(&object.sections); vector_dispose(&object.symbols); vector_dispose(&object.patches); vector_dispose(&object.fixups); vector_dispose(&object.data_ranges); bytes_dispose(&object.compact); *object = default;
+}
+fn macho_object_read(object: MachoObject*, cpu: MachoCpu, error: MachoDiagnostic*): bool {
+    var bytes = object.bytes;
+    if !elf_span(bytes, 0, MachoHeaderBytes) || elf_uint(bytes, 0, MachoWord) != MachoMagic
+        || elf_uint(bytes, convert(u64, MachoHeaderAt.Type), MachoWord) != MachoObjectKind {
+        return macho_fail(error, MachoError.Input, object.name, 0);
+    }
+    if elf_uint(bytes, convert(u64, MachoHeaderAt.Cpu), MachoWord) != convert(u64, cpu) {
+        return macho_fail(error, MachoError.Unsupported, object.name, convert(u64, MachoHeaderAt.Cpu));
+    }
+    var command_count = elf_uint(bytes, convert(u64, MachoHeaderAt.Commands), MachoWord);
+    var command_size = elf_uint(bytes, convert(u64, MachoHeaderAt.CommandBytes), MachoWord);
+    var at = MachoHeaderBytes; var end = at + command_size;
+    if !elf_span(bytes, at, command_size) { return macho_fail(error, MachoError.Input, object.name, at); }
+    var sym_at: u64 = 0; var sym_count: u64 = 0; var strings: WasmBytes = default; var have_symbols = false;
+    for (var command: u64 = 0; command < command_count; command++) {
+        if at > end || end - at < MachoAddress { return macho_fail(error, MachoError.Input, object.name, at); }
+        var kind = convert(MachoCommand, convert(u32, elf_uint(bytes, at, MachoWord)));
+        var size = elf_uint(bytes, at + MachoWord, MachoWord);
+        if size < MachoAddress || size > end - at || size % MachoAddress != 0 { return macho_fail(error, MachoError.Input, object.name, at); }
+        if kind == MachoCommand.Segment {
+            var count_at: u64 = 64;
+            if size < MachoSegmentBytes { return macho_fail(error, MachoError.Input, object.name, at); }
+            var count = elf_uint(bytes, at + count_at, MachoWord);
+            if count > (size - MachoSegmentBytes) / MachoSectionBytes || size != MachoSegmentBytes + count * MachoSectionBytes {
+                return macho_fail(error, MachoError.Input, object.name, at);
+            }
+            for (var index: u64 = 0; index < count; index++) {
+                var offset = at + MachoSegmentBytes + index * MachoSectionBytes;
+                var section: MachoSection = { name: macho_name(bytes, offset), segment: macho_name(bytes, offset + convert(u64, MachoSectionAt.Segment)),
+                    address: elf_uint(bytes, offset + convert(u64, MachoSectionAt.Address), MachoAddress),
+                    size: elf_uint(bytes, offset + convert(u64, MachoSectionAt.Size), MachoAddress),
+                    flags: convert(u32, elf_uint(bytes, offset + convert(u64, MachoSectionAt.Flags), MachoWord)), ..default };
+                var alignment = elf_uint(bytes, offset + convert(u64, MachoSectionAt.Align), MachoWord);
+                var data = elf_uint(bytes, offset + convert(u64, MachoSectionAt.Data), MachoWord);
+                var relocs = elf_uint(bytes, offset + convert(u64, MachoSectionAt.Relocations), MachoWord);
+                var reloc_count = elf_uint(bytes, offset + convert(u64, MachoSectionAt.RelocationCount), MachoWord);
+                var type = section.flags & MachoSectionTypeMask;
+                section.compact = wasm_bytes_text(section.name, "__compact_unwind") && wasm_bytes_text(section.segment, "__LD");
+                section.discarded = (section.flags & MachoDebugSection) != 0 && !section.compact;
+                if alignment > MachoMaxAlign || section.size > MachoImageLimit || section.address > ~convert(u64, 0) - section.size
+                    || !elf_span(bytes, relocs, reloc_count * MachoRelocBytes) { return macho_fail(error, MachoError.Input, object.name, offset); }
+                section.alignment = convert(u64, 1) << alignment;
+                if type != MachoZeroFill && type != MachoGbZeroFill {
+                    if !elf_span(bytes, data, section.size) { return macho_fail(error, MachoError.Input, object.name, data); }
+                    section.bytes = init(WasmBytes) { data: bytes.data + convert(usize, data), length: convert(usize, section.size) };
+                }
+                var regular: u32 = 0; var cstrings: u32 = 2; var literal4: u32 = 3; var literal8: u32 = 4; var coalesced: u32 = 11; var literal16: u32 = 14;
+                if !section.discarded && type != regular && type != MachoZeroFill && type != cstrings && type != literal4 && type != literal8
+                    && type != coalesced && type != MachoGbZeroFill && type != literal16 { return macho_fail(error, MachoError.Unsupported, section.name, offset); }
+                for (var relocation: u64 = 0; relocation < reloc_count; relocation++) {
+                    var record = relocs + relocation * MachoRelocBytes;
+                    var place = elf_uint(bytes, record, MachoWord); var info = convert(u32, elf_uint(bytes, record + MachoWord, MachoWord));
+                    var patch: MachoPatch = { section: object.sections.length, offset: place, symbol: info & MachoRelocSymbolMask,
+                        kind: info >> MachoRelocTypeShift, width: convert(u64, 1) << convert(u64, (info >> MachoRelocLengthShift) & MachoRelocLengthMask),
+                        external: ((info >> MachoRelocExternShift) & 1) != 0, relative: ((info >> MachoRelocPcShift) & 1) != 0 };
+                    if place >= MachoScattered || place > section.size || patch.width > section.size - place || section.bytes.length == 0 {
+                        return macho_fail(error, MachoError.Input, object.name, record);
+                    }
+                    if !vector_push(&object.patches, patch) { return false; }
+                }
+                if !vector_push(&object.sections, section) { return false; }
+            }
+        } else { if kind == MachoCommand.Symbols {
+            var symbol_command_bytes: u64 = 24; var string_at: u64 = 16; var string_size_at: u64 = 20; var symbol_count_at: u64 = 12;
+            if size != symbol_command_bytes || have_symbols { return macho_fail(error, MachoError.Input, object.name, at); }
+            have_symbols = true; sym_at = elf_uint(bytes, at + MachoAddress, MachoWord); sym_count = elf_uint(bytes, at + symbol_count_at, MachoWord);
+            var start = elf_uint(bytes, at + string_at, MachoWord); var length = elf_uint(bytes, at + string_size_at, MachoWord);
+            if !elf_span(bytes, sym_at, sym_count * MachoSymbolBytes) || !elf_span(bytes, start, length) { return macho_fail(error, MachoError.Input, object.name, at); }
+            strings = init(WasmBytes) { data: bytes.data + convert(usize, start), length: convert(usize, length) };
+        } else { if kind == MachoCommand.DataInCode {
+            var record_command: u64 = 16; var size_at: u64 = 12; var maximum_kind: u64 = 5;
+            if size != record_command { return macho_fail(error, MachoError.Input, object.name, at); }
+            var start = elf_uint(bytes, at + MachoAddress, MachoWord); var length = elf_uint(bytes, at + size_at, MachoWord);
+            if length % MachoAddress != 0 || !elf_span(bytes, start, length) { return macho_fail(error, MachoError.Input, object.name, at); }
+            for (var entry: u64 = 0; entry < length; entry += MachoAddress) {
+                var range: MachoDataRange = { file: elf_uint(bytes, start + entry, MachoWord), length: elf_uint(bytes, start + entry + MachoWord, MachoHalf), kind: elf_uint(bytes, start + entry + MachoWord + MachoHalf, MachoHalf) };
+                if range.kind == 0 || range.kind > maximum_kind || !elf_span(bytes, range.file, range.length) { return macho_fail(error, MachoError.Input, object.name, start + entry); }
+                if !vector_push(&object.data_ranges, range) { return false; }
+            }
+        } else { if kind == MachoCommand.OptimizationHint {
+            var hint_command: u64 = 16; var hint_size_at: u64 = 12;
+            if size != hint_command { return macho_fail(error, MachoError.Input, object.name, at); }
+            var start = elf_uint(bytes, at + MachoAddress, MachoWord); var length = elf_uint(bytes, at + hint_size_at, MachoWord);
+            if !elf_span(bytes, start, length) { return macho_fail(error, MachoError.Input, object.name, at); }
+            // These explicitly optional instruction-relaxation hints do not
+            // change the input instructions' semantics. Keep the valid sequence.
+        } else { if kind != MachoCommand.Build && kind != MachoCommand.Version && kind != MachoCommand.DynamicSymbols {
+            // Data-in-code, linker options and unfamiliar semantic commands need
+            // explicit handling; silently dropping one can change execution.
+            return macho_fail(error, MachoError.Unsupported, object.name, at);
+        } } } } }
+        at += size;
+    }
+    if at != end || !have_symbols { return macho_fail(error, MachoError.Input, object.name, at); }
+    for (var index: u64 = 0; index < sym_count; index++) {
+        var offset = sym_at + index * MachoSymbolBytes;
+        var symbol: MachoSymbol = { kind: convert(u8, elf_uint(bytes, offset + convert(u64, MachoSymbolAt.Type), 1)),
+            section: convert(u8, elf_uint(bytes, offset + convert(u64, MachoSymbolAt.Section), 1)),
+            description: convert(u16, elf_uint(bytes, offset + convert(u64, MachoSymbolAt.Description), MachoHalf)),
+            value: elf_uint(bytes, offset + convert(u64, MachoSymbolAt.Value), MachoAddress), got: MachoNoIndex, thunk: MachoNoIndex, ..default };
+        if !elf_text(strings, elf_uint(bytes, offset, MachoWord), &symbol.name) { return macho_fail(error, MachoError.Input, object.name, offset); }
+        var kind = symbol.kind & MachoTypeMask;
+        if (symbol.kind & MachoDebug) == 0 {
+            if kind != MachoUndefined && kind != MachoAbsolute && kind != MachoDefined { return macho_fail(error, MachoError.Unsupported, symbol.name, offset); }
+            if kind == MachoDefined {
+                if symbol.section == 0 || convert(usize, symbol.section) > object.sections.length { return macho_fail(error, MachoError.Input, symbol.name, offset); }
+                var section = &object.sections.data[convert(usize, symbol.section) - 1];
+                if symbol.value < section.address || symbol.value - section.address > section.size { return macho_fail(error, MachoError.Input, symbol.name, offset); }
+            } else { if symbol.section != 0 { return macho_fail(error, MachoError.Input, symbol.name, offset); } }
+        }
+        if !vector_push(&object.symbols, symbol) { return false; }
+    }
+    foreach (var & patch in &object.patches) {
+        if cpu == MachoCpu.Arm64 && patch.kind == convert(u32, MachoArmReloc.Addend) { continue; }
+        if patch.external ? convert(usize, patch.symbol) >= object.symbols.length : (patch.symbol == 0 || convert(usize, patch.symbol) > object.sections.length) {
+            return macho_fail(error, MachoError.Input, object.name, patch.offset);
+        }
+    }
+    return true;
+}

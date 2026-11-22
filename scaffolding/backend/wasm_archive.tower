@@ -133,25 +133,31 @@ fn wasm_archive_read_profile(archive: WasmArchive*, bytes: WasmBytes, coff: bool
                     if member.name.length != 0 && member.name.data[member.name.length - 1] == 47 { member.name.length--; }
                 }
             }
-            // BSD symbol-table variants require their own indexed-reader path.
             if wasm_bytes_text(member.name, "__.SYMDEF") || wasm_bytes_text(member.name, "__.SYMDEF SORTED")
-                || wasm_bytes_text(member.name, "__.SYMDEF_64") { wasm_read_fail(&reader, WasmReadError.Unsupported); break; }
+                || wasm_bytes_text(member.name, "__.SYMDEF_64") || wasm_bytes_text(member.name, "__.SYMDEF_64 SORTED") { member.special = true; }
         }
     }
     if reader.error == WasmReadError.None {
         var coff_second = false;
         foreach (var & member in &archive.members) {
+            var bsd = wasm_bytes_text(member.name, "__.SYMDEF") || wasm_bytes_text(member.name, "__.SYMDEF SORTED")
+                || wasm_bytes_text(member.name, "__.SYMDEF_64") || wasm_bytes_text(member.name, "__.SYMDEF_64 SORTED");
             var width: usize = wasm_bytes_text(member.name, "/") ? 4 : 8;
-            if !wasm_bytes_text(member.name, "/") && !wasm_bytes_text(member.name, "/SYM64/") { continue; }
+            if !bsd && !wasm_bytes_text(member.name, "/") && !wasm_bytes_text(member.name, "/SYM64/") { continue; }
             var sub: WasmReader = { bytes: member.bytes, ..default };
-            if archive.indexed {
+            if bsd {
+                if archive.indexed { wasm_read_fail(&reader, WasmReadError.Duplicate); break; }
+                archive.indexed = true;
+                var wide = wasm_bytes_text(member.name, "__.SYMDEF_64") || wasm_bytes_text(member.name, "__.SYMDEF_64 SORTED");
+                wasm_archive_bsd_symbols(archive, &sub, wide ? 8 : 4);
+            } else { if archive.indexed {
                 if !coff || coff_second || !wasm_bytes_text(member.name, "/") { wasm_read_fail(&reader, WasmReadError.Duplicate); break; }
                 coff_second = true;
                 wasm_archive_coff_second(archive, &sub);
             } else {
                 archive.indexed = true;
                 wasm_archive_symbols(archive, &sub, width);
-            }
+            } }
             if sub.error != WasmReadError.None {
                 reader.error = sub.error; reader.error_offset = member.header_offset + WasmArchiveHeaderBytes + sub.error_offset; break;
             }
@@ -193,3 +199,29 @@ fn wasm_archive_coff_second(archive: WasmArchive*, reader: WasmReader*): void {
 }
 fn wasm_archive_read(archive: WasmArchive*, bytes: WasmBytes): bool { return wasm_archive_read_profile(archive, bytes, false); }
 fn wasm_archive_read_coff(archive: WasmArchive*, bytes: WasmBytes): bool { return wasm_archive_read_profile(archive, bytes, true); }
+
+// Darwin ranlib tables use little-endian pairs (string offset, ar header offset).
+// BSD extended member names have already been removed from each payload above.
+fn wasm_archive_bsd_symbols(archive: WasmArchive*, reader: WasmReader*, width: usize): void {
+    var pair_bytes = width * 2;
+    var table_bytes = wasm_archive_coff_integer(reader, width);
+    if table_bytes % convert(u64, pair_bytes) != 0 || table_bytes > convert(u64, reader.bytes.length - reader.at) {
+        wasm_read_fail(reader, WasmReadError.Truncated); return;
+    }
+    var pairs: WasmReader = { bytes: wasm_read_bytes(reader, convert(usize, table_bytes)), ..default };
+    var string_bytes = wasm_archive_coff_integer(reader, width);
+    if string_bytes > convert(u64, reader.bytes.length - reader.at) { wasm_read_fail(reader, WasmReadError.Truncated); return; }
+    var strings = wasm_read_bytes(reader, convert(usize, string_bytes));
+    while pairs.at < pairs.bytes.length && reader.error == WasmReadError.None {
+        var string_at = wasm_archive_coff_integer(&pairs, width); var member_at = wasm_archive_coff_integer(&pairs, width);
+        if string_at >= convert(u64, strings.length) || member_at > convert(u64, ~convert(usize, 0)) { wasm_read_fail(reader, WasmReadError.Index); return; }
+        var index = wasm_archive_header_member(archive, convert(usize, member_at));
+        if index == archive.members.length || archive.members.data[index].special { wasm_read_fail(reader, WasmReadError.Index); return; }
+        var begin = convert(usize, string_at); var end = begin;
+        while end < strings.length && strings.data[end] != 0 { end++; }
+        if end == strings.length || end == begin { wasm_read_fail(reader, WasmReadError.Encoding); return; }
+        var symbol: WasmArchiveSymbol = { name: { data: strings.data + begin, length: end - begin }, member: index };
+        if !vector_push(&archive.symbols, symbol) { wasm_read_fail(reader, WasmReadError.Allocation); return; }
+    }
+    while reader.at < reader.bytes.length { if wasm_read_byte(reader) != 0 { wasm_read_fail(reader, WasmReadError.Encoding); return; } }
+}

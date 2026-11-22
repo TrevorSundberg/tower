@@ -1,0 +1,65 @@
+import tower;
+import macho_types;
+import macho_relocate;
+import .library.vector;
+import .library.entity_api;
+import .library.work_graph;
+import .library.work_pool;
+
+struct MachoLinkJob { link: MachoLink*; object: MachoObject*; ticket: WorkTicket; error: MachoDiagnostic; }
+var MachoInputDomain: u64 = 1;
+var MachoOutputDomain: u64 = 2;
+var MachoJobDomain: u64 = 3;
+var MachoWorkComponent: u64 = 1;
+var MachoPatchQuery: u32 = 1;
+fn macho_job_execute(payload: void*): void {
+    var job = bits(MachoLinkJob*, payload);
+    if !macho_patch_object(job.link, job.object, &job.error) && job.error.kind == MachoError.None { job.error.kind = MachoError.Allocation; }
+}
+fn macho_jobs(link: MachoLink*): bool {
+    var pool: WorkPool = default;
+    if !work_pool_open_kernel(&pool, link.workers, macho_job_execute) { return false; }
+    defer work_pool_close(&pool);
+    var graph: WorkGraph = default; work_init(&graph, 1, 1); defer work_dispose(&graph);
+    var kind = entity_create(link.store); if kind == null { return false; }
+    defer entity_release(kind);
+    if !entity_register(kind, sizeof(MachoLinkJob), alignof(MachoLinkJob), 0) { return false; }
+    var nodes: vector(Entity*) = default; var jobs: vector(MachoLinkJob*) = default;
+    defer { foreach (var node in &nodes) { entity_release(node); } vector_dispose(&nodes); vector_dispose(&jobs); }
+    for (var at: usize = 0; at < link.objects.length; at++) {
+        var node = entity_create(link.store); if node == null { return false; }
+        if !vector_push(&nodes, node) { entity_release(node); return false; }
+        var component = entity_component_add(node, kind); if component == null { return false; }
+        var job = bits(MachoLinkJob*, entity_component_data(component));
+        *job = init(MachoLinkJob) { link: link, object: link.objects.data[at].object, ..default };
+        if !vector_push(&jobs, job) { return false; }
+        var task = work_request(&graph, bits(void*, node), MachoPatchQuery, convert(u64, at));
+        if task == 0 || !work_access(&graph, task, MachoInputDomain, MachoWorkComponent, 0, link.objects.length, WorkAccessMode.Read)
+            || !work_access(&graph, task, MachoJobDomain, MachoWorkComponent, at, 1, WorkAccessMode.Write) { return false; }
+        // The job domain owns this object's compact-unwind and fixup scratch;
+        // the input domain covers only frozen bytes, symbols and layout.
+        foreach (var & section in &job.object.sections) {
+            if !section.discarded && !section.compact && section.size != 0
+                && !work_access(&graph, task, MachoOutputDomain, MachoWorkComponent, convert(usize, section.file), convert(usize, section.size), WorkAccessMode.Write) { return false; }
+        }
+        if !work_seal(&graph, task) || !work_demand(&graph, task) { return false; }
+    }
+    var view = entity_view_open(kind); if view == null { return false; }
+    defer { while pool.running != 0 { work_pool_receive(&pool, true); } entity_view_close(view); }
+    var completed: usize = 0;
+    while completed < jobs.length {
+        if link.cancel != null && link.cancel(link.cancel_context) { work_cancel(&graph); return macho_fail(&link.error, MachoError.Cancelled, default(WasmBytes), 0); }
+        while pool.running < pool.count {
+            var ticket: WorkTicket = default; if !work_take(&graph, &ticket) { break; }
+            var job = jobs.data[convert(usize, work_task(&graph, ticket.task).argument)]; job.ticket = ticket;
+            if !work_pool_submit(&pool, bits(void*, job)) { return false; }
+        }
+        if pool.running == 0 { return false; }
+        var done = bits(MachoLinkJob*, work_pool_receive(&pool, true));
+        if !work_finish(&graph, &done.ticket, true) { return false; }
+        completed++;
+    }
+    link.jobs_run = jobs.length; link.jobs_peak = pool.peak;
+    foreach (var job in &jobs) { if job.error.kind != MachoError.None { link.error = job.error; return false; } }
+    return true;
+}

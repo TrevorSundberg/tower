@@ -1,0 +1,120 @@
+import tower;
+import macho_types;
+import elf_types;
+import elf_relocate;
+import .library.vector;
+
+fn macho_extend(value: u64, width: u64): u64 {
+    var bits_count: u64 = 64; var shift = bits_count - width;
+    return bits(u64, bits(i64, value << shift) >> convert(i64, shift));
+}
+fn macho_referent(object: MachoObject*, patch: MachoPatch): MachoSymbol* {
+    return patch.external ? object.symbols.data[convert(usize, patch.symbol)].resolved : null;
+}
+fn macho_target(object: MachoObject*, patch: MachoPatch): u64 {
+    if patch.external { var symbol = macho_referent(object, patch); return symbol == null ? 0 : symbol.va; }
+    var section = &object.sections.data[convert(usize, patch.symbol) - 1]; return section.va - section.address;
+}
+fn macho_arm_instruction(data: u8*, offset: u64, kind: u32, value: u64, pc: u64): bool {
+    var bytes: WasmBytes = { data: data + convert(usize, offset), length: convert(usize, MachoWord) };
+    var instruction = elf_uint(bytes, 0, MachoWord);
+    var branch_mask: u64 = 67108863; var branch_opcode_mask: u64 = 2080374784; var branch_opcode: u64 = 335544320;
+    var page_mask: u64 = 4095; var page_bits: u64 = 12;
+    var adrp_mask: u64 = 2667577344; var adrp_opcode: u64 = 2415919104; var adrp_keep: u64 = 2667577375;
+    var imm_low: u64 = 3; var imm_low_shift: u64 = 29; var imm_high_mask: u64 = 524287; var imm_high_shift: u64 = 5;
+    var imm12_mask: u64 = 4193280; var imm12_shift: u64 = 10;
+    if kind == convert(u32, MachoArmReloc.Branch) {
+        var delta = value - pc; var branch_bits: u64 = 28;
+        if (instruction & branch_opcode_mask) != branch_opcode || (delta & 3) != 0 || !elf_signed(delta, branch_bits) { return false; }
+        instruction = (instruction & ~branch_mask) | ((delta >> 2) & branch_mask);
+    } else { if kind == convert(u32, MachoArmReloc.Page) || kind == convert(u32, MachoArmReloc.GotPage) {
+        var delta = (value & ~page_mask) - (pc & ~page_mask); var page_range: u64 = 33;
+        if (instruction & adrp_mask) != adrp_opcode || !elf_signed(delta, page_range) { return false; }
+        var immediate = delta >> page_bits;
+        instruction = (instruction & adrp_keep) | ((immediate & imm_low) << imm_low_shift) | (((immediate >> 2) & imm_high_mask) << imm_high_shift);
+    } else {
+        var load_mask: u64 = 989855744; var load_opcode: u64 = 956301312; var add_mask: u64 = 2134900736; var add_opcode: u64 = 285212672;
+        var scale_shift: u64 = 30; var vector_bit: u64 = 67108864; var vector_size: u64 = 8388608;
+        var scale: u64 = 0;
+        if (instruction & load_mask) == load_opcode {
+            scale = instruction >> scale_shift;
+            if scale == 0 && (instruction & vector_bit) != 0 && (instruction & vector_size) != 0 { scale = 4; }
+        } else { if (instruction & add_mask) != add_opcode { return false; } }
+        var immediate = value & page_mask;
+        if (immediate & ((convert(u64, 1) << scale) - 1)) != 0 { return false; }
+        instruction = (instruction & ~imm12_mask) | ((immediate >> scale) << imm12_shift);
+    } }
+    elf_put(data, offset, MachoWord, instruction); return true;
+}
+fn macho_patch_object(link: MachoLink*, object: MachoObject*, error: MachoDiagnostic*): bool {
+    foreach (var & section in &object.sections) {
+        if section.discarded { continue; }
+        if section.bytes.length != 0 { copy(section.destination, section.bytes.data, section.bytes.length); }
+    }
+    for (var index: usize = 0; index < object.patches.length; index++) {
+        var patch = object.patches.data[index]; var section = &object.sections.data[patch.section];
+        if section.discarded { continue; }
+        var paired: u64 = 0;
+        if link.cpu == MachoCpu.Arm64 && patch.kind == convert(u32, MachoArmReloc.Addend) {
+            var addend_bits: u64 = 24;
+            if patch.external || patch.relative || patch.width != MachoWord || ++index == object.patches.length { return macho_fail(error, MachoError.Input, section.name, patch.offset); }
+            paired = macho_extend(convert(u64, patch.symbol), addend_bits); var next = object.patches.data[index];
+            if next.section != patch.section || next.offset != patch.offset || (next.kind != convert(u32, MachoArmReloc.Branch)
+                && next.kind != convert(u32, MachoArmReloc.Page) && next.kind != convert(u32, MachoArmReloc.PageOffset)) { return macho_fail(error, MachoError.Input, section.name, patch.offset); }
+            patch = next;
+        }
+        var data = section.destination; var pc = section.va + patch.offset;
+        var original = elf_uint(section.bytes, patch.offset, patch.width);
+        var symbol = macho_referent(object, patch); var target = macho_target(object, patch);
+        var subtract = patch.kind == (link.cpu == MachoCpu.X64 ? convert(u32, MachoX64Reloc.Subtract) : convert(u32, MachoArmReloc.Subtract));
+        if subtract {
+            if !patch.external || patch.relative || (patch.width != MachoWord && patch.width != MachoAddress) || ++index == object.patches.length || symbol == null || symbol.imported { return macho_fail(error, MachoError.Unsupported, section.name, patch.offset); }
+            var next = object.patches.data[index]; var other = macho_referent(object, next);
+            if next.section != patch.section || next.offset != patch.offset || next.kind != 0 || next.width != patch.width || next.relative || (other != null && other.imported) { return macho_fail(error, MachoError.Input, section.name, patch.offset); }
+            var result = original + macho_target(object, next) - target;
+            if patch.width == MachoWord && !elf_signed(macho_extend(original, MachoWord * MachoByteBits) + macho_target(object, next) - target, MachoWord * MachoByteBits) { return macho_fail(error, MachoError.Range, section.name, patch.offset); }
+            elf_put(data, patch.offset, patch.width, result); continue;
+        }
+        if patch.kind == 0 {
+            if patch.relative || (patch.width != MachoWord && patch.width != MachoAddress) { return macho_fail(error, MachoError.Input, section.name, patch.offset); }
+            var value = original + target;
+            if symbol != null && symbol.imported { value = 0; }
+            if patch.width == MachoWord && value > elf_mask(MachoWord * MachoByteBits) { return macho_fail(error, MachoError.Range, section.name, patch.offset); }
+            elf_put(data, patch.offset, patch.width, value);
+            if !section.compact && (symbol == null ? !patch.external : (symbol.kind & MachoTypeMask) != MachoAbsolute) {
+                if patch.width != MachoAddress { return macho_fail(error, MachoError.Unsupported, section.name, patch.offset); }
+                var fixup: MachoFixup = { file: section.file + patch.offset, symbol: symbol != null && symbol.imported ? symbol : null, addend: original };
+                if !vector_push(&object.fixups, fixup) { return false; }
+            }
+            continue;
+        }
+        var got = link.cpu == MachoCpu.X64 ? (patch.kind == convert(u32, MachoX64Reloc.Got) || patch.kind == convert(u32, MachoX64Reloc.GotLoad))
+            : (patch.kind == convert(u32, MachoArmReloc.GotPage) || patch.kind == convert(u32, MachoArmReloc.GotOffset) || patch.kind == convert(u32, MachoArmReloc.PointerToGot));
+        if got {
+            if symbol == null || symbol.got == MachoNoIndex || !patch.external { return macho_fail(error, MachoError.Input, section.name, patch.offset); }
+            target = link.sections.data[link.got_section].va + convert(u64, symbol.got) * MachoAddress;
+        }
+        if link.cpu == MachoCpu.X64 {
+            if !patch.relative || patch.width != MachoWord || patch.kind > convert(u32, MachoX64Reloc.Signed4) { return macho_fail(error, MachoError.Unsupported, section.name, patch.offset); }
+            var extra: u64 = 0;
+            if patch.kind >= convert(u32, MachoX64Reloc.Signed1) { extra = convert(u64, 1) << convert(u64, patch.kind - convert(u32, MachoX64Reloc.Signed1)); }
+            var addend = macho_extend(original, MachoWord * MachoByteBits) + extra;
+            if !patch.external { addend += section.address + patch.offset + MachoWord; }
+            var value = target + addend - pc - MachoWord - extra;
+            if !elf_signed(value, MachoWord * MachoByteBits) { return macho_fail(error, MachoError.Range, section.name, patch.offset); }
+            elf_put(data, patch.offset, patch.width, value);
+        } else {
+            if !patch.external || patch.width != MachoWord || patch.kind > convert(u32, MachoArmReloc.PointerToGot) { return macho_fail(error, MachoError.Unsupported, section.name, patch.offset); }
+            var relative = patch.kind != convert(u32, MachoArmReloc.PageOffset) && patch.kind != convert(u32, MachoArmReloc.GotOffset);
+            if patch.relative != relative { return macho_fail(error, MachoError.Input, section.name, patch.offset); }
+            if patch.kind == convert(u32, MachoArmReloc.PointerToGot) {
+                var value = target + macho_extend(original, MachoWord * MachoByteBits) - pc;
+                if !elf_signed(value, MachoWord * MachoByteBits) { return macho_fail(error, MachoError.Range, section.name, patch.offset); }
+                elf_put(data, patch.offset, MachoWord, value);
+            } else {
+                if !macho_arm_instruction(data, patch.offset, patch.kind, target + paired, pc) { return macho_fail(error, MachoError.Range, section.name, patch.offset); }
+            }
+        }
+    }
+    return true;
+}

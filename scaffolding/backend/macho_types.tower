@@ -1,0 +1,117 @@
+import tower;
+import wasm_bytes;
+import wasm_names;
+import wasm_archive;
+import elf_types;
+import .library.vector;
+import .library.bytes_types;
+import .library.entity_types;
+
+// Physical object metadata belongs to one link request; Foundation remains the
+// only program graph. Names and input spans borrow the caller until close.
+enum MachoError: u32 { None, Input, Unsupported, Allocation, Duplicate, Undefined, Range, Cancelled }
+enum MachoCpu: u32 { X64 = 16777223, Arm64 = 16777228 }
+enum MachoCommand: u32 { Segment = 25, Symbols = 2, DynamicSymbols = 11, Build = 50, Version = 36, DataInCode = 41, LinkerOptions = 45, OptimizationHint = 46, Dylib = 12, Dyld = 14, Main = 2147483688, DyldInfo = 2147483682, Signature = 29, Uuid = 27 }
+enum MachoHeaderAt: u64 { Cpu = 4, Subtype = 8, Type = 12, Commands = 16, CommandBytes = 20, Flags = 24 }
+enum MachoSectionAt: u64 { Segment = 16, Address = 32, Size = 40, Data = 48, Align = 52, Relocations = 56, RelocationCount = 60, Flags = 64 }
+enum MachoSymbolAt: u64 { Type = 4, Section = 5, Description = 6, Value = 8 }
+enum MachoX64Reloc: u32 { Unsigned, Signed, Branch, GotLoad, Got, Subtract, Signed1, Signed2, Signed4, Tlv }
+enum MachoArmReloc: u32 { Unsigned, Subtract, Branch, Page, PageOffset, GotPage, GotOffset, PointerToGot, TlvPage, TlvOffset, Addend, Authenticated }
+var MachoMagic: u64 = 4277009103;
+var MachoObjectKind: u64 = 1;
+var MachoExecutableKind: u64 = 2;
+var MachoHeaderBytes: u64 = 32;
+var MachoSegmentBytes: u64 = 72;
+var MachoSectionBytes: u64 = 80;
+var MachoSymbolBytes: u64 = 16;
+var MachoRelocBytes: u64 = 8;
+var MachoWord: u64 = 4;
+var MachoHalf: u64 = 2;
+var MachoAddress: u64 = 8;
+var MachoNameBytes: u64 = 16;
+var MachoByteBits: u64 = 8;
+var MachoNoIndex: u32 = ~convert(u32, 0);
+var MachoTypeMask: u8 = 14;
+var MachoExternal: u8 = 1;
+var MachoPrivate: u8 = 16;
+var MachoDebug: u8 = 224;
+var MachoUndefined: u8 = 0;
+var MachoAbsolute: u8 = 2;
+var MachoDefined: u8 = 14;
+var MachoWeakReference: u16 = 64;
+var MachoWeakDefinition: u16 = 128;
+var MachoSectionTypeMask: u32 = 255;
+var MachoZeroFill: u32 = 1;
+var MachoGbZeroFill: u32 = 12;
+var MachoDebugSection: u32 = 33554432;
+var MachoInstructions: u32 = 2147484672;
+var MachoImageBase: u64 = 4294967296;
+var MachoImageLimit: u64 = 2147483648;
+var MachoX64Page: u64 = 4096;
+var MachoArmPage: u64 = 16384;
+var MachoUnwindEntryBytes: u64 = 32;
+var MachoRelocSymbolMask: u32 = 16777215;
+var MachoRelocPcShift: u32 = 24;
+var MachoRelocLengthShift: u32 = 25;
+var MachoRelocExternShift: u32 = 27;
+var MachoRelocTypeShift: u32 = 28;
+var MachoRelocLengthMask: u32 = 3;
+var MachoScattered: u64 = 2147483648;
+var MachoMaxAlign: u64 = 20;
+
+struct MachoSection {
+    name: WasmBytes; segment: WasmBytes; bytes: WasmBytes; address: u64;
+    size: u64; alignment: u64; flags: u32; discarded: bool; compact: bool;
+    output_index: usize; offset: u64; va: u64; file: u64; destination: u8*;
+}
+struct MachoSymbol {
+    name: WasmBytes; value: u64; kind: u8; section: u8; description: u16;
+    object: usize; resolved: MachoSymbol*; va: u64; imported: bool; dylib: u32;
+    got: u32; thunk: u32; output_index: u32;
+}
+struct MachoPatch { section: usize; offset: u64; symbol: u32; kind: u32; width: u64; external: bool; relative: bool; }
+struct MachoFixup { file: u64; symbol: MachoSymbol*; addend: u64; }
+struct MachoDataRange { file: u64; length: u64; kind: u64; }
+struct MachoObject { name: WasmBytes; bytes: WasmBytes; sections: vector(MachoSection); symbols: vector(MachoSymbol); patches: vector(MachoPatch); compact: ByteBuffer; fixups: vector(MachoFixup); data_ranges: vector(MachoDataRange); }
+struct MachoObjectEntry { node: Entity*; object: MachoObject*; }
+struct MachoArchive { name: WasmBytes; archive: WasmArchive; selected: vector(bool); }
+struct MachoArchiveEntry { node: Entity*; archive: MachoArchive*; }
+struct MachoDylib { name: WasmBytes; symbols: vector(MachoSymbol); ordinal: u32; }
+struct MachoDylibEntry { node: Entity*; dylib: MachoDylib*; }
+struct MachoOutputSection { name: WasmBytes; segment: WasmBytes; size: u64; alignment: u64; flags: u32; va: u64; file: u64; ordinal: u64; }
+struct MachoDiagnostic { kind: MachoError; name: WasmBytes; offset: u64; }
+struct MachoLink {
+    store: EntityStore*; object_type: Entity*; archive_type: Entity*; dylib_type: Entity*;
+    objects: vector(MachoObjectEntry); archives: vector(MachoArchiveEntry); dylibs: vector(MachoDylibEntry);
+    names: WasmNameMap; globals: vector(MachoSymbol*); imports: vector(MachoSymbol*); got: vector(MachoSymbol*);
+    sections: vector(MachoOutputSection); output: ByteBuffer; error: MachoDiagnostic;
+    cpu: MachoCpu; entry: WasmBytes; started: bool; workers: usize; jobs_run: usize; jobs_peak: usize;
+    cancel: function(bool, void*); cancel_context: void*;
+    page: u64; text_size: u64; data_size: u64; linkedit: u64; headers: u64;
+    stub_section: usize; got_section: usize; common_section: usize; unwind_section: usize;
+    rebase: ByteBuffer; bind: ByteBuffer; exports: ByteBuffer; strings: ByteBuffer; symbols: ByteBuffer; data_in_code: ByteBuffer;
+    signature_at: u64; signature_size: u64;
+}
+fn macho_fail(error: MachoDiagnostic*, kind: MachoError, name: WasmBytes, offset: u64): bool {
+    if error.kind == MachoError.None { *error = init(MachoDiagnostic) { kind: kind, name: name, offset: offset }; }
+    return false;
+}
+fn macho_message(kind: MachoError): u8* {
+    match kind {
+        MachoError.Input => { return "invalid Mach-O input"; }
+        MachoError.Unsupported => { return "unsupported Mach-O profile"; }
+        MachoError.Allocation => { return "Mach-O linker allocation failed"; }
+        MachoError.Duplicate => { return "duplicate Mach-O symbol"; }
+        MachoError.Undefined => { return "undefined Mach-O symbol"; }
+        MachoError.Range => { return "Mach-O layout or relocation out of range"; }
+        MachoError.Cancelled => { return "Mach-O link cancelled"; }
+        _ => { return "Mach-O link failed"; }
+    }
+}
+fn macho_name(bytes: WasmBytes, at: u64): WasmBytes {
+    var result: WasmBytes = { data: bytes.data + convert(usize, at), ..default };
+    while convert(u64, result.length) < MachoNameBytes && result.data[result.length] != 0 { result.length++; }
+    return result;
+}
+fn macho_defined(symbol: MachoSymbol*): bool { return (symbol.kind & MachoTypeMask) != MachoUndefined || symbol.value != 0 || symbol.imported; }
+fn macho_external(symbol: MachoSymbol*): bool { return (symbol.kind & MachoExternal) != 0 && (symbol.kind & MachoDebug) == 0; }

@@ -1,0 +1,61 @@
+import tower;
+import utility_checks;
+import .backend.macho_types;
+import .backend.macho_world;
+import .backend.macho_link;
+import .backend.wasm_bytes;
+import .library.bytes;
+import .library.bytes_types;
+import .library.vector;
+import .library.entities;
+import .library.entity_types;
+import .host.work_linux;
+import .host.work_dispatch;
+
+extern fn fopen(path: u8*, mode: u8*): void*;
+extern fn fclose(file: void*): i32;
+extern fn fseek(file: void*, offset: i64, mode: i32): i32;
+extern fn ftell(file: void*): i64;
+extern fn fread(data: u8*, size: usize, count: usize, file: void*): usize;
+extern fn fwrite(data: u8*, size: usize, count: usize, file: void*): usize;
+export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, data: u8*): void { abort(); }
+export fn work_kernel_execute(job: void*): void { abort(); }
+
+fn macho_test_file(path: u8*, data: ByteBuffer*): bool {
+    var file = fopen(path, "rb"); if file == null { return false; } defer fclose(file);
+    var file_end: i32 = 2;
+    if fseek(file, 0, file_end) != 0 { return false; }
+    var length = ftell(file);
+    if length < 0 || convert(u64, length) > convert(u64, ~convert(usize, 0)) || fseek(file, 0, 0) != 0 { return false; }
+    if !bytes_reserve(data, convert(usize, length)) { return false; }
+    data.length = convert(usize, length); return fread(data.data, 1, data.length, file) == data.length;
+}
+export fn main(argc: i32, argv: u8**): i32 {
+    var imports: u8* = "--- !tapi-tbd\ntbd-version: 4\ntargets: [ x86_64-macos, arm64-macos ]\ninstall-name: '/usr/lib/libSystem.B.dylib'\ncurrent-version: 1\ncompatibility-version: 1\nexports:\n  - targets: [ x86_64-macos ]\n    symbols: [ ___bzero, _bzero, _backtrace ]\n  - targets: [ arm64-macos ]\n    symbols: [ _bzero, _backtrace ]\n...\n";
+    if argc == 3 && wasm_bytes_text(wasm_text_bytes(argv[2]), "--imports") {
+        var bytes = wasm_text_bytes(imports); var file = fopen(argv[1], "wb"); utility_check(file != null, "TBD output");
+        var written = fwrite(bytes.data, 1, bytes.length, file); utility_check(fclose(file) == 0 && written == bytes.length, "TBD write"); return 0;
+    }
+    var first_input: i32 = 4;
+    if argc <= first_input { puts("usage: macho_link_driver output x64|arm64 workers object-or-archive-or-tbd ..."); return 1; }
+    var inputs: vector(ByteBuffer) = default;
+    defer { foreach (var & buffer in &inputs) { bytes_dispose(buffer); } vector_dispose(&inputs); }
+    var link: MachoLink = default; defer macho_link_close(&link);
+    var cpu = wasm_bytes_text(wasm_text_bytes(argv[2]), "x64") ? MachoCpu.X64 : MachoCpu.Arm64;
+    utility_check(macho_link_open(&link, cpu), "Mach-O world"); link.workers = convert(usize, *argv[3] - *"0");
+    for (var at = first_input; at < argc; at++) {
+        var buffer: ByteBuffer = default;
+        utility_check(macho_test_file(argv[at], &buffer), "Mach-O input read"); utility_check(vector_push(&inputs, buffer), "Mach-O input ownership");
+    }
+    for (var at: usize = 0; at < inputs.length; at++) {
+        if !macho_link_input(&link, wasm_text_bytes(argv[first_input + convert(i32, at)]), init(WasmBytes) { data: inputs.data[at].data, length: inputs.data[at].length }) { break; }
+    }
+    if !macho_link_run(&link) {
+        puts(macho_message(link.error.kind)); var message: ByteBuffer = default; defer bytes_dispose(&message);
+        bytes_assign_text(&message, link.error.name.data, link.error.name.length); puts(message.data); print(link.error.offset); return 1;
+    }
+    var file = fopen(argv[1], "wb"); utility_check(file != null, "Mach-O output open");
+    var written = fwrite(link.output.data, 1, link.output.length, file);
+    utility_check(fclose(file) == 0 && written == link.output.length, "Mach-O output write");
+    puts("Tower Mach-O image linked"); print(link.jobs_run); print(link.jobs_peak); return 0;
+}

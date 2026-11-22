@@ -1,0 +1,20 @@
+import tower;
+import macho_types;
+import macho_symbols;
+import macho_layout;
+import macho_jobs;
+import macho_unwind;
+import macho_metadata;
+import macho_emit;
+import .library.work_pool;
+
+fn macho_link_run(link: MachoLink*): bool {
+    link.output.length = 0;
+    if link.store == null || link.started || link.workers == 0 || link.workers > WorkPoolMaximumCapacity { return macho_fail(&link.error, MachoError.Input, link.entry, 0); }
+    link.started = true;
+    if link.error.kind == MachoError.None && macho_symbols(link) && macho_layout(link) && macho_jobs(link)
+        && macho_unwind(link) && macho_metadata(link) && macho_emit(link) { return true; }
+    link.output.length = 0;
+    if link.error.kind == MachoError.None { macho_fail(&link.error, MachoError.Allocation, default(WasmBytes), 0); }
+    return false;
+}

@@ -1,0 +1,131 @@
+import tower;
+import macho_types;
+import macho_layout;
+import macho_relocate;
+import elf_types;
+import elf_relocate;
+import wasm_bytes;
+import .library.vector;
+
+struct MachoUnwind { address: u64; end: u64; encoding: u64; fde: u64; }
+fn macho_unwind_heap(values: vector(MachoUnwind)*, root: usize, count: usize): void {
+    var at = root;
+    while at < count / 2 {
+        var child = at * 2 + 1;
+        if child + 1 < count && values.data[child].address < values.data[child + 1].address { child++; }
+        if values.data[at].address >= values.data[child].address { break; }
+        var swap = values.data[at]; values.data[at] = values.data[child]; values.data[child] = swap; at = child;
+    }
+}
+fn macho_unwind_sort(values: vector(MachoUnwind)*): void {
+    var at = values.length / 2;
+    while at != 0 { macho_unwind_heap(values, --at, values.length); }
+    var end = values.length;
+    while end > 1 { end--; var swap = values.data[0]; values.data[0] = values.data[end]; values.data[end] = swap; macho_unwind_heap(values, 0, end); }
+}
+fn macho_cie_width(bytes: WasmBytes, at: u64): u64 {
+    var cie_header: u64 = 8; var version_at = at + cie_header;
+    if !elf_span(bytes, at, cie_header + 1) || elf_uint(bytes, at + MachoWord, MachoWord) != 0 { return 0; }
+    var version = bytes.data[convert(usize, version_at)];
+    if version != 1 { return 0; }
+    var augmentation: WasmBytes = default;
+    if !elf_text(bytes, version_at + 1, &augmentation) || !wasm_bytes_text(augmentation, "zR") { return 0; }
+    var reader: WasmReader = { bytes: bytes, at: convert(usize, version_at + 1) + augmentation.length + 1, ..default };
+    var leb_width: u64 = 64;
+    wasm_read_uleb(&reader, leb_width); wasm_read_sleb(&reader, leb_width); wasm_read_byte(&reader);
+    if wasm_read_uleb(&reader, leb_width) != 1 { return 0; }
+    var encoding = wasm_read_byte(&reader);
+    if reader.error != WasmReadError.None { return 0; }
+    var pc_pointer: u8 = 16; var pc_signed4: u8 = 27; var pc_signed8: u8 = 28;
+    return encoding == pc_pointer || encoding == pc_signed8 ? MachoAddress : (encoding == pc_signed4 ? MachoWord : 0);
+}
+fn macho_eh_frames(link: MachoLink*, object: MachoObject*, frames: vector(MachoUnwind)*): bool {
+    foreach (var & section in &object.sections) {
+        if !wasm_bytes_text(section.name, "__eh_frame") || section.discarded { continue; }
+        var data: WasmBytes = { data: section.destination, length: convert(usize, section.size) };
+        var at: u64 = 0;
+        while at < section.size {
+            if !elf_span(data, at, MachoWord) { return macho_fail(&link.error, MachoError.Input, section.name, at); }
+            var size = elf_uint(data, at, MachoWord);
+            if size == 0 { at += MachoWord; continue; }
+            if size < MachoWord || !elf_span(data, at + MachoWord, size) { return macho_fail(&link.error, MachoError.Input, section.name, at); }
+            var cie = elf_uint(data, at + MachoWord, MachoWord);
+            if cie != 0 {
+                if cie > at + MachoWord { return macho_fail(&link.error, MachoError.Input, section.name, at); }
+                var width = macho_cie_width(data, at + MachoWord - cie); var field = at + MachoAddress;
+                if width == 0 || size < MachoWord + width * 2 { return macho_fail(&link.error, MachoError.Unsupported, section.name, at); }
+                var explicit = false;
+                foreach (var & patch in &object.patches) { if &object.sections.data[patch.section] == section && patch.offset == field { explicit = true; break; } }
+                var delta = macho_extend(elf_uint(data, field, width), width * MachoByteBits);
+                var address = section.va + field + delta;
+                if !explicit {
+                    var original = section.address + field + delta; var found = false;
+                    foreach (var & code in &object.sections) {
+                        if !code.discarded && !code.compact && original >= code.address && original - code.address < code.size {
+                            address = code.va + original - code.address; found = true; break;
+                        }
+                    }
+                    if !found { return macho_fail(&link.error, MachoError.Input, section.name, field); }
+                    delta = address - section.va - field;
+                    if width == MachoWord && !elf_signed(delta, width * MachoByteBits) { return macho_fail(&link.error, MachoError.Range, section.name, field); }
+                    elf_put(section.destination, field, width, delta);
+                }
+                var frame: MachoUnwind = { address: address, end: address + elf_uint(data, field + width, width), fde: section.offset + at, ..default };
+                if !vector_push(frames, frame) { return false; }
+            }
+            at += MachoWord + size;
+        }
+    }
+    return true;
+}
+fn macho_unwind(link: MachoLink*): bool {
+    var entries: vector(MachoUnwind) = default; var frames: vector(MachoUnwind) = default;
+    defer vector_dispose(&entries); defer vector_dispose(&frames);
+    foreach (var & object in &link.objects) {
+        if !macho_eh_frames(link, object.object, &frames) { return false; }
+        var bytes: WasmBytes = { data: object.object.compact.data, length: object.object.compact.length };
+        var length_at: u64 = 8; var encoding_at: u64 = 12; var personality_at: u64 = 16; var lsda_at: u64 = 24;
+        for (var at: u64 = 0; at < convert(u64, bytes.length); at += MachoUnwindEntryBytes) {
+            var entry: MachoUnwind = { address: elf_uint(bytes, at, MachoAddress), encoding: elf_uint(bytes, at + encoding_at, MachoWord), ..default };
+            entry.end = entry.address + elf_uint(bytes, at + length_at, MachoWord);
+            if elf_uint(bytes, at + personality_at, MachoAddress) != 0 || elf_uint(bytes, at + lsda_at, MachoAddress) != 0 {
+                return macho_fail(&link.error, MachoError.Unsupported, object.object.name, at);
+            }
+            if entry.address < MachoImageBase || entry.end < entry.address || entry.end >= MachoImageBase + link.text_size { return macho_fail(&link.error, MachoError.Input, object.object.name, at); }
+            if !vector_push(&entries, entry) { return false; }
+        }
+    }
+    macho_unwind_sort(&entries); macho_unwind_sort(&frames);
+    var mode_mask: u64 = 251658240; var dwarf = link.cpu == MachoCpu.X64 ? convert(u64, 67108864) : convert(u64, 50331648); var fde_mask: u64 = 16777215;
+    var frame_index: usize = 0;
+    foreach (var & entry in &entries) {
+        if (entry.encoding & mode_mask) != dwarf { continue; }
+        while frame_index < frames.length && frames.data[frame_index].address < entry.address { frame_index++; }
+        if frame_index == frames.length || frames.data[frame_index].address != entry.address || frames.data[frame_index].fde > fde_mask {
+            return macho_fail(&link.error, MachoError.Input, wasm_text_bytes("__eh_frame"), entry.address);
+        }
+        entry.encoding = (entry.encoding & ~fde_mask) | frames.data[frame_index].fde;
+    }
+    var output = &link.sections.data[link.unwind_section]; var data = link.output.data + convert(usize, output.file);
+    var count = convert(u64, entries.length); var pages = (count + MachoUnwindPageEntries - 1) / MachoUnwindPageEntries;
+    var common_offset_at: u64 = 4; var personality_offset_at: u64 = 12; var index_offset_at: u64 = 20; var index_count_at: u64 = 24;
+    elf_put(data, 0, MachoWord, 1); elf_put(data, common_offset_at, MachoWord, MachoUnwindHeaderBytes);
+    elf_put(data, personality_offset_at, MachoWord, MachoUnwindHeaderBytes); elf_put(data, index_offset_at, MachoWord, MachoUnwindHeaderBytes);
+    elf_put(data, index_count_at, MachoWord, pages + 1);
+    var cursor = MachoUnwindHeaderBytes + (pages + 1) * MachoUnwindIndexBytes;
+    for (var page: u64 = 0; page < pages; page++) {
+        var first = page * MachoUnwindPageEntries; var size = count - first; if size > MachoUnwindPageEntries { size = MachoUnwindPageEntries; }
+        var index_at = MachoUnwindHeaderBytes + page * MachoUnwindIndexBytes; var regular_page: u64 = 2;
+        elf_put(data, index_at, MachoWord, entries.data[convert(usize, first)].address - MachoImageBase);
+        elf_put(data, index_at + MachoWord, MachoWord, cursor);
+        elf_put(data, cursor, MachoWord, regular_page); elf_put(data, cursor + MachoWord, MachoHalf, MachoUnwindPageHeaderBytes);
+        elf_put(data, cursor + MachoWord + MachoHalf, MachoHalf, size); cursor += MachoUnwindPageHeaderBytes;
+        for (var item: u64 = 0; item < size; item++) {
+            var entry = &entries.data[convert(usize, first + item)];
+            elf_put(data, cursor, MachoWord, entry.address - MachoImageBase); elf_put(data, cursor + MachoWord, MachoWord, entry.encoding); cursor += MachoAddress;
+        }
+    }
+    var sentinel = count == 0 ? 0 : entries.data[entries.length - 1].end - MachoImageBase;
+    elf_put(data, MachoUnwindHeaderBytes + pages * MachoUnwindIndexBytes, MachoWord, sentinel);
+    return cursor <= output.size;
+}

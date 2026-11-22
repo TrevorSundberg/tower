@@ -1,0 +1,113 @@
+import tower;
+import macho_types;
+import elf_types;
+import wasm_bytes;
+import .library.vector;
+import .library.bytes_interface;
+
+var MachoX64StubBytes: u64 = 6;
+var MachoArmStubBytes: u64 = 12;
+var MachoUnwindPageEntries: u64 = 511;
+var MachoUnwindHeaderBytes: u64 = 28;
+var MachoUnwindIndexBytes: u64 = 12;
+var MachoUnwindPageHeaderBytes: u64 = 8;
+fn macho_stub_size(cpu: MachoCpu): u64 { return cpu == MachoCpu.X64 ? MachoX64StubBytes : MachoArmStubBytes; }
+fn macho_section(link: MachoLink*, name: WasmBytes, segment: WasmBytes, flags: u32, alignment: u64): usize {
+    for (var index: usize = 0; index < link.sections.length; index++) {
+        var section = &link.sections.data[index];
+        if wasm_bytes_equal(section.name, name) && wasm_bytes_equal(section.segment, segment) {
+            if section.flags != flags { macho_fail(&link.error, MachoError.Unsupported, name, 0); return link.sections.length; }
+            if alignment > section.alignment { section.alignment = alignment; } return index;
+        }
+    }
+    var section: MachoOutputSection = { name: name, segment: segment, flags: flags, alignment: alignment, ..default };
+    if !vector_push(&link.sections, section) { return link.sections.length; }
+    return link.sections.length - 1;
+}
+fn macho_layout(link: MachoLink*): bool {
+    var compact_count: u64 = 0;
+    foreach (var & entry in &link.objects) {
+        var compact_size: u64 = 0;
+        foreach (var & section in &entry.object.sections) {
+            if section.discarded { continue; }
+            if section.compact {
+                if section.size % MachoUnwindEntryBytes != 0 { return macho_fail(&link.error, MachoError.Input, section.name, 0); }
+                section.offset = compact_size; compact_size += section.size; compact_count += section.size / MachoUnwindEntryBytes; continue;
+            }
+            var segment = wasm_text_bytes(wasm_bytes_text(section.segment, "__TEXT") ? "__TEXT" : "__DATA");
+            var flags = section.flags;
+            var coalesced: u32 = 11;
+            if (flags & MachoSectionTypeMask) == MachoZeroFill || (flags & MachoSectionTypeMask) == MachoGbZeroFill || (flags & MachoSectionTypeMask) == coalesced { flags &= ~MachoSectionTypeMask; }
+            var index = macho_section(link, section.name, segment, flags, section.alignment);
+            if index == link.sections.length { return false; }
+            section.output_index = index; var output = &link.sections.data[index];
+            section.offset = elf_align(output.size, section.alignment); output.size = section.offset + section.size;
+            if output.size > MachoImageLimit { return macho_fail(&link.error, MachoError.Range, section.name, 0); }
+        }
+        if !bytes_reserve(&entry.object.compact, convert(usize, compact_size)) { return false; }
+        entry.object.compact.length = convert(usize, compact_size);
+    }
+    var stub_flags: u32 = 2147484680; var pointer_flags: u32 = 6;
+    link.stub_section = macho_section(link, wasm_text_bytes("__stubs"), wasm_text_bytes("__TEXT"), stub_flags, MachoWord);
+    link.unwind_section = macho_section(link, wasm_text_bytes("__unwind_info"), wasm_text_bytes("__TEXT"), 0, MachoWord);
+    link.got_section = macho_section(link, wasm_text_bytes("__got"), wasm_text_bytes("__DATA"), pointer_flags, MachoAddress);
+    link.common_section = macho_section(link, wasm_text_bytes("__common"), wasm_text_bytes("__DATA"), 0, MachoAddress);
+    if link.error.kind != MachoError.None || link.common_section == link.sections.length { return false; }
+    link.sections.data[link.stub_section].size = convert(u64, link.imports.length) * macho_stub_size(link.cpu);
+    link.sections.data[link.got_section].size = convert(u64, link.got.length) * MachoAddress;
+    var pages = (compact_count + MachoUnwindPageEntries - 1) / MachoUnwindPageEntries;
+    link.sections.data[link.unwind_section].size = MachoUnwindHeaderBytes + (pages + 1) * MachoUnwindIndexBytes
+        + pages * MachoUnwindPageHeaderBytes + compact_count * MachoAddress;
+    foreach (var & pointer in &link.globals) {
+        var symbol = *pointer;
+        if symbol.imported || (symbol.kind & MachoTypeMask) != MachoUndefined { continue; }
+        var align_shift: u16 = 8; var align_mask: u16 = 15;
+        var alignment = convert(u64, 1) << convert(u64, (symbol.description >> align_shift) & align_mask);
+        var common = &link.sections.data[link.common_section]; symbol.va = elf_align(common.size, alignment); common.size = symbol.va + symbol.value;
+        if alignment > common.alignment { common.alignment = alignment; }
+    }
+    // Four segments, explicit dyld/symbol/entry/build/signature commands. Headers
+    // are part of executable __TEXT, including all section descriptors.
+    var segment_count: u64 = 4; var fixed_commands: u64 = 264;
+    var commands = segment_count * MachoSegmentBytes + convert(u64, link.sections.length) * MachoSectionBytes + fixed_commands;
+    var seen: u32 = 0; var dylib_header: u64 = 24;
+    foreach (var & entry in &link.dylibs) {
+        if entry.dylib.ordinal > seen { seen = entry.dylib.ordinal; commands += elf_align(dylib_header + convert(u64, entry.dylib.name.length) + 1, MachoAddress); }
+    }
+    link.headers = MachoHeaderBytes + commands;
+    var cursor = link.headers; var section_ordinal: u64 = 0;
+    foreach (var & section in &link.sections) {
+        if !wasm_bytes_text(section.segment, "__TEXT") { continue; }
+        cursor = elf_align(cursor, section.alignment); section.file = cursor; section.va = MachoImageBase + cursor; cursor += section.size; section.ordinal = ++section_ordinal;
+    }
+    link.text_size = elf_align(cursor, link.page); cursor = link.text_size;
+    foreach (var & section in &link.sections) {
+        if !wasm_bytes_text(section.segment, "__DATA") { continue; }
+        cursor = elf_align(cursor, section.alignment); section.file = cursor; section.va = MachoImageBase + cursor; cursor += section.size; section.ordinal = ++section_ordinal;
+    }
+    link.data_size = elf_align(cursor - link.text_size, link.page); link.linkedit = link.text_size + link.data_size;
+    if link.linkedit > MachoImageLimit || !bytes_reserve(&link.output, convert(usize, link.linkedit)) { return false; }
+    link.output.length = convert(usize, link.linkedit); fill(link.output.data, 0, link.output.length);
+    foreach (var & entry in &link.objects) {
+        foreach (var & section in &entry.object.sections) {
+            if section.discarded { continue; }
+            if section.compact { section.destination = entry.object.compact.data + convert(usize, section.offset); }
+            else {
+                var output = &link.sections.data[section.output_index]; section.va = output.va + section.offset; section.file = output.file + section.offset;
+                section.destination = link.output.data + convert(usize, section.file);
+            }
+        }
+        foreach (var & symbol in &entry.object.symbols) {
+            var kind = symbol.kind & MachoTypeMask;
+            if kind == MachoDefined && (symbol.kind & MachoDebug) == 0 {
+                var section = &entry.object.sections.data[convert(usize, symbol.section) - 1]; symbol.va = section.va + symbol.value - section.address;
+            } else { if kind == MachoAbsolute { symbol.va = symbol.value; } }
+        }
+    }
+    foreach (var & pointer in &link.globals) {
+        var symbol = *pointer;
+        if !symbol.imported && (symbol.kind & MachoTypeMask) == MachoUndefined { symbol.va += link.sections.data[link.common_section].va; }
+    }
+    foreach (var symbol in &link.imports) { symbol.va = link.sections.data[link.stub_section].va + convert(u64, symbol.thunk) * macho_stub_size(link.cpu); }
+    return true;
+}

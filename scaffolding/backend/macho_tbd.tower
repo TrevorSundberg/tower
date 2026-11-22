@@ -1,0 +1,73 @@
+import tower;
+import macho_types;
+import wasm_bytes;
+import .library.vector;
+
+struct MachoTbdReader { bytes: WasmBytes; at: usize; failed: bool; }
+fn macho_tbd_token(reader: MachoTbdReader*): WasmBytes {
+    var space: u8 = 32; var newline: u8 = 10; var carriage: u8 = 13; var tab: u8 = 9; var hash: u8 = 35;
+    while reader.at < reader.bytes.length {
+        var ch = reader.bytes.data[reader.at];
+        if ch == hash { while reader.at < reader.bytes.length && reader.bytes.data[reader.at] != newline { reader.at++; } }
+        else { if ch == space || ch == newline || ch == carriage || ch == tab { reader.at++; }
+        else { break; } }
+    }
+    var begin = reader.at;
+    if begin == reader.bytes.length { return default(WasmBytes); }
+    var ch = reader.bytes.data[reader.at++];
+    if ch == *"'" || ch == *"\"" {
+        begin++;
+        while reader.at < reader.bytes.length && reader.bytes.data[reader.at] != ch { reader.at++; }
+        var result: WasmBytes = { data: reader.bytes.data + begin, length: reader.at - begin };
+        if reader.at == reader.bytes.length { reader.failed = true; } else { reader.at++; }
+        return result;
+    }
+    if ch != *":" && ch != *"[" && ch != *"]" && ch != *"," {
+        while reader.at < reader.bytes.length {
+            ch = reader.bytes.data[reader.at];
+            if ch <= space || ch == *":" || ch == *"[" || ch == *"]" || ch == *"," || ch == hash { break; }
+            reader.at++;
+        }
+    }
+    return init(WasmBytes) { data: reader.bytes.data + begin, length: reader.at - begin };
+}
+fn macho_tbd_read(dylib: MachoDylib*, bytes: WasmBytes, cpu: MachoCpu, error: MachoDiagnostic*): bool {
+    var reader: MachoTbdReader = { bytes: bytes, ..default };
+    var version = false; var supported = false; var selected = false; var exporting = false; var have_name = false;
+    while reader.at < bytes.length && !reader.failed {
+        var key = macho_tbd_token(&reader);
+        if key.length == 0 { break; }
+        if wasm_bytes_text(key, "---") || wasm_bytes_text(key, "!tapi-tbd") || wasm_bytes_text(key, "...") || wasm_bytes_text(key, "-") { continue; }
+        if !wasm_bytes_text(macho_tbd_token(&reader), ":") { reader.failed = true; break; }
+        if wasm_bytes_text(key, "exports") { exporting = true; selected = false; continue; }
+        var value = macho_tbd_token(&reader);
+        if wasm_bytes_text(key, "targets") {
+            if !wasm_bytes_text(value, "[") { reader.failed = true; break; }
+            selected = false;
+            while true {
+                var target = macho_tbd_token(&reader);
+                if target.length == 0 { reader.failed = true; break; }
+                if wasm_bytes_text(target, "]") { break; }
+                if wasm_bytes_text(target, cpu == MachoCpu.X64 ? "x86_64-macos" : "arm64-macos") { selected = true; }
+            }
+            if !exporting { supported = selected; }
+        } else { if wasm_bytes_text(key, "symbols") || wasm_bytes_text(key, "weak-symbols") {
+            if !exporting || !wasm_bytes_text(value, "[") { reader.failed = true; break; }
+            while true {
+                var name = macho_tbd_token(&reader);
+                if name.length == 0 { reader.failed = true; break; }
+                if wasm_bytes_text(name, "]") { break; }
+                if wasm_bytes_text(name, ",") || !selected { continue; }
+                var symbol: MachoSymbol = { name: name, kind: MachoExternal, imported: true, got: MachoNoIndex, thunk: MachoNoIndex, ..default };
+                if !vector_push(&dylib.symbols, symbol) { return false; }
+            }
+        } else { if wasm_bytes_text(key, "install-name") {
+            if have_name || value.length == 0 || exporting { reader.failed = true; break; }
+            dylib.name = value; have_name = true;
+        } else { if wasm_bytes_text(key, "tbd-version") { version = wasm_bytes_text(value, "4"); }
+        else { if !wasm_bytes_text(key, "current-version") && !wasm_bytes_text(key, "compatibility-version") {
+            return macho_fail(error, MachoError.Unsupported, key, convert(u64, reader.at));
+        } } } } }
+    }
+    return (!reader.failed && have_name && version && supported) || macho_fail(error, MachoError.Input, dylib.name, convert(u64, reader.at));
+}

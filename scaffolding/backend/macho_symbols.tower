@@ -1,0 +1,112 @@
+import tower;
+import macho_types;
+import macho_world;
+import wasm_names;
+import wasm_bytes;
+import .library.vector;
+
+fn macho_lookup(link: MachoLink*, name: WasmBytes): MachoSymbol* {
+    var index = wasm_names_get(&link.names, name);
+    return index == MachoNoIndex ? null : link.globals.data[convert(usize, index)];
+}
+fn macho_publish_symbol(link: MachoLink*, symbol: MachoSymbol*): bool {
+    if link.globals.length >= convert(usize, MachoNoIndex) || !wasm_names_set(&link.names, symbol.name, convert(u32, link.globals.length)) { return false; }
+    return vector_push(&link.globals, symbol);
+}
+fn macho_index_object(link: MachoLink*, object: MachoObject*, pending: vector(WasmBytes)*): bool {
+    foreach (var & symbol in &object.symbols) {
+        if !macho_external(symbol) { continue; }
+        if !macho_defined(symbol) { if !vector_push(pending, symbol.name) { return false; } continue; }
+        var prior = macho_lookup(link, symbol.name);
+        if prior == null { if !macho_publish_symbol(link, symbol) { return false; } continue; }
+        var common = (symbol.kind & MachoTypeMask) == MachoUndefined;
+        var prior_common = (prior.kind & MachoTypeMask) == MachoUndefined;
+        if common {
+            if prior_common { if symbol.value > prior.value { prior.value = symbol.value; } if symbol.description > prior.description { prior.description = symbol.description; } }
+            continue;
+        }
+        if prior_common || (prior.description & MachoWeakDefinition) != 0 {
+            link.globals.data[convert(usize, wasm_names_get(&link.names, symbol.name))] = symbol; continue;
+        }
+        if (symbol.description & MachoWeakDefinition) == 0 { return macho_fail(&link.error, MachoError.Duplicate, symbol.name, 0); }
+    }
+    return true;
+}
+struct MachoArchiveCandidate { archive: usize; member: usize; next: u32; tail: u32; }
+fn macho_symbols(link: MachoLink*): bool {
+    var names: WasmNameMap = default; var candidates: vector(MachoArchiveCandidate) = default; var pending: vector(WasmBytes) = default;
+    var providers: WasmNameMap = default; var exports: vector(MachoSymbol*) = default;
+    defer wasm_names_dispose(&names); defer vector_dispose(&candidates); defer vector_dispose(&pending);
+    defer wasm_names_dispose(&providers); defer vector_dispose(&exports);
+    for (var index: usize = 0; index < link.archives.length; index++) {
+        foreach (var & symbol in &link.archives.data[index].archive.archive.symbols) {
+            if candidates.length >= convert(usize, MachoNoIndex) { return false; }
+            var next = convert(u32, candidates.length); var first = wasm_names_get(&names, symbol.name);
+            var candidate: MachoArchiveCandidate = { archive: index, member: symbol.member, next: MachoNoIndex, tail: next };
+            if !vector_push(&candidates, candidate) { return false; }
+            if first == MachoNoIndex { if !wasm_names_set(&names, symbol.name, next) { return false; } }
+            else { var head = &candidates.data[convert(usize, first)]; candidates.data[convert(usize, head.tail)].next = next; head.tail = next; }
+        }
+    }
+    var ordinal: u32 = 0;
+    for (var index: usize = 0; index < link.dylibs.length; index++) {
+        var dylib = link.dylibs.data[index].dylib;
+        for (var previous: usize = 0; previous < index; previous++) {
+            if wasm_bytes_equal(link.dylibs.data[previous].dylib.name, dylib.name) { dylib.ordinal = link.dylibs.data[previous].dylib.ordinal; break; }
+        }
+        if dylib.ordinal == 0 { dylib.ordinal = ++ordinal; }
+        foreach (var & symbol in &dylib.symbols) {
+            symbol.dylib = dylib.ordinal;
+            if wasm_names_get(&providers, symbol.name) == MachoNoIndex {
+                if exports.length >= convert(usize, MachoNoIndex) || !wasm_names_set(&providers, symbol.name, convert(u32, exports.length)) || !vector_push(&exports, symbol) { return false; }
+            }
+        }
+    }
+    foreach (var & entry in &link.objects) { if !macho_index_object(link, entry.object, &pending) { return false; } }
+    if !vector_push(&pending, link.entry) { return false; }
+    for (var demand: usize = 0; demand < pending.length; demand++) {
+        var name = pending.data[demand]; if macho_lookup(link, name) != null { continue; }
+        var next = wasm_names_get(&names, name);
+        while next != MachoNoIndex && macho_lookup(link, name) == null {
+            var candidate = candidates.data[convert(usize, next)]; next = candidate.next;
+            var archive = link.archives.data[candidate.archive].archive;
+            if archive.selected.data[candidate.member] { continue; }
+            archive.selected.data[candidate.member] = true;
+            var member = &archive.archive.members.data[candidate.member];
+            if !macho_link_object(link, member.name, member.bytes) || !macho_index_object(link, link.objects.data[link.objects.length - 1].object, &pending) { return false; }
+        }
+    }
+    // All archive definitions are visible before imports are selected.
+    foreach (var & name in &pending) {
+        if macho_lookup(link, *name) != null { continue; }
+        var provider = wasm_names_get(&providers, *name);
+        if provider == MachoNoIndex { continue; }
+        var symbol = exports.data[convert(usize, provider)];
+        symbol.thunk = convert(u32, link.imports.length);
+        if !macho_publish_symbol(link, symbol) || !vector_push(&link.imports, symbol) { return false; }
+    }
+    foreach (var & entry in &link.objects) {
+        foreach (var & symbol in &entry.object.symbols) {
+            symbol.resolved = macho_external(symbol) ? macho_lookup(link, symbol.name) : symbol;
+        }
+    }
+    foreach (var symbol in &link.imports) {
+        symbol.got = convert(u32, link.got.length); if !vector_push(&link.got, symbol) { return false; }
+    }
+    foreach (var & entry in &link.objects) {
+        foreach (var & patch in &entry.object.patches) {
+            if entry.object.sections.data[patch.section].discarded || !patch.external { continue; }
+            if link.cpu == MachoCpu.Arm64 && patch.kind == convert(u32, MachoArmReloc.Addend) { continue; }
+            var input = &entry.object.symbols.data[convert(usize, patch.symbol)]; var symbol = input.resolved;
+            if symbol == null {
+                if (input.description & MachoWeakReference) == 0 { return macho_fail(&link.error, MachoError.Undefined, input.name, patch.offset); }
+                continue;
+            }
+            var got = link.cpu == MachoCpu.X64 ? (patch.kind == convert(u32, MachoX64Reloc.Got) || patch.kind == convert(u32, MachoX64Reloc.GotLoad))
+                : (patch.kind == convert(u32, MachoArmReloc.GotPage) || patch.kind == convert(u32, MachoArmReloc.GotOffset) || patch.kind == convert(u32, MachoArmReloc.PointerToGot));
+            if got && symbol.got == MachoNoIndex { symbol.got = convert(u32, link.got.length); if !vector_push(&link.got, symbol) { return false; } }
+        }
+    }
+    var entry = macho_lookup(link, link.entry);
+    return (entry != null && !entry.imported && (entry.kind & MachoTypeMask) == MachoDefined) || macho_fail(&link.error, MachoError.Undefined, link.entry, 0);
+}

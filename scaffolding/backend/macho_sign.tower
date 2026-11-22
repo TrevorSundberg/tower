@@ -1,0 +1,41 @@
+import tower;
+import macho_types;
+import elf_types;
+import wasm_bytes;
+import .library.sha256;
+
+var MachoSignAlign: u64 = 16;
+var MachoSignHeaders: u64 = 128;
+var MachoSignBlobHeader: u64 = 20;
+var MachoSignDirectoryBytes: u64 = 88;
+var MachoSignBlock: u64 = 4096;
+var MachoSignDigest: u64 = 32;
+enum MachoSignAt: u64 { Length = 4, Version = 8, Flags = 12, Hash = 16, Identifier = 20, Slots = 28, Limit = 32, HashSize = 36, HashType = 37, Page = 39, TextSize = 72, ExecFlags = 80 }
+fn macho_big(data: u8*, at: u64, width: u64, value: u64): void {
+    for (var byte: u64 = 0; byte < width; byte++) { data[convert(usize, at + byte)] = convert(u8, (value >> ((width - byte - 1) * MachoByteBits)) & 255); }
+}
+fn macho_signature_size(limit: u64): u64 { return MachoSignHeaders + ((limit + MachoSignBlock - 1) / MachoSignBlock) * MachoSignDigest; }
+fn macho_sign(link: MachoLink*): bool {
+    var data = link.output.data + convert(usize, link.signature_at); var directory = data + convert(usize, MachoSignBlobHeader);
+    var super_magic: u64 = 4208856256; var directory_magic: u64 = 4208856066; var version: u64 = 132096; var flags: u64 = 131074;
+    var count_at: u64 = 8; var blob_offset_at: u64 = 16; var page_bits: u64 = 12; var sha256_kind: u64 = 2;
+    macho_big(data, 0, MachoWord, super_magic); macho_big(data, MachoWord, MachoWord, link.signature_size);
+    macho_big(data, count_at, MachoWord, 1); macho_big(data, blob_offset_at, MachoWord, MachoSignBlobHeader);
+    macho_big(directory, 0, MachoWord, directory_magic); macho_big(directory, convert(u64, MachoSignAt.Length), MachoWord, link.signature_size - MachoSignBlobHeader);
+    macho_big(directory, convert(u64, MachoSignAt.Version), MachoWord, version); macho_big(directory, convert(u64, MachoSignAt.Flags), MachoWord, flags);
+    macho_big(directory, convert(u64, MachoSignAt.Hash), MachoWord, MachoSignHeaders - MachoSignBlobHeader);
+    macho_big(directory, convert(u64, MachoSignAt.Identifier), MachoWord, MachoSignDirectoryBytes);
+    var count = (link.signature_at + MachoSignBlock - 1) / MachoSignBlock;
+    macho_big(directory, convert(u64, MachoSignAt.Slots), MachoWord, count); macho_big(directory, convert(u64, MachoSignAt.Limit), MachoWord, link.signature_at);
+    macho_big(directory, convert(u64, MachoSignAt.HashSize), 1, MachoSignDigest); macho_big(directory, convert(u64, MachoSignAt.HashType), 1, sha256_kind);
+    macho_big(directory, convert(u64, MachoSignAt.Page), 1, page_bits); macho_big(directory, convert(u64, MachoSignAt.TextSize), MachoAddress, link.text_size);
+    macho_big(directory, convert(u64, MachoSignAt.ExecFlags), MachoAddress, 1);
+    var identifier = wasm_text_bytes("tower"); copy(directory + convert(usize, MachoSignDirectoryBytes), identifier.data, identifier.length);
+    for (var page: u64 = 0; page < count; page++) {
+        var at = page * MachoSignBlock; var size = link.signature_at - at; if size > MachoSignBlock { size = MachoSignBlock; }
+        var state: Sha256 = default; sha256_init(&state);
+        if !sha256_update(&state, link.output.data + convert(usize, at), convert(usize, size)) { return false; }
+        var digest = sha256_finish(&state); copy(data + convert(usize, MachoSignHeaders + page * MachoSignDigest), &digest.bytes[0], convert(usize, MachoSignDigest));
+    }
+    return true;
+}

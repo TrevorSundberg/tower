@@ -1,0 +1,113 @@
+import tower;
+import macho_types;
+import macho_symbols;
+import macho_metadata;
+import macho_layout;
+import macho_sign;
+import elf_types;
+import wasm_bytes;
+import .library.bytes_interface;
+
+struct MachoWriter { bytes: ByteBuffer; ok: bool; }
+fn macho_w32(writer: MachoWriter*, value: u64): void { writer.ok &&= macho_number(&writer.bytes, MachoWord, value); }
+fn macho_w64(writer: MachoWriter*, value: u64): void { writer.ok &&= macho_number(&writer.bytes, MachoAddress, value); }
+fn macho_wname(writer: MachoWriter*, name: WasmBytes): void {
+    if convert(u64, name.length) > MachoNameBytes { writer.ok = false; return; }
+    for (var at: u64 = 0; at < MachoNameBytes; at++) { writer.ok &&= bytes_push(&writer.bytes, at < convert(u64, name.length) ? name.data[convert(usize, at)] : 0); }
+}
+fn macho_command(writer: MachoWriter*, kind: MachoCommand, size: u64): void { macho_w32(writer, convert(u64, kind)); macho_w32(writer, size); }
+fn macho_segment(link: MachoLink*, writer: MachoWriter*, name: u8*, va: u64, size: u64, file: u64, file_size: u64, protection: u64): void {
+    var segment = wasm_text_bytes(name); var count: u64 = 0;
+    foreach (var & section in &link.sections) { if wasm_bytes_equal(section.segment, segment) { count++; } }
+    macho_command(writer, MachoCommand.Segment, MachoSegmentBytes + count * MachoSectionBytes); macho_wname(writer, segment);
+    macho_w64(writer, va); macho_w64(writer, size); macho_w64(writer, file); macho_w64(writer, file_size);
+    macho_w32(writer, protection); macho_w32(writer, protection); macho_w32(writer, count); macho_w32(writer, 0);
+    for (var index: usize = 0; index < link.sections.length; index++) {
+        var section = &link.sections.data[index]; if !wasm_bytes_equal(section.segment, segment) { continue; }
+        macho_wname(writer, section.name); macho_wname(writer, segment); macho_w64(writer, section.va); macho_w64(writer, section.size);
+        macho_w32(writer, section.file); var power: u64 = 0; var alignment = section.alignment;
+        while alignment > 1 { power++; alignment >>= 1; }
+        macho_w32(writer, power); macho_w32(writer, 0); macho_w32(writer, 0); macho_w32(writer, convert(u64, section.flags));
+        macho_w32(writer, index == link.got_section ? convert(u64, link.imports.length) : 0);
+        macho_w32(writer, index == link.stub_section ? macho_stub_size(link.cpu) : 0); macho_w32(writer, 0);
+    }
+}
+fn macho_pad(buffer: ByteBuffer*, alignment: u64): bool {
+    var length = elf_align(convert(u64, buffer.length), alignment);
+    if length > MachoImageLimit || !bytes_reserve(buffer, convert(usize, length)) { return false; }
+    if convert(usize, length) > buffer.length { fill(buffer.data + buffer.length, 0, convert(usize, length) - buffer.length); }
+    buffer.length = convert(usize, length); return true;
+}
+fn macho_emit(link: MachoLink*): bool {
+    var rebase_at = convert(u64, link.output.length);
+    if !bytes_append(&link.output, link.rebase.data, link.rebase.length) { return false; }
+    var bind_at = convert(u64, link.output.length);
+    if !bytes_append(&link.output, link.bind.data, link.bind.length) { return false; }
+    var export_at = convert(u64, link.output.length);
+    if !bytes_append(&link.output, link.exports.data, link.exports.length) || !macho_pad(&link.output, MachoAddress) { return false; }
+    var symbol_at = convert(u64, link.output.length);
+    if !bytes_append(&link.output, link.symbols.data, link.symbols.length) { return false; }
+    var indirect_at = convert(u64, link.output.length);
+    foreach (var symbol in &link.imports) { if !macho_number(&link.output, MachoWord, convert(u64, symbol.output_index)) { return false; } }
+    foreach (var symbol in &link.got) {
+        var local: u64 = 2147483648; var absolute: u64 = 1073741824;
+        var index = symbol.imported ? convert(u64, symbol.output_index) : local | ((symbol.kind & MachoTypeMask) == MachoAbsolute ? absolute : 0);
+        if !macho_number(&link.output, MachoWord, index) { return false; }
+    }
+    var data_in_code_at = convert(u64, link.output.length);
+    if !bytes_append(&link.output, link.data_in_code.data, link.data_in_code.length) { return false; }
+    var strings_at = convert(u64, link.output.length);
+    if !bytes_append(&link.output, link.strings.data, link.strings.length) || !macho_pad(&link.output, MachoSignAlign) { return false; }
+    link.signature_at = convert(u64, link.output.length); link.signature_size = macho_signature_size(link.signature_at);
+    var final_size = link.signature_at + link.signature_size;
+    if final_size > MachoImageLimit || !bytes_reserve(&link.output, convert(usize, final_size)) { return false; }
+    fill(link.output.data + convert(usize, link.signature_at), 0, convert(usize, link.signature_size)); link.output.length = convert(usize, final_size);
+    var writer: MachoWriter = { ok: true, ..default }; defer bytes_dispose(&writer.bytes);
+    var libraries: u32 = 0;
+    foreach (var & entry in &link.dylibs) { if entry.dylib.ordinal > libraries { libraries = entry.dylib.ordinal; } }
+    var base_commands: u64 = 12; var pie_flags: u64 = 2097285; var x64_subtype: u64 = 3;
+    macho_w32(&writer, MachoMagic); macho_w32(&writer, convert(u64, link.cpu)); macho_w32(&writer, link.cpu == MachoCpu.X64 ? x64_subtype : 0);
+    macho_w32(&writer, MachoExecutableKind); macho_w32(&writer, base_commands + convert(u64, libraries)); macho_w32(&writer, link.headers - MachoHeaderBytes);
+    macho_w32(&writer, pie_flags); macho_w32(&writer, 0);
+    var read: u64 = 1; var read_write: u64 = 3; var read_execute: u64 = 5;
+    macho_segment(link, &writer, "__PAGEZERO", 0, MachoImageBase, 0, 0, 0);
+    macho_segment(link, &writer, "__TEXT", MachoImageBase, link.text_size, 0, link.text_size, read_execute);
+    macho_segment(link, &writer, "__DATA", MachoImageBase + link.text_size, link.data_size, link.text_size, link.data_size, read_write);
+    var linkedit_size = final_size - link.linkedit;
+    macho_segment(link, &writer, "__LINKEDIT", MachoImageBase + link.linkedit, elf_align(linkedit_size, link.page), link.linkedit, linkedit_size, read);
+    var dyld_info_size: u64 = 48;
+    macho_command(&writer, MachoCommand.DyldInfo, dyld_info_size);
+    macho_w32(&writer, rebase_at); macho_w32(&writer, convert(u64, link.rebase.length)); macho_w32(&writer, bind_at); macho_w32(&writer, convert(u64, link.bind.length));
+    macho_w32(&writer, 0); macho_w32(&writer, 0); macho_w32(&writer, 0); macho_w32(&writer, 0);
+    macho_w32(&writer, export_at); macho_w32(&writer, convert(u64, link.exports.length));
+    var symbol_command_size: u64 = 24;
+    macho_command(&writer, MachoCommand.Symbols, symbol_command_size); macho_w32(&writer, symbol_at); macho_w32(&writer, convert(u64, link.globals.length));
+    macho_w32(&writer, strings_at); macho_w32(&writer, convert(u64, link.strings.length));
+    var dysym_size: u64 = 80; var unused_tables: usize = 6; var unused_relocations: usize = 4;
+    macho_command(&writer, MachoCommand.DynamicSymbols, dysym_size); macho_w32(&writer, 0); macho_w32(&writer, 0); macho_w32(&writer, 0);
+    var defined = convert(u64, link.globals.length - link.imports.length);
+    macho_w32(&writer, defined); macho_w32(&writer, defined); macho_w32(&writer, convert(u64, link.imports.length));
+    for (var at: usize = 0; at < unused_tables; at++) { macho_w32(&writer, 0); }
+    macho_w32(&writer, indirect_at); macho_w32(&writer, convert(u64, link.imports.length + link.got.length));
+    for (var at: usize = 0; at < unused_relocations; at++) { macho_w32(&writer, 0); }
+    var dyld_size: u64 = 32; var dyld_path_at: u64 = 12;
+    macho_command(&writer, MachoCommand.Dyld, dyld_size); macho_w32(&writer, dyld_path_at);
+    writer.ok &&= macho_text(&writer.bytes, wasm_text_bytes("/usr/lib/dyld")); writer.ok &&= macho_pad(&writer.bytes, MachoAddress);
+    var main_size: u64 = 24;
+    macho_command(&writer, MachoCommand.Main, main_size); macho_w64(&writer, macho_lookup(link, link.entry).va - MachoImageBase); macho_w64(&writer, 0);
+    var build_size: u64 = 24; var macos_platform: u64 = 1; var macos_eleven: u64 = 720896;
+    macho_command(&writer, MachoCommand.Build, build_size); macho_w32(&writer, macos_platform); macho_w32(&writer, macos_eleven); macho_w32(&writer, macos_eleven); macho_w32(&writer, 0);
+    var signature_command_size: u64 = 16;
+    macho_command(&writer, MachoCommand.Signature, signature_command_size); macho_w32(&writer, link.signature_at); macho_w32(&writer, link.signature_size);
+    macho_command(&writer, MachoCommand.DataInCode, signature_command_size); macho_w32(&writer, data_in_code_at); macho_w32(&writer, convert(u64, link.data_in_code.length));
+    var seen: u32 = 0; var dylib_header: u64 = 24; var version_one: u64 = 65536;
+    foreach (var & entry in &link.dylibs) {
+        var dylib = entry.dylib; if dylib.ordinal <= seen { continue; } seen = dylib.ordinal;
+        macho_command(&writer, MachoCommand.Dylib, elf_align(dylib_header + convert(u64, dylib.name.length) + 1, MachoAddress));
+        macho_w32(&writer, dylib_header); macho_w32(&writer, 0); macho_w32(&writer, version_one); macho_w32(&writer, version_one);
+        writer.ok &&= macho_text(&writer.bytes, dylib.name); writer.ok &&= macho_pad(&writer.bytes, MachoAddress);
+    }
+    if !writer.ok || convert(u64, writer.bytes.length) != link.headers { return macho_fail(&link.error, MachoError.Input, wasm_text_bytes("load commands"), convert(u64, writer.bytes.length)); }
+    copy(link.output.data, writer.bytes.data, writer.bytes.length);
+    return macho_sign(link);
+}

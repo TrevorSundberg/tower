@@ -1,0 +1,175 @@
+import tower;
+import macho_types;
+import macho_relocate;
+import macho_layout;
+import elf_types;
+import wasm_bytes;
+import .library.vector;
+import .library.bytes_interface;
+
+var MachoLebBits: u64 = 7;
+var MachoLebMask: u64 = 127;
+var MachoLebMore: u8 = 128;
+fn macho_uleb_size(value: u64): u64 { var size: u64 = 1; var rest = value >> MachoLebBits; while rest != 0 { size++; rest >>= MachoLebBits; } return size; }
+fn macho_uleb(buffer: ByteBuffer*, value: u64): bool {
+    var rest = value;
+    while true { var byte = convert(u8, rest & MachoLebMask); rest >>= MachoLebBits; if rest != 0 { byte |= MachoLebMore; } if !bytes_push(buffer, byte) { return false; } if rest == 0 { return true; } }
+}
+fn macho_sleb(buffer: ByteBuffer*, value: i64): bool {
+    var rest = value; var shift: i64 = 7; var sign: u8 = 64;
+    while true {
+        var byte = convert(u8, bits(u64, rest) & MachoLebMask); rest >>= shift;
+        var done = (rest == 0 && (byte & sign) == 0) || (rest == -1 && (byte & sign) != 0);
+        if !done { byte |= MachoLebMore; } if !bytes_push(buffer, byte) { return false; } if done { return true; }
+    }
+}
+fn macho_number(buffer: ByteBuffer*, width: u64, value: u64): bool {
+    var storage: u8[8]; elf_put(&storage[0], 0, width, value); return bytes_append(buffer, &storage[0], convert(usize, width));
+}
+fn macho_text(buffer: ByteBuffer*, name: WasmBytes): bool { return bytes_append(buffer, name.data, name.length) && bytes_push(buffer, 0); }
+fn macho_fixup(link: MachoLink*, fixup: MachoFixup): bool {
+    var data_segment: u8 = 2; var text_segment: u8 = 1;
+    var segment = fixup.file < link.text_size ? text_segment : data_segment;
+    var offset = fixup.file - (segment == data_segment ? link.text_size : 0);
+    if fixup.file >= link.linkedit || MachoAddress > link.linkedit - fixup.file { return macho_fail(&link.error, MachoError.Range, default(WasmBytes), fixup.file); }
+    var set_pointer: u8 = 17; var rebase_segment: u8 = 32; var rebase_one: u8 = 81;
+    if fixup.symbol == null { return bytes_push(&link.rebase, set_pointer) && bytes_push(&link.rebase, rebase_segment | segment) && macho_uleb(&link.rebase, offset) && bytes_push(&link.rebase, rebase_one); }
+    var bind_ordinal: u8 = 32; var bind_symbol: u8 = 64; var bind_pointer: u8 = 81; var bind_addend: u8 = 96; var bind_segment: u8 = 112; var bind_one: u8 = 144;
+    return bytes_push(&link.bind, bind_ordinal) && macho_uleb(&link.bind, convert(u64, fixup.symbol.dylib))
+        && bytes_push(&link.bind, bind_symbol) && macho_text(&link.bind, fixup.symbol.name) && bytes_push(&link.bind, bind_pointer)
+        && bytes_push(&link.bind, bind_addend) && macho_sleb(&link.bind, bits(i64, fixup.addend))
+        && bytes_push(&link.bind, bind_segment | segment) && macho_uleb(&link.bind, offset) && bytes_push(&link.bind, bind_one);
+}
+struct MachoTrieNode { byte: u8; child: u32; next: u32; symbol: MachoSymbol*; offset: u64; size: u64; }
+fn macho_trie_active(nodes: vector(MachoTrieNode)*, index: usize): bool {
+    var node = &nodes.data[index]; return index == 0 || node.symbol != null || (node.child != MachoNoIndex && nodes.data[convert(usize, node.child)].next != MachoNoIndex);
+}
+fn macho_export_flags(symbol: MachoSymbol*): u64 {
+    var absolute: u64 = 2; var weak: u64 = 4;
+    return ((symbol.kind & MachoTypeMask) == MachoAbsolute ? absolute : 0) | ((symbol.description & MachoWeakDefinition) != 0 ? weak : 0);
+}
+fn macho_export_address(symbol: MachoSymbol*): u64 { return (symbol.kind & MachoTypeMask) == MachoAbsolute ? symbol.va : symbol.va - MachoImageBase; }
+fn macho_export_trie(link: MachoLink*): bool {
+    var nodes: vector(MachoTrieNode) = default; defer vector_dispose(&nodes);
+    var empty: MachoTrieNode = { child: MachoNoIndex, next: MachoNoIndex, ..default };
+    if !vector_push(&nodes, empty) { return false; }
+    foreach (var symbol in &link.globals) {
+        if symbol.imported || (symbol.kind & MachoPrivate) != 0 { continue; }
+        var at: usize = 0;
+        for (var byte: usize = 0; byte < symbol.name.length; byte++) {
+            var child = nodes.data[at].child;
+            while child != MachoNoIndex && nodes.data[convert(usize, child)].byte != symbol.name.data[byte] { child = nodes.data[convert(usize, child)].next; }
+            if child == MachoNoIndex {
+                if nodes.length >= convert(usize, MachoNoIndex) { return false; }
+                child = convert(u32, nodes.length); var node = empty; node.byte = symbol.name.data[byte]; node.next = nodes.data[at].child;
+                if !vector_push(&nodes, node) { return false; } nodes.data[at].child = child;
+            }
+            at = convert(usize, child);
+        }
+        nodes.data[at].symbol = symbol;
+    }
+    var changed = true; var total: u64 = 0;
+    // Offset widths grow monotonically from zero; convergence is bounded by
+    // the u64 ULEB width, independent of the number of exports.
+    while changed {
+        changed = false; total = 0;
+        for (var index: usize = 0; index < nodes.length; index++) {
+            if !macho_trie_active(&nodes, index) { continue; }
+            var node = &nodes.data[index]; var terminal: u64 = 0;
+            if node.symbol != null { terminal = macho_uleb_size(macho_export_flags(node.symbol)) + macho_uleb_size(macho_export_address(node.symbol)); }
+            var size = macho_uleb_size(terminal) + terminal + 1; var child = node.child;
+            while child != MachoNoIndex {
+                var target = convert(usize, child); var edge: u64 = 1;
+                while !macho_trie_active(&nodes, target) { target = convert(usize, nodes.data[target].child); edge++; }
+                size += edge + 1 + macho_uleb_size(nodes.data[target].offset); child = nodes.data[convert(usize, child)].next;
+            }
+            if node.offset != total || node.size != size { changed = true; } node.offset = total; node.size = size; total += size;
+        }
+        if total > MachoImageLimit { return false; }
+    }
+    for (var index: usize = 0; index < nodes.length; index++) {
+        if !macho_trie_active(&nodes, index) { continue; }
+        var node = &nodes.data[index]; var terminal: u64 = 0;
+        if node.symbol != null { terminal = macho_uleb_size(macho_export_flags(node.symbol)) + macho_uleb_size(macho_export_address(node.symbol)); }
+        if !macho_uleb(&link.exports, terminal) { return false; }
+        if node.symbol != null && (!macho_uleb(&link.exports, macho_export_flags(node.symbol)) || !macho_uleb(&link.exports, macho_export_address(node.symbol))) { return false; }
+        var count: u64 = 0; var child = node.child;
+        while child != MachoNoIndex { count++; child = nodes.data[convert(usize, child)].next; }
+        var child_limit: u64 = 255;
+        if count > child_limit || !bytes_push(&link.exports, convert(u8, count)) { return false; }
+        child = node.child;
+        while child != MachoNoIndex {
+            var target = convert(usize, child);
+            while true {
+                if !bytes_push(&link.exports, nodes.data[target].byte) { return false; }
+                if macho_trie_active(&nodes, target) { break; } target = convert(usize, nodes.data[target].child);
+            }
+            if !bytes_push(&link.exports, 0) || !macho_uleb(&link.exports, nodes.data[target].offset) { return false; }
+            child = nodes.data[convert(usize, child)].next;
+        }
+    }
+    return convert(u64, link.exports.length) == total;
+}
+fn macho_metadata(link: MachoLink*): bool {
+    var ranges: vector(MachoDataRange) = default; defer vector_dispose(&ranges);
+    foreach (var & entry in &link.objects) {
+        foreach (var & range in &entry.object.data_ranges) {
+            var found = false;
+            foreach (var & section in &entry.object.sections) {
+                if section.discarded || section.compact || section.bytes.length == 0 { continue; }
+                var file = convert(u64, bits(usize, section.bytes.data) - bits(usize, entry.object.bytes.data));
+                if range.file < file || range.file - file >= section.size || range.length > section.size - (range.file - file) { continue; }
+                var output = *range; output.file += section.file - file;
+                if !vector_push(&ranges, output) { return false; }
+                found = true; break;
+            }
+            if !found { return macho_fail(&link.error, MachoError.Input, entry.object.name, range.file); }
+        }
+    }
+    // Small optional jump-table directory, independent of symbol/relocation
+    // scale. Keep its file ranges ordered for dyld and disassemblers.
+    for (var index: usize = 1; index < ranges.length; index++) {
+        var range = ranges.data[index]; var at = index;
+        while at != 0 && ranges.data[at - 1].file > range.file { ranges.data[at] = ranges.data[at - 1]; at--; }
+        ranges.data[at] = range;
+    }
+    foreach (var & range in &ranges) {
+        if !macho_number(&link.data_in_code, MachoWord, range.file) || !macho_number(&link.data_in_code, MachoHalf, range.length) || !macho_number(&link.data_in_code, MachoHalf, range.kind) { return false; }
+    }
+    var got_section = &link.sections.data[link.got_section]; var stubs = &link.sections.data[link.stub_section];
+    foreach (var symbol in &link.got) {
+        var file = got_section.file + convert(u64, symbol.got) * MachoAddress;
+        elf_put(link.output.data, file, MachoAddress, symbol.imported ? 0 : symbol.va);
+        var fixup: MachoFixup = { file: file, symbol: symbol.imported ? symbol : null, ..default };
+        if (symbol.kind & MachoTypeMask) != MachoAbsolute && !macho_fixup(link, fixup) { return false; }
+    }
+    foreach (var symbol in &link.imports) {
+        var at = stubs.file + convert(u64, symbol.thunk) * macho_stub_size(link.cpu); var target = got_section.va + convert(u64, symbol.got) * MachoAddress;
+        if link.cpu == MachoCpu.X64 {
+            var jump: u64 = 9727; var displacement_at: u64 = 2;
+            elf_put(link.output.data, at, MachoHalf, jump); elf_put(link.output.data, at + displacement_at, MachoWord, target - symbol.va - MachoX64StubBytes);
+        } else {
+            var adrp: u64 = 2415919120; var load: u64 = 4181721616; var branch: u64 = 3592356352;
+            elf_put(link.output.data, at, MachoWord, adrp); elf_put(link.output.data, at + MachoWord, MachoWord, load); elf_put(link.output.data, at + MachoAddress, MachoWord, branch);
+            if !macho_arm_instruction(link.output.data, at, convert(u32, MachoArmReloc.GotPage), target, symbol.va)
+                || !macho_arm_instruction(link.output.data, at + MachoWord, convert(u32, MachoArmReloc.GotOffset), target, symbol.va + MachoWord) { return false; }
+        }
+    }
+    foreach (var & entry in &link.objects) { foreach (var & fixup in &entry.object.fixups) { if !macho_fixup(link, *fixup) { return false; } } }
+    if !bytes_push(&link.rebase, 0) || !bytes_push(&link.bind, 0) || !bytes_push(&link.strings, 0) { return false; }
+    foreach (var symbol in &link.globals) {
+        symbol.output_index = convert(u32, link.symbols.length / convert(usize, MachoSymbolBytes));
+        var section: u64 = 0; var kind = symbol.kind; var value = symbol.va; var description: u64 = 0;
+        if symbol.imported { kind = MachoExternal; value = 0; description = convert(u64, symbol.dylib) << MachoByteBits; }
+        else {
+            if (kind & MachoTypeMask) == MachoUndefined { kind = MachoDefined | MachoExternal; section = link.sections.data[link.common_section].ordinal; }
+            else { if (kind & MachoTypeMask) == MachoDefined { section = link.sections.data[link.objects.data[symbol.object].object.sections.data[convert(usize, symbol.section) - 1].output_index].ordinal; } }
+            description = convert(u64, symbol.description & MachoWeakDefinition);
+        }
+        var section_limit: u64 = 255;
+        if section > section_limit || !macho_number(&link.symbols, MachoWord, convert(u64, link.strings.length)) || !bytes_push(&link.symbols, kind)
+            || !bytes_push(&link.symbols, convert(u8, section)) || !macho_number(&link.symbols, MachoHalf, description) || !macho_number(&link.symbols, MachoAddress, value)
+            || !macho_text(&link.strings, symbol.name) { return false; }
+    }
+    return macho_export_trie(link);
+}

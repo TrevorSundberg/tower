@@ -1,0 +1,70 @@
+name: Tower Mach-O linker execution
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'scaffolding/backend/macho_*.tower'
+      - 'scaffolding/tests/macho_*.tower'
+      - '.github/workflows/macho_linker.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  link:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        architecture:
+          - { cpu: x64, triple: x86_64-apple-macos11, lld: x86_64 }
+          - { cpu: arm64, triple: arm64-apple-macos11, lld: arm64 }
+        optimization:
+          - { name: raw, flag: '--no-optimize' }
+          - { name: optimized, flag: '' }
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update
+      - run: sudo apt-get install -y clang-19 llvm-19-dev lld-19 ninja-build
+      - run: bash playground/scripts/build-bootstrap.sh
+      - run: cmake -S . -B build/macho_host -G Ninja -DTOWER_TOOLS_ONLY=ON -DTOWER_BOOTSTRAP_COMPILER="$PWD/bootstrap/linux-x64/towerc" -DCMAKE_C_COMPILER=clang-19 -DCMAKE_CXX_COMPILER=clang++-19 -DTOWER_RUNTIME_HOST_CC=/usr/bin/clang-19
+      - run: cmake --build build/macho_host --target tower-guest-host-library --parallel 2
+      - run: bootstrap/linux-x64/towerc scaffolding/tests/macho_link_driver.tower --library -o build/macho_host/driver.o
+      - run: clang-19 build/macho_host/driver.o build/macho_host/guest-host-library.o -pthread -ldl -Wl,--export-dynamic -o build/macho_host/driver
+      - run: mkdir -p build/images
+      - run: build/macho_host/driver build/macho_host/imports.tbd --imports
+      - run: bootstrap/linux-x64/towerc scaffolding/tests/macho_link_program.tower --emit object --target ${{ matrix.architecture.triple }} ${{ matrix.optimization.flag }} -o build/macho_host/program.o
+      - run: bootstrap/linux-x64/towerc scaffolding/tests/macho_link_library.tower --library --target ${{ matrix.architecture.triple }} ${{ matrix.optimization.flag }} -o build/macho_host/library.o
+      - run: llvm-ar-19 --format=darwin rcs build/macho_host/library.a build/macho_host/library.o
+      - run: clang-19 --target=${{ matrix.architecture.triple }} -O2 -ffreestanding -fno-builtin -fno-stack-protector -mllvm -disable-loop-idiom-all -c bootstrap/linux-x64/share/tower/runtime-macos-${{ matrix.architecture.cpu }}.ll -o build/macho_host/runtime.o
+      - run: build/macho_host/driver build/images/tower-${{ matrix.optimization.name }} ${{ matrix.architecture.cpu }} 4 build/macho_host/program.o build/macho_host/runtime.o build/macho_host/library.a scaffolding/targets/libSystem.tbd build/macho_host/imports.tbd
+      - run: ld64.lld-19 -arch ${{ matrix.architecture.lld }} -platform_version macos 11.0 11.0 -e _main build/macho_host/program.o build/macho_host/runtime.o build/macho_host/library.a scaffolding/targets/libSystem.tbd build/macho_host/imports.tbd -o build/images/reference-${{ matrix.optimization.name }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macho-${{ matrix.architecture.cpu }}-${{ matrix.optimization.name }}
+          path: build/images/
+
+  execute:
+    needs: link
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { cpu: x64, runner: macos-15-intel }
+          - { cpu: arm64, runner: macos-15 }
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: macho-${{ matrix.cpu }}-*
+          merge-multiple: true
+          path: images
+      - run: chmod +x images/tower-raw images/tower-optimized images/reference-raw images/reference-optimized
+      - run: codesign --verify --strict --verbose=2 images/tower-raw
+      - run: codesign --verify --strict --verbose=2 images/tower-optimized
+      - run: images/reference-raw
+      - run: images/tower-raw
+      - run: images/reference-optimized
+      - run: images/tower-optimized

@@ -44020,3 +44020,37 @@ unused. Continue migration of their reusable logic separately from this fixture
 extraction. The preceding publication receipt push briefly hit GitHub DNS failure;
 a fresh DNS lookup with a per-command curloptResolve override succeeded, without
 changing Git configuration or force-pushing.
+### 2026-11-22: complete Mach-O linker replacement plan
+
+Pulled main through cf6b204 before implementation; use the published computed
+type argument bootstrap, without private compiler overrides. The remaining lld
+production dependency is Mach-O. Replace it with request-world Tower object,
+archive, TBD import, symbol, relocation, layout, dyld metadata, unwind and ad-hoc
+signature services. Input metadata and relocation jobs are ECS components;
+immutable inputs and disjoint output ranges use the shared work graph/pool.
+Keep the existing linker connected until the Tower outputs pass validation.
+
+Cover the current x86_64/arm64 macOS 11 download profiles, including PIE rebases,
+eager dynamic binding, exports, compact unwind/eh_frame, lazy indexed archive
+extraction and ARM64 signing. Invalid or unsupported object contracts must fail
+explicitly. Use Apple Mach-O headers and pinned LLVM Mach-O implementation as
+format references, not new native wrappers. Test raw/optimized real objects,
+serial/parallel byte identity, actual overlap/cancellation, malformed inputs and
+reference-linker comparisons. Add a small isolated GitHub Actions configuration
+to execute Tower-owned fixtures on macos-15-intel and macos-15 (ARM64); host format
+inspection alone is not execution evidence. Finally remove lldMachO and obsolete
+native binding/build preparation, repeat the public clean successor/browser
+publication checks, deploy and verify hosted assets. No todo.txt changes,
+sanitizer run, broad formatter sweep or new non-Tower implementation.
+
+The isolated candidate now compiles with the public bootstrap. Tower emits
+raw/optimized x64/ARM64 images using real Darwin indexed archives and libSystem
+TBD inputs; the worker pool dispatches three object jobs. LLVM's Mach-O reader
+accepts the x64 export trie, eager imports and regular compact-unwind pages.
+Real runtime objects also required data-in-code directories and optional ARM64
+instruction-relaxation hint handling; directory ranges are relocated, while
+optional hints retain their original valid instruction sequences. The macOS
+workflow tests native execution, allocation, indirect foreign calls, a 64 KiB
+frame and backtrace unwinding, plus strict signature verification. This candidate
+does not yet replace production lldMachO; macOS execution and publication are
+still pending, and no speedup or complete migration is claimed at this point.

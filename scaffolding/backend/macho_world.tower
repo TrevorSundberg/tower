@@ -1,0 +1,75 @@
+import tower;
+import macho_types;
+import macho_object;
+import macho_tbd;
+import elf_types;
+import wasm_bytes;
+import wasm_archive;
+import wasm_names;
+import .library.vector;
+import .library.bytes_interface;
+import .library.entity_api;
+
+fn macho_link_open(link: MachoLink*, cpu: MachoCpu): bool {
+    link.cpu = cpu; link.entry = wasm_text_bytes("_main"); link.workers = 1;
+    link.page = cpu == MachoCpu.Arm64 ? MachoArmPage : MachoX64Page;
+    link.store = entity_store_create();
+    if link.store == null || !entity_store_set_context(link.store, bits(void*, link)) { return false; }
+    link.object_type = entity_create(link.store); link.archive_type = entity_create(link.store); link.dylib_type = entity_create(link.store);
+    return link.object_type != null && link.archive_type != null && link.dylib_type != null
+        && entity_register(link.object_type, sizeof(MachoObject), alignof(MachoObject), 0)
+        && entity_register(link.archive_type, sizeof(MachoArchive), alignof(MachoArchive), 0)
+        && entity_register(link.dylib_type, sizeof(MachoDylib), alignof(MachoDylib), 0);
+}
+fn macho_link_close(link: MachoLink*): bool {
+    if link.store != null && link.store.views != 0 { return false; }
+    foreach (var & entry in &link.objects) { macho_object_dispose(entry.object); entity_release(entry.node); }
+    foreach (var & entry in &link.archives) { wasm_archive_dispose(&entry.archive.archive); vector_dispose(&entry.archive.selected); entity_release(entry.node); }
+    foreach (var & entry in &link.dylibs) { vector_dispose(&entry.dylib.symbols); entity_release(entry.node); }
+    vector_dispose(&link.objects); vector_dispose(&link.archives); vector_dispose(&link.dylibs);
+    vector_dispose(&link.globals); vector_dispose(&link.imports); vector_dispose(&link.got); vector_dispose(&link.sections);
+    wasm_names_dispose(&link.names); bytes_dispose(&link.output); bytes_dispose(&link.rebase); bytes_dispose(&link.bind);
+    bytes_dispose(&link.exports); bytes_dispose(&link.strings); bytes_dispose(&link.symbols); bytes_dispose(&link.data_in_code);
+    if link.object_type != null { entity_release(link.object_type); }
+    if link.archive_type != null { entity_release(link.archive_type); }
+    if link.dylib_type != null { entity_release(link.dylib_type); }
+    if link.store != null && !entity_store_dispose(link.store) { return false; }
+    *link = default; return true;
+}
+fn macho_link_object(link: MachoLink*, name: WasmBytes, bytes: WasmBytes): bool {
+    var node = entity_create(link.store); if node == null { return false; }
+    var component = entity_component_add(node, link.object_type);
+    if component == null { entity_release(node); return false; }
+    var object = bits(MachoObject*, entity_component_data(component)); *object = init(MachoObject) { name: name, bytes: bytes, ..default };
+    var entry: MachoObjectEntry = { node: node, object: object };
+    if !vector_push(&link.objects, entry) { entity_release(node); return false; }
+    if !macho_object_read(object, link.cpu, &link.error) { return false; }
+    foreach (var & symbol in &object.symbols) { symbol.object = link.objects.length - 1; }
+    return true;
+}
+fn macho_link_input(link: MachoLink*, name: WasmBytes, bytes: WasmBytes): bool {
+    if link.started || link.store == null || link.store.views != 0 || !elf_span(bytes, 0, convert(u64, bytes.length)) {
+        return macho_fail(&link.error, MachoError.Input, name, 0);
+    }
+    var magic = wasm_text_bytes("!<arch>\n");
+    if bytes.length >= magic.length && wasm_bytes_equal(init(WasmBytes) { data: bytes.data, length: magic.length }, magic) {
+        var node = entity_create(link.store); if node == null { return false; }
+        var component = entity_component_add(node, link.archive_type); if component == null { entity_release(node); return false; }
+        var archive = bits(MachoArchive*, entity_component_data(component)); *archive = init(MachoArchive) { name: name, ..default };
+        var entry: MachoArchiveEntry = { node: node, archive: archive };
+        if !vector_push(&link.archives, entry) { entity_release(node); return false; }
+        if !wasm_archive_read(&archive.archive, bytes) { return macho_fail(&link.error, MachoError.Input, name, convert(u64, archive.archive.error_offset)); }
+        if !archive.archive.indexed { return macho_fail(&link.error, MachoError.Unsupported, name, 0); }
+        if !vector_reserve(&archive.selected, archive.archive.members.length) { return false; }
+        archive.selected.length = archive.archive.members.length;
+        if archive.selected.length != 0 { fill(archive.selected.data, 0, archive.selected.length * sizeof(bool)); }
+        return true;
+    }
+    if elf_span(bytes, 0, MachoWord) && elf_uint(bytes, 0, MachoWord) == MachoMagic { return macho_link_object(link, name, bytes); }
+    var node = entity_create(link.store); if node == null { return false; }
+    var component = entity_component_add(node, link.dylib_type); if component == null { entity_release(node); return false; }
+    var dylib = bits(MachoDylib*, entity_component_data(component)); *dylib = default;
+    var entry: MachoDylibEntry = { node: node, dylib: dylib };
+    if !vector_push(&link.dylibs, entry) { entity_release(node); return false; }
+    return macho_tbd_read(dylib, bytes, link.cpu, &link.error);
+}
