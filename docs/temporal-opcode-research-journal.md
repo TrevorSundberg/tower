@@ -46176,3 +46176,28 @@ consolidating types.tower, then construction and operator/conversion/literal
 protocols; runtime constructor execution, all type-family policies and complete
 metatype ABI legality remain unfinished. Do not claim the full type architecture
 or vectors are complete. todo.txt was not modified.
+Final synchronization supersedes the preceding reuse-only assumption. A normal
+push first lost a race to another documentation receipt; rebase preserved it and
+published the audit as 6946474. Subsequent main 67db975 includes that commit plus
+the independently implemented type-value checkpoint and ten lines preserving
+type-protocol direction and atomic source/Pages publication. Review those additions
+and the handoff's explicit superseding note; current AGENTS.md is 2,174 words,
+about 61% below the initial 5,607. This audit still authors no compiler code.
+
+Concurrent Pages publications supersede runs 45050543493 and 45050630637. The
+older run 45050593972 has already cancelled deployment but remains stuck in its
+reporting job; cancel that obsolete run to unblock the latest publication.
+Run 45050992938 then succeeds for Pages 7f3da4a735e0bb05b6e0671e6a7933ee86b8e37b.
+Unlike the intermediate receipt-only publications, this release changes runtime
+assets: its build source is 98ade8cc and publication source is 67db975. Both are
+verified ancestors of origin/main. Extract the exact snapshot and run the updated
+existing hosted verifier again; earlier UI results cannot validate changed binaries.
+
+The second hosted run exits 0: all 104 served assets match and both desktop and
+mobile pass the full existing verifier, including compiler-project builds,
+completion, native downloads, grammar edits and matching execution backends.
+Evidence is build/agents_audit_final_hosted_verification.log and
+build/agents_audit_final_verification.json. The final documentation receipt reuses
+that verified deployment and retains its source/build identities; synchronize
+main and the unchanged Pages ref atomically. Scoped whitespace checks pass;
+todo.txt remains unstaged and no audit-authored Tower or bootstrap changes exist.
