@@ -42629,3 +42629,33 @@ only connects existing byte transport. The raw-memory expectation now names
 pointer_type(empty_type()) instead of the retired canonical void* spelling.
 The focused world fixture passes after this correction. Final rebased builds,
 output execution, browser generations and publication are still pending below.
+
+The b9bc21c integration is validated: fresh public-bootstrap successor-final
+build passes48 generated/link steps, backend API and native/archive/runtime/
+interpreter/native-to-Wasm linking pass. Public bootstrap SHA256 is
+6022aa2bdfc838ead9dd9507bea004b78568997f3a468f916a9bfa4310a0680a.
+Final portable, threaded and both backend builds pass; browser cross/world/raw
+memory34/34 pass7.962s, actual browser exports execute on x64 and qemu-aarch64,
+and shared-worker checks3/3 pass22.522s with zero skips. All four raw/optimized
+ELF fixtures again pass their Tower checks and print42/50/42, as do SDK34 LLD
+references. A shell orchestration trial first splatted a scalar option string
+incorrectly, then used a mistyped runtime filename; corrected explicit string
+arrays and target-triple filenames completed the matrix, with no linker changes.
+
+The new bootstrap/type-prelude generates larger fixture objects than the earlier
+trial. Current Tower/LLD executable sizes are17608/17048 bytes optimized x64,
+18520/18056 raw x64,13832/13464 optimized ARM64,14760/14496 raw ARM64. These
+supersede the earlier size figures for current inputs; retained separate section
+metadata and unmerged strings remain a size opportunity. Three alternating tiny
+one-worker process links measure Tower below0.01s resolution,1920-1924KiB RSS,
+versus LLD0.01s each,28632-28908KiB. No large-workload or parallel speedup claim.
+Logs: build/elf_final_{native,native_tests,browser_checks,thread_checks,benchmark}.
+
+Edited compiler-project generations using2 then4 workers pass58.353s/48.793s,
+with identical hashes: tower eebadbdf8d7981dd821e811805473f01774ee663764470560f538e4804ad4bec,
+llvm41af9f47af17804182f5e48f54de3e03c6512445568e178fd8112218e289e5ec,
+cross eb646efaf70a479add27530c986bf2938c70798d51aa12af5703ff1823a23c5d.
+Evidence: build/compiler_workbench_elf_final/generation{1,2}.json and
+build/elf_final_generations.log. Publication is pending desktop/mobile and hosted
+checks. Upstream direct-driver cleanup1021acf landed during these gates; preserve
+the validated browser inputs and repeat the native public successor after rebase.
