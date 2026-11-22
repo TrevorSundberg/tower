@@ -2,6 +2,12 @@
 
 Checkpoint date: 2026-11-22. This report records the current implementation and
 the next work in the same migration. It is a handoff, not a claim of completion.
+The later type-value checkpoint supersedes the staging status below: executed
+helper calls now use the production dependency-graph body producer. Its shared
+`IMFunctionInput`/`executable_functions` protocol replaces the experimental
+`IMCallInput`/`call_inputs` names, preserving this checkpoint's argument-effect,
+failure and cancellation fixtures. The detailed type-protocol continuation is
+recorded in the journal's “Remaining work after the type-value checkpoint” entry.
 Read it with [the research journal](temporal-opcode-research-journal.md),
 [computed type arguments](computed-type-arguments.md), and
 [compiler services](compiler-services.md).

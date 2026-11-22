@@ -19,8 +19,6 @@ struct IMContext {
     value_inputs: void*;
     require_relocatable: bool;
     type_arguments: bool;
-    call_inputs: void*;
-    waiting_call: void*;
     executable_functions: void*;
     waiting_function: bool;
     waiting_binding: bool;
@@ -47,12 +45,7 @@ struct IMValueInput { producer: void*; owner: void*; ordinal: usize; }
 // The compiler can prepare an executable snapshot lazily without changing the
 // source function's signature or declaration identity. The interpreter retains
 // source function references; this mapping selects only its execution body.
-struct IMFunctionInput { function: void*; ready: bool; }
-
-// A compiler-owned executable snapshot of an ordinary function. Calls retain
-// their source binding identity; only execution selects the published snapshot.
-// The interpreter never checks or lowers a missing body on its worker.
-struct IMCallInput { function: void*; ready: bool; failed: bool; }
+struct IMFunctionInput { function: void*; ready: bool; failed: bool; }
 
 struct IMExecution {
     state: IMState*;

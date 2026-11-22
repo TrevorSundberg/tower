@@ -919,22 +919,13 @@ fn ix_call(m: IMExecution*, node: void*, offset: usize): void {
             m.context.waiting_function = true;
             return;
         }
-        binding = input.function;
-    }
-    var function = im_cached_node(m.state, binding);
-    if ix_strict(m) && m.context.call_inputs != null && !function.external {
-        var input = bits(IMCallInput*, entity_component_data(entity_component_get(binding, m.context.call_inputs)));
-        if input == null || !input.ready {
-            m.context.waiting_call = binding;
-            return;
-        }
         if input.failed || input.function == null {
             ix_fail(m, "Compile-time function input failed", offset);
             return;
         }
         binding = input.function;
-        function = im_cached_node(m.state, binding);
     }
+    var function = im_cached_node(m.state, binding);
     var base: usize = 0;
     {
         var small_args: InterpreterInlineArgumentStorage;
@@ -1190,11 +1181,12 @@ export fn ix_step(m: IMExecution*, budget: usize): void {
         // expression tasks can observe cached values or captured addresses.
         m.state.cached = task.phase != 0;
         var n = im_cached_node(m.state, task.node);
-        if m.context != null { m.context.waiting_call = null; }
-        if m.context != null && m.context.dependency_kind != null {
+        if m.context != null {
             m.context.waiting = null;
             m.context.waiting_function = false;
             m.context.waiting_binding = false;
+        }
+        if m.context != null && m.context.dependency_kind != null {
             if ix_pending(m, task.node) {
                 im_task_push(m.state, task.node, task.loop_resume != 0, task.phase, task.offset);
                 m.state.steps--;
@@ -1333,7 +1325,7 @@ export fn ix_step(m: IMExecution*, budget: usize): void {
                         if task.phase == InterpreterFinishValuePhase {
                             if n.kind == KCall {
                                 ix_call(m, task.node, task.offset);
-                                if m.context != null && (m.context.waiting_call != null || m.context.waiting_function) {
+                                if m.context != null && m.context.waiting_function {
                                     // Callee and arguments are already cached. Resume
                                     // this finish task, never their effects or statements.
                                     im_task_push(m.state, task.node, task.loop_resume != 0, task.phase, task.offset);

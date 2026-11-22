@@ -45930,3 +45930,23 @@ widths, invalid envelope/cache rejection and grammar replacement. The optional
 ide_package_tests export is absent in the production profile and its separate
 case remains skipped; this is not counted as tested coverage. No new evaluator,
 runtime feature or implementation language was introduced by these fixture fixes.
+
+The publication pull then brought in cf47b568/d51164fd's staged-call primitive
+and ECS handoff. This overlaps the already implemented production body producer.
+The rebase preserves the upstream named interpreter limits, generic clone use of
+the shared dispatcher and its draining behavior. The duplicate optional call
+service was unified with IMFunctionInput/executable_functions; the new upstream
+fixture now exercises the production service's same continuation. Failed snapshot
+publication remains explicit, and waiting state clears even when the invocation
+has a function-input service without a constant-dependency component. This keeps
+argument effects exactly once on retries and avoids carrying a stale wait after
+resumption. The handoff now explicitly marks its earlier staging status as
+superseded. Both lanes' tests are retained; no feature work was started.
+
+The pre-integration local deployment passed all 104 assets plus desktop/mobile
+execution, native exports, editable grammar, persistence, completion and output
+highlighting. Its assets and the earlier 6992406 pin are not the final publication:
+the overlapping compiler changes require a refreshed bootstrap, clean successor
+and affected query/type/browser checks. The concurrent comparator reached its
+last target when the rebase changed its input files; that interrupted run is not
+claimed as a passing frozen comparison and must be repeated on the final inputs.

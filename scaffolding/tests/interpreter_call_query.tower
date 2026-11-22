@@ -53,7 +53,7 @@ export fn call_query_tests(width: u32): u32 {
     var root = entity_create(compiler_world_store(world));
     sem_attach(root, KProgram);
     var calls = sem_create(root);
-    call_query_require(entity_register(calls, sizeof(IMCallInput), alignof(IMCallInput), 0));
+    call_query_require(entity_register(calls, sizeof(IMFunctionInput), alignof(IMFunctionInput), 0));
     var entry = call_query_node(root, width, KFunction);
     var body = call_query_node(root, width, KBlock);
     sem_get(entry).body = body;
@@ -89,7 +89,7 @@ export fn call_query_tests(width: u32): u32 {
     var argument_return = call_query_node(root, width, KReturn);
     sem_get(argument_return).value = loaded;
     call_query_push(&sem_get(argument_body).items, argument_return);
-    var argument_input = bits(IMCallInput*, entity_component_data(entity_component_add(argument, calls)));
+    var argument_input = bits(IMFunctionInput*, entity_component_data(entity_component_add(argument, calls)));
     *argument_input = default;
     argument_input.function = argument;
     argument_input.ready = true;
@@ -140,15 +140,15 @@ export fn call_query_tests(width: u32): u32 {
     var invocation: IMInvocation = default;
     call_query_require(interpreter_invocation_init(&invocation, entry, convert(usize, width), null, 0, true, CallQueryFuel));
     invocation.context.type_arguments = true;
-    invocation.context.call_inputs = calls;
+    invocation.context.executable_functions = calls;
     interpreter_invocation_step(&invocation, convert(usize, CallQueryFuel));
-    call_query_check(!invocation.state.done && !invocation.state.failed && invocation.context.waiting_call == callee,
+    call_query_check(!invocation.state.done && !invocation.state.failed && invocation.context.waiting_function && invocation.context.waiting == callee,
         "An executed call suspends for its body after argument evaluation", &failures);
     var steps = invocation.state.steps;
     interpreter_invocation_step(&invocation, convert(usize, CallQueryFuel));
-    call_query_check(!invocation.state.failed && invocation.context.waiting_call == callee && invocation.state.steps == steps,
+    call_query_check(!invocation.state.failed && invocation.context.waiting_function && invocation.context.waiting == callee && invocation.state.steps == steps,
         "A still-pending body preserves the same call continuation", &failures);
-    var input = bits(IMCallInput*, entity_component_data(entity_component_add(callee, calls)));
+    var input = bits(IMFunctionInput*, entity_component_data(entity_component_add(callee, calls)));
     *input = default;
     input.function = snapshot;
     input.ready = true;
@@ -160,9 +160,9 @@ export fn call_query_tests(width: u32): u32 {
     input.ready = false;
     call_query_require(interpreter_invocation_init(&invocation, entry, convert(usize, width), null, 0, true, CallQueryFuel));
     invocation.context.type_arguments = true;
-    invocation.context.call_inputs = calls;
+    invocation.context.executable_functions = calls;
     interpreter_invocation_step(&invocation, convert(usize, CallQueryFuel));
-    call_query_check(invocation.context.waiting_call == callee && !invocation.state.failed,
+    call_query_check(invocation.context.waiting_function && invocation.context.waiting == callee && !invocation.state.failed,
         "A fresh invocation waits for pending call input", &failures);
     input.failed = true;
     input.ready = true;
@@ -175,9 +175,9 @@ export fn call_query_tests(width: u32): u32 {
     input.failed = false;
     call_query_require(interpreter_invocation_init(&invocation, entry, convert(usize, width), null, 0, true, CallQueryFuel));
     invocation.context.type_arguments = true;
-    invocation.context.call_inputs = calls;
+    invocation.context.executable_functions = calls;
     interpreter_invocation_step(&invocation, convert(usize, CallQueryFuel));
-    call_query_check(invocation.context.waiting_call == callee && !invocation.state.failed,
+    call_query_check(invocation.context.waiting_function && invocation.context.waiting == callee && !invocation.state.failed,
         "An invocation can be disposed while its called body is pending", &failures);
     interpreter_invocation_dispose(&invocation);
     entity_release(root);
