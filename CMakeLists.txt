@@ -1,5 +1,12 @@
 cmake_minimum_required(VERSION 3.20)
 
+# Ninja owns outer build parallelism. Bootstrap children must not each admit
+# the full host capacity; ordinary towerc invocations keep their existing policy.
+set(TOWER_COMPILER_JOBS "1" CACHE STRING "Worker budget for each bootstrap compiler invocation")
+if(NOT TOWER_COMPILER_JOBS MATCHES "^[1-9][0-9]*$")
+  message(FATAL_ERROR "TOWER_COMPILER_JOBS must be a positive decimal worker count; outer parallelism is controlled by TOWER_BUILD_JOBS")
+endif()
+
 project(scaffolding LANGUAGES C CXX VERSION 1)
 
 # Minimal bootstrap bridge: Tower owns the tool recipes and process execution.
@@ -19,16 +26,16 @@ if(TOWER_TOOLS_ONLY)
   set(tool_builder "${CMAKE_CURRENT_BINARY_DIR}/build_tools")
   add_custom_command(OUTPUT "${tool_object}" "${tool_builder}"
     COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tools/build_tools.tower"
-      --library --target "${tool_triple}"
+      --jobs "${TOWER_COMPILER_JOBS}" --library --target "${tool_triple}"
       --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
       --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
       -o "${tool_object}" --depfile "${tool_object}.d"
-    COMMAND "${TOWER_BOOTSTRAP_COMPILER}" --link-executable "${tool_object}" "${tool_runtime}" -o "${tool_builder}"
+    COMMAND "${TOWER_BOOTSTRAP_COMPILER}" --jobs "${TOWER_COMPILER_JOBS}" --link-executable "${tool_object}" "${tool_runtime}" -o "${tool_builder}"
     DEPFILE "${tool_object}.d"
     DEPENDS scaffolding/tools/build_tools.tower "${TOWER_BOOTSTRAP_COMPILER}" "${tool_runtime}" VERBATIM)
   add_custom_target(tower-tools
     COMMAND "${tool_builder}" "${TOWER_BOOTSTRAP_COMPILER}"
-      "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/bin" "${tool_runtime}" ${TOWER_TOOL}
+      "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/bin" "${tool_runtime}" "${TOWER_COMPILER_JOBS}" ${TOWER_TOOL}
     DEPENDS "${tool_builder}" VERBATIM)
   return()
 endif()
@@ -40,7 +47,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   # Owned native compiler, parser and test targets use the published Tower
   # linker. Object emission and third-party compiler tools keep their toolchain.
   set(CMAKE_LINK_DEPENDS_USE_LINKER FALSE)
-  set(CMAKE_C_LINK_EXECUTABLE "\"${TOWER_BOOTSTRAP_COMPILER}\" --link-executable <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
+  set(CMAKE_C_LINK_EXECUTABLE "\"${TOWER_BOOTSTRAP_COMPILER}\" --jobs ${TOWER_COMPILER_JOBS} --link-executable <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
   set(CMAKE_CXX_LINK_EXECUTABLE "${CMAKE_C_LINK_EXECUTABLE}")
 endif()
 

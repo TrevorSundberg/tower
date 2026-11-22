@@ -46621,3 +46621,49 @@ No more heavy work until sibling scheduling permits it. Remaining acceptance:
 scoped measured build improvement, stable useful-overlap evidence, supported
 instrumentation through A2, final merged build/browser/generation applicability,
 and coordinated atomic publication/host verification. The goal remains active.
+
+Parent granted D2 narrow build-budget ownership after the initial baseline.
+Implementation in progress: positive CMake TOWER_COMPILER_JOBS defaults to 1,
+separate from outer Ninja jobs, and is forwarded through the common compiler/
+runtime helper and Tower build_tools compile/link argv. Ordinary CLI behavior is
+unchanged; its existing numeric parser validates the forwarded value. Root CMake
+initializes the setting before link-rule expansion (Runtime is otherwise included
+inside the utility constructor too late for that rule). No new scheduler or
+option parser was introduced. Additional direct guest/backend/utility invocations
+were identified and their owner handoff requested before editing.
+
+A new Tower-only build_tool_budget_checks fixture runs real invalid budget
+commands, requires exact nonzero status and absent products, then compares real
+serial/two-worker objects. It is pending compilation and execution. D1 holds the
+host heavy slot, so D2 performs only edits/review until its release. The earlier
+source/measurement checkpoint rebased cleanly to 136f4ba over the coordinator's
+documentation-only d3ec5a4; this does not invalidate frozen compiler inputs.
+
+The coordinator subsequently granted the five remaining direct guest/backend/
+utility bootstrap calls; D2 applied the same argument only. Read-only order
+review found the native CMAKE_PROJECT_scaffolding_INCLUDE hook executes inside
+project(), so budget initialization must precede project(), not merely the
+root link rule. The setting now precedes that hook. This is implementation
+review, still awaiting generated-command and executable regression evidence.
+Pull initially refused unstaged own work; --rebase --autostash preserved it and
+rebased the checkpoint to 5a5cda4 over documentation-only 60312d3. D1 retains
+the heavy slot; no compiler closure is being edited during a D2 build.
+
+D2 extended remaining tooling review to six shared entry points (parser benchmark,
+compiler-project closure exporter, runtime binder, runtime embedder, target
+registry generator and foreign expander), recorded per-file at 5a5cda4. Source
+bytes are unchanged from the initial baseline. The audit now distinguishes 93
+paths by original source, shared review, new regression/wrapper and provenance.
+The foreign expander's unchecked void text-appends are a read-only OOM hypothesis
+routed to B2, not a reproduced defect or a D2 fix. The existing parser benchmark
+supplies allocation/retention counters but requires its deliberate serial
+instrumented frontend link; B2 owns the known conditional-export correction.
+
+Root also authorized explicit jobs1 on build-wasm.sh's small post-Ninja foreign
+fixture, which cannot inherit CMake cache values. That invocation now documents
+its fixed serial policy. A2 reserves tools/instrument_llvm.tower and has reported
+actual emitted-Tower ASan positive/negative checks; D2 has not yet run that tool
+and will use its published pipeline, not count this relay as local coverage.
+Review of driver_compile_object corrects timing interpretation: the CLI parse
+interval encloses driver_compile_program, including frontend checking. Existing
+numbers stand, but they do not isolate parser cost or measure idle/critical paths.

@@ -63,7 +63,7 @@ function(tower_backend_integrate)
   tower_guest_runtime(host-library "${foreign_host_triple}" "${foreign_runtime_profile}" OFF)
   get_property(foreign_runtime GLOBAL PROPERTY TOWER_GUEST_host-library_OBJECT)
   add_custom_command(OUTPUT "${foreign_object}" "${foreign_tool}"
-    COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${foreign_source}" --library --target "${foreign_host_triple}"
+    COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${foreign_source}" --jobs "${TOWER_COMPILER_JOBS}" --library --target "${foreign_host_triple}"
       --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
       --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower" -o "${foreign_object}" --depfile "${foreign_object}.d"
     COMMAND ${host_link} "${foreign_object}" "${foreign_runtime}" -o "${foreign_tool}"
@@ -78,7 +78,7 @@ function(tower_backend_integrate)
     get_property(guest_runtime GLOBAL PROPERTY TOWER_GUEST_wasm32_OBJECT)
     add_custom_command(OUTPUT "${embed_tool}"
       COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/backend/embed_runtime.tower"
-        --library --target "${foreign_host_triple}" -o "${embed_object}" --depfile "${embed_object}.d"
+        --jobs "${TOWER_COMPILER_JOBS}" --library --target "${foreign_host_triple}" -o "${embed_object}" --depfile "${embed_object}.d"
       COMMAND ${host_link} "${embed_object}" "${foreign_runtime}" -o "${embed_tool}"
       DEPFILE "${embed_object}.d"
       DEPENDS scaffolding/backend/embed_runtime.tower "${TOWER_BOOTSTRAP_COMPILER}" "${foreign_runtime}"
@@ -141,7 +141,7 @@ function(tower_backend_integrate)
     # Only profile selection remains here; Tower imports own member ordering.
     file(GENERATE OUTPUT "${input}" CONTENT "${source}")
     add_custom_command(OUTPUT "${object}"
-      COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${expanded}" --library --target "${triple}"
+      COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${expanded}" --jobs "${TOWER_COMPILER_JOBS}" --library --target "${triple}"
         --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
         --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower" -o "${object}" --depfile "${object}.d"
       DEPFILE "${object}.d"

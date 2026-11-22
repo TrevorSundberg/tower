@@ -6,8 +6,10 @@ contain 32 tool modules and five benchmark modules. Additional measurement
 modules under tests are reviewed with D1 coordination; they remain D1-owned.
 New files and subsequent changed-source receipts will be recorded explicitly.
 Coverage now includes 37 initial tool/benchmark source reviews, three shared
-measurement modules, 45 provenance-only resource reviews and the new complete
-wide-function benchmark wrapper. These categories are not interchangeable.
+measurement modules, 45 provenance-only resource reviews, the new complete
+wide-function benchmark wrapper, the tool-budget regression, and six additional
+shared build/measurement entry points reviewed below. These categories
+are not interchangeable.
 
 ## Contracts and method
 
@@ -33,8 +35,9 @@ Compiler invocations use the production compiler and its shared scheduling.
 
 ## File review receipts
 
-All rows currently refer to the initial reviewed commit above. “Source review”
-means inspection, not a newly executed test. Runtime evidence is added separately.
+Unchanged-source rows refer to the initial reviewed commit above. New files and
+authorized changes are identified in their rows and subsequent validation
+receipts. “Source review” means inspection, not a newly executed test.
 
 | Path | Storage, ownership, scheduling and disposition | Evidence and gaps |
 | --- | --- | --- |
@@ -76,6 +79,7 @@ means inspection, not a newly executed test. Runtime evidence is added separatel
 | `scaffolding/benchmarks/interpreter_memory.tower` | One explicitly allocated 1,024-u32 buffer, every read follows same-iteration write, freed before final output. No safety policy added to raw Foundation. | 10,000 iterations, expected sum of 0 through 9,999. No uninitialized-read claim depends on allocator zeroing. |
 | `scaffolding/benchmarks/interpreter_profile.tower` | Intentional 500,000-iteration scalar recurrence and ordinary function calls; all state belongs to one execution. | Browser CPU sampling input, not a compiler throughput benchmark or a multicore fixture. Wrapping signed arithmetic contract must be preserved by independent oracle. |
 | `scaffolding/benchmarks/compiler_wide_functions.tower` | New D2 complete-file measurement wrapper: one local ByteBuffer, lexical cleanup, existing Tower stress generator and explicit Tower import. No duplicated generator, world, scheduler or IR. | Initial direct fragment compilation failed without the language import; preserved as failure. New emitted 300-function file compiles to identical objects at jobs 1/2/8 and prints independently known 299 in graph/native execution. |
+| `scaffolding/tests/build_tool_budget_checks.tower` | New D2 regression invokes the real builder/compiler synchronously with borrowed argument strings; all local path/product buffers close after child reap. Invalid-budget calls must fail and leave products absent; valid budgets 1/2 must yield equal object bytes. | Uses existing tool transport/files/utility assertions. No fake compiler, alternate scheduler or generic harness modification. Compilation/execution pending heavy slot. |
 
 ## Environment and evidence
 
@@ -86,6 +90,21 @@ means inspection, not a newly executed test. Runtime evidence is added separatel
 | `scaffolding/tests/driver_measure.tower` | D1-owned harness, D2 source review at initial commit. Each serial sample owns captured logs, fresh product and parsed phase vectors; series/metrics are stable heap records indexed by vectors, closed after reporting. Alternating samples and median copies preserve raw order. Monotonic checks and exact output/product comparisons fail fast. Only two root grammar hashes are recorded, so full imported resources must be frozen separately. No worker-budget option, per-child CPU/RSS or overlap event metrics here; augment external evidence without claiming those fields exist. |
 | `scaffolding/tests/driver_measure_cases.tower` | D1 owns generic API; parent grants D2 only the generated kernel import fix. Configures fixed sample counts and shared benchmark paths; runtime C comparison uses the same emitted kernels across LLVM/Clang/GCC. Reproduced missing-language-import failure before changing the generator. Added `import foundation;`, leaving iterations/output checks unchanged; both C cases and short interpreter variants pass. This baseline rejection has no meaningful speedup ratio. |
 | `scaffolding/tests/driver_measure_timings.tower` | D1-owned, read-only audit. Local vectors own names/values; exact decimal-ms to ns conversion rejects overflow, excess precision, duplicates and incomplete reports. No floats or process-global state. Fixture edge cases run through the existing runner; CLI timings provide phases, not worker idle/critical-path telemetry. |
+
+### Remaining shared build/measurement entry points
+
+These six read-only reviews are at `5a5cda4` (their source bytes are unchanged
+from `6282238`). They extend D2 caller coverage without transferring the named
+owner's production responsibility.
+
+| Path | Storage, ownership, scheduling and evidence disposition |
+| --- | --- |
+| `scaffolding/tests/parser_benchmark.tower` | D1 fixture/B1 parser. One legacy host-world boundary installs a fixed grammar; each accepted entity is released, session destroyed before source buffer free. Four input sizes, five discarded warmups and eleven retained samples report wall nanoseconds, allocation calls and live tracked buffers. Repeated retained counts must stabilize. Instrumented allocator and host-world use are serial measurement, not concurrent sanitizer evidence. It checks parse success/retention, not canonical tree equivalence; execution pending. |
+| `scaffolding/tests/compiler_project_units.tower` | D1 fixture/L2 reserved packager dependency. Local CompilerProjectFiles owns source text, unit records and derived dependency indexes. Duplicate collection must preserve unit identity/count; exported text comes from actual depfiles. All buffers close after synchronous writes. No second semantic graph. Source review only; exported closure needs separate compilation/object comparison before equivalence is established. |
+| `scaffolding/host/runtime_bind.tower` | B2-owned foreign object boundary, compiled through budgeted runtime helper. One LLVM context/module owns IR while reserved function names/types are checked and uses rewritten; module verification precedes file publication. Opaque LLVM handles are appropriate at this ABI, not an alternate Tower storage format. Error/message/module/context cleanup is explicit. Baseline native build exercised real runtime bindings; malformed-argument/ABI failure and allocator coverage remain B2-owned. |
+| `scaffolding/backend/embed_runtime.tower` | B2-owned streaming target-artifact encoder. Byte-at-a-time input/output has bounded stack retention, explicit overflow/read/write/close checks, and preserves exact hex bytes plus length. No compiler world/scheduling is needed. Output publication is serial and can leave partial files on failure; same-path input/output protection is absent in this internal tool. Current callers supply distinct generated paths. Browser build execution pending. |
+| `scaffolding/backend/target_registry_tool.tower` | B2-owned registry generator invoked by foreign_tool. Three bounded 1 MiB reads complete before opening output; local buffers close lexically. Configured LLVM target declarations are emitted as ordinary Tower, with no ambient type registry or runtime scheduler. Baseline native build exercised generation. Generated output and transient aggregate input retention are separate from each read bound; malformed registry checks belong to B2. |
+| `scaffolding/backend/foreign_tool.tower` | B2-owned Foundation text/foreign-name bridge. Mutable input, expanded bytes and wrap-response buffers are caller-owned contiguous vectors; temporary foreign-name objects close per token, extra modules contribute wraps only. All reads/expansion finish before serial output writes, preserving source order. Native baseline exercises target expansion. Review hypothesis: expansion calls void backend_text helpers without checking retained length, unlike the input reader; allocator-failure truncation needs B2 reproduction. No independent change made. |
 
 ### Copied bootstrap resources: provenance-only review
 
@@ -204,7 +223,10 @@ prevents a dependable speedup claim from this sequence. The host uses the
 2.425 GHz. This is a possible confounder, not a demonstrated root cause; no host
 power settings were changed. Parallel CPU/wall exceeds one, showing concurrent
 CPU consumption, but does not by itself prove useful body overlap. Small-input
-phase logs are parse-dominated (first pair 1.911 vs 2.461 s). More workers cost
+phase logs are dominated by the CLI's `parse` interval (first pair 1.911 vs
+2.461 s). Source inspection shows that interval includes frontend compilation
+and checking, not just parsing; it does not expose worker idle/critical paths.
+More workers cost
 memory and coordination on that input. No idle-time or contention counters were
 collected; actual producer overlap and stable scaling remain validation work.
 
@@ -254,7 +276,8 @@ cancellation; both jobs drained. No overlapped times enter the tables above.
 
 The initial heavy lock was released only after every D2 child was terminal;
 container init/sleep are idle. No broad cleanup or sibling-cache access occurred.
-Build-budget plumbing remains proposed pending owner handoff. Whole-file hash
+Build-budget plumbing is implemented after owner handoff and awaits executable
+validation. Whole-file hash
 retention and unconditional tool rebuilding are reviewed candidates, not claimed
 fixes. A2 owns actual Tower IR/object instrumentation; no unsupported CXX flag or
 serial allocation check is counted as thread sanitization. Integrated release,

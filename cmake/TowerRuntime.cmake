@@ -3,7 +3,7 @@
 include("${CMAKE_CURRENT_LIST_DIR}/TowerGuestRuntime.cmake")
 function(tower_host_linker output fallback)
   if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
-    set(${output} "${TOWER_BOOTSTRAP_COMPILER}" --link-executable PARENT_SCOPE)
+    set(${output} "${TOWER_BOOTSTRAP_COMPILER}" --jobs "${TOWER_COMPILER_JOBS}" --link-executable PARENT_SCOPE)
   else()
     set(${output} "${fallback}" PARENT_SCOPE)
   endif()
@@ -22,8 +22,8 @@ function(tower_wasi_link_tool)
   set(program "${CMAKE_CURRENT_BINARY_DIR}/link_wasi")
   add_custom_command(OUTPUT "${object}" "${program}"
     COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tools/link_wasi.tower"
-      --library --target "${host_triple}" -o "${object}" --depfile "${object}.d"
-    COMMAND "${TOWER_BOOTSTRAP_COMPILER}" --link-executable "${object}" "${runtime}" -o "${program}"
+      --jobs "${TOWER_COMPILER_JOBS}" --library --target "${host_triple}" -o "${object}" --depfile "${object}.d"
+    COMMAND "${TOWER_BOOTSTRAP_COMPILER}" --jobs "${TOWER_COMPILER_JOBS}" --link-executable "${object}" "${runtime}" -o "${program}"
       -ldl -Wl,--export-dynamic-symbol=work_thread_entry
     DEPFILE "${object}.d"
     DEPENDS scaffolding/tools/link_wasi.tower "${runtime}" "${TOWER_BOOTSTRAP_COMPILER}" VERBATIM)
@@ -81,6 +81,7 @@ function(tower_runtime_tools)
   # rejects that depfile and rebuilds this tool and its consumers on every run.
   add_custom_command(OUTPUT "${object}" "${program}"
     COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/host/runtime_bind.tower"
+      --jobs "${TOWER_COMPILER_JOBS}"
       --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
       --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
       --library --target "${host_triple}" -o "${object}" --depfile "${object}.d"
@@ -96,7 +97,7 @@ function(tower_runtime_object name input triple)
     # No foreign rewrites remain: emit the Tower object directly.
     set(object "${CMAKE_CURRENT_BINARY_DIR}/${name}.o")
     add_custom_command(OUTPUT "${object}"
-      COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${input}" --library --target "${triple}"
+      COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${input}" --jobs "${TOWER_COMPILER_JOBS}" --library --target "${triple}"
         --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
         --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
         -o "${object}" --depfile "${object}.d"
@@ -112,7 +113,7 @@ function(tower_runtime_object name input triple)
   set(bound "${CMAKE_CURRENT_BINARY_DIR}/${name}.ll")
   set(object "${CMAKE_CURRENT_BINARY_DIR}/${name}.o")
   add_custom_command(OUTPUT "${ir}" "${bound}" "${object}"
-    COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${input}" --library --target "${triple}"
+    COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${input}" --jobs "${TOWER_COMPILER_JOBS}" --library --target "${triple}"
       --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
       --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
       --emit llvm-optimized -o "${ir}" --depfile "${ir}.d"
