@@ -43233,3 +43233,24 @@ changes. Publication must preserve the latest verified runtime assets and append
 only a tooling receipt. Next consolidation candidates include the remaining
 parser measurement CMake bridge and reusable browser measurement aggregation;
 retain explicit host timing versus compiler timing contracts when simplifying.
+
+Rebase brings 3e12adb's local declaration continuations and refilled compile-time
+evaluation windows; cleanup becomes fc9efd3. Freeze that source in
+/cache/profiling_cleanup_integrated_checkout. The documented build-native.sh with
+TOWER_BOOTSTRAP_COMPILER unset builds a fresh default successor in 48 steps,
+SHA256 1f8d877945a604c1a926cc63eafc7fbc0c6bb57c865ea1217289c1daa12682e2.
+Seven additional steps build focused LR/backend fixtures. type-smoke,
+control-smoke and backend API pass. Both interpreters still produce 445698544 for
+the moved profiler workload. No profiling transport/workload input changed during
+rebase, so retain its already recorded CPU-capture evidence on published 89151aa.
+
+Meanwhile Pages 9e817d2f6120ac872f6aac84fbf05dbb818dddb7 publishes 3e12adb with
+104 assets and preserves our earlier receipts. Download its exact threaded reactor,
+verify SHA256 66ec61f032ce47bbf8377757ae7d043398be0bcf1b5d6b95fdd72c991d0ad268,
+and run the existing interpreter-invocation test selected by
+--test-name-pattern='shared semantic/interpreter', with TOWER_TEST_WASM pointing
+to that asset. This focused test invokes semantic_world_tests at 32/64-bit target
+widths, including the updated evaluation_query_tests at one/two world workers
+under the four-worker transport. It passes 1/1 with zero skips, exercising the
+new dynamic producer/two-window fixture without repeating an unrelated release
+matrix. Preserve this newer runtime in the tooling-only publication.
