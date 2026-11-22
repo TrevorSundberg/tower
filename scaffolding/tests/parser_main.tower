@@ -91,6 +91,13 @@ fn parser_main_suite(name: u8*): ParserSuiteExit {
     if strcmp(name, "lr-analysis") == 0 { lr_analysis_tests(); return ParserSuiteExit.Success; }
     if strcmp(name, "nodes") == 0 { syntax_nodes_tests(); return ParserSuiteExit.Success; }
     if strcmp(name, "emission") == 0 { syntax_emission_test_entry(); return ParserSuiteExit.Success; }
+    if strcmp(name, "modules") == 0 {
+        parser_fixture_setup();
+        var result = frontend_modules_tests();
+        if result != 0 { parser_main_failure("Tower module cache test failed: ", convert(i64, result)); return ParserSuiteExit.Failure; }
+        puts("Tower module cache and session tests passed.");
+        return ParserSuiteExit.Success;
+    }
     var reader = strcmp(name, "reader") == 0;
     var live = strcmp(name, "live") == 0;
     var validation = strcmp(name, "validation") == 0;
@@ -106,7 +113,7 @@ fn parser_main(argc: i32, argv: u8**): i32 {
     var option_index: usize = 1; var suite_index: usize = 2; var suite_arguments: i32 = 3;
     if argc > 1 && strcmp(argv[option_index], "--suite") == 0 {
         if argc != suite_arguments {
-            parser_main_error("Usage: tower-parser-tests --suite regex|lexicon|lr-grammar|lr-analysis|nodes|emission|reader|live|validation", "");
+            parser_main_error("Usage: tower-parser-tests --suite regex|lexicon|lr-grammar|lr-analysis|nodes|emission|modules|reader|live|validation", "");
             return convert(i32, ParserSuiteExit.Failure);
         }
         return convert(i32, parser_main_suite(argv[suite_index]));

@@ -991,7 +991,9 @@ containers. Benchmark representative compiler workloads before migrating them.
   Clone waves refill idle slots within a source window and reserve the remaining
   node budget across private stages. A demanded template's immutable body count
   is cached on its template component; signature-only uses leave it unmeasured.
-  Type-constructor copying and structural checking still need continuations.
+  Type constructors now have separate syntax-consumer and canonical-instance
+  receipts. Their bodies use the shared generic clone executor; aliases suspend
+  on type dependencies, and nominal identity publishes before fields/layout.
   Eligible operator expressions, ordinary/prepared generic calls and scalar
   comptime expressions in inferred declarations and decltype annotations are
   checked on workers after declaration/signature and layout dependencies publish.
@@ -1015,7 +1017,9 @@ containers. Benchmark representative compiler workloads before migrating them.
   canonical identity. Independent array fields share a bounded ready frontier;
   nested arrays suspend on their element receipts. Consumers reuse those types,
   with storage layout and recursive-layout diagnostics remaining separate.
-  User type-constructor copying/registration still requires coordinator work.
+  Constructor argument interning/registration remains coordinator publication;
+  prepared aliases and field checking use the query graph. Retained failures and
+  alias cycles propagate through the same receipts.
   General interpreted extent expressions remain a separate staging extension;
   current extents accept literal or bound integer values.
   Field-layout readiness projects pointers, arrays and published call results.
@@ -1026,6 +1030,11 @@ containers. Benchmark representative compiler workloads before migrating them.
   inferred expression cloning also use worker jobs. One joined immutability proof
   precedes inferred clone/preparation queries; ordinary interpreter jobs produce
   the values. Alias references and changed storage indexes publish after joins.
+  Return/discard operands and Foundation assignment target/value phases now use
+  expression queries; independent enum member checks also run on workers.
+  Evaluation preparation has persistent components and activates only through
+  demanded roots or interpreter-discovered dependencies. Repeated pumps retain
+  completed work; inferred clones still snapshot before runtime lowering.
   Shared entities now use stable component pages, exact-signature archetype rows,
   published component columns and view-owned multi-component query plans.
   These index stable payload pointers; they do not relocate component data.
@@ -1135,8 +1144,8 @@ receipts and exact validation scope are recorded separately in the ongoing journ
 | --- | --- | --- |
 | Entities | Stable payloads, dense per-type pointer indexes, explicit worlds, pinned views, exclusive attachment leases and staged canonical creation | Complete host-world isolation and non-racing reference ownership |
 | Syntax/grammar | Shared entities; world-bound module/session/baseline/revision/cache ownership; worker-owned FIRST/nullable frontiers, LR(0) transitions, LR(1) kernel closures, dependency-link construction, wide lookahead frontiers, LALR actions and runtime action/direct-index/goto rows; native CLI unit recipes use isolated worlds | Shared import/query deduplication and runtime sequence specialization; source/effect order, link/seed merging and row interning require ordered publication |
-| Semantics/layout | Shared query graph; parallel dependency discovery, precise layout/signature reads, eligible ordinary/generic bodies with loop/match/defer continuations, local/module initializer and control-input queries, array element/extent frontiers, staged function/protocol signatures and callable locations, bounded clone refilling, editor observations, aggregate signatures and expression lowering | Foreach lookup/deduction and loop construction, user type-constructor preparation and remaining structural expressions; canonical interning/publication remains coordinated |
-| Interpreter/staging | Per-invocation contexts over shared Foundation; ECS binding proofs, clone/preparation/lowering dependencies, threaded lazy scalar evaluation, executed-read capture checks and private execution caches | General ordinary-value execution, explicit effects/inputs and invalidation; no separate folding evaluator |
+| Semantics/layout | Shared query graph; parallel discovery, layout/signature reads, resumable bodies and expression operands, assignment target/value phases, enum checking, array/constructor continuations, shared generic cloning, editor observations, aggregate signatures and expression lowering | Foreach lookup/deduction and loop construction, source type-binding checking, remaining structural expressions and deferred-depth validation; canonical interning/publication remains coordinated |
+| Interpreter/staging | Per-invocation contexts over shared Foundation; ECS binding proofs, clone/lowering dependencies, persistent demanded preparation, threaded scalar/aggregate evaluation, executed-read capture checks and private execution caches | Early general value execution during type construction, explicit effects/inputs and persistent invalidation; no separate folding evaluator |
 | LLVM | Shared Foundation inputs; private LLVM contexts/modules per unit; backend queries stream from their frontend receipts on one bounded native pool; browser builds use the Tower coordinator | Shared-module work and upstream target registration retain ownership boundaries; measure end-to-end scaling and preserve target legality |
 | Link/publication | Tower plans/artifacts and the production Tower Wasm linker; other native formats retain upstream LLD and filesystem interfaces | Keep remaining LLD globals and temporary paths isolated/serialized; publish a candidate only after its checks |
 

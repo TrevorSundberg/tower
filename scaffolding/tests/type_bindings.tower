@@ -7,6 +7,8 @@ var Real: type = float_type(32);
 var Flag: type = boolean_type();
 var Nothing: type = empty_type();
 var Address: type = address_type();
+var Reference: type = pointer_type(Word);
+var Callback: type = function(Word, Word);
 
 fn same_type(T: type): type { return T; }
 // Enum headers resolve before declaration queries. Intern the representation,
@@ -34,6 +36,10 @@ fn verify(): i32 {
     value++;
     if value != 0 || sizeof(Word) != 2 { failures++; }
     if identity(comptime(staged(7))) != 21 { failures++; }
+    var reference: Reference = &value;
+    *reference = 7;
+    var callback: Callback = identity;
+    if value != 7 || callback(value) != 7 { failures++; }
     var real: Real = 1.5;
     if real + real != 3.0 { failures++; }
     var flag: Flag = true;

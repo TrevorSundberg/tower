@@ -119,7 +119,6 @@ export fn semantic_compile_budget(program: SemanticProgram*, roots: void**, base
     sem_defer_hygiene(c);
     sem_known_infer(c);
     sem_lower_expressions(c);
-    sem_defer_validate(c);
     sem_evaluations(c);
     sem_attributes_publish(c);
     sem_known_publish(c);

@@ -6,6 +6,7 @@ import semantic_control;
 import semantic_support;
 import semantic_expression_lowering;
 import semantic_aggregates;
+import semantic_defer;
 import semantic_evaluation;
 import semantic_work_ids;
 import .library.vector;
@@ -53,7 +54,12 @@ fn semantic_lowering_kernel(result: SemanticLowering*): void {
     context.control_prefix = sem_cat(&context, result.signature ? "aggregate value " : "control value ",
         sem_cat(&context, sem_decimal(&context, convert(u64, result.ordinal)), "."));
     if result.signature { sem_aggregate_function(&context, result.subject); }
-    else { sem_lift_block(&context, result.block); }
+    else {
+        sem_lift_block(&context, result.block);
+        // Validate the completed expansion under the same function ownership
+        // and diagnostic receipt as lowering, after its final blocks exist.
+        if context.has_defer { sem_defer_depth(&context, result.block, 0); }
+    }
     result.count = context.count;
     result.error = program.error;
     result.error_offset = program.error_offset;
@@ -72,7 +78,7 @@ fn sem_lower_parallel(c: SemanticContext*): void {
 }
 
 fn sem_lower_transform(c: SemanticContext*, signature: bool): void {
-    if !sem_ok(c) || (!signature && !c.surface_expressions) { return; }
+    if !sem_ok(c) || (!signature && !c.surface_expressions && !c.has_defer) { return; }
     // Source spellings and names produced by earlier control lowering are frozen
     // before dispatch. Every function owns its generated-name table and prefix.
     sem_control_names(c);

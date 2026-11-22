@@ -301,6 +301,43 @@ fn body_runs_type_smoke(root: u8*): void {
     body_runs_smoke_select(root, true);
 }
 
+fn body_runs_defer_depth(root: u8*, bedrock: u8*, foundation: u8*): void {
+    var source: vector(u8) = default;
+    var diagnostic: vector(u8) = default;
+    defer vector_dispose(&source);
+    defer vector_dispose(&diagnostic);
+    // Each source block is legal. Copying the deferred cleanup into the deep
+    // return exceeds the final Foundation limit in two independent functions.
+    var nesting: usize = 124;
+    for(var function: usize = 0; function < 2; function++) {
+        var head = function == 0 ? "import tower;fn first():void{defer{{{{print(1);}}}}"
+            : "fn later():void{defer{{{{print(2);}}}}";
+        for(var i: usize = 0; head[i] != 0; i++) { units_check(vector_push(&source, head[i]), "Depth fixture prefix"); }
+        for(var i: usize = 0; i < nesting; i++) { units_check(vector_push(&source, convert(u8, 123)), "Depth fixture block"); }
+        var returned = "return;";
+        for(var i: usize = 0; returned[i] != 0; i++) { units_check(vector_push(&source, returned[i]), "Depth fixture return"); }
+        for(var i: usize = 0; i <= nesting; i++) { units_check(vector_push(&source, convert(u8, 125)), "Depth fixture closing block"); }
+    }
+    units_check(vector_push(&source, convert(u8, 0)), "Depth fixture terminator");
+    for(var budget: usize = 1; budget <= 4; budget *= 4) {
+        var batch = frontend_units_create(1, budget, 8, 1, 1, bedrock, foundation, root);
+        units_check(batch != null, "Deferred depth batch");
+        defer frontend_units_close(batch);
+        units_check(frontend_units_source(batch, 1, "defer_depth.tower", source.data, source.length - 1), "Deferred depth source");
+        while !frontend_units_step(batch, true) {}
+        var error = frontend_units_error(batch);
+        if frontend_units_failed(batch) != 1 || strstr(error, "defer expansion exceeds") == null { puts(error); }
+        units_check(frontend_units_failed(batch) == 1 && strstr(error, "defer expansion exceeds") != null,
+            "Lowered deferred depth is rejected on workers");
+        if diagnostic.length == 0 {
+            var length = strlen(error);
+            units_check(vector_reserve(&diagnostic, length + 1), "Deferred depth diagnostic");
+            copy(diagnostic.data, error, length + 1);
+            diagnostic.length = length;
+        } else { units_check(strcmp(diagnostic.data, error) == 0, "Deferred depth diagnostic retains source order"); }
+    }
+}
+
 fn body_runs_statements(root: u8*, bedrock: u8*, foundation: u8*, width: u32): void {
     var source: vector(u8) = default;
     var canonical: vector(u8) = default;
@@ -345,6 +382,7 @@ fn body_runs_smoke_select(root: u8*, types_only: bool): void {
         return;
     }
     body_runs_header_error(4, bedrock.data, foundation.data, root);
+    body_runs_defer_depth(root, bedrock.data, foundation.data);
     body_runs_statements(root, bedrock.data, foundation.data, 8);
     for(var budget: usize = 1; budget <= 4; budget *= 4) {
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.VoidReturn);
@@ -422,6 +460,7 @@ fn body_runs_tests(root: u8*): void {
         }
     }
     puts("Body continuation matrix: diagnostic ordering and cycles");
+    body_runs_defer_depth(root, bedrock.data, foundation.data);
     // These small error fixtures need serial versus concurrent admission. The
     // successful/canonical matrix above retains every 1/2/4/8-worker setting;
     // avoid rebuilding each diagnostic's module graph at all four widths too.

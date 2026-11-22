@@ -6,6 +6,9 @@ import .library.vector;
 
 // Exercise the compatibility host entry point in this legacy test suite.
 extern fn syntax_create(source: u8*, module: FrontendModule*): void*;
+extern fn entity_component_add(node: void*, kind: void*): void*;
+extern fn entity_component_get(node: void*, kind: void*): void*;
+extern fn entity_component_data(component: void*): void*;
 
 fn module_test_source(environment: ModuleEnvironment*, name: u8*, source: u8*): void {
     module_require(frontend_modules_source(environment, name, source, syntax_text_length(source)));
@@ -45,7 +48,10 @@ export fn frontend_modules_tests(): usize {
     if !ok {
         result = 801;
     }
-    // Only grammar-only dependencies can reuse their declaration entities.
+    // A grammar import may contain ordinary roots, but semantic attachments
+    // must never leak from one requesting graph into its cached snapshot.
+    if !module_cache_isolation(environment) { return ModuleCacheFailure; }
+    // Declaration entities remain reusable across requesting graphs.
     ok = module_test_parse(environment, "import shared; shared", 2, true);
     if !ok {
         result = 802;
@@ -146,6 +152,48 @@ export fn frontend_modules_tests(): usize {
         return result;
     }
     return module_session_tests();
+}
+
+var ModuleCacheFailure: usize = 843;
+
+fn module_cache_request(environment: ModuleEnvironment*): FrontendModule* {
+    var source: u8* = "import left; left";
+    var module = frontend_module_root(source, environment);
+    var session = frontend_module_session(module);
+    while module_session_step(session) {}
+    module_require(syntax_get_error(session)[0] == 0);
+    frontend_module_finish(module);
+    return module;
+}
+
+fn module_cache_isolation(environment: ModuleEnvironment*): bool {
+    var kind = entity_create(compiler_world_store(environment.world));
+    defer entity_release(kind);
+    module_require(entity_register(kind, sizeof(usize), alignof(usize), 0));
+    var first = module_cache_request(environment);
+    defer frontend_module_destroy(first);
+    var imported = first.dependencies.data[0];
+    var cached: FrontendModule* = null;
+    foreach(var candidate in &environment.cache) {
+        if module_equal(candidate.source.name.data, imported.source.name.data) { cached = candidate; }
+    }
+    if cached is null || cached.roots.length != 1 || imported.roots.length != 1 { return false; }
+    var root = imported.roots.data[0];
+    var component = entity_component_add(root, kind);
+    module_require(component is not null);
+    *bits(usize*, entity_component_data(component)) = 17;
+    var second = module_cache_request(environment);
+    defer frontend_module_destroy(second);
+    var fresh = second.dependencies.data[0];
+    if fresh.roots.length != 1 || fresh.roots.data[0] == root { return false; }
+    if entity_component_get(fresh.roots.data[0], kind) is not null { return false; }
+    if entity_component_get(cached.roots.data[0], kind) is not null { return false; }
+    if fresh.declarations.data[0] != imported.declarations.data[0] { return false; }
+    // Retiring snapshots must preserve both outstanding request graphs.
+    frontend_modules_reset_compilation(environment);
+    if environment.cache.length != 0 { return false; }
+    if *bits(usize*, entity_component_data(entity_component_get(root, kind))) != 17 { return false; }
+    return entity_component_get(fresh.roots.data[0], kind) is null;
 }
 
 fn module_session_step(session: void*): bool {

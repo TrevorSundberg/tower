@@ -237,7 +237,7 @@ fn sem_defer_depth(c: SemanticContext*, n: void*, depth: u32): void {
     if n == null || !sem_ok(c) {
         return;
     }
-    if depth > 128 {
+    if depth > ControlBlockNestingLimit {
         sem_fail(c, n, "defer expansion exceeds Foundation block nesting limit of 128");
         return;
     }
@@ -257,21 +257,5 @@ fn sem_defer_depth(c: SemanticContext*, n: void*, depth: u32): void {
     if value.kind == KIf || value.kind == KLoop {
         sem_defer_depth(c, value.body, depth);
         sem_defer_depth(c, value.otherwise, depth);
-    }
-}
-
-// An exit may be much deeper than the registration, and expression lifting may
-// add branches. Check the final executable structure, not the prototype's depth.
-fn sem_defer_validate(c: SemanticContext*): void {
-    if !c.has_defer || !sem_ok(c) {
-        return;
-    }
-    for(var i: usize = 0; i < c.program.functions.length && sem_ok(c); i++) {
-        var function = c.program.functions.data[i];
-        var body = sem_get(function).body;
-        if function == c.program.root {
-            body = function;
-        }
-        sem_defer_depth(c, body, 0);
     }
 }

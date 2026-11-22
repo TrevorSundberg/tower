@@ -42302,3 +42302,55 @@ This receipt preserves the existing browser verification evidence; it does not
 claim a fresh full browser run. Continue removal audits for remaining generators
 and live JS callers. In particular, the standalone entity fixture owns its own
 finalizer and is not automatically interchangeable with the parser aggregate.
+The full aggregate/body matrix passed for the demanded-preparation checkpoint,
+including both interpreters for aggregates, 32/64-bit canonical results and
+1/2/4/8-worker execution, diagnostic ordering and cycles. Rebased only journal
+changes from c442362: runtime/source inputs are unchanged. Sources 31371ae
+(assignments/enums) and a4e8be5 (demanded preparation) are pushed. Native package
+SHA-256 is 95777dd5e562eae2fb3842a64f55a3ab24da3ff9002525b8b1f2dc7ea4e32391;
+frozen compiler project is 31ef6b59ff3472e65844e6bdf0b753f9deeb191da27533cce7129f9bb737aea0.
+Browser checks and edited generations use these frozen artifacts.
+
+Next, uncommitted work admits source type bindings to declaration workers when
+their syntax uses prepared identities or private primitive/pointer/function type
+descriptions. Array constructor-call interning remains coordinated. Existing
+alias dependency receipts and type observations handle publication; no shared
+interner is moved onto workers. Pointer and callback aliases extend the existing
+type fixture. Deferred expansion depth validation now runs in the function's
+lowering kernel with its ownership/error receipt, removing the later serial scan.
+The lowering path still runs when defer needs validation without surface
+expressions. Added legal source blocks whose copied cleanup exceeds the final
+nesting limit in independent functions, comparing serial/worker diagnostics.
+Small-unit preflights pass; focused native checks are running in
+type-binding-defer-native.log. These edits are excluded from a4e8be5's package.
+
+The prepared type-binding and deferred-depth checks passed natively (types and
+body-smoke). a4e8be5's browser builds and both edited compiler generations also
+passed, but its broad browser threading check was stopped after more than 260s
+(the comparable earlier run took about 56s). Do not count that check as passing
+or publish those assets yet. A separate shared-world/kernel check passed; a
+90-second V8-profiled repeat timed out. Its hot Wasm call chain maps to
+lr_items_close -> lr_states_lalr -> parser_table_build, not a blocked semantic
+query. Evidence: evaluation-demand-{browser-checks,profiled-checks,profile,
+world-isolation,generations}.log/.txt and the ignored Tower wasm_export_names
+helper. llvm-readobj-19 failed on the shared Wasm while investigating; the Tower
+export reader identified the existing exported LR symbols instead.
+
+Root cause: the new Foundation imports ordinary source-defined type declarations.
+module_cacheable rejected any transitive module containing ordinary roots, so
+Foundation and Tower ceased to reuse their grammar snapshots. Repeated requests
+reparsed declarations and rebuilt LR tables. The correction captures snapshots
+before semantic attachment and clones ordinary syntax into each request, retaining
+only immutable grammar declarations. Pure code modules do not get independent
+transitive snapshots. Existing exact-source and import-resolution validation
+remains; changing the grammar baseline now also retires module snapshots while
+live requests keep their owned trees. This is private per-world import caching,
+not a new semantic graph or cross-world mutable cache.
+
+Added a focused modules option to the existing Tower parser runner and a fixture
+that attaches a component to one imported ordinary root, verifies another request
+and the cache lack it, verifies immutable declaration reuse, then invalidates the
+cache while both requests remain alive. An initial preflight needed explicit
+entity component interface declarations in the test. Native and browser checks
+will establish correctness and whether the parser regression is removed; no
+speedup or deployment is claimed before those results.

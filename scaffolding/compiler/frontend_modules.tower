@@ -1322,6 +1322,11 @@ export fn frontend_modules_reset_compilation(environment: ModuleEnvironment*): v
         syntax_destroy(environment.compilation_session);
     }
     environment.compilation_session = null;
+    // Parsed imports depend on the world's grammar baseline as well as source
+    // bytes. Live graphs own their cloned roots and retained declarations, so
+    // retiring these snapshots cannot invalidate an outstanding request.
+    foreach(var cached in &environment.cache) { frontend_module_destroy(cached); }
+    environment.cache.length = 0;
     // Live leases keep their parser and inputs. Retired caches are discarded
     // only after the owning request drains and returns its session.
     var next = environment.session_generation + 1;
@@ -1404,9 +1409,10 @@ export fn frontend_modules_destroy(environment: ModuleEnvironment*): void {
     free(environment);
 }
 
-// Only declaration-only modules are cached. Ordinary parse trees acquire
-// program-specific semantic components and must be rebuilt for each program.
-// Cache identity includes exact source bytes of every transitive dependency.
+// Snapshots are captured during import parsing, before semantic attachment.
+// Grammar declarations remain immutable; ordinary roots are copied both into
+// snapshots and into each requesting graph. Cache identity includes the exact
+// source and resolution of every dependency, plus baseline invalidation above.
 fn module_cacheable(module: FrontendModule*): bool {
     // A back-edge may still point at an unfinished module. Never cache that
     // partial snapshot, even if cycle validation will reject the request later.
@@ -1414,9 +1420,6 @@ fn module_cacheable(module: FrontendModule*): bool {
         return false;
     }
     if module.state != ModuleLoaded {
-        return false;
-    }
-    if module.roots.length != 0 {
         return false;
     }
     var i: usize = 0;
@@ -1508,6 +1511,13 @@ fn module_clone(graph: ModuleGraph*, source: FrontendModule*): FrontendModule* {
         entity_retain(declaration);
         module_require(vector_push(&result.declarations, declaration));
     }
+    foreach(var root in &source.roots) {
+        var copied: usize = 0;
+        var tree = compiler_clone_tree(root, ModuleMaximumSourceBytes, &copied);
+        module_require(tree != null);
+        module_require(vector_push(&result.roots, tree));
+    }
+    foreach(var span in &source.comments) { module_require(vector_push(&result.comments, span)); }
     i = 0;
     loop {
         if i == source.imports.length {
@@ -1534,6 +1544,10 @@ fn module_clone(graph: ModuleGraph*, source: FrontendModule*): FrontendModule* {
 }
 
 fn module_cache_store(module: FrontendModule*): void {
+    // Cache grammar-bearing modules and import wrappers. Their ordinary
+    // dependencies must not disable grammar reuse (Foundation's type prelude
+    // is one such dependency). Pure code modules need no separate snapshot.
+    if module.roots.length != 0 && module.declarations.length == 0 { return; }
     if !module_cacheable(module) {
         return;
     }
