@@ -41455,3 +41455,49 @@ The coordinator also published successor Pages c4d1c1be/action 44984608388
 (success); the served manifest identifies runtime f13b167 and retains the exact
 formatter source/native-successor receipt. No rollback or second deployment is
 needed for this final journal update. The shared publication lock remains released.
+Pages workflow 44984608388 succeeded for c4d1c1b. Hosted verification passed
+all 88 hashes, desktop/mobile compilation, completion, native build/download,
+persistence and Linux host defaults. Evidence: array-owner-hosted.log and
+build/deployment-verification/report.json. f13b167 is now the verified published
+runtime; the focused test mode rebased onto the upstream native formatter work
+and was pushed as 4c95bc7. The rebase changed host tooling, not the tested frontend.
+
+Constructor continuation implementation is now under focused native validation.
+Syntax calls and canonical instances have distinct TypeConstruction receipts;
+instance body copies use the shared staged worker executor. Alias continuations
+yield onto child type queries, and nominal records publish identity before field
+validation. The ordinary requesting declaration retains new layout ownership.
+No new evaluator or folding pass was added; argument restrictions remain those
+of the existing generic implementation.
+
+Initial preflight required an explicit semantic_expressions import, then passed.
+The first focused run passed recursive pointer identity/execution but exposed
+shared nested type failure ordering: a scalar sizeof consumer of an already
+published identity could advance to unknownFirst while another consumer owned
+the field failure. Reduced constructor_shared_nested.tower confirmed it;
+constructor_shared_alias.tower already retained MissingAlias correctly. Ordinary
+consumers now retain reused record layout frontiers too; identity-only child
+queries remain independent of fields. Function signature entities are excluded
+from aggregate layout requests. Cycle diagnostics name constructor definitions
+without assuming syntax-only query subjects have FoundationNode payloads.
+The correction and new alias-cycle/function-type fixtures are not yet published.
+
+The corrected focused suite passes, including the new alias cycle at one/four
+workers. The candidate compiles semantic_constructor_work.tower with its own
+new query implementation (constructor-work-self.log, exit 0). The full native
+matrix has passed execution/canonical reparsing for 32/64 bits and 1/2/4/8
+workers; diagnostic groups are finishing in constructor-work-matrix.log.
+Direct and nested named constructor initialization both produce 42 in reduced
+CLI probes. Multi-unit validation now deliberately gives `box(i32)` different
+meanings in two isolated worlds, alongside existing decltype/comptime behavior;
+the serial/six-worker, both-width checks and cancellation/failure cases are
+running in constructor-work-units.log. No throughput improvement is claimed.
+
+Remaining integration boundary: structural body statements still enter the
+coordinator's synchronous type-call adapter when they have no declaration or
+expression receipt. Move their operands (starting with returns/discarded calls)
+onto expression continuations next, preserving statement flow, cleanup and
+effects rather than replaying checked expressions. General staged type/value
+execution and persistent invalidation remain unfinished. This milestone makes
+constructor identity/alias dependencies and cloning schedulable; it is not a
+claim that the entire compiler or all type execution is fully parallel.

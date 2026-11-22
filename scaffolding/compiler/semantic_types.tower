@@ -10,6 +10,7 @@ import semantic_support;
 import semantic_values;
 import semantic_expressions;
 import semantic_declarations;
+import semantic_constructor_work;
 import semantic_work_ids;
 import semantic_control;
 import .library.vector;
@@ -236,7 +237,57 @@ fn sem_type_declaration_context(c: SemanticContext*, node: void*): bool {
     return sem_declaration_query(c, parent) != 0;
 }
 
+fn sem_constructor_arguments(c: SemanticContext*, n: void*, definition: void*): vector(void*)* {
+    var name = sem_identifier(c, sem_member(n, "name"));
+    if definition == null {
+        var step6 = sem_cat(c, "Unknown type constructor '", name);
+        var step7 = sem_cat(c, step6, "'");
+        sem_fail(c, n, step7);
+        return null;
+    }
+    var wanted: u8* = "CoreTypeArgument";
+    if sem_is(n, "CoreCall") {
+        wanted = "CoreCallArgument";
+    }
+    var step9 = sem_member(n, "args");
+    var args: vector(void*)* = sem_collect(c, step9, wanted);
+    if args.length == 0 && !sem_is(n, "CoreCall") {
+        var step15 = sem_member(n, "args");
+        args = sem_collect(c, step15, "CoreType");
+    }
+    var step17 = generic_parameter_count(c.generics, definition);
+    if args.length != step17 {
+        var step19 = sem_cat(c, "Wrong argument count for type constructor '", name);
+        var step20 = sem_cat(c, step19, "'");
+        sem_fail(c, n, step20);
+        return null;
+    }
+    var arguments: vector(void*)* = sem_list(c);
+    var step22 = sem_member(definition, "params");
+    var parameters: vector(void*)* = sem_collect(c, step22, "CoreParameter");
+    for(var i: usize = 0; i < args.length; i++) {
+        if generic_type_parameter(c.generics, definition, i) {
+            var step27 = sem_type(c, args.data[i]);
+            sem_push(arguments, sem_type_entity(c, step27));
+        } else {
+            var step29 = sem_member(parameters.data[i], "type");
+            var expected_type: FoundationType* = sem_type(c, step29);
+            if !semantic_integer(expected_type) {
+                sem_fail(c, parameters.data[i], "Compile-time value parameters currently require an integer type");
+                return null;
+            }
+            sem_push(arguments, sem_constant_argument(c, args.data[i], expected_type));
+        }
+        if !sem_ok(c) {
+            return null;
+        }
+    }
+    return arguments;
+}
+
 fn sem_type_call(c: SemanticContext*, n: void*): FoundationType* {
+    var prepared = sem_constructor_prepared(c, n);
+    if prepared != null { return prepared; }
     var previous_defer = c.defer_type_fields;
     c.defer_type_fields ||= sem_type_declaration_context(c, n);
     defer { c.defer_type_fields = previous_defer; }
@@ -260,50 +311,9 @@ fn sem_type_call(c: SemanticContext*, n: void*): FoundationType* {
         }
         return sem_function_type(c, n, result, parameters);
     }
-    var invalid: FoundationType* = sem_type_new(c, SI32, 0, null);
-    if definition == null {
-        var step6 = sem_cat(c, "Unknown type constructor '", name);
-        var step7 = sem_cat(c, step6, "'");
-        sem_fail(c, n, step7);
-        return invalid;
-    }
-    var wanted: u8* = "CoreTypeArgument";
-    if sem_is(n, "CoreCall") {
-        wanted = "CoreCallArgument";
-    }
-    var step9 = sem_member(n, "args");
-    var args: vector(void*)* = sem_collect(c, step9, wanted);
-    if args.length == 0 && !sem_is(n, "CoreCall") {
-        var step15 = sem_member(n, "args");
-        args = sem_collect(c, step15, "CoreType");
-    }
-    var step17 = generic_parameter_count(c.generics, definition);
-    if args.length != step17 {
-        var step19 = sem_cat(c, "Wrong argument count for type constructor '", name);
-        var step20 = sem_cat(c, step19, "'");
-        sem_fail(c, n, step20);
-        return invalid;
-    }
-    var arguments: vector(void*)* = sem_list(c);
-    var step22 = sem_member(definition, "params");
-    var parameters: vector(void*)* = sem_collect(c, step22, "CoreParameter");
-    for(var i: usize = 0; i < args.length; i++) {
-        if generic_type_parameter(c.generics, definition, i) {
-            var step27 = sem_type(c, args.data[i]);
-            sem_push(arguments, sem_type_entity(c, step27));
-        } else {
-            var step29 = sem_member(parameters.data[i], "type");
-            var expected_type: FoundationType* = sem_type(c, step29);
-            if !semantic_integer(expected_type) {
-                sem_fail(c, parameters.data[i], "Compile-time value parameters currently require an integer type");
-                return invalid;
-            }
-            sem_push(arguments, sem_constant_argument(c, args.data[i], expected_type));
-        }
-        if !sem_ok(c) {
-            return invalid;
-        }
-    }
+    var invalid = sem_type_new(c, SI32, 0, null);
+    var arguments = sem_constructor_arguments(c, n, definition);
+    if !sem_ok(c) { return invalid; }
     var instance: void* = generic_instantiate(c.generics, definition, n, arguments.data, arguments.length);
     if !sem_generic_ok(c, n) || instance == null {
         return invalid;
@@ -383,6 +393,7 @@ fn sem_type(c: SemanticContext*, n: void*): FoundationType* {
     }
     c.type_depth++;
     var result = sem_array_type_prepared(c, n);
+    if result == null { result = sem_constructor_prepared(c, n); }
     if result == null { result = sem_type_impl(c, n); }
     c.type_depth--;
     if sem_ok(c) {

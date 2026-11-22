@@ -134,6 +134,7 @@ struct SemanticContext {
     body_demands: void*;
     body_seen: SemanticTable*;
     generic_copies: void*;
+    type_constructors: void*;
     defer_type_fields: bool;
     control_names: SemanticTable*;
     control_reserved: SemanticTable*;
@@ -408,6 +409,8 @@ extern fn generic_parameter_count(context: void*, definition: void*): usize;
 extern fn generic_type_parameter(context: void*, definition: void*, index: usize): bool;
 
 extern fn generic_instantiate(context: void*, definition: void*, use: void*, arguments: void**, count: usize): void*;
+
+extern fn generic_instantiate_deferred(context: void*, definition: void*, use: void*, arguments: void**, count: usize): void*;
 
 extern fn generic_lookup(context: void*, node: void*, name: void*): void*;
 

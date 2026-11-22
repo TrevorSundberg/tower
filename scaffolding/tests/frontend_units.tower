@@ -65,8 +65,8 @@ fn units_trial(budget: usize, width: u32, bedrock: u8*, foundation: u8*, root: u
     defer frontend_units_close(batch);
     var sources: u8*[3];
     sources[0] = "import tower; fn id(T:type,x:T):T{return x;} fn answer():i32 { var x:decltype(id(42))=comptime(later()); return id(x); } fn later():i32{return 42;}";
-    sources[1] = "import tower; fn id(T:type,x:T):T{return x;} fn answer():i32 { var x:decltype(id(43))=comptime(later()); return id(x); } fn later():i32{return 43;}";
-    sources[2] = "import tower; fn id(T:type,x:T):T{return x;} fn answer():i32 { var x:decltype(id(44))=comptime(later()); return id(x); } fn later():i32{return 44;}";
+    sources[1] = "import tower; fn id(T:type,x:T):T{return x;} fn box(T:type):type{struct Box{value:T;}return Box;} fn answer():i32 { var value:box(i32); var x:decltype(id(43))=comptime(later()); value.value=id(x); return value.value; } fn later():i32{return 43;}";
+    sources[2] = "import tower; fn id(T:type,x:T):T{return x;} fn box(T:type):type{return T;} fn answer():i32 { var value:box(i32); var x:decltype(id(44))=comptime(later()); value=id(x); return value; } fn later():i32{return 44;}";
     units_check(frontend_units_program(batch, 1) is null, "unpublished unit result");
     units_check(!frontend_units_source(batch, 0, "unit.tower", sources[0], strlen(sources[0])), "invalid unit ordinal");
     for(var i: usize = 1; i <= 3; i++) {

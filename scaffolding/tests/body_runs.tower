@@ -181,7 +181,7 @@ fn body_runs_arm_error(budget: usize, bedrock: u8*, foundation: u8*, root: u8*, 
     units_check(frontend_units_failed(batch) == 1 && strstr(error, mode == 2 ? "Duplicate match pattern" : "unknownMatch") is not null && strstr(error, "unknownSecond") is null, "Resumed arm and cleanup failures preserve source diagnostic order");
 }
 
-enum BodyDeclarationFailure: u32 { SelfReference, SharedSignature, SharedInitializer, HeaderSelfReference, SharedTypeInitializer, SharedTypeAlias, SharedNestedType, NestedFunctionSignature, IterationSignature, ModuleInitializer, ModuleStatement, ArrayExtent, ArrayCycle, ModuleArrayExtent, ArrayFields }
+enum BodyDeclarationFailure: u32 { SelfReference, SharedSignature, SharedInitializer, HeaderSelfReference, SharedTypeInitializer, SharedTypeAlias, SharedNestedType, NestedFunctionSignature, IterationSignature, ModuleInitializer, ModuleStatement, ArrayExtent, ArrayCycle, ModuleArrayExtent, ArrayFields, ConstructorCycle }
 var BodyDeclarationRevision: u64 = 90;
 var BodyDeclarationProfile: u64 = 23;
 
@@ -250,6 +250,10 @@ fn body_runs_declaration_error(budget: usize, bedrock: u8*, foundation: u8*, roo
         source = "import tower;struct Record{first:MissingArrayFirst[2];second:i32[0];}var value:Record;";
         diagnostic_text = "MissingArrayFirst";
     }
+    if mode == BodyDeclarationFailure.ConstructorCycle {
+        source = "import tower;fn first_type(T:type):type{return second_type(T);}fn second_type(T:type):type{return first_type(T);}fn first():i32{var invalid:first_type(i32);return 0;}fn later():i32{return unknownLater;}";
+        diagnostic_text = "dependency cycle";
+    }
     units_check(frontend_units_source(batch, 1, "local_dependency.tower", source, strlen(source)), "Local declaration dependency source");
     while !frontend_units_step(batch, true) {}
     var error = frontend_units_error(batch);
@@ -294,6 +298,7 @@ fn body_runs_smoke_select(root: u8*, types_only: bool): void {
             body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.ArrayFields);
             body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedTypeAlias);
             body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedNestedType);
+            body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.ConstructorCycle);
         }
         puts("Type query smoke: serial/worker execution, canonical reparse and focused failures/cycles passed.");
         return;
@@ -381,6 +386,7 @@ fn body_runs_tests(root: u8*): void {
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.ArrayCycle);
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.ModuleArrayExtent);
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.ArrayFields);
+        body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.ConstructorCycle);
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedInitializer);
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedTypeInitializer);
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedTypeAlias);

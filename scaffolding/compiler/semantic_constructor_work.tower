@@ -1,0 +1,195 @@
+import tower;
+import semantic_context;
+import semantic_declarations;
+import semantic_types;
+import semantic_definitions;
+import semantic_modules;
+import semantic_support;
+import semantic_expressions;
+import semantic_generic_body_work;
+import semantic_work_ids;
+import foundation_types;
+import .library.vector;
+import .library.work_graph;
+
+enum SemanticConstructorPhase: u32 { Call, Clone, Alias, Ready }
+
+// Syntax consumers and canonical instance results use the same dependency
+// graph, but retain separate receipts. Instance bodies are copied by the shared
+// staged clone executor; nominal identity never waits for its own fields.
+struct SemanticConstructor {
+    phase: SemanticConstructorPhase;
+    definition: void*;
+    instance: void*;
+    syntax: void*;
+    arguments: vector(void*)*;
+    type: FoundationType;
+}
+
+fn sem_constructor_state(c: SemanticContext*, node: void*): SemanticConstructor* {
+    sem_require(c.entity_stage == null);
+    if c.type_constructors == null {
+        c.type_constructors = sem_create(c.program.root);
+        sem_require(entity_register(c.type_constructors, sizeof(SemanticConstructor), alignof(SemanticConstructor), 0));
+    }
+    var component = entity_component_get(node, c.type_constructors);
+    if component != null { return bits(SemanticConstructor*, entity_component_data(component)); }
+    var result = bits(SemanticConstructor*, entity_component_data(entity_component_add(node, c.type_constructors)));
+    sem_require(result != null);
+    *result = default;
+    return result;
+}
+
+fn sem_constructor_dispose(c: SemanticContext*): void {
+    if c.type_constructors == null { return; }
+    for(var i: usize = 0; i < entity_query_count(c.type_constructors); i++) {
+        var result = bits(SemanticConstructor*, entity_component_data(entity_query_at(c.type_constructors, i)));
+        *result = default;
+    }
+}
+
+fn sem_constructor_prepared(c: SemanticContext*, node: void*): FoundationType* {
+    if c.type_constructors == null { return null; }
+    node = sem_surface_unwrap(node);
+    while (sem_is(node, "CoreTypeArgument") || sem_is(node, "CoreCallArgument") || sem_is(node, "CoreOperand"))
+        && sem_child_count(node) == 1 { node = sem_surface_unwrap(sem_child(node, 0)); }
+    var result = bits(SemanticConstructor*, entity_component_data(entity_component_get(node, c.type_constructors)));
+    if result == null || result.phase != SemanticConstructorPhase.Ready { return null; }
+    sem_query_input(c, node, convert(u32, SemanticQuery.TypeConstruction));
+    return &result.type;
+}
+
+fn sem_constructor_syntax(c: SemanticContext*, node: void*): bool {
+    if (!sem_is(node, "CoreType") && !sem_is(node, "CoreCall")) || sem_member(node, "args") == null { return false; }
+    var name_node = sem_member(node, "name");
+    var name = sem_identifier(c, name_node);
+    return !sem_equal(name, "function") || sem_resolve(c, c.type_functions, name_node, name) != null;
+}
+
+fn sem_constructor_add(c: SemanticContext*, node: void*, parent: SemanticDeclaration*): SemanticDeclaration* {
+    var result = sem_declaration_state(c, node);
+    if result.query != 0 { sem_require(result.constructor != null); return result; }
+    result.constructor = sem_constructor_state(c, node);
+    var name = sem_member(node, "name");
+    result.constructor.definition = sem_resolve(c, c.type_functions, name, sem_identifier(c, name));
+    result.construction_owner = parent.construction_owner ?? parent;
+    result.scope = parent.scope;
+    result.current = parent.current;
+    result.lexical = parent.lexical;
+    sem_declaration_add(c, node);
+    return result;
+}
+
+fn sem_constructor_roots(c: SemanticContext*, result: SemanticDeclaration*, scan: vector(DeclarationScan)*): void {
+    var work = result.constructor;
+    if work.phase == SemanticConstructorPhase.Alias {
+        sem_declaration_scan_push(scan, work.syntax, true);
+    }
+    if work.phase != SemanticConstructorPhase.Call { return; }
+    var node = result.subject;
+    var args = sem_collect(c, sem_member(node, "args"), sem_is(node, "CoreCall") ? "CoreCallArgument" : "CoreTypeArgument");
+    var definition = work.definition;
+    if definition == null || args.length != generic_parameter_count(c.generics, definition) { return; }
+    var parameters = sem_collect(c, sem_member(definition, "params"), "CoreParameter");
+    for(var i: usize = 0; i < args.length; i++) {
+        var type = generic_type_parameter(c.generics, definition, i);
+        if !type { sem_declaration_scan_push(scan, sem_member(parameters.data[i], "type"), true); }
+        sem_declaration_scan_push(scan, args.data[i], type);
+    }
+}
+
+fn sem_constructor_instance(c: SemanticContext*, call: SemanticDeclaration*): SemanticDeclaration* {
+    var source = call.constructor;
+    var result = sem_declaration_state(c, source.instance);
+    if result.query != 0 { sem_require(result.constructor != null); return result; }
+    var work = sem_constructor_state(c, source.instance);
+    result.constructor = work;
+    result.construction_owner = call.construction_owner;
+    work.phase = SemanticConstructorPhase.Clone;
+    work.definition = source.definition;
+    work.instance = source.instance;
+    work.arguments = source.arguments;
+    // The definition's module/generic bindings supply the body scope, never the
+    // caller's lexical locals. Cached identities from structural checking can
+    // still acquire a receipt without cloning or publishing them twice.
+    var entry = sem_state(c, c.type_results, source.instance);
+    if entry.value != null {
+        work.type = *bits(FoundationType*, entry.value);
+        work.phase = SemanticConstructorPhase.Ready;
+        result.checked = true;
+    }
+    sem_declaration_add(c, source.instance);
+    return result;
+}
+
+// Returns true only when a changed continuation needs readmission. Waiting
+// dependencies are installed by the declaration executor after publication.
+fn sem_constructor_step(c: SemanticContext*, result: SemanticDeclaration*): bool {
+    var work = result.constructor;
+    if work.phase == SemanticConstructorPhase.Call {
+        if work.instance == null {
+            work.arguments = sem_constructor_arguments(c, result.subject, work.definition);
+            if !sem_ok(c) { return false; }
+            work.instance = generic_instantiate_deferred(c.generics, work.definition, result.subject,
+                work.arguments.data, work.arguments.length);
+            if !sem_generic_ok(c, result.subject) || work.instance == null { return false; }
+            sem_state(c, c.source_bases, work.instance).number = sem_source_base(c, work.definition);
+        }
+        var instance = sem_constructor_instance(c, result);
+        sem_declaration_discover(c);
+        if sem_declaration_input(result, instance.query)
+            || work_task(&c.queries, instance.query).state != WorkState.Succeeded {
+            result.waiting = instance.query;
+            return false;
+        }
+        work.type = instance.constructor.type;
+        work.phase = SemanticConstructorPhase.Ready;
+        result.checked = true;
+        return false;
+    }
+    if work.phase == SemanticConstructorPhase.Clone {
+        if generic_body_pending(c.generics, work.instance) {
+            result.waiting = sem_generic_body_request(c, work.instance, 0).query;
+            return false;
+        }
+        work.syntax = generic_type_result(c.generics, work.instance);
+        if !sem_generic_ok(c, work.instance) || work.syntax == null { return false; }
+        sem_state(c, c.source_bases, work.syntax).number = sem_source_base(c, work.definition);
+        if sem_is(work.syntax, "CoreStruct") {
+            sem_type_header(c, work.syntax, sem_instance_name(c, work.definition, work.arguments));
+            if !sem_ok(c) { return false; }
+            work.type = sem_get(work.syntax).type;
+            work.phase = SemanticConstructorPhase.Ready;
+            sem_state(c, c.type_results, work.instance).value = bits(void*, &work.type);
+            sem_push(&c.generated, work.syntax);
+            sem_declaration_add(c, work.syntax);
+            sem_declaration_discover(c);
+            sem_require(work_demand(&c.queries, sem_declaration_query(c, work.syntax)));
+            result.checked = true;
+            return false;
+        }
+        work.phase = SemanticConstructorPhase.Alias;
+        result.calls_scanned = false;
+        result.call_index = 0;
+        result.type_frontier = 0;
+        result.calls.length = 0;
+        return true;
+    }
+    if work.phase == SemanticConstructorPhase.Alias {
+        work.type = *sem_type(c, work.syntax);
+        result.checked = sem_ok(c);
+        return false;
+    }
+    result.checked = true;
+    return false;
+}
+
+fn sem_constructor_publish(c: SemanticContext*, result: SemanticDeclaration*): void {
+    var work = result.constructor;
+    if !result.checked || work == null { return; }
+    work.phase = SemanticConstructorPhase.Ready;
+    if work.instance == result.subject {
+        sem_state(c, c.type_results, work.instance).value = bits(void*, &work.type);
+    }
+    sem_type_use(c, result.subject, &work.type);
+}

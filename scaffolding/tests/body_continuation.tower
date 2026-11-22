@@ -670,4 +670,33 @@ fn query_array_layouts(): i32 {
 }
 if query_arrays_first() != 42 || query_arrays_second() != 42 || query_arrays_fields() != 42
     || query_array_layouts() != 42 || comptime(query_array_layouts()) != 42 { failures++; }
+fn query_type_alias(T: type): type { return query_type_record(T); }
+fn query_type_record(T: type): type {
+    struct Record { next: query_type_alias(T)*; value: T; }
+    return Record;
+}
+fn query_type_identity(T: type): type { return T; }
+fn query_type_callback(T: type): type { return function(T, T); }
+fn query_type_callback_value(): i32 {
+    var callback: query_type_callback(i32) = &ordinary;
+    return callback(41);
+}
+fn query_type_value(): i32 {
+    var first: query_type_alias(i32);
+    var second: query_type_identity(query_type_record(i32));
+    first.value = 20;
+    second.value = 22;
+    first.next = &second;
+    second.next = null;
+    var pointer: query_type_record(i32)* = &first;
+    return pointer.value + pointer.next.value;
+}
+fn query_type_layout(): i32 {
+    var size = sizeof(query_type_record(i16));
+    var alignment = alignof(query_type_alias(i16));
+    return size > sizeof(i16) && alignment == alignof(void*) ? 42 : 0;
+}
+if query_type_value() != 42 || comptime(query_type_value()) != 42
+    || query_type_layout() != 42 || comptime(query_type_layout()) != 42
+    || query_type_callback_value() != 42 || comptime(query_type_callback_value()) != 42 { failures++; }
 print(failures);
