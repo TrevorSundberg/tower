@@ -970,3 +970,32 @@ commands/symbols/hashes and timings are retained with the journal receipt. This
 covers valid stage lifecycle stress and leak/race detection on this host, not a
 full compiler or browser milestone. The integrated scope is now462 D1 paths
 once this fixture is committed; review coverage is distinct from runtime closure.
+
+### Current execution/reachability handoff review
+
+After all owned builds drained, reviewed all1677 lines of L1 full-base patch
+c3066f54d08f05c5549655a1602aefe7ae59bb6f6259f8358f0758daaa416560 and L2
+incremental3e7c7527df45d416ed0522fb6981e47d1f97dd0103eebdfef0fb30eb1d407a80.
+Applied by checked three-way reconciliation atop1ff28f6; existing interpreter,
+context, fast interpreter, package and tag blobs already equal owner postimages.
+A1 role publishers and D1 generic registration/oracle changes remain intact.
+These are updated source receipts; owner runtime reports remain separate.
+
+| Path under scaffolding/tests | Updated substantive review/disposition |
+| --- | --- |
+| `execution_cases.tower` | Each existing ordinary guest source now explicitly imports Tower; numeric data, pointers, foreign side effects, recursion and error limits unchanged. Deliberate invalid guest addresses remain checked interpreter inputs, not native sanitizer sensitivity probes. Graph/fast comparison still owns reference behavior. |
+| `execution_core_cases.tower` | Explicit Tower imports except Foundation grammar override fixtures11/21, preserving their raw grammar intent. Existing invalid declarations/calls/by-value cycle remain invalid with unchanged source bodies; no blanket compiler fallback. |
+| `execution_core.tower` | Structural roundtrip oracle builds a private bijective source/reconstructed node correspondence, then checks actual binding targets instead of compilation-local ordinal equality. Negative test temporarily borrows matching names on distinct declarations, redirects only owned reconstructed binding, then restores all vectors/bindings before teardown and requires equality again. Shared/cyclic edges are bounded by visited pairs. Private O(n²) validation index is not authoritative IR or measured performance optimization. All sessions and scratch dispose; exact existing field/order/name checks remain. |
+| `execution_semantic_cases.tower` | Ordinary imports explicit; unsigned negative literal and assignment-through-scalar cases remain Foundation contracts. Accepted ordinary type argument is replaced in negative arity row53 with genuinely excessive arguments, and the newly accepted form has positive coverage below. Opaque printing, integer-only comptime value parameters and ordinary recursion have current exact diagnostics; independent by-value/alias cycles retained. Numeric offsets adjusted narrowly for changed semantics/imports, not ignored. |
+| `execution_semantics.tower` | Prefix-aware exact offsets preserve entry provenance, including separately mapped no-span recursion limit. Same-spelling multifile errors locate relative to owning declaration. Added inferred type-value argument compares graph/fast true output and canonical roundtrip at widths4/8. Full invalid table still fails fast with source/diagnostic context; no test omission. |
+| `execution_packages.tower` | Explicit Tower import in original/checksummed mismatched source, length derives from exact changed source. Existing checksum, malformed header, reconstructed Foundation/cache disagreement and retained-state rejection assertions preserved. |
+| `execution_main.tower` | Focused source/encoder/rejection/type-construction/core-static selectors reuse existing harness and full `all` selection. Owner-specific diagnostics remain nonzero; no new scheduler. Explicit world regression still follows semantics/core paths. Source reachability uses same modules/resource root and runtime owner. |
+| `execution_rejection.tower` | New exact SHA74ab97021661479cbccd2b4dfc0f9593eef6ddf5349e8e2716e57c5d1e477d87 supersedes earlier snapshot. Added source reachability checks require C/Roku nonempty output, exported function definition and unchanged Foundation fingerprint; ordinary graph execution independently checks42/1. Reached type values must still clear output with exact capability diagnostic and leave graph executable. This does not compile/run the emitted C/Roku text. Earlier bounded-input/session/encoder checks preserved. |
+| `execution_type_construction.tower` | SHAa3d82ca765a10556f20ad2f722997117606e2cdcb8b87383421d1a2c6369f64c exactly matches earlier full review. Now integrated rather than incoming. No new source or runtime acceptance inferred from adoption. |
+| `source_execution_reachability.tower` | New19-line ordinary source SHA91ca378c1b914755307efe0f641777255339f36631c16e20d94ac130c0243351. Unused private integer type helper must not enter runtime derived traversal. Mutually recursive direct calls terminate at42; uncalled export remains interface root; global initializer executes once and reports42/1. Canonical declarations remain intact. No heap ownership, world or scheduling implementation in guest source. |
+| `type_binding_checks.tower` | L2 SHA5c53a76316262e80908dbded2ffc1c4ef79da343c1d22b0c2e53a57da2ea3faf adds six reached/unreached/exported/indirect/recursive cases per width and byte-identical canonical before/after. Scope-private sessions/format buffers dispose. Root reports current Runtime type-value reachability assertion failure: preserve it; source review is not fulltypes acceptance. Added shadowed local `function` value forwards ordinary integer constructor and expects size2. |
+| `frontend_units_allocation.tower` | Exact B2 newer SHA28e3e4a001fa7237a6e5c5fa8427b6582dbb80d602203c535aaf52281d276cb7 supplied/re-authorized by root after smallest-unit Unknown function failure. Only two imports and10-line root wrapper differ; two resource vectors outlive existing allocation test, then defer disposal. Underlying memory helper byte-identical. Generic frontend hook unchanged; smallest failed unit must rerun before larger build. |
+
+D1 new incoming scope is three tracked paths from this handoff, of which two
+already had full source reviews. Latest type reachability and lifecycle failures
+remain acceptance gaps. No production semantic change authored by D1.

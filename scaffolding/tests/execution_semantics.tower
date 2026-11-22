@@ -35,8 +35,8 @@ fn execution_semantic_output(index: usize, width: u32): u8* {
 
 fn execution_semantic_multifile(modules: void*, width: u32): void {
     var inputs: FrontendSource[2];
-    inputs[0].data = "b = 0; var a = b; fn f(): i32 { return a; }";
-    inputs[1].data = "var b: i32 = 42; print(f());";
+    inputs[0].data = "import tower; b = 0; var a = b; fn f(): i32 { return a; }";
+    inputs[1].data = "import tower; var b: i32 = 42; print(f());";
     inputs[0].length = strlen(inputs[0].data); inputs[1].length = strlen(inputs[1].data);
     var session: ExecutionSession;
     fill(&session, 0, sizeof(ExecutionSession));
@@ -51,8 +51,8 @@ fn execution_semantic_multifile(modules: void*, width: u32): void {
     execution_check(execution_text(&session.output, "0\n"), "multifile effects retain source order");
     execution_roundtrip(&session, modules, false);
     execution_close_checked(&session);
-    inputs[0].data = "fn fail(): i32 { return missing; }";
-    inputs[1].data = "print(fail());";
+    inputs[0].data = "import tower; fn fail(): i32 { return missing; }";
+    inputs[1].data = "import tower; print(fail());";
     inputs[0].length = strlen(inputs[0].data); inputs[1].length = strlen(inputs[1].data);
     execution_check(!execution_session_compile_sources(&session, &inputs[0], 2, width, modules), "multifile missing name rejected");
     var function: FoundationNode* = null;
@@ -63,8 +63,25 @@ fn execution_semantic_multifile(modules: void*, width: u32): void {
     }
     var missing = strstr(inputs[0].data, "missing");
     execution_check(execution_text(&session.error, "Unknown local 'missing'") && function != null
-        && session.machine.error_offset == function.start + bits(usize, missing) - bits(usize, inputs[0].data), "exact multifile diagnostic/offset");
+        && session.machine.error_offset == function.start + bits(usize, missing) - bits(usize, strstr(inputs[0].data, "fn fail")), "exact multifile diagnostic/offset");
     execution_close_checked(&session);
+}
+
+fn execution_semantic_type_argument(modules: void*, width: u32): void {
+    var source = "import tower; fn identity(T: type, value: T): T { return value; } print(identity(i32) == i32);";
+    var graph: ExecutionSession = default;
+    var fast: ExecutionSession = default;
+    defer execution_session_close(&graph);
+    defer execution_session_close(&fast);
+    execution_compile(&graph, source, width, modules);
+    execution_compile(&fast, source, width, modules);
+    execution_check(execution_session_fast(&fast), "inferred type-value cache starts");
+    execution_run(&graph, 7, 10000);
+    execution_run(&fast, 7, 10000);
+    execution_check(graph.error.length == 0 && execution_text(&graph.output, "true\n"),
+        "generic inference accepts an ordinary type value argument");
+    execution_same(&graph, &fast);
+    execution_roundtrip(&graph, modules, false);
 }
 
 fn execution_semantic_tests(modules: void*): void {
@@ -72,13 +89,23 @@ fn execution_semantic_tests(modules: void*): void {
     fill(&session, 0, sizeof(ExecutionSession));
     for (var width: u32 = 4; width <= 8; width += 4) {
         execution_semantic_multifile(modules, width);
+        execution_semantic_type_argument(modules, width);
         for (var i: usize = 0; execution_semantic_invalid(i) != null; i++) {
             var source = execution_semantic_invalid(i);
-            execution_check(!execution_session_compile(&session, source, strlen(source), width, modules), "invalid semantic fixture rejected");
+            var accepted = execution_session_compile(&session, source, strlen(source), width, modules);
+            if accepted { puts(source); }
+            execution_check(!accepted, "invalid semantic fixture rejected");
             var offset = execution_semantic_offset(i);
-            var located = session.machine.error_offset == execution_semantic_entry_base(modules) + offset;
-            // Layout failures on generated representations have no source span.
+            var prefix = strstr(source, "import foundation; ") == source
+                ? strlen("import foundation; ") : strlen("import tower; ");
+            var located = session.machine.error_offset == execution_semantic_entry_base(modules) + prefix + offset;
+            // Generated layout failures can have no source span.
             located ||= offset == 0 && session.machine.error_offset == 0;
+            if i == convert(usize, SemanticInvalidCase.RecursiveType) {
+                // The interpreter limit has no expression span. Its generated
+                // diagnostic maps to the first byte of this entry source.
+                located = session.machine.error_offset == execution_semantic_entry_base(modules);
+            }
             var exact = execution_text(&session.error, execution_semantic_message(i)) && located;
             if !exact {
                 puts(source); puts(session.error.data);
@@ -111,10 +138,10 @@ fn execution_semantic_tests(modules: void*): void {
             execution_close_checked(&fast);
         }
         for (var i: usize = 0; i < 2; i++) {
-            var source = i == 0 ? "struct A { a: A; }" : "struct A { b: B; } struct B { a: A; }";
+            var source = i == 0 ? "import tower; struct A { a: A; }" : "import tower; struct A { b: B; } struct B { a: A; }";
             var message = i == 0 ? "Recursive by-value layout: A -> A; use a pointer" : "Recursive by-value layout: A -> B -> A; use a pointer";
             execution_check(!execution_session_compile(&session, source, strlen(source), width, modules)
-                && execution_text(&session.error, message) && session.machine.error_offset == execution_semantic_entry_base(modules), "exact layout cycle path diagnostic");
+                && execution_text(&session.error, message) && session.machine.error_offset == execution_semantic_entry_base(modules) + strlen("import tower; "), "exact layout cycle path diagnostic");
             execution_close_checked(&session);
         }
     }

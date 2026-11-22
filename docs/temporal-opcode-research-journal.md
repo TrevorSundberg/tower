@@ -47945,3 +47945,24 @@ expected finalizers, plus native checks; tests are not universal race-freedom
 proof. No actual UBSan or browser coverage asserted here. Both containers drained
 before releasing D1's lock for D2. Broader compiler acceptance/publication remains
 open; latest L1/L2 reachability handoff introduces a known failing type oracle.
+
+### D1 current execution handoff and exact allocation wrapper
+
+After stage jobs drained and heavy.lock was released, integrated L1 complete
+base patchc3066f54 by checked three-way application; five previously imported
+production blobs exactly match postimages and remain unchanged. Applied L2
+incremental reachability consumer/fixture3e7c7527 once, preserving A1 publisher
+and D1 oracle/registration edits. Read complete patch and refreshed each touched
+test audit, including structural binding correspondence's own negative case and
+new source_execution_reachability fixture. Added no independent production logic.
+Current owner-reported `Runtime type-value reachability` failure remains; old
+fulltypes pass is explicitly an older source receipt, not current acceptance.
+
+Root subsequently authorized the exact newer B2 allocation wrapper already
+supplied in audit_source_snapshots. Applied its two imports/10-line helper;
+frontend_units_memory compares byte-identical. Original smallest-unit failure
+remains in coherent_eabc88e logs. Rerun that unit first when D2's admitted host
+slot drains; do not claim its correction passed until executed. Shared build
+budget belongs to D2 next; D1 continues source review during that build. Final
+public-bootstrap compiler/browser/generation/instrumented release gates remain
+open and no publication lease was requested prematurely.

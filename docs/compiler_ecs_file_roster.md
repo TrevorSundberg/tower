@@ -1221,3 +1221,11 @@ A2 implementation, SHA26265ebb52427481465d0fe88101e4ccded781e356be71cc9244b84d58
 Its complete ownership/staging/overlap review is now in the D1 audit; pending
 commit will increase the tracked totals to1,036 and462 respectively. This index
 is inventory accounting, not final merged compiler/runtime acceptance.
+
+Latest execution handoff adds `scaffolding/tests/execution_rejection.tower`,
+`execution_type_construction.tower` and `source_execution_reachability.tower`:
+all D1 roster, L1 specific implementation. First two advance existing incoming
+rows to integrated, third is new and substantively reviewed in the D1 audit.
+After this handoff commit:1,039 total tracked Tower paths,465 D1 direct paths.
+These arithmetic counts preserve the separate14 deleted forwarders and do not
+include unintegrated owner measurement snapshots as tracked files.
