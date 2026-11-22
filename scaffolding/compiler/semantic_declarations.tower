@@ -1076,6 +1076,11 @@ fn semantic_declaration_kernel(result: SemanticDeclaration*): void {
     vector_init(u8, &program.error);
     if result.discover { sem_declaration_dependencies(&context, result.subject, result); }
     else {
+        // Structural checking consumes this private, ordered call index after
+        // joining. Alias continuations invalidate it when their roots change.
+        // Scan under the checking context, not a nested discovery caller's
+        // temporary unevaluated/depth settings.
+        if !result.worker_check { sem_declaration_calls(&context, result); }
         result.waiting = sem_declaration_waiting(&context, result, &result.layout);
         if result.storage_pending && result.waiting == 0 && result.layout == null && sem_ok(&context) {
             // The declaration's layout dependencies have published. Its body
@@ -1365,7 +1370,7 @@ fn sem_type_query_add(c: SemanticContext*, node: void*, parent: SemanticDeclarat
 }
 
 fn sem_declaration_prepare(c: SemanticContext*, result: SemanticDeclaration*): usize {
-    sem_declaration_calls(c, result);
+    sem_require(result.calls_scanned);
     var previous = c.unevaluated;
     var previous_depth = c.evaluation_depth;
     defer { c.unevaluated = previous; c.evaluation_depth = previous_depth; }
@@ -1469,10 +1474,10 @@ fn sem_declaration_add(c: SemanticContext*, node: void*): void {
     sem_require(vector_push(&c.declaration_jobs, bits(void*, result)));
     var domain = convert(u64, SemanticWorkDomain.Compiler);
     sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Declaration), id, 1, WorkAccessMode.Write));
-    if result.array_type || result.constructor != null || sem_is(node, "CoreEnum") || sem_type_binding(c, node) {
-        sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.TypeIndex),
-            0, ~convert(usize, 0), WorkAccessMode.Read));
-    }
+    // Readiness and call discovery borrow published type/template/name indexes,
+    // including ordinary expression queries that do not construct a type.
+    sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.TypeIndex),
+        0, ~convert(usize, 0), WorkAccessMode.Read));
     if result.current != null {
         // Module initializer expressions read the already allocated root frame;
         // their own leased syntax holds all writes. Statement publication and

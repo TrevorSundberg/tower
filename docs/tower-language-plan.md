@@ -1051,6 +1051,10 @@ containers. Benchmark representative compiler workloads before migrating them.
   completed work; inferred clones still snapshot before runtime lowering.
   Interpreter evaluation refills worker slots within bounded ready windows and
   publishes in query order after joining, preserving lazy dependency discovery.
+  Demanded preparation workers also initialize the private interpreter invocation;
+  the coordinator only resumes ready jobs. Structural declaration call indexes
+  are discovered by workers in operand order and retained across suspensions;
+  alias-root changes rebuild the index before coordinated interning resumes.
   Shared entities now use stable component pages, exact-signature archetype rows,
   published component columns and view-owned multi-component query plans.
   These index stable payload pointers; they do not relocate component data.

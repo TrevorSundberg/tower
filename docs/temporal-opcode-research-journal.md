@@ -43341,3 +43341,54 @@ Python/owned C/C++ zero. No todo.txt or bootstrap pin changes. The full migratio
 continues: remaining browser measurements still duplicate aggregation and some
 fixtures/assertions; preserve required host timing and worker contracts when
 moving or removing those pieces.
+Publication candidate3e12adb rebases the local/frame/projection/evaluation-window
+milestone onto0e9717a's interpreter tooling changes. The rebase initially stopped
+for missing committer identity; committing the staged replay with the established
+identity and continuing completed it without conflicts. Compiler import-closure
+bytes did not change. Public-bootstrap native/browser builds pass; the candidate
+self-compiles semantic_evaluation.tower, and current native graph/fast comptime
+fixtures both print0. The body-smoke run used the prior local-completion test
+executable (before the evaluation-window edit), so it validates the declaration
+changes, not the new evaluation scheduler. Browser checks consume the complete
+new scheduler and extended evaluation-query fixture. Native SHA256:
+8e7b2b76ca467cb8c05e8172c731fc572ba72e4bd3be97590094e3e3cce872ed;
+compiler project28539fab87df422f6f914e03658e970e2eb9f5d2dfaef8ce6d039e3335350760;
+scaffolding treeb598ed5294ee2d29ebb371e438c0bb609a9d9018. The source checkpoint
+is pushed; its browser-generation/bundle checks remain in progress. build/native,
+browser reactors and compiler-project are frozen at3e12adb for this publication.
+
+Next source-only follow-up: ordinary interpreter invocation initialization moves
+into the existing demanded preparation worker, after its function has been built
+and lowered. Dispatch requires that initialized private state; result publication
+and dynamic dependency handling stay unchanged. The query fixture separately
+pumps preparation and verifies startup without value execution or admission of
+undemanded producers. Cache-only native validation is in evaluation-start-native.log;
+these follow-up sources are excluded from the frozen3e12adb release.
+
+Worker interpreter startup passes public-bootstrap unit preflight, cache build,
+four-worker scalar/aggregate comptime fixtures and serial fast known-binding
+execution (three zero failure counts in evaluation-start-native.log).
+Structural call-continuation discovery now also runs in the declaration worker's
+readiness step. Its private ordered index retains operand order, type/value roles,
+unevaluated contexts and staging depth. Constructor alias transitions invalidate
+the index and the next worker resumption rebuilds it. Discovery deliberately uses
+the checking context, not a nested declaration-discovery caller's temporary stage
+settings. Coordinator preparation consumes the completed index and still owns
+type/signature interning. Focused validation is running in call-discovery-native.log.
+
+The combined worker-startup/call-discovery preflight, cache build and type-smoke
+pass. Every declaration query now explicitly claims a read of the published type/
+template/name index, including ordinary expressions whose readiness/call scans
+consume it. This expands ownership accounting, not a new read/write exclusion
+between independent declaration workers.
+
+Frozen3e12adb release checks finish: browser threading3/3 with zero skips
+(58.166s); two edited compiler generations have identical bytes, with tower
+0835d2b866e0f17191b6a8130851feeda9d07f6397d6406bca22e0c7e8e68687,
+llvm388c73343be15110434fe9b4afa4b21f7ff11a979956f7d0ce9014d0085702d3,
+cross21074468890973076e685e7db6fced430e8506ba96f5d354473b20fc21b456af.
+Evidence: local-frontier-{browser-checks,generations,bundle}.log and
+local-frontier-workbench/generation{1,2}.json. Concurrent validation ran during
+self-builds; these elapsed times are not comparative speed measurements. Pages
+9e817d2f6120ac872f6aac84fbf05dbb818dddb7 is pushed with all104 fresh asset hashes
+and upstream1923c4e's scoped history retained. Hosted verification is pending.

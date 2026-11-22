@@ -65,6 +65,10 @@ fn evaluation_query_tests(width: u32, workers: usize): u32 {
     var producer = evaluation_query_stage(&context, input, false);
     var unused = evaluation_query_stage(&context, input, false);
     var consumer = evaluation_query_stage(&context, producer.subject, true);
+    sem_require(work_demand(&context.queries, work_find(&context.queries, consumer.subject, EvaluationQuery, 0)));
+    sem_evaluation_prepare_all(&context);
+    evaluation_query_check(consumer.started && !consumer.ready.ready && !producer.started && !unused.started,
+        "Demanded preparation owns interpreter startup without executing or starting unrelated stages", &failures);
     sem_evaluations(&context);
     evaluation_query_check(program.error.length == 0 && consumer.ready.ready && !consumer.ready.failed
         && sem_get(consumer.subject).bits == 42, "Interpreter demand prepares and resumes a nested stage", &failures);

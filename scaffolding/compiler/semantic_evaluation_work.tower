@@ -52,7 +52,10 @@ fn semantic_evaluation_prepare_kernel(result: SemanticEvaluationWork*): void {
     context.control_prefix = sem_cat(&context, result.cloning ? "control clone " : "control stage ",
         sem_cat(&context, sem_decimal(&context, convert(u64, result.ordinal)), "."));
     if result.cloning { sem_evaluation_clone_expression(&context, result.evaluation); }
-    else { sem_evaluation_prepare(&context, result.evaluation); }
+    else {
+        sem_evaluation_prepare(&context, result.evaluation);
+        if sem_ok(&context) { sem_evaluation_start(&context, result.evaluation); }
+    }
     result.count = context.count;
     result.error = program.error;
     result.error_offset = program.error_offset;
