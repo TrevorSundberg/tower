@@ -48048,3 +48048,14 @@ is insufficient ABI admission. Adoption remains on hold for owner-coordinated
 opt-in registration; no missing-file or unrun success claim. This audit-only
 addition changes no runtime path, so before/after execution profiling is
 inapplicable until an actual implementation is accepted.
+
+Exported current profile/build/backend receipt to external D2/current_profile_receipt
+for root/B2 reuse, archiveSHA2104d76730271ae1a34616cfb0d8de8f35706bcd805becb5b7c5c942a88cbb42,
+224members. Initial archive creation incorrectly used tar wildcard matching
+intended for extraction: tar reported missing filenames, while a subsequent
+hash command masked the outer shell failure. No separate inner status was saved;
+its presumed2 must not be called observed. Preserved the incomplete archive as
+profile_logs_failed_wildcards.tgz (SHA60e3561a), then corrected with fail-fast
+shell expansion of actual paths and verified the member listing. Original
+compiler evidence was untouched; all compiler commands had independent raw
+status traps. No benchmark rerun or cleanup was needed for this transport error.
