@@ -1220,11 +1220,11 @@
                    "worker.js":  "60156a2b9590f9d33063031b8f05f262fb17d16ad1ca81b80f123039dacb3bf9",
                    "worker.js.map":  "b10954322b0bff060865b66c3654f4f8f6d71ad613b741522e5a1cf642ef0de2"
                },
-    "sourceCommit":  "4850d504a2880a1975c3b7ce5b33b6736bf2efa8",
+    "sourceCommit":  "0d366a7a5423e9cf65dbf5d33abac16bc5652674",
     "buildSourceCommit":  "454c951f920ef0eab7488376b4bd5c9d2cfd8f07",
     "compilerProjectSourceCommit":  "454c951f920ef0eab7488376b4bd5c9d2cfd8f07",
     "compilerSourceTree":  "422742239b8d404772c2d21f6e64d0e1e60bf335",
-    "previousDeployment":  "f7545d65b019fdbb1e42d28da5b013f1abaceae8",
+    "previousDeployment":  "3d60a0e9f2a46b72ecb47a433a5262076275fd09",
     "bootstrapSha256":  "18664657c3ff9142a6d59bef8ffa794fd10d12313d55f91dd47f5575141a29f9",
     "scope":  "Tower Mach-O replaces the final production LLD library; Windows and macOS CLI defaults use Tower byte services.",
     "publicationNote":  "Documentation and validation receipt only; preserves the verified 454c951 runtime and compiler-project build identities and all asset hashes. Increment display validation follows the preserved Bedrock teaching example.",
@@ -1546,7 +1546,7 @@
                      },
     "machoLinkerPort":  {
                             "sourceCommit":  "993b0414eb79bd4e8b9a5d26d0eb1868f2fbe45f",
-                            "validationCommit":  "4850d504a2880a1975c3b7ce5b33b6736bf2efa8",
+                            "validationCommit":  "0d366a7a5423e9cf65dbf5d33abac16bc5652674",
                             "runtimeSourceCommit":  "454c951f920ef0eab7488376b4bd5c9d2cfd8f07",
                             "profile":  "macOS 11 x64/ARM64 PIE executable byte linking, indexed archives, TBD v4 imports, dyld metadata, compact/DWARF unwind and SHA-256 ad-hoc signatures",
                             "ownership":  "Request-owned ECS components, shared WorkGraph/WorkPool, frozen inputs, exclusive patches and drained cancellation",
@@ -1583,6 +1583,11 @@
                                                        "workflow":  45037575010,
                                                        "manifestSha256":  "f03363064b5575776f5ec5af5d95a8b7d9d51d75632896a11ed61214772a69b0",
                                                        "result":  "PASS: all 104 asset hashes and desktop/mobile backend, grammar, completion, persistence and native download checks"
-                                                   }
+                                                   },
+                            "publishedBrowserExecution":  {
+                                                              "workflow":  "https://github.com/TrevorSundberg/tower/actions/runs/45038423612",
+                                                              "pagesInput":  "f7545d65b019fdbb1e42d28da5b013f1abaceae8",
+                                                              "result":  "PASS: published LLVM/WASI byte-service outputs execute on Windows x64, Intel Mac and Apple Silicon Mac; strict Mac code signatures and Tower runtime assertions pass"
+                                                          }
                         }
 }
