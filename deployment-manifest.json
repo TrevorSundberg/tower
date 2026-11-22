@@ -1132,5 +1132,52 @@
                                "localDesktopMobile":  "passed",
                                "hostedDesktopMobile":  "passed",
                                "publishedAssetHashes":  104
-                           }
+                           },
+    "compilerObjectToolingMigration":  {
+                                           "sourceCommits":  [
+                                                                 "ddc4b0eb6e3bc2979fe5b87659f6cfaf41d37b1b",
+                                                                 "8d4767a085532d189c92dff7022a7d634f2f863f"
+                                                             ],
+                                           "validationCommit":  "76a5408a0a6d7ee20e0379aba01662e72b0745c2",
+                                           "implementation":  "Remove four CMake fragments and five generated unit wrappers; reuse the existing object/depfile rule, direct Tower modules and one three-import template unit. Preserve configured host/parser entries consumed by bootstrap comparison.",
+                                           "packaging":  "Five direct-source entries in the existing Tower packager map preserve browser unit/object identities; a Tower fixture collects real depfile closures and checks independent recompilation.",
+                                           "wasiTransport":  "Retire interpreter-wasi.mjs; the shared host-wasi source/argv transport mounts the complete source type prelude. Tower execution fixture diagnostics reuse runtime_write_all.",
+                                           "cmakeBefore":  {
+                                                               "lines":  1997,
+                                                               "files":  43
+                                                           },
+                                           "cmakeAfter":  {
+                                                              "lines":  1838,
+                                                              "files":  39
+                                                          },
+                                           "cmakeBaseline":  {
+                                                                 "lines":  2594,
+                                                                 "files":  54
+                                                             },
+                                           "javascript":  {
+                                                              "currentFiles":  186,
+                                                              "upstreamAddedLines":  12,
+                                                              "baselineLines":  24430,
+                                                              "removedLines":  10,
+                                                              "currentLines":  24366,
+                                                              "removedFiles":  1
+                                                          },
+                                           "validation":  {
+                                                              "publicBootstrapSha256":  "6022aa2bdfc838ead9dd9507bea004b78568997f3a468f916a9bfa4310a0680a",
+                                                              "cleanNative":  "PASS: fresh 48-step default public-bootstrap successor after final 31371ae/a4e8be5 integration, with private override unset",
+                                                              "nativeCompilerSha256":  "6f4f8b42e26dd0efa74e3e1a343400b66e60f6b6925524539c540c1cc54ebe48",
+                                                              "runtimeSmoke":  "PASS: interpreted 32/64-bit, native and actual Wasm memory execution",
+                                                              "nativeTests":  "PASS: all 17 core/allocator CTests after final integration (4.84s)",
+                                                              "wasiTests":  "PASS: complete check_core wasi pipeline, parser aggregate, 156 graph/fast execution trials, semantic oracles at both widths, Foundation round trips and package contracts",
+                                                              "wasiInterpreterSha256":  "38bac1b0a983d24de91231d6cffd472c6ef6404d940f3dabc3893dd539d12772",
+                                                              "transport":  "PASS: selected reader suite, unknown-suite exit 1, allocator and runtime ABI; retired runner physically absent during complete pipeline check",
+                                                              "packaging":  "PASS: all five exported real source closures compile to exact native and WASI objects, still matching final integrated builds. Five browser-triple comparisons against retired wrappers pass before source-type integration.",
+                                                              "dependencies":  "PASS before compiler integration: touching syntax_inspection triggers one template-object rebuild with identical bytes",
+                                                              "publicToolBuilds":  "PASS: documented package_compiler_project and check_core builds using the new public bootstrap",
+                                                              "packageToolSha256":  "266d01391e13c5d9cffa2f85b5cd73fc41083dc73e554b0990920d6b78269fbc",
+                                                              "coreToolSha256":  "b49ee1ca05aafe9e905e1feccfdfd3e16b32262074d3eff33ddddfe4213a8f96",
+                                                              "limitationCorrection":  "The previously reported WASI fingerprint failure is superseded: upstream source-type oracle changes plus these transport repairs allow the complete current suite to pass. No assertions were skipped or expected values changed in this tooling lane.",
+                                                              "limits":  "Linux tooling, no new portable bootstrap pin or full browser generation claim. This manifest-only receipt preserves all 104 existing assets, browser runtime identity and source-type provenance."
+                                                          }
+                                       }
 }
