@@ -54,6 +54,11 @@ Typed `function(Result, Parameters...)` values and indirect calls work in the
 portable interpreter and LLVM native/Wasm output, including compile-time calls,
 callback inference and internal struct arguments/results. See
 [function values](../docs/function-values.md) for ABI and backend limits.
+It supports shared bracket grammar attributes, typed declaration attributes
+constructed by ordinary staged Tower functions, and struct-valued `comptime`
+results. See [attributes and staged values](../docs/attributes.md). Bedrock's
+standard declarations use `[comment]`, `[contextual]` and style markers; numeric
+Tower precedence uses `[precedence(level, direction)]`.
 It also supports struct copies/by-value calls, named-field/default initialization,
 expression operators, `for`/`defer`, borrowed `foreach`, generic call inference,
 identifier module paths and exact quoted imports. Build new syntax with the

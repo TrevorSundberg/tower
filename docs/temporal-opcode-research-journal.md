@@ -39283,3 +39283,23 @@ precedence, and rejection of nonassociative chaining. Bytecode semantics version
 advances to 6; private execution encoding remains 5 because metadata stays solely
 in canonical Foundation text. Publication and clean successor validation follow;
 the live Bedrock source still uses predecessor-compatible clauses at this point.
+
+Rebase the implementation to 1af59d0 over c5beba4, integrating the latest ECS
+linker/TLS work and the Tower replacement for the final Python packager. Rebuild
+native from public predecessor 9bf8779c, then repeat the full execution suite:
+pass. Package /cache/attributes-bootstrap-initial with the existing Tower tool;
+SHA-256 checks and relocated verify_compiler development trials from /tmp pass.
+The complete candidate executable is
+53e6cf7ef38f7f5fc875c9bf20fa1df0ad8cef03dc067955eb05aa3129739b0f.
+Install its executable/resources/manifest together, preserving the old pin under
+build/attributes-predecessor. With TOWER_BOOTSTRAP_COMPILER unset, a fresh
+/cache/attributes-clean-initial default build completes all 54 steps. Commit this
+compatible pin as 5849ea1 before adopting grammar syntax; the following pull is
+up to date. These commits have not yet been pushed at this entry.
+
+Now migrate live Bedrock style/contextual declarations and its shared attribute
+list rules, Foundation number styles, Tower's numeric-precedence declarations,
+the foreign grammar and lexical/replacement examples. Keep legacy clauses in the
+reader and compatibility fixtures. The pinned compiler interprets the attributed
+declaration fixture through the migrated grammar with zero failures. A final clean
+successor and browser/publication validation are still required below.
