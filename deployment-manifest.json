@@ -1713,5 +1713,34 @@
                                   "examples":  "Nine executable examples pass both native interpreters; grammar lessons keep minimal imports.",
                                   "validation":  "43 focused Node tests, 94 selected browser cases with focused corrected reruns, native editor/type/formatter checks, two successive browser compiler generations, and complete desktop/mobile local deployment verification.",
                                   "followups":  "Generic postfix hover may omit its result type; Tower division-by-zero backends can disagree on errorOffset. Both are recorded in the journal."
-                              }
+                              },
+    "towerIdeQueryTests":  {
+                               "sourceCommit":  "60a276efd6ba8fff1a141922192740f5d4b80726",
+                               "report":  "docs/temporal-opcode-research-journal.md",
+                               "implementation":  "Hover and completion semantic fixtures/assertions move into Tower through the existing IDE test export; retain browser offset, presentation and async transport checks.",
+                               "entry":  "npm run test:ide; npm test requires it before Node transport tests",
+                               "build":  "Public bootstrap via build-wasm.sh -DTOWER_IDE_TESTS=ON; disable the option for production assets",
+                               "checks":  {
+                                              "towerQueryGroups":  59,
+                                              "existingIdeSuite":  "pass",
+                                              "transportTests":  13,
+                                              "transportSkipped":  0,
+                                              "missingExport":  "npm test rejects a production reactor before starting Node tests",
+                                              "baseline":  "Original tests passed66/70; four stale fixtures corrected and journaled",
+                                              "compilerBase":  "9d84f04",
+                                              "publicSuccessorSha256":  "5ec7c5f7be75e20bb77faa69ed970d622e87a19bd500626770f9745fed56ebcf",
+                                              "native":  "Fresh public build, successor frontend_modules, editor-world, type-smoke and query-smoke pass",
+                                              "testReactorSha256":  "95b1a89dee282cd6302272578e403e71ddfc123d80ebdf63c07606f3c261940b",
+                                              "testReactor":  "Opt-in validation build only; production assets retained"
+                                          },
+                               "javaScriptLinesRemoved":  725,
+                               "javaScriptFiles":  168,
+                               "javaScriptLines":  22470,
+                               "javaScriptLinesRemovedFromBaseline":  1960,
+                               "nonTowerLinesRemovedFromBaseline":  5314,
+                               "nonTowerFilesRemovedFromBaseline":  70,
+                               "upstreamJavaScriptLinesAdded":  37,
+                               "temporalSourcesChanged":  false,
+                               "runtimeAssetsChanged":  false
+                           }
 }
