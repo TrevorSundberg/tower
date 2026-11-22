@@ -246,7 +246,7 @@
     "capabilities.json": "beb929d7896b760e4a190875af67a895bc6599978a1566614dc7f39df7277bb2",
     "collections.tower": "f6e2bceb516d9ff9f073aa5504827db60f55d113a2389e9a0e2c17a25d26aef7",
     "compiler/imports-tower-18.txt.gz": "b18ec98ce40c786ff2c58916789929f975351b339b2bb5fe222597587be658aa",
-    "compiler/project.json": "32c1ce2775be8b452983d3e1925fa6a91581718fb67fbc434bf9f93d214b6e6f",
+    "compiler/project.json": "cc2ec155f5ea8b14f0776e263e459fad61dc68331976c56b2a10dc08f634edc7",
     "compiler/support-cross-0.a.gz": "928f5a57d9e69f0715e5f2d55ab30996eed53f10e7b82c776fe3228e7ac7bfa6",
     "compiler/support-cross-1.a.gz": "132105cc4b357ea31ebe98fa3e9ace159987be752ece02ae7726970df3eb754c",
     "compiler/support-cross-2.a.gz": "ad27052bc1e486752118e6c7d7227004242679166dbd6b3474ef4d8f3f4c5de4",
@@ -315,12 +315,12 @@
     "targets/x86_64-unknown-linux-gnu-runtime.o": "dd9017a54b2e683f35ed8289eebf6d13175beddd9020ddbdfba3c4933e5c847b",
     "templates.tower": "2045b87e45eda35945fea88cf70b904d8f695c93e36eea08aa0a14b4354682dc",
     "tokens.tower": "bc640f8bbda23848b098288f3a4525fea01a7ee7ff938c38aff02b538d0ca81d",
-    "tower-cross.wasm.gz": "0e68e03aa131df1525d460b154d8bbb7aa51afb6f1c4e9609f0e1eb92e3d217b",
-    "tower-llvm.wasm": "3cfff53a9e54665f80190ee6a542fd7af331e26ba1eff311c54c9c3198ffcecb",
-    "tower-llvm.wasm.gz": "3de7993bc922b841f63320a0303fa6e8f3771ba74b32fd74831dacbcfff3f703",
-    "tower-threads.wasm": "b56f9bf0e43b7acb31030258b791b7b1045abcc4894f1bdc61b5f5fb3a3e9d9d",
+    "tower-cross.wasm.gz": "7b4816f418e223625d5d27188a6485389220ef3bd95d1b77130fbdc824528693",
+    "tower-llvm.wasm": "352d79e88a81e655f72f0b735abca660d81cbee2b409a39c5427164da5b57e62",
+    "tower-llvm.wasm.gz": "dc4c42a656ac73098bc22221f5322ac8332db039866006aaa66c4b114701564d",
+    "tower-threads.wasm": "f0b53678c9fb03ad60b8061f694766bea3546385309b87374f5778ee7fc2aa15",
     "tower.tower": "bda8b4278e67cf94444556cfe29ea6b4a1627b1ee0bda3a4d23404478e074f04",
-    "tower.wasm": "eb3bf60ffcb0a501d7d7b772e22f7287e8118ad03a1db38e9413cc4e2d94a54b",
+    "tower.wasm": "78ad29259d9c1b822769ed6782099f54233082c28b2d172ccc4cbf9995c6dacc",
     "worker.js": "e594bbca317abe35a6bf2419a07f4620729e83a31cb6544aa7f7525c2247c9d7",
     "worker.js.map": "a69e39f4d57298eeedfc50875328dffe0bffcb280f9522a3bc0917a242cf8874"
   },
@@ -343,8 +343,8 @@
     "runtimeAssetsChanged": true,
     "validation": "79 runtime/LLVM/package checks; eight threaded package/worker checks; two edited browser compiler generations; four final worker-reuse/stale-permit browser checks; ten output/viewport/frame checks. Fresh native successor after final compiler-source rebase. All 86 local deployment asset hashes and full desktop/mobile flows pass."
   },
-  "scope": "Shared grammar attributes, typed declaration metadata and ordinary staged aggregate results; attribute-aware editor and constant bindings.",
-  "previousDeployment": "6a40954da6c7e4b25cca19453503ef21ece797f7",
+  "scope": "Expression dependency queries for initializers and if/while conditions; retained type failures and self-reference round trips; native unit worker integration.",
+  "previousDeployment": "218bad95c7dd8563369823103789b8cc6bf70962",
   "measurementToolingMigration": {
     "implementationCommit": "1007d4179107c6c5372afcb9d1233a406695e992",
     "validationCommit": "824af121b0441df8c2a6af9e6a328bd6a0164018",
@@ -383,12 +383,12 @@
   "uiSourceCommit": "21290667fd678a9de4ba930aeb5c8f218431665c",
   "bootstrapExecutableSha256": "21f527125bfa05a8cd6d4923d4fdc026a04553e919f2905c602a17691598dba5",
   "publishedBootstrapSha256": "21f527125bfa05a8cd6d4923d4fdc026a04553e919f2905c602a17691598dba5",
-  "bootstrapSha256": "160660d6b0d76a0d0a4afd48205538d0a9a84dc00977e9c4f4cb4ed85d18318d",
-  "sourceCommit": "0538f397bef79c9b06184710832ae7e9c938a20a",
-  "publicationNote": "Source/tooling receipt only: remove duplicate distribution staging and its shell runner; reuse the native build's already-relocated compiler package through the existing Tower verifier. Preserve runtime, all 88 assets and other lane receipts.",
-  "buildNote": "Runtime and compiler-project assets built from 9e7eb79 using complete bootstrap 160660d6. Published bootstrap 21f52712 has a clean, byte-identical default successor. Two edited-semantic browser generations match at 2/4 workers.",
-  "buildSourceCommit": "9e7eb79813f798dd733033c43a6d1f7fd0f0b685",
-  "compilerSourceTree": "80823ceb675e1dfc24272665b04c42118c9b2594",
+  "bootstrapSha256": "21f527125bfa05a8cd6d4923d4fdc026a04553e919f2905c602a17691598dba5",
+  "sourceCommit": "c7a7976a00510316fd0b1082c8fc183f92d6b9e2",
+  "publicationNote": "Verified runtime checkpoint. Preserve other lanes historical receipts. Subsequent for-header work is not included in these assets.",
+  "buildNote": "Runtime and compiler-project assets built from c7a7976 using complete public bootstrap 21f52712. Fresh 54-step native build and two edited browser compiler generations pass; generation artifacts are identical. Includes merged threaded Wasm-linker changes.",
+  "buildSourceCommit": "c7a7976a00510316fd0b1082c8fc183f92d6b9e2",
+  "compilerSourceTree": "4611f77896c7eaa2e5ffa689a152ebabc1d7898e",
   "functionValues": {
     "validation": "Graph/cache, staged callbacks, nullable calls, inferred signatures, struct values, 1/2/4/8 workers, Foundation/package round trips, native/Wasm separate-object callbacks, relocated pin, clean successor and browser self-builds.",
     "sourceCommit": "21290667fd678a9de4ba930aeb5c8f218431665c",
@@ -637,5 +637,13 @@
       ],
       "limitation": "Linux x64 development host checks; restricted portable-release validation has not passed"
     }
+  },
+  "ecsExpressionUnits": {
+    "sourceCommit": "c7a7976a00510316fd0b1082c8fc183f92d6b9e2",
+    "implementation": "Tower expression queries, canonical self-reference lowering, native --unit and --jobs through shared frontend/backend entities and graph",
+    "validation": "Body matrix at widths 4/8 and workers 1/2/4/8; ordered diagnostics/cycles; known bindings; native unit linking/depfiles/failures; backend determinism/cancellation; real Wasm worker overlap; two identical browser compiler generations",
+    "cleanNativeSha256": "c56472b3e284ed3f8cce8a321e87dd8ebd39f8d0655474a39a8fb65ea6acceda",
+    "projectSha256": "cc2ec155f5ea8b14f0776e263e459fad61dc68331976c56b2a10dc08f634edc7",
+    "limits": "Some structural semantic work remains on the coordinator; no persistent cross-revision cache or cross-unit import deduplication. Whole-compiler completion is not claimed."
   }
 }
