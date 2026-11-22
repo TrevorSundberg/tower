@@ -8,13 +8,15 @@ no installer, unpacking step, bootstrap cache or Python dependency on this path.
 
 The current pin includes the Tower hosted ELF linker and `--link-executable`.
 The complete compiler executable was linked by Tower against the system LLVM
-library, from rebased source `89bbdf4`. Its
+library, from rebased source `cbcd24a9`. Its
 executable and adjacent resources are hashed together in `development.json`.
 An empty-cache successor build through the default path, without a private
 bootstrap override, builds and links the compiler and its Linux helper tools
 using Tower. The separate host linker argument has been removed from `build_tools`.
-It also includes computed integer type arguments and array extents; see
-[computed type arguments](../docs/computed-type-arguments.md) for their scope.
+It also includes computed integer type arguments and array extents, staged helper
+calls and immutable captures, and ordinary opaque type values with identity-preserving
+Foundation output. See [computed type arguments](../docs/computed-type-arguments.md)
+and [type values](../docs/type-values.md) for their scope and remaining limits.
 
 This is a **Tower-built Linux x64 development bootstrap** for Ubuntu 24.04 with
 system LLVM 19 and its runtime dependencies. All project-owned compiler/runtime

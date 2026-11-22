@@ -45977,3 +45977,38 @@ and missing-grammar-input checks pass, alongside byte-identical UTF-8 IR/object
 output for Linux x64, Wasm32, Windows x64 and macOS arm64. The expected missing
 grammar diagnostic is part of that passing negative test. The final interpreter
 and semantics cross-target comparison is the remaining publication gate.
+
+That final interpreter/semantics comparison passed on all four targets, including
+exact IR/object bytes, symbol policy and explicit grammar positive/negative
+checks (build/type-objects-integrated-comparison.log). Before publication, main
+then advanced through the hosted Tower linker milestone and the simplified
+Foundation increment example (4318a512). Rebased onto them without changing the
+compiler or library implementation trees; the compiler tree remains exactly
+29c08e6c6f620959e8ffa43205483862bf13f521, matching d2c8ef96. Reuse the completed
+type/query/worker/comparison evidence for those unchanged inputs. Preserve the
+new hosted ELF and Wasm linking/build recipes and their upstream fixtures.
+
+The older type-value pins are superseded. Start from the newly published complete
+Tower-linked predecessor c59e8bab69340cfcea7f03e3fa081b339dcf12230e84fd0c51870eb766551a75,
+not a merged directory of bootstrap resources. Frozen integrated source is now
+cbcd24a9e8b4f69a5600af74c13757446e631324. Its clean native build completes all
+51 steps through the documented path; type values execute through the interpreter
+and in a native program linked by Tower's hosted ELF linker, both returning 0.
+Refresh the complete pin, prove its default clean successor, and regenerate the
+browser compiler/support recipe for the new linking path before atomic publication.
+The prepared but unpublished Pages commit 0d1443b6 is retained in local history
+only; the final deployment is rebuilt atop upstream 86a63a30 and keeps its receipts
+and the new increment example. No implementation work beyond integration is added.
+
+The combined Tower-linked/type-value pin has executable SHA-256
+9653f8187a104ca84ab5d8601f336d7e1ed8200206544c70a81415018d623d02. Its clean
+default successor completes all 51 steps and executes both fixtures from /tmp
+with result 0. The successor hash is
+b9555aff99e132d85f86c5f4531fc229be8ce21761f17f22e738378416e72520;
+these native executable bytes differ, so do not claim native byte equality for
+this final Tower-linker integration. Both browser generations pass with matching
+produced sizes (Tower 1,356,000, LLVM 35,154,062, cross 56,306,995 bytes), including
+edited semantic behavior. Refreshed browser type/computed execution and backend
+world checks pass; bytecode/worker checks pass seven cases with only the explicitly
+disabled optional package-test export skipped. No failed or skipped case is
+counted as passing. Logs: build/type-objects-linker-*.
