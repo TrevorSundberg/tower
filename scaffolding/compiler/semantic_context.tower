@@ -138,6 +138,13 @@ struct SemanticContext {
     value_inputs: void*;
     body_demands: void*;
     body_pipeline: void*;
+    body_roots: bool;
+    executable_functions: void*;
+    executable_ready: void*;
+    preserve_clone_storage: bool;
+    source_bindings: void*;
+    source_binding_proof: usize;
+    capture_inputs: void*;
     body_seen: SemanticTable*;
     generic_copies: void*;
     type_constructors: void*;

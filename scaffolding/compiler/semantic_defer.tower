@@ -71,7 +71,7 @@ fn sem_defer_clone(c: SemanticContext*, parent: void*, original: void*, clones: 
     foreach(var & parameter in &source.parameters) {
         sem_push(&value.parameters, sem_defer_clone(c, entity, *parameter, clones, to));
     }
-    if value.kind == KDeclare {
+    if value.kind == KDeclare && !c.preserve_clone_storage {
         sem_add_local(c, entity);
     }
     return entity;

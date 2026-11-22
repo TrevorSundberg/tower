@@ -45541,3 +45541,59 @@ compiler. Independent LLD comparisons, LLVM object emission, OS/SDK runtime inpu
 and explicitly requested external toolchain routes remain; these are not claims
 of a complete general-purpose replacement for every LLD option. todo.txt remains
 unchanged; no sanitizer or broad formatter was run.
+### 2026-11-22: completing the type-construction pipeline
+
+The user explicitly requests all remaining milestones, rather than another
+closed-expression subset. The implementation sequence is resumable producer
+phases; ordinary helper bodies and immutable binding inputs; interpreted type
+values and constructors; the shared source-defined type/operation protocol; and
+publication of the complete bootstrap with clean-successor and target checks.
+Fixed vectors remain subsequent work through that protocol. This entry records
+work in progress, not completion of any of those language contracts.
+
+Body admission now retains its cursor, evaluation frontier, component identity
+and active continuations on a compilation-owned ECS component. Declaration,
+initializer and assignment preparation advance separately and leave the ordinary
+query graph free to run another producer. Worker lexical state, staged ownership
+and ordered diagnostics remain on the existing body components.
+
+Two initial regressions clarified the lifetime contract. The declaration subject
+list must outlive individual continuation calls; restoring a null list before a
+later declaration pump caused a crash in sem_declaration_add. Also, calling
+sem_layout_all between declaration frontiers can prematurely publish the layout
+of a nominal identity whose fields have not checked yet. The recursive-record
+probe then incorrectly compiled. Restricting that global scan to the completed
+root phase restores the recursive-by-value diagnostic. Constructors' own field
+and layout dependencies remain responsible for their intermediate identities.
+
+Small-unit preflight passed with the published bootstrap. Native checks use
+/cache/type-pipeline in tower-c-validation; body/type smoke evidence and further
+changes are still in progress. No new implementation language or todo.txt edits.
+
+Executed helper calls now suspend on ordinary body and executable-preparation
+queries. Preparation clones checked Foundation entities into compiler-owned
+execution snapshots, preserving source signatures and later mutation analysis.
+Local bindings remap to cloned frame identities; function references retain
+their source identities. Calls resume at the interpreter task boundary after
+arguments have evaluated, without repeating their effects. Focused fixtures
+cover nested bounds, recursion, indirect calls, loops and struct-valued helpers.
+Early bodies also need explicit aggregate field/layout dependencies: signature
+publication alone was insufficient for a named aggregate return initializer.
+
+Source lexical binding proofs now run through the existing known-binding worker
+kernel, with independent scope/token/traversal scratch and private diagnostics.
+They resolve mutation/address escape to declaration identities before a body can
+require its own immutable local's initializer. Capture inputs have query-owned
+continuations and execute initializers through the ordinary interpreter. Global
+initializer captures retain their source-order restriction. The initial probe
+prints12 for module and local captured array sizes; broader rejection checks are
+in progress. A mutated-global test caught incorrect reliance on an Identifier
+parse label: lexer leaves need resolution through captured token spelling and
+module ownership. The corrected probe rejects that global as runtime storage.
+
+Another scheduling regression was a later failed body preventing an even later
+helper producer from unblocking the earlier diagnostic consumer. Body pumps now
+continue those producers while retaining source-order diagnostic selection.
+The id(2)/0 bound reports Division by zero before unknownLater. The body smoke
+matrix and existing known-binding suite passed after that correction. No
+publication or complete-type-protocol claim is made by these intermediate checks.

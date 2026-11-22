@@ -1,4 +1,6 @@
 import tower;
+import semantic_execution_work;
+import semantic_capture_work;
 import semantic_context;
 import semantic_support;
 import semantic_types;
@@ -42,6 +44,8 @@ struct SemanticEvaluation {
     inferred: bool;
     proof_query: usize;
     type_argument: bool;
+    capture_order: bool;
+    capture_ordinal: usize;
     error: vector(u8);
     error_offset: usize;
     aliases: vector(SemanticEvaluationAlias);
@@ -275,6 +279,9 @@ fn sem_evaluation_start(c: SemanticContext*, result: SemanticEvaluation*): void 
     result.invocation.context.value_inputs = c.value_inputs;
     result.invocation.context.require_relocatable = result.inferred;
     result.invocation.context.type_arguments = result.type_argument;
+    result.invocation.context.capture_order = result.capture_order;
+    result.invocation.context.capture_ordinal = result.capture_ordinal;
+    result.invocation.context.executable_functions = result.type_argument ? c.executable_ready : null;
     result.invocation.context.retain_result_storage = result.aggregate;
     result.started = true;
 }
@@ -359,6 +366,7 @@ fn sem_evaluation_pump_inputs(c: SemanticContext*, demand_roots: bool): Semantic
         // No results become visible until all readers in this window join.
         for(var i: usize = 0; i < count; i++) { sem_require(batch.data[i].started); }
         sem_require(compiler_kernel_dispatch(&c.workers, batch.data, count));
+        entity_view_close(view);
         index = 0;
         while index < count {
             var result = batch.data[index];
@@ -396,7 +404,9 @@ fn sem_evaluation_pump_inputs(c: SemanticContext*, demand_roots: bool): Semantic
                 } else {
                     var waiting = invocation.context.waiting;
                     if waiting != null {
-                        var dependency = work_request(&c.queries, waiting, EvaluationQuery, 0);
+                        var dependency = invocation.context.waiting_function ? sem_executable_request(c, waiting)
+                            : invocation.context.waiting_binding ? sem_capture_request(c, waiting)
+                            : work_request(&c.queries, waiting, EvaluationQuery, 0);
                         sem_require(work_suspend(&c.queries, &result.ticket, dependency));
                     } else {
                         sem_require(work_yield(&c.queries, &result.ticket));
@@ -405,7 +415,6 @@ fn sem_evaluation_pump_inputs(c: SemanticContext*, demand_roots: bool): Semantic
             }
             index++;
         }
-        entity_view_close(view);
     }
     return sem_ok(c) ? SemanticPumpResult.Progress : SemanticPumpResult.Failed;
 }

@@ -27,6 +27,10 @@ fn ix_value_input(m: IMExecution*, n: FoundationNode*): void* {
     if m.context == null || m.context.value_inputs == null || n.kind != KOperand || n.binding == null { return null; }
     var input = bits(IMValueInput*, entity_component_data(entity_component_get(n.binding, m.context.value_inputs)));
     if input == null || input.owner != null && m.state.frames.length != 0 && im_frame(m.state).function == input.owner { return null; }
+    if m.context.capture_order && input.owner == null && input.ordinal >= m.context.capture_ordinal {
+        ix_fail(m, "Compile-time initializer reads a module binding before its initialization", n.start);
+        return null;
+    }
     return input.producer;
 }
 
@@ -55,6 +59,13 @@ fn ix_pending(m: IMExecution*, node: void*): bool {
     }
     var n = im_cached_node(m.state, node);
     var input = ix_value_input(m, n);
+    if !ix_ok(m) { return false; }
+    if input == null && m.context.type_arguments && n.kind == KOperand && n.binding != null
+        && !n.constant && !ix_local_binding(m, n.binding) {
+        m.context.waiting = n.binding;
+        m.context.waiting_binding = true;
+        return true;
+    }
     if input != null && ix_pending(m, input) { return true; }
     if ix_pending(m, n.value) || ix_pending(m, n.left) || ix_pending(m, n.right) || ix_pending(m, n.target) {
         return true;
@@ -74,12 +85,6 @@ fn ix_pending(m: IMExecution*, node: void*): bool {
 fn ix_strict_node(m: IMExecution*, n: FoundationNode*, offset: usize): bool {
     if !ix_strict(m) {
         return true;
-    }
-    // Early type arguments run before ordinary function bodies are available.
-    // Reject only an executed call; lowering already preserves lazy branches.
-    if m.context.type_arguments && m.context.call_inputs == null && n.kind == KCall {
-        ix_fail(m, "Function calls in type arguments require staged body scheduling", offset);
-        return false;
     }
     if n.kind == KBits || n.kind == KConvert {
         var source = im_cached_node(m.state, n.value);
@@ -898,6 +903,15 @@ fn ix_call(m: IMExecution*, node: void*, offset: usize): void {
             ix_fail(m, "Function reference signature mismatch", offset); return;
         }
     }
+    if m.context != null && m.context.executable_functions != null && !im_cached_node(m.state, binding).external {
+        var input = bits(IMFunctionInput*, entity_component_data(entity_component_get(binding, m.context.executable_functions)));
+        if input == null || !input.ready {
+            m.context.waiting = binding;
+            m.context.waiting_function = true;
+            return;
+        }
+        binding = input.function;
+    }
     var function = im_cached_node(m.state, binding);
     if ix_strict(m) && m.context.call_inputs != null && !function.external {
         var input = bits(IMCallInput*, entity_component_data(entity_component_get(binding, m.context.call_inputs)));
@@ -1170,6 +1184,8 @@ export fn ix_step(m: IMExecution*, budget: usize): void {
         if m.context != null { m.context.waiting_call = null; }
         if m.context != null && m.context.dependency_kind != null {
             m.context.waiting = null;
+            m.context.waiting_function = false;
+            m.context.waiting_binding = false;
             if ix_pending(m, task.node) {
                 im_task_push(m.state, task.node, task.loop_resume != 0, task.phase, task.offset);
                 m.state.steps--;
@@ -1308,7 +1324,7 @@ export fn ix_step(m: IMExecution*, budget: usize): void {
                         if task.phase == InterpreterFinishValuePhase {
                             if n.kind == KCall {
                                 ix_call(m, task.node, task.offset);
-                                if m.context != null && m.context.waiting_call != null {
+                                if m.context != null && (m.context.waiting_call != null || m.context.waiting_function) {
                                     // Callee and arguments are already cached. Resume
                                     // this finish task, never their effects or statements.
                                     im_task_push(m.state, task.node, task.loop_resume != 0, task.phase, task.offset);

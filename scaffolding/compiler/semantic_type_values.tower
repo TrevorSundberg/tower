@@ -4,6 +4,9 @@ import semantic_declarations;
 import semantic_constructor_work;
 import semantic_evaluation;
 import semantic_evaluation_work;
+import semantic_execution_work;
+import semantic_capture_work;
+import semantic_body_work;
 import semantic_expressions;
 import semantic_definitions;
 import semantic_support;
@@ -97,6 +100,8 @@ fn sem_type_value_arguments(c: SemanticContext*, result: SemanticDeclaration*): 
 
 fn sem_type_value_finish(c: SemanticContext*, result: SemanticDeclaration*): usize {
     if result.integer_evaluation == null {
+        sem_executables_begin(c);
+        sem_captures_begin(c);
         if !semantic_integer(&sem_get(result.value).type) {
             sem_fail(c, result.subject, "Expected a compile-time integer argument");
             return 0;
@@ -126,5 +131,10 @@ fn sem_type_value_finish(c: SemanticContext*, result: SemanticDeclaration*): usi
 }
 
 fn sem_type_values_execute(c: SemanticContext*): bool {
-    return sem_evaluation_pump_inputs(c, false) == SemanticPumpResult.Progress;
+    if sem_binding_pump(c) != 0 { return true; }
+    if sem_evaluation_pump_inputs(c, false) == SemanticPumpResult.Progress { return true; }
+    if sem_capture_pump(c) == SemanticPumpResult.Progress { return true; }
+    if c.executable_functions == null || !sem_query_pending(c, convert(u32, SemanticQuery.ExecutableFunction)) { return false; }
+    if sem_bodies_pump(c) == SemanticPumpResult.Progress { return true; }
+    return sem_executables_pump(c) == SemanticPumpResult.Progress;
 }

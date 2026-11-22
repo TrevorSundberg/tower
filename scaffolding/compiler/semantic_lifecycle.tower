@@ -16,6 +16,8 @@ import semantic_evaluation;
 import semantic_flow;
 import semantic_declarations;
 import semantic_generic_body_work;
+import semantic_execution_work;
+import semantic_capture_work;
 import semantic_constructor_work;
 import semantic_known_bindings;
 import semantic_modules;
@@ -66,10 +68,12 @@ fn sem_context_init(c: SemanticContext*, program: SemanticProgram*): void {
 }
 
 fn sem_context_dispose(c: SemanticContext*): void {
+    sem_bodies_dispose(c);
     sem_layout_dispose(c);
-    sem_body_pipeline_dispose(c);
     sem_lower_dispose(c);
     sem_evaluation_dispose(c);
+    sem_executables_dispose(c);
+    sem_captures_dispose(c);
     vector_dispose(&c.flow_dependencies);
     sem_declaration_dispose(c);
     sem_generic_body_dispose(c);

@@ -11,6 +11,7 @@ import semantic_evaluation_work;
 import semantic_generic_body_work;
 import semantic_known_work;
 import semantic_binding_proofs;
+import semantic_execution_work;
 import interpreter_context_types;
 
 extern fn interpreter_invocation_step(invocation: IMInvocation*, budget: usize): void;
@@ -47,6 +48,10 @@ export fn work_kernel_execute(payload: void*): void {
     }
     if kernel.kind == CompilerKernelKind.Lower {
         semantic_lowering_kernel(bits(SemanticLowering*, kernel.payload));
+        return;
+    }
+    if kernel.kind == CompilerKernelKind.PrepareFunction {
+        semantic_executable_kernel(bits(SemanticExecutable*, kernel.payload));
         return;
     }
     if kernel.kind == CompilerKernelKind.LRClosure {

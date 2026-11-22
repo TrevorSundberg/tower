@@ -18,6 +18,8 @@ import semantic_body_work;
 import semantic_generic_body_work;
 import semantic_constructor_work;
 import semantic_type_values;
+import semantic_execution_work;
+import semantic_capture_work;
 import semantic_layout_kernel;
 import semantic_enums;
 import .library.vector;
@@ -1250,6 +1252,10 @@ fn sem_declaration_failure(c: SemanticContext*, id: usize): bool {
             if sem_declaration_restore_error(c, result) { return true; }
         }
         if task.query == convert(u32, SemanticQuery.GenericBody) && sem_generic_body_failure(c, task.subject) { return true; }
+        if task.query == convert(u32, SemanticQuery.ExecutableFunction) && sem_executable_failure(c, task.subject) { return true; }
+        if task.query == convert(u32, SemanticQuery.CaptureInput) && sem_capture_failure(c, task.subject) { return true; }
+        if (task.query == BodyQuery || task.query == convert(u32, SemanticQuery.BodyDiscovery))
+            && sem_body_failure(c, task.subject) { return true; }
         if (task.query == EvaluationQuery || task.query == convert(u32, SemanticQuery.EvaluationPrepare))
             && sem_evaluation_failure(c, sem_evaluation_get(c, task.subject)) { return true; }
         if task.query == convert(u32, SemanticQuery.Layout) {

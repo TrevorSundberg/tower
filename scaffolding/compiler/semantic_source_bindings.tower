@@ -1,0 +1,223 @@
+import tower;
+import semantic_context;
+import semantic_definitions;
+import semantic_statements;
+import semantic_known_work;
+import semantic_support;
+import semantic_modules;
+import semantic_expressions;
+import semantic_work_ids;
+import foundation_tags;
+import .library.vector;
+import .library.work_graph;
+import .library.stack;
+
+// Lexical mutation/escape facts do not require storage layout or initializer
+// values. The proof binds syntax to declaration identities, including shadows,
+// before a type consumer can require an immutable initializer from its own body.
+struct SemanticSourceBinding {
+    owner: void*;
+    query: usize;
+    ordinal: usize;
+    immutable: bool;
+}
+
+fn sem_source_binding(c: SemanticContext*, subject: void*): SemanticSourceBinding* {
+    return c.source_bindings == null ? null : bits(SemanticSourceBinding*,
+        entity_component_data(entity_component_get(subject, c.source_bindings)));
+}
+
+fn sem_source_place(c: SemanticContext*, node: void*): void* {
+    node = sem_surface_unwrap(node);
+    while node != null {
+        var module = sem_namespace(c, node);
+        if module != null {
+            return sem_owned(c.globals, module, sem_identifier(c, sem_member(node, "field")));
+        }
+        var base = sem_member(node, "base");
+        if base != null { node = sem_surface_unwrap(base); continue; }
+        var name = sem_member(node, "name");
+        if name != null { node = name; continue; }
+        if sem_child_count(node) == 0 {
+            var text = sem_identifier(c, node);
+            var scope = c.scope;
+            while scope != null {
+                var entry = sem_find(scope.names, text, null);
+                if entry != null { return entry.value; }
+                scope = scope.parent;
+            }
+            return sem_resolve(c, c.globals, node, text);
+        }
+        if sem_child_count(node) != 1 { return null; }
+        node = sem_surface_unwrap(sem_child(node, 0));
+    }
+    return null;
+}
+
+fn sem_source_write(c: SemanticContext*, job: SemanticKnownWork*, place: void*): void {
+    var declaration = sem_source_place(c, place);
+    if declaration != null { sem_push(&job.mutations, declaration); return; }
+    // Composite places can select a binding or expose it through an address.
+    // Conservatively retain every possible written/escaped declaration.
+    for(var i: usize = 0; i < sem_child_count(place); i++) {
+        sem_source_write(c, job, sem_child(place, i));
+    }
+}
+
+fn sem_source_bind(c: SemanticContext*, node: void*): void {
+    var name = sem_member(node, "name");
+    if name == null { return; }
+    // Ordinary checking retains responsibility for duplicate-name diagnostics.
+    // Retain the first lexical identity just as its declaration would bind.
+    sem_put(c, c.scope.names, sem_identifier(c, name), node);
+}
+
+fn sem_source_scan(c: SemanticContext*, job: SemanticKnownWork*, node: void*, depth: usize): void {
+    if node == null { return; }
+    if depth > SourceBindingDepthLimit { job.binding_incomplete = true; return; }
+    if sem_is(node, "Statement") { node = sem_unwrap(node); }
+    if sem_is(node, "CoreFunction") || sem_is(node, "CoreExport") || sem_is(node, "CoreExternal") { return; }
+    if sem_is(node, "CoreBlock") || sem_is(node, "TowerFor") || sem_is(node, "TowerForeach") {
+        var previous = c.scope;
+        c.scope = sem_scope(c, previous);
+        if sem_is(node, "TowerForeach") {
+            sem_source_scan(c, job, sem_member(node, "source"), depth + 1);
+            sem_source_bind(c, node);
+            sem_source_scan(c, job, sem_member(node, "body"), depth + 1);
+        } else {
+            if sem_is(node, "TowerFor") {
+                sem_source_scan(c, job, sem_member(node, "initial"), depth + 1);
+                sem_source_scan(c, job, sem_member(node, "condition"), depth + 1);
+                sem_source_scan(c, job, sem_member(node, "step"), depth + 1);
+                sem_source_scan(c, job, sem_member(node, "body"), depth + 1);
+            } else {
+                for(var i: usize = 0; i < sem_child_count(node); i++) {
+                    sem_source_scan(c, job, sem_child(node, i), depth + 1);
+                }
+            }
+        }
+        c.scope = previous;
+        return;
+    }
+    if sem_is(node, "CoreDeclare") {
+        if job.owner != null { sem_source_bind(c, node); }
+        var candidate: SemanticKnownCandidate = { subject: node, ordinal: job.source_ordinal++ };
+        sem_require(vector_push(&job.candidates, candidate));
+    }
+    if sem_is(node, "CoreAssign") { sem_source_write(c, job, sem_member(node, "target")); }
+    if sem_is(node, "CoreAddress") { sem_source_write(c, job, sem_member(node, "name")); }
+    if sem_is(node, "TowerExpression") {
+        var left = sem_member(node, "left");
+        var right = sem_member(node, "right");
+        if left != null || right != null {
+            var operation = sem_surface_operator(c, node, left);
+            if sem_equal(operation, "++") || sem_equal(operation, "--")
+                || left == null && sem_equal(operation, "&") {
+                sem_source_write(c, job, left ?? right);
+            } else {
+                if left != null && (sem_equal(operation, "=") || sem_surface_compound(operation)) {
+                    sem_source_write(c, job, left);
+                }
+            }
+        }
+    }
+    for(var i: usize = 0; i < sem_child_count(node); i++) {
+        sem_source_scan(c, job, sem_child(node, i), depth + 1);
+    }
+}
+
+// This bounds analysis scratch consistently with the compiler's accepted tree
+// nesting. A truncated proof never establishes immutability.
+var SourceBindingDepthLimit: usize = 1024;
+
+fn semantic_source_binding_kernel(job: SemanticKnownWork*): void {
+    var context = *job.context;
+    var program = *context.program;
+    context.program = &program;
+    program.error = default;
+    context.allocations = default;
+    context.lists = default;
+    context.token_text = default;
+    context.scan = default;
+    context.query_reads = &job.query_reads;
+    context.scope = sem_scope(&context, null);
+    if job.owner != null {
+        var parameters = sem_collect(&context, sem_member(job.owner, "params"), "CoreParameter");
+        foreach(var parameter in parameters) { sem_source_bind(&context, parameter); }
+        sem_source_scan(&context, job, sem_member(job.owner, "body"), 0);
+    } else {
+        foreach(var node in &sem_get(job.root).items) { sem_source_scan(&context, job, node, 0); }
+    }
+    job.binding_incomplete ||= program.error.length != 0;
+    vector_dispose(&program.error);
+    stack_dispose(&context.scan);
+    vector_dispose(&context.token_text);
+    foreach(var list in &context.lists) { vector_dispose(bits(vector(void*)*, list)); }
+    vector_dispose(&context.lists);
+    foreach(var allocation in &context.allocations) { free(allocation); }
+    vector_dispose(&context.allocations);
+}
+
+fn sem_source_bindings_publish(c: SemanticContext*, jobs: vector(SemanticKnownWork*)*): void {
+    var complete = true;
+    foreach(var job in jobs) { complete &&= !job.binding_incomplete; }
+    foreach(var job in jobs) {
+        var query = work_find(&c.queries, job.subject, convert(u32, SemanticQuery.SourceBindings), 0);
+        foreach(var &candidate in &job.candidates) {
+            var binding = bits(SemanticSourceBinding*, entity_component_data(entity_component_add(candidate.subject, c.source_bindings)));
+            sem_require(binding != null);
+            *binding = { owner: job.owner, query: query, ordinal: candidate.ordinal, immutable: complete };
+        }
+    }
+    foreach(var job in jobs) {
+        foreach(var declaration in &job.mutations) {
+            var binding = sem_source_binding(c, declaration);
+            if binding != null { binding.immutable = false; }
+        }
+    }
+}
+
+fn sem_source_bindings(c: SemanticContext*): void {
+    if c.source_bindings != null { return; }
+    c.source_bindings = sem_create(c.program.root);
+    sem_require(entity_register(c.source_bindings, sizeof(SemanticSourceBinding), alignof(SemanticSourceBinding), 0));
+    var kind = sem_known_kind(c);
+    var count: usize = 0;
+    foreach(var function in &c.program.functions) {
+        sem_known_job(c, kind, function, function, function == c.program.root ? null : function, count++, SemanticKnownAction.Bind);
+    }
+    foreach(var function in &c.template_nodes) {
+        sem_known_job(c, kind, function, function, function, count++, SemanticKnownAction.Bind);
+    }
+    var jobs = sem_known_jobs(c, kind, count, SemanticQuery.SourceBindings);
+    sem_source_bindings_publish(c, &jobs);
+    c.source_binding_proof = work_request(&c.queries, c.program.root, convert(u32, SemanticQuery.SourceBindingProof), 0);
+    foreach(var job in &jobs) {
+        sem_require(work_depend(&c.queries, c.source_binding_proof,
+            work_find(&c.queries, job.subject, convert(u32, SemanticQuery.SourceBindings), 0)));
+    }
+    sem_require(work_seal(&c.queries, c.source_binding_proof) && work_demand(&c.queries, c.source_binding_proof));
+    var ticket: WorkTicket;
+    sem_require(work_take_task(&c.queries, &ticket, c.source_binding_proof));
+    sem_require(work_finish(&c.queries, &ticket, true));
+    sem_known_jobs_dispose(&jobs);
+}
+
+fn sem_source_binding_require(c: SemanticContext*, subject: void*): SemanticSourceBinding* {
+    sem_source_bindings(c);
+    var binding = sem_source_binding(c, subject);
+    if binding != null || sem_get(subject).global { return binding; }
+    foreach(var function in &c.program.functions) {
+        if work_find(&c.queries, function, convert(u32, SemanticQuery.SourceBindings), 0) != 0 { continue; }
+        foreach(var local in &sem_get(function).locals) {
+            if local != subject { continue; }
+            var kind = sem_known_kind(c);
+            sem_known_job(c, kind, function, function, function, 0, SemanticKnownAction.Bind);
+            var jobs = sem_known_jobs(c, kind, 1, SemanticQuery.SourceBindings);
+            sem_source_bindings_publish(c, &jobs);
+            sem_known_jobs_dispose(&jobs);
+            return sem_source_binding(c, subject);
+        }
+    }
+    return null;
+}

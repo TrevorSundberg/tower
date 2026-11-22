@@ -1,0 +1,139 @@
+import tower;
+import semantic_context;
+import semantic_source_bindings;
+import semantic_declarations;
+import semantic_defer;
+import semantic_control;
+import semantic_evaluation;
+import semantic_evaluation_work;
+import semantic_support;
+import semantic_work_ids;
+import foundation_tags;
+import interpreter_context_types;
+import .library.vector;
+import .library.work_graph;
+
+struct SemanticCapture {
+    subject: void*;
+    proof: SemanticSourceBinding*;
+    expression: SemanticDeclaration*;
+    evaluation: SemanticEvaluation*;
+    error: vector(u8);
+    error_offset: usize;
+}
+
+extern fn entity_query_count(kind: void*): usize;
+extern fn entity_query_at(kind: void*, index: usize): void*;
+
+fn sem_captures_begin(c: SemanticContext*): void {
+    if c.capture_inputs == null {
+        c.capture_inputs = sem_create(c.program.root);
+        sem_require(entity_register(c.capture_inputs, sizeof(SemanticCapture), alignof(SemanticCapture), 0));
+    }
+    if c.value_inputs == null {
+        c.value_inputs = sem_create(c.program.root);
+        sem_require(entity_register(c.value_inputs, sizeof(IMValueInput), alignof(IMValueInput), 0));
+    }
+}
+
+fn sem_capture_request(c: SemanticContext*, subject: void*): usize {
+    sem_captures_begin(c);
+    var query = convert(u32, SemanticQuery.CaptureInput);
+    var existing = work_find(&c.queries, subject, query, 0);
+    if existing != 0 { return existing; }
+    var result = bits(SemanticCapture*, entity_component_data(entity_component_add(subject, c.capture_inputs)));
+    sem_require(result != null);
+    *result = default;
+    result.subject = subject;
+    var id = work_request(&c.queries, subject, query, 0);
+    sem_require(id != 0);
+    sem_require(work_seal(&c.queries, id));
+    return id;
+}
+
+fn sem_capture_pump(c: SemanticContext*): SemanticPumpResult {
+    if c.capture_inputs == null { return SemanticPumpResult.Complete; }
+    var query = convert(u32, SemanticQuery.CaptureInput);
+    var ticket: WorkTicket;
+    if !work_take_query(&c.queries, &ticket, query) {
+        return sem_query_pending(c, query) ? SemanticPumpResult.Waiting : SemanticPumpResult.Complete;
+    }
+    var subject = work_task(&c.queries, ticket.task).subject;
+    var result = bits(SemanticCapture*, entity_component_data(entity_component_get(subject, c.capture_inputs)));
+    var binding = sem_get(subject);
+    if result.proof == null {
+        // The interpreter has relinquished its execution claims before proof
+        // workers read the program. Record the joined immutable prerequisites.
+        result.proof = sem_source_binding_require(c, subject);
+        sem_require(work_observe(&c.queries, &ticket, c.source_binding_proof));
+        if result.proof != null { sem_require(work_observe(&c.queries, &ticket, result.proof.query)); }
+    }
+    if result.proof == null || !result.proof.immutable || sem_member(subject, "value") == null {
+        sem_fail(c, subject, "Compile-time expression cannot capture runtime storage: binding is mutable, escaped or lacks an initializer");
+    }
+    if sem_ok(c) && result.evaluation == null {
+        var value = binding.value;
+        if value == null {
+            if result.expression == null {
+                var declaration = sem_declaration_state(c, subject);
+                var lexical = declaration.lexical;
+                lexical.current = result.proof.owner ?? c.program.root;
+                if lexical.scope == null { lexical.scope = c.scope; }
+                if binding.global { sem_declaration_state(c, sem_member(subject, "value")).module_initializer = true; }
+                result.expression = sem_expression_add(c, sem_member(subject, "value"), &binding.type,
+                    &lexical, SemanticExpressionMode.Initializer);
+                sem_declaration_discover(c);
+                sem_require(work_suspend(&c.queries, &ticket, result.expression.query));
+                return SemanticPumpResult.Progress;
+            }
+            value = result.expression.value;
+            // Publish the checked initializer to its declaration once. Later
+            // module initialization consumes this same node and still performs
+            // its runtime initialization in source order.
+            binding.value = value;
+        }
+        var output = sem_control_node(c, subject, KOperand);
+        var clones = sem_table(c);
+        var nodes = sem_list(c);
+        var expression = sem_defer_clone(c, output, value, clones, nodes);
+        var previous = c.integer_arguments;
+        c.integer_arguments = true;
+        sem_evaluation_expression(c, output, expression, null, false);
+        c.integer_arguments = previous;
+        if sem_ok(c) {
+            result.evaluation = sem_evaluation_get(c, output);
+            result.evaluation.capture_order = result.proof.owner == null;
+            result.evaluation.capture_ordinal = result.proof.ordinal;
+            sem_evaluation_work_register(c, false);
+            sem_require(work_suspend(&c.queries, &ticket, work_find(&c.queries, output, EvaluationQuery, 0)));
+            return SemanticPumpResult.Progress;
+        }
+    }
+    if sem_ok(c) {
+        var input = bits(IMValueInput*, entity_component_data(entity_component_add(subject, c.value_inputs)));
+        sem_require(input != null);
+        *input = { producer: result.evaluation.literal, owner: result.proof.owner, ordinal: result.proof.ordinal };
+    } else {
+        result.error = c.program.error;
+        result.error_offset = c.program.error_offset;
+        c.program.error = default;
+    }
+    sem_require(work_finish(&c.queries, &ticket, result.error.length == 0));
+    return SemanticPumpResult.Progress;
+}
+
+fn sem_capture_failure(c: SemanticContext*, subject: void*): bool {
+    var result = bits(SemanticCapture*, entity_component_data(entity_component_get(subject, c.capture_inputs)));
+    if result == null || result.error.length == 0 { return false; }
+    sem_fail(c, subject, result.error.data);
+    c.program.error_offset = result.error_offset;
+    return true;
+}
+
+fn sem_captures_dispose(c: SemanticContext*): void {
+    if c.capture_inputs == null { return; }
+    for(var i: usize = 0; i < entity_query_count(c.capture_inputs); i++) {
+        var result = bits(SemanticCapture*, entity_component_data(entity_query_at(c.capture_inputs, i)));
+        vector_dispose(&result.error);
+    }
+}

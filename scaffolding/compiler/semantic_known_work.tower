@@ -6,13 +6,14 @@ import semantic_context;
 import semantic_evaluation;
 import semantic_expressions;
 import semantic_known_bindings;
+import semantic_source_bindings;
 import semantic_support;
 import semantic_work_ids;
 import .library.vector;
 import .library.work_graph;
 import .library.work_pool;
 
-enum SemanticKnownAction: u32 { Scan, Order, Publish, Inputs }
+enum SemanticKnownAction: u32 { Scan, Order, Publish, Inputs, Bind }
 
 struct SemanticKnownCandidate { subject: void*; ordinal: usize; }
 struct SemanticKnownPatch { subject: void*; literal: void*; declaration: bool; }
@@ -38,6 +39,7 @@ struct SemanticKnownWork {
     ordinal: usize;
     source_ordinal: usize;
     action: SemanticKnownAction;
+    binding_incomplete: bool;
     candidates: vector(SemanticKnownCandidate);
     mutations: vector(void*);
     patches: vector(SemanticKnownPatch);
@@ -86,6 +88,7 @@ fn sem_known_write(result: SemanticKnownWork*, place: void*): void {
 }
 
 fn semantic_known_kernel(result: SemanticKnownWork*): void {
+    if result.action == SemanticKnownAction.Bind { semantic_source_binding_kernel(result); return; }
     if result.action == SemanticKnownAction.Inputs {
         var pending: vector(void*) = default;
         defer vector_dispose(&pending);
@@ -296,7 +299,8 @@ fn sem_known_jobs(c: SemanticContext*, kind: void*, count: usize, query_kind: Se
             sem_require(proof != 0 && work_depend(&c.queries, id, proof));
         }
         var input_kind = query_kind == SemanticQuery.KnownPublish ? SemanticQuery.Lowering : SemanticQuery.Body;
-        var input = work_find(&c.queries, result.subject, convert(u32, input_kind), 0);
+        var input = result.action == SemanticKnownAction.Bind ? 0
+            : work_find(&c.queries, result.subject, convert(u32, input_kind), 0);
         if input != 0 { sem_require(work_depend(&c.queries, id, input)); }
         sem_require(work_access(&c.queries, id, convert(u64, SemanticWorkDomain.Compiler),
             convert(u64, SemanticAccess.KnownAnalysis), result.ordinal, 1, WorkAccessMode.Write));

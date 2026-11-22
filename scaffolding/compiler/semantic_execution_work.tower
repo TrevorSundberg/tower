@@ -1,0 +1,197 @@
+import tower;
+import compiler_kernel;
+import semantic_context;
+import semantic_body_work;
+import semantic_defer;
+import semantic_control;
+import semantic_aggregates;
+import semantic_expression_lowering;
+import semantic_evaluation;
+import semantic_work_ids;
+import semantic_support;
+import foundation_tags;
+import interpreter_context_types;
+import .library.vector;
+import .library.stack;
+import .library.work_graph;
+import .library.work_pool;
+
+extern fn entity_query_count(kind: void*): usize;
+extern fn entity_query_at(kind: void*, index: usize): void*;
+
+// Derived executable snapshots use ordinary Foundation entities. Source bodies
+// and signatures remain authoritative and available to later checking/proofs.
+struct SemanticExecutable {
+    kernel: CompilerKernel;
+    ticket: WorkTicket;
+    context: SemanticContext*;
+    subject: void*;
+    root: void*;
+    function: void*;
+    stage: void*;
+    ordinal: usize;
+    count: usize;
+    error: vector(u8);
+    error_offset: usize;
+    query_reads: vector(usize);
+    aliases: vector(SemanticEvaluationAlias);
+}
+
+fn sem_executables_begin(c: SemanticContext*): void {
+    if c.executable_functions != null { return; }
+    c.executable_functions = sem_create(c.program.root);
+    sem_require(entity_register(c.executable_functions, sizeof(SemanticExecutable), alignof(SemanticExecutable), 0));
+    c.executable_ready = sem_create(c.program.root);
+    sem_require(entity_register(c.executable_ready, sizeof(IMFunctionInput), alignof(IMFunctionInput), 0));
+    if c.aggregate_signatures == null {
+        c.aggregate_signatures = sem_create(c.program.root);
+        sem_require(entity_register(c.aggregate_signatures, sizeof(SemanticAggregateSignature), alignof(SemanticAggregateSignature), 0));
+    }
+}
+
+fn sem_executable_request(c: SemanticContext*, subject: void*): usize {
+    sem_executables_begin(c);
+    var query = convert(u32, SemanticQuery.ExecutableFunction);
+    var existing = work_find(&c.queries, subject, query, 0);
+    if existing != 0 { return existing; }
+    var body = sem_body_request(c, subject);
+    var result = bits(SemanticExecutable*, entity_component_data(entity_component_add(subject, c.executable_functions)));
+    sem_require(result != null);
+    *result = default;
+    result.subject = subject;
+    result.root = sem_control_node(c, subject, KBlock);
+    result.ordinal = body.ordinal;
+    result.kernel.kind = CompilerKernelKind.PrepareFunction;
+    result.kernel.payload = bits(void*, result);
+    var input = bits(IMFunctionInput*, entity_component_data(entity_component_add(subject, c.executable_ready)));
+    sem_require(input != null);
+    *input = default;
+    var id = work_request(&c.queries, subject, query, 0);
+    sem_require(id != 0 && work_depend(&c.queries, id, work_find(&c.queries, subject, BodyQuery, 0)));
+    var domain = convert(u64, SemanticWorkDomain.Compiler);
+    sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Body), body.ordinal, 1, WorkAccessMode.Read));
+    sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Layout), 0, ~convert(usize, 0), WorkAccessMode.Read));
+    sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Expression), id, 1, WorkAccessMode.Write));
+    sem_require(work_seal(&c.queries, id));
+    return id;
+}
+
+fn semantic_executable_kernel(result: SemanticExecutable*): void {
+    var context = *result.context;
+    var program = *context.program;
+    context.program = &program;
+    context.editor = null;
+    context.entity_stage = result.stage;
+    context.query_reads = &result.query_reads;
+    context.evaluation_aliases = &result.aliases;
+    context.preserve_clone_storage = true;
+    context.control_reserved = context.control_names;
+    context.control_names = null;
+    context.control_prefix = "staged function ";
+    context.count = 0;
+    context.node_limit -= result.context.count;
+    context.allocations = default;
+    context.lists = default;
+    context.token_text = default;
+    context.scan = default;
+    program.error = default;
+    var clones = sem_table(&context);
+    var nodes = sem_list(&context);
+    result.function = sem_defer_clone(&context, result.root, result.subject, clones, nodes);
+    foreach(var node in nodes) {
+        var value = sem_get(node);
+        if value.binding == null || sem_get(value.binding).kind == KFunction { continue; }
+        var local = sem_find(clones, null, value.binding);
+        if local != null { value.binding = local.value; }
+    }
+    context.current = result.function;
+    context.preserve_clone_storage = false;
+    if sem_ok(&context) && sem_aggregate_needed(result.function) {
+        var signature = bits(SemanticAggregateSignature*, entity_component_data(entity_component_add(result.function, context.aggregate_signatures)));
+        sem_require(signature != null);
+        *signature = default;
+        sem_aggregate_function(&context, result.function);
+    }
+    if sem_ok(&context) { sem_lift_block(&context, sem_get(result.function).body); }
+    result.count = context.count;
+    result.error = program.error;
+    result.error_offset = program.error_offset;
+    stack_dispose(&context.scan);
+    vector_dispose(&context.token_text);
+    foreach(var list in &context.lists) { vector_dispose(bits(vector(void*)*, list)); }
+    vector_dispose(&context.lists);
+    foreach(var allocation in &context.allocations) { free(allocation); }
+    vector_dispose(&context.allocations);
+}
+
+fn sem_executables_pump(c: SemanticContext*): SemanticPumpResult {
+    if !sem_ok(c) { return SemanticPumpResult.Failed; }
+    if c.executable_functions == null { return SemanticPumpResult.Complete; }
+    sem_control_names(c);
+    if c.workers.count == 0 { sem_require(sem_workers_open(c)); }
+    var batch: vector(SemanticExecutable*) = default;
+    defer vector_dispose(&batch);
+    var query = convert(u32, SemanticQuery.ExecutableFunction);
+    var ticket: WorkTicket;
+    while batch.length < SemanticPreparationWindow && work_take_query(&c.queries, &ticket, query) {
+        var subject = work_task(&c.queries, ticket.task).subject;
+        var result = bits(SemanticExecutable*, entity_component_data(entity_component_get(subject, c.executable_functions)));
+        result.ticket = ticket;
+        result.stage = entity_stage_open(c.program.root);
+        sem_require(result.stage != null && entity_stage_lease(result.stage, result.root));
+        sem_require(vector_push(&batch, result));
+    }
+    if batch.length == 0 { return sem_query_pending(c, query) ? SemanticPumpResult.Waiting : SemanticPumpResult.Complete; }
+    var context = *c;
+    var view = entity_view_open(c.program.root);
+    sem_require(view != null);
+    var next: usize = 0;
+    while next < batch.length || c.workers.running != 0 {
+        while next < batch.length && c.workers.running < c.workers.count {
+            var result = batch.data[next++];
+            result.context = &context;
+            sem_require(work_pool_submit(&c.workers, bits(void*, &result.kernel)));
+        }
+        sem_require(work_pool_receive(&c.workers, true) != null);
+    }
+    entity_view_close(view);
+    foreach(var result in &batch) {
+        sem_require(entity_stage_publish(result.stage));
+        result.stage = null;
+        result.context = null;
+    }
+    foreach(var result in &batch) {
+        sem_query_observe(c, &result.ticket, &result.query_reads);
+        sem_evaluation_aliases(c, &result.aliases);
+        c.count += result.count;
+        if c.count > c.node_limit && result.error.length == 0 {
+            sem_fail(c, result.subject, "Foundation component memory budget exceeded");
+            result.error = c.program.error;
+            result.error_offset = c.program.error_offset;
+            c.program.error = default;
+        }
+        var input = bits(IMFunctionInput*, entity_component_data(entity_component_get(result.subject, c.executable_ready)));
+        input.function = result.function;
+        input.ready = result.error.length == 0;
+        sem_require(work_finish(&c.queries, &result.ticket, input.ready));
+    }
+    return SemanticPumpResult.Progress;
+}
+
+fn sem_executable_failure(c: SemanticContext*, subject: void*): bool {
+    var result = bits(SemanticExecutable*, entity_component_data(entity_component_get(subject, c.executable_functions)));
+    if result == null || result.error.length == 0 { return false; }
+    sem_fail(c, subject, result.error.data);
+    c.program.error_offset = result.error_offset;
+    return true;
+}
+
+fn sem_executables_dispose(c: SemanticContext*): void {
+    if c.executable_functions == null { return; }
+    for(var i: usize = 0; i < entity_query_count(c.executable_functions); i++) {
+        var result = bits(SemanticExecutable*, entity_component_data(entity_query_at(c.executable_functions, i)));
+        vector_dispose(&result.error);
+        vector_dispose(&result.query_reads);
+        vector_dispose(&result.aliases);
+    }
+}

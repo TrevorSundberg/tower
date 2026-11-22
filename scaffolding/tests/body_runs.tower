@@ -275,8 +275,8 @@ fn body_runs_declaration_error(budget: usize, bedrock: u8*, foundation: u8*, roo
         diagnostic_text = "MissingArrayFirst";
     }
     if mode == BodyDeclarationFailure.ComputedArrayExtent {
-        source = "import tower;fn id(T:type,value:T):T{return value;}fn first():usize{return sizeof(array_type(i32,id(2)));}fn later():i32{return unknownLater;}";
-        diagnostic_text = "staged body scheduling";
+        source = "import tower;fn id(T:type,value:T):T{return value;}fn first():usize{return sizeof(array_type(i32,id(2)/0));}fn later():i32{return unknownLater;}";
+        diagnostic_text = "Division by zero";
     }
     if mode == BodyDeclarationFailure.ConstructorCycle {
         source = "import tower;fn first_type(T:type):type{return second_type(T);}fn second_type(T:type):type{return first_type(T);}fn first():i32{var invalid:first_type(i32);return 0;}fn later():i32{return unknownLater;}";
