@@ -46201,3 +46201,42 @@ build/agents_audit_final_verification.json. The final documentation receipt reus
 that verified deployment and retains its source/build identities; synchronize
 main and the unchanged Pages ref atomically. Scoped whitespace checks pass;
 todo.txt remains unstaged and no audit-authored Tower or bootstrap changes exist.
+
+### 2026-11-22: distributed compiler ECS completion campaign setup
+
+The user requested two visible PowerShell Codex workers on each of KinmenA,
+KinmenB, steamdeck.local and this local machine, isolated main clones, full
+project-owned Tower audit and completion of ECS/threading/decltype/comptime
+and dependency scheduling. The acceptance/ownership plan is in
+`docs/compiler_ecs_completion.md`; it is planned work, not implementation proof.
+Initial tracked inventory: 1,011 .tower paths. Read the current compiler handoff,
+compiler services, recent publication receipts and the eight-step type-value
+continuation; the newer production helper producer supersedes the old handoff's
+unsupported-helper statement.
+
+Initial `git pull --rebase` failed because todo.txt had user edits. Commit
+4e72804 preserves those existing bytes unchanged; subsequent pull succeeded and
+a before/after SHA-256 comparison matched. Additional user edits appeared after
+that snapshot and remain to be preserved. No coordinator edits to todo.txt.
+
+All three SSH hosts respond. Local host is Windows 11 Home / Ryzen 9 5900HX,
+8 cores/16 threads, about 31.4 GiB physical RAM and 127.7 GiB disk free.
+KinmenA/B report 32 logical CPUs and about 123.6 GiB RAM; SteamDeck reports
+14.8 GiB RAM, about 10.4 GiB available and 142 GiB free /home. Resource snapshots
+are setup observations, not compiler performance measurements. Runtime timing and
+memory before/after are inapplicable to this documentation/OS-launch setup;
+no compiler or runtime implementation inputs have changed.
+
+The installed CLI/model metadata confirms `gpt-6-astra` and xhigh; interpret the
+user's `gpt-6-atstra` spelling accordingly. Launches explicitly set default
+service tier because KinmenA's global setting is fast. Keep per-worker visible
+interactive `--yolo --no-daemon` terminals, external prompts/status/inboxes,
+separate caches, host-wide build budgets and serialized atomic publication.
+Windows remote sessions initially report disconnected; verify desktop placement
+before claiming physical visibility. SteamDeck already has PowerShell 7.6.6,
+Konsole and a physical KDE Wayland session; its non-login SSH PATH omits local
+PowerShell and nvm Codex. No credentials are copied or logged.
+
+No code, full audit, sanitizer, new build or completion claim is made here.
+Next: finish clean synchronization and launch verification, record thread/process
+identities, then monitor sparse status updates and coordinate acceptance work.
