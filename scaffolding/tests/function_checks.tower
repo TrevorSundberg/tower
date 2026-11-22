@@ -48,5 +48,8 @@ fn function_tests(modules: void*, root: u8*): void {
     struct_value_reject(modules, "import tower;fn `1`():i32{return 1;}var p = &1;", "addressable location");
     struct_value_reject(modules, "import tower;fn f():i32{return 1;}print(comptime(bits(usize,f)));", "relocatable typed references");
     narrow_trap(modules, "import tower;fn f():i32{return 1;}var p=bits(function(i32,i32),f);print(p(1));", "Function reference signature mismatch");
+    struct_value_reject(modules, "import tower;fn real():i32{return 42;}fn forged():function(i32){var value:function(i32)=real;var p=bits(usize*,&value);*p=999;return value;}var value=comptime(forged());", "invalid function reference");
+    struct_value_reject(modules, "import tower;fn real(x:i32):i32{return x;}fn forged():function(i32){var value=real;var p=bits(function(i32)*,&value);return *p;}var value=comptime(forged());", "function reference signature mismatch");
+    struct_value_reject(modules, "import tower;fn real(x:u32):u32{return x;}fn forged():function(i32,i32){var value=real;var p=bits(function(i32,i32)*,&value);return *p;}var value=comptime(forged());", "function reference signature mismatch");
     puts("Function values: typed calls, nullability, staging, cache, round trips and worker determinism pass.");
 }

@@ -38,11 +38,21 @@ fn im_function_reference(m: IMState*, function: void*): u64 {
 }
 
 fn im_function_matches(function: void*, type: FoundationType*): bool {
+    return im_function_signature(function, type, false);
+}
+
+// Runtime representation casts may use an ABI-compatible signature. Staged
+// references serialize as &declaration, which requires the exact source type.
+fn im_function_signature(function: void*, type: FoundationType*, exact: bool): bool {
     var definition = im_node(function);
     var signature = im_node(type.record);
-    if !im_call_type_equal(&definition.type, &signature.element) || definition.parameters.length != signature.parameters.length { return false; }
+    var compatible = exact ? semantic_type_equal(&definition.type, &signature.element)
+        : im_call_type_equal(&definition.type, &signature.element);
+    if !compatible || definition.parameters.length != signature.parameters.length { return false; }
     for(var i: usize = 0; i < signature.parameters.length; i++) {
-        if !im_call_type_equal(&im_node(definition.parameters.data[i]).type, &im_node(signature.parameters.data[i]).type) { return false; }
+        var actual = &im_node(definition.parameters.data[i]).type;
+        var wanted = &im_node(signature.parameters.data[i]).type;
+        if !(exact ? semantic_type_equal(actual, wanted) : im_call_type_equal(actual, wanted)) { return false; }
     }
     return true;
 }

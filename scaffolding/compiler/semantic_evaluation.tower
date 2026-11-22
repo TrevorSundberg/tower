@@ -20,6 +20,7 @@ import .library.work_pool;
 
 extern fn interpreter_invocation_init(invocation: IMInvocation*, function: void*, width: usize, arguments: u64*, count: usize, strict: bool, fuel: u64): bool;
 extern fn interpreter_invocation_dispose(invocation: IMInvocation*): void;
+extern fn interpreter_function_result(invocation: IMInvocation*, reference: u64, type: FoundationType*, offset: usize): void*;
 extern fn entity_view_open(anchor: void*): void*;
 extern fn entity_view_close(view: void*): void;
 
@@ -306,6 +307,7 @@ fn sem_evaluations(c: SemanticContext*): void {
                         sem_evaluation_value(result.subject, invocation, invocation.context.result);
                         sem_evaluation_value(result.literal, invocation, invocation.context.result);
                     }
+                    if invocation.state.failed && !result.inferred { sem_fail(c, result.subject, invocation.context.error.data); }
                     foreach(var &alias in &result.aliases) {
                         var original = sem_get(alias.original);
                         if original.constant || original.kind == KFunctionReference {
@@ -316,9 +318,9 @@ fn sem_evaluations(c: SemanticContext*): void {
                             target.constant = original.constant;
                         }
                     }
-                    result.ready.failed = !sem_ok(c);
+                    result.ready.failed = invocation.state.failed || !sem_ok(c);
                     result.ready.ready = true;
-                    sem_require(work_finish(&c.queries, &result.ticket, sem_ok(c)));
+                    sem_require(work_finish(&c.queries, &result.ticket, sem_ok(c) && (result.inferred || !invocation.state.failed)));
                     interpreter_invocation_dispose(invocation);
                 } else {
                     var waiting = invocation.context.waiting;
@@ -352,12 +354,12 @@ fn sem_evaluations(c: SemanticContext*): void {
 // Function results relocate through their bound Foundation declaration. The
 // interpreter's private numeric reference never becomes a serialized constant.
 fn sem_evaluation_value(node: void*, invocation: IMInvocation*, bits_value: u64): void {
+    if invocation.state.failed { return; }
     var value = sem_get(node);
     value.bits = bits_value;
     if value.type.scalar == SFunction && value.type.pointers == 0 && value.bits != 0 {
-        sem_require(value.bits <= convert(u64, invocation.state.function_values.length));
-        value.binding = invocation.state.function_values.data[convert(usize, value.bits - 1)];
-        sem_require(value.binding != null);
+        value.binding = interpreter_function_result(invocation, value.bits, &value.type, value.start);
+        if invocation.state.failed { return; }
         value.kind = KFunctionReference;
         value.constant = false;
         value.bits = 0;

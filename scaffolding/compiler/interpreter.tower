@@ -1550,6 +1550,24 @@ export fn interpreter_invocation_dispose(invocation: IMInvocation*): void {
     *invocation = default;
 }
 
+// Validate staged relocation through the ordinary function-reference table and
+// exact source signature. Raw local memory casts can forge values: diagnose input,
+// not an assertion about the interpreter's private reference table.
+export fn interpreter_function_result(invocation: IMInvocation*, reference: u64, type: FoundationType*, offset: usize): void* {
+    if reference == 0 { return null; }
+    var execution: IMExecution = { state: &invocation.state, context: &invocation.context };
+    if reference > convert(u64, invocation.state.function_values.length) {
+        ix_fail(&execution, "Compile-time result contains an invalid function reference", offset);
+        return null;
+    }
+    var binding = invocation.state.function_values.data[convert(usize, reference - 1)];
+    if binding == null || !im_function_signature(binding, type, true) {
+        ix_fail(&execution, "Compile-time function reference signature mismatch", offset);
+        return null;
+    }
+    return binding;
+}
+
 // Compatibility entry points preserve the native and fast-interpreter ABI.
 // Both paths call the same operation implementation through an explicit context.
 

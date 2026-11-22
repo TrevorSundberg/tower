@@ -40,5 +40,6 @@ fn comptime_aggregate_tests(modules: void*, root: u8*): void {
     struct_value_reject(modules, "import tower;struct P{x:i32*;}fn make():P{var x=42;return {x:&x};}var p=comptime(make());", "non-relocatable raw pointer");
     struct_value_reject(modules, "import tower;struct P{x:i32;}fn make():P{print(42);return {x:42};}var p=comptime(make());", "output");
     struct_value_reject(modules, "import tower;struct P{x:i32;}fn make():P{return comptime(make());}var p=comptime(make());", "dependency cycle");
+    struct_value_reject(modules, "import tower;struct P{f:function(i32);}fn real():i32{return 42;}fn forged():P{var p:P={f:real};var bytes=bits(usize*,&p.f);*bytes=999;return p;}var p=comptime(forged());", "invalid function reference");
     puts("Staged aggregates: nested fields, arrays, exact bits, typed callbacks, Foundation and workers pass.");
 }

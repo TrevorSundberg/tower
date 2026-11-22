@@ -39303,3 +39303,32 @@ the foreign grammar and lexical/replacement examples. Keep legacy clauses in the
 reader and compatibility fixtures. The pinned compiler interprets the attributed
 declaration fixture through the migrated grammar with zero failures. A final clean
 successor and browser/publication validation are still required below.
+
+The clean migrated-grammar successor builds all 54 steps; its full native
+execution suite and all 15 parser tests pass. Browser, threaded browser and LLVM
+reactors build successfully. Existing focused formatting and compiler-thread
+checks pass (11 tests); the repository-wide formatting equality test stops at
+unchanged backend/bindings.tower. Do not run a formatting sweep for this feature.
+This records the observed failure, not a claim of a baseline comparison.
+
+Final relocation audit finds a compiler assertion reachable by a staged function
+that overwrites a callback slot through a raw usize pointer. Replace the assertion
+with interpreter-owned reference-table and signature validation, including fields
+extracted from aggregate results. Runtime indirect-call representation casts may
+accept ABI-compatible signatures, but staged values serialize as &declaration
+and therefore require exact source types. Test invalid indexes, different arity,
+same-ABI signed/unsigned mismatches and forged aggregate callback fields. The
+functions, aggregate-stages and attributes suites all pass on the rebuilt
+/cache/attributes-clean-final executable. Preserve optional inferred-fold failure
+as a fallback; explicit comptime reports the diagnostic. An initial direct import
+of interpreter internals into semantic_evaluation caused duplicate exported
+storage symbols at link time; retain a narrow exported relocation entry point
+instead, preserving the existing translation-unit ownership boundary.
+
+Pull/rebase integrates e9d2132 and its Tower linking test runner. This rebases the
+three earlier commits to 9e60107, 45405f3 and 691abb6 respectively; the first pin's
+manifest still records its actual historical build source and exact file hashes.
+Upstream changes affect build/test tooling, not compiler semantics. Final release
+packaging, clean default successor and browser-generation/publication checks
+follow. Standard-type protocol consumers/source modules are still outstanding;
+the attribute prerequisite must not be described as the completed type migration.

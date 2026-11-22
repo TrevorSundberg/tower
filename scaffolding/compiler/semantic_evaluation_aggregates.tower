@@ -104,5 +104,6 @@ fn sem_evaluation_aggregate_publish(c: SemanticContext*, result: SemanticEvaluat
             return;
         }
         sem_evaluation_value(leaf.subject, invocation, bits_value);
+        if invocation.state.failed { sem_fail(c, result.subject, invocation.context.error.data); return; }
     }
 }
