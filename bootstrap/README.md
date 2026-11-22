@@ -6,12 +6,12 @@ with the platform `sha256sum` command and returns the compiler path. There is
 no installer, unpacking step, bootstrap cache or Python dependency on this path.
 `TOWER_BOOTSTRAP_COMPILER` remains an explicit development override.
 
-The current pin includes computed integer type arguments and array extents,
-including arithmetic over numeric type parameters. See
-[computed type arguments](../docs/computed-type-arguments.md) for the supported
-scope. Its complete executable/resources were packaged from source revision
-`23b919ef748b5d7b998f788cd7599d4fba5e7d82` and validated with a fresh successor
-build through this default path, without a private bootstrap override.
+The current pin includes the Tower hosted ELF linker and `--link-executable`.
+The complete compiler executable was linked by Tower against the system LLVM
+library, from source `53070f4`, with packaging provenance at `730fe7a`. Its
+executable and adjacent resources are hashed together in `development.json`.
+It also includes computed integer type arguments and array extents; see
+[computed type arguments](../docs/computed-type-arguments.md) for their scope.
 
 This is a **Tower-built Linux x64 development bootstrap** for Ubuntu 24.04 with
 system LLVM 19 and its runtime dependencies. All project-owned compiler/runtime
