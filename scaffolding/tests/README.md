@@ -796,17 +796,17 @@ replacement source provenance, semantic ABI syntax changes and grammar reuse.
 
 With `TOWER_WORK_TESTS=ON`, native Linux x64 builds register the ready-index,
 reservation ledger, shared-ledger overlap, admitted kernel dispatch, tool output
-identity and semaphore observer fixtures through the common Tower object/runtime
-rules. `TOWER_SANITIZER=address` or `thread` uses the same targets and production
+identity, semaphore observer and concurrent entity-stage fixtures through the
+common Tower object/runtime rules. `TOWER_SANITIZER=address` or `thread` uses the same targets and production
 allocator; configured object manifests alone are not execution evidence.
 
 ```sh
 cmake --build "$TOWER_NATIVE_BUILD" --parallel 1 --target \
   tower-work-ready-tests tower-work-budget-tests tower-work-budget-shared-tests \
   tower-work-kernel-admission-tests tower-tool-output-identity-tests \
-  tower-work-signal-observe-tests
+  tower-work-signal-observe-tests tower-entity-stage-concurrent-tests
 ctest --test-dir "$TOWER_NATIVE_BUILD" --output-on-failure \
-  -R '^tower-(work-(ready|budget|budget-shared|kernel-admission)-tests|tool-output-identity-tests|work-signal-observe-tests-(try|wait))$'
+  -R '^tower-(work-(ready|budget|budget-shared|kernel-admission)-tests|tool-output-identity-tests|work-signal-observe-tests-(try|wait)|entity-stage-concurrent-tests)$'
 ```
 
 These checks preserve explicit stale/owner receipts, independent budget totals,
@@ -831,6 +831,20 @@ sums do not establish portable host coverage or total live allocator bytes.
 Record exact source/artifact identity, repeats and runtime coverage alongside
 results. This registration does not itself validate any incoming source bundle;
 current implementation and execution receipts remain in the D1 audit/journal.
+
+With `TOWER_EXECUTION_TESTS=ON`, the native Linux x64 build also provides the
+opt-in `tower-type-reachability-profile RESOURCE_ROOT` executable and
+`tower-measure-type-reachability` target. It shares the execution runner's
+compiler/interpreter link closure; its platform ABI is not imported by that
+runner and it is absent from default builds and CTest.
+
+The profile compiles16/256/1000 sequentially called functions, checks the
+independent output, then reports three samples of256 serial reachability queries
+as JSON lines. It checks unchanged canonical Foundation and retained entity and
+component counts, then closes each session. Query wall/CPU exclude compilation,
+execution and formatting. Process peak RSS includes them; entity/component
+counts do not measure all temporary buffer allocations. No parallel-query or
+end-to-end speedup is implied.
 
 For a focused frontend/backend streaming check, use
 `tower-lr-work-tests RESOURCE_ROOT backend-overlap` from the existing native

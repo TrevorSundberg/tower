@@ -33,8 +33,6 @@ extern fn entity_child_count(node: void*): usize;
 
 extern fn entity_child_at(node: void*, index: usize): void*;
 
-extern fn entity_child_member(node: void*, name: u8*): void*;
-
 extern fn entity_component_get(node: void*, kind: void*): void*;
 
 extern fn entity_component_data(component: void*): void*;
@@ -98,8 +96,6 @@ extern fn lr_completion_suffix(completion: void*, ids: u32*, count: usize, resul
 extern fn tower_memory_get_allocated_count(): usize;
 
 extern fn tower_memory_free(memory: void*): void;
-
-extern fn parser_set_debug_trace(enabled: bool): void;
 
 struct ParserFixture {
     world: void*;
@@ -630,8 +626,23 @@ fn parser_suffix_depth_fixture(): void {
     parser_check(suffix[0] == 1 && suffix[1] == 2 && suffix[2] == 123, 613);
 }
 
+fn parser_trace_output_fixture(): void {
+    var f: ParserFixture;
+    parser_fixture_init(&f);
+    defer parser_fixture_dispose(&f);
+    var rule = grammar_builder_rule(&f.builder, "Traced", false);
+    grammar_builder_literal(&f.builder, rule, "a");
+    parser_fixture_table(&f, false, true);
+    f.table.trace = true;
+    parser_fixture_begin(&f, "a", false);
+    var root = parser_finish(f.request, true);
+    parser_span(root, f.kinds.`match`, 0, 1);
+    entity_release(root);
+}
+
 export fn parser_tests(): void {
     var baseline = tower_memory_get_allocated_count();
+    parser_trace_output_fixture();
     var prefix: bool = false;
     loop {
         var specialize: bool = false;

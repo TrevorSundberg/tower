@@ -19,10 +19,10 @@ extern fn puts(text: u8*): i32;
 
 extern fn putchar(byte: i32): i32;
 
-fn parser_trace_write(text: u8*): void {
+fn parser_trace_write(text: u8*, length: usize): void {
     if text is null { return; }
     var index: usize = 0;
-    while text[index] != 0 {
+    while index < length {
         putchar(convert(i32, text[index]));
         index = index + 1;
     }
@@ -111,7 +111,7 @@ export fn parser_trace_step(table: ParserHostTable*, rule: usize, state: usize, 
         format_text(&engine, " at byte ");
         format_unsigned(&engine, convert(u64, offset));
         format_char(&engine, 10);
-        parser_trace_write(result.text.data);
+        parser_trace_write(result.text.data, result.text.length);
         format_dispose(&result);
         compiler_buffer_free(bits(void*, text));
     }
@@ -119,6 +119,10 @@ export fn parser_trace_step(table: ParserHostTable*, rule: usize, state: usize, 
 
 export fn parser_tree_debug_print(root: void*): void {
     var text = parser_tree_debug_string(root);
-    parser_trace_write(text);
+    if text != null {
+        var length: usize = 0;
+        while text[length] != 0 { length++; }
+        parser_trace_write(text, length);
+    }
     compiler_buffer_free(bits(void*, text));
 }

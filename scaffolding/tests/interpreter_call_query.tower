@@ -20,6 +20,7 @@ extern fn interpreter_invocation_step(invocation: IMInvocation*, budget: usize):
 extern fn interpreter_invocation_dispose(invocation: IMInvocation*): void;
 extern fn ix_write(execution: IMExecution*, address: u64, value: u64, type: FoundationType*, offset: usize): void;
 extern fn puts(message: u8*): i32;
+extern fn strcmp(left: u8*, right: u8*): i32;
 extern fn abort(): void;
 
 var CallQueryFuel: u64 = 10000;
@@ -293,6 +294,7 @@ fn input_query_tests(width: u32): u32 {
             var address = convert(u64, a.context.input_storage.data[0].address);
             ix_write(&execution, address, 99, &sem_get(first).type, 0);
             call_query_check(a.state.failed && a.context.error.length != 0
+                && strcmp(a.context.error.data, "Compile-time evaluation cannot modify an immutable captured value") == 0
                 && a.state.memory.data[convert(usize, address)] == 7,
                 "A strict store diagnoses immutable input without changing its bytes", &failures);
         }
@@ -322,7 +324,8 @@ fn input_query_tests(width: u32): u32 {
         a.context.type_arguments = true;
         interpreter_invocation_step(&a, convert(usize, CallQueryFuel));
         call_query_check(a.state.failed && a.context.input_storage.length == 1
-            && a.context.error.length != 0,
+            && a.context.error.length != 0
+            && strcmp(a.context.error.data, "Compile-time evaluation cannot modify an immutable captured value") == 0,
             "Copy and fill reject writes to immutable input storage", &failures);
         if a.context.input_storage.length == 1 {
             var at = a.context.input_storage.data[0].address;

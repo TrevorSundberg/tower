@@ -85,10 +85,24 @@ fn editor_world_inspection(world: void*, environment: void*, width: u32): void {
     var output = language_document_result(query);
     editor_world_entry(output, source, "integer_type(width", "\"kind\":\"primitive type constructor\"");
     editor_world_entry(output, source, "integer_type(width", "Constructs an integer type");
-    editor_world_entry(output, source, "width, 0", "\"kind\":\"compile-time parameter\"");
+    editor_world_entry(output, source, "width, 0", "\"kind\":\"parameter\"");
     editor_world_entry(output, source, "0);", "\"signature\":\"0\"");
-    editor_world_entry(output, source, "return integer_type", "\"kind\":\"return\"");
-    editor_world_entry(output, source, "unsigned_integer(width);", "\"kind\":\"call\"");
+    editor_world_entry(output, source, "return integer_type", "Ends this function call");
+    editor_world_entry(output, source, "return integer_type", "\"kind\":\"function\"");
+    editor_world_entry(output, source, "unsigned_integer(width);", "Runs the function's code");
+    editor_world_entry(output, source, "unsigned_integer(width);", "\"kind\":\"function\"");
+
+    var constructors: u8* = "import foundation; fn floating(width:usize):type{return float_type(width);} fn pointer(element:type):type{return pointer_type(element);} fn array(count:usize):type{return array_type(i32,count);}";
+    var construction = language_document_world(world, environment, constructors, strlen(constructors), 0, width);
+    units_check(construction is not null, "Ordinary type construction inspection query");
+    defer completion_dispose(construction);
+    var constructed = language_document_result(construction);
+    editor_world_entry(constructed, constructors, "float_type(width)", "\"kind\":\"primitive type constructor\"");
+    editor_world_entry(constructed, constructors, "float_type(width)", "Constructs a floating-point type");
+    editor_world_entry(constructed, constructors, "pointer_type(element)", "\"kind\":\"primitive type constructor\"");
+    editor_world_entry(constructed, constructors, "pointer_type(element)", "Constructs a raw pointer type");
+    editor_world_entry(constructed, constructors, "array_type(i32,count)", "\"kind\":\"primitive type constructor\"");
+    editor_world_entry(constructed, constructors, "array_type(i32,count)", "Constructs an inline array type");
 
     var grammar: u8* = "[comment] skip Remark = /#[^\\n]*/; [precedence(10, left)] parse Choice = 'x';";
     var attributes = language_document_world(world, environment, grammar, strlen(grammar), 0, width);
