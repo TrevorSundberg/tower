@@ -1272,3 +1272,18 @@ acceptance of existing address/comparison negatives. Preserve all these oracles;
 only L2's separately justified two message corrections are reserved. The old
 semantic_world boundary patch is already present and is not the outstanding
 failure-drain fix.
+
+At frozen cd8a30c, standalone profile and all six changed-unit builds pass;
+actual target closure and opt-in exclusion are verified. Both nine-row profile
+runs preserve outputs/canonical/counts; two extra current components are stable,
+not a complete buffer census. Query and focused editor checks pass. Driver
+failure-only context is independently exercised by an output-directory error,
+with unchanged rawexit1, and the still-failing signed32 package child now exposes
+its exact target/optimization/-14 status. Full package acceptance remains open.
+
+Current storage fails before registry in unchanged compiler_storage reset input:
+without a language/provider, bare print is not seed syntax. Root approved the
+minimal Bedrock reset-stimulus repair and failure-only utility flush; pending
+implementation/retest. This does not weaken any lifetime/failure assertion or
+relabel B1's older storage pass. Detailed measurements/failures are in the journal
+and capture_harness_cd8a30c logs; no full compiler release claim follows.

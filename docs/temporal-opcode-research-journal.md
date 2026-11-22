@@ -48303,3 +48303,69 @@ these contracts; A1 owns capture policy and L1 owns aggregate materialization.
 L2 owns only the two independently justified diagnostic-message corrections.
 Full known/type/lifecycle, final clean public bootstrap/generation/browser,
 supported production instrumentation and named-lease publication remain open.
+
+D1 frozen cd8a30c validation, same Linuxx64 Docker4be584fb/LLVM19.1.1,
+CPUs0/2, public bootstrap9653f818, compiler jobs1, Release and own cache
+native-coherent-127ca98. Logs: build/d1_ecs/capture_harness_cd8a30c.
+All source hashes remained unchanged through terminal sessions and final check.
+Smallest standalone/capture/driver/registry/editor/parser units pass: wall
+7.04/24.81/6.96/2.65/4.41/3.61seconds, peakRSS225988/739436/274552/181740/
+208348/188124KiB. Native3steps35.43wall/34.67CPU/792160KiB and six existing
+targets12steps53.92/52.51/348240 pass. Compilerad2dda36609d5153647f6869a9861425
+288470cb2dd7bc73e6906cc58b31c14c. These are incremental public-pin receipts,
+not a clean final-generation build. Every measured job reports0swaps.
+
+Standalone profile links and runs using the full existing execution closure.
+Before baseline was linked against unchanged dd87 compiler objects before their
+replacement; current uses cd8 v3/hover objects, identical fixture/resource inputs.
+Both pass nine serial query samples, independently checked16/256/1000 outputs,
+canonical stability, stable live entity/component counts and session teardown.
+Before/current process wall12.14/11.22, CPU12.48/11.93, peakRSS221172/219356KiB.
+Per256-query wall ranges(ms):16functions10.87-11.16 /15.29-17.87;
+256functions566.53-575.99 /341.68-445.50;1000functions1728.09-2623.92 /
+1694.62-1904.99. These mixed-source, single-process pairs show substantial timing
+variation and no isolated performance conclusion; no multicore claim. Each
+process has three measured samples after a warm query. Current graphs have two
+more components per size, but zero count growth across all queries; this does
+not account for every temporary buffer. Actual Ninja dependencies exclude the
+profile from all/default and CTest; only opt-in measurement depends on it.
+Tested registration f54255a1 and raw receipt exported D1/type_profile_receipt.
+
+Storage CTest fails8 after0.78wall/.26CPU/89024KiB, with an empty buffered
+assertion log. Same binary unbuffered fails134 at `Session reset parses`, before
+the new entity_registry fixture. Exact compiler_storage SHA52a820e7 is unchanged
+in incoming7ac. Its null-provider session starts with a seed-valid declaration,
+then feeds bare print without importing a language. This conflicts with the
+immutable Bedrock seed contract in docs/modules. Root independently reviewed
+and approved only normal/fault/recovery reset stimuli becoming single Bedrock
+parse declarations, preserving100resets, retained original source identity/text,
+EOF, exact allocation diagnostic and final buffer counts. Failure-only fflush
+in shared utility_check is also approved; actual fix/revalidation follows after
+the current frozen run drains. Original abort and logs remain evidence.
+
+Independent remaining checks pass: full focused editor observations/mixed jobs,
+30.21wall/29.61CPU/257588KiB, and query smoke at both pointer widths/serial-worker
+settings. Old/new driver runners both pass all four print package variants,
+17.38/13.98wall,17.03/13.68CPU,112368/112316KiB; no speed claim from this single
+pair. A real private-directory output-path failure exercises new diagnostics:
+both runners preserve rawexit1; new output records wasm32-unknown-unknown,
+optimization off and subprocessstatus1 before the unchanged failure assertion.
+Before3.21wall/3.10CPU/109100KiB; after1.94/1.90/108876. Empty childstderr in
+both is separately reported to B2; the harness now identifies the failed phase.
+
+Current signed saturating add i32 package retry STILL fails. Actual first
+Wasm32/unoptimized bytecode emission reaches the unchanged30-second child
+SIGALRM, reported raw-14 and outer1; aggregate59.59wall/58.35CPU/225928KiB.
+LLVM retained-root improvement did not close this package path. No deadline
+increase, hidden retry or full scalar native acceptance. Exact input/output/time
+and package context patch60d66585 exported for L1/B2 attribution.
+
+All seven sessions are terminal; both owned containers have no executing child.
+D1 released heavy.lock normally to D2 before source integration/repair. Incoming
+coherent7ac bundleac7e1f5f verifies with sole published607 prerequisite and exact
+FETCH_HEAD7ac. Reviewed44-path diff mostly reflects newer D1-side changes to
+preserve; actual new coverage includes two known-oracle messages and the source
+rejection type-object hook. Obsolete shared profile selector must be removed
+while retaining that hook and the standalone target. No publication lease or
+final acceptance; aggregate/address bugs and final coherent instrumentation,
+clean bootstrap/browser/generation and hosted publication remain required.
