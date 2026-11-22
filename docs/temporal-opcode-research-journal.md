@@ -43268,3 +43268,76 @@ Release only our own lock. Final inventory remains JavaScript 182/24234 (196 lin
 and six files below baseline), Python/owned C/C++ zero, shell 9/230, CMake 39/1603.
 The full non-Tower migration is ongoing; this milestone removes obsolete and
 duplicated tooling without claiming that all remaining JavaScript is a host shim.
+
+### 2026-11-21: preserve the parser measurement through the shared Tower rule
+
+Start main 45e804f with pull/rebase up to date. The previous turn is progress:
+profiling simplification, frozen-prelude repair and publication are committed and
+verified. Audit actual manual/automated callers before deciding what to retain.
+docs/parser.md still documents TowerParserBenchmark.cmake. Its native list-grammar
+timing, allocation-call and retained-buffer observations differ from compiler CLI
+or browser latency measurements, so retain this useful Tower program. Replace
+its bespoke foreign expansion/source-copy/object command with tower_runtime_object.
+No foreign rewrites are needed; the old response file is empty. Remove the empty
+wrapper link option and compile flags that cannot affect already-built objects.
+Keep its existing frontend object/library closure and instrumented allocator.
+This deletes 15 CMake lines and adds two, for a net reduction of 13 (not 15).
+
+Baseline reproduction uses the owned, already frozen 3e12adb compiler snapshot
+/cache/profiling_cleanup_integrated_checkout and its matching native cache.
+CMake 3.28.3 does not accept a semicolon list in CMAKE_PROJECT_scaffolding_INCLUDE;
+the initial configure attempt fails by treating it as one filename. Use the
+documented project hook ordering instead: CMAKE_PROJECT_INCLUDE names the absolute
+TowerBackend.cmake path, then CMAKE_PROJECT_scaffolding_INCLUDE names the absolute
+TowerParserBenchmark.cmake path. The latter defers its target until the backend
+has created tower-frontend-tests. Record this working opt-in route in docs/parser.md.
+
+With the unchanged baseline rule, configuring succeeds but building
+tower-parser-benchmark fails: it copies parser_benchmark.tower into the build
+directory, and the public compiler then cannot read ../host/syntax_baseline_api.
+This is the source-copy rule's relative-import failure, not unsupported syntax or
+a missing private bootstrap. After the failed readers finish, copy only the new
+CMake fragment into the owned snapshot and reconfigure with the same hooks.
+The target compiles its original Tower source in place and links in two steps.
+It uses checked-in public bootstrap 6022aa2b and the previously verified native
+compiler objects; no identical compiler binary rebuild or new helper is needed.
+Inspect the actual link: tower_work_serial.o and runtime-instrumented.o retain
+the single-owner allocator transport; the old empty wrap response is absent.
+
+Run the executable alone, with Docker process inspection showing no other task
+beforehand. All four sizes complete five warmups plus eleven measured parses,
+with stable per-size allocation/live-buffer checks. CSV group rows:
+256: 11 rows, 803 tracked allocations, 7121 live buffers;
+512: 11 rows, 1577 allocations, 7893 live;
+1024: 11 rows, 3123 allocations, 9437 live;
+2048: 11 rows, 6213 allocations, 12525 live.
+These are current observations, not comparisons with the historical parser port
+or all host allocations. A second build reports no work. Touch only the imported
+syntax_baseline_api.tower timestamp in the owned snapshot and request just
+tower-parser-benchmark.o: Ninja rebuilds that object once and reproduces SHA256
+42c8338f3b696184c971220ce1cb56483b8ef3005faeabdffed8cbeaa7d11219.
+This checks the dependency that the old relocation broke. Executable SHA256
+3cfb45fb85553001926248ba700e2d9931be3022b206a6253917dab0c150d099.
+Evidence: build/parser_measurement_{baseline_build,candidate_build,dependency}.log
+and parser_measurement_candidate.csv. No sanitizer or formatting sweep.
+
+The broader measurement audit also finds benchmark-compiler-worlds.mjs. Its only
+caller/output references are this journal and the script itself. Unlike the
+generic ownership/worker comparison probes, it explicitly reconstructs a pre-view
+compiler by replacing exactly entities, semantic_layout and import_instructions
+with an old revision, rejects baselines that already have entity_view_open, and
+removes the three then-new view exports from its recipe. This is the completed
+world-view introduction experiment, not a general current benchmark. Its isolated
+results and limitations are already recorded above. Remove its 86 JavaScript
+lines instead of porting that historical reconstruction. Preserve the script at
+45e804f and the earlier evidence; keep entity_views.tower, semantic-world/staging
+fixtures, compiler-threads tests and generic worker/ownership measurement tools.
+No current regression assertion, compiler generation path or zlib dependency is
+added. Historical bootstrap provenance is immutable data, not a live caller.
+
+Tracked inventory: JavaScript 181 files/24148 lines (282 lines and seven files
+removed from baseline); CMake 39/1590 (1004/2594 lines removed, 38.7%); shell9/230;
+Python/owned C/C++ zero. No todo.txt or bootstrap pin changes. The full migration
+continues: remaining browser measurements still duplicate aggregation and some
+fixtures/assertions; preserve required host timing and worker contracts when
+moving or removing those pieces.

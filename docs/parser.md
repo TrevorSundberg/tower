@@ -455,3 +455,14 @@ Disabled requests never construct trace strings. Functional fixtures live in
 `tests/parser_integration.tower` and `tests/parser_failures.tower`; the browser
 self-test invokes the same production exports. The optional native measurement
 target in `cmake/TowerParserBenchmark.cmake` uses `tests/parser_benchmark.tower`.
+It reuses the shared Tower object rule and the frontend test's instrumented buffer
+allocator. On Linux x64, configure a separate build with `TOWER_NATIVE=ON`,
+`TOWER_BACKEND_TESTS=ON`, the public bootstrap and matching LLVM/Clang paths from
+the documented native build. Set `CMAKE_PROJECT_INCLUDE` to the absolute path of
+`cmake/TowerBackend.cmake` and `CMAKE_PROJECT_scaffolding_INCLUDE` to the absolute
+path of `cmake/TowerParserBenchmark.cmake`, then build `tower-parser-benchmark`.
+Run that executable without concurrent builds or tests. Its CSV rows contain input
+symbols, elapsed nanoseconds, instrumented buffer allocation calls and retained
+buffer count; five warmups precede eleven recorded parses at each size. This
+measures the list grammar and accepted-tree release, excluding reset and grammar
+construction. It does not count every host allocation or measure browser latency.
