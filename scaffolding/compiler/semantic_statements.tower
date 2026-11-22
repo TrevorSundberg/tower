@@ -802,6 +802,7 @@ fn sem_run(c: SemanticContext*): void {
         i++;
     }
     i = 0;
+    var initializers_until: usize = 0;
     for(; i < statements.length; i++) {
         var n: void* = statements.data[i];
         var step59 = !sem_function_syntax(n);
@@ -813,6 +814,10 @@ fn sem_run(c: SemanticContext*): void {
             step59 = !step60;
         }
         if step59 {
+            if sem_ok(c) && sem_is(n, "CoreDeclare") {
+                if i >= initializers_until { initializers_until = sem_module_initializer_range(c, statements, i); }
+                sem_module_initializer_finish(c, n);
+            }
             sem_statement(c, n, 0);
             if sem_is(n, "CoreCallStatement") {
                 var step63 = sem_member(n, "call");

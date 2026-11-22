@@ -626,4 +626,14 @@ var module_iteration_sum = 0;
 foreach(var value in &module_iteration_values) { module_iteration_sum += value; }
 if module_iteration_sum != 42 { failures++; }
 
+var module_query_effects: i32 = 0;
+var module_query_first: i32 = ++module_query_effects;
+fn module_query_increment(value: i32*): i32 { (*value)++; return *value; }
+var module_query_second: i32 = module_query_increment(&module_query_effects);
+var module_query_third: i32 = module_query_effects += 10;
+var module_query_record: InvokeRecord = { value: module_query_effects, visits: module_query_second };
+var module_query_stage: i32 = comptime(callback_value(41));
+if module_query_first != 1 || module_query_second != 2 || module_query_third != 12
+    || module_query_record.value != 12 || module_query_record.visits != 2 || module_query_stage != 42 { failures++; }
+
 print(failures);

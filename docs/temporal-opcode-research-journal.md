@@ -40940,3 +40940,48 @@ bootstrap rebuild succeeds, the reduced case prints 42/42, and the expanded
 serial/four-worker body smoke passes execution, canonical reparsing and all
 ordered diagnostic/cycle cases. Evidence: iteration-root-fixed.log. This closes
 the reproduced e0234f0 integration failure; retain the failing log as provenance.
+
+Pushed the root/body signature reuse correction as 2ea20a3 after the final pull
+reported up to date. Native compiler SHA-256:
+339059d7c9c1e4aea7dc52ac3c8f9acf1239b79d9fb8fcaf4c2f438d6b0b453d.
+The deployed browser remains verified 2225c52; the protocol milestone and its
+fix will be included in the next batched browser publication.
+
+Next implementation slice: explicitly typed module initializers previously
+reached sem_initial_value serially from sem_run, whereas inferred initializers
+already used declaration producers. Added a source-ordered initializer run that
+registers ordinary expression queries, depends on each completed declaration,
+retains its actual module frame owner for staging, and declares that frame as a
+read rather than an exclusive write. Workers write only their leased expression
+syntax/private stages. A subsequent executable statement ends the admission run;
+function/type declarations may occur within it. Producer errors remain isolated
+until their original declaration is reached, and publication assigns the checked
+value without repeating evaluation or changing runtime statement order. The
+existing expression admission rules still govern structural fallback.
+
+Added module initializer effects, aggregate initialization and scalar comptime
+coverage, plus ordered initializer errors and a preceding failing executable
+statement. Small-unit preflight passes; the public-predecessor fixture and
+candidate native smoke are running in module-initializers-{fixture,native}.log.
+This is not a new constant propagation pass: checked staged expressions still
+use the ordinary interpreter/dependency machinery. No browser rebuild is being
+repeated for this development slice yet.
+
+The module initializer candidate passes the affected native smoke (canonical
+output/reparse, execution and ordered diagnostics/cycles at one/four workers)
+and direct body_continuation execution prints 0. The checked-in predecessor
+aborted on that expanded fixture (exit134, no diagnostic); it does not include
+the root/body iteration correction already verified in 2ea20a3. The public
+bootstrap did compile the changed compiler unit and build the candidate.
+
+An isolated nine-pair semantics64 comparison against build/native's 2ea20a3
+produced identical output, but median compile time increased from 2.1483s to
+2.4090s and wall time from 2.5666s to 2.6748s. Seven of nine compile samples
+favored the baseline, with large within-series spread (baseline 1.644–2.577s,
+candidate 1.542–2.692s). This fixture adds only one scalar initializer query;
+the lone-query path already executes inline. These data do not establish a
+speedup or isolate a scheduler regression from parsing/host variation. Retain
+the unfavorable result; do not market additional query coverage as performance.
+Evidence: module-initializers-{native,candidate,measure}.log and
+module_initializer_measure/measurements.json. Source inputs stayed frozen and
+no compiler builds/tests were run concurrently with this measurement.

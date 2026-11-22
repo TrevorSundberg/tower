@@ -46,6 +46,7 @@ struct SemanticDeclaration {
     constructed: vector(void*);
     subject: void*;
     expression: bool;
+    module_initializer: bool;
     expression_mode: SemanticExpressionMode;
     expected_type: FoundationType*;
     value: void*;
@@ -1162,8 +1163,12 @@ fn sem_declaration_add(c: SemanticContext*, node: void*): void {
     sem_require(vector_push(&c.declaration_jobs, bits(void*, result)));
     sem_require(work_access(&c.queries, id, 1, 4, id, 1, WorkAccessMode.Write));
     if result.current != null {
+        // Module initializer expressions read the already allocated root frame;
+        // their own leased syntax holds all writes. Statement publication and
+        // runtime effects still follow source order on the coordinator.
         sem_require(work_access(&c.queries, id, convert(u64, SemanticWorkDomain.Compiler),
-            convert(u64, SemanticAccess.Body), sem_get(result.current).index, 1, WorkAccessMode.Write));
+            convert(u64, SemanticAccess.Body), sem_get(result.current).index, 1,
+            result.module_initializer ? WorkAccessMode.Read : WorkAccessMode.Write));
     }
     result.discovery = work_request(&c.queries, node, DeclarationDiscoveryQuery, 0);
     sem_require(work_access(&c.queries, result.discovery, 1, 5, id, 1, WorkAccessMode.Write));
@@ -1273,6 +1278,57 @@ fn sem_declarations(c: SemanticContext*, statements: vector(void*)*): void {
 }
 
 extern fn generic_error_clear(context: void*): void;
+
+// Check one source-ordered run of module declarations. A following executable
+// statement ends the run, preserving diagnostic/effect order across boundaries.
+// Inferred initializers already have their type producer's checked value.
+fn sem_module_initializer_range(c: SemanticContext*, statements: vector(void*)*, first: usize): usize {
+    var previous_subjects = c.declaration_subjects;
+    var previous_isolated = c.declaration_isolated;
+    c.declaration_subjects = sem_list(c);
+    c.declaration_isolated = true;
+    defer {
+        generic_error_clear(c.generics);
+        c.declaration_subjects = previous_subjects;
+        c.declaration_isolated = previous_isolated;
+    }
+    var lexical: SemanticBodyScope;
+    sem_body_save(c, &lexical);
+    var end = first;
+    while end < statements.length {
+        var node = statements.data[end];
+        if !sem_is(node, "CoreDeclare") {
+            if sem_function_syntax(node) || sem_is(node, "CoreStruct") || sem_is(node, "CoreEnum") { end++; continue; }
+            break;
+        }
+        end++;
+        var value = sem_get(node);
+        var source = sem_member(node, "value");
+        if source == null || value.value != null { continue; }
+        sem_declaration_state(c, source).module_initializer = true;
+        var result = sem_expression_add(c, source, &value.type, &lexical, SemanticExpressionMode.Initializer);
+        sem_require(work_depend(&c.queries, result.query, sem_declaration_query(c, node)));
+    }
+    if c.declaration_subjects.length != 0 {
+        sem_declaration_discover(c);
+        sem_require(sem_ok(c));
+        sem_declarations_execute(c, c.declaration_subjects);
+        sem_require(sem_ok(c));
+    }
+    return end;
+}
+
+// Select a stored producer diagnostic only when its declaration is reached.
+// Completion never repeats an initializer or changes module statement order.
+fn sem_module_initializer_finish(c: SemanticContext*, node: void*): void {
+    var value = sem_get(node);
+    var source = sem_member(node, "value");
+    if source == null || value.value != null { return; }
+    var query = sem_declaration_query(c, source);
+    if query == 0 { return; }
+    sem_declaration_report(c, source);
+    if sem_ok(c) { value.value = sem_declaration_state(c, source).value; }
+}
 
 // Types created by a producer belong to that producer's dependency frontier.
 // Checking every new type globally would let an unrelated later body choose
