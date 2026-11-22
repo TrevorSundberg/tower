@@ -1128,11 +1128,11 @@ may take substantially longer than an ordinary program. LLVM workers permit up
 to 2 GiB of linear memory for compiler linking; actual allocation grows as needed.
 
 When adding compiler modules, add their Tower imports to the owning
-`scaffolding/compiler/units/*.tower` module or remaining platform-specific
-`cmake/Compose*.cmake` manifest. Entity, semantic, interpreter, evaluation,
-foreign-tool, host-platform and parser-profile membership is ordinary Tower.
-Host/parser builds retain a configured one-import selector; their source lists
-need no generator. The Tower `package_compiler_project` tool follows those actual build
+`scaffolding/compiler/units/*.tower` module. Compiler, backend, foreign-tool and
+test-profile membership is ordinary Tower. CMake retains short configured
+selectors; source lists need no generator. Backend runtime bytes are a separate
+generated Tower module, packaged beside the unit that imports it. The Tower
+`package_compiler_project` tool follows those actual build
 units, exposes new `.tower` files automatically, and excludes rebuilt Tower
 objects from the support packs. Existing files with browser edits are preserved
 when the bundled project updates; untouched files and new ports are refreshed.

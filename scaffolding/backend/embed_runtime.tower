@@ -52,7 +52,7 @@ export fn main(argc: i32, argv: u8**): i32 {
         puts("Cannot write runtime Tower source");
         return 1;
     }
-    var ok = fputs("// Generated from the selected Tower runtime target object.\nexport fn backend_worker_runtime_hex(): u8* { return \"", output) >= 0;
+    var ok = fputs("import tower;\n// Generated from the selected Tower runtime target object.\nexport fn backend_worker_runtime_hex(): u8* { return \"", output) >= 0;
     var count: usize = 0;
     var hex: u8* = "0123456789abcdef";
     while ok {

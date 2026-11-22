@@ -3,6 +3,7 @@ import foreign_api;
 import foreign_reader;
 import foreign_symbol;
 import text;
+import target_registry_tool;
 import .library.vector;
 
 // Build-time Foundation-to-Foundation expansion for bootstrap compilers which
@@ -176,8 +177,15 @@ fn foreign_tool_read(path: u8*, source: vector(u8)*): bool {
 
 export fn main(argc: i32, argv: u8**): i32 {
     var base_arguments: i32 = 4;
+    if argc == base_arguments && backend_equal(argv[1], "--llvm-targets") {
+        var success: i32 = 0; var failure: i32 = 1;
+        if llvm_registry_command(argv[2], argv[3]) { return success; }
+        puts("Cannot generate configured LLVM target registry");
+        return failure;
+    }
     if argc < base_arguments {
         puts("tower-foreign target-triple input.tower output.tower [additional-wrap-source.tower ...]");
+        puts("tower-foreign --llvm-targets LLVM_CONFIG_DIRECTORY output.tower");
         return 2;
     }
     var profile = foreign_profile_for_target(argv[1]);

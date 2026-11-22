@@ -1,0 +1,68 @@
+import tower;
+import .library.bytes_interface;
+import .library.bytes_types;
+
+extern fn strlen(text: u8*): usize;
+
+enum LlvmTargetList: u32 { Targets = 0, Printers = 1, Disassemblers = 2 }
+enum LlvmTargetPart: usize { Info = 0, Target = 1, MachineCode = 2, Count = 3 }
+
+fn llvm_registry_text(out: ByteBuffer*, text: u8*): bool {
+    return bytes_append(out, text, strlen(text));
+}
+fn llvm_registry_identifier(byte: u8): bool {
+    return byte >= *"a" && byte <= *"z" || byte >= *"A" && byte <= *"Z"
+        || byte >= *"0" && byte <= *"9" || byte == *"_";
+}
+
+// Read the configured upstream .def list, not the host's available CPU targets.
+// Match only the column-zero macro records emitted by LLVM. Preserve their order.
+fn llvm_registry_list(input: ByteBuffer*, kind: LlvmTargetList,
+    declarations: ByteBuffer*, calls: ByteBuffer*): bool {
+    var macro = kind == LlvmTargetList.Targets ? "LLVM_TARGET("
+        : kind == LlvmTargetList.Printers ? "LLVM_ASM_PRINTER(" : "LLVM_DISASSEMBLER(";
+    var prefix = strlen(macro); var begin: usize = 0;
+    while begin < input.length {
+        var end = begin;
+        while end < input.length && input.data[end] != *"\n" { end++; }
+        var matched = end - begin >= prefix;
+        for(var at: usize = 0; matched && at < prefix; at++) {
+            matched = input.data[begin + at] == macro[at];
+        }
+        if matched {
+            var name = begin + prefix; var close = name;
+            while close < end && llvm_registry_identifier(input.data[close]) { close++; }
+            if close == name || close == end || input.data[close] != *")" { return false; }
+            var parts: usize = kind == LlvmTargetList.Targets ? convert(usize, LlvmTargetPart.Count) : 1;
+            for(var part: usize = 0; part < parts; part++) {
+                var suffix = "Disassembler";
+                if kind == LlvmTargetList.Printers { suffix = "AsmPrinter"; }
+                if kind == LlvmTargetList.Targets {
+                    suffix = part == convert(usize, LlvmTargetPart.Info) ? "TargetInfo"
+                        : part == convert(usize, LlvmTargetPart.Target) ? "Target" : "TargetMC";
+                }
+                if !llvm_registry_text(declarations, "extern fn LLVMInitialize")
+                    || !bytes_append(declarations, input.data + name, close - name)
+                    || !llvm_registry_text(declarations, suffix) || !llvm_registry_text(declarations, "(): void;\n\n")
+                    || !llvm_registry_text(calls, "    LLVMInitialize")
+                    || !bytes_append(calls, input.data + name, close - name)
+                    || !llvm_registry_text(calls, suffix) || !llvm_registry_text(calls, "();\n") { return false; }
+            }
+        }
+        begin = end + 1;
+    }
+    return true;
+}
+
+// Inputs are borrowed; publish the complete source only after all lists succeed.
+fn llvm_registry_source(targets: ByteBuffer*, printers: ByteBuffer*, disassemblers: ByteBuffer*, out: ByteBuffer*): bool {
+    var source: ByteBuffer = default; var calls: ByteBuffer = default;
+    defer bytes_dispose(&source); defer bytes_dispose(&calls);
+    if !llvm_registry_text(&source, "import tower;\n// Generated Tower declarations from upstream configured target lists.\n")
+        || !llvm_registry_list(targets, LlvmTargetList.Targets, &source, &calls)
+        || !llvm_registry_list(printers, LlvmTargetList.Printers, &source, &calls)
+        || !llvm_registry_list(disassemblers, LlvmTargetList.Disassemblers, &source, &calls)
+        || !llvm_registry_text(&source, "export fn backend_register_targets(): void {\n")
+        || !bytes_append(&source, calls.data, calls.length) || !llvm_registry_text(&source, "}\n") { return false; }
+    bytes_dispose(out); *out = source; source = default; return true;
+}

@@ -33,7 +33,6 @@ function(tower_backend_integrate)
       endif()
     endforeach()
   endif()
-  file(GLOB backend_sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/backend/*.tower")
   # Build the Tower foreign-name expander for the build host, including when
   # the compiler being assembled is a WASI reactor. No native mangler/shim.
   find_program(TOWER_BACKEND_HOST_CC NAMES clang REQUIRED)
@@ -74,38 +73,69 @@ function(tower_backend_integrate)
       COMMAND "${embed_tool}" "${guest_runtime}" "${runtime_source}"
       DEPENDS "${embed_tool}" "${guest_runtime}" VERBATIM)
   endif()
+  set(file_profile posix)
+  if(triple MATCHES "windows")
+    set(file_profile windows)
+  endif()
+  if(TOWER_BROWSER)
+    set(backend_profile wasi)
+  elseif(triple MATCHES "linux")
+    set(backend_profile native_linux)
+  elseif(triple MATCHES "apple|darwin")
+    set(backend_profile native_macos)
+  elseif(triple MATCHES "windows")
+    set(backend_profile native_windows)
+  else()
+    message(FATAL_ERROR "No LLVM target registry initialization profile for ${triple}")
+  endif()
   foreach(flavor IN ITEMS native wasm)
     set(input "${CMAKE_CURRENT_BINARY_DIR}/tower_backend_${flavor}.tower")
-    set(expanded "${CMAKE_CURRENT_BINARY_DIR}/tower_backend_${flavor}_expanded.tower")
     set(object "${CMAKE_CURRENT_BINARY_DIR}/tower-backend-${flavor}.o")
-    set(wasm_only OFF)
-    if(flavor STREQUAL "wasm")
-      set(wasm_only ON)
+    set(source "import tower;\nimport compiler.units.backend_core;\nimport backend.file_${file_profile};\n")
+    set(targets "")
+    if(backend_llvm_config AND flavor STREQUAL "native")
+      set(targets "${CMAKE_CURRENT_BINARY_DIR}/tower_backend_native_targets.tower")
+      add_custom_command(OUTPUT "${targets}"
+        COMMAND "${foreign_tool}" --llvm-targets "${backend_llvm_config}" "${targets}"
+        DEPENDS "${foreign_tool}" "${backend_llvm_config}/Targets.def"
+          "${backend_llvm_config}/AsmPrinters.def" "${backend_llvm_config}/Disassemblers.def" VERBATIM)
+      string(APPEND source "import tower_backend_native_targets;\n")
+    else()
+      string(APPEND source "import backend.targets_${flavor};\n")
     endif()
-    add_custom_command(OUTPUT "${input}"
-      COMMAND "${CMAKE_COMMAND}" -DROOT=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT=${input} -DWASM_ONLY=${wasm_only} -DWASI_HOST=${TOWER_BROWSER} -DTESTS=${TOWER_BACKEND_TESTS} -DLLVM_CONFIG_DIR=${backend_llvm_config} -DHOST_TRIPLE=${triple} -DRUNTIME_SOURCE=${runtime_source}
-        -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/ComposeBackend.cmake"
-      DEPENDS ${backend_sources} scaffolding/library/vector.tower scaffolding/compiler/foundation_nodes.tower
-        cmake/ComposeBackend.cmake scaffolding/tests/backend.tower scaffolding/tests/foreign_names.tower
-        scaffolding/host/llvm_worker.tower scaffolding/tests/backend_source.tower ${runtime_source} VERBATIM)
-    set(mangle_input "${input}")
-    set(wrap_inputs "")
+    set(profile "${backend_profile}")
+    if(TOWER_BROWSER)
+      string(APPEND profile "_${flavor}")
+    endif()
+    string(APPEND source "import compiler.units.backend_${profile};\n")
+    if(TOWER_BACKEND_TESTS)
+      string(APPEND source "import compiler.units.backend_checks;\n")
+      if(TOWER_BROWSER)
+        string(APPEND source "import compiler.units.backend_wasi_checks;\n")
+      endif()
+    endif()
+    set(expanded "${input}")
     if(TOWER_BROWSER_LLVM)
+      string(APPEND source "import tower_runtime;\n")
+      set(expanded "${CMAKE_CURRENT_BINARY_DIR}/tower_backend_${flavor}_expanded.tower")
       set(mangle_input "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/backend/wasi_support.tower")
+      set(wrap_inputs "")
       if(flavor STREQUAL "native")
         set(wrap_inputs "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/backend/linker_wasi_cross.tower")
       endif()
+      add_custom_command(OUTPUT "${expanded}"
+        COMMAND "${foreign_tool}" "${triple}" "${mangle_input}" "${expanded}" ${wrap_inputs}
+        COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${input}" "${expanded}"
+        DEPENDS "${foreign_tool}" "${input}" "${mangle_input}" ${wrap_inputs} BYPRODUCTS "${expanded}.wrap.rsp" VERBATIM)
     endif()
-    add_custom_command(OUTPUT "${expanded}"
-      COMMAND "${foreign_tool}" "${triple}" "${mangle_input}" "${expanded}" ${wrap_inputs}
-      COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${input}" "${expanded}"
-      DEPENDS "${foreign_tool}" "${input}" "${mangle_input}" ${wrap_inputs} BYPRODUCTS "${expanded}.wrap.rsp" VERBATIM)
+    # Only profile selection remains here; Tower imports own member ordering.
+    file(GENERATE OUTPUT "${input}" CONTENT "${source}")
     add_custom_command(OUTPUT "${object}"
       COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${expanded}" --library --target "${triple}"
         --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
         --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower" -o "${object}" --depfile "${object}.d"
       DEPFILE "${object}.d"
-    DEPENDS "${expanded}" "${TOWER_BOOTSTRAP_COMPILER}" scaffolding/bedrock.tower scaffolding/foundation.tower VERBATIM)
+    DEPENDS "${expanded}" ${targets} ${runtime_source} "${TOWER_BOOTSTRAP_COMPILER}" scaffolding/bedrock.tower scaffolding/foundation.tower VERBATIM)
     set_source_files_properties("${object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
     add_library(tower-backend-${flavor} INTERFACE)
     target_sources(tower-backend-${flavor} INTERFACE "${object}")

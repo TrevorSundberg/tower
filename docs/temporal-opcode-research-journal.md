@@ -40669,3 +40669,87 @@ checks: all pass. Logs: build/wasm_default_rebased_{native,tests}.log. The hoste
 runtime remains explicitly a07bb6e; these later semantic changes are validated
 in the merged native source and are not relabeled as part of this deployment.
 No sanitizer or formatter sweep ran; todo.txt is untouched.
+## 2026-11-21: Retire backend source composition and the native no-op expansion
+
+Previous turn was verified progress through 14ca673. Begin with a clean pull.
+Audit the last ComposeBackend caller and TowerModule helper: most behavior only
+lists imports. Move that membership/order to nine ordinary compiler/units roots
+and keep short CMake profile selectors. Delete both CMake programs, initially
+reducing CMake from 45 files/2384 lines to 43/2302 (82 net lines). Native builds
+also ran foreign expansion on an import-only file and immediately overwrote its
+result; remove that pass. WASI still needs its real foreign wrap scan.
+
+Configured LLVM target discovery is required: a fixed WebAssembly/X86/AArch64
+list would silently lose installed targets. Extend the existing Tower foreign
+build tool with --llvm-targets CONFIG_DIRECTORY OUTPUT. Reuse bounded stream
+reading, ByteBuffer and ordinary file output; generate the same declarations
+and initialization calls in input order. Match LLVM's column-zero macro format,
+reject malformed matched records, and accept empty configured lists. Bound each
+input to 1 MiB, finish all reads before opening output, and propagate write/close
+failures. Track Targets.def, AsmPrinters.def and Disassemblers.def explicitly in
+Ninja, fixing the previous missing input dependencies. No new native library,
+helper language, generator executable or hardcoded native target subset.
+
+Freeze 14ca673 plus changes in /cache/backend_units_checkout and
+/home/trevo/.cache/tower/agent1-tooling-backend-units-src. First compile only the
+changed foreign-tool unit with public bootstrap21f52712 and LLVM19.1.1.
+An initial missing ByteBuffer import is diagnosed; add explicit type/library
+imports. The reader's output matches the preceding CMake-generated registry
+byte-for-byte for all installed targets. The fresh default native build passes
+47 steps instead of 48. Backend object and whole compiler remain byte-identical,
+SHA256 706e88919faeac6baafc52dad359d059244df0431064b8d0cfda3a51f0f3150f.
+A separate 29-step backend-test build passes the existing backend API checks.
+Compiling the existing foreign fixture for riscv64-unknown-linux-gnu produces
+an ELF64 RISC-V object, exercising a configured target outside the browser subset.
+
+New Tower registry checks cover independent exact output, declaration/call order,
+suffixes, comments/indented non-records, CRLF and absent final newline, empty
+lists, malformed records, failure preserving the old allocation, output replacement
+and an output owning a borrowed input. Reuse utility_equal rather than adding a
+C comparison binding. Actual CLI checks cover paths with spaces, missing input
+preserving prior output, and /dev/full write/close failure; failures return 1.
+Inspect Ninja's real registry dependencies: all three .def files are present.
+A tool-source update rebuilds the tool, registry, backend object and compiler;
+the resulting compiler hash remains identical.
+
+Stop concatenating generated runtime text into backend roots. Import
+tower_runtime.tower as a real module; compiler_project_files includes that exact
+build-directory depfile input as units/tower_runtime.tower. The first browser
+compile correctly rejects its old declaration-only generated file, which relied
+on the importing root's grammar. Add import tower to embed_runtime output.
+No runtime bytes or ABI functions change. Explicit imports are required for
+independent grammar baselines.
+
+Configure the full owned SDK34 LLVM/WASI graph against the existing upstream
+source/tablegen inputs, without modifying them. A request for only the backend
+object unexpectedly schedules 1913 upstream prerequisites because CMake adds the
+linked archives as order-only dependencies. Interrupt this confirmed live build
+after about 97 steps; do not restart it or claim it passed. Instead execute the
+existing generated Ninja commands for the changed Tower units and foreign wrap
+steps directly, reusing the verified guest runtime object. Build all common
+Tower units through a separate clean 24-step non-LLVM browser graph. Copy those
+owned objects and unchanged upstream archives/runtime ABI support into the owned
+LLVM graph, then execute its actual final link commands. This avoids rebuilding
+unchanged upstream implementations without inventing a linker recipe.
+
+Compile both old ComposeBackend roots from frozen history against the same
+current source and compare with the new Wasm/cross roots: both backend objects
+are byte-identical. Native and browser module ordering is preserved.
+The updated project packager builds through the documented five-step tool route,
+SHA256 56a5ab5c34f333b5206565eba00139dd8c123d7448741f8706213fadcf089e64.
+Real packaging of the owned graphs succeeds, including exactly one runtime module
+and the new backend imports. Project SHA256:
+418c43e8869cdb9f792d8311f7c9ba6c3914519384c71601dca23a19dc0c2a61.
+The two edited browser generations pass at workers 2 and 4 (43.0/31.0 seconds),
+with identical output sizes/hashes:
+Tower 1212118/dcef5d6e331b352e81ff52d4342769e24f50ca48f36b104bfcfad09c28cc72a7;
+LLVM 52713753/c7202e8a3e78b2b8f472f9fcc6a6b2e49911eff683b261271b2f7c243376d3df;
+cross 64271030/b267cc729da19bb5cfebcafaac24b9dc6904a1ccdc1605e0f5f5e6ceace02c21.
+These are frozen pre-rebase test artifacts, not production releases.
+
+Incoming 0aeea65 and a07bb6e change semantic admission and production Wasm linking.
+The coordinator explicitly reports native linker hookup and extra cross wrap
+inputs overlapping TowerBackend/foreign_tool. Preserve both during rebase, then
+repeat the fresh public successor and affected browser checks. Keep the full
+migration goal active; remaining CMake/SDK build boundaries and reusable
+JavaScript tooling are still live. No todo.txt or shared cache writes.

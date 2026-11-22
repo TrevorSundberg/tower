@@ -118,13 +118,21 @@ both development and expected-missing-Clang checks against the package already
 copied by the native build, creating fresh reports without staging another copy.
 Wider test and upstream build tooling still needs migration.
 
-Compiler import lists, including host platforms and parser test profiles, live
+Compiler import lists, including backend, host and parser profiles, live
 in `scaffolding/compiler/units/`. CMake selects the native, browser or test root
 and consumes the compiler's depfile for its transitive imports. Host and parser
 selection produces a one-import entry in the build directory so the bootstrap
 comparator and browser packager consume the actual configured profile. Other
 fixed roots are read directly. No source-member lists are generated for these
 units; the browser packager preserves their existing unit/object names.
+
+Backend selectors also import the configured LLVM target registry and, for WASI,
+the generated runtime module. The existing Tower foreign build tool reads LLVM's
+`Targets.def`, `AsmPrinters.def` and `Disassemblers.def` with `--llvm-targets
+LLVM_CONFIG_DIRECTORY output.tower`. It preserves configured target order and
+reads each file with a 1 MiB bound before opening the output. The build tracks all
+three inputs explicitly. Fixed backend membership needs no CMake generator;
+native builds also omit the redundant foreign expansion of import-only roots.
 
 `scaffolding/library/gzip.tower` adds a deterministic single-member gzip envelope
 to the same raw DEFLATE encoder and CRC32 implementation. It has no filename,

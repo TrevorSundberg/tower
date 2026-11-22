@@ -110,14 +110,21 @@ fn compiler_project_tower_object(name: u8*): bool {
 }
 fn compiler_project_dependencies(project: CompilerProjectFiles*, build: u8*, object: u8*): bool {
     var path: ByteBuffer = default; var input: ByteBuffer = default; var words: vector(ByteBuffer) = default;
+    var runtime_path: ByteBuffer = default; defer bytes_dispose(&runtime_path);
     defer bytes_dispose(&path); defer bytes_dispose(&input); defer tool_words_close(&words);
-    if !compiler_project_text(&path, object) || !compiler_project_text(&path, ".d") || !host_text_terminate(&path)
+    if !tool_join(&runtime_path, build, "tower_runtime.tower")
+        || !compiler_project_text(&path, object) || !compiler_project_text(&path, ".d") || !host_text_terminate(&path)
         || !tool_read_file(path.data, CompilerProjectCommandBytes, &input) || !tool_depfile_words(input.data, input.length, &words) { return false; }
     foreach(var & word in &words) {
         if !compiler_project_path(&path, build, word.data) { return false; }
         if compiler_project_prefix(path.data, project.source.data) && path.data[project.source.length] == *"/"
             && compiler_project_suffix(path.data, ".tower") {
             if !compiler_project_read_source(project, path.data + project.source.length + 1, path.data) { return false; }
+        } else {
+            // Generated runtime bytes are a normal imported module alongside the
+            // packaged unit, not source text concatenated by a CMake program.
+            if strcmp(path.data, runtime_path.data) == 0
+                && !compiler_project_read_source(project, "units/tower_runtime.tower", path.data) { return false; }
         }
     }
     return true;

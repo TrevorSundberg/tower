@@ -1,0 +1,47 @@
+import tower;
+import utility_checks;
+import .backend.target_registry_source;
+import .library.bytes;
+import .library.bytes_types;
+
+fn registry_fixture(text: u8*): ByteBuffer {
+    return init(ByteBuffer) { data: text, length: strlen(text), capacity: 0 };
+}
+fn registry_reject(text: u8*, kind: LlvmTargetList): void {
+    var empty: ByteBuffer = default; var bad = registry_fixture(text);
+    var output: ByteBuffer = default; defer bytes_dispose(&output);
+    var preserved = "preserved";
+    utility_check(bytes_assign_text(&output, preserved, strlen(preserved)), "sentinel allocation");
+    var address = output.data;
+    var targets = kind == LlvmTargetList.Targets ? &bad : &empty;
+    var printers = kind == LlvmTargetList.Printers ? &bad : &empty;
+    var disassemblers = kind == LlvmTargetList.Disassemblers ? &bad : &empty;
+    utility_check(!llvm_registry_source(targets, printers, disassemblers, &output), "malformed macro rejected");
+    utility_check(output.data == address && output.length == strlen(preserved)
+        && utility_equal(output.data, preserved, output.length), "failure preserves previous source");
+}
+
+export fn main(): i32 {
+    var targets = registry_fixture("// LLVM_TARGET(Ignored)\n#define LLVM_TARGET(X) ignored\n LLVM_TARGET(Indented)\r\nLLVM_TARGET(Vex_2) trailing comment\r\n");
+    var printers = registry_fixture("LLVM_ASM_PRINTER(Other)\n");
+    var disassemblers = registry_fixture("LLVM_DISASSEMBLER(Vex_2)");
+    var output: ByteBuffer = default; defer bytes_dispose(&output);
+    utility_check(llvm_registry_source(&targets, &printers, &disassemblers, &output), "configured lists accepted");
+    var wanted = "import tower;\n// Generated Tower declarations from upstream configured target lists.\nextern fn LLVMInitializeVex_2TargetInfo(): void;\n\nextern fn LLVMInitializeVex_2Target(): void;\n\nextern fn LLVMInitializeVex_2TargetMC(): void;\n\nextern fn LLVMInitializeOtherAsmPrinter(): void;\n\nextern fn LLVMInitializeVex_2Disassembler(): void;\n\nexport fn backend_register_targets(): void {\n    LLVMInitializeVex_2TargetInfo();\n    LLVMInitializeVex_2Target();\n    LLVMInitializeVex_2TargetMC();\n    LLVMInitializeOtherAsmPrinter();\n    LLVMInitializeVex_2Disassembler();\n}\n";
+    utility_check(output.length == strlen(wanted) && utility_equal(output.data, wanted, output.length),
+        "exact independent declarations, suffixes and initialization order");
+    var empty: ByteBuffer = default;
+    utility_check(llvm_registry_source(&empty, &empty, &empty, &output), "empty configured target set");
+    var blank = "import tower;\n// Generated Tower declarations from upstream configured target lists.\nexport fn backend_register_targets(): void {\n}\n";
+    utility_check(output.length == strlen(blank) && utility_equal(output.data, blank, output.length), "replace prior output");
+    registry_reject("LLVM_TARGET()", LlvmTargetList.Targets);
+    registry_reject("LLVM_TARGET(A-B)", LlvmTargetList.Targets);
+    registry_reject("LLVM_TARGET(A", LlvmTargetList.Targets);
+    registry_reject("LLVM_ASM_PRINTER( A)", LlvmTargetList.Printers);
+    registry_reject("LLVM_DISASSEMBLER(A B)", LlvmTargetList.Disassemblers);
+    var borrowed: ByteBuffer = default; defer bytes_dispose(&borrowed);
+    utility_check(bytes_assign_text(&borrowed, targets.data, targets.length), "alias fixture");
+    utility_check(llvm_registry_source(&borrowed, &printers, &disassemblers, &borrowed), "output may own a borrowed input");
+    utility_check(borrowed.length == strlen(wanted) && utility_equal(borrowed.data, wanted, borrowed.length), "alias output");
+    puts("LLVM configured target registry checks passed"); return 0;
+}
