@@ -1,11 +1,20 @@
 # Reserved runtime-symbol connections are emitted by a Tower tool using upstream
 # LLVM C APIs. Keep this target artifact separate from canonical Tower source.
 include("${CMAKE_CURRENT_LIST_DIR}/TowerGuestRuntime.cmake")
+function(tower_host_linker output fallback)
+  if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
+    set(${output} "${TOWER_BOOTSTRAP_COMPILER}" --link-executable PARENT_SCOPE)
+  else()
+    set(${output} "${fallback}" PARENT_SCOPE)
+  endif()
+endfunction()
+
 function(tower_runtime_tools)
   if(TARGET tower-runtime-bind)
     return()
   endif()
   find_program(TOWER_RUNTIME_HOST_CC NAMES clang REQUIRED)
+  tower_host_linker(host_link "${TOWER_RUNTIME_HOST_CC}")
   find_program(TOWER_RUNTIME_LLVM_CONFIG NAMES llvm-config-19 llvm-config REQUIRED)
   execute_process(COMMAND "${TOWER_RUNTIME_HOST_CC}" -print-target-triple
     OUTPUT_VARIABLE host_triple OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND_ERROR_IS_FATAL ANY)
@@ -22,7 +31,7 @@ function(tower_runtime_tools)
       --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
       --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
       --library --target "${host_triple}" -o "${object}" --depfile "${object}.d"
-    COMMAND "${TOWER_RUNTIME_HOST_CC}" "${object}" "${llvm_libdir}/${llvm_libname}" -o "${program}"
+    COMMAND ${host_link} "${object}" "${llvm_libdir}/${llvm_libname}" -o "${program}"
     DEPFILE "${object}.d"
     DEPENDS scaffolding/host/runtime_bind.tower "${TOWER_BOOTSTRAP_COMPILER}" VERBATIM)
   add_custom_target(tower-runtime-bind DEPENDS "${program}")

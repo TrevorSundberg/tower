@@ -45247,3 +45247,13 @@ path. The complete pin relocated to bootstrap/linux-x64, passed SHA256SUMS and
 compiled/linked/executed cross_target_program with output 5/84/42/8/41/42.
 Build recipe migration follows this pin; a clean default successor with the
 changed recipes will validate the complete public path before push.
+
+The complete pin is committed at 64b38e8 before build sources adopt its link
+command. Clean public build in coordinator-hosted-elf/tower_linked_public passed
+all 52 steps with the native executable rule, runtime_bind, foreign expander and
+embedded-runtime helper wired to Tower. Backend API and driver checks pass with
+Tower-linked test executables. Empty-cache public --tools package_bootstrap also
+passes: build_tools no longer takes or invokes a separate LINKER executable.
+Clang remains only for target queries and LLVM text-to-object emission in these
+recipes. WASI SDK reactor final links are the next remaining production boundary;
+third-party object/archive compilation and independent reference tools remain.

@@ -116,7 +116,9 @@ bounded native build flags `-ldl`, `-lm`, `-lpthread`,
 `-Wl,--export-dynamic[-symbol=NAME]` and `-Wl,-rpath,PATH`. Unknown flags fail.
 This command can link the complete Tower compiler against the LLVM DSO.
 
-The build recipes still need their compatible bootstrap pin before switching
-their host-link commands to this interface. LLVM/object generation and the
-third-party library builds remain external toolchain responsibilities. There are
-no project-owned C/C++ sources or native linker shims.
+The checked-in Linux bootstrap includes this interface. Linux native compiler,
+test and build-tool executables link through Tower, including runtime binding
+and foreign-name tools used by cross builds. The WASI reactor final link is the
+remaining SDK link boundary. LLVM/object generation and third-party library
+builds remain external toolchain responsibilities. There are no project-owned
+C/C++ sources or native linker shims.

@@ -10,6 +10,9 @@ The current pin includes the Tower hosted ELF linker and `--link-executable`.
 The complete compiler executable was linked by Tower against the system LLVM
 library, from source `53070f4`, with packaging provenance at `730fe7a`. Its
 executable and adjacent resources are hashed together in `development.json`.
+An empty-cache successor build through the default path, without a private
+bootstrap override, builds and links the compiler and its Linux helper tools
+using Tower. The separate host linker argument has been removed from `build_tools`.
 It also includes computed integer type arguments and array extents; see
 [computed type arguments](../docs/computed-type-arguments.md) for their scope.
 
