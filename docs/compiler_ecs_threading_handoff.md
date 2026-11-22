@@ -321,3 +321,54 @@ Checkpoint-specific validation and deployment receipts are appended below only
 after those steps complete. Failed experimental evidence remains in local
 `build/language-next-audit/staged-bodies-*.log`; those ignored logs are not release
 artifacts and are not guaranteed to exist in another checkout.
+
+The checkpoint's runtime source is
+`b5bc8173899d2f5daa618d9f181cdfd2902468ab`, rebased onto `9d84f04`'s verified
+Bedrock/import/inspection changes. Its scaffolding tree is
+`4946ca80ae2e85232c51f885e62c3201c19bc5c6`.
+
+| Check | Result |
+| --- | --- |
+| Documented native build after source rebase | Pass with the private bootstrap override unset. |
+| Successor compiles `semantic_binding_proofs.tower` to LLVM | Pass. |
+| Native query-smoke and type-smoke | Pass, including serial/worker and 32/64-bit profiles. |
+| Browser worker suite | 3/3 pass, zero skips; overlap, failure interruption, and 1/2/4/8-worker determinism. |
+| Edited browser compiler generations | Both pass, with identical bytes and edited semantic behavior. |
+| Reused target support | All seven hashes match upstream Pages `b40bb38`. |
+
+The first target-pack comparison found four stale local files. Restore the exact
+verified upstream files before regenerating compressed assets and their manifest;
+do not represent that first comparison as passing. The runtime implementation was
+not changed by this checkpoint. The resulting bundle contains all 104 assets.
+
+Native compiler SHA-256:
+`142459861bd0f5eecec96891cbf5d6d035f131e387408eabab31276883afb92a`.
+Compiler-project SHA-256:
+`406a401a9af04b7d0f1be8e1a7603c2317d6c4528bad0c7b606f284aa6d6c112`.
+The published predecessor remains
+`18664657c3ff9142a6d59bef8ffa794fd10d12313d55f91dd47f5575141a29f9`.
+
+Identical edited generation outputs:
+
+| Reactor | Bytes | SHA-256 |
+| --- | ---: | --- |
+| Tower | 1,383,764 | `200e867b73aaa8437126cb1f7f8b153e6995649842e73ee2afcd695c76bf8a47` |
+| LLVM | 35,179,281 | `3e2effc4b43f1fa2b2d8df615038cd312cc6f39f393ef273f2d4efaa68a93545` |
+| Cross | 56,323,462 | `ab8bd1351e645c970a844b96619631712c8e0260d46b7767756457d3d25c5a8c` |
+
+Local evidence is under `build/language-next-audit/staging-checkpoint-*`:
+`rebased-native.log`, `rebased-successor.log`, `rebased-query.log`,
+`rebased-types.log`, `browser-build.log`, `browser-workers.log`, `generations.log`,
+`workbench/generation1.json`, `workbench/generation2.json`, and `targets.sha256`.
+Hosted publication is recorded separately after deployment verification.
+
+The final source rebase incorporates `60a276e`'s IDE-fixture migration and changes
+the checkpoint commit to `f494e22042172ebd72ddffff8051ec0128029899`. Its scaffolding
+tree is `6e3234202311e435df01ec2120389cde1e68ef6d`. The added/changed IDE fixtures
+are absent from the compiler-project recipe; compiler/runtime, grammar, library,
+backend, build-tool, and browser asset sources are unchanged from the frozen
+build above. Repeat the documented native build and successor proof-unit compile
+after this rebase: both pass, and the native compiler hash remains identical.
+Reuse the unaffected browser/generation results and record the source equivalence
+explicitly in the deployment manifest. Preserve upstream Pages `3937cad`'s
+additional IDE-migration receipt and its unchanged target assets.

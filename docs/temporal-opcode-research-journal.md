@@ -45203,3 +45203,31 @@ pending. The documented native build runs with TOWER_BOOTSTRAP_COMPILER unset;
 its successor compiles compiler_kernel to LLVM. Evidence:
 staging-checkpoint-public-native.log, staging-checkpoint-query-final.log and
 staging-checkpoint-successor.log. Freeze this source for publication validation.
+
+The required rebase brings in9d84f04's Bedrock/import/inspection milestone and
+produces runtime source b5bc8173899d2f5daa618d9f181cdfd2902468ab. Rebuild through
+the documented public predecessor with the private override unset, then compile
+semantic_binding_proofs with the new successor: both pass. Rebased query-smoke
+and type-smoke pass. Rebuilt serial/threaded/LLVM/cross browser artifacts pass
+all3 worker tests with zero skips, including real overlap/failure interruption
+and1/2/4/8-worker determinism. Both edited browser compiler generations pass and
+are byte-identical: Tower1,383,764; LLVM35,179,281; cross56,323,462. Exact hashes
+and source-tree identity are in docs/compiler_ecs_threading_handoff.md.
+
+Packaging initially finds4 stale local target-support files. Restore all7 from
+verified upstream Pages b40bb38, verify every hash, then regenerate gzip assets
+and the104-asset manifest. Target runtime implementations are unchanged; this is
+reuse with provenance, not a new platform validation claim. Native SHA256 is
+142459861bd0f5eecec96891cbf5d6d035f131e387408eabab31276883afb92a;
+project SHA256 is
+406a401a9af04b7d0f1be8e1a7603c2317d6c4528bad0c7b606f284aa6d6c112.
+The checkpoint is ready for source/site publication and hosted verification.
+
+Final pull integrates60a276e's IDE-fixture migration, rebasing the checkpoint to
+f494e22042172ebd72ddffff8051ec0128029899. Compiler/runtime/build/browser asset
+sources are unchanged; the new IDE fixtures are absent from the compiler-project
+recipe. Repeat the documented native build and successor proof-unit compilation:
+both pass and native SHA256 remains14245986...afb92a. Reuse the unaffected
+browser/generation checks, retain their original build identity in the report,
+and explicitly record the equivalent published source. Preserve3937cad's new
+IDE-migration deployment receipt. Evidence: staging-checkpoint-final-rebase-*.
