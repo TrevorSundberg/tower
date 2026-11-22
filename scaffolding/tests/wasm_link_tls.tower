@@ -1,0 +1,165 @@
+import tower;
+import utility_checks;
+import wasm_link_fixture;
+import .backend.wasm_bytes;
+import .backend.wasm_object_types;
+import .backend.wasm_object_linking;
+import .backend.wasm_link_memory;
+import .library.vector;
+import .library.bytes_interface;
+import .library.bytes_types;
+
+enum TlsSymbol: u32 { Init = 0, Base = 1, First = 2, Second = 3, Counter = 4, Check = 5, Finish = 6, Count = 7 }
+enum TlsInstruction: u8 { LocalSet = 33, I32Load = 40, I32Multiply = 108 }
+var TlsFixtureWorkers: u64 = 8;
+var TlsFixtureRegion: u64 = 65536;
+var TlsFixtureStride: u64 = 128;
+var TlsFixtureSecondBlock: u64 = 64;
+var TlsFixtureFirstLocal: u64 = 1;
+var TlsFixtureLebBytes: usize = 5;
+var TlsFixtureCodeSection: u64 = 3;
+var TlsFixtureDataSection: u64 = 4;
+
+fn tls_const(body: ByteBuffer*, value: u64): void { utility_check(wasm_memory_const(body, value), "TLS fixture constant"); }
+fn tls_local(body: ByteBuffer*, index: u64): void { wasm_test_byte(body, convert(u8, WasmOpcode.LocalGet)); wasm_test_index(body, index); }
+fn tls_add(body: ByteBuffer*): void { wasm_test_byte(body, convert(u8, WasmOpcode.I32Add)); }
+fn tls_load(body: ByteBuffer*): void { wasm_test_byte(body, convert(u8, TlsInstruction.I32Load)); wasm_test_index(body, 0); wasm_test_index(body, 0); }
+fn tls_store(body: ByteBuffer*): void { wasm_test_byte(body, convert(u8, WasmOpcode.I32Store)); wasm_test_index(body, 0); wasm_test_index(body, 0); }
+fn tls_equal(body: ByteBuffer*): void {
+    wasm_test_byte(body, convert(u8, WasmOpcode.I32Eq)); wasm_test_byte(body, convert(u8, WasmOpcode.I32Eqz));
+    utility_check(wasm_memory_block(body, WasmOpcode.If), "TLS fixture guard");
+    wasm_test_byte(body, convert(u8, WasmOpcode.Unreachable)); wasm_test_byte(body, convert(u8, WasmOpcode.End));
+}
+
+fn tls_reference(body: ByteBuffer*, relocations: vector(WasmRelocationRecord)*, opcode: WasmOpcode, kind: WasmRelocation, symbol: TlsSymbol): void {
+    wasm_test_byte(body, convert(u8, opcode));
+    var relocation: WasmRelocationRecord = { kind: convert(u32, kind), offset: convert(u32, body.length), index: convert(u32, symbol), ..default };
+    utility_check(vector_push(relocations, relocation), "TLS fixture relocation");
+    for (var at: usize = 0; at + 1 < TlsFixtureLebBytes; at++) { wasm_test_byte(body, WasmLebContinuation); }
+    wasm_test_byte(body, 0);
+}
+
+fn tls_address(body: ByteBuffer*, relocations: vector(WasmRelocationRecord)*, symbol: TlsSymbol): void {
+    tls_reference(body, relocations, WasmOpcode.GlobalGet, WasmRelocation.GlobalIndexLeb, TlsSymbol.Base);
+    tls_reference(body, relocations, WasmOpcode.I32Const, WasmRelocation.MemoryAddressTlsSleb, symbol); tls_add(body);
+}
+
+fn tls_assert_template(body: ByteBuffer*, relocations: vector(WasmRelocationRecord)*, pointers: bool): void {
+    tls_address(body, relocations, TlsSymbol.First); tls_load(body); tls_const(body, 7); tls_equal(body);
+    tls_address(body, relocations, TlsSymbol.Second); tls_load(body); tls_const(body, 9); tls_equal(body);
+    if pointers {
+        tls_address(body, relocations, TlsSymbol.Second); tls_const(body, 4); tls_add(body); tls_load(body);
+        tls_address(body, relocations, TlsSymbol.First); tls_equal(body);
+    }
+    // A global-index relocation to a TLS data symbol must use this instance's
+    // mutable GOT global, updated by every __wasm_init_tls invocation.
+    tls_reference(body, relocations, WasmOpcode.GlobalGet, WasmRelocation.GlobalIndexLeb, TlsSymbol.First);
+    tls_address(body, relocations, TlsSymbol.First); tls_equal(body);
+}
+
+fn tls_fixture_body(body: ByteBuffer*, relocations: vector(WasmRelocationRecord)*, finish: bool, pointers: bool): void {
+    if finish {
+        wasm_test_index(body, 0);
+        tls_reference(body, relocations, WasmOpcode.I32Const, WasmRelocation.MemoryAddressSleb, TlsSymbol.Counter);
+        utility_check(wasm_memory_atomic(body, WasmAtomicOpcode.I32Load), "TLS completion read");
+        tls_const(body, TlsFixtureWorkers); tls_equal(body);
+    } else {
+        wasm_test_index(body, 1); wasm_test_index(body, 1); wasm_test_byte(body, convert(u8, WasmValueType.I32));
+        tls_local(body, 0); tls_const(body, TlsFixtureStride); wasm_test_byte(body, convert(u8, TlsInstruction.I32Multiply));
+        tls_const(body, TlsFixtureRegion); tls_add(body);
+        wasm_test_byte(body, convert(u8, TlsInstruction.LocalSet)); wasm_test_index(body, TlsFixtureFirstLocal);
+        tls_local(body, TlsFixtureFirstLocal);
+        tls_reference(body, relocations, WasmOpcode.Call, WasmRelocation.FunctionIndexLeb, TlsSymbol.Init);
+        tls_assert_template(body, relocations, pointers);
+        tls_address(body, relocations, TlsSymbol.First); tls_local(body, 0); tls_const(body, 100); tls_add(body); tls_store(body);
+        // Two reinitializations prove the template was retained. The first block
+        // must keep its changed value when the instance moves to a second block.
+        for (var repeat: usize = 0; repeat < 2; repeat++) {
+            tls_local(body, TlsFixtureFirstLocal); tls_const(body, TlsFixtureSecondBlock); tls_add(body);
+            tls_reference(body, relocations, WasmOpcode.Call, WasmRelocation.FunctionIndexLeb, TlsSymbol.Init);
+            tls_assert_template(body, relocations, pointers);
+            tls_address(body, relocations, TlsSymbol.First); tls_const(body, 88); tls_store(body);
+        }
+        tls_local(body, TlsFixtureFirstLocal); tls_load(body); tls_local(body, 0); tls_const(body, 100); tls_add(body); tls_equal(body);
+        tls_local(body, TlsFixtureFirstLocal); tls_const(body, 4); tls_add(body); tls_load(body); tls_const(body, 0); tls_equal(body);
+        tls_reference(body, relocations, WasmOpcode.I32Const, WasmRelocation.MemoryAddressSleb, TlsSymbol.Counter); tls_const(body, 1);
+        utility_check(wasm_memory_atomic(body, WasmAtomicOpcode.I32Add), "TLS completion increment"); wasm_test_byte(body, convert(u8, WasmOpcode.Drop));
+    }
+    wasm_test_byte(body, convert(u8, WasmOpcode.End));
+}
+
+fn tls_fixture_relocations(output: ByteBuffer*, section: ByteBuffer*, relocations: vector(WasmRelocationRecord)*): void {
+    wasm_test_name(section, "reloc.CODE"); wasm_test_index(section, TlsFixtureCodeSection); wasm_test_index(section, convert(u64, relocations.length));
+    foreach (var & relocation in relocations) {
+        wasm_test_index(section, convert(u64, relocation.kind)); wasm_test_index(section, convert(u64, relocation.offset)); wasm_test_index(section, convert(u64, relocation.index));
+        if wasm_relocation_addend(convert(WasmRelocation, relocation.kind)) != 0 { utility_check(wasm_write_sleb(section, relocation.addend), "TLS relocation addend"); }
+    }
+    wasm_test_section(output, WasmSection.Custom, section);
+}
+
+fn wasm_tls_object(output: ByteBuffer*, pointers: bool): void {
+    var header: u8[8] = default; header[1] = 97; header[2] = 115; header[3] = 109; header[4] = 1;
+    utility_check(bytes_append(output, &header[0], 8), "TLS fixture header");
+    var section: ByteBuffer = default; var body: ByteBuffer = default; var symbols: ByteBuffer = default;
+    var metadata: ByteBuffer = default; var relocations: vector(WasmRelocationRecord) = default;
+    defer bytes_dispose(&section); defer bytes_dispose(&body); defer bytes_dispose(&symbols); defer bytes_dispose(&metadata); defer vector_dispose(&relocations);
+    wasm_test_index(&section, 1); wasm_test_byte(&section, WasmFunctionType); wasm_test_index(&section, 1); wasm_test_byte(&section, convert(u8, WasmValueType.I32)); wasm_test_index(&section, 0);
+    wasm_test_section(output, WasmSection.Type, &section);
+    wasm_test_index(&section, 3);
+    wasm_test_name(&section, "env"); wasm_test_name(&section, "__wasm_init_tls"); wasm_test_byte(&section, convert(u8, WasmExternal.Function)); wasm_test_index(&section, 0);
+    wasm_test_name(&section, "env"); wasm_test_name(&section, "__tls_base"); wasm_test_byte(&section, convert(u8, WasmExternal.Global)); wasm_test_byte(&section, convert(u8, WasmValueType.I32)); wasm_test_byte(&section, 1);
+    wasm_test_name(&section, "GOT.mem"); wasm_test_name(&section, "tls_first"); wasm_test_byte(&section, convert(u8, WasmExternal.Global)); wasm_test_byte(&section, convert(u8, WasmValueType.I32)); wasm_test_byte(&section, 1);
+    wasm_test_section(output, WasmSection.Import, &section);
+    wasm_test_index(&section, 2); wasm_test_index(&section, 0); wasm_test_index(&section, 0); wasm_test_section(output, WasmSection.Function, &section);
+    wasm_test_index(&section, 2);
+    for (var function: usize = 0; function < 2; function++) {
+        body.length = 0; var first = relocations.length;
+        tls_fixture_body(&body, &relocations, function == 1, pointers);
+        wasm_test_index(&section, convert(u64, body.length));
+        for (var at = first; at < relocations.length; at++) { relocations.data[at].offset += convert(u32, section.length); }
+        utility_check(bytes_append(&section, body.data, body.length), "TLS function body");
+    }
+    wasm_test_section(output, WasmSection.Code, &section);
+    wasm_test_index(&section, 3);
+    var pointer_offset: usize = 0;
+    for (var segment: usize = 0; segment < 3; segment++) {
+        wasm_test_index(&section, convert(u64, WasmDataMode.Active)); tls_const(&section, 0); wasm_test_byte(&section, convert(u8, WasmOpcode.End));
+        var length: usize = segment == 1 ? 8 : 4;
+        wasm_test_index(&section, convert(u64, length));
+        if segment == 1 { pointer_offset = section.length + 4; }
+        wasm_test_byte(&section, segment == 0 ? 7 : (segment == 1 ? 9 : 0));
+        for (var byte: usize = 1; byte < length; byte++) { wasm_test_byte(&section, 0); }
+    }
+    wasm_test_section(output, WasmSection.Data, &section);
+    wasm_test_index(&metadata, 3);
+    wasm_test_name(&metadata, ".tdata.first"); wasm_test_index(&metadata, 4); wasm_test_index(&metadata, convert(u64, WasmSegmentFlag.ThreadLocal));
+    wasm_test_name(&metadata, ".tdata.second"); wasm_test_index(&metadata, 3); wasm_test_index(&metadata, convert(u64, WasmSegmentFlag.ThreadLocal));
+    wasm_test_name(&metadata, ".data.counter"); wasm_test_index(&metadata, 2); wasm_test_index(&metadata, 0);
+    wasm_test_name(&section, "linking"); wasm_test_index(&section, convert(u64, WasmLinkingVersion));
+    wasm_test_byte(&section, convert(u8, WasmLinkingSection.Segments)); wasm_test_index(&section, convert(u64, metadata.length));
+    utility_check(bytes_append(&section, metadata.data, metadata.length), "TLS segment metadata");
+    wasm_test_index(&symbols, convert(u64, TlsSymbol.Count));
+    wasm_test_byte(&symbols, convert(u8, WasmSymbolKind.Function)); wasm_test_index(&symbols, convert(u64, WasmSymbolFlag.Undefined)); wasm_test_index(&symbols, 0);
+    wasm_test_byte(&symbols, convert(u8, WasmSymbolKind.Global)); wasm_test_index(&symbols, convert(u64, WasmSymbolFlag.Undefined)); wasm_test_index(&symbols, 0);
+    for (var segment: usize = 0; segment < 3; segment++) {
+        wasm_test_byte(&symbols, convert(u8, WasmSymbolKind.Data)); wasm_test_index(&symbols, segment == 2 ? 0 : convert(u64, WasmSymbolFlag.ThreadLocal));
+        wasm_test_name(&symbols, segment == 0 ? "tls_first" : (segment == 1 ? "tls_second" : "counter"));
+        wasm_test_index(&symbols, convert(u64, segment)); wasm_test_index(&symbols, 0); wasm_test_index(&symbols, segment == 1 ? 8 : 4);
+    }
+    for (var function: usize = 0; function < 2; function++) {
+        wasm_test_byte(&symbols, convert(u8, WasmSymbolKind.Function)); wasm_test_index(&symbols, convert(u64, WasmSymbolFlag.Exported));
+        wasm_test_index(&symbols, convert(u64, function + 1)); wasm_test_name(&symbols, function == 0 ? "check" : "finish");
+    }
+    wasm_test_byte(&section, convert(u8, WasmLinkingSection.Symbols)); wasm_test_index(&section, convert(u64, symbols.length));
+    utility_check(bytes_append(&section, symbols.data, symbols.length), "TLS symbols"); wasm_test_section(output, WasmSection.Custom, &section);
+    wasm_test_name(&section, "target_features"); wasm_test_index(&section, 3);
+    wasm_test_byte(&section, convert(u8, WasmFeaturePrefix.Used)); wasm_test_name(&section, "atomics");
+    wasm_test_byte(&section, convert(u8, WasmFeaturePrefix.Used)); wasm_test_name(&section, "bulk-memory");
+    wasm_test_byte(&section, convert(u8, WasmFeaturePrefix.Used)); wasm_test_name(&section, "mutable-globals"); wasm_test_section(output, WasmSection.Custom, &section);
+    tls_fixture_relocations(output, &section, &relocations);
+    if !pointers { return; }
+    wasm_test_name(&section, "reloc.DATA"); wasm_test_index(&section, TlsFixtureDataSection); wasm_test_index(&section, 1);
+    wasm_test_index(&section, convert(u64, WasmRelocation.MemoryAddressI32)); wasm_test_index(&section, convert(u64, pointer_offset));
+    wasm_test_index(&section, convert(u64, TlsSymbol.First)); utility_check(wasm_write_sleb(&section, 0), "TLS pointer addend");
+    wasm_test_section(output, WasmSection.Custom, &section);
+}

@@ -12,7 +12,11 @@ fn wasm_link_synthetic_kind(link: WasmLink*, name: WasmBytes): WasmSynthetic {
     if wasm_bytes_text(name, "__memory_base") { return WasmSynthetic.MemoryBase; }
     if wasm_bytes_text(name, "__table_base") { return WasmSynthetic.TableBase; }
     if wasm_bytes_text(name, "__wasm_call_ctors") { return WasmSynthetic.Constructors; }
-    if link.shared_memory && wasm_bytes_text(name, "__wasm_init_memory") { return WasmSynthetic.InitMemory; }
+    if (link.shared_memory || link.has_tls) && wasm_bytes_text(name, "__wasm_init_memory") { return WasmSynthetic.InitMemory; }
+    if wasm_bytes_text(name, "__tls_base") { return WasmSynthetic.TlsBase; }
+    if wasm_bytes_text(name, "__tls_size") { return WasmSynthetic.TlsSize; }
+    if wasm_bytes_text(name, "__tls_align") { return WasmSynthetic.TlsAlign; }
+    if wasm_bytes_text(name, "__wasm_init_tls") { return WasmSynthetic.InitTls; }
     if wasm_bytes_text(name, "__indirect_function_table") { return WasmSynthetic.IndirectTable; }
     if wasm_bytes_text(name, "__dso_handle") { return WasmSynthetic.DsoHandle; }
     if wasm_bytes_text(name, "__stack_low") { return WasmSynthetic.StackLow; }
@@ -30,8 +34,8 @@ fn wasm_link_synthetic_symbol(link: WasmLink*, name: WasmBytes, required: bool):
     if index == WasmNoIndex {
         if !required { return true; }
         var kind = WasmSymbolKind.Data;
-        if synthetic == WasmSynthetic.Stack { kind = WasmSymbolKind.Global; }
-        if synthetic == WasmSynthetic.Constructors || synthetic == WasmSynthetic.InitMemory { kind = WasmSymbolKind.Function; }
+        if synthetic == WasmSynthetic.Stack || synthetic == WasmSynthetic.TlsBase || synthetic == WasmSynthetic.TlsSize || synthetic == WasmSynthetic.TlsAlign { kind = WasmSymbolKind.Global; }
+        if synthetic == WasmSynthetic.Constructors || synthetic == WasmSynthetic.InitMemory || synthetic == WasmSynthetic.InitTls { kind = WasmSymbolKind.Function; }
         if synthetic == WasmSynthetic.IndirectTable { kind = WasmSymbolKind.Table; }
         var symbol: WasmResolvedSymbol = { name: name, kind: convert(u8, kind),
             definition: { object: WasmNoIndex, symbol: WasmNoIndex },
@@ -44,20 +48,21 @@ fn wasm_link_synthetic_symbol(link: WasmLink*, name: WasmBytes, required: bool):
     }
     var symbol = &link.symbols.data[convert(usize, index)];
     if symbol.defined {
-        if synthetic == WasmSynthetic.InitMemory && symbol.synthetic != synthetic { return wasm_link_fail(link, WasmLinkError.Duplicate, name); }
+        if (synthetic == WasmSynthetic.InitMemory || synthetic == WasmSynthetic.InitTls || synthetic == WasmSynthetic.TlsBase
+            || synthetic == WasmSynthetic.TlsSize || synthetic == WasmSynthetic.TlsAlign) && symbol.synthetic != synthetic { return wasm_link_fail(link, WasmLinkError.Duplicate, name); }
         return true;
     }
     var kind = convert(WasmSymbolKind, symbol.kind);
     var valid = kind == WasmSymbolKind.Data || kind == WasmSymbolKind.Global;
-    if synthetic == WasmSynthetic.Constructors || synthetic == WasmSynthetic.InitMemory { valid = kind == WasmSymbolKind.Function; }
+    if synthetic == WasmSynthetic.Constructors || synthetic == WasmSynthetic.InitMemory || synthetic == WasmSynthetic.InitTls { valid = kind == WasmSymbolKind.Function; }
     if synthetic == WasmSynthetic.IndirectTable { valid = kind == WasmSymbolKind.Table; }
-    if synthetic == WasmSynthetic.Stack { valid = kind == WasmSymbolKind.Global; }
+    if synthetic == WasmSynthetic.Stack || synthetic == WasmSynthetic.TlsBase || synthetic == WasmSynthetic.TlsSize || synthetic == WasmSynthetic.TlsAlign { valid = kind == WasmSymbolKind.Global; }
     if !valid { return wasm_link_fail(link, WasmLinkError.Signature, name); }
     if kind == WasmSymbolKind.Global && symbol.declaration.object != WasmNoIndex {
         var object = link.world.objects.data[convert(usize, symbol.declaration.object)].object;
         var input = &object.symbols.data[convert(usize, symbol.declaration.symbol)];
         var global = &object.globals.data[convert(usize, input.index)];
-        if global.type != convert(u8, WasmValueType.I32) || (synthetic == WasmSynthetic.Stack && !global.mutable) {
+        if global.type != convert(u8, WasmValueType.I32) || ((synthetic == WasmSynthetic.Stack || synthetic == WasmSynthetic.TlsBase) && !global.mutable) {
             return wasm_link_fail(link, WasmLinkError.Signature, name);
         }
     }
@@ -65,7 +70,13 @@ fn wasm_link_synthetic_symbol(link: WasmLink*, name: WasmBytes, required: bool):
         var object = link.world.objects.data[convert(usize, symbol.declaration.object)].object;
         var input = &object.symbols.data[convert(usize, symbol.declaration.symbol)];
         var type = &object.types.data[convert(usize, object.functions.data[convert(usize, input.index)].type_index)];
-        if type.parameters != 0 || type.results != 0 { return wasm_link_fail(link, WasmLinkError.Signature, name); }
+        var parameters: u32 = synthetic == WasmSynthetic.InitTls ? 1 : 0;
+        if type.parameters != parameters || type.results != 0 { return wasm_link_fail(link, WasmLinkError.Signature, name); }
+        if parameters != 0 {
+            var reader: WasmReader = { bytes: type.bytes, ..default };
+            wasm_read_byte(&reader); wasm_read_index(&reader);
+            if wasm_read_byte(&reader) != convert(u8, WasmValueType.I32) { return wasm_link_fail(link, WasmLinkError.Signature, name); }
+        }
     }
     symbol.defined = true; symbol.synthetic = synthetic;
     symbol.definition = init(WasmSymbolReference) { object: WasmNoIndex, symbol: WasmNoIndex };
@@ -73,7 +84,7 @@ fn wasm_link_synthetic_symbol(link: WasmLink*, name: WasmBytes, required: bool):
 }
 
 fn wasm_link_synthetics(link: WasmLink*): bool {
-    if link.shared_memory {
+    if link.shared_memory || link.has_tls {
         var name = wasm_text_bytes("__wasm_init_memory");
         if !wasm_link_synthetic_symbol(link, name, true) { return false; }
         link.memory_init_symbol = wasm_names_get(&link.names, name);
@@ -91,6 +102,12 @@ fn wasm_link_synthetics(link: WasmLink*): bool {
     foreach (var & request in &link.exports) {
         if !wasm_link_synthetic_symbol(link, request.name, true) { return false; }
     }
+    if link.has_tls || wasm_names_get(&link.names, wasm_text_bytes("__wasm_init_tls")) != WasmNoIndex {
+        if !wasm_link_synthetic_symbol(link, wasm_text_bytes("__wasm_init_tls"), true)
+            || !wasm_link_synthetic_symbol(link, wasm_text_bytes("__tls_base"), true) { return false; }
+        link.tls_init_symbol = wasm_names_get(&link.names, wasm_text_bytes("__wasm_init_tls"));
+        link.tls_base_symbol = wasm_names_get(&link.names, wasm_text_bytes("__tls_base"));
+    }
     return wasm_link_synthetic_symbol(link, wasm_text_bytes("__stack_pointer"), true);
 }
 
@@ -98,9 +115,12 @@ fn wasm_link_function_type(link: WasmLink*, index: u32): u32 {
     var symbol = &link.symbols.data[convert(usize, index)];
     var reference = symbol.defined && symbol.definition.object != WasmNoIndex ? symbol.definition : symbol.declaration;
     if reference.object == WasmNoIndex {
-        var encoding: u8[3] = default;
+        var encoding: u8[4] = default;
         encoding[0] = WasmFunctionType;
-        var type: WasmFunctionTypeRecord = { bytes: { data: &encoding[0], length: 3 }, ..default };
+        var length: usize = 3;
+        var parameters: u32 = 0;
+        if symbol.synthetic == WasmSynthetic.InitTls { parameters = 1; length = 4; encoding[1] = 1; encoding[2] = convert(u8, WasmValueType.I32); }
+        var type: WasmFunctionTypeRecord = { bytes: { data: &encoding[0], length: length }, parameters: parameters, ..default };
         return wasm_link_type(link, &type);
     }
     var object = link.world.objects.data[convert(usize, reference.object)].object;

@@ -33,17 +33,40 @@ fn wasm_link_memory_layout(link: WasmLink*): bool {
         var object = link.world.objects.data[input].object;
         var layout = link.layouts.data[input];
         for (var row: usize = 0; row < object.data.length; row++) {
-            var chunk = &layout.data.data[row];
-            if !chunk.live { continue; }
+            if !layout.data.data[row].live || !layout.data.data[row].tls { continue; }
             var data = &object.data.data[row];
             if data.alignment >= 32 { return wasm_link_fail(link, WasmLinkError.Layout, data.name); }
-            address = wasm_link_align(link, address, convert(u64, 1) << convert(u64, data.alignment));
-            var length = convert(u64, data.bytes.length);
-            if address >= WasmMemory32Limit || length >= WasmMemory32Limit - address {
-                return wasm_link_fail(link, WasmLinkError.Layout, data.name);
+            var alignment = convert(u64, 1) << convert(u64, data.alignment);
+            if alignment > link.tls_align { link.tls_align = alignment; }
+        }
+    }
+    address = wasm_link_align(link, address, link.tls_align);
+    link.tls_base = address;
+    var layout_passes: u32 = 2;
+    for (var pass: u32 = 0; pass < layout_passes; pass++) {
+        for (var input: usize = 0; input < link.world.objects.length; input++) {
+            var object = link.world.objects.data[input].object;
+            var layout = link.layouts.data[input];
+            for (var row: usize = 0; row < object.data.length; row++) {
+                var chunk = &layout.data.data[row];
+                if !chunk.live || chunk.tls != (pass == 0) { continue; }
+                var data = &object.data.data[row];
+                if data.alignment >= 32 { return wasm_link_fail(link, WasmLinkError.Layout, data.name); }
+                address = wasm_link_align(link, address, convert(u64, 1) << convert(u64, data.alignment));
+                var length = convert(u64, data.bytes.length);
+                if address >= WasmMemory32Limit || length >= WasmMemory32Limit - address {
+                    return wasm_link_fail(link, WasmLinkError.Layout, data.name);
+                }
+                chunk.address = address; address += length;
             }
-            chunk.address = address; address += length;
-            if link.data_count == WasmNoIndex { return wasm_link_fail(link, WasmLinkError.Layout, data.name); }
+        }
+        if pass == 0 { link.tls_size = address - link.tls_base; }
+    }
+    // Segment indexes follow emission/input order, independently of TLS layout.
+    foreach (var layout in &link.layouts) {
+        foreach (var & chunk in &layout.data) {
+            if !chunk.live { continue; }
+            if link.data_count == WasmNoIndex { return wasm_link_fail(link, WasmLinkError.Layout, wasm_text_bytes("data segment count")); }
             chunk.output_index = link.data_count++;
         }
     }
@@ -78,6 +101,9 @@ fn wasm_link_memory_layout(link: WasmLink*): bool {
             WasmSynthetic.DsoHandle | WasmSynthetic.GlobalBase => { symbol.address = link.global_base; }
             WasmSynthetic.TableBase => { symbol.address = convert(u64, WasmTableBase); }
             WasmSynthetic.FirstPageEnd => { symbol.address = WasmPageBytes; }
+            WasmSynthetic.TlsBase => { symbol.address = link.shared_memory ? 0 : link.tls_base; }
+            WasmSynthetic.TlsSize => { symbol.address = link.tls_size; }
+            WasmSynthetic.TlsAlign => { symbol.address = link.tls_align; }
             _ => { }
         }
         if symbol.kind == convert(u8, WasmSymbolKind.Data) && symbol.defined && symbol.definition.object != WasmNoIndex {

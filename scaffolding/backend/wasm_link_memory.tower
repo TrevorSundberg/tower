@@ -2,6 +2,7 @@ import tower;
 import wasm_bytes;
 import wasm_object_types;
 import wasm_link_types;
+import wasm_object_linking;
 import .library.bytes_interface;
 import .library.bytes_types;
 
@@ -27,6 +28,9 @@ fn wasm_memory_block(body: ByteBuffer*, opcode: WasmOpcode): bool {
 }
 
 fn wasm_emit_memory_init(link: WasmLink*, body: ByteBuffer*): bool {
+    if !link.shared_memory {
+        return wasm_write_uleb(body, 0) && wasm_memory_init_tls_call(link, body) && wasm_memory_opcode(body, WasmOpcode.End);
+    }
     // No locals or stack memory: each instance has its own globals but all
     // instances arbitrate initialization through this shared atomic word.
     if !wasm_write_uleb(body, 0) || !wasm_memory_const(body, link.memory_init_flag)
@@ -39,13 +43,14 @@ fn wasm_emit_memory_init(link: WasmLink*, body: ByteBuffer*): bool {
         var layout = link.layouts.data[input];
         for (var row: usize = 0; row < object.data.length; row++) {
             var chunk = &layout.data.data[row];
-            if !chunk.live { continue; }
+            if !chunk.live || chunk.tls { continue; }
             if !wasm_memory_const(body, chunk.address) || !wasm_memory_const(body, 0)
                 || !wasm_memory_const(body, convert(u64, object.data.data[row].bytes.length))
                 || !wasm_memory_opcode(body, WasmOpcode.BulkMemory) || !wasm_write_uleb(body, convert(u64, WasmBulkOpcode.MemoryInit))
                 || !wasm_write_uleb(body, convert(u64, chunk.output_index)) || !wasm_write_uleb(body, 0) { return false; }
         }
     }
+    if !wasm_memory_init_tls_call(link, body) { return false; }
     var all_waiters: u64 = convert(u64, ~convert(u32, 0));
     if !wasm_memory_const(body, link.memory_init_flag) || !wasm_memory_const(body, convert(u64, WasmMemoryInitState.Ready))
         || !wasm_memory_atomic(body, WasmAtomicOpcode.I32Store)
@@ -57,20 +62,72 @@ fn wasm_emit_memory_init(link: WasmLink*, body: ByteBuffer*): bool {
     // expose partially initialized data. Waiting may block only in a worker.
     var done_depth: u64 = 1;
     var retry_depth: u64 = 0;
+    var wait_forever: i64 = -1;
     if !wasm_memory_const(body, link.memory_init_flag) || !wasm_memory_atomic(body, WasmAtomicOpcode.I32Load)
         || !wasm_memory_const(body, convert(u64, WasmMemoryInitState.Ready)) || !wasm_memory_opcode(body, WasmOpcode.I32Eq)
         || !wasm_memory_opcode(body, WasmOpcode.BranchIf) || !wasm_write_uleb(body, done_depth)
         || !wasm_memory_const(body, link.memory_init_flag) || !wasm_memory_const(body, convert(u64, WasmMemoryInitState.Initializing))
-        || !wasm_memory_opcode(body, WasmOpcode.I64Const) || !wasm_write_sleb(body, -1)
+        || !wasm_memory_opcode(body, WasmOpcode.I64Const) || !wasm_write_sleb(body, wait_forever)
         || !wasm_memory_atomic(body, WasmAtomicOpcode.Wait32) || !wasm_memory_opcode(body, WasmOpcode.Drop)
         || !wasm_memory_opcode(body, WasmOpcode.Branch) || !wasm_write_uleb(body, retry_depth)
         || !wasm_memory_opcode(body, WasmOpcode.End) || !wasm_memory_opcode(body, WasmOpcode.End)
         || !wasm_memory_opcode(body, WasmOpcode.End) { return false; }
-    // Every instance owns its passive segments. Drop only its own copies after
-    // observing completion. TLS templates are deliberately unsupported here.
-    for (var segment: u32 = 0; segment < link.data_count; segment++) {
+    // TLS templates remain available for every later __wasm_init_tls call.
+    foreach (var layout in &link.layouts) { foreach (var & chunk in &layout.data) {
+        if !chunk.live || chunk.tls { continue; }
         if !wasm_memory_opcode(body, WasmOpcode.BulkMemory) || !wasm_write_uleb(body, convert(u64, WasmBulkOpcode.DataDrop))
-            || !wasm_write_uleb(body, convert(u64, segment)) { return false; }
+            || !wasm_write_uleb(body, convert(u64, chunk.output_index)) { return false; }
+    } }
+    return wasm_memory_opcode(body, WasmOpcode.End);
+}
+
+fn wasm_memory_init_tls_call(link: WasmLink*, body: ByteBuffer*): bool {
+    if link.tls_init_symbol == WasmNoIndex { return true; }
+    return wasm_memory_const(body, link.tls_base) && wasm_memory_opcode(body, WasmOpcode.Call)
+        && wasm_write_uleb(body, convert(u64, link.symbols.data[convert(usize, link.tls_init_symbol)].output_index));
+}
+
+fn wasm_tls_address(link: WasmLink*, body: ByteBuffer*, offset: u64): bool {
+    return wasm_memory_opcode(body, WasmOpcode.GlobalGet)
+        && wasm_write_uleb(body, convert(u64, link.symbols.data[convert(usize, link.tls_base_symbol)].output_index))
+        && wasm_memory_const(body, offset & convert(u64, WasmNoIndex)) && wasm_memory_opcode(body, WasmOpcode.I32Add);
+}
+
+fn wasm_emit_tls_init(link: WasmLink*, body: ByteBuffer*): bool {
+    if !wasm_write_uleb(body, 0) || !wasm_memory_opcode(body, WasmOpcode.LocalGet) || !wasm_write_uleb(body, 0)
+        || !wasm_memory_opcode(body, WasmOpcode.GlobalSet)
+        || !wasm_write_uleb(body, convert(u64, link.symbols.data[convert(usize, link.tls_base_symbol)].output_index)) { return false; }
+    // Clear alignment gaps as well as .tbss. Caller owns a suitably aligned,
+    // disjoint region of at least __tls_size bytes for this instance.
+    if link.tls_size != 0 && (!wasm_tls_address(link, body, 0) || !wasm_memory_const(body, 0) || !wasm_memory_const(body, link.tls_size)
+        || !wasm_memory_opcode(body, WasmOpcode.BulkMemory) || !wasm_write_uleb(body, convert(u64, WasmBulkOpcode.MemoryFill)) || !wasm_write_uleb(body, 0)) { return false; }
+    for (var input: usize = 0; input < link.world.objects.length; input++) {
+        var object = link.world.objects.data[input].object;
+        var layout = link.layouts.data[input];
+        for (var row: usize = 0; row < object.data.length; row++) {
+            var chunk = &layout.data.data[row];
+            if !chunk.live || !chunk.tls { continue; }
+            var data = &object.data.data[row];
+            if !wasm_tls_address(link, body, chunk.address - link.tls_base) || !wasm_memory_const(body, 0)
+                || !wasm_memory_const(body, convert(u64, data.bytes.length)) || !wasm_memory_opcode(body, WasmOpcode.BulkMemory)
+                || !wasm_write_uleb(body, convert(u64, WasmBulkOpcode.MemoryInit)) || !wasm_write_uleb(body, convert(u64, chunk.output_index))
+                || !wasm_write_uleb(body, 0) { return false; }
+            for (var at: usize = 0; at < chunk.relocation_count; at++) {
+                var relocation = &object.relocations.data[convert(usize, layout.relocations.data[chunk.relocation_first + at])];
+                if relocation.kind != convert(u32, WasmRelocation.MemoryAddressI32) { continue; }
+                var symbol = &link.symbols.data[convert(usize, layout.symbols.data[convert(usize, relocation.index)])];
+                if !symbol.tls { continue; }
+                var destination = chunk.address - link.tls_base + convert(u64, relocation.offset - data.section_offset);
+                var value = symbol.address - link.tls_base + bits(u64, relocation.addend);
+                if !wasm_tls_address(link, body, destination) || !wasm_tls_address(link, body, value)
+                    || !wasm_memory_opcode(body, WasmOpcode.I32Store) || !wasm_write_uleb(body, 0) || !wasm_write_uleb(body, 0) { return false; }
+            }
+        }
+    }
+    foreach (var & symbol in &link.symbols) {
+        if !symbol.live || !symbol.tls || symbol.got_index == WasmNoIndex { continue; }
+        if !wasm_tls_address(link, body, symbol.address - link.tls_base) || !wasm_memory_opcode(body, WasmOpcode.GlobalSet)
+            || !wasm_write_uleb(body, convert(u64, symbol.got_index)) { return false; }
     }
     return wasm_memory_opcode(body, WasmOpcode.End);
 }

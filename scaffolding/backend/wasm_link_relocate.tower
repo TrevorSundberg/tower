@@ -34,8 +34,29 @@ fn wasm_link_relocation_value(link: WasmLink*, input: usize, relocation: WasmRel
             // Static images have memory base zero, including PIC input chunks.
             // Undefined weak data addresses stay null regardless of the addend.
             value = symbol.defined ? symbol.address + bits(u64, relocation.addend) : 0;
+            if symbol.tls {
+                // Absolute TLS pointers are fixed up in each copied TLS block.
+                // A shared ordinary data/code location cannot hold one address
+                // that is correct for every instance.
+                var data = link.world.objects.data[input].object.sections.data[convert(usize, relocation.section)].kind == convert(u8, WasmSection.Data);
+                if data && kind == WasmRelocation.MemoryAddressI32 && place >= link.tls_base && place < link.tls_base + link.tls_size {
+                    var offset = symbol.address - link.tls_base + bits(u64, relocation.addend);
+                    var signed_minimum = ~convert(u64, WasmNoIndex >> 1);
+                    if offset > convert(u64, WasmNoIndex) && offset < signed_minimum {
+                        wasm_link_fail(link, WasmLinkError.Layout, wasm_text_bytes("32-bit TLS relocation overflow"));
+                    }
+                    value = 0;
+                } else { if link.shared_memory { wasm_link_fail(link, WasmLinkError.Unsupported, wasm_text_bytes("absolute TLS address outside TLS storage")); } }
+            }
         }
-        WasmRelocation.MemoryAddressLocalRelativeI32 => { value = symbol.defined ? symbol.address + bits(u64, relocation.addend) - place : 0; }
+        WasmRelocation.MemoryAddressTlsSleb => {
+            if !symbol.defined || !symbol.tls { wasm_link_fail(link, WasmLinkError.Signature, wasm_text_bytes("TLS relocation requires a defined TLS symbol")); }
+            value = symbol.address - link.tls_base + bits(u64, relocation.addend);
+        }
+        WasmRelocation.MemoryAddressLocalRelativeI32 => {
+            if symbol.tls { wasm_link_fail(link, WasmLinkError.Unsupported, wasm_text_bytes("relative TLS pointer storage")); }
+            value = symbol.defined ? symbol.address + bits(u64, relocation.addend) - place : 0;
+        }
         _ => { wasm_link_fail(link, WasmLinkError.Unsupported, symbol.name); return 0; }
     }
     if symbol.kind != convert(u8, required_kind) { wasm_link_fail(link, WasmLinkError.Signature, symbol.name); }

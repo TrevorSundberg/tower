@@ -1,0 +1,49 @@
+import tower;
+import wasm_link_tls;
+import utility_checks;
+import .compiler.utf8;
+import .backend.wasm_bytes;
+import .backend.wasm_object_types;
+import .backend.wasm_link_world;
+import .backend.wasm_link_types;
+import .backend.wasm_link_prepare;
+import .backend.wasm_link;
+import .host.driver_files;
+import .library.bytes;
+import .library.bytes_types;
+import .library.entities;
+import .library.entity_types;
+
+export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, data: u8*): void { abort(); }
+
+export fn main(argc: i32, argv: u8**): i32 {
+    if argc != 3 && argc != 4 { puts("wasm_link_tls_generate object.o image.wasm [--common]"); return 1; }
+    if argc == 4 && !wasm_bytes_text(wasm_text_bytes(argv[3]), "--common") { return 1; }
+    var input: ByteBuffer = default;
+    defer bytes_dispose(&input);
+    wasm_tls_object(&input, argc == 3);
+    utility_check(driver_write_file(argv[1], input.data, input.length), "write TLS comparison object");
+    var previous: ByteBuffer = default;
+    defer bytes_dispose(&previous);
+    for (var workers: usize = 1; workers <= 4; workers *= 2) {
+        var link: WasmLink = default;
+        utility_check(wasm_link_init(&link), "TLS execution world");
+        defer wasm_link_close(&link);
+        link.shared_memory = true; link.import_memory = true; link.workers = workers; link.job_grain = 1;
+        var ok = wasm_link_read_object(&link.world, wasm_text_bytes("tls.o"), init(WasmBytes) { data: input.data, length: input.length }) && wasm_link_run(&link);
+        if !ok {
+            print(workers);
+            puts(wasm_link_message(link.error)); puts(wasm_read_message(link.world.error)); print(link.world.error_offset);
+            var name: ByteBuffer = default; bytes_assign_text(&name, link.error_name.data, link.error_name.length); puts(name.data); bytes_dispose(&name); return 1;
+        }
+        utility_check(link.tls_size == 16 && link.tls_align == 16, "TLS layout includes aligned segment gap");
+        if workers == 1 { utility_check(bytes_append(&previous, link.output.data, link.output.length), "save serial TLS result"); }
+        else {
+            utility_check(wasm_bytes_equal(init(WasmBytes) { data: previous.data, length: previous.length }, init(WasmBytes) { data: link.output.data, length: link.output.length }), "parallel TLS image equals serial image");
+            utility_check(link.jobs_run > 1 && link.jobs_peak > 1, "TLS fixture used admitted parallel jobs");
+        }
+        utility_check(driver_write_file(argv[2], link.output.data, link.output.length), "write TLS execution image");
+    }
+    puts("TLS serial/parallel linker fixture passed");
+    return 0;
+}

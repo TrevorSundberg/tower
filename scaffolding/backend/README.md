@@ -134,8 +134,8 @@ files or a native linker. Reactor recipes explicitly select this path by naming
 `tower-wasm-ld` in argument zero. Unsupported options fail without fallback.
 Two edited browser self-build generations pass with both whole and lazy archives,
 including identical successor bytes across two/four compilation workers. The
-default upstream path below is retained pending shared-memory/TLS and linker-worker
-gates. See [linker checks](../tests/README.md) for supported
+default upstream path below is retained while compatibility coverage expands.
+See [linker checks](../tests/README.md) for supported
 profiles and executable fixtures. Link requests are single use; the BackendLink
 adapter creates a fresh world for each invocation. Finish or join readers before
 closing input owners; a pinned view prevents structural mutation and disposal.
@@ -155,8 +155,35 @@ each instance then drops its own data copies. The host must initially zero the
 flag and dedicate the static memory ranges to this image. Instantiation that may
 wait belongs on workers. Stack globals remain instance-local, but their initial
 address is identical: the runtime must assign distinct stacks before concurrent
-stack-using calls. This feature does not provide a thread runtime. TLS templates,
-TLS relocations, dynamic memory bases and memory64 remain explicitly unsupported.
+stack-using calls. This feature does not provide a thread runtime.
+
+TLS32 segments use an aligned contiguous layout with `__tls_base`, `__tls_size`,
+`__tls_align` and `__wasm_init_tls(i32)`. Initialization clears padding, copies
+retained passive templates, fixes TLS pointer initializers and refreshes mutable
+TLS GOT globals for the calling instance. The caller owns a disjoint region of
+at least `__tls_size` bytes aligned to `__tls_align`. The initial shared-memory
+winner initializes the static TLS block; later instances must call
+`__wasm_init_tls` with their own region before TLS access. Ordinary data still
+initializes once. TLS offset relocations must name defined TLS symbols; shared
+ordinary data/code cannot embed an absolute per-thread address. TLS64, dynamic
+memory bases and memory64 remain unsupported.
+
+`WasmLink.workers` / `--threads=N` select up to 256 lanes (default one), capped
+by the host's actual capacity. Code/data copy and relocation use pinned ECS
+inputs, disjoint output ranges and worker-private errors; layout, symbol selection
+and publication stay on the coordinator. The reusable Tower WorkPool accepts
+typed noncapturing kernels. `job_grain` defaults to 262144 estimated work units
+(bytes plus 64 per relocation); small workloads avoid creating threads. Results
+and errors join in input order and output bytes do not depend on worker count.
+`jobs_run` and `jobs_peak` count admitted batches, not measured CPU overlap.
+Isolated browser LLVM workers currently report capacity one.
+
+An optional `cancel: function(bool, void*)` callback runs on the coordinator with
+`cancel_context` at emission boundaries and between job completions. It must
+only inspect its explicit cancellation state: no reentrant linking or owner/input
+mutation. Cancellation drains admitted kernels before releasing pinned views
+and preserves the previous output. It is cooperative; parsing/layout and a
+running individual kernel are not preempted. Close/reset follows the join.
 
 Entity layouts live in `library/entity_types.tower`; separately compiled linker
 clients use the typed `entity_api.tower` declarations and link the existing Tower

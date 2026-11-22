@@ -98,7 +98,9 @@ malformed members, byte-only plans and deterministic retry cleanup. Memory-profi
 cases cover defined/imported memory, default/custom/empty UTF-8 names, optional
 maximum limits, memory re-exports and invalid requests without partial output.
 Build it with the public bootstrap's `--library`, then link the object with the
-existing `guest-host-library.o` using clang. `wasm_link_reader_wasi.tower` adds
+existing `guest-host-library.o`, plus current `host/work_linux.tower` and
+`host/work_dispatch.tower` objects using clang with `-pthread -ldl
+-Wl,--export-dynamic-symbol=work_thread_entry`. `wasm_link_reader_wasi.tower` adds
 the existing Tower allocator and a WASI `_start`; compile it for
 `wasm32-unknown-wasi`, link against the compiler project's support archive, and
 run with `node scaffolding/tests/host-wasi.mjs OUTPUT.wasm`.
@@ -108,11 +110,11 @@ run with `node scaffolding/tests/host-wasi.mjs OUTPUT.wasm`.
 Both build as library objects with the same native runtime. The static tool
 supports explicit `--whole-archive`, `--export=`, `--export-if-defined=`, `--wrap=`,
 allow-undefined lists, stack/memory limits, `--import-memory[=module,name]`,
-`--shared-memory` and `-o`. Its optional
+`--shared-memory`, `--threads=N` and `-o`. Its optional
 `--export-if-defined-list=FILE` reads one export name per line to avoid host
 command-line limits; `--debug-names` retains symbolic Wasm stack traces.
 Indexed GNU archives are lazy by default; `--whole-archive` requests every member.
-Thin/BSD-index archives remain unsupported. TLS, memory64, tags, referential global initializers,
+Thin/BSD-index archives remain unsupported. TLS64, memory64, tags, referential global initializers,
 dynamic/relocatable output and DWARF/custom-section preservation
 are not implemented. Requests for currently recognized unsupported profiles
 fail explicitly; this is not a complete drop-in `wasm-ld` CLI.
@@ -131,7 +133,7 @@ To execute an imported-memory fixture, provide `TOWER_TEST_MEMORY_MODULE`,
 `TOWER_TEST_MEMORY_MAXIMUM` to the same host runner. Sizes are Wasm pages. This
 only supplies the host memory; assertions and linking remain Tower code.
 
-`wasm_link_shared.tower` adds shared-memory feature/limit/TLS/reserved-symbol
+`wasm_link_shared.tower` adds shared-memory feature/limit/reserved-symbol
 rejections, start/data-count/flag layout, passive segments and collected-segment
 index checks. `wasm_link_shared_generate.tower` builds with the same native runtime
 and accepts `fixture.o image.wasm`. It writes a stack-free executable fixture with
@@ -152,6 +154,24 @@ the exact shared atomic completion count. Compare the same object with SDK 34
 The explicit stack policy matches this fixture's deliberate absolute addresses;
 newer LLD defaults to stack-first. These stack-free instances do not establish
 TLS or a full threaded compiler runtime, nor prove every wait/wakeup schedule.
+
+`wasm_link_tls_generate.tower` takes `fixture.o image.wasm [--common]`. It checks
+identical TLS images at one/two/four linker workers. Run its image through the
+same shared-instance transport with phases
+`[{"entry":"check","workers":8},{"entry":"finish","workers":1}]`.
+Tower assertions cover two aligned TLS segments, zero padding, repeated fresh
+initialization, isolation, mutable GOT addresses and TLS-to-TLS pointer fixups.
+`--common` omits pointer initializers for the LLD comparison: SDK 34's static
+shared profile writes those fixups to the static block, not the new TLS region.
+The full Tower case is additional coverage, not a claim of reference equivalence.
+
+`wasm_link_job_checks.tower` is part of the reader suite. Two native relocation
+kernels must both reach a semaphore barrier before either is released; their
+bytes then match serial output. It also checks ordered errors at one/two/four
+workers, cooperative cancellation, draining/unpinning, unchanged old artifacts,
+TLS ABI globals, unshared segment modes and invalid TLS signatures/offsets.
+Portable hosts run the same functional suite at their advertised single-lane
+capacity; the native overlap probe does not claim overlap on those hosts.
 
 `backend/wasm_link_plan.tower` accepts length-delimited arguments and explicitly
 named input bytes, including allow/export lists. Its keys need no NUL terminator.

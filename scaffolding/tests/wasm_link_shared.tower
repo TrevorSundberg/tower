@@ -148,7 +148,7 @@ fn wasm_test_shared_memory(): void {
         if mode == WasmSharedCase.Unlimited { link.maximum_memory = 0; }
         utility_check(wasm_link_read_object(&link.world, wasm_text_bytes("shared.o"), init(WasmBytes) { data: input.data, length: input.length }), "shared profile input");
         var ok = wasm_link_run(&link);
-        if mode != WasmSharedCase.Defined && mode != WasmSharedCase.Imported && mode != WasmSharedCase.Empty {
+        if mode != WasmSharedCase.Defined && mode != WasmSharedCase.Imported && mode != WasmSharedCase.Empty && mode != WasmSharedCase.TlsSegment {
             var error = mode == WasmSharedCase.Unlimited ? WasmLinkError.Layout : WasmLinkError.Unsupported;
             if mode == WasmSharedCase.ReservedDefinition { error = WasmLinkError.Duplicate; }
             utility_check(!ok && link.error == error && link.output.length == 0, "unsupported shared profile cannot publish bytes");

@@ -1,0 +1,170 @@
+import tower;
+import utility_checks;
+import wasm_link_tls;
+import .backend.wasm_bytes;
+import .backend.wasm_object;
+import .backend.wasm_object_types;
+import .backend.wasm_object_linking;
+import .backend.wasm_link_types;
+import .backend.wasm_link_world;
+import .backend.wasm_link_prepare;
+import .backend.wasm_link;
+import .backend.wasm_link_jobs;
+import .library.bytes_interface;
+import .library.bytes_types;
+import .library.entity_types;
+import .library.entity_api;
+import .library.work_pool;
+
+struct WasmJobProbe { job: WasmLinkJob; entered: void*; release: void*; }
+struct WasmCancelProbe { link: WasmLink*; polls: usize; }
+
+fn wasm_probe_execute(payload: void*): void {
+    var probe = bits(WasmJobProbe*, payload);
+    work_signal_post(probe.entered); work_signal_wait(probe.release);
+    wasm_link_job_execute(bits(void*, &probe.job));
+}
+
+fn wasm_probe_cancel(payload: void*): bool {
+    var probe = bits(WasmCancelProbe*, payload);
+    utility_check(probe.link.world.store.views != 0 && !wasm_link_close(probe.link), "cancellation callback sees pinned job inputs");
+    probe.polls++;
+    return probe.polls > 1;
+}
+
+fn wasm_test_job_overlap(): void {
+    if !work_thread_available() || work_thread_capacity() < 2 { return; }
+    var input: ByteBuffer = default; defer bytes_dispose(&input);
+    wasm_tls_object(&input, true);
+    var link: WasmLink = default;
+    utility_check(wasm_link_init(&link), "overlap world"); defer wasm_link_close(&link);
+    link.shared_memory = true;
+    utility_check(wasm_link_read_object(&link.world, wasm_text_bytes("overlap.o"), init(WasmBytes) { data: input.data, length: input.length }) && wasm_link_run(&link), "overlap reference link");
+    var output: WasmObject = default; defer wasm_object_dispose(&output);
+    var reader: WasmReader = { bytes: { data: link.output.data, length: link.output.length }, ..default };
+    wasm_object_sections(&output, &reader);
+    utility_check(reader.error == WasmReadError.None, "overlap reference sections");
+    var view = entity_view_open(link.world.object_type);
+    utility_check(view != null, "overlap pin"); defer entity_view_close(view);
+    var entered = work_signal_open(); var release = work_signal_open();
+    utility_check(entered != null && release != null, "overlap semaphores");
+    defer work_signal_close(entered); defer work_signal_close(release);
+    var pool: WorkPool = default;
+    utility_check(work_pool_open_kernel(&pool, 2, wasm_probe_execute) && pool.threaded && pool.count == 2, "typed parallel kernel pool");
+    defer work_pool_close(&pool);
+    var copies: WasmLinkCopy[2] = default; var probes: WasmJobProbe[2] = default;
+    var buffers: ByteBuffer[2] = default;
+    defer { for (var at: usize = 0; at < 2; at++) { bytes_dispose(&buffers[at]); } }
+    for (var at: usize = 0; at < 2; at++) {
+        var function = &link.world.objects.data[0].object.functions.data[at + 1];
+        var chunk = &link.layouts.data[0].functions.data[at + 1];
+        utility_check(bytes_reserve(&buffers[at], function.code.length), "overlap output range"); buffers[at].length = function.code.length;
+        copies[at] = init(WasmLinkCopy) { input: 0, chunk: chunk, source: function.code, original_offset: function.code_offset, offset: 0 };
+        probes[at] = init(WasmJobProbe) { job: { owner: &link, copies: &copies[at], count: 1, output: buffers[at].data, ..default }, entered: entered, release: release };
+        utility_check(work_pool_submit(&pool, bits(void*, &probes[at])), "admit overlapping relocation kernel");
+    }
+    // Both kernels must reach their barrier before either is released. Queue
+    // width alone cannot satisfy this test, and no wall-clock race is required.
+    work_signal_wait(entered); work_signal_wait(entered);
+    utility_check(!wasm_link_close(&link), "active kernel owner cannot close");
+    work_signal_post(release); work_signal_post(release);
+    work_pool_receive(&pool, true); work_pool_receive(&pool, true);
+    for (var at: usize = 0; at < 2; at++) {
+        var index = copies[at].chunk.output_index;
+        utility_check(probes[at].job.error == WasmLinkError.None && wasm_bytes_equal(output.functions.data[convert(usize, index)].code,
+            init(WasmBytes) { data: buffers[at].data, length: buffers[at].length }), "concurrent relocated bytes equal serial output");
+    }
+    puts("Linker relocation kernels overlapped on real workers");
+}
+
+fn wasm_test_job_errors(): void {
+    var oversized_addend: i64 = 1099511627776;
+    for (var workers: usize = 1; workers <= 4; workers *= 2) {
+        var input: ByteBuffer = default; defer bytes_dispose(&input); wasm_tls_object(&input, true);
+        var link: WasmLink = default;
+        utility_check(wasm_link_init(&link), "parallel error world"); defer wasm_link_close(&link);
+        link.shared_memory = true; link.workers = workers; link.job_grain = 1;
+        utility_check(wasm_link_read_object(&link.world, wasm_text_bytes("errors.o"), init(WasmBytes) { data: input.data, length: input.length }), "parallel error input");
+        var object = link.world.objects.data[0].object;
+        var damaged = false;
+        for (var at: usize = 0; at < object.relocations.length; at++) {
+            var relocation = &object.relocations.data[at];
+            if relocation.section != object.code_section { continue; }
+            var row = object.relocation_chunks.data[at];
+            if row == 1 && !damaged {
+                object.functions.data[1].code.data[convert(usize, relocation.offset - object.functions.data[1].code_offset)] = 0;
+                damaged = true;
+            }
+            if row == 2 && relocation.kind == convert(u32, WasmRelocation.MemoryAddressSleb) { relocation.addend = oversized_addend; }
+        }
+        utility_check(bytes_append(&link.output, "keep", 4), "previous error output");
+        utility_check(!wasm_link_run(&link) && link.error == WasmLinkError.Input
+            && wasm_bytes_text(link.error_name, "relocation requires a padded LEB operand"), "earliest source error wins over later overflow across workers");
+        utility_check(link.world.store.views == 0 && wasm_bytes_text(init(WasmBytes) { data: link.output.data, length: link.output.length }, "keep"), "failed jobs drain and preserve previous artifact");
+    }
+    for (var workers: usize = 1; workers <= 2; workers++) {
+        var input: ByteBuffer = default; defer bytes_dispose(&input); wasm_tls_object(&input, true);
+        var link: WasmLink = default;
+        utility_check(wasm_link_init(&link), "cancel world"); defer wasm_link_close(&link);
+        link.shared_memory = true; link.workers = workers; link.job_grain = 1;
+        var probe: WasmCancelProbe = { link: &link, ..default };
+        link.cancel = wasm_probe_cancel; link.cancel_context = bits(void*, &probe);
+        utility_check(wasm_link_read_object(&link.world, wasm_text_bytes("cancel.o"), init(WasmBytes) { data: input.data, length: input.length })
+            && bytes_append(&link.output, "keep", 4), "cancel input");
+        utility_check(!wasm_link_run(&link) && wasm_bytes_text(link.error_name, "link cancelled") && probe.polls == 2, "cancel after admitted work");
+        utility_check(link.world.store.views == 0 && wasm_bytes_text(init(WasmBytes) { data: link.output.data, length: link.output.length }, "keep"), "cancel drains before unpinning and publication");
+    }
+}
+
+enum TlsProfileCase: u32 { Shared = 0, Unshared = 1, SymbolMismatch = 2, ImmutableBase = 3, WrongArgument = 4, NonTlsTarget = 5, Overflow = 6 }
+
+fn wasm_test_tls_profiles(): void {
+    for (var scenario: u32 = 0; scenario <= convert(u32, TlsProfileCase.Overflow); scenario++) {
+        var mode = convert(TlsProfileCase, scenario);
+        var input: ByteBuffer = default; defer bytes_dispose(&input); wasm_tls_object(&input, true);
+        var link: WasmLink = default;
+        utility_check(wasm_link_init(&link), "TLS profile world"); defer wasm_link_close(&link);
+        link.shared_memory = mode != TlsProfileCase.Unshared;
+        utility_check(wasm_link_read_object(&link.world, wasm_text_bytes("tls_profile.o"), init(WasmBytes) { data: input.data, length: input.length }), "TLS profile input");
+        var object = link.world.objects.data[0].object;
+        var error = WasmLinkError.None;
+        match mode {
+            TlsProfileCase.SymbolMismatch => { object.symbols.data[convert(usize, TlsSymbol.First)].flags = 0; error = WasmLinkError.Input; }
+            TlsProfileCase.ImmutableBase => { object.globals.data[0].mutable = false; error = WasmLinkError.Signature; }
+            TlsProfileCase.WrongArgument => { object.types.data[0].bytes.data[2] = convert(u8, WasmValueType.I64); error = WasmLinkError.Signature; }
+            TlsProfileCase.NonTlsTarget => {
+                foreach (var & relocation in &object.relocations) {
+                    if relocation.kind == convert(u32, WasmRelocation.MemoryAddressTlsSleb) { relocation.index = convert(u32, TlsSymbol.Counter); break; }
+                }
+                error = WasmLinkError.Signature;
+            }
+            TlsProfileCase.Overflow => {
+                foreach (var & relocation in &object.relocations) {
+                    if relocation.kind == convert(u32, WasmRelocation.MemoryAddressI32) { relocation.addend = 1099511627776; }
+                }
+                error = WasmLinkError.Layout;
+            }
+            _ => { }
+        }
+        var size_export: WasmExportRequest = { name: wasm_text_bytes("__tls_size"), required: true };
+        var align_export: WasmExportRequest = { name: wasm_text_bytes("__tls_align"), required: true };
+        utility_check(wasm_link_push(&link, &link.exports, size_export) && wasm_link_push(&link, &link.exports, align_export), "TLS layout exports");
+        var ok = wasm_link_run(&link);
+        utility_check(link.error == error && ok == (error == WasmLinkError.None), "TLS profile result");
+        if !ok { utility_check(link.output.length == 0, "invalid TLS publishes no image"); continue; }
+        var output: WasmObject = default; defer wasm_object_dispose(&output);
+        var reader: WasmReader = { bytes: { data: link.output.data, length: link.output.length }, ..default };
+        wasm_object_sections(&output, &reader);
+        utility_check(reader.error == WasmReadError.None && link.tls_size == 16 && link.tls_align == 16, "TLS layout profile");
+        var exports: usize = 0;
+        foreach (var & exported in &output.exports) {
+            if !wasm_bytes_text(exported.name, "__tls_size") && !wasm_bytes_text(exported.name, "__tls_align") { continue; }
+            var global = &output.globals.data[convert(usize, exported.index)];
+            var expression: WasmReader = { bytes: global.expression, ..default };
+            utility_check(!global.mutable && global.type == convert(u8, WasmValueType.I32)
+                && wasm_read_byte(&expression) == convert(u8, WasmOpcode.I32Const) && wasm_read_sleb(&expression, 32) == 16, "TLS size/alignment ABI globals"); exports++;
+        }
+        utility_check(exports == 2, "both TLS ABI layout globals exported");
+        utility_check(output.data.data[0].passive && output.data.data[1].passive && output.data.data[2].passive == link.shared_memory, "only TLS stays passive for unshared memory");
+    }
+}

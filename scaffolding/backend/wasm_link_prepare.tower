@@ -68,12 +68,12 @@ fn wasm_link_type(link: WasmLink*, type: WasmFunctionTypeRecord*): u32 {
 }
 
 fn wasm_link_shared_features(link: WasmLink*): bool {
-    if !link.shared_memory { return true; }
-    if link.maximum_memory == 0 { return wasm_link_fail(link, WasmLinkError.Layout, wasm_text_bytes("shared memory requires a maximum")); }
+    if !link.shared_memory && !link.has_tls { return true; }
+    if link.shared_memory && link.maximum_memory == 0 { return wasm_link_fail(link, WasmLinkError.Layout, wasm_text_bytes("shared memory requires a maximum")); }
     var atomics = wasm_names_get(&link.feature_names, wasm_text_bytes("atomics"));
     var bulk = wasm_names_get(&link.feature_names, wasm_text_bytes("bulk-memory"));
     var shared = wasm_names_get(&link.feature_names, wasm_text_bytes("shared-mem"));
-    if shared != WasmNoIndex && link.features.data[convert(usize, shared)].prefix == convert(u8, WasmFeaturePrefix.Disallowed) {
+    if link.shared_memory && shared != WasmNoIndex && link.features.data[convert(usize, shared)].prefix == convert(u8, WasmFeaturePrefix.Disallowed) {
         return wasm_link_fail(link, WasmLinkError.Unsupported, wasm_text_bytes("shared-mem is disallowed by an input"));
     }
     if atomics == WasmNoIndex || link.features.data[convert(usize, atomics)].prefix == convert(u8, WasmFeaturePrefix.Disallowed) {
@@ -128,12 +128,16 @@ fn wasm_link_prepare(link: WasmLink*): bool {
             }
         }
         foreach (var & data in &object.data) {
-            var supported_flags = convert(u32, WasmSegmentFlag.Strings) | convert(u32, WasmSegmentFlag.Retain);
+            var supported_flags = convert(u32, WasmSegmentFlag.Strings) | convert(u32, WasmSegmentFlag.Retain) | convert(u32, WasmSegmentFlag.ThreadLocal);
             if data.passive || (data.flags & ~supported_flags) != 0 || data.memory != 0 { return wasm_link_fail(link, WasmLinkError.Unsupported, entry.name); }
+            if (data.flags & convert(u32, WasmSegmentFlag.ThreadLocal)) != 0 { link.has_tls = true; }
         }
         foreach (var & symbol in &object.symbols) {
-            if (symbol.flags & convert(u32, WasmSymbolFlag.ThreadLocal)) != 0 {
-                return wasm_link_fail(link, WasmLinkError.Unsupported, wasm_text_bytes("thread-local storage requires per-instance TLS initialization"));
+            if symbol.kind == convert(u8, WasmSymbolKind.Data) && (symbol.flags & convert(u32, WasmSymbolFlag.Undefined)) == 0 {
+                var tls = (symbol.flags & convert(u32, WasmSymbolFlag.ThreadLocal)) != 0;
+                if tls != ((object.data.data[convert(usize, symbol.index)].flags & convert(u32, WasmSegmentFlag.ThreadLocal)) != 0) {
+                    return wasm_link_fail(link, WasmLinkError.Input, wasm_text_bytes("TLS symbol and segment disagree"));
+                }
             }
         }
         var component = entity_component_add(entry.node, link.layout_type);
@@ -147,6 +151,9 @@ fn wasm_link_prepare(link: WasmLink*): bool {
             && wasm_link_chunks(link, &layout.tags, object.tags.length)
             && wasm_link_chunks(link, &layout.data, object.data.length);
         if !ok { return false; }
+        for (var row: usize = 0; row < object.data.length; row++) {
+            layout.data.data[row].tls = (object.data.data[row].flags & convert(u32, WasmSegmentFlag.ThreadLocal)) != 0;
+        }
         foreach (var & type in &object.types) {
             var index = wasm_link_type(link, type);
             if index == WasmNoIndex || !wasm_link_push(link, &layout.types, index) { return false; }

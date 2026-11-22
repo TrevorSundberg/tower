@@ -38666,3 +38666,89 @@ The public native compiler still transitively loads LLVM's existing libraries;
 LLVM's dynamic dependencies. The next packager can reuse WasmArchive's bounded
 GNU ar reader/index and WasmObject's symbol flags and exports; validate selection
 against the real build before removing llvm-nm or changing support membership.
+### 2026-11-21: TLS and parallel linker jobs, planned together
+
+User explicitly requests both remaining slices. Pull main through 2129066 and
+the complete function-value bootstrap 9bf8779c. Git's automatic repack delays the
+initial pull; let it finish, and disable automatic maintenance for later pull
+commands in this turn rather than repeatedly paying that cost. Preserve the
+other lane's type-system work and do not modify todo.txt.
+
+TLS plan: use existing data/layout components for aligned TLS offsets and the
+static initial block; define __tls_base/__tls_size/__tls_align and
+__wasm_init_tls(i32). Keep passive TLS templates for subsequent workers, clear
+padding, copy each live segment and apply per-instance pointer/GOT fixups. Preserve
+ordinary data's atomic once initialization. Validate TLS32 relocations and reject
+unsupported memory64 or non-TLS storage containing per-thread addresses. Compare
+real initialization/isolation with upstream LLD, including repeated initialization.
+
+Parallel plan: reuse WorkGraph, pinned entity views and WorkPool with typed
+callbacks from the now-public language. Freeze layout/symbol/input metadata, give
+jobs disjoint output ranges and private errors, then drain and choose errors in
+input order. Begin with relocation batches; keep graph structure, symbol selection
+and final output publication on the coordinator. Exercise actual overlap,
+serial/parallel byte equality, error order and cancellation cleanup; measure
+useful grain sizes against the existing serial benchmark. Browser transports
+that provide only an isolated single lane retain that explicit capacity.
+
+### 2026-11-21: TLS and typed parallel relocation implementation
+
+Implemented static wasm32 TLS layout/ABI globals, retained passive templates,
+TLS offset relocations, per-instance initialization, padding clearing, mutable
+TLS GOT updates and TLS-to-TLS pointer fixups. Ordinary shared data preserves
+atomic once initialization. Invalid symbol/segment flags, signatures, TLS targets
+and 32-bit addend overflow fail without publishing an image. Memory64/TLS64,
+dynamic output and absolute shared TLS addresses outside TLS storage stay explicit
+unsupported profiles. No Foundation operation or second semantic graph added.
+
+Parallel emission reuses WorkGraph, per-request ECS job components, pinned views
+and WorkPool. The now-public typed function values let WorkPool accept a kernel
+without a native shim or dispatch ID. The coordinator freezes input/layout vectors
+and output ranges; workers only copy/patch their range and private error component.
+After draining, errors are selected in source order and output publishes atomically.
+The pool is reused between code/data phases, with 256 Ki estimated cost grain
+(bytes + 64 per relocation). Default remains one lane; --threads=N is an explicit
+budget capped by actual transport capacity. Isolated backend reactors remain
+single lane; native overlap is verified, not inferred from admission counters.
+Cancellation is cooperative, coordinator-only, and not permission to mutate or
+reenter a request. Both serial callbacks and parallel workers pin the owner;
+admitted work drains before reclamation and a failed/cancelled image preserves
+prior output. Input parsing/layout and individual kernels are not preempted.
+
+Focused public-bootstrap (9bf8779c) builds passed for linker units, reader and
+TLS generator. Native reader reports actual simultaneous relocation kernels via
+a two-party semaphore barrier, exact serial output equality, earliest error at
+1/2/4 lanes, cancellation at 1/2 lanes, no leaked views, TLS ABI globals/modes and
+negative profiles. Generator produces identical full TLS images at 1/2/4 lanes.
+Real Node Wasm instances: eight workers each initialize two regions, reinitialize
+one, check retained data/zero padding/GOT/pointer values and old-region isolation;
+final instance checks atomic completion count. Full Tower and common Tower/LLD
+profiles pass with host-wasi.mjs. JS change only transports each worker ordinal.
+
+Reference qualification: SDK34 wasm-ld with --no-stack-first passes the common
+TLS offset/GOT/reinitialization case. The full TLS-to-TLS pointer initializer
+case traps in the reference at 0x14d. Disassembly shows __wasm_apply_tls_relocs
+stores at static address 1052, whereas the destination must follow __tls_base.
+Pinned lld/wasm/InputChunks.cpp adds tlsBase to relocation destinations under
+ctx.isPic; this fixture is static/shared. Writer.cpp also orders GOT updates
+after pointer fixups. Therefore the full pointer test establishes Tower's explicit
+contract; it is NOT counted as an LLD differential pass. Sources inspected:
+https://github.com/WebAssembly/tool-conventions/blob/main/Linking.md and pinned
+LLVM 1e57ee22ca274b663eeb279fd86e7010a8441c99 lld/wasm/{Writer,InputChunks}.cpp.
+
+Debugging: missing work_seal before work_demand initially produced a generic
+allocation failure in parallel setup; sealed declarations now pass. One extra
+parenthesis and unsupported else-if surface syntax were corrected before testing.
+PowerShell requires quoting the comma-bearing -Wl export argument. No sanitizer
+or broad formatter run. Existing native thread/semaphore bindings unchanged.
+
+Initial frozen LLVM-reactor benchmark, five alternating process runs, seconds
+(1/2/4/8 lanes medians): 0.45/0.51/0.44/0.47; previous shared binary 0.54.
+High scheduling noise (0.40..0.55) prevents a speedup claim. Peak RSS approximately
+352904/355016/354504/354184 KiB vs previous 351652 KiB. All five output hashes equal
+361466038559fa5d295268fb38fc3fbe3af7ae3993523974056933b32b378133.
+Arguments: build/wasm_link_memory_benchmark_args.json, replacing --threads=1;
+artifacts under /home/trevo/.cache/tower/coordinator-wasm-linker/{static-tls-jobs,
+reader-tls-jobs,tls-generate,jobs*.wasm}. Time via /usr/bin/time %e,%M, no concurrent
+builds. Full clean successor, legacy WorkPool and browser-generation gates remain
+pending at this checkpoint; production LLD selection is unchanged.

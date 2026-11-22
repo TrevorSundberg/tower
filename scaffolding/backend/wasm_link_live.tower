@@ -105,6 +105,7 @@ fn wasm_link_table_relocation(kind: WasmRelocation): bool {
 
 fn wasm_link_roots(link: WasmLink*): bool {
     if link.memory_init_symbol != WasmNoIndex && !wasm_link_mark(link, link.memory_init_symbol) { return false; }
+    if link.tls_init_symbol != WasmNoIndex && (!wasm_link_mark(link, link.tls_init_symbol) || !wasm_link_mark(link, link.tls_base_symbol)) { return false; }
     foreach (var & request in &link.exports) {
         var index = wasm_names_get(&link.names, request.name);
         if index == WasmNoIndex || !link.symbols.data[convert(usize, index)].defined {

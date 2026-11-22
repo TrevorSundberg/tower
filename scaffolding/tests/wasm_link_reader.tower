@@ -3,6 +3,7 @@ import .compiler.utf8;
 import utility_checks;
 import wasm_link_fixture;
 import wasm_link_shared;
+import wasm_link_job_checks;
 import .backend.wasm_bytes;
 import .backend.wasm_object;
 import .backend.wasm_object_types;
@@ -762,6 +763,7 @@ export fn main(): i32 {
     wasm_test_archive_comdat_fallback();
     wasm_test_memory_imports();
     wasm_test_shared_memory();
+    wasm_test_job_overlap(); wasm_test_job_errors(); wasm_test_tls_profiles();
     puts("Wasm linker reader and world checks passed");
     return 0;
 }

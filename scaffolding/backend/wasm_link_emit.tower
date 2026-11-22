@@ -4,6 +4,7 @@ import wasm_object_types;
 import wasm_link_types;
 import wasm_link_relocate;
 import wasm_link_memory;
+import wasm_link_jobs;
 import .library.bytes_interface;
 import .library.bytes_types;
 
@@ -58,7 +59,8 @@ fn wasm_emit_globals(link: WasmLink*, section: ByteBuffer*): bool {
         if output.object == WasmNoIndex {
             var symbol = &link.symbols.data[convert(usize, output.symbol)];
             var value = symbol.kind == convert(u8, WasmSymbolKind.Function) ? convert(u64, symbol.table_index) : symbol.address;
-            var mutable = symbol.synthetic == WasmSynthetic.Stack || symbol.global_mutable;
+            if symbol.tls { value = 0; }
+            var mutable = symbol.synthetic == WasmSynthetic.Stack || symbol.synthetic == WasmSynthetic.TlsBase || symbol.tls || symbol.global_mutable;
             if !bytes_push(section, convert(u8, WasmValueType.I32)) || !bytes_push(section, mutable ? 1 : 0)
                 || !wasm_emit_i32_expression(section, value) { return false; }
         } else {
@@ -73,6 +75,7 @@ fn wasm_emit_globals(link: WasmLink*, section: ByteBuffer*): bool {
 fn wasm_emit_synthetic(link: WasmLink*, output: WasmOutputFunction*, body: ByteBuffer*): bool {
     var symbol = &link.symbols.data[convert(usize, output.symbol)];
     if symbol.synthetic == WasmSynthetic.InitMemory { return wasm_emit_memory_init(link, body); }
+    if symbol.synthetic == WasmSynthetic.InitTls { return wasm_emit_tls_init(link, body); }
     if !wasm_write_uleb(body, 0) { return false; }
     if symbol.synthetic == WasmSynthetic.SignatureTrap {
         if !bytes_push(body, convert(u8, WasmOpcode.Unreachable)) { return false; }
@@ -86,7 +89,7 @@ fn wasm_emit_synthetic(link: WasmLink*, output: WasmOutputFunction*, body: ByteB
     return bytes_push(body, convert(u8, WasmOpcode.End));
 }
 
-fn wasm_emit_code(link: WasmLink*, section: ByteBuffer*): bool {
+fn wasm_emit_code(link: WasmLink*, work: WasmLinkWork*, section: ByteBuffer*): bool {
     var count = link.functions.length - convert(usize, link.imported_functions);
     if count == 0 { return true; }
     if !wasm_write_uleb(section, convert(u64, count)) { return false; }
@@ -104,15 +107,13 @@ fn wasm_emit_code(link: WasmLink*, section: ByteBuffer*): bool {
             var chunk = &link.layouts.data[input].functions.data[convert(usize, output.function)];
             if !wasm_write_uleb(section, convert(u64, function.code.length)) { return false; }
             chunk.output_offset = convert(u64, section.length);
-            if !bytes_append(section, function.code.data, function.code.length) { return false; }
-            if !wasm_link_relocate(link, input, chunk, function.code_offset,
-                init(WasmBytes) { data: section.data + convert(usize, chunk.output_offset), length: function.code.length }) { return false; }
+            if !wasm_link_copy(work, link, section, input, chunk, function.code_offset, function.code) { return false; }
         }
     }
-    return true;
+    return wasm_link_jobs_run(work, link, section);
 }
 
-fn wasm_emit_data(link: WasmLink*, section: ByteBuffer*): bool {
+fn wasm_emit_data(link: WasmLink*, work: WasmLinkWork*, section: ByteBuffer*): bool {
     var count = link.data_count;
     if count == 0 { return true; }
     if !wasm_write_uleb(section, convert(u64, count)) { return false; }
@@ -123,16 +124,15 @@ fn wasm_emit_data(link: WasmLink*, section: ByteBuffer*): bool {
             var chunk = &layout.data.data[row];
             if !chunk.live { continue; }
             var data = &object.data.data[row];
-            var mode = link.shared_memory ? WasmDataMode.Passive : WasmDataMode.Active;
-            if !wasm_write_uleb(section, convert(u64, mode)) || (!link.shared_memory && !wasm_emit_i32_expression(section, chunk.address))
+            var passive = link.shared_memory || chunk.tls;
+            var mode = passive ? WasmDataMode.Passive : WasmDataMode.Active;
+            if !wasm_write_uleb(section, convert(u64, mode)) || (!passive && !wasm_emit_i32_expression(section, chunk.address))
                 || !wasm_write_uleb(section, convert(u64, data.bytes.length)) { return false; }
             chunk.output_offset = convert(u64, section.length);
-            if !bytes_append(section, data.bytes.data, data.bytes.length) { return false; }
-            if !wasm_link_relocate(link, input, chunk, data.section_offset,
-                init(WasmBytes) { data: section.data + convert(usize, chunk.output_offset), length: data.bytes.length }) { return false; }
+            if !wasm_link_copy(work, link, section, input, chunk, data.section_offset, data.bytes) { return false; }
         }
     }
-    return true;
+    return wasm_link_jobs_run(work, link, section);
 }
 
 fn wasm_emit_names(link: WasmLink*, section: ByteBuffer*): bool {
@@ -152,6 +152,8 @@ fn wasm_emit_names(link: WasmLink*, section: ByteBuffer*): bool {
 }
 
 fn wasm_link_emit_sections(link: WasmLink*, output: ByteBuffer*): bool {
+    var work: WasmLinkWork = default;
+    defer wasm_link_work_close(&work);
     var header: u8[8] = default;
     header[1] = 97; header[2] = 115; header[3] = 109; header[4] = 1;
     if !bytes_append(output, &header[0], 8) { return false; }
@@ -198,9 +200,9 @@ fn wasm_link_emit_sections(link: WasmLink*, output: ByteBuffer*): bool {
         foreach (var function in &link.table_functions) { if !wasm_write_uleb(&section, convert(u64, function)) { return false; } }
         if !wasm_emit_section(output, WasmSection.Element, &section) { return false; }
     }
-    if link.shared_memory && (!wasm_write_uleb(&section, convert(u64, link.data_count)) || !wasm_emit_section(output, WasmSection.DataCount, &section)) { return false; }
-    if !wasm_emit_code(link, &section) || !wasm_emit_section(output, WasmSection.Code, &section)
-        || !wasm_emit_data(link, &section) || !wasm_emit_section(output, WasmSection.Data, &section) { return false; }
+    if (link.shared_memory || link.has_tls) && (!wasm_write_uleb(&section, convert(u64, link.data_count)) || !wasm_emit_section(output, WasmSection.DataCount, &section)) { return false; }
+    if !wasm_emit_code(link, &work, &section) || !wasm_emit_section(output, WasmSection.Code, &section)
+        || !wasm_emit_data(link, &work, &section) || !wasm_emit_section(output, WasmSection.Data, &section) { return false; }
     if link.emit_names && (!wasm_emit_names(link, &section) || !wasm_emit_section(output, WasmSection.Custom, &section)) { return false; }
     if link.features.length != 0 {
         if !wasm_write_name(&section, wasm_text_bytes("target_features")) || !wasm_write_uleb(&section, convert(u64, link.features.length)) { return false; }

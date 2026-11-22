@@ -18,6 +18,9 @@ fn wasm_link_run(link: WasmLink*): bool {
         return wasm_link_fail(link, WasmLinkError.Input, wasm_text_bytes("link requests are single use"));
     }
     link.started = true;
+    if link.workers == 0 || link.workers > WasmLinkMaximumWorkers || link.job_grain == 0 {
+        return wasm_link_fail(link, WasmLinkError.Input, wasm_text_bytes("invalid linker worker budget"));
+    }
     return wasm_link_extract_archives(link) && wasm_link_prepare(link) && wasm_link_symbols(link) && wasm_link_synthetics(link)
         && wasm_link_apply_wraps(link) && wasm_link_variants(link) && wasm_link_liveness(link)
         && wasm_link_layout(link) && wasm_link_emit(link);

@@ -72,6 +72,8 @@ fn wasm_link_signatures(link: WasmLink*, left: WasmSymbolReference, right: WasmS
     var x = &a.symbols.data[convert(usize, left.symbol)];
     var y = &b.symbols.data[convert(usize, right.symbol)];
     if x.kind != y.kind { return false; }
+    if x.kind == convert(u8, WasmSymbolKind.Data)
+        && ((x.flags ^ y.flags) & convert(u32, WasmSymbolFlag.ThreadLocal)) != 0 { return false; }
     var kind = convert(WasmSymbolKind, x.kind);
     match kind {
         WasmSymbolKind.Function => {
@@ -111,6 +113,7 @@ fn wasm_link_symbols(link: WasmLink*): bool {
                 index = convert(u32, link.symbols.length);
                 var next: WasmResolvedSymbol = { name: symbol.name, definition: reference, declaration: reference, import_declaration: reference,
                     defined: defined, weak: weak, local: local, kind: symbol.kind, explicit_import: explicit_import,
+                    tls: (symbol.flags & convert(u32, WasmSymbolFlag.ThreadLocal)) != 0,
                     output_index: WasmNoIndex, got_index: WasmNoIndex, ..default };
                 if symbol.kind == convert(u8, WasmSymbolKind.Global) { next.global_mutable = object.globals.data[convert(usize, symbol.index)].mutable; }
                 if !wasm_link_push(link, &link.symbols, next) { return false; }

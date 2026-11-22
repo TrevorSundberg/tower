@@ -26,6 +26,7 @@ struct WorkSlot {
     finished: void*;
     completion: void*;
     job: void*;
+    execute: function(void, void*);
     busy: bool;
 }
 
@@ -36,6 +37,7 @@ struct WorkPool {
     peak: usize;
     completion: void*;
     threaded: bool;
+    execute: function(void, void*);
 }
 
 var WorkPoolMaximumCapacity: usize = 256;
@@ -57,7 +59,7 @@ fn work_pool_entry(argument: void*): void* {
         if job == null {
             return null;
         }
-        work_kernel_execute(job);
+        slot.execute(job);
         // finished publishes this slot's payload; completion wakes the owner.
         // Never read job/busy again until the next start semaphore acquisition.
         work_pool_complete(slot);
@@ -69,7 +71,19 @@ fn work_pool_open(pool: WorkPool*, capacity: usize): bool {
 }
 
 fn work_pool_open_named(pool: WorkPool*, capacity: usize, entry: u8*, windows_entry: u8*): bool {
+    return work_pool_open_impl(pool, capacity, entry, windows_entry, work_kernel_execute);
+}
+
+// Typed kernels share the ordinary platform entry and semaphore handoff. The
+// callback is a noncapturing function; job owns/borrows its explicit context.
+fn work_pool_open_kernel(pool: WorkPool*, capacity: usize, execute: function(void, void*)): bool {
+    if execute == null { return false; }
+    return work_pool_open_impl(pool, capacity, null, null, execute);
+}
+
+fn work_pool_open_impl(pool: WorkPool*, capacity: usize, entry: u8*, windows_entry: u8*, execute: function(void, void*)): bool {
     *pool = default;
+    pool.execute = execute;
     if capacity == 0 || capacity > WorkPoolMaximumCapacity {
         return false;
     }
@@ -88,6 +102,7 @@ fn work_pool_open_named(pool: WorkPool*, capacity: usize, entry: u8*, windows_en
         return false;
     }
     fill(pool.slots, 0, capacity * sizeof(WorkSlot));
+    for (var at: usize = 0; at < capacity; at++) { pool.slots[at].execute = execute; }
     if !pool.threaded {
         pool.count = 1;
         return true;
@@ -145,7 +160,7 @@ fn work_pool_admit(pool: WorkPool*, job: void*): bool {
 
 fn work_pool_submit(pool: WorkPool*, job: void*): bool {
     if !work_pool_admit(pool, job) { return false; }
-    if !pool.threaded { work_kernel_execute(job); }
+    if !pool.threaded { pool.execute(job); }
     return true;
 }
 

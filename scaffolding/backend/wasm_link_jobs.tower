@@ -1,0 +1,157 @@
+import tower;
+import wasm_bytes;
+import wasm_link_types;
+import wasm_link_relocate;
+import .library.vector;
+import .library.bytes_types;
+import .library.bytes_interface;
+import .library.entity_types;
+import .library.entity_api;
+import .library.work_graph;
+import .library.work_pool;
+
+struct WasmLinkCopy { input: usize; chunk: WasmChunkLayout*; source: WasmBytes; original_offset: u32; offset: usize; }
+struct WasmLinkJob {
+    owner: WasmLink*; copies: WasmLinkCopy*; count: usize; output: u8*;
+    ticket: WorkTicket; error: WasmLinkError; error_name: WasmBytes;
+}
+struct WasmLinkWork { pool: WorkPool; copies: vector(WasmLinkCopy); cost: u64; opened: bool; }
+var WasmLinkInputDomain: u64 = 1;
+var WasmLinkOutputDomain: u64 = 2;
+var WasmLinkJobDomain: u64 = 3;
+var WasmLinkInputComponent: u64 = 1;
+var WasmLinkOutputComponent: u64 = 1;
+var WasmLinkPatchQuery: u32 = 1;
+var WasmLinkJobsPerLane: usize = 4;
+
+fn wasm_link_job_execute(payload: void*): void {
+    var job = bits(WasmLinkJob*, payload);
+    // A shallow borrowed view, not another owning world. Only the private error
+    // fields may change; all vectors, symbols and entity metadata are frozen.
+    var local = *job.owner;
+    local.error = WasmLinkError.None; local.error_name = default;
+    for (var at: usize = 0; at < job.count; at++) {
+        var item = &job.copies[at];
+        var target: WasmBytes = { data: job.output + item.offset, length: item.source.length };
+        copy(target.data, item.source.data, target.length);
+        if !wasm_link_relocate(&local, item.input, item.chunk, item.original_offset, target) { break; }
+    }
+    job.error = local.error; job.error_name = local.error_name;
+}
+
+fn wasm_link_work_close(work: WasmLinkWork*): void {
+    if work.opened { work_pool_close(&work.pool); }
+    vector_dispose(&work.copies);
+    *work = default;
+}
+
+fn wasm_link_copy(work: WasmLinkWork*, link: WasmLink*, section: ByteBuffer*, input: usize,
+chunk: WasmChunkLayout*, original_offset: u32, source: WasmBytes): bool {
+    if source.length == 0 { return true; }
+    if link.workers <= 1 {
+        var offset = section.length;
+        return bytes_append(section, source.data, source.length) && wasm_link_relocate(link, input, chunk, original_offset,
+            init(WasmBytes) { data: section.data + offset, length: source.length });
+    }
+    if source.length > ~convert(usize, 0) - section.length || !bytes_reserve(section, section.length + source.length) { return false; }
+    var item: WasmLinkCopy = { input: input, chunk: chunk, source: source, original_offset: original_offset, offset: section.length };
+    if !vector_push(&work.copies, item) { return false; }
+    section.length += source.length;
+    var cost = convert(u64, source.length) + convert(u64, chunk.relocation_count) * WasmLinkRelocationCost;
+    if cost > ~convert(u64, 0) - work.cost { return false; }
+    work.cost += cost;
+    return true;
+}
+
+fn wasm_link_jobs_cancelled(link: WasmLink*): bool {
+    return link.cancel != null && link.cancel(link.cancel_context);
+}
+
+fn wasm_link_jobs_run(work: WasmLinkWork*, link: WasmLink*, section: ByteBuffer*): bool {
+    if work.copies.length == 0 {
+        if link.cancel == null { return true; }
+        var view = entity_view_open(link.world.object_type);
+        if view == null { return false; }
+        defer entity_view_close(view);
+        return !wasm_link_jobs_cancelled(link) || wasm_link_fail(link, WasmLinkError.Input, wasm_text_bytes("link cancelled"));
+    }
+    if link.workers == 0 || link.workers > WasmLinkMaximumWorkers || link.job_grain == 0 { return wasm_link_fail(link, WasmLinkError.Input, wasm_text_bytes("invalid linker worker budget")); }
+    var limit = link.workers * WasmLinkJobsPerLane;
+    var grain = work.cost / convert(u64, limit);
+    if grain < link.job_grain { grain = link.job_grain; }
+    if work.opened && work.pool.count == 1 && work.cost >= link.job_grain && link.workers > 1 && work_thread_capacity() > 1 {
+        work_pool_close(&work.pool); work.opened = false;
+    }
+    if !work.opened {
+        var lanes = work.cost < link.job_grain ? convert(usize, 1) : link.workers;
+        if !work_pool_open_kernel(&work.pool, lanes, wasm_link_job_execute) { return wasm_link_fail(link, WasmLinkError.Allocation, wasm_text_bytes("linker worker pool")); }
+        work.opened = true;
+    }
+    var graph: WorkGraph = default;
+    work_init(&graph, 1, 1);
+    defer work_dispose(&graph);
+    var kind = entity_create(link.world.store);
+    if kind == null { return false; }
+    defer entity_release(kind);
+    if !entity_register(kind, sizeof(WasmLinkJob), alignof(WasmLinkJob), 0) { return false; }
+    var nodes: vector(Entity*) = default;
+    var jobs: vector(WasmLinkJob*) = default;
+    defer { foreach (var node in &nodes) { entity_release(node); } vector_dispose(&nodes); vector_dispose(&jobs); }
+    for (var first: usize = 0; first < work.copies.length;) {
+        var last = first; var cost: u64 = 0;
+        while last < work.copies.length && (last == first || cost < grain) {
+            var item = &work.copies.data[last++];
+            cost += convert(u64, item.source.length) + convert(u64, item.chunk.relocation_count) * WasmLinkRelocationCost;
+        }
+        var node = entity_create(link.world.store);
+        if node == null { return false; }
+        if !vector_push(&nodes, node) { entity_release(node); return false; }
+        var component = entity_component_add(node, kind);
+        if component == null { return false; }
+        var job = bits(WasmLinkJob*, entity_component_data(component));
+        *job = init(WasmLinkJob) { owner: link, copies: work.copies.data + first, count: last - first, output: section.data, ..default };
+        if !vector_push(&jobs, job) { return false; }
+        var task = work_request(&graph, bits(void*, node), WasmLinkPatchQuery, convert(u64, jobs.length));
+        var begin = work.copies.data[first].offset;
+        var end = work.copies.data[last - 1].offset + work.copies.data[last - 1].source.length;
+        if task == 0 || !work_access(&graph, task, WasmLinkInputDomain, WasmLinkInputComponent, 0, link.world.objects.length, WorkAccessMode.Read)
+            || !work_access(&graph, task, WasmLinkOutputDomain, WasmLinkOutputComponent, begin, end - begin, WorkAccessMode.Write)
+            || !work_access(&graph, task, WasmLinkJobDomain, WasmLinkOutputComponent, jobs.length - 1, 1, WorkAccessMode.Write)
+            || !work_seal(&graph, task) || !work_demand(&graph, task) {
+            return wasm_link_fail(link, WasmLinkError.Input, wasm_text_bytes("linker job access graph"));
+        }
+        first = last;
+    }
+    var view = entity_view_open(kind);
+    if view == null { return false; }
+    // Drain before closing the view and reclaiming job payloads on every exit.
+    defer { while work.pool.running != 0 { work_pool_receive(&work.pool, true); } entity_view_close(view); }
+    var finished: usize = 0;
+    while finished < jobs.length {
+        if wasm_link_jobs_cancelled(link) {
+            work_cancel(&graph);
+            return wasm_link_fail(link, WasmLinkError.Input, wasm_text_bytes("link cancelled"));
+        }
+        while work.pool.running < work.pool.count {
+            var ticket: WorkTicket = default;
+            if !work_take(&graph, &ticket) { break; }
+            var task = work_task(&graph, ticket.task);
+            var job = jobs.data[convert(usize, task.argument) - 1];
+            job.ticket = ticket;
+            if !work_pool_submit(&work.pool, bits(void*, job)) { return false; }
+        }
+        if work.pool.running == 0 { return false; }
+        var done = bits(WasmLinkJob*, work_pool_receive(&work.pool, true));
+        // Failed independent jobs do not cancel earlier jobs. Error selection
+        // occurs below in source order, never whichever thread happened to win.
+        if !work_finish(&graph, &done.ticket, true) { return false; }
+        finished++;
+    }
+    link.jobs_run += jobs.length;
+    if work.pool.peak > link.jobs_peak { link.jobs_peak = work.pool.peak; }
+    foreach (var job in &jobs) {
+        if job.error != WasmLinkError.None { return wasm_link_fail(link, job.error, job.error_name); }
+    }
+    work.copies.length = 0; work.cost = 0;
+    return true;
+}

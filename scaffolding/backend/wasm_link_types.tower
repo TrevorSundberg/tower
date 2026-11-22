@@ -8,7 +8,7 @@ import .library.bytes_types;
 import .library.entity_types;
 
 enum WasmLinkError: u32 { None = 0, Allocation = 1, Duplicate = 2, Signature = 3, Undefined = 4, Unsupported = 5, Layout = 6, Input = 7 }
-enum WasmSynthetic: u8 { None = 0, Stack = 1, HeapBase = 2, DataEnd = 3, MemoryBase = 4, TableBase = 5, Constructors = 6, IndirectTable = 7, DsoHandle = 8, StackLow = 9, StackHigh = 10, GlobalBase = 11, HeapEnd = 12, FirstPageEnd = 13, SignatureTrap = 14, InitMemory = 15 }
+enum WasmSynthetic: u8 { None = 0, Stack = 1, HeapBase = 2, DataEnd = 3, MemoryBase = 4, TableBase = 5, Constructors = 6, IndirectTable = 7, DsoHandle = 8, StackLow = 9, StackHigh = 10, GlobalBase = 11, HeapEnd = 12, FirstPageEnd = 13, SignatureTrap = 14, InitMemory = 15, TlsBase = 16, TlsSize = 17, TlsAlign = 18, InitTls = 19 }
 struct WasmSymbolReference { object: u32; symbol: u32; }
 struct WasmResolvedSymbol {
     name: WasmBytes;
@@ -28,9 +28,10 @@ struct WasmResolvedSymbol {
     needs_global: bool;
     global_mutable: bool;
     explicit_import: bool;
+    tls: bool;
     address: u64;
 }
-struct WasmChunkLayout { discarded: bool; live: bool; output_index: u32; table_index: u32; address: u64; output_offset: u64; relocation_first: usize; relocation_count: usize; }
+struct WasmChunkLayout { discarded: bool; live: bool; tls: bool; output_index: u32; table_index: u32; address: u64; output_offset: u64; relocation_first: usize; relocation_count: usize; }
 struct WasmChunkReference { object: u32; index: u32; kind: WasmSymbolKind; }
 struct WasmLinkInitializer { priority: u32; symbol: u32; }
 struct WasmObjectLayout {
@@ -96,6 +97,18 @@ struct WasmLink {
     memory_init_flag: u64;
     data_count: u32;
     memory_init_symbol: u32;
+    has_tls: bool;
+    tls_base: u64;
+    tls_size: u64;
+    tls_align: u64;
+    tls_base_symbol: u32;
+    tls_init_symbol: u32;
+    workers: usize;
+    job_grain: u64;
+    jobs_run: usize;
+    jobs_peak: usize;
+    cancel: function(bool, void*);
+    cancel_context: void*;
     allow_undefined: bool;
     garbage_collect: bool;
     started: bool;
@@ -130,9 +143,18 @@ fn wasm_link_init(link: WasmLink*): bool {
     link.memory_module = wasm_text_bytes("env");
     link.memory_name = wasm_text_bytes("memory");
     link.memory_init_symbol = WasmNoIndex;
+    link.tls_base_symbol = WasmNoIndex;
+    link.tls_init_symbol = WasmNoIndex;
+    link.tls_align = 1;
+    link.workers = 1;
+    link.job_grain = WasmLinkJobGrain;
     if !wasm_link_world_open(&link.world) { return wasm_link_fail(link, WasmLinkError.Allocation, default(WasmBytes)); }
     return true;
 }
+
+var WasmLinkJobGrain: u64 = 262144;
+var WasmLinkRelocationCost: u64 = 64;
+var WasmLinkMaximumWorkers: usize = 256;
 
 fn wasm_link_object_layout_dispose(layout: WasmObjectLayout*): void {
     vector_dispose(&layout.types); vector_dispose(&layout.symbols);

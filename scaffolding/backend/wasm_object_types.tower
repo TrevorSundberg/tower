@@ -20,13 +20,13 @@ enum WasmFeaturePrefix: u8 { Used = 43, Disallowed = 45, Required = 61 }
 enum WasmLimitFlag: u32 { Maximum = 1, Shared = 2, Memory64 = 4 }
 enum WasmOpcode: u8 {
     Unreachable = 0, Block = 2, Loop = 3, If = 4, Else = 5, End = 11,
-    Branch = 12, BranchIf = 13, Call = 16, Drop = 26, GlobalGet = 35,
+    Branch = 12, BranchIf = 13, Call = 16, Drop = 26, LocalGet = 32, GlobalGet = 35, GlobalSet = 36, I32Store = 54,
     I32Const = 65, I64Const = 66, F32Const = 67, F64Const = 68,
-    I32Eqz = 69, I32Eq = 70, RefNull = 208, RefFunc = 210,
+    I32Eqz = 69, I32Eq = 70, I32Add = 106, RefNull = 208, RefFunc = 210,
     BulkMemory = 252, Atomic = 254
 }
 enum WasmAtomicOpcode: u32 { Notify = 0, Wait32 = 1, I32Load = 16, I32Store = 23, I32Add = 30, I32CompareExchange = 72 }
-enum WasmBulkOpcode: u32 { MemoryInit = 8, DataDrop = 9 }
+enum WasmBulkOpcode: u32 { MemoryInit = 8, DataDrop = 9, MemoryFill = 11 }
 enum WasmDataMode: u32 { Active = 0, Passive = 1 }
 var WasmEmptyBlock: u8 = 64;
 var WasmAtomic32Alignment: u64 = 2;

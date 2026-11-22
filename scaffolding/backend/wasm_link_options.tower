@@ -91,6 +91,13 @@ fn wasm_link_option(link: WasmLink*, options: WasmLinkOptions*, argument: WasmBy
     }
     if wasm_bytes_text(argument, "-o") { options.pending = WasmOptionPending.Output; return true; }
     if wasm_bytes_text(argument, "-z") { options.pending = WasmOptionPending.Stack; return true; }
+    if wasm_option_prefix(argument, "--threads=") {
+        var count: u64 = 0;
+        if !wasm_option_number(wasm_option_suffix(argument, "--threads="), &count) || count == 0 || count > convert(u64, WasmLinkMaximumWorkers) {
+            return wasm_link_fail(link, WasmLinkError.Input, argument);
+        }
+        link.workers = convert(usize, count); return true;
+    }
     if wasm_bytes_text(argument, "--no-entry") || wasm_bytes_text(argument, "--strip-all") || wasm_bytes_text(argument, "--threads=1") { return true; }
     if wasm_bytes_text(argument, "--whole-archive") { options.whole_archive = true; return true; }
     if wasm_bytes_text(argument, "--no-whole-archive") { options.whole_archive = false; return true; }
