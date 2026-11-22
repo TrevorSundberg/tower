@@ -44508,6 +44508,13 @@ unlinked experiments, 308 JavaScript lines are removed without a replacement
 tool. JavaScript is now 172 files/23,353 lines, down 1,077 from the starting
 inventory; all five measured non-Tower categories together are down 4,431 lines
 (15.0%) and 66 files. All temporal research remains intact.
+
+Removal receipt published as Pages fff57f1b02a6a7d6b550c8a3b4ef11a8d848d847;
+workflow 45039626040 succeeds. Exact hosted manifest SHA256 is
+58326a2b0e1a8257181b4baa47899edd11deb4afe6bb936c118e85932aca60c4.
+All 104 assets, bf2a3e8 compiler/project/bootstrap identities and earlier receipts
+are preserved. Release the owned publication lock after verification. Source
+5b59d24 is pushed; this final journal receipt reuses the same validated runtime.
 Published-browser target execution is now PASS: workflow 45038423612 runs all
 four jobs successfully, consuming the exact f7545d6 browser backend and target
 packs. Both Intel and Apple Silicon Macs verify strict signatures and execute the
