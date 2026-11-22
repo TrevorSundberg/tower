@@ -1,10 +1,20 @@
 import tower;
 
 import .host.syntax_baseline_api;
+import .compiler.frontend_revision_types;
+import .compiler.syntax_session_types;
 import .compiler.syntax_version_types;
+import .library.entity_types;
+import .library.vector;
 
 // Production parsing benchmark; setup uses the shared Tower diagnostic ABI.
-extern fn syntax_create(source: u8*, module: void*): void*;
+extern fn syntax_session_open(world: void*, environment: void*, source: u8*, module: void*, mode: u32): SyntaxSession*;
+extern fn compiler_world_create_workers(limit: usize): void*;
+extern fn compiler_world_store(world: void*): EntityStore*;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn frontend_world_clear(world: void*): bool;
+extern fn work_thread_available(): bool;
+extern fn strcmp(left: u8*, right: u8*): i32;
 
 extern fn syntax_reset(session: void*, source: u8*, module: void*): void;
 
@@ -44,6 +54,132 @@ extern fn puts(text: u8*): i32;
 
 extern fn abort(): void;
 
+// Reference policy from library/entities.tower. Verify each observed page's
+// actual type layout/capacity; a policy change requires reviewing this bound.
+var BenchmarkPageBytes: usize = 16384;
+var BenchmarkPageRows: usize = 64;
+var BenchmarkCacheCapacity: usize = 64;
+var BenchmarkWarmups: usize = 5;
+var BenchmarkIterations: usize = 16;
+var BenchmarkStressIterations: usize = 128;
+
+struct BenchmarkPage { page: EntityComponentPage*; type: Entity*; observed: usize; }
+struct BenchmarkRetention {
+    buffers: usize; entities: usize; components: usize; pages: usize;
+    requested: usize; live_bytes: usize; unused_bytes: usize; page_bound: usize;
+    individual: usize; individual_bytes: usize; cached: usize; versions: usize;
+    revisions: FrontendRevision*[64];
+    compiled: SyntaxVersion*[64];
+}
+
+// Linux x64 integer-only diagnostic ABI. Preserve the original four-column
+// timing CSV on stdout; allocation attribution goes to stderr outside timing.
+extern fn dprintf(fd: i32, format: u8*, size: usize, iteration: usize,
+    buffers: usize, entities: usize, components: usize, pages: usize,
+    requested: usize, live_bytes: usize, unused_bytes: usize, page_bound: usize,
+    individual_bytes: usize, cached: usize): i32;
+
+fn benchmark_check(ok: bool, message: u8*): void {
+    if !ok { puts(message); abort(); }
+}
+
+fn benchmark_retention(world: void*, session: SyntaxSession*, result: BenchmarkRetention*): void {
+    *result = default;
+    result.buffers = tower_test_buffer_count();
+    var store = compiler_world_store(world);
+    result.entities = store.entity_count;
+    result.components = store.component_count;
+    // Full pages are detached from the partial-page pool. Enumerate actual
+    // owning components, including those pages, using only a private index.
+    var pages: vector(BenchmarkPage) = default;
+    defer vector_dispose(&pages);
+    var components: usize = 0;
+    var buckets = sizeof(decltype(store.tables)) / sizeof(EntityTable*);
+    for(var bucket: usize = 0; bucket < buckets; bucket++) {
+        var table = store.tables[bucket];
+        while table != null {
+            for(var row: usize = 0; row < table.length; row++) {
+                var node = table.rows[row];
+                for(var index: usize = 0; index < node.component_count; index++) {
+                    var component = node.components[index];
+                    var type = component.type;
+                    benchmark_check(component.owner == node && type.store == store, "Component owner/world mismatch");
+                    components++;
+                    result.live_bytes += type.data_size;
+                    var page = component.page;
+                    if page == null {
+                        var alignment = type.data_alignment;
+                        if alignment < sizeof(EntityComponent*) { alignment = sizeof(EntityComponent*); }
+                        result.individual++;
+                        result.individual_bytes += sizeof(EntityComponent) + type.data_size
+                            + sizeof(EntityComponent*) + alignment - 1;
+                        continue;
+                    }
+                    var at: usize = 0;
+                    while at < pages.length && pages.data[at].page != page { at++; }
+                    if at == pages.length {
+                        var observed = init(BenchmarkPage) {page: page, type: type, observed: 0};
+                        benchmark_check(vector_push(&pages, observed), "Page observer allocation");
+                    }
+                    benchmark_check(pages.data[at].type == type, "Page component type mismatch");
+                    pages.data[at].observed++;
+                }
+            }
+            table = table.next;
+        }
+    }
+    benchmark_check(components == result.components, "Component traversal omitted an owner");
+    foreach(var &entry in &pages) {
+        var page = entry.page;
+        var alignment = entry.type.data_alignment;
+        var pointer_bytes = sizeof(EntityComponent*);
+        if alignment < pointer_bytes { alignment = pointer_bytes; }
+        var mask = alignment - 1;
+        var stride = (entry.type.data_size + pointer_bytes + mask) & ~mask;
+        var slot = stride + sizeof(EntityComponent);
+        var capacity = BenchmarkPageBytes / slot;
+        if capacity > BenchmarkPageRows { capacity = BenchmarkPageRows; }
+        benchmark_check(capacity >= 2 && page.capacity == capacity && page.stride == stride
+            && page.type_id == entry.type.id, "Component page layout differs from allocator contract");
+        benchmark_check(entry.observed != 0 && entry.observed == page.live
+            && page.live <= page.used && page.used <= capacity, "Component page has unaccounted ownership");
+        var requested = sizeof(EntityComponentPage) + capacity * slot + pointer_bytes + mask;
+        result.requested += requested;
+        result.unused_bytes += (capacity - page.live) * slot;
+        // At quiescence each page has a live owner: at most one such page per
+        // live pooled component. This is a loose bound, not low fragmentation.
+        result.page_bound += entry.observed * requested;
+    }
+    result.pages = pages.length;
+    benchmark_check(result.requested <= result.page_bound, "Retained pages exceed live-owner bound");
+    if session != null {
+        result.cached = session.cache.index.entries.length;
+        result.versions = session.cache.versions.length;
+        benchmark_check(FrontendCacheLimit == BenchmarkCacheCapacity
+            && result.cached <= BenchmarkCacheCapacity && result.versions <= BenchmarkCacheCapacity,
+            "Grammar cache exceeds configured ownership bound");
+        for(var i: usize = 0; i < result.cached; i++) { result.revisions[i] = session.cache.index.entries.data[i]; }
+        for(var i: usize = 0; i < result.versions; i++) { result.compiled[i] = session.cache.versions.data[i]; }
+    }
+}
+
+fn benchmark_retained_same(value: BenchmarkRetention*, previous: BenchmarkRetention*): void {
+    benchmark_check(value.entities == previous.entities && value.components == previous.components
+        && value.live_bytes == previous.live_bytes && value.individual == previous.individual
+        && value.individual_bytes == previous.individual_bytes, "Parser retained semantic ownership changed");
+    benchmark_check(value.cached == previous.cached && value.versions == previous.versions,
+        "Parser retained cache ownership changed");
+    for(var i: usize = 0; i < value.cached; i++) {
+        benchmark_check(value.revisions[i] == previous.revisions[i], "Parser replaced a cached revision");
+    }
+    for(var i: usize = 0; i < value.versions; i++) {
+        benchmark_check(value.compiled[i] == previous.compiled[i], "Parser replaced a cached executable table");
+    }
+    benchmark_check(value.buffers >= value.pages && previous.buffers >= previous.pages
+        && value.buffers - value.pages == previous.buffers - previous.pages,
+        "Retained buffer change is not exactly attributed to component pages");
+}
+
 fn benchmark_number(value: u64): void {
     var digits: u8[20];
     var count: usize = 0;
@@ -73,13 +209,21 @@ fn benchmark_parse(session: void*): void {
 }
 
 export fn main(argc: i32, argv: u8**): i32 {
+    var stress = argc == 2 && strcmp(argv[1], "stress") == 0;
+    if argc != 1 && !stress { puts("Usage: tower-parser-benchmark [stress]"); return 2; }
+    benchmark_check(!work_thread_available(), "Parser retention counters require serial transport");
+    var initial_buffers = tower_test_buffer_count();
+    var world = compiler_world_create_workers(1);
+    benchmark_check(world != null, "Parser benchmark world allocation");
     var declaration: u8* = "parse Statement = 'x'* ';';";
     var setup: SyntaxVersionDiagnostic = default;
-    defer syntax_version_diagnostic_dispose(&setup);
-    if !syntax_host_install(compiler_host_world(), declaration, true, &setup) {
+    if !syntax_host_install(world, declaration, true, &setup) {
         puts(syntax_version_diagnostic_text(&setup));
         abort();
     }
+    syntax_version_diagnostic_dispose(&setup);
+    var world_baseline: BenchmarkRetention;
+    benchmark_retention(world, null, &world_baseline);
     var length: usize = 0;
     while declaration[length] != 0 {
         length = length + 1;
@@ -90,6 +234,7 @@ export fn main(argc: i32, argv: u8**): i32 {
         var bytes = body_bytes + length;
         bytes = bytes + 2;
         var source = alloc(u8, bytes);
+        benchmark_check(source != null, "Parser benchmark source allocation");
         copy(source, declaration, length);
         var at = source + length;
         var position: usize = 0;
@@ -102,18 +247,20 @@ export fn main(argc: i32, argv: u8**): i32 {
         at[body_bytes] = 59;
         var end = body_bytes + 1;
         at[end] = 0;
-        var session = syntax_create(source, null);
+        var session = syntax_session_open(world, null, source, null, SyntaxFoundationBaseline);
+        benchmark_check(session != null, "Parser benchmark session allocation");
         var iteration: usize = 0;
-        var live: usize = 0;
-        while iteration < 16 {
-            syntax_reset(session, source, null);
-            benchmark_parse(session);
+        var retained: BenchmarkRetention;
+        var iterations = stress ? BenchmarkStressIterations : BenchmarkIterations;
+        while iteration < iterations {
+            syntax_reset(bits(void*, session), source, null);
+            benchmark_parse(bits(void*, session));
             var allocations = tower_test_buffer_allocations();
             var start = benchmark_clock();
-            benchmark_parse(session);
+            benchmark_parse(bits(void*, session));
             var elapsed = benchmark_clock() -start;
             allocations = tower_test_buffer_allocations() - allocations;
-            if iteration >= 5 {
+            if iteration >= BenchmarkWarmups {
                 // CSV: input symbols, nanoseconds, tracked allocation calls,
                 // live tracked buffers after releasing the accepted tree.
                 benchmark_number(convert(u64, size));
@@ -124,18 +271,27 @@ export fn main(argc: i32, argv: u8**): i32 {
                 putchar(44);
                 benchmark_number(convert(u64, tower_test_buffer_count()));
                 putchar(10);
-                if iteration > 5 {
-                    if tower_test_buffer_count() != live {
-                        abort();
-                    }
-                }
-                live = tower_test_buffer_count();
+                var current: BenchmarkRetention;
+                benchmark_retention(world, session, &current);
+                benchmark_check(dprintf(2, "retention,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu\n",
+                    size, iteration, current.buffers, current.entities, current.components, current.pages,
+                    current.requested, current.live_bytes, current.unused_bytes, current.page_bound,
+                    current.individual_bytes, current.cached) >= 0, "Parser retention diagnostic output");
+                if iteration > BenchmarkWarmups { benchmark_retained_same(&current, &retained); }
+                else { retained = current; }
             }
             iteration = iteration + 1;
         }
-        syntax_destroy(session);
+        syntax_destroy(bits(void*, session));
         free(source);
+        var released: BenchmarkRetention;
+        benchmark_retention(world, null, &released);
+        benchmark_retained_same(&released, &world_baseline);
+        benchmark_check(released.buffers == world_baseline.buffers && released.pages == world_baseline.pages
+            && released.requested == world_baseline.requested, "Parser session teardown retains allocations");
         size = size * 2;
     }
+    benchmark_check(frontend_world_clear(world) && compiler_world_dispose(world), "Parser benchmark world teardown");
+    benchmark_check(tower_test_buffer_count() == initial_buffers, "Parser benchmark leaves tracked buffers");
     return 0;
 }

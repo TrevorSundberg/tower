@@ -47378,3 +47378,33 @@ for coherent B2 integration. Local helper/type prerequisites remain absent, so n
 compile/runtime pass is claimed for that draft. Final compiler rebuilding awaits
 frozen owner capture/type/prelude inputs, per coordinator; do not build a stale
 full matrix while those required fixes are active.
+
+## 2026-11-22 D1 parser predecessor crash isolated; coherent integration next
+
+The small array-bearing aggregate reset/copy probe compiled, linked and executed0,
+excluding that isolated operation as the reproduction. Installed GDB15.1 in the
+own canonical container (OS tool only, retained installation log). Batch debugger
+on the exact failing public compiler/source stopped SIGSEGV at
+sem_lift_initialization+574, with sem_lift_value/sem_aggregate_arguments visible;
+optimized stack unwind is incomplete. No stored system core was available.
+
+Naming the identical BenchmarkPage initializer in a local before vector_push
+makes the smallest parser oracle unit compile successfully with the unchanged
+public pin. This avoids the predecessor's nested aggregate-initializer lowering
+failure without removing assertions, altering page accounting or changing source
+semantics. Original crashing source, fixed source, GDB log, statuses/times and
+hashes are exported in D1/parser_initializer_repro. Actual parser retention
+execution/normal+stress/profile/teardown remains pending; unit compilation is not
+an oracle runtime pass. No production compiler fix was authored in this lane.
+
+Root delivered coherent_checkpoint_0817375: bundleSHA08048c0cdb274e6df28df96a7f7484947000996c8df770dec53e845411dcee8a, verified base60741c5 and incoming
+main0817375496d2dd6841107c1b91133058eaf12f8d. Read/hash-checked complete required
+continuation, value-input role ABI+publishers, executable-lowering receipt,
+lifecycle and full parser/formatter replacement sequence. Checkpointing outstanding
+own drafts before reviewed main merge as requested: body recursion expectation has
+smallest-unit and owner direct diagnostic evidence; frontend allocation hook is
+unvalidated without incoming definitions; parser oracle has only unit success.
+These are explicit work-in-progress source checkpoints, not acceptance closure.
+Preserve all existing commits, fixture assertions, original failures and the
+complete public bootstrap while integrating; fresh resources must exclude the
+fourteen deleted prelude forwarders. No publication lease exists.
