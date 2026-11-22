@@ -932,3 +932,41 @@ Expected order1,3,4,2, stale/yield/reset/cancel assertions and sorted/compacted
 selection cases remain unchanged, as does D1's exported main wrapper. Adopted
 under root handoff after owned jobs drained; new source is included in the focused
 instrumentation freeze. This is an updated receipt for an existing path.
+
+### Concurrent stage lifecycle fixture at eabc88e plus authorized owner source
+
+`scaffolding/tests/entity_stage_concurrent.tower`, A2 source SHA256
+`26265ebb52427481465d0fe88101e4ccded781e356be71cc9244b84d5882f0e7`,
+reviewed in full (205 lines) before unchanged adoption. Explicit EntityStore,
+registered component and context own the graph. Each worker has a distinct leased
+owner and private stage; WorkGraph write range and ticket precede dispatch.
+The ordinary target reference is released under a pinned view, queued holds are
+acquired twice to check idempotence, and only then is the view closed. Joining
+does not release the stage lease. Coordinator publishes/discards each stage,
+settles or rejects cancelled tickets, and releases the shared worker reservation
+after publication; pool drain precedes stack/store teardown. Finalizers check
+coordinator identity and release referenced targets. Exact per-trial zero entity
+and component counts plus expected finalizer totals validate logical cleanup;
+RSS alone does not establish allocator leak freedom.
+
+Five outcomes (publication, cancellation, worker failure, duplicate name and
+partial admission), sixteen rounds and two/four workers exercise160 trials.
+Shared entry/release barriers prove simultaneous admitted kernels, distinct
+pthread identities and zero unadmitted work. Four workers on this Deck's two
+allowed cores are concurrency stress, not four-core speedup evidence. Type/data
+payloads remain stable sparse component storage with stage-private allocation;
+ordered child publication and named member index are checked independently.
+There is no new authoritative IR, scheduler or noalias assumption. Thread
+capacity is a required capability; missing transport fails rather than skips.
+The fixture is registered in the existing Linux x64 work harness with its
+required dynamic worker symbol. Actual independent execution receipts follow;
+owner-reported passes are not substituted for local validation.
+
+Independent execution at the recorded eabc88e freeze: direct native3samples,
+registered native3samples plus CTest1/1, actual ASan3 and TSan3 CTest repeats all
+pass with zero skips. Exact direct/registered fixture and runtime object hashes
+match. Both sanitizer-linked objects contain actual instrumented code; full
+commands/symbols/hashes and timings are retained with the journal receipt. This
+covers valid stage lifecycle stress and leak/race detection on this host, not a
+full compiler or browser milestone. The integrated scope is now462 D1 paths
+once this fixture is committed; review coverage is distinct from runtime closure.

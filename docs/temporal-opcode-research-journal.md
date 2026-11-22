@@ -47872,7 +47872,7 @@ preserved. Neither the real assertion failure nor the explicit dependency cycle
 is dismissed as a resume artifact. Final performance still needs quiet, frozen,
 equivalent before/after inputs and the unresolved constructor fix.
 
-### D1 coherent checkpoint reconciliation (2026-11-23 UTC)
+### D1 coherent checkpoint reconciliation (2026-11-22 UTC)
 
 Integrated coordinator bundle0817375 atop the D1 checkpoint4b42bd7, preserving
 all focused registrations, parser oracle draft, scalar/import repairs and both
@@ -47904,3 +47904,44 @@ B2 cache follow-ups are still pending. Next independent checks are smallest unit
 A2's authorized real staged-ownership fixture registration, and the D1 parser
 retention census using this complete closure. Earlier performance and sanitizer
 receipts retain their original source identities; they do not cover this merge.
+
+### D1 independently validates concurrent stage registration
+
+Root-authorized unchanged A2 fixture SHA26265ebb52427481465d0fe88101e4ccded781e356be71cc9244b84d5882f0e7
+is registered through the existing tower_work_fixture on Linux x64, including
+its dynamic work_thread_entry export. Full205-line review is in the D1 audit.
+No worker algorithm changed. Frozen eabc88e plus this fixture/registration,
+public pin9653f818, LLVM/Clang19.1.1, x86_64-unknown-linux-gnu, SteamDeck cpuset0,2,
+outer/compiler jobs1; each fixture runs two/four threads as stress, not a scaling
+claim. Fresh separate native/address/thread caches were built sequentially under
+heavy.lock. No private bootstrap, unsafe probes, cap changes or host-wide policy
+changes. The existing isolated sanitizer container keeps its recorded supported
+seccomp setting. Cold output caches, warm source/bootstrap pages, one build per
+mode; all zero swaps. Commands and full identities are in
+`build/d1_ecs/coherent_eabc88e` and coordinator D1/stage_registration_receipt.
+
+Smallest units: parser4.38s wall/4.33CPU/188016KiB RSS; body5.93/5.83/215228;
+stage3.83/3.80/229056. Frontend correctly fails1 at12.56/12.26/297356 because
+bundle allocation fixture lacks the root helper already supplied in B2's newer
+snapshot. Exact diff is two imports plus10-line wrapper; memory helper identical.
+Requested the exact owner hunk, preserved failure, and continued unrelated work.
+
+Before registration, public-compiled stage linked directly to the existing own
+guest runtime passes3samples: wall0.04,0.05,0.05s, CPU0.05s each, RSS1944–2064KiB.
+Registered fresh native target passes3samples at0.05s each/0.04–0.05CPU/1960KiB,
+then CTest1/1 at0.06s. Every run emits57792 finalizers and checks160trials with
+exact per-trial zero store/entity/component retention. Direct and fresh CMake
+objects are byte-identical: fixture3a23ae70..., guestf74001da.... This validates
+registration consistency; short samples/clock granularity do not establish a
+performance gain or small regression. Native build13.75wall/13.44CPU/229044KiB.
+
+Actual ASan and TSan builds9/9 each:22.48wall/22.14CPU/228860KiB and
+23.97/23.42/229020. Both linked Tower objects have matching instrumentation
+references and recorded hashes/link commands, including the fixture's production
+entity/stage/work transport closure and guest runtime. ASan with leak detection
+and halt_on_error passes3repeats in1.22wall/1.43CPU/65140KiB; TSan halt_on_error
+passes3 in1.41/1.46/26568. Zero skips. This is960 instrumented trials and346752
+expected finalizers, plus native checks; tests are not universal race-freedom
+proof. No actual UBSan or browser coverage asserted here. Both containers drained
+before releasing D1's lock for D2. Broader compiler acceptance/publication remains
+open; latest L1/L2 reachability handoff introduces a known failing type oracle.

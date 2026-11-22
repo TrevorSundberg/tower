@@ -1205,3 +1205,19 @@ scaffolding/tools/verify_compiler.tower
 scaffolding/tools/wasi_link_recipe.tower
 scaffolding/tools/wasm_link_audit.tower
 ```
+
+### D1 integrated inventory at eabc88e, before latest execution handoff
+
+Exact tracked census:1,035 Tower paths = baseline1,011 +38 new -14 deleted.
+The deleted paths are precisely the consolidated primitive type forwarders;
+bootstrap's pinned historical resources remain untouched. D1's direct tracked
+scope is461 = initial437 +24 new tests. All24 new bodies have substantive source
+receipts in the D1 audit, including preserved historical negative sanitizer
+fixtures that are not registered or rerun. New source reviews outside the current
+tracked tree stay incoming receipts rather than inflating integrated coverage.
+
+Authorized incoming `scaffolding/tests/entity_stage_concurrent.tower` is D1 roster,
+A2 implementation, SHA26265ebb52427481465d0fe88101e4ccded781e356be71cc9244b84d5882f0e7.
+Its complete ownership/staging/overlap review is now in the D1 audit; pending
+commit will increase the tracked totals to1,036 and462 respectively. This index
+is inventory accounting, not final merged compiler/runtime acceptance.
