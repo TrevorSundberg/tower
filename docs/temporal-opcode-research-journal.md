@@ -39416,3 +39416,14 @@ Runtime assets were built from compiler source 9e7eb79, scaffolding tree
 The deployment receipt must distinguish that build predecessor from published pin
 21f52712 and preserve other lanes' receipt fields. Source and Pages publication
 and hosted verification follow; this entry does not yet claim they succeeded.
+
+Publication verified: main 80873ef and Pages
+f5d201b301f37aefe69f630bc36400ee0994ae81 are pushed. The hosted manifest exactly
+matches SHA-256 b6a3be6c05b901d1ba30ab4345f56729296b1851c35f645d950bd21ab21d996a.
+verify-deployment.mjs https://tower-lang.org/ passes all 88 asset checks and both
+desktop/mobile execution, grammar editing, completion, persistence, backend
+agreement and native download trials. GitHub accepts the existing uncompressed
+LLVM reactor with its advisory 50 MiB warning; neither push is blocked. Publish
+this documentation receipt with the same verified runtime assets and preserved
+9e7eb79 build identity. Attributes/aggregate staging are shipped; the source-defined
+standard-type protocol/prelude remains the next language implementation work.
