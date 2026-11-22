@@ -334,7 +334,7 @@
     "validation": "79 runtime/LLVM/package checks; eight threaded package/worker checks; two edited browser compiler generations; four final worker-reuse/stale-permit browser checks; ten output/viewport/frame checks. Fresh native successor after final compiler-source rebase. All 86 local deployment asset hashes and full desktop/mobile flows pass."
   },
   "scope": "Typed function values and indirect calls, integrated shared-memory linker and frontend improvements; standard Tower-defined types before vectors.",
-  "previousDeployment": "c8b4290e3f5f3ed56e714e88f05ed54e1d5ecc26",
+  "previousDeployment": "d671a0b7e1bbe09458dbb2a192e007613f8440f2",
   "measurementToolingMigration": {
     "implementationCommit": "1007d4179107c6c5372afcb9d1233a406695e992",
     "validationCommit": "824af121b0441df8c2a6af9e6a328bd6a0164018",
@@ -374,8 +374,8 @@
   "bootstrapExecutableSha256": "81928f54125bd182cad2e0f52a0b6a543d59fa454ab87b18a0b69fd28a5e59c8",
   "publishedBootstrapSha256": "9bf8779c9b5844e6f5b0df6688a3ac517b2b4f9924b84c36f19c572b93b8e459",
   "bootstrapSha256": "81928f54125bd182cad2e0f52a0b6a543d59fa454ab87b18a0b69fd28a5e59c8",
-  "sourceCommit": "60c4f48db8aa4e2bbc3d23263d7b97e17d5674d4",
-  "publicationNote": "Tooling-only source milestone: retire the final project-owned Python packager in favor of validated Tower tooling. Preserve the existing runtime buildSourceCommit and all 86 verified asset hashes.",
+  "sourceCommit": "8c863a4eaeb009d48c465512792a63804e043d9a",
+  "publicationNote": "Test-tooling source milestone: replace native linking and browser-export shell checks with the existing Tower driver. Preserve the current runtime buildSourceCommit, all 86 verified assets and previous tooling receipts.",
   "buildNote": "Built from source identical to rebased 51c038e using the validated 81928f54 intermediate bootstrap. Final 9bf8779c pin passes relocation and a fresh default successor. Two edited browser compiler generations agree byte-for-byte; callback/worker/native/Wasm checks and all 86 local assets plus desktop/mobile flows pass.",
   "buildSourceCommit": "51c038e0d15480256f7dfd7991155874b97d2cab",
   "compilerSourceTree": "20c6c50153808034b10941b27b9523e05ba68624",
@@ -435,5 +435,19 @@
     "compressedSupportBytes": 79680058,
     "previousCompressedSupportBytes": 67611227,
     "limitations": "Linux x64 tool; fixed-Huffman support packs are 17.85% larger; upstream LLVM still requires Python; no new runtime assets or production linker cutover."
+  },
+  "linkingValidationToolingMigration": {
+    "implementation": "94869ec",
+    "validation": "8c863a4eaeb009d48c465512792a63804e043d9a",
+    "shellFilesBefore": 19,
+    "shellFilesAfter": 17,
+    "shellLinesBefore": 483,
+    "shellLinesAfter": 414,
+    "pythonFiles": 0,
+    "ownedNativeFiles": 0,
+    "validationSummary": "Public bootstrap compiles the new Tower runner; native archive/runtime/interpreter/LLVM API checks and SDK34 spaced-path repeat pass. Existing driver CTest passes. Four actual browser-exported x64/ARM64 executables pass; two actual Windows PEs match preserved expectations; current LLVM seed passes all 26 browser raw-memory checks. Failure cases reject stale products, incorrect stdout and missing explicit emulators.",
+    "successorSha256": "b3775dabaced622e58a6f67095f8e29889b97a4a362011838707f23582b9343a",
+    "nativeWasmSha256": "b0303c4a397cbe97387a4e62169b2021fd3f5cc0733d65e3dea22ba17046488a",
+    "limitations": "Linux x64 execution modes; omitted QEMU explicitly skips ARM64. Windows shell runner still consumes two expected files. No compiler or runtime changes; no full release rebuild. Core wrapper no longer requests sanitizers."
   }
 }
