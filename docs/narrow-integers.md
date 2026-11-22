@@ -50,6 +50,7 @@ The C and Roku emitters support these integer widths as well. The scalar
 Foundation reconstruction profile prevents implicit SIMD; native target emission
 retains its normal optimizer and can vectorize eligible loops.
 
-The `.towerbc` container version remains 1; semantics and execution-cache versions
-are 4. Older version-3 packages need regeneration. Canonical Foundation remains
-the semantic format, and cache reconstruction/verification is mandatory.
+Narrow integers introduced `.towerbc` semantics and execution-cache versions 4
+with container version 1. See the [current package contract](../playground/README.md)
+for later versions. Incompatible packages need regeneration. Canonical Foundation
+remains the semantic format, and cache reconstruction/verification is mandatory.

@@ -25,6 +25,7 @@ struct LRStateTask {
 var LRStateGrain: usize = 128;
 var LRStateFanout: usize = 4;
 var LRStateWorkPerJob: usize = 65536;
+var LRStateRefineMinimumJobs: usize = 4;
 
 export fn compiler_lr_state_kernel(payload: void*): void {
     var task = bits(LRStateTask*, payload);
@@ -85,6 +86,13 @@ export fn lr_states_create_parallel(analysis: LRAnalysis*, anchor: void*): LRSta
             var items = state.items.values.length;
             var symbols_per_job = LRStateWorkPerJob / items + (LRStateWorkPerJob % items != 0 ? 1 : 0);
             count = state.symbols.length / symbols_per_job;
+            // Keep the measured coarse grain for narrow batches. Once several
+            // full chunks are available, finer pieces profitably fill more lanes.
+            if count >= LRStateRefineMinimumJobs {
+                var work_per_job = LRStateWorkPerJob / 2;
+                symbols_per_job = work_per_job / items + (work_per_job % items != 0 ? 1 : 0);
+                count = state.symbols.length / symbols_per_job;
+            }
             if count > capacity { count = capacity; }
         }
         var admission: ParserAdmission = default;
