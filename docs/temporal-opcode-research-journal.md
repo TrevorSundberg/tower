@@ -46849,3 +46849,63 @@ processes. Root reports A2 threeASan/threeTSan runs of exact cleanup fixture has
 hash match, exact copied instrumentation receipt pending. UBSan source-language
 coverage remains unsupported in A2 contract. Browser, new-file/merged-source
 revalidation, full generation and coordinated hosted publication still open.
+
+### D1: incoming sanitizer evidence and authorized shared scalar data repair
+
+At main `0db88b22f962f058ba5747dddb86321e96af7d79`, pull/rebase with autostash
+preserved the sole pending scalar JSON edit; no unrelated edits appeared. Root
+explicitly assigned the existing JSON fixture-data correction after the failing
+`absolute i32` package repro. All ten source rows use raw Foundation operations;
+adding their explicit `import foundation;` leaves every expression, expected
+output and expected LLVM intrinsic unchanged. Removing only that prefix yields
+byte-identical original JSON (`build/d1_ecs/driver_fixtures/scalar_before/`).
+Caller audit covers `driver_differentials.tower`, browser
+`llvm-execution.test.mjs` and `roku/emitter.test.mjs`: each consumes these rows
+without supplying a language import. No implicit compiler fallback or JavaScript
+implementation added. Native after checks and browser/Roku compatibility remain
+pending; their unavailability is not a pass.
+
+Copied A2 receipt now confirms three ASan and three TSan executions of D1's
+normal plus partial/full admission-failure cleanup. Local SHA256 exactly matches
+`01a989f2b0ec41c1a023622d468419ce7777dc238917456ef5deb243a6dc0f8f` in
+`/home/deck/tower_coord_ecs_20261122/A2_instrument_pool_cleanup.log`.
+The log reports 85 instrumented definitions and hashes of both executed binaries;
+these are retained in the D1 audit. A2's draft contract specifies LLVM19 Linux x64,
+original emitted IR instrumented for each linked Tower fixture/transport/runtime
+unit, ordinary Clang object compilation, sanitizer-runtime final link, and leak/
+race halt-on-error settings. TSan required an isolated container seccomp change;
+this does not authorize changing the host ASLR setting. Negative controls require
+actual ASan overflow/TSan race failures. D1 reviewed both incoming probe sources
+against handoff SHA256 `93cee185858581ccac9381557b057a1e641fd12db8e2d0e17c774950e1fd4331`,
+without integrating draft files or counting them as locally run. Full source/tool
+identity derives from A2's contract/recipe, not the short copied log alone.
+Source-language UBSan and browser/Windows/macOS sanitizers remain unsupported;
+these observations do not establish universal race freedom.
+
+D2 owns the next heavy slot and shared opt-in native sanitizer integration. D1
+performs documentation/caller review only while that job owns the host budget;
+no runtime measurements apply to these documentation additions. Longer balanced
+normal-path pool profiles, JSON after execution, browser retention/worker failure,
+new integrated-file reconciliation and final merged release validation remain.
+
+Browser compatibility preparation fetched public `gh-pages` commit
+`6f142bef15f58380831ed344ab5eac5c4b3c2840` and saved its complete manifest under
+`build/d1_ecs/published_manifest.json`. Extracted `tower.wasm` SHA256
+`5dfa4525e1bb2d8233803fadd0f60f47b8fb5e4b90bf2300a9ffa4b8569b62cd` and
+`tower-llvm.wasm` SHA256
+`6ec53230a2d78bf49717139973682f6035174029124c4256875674708bdc50be`
+match that exact manifest. Its build source
+`98ade8ccde255c445797ad51a1a2def0b41c85fb` is reachable from current main;
+`git diff --exit-code` over production scaffolding excluding tests and
+`playground/src` is empty. Reuse is for fixture-data compatibility with this
+published compiler, not a fresh compiler build or later merged-source validation.
+The changed work-pool Wasm fixture still requires fresh compilation. No sibling
+cache or unpublished compiler is used. Full LLVM rebuild would repeat unchanged
+production work without strengthening this data-only check.
+
+The scalar package driver parses but does not assert the JSON's stored output or
+intrinsic fields; its graph/fast/package comparisons establish differential
+agreement. Existing selected browser LLVM and Roku tests assert those independent
+expected outputs, and LLVM checks the named intrinsics. Keep these evidence
+categories distinct. No new JavaScript test logic or generic harness API change
+is introduced to repair the data.

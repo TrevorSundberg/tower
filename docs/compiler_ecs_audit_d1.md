@@ -695,3 +695,42 @@ acceptance. Test-only reference indexes/algorithms are intentionally independent
 and disposable. Early assertion-return cleanup gaps in process-exit-only fixtures
 remain distinguished from the repaired active-worker lifetime bug. Invariants
 claimed from real gates/canonical checks stay separate from width/queue counters.
+
+### Incoming instrumentation fixtures (reviewed draft, not integrated scope)
+
+The coordinator's `instrumentation_handoff.patch`, SHA256
+`93cee185858581ccac9381557b057a1e641fd12db8e2d0e17c774950e1fd4331`,
+contains two A2-owned deliberate negative controls. These are reviewed source
+receipts against that exact draft, not additional tracked-file audit credit or
+local execution claims. Reconcile their integrated commit in the full roster.
+
+| Proposed path | Storage, ownership, scheduling and coverage disposition |
+| --- | --- |
+| `scaffolding/tests/sanitizer_memory_probe.tower` | Eight-byte raw heap allocation is filled, then deliberately written/read one byte beyond its extent; foreign write makes the invalid access observable. Requires an ASan heap-buffer-overflow and nonzero termination, never inclusion as an ordinary passing test. Raw Tower/Foundation remain unchecked; this probe introduces no Stronghold bounds policy. Allocation failure traps distinctly. A2 owns implementation; native Linux x64 instrumented execution only. |
+| `scaffolding/tests/sanitizer_race_probe.tower` | Two production pool workers borrow coordinator stack job records and one shared counter. Both must reach entered barriers before releases, so sequential dispatch cannot pass; unsynchronized counter increments deliberately violate payload exclusivity. Normal completion receives every worker before pool/signals/stack teardown. Admission/transport errors trap rather than claim race coverage; these fatal paths do not independently demonstrate recoverable cancellation cleanup. Requires a TSan data-race diagnostic and nonzero exit; no queue-width-only or universal race-freedom claim. A2 owns implementation. |
+
+The coordinator-supplied `A2_instrument_pool_cleanup.log` reports three ASan and
+three TSan executions of the repaired D1 normal/partial/full-failure fixture.
+Its source SHA256 `01a989f2b0ec41c1a023622d468419ce7777dc238917456ef5deb243a6dc0f8f`
+matches the local committed fixture exactly. The receipt reports 85 instrumented
+definitions and executable hashes `fe8f458d0023f1e9d432b2b076b415ee37ea5f67ef518ee322e76495127bb2a9`
+(ASan) and `5a115028a7fea0507eb0641c4f329f76c25dda53502cf1c27b527a91f8c3a306`
+(TSan). This is A2 execution evidence, not D1 local execution or a complete
+source-tree identity receipt. The supplied sanitizer contract instruments every
+linked Tower fixture/transport/runtime unit before ordinary object compilation;
+only final linking adds the sanitizer runtime. Source-language UBSan and other
+hosts remain unsupported. Final merged-source validation stays open.
+
+The D2 budget handoff, source `6a2536b`, patch SHA256
+`0eb43211d08bd6428916f6ed8b831c9689e66b6f55e755930a6c25af0d66de55`,
+adds `scaffolding/tests/build_tool_budget_checks.tower` (61 lines reviewed).
+It owns fresh output directories and bounded byte buffers; argument vectors
+borrow caller text only through synchronous child completion. Five invalid
+budgets must return status1 and publish neither object nor executable. Real
+serial/two-worker builds must produce nonempty identical object bytes. This is
+configuration/determinism coverage, not overlap or speedup evidence. Generated
+artifacts intentionally survive for inspection; the test rejects reuse of an
+existing output root. D2 retains implementation ownership. D2's status records
+actual execution and independent executable-byte comparison; D1 has reviewed
+the draft, not run or integrated it. Add its exact integrated path to the roster
+when the source arrives.

@@ -20,6 +20,29 @@ All 1,011 paths have exactly one roster owner. The sorted union matches the
 tracked list with no duplicate or missing path. Counts measure inventory only,
 not substantive audit completion. Each section is sorted by exact repository path.
 
+Incoming draft paths are listed separately until their commits integrate;
+they do not change the tracked count above. D1 has substantive source receipts
+for the three test files in `compiler_ecs_audit_d1.md`.
+
+| Incoming path | Roster owner | Specific implementation reservation | Exact draft |
+| --- | --- | --- | --- |
+| `scaffolding/tests/sanitizer_memory_probe.tower` | D1 | A2 | instrumentation handoff SHA256 `93cee185858581ccac9381557b057a1e641fd12db8e2d0e17c774950e1fd4331` |
+| `scaffolding/tests/sanitizer_race_probe.tower` | D1 | A2 | same instrumentation handoff |
+| `scaffolding/tools/instrument_llvm.tower` | D2 | A2 | same instrumentation handoff |
+| `scaffolding/tests/build_tool_budget_checks.tower` | D1 | D2 | budget source `6a2536b`, patch SHA256 `0eb43211d08bd6428916f6ed8b831c9689e66b6f55e755930a6c25af0d66de55` |
+| `scaffolding/benchmarks/compiler_wide_functions.tower` | D2 | D2 | exact path reported in D2 status; source/commit receipt pending, not reviewed by D1 |
+
+Other reported new cross-lane files need exact integrated paths and content
+receipts; a status mention alone is not an inventory or review claim.
+At D1 checkpoint `2fbeffe` (based on published `60741c5`), the tracked count
+remains 1,011. The only changed tracked Tower files since the baseline are D1's
+`body_runs.tower`, `driver_c_cases.tower`, `driver_execution_cases.tower` and
+`work_pool.tower` under `scaffolding/tests`; their original audit receipts are
+supplemented by implementation/validation sections in the D1 audit and journal.
+Production Tower source is unchanged at this checkpoint. A1 semantic data/API
+modules, L2 constructor producer/receipts and the other reported backend/source
+proof fixtures require exact incoming path/commit lists before reconciliation.
+
 ## A1
 
 ```text
