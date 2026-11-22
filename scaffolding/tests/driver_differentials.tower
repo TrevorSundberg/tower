@@ -108,6 +108,20 @@ fn driver_execution_package(context: DriverDifferentials*, source: u8*, target: 
         driver_platform_remove(package);
         var encoded = driver_execution_command(context, source, target, "--emit", "bytecode", package, optimize, depfile);
         defer driver_execution_close(&encoded);
+        if encoded.code != DriverExecutionSuccess {
+            driver_error("Package emission target: ", target == null ? "host default" : target);
+            driver_error("Package emission optimization: ", optimize ? "on" : "off");
+            var status: ByteBuffer = default;
+            defer bytes_dispose(&status);
+            if driver_text(&status, "Package emission subprocess status: ")
+                && driver_text(&status, encoded.code < 0 ? "-" : "")
+                && host_json_unsigned(&status, convert(u64, encoded.code < 0 ? -encoded.code : encoded.code))
+                && host_text_terminate(&status) {
+                driver_error(status.data, encoded.code < 0 ? " (signal or transport failure)" : "");
+            } else {
+                driver_error("Package emission failed", " (status formatting failed)");
+            }
+        }
         driver_check(encoded.code == DriverExecutionSuccess, "package emission");
         var bytes: ByteBuffer = default; var repeated: ByteBuffer = default;
         defer bytes_dispose(&bytes); defer bytes_dispose(&repeated);

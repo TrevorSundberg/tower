@@ -48684,3 +48684,44 @@ No conflicting owner implementation or unrelated cleanup. Next D2 heavy phase
 will compile smallest new measurement/hover/registry units then affected
 targets and check gated/no-op build behavior. Production capture positives and
 address negatives still block final coherence, sanitizer and release acceptance.
+
+#### D2 capture relocation policy and focused owner handoffs
+
+After all compiler/test jobs drained, reviewed and adopted A1policy595209af
+against correctedv3. Exact capture.evaluation identity is assigned before
+sem_evaluation_work_register; sem_evaluation_request only creates graph queries,
+so registration freezes the producer policy before dispatch. The worker receives
+a private require_relocatable boolean instead of reading another declaration's
+capture payload. Inferred stays unchanged; required type/input capabilities and
+explicit stages retain their policies. Existing interpreter checks executed
+address conversion/comparison, preserving untaken branches and typed
+function/type values. No syntactic address ban, independent folder or registry.
+
+Read the complete30→42fixture delta c25f9c36:12 additional global/local address,
+comparison, function/type, explicit-address and taken/untaken address/effect
+cases. Existing30cases and1/4worker,32/64bit equivalence/canonical replay are
+preserved; the helper can run just12policy cases. Owner only passed those12,
+not the full42/aggregate gate. No local successor validation yet. Shared
+aggregate API2792 and matching publishers/consumer remain absent; no partial
+ABI applied. Requested D1 existing-runner selector for the newhelper rather
+than creating a competing generic harness; original CLI probes remain runnable.
+
+B1lexical extents49ec56f5 uses existing public-pin sizeof(decltype(array)) and
+named capacity24; priority order remains9, no output/control change. Owner
+predecessor compile/object identity is evidence, new D2unit check pending.
+D1package failure context60d66585 initially failed gitapplycheck raw1: its
+earlier negative-signal diagnostic prerequisite was absent here. Preserved all
+prior successful policy/fixture/extents edits, read the exact existing context,
+then applied only driver_differentials from numeric_and_signal_fixtures before
+the final context patch. Both exactchecks nowpass; no wholefile replacement or
+unrelated numeric fixture edits. The final block adds target/optimization/raw
+status to failures, preserving childdeadline, original failure and successpath.
+Owner ordinary output-directory failure and current signed32 SIGALRM receipts
+are diagnostic evidence, not a fix for stillfailing30s bytecode emission.
+
+No parser_trace_failures330 (serial instrumented production-LR issue) adopted.
+Canonical SDK34archive downloaded into owncache at1MiB/s; session38461 terminal0,
+exact pinnedSHA b761e3a0721dbae9c09a0059e5fdb2bf917d1b4a8a7b430fb3b5aafb0984b2c4
+verified. No extraction/compiler/vendorcheckout overlapped D1measurements.
+D1released heavylock afterdrain; own Docker init/sleeponly before nextfreeze.
+SDK installation/browser/release acceptance not yet claimed.

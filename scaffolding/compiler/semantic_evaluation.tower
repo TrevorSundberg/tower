@@ -260,12 +260,12 @@ fn sem_evaluation_prepare(c: SemanticContext*, result: SemanticEvaluation*): voi
 
 // The preparation worker owns its executable function and invocation storage.
 // Initialize the ordinary interpreter there; dispatch only resumes that state.
-fn sem_evaluation_start(c: SemanticContext*, result: SemanticEvaluation*): void {
+fn sem_evaluation_start(c: SemanticContext*, result: SemanticEvaluation*, require_relocatable: bool): void {
     sem_require(!result.started);
     interpreter_invocation_init(&result.invocation, result.function, convert(usize, c.program.pointer_bytes), null, 0, true, EvaluationFuel);
     result.invocation.context.dependency_kind = c.evaluation_ready;
     result.invocation.context.value_inputs = c.value_inputs;
-    result.invocation.context.require_relocatable = result.inferred;
+    result.invocation.context.require_relocatable = require_relocatable;
     result.invocation.context.type_arguments = !result.inferred;
     result.invocation.context.capture_order = result.capture_order;
     result.invocation.context.capture_ordinal = result.capture_ordinal;

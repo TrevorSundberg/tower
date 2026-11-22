@@ -6,6 +6,7 @@ import compiler_kernel;
 import semantic_context;
 import semantic_program_types;
 import semantic_evaluation;
+import semantic_capture_work;
 import semantic_control;
 import semantic_support;
 import semantic_work_ids;
@@ -29,6 +30,7 @@ struct SemanticEvaluationWork {
     query_reads: vector(usize);
     aliases: vector(SemanticEvaluationAlias);
     cloning: bool;
+    require_relocatable: bool;
 }
 
 // Each stage expression owns its checked semantic tree. Nested stages share
@@ -57,7 +59,7 @@ fn semantic_evaluation_prepare_kernel(result: SemanticEvaluationWork*): void {
     if result.cloning { sem_evaluation_clone_expression(&context, result.evaluation); }
     else {
         sem_evaluation_prepare(&context, result.evaluation);
-        if sem_ok(&context) { sem_evaluation_start(&context, result.evaluation); }
+        if sem_ok(&context) { sem_evaluation_start(&context, result.evaluation, result.require_relocatable); }
     }
     result.count = context.count;
     result.error = program.error;
@@ -99,6 +101,9 @@ export fn sem_evaluation_work_register(c: SemanticContext*, cloning: bool): void
         result.evaluation = evaluation;
         result.ordinal = i;
         result.cloning = cloning;
+        // Freeze producer policy before dispatch; workers do not inspect a
+        // different declaration's capture payload while preparing this job.
+        result.require_relocatable = evaluation.inferred || sem_capture_evaluation(c, evaluation);
         result.kernel.kind = CompilerKernelKind.PrepareEvaluation;
         result.kernel.payload = bits(void*, result);
         var id = work_find(&c.queries, evaluation.subject, query_kind, 0);
