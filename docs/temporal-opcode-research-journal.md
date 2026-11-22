@@ -48036,3 +48036,15 @@ A1's reported editor1/2/4/8 and query passes retain owner source provenance;
 D2's same closure runtime is pending. The descendant-capture lease/range v3 is
 separate and has not been delivered/adopted. D1 owns profile/file-fixture generic
 registration; no competing manifest or duplicated fixture implementation here.
+
+D2 also completed full source/caller audit of L2's type reachability profile
+05a442e8 and L1 selector518918fa, bringing supplemental incoming measurement
+reviews to19. Independent fanout output, serial256query samples, component/entity
+retention and canonical stability are meaningful, with RSS/transient allocation
+limits explicit in the lane audit. Confirmed D1's cross-platform linker concern:
+unconditional Linux getrusage import in execution_main reaches every supported
+native execution runner, whose CMake has no Linux64 guard. Width8 runtime check
+is insufficient ABI admission. Adoption remains on hold for owner-coordinated
+opt-in registration; no missing-file or unrun success claim. This audit-only
+addition changes no runtime path, so before/after execution profiling is
+inapplicable until an actual implementation is accepted.

@@ -991,3 +991,31 @@ normalized payload saving. Predecessor raw-native output also passes in
 3.71wall/3.66CPU/174904KiB; this single observation versus current2.99s is
 correctness evidence, not a statistical speedup claim. All children drain and
 D2 releases the shared slot to D1 before changing further production inputs.
+
+### Incoming type reachability microprofile and portability hold
+
+Nineteenth supplemental incoming measurement path:
+`scaffolding/tests/type_reachability_profile.tower`, L2 source
+SHA05a442e8180ba30a35c0ee6d1b923259f6726215d0fbd5e1c22dac0dfa723e77,
+read with L1 selector518918fa and current execution-support/build callers at
+9ae2b39. Local source/output buffers and ExecutionSession own their storage;
+exported parameter-dependent fanout retains16/256/1000real calls. Independent
+output count checks run before timing. Three samples of256serial shared
+reachability queries must retain no additional entities/components, and exact
+canonical text remains unchanged. Existing execution_close_checked verifies
+single-root release, cleared interpreter/output storage and repeat-close safety.
+Formatter/default-kind helpers remain the existing host-session compatibility
+boundary; store counts derive from the actual program's world. It does not
+create another authoritative graph or scheduler.
+
+Query timing excludes compile/execution/formatting; RSS is whole-process peak
+including those earlier stages. Entity/component equality does not measure all
+transient allocations or retained vector capacity. No parallel scaling or
+sanitizer claim. D1 independently found that the proposed unconditional selector
+import leaks a Linux getrusage ABI into the cross-platform execution runner;
+D2 confirms TowerExecutionTests has no Linux64 admission guard. sizeof(usize)==8
+alone does not establish that ABI, and a runtime selector does not remove an
+unresolved foreign symbol at link time. Hold source/selector adoption pending
+an explicit owner-approved Linux64 opt-in target or portable measurement
+boundary. No stub, silent skip or competing generic manifest is introduced.
+This is source/caller review; new D2 runtime measurements do not apply yet.
