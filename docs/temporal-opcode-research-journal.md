@@ -45779,3 +45779,108 @@ after the transport fixture explicitly expected profile 0. Browser worker overla
 worker-trap interruption and 1/2/4/8-worker determinism also pass. The optional
 backend-service test initially skipped because its exports were disabled; that
 skip is not counted as validation, and its checked profile is being built next.
+
+### Remaining work after the type-value checkpoint (requested clean stopping point)
+
+The user requested stopping after a clean committed/pushed checkpoint, with the
+remaining work recorded here. Do not start vectors or claim the source-defined
+type architecture is complete. The next session should continue in this order:
+
+1. **Consolidate the prelude in types.tower.** Foundation already imports that
+   file, but it currently forwards to thirteen scalar modules plus types/integer.
+   Move those definitions and shared integer constructors into the one file and
+   remove the forwarding imports/directory. Audit compiler_project_files.tower,
+   bootstrap resource collection, browser build.mjs, builtin/recipe filters and
+   build-packaging tests before deleting paths. type_binding_checks currently
+   overrides types/i32.tower; change it to override the actual consolidated
+   prelude while preserving the other named types. Preserve the test proving a
+   changed i32 source definition controls layout and representation. Regenerate
+   complete resources/pins and compiler-project assets through the documented
+   build path; a file move must not strand users on stale packaged imports.
+
+2. **Inventory and specify the type/operation protocol.** Audit semantic_types,
+   semantic_values, semantic_definitions, semantic_expressions, type_primitives,
+   semantic_layout, format_foundation, the interpreters and backend/lowering.
+   Separate named-language policy from the irreducible Foundation operation
+   contract. Remaining scalar tags describe private execution representations;
+   deleting all machine-operation knowledge is not the objective. Hardcoded
+   behavior attached to the names i32/f32/etc must disappear. Record the owner
+   of identity, representation, target layout/ABI, literal defaults/construction,
+   conversions, operators and reflection, with one canonical Foundation spelling
+   per semantic operation. Attributes are typed metadata identified by their
+   bound nominal type; spellings or arbitrary annotations do not grant behavior.
+
+3. **Execute representation constructors with ordinary inputs.** Type functions
+   can currently select/return existing types, but integer_type(local_width, 1)
+   and other general executed constructors remain unsupported. Route creation
+   through the ordinary interpreter and shared dependency graph, suspending for
+   coordinator-owned interning/publication. Keep query state and scratch on ECS
+   components, target/profile/revision identity explicit and worker reads frozen.
+   No separate constant folder or process-global type registry. Specify which
+   construction capabilities are compile-stage-only and diagnose runtime misuse;
+   an ordinary runtime type value cannot change existing static storage layout.
+
+4. **Unify constructor/staging compatibility paths.** Module var Name:type is
+   still a transparent static alias; local var value:type is ordinary storage.
+   T:type parameters still request specialization, while type_type() parameters
+   carry ordinary values. Restricted straight-return/nominal constructors retain
+   early identity publication and a separate shape-based registration path.
+   Design and migrate these together without losing recursive nominal identity,
+   forward headers, generic inference or deterministic source diagnostics. Do not
+   solve the distinction using parser-side symbol lookup or a second type graph.
+
+5. **Move every named primitive's full policy into types.tower.** Define shared
+   integer/floating implementations and associate ordinary typed Tower functions
+   for operators, conversions and literals. Each named width instantiates/selects
+   those implementations rather than implicitly receiving all operators merely
+   from integer_type. Foundation operations supply explicit fixed-width wrapping,
+   checked conversion and strict floating semantics; operator functions can call
+   these named operations without recursively resolving their own operator.
+   Resolve operators through the shared protocol into typed calls/operations.
+   Optimizations may recognize proven primitive implementations and inline/lower
+   them, but must not silently replace user-defined behavior. Literal defaults
+   are still signed-32/binary64 compiler policy today and need an explicit source
+   policy. Preserve exact typing, sequencing, lazy compounds, signed minima,
+   negative zero, rounding, subnormals and NaN rules across staging and targets.
+
+6. **Migrate the other existing type families.** Apply the same construction,
+   operation, layout and reflection contracts to bool/void/usize, pointers,
+   references, arrays, nominal structs/enums, function values and type values.
+   Keep raw Foundation storage/alias/lifetime semantics separate from future
+   Stronghold initialization and ownership restrictions. Pointer/reference work
+   must not invent safety or ownership guarantees. Use the same checked nodes
+   and protocol calls for surface syntax and explicit constructor functions.
+
+7. **Close representation and backend boundaries.** Current metatype indexes
+   are private four-byte execution/module storage. Direct metatype foreign and
+   export signatures are rejected, but recursive aggregate/callback/opaque-memory
+   transport needs a complete explicit legality policy. Do not expose indexes as
+   stable cross-module identities. LLVM scalar reconstruction currently falls
+   back to canonical profile 0 for programs containing type values; direct import
+   rejects their reconstruction. C/BrightScript do not implement type values.
+   Either preserve full descriptors through an applicable transformation or retain
+   the canonical graph; never turn type identities into public integer constants.
+   Keep .towerbc reconstruction/cache checks and captured type/function relocation.
+
+8. **Validate each coherent migration before adopting it in compiler sources.**
+   Extend Tower fixtures for protocol selection, exact bits/traps, nominal/alias
+   identity, pointer and aggregate layout, executed and untaken dependencies,
+   mutation/escape proofs, generic recursion, cycles and recursive ABI rejection.
+   Check canonical fixed points, both interpreters, native/Wasm and serial/real
+   overlapping worker execution. Keep source diagnostics stable across worker
+   counts and drain views/stages on cancellation/failure. Profile whole-program
+   source-binding scans before claiming they are cheap; refine dependency demand
+   without reintroducing duplicate authoritative proof systems. Publish each
+   compatible complete bootstrap, then prove a clean successor before migrating
+   compiler/build code. Resume fixed vectors/swizzles and CPU/GPU/SPIR-V/WGSL work
+   only after these existing-type milestones are actually complete.
+
+Release checks also found two fixture issues, not new language requirements:
+backend-source fixtures needed explicit language imports after the upstream seed
+migration, and the new fixture used the grammar word expected as an unquoted
+identifier. It now uses comparison. The predecessor comparison's parser LLVM text
+differed in generated local SSA names after the body-scheduling change; llvm-diff
+reported equivalent IR and the native object bytes matched exactly. The current
+pin versus its clean successor is being checked for exact IR/object equality.
+Final publication receipts follow below; this entry deliberately does not claim
+that a pending check, deployment or push has succeeded.

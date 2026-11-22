@@ -204,7 +204,7 @@ fn backend_source_type_values(environment: void*): bool {
     var source = backend_source_create(backend_worker_runtime(), backend_worker_runtime_size());
     if source == null { return false; }
     defer backend_source_close(source);
-    var text = "import foundation;var selected:type_type()=type_value(integer_type(8,0));var expected:type_type()=type_value(integer_type(8,0));var equal:bool=selected==expected;print(equal);";
+    var text = "import foundation;var selected:type_type()=type_value(integer_type(8,0));var comparison:type_type()=type_value(integer_type(8,0));var equal:bool=selected==comparison;print(equal);";
     for(var optimize: usize = 0; optimize < 2; optimize++) {
         var flags = BackendSourceImport | (optimize == 0 ? BackendSourceUnoptimized : 0);
         var result = backend_source_compile(source, text, strlen(text), flags, environment, null);
