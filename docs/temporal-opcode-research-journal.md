@@ -39068,3 +39068,14 @@ shared Wasm archive 20ec53c525f01b934c17816721ab6ef9801f926cb166e4b8c498519d9711
 Actual Windows linking/memory PE hashes are
 c9f211e865d0b5c35ca205803a5f054646edbe54e8e777cb793a82e2e378a246 and
 ebb83316633163885949d5ccb2997dd12daff5d30395900a064bc681ee78a7b4.
+
+Publication complete: source 94869ec and validation 8c863a4 pushed. Under the
+exclusive agent1 lock, Pages 6db66ec2a707b474710532c2c52a1750c5a91565 updates
+only the source/tooling receipt. Action 44969420664 succeeds; the hosted manifest
+matches SHA256 b9decb6a2c2a7e0b23bddde76f651dacab8f164598acbe2f04d5f575b7d6c179
+exactly. Runtime buildSourceCommit 51c038e0d15480256f7dfd7991155874b97d2cab,
+all 86 assets, Python-retirement metadata and other lanes' receipts are preserved.
+No newer production binary is claimed. GitHub push again needed a transient,
+command-scoped DNS resolution override; no permanent Git configuration changed.
+Next: audit shared Windows/target-pack assertions and optional execution policy,
+then remove their remaining shell runners without dropping platform validation.
