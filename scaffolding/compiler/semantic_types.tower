@@ -302,9 +302,30 @@ fn sem_type_call(c: SemanticContext*, n: void*): FoundationType* {
     var step42 = sem_state(c, c.source_bases, instance);
     var step43 = sem_source_base(c, definition);
     step42.number = step43;
+    if c.declaration_state != null {
+        var component = entity_component_get(instance, c.declaration_state);
+        var failure = bits(SemanticDeclaration*, entity_component_data(component));
+        if sem_declaration_restore_error(c, failure) { return invalid; }
+    }
+    // Constructor aliases can fail before producing a record/field query. Keep
+    // that diagnostic on the instantiated entity too, rather than caching an
+    // invalid type or mistaking a later use for recursive construction.
+    var retain_failure = sem_ok(c) && c.entity_stage == null;
+    defer {
+        if retain_failure && !sem_ok(c) {
+            sem_declaration_capture_error(c, sem_declaration_state(c, instance));
+        }
+    }
     var entry: SemanticEntry* = sem_state(c, c.type_results, instance);
     if entry.value != null {
-        return bits(FoundationType*, entry.value);
+        var result = bits(FoundationType*, entry.value);
+        // Nominal publication precedes field checking. A cached identity must
+        // retain a failed field producer's diagnostic when another body uses it.
+        var query = result.record == null ? 0 : sem_declaration_layout_waiting(c, result.record);
+        if query != 0 && sem_declaration_failure(c, query) {
+            return invalid;
+        }
+        return result;
     }
     if entry.number != 0 {
         var step48 = sem_cat(c, "Recursive type constructor '", name);
@@ -616,6 +637,7 @@ fn sem_add_local(c: SemanticContext*, n: void*): void {
     if semantic_aggregate(&local.type) {
         sem_layout(c, local.type.record);
     }
+    if !sem_ok(c) { return; }
     var alignment: usize = semantic_alignment(&local.type);
     local.index = function.locals.length;
     var step5 = sem_round(function.frame_size, alignment);

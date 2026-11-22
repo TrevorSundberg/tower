@@ -4,6 +4,7 @@ import foundation_types;
 import semantic_context;
 import semantic_support;
 import semantic_types;
+import semantic_declarations;
 import semantic_layout_kernel;
 import semantic_work_ids;
 import compiler_kernel;
@@ -147,6 +148,11 @@ fn sem_layout(c: SemanticContext*, n: void*): void {
     // A worker can only consume a published layout. Structural construction
     // belongs to its coordinator continuation, including failed-type retries.
     sem_require(c.entity_stage == null);
+    if known != 0 && sem_declaration_failure(c, known) { return; }
+    // A cached aggregate may contain a nominal type whose fields failed in a
+    // different producer. Never compute a layout from those partial fields.
+    var fields = sem_declaration_layout_waiting(c, n);
+    if fields != 0 && sem_declaration_failure(c, fields) { return; }
     var root = sem_layout_discover(c, n);
     if work_task(&c.queries, root).state == WorkState.Succeeded {
         sem_query_read(c, root);

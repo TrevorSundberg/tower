@@ -38,6 +38,7 @@ struct BackendUnit {
     task: usize;
     ticket: WorkTicket;
     success: bool;
+    library: bool;
 }
 
 struct BackendUnits {
@@ -72,7 +73,7 @@ fn backend_unit_execute(payload: void*): void {
     if job.backend == null { return; }
     var program = job.program;
     job.success = backend_lower(job.backend, program.root, program.functions.data,
-        program.functions.length, program.pointer_bytes, batch.library);
+        program.functions.length, program.pointer_bytes, job.library);
     job.success &&= backend_optimize(job.backend, batch.optimize);
     job.success &&= backend_emit(job.backend);
 }
@@ -166,7 +167,7 @@ target: u8*, library: bool, optimize: bool): BackendUnits* {
     copy(batch.target.data, target, length + 1);
     batch.target.length = length;
     var lanes = budget < count ? budget : count;
-    if !work_pool_open_named(&batch.pool, lanes, "backend_thread_entry", "backend_windows_entry") {
+    if !work_pool_open_kernel(&batch.pool, lanes, backend_unit_execute) {
         backend_units_close(batch); return null;
     }
     var anchor = compiler_work_anchor(batch.work);
@@ -185,6 +186,7 @@ target: u8*, library: bool, optimize: bool): BackendUnits* {
         *job = default;
         job.batch = batch;
         job.ordinal = ordinal;
+        job.library = library;
         job.program = frontend_units_program(frontend, ordinal);
         if job.program == null { backend_units_close(batch); return null; }
         job.task = work_request(batch.graph, subject, convert(u32, CompilerQuery.Backend), generation);
@@ -204,6 +206,16 @@ target: u8*, library: bool, optimize: bool): BackendUnits* {
         backend_units_close(batch); return null;
     }
     return batch;
+}
+
+// Override before dispatch only: a program entry and independent library units
+// share the graph, but only the entry unit supplies the executable entry point.
+export fn backend_units_library(batch: BackendUnits*, ordinal: usize, library: bool): bool {
+    if batch.started || batch.finished { return false; }
+    var job = backend_units_job(batch, ordinal);
+    if job == null { return false; }
+    job.library = library;
+    return true;
 }
 
 fn backend_units_receive(batch: BackendUnits*, wait: bool): bool {
@@ -289,4 +301,10 @@ export fn backend_units_error(batch: BackendUnits*): u8* {
     if !batch.finished || batch.cancelled || batch.failed == 0 { return ""; }
     var backend = backend_units_job(batch, batch.failed).backend;
     return backend == null ? "Unable to allocate backend storage" : backend_error(backend);
+}
+
+export fn backend_units_error_offset(batch: BackendUnits*): usize {
+    if !batch.finished || batch.cancelled || batch.failed == 0 { return 0; }
+    var backend = backend_units_job(batch, batch.failed).backend;
+    return backend == null ? 0 : backend_error_offset(backend);
 }

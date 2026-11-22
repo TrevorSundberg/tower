@@ -1,0 +1,62 @@
+import tower;
+import driver;
+import .host.driver_support;
+import .host.driver_platform;
+
+fn driver_units_fixture(path: u8*, source: u8*): void {
+    driver_check(driver_write_file(path, source, strlen(source)), path);
+}
+
+fn driver_units_arguments(args: DriverArguments*, compiler: u8*, jobs: u8*): void {
+    driver_arguments_init(args);
+    driver_argument(args, "", compiler);
+    driver_argument(args, "", "driver units main.tower");
+    driver_argument(args, "", "--unit");
+    driver_argument(args, "", "driver units first.tower");
+    driver_argument(args, "", "--unit");
+    driver_argument(args, "", "driver units second.tower");
+    driver_argument(args, "", "--jobs"); driver_argument(args, "", jobs);
+    driver_argument(args, "", "-o"); driver_argument(args, "", "driver units executable");
+    driver_argument(args, "", "--depfile"); driver_argument(args, "", "driver units.d");
+}
+
+fn driver_test_units(compiler: u8*): void {
+    driver_units_fixture("driver units main.tower", "import tower; extern fn unit_first():i32; extern fn unit_second():i32; print(unit_first()+unit_second());");
+    driver_units_fixture("driver units dependency.tower", "import tower; fn identity(T:type,x:T):T{return x;} fn box(T:type):type{struct Item{value:T;}return Item;}");
+    driver_units_fixture("driver units first.tower", "import \"driver units dependency.tower\"; export fn unit_first():i32{var item:box(i32)={value:comptime(identity(40))}; var result:decltype(item.value)=item.value; return result;}");
+    driver_units_fixture("driver units second.tower", "import tower; export fn unit_second():i32{var value:i32=2; if value==2{return value;} return 0;}");
+    for (var trial: usize = 0; trial < 2; trial++) {
+        var args: DriverArguments = default;
+        driver_units_arguments(&args, compiler, trial == 0 ? "1" : "4");
+        driver_check(driver_test_capture(&args) == 0, "independent compilation units compile and link");
+        driver_arguments_dispose(&args);
+        driver_test_read("driver units.d", "driver\\ units\\ first.tower", false);
+        driver_test_read("driver units.d", "driver\\ units\\ second.tower", false);
+        driver_test_read("driver units.d", "driver\\ units\\ dependency.tower", false);
+        driver_arguments_init(&args);
+        driver_argument(&args, "", "./driver units executable");
+        driver_check(driver_test_capture(&args) == 0, "multi-unit executable runs");
+        driver_arguments_dispose(&args);
+        driver_test_read("driver stdout.txt", "42\n", true);
+    }
+    driver_units_fixture("driver units first.tower", "import tower; export fn unit_first():i32{return unknownFirstUnit;}");
+    driver_units_fixture("driver units second.tower", "import tower; export fn unit_second():i32{return unknownSecondUnit;}");
+    for (var trial: usize = 0; trial < 2; trial++) {
+        var args: DriverArguments = default;
+        driver_units_arguments(&args, compiler, trial == 0 ? "1" : "4");
+        driver_check(driver_test_capture(&args) == 1, "unit failure returns without linking");
+        driver_arguments_dispose(&args);
+        driver_test_read("driver stderr.txt", "unknownFirstUnit", false);
+        driver_test_read("driver stderr.txt", "driver units first.tower", false);
+    }
+    var counts: u8*[5];
+    counts[0] = "0"; counts[1] = "257"; counts[2] = "18446744073709551616"; counts[3] = "4x"; counts[4] = "";
+    for (var i: usize = 0; i < sizeof(decltype(counts)) / sizeof(u8*); i++) {
+        driver_check(driver_test_compile(compiler, "driver units main.tower", "object", "unused.o", "--jobs", counts[i]) == 1,
+            "invalid worker budget rejected");
+        driver_test_read("driver stderr.txt", "Invalid worker count", false);
+    }
+    driver_check(driver_test_compile(compiler, "driver units main.tower", "object", "unused.o", "--unit", "driver units first.tower") == 1,
+        "multiple object outputs require an explicit supported mode");
+    driver_test_read("driver stderr.txt", "Additional --unit inputs require executable output", false);
+}

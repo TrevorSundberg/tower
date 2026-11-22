@@ -563,6 +563,22 @@ fn sem_lift_value(c: SemanticContext*, block: void*, n: void*): void* {
     return sem_lift_snapshot(c, block, n);
 }
 
+// Lifting an initializer can insert temporaries before its declaration. Keep
+// the declared storage visible first when those operations refer to it, as in
+// a constructor receiving &local. Follow executable edges, never bindings.
+fn sem_lift_self_reference(initial: void*, declaration: void*): bool {
+    var pending: vector(void*) = default;
+    defer vector_dispose(&pending);
+    sem_push(&pending, initial);
+    while pending.length != 0 {
+        var value = sem_get(pending.data[--pending.length]);
+        if value == null { continue; }
+        if value.binding == declaration { return true; }
+        sem_known_edges(&pending, value);
+    }
+    return false;
+}
+
 fn sem_lift_block(c: SemanticContext*, block: void*): void {
     var value = sem_get(block);
     var source = sem_list(c);
@@ -614,6 +630,15 @@ fn sem_lift_block(c: SemanticContext*, block: void*): void {
             statement.value = null;
             sem_lift_append(block, n);
             sem_lift_initialization(c, block, sem_control_read(c, n, n), initial);
+            continue;
+        }
+        if declaration && statement.value != null && sem_lift_self_reference(statement.value, n) {
+            var initial = statement.value;
+            statement.value = null;
+            sem_lift_append(block, n);
+            var lifted = sem_lift_value(c, block, initial);
+            sem_lift_store(c, block, sem_control_read(c, n, n), lifted);
+            if known != null && known.evaluation != null { known.end = value.items.length; }
             continue;
         }
         var assignment = statement.kind == KAssign;

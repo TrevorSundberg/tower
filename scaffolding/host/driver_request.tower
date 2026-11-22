@@ -16,6 +16,7 @@ extern fn frontend_modules_fallback(modules: void*, root: u8*): void;
 extern fn frontend_modules_builtin(modules: void*, name: u8*, path: u8*): void;
 
 extern fn compiler_world_create(): void*;
+extern fn compiler_world_create_workers(workers: usize): void*;
 extern fn compiler_world_dispose(world: void*): bool;
 extern fn frontend_world_clear(world: void*): bool;
 extern fn frontend_modules_bind_world(environment: void*, world: void*): bool;
@@ -151,6 +152,10 @@ export fn driver_request_canonical(request: DriverRequest*): bool {
 }
 
 fn driver_request_configure(request: DriverRequest*): void {
+    driver_request_configure_modules(request, request.modules, request.options.source);
+}
+
+fn driver_request_configure_modules(request: DriverRequest*, modules: void*, source: u8*): void {
     // The parent view borrows the owned path, with its separator retained. This
     // preserves POSIX roots and Windows drive/UNC roots without host stat layouts.
     var path = request.foundation_path.data;
@@ -166,16 +171,16 @@ fn driver_request_configure(request: DriverRequest*): void {
     }
     var saved = path[boundary];
     path[boundary] = 0;
-    frontend_modules_configure(request.modules, request.options.source, path);
+    frontend_modules_configure(modules, source, path);
     path[boundary] = saved;
-    frontend_modules_fallback(request.modules, request.root);
+    frontend_modules_fallback(modules, request.root);
     var custom = request.options.bedrock[0] != 0;
     if custom {
-        frontend_modules_builtin(request.modules, "bedrock", request.bedrock_path.data);
+        frontend_modules_builtin(modules, "bedrock", request.bedrock_path.data);
     }
     custom = request.options.foundation[0] != 0;
     if custom {
-        frontend_modules_builtin(request.modules, "foundation", request.foundation_path.data);
+        frontend_modules_builtin(modules, "foundation", request.foundation_path.data);
     }
 }
 
@@ -189,7 +194,7 @@ export fn driver_request_bind(request: DriverRequest*, slot: void**): void {
 }
 
 export fn driver_request_prepare(request: DriverRequest*): bool {
-    request.world = compiler_world_create();
+    request.world = request.options.jobs == 0 ? compiler_world_create() : compiler_world_create_workers(request.options.jobs);
     if request.world is null { return false; }
     request.modules = frontend_modules_create();
     if !frontend_modules_bind_world(request.modules, request.world) { return false; }

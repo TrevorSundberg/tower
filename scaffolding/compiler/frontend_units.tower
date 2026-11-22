@@ -238,7 +238,7 @@ export fn frontend_units_close(batch: FrontendUnits*): void {
 // Width is explicit target layout, independent of the host or worker count.
 export fn frontend_units_create(count: usize, budget: usize, width: u32,
 revision: u64, profile: u64, bedrock: u8*, foundation: u8*, library: u8*): FrontendUnits* {
-    if count == 0 || budget == 0 || budget > 256 ||(width != 4 && width != 8)
+    if count == 0 || budget == 0 || budget > WorkPoolMaximumCapacity ||(width != 4 && width != 8)
     || bedrock is null || foundation is null || library is null {
         return null;
     }
@@ -392,6 +392,20 @@ export fn frontend_units_step(batch: FrontendUnits*, wait: bool): bool {
 
 export fn frontend_units_failed(batch: FrontendUnits*): usize {
     return compiler_work_failed(batch.work);
+}
+
+// Configuration and diagnostics borrow the private environment only while no
+// worker can access it. Callers must not retain this borrow across step/close.
+export fn frontend_units_environment(batch: FrontendUnits*, ordinal: usize): void* {
+    if batch.started && !batch.finished { return null; }
+    var job = frontend_units_job(batch, ordinal);
+    return job == null ? null : job.modules;
+}
+
+export fn frontend_units_error_offset(batch: FrontendUnits*): usize {
+    if !batch.finished || batch.cancelled || frontend_units_failed(batch) == 0 { return 0; }
+    var job = frontend_units_job(batch, frontend_units_failed(batch));
+    return job.program.error.length == 0 ? job.diagnostic.offset : job.program.error_offset;
 }
 
 // One coordinator may extend completed unit queries while borrowing their

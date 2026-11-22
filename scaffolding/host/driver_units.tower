@@ -1,0 +1,167 @@
+import tower;
+import driver_api;
+import driver_types;
+import driver_support;
+import driver_platform;
+import driver_request;
+import driver_link;
+import driver_paths;
+import driver_timing;
+import .library.vector;
+import .library.work_pool;
+import .library.bytes_types;
+import .library.bytes_interface;
+import .compiler.semantic_program_types;
+import .compiler.foundation_types;
+
+extern fn frontend_units_create(count: usize, budget: usize, width: u32, revision: u64,
+    profile: u64, bedrock: u8*, foundation: u8*, library: u8*): void*;
+extern fn frontend_units_source(batch: void*, ordinal: usize, path: u8*, text: u8*, length: usize): bool;
+extern fn frontend_units_environment(batch: void*, ordinal: usize): void*;
+extern fn frontend_units_step(batch: void*, wait: bool): bool;
+extern fn frontend_units_failed(batch: void*): usize;
+extern fn frontend_units_cancelled(batch: void*): bool;
+extern fn frontend_units_error(batch: void*): u8*;
+extern fn frontend_units_error_offset(batch: void*): usize;
+extern fn frontend_units_program(batch: void*, ordinal: usize): SemanticProgram*;
+extern fn frontend_units_close(batch: void*): void;
+extern fn frontend_modules_depfile_append(environment: void*, output: u8*, path: u8*, append: bool): bool;
+extern fn backend_units_create(frontend: void*, count: usize, budget: usize, target: u8*, library: bool, optimize: bool): void*;
+extern fn backend_units_library(batch: void*, ordinal: usize, library: bool): bool;
+extern fn backend_units_step(batch: void*, wait: bool): bool;
+extern fn backend_units_failed(batch: void*): usize;
+extern fn backend_units_cancelled(batch: void*): bool;
+extern fn backend_units_error(batch: void*): u8*;
+extern fn backend_units_error_offset(batch: void*): usize;
+extern fn backend_units_result(batch: void*, ordinal: usize): void*;
+extern fn backend_units_close(batch: void*): void;
+extern fn driver_output_name(emit: u8*, wasm: bool, windows: bool): u8*;
+
+// Inputs are snapshots; each unit owns its compiler world and LLVM context.
+// Only this coordinator configures environments, reports errors and links.
+struct DriverUnits {
+    frontend: void*;
+    backend: void*;
+    inputs: vector(ByteBuffer);
+    objects: vector(ByteBuffer);
+}
+
+fn driver_units_close(batch: DriverUnits*): void {
+    backend_units_close(batch.backend);
+    frontend_units_close(batch.frontend);
+    // The entry snapshot is borrowed from DriverRequest, the others are owned.
+    for (var i: usize = 1; i < batch.inputs.length; i++) { bytes_dispose(&batch.inputs.data[i]); }
+    foreach (var &object in &batch.objects) { driver_temporary_dispose(object); }
+    vector_dispose(&batch.inputs);
+    vector_dispose(&batch.objects);
+}
+
+fn driver_units_path(options: DriverOptions*, index: usize): u8* {
+    return index == 0 ? options.source : options.units[index - 1];
+}
+
+fn driver_units_report(batch: DriverUnits*, request: DriverRequest*, ordinal: usize, message: u8*, offset: usize): void {
+    var input = &batch.inputs.data[ordinal - 1];
+    driver_report(message, offset, input.data, input.length, driver_units_path(request.options, ordinal - 1),
+        frontend_units_environment(batch.frontend, ordinal));
+}
+
+fn driver_units_compile(request: DriverRequest*, timing: DriverTiming*): i32 {
+    var options = request.options;
+    var count = options.unit_count + 1;
+    var budget = options.jobs;
+    if budget == 0 { budget = work_thread_capacity(); }
+    if budget == 0 { budget = 1; }
+    if budget > WorkPoolMaximumCapacity { budget = WorkPoolMaximumCapacity; }
+    var wasm = strstr(options.target, "wasm") == options.target;
+    var windows = strstr(options.target, "windows") != null;
+    var output = options.output[0] == 0 ? driver_output_name(options.emit, wasm, windows) : options.output;
+    var target = backend_open(options.target);
+    if target == null { driver_error("Unable to allocate target description", ""); return 1; }
+    defer backend_close(target);
+    if backend_error(target)[0] != 0 { driver_error("", backend_error(target)); return 1; }
+    var batch: DriverUnits = default;
+    defer driver_units_close(&batch);
+    if !vector_reserve(&batch.inputs, count) || !vector_reserve(&batch.objects, count - 1) {
+        driver_error("Unable to allocate compilation unit inputs", ""); return 1;
+    }
+    vector_push(&batch.inputs, request.text[DriverSourceText]);
+    for (var i: usize = 0; i < count; i++) {
+        var path = driver_units_path(options, i);
+        if driver_same(path + driver_extension(path), ".towerbc") {
+            driver_error("Additional compilation units require Tower source: ", path); return 1;
+        }
+        if !driver_output_safe(path, output)
+            || (options.depfile[0] != 0 && !driver_output_safe(path, options.depfile)) { return 1; }
+        if i != 0 {
+            var input: ByteBuffer = default;
+            vector_push(&batch.inputs, input);
+            if !driver_read_file(path, &batch.inputs.data[i]) { driver_error("Cannot read file: ", path); return 1; }
+        }
+    }
+    for (var i: usize = 0; i < options.link_count; i++) {
+        if !driver_platform_regular(options.links[i]) { driver_error("Missing link input: ", options.links[i]); return 1; }
+    }
+    // A fresh request owns revision one; target width is an explicit profile
+    // input. No cross-request cache or host-dependent evaluation is introduced.
+    var width = backend_pointer_bytes(target);
+    batch.frontend = frontend_units_create(count, budget, width, 1, convert(u64, width),
+        request.text[DriverBedrockText].data, request.text[DriverFoundationText].data, request.root);
+    if batch.frontend == null { driver_error("Unable to allocate compilation unit graph", ""); return 1; }
+    for (var i: usize = 0; i < count; i++) {
+        var input = &batch.inputs.data[i];
+        var path = driver_units_path(options, i);
+        if !frontend_units_source(batch.frontend, i + 1, path, input.data, input.length) {
+            driver_error("Cannot snapshot compilation unit (allocation failure or NUL byte): ", path); return 1;
+        }
+        driver_request_configure_modules(request, frontend_units_environment(batch.frontend, i + 1), path);
+    }
+    var started = driver_clock();
+    while !frontend_units_step(batch.frontend, true) { }
+    if frontend_units_cancelled(batch.frontend) { driver_error("Compilation unit dispatch failed", ""); return 1; }
+    var failed = frontend_units_failed(batch.frontend);
+    if failed != 0 {
+        driver_units_report(&batch, request, failed, frontend_units_error(batch.frontend), frontend_units_error_offset(batch.frontend));
+        return 1;
+    }
+    if options.timings { driver_timing_value(timing, "parse", driver_clock() - started); }
+    batch.backend = backend_units_create(batch.frontend, count, budget, options.target, true, options.optimize);
+    if batch.backend == null || !backend_units_library(batch.backend, 1, false) {
+        driver_error("Unable to allocate backend unit graph", ""); return 1;
+    }
+    while !backend_units_step(batch.backend, true) { }
+    if backend_units_cancelled(batch.backend) { driver_error("Backend unit dispatch failed", ""); return 1; }
+    failed = backend_units_failed(batch.backend);
+    if failed != 0 {
+        driver_units_report(&batch, request, failed, backend_units_error(batch.backend), backend_units_error_offset(batch.backend));
+        return 1;
+    }
+    driver_timing_mark(timing, options.timings, "compile");
+    var link = driver_link_open(options.target, options.cc, options.linker, options.sysroot, output,
+        request.root, wasm, windows, timing, options.timings);
+    if link == null { return 1; }
+    defer driver_link_close(link);
+    for (var i: usize = 0; i < count; i++) {
+        var ordinal = i + 1;
+        if !frontend_modules_depfile_append(frontend_units_environment(batch.frontend, ordinal), output, options.depfile, i != 0) {
+            driver_error("Cannot write dependency file: ", options.depfile); return 1;
+        }
+        var program = frontend_units_program(batch.frontend, ordinal);
+        var backend = backend_units_result(batch.backend, ordinal);
+        for (var f: usize = 1; f < program.functions.length; f++) {
+            var function = sem_get(program.functions.data[f]);
+            if function.external { driver_link_import(link, backend_function_name(backend, f)); }
+            if function.exported { driver_link_export(link, backend_function_name(backend, f)); }
+        }
+        if i != 0 {
+            var object: ByteBuffer = default;
+            vector_push(&batch.objects, object);
+            var path = &batch.objects.data[i - 1];
+            if !driver_platform_temporary(path) || !driver_write_file(path.data, backend_bytes(backend), backend_size(backend)) { return 1; }
+            driver_link_input(link, path.data);
+        }
+    }
+    for (var i: usize = 0; i < options.link_count; i++) { driver_link_input(link, options.links[i]); }
+    var entry = backend_units_result(batch.backend, 1);
+    return driver_link_execute(link, backend_bytes(entry), backend_size(entry));
+}

@@ -1662,6 +1662,12 @@ fn module_make_path(text: vector(u8)*, path: u8*): void {
 }
 
 export fn frontend_modules_depfile(environment: ModuleEnvironment*, output: u8*, path: u8*): bool {
+    return frontend_modules_depfile_append(environment, output, path, false);
+}
+
+// Separate unit prerequisites combine as ordinary make rules for one output.
+// The coordinator writes them in unit order after all frontend workers join.
+export fn frontend_modules_depfile_append(environment: ModuleEnvironment*, output: u8*, path: u8*, append: bool): bool {
     if path[0] == 0 {
         return true;
     }
@@ -1674,7 +1680,7 @@ export fn frontend_modules_depfile(environment: ModuleEnvironment*, output: u8*,
         module_make_path(&text, *used_item);
     }
     module_require(bytes_append(&text, "\n", 1));
-    var file = fopen(path, "wb");
+    var file = fopen(path, append ? "ab" : "wb");
     var ok = file != null;
     if ok {
         var written = fwrite(text.data, 1, text.length, file);

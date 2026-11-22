@@ -3,6 +3,7 @@ import tower;
 // CLI parsing owns its link array and borrows argv/default-target strings.
 // Keep option ordering and early --help behavior of the original native driver.
 import driver_types;
+import .library.work_pool;
 
 fn driver_equal(a: u8*, b: u8*): bool {
     var index: usize = 0;
@@ -19,7 +20,7 @@ fn driver_equal(a: u8*, b: u8*): bool {
 }
 
 export fn driver_help(): u8* {
-    return "towerc source.tower -o output [--target triple|roku] [--emit object|llvm|llvm-optimized|exe|bytecode|foundation|c|brightscript]\n  [--link object-or-library] [--cc clang] [--linker tool] [--sysroot path]\n  [--raw-ir file] [--optimized-ir file] [--no-optimize] [--strip-comments] [--interpret|--interpret-fast] [--library] [--timings]\n  [--bedrock file] [--foundation file] [--depfile file] [--help] [--version]\n";
+    return "towerc source.tower -o output [--target triple|roku] [--emit object|llvm|llvm-optimized|exe|bytecode|foundation|c|brightscript]\n  [--unit library-source.tower] [--jobs count] [--link object-or-library] [--cc clang] [--linker tool] [--sysroot path]\n  [--raw-ir file] [--optimized-ir file] [--no-optimize] [--strip-comments] [--interpret|--interpret-fast] [--library] [--timings]\n  [--bedrock file] [--foundation file] [--depfile file] [--help] [--version]\n";
 }
 
 export fn driver_version(): u8* {
@@ -30,6 +31,23 @@ export fn driver_dispose(options: DriverOptions*): void {
     free(options.links);
     options.links = null;
     options.link_count = 0;
+    free(options.units);
+    options.units = null;
+    options.unit_count = 0;
+}
+
+fn driver_jobs(text: u8*): usize {
+    var value: usize = 0;
+    var zero: u8 = 48;
+    var nine: u8 = 57;
+    var radix: usize = 10;
+    for (var i: usize = 0; text[i] != 0; i++) {
+        if text[i] < zero || text[i] > nine { return 0; }
+        var digit = convert(usize, text[i] - zero);
+        if value > (WorkPoolMaximumCapacity - digit) / radix { return 0; }
+        value = value * radix + digit;
+    }
+    return value;
 }
 
 export fn driver_parse(options: DriverOptions*, argc: usize, argv: u8**, target: u8*): bool {
@@ -47,6 +65,9 @@ export fn driver_parse(options: DriverOptions*, argc: usize, argv: u8**, target:
     options.depfile = "";
     options.links = null;
     options.link_count = 0;
+    options.units = null;
+    options.unit_count = 0;
+    options.jobs = 0;
     options.optimize = true;
     options.interpret = false;
     options.library = false;
@@ -54,7 +75,7 @@ export fn driver_parse(options: DriverOptions*, argc: usize, argv: u8**, target:
     options.help = false;
     options.version = false;
     options.fast = false;
-    options.error = 0;
+    options.error = convert(u32, DriverOptionError.None);
     options.argument = "";
     options.comments = true;
     var index: usize = 1;
@@ -134,33 +155,44 @@ export fn driver_parse(options: DriverOptions*, argc: usize, argv: u8**, target:
             slot = &options.depfile;
         }
         var link = driver_equal(arg, "--link");
+        var unit = driver_equal(arg, "--unit");
+        var jobs = driver_equal(arg, "--jobs");
         var valued = slot != null;
-        if link {
+        if link || unit || jobs {
             valued = true;
         }
         if valued {
             if index == argc {
-                options.error = 1;
+                options.error = convert(u32, DriverOptionError.MissingValue);
                 options.argument = arg;
                 return false;
             }
             var value = argv[index];
             index++;
-            if link {
-                if options.links == null {
+            if link || unit {
+                var inputs = unit ? &options.units : &options.links;
+                var count = unit ? &options.unit_count : &options.link_count;
+                if *inputs == null {
                     // argc bounds the number of link values. One allocation;
                     // failure leaves the options safely disposable.
-                    options.links = alloc(u8*, argc);
-                    if options.links == null {
-                        options.error = 3;
+                    *inputs = alloc(u8*, argc);
+                    if *inputs == null {
+                        options.error = convert(u32, DriverOptionError.Allocation);
                         options.argument = arg;
                         return false;
                     }
                 }
-                options.links[options.link_count] = value;
-                options.link_count++;
+                (*inputs)[*count] = value;
+                (*count)++;
             } else {
-                *slot = value;
+                if jobs {
+                    options.jobs = driver_jobs(value);
+                    if options.jobs == 0 {
+                        options.error = convert(u32, DriverOptionError.Jobs);
+                        options.argument = value;
+                        return false;
+                    }
+                } else { *slot = value; }
             }
             continue;
         }
@@ -171,7 +203,7 @@ export fn driver_parse(options: DriverOptions*, argc: usize, argv: u8**, target:
             unexpected = true;
         }
         if unexpected {
-            options.error = 2;
+            options.error = convert(u32, DriverOptionError.Unexpected);
             options.argument = arg;
             return false;
         }

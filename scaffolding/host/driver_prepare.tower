@@ -14,15 +14,18 @@ extern fn driver_output_valid(emit: u8*): bool;
 // 2 is an already-reported successful --help/--version early exit.
 export fn driver_prepare(options: DriverOptions*, argc: usize, argv: u8**, target: u8*): i32 {
     if !driver_parse(options, argc, argv, target) {
-        match options.error {
-            1 => {
+        match convert(DriverOptionError, options.error) {
+            DriverOptionError.MissingValue => {
                 driver_error("Missing argument for ", options.argument);
             }
-            2 => {
+            DriverOptionError.Unexpected => {
                 driver_error("Unexpected argument: ", options.argument);
             }
+            DriverOptionError.Jobs => {
+                driver_error("Invalid worker count: ", options.argument);
+            }
             _ => {
-                driver_error("Unable to allocate command-line link inputs", "");
+                driver_error("Unable to allocate command-line inputs", "");
             }
         }
         return 1;
@@ -61,6 +64,11 @@ export fn driver_prepare(options: DriverOptions*, argc: usize, argv: u8**, targe
             return 1;
         }
         options.target = "wasm32-unknown-unknown";
+    }
+    if options.unit_count != 0 && (!driver_same(options.emit, "exe") || options.interpret || options.library
+        || options.raw[0] != 0 || options.optimized[0] != 0) {
+        driver_error("Additional --unit inputs require executable output without interpreter, library or single-unit IR options", "");
+        return 1;
     }
     return 0;
 }

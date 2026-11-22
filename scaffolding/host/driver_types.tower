@@ -1,5 +1,7 @@
 import tower;
 
+enum DriverOptionError: u32 { None = 0, MissingValue = 1, Unexpected = 2, Allocation = 3, Jobs = 4 }
+
 struct DriverOptions {
     source: u8*;
     output: u8*;
@@ -15,6 +17,9 @@ struct DriverOptions {
     depfile: u8*;
     links: u8**;
     link_count: usize;
+    units: u8**;
+    unit_count: usize;
+    jobs: usize;
     optimize: bool;
     interpret: bool;
     library: bool;

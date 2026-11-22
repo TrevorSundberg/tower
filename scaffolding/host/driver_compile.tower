@@ -10,6 +10,7 @@ import driver_timing;
 import driver_link;
 import driver_paths;
 import driver_types;
+import driver_units;
 import driver_support;
 import driver_platform;
 import .library.bytes_types;
@@ -398,6 +399,7 @@ fn driver_compile_run(state: DriverCompilation*): i32 {
 }
 
 export fn driver_compile(options: DriverOptions*, resources: u8*, timing: DriverTiming*, request: DriverRequest*): i32 {
+    if options.unit_count != 0 { return driver_units_compile(request, timing); }
     if !driver_request_prepare(request) {
         driver_error("", driver_request_error(request));
         return 1;

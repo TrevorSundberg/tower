@@ -319,8 +319,12 @@ struct SemanticLoopCursor {
 }
 
 fn sem_control_while_begin(c: SemanticContext*, n: void*, state: SemanticLoopCursor*): bool {
+    return sem_control_while_value(c, n, state, null);
+}
+
+fn sem_control_while_value(c: SemanticContext*, n: void*, state: SemanticLoopCursor*, condition: void*): bool {
     *state = default;
-    var condition = sem_expression(c, sem_member(n, "condition"), sem_type_new(c, SBool, 0, null));
+    condition ??= sem_expression(c, sem_member(n, "condition"), sem_type_new(c, SBool, 0, null));
     if !sem_ok(c) {
         return false;
     }

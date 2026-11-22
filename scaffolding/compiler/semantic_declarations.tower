@@ -23,8 +23,9 @@ import .library.work_pool;
 import .library.stack;
 import compiler_kernel;
 
-var DeclarationQuery: u32 = 3;
-var DeclarationDiscoveryQuery: u32 = 4;
+var DeclarationQuery: u32 = convert(u32, SemanticQuery.Declaration);
+var DeclarationDiscoveryQuery: u32 = convert(u32, SemanticQuery.DeclarationDiscovery);
+var ExpressionQuery: u32 = convert(u32, SemanticQuery.Expression);
 
 struct SemanticDeclaration {
     number: usize;
@@ -42,9 +43,14 @@ struct SemanticDeclaration {
     lexical: SemanticBodyScope;
     constructed: vector(void*);
     subject: void*;
+    expression: bool;
+    initializer: bool;
+    expected_type: FoundationType*;
+    value: void*;
     discover: bool;
     worker_check: bool;
     checked: bool;
+    storage_ready: bool;
     stage: void*;
     nodes: vector(void*);
     count: usize;
@@ -118,7 +124,12 @@ fn sem_declaration_scan_push(scan: vector(DeclarationScan)*, node: void*, type: 
     scan.length++;
 }
 
-fn sem_declaration_roots(c: SemanticContext*, subject: void*, scan: vector(DeclarationScan)*): void {
+fn sem_declaration_roots(c: SemanticContext*, result: SemanticDeclaration*, scan: vector(DeclarationScan)*): void {
+    var subject = result.subject;
+    if result.expression {
+        sem_declaration_scan_push(scan, subject, false);
+        return;
+    }
     if sem_is(subject, "CoreStruct") {
         var fields = sem_collect(c, sem_member(subject, "fields"), "CoreField");
         var index: usize = 0;
@@ -266,8 +277,21 @@ fn sem_declaration_location(c: SemanticContext*, node: void*, waiting: usize*, l
     return null;
 }
 
-fn sem_declaration_waiting(c: SemanticContext*, subject: void*, layout: void**): usize {
+fn sem_declaration_waiting(c: SemanticContext*, result: SemanticDeclaration*, layout: void**): usize {
+    var subject = result.subject;
     *layout = null;
+    // A contextual aggregate initializer can inspect its destination fields
+    // even without a type spelling in the expression itself.
+    if result.expression && result.expected_type != null && semantic_aggregate(result.expected_type) {
+        var record = result.expected_type.record;
+        var waiting = sem_declaration_layout_waiting(c, record);
+        if waiting != 0 { return waiting; }
+        var query = work_find(&c.queries, record, convert(u32, SemanticQuery.Layout), 0);
+        if query == 0 || work_task(&c.queries, query).state != WorkState.Succeeded {
+            *layout = record;
+            return 0;
+        }
+    }
     if sem_function_syntax(subject) {
         // Value parameters need frame storage while their header is checked.
         // Record this layout dependency before dispatching a pinned worker.
@@ -286,7 +310,7 @@ fn sem_declaration_waiting(c: SemanticContext*, subject: void*, layout: void**):
     }
     var scan: vector(DeclarationScan);
     vector_init(DeclarationScan, &scan);
-    sem_declaration_roots(c, subject, &scan);
+    sem_declaration_roots(c, result, &scan);
     var waiting: usize = 0;
     while scan.length != 0 && waiting == 0 && *layout == null {
         scan.length--;
@@ -363,7 +387,7 @@ fn sem_declaration_waiting(c: SemanticContext*, subject: void*, layout: void**):
 fn sem_declaration_dependencies(c: SemanticContext*, subject: void*, result: SemanticDeclaration*): void {
     var scan: vector(DeclarationScan);
     vector_init(DeclarationScan, &scan);
-    sem_declaration_roots(c, subject, &scan);
+    sem_declaration_roots(c, result, &scan);
     if sem_function_syntax(subject) {
         var parameters = &sem_get(subject).parameters;
         for(var i: usize = 0; i < parameters.length; ++i) {
@@ -677,10 +701,14 @@ fn sem_declaration_syntax(c: SemanticContext*, annotation: void*, nodes: vector(
 fn sem_declaration_worker(c: SemanticContext*, result: SemanticDeclaration*): bool {
     var subject = result.subject;
     var record = sem_is(subject, "CoreStruct");
-    if !record && !sem_is(subject, "CoreDeclare") && !sem_is(subject, "CoreParameter") && !sem_function_syntax(subject) { return false; }
+    if !result.expression && !record && !sem_is(subject, "CoreDeclare") && !sem_is(subject, "CoreParameter") && !sem_function_syntax(subject) { return false; }
     var previous_scope = c.scope;
     c.scope = result.scope;
     defer { c.scope = previous_scope; }
+    if result.expression {
+        return sem_declaration_expression(c, subject)
+            && sem_declaration_syntax(c, subject, &result.nodes, true, false);
+    }
     var annotation = sem_member(subject, record ? "fields" : "type");
     var type = annotation != null;
     var staged = record || !type;
@@ -744,6 +772,12 @@ fn sem_declaration_infer(c: SemanticContext*, result: SemanticDeclaration*): voi
     result.inference_pending = false;
 }
 
+fn sem_expression_check(c: SemanticContext*, result: SemanticDeclaration*): void {
+    result.value = result.initializer
+        ? sem_initial_value(c, result.subject, result.expected_type)
+        : sem_expression(c, result.subject, result.expected_type);
+}
+
 // Workers borrow immutable scope/graph indexes and own scratch/diagnostics.
 // Ready type queries may write their declared subject payload and leased syntax.
 // Headers wait for parameter types before assigning their frame slots. Stages
@@ -773,16 +807,19 @@ fn semantic_declaration_kernel(result: SemanticDeclaration*): void {
     vector_init(u8, &program.error);
     if result.discover { sem_declaration_dependencies(&context, result.subject, result); }
     else {
-        result.waiting = sem_declaration_waiting(&context, result.subject, &result.layout);
+        result.waiting = sem_declaration_waiting(&context, result, &result.layout);
         if !result.checked && result.waiting == 0 && result.layout == null && sem_ok(&context) {
             if result.inference_pending { sem_declaration_infer(&context, result); }
             else {
                 if result.worker_check {
                     result.checked = true;
-                    if sem_function_syntax(result.subject) { sem_header(&context, result.subject, "", null); }
+                    if result.expression { sem_expression_check(&context, result); }
                     else {
-                        if sem_is(result.subject, "CoreStruct") { sem_type_fields(&context, result.subject); }
-                        else { sem_declaration_type(&context, result.subject); }
+                        if sem_function_syntax(result.subject) { sem_header(&context, result.subject, "", null); }
+                        else {
+                            if sem_is(result.subject, "CoreStruct") { sem_type_fields(&context, result.subject); }
+                            else { sem_declaration_type(&context, result.subject); }
+                        }
                     }
                 }
             }
@@ -820,6 +857,19 @@ fn semantic_declaration_kernel(result: SemanticDeclaration*): void {
     vector_dispose(void*, &context.allocations);
 }
 
+// Copy an owned producer diagnostic without publishing its scratch or changing
+// the scheduler. Structural cache consumers use this same failure receipt.
+fn sem_declaration_restore_error(c: SemanticContext*, result: SemanticDeclaration*): bool {
+    if result == null || result.error.length == 0 { return false; }
+    if sem_ok(c) {
+        sem_require(vector_reserve(&c.program.error, result.error.length + 1));
+        copy(c.program.error.data, result.error.data, result.error.length + 1);
+        c.program.error.length = result.error.length;
+        c.program.error_offset = result.error_offset;
+    }
+    return true;
+}
+
 fn sem_declaration_error(c: SemanticContext*, result: SemanticDeclaration*): bool {
     sem_type_observations_publish(c, &result.type_observations);
     sem_editor_publish(c, &result.editor);
@@ -828,12 +878,7 @@ fn sem_declaration_error(c: SemanticContext*, result: SemanticDeclaration*): boo
     vector_dispose(&result.allocations);
     vector_dispose(&result.lists);
     if result.error.length == 0 { return false; }
-    if sem_ok(c) && !c.declaration_isolated {
-        sem_require(vector_reserve(u8, &c.program.error, result.error.length + 1));
-        copy(c.program.error.data, result.error.data, result.error.length + 1);
-        c.program.error.length = result.error.length;
-        c.program.error_offset = result.error_offset;
-    }
+    if !c.declaration_isolated { sem_declaration_restore_error(c, result); }
     // Retain the producer diagnostic for later dependent body continuations.
     // The compilation owns it until declaration disposal.
     return true;
@@ -857,15 +902,9 @@ fn sem_declaration_failure(c: SemanticContext*, id: usize): bool {
     for(var i: usize = 0; i < pending.length; i++) {
         var task = work_task(&c.queries, pending.data[i]);
         if task.state != WorkState.Failed { continue; }
-        if task.query == DeclarationQuery || task.query == DeclarationDiscoveryQuery {
+        if task.query == DeclarationQuery || task.query == DeclarationDiscoveryQuery || task.query == ExpressionQuery {
             var result = sem_declaration_state(c, task.subject);
-            if result.error.length != 0 {
-                sem_require(vector_reserve(&c.program.error, result.error.length + 1));
-                copy(c.program.error.data, result.error.data, result.error.length + 1);
-                c.program.error.length = result.error.length;
-                c.program.error_offset = result.error_offset;
-                return true;
-            }
+            if sem_declaration_restore_error(c, result) { return true; }
         }
         if task.query == convert(u32, SemanticQuery.Layout) {
             var layout = bits(SemanticLayoutWork*, entity_component_data(entity_component_get(task.subject, c.layout_results)));
@@ -919,6 +958,8 @@ fn sem_declaration_dispose(c: SemanticContext*): void {
             result.context = null;
             result.scope = null;
             result.current = null;
+            result.expected_type = null;
+            result.value = null;
             result.lexical = default;
         }
     }
@@ -951,7 +992,7 @@ fn sem_declaration_calls(c: SemanticContext*, result: SemanticDeclaration*): voi
     var roots: vector(DeclarationScan);
     vector_init(&roots);
     defer vector_dispose(&roots);
-    sem_declaration_roots(c, result.subject, &roots);
+    sem_declaration_roots(c, result, &roots);
     var scan: vector(DeclarationCallScan);
     vector_init(&scan);
     defer vector_dispose(&scan);
@@ -1019,7 +1060,7 @@ fn sem_declaration_prepare(c: SemanticContext*, result: SemanticDeclaration*): u
     while result.call_index < result.calls.length && sem_ok(c) {
         // A ready inner call can expose another field/layout dependency needed
         // for deduction of the enclosing call. Observe it before typing operands.
-        var waiting = sem_declaration_waiting(c, result.subject, &result.layout);
+        var waiting = sem_declaration_waiting(c, result, &result.layout);
         if waiting != 0 || result.layout != null { return waiting; }
         var call = &result.calls.data[result.call_index];
         c.unevaluated = call.unevaluated;
@@ -1048,17 +1089,30 @@ fn sem_declaration_prepare(c: SemanticContext*, result: SemanticDeclaration*): u
         if query != 0 && work_task(&c.queries, query).state != WorkState.Succeeded { return query; }
         result.call_index++;
     }
-    return sem_ok(c) ? sem_declaration_waiting(c, result.subject, &result.layout) : 0;
+    return sem_ok(c) ? sem_declaration_waiting(c, result, &result.layout) : 0;
 }
 
 // Registration and discovery are shared by source declarations and newly
 // instantiated signatures. All nodes are registered before discovery dispatch;
 // every dependency is sealed before the caller may suspend/demand it.
+fn sem_expression_add(c: SemanticContext*, node: void*, expected_type: FoundationType*, lexical: SemanticBodyScope*, initializer: bool): SemanticDeclaration* {
+    var result = sem_declaration_state(c, node);
+    sem_require(result.query == 0);
+    result.expression = true;
+    result.initializer = initializer;
+    result.expected_type = expected_type;
+    result.scope = lexical.scope;
+    result.current = lexical.current;
+    result.lexical = *lexical;
+    sem_declaration_add(c, node);
+    return result;
+}
+
 fn sem_declaration_add(c: SemanticContext*, node: void*): void {
     var result = sem_declaration_state(c, node);
     if result.query != 0 { return; }
     sem_push(c.declaration_subjects, node);
-    var id = work_request(&c.queries, node, DeclarationQuery, 0);
+    var id = work_request(&c.queries, node, result.expression ? ExpressionQuery : DeclarationQuery, 0);
     sem_require(id != 0);
     result.query = id;
     result.context = c;
@@ -1176,6 +1230,12 @@ extern fn generic_error_clear(context: void*): void;
 // Checking every new type globally would let an unrelated later body choose
 // an earlier body's failure. Field receipts precede layout admission.
 fn sem_declaration_constructed(c: SemanticContext*, result: SemanticDeclaration*): usize {
+    if result.current != null && sem_is(result.subject, "CoreDeclare") {
+        var type = &sem_get(result.subject).type;
+        if semantic_aggregate(type) && !sem_has(&result.constructed, type.record) {
+            sem_push(&result.constructed, type.record);
+        }
+    }
     foreach(var node in &result.constructed) {
         var waiting = sem_declaration_layout_waiting_except(c, node, result.query);
         if waiting != 0 { return waiting; }
@@ -1196,14 +1256,16 @@ fn sem_declarations_execute(c: SemanticContext*, statements: vector(void*)*): vo
     var index: usize = 0;
     while index < statements.length {
         var node = statements.data[index];
-        if sem_declaration_subject(node) { sem_require(work_demand(&c.queries, sem_declaration_query(c, node))); }
+        var query = sem_declaration_query(c, node);
+        if query != 0 { sem_require(work_demand(&c.queries, query)); }
         index++;
     }
     loop {
         if !sem_ok(c) { break; }
         var count: usize = 0;
         var ticket: WorkTicket;
-        while count < SemanticPreparationWindow && work_take_query(&c.queries, &ticket, DeclarationQuery) {
+        while count < SemanticPreparationWindow && (work_take_query(&c.queries, &ticket, DeclarationQuery)
+            || work_take_query(&c.queries, &ticket, ExpressionQuery)) {
             var result = sem_declaration_state(c, work_task(&c.queries, ticket.task).subject);
             copy(&result.ticket, &ticket, sizeof(WorkTicket));
             result.kernel.kind = result.worker_check ? CompilerKernelKind.DeclarationType : CompilerKernelKind.Declaration;
@@ -1274,12 +1336,15 @@ fn sem_declarations_execute(c: SemanticContext*, statements: vector(void*)*): vo
                             result.worker_check = true;
                             readmit = true;
                         } else {
-                            if sem_is(node, "CoreDeclare") || sem_is(node, "CoreParameter") { sem_declaration_type(c, node); }
+                            if result.expression { sem_expression_check(c, result); }
                             else {
-                                if sem_function_syntax(node) { sem_header(c, node, "", null); }
+                                if sem_is(node, "CoreDeclare") || sem_is(node, "CoreParameter") { sem_declaration_type(c, node); }
                                 else {
-                                    if sem_is(node, "CoreStruct") { sem_type_fields(c, node); }
-                                    else { sem_enum_fields(c, node); }
+                                    if sem_function_syntax(node) { sem_header(c, node, "", null); }
+                                    else {
+                                        if sem_is(node, "CoreStruct") { sem_type_fields(c, node); }
+                                        else { sem_enum_fields(c, node); }
+                                    }
                                 }
                             }
                             result.checked = sem_ok(c);
@@ -1349,7 +1414,7 @@ fn sem_declarations_execute(c: SemanticContext*, statements: vector(void*)*): vo
     index = 0;
     while index < statements.length && sem_ok(c) {
         var node = statements.data[index];
-        if sem_declaration_subject(node) { sem_declaration_report(c, node); }
+        if sem_declaration_query(c, node) != 0 { sem_declaration_report(c, node); }
         index++;
     }
 }

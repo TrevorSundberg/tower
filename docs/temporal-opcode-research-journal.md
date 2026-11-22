@@ -39788,3 +39788,93 @@ composition or invent another runtime. The seven kernel32.def import description
 remain required; consider the existing COFF short-import and shared ar writer
 before adding any new library. Production pack construction remains unchanged
 in this milestone. The two remaining test scripts are CMake/SDK build boundaries.
+
+## 2026-11-21: Resume expression dependency migration after the completion audit
+
+Pulled main 4f74fbd with autostash; preserved the four unfinished Tower files.
+The upstream attribute/aggregate staging and typed-callback/worker-pool changes
+supersede some language limitations in the earlier audit. The published complete
+bootstrap is now 21f52712; use its actual grammar/resources for this continuation.
+Do not replace upstream functionality with the earlier local compiler snapshot.
+
+Resolved the retained SharedNestedType diagnostic failure. sizeof intentionally
+records its operand type without forcing layout during expression typing, so
+the previous sem_layout-only guard never ran for this consumer. A cached type
+constructor now follows existing transitive field receipts and restores a failed
+producer diagnostic through the shared failure walker. Nominal references do not
+force pending layouts. Constructor aliases retain failures on the same instance's
+declaration-work component. The ordinary teardown owns these errors.
+The merged native build and body-smoke pass, including serial/four-worker shared
+signature, record, alias and nested-type diagnostics. Evidence:
+build/language-next-audit/nested-type-{preflight,native}.log. The native build
+uses the documented public bootstrap and rebuilds its changed closure/resources.
+
+Next implementation slice adds Expression queries to the existing declaration
+executor for explicitly typed local initializers. Each expression has its own
+work component on the source entity, contextual type, lexical continuation,
+private scratch and producer diagnostic. Independent bodies admit these requests
+together; type receipts remain separate from initializer failures. Generic
+signature preparation, dependency discovery, worker admission and publication
+reuse the existing executor rather than adding another semantic representation.
+Local storage is allocated exactly once before an initializer can take its own
+address. By-value local types also await their field/layout receipts before that
+allocation, including reused nominal identities.
+
+The first preflight caught the contextual keyword `expected` as a field name;
+renamed it expected_type. The corrected preflight passes. The first body smoke
+then exposed an existing Foundation serialization gap in the new self-address
+fixture: original source executes with zero failures, but expression lifting
+emitted `&local` before `var local`, making canonical reconstruction report
+Unknown local. Lowering now detects references to the declaration through owned
+executable edges and emits storage before the initializer's temporaries and final
+store. It does not evaluate/fold expressions. The focused rerun is in progress;
+no passing or publication claim for the Expression-query slice yet.
+
+The corrected initializer slice now passes the body smoke. Extended the same
+Expression receipts to if/while conditions: body continuations consume the joined
+typed expression once, then perform structural control-flow publication. Runtime
+loop conditions still execute on every iteration. Added effectful condition and
+initializer fixtures, including a self-address call, postincrement, contextual
+generic aggregate initialization, explicit comptime and Foundation reconstruction.
+`condition-query-native.log` records the complete body matrix (target widths 4/8,
+workers 1/2/4/8), ordered diagnostic/cycle cases, and the known-binding suite
+passing. `expression-query-native.log` records the preceding initializer smoke.
+These runs use the public 21f52712 bootstrap in the existing native CMake cache;
+no sanitizer or unrelated full-suite loop was run.
+
+Next closed a production wiring gap: added native `--unit` library inputs and
+`--jobs`, connecting the existing frontend-unit and backend-unit services. Unit
+workers own separate worlds/LLVM contexts, nested phases share the total budget,
+and backend queries extend the same unit entities/graph. The backend pool now
+uses the published typed-callback facility. Entry-point policy is configurable
+per unit only before dispatch. Module environments are borrowed only before
+workers start or after they join; source-mapped failures select the earliest unit.
+Dependency output appends ordinary prerequisite rules in input order. Link files
+and the final linker remain coordinator-owned and are cleaned on failure.
+Single-unit invocations also accept the worker budget. Additional units currently
+require executable output; no cross-unit import deduplication or overlapping
+frontend/backend streaming is claimed. Existing interpreter/package output paths
+retain their behavior. This is entirely Tower, including new tests.
+
+Driver preflight passed after adding direct type imports (Tower imports are not
+transitive). The first native test build caught an unsupported fixed-array
+foreach in the test itself; replaced it with a counted traversal. The current
+`driver-units-native.log` rerun builds the affected production closure and tests
+one/four-worker linking, decltype/comptime across imports, depfiles, deterministic
+unit failures and invalid budgets, followed by the existing backend-unit suite.
+Those checks and publication are still pending at this entry.
+
+The production multi-unit CLI checks now pass. A second test-only preflight
+correction used sizeof(decltype(counts)), since sizeof takes a type operand.
+One/four-worker executables both print 42; prerequisite files contain both
+library units and the imported dependency; failing units select unknownFirstUnit
+with its path at both worker widths. Zero, excessive, overflowing, nonnumeric and
+empty job budgets are rejected. Unsupported multi-unit object mode is diagnosed.
+The existing backend-unit determinism/cancellation suite is running next.
+
+Backend-unit checks also pass: native/Wasm object bytes and errors agree across
+budgets, failed target batches can be retried on the completed frontend graph,
+and cancellation drains and hides unfinished results. The checkpoint is ready
+for the publication bootstrap/browser checks; whole-compiler completion is not
+claimed. Structural type/protocol construction and some control headers still
+need the coordinator, and persistent cross-revision caching remains future work.

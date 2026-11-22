@@ -177,6 +177,9 @@ struct SemanticBodyWork {
     boundary: usize;
     preparation: usize;
     declaration: SemanticDeclaration*;
+    initialization: SemanticDeclaration*;
+    expression_header: void*;
+    prepared_condition: void*;
     declaration_header: void*;
     declaration_loop: SemanticLoopCursor;
     boundaries: vector(SemanticBodyBoundary);
@@ -478,7 +481,7 @@ fn sem_body_enter(c: SemanticContext*, result: SemanticBodyWork*, node: void*, p
     }
     if branch {
         frame.kind = SemanticBodyBlockKind.IfThen;
-        sem_require(sem_if_begin(c, node));
+        sem_require(sem_if_begin_value(c, node, result.prepared_condition));
         body = sem_get(node).body;
     } else {
         if looping {
@@ -493,7 +496,7 @@ fn sem_body_enter(c: SemanticContext*, result: SemanticBodyWork*, node: void*, p
         var begun = false;
         if while_loop {
             frame.kind = SemanticBodyBlockKind.While;
-            begun = sem_control_while_begin(c, node, &frame.loop_state);
+            begun = sem_control_while_value(c, node, &frame.loop_state, result.prepared_condition);
             depth++;
         } else {
             if for_loop {
@@ -715,7 +718,6 @@ fn sem_body_declarations(c: SemanticContext*, batch: SemanticBodyWork**, count: 
         }
         sem_body_restore(c, &saved);
     }
-    if c.declaration_subjects.length == 0 { return; }
     sem_declaration_discover(c);
     sem_require(sem_ok(c));
     for(var i: usize = 0; i < count && i <= failed; i++) {
@@ -727,6 +729,61 @@ fn sem_body_declarations(c: SemanticContext*, batch: SemanticBodyWork**, count: 
     }
     sem_declarations_execute(c, c.declaration_subjects);
     sem_require(sem_ok(c));
+    // Explicit initializer expressions are independent of their completed type
+    // queries. Admit the whole body window before running their shared executor;
+    // an initializer failure must not invalidate a valid declared type.
+    var initializers: usize = 0;
+    for(var i: usize = 0; i < count && i <= failed; i++) {
+        var result = batch[i];
+        var declaration = result.declaration;
+        if result.done { continue; }
+        if declaration == null {
+            var cursor = sem_body_cursor(result);
+            var header = sem_unwrap(sem_child(cursor.subject, cursor.next));
+            if !result.boundaries.data[result.boundary].header
+                || !sem_is(header, "CoreIf") && !sem_is(header, "TowerWhile") { continue; }
+            result.expression_header = header;
+            result.initialization = sem_expression_add(c, sem_member(header, "condition"),
+                sem_type_new(c, SBool, 0, null), &result.lexical, false);
+            initializers++;
+            continue;
+        }
+        if work_task(&c.queries, declaration.query).state != WorkState.Succeeded { continue; }
+        var node = declaration.subject;
+        var value = sem_get(node);
+        var source = sem_member(node, "value");
+        if source == null || value.value != null { continue; }
+        var saved: SemanticBodyScope;
+        sem_body_save(c, &saved);
+        sem_body_restore(c, &declaration.lexical);
+        sem_declaration_storage(c, node);
+        sem_body_restore(c, &saved);
+        if !sem_ok(c) {
+            sem_require(work_fail(&c.queries, result.preparation));
+            sem_body_hold_error(c, result);
+            result.done = true;
+            result.preparation = 0;
+            result.declaration = null;
+            continue;
+        }
+        result.initialization = sem_expression_add(c, source, &value.type, &declaration.lexical, true);
+        sem_require(work_depend(&c.queries, result.initialization.query, declaration.query));
+        initializers++;
+    }
+    if initializers != 0 {
+        sem_declaration_discover(c);
+        sem_require(sem_ok(c));
+        for(var i: usize = 0; i < count && i <= failed; i++) {
+            var result = batch[i];
+            if result.initialization == null { continue; }
+            var ticket: WorkTicket;
+            sem_require(work_take_task(&c.queries, &ticket, result.preparation));
+            sem_require(work_suspend(&c.queries, &ticket, result.initialization.query));
+        }
+        sem_declarations_execute(c, c.declaration_subjects);
+        sem_require(sem_ok(c));
+    }
+    if c.declaration_subjects.length == 0 { return; }
     // Every newly constructed type is now accounted for by its producer's
     // field/layout queries, including failures retained for its own consumers.
     c.layout_checked = c.program.types.length;
@@ -734,35 +791,49 @@ fn sem_body_declarations(c: SemanticContext*, batch: SemanticBodyWork**, count: 
     for(var i: usize = 0; i < count && i <= failed; i++) {
         var result = batch[i];
         var declaration = result.declaration;
-        if declaration == null { continue; }
-        var node = declaration.subject;
+        if declaration == null && result.initialization == null { continue; }
+        var node = declaration == null ? result.expression_header : declaration.subject;
         var ticket: WorkTicket = default;
-        sem_declaration_report(c, node);
+        var producer = declaration ?? result.initialization;
+        sem_declaration_report(c, producer.subject);
+        if sem_ok(c) && declaration != null && result.initialization != null {
+            producer = result.initialization;
+            sem_declaration_report(c, producer.subject);
+        }
         if sem_ok(c) { sem_require(work_take_task(&c.queries, &ticket, result.preparation)); }
         else {
-            sem_declaration_capture_error(c, declaration);
-            sem_require(work_fail(&c.queries, declaration.query));
+            sem_declaration_capture_error(c, producer);
+            sem_require(work_fail(&c.queries, producer.query));
         }
         var saved: SemanticBodyScope;
         sem_body_save(c, &saved);
-        sem_body_restore(c, &declaration.lexical);
+        sem_body_restore(c, &producer.lexical);
         var saved_reads = c.query_reads;
         c.query_reads = &result.query_reads;
-        if sem_ok(c) {
+        if declaration != null && sem_ok(c) {
             generic_error_clear(c.generics);
+            if result.initialization != null { sem_get(node).value = result.initialization.value; }
             sem_declaration_finish(c, node);
         }
-        if result.declaration_header != null {
-            var header = result.declaration_header;
+        if result.expression_header != null {
             if sem_ok(c) {
-                sem_control_for_accept(c, header, node, sem_statement_complete(c, node, FlowNext), &result.declaration_loop);
-                sem_control_for_tail(c, header, &result.declaration_loop);
-                if sem_ok(c) { sem_require(sem_body_enter(c, result, header, &result.declaration_loop)); }
+                result.prepared_condition = producer.value;
+                sem_require(sem_body_enter(c, result, node, null));
+                result.prepared_condition = null;
             }
         } else {
-            var cursor = sem_body_cursor(result);
-            cursor.next++;
-            sem_block_accept(c, cursor, node, FlowNext);
+            if result.declaration_header != null {
+                var header = result.declaration_header;
+                if sem_ok(c) {
+                    sem_control_for_accept(c, header, node, sem_statement_complete(c, node, FlowNext), &result.declaration_loop);
+                    sem_control_for_tail(c, header, &result.declaration_loop);
+                    if sem_ok(c) { sem_require(sem_body_enter(c, result, header, &result.declaration_loop)); }
+                }
+            } else {
+                var cursor = sem_body_cursor(result);
+                cursor.next++;
+                sem_block_accept(c, cursor, node, FlowNext);
+            }
         }
         result.boundary++;
         sem_body_save(c, &result.lexical);
@@ -783,6 +854,8 @@ fn sem_body_declarations(c: SemanticContext*, batch: SemanticBodyWork**, count: 
         }
         result.preparation = 0;
         result.declaration = null;
+        result.initialization = null;
+        result.expression_header = null;
         result.declaration_header = null;
         result.declaration_loop = default;
     }
@@ -881,6 +954,9 @@ fn semantic_body_kernel(result: SemanticBodyWork*): void {
 
 fn sem_body_clear(result: SemanticBodyWork*): void {
     result.declaration = null;
+    result.initialization = null;
+    result.expression_header = null;
+    result.prepared_condition = null;
     result.declaration_header = null;
     result.declaration_loop = default;
     vector_dispose(&result.type_observations);

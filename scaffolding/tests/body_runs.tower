@@ -173,7 +173,7 @@ fn body_runs_arm_error(budget: usize, bedrock: u8*, foundation: u8*, root: u8*, 
     units_check(frontend_units_failed(batch) == 1 && strstr(error, mode == 2 ? "Duplicate match pattern" : "unknownMatch") is not null && strstr(error, "unknownSecond") is null, "Resumed arm and cleanup failures preserve source diagnostic order");
 }
 
-enum BodyDeclarationFailure: u32 { SelfReference, SharedSignature, SharedInitializer, HeaderSelfReference }
+enum BodyDeclarationFailure: u32 { SelfReference, SharedSignature, SharedInitializer, HeaderSelfReference, SharedTypeInitializer, SharedTypeAlias, SharedNestedType }
 var BodyDeclarationRevision: u64 = 90;
 var BodyDeclarationProfile: u64 = 23;
 
@@ -195,6 +195,18 @@ fn body_runs_declaration_error(budget: usize, bedrock: u8*, foundation: u8*, roo
     if mode == BodyDeclarationFailure.SharedInitializer {
         source = "import tower;fn bad(T:type,x:T):MissingReturn{return x;}fn first():i32{var a:i32=bad(1);return unknownFirst;}fn later():i32{var b=bad(2);return b;}";
         diagnostic_text = "MissingReturn";
+    }
+    if mode == BodyDeclarationFailure.SharedTypeInitializer {
+        source = "import tower;fn broken(T:type):type{struct Item{value:MissingField;}return Item;}fn first():i32{var size:usize=sizeof(broken(i32));return unknownFirst;}fn later():i32{var item:broken(i32);return 0;}";
+        diagnostic_text = "MissingField";
+    }
+    if mode == BodyDeclarationFailure.SharedTypeAlias {
+        source = "import tower;fn broken(T:type):type{return MissingAlias;}fn first():i32{var size:usize=sizeof(broken(i32));return unknownFirst;}fn later():i32{var item:broken(i32);return 0;}";
+        diagnostic_text = "MissingAlias";
+    }
+    if mode == BodyDeclarationFailure.SharedNestedType {
+        source = "import tower;fn broken(T:type):type{struct Item{value:MissingField;}return Item;}fn wrapper(T:type):type{struct Outer{inner:broken(T);}return Outer;}fn first():i32{var size:usize=sizeof(wrapper(i32));return unknownFirst;}fn second():i32{var outer:wrapper(i32);return 0;}fn third():i32{var inner:broken(i32);return 0;}";
+        diagnostic_text = "MissingField";
     }
     units_check(frontend_units_source(batch, 1, "local_dependency.tower", source, strlen(source)), "Local declaration dependency source");
     while !frontend_units_step(batch, true) {}
@@ -233,6 +245,11 @@ fn body_runs_smoke(root: u8*): void {
     body_runs_declaration_error(4, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedSignature);
     body_runs_declaration_error(1, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedInitializer);
     body_runs_declaration_error(4, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedInitializer);
+    body_runs_declaration_error(1, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedTypeInitializer);
+    body_runs_declaration_error(4, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedTypeInitializer);
+    body_runs_declaration_error(4, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedTypeAlias);
+    body_runs_declaration_error(1, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedNestedType);
+    body_runs_declaration_error(4, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedNestedType);
     body_runs_cycle(4, bedrock.data, foundation.data, root, false);
     body_runs_cycle(4, bedrock.data, foundation.data, root, true);
     puts("Body smoke: serial/worker canonical output, execution and ordered diagnostics/cycles passed.");
@@ -278,6 +295,9 @@ fn body_runs_tests(root: u8*): void {
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.HeaderSelfReference);
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedSignature);
         body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedInitializer);
+        body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedTypeInitializer);
+        body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedTypeAlias);
+        body_runs_declaration_error(budget, bedrock.data, foundation.data, root, BodyDeclarationFailure.SharedNestedType);
         for(var mode: u32 = 0; mode < 5; mode++) {
             body_runs_arm_error(budget, bedrock.data, foundation.data, root, mode);
         }

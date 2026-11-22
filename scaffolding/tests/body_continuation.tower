@@ -474,4 +474,40 @@ if for_initializer_once() != 211 || comptime(for_initializer_once()) != 211 {
     failures++;
 }
 
+fn initialize_self(address: i32*, input: i32): i32 {
+    *address = input;
+    return *address;
+}
+
+// Explicit initializers run through their own expression queries. Their slots
+// already exist when an initializer takes its own address; effects run once.
+fn explicit_initializers(input: i32): i32 {
+    var prefix: i32 = input;
+    var local: i32 = initialize_self(&local, identity(prefix + 1));
+    var before: i32 = identity(local++);
+    var record: box(i32) = { value: identity(before + 1) };
+    return local * 100 + before * 10 + record.value;
+}
+
+fn explicit_peer(input: i32): i32 {
+    var result: i32 = identity(input);
+    var nested: i32 = identity(identity(result + 1));
+    return nested;
+}
+
+if explicit_initializers(1) != 323 || explicit_peer(41) != 42
+    || comptime(explicit_initializers(1)) != 323 || comptime(explicit_peer(41)) != 42 {
+    failures++;
+}
+
+fn condition_queries(): i32 {
+    var hits: i32 = 0;
+    var total: i32 = 0;
+    if identity(hits++ == 0) { total += 10; }
+    while identity(hits++ < 4) { total++; }
+    return hits * 100 + total;
+}
+
+if condition_queries() != 513 || comptime(condition_queries()) != 513 { failures++; }
+
 print(failures);

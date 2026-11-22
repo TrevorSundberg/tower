@@ -137,6 +137,10 @@ source, length)` before stepping. Paths and bounded source bytes are copied;
 embedded NUL is rejected. Configure every unit before calling
 `frontend_units_step(batch, wait)` repeatedly until it returns true. One
 coordinator owns these calls; workers exclusively own the admitted unit worlds.
+`frontend_units_environment` borrows a unit's environment before dispatch or after
+all workers join, for module configuration, diagnostics and dependency output.
+Do not retain that borrow across a step or disposal. `frontend_units_error_offset`
+supplies the selected failure's source offset.
 
 For document/hover work, select `frontend_units_inspect(batch, ordinal, mode)`
 before stepping. Compile and inspection jobs may share a batch and the same ECS
@@ -172,15 +176,35 @@ machine and borrows pinned Foundation input. Slots refill as jobs complete;
 `backend_units_result(batch, ordinal)` exposes borrowed backend results only after
 whole-batch success. Check `backend_units_failed`, `backend_units_error` and
 `backend_units_cancelled`; cancellation drains admitted work before releasing views.
+Before dispatch, `backend_units_library(batch, ordinal, library)` may override
+the default entry-point policy for a unit. `backend_units_error_offset` supplies
+the selected backend failure's source offset.
 Close the backend batch before its frontend owner. A second backend batch cannot
 acquire that frontend while the first still holds its lease. Failed target queries
 settle without discarding completed frontend queries; explicit cancellation makes
 the graph terminal. See [backend API](../scaffolding/backend/README.md).
 
 Target registration uses native platform once primitives. Browser backends use
-isolated reactors. Native CLI project-recipe wiring remains separate work, and
-linking retains exclusive ownership. The outer executor does not remove remaining
-structural coordinator phases inside one unit.
+isolated reactors. Linking retains exclusive ownership. The outer executor does
+not remove remaining structural coordinator phases inside one unit.
+
+The native CLI accepts independent library units alongside its entry source:
+
+```sh
+towerc main.tower --unit math.tower --unit data.tower --jobs 4 -o app --depfile app.d
+```
+
+Each `--unit` is a separate compilation boundary, connected by ordinary exported
+and external functions. Imports within each unit retain their normal semantics;
+this is not shared import deduplication across units. The frontend and backend
+batches use the services above with one total worker budget; `--jobs` also sets
+the world budget for ordinary single-unit invocations. Omitted budgets use host
+capacity. All units must compile successfully before linking. Failures select
+the earliest unit in input order, and depfiles include each unit's imports.
+Additional units currently require executable output; interpreter/library modes
+and single-unit IR outputs are rejected. Multi-unit timings report aggregate
+compile and frontend wall time, not fictitious per-phase times for overlapping
+LLVM work.
 
 Compiler-owned parser/diagnostic buffers use `compiler_buffer_allocate/free` and
 the ordinary compiler allocator. Their private header records allocator and
