@@ -48858,3 +48858,36 @@ ASan execution remain pending for this source, not inherited from B1's old run.
 No publication requested or lease held. Full42/query/aggregate canonical and
 worker matrices, current supported sanitizers, clean final public build,
 browser/generation and exact hosted publication remain open.
+
+#### D2 current completion gap audit after 83ca8a6
+
+Added the explicit CURRENT remaining-scope table to compiler_ecs_audit_d2.md
+as requested by coordinator, including exact source/functions and next
+implementation/evidence, distinguishing measured implementation, unvalidated
+integration, missing scaling and host limits. Current40/40primary paths
+(33tools+7benchmarks) match tracked inventory and have no code delta since3f49;
+45/45bootstrap copies are provenance reviews. Historical98/98local,6/6
+supplemental callers and19/19incoming measurement snapshots overlap later
+integrations and are not summed. No known unreviewed new measurement body.
+Recent parser_trace_failures was read in full but remains its owners' scope.
+
+Independent layout output inspection (33records,11fields per record) confirms
+all actual peaks1 and caller11, for every1/4-worker and occupied configuration.
+sem_layout_execute acquires its extra grant once from the initial narrow
+frontier, before later branches become ready. This matches A1's known
+grant-refresh/grain work, not a new competing implementation. The same measured
+scope therefore still lacks useful parallelism; queue widths do not close it.
+
+Primary tool ownership remains appropriate: byte/package buffers and stable
+records are not another AST; final product ordering is an explicit filesystem
+effect contract. Package peak allocation/retention, actual current import
+throughput, final staged snapshot retention, source-specific supported
+sanitizers and complete release remain required evidence. No unmeasured
+streaming/cache rewrite is justified. A2 statx hard-link protection is already
+present; the initial realpath-only review limitation is historical. Generic
+synchronous child transport has no new scheduler/deadline guarantee.
+
+No heavy work runs in D2 while D1 owns the slot. This documentation records
+existing source/measurement evidence; it changes no runtime behavior, so no
+new runtime performance/memory sample is applicable to this documentation
+update. It does not close the pending implementation/release gates.
