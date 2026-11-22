@@ -40986,7 +40986,7 @@ Evidence: module-initializers-{native,candidate,measure}.log and
 module_initializer_measure/measurements.json. Source inputs stayed frozen and
 no compiler builds/tests were run concurrently with this measurement.
 
-### 2026-11-21 — workbench candidate checks move from JavaScript into Tower
+### 2026-11-21 ï¿½ workbench candidate checks move from JavaScript into Tower
 
 Audit compiler-build.mjs through compiler-build-worker.mjs, the browser rebuild
 controls, test-compiler-project.mjs and both compiler benchmarks. These checks
@@ -41045,3 +41045,40 @@ this milestone removes 25 net JavaScript lines. Python remains 0 files/0 lines
 No new percentage claim for GitHub's language chart: Tower recognition is separate.
 Hover/completion fixtures and other reusable JavaScript remain future migration;
 this does not claim the browser boundary or all candidate validation is ported.
+
+Integration rebase receives e0234f0/2ea20a3/806ab67's iteration-signature and module
+initializer query scheduling. Implementation becomes 537637e. Freeze that exact
+commit in /cache/candidate_checks_rebased_checkout and the owned WSL
+agent1-tooling-candidate-rebased-src. The clean documented native build uses
+public bootstrap verification with TOWER_BOOTSTRAP_COMPILER unset: all 48 steps
+pass. TOWER_NATIVE_BUILD_DIR was an ineffective override; actual clean output
+is /root/.cache/tower/native inside the lane-owned Docker container. No shared
+cache was used. Successor SHA256:
+d656e810b5c8275c1382e87f03dbde927947b253a41579bc7206dc04131ed0a8.
+run-guest-runtime.mjs passes both interpreted widths, native and real Wasm memory
+execution. The fresh merged WASI IDE suite also passes; test reactor SHA256
+4481e79638e6d1c72f09e4d167edb98ccdf6d97326519eff613bd95c6d703450.
+
+Repackage the merged ordinary browser profile with the unchanged actual backend
+recipes/support. Final project SHA256:
+542bb66d65da088737fdbed80fef0fda20526344a549ab126a32695de3b95842.
+Repeat the two real edited generations because compiler sources changed; both
+pass in 49.7/43.2 seconds with identical hashes:
+Tower f7a516f1f07b6ee9aea717067ab21fba1b50958e1b940650a25b48eb657f2e77;
+LLVM 50a60e76d56ace9554771ddd75748989b48ff8b62d47c9ccd98485fabb6a7e92;
+cross ee75d14c2503ec677f8a744a5f9206452e5efbf44af8d78d221e2f30c0df3258.
+The earlier full desktop compiler-project browser tests pass 2/2 in 1.2 minutes:
+source/persistence/cancellation plus actual edited activation, failure retention
+and reset. That evidence precedes the compiler-only rebase; the final merged
+project receives the generation validation above and deployment checks below.
+
+Stage Pages 9275bd62 unchanged, rebuild the existing eight esbuild entry points
+through esbuild's CLI, and replace the compiler project from the actual packaged
+recipe. Only compiler/project.json, five worker bundles with their source maps,
+and deployment-manifest.json differ. All runtime and support bytes remain exact;
+retain buildSourceCommit 2225c52 and record compilerProjectSourceCommit 537637e
+separately. A full-history Pages fetch stalled and was stopped; command-scoped
+GitHub DNS resolution plus a depth-one fetch succeeded. No persistent Git config,
+feature branch, force push or new non-Tower helper script was introduced.
+
+Final local verify-local.mjs passes all 88 asset checks and desktop/mobile runtime, native downloads, completion, persistence, compiler-project cancellation and detected defaults. Manifest provenance/validation metadata is finalized after these functional checks; runtime/project/bundle bytes stay unchanged. Hosted verification follows publication.

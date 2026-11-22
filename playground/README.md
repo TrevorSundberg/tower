@@ -1152,6 +1152,12 @@ node playground/scripts/test-compiler-project.mjs
 The compiler-project check edits a semantic diagnostic and builds two successive
 complete sets of reactors using the browser host APIs, checking that the edit is
 executed by each successor. It is separate from the quick Node test suite.
+Candidate C/Roku comment checks and bounded graph/fast execution checks live in
+`scaffolding/host/ide_candidate.tower`, using the ordinary IDE execution session.
+JavaScript retains reactor instantiation and cross-instance/Wasm transport. The
+candidate must provide `tw_candidate_check`; failure leaves the active compiler
+unchanged. Configure `TOWER_IDE_TESTS=ON` and run `scripts/test-ide.mjs` against
+that reactor for focused positive, rejection and execution-budget checks.
 
 Packaging uses Tower for dependency closure, archive indexes, gzip and JSON.
 It queries the final Ninja command and Clang's linker arguments without running
