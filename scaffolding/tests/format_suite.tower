@@ -9,6 +9,45 @@ import storage_api;
 import format_abi;
 import utility_checks;
 import format_expected;
+import .host.syntax_baseline_api;
+
+extern fn frontend_modules_create(): void*;
+extern fn frontend_modules_destroy(modules: void*): void;
+extern fn frontend_modules_configure(modules: void*, source: u8*, library: u8*): void;
+
+// These fixtures are complete files. Select their language explicitly while
+// retaining the independently frozen body text and source-map expectations.
+fn format_test_input(body: u8*, source: vector(u8)*): void {
+    var language = "import foundation;\n";
+    utility_check(storage_assign(source, language, strlen(language)), "Formatter explicit language import");
+    for(var i: usize = 0; body[i] != 0; i++) {
+        utility_check(vector_push(source, body[i]), "Formatter fixture body");
+    }
+    utility_check(vector_push(source, 0), "Formatter fixture terminator");
+    --source.length;
+}
+
+fn format_test_imported_fixture(id: usize, actual: FormatResult*): void {
+    var language = "import foundation;\n";
+    var prefix = id == 6 || id == 14 ? "import foundation;\n\n" : language;
+    var length = strlen(prefix);
+    var source_offset = strlen(language);
+    utility_check(actual.text.length >= length && utility_equal(actual.text.data, prefix, length)
+        && actual.spans.length != 0, "Formatter explicit import text");
+    format_fixture_span(actual, 0, 0, source_offset, 0);
+    var body: FormatResult = default;
+    defer format_dispose(&body);
+    utility_check(storage_assign(&body.text, actual.text.data + length, actual.text.length - length), "Formatter reference body");
+    for(var i: usize = 1; i < actual.spans.length; i++) {
+        var span = actual.spans.data[i];
+        utility_check(span.begin >= length && span.end >= length && span.source >= source_offset, "Formatter imported span bounds");
+        span.begin -= length;
+        span.end -= length;
+        span.source -= source_offset;
+        utility_check(vector_push(&body.spans, span), "Formatter reference spans");
+    }
+    format_fixture_check(id, &body);
+}
 
 struct TestFormatComment { start: usize; end: usize; }
 extern fn format_source(out: FormatResult*, roots: void**, count: usize, source: u8*, length: usize,
@@ -26,14 +65,18 @@ fn format_test_source(input: u8*, out: FormatResult*): void {
     if error[0] != 0 { puts(error); }
     utility_check(ready && error[0] == 0, "Formatter shared source result has no error");
 }
-fn format_test_compile_bytes(input: u8*, length: usize, program: SemanticProgram*): void {
+fn format_test_compile_bytes(input: u8*, length: usize, program: SemanticProgram*, modules: void*): void {
     semantic_initialize(program, tower_node_create(), 4);
     var source: FrontendSource; source.data = input; source.length = length;
-    frontend_compile_sources(program, &source, 1, null);
-    if program.error.length != 0 { puts(program.error.data); }
+    frontend_compile_sources(program, &source, 1, modules);
+    if program.error.length != 0 {
+        utility_check(vector_push(&program.error, 0), "Formatter compile diagnostic terminator");
+        --program.error.length;
+        puts(program.error.data);
+    }
     utility_check(program.error.length == 0, "Formatter Foundation fixture compiles");
 }
-fn format_test_compile(input: u8*, program: SemanticProgram*): void { format_test_compile_bytes(input, strlen(input), program); }
+fn format_test_compile(input: u8*, program: SemanticProgram*, modules: void*): void { format_test_compile_bytes(input, strlen(input), program, modules); }
 fn format_test_program_dispose(program: SemanticProgram*): void {
     semantic_program_dispose(program); tower_node_release_ref(program.root);
 }
@@ -52,20 +95,27 @@ fn format_test_equal(actual: FormatResult*, oracle: FormatResult*, spans: bool):
     }
 }
 fn format_test_source_fixture(id: usize, input: u8*): void {
+    var source: vector(u8) = default;
+    defer vector_dispose(&source);
+    if id != 8 { format_test_input(input, &source); input = source.data; }
     var actual: FormatResult; fill(&actual, 0, sizeof(FormatResult)); defer format_dispose(&actual);
     format_test_source(input, &actual);
-    format_fixture_check(id, &actual);
+    if id == 8 { format_fixture_check(id, &actual); }
+    else { format_test_imported_fixture(id, &actual); }
     var again: FormatResult; fill(&again, 0, sizeof(FormatResult)); defer format_dispose(&again);
     format_test_source(actual.text.data, &again);
     format_test_equal(&actual, &again, false);
 }
-fn format_test_foundation_fixture(id: usize, input: u8*): void {
-    var program: SemanticProgram; format_test_compile(input, &program); defer format_test_program_dispose(&program);
+fn format_test_foundation_fixture(id: usize, input: u8*, modules: void*): void {
+    var source: vector(u8) = default;
+    defer vector_dispose(&source);
+    format_test_input(input, &source);
+    var program: SemanticProgram; format_test_compile(source.data, &program, modules); defer format_test_program_dispose(&program);
     var actual: FormatResult; fill(&actual, 0, sizeof(FormatResult)); defer format_dispose(&actual);
     format_test_entity(&actual, program.root);
     format_fixture_check(id, &actual);
     utility_check(vector_push(u8, &actual.text, 0), "Formatter Foundation terminator"); --actual.text.length;
-    var rebuilt: SemanticProgram; format_test_compile_bytes(actual.text.data, actual.text.length, &rebuilt); defer format_test_program_dispose(&rebuilt);
+    var rebuilt: SemanticProgram; format_test_compile_bytes(actual.text.data, actual.text.length, &rebuilt, modules); defer format_test_program_dispose(&rebuilt);
     var again: FormatResult; fill(&again, 0, sizeof(FormatResult)); defer format_dispose(&again);
     format_test_entity(&again, rebuilt.root);
     format_test_equal(&actual, &again, false);
@@ -85,8 +135,42 @@ fn format_test_generated(): void {
     utility_check(!actual.failed && actual.spans.length == 1, "Generated entities need no fabricated provenance");
     format_fixture_check(13, &actual);
 }
+fn format_test_type_constructors(): void {
+    var entity = tower_node_create(); defer tower_node_release_ref(entity);
+    var left = tower_node_create(); defer tower_node_release_ref(left);
+    var right = tower_node_create(); defer tower_node_release_ref(right);
+    var reference = tower_node_create(); defer tower_node_release_ref(reference);
+    var operation = semantic_component_attach(entity, core_component_type(), KTypeConstruct);
+    var width = semantic_component_attach(left, core_component_type(), KOperand);
+    var second = semantic_component_attach(right, core_component_type(), KOperand);
+    var type = semantic_component_attach(reference, core_component_type(), KTypeReference);
+    operation.type.scalar = SType;
+    width.type.scalar = SU64; width.constant = true; width.bits = 32;
+    second.type.scalar = SU64; second.constant = true;
+    type.type.scalar = SType; type.element.scalar = SI32;
+    for(var kind: u32 = 0; kind < 8; kind++) {
+        operation.op = kind < 4 ? kind : convert(u32, TypeConstructionKind.Integer);
+        operation.left = kind < 2 || kind >= 4 ? left : reference;
+        operation.right = kind == 0 || kind == 3 || kind >= 4 ? right : null;
+        second.bits = kind == 3 ? 8 : 0;
+        var wanted = kind == 0 ? "integer_type(32, 0);\n"
+            : kind == 1 ? "float_type(32);\n"
+            : kind == 2 ? "pointer_type(type_value(integer_type(32, 1)));\n"
+            : "array_type(type_value(integer_type(32, 1)), 8);\n";
+        if kind == 4 { operation.op = ~convert(u32, 0); }
+        if kind == 5 { operation.left = null; }
+        if kind == 6 { operation.right = null; }
+        if kind == 7 { operation.op = convert(u32, TypeConstructionKind.Floating); }
+        var actual: FormatResult = default;
+        defer format_dispose(&actual);
+        format_test_entity(&actual, entity);
+        if kind < 4 { format_fixture_text(&actual, wanted, 1); }
+        else { utility_check(actual.failed, "Malformed type constructor formatting fails"); }
+    }
+}
+
 fn format_test_comments(): void {
-    var input: u8* = "// header\nfn f():void { /* body */ print(1); /* after */ } // tail\n";
+    var input: u8* = "import foundation;\n// header\nfn f():void { /* body */ print(1); /* after */ } // tail\n";
     var session = syntax_create(input, null); defer syntax_destroy(session);
     var roots: vector(void*); fill(&roots, 0, sizeof(vector(void*)));
     defer { for (var index: usize = 0; index < roots.length; ++index) { tower_node_release_ref(roots.data[index]); } vector_dispose(void*, &roots); }
@@ -95,34 +179,50 @@ fn format_test_comments(): void {
     // Exact lexer-derived ranges from the original fixture, also checked by the
     // syntax_format route which obtains its own lexer comments independently.
     var comments: TestFormatComment[4];
+    var comment_count = sizeof(decltype(comments)) / sizeof(TestFormatComment);
     comments[0].start = 0; comments[0].end = 9;
     comments[1].start = 24; comments[1].end = 34;
     comments[2].start = 45; comments[2].end = 56;
     comments[3].start = 59; comments[3].end = 66;
+    var source_offset = strlen("import foundation;\n");
+    for(var i: usize = 0; i < comment_count; i++) {
+        comments[i].start += source_offset;
+        comments[i].end += source_offset;
+    }
     var oracle: FormatResult; fill(&oracle, 0, sizeof(FormatResult)); defer format_dispose(&oracle);
     format_test_source(input, &oracle);
-    format_fixture_check(14, &oracle);
+    format_test_imported_fixture(14, &oracle);
     for (var order: usize = 0; order < 2; ++order) {
         var actual: FormatResult; fill(&actual, 0, sizeof(FormatResult));
-        format_source(&actual, roots.data, roots.length, input, strlen(input), &comments[0], 4, syntax_component_type(), null, parser_match_get_type());
+        format_source(&actual, roots.data, roots.length, input, strlen(input), &comments[0], comment_count, syntax_component_type(), null, parser_match_get_type());
         format_test_equal(&actual, &oracle, true); format_dispose(&actual);
-        for (var index: usize = 0; index < 2; ++index) { var temp: TestFormatComment; copy(&temp, &comments[index], sizeof(TestFormatComment)); copy(&comments[index], &comments[3 - index], sizeof(TestFormatComment)); copy(&comments[3 - index], &temp, sizeof(TestFormatComment)); }
+        for (var index: usize = 0; index < comment_count / 2; ++index) {
+            var back = comment_count - 1 - index;
+            var saved = comments[index];
+            comments[index] = comments[back];
+            comments[back] = saved;
+        }
     }
     // Keep the caller's unsorted order for the complete original failure sweep.
-    for (var index: usize = 0; index < 2; ++index) { var temp: TestFormatComment; copy(&temp, &comments[index], sizeof(TestFormatComment)); copy(&comments[index], &comments[3 - index], sizeof(TestFormatComment)); copy(&comments[3 - index], &temp, sizeof(TestFormatComment)); }
+    for (var index: usize = 0; index < comment_count / 2; ++index) {
+        var back = comment_count - 1 - index;
+        var saved = comments[index];
+        comments[index] = comments[back];
+        comments[back] = saved;
+    }
     var buffers = tower_test_buffer_count();
     for (var failure: usize = 0; failure < 32; ++failure) {
         var actual: FormatResult; fill(&actual, 0, sizeof(FormatResult));
         tower_test_buffer_fail_after(failure);
-        format_source(&actual, roots.data, roots.length, input, strlen(input), &comments[0], 4, syntax_component_type(), null, parser_match_get_type());
+        format_source(&actual, roots.data, roots.length, input, strlen(input), &comments[0], comment_count, syntax_component_type(), null, parser_match_get_type());
         tower_test_buffer_fail_after(~convert(usize, 0));
         if !actual.failed { format_test_equal(&actual, &oracle, true); }
         format_dispose(&actual);
         utility_check(actual.text.length == 0 && actual.spans.length == 0 && tower_test_buffer_count() == buffers, "Source failure cleanup releases all partial text/spans");
     }
 }
-fn format_test_failures(): void {
-    var program: SemanticProgram; format_test_compile("fn f():i32 { return 42; } var x:i32=f();", &program); defer format_test_program_dispose(&program);
+fn format_test_failures(modules: void*): void {
+    var program: SemanticProgram; format_test_compile("import foundation;fn f():i32 { return 42; } var x:i32=f();", &program, modules); defer format_test_program_dispose(&program);
     var oracle: FormatResult; fill(&oracle, 0, sizeof(FormatResult)); defer format_dispose(&oracle);
     format_test_entity(&oracle, program.root); format_fixture_check(15, &oracle);
     var buffers = tower_test_buffer_count();
@@ -140,7 +240,14 @@ fn format_test_failures(): void {
         utility_check(tower_test_buffer_count() == buffers, "Foundation failure cleanup releases all partial text/spans");
     }
 }
-export fn formatter_tests(): void {
+export fn formatter_tests(resource_root: u8*): void {
+    var modules = frontend_modules_create();
+    utility_check(modules is not null, "Formatter module environment");
+    var slot = syntax_host_environment(compiler_host_world());
+    var previous = *slot;
+    *slot = modules;
+    defer { *slot = previous; frontend_modules_destroy(modules); }
+    frontend_modules_configure(modules, "formatter_fixture.tower", resource_root);
     format_test_source_fixture(0, "// before\nvar x:i32=1; // inline\n\n/* block */ fn f(a:i32*):i32{return *a;} // after\n");
     format_test_source_fixture(1, "parse Statement |= 'show' $x:CoreOperand ';' => replace { print($x); }; show 42;");
     format_test_source_fixture(2, "parse Prefix = '~~' Identifier; parse Statement |= 'prefix' Prefix ';'; prefix ~~ x;");
@@ -150,10 +257,10 @@ export fn formatter_tests(): void {
     format_test_source_fixture(6, "struct Pair{a:i32;b:u8;} fn f(p:Pair*):i32{if true{return p.a;}else{return 0;}}");
     format_test_source_fixture(7, "var a:i32[2]; var p:i32*=&a[0]; *p=1; var x:i32=*p + a[1];");
     format_test_source_fixture(8, "// only comment\n\n/* final */");
-    format_test_foundation_fixture(9, "var lo:i64=-9223372036854775808; var hi:u64=18446744073709551615; var b:bool=true; var p:i32*=null;");
-    format_test_foundation_fixture(10, "struct S { x:i32; } extern fn ext(a:i32):i32; export fn f(a:i32):i32 { var x:i32=ext(a); return x; }");
-    format_test_foundation_fixture(11, "var p:i32*=alloc(i32,2); p=realloc(i32,p,3); fill(p,0,12); copy(p,p,12); var x:usize=sizeof(i32); x=alignof(i32); free(p);");
-    format_test_foundation_fixture(12, "var x:u32=convert(u32,1); var y:i32=bits(i32,x); loop { if true { break; } else { continue; } } print(y);");
-    format_test_generated(); format_test_comments(); format_test_failures();
+    format_test_foundation_fixture(9, "var lo:i64=-9223372036854775808; var hi:u64=18446744073709551615; var b:bool=true; var p:i32*=null;", modules);
+    format_test_foundation_fixture(10, "struct S { x:i32; } extern fn ext(a:i32):i32; export fn f(a:i32):i32 { var x:i32=ext(a); return x; }", modules);
+    format_test_foundation_fixture(11, "var p:i32*=alloc(i32,2); p=realloc(i32,p,3); fill(p,0,12); copy(p,p,12); var x:usize=sizeof(i32); x=alignof(i32); free(p);", modules);
+    format_test_foundation_fixture(12, "var x:u32=convert(u32,1); var y:i32=bits(i32,x); loop { if true { break; } else { continue; } } print(y);", modules);
+    format_test_generated(); format_test_type_constructors(); format_test_comments(); format_test_failures(modules);
     puts("Formatter: exact legacy text/spans, Foundation round trips, generated names and failure cleanup passed.");
 }

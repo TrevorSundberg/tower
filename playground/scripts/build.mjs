@@ -31,7 +31,6 @@ if (process.env.TOWER_REQUIRE_THREADS === '1' && !threads)
   throw new Error('Threaded deployment requires build-threads.sh.');
 await copyFile(path.join(root, '../scaffolding/examples/foreach.tower'), path.join(dist, 'foreach.tower'));
 const builtinModules = ['bedrock', 'foundation', 'foundation_syntax', 'types', 'tower',
-  ...(await readdir(path.join(root, '../scaffolding/types'))).filter(name => name.endsWith('.tower')).sort().map(name => 'types/' + name.slice(0, -6)),
   ...(await readdir(path.join(root, '../scaffolding/library')))
   .filter(name => name.endsWith('.tower')).sort().map(name => 'library/' + name.slice(0, -6)), 'backend/foreign_grammar'];
 for (const name of builtinModules) {

@@ -1,5 +1,6 @@
 import tower;
 import .library.work_budget;
+import .library.work_budget_types;
 
 fn budget_check(ok: bool): void {
     if !ok { trap("Work budget reservation regression", 0); }

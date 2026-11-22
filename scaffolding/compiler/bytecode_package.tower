@@ -3,8 +3,11 @@ import fast_interpreter;
 import interpreter;
 
 var BytecodeContainerVersion: u64 = 1;
-var BytecodeSemanticsVersion: u64 = 8;
-var BytecodeExecutionCacheVersion: u64 = 5;
+var BytecodeSemanticsVersion: u64 = 9;
+var BytecodeExecutionCacheVersion: u64 = 6;
+var BytecodeHeaderSize: usize = 56;
+var BytecodeSourceLimit: usize = 8388608;
+var BytecodePackageLimit: usize = 268435456;
 
 // .towerbc v1: portable, versioned distribution envelope. Canonical Foundation
 // is the semantic authority; packed words/constants are a verified execution
@@ -175,24 +178,22 @@ export fn bytecode_pointer_bytes(data: u8*): usize {
 }
 
 export fn bytecode_encode(f: FMState*, source: u8*, source_size: usize, width: usize, profile: u32, length: usize*): u8* {
-    if profile > 2 {
+    *length = 0;
+    if profile > 2 || (width != 4 && width != 8) || source_size > BytecodeSourceLimit {
         return null;
     }
+    // Bound each section before multiplying or adding, including on 32-bit hosts.
+    var remaining = BytecodePackageLimit - BytecodeHeaderSize - source_size;
+    if f.words.length > remaining / 4 { return null; }
     var words = f.words.length *4;
+    remaining -= words;
+    if f.constants.length > remaining / 8 { return null; }
     var constants = f.constants.length *8;
     var total = source_size + words;
     total = total + constants;
-    total = total + 56;
-    var invalid = source_size > 8388608;
-    var large = total > 268435456;
-    invalid = im_or(invalid, large);
-    if invalid {
-        *length = 0;
-        return null;
-    }
+    total += BytecodeHeaderSize;
     var data = alloc(u8, total);
     if data == null {
-        *length = 0;
         return null;
     }
     fill(data, 0, 56);

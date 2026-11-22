@@ -1,4 +1,7 @@
+import completion_types;
+import language_grammar_types;
 import tower;
+import semantic_context_types;
 import component_kinds;
 import semantic_types;
 import language_query;

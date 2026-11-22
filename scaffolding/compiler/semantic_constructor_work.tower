@@ -1,4 +1,7 @@
 import tower;
+import semantic_context_types;
+import semantic_declaration_types;
+import semantic_constructor_types;
 import semantic_context;
 import semantic_declarations;
 import semantic_types;
@@ -20,20 +23,74 @@ import foundation_tags;
 import .library.vector;
 import .library.work_graph;
 
-enum SemanticConstructorPhase: u32 { Call, Clone, Alias, Execute, Ready }
+// Static identity forms use the existing type producer graph. Resolve ordinary
+// callees first: a user function named function is still an ordinary call.
+fn sem_type_identity_call(c: SemanticContext*, node: void*): bool {
+    if node == null || sem_member(node, "args") == null { return false; }
+    var name_node = sem_member(node, "name");
+    if name_node == null || sem_call_uses_value(c, name_node) { return false; }
+    var name = sem_identifier(c, name_node);
+    if sem_resolve(c, c.functions, name_node, name) != null
+        || sem_resolve(c, c.templates, name_node, name) != null { return false; }
+    return sem_resolve(c, c.type_functions, name_node, name) != null || sem_equal(name, "function");
+}
+
+// Value-position representation calls execute their ordinary operands. Type
+// spelling retains the declaration query path below; no eager numeric folding
+// or interning occurs while a body worker checks this operation.
+fn sem_type_construct_value(c: SemanticContext*, node: void*, name: u8*,
+    arguments: vector(void*)*): bool {
+    if sem_equal(name, "function") && sem_type_identity_call(c, node) {
+        var type = sem_constructor_prepared(c, node);
+        if type == null { sem_fail(c, node, "Function type value requires its type construction query"); }
+        else {
+            var value = sem_node(c, node, KTypeReference);
+            value.type = *sem_type_new(c, SType, 0, null);
+            value.element = *type;
+        }
+        return true;
+    }
+    if !sem_type_representation_name(name) { return false; }
+    var integer = sem_equal(name, "integer_type");
+    var floating = sem_equal(name, "float_type");
+    var pointer = sem_equal(name, "pointer_type");
+    var array = sem_equal(name, "array_type");
+    if !integer && !floating && !pointer && !array {
+        var type = sem_type_primitive(c, node, name);
+        if sem_ok(c) {
+            var value = sem_node(c, node, KTypeReference);
+            value.type = *sem_type_new(c, SType, 0, null);
+            value.element = *type;
+        }
+        return true;
+    }
+    var arity: usize = integer || array ? 2 : 1;
+    if arguments.length != arity {
+        sem_fail(c, node, "Wrong argument count for representation type constructor");
+        return true;
+    }
+    var value = sem_node(c, node, KTypeConstruct);
+    value.type = *sem_type_new(c, SType, 0, null);
+    value.op = convert(u32, integer ? TypeConstructionKind.Integer : floating ? TypeConstructionKind.Floating
+        : pointer ? TypeConstructionKind.Pointer : TypeConstructionKind.Array);
+    value.left = sem_operand(c, arguments.data[0], pointer || array ? &value.type : null);
+    if !sem_ok(c) { return true; }
+    if !pointer && !array && !semantic_integer(&sem_get(value.left).type) {
+        sem_fail(c, arguments.data[0], "Type constructor requires an integer argument");
+        return true;
+    }
+    if arity == 2 {
+        value.right = sem_operand(c, arguments.data[1], null);
+        if sem_ok(c) && !semantic_integer(&sem_get(value.right).type) {
+            sem_fail(c, arguments.data[1], "Type constructor requires an integer argument");
+        }
+    }
+    return true;
+}
 
 // Syntax consumers and canonical instance results use the same dependency
 // graph, but retain separate receipts. Instance bodies are copied by the shared
 // staged clone executor; nominal identity never waits for its own fields.
-struct SemanticConstructor {
-    phase: SemanticConstructorPhase;
-    definition: void*;
-    instance: void*;
-    syntax: void*;
-    arguments: vector(void*)*;
-    type: FoundationType;
-    evaluation: SemanticEvaluation*;
-}
 
 fn sem_constructor_state(c: SemanticContext*, node: void*): SemanticConstructor* {
     sem_require(c.entity_stage == null);
@@ -79,7 +136,10 @@ fn sem_type_query_syntax(c: SemanticContext*, node: void*): bool {
     // interning. Other Foundation representations need no user body to clone.
     if sem_equal(name, "array_type") || sem_equal(name, "integer_type") || sem_equal(name, "float_type") { return true; }
     if sem_type_representation_name(name) { return false; }
-    return !sem_equal(name, "function") || sem_resolve(c, c.type_functions, name_node, name) != null;
+    // Existing static signature spellings can still walk their type arguments
+    // directly. A same-named ordinary callee instead needs executed preparation.
+    return !sem_equal(name, "function") || !sem_type_identity_call(c, node)
+        || sem_resolve(c, c.type_functions, name_node, name) != null;
 }
 
 fn sem_constructor_add(c: SemanticContext*, node: void*, parent: SemanticDeclaration*): SemanticDeclaration* {
@@ -112,6 +172,10 @@ fn sem_constructor_roots(c: SemanticContext*, result: SemanticDeclaration*, scan
     var node = result.subject;
     var args = sem_collect(c, sem_member(node, "args"), sem_is(node, "CoreCall") ? "CoreCallArgument" : "CoreTypeArgument");
     var definition = work.definition;
+    if definition == null && sem_type_identity_call(c, node) {
+        foreach(var argument in args) { sem_declaration_scan_push(scan, argument, true); }
+        return;
+    }
     if definition == null || args.length != generic_parameter_count(c.generics, definition) { return; }
     var parameters = sem_collect(c, sem_member(definition, "params"), "CoreParameter");
     for(var i: usize = 0; i < args.length; i++) {
@@ -128,6 +192,7 @@ fn sem_constructor_instance(c: SemanticContext*, call: SemanticDeclaration*): Se
     var work = sem_constructor_state(c, source.instance);
     result.constructor = work;
     result.construction_owner = call.construction_owner;
+    result.construction_identity = call.construction_identity;
     work.phase = SemanticConstructorPhase.Clone;
     work.definition = source.definition;
     work.instance = source.instance;
@@ -150,6 +215,12 @@ fn sem_constructor_instance(c: SemanticContext*, call: SemanticDeclaration*): Se
 fn sem_constructor_step(c: SemanticContext*, result: SemanticDeclaration*): bool {
     var work = result.constructor;
     if work.phase == SemanticConstructorPhase.Call {
+        if work.definition == null && sem_type_identity_call(c, result.subject) {
+            work.type = *sem_type_call(c, result.subject);
+            result.checked = sem_ok(c);
+            if result.checked { work.phase = SemanticConstructorPhase.Ready; }
+            return false;
+        }
         var primitive = sem_type_primitive(c, result.subject, sem_identifier(c, sem_member(result.subject, "name")));
         if primitive != null {
             work.type = *primitive;

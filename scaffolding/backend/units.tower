@@ -7,6 +7,8 @@ import .compiler.semantic_program_types;
 import .library.compiler_work_types;
 import .library.work_graph;
 import .library.work_pool;
+import .library.work_budget;
+import .library.work_budget_types;
 import .library.vector;
 
 extern fn frontend_units_work_acquire(frontend: void*): void*;
@@ -17,6 +19,7 @@ extern fn frontend_units_pending(frontend: void*): bool;
 extern fn frontend_units_step(frontend: void*, wait: bool): bool;
 extern fn frontend_units_cancel(frontend: void*): void;
 extern fn frontend_units_cancelled(frontend: void*): bool;
+extern fn frontend_units_work_budget(frontend: void*): WorkBudget*;
 extern fn frontend_units_observe(frontend: void*, phase: CompilerQuery, ordinal: usize, entering: bool): void;
 extern fn frontend_units_work_extend(frontend: void*, context: void*,
     next: function(CompilerWorkKernel*, void*), settle: function(void, void*, bool)): bool;
@@ -49,6 +52,9 @@ struct BackendUnit {
     ticket: WorkTicket;
     success: bool;
     library: bool;
+    execution: WorkReservation;
+    output: WorkReservation;
+    resource_error: u8*;
 }
 
 struct BackendUnits {
@@ -58,6 +64,9 @@ struct BackendUnits {
     kind: void*;
     view: void*;
     pool: WorkPool;
+    budget: WorkBudget*;
+    own_budget: WorkBudget;
+    inputs: WorkReservation;
     target: vector(u8);
     count: usize;
     join: usize;
@@ -79,6 +88,43 @@ fn backend_units_job(batch: BackendUnits*, ordinal: usize): BackendUnit* {
     var subject = compiler_work_subject(batch.work, ordinal);
     if subject == null || batch.kind == null { return null; }
     return bits(BackendUnit*, entity_component_data(entity_component_get(subject, batch.kind)));
+}
+
+fn backend_units_release(batch: BackendUnits*, receipt: WorkReservation*): void {
+    if receipt.active && work_budget_release_result(batch.budget, receipt) != WorkBudgetError.None {
+        trap("Invalid backend unit budget receipt", 0);
+    }
+}
+
+fn backend_unit_retain_output(job: BackendUnit*): void {
+    if job.backend == null || job.output.active { return; }
+    // LLVM exposes object length, not its internal arena capacity. Account
+    // these retained bytes without claiming total LLVM heap coverage.
+    if work_budget_reserve_result(job.batch.budget, 0, 0,
+        backend_size(job.backend), &job.output) != WorkBudgetError.None {
+        job.success = false;
+        job.resource_error = "Unable to reserve retained backend output";
+        // The foreign allocator is outside this ledger. Denied retained output
+        // must be reclaimed before returning the failed publication receipt.
+        backend_close(job.backend);
+        job.backend = null;
+    }
+}
+
+// Cancellation paths first join every job, then return execution grants.
+// Object buffers and target text retain their separate byte grants until close.
+fn backend_units_release_execution(batch: BackendUnits*): void {
+    for(var ordinal: usize = 1; ordinal <= batch.count; ordinal++) {
+        var job = backend_units_job(batch, ordinal);
+        if job != null { backend_units_release(batch, &job.execution); }
+    }
+}
+
+fn backend_units_retain_outputs(batch: BackendUnits*): void {
+    for(var ordinal: usize = 1; ordinal <= batch.count; ordinal++) {
+        var job = backend_units_job(batch, ordinal);
+        if job != null { backend_unit_retain_output(job); }
+    }
 }
 
 fn backend_unit_execute(payload: void*): void {
@@ -135,8 +181,10 @@ export fn backend_units_cancel(batch: BackendUnits*): void {
     batch.cancelled = true;
     if batch.graph != null { work_cancel(batch.graph); }
     while batch.pool.running != 0 { work_pool_receive(&batch.pool, true); }
+    backend_units_retain_outputs(batch);
     backend_units_unpin(batch);
     batch.finished = true;
+    backend_units_release_execution(batch);
 }
 
 export fn backend_units_close(batch: BackendUnits*): void {
@@ -148,6 +196,7 @@ export fn backend_units_close(batch: BackendUnits*): void {
             var job = backend_units_job(batch, ordinal);
             if job == null { continue; }
             backend_close(job.backend);
+            backend_units_release(batch, &job.output);
             if !entity_component_remove(compiler_work_subject(batch.work, ordinal), batch.kind) {
                 trap("Cannot release backend unit component", 0);
             }
@@ -156,14 +205,34 @@ export fn backend_units_close(batch: BackendUnits*): void {
     if batch.kind != null { entity_release(batch.kind); }
     if batch.frontend != null { frontend_units_work_release(batch.frontend); }
     vector_dispose(&batch.target);
+    backend_units_release(batch, &batch.inputs);
+    if !work_budget_dispose(&batch.own_budget) { trap("Backend budget still borrowed", 0); }
     free(batch);
 }
 
 // The frontend owner must outlive this lease. Its close entry rejects an active
 // backend lease; concurrent mutation or a second backend batch is not admitted.
+var BackendLegacyByteLimit: usize = ~convert(usize, 0);
+
 export fn backend_units_create(frontend: void*, count: usize, budget: usize,
 target: u8*, library: bool, optimize: bool): BackendUnits* {
-    if frontend == null || count == 0 || budget == 0 || target == null { return null; }
+    return backend_units_open(frontend, count, budget, BackendLegacyByteLimit, target, library, optimize);
+}
+
+// Streaming consumers inherit the existing shared cap unchanged. A later,
+// standalone backend phase may supply a separate finite cap for its own target
+// and retained object bytes; the frontend's input owner remains separately live.
+export fn backend_units_create_bounded(frontend: void*, count: usize, budget: usize,
+retained_bytes: usize, target: u8*, library: bool, optimize: bool): BackendUnits* {
+    if retained_bytes == 0 || retained_bytes == BackendLegacyByteLimit { return null; }
+    if frontend != null && frontend_units_pending(frontend)
+        && frontend_units_work_budget(frontend).bytes != retained_bytes { return null; }
+    return backend_units_open(frontend, count, budget, retained_bytes, target, library, optimize);
+}
+
+fn backend_units_open(frontend: void*, count: usize, budget: usize, retained_bytes: usize,
+target: u8*, library: bool, optimize: bool): BackendUnits* {
+    if frontend == null || count == 0 || budget == 0 || budget > WorkPoolMaximumCapacity || target == null { return null; }
     var batch = alloc(BackendUnits, 1);
     if batch == null { return null; }
     *batch = default;
@@ -171,6 +240,17 @@ target: u8*, library: bool, optimize: bool): BackendUnits* {
     batch.work = frontend_units_work_acquire(frontend);
     if batch.work == null { free(batch); return null; }
     batch.frontend = frontend;
+    if batch.streaming { batch.budget = frontend_units_work_budget(frontend); }
+    else {
+        var available = work_thread_available() ? work_thread_capacity() : 1;
+        if budget > available { budget = available; }
+        // LLVM jobs do not reserve nested work; only this coordinator mutates
+        // the standalone ledger. A streaming batch borrows the synchronized one.
+        if !work_budget_init(&batch.own_budget, budget, retained_bytes, 1) {
+            backend_units_close(batch); return null;
+        }
+        batch.budget = &batch.own_budget;
+    }
     batch.library = library;
     batch.optimize = optimize;
     if compiler_work_subject(batch.work, count) == null
@@ -179,15 +259,20 @@ target: u8*, library: bool, optimize: bool): BackendUnits* {
         return null;
     }
     batch.count = count;
-    batch.graph = batch.streaming ? compiler_work_plan(batch.work) : compiler_work_graph(batch.work);
-    if batch.graph == null { backend_units_close(batch); return null; }
     var length: usize = 0;
     while target[length] != 0 { length++; }
-    if !vector_reserve(&batch.target, length + 1) {
+    if length == ~convert(usize, 0) || work_budget_reserve_result(batch.budget, 0, 0,
+        length + 1, &batch.inputs) != WorkBudgetError.None {
         backend_units_close(batch); return null;
     }
+    batch.target.data = alloc(u8, length + 1);
+    if batch.target.data == null { backend_units_close(batch); return null; }
+    batch.target.capacity = length + 1;
     copy(batch.target.data, target, length + 1);
     batch.target.length = length;
+    // Policy/target allocation failure above leaves the borrowed graph usable.
+    batch.graph = batch.streaming ? compiler_work_plan(batch.work) : compiler_work_graph(batch.work);
+    if batch.graph == null { backend_units_close(batch); return null; }
     var lanes = budget < count ? budget : count;
     batch.lanes = lanes;
     if !batch.streaming && !work_pool_open_kernel(&batch.pool, lanes, backend_unit_execute) {
@@ -253,6 +338,7 @@ export fn backend_units_library(batch: BackendUnits*, ordinal: usize, library: b
 fn backend_unit_receive(payload: void*): void {
     var job = bits(BackendUnit*, payload);
     var batch = job.batch;
+    backend_unit_retain_output(job);
     if !work_finish(batch.graph, &job.ticket, job.success) {
         trap("Stale backend unit receipt", 0);
     }
@@ -261,6 +347,7 @@ fn backend_unit_receive(payload: void*): void {
     if !job.success && (batch.failed == 0 || job.ordinal < batch.failed) {
         batch.failed = job.ordinal;
     }
+    backend_units_release(batch, &job.execution);
 }
 
 fn backend_units_receive(batch: BackendUnits*, wait: bool): bool {
@@ -277,14 +364,23 @@ fn backend_units_next(payload: void*): CompilerWorkKernel* {
     var batch = bits(BackendUnits*, payload);
     if batch.cancelled || batch.running >= batch.lanes { return null; }
     batch.started = true;
+    var receipt: WorkReservation = default;
+    var admission = work_budget_reserve_result(batch.budget, 1, 1, 0, &receipt);
+    if admission == WorkBudgetError.Capacity { return null; }
+    if admission != WorkBudgetError.None {
+        frontend_units_cancel(batch.frontend);
+        return null;
+    }
     var ticket: WorkTicket;
     if !work_take_query(batch.graph, &ticket, convert(u32, CompilerQuery.Backend)) {
+        backend_units_release(batch, &receipt);
         if work_take_task(batch.graph, &ticket, batch.join)
             && !work_finish(batch.graph, &ticket, true) { trap("Invalid backend join", 0); }
         return null;
     }
     var subject = work_task(batch.graph, ticket.task).subject;
     var job = bits(BackendUnit*, entity_component_data(entity_component_get(subject, batch.kind)));
+    job.execution = receipt;
     job.ticket = ticket;
     job.view = entity_view_open(job.program.root);
     if job.view == null {
@@ -301,6 +397,7 @@ fn backend_units_next(payload: void*): CompilerWorkKernel* {
 // survives a frontend failure or cancellation, even if its LLVM job completed.
 fn backend_units_settle(payload: void*, success: bool): void {
     var batch = bits(BackendUnits*, payload);
+    backend_units_retain_outputs(batch);
     batch.input_failed = !success;
     batch.cancelled ||= frontend_units_cancelled(batch.frontend);
     batch.cancelled ||= success && batch.completed != batch.count;
@@ -318,6 +415,7 @@ fn backend_units_settle(payload: void*, success: bool): void {
     }
     backend_units_unpin(batch);
     batch.finished = true;
+    backend_units_release_execution(batch);
 }
 
 export fn backend_units_step(batch: BackendUnits*, wait: bool): bool {
@@ -335,14 +433,20 @@ export fn backend_units_step(batch: BackendUnits*, wait: bool): bool {
     }
     loop {
         while batch.failed == 0 && batch.pool.running < batch.pool.count {
+            var receipt: WorkReservation = default;
+            var admission = work_budget_reserve_result(batch.budget, 1, 1, 0, &receipt);
+            if admission == WorkBudgetError.Capacity { break; }
+            if admission != WorkBudgetError.None { backend_units_cancel(batch); return true; }
             var ticket: WorkTicket;
-            if !work_take(batch.graph, &ticket) { break; }
+            if !work_take(batch.graph, &ticket) { backend_units_release(batch, &receipt); break; }
             if ticket.task == batch.join {
+                backend_units_release(batch, &receipt);
                 if !work_finish(batch.graph, &ticket, true) { trap("Invalid backend join", 0); }
                 break;
             }
             var ordinal = work_task(batch.graph, ticket.task).subject;
             var job = bits(BackendUnit*, entity_component_data(entity_component_get(ordinal, batch.kind)));
+            job.execution = receipt;
             job.ticket = ticket;
             if !work_pool_admit(&batch.pool, bits(void*, job)) {
                 backend_units_cancel(batch); return true;
@@ -389,7 +493,9 @@ export fn backend_units_result(batch: BackendUnits*, ordinal: usize): Backend* {
 
 export fn backend_units_error(batch: BackendUnits*): u8* {
     if !batch.finished || batch.cancelled || batch.failed == 0 { return ""; }
-    var backend = backend_units_job(batch, batch.failed).backend;
+    var job = backend_units_job(batch, batch.failed);
+    if job.resource_error != null { return job.resource_error; }
+    var backend = job.backend;
     return backend == null ? "Unable to allocate backend storage" : backend_error(backend);
 }
 

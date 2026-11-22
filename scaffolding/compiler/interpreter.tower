@@ -600,6 +600,7 @@ fn ix_evaluate_uncached(m: IMExecution*, node: void*, n: FoundationNode*, offset
         im_storage_require(reference != 0);
         return reference;
     }
+    if n.kind == KTypeConstruct { return ix_construct_type(m, node, n, offset); }
     if n.kind == KCall {
         ix_fail(m, "Missing suspended call result", offset);
         return 0;
@@ -673,6 +674,62 @@ fn ix_evaluate_uncached(m: IMExecution*, node: void*, n: FoundationNode*, offset
         }
     }
     return result &im_type_mask(&n.type);
+}
+
+fn ix_construct_type(m: IMExecution*, node: void*, n: FoundationNode*, offset: usize): u64 {
+    // FinishValue has already evaluated the ordinary operands left to right.
+    if m.context == null || !m.context.construct_types {
+        ix_fail(m, "Type construction requires compile-stage capability", offset);
+        return 0;
+    }
+    var request = &m.context.type_construction;
+    if request.owner == null || (request.subject != null && (request.subject != node || request.kind != n.op))
+        || (request.subject == null && (request.ready || request.failed)) {
+        ix_fail(m, "Invalid type construction request owner or subject", offset);
+        return 0;
+    }
+    if request.subject == null {
+        if request.sequence == ~convert(usize, 0) {
+            ix_fail(m, "Type construction request sequence exhausted", offset);
+            return 0;
+        }
+        var owner = request.owner;
+        var sequence = request.sequence + 1;
+        vector_dispose(&request.error);
+        *request = { owner: owner, subject: node, sequence: sequence, kind: n.op, ..default };
+        if n.left != null { request.first = ix_read(m, n.left, offset); }
+        if n.right != null { request.second = ix_read(m, n.right, offset); }
+        if !ix_ok(m) { return 0; }
+        if n.op == convert(u32, TypeConstructionKind.Pointer) || n.op == convert(u32, TypeConstructionKind.Array) {
+            var reference = request.first;
+            request.first = 0;
+            if reference == 0 || reference > convert(u64, m.state.type_values.length) {
+                ix_fail(m, "Type construction operand contains an invalid type value", offset);
+                return 0;
+            }
+            request.input = m.state.type_values.data[convert(usize, reference - 1)];
+        }
+    }
+    if request.failed {
+        im_storage_require(vector_reserve(&request.error, request.error.length + 1));
+        request.error.data[request.error.length] = 0;
+        ix_fail(m, request.error.length == 0 ? "Type construction failed" : request.error.data, offset);
+        return 0;
+    }
+    if !request.ready {
+        m.context.waiting_type = true;
+        m.context.waiting = node;
+        return 0;
+    }
+    if convert(usize, request.result.pointer_bytes) != ix_pointer_bytes(m) {
+        ix_fail(m, "Type construction result target differs from the invocation target", offset);
+        return 0;
+    }
+    var reference = type_object_intern(&m.state.type_values, &request.result);
+    im_storage_require(reference != 0);
+    request.subject = null;
+    request.ready = false;
+    return reference;
 }
 
 fn ix_convert_value(m: IMExecution*, a: u64, input: FoundationType*, type: FoundationType*, offset: usize): u64 {
@@ -1008,7 +1065,7 @@ fn ix_needs(m: IMExecution*, node: void*): bool {
         return cached != 0;
     }
     var n = im_cached_node(m.state, node);
-    var result = n.kind == KCall;
+    var result = n.kind == KCall || n.kind == KTypeConstruct;
     var test = n.kind == KAllocate;
     result = im_or(result, test);
     test = n.kind == KReallocate;
@@ -1185,6 +1242,7 @@ export fn ix_step(m: IMExecution*, budget: usize): void {
             m.context.waiting = null;
             m.context.waiting_function = false;
             m.context.waiting_binding = false;
+            m.context.waiting_type = false;
         }
         if m.context != null && m.context.dependency_kind != null {
             if ix_pending(m, task.node) {
@@ -1337,6 +1395,11 @@ export fn ix_step(m: IMExecution*, budget: usize): void {
                                 // Value tasks already checked this node's cache before scheduling
                                 // FinishValue; completing its children cannot evaluate the parent.
                                 var result = ix_evaluate_uncached(m, task.node, n, task.offset);
+                                if m.context != null && m.context.waiting_type {
+                                    im_task_push(m.state, task.node, task.loop_resume != 0, task.phase, task.offset);
+                                    m.state.steps--;
+                                    break;
+                                }
                                 im_values_set(m.state, im_key(task.node), result);
                             }
                             continue;
@@ -1390,7 +1453,7 @@ fn ix_statement(m: IMExecution*, task: IMTask*, n: FoundationNode*): void {
     if n.kind == KCall {
         return;
     }
-    var expression = n.kind == KAllocate;
+    var expression = n.kind == KAllocate || n.kind == KTypeConstruct;
     test = n.kind == KReallocate;
     expression = im_or(expression, test);
     test = n.kind == KSizeOf;
@@ -1604,6 +1667,7 @@ export fn interpreter_invocation_dispose(invocation: IMInvocation*): void {
     vector_dispose(u8, &invocation.context.error);
     vector_dispose(u8, &invocation.context.output);
     vector_dispose(u8, &invocation.context.initialized);
+    vector_dispose(&invocation.context.type_construction.error);
     *invocation = default;
 }
 

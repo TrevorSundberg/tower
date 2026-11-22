@@ -2,6 +2,7 @@ import tower;
 import .compiler.compiler_kernel;
 import .library.work_pool;
 import .library.work_budget;
+import .library.work_budget_types;
 import .host.work_linux;
 import .host.work_dispatch;
 

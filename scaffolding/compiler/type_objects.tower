@@ -7,6 +7,43 @@ extern fn semantic_type_equal(left: FoundationType*, right: FoundationType*): bo
 extern fn sem_get(node: void*): FoundationNode*;
 extern fn sem_require(ok: bool): void;
 
+// Call after signature/field producers complete. Pointer transport still exposes
+// its declared payload, including callback signatures and recursive records.
+// The visited list is a disposable traversal index over the existing entities.
+export fn type_object_abi_safe(type: FoundationType*): bool {
+    var pending: vector(FoundationType) = default;
+    var visited: vector(void*) = default;
+    defer vector_dispose(&pending);
+    defer vector_dispose(&visited);
+    sem_require(vector_push(&pending, *type));
+    while pending.length != 0 {
+        var current = pending.data[--pending.length];
+        if current.scalar == SType { return false; }
+        if current.scalar != SStruct && current.scalar != SArray && current.scalar != SFunction { continue; }
+        if current.record == null { return false; }
+        var seen = false;
+        foreach(var record in &visited) { if record == current.record { seen = true; break; } }
+        if seen { continue; }
+        sem_require(vector_push(&visited, current.record));
+        var record = sem_get(current.record);
+        if record == null { return false; }
+        if current.scalar == SArray || current.scalar == SFunction {
+            sem_require(vector_push(&pending, record.element));
+        }
+        if current.scalar == SStruct {
+            foreach(var field in &record.items) {
+                sem_require(vector_push(&pending, sem_get(field).type));
+            }
+        }
+        if current.scalar == SFunction {
+            foreach(var parameter in &record.parameters) {
+                sem_require(vector_push(&pending, sem_get(parameter).type));
+            }
+        }
+    }
+    return true;
+}
+
 // LLVM's scalar return path cannot reconstruct opaque type identity after it
 // lowers to an integer index. Preserve the checked Foundation program instead.
 // Traverse owned semantic edges only; bindings and nominal records can cycle.

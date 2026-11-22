@@ -1,4 +1,6 @@
 import tower;
+import .library.work_budget_types;
+import semantic_context_types;
 import compiler_kernel;
 import component_kinds;
 import foundation_tags;
@@ -164,7 +166,10 @@ fn sem_flows(c: SemanticContext*): void {
             sem_require(work_take_query(&c.queries, &result.ticket, FlowQuery));
             sem_require(work_task(&c.queries, result.ticket.task).subject == result.subject);
         }
-        sem_require(compiler_kernel_dispatch(&c.workers, &jobs.data[next], count));
+        var receipt: WorkReservation;
+        var extra = sem_workers_admit(c, count, &receipt);
+        defer sem_workers_release(c, &receipt);
+        sem_require(compiler_kernel_dispatch_admitted(&c.workers, &jobs.data[next], count, extra));
         for(var i: usize = 0; i < count; i++) {
             var result = jobs.data[next + i];
             var function = sem_get(result.subject);

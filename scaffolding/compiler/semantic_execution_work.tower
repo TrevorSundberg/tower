@@ -1,4 +1,6 @@
 import tower;
+import .library.work_budget_types;
+import semantic_context_types;
 import compiler_kernel;
 import semantic_context;
 import semantic_body_work;
@@ -145,15 +147,11 @@ fn sem_executables_pump(c: SemanticContext*): SemanticPumpResult {
     var context = *c;
     var view = entity_view_open(c.program.root);
     sem_require(view != null);
-    var next: usize = 0;
-    while next < batch.length || c.workers.running != 0 {
-        while next < batch.length && c.workers.running < c.workers.count {
-            var result = batch.data[next++];
-            result.context = &context;
-            sem_require(work_pool_submit(&c.workers, bits(void*, &result.kernel)));
-        }
-        sem_require(work_pool_receive(&c.workers, true) != null);
-    }
+    foreach(var result in &batch) { result.context = &context; }
+    var receipt: WorkReservation;
+    var extra = sem_workers_admit(c, batch.length, &receipt);
+    defer sem_workers_release(c, &receipt);
+    sem_require(compiler_kernel_dispatch_admitted(&c.workers, batch.data, batch.length, extra));
     entity_view_close(view);
     foreach(var result in &batch) {
         sem_require(entity_stage_publish(result.stage));

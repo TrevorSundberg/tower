@@ -109,6 +109,10 @@ graph: WorkGraph*, pool: WorkPool*): bool {
     if count < 2 {
         return lr_lalr_actions(value, lookahead);
     }
+    var admission: ParserAdmission = default;
+    if !parser_admission_open(&admission, owner, count) { return false; }
+    defer parser_admission_close(&admission, graph);
+    if admission.extra == 0 { return lr_lalr_actions(value, lookahead); }
     if !work_reset(graph, graph.revision + 1, graph.profile) {
         return false;
     }
@@ -127,7 +131,7 @@ graph: WorkGraph*, pool: WorkPool*): bool {
     if kind == null || !entity_register(kind, sizeof(LRActionTask), alignof(LRActionTask), 0) {
         return false;
     }
-    var jobs: LRActionTask*[256];
+    var jobs: LRActionTask*[WorkPoolMaximumCapacity];
     var position: usize = 0;
     for(var i: usize = 0; i < count; i++) {
         var node = lr_work_node(owner);
@@ -163,23 +167,10 @@ graph: WorkGraph*, pool: WorkPool*): bool {
     if view == null {
         return false;
     }
-    var ok = true;
-    var admitted: usize = 0;
-    for(; admitted < count; admitted++) {
-        if !work_pool_submit(pool, bits(void*, &jobs[admitted].kernel)) {
-            ok = false;
-            break;
-        }
-    }
-    // Even partial admission or a failed result must join before releasing the
-    // view, private vectors or propagation graph. Never publish a partial table.
-    for(var i: usize = 0; i < admitted; i++) {
-        if work_pool_receive(pool, true) == null {
-            ok = false;
-        }
-    }
+    var ok = compiler_kernel_dispatch_admitted(pool, &jobs[0], count, admission.extra);
     entity_view_close(view);
-    for(var i: usize = 0; i < admitted; i++) {
+    if !ok { return false; }
+    for(var i: usize = 0; i < count; i++) {
         if !work_finish(graph, &jobs[i].ticket, jobs[i].success) || !jobs[i].success {
             ok = false;
         }
@@ -238,9 +229,14 @@ owner: void*, graph: WorkGraph*, pool: WorkPool*): LRPropagation* {
 // instrumented transport. Normal admission retains its measured-size policy.
 fn lr_states_propagation_work(value: LRStates*, constructs: bool, cache: LRKernelClosure**,
 owner: void*, graph: WorkGraph*, pool: WorkPool*, count: usize): LRPropagation* {
-    if count == 0 || count > pool.count || count > 256 || count > value.states.length || owner == null {
+    var jobs: LRLinkTask*[WorkPoolMaximumCapacity];
+    if count == 0 || count > pool.count || count > sizeof(decltype(jobs)) / sizeof(LRLinkTask*)
+        || count > value.states.length || owner == null {
         return null;
     }
+    var admission: ParserAdmission = default;
+    if !parser_admission_open(&admission, owner, count) { return null; }
+    defer parser_admission_close(&admission, graph);
     var result = lr_states_propagation_begin(value, constructs);
     if result == null {
         return null;
@@ -253,7 +249,6 @@ owner: void*, graph: WorkGraph*, pool: WorkPool*, count: usize): LRPropagation* 
     if kind == null || !entity_register(kind, sizeof(LRLinkTask), alignof(LRLinkTask), 0) {
         return null;
     }
-    var jobs: LRLinkTask*[256];
     var initialized: usize = 0;
     defer {
         for(var i: usize = 0; i < initialized; i++) {
@@ -294,22 +289,10 @@ owner: void*, graph: WorkGraph*, pool: WorkPool*, count: usize): LRPropagation* 
     if view == null {
         return null;
     }
-    var ok = true;
-    var admitted: usize = 0;
-    for(; admitted < count; admitted++) {
-        if !work_pool_submit(pool, bits(void*, &jobs[admitted].kernel)) {
-            ok = false;
-            break;
-        }
-    }
-    // Failure still drains all admitted jobs before vectors or the view die.
-    for(var i: usize = 0; i < admitted; i++) {
-        if work_pool_receive(pool, true) == null {
-            ok = false;
-        }
-    }
+    var ok = compiler_kernel_dispatch_admitted(pool, &jobs[0], count, admission.extra);
     entity_view_close(view);
-    for(var i: usize = 0; i < admitted; i++) {
+    if !ok { return null; }
+    for(var i: usize = 0; i < count; i++) {
         if !work_finish(graph, &jobs[i].ticket, jobs[i].success) || !jobs[i].success {
             ok = false;
         }
@@ -399,8 +382,8 @@ fn lr_propagation_solve_parallel(value: LRPropagation*, owner: void*, graph: Wor
     vector_init(&targets);
     defer vector_dispose(&targets);
     var kind: void* = null;
-    var nodes: void*[256];
-    var jobs: LRPropagationTask*[256];
+    var nodes: void*[WorkPoolMaximumCapacity];
+    var jobs: LRPropagationTask*[WorkPoolMaximumCapacity];
     while value.pending.length != 0 {
         targets.length = 0;
         // Keep the original pending queue intact until parallel admission is
@@ -426,6 +409,10 @@ fn lr_propagation_solve_parallel(value: LRPropagation*, owner: void*, graph: Wor
         if count < 2 {
             return lr_propagation_solve(value);
         }
+        var admission: ParserAdmission = default;
+        if !parser_admission_open(&admission, owner, count) { return false; }
+        defer parser_admission_close(&admission, graph);
+        if admission.extra == 0 { return lr_propagation_solve(value); }
         if kind == null {
             kind = lr_work_node(owner);
             if kind == null || !entity_register(kind, sizeof(LRPropagationTask), alignof(LRPropagationTask), 0) {
@@ -477,21 +464,10 @@ fn lr_propagation_solve_parallel(value: LRPropagation*, owner: void*, graph: Wor
         if view == null {
             return false;
         }
-        var ok = true;
-        var admitted: usize = 0;
-        for(; admitted < count; admitted++) {
-            if !work_pool_submit(pool, bits(void*, &jobs[admitted].kernel)) {
-                ok = false;
-                break;
-            }
-        }
-        for(var i: usize = 0; i < admitted; i++) {
-            if work_pool_receive(pool, true) == null {
-                ok = false;
-            }
-        }
+        var ok = compiler_kernel_dispatch_admitted(pool, &jobs[0], count, admission.extra);
         entity_view_close(view);
-        for(var i: usize = 0; i < admitted; i++) {
+        if !ok { return false; }
+        for(var i: usize = 0; i < count; i++) {
             if !work_finish(graph, &jobs[i].ticket, jobs[i].success) || !jobs[i].success {
                 ok = false;
             }
@@ -569,7 +545,7 @@ export fn lr_states_lalr_parallel(value: LRStates*, constructs: bool, anchor: vo
     }
     var graph: WorkGraph;
     work_init(&graph, 1, 0);
-    var jobs: LRClosureTask*[256];
+    var jobs: LRClosureTask*[WorkPoolMaximumCapacity];
     for(var i: usize = 0; i < value.states.length && ok; ++i) {
         var state_items = &value.states.data[i].items.values;
         foreach(var & item in state_items) {
@@ -613,45 +589,24 @@ export fn lr_states_lalr_parallel(value: LRStates*, constructs: bool, anchor: vo
         ok &&= work_access(&graph, query, 1, 2, 0, 1, WorkAccessMode.Read);
         ok &&= work_seal(&graph, query);
         ok &&= work_demand(&graph, query);
+        ok &&= work_take_task(&graph, &result.ticket, query);
     }
     var workers: ParserWorkers = default;
     if ok && capacity != 0 {
         ok = parser_workers_open(&workers, anchor, capacity);
     }
     var pool = workers.pool;
+    var admission: ParserAdmission = default;
+    if ok { ok = parser_admission_open(&admission, anchor, batches); }
     var view: void* = null;
     if ok {
         view = entity_view_open(owner);
         ok = view != null;
     }
-    var batch: LRClosureTask*[256];
-    var next: usize = 0;
-    while ok && next < batches {
-        var admitted: usize = 0;
-        var ticket: WorkTicket;
-        while admitted < pool.count && work_take(&graph, &ticket) {
-            // Demand/admission order equals the immutable job index here.
-            var result = jobs[next];
-            next++;
-            copy(&result.ticket, &ticket, sizeof(WorkTicket));
-            batch[admitted] = result;
-            if !work_pool_submit(pool, bits(void*, &result.kernel)) {
-                ok = false;
-                break;
-            }
-            admitted++;
-        }
-        if admitted == 0 {
-            ok = false;
-            break;
-        }
-        for(var i: usize = 0; i < admitted; ++i) {
-            if work_pool_receive(pool, true) == null {
-                ok = false;
-            }
-        }
-        for(var i: usize = 0; i < admitted; ++i) {
-            var result = batch[i];
+    if ok { ok = compiler_kernel_dispatch_admitted(pool, &jobs[0], batches, admission.extra); }
+    if ok {
+        for(var i: usize = 0; i < batches; ++i) {
+            var result = jobs[i];
             if !work_finish(&graph, &result.ticket, result.success) || !result.success {
                 ok = false;
             }
@@ -660,6 +615,7 @@ export fn lr_states_lalr_parallel(value: LRStates*, constructs: bool, anchor: vo
     if view != null {
         entity_view_close(view);
     }
+    parser_admission_close(&admission, &graph);
     if ok {
         var lookahead = lr_states_propagation_parallel(value, constructs, cache, owner, &graph, pool);
         ok = lookahead != null;

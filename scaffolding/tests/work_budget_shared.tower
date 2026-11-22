@@ -1,5 +1,6 @@
 import tower;
 import .library.work_budget;
+import .library.work_budget_types;
 import .library.work_pool;
 import .host.work_linux;
 import .host.work_dispatch;

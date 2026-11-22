@@ -1,0 +1,82 @@
+import tower;
+import compiler_kernel;
+import foundation_types;
+import semantic_context_types;
+import semantic_evaluation_types;
+import semantic_constructor_types;
+import .library.vector;
+import .library.work_graph;
+
+enum SemanticExpressionMode: u32 { Value, Operand, Initializer, Discard, AssignmentTarget }
+enum SemanticDeclarationAdmission: u32 { None, Pending, Ready, InferencePending, InferenceReady }
+
+struct SemanticDeclaration {
+    number: usize;
+    query: usize;
+    discovery: usize;
+    kernel: CompilerKernel;
+    ticket: WorkTicket;
+    context: SemanticContext*;
+    editor: SemanticEditor;
+    type_observations: vector(SemanticTypeObservation);
+    allocations: vector(void*);
+    lists: vector(void*);
+    scope: SemanticScope*;
+    current: void*;
+    lexical: SemanticBodyScope;
+    constructed: vector(void*);
+    subject: void*;
+    expression: bool;
+    integer_argument: bool;
+    integer_evaluation: SemanticEvaluation*;
+    module_initializer: bool;
+    array_type: bool;
+    array_ready: bool;
+    array_base: void*;
+    array_count: void*;
+    array_element: FoundationType;
+    array_length: usize;
+    array_result: FoundationType;
+    construction_owner: SemanticDeclaration*;
+    construction_identity: bool;
+    constructor: SemanticConstructor*;
+    expression_mode: SemanticExpressionMode;
+    expected_type: FoundationType*;
+    value: void*;
+    discover: bool;
+    worker_check: bool;
+    admission: SemanticDeclarationAdmission;
+    needs_evaluation: bool;
+    checked: bool;
+    storage_ready: bool;
+    storage_pending: bool;
+    stage: void*;
+    nodes: vector(void*);
+    count: usize;
+    surface: bool;
+    calls_scanned: bool;
+    call_index: usize;
+    type_frontier: usize;
+    calls: vector(DeclarationCall);
+    evaluations: vector(void*);
+    inference_pending: bool;
+    inference_ready: bool;
+    inference_definition: void*;
+    inference_values: vector(void*)*;
+    inference_types: vector(FoundationType);
+    inference_order: vector(FoundationType);
+    waiting: usize;
+    layout: void*;
+    dependencies: vector(usize);
+    query_reads: vector(usize);
+    error: vector(u8);
+    error_offset: usize;
+}
+
+struct DeclarationCall {
+    node: void*;
+    type: bool;
+    nominal_value: bool;
+    unevaluated: bool;
+    evaluation_depth: usize;
+}

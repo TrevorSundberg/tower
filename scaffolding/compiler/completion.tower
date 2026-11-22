@@ -1,4 +1,6 @@
+import completion_types;
 import semantic_program_types;
+import semantic_context_types;
 import tower;
 import syntax_session_types;
 import language_grammar;
@@ -16,47 +18,6 @@ import .library.vector;
 // Editor queries over the compiler's shared syntax entities. Recovery text is
 // scratch input to the ordinary parser, never a second AST or program format.
 // Candidate lists retain borrowed entity handles only for the duration of a query.
-struct CompletionSpan {
-    start: usize;
-    end: usize;
-    opaque: bool;
-}
-
-struct CompletionQuery {
-    world: void*;
-    environment: void*;
-    active: void*;
-    program: SemanticProgram;
-    context: SemanticContext;
-    editor: SemanticEditor;
-    semantic: bool;
-    analyzed: bool;
-    inspection: bool;
-    inspection_session: void*;
-    generic_info: void*;
-    grammar: vector(LanguageGrammar);
-    grammar_index: SemanticTable*;
-    comment_modules: vector(void*);
-    comment_bases: vector(usize);
-    truncated: bool;
-    input: vector(u8);
-    roots: vector(void*);
-    bases: vector(usize);
-    source: u8*;
-    length: usize;
-    cursor: usize;
-    from: usize;
-    to: usize;
-    boundary: usize;
-    mode: u32;
-    hidden: bool;
-    recovered: vector(u8);
-    names: vector(u8*);
-    bindings: vector(u8*);
-    output: vector(u8);
-    count: usize;
-}
-
 extern fn syntax_completion_create(source: u8*, mode: u32): void*;
 
 extern fn syntax_session_open(world: void*, environment: void*, source: u8*, module: void*, mode: u32): SyntaxSession*;

@@ -1,0 +1,47 @@
+import tower;
+import semantic_program_types;
+import semantic_context_types;
+import language_grammar_types;
+import .library.vector;
+
+// Shared declaration-only editor query payloads; the service owns all lifetimes.
+struct CompletionSpan {
+    start: usize;
+    end: usize;
+    opaque: bool;
+}
+
+struct CompletionQuery {
+    world: void*;
+    environment: void*;
+    active: void*;
+    program: SemanticProgram;
+    context: SemanticContext;
+    editor: SemanticEditor;
+    semantic: bool;
+    analyzed: bool;
+    inspection: bool;
+    inspection_session: void*;
+    generic_info: void*;
+    grammar: vector(LanguageGrammar);
+    grammar_index: SemanticTable*;
+    comment_modules: vector(void*);
+    comment_bases: vector(usize);
+    truncated: bool;
+    input: vector(u8);
+    roots: vector(void*);
+    bases: vector(usize);
+    source: u8*;
+    length: usize;
+    cursor: usize;
+    from: usize;
+    to: usize;
+    boundary: usize;
+    mode: u32;
+    hidden: bool;
+    recovered: vector(u8);
+    names: vector(u8*);
+    bindings: vector(u8*);
+    output: vector(u8);
+    count: usize;
+}

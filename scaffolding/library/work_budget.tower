@@ -1,61 +1,7 @@
 import tower;
 import vector;
 
-// Admission accounting, serialized by one coordinator or an explicitly bound
-// gate. Declared bytes are reservations, not an allocator/RSS limit. Retained outputs need their own
-// reservation until reclaimed. Neither this owner nor a live receipt is copied.
-// Release after all nested/outer jobs join and affected stages are published.
-enum WorkBudgetError: u32 { None, Capacity, Invalid, Memory, Stale, Busy, Exhausted }
-
-struct WorkBudgetEntry {
-    lanes: usize;
-    bytes: usize;
-    generation: u64;
-    next: usize;
-    active: bool;
-}
-
-struct WorkBudget {
-    entries: vector(WorkBudgetEntry);
-    lanes: usize;
-    bytes: usize;
-    used_lanes: usize;
-    used_bytes: usize;
-    peak_lanes: usize;
-    peak_bytes: usize;
-    live: usize;
-    free_slot: usize;
-    revision: u64;
-    generation: u64;
-    initialized: bool;
-    gate: void*;
-    enter: function(void, void*);
-    leave: function(void, void*);
-    // Last operation for serial diagnostics only. Concurrent callers use the
-    // per-call result APIs; reading this field without the gate would race.
-    error: WorkBudgetError;
-}
-
-struct WorkReservation {
-    owner: WorkBudget*;
-    revision: u64;
-    slot: usize;
-    generation: u64;
-    lanes: usize;
-    bytes: usize;
-    active: bool;
-}
-
-struct WorkBudgetSnapshot {
-    lanes: usize;
-    bytes: usize;
-    used_lanes: usize;
-    used_bytes: usize;
-    peak_lanes: usize;
-    peak_bytes: usize;
-    live: usize;
-    retained: usize;
-}
+import work_budget_types;
 
 // Start from default storage; reuse requires disposal and an increasing session
 // revision. Preserve the revision at disposal so stale receipts cannot revive.

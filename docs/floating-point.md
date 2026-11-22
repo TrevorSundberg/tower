@@ -61,9 +61,10 @@ Canonical Foundation spells floating constants with `bits(f32, ...)` or
 Reparsing reconstructs the floating operand with its exact bits. This also
 preserves NaN payloads, which decimal text cannot express. Optimized LLVM import
 reconstructs the same Foundation arithmetic/conversions from strict runtime calls.
-The `.towerbc` container remains version 1; semantics and execution-cache versions
-are now 4 after the narrow-integer extension, so older runtimes reject the new
-cache contract before execution. Floating conversions also support i8/i16/u16.
+The narrow-integer extension used `.towerbc` container version 1 and semantics
+and execution-cache versions 4. Later versions are listed in the
+[current package contract](../playground/README.md); incompatible packages are
+rejected before execution. Floating conversions also support i8/i16/u16.
 
 `print` uses Tower decimal conversion, with 9/17 significant digits sufficient
 for round trips. It uses scientific notation, retains a decimal point and zero's

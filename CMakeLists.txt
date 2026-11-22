@@ -86,7 +86,7 @@ if(TOWER_NATIVE)
     configure_file("scaffolding/${resource}" "share/tower/${resource}" COPYONLY)
   endforeach()
   file(GLOB builtin_modules CONFIGURE_DEPENDS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding"
-    "scaffolding/library/*.tower" "scaffolding/types/*.tower" "scaffolding/backend/foreign_grammar.tower")
+    "scaffolding/library/*.tower" "scaffolding/backend/foreign_grammar.tower")
   foreach(resource IN LISTS builtin_modules)
     configure_file("scaffolding/${resource}" "share/tower/${resource}" COPYONLY)
   endforeach()

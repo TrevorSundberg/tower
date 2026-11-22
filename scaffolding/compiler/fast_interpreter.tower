@@ -24,6 +24,7 @@ var FMFloat64BinaryBase: usize = 208;
 var FMIndirectCall: usize = 25;
 var FMCheckFunction: usize = 26;
 var FMDirectCall: usize = 15;
+var FMTypeConstruction: usize = 27;
 
 // Private, disposable execution cache of checked foundation nodes. This is not
 // an interchange format or a second semantic IR. No graph pointers or compiler
@@ -478,6 +479,13 @@ fn fm_value(f: FMState*, node: void*): usize {
         im_storage_require(reference != 0);
         return fm_constant(f, reference);
     }
+    if n.kind == KTypeConstruct {
+        if n.left != null { fm_value(f, n.left); }
+        if n.right != null { fm_value(f, n.right); }
+        var result = fm_register(f);
+        fm_emit(f, FMTypeConstruction, result, 0, 0);
+        return result;
+    }
     if n.kind == KFunctionReference {
         fm_function(f, n.binding);
         return fm_constant(f, convert(u64, im_node(n.binding).index) + 1);
@@ -751,6 +759,11 @@ fn fm_statement(f: FMState*, node: void*, breaks: vector(usize)*, continue_pc: u
 
 export fn fast_interpreter_create(m: IMState*): FMState* {
     var f = alloc(FMState, 1);
+    if f == null {
+        im_fail(m, "Cannot allocate interpreter execution cache", 0);
+        m.done = true;
+        return null;
+    }
     *f = default;
     var failed = m.failed;
     if failed {
@@ -942,6 +955,11 @@ export fn fast_interpreter_step(m: IMState*, f: FMState*, budget: usize): void {
         var r = &f.registers.data[f.register_base];
         count++;
         m.steps++;
+        if op == FMTypeConstruction {
+            im_fail(m, "Type construction requires compile-stage capability", fm_offset(f, pc));
+            m.done = true;
+            continue;
+        }
         if op == FMCheckFunction || op == FMIndirectCall {
             var reference = r[op == FMCheckFunction ? a : b];
             var encoded: usize = 0;
@@ -1215,6 +1233,7 @@ export fn fast_interpreter_stat(f: FMState*, key: usize): usize {
         return bytes;
     }
     var bytes = f.constants.capacity *sizeof(u64);
+    bytes += f.type_values.capacity * sizeof(FoundationType);
     var extra = f.functions.capacity *sizeof(FMFunction);
     bytes = bytes + extra;
     bytes += f.function_indices.capacity * sizeof(usize);

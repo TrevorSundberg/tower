@@ -1,0 +1,39 @@
+import tower;
+import compiler_kernel;
+import semantic_context_types;
+import .library.vector;
+import .library.work_graph;
+
+enum SemanticKnownAction: u32 { Scan, Order, Publish, Inputs, Bind }
+
+struct SemanticKnownCandidate { subject: void*; ordinal: usize; }
+struct SemanticKnownPatch { subject: void*; literal: void*; declaration: bool; }
+
+struct SemanticKnownStorage {
+    subject: void*;
+    items: vector(void*);
+    locals: vector(void*);
+    replace_items: bool;
+    replace_locals: bool;
+}
+
+// Facts belong to the query's ECS component. Workers read a pinned graph and
+// own their traversal scratch; only the coordinator attaches binding metadata
+// or applies the returned patches, after every reader has joined.
+struct SemanticKnownWork {
+    kernel: CompilerKernel;
+    ticket: WorkTicket;
+    context: SemanticContext*;
+    subject: void*;
+    root: void*;
+    owner: void*;
+    ordinal: usize;
+    source_ordinal: usize;
+    action: SemanticKnownAction;
+    binding_incomplete: bool;
+    candidates: vector(SemanticKnownCandidate);
+    mutations: vector(void*);
+    patches: vector(SemanticKnownPatch);
+    query_reads: vector(usize);
+    storage: vector(SemanticKnownStorage);
+}

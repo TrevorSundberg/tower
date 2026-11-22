@@ -1,0 +1,102 @@
+import tower;
+
+struct ConstructedRecord { value: i32; next: ConstructedRecord*; }
+
+fn constructed_integer(width: usize, sign: usize): type {
+    var actual = width;
+    actual *= 2;
+    var result: type = integer_type(actual, sign);
+    return result;
+}
+
+fn constructed_loop(): type {
+    var width: usize = 8;
+    var result: type = u8;
+    while width <= 32 {
+        result = integer_type(width, 1);
+        width *= 2;
+    }
+    return result;
+}
+
+fn constructed_float(wide: bool): type {
+    var width: usize = 32;
+    if wide { width *= 2; }
+    var result: type = float_type(width);
+    return result;
+}
+
+fn constructed_pointer(T: type): type {
+    var result: type = pointer_type(T);
+    return result;
+}
+
+fn constructed_array(T: type, count: usize): type {
+    var extent = count + 1;
+    var result: type = array_type(T, extent);
+    return result;
+}
+
+fn constructed_lazy(take: bool): type {
+    var result: type = u16;
+    if take { result = integer_type(24, 2); }
+    return result;
+}
+
+fn constructed_invalid(): type { return integer_type(24, 1); }
+fn constructed_direct(): type { return integer_type(32, 1); }
+fn constructed_middle(): type { return constructed_direct(); }
+fn constructed_invalid_middle(): type { return constructed_invalid(); }
+fn constructed_branch(): type {
+    if false { return constructed_invalid_middle(); }
+    return constructed_middle();
+}
+
+fn constructed_box(T: type): type {
+    struct Box { value: T; next: Box*; }
+    return Box;
+}
+fn constructed_box_alias(T: type): type { return constructed_box(T); }
+fn constructed_static_array(T: type, count: usize): type { return T[count]; }
+fn constructed_callback(T: type): type { return function(T, T); }
+
+var ConstructedSigned: type = constructed_integer(16, 1);
+var ConstructedUnsigned: type = constructed_integer(8, 0);
+var ConstructedLoop: type = constructed_loop();
+var ConstructedFloat: type = constructed_float(true);
+var ConstructedPointer: type = constructed_pointer(ConstructedRecord);
+var ConstructedArray: type = constructed_array(ConstructedRecord, 2);
+var ConstructedNested: type = constructed_array(constructed_pointer(i32), 2);
+var ConstructedLazy: type = constructed_lazy(false);
+var ConstructedBranch: type = constructed_branch();
+var ConstructedBox: type = constructed_box_alias(i32);
+var ConstructedStaticArray: type = constructed_static_array(u16, 3);
+var ConstructedCallback: type = constructed_callback(i32);
+
+fn verify_construction(): i32 {
+    var failures: i32 = 0;
+    if ConstructedSigned != i32 || ConstructedUnsigned != u16 || ConstructedLoop != i32 { failures++; }
+    if ConstructedFloat != f64 || ConstructedLazy != u16 || ConstructedBranch != i32 { failures++; }
+    if ConstructedPointer != type_value(ConstructedRecord*) { failures++; }
+    if ConstructedArray != type_value(ConstructedRecord[3]) { failures++; }
+    if ConstructedNested != type_value(array_type(pointer_type(i32), 3)) { failures++; }
+    if sizeof(ConstructedArray) != sizeof(ConstructedRecord) * 3 { failures++; }
+    var local = comptime(constructed_integer(4, 0));
+    if local != u8 { failures++; }
+    var selected = comptime(constructed_branch());
+    var selected_value: selected = 7;
+    if selected_value != 7 { failures++; }
+    var nominal: ConstructedBox;
+    nominal.next = &nominal;
+    nominal.value = 9;
+    if nominal.next.value != 9 || ConstructedBox != type_value(constructed_box(i32)) { failures++; }
+    if ConstructedStaticArray != type_value(u16[3]) { failures++; }
+    if ConstructedCallback != type_value(function(i32, i32)) { failures++; }
+    var local_type: constructed_array(u8, 4);
+    if sizeof(decltype(local_type)) != 5 { failures++; }
+    // The checked body contains the operation but the executed branch does not.
+    if constructed_lazy(false) != u16 { failures++; }
+    return failures;
+}
+
+print(verify_construction());

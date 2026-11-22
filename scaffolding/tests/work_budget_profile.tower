@@ -1,5 +1,6 @@
 import tower;
 import .library.work_budget;
+import .library.work_budget_types;
 
 // Linux x64 timing boundary. The workload remains in Tower and validates every
 // grant plus final accounting. This measures ledger overhead, not compiler work.
