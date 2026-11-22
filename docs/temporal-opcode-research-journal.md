@@ -46996,3 +46996,62 @@ These are four pending draft reviews beyond98tracked paths, alongside the B1
 retention companion. No new code or performance result is implied; D1 owns
 registration and its before/after runs. Current bookkeeping/documentation edits
 have no runtime behavior and therefore require no new runtime profiling.
+
+Further read-only inspection of the existing matched-input receipts identifies
+substantially higher two-worker scheduling counters: median voluntary/involuntary
+small1 101/130.5,small2 2823.5/730,large1 100.5/95.5,large2 9810/3198. All16Tower
+compile samples have zero major faults/filesystem-input blocks. No new process
+or benchmark was run, no outlier removed, and counters do not identify a specific
+lock or measure idle/critical-path time. B2 receives this useful lead for the
+current integrated compiler profile, retaining the public baseline comparison.
+
+After D1 drained/released its slot, D2 atomically acquired heavy.lock and ran the
+approved unchanged-input backend TSan diagnostic with timeout600/kill-after5.
+ExecutableSHAdcc43b7c6959e4ab7efea7a4b3e929d813c683d9efb86e73ac4a30e2a8ea7787,
+sourceclosure60741c5, configured source-manifestSHAc2b2c9935cbbb54bc5a21cc73a1e07eede3225f50288c75d8b42c54293f7b781.
+Original180s failure remains; normal142.39s baseline justifies a bounded diagnostic,
+not a test deadline fix. No new source or sensitivity probes. ProcessPID2783435,
+raw logs backend_thread_600.*. This paragraph records a running experiment, not
+its eventual result.
+
+Host perf6.15-3 successfully samples that owned valid process without policy
+changes (perf_event_paranoid2). First20s/49Hz cpu-clock:user window:963samples,
+zero lost; self-costs TSan unaligned read8/write8/read4/write4 are45.59/15.16/
+12.98/6.13percent. Frame-pointer callchains are incomplete. A local symfs link
+into the lane's own cache resolves the exact binary symbols; the earlier
+unresolved-symbol report is preserved. Foreign library symbols are not complete.
+
+Supported libdw DWARF sampling (20s,49Hz,8192-byte stacks) yields976samples,
+zero lost and8.043MBdata. Inclusive LALR construction73.57%, propagation-cached
+64.96%, kernel closure53.89%, item closure36.37%, item sift16.60%; these shares
+overlap and must not sum. Many stacks truncate before their root, so root-stage
+percentages undercount. At145s/223s main remains busy and only TSan maintenance
+thread sleeps; no worker-overlap conclusion from these windows. RSS at223s is
+630672KiB, high-water635940KiB. The enormous mapped virtual address span is
+distinct from resident memory; [upstream TSan documentation](https://clang.llvm.org/docs/ThreadSanitizer.html#limitations)
+explicitly describes this mapping behavior. Root routes concrete parser/
+instrumentation cost to B1/A2/B2. Sampling overhead makes this a diagnostic run,
+not a clean throughput comparison. Final status and drain remain pending.
+
+The bounded backend diagnostic ends at458.83s with raw134/signal6 and exact
+`frontend/backend overlap deadline`. User455.24+system28.56=483.80CPU,
+820556KiB peakRSS,0swaps. This is the fixture's existing30s signal-wait deadline
+(unit_stream_wait in tests/backend_units.tower), not the outer600s cap. GNUtime
+again prints misleading Exit status0 alongside signal6; actual134 is preserved.
+No TSan diagnostic preceded the assertion, which is not a sanitizer pass. The
+final30s overlap interval was not sampled; earlier LALR cost does not establish
+which producer missed the deadline or prove deadlock. The third20s DWARF window
+(~305–325s) has966samples/zero lost, LALR inclusive59.83%, propagation49.79%,
+closure40.89%; these shares overlap. All sampling/test processes drained before
+D2 released heavy.lock; only container init/sleep remain. Root/B2/D1/A2 receive
+raw failure/time and symbolized profiles in D2/backend_profile_handoff. No
+internal deadline, assertion, optimization, alignment or instrumentation changed.
+Current resource snapshot140GiBfree/9.9GiBavailable,5.8GiBpreexisting swap.
+
+Root's live51new-path inventory exposes10additional measurement/tool-check
+sources not yet delivered toD2 (A2entity/layout/budget allocation; B1LRbenchmark/
+retentionobserver; B2frontend profile/memory/allocation,modulecacheprofile,
+foreigntoolchecks). D2 requests exact owner source/hash snapshots for substantive
+review, without taking implementation ownership or assigning audit credit from
+filenames. Existing98tracked plus6incoming reviewed paths remain distinct from
+full integrated coverage. No publication lease or acceptance closure exists yet.

@@ -585,3 +585,51 @@ Existing library helper owns the inode/device policy; there is no file identity
 registry, new world, compiler scheduler or claim against concurrent renames.
 D1's shared ordinary/sanitized target registration is preferred over a second
 standalone build path. Local execution awaits the coherent owner handoff.
+
+Additional inspection of the same frozen reference receipts (no rerun) finds
+median voluntary/involuntary context switches of101/130.5 for small Tower1,
+2823.5/730 for small Tower2,100.5/95.5 for large Tower1 and9810/3198 for large
+Tower2. All16Tower object compilations report zero major faults and filesystem
+input blocks. More switches and CPU at two workers identify scheduling cost to
+investigate; they do not quantify worker idle time or prove a particular lock is
+responsible. The slow first serial samples consumed correspondingly more CPU,
+so these counters alone do not establish an I/O-wait explanation. B2 receives
+this attribution lead with the original unmodified raw logs.
+
+### Bounded backend TSan follow-up: assertion failure, not acceptance
+
+After the normal142.39s result, root approved one unchanged-source600s diagnostic.
+The exact26-object executable (`dcc43b7c6959e4ab7efea7a4b3e929d813c683d9efb86e73ac4a30e2a8ea7787`)
+aborts at458.83s with `frontend/backend overlap deadline`, raw exit134/signal6.
+CPU483.80s, peakRSS820556KiB,0swaps. It hits `unit_stream_wait`'s internal30s
+signal-wait assertion before the outer limit. GNU time's Exit status0 is
+misleading beside signal6; the tool's raw134 is authoritative. No TSan diagnostic
+preceded the assertion. Both this failure and the earlier180s timeout are retained;
+neither constitutes sanitizer acceptance or a test deadline fix.
+
+Host perf6.15-3 supports user-space sampling without changing host policy.
+Three20s/49Hz windows retain963/976/966samples with zero lost. Early self-cost
+is79.86% TSan unaligned read/write4/8 hooks. The later two DWARF windows show
+inclusive LALR construction73.57% and59.83%, with closure/item-index work prominent.
+These inclusive shares overlap. Frame-pointer chains were incomplete;8192-byte
+DWARF stack capture recovers useful callers but may truncate deep roots. Exact
+owned-cache symbols resolve through a local symfs link; foreign-library symbols
+are incomplete. Main-thread snapshots remain busy while TSan maintenance sleeps.
+The final overlap interval was not sampled, so the producer that missed its
+30s deadline remains unattributed. Sampling also precludes a clean timing ratio.
+
+Root/B1/A2/B2/D1 receive reports, hashes and final raw failure through
+`D2/backend_profile_handoff/`. All sampling/test jobs drained before the shared
+host lock was released. No guessed alignment, alias guarantees, ignored memory
+accesses, private compiler caps or weaker assertions were introduced. This is
+old60741c5 production-source evidence, not validation of the incoming budget/type/
+parser changes. Full changed-source compiler sanitizer/release gates remain open.
+
+Root's live inventory adds10pending measurement/tool-check reviews requiring
+owner source delivery: A2`tests/entity_locality.tower`, `layout_frontier_profile.tower`,
+`work_budget_allocation.tower`; B1`tests/lr_state_benchmark.tower`,
+`parser_retention_observer.tower`; B2`tests/frontend_units_profile.tower`,
+`frontend_units_memory.tower`, `frontend_units_allocation.tower`,
+`module_cache_profile.tower`, `foreign_tool_checks.tower`. These names receive no
+substantive-review credit yet. Their authors and D1 retain implementation/harness
+ownership; D2 will review actual measurement/caller contracts at supplied hashes.
