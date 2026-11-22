@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { loadTower } from './compiler-fixtures.mjs';
+import { loadTower, generatedSource } from './compiler-fixtures.mjs';
 import { loadLLVM, executeWasm } from './compiler-fixtures.mjs';
 import { originalDiagnostic } from '../src/foundation-source.mjs';
 const read = path => readFile(new URL('../../' + path, import.meta.url));
@@ -27,7 +27,7 @@ const cases = [
   ['struct values', (await read('scaffolding/tests/struct_values.tower')).toString(), '0\n'],
   ['known bindings', (await read('scaffolding/tests/known_bindings.tower')).toString(), '0\n'],
   ...JSON.parse((await read('scaffolding/tests/llvm-scalar-idioms.json')).toString()).map(([name,source,expected])=>[name,source,expected]),
-  ['more than 256 functions', Array.from({length:300},(_,i)=>`fn unit${i}(): i32 { return ${i}; }`).join('\n')+'\nprint(unit299()); print(unit0());', '299\n0\n'],
+  ['more than 256 functions', await generatedSource(tower,new URL('../../scaffolding/tests/stress/llvm_functions.tower',import.meta.url)), '299\n0\n'],
   ['quoted names preserve bindings', 'fn `add-one`(`odd name`: i32): i32 { var `var`: i32 = `odd name` + 1; return `var`; } var `x-y`: i32 = `add-one`(41); var p: i32* = &`x-y`; var equal: bool = p == p; print(equal); print(`x-y`);', 'true\n42\n'],
   ['escaped quoted names', 'var `back\\\\tick\\`line\\n`: i32 = 5; print(`back\\\\tick\\`line\\n`);', '5\n'],
   ['forward calls and recursion', (await read('scaffolding/examples/functions.tower')).toString(), '720\n721\n'],

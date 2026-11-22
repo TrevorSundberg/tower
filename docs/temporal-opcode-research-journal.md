@@ -44422,3 +44422,22 @@ and mutation assertions are in cross_target_program.tower; this also removes the
 cross-target test's inline source concatenation. Focused cross checks pass 7/7,
 and the emitted Windows fixture executes locally with 5/84/42/8/41/42 output.
 This adds target execution evidence without rebuilding any published runtime.
+
+Windows run 45037791760 at 42f267f succeeds: the public Linux preparation passes
+416 comparisons; Windows links and executes the Tower driver policy/process
+checks and all 208 MSVC C/C++ combinations. The old PowerShell consumer passes
+the same artifacts. Retire c-backend-msvc.ps1 (47 lines), remove its CI baseline
+step, document --c-msvc and upload the tested Tower runner for manual use.
+Together with run.ps1 (70 lines), this eliminates all 117 owned PowerShell lines.
+The baseline is recoverable at 42f267f. Both Python and PowerShell are now zero.
+
+Port five more syntax generators through the existing stress-source module:
+350 declarations, 300 called functions, 64-by-64 nested arguments, the LLVM
+300-function case and 128 comment-associated functions. Keep every output,
+wide-register/cache assertion, canonical round trip and LLVM differential check.
+Public smallest-entry preflight passes. Browser wide operands and LLVM pass;
+comment indexing initially reproduces a stale baseline expectation at f32, whose
+name now collides with the primitive type and serializes as `f32@input.tower`.
+Allow that canonical qualified spelling (also f64), retaining exact comment/name
+association. The corrected comment check passes, zero skips. Logs are
+stress_wide_{preflight,browser}.log and stress_comments_{baseline,pass}.log.

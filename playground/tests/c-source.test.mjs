@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {loadTower,loadLLVM} from './compiler-fixtures.mjs';
+import {loadTower,loadLLVM,generatedSource} from './compiler-fixtures.mjs';
 const read=path=>readFile(new URL('../../'+path,import.meta.url));
 const foundation=(await read('scaffolding/foundation.tower')).toString();
 const tower=await loadTower(await read('build/browser-wasi/tower.wasm'),undefined,foundation);
@@ -92,12 +92,12 @@ test('C ABI signatures retain signed parameters and return types',()=>{
   }finally{tower.destroyExecution(h);}
 });
 
-test('bulk comment indexing keeps declaration associations and canonical order',()=>{
-  const source=Array.from({length:128},(_,i)=>`// note_${i}\nfn f${i}():i32 { return ${i}; }`).join('\n')+'\nprint(f127());';
+test('bulk comment indexing keeps declaration associations and canonical order',async()=>{
+  const source=await generatedSource(tower,new URL('../../scaffolding/tests/stress/comment_functions.tower',import.meta.url));
   const h=tower.compile(source,{pointerBytes:8});
   try {
     const canonical=tower.foundation(h).source;
-    for(let i=0;i<128;i++) assert.match(canonical,new RegExp(`/\\* note_${i}\\*/\\nfn f${i}\\(`));
+    for(let i=0;i<128;i++) assert.match(canonical,new RegExp('/\\* note_'+i+'\\*/\\nfn (?:f'+i+'|`f'+i+'@input\\.tower`)\\('));
     const round=tower.compile(canonical,{pointerBytes:8});
     try { assert.equal(tower.foundation(round).source,canonical); } finally { tower.destroyExecution(round); }
     assert.equal((tower.cSource(h).match(/note_\d+/g)??[]).length,128);

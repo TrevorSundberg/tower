@@ -11,6 +11,10 @@ var StressGenericDepth: usize = 256;
 var StressFieldDepth: usize = 256;
 var StressWindowBodies: usize = 260;
 var StressIndependentBodies: usize = 16;
+var StressWideDeclarations: usize = 350;
+var StressFunctionCount: usize = 300;
+var StressWideArguments: usize = 64;
+var StressCommentFunctions: usize = 128;
 var StressOutput: u32 = 1;
 var StressOutputLimit: usize = 65536;
 enum StressChain: u32 { Annotated, Inferred, GenericInferred, GenericExplicit }
@@ -110,6 +114,50 @@ fn stress_publish(source: ByteBuffer*): void {
     // producer separate instead of truncating a combined JSON document.
     utility_check(source.length <= StressOutputLimit, "stress source exceeds interpreter output capacity");
     utility_check(platform_write(StressOutput, source.data, source.length) == convert(i64, source.length), "write stress source");
+}
+fn stress_functions(out: ByteBuffer*, count: usize, prefix: u8*, comments: bool): void {
+    for (var index: usize = 0; index < count; index++) {
+        if comments { stress_name(out, "// note_", index, "\n"); }
+        stress_text(out, "fn "); stress_name(out, prefix, index, "():i32 { return ");
+        stress_name(out, "", index, "; }\n");
+    }
+}
+fn stress_wide_declarations(out: ByteBuffer*): void {
+    for (var index: usize = 0; index < StressWideDeclarations; index++) {
+        stress_name(out, "var value", index, " = "); stress_name(out, "", index, ";\n");
+    }
+    stress_name(out, "print(value", StressWideDeclarations - 1, ");\n");
+}
+fn stress_wide_functions(out: ByteBuffer*): void {
+    stress_functions(out, StressFunctionCount, "f", false);
+    for (var index: usize = 0; index < StressFunctionCount; index++) { stress_name(out, "f", index, "();\n"); }
+    stress_name(out, "print(f", StressFunctionCount - 1, "());\n");
+}
+fn stress_llvm_functions(out: ByteBuffer*): void {
+    stress_functions(out, StressFunctionCount, "unit", false);
+    stress_name(out, "print(unit", StressFunctionCount - 1, "()); print(unit0());\n");
+}
+fn stress_comment_functions(out: ByteBuffer*): void {
+    stress_functions(out, StressCommentFunctions, "f", true);
+    stress_name(out, "print(f", StressCommentFunctions - 1, "());\n");
+}
+fn stress_wide_registers(out: ByteBuffer*): void {
+    stress_text(out, "fn f(");
+    for (var index: usize = 0; index < StressWideArguments; index++) {
+        if index != 0 { stress_text(out, ","); }
+        stress_name(out, "a", index, ": i32");
+    }
+    stress_name(out, "): i32 { return a", StressWideArguments - 1, "; } print(f(");
+    for (var argument: usize = 0; argument < StressWideArguments; argument++) {
+        if argument != 0 { stress_text(out, ","); }
+        stress_text(out, "f(");
+        for (var index: usize = 0; index < StressWideArguments; index++) {
+            if index != 0 { stress_text(out, ","); }
+            stress_number(out, index);
+        }
+        stress_text(out, ")");
+    }
+    stress_text(out, "));\n");
 }
 fn stress_emit_chain(kind: StressChain, operators: bool): void {
     var source: ByteBuffer = default; defer bytes_dispose(&source);

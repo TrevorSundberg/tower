@@ -9,7 +9,6 @@ on:
       - 'scaffolding/tests/fixture_json_rows.tower'
       - 'scaffolding/tests/guest_windows_library.tower'
       - 'scaffolding/compiler/c_emitter.tower'
-      - 'scaffolding/tests/c-backend-msvc.ps1'
       - '.github/workflows/windows_tooling.yml'
 
 permissions:
@@ -52,7 +51,6 @@ jobs:
         with:
           name: windows-tooling-inputs
           path: MSVC cases
-      - run: powershell -File scaffolding/tests/c-backend-msvc.ps1 "MSVC cases"
       - shell: cmd
         working-directory: MSVC cases
         run: |
@@ -63,3 +61,7 @@ jobs:
           tower-driver-tests.exe
           if errorlevel 1 exit /b 1
           tower-driver-tests.exe --c-msvc "%VCToolsInstallDir%bin\Hostx64\x64\cl.exe"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tower-windows-tooling
+          path: MSVC cases/tower-driver-tests.exe

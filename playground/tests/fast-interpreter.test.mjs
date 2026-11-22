@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {loadTower} from './compiler-fixtures.mjs';
+import {loadTower,generatedSource} from './compiler-fixtures.mjs';
 import {compareResults} from '../src/comparison.mjs';
 const read = path => readFile(new URL('../../'+path,import.meta.url));
 const tower = await loadTower(await read('build/browser-wasi/tower.wasm'),undefined,(await read('scaffolding/foundation.tower')).toString());
@@ -44,17 +44,11 @@ test('effects, aliasing, negative indices, copies, strings and empty modules',()
     'var i = 0; var total = 0; loop { i = i + 1; var end = i == 9; if end { break; } var skip = i == 3; if skip { continue; } var j = 0; loop { j = j + 1; var end = j == 3; if end { break; } total = total + i; } } print(total);'])
     for(const width of [4,8])agree(source,width,1);
 });
-test('wide operands do not impose byte-sized program limits',()=>{
-  const declarations=Array.from({length:350},(_,i)=>`var value${i} = ${i};`).join('\n');
-  const result=agree(declarations+'\nprint(value349);',8);
+test('wide operands do not impose byte-sized program limits',async()=>{
+  const result=agree(await generatedSource(tower,new URL('../../scaffolding/tests/stress/wide_declarations.tower',import.meta.url)),8);
   assert.equal(result.output,'349\n');assert.ok(result.cache.wideInstructions>0);
-  const functions=Array.from({length:300},(_,i)=>`fn f${i}(): i32 { return ${i}; }`).join('\n');
-  const calls=Array.from({length:300},(_,i)=>`f${i}();`).join('\n');
-  assert.equal(agree(functions+'\n'+calls+'\nprint(f299());').output,'299\n');
-  const parameters=Array.from({length:64},(_,i)=>`a${i}: i32`).join(',');
-  const arguments64=Array.from({length:64},(_,i)=>i).join(',');
-  const nested=Array.from({length:64},()=>`f(${arguments64})`).join(',');
-  const wideRegisters=agree(`fn f(${parameters}): i32 { return a63; } print(f(${nested}));`,4,100000);
+  assert.equal(agree(await generatedSource(tower,new URL('../../scaffolding/tests/stress/wide_functions.tower',import.meta.url))).output,'299\n');
+  const wideRegisters=agree(await generatedSource(tower,new URL('../../scaffolding/tests/stress/wide_registers.tower',import.meta.url)),4,100000);
   assert.equal(wideRegisters.output,'63\n');
   assert.ok(wideRegisters.cache.registerCapacityBytes>256*8);
 });

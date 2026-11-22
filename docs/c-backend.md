@@ -93,6 +93,7 @@ Direct commands, run in a writable artifact directory, are:
 tower-driver-tests --c-backend COMPILER SCAFFOLDING CLANG GCC CLANGXX GXX [CASE]
 tower-driver-tests --c-profiles COMPILER SCAFFOLDING CLANG GCC CLANGXX GXX [CASE]
 tower-driver-tests --c-downloads CLANG GCC CLANGXX GXX [CASE]
+tower-driver-tests.exe --c-msvc CL [CASE]
 ```
 
 Pass explicit executable and scaffolding paths. Optional case names such as
@@ -100,9 +101,18 @@ Pass explicit executable and scaffolding paths. Optional case names such as
 fail. The download mode runs in the deployment verifier's artifact directory
 and checks its four desktop/mobile raw/optimized C files. Backend and download
 modes publish `expected.json` only after every selected check succeeds; a new
-run removes stale expectations and compiled outputs. The existing
-`powershell -File scaffolding/tests/c-backend-msvc.ps1 ARTIFACT_DIRECTORY`
-consumes that same JSON and generated C for MSVC checks.
+run removes stale expectations and compiled outputs. The Tower Windows runner
+consumes that same JSON and generated C. Run it from the artifact directory in
+a Visual Studio Developer Command Prompt, passing the full `cl.exe` path; for
+example `tower-driver-tests.exe --c-msvc "%VCToolsInstallDir%bin\Hostx64\x64\cl.exe"`.
+It checks C and C++ at `/Od` and `/O2` with `/W4 /WX`, including output and exit
+status. No PowerShell or generated batch script is required.
+
+The [Windows tooling workflow](../.github/workflows/windows_tooling.yml) builds
+the runner from the public Linux bootstrap, links with the installed Windows
+CRT and runs the checks on Windows. Download its `tower-windows-tooling` artifact
+for the executable; `windows-tooling-inputs` contains the generated C/expectations
+and objects. This test runner is separate from a native compiler release.
 For the matching-output runtime comparison, use the Tower driver's
 [`--measure-c` workload](../scaffolding/tests/README.md#native-measurements).
 The research journal records measured compiler/platform coverage and performance;
