@@ -41676,3 +41676,16 @@ boundary before another browser publication, avoiding a repeated browser build
 as the first check of those cases. The full changed-body ownership matrix is
 running in statement-query-matrix.log. Prior constructor multi-unit checks remain
 valid; no source/world ownership interface changed in this follow-up.
+
+The full statement matrix passed all worker/target groups. Source was committed
+as a058cc5 after rebasing onto upstream tooling/documentation changes; no frontend
+implementation changed in that rebase. Publication also needs the cast form of
+the same field-readiness correction: constructor_bits_projection.tower reproduced
+Unknown field through bits(nested(u32)*, address), then returned the expected size
+4 after the fix. Readiness now projects only existing constructor/array identities
+through pointer spelling for alloc/realloc/bits/convert; ordinary type checking
+still owns validation. A named depth limit bounds this inspection. No types or
+values are constructed/evaluated by that projection. The focused suite passes
+(constructor-pointer-projection.log); imported vector named initialization also
+returns 0 in a direct check. Reuse the completed full matrix for unaffected paths
+and publish the combined statement/constructor corrections after browser checks.

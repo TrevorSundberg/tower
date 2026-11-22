@@ -717,8 +717,10 @@ fn query_projection_outer(T: type): type {
     return Outer;
 }
 var query_projection_value: decltype(alloc(query_projection_outer(u32), 1).inner.value);
+var query_projection_bits: decltype(bits(query_projection_outer(i16)*, convert(usize, 0)).inner.value);
 if query_statement_return() != 1 || query_statement_effects != 11
     || query_statement_discard() != 12 || query_statement_effects != 12
     || query_statement_layout() != sizeof(void*) * 2 || query_statement_staged() != 42 { failures++; }
 if sizeof(decltype(query_projection_value)) != 4 { failures++; }
+if sizeof(decltype(query_projection_bits)) != 2 { failures++; }
 print(failures);

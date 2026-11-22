@@ -30,6 +30,7 @@ var DeclarationDiscoveryQuery: u32 = convert(u32, SemanticQuery.DeclarationDisco
 var ExpressionQuery: u32 = convert(u32, SemanticQuery.Expression);
 var ArrayTypeQuery: u32 = convert(u32, SemanticQuery.ArrayType);
 var TypeConstructionQuery: u32 = convert(u32, SemanticQuery.TypeConstruction);
+var SemanticProjectionDepthLimit: usize = 128;
 
 enum SemanticExpressionMode: u32 { Value, Operand, Initializer, Discard }
 
@@ -227,8 +228,41 @@ fn sem_declaration_layout_waiting_except(c: SemanticContext*, record: void*, pro
     return 0;
 }
 
+// Readiness projects an already-published identity through pointer spelling;
+// it neither resolves a new type nor diagnoses malformed syntax. The ordinary
+// type checker remains authoritative. This also covers builtin operands written
+// with expression grammar, e.g. bits(constructor(T)*, address).
+fn sem_declaration_type_projection(c: SemanticContext*, node: void*, depth: usize): FoundationType* {
+    if node == null || depth > SemanticProjectionDepthLimit { return null; }
+    node = sem_surface_unwrap(node);
+    while (sem_is(node, "CoreTypeArgument") || sem_is(node, "CoreCallArgument") || sem_is(node, "CoreOperand"))
+        && sem_child_count(node) == 1 { node = sem_surface_unwrap(sem_child(node, 0)); }
+    var type = sem_constructor_prepared(c, node);
+    if type == null { type = sem_array_type_prepared(c, node); }
+    if type != null { return type; }
+    var base = sem_member(node, "base");
+    var pointers: u32 = 1;
+    if base != null {
+        if sem_array_count(node) != null || sem_member(node, "field") != null { return null; }
+    } else {
+        if !sem_is(node, "TowerExpression") { return null; }
+        base = sem_member(node, "left");
+        if base == null || !sem_equal(sem_surface_operator(c, node, base), "*") { return null; }
+        var tail = sem_tokens(c, sem_member(node, "right"));
+        for(var i: usize = 0; tail[i] != 0; i++) {
+            if tail[i] != *"*" { return null; }
+            pointers++;
+        }
+    }
+    type = sem_declaration_type_projection(c, base, depth + 1);
+    if type == null { return null; }
+    var result = sem_type_copy(c, type);
+    result.pointers += pointers;
+    return result;
+}
+
 fn sem_declaration_location(c: SemanticContext*, node: void*, waiting: usize*, layout: void**, depth: usize): FoundationType* {
-    if node == null || depth > 128 { return null; }
+    if node == null || depth > SemanticProjectionDepthLimit { return null; }
     node = sem_surface_unwrap(node);
     var operand: void* = null;
     var address = false;
@@ -264,17 +298,16 @@ fn sem_declaration_location(c: SemanticContext*, node: void*, waiting: usize*, l
         if *waiting != 0 || *layout != null { return null; }
         if sem_is(node, "TowerInvoke") { return null; }
         var builtin = semantic_builtin_kind(sem_identifier(c, name));
-        if !sem_call_uses_value(c, name) && (builtin == KAllocate || builtin == KReallocate) {
+        if !sem_call_uses_value(c, name) && (builtin == KAllocate || builtin == KReallocate || builtin == KBits || builtin == KConvert) {
             var arguments = sem_collect(c, sem_member(node, "args"), "CoreCallArgument");
             if arguments.length != 0 {
-                var element = sem_constructor_prepared(c, arguments.data[0]);
-                if element == null { element = sem_array_type_prepared(c, arguments.data[0]); }
+                var element = sem_declaration_type_projection(c, arguments.data[0], 0);
                 if element != null {
                     // Project only a published identity. The enclosing member
                     // lookup then requests fields/layout before checking its
                     // value, including unevaluated decltype(alloc(T,...).field).
                     var type = sem_type_copy(c, element);
-                    type.pointers++;
+                    if builtin == KAllocate || builtin == KReallocate { type.pointers++; }
                     return type;
                 }
             }
