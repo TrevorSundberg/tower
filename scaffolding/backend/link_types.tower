@@ -8,7 +8,6 @@ struct BackendLink {
     arguments: vector(u8*);
     inputs: vector(BackendLinkInput);
     generated: vector(BackendLinkInput);
-    file_plan: bool;
     error: vector(u8);
     output: vector(u8);
 }

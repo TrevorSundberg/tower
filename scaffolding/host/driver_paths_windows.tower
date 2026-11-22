@@ -1,4 +1,5 @@
 import tower;
+export fn driver_platform_make_executable(path: u8*): bool { return true; }
 import driver_support;
 import driver_windows;
 import .library.bytes_types;

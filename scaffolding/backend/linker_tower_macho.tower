@@ -1,0 +1,72 @@
+import tower;
+import link_types;
+import text;
+import macho_types;
+import macho_world;
+import macho_link;
+import wasm_bytes;
+import .library.vector;
+import .library.work_pool;
+
+fn backend_macho_input(backend: BackendLink*, link: MachoLink*, name: u8*): bool {
+    var found: BackendLinkInput* = null;
+    foreach (var & input in &backend.inputs) {
+        if backend_equal(input.name.data, name) {
+            if found != null { return macho_fail(&link.error, MachoError.Input, wasm_text_bytes(name), 0); } found = input;
+        }
+    }
+    foreach (var & input in &backend.generated) {
+        if backend_equal(input.name.data, name) {
+            if found != null { return macho_fail(&link.error, MachoError.Input, wasm_text_bytes(name), 0); } found = input;
+        }
+    }
+    if found == null { return macho_fail(&link.error, MachoError.Input, wasm_text_bytes(name), 0); }
+    return macho_link_input(link, wasm_text_bytes(name), init(WasmBytes) { data: found.bytes.data, length: found.bytes.length });
+}
+export fn backend_link_tower_macho(backend: BackendLink*, triple: u8*): bool {
+    backend.output.length = 0; if backend.error.length != 0 { return false; }
+    var link: MachoLink = default; defer macho_link_close(&link);
+    var cpu = backend_equal(triple, "x86_64-apple-macos11") ? MachoCpu.X64 : MachoCpu.Arm64;
+    var ok = macho_link_open(&link, cpu);
+    if !backend_equal(triple, "x86_64-apple-macos11") && !backend_equal(triple, "arm64-apple-macos11") { ok = macho_fail(&link.error, MachoError.Unsupported, wasm_text_bytes(triple), 0); }
+    if backend.arguments.length == 0 { ok = macho_fail(&link.error, MachoError.Input, wasm_text_bytes("missing Mach-O arguments"), 0); }
+    for (var at: usize = 1; at < backend.arguments.length && ok; at++) {
+        var arg = backend.arguments.data[at];
+        if backend_equal(arg, "-arch") || backend_equal(arg, "-e") || backend_equal(arg, "-o") || backend_equal(arg, "-threads") {
+            if ++at == backend.arguments.length { ok = macho_fail(&link.error, MachoError.Input, wasm_text_bytes(arg), 0); break; }
+            var value = backend.arguments.data[at];
+            if backend_equal(arg, "-arch") {
+                if !backend_equal(value, cpu == MachoCpu.X64 ? "x86_64" : "arm64") { ok = macho_fail(&link.error, MachoError.Unsupported, wasm_text_bytes(value), 0); }
+            } else { if backend_equal(arg, "-e") { link.entry = wasm_text_bytes(value); }
+            else { if backend_equal(arg, "-threads") {
+                var count: usize = 0; var cursor: usize = 0; var radix: usize = 10;
+                while value[cursor] != 0 {
+                    if value[cursor] < *"0" || value[cursor] > *"9" || count > WorkPoolMaximumCapacity / radix { break; }
+                    count = count * radix + convert(usize, value[cursor++] - *"0");
+                }
+                if cursor == 0 || value[cursor] != 0 || count == 0 || count > WorkPoolMaximumCapacity { ok = macho_fail(&link.error, MachoError.Input, wasm_text_bytes(value), 0); }
+                link.workers = count;
+            } } }
+            continue;
+        }
+        if backend_equal(arg, "-platform_version") {
+            var version_arguments: usize = 3;
+            if backend.arguments.length - at <= version_arguments || !backend_equal(backend.arguments.data[at + 1], "macos")
+                || !backend_equal(backend.arguments.data[at + 2], "11.0") || !backend_equal(backend.arguments.data[at + version_arguments], "11.0") {
+                ok = macho_fail(&link.error, MachoError.Unsupported, wasm_text_bytes(arg), 0); break;
+            }
+            at += version_arguments; continue;
+        }
+        if backend_equal(arg, "-pie") || backend_equal(arg, "-no_uuid") { continue; }
+        if *arg == *"-" { ok = macho_fail(&link.error, MachoError.Unsupported, wasm_text_bytes(arg), 0); break; }
+        ok = backend_macho_input(backend, &link, arg);
+    }
+    ok &&= macho_link_run(&link);
+    if !ok {
+        backend_text(&backend.error, "Link failed: "); backend_text(&backend.error, macho_message(link.error.kind));
+        if link.error.name.length != 0 { backend_text(&backend.error, ": "); backend_text_append(&backend.error, link.error.name.data, link.error.name.length); }
+        return false;
+    }
+    vector_dispose(&backend.output); backend.output.data = link.output.data; backend.output.length = link.output.length; backend.output.capacity = link.output.capacity;
+    link.output = default; return true;
+}

@@ -6,7 +6,11 @@ on:
     branches: [main]
     paths:
       - 'scaffolding/backend/macho_*.tower'
+      - 'scaffolding/backend/linker*.tower'
+      - 'scaffolding/host/driver*.tower'
       - 'scaffolding/tests/macho_*.tower'
+      - 'scaffolding/tests/pe_link_*.tower'
+      - 'cmake/TowerBackend.cmake'
       - '.github/workflows/macho_linker.yml'
 
 permissions:
@@ -46,8 +50,33 @@ jobs:
           name: macho-${{ matrix.architecture.cpu }}-${{ matrix.optimization.name }}
           path: build/images/
 
+  cli:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update
+      - run: sudo apt-get install -y clang-19 llvm-19-dev ninja-build
+      - run: bash playground/scripts/build-native.sh
+        env:
+          TOWER_NATIVE_BUILD: /tmp/tower_macho_cli
+          TOWER_BUILD_JOBS: '3'
+      - run: mkdir -p build/images
+      - run: bootstrap/linux-x64/towerc scaffolding/tests/macho_link_driver.tower --library -o /tmp/tower_macho_cli/link_driver.o
+      - run: clang-19 /tmp/tower_macho_cli/link_driver.o /tmp/tower_macho_cli/guest-host-library.o -pthread -ldl -Wl,--export-dynamic -o /tmp/tower_macho_cli/link_driver
+      - run: /tmp/tower_macho_cli/link_driver build/imports.tbd --imports
+      - run: build/native/towerc scaffolding/tests/macho_link_program.tower --unit scaffolding/tests/macho_link_library.tower --target x86_64-apple-macos11 --no-optimize --cc /usr/bin/clang-19 --link build/imports.tbd -o build/images/cli-x64-raw
+      - run: build/native/towerc scaffolding/tests/macho_link_program.tower --unit scaffolding/tests/macho_link_library.tower --target x86_64-apple-macos11 --cc /usr/bin/clang-19 --link build/imports.tbd -o build/images/cli-x64-optimized
+      - run: build/native/towerc scaffolding/tests/macho_link_program.tower --unit scaffolding/tests/macho_link_library.tower --target arm64-apple-macos11 --no-optimize --cc /usr/bin/clang-19 --link build/imports.tbd -o build/images/cli-arm64-raw
+      - run: build/native/towerc scaffolding/tests/macho_link_program.tower --unit scaffolding/tests/macho_link_library.tower --target arm64-apple-macos11 --cc /usr/bin/clang-19 --link build/imports.tbd -o build/images/cli-arm64-optimized
+      - run: build/native/towerc scaffolding/tests/pe_link_program.tower --unit scaffolding/tests/pe_link_library.tower --target x86_64-pc-windows-msvc --no-optimize --cc /usr/bin/clang-19 -o build/images/cli-windows-raw.exe
+      - run: build/native/towerc scaffolding/tests/pe_link_program.tower --unit scaffolding/tests/pe_link_library.tower --target x86_64-pc-windows-msvc --cc /usr/bin/clang-19 -o build/images/cli-windows-optimized.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cli-executables
+          path: build/images/
+
   execute:
-    needs: link
+    needs: [link, cli]
     strategy:
       fail-fast: false
       matrix:
@@ -61,6 +90,10 @@ jobs:
           pattern: macho-${{ matrix.cpu }}-*
           merge-multiple: true
           path: images
+      - uses: actions/download-artifact@v4
+        with:
+          name: cli-executables
+          path: images
       - run: chmod +x images/tower-raw images/tower-optimized images/reference-raw images/reference-optimized
       - run: codesign --verify --strict --verbose=2 images/tower-raw
       - run: codesign --verify --strict --verbose=2 images/tower-optimized
@@ -70,4 +103,26 @@ jobs:
       - run: images/reference-optimized
         if: ${{ !cancelled() }}
       - run: images/tower-optimized
+        if: ${{ !cancelled() }}
+      - run: chmod +x images/cli-${{ matrix.cpu }}-raw images/cli-${{ matrix.cpu }}-optimized
+        if: ${{ !cancelled() }}
+      - run: codesign --verify --strict --verbose=2 images/cli-${{ matrix.cpu }}-raw
+        if: ${{ !cancelled() }}
+      - run: codesign --verify --strict --verbose=2 images/cli-${{ matrix.cpu }}-optimized
+        if: ${{ !cancelled() }}
+      - run: images/cli-${{ matrix.cpu }}-raw
+        if: ${{ !cancelled() }}
+      - run: images/cli-${{ matrix.cpu }}-optimized
+        if: ${{ !cancelled() }}
+
+  execute_windows_cli:
+    needs: cli
+    runs-on: windows-2025
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: cli-executables
+          path: images
+      - run: ./images/cli-windows-raw.exe
+      - run: ./images/cli-windows-optimized.exe
         if: ${{ !cancelled() }}

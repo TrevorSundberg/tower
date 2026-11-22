@@ -8,6 +8,7 @@ import .library.bytes_interface;
 extern fn driver_platform_absolute(path: u8*, out: ByteBuffer*): bool;
 
 extern fn driver_platform_regular(path: u8*): bool;
+extern fn driver_platform_make_executable(path: u8*): bool;
 
 fn driver_extension(path: u8*): usize {
     var begin: usize = 0;

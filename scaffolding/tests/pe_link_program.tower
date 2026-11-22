@@ -11,4 +11,6 @@ var callback: function(i32) = elf_answer;
 var values: i32[4];
 values[0] = callback(); values[1] = 8;
 print(values[0]); print(values[0] + values[1]);
-var allocated = alloc(i32, 1); *allocated = large_frame(); print(*allocated); free(allocated);
+if values[0] != 42 || values[0] + values[1] != 50 { trap("PE callback contract", 0); }
+var allocated = alloc(i32, 1); if allocated == null { trap("PE allocation contract", 0); }
+*allocated = large_frame(); print(*allocated); if *allocated != 42 { trap("PE stack probe contract", 0); } free(allocated);

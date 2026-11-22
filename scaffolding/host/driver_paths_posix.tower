@@ -9,6 +9,19 @@ extern fn getcwd(buffer: u8*, capacity: usize): u8*;
 extern fn driver_stat(path: u8*, data: void*): i32;
 
 extern fn driver_stat_mode(data: u8*): u32;
+extern fn driver_posix_chmod(path: u8*, mode: u32): i32;
+// Opaque host stat storage: 256 bytes, aligned to eight, covers both ABIs.
+var DriverStatStorage: type = u64[32];
+
+export fn driver_platform_make_executable(path: u8*): bool {
+    var status: DriverStatStorage;
+    if driver_stat(path, bits(void*, &status[0])) != 0 { return false; }
+    var permission_mask: u32 = 511; var read_mask: u32 = 292; var read_to_execute: u32 = 2;
+    var permissions = driver_stat_mode(bits(u8*, &status[0])) & permission_mask;
+    // Preserve the creation umask and existing access; only readers gain execute.
+    permissions |= (permissions & read_mask) >> read_to_execute;
+    return driver_posix_chmod(path, permissions) == 0;
+}
 
 export fn driver_platform_absolute(path: u8*, out: ByteBuffer*): bool {
     if path[0] == 47 {
@@ -34,7 +47,7 @@ export fn driver_platform_absolute(path: u8*, out: ByteBuffer*): bool {
 
 export fn driver_platform_regular(path: u8*): bool {
     // Storage exceeds the selected platform stat layout and has 8-byte alignment.
-    var status: u64[32];
+    var status: DriverStatStorage;
     var ok = driver_stat(path, bits(void*, &status[0])) == 0;
     ok &&=(driver_stat_mode(bits(u8*, &status[0])) & 61440) == 32768;
     return ok;

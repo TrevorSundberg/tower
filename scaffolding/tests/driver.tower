@@ -115,7 +115,7 @@ fn driver_test_policies(): void {
     link.windows = true;
     driver_arguments_init(&args);
     driver_link_arguments(link, &args);
-    driver_check_argument(&args, 0, "lld-link-19");
+    driver_check_argument(&args, 0, "tower-pe-link");
     driver_check_argument(&args, 3, "/out:output path");
     driver_check_argument(&args, 6, "/export:hello");
     driver_check_argument(&args, 7, "external lib.o");

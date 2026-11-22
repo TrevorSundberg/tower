@@ -5,6 +5,8 @@ import .library.bytes_types;
 import .library.bytes_interface;
 
 extern fn __errno_location(): i32*;
+extern fn chmod(path: u8*, mode: u32): i32;
+export fn driver_posix_chmod(path: u8*, mode: u32): i32 { return chmod(path, mode); }
 
 extern fn readlink(path: u8*, output: u8*, capacity: usize): i64;
 

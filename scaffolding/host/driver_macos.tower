@@ -5,6 +5,8 @@ import .library.bytes_types;
 import .library.bytes_interface;
 
 extern fn __error(): i32*;
+extern fn chmod(path: u8*, mode: u16): i32;
+export fn driver_posix_chmod(path: u8*, mode: u32): i32 { return chmod(path, convert(u16, mode)); }
 
 extern fn _NSGetExecutablePath(output: u8*, capacity: u32*): i32;
 

@@ -100,11 +100,11 @@ fn macho_emit(link: MachoLink*): bool {
     var signature_command_size: u64 = 16;
     macho_command(&writer, MachoCommand.Signature, signature_command_size); macho_w32(&writer, link.signature_at); macho_w32(&writer, link.signature_size);
     macho_command(&writer, MachoCommand.DataInCode, signature_command_size); macho_w32(&writer, data_in_code_at); macho_w32(&writer, convert(u64, link.data_in_code.length));
-    var seen: u32 = 0; var dylib_header: u64 = 24; var version_one: u64 = 65536;
+    var seen: u32 = 0; var dylib_header: u64 = 24;
     foreach (var & entry in &link.dylibs) {
         var dylib = entry.dylib; if dylib.ordinal <= seen { continue; } seen = dylib.ordinal;
         macho_command(&writer, MachoCommand.Dylib, elf_align(dylib_header + convert(u64, dylib.name.length) + 1, MachoAddress));
-        macho_w32(&writer, dylib_header); macho_w32(&writer, 0); macho_w32(&writer, version_one); macho_w32(&writer, version_one);
+        macho_w32(&writer, dylib_header); macho_w32(&writer, 0); macho_w32(&writer, dylib.current); macho_w32(&writer, dylib.compatibility);
         writer.ok &&= macho_text(&writer.bytes, dylib.name); writer.ok &&= macho_pad(&writer.bytes, MachoAddress);
     }
     if !writer.ok || convert(u64, writer.bytes.length) != link.headers { return macho_fail(&link.error, MachoError.Input, wasm_text_bytes("load commands"), convert(u64, writer.bytes.length)); }

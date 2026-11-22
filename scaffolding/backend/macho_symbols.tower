@@ -52,7 +52,11 @@ fn macho_symbols(link: MachoLink*): bool {
     for (var index: usize = 0; index < link.dylibs.length; index++) {
         var dylib = link.dylibs.data[index].dylib;
         for (var previous: usize = 0; previous < index; previous++) {
-            if wasm_bytes_equal(link.dylibs.data[previous].dylib.name, dylib.name) { dylib.ordinal = link.dylibs.data[previous].dylib.ordinal; break; }
+            var prior = link.dylibs.data[previous].dylib;
+            if wasm_bytes_equal(prior.name, dylib.name) {
+                if prior.current != dylib.current || prior.compatibility != dylib.compatibility { return macho_fail(&link.error, MachoError.Input, dylib.name, 0); }
+                dylib.ordinal = prior.ordinal; break;
+            }
         }
         if dylib.ordinal == 0 { dylib.ordinal = ++ordinal; }
         foreach (var & symbol in &dylib.symbols) {
@@ -88,6 +92,7 @@ fn macho_symbols(link: MachoLink*): bool {
     foreach (var & entry in &link.objects) {
         foreach (var & symbol in &entry.object.symbols) {
             symbol.resolved = macho_external(symbol) ? macho_lookup(link, symbol.name) : symbol;
+            if symbol.resolved == null && (symbol.description & MachoWeakReference) != 0 { symbol.resolved = symbol; }
         }
     }
     foreach (var symbol in &link.imports) {

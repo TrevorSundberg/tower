@@ -10,6 +10,9 @@ import .backend.macho_unwind;
 import .backend.macho_metadata;
 import .backend.macho_emit;
 import .backend.macho_sign;
+import .backend.linker_tower_macho;
+import .backend.link_types;
+import .backend.link_inputs;
 import .backend.elf_types;
 import .backend.wasm_bytes;
 import .library.bytes;
@@ -94,4 +97,29 @@ fn macho_check_inputs(inputs: vector(ByteBuffer)*, reference: MachoLink*): void 
     var null_link: MachoLink = default; defer macho_link_close(&null_link);
     utility_check(macho_link_open(&null_link, reference.cpu) && !macho_link_input(&null_link, wasm_text_bytes("null.o"), init(WasmBytes) { data: null, length: 1 }), "Mach-O null span rejects");
     puts("Mach-O archives, workers, overlap, cancellation, signatures and failures passed");
+}
+
+fn macho_check_service(inputs: vector(ByteBuffer)*, reference: MachoLink*): void {
+    var backend: BackendLink = default;
+    defer {
+        backend_link_inputs_release(&backend.generated); vector_dispose(&backend.generated);
+        vector_dispose(&backend.arguments); vector_dispose(&backend.output); vector_dispose(&backend.error);
+    }
+    var names: vector(ByteBuffer) = default;
+    defer { foreach (var & name in &names) { bytes_dispose(name); } vector_dispose(&names); }
+    var program: u8* = "tower-macho-link"; utility_check(vector_push(&backend.arguments, program), "Mach-O service argument");
+    var ordinal: u8 = *"a";
+    foreach (var & buffer in inputs) {
+        var name: ByteBuffer = default;
+        utility_check(bytes_push(&name, ordinal++) && bytes_push(&name, 0) && vector_push(&names, name), "Mach-O input name");
+        utility_check(backend_link_input_store(&backend.generated, name.data, buffer.data, buffer.length) && vector_push(&backend.arguments, name.data), "Mach-O explicit bytes");
+    }
+    var triple = reference.cpu == MachoCpu.X64 ? "x86_64-apple-macos11" : "arm64-apple-macos11";
+    utility_check(backend_link_tower_macho(&backend, triple) && backend.output.length == reference.output.length
+        && utility_equal(backend.output.data, reference.output.data, backend.output.length), "Mach-O transport-independent service");
+    var invalid: u8* = "-unknown"; utility_check(vector_push(&backend.arguments, invalid), "Mach-O invalid option");
+    utility_check(!backend_link_tower_macho(&backend, triple) && backend.error.length != 0 && backend.output.length == 0, "Mach-O service failure clears artifact");
+    backend.arguments.length--; backend.error.length = 0;
+    utility_check(backend_link_tower_macho(&backend, triple) && backend.output.length == reference.output.length, "Mach-O fresh-world retry");
+    utility_check(!backend_link_tower_macho(&backend, "arm64-apple-ios11") && backend.output.length == 0, "Mach-O target legality");
 }

@@ -340,6 +340,7 @@ fn driver_compile_object(state: DriverCompilation*, started: u64): i32 {
         return 1;
     }
     link.wasm_link = backend_link_tower_wasm;
+    link.native_link = backend_link_tower_native;
     i = 1;
     while i < program.functions.length {
         var function = sem_get(program.functions.data[i]);

@@ -81,7 +81,7 @@ fn macho_patch_object(link: MachoLink*, object: MachoObject*, error: MachoDiagno
             if symbol != null && symbol.imported { value = 0; }
             if patch.width == MachoWord && value > elf_mask(MachoWord * MachoByteBits) { return macho_fail(error, MachoError.Range, section.name, patch.offset); }
             elf_put(data, patch.offset, patch.width, value);
-            if !section.compact && (symbol == null ? !patch.external : (symbol.kind & MachoTypeMask) != MachoAbsolute) {
+            if !section.compact && (symbol == null ? !patch.external : (macho_defined(symbol) && (symbol.kind & MachoTypeMask) != MachoAbsolute)) {
                 if patch.width != MachoAddress { return macho_fail(error, MachoError.Unsupported, section.name, patch.offset); }
                 var fixup: MachoFixup = { file: section.file + patch.offset, symbol: symbol != null && symbol.imported ? symbol : null, addend: original };
                 if !vector_push(&object.fixups, fixup) { return false; }

@@ -182,7 +182,7 @@ fn backend_source_link_tests(environment: void*): bool {
         var flags: u32 = optimize == 0 ? BackendSourceUnoptimized : 0;
         var result = backend_source_compile(source, text, strlen(text), flags, environment, null);
         var link = source.backend.linker;
-        if !backend_source_test_has(result, "\"status\":\"compiled\"") || link.file_plan
+        if !backend_source_test_has(result, "\"status\":\"compiled\"")
             || link.generated.length != generated_inputs || link.output.length < wasm_header_bytes
             || !backend_source_test_has(link.generated.data[2].bytes.data, "imported") { return false; }
         var malformed: u8 = 0;

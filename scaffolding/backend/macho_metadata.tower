@@ -141,7 +141,7 @@ fn macho_metadata(link: MachoLink*): bool {
         var file = got_section.file + convert(u64, symbol.got) * MachoAddress;
         elf_put(link.output.data, file, MachoAddress, symbol.imported ? 0 : symbol.va);
         var fixup: MachoFixup = { file: file, symbol: symbol.imported ? symbol : null, ..default };
-        if (symbol.kind & MachoTypeMask) != MachoAbsolute && !macho_fixup(link, fixup) { return false; }
+        if macho_defined(symbol) && (symbol.kind & MachoTypeMask) != MachoAbsolute && !macho_fixup(link, fixup) { return false; }
     }
     foreach (var symbol in &link.imports) {
         var at = stubs.file + convert(u64, symbol.thunk) * macho_stub_size(link.cpu); var target = got_section.va + convert(u64, symbol.got) * MachoAddress;

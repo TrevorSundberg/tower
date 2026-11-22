@@ -51,7 +51,12 @@ export fn backend_link_tower_pe(backend: BackendLink*, triple: u8*): bool {
             if cursor == first || arg[cursor] != 0 || count == 0 || count > maximum { ok = pe_fail(&link.error, PeError.Input, wasm_text_bytes(arg), 0); break; }
             link.workers = count; continue;
         }
-        if *arg == *"/" || *arg == *"-" { ok = pe_fail(&link.error, PeError.Unsupported, wasm_text_bytes(arg), 0); break; }
+        // CLI callers may supply an absolute path as an explicit byte-input
+        // identity. It grants no filesystem access and is not a slash option.
+        var input_name = false;
+        foreach (var & input in &backend.inputs) { if backend_equal(input.name.data, arg) { input_name = true; break; } }
+        foreach (var & input in &backend.generated) { if backend_equal(input.name.data, arg) { input_name = true; break; } }
+        if !input_name && (*arg == *"/" || *arg == *"-") { ok = pe_fail(&link.error, PeError.Unsupported, wasm_text_bytes(arg), 0); break; }
         ok = backend_pe_input(backend, &link, arg);
     }
     ok &&= pe_link_run(&link);

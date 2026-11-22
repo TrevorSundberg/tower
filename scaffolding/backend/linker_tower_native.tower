@@ -1,0 +1,53 @@
+import tower;
+import link_types;
+import link_inputs;
+import text;
+import coff_import;
+import linker_tower_pe;
+import .library.vector;
+import .library.coff_import_object;
+
+extern fn backend_link_tower_macho(link: BackendLink*, triple: u8*): bool;
+
+fn backend_native_input(link: BackendLink*, name: u8*, bytes: u8*, length: usize): bool {
+    var key: vector(u8) = default; defer vector_dispose(&key);
+    backend_text(&key, "tower-system-"); backend_text(&key, name);
+    while true {
+        var duplicate = false;
+        foreach (var & input in &link.inputs) { if backend_equal(input.name.data, key.data) { duplicate = true; break; } }
+        foreach (var & input in &link.generated) { if backend_equal(input.name.data, key.data) { duplicate = true; break; } }
+        if !duplicate { break; } backend_text(&key, ".");
+    }
+    if !backend_link_input_store(&link.generated, key.data, bytes, length) { return false; }
+    return vector_push(&link.arguments, link.generated.data[link.generated.length - 1].name.data);
+}
+
+// Explicit target-runtime import metadata. These describe OS implementations;
+// no SDK linker search, compiler wrapper or replacement native runtime is used.
+export fn backend_link_tower_native(link: BackendLink*, triple: u8*): bool {
+    link.output.length = 0; if link.error.length != 0 { return false; }
+    var borrowed = link.arguments; var arguments: vector(u8*) = default;
+    foreach (var argument in &borrowed) { if !vector_push(&arguments, argument) { vector_dispose(&arguments); return false; } }
+    link.arguments = arguments;
+    defer { vector_dispose(&link.arguments); link.arguments = borrowed; }
+    var ok = true;
+    if backend_contains(triple, "windows") {
+        var symbols: u8*[8];
+        symbols[0] = "GetProcessHeap"; symbols[1] = "HeapAlloc"; symbols[2] = "HeapReAlloc"; symbols[3] = "HeapFree";
+        symbols[4] = "GetStdHandle"; symbols[5] = "WriteFile"; symbols[6] = "ExitProcess"; symbols[7] = "__chkstk";
+        var probe_index: usize = 7;
+        var import_count: usize = 8;
+        for (var index: usize = 0; index < import_count; index++) {
+            var archive: vector(u8) = default; defer vector_dispose(&archive);
+            ok = coff_import_archive(&archive, CoffMachineAmd64, symbols[index], index == probe_index ? "kernelbase.dll" : "kernel32.dll")
+                && backend_native_input(link, symbols[index], archive.data, archive.length);
+            if !ok { break; }
+        }
+        if ok { return backend_link_tower_pe(link, triple); }
+    } else {
+        var imports = "--- !tapi-tbd\ntbd-version: 4\ntargets: [ x86_64-macos, arm64-macos ]\ninstall-name: '/usr/lib/libSystem.B.dylib'\ncurrent-version: 1\ncompatibility-version: 1\nexports:\n  - targets: [ x86_64-macos, arm64-macos ]\n    symbols: [ _malloc, _realloc, _free, _write, _exit, _memcpy, _memmove, _memset, _bzero ]\n  - targets: [ x86_64-macos ]\n    symbols: [ ___bzero ]\n...\n";
+        ok = backend_native_input(link, "libSystem.tbd", imports, backend_length(imports));
+        if ok { return backend_link_tower_macho(link, triple); }
+    }
+    link.output.length = 0; backend_text(&link.error, "Cannot allocate target runtime import metadata"); return false;
+}

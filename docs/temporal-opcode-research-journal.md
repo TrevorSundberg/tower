@@ -44055,6 +44055,48 @@ frame and backtrace unwinding, plus strict signature verification. This candidat
 does not yet replace production lldMachO; macOS execution and publication are
 still pending, and no speedup or complete migration is claimed at this point.
 
+Native execution evidence: workflow 45034229556 at 7abe428 passed all four Linux
+producer jobs and both macOS execution jobs (macos-15-intel and macos-15 ARM64).
+Raw/optimized Tower and LLD executables run, including allocation, a 64 KiB frame,
+indirect internal/foreign calls and `_Unwind_Backtrace`; strict Apple codesign
+verification passes. The first workflow's reference LLD executable also failed
+the fixture's `backtrace` frame-count assumption; replacing that frame-pointer
+assumption with the unwind API verifies the intended unwind-table contract.
+Tower functional checks cover byte-identical output at 1/2/4/8 workers, two real
+simultaneous relocation kernels behind a signal barrier, cancellation after
+dispatch/drain, malformed/truncated inputs, duplicate/missing symbols, every
+signature page hash and byte-service failure/retry/target legality.
+
+Production now selects `backend_link_tower_macho`. Remove lldMachO, LLD streams,
+CommonLinkerContext, FileOutputBuffer wrapping and the last filesystem link plan.
+The first combined browser backend hit the existing 512-template-specialization
+limit. An isolated `tower-backend-macho` unit resolves this without changing the
+compiler limit; the generated final link rule has that Tower object and no LLD
+library. Cross reactor size is 55,345,948 bytes (previous PE release 61,115,909).
+Affected browser checks pass 34/34. Two browser compiler generations, including
+the deliberately edited semantic behavior, pass with the new unit. Generation 2
+sizes: Tower 1,334,199, LLVM 35,129,502, cross 56,273,380. The shared-worker runtime
+was initially stale relative to pulled computed-type fixtures; rebuilding it from
+the public bootstrap makes the real shared-worker suite pass 3/3, zero skips.
+
+Three alternating small x64 link trials, same objects/TBDs and indexed archive:
+Tower serial rounds below the timer's 0.01 s resolution, RSS 1,884/1,884/1,888 KiB;
+SDK 34 ld64.lld takes 0.04/0.01/0.01 s, RSS 28,700/28,536/28,332 KiB. This is a
+small-process overhead comparison, not a general large-link parallel speedup.
+
+Continue the host handoff too: Windows x64 and macOS CLI defaults now connect to
+the same Tower byte services, with explicit OS import metadata and no SDK linker
+lookup. LLVM/Clang still emits the bundled runtime object; an explicit external
+linker/sysroot path remains available. Linux hosted CLI linking is a separate
+remaining host-linker contract; its libc ABI must not silently become the existing
+freestanding ELF profile. A native Windows CLI output already executes with exact
+42/50/42 output, and ARM64 Mac CLI emission succeeds; the extended workflow will
+execute all six raw/optimized CLI outputs on Windows and both Macs. Preserve
+POSIX output permissions/umask when adding executable bits. A named integer array
+bound exposed the documented immutable-storage staging gap, so stat storage uses
+the already-published named type alias instead; no compiler language change or
+private bootstrap was introduced. Final CLI/publication validation remains open.
+
 Worker fixture source bca0b1a is pushed. Pages
 697b6e6e739522e2c5290647ac2433687ba9ab95 workflow 45033775839 succeeded;
 hosted manifest bytes match SHA256

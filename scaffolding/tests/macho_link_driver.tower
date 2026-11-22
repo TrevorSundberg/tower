@@ -56,7 +56,7 @@ export fn main(argc: i32, argv: u8**): i32 {
         puts(macho_message(link.error.kind)); var message: ByteBuffer = default; defer bytes_dispose(&message);
         bytes_assign_text(&message, link.error.name.data, link.error.name.length); puts(message.data); print(link.error.offset); return 1;
     }
-    if checks { macho_check_inputs(&inputs, &link); }
+    if checks { macho_check_inputs(&inputs, &link); macho_check_service(&inputs, &link); }
     var file = fopen(argv[1], "wb"); utility_check(file != null, "Mach-O output open");
     var written = fwrite(link.output.data, 1, link.output.length, file);
     utility_check(fclose(file) == 0 && written == link.output.length, "Mach-O output write");

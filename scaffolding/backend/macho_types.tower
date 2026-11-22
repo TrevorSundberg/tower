@@ -76,7 +76,7 @@ struct MachoObject { name: WasmBytes; bytes: WasmBytes; sections: vector(MachoSe
 struct MachoObjectEntry { node: Entity*; object: MachoObject*; }
 struct MachoArchive { name: WasmBytes; archive: WasmArchive; selected: vector(bool); }
 struct MachoArchiveEntry { node: Entity*; archive: MachoArchive*; }
-struct MachoDylib { name: WasmBytes; symbols: vector(MachoSymbol); ordinal: u32; }
+struct MachoDylib { name: WasmBytes; symbols: vector(MachoSymbol); ordinal: u32; current: u64; compatibility: u64; }
 struct MachoDylibEntry { node: Entity*; dylib: MachoDylib*; }
 struct MachoOutputSection { name: WasmBytes; segment: WasmBytes; size: u64; alignment: u64; flags: u32; va: u64; file: u64; ordinal: u64; }
 struct MachoDiagnostic { kind: MachoError; name: WasmBytes; offset: u64; }

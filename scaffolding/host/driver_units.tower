@@ -141,6 +141,7 @@ fn driver_units_compile(request: DriverRequest*, timing: DriverTiming*): i32 {
         request.root, wasm, windows, timing, options.timings);
     if link == null { return 1; }
     link.wasm_link = backend_link_tower_wasm;
+    link.native_link = backend_link_tower_native;
     defer driver_link_close(link);
     for (var i: usize = 0; i < count; i++) {
         var ordinal = i + 1;

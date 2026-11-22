@@ -4,6 +4,7 @@ import .library.bytes_interface;
 import driver_support;
 import driver_timing;
 import driver_platform;
+import driver_paths;
 import .backend.link_types;
 import .backend.link_inputs;
 import .library.vector;
@@ -27,10 +28,13 @@ struct DriverLink {
     inputs: DriverArguments;
     ok: bool;
     wasm_link: function(bool, BackendLink*);
+    native_link: function(bool, BackendLink*, u8*);
 }
 
 fn driver_link_uses_tower(link: DriverLink*): bool {
-    return link.wasm && (link.linker[0] == 0 || driver_same(link.linker, "tower-wasm-ld"));
+    if link.wasm { return link.linker[0] == 0 || driver_same(link.linker, "tower-wasm-ld"); }
+    if link.windows { return link.linker[0] == 0 || driver_same(link.linker, "tower-pe-link"); }
+    return strstr(link.target, "apple") != null && (driver_same(link.linker, "tower-macho-link") || (link.linker[0] == 0 && link.sysroot[0] == 0));
 }
 
 fn driver_link_generated_name(link: DriverLink*, name: ByteBuffer*, initial: u8*): bool {
@@ -138,11 +142,12 @@ fn driver_link_arguments(link: DriverLink*, args: DriverArguments*): void {
     if linker[0] == 0 {
         linker = link.cc;
         if link.windows {
-            linker = "lld-link-19";
+            linker = "tower-pe-link";
         }
         if link.wasm {
             linker = "tower-wasm-ld";
         }
+        if !link.wasm && !link.windows && driver_link_uses_tower(link) { linker = "tower-macho-link"; }
     }
     driver_argument(args, "", linker);
     if link.wasm {
@@ -160,7 +165,11 @@ fn driver_link_arguments(link: DriverLink*, args: DriverArguments*): void {
             driver_argument(args, "", "/subsystem:console");
             driver_argument(args, "/out:", link.output);
         } else {
-            driver_argument(args, "--target=", link.target);
+            if driver_link_uses_tower(link) {
+                driver_argument(args, "", "-arch"); driver_argument(args, "", strstr(link.target, "x86_64") == link.target ? "x86_64" : "arm64");
+                driver_argument(args, "", "-platform_version"); driver_argument(args, "", "macos");
+                driver_argument(args, "", "11.0"); driver_argument(args, "", "11.0"); driver_argument(args, "", "-e"); driver_argument(args, "", "_main");
+            } else { driver_argument(args, "--target=", link.target); }
         }
     }
     driver_argument(args, "", link.program.data);
@@ -178,7 +187,7 @@ fn driver_link_arguments(link: DriverLink*, args: DriverArguments*): void {
             driver_argument(args, prefix, link.exports.values.data[i]);
         }
     } else {
-        if link.sysroot[0] != 0 {
+        if link.sysroot[0] != 0 && !driver_link_uses_tower(link) {
             driver_argument(args, "--sysroot=", link.sysroot);
         }
     }
@@ -233,7 +242,7 @@ fn driver_link_execute(link: DriverLink*, data: u8*, length: usize): i32 {
     var args: DriverArguments;
     driver_arguments_init(&args);
     driver_link_arguments(link, &args);
-    result = internal ? driver_link_wasm_bytes(link, &args, data, length) : driver_command(&args);
+    result = internal ? driver_link_bytes(link, &args, data, length) : driver_command(&args);
     driver_arguments_dispose(&args);
     driver_timing_mark(link.timing, link.timings, "link");
     return result;
@@ -242,8 +251,8 @@ fn driver_link_execute(link: DriverLink*, data: u8*, length: usize): i32 {
 // The CLI supplies filesystem inputs explicitly; the backend owns only byte
 // plans and ECS jobs. A production binding is passed without importing the
 // linker implementation into the driver or its platform policy fixtures.
-fn driver_link_wasm_bytes(link: DriverLink*, args: DriverArguments*, data: u8*, length: usize): i32 {
-    if !args.ok || link.wasm_link == null { driver_error("Wasm linker service unavailable", ""); return 1; }
+fn driver_link_bytes(link: DriverLink*, args: DriverArguments*, data: u8*, length: usize): i32 {
+    if !args.ok || (link.wasm ? link.wasm_link == null : link.native_link == null) { driver_error("Tower linker service unavailable", ""); return 1; }
     var backend: BackendLink = { arguments: args.values, ..default };
     var input: ByteBuffer = default;
     defer bytes_dispose(&input);
@@ -252,7 +261,7 @@ fn driver_link_wasm_bytes(link: DriverLink*, args: DriverArguments*, data: u8*, 
         vector_dispose(&backend.output); vector_dispose(&backend.error);
     }
     var ok = backend_link_input_store(&backend.generated, link.program.data, data, length)
-        && backend_link_input_store(&backend.generated, link.allowed.data, link.imports.data, link.imports.length)
+        && (!link.wasm || backend_link_input_store(&backend.generated, link.allowed.data, link.imports.data, link.imports.length))
         && driver_read_file(link.runtime.data, &input)
         && backend_link_input_store(&backend.generated, link.runtime.data, input.data, input.length);
     foreach (var name in &link.inputs.values) {
@@ -260,11 +269,12 @@ fn driver_link_wasm_bytes(link: DriverLink*, args: DriverArguments*, data: u8*, 
         ok = driver_read_file(name, &input) && backend_link_input_store(&backend.generated, name, input.data, input.length);
         if !ok { driver_error("Cannot read linker input: ", name); }
     }
-    if !ok { driver_error("Cannot prepare Wasm linker bytes", ""); return 1; }
-    if !link.wasm_link(&backend) { driver_error("", backend.error.data); return 1; }
+    if !ok { driver_error("Cannot prepare linker bytes", ""); return 1; }
+    if !(link.wasm ? link.wasm_link(&backend) : link.native_link(&backend, link.target)) { driver_error("", backend.error.data); return 1; }
     if !driver_write_file(link.output, backend.output.data, backend.output.length) {
         driver_error("Cannot write linked executable: ", link.output); return 1;
     }
+    if !link.wasm && !driver_platform_make_executable(link.output) { driver_error("Cannot mark executable output: ", link.output); return 1; }
     return 0;
 }
 

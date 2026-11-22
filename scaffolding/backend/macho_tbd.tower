@@ -31,8 +31,22 @@ fn macho_tbd_token(reader: MachoTbdReader*): WasmBytes {
     }
     return init(WasmBytes) { data: reader.bytes.data + begin, length: reader.at - begin };
 }
+fn macho_tbd_version(text: WasmBytes, result: u64*): bool {
+    var fields: u64[3] = default; var field: usize = 0; var digits: usize = 0;
+    var radix: u64 = 10; var major_limit: u64 = 65535; var minor_limit: u64 = 255; var major_shift: u64 = 16;
+    for (var at: usize = 0; at < text.length; at++) {
+        var ch = text.data[at];
+        if ch == *"." { if digits == 0 || ++field == sizeof(u64[3]) / sizeof(u64) { return false; } digits = 0; continue; }
+        if ch < *"0" || ch > *"9" { return false; }
+        fields[field] = fields[field] * radix + convert(u64, ch - *"0"); digits++;
+        if fields[field] > (field == 0 ? major_limit : minor_limit) { return false; }
+    }
+    if digits == 0 { return false; }
+    *result = (fields[0] << major_shift) | (fields[1] << MachoByteBits) | fields[2]; return true;
+}
 fn macho_tbd_read(dylib: MachoDylib*, bytes: WasmBytes, cpu: MachoCpu, error: MachoDiagnostic*): bool {
     var reader: MachoTbdReader = { bytes: bytes, ..default };
+    var version_one: u64 = 65536; dylib.current = version_one; dylib.compatibility = version_one;
     var version = false; var supported = false; var selected = false; var exporting = false; var have_name = false;
     while reader.at < bytes.length && !reader.failed {
         var key = macho_tbd_token(&reader);
@@ -65,9 +79,11 @@ fn macho_tbd_read(dylib: MachoDylib*, bytes: WasmBytes, cpu: MachoCpu, error: Ma
             if have_name || value.length == 0 || exporting { reader.failed = true; break; }
             dylib.name = value; have_name = true;
         } else { if wasm_bytes_text(key, "tbd-version") { version = wasm_bytes_text(value, "4"); }
-        else { if !wasm_bytes_text(key, "current-version") && !wasm_bytes_text(key, "compatibility-version") {
+        else { if wasm_bytes_text(key, "current-version") { reader.failed = !macho_tbd_version(value, &dylib.current); }
+        else { if wasm_bytes_text(key, "compatibility-version") { reader.failed = !macho_tbd_version(value, &dylib.compatibility); }
+        else {
             return macho_fail(error, MachoError.Unsupported, key, convert(u64, reader.at));
-        } } } } }
+        } } } } } }
     }
     return (!reader.failed && have_name && version && supported) || macho_fail(error, MachoError.Input, dylib.name, convert(u64, reader.at));
 }

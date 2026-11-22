@@ -3,25 +3,12 @@ import link_types;
 import link_inputs;
 import coff_import;
 import context;
-import file_api;
 import foreign_api;
 import foreign_reader;
 import foreign_symbol;
 import text;
 import .library.vector;
 import .library.coff_import_object;
-
-extern fn fopen(path: u8*, mode: u8*): void*;
-
-extern fn fclose(file: void*): i32;
-
-extern fn fread(bytes: u8*, size: usize, count: usize, file: void*): usize;
-
-extern fn fwrite(bytes: u8*, size: usize, count: usize, file: void*): usize;
-
-extern fn fileno(file: void*): i32;
-
-extern fn remove(path: u8*): i32;
 
 fn backend_link_argument(link: BackendLink*, prefix: u8*, value: u8*): void {
     var text: vector(u8);
@@ -35,14 +22,6 @@ fn backend_link_argument(link: BackendLink*, prefix: u8*, value: u8*): void {
 }
 
 export fn backend_link_reset_plan(link: BackendLink*): void {
-    if link.file_plan {
-        remove("tower-input.o");
-        remove("tower-output.bin");
-        remove("tower-stack-probe.lib");
-        remove("tower-platform.tbd");
-        foreach (var & input in &link.inputs) { remove(input.name.data); }
-    }
-    link.file_plan = false;
     backend_link_inputs_release(&link.generated);
     foreach(var & argument in &link.arguments) {
         free(*argument);
@@ -53,7 +32,6 @@ export fn backend_link_reset_plan(link: BackendLink*): void {
 }
 
 export fn backend_link_clear_inputs(link: BackendLink*): void {
-    if link.file_plan { foreach (var & input in &link.inputs) { remove(input.name.data); } }
     backend_link_inputs_release(&link.inputs);
 }
 
@@ -177,61 +155,11 @@ fn backend_link_generated(link: BackendLink*, name: u8*, data: u8*, length: usiz
     return false;
 }
 
-fn backend_write_file(link: BackendLink*, path: u8*, data: u8*, length: usize): bool {
-    var file = fopen(path, "wb");
-    if file == null {
-        backend_text(&link.error, "Cannot open linker input: ");
-        backend_text(&link.error, path);
-        return false;
-    }
-    var written = fwrite(data, 1, length, file);
-    var status = fclose(file);
-    var ok = written == length;
-    ok &&= status == 0;
-    if !ok {
-        backend_text(&link.error, "Cannot write linker input: ");
-        backend_text(&link.error, path);
-    }
-    return ok;
-}
-
-fn backend_read_file(output: vector(u8)*, path: u8*): bool {
-    var file = fopen(path, "rb");
-    if file == null {
-        return false;
-    }
-    var status = backend_file_seek(file, 0, 2);
-    var length = backend_file_position(file);
-    var invalid = length < 0;
-    if status != 0 {
-        invalid = true;
-    }
-    if invalid {
-        fclose(file);
-        return false;
-    }
-    backend_file_seek(file, 0, 0);
-    var count = convert(usize, length);
-    var needed = count + 1;
-    var ok = vector_reserve(output, needed);
-    if ok {
-        var read = fread(output.data, 1, count, file);
-        ok = read == count;
-        if ok {
-            output.length = count;
-            output.data[count] = 0;
-        }
-    }
-    fclose(file);
-    return ok;
-}
-
 export fn backend_link_plan(link: BackendLink*, triple: u8*, functions: void**, count: usize, object: u8*, object_size: usize, runtime: u8*, runtime_size: usize): bool {
     backend_link_reset_plan(link);
     var wasm = backend_prefix(triple, "wasm");
     var windows = backend_contains(triple, "windows");
     var mac = backend_contains(triple, "apple");
-    var elf = !wasm && !windows && !mac;
     var ok = true;
     if wasm {
         if !backend_link_generated(link, "tower-input.o", object, object_size)
@@ -266,14 +194,7 @@ export fn backend_link_plan(link: BackendLink*, triple: u8*, functions: void**, 
         backend_link_argument(link, "", "tower-input.o");
         backend_link_argument(link, "", "tower-runtime.o");
     } else {
-        if elf || windows {
-            if !backend_link_generated(link, "tower-input.o", object, object_size) { return false; }
-        } else {
-            link.file_plan = true;
-            // A failed file-based invocation cannot expose an old executable.
-            remove("tower-output.bin");
-            if !backend_write_file(link, "tower-input.o", object, object_size) { return false; }
-        }
+        if !backend_link_generated(link, "tower-input.o", object, object_size) { return false; }
         if windows {
             backend_link_argument(link, "", "tower-pe-link");
             backend_link_argument(link, "", "/entry:mainCRTStartup");
@@ -284,7 +205,7 @@ export fn backend_link_plan(link: BackendLink*, triple: u8*, functions: void**, 
             backend_link_argument(link, "", "/out:tower-output.bin");
         } else {
             if mac {
-                backend_link_argument(link, "", "ld64.lld");
+                backend_link_argument(link, "", "tower-macho-link");
                 backend_link_argument(link, "", "-arch");
                 if backend_prefix(triple, "x86_64") {
                     backend_link_argument(link, "", "x86_64");
@@ -353,9 +274,6 @@ export fn backend_link_plan(link: BackendLink*, triple: u8*, functions: void**, 
     i = 0;
     for(; i != order.length; i++) {
         var input = &link.inputs.data[order.data[i]];
-        if mac && !backend_write_file(link, input.name.data, input.bytes.data, input.bytes.length) {
-            vector_dispose(&order); return false;
-        }
         backend_link_argument(link, "", input.name.data);
     }
     vector_dispose(&order);
@@ -382,7 +300,7 @@ export fn backend_link_plan(link: BackendLink*, triple: u8*, functions: void**, 
         // SDK description with that existing libSystem symbol; no replacement
         // implementation or additional runtime library is introduced.
         var symbols: u8* = "--- !tapi-tbd\ntbd-version: 4\ntargets: [ x86_64-macos, arm64-macos ]\ninstall-name: '/usr/lib/libSystem.B.dylib'\ncurrent-version: 1\ncompatibility-version: 1\nexports:\n  - targets: [ x86_64-macos ]\n    symbols: [ ___bzero, _bzero ]\n  - targets: [ arm64-macos ]\n    symbols: [ _bzero ]\n...\n";
-        ok = backend_write_file(link, "tower-platform.tbd", symbols, backend_length(symbols));
+        ok = backend_link_generated(link, "tower-platform.tbd", symbols, backend_length(symbols));
         if !ok {
             return false;
         }
@@ -420,14 +338,6 @@ export fn backend_link_arguments(link: BackendLink*): u8** {
 
 export fn backend_link_argument_count(link: BackendLink*): usize {
     return link.arguments.length;
-}
-
-export fn backend_link_read_output(link: BackendLink*): bool {
-    var ok = backend_read_file(&link.output, "tower-output.bin");
-    if !ok {
-        backend_text(&link.error, "Cannot read linked executable");
-    }
-    return ok;
 }
 
 export fn backend_link_create(): BackendLink* {

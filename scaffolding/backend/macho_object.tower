@@ -17,6 +17,10 @@ fn macho_object_read(object: MachoObject*, cpu: MachoCpu, error: MachoDiagnostic
     if elf_uint(bytes, convert(u64, MachoHeaderAt.Cpu), MachoWord) != convert(u64, cpu) {
         return macho_fail(error, MachoError.Unsupported, object.name, convert(u64, MachoHeaderAt.Cpu));
     }
+    var subtype_mask: u64 = 16777215; var x64_subtype: u64 = 3;
+    if (elf_uint(bytes, convert(u64, MachoHeaderAt.Subtype), MachoWord) & subtype_mask) != (cpu == MachoCpu.X64 ? x64_subtype : 0) {
+        return macho_fail(error, MachoError.Unsupported, object.name, convert(u64, MachoHeaderAt.Subtype));
+    }
     var command_count = elf_uint(bytes, convert(u64, MachoHeaderAt.Commands), MachoWord);
     var command_size = elf_uint(bytes, convert(u64, MachoHeaderAt.CommandBytes), MachoWord);
     var at = MachoHeaderBytes; var end = at + command_size;

@@ -5,3 +5,4 @@ import link_types;
 // This interface does not import the native implementation into Wasm reactors.
 extern fn backend_link_wasi(link: BackendLink*, triple: u8*): bool;
 extern fn backend_link_tower_wasm(link: BackendLink*): bool;
+extern fn backend_link_tower_native(link: BackendLink*, triple: u8*): bool;
