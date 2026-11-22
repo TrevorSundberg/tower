@@ -39973,3 +39973,20 @@ output aliasing the source-description directory are rejected; no earlier produc
 is published and source libSystem.tbd stays unchanged. Paths with spaces pass.
 Shell syntax, scoped diff and active-reference audits pass. No todo.txt edits,
 shared-cache writes, private syntax adoption or full unrelated release matrix.
+
+Rebase integration: c7a7976 changes compiler expression/unit scheduling. Preserve
+that milestone and repeat the required clean default successor from git-archived
+2c8bce6 in /cache/target_pack_rebased_checkout, with no private bootstrap override.
+All 54 native steps pass; successor SHA256 is
+67386c33b78f48193e72eab236ca8bb6abb9414eedb42d0db67c2144ad5b20f1.
+Fresh five-step default package_targets build still produces 437dc10d7a2c1735.
+All seven packs are identical to the pre-rebase final packs. With the new successor,
+portable COFF checksum checks pass again at both interpreter widths/native/Wasm;
+all five target links and real Linux x64/QEMU ARM64/WSL Windows execution pass.
+The concurrently published c7a7976 browser cross reactor is independently fetched,
+verified as SHA256
+7b4816f418e223625d5d27188a6485389220ef3bd95d1b77130fbdc824528693,
+and passes all seven cross tests with the new packs. Preserve its runtime identity,
+all 88 assets and ECS expression/unit receipt during tooling publication. The
+remaining two test shell files are live CMake/SDK build boundaries; audit whether
+their operations can join existing entry points before adding another Tower tool.
