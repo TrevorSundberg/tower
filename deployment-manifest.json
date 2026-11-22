@@ -345,7 +345,7 @@
     "validation": "79 runtime/LLVM/package checks; eight threaded package/worker checks; two edited browser compiler generations; four final worker-reuse/stale-permit browser checks; ten output/viewport/frame checks. Fresh native successor after final compiler-source rebase. All 86 local deployment asset hashes and full desktop/mobile flows pass."
   },
   "scope": "Dependency queries for ordinary control headers and initializer expressions; streaming native frontend/LLVM unit scheduling with a shared graph and worker budget.",
-  "previousDeployment": "a18ebdc0080994dcdae1cafc8d27225cb9bc0f2c",
+  "previousDeployment": "b23ee50e332eb2195d868c4d6bf01ca5095a977e",
   "measurementToolingMigration": {
     "implementationCommit": "1007d4179107c6c5372afcb9d1233a406695e992",
     "validationCommit": "824af121b0441df8c2a6af9e6a328bd6a0164018",
@@ -385,8 +385,8 @@
   "bootstrapExecutableSha256": "21f527125bfa05a8cd6d4923d4fdc026a04553e919f2905c602a17691598dba5",
   "publishedBootstrapSha256": "21f527125bfa05a8cd6d4923d4fdc026a04553e919f2905c602a17691598dba5",
   "bootstrapSha256": "21f527125bfa05a8cd6d4923d4fdc026a04553e919f2905c602a17691598dba5",
-  "sourceCommit": "fffdc85f8c59a08464c3a49faa5d14a160a61eed",
-  "publicationNote": "Frozen fffdc85 runtime checkpoint. Preserve historical receipts from other lanes. Subsequent function-type worker admission is not included in these assets.",
+  "sourceCommit": "e61eb68bfc6d1403ac5a5f7364c880904a1c6e73",
+  "publicationNote": "Host/parser import membership moved to ordinary Tower profiles; preserve verified fffdc85 runtime and all 89 assets. Tooling-only receipt; no runtime rebuild or asset replacement.",
   "buildNote": "Runtime and compiler project built from fffdc85 with public bootstrap 21f52712. Fresh default 50-step native build, real native/Wasm overlap, deterministic results and two identical edited browser compiler generations pass.",
   "buildSourceCommit": "fffdc85f8c59a08464c3a49faa5d14a160a61eed",
   "compilerSourceTree": "c6309a750928f9faea6bb4ecfa7555bcf894c5da",
@@ -755,5 +755,52 @@
     },
     "performance": "Nine paired semantics64 runs show noisy lower medians for inline dispatch; no reliable general speedup claimed.",
     "limits": "Structural type/protocol publication still has coordinator work. General staged type/value/effect capabilities and persistent cross-revision caching remain incomplete; whole-compiler completion is not claimed."
+  },
+  "hostParserToolingMigration": {
+    "sourceCommit": "2588af2",
+    "validationCommit": "e61eb68bfc6d1403ac5a5f7364c880904a1c6e73",
+    "removedGenerators": [
+      "ComposeHost.cmake",
+      "ComposeParserNodes.cmake",
+      "TowerFrontend.cmake"
+    ],
+    "profiles": "scaffolding/compiler/units/*.tower; configured one-import host/parser selectors preserve chosen build profile",
+    "cmakeBefore": {
+      "files": 48,
+      "lines": 2515
+    },
+    "cmakeAfter": {
+      "files": 45,
+      "lines": 2384
+    },
+    "cmakeSinceFixedRootBaseline": {
+      "filesRemoved": 9,
+      "linesRemoved": 210
+    },
+    "shell": {
+      "files": 11,
+      "lines": 256
+    },
+    "pythonFiles": 0,
+    "nativeStepsBefore": 50,
+    "nativeStepsAfter": 48,
+    "validation": {
+      "publicBootstrapSha256": "21f527125bfa05a8cd6d4923d4fdc026a04553e919f2905c602a17691598dba5",
+      "nativeSuccessorSha256": "706e88919faeac6baafc52dad359d059244df0431064b8d0cfda3a51f0f3150f",
+      "afterRebase": "Fresh 48-step default public-bootstrap successor after fffdc85 compiler changes; existing memory example compiles/links/runs.",
+      "beforeRebase": "Complete native/compiler and non-LLVM browser outputs byte-identical to preceding generator layout; 15 native CTests and WASI parser/156 execution trials pass.",
+      "hostProfiles": "All 12 host platform/profile objects match old generators byte-for-byte.",
+      "parserProfiles": "All 8 combinations compile; non-check objects match; check profiles differ only in trap source-position argument observed in disassembly. Backend-only flag selects work profile.",
+      "bootstrapComparison": "8 host/parser target pairs pass predecessor/successor object and IR agreement, symbol policy and grammar checks.",
+      "dependencies": "Actual host/parser Ninja rebuilds after transitive-import timestamp changes produce identical objects.",
+      "projectSha256": "8186c6e256080d4f7a926bb3f5ad79dc59790e344dd0bf234023c9d8d72d9a31",
+      "browserGenerations": "Two edited frozen pre-rebase generations pass at workers 2/4, with identical Tower/LLVM/cross hashes matching previous milestone. Owned snapshot of real linker recipes and support, refreshed actual host/parser selectors and objects; shared caches read-only.",
+      "generationHashes": {
+        "tower": "1c438ff004141dd66d94e70ed3d8a9688573e59569d5388a7b35773a114493a2",
+        "llvm": "6e19227a90abe0c15294ec02e1f23096ea44e4c47189d3ec2e9fe15359be5979",
+        "cross": "627dfb65b44170d05615849a7443c9d62790c18720ba5569a8f5a182f20cb16f"
+      },
+      "limits": "Linux development successor only. One-import profile selectors and upstream/backend generation remain. Existing runtime assets retained; test compilers not published."
+    }
   }
 }
