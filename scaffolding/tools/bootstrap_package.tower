@@ -186,7 +186,7 @@ fn bootstrap_manifest(input: BootstrapInputs*, files: vector(BootstrapFile*)*,
     while revision.length != 0 && (revision.data[revision.length - 1] == lf || revision.data[revision.length - 1] == cr) { revision.length--; }
     if revision.length == 0 || !bootstrap_text(out, "{\n  \"directory\":\"linux-x64\",\n  \"executable\":\"linux-x64/towerc\",\n  \"checksums\":\"linux-x64/SHA256SUMS\",\n  \"build\":{\"command\":")
         || !bootstrap_string(out, input.command, strlen(input.command))
-        || !bootstrap_text(out, ",\"compiler\":\"Clang 19.1.1\",\"configuration\":\"Release\",\"llvm\":\"19.1.1\",\"predecessor_sha256\":")
+        || !bootstrap_text(out, ",\"compiler\":\"Tower (LLVM object emission)\",\"configuration\":\"Release\",\"llvm\":\"19.1.1\",\"predecessor_sha256\":")
         || !bootstrap_hash(out, predecessor.data, predecessor.length)
         || !bootstrap_text(out, "},\n  \"dynamic_dependencies\":") || !bootstrap_dependencies(input, out)
         || !bootstrap_text(out, ",\n  \"files\":{") { return false; }
