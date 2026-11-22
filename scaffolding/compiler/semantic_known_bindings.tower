@@ -308,6 +308,7 @@ fn sem_known_publish(c: SemanticContext*): void {
                 value.constant = literal.constant;
                 value.bits = literal.bits;
                 value.binding = literal.binding;
+                value.element = literal.element;
             }
         }
     }

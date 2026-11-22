@@ -445,8 +445,16 @@ Do NOT modify todo.txt
   bindings. Keep primitive representation constructors explicit and shared with
   the ordinary pointer/array paths. Canonical Foundation must preserve the
   selected representation even when a source definition changes a familiar name.
-  Type bindings and constructor applications are compile-time declarations;
-  unrestricted computed/runtime type values are not implemented by this step.
+  Type values can be selected/returned by ordinary functions, stored in local
+  variables and aggregates, and consumed as static types when proved immutable
+  and compile-time available. Use ordinary type names or explicit `type_value(T)`;
+  canonical Foundation uses `type_type()`. Private execution indexes are never
+  serialized identities or a foreign ABI. Preserve descriptor relocation through
+  captures, known-value substitution, attributes and canonical formatting.
+  Generic `T: type` parameters and legacy nominal constructors retain their
+  compatibility contracts; full dynamic construction/reflection remains pending.
+  See docs/type-values.md. Publish its complete compatible bootstrap before
+  adopting these forms in compiler/build sources or the standard type prelude.
   Evaluate ordinary value computations with the existing interpreter and query
   graph. Never add a separate constant folder to extend type arguments.
   Integer expressions, bound numeric type parameters, ordinary helper calls and

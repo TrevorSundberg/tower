@@ -386,13 +386,18 @@ fn sem_declaration_location(c: SemanticContext*, node: void*, waiting: usize*, l
             declaration = sem_local(c, sem_identifier(c, name));
             if declaration == null { declaration = sem_resolve(c, c.globals, name, sem_identifier(c, name)); }
         }
+        var metatype = false;
+        if declaration == null {
+            declaration = sem_resolve(c, c.types, node, sem_identifier(c, node));
+            metatype = declaration != null;
+        }
         if declaration == null { return null; }
         var query = sem_declaration_query(c, declaration);
         if query != 0 && work_task(&c.queries, query).state != WorkState.Succeeded {
             *waiting = query;
             return null;
         }
-        return &sem_get(declaration).type;
+        return metatype ? sem_type_new(c, SType, 0, null) : &sem_get(declaration).type;
     }
     var type = sem_declaration_location(c, base, waiting, layout, depth + 1);
     if type == null { return null; }
@@ -527,14 +532,14 @@ fn sem_declaration_waiting(c: SemanticContext*, result: SemanticDeclaration*, la
         if !type && sem_is(node, "TowerInvoke") {
             sem_declaration_location(c, node, &waiting, layout, 0);
         }
-        if !type && sem_is(node, "CoreCall") {
+        if !type && sem_value_call_syntax(node) {
             sem_declaration_location(c, node, &waiting, layout, 0);
             var name_node = sem_member(node, "name");
             var name = sem_identifier(c, name_node);
             var builtin = semantic_builtin_kind(name);
             var definition = sem_resolve(c, c.templates, name_node, name);
             if sem_call_uses_value(c, name_node) { sem_declaration_scan_push(&scan, name_node, false); }
-            var args = sem_collect(c, sem_member(node, "args"), "CoreCallArgument");
+            var args = sem_collect(c, sem_member(node, "args"), sem_is(node, "CoreType") ? "CoreTypeArgument" : "CoreCallArgument");
             var argument: usize = 0;
             while argument < args.length {
                 var type_argument = semantic_builtin_type_argument(builtin, argument);
@@ -611,7 +616,7 @@ fn sem_declaration_dependencies(c: SemanticContext*, subject: void*, result: Sem
             sem_declaration_scan_push(&scan, sem_member(node, "value"), false);
             continue;
         }
-        if !type && sem_is(node, "CoreCall") {
+        if !type && sem_value_call_syntax(node) {
             var name_node = sem_member(node, "name");
             var name = sem_identifier(c, name_node);
             var builtin = semantic_builtin_kind(name);
@@ -624,7 +629,7 @@ fn sem_declaration_dependencies(c: SemanticContext*, subject: void*, result: Sem
                 var input = sem_declaration_query(c, function);
                 if input != 0 { sem_declaration_input(result, input); }
             }
-            var args = sem_collect(c, sem_member(node, "args"), "CoreCallArgument");
+            var args = sem_collect(c, sem_member(node, "args"), sem_is(node, "CoreType") ? "CoreTypeArgument" : "CoreCallArgument");
             if args.length != 0 && (builtin == KSizeOf || builtin == KAlignOf) {
                 var argument = sem_surface_unwrap(args.data[0]);
                 var nominal = sem_resolve(c, c.types, argument, sem_identifier(c, argument));
@@ -676,6 +681,11 @@ fn sem_declaration_dependencies(c: SemanticContext*, subject: void*, result: Sem
                 }
             }
             if dependency == null {
+                var type_value = sem_resolve(c, c.types, node, sem_identifier(c, node));
+                if type_value != null {
+                    var input = sem_declaration_query(c, type_value);
+                    if input != 0 { sem_declaration_input(result, input); }
+                }
                 var function = sem_resolve(c, c.functions, node, sem_identifier(c, node));
                 if function != null {
                     var input = sem_declaration_query(c, function);
@@ -866,6 +876,7 @@ fn sem_declaration_syntax_read(c: SemanticContext*, annotation: void*, nodes: ve
         var node = pending.data[i].node;
         var type = pending.data[i].type;
         if type && (sem_array_type_prepared(c, node) != null || sem_constructor_prepared(c, node) != null) { continue; }
+        if type && sem_type_query_syntax(c, node) { return false; }
         evaluates ||= sem_is(node, "TowerComptime");
         if !type && sem_is(node, "CoreArrayCount") {
             for(var j: usize = 0; j < sem_child_count(node); j++) {
@@ -1018,7 +1029,7 @@ fn sem_declaration_inference_begin(c: SemanticContext*, result: SemanticDeclarat
     var name = sem_member(call, "name");
     var definition = sem_resolve(c, c.templates, name, sem_identifier(c, name));
     var count = generic_parameter_count(c.generics, definition);
-    var args = sem_collect(c, sem_member(call, "args"), "CoreCallArgument");
+    var args = sem_collect(c, sem_member(call, "args"), sem_is(call, "CoreType") ? "CoreTypeArgument" : "CoreCallArgument");
     if args.length == count { return false; }
     var runtime: usize = 0;
     for(var i: usize = 0; i < count; i++) {
@@ -1390,13 +1401,13 @@ fn sem_declaration_calls(c: SemanticContext*, result: SemanticDeclaration*): voi
                 entry.unevaluated, false, entry.evaluation_depth + 1);
             continue;
         }
-        if !entry.type && sem_is(node, "CoreCall") {
+        if !entry.type && sem_value_call_syntax(node) {
             var name_node = sem_member(node, "name");
             var name = sem_identifier(c, name_node);
             var builtin = semantic_builtin_kind(name);
             var definition = sem_resolve(c, c.templates, name_node, name);
             if definition != null { sem_declaration_call_push(&scan, node, false, entry.unevaluated, true, entry.evaluation_depth); }
-            var args = sem_collect(c, sem_member(node, "args"), "CoreCallArgument");
+            var args = sem_collect(c, sem_member(node, "args"), sem_is(node, "CoreType") ? "CoreTypeArgument" : "CoreCallArgument");
             for(var i: usize = args.length; i != 0; i--) {
                 var index = i - 1;
                 var type = semantic_builtin_type_argument(builtin, index);

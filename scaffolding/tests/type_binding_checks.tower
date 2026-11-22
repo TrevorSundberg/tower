@@ -72,6 +72,7 @@ fn type_binding_tests(modules: void*, root: u8*): void {
         "Source definition determines layout and numeric representation");
     execution_roundtrip(&changed, environment, false);
     computed_type_argument_tests(modules, root, bedrock.data, foundation.data);
+    type_object_tests(modules, root, bedrock.data, foundation.data);
     puts("Source types: definitions, aliases, staging, target layouts, Foundation and workers pass.");
 }
 
@@ -118,4 +119,36 @@ fn computed_type_argument_tests(modules: void*, root: u8*, bedrock: u8*, foundat
     struct_value_reject(modules, "import tower;var a:u8[first()+second()];fn second():usize{return unknownSecond;}fn first():usize{return unknownFirst;}", "unknownFirst");
     struct_value_reject(modules, "import tower;var a:u8[comptime(1/0)];", "zero");
     puts("Computed type arguments: interpreter, target widths, Foundation round trips and worker determinism pass.");
+}
+
+fn type_object_tests(modules: void*, root: u8*, bedrock: u8*, foundation: u8*): void {
+    var source: vector(u8) = default;
+    defer vector_dispose(&source);
+    units_read(root, "/tests/type_object_values.tower", &source);
+    for(var width: u32 = 4; width <= 8; width += 4) {
+        var graph: ExecutionSession = default;
+        var fast: ExecutionSession = default;
+        defer execution_session_close(&graph);
+        defer execution_session_close(&fast);
+        execution_compile(&graph, source.data, width, modules);
+        execution_compile(&fast, source.data, width, modules);
+        execution_check(execution_session_start(&graph) && execution_session_fast(&fast), "Type object engines start");
+        execution_run(&graph, 1000, 100000);
+        execution_run(&fast, 1000, 100000);
+        execution_same(&graph, &fast);
+        execution_check(graph.machine.done && graph.error.length == 0 && execution_text(&graph.output, "0\n"), "Type object identities and executed constructors");
+        execution_roundtrip(&graph, modules, false);
+        var canonical: vector(u8) = default;
+        defer vector_dispose(&canonical);
+        for(var workers: usize = 1; workers <= 8; workers *= 2) {
+            body_runs_trial(source.data, workers, width, bedrock, foundation, root, &canonical);
+        }
+    }
+    struct_value_reject(modules, "import tower;fn f():void{var value:type=default;}", "explicit type");
+    struct_value_reject(modules, "import tower;print(type_value(i32));", "opaque identity");
+    struct_value_reject(modules, "import tower;var value=bits(u32,type_value(i32));", "numeric representations");
+    struct_value_reject(modules, "import tower;extern fn f():type_type();", "foreign or exported ABI");
+    struct_value_reject(modules, "import tower;fn f():void{var T:type=i32;var value:T;T=u8;}", "runtime storage");
+    struct_value_reject(modules, "import tower;extern fn take(value:type_type()*):void;", "foreign or exported ABI");
+    puts("Type objects: execution, staging, canonical reconstruction and worker determinism pass.");
 }

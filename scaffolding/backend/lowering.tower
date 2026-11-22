@@ -263,6 +263,11 @@ fn backend_address(b: Backend*, entity: void*): void* {
 
 fn backend_read(b: Backend*, entity: void*): void* {
     var n = sem_get(entity);
+    if n.kind == KTypeReference {
+        var reference = type_object_intern(&b.type_values, &n.element);
+        backend_require(b, reference != 0);
+        return backend_constant(b, &n.type, reference);
+    }
     if n.kind == KFunctionReference {
         var function = b.functions.data[sem_get(n.binding).index];
         if LLVMGetFunctionCallConv(function) != 0 {
@@ -402,7 +407,7 @@ fn backend_conversion(b: Backend*, n: FoundationNode*, from: FoundationType*, va
 
 fn backend_expression(b: Backend*, entity: void*): void* {
     var n = sem_get(entity);
-    if n.kind == KFunctionReference { return backend_read(b, entity); }
+    if n.kind == KFunctionReference || n.kind == KTypeReference { return backend_read(b, entity); }
     var ordinary = n.kind == KOperand;
     var `match` = n.kind == KString;
     if `match` {

@@ -23,6 +23,7 @@ import .library.work_pool;
 extern fn interpreter_invocation_init(invocation: IMInvocation*, function: void*, width: usize, arguments: u64*, count: usize, strict: bool, fuel: u64): bool;
 extern fn interpreter_invocation_dispose(invocation: IMInvocation*): void;
 extern fn interpreter_function_result(invocation: IMInvocation*, reference: u64, type: FoundationType*, offset: usize): void*;
+extern fn interpreter_type_result(invocation: IMInvocation*, reference: u64, type: FoundationType*, offset: usize): bool;
 extern fn entity_view_open(anchor: void*): void*;
 extern fn entity_view_close(view: void*): void;
 
@@ -389,10 +390,11 @@ fn sem_evaluation_pump_inputs(c: SemanticContext*, demand_roots: bool): Semantic
                     }
                     foreach(var &alias in &result.aliases) {
                         var original = sem_get(alias.original);
-                        if original.constant || original.kind == KFunctionReference {
+                        if original.constant || original.kind == KFunctionReference || original.kind == KTypeReference {
                             var target = sem_get(alias.clone);
                             target.bits = original.bits;
                             target.binding = original.binding;
+                            target.element = original.element;
                             target.kind = original.kind;
                             target.constant = original.constant;
                         }
@@ -442,6 +444,12 @@ fn sem_evaluation_value(node: void*, invocation: IMInvocation*, bits_value: u64)
     if invocation.state.failed { return; }
     var value = sem_get(node);
     value.bits = bits_value;
+    if value.type.scalar == SType && value.type.pointers == 0 {
+        if !interpreter_type_result(invocation, bits_value, &value.element, value.start) { return; }
+        value.kind = KTypeReference;
+        value.constant = false;
+        value.bits = 0;
+    }
     if value.type.scalar == SFunction && value.type.pointers == 0 && value.bits != 0 {
         value.binding = interpreter_function_result(invocation, value.bits, &value.type, value.start);
         if invocation.state.failed { return; }

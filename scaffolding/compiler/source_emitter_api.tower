@@ -1,0 +1,23 @@
+import tower;
+import foundation_types;
+import .library.vector;
+
+// Read-only Foundation queries shared by source emitters. Keep their compilation
+// unit independent of semantic checking and its dependency scheduler.
+extern fn sem_get(node: void*): FoundationNode*;
+extern fn sem_name(node: FoundationNode*): u8*;
+extern fn sem_equal(left: u8*, right: u8*): bool;
+extern fn sem_require(ok: bool): void;
+extern fn frontend_source_length(source: u8*): usize;
+extern fn bytes_append(target: vector(u8)*, data: u8*, count: usize): bool;
+extern fn semantic_aggregate(type: FoundationType*): bool;
+extern fn semantic_alignment(type: FoundationType*): usize;
+extern fn semantic_float(type: FoundationType*): bool;
+extern fn semantic_mask(type: FoundationType*): u64;
+extern fn semantic_operator(operation: u32): u8*;
+extern fn semantic_signed(type: FoundationType*): bool;
+extern fn semantic_size(type: FoundationType*): usize;
+extern fn semantic_width(type: FoundationType*): u32;
+
+extern fn c_emit(text: vector(u8)*, error: vector(u8)*, root: void*, pointer_bytes: u32, comments: bool): void;
+extern fn roku_emit(text: vector(u8)*, error: vector(u8)*, root: void*, pointer_bytes: u32, comments: bool): void;

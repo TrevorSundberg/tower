@@ -45626,3 +45626,59 @@ build/type-pipeline-prefix-types.log, build/type-pipeline-prefix-body.log.
 The computed fixture prints 0 under the fast interpreter. General type-valued
 execution and the reflected operation protocol are still outstanding; these
 checks do not constitute complete milestone or browser/bootstrap publication.
+
+### 2026-11-22: ordinary type values and staged type selection
+
+Added an opaque metatype and a canonical type_value operation on the existing
+Foundation entities. Functions can select, mutate, return and compare type values;
+type-position calls use the ordinary interpreter/query graph. Bare named types,
+generic type parameters, staged aggregates and typed declaration attributes retain
+their actual descriptors/nominal bindings. Known-value substitution and formatting
+must copy the descriptor, not only scalar bits. The initial formatter experiment
+hit the common builtin branch before its special branch and emitted type_value()
+without an operand; the fix belongs in that common formatting path. A generic
+type parameter is already a canonical identity, not a declaration whose receipt
+may be attached from a pinned worker. Restricting that lookup to actual module
+aliases fixed a worker abort in the first bare-parameter probe.
+
+Rebased onto a9301ffc, preserving upstream retained body/defer continuations,
+iteration-layout dependencies and typed kernel dispatch. Early helper demand
+must explicitly register the generic-body clone prerequisite before body discovery:
+otherwise a specialization requested before the root admission window could check
+an empty signature clone and report a missing return. The computed-type fixture
+caught this after the merge. Source-ordered diagnostics still use function ordinals
+and later producers may settle earlier consumers after an unrelated failure.
+
+Local type-valued annotations require two admission boundaries: body discovery
+conservatively recognizes local-name type spellings, and declaration admission
+waits for the actual TypeConstruction receipt. Only the retained lexical context
+resolves that name and proves its capture. Merely extending sem_type without these
+boundaries produced Unknown type. Captured producers also require ordinary
+Foundation reads: reading only producer.bits returned zero for relocated type
+values. Using the ordinary interpreter read path handles both type and function
+references in the consuming invocation, without a second evaluator.
+
+The combined source closure exceeded the published predecessor's 128 MiB semantic
+component allowance. First tested factoring the generic dispatch transport loop;
+its checked prefix assumption rejected SemanticDeclaration, whose kernel is not
+its first field. Discarded that approach and kept upstream typed dispatch intact.
+Instead separated C/BrightScript emitter implementations from checking: their
+existing code now belongs to the frontend object and consumes explicit read-only
+Foundation queries through source_emitter_api. This builds within the unchanged
+predecessor budget and does not alter language storage or worker ownership.
+Both source backends explicitly reject metatype values until implemented.
+
+Native development builds use /cache/type-pipeline in tower-c-validation. Retained
+failure logs include type-objects-rebased-build.log, type-objects-dispatch-build.log,
+type-objects-rebased-types.log and type-objects-types-validated.log. The focused
+type-object fixture now prints 0, including local type aliases/shadowing and a
+generic type-producing helper demanded inside a later body. The earlier computed
+fixture also prints 0 after the clone fix. The full frozen checks and publication
+receipt follow; these intermediate results are not a public bootstrap claim.
+
+This is a checkpoint toward the requested complete architecture. Representation
+constructors over executed local values, unified nominal construction, reflected
+operation consumers and migration of every type family remain open. Fixed vectors
+still follow that work. All implementation/fixtures are Tower, the browser change
+only wires the Tower fixture into its existing execution transport, and todo.txt
+is unchanged. See docs/type-values.md for the current compatibility boundaries.

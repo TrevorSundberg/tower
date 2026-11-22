@@ -92,6 +92,11 @@ export fn semantic_size(t: FoundationType*): usize {
         var step7 = sem_get(t.record);
         return step7.size;
     }
+    if t.scalar == SType {
+        // Opaque execution-local references have one explicit storage width.
+        // Their numeric indexes are never a portable type identity or ABI.
+        return convert(usize, IntegerWordWidth / IntegerByteWidth);
+    }
     if t.scalar == SVoid {
         return 0;
     }
@@ -144,7 +149,7 @@ fn sem_length(s: u8*): usize {
     return i;
 }
 
-fn sem_equal(a: u8*, b: u8*): bool {
+export fn sem_equal(a: u8*, b: u8*): bool {
     for(var i: usize = 0; a[i] == b[i]; i++) {
         if a[i] == 0 {
             return true;
@@ -270,7 +275,7 @@ fn sem_number(c: SemanticContext*, value: u64, t: FoundationType*): u8* {
     return sem_decimal(c, value);
 }
 
-fn sem_name(n: FoundationNode*): u8* {
+export fn sem_name(n: FoundationNode*): u8* {
     if n.name.data == null {
         return "";
     }

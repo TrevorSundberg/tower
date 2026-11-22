@@ -360,7 +360,7 @@ fn format_expression(f: FormatEngine*, entity: void*): void {
         }
         var size = format_is_SizeOf(n);
         var align = format_is_AlignOf(n);
-        if format_or(size, align) {
+        if format_or(size, align) || n.kind == KTypeReference {
             format_type(f, &n.element);
         }
         var allocate = format_is_Allocate(n);

@@ -6,8 +6,12 @@ import semantic_support;
 // Numeric tags are defined in foundation_tags on the shared component model,
 // not a public instruction encoding; coordinate any renumbering.
 var FoundationParameterLimit: usize = 64;
+enum FoundationBuiltinIndex: u32 {
+    Print, Allocate, Reallocate, Free, Copy, Fill, SizeOf, AlignOf, Convert, Bits, Label, Jump, Trap, TypeValue
+}
 
 export fn semantic_scalar_name(scalar: u32): u8* {
+    if scalar == SType { return "type"; }
     if scalar == SI8 { return "i8"; }
     if scalar == SI16 { return "i16"; }
     if scalar == SU16 { return "u16"; }
@@ -90,6 +94,7 @@ export fn semantic_operator(op: u32): u8* {
 }
 
 export fn semantic_builtin_name(kind: u32): u8* {
+    if kind == KTypeReference { return "type_value"; }
     if kind == 31 {
         return "label";
     }
@@ -133,6 +138,7 @@ export fn semantic_builtin_name(kind: u32): u8* {
 }
 
 export fn semantic_builtin_arity(kind: u32): usize {
+    if kind == KTypeReference { return 1; }
     if kind == 31 {
         return 1;
     }
@@ -177,91 +183,67 @@ export fn semantic_builtin_arity(kind: u32): usize {
 
 fn semantic_builtin_type_argument(kind: u32, index: usize): bool {
     return index == 0 && (kind == KSizeOf || kind == KAlignOf
-        || kind == KConvert || kind == KBits || kind == KAllocate || kind == KReallocate);
+        || kind == KConvert || kind == KBits || kind == KAllocate || kind == KReallocate || kind == KTypeReference);
 }
 
 export fn semantic_builtin_kind(name: u8*): u32 {
+    if sem_equal(name, "type_value") { return KTypeReference; }
     if sem_equal(name, "label") {
-        return 31;
+        return KLabel;
     }
     if sem_equal(name, "jump") {
-        return 32;
+        return KJump;
     }
     if sem_equal(name, "trap") {
-        return 33;
+        return KTrap;
     }
     if sem_equal(name, "print") {
-        return 17;
+        return KPrint;
     }
     if sem_equal(name, "alloc") {
-        return 26;
+        return KAllocate;
     }
     if sem_equal(name, "realloc") {
-        return 27;
+        return KReallocate;
     }
     if sem_equal(name, "free") {
-        return 28;
+        return KFree;
     }
     if sem_equal(name, "copy") {
-        return 29;
+        return KCopy;
     }
     if sem_equal(name, "fill") {
-        return 30;
+        return KFill;
     }
     if sem_equal(name, "sizeof") {
-        return 24;
+        return KSizeOf;
     }
     if sem_equal(name, "alignof") {
-        return 25;
+        return KAlignOf;
     }
     if sem_equal(name, "convert") {
-        return 9;
+        return KConvert;
     }
     if sem_equal(name, "bits") {
-        return 10;
+        return KBits;
     }
     return 0;
 }
 
 export fn semantic_builtin_at(index: usize): u32 {
-    if index == 10 {
-        return 31;
-    }
-    if index == 11 {
-        return 32;
-    }
-    if index == 12 {
-        return 33;
-    }
-    if index == 0 {
-        return 17;
-    }
-    if index == 1 {
-        return 26;
-    }
-    if index == 2 {
-        return 27;
-    }
-    if index == 3 {
-        return 28;
-    }
-    if index == 4 {
-        return 29;
-    }
-    if index == 5 {
-        return 30;
-    }
-    if index == 6 {
-        return 24;
-    }
-    if index == 7 {
-        return 25;
-    }
-    if index == 8 {
-        return 9;
-    }
-    if index == 9 {
-        return 10;
-    }
+    if index == convert(usize, FoundationBuiltinIndex.Print) { return KPrint; }
+    if index == convert(usize, FoundationBuiltinIndex.Allocate) { return KAllocate; }
+    if index == convert(usize, FoundationBuiltinIndex.Reallocate) { return KReallocate; }
+    if index == convert(usize, FoundationBuiltinIndex.Free) { return KFree; }
+    if index == convert(usize, FoundationBuiltinIndex.Copy) { return KCopy; }
+    if index == convert(usize, FoundationBuiltinIndex.Fill) { return KFill; }
+    if index == convert(usize, FoundationBuiltinIndex.SizeOf) { return KSizeOf; }
+    if index == convert(usize, FoundationBuiltinIndex.AlignOf) { return KAlignOf; }
+    if index == convert(usize, FoundationBuiltinIndex.Convert) { return KConvert; }
+    if index == convert(usize, FoundationBuiltinIndex.Bits) { return KBits; }
+    if index == convert(usize, FoundationBuiltinIndex.Label) { return KLabel; }
+    if index == convert(usize, FoundationBuiltinIndex.Jump) { return KJump; }
+    if index == convert(usize, FoundationBuiltinIndex.Trap) { return KTrap; }
+    if index == convert(usize, FoundationBuiltinIndex.TypeValue) { return KTypeReference; }
     return 0;
 }

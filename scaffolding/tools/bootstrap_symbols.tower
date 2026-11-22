@@ -84,6 +84,9 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
             || bootstrap_symbol_in("node_string_set syntax_identifier_decode_in_place syntax_node_init syntax_nodes_equal tower_utf8_decode tower_utf8_encode", symbol, length);
     }
     if unit == BootstrapUnit.ParserNodes {
+        // Source emitters consume the same checked Foundation through explicit
+        // read-only queries; their code no longer expands the semantics unit.
+        if bootstrap_symbol_in("sem_get sem_name sem_equal sem_require frontend_source_length semantic_aggregate semantic_alignment semantic_float semantic_size semantic_width", symbol, length) { return true; }
         return bootstrap_symbol_in("parse_forest_create parse_forest_destroy tower_utf8_validate syntax_scan_highlight", symbol, length)
             || bootstrap_symbol_in("syntax_replacement_begin syntax_replacement_capture syntax_replacement_attempt syntax_replacement_diagnostic", symbol, length)
             || bootstrap_symbol_in("syntax_replacement_offset syntax_replacement_select syntax_replacement_commit entity_id entity_replace_child", symbol, length)
@@ -108,7 +111,7 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
     if unit == BootstrapUnit.Semantics {
         // Attribute aggregate staging reads interpreter-owned bytes and validates
         // function-reference relocation through these ordinary Tower exports.
-        if bootstrap_symbol_in("interpreter_function_result ix_load", symbol, length) { return true; }
+        if bootstrap_symbol_in("interpreter_function_result interpreter_type_result ix_load", symbol, length) { return true; }
         return bootstrap_symbol_in("syntax_create syntax_destroy syntax_next syntax_get_error syntax_get_revision syntax_get_error_offset bytes_append", symbol, length)
             || bootstrap_symbol_in("tower_allocate tower_trap sem_match core_component_type abort entity_component_get entity_component_data", symbol, length)
             || bootstrap_symbol_in("entity_component_add entity_register tower_node_create entity_attach entity_release entity_child_at entity_child_count", symbol, length)

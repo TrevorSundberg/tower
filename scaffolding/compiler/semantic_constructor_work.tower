@@ -7,12 +7,20 @@ import semantic_modules;
 import semantic_support;
 import semantic_expressions;
 import semantic_generic_body_work;
+import semantic_evaluation;
+import semantic_evaluation_work;
+import semantic_execution_work;
+import semantic_capture_work;
+import semantic_defer;
+import semantic_control;
+import semantic_values;
 import semantic_work_ids;
 import foundation_types;
+import foundation_tags;
 import .library.vector;
 import .library.work_graph;
 
-enum SemanticConstructorPhase: u32 { Call, Clone, Alias, Ready }
+enum SemanticConstructorPhase: u32 { Call, Clone, Alias, Execute, Ready }
 
 // Syntax consumers and canonical instance results use the same dependency
 // graph, but retain separate receipts. Instance bodies are copied by the shared
@@ -24,6 +32,7 @@ struct SemanticConstructor {
     syntax: void*;
     arguments: vector(void*)*;
     type: FoundationType;
+    evaluation: SemanticEvaluation*;
 }
 
 fn sem_constructor_state(c: SemanticContext*, node: void*): SemanticConstructor* {
@@ -61,6 +70,8 @@ fn sem_constructor_prepared(c: SemanticContext*, node: void*): FoundationType* {
 
 fn sem_type_query_syntax(c: SemanticContext*, node: void*): bool {
     if sem_array_syntax(node) { return true; }
+    var value = sem_value_binding(c, node);
+    if value != null && sem_get(value).type.scalar == SType && sem_get(value).type.pointers == 0 { return true; }
     if (!sem_is(node, "CoreType") && !sem_is(node, "CoreCall")) || sem_member(node, "args") == null { return false; }
     var name_node = sem_member(node, "name");
     var name = sem_identifier(c, name_node);
@@ -75,6 +86,9 @@ fn sem_constructor_add(c: SemanticContext*, node: void*, parent: SemanticDeclara
     var result = sem_declaration_state(c, node);
     if result.query != 0 { sem_require(result.constructor != null); return result; }
     result.constructor = sem_constructor_state(c, node);
+    if sem_member(node, "args") == null && sem_value_binding(c, node) != null {
+        result.constructor.phase = SemanticConstructorPhase.Execute;
+    }
     var name = sem_member(node, "name");
     result.constructor.definition = sem_resolve(c, c.type_functions, name, sem_identifier(c, name));
     result.construction_owner = parent.construction_owner ?? parent;
@@ -87,6 +101,10 @@ fn sem_constructor_add(c: SemanticContext*, node: void*, parent: SemanticDeclara
 
 fn sem_constructor_roots(c: SemanticContext*, result: SemanticDeclaration*, scan: vector(DeclarationScan)*): void {
     var work = result.constructor;
+    if work.phase == SemanticConstructorPhase.Execute {
+        sem_declaration_scan_push(scan, result.subject, false);
+        return;
+    }
     if work.phase == SemanticConstructorPhase.Alias {
         sem_declaration_scan_push(scan, work.syntax, true);
     }
@@ -138,6 +156,18 @@ fn sem_constructor_step(c: SemanticContext*, result: SemanticDeclaration*): bool
             work.phase = SemanticConstructorPhase.Ready;
             result.checked = sem_ok(c);
             return false;
+        }
+        if work.definition == null {
+            var name = sem_member(result.subject, "name");
+            var spelling = sem_identifier(c, name);
+            if sem_resolve(c, c.functions, name, spelling) != null || sem_resolve(c, c.templates, name, spelling) != null {
+                work.phase = SemanticConstructorPhase.Execute;
+                result.calls_scanned = false;
+                result.call_index = 0;
+                result.type_frontier = 0;
+                result.calls.length = 0;
+                return true;
+            }
         }
         if work.instance == null {
             work.arguments = sem_constructor_arguments(c, result.subject, work.definition);
@@ -195,6 +225,32 @@ fn sem_constructor_step(c: SemanticContext*, result: SemanticDeclaration*): bool
     if work.phase == SemanticConstructorPhase.Alias {
         work.type = *sem_type(c, work.syntax);
         result.checked = sem_ok(c);
+        return false;
+    }
+    if work.phase == SemanticConstructorPhase.Execute {
+        if work.evaluation == null {
+            var previous = c.integer_arguments;
+            c.integer_arguments = true;
+            defer { c.integer_arguments = previous; }
+            sem_executables_begin(c);
+            sem_captures_begin(c);
+            var value = sem_operand(c, result.subject, sem_type_new(c, SType, 0, null));
+            if !sem_ok(c) { return false; }
+            var output = sem_control_node(c, result.subject, KOperand);
+            var expression = sem_defer_clone(c, output, value, sem_table(c), sem_list(c));
+            sem_evaluation_expression(c, output, expression, null, false);
+            if !sem_ok(c) { return false; }
+            work.evaluation = sem_evaluation_get(c, output);
+            sem_evaluation_work_register(c, false);
+        }
+        var query = work_find(&c.queries, work.evaluation.subject, EvaluationQuery, 0);
+        if sem_declaration_input(result, query) || work_task(&c.queries, query).state != WorkState.Succeeded {
+            result.waiting = query;
+            return false;
+        }
+        work.type = sem_get(work.evaluation.literal).element;
+        work.phase = SemanticConstructorPhase.Ready;
+        result.checked = true;
         return false;
     }
     result.checked = true;

@@ -27,6 +27,9 @@ var FloatTypeConstructorArity: usize = 1;
 // Type bindings have no runtime storage. They reuse declaration dependencies,
 // nominal identities and the existing type-constructor application mechanism.
 fn sem_type_binding(c: SemanticContext*, n: void*): bool {
+    var value = sem_get(n);
+    if value != null { return value.kind == KType && value.global; }
+    if c.current != c.program.root { return false; }
     return sem_is(n, "CoreDeclare") && sem_member(n, "type") != null
         && sem_equal(sem_identifier(c, sem_member(n, "type")), "type");
 }
@@ -47,7 +50,7 @@ fn sem_type_binding_header(c: SemanticContext*, n: void*): void {
 fn sem_type_representation_name(name: u8*): bool {
     return sem_equal(name, "integer_type") || sem_equal(name, "float_type")
         || sem_equal(name, "boolean_type") || sem_equal(name, "empty_type") || sem_equal(name, "address_type")
-        || sem_equal(name, "pointer_type") || sem_equal(name, "array_type");
+        || sem_equal(name, "pointer_type") || sem_equal(name, "array_type") || sem_equal(name, "type_type");
 }
 
 fn sem_type_primitive(c: SemanticContext*, n: void*, name: u8*): FoundationType* {
@@ -56,14 +59,15 @@ fn sem_type_primitive(c: SemanticContext*, n: void*, name: u8*): FoundationType*
     var boolean = sem_equal(name, "boolean_type");
     var empty = sem_equal(name, "empty_type");
     var address = sem_equal(name, "address_type");
-    if !integer && !floating && !boolean && !empty && !address { return null; }
+    var metatype = sem_equal(name, "type_type");
+    if !integer && !floating && !boolean && !empty && !address && !metatype { return null; }
     var arguments = sem_collect(c, sem_member(n, "args"), sem_is(n, "CoreCall") ? "CoreCallArgument" : "CoreTypeArgument");
     var arity: usize = integer ? IntegerTypeConstructorArity : floating ? FloatTypeConstructorArity : 0;
     if arguments.length != arity {
         sem_fail(c, n, "Wrong argument count for primitive type constructor");
         return sem_type_new(c, SI32, 0, null);
     }
-    var scalar = boolean ? SBool : empty ? SVoid : SUSize;
+    var scalar = metatype ? SType : boolean ? SBool : empty ? SVoid : SUSize;
     if integer || floating {
         var width = sem_constant_value(c, arguments.data[0], null);
         if !sem_ok(c) { return sem_type_new(c, SI32, 0, null); }
@@ -539,6 +543,8 @@ fn sem_array_intern(c: SemanticContext*, element: FoundationType*, length: usize
 
 fn sem_type_impl(c: SemanticContext*, n: void*): FoundationType* {
     n = sem_surface_unwrap(n);
+    var prepared = sem_constructor_prepared(c, n);
+    if prepared != null { return prepared; }
     while sem_is(n, "CoreTypeArgument") && sem_child_count(n) == 1 {
         n = sem_surface_unwrap(sem_child(n, 0));
     }
@@ -667,8 +673,7 @@ fn sem_type_impl(c: SemanticContext*, n: void*): FoundationType* {
         return &step85.type;
     }
     if sem_equal(text, "type") {
-        sem_fail(c, n, "Type values currently require a template parameter or a type-constructor result");
-        return invalid;
+        return sem_type_new(c, SType, 0, null);
     }
     var found: void* = sem_resolve(c, c.types, n, text);
     if found == null {
@@ -781,6 +786,20 @@ fn sem_value_binding(c: SemanticContext*, n: void*): void* {
         scope = scope.parent;
     }
     return sem_resolve(c, c.globals, n, name);
+}
+
+fn sem_named_type_value(c: SemanticContext*, node: void*): bool {
+    if sem_value_binding(c, node) != null { return false; }
+    var declaration = generic_lookup(c.generics, node, node);
+    if declaration == null { declaration = sem_resolve(c, c.types, node, sem_identifier(c, node)); }
+    if declaration == null || sem_get(declaration).kind != KType { return false; }
+    // A bound type parameter already supplies an immutable canonical type.
+    // It has no declaration job to attach, particularly on a body worker.
+    if sem_get(declaration).global && !sem_declaration_type(c, declaration) { return true; }
+    var value = sem_node(c, node, KTypeReference);
+    value.type = *sem_type_new(c, SType, 0, null);
+    value.element = sem_get(declaration).type;
+    return true;
 }
 
 // Preserve Foundation's existing distinct value/function namespaces: a scalar

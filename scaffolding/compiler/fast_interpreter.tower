@@ -5,6 +5,7 @@ import foundation_types;
 import interpreter_abi;
 import interpreter_storage;
 import interpreter;
+import type_objects;
 import .library.vector;
 import .library.float_bits;
 
@@ -67,6 +68,7 @@ struct FMFrame {
 struct FMState {
     words: vector(u32);
     constants: vector(u64);
+    type_values: vector(FoundationType);
     functions: vector(FMFunction);
     function_indices: vector(usize);
     parameters: vector(FMParameter);
@@ -471,6 +473,11 @@ fn fm_value(f: FMState*, node: void*): usize {
         return fm_constant(f, 0);
     }
     var n = im_node(node);
+    if n.kind == KTypeReference {
+        var reference = type_object_intern(&f.type_values, &n.element);
+        im_storage_require(reference != 0);
+        return fm_constant(f, reference);
+    }
     if n.kind == KFunctionReference {
         fm_function(f, n.binding);
         return fm_constant(f, convert(u64, im_node(n.binding).index) + 1);
@@ -822,6 +829,7 @@ export fn fast_interpreter_dispose(f: FMState*): void {
     vector_dispose(&f.locals);
     vector_dispose(&f.words);
     vector_dispose(&f.constants);
+    vector_dispose(&f.type_values);
     vector_dispose(&f.functions);
     vector_dispose(&f.function_indices);
     vector_dispose(&f.parameters);

@@ -1,0 +1,16 @@
+import tower;
+import foundation_types;
+import .library.vector;
+
+extern fn semantic_type_equal(left: FoundationType*, right: FoundationType*): bool;
+
+// Disposable execution indexes for opaque type values. The canonical payload
+// remains a Foundation type descriptor, including its nominal entity binding.
+// Index order is private; formatting and staging relocate descriptors, never IDs.
+export fn type_object_intern(values: vector(FoundationType)*, type: FoundationType*): u64 {
+    for(var i: usize = 0; i < values.length; i++) {
+        if semantic_type_equal(&values.data[i], type) { return convert(u64, i) + 1; }
+    }
+    if values.length == convert(usize, ~convert(u32, 0)) || !vector_push(values, *type) { return 0; }
+    return convert(u64, values.length);
+}

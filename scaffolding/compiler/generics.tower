@@ -65,7 +65,15 @@ export fn generic_register(context: GenericContext*, definition: Entity*): u32 {
         template.kind = GenericKind.Function;
     }
     if produces_type {
-        template.kind = GenericKind.TypeConstructor;
+        var error: u8* = null;
+        var result = generic_type_result_read(definition, &error);
+        // Nominal recursive declarations retain early identity publication.
+        // General type-producing bodies use ordinary callable specialization
+        // and execution, including mutable value parameters and control flow.
+        if result != null && !compiler_node_label(result, "TowerExpression")
+            && !compiler_name_is(compiler_node_member(result, "name"), "type_value") {
+            template.kind = GenericKind.TypeConstructor;
+        }
     }
     if template.kind != GenericKind.Ordinary {
         var data = generic_component_add(definition, context.template_type);

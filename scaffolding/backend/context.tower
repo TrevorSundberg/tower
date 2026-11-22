@@ -24,6 +24,7 @@ extern fn semantic_float(type: FoundationType*): bool;
 extern fn semantic_aggregate(type: FoundationType*): bool;
 
 extern fn semantic_type_equal(a: FoundationType*, b: FoundationType*): bool;
+extern fn type_object_intern(values: vector(FoundationType)*, type: FoundationType*): u64;
 
 struct BackendAssociation {
     entity: void*;
@@ -56,6 +57,7 @@ struct Backend {
     locals: vector(void*);
     globals: vector(BackendAssociation);
     strings: vector(BackendAssociation);
+    type_values: vector(FoundationType);
     loops: vector(BackendLoop);
     labels: vector(BackendAssociation);
     current: void*;
@@ -199,6 +201,7 @@ export fn backend_close(b: Backend*): void {
     vector_dispose(&b.locals);
     vector_dispose(&b.globals);
     vector_dispose(&b.strings);
+    vector_dispose(&b.type_values);
     vector_dispose(&b.loops);
     vector_dispose(&b.labels);
     vector_dispose(&b.error);

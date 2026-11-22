@@ -141,9 +141,11 @@ source-selected primitive representations, and their normal runtime/compile-time
 value operations. Closed integer expressions and arithmetic over bound numeric
 type parameters now use ordinary interpreter queries in constructor arguments
 and array extents; see [computed type arguments](computed-type-arguments.md).
-Ordinary binding captures and helper-call results during type construction,
-arbitrary function execution returning type values, local mutable metatype storage, reflected operation attributes
-and source-selectable literal-default policies remain work below. Existing
+Ordinary immutable binding captures and helper-call results now work during type
+construction. Ordinary type-valued functions, local mutable metatype storage and
+immutable local type bindings are implemented; see [type values](type-values.md).
+Dynamic representation construction inside those functions, reflected operation
+attributes and source-selectable literal-default policies remain work below. Existing
 numeric literal defaults remain the execution profile's signed 32-bit / binary64
 defaults; redefining a name does not redefine the literal policy. There is no new
 constant evaluator. Ordinary `comptime` calls with the source-defined types use
@@ -169,7 +171,9 @@ the existing interpreter and dependency graph.
   constructors. Reference policy remains explicit; this does not imply ownership
   or safety semantics that are not implemented today.
   The named scalar module portion is implemented above; a fully reflected common
-  operation protocol and arbitrary type-producing execution are still pending.
+  operation protocol and general dynamic type construction are still pending.
+  Executed functions can select/return existing types through ordinary control
+  flow; legacy nominal constructors still retain a separate early-identity path.
 - [ ] Migrate checking, literals/default inference, interpreter/staging, formatter
   and LLVM/other target implementations incrementally to the protocol. Keep one
   authoritative graph with compilable Foundation spellings; derived fast paths

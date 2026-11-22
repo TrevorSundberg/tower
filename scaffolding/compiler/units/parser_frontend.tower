@@ -9,3 +9,5 @@ import compiler.frontend_world;
 import compiler.frontend_modules;
 import compiler.syntax_session_diagnostic;
 import compiler.syntax_session_next;
+import compiler.c_emitter;
+import compiler.roku_emitter;

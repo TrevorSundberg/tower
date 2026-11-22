@@ -14,7 +14,6 @@ import semantic_statements;
 import semantic_lifecycle;
 import frontend_compilation;
 import source_comments;
-import c_emitter;
-import roku_emitter;
+import source_emitter_api;
 import completion;
 import language_query;

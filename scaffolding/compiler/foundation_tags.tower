@@ -1,5 +1,5 @@
 import tower;
-// Shared Foundation component tags. Values match the transitional native ABI.
+// Shared internal Foundation component tags, not a public instruction/type ABI.
 var KProgram: u32 = 0;
 var KFunction: u32 = 1;
 var KParameter: u32 = 2;
@@ -36,6 +36,7 @@ var KJump: u32 = 32;
 var KTrap: u32 = 33;
 var KFunctionReference: u32 = 34;
 var KMetadataValue: u32 = 35;
+var KTypeReference: u32 = 36;
 var OAdd: u32 = 0;
 var OSub: u32 = 1;
 var OMul: u32 = 2;
@@ -66,7 +67,8 @@ var SI8: u32 = 12;
 var SI16: u32 = 13;
 var SU16: u32 = 14;
 var SFunction: u32 = 15;
-var FoundationScalarLimit: u32 = 16;
+var SType: u32 = 16;
+var FoundationScalarLimit: u32 = 17;
 var FoundationBuiltinScalarCount: usize = 13;
 var FoundationPointerDepthLimit: u32 = 16;
 var FoundationArrayLengthLimit: u64 = 1048576;

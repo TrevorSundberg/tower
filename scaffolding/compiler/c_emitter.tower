@@ -3,10 +3,7 @@ import c_runtime;
 import c_control;
 import foundation_tags;
 import foundation_types;
-import frontend_compilation;
-import semantic_context;
-import semantic_definitions;
-import semantic_support;
+import source_emitter_api;
 import .library.vector;
 
 // C89-style output over the shared Foundation entities. The vectors below are
@@ -370,6 +367,9 @@ fn ce_collect(c: CEmitter*, entity: void*, owner: void*): void {
     }
     if n.kind == KFunctionReference || n.kind == KCall && n.value != null || n.type.scalar == SFunction || n.element.scalar == SFunction {
         ce_fail(c, "This source backend does not yet implement function values; use LLVM native/Wasm output");
+    }
+    if n.kind == KTypeReference || n.type.scalar == SType || n.element.scalar == SType {
+        ce_fail(c, "This source backend does not yet implement type values; use LLVM native/Wasm output");
     }
     if n.kind == KFunction {
         owner = entity;

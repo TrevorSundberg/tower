@@ -20,7 +20,7 @@ extern fn syntax_get_error_offset(session: void*): usize;
 
 extern fn bytes_append(target: vector(u8)*, data: u8*, count: usize): bool;
 
-fn frontend_source_length(source: u8*): usize {
+export fn frontend_source_length(source: u8*): usize {
     var length: usize = 0;
     loop {
         if source[length] == 0 {

@@ -291,7 +291,7 @@ fn sem_operand_leaf(c: SemanticContext*, n: void*, expected_type: FoundationType
         value.constant = true;
         return sem_surface_expected(c, n, expected_type);
     }
-    var step11 = sem_is(n, "CoreCall") || sem_is(n, "TowerInvoke");
+    var step11 = sem_value_call_syntax(n) || sem_is(n, "TowerInvoke");
     if sem_editor_contains(c, n) {
         if c.editor.has_expected {
             if sem_is(n, "CoreAddress") {
@@ -360,7 +360,7 @@ fn sem_operand_leaf(c: SemanticContext*, n: void*, expected_type: FoundationType
             }
         } else {
             if !sem_literal(c, n) {
-                if !sem_enum_operand(c, n) && !sem_function_reference(c, n, n) {
+                if !sem_enum_operand(c, n) && !sem_function_reference(c, n, n) && !sem_named_type_value(c, n) {
                     n = sem_location(c, n, 0);
                 }
             }
@@ -604,6 +604,11 @@ fn sem_builtin(c: SemanticContext*, n: void*, kind: u32, args: vector(void*)*): 
         return n;
     }
     var step11 = sem_type_new(c, SUSize, 0, null);
+    if kind == KTypeReference {
+        value.type = *sem_type_new(c, SType, 0, null);
+        value.element = *sem_type(c, args.data[0]);
+        return n;
+    }
     if kind == KTrap {
         value.left = sem_operand(c, args.data[0], sem_type_new(c, SU8, 1, null));
         value.right = sem_operand(c, args.data[1], sem_type_new(c, SU32, 0, null));
@@ -619,6 +624,9 @@ fn sem_builtin(c: SemanticContext*, n: void*, kind: u32, args: vector(void*)*): 
         }
         if sem_ok(c) && sem_get(step14).type.pointers == 0 && sem_get(step14).type.scalar == SFunction {
             sem_fail(c, step14, "Function values cannot be printed; compare their identities or print a descriptive name");
+        }
+        if sem_ok(c) && sem_get(step14).type.pointers == 0 && sem_get(step14).type.scalar == SType {
+            sem_fail(c, step14, "Type values have opaque identity and cannot be printed as numbers");
         }
     } else {
         if kind == KFree || kind == KCopy || kind == KFill {
@@ -695,6 +703,10 @@ fn sem_builtin(c: SemanticContext*, n: void*, kind: u32, args: vector(void*)*): 
                         }
                         var step62 = sem_get(value.value);
                         var source: FoundationType* = &step62.type;
+                        if value.type.pointers == 0 && value.type.scalar == SType || source.pointers == 0 && source.scalar == SType {
+                            sem_fail(c, n, "Type values cannot be converted or reinterpreted as numeric representations");
+                            return n;
+                        }
                         if semantic_aggregate(source) || semantic_aggregate(&value.type) || value.type.pointers == 0 && value.type.scalar == SVoid {
                             sem_fail(c, n, "Conversion requires scalar values");
                         }
@@ -830,7 +842,7 @@ fn sem_prepare_call(c: SemanticContext*, use: void*, arguments: vector(void*)*):
     var definition = sem_resolve(c, c.templates, name, sem_identifier(c, name));
     sem_require(definition != null && c.declaration_subjects != null);
     var values = sem_list(c);
-    var args = sem_collect(c, sem_member(use, "args"), "CoreCallArgument");
+    var args = sem_collect(c, sem_member(use, "args"), sem_is(use, "CoreType") ? "CoreTypeArgument" : "CoreCallArgument");
     if arguments == null { arguments = sem_call_arguments(c, definition, use, args, values); }
     else { foreach(var argument in args) { sem_push(values, argument); } }
     if !sem_ok(c) { return null; }
@@ -864,7 +876,7 @@ fn sem_call(c: SemanticContext*, n: void*): void* {
     var step3 = sem_member(n, "name");
     var name: u8* = sem_identifier(c, step3);
     var step5 = sem_member(n, "args");
-    var args: vector(void*)* = sem_collect(c, step5, "CoreCallArgument");
+    var args: vector(void*)* = sem_collect(c, step5, sem_is(n, "CoreType") ? "CoreTypeArgument" : "CoreCallArgument");
     if sem_call_uses_value(c, step3) {
         return sem_indirect_call(c, n, step3, args);
     }

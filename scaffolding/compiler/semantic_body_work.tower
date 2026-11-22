@@ -254,7 +254,16 @@ extern fn entity_view_close(view: void*): void;
 
 // Type operands of builtins use the ordinary expression grammar. An index in
 // that position constructs an array type; ordinary value indexing does not.
-fn sem_body_type_structure(c: SemanticContext*, n: void*): bool {
+fn sem_body_type_name(c: SemanticContext*, node: void*, names: SemanticTable*): bool {
+    if sem_member(node, "base") != null || sem_member(node, "args") != null { return false; }
+    var name = sem_member(node, "name");
+    if name == null { return false; }
+    if sem_lookup_table(names, sem_identifier(c, name)) != null { return true; }
+    var binding = sem_value_binding(c, node);
+    return binding != null && sem_get(binding) != null && sem_get(binding).type.scalar == SType;
+}
+
+fn sem_body_type_structure(c: SemanticContext*, n: void*, names: SemanticTable*): bool {
     if n == null {
         return false;
     }
@@ -262,6 +271,7 @@ fn sem_body_type_structure(c: SemanticContext*, n: void*): bool {
     sem_push(pending, n);
     for(var i: usize = 0; i < pending.length; i++) {
         var node = pending.data[i];
+        if sem_body_type_name(c, node, names) { return true; }
         if sem_member(node, "index") != null || sem_member(node, "count") != null {
             return true;
         }
@@ -274,7 +284,7 @@ fn sem_body_type_structure(c: SemanticContext*, n: void*): bool {
 
 // Unprepared types/protocols require coordinator admission. This scan only
 // admits immutable inputs; it does not check/retry operands to discover effects.
-fn sem_body_tree(c: SemanticContext*, source: void*, nodes: vector(void*)*): bool {
+fn sem_body_tree(c: SemanticContext*, source: void*, nodes: vector(void*)*, names: SemanticTable*): bool {
     var first = nodes.length;
     sem_push(nodes, source);
     for(var i = first; i < nodes.length; i++) {
@@ -292,7 +302,8 @@ fn sem_body_tree(c: SemanticContext*, source: void*, nodes: vector(void*)*): boo
             return false;
         }
         if sem_is(node, "CoreType") &&(sem_member(node, "args") != null
-        || sem_member(node, "count") != null || sem_member(node, "index") != null) {
+        || sem_member(node, "count") != null || sem_member(node, "index") != null
+        || sem_body_type_name(c, node, names)) {
             return false;
         }
         if sem_is(node, "CoreCall") {
@@ -307,7 +318,7 @@ fn sem_body_tree(c: SemanticContext*, source: void*, nodes: vector(void*)*): boo
             } else {
                 if semantic_builtin_type_argument(builtin, 0) {
                     var args = sem_collect(c, sem_member(node, "args"), "CoreCallArgument");
-                    if args.length != 0 && sem_body_type_structure(c, args.data[0]) {
+                    if args.length != 0 && sem_body_type_structure(c, args.data[0], names) {
                         return false;
                     }
                 }
@@ -346,6 +357,20 @@ fn sem_body_sources(c: SemanticContext*, result: SemanticBodyWork*): void {
     defer vector_dispose(&scan);
     var pending: vector(void*) = default;
     defer vector_dispose(&pending);
+    // Discovery precedes lexical checking. Conservatively route type spellings
+    // matching any local through a continuation; that continuation resolves
+    // the actual scope and proves immutable staged availability. This also
+    // handles a local metatype binding shadowing a module type name.
+    var names = sem_table(c);
+    sem_push(&pending, result.subject);
+    for(var i: usize = 0; i < pending.length; i++) {
+        var node = pending.data[i];
+        if sem_is(node, "CoreDeclare") || sem_is(node, "CoreParameter") {
+            sem_put(c, names, sem_identifier(c, sem_member(node, "name")), node);
+        }
+        for(var j: usize = 0; j < sem_child_count(node); j++) { sem_push(&pending, sem_child(node, j)); }
+    }
+    pending.length = 0;
     sem_push(&pending, body);
     while pending.length != 0 {
         var source = pending.data[--pending.length];
@@ -367,7 +392,7 @@ fn sem_body_sources(c: SemanticContext*, result: SemanticBodyWork*): void {
                 foreach(var arm in arms) {
                     scan.length = 0;
                     resumable &&= sem_is(sem_member(arm, "body"), "CoreBlock")
-                    && sem_body_tree(c, sem_member(arm, "patterns"), &scan);
+                    && sem_body_tree(c, sem_member(arm, "patterns"), &scan, names);
                 }
                 if !resumable {
                     // Unusual grammar extensions can construct types in a
@@ -376,7 +401,7 @@ fn sem_body_sources(c: SemanticContext*, result: SemanticBodyWork*): void {
                     continue;
                 }
                 scan.length = 0;
-                if !sem_body_tree(c, sem_member(node, "value"), &scan) {
+                if !sem_body_tree(c, sem_member(node, "value"), &scan, names) {
                     sem_body_boundary(result, source, true);
                 }
                 sem_push(&pending, fallback);
@@ -400,7 +425,7 @@ fn sem_body_sources(c: SemanticContext*, result: SemanticBodyWork*): void {
             // their statements. Resume those bodies through the same frames.
             if sem_is(node, "CoreIf") && sem_member(node, "condition") != null && sem_is(sem_member(node, "body"), "CoreBlock")
             &&(sem_member(node, "otherwise") == null || sem_is(sem_member(node, "otherwise"), "CoreBlock")) {
-                if !sem_body_tree(c, sem_member(node, "condition"), &scan) {
+                if !sem_body_tree(c, sem_member(node, "condition"), &scan, names) {
                     sem_body_boundary(result, source, true);
                 }
                 var other = sem_member(node, "otherwise");
@@ -414,12 +439,12 @@ fn sem_body_sources(c: SemanticContext*, result: SemanticBodyWork*): void {
             var for_loop = sem_is(node, "TowerFor");
             if(while_loop || for_loop) && sem_is(sem_member(node, "body"), "CoreBlock") {
                 scan.length = 0;
-                var ready = sem_body_tree(c, sem_member(node, "condition"), &scan);
+                var ready = sem_body_tree(c, sem_member(node, "condition"), &scan, names);
                 if for_loop {
                     scan.length = 0;
-                    ready &&= sem_body_tree(c, sem_member(node, "initial"), &scan);
+                    ready &&= sem_body_tree(c, sem_member(node, "initial"), &scan, names);
                     scan.length = 0;
-                    ready &&= sem_body_tree(c, sem_member(node, "step"), &scan);
+                    ready &&= sem_body_tree(c, sem_member(node, "step"), &scan, names);
                 }
                 if !ready {
                     sem_body_boundary(result, source, true);
@@ -432,7 +457,7 @@ fn sem_body_sources(c: SemanticContext*, result: SemanticBodyWork*): void {
                 continue;
             }
             scan.length = 0;
-            if !sem_body_tree(c, source, &scan) {
+            if !sem_body_tree(c, source, &scan, names) {
                 sem_body_boundary(result, source, false);
             }
         }
@@ -1998,7 +2023,6 @@ fn sem_body_pipeline_finish(c: SemanticContext*): void {
         if !sem_ok(c) { return; }
         var id = work_find(&c.queries, result.subject, BodyQuery, 0);
         if sem_declaration_failure(c, id) { return; }
-        var producer = result.initialization ?? result.declaration;
         if result.preparation_phase == SemanticBodyPreparation.ProtocolSignature {
             var function = *sem_iteration_slot(&result.iteration_plan, result.iteration_role);
             var query = sem_declaration_query(c, function);
@@ -2053,6 +2077,12 @@ fn sem_body_request(c: SemanticContext*, subject: void*): SemanticBodyWork* {
     result.ordinal = sem_get(subject).index;
     result.kernel.kind = CompilerKernelKind.Body;
     result.kernel.payload = bits(void*, result);
+    // Executed type helpers can demand a specialization before the ordinary
+    // body-admission window reaches it. Discovery must wait for its real body,
+    // not inspect the empty signature-only clone.
+    if generic_body_pending(c.generics, subject) {
+        sem_generic_body_request(c, subject, sem_declaration_query(c, subject));
+    }
     var discovery = sem_body_sources_request(c, result);
     var id = work_request(&c.queries, subject, BodyQuery, 0);
     sem_require(id != 0 && work_depend(&c.queries, id, discovery));

@@ -1,0 +1,58 @@
+import tower;
+
+struct First { value: i32; }
+struct Second { value: i32; }
+var Alias: type = First;
+struct TypeInfo { element: type_type(); width: usize; }
+fn type_info(): TypeInfo { return { element: u16, width: sizeof(u16) }; }
+[type_info()]
+struct Tagged { value: u8; }
+
+fn select_type(flag: bool): type {
+    var result: type = i32;
+    if flag { result = u8; }
+    return result;
+}
+
+fn same_type(left: type_type(), right: type_type()): bool { return left == right; }
+
+fn loop_type(T: type, count: usize): type {
+    var result: type = T;
+    while count != 0 { result = u16; count--; }
+    return result;
+}
+
+var Selected: type = select_type(true);
+var LoopType: type = loop_type(i32, 3);
+var NestedStage: type = select_type(comptime(true));
+
+fn verify(): i32 {
+    var failures: i32 = 0;
+    var selected: select_type(false);
+    if sizeof(Selected) != 1 || sizeof(decltype(selected)) != 4 { failures++; }
+    if sizeof(LoopType) != 2 || sizeof(loop_type(u8, 0)) != 1 { failures++; }
+    if sizeof(NestedStage) != 1 { failures++; }
+    var first: type = type_value(i32);
+    var second = type_value(u32);
+    if first == second { failures++; }
+    second = type_value(integer_type(32, 1));
+    if first != second { failures++; }
+    if !same_type(type_value(First), type_value(Alias)) { failures++; }
+    if same_type(type_value(First), type_value(Second)) { failures++; }
+    if !same_type(type_value(i32[3]), type_value(array_type(i32, 3))) { failures++; }
+    if same_type(type_value(i32[2]), type_value(i32[3])) { failures++; }
+    if select_type(true) != type_value(u8) || select_type(false) != first { failures++; }
+    var staged = comptime(select_type(true));
+    if staged != type_value(u8) { failures++; }
+    var local_type = select_type(false);
+    var local: local_type;
+    if sizeof(decltype(local)) != 4 { failures++; }
+    var local_generic: loop_type(u8, 0);
+    if sizeof(decltype(local_generic)) != 1 { failures++; }
+    { var i32: type = u8; var shadow: i32; if sizeof(decltype(shadow)) != 1 { failures++; } }
+    var info = comptime(type_info());
+    if info.element != u16 || info.width != 2 { failures++; }
+    { var i32: usize = 7; if i32 != 7 { failures++; } }
+    return failures;
+}
+print(verify());

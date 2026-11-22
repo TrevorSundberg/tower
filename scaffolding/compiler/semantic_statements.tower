@@ -135,6 +135,10 @@ fn sem_header(c: SemanticContext*, n: void*, name: u8*, definition: void*): void
             sem_fail(c, p, "Array parameters require a pointer; wrap an array in a struct for value passing");
             break;
         }
+        if sem_get(p).type.scalar == SType && (external || function_node.exported) {
+            sem_fail(c, p, "Type values cannot cross a foreign or exported ABI");
+            break;
+        }
         if semantic_aggregate(&sem_get(p).type) {
             c.surface_expressions = true;
             if external || function_node.exported {
@@ -146,6 +150,9 @@ fn sem_header(c: SemanticContext*, n: void*, name: u8*, definition: void*): void
     }
     if sem_ok(c) {
         sem_set_type(&function_node.type, sem_type(c, sem_member(n, "type")));
+        if function_node.type.scalar == SType && (external || function_node.exported) {
+            sem_fail(c, n, "Type values cannot cross a foreign or exported ABI");
+        }
         name = sem_name(function_node);
         if semantic_builtin_kind(name) != 0 {
             sem_fail(c, n, sem_cat(c, "Function name '", sem_cat(c, name, "' already names a foundation builtin")));

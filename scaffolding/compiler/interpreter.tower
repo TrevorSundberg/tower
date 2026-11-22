@@ -1,4 +1,5 @@
 import interpreter_types;
+import type_objects;
 import tower;
 import foundation_tags;
 import foundation_types;
@@ -489,7 +490,10 @@ fn ix_read_uncached(m: IMExecution*, node: void*, n: FoundationNode*, offset: us
         return n.bits;
     }
     var input = ix_value_input(m, n);
-    if input != null { return im_cached_node(m.state, input).bits; }
+    // Published inputs can be relocated type/function references as well as
+    // numeric literals. Read the ordinary Foundation value in this invocation;
+    // another invocation's private reference index is not an input constant.
+    if input != null { return ix_read(m, input, offset); }
     var address = ix_address_component(m, node, n, offset);
     if ix_ok(m) {
         return ix_load(m, address, &n.type, offset);
@@ -591,6 +595,11 @@ fn ix_evaluate_uncached(m: IMExecution*, node: void*, n: FoundationNode*, offset
         return 0;
     }
     if n.kind == KFunctionReference { return im_function_reference(m.state, n.binding); }
+    if n.kind == KTypeReference {
+        var reference = type_object_intern(&m.state.type_values, &n.element);
+        im_storage_require(reference != 0);
+        return reference;
+    }
     if n.kind == KCall {
         ix_fail(m, "Missing suspended call result", offset);
         return 0;
@@ -1622,6 +1631,16 @@ export fn interpreter_function_result(invocation: IMInvocation*, reference: u64,
         return null;
     }
     return binding;
+}
+
+export fn interpreter_type_result(invocation: IMInvocation*, reference: u64, type: FoundationType*, offset: usize): bool {
+    if reference == 0 || reference > convert(u64, invocation.state.type_values.length) {
+        var execution: IMExecution = { state: &invocation.state, context: &invocation.context };
+        ix_fail(&execution, "Compile-time result contains an invalid type value", offset);
+        return false;
+    }
+    *type = invocation.state.type_values.data[convert(usize, reference - 1)];
+    return true;
 }
 
 // Compatibility entry points preserve the native and fast-interpreter ABI.

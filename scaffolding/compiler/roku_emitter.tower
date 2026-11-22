@@ -1,10 +1,7 @@
 import tower;
-import frontend_compilation;
 import foundation_types;
 import foundation_tags;
-import semantic_context;
-import semantic_definitions;
-import semantic_support;
+import source_emitter_api;
 import .library.vector;
 import c_emitter;
 import roku_runtime;

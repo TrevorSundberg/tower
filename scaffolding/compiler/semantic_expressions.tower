@@ -34,12 +34,19 @@ var SurfaceSet: u32 = 4294967295;
 var SurfaceFirstDigit: u8 = 48;
 var SurfaceLastDigit: u8 = 57;
 
+// Type-position applications can execute an ordinary type-producing function.
+// They retain their source grouping while sharing call checking and queries.
+fn sem_value_call_syntax(node: void*): bool {
+    return sem_is(node, "CoreCall") || sem_is(node, "CoreType") && sem_member(node, "args") != null;
+}
+
 fn sem_surface_unwrap(n: void*): void* {
     loop {
         var wrapper = sem_is(n, "TowerExpression");
         wrapper ||= sem_is(n, "TowerComma");
         wrapper ||= sem_is(n, "CoreOperand");
         wrapper ||= sem_is(n, "CoreCallArgument");
+        wrapper ||= sem_is(n, "CoreTypeArgument");
         wrapper ||= sem_is(n, "CoreValue");
         wrapper ||= sem_is(n, "CoreMetadataOperand");
         if !wrapper {
@@ -88,6 +95,10 @@ fn sem_default(c: SemanticContext*, n: void*, expected_type: FoundationType*, de
         return n;
     }
     sem_set_type(&value.type, type);
+    if type.pointers == 0 && type.scalar == SType {
+        sem_fail(c, n, "A type value requires an explicit type, not a zero default");
+        return n;
+    }
     if type.pointers == 0 && type.scalar == SVoid {
         sem_fail(c, n, "default requires a non-void type");
         return n;
