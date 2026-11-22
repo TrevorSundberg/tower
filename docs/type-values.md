@@ -57,8 +57,10 @@ index; no host address or index becomes the public identity of a type. Current
 opaque storage occupies four bytes with four-byte alignment, independently of
 target pointer width. Canonical Foundation stores `type_value(...)` with the
 actual descriptor and nominal binding. Staged captures reconstruct references
-in their consuming invocation. `.towerbc` semantic profile 8 invalidates older
-caches and verifies reconstructed Foundation before execution.
+in their consuming invocation. Type values introduced `.towerbc` semantics
+version 8; see the [current package contract](../playground/README.md) for later
+versions. Loading rejects incompatible caches and verifies reconstructed
+Foundation before execution.
 
 LLVM machine output can optimize type indexes internally. Its scalar return path
 cannot reconstruct their type identities, so CLI and browser Foundation/bytecode

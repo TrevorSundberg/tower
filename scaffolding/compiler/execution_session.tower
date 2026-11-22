@@ -69,9 +69,10 @@ fn execution_session_fail(execution: ExecutionSession*, text: u8*, offset: usize
         if !bytes_assign_text(&execution.error, text, strlen(text)) {
             abort();
         }
-        execution.machine.failed = true;
         execution.machine.error_offset = offset;
     }
+    execution.machine.failed = true;
+    execution.machine.done = true;
 }
 
 fn execution_session_compile_sources(execution: ExecutionSession*, sources: FrontendSource*, count: usize, width: u32, modules: void*): bool {
@@ -108,6 +109,14 @@ fn execution_session_compile_sources_world(execution: ExecutionSession*, world: 
             copied = false;
             break;
         }
+        for(var at: usize = 0; at < snapshots[i].length; at++) {
+            if snapshots[i].data[at] == 0 {
+                execution_session_fail(execution, "NUL in compiler source", at);
+                copied = false;
+                break;
+            }
+        }
+        if !copied { break; }
         inputs[i].data = snapshots[i].data;
         inputs[i].length = snapshots[i].length;
     }
@@ -143,6 +152,11 @@ fn execution_session_compile(execution: ExecutionSession*, text: u8*, length: us
 }
 
 fn execution_session_start(execution: ExecutionSession*): bool {
+    if execution.machine.failed { return false; }
+    if execution.program.root == null {
+        execution_session_fail(execution, "Execution session has no compiled program", 0);
+        return false;
+    }
     if !execution.started {
         execution.started = true;
         interpreter_init(&execution.machine);

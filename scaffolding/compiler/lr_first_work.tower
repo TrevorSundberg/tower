@@ -105,8 +105,8 @@ fn lr_analysis_work(value: LRAnalysis*, anchor: void*, capacity: usize): bool {
     }
     var kind = lr_work_node(owner);
     if kind == null || !entity_register(kind, sizeof(LRFirstTask), alignof(LRFirstTask), 0) { return false; }
-    var nodes: void*[256];
-    var jobs: LRFirstTask*[256];
+    var nodes: void*[WorkPoolMaximumCapacity];
+    var jobs: LRFirstTask*[WorkPoolMaximumCapacity];
     for(var i: usize = 0; i < capacity; i++) {
         nodes[i] = lr_work_node(owner);
         if nodes[i] == null { return false; }
@@ -122,16 +122,20 @@ fn lr_analysis_work(value: LRAnalysis*, anchor: void*, capacity: usize): bool {
     var graph: WorkGraph;
     work_init(&graph, 1, 0);
     defer work_dispose(&graph);
-    var workers: ParserWorkers;
-    if !parser_workers_open(&workers, anchor, capacity) { return false; }
+    var workers: ParserWorkers = default;
     defer parser_workers_close(&workers);
-    var pool = workers.pool;
     while frontier.length != 0 {
         var count = frontier.length / LRFirstGrain;
         // A retained world pool may be wider than this analysis's job array.
         if count > capacity { count = capacity; }
-        if count > pool.count { count = pool.count; }
         if count < 2 { return lr_analysis_compute(value); }
+        var admission: ParserAdmission = default;
+        if !parser_admission_open(&admission, anchor, count) { return false; }
+        defer parser_admission_close(&admission, &graph);
+        if admission.extra == 0 { return lr_analysis_compute(value); }
+        if workers.pool == null && !parser_workers_open(&workers, anchor, capacity) { return false; }
+        var pool = workers.pool;
+        if count > pool.count { count = pool.count; }
         if !work_reset(&graph, graph.revision + 1, graph.profile) { return false; }
         var position: usize = 0;
         for(var i: usize = 0; i < count; i++) {
@@ -151,16 +155,10 @@ fn lr_analysis_work(value: LRAnalysis*, anchor: void*, capacity: usize): bool {
         }
         var view = entity_view_open(owner);
         if view == null { return false; }
-        var ok = true;
-        var admitted: usize = 0;
-        for(; admitted < count; admitted++) {
-            if !work_pool_submit(pool, bits(void*, &jobs[admitted].kernel)) { ok = false; break; }
-        }
-        for(var i: usize = 0; i < admitted; i++) {
-            if work_pool_receive(pool, true) == null { ok = false; }
-        }
+        var ok = compiler_kernel_dispatch_admitted(pool, &jobs[0], count, admission.extra);
         entity_view_close(view);
-        for(var i: usize = 0; i < admitted; i++) {
+        if !ok { return false; }
+        for(var i: usize = 0; i < count; i++) {
             if !work_finish(&graph, &jobs[i].ticket, jobs[i].success) || !jobs[i].success { ok = false; }
         }
         if !ok { return false; }

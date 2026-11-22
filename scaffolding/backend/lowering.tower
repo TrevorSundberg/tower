@@ -11,6 +11,46 @@ import .compiler.foundation_types;
 import .library.vector;
 import .library.float_bits;
 
+extern fn foundation_execution_item(parent: FoundationNode*, child: FoundationNode*): bool;
+extern fn foundation_execution_reference(node: FoundationNode*): void*;
+
+// This is an index over frozen Foundation entities, not a rewritten program.
+// Private declarations become executable through calls or function values;
+// exported/foreign signatures retain their existing native ABI validation.
+fn backend_execution_functions(root: void*, functions: void**, count: usize, retained: vector(u8)*): bool {
+    if count == 0 || functions[0] != root || !vector_reserve(retained, count) { return false; }
+    retained.length = count;
+    fill(retained.data, 0, count);
+    retained.data[0] = 1;
+    var pending: vector(void*) = default;
+    defer vector_dispose(&pending);
+    if !vector_push(&pending, root) { return false; }
+    for(var index: usize = 1; index < count; index++) {
+        var node = sem_get(functions[index]);
+        if (node.exported || node.external) && !vector_push(&pending, functions[index]) { return false; }
+    }
+    while pending.length != 0 {
+        var subject = pending.data[--pending.length];
+        if subject == null { continue; }
+        var node = sem_get(subject);
+        if node.kind == KType || node.kind == KLabel { continue; }
+        if node.kind == KFunction {
+            if node.index >= count || functions[node.index] != subject { return false; }
+            if retained.data[node.index] != 0 { continue; }
+            retained.data[node.index] = 1;
+        }
+        if !vector_push(&pending, foundation_execution_reference(node))
+            || !vector_push(&pending, node.left) || !vector_push(&pending, node.right)
+            || !vector_push(&pending, node.value) || !vector_push(&pending, node.target)
+            || !vector_push(&pending, node.body) || !vector_push(&pending, node.otherwise) { return false; }
+        foreach(var item in &node.items) {
+            if foundation_execution_item(node, sem_get(item)) && !vector_push(&pending, item) { return false; }
+        }
+        foreach(var parameter in &node.parameters) { if !vector_push(&pending, parameter) { return false; } }
+    }
+    return true;
+}
+
 // LLVMAttributeFunctionIndex in the C API (the unsigned all-ones sentinel).
 var BackendFunctionAttributeIndex: u32 = ~convert(u32, 0);
 
@@ -408,6 +448,21 @@ fn backend_conversion(b: Backend*, n: FoundationNode*, from: FoundationType*, va
 fn backend_expression(b: Backend*, entity: void*): void* {
     var n = sem_get(entity);
     if n.kind == KFunctionReference || n.kind == KTypeReference { return backend_read(b, entity); }
+    if n.kind == KTypeConstruct {
+        // Construction is a compile-stage effect. Preserve ordinary operand
+        // effects before the reached runtime capability failure, including in
+        // helper bodies that are never called or branches that are never taken.
+        if n.left != null { backend_read(b, n.left); }
+        if n.right != null { backend_read(b, n.right); }
+        var offset = b.source_offset;
+        b.source_offset = n.start;
+        backend_guard(b, LLVMConstNull(LLVMIntTypeInContext(b.context, 1)),
+            "Type construction requires compile-stage capability");
+        b.source_offset = offset;
+        // The guard's success block has no reachable predecessor. This value
+        // only keeps surrounding LLVM expressions well-typed, never a type ID.
+        return LLVMGetUndef(backend_type(b, &n.type));
+    }
     var ordinary = n.kind == KOperand;
     var `match` = n.kind == KString;
     if `match` {
@@ -880,6 +935,12 @@ export fn backend_lower(b: Backend*, root: void*, functions: void**, count: usiz
         }
     }
     backend_runtime_declarations(b);
+    var retained: vector(u8) = default;
+    defer vector_dispose(&retained);
+    if !backend_execution_functions(root, functions, count, &retained) {
+        backend_fail(b, "Cannot index executable Foundation functions: allocation or function identity failure");
+        return false;
+    }
     var i: usize = 0;
     loop {
         var done = i == count;
@@ -888,8 +949,8 @@ export fn backend_lower(b: Backend*, root: void*, functions: void**, count: usiz
         }
         var n = sem_get(functions[i]);
         var entry = i == 0;
-        var omit = entry;
-        omit &&= library;
+        var omit = (entry && library) || retained.data[i] == 0;
+        backend_require(b, vector_push(&b.source_functions, functions[i]));
         if omit {
             backend_require(b, vector_push(&b.functions, null));
             backend_require(b, vector_push(&b.symbols, null));
@@ -983,7 +1044,6 @@ export fn backend_lower(b: Backend*, root: void*, functions: void**, count: usiz
         }
         backend_require(b, vector_push(&b.symbols, name.data));
         backend_require(b, vector_push(&b.functions, function));
-        backend_require(b, vector_push(&b.source_functions, functions[i]));
         i++;
     }
     i = 0;

@@ -1,0 +1,57 @@
+import tower;
+import .library.work_budget;
+import .library.work_budget_types;
+
+// Linux x64 timing boundary. The workload remains in Tower and validates every
+// grant plus final accounting. This measures ledger overhead, not compiler work.
+extern fn clock_gettime(clock: i32, result: i64*): i32;
+extern fn getrusage(who: i32, result: i64*): i32;
+
+fn budget_profile_check(ok: bool): void {
+    if !ok { trap("Work budget profile mismatch", 0); }
+}
+
+fn budget_profile_time(): i64 {
+    var stamp: i64[2];
+    budget_profile_check(clock_gettime(1, &stamp[0]) == 0);
+    return stamp[0] * 1000000000 + stamp[1];
+}
+
+fn budget_profile(lanes: usize, rounds: usize): void {
+    var budget: WorkBudget = default;
+    budget_profile_check(work_budget_init(&budget, lanes, lanes * 4096, 1));
+    defer work_budget_dispose(&budget);
+    var receipts = alloc(WorkReservation, lanes);
+    budget_profile_check(receipts != null);
+    fill(receipts, 0, lanes * sizeof(WorkReservation));
+    defer free(receipts);
+    var before: i64[18];
+    var after: i64[18];
+    budget_profile_check(getrusage(0, &before[0]) == 0);
+    var start = budget_profile_time();
+    for(var round: usize = 0; round < rounds; round++) {
+        for(var i: usize = 0; i < lanes; i++) {
+            budget_profile_check(work_budget_reserve(&budget, 1, 1, 4096, &receipts[i]));
+            budget_profile_check(receipts[i].lanes == 1 && receipts[i].bytes == 4096);
+        }
+        for(var i = lanes; i != 0;) { budget_profile_check(work_budget_release(&budget, &receipts[--i])); }
+    }
+    var elapsed = budget_profile_time() - start;
+    budget_profile_check(getrusage(0, &after[0]) == 0);
+    budget_profile_check(budget.live == 0 && budget.used_lanes == 0 && budget.used_bytes == 0);
+    budget_profile_check(budget.peak_lanes == lanes && budget.peak_bytes == lanes * 4096);
+    // lanes, rounds, wall ns, CPU us, peak process RSS KiB, retained ledger bytes.
+    print(lanes);
+    print(rounds);
+    print(elapsed);
+    print((after[0] - before[0] + after[2] - before[2]) * 1000000
+        + after[1] - before[1] + after[3] - before[3]);
+    print(after[4]);
+    print(budget.entries.capacity * sizeof(WorkBudgetEntry));
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    budget_profile(1, 1048576);
+    budget_profile(12, 87382);
+    return 0;
+}

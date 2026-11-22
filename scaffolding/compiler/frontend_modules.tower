@@ -428,7 +428,7 @@ fn module_node(graph: ModuleGraph*, entity: void*): FrontendModule* {
     return bits(FrontendModule*, entity_component_data(entity_component_get(entity, graph.kind)));
 }
 
-fn module_new(graph: ModuleGraph*, name: u8*, text: u8*): FrontendModule* {
+fn module_new(graph: ModuleGraph*, name: u8*, text: u8*, length: usize): FrontendModule* {
     if graph.kind == null {
         graph.kind = entity_create(compiler_world_store(graph.world));
         module_require(entity_register(graph.kind, sizeof(FrontendModule), alignof(FrontendModule), 0));
@@ -443,7 +443,7 @@ fn module_new(graph: ModuleGraph*, name: u8*, text: u8*): FrontendModule* {
     fill(value, 0, sizeof(FrontendModule));
     value.entity = entity;
     value.graph = graph;
-    value.source = syntax_source_create(name, text, syntax_text_length(text));
+    value.source = syntax_source_create(name, text, length);
     var allocated4 = value.source != null;
     module_require(allocated4);
     module_require(vector_push(&graph.entities, entity));
@@ -496,6 +496,11 @@ export fn frontend_module_root(source: u8*, environment: ModuleEnvironment*): Fr
 }
 
 export fn frontend_module_root_world(world: void*, source: u8*, environment: ModuleEnvironment*): FrontendModule* {
+    return frontend_module_root_world_size(world, source, syntax_text_length(source), environment);
+}
+
+export fn frontend_module_root_world_size(world: void*, source: u8*, length: usize, environment: ModuleEnvironment*): FrontendModule* {
+    if source == null || length == ~convert(usize, 0) { return null; }
     if !frontend_modules_bind_world(environment, world) { return null; }
     var graph = alloc(ModuleGraph, 1);
     var allocated5 = graph != null;
@@ -520,7 +525,7 @@ export fn frontend_module_root_world(world: void*, source: u8*, environment: Mod
     if name[0] == 0 {
         name = "input.tower";
     }
-    var result = module_new(graph, name, source);
+    var result = module_new(graph, name, source, length);
     environment.active = result;
     return result;
 }
@@ -815,7 +820,7 @@ fn module_load(parent: FrontendModule*, name: u8*, literal: bool): FrontendModul
                     module_fail(parent, "Import depth exceeds 128: ", path.data);
                 }
                 else {
-                    result = module_new(parent.graph, path.data, text.data);
+                    result = module_new(parent.graph, path.data, text.data, text.length);
                     parent.graph.depth++;
                     var session = parent.graph.import_session;
                     parent.graph.import_session = null;
@@ -1398,54 +1403,34 @@ export fn frontend_modules_destroy(environment: ModuleEnvironment*): void {
 fn module_cacheable(module: FrontendModule*): bool {
     // A back-edge may still point at an unfinished module. Never cache that
     // partial snapshot, even if cycle validation will reject the request later.
-    if module.graph.cycles {
-        return false;
-    }
-    if module.state != ModuleLoaded {
-        return false;
-    }
-    var i: usize = 0;
-    loop {
-        if i == module.dependencies.length {
-            return true;
-        }
-        if !module_cacheable(module.dependencies.data[i]) {
-            return false;
-        }
-        i++;
-    }
+    // module_load completes dependencies before their importer and marks every
+    // edge to an unfinished ancestor on the owning graph. Rewalking every path
+    // adds exponential work for diamonds without establishing another invariant.
+    return !module.graph.cycles && module.state == ModuleLoaded;
 }
 
-fn module_cache_valid(environment: ModuleEnvironment*, module: FrontendModule*): bool {
-    var text: vector(u8);
-    vector_init(&text);
-    var status = module_read(environment, module.source.name.data, &text);
-    var ok = status == ModuleReady;
-    ok &&= module_equal(text.data, module.source.text.data);
-    vector_dispose(&text);
-    if !ok {
-        return false;
-    }
-    var i: usize = 0;
-    loop {
-        if i == module.dependencies.length {
-            return true;
+fn module_cache_valid(module: FrontendModule*): bool {
+    // A cache entry owns a complete cloned dependency graph. Its ordered index
+    // visits each module once, even when many import paths reach the same node.
+    // The root's bytes were checked by module_cached. Check every import edge's
+    // current resolution AND returned source bytes; this covers every other
+    // source without a second read or a persistent validity/cache identity.
+    var path: vector(u8) = default;
+    var text: vector(u8) = default;
+    defer vector_dispose(&path);
+    defer vector_dispose(&text);
+    foreach(var current in &module.graph.order) {
+        for(var i: usize = 0; i < current.dependencies.length; i++) {
+            path.length = 0;
+            text.length = 0;
+            var declaration = bits(SyntaxNode*, compiler_node_get(current.imports.data[i], CompilerSyntax));
+            var dependency = current.dependencies.data[i];
+            if module_resolve(current, declaration.name.data, declaration.literal, &path, &text) != ModuleReady
+                || !module_equal(path.data, dependency.source.name.data)
+                || !module_equal(text.data, dependency.source.text.data) { return false; }
         }
-        var path: vector(u8);
-        vector_init(&path);
-        vector_init(&text);
-        var declaration = bits(SyntaxNode*, compiler_node_get(module.imports.data[i], CompilerSyntax));
-        status = module_resolve(module, declaration.name.data, declaration.literal, &path, &text);
-        ok = status == ModuleReady;
-        ok &&= module_equal(path.data, module.dependencies.data[i].source.name.data);
-        vector_dispose(&path);
-        vector_dispose(&text);
-        ok &&= module_cache_valid(environment, module.dependencies.data[i]);
-        if !ok {
-            return false;
-        }
-        i++;
     }
+    return true;
 }
 
 fn module_cached(environment: ModuleEnvironment*, path: u8*, text: u8*): FrontendModule* {
@@ -1457,7 +1442,7 @@ fn module_cached(environment: ModuleEnvironment*, path: u8*, text: u8*): Fronten
         var candidate = environment.cache.data[i];
         var same = module_equal(candidate.source.name.data, path);
         same &&= module_equal(candidate.source.text.data, text);
-        same &&= module_cache_valid(environment, candidate);
+        same &&= module_cache_valid(candidate);
         if same {
             return candidate;
         }
@@ -1477,7 +1462,7 @@ fn module_clone(graph: ModuleGraph*, source: FrontendModule*): FrontendModule* {
             return old;
         }
     }
-    var result = module_new(graph, source.source.name.data, source.source.text.data);
+    var result = module_new(graph, source.source.name.data, source.source.text.data, source.source.text.length);
     i = 0;
     for(; i != source.dependencies.length; i++) {
         var dependency = module_clone(graph, source.dependencies.data[i]);

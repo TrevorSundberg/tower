@@ -1,0 +1,126 @@
+import tower;
+import execution_support;
+import .compiler.execution_session;
+import .compiler.interpreter_context_types;
+import .compiler.foundation_tags;
+import .compiler.foundation_types;
+import .library.vector;
+
+extern fn sem_create(parent: void*): void*;
+extern fn sem_attach(node: void*, kind: u32): FoundationNode*;
+extern fn interpreter_invocation_init(invocation: IMInvocation*, function: void*, width: usize, arguments: u64*, count: usize, strict: bool, fuel: u64): bool;
+extern fn interpreter_invocation_step(invocation: IMInvocation*, budget: usize): void;
+extern fn interpreter_invocation_dispose(invocation: IMInvocation*): void;
+extern fn interpreter_type_result(invocation: IMInvocation*, reference: u64, type: FoundationType*, offset: usize): bool;
+
+fn construction_test_function(session: ExecutionSession*, name: u8*): void* {
+    foreach(var function in &session.program.functions) {
+        var node = sem_get(function);
+        if node.name.length == strlen(name) && memcmp(node.name.data, name, node.name.length) == 0 { return function; }
+    }
+    execution_check(false, "constructor fixture function exists");
+    return null;
+}
+
+fn construction_test_until_wait(invocation: IMInvocation*): void {
+    for(var step: usize = 0; step < 1000; step++) {
+        interpreter_invocation_step(invocation, 1);
+        if invocation.state.done || invocation.context.waiting_type { return; }
+    }
+    execution_check(false, "constructor invocation makes bounded progress");
+}
+
+fn construction_test_begin(invocation: IMInvocation*, function: void*, width: u32, capability: bool): void {
+    execution_check(interpreter_invocation_init(invocation, function, convert(usize, width), null, 0, false, 0),
+        "constructor invocation starts");
+    invocation.context.construct_types = capability;
+    invocation.context.type_construction.owner = function;
+}
+
+// Mutate owned checked entities only between invocations. This isolates the
+// interpreter protocol before frontend/coordinator constructor integration.
+fn execution_type_construction_tests(modules: void*): void {
+    for(var width: u32 = 4; width <= 8; width += 4) {
+        var session: ExecutionSession = default;
+        defer execution_session_close(&session);
+        execution_compile(&session, "import tower; fn first():i32 { print(1); return 8; } fn second():i32 { print(2); return 1; } fn make():type { var ignored:type=i32; return i32; }", width, modules);
+        var function = construction_test_function(&session, "make");
+        var body = sem_get(sem_get(function).body);
+        var construct = sem_create(function);
+        var node = sem_attach(construct, KTypeConstruct);
+        node.type = sem_get(function).type;
+        node.op = convert(u32, TypeConstructionKind.Integer);
+        node.left = sem_create(construct);
+        node.right = sem_create(construct);
+        var left = sem_attach(node.left, KCall);
+        left.binding = construction_test_function(&session, "first");
+        left.type = sem_get(left.binding).type;
+        var right = sem_attach(node.right, KCall);
+        right.binding = construction_test_function(&session, "second");
+        right.type = sem_get(right.binding).type;
+        execution_check(body.items.length == 2, "constructor fixture statement shape");
+        sem_get(body.items.data[0]).value = construct;
+        sem_get(body.items.data[1]).value = construct;
+        var invocation: IMInvocation = default;
+        defer interpreter_invocation_dispose(&invocation);
+        construction_test_begin(&invocation, function, width, true);
+        for(var visit: usize = 1; visit <= 2; visit++) {
+            construction_test_until_wait(&invocation);
+            var request = &invocation.context.type_construction;
+            execution_check(!invocation.state.failed && invocation.context.waiting_type
+                && request.owner == function && request.subject == construct && request.sequence == visit
+                && request.first == 8 && request.second == 1 && request.kind == node.op,
+                "reached constructor retains evaluated operands and unique visit identity");
+            execution_check(invocation.context.output.length == visit * 4
+                && memcmp(invocation.context.output.data, "1\n2\n1\n2\n", visit * 4) == 0,
+                "constructor effects execute left to right once per visit");
+            var steps = invocation.state.steps;
+            for(var retry: usize = 0; retry < 4; retry++) {
+                interpreter_invocation_step(&invocation, 1);
+                execution_check(invocation.state.steps == steps && request.sequence == visit
+                    && invocation.context.output.length == visit * 4, "pending retry never replays operands");
+            }
+            request.result = { scalar: SI8, pointer_bytes: width, ..default };
+            request.ready = true;
+        }
+        construction_test_until_wait(&invocation);
+        var result: FoundationType = default;
+        execution_check(invocation.state.done && !invocation.state.failed && invocation.context.returned
+            && invocation.context.type_construction.subject == null
+            && interpreter_type_result(&invocation, invocation.context.result, &result, 0)
+            && result.scalar == SI8 && result.pointer_bytes == width,
+            "ready descriptor relocates to private type table and consumes request");
+        interpreter_invocation_dispose(&invocation);
+        construction_test_begin(&invocation, function, width, false);
+        construction_test_until_wait(&invocation);
+        var diagnostic = "Type construction requires compile-stage capability";
+        execution_check(invocation.state.failed && invocation.context.output.length == 4
+            && invocation.context.error.length == strlen(diagnostic)
+            && memcmp(invocation.context.error.data, diagnostic, strlen(diagnostic)) == 0,
+            "missing capability fails after ordered operand effects");
+        interpreter_invocation_dispose(&invocation);
+        construction_test_begin(&invocation, function, width, true);
+        construction_test_until_wait(&invocation);
+        invocation.context.type_construction.failed = true;
+        construction_test_until_wait(&invocation);
+        execution_check(invocation.state.failed && invocation.context.output.length == 4,
+            "failed producer terminates even without a ready receipt");
+        interpreter_invocation_dispose(&invocation);
+        construction_test_begin(&invocation, function, width, true);
+        invocation.context.type_construction.sequence = ~convert(usize, 0);
+        construction_test_until_wait(&invocation);
+        execution_check(invocation.state.failed && invocation.context.type_construction.subject == null,
+            "sequence overflow cannot reuse a request identity");
+        interpreter_invocation_dispose(&invocation);
+        var call = sem_create(session.program.root);
+        var called = sem_attach(call, KCall);
+        called.binding = function;
+        called.type = sem_get(function).type;
+        execution_check(vector_push(&sem_get(session.program.root).items, call), "runtime constructor call fixture");
+        execution_check(execution_session_fast(&session), "runtime constructor cache builds");
+        execution_run(&session, 1, 1000);
+        execution_check(session.machine.failed && execution_text(&session.output, "1\n2\n")
+            && execution_text(&session.error, diagnostic), "fast runtime preserves reached-op capability failure");
+    }
+    puts("Constructor operand order, suspension, receipts and runtime capability passed at both widths.");
+}

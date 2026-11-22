@@ -8,6 +8,8 @@ extern fn sem_get(node: void*): FoundationNode*;
 extern fn sem_name(node: FoundationNode*): u8*;
 extern fn sem_equal(left: u8*, right: u8*): bool;
 extern fn sem_require(ok: bool): void;
+extern fn foundation_execution_item(parent: FoundationNode*, child: FoundationNode*): bool;
+extern fn foundation_execution_reference(node: FoundationNode*): void*;
 extern fn frontend_source_length(source: u8*): usize;
 extern fn bytes_append(target: vector(u8)*, data: u8*, count: usize): bool;
 extern fn semantic_aggregate(type: FoundationType*): bool;

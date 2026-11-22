@@ -1,4 +1,7 @@
 import tower;
+import semantic_known_types;
+import semantic_context_types;
+import semantic_evaluation_types;
 import foundation_tags;
 import foundation_types;
 import semantic_context;
@@ -12,6 +15,7 @@ import semantic_expressions;
 import interpreter_context_types;
 import compiler_kernel;
 import semantic_known_work;
+import semantic_capture_work;
 import semantic_work_ids;
 import .library.vector;
 import .library.work_graph;
@@ -93,10 +97,13 @@ fn sem_known_stage(c: SemanticContext*, node: void*, binding: SemanticKnownBindi
     sem_require(work_depend(&c.queries,
         work_find(&c.queries, subject, convert(u32, SemanticQuery.KnownClone), 0), binding.input_query));
     binding.evaluation = subject;
-    var input = bits(IMValueInput*, entity_component_data(entity_component_add(node, c.value_inputs)));
-    sem_require(input != null);
-    input.producer = subject;
-    input.owner = binding.owner;
+    var input = bits(IMValueInput*, entity_component_data(entity_component_get(node, c.value_inputs)));
+    if input == null {
+        input = bits(IMValueInput*, entity_component_data(entity_component_add(node, c.value_inputs)));
+        sem_require(input != null);
+        *input = default;
+    }
+    input.known_producer = subject;
     result.expression = sem_get(node).value;
     c.surface_expressions = true;
 }
@@ -248,6 +255,7 @@ fn sem_known_infer(c: SemanticContext*): void {
 
 fn sem_known_publish(c: SemanticContext*): void {
     if !sem_ok(c) || c.known_bindings == null { return; }
+    sem_captures_finalize(c);
     var kind = sem_known_kind(c);
     var count: usize = 0;
     for(var index: usize = 0; index < c.program.functions.length; index++) {

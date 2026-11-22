@@ -1,0 +1,19 @@
+import tower;
+
+fn unused_type(width: usize): type { return integer_type(width, 1); }
+
+fn first(count: i32): i32 {
+    if count == 0 { return 42; }
+    return second(count - 1);
+}
+
+fn second(count: i32): i32 { return first(count); }
+
+// An uncalled export remains part of the emitted interface.
+export fn visible_answer(): i32 { return first(0); }
+
+var initialized: i32 = 0;
+fn initialize(): i32 { initialized++; return first(2); }
+var answer = initialize();
+print(answer);
+print(initialized);

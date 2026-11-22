@@ -17,7 +17,7 @@ fn execution_package_tests(modules: void*): void {
         var decoded: ExecutionSession;
         fill(&original, 0, sizeof(ExecutionSession));
         fill(&decoded, 0, sizeof(ExecutionSession));
-        execution_compile(&original, "var p = alloc(i32, 2); p[0] = 42; print(p[0]); print(sizeof(usize)); free(p);", width, modules);
+        execution_compile(&original, "import tower; var p = alloc(i32, 2); p[0] = 42; print(p[0]); print(sizeof(usize)); free(p);", width, modules);
         var bytes: ByteBuffer;
         var repeated: ByteBuffer;
         var error: ByteBuffer;
@@ -40,12 +40,13 @@ fn execution_package_tests(modules: void*): void {
         execution_check(execution_text(&decoded.error, ".towerbc checksum mismatch"), "exact checksum diagnostic");
         execution_check(decoded.fast == null && decoded.program.root == null, "invalid package never publishes executable state");
         execution_check(!execution_package_load(&decoded, bytes.data, 55, modules), "truncated header rejected");
-        execution_compile(&original, "print(42);", width, modules);
+        execution_compile(&original, "import tower; print(42);", width, modules);
         execution_check(execution_session_fast(&original), "cache verification fixture starts");
         var size: usize = 0;
         // The public envelope encoder supplies a valid checksum. Only checking
         // its reconstructed Foundation against the derived cache can reject this.
-        var mismatch = bytecode_encode(original.fast, "print(43);", 10, convert(usize, width), 0, &size);
+        var mismatch_source = "import tower; print(43);";
+        var mismatch = bytecode_encode(original.fast, mismatch_source, strlen(mismatch_source), convert(usize, width), 0, &size);
         execution_check(mismatch != null && bytecode_validate(mismatch, size) == 0, "mismatched cache has valid envelope/checksum");
         execution_check(!execution_package_load(&decoded, mismatch, size, modules)
             && execution_text(&decoded.error, bytecode_error(9)), "Foundation/cache mismatch rejected");

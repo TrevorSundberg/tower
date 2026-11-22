@@ -1,4 +1,5 @@
 import tower;
+import semantic_context_types;
 import .library.vector;
 import foundation_tags;
 import frontend_compilation;

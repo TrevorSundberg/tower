@@ -1,5 +1,9 @@
 import tower;
+import world_budget;
+import frontend_units_memory;
 import .library.vector;
+import .library.work_budget;
+import .library.work_budget_types;
 import .compiler.semantic_program_types;
 import .compiler.foundation_types;
 import .compiler.component_kinds;
@@ -18,6 +22,8 @@ extern fn frontend_units_close(batch: void*): void;
 extern fn compiler_node_world(node: void*): void*;
 extern fn compiler_node_type(node: void*, kind: u32): void*;
 extern fn compiler_world_worker_limit(world: void*): usize;
+extern fn compiler_world_work_budget(world: void*): WorkBudget*;
+extern fn frontend_units_work_budget(batch: void*): WorkBudget*;
 extern fn format_entity(result: FormatResult*, node: void*, syntax: void*, foundation: void*, match_kind: void*): void;
 extern fn format_dispose(result: FormatResult*): void;
 extern fn sem_get(node: void*): FoundationNode*;
@@ -30,6 +36,7 @@ extern fn strlen(text: u8*): usize;
 extern fn strcmp(a: u8*, b: u8*): i32;
 extern fn strstr(text: u8*, query: u8*): u8*;
 extern fn puts(text: u8*): i32;
+extern fn fflush(stream: void*): i32;
 extern fn abort(): void;
 extern fn fopen(path: u8*, mode: u8*): void*;
 extern fn fseek(file: void*, offset: i64, origin: i32): i32;
@@ -38,7 +45,7 @@ extern fn fread(data: void*, size: usize, count: usize, file: void*): usize;
 extern fn fclose(file: void*): i32;
 
 fn units_check(ok: bool, message: u8*): void {
-    if !ok { puts(message); abort(); }
+    if !ok { puts(message); fflush(null); abort(); }
 }
 
 fn units_read(root: u8*, name: u8*, out: vector(u8)*): void {
@@ -92,11 +99,12 @@ fn units_trial(budget: usize, width: u32, bedrock: u8*, foundation: u8*, root: u
         units_check(program is not null && program.pointer_bytes == width, "published target profile");
         worlds[i - 1] = compiler_node_world(program.root);
         for(var j: usize = 0; j < i - 1; j++) { units_check(worlds[j] != worlds[i - 1], "exclusive unit world"); }
-        var lanes = budget < 3 ? budget : 3;
+        var lanes = budget;
         var available = work_thread_capacity();
         if lanes > available { lanes = available; }
         if !work_thread_available() { lanes = 1; }
-        units_check(compiler_world_worker_limit(worlds[i - 1]) == budget / lanes, "nested world budget");
+        units_check(compiler_world_worker_limit(worlds[i - 1]) == lanes, "nested world budget ceiling");
+        units_check(compiler_world_work_budget(worlds[i - 1]) == frontend_units_work_budget(batch), "one shared unit budget");
         var answer: void* = null;
         foreach(var function in &program.functions) {
             var node = sem_get(function);
@@ -116,6 +124,10 @@ fn units_trial(budget: usize, width: u32, bedrock: u8*, foundation: u8*, root: u
         format_dispose(&formatted);
     }
     units_check(frontend_units_program(batch, 4) is null, "invalid result ordinal");
+    var snapshot: WorkBudgetSnapshot;
+    units_check(work_budget_snapshot(frontend_units_work_budget(batch), &snapshot)
+        && snapshot.used_lanes == 0 && snapshot.peak_lanes <= budget
+        && snapshot.used_bytes != 0 && snapshot.live == 4, "joined units retain only input bytes");
 }
 
 fn units_failure(budget: usize, bedrock: u8*, foundation: u8*, root: u8*): void {
@@ -158,17 +170,23 @@ fn units_cancellation(bedrock: u8*, foundation: u8*, root: u8*): void {
         frontend_units_cancel(batch);
         units_check(frontend_units_cancelled(batch) && frontend_units_step(batch, false), "cancel joins workers");
         units_check(frontend_units_program(batch, 1) is null, "cancel rejects publication");
+        var snapshot: WorkBudgetSnapshot;
+        units_check(work_budget_snapshot(frontend_units_work_budget(batch), &snapshot)
+            && snapshot.used_lanes == 0 && snapshot.used_bytes != 0 && snapshot.live == 5,
+            "cancel drains execution but retains inputs");
         frontend_units_close(batch);
     }
 }
 
 export fn frontend_units_tests(root: u8*): void {
+    world_budget_tests();
     var bedrock: vector(u8) = default;
     var foundation: vector(u8) = default;
     defer vector_dispose(&bedrock);
     defer vector_dispose(&foundation);
     units_read(root, "/bedrock.tower", &bedrock);
     units_read(root, "/foundation.tower", &foundation);
+    frontend_units_memory_tests(bedrock.data, foundation.data, root);
     for(var width: u32 = 4; width <= 8; width += 4) {
         var serial: vector(u8) = default;
         var parallel: vector(u8) = default;

@@ -1,7 +1,13 @@
 import tower;
+import .library.work_budget_types;
+import semantic_context_types;
+import semantic_evaluation_types;
 import semantic_execution_work;
 import semantic_capture_work;
+import semantic_type_execution;
+import semantic_query_pipeline;
 import semantic_context;
+import semantic_declarations;
 import semantic_support;
 import semantic_types;
 import semantic_values;
@@ -30,29 +36,6 @@ extern fn entity_view_close(view: void*): void;
 var EvaluationQuery: u32 = convert(u32, SemanticQuery.Evaluation);
 var EvaluationFuel: u64 = 1000000;
 
-struct SemanticEvaluation {
-    kernel: CompilerKernel;
-    ticket: WorkTicket;
-    subject: void*;
-    owner: void*;
-    literal: void*;
-    expression: void*;
-    function: void*;
-    ready: IMDependency*;
-    invocation: IMInvocation;
-    requested: bool;
-    started: bool;
-    inferred: bool;
-    type_argument: bool;
-    capture_order: bool;
-    capture_ordinal: usize;
-    error: vector(u8);
-    error_offset: usize;
-    aliases: vector(SemanticEvaluationAlias);
-    leaves: vector(SemanticEvaluationLeaf);
-    aggregate_type: FoundationType;
-    aggregate: bool;
-}
 
 fn sem_evaluation_dependency(c: SemanticContext*, node: void*): IMDependency* {
     if c.evaluation_ready == null { return null; }
@@ -115,15 +98,10 @@ fn sem_evaluation_fail(c: SemanticContext*, result: SemanticEvaluation*, message
 }
 
 fn sem_evaluation_failure(c: SemanticContext*, result: SemanticEvaluation*): bool {
-    if result == null || result.error.length == 0 { return false; }
-    if sem_ok(c) {
-        sem_fail(c, result.subject, result.error.data);
-        c.program.error_offset = result.error_offset;
-    }
-    return true;
+    return result != null && sem_restore_error(c, &result.error, result.error_offset);
 }
 
-fn sem_evaluation_begin(c: SemanticContext*): void {
+export fn sem_evaluation_begin(c: SemanticContext*): void {
     if c.evaluation_results != null { return; }
     c.evaluation_results = sem_create(c.program.root);
     sem_require(entity_register(c.evaluation_results, sizeof(SemanticEvaluation), alignof(SemanticEvaluation), 0));
@@ -131,18 +109,25 @@ fn sem_evaluation_begin(c: SemanticContext*): void {
     sem_require(entity_register(c.evaluation_ready, sizeof(IMDependency), alignof(IMDependency), 0));
 }
 
-fn sem_evaluation_request(c: SemanticContext*, result: SemanticEvaluation*): void {
+export fn sem_evaluation_request(c: SemanticContext*, result: SemanticEvaluation*): void {
     var id = work_request(&c.queries, result.subject, EvaluationQuery, 0);
     sem_require(id != 0);
     var preparation = work_request(&c.queries, result.subject, EvaluationPrepareQuery, 0);
     sem_require(preparation != 0 && work_depend(&c.queries, id, preparation));
-    var body = work_find(&c.queries, result.owner, convert(u32, SemanticQuery.Body), 0);
-    if body != 0 { sem_require(work_depend(&c.queries, preparation, body)); }
     if result.inferred {
+        var body = work_find(&c.queries, result.owner, convert(u32, SemanticQuery.Body), 0);
+        if body != 0 { sem_require(work_depend(&c.queries, preparation, body)); }
         var proof = work_find(&c.queries, c.program.root, convert(u32, SemanticQuery.KnownProof), 0);
         var clone = work_request(&c.queries, result.subject, convert(u32, SemanticQuery.KnownClone), 0);
         sem_require(proof != 0 && clone != 0 && work_depend(&c.queries, clone, proof));
         sem_require(work_depend(&c.queries, preparation, clone));
+    } else {
+        // Required expressions are checked and published before registration.
+        // Their lexical owner remains provenance, not a whole-body barrier:
+        // a later declaration may need this earlier prefix's staged value.
+        // Executed reads request existing capture/function producers instead.
+        sem_executables_begin(c);
+        sem_captures_begin(c);
     }
     var domain = convert(u64, SemanticWorkDomain.Compiler);
     sem_require(work_access(&c.queries, id, domain, convert(u64, SemanticAccess.Evaluation), id, 1, WorkAccessMode.Write));
@@ -256,6 +241,10 @@ fn sem_evaluation_clone_expression(c: SemanticContext*, result: SemanticEvaluati
 }
 
 fn sem_evaluation_prepare(c: SemanticContext*, result: SemanticEvaluation*): void {
+    if result.expression == null {
+        sem_require(result.function != null && sem_get(result.function).body != null);
+        return;
+    }
     if result.aggregate { sem_evaluation_aggregate_prepare(c, result); return; }
     var function = sem_evaluation_function(c, result);
     var definition = sem_get(function);
@@ -277,11 +266,16 @@ fn sem_evaluation_start(c: SemanticContext*, result: SemanticEvaluation*): void 
     result.invocation.context.dependency_kind = c.evaluation_ready;
     result.invocation.context.value_inputs = c.value_inputs;
     result.invocation.context.require_relocatable = result.inferred;
-    result.invocation.context.type_arguments = result.type_argument;
+    result.invocation.context.type_arguments = !result.inferred;
     result.invocation.context.capture_order = result.capture_order;
     result.invocation.context.capture_ordinal = result.capture_ordinal;
-    result.invocation.context.executable_functions = result.type_argument ? c.executable_ready : null;
+    result.invocation.context.executable_functions = result.inferred ? null : c.executable_ready;
     result.invocation.context.retain_result_storage = result.aggregate;
+    // Required stages (explicit comptime, type arguments and their captures)
+    // have compiler capability. Optional known-value inference must retain a
+    // reached runtime constructor's failure instead of erasing it as a constant.
+    result.invocation.context.construct_types = !result.inferred;
+    result.invocation.context.type_construction.owner = result.subject;
     result.started = true;
 }
 
@@ -306,14 +300,20 @@ fn sem_evaluation_cycle(c: SemanticContext*, id: usize): void {
     sem_fail(c, work_task(&c.queries, id).subject, text);
 }
 
-fn sem_evaluations(c: SemanticContext*): void {
-    while sem_evaluation_pump(c) == SemanticPumpResult.Progress {}
+export fn sem_evaluations(c: SemanticContext*): void {
+    loop {
+        var evaluation = sem_evaluation_pump(c);
+        if evaluation == SemanticPumpResult.Failed { break; }
+        var producers = sem_query_pipeline_pump(c);
+        if producers == SemanticPumpResult.Failed { break; }
+        if evaluation != SemanticPumpResult.Progress && producers != SemanticPumpResult.Progress { break; }
+    }
     sem_evaluation_finish(c);
 }
 
 // One bounded interpreter frontier. Keep final cycle/error selection separate
 // so a pipeline coordinator can service a waiting type/body/lowering phase.
-fn sem_evaluation_pump(c: SemanticContext*): SemanticPumpResult {
+export fn sem_evaluation_pump(c: SemanticContext*): SemanticPumpResult {
     return sem_evaluation_pump_inputs(c, true);
 }
 
@@ -364,7 +364,10 @@ fn sem_evaluation_pump_inputs(c: SemanticContext*, demand_roots: bool): Semantic
         // Reserve a bounded ready frontier, then refill each completed slot.
         // No results become visible until all readers in this window join.
         for(var i: usize = 0; i < count; i++) { sem_require(batch.data[i].started); }
-        sem_require(compiler_kernel_dispatch(&c.workers, batch.data, count));
+        var receipt: WorkReservation;
+        var extra = sem_workers_admit(c, count, &receipt);
+        defer sem_workers_release(c, &receipt);
+        sem_require(compiler_kernel_dispatch_admitted(&c.workers, batch.data, count, extra));
         entity_view_close(view);
         index = 0;
         while index < count {
@@ -403,13 +406,22 @@ fn sem_evaluation_pump_inputs(c: SemanticContext*, demand_roots: bool): Semantic
                     interpreter_invocation_dispose(invocation);
                 } else {
                     var waiting = invocation.context.waiting;
-                    if waiting != null {
-                        var dependency = invocation.context.waiting_function ? sem_executable_request(c, waiting)
-                            : invocation.context.waiting_binding ? sem_capture_request(c, waiting)
-                            : work_request(&c.queries, waiting, EvaluationQuery, 0);
-                        sem_require(work_suspend(&c.queries, &result.ticket, dependency));
+                    if invocation.context.waiting_type {
+                        var dependency = sem_type_execution_request(c, result.subject,
+                            &invocation.context.type_construction, &result.ticket);
+                        if dependency == 0 {
+                            result.ready.failed = true;
+                            result.ready.ready = true;
+                            sem_require(work_finish(&c.queries, &result.ticket, false));
+                            interpreter_invocation_dispose(invocation);
+                        } else { sem_require(work_suspend(&c.queries, &result.ticket, dependency)); }
                     } else {
-                        sem_require(work_yield(&c.queries, &result.ticket));
+                        if waiting != null {
+                            var dependency = invocation.context.waiting_function ? sem_executable_request(c, waiting)
+                                : invocation.context.waiting_binding ? sem_capture_request(c, waiting)
+                                : work_request(&c.queries, waiting, EvaluationQuery, 0);
+                            sem_require(work_suspend(&c.queries, &result.ticket, dependency));
+                        } else { sem_require(work_yield(&c.queries, &result.ticket)); }
                     }
                 }
             }
@@ -430,7 +442,9 @@ fn sem_evaluation_finish(c: SemanticContext*): void {
             if result != null && result.inferred {
                 result.ready.failed = true;
                 result.ready.ready = true;
-            } else { sem_evaluation_cycle(c, index + 1); }
+            } else {
+                if !sem_declaration_failure(c, index + 1) { sem_evaluation_cycle(c, index + 1); }
+            }
         }
         index++;
     }
