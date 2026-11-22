@@ -46493,3 +46493,16 @@ original build identity; none of the unpublished lane checks is relabeled as
 validation of the hosted compiler. The full audit, integrated correctness and
 scaling, supported sanitizer milestone, public successor/bootstrap and hosted
 publication remain open.
+
+The coordinator published this documentation checkpoint as `fce5e63` with an
+atomic push of main and unchanged Pages `6f142bef15f58380831ed344ab5eac5c4b3c2840`.
+The full hosted verifier then exited 0: all 104 assets and desktop/mobile checks
+passed. A subsequent served-manifest fetch matched SHA-256
+`eb70f5388bee6b7ca318583eddfaa8e9a8a907c642a14a6fde85375ac8b1643c`;
+HTTP, HTTPS www and the old Pages address all redirect to the HTTPS apex with
+status 200. The existing Pages workflow `45055486523` remains successful.
+Logs are `C:/Sandbox/build/codex_ecs_20261122/root_coordination_hosted_verification.log`
+and `root_coordination_served_manifest.json`. This local browser run overlapped
+some local worker activity; affected timing samples must not be treated as quiet
+performance comparisons. Correctness results and remote-host measurements are
+separate. The receipt changes no assets or build identity.
