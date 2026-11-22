@@ -44396,3 +44396,20 @@ run passes 15/17; the two unrelated pre-existing expectations assume old Foundat
 formatting (bulk note_32/f32 naming and omission of reflected primitive declarations).
 No formatter implementation or broad formatting sweep is part of this linker work.
 The hosted verification rerun uses the exact same published runtime and asset map.
+
+Mach-O publication is verified: Pages f7545d65b019fdbb1e42d28da5b013f1abaceae8,
+workflow 45037575010 SUCCESS. Hosted manifest SHA256
+f03363064b5575776f5ec5af5d95a8b7d9d51d75632896a11ed61214772a69b0
+matches the prepared bytes. All 104 assets, desktop and mobile backend agreement,
+module bindings, editable grammar, completions, persistence, native builds and
+downloads pass in build/macho_hosted_deployment.log. Final native backend API and
+driver policy/process tests also pass after the last compiler-source rebase.
+Production cross link has tower-backend-macho.o and no liblld/MachO/COFF/ELF/Wasm
+library. Tracked owned C/C++/headers count remains zero; todo blob unchanged.
+
+Receipt rebase incorporates 42f267f's Tower asset-packaging tool and browser build
+transport reduction. It changes no compiler/runtime input for this frozen release;
+reuse the verified 454c951 runtime and project identities. Preserve every earlier
+publication receipt and all exact asset hashes; do not rebuild compiler binaries
+for this documentation/test-transport receipt. Agent1's separate tooling receipt
+will follow after this publication lock is released.
