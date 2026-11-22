@@ -30,12 +30,19 @@ export fn frontend_source_length(source: u8*): usize {
     }
 }
 
+// The caller supplies a readable span. Returning length means every byte is
+// source text; the terminator, if present, belongs outside that span.
+export fn frontend_source_nul(source: u8*, length: usize): usize {
+    for(var i: usize = 0; i < length; i++) { if source[i] == 0 { return i; } }
+    return length;
+}
+
 fn frontend_compile_error(program: SemanticProgram*, message: u8*): void {
     var length = frontend_source_length(message);
     sem_require(bytes_append(&program.error, message, length));
 }
 
-extern fn frontend_module_root_world(world: void*, source: u8*, environment: void*): void*;
+extern fn frontend_module_root_world_size(world: void*, source: u8*, length: usize, environment: void*): void*;
 extern fn compiler_node_world(node: void*): void*;
 
 extern fn frontend_module_finish(module: void*): void;
@@ -67,6 +74,10 @@ extern fn syntax_capture_comments(session: void*, module: void*): void;
 extern fn frontend_module_attach_comments(module: void*, root: void*, base: usize): void;
 
 export fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendSource*, count: usize, environment: void*): void {
+    if count != 0 && sources == null {
+        frontend_compile_error(program, "Compilation source array is missing");
+        return;
+    }
     var source: vector(u8);
     var roots: vector(void*);
     var bases: vector(usize);
@@ -85,7 +96,18 @@ export fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendS
         if done {
             break;
         }
-        var module = frontend_module_root_world(compiler_node_world(program.root), sources[index].data, environment);
+        var input = &sources[index];
+        if input.data == null || input.length == ~convert(usize, 0) {
+            frontend_compile_error(program, "Compilation source span is invalid");
+            break;
+        }
+        var nul = frontend_source_nul(input.data, input.length);
+        if nul != input.length {
+            frontend_compile_error(program, "Compilation source contains an embedded NUL byte");
+            program.error_offset = nul;
+            break;
+        }
+        var module = frontend_module_root_world_size(compiler_node_world(program.root), input.data, input.length, environment);
         if module is null {
             frontend_compile_error(program, "Module environment belongs to another compiler world or cannot be bound");
             break;

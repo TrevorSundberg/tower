@@ -1,4 +1,6 @@
 import tower;
+import .library.work_budget_types;
+import semantic_context_types;
 import compiler_kernel;
 import semantic_context;
 import semantic_program_types;
@@ -161,7 +163,7 @@ fn sem_lower_register(c: SemanticContext*, signature: bool): void* {
     return *kind;
 }
 
-fn sem_lower_pump(c: SemanticContext*, signature: bool): SemanticPumpResult {
+export fn sem_lower_pump(c: SemanticContext*, signature: bool): SemanticPumpResult {
     if !sem_ok(c) || !work_ok(&c.queries) { return SemanticPumpResult.Failed; }
     var kind = sem_lower_register(c, signature);
     if kind == null { return SemanticPumpResult.Complete; }
@@ -197,7 +199,10 @@ fn sem_lower_pump(c: SemanticContext*, signature: bool): SemanticPumpResult {
         sem_require(view != null);
         var context = *c;
         for(var i: usize = 0; i < count; i++) { batch.data[i].context = &context; }
-        sem_require(compiler_kernel_dispatch(&c.workers, batch.data, count));
+        var receipt: WorkReservation;
+        var extra = sem_workers_admit(c, count, &receipt);
+        defer sem_workers_release(c, &receipt);
+        sem_require(compiler_kernel_dispatch_admitted(&c.workers, batch.data, count, extra));
         entity_view_close(view);
         for(var i: usize = 0; i < count; ++i) {
             sem_require(entity_stage_publish(batch.data[i].stage));

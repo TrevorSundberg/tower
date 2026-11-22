@@ -1,4 +1,7 @@
 import tower;
+import semantic_known_types;
+import semantic_context_types;
+import semantic_evaluation_types;
 import foundation_tags;
 import foundation_types;
 import semantic_context;

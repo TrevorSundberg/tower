@@ -47127,3 +47127,494 @@ Sessions31549/40368 terminal, own Docker init/sleep only before releasing the
 D2-owned lock for D1. Final140GiBfree/9.8GiBavailable/5.9GiBhost swap; no cleanup
 needed. Old compiler results remain separate from incoming capture/snapshot
 changes and final integrated/publication acceptance.
+### 2026-11-22 — L2 type/generic completion audit and baseline
+
+L2 started from clean main 6282238779034442e0578d76b921ca117df819f1 and read the
+newer type-value continuation (production helper readiness supersedes the older
+handoff). File-level findings, sources, ownership and open evidence are recorded
+in docs/compiler_ecs_audit_L2.md. Types and generic instances use existing world
+entities, stable components, derived indexes and coordinated publication. Generic
+clone jobs already hold queued references before releasing their input view;
+linear interning and the structural/ordinary constructor split remain audit targets.
+
+The first intended change is prelude consolidation, retaining the exact tracked
+source i32 replacement test. Coordinator granted the precise packaging/filter
+edits and semantic_constructor_work ownership. L1 agreed the execution constructor
+boundary must retain evaluated arguments and suspend for coordinator publication;
+exact Foundation/request schema is still a proposal. Shared A1 context/evaluation
+changes await agreement. No new syntax is adopted in compiler sources.
+
+Public pin verification passed. Eighteen initial CLI runs (three samples each of
+type_bindings, type_object_values, computed_type_arguments at workers 1/4) returned
+0 with output 0. L1 subsequently reported possible overlap with its baseline build.
+An attempted copy then confirmed that WSL /tmp disappears between invocations:
+all original timing logs were lost before archival. These runs are rejected for
+acceptance/performance evidence; only tool-output fragments remain. Repeat to the
+Windows lane logs under the atomic build lock before production edits. An initial
+shell-loop launch also failed before compilation after WSL transport expanded its
+variables, leaving an invalid --jobs argument. Explicit per-process PowerShell
+arguments fixed that launch; it is not a passing sample. WSL exposes 15.3 GiB RAM
+and 4 GiB swap despite ~31 GiB host physical RAM. Persistent per-lane caches and
+Windows-side logs are required. No build/publication acceptance is claimed.
+
+The isolated repeat completed eighteen runs with exit zero and output zero under
+the shared lock, writing durable Windows lane logs/baseline. All workers drained
+before releasing the lock for L1. Source prelude consolidation then moved the
+thirteen definitions and shared integer helpers into types.tower, removed their
+fourteen source modules, and updated CMake/browser/project resource collection.
+The tracked i32 test reads the complete current prelude and changes only its width
+from 32 to 64; it preserves the remaining definitions instead of replacing them.
+The checked-in predecessor package remains untouched.
+
+The first smallest-unit command selected foundation.tower while compiling its own
+types.tower dependency as entry, producing the expected self-import cycle. Repeating
+with foundation_syntax.tower as explicit grammar compiled the unit successfully;
+the ordinary type_bindings consumer also executes with output zero. Logs:
+L2/logs/prelude_unit.log (failed launch), prelude_unit_syntax.log and
+prelude_fixture.log. Full source-binding checks and after profiles remain pending.
+
+Windows PowerShell's default Add-Content encoding also wrote the new journal dash
+as a Windows-1252 byte; apply_patch caught invalid UTF-8. Reencoded only this lane's
+appended suffix to UTF-8, preserving all prior bytes. Future journal edits use
+apply_patch. This environment issue did not affect compiler inputs.
+
+The frozen prelude candidate then passed the clean documented native build using
+the checked-in public pin, no override, persistent L2 WSL cache and two build
+jobs (51 steps; wall 94.14 s, user 156.02 s, system 18.62 s, peak RSS 843848 KiB).
+Smallest changed test compilation, the complete types suite, type-smoke and
+query-smoke passed. Eighteen equivalent after measurements all returned zero;
+the full before/after wall/CPU/RSS table and qualifications are in
+`docs/compiler_ecs_audit_L2.md`. Serial bindings/objects peak RSS increased about
+3 MiB, while parallel RSS fell slightly. The CLI exposes no allocation or idle
+counters. These observations are not a sanitizer or publication receipt.
+
+The executed-constructor design now has explicit L1/A1/B1/B2 agreement: ordinary
+left-to-right operands, KTypeConstruct with Integer/Floating/Pointer/Array tags,
+an invocation-private owner/sequence request, coordinator-only descriptor
+publication through WorkGraph, and reached-operation capability failure at
+runtime. Unexecuted branches/uncalled helpers remain valid. Canonical Foundation
+retains the operation; runtime fast/LLVM/Wasm report the same capability error
+after operands; C/Roku retain their explicit metatype rejection limitation.
+This is an agreed contract, not yet completed support.
+
+L2 drafted `semantic_type_execution.tower`: one ECS continuation per invocation,
+graph task keys include the sequence, ticket revision/profile/dispatch and target
+are validated, and TypeIndex/Evaluation access ranges are reserved. Numeric and
+pointer legality publish either a descriptor or retained interpreter error.
+Array field/layout dependencies suspend; the interned result is retained across
+layout retry without operand replay. The invocation and program root own all
+referenced storage until workers drain. This component adds no separate registry,
+scheduler or owned buffer. L1 owns request storage/disposal and interpreter/cache
+execution; A1 owns admission/evaluation bridges and shared pipeline; B1 owns
+formatting; B2 owns backend lowering. Numeric request failure is delivered as a
+completed request so the interpreter preserves its semantic-failure/inference
+policy; it must never be reported as successful construction.
+
+L2 also drafted value-position checking in `semantic_constructor_work`, delegated
+`sem_type_values_execute` to A1's agreed `sem_query_pipeline_pump`, and added a
+constructor fixture covering mutable locals, repeated source nodes, nested type
+arguments and untaken invalid widths. The predecessor language expresses all
+compiler changes; no compiler/tool sources adopt new constructor semantics.
+The shared files have not arrived in this clone, so these drafts have not compiled
+or passed validation. A scoped external patch supports coordinated integration.
+
+The ABI audit found direct SType-only header rejection misses typed pointers to
+records/arrays and callbacks containing metatypes. The drafted pure
+`type_object_abi_safe` walks completed descriptors iteratively with visited
+nominal entities, including pointer payloads and function signatures. A1's hook
+is immediately after successful sem_run, before hygiene/known/lowering, when
+source signatures and fields are complete. Independent descriptor fixtures cover
+recursive safe and hidden-metatype shapes; foreign/export failure cases and
+before/after validation remain open. Opaque void-pointer casts retain Foundation's
+raw contract; no universal foreign-data safety is inferred from this scan.
+
+The L1 interpreter/request patch and A1 semantic bridge/pipeline are now applied
+after clean patch checks. The producer's smallest public-predecessor compilation
+passes (16.51 s wall, 15.89 s user, 1.64 s system, 784304 KiB peak RSS), including
+actual dependency-edge validation and a retained operand/descriptor snapshot.
+The first attempt failed on a missing direct compiler_node_world declaration;
+the failure and retry logs are `L2/logs/construction_unit*`. This is compilation
+evidence only. The independent receipt unit also compiles: its first attempt
+mixed execution ByteBuffer and compiler vector APIs for bytes_append, and was
+corrected by using the compiler-internal test boundary. A1 owns wiring that test
+into the existing query suite. The changed types test unit passes after replacing
+the reserved identifier `expected`; both attempt logs remain.
+
+The unsafe nested-ABI baseline accepts the fixture and emits an object. A first
+BOM-bearing experimental source failed before parsing; the no-BOM retry confirms
+the actual gap. The first constructor fixture also failed on an unsupported
+pointer-array spelling, corrected to existing nested representation syntax.
+Its retry now fails specifically with `Unknown function 'integer_type'` at the
+ordinary value call. Neither preliminary failure is a passing regression check.
+
+After all jobs drained, L2 rebased to 89d60388 with autostash, preserving its
+changes and the incoming serial-export transport/docs update. The incoming todo
+change is upstream; L2's todo diff is empty. Autostash duplicated the old journal
+EOF line at the new append boundary; removed only that duplicate while retaining
+the original historical line. No runtime or publication evidence is inferred
+from the rebase. B1/B2 final source integration, linked regression runs, measured
+performance/retention, sanitizers and public pin/deployment closure remain open.
+
+L2 integrated the owner-supplied B1 constructor formatter fixtures, B2 ordered
+runtime capability guard/lowering fixtures, L1 bounded bytecode encoder with
+semantic profile 9/cache 6, and the narrow fast-interpreter allocation/statistics
+follow-up. A1's final caller reuses the already extracted name/argument vector;
+its combined query hook includes the source-proof and receipt fixtures. All
+patches passed applicability checks; the full A1 bridge reverse-check matches.
+The new wrong-dependency receipt case rejects publication even when all receipt
+fields match but the evaluation waits on unrelated work.
+
+A1's first joined link exposed duplicate exported `type_object_abi_safe` symbols
+from semantic and interpreter units. The helper is now an ordinary imported
+function; the independent ABI test imports its defining module instead of using
+an extern. Root authorized this exact boundary repair. The source-proof/receipt
+test closure exceeded the fixed 128 MiB Foundation payload in the combined
+semantics test unit, so A1 owns splitting the existing query test into a separate
+object through the existing CMake/manifest boundary. No test or budget was dropped.
+Compilation/link/runtime validation of these latest deltas is still pending.
+
+A2's actual LLVM instrumentation tool and deliberate negative probes are also
+integrated. They instrument emitted Tower functions, including runtime units;
+ordinary C compiler flags alone do not establish this coverage. D2 owns the
+all-unit build integration. L2 has not run joined ASan/TSan yet; A2's pool-only
+results are not acceptance of the constructor compiler. Source-language UBSan
+and browser sanitizer coverage are unsupported. No parallel heavy build has
+started while L1 holds the shared local build slot.
+
+Correction to the preceding proposed linkage repair: A1's `llvm-nm` evidence
+shows **all** exported type-object functions duplicated, because its semantic
+unit imported the implementation. Merely making the new helper ordinary does
+not repair that boundary. Root superseded the initial direction; L2 restored
+the helper export and test extern. A1 removes its implementation import and
+uses the interpreter-owned export. The earlier `L2_abi_internal.patch` is
+explicitly superseded and must not be applied. No successful link was claimed.
+L2 also added eight repeated constructor compilations/executions per target
+width, with checked output and exact entity/component counts after request
+closure; these are pending execution. The pre-constructor native executable
+was preserved under the lane directory for equivalent before/after profiles.
+
+The corrected ABI import boundary and all constructor production patches now
+build successfully from the public pin in L2's production profile (51 steps,
+89.07 s wall, 172.91 s CPU, 846964 KiB RSS). Successor SHA-256 is
+3b0810ab586b15fa8fe3c3475219655c899d21f4c4b62d11fbe411b2a6b8d73d.
+This profile deliberately precedes the still-open enlarged query-test closure;
+no omitted tests are counted as passing. Build time may overlap the root browser
+verifier and is only an observation. The 24 frozen baseline comparison samples
+all precede that verifier, return zero, and remain valid paired inputs.
+
+A1's untaken-helper source identified a structural-classification bug in
+generic_register: a direct representation-return body becomes TypeConstructor,
+so its ordinary call is rejected before executed branch selection. L2's first
+candidate excludes those representation calls and makes the minimal probe print
+7. Full construction still fails on a false u8 initialization cycle. Reduction:
+sizeof(u8) and a module alias to u8 pass, while a type-producing function with
+a local type value initialized from u8 fails. The diagnostic comes from the
+legacy state.number==1 check in semantic_types, not a completed WorkGraph cycle
+walk. A1 owns the preparation/pump investigation; L2 retains the failed receipts
+and expands ordinary wrapper-chain/local-binding/recursive-nominal regressions.
+The four-name candidate is not a general or accepted compatibility solution.
+
+L2 built A2's Tower LLVM instrumentation tool with the public pin and reproduced
+both negative controls on native WSL/Clang19. The original probe IR and all
+published host-runtime definitions were instrumented, then compiled without
+sanitizer flags; only final linking adds the matching runtime. ASan reports the
+expected one-byte heap-buffer-overflow immediately after an eight-byte region.
+TSan reports the deliberate shared counter race in work_kernel_execute between
+T1/T2 after their barrier. Its raw exit is 66 in
+`L2/logs/sanitizer_race_negative_status.time`; the Windows WSL transport reports
+1 for that nonzero guest status. The symbolizer's `[stack]` path warning remains
+in the full log. No seccomp, host ASLR or security setting was changed. These
+are sensitivity receipts, not clean sanitizer results for the joined compiler.
+All processes drained before releasing the shared local build slot to L1.
+
+L2 integrated D2's explicit compiler-job budget and optional native sanitizer
+build mode, preserving the already imported A2 files and their history. Separate
+caches are required: the shared native entry copies its selected executable to
+`build/native`, so a sanitizer executable must never become a release artifact
+or contaminate production profiles. Full compiler sanitizer execution remains
+pending. The user subsequently directed the lanes not to repeat deliberate
+invalid-memory or intentional-race probes; the prior sensitivity evidence stays
+recorded. Ordinary compiler regressions and supported checks of valid compiler
+workloads continue. No blocked request is retried or rephrased.
+
+A1's complete v2 handoff replaces its original bridge and fixture, moves shared
+payload definitions unchanged into six small data modules, and separates the
+query test object through the existing CMake/project map. L2's constructor
+producer entry points are exported once; its receipt fixture imports declarations
+and shared data rather than the implementation closure. Public-pin compilation
+of that fixture now takes 3.05 s wall, 2.62 s CPU and 203020 KiB peak RSS, versus
+18.76 s, 15.70 s and 729900 KiB before the boundary change. These are single build
+observations, not runtime speedup claims. `llvm-nm-19 --defined-only --extern-only`
+reports only `type_execution_receipt_tests`. The refreshed full link is pending.
+
+The joined production executable `3b0810ab...b8d73d` rejects the previously
+accepted recursive-record foreign ABI probe at line 3, column 24 with
+`Type values cannot cross a foreign or exported ABI` (expected exit 1). This is
+independent negative evidence for the recursive descriptor walk; broader valid
+ABI and both-width suites remain pending.
+
+L1 also supplied an ordinary, supported generic argument regression:
+`vector_push(&pairs, init(ProbePair){ source: source, reconstructed: reconstructed })`.
+The public predecessor and L2's joined production executable both crash; L2
+records exit 139 in `generic_inferred_joined.*`. Batch GDB locates the fault at
+`sem_lift_initialization+574`, immediately after `compiler_node_get`, matching
+the `sem_get(field.binding).byte_offset` access in aggregate initializer lowering.
+The loop later clears that binding, suggesting repeated lowering or prematurely
+shared mutation; this is a hypothesis, not yet a proven cause. A1 owns that
+lowering/inference boundary and received the exact source and disassembly.
+No speculative null fallback or unsupported-syntax rejection was introduced.
+
+Source tracing narrows that initializer failure: inference checks an argument
+without an expected type, and the concrete call checks the same argument again.
+`sem_operand_impl` dispatches named initialization before existing-node reuse;
+`sem_named_initialization` appends the same field entities on both visits.
+Lowering clears each binding after its first use, then encounters the duplicate.
+This explains the observed access; A1 must validate a reuse fix with expected
+type checking, nested initializers and exactly-once effects.
+
+L2 replaced the four representation-name classification exceptions with a
+syntactic CoreCall rule. Ordinary direct-call wrappers remain callable; the
+existing `function(Result, Parameters...)` type spelling keeps its static path,
+as do nominal local structs and raw pointer/array type spellings. This remains
+a candidate until coordinated preparation handles nominal calls in value
+position and ordinary calls in every type-query position. The regression fixture
+also preserves callback signatures and raw `T[count]` aliases.
+
+The refreshed public-pin native build passes 52 steps with compiler jobs 1 and
+outer jobs 2: 105.55 s wall, 165.38 s CPU, 796204 KiB peak RSS. Its executable is
+`0d5b242318f196f72d2003b3ebfa4abfddf18d73774953b49f7b3c7eeb7d9428`.
+Both runner targets link after five additional steps. Query smoke passes at
+both target widths with serial/threaded checks, including the combined source
+proof and every constructor-receipt case (0.24 s wall, 0.17 s CPU, 61736 KiB).
+Type smoke fails: the ordinary wrapper reaches `query_type_record`, which the
+value checker still rejects as a static constructor. Its harness abort initially
+hid buffered output; a line-buffered rerun preserves the exact diagnostic.
+The types suite separately rejects `sizeof(signed_word(16))` as an unknown type
+constructor. Neither suite passes, and after-performance acceptance stays open.
+
+After every process drained, L2 applied A1's root-call demand-frontier fix and
+the reviewed shared work-budget ledger, world binding and admitted batch
+dispatcher. The root-call patch needed whitespace-tolerant context matching;
+its three semantic hunks are unchanged. The worker-pool layout changes, requiring
+fresh dependent objects. These changes postdate the preceding executable and
+test receipts. L2's generic clone caller still awaits the shared semantic grant
+helper before adoption; a retained pool capacity is not a lane reservation.
+
+The generic clone wave now borrows A1's shared `sem_workers_admit` grant and
+uses `compiler_kernel_dispatch_admitted`. A per-iteration lexical defer retains
+the reservation through stage holds, view closure, publication/discard and ticket
+completion. The existing clone-node limit remains; a zero-byte lane reservation
+does not account for retained clone memory. A1 measured the semantic closure
+exceeding the existing 128 MiB payload after importing the ledger implementation.
+Its data-only type/export boundary is pending; L2 has not repeated that known
+oversized build. The validated narrow caller handoff will follow compilation.
+
+Independent native WSL checks of A2's shared ledger and dispatcher pass with the
+public compiler: `work_budget`, `work_kernel_admission`, and `work_budget_shared`
+each compile and execute with exit 0 and output 0. The first checks 8192 reference
+operations and reservation accounting. The admission fixture checks actual
+caller participation and grant-bounded overlap over 16 rounds, inline/no-extra
+execution, callback restoration and rejection of incompatible named entries.
+The shared-ledger fixture verifies four distinct threads, each performing 2048
+synchronized reservations with private allocation/free and stale-receipt checks.
+These are ordinary valid workloads, not deliberate race or invalid-memory
+probes. Run times are below GNU time's 0.01 s display resolution; peak RSS is
+2744 KiB for admission and 1652 KiB for the shared ledger. They establish neither
+a speedup nor final compiler sanitizer coverage. All jobs drained before the
+local build slot passed to L1's resource-transport measurement.
+
+The data-only budget boundary and helper v2 are now integrated in L2. After
+verifying its full reset precedes every read, the generic clone caller passes
+fresh uninitialized receipt storage rather than redundantly defaulting it.
+The smallest changed `semantic_generic_body_work.tower` unit compiles with the
+public pin: 19.44 s wall, 16.41 s CPU, 726672 KiB RSS. The narrow handoff is
+`L2/L2_generic_budget.patch`, SHA-256
+`636ec944a29e35d8cf241d5a3dcb2aa057c5cf10a50f3a5bebe4e677eaec671b`.
+The full semantics closure still needs A1/A2's shared-loop and test-boundary work;
+this unit result does not waive that gate. B2's complete outer-unit budget
+successor is also pending; the borrowed world binding alone cannot prove that
+outer and nested work share admission.
+
+B1's reviewed vector reset change alters a library consumed by the existing
+performance fixtures. Consequently, the prior 24 constructor baseline samples
+remain historical evidence and cannot be paired with final changed resources.
+The final comparison must rerun the preserved predecessor on the same frozen,
+old-compatible source inputs as the successor. L1 independently measured the
+Windows-to-Linux resource transport overhead; L2 will use its own byte-identical
+Linux snapshot for test iteration, while keeping resource location equivalent
+within each before/after performance comparison.
+
+L2 next integration freeze applies the exact A1 initializer reuse and
+semantic-world boundary, A2 dispatcher projection, B2 complete v2 unit budget,
+and B1 parser admission/formatter successor handoffs. B2's older full unit bundle
+was never installed in this clone, so v2 applies directly while preserving the
+existing world binding/wrappers. The two parser modules receive the authorized
+mechanical `work_budget_types` imports. The previous formatter patch is reversed
+exactly before its complete replacement; no owner changes are silently dropped.
+`git diff --check` passes. The next native build uses the unchanged public pin,
+two outer build jobs and one compiler job, frozen source, and the existing owned
+Linux cache; raw receipts are `L2/logs/joined_budget_native.*`. Runtime acceptance
+and A1's remaining type-query/admitted-caller changes are still pending.
+
+That integration builds successfully in 23 steps: 85.13 s wall, 125.19 s CPU,
+801376 KiB peak RSS, executable
+`3e6be549a72943b19398a60da7ca316ecd5e49c4be33384ec9fe7d60f652eba8`.
+The previously crashing inferred-generic initializer probe returns its expected
+`1`. An independent nested initializer with three incrementing calls produces
+exactly `1,2,3`, once each and in order, under graph/jobs1 and fast/jobs4; its
+checked output is zero. Conflicting nominal inference rejects with exit 1.
+The separate later-concrete-expected-type guard still needs its own negative.
+These valid workload regressions do not repeat the prohibited memory/race probes.
+
+A1's subsequent nominal-expression frontier exceeds the public component cap in
+the semantic aggregate (20.01 s wall / 11.52 s CPU / 751060 KiB RSS). The failed
+build leaves the prior complete binary intact; runner compilation was not reached.
+The exact owner frontend/completion data/API split then restores this aggregate
+without changing the cap or omitting tests: native three steps, 32.28 s wall /
+25.07 s CPU / 780300 KiB RSS, followed by five runner steps. Executable:
+`2b33ad9c60ac76c1aa1a5cc62f8be948133827c6e540337d7732acf463efdfb9`.
+All eight consumers of the moved completion/grammar payloads have their explicit
+defining imports. A byte-identical private Linux resource copy is verified with
+`diff -qr` before the focused tests; this removes transport overhead only.
+
+Query smoke passes both target widths and serial/threaded constructor receipts.
+Type smoke instead reveals a recursive nominal-alias layout dependency cycle,
+and `types` still rejects `sizeof(signed_word(16))`; the full new constructor
+fixture still diagnoses the false `u8` initializer cycle. Raw logs are
+`frontend_boundary_{query,type_smoke,types,construction}.*`. The nominal producer
+already publishes identity before fields. The suspected new false edge is in
+the consumer: a value-position nominal reference is recorded as a type call and
+added to `result.constructed`, forcing its layout before an ordinary alias can
+return that identity. A1 received this exact role distinction; globally dropping
+layout dependencies would break sizeof/default/by-value consumers.
+
+The next frozen build adopts A1's complete phase-admission handoff plus its
+type-role-only ordinary-call discovery. The latter addresses the independently
+reported sizeof path without eagerly executing value-position calls. A source
+audit finds no remaining legacy semantic `compiler_kernel_dispatch` call; layout
+uses continuous refill with explicit extra-lane admission. Integrated outer/inner
+budget runtime, nominal/capture corrections and final sanitizers remain gates.
+
+With all semantic admission sites joined, executable
+`8e2ad4f6937d04f7ed9b40b9b3ae42c71072ce795acdb5053be72e1715c37e5a`
+passes the native `units` suite: 21.63 s wall, 35.77 s CPU, 716172 KiB RSS.
+Its assertions cover independent worlds, shared nested budgets, bounded retained
+inputs, staged queries, deterministic failures and cancellation. The computed
+type-argument fixture now returns zero with fast interpretation/jobs4, confirming
+the sizeof ordinary-call admission correction. A separate explicit initializer
+first checked during generic inference still rejects against its later fixed
+parameter type: `Expected First, got Second`, exit 1.
+
+The minimal valid `f():type { var r:type=u8; return r; }` case still fails.
+Batch GDB on this binary reveals that the *first* diagnostic is `Unknown type
+constructor 'unsigned_integer'`; later errors include a missing return and the
+reported u8 cycle. This supports premature legacy alias typing before its
+ordinary producer is prepared, rather than a real u8 data cycle. A1 received
+the exact probe and first-error evidence. Initial debugger attempts used a
+nonexistent unqualified symbol and then lost `$rdx` through WSL's default shell;
+both failures are retained. `wsl --exec gdb` with `tower.fn.sem_fail` preserves
+the register expression and yields the diagnostic. Debugger interruption is
+diagnostic evidence only, not a successful program execution. All owned jobs
+drained before the build slot was released to L1 for independent validation.
+
+The integration audit found that L1 still used the published split prelude while
+L2 used the consolidated source. This invalidates any claim of constructor
+resource parity between those receipts. L2 exported the complete scoped resource
+bundle, including all 14 deletions and four resource/reference consumers, as
+`L2_prelude_resources.patch` (SHA-256
+`c8c9eadb518f9ff96edd9b4a63bd1c15f106492fdc67e4e7ac4693164c8a9fc6`).
+Its 19 paths contain 24 additions/58 deletions; unrelated build/owner changes are
+excluded. Exact reverse application passes. The old public bootstrap resource
+tree remains untouched. Coordinated testing must now use the same prelude.
+
+L2 also removes the final function-name exception from CoreCall classification.
+The new shared `sem_type_identity_call` resolves ordinary functions, templates
+and value callees before static signature spelling. Static signature value
+queries prepare their argument types through the existing producer graph, then
+use the existing function-type constructor and a prepared KTypeReference.
+No dynamic function-type execution capability is added. A1 owns adoption of the
+predicate at declaration/body admission boundaries. On the preceding executable,
+the new ordinary helper named `function` demonstrably fails with `Unknown type
+'32'`; expected behavior is sizeof 4. Malformed signatures retain explicit
+diagnostic regressions. The two smallest units compile with the public pin:
+constructor 19.11 s wall / 15.64 s CPU / 728332 KiB RSS; generics 4.12 s /
+3.67 s / 239136 KiB. These are compile receipts, not joined acceptance. The
+incremental four-file handoff is `L2_signature_identity.patch`, SHA-256
+`97990508075bb53e18e3eebc3a5e1e59a4201cee51bad2f6c8fc51ad1d5c8b38`.
+
+A1's identity-ownership fix subsequently adds explicit nominal-value and
+construction-identity roles, including the authorized constructor-instance
+propagation. The exact patch applies alongside the signature helper. D1's
+focused registration also exposed previously missing A2 ready-index and tool
+identity prerequisites; only their six missing files were selected from the
+owner checkpoint, preserving the newer ledger/dispatcher/instrumentation work.
+The focused registration and owned worker-failure drain fixture then apply
+exactly. Both WorkTask and declaration payload layouts changed, requiring fresh
+dependent objects before runtime claims. No invalid-memory or intentional-race
+fixture is registered or rerun. Browser dependencies are installed from the
+lockfile under an individually downloaded and officially checksummed Node22.23.5;
+402 packages installed successfully, with existing deprecation warnings retained.
+
+The next coherent freeze includes A1's body readiness and signature-identity
+consumer patches, following nominal identity ownership and L2's compiled helper.
+Body workers now decline unresolved global type identities and aggregate layouts;
+the existing lexical continuation requests their producers. Ordinary functions
+named `function` retain binding precedence. A1 reports focused `u8` and recursive
+body successes, but these are owner receipts pending independent L2 execution.
+The unchanged full constructor fixture still exposes a local explicit `comptime`
+binding/whole-body dependency cycle, assigned to A1's shared pipeline rather than
+worked around in the fixture. B2's bounded-source handoff and D1's focused test
+registration are also integrated. Source, declaration and work-task layout changes
+require fresh native and runner objects; earlier binary receipts do not cover
+this freeze. The public bootstrap remains unchanged and no publication lease is
+held.
+
+L2 independently builds this freeze as compiler SHA-256
+`c7b8a53dcbc700d3270a24430e7ae188ac8cd1464cccad09e5e8e708e4a0e144`:
+12 native steps, 63.27 s wall / 92.37 s CPU / 784148 KiB RSS; four runner steps,
+10.54 s / 11.77 s / 317416 KiB. The native and runner logs finish at 20:42:44 UTC.
+An exact new Linux resource copy passes `diff -qr`. Query smoke passes; the
+ordinary local-u8 helper prints 1 and a same-named ordinary `function` helper
+prints 4. The original full constructor source still rejects `selected_value`
+with its explicit-stage/whole-body cycle. Type smoke instead reaches the old
+ordinary-recursion oracle: direct jobs 1/4 reproductions both reject with
+byte-identical `Tower call stack limit exceeded` diagnostics, without the later
+unrelated error. D1 owns the narrow expectation update; actual alias/capture
+graph-cycle coverage remains required. The joined unit suite passes, including
+bounded sources and nested budgets (raw 22.67 s / 36.60 s / 623776 KiB).
+
+The coordinator subsequently reports a host-wide hibernate/resume. L2 has no
+active job or expired handle to restart. The focused test logs span
+20:56:22–20:58:19 UTC; without precise suspend bounds their timings are excluded
+from final performance comparisons. Raw logs, exit statuses and assertions stay
+preserved. Neither the real assertion failure nor the explicit dependency cycle
+is dismissed as a resume artifact. Final performance still needs quiet, frozen,
+equivalent before/after inputs and the unresolved constructor fix.
+
+### D2 coherent checkpoint integration (2026-11-22, not runtime acceptance)
+
+After the bounded tooling checks drained, D2 verified the coordinator's bundle
+SHA08048c0cdb274e6df28df96a7f7484947000996c8df770dec53e845411dcee8a and all nine
+patch hashes against the supplied receipt. Git bundle verification confirms the
+published60741c5 prerequisite and incoming main0817375. Fetched into FETCH_HEAD,
+then merged on main; no feature branch/worktree or other worker cache was used.
+All own work was committed first at452f4b9.
+
+Five conflicts contain only the checkpoint's older D2 sanitizer source-receipt
+API/callers and documentation. Both sides were compared; retained the newer
+Tower-source manifest column and the exact historic26-object/failed-backend
+evidence. Other incoming changes and all463 journal lines remain. The default
+staged whitespace check reports four extra blank EOF lines in owner-delivered
+completion_types, language_grammar_types, work_budget_types and lr_budget; these
+are preserved rather than applying an unrelated formatting sweep. No clean
+whitespace check or compiler validation is claimed. Public bootstrap and todo
+are unchanged.
+
+The required stage-continuation, paired IMValueInput role ABI/readers/publishers,
+executable-lowering receipt and lifecycle fixture still follow the supplied
+sequence; parser/formatter updates replace their exact older owned hunks after
+reverse checks. No build may run between paired ABI changes. Fresh own-cache
+public-bootstrap validation follows the complete sequence and host-slot handoff.
+EarlyCapture remains a known failure, and newer emitter/module-cache/stage-fixture
+drafts are explicitly absent. This merge is source integration, not final lane
+acceptance or publication authorization.

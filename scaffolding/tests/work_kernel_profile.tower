@@ -1,0 +1,99 @@
+import tower;
+import .compiler.compiler_kernel;
+import .library.work_pool;
+import .library.sha256;
+import .host.work_linux;
+import .host.work_dispatch;
+
+extern fn clock_gettime(clock: i32, result: i64*): i32;
+extern fn getrusage(who: i32, result: i64*): i32;
+extern fn pthread_self(): usize;
+extern fn strcmp(left: u8*, right: u8*): i32;
+
+struct ProfileKernel {
+    kernel: CompilerKernel;
+    input: u8*;
+    digest: Sha256Digest;
+    started: i64;
+    finished: i64;
+    thread: usize;
+}
+
+fn kernel_profile_check(ok: bool): void {
+    if !ok { trap("Finite kernel profile mismatch", 0); }
+}
+
+fn kernel_profile_time(): i64 {
+    var stamp: i64[2];
+    kernel_profile_check(clock_gettime(1, &stamp[0]) == 0);
+    return stamp[0] * 1000000000 + stamp[1];
+}
+
+export fn work_kernel_execute(payload: void*): void {
+    var kernel = bits(CompilerKernel*, payload);
+    var job = bits(ProfileKernel*, kernel.payload);
+    job.started = kernel_profile_time();
+    job.thread = pthread_self();
+    var state: Sha256;
+    sha256_init(&state);
+    kernel_profile_check(sha256_update(&state, job.input, 1000000));
+    job.digest = sha256_finish(&state);
+    job.finished = kernel_profile_time();
+}
+
+fn kernel_profile(input: u8*, workers: usize, count: usize): void {
+    var jobs = alloc(ProfileKernel, count);
+    var pointers = alloc(ProfileKernel*, count);
+    kernel_profile_check(jobs != null && pointers != null);
+    defer free(jobs); defer free(pointers);
+    for(var i: usize = 0; i < count; i++) {
+        jobs[i] = default;
+        jobs[i].kernel.payload = bits(void*, &jobs[i]);
+        jobs[i].input = input;
+        pointers[i] = &jobs[i];
+    }
+    var pool: WorkPool = default;
+    kernel_profile_check(work_pool_open(&pool, workers) && pool.count == workers);
+    defer work_pool_close(&pool);
+    var before: i64[18]; var after: i64[18];
+    kernel_profile_check(getrusage(0, &before[0]) == 0);
+    var start = kernel_profile_time();
+    kernel_profile_check(compiler_kernel_dispatch(&pool, pointers, count));
+    var elapsed = kernel_profile_time() - start;
+    kernel_profile_check(getrusage(0, &after[0]) == 0);
+    var peak: usize = 0;
+    var caller: usize = 0;
+    var coordinator = pthread_self();
+    for(var i: usize = 0; i < count; i++) {
+        var hex: u8[65];
+        sha256_hex(&jobs[i].digest, &hex[0]);
+        // Existing SHA-256 FIPS million-a reference vector, independent of
+        // scheduler execution/order. Every dispatched result must match it.
+        kernel_profile_check(strcmp(&hex[0], "cdc76e5c9914fb9281a1c7e284d73e67f1809a48a497200e046d39ccc7112cd0") == 0);
+        if jobs[i].thread == coordinator { caller++; }
+        var overlap: usize = 0;
+        for(var j: usize = 0; j < count; j++) {
+            if jobs[j].started <= jobs[i].started && jobs[j].finished > jobs[i].started { overlap++; }
+        }
+        if overlap > peak { peak = overlap; }
+    }
+    print(workers); print(count); print(elapsed);
+    print((after[0] - before[0] + after[2] - before[2]) * 1000000
+        + after[1] - before[1] + after[3] - before[3]);
+    print(after[4]); print(peak); print(caller);
+    print(count * (sizeof(ProfileKernel) + sizeof(ProfileKernel*))
+        + pool.count * sizeof(WorkSlot) + 1000000);
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    var input = alloc(u8, 1000000);
+    kernel_profile_check(input != null);
+    fill(input, 97, 1000000);
+    kernel_profile(input, 1, 1);
+    kernel_profile(input, 1, 32);
+    kernel_profile(input, 2, 32);
+    kernel_profile(input, 4, 32);
+    kernel_profile(input, 8, 32);
+    free(input);
+    return 0;
+}

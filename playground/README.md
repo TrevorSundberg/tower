@@ -67,6 +67,10 @@ does not optimize guest semantics, so reconstruction matches canonical foundatio
 Future optimizing profiles must package the transformed foundation graph.
 The existing **Open** button imports project ZIPs; `.towerbc` loading is available
 through the native CLI and `loadTower().loadBytecode(bytes)` host API.
+Current source uses container version 1, semantics version 9 and execution-cache
+version 6. The constructor capability operation changes both semantics and cache
+instructions; packages from earlier versions must be regenerated. A deployed
+runtime uses the versions in its published build, independently of this source.
 Configure that host API with the bundled Bedrock/Foundation when encoding or
 loading packages; editor grammar overrides apply to input source. The playground
 and native CLI install the canonical grammar for packaging automatically.

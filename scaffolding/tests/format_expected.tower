@@ -4,6 +4,9 @@ import storage_api;
 import utility_checks;
 import .library.vector;
 
+extern fn printf(format: u8*, index: usize, begin: usize, end: usize, source: usize,
+    actual_begin: usize, actual_end: usize, actual_source: usize): i32;
+
 // Frozen exact text and ordered spans, independently checked against unchanged
 // native format-seed.cpp from 3167766 (SHA-256 recorded in the project journal).
 // Generated names deliberately contain NUL, represented as bytes rather than a
@@ -23,6 +26,10 @@ fn format_fixture_text(actual: FormatResult*, text: u8*, count: usize): void {
 }
 fn format_fixture_span(actual: FormatResult*, index: usize, begin: usize, end: usize, source: usize): void {
     var span = &actual.spans.data[index];
+    if span.begin != begin || span.end != end || span.source != source {
+        printf("Span %llu: wanted (%llu,%llu,%llu), got (%llu,%llu,%llu)\n", index,
+            begin, end, source, span.begin, span.end, span.source);
+    }
     utility_check(span.begin == begin && span.end == end && span.source == source, "Frozen formatter reference ordered span triple");
 }
 

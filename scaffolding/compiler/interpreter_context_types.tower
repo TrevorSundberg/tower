@@ -1,6 +1,24 @@
 import tower;
 import interpreter_types;
+import foundation_types;
 import .library.vector;
+
+// One reached constructor retains evaluated operands until the coordinator
+// publishes a descriptor. Owner and sequence distinguish recursion/loop visits;
+// private type-value indexes never cross this invocation boundary.
+struct IMTypeConstruction {
+    owner: void*;
+    subject: void*;
+    sequence: usize;
+    kind: u32;
+    first: u64;
+    second: u64;
+    input: FoundationType;
+    result: FoundationType;
+    error: vector(u8);
+    ready: bool;
+    failed: bool;
+}
 
 // An invocation context belongs to its evaluation request, which may be a
 // shared compiler entity. No ambient world, host address table or TLS lookup is
@@ -26,6 +44,9 @@ struct IMContext {
     capture_ordinal: usize;
     waiting: void*;
     retain_result_storage: bool;
+    construct_types: bool;
+    waiting_type: bool;
+    type_construction: IMTypeConstruction;
 }
 
 // Shared query metadata; the evaluator reads readiness, while only the

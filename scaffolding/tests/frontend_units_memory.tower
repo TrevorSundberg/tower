@@ -1,0 +1,163 @@
+import tower;
+import .compiler.semantic_program_types;
+import .compiler.syntax_version_types;
+import .compiler.foundation_types;
+import .compiler.interpreter_context_types;
+import .library.work_budget;
+import .library.work_budget_types;
+import .library.vector;
+
+extern fn frontend_units_create_bounded(count: usize, budget: usize, retained_bytes: usize, width: u32,
+    revision: u64, profile: u64, bedrock: u8*, foundation: u8*, library: u8*): void*;
+extern fn frontend_units_source(batch: void*, ordinal: usize, path: u8*, source: u8*, length: usize): bool;
+extern fn frontend_units_step(batch: void*, wait: bool): bool;
+extern fn frontend_units_failed(batch: void*): usize;
+extern fn frontend_units_cancelled(batch: void*): bool;
+extern fn frontend_units_close(batch: void*): void;
+extern fn frontend_units_work_budget(batch: void*): WorkBudget*;
+extern fn strlen(text: u8*): usize;
+extern fn puts(text: u8*): i32;
+extern fn abort(): void;
+extern fn compiler_world_create_workers(workers: usize): void*;
+extern fn compiler_world_store(world: void*): void*;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn frontend_world_clear(world: void*): bool;
+extern fn frontend_modules_create(): void*;
+extern fn frontend_modules_bind_world(environment: void*, world: void*): bool;
+extern fn frontend_modules_configure(environment: void*, source: u8*, library: u8*): void;
+extern fn frontend_modules_destroy(environment: void*): void;
+extern fn syntax_baseline_install(world: void*, environment: void*, source: u8*, foundation: bool, error: SyntaxVersionDiagnostic*): bool;
+extern fn entity_create(store: void*): void*;
+extern fn entity_release(node: void*): usize;
+extern fn semantic_initialize(program: SemanticProgram*, root: void*, width: u32): void;
+extern fn semantic_program_dispose(program: SemanticProgram*): void;
+extern fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendSource*, count: usize, environment: void*): void;
+extern fn frontend_units_error(batch: void*): u8*;
+extern fn frontend_units_error_offset(batch: void*): usize;
+extern fn strcmp(left: u8*, right: u8*): i32;
+extern fn sem_get(node: void*): FoundationNode*;
+extern fn interpreter_invocation_init(invocation: IMInvocation*, function: void*, width: usize,
+    arguments: u64*, count: usize, strict: bool, fuel: u64): bool;
+extern fn interpreter_invocation_step(invocation: IMInvocation*, budget: usize): void;
+extern fn interpreter_invocation_dispose(invocation: IMInvocation*): void;
+
+fn units_memory_check(ok: bool, message: u8*): void {
+    if !ok { puts(message); abort(); }
+}
+
+fn units_memory_snapshot(batch: void*): WorkBudgetSnapshot {
+    var snapshot: WorkBudgetSnapshot;
+    units_memory_check(work_budget_snapshot(frontend_units_work_budget(batch), &snapshot), "Unit memory snapshot");
+    return snapshot;
+}
+
+fn units_source_bounds_trial(bedrock: u8*, foundation: u8*, root: u8*, text: u8*, length: usize,
+    valid: bool, offset: usize): void {
+    var world = compiler_world_create_workers(1);
+    var environment = frontend_modules_create();
+    units_memory_check(world != null && environment != null && frontend_modules_bind_world(environment, world),
+        "Explicit source bounds fixture world");
+    frontend_modules_configure(environment, "bounds.tower", root);
+    var diagnostic: SyntaxVersionDiagnostic = default;
+    units_memory_check(syntax_baseline_install(world, environment, bedrock, false, &diagnostic)
+        && syntax_baseline_install(world, environment, foundation, true, &diagnostic), "Source bounds grammar");
+    var owner = entity_create(compiler_world_store(world));
+    units_memory_check(owner != null, "Source bounds root");
+    var program: SemanticProgram = default;
+    semantic_initialize(&program, owner, 8);
+    var source: FrontendSource = { data: text, length: length };
+    frontend_compile_sources(&program, &source, 1, environment);
+    if valid {
+        if program.error.length != 0 {
+            units_memory_check(vector_push(&program.error, 0), "Source bounds diagnostic terminator");
+            --program.error.length;
+            puts(program.error.data);
+        }
+        units_memory_check(program.error.length == 0,
+            "Explicit source length excludes the invalid suffix");
+        var answer: void* = null;
+        foreach(var function in &program.functions) {
+            var node = sem_get(function);
+            if node.name.length == 6 && strcmp(node.name.data, "answer") == 0 { answer = function; }
+        }
+        var invocation: IMInvocation = default;
+        units_memory_check(answer != null
+            && interpreter_invocation_init(&invocation, answer, 8, null, 0, true, 10000), "Bounded source answer");
+        while !invocation.state.done && !invocation.state.failed { interpreter_invocation_step(&invocation, 7); }
+        units_memory_check(!invocation.state.failed && invocation.context.result == 42, "Bounded source executes expected answer");
+        interpreter_invocation_dispose(&invocation);
+    } else {
+        units_memory_check(program.error.length != 0 && program.error_offset == offset,
+            "Interior NUL is diagnosed at its exact offset before parsing");
+    }
+    semantic_program_dispose(&program);
+    entity_release(owner);
+    frontend_modules_destroy(environment);
+    units_memory_check(frontend_world_clear(world) && compiler_world_dispose(world), "Source bounds world cleanup");
+}
+
+export fn frontend_units_memory_tests(bedrock: u8*, foundation: u8*, root: u8*): void {
+    var resources = strlen(bedrock) + strlen(foundation) + strlen(root) + 3;
+    var path = "memory.tower";
+    var source = "import tower; fn answer():i32{return 42;}";
+    var input = strlen(path) + strlen(source) + 2;
+    units_memory_check(frontend_units_create_bounded(1, 1, 0, 8, 1, 1, bedrock, foundation, root) == null
+        && frontend_units_create_bounded(1, 1, ~convert(usize, 0), 8, 1, 1, bedrock, foundation, root) == null,
+        "Bounded unit API rejects missing or unbounded policy");
+    units_memory_check(frontend_units_create_bounded(1, 1, resources - 1, 8, 1, 1, bedrock, foundation, root) == null,
+        "Resource snapshots reject a one-byte-short cap");
+    var batch = frontend_units_create_bounded(1, 1, resources, 8, 1, 1, bedrock, foundation, root);
+    units_memory_check(batch != null, "Exact resource capacity accepted");
+    var before = units_memory_snapshot(batch);
+    units_memory_check(before.used_bytes == resources && before.peak_bytes == resources && before.live == 1
+        && !frontend_units_source(batch, 1, path, source, strlen(source)), "Source denied before allocation at full resource cap");
+    var after = units_memory_snapshot(batch);
+    units_memory_check(after.used_bytes == before.used_bytes && after.live == before.live,
+        "Denied source preserves resource receipts");
+    frontend_units_close(batch);
+
+    var length = strlen(source);
+    var bounded = alloc(u8, length + 3);
+    units_memory_check(bounded != null, "Explicit source bytes");
+    defer free(bounded);
+    copy(bounded, source, length);
+    bounded[length] = 0;
+    bounded[length + 1] = *"@";
+    bounded[length + 2] = 0;
+    units_source_bounds_trial(bedrock, foundation, root, bounded, length + 2, false, length);
+    bounded[length] = *"@";
+    units_source_bounds_trial(bedrock, foundation, root, bounded, length, true, 0);
+
+    batch = frontend_units_create_bounded(1, 1, resources + input, 8, 1, 1, bedrock, foundation, root);
+    units_memory_check(batch != null && frontend_units_source(batch, 1, path, source, strlen(source)),
+        "Exact source capacity accepted");
+    before = units_memory_snapshot(batch);
+    bounded[length] = 0;
+    units_memory_check(!frontend_units_source(batch, 1, path, bounded, length + 2)
+        && strcmp(frontend_units_error(batch), "Compilation source contains an embedded NUL byte") == 0
+        && frontend_units_error_offset(batch) == length, "Unit source rejection reports exact NUL offset");
+    units_memory_check(before.used_bytes == resources + input && before.live == 2
+        && !frontend_units_source(batch, 1, "failed.tower", "@", 1)
+        && !frontend_units_source(batch, 1, path, source, ~convert(usize, 0)),
+        "Replacement and length overflow reject without losing configured source");
+    after = units_memory_snapshot(batch);
+    units_memory_check(after.used_bytes == before.used_bytes && after.live == before.live
+        && after.peak_bytes <= after.bytes, "Denied replacement retains exact accounting");
+    while !frontend_units_step(batch, true) {}
+    units_memory_check(!frontend_units_cancelled(batch) && frontend_units_failed(batch) == 0,
+        "Previously configured program still compiles after denied replacement");
+    frontend_units_close(batch);
+
+    var old_input = strlen(path) + 3;
+    batch = frontend_units_create_bounded(1, 1, resources + old_input + input, 8, 1, 1, bedrock, foundation, root);
+    bounded[length] = *"@";
+    units_memory_check(batch != null && frontend_units_source(batch, 1, path, "@", 1)
+        && frontend_units_source(batch, 1, path, bounded, length), "Replacement owns the exact span, excluding the suffix");
+    after = units_memory_snapshot(batch);
+    units_memory_check(after.used_bytes == resources + input && after.peak_bytes == resources + old_input + input
+        && after.live == 2, "Commit releases only the previous input receipt");
+    while !frontend_units_step(batch, true) {}
+    units_memory_check(!frontend_units_cancelled(batch) && frontend_units_failed(batch) == 0,
+        "Successful replacement compiles the new program");
+    frontend_units_close(batch);
+}

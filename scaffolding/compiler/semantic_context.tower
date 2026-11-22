@@ -2,6 +2,7 @@ import tower;
 import worker_policy;
 import .library.work_graph;
 import .library.work_pool;
+import .library.work_budget_types;
 import .library.stack;
 import foundation_types;
 import component_kinds;
@@ -10,189 +11,11 @@ import semantic_modules;
 import semantic_support;
 import .library.vector;
 
-// Semantic results live on FoundationNode components. Compilation-local lists
-// and scratch below are derived indexes, never another semantic graph.
-import semantic_program_types;
+import semantic_context_types;
 
-struct SemanticEntry {
-    text: u8*;
-    entity: void*;
-    value: void*;
-    number: usize;
-}
-
-struct SemanticTable {
-    entries: SemanticEntry**;
-    capacity: usize;
-    count: usize;
-}
-
-struct SemanticScope {
-    parent: SemanticScope*;
-    names: SemanticTable*;
-}
-
-// Lexical continuation data borrowed exclusively by one body or its active
-// declaration producer. The shared entities still own all program semantics.
-struct SemanticBodyScope {
-    current: void*;
-    scope: SemanticScope*;
-    labels: SemanticTable*;
-    loops: usize;
-    deferred: void*;
-    deferring: usize;
-    defer_bindings: SemanticTable*;
-    defer_order: vector(void*)*;
-    has_defer: bool;
-    control_names: SemanticTable*;
-    control_reserved: SemanticTable*;
-    control_prefix: u8*;
-    flow_dependencies: vector(void*);
-}
-
-// Optional inspection metadata on the syntax entity used as a type. The target
-// is the ordinary reflected type entity, not another type representation.
-struct SemanticTypeUse {
-    target: void*;
-}
-
-// Workers record type observations by value. Interning reflected type objects
-// and attaching inspection metadata happen after every stage in the wave joins.
-struct SemanticTypeObservation {
-    node: void*;
-    type: FoundationType;
-}
-
-// Scheduling provenance on a function entity, separate from its signature.
-struct SemanticBodyDemand { source: void*; }
-
-struct SemanticEvaluationAlias { producer: void*; original: void*; clone: void*; }
-
-var EditorEnumMembers: u32 = 5;
-
-// Default resource policy for attached semantic payloads, not a language/node
-// index limit or a bound on the entire process heap. Callers may supply another
-// explicit budget through semantic_compile_budget.
-// The compiler's threaded parser/fixture unit exceeds 64 MiB after aggregate
-// value lowering. This is a lazy payload allowance, not an up-front allocation;
-// hosts with a tighter policy still use semantic_compile_budget explicitly.
-var SemanticComponentBudgetBytes: usize = 134217728;
-
-// Optional editor observation of ordinary resolution. The hole is identified by
-// source coordinates, never by a reserved identifier or an independent AST.
-struct SemanticEditor {
-    offset: usize;
-    length: usize;
-    found: bool;
-    kind: u32;
-    has_expected: bool;
-    value_required: bool;
-    require_pointer: bool;
-    require_integer: bool;
-    current: void*;
-    loops: usize;
-    blocks: usize;
-    type: FoundationType;
-    receiver: FoundationType;
-    scope: SemanticScope*;
-    node: void*;
-    module: void*;
-}
-
-struct SemanticContext {
-    integer_arguments: bool;
-    editor: SemanticEditor*;
-    type_uses: void*;
-    type_observations: vector(SemanticTypeObservation)*;
-    program: SemanticProgram*;
-    current: void*;
-    count: usize;
-    node_limit: usize;
-    loops: usize;
-    value_depth: u32;
-    type_depth: u32;
-    generics: void*;
-    source: u8*;
-    functions: SemanticTable*;
-    types: SemanticTable*;
-    globals: SemanticTable*;
-    templates: SemanticTable*;
-    type_functions: SemanticTable*;
-    type_results: SemanticTable*;
-    source_names: SemanticTable*;
-    source_bases: SemanticTable*;
-    output_names: SemanticTable*;
-    fields_done: SemanticTable*;
-    queries: WorkGraph;
-    declaration_state: void*;
-    declaration_jobs: vector(void*);
-    declaration_subjects: vector(void*)*;
-    declaration_isolated: bool;
-    prepared_calls: void*;
-    aggregate_signatures: void*;
-    aggregate_preparations: void*;
-    lowering_results: void*;
-    known_bindings: void*;
-    value_inputs: void*;
-    body_demands: void*;
-    body_pipeline: void*;
-    body_roots: bool;
-    executable_functions: void*;
-    executable_ready: void*;
-    preserve_clone_storage: bool;
-    source_bindings: void*;
-    source_binding_proof: usize;
-    capture_inputs: void*;
-    body_seen: SemanticTable*;
-    generic_copies: void*;
-    type_constructors: void*;
-    defer_type_fields: bool;
-    control_names: SemanticTable*;
-    control_reserved: SemanticTable*;
-    control_prefix: u8*;
-    entity_stage: void*;
-    scope: SemanticScope*;
-    labels: SemanticTable*;
-    type_arguments: vector(void*);
-    constant_arguments: vector(void*);
-    generated: vector(void*);
-    template_nodes: vector(void*);
-    inferring: vector(void*);
-    allocations: vector(void*);
-    lists: vector(void*);
-    // Non-reentrant tree scans reuse scratch storage. Results remain owned by
-    // allocations/lists; no caller receives a pointer into either scratch buffer.
-    scan: stack(void*);
-    token_text: vector(u8);
-    surface_expressions: bool;
-    deferred: void*;
-    deferring: usize;
-    defer_bindings: SemanticTable*;
-    defer_order: vector(void*)*;
-    has_defer: bool;
-    workers: WorkPool;
-    layout_results: void*;
-    layout_jobs: vector(void*);
-    // Types append during this compilation; published layouts never mutate.
-    // Readiness is distinct from the precise layout inputs of each query.
-    layout_checked: usize;
-    query_reads: vector(usize)*;
-    evaluation_results: void*;
-    evaluation_ready: void*;
-    evaluation_jobs: vector(void*);
-    evaluation_preparations: void*;
-    evaluation_clones: void*;
-    evaluation_registered: usize;
-    evaluation_clone_registered: usize;
-    evaluation_aliases: vector(SemanticEvaluationAlias)*;
-    evaluation_depth: usize;
-    unevaluated: bool;
-    type_query_operand: void*;
-    flow_results: void*;
-    flow_count: usize;
-    flow_dependencies: vector(void*);
-    attribute_sources: vector(void*)*;
-}
+extern fn compiler_world_work_budget(world: void*): WorkBudget*;
+extern fn compiler_world_worker_reserve(world: void*, preferred: usize, receipt: WorkReservation*): WorkBudgetError;
+extern fn compiler_world_worker_release(world: void*, receipt: WorkReservation*): WorkBudgetError;
 
 // Each dispatched work component owns this read log. Only the coordinator
 // updates the dependency graph, after joining readers of its immutable indexes.
@@ -474,6 +297,33 @@ extern fn foundation_nodes_prepend(values: vector(void*)*, source: void**, count
 
 // The same immutable world budget governs every semantic phase, including
 // interpreter evaluation and resumed declaration/body work.
-fn sem_workers_open(c: SemanticContext*): bool {
+export fn sem_workers_open(c: SemanticContext*): bool {
     return c.workers.count != 0 || work_pool_open(&c.workers, compiler_worker_capacity(c.program.root));
+}
+
+// The coordinator already owns its outer lane. A retained pool is capacity,
+// not permission to dispatch; this receipt outlives joins and stage publication.
+// The output is fresh storage, never an existing live receipt.
+fn sem_workers_admit(c: SemanticContext*, count: usize, receipt: WorkReservation*): usize {
+    sem_require(c.workers.running == 0);
+    *receipt = default;
+    if count < 2 || !c.workers.threaded { return 0; }
+    var capacity = compiler_worker_capacity(c.program.root);
+    if capacity < 2 { return 0; }
+    var extra = count - 1;
+    if extra >= capacity { extra = capacity - 1; }
+    if extra > c.workers.count { extra = c.workers.count; }
+    var world = compiler_node_world(c.program.root);
+    if compiler_world_work_budget(world) == null { return extra; }
+    if compiler_world_worker_reserve(world, extra, receipt) != WorkBudgetError.None {
+        trap("Unable to reserve shared semantic worker budget", 0);
+    }
+    return receipt.lanes;
+}
+
+fn sem_workers_release(c: SemanticContext*, receipt: WorkReservation*): void {
+    sem_require(c.workers.running == 0);
+    if receipt.active && compiler_world_worker_release(compiler_node_world(c.program.root), receipt) != WorkBudgetError.None {
+        trap("Invalid shared semantic worker budget receipt", 0);
+    }
 }

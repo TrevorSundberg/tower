@@ -1,4 +1,6 @@
 import tower;
+import .library.work_budget_types;
+import semantic_context_types;
 import compiler_kernel;
 import foundation_types;
 import semantic_context;
@@ -179,7 +181,10 @@ fn sem_iteration_resolutions(c: SemanticContext*, batch: SemanticBodyWork**, cou
     var view = entity_view_open(c.program.root);
     sem_require(view != null);
     foreach(var result in &jobs) { result.context = &context; }
-    sem_require(compiler_kernel_dispatch(&c.workers, jobs.data, jobs.length));
+    var receipt: WorkReservation;
+    var extra = sem_workers_admit(c, jobs.length, &receipt);
+    defer sem_workers_release(c, &receipt);
+    sem_require(compiler_kernel_dispatch_admitted(&c.workers, jobs.data, jobs.length, extra));
     entity_view_close(view);
     // Release every type-index read before any preparation takes write ownership.
     foreach(var result in &jobs) {
