@@ -3,7 +3,7 @@
 This is an **in-progress audit**, not lane acceptance or publication evidence.
 Owner: A2 on KinmenA, exclusive `C:\Sandbox\tower-agent-2`, main.
 Reviewed source baseline: `6282238779034442e0578d76b921ca117df819f1`;
-current local `04a87781` includes the measured A2 changes below, on
+current local `85aafd8e` includes the measured A2 changes below, on
 published60741c51. Unmodified receipt rows retain the baseline reviewed identity;
 later changed-file receipts state their implementation commit. Session
 `01a2046f-fec2-7c71-be46-cad28f9ac147`, resumed Codex PID 15056.
@@ -509,3 +509,108 @@ IR changed, native/instrumented object and executable bytes remained identical.
 Exact commands/hashes and logs are in the journal and A2 cache. Generic harness
 registration remains a D1 request. These are test additions with no production
 runtime behavior change; timings characterize coverage cost, not an improvement.
+
+Additional full source reviews completed at85aafd8e plus current owner handoffs:
+
+| Path relative to scaffolding | Storage, scheduling and ownership conclusion | Evidence/gap |
+| --- | --- | --- |
+| `compiler/semantic_lifecycle.tower` | Whole module read. Explicit program/context owns graph, scratch and phase components; program vectors are derived indexes over world-owned nodes. Synchronous pumps precede disposal; body cleanup requires running0/stages null, then shared pool closes before interpreter/scratch disposal. Formatting uses its own temporary context. | Source a99398aa88b46374a5d055aaf5b89546ee80ed4384bfb8a2d8fc35b125d3fb99. Node quota bounds Foundation component count, not total memory. A1 owns semantic phase ordering. |
+| `compiler/semantic_context.tower` | Whole module read. Workers append observations only to private query-read logs; coordinator attaches them after joins. Component kinds derive from node world. Legacy core/tower-node declarations are boundary APIs, not a new registry. Shared receipt helper counts extras beyond the caller and requires idle transport before admission/release. | Source3fc634dc85ac9d8f6d5ade0236429a80a701917b7e23f85386ebc5d47bad4d49. Private editor descriptors borrow lexical owners until joined publication. Capacity differs from current permits; null-ledger standalone behavior remains explicit. |
+| `compiler/semantic_source_bindings.tower` | Whole module read. Conservative lexical mutation/escape proof binds original declaration identities, parameters and shadows. Unknown extensions/depth truncation cannot prove immutability. Workers own scope/scratch/candidate vectors; graph-owned proof joins them before coordinator component publication. Specialization cannot silently invalidate already-consumed facts. | Source b5c142a24f8c0e1c0ec60f4ce986bebd54288003899988d1b250c5404720407d. Scanning possible mutations in branches is conservative proof analysis, not execution of staged effects or discovery of untaken value dependencies. |
+| `compiler/semantic_known_bindings.tower` | Whole module read, then paired input-role patch reviewed. Immutability, initialization order and known value are distinct facts. Joined scan/order/input/clone receipts precede lowering; optional evaluation uses the ordinary interpreter. Mandatory-input eligibility preserves lazy arms; final replacement/storage publication is coordinator-owned. Optional known input now writes only known_producer, preserving the mandatory capture role. | Current source4d8b8ec4454288b06dc93a152cb4b39b9f9c1fd36f0f5359bb4abf9f711c058b supersedes a938eceb. Paired L1 interpreter/A1 publisher ABI rebuilt; control smoke and constructor jobs1/4 pass. Early unfinished capture and full semantic gates remain open. |
+| `compiler/frontend_units.tower` | All637 lines read after B2v2/source bounds and A1 API boundary. Stable coordinator components own separate unit worlds/modules, exact immutable snapshots and receipts. One synchronized ledger spans outer jobs and nested phases. Reserve before dispatch; accept joined graph result before releasing execution. Cancellation drains shared pool/continuation before input view close; close rejects active backend borrow and destroys worlds before ledger. | Source aadc2c0c434dcb0b5cfcc3378fe28025a32d98dbb189cfbc033e3b8548d96d08. Supersedes baseline static-floor-division row above. Snapshot replacement reserves both old and new bytes until commit, rejects embedded NUL at exact offset, preserves old inputs on failure. Declared bytes omit parser/semantic/foreign heap; this is not a process RSS cap. Observer synchronization belongs to its frozen callback owner. |
+| `backend/units.tower` | All506 lines read. Backend jobs extend the same unit entities/WorkGraph; immutable Foundation views and private LLVM contexts/modules/results. Streaming shares frontend transport/ledger; standalone owns its ledger. Output retention and work_finish precede execution grant return. Cancellation drains, settles unused logical tickets, closes views, then releases execution; retained bytes survive until backend destruction. | Source735cc2a08bbf069139f085ce7dad0d12577d75ec76394fc414af4796b0ba0884. Old backend pass predates latest semantic freeze; D2's old-input TSan internal overlap deadline is a failure, not a sanitizer pass. LLVM internal arena capacity is unknown; object length is accounted only when foreign emission supplies it. No alias promise follows from the Foundation pin. |
+
+## Current input-role and parser-grain join (2026-11-22)
+
+Reviewed paired L1_value_input_roles (4de1c040), A1_input_role_publishers
+(5f0842f5) and A1_executable_lowering_receipt (b4ae376f), then rebuilt the full
+changed ABI closure. Required capture producer/owner/ordinal and optional known
+producer coexist on one world-owned IMValueInput; they are distinct roles, not
+competing authoritative values. Declaration-frame validation remains explicit.
+Executable work snapshots completed prepared/lowered receipts before dispatch;
+workers do not infer them by racing mutable semantic state. Existing aggregate
+signature cloning remaps the result parameter and avoids a second lowering.
+
+| Reviewed changed path | Ownership and evidence |
+| --- | --- |
+| `compiler/interpreter_context_types.tower` | Source485ca21df83f93f2863bf9dc3e0139aa78b32e4900e796dc240fc4cda7b394a2. One added known_producer field changes shared ABI; no stale dependent object was reused. L1 owns interpreter semantics. |
+| `compiler/interpreter.tower` | Source910919c5f2bf276ab412353eb8f2a233fcf8f5a72a80c710de748df383b9d541. Changed input-role and local-frame paths reviewed against L1 handoff; this is an interface review, not a claim of full interpreter audit. |
+| `compiler/semantic_capture_work.tower` | Source00bfa4b91a91207770653056328680c6e2f221ec36bbf32bce99b9fdbeb752ea. After its prior full review, checked the publisher delta: initialize only new input components, update required role fields without clearing known_producer. Publication remains after joins. |
+| `compiler/semantic_execution_work.tower` | Sourceaaff4245b3e1ceb3e9ff43e949a78d5ef2eb5057524fe47cb4ced8e32d3116a6. After prior full review, checked prepared/lowered receipt snapshot, query-read recording, existing-signature cloning and result remapping. Private snapshot/lease ownership remains unchanged. |
+| `compiler/lr_state_work.tower` | Sourcee3c0776fdb1cb4703cfedeefa84758cbbbc334cf20a8dfa274994dbc9b802639. Full refined owner delta reviewed after earlier whole-module audit. Coarse grain65536, refined grain32768 only with at least four coarse chunks, limited by available shared capacity. Allocate private jobs/pool only for a profitable frontier. Jobs, graph and canonical output remain authoritative; no new scheduler. |
+
+B1_parser_budget_refined.patch (836fee7f) replaced the complete older parser
+bundle. Reversal initially rejected our two defining-type import additions and
+an EOF blank in lr_budget. A private patch materialization plus exact diff showed
+only that whitespace difference; imports are now supplied by the new bundle.
+Both full reverse-check and new apply-check passed after reconciliation. No owner
+implementation or assertions were discarded. Serial-chain/medium-frontier tests
+check that no hidden job entities are created; large frontiers retain actual
+barrier overlap checks. Current LR suite passes. The grain change still needs
+B1's equivalent-input profile receipt; this audit makes no uniform speed claim.
+
+Current public-pin native rebuild passes53 steps; LR/formatter pass7 more steps.
+Compiler35ef2ed4302a2da8de17fd20ba662487698a6f0af25510cee8170c5c0a40b305,
+LR d31af4e3c6b5a4c5451f7e6cf217b7328ac201f05887444cfd9dd0b1721080a0.
+Query, control, LR, unit and backend checks pass; unchanged constructor outputs0
+at jobs1/4. This resolves the previously recorded control uninitialized-local
+failure. Type-smoke still awaits D1's recursive-call diagnostic oracle; full
+semantic/capture, current sanitizers, browser, generation and publication remain
+open. These elapsed validation times are not isolated before/after performance.
+
+Formatter replacement e51e5db8 leaves production format_foundation unchanged
+(b38f850b) and adds consolidated-prelude goldens/derived extents. Exact formatter
+checks pass on its intentionally serial fault-injection transport. Root then
+identified that the full bundle omitted parser_main's existing resource argument.
+Restored precisely those old owner hunks; checked all three callers. Aggregate
+parser main was not in that passing LR/formatter run, so its compile/runtime gate
+remains separate. Corrected sourceaf80689f132099908e420b369ea5bade726206d2ee201e4eeac9f12ee8855fc4.
+
+Additional WorkPool caller discovery: all four linker job modules and the browser
+LLVM transport below were read completely at85aafd8e/current handoffs. They are
+B2 production ownership; no cross-owner edit was made. Their local WorkGraphs
+reuse the common scheduler and are derived over explicit link-world entities.
+
+| Path relative to scaffolding | Storage, scheduling and ownership conclusion | Evidence/gap |
+| --- | --- | --- |
+| `backend/elf_link_jobs.tower` | Stable component jobs borrow frozen object/DSO/symbol metadata and disjoint reserved output ranges. Graph access claims and ticket precede submit. Private errors are selected in source order after all jobs, so finishing a transport task successfully does not assert semantic relocation success. Reverse defer order drains before view/job/type/graph destruction. | Source61e803a246a46130c7f39c58aa730fe99fe9118b6a1e477824156af69ecb97e9. Standalone link.workers ceiling, no borrowed WorkBudget in this API. Pool peak measures admission. Link cancellation stops admission and drains; output publication belongs enclosing successful image construction. |
+| `backend/macho_jobs.tower` | Same explicit store/job ownership and pre-dispatch ranges. Input domain covers frozen bytes/symbols/layout; job domain owns per-object compact-unwind/fixup scratch. Output claims exclude compact sections handled in the later serial unwind phase. All exits after pin drain workers before reclamation. | Sourcee07101be93fc77600997803093e387ec7a3405d8f97f8dfa05b5dbbe1f89c6a2. Private job diagnostics, source-order selection after join. Actual Mach-O host execution is not established by this source review. |
+| `backend/pe_link_jobs.tower` | Frozen object/section sources and resolved symbols; private job diagnostics, disjoint section copy/relocation ranges, one stable component per object. Graph tickets precede submit. Cancellation/failure returns through drain-before-view-close defer. | Sourcefc821e38b3766aecba3453c7eacd948dde448183488559a30f44128cb0e6856c. Windows transport execution remains separate coverage; pin alone is not output exclusivity. |
+| `backend/wasm_link_jobs.tower` | Coordinator collects packed copy descriptors/offsets before dispatch; their borrowed bytes, chunk metadata and section allocation stay frozen until join. Worker shallow link copy owns only private diagnostics. Cost/grain partitioning uses common WorkGraph/WorkPool, with pre-dispatch output intervals. Persistent pool may grow from serial only after an earlier run has drained. | Source5955dea0ff81f0dde0359edcc161db535a7f0112e00c018ccd540c427995d538. Serial path copies/relocates inline. Error source order and cancellation draining explicit. Pool startup, real overlap and job-grain profitability need B2's linker evidence; admission peak alone is insufficient. |
+| `host/llvm_worker.tower` | Whole module read. Legacy default-world boundary attaches named llvm.transport state to its worker world. Explicit BackendSource sessions are separate. Compile borrows supplied environment or owns a temporary completion lease through synchronous compilation; returned diagnostics/output remain worker-state borrows. Runtime bytes are decoded once and retained for worker lifetime. | Sourcef723f0a83f7006c6a77937a63c3325c361f3969cfb4f24b45feeec06e93026e3. No component finalizer or explicit transport-close API in this module; whole worker/VM lifetime is the stated contract. Reusable world teardown must not be assumed without B2 proof. Browser trap/cancellation validation remains separate. |
+
+Reviewed enclosing ELF/Mach-O/PE/Wasm link entrypoints and the unit-driver
+compile-to-link boundary: driver_units waits for backend_units_step completion
+and checks both frontend/backend failure before starting link. Thus this observed
+caller does not overlap linker workers with its active compiler jobs. The link
+APIs themselves accept a separate worker ceiling and do not borrow the session
+ledger; embedding under an unrelated active pool requires an explicit caller
+budget contract. This is a review limitation/request to B2, not a demonstrated
+oversubscription defect or authorization for another budget framework. No new
+linker performance claim is made.
+
+| Additional measurement path | Review and limits |
+| --- | --- |
+| `tests/frontend_units_profile.tower` | Whole B2-owned fixture reviewed, source2e4b84e4bb341ef3aeaddb205aea5b91e962207762c57e08921bc5e061e63b50. Fresh unit worlds, immutable exact-length snapshots, one final large body unit plus small siblings, shared budget. Clock/CPU/RSS end before independent answer42 invocation and canonical hashing; retained bytes and ledger state sampled after joins. Observer spans are private per ordinal and read only after completion; outer overlap derives from recorded intervals, not queue width. Backend mode validates ELF envelope/retained byte count but does not execute every emitted body; it is not a C-toolchain superiority comparison or precise live-heap census. No new A2 execution result is attached here. |
+
+## Current production ASan milestone
+
+Fresh documented public-pin address-mode build completed at21:49:29Z, container
+exit0/PID0. Compiler34a144cb31fe6c24a5182dd8beef7625cc2962317fe92644935d33b31e051c52,
+LR c035d3894265f93aeb925177876749a43071132a7e69cd7655a4aba58a208eb2,
+configured manifest8f9bde9435812eadb38c684aadce856c47bb585cb99f1b988897f3c742772949.
+Eight focused checks pass, zero skips; query/control/LR/units/backend pass with
+production allocator and real worker transport. Constructor outputs0 at jobs1/4.
+ASAN_OPTIONS=detect_leaks=1:halt_on_error=1; no suppression or repeated unsafe
+probe. Backend's actual overlap and cancellation assertions pass within unchanged
+deadlines. This supersedes the older partial ASan caller coverage for this exact
+input-role/refined-parser snapshot. Incoming reachability changes are not yet
+covered; TSan/current full execution/browser/generation/release remain open.
+
+Address-mode elapsed validation (one sample, not a performance comparison):
+query .429s, control256.241s, LR20.003s, units147.352s, backend392.737s,
+constructor jobs1/4 9.111/7.650s. Control RSS observation828024KiB and backend
+1082148KiB are point samples, not process peaks/live-byte census. Shared-library
+LLVM is not rebuilt with ASan; source-level UBSan and universal race freedom are
+not established. Exact recipes, source hashes and limitations are in the journal.

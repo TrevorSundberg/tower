@@ -47354,3 +47354,145 @@ live-byte census or source-level UBSan claim. This new test changes no productio
 runtime behavior, so there is no production before/after speed claim. D1 generic
 registration/independent execution is requested; whole merged compiler/browser/
 generation/bootstrap/publication gates remain open.
+
+### 2026-11-22 A2: joined input roles, refined parser grain and current validation
+
+After85aafd8e and all owned processes drained, reviewed root-authorized paired
+L1_value_input_roles.patch SHA4de1c040ae4179c0f7ee5119fa7bf6d486f3d2e29f0d3389b483ab97655117ed,
+A1_input_role_publishers.patch5f0842f537007a975da0ff5bcb3fc58e897df3b3dd5ef2e099474ea7d7d76d55,
+and A1_executable_lowering_receipt.patch
+b4ae376fcae24b51bd9235d8e9d938b19ace113bce49551be91c7257946c41fb.
+Applied in that order (-p1, -p2, -p2). One IMValueInput component now preserves
+both required capture role and optional known producer. Executable snapshots
+record joined preparation/lowering facts, preserve existing aggregate signature
+identity and avoid lowering it twice. These are owner implementations, not A2
+changes; full ABI dependents rebuilt. Early unfinished capture diagnostics and
+full semantic coverage remain owner acceptance gates.
+
+Replaced old B1 formatter bundle with consolidated
+ e51e5db8952f75250929a5ba8cb85025ce90926e6895ae3279d79ce5eeea671f;
+production formatter SHA b38f850ba506b0da9c181bd9470bb811e4c76cb05d2633735ab4fec33d7bb2a0
+unchanged across replacement. Replaced old full parser bundle with refined
+836fee7f7c5002a550f9be0fb629abab37cd690f55ef83b06651e6fdfad7aa06.
+Its65536 coarse/32768 refined work grain and lazy worker allocation preserve
+small serial paths. Reversal initially rejected two manually added defining-type
+imports and an old EOF blank. Removed only those import additions temporarily;
+materialized the old lr_budget patch in own cache/parser_patch_reference (not a
+checkout/worktree), exact diff proved the single EOF blank. Restored that blank,
+reverse-checked/reversed old bundle, checked/applied complete new bundle. It
+supplies both required imports. No source reset or unrelated edits; failed checks
+remain visible. B1 owns the refined before/after measurements, still pending here.
+
+Script cache/joined_input_roles.sh, Docker tower-a2-input-roles, CPU12-23/24GiB,
+public documented bootstrap (no override), direct --jobs1/outer build2, LLVM19,
+Linux x64. Source closure frozen. Smallest lr_state_work object passes3.031wall/
+2.434user/.223sys; semantic_lifecycle15.172/10.963/.866; format_expected
+1.538/1.268/.108. Native53steps78.875/108.754/8.687; LR/formatter7steps
+8.637/10.822/.895. Container exited0/PID0 at21:30:57Z. Compiler
+35ef2ed4302a2da8de17fd20ba662487698a6f0af25510cee8170c5c0a40b305;
+LR d31af4e3c6b5a4c5451f7e6cf217b7328ac201f05887444cfd9dd0b1721080a0;
+formatter c4d7f89e17af7f3ca170ec72b31be7635bce5a78acbae120357f624da7e5576d.
+
+Fail-fast current checks all pass: query .074wall/.045user/.017sys,
+control31.809/32.749/1.591, LR1.808/2.014/.327, units18.048/26.168/1.462,
+backend48.525/63.236/6.401. Actual frontend/LLVM overlap, shared budgets,
+deterministic objects/errors and cancellation assertions were retained. Unchanged
+type_construction_execution outputs0 at jobs1/4 (1.277/1.182wall), formatter
+exact legacy text/spans, Foundation round trips, generated names and failure
+cleanup passes2.933wall/.279user/.360sys. Formatter's allocation failure runner
+requires unavailable threads/capacity1; it is not concurrent sanitizer evidence.
+These are single validation runs, not equivalent isolated performance profiles;
+no RSS/retention claim derives from their shell times. Logs joined_input_roles.log
+and joined_roles_{query-smoke,control-smoke,lr,units,backend,constructor_1,
+constructor_4,formatter}.log retain details. Control uninitialized-local regression
+is resolved in this snapshot; its earlier failed logs remain historical evidence.
+Type-smoke still awaits D1's ordinary recursion diagnostic oracle. No full
+semantics/browser/generation/publication pass claimed.
+
+Pull --rebase --autostash after drain succeeded; HEAD85aafd8e/public60741c51,
+owner deltas preserved. Root then flagged a full formatter bundle omission:
+parser_main's existing formatter_tests(resource_root) declaration/call had been
+reversed without replacement. Restored only its two old owner hunks with checked
+--include=scaffolding/tests/parser_main.tower. All three callers now pass the
+resource root. Sourceaf80689f132099908e420b369ea5bade726206d2ee201e4eeac9f12ee8855fc4;
+that aggregate parser main was not part of the completed LR/formatter run.
+Smallest compile precedes the next build; no retroactive validation claim.
+
+Next current ASan/leak and TSan checks use D2's shared TOWER_SANITIZER mode,
+actual production allocator/transport, no repeated intentional-invalid probes.
+First address build cache/native_address_joined launched21:32:33Z with the same
+CPU12-23/24GiB/jobs1/outer2 cap, container PID2689. Recipe
+cache/joined_address_build.sh and log cache/logs/joined_address_build.log preserve
+commands/results. The configured manifest is not execution proof. Foreign LLVM
+and source-level UBSan coverage remain explicit limitations. Disk before build
+350821093376B free. Documentation receipts themselves change no runtime behavior;
+profiling is inapplicable to those prose edits.
+
+Additional complete source reviews cover all four backend linker WorkPool caller
+modules plus llvm_worker (hashes/conclusions in A2 audit), and the B2 unit profile.
+Observed driver_units drains frontend/backend completion before starting link;
+standalone linker APIs still expose their own worker ceiling. Requested B2's
+embedding/worker-lifetime contract, without asserting a demonstrated defect.
+The profile separates timed compile from interpreter answer42/canonical checks;
+ledger retained bytes and RSS have different meanings. No new measured result.
+
+Incoming execution_reachability_handoff was extracted into own cache only.
+Reviewed complete L1 full21-path patch c3066f54d08f05c5549655a1602aefe7ae59bb6f6259f8358f0758daaa416560.
+Reverse-check proves five existing interpreter/package paths already identical;
+apply-check for the other16 paths passes. No mutation while ASan runs. L2
+incremental3e7c7527df45d416ed0522fb6981e47d1f97dd0103eebdfef0fb30eb1d407a80
+shares execution roots/reference traversal without pruning canonical Foundation.
+Its new reachability fixture has an owner-reported failure; preserve the oracle,
+do not claim full type acceptance. D1 body recursion oracle22f651f4 changes only
+the expected interpreter stack-limit diagnostic and retains graph-cycle cases.
+Focused registration_v2 5ae06f78 is a full replacement, not incremental. Exact
+reverse-check plus five-file private materialization shows existing harness is
+identical; four current fixtures additionally need work_budget_types imports,
+and work_ready differs only by D1 deriving count from its four-element array.
+Keep those defining imports and adopt only the reviewed derived-count delta after
+drain. This is not a new scheduler algorithm or weakened test. All bundles remain
+pending at this receipt; owner hashes preserve provenance separately from A2.
+
+Current address-mode milestone completed21:49:29Z, tower-a2-joined-address
+exit0/PID0; all jobs drained before source changes. Smallest restored parser_main
+passes2.181wall/1.700user/.148sys. Fresh shared-mode native82steps
+140.872/189.511/16.683; focused+LR32steps38.098/24.693/7.890. Compiler
+34a144cb31fe6c24a5182dd8beef7625cc2962317fe92644935d33b31e051c52;
+LR c035d3894265f93aeb925177876749a43071132a7e69cd7655a4aba58a208eb2;
+configured manifest8f9bde9435812eadb38c684aadce856c47bb585cb99f1b988897f3c742772949.
+Actual8CTest passes zero skips: production worker overlap, ready index, ledger,
+shared ledger, admitted kernel, output identity, semaphore try and wait. Query
+.429wall/.271user/.163sys, control256.241/276.570/9.109,
+LR20.003/25.285/1.457, units147.352/227.244/7.263,
+backend392.737/538.375/49.710 all PASS. Backend retains real frontend/LLVM overlap,
+budget, deterministic object/error and cancellation assertions. Unchanged full
+constructor outputs0 at jobs1/4 (9.111/8.348/.613 and7.650/8.503/.944).
+
+ASAN_OPTIONS=detect_leaks=1:halt_on_error=1, no suppression. Existing internal
+fixture deadlines and outer600s remained unchanged. This is valid production
+allocator/transport coverage, not serial allocation-failure instrumentation.
+No historical unsafe sensitivity probes were repeated. Instrumented source
+receipts include WorkPool006b7e4e, WorkGraphf43da0e8, budgetefbc1dd8/typesfaa18b85,
+kernelf2e92744, input roles485ca21d, executable workaaff4245, LRstatee3c0776f.
+Configured manifests alone are not execution proof; the actual linked targets
+above passed. Foreign system LLVM remains uninstrumented. Source-level UBSan,
+current TSan and all-host race freedom are not established.
+
+Instrumented control/backend are much slower than normal validation, with CPU
+activity throughout. Observed control RSS828024KiB and backend1082148KiB are
+point samples, not peaks or live allocation totals. Read-only perf availability
+check failed because perf is absent from this Docker image; no sample was taken.
+These one-sample instrumented execution times characterize validation cost, not
+before/after optimization or cross-language speed. Last disk350271234048B free.
+Logs joined_address_build.log and joined_address_{query-smoke,control-smoke,lr,
+units,backend,constructor_1,constructor_4}.log remain preserved. Inputs were frozen
+through all joins and process exit. Incoming owner reachability changes are not
+covered by this receipt and will be validated separately.
+
+B1 corrected six-path formatter full bundle222cc74e44b7a4b345a7f3879ec12a5b2f2349080fc1ff9724af03cba3a7bcaa
+reverse-checks exactly against current e51e plus restored parser_main; no churn.
+L2 retained-runtime fixture13f3b7e1c6b61301683c9f99ebbb0d2ff8b46f94e32c751ca4d56059bf105703
+was fully reviewed. It preserves the erased unused alias as a scalar-only case
+and adds actual runtime type-return/function-value/exported mutable-body cases;
+independent canonical inspection by owners explains the corrected expectation.
+No production predicate relaxation. Apply incrementally after consumer3e7c7527.
