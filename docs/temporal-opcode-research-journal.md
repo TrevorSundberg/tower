@@ -40578,3 +40578,74 @@ used by both decltype and an ordinary call. Small-unit preflight passes; this
 last preparation change awaits the merged milestone's affected execution check.
 The 0aeea65 Pages workflow 44979550849 succeeded and hosted verification has
 matched all 89 assets so far; browser/host checks are still running.
+
+Final source checkpoint is a07bb6e, rebased onto 0aeea65. A fresh public-bootstrap
+native successor in /home/trevo/.cache/tower/coordinator-wasm-linker/
+successor-default-final passes with TOWER_BOOTSTRAP_COMPILER unset, including
+backend API and the driver functional linking runner. The checked-in bootstrap
+SHA-256 remains 21f527125bfa05a8cd6d4923d4fdc026a04553e919f2905c602a17691598dba5;
+this milestone does not repin the predecessor executable. A new collision test
+supplies an archive named tower-input.o: the CLI disambiguates its virtual
+generated filenames and produces exactly the same output. The earlier reader
+preflight accidentally omitted --emit object/--library and attempted an ordinary
+executable link; correcting the invocation passed without an implementation fix.
+
+After the rebase, the documented build-llvm.sh release path succeeds with the
+public bootstrap, all backends enabled and three build jobs. Its log is
+build/wasm_default_release_build.log. This also validates the remaining
+prepare_llvm normalization/restoration path. Final backend-worlds/raw-memory/
+cross-target checks pass 34/34 (12.132 s); the two affected function-value and
+resumable-control LLVM/interpreter checks pass (23.32 s); real shared workers
+pass 3/3 with zero skips (25.60 s), including overlap/failure and 1/2/4/8-worker
+determinism. Logs are build/wasm_default_final_{execution,semantics,threads}.log.
+The updated standalone wasm_link_reactor fixture was not separately executed;
+actual service behavior is covered by backend_source and browser self-builds.
+
+Both edited browser generations pass from the ordinary build/compiler-project
+recipe, without changing its linker selection for the test. Invoke the existing
+test-compiler-project.mjs with TOWER_TEST_COMPILER_PROJECT=build/compiler-project/,
+TOWER_TEST_COMPILER_WORKBENCH=build/compiler_workbench_default_final/ and
+TOWER_TEST_LLVM_WASM=build/browser-wasi-llvm/tower-llvm.wasm. Final artifacts are
+byte-identical across the generations (two/four compilation workers):
+
+| Artifact | Bytes | SHA-256 |
+| --- | ---: | --- |
+| tower | 1265609 | 7f394ab75ff1911683a0bedf2fce716a9168f2f338529b16fa3dc7e1fc1c9114 |
+| llvm | 35061361 | 7c1f5d8fc11442a3846d3e586072bba1d8ff1558069d98176b84535ea8ee6521 |
+| cross | 65031904 | 8c606356bde6b712c6936f9207de20b1c991ad6239c9c9d210680f151281188b |
+
+Receipts are generation1.json/generation2.json under that workbench and
+build/wasm_default_final_generations.log. They supersede this milestone's earlier
+pre-rebase generation hashes. The final Wasm-only link list has no LLD library;
+the cross list has lldELF/lldCOFF/lldMachO/lldCommon and no lldWasm. The old debug
+reactor and new release reactor have different profiles, so their sizes are not
+a valid isolated LLD-removal percentage comparison.
+
+Small end-to-end CLI comparison after builds/tests were idle: compile
+scaffolding/examples/execution.tower with the final successor, --target
+wasm32-unknown-unknown --emit exe --cc /usr/lib/llvm-19/bin/clang --timings,
+alternating --linker tower-wasm-ld and the SDK34 bin/wasm-ld three times.
+Tower link times are 4.551254/4.409516/4.706314 ms; SDK34 reference times are
+61.837373/30.771217/28.532018 ms. Median link time is 4.55 versus 30.77 ms;
+median total compile time is 1.320 versus 1.356 s. This includes process/file
+overhead on one tiny workload, not general linker throughput. An initial trial
+named absent /usr/bin/wasm-ld-19 and failed "Cannot find tool"; it is excluded.
+The SDK34 reference is /home/trevo/.cache/tower/wasi-sdk/
+wasi-sdk-34.0-x86_64-linux/bin/wasm-ld (Clang 23.1.0); host Clang is 19.1.7.
+
+Local release validation with TOWER_REQUIRE_BACKENDS=1 TOWER_REQUIRE_THREADS=1
+npm run build and npm run test:deployment passes: all 88 assets, desktop/mobile
+editor/persistence/backend/download checks and actual Linux target defaults.
+Log: build/wasm_default_local_deployment.log. One obsolete support archive chunk
+is retired. The scoped publication preserves earlier lanes' receipts as history,
+with runtime identity a07bb6e; later generic-clone/nested-invocation changes are
+excluded. Hosted verification is recorded separately below.
+
+Remaining LLD retirement is substantive: native ELF/COFF/Mach-O implementations
+and SDK/build linking still use upstream tools. Next implement native object
+readers, symbol/archive selection, relocations and executable emission in Tower,
+starting with the exact Linux executable profile used by the compiler. Reuse
+the existing link-world components, pinned-input jobs and deterministic join
+contracts; retain unsupported-profile diagnostics and the native reference until
+actual native execution/import/export/ABI and bootstrap checks pass. Removing a
+library name or delegating to another upstream linker is not that translation.
