@@ -45392,3 +45392,25 @@ rules use Tower too. Docker no longer installs lld-19 and source-cache setup no
 longer extracts/requires LLD sources. Independent LLVM/LLD reference workflows
 remain comparisons, not production fallbacks. LLVM object emission, SDK runtime
 libraries and upstream LLVM build tools remain external dependencies.
+
+Publication rebase integrated e408484 (IDE fixture migration only). The hosted
+source milestone is now e67b8fd and the SDK-link milestone 89bbdf4; earlier short
+IDs above describe pre-rebase local evidence. Refreshed the complete bootstrap
+from 89bbdf4 so its provenance references published ancestry, rather than an
+unreachable pre-rebase commit. Pin SHA-256:
+c59e8bab69340cfcea7f03e3fa081b339dcf12230e84fd0c51870eb766551a75
+(2,021,464-byte executable; all adjacent resources separately hashed).
+
+The new pin passed another empty-cache public 52-step successor build in
+coordinator-hosted-elf/pin_successor, with no private override, and the successor
+compiled frontend_modules.tower. The pin also compiled/linked and executed
+cross_target_program inside the existing Ubuntu24 tower_build Docker image,
+output 5/84/42/8/41/42. Version requirements are LLVM_19.1 and glibc at most2.34.
+Native backend API, driver, allocator glue and production runtime ABI pass.
+All three standalone Wasm allocation/growth fixtures linked with Tower and ran
+under Node22. The SDK command startup also executes the existing runtime ABI
+fixture; its first manual link omitted the memory policy object and correctly
+retained explicit env imports, then passed with that required input supplied.
+The real shared-worker Node suite passes3/3 (26.26s), zero skipped, including
+128 pool lifecycles, injected worker failure and1/2/4/8-worker determinism.
+Two-generation browser compiler and hosted deployment validation follow.
