@@ -40793,3 +40793,24 @@ shell 11/255, Python zero and owned C/C++ zero. CMake is down eleven files and
 its current upstream parent. Canonical Linux/Docker bootstrap remains intact;
 native cross-platform execution is not newly claimed. Preserve the coordinator's
 new a07bb6e runtime and all published assets when adding the tooling receipt.
+
+Final integration pull also receives 2225c52's generic-work refill/admission
+changes, rebasing implementation/validation to b671016/8831ada. A transient
+GitHub DNS error stops the attempted push. Before retrying, repeat the required
+clean default successor from git-archived 8831ada in
+/cache/backend_units_final_checkout with outputs in backend_units_final_native.
+All 48 steps pass; SHA256 is
+fef1a1e0190d763bac96d756d946b2d14cb8f82ce9e8365ecc9537043ede2b06.
+The memory fixture again passes both interpreted widths, native execution and
+actual Wasm execution through the default linker. The registry/packaging source
+and CMake composition did not change in 2225c52; retain the affected a07bb6e
+browser-generation evidence above with its exact source identity rather than
+claiming those artifacts include the later semantic change.
+
+Read-only next-lane audit finds compiler-build.mjs still mixes worker/transport
+orchestration with candidate-program fixtures and assertions. Its 196 lines are
+a concrete reusable-logic candidate after the remaining build boundaries; retain
+WebAssembly instantiation and worker cancellation as host transport. Audit the
+actual exported calls and existing Tower checks before choosing removal or the
+smallest required Tower replacement. Do not infer that the 1081-line app UI is
+unused or promise an entire UI rewrite in this lane.
