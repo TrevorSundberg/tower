@@ -1046,3 +1046,41 @@ from strlen; expected valid parameter/field labels and serial-worker snapshot
 comparison unchanged. Original missing-import failure was owner-reproduced;
 current independent execution remains pending. No implicit source-prefix policy
 or editor-world ownership change.
+
+### Parser retention oracle independently executed at127ca98
+
+The earlier draft is now compiled and executed against a fresh public-bootstrap
+compiler closure. Original fixture is preserved in an isolated8.3MiB source
+snapshot and linked to the same production objects; it still aborts134 at512
+symbols when live buffers9521 become9522 (18 measured rows emitted). GNU time
+records signal6 but its trailing exit-status field is0; the saved wrapper134 is
+authoritative, never a pass.
+
+New fixture passes three default and three128-reset stress samples for
+256/512/1024/2048symbols. Every component owner/type/store and per-page live count
+is checked, including full pages outside partial-pool lists. Exact capacities,
+strides, requested bytes, live payload and unused slot bytes follow the reviewed
+allocator policy. Stable semantic/entity/component/live-byte totals and cache
+pointer identities distinguish payload ownership from page fragmentation.
+Buffers minus counted pages stay exact; session closure returns to its world
+baseline and final world disposal returns to initial tracked-buffer count.
+
+At the final stress iteration:35/41/49/65pages, requested302525/355063/413167/529375
+bytes, live payload127584/141920/170592/227936bytes, unused71320/94616/94616/94616
+bytes, two cache entries, no individual component allocations. Larger cases gain
+one16223-byte page with16128bytes additional unused slots, then remain stable
+through iteration127. The bound is deliberately loose: one live-owned page per
+pooled component is legal, not evidence of low fragmentation/packed payloads.
+No arbitrary buffer slack or extra warmups were introduced.
+
+Default samples wall0.14/0.09/0.09s, CPU0.12/0.08/0.08, peakRSS52308/52188/52272KiB;
+stress0.56/0.58/0.60, CPU0.55/0.57/0.58, RSS52308/52240/52260KiB; all zero swaps.
+Same source/workload, public pin9653f818, new production compiler objects,
+serial transport/world budget1 and unchanged five warmups. Before abort cost and
+after completed workload are not comparable end-to-end. The old implicit world
+retains two additional bookkeeping buffers; the new explicit world owns/disposes
+its state. Matching-prefix parse timers/allocation outputs remain available, but
+the census touches storage outside timing and can warm caches: no speedup claim.
+Actual ASan of this new census remains pending; fault-allocator assertions are
+not sanitizer evidence. Patch19da2e17e5c896c8d6bccd1e5629697ed7736a7ed8784eb0b9081179ea3ee75c
+and raw receipt are in coordinator D1/parser_retention_receipt.

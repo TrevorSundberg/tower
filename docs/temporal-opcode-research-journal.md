@@ -48001,3 +48001,58 @@ until executed evidence says otherwise. Exported hook is initially unvalidated,
 and its smallest unit/runtime will run after D2's active slot drains. B2's two
 explicit completion imports were also adopted without changing cursor or typed
 oracles. No production source changed in this follow-up.
+
+### D1 clean canonical build and parser retention validation at127ca98
+
+After D2's authoritative53/53 success and normal lock release, D1 acquired the
+single Deck heavy slot. Corrected frontend_main compiles12.31wall/12.19CPU/
+348068KiB; new lr_work_main9.07/8.86/253816; retained-type fixture5.49/5.45/251844,
+all public pin9653f818, jobs1, raw0. This closes the earlier missing B2 wrapper
+compile failure; no runtime frontend pass inferred.
+
+Canonical command: env -u TOWER_BOOTSTRAP_COMPILER
+TOWER_NATIVE_BUILD=/home/deck/.cache/tower-d1-ecs-20261122/native-coherent-127ca98
+TOWER_BUILD_JOBS=1 bash playground/scripts/build-native.sh
+-DTOWER_COMPILER_JOBS=1 -DTOWER_WORK_TESTS=ON -DTOWER_BACKEND_TESTS=ON
+-DTOWER_DRIVER_TESTS=ON -DTOWER_EXECUTION_TESTS=ON -DTOWER_FORMAT_TESTS=ON.
+Executed in own tower-d1-ecs Docker image4be584fb/LLVM19.1.1 on cpuset0,2;
+fresh cache, warm source/bootstrap pages, one sample. No private bootstrap
+override or changed pin. Earlier own inactive build/native was preserved by
+verified workspace-local rename, avoiding stale configure_file/package copies.
+
+Native53/53 PASS:282.07s wall/274.45CPU/785176KiB RSS/0swaps. Compiler SHA
+0377c5dae8f7710cf425b888528750b82525e85fd6d7ca49d04d53a896b6fc69.
+Exact cached/relocated resources compare equal,42files, all five root language/type
+sources match; deleted fourteen-forwarder types directory absent. Source identity
+is127ca98 and remains separate from D2's different source/hash/timing receipt.
+Existing optional parser fragment ordered after Backend via CMake project hooks;
+focused six-target build17/17 passes72.43wall/70.62CPU/347700KiB. Builds never
+overlap in a cache. This is current clean development-bootstrap closure, not a
+portable release or final newer A1 successor validation.
+
+Original and revised parser fixtures use identical production objects and frozen
+generated grammar/input sizes. Original abort134 at512 symbols recreates the
+9521->9522 retained-buffer failure. New three default plus three stress samples
+pass exact owned-page census, semantic/cache identity, non-page buffer equality
+and complete session/world teardown. Detailed bytes/timings/limits are recorded
+in the D1 audit and coherent_127ca98 raw logs. The original failure's0.97s includes
+abort/core handling and only18rows, so no before/after end-to-end ratio is claimed.
+GNUtime's signal6 and wrapper134 take precedence over its misleading terminal
+exit-status0 field. After source owns an explicit serial world; same five warmups
+and per-parse allocation timer remain, census diagnostics are outside timing.
+
+Exported tested parser patch19da2e17 and raw receipts for root/B1 independent
+review, including exact source/artifact identities and generated OS-only link
+command. Actual parser ASan still pending; serial fault counters do not supply
+thread sanitization. All D1 sessions drained, both containers idle before own
+lock release to D2. Native/runtime resources are now clean for this checkpoint,
+but query/control/type/overlap/fullfrontend/browser/generation/final production
+instrumentation and atomic hosted publication remain open.
+
+A1 source-root and failure-walk handoffs arrived during the freeze and were read
+without editing inputs. Root permits deferring the partial late-capture special
+case to its general successor. Original syntax identities are a derived borrowed
+index under program ownership, distinct from rewritten executable items; source
+pipeline ABI changes need affected rebuilds after adoption. Requested persistent
+module-alias-write and generic-extension regressions from A1, without competing
+edits to its lifecycle fixture.
