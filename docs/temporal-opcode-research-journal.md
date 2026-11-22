@@ -45884,3 +45884,16 @@ reported equivalent IR and the native object bytes matched exactly. The current
 pin versus its clean successor is being checked for exact IR/object equality.
 Final publication receipts follow below; this entry deliberately does not claim
 that a pending check, deployment or push has succeeded.
+
+The final integration pull brought in 60a276ef's Tower IDE fixture migration;
+the checkpoint rebased cleanly. Backend world/source service checks now pass
+with their required exports enabled (one test, zero skips). Both successive
+browser compiler generations passed, including edited semantic behavior.
+The pin/successor comparator matched parser and interpreter IR/object bytes on
+Linux x64, Wasm32, Windows x64 and macOS arm64, then stopped on three unlisted
+Tower semantic dependencies: compiler_work_plan, generic_body_cost and
+generic_instantiate_deferred. Their existing Tower definitions were checked and
+added to the exact allowlist. The comparator's custom-grammar fixture also now
+explicitly imports Foundation, as required by the upstream declaration seed.
+The remaining semantics/grammar checks and post-rebase successor validation
+are being completed before publication; earlier successful checks are retained.

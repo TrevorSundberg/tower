@@ -109,6 +109,9 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
             || bootstrap_symbol_in("syntax_host_clear syntax_origin_text tower_node_attach tower_node_get_child_member work_kernel_execute work_thread_retention", symbol, length);
     }
     if unit == BootstrapUnit.Semantics {
+        // Staged helper preparation uses the shared query plan and deferred
+        // generic body exports; these are Tower implementations.
+        if bootstrap_symbol_in("compiler_work_plan generic_body_cost generic_instantiate_deferred", symbol, length) { return true; }
         // Attribute aggregate staging reads interpreter-owned bytes and validates
         // function-reference relocation through these ordinary Tower exports.
         if bootstrap_symbol_in("interpreter_function_result interpreter_type_result ix_load", symbol, length) { return true; }

@@ -135,7 +135,7 @@ fn bootstrap_comparison_grammar(context: BootstrapComparison*): bool {
     defer bytes_dispose(&missing); defer bytes_dispose(&text);
     defer bytes_dispose(&output); defer vector_dispose(&args);
     var declaration = "\nparse Statement |= 'bootstrap_check' ';' => replace { print(42); };\n";
-    var program = "bootstrap_check;\n"; var wanted = "42\n";
+    var program = "import foundation;\nbootstrap_check;\n"; var wanted = "42\n";
     if !tool_join(&foundation, context.directory, "custom_foundation.tower")
         || !tool_join(&source, context.directory, "custom_source.tower")
         || !tool_join(&missing, context.directory, "does_not_exist.tower")
