@@ -1,0 +1,78 @@
+import tower;
+import driver_types;
+import driver_support;
+import driver_link_flags;
+import driver_platform;
+import driver_paths;
+import driver_linux_libraries;
+import driver_link_input;
+import driver_mapped_file;
+import .backend.link_types;
+import .backend.link_inputs;
+import .backend.linker_wasi;
+import .library.bytes_types;
+import .library.bytes_interface;
+import .library.vector;
+
+extern fn strstr(text: u8*, part: u8*): u8*;
+
+fn driver_object_link_input(backend: BackendLink*, arguments: DriverArguments*, name: u8*, views: vector(DriverMappedFile)*): bool {
+    if !driver_link_file(backend, views, name) { driver_error("Cannot read linker input: ", name); return false; }
+    driver_argument(arguments, "", name); return arguments.ok;
+}
+fn driver_link_objects(options: DriverOptions*): i32 {
+    if strstr(options.target, "linux") == null || strstr(options.target, "gnu") == null {
+        driver_error("Direct hosted object linking requires a Linux GNU target: ", options.target); return 1;
+    }
+    var arguments: DriverArguments = default; driver_arguments_init(&arguments); defer driver_arguments_dispose(&arguments);
+    var views: vector(DriverMappedFile) = default; defer driver_link_files_close(&views);
+    var backend: BackendLink = default;
+    defer {
+        backend_link_inputs_release(&backend.generated); vector_dispose(&backend.generated);
+        vector_dispose(&backend.output); vector_dispose(&backend.error);
+    }
+    var path: ByteBuffer = default; var workers: ByteBuffer = default;
+    defer bytes_dispose(&path); defer bytes_dispose(&workers);
+    driver_argument(&arguments, "", "tower-elf-link"); driver_argument(&arguments, "", "-pie");
+    driver_argument(&arguments, "", "--export-dynamic"); driver_argument(&arguments, "", "--dynamic-linker");
+    driver_argument(&arguments, "", strstr(options.target, "aarch64") == options.target ? "/lib/ld-linux-aarch64.so.1" : "/lib64/ld-linux-x86-64.so.2");
+    if options.jobs != 0 {
+        if !host_json_unsigned(&workers, convert(u64, options.jobs)) || !host_text_terminate(&workers) { return 1; }
+        driver_argument(&arguments, "--threads=", workers.data);
+    }
+    if !driver_linux_library(options.target, options.sysroot, "Scrt1.o", &path)
+        || !driver_object_link_input(&backend, &arguments, path.data, &views)
+        || !driver_linux_library(options.target, options.sysroot, "crti.o", &path)
+        || !driver_object_link_input(&backend, &arguments, path.data, &views) { return 1; }
+    if options.source[0] != 0 && (!driver_output_safe(options.source, options.output) || !driver_object_link_input(&backend, &arguments, options.source, &views)) { return 1; }
+    var runpath: ByteBuffer = default; defer bytes_dispose(&runpath);
+    for (var index: usize = 0; index < options.link_count; index++) {
+        var input = options.links[index];
+        if driver_option_prefix(input, "-Wl,-rpath,") || driver_option_prefix(input, "-Wl,-rpath=") {
+            if runpath.length != 0 && !driver_text(&runpath, ":") { return 1; }
+            if !driver_text(&runpath, input + strlen("-Wl,-rpath,")) { return 1; } continue;
+        }
+        if driver_option_prefix(input, "-Wl,--export-dynamic") { driver_argument(&arguments, "", input + strlen("-Wl,")); continue; }
+        if driver_same(input, "-ldl") || driver_same(input, "-lm") || driver_same(input, "-lpthread") {
+            var name = driver_same(input, "-ldl") ? "libdl.so.2" : (driver_same(input, "-lm") ? "libm.so.6" : "libpthread.so.0");
+            if !driver_linux_library(options.target, options.sysroot, name, &path) { return 1; } input = path.data;
+        }
+        if !driver_output_safe(input, options.output) || !driver_object_link_input(&backend, &arguments, input, &views) { return 1; }
+    }
+    if runpath.length != 0 {
+        if !host_text_terminate(&runpath) { return 1; }
+        driver_argument(&arguments, "", "-rpath"); driver_argument(&arguments, "", runpath.data);
+    }
+    if !driver_linux_library(options.target, options.sysroot, "libc.so.6", &path)
+        || !driver_object_link_input(&backend, &arguments, path.data, &views)
+        || !driver_linux_library(options.target, options.sysroot, "crtn.o", &path)
+        || !driver_object_link_input(&backend, &arguments, path.data, &views) { return 1; }
+    backend.arguments = arguments.values;
+    if !arguments.ok || !backend_link_tower_native(&backend, options.target) {
+        driver_error("", backend.error.data ?? "Cannot allocate linker request"); return 1;
+    }
+    if !driver_write_file(options.output, backend.output.data, backend.output.length) || !driver_platform_make_executable(options.output) {
+        driver_error("Cannot write executable output: ", options.output); return 1;
+    }
+    return 0;
+}

@@ -1,0 +1,25 @@
+import tower;
+import driver_support;
+import driver_platform;
+import .library.bytes_types;
+import .library.bytes_interface;
+
+// Linux GNU target SDK paths, evaluated by the host transport. A sysroot is an
+// explicit input; no target code is executed and no external linker is invoked.
+fn driver_linux_library(target: u8*, sysroot: u8*, name: u8*, out: ByteBuffer*): bool {
+    var multiarch = strstr(target, "aarch64") == target ? "aarch64-linux-gnu" : "x86_64-linux-gnu";
+    var directories: u8*[6];
+    directories[0] = "/usr/lib/"; directories[1] = "/lib/";
+    directories[2] = "/usr/lib64/"; directories[3] = "/lib64/";
+    directories[4] = "/usr/lib/"; directories[5] = "/lib/";
+    var count: usize = 6; var multiarch_count: usize = 2;
+    for (var index: usize = 0; index < count; index++) {
+        out.length = 0;
+        if !driver_text(out, sysroot) || !driver_text(out, directories[index]) { return false; }
+        if index < multiarch_count && (!driver_text(out, multiarch) || !driver_text(out, "/")) { return false; }
+        if !driver_text(out, name) || !host_text_terminate(out) { return false; }
+        if driver_platform_exists(out.data) { return true; }
+    }
+    driver_error("Cannot find Linux target SDK input: ", name); return false;
+}
+extern fn strstr(text: u8*, part: u8*): u8*;

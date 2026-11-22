@@ -33,7 +33,7 @@ fn elf_layout_segment(link: ElfLink*, kind: ElfSegment, cursor: u64*, bias: u64)
             if *cursor > ElfImageLimit || section.alignment > ElfImageLimit - *cursor { return elf_fail(&link.error, ElfError.Range, section.name, 0); }
             *cursor = elf_align(*cursor, section.alignment);
             if section.size > ElfImageLimit - *cursor { return elf_fail(&link.error, ElfError.Range, section.name, 0); }
-            section.output = *cursor; section.address = ElfBase + *cursor + bias; *cursor += section.size;
+            section.output = *cursor; section.address = link.base + *cursor + bias; *cursor += section.size;
         }
     }
     return true;
@@ -58,18 +58,18 @@ fn elf_link_layout(link: ElfLink*, got_count: u64*): bool {
     }
     var cursor = ElfHeaderBytes + ElfProgramCount * ElfProgramBytes;
     if !elf_layout_segment(link, ElfSegment.Read, &cursor, 0) { return false; }
-    cursor = elf_align(cursor, ElfAddressBytes); link.got_begin = cursor;
+    cursor = elf_align(cursor, ElfAddressBytes); link.got_begin = cursor; link.got_address = link.base + cursor;
     if *got_count > (ElfImageLimit - cursor) / ElfAddressBytes { return elf_fail(&link.error, ElfError.Range, wasm_text_bytes("GOT"), 0); }
     cursor += *got_count * ElfAddressBytes; link.read_end = cursor;
     // Separate permissions in virtual pages without padding the file by a page
     // for each segment. File/virtual offsets retain congruence modulo p_align.
     cursor = elf_align(cursor, ElfStackAlignment); link.execute_begin = cursor;
-    link.execute_address = ElfBase + cursor + link.page_size;
+    link.execute_address = link.base + cursor + link.page_size;
     if !elf_layout_segment(link, ElfSegment.Execute, &cursor, link.page_size) { return false; }
     link.execute_end = cursor;
     cursor = elf_align(cursor, ElfAddressBytes); link.write_begin = cursor;
     var write_bias = link.page_size * ElfWritePageBias;
-    link.write_address = ElfBase + cursor + write_bias;
+    link.write_address = link.base + cursor + write_bias;
     if !elf_layout_segment(link, ElfSegment.Write, &cursor, write_bias) { return false; }
     link.write_end = cursor;
     if !elf_layout_segment(link, ElfSegment.Zero, &cursor, write_bias) { return false; }
@@ -79,7 +79,7 @@ fn elf_link_layout(link: ElfLink*, got_count: u64*): bool {
         if cursor > ElfImageLimit || symbol.value > ElfImageLimit - cursor { return elf_fail(&link.error, ElfError.Range, symbol.name, 0); }
         cursor = elf_align(cursor, symbol.value);
         if symbol.size > ElfImageLimit - cursor { return elf_fail(&link.error, ElfError.Range, symbol.name, 0); }
-        symbol.address = ElfBase + cursor + write_bias; cursor += symbol.size;
+        symbol.address = link.base + cursor + write_bias; cursor += symbol.size;
     }
     link.memory_end = cursor;
     foreach (var & input in &link.objects) {
@@ -170,7 +170,7 @@ fn elf_link_emit(link: ElfLink*): bool {
     }
     if got_count != 0 {
         var got: ElfSection = { name: wasm_text_bytes(".got"), kind: ElfSectionType.Program, flags: ElfFlagAlloc,
-            address: ElfBase + link.got_begin, output: link.got_begin, size: got_count * ElfAddressBytes, alignment: ElfAddressBytes, ..default };
+            address: link.got_address, output: link.got_begin, size: got_count * ElfAddressBytes, alignment: ElfAddressBytes, ..default };
         if !elf_emit_section(&headers, &names, &got) { return false; }
     }
     var has_common = false;
@@ -232,7 +232,7 @@ fn elf_link_emit(link: ElfLink*): bool {
     elf_put(out, convert(u64, ElfHeaderAt.SectionSize), ElfHalfBytes, ElfSectionBytes);
     elf_put(out, convert(u64, ElfHeaderAt.SectionCount), ElfHalfBytes, section_count);
     elf_put(out, convert(u64, ElfHeaderAt.Names), ElfHalfBytes, name_index);
-    elf_emit_program(out, 0, ElfProgramLoad, ElfPermissionRead, 0, link.read_end, link.read_end, ElfBase, link.page_size);
+    elf_emit_program(out, 0, ElfProgramLoad, ElfPermissionRead, 0, link.read_end, link.read_end, link.base, link.page_size);
     elf_emit_program(out, 1, ElfProgramLoad, ElfPermissionRead | ElfPermissionExecute, link.execute_begin, link.execute_end, link.execute_end, link.execute_address, link.page_size);
     elf_emit_program(out, 2, ElfProgramLoad, ElfPermissionRead | ElfPermissionWrite, link.write_begin, link.write_end, link.memory_end, link.write_address, link.page_size);
     elf_emit_program(out, 3, ElfProgramStack, ElfPermissionRead | ElfPermissionWrite, 0, 0, 0, 0, link.page_size);

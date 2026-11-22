@@ -1,0 +1,72 @@
+import tower;
+import utility_checks;
+import link_fixture_file;
+import .backend.elf_types;
+import .backend.elf_link_emit;
+import .backend.elf_relocate;
+import .backend.wasm_bytes;
+import .library.bytes;
+import .library.bytes_types;
+
+// Data-only relocatable fixture. All invoked constructor/destructor bodies are
+// ordinary Tower functions in elf_hosted_program; no instruction seed is used.
+fn hosted_array_section(out: ByteBuffer*, headers: ByteBuffer*, names: ByteBuffer*, name: u8*, kind: ElfSectionType,
+    contents: ByteBuffer*, flags: u64, related: u32, info: u32, stride: u64): bool {
+    if !elf_emit_align(out, ElfAddressBytes) { return false; }
+    var section: ElfSection = { name: wasm_text_bytes(name), kind: kind, output: convert(u64, out.length),
+        size: convert(u64, contents.length), flags: flags, link: related, info: info, entry_size: stride, alignment: ElfAddressBytes, ..default };
+    if kind == ElfSectionType.Strings { section.alignment = 1; }
+    return elf_emit_section(headers, names, &section) && bytes_append(out, contents.data, contents.length);
+}
+export fn main(argc: i32, argv: u8**): i32 {
+    var argument_count: i32 = 3;
+    if argc != argument_count { puts("elf_hosted_arrays x64|arm64 output.o"); return 1; }
+    var machine = wasm_bytes_text(wasm_text_bytes(argv[1]), "arm64") ? ElfMachine.Arm64 : ElfMachine.X64;
+    var out: ByteBuffer = default; var headers: ByteBuffer = default; var names: ByteBuffer = default;
+    var symbols: ByteBuffer = default; var strings: ByteBuffer = default; var data: ByteBuffer = default; var rela: ByteBuffer = default;
+    defer bytes_dispose(&out); defer bytes_dispose(&headers); defer bytes_dispose(&names);
+    defer bytes_dispose(&symbols); defer bytes_dispose(&strings); defer bytes_dispose(&data); defer bytes_dispose(&rela);
+    utility_check(elf_emit_zero(&out, ElfHeaderBytes) && elf_emit_zero(&headers, ElfSectionBytes) && bytes_push(&names, 0)
+        && elf_emit_zero(&symbols, ElfSymbolBytes) && bytes_push(&strings, 0), "array fixture headers");
+    var count: usize = 5; var symbol_names: u8*[5]; var section_names: u8*[5];
+    symbol_names[0] = "hosted_preinit"; symbol_names[1] = "hosted_second"; symbol_names[2] = "hosted_first";
+    symbol_names[3] = "hosted_fini_first"; symbol_names[4] = "hosted_fini_second";
+    section_names[0] = ".preinit_array"; section_names[1] = ".init_array.20"; section_names[2] = ".init_array.10";
+    section_names[3] = ".fini_array.10"; section_names[4] = ".fini_array.20";
+    for (var index: usize = 0; index < count; index++) {
+        var symbol: ElfSymbol = { name: wasm_text_bytes(symbol_names[index]), binding: ElfBinding.Global, ..default };
+        utility_check(elf_emit_symbol(&symbols, &strings, &symbol, ElfUndefined), "array fixture undefined Tower function");
+    }
+    var strings_index: u32 = 1; var symbols_index: u32 = 2; var first_array: u32 = 3;
+    utility_check(hosted_array_section(&out, &headers, &names, ".strtab", ElfSectionType.Strings, &strings, 0, 0, 0, 0)
+        && hosted_array_section(&out, &headers, &names, ".symtab", ElfSectionType.Symbols, &symbols, 0, strings_index, 1, ElfSymbolBytes)
+        && elf_emit_zero(&data, ElfAddressBytes), "array fixture symbol data");
+    var first_finalizer: usize = 3;
+    for (var index: usize = 0; index < count; index++) {
+        var kind = index == 0 ? ElfSectionType.PreinitArray : (index >= first_finalizer ? ElfSectionType.FiniArray : ElfSectionType.InitArray);
+        utility_check(hosted_array_section(&out, &headers, &names, section_names[index], kind, &data, ElfFlagAlloc | ElfFlagWrite, 0, 0, ElfAddressBytes), "array fixture pointers");
+    }
+    for (var index: usize = 0; index < count; index++) {
+        rela.length = 0; utility_check(elf_emit_zero(&rela, ElfRelaBytes), "array fixture relocation");
+        var kind = machine == ElfMachine.X64 ? convert(u64, ElfX64Reloc.Abs64) : convert(u64, ElfArmReloc.Abs64);
+        elf_put(rela.data, convert(u64, ElfRelaAt.Info), ElfAddressBytes, (convert(u64, index + 1) << ElfSymbolIndexShift) | kind);
+        utility_check(hosted_array_section(&out, &headers, &names, ".rela.array", ElfSectionType.Rela, &rela, 0,
+            symbols_index, first_array + convert(u32, index), ElfRelaBytes), "array fixture relocation section");
+    }
+    var names_index = convert(u64, headers.length) / ElfSectionBytes;
+    // elf_emit_section appends its own name before the names bytes are copied.
+    var names_section: ElfSection = { name: wasm_text_bytes(".shstrtab"), kind: ElfSectionType.Strings,
+        output: convert(u64, out.length), size: convert(u64, names.length + wasm_text_bytes(".shstrtab").length + 1), alignment: 1, ..default };
+    utility_check(elf_emit_section(&headers, &names, &names_section) && bytes_append(&out, names.data, names.length)
+        && elf_emit_align(&out, ElfAddressBytes), "array fixture names");
+    var section_at = convert(u64, out.length); var section_count = convert(u64, headers.length) / ElfSectionBytes;
+    utility_check(bytes_append(&out, headers.data, headers.length), "array fixture section table");
+    elf_put(out.data, convert(u64, ElfHeaderAt.Magic), ElfWordBytes, ElfMagic);
+    elf_put(out.data, convert(u64, ElfHeaderAt.Class), 1, ElfClass64); elf_put(out.data, convert(u64, ElfHeaderAt.Endian), 1, ElfLittleEndian);
+    elf_put(out.data, convert(u64, ElfHeaderAt.Version), 1, ElfVersion); elf_put(out.data, convert(u64, ElfHeaderAt.FileVersion), ElfWordBytes, ElfVersion);
+    elf_put(out.data, convert(u64, ElfHeaderAt.Type), ElfHalfBytes, ElfRelocatable); elf_put(out.data, convert(u64, ElfHeaderAt.Machine), ElfHalfBytes, convert(u64, machine));
+    elf_put(out.data, convert(u64, ElfHeaderAt.Size), ElfHalfBytes, ElfHeaderBytes); elf_put(out.data, convert(u64, ElfHeaderAt.Sections), ElfAddressBytes, section_at);
+    elf_put(out.data, convert(u64, ElfHeaderAt.SectionSize), ElfHalfBytes, ElfSectionBytes); elf_put(out.data, convert(u64, ElfHeaderAt.SectionCount), ElfHalfBytes, section_count);
+    elf_put(out.data, convert(u64, ElfHeaderAt.Names), ElfHalfBytes, names_index);
+    utility_check(link_fixture_write(argv[2], &out), "write data-only constructor fixture"); return 0;
+}

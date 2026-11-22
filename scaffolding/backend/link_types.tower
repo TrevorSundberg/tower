@@ -3,7 +3,7 @@ import .library.vector;
 
 // Owned inputs/results shared by the native, WASI and in-memory link services.
 // Argument strings and input names are NUL terminated; byte lengths exclude it.
-struct BackendLinkInput { name: vector(u8); bytes: vector(u8); }
+struct BackendLinkInput { name: vector(u8); bytes: vector(u8); borrowed: bool; }
 struct BackendLink {
     arguments: vector(u8*);
     inputs: vector(BackendLinkInput);

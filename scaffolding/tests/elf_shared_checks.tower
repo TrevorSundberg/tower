@@ -1,0 +1,46 @@
+import tower;
+import utility_checks;
+import link_fixture_file;
+import .backend.elf_shared;
+import .backend.elf_types;
+import .backend.wasm_bytes;
+import .backend.wasm_names;
+import .library.bytes;
+import .library.bytes_types;
+
+export fn main(argc: i32, argv: u8**): i32 {
+    if argc < 2 { puts("usage: elf_shared_checks libc.so.6 [other x64 DSO ...]"); return 1; }
+    for (var at: i32 = 1; at < argc; at++) {
+        var bytes: ByteBuffer = default; defer bytes_dispose(&bytes);
+        utility_check(link_fixture_read(argv[at], &bytes), "read explicit shared library");
+        var span: WasmBytes = { data: bytes.data, length: bytes.length };
+        var library: ElfDylib = { name: wasm_text_bytes(argv[at]), bytes: span, ..default };
+        defer elf_shared_dispose(&library);
+        var error: ElfDiagnostic = default;
+        var parsed = elf_shared_read(&library, ElfMachine.X64, &error);
+        if !parsed { print(error.offset); puts(elf_message(error.kind)); }
+        utility_check(parsed && error.kind == ElfError.None && library.symbols.length != 0, "bounded ELF shared export reader");
+        utility_check(library.soname.length != 0, "loader identity");
+        if at == 1 {
+            utility_check(wasm_bytes_text(library.soname, "libc.so.6"), "libc SONAME");
+            var malloc_index = wasm_names_get(&library.names, wasm_text_bytes("malloc"));
+            var memcpy_index = wasm_names_get(&library.names, wasm_text_bytes("memcpy"));
+            utility_check(malloc_index != ElfNoIndex && memcpy_index != ElfNoIndex, "libc default exports");
+            utility_check(wasm_bytes_text(library.symbols.data[convert(usize, malloc_index)].version, "GLIBC_2.2.5"), "malloc version");
+            utility_check(wasm_bytes_text(library.symbols.data[convert(usize, memcpy_index)].version, "GLIBC_2.14"), "default memcpy excludes hidden older version");
+        }
+        var wrong: ElfDylib = { name: library.name, bytes: span, ..default }; var rejected: ElfDiagnostic = default;
+        utility_check(!elf_shared_read(&wrong, ElfMachine.Arm64, &rejected) && rejected.kind == ElfError.Unsupported, "DSO architecture is explicit");
+        elf_shared_dispose(&wrong);
+        var step: usize = 2;
+        for (var length: usize = 0; length < bytes.length; length = length == 0 ? 1 : length * step) {
+            var truncated: ElfDylib = { name: library.name, bytes: init(WasmBytes) { data: bytes.data, length: length }, ..default };
+            var diagnostic: ElfDiagnostic = default;
+            utility_check(!elf_shared_read(&truncated, ElfMachine.X64, &diagnostic), "truncated shared object rejected");
+            elf_shared_dispose(&truncated);
+            if length > bytes.length / step { break; }
+        }
+        print(library.symbols.length);
+    }
+    puts("Tower shared-object reader checks passed"); return 0;
+}

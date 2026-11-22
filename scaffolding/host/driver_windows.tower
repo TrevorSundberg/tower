@@ -4,6 +4,7 @@ import .library.bytes_interface;
 import .library.vector;
 import driver_support;
 import driver_windows_arguments;
+import driver_map_windows;
 
 // x64/ARM64 Windows CRT and kernel32 ABI. These are ordinary host effects.
 extern fn _write(fd: i32, data: u8*, length: u32): i32;

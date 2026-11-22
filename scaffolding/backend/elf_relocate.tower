@@ -55,10 +55,16 @@ fn elf_relocate_one(link: ElfLink*, object: ElfObject*, relocation: ElfRelocatio
     var section = &object.sections.data[convert(usize, relocation.section)];
     var symbol = elf_relocation_symbol(link, object, relocation, error);
     if symbol == null { return false; }
+    if relocation.runtime {
+        if section.kind == ElfSectionType.NoBits || relocation.offset > section.size || ElfAddressBytes > section.size - relocation.offset {
+            return elf_fail(error, ElfError.Range, section.name, relocation.offset);
+        }
+        elf_put(output, section.output + relocation.offset, ElfAddressBytes, 0); return true;
+    }
     var absolute = symbol.address + bits(u64, relocation.addend);
     var place = section.address + relocation.offset;
     var relative = absolute - place;
-    var got = ElfBase + link.got_begin;
+    var got = link.got_address;
     var slot = got + symbol.got * ElfAddressBytes;
     var value = absolute; var width = ElfWordBytes; var signed_bits: u64 = 0; var unsigned_bits: u64 = 0;
     var instruction = false; var mask: u64 = 0;

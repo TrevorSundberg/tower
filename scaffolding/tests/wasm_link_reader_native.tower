@@ -1,0 +1,7 @@
+import tower;
+import wasm_link_reader;
+import .host.work_linux;
+import .host.work_dispatch;
+
+export fn work_kernel_execute(job: void*): void { abort(); }
+extern fn abort(): void;

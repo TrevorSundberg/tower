@@ -11,8 +11,8 @@ import .library.entity_types;
 // does not change their byte-string or hash-table contract.
 enum ElfError: u32 { None, Input, Unsupported, Allocation, Duplicate, Undefined, Range, Cancelled }
 enum ElfMachine: u16 { X64 = 62, Arm64 = 183 }
-enum ElfSectionType: u32 { Null = 0, Program = 1, Symbols = 2, Strings = 3, Rela = 4, NoBits = 8, Rel = 9, Group = 17, SymbolIndexes = 18, X64Unwind = 1879048193 }
-enum ElfBinding: u8 { Local = 0, Global = 1, Weak = 2 }
+enum ElfSectionType: u32 { Null = 0, Program = 1, Symbols = 2, Strings = 3, Rela = 4, Hash = 5, Dynamic = 6, Note = 7, NoBits = 8, Rel = 9, DynamicSymbols = 11, InitArray = 14, FiniArray = 15, PreinitArray = 16, Group = 17, SymbolIndexes = 18, X64Unwind = 1879048193, VersionDefinitions = 1879048189, VersionNeeds = 1879048190, VersionSymbols = 1879048191 }
+enum ElfBinding: u8 { Local = 0, Global = 1, Weak = 2, UniqueGnu = 10 }
 var ElfFlagWrite: u64 = 1;
 var ElfFlagAlloc: u64 = 2;
 var ElfFlagExecute: u64 = 4;
@@ -41,6 +41,7 @@ var ElfAddressBytes: u64 = 8;
 var ElfVersion: u64 = 1;
 var ElfRelocatable: u64 = 1;
 var ElfExecutable: u64 = 2;
+var ElfShared: u64 = 3;
 var ElfClass64: u64 = 2;
 var ElfLittleEndian: u64 = 1;
 var ElfMagic: u64 = 1179403647;
@@ -70,17 +71,21 @@ struct ElfSymbol {
     name: WasmBytes; binding: ElfBinding; kind: u8; other: u8; section: u32;
     value: u64; size: u64; object: usize; resolved: ElfSymbol*;
     address: u64; got: u64; needs_got: bool;
+    library: ElfDylib*; version: WasmBytes; dynamic_index: u32; version_index: u16;
+    needed: bool; weak_import: bool; stub: u64; needs_stub: bool;
 }
-struct ElfRelocation { section: u32; offset: u64; symbol: u32; kind: u32; addend: i64; }
+struct ElfRelocation { section: u32; offset: u64; symbol: u32; kind: u32; addend: i64; runtime: bool; }
 struct ElfObject {
     name: WasmBytes; bytes: WasmBytes; machine: ElfMachine;
     sections: vector(ElfSection); symbols: vector(ElfSymbol); relocations: vector(ElfRelocation);
-    symtab: u32;
+    symtab: u32; hosted: bool;
 }
 struct ElfObjectEntry { node: Entity*; object: ElfObject*; }
 struct ElfArchive { archive: WasmArchive; selected: vector(bool); name: WasmBytes; }
 struct ElfArchiveEntry { node: Entity*; archive: ElfArchive*; }
 struct ElfDiagnostic { kind: ElfError; name: WasmBytes; offset: u64; }
+struct ElfDylib { name: WasmBytes; bytes: WasmBytes; soname: WasmBytes; symbols: vector(ElfSymbol); names: WasmNameMap; needed: bool; }
+struct ElfDylibEntry { node: Entity*; library: ElfDylib*; }
 struct ElfLink {
     store: EntityStore*; object_type: Entity*; archive_type: Entity*;
     objects: vector(ElfObjectEntry); names: WasmNameMap; groups: WasmNameMap;
@@ -92,6 +97,10 @@ struct ElfLink {
     read_end: u64; execute_begin: u64; execute_end: u64; execute_address: u64;
     write_begin: u64; write_end: u64; memory_end: u64; write_address: u64; got_begin: u64;
     common_begin: u64; common_index: u32;
+    dylib_type: Entity*; dylibs: vector(ElfDylibEntry); imports: vector(ElfSymbol*);
+    export_names: vector(WasmBytes);
+    interpreter: WasmBytes; runpath: WasmBytes; dynamic: bool; export_all: bool;
+    base: u64; got_address: u64;
 }
 
 fn elf_fail(error: ElfDiagnostic*, kind: ElfError, name: WasmBytes, offset: u64): bool {

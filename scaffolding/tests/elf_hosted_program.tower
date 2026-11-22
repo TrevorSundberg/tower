@@ -1,0 +1,42 @@
+import tower;
+
+extern fn getenv(name: u8*): u8*;
+extern fn puts(text: u8*): i32;
+extern fn strcmp(left: u8*, right: u8*): i32;
+extern fn _Unwind_Backtrace(callback: function(i32, void*, void*), context: void*): i32;
+extern fn dlsym(handle: void*, name: u8*): void*;
+extern fn abort(): void;
+extern fn setenv(name: u8*, value: u8*, overwrite: i32): i32;
+fn hosted_state(wanted: u8*): bool { var value = getenv("TOWER_CTOR_ORDER"); return value != null && strcmp(value, wanted) == 0; }
+export fn hosted_preinit(argc: i32, argv: u8**, environment: u8**): void {
+    var argument_count: i32 = 2;
+    if argc != argument_count || strcmp(argv[1], "hosted") != 0 { abort(); }
+    argv[1][0] = *"H";
+}
+export fn hosted_first(argc: i32, argv: u8**, environment: u8**): void {
+    if strcmp(argv[1], "Hosted") != 0 || setenv("TOWER_CTOR_ORDER", "first", 1) != 0 { abort(); }
+}
+export fn hosted_second(): void { if !hosted_state("first") || setenv("TOWER_CTOR_ORDER", "constructed", 1) != 0 { abort(); } }
+export fn hosted_fini_second(): void { if !hosted_state("constructed") || setenv("TOWER_CTOR_ORDER", "finalizing", 1) != 0 { abort(); } }
+export fn hosted_fini_first(): void { if !hosted_state("finalizing") { abort(); } puts("Tower hosted fini order passed"); }
+var ElfHostedMinimumFrames: i32 = 3;
+fn hosted_trace_frame(frame: void*, context: void*): i32 { var count = bits(i32*, context); *count += 1; return 0; }
+export fn hosted_trace(): i32 { var count: i32 = 0; _Unwind_Backtrace(hosted_trace_frame, bits(void*, &count)); return count; }
+export fn hosted_answer(): i32 { return 42; }
+export fn main(argc: i32, argv: u8**, environment: u8**): i32 {
+    var arguments: i32 = 2;
+    if !hosted_state("constructed") { puts("hosted constructor order failed"); return 1; }
+    if argc != arguments || argv == null || environment == null || strcmp(argv[1], "Hosted") != 0 { return 1; }
+    var value = getenv("TOWER_HOSTED_CHECK");
+    if value == null || strcmp(value, "environment") != 0 { return 1; }
+    var bytes = alloc(u8, 1); if bytes == null { return 1; }
+    bytes[0] = 42; var grown: usize = 4096; bytes = realloc(u8, bytes, grown);
+    if bytes == null || bytes[0] != 42 { return 1; }
+    free(bytes);
+    if hosted_trace() < ElfHostedMinimumFrames { puts("hosted unwind failed"); return 1; }
+    var address = dlsym(null, "hosted_answer");
+    if address == null { puts("hosted export failed"); return 1; }
+    var callback = bits(function(i32), address);
+    if callback() != 42 { return 1; }
+    puts("Tower hosted libc, unwind and dynamic export passed"); return 0;
+}

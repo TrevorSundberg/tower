@@ -6,8 +6,9 @@ metadata bytes and return executable bytes and diagnostics. No service reads a
 filesystem, runs a subprocess, or falls back to an external linker. LLVM remains
 the external object emitter; its shared Foundation input is unchanged.
 
-The `BackendLink` adapter owns explicit named input buffers, argument strings,
-generated inputs, output and error buffers. A failed request exposes no output.
+The `BackendLink` adapter retains explicit named input buffers, argument strings,
+generated inputs, output and error buffers. Inputs may be owned copies or explicit
+immutable borrows; borrowed storage remains caller-owned. A failed request exposes no output.
 Request objects must not be used concurrently or restarted after dispatch;
 construct a fresh request to retry. Inputs remain alive through completion and
 close. CLI/browser transports supply files or downloads outside these services.
@@ -46,6 +47,35 @@ because the original instruction sequence remains valid. No unsupported semantic
 metadata is silently discarded. The linker emits executables, not dylibs or
 universal/fat binaries.
 
+## Hosted Linux ELF profile
+
+`elf_dynamic_link_open`, `elf_link_input`, `elf_dynamic_link_run` and
+`elf_link_close` provide the hosted ELF64 little-endian x64/ARM64 service.
+Its `ElfLink` world shares the static linker's object/archive entities and jobs;
+DSO exports occupy additional request-owned components. Interpreter path, input
+DSOs/startup objects, export names and optional runpath are explicit inputs.
+`backend_link_tower_hosted_elf` provides the corresponding byte-plan adapter.
+
+The service emits PIE executables with eager GOT/PLT binding, dynamic relocations,
+SONAME dependencies, default GNU symbol versions, dynamic exports, SysV symbol
+hashes, non-executable stacks and page-separated RELRO. It preserves preinit,
+priority-ordered init/fini arrays, CRT prologues/epilogues and supported DWARF CFI,
+including a sorted `.eh_frame_hdr`. GNU property notes are validated and merged;
+branch-protection flags from a CRT cannot enable checks on unprotected input code.
+
+This is the Tower hosted executable profile. It rejects unsupported relocations,
+copy relocations/text relocations, local TLS/IFUNC definitions, C++ exception
+personalities/LSDA, legacy constructor lists, unknown property semantics, linker
+scripts and LTO inputs. TLS/IFUNC implementations inside imported shared libraries
+remain the system loader's responsibility. Shared-library inputs require bounded
+section headers and default export/version metadata. It does not emit DSOs.
+
+Tower fixtures execute libc startup, arguments/environment, allocation, imported
+function addresses, `dlsym` exports, stack unwinding and constructor/destructor
+ordering. The same raw/optimized objects run on x64 and ARM64, with deterministic
+images at 1/2/4/8 workers and checks for real overlap, cancellation and malformed
+inputs. The unchanged freestanding ELF profile remains available separately.
+
 ## Ownership and parallel work
 
 Each link has its own entity store. Objects, archives, import libraries and work
@@ -71,9 +101,22 @@ import metadata. Extra object/archive/TBD inputs are read by the driver and supp
 as bytes. Clang still compiles the bundled Tower-generated runtime LLVM text into
 a target object. An explicitly selected external linker remains an opt-in route.
 
-The Linux hosted CLI still uses the host compiler driver for libc startup and
-shared-library linking. The existing Tower ELF byte service emits the freestanding
-Linux profile; substituting it for hosted libc would change ABI and runtime behavior.
-Building the compiler against LLVM and platform libraries also still uses the
-host/SDK toolchain. These build dependencies are separate from production browser
-link services. There are no project-owned C/C++ sources or native linker shims.
+The Linux GNU CLI defaults to `tower-elf-link`, using explicit SDK startup and
+libc inputs found beneath its target sysroot. The driver maps file inputs read-only
+and holds the mappings through worker completion; input files must not be changed
+or truncated during the request. Windows/macOS use their native mapping APIs too.
+No large shared library is copied merely to inspect its exports.
+
+`towerc --link-executable first.o --link other.o --link /path/library.so -o output`
+links existing Linux GNU objects directly, without compiling a source or adding a
+Tower runtime. Supply the needed runtime object explicitly. It accepts `--target`,
+`--sysroot`, `--jobs` and additional positional object/library paths. It supplies
+the target's Scrt1/crti/crtn and libc, exports defined globals and accepts the
+bounded native build flags `-ldl`, `-lm`, `-lpthread`,
+`-Wl,--export-dynamic[-symbol=NAME]` and `-Wl,-rpath,PATH`. Unknown flags fail.
+This command can link the complete Tower compiler against the LLVM DSO.
+
+The build recipes still need their compatible bootstrap pin before switching
+their host-link commands to this interface. LLVM/object generation and the
+third-party library builds remain external toolchain responsibilities. There are
+no project-owned C/C++ sources or native linker shims.

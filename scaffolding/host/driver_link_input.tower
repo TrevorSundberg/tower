@@ -1,0 +1,15 @@
+import tower;
+import driver_mapped_file;
+import .backend.link_types;
+import .backend.link_inputs;
+import .library.vector;
+
+fn driver_link_file(backend: BackendLink*, views: vector(DriverMappedFile)*, name: u8*): bool {
+    var file: DriverMappedFile = default;
+    if !driver_platform_map(name, &file) { return false; }
+    if !vector_push(views, file) { driver_platform_unmap(&file); return false; }
+    return backend_link_input_borrow(&backend.generated, name, file.data, file.length);
+}
+fn driver_link_files_close(views: vector(DriverMappedFile)*): void {
+    foreach (var & file in views) { driver_platform_unmap(file); } vector_dispose(views);
+}

@@ -6,6 +6,7 @@ import driver_platform;
 import driver_support;
 import driver_request;
 import driver_compile;
+import driver_link_objects;
 import .library.bytes_types;
 import .library.bytes_interface;
 
@@ -56,7 +57,7 @@ export fn main(argc: i32, argv: u8**): i32 {
     var parsed = driver_prepare(&options, convert(usize, argc), argv, target);
     var status: i32 = 1;
     if parsed == 0 {
-        status = driver_entry_compile(&options, timing);
+        status = options.link_executable ? driver_link_objects(&options) : driver_entry_compile(&options, timing);
     } else {
         if parsed == 2 {
             status = 0;

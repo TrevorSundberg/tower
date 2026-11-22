@@ -1,0 +1,176 @@
+import tower;
+import elf_types;
+import elf_shared;
+import elf_dynamic_plan;
+import elf_link_emit;
+import elf_link_symbols;
+import wasm_bytes;
+import .library.vector;
+
+enum ElfDynamicRegion: u32 { Read, Execute, Init, Fini, Write, PreinitArray, InitArray, FiniArray, Zero }
+var ElfArrayDefaultPriority: u64 = 65535;
+struct ElfArrayEntry { section: ElfSection*; priority: u64; order: usize; }
+fn elf_array_less(left: ElfArrayEntry*, right: ElfArrayEntry*): bool {
+    return left.priority < right.priority || (left.priority == right.priority && left.order < right.order);
+}
+fn elf_array_heap(values: vector(ElfArrayEntry)*, root: usize, count: usize): void {
+    var at = root;
+    while at < count / 2 {
+        var child = at * 2 + 1;
+        if child + 1 < count && elf_array_less(&values.data[child], &values.data[child + 1]) { child++; }
+        if !elf_array_less(&values.data[at], &values.data[child]) { break; }
+        var swap = values.data[at]; values.data[at] = values.data[child]; values.data[child] = swap; at = child;
+    }
+}
+fn elf_dynamic_region(section: ElfSection*): ElfDynamicRegion {
+    if section.kind == ElfSectionType.NoBits { return ElfDynamicRegion.Zero; }
+    if section.kind == ElfSectionType.PreinitArray { return ElfDynamicRegion.PreinitArray; }
+    if section.kind == ElfSectionType.InitArray { return ElfDynamicRegion.InitArray; }
+    if section.kind == ElfSectionType.FiniArray { return ElfDynamicRegion.FiniArray; }
+    if (section.flags & ElfFlagExecute) != 0 {
+        if wasm_bytes_text(section.name, ".init") { return ElfDynamicRegion.Init; }
+        if wasm_bytes_text(section.name, ".fini") { return ElfDynamicRegion.Fini; }
+        return ElfDynamicRegion.Execute;
+    }
+    return (section.flags & ElfFlagWrite) == 0 ? ElfDynamicRegion.Read : ElfDynamicRegion.Write;
+}
+fn elf_dynamic_region_layout(link: ElfLink*, kind: ElfDynamicRegion, cursor: u64*, bias: u64): bool {
+    foreach (var & input in &link.objects) {
+        foreach (var & section in &input.object.sections) {
+            if section.discarded || (section.flags & ElfFlagAlloc) == 0 || elf_dynamic_region(section) != kind { continue; }
+            if *cursor > ElfImageLimit || section.alignment > ElfImageLimit - *cursor { return elf_fail(&link.error, ElfError.Range, section.name, 0); }
+            *cursor = elf_align(*cursor, section.alignment);
+            if section.size > ElfImageLimit - *cursor { return elf_fail(&link.error, ElfError.Range, section.name, 0); }
+            section.output = *cursor; section.address = *cursor + bias; *cursor += section.size;
+        }
+    }
+    return true;
+}
+fn elf_dynamic_table(cursor: u64*, length: usize, at: u64*): bool {
+    *cursor = elf_align(*cursor, ElfAddressBytes); *at = *cursor;
+    if *cursor > ElfImageLimit || convert(u64, length) > ElfImageLimit - *cursor { return false; }
+    *cursor += convert(u64, length); return true;
+}
+fn elf_dynamic_array(link: ElfLink*, kind: ElfDynamicRegion, cursor: u64*, bias: u64, address: u64*, size: u64*): bool {
+    *cursor = elf_align(*cursor, ElfAddressBytes); var begin = *cursor;
+    var entries: vector(ElfArrayEntry) = default; defer vector_dispose(&entries);
+    var name = kind == ElfDynamicRegion.InitArray ? ".init_array" : ".fini_array";
+    if kind == ElfDynamicRegion.PreinitArray { name = ".preinit_array"; }
+    foreach (var & input in &link.objects) {
+        foreach (var & section in &input.object.sections) {
+            if section.discarded || (section.flags & ElfFlagAlloc) == 0 || elf_dynamic_region(section) != kind { continue; }
+            if section.alignment > ElfAddressBytes || section.size % ElfAddressBytes != 0 {
+                return elf_fail(&link.error, ElfError.Unsupported, section.name, 0);
+            }
+            var prefix = wasm_text_bytes(name); var priority = ElfArrayDefaultPriority;
+            if !wasm_bytes_equal(section.name, prefix) {
+                if section.name.length <= prefix.length + 1 || section.name.data[prefix.length] != *"."
+                    || !wasm_bytes_equal(init(WasmBytes) { data: section.name.data, length: prefix.length }, prefix) {
+                    return elf_fail(&link.error, ElfError.Unsupported, section.name, 0);
+                }
+                priority = 0; var radix: u64 = 10;
+                for (var at = prefix.length + 1; at < section.name.length; at++) {
+                    var byte = section.name.data[at];
+                    if byte < *"0" || byte > *"9" || priority > ElfArrayDefaultPriority / radix {
+                        return elf_fail(&link.error, ElfError.Input, section.name, convert(u64, at));
+                    }
+                    priority = priority * radix + convert(u64, byte - *"0");
+                }
+                if priority > ElfArrayDefaultPriority { return elf_fail(&link.error, ElfError.Input, section.name, 0); }
+            }
+            var entry: ElfArrayEntry = { section: section, priority: priority, order: entries.length };
+            if !vector_push(&entries, entry) { return false; }
+        }
+    }
+    var at = entries.length / 2;
+    while at != 0 { elf_array_heap(&entries, --at, entries.length); }
+    var end = entries.length;
+    while end > 1 { end--; var swap = entries.data[0]; entries.data[0] = entries.data[end]; entries.data[end] = swap; elf_array_heap(&entries, 0, end); }
+    foreach (var & entry in &entries) {
+        var section = entry.section;
+        if *cursor > ElfImageLimit || section.size > ElfImageLimit - *cursor { return elf_fail(&link.error, ElfError.Range, section.name, 0); }
+        section.output = *cursor; section.address = *cursor + bias; *cursor += section.size;
+    }
+    *size = *cursor - begin; *address = *size == 0 ? 0 : begin + bias; return true;
+}
+fn elf_dynamic_code_padding(link: ElfLink*, kind: ElfDynamicRegion): bool {
+    var previous: u64 = 0; var x64_nop: u8 = 144; var arm_nop: u64 = 3573751839;
+    foreach (var & input in &link.objects) {
+        foreach (var & section in &input.object.sections) {
+            if section.discarded || (section.flags & ElfFlagAlloc) == 0 || elf_dynamic_region(section) != kind { continue; }
+            if previous != 0 && previous < section.output {
+                if link.machine == ElfMachine.X64 { fill(link.output.data + convert(usize, previous), x64_nop, convert(usize, section.output - previous)); }
+                else {
+                    if previous % ElfWordBytes != 0 || section.output % ElfWordBytes != 0 { return elf_fail(&link.error, ElfError.Input, section.name, 0); }
+                    for (var at = previous; at < section.output; at += ElfWordBytes) { elf_put(link.output.data, at, ElfWordBytes, arm_nop); }
+                }
+            }
+            previous = section.output + section.size;
+        }
+    }
+    return true;
+}
+fn elf_dynamic_layout(link: ElfLink*, image: ElfDynamicImage*): bool {
+    link.base = 0;
+    var cursor = ElfHeaderBytes + image.programs * ElfProgramBytes;
+    image.interpreter_at = cursor;
+    if !elf_dynamic_table(&cursor, link.interpreter.length + 1, &image.interpreter_at)
+        || !elf_dynamic_region_layout(link, ElfDynamicRegion.Read, &cursor, 0)
+        || !elf_dynamic_table(&cursor, image.strings.length, &image.strings_at)
+        || !elf_dynamic_table(&cursor, image.table.length, &image.symbols_at)
+        || !elf_dynamic_table(&cursor, image.hash.length, &image.hash_at)
+        || !elf_dynamic_table(&cursor, image.versym.length, &image.versions_at)
+        || !elf_dynamic_table(&cursor, image.needs.length, &image.needs_at)
+        || !elf_dynamic_table(&cursor, image.rela.length, &image.rela_at)
+        || !elf_dynamic_table(&cursor, image.properties.length, &image.properties_at)
+        || !elf_dynamic_table(&cursor, convert(usize, image.unwind.size), &image.unwind.at) { return false; }
+    link.read_end = cursor;
+    cursor = elf_align(cursor, ElfStackAlignment); link.execute_begin = cursor;
+    link.execute_address = cursor + link.page_size;
+    if !elf_dynamic_region_layout(link, ElfDynamicRegion.Execute, &cursor, link.page_size) { return false; }
+    cursor = elf_align(cursor, ElfStackAlignment); var begin = cursor;
+    if !elf_dynamic_region_layout(link, ElfDynamicRegion.Init, &cursor, link.page_size) { return false; }
+    if cursor != begin { image.init_address = begin + link.page_size; }
+    cursor = elf_align(cursor, ElfStackAlignment); begin = cursor;
+    if !elf_dynamic_region_layout(link, ElfDynamicRegion.Fini, &cursor, link.page_size) { return false; }
+    if cursor != begin { image.fini_address = begin + link.page_size; }
+    cursor = elf_align(cursor, ElfStackAlignment); image.stubs_at = cursor; image.stubs_address = cursor + link.page_size;
+    if convert(u64, image.stubs.length) > (ElfImageLimit - cursor) / image.stub_bytes { return false; }
+    cursor += convert(u64, image.stubs.length) * image.stub_bytes; link.execute_end = cursor;
+    cursor = elf_align(cursor, link.page_size); link.write_begin = cursor;
+    var bias = link.page_size * ElfWritePageBias; link.write_address = cursor + bias;
+    image.dynamic_at = cursor; image.dynamic_address = cursor + bias;
+    cursor += convert(u64, image.dynamic.length) + ElfDynamicTrailerCapacity * ElfDynamicBytes;
+    cursor = elf_align(cursor, ElfAddressBytes); link.got_begin = cursor; link.got_address = cursor + bias;
+    if cursor > ElfImageLimit || convert(u64, image.got.length) > (ElfImageLimit - cursor) / ElfAddressBytes { return false; }
+    cursor += convert(u64, image.got.length) * ElfAddressBytes;
+    if !elf_dynamic_array(link, ElfDynamicRegion.PreinitArray, &cursor, bias, &image.preinit_array, &image.preinit_size)
+        || !elf_dynamic_array(link, ElfDynamicRegion.InitArray, &cursor, bias, &image.init_array, &image.init_size)
+        || !elf_dynamic_array(link, ElfDynamicRegion.FiniArray, &cursor, bias, &image.fini_array, &image.fini_size) { return false; }
+    cursor = elf_align(cursor, link.page_size); image.relro_end = cursor;
+    if !elf_dynamic_region_layout(link, ElfDynamicRegion.Write, &cursor, bias) { return false; }
+    link.write_end = cursor;
+    if !elf_dynamic_region_layout(link, ElfDynamicRegion.Zero, &cursor, bias) { return false; }
+    link.common_begin = cursor;
+    foreach (var symbol in &link.globals) {
+        if symbol.section != ElfCommon { continue; }
+        if cursor > ElfImageLimit || symbol.value > ElfImageLimit - cursor { return false; }
+        cursor = elf_align(cursor, symbol.value);
+        if symbol.size > ElfImageLimit - cursor { return false; }
+        symbol.address = cursor + bias; cursor += symbol.size;
+    }
+    link.memory_end = cursor;
+    foreach (var & input in &link.objects) {
+        foreach (var & symbol in &input.object.symbols) {
+            if symbol.section == ElfAbsolute { symbol.address = symbol.value; }
+            else { if symbol.section != ElfUndefined && symbol.section != ElfCommon {
+                symbol.address = input.object.sections.data[convert(usize, symbol.section)].address + symbol.value;
+            } }
+        }
+    }
+    foreach (var symbol in &image.stubs) { symbol.address = image.stubs_address + symbol.stub * image.stub_bytes; }
+    var entry = elf_link_lookup(link, link.entry);
+    return (entry != null && entry.library == null && entry.address >= link.execute_address
+        && entry.address < link.execute_address + link.execute_end - link.execute_begin)
+        || elf_fail(&link.error, ElfError.Input, link.entry, 0);
+}

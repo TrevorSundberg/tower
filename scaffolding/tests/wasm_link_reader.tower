@@ -664,7 +664,15 @@ fn wasm_test_byte_plans(): void {
     utility_check(backend_link_input_store(&backend.generated, generated.name.data, generated.bytes.data, generated.bytes.length), "replacement accepts an aliased old entry");
     utility_check(backend_link_tower_wasm(&backend) && wasm_bytes_equal(init(WasmBytes) { data: original.data, length: original.length },
         init(WasmBytes) { data: backend.output.data, length: backend.output.length }), "generated and supplied objects link identically");
+    utility_check(backend_link_input_borrow(&backend.generated, arguments[5], object.data, object.length)
+        && backend.generated.data[0].borrowed && backend.generated.data[0].bytes.data == object.data, "explicit immutable input borrow avoids a copy");
+    utility_check(backend_link_tower_wasm(&backend) && wasm_bytes_equal(init(WasmBytes) { data: original.data, length: original.length },
+        init(WasmBytes) { data: backend.output.data, length: backend.output.length }), "borrowed and owned inputs emit identical bytes");
+    utility_check(backend_link_input_store(&backend.generated, arguments[5], object.data, object.length)
+        && !backend.generated.data[0].borrowed && backend.generated.data[0].bytes.data != object.data, "owned replacement does not release a borrowed allocation");
+    utility_check(backend_link_input_borrow(&backend.generated, arguments[5], object.data, object.length), "restore borrowed input");
     backend_link_inputs_release(&backend.generated);
+    utility_check(object.data[1] == *"a", "released borrow preserves caller storage");
     utility_check(!backend_link_tower_wasm(&backend) && backend.output.length == 0 && backend.generated.length == 0, "released plan cannot reuse stale object bytes");
 }
 

@@ -1,0 +1,25 @@
+import tower;
+import .library.bytes;
+import .library.bytes_types;
+
+extern fn fopen(path: u8*, mode: u8*): void*;
+extern fn fclose(file: void*): i32;
+extern fn fseek(file: void*, offset: i64, mode: i32): i32;
+extern fn ftell(file: void*): i64;
+extern fn fread(data: u8*, size: usize, count: usize, file: void*): usize;
+extern fn fwrite(data: u8*, size: usize, count: usize, file: void*): usize;
+
+fn link_fixture_read(path: u8*, bytes: ByteBuffer*): bool {
+    var file = fopen(path, "rb"); if file == null { return false; } defer fclose(file);
+    var end: i32 = 2; var maximum: u64 = 536870912;
+    if fseek(file, 0, end) != 0 { return false; }
+    var size = ftell(file);
+    if size < 0 || convert(u64, size) > maximum || fseek(file, 0, 0) != 0 || !bytes_reserve(bytes, convert(usize, size)) { return false; }
+    bytes.length = convert(usize, size);
+    return fread(bytes.data, 1, bytes.length, file) == bytes.length;
+}
+fn link_fixture_write(path: u8*, bytes: ByteBuffer*): bool {
+    var file = fopen(path, "wb"); if file == null { return false; }
+    var written = fwrite(bytes.data, 1, bytes.length, file);
+    return fclose(file) == 0 && written == bytes.length;
+}

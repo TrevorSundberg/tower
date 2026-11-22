@@ -1,0 +1,12 @@
+import tower;
+extern fn strcmp(left: u8*, right: u8*): i32;
+
+fn driver_option_prefix(text: u8*, prefix: u8*): bool {
+    for (var at: usize = 0; prefix[at] != 0; at++) { if text[at] != prefix[at] { return false; } }
+    return true;
+}
+fn driver_native_link_option(arg: u8*): bool {
+    return driver_option_prefix(arg, "-Wl,--export-dynamic-symbol=") || strcmp(arg, "-Wl,--export-dynamic") == 0
+        || driver_option_prefix(arg, "-Wl,-rpath,") || driver_option_prefix(arg, "-Wl,-rpath=")
+        || strcmp(arg, "-ldl") == 0 || strcmp(arg, "-lm") == 0 || strcmp(arg, "-lpthread") == 0;
+}

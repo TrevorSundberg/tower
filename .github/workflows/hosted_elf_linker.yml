@@ -1,0 +1,77 @@
+name: Tower hosted ELF execution
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'scaffolding/backend/elf_*.tower'
+      - 'scaffolding/backend/link*.tower'
+      - 'scaffolding/host/driver*.tower'
+      - 'scaffolding/tests/elf_hosted*.tower'
+      - 'cmake/TowerBackend.cmake'
+      - '.github/workflows/hosted_elf_linker.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  link:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        architecture:
+          - { cpu: x64, triple: x86_64-unknown-linux-gnu, sdk: /usr/lib/x86_64-linux-gnu }
+          - { cpu: arm64, triple: aarch64-unknown-linux-gnu, sdk: /usr/aarch64-linux-gnu/lib }
+        optimization:
+          - { name: raw, flag: '--no-optimize' }
+          - { name: optimized, flag: '' }
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update
+      - run: sudo apt-get install -y clang-19 llvm-19-dev lld-19 ninja-build gcc-aarch64-linux-gnu
+      - run: bash playground/scripts/build-native.sh
+        env:
+          TOWER_NATIVE_BUILD: /tmp/tower_hosted_elf
+          TOWER_BUILD_JOBS: '3'
+      - run: mkdir -p build/hosted_images
+      - run: bootstrap/linux-x64/towerc scaffolding/tests/elf_hosted_driver.tower --library -o build/elf_driver.o
+      - run: build/native/towerc --link-executable build/elf_driver.o /tmp/tower_hosted_elf/guest-host-library.o -o build/elf_driver
+      - run: bootstrap/linux-x64/towerc scaffolding/tests/elf_hosted_arrays.tower --library -o build/elf_arrays.o
+      - run: build/native/towerc --link-executable build/elf_arrays.o /tmp/tower_hosted_elf/guest-host-library.o -o build/elf_arrays
+      - run: build/elf_arrays ${{ matrix.architecture.cpu }} build/arrays.o
+      - run: bootstrap/linux-x64/towerc scaffolding/tests/elf_hosted_program.tower --library --target ${{ matrix.architecture.triple }} ${{ matrix.optimization.flag }} -o build/program.o
+      - run: clang-19 --target=${{ matrix.architecture.triple }} -Wno-override-module -O2 -ffreestanding -fno-builtin -mllvm -disable-loop-idiom-all -c /tmp/tower_hosted_elf/guest-host-library.ll -o build/runtime.o
+      - run: build/elf_driver build/hosted_images/tower-${{ matrix.optimization.name }} ${{ matrix.architecture.cpu }} 4 ${{ matrix.architecture.sdk }}/Scrt1.o ${{ matrix.architecture.sdk }}/crti.o build/program.o build/arrays.o build/runtime.o ${{ matrix.architecture.sdk }}/libc.so.6 ${{ matrix.architecture.sdk }}/libgcc_s.so.1 ${{ matrix.architecture.sdk }}/crtn.o
+      - run: clang-19 --target=${{ matrix.architecture.triple }} -fuse-ld=lld -pie -Wl,--export-dynamic build/program.o build/arrays.o build/runtime.o -lgcc_s -o build/hosted_images/reference-${{ matrix.optimization.name }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hosted-elf-${{ matrix.architecture.cpu }}-${{ matrix.optimization.name }}
+          path: build/hosted_images/
+
+  execute:
+    needs: link
+    strategy:
+      fail-fast: false
+      matrix:
+        host:
+          - { cpu: x64, runner: ubuntu-24.04 }
+          - { cpu: arm64, runner: ubuntu-24.04-arm }
+    runs-on: ${{ matrix.host.runner }}
+    env:
+      TOWER_HOSTED_CHECK: environment
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: hosted-elf-${{ matrix.host.cpu }}-*
+          merge-multiple: true
+          path: images
+      - run: chmod +x images/*
+      - run: images/tower-raw hosted
+      - run: images/tower-optimized hosted
+        if: ${{ !cancelled() }}
+      - run: images/reference-raw hosted
+        if: ${{ !cancelled() }}
+      - run: images/reference-optimized hosted
+        if: ${{ !cancelled() }}
