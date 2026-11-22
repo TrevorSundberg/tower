@@ -1,9 +1,10 @@
 import tower;
-export fn driver_platform_make_executable(path: u8*): bool { return true; }
 import driver_support;
 import driver_windows;
 import .library.bytes_types;
 import .library.bytes_interface;
+
+export fn driver_platform_make_executable(path: u8*): bool { return true; }
 
 extern fn GetFullPathNameA(path: u8*, capacity: u32, output: u8*, last: u8**): u32;
 

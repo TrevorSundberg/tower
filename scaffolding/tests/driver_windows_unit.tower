@@ -5,5 +5,6 @@ import host.driver_windows_arguments;
 import host.driver_windows;
 import host.driver_link;
 import host.driver_prepare;
+import host.driver_paths_windows;
 import tests.driver_windows;
 import tests.driver;
