@@ -1592,8 +1592,8 @@
                                         "temporalSourcesChanged":  false,
                                         "runtimeAssetsChanged":  false
                                     },
-    "sourceCommit":  "67db975a8ce80f3dab7910beb9ba57b86baec91d",
-    "previousDeployment":  "48d59895f422662a75d6573c126c58c07e4ece2a",
+    "sourceCommit":  "013ae550fdc186e33fdcb755ae1fbfe78bda098d",
+    "previousDeployment":  "7f3da4a735e0bb05b6e0671e6a7933ee86b8e37b",
     "publicationNote":  "Verified production linker release receipt; preserve the complete runtime asset map, frozen compiler build identity and all concurrent handoff receipts.",
     "bedrockSeedInspection":  {
                                   "sourceCommit":  "f34b73a019770ebb637b2b1664be94883adcdd11",
@@ -1801,7 +1801,7 @@
                                 "semanticsVersion":  8,
                                 "bootstrapSourceCommit":  "98ade8ccde255c445797ad51a1a2def0b41c85fb",
                                 "cleanSuccessor":  "Default checked-in bootstrap path; no private override; 51 steps; relocated type-value and computed-argument execution passed",
-                                "validation":  "Native query/full types; both interpreters and LLVM/Wasm; required backend worlds; real worker overlap/trap/determinism; exact cross-target interpreter/semantics object and IR comparison; two browser generations; local desktop/mobile and all 104 assets",
+                                "validation":  "Native query/full types; both interpreters and LLVM/Wasm; required backend worlds; real worker overlap/trap/determinism; exact cross-target interpreter/semantics object and IR comparison; two browser generations; local desktop/mobile and all 104 assets; hosted desktop/mobile and all served asset hashes verified",
                                 "nativeSuccessorSha256":  "b9555aff99e132d85f86c5f4531fc229be8ce21761f17f22e738378416e72520",
                                 "targetSupportReuseDeployment":  "3937cadf1d9b72e9d7de46a980b12932ac5a6201",
                                 "remaining":  "Consolidate types.tower and implement the full source-defined construction/operator/conversion/literal protocol; see the detailed eight-step journal handoff."
