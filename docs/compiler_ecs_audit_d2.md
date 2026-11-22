@@ -79,7 +79,7 @@ receipts. “Source review” means inspection, not a newly executed test.
 | `scaffolding/benchmarks/interpreter_memory.tower` | One explicitly allocated 1,024-u32 buffer, every read follows same-iteration write, freed before final output. No safety policy added to raw Foundation. | 10,000 iterations, expected sum of 0 through 9,999. No uninitialized-read claim depends on allocator zeroing. |
 | `scaffolding/benchmarks/interpreter_profile.tower` | Intentional 500,000-iteration scalar recurrence and ordinary function calls; all state belongs to one execution. | Browser CPU sampling input, not a compiler throughput benchmark or a multicore fixture. Wrapping signed arithmetic contract must be preserved by independent oracle. |
 | `scaffolding/benchmarks/compiler_wide_functions.tower` | New D2 complete-file measurement wrapper: one local ByteBuffer, lexical cleanup, existing Tower stress generator and explicit Tower import. No duplicated generator, world, scheduler or IR. | Initial direct fragment compilation failed without the language import; preserved as failure. New emitted 300-function file compiles to identical objects at jobs 1/2/8 and prints independently known 299 in graph/native execution. |
-| `scaffolding/tests/build_tool_budget_checks.tower` | New D2 regression invokes the real builder/compiler synchronously with borrowed argument strings; all local path/product buffers close after child reap. Invalid-budget calls must fail and leave products absent; valid budgets 1/2 must yield equal object bytes. | Uses existing tool transport/files/utility assertions. No fake compiler, alternate scheduler or generic harness modification. Compilation/execution pending heavy slot. |
+| `scaffolding/tests/build_tool_budget_checks.tower` | New D2 regression invokes the real builder/compiler synchronously with borrowed argument strings; all local path/product buffers close after child reap. Invalid-budget calls must fail and leave products absent; valid budgets 1/2 must yield equal object bytes. | Public-pin compile/link and real regression pass at `6a2536b`; independent executable-byte comparison also passes. Existing tool transport/files/utility assertions; no fake compiler, alternate scheduler or generic harness modification. |
 
 ## Environment and evidence
 
@@ -226,9 +226,12 @@ CPU consumption, but does not by itself prove useful body overlap. Small-input
 phase logs are dominated by the CLI's `parse` interval (first pair 1.911 vs
 2.461 s). Source inspection shows that interval includes frontend compilation
 and checking, not just parsing; it does not expose worker idle/critical paths.
-More workers cost
-memory and coordination on that input. No idle-time or contention counters were
-collected; actual producer overlap and stable scaling remain validation work.
+More workers cost memory and CPU on that input. GNU time also records median
+voluntary/involuntary context switches of 880/137 at jobs1, 3591/723 at jobs2,
+and 4044/863 at jobs8. The wide input has 881/319, 5314/1714 and 5592/1109.
+These process scheduling observations support investigating coordination cost;
+they do not isolate lock contention or quantify worker idle time. Actual producer
+overlap and stable scaling remain validation work.
 
 The new wrapper reuses `tests/stress_sources.tower` and generates complete source
 SHA-256 `d94fdd197f616fa09a8ad46f61e06bb0427a7ae9d788dbf3321aa3c25c8c2a03`.
@@ -282,3 +285,62 @@ retention and unconditional tool rebuilding are reviewed candidates, not claimed
 fixes. A2 owns actual Tower IR/object instrumentation; no unsupported CXX flag or
 serial allocation check is counted as thread sanitization. Integrated release,
 publication lease, atomic source/Pages push and hosted verification remain open.
+
+### Explicit build-budget implementation and measurements
+
+Source `6a2536b` implements the owner-approved `TOWER_COMPILER_JOBS` CMake setting,
+default 1, before the project hook and all generated command expansion. All direct
+CMake compiler/linker commands and the existing Tower builder forward the value.
+The small sequential post-Wasm foreign fixture explicitly uses jobs 1 and does not
+inherit CMake cache values. Outer Ninja parallelism and ordinary CLI behavior are
+unchanged; callers still budget their product of processes and inner workers.
+No new scheduler or numeric option parser was added. CMake rejects zero, negative
+and nondecimal values; the existing CLI rejects unsupported capacity/overflow.
+
+The real regression passes five invalid budgets without publishing products,
+then compares nonempty objects at jobs 1/2. Independent executable comparison also
+passes. Aggregate 14.00 s wall/14.44 s CPU/213972 KiB peak RSS, zero swaps. The smallest
+builder and regression units compiled first through the public pin, with no
+private bootstrap override. These are correctness run durations.
+
+The unchanged `package_roku` source, public compiler/resources and guest host
+object are then compiled/linked through the retained old builder and new builder.
+Three samples each in repeated old/new1/new2 order, fresh processes/output paths,
+warm filesystem; all nine object and executable outputs match byte-for-byte.
+
+| Builder budget | Wall samples s | Median CPU s | Median peak RSS KiB | Median voluntary/involuntary switches |
+| --- | --- | ---: | ---: | --- |
+| Old implicit host default (up to 8 on two allowed cores) | 6.57 / 5.16 / 5.49 | 6.24 | 223256 | 6591 / 1624 |
+| New explicit 1 | 3.77 / 4.50 / 4.94 | 4.39 | 193460 | 1375 / 221 |
+| New explicit 2 | 5.12 / 5.04 / 5.49 | 5.91 | 213512 | 5860 / 1644 |
+
+The modest-host selected-tool median improves from 5.49 s to 4.50 s with lower CPU,
+peak RSS and scheduling counts. Variance and fixed sample order limit broader
+claims; no universal serial superiority or compiler scaling claim follows.
+Raw commands, stdout/stderr and GNU time counters are retained under
+`build/d2_ecs/budget_after/{before,serial,parallel}_{1,2,3}/`. No swaps occurred.
+The argv addition borrows strings and keeps compile argv within capacity 16
+(14 entries before, 16 after); link argv reuses it. This source-level allocation
+accounting is distinct from measured allocator/live-component instrumentation.
+
+The clean default-budget native build passes all 51 steps in the separate
+`native-budget` cache: 294.59 s wall, 285.20 s CPU, 777296 KiB peak RSS, zero swaps.
+Compared with the original single observation, wall is 1.94% higher, CPU and RSS
+lower; no whole-build speedup claim. Both build caches started empty, without
+filesystem cache flushing. The generated cache records 1 and all 43 direct
+bootstrap custom-command lines contain jobs 1. The compiler executable exactly
+matches baseline SHA-256 `b9555aff99e132d85f86c5f4531fc229be8ce21761f17f22e738378416e72520`.
+Nine runtime `.ll` files differ solely in first-line ModuleID cache-path comments;
+the raw diff is retained, and excluding only those comments makes complete share
+trees equal. The full resource packages are therefore not byte-identical.
+
+Canonical `build-bootstrap.sh --tools package_roku` passes with the default
+jobs 1 cache and a separate explicitly configured jobs 2 cache. Both selected
+objects/executables equal the regression reference. The rebuilt native compiler
+interprets the wide source to 299, matching saved graph/native outputs. The first
+comparison referenced a nonexistent `wide_graph.stdout` and failed after successful
+execution; the corrected comparisons use the existing `wide_checked.stdout` and
+`wide_native.stdout`, without rerunning the compiler or hiding the failed command.
+The original runtime publication identity remains unchanged. Allocation/retention,
+actual compiler overlap, supported instrumentation, applicable generation/browser
+release checks and coordinated publication remain outstanding.

@@ -46667,3 +46667,84 @@ and will use its published pipeline, not count this relay as local coverage.
 Review of driver_compile_object corrects timing interpretation: the CLI parse
 interval encloses driver_compile_program, including frontend checking. Existing
 numbers stand, but they do not isolate parser cost or measure idle/critical paths.
+
+Further inspection of the preserved GNU-time baseline adds scheduling evidence
+without new execution: median voluntary/involuntary context switches for the
+small input are 880/137 (jobs1), 3591/723 (jobs2), 4044/863 (jobs8); wide input
+881/319, 5314/1714, 5592/1109. They accompany extra CPU/memory under parallel
+admission, but cannot distinguish useful synchronization, lock contention or
+idle time. No causal contention or speedup claim follows from these counters.
+
+Read-only publication preparation fetched the served manifest to
+build/d2_ecs/published_manifest_preflight.json, SHA-256 eb70f5388bee6b7ca318583eddfaa8e9a8a907c642a14a6fde85375ac8b1643c.
+It retains source013ae550/build98ade8cc and compiler source tree9703a7c0;
+both source/build commits are ancestors of D2 main. The104 asset entries and
+prior receipts will be preserved. This metadata fetch is not asset-byte, browser,
+workflow or post-publication verification. No publication lease requested yet.
+
+After D1 drained its body matrix, D2 acquired the heavy lock for frozen6a2536b.
+The public pin compiled/linked the smallest changed builder (jobs1,7.93s wall,
+7.63s CPU,190220KiB RSS) and new Tower regression (5.28s/5.14s/189376KiB).
+The real regression then passed all five invalid-budget cases without products
+and compared serial/two-worker objects; independent cmp also matched executables.
+Aggregate14.00s wall,14.44s CPU,213972KiB RSS,0 swaps. Logs are
+build/d2_ecs/budget_after/{compile.log,regression.log,regression.time}.
+All sessions drained before starting the paired selected-tool profile.
+
+The argv change borrows the existing process argument and two fixed option
+strings; it does not allocate copies. Compile argv grows from14 to16 entries
+including its null terminator, both within the existing vector growth capacity16;
+link argv reuses that allocation after length reset. This is source-level
+allocation accounting, not measured allocator instrumentation. Compiler-child
+memory still requires profile evidence and cannot be inferred from these counts.
+
+The selected-tool paired profile completed9/9 with exact object AND executable
+bytes across old implicit budget/newjobs1/newjobs2. Three samples, fixed repeated
+order, fresh output directories/processes, warm filesystem; unchanged public
+compiler/resource/source/runtime inputs and no overlap. Median wall/CPU/RSSKiB:
+old5.49/6.24/223256; jobs1 4.50/4.39/193460; jobs2 5.12/5.91/213512.
+Wall samples old6.57/5.16/5.49, jobs1 3.77/4.50/4.94, jobs2 5.12/5.04/5.49.
+This supports the conservative build default on this modest host, not universal
+parallel scaling. All command logs and GNU-time counters remain under
+budget_after/{before,serial,parallel}_{1,2,3}/. No swaps reported.
+
+Three direct CMake configuration probes with TOWER_COMPILER_JOBS=0,two,-1 each
+returned1 immediately at CMakeLists.txt:7: positive decimal worker count required,
+outer parallelism controlled by TOWER_BUILD_JOBS. The negative probes are expected
+rejections, not passing builds. A fresh canonical native build with default1 has
+started in a separate native-budget cache; results are pending. Inputs remain
+6a2536b while journal-only records are appended.
+
+Clean public-bootstrap native build at6a2536b completed51/51 in the new cache,
+exit0:294.59s wall,271.26s user+13.94s system,777296KiB peakRSS,0swaps.
+Compared with the original288.99s/323.60s CPU/829632KiB, CPU and peak memory are
+lower but wall is1.94% higher. Each is one empty-build-cache observation on the
+powersave host, without filesystem cache flushing; no whole-build speedup claim.
+The repeated selected-tool experiment remains the scoped performance evidence.
+
+The executable is byte-identical to the baseline b9555aff. Raw recursive resource
+diff returned differences in nine LLVM runtime files, so package byte identity is
+NOT asserted. Full81-line diff is retained in budget_after/runtime_resources.diff:
+each change is solely first-line ModuleID comment native/ versus native-budget/.
+`diff -qr -I '^; ModuleID = '` over the full share trees exits0, proving every
+other line and all Tower resources match. The first combined inspection command
+ended with docker-top and therefore returned0 after diff's differences; those
+differences were explicitly preserved and investigated, never counted as a pass.
+The original published runtime assets retain their original build identity.
+
+The canonical tools bridge passes with default cache jobs1 and a fresh positive
+override jobs2 cache; both package_roku objects/executables match the existing
+regression reference. The builder receives required positional JOBS2, and direct
+compiler commands receive --jobs2. Single bridge build durations25.32s and18.78s
+have different cache histories and are NOT a paired speedup comparison.
+The new native executable also interprets the wide fixture to299. Initial cmp
+mistakenly referenced missing wide_graph.stdout and returned2; comparing the
+saved output against existing wide_checked.stdout and wide_native.stdout passes.
+No compiler rerun or silent pass substitution was needed.
+
+All D2 jobs drained before releasing the heavy lock back to D1. The bounded
+budget milestone has executable correctness, isolated paired profiles and a fresh
+public-bootstrap build, but no lane completion/publication is claimed. Remaining
+checks include the serial allocation/retention benchmark, actual compiler overlap,
+A2 emitted-code instrumentation and helper integration, applicable generation/
+browser/hosted validation and the coordinated atomic source/Pages publication.
