@@ -38946,3 +38946,27 @@ The twelve compressed products total 79,680,058 bytes versus 67,611,227 before
 Reuse the verified browser generations because final packaging produces identical
 bytes; no repeated full matrix is needed. Metadata publication preserves existing
 runtime identity/assets; these new support products are validation artifacts.
+
+Publication complete: c0594da implementation and 60c4f48 validation pushed to main
+(a transient GitHub DNS failure was resolved with command-scoped curloptResolve).
+Exclusive agent1 lock protects metadata-only Pages commit
+d671a0b7e1bbe09458dbb2a192e007613f8440f2. Action 44968266273 succeeds; hosted
+deployment-manifest.json exactly matches SHA256
+fe2f1cb012bb616c384e49e93dda44795d60e2d0b1b837ce1c8288e515cd5309.
+Runtime buildSourceCommit 51c038e0d15480256f7dfd7991155874b97d2cab, all 86
+asset hashes and other lanes' receipts remain unchanged. The hosted assets field
+is a path-keyed object, so verify its property count rather than PowerShell's
+scalar Count. This receipt publishes source/tooling validation, not new runtimes.
+
+Next migration inventory: 19 shell files/483 lines, 54 CMake files/2,594 lines,
+188 JavaScript files/24,430 lines; Python and owned C/C++ are zero. These are actual
+tracked-source counts, not a GitHub language-chart estimate. internal.sh still
+calls setup-wasi, build/native/browser wrappers and shell validation entry points.
+Do not remove required SDK/upstream build boundaries merely to remove a language.
+test-linking.sh duplicates some existing driver object-link/output checks but also
+tests archive selection, separate host-runtime linking, LLVM C API and native-to-
+Wasm output; audit each contract before removal, keeping only missing behavior in
+Tower. test-native-core.sh retains obsolete sanitizer naming/flags after native
+retirement; it was inspected only, never run. Simplify that path before any test
+execution, honoring the no-sanitizer instruction. No shell/CMake cutover is claimed
+in this Python milestone.
