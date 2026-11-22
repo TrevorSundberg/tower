@@ -39536,3 +39536,15 @@ Shell counts remain 13 files/291 lines; the rechecked Python baseline dfe6ce3 is
 23 files/1,989 lines versus zero today. Next candidates are the remaining three
 validation/build wrappers and target-pack construction; retain required external
 SDK/build boundaries and remove duplicated staging before adding Tower code.
+
+Publication complete: implementation 41dc86e and merged-source validation 35ce91d
+are pushed. Pages 11f3ee2335747df620a33f588a7f5e507fab7b24/action 44972389753
+succeeds, and the hosted manifest exactly matches SHA256
+9d6c992c7a5e75d54d97b95d56022f95832b27a2a93e1d3d20ae4eec3a3dec80.
+Preserve runtime buildSourceCommit 9e7eb79813f798dd733033c43a6d1f7fd0f0b685,
+all 88 assets, its attribute/bootstrap identities and every other lane's receipt.
+Push again needed only a command-scoped DNS override; no persistent Git setting
+changed. The next audit confirms the native-core and host-WASI scripts are mostly
+required CMake/SDK configuration boundaries, while distribution validation owns
+relocation staging around an existing Tower verifier. Consider reusing those
+resource/verification capabilities before translating any wrapper line for line.
