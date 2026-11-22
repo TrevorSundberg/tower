@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {compilerThreads} from '../src/compiler-threads.mjs';
 import {TowerWASI} from '../src/wasi-host.mjs';
-import {lazyGenericBodySource, demandedGenericBodySource} from './generic_body_cases.mjs';
 
 let bytes;
 try { bytes = await readFile(process.env.TOWER_TEST_WORK_WASM ?? 'build/browser-wasi-threads/tower-work-tests.wasm'); }
@@ -51,7 +50,8 @@ test('declaration, body checking, lowering and staging are deterministic at 1/2/
  const aggregateTypes = await readFile('scaffolding/tests/decltype_aggregate.tower', 'utf8');
  const bodyContinuation = await readFile('scaffolding/tests/body_continuation.tower', 'utf8');
  const lazyBodies = await readFile('scaffolding/tests/decltype_lazy_body.tower', 'utf8');
- const lazyBodyBudget = lazyGenericBodySource();
+ const lazyBodyBudget = await readFile('scaffolding/tests/generic_body_lazy.tower', 'utf8');
+ const demandedBodyBudget = await readFile('scaffolding/tests/semantic_invalid/generic_body_demanded.tower', 'utf8');
  const expressionTypes = await readFile('scaffolding/tests/decltype_expressions.tower', 'utf8');
  const declarationContinuations = await readFile('scaffolding/tests/declaration_continuations.tower', 'utf8');
  const declarationInference = await readFile('scaffolding/tests/declaration_inference.tower', 'utf8');
@@ -306,7 +306,7 @@ fn badSecond(value:MissingSecond):void {}`);
     operatorCycleDiagnostic ??= result.error;
     assert.equal(result.error,operatorCycleDiagnostic,`operator cycle at ${capacity} workers`);
    } finally { tower.destroyExecution(operatorCycle); }
-   const bodyBudget=tower.compile(demandedGenericBodySource());
+   const bodyBudget=tower.compile(demandedBodyBudget);
    try {
     const result=tower.execute(bodyBudget);
     assert.equal(result.status,'error');

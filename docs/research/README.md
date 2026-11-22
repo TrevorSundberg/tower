@@ -86,17 +86,13 @@ to arbitrary shared mutable clocks. All results and discovered defects are retai
 
 ## Replacement composition experiment
 
-[Replacement shortcuts](replacement-shortcuts.mjs) is a separate bounded model
-of declaration-time template specialization, guarded rule-chain composition and
-fallback. [Its tests](replacement-shortcuts.test.mjs) compare an independent
-reference expander, exercise rule edits/effects/cycles, and use the real Tower
-WASM parser for precedence and conflict counterexamples. It is not a production
-replacement-language implementation or part of the temporal validation runner.
-
-```powershell
-node --test docs/research/replacement-shortcuts.test.mjs
-```
-
-The WASM checks require `build/browser-wasi/tower.wasm` and installed playground
-dependencies. The journal's 2026-11-16 replacement entry records the original
-notes, literature, soundness conditions, operation counts and omitted semantics.
+This separate bounded model was retired on 2026-11-22; it was never part of the
+production expander or the temporal models retained above. Its
+[implementation](https://github.com/TrevorSundberg/tower/blob/cf6b2049c40df5fb0df4fca892a699098c43ba97/docs/research/replacement-shortcuts.mjs)
+and [tests](https://github.com/TrevorSundberg/tower/blob/cf6b2049c40df5fb0df4fca892a699098c43ba97/docs/research/replacement-shortcuts.test.mjs)
+remain available in Git history. The experiment compared guarded rule-chain
+composition with an independent expander and examined rule edits, effects, cycles,
+precedence and conflicts. The journal's 2026-11-16 entry retains the literature,
+soundness conditions, operation counts and omitted semantics. Reproduction uses
+that archived checkout and its matching WASM parser; these results do not establish
+an optimization guarantee for the current Tower implementation.

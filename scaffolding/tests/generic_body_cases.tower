@@ -1,0 +1,64 @@
+import tower;
+
+// Deliberately retain 240 distinct statements and 32 nominal specializations.
+// A runtime loop would not exercise the generic body-copy node budget.
+fn large(T: type): i32 {
+    print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99);
+    print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99);
+    print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99);
+    print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99);
+    print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99);
+    print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99);
+    print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99);
+    print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99);
+    print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99);
+    print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99);
+    print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99);
+    print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99);
+    print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99);
+    print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99);
+    print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99);
+    print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99);
+    print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99);
+    print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99);
+    print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99);
+    print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99);
+    print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99);
+    print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99);
+    print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99);
+    print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99); print(99);
+    return 1;
+}
+
+struct S0 { field: i32; } var value0: decltype(large(S0)) = 1;
+struct S1 { field: i32; } var value1: decltype(large(S1)) = 1;
+struct S2 { field: i32; } var value2: decltype(large(S2)) = 1;
+struct S3 { field: i32; } var value3: decltype(large(S3)) = 1;
+struct S4 { field: i32; } var value4: decltype(large(S4)) = 1;
+struct S5 { field: i32; } var value5: decltype(large(S5)) = 1;
+struct S6 { field: i32; } var value6: decltype(large(S6)) = 1;
+struct S7 { field: i32; } var value7: decltype(large(S7)) = 1;
+struct S8 { field: i32; } var value8: decltype(large(S8)) = 1;
+struct S9 { field: i32; } var value9: decltype(large(S9)) = 1;
+struct S10 { field: i32; } var value10: decltype(large(S10)) = 1;
+struct S11 { field: i32; } var value11: decltype(large(S11)) = 1;
+struct S12 { field: i32; } var value12: decltype(large(S12)) = 1;
+struct S13 { field: i32; } var value13: decltype(large(S13)) = 1;
+struct S14 { field: i32; } var value14: decltype(large(S14)) = 1;
+struct S15 { field: i32; } var value15: decltype(large(S15)) = 1;
+struct S16 { field: i32; } var value16: decltype(large(S16)) = 1;
+struct S17 { field: i32; } var value17: decltype(large(S17)) = 1;
+struct S18 { field: i32; } var value18: decltype(large(S18)) = 1;
+struct S19 { field: i32; } var value19: decltype(large(S19)) = 1;
+struct S20 { field: i32; } var value20: decltype(large(S20)) = 1;
+struct S21 { field: i32; } var value21: decltype(large(S21)) = 1;
+struct S22 { field: i32; } var value22: decltype(large(S22)) = 1;
+struct S23 { field: i32; } var value23: decltype(large(S23)) = 1;
+struct S24 { field: i32; } var value24: decltype(large(S24)) = 1;
+struct S25 { field: i32; } var value25: decltype(large(S25)) = 1;
+struct S26 { field: i32; } var value26: decltype(large(S26)) = 1;
+struct S27 { field: i32; } var value27: decltype(large(S27)) = 1;
+struct S28 { field: i32; } var value28: decltype(large(S28)) = 1;
+struct S29 { field: i32; } var value29: decltype(large(S29)) = 1;
+struct S30 { field: i32; } var value30: decltype(large(S30)) = 1;
+struct S31 { field: i32; } var value31: decltype(large(S31)) = 1;

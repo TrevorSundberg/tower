@@ -2,7 +2,6 @@ import {test, after} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {loadTower, loadLLVM, executeWasm} from './compiler-fixtures.mjs';
-import {lazyGenericBodySource, demandedGenericBodySource} from './generic_body_cases.mjs';
 
 const foundation = await readFile('scaffolding/foundation.tower', 'utf8');
 const tower = await loadTower(await readFile(process.env.TOWER_TEST_WASM || 'build/browser-wasi/tower.wasm'), undefined, foundation);
@@ -23,7 +22,7 @@ function execute(source, pointerBytes, fast) {
 }
 
 test('signature-only generic queries do not clone unused body descendants', async () => {
- const source = lazyGenericBodySource();
+ const source = await readFile('scaffolding/tests/generic_body_lazy.tower', 'utf8');
  for (const width of [4, 8]) {
   const canonical = execute(source, width, false);
   assert.doesNotMatch(canonical, /fn `large\(/);
@@ -35,8 +34,8 @@ test('signature-only generic queries do not clone unused body descendants', asyn
  assert.equal((await executeWasm(compiled)).output, '0\n');
 });
 
-test('demanded generic body copies retain the node budget and reject execution', () => {
- const source = demandedGenericBodySource();
+test('demanded generic body copies retain the node budget and reject execution', async () => {
+ const source = await readFile('scaffolding/tests/semantic_invalid/generic_body_demanded.tower', 'utf8');
  for (const width of [4, 8]) {
   const handle = tower.compile(source, {pointerBytes:width});
   try {

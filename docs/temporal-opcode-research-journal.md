@@ -43899,3 +43899,74 @@ This journal-only receipt reuses those verified runtime assets without rebuildin
 identical compilers. No todo.txt changes. The next language milestone remains
 ordinary immutable staged captures and helper calls during type construction,
 followed by general type-valued execution and the shared type protocol.
+
+## 2026-11-22: retain temporal research, retire replacement experiment, share Tower fixtures
+
+The user's preservation instruction applies to all temporal sources: leave them
+available for their forthcoming Tower translation. The separate replacement-chain
+experiment has no production caller. Reference searches find only its own test
+import and research README, so delete replacement-shortcuts.mjs and its test
+instead of translating an unused model. README links both files at cf6b2049;
+the November 16 journal retains original results, literature and limitations.
+This retires 373 JavaScript lines without deleting production expander checks.
+The archived parser integration is not claimed to pass against today's reactor.
+All temporal source paths and native-temporal artifacts are unchanged. The
+read-only temporal-validation-all.mjs run passed all 17 checks before retirement;
+its result is build/research_retirement_temporal.json.
+
+The live generic_body_cases.mjs generator had two browser test callers. Its
+output does not vary by configuration, so remove the generation step. Share a
+Tower module with 240 distinct print statements, 32 nominal structs and 32
+signature queries between positive and demanded-body Tower entry fixtures.
+The demanded variant keeps 32 calls and the existing 65,536-node failure contract.
+A runtime loop would change the compiler workload and is deliberately not used.
+Both browser callers now read fixtures; their execution, canonical output,
+LLVM/Wasm and error-order assertions remain. No new helper binary is needed.
+
+Frozen baseline: cf6b2049c40df5fb0df4fca892a699098c43ba97 at
+/cache/research_retirement_baseline; candidate tree d6cee265735f676a7310251a6704fdc1292c2edf
+at /cache/generic_fixture_checkout in tower_agent1_c_checks (Ubuntu 24.04,
+LLVM 19.1.1, Node 22.23.5). The smallest shared Tower unit compiles with the
+public 18664657 bootstrap. A first direct positive invocation lacked explicit
+source resources and could not find tests.generic_body_cases in installed
+libraries. Supplying --foundation and --bedrock from the frozen scaffolding
+root resolves that expected path issue; Foundation output succeeds.
+
+Both old and new fixtures pass the two selected compiletime.test.mjs cases
+(--test-name-pattern='generic.*(queries|copies)'), zero skips, on the exact
+published 23b919ef portable and LLVM reactors. The modified compiler-threads
+semantic determinism test also passes, zero skips, with the published threaded
+reactor: worker counts 1/2/4/8 and both pointer widths. The two unchanged overlap
+and interruption tests were not selected and are not new evidence for this batch.
+Logs: build/generic_fixture_{baseline,candidate,threads}.log. Reactor SHA256:
+portable 5be4b2f9764f39c9f4f6bc540276c4a77fa600732ca00ab2ca2a464417968f3a,
+threaded 2f3c273c52052e68b05222d718e4345c2019d15db45160db20792659d26de548,
+LLVM 299ee6281a5931dc544b467a99d60ffb4b16beb11ea7537375bfba1d46ef51af.
+These were checked against the published deployment manifest before use.
+
+A clean documented native successor builds from the public pin with
+TOWER_BOOTSTRAP_COMPILER unset and TOWER_NATIVE_BUILD=/cache/tooling_fixture_native.
+Its executable SHA256 is 18664657c3ff9142a6d59bef8ffa794fd10d12313d55f91dd47f5575141a29f9,
+matching the pin. Native graph and fast execution of the positive fixture print
+0; the negative exits 1 with the expected budget diagnostic and no stdout.
+Focused type-smoke, query-smoke and backend API checks pass after integrating
+upstream's declaration/staging changes. Logs are build/tooling_fixture_*.log.
+This remains a Linux development bootstrap, not a portable release claim.
+
+Net JavaScript reduction this batch: three files, 390 lines. Current tracked
+inventory: JavaScript 178 files / 23,760 lines; shell 9 / 230; CMake 39 / 1,591;
+PowerShell 2 / 117; Python and owned C/C++ zero. Relative to the lane inventory,
+Python is down 1,989 lines (100%), shell 253 (52.4%), CMake 1,003 (38.7%) and
+JavaScript 670 (2.7%). Counts measure actual source, not GitHub language labels;
+the retained temporal models and necessary browser integration remain substantial.
+The PowerShell parser and MSVC runners have documented callers and are not dead
+code merely because there are no automated callers. Their platform handoff needs
+a tested equivalent before retirement. No todo.txt or compiler semantics changes.
+
+Prior parser-measurement publication is now verified: Pages ad2214f3 workflow
+44995736177 succeeded. Its receipt survives the newer d4a77d7789b28fa642717ec09651d431656d860e
+publication (workflow 45031416824 succeeded). Exact GitHub and hosted manifest
+bytes match SHA256 99f9fd454516f4582ef72133b067334c606c19fa4909dd4c0782e2a4b235fa1c,
+with runtime source 23b919ef and all 104 assets retained. Evidence is
+build/parser_measurement_latest_{manifest,hosted}.json. Publication of the current
+fixture/retirement receipt follows without rebuilding those runtime assets.

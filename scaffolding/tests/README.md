@@ -1,5 +1,15 @@
 # Parser tree construction and debug output
 
+## Generic body demand fixtures
+
+`generic_body_cases.tower` supplies the shared syntax for `generic_body_lazy.tower`
+and `semantic_invalid/generic_body_demanded.tower`. Keep its 240 distinct body
+statements and 32 nominal specializations: replacing them with runtime loops
+would stop testing the compiler's body-copy node budget. Signature queries must
+complete without copying the unused bodies; demanding every body must report the
+65,536-node limit before producing output. The browser compile-time and worker
+tests read these same Tower files instead of generating programs in JavaScript.
+
 ## Native CLI execution and package comparisons
 
 Configure the native build with `-DTOWER_DRIVER_TESTS=ON` and build

@@ -1,0 +1,12 @@
+import tower;
+import tests.generic_body_cases;
+
+// Demanding every body must exceed the clone budget before any execution.
+print(large(S0)); print(large(S1)); print(large(S2)); print(large(S3));
+print(large(S4)); print(large(S5)); print(large(S6)); print(large(S7));
+print(large(S8)); print(large(S9)); print(large(S10)); print(large(S11));
+print(large(S12)); print(large(S13)); print(large(S14)); print(large(S15));
+print(large(S16)); print(large(S17)); print(large(S18)); print(large(S19));
+print(large(S20)); print(large(S21)); print(large(S22)); print(large(S23));
+print(large(S24)); print(large(S25)); print(large(S26)); print(large(S27));
+print(large(S28)); print(large(S29)); print(large(S30)); print(large(S31));

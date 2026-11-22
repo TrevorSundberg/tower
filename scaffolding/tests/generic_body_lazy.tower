@@ -1,0 +1,5 @@
+import tower;
+import tests.generic_body_cases;
+
+// Signature queries must not clone or execute the unused large body.
+print(value31 - 1);
