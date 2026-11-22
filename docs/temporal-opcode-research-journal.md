@@ -44441,3 +44441,13 @@ name now collides with the primitive type and serializes as `f32@input.tower`.
 Allow that canonical qualified spelling (also f64), retaining exact comment/name
 association. The corrected comment check passes, zero skips. Logs are
 stress_wide_{preflight,browser}.log and stress_comments_{baseline,pass}.log.
+Published-browser target execution is now PASS: workflow 45038423612 runs all
+four jobs successfully, consuming the exact f7545d6 browser backend and target
+packs. Both Intel and Apple Silicon Macs verify strict signatures and execute the
+memory/assertion fixture and independently linked library program; Windows runs
+both PE outputs too. Thus LLVM 20/WASI-produced downloadable files have actual
+native-host execution evidence in addition to the LLVM 19/native raw/optimized
+matrix. No runtime code, bootstrap or distributed asset bytes changed for this
+additional check. The prior receipt 3d60a0e/workflow45038132734 also succeeded;
+its hosted manifest exactly matched SHA256
+47f6bde0460d856e1df7ecf350ccce661a01b36e6996eab1055fccc1095e8be8.
