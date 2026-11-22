@@ -42012,3 +42012,21 @@ hashes, including the deliberately edited semantic diagnostic. Sizes are
 browser verifier passed desktop checks but timed out on a mobile Restore error
 marker while self-build workers were active. Rerunning unchanged checks with
 self-builds finished; this timeout is not yet classified as a compiler failure.
+
+Correction: the Restore assertion was racing an expected execution diagnostic.
+foreach.tower deliberately defines ForEach syntax without a Foundation replacement;
+after successful parsing, execution must report its missing semantics. The
+verifier now waits for that specific result instead of transient absence of an
+error. No compiler/runtime change was needed.
+
+The last rebase brought in parser-test consolidation (179e9b8/6f6f38d), with no
+changes to the compiler/host/type/tool sources used by the verified reactors.
+The updated parser build still passes all 15 CTest registrations; the documented
+default native build also passes from fresh /cache/source-types-cmake-clean.
+Preserved the verified browser/runtime assets rather than rebuilding unchanged
+compiler sources. To make bootstrap provenance independent of rebased local
+commit IDs, development.json now names published ancestor 6482989 plus a hashed
+source-changes.patch. Git application in an isolated index reconstructs exactly
+the built 46b1da9 scaffolding/cmake/CMakeLists snapshot; the existing per-file
+source hashes and executable/resource hashes remain unchanged. This supersedes
+the preceding clean-revision-only provenance description.
