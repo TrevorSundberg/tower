@@ -95,9 +95,9 @@ fn floating_tests(modules: void*, root: u8*): void {
         execution_run(&graph, 1000, 100000);
         execution_roundtrip(&graph, modules, true);
     }
-    struct_value_reject(modules, "var value:f32=1e39;", "Floating literal out of range");
-    struct_value_reject(modules, "var value:f64=1e309;", "Floating literal out of range");
-    struct_value_reject(modules, "var value:i32=1.5;", "floating literal needs");
+    struct_value_reject(modules, "import foundation;var value:f32=1e39;", "Floating literal out of range");
+    struct_value_reject(modules, "import foundation;var value:f64=1e309;", "Floating literal out of range");
+    struct_value_reject(modules, "import foundation;var value:i32=1.5;", "floating literal needs");
     struct_value_reject(modules, "import tower;var a:f32=1;var b:f64=1;print(a+b);", "explicit conversion");
     struct_value_reject(modules, "import tower;var a:f64=1;print(a%2);", "integer operands");
     struct_value_reject(modules, "import tower;var a:f64=1;a&=2;", "integer operands");

@@ -815,3 +815,55 @@ explicitly links `runtime-instrumented.o` and `tower_work_serial.o`. Exit134
 still comes from D2's process receipt, since the CSV file lacks a status field.
 This confirms the observed retained-count step and serial allocator boundary,
 without resolving its cause or claiming a local rerun.
+
+### D1 implementation receipts after f6b8267
+
+The root-authorized entry wrappers preserve all eight incoming fixtures' ordered
+checks and add exported main/return0 only. Original/public-pin executables passed
+before edits; common library-mode objects and all ten registered executables
+built23/23. Seven ordinary CTests passed, zero skips; four balanced before/after
+pairs passed all64 fixture/profile executions. Exact output checks remain separate
+from timing claims. Short SHA timing samples vary and leave a possible small
+regression unresolved; see journal and registration raw logs. New linked-target
+positive instrumentation and final coherent compiler validation remain open.
+Registration patch identity: `d4857ed13086e23aa001628b389818dc15ad4dd100fb62729783f2dfcb1cc284`.
+
+`integer_negation_checks.tower`, `floating_checks.tower` and `narrow_checks.tower`
+now explicitly select Foundation for eight existing literal strings. Expected
+expressions/rejection messages and raw-versus-Tower semantics are unchanged.
+Direct original/corrected inputs at jobs1/2 prove missing-import failure becomes
+zero success or the intended range/type error; diagnostics are byte-identical
+across settings. Three smallest units compile. This does not claim full numeric
+execution matrices or final changed-compiler bootstrap closure.
+
+`driver_differentials.tower` now reports an unexpected negative package-emission
+subprocess status before its existing success assertion, using a deferred private
+ByteBuffer and shared number formatter. Other expected signals are unaffected.
+Exact valid signed32 repro observes SIGALRM/-14 and remains failing. Healthy
+before/after four-variant print output is identical,21.69/21.32s wall and
+113244/113228KiB. This validates diagnostic behavior without changing a deadline
+or claiming the slow case fixed. Smallest unit and driver target compile;
+positive instrumentation of this changed path remains pending.
+
+`parser_benchmark.tower` has a separate unvalidated oracle draft: explicit serial
+world and typed private page index, exact live component ownership, real allocator
+layout/byte accounting, unchanged timing window and default warmups, stable cache
+identities, exact attributed buffer deltas and session/world teardown. Partial
+pool lists are insufficient because full pages detach; the observer enumerates
+owning entities instead. Conservative per-live-component byte bounds are not low
+fragmentation guarantees. Actual requested/live/unused-slot bytes are reported
+separately from RSS. No compiler payload mutation, extra authoritative model,
+production allocator change or assumed noalias contract was introduced. The
+original failing fixture source and logs remain available; draft compilation,
+equivalent profiles and128-reset stress are pending the shared host slot.
+
+B1's additional diagnostic `scaffolding/tests/parser_retention.tower` was reviewed
+from source SHA256 `f0033081ec3a8623b01d0ecc38c4d00e3f92b436b50c6ef57a4e2cb7086c4688`.
+It uses explicit or legacy host worlds, serial-counter guard, private page
+identity enumeration through actual table/component owners,128resets at each
+size, and exact owned-world teardown. Snapshot allocations end before the next
+parse; slot capacity totals are not byte/RSS measurements. Its source preserves
+the old failing assertion as an attribution companion, not a passing replacement.
+B1 CSV/link/binary identities are supplied; D1 has independently read them, not
+executed that diagnostic. It is a one-off experiment; avoid introducing a second
+permanent benchmark when integrating the strengthened existing fixture.

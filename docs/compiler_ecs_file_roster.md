@@ -22,8 +22,9 @@ not substantive audit completion. Each section is sorted by exact repository pat
 
 Incoming draft paths are listed separately until their commits integrate;
 they do not change the tracked count above. D1 has substantive source receipts
-for thirteen incoming test files in `compiler_ecs_audit_d1.md`; these are draft
-reviews, not integrated execution receipts.
+for thirteen incoming test files plus B1's one-off retention diagnostic in
+`compiler_ecs_audit_d1.md`; these are source reviews, not integrated compiler
+execution receipts.
 
 | Incoming path | Roster owner | Specific implementation reservation | Exact draft |
 | --- | --- | --- | --- |
@@ -46,6 +47,7 @@ reviews, not integrated execution receipts.
 | `scaffolding/tests/tool_output_identity.tower` | D1 | A2 | `5911d9cc` |
 | `scaffolding/tests/work_signal_observe.tower` | D1 | A2 | `21c2b43d`, valid semaphore observer |
 | `scaffolding/library/work_budget_types.tower` | A2 | A1 extraction, A2 shared contract | A1 boundary patch SHA256 `8263db9a9050823b31619952ccdad3fed43e554d54d091fd4b12ceeba4dbce47` |
+| `scaffolding/tests/parser_retention.tower` | D1 | B1 diagnostic experiment | source SHA256 `f0033081ec3a8623b01d0ecc38c4d00e3f92b436b50c6ef57a4e2cb7086c4688`; reviewed one-off, not a second permanent benchmark |
 
 The ten new A2 test sources above were reviewed from
 `validated_checkpoints.patch`, SHA256
@@ -57,8 +59,8 @@ After source review, D1 applied the A2 graph/budget/pool/kernel/tool-file and te
 fixture prerequisites plus projection delta, preserving the earlier D2
 build/sanitizer drafts. They remain unvalidated locally. The A1 extraction did
 not pass its header-context check and remains unapplied; no partial application
-or foreign world/unit change occurred. Nineteen exact incoming paths are now
-listed; additional owner additions still need source identities.
+or foreign world/unit change occurred. Twenty exact incoming/experimental paths
+are now listed; additional owner additions still need source identities.
 
 Other reported new cross-lane files need exact integrated paths and content
 receipts; a status mention alone is not an inventory or review claim.

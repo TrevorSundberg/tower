@@ -57,11 +57,11 @@ fn narrow_tests(modules: void*, root: u8*): void {
             }
         }
     }
-    struct_value_reject(modules, "var x:i8=128;", "Integer literal out of range");
+    struct_value_reject(modules, "import foundation;var x:i8=128;", "Integer literal out of range");
     struct_value_reject(modules, "import tower;var x:i8=-129;", "Integer literal out of range");
-    struct_value_reject(modules, "var x:i16=32768;", "Integer literal out of range");
+    struct_value_reject(modules, "import foundation;var x:i16=32768;", "Integer literal out of range");
     struct_value_reject(modules, "import tower;var x:i16=-(32769);", "Integer literal out of range");
-    struct_value_reject(modules, "var x:u16=65536;", "Integer literal out of range");
+    struct_value_reject(modules, "import foundation;var x:u16=65536;", "Integer literal out of range");
     struct_value_reject(modules, "import tower;var a:i8=1;var b:i16=2;print(a+b);", "explicit conversion");
     struct_value_reject(modules, "import tower;print(comptime(convert(i8,128)));", "Numeric conversion out of range");
     floating_trap(modules, "import tower;var x=128.0;x+=0;print(convert(i8,x));");
