@@ -38917,3 +38917,32 @@ build/compiler_support/generations.log. Input source checkout was 9708b60,
 whose TLS/jobs changes are now pulled into this lane. Fresh default successor,
 canonical tool-build integration, deterministic repeat/failure checks and
 publication verification follow this checkpoint.
+
+Final integration at c0594da: clone /work into the new owned Docker directory
+/cache/compiler_project_final_checkout; no private bootstrap variable and no
+python3 executable. build-bootstrap.sh --tools package_compiler_project passes
+all five bridge steps; omitting the selection subsequently builds all six tools.
+build-native.sh with TOWER_NATIVE_BUILD=/cache/compiler_project_final_native
+passes all 54 steps after the TLS/jobs source rebase. Successor SHA256
+b3775dabaced622e58a6f67095f8e29889b97a4a362011838707f23582b9343a differs from
+the unchanged public pin as expected after compiler changes. It compiles and
+runs tool_words_checks successfully; final-source compiler_support_checks and
+tool_words_checks also pass through the public compiler. build-llvm.sh passes
+bash -n; its new selected build and exact packaging invocation are independently
+exercised without rebuilding unchanged upstream LLVM caches.
+
+The canonically built packager runs with PATH=/nonexistent against the same
+read-only real builds and an output directory containing spaces. All twelve
+compressed products and project.json are byte-identical to the preceding full
+trial. Source input Git remains clean at 9708b60 before/after; final project JSON
+SHA256 1957b6ae0cb9da485715353923e470112a337d8479762dc2b7b2bdb48452bc2f.
+GNU gzip/cmp independently confirms the foreign-import allowlist too. A missing
+Ninja build fails with status 1, retains its diagnostic stage and leaves the
+published project unchanged. An initial shell status assertion lost its variable
+through WSL command quoting; direct invocation and PowerShell LASTEXITCODE verify
+the actual status. The failure was in the operational check, not the packager.
+The twelve compressed products total 79,680,058 bytes versus 67,611,227 before
+(17.85% larger). No new zlib link, private compiler or production linker change.
+Reuse the verified browser generations because final packaging produces identical
+bytes; no repeated full matrix is needed. Metadata publication preserves existing
+runtime identity/assets; these new support products are validation artifacts.
