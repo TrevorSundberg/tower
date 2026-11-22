@@ -1,7 +1,7 @@
 Tower playground: third-party notices
 
 
-LLVM / LLD / compiler-rt (Apache 2.0 with LLVM exceptions)
+LLVM / compiler-rt (Apache 2.0 with LLVM exceptions)
 ==============================================================================
 The LLVM Project is under the Apache License v2.0 with LLVM Exceptions:
 ==============================================================================
