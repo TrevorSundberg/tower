@@ -42871,3 +42871,37 @@ Preserve the latest published browser assets/source identity for the tooling
 receipt. Remaining CMake handles real linking/generated-input ordering/platform
 selection; future audits should address those responsibilities and reusable JS
 rather than create substitute wrappers for these deleted commands.
+
+Integration/publication follow-up: pull brings c0f6ab4's verified Tower ELF linker
+release (including 23 changed source/config/test files), rebasing this cleanup to
+dd120db. Freeze that revision into /cache/object_rules_integrated_checkout and
+repeat the fresh documented default public-bootstrap native successor in
+/cache/object_rules_integrated_native, with the same test options and no private
+override: 48/48 PASS. Final compiler SHA256
+3578c4a827800d84e6e26c944fbe5f00f0c279d01e4b7caea7c75e4e0a7d503b.
+Build the updated backend/driver/request fixtures: backend API and request PASS;
+memory smoke again passes both interpreter widths, native and actual Wasm.
+Compiler/host/library/tool sources did not change in this integration, so retain
+the core/WASI/browser rule equivalence and threading evidence at its recorded
+pre-integration scope. Preserve the newer published ELF runtime, not an older
+bundle. Upstream JS transport repairs add two lines: current JS186/24368.
+
+The first integrated driver run fails its internal-trap-message assertion. The
+captured stderr identifies the actual cause: Cannot find tool followed by the
+not-yet-built tower-runtime-abi-tests path. TOWER_ALLOCATOR_TESTS enables that
+argument, but building the selected driver targets had not built this required
+fixture. The unchanged baseline driver check passes. Explicitly build the runtime
+ABI target; integrated runtime ABI and driver then pass (33.94s), without changing
+any assertion or executable bytes. Add one conditional add_dependencies edge
+from tower-driver-tests to the existing runtime ABI target. After readers finish,
+copy only this CMake change into the owned snapshot, reconfigure, remove just
+that generated runtime-ABI executable, and build only tower-driver-tests. Ninja
+restores the required executable in one link step; its CTest passes and compiler
+SHA256 remains unchanged. This is a build dependency repair, not a compiler trap.
+
+Final counting correction for that required edge: this batch removes 180 CMake
+lines net, leaving39/1603 (991/2594 lines,38.2%, removed from baseline). The earlier
+181-line figure describes the initial frozen cleanup before this dependency fix.
+Python/owned native remain zero and shell9/230. Latest verified Pages248f24a has
+104 assets, buildSourceCommit06f207edc0b0f90d6becf0d1c90dac002401b653 and the ELF
+release provenance. Preserve all of them when appending this tooling receipt.
