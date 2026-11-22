@@ -47771,3 +47771,15 @@ workers on two physical cores are concurrency stress, not a4core speed claim.
 D1's earlier native/ASan/TSan passes retain their original sources; D2 has not
 yet executed the fixture in the integrated closure. The fixture and generic
 harness remain A2/D1-owned; source integration does not close release acceptance.
+
+During D1's exclusive clean build/focused validation, completed an independent
+mathematical oracle for D2's arithmetic benchmark. Grouping four iterations of
+sum=(sum+i) XOR17 gives low-five-bit state(8k^2-2k) mod32. The four pre-XOR
+residues give a16block/64iteration period with zero aggregate adjustment to the
+triangular sum. Remaining16iterations contribute64, proving49995064 for10000.
+The complete residue/count derivation is in compiler_ecs_audit_d2.md. This closes
+the earlier explicitly differential-only oracle gap without pretending to rerun
+the4540a08/public-pin interpreter/native checks or validate newer compiler code.
+For the separate500000iteration signed-wrapping profile, the same proof gives
+445698544; execution remains unrun. No source logic changed and no runtime
+performance/memory measurement applies to this documentation-only reasoning.

@@ -809,3 +809,38 @@ matches integrated bytes. These are owner-authored tests, not new D2 tool logic;
 D1 maintains their direct-scope audit and generic registration. D2 checked the
 overlap helper preserves reference objects, budget accounting, actual barriers,
 drain ordering and the30s deadline before adopting it. Local runtime is pending.
+
+### Independent arithmetic benchmark oracle
+
+The earlier arithmetic result49995064 was explicitly only differential evidence.
+A subsequent mathematical derivation supplies an independent oracle without
+executing another implementation of the same recurrence. Write s(n) for the
+value after n iterations and r(k)=s(4k) modulo32. XOR17 changes only the low five
+bits. The XOR1 adjustments over four steps are +1,+1,-1,-1; their sum is zero.
+Modulo32 the four XOR16 adjustments also sum to zero, hence
+`r(k) = (8*k*k - 2*k) mod32`. Immediately before each XOR, the four low-five-bit
+values in block k are, modulo32:
+
+`8*k*k+2*k`, `8*k*k+6*k+18`, `8*k*k+10*k+5`, `8*k*k+14*k+23`.
+
+Let h(k) count these four residues which are at least16. The actual integer
+adjustment to the triangular sum in that block is `64-32*h(k)`. For k=0..15,
+the residue counts are:
+
+| k |0|1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| h(k) |2|1|3|0|0|3|1|2|2|3|1|4|4|1|3|2|
+
+The residues repeat every16blocks (64iterations); those16counts sum32, so a
+complete period contributes zero adjustment. Since10000=156*64+16, the final
+four blocks contribute0+32-32+64=64. Thus the independent expected result is
+`10000*9999/2+64 = 49995064`, with no u32 overflow on this input. This agrees
+with all three preserved4540a08/public-pin execution results; it does not create
+a new current-compiler execution receipt.
+
+The same derivation gives the unexecuted profile fixture's expected i32 result:
+500000=7812*64+32, remaining eight blocks contribute128, so
+`(500000*499999/2+128) mod2^32 = 445698544`. This uses Tower's wrapping integer
+contract; the final bit pattern is positive. Runtime confirmation for that
+500000iteration fixture remains pending. This is documentation/independent
+reasoning only, so new runtime performance or memory measurements do not apply.
