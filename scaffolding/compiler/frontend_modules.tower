@@ -24,6 +24,7 @@ import .library.vector;
 extern fn compiler_host_world(): void*;
 extern fn compiler_world_store(world: void*): void*;
 extern fn compiler_world_type(world: void*, kind: u32): void*;
+extern fn compiler_world_component(world: void*, entity: void*, kind: u32): void*;
 extern fn compiler_node_get(node: void*, kind: u32): void*;
 extern fn entity_create(store: void*): void*;
 extern fn syntax_session_open(world: void*, environment: void*, source: u8*, module: FrontendModule*, mode: u32): SyntaxSession*;
@@ -1057,6 +1058,20 @@ export fn frontend_module_record(module: FrontendModule*, root: void*, declarati
 }
 
 export fn frontend_module_finish(module: FrontendModule*): void {
+    // The compatibility grammar baseline also needs Foundation's ordinary
+    // declarations. Explicit imports choose their own prelude; Bedrock remains
+    // independent. Retain the implicit edge on the shared module graph.
+    if !module.explicit && module.roots.length != 0 {
+        var dependency = module_load(module, "foundation", false);
+        if dependency != null {
+            var node = entity_create(compiler_world_store(module.graph.world));
+            var value = bits(SyntaxNode*, compiler_world_component(module.graph.world, node, CompilerSyntax));
+            value.kind = SyntaxImport;
+            module_require(node_text_set(&value.name, "foundation"));
+            module_require(vector_push(&module.dependencies, dependency));
+            module_require(vector_push(&module.imports, node));
+        }
+    }
     module.state = ModuleLoaded;
     module_require(vector_push(&module.graph.order, module));
     module_validate_cycles(module.graph);

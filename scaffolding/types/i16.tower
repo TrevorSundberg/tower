@@ -1,0 +1,3 @@
+import .foundation_syntax;
+import integer;
+var i16: type = signed_integer(16);

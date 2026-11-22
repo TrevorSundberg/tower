@@ -41,11 +41,11 @@ if(TOWER_NATIVE)
   find_package(LLVM REQUIRED CONFIG)
   # Relocatable resources include the generated Tower runtime target artifacts.
   file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/share/tower")
-  foreach(resource IN ITEMS bedrock.tower foundation.tower tower.tower)
+  foreach(resource IN ITEMS bedrock.tower foundation.tower foundation_syntax.tower types.tower tower.tower)
     configure_file("scaffolding/${resource}" "share/tower/${resource}" COPYONLY)
   endforeach()
   file(GLOB builtin_modules CONFIGURE_DEPENDS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding"
-    "scaffolding/library/*.tower" "scaffolding/backend/foreign_grammar.tower")
+    "scaffolding/library/*.tower" "scaffolding/types/*.tower" "scaffolding/backend/foreign_grammar.tower")
   foreach(resource IN LISTS builtin_modules)
     configure_file("scaffolding/${resource}" "share/tower/${resource}" COPYONLY)
   endforeach()

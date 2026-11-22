@@ -1,0 +1,37 @@
+import tower;
+import foundation_tags;
+
+// Private execution representations. Source types select a representation using
+// Foundation constructors; these scalar tags are never a source-level ABI.
+var InvalidTypeScalar: u32 = ~convert(u32, 0);
+
+fn type_integer_scalar(width: u64, signed: bool): u32 {
+    if width == convert(u64, IntegerByteWidth) { return signed ? SI8 : SU8; }
+    if width == convert(u64, IntegerShortWidth) { return signed ? SI16 : SU16; }
+    if width == convert(u64, IntegerWordWidth) { return signed ? SI32 : SU32; }
+    if width == convert(u64, IntegerLongWidth) { return signed ? SI64 : SU64; }
+    return InvalidTypeScalar;
+}
+
+fn type_float_scalar(width: u64): u32 {
+    if width == convert(u64, IntegerWordWidth) { return SF32; }
+    if width == convert(u64, IntegerLongWidth) { return SF64; }
+    return InvalidTypeScalar;
+}
+
+fn type_primitive_spelling(scalar: u32): u8* {
+    if scalar == SI8 { return "integer_type(8, 1)"; }
+    if scalar == SU8 { return "integer_type(8, 0)"; }
+    if scalar == SI16 { return "integer_type(16, 1)"; }
+    if scalar == SU16 { return "integer_type(16, 0)"; }
+    if scalar == SI32 { return "integer_type(32, 1)"; }
+    if scalar == SU32 { return "integer_type(32, 0)"; }
+    if scalar == SI64 { return "integer_type(64, 1)"; }
+    if scalar == SU64 { return "integer_type(64, 0)"; }
+    if scalar == SF32 { return "float_type(32)"; }
+    if scalar == SF64 { return "float_type(64)"; }
+    if scalar == SBool { return "boolean_type()"; }
+    if scalar == SVoid { return "empty_type()"; }
+    if scalar == SUSize { return "address_type()"; }
+    return "";
+}

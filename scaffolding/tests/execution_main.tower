@@ -22,6 +22,7 @@ import named_initialization_checks;
 import struct_value_checks;
 import comptime_aggregate_checks;
 import declaration_attribute_checks;
+import type_binding_checks;
 import known_binding_checks;
 import floating_checks;
 import floating_oracle;
@@ -46,12 +47,13 @@ export fn main(argc: i32, argv: u8**): i32 {
     var functions = strcmp(suite, "functions") == 0;
     var semantics = strcmp(suite, "semantics") == 0;
     var attributes = strcmp(suite, "attributes") == 0;
+    var type_bindings = strcmp(suite, "types") == 0;
     var aggregates = strcmp(suite, "aggregate-stages") == 0;
     var oracle = strcmp(suite, "floating-oracle") == 0;
     var negation = strcmp(suite, "negation") == 0;
     var bodies = strcmp(suite, "body-smoke") == 0;
     var editor = strcmp(suite, "editor") == 0;
-    execution_check(all || known || bodies || editor || floating || oracle || negation || narrow || functions || semantics || attributes || aggregates, "known execution suite");
+    execution_check(all || known || bodies || editor || floating || oracle || negation || narrow || functions || semantics || attributes || aggregates || type_bindings, "known execution suite");
     if all || editor { editor_observation_tests(argv[1]); }
     if editor { return 0; }
     if bodies {
@@ -76,6 +78,8 @@ export fn main(argc: i32, argv: u8**): i32 {
     execution_check(syntax_host_install(compiler_host_world(), request.text[DriverBedrockText].data, false, &result), "install Bedrock" );
     execution_check(syntax_host_install(compiler_host_world(), request.text[DriverFoundationText].data, true, &result), "install Foundation" );
     frontend_modules_configure(request.modules, "named_initialization_input.tower", argv[1]);
+    if all || type_bindings { type_binding_tests(request.modules, argv[1]); }
+    if type_bindings { return 0; }
     if all || attributes { syntax_attribute_tests(); declaration_attribute_tests(request.modules, argv[1]); }
     if attributes { return 0; }
     if all || aggregates { comptime_aggregate_tests(request.modules, argv[1]); }

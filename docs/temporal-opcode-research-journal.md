@@ -41794,3 +41794,77 @@ retains the smallest required selector, using existing fixtures and transports.
 Continue auditing remaining generated build entries and live JS/tooling callers
 for removable steps before translating them. The unrelated full WASI interpreter
 fingerprint failure remains recorded above.
+### 2026-11-22: source-defined standard named types
+
+User authorizes moving every existing standard named type into Tower source and
+using ordinary compile-time execution for their construction. Pull main through
+14ca673 before editing; this includes the latest declaration/body continuations,
+streamed frontend/backend jobs and checked-in Tower composition units. Do not
+modify todo.txt, introduce native/Python implementations or fork another parser
+or evaluator. No named-type migration is claimed complete at this entry.
+
+Implementation boundary: retain explicit primitive execution representations,
+while standard names bind to type values constructed by source. Primitive type
+values have checked, opaque execution representations and canonical constructor
+spellings, never a public numeric type ABI. Type construction must run through
+ordinary interpreter operations and dependency publication before consumers use
+the resulting type. The initial audit covers all thirteen existing named scalar
+types (bool, void, usize, i8/u8, i16/u16, i32/u32, i64/u64, f32/f64) plus the
+metatype boundary. Pointers, arrays, records, enums and function signatures retain
+their shared entity identities; source names must not become lexer keywords.
+
+Start with representation constructors and type values, then source definitions
+and their query scheduling/import activation. Validate an edited type definition
+changing its actual representation, not merely a matching descriptor checked
+against an independently hardcoded type. Bootstrap-compatible implementation
+precedes adoption in compiler/build source; package complete resources and prove
+a clean default successor before publication.
+
+Implementation correction after the initial design trial: do not introduce a
+new opaque metatype execution scalar merely to move standard names. The existing
+type-constructor specialization path can publish transparent module type bindings
+on the same KType nodes and declaration queries. Implemented `var Name: type =
+TypeExpression;`, dedicated definitions for all thirteen scalar names, and
+Foundation imports of the unchanged grammar module plus the type prelude. Removed
+the ambient scalar-name creation loop. Explicit primitive representation
+constructors select the existing integer/floating/boolean/empty/address kernels;
+the standard files, not an independent registry, choose their representations.
+This supersedes the earlier entry's proposed opaque runtime type-value design.
+Arbitrary ordinary functions returning type values and computed type arguments
+are still pending; no separate evaluator was introduced. Existing ordinary
+`comptime` value operations work with these source-selected representations.
+
+Type-name lookup follows unaliased type imports with cycle detection; ordinary
+value imports retain their existing rules. Legacy files without imports acquire
+a retained implicit Foundation import. Explicit grammar-only imports remain free
+of ambient standard names. Canonical Foundation imports foundation_syntax and
+uses explicit constructor spellings, including pointer_type/array_type, preserving
+the representation when a familiar source name is rebound.
+
+Experiments/root causes, Linux Docker tower-c-validation, LLVM 19:
+- A forward alias initially let a checking worker recursively construct the
+  alias while shared nodes were pinned. GDB stopped in sem_node through
+  sem_constant_argument. Added alias producer edges to declaration discovery;
+  construction/interner publication stays on the coordinator, and independent
+  dependency discovery/consumers retain the existing isolated workers.
+- Reusing KType.constant as a binding marker made generic inference mistake
+  type arguments for integer values (`vector_dispose(&g.task_index)` could not
+  infer T). Use KType.global for module type bindings; constant remains a value
+  property. The compiler's semantic_types unit then compiled with the new prelude.
+- Literal primitive parameters do not need template-value interning. Split
+  argument validation from interning so ordinary pinned body workers can consume
+  primitive representations without mutating the shared constant-argument index.
+- A canonical array with a constructor base could not parse as an operand.
+  Added functional pointer/array spellings through the same construction code,
+  rather than widening Foundation into a general expression grammar.
+- Built the bridge against the predecessor Foundation, restored the preserved
+  new import wrapper, then built /cache/source-types-successor with the complete
+  source prelude using /cache/source-types-bridge-fixed/towerc. Both builds pass.
+  The temporary predecessor Foundation swap is restored; no source work was lost.
+- `tower-execution-tests /work/scaffolding types` passes: graph/fast execution,
+  32/64-bit targets, canonical stability, workers 1/2/4/8, alias cycles, malformed
+  representations, enum/array/struct aliases and ordinary staged calls. A tracked
+  virtual replacement of types/i32.tower with a signed 64-bit definition produces
+  size 8 and the value 4294967296, proving the source is authoritative. An explicit
+  grammar-only import rejects an undeclared i32. Full regression and publication
+  validation follow; no bootstrap/deployment success is claimed yet.

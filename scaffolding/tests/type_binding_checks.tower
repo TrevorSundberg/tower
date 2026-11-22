@@ -1,0 +1,72 @@
+import tower;
+import body_runs;
+import frontend_units;
+import execution_support;
+import execution_core;
+import struct_value_checks;
+import .compiler.execution_session;
+import .library.vector;
+
+extern fn frontend_modules_create(): void*;
+extern fn frontend_modules_destroy(environment: void*): void;
+extern fn frontend_modules_configure(environment: void*, entry: u8*, library: u8*): void;
+extern fn frontend_modules_source(environment: void*, path: u8*, source: u8*, length: usize): bool;
+
+fn type_binding_tests(modules: void*, root: u8*): void {
+    var source: vector(u8) = default;
+    var bedrock: vector(u8) = default;
+    var foundation: vector(u8) = default;
+    defer vector_dispose(&source);
+    defer vector_dispose(&bedrock);
+    defer vector_dispose(&foundation);
+    units_read(root, "/tests/type_bindings.tower", &source);
+    units_read(root, "/bedrock.tower", &bedrock);
+    units_read(root, "/foundation.tower", &foundation);
+    for(var width: u32 = 4; width <= 8; width += 4) {
+        var graph: ExecutionSession = default;
+        var fast: ExecutionSession = default;
+        defer execution_session_close(&graph);
+        defer execution_session_close(&fast);
+        execution_compile(&graph, source.data, width, modules);
+        execution_compile(&fast, source.data, width, modules);
+        execution_check(execution_session_start(&graph) && execution_session_fast(&fast), "Source type engines start");
+        execution_run(&graph, 1000, 100000);
+        execution_run(&fast, 1000, 100000);
+        execution_same(&graph, &fast);
+        execution_check(graph.machine.done && graph.error.length == 0 && execution_text(&graph.output, "0\n"), "Source type behavior");
+        execution_roundtrip(&graph, modules, false);
+        var canonical: vector(u8) = default;
+        defer vector_dispose(&canonical);
+        for(var workers: usize = 1; workers <= 8; workers *= 2) {
+            body_runs_trial(source.data, workers, width, bedrock.data, foundation.data, root, &canonical);
+        }
+    }
+    struct_value_reject(modules, "import tower;var A:type=B;var B:type=A;var n:A;", "dependency cycle");
+    struct_value_reject(modules, "import tower;var A:type=integer_type(24,1);", "Unsupported primitive numeric width");
+    struct_value_reject(modules, "import tower;var A:type=integer_type(32,2);", "Integer signedness");
+    struct_value_reject(modules, "import tower;var A:type=integer_type(32);", "Wrong argument count");
+    struct_value_reject(modules, "import foundation_syntax;var n:i32;", "Unknown type 'i32'");
+
+    // Replace the actual source definition through the tracked module input API.
+    // No host registry entry for the spelling i32 may override this declaration.
+    var environment = frontend_modules_create();
+    defer frontend_modules_destroy(environment);
+    frontend_modules_configure(environment, "source_type_change.tower", root);
+    var path: vector(u8) = default;
+    defer vector_dispose(&path);
+    for(var i: usize = 0; i < strlen(root); i++) { execution_check(vector_push(&path, root[i]), "Type source root"); }
+    var suffix = "/types/i32.tower";
+    for(var i: usize = 0; i < strlen(suffix); i++) { execution_check(vector_push(&path, suffix[i]), "Type source path"); }
+    execution_check(vector_push(&path, 0), "Type source path terminator");
+    var replacement = "import .foundation_syntax;var i32:type=integer_type(64,1);";
+    execution_check(frontend_modules_source(environment, path.data, replacement, strlen(replacement)), "Tracked type source replacement");
+    var changed: ExecutionSession = default;
+    defer execution_session_close(&changed);
+    execution_compile(&changed, "import tower;var value:i32=4294967296;print(sizeof(i32));print(value);", 8, environment);
+    execution_check(execution_session_start(&changed), "Changed standard definition starts");
+    execution_run(&changed, 1000, 100000);
+    execution_check(changed.machine.done && changed.error.length == 0 && execution_text(&changed.output, "8\n4294967296\n"),
+        "Source definition determines layout and numeric representation");
+    execution_roundtrip(&changed, environment, false);
+    puts("Source types: definitions, aliases, staging, target layouts, Foundation and workers pass.");
+}

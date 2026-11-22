@@ -433,6 +433,19 @@ Do NOT modify todo.txt
   distribution goals, not separate required bootstrap chains. Preserve host/target
   profiles and validate actual execution before claiming a portable release.
 - Types should become first-class values on the shared entity/component model.
+  Standard scalar names now come from `scaffolding/types/*.tower`, imported by
+  Foundation; do not restore a compiler-side registry of ambient named types.
+  Use module-level `var Name: type = TypeExpression;` for transparent type
+  bindings. Keep primitive representation constructors explicit and shared with
+  the ordinary pointer/array paths. Canonical Foundation must preserve the
+  selected representation even when a source definition changes a familiar name.
+  Type bindings and constructor applications are compile-time declarations;
+  unrestricted computed/runtime type values are not implemented by this step.
+  Evaluate ordinary value computations with the existing interpreter and query
+  graph. Never add a separate constant folder to extend type arguments.
+  Include the complete type prelude and `foundation_syntax.tower` in bootstrap,
+  browser and compiler resources, and validate a changed definition, target
+  layouts, canonical round trips and serial/parallel checking before publication.
   Prioritize dedicated Tower definitions for all standard named types and type
   constructors before fixed vectors/vectorization. Concrete types such as i32
   and f32 should have source modules; pointers, references, structs, arrays,

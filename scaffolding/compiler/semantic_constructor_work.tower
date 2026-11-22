@@ -63,6 +63,9 @@ fn sem_constructor_syntax(c: SemanticContext*, node: void*): bool {
     if (!sem_is(node, "CoreType") && !sem_is(node, "CoreCall")) || sem_member(node, "args") == null { return false; }
     var name_node = sem_member(node, "name");
     var name = sem_identifier(c, name_node);
+    // Foundation representations are primitive operations, not user bodies to
+    // clone. Source constructors that compose them keep normal query receipts.
+    if sem_type_representation_name(name) { return false; }
     return !sem_equal(name, "function") || sem_resolve(c, c.type_functions, name_node, name) != null;
 }
 

@@ -1,0 +1,40 @@
+import tower;
+
+// Bindings are declarations on the same graph, including forward aliases.
+var Word: type = Unsigned;
+var Unsigned: type = integer_type(16, 0);
+var Real: type = float_type(32);
+var Flag: type = boolean_type();
+var Nothing: type = empty_type();
+var Address: type = address_type();
+
+fn identity(value: Word): Word { return value; }
+fn staged(value: Word): Word { return value * 3; }
+
+struct Pair { first: Word; second: Word; }
+var PairAlias: type = Pair;
+var Bytes: type = u8[4];
+enum Choice: Word { First, Second }
+var ChoiceAlias: type = Choice;
+
+fn verify(): i32 {
+    var failures = 0;
+    var value: Word = 65535;
+    value++;
+    if value != 0 || sizeof(Word) != 2 { failures++; }
+    if identity(comptime(staged(7))) != 21 { failures++; }
+    var real: Real = 1.5;
+    if real + real != 3.0 { failures++; }
+    var flag: Flag = true;
+    if !flag || sizeof(Nothing) != 0 { failures++; }
+    if sizeof(Address) != sizeof(void*) { failures++; }
+    var pair: PairAlias = { first: 3, second: 7 };
+    if pair.first + pair.second != 10 || sizeof(PairAlias) != 4 { failures++; }
+    var bytes: Bytes = default;
+    bytes[3] = 7;
+    if sizeof(Bytes) != 4 || bytes[3] != 7 { failures++; }
+    var choice: ChoiceAlias = ChoiceAlias.Second;
+    if choice != Choice.Second { failures++; }
+    return failures;
+}
+print(verify());

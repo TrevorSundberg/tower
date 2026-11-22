@@ -1,0 +1,6 @@
+import .foundation_syntax;
+
+// Signedness is part of the primitive representation contract, not a host
+// promotion rule. Widths are target bits; supported widths are 8, 16, 32 and 64.
+fn signed_integer(width: address_type()): type { return integer_type(width, 1); }
+fn unsigned_integer(width: address_type()): type { return integer_type(width, 0); }

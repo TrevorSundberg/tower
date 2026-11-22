@@ -178,6 +178,10 @@ fn sem_declaration_roots(c: SemanticContext*, result: SemanticDeclaration*, scan
         sem_declaration_scan_push(scan, sem_array_count(subject), false);
         return;
     }
+    if sem_type_binding(c, subject) {
+        sem_declaration_scan_push(scan, sem_member(subject, "value"), true);
+        return;
+    }
     if result.expression {
         sem_declaration_scan_push(scan, subject, false);
         return;
@@ -210,6 +214,10 @@ fn sem_declaration_layout_waiting_except(c: SemanticContext*, record: void*, pro
         var query = sem_declaration_query(c, node);
         if query != 0 && query != producer && work_task(&c.queries, query).state != WorkState.Succeeded { return query; }
         var value = sem_get(node);
+        if value.kind == KType && value.global && value.type.record != null {
+            if !sem_has(pending, value.type.record) { sem_push(pending, value.type.record); }
+            continue;
+        }
         if value.type.scalar == SArray {
             if semantic_aggregate(&value.element) && !sem_has(pending, value.element.record) {
                 sem_push(pending, value.element.record);
@@ -517,6 +525,15 @@ fn sem_declaration_dependencies(c: SemanticContext*, subject: void*, result: Sem
                 continue;
             }
         }
+        if type && (sem_is(node, "CoreType") || sem_is(node, "CoreLocation"))
+            && sem_member(node, "args") == null && sem_member(node, "base") == null {
+            var binding = sem_resolve(c, c.types, node, sem_identifier(c, node));
+            if binding != null && (sem_get(binding).global || semantic_enum(&sem_get(binding).type)) {
+                var input = sem_declaration_query(c, binding);
+                if input != 0 { sem_declaration_input(result, input); }
+                continue;
+            }
+        }
         if sem_is(node, "TowerDefault") || sem_is(node, "TowerInitializer") {
             var annotation = sem_member(node, "type");
             if sem_is(node, "TowerInitializer") {
@@ -581,8 +598,8 @@ fn sem_declaration_dependencies(c: SemanticContext*, subject: void*, result: Sem
                         if dependency == null { dependency = sem_resolve(c, c.globals, name, sem_identifier(c, name)); }
                     }
                 } else {
-                    var nominal = sem_owned(c.types, sem_owner(c, base), sem_identifier(c, base));
-                    if nominal != null && semantic_enum(&sem_get(nominal).type) {
+                    var nominal = sem_resolve(c, c.types, base, sem_identifier(c, base));
+                    if nominal != null && (sem_get(nominal).global || semantic_enum(&sem_get(nominal).type)) {
                         var input = sem_declaration_query(c, nominal);
                         if input != 0 { sem_declaration_input(result, input); }
                         continue;
@@ -855,6 +872,9 @@ fn sem_declaration_worker(c: SemanticContext*, result: SemanticDeclaration*): bo
         return result.constructor.phase == SemanticConstructorPhase.Alias
             && sem_declaration_syntax(c, result.constructor.syntax, &result.nodes, true, true);
     }
+    // Constructor interning is coordinator publication. Consumers still use
+    // the usual declaration-query edges and isolated read-only workers.
+    if sem_type_binding(c, subject) { return false; }
     var record = sem_is(subject, "CoreStruct");
     if !result.array_type && !result.expression && !record && !sem_is(subject, "CoreDeclare") && !sem_is(subject, "CoreParameter") && !sem_function_syntax(subject) { return false; }
     var previous_scope = c.scope;
@@ -1500,6 +1520,7 @@ fn sem_module_initializer_range(c: SemanticContext*, statements: vector(void*)*,
             break;
         }
         end++;
+        if sem_type_binding(c, node) { continue; }
         var value = sem_get(node);
         var source = sem_member(node, "value");
         if source == null || value.value != null { continue; }

@@ -748,6 +748,9 @@ fn sem_run(c: SemanticContext*): void {
         }
     }
     statements.length = count;
+    foreach(var n in statements) {
+        if sem_type_binding(c, n) { sem_type_binding_header(c, n); }
+    }
     i = 0;
     loop {
         if !(i < statements.length && sem_ok(c)) {
@@ -768,7 +771,7 @@ fn sem_run(c: SemanticContext*): void {
             break;
         }
         var n: void* = statements.data[i];
-        if sem_is(n, "CoreDeclare") {
+        if sem_is(n, "CoreDeclare") && !sem_type_binding(c, n) {
             if !sem_shape(c, n, "name") {
                 break;
             }
@@ -803,7 +806,7 @@ fn sem_run(c: SemanticContext*): void {
             break;
         }
         var n: void* = statements.data[i];
-        if sem_is(n, "CoreDeclare") {
+        if sem_is(n, "CoreDeclare") && !sem_type_binding(c, n) {
             if !sem_declaration_type(c, n) {
                 break;
             }
@@ -823,7 +826,7 @@ fn sem_run(c: SemanticContext*): void {
             }
             step59 = !step60;
         }
-        if step59 {
+        if step59 && !sem_type_binding(c, n) {
             if sem_ok(c) && sem_is(n, "CoreDeclare") {
                 if i >= initializers_until { initializers_until = sem_module_initializer_range(c, statements, i); }
                 sem_module_initializer_finish(c, n);

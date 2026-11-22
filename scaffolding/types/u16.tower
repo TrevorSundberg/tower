@@ -1,0 +1,3 @@
+import .foundation_syntax;
+import integer;
+var u16: type = unsigned_integer(16);

@@ -1,4 +1,5 @@
 import tower;
+import type_primitives;
 import semantic_enums;
 import semantic_layout;
 import foundation_tags;
@@ -18,6 +19,59 @@ import .library.work_graph;
 
 // Semantic compiler over shared Foundation components.
 // Temporary indexes and scratch allocations are scoped to one compilation.
+
+// Type bindings have no runtime storage. They reuse declaration dependencies,
+// nominal identities and the existing type-constructor application mechanism.
+fn sem_type_binding(c: SemanticContext*, n: void*): bool {
+    return sem_is(n, "CoreDeclare") && sem_member(n, "type") != null
+        && sem_equal(sem_identifier(c, sem_member(n, "type")), "type");
+}
+
+fn sem_type_binding_header(c: SemanticContext*, n: void*): void {
+    var name = sem_identifier(c, sem_member(n, "name"));
+    var value = sem_node(c, n, KType);
+    value.global = true;
+    value.type.pointer_bytes = c.program.pointer_bytes;
+    sem_set_name(value, sem_output_name(c, n, name));
+    if sem_equal(name, "type") || !sem_define(c, c.types, n, name) {
+        sem_fail(c, n, sem_cat(c, "Duplicate type binding '", sem_cat(c, name, "'")));
+    }
+    sem_push(&c.program.types, n);
+}
+
+fn sem_type_representation_name(name: u8*): bool {
+    return sem_equal(name, "integer_type") || sem_equal(name, "float_type")
+        || sem_equal(name, "boolean_type") || sem_equal(name, "empty_type") || sem_equal(name, "address_type")
+        || sem_equal(name, "pointer_type") || sem_equal(name, "array_type");
+}
+
+fn sem_type_primitive(c: SemanticContext*, n: void*, name: u8*): FoundationType* {
+    var integer = sem_equal(name, "integer_type");
+    var floating = sem_equal(name, "float_type");
+    var boolean = sem_equal(name, "boolean_type");
+    var empty = sem_equal(name, "empty_type");
+    var address = sem_equal(name, "address_type");
+    if !integer && !floating && !boolean && !empty && !address { return null; }
+    var arguments = sem_collect(c, sem_member(n, "args"), sem_is(n, "CoreCall") ? "CoreCallArgument" : "CoreTypeArgument");
+    var arity: usize = integer ? 2 : floating ? 1 : 0;
+    if arguments.length != arity {
+        sem_fail(c, n, "Wrong argument count for primitive type constructor");
+        return sem_type_new(c, SI32, 0, null);
+    }
+    var scalar = boolean ? SBool : empty ? SVoid : SUSize;
+    if integer || floating {
+        var width = sem_constant_value(c, arguments.data[0], null);
+        if !sem_ok(c) { return sem_type_new(c, SI32, 0, null); }
+        if integer {
+            var sign = sem_constant_value(c, arguments.data[1], null);
+            if !sem_ok(c) { return sem_type_new(c, SI32, 0, null); }
+            if sem_get(sign).bits > 1 { sem_fail(c, n, "Integer signedness must be 0 (unsigned) or 1 (signed)"); }
+            scalar = type_integer_scalar(sem_get(width).bits, sem_get(sign).bits != 0);
+        } else { scalar = type_float_scalar(sem_get(width).bits); }
+        if scalar == InvalidTypeScalar { sem_fail(c, n, "Unsupported primitive numeric width"); }
+    }
+    return sem_type_new(c, scalar, 0, null);
+}
 
 fn sem_type_entity(c: SemanticContext*, t: FoundationType*): void* {
     var i: usize = 0;
@@ -82,7 +136,7 @@ fn sem_type_observations_publish(c: SemanticContext*, observations: vector(Seman
 }
 
 // Resolve the ordinary checked value without mutating the shared argument
-// interner. Array query workers need this value, not a generic argument identity.
+// interner. Primitive and array queries need a value, not an argument identity.
 fn sem_constant_value(c: SemanticContext*, n: void*, expected_type: FoundationType*): void* {
     n = sem_surface_unwrap(n);
     loop {
@@ -127,7 +181,7 @@ fn sem_constant_value(c: SemanticContext*, n: void*, expected_type: FoundationTy
 
 fn sem_constant_argument(c: SemanticContext*, n: void*, expected_type: FoundationType*): void* {
     var value = sem_constant_value(c, n, expected_type);
-    if value == null { return null; }
+    if !sem_ok(c) || value == null { return null; }
     var constant = sem_get(value);
     foreach(var existing in &c.constant_arguments) {
         var e: FoundationNode* = sem_get(existing);
@@ -293,6 +347,25 @@ fn sem_type_call(c: SemanticContext*, n: void*): FoundationType* {
     defer { c.defer_type_fields = previous_defer; }
     var step1 = sem_member(n, "name");
     var name: u8* = sem_identifier(c, step1);
+    var primitive = sem_type_primitive(c, n, name);
+    if primitive != null { return primitive; }
+    if sem_equal(name, "pointer_type") || sem_equal(name, "array_type") {
+        var pointer = sem_equal(name, "pointer_type");
+        var args = sem_collect(c, sem_member(n, "args"), sem_is(n, "CoreCall") ? "CoreCallArgument" : "CoreTypeArgument");
+        var arity: usize = pointer ? 1 : 2;
+        if args.length != arity {
+            sem_fail(c, n, "Wrong argument count for type constructor");
+            return sem_type_new(c, SI32, 0, null);
+        }
+        var type = sem_type_copy(c, sem_type(c, args.data[0]));
+        if pointer {
+            type.pointers++;
+            if type.pointers > FoundationPointerDepthLimit { sem_fail(c, n, "Foundation pointer nesting limit is 16"); }
+            return type;
+        }
+        var length = sem_array_length_value(c, n, type, sem_constant_value(c, args.data[1], null));
+        return sem_ok(c) ? sem_array_intern(c, type, length) : type;
+    }
     var definition: void* = sem_resolve(c, c.type_functions, step1, name);
     if definition == null && sem_equal(name, "function") {
         var arguments = sem_collect(c, sem_member(n, "args"), sem_is(n, "CoreCall") ? "CoreCallArgument" : "CoreTypeArgument");
@@ -402,8 +475,6 @@ fn sem_type(c: SemanticContext*, n: void*): FoundationType* {
     return result;
 }
 
-var SemanticArrayLengthLimit: u64 = 1048576;
-
 fn sem_array_count(node: void*): void* {
     return sem_member(node, "count") ?? sem_member(node, "index");
 }
@@ -414,12 +485,16 @@ fn sem_array_syntax(node: void*): bool {
 
 fn sem_array_length(c: SemanticContext*, node: void*, element: FoundationType*): usize {
     var value = sem_constant_value(c, sem_array_count(node), null);
-    if value == null { return 0; }
+    return sem_array_length_value(c, node, element, value);
+}
+
+fn sem_array_length_value(c: SemanticContext*, node: void*, element: FoundationType*, value: void*): usize {
+    if !sem_ok(c) || value == null { return 0; }
     var constant = sem_get(value);
     var length = constant.bits;
     var sign = semantic_mask(&constant.type) / 2 + 1;
     if semantic_signed(&constant.type) && (length & sign) != 0 { length = 0; }
-    if length == 0 || length > SemanticArrayLengthLimit {
+    if length == 0 || length > FoundationArrayLengthLimit {
         sem_fail(c, node, "Array length must be between 1 and 1,048,576");
         return 0;
     }
@@ -436,7 +511,8 @@ fn sem_array_intern(c: SemanticContext*, element: FoundationType*, length: usize
     sem_require(c.entity_stage == null && length != 0);
     foreach(var entry in &c.program.types) {
         var array = sem_get(entry);
-        if array.type.scalar == SArray && semantic_type_equal(&array.element, element) && array.length == length {
+        if array.type.scalar == SArray && array.type.record == entry
+            && semantic_type_equal(&array.element, element) && array.length == length {
             return &array.type;
         }
     }
@@ -526,6 +602,7 @@ fn sem_type_impl(c: SemanticContext*, n: void*): FoundationType* {
         var declaration = sem_resolve(c, c.types, qualified_name, spelling);
         var present = declaration != null;
         if present {
+            sem_declaration_type(c, declaration);
             var value = sem_get(declaration);
             return &value.type;
         }
@@ -546,7 +623,7 @@ fn sem_type_impl(c: SemanticContext*, n: void*): FoundationType* {
             return t;
         }
         t.pointers++;
-        if t.pointers > 16 {
+        if t.pointers > FoundationPointerDepthLimit {
             sem_fail(c, n, "Foundation pointer nesting limit is 16");
         }
         return t;
@@ -590,6 +667,7 @@ fn sem_type_impl(c: SemanticContext*, n: void*): FoundationType* {
         sem_fail(c, n, step90);
         return invalid;
     }
+    sem_declaration_type(c, found);
     var step91 = sem_get(found);
     return &step91.type;
 }
@@ -789,7 +867,8 @@ fn sem_lookup(c: SemanticContext*, n: void*): void* {
 fn sem_declaration_type(c: SemanticContext*, n: void*): bool {
     var value: FoundationNode* = sem_get(n);
     var state = sem_declaration_state(c, n);
-    var step4 = value.kind != KDeclare && value.kind != KParameter;
+    var alias = value.kind == KType && value.global;
+    var step4 = value.kind != KDeclare && value.kind != KParameter && !alias;
     if !step4 {
         var step6 = state.number == 2;
         step4 = step6;
@@ -822,7 +901,11 @@ fn sem_declaration_type(c: SemanticContext*, n: void*): bool {
         sem_fail(c, n, step24);
         return false;
     }
-    var annotation: void* = sem_member(n, "type");
+    var annotation: void* = sem_member(n, alias ? "value" : "type");
+    if alias && annotation == null {
+        sem_fail(c, n, "A type binding requires an initializer");
+        return false;
+    }
     if annotation != null {
         state.number = 1;
         sem_push(&c.inferring, n);
@@ -859,11 +942,15 @@ fn sem_declaration_type(c: SemanticContext*, n: void*): bool {
         var step43 = value.type.scalar == SVoid;
         step42 = step43;
     }
-    if step42 {
+    if step42 && !alias {
         sem_fail(c, n, value.kind == KParameter ? "Invalid or duplicate function parameter" : "A variable cannot have void type");
     }
     if !sem_ok(c) {
         return false;
+    }
+    if alias && !semantic_aggregate(&value.type) {
+        value.size = semantic_size(&value.type);
+        value.alignment = semantic_alignment(&value.type);
     }
     state.number = 2;
     return true;

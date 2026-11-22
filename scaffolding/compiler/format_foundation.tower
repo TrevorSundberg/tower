@@ -1,4 +1,5 @@
 import tower;
+import type_primitives;
 import format_grammar;
 import format_types;
 import format;
@@ -185,11 +186,6 @@ fn format_operator(n: FoundationNode*): u8* {
     return semantic_operator(n.op);
 }
 
-fn format_scalar_name(t: FoundationType*, output: vector(u8)*): bool {
-    var name = semantic_scalar_name(t.scalar);
-    return bytes_assign_text(output, name, syntax_text_length(name));
-}
-
 fn format_array(t: FoundationType*): bool {
     var selected = t.scalar == SArray;
     return selected;
@@ -267,6 +263,14 @@ fn format_semantic_name(f: FormatEngine*, entity: void*, fallback: vector(u8)*):
 }
 
 fn format_type(f: FormatEngine*, t: FoundationType*): void {
+    if !f.source_names && t.pointers != 0 {
+        format_text(f, "pointer_type(");
+        var base = *t;
+        base.pointers--;
+        format_type(f, &base);
+        format_text(f, ")");
+        return;
+    }
     if t.scalar == SFunction {
         var signature = format_foundation(f, t.record);
         format_text(f, "function(");
@@ -281,22 +285,17 @@ fn format_type(f: FormatEngine*, t: FoundationType*): void {
     }
     if format_array(t) {
         var a = format_foundation(f, t.record);
+        if !f.source_names { format_text(f, "array_type("); }
         format_type(f, &a.element);
-        format_text(f, "[");
+        format_text(f, f.source_names ? "[" : ", ");
         format_unsigned(f, convert(u64, a.length));
-        format_text(f, "]");
+        format_text(f, f.source_names ? "]" : ")");
     } else {
         if format_record(t) {
             var record = format_foundation(f, t.record);
             format_semantic_name(f, t.record, &record.name);
         } else {
-            var view: vector(u8);
-            vector_init(&view);
-            if !format_scalar_name(t, &view) {
-                f.result.failed = true;
-            }
-            format_identifier(f, &view);
-            vector_dispose(&view);
+            format_text(f, f.source_names ? semantic_scalar_name(t.scalar) : type_primitive_spelling(t.scalar));
         }
     }
     format_repeat(f, 42, convert(usize, t.pointers));
@@ -685,6 +684,14 @@ fn format_statement_body(f: FormatEngine*, entity: void*): void {
         return;
     }
     if format_is_Type(n) {
+        if n.global {
+            format_text(f, "var ");
+            format_identifier(f, &n.name);
+            format_text(f, ": type = ");
+            format_type(f, &n.type);
+            format_text(f, ";");
+            return;
+        }
         if semantic_enum(&n.type) {
             format_text(f, "enum ");
             format_identifier(f, &n.name);
@@ -767,6 +774,7 @@ fn format_node(f: FormatEngine*, entity: void*): void {
     }
     var n = format_foundation(f, entity);
     if format_is_Program(n) {
+        if !f.source_names { format_text(f, "import foundation_syntax;\n\n"); }
         format_node_comments(f, n);
         var previous = false;
         var i: usize = 0;

@@ -119,8 +119,33 @@ Foundation imports these standard definitions. Bedrock remains the grammar and
 bootstrap layer and must not import the i32/f32/standard-type prelude. Tower
 builds richer syntax above Foundation. The compiler's own implementation using
 integers does not make integers part of the Bedrock source-language prelude.
-Exact module paths/import activation are implementation work, not an assertion
-that the current bootstrap loader already supports this split.
+Implemented 2026-11-22: Foundation imports `foundation_syntax.tower` (the unchanged
+instruction-like grammar) and `types.tower`, which imports dedicated definitions
+under `types/` for all thirteen standard scalar names. The compiler no longer
+creates those names in `semantic_initialize`. Module-level bindings such as
+`var Word: type = integer_type(16, 0);` resolve through ordinary type lookup and
+declaration dependencies. Integer modules instantiate shared signed/unsigned
+type constructors; `usize` selects the explicit target's address representation.
+Bedrock does not import this prelude.
+
+Primitive `integer_type`, `float_type`, `boolean_type`, `empty_type` and
+`address_type` applications select the existing execution representations.
+`pointer_type` and `array_type` share construction with the surface `T*`/`T[N]`
+forms. These are explicit Foundation boundaries, not public numeric type IDs.
+Canonical Foundation imports the grammar-only module and spells representations
+explicitly, including source type declarations, so changing the definition of
+`i32` cannot silently reinterpret an already compiled graph.
+
+Scope of this step: transparent module type bindings, existing type constructors,
+source-selected primitive representations, and their normal runtime/compile-time
+value operations. Constructor integer arguments still use literal or bound
+template values. Arbitrary function execution returning type values, computed
+type arguments, local mutable metatype storage, reflected operation attributes
+and source-selectable literal-default policies remain work below. Existing
+numeric literal defaults remain the execution profile's signed 32-bit / binary64
+defaults; redefining a name does not redefine the literal policy. There is no new
+constant evaluator. Ordinary `comptime` calls with the source-defined types use
+the existing interpreter and dependency graph.
 
 - [ ] Audit every built-in tag/name/layout/operation special case, including
   bool, void, integer/float widths, target-sized integers, pointer/reference
@@ -141,6 +166,8 @@ that the current bootstrap loader already supports this split.
   Struct declarations and pointer/array/function syntax invoke these same type
   constructors. Reference policy remains explicit; this does not imply ownership
   or safety semantics that are not implemented today.
+  The named scalar module portion is implemented above; a fully reflected common
+  operation protocol and arbitrary type-producing execution are still pending.
 - [ ] Migrate checking, literals/default inference, interpreter/staging, formatter
   and LLVM/other target implementations incrementally to the protocol. Keep one
   authoritative graph with compilable Foundation spellings; derived fast paths

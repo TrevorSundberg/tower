@@ -15,7 +15,7 @@ fn sem_enum_header(c: SemanticContext*, n: void*): void {
         valid = false;
     }
     if !valid {
-        sem_fail(c, n, "An enum representation must be a built-in integer type");
+        sem_fail(c, n, "An enum representation must be a primitive integer type");
         return;
     }
     sem_type_header(c, n, "");
@@ -133,7 +133,7 @@ fn sem_enum_operand(c: SemanticContext*, n: void*): bool {
     }
     var member_name = sem_identifier(c, field);
     // Reuse the per-definition derived member index; payloads remain on entities.
-    var state = sem_state(c, c.fields_done, definition);
+    var state = sem_state(c, c.fields_done, type.type.record);
     var names = bits(SemanticTable*, state.value);
     var member = sem_lookup_table(names, member_name);
     if member == null {
