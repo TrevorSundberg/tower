@@ -47055,3 +47055,29 @@ foreigntoolchecks). D2 requests exact owner source/hash snapshots for substantiv
 review, without taking implementation ownership or assigning audit credit from
 filenames. Existing98tracked plus6incoming reviewed paths remain distinct from
 full integrated coverage. No publication lease or acceptance closure exists yet.
+
+Resume boundary independently verified: D2 backend log/time finalized20:39:13UTC;
+kernel journal suspend20:42:51UTC/resume20:56:19UTC. Same CLI2688165 survives,
+container init/sleep only. No owned D2 benchmark crossed suspension, so the
+completed raw134failure/timing remains valid; no automatic restart or rerun.
+Initial journal query omitted UTC and matched nothing; corrected explicitUTC
+query produced raw boundary saved build/d2_ecs/resume_boundary.log.
+
+All10new measurement/tool-check bodies were supplied and read in full. Every SHA
+matches audit_source_snapshots/receipt.json verified21:00:19UTC. The D2 audit now
+has98tracked plus16incoming draft source receipts, explicitly distinct from
+integrated/runtime coverage. Exact owner HEAD+dirty/untracked hashes, world and
+cleanup contracts, serial failure-injection versus threaded coverage, timing
+boundaries, memory metrics and reference limits are recorded per path. Concrete
+source caveats: B1 observer compares aggregate live-page counts despite a per-page
+comment (D1 oracle has actual per-page census); locality copy timing excludes
+allocation/query setup; LR switch deltas include untimed validation/destruction;
+B2 charged snapshot bytes/ELF envelopes are not total heap/full object correctness.
+No source files applied or new runtime tests run during these reviews.
+
+L2prelude resource handoff c8c9eadb also reviewed:14helper deletions, consolidated
+ordinary types.tower, native/browser/compiler-project enumeration changes only.
+Preserve D2/A1 build hunks and complete old public resources. Future copied-resource
+provenance must compare against original build-source, not new main definitions.
+Clean public-bootstrap, source-bound override and full successor pin remain open.
+These audit/documentation changes have no runtime performance effect.

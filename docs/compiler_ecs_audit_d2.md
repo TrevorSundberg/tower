@@ -633,3 +633,47 @@ owner source delivery: A2`tests/entity_locality.tower`, `layout_frontier_profile
 `module_cache_profile.tower`, `foreign_tool_checks.tower`. These names receive no
 substantive-review credit yet. Their authors and D1 retain implementation/harness
 ownership; D2 will review actual measurement/caller contracts at supplied hashes.
+
+### Ten additional owner snapshots reviewed
+
+The ten pending bodies above were delivered and read in full. Receipt
+`audit_source_snapshots/receipt.json` was verified2026-11-22T21:00:19Z. A2's
+clone HEAD is`04a877813fc4859f5f77e77524f74d1d1a54f3d8`; B1/B2 HEAD is
+`60741c515b3ca40b3b39aed61fb38a82694ae9ea`. These HEADs identify working-tree
+provenance, **not** committed content: exact dirty/untracked bytes are identified
+below, and every local SHA matches the supplied owner receipt. No bodies were
+applied to D2 or executed here. Coverage is98locally tracked paths plus16incoming
+draft source reviews, not114integrated passing files.
+
+| Path / exact SHA-256 | Ownership, world/storage/scheduling and measurement disposition |
+| --- | --- |
+| `scaffolding/tests/entity_locality.tower` — `dbdab851e48685ebc21b425cca2069aeadf2c9251beb56ca6af836469af109c7` | A2. One explicit entity store/kind owns stable paged32-byte payloads. Owner lookup, component query, table-column pointers and a read-only packed snapshot check the same algebraic sum. Views close before removal; surviving addresses remain unchanged, one live component pins each original page, all owners/kind/store then release. This directly exposes payload indirection and fragmentation, rather than equating archetype columns with packed payloads. Snapshot copy time excludes its allocation and query/view setup; steady scans exclude construction. Linux/glibc malloc_usable_size measures those page allocations, not all store/RSS bytes. No thread scaling claim. |
+| `scaffolding/tests/layout_frontier_profile.tower` — `46bdbdee47458b658f10627e614c973da0e464b7fa8c887335442f96952a4d26` | A2. Real world-owned semantic records/fields feed the existing layout dependency pump; independent/chained frontiers have algebraically checked sizes/ordered offsets. Shared synchronized budget includes the caller reservation; context/workers drain before program/world disposal and grant release. No second scheduler or layout evaluator. Timed pump excludes graph construction and checking; pool peak is admitted slots, explicitly not overlap. Byte budget0 does not supply a retained-memory bound. Fixed1/2/4/8worker profiles require host budgeting. |
+| `scaffolding/tests/work_budget_allocation.tower` — `fe6f08420e7937439e90bad7fc8e03c407ea76a09b0d1d4e8f3d9d425352a8cd` | A2. Explicit serial transport guards global allocation-failure counters. Local ledger/receipt array checks empty grants, first/growing allocation rollback, unchanged inactive output, exact pointer/generation/accounting preservation, allocation-free slot reuse, stale-copy rejection and final baseline restoration over16trials. Original live grants remain releasable. This is allocator/receipt ownership coverage, not threaded sanitizer evidence or a throughput benchmark. |
+| `scaffolding/tests/lr_state_benchmark.tower` — `7f6df821ee1e75bacc2c25b50c5c7eeab51978ca52fafca7f66980b88f4feff3` | B1. Owned grammar arrays/analysis and serial reference remain frozen while explicit world/anchor drives shared LR construction. Every ordered item/range/origin/transition is compared, then results destroyed; retained entity/component counts must recover and world drain succeeds. Three warmups/15samples, repeated small/chain work, bounded cases/worker admission. Wall and process-CPU timers cover construction only; switch deltas also include untimed equality/destruction. RSS is process high-water including reference/setup. Equality is differential against shared serial implementation, not an independent grammar algorithm; worker count alone proves no overlap. |
+| `scaffolding/tests/parser_retention_observer.tower` — `6fade0fafde84305791bce383416e326be28c2cc600fbc7bc749fb9442f0b02c` | B1. Quiescent joined-world observer deduplicates pages through owner components; private vector closes before return, counter captured before observer allocations. Overflow-checked requested-page/live-payload bytes use actual layouts; large individual allocations are excluded. It checks aggregate pooled references equal summed page.live, not a separate observed-owner count for each page despite its stronger comment. D1's oracle adds that per-page census. Same-owner comparison covers totals/cache count/nonpage buffers, not cache pointer identity. This helper is measurement evidence, not independent proof of every page's ownership or total heap. |
+| `scaffolding/tests/frontend_units_profile.tower` — `2e4b84e4bb341ef3aeaddb205aea5b91e962207762c57e08921bc5e061e63b50` | B2. Frozen source/grammar buffers and unique per-ordinal observer spans outlive owned frontend/backend batches; reverse cleanup closes backend before frontend, spans and inputs. Ordinary generated bodies include decltype/comptime and a skewed final unit; no alternate compiler. Timed interval covers batch creation/snapshot/compile, excludes answer42 interpretation and canonical formatting/hash. Reports real event intervals/thread IDs and ledger/source/object bytes, distinct from total RSS; outer span sums omit nested idle/critical-path detail. Optional backend checks ELF envelope only; object equality/execution needs separate tests. Adjacent spans may share cache lines; no measured false-sharing claim. |
+| `scaffolding/tests/frontend_units_memory.tower` — `008ca9d7c17074d9cde97ae12905cc0afd3a5c5c60ab547ad1973b5cf6c5e37a` | B2. Explicit worlds/module environments/program roots and ordinary interpreter validate source-length boundaries, embedded-NUL offsets, exact snapshot caps, overflow rejection and rollback/commit receipt accounting. Denied replacement preserves the prior compilable input; successful replacement excludes an invalid suffix and releases only the old grant. Program/root/environment/world cleanup order is explicit. Budget bytes describe charged snapshots, not all compiler allocations/RSS. Malformed inputs remain bounded valid API tests, not deliberate invalid-memory probes. |
+| `scaffolding/tests/frontend_units_allocation.tower` — `28e3e4a001fa7237a6e5c5fa8427b6582dbb80d602203c535aaf52281d276cb7` | B2. Serial fault injector is asserted. A primed ledger slot isolates first/second snapshot-allocation failure from ledger growth; failed replacements preserve buffers/receipts and the previous valid source still compiles. Batch closes before exact baseline count, borrowed grammar vectors close afterward. Exports a root helper for D1's existing generic runner, without an alternate main/scheduler. No concurrent sanitizer coverage follows from these counters. |
+| `scaffolding/tests/module_cache_profile.tower` — `0930654a30c0845e3ca804827257385d6dabcbc1c7767985350df780471f1148` | B2. Explicit world/environment owns copied diamond-module sources; serial publication order is intentional. Each parse releases accepted entities and destroys its module wrapper, verifies unique module count; shared-leaf grammar replacement must reject the old terminal and accept the new terminal. Environment/world caches clear and dispose. Four samples distinguish first use from warm cache; timed parse includes finish/wrapper destruction. Counts/RSS are observations, not a stable-buffer oracle; world4workers alone proves no useful concurrency. Linux x64 ABI is checked. |
+| `scaffolding/tests/foreign_tool_checks.tower` — `1ac2930becdca1e7d88ad7b1a2265e0e8609c982011112b92391dd566e4fb5d1` | B2. Local input/output/wrap buffers test plain/quoted/comment/backtick and mangled-wrap allocation failures, requiring rejection, unchanged input and baseline restoration. Successful wrapper bytes/flags are checked exactly. Existing runtime binder selects the exported check entry because imported foreign_tool owns main; no native shim or duplicate recipe. Serial allocator link is an explicit caller requirement, not concurrent instrumentation. This is the owner's regression for D2's earlier foreign-output OOM hypothesis; production-fix validation and local execution remain separate receipts. |
+
+Source-review findings were routed to owners: qualify the B1 observer's per-page
+ownership claim; distinguish locality snapshot copy from allocation/query setup;
+keep LR switch counters separate from construction-only timers; retain B2 ledger
+and object-envelope coverage limits. No speculative production edit or performance
+claim was made from source inspection.
+
+### Prelude/resource handoff review
+
+L2's exact`c8c9eadb518f9ff96edd9b4a63bd1c15f106492fdc67e4e7ac4693164c8a9fc6`
+resource patch consolidates primitive definitions in types.tower, removes14helper
+files and adjusts native/browser/compiler-project enumeration. D2 reviewed its
+resource/caller scope; own worker-budget/sanitizer settings and A1 object maps
+must survive integration. The checked-in public predecessor package and all its
+adjacent resources remain untouched and complete. After integration, provenance
+comparison must use that package's original build-source tree, not falsely require
+old copied resources to equal a newly consolidated main prelude. New clean public
+build, source-bound i32 override checks, resource hashes and successor pin remain
+separate gates. This review neither applies a partial type/ABI closure nor validates
+pending constructor/nominal/function-signature fixes.
