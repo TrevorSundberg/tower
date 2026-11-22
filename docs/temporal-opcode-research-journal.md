@@ -45526,3 +45526,18 @@ Pages86a63a30 supplies the current increment provenance104a27b9, superseding the
 pre-rebase4da1e44 reference above without changing its verified example bytes.
 Preserve all existing publication receipts while replacing the runtime assets.
 No additional compiler rebuild is needed for these fixture/documentation changes.
+
+Published runtime Pages f4dfcf2da0d952703b6da66e9017c08682125dea is verified.
+Workflow45050196165 succeeds; it supersedes the canceled duplicate deployment
+45050141482 of the same commit. Hosted verification matches all104assets and
+passes the complete desktop/mobile execution, native download, editing, persistence,
+completion and target-selection checks (build/hosted_final_deployment.log).
+That verified runtime manifest SHA-256 is
+3464ca111e3ac087dd6626a77cab27a693625381b10a6111a7e32a62aa88b53f.
+The final receipt changes publication metadata only, preserving the exact runtime
+assets, frozen8c51600f build identity, completec59e8bab bootstrap and prior receipts.
+Production LLD removal is complete for the canonical Linux/Docker build and browser
+compiler. Independent LLD comparisons, LLVM object emission, OS/SDK runtime inputs
+and explicitly requested external toolchain routes remain; these are not claims
+of a complete general-purpose replacement for every LLD option. todo.txt remains
+unchanged; no sanitizer or broad formatter was run.
