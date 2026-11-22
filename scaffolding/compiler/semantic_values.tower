@@ -283,6 +283,14 @@ fn sem_operand_leaf(c: SemanticContext*, n: void*, expected_type: FoundationType
         }
         n = sem_child(n, 0);
     }
+    var argument = generic_lookup(c.generics, n, n);
+    if argument != null && sem_get(argument).constant {
+        var value = sem_node(c, n, KOperand);
+        value.type = sem_get(argument).type;
+        value.bits = sem_get(argument).bits;
+        value.constant = true;
+        return sem_surface_expected(c, n, expected_type);
+    }
     var step11 = sem_is(n, "CoreCall") || sem_is(n, "TowerInvoke");
     if sem_editor_contains(c, n) {
         if c.editor.has_expected {

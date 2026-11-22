@@ -70,6 +70,12 @@ fn ix_strict_node(m: IMExecution*, n: FoundationNode*, offset: usize): bool {
     if !ix_strict(m) {
         return true;
     }
+    // Early type arguments run before ordinary function bodies are available.
+    // Reject only an executed call; lowering already preserves lazy branches.
+    if m.context.type_arguments && n.kind == KCall {
+        ix_fail(m, "Function calls in type arguments require staged body scheduling", offset);
+        return false;
+    }
     if n.kind == KBits || n.kind == KConvert {
         var source = im_cached_node(m.state, n.value);
         var function = source.type.pointers == 0 && source.type.scalar == SFunction

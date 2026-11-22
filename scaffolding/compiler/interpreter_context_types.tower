@@ -18,6 +18,7 @@ struct IMContext {
     dependency_kind: void*;
     value_inputs: void*;
     require_relocatable: bool;
+    type_arguments: bool;
     waiting: void*;
     retain_result_storage: bool;
 }

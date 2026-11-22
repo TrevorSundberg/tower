@@ -138,9 +138,11 @@ explicitly, including source type declarations, so changing the definition of
 
 Scope of this step: transparent module type bindings, existing type constructors,
 source-selected primitive representations, and their normal runtime/compile-time
-value operations. Constructor integer arguments still use literal or bound
-template values. Arbitrary function execution returning type values, computed
-type arguments, local mutable metatype storage, reflected operation attributes
+value operations. Closed integer expressions and arithmetic over bound numeric
+type parameters now use ordinary interpreter queries in constructor arguments
+and array extents; see [computed type arguments](computed-type-arguments.md).
+Ordinary binding captures and helper-call results during type construction,
+arbitrary function execution returning type values, local mutable metatype storage, reflected operation attributes
 and source-selectable literal-default policies remain work below. Existing
 numeric literal defaults remain the execution profile's signed 32-bit / binary64
 defaults; redefining a name does not redefine the literal policy. There is no new

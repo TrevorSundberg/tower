@@ -5,21 +5,27 @@ import semantic_modules;
 import semantic_support;
 import semantic_types;
 import semantic_values;
+import type_primitives;
 
 // Enum declarations/members are the original shared parse entities enriched
 // with Foundation type/constant components. No copied semantic representation.
 fn sem_enum_header(c: SemanticContext*, n: void*): void {
+    sem_type_header(c, n, "");
+    if !sem_ok(c) { return; }
+    // Publish nominal identity first. Consumers depend on the declaration
+    // query before reading its representation, including computed widths.
+    sem_get(n).type.scalar = InvalidTypeScalar;
+}
+
+fn sem_enum_representation(c: SemanticContext*, n: void*): void {
     var representation = sem_type(c, sem_member(n, "type"));
+    if !sem_ok(c) { return; }
     var valid = semantic_integer(representation);
     if semantic_enum(representation) {
         valid = false;
     }
     if !valid {
         sem_fail(c, n, "An enum representation must be a primitive integer type");
-        return;
-    }
-    sem_type_header(c, n, "");
-    if !sem_ok(c) {
         return;
     }
     var value = sem_get(n);
@@ -32,6 +38,8 @@ fn sem_enum_fields(c: SemanticContext*, n: void*): void {
     if state.number != 0 {
         return;
     }
+    sem_enum_representation(c, n);
+    if !sem_ok(c) { return; }
     state.number = 1;
     var type = sem_get(n);
     var members = sem_collect(c, sem_member(n, "fields"), "CoreEnumMember");

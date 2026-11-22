@@ -12,6 +12,7 @@ import semantic_values;
 import semantic_expressions;
 import semantic_declarations;
 import semantic_constructor_work;
+import semantic_type_values;
 import semantic_work_ids;
 import semantic_control;
 import .library.vector;
@@ -20,6 +21,8 @@ import .library.work_graph;
 // Semantic compiler over shared Foundation components.
 // Temporary indexes and scratch allocations are scoped to one compilation.
 var ArrayTypeConstructorArity: usize = 2;
+var IntegerTypeConstructorArity: usize = 2;
+var FloatTypeConstructorArity: usize = 1;
 
 // Type bindings have no runtime storage. They reuse declaration dependencies,
 // nominal identities and the existing type-constructor application mechanism.
@@ -55,7 +58,7 @@ fn sem_type_primitive(c: SemanticContext*, n: void*, name: u8*): FoundationType*
     var address = sem_equal(name, "address_type");
     if !integer && !floating && !boolean && !empty && !address { return null; }
     var arguments = sem_collect(c, sem_member(n, "args"), sem_is(n, "CoreCall") ? "CoreCallArgument" : "CoreTypeArgument");
-    var arity: usize = integer ? 2 : floating ? 1 : 0;
+    var arity: usize = integer ? IntegerTypeConstructorArity : floating ? FloatTypeConstructorArity : 0;
     if arguments.length != arity {
         sem_fail(c, n, "Wrong argument count for primitive type constructor");
         return sem_type_new(c, SI32, 0, null);
@@ -144,6 +147,7 @@ fn sem_type_observations_publish(c: SemanticContext*, observations: vector(Seman
 // Resolve the ordinary checked value without mutating the shared argument
 // interner. Primitive and array queries need a value, not an argument identity.
 fn sem_constant_value(c: SemanticContext*, n: void*, expected_type: FoundationType*): void* {
+    var prepared = sem_type_value_prepared(c, n);
     n = sem_surface_unwrap(n);
     loop {
         var step9 =(sem_is(n, "CoreTypeArgument") || sem_is(n, "CoreCallArgument") || sem_is(n, "CoreOperand") || sem_is(n, "CoreArrayCount")) && sem_child_count(n) == 1;
@@ -152,7 +156,7 @@ fn sem_constant_value(c: SemanticContext*, n: void*, expected_type: FoundationTy
         }
         n = sem_child(n, 0);
     }
-    var value: void* = generic_lookup(c.generics, n, n);
+    var value: void* = prepared ?? generic_lookup(c.generics, n, n);
     if value == null {
         var text: u8* = sem_tokens(c, n);
         if text[0] == 0 || text[0] != 45 &&(text[0] < 48 || text[0] > 57) {

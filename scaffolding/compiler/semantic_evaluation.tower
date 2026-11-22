@@ -40,6 +40,7 @@ struct SemanticEvaluation {
     requested: bool;
     started: bool;
     inferred: bool;
+    type_argument: bool;
     aliases: vector(SemanticEvaluationAlias);
     leaves: vector(SemanticEvaluationLeaf);
     aggregate_type: FoundationType;
@@ -126,6 +127,13 @@ fn sem_comptime(c: SemanticContext*, n: void*, expected_type: FoundationType*): 
     var expression = sem_operand(c, sem_member(n, "value"), expected_type);
     c.evaluation_depth--;
     if !sem_ok(c) || expression == null { return n; }
+    return sem_evaluation_expression(c, n, expression, c.integer_arguments ? null : c.current,
+        !c.integer_arguments && c.evaluation_depth == 0);
+}
+
+// Explicit stages and required integer arguments share execution and result
+// materialization. Callers own readiness; a type argument has no runtime frame.
+fn sem_evaluation_expression(c: SemanticContext*, n: void*, expression: void*, owner: void*, requested: bool): void* {
     var input = sem_get(expression);
     var value = sem_node(c, n, KOperand);
     sem_set_type(&value.type, &input.type);
@@ -152,10 +160,11 @@ fn sem_comptime(c: SemanticContext*, n: void*, expected_type: FoundationType*): 
     sem_require(result != null);
     fill(result, 0, sizeof(SemanticEvaluation));
     result.subject = n;
-    result.owner = c.current;
+    result.owner = owner;
     result.literal = literal;
     result.expression = expression;
-    result.requested = c.evaluation_depth == 0;
+    result.requested = requested;
+    result.type_argument = c.integer_arguments;
     result.ready = bits(IMDependency*, entity_component_data(entity_component_add(n, c.evaluation_ready)));
     sem_require(result.ready != null);
     fill(result.ready, 0, sizeof(IMDependency));
@@ -238,6 +247,7 @@ fn sem_evaluation_start(c: SemanticContext*, result: SemanticEvaluation*): void 
     result.invocation.context.dependency_kind = c.evaluation_ready;
     result.invocation.context.value_inputs = c.value_inputs;
     result.invocation.context.require_relocatable = result.inferred;
+    result.invocation.context.type_arguments = result.type_argument;
     result.invocation.context.retain_result_storage = result.aggregate;
     result.started = true;
 }
@@ -271,6 +281,12 @@ fn sem_evaluations(c: SemanticContext*): void {
 // One bounded interpreter frontier. Keep final cycle/error selection separate
 // so a pipeline coordinator can service a waiting type/body/lowering phase.
 fn sem_evaluation_pump(c: SemanticContext*): SemanticPumpResult {
+    return sem_evaluation_pump_inputs(c, true);
+}
+
+// Early type consumers demand their own stages. Preserve unrelated explicit
+// roots until their ordinary body/proof/lowering prerequisites have published.
+fn sem_evaluation_pump_inputs(c: SemanticContext*, demand_roots: bool): SemanticPumpResult {
     if !sem_ok(c) || !work_ok(&c.queries) { return SemanticPumpResult.Failed; }
     if c.evaluation_jobs.length == 0 { return SemanticPumpResult.Complete; }
     sem_evaluation_work_register(c, false);
@@ -278,7 +294,7 @@ fn sem_evaluation_pump(c: SemanticContext*): SemanticPumpResult {
     var index: usize = 0;
     while index < c.evaluation_jobs.length && sem_ok(c) {
         var result = bits(SemanticEvaluation*, c.evaluation_jobs.data[index]);
-        if result.requested {
+        if demand_roots && result.requested {
             sem_require(work_demand(&c.queries, work_request(&c.queries, result.subject, EvaluationQuery, 0)));
         }
         index++;

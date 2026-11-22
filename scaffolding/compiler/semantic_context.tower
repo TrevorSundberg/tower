@@ -100,6 +100,7 @@ struct SemanticEditor {
 }
 
 struct SemanticContext {
+    integer_arguments: bool;
     editor: SemanticEditor*;
     type_uses: void*;
     type_observations: vector(SemanticTypeObservation)*;

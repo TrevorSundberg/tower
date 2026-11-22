@@ -66,7 +66,7 @@ fn sem_type_query_syntax(c: SemanticContext*, node: void*): bool {
     var name = sem_identifier(c, name_node);
     // Array construction has its own element/count query and coordinated
     // interning. Other Foundation representations need no user body to clone.
-    if sem_equal(name, "array_type") { return true; }
+    if sem_equal(name, "array_type") || sem_equal(name, "integer_type") || sem_equal(name, "float_type") { return true; }
     if sem_type_representation_name(name) { return false; }
     return !sem_equal(name, "function") || sem_resolve(c, c.type_functions, name_node, name) != null;
 }
@@ -99,7 +99,7 @@ fn sem_constructor_roots(c: SemanticContext*, result: SemanticDeclaration*, scan
     for(var i: usize = 0; i < args.length; i++) {
         var type = generic_type_parameter(c.generics, definition, i);
         if !type { sem_declaration_scan_push(scan, sem_member(parameters.data[i], "type"), true); }
-        sem_declaration_scan_push(scan, args.data[i], type);
+        if type { sem_declaration_scan_push(scan, args.data[i], true); }
     }
 }
 
@@ -132,6 +132,13 @@ fn sem_constructor_instance(c: SemanticContext*, call: SemanticDeclaration*): Se
 fn sem_constructor_step(c: SemanticContext*, result: SemanticDeclaration*): bool {
     var work = result.constructor;
     if work.phase == SemanticConstructorPhase.Call {
+        var primitive = sem_type_primitive(c, result.subject, sem_identifier(c, sem_member(result.subject, "name")));
+        if primitive != null {
+            work.type = *primitive;
+            work.phase = SemanticConstructorPhase.Ready;
+            result.checked = sem_ok(c);
+            return false;
+        }
         if work.instance == null {
             work.arguments = sem_constructor_arguments(c, result.subject, work.definition);
             if !sem_ok(c) { return false; }

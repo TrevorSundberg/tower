@@ -13,7 +13,7 @@ enum SemanticQuery: u32 {
     Layout = 1, Evaluation, Declaration, DeclarationDiscovery, Lowering, Body,
     Flow, EvaluationPrepare, BodyPrepare, GenericBody, KnownScan, KnownOrder,
     KnownPublish, KnownProof, AggregatePrepare, KnownClone, KnownInputs, Expression,
-    ArrayType, TypeConstruction, IterationResolution, BodyDiscovery
+    ArrayType, TypeConstruction, IterationResolution, BodyDiscovery, IntegerArgument
 }
 
 enum SemanticWorkDomain: u64 { Compiler = 1 }

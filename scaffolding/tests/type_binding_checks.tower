@@ -47,7 +47,7 @@ fn type_binding_tests(modules: void*, root: u8*): void {
     struct_value_reject(modules, "import tower;var A:type=integer_type(32);", "Wrong argument count");
     struct_value_reject(modules, "import tower;var A:type=array_type(i32);", "Wrong argument count");
     struct_value_reject(modules, "import tower;var A:type=array_type(A,1);", "dependency cycle");
-    struct_value_reject(modules, "import tower;var A:type=array_type(i32,missing);", "compile-time integer argument");
+    struct_value_reject(modules, "import tower;var A:type=array_type(i32,missing);", "Unknown local");
     struct_value_reject(modules, "import foundation_syntax;var n:i32;", "Unknown type 'i32'");
 
     // Replace the actual source definition through the tracked module input API.
@@ -71,5 +71,39 @@ fn type_binding_tests(modules: void*, root: u8*): void {
     execution_check(changed.machine.done && changed.error.length == 0 && execution_text(&changed.output, "8\n4294967296\n"),
         "Source definition determines layout and numeric representation");
     execution_roundtrip(&changed, environment, false);
+    computed_type_argument_tests(modules, root, bedrock.data, foundation.data);
     puts("Source types: definitions, aliases, staging, target layouts, Foundation and workers pass.");
+}
+
+fn computed_type_argument_tests(modules: void*, root: u8*, bedrock: u8*, foundation: u8*): void {
+    var source: vector(u8) = default;
+    defer vector_dispose(&source);
+    units_read(root, "/tests/computed_type_arguments.tower", &source);
+    for(var width: u32 = 4; width <= 8; width += 4) {
+        var graph: ExecutionSession = default;
+        var fast: ExecutionSession = default;
+        defer execution_session_close(&graph);
+        defer execution_session_close(&fast);
+        execution_compile(&graph, source.data, width, modules);
+        execution_compile(&fast, source.data, width, modules);
+        execution_check(execution_session_start(&graph) && execution_session_fast(&fast), "Computed type engines start");
+        execution_run(&graph, 1000, 100000);
+        execution_run(&fast, 1000, 100000);
+        execution_same(&graph, &fast);
+        execution_check(graph.machine.done && graph.error.length == 0 && execution_text(&graph.output, "0\n"), "Computed type arguments");
+        execution_roundtrip(&graph, modules, false);
+        var canonical: vector(u8) = default;
+        defer vector_dispose(&canonical);
+        for(var workers: usize = 1; workers <= 8; workers *= 2) {
+            body_runs_trial(source.data, workers, width, bedrock, foundation, root, &canonical);
+        }
+    }
+    struct_value_reject(modules, "import tower;var A:type=integer_type(3*8,1);", "Unsupported primitive numeric width");
+    struct_value_reject(modules, "import tower;var A:type=integer_type(8*4,1+1);", "Integer signedness");
+    struct_value_reject(modules, "import tower;var a:u8[1/0];", "zero");
+    struct_value_reject(modules, "import tower;var a:u8[true?true:false];", "compile-time integer argument");
+    struct_value_reject(modules, "import tower;var length:usize=4;var a:u8[length+1];", "runtime storage");
+    struct_value_reject(modules, "import tower;fn size():usize{return 4;}var a:u8[size()];", "staged body scheduling");
+    struct_value_reject(modules, "import tower;var a:u8[comptime(1/0)];", "zero");
+    puts("Computed type arguments: interpreter, target widths, Foundation round trips and worker determinism pass.");
 }

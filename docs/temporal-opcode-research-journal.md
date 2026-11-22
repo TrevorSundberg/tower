@@ -43768,3 +43768,54 @@ publication lock is released after this receipt. todo.txt retains blob
 045d1e620edf7c67b653fec19df850b370246b1d. Owned C/C++ source count remains zero.
 Mach-O replacement and host/SDK linker retirement are still outstanding; this
 receipt claims only the validated Windows download-linking milestone.
+
+### 2026-11-22: computed integer type arguments, first scheduling milestone
+
+Start main a3a28bb after the required pull/rebase. Extend Tower's type-argument
+and array-count grammar with ordinary operands, leaving Foundation and Bedrock
+unchanged. Numeric argument checking now suspends on an IntegerArgument query;
+its typed expression is cloned and prepared by the existing staged-expression
+workers and executed by the ordinary interpreter. The coordinator publishes
+results before type interning. No arithmetic evaluator, native helper or new
+implementation language was added. Generic numeric bindings also resolve as
+typed value operands inside expressions, allowing T[count + 1] and primitive
+representations such as integer_type(width * 2, 1).
+
+Initial arithmetic trial failed because primitive declarations were admitted to
+workers before their computed arguments had queries. Admission now requires a
+published argument or falls back to the normal structural continuation. The next
+trial aborted in work_suspend_access: its evaluation dependency was sealed but
+the preparation dependency was still Building. Register/seal preparation before
+demanding the evaluation. GDB confirmed the failing work receipt, rather than an
+arithmetic fault. A nested comptime array extent then exposed a false cycle
+through its containing Body query. Required type stages now retain their own
+expression dependency and do not wait for that unfinished runtime body.
+
+The early evaluation pump reuses persistent stage components and reports actual
+execution progress; it does not rescan all query states or demand unrelated
+optional stages. Prepared values still pass exact-type and extent/representation
+validation. Existing primitive literals keep their earlier contextual typing;
+new expressions use ordinary operand inference. All code and fixtures are Tower.
+
+Scope correction after the dependency audit: this milestone supports closed
+expressions, numeric type parameters, target-size operations, lazy branches and
+nested explicit stages. Ordinary var captures and executed helper calls during
+type construction remain pending. A source initializer is not an immutability
+proof. Do not speculatively publish it as a constant or recursively force body
+completion. The follow-on must make body checking, known-binding proofs and
+input evaluation resumable across the declaration/body boundary. Executed calls
+currently diagnose this missing stage capability; untaken calls stay lazy.
+General type-valued execution and the common type protocol still precede vectors.
+
+Native development build uses the public 6022aa2b bootstrap, Docker
+tower-c-validation, LLVM 19 and /cache/computed-type-arguments, with three build
+jobs and TOWER_EXECUTION_TESTS=ON. The smallest new semantic_type_values.tower
+unit compiles. The types suite passes both interpreter engines, canonical
+Foundation round trips, target widths 4/8, worker counts 1/2/4/8, invalid widths,
+signedness, noninteger results, division traps, capture/call diagnostics and
+nested-stage failures. The affected type-smoke suite also passes. Commands:
+cmake --build /cache/computed-type-arguments --target tower-execution-tests;
+tower-execution-tests /work/scaffolding types; and the same command with
+type-smoke. Logs are build/computed_type_arguments_{types,smoke}.log.
+Publication validation follows below. No todo.txt edits or compiler-source
+adoption of the newly supported expression forms has occurred.

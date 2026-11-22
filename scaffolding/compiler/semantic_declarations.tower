@@ -17,6 +17,7 @@ import semantic_statements;
 import semantic_body_work;
 import semantic_generic_body_work;
 import semantic_constructor_work;
+import semantic_type_values;
 import semantic_layout_kernel;
 import semantic_enums;
 import .library.vector;
@@ -52,6 +53,8 @@ struct SemanticDeclaration {
     constructed: vector(void*);
     subject: void*;
     expression: bool;
+    integer_argument: bool;
+    integer_evaluation: SemanticEvaluation*;
     module_initializer: bool;
     array_type: bool;
     array_ready: bool;
@@ -198,7 +201,6 @@ fn sem_declaration_roots(c: SemanticContext*, result: SemanticDeclaration*, scan
     if result.constructor != null { sem_constructor_roots(c, result, scan); return; }
     if result.array_type {
         sem_declaration_scan_push(scan, result.array_base, true);
-        sem_declaration_scan_push(scan, result.array_count, false);
         return;
     }
     if sem_type_binding(c, subject) {
@@ -895,6 +897,8 @@ fn sem_declaration_syntax_read(c: SemanticContext*, annotation: void*, nodes: ve
                 var arguments = sem_collect(c, sem_member(node, "args"),
                     sem_is(node, "CoreCall") ? "CoreCallArgument" : "CoreTypeArgument");
                 foreach(var argument in arguments) {
+                    if !sem_equal(name, "pointer_type") && !sem_type_value_simple(c, argument)
+                        && sem_type_value_prepared(c, argument) == null { return false; }
                     sem_declaration_scan_push(&pending, argument, sem_equal(name, "pointer_type"));
                 }
                 continue;
@@ -966,6 +970,7 @@ fn sem_declaration_worker(c: SemanticContext*, result: SemanticDeclaration*): bo
         // Invalid arity is diagnosed by the query in source order; it reads no
         // operand and only writes its private error receipt.
         if result.array_base == null || result.array_count == null { return true; }
+        if !sem_type_value_simple(c, result.array_count) && sem_type_value_prepared(c, result.array_count) == null { return false; }
         return sem_declaration_syntax_read(c, result.array_base, &result.nodes, true, true, &result.needs_evaluation)
             && sem_declaration_syntax_read(c, result.array_count, &result.nodes, true, false, &result.needs_evaluation);
     }
@@ -982,6 +987,7 @@ fn sem_declaration_worker(c: SemanticContext*, result: SemanticDeclaration*): bo
             && sem_declaration_syntax_read(c, subject, &result.nodes, true, false, &result.needs_evaluation);
     }
     var annotation = sem_member(subject, record || enumeration ? "fields" : "type");
+    if enumeration && !sem_declaration_syntax_read(c, sem_member(subject, "type"), &result.nodes, true, true, &result.needs_evaluation) { return false; }
     var type = !enumeration && annotation != null;
     var staged = record || enumeration || !type;
     if annotation == null {
@@ -1066,6 +1072,9 @@ fn sem_declaration_infer(c: SemanticContext*, result: SemanticDeclaration*): voi
 }
 
 fn sem_expression_check(c: SemanticContext*, result: SemanticDeclaration*): void {
+    var previous = c.integer_arguments;
+    c.integer_arguments ||= result.integer_argument;
+    defer { c.integer_arguments = previous; }
     match result.expression_mode {
         SemanticExpressionMode.Operand => { result.value = sem_operand(c, result.subject, result.expected_type); }
         SemanticExpressionMode.Initializer => { result.value = sem_initial_value(c, result.subject, result.expected_type); }
@@ -1477,7 +1486,10 @@ fn sem_declaration_prepare(c: SemanticContext*, result: SemanticDeclaration*): u
         if query != 0 && work_task(&c.queries, query).state != WorkState.Succeeded { return query; }
         result.call_index++;
     }
-    return sem_ok(c) ? sem_declaration_waiting(c, result, &result.layout) : 0;
+    if !sem_ok(c) { return 0; }
+    var waiting = sem_declaration_waiting(c, result, &result.layout);
+    if waiting != 0 || result.layout != null { return waiting; }
+    return sem_type_value_arguments(c, result);
 }
 
 // Registration and discovery are shared by source declarations and newly
@@ -1500,7 +1512,7 @@ fn sem_declaration_add(c: SemanticContext*, node: void*): void {
     var result = sem_declaration_state(c, node);
     if result.query != 0 { return; }
     sem_push(c.declaration_subjects, node);
-    var kind = result.constructor != null ? TypeConstructionQuery : result.array_type ? ArrayTypeQuery : result.expression ? ExpressionQuery : DeclarationQuery;
+    var kind = result.integer_argument ? convert(u32, SemanticQuery.IntegerArgument) : result.constructor != null ? TypeConstructionQuery : result.array_type ? ArrayTypeQuery : result.expression ? ExpressionQuery : DeclarationQuery;
     var id = work_request(&c.queries, node, kind, 0);
     sem_require(id != 0);
     result.query = id;
@@ -1729,7 +1741,11 @@ fn sem_declarations_execute(c: SemanticContext*, statements: vector(void*)*): vo
         if query != 0 { sem_require(work_demand(&c.queries, query)); }
         index++;
     }
-    while sem_declarations_pump(c) == SemanticPumpResult.Progress {}
+    loop {
+        if sem_declarations_pump(c) == SemanticPumpResult.Progress { continue; }
+        if sem_ok(c) && sem_type_values_execute(c) { continue; }
+        break;
+    }
     if c.declaration_isolated { return; }
     foreach(var node in statements) {
         if !sem_ok(c) { break; }
@@ -1752,6 +1768,7 @@ fn sem_declarations_pump(c: SemanticContext*): SemanticPumpResult {
         while count < SemanticPreparationWindow && (work_take_query(&c.queries, &ticket, DeclarationQuery)
             || work_take_query(&c.queries, &ticket, ExpressionQuery)
             || work_take_query(&c.queries, &ticket, ArrayTypeQuery)
+            || work_take_query(&c.queries, &ticket, convert(u32, SemanticQuery.IntegerArgument))
             || work_take_query(&c.queries, &ticket, TypeConstructionQuery)) {
             var result = sem_declaration_state(c, work_task(&c.queries, ticket.task).subject);
             copy(&result.ticket, &ticket, sizeof(WorkTicket));
@@ -1779,7 +1796,8 @@ fn sem_declarations_pump(c: SemanticContext*): SemanticPumpResult {
         if count == 0 {
             if sem_generic_copies_execute(c) { return sem_ok(c) ? SemanticPumpResult.Progress : SemanticPumpResult.Failed; }
             var pending = sem_query_pending(c, DeclarationQuery) || sem_query_pending(c, ExpressionQuery)
-                || sem_query_pending(c, ArrayTypeQuery) || sem_query_pending(c, TypeConstructionQuery);
+                || sem_query_pending(c, ArrayTypeQuery) || sem_query_pending(c, TypeConstructionQuery)
+                || sem_query_pending(c, convert(u32, SemanticQuery.IntegerArgument));
             return pending ? SemanticPumpResult.Waiting : SemanticPumpResult.Complete;
         }
         var layouts: vector(usize);
@@ -1862,6 +1880,10 @@ fn sem_declarations_pump(c: SemanticContext*): SemanticPumpResult {
                 success = sem_ok(c);
                 if result.current != null { sem_body_save(c, &result.lexical); }
                 sem_body_restore(c, &saved_lexical);
+            }
+            if success && result.integer_argument && result.checked {
+                result.waiting = sem_type_value_finish(c, result);
+                success = sem_ok(c);
             }
             if success && result.array_type && result.checked && !result.array_ready {
                 result.array_result = *sem_array_intern(c, &result.array_element, result.array_length);

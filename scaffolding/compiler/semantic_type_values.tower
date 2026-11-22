@@ -1,0 +1,122 @@
+import tower;
+import semantic_context;
+import semantic_declarations;
+import semantic_constructor_work;
+import semantic_evaluation;
+import semantic_evaluation_work;
+import semantic_expressions;
+import semantic_definitions;
+import semantic_support;
+import semantic_types;
+import semantic_control;
+import semantic_defer;
+import semantic_work_ids;
+import foundation_types;
+import foundation_tags;
+import .library.vector;
+import .library.work_graph;
+
+fn sem_type_value_node(node: void*): void* {
+    node = sem_surface_unwrap(node);
+    while (sem_is(node, "CoreTypeArgument") || sem_is(node, "CoreCallArgument")
+        || sem_is(node, "CoreOperand") || sem_is(node, "CoreArrayCount")) && sem_child_count(node) == 1 {
+        node = sem_surface_unwrap(sem_child(node, 0));
+    }
+    return node;
+}
+
+fn sem_type_value_simple(c: SemanticContext*, node: void*): bool {
+    node = sem_type_value_node(node);
+    return generic_lookup(c.generics, node, node) != null || sem_literal(c, node);
+}
+
+fn sem_type_value_prepared(c: SemanticContext*, node: void*): void* {
+    if c.declaration_state == null { return null; }
+    node = sem_type_value_node(node);
+    var result = bits(SemanticDeclaration*, entity_component_data(entity_component_get(node, c.declaration_state)));
+    if result == null || !result.integer_argument || result.integer_evaluation == null { return null; }
+    var evaluation = result.integer_evaluation;
+    if !evaluation.ready.ready || evaluation.ready.failed { return null; }
+    sem_query_input(c, node, convert(u32, SemanticQuery.IntegerArgument));
+    return evaluation.literal;
+}
+
+fn sem_type_value_request(c: SemanticContext*, node: void*, parent: SemanticDeclaration*, expected_type: FoundationType*): usize {
+    if sem_type_value_simple(c, node) { return 0; }
+    node = sem_type_value_node(node);
+    var result = sem_declaration_state(c, node);
+    if result.query == 0 {
+        result.integer_argument = true;
+        result.expression = true;
+        result.expression_mode = SemanticExpressionMode.Operand;
+        result.expected_type = expected_type;
+        result.scope = parent.scope;
+        result.current = parent.current;
+        result.lexical = parent.lexical;
+        sem_declaration_add(c, node);
+        sem_declaration_discover(c);
+    }
+    if sem_declaration_input(parent, result.query)
+        || work_task(&c.queries, result.query).state != WorkState.Succeeded { return result.query; }
+    return 0;
+}
+
+fn sem_type_value_arguments(c: SemanticContext*, result: SemanticDeclaration*): usize {
+    if result.array_type {
+        return result.array_count == null ? 0 : sem_type_value_request(c, result.array_count, result, null);
+    }
+    var constructor = result.constructor;
+    if constructor == null || constructor.phase != SemanticConstructorPhase.Call { return 0; }
+    var node = result.subject;
+    var arguments = sem_collect(c, sem_member(node, "args"), sem_is(node, "CoreCall") ? "CoreCallArgument" : "CoreTypeArgument");
+    var definition = constructor.definition;
+    if definition == null {
+        var name = sem_identifier(c, sem_member(node, "name"));
+        var arity: usize = sem_equal(name, "integer_type") ? IntegerTypeConstructorArity
+            : sem_equal(name, "float_type") ? FloatTypeConstructorArity : 0;
+        if arguments.length != arity { return 0; }
+        foreach(var argument in arguments) {
+            var waiting = sem_type_value_request(c, argument, result, null);
+            if waiting != 0 { return waiting; }
+        }
+        return 0;
+    }
+    if arguments.length != generic_parameter_count(c.generics, definition) { return 0; }
+    var parameters = sem_collect(c, sem_member(definition, "params"), "CoreParameter");
+    for(var i: usize = 0; i < arguments.length; i++) {
+        if generic_type_parameter(c.generics, definition, i) { continue; }
+        var expected_type = sem_type(c, sem_member(parameters.data[i], "type"));
+        if !sem_ok(c) { return 0; }
+        var waiting = sem_type_value_request(c, arguments.data[i], result, expected_type);
+        if waiting != 0 { return waiting; }
+    }
+    return 0;
+}
+
+fn sem_type_value_finish(c: SemanticContext*, result: SemanticDeclaration*): usize {
+    if result.integer_evaluation == null {
+        if !semantic_integer(&sem_get(result.value).type) {
+            sem_fail(c, result.subject, "Expected a compile-time integer argument");
+            return 0;
+        }
+        var subject = sem_control_node(c, result.subject, KOperand);
+        var clones = sem_table(c);
+        var nodes = sem_list(c);
+        var expression = sem_defer_clone(c, subject, result.value, clones, nodes);
+        var previous = c.integer_arguments;
+        c.integer_arguments = true;
+        sem_evaluation_expression(c, subject, expression, null, false);
+        c.integer_arguments = previous;
+        if !sem_ok(c) { return 0; }
+        result.integer_evaluation = sem_evaluation_get(c, subject);
+        sem_evaluation_work_register(c, false);
+    }
+    var evaluation = result.integer_evaluation;
+    var query = work_find(&c.queries, evaluation.subject, EvaluationQuery, 0);
+    if work_task(&c.queries, query).state != WorkState.Succeeded { return query; }
+    return 0;
+}
+
+fn sem_type_values_execute(c: SemanticContext*): bool {
+    return sem_evaluation_pump_inputs(c, false) == SemanticPumpResult.Progress;
+}
