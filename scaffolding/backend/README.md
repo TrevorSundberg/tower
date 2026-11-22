@@ -283,7 +283,8 @@ build/backend-native/tower-backend-tests
 ```
 
 Add the same include and bootstrap options to the existing WASI LLVM build.
-`ComposeBackend.cmake` reuses the authoritative vector/Foundation declarations.
+The `compiler/units/backend_*.tower` roots reuse the authoritative declarations;
+CMake selects a short import profile without generating its source-member list.
 Native target initialization comes from the installed LLVM configuration lists;
 browser modules retain their Wasm-only and Wasm/X86/AArch64 target closures.
 The API test implementation and runner are Tower. The browser test build exports
