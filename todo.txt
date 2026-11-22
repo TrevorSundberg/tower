@@ -9533,6 +9533,7 @@ we should write custom compiler or llvm style passes just for ECS
  - similar to the burst compiler, vectorization all that
  - but we can try to include any other things to make it faster too, even optimizations for specific things it does
 
+SENT
 need to do an agents.md audit
  - always use ECS style components and entities where it makes sense, threaded and very fast, flecs style continue for all graph nodes ast parse nodes etc
  - always use a proper dependency system so we can resolve types lazily or by dependency, respecting cycles or aliasing where needed
@@ -9541,6 +9542,23 @@ need to do an agents.md audit
  - always profile our code and ensure we're efficiently using memory and performance and all cores where we can
  - be sure that the compiler itself between compilation units and hosts supports threading as well as internal inside copilation units for trees and sub-trees/dependencies
  - expand tower.tower features as the main language and feel free to implement features, and audit old code to see if it can be upgraded with new features (for loops, enums, compound expressions, tempaltes, containers, etc)
+ - independently test and commit and handle rebasing and pushing
+ - Be sure that with every change they make they profile performance and validate that memory is not excessive as well
+ - All changes where possible should be using the ECS threading / archetypes / components and dependency scheduling system (parse nodes, ast, graph opcode, transforms, etc)
+ - All code should be written in .tower and ideally using the latest constructs provided by tower.tower
+ - If you see old code that could be updated using newer constructs (for loops, ! expressions, initializers, defer, see tower.tower, etc) do feel free to update them / cleanup
+ - Fail fast and prefer to surface errors so we can fix them quickly, never hide errors
+ - If there are any large process, validation, sanitization, or other slow processes that are impeding your development, feel free to fix low hanging fruit first and prioritize iteration speed (or build less / batch changes / only sanitize or validate at the very end, etc)
+ - Always write concise correct code and well tested / compared with a known correct implementation if possible / stress & fuzz tested as well
+ - Where possible, prefer to build and refactor to a unified, generic, extensible, and high performance framework, our idea is a very meta system where all parse rules are written in tower, tower is written in tower, and tower compiler itself can be lived edited, our goal is to make this elegant but also concise and minimal
+ - always use proper FLECS style ECS / threading with decltype/compiletime and the dependency system all working using maximum cores
+ - profile what we can, make sure that we're taking every opportunity for core usage we can
+ - but also profile individual single threaded performance too, we should be comperable or even faster than a similar small or large C like program compilation
+ - and that we're properly using ECS components and considering it in most all places / hierarchies as well as archetypes / sparce and dense components, as well as the dependency graph and job handles/scheduler etc
+ - make sure components are cache coherent and utilizng good ECS fundamentals, see FLECS and unity burst for common usages that would apply to us
+ - at the very end be sure to run sanitization passes and make sure our threading is safe and not racey in all cases
+ - our eventual target is stronghold, the type safe language/environment built on top of tower.tower that mostly only allows safe but extremely fast ECS style burst style vectorized threaded operations, but still entirely type and memory safe (no pointers/no uninitialized memory, etc)
+ - always read relevant journals and always keep a journal of your current work, findings, research, approach, experiments, etc be thorough and detailed
 
 need an eventual package manager, written all in tower
  - http module is needed and working with os certs all that (curl or fetch style)
@@ -9651,7 +9669,17 @@ need to eventually decide on a standardized style
  - part of our auto format could be auto transforms, to convert post to pre where it doens't matter
  - I like that our auto formatter is pretty comprehensive and we can enable/add these passses etc
  - only comment non obvious and external dependencies or considerations, otherwise prefer descriptive but concise names that explain the code just by reading the code
- - 
+ - probably want to infer types all over except for intended exported public interface
+
+oh with the dependency thing, we should be able to do pretty crazy inference now, inference of return types (may be a little different)
+ - but like full on inference since we support decltype/compiletime etc
+ - also we do a lot of template inference too
+ - see if theres more we can push on this front now that we have these dependency graphcs etc
+ - I'm not sure if this is more zig or whatever, I remember some inference would allow a type to be multiple kinds almost like typescript union types, maybe it was TS
+ - and then it like further reduces as  it knows, at the end it must be a isngle type I think?
+ - and how you use it actually narrows it, like accessing a specific member may even narrow it (kiind of need like the union/intersection/subtration/set types etc)
+
+
 
 SENT
 fix for the bootstrapping compiler / expression changes has been pushed, pull and rebase if needed then continue the work you were doing
@@ -9676,9 +9704,11 @@ my idea of ai goaping through rules, can it be done with tower?
  - symbolic expansion
  - our ssa memory tracking idea could have even more teeth apparently if we tracked the actual operations that operated on the memory, not just like simple version data
 
+SENT
 right now compiling and getting to a result, even clicking a new project and seeing syntax highlighting working takes a long time now, its certainly regressed
- - but I kinda want to wait until all the threading work is done to optimize the entire pipeline
- - the web is running very slow
+ - right now there's a ton of threading work being done to move the whole compiler to all using ecs nodes and the dependency graph / threading it all out, be sure to keep this going
+ - the web is running very slow in the playground, time to show syntax highlighting, time to parse, or see the first tower instructions printed below, or the actual graph interpreter result even, let alone llvm and optimization after that
+ - far too long, profile it all
 
 SENT
 I want you to launch this in another one of the gits we have checked out for tower for an agent, maybe agent 1 or something, launch this but only lightly monitor it it can run itself mostly
@@ -9695,5 +9725,124 @@ basically since you've cut out C++ its time to cut the others too, launch in a p
 
 SENT
 git language changes to make tower a real language
+
+we should write a bunch of tests using C# burst compiler and dots, like a thousand different unique tests and examples testing all sorts of things
+ - find a bunch of code online using burst and transform it into performance tests etc, doing random things, physics, springs, decoding, encoding, graphics, etc
+ - and then rewrite a lot of that as simple confined tests
+ - check unity's produced llvm if we can, x86, arm, etc
+ - how it vectorized different things
+ - safety mechanisms
+ - basically just compare our burst style compilation vs theirs
+ - ours should basically be on always, truly part of the compiler used wherever we can of course, especially with ECS
+ - so I want to compare our ECS performance vs theirs as well with dots, etc
+ - basically just suggesting we live compare against unity with unity cli etc and check its outputs of llvm/x86/arm etc vs ours, and compare performance, memory etc
+
+theres this idea I keep thinking of that I'm trying to think what's the best idea here, its like our optimized single megastructure to vulkan
+ - that like, imagine I tried to write a game / engine and then I tried ot like do dependency memory tracking on it
+ - it would like explode, because every frame is writing, we'd need an endless history basically
+ - but in some ways I can separate these boundaries
+   - like I can have the player and entire game state be all just pure data structs etc ECS components etc
+   - and then I can treat that as the "megastruct" of authoritative game data, or even copy it
+   - diff it where needed, not sure need to think what I mean here
+   - but basically like just the graphics issued commands say from the cpu side to the gpu could be reading that
+ - OH I see what I'm saying, it's akin to how gpus are like, mostly a one way street
+ - eh sort of... not sure what exactly I'm saying here
+ - its like the react thing
+ - I'm just imagining with the rewind and re-edit thing 
+ - a scenario I would want to work in that case is like editing the graphics rendering and having it update live
+ - yet the game can be independently running, two separate tower libraries compiled but one feeds data to the other
+ - and somehow thats the barrier for temporal opcode, memory region, etc
+
+also saw we do a lot of *"t" for 't' basically, lets introduce 't' (in whatever modern way compilers typically do it now)
+
+for the increment example, go back to being only on foundation
+
+make backends for pretty much any language
+ - C# (or any clr? / unsafe option)
+ - unity C# + burst support (unsafe option too)
+ - C (and subsequently C++)
+ - JavaScript/TypeScript (optimized, like asm.js effectively, is there any reason to target this anymore? like yes JS a fast target but specifically I mean the asmjs spec)
+   - Test with quickjs, duktape, hermes, etc, and even design specific adjustments to targets for optimizations per target (though all should work as general JS)
+ - Lua
+   - test with lua jit and other flavors, profile and use extra features if known for speed
+   - test this with roblox
+
+
+realistically, before starting the spirv backend etc
+ - I should absolutely get all the vector types etc
+ - and basically get our platform to parity with C + SSE
+ - and then probably see if we can do anything else to get it to shader parity before actually approaching shaders
+
+how do I get people using it now?
+ - I mean doing all the rest of the stuff I want plus a clean install, package manager, and good versioned ecosystem
+ - can wait to properly version it so everyone knows this is v0 and subject to change until we settle on how it all works
+ - basically I want my pilot customers
+ - TT can be one eventually, see that's a good benchmark
+ - I shouldn't even try and get other people on it until TT is successfully using it as well as KK
+ - that plus web demos etc, once that's all working and I'm happy with the studio/playground
+ - probably Josh Fisher first
+
+SENT
+really need to cleanup all the examples/projects too, just do a self audit of tower code
+ - I see a lot of places that could use proper ! operators or expressions that include tower.tower
+ - but audit if all of them need to include tower.tower, maybe they all should except like the ones we want to show off like foreach or increment
+ - print("Queue allocation failed"); how? what are the conditions? how is its memory allocated? comments please but simple human
+
+Get rid of these comments or put them over the respective things, lets do a comment pass over all the examples
+// GrammarPattern keeps a /regex/ literal together; Tower's regex parser reads its contents.
+// GrammarTemplate is a recursive rule for {replacement bodies}, including nested braces.
+
+
+for how we implement temporal opcode, as MUCH as possible I want this to be like a plugin
+ - somehow transforms the AST if needed
+ - somehow transforms opcode graph if needed
+ - or inserts itself into the compiler during a proper emit point to emit multiple opcode
+ - so many different ways I could see doing the instrumentation, research waht compiler writers typically do
+ - but also acknowledge that we have a pretty cool game engine like ECS + hierarchy system and dependency system, can we do something extra cool with this?
+ - like attaching components, rearranging a tree at runtime, using full threading and dependencies etc
+ - but then somehow making ALL of this completely external and COMPLETELY defined within that external .tower files as a library like import temporal; etc
+ - may even only depend on foundation, well probably would be nice to write stuff we need compiler additions or transforms with full tower so probably not
+ - but basically only affecting foundation level instructions etc
+
+SENT
+I want you to launch agents on KinmenA/B and steamdeck.local, you write the prompts and manage them
+ - I want you to run 2 `codex --yolo --no-daemon` agents per machine (all should be gpt-6-atstra xhigh and not fast mode)
+ - I want to make sure they have powershell open in a window with color highlighting ideally side by side docked in windows on each machine, including this machine
+ - They should all independently test and commit and handle rebasing and pushing
+ - Be sure that with every change they make they profile performance and validate that memory is not excessive as well
+ - All changes where possible should be using the ECS threading / archetypes / components and dependency scheduling system (parse nodes, ast, graph opcode, transforms, etc)
+ - All code should be written in .tower and ideally using the latest constructs provided by tower.tower
+ - If you see old code that could be updated using newer constructs (for loops, ! expressions, initializers, etc) do feel free to update them / cleanup
+ - Fail fast and prefer to surface errors so we can fix them quickly
+ - If there are any large process, validation, sanitization, or other slow processes that are impeding your development, feel free to fix low hanging fruit first and prioritize iteration speed
+ - Always write concise correct code and well tested / compared with a known correct implementation if possible / stress & fuzz tested as well
+ - I want you to then pause for long times (do not waste tokens) but monitor them and their pushing/pulling/deployments etc, coordinate where needed
+ - Make sure you and all of them pull latest, and keep clones for agents within the `C:\Sandbox\tower-agent-N` format or in `~/tower-agent-N`
+ - Note that steamdeck is a less high powered machine / less memory so give it the simpler end of tasks
+ - Where possible, prefer to build and refactor to a unified, generic, extensible, and high performance framework
+ - Be sure to have each monitor disk space occasionally and clean out old builds if needed
+ - Each agent should have its own clone of tower that it can work within, make sure that all are committed entirely to clean including todo/journals/docs first and pushed/pulled (including the normal tower repo not just agents)
+The goal to persue is to complete the work moving our entire compiler over to ECS / threading with decltype/compiletime and the dependency system all working using maximum cores
+ - profile what we can, make sure that we're taking every opportunity for core usage we can
+ - but also profile individual single threaded performance too, we should be comperable or even faster than a similar small or large C like program compilation
+ - and that we're properly using ECS components and considering it in most all places / hierarchies as well as archetypes / sparce and dense components etc
+ - make sure components are cache coherent and utilizng good ECS fundamentals, see FLECS for common usages that would apply to us
+ - at the very end be sure to run sanitization passes and make sure our threading is safe and not racey in all cases
+ - minor sub goal/guidance but keep in mind that our eventual target is stronghold, the type safe language/environment built on top of tower.tower that mostly only allows safe but extremely fast ECS style burst style vectorized threaded operations, but still entirely type and memory safe (no pointers/no uninitialized memory, etc)
+ - read any relevant journals related to the ECS and threading work
+ - do a FULL audit of all .tower code we've written in this repository, especially that related to the compiler
+ - see docs\compiler_ecs_threading_handoff.md
+ - our goal is 100% completion of all ECS and threading compiler related details, it must be done and published and all working/no warnings/errors etc!
+
+need to do a test pass, I really love the whole expected etc type text file tests
+ - but also probably a ton for the internal compiler/ecs/scheduler etc
+ - unify our entire testing framework
+ - probably just add D style test() and use it everywhere actually
+ - and we should do the minimal rebuild thing where we literally only run affected tests
+
+be sure that when we do the temporal thing, we also consider the extra metadata for that goap like thing
+
+shithub
+ - ai made repostories
 
 
