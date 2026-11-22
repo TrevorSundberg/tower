@@ -1,0 +1,59 @@
+import tower;
+
+struct CaptureEmpty {}
+struct CapturePair { first: i32; second: i32; }
+struct CaptureBundle {
+    pair: CapturePair;
+    values: i32[2];
+    element: type_type();
+    callback: function(i32, i32);
+    pointer: i32*;
+    empty: CaptureEmpty;
+}
+
+fn capture_increment(value: i32): i32 { return value + 1; }
+
+fn capture_bundle(): CaptureBundle {
+    var result: CaptureBundle;
+    result.pair = { first: 7, second: 8 };
+    result.values[0] = 3;
+    result.values[1] = 4;
+    result.element = u16;
+    result.callback = capture_increment;
+    result.pointer = null;
+    result.empty = default;
+    return result;
+}
+
+var CapturedBundle: CaptureBundle = capture_bundle();
+
+fn capture_sum(): i32 {
+    return CapturedBundle.pair.first + CapturedBundle.pair.second
+        + CapturedBundle.values[0] + CapturedBundle.values[1];
+}
+
+fn capture_repeat(count: usize): i32 {
+    var total: i32 = 0;
+    for(var i: usize = 0; i < count; i++) { total += capture_sum(); }
+    return total;
+}
+
+fn capture_verify(): i32 {
+    var failures: i32 = 0;
+    var global = comptime(CapturedBundle);
+    var original: CaptureBundle = capture_bundle();
+    var local = comptime(original);
+    if global.pair.first != 7 || local.pair.second != 8 { failures++; }
+    if global.values[0] != 3 || local.values[1] != 4 { failures++; }
+    if global.element != u16 || local.element != u16 { failures++; }
+    if global.callback(41) != 42 || local.callback(8) != 9 { failures++; }
+    if global.pointer != null || local.pointer != null { failures++; }
+    if sizeof(decltype(global.empty)) != 1 { failures++; }
+    if comptime(capture_repeat(32)) != 704 { failures++; }
+    // Mutating the consumer's ordinary shallow copy does not mutate the input.
+    global.pair.first = 99;
+    if local.pair.first != 7 || comptime(capture_sum()) != 22 { failures++; }
+    return failures;
+}
+
+print(capture_verify());

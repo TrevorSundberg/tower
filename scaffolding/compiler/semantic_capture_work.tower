@@ -73,6 +73,17 @@ fn sem_capture_storage(c: SemanticContext*, subject: void*): SemanticCapture* {
     return result;
 }
 
+// Captured initializers must produce the runtime binding's value, not an
+// identity derived from the private evaluation frame. Match the exact producer;
+// an explicit comptime expression under the same declaration is a different job.
+fn sem_capture_evaluation(c: SemanticContext*, evaluation: SemanticEvaluation*): bool {
+    if c.capture_inputs == null { return false; }
+    var owner = sem_parent(evaluation.subject);
+    if owner == null { return false; }
+    var capture = bits(SemanticCapture*, entity_component_data(entity_component_get(owner, c.capture_inputs)));
+    return capture != null && capture.evaluation == evaluation;
+}
+
 // Reserve metadata before the function's exclusive lowering lease and view.
 // Only source initializers need a range; generated locals belong to that range.
 fn sem_capture_ranges(c: SemanticContext*, block: void*, ticket: WorkTicket*, stage: void*): void {
@@ -253,6 +264,12 @@ fn sem_capture_pump(c: SemanticContext*): SemanticPumpResult {
         input.producer = result.evaluation.literal;
         input.owner = result.proof.owner;
         input.ordinal = result.proof.ordinal;
+        // Publication follows the exact evaluation dependency's success. Its
+        // canonical projections are now frozen and retained until all consumer
+        // invocations have joined and been disposed by the owning context.
+        input.aggregate = result.evaluation.aggregate;
+        input.projections = input.aggregate ? result.evaluation.leaves.data : null;
+        input.projection_count = input.aggregate ? result.evaluation.leaves.length : 0;
     } else {
         result.error = c.program.error;
         result.error_offset = c.program.error_offset;

@@ -20,6 +20,21 @@ struct IMTypeConstruction {
     failed: bool;
 }
 
+// Derived projections of an already-published aggregate value. The owning
+// evaluation retains this array; consumers borrow its frozen canonical leaves.
+struct IMValueProjection {
+    subject: void*;
+    field: void*;
+    parent: usize;
+    index: usize;
+    type: FoundationType;
+    byte_offset: usize;
+}
+
+// Private target-byte copies belong to the frame that first consumes an input.
+// They survive nested calls and statement-cache resets, never another invocation.
+struct IMValueStorage { producer: void*; address: usize; bytes: usize; frame: usize; }
+
 // An invocation context belongs to its evaluation request, which may be a
 // shared compiler entity. No ambient world, host address table or TLS lookup is
 // needed. The existing IMState ABI remains unchanged for retained host clients.
@@ -47,6 +62,7 @@ struct IMContext {
     construct_types: bool;
     waiting_type: bool;
     type_construction: IMTypeConstruction;
+    input_storage: vector(IMValueStorage);
 }
 
 // Shared query metadata; the evaluator reads readiness, while only the
@@ -62,7 +78,15 @@ struct IMDependency {
 // Required capture proof owns producer/owner/ordinal. Optional inference owns
 // known_producer and cannot borrow a value proved only for a required stage.
 // A local's own invocation still reads its normal stack storage.
-struct IMValueInput { producer: void*; owner: void*; ordinal: usize; known_producer: void*; }
+struct IMValueInput {
+    producer: void*;
+    owner: void*;
+    ordinal: usize;
+    known_producer: void*;
+    projections: IMValueProjection*;
+    projection_count: usize;
+    aggregate: bool;
+}
 
 // The compiler can prepare an executable snapshot lazily without changing the
 // source function's signature or declaration identity. The interpreter retains

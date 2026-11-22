@@ -238,7 +238,7 @@ fn storage_session_tests(): void {
         utility_check(retained.text.data == original && strcmp(retained.text.data, "parse Keep = 'old';") == 0, "Session reset preserves retained provenance");
         tower_node_release_ref(item);
     }
-    tower_test_buffer_fail_next(); syntax_reset(session, "print(99);", null);
+    tower_test_buffer_fail_next(); syntax_reset(session, "parse Failed = 'failure';", null);
     utility_check(strcmp(syntax_get_error(session), "Unable to allocate source text") == 0 && syntax_next(session) is null, "Session reset allocation diagnostic");
     syntax_reset(session, "parse Statement = 'recovered' ';';recovered;", null);
     var declaration = syntax_next(session);

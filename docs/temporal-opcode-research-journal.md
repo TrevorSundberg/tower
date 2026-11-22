@@ -48584,3 +48584,63 @@ After the intentional coherent merge, ordinary pull --rebase tried to flatten it
 history and replay already integrated owner commits against unchanged origin607.
 That new rebase was aborted, preserving committed6509489; pull --rebase=merges
 completed with the same commit identity. No work was discarded or force-pushed.
+
+### B2 joint capture and aggregate validation, before stage optimization
+
+Integrated reviewed A1 capture policy595209af and full lifecycle42 fixturec25f9c36,
+then the complete shared API2792eda5, publisher997aa4c9 and consumer27a71a9f in one
+source transition. All jobs drained first. The producer freezes canonical scalar
+projections and disposes every consumer invocation before releasing any borrowed
+projection array. The interpreter owns target-layout input copies per invocation
+and lexical frame; strict stores, copy and fill reject mutation. No partial ABI
+build was attempted. Also adopted B1 lexical derived extents49ec56f5 and corrected
+six-path parser tracea2618c72 (not its withdrawn serial-instrumentation variants).
+
+Public predecessor compilation: policy16.064205857 s wall / 12.664597 s CPU /
+735280 KiB RSS; aggregate interpreter2.570473059 / 2.305186 / 186844;
+publisher17.979765482 / 14.520870 / 733724; parser integration1.848879120 /
+1.641656 / 189608. Coherent 62-step native build passes82.529269231 /
+162.888602 / 841304, outer2/compiler4 under the same12-CPU Linux x64 budget.
+
+Query-smoke first failed134 at the new nested snapshot lifetime assertion. Buffered
+log obscured the text; unbuffered repeat identifies exactly 'Nested return drops
+only callee snapshots and retained root keeps private storage'. Both interleaved
+output15 assertions passed before it. Logs b2_capture_aggregate_query*. No race or
+lifetime failure was inferred without identifying the failed observation.
+
+Direct original address and comparison sources now both reject with exit1 and
+'Automatic compile-time value depends on an address representation'. They take
+1.197924529 / 1.171736898 s wall,1.146924 / 1.120603 s CPU,169472 / 168496 KiB RSS.
+The ordinary global aggregate prints7 then8 (1.156990143 / 1.105772 / 168924);
+the local aggregate prints15 (1.170777207 / 1.121216 / 171520). The initial owner
+complex fixture0a47c49d printed1 instead of0. An independent Tower diagnostic
+printed each checked value: only empty-record size differed,1 rather than0.
+semantic_layout_kernel line76 explicitly raises an empty record's size to1.
+All remaining type/function/null-pointer/array/repeated-call/copy values matched.
+Original failing logs and sources are retained in build/b2_aggregate_*.
+
+Owner corrections, source reviewed after drain: ef0147df adds a callee local read
+so the nested snapshot exists across an observable ix_step boundary, preserving
+all lifetime assertions; complex fixture25e8f5ab changes only the empty-record size
+oracle to1, preserving final stdout0. Their new runtime checks are pending here.
+D1 still owns common selectors/registration and exact address diagnostic updates.
+
+The frozen before-stage compiler is /cache/b2_joint_before_stage/towerc SHA256
+0dd382482bbe73b19783032267ef8d4fee7fb06a01346158f5033ea03f3aab1a,
+with complete adjacent resources. Its source delta against335bec2 is
+build/b2_joint_before_stage_source.patch SHA256
+faca3245384ea80bbf03ebc5e805a3595014eb037f57afd79ad9d5db882668b4.
+After this snapshot, adopted reviewed A2stage452cfa58: payload-only leases avoid
+unnecessary table preparation/publication while views, names, references, leases
+and cleanup retain their contracts. Actual measured comparisons remain pending.
+Its existing CMake stage target is preserved; the old whole registration patch
+cannot reverse-check after newer fixture changes, but the CMake-only prerequisite
+reverse-checks successfully. No duplicate target is added.
+
+D1 storage reset draft9685f4d3 cannot apply verbatim: local normal/recovery cases
+already activate their own grammar and explicitly release/check the extra
+parse declaration. Those stronger checks are preserved. Only the fault-injection
+stimulus now uses a valid Bedrock declaration, and utility_check flushes failures.
+The failed dry run occurred before any changes. No reset count, source-pointer,
+provenance, EOF or buffer oracle was removed. B1's pending timing slot is honored
+with source-only work; B2's crossed unused grant was explicitly released.

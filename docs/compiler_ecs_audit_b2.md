@@ -6,6 +6,9 @@ published changes are documentation and the isolated serial-export CMake fix,
 so the published production source identity remains equivalent. Working cache,
 unit-budget, foreign-tool and constructor changes are distinguished below;
 imported owner handoffs are integration inputs, not published evidence.
+The 335bec2 checkpoint includes the reviewed private execution-index module.
+The current inventory has 243 assigned production paths, each with an audit entry;
+this inventory check confirms coverage, not execution or release acceptance.
 This is an in-progress audit, not lane acceptance or release evidence. Scope is
 compiler `frontend*`, `host*`, `language*`, `completion`, `services`, world services,
 `inspection_policy`, backend/foreign/host units, `parser_frontend`/`parser_modules`
@@ -16,7 +19,7 @@ Execution-session changes belong to L1; shared context/manifests require coordin
 | --- | --- | --- |
 | tests/backend_execution_index.tower | Compiles the actual roots fixture in a private single-worker world with an absolute module entry. Checks function admission, mismatched derived identity, all index allocation failures, exact canonical source preservation and owner teardown. | Public-bootstrap compile and actual link against the frontend runner's production objects pass after extracting the private helper. Full fixture passes in 1.412 s, including serial allocation failure and teardown. Generic registration and instrumented execution remain pending. |
 | backend/execution_functions.tower | Private, shared traversal over frozen Foundation entities. One byte per original function is a disposable index; a private work vector follows shared execution edges and explicit children, preserving original function identity and rejecting a mismatched slot. All temporary storage is released on failure; graph payloads are read-only. | Extracted unchanged from lowering at 6509489. Public predecessor compile and actual fixture link pass without importing backend exports. Allocation sweep, canonical equality and world teardown pass; this is serial fault evidence, not race coverage. |
-| tests/frontend_emission.tower | Isolated world pins source grammar entities while revisions own emitted rows/names. Inherited revisions survive parent disposal; sparse/duplicate literal IDs, repeated captures and wrapper lookups have exact oracles. Every injected construction failure restores buffer/reference baselines, and repeated lookups allocate nothing. | Full 389-line fixture reviewed at60741c5. Serial fault injection checks ownership; concurrent mutation is outside this fixture. Current full frontend runner remains blocked by the separately recorded semantic editor abort. |
+| tests/frontend_emission.tower | Isolated world pins source grammar entities while revisions own emitted rows/names. Inherited revisions survive parent disposal; sparse/duplicate literal IDs, repeated captures and wrapper lookups have exact oracles. Every injected construction failure restores buffer/reference baselines, and repeated lookups allocate nothing. | Full 389-line fixture reviewed at60741c5. Serial fault injection checks ownership; concurrent mutation is outside this fixture. The editor abort is fixed and focused editor checks pass; the complete frontend gate awaits the joined lifecycle and ownership changes. |
 | tests/driver.tower | Host transport checks shell-free argv, exact binary mapping, raw child status, unique temporary cleanup, runtime ABI binding, outputs, separate libraries/function values and diagnostics. Captured streams and arguments remain owned through child completion. Selectors retain explicit target/tool inputs. | Full 624-line fixture reviewed at60741c5. Each failed command remains nonzero; broad CLI execution and current owner fixture reconciliation remain validation gates. |
 | tests/backend.tower | Private LLVM/link owners exercise target errors, verifier rejection, malformed disassembly, generated-input copies and replacement, safe output names, custom sections and explicit destruction. Constructor checks use the shared graph/backend path. | Full source reviewed at60741c5 plus owned constructor integration. Current backend API suite passed; native API coverage does not establish browser or allocation-failure coverage. |
 | tests/host.tower | Exact byte/JSON oracles include embedded NUL, Unicode, self-aliasing appends, overflow and preserved buffers on allocation failure. Typed handle tests cover kind mismatch, wraparound collision avoidance, ownership take and refusal to dispose a nonempty table. | Full source reviewed at60741c5. Handles are local transport identities, not serialized declaration identity; no concurrent table-writer claim. |
@@ -386,8 +389,9 @@ nearer-file/alias invalidation, ordinary-root isolation, immutable declaration
 reuse, live session reset/generation retirement, invalid input and cycle cases.
 Its custom grammar cases initialize from the ordinary immutable declaration seed.
 
-The assigned production-file review is complete; associated fixture review is
-still in progress. File inventory is not substituted for review. The shared
+The assigned production-file and associated fixture review is complete through
+the documented checkpoint; newly integrated ownership changes retain their
+separate validation gates. File inventory is not substituted for review. The shared
 admission/known-byte ledger is implemented with focused and joined normal checks;
 the complete coherent sanitizer/publication milestone remains open. Likewise,
 cross-unit semantic cache reuse, whole-heap enforcement, universal race freedom
