@@ -43254,3 +43254,17 @@ widths, including the updated evaluation_query_tests at one/two world workers
 under the four-worker transport. It passes 1/1 with zero skips, exercising the
 new dynamic producer/two-window fixture without repeating an unrelated release
 matrix. Preserve this newer runtime in the tooling-only publication.
+
+Publication verified: source fc9efd3 and integration e0c0001 pushed after another
+pull/rebase and unchanged-source guard. Acquire publish.lock as
+agent1-profiling-cleanup-e0c0001; verify the exact latest manifest blob before
+appending profilingCleanupToolingMigration through the established GitHub contents
+path. Pages 222a22f6173136c7d6d2495e132597755b832646, workflow 44995121038,
+completes successfully. Hosted deployment-manifest.json with that commit's cache
+key exactly matches the prepared bytes, SHA256
+b91e7492b183b6f2e53ac514f4d5c434bb140a5e6e6902419ab19845b846d80e.
+The 104-asset map, buildSourceCommit 3e12adb and previous receipts are preserved.
+Release only our own lock. Final inventory remains JavaScript 182/24234 (196 lines
+and six files below baseline), Python/owned C/C++ zero, shell 9/230, CMake 39/1603.
+The full non-Tower migration is ongoing; this milestone removes obsolete and
+duplicated tooling without claiming that all remaining JavaScript is a host shim.
