@@ -48069,3 +48069,38 @@ or generator, no runtime benchmark during D1's active build. Generate/hash input
 once through the public compiler at the next admitted slot, then paired1/2worker
 output and canonical/object checks. This extends the simple constant-function
 baseline; it does not claim all body/parser/import/staging performance closed.
+
+#### D2 integration of corrected capture-range v3, runtime pending
+
+Root accepted exact corrected A1 f5d3f2bd for integration/validation, superseding
+review-onlyv1/v2 and withdrawn b30. D2 had neither candidate applied. Verified
+existing source-root/role/lowering-receipt/failure-walk prerequisites, applied
+late_capture378cae then v3 consecutively with ordinary context checks; no build
+or execution occurred on the intermediate special case. V3 modifies four
+existing production paths, not an added duplicate capture module. Read the
+complete303line patch, preparation dispatcher, shared edge traversal and cleanup.
+The new traversal follows owned executable edges only (no function/type/label
+or binding back-reference walk), attaches metadata before views/dispatch, and
+leases each declaration payload in its owning stage in addition to the function.
+Workers record ranges on preexisting components. Consumers require exact
+revision/profile/dispatch and completed producer receipts before cloning; the
+program-root terminal marker is attached only after required producers drain.
+Clones remap local bindings and preserve source order. These are source-level
+contract observations, not proof of all aggregate/late-demand executions.
+
+Replaced the old lifecycle fixture by reversing only its exact owner patch and
+applying fullv2 0ceb023a;30cases and the five-line semantic_capture_module are
+included, EarlyCapture and complex/module/aggregate failures remain required.
+body_runs has no net diff, preserving D1's independent recursion oracle and
+existing hooks. Complete source-proof41454429 already matches the owner bytes;
+no source change or newly executed proof check is inferred. Production capture
+SHA61ffda4b, loweringd5c1ec09, expressionlowering6aa0637c, knownbindingsb435a6cc;
+full lifecycle942947e8/module3019815e. Whitespace checks pass.
+
+Eager declaration metadata retention, fresh current query/type/lifecycle/editor
+checks, invalidation/late generic/aggregate behavior, actual sanitizer and final
+clean/public/browser/generation gates remain open. D1's frozen dd87 command is
+unaffected in its independent clone and retains the host slot; D2 starts no
+heavy job. The next measured staged-workload comparison uses preserved5d4 as
+predecessor, so memory/CPU growth from this newer capture source is visible
+instead of relabeling the prior constant-body profiles.

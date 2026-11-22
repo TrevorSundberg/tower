@@ -241,6 +241,10 @@ fn sem_evaluation_clone_expression(c: SemanticContext*, result: SemanticEvaluati
 }
 
 fn sem_evaluation_prepare(c: SemanticContext*, result: SemanticEvaluation*): void {
+    if result.expression == null {
+        sem_require(result.function != null && sem_get(result.function).body != null);
+        return;
+    }
     if result.aggregate { sem_evaluation_aggregate_prepare(c, result); return; }
     var function = sem_evaluation_function(c, result);
     var definition = sem_get(function);

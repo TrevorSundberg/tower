@@ -15,6 +15,7 @@ import semantic_expressions;
 import interpreter_context_types;
 import compiler_kernel;
 import semantic_known_work;
+import semantic_capture_work;
 import semantic_work_ids;
 import .library.vector;
 import .library.work_graph;
@@ -254,6 +255,7 @@ fn sem_known_infer(c: SemanticContext*): void {
 
 fn sem_known_publish(c: SemanticContext*): void {
     if !sem_ok(c) || c.known_bindings == null { return; }
+    sem_captures_finalize(c);
     var kind = sem_known_kind(c);
     var count: usize = 0;
     for(var index: usize = 0; index < c.program.functions.length; index++) {

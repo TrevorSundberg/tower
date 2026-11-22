@@ -11,6 +11,7 @@ import semantic_aggregates;
 import semantic_defer;
 import semantic_evaluation;
 import semantic_declarations;
+import semantic_capture_work;
 import semantic_work_ids;
 import .library.vector;
 import .library.stack;
@@ -183,6 +184,7 @@ export fn sem_lower_pump(c: SemanticContext*, signature: bool): SemanticPumpResu
             // root can itself be leased by its own lowering job.
             result.stage = entity_stage_open(kind);
             sem_require(result.stage != null);
+            if !signature { sem_capture_ranges(c, result.block, &ticket, result.stage); }
             sem_require(entity_stage_lease(result.stage, result.subject));
             if signature {
                 foreach(var parameter in &sem_get(result.subject).parameters) {
