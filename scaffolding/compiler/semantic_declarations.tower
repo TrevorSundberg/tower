@@ -1250,6 +1250,8 @@ fn sem_declaration_failure(c: SemanticContext*, id: usize): bool {
             if sem_declaration_restore_error(c, result) { return true; }
         }
         if task.query == convert(u32, SemanticQuery.GenericBody) && sem_generic_body_failure(c, task.subject) { return true; }
+        if (task.query == EvaluationQuery || task.query == convert(u32, SemanticQuery.EvaluationPrepare))
+            && sem_evaluation_failure(c, sem_evaluation_get(c, task.subject)) { return true; }
         if task.query == convert(u32, SemanticQuery.Layout) {
             var layout = bits(SemanticLayoutWork*, entity_component_data(entity_component_get(task.subject, c.layout_results)));
             if layout != null && layout.error != null {

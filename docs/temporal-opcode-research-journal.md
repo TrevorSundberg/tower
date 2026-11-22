@@ -43819,3 +43819,29 @@ tower-execution-tests /work/scaffolding types; and the same command with
 type-smoke. Logs are build/computed_type_arguments_{types,smoke}.log.
 Publication validation follows below. No todo.txt edits or compiler-source
 adoption of the newly supported expression forms has occurred.
+
+Rebase onto 8ba31385 includes the new resumable declaration/evaluation pumps
+and threaded admission/interpreter startup. Resolve the overlapping executor
+changes by keeping upstream's bounded pumps and worker startup; the declaration
+coordinator alternates declaration work with only already-demanded evaluation
+inputs. Explicit unrelated roots retain their ordinary phase prerequisites.
+Enum headers now publish only nominal identity; their representation resolves
+in the declaration query, permitting computed widths without provisional layout.
+The fixture covers this and an untaken ordinary call.
+
+Rebased type-smoke exposed a real isolated-error bug: an early stage failure set
+the global program error before sem_body_declarations finished its continuation,
+triggering its sem_ok assertion. Preserve evaluation/preparation diagnostics on
+the evaluation component and recover them through failed query edges, like
+declaration/layout failures. Joined body selection now preserves source order.
+The upstream ComputedArrayExtent fixture retains its call and later-error case,
+with the new executed-call capability diagnostic. Rebuilt types, type-smoke and
+aggregate-stages pass; known-binding inference also passes after the rebase.
+The query-smoke name belongs to tower-lr-work-tests, not tower-execution-tests;
+an attempted invocation through the latter correctly rejected the suite name.
+Native LLVM execution of computed_type_arguments.tower prints 0.
+
+The first package_bootstrap attempt used the Windows-mounted /work/build output
+and failed its atomic publication step; it did not update the public pin. Use a
+new /cache output directory for the complete candidate and verify it before
+copying the checked package into the repository. Publication is still pending.

@@ -41,6 +41,8 @@ struct SemanticEvaluation {
     started: bool;
     inferred: bool;
     type_argument: bool;
+    error: vector(u8);
+    error_offset: usize;
     aliases: vector(SemanticEvaluationAlias);
     leaves: vector(SemanticEvaluationLeaf);
     aggregate_type: FoundationType;
@@ -91,6 +93,29 @@ fn sem_evaluation_get(c: SemanticContext*, subject: void*): SemanticEvaluation* 
     if c.evaluation_results == null { return null; }
     var component = entity_component_get(subject, c.evaluation_results);
     return bits(SemanticEvaluation*, entity_component_data(component));
+}
+
+// Retain an early stage failure on its producer, so independent body checking
+// can select diagnostics in source order after joining all continuations.
+fn sem_evaluation_fail(c: SemanticContext*, result: SemanticEvaluation*, message: u8*, offset: usize): void {
+    if result.error.length == 0 {
+        var length: usize = 0;
+        while message[length] != 0 { length++; }
+        sem_require(vector_reserve(&result.error, length + 1));
+        copy(result.error.data, message, length + 1);
+        result.error.length = length;
+        result.error_offset = offset;
+    }
+    if !c.declaration_isolated { sem_evaluation_failure(c, result); }
+}
+
+fn sem_evaluation_failure(c: SemanticContext*, result: SemanticEvaluation*): bool {
+    if result == null || result.error.length == 0 { return false; }
+    if sem_ok(c) {
+        sem_fail(c, result.subject, result.error.data);
+        c.program.error_offset = result.error_offset;
+    }
+    return true;
 }
 
 fn sem_evaluation_begin(c: SemanticContext*): void {
@@ -343,7 +368,7 @@ fn sem_evaluation_pump_inputs(c: SemanticContext*, demand_roots: bool): Semantic
             if invocation.state.failed {
                 result.ready.failed = true;
                 result.ready.ready = true;
-                if !result.inferred { sem_fail(c, result.subject, invocation.context.error.data); }
+                if !result.inferred { sem_evaluation_fail(c, result, invocation.context.error.data, sem_get(result.subject).start); }
                 sem_require(work_finish(&c.queries, &result.ticket, result.inferred));
                 interpreter_invocation_dispose(invocation);
             } else {
@@ -353,7 +378,9 @@ fn sem_evaluation_pump_inputs(c: SemanticContext*, demand_roots: bool): Semantic
                         sem_evaluation_value(result.subject, invocation, invocation.context.result);
                         sem_evaluation_value(result.literal, invocation, invocation.context.result);
                     }
-                    if invocation.state.failed && !result.inferred { sem_fail(c, result.subject, invocation.context.error.data); }
+                    if invocation.state.failed && !result.inferred {
+                        sem_evaluation_fail(c, result, invocation.context.error.data, sem_get(result.subject).start);
+                    }
                     foreach(var &alias in &result.aliases) {
                         var original = sem_get(alias.original);
                         if original.constant || original.kind == KFunctionReference {
@@ -424,6 +451,7 @@ fn sem_evaluation_dispose(c: SemanticContext*): void {
         interpreter_invocation_dispose(&result.invocation);
         vector_dispose(&result.aliases);
         vector_dispose(&result.leaves);
+        vector_dispose(&result.error);
         index++;
     }
     vector_dispose(void*, &c.evaluation_jobs);

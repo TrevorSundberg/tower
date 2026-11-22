@@ -172,12 +172,11 @@ fn sem_evaluation_work_all(c: SemanticContext*, cloning: bool): void {
             sem_evaluation_aliases(c, &result.aliases);
             c.count += result.count;
             if result.error.length != 0 && sem_ok(c) {
-                sem_require(vector_reserve(&c.program.error, result.error.length + 1));
-                copy(c.program.error.data, result.error.data, result.error.length + 1);
-                c.program.error.length = result.error.length;
-                c.program.error_offset = result.error_offset;
+                sem_evaluation_fail(c, result.evaluation, result.error.data, result.error_offset);
             }
-            if c.count > c.node_limit { sem_fail(c, result.evaluation.subject, "Foundation component memory budget exceeded"); }
+            if c.count > c.node_limit {
+                sem_evaluation_fail(c, result.evaluation, "Foundation component memory budget exceeded", sem_get(result.evaluation.subject).start);
+            }
             sem_require(work_finish(&c.queries, &result.ticket, result.error.length == 0 && c.count <= c.node_limit));
             vector_dispose(&result.error);
             vector_dispose(&result.query_reads);
