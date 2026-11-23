@@ -84325,7 +84325,7 @@ therefore apply to the merged fixture without another build. Diff whitespace
 checks and preserved todo hash pass. No runtime release or sanitizer claim;
 ROOT's concurrent compiler/backend changes are outside this fixture's closure.
 
-### 2026-11-23 ï¿½ L1 counted interpreter text and package ownership (implementation, validation in progress)
+### 2026-11-23 — L1 counted interpreter text and package ownership (implementation, validation in progress)
 
 Bounded follow-up starts at published36ad337 after the required fast-forward pull,
 with no surviving L1 jobs. PID8356 performed the first successful caller/layout
@@ -84368,7 +84368,7 @@ caught an accidental internal/declaration offset substitution; corrected to the
 established declaration mapping. Its focused rerun and shared-Wasm validation are
 pending at this entry. No failed attempt is represented as a pass.
 
-### L1 interpreter/output/package storage gate ï¿½ focused completion receipt
+### L1 interpreter/output/package storage gate — focused completion receipt
 
 The final layout keeps Fast's existing hot offsets and appends only its frozen
 provider target. Native `core` passes on that layout, including156 graph/Fast
