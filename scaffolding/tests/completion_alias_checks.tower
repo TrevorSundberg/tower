@@ -1,0 +1,138 @@
+import tower;
+import generic_inspection_budget;
+import frontend_units;
+import .compiler.completion_types;
+import .compiler.syntax_session_types;
+import .compiler.syntax_types;
+import .library.vector;
+import .library.work_budget;
+import .library.work_pool;
+
+extern fn entity_release(node: void*): usize;
+extern fn frontend_modules_source(environment: void*, path: u8*, source: u8*, length: usize): bool;
+extern fn syntax_session_open_result(world: void*, environment: void*, source: u8*, module: void*, mode: u32, error: WorkBudgetError*): SyntaxSession*;
+extern fn syntax_session_lexemes(session: void*, listing: SyntaxHighlights*): bool;
+extern fn syntax_highlights_dispose(listing: SyntaxHighlights*): void;
+extern fn syntax_completion_enable(session: void*): void;
+extern fn syntax_next(session: void*): void*;
+extern fn syntax_destroy(session: void*): void;
+extern fn completion_begin_world(world: void*, environment: void*, source: u8*, length: usize, cursor: usize, spans: CompletionSpan*, count: usize): CompletionQuery*;
+extern fn completion_analyze_target(query: CompletionQuery*, active: void*, mode: u32, width: u32, files: u8**, lengths: usize*, count: usize): void;
+extern fn completion_symbols(query: CompletionQuery*): void;
+extern fn completion_end(query: CompletionQuery*): u8*;
+
+fn alias_consume(session: void*): void {
+    loop { var root = syntax_next(session); if root == null { return; } entity_release(root); }
+}
+
+fn alias_complete(world: void*, environment: void*, width: u32, source: u8*, wanted: u8*, budget: WorkBudget*): bool {
+    var error: WorkBudgetError;
+    var original = bits(void*, syntax_session_open_result(world, environment, source, null, 0, &error));
+    units_check(original != null, "Completion original session");
+    defer syntax_destroy(original);
+    alias_consume(original);
+    var listing: SyntaxHighlights = default;
+    units_check(syntax_session_lexemes(original, &listing), "Completion lexer spans");
+    defer syntax_highlights_dispose(&listing);
+    var spans: vector(CompletionSpan) = default;
+    defer vector_dispose(&spans);
+    foreach(var &lexeme in &listing.items) {
+        units_check(vector_push(&spans, {start: lexeme.start, end: lexeme.end, opaque: lexeme.opaque}), "Completion span admission");
+    }
+    var length = strlen(source);
+    var query = completion_begin_world(world, environment, source, length, length, spans.data, spans.length);
+    units_check(query != null, "Completion query admission");
+    defer completion_dispose(bits(void*, query));
+    var prefix: vector(u8) = default;
+    defer vector_dispose(&prefix);
+    units_check(vector_reserve(&prefix, query.from + 1), "Completion prefix admission");
+    copy(prefix.data, source, query.from); prefix.data[query.from] = 0;
+    var active = bits(void*, syntax_session_open_result(world, environment, prefix.data, null, 0, &error));
+    units_check(active != null, "Completion active session");
+    defer syntax_destroy(active);
+    syntax_completion_enable(active); alias_consume(active);
+    var pressure: WorkReservation = default;
+    if budget != null {
+        var snapshot: WorkBudgetSnapshot = default;
+        units_check(work_budget_snapshot(budget, &snapshot)
+            && work_budget_reserve(budget, 0, 0, snapshot.bytes - snapshot.used_bytes, &pressure), "Completion admission denial");
+    }
+    completion_analyze_target(query, active, 0, width, null, null, 0);
+    completion_symbols(query);
+    if budget != null {
+        var nodes = entity_store_count(compiler_world_store(world));
+        var components = entity_store_component_count(compiler_world_store(world));
+        var cause = query.program.resource;
+        units_check(query.resource_error == WorkBudgetError.Capacity && query.names.length == 0
+            && strstr(completion_end(query), "\"error\"") != null, "Denied completion exposes no successful suggestions");
+        units_check(work_budget_release(budget, &pressure), "Completion denial pressure released");
+        completion_analyze_target(query, active, 0, width, null, null, 0);
+        completion_analyze_target(query, active, 0, width + 1, null, null, 0);
+        completion_symbols(query);
+        return query.resource_error == WorkBudgetError.Capacity && query.names.length == 0
+            && query.program.resource.error == cause.error && query.program.resource.offset == cause.offset
+            && entity_store_count(compiler_world_store(world)) == nodes
+            && entity_store_component_count(compiler_world_store(world)) == components;
+    }
+    var accepted = query.resource_error == WorkBudgetError.None && query.program.pointer_bytes == width
+        && query.names.length == (wanted[0] == 0 ? 0 : 1);
+    if accepted && wanted[0] != 0 { accepted = strcmp(query.names.data[0], wanted) == 0; }
+    if !accepted { puts(source); puts(completion_end(query)); }
+    return accepted;
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    units_check(argc == 4, "Usage: tower-completion-alias-tests RESOURCE_ROOT WORKERS sample|checks");
+    var workers: usize = strcmp(argv[2], "1") == 0 ? 1 : 4;
+    var sample = strcmp(argv[3], "sample") == 0;
+    var bedrock: vector(u8) = default; var foundation: vector(u8) = default;
+    defer vector_dispose(&bedrock); defer vector_dispose(&foundation);
+    units_read(argv[1], "/bedrock.tower", &bedrock); units_read(argv[1], "/foundation.tower", &foundation);
+    var gate = work_signal_open(); units_check(gate != null, "Completion budget gate"); work_signal_post(gate);
+    var budget: WorkBudget = default;
+    units_check(work_budget_init(&budget, workers, GenericInspectionBudgetBytes, 1)
+        && work_budget_synchronize(&budget, gate, work_signal_wait, work_signal_post), "Completion world budget");
+    var world = compiler_world_create_workers(workers);
+    units_check(world != null && compiler_world_bind_budget(world, &budget), "Completion world admission");
+    var environment = frontend_modules_create();
+    units_check(environment != null && frontend_modules_bind_world(environment, world), "Completion module owner");
+    frontend_modules_configure(environment, "input.tower", argv[1]);
+    generic_inspection_baseline(world, environment, bedrock.data, false);
+    generic_inspection_baseline(world, environment, foundation.data, true);
+    var helper = "import tower; fn helper(secret: i32): void {} struct Point { x: i32; } var shared: i32 = 1;";
+    var answer = "import tower; fn answer(): i32 { return hidden(); } fn hidden(): i32 { return 20; }";
+    units_check(frontend_modules_source(environment, "lib/helper.tower", helper, strlen(helper))
+        && frontend_modules_source(environment, "helpers/answer.tower", answer, strlen(answer)), "Completion source capabilities");
+    if !sample {
+        var other = "import tower; struct Point { y: i32; } fn answer(): i32 { return 22; }";
+        units_check(frontend_modules_source(environment, "other/answer.tower", other, strlen(other)), "Distinct nominal module source");
+    }
+    var passed = alias_complete(world, environment, 4, "import tower; import lib.helper as helpers; hel", "helpers", null);
+    if !sample {
+        for(var width: u32 = 4; width <= 8; width *= 2) {
+            passed = alias_complete(world, environment, width, "import tower; import lib.helper as helpers; helpers.he", "helper", null) && passed;
+            passed = alias_complete(world, environment, width, "import tower; import helpers.answer as left; left.an", "answer", null) && passed;
+            passed = alias_complete(world, environment, width, "import tower; import lib.helper; he", "helper", null) && passed;
+            passed = alias_complete(world, environment, width, "import tower; import lib.helper as helper; helper.he", "helper", null) && passed;
+            passed = alias_complete(world, environment, width, "import tower; import lib.helper as helpers; print(helpers.he", "", null) && passed;
+            passed = alias_complete(world, environment, width, "import tower; import lib.helper as left; import other.answer as right; var p: left.Point; p.x", "x", null) && passed;
+            passed = alias_complete(world, environment, width, "import tower; import lib.helper as left; import other.answer as right; var p: right.Point; p.y", "y", null) && passed;
+            var source = "import tower; import helpers.answer as left; left.an";
+            passed = alias_complete(world, environment, width, source, "answer", &budget) && passed;
+            passed = alias_complete(world, environment, width, source, "answer", null) && passed;
+            var nodes = entity_store_count(compiler_world_store(world));
+            var components = entity_store_component_count(compiler_world_store(world));
+            passed = alias_complete(world, environment, width, source, "answer", null) && passed;
+            units_check(entity_store_count(compiler_world_store(world)) == nodes
+                && entity_store_component_count(compiler_world_store(world)) == components, "Repeated alias query releases temporary entities and components");
+        }
+    }
+    frontend_modules_destroy(environment);
+    units_check(frontend_world_clear(world) && compiler_world_dispose(world), "Completion teardown releases world");
+    var retired: WorkBudgetSnapshot = default;
+    units_check(work_budget_snapshot(&budget, &retired) && retired.live == 0 && retired.used_bytes == 0
+        && retired.used_lanes == 0 && work_budget_dispose(&budget), "Completion retires every byte and lane");
+    work_signal_close(gate);
+    if passed { puts("Module alias completion passed with full budget retirement."); }
+    return passed ? 0 : 1;
+}

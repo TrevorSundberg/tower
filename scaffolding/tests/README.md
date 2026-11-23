@@ -1693,3 +1693,25 @@ buffers, bytes, grants and lanes. The default storage suite includes these cases
 The normal-allocator `query-smoke` and lifecycle case17 retain separate worker
 overlap, execution and canonical-recompile controls; serial faults are not a
 thread-safety claim.
+
+### Integrated frontend and dependency selection
+
+For composed language acceptance, run the full `tower-frontend-tests RESOURCE_ROOT`
+and native `tower-lr-work-tests RESOURCE_ROOT bodies`, then `query-smoke` and
+`units` once each. Use the documented broad 900-second diagnostic deadline for
+the full runners; the historical 300-second timeout remains a separate result.
+The frontend's serial allocator and the native production allocator/worker host
+are distinct contracts, even where they share body fixtures.
+
+Both full body entries include all 42 lifecycle cases, the 32/64-bit continuation
+matrix at requested workers 1/2/4/8, canonical reparses and ordered diagnostics.
+The existing deferred-signature diagnostic is included in the full loop too.
+Do not repeat `type-smoke`, `type-errors`, `control-smoke`, `capture-policy` or
+individual lifecycle ranges alongside these full entries. `query-smoke` adds
+receipt/frontier/stale/cancellation and actual clone-overlap checks; `units`
+already includes `dependency-units`, so neither needs its included selector again.
+
+The existing `allocations` frontend selector checks metadata copies from the
+first published entity (ID zero), exact Memory/Capacity causes and staged cleanup.
+Owned cloning distinguishes published stage leases from new private nodes by
+their actual lease membership. Numeric ID zero alone is not a private-node test.
