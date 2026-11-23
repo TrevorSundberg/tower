@@ -1996,6 +1996,7 @@ export fn sem_bodies_pump(c: SemanticContext*): SemanticPumpResult {
             result.kernel.kind = CompilerKernelKind.Body;
             result.kernel.payload = bits(void*, result);
             sem_body_request(c, subject);
+            if !sem_ok(c) || !work_ok(&c.queries) { return SemanticPumpResult.Failed; }
             progress = true;
             state.next++;
         }
@@ -2186,6 +2187,7 @@ fn sem_body_failure(c: SemanticContext*, subject: void*): bool {
 // Registration never checks a body or waits for its producers. Executed stage
 // calls and ordinary body roots demand the same receipts and continuations.
 fn sem_body_request(c: SemanticContext*, subject: void*): SemanticBodyWork* {
+    if !sem_ok(c) || !work_ok(&c.queries) { return null; }
     var state = sem_bodies_begin(c);
     var result = sem_body_work(c, subject, state.kind);
     if work_find(&c.queries, subject, BodyQuery, 0) != 0 { return result; }
@@ -2198,11 +2200,13 @@ fn sem_body_request(c: SemanticContext*, subject: void*): SemanticBodyWork* {
     // not inspect the empty signature-only clone.
     if generic_body_pending(c.generics, subject) {
         sem_generic_body_request(c, subject, sem_declaration_query(c, subject));
+        if !sem_ok(c) || !work_ok(&c.queries) { return null; }
     }
     var discovery = sem_body_sources_request(c, result);
     var id = work_request(&c.queries, subject, BodyQuery, 0);
     sem_require(id != 0 && work_depend(&c.queries, id, discovery));
     sem_generic_body_dependency(c, subject, id);
+    if !sem_ok(c) || !work_ok(&c.queries) { return null; }
     var declaration = sem_declaration_query(c, subject);
     if declaration != 0 { sem_require(work_depend(&c.queries, id, declaration)); }
     var domain = convert(u64, SemanticWorkDomain.Compiler);
