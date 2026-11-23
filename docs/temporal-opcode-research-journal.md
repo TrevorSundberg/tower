@@ -91895,3 +91895,70 @@ has its own native receipt; the old-eac failures remain final-artifact adoption,
 not evidence that the newer implementation fails. Preserve resource mismatch
 logs and original measured identity; no entire merged-registry runtime claim or
 passing-case rerun. Current actual selected fixture/language closure unchanged.
+
+### D1 exact joined47433acf producer adoption (2026-11-23)
+
+Frozen mounted source18384965d21ee5f710b05db3623f13668d68c993. ROOT supplied
+matching portable/LLVM build47433acff17e8ca6b3fffb6ce9875a37b38aec08 includes A2
+unary and L1 known/named wrapper producers;5cb0b061 is reachable from that build.
+Verified original bytes then copied to fresh D1 adoption_47433acf_18384965 outputs:
+portable68cd7a8afee1bce0ea6d2bc2009fbe31fc3cb3a3ef3b2e79fae9deb3661364ad,
+LLVM9cef90394ef441ca8bb3d1f5a24626d27d1a81437508561aa9d9740fba6570c6.
+Old eac copies/defaults untouched. Test overrides select new bytes despite the
+existing eager default reads. No compiler build or new semantic/test logic.
+
+Actual exact anchored patterns in templates.pattern/portable.pattern/llvm.pattern
+select4T1 registrations,3portable aliases and3LLVM aliases; expected/completed
+names compare exactly. Each fresh process uses Node22.23.5 in tower-d1-ecs, Deck
+AMD Custom APU0932/Linux x64, CPU0,2,8GiB memory+swap, concurrency1, warm filesystem
+and fresh reactors,n1 per group. Shape: `env -u TOWER_INTERPRETER_ONLY
+TOWER_TEST_WASM=/home/deck/tower-agent-1/build/d1_ecs/adoption_47433acf_18384965/portable.wasm
+TOWER_TEST_LLVM_WASM=/home/deck/tower-agent-1/build/d1_ecs/adoption_47433acf_18384965/llvm.wasm
+/usr/bin/time -v -o GROUP.time timeout -k 5s 180s node --test
+--experimental-test-isolation=none --test-concurrency=1 --test-name-pattern=PATTERN
+playground/tests/FILE.test.mjs`. No body_continuation or unselected producer runs.
+
+T1 templates4/4PASS: original type_numeric_composition produces42/7/8/12/9 and
+one buffer(i32,2) nominal specialization; generic binding retains42, effect order
+99/1/99/2/2 and identity composition42/7/8; nested -(-2) produces8. Each positive
+retains Graph32/64, idempotent canonical roundtrip and actual LLVM Wasm original/
+canonical execution. Existing templates compare does not add Fast-mode evidence.
+Unsigned-1 rejects with Array length must be between 1 and 1,048,576, empty output
+and0steps. Original Tower fixtures and every assertion remain unchanged. This
+closes the four actual browser T1 adoption gates, not all ordinary type functions.
+
+Three alias/type-body registrations still fail in EACH mode,0/3portable and
+0/3LLVM, all attempted. Exact existing reproducers:
+- decltype_type_fields.tower SHA8b2cf17a518ae80ec6294b703301756310abd744829af2e112a521d5b7185b72:
+  `fn alias(T:type):type { return box(T); }` used by outer.inner. First Graph32
+  source in portable and Graph64 canonical setup in LLVM report Unknown type
+  constructor 'alias'. Their later Fast/canonical/LLVM executions are unstarted.
+- tests/stress/type_fields.tower / stress_sources.tower (hashes in focused manifest):
+  existing256-chain generator completes, then first Graph32 portable or LLVM32
+  compile reports the same alias error. Remaining widths/modes/execution unstarted.
+- semantic_invalid/inference_alias_invalid.tower SHA7a0e0f543d287bb868cf0d96456c1cb6dffff49e293362c5574359860d3eb0a9:
+  alias has an ordinary local before returning T. Graph32 and LLVM32 report Type
+  constructors currently support a struct and return; general compile-time
+  execution is not implemented. Required diagnostic remains Cannot infer type
+  argument 'T'; pass explicit type arguments.64-bit assertions are unstarted.
+These are now confirmed on the joined47433acf pair, not merely older-eac evidence.
+ROOT/L1 retain exact alias/type-body admission; no claimed deeper causal edge or
+resource-memory diagnosis. L1's separate numeric-only ordinary wrapper work and
+D2's body-continuation target-phase investigation remain untouched.
+
+Validation cost wall/CPU seconds/peakKiB: templates6.90/8.87/350964(exit0),
+portable3.80/4.45/212296(exit1), LLVM5.83/7.29/351332(exit1). All0swaps/timeouts/
+cancellations/skips; ten registrations completed, six failures preserved.12other
+template cases and85cases per compiletime process filtered, not counted as passes.
+No repeated aggregate, cap increase, relaxed error or compiler/runtime change.
+Documentation-only performance profiling is inapplicable; these are validation
+costs, not production speedup or useful compiler overlap measurements.
+
+Logs/manifests build/d1_ecs/adoption_47433acf_18384965; Node/host manifest
+5bfa51f298c918ca1cb54dac56f92092282d8db59a9687af45fb32819d78913b, resources
+3d17462f4d5d8bd7b4c385b8a70dcd0bdd870c68ff02f94bbfe38c0ec927d592. Tests
+SHA3193b83fd1301966a4c8677a08764d5b10bde31c390296e3aca1c1756edef136 / b0a680214e121511fc8225b6810a1063381e7c1c36c7ddff16b77c586af06b4d.
+All hashes verify after runs. Jobs drained/lock released; D2 corrected its brief
+owner-file overwrite after failed lock acquisition and confirmed it started no
+heavy process; corrected ownership receipt preserved before release. No sibling
+artifact/cache mutations. ROOT retains final joined-source release acceptance.

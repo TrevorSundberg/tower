@@ -4318,7 +4318,7 @@ invented per-case results. `T` references the finite unpassed worklist below.
 | source-location | O2 1P | D control P; unchanged host-only location/Unicode inputs. |
 | structs | O2 1P/11F | G8 12/12P; separate LL large struct reconstruction still F, not the same file/gate. |
 | targets | O2 25P | Unchanged host-only capability/selection mocks; reuse O2, not cross-target executable evidence. |
-| templates | O2 8F | G8 6P/2F; E7 independent known/mutable/type-error negatives P; four failures across current registrations (two compositions, invalid bound and valid negation). T1; remaining original six retain G8. |
+| templates | O2 8F | G8 6P/2F; E7 independent known/mutable/type-error negatives P. New47433acf pair closes all four T1 failures,4/4P on unchanged expectations; receipt below. Other registrations retain their previous source-bound receipts, not a new whole-file run. |
 | wasi-host | O2 4P | Unchanged host ABI/memory/FS fixture data; reuse O2. |
 | wasm | O2 6P/9F | G8 15/15P with exact revision/offset/provenance/cache/lifetime assertions. |
 
@@ -4333,7 +4333,7 @@ be omitted. These are commands for ROOT's final run, **not executed here**.
 
 | ID / owner | Exact unpassed scope and next command / prerequisites |
 | --- | --- |
-| T1 — L1, A2, ROOT adoption | Use the exact templates command below. L1's48499b3a identity-helper fix passes native32/64 and1/4, but E lacks it; use successor reactors. L1 found runtime numeric forwarding into a nominal constructor unsupported, documented in type-values.md: original positive numeric fixture remains unresolved as an acceptance contract, not secretly passed by direct/array substitutes. A2's published b84c6ba7 unary-argument repair and merged44d4dd48 have22-case/query-smoke native passes ([receipt](compiler_integer_arguments_b90b6f4e.md)); exact -(-2) browser adoption still requires successor matched reactors. Leave original fixtures/expected values to those owners. |
+| T1 — CLOSED four registrations on47433acf; ROOT final adoption | New matching portable/LLVM pair actually passes original numeric composition, generic binding/identity, unsigned-negative bound and nested negation,4/4 with unchanged expected outputs/diagnostics. Receipt below supersedes old unsupported-original-wrapper and unadopted-negation wording. Separate numeric-only ordinary wrapper admission remains L1-owned; the three compiletime alias/type-body residues still fail in both selected modes on this new pair. No broad type-function completion claim. |
 | T2 — L2 reconstruction, ROOT | Four separate cases `entity_pages`, `entity_tables`, `work_graph`, `work_resume`. [B1 receipt](semantic_port_four_bcd0e3ab.md), bcd0e3ab+7cfb6531 transport / pairE, all fail at32-bit unoptimized LLVM Foundation with `Compiler resource request failed`, before reconstructed execution/optimized64/native stages. Original32 Graph/Fast/canonical phases P. Saved canonical input plus incomplete typed-error propagation handoff belongs to L2 now; generic error is not proven Memory/Capacity. Use the per-case command below after producer/diagnostic repair. |
 | T3 — L2 reconstruction, D2 evidence | `node --test --test-concurrency=1 --test-name-pattern='^LLVM matches interpreter: struct values$' playground/tests/llvm-execution.test.mjs`. D2 full source / pairF freeze578437af remains failed/90s incomplete inside unoptimized LLVM Foundation. Small struct_reconstruction_small passes, not a full-case fix. Receipt/source/canonical hashes in journal “D2 bounded struct LLVM Foundation isolation”; input2ce1c260ebe11faeb2dc7524f1e0f239208caf8afc629962b800200e7052f285, canonical2f4602e298b100c6e93dc47798a515c118d12cf42e53da330a7faa88167c2601. |
 | T4 — CLOSED on LA; ROOT final changed-input adoption | LL's narrow/body package failures are superseded by LA's actual end-to-end passes, including independent load/execute. Preserve separately scoped evidence; no extra repeat for unchanged inputs. If final reactor/caller inputs change, selectors are `--test-name-pattern='^LLVM matches interpreter: narrow integers$'` and `'^LLVM matches interpreter: resumable control bodies$'` in llvm-execution.test.mjs, retaining all original profile/output/offset/canonical assertions. |
@@ -4485,3 +4485,43 @@ Reconciliationaaf01529 preserves selected test/host/fixture inputs. L1's newer
 5cb0b061 wrapper implementation and unrelated registered test additions are outside
 the eac executable and measured resource identity; their source/native receipts
 are not substitutes for this still-required joined-artifact adoption. No rerun.
+
+## Changed-producer browser adoption on47433acf (2026-11-23)
+
+Mounted source18384965d21ee5f710b05db3623f13668d68c993; supplied reactor build
+47433acff17e8ca6b3fffb6ce9875a37b38aec08, portable SHA
+68cd7a8afee1bce0ea6d2bc2009fbe31fc3cb3a3ef3b2e79fae9deb3661364ad and LLVM SHA
+9cef90394ef441ca8bb3d1f5a24626d27d1a81437508561aa9d9740fba6570c6.
+Both verified before/after; new isolated copies, old eac inputs/receipts preserved.
+Unchanged templates/compiletime tests select exactly4/3/3 in fresh bounded
+processes, concurrency1, no body_continuation or other file selections.
+
+| Selection | Pass/fail/unstarted registrations | Wall/CPU seconds; peak KiB |
+| --- | --- | --- |
+| Four T1 templates | 4/0/0 | 6.90/8.87;350964 |
+| Three portable alias/type-body residues | 0/3/0 | 3.80/4.45;212296 |
+| Same three LLVM residues | 0/3/0 | 5.83/7.29;351332 |
+
+All0skips/timeouts/swaps; excluded12 template registrations and85 per compiletime
+process are not passes. T1 retains numeric output42/7/8/12/9 and one nominal
+specialization, generic/effect/identity expectations, nested negation8 through
+Graph32/64/canonical and actual LLVM source/canonical execution. Unsigned-1
+retains exact array-bound diagnostic, empty output and0steps. No substitution of
+original positive fixtures or unsupported numeric-only ordinary wrapper claim.
+
+Remaining source-specific failures: decltype_type_fields gives Unknown type
+constructor 'alias' at Graph32 portable / Graph64 LLVM canonical preparation;
+parameterized-field256-chain fails Graph32 / LLVM32 compilation with the same
+error. inference_alias_invalid gives the earlier general-type-body capability
+error at Graph32 / LLVM32 instead of Cannot infer type argument 'T'; pass explicit
+type arguments. Later Fast/64/canonical/executable modes stop at these assertions.
+These now persist on the new producer pair; they cannot be dismissed solely as
+older-eac failures. ROOT/L1 own exact alias/type-body admission follow-up; existing
+Tower sources/hashes and full logs suffice, no duplicate producer implementation.
+D2 retains the separate old-eac body-continuation investigation.
+
+Evidence build/d1_ecs/adoption_47433acf_18384965/, exact patterns/expected names,
+TAP/status/time and artifact/host/resource/fixture manifests. All names matched;
+no source or expectation changes. Documentation-only runtime profiling is
+inapplicable; costs above measure adoption, not compiler speedup or scaling.
+Jobs drained and owned heavy lock released before reconciliation/publication.
