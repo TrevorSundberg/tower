@@ -957,7 +957,6 @@ export fn backend_lower(b: Backend*, root: void*, functions: void**, count: usiz
             }
             if public {
                 var spelling = foreign_symbol(b.foreign_profile, backend_name(n));
-                convention = foreign_llvm_convention(spelling);
                 var error = foreign_name_error(spelling);
                 if error[0] != 0 {
                     b.source_offset = n.start;
@@ -966,6 +965,7 @@ export fn backend_lower(b: Backend*, root: void*, functions: void**, count: usiz
                     vector_dispose(&name);
                     return false;
                 }
+                convention = foreign_llvm_convention(spelling);
                 backend_text(&name, foreign_name_text(spelling));
                 foreign_name_close(spelling);
             } else {

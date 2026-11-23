@@ -61682,3 +61682,100 @@ no new contexts, window changes or relaunches occurred. User todo.txt remains
 unstaged and unchanged. Final combined validation, useful scaling, remaining
 storage/ownership work, bootstrap/browser generations and atomic publication are
 open. No new runtime, main or Pages publication is claimed.
+
+### B2 adoption of the registered overlap and symbol policy checkpoint
+
+After all owned jobs drained, verified root97b10daa's complete bundle0d75a0d4
+against the sole60741 prerequisite and merged it as c2250192. This adds D1's
+existing-runner calibrated overlap selector and D2's exact observed bootstrap
+symbol policy; B2 inspection and host declaration bodies remain unchanged.
+Reviewed the complete three changed Tower paths. Wrong-unit/suffix and
+check-only allocation hooks remain rejected, while the interpreter's Wasm table
+import is restricted to its target contract. No blanket work_* import allowance.
+
+First attempted to build the exported-main symbol test as an ordinary executable;
+the compiler correctly failed with duplicate main. Retained
+build/b2_bootstrap_symbols_checks_build.log (exit1,1.459803265wall/1.651394CPU/
+198228KiB). Read the established build_tools contract, then compiled --library
+and linked --link-executable with the existing guest-host-library object. This
+passed1.224953565/1.424719/198044; symbol regression passed.000787530/0/1356.
+The zero CPU sample is timer resolution, not evidence of zero execution cost.
+
+The registered native LR runner rebuilt35 targets38.219269674/143.518666/840476
+following merge checkout timestamps. Its backend-overlap-calibrated selector
+passed8.045603767/10.337435/522752. Measured existing serial frontend baseline
+4519670614ns, leaving both configured waits at30000000000ns; backend1 entered
+190809ns after frontend1 left while frontend2 remained held on a distinct worker.
+Exact object oracle and cleanup passed. This validates the actual shared runner
+registration, not merely the prior ignored helper. Historical instrumentation
+failure and pending current TSan/browser/generation gates remain recorded.
+
+### B2 foreign-name error ordering in LLVM lowering
+
+Static audit found a concrete failed-allocation path: foreign_symbol may return
+null, but lowering read foreign_llvm_convention(spelling) first; that helper
+immediately dereferences m.function. The existing foreign_name_error safely
+accepts null and returns a fixed allocation diagnostic. Moved the convention
+read after that existing error/cleanup/return branch. No descriptor layout,
+foreign ABI, allocator, successful name spelling, ownership or scheduler changed.
+No deliberate invalid-memory execution was used to reproduce the known bad read.
+
+Public smallest lowering leaf passed3.293205788 wall/3.617442 CPU/296068 KiB;
+affected native object and two executables rebuilt6.992890516/6.523142/409808.
+Reused existing fixtures rather than adding a check that mirrors the reordered
+statement. Native backend API (including foreign-name/reference and platform-link
+checks) passed before.024690301/.024492/71508 and after.024283271/.024160/70284.
+Full native backend-unit selector passed before51.196057478/74.826252/1304124 and
+after52.725787235/76.803333/1296436. It covers widths4/8, serial and four-worker
+object equality, streaming at budgets1/2/4 with distinct-thread overlap, deterministic
+invalid-target/front-end failures, retry, cancellation and shared ownership cleanup.
+Logs build/b2_foreign_api_{before,after}.log and b2_foreign_order_{before,after}.log.
+
+These are n1 warm, nonquiet samples on the previously recorded12-CPU/24GiB
+KinmenB Docker/public-bootstrap/LLVM19.1.1 setup. The mixed suite includes serial
+and parallel work but is not a separate scaling ratio; ~3% wall/~2.6% CPU variation
+does not establish regression or speedup. Peak RSS is about1.24GiB in both runs,
+with all fixture ownership checks passing. The existing broad measurements retain
+their earlier exact source scope; do not relabel them as isolated cost evidence
+for this statement order.
+
+Supported address instrumentation is rebuilding on the frozen current sources.
+No new sanitizer result is claimed yet. The foreign descriptor still uses raw
+alloc, outside the current compiler-buffer denial fixture; this step has no
+runtime allocation-denial receipt for that null path. Remaining foreign text
+append failures, linker consumer checks and allocation-independent diagnostic
+fallbacks remain explicit audit gaps, separate from preventing this dereference.
+
+### B2 current backend memory/race instrumentation checkpoint
+
+The frozen c2250192 plus foreign-result ordering delta completed the existing
+address build67steps73.386952755 wall/220.046403 CPU/846132 KiB. With
+ASAN_OPTIONS=detect_leaks=1:halt_on_error=1, backend API passed
+.064411792/.058590/102824 and registered calibrated overlap passed
+61.521654749/82.542652/1078820 without address/leak findings. The existing serial
+frontend took33856215410ns; only its corresponding frontend wait uses that bound,
+while the backend handoff retains30000000000ns. Exact objects/distinct threads
+passed. Logs build/b2_foreign_order_address_{build,api,overlap}.log.
+
+The existing thread cache rebuilt the entire affected closure67steps
+48.629440370/170.074846/847060 using the public bootstrap and TOWER_SANITIZER=thread.
+Copied unchanged executables plus the same process observer to owned ignored
+build artifacts and verified Docker/WSL SHA256 equality:
+backend9f45c59096e77560460594cee4b993129f58842422a43f5e11bdf48742a02061;
+LRe999798b8e1eb5aac877ca533387c1f482e4dfc9fb2cf7929d32f5ded6b5200a;
+observeraefd1f3a44f58a0ac4b15cf12cd221918d813901eb9ad3e9e34750609a4a2fea.
+Used ordinary Ubuntu WSL usertrevo, kernel6.18.33.2-microsoft-standard-WSL2,
+LLVM19.1.7 runtime (Docker buildLLVM19.1.1), taskset12-23,
+TSAN_OPTIONS=halt_on_error=1 and an unchanged600-second enclosing timeout.
+No container personality/security change or deliberate invalid-memory/race probe.
+This is a separate runtime host, not matched Docker performance evidence.
+
+TSan backend API passed.144973101/.099667/102788. Registered calibrated overlap
+passed151.754289710/203.474643/1277568 with no TSan finding. Measured serial frontend
+84347311303ns became its frozen frontend wait, backend handoff remained30s.
+First backend entered245737ns after first frontend left; the existing exact-object
+and distinct-thread oracle passed. All children drained. Logs
+build/b2_foreign_order_thread_{build,hashes,wsl_hashes,api,overlap}.log.
+These positive supported instrumented checks cover this checkpoint, not all
+compiler races, future semantic receipt layouts, unsupported UBSan or external
+LLVM/system libraries. They do not erase the historical failed/timed-out runs.
