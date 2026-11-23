@@ -60487,3 +60487,51 @@ and separate-provider hazards; no competing implementation. Goal remains active:
 whole current sanitizer/stress, clone-overlap correction, further checked owner
 allocation/dispatch work, clean final public/native/browser/generation and leased
 atomic source/Pages publication with hosted verification are not complete.
+
+### D2 proposed Work API standalone-provider audit (2026-11-23)
+
+Clean main99a3bb44, no owned compiler process, D1's live shared lock respected.
+Read and hash-verified A2 review patchdbe38d884f and mechanical-import
+patch4627da948e; `git apply --check` succeeds without applying either. Current
+semantic_values component-cap failure remains an owner-reported failed check,
+not a reason to claim the proposed API closure accepted. Reviewed complete graph,
+pool, nominal-view and API deltas and the actual native/serial/WASI target callers.
+
+Two actionable composition gaps were routed through D2 status. First, exported
+default-opening pool wrappers pull `work_kernel_execute` into the shared dispatch
+provider. Existing work_buffer_faults, work_arena_faults and work_budget_allocation
+link the serial object explicitly but have no such callback. Keep convenience
+wrappers caller-side or otherwise preserve the exact callback contract; no dummy
+callback was introduced. The approved one-line serial-provider composition fix
+is included in A2's package, but does not itself solve that dependency.
+
+Second, standalone tools/link_wasi links its own object and guest runtime, not
+compiler/units/entities. Replacing backend/wasm_link_jobs' implementation import
+with graph API leaves this tool without a graph provider. Proposed correction is
+one explicit library.work_graph import in the existing tool. Reader native,
+portable-WASI and shared-Wasm fixture entries have the same graph issue and
+different callback/provider composition; D1/B2 own those edits. All findings
+remain source review pending exact owner package, smallest compile, actual
+undefined/export checks and final links. No competing scheduler or new object.
+
+Read current literal classification/numeric lowering and floating-point contract
+for A1's proposed semantic_literals boundary. Existing float_text exact-bit and
+malformed oracles, floating interpreter/fast/canonical/package/worker checks and
+narrow/negation selections can validate the unchanged semantics. The independent
+LLVM reference checks arithmetic, not decimal parsing. Preserve the single nominal
+FloatParseStatus and borrowed token lifetime. No literal helper has been adopted.
+
+This documentation/source review changes no executable path, so runtime profile
+and sanitizer reruns are inapplicable. Existing measured receipts are unchanged.
+Read-only searches with guessed missing paths returned2 and were corrected using
+the file inventory; no failed search became passing validation. A status heading
+briefly estimated02:53 while actual clock was02:50:36; the append-only status
+explicitly corrects it. These narrative labels are never execution or lease data.
+Disk138GiB free, approximately9.1GiB RAM available at the observed check. No cleanup,
+source adoption, publication request or lease acquisition during this review.
+
+Prepared external one-import linker patchd88068ca003d297ac7e604469603e691068f21c6bb31225136c473488bc998c0;
+it passes apply-check and remains unadopted. The first handwritten hunk had an
+incorrect count and failed parsing at line11. Preserved that draft, corrected
+only the counts and reran with fail-fast shell handling; the initial shell's
+later zero exit is not evidence that its failed apply-check passed.

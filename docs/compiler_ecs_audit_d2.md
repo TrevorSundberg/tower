@@ -1821,3 +1821,42 @@ an unwanted work_kernel_execute dependency for unrelated serial fixtures; this
 concrete link hazard was routed to A2/root. No dummy callback or alternate pool
 was added. Final current instrumentation, clone-overlap correction, portable/
 browser/generation and leased atomic publication remain open.
+
+### Work API proposal: standalone provider review (2026-11-23)
+
+Reviewed against clean `99a3bb44`, with no D2 build active and D1 holding the
+shared heavy-process slot. A2's review patch SHA256
+`dbe38d884fb84885904039573c8231b9baf4d25d1dc0a63b54e349a596061441`
+applies cleanly but remains **unadopted**: its public aggregate semantics build
+still fails the predecessor's component limit. The separate import-only patch
+is `4627da948ed7236785007f104a51be7c5b3aa1e186ec561f3079efe109a8abdc`.
+This section records source findings, not compiled or measured acceptance.
+
+| Reviewed path or boundary | Storage/world/scheduling/ownership conclusion and disposition |
+| --- | --- |
+| `library/work_graph.tower`, new `work_graph_api.tower`, `work_graph_types.tower`, `work_view_types.tower` | The complete proposed graph delta retains a coordinator-owned derived index and revision/profile/dispatch tickets. Nine physical `WorkBuffer` owners back distinct nominal borrowed views; ordinary `vector` cannot dispose those views. `work_cycle` still returns a caller-owned ordinary vector. All 27 API declarations match exported operations, including `work_fail`. `units/entities` supplies the implementation in compiler artifacts; standalone clients need their own explicit provider. No new semantic authority, worker-safe mutation or alias promise is established. |
+| `library/work_pool.tower`, new `work_pool_api.tower`, `work_pool_types.tower` | The complete proposed pool delta preserves nominal slots through ordinary aliases and exports both named-entry wait/complete operations. Slot storage is budgeted after host-capacity clamping; close drains before disposing it. Busy batch entry does not acquire another caller's outstanding work. However, exported default-opening wrappers reference `work_kernel_execute` from the shared provider even for callback-only or transport-only clients. Actual final link closure is required. |
+| `host/work_dispatch.tower`, `cmake/TowerWorkHost.cmake` | Existing native/serial/WASI provider selection is retained. The approved serial import adds dispatch beside portable transport in the existing object, preventing native archive extraction. It also exposes the unresolved default-callback requirement. No new transport, object or dummy callback is proposed. |
+| `tools/link_wasi.tower`, `cmake/TowerRuntime.cmake` | This tool compiles one standalone object and links only its guest runtime. It imports `library.entities`, not the compiler's entity unit. After the proposed backend graph API swaps, its graph calls have no implementation provider. One explicit `library.work_graph` import in this existing tool is the scoped proposed correction; pool dispatch and its existing default callback already belong to this closure. |
+| `tests/work_pool.tower`, `tests/target_once.tower`, `cmake/TowerWorkTests.cmake` | Their separately linked dispatch object requires API-only clients; A2's mechanical edits do that. Shared/profile fixtures importing implementation plus dispatch in one Tower import closure do not create the same separate-object duplication. True standalone graph fixtures retain implementation imports and add their nominal types and memory boundary. |
+| `tests/work_buffer_faults.tower`, `tests/work_arena_faults.tower`, `tests/work_budget_allocation.tower`, `cmake/TowerWorkPolicyTests.cmake` | All three link the serial object explicitly and define no kernel callback. Thus the proposed exported default wrappers introduce a concrete dependency risk in existing supported fixtures. Routed to A2/root for wrapper placement and actual symbol/link checks; no fabricated kernel was added. Their single-owner allocation checks remain distinct from concurrency sanitization. |
+| `tests/wasm_link_reader.tower`, `wasm_link_job_checks.tower`, `wasm_link_reader_native.tower`, `wasm_link_reader_wasi.tower`, `wasm_link_reader_threads.tower` | All reach backend graph API clients through the reader's ordinary import closure and need an explicit graph provider. The job fixture still imports the pool implementation; native adds dispatch and an existing default callback, portable WASI has neither dispatch nor default callback, shared-Wasm adds dispatch but no default callback. Preserve callback-only semantics and exact native/WASI link contracts; fixture-owner changes are pending. |
+
+The literal-boundary caller review reads the current `semantic_support` literal
+classification and the full numeric literal body in `semantic_values`, alongside
+the floating-point contract. A1 owns the proposed helper; D2 will only route an
+accepted exact helper through the same five existing interpreter/evaluation
+providers. Keep borrowed token lifetime, signed-minimum integer spelling, direct
+f32/f64 rounding, signed zero, and exact Invalid/Overflow/DigitLimit diagnostics.
+`FloatParseStatus` must retain its one nominal definition in `float_text`.
+
+Existing independent checks are available: `float_text` has exact rounding/
+subnormal/signed-zero/malformed oracles and 512 seeded round trips;
+`floating_checks` compares ordinary and fast interpreters, canonical Foundation,
+verified packages, 32/64-bit targets, worker outputs and rejected conversions.
+The execution runner already selects `floating`, `floating-oracle`, `narrow` and
+`negation`. `float_reference` generates independent hardware LLVM arithmetic
+checks; that is an arithmetic oracle, not an independent decimal-parser oracle.
+Reuse these after the exact candidate and provider closure pass, plus the frozen
+small/large compilation profiles. No runtime change was made during this review,
+so new performance or sanitizer measurements are inapplicable to this documentation.
