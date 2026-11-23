@@ -87398,3 +87398,47 @@ published hash recorded in D2 status. ROOT owns deployment.
 L1 reconciliation complete: implementation `041912d1` merged complete published `31e16e9e` history as `37b9c8d25729b272c55926d490a305fa078c28b7`, without conflicts or changes to L1's backend hunks. The required ff-only pull reported divergence before this history-preserving merge. Incoming ROOT capacity bootstrap SHA256 `768a0cdff2d8a903d2de64b137671412a9c19f42784c99df626b64bcf911c138` and A1 semantic inputs were genuinely changed, so dependency-aware native targets rebuilt once (135.32s wall,217.62s CPU,1061912KiB peak). Merged541-boundary denial, exact backend/codegen objects, backend-ir, WASI backend-consumer object, both selected Foundation fixtures raw/passes/reference, and package filters `swap`/`i64_i32_high`8/8 all PASS actualexit0. CTest registration `tower-storage-backend-import` passed. Frozen source manifests agree before/after each run; no other clone/cache touched.
 
 Merged compiler SHA256 `d6b0f6c077b6d962ad85f82d018f8d21dea0d185e362c8bf9965802dd4ad9a86`, backend object `a6f03ff78b12d9cd5041a289e982b176684095e34f6f5df9ae59cbb72e595917`, portable backend consumer `1552a79e83239fbe6de2cbb4260540970593a4efd0944a55789b368b4862f66d`. Canonical/execution hashes and ledger counts remain the same as above. Merged healthy jobs1 wall1.28s/CPU1.26s/191828KiB and jobs4 wall1.07s/CPU1.32s/208544KiB are new-input observations, not substitutes for the original matched before/after pair. Full receipt `C:\Sandbox\build\codex_ecs_20261122\L1\backend_admission_receipt.json`; exact logs `backend_admission_merged` and `backend_admission_merged_packages`. All owned jobs drained; todo unchanged. Remaining limits remain explicit: canonical payload-vector accounting, LLVM-private allocation accounting and integrated browser/sanitizer/generation/publication gates are not claimed by this bounded admission batch.
+
+### 2026-11-23 A2: static b0 release-artifact/provenance review
+
+Direct user replacement task; no instrumentation retry after the reported service
+rejection. Previously started A2 fixed-build child was already exited0 when
+inspected; old failed/passed logs and +1 frontend_modules/+8 storage_main WIP
+remain preserved and excluded from this documentation commit. The final current-
+source sanitizer gate stays OPEN. No compiler, target/browser program, fault
+probe, archive extraction or network probe ran for this static review.
+
+Reviewed ROOT_release_artifact_audit_b0/project.json, files.json, artifacts.sha256
+and identity.txt against packaging/consumer source and published Git objects.
+Actual project SHA256748997326a3a385e7f31a2bd5d0150d51df492202749493dc8669699620d5ef9
+matches both metadata manifests. All532 non-generated embedded files match exact
+b0f507c6ad4bdaec4a3b87ddd943e647ba393eaa blobs; no required compiler/backend/host/
+library source omitted.24 unique units,3 recipes,11 referenced support files and
+3806 export/link entries have consistent names, relative paths and no duplicates.
+Eight stale/unreferenced directory members are excluded by the existing explicit
+recipe-based deployment copy. Actual support archive members/reactor payloads
+were not supplied, so their hashes/closure remain assertions, not independently
+rehash-verified binaries. The25 generated entries still need original build
+input identities. Initial Windows-default decoding falsely mismatched four
+non-ASCII texts; explicit UTF-8 yields532/532; both comparison CSVs are retained.
+
+Checked public bootstrap53 payload hashes plus executable/manifest/checksum
+identity;768a0cdf/5b6f9a0f/bd4639d8 match the separate complete native252b424a
+receipt. ROOT2013 clean adoption, b0 browser build, D2 shared receipt and the
+failed first edited browser generation remain separate. No native fixed point,
+wrapper0 or metadata match is promoted to browser/standalone release acceptance.
+Remaining static publication requirements include support member/object/compiler
+provenance, seven cross-target input hashes, mandatory threads profile/artifact,
+complete builtin/license/deployment inventory and source/build reachability.
+Actual shared retirement/IDE completion failures and both edited-generation
+acceptance remain pending their owners; Pages6f142bef runtime remains old.
+
+Full concise mapping: docs/compiler_release_artifact_review_b0.md. External raw
+static evidence: A2/cache/logs/release_artifact_review_b0. Read-only Git fetch then
+required pull reachedce4f7240. A concurrent upstream storage backend selector
+conflicted with old WIP; retaining both selectors resolved it without changing
+assertions. Old+1/+8 edits remain unstaged; autostashba4408aa retained. Only this
+receipt/journal is staged. The reviewed packaging sources match b0 exactly;
+later A1/L1/B1/L2 compiler changes are outside this frozen receipt. No active A2
+build/Git child. Documentation-only: runtime profiling is inapplicable. ROOT
+retains deployment/final runtime gates; no runtime published by this task.
