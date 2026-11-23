@@ -409,7 +409,7 @@ fn sem_evaluation_pump_inputs(c: SemanticContext*, demand_roots: bool): Semantic
         index++;
     }
     if !sem_ok(c) { return SemanticPumpResult.Failed; }
-    if c.workers.count == 0 { sem_require(sem_workers_open(c)); }
+    if c.workers.count == 0 && !sem_workers_open(c) { return SemanticPumpResult.Failed; }
     var batch: vector(SemanticEvaluation*) = default;
     defer vector_dispose(&batch);
     sem_require(vector_reserve(&batch, SemanticPreparationWindow));
