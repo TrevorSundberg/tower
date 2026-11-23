@@ -92414,6 +92414,101 @@ The sole incoming Tower source, tests/frontend_units_profile.tower, and its
 compiler-workers transport/receipts are excluded from the9caa review. All42
 reviewed Tower paths remain unchanged; documentation diff/coverage checks pass.
 No new audit/runtime pass or current-compiler claim follows from this merge.
+### 2026-11-23 A1: allocation-free backend response retains first cause/offset
+
+Implemented against published c93ddaabdd961c4be27d825ae4e3bf59575ec303.
+The original response-denial control exits134 at the independent exact JSON
+assertion: fallback omitted errorOffset and collapsed Invalid/Stale/Exhausted.
+Preserved the executable, source identity, logs and exit. Normal backend responses
+and matched healthy reconstruction were captured before changing production.
+
+Only production file backend/session.tower changes. The existing session factory
+reserves a bounded tail in the SAME allocation, sized from all actual fallback
+prefixes plus the target usize bit count and closing/NUL bytes. Descriptor layout,
+public signatures and result keys remain unchanged. All actual owners (source
+session and tests) use that factory; no externally sized/stack session producer
+exists. The tail follows the session's lifetime and is freed by its existing close.
+No second allocation, global buffer or new error framework. Reporting copies only
+static valid JSON prefixes, writes the unsigned offset without allocation, then
+publishes the complete NUL-terminated response. Existing Memory/Capacity/Busy
+messages stay unchanged; all six typed categories now retain resourceError.
+The original backend.error_offset outranks a later caller's offset. Without a
+backend/typed receipt the provided ordinary-error offset is retained. Response
+failure never overwrites the original backend receipt.
+
+Consumers reviewed: backend_source_error/import/compile and successful candidate
+commit, host/llvm_worker result lifetime, and llvm-host.mjs JSON.parse/moduleDiagnostic.
+The existing response_fallback marker still prevents candidate Foundation
+publication; prior source.foundation ownership is untouched. No source_session,
+shared formatter, semantic type, parser, or reconstruction producer was edited.
+Numeric JSON and current transport shape are unchanged; native full-usize text
+is tested, not a new JavaScript arbitrary-precision API.
+
+New Tower backend_response_checks/native tests use the existing serial instrumented
+allocator through typed callbacks. Registered CTest tower-backend-response reuses
+the production session provider/native LLVM libraries. The existing Linux test
+clock transport was extracted unchanged to backend_clock_native for both native
+fixtures, rather than adding a fake clock or attaching test instrumentation to
+normal source-session execution. No generic storage-runner change remains.
+
+Checks: real first/partial response-growth denials for Capacity=1, Invalid=2,
+Memory=3, Stale=4, Busy=5 and Exhausted=6; offsets0,73,4294967295 and native
+usize maximum18446744073709551615. Independent complete expected JSON strings
+include closing brace/NUL; not the production formatting helper as oracle.
+Repeated failure and failed success-response serialization preserve first cause
+and owning offset, including a prior ordinary failure. Fresh response denial
+records Memory only if first. Seventy-five response-denial points plus initial
+session allocation denial pass. Every response-denial assertion checks exact
+allocation-call count: no fallback allocation after denial. Independent sessions
+retain their own result, healthy escaped-error/success responses recover, and
+final instrumented buffers are0->0. Native reserved tail is169B; no additional
+allocation count. These are serial fault tests, not threaded instrumentation.
+
+Three focused CTests pass: backend-response, backend-source-worlds and
+backend-source-recheck (1.44s total). The latter preserves a real prior valid
+Foundation result through frontend Capacity and checks retry/zero ownership.
+After extra first-error/creation tests, only the changed response selector was
+rebuilt/rerun; it passes0.02s. Final one-million healthy-response control is
+0.02wall/0.01CPU seconds,50760KiB RSS; denial control0.02/<0.01/50576. The earlier
+stack-based setup microprofile is retained but is NOT a matched factory-lifetime
+comparison. No performance claim is inferred from sub-clock-resolution numbers.
+
+Matched healthy production control uses the SAME518B struct_reconstruction_small
+input, wasm32 target, unoptimized LLVM Foundation, exact public grammars/runtime,
+production allocator and real source-session/world. Fresh processes, warmed file
+cache, n1 each, KinmenA Windows11/Docker Linux x64 LLVM19 Release, CPU12-23/24GiB.
+Wall/CPU seconds and peakRSSKiB before -> after:
+
+| Workers | Before | After |
+| --- | --- | --- |
+|1|.98/.90/264076|.94/.87/265000|
+|4|1.37/1.49/284456|1.38/1.50/283324|
+
+All four outputs are byte-identical126234B, SHAcb88d45ee1fa1a403e8811055a153a1ada6d17cb80ed8e2c40be62d0ad603654.
+Independent public-bootstrap interpretation with wasm32 target prints exact0.
+World peak charged bytes remain202885396/202881652 (workers1/4), and final
+bytes/grants/lanes are0 in every run. The existing ledger excludes raw session
+and LLVM allocation; instrumented buffer cleanup above covers the response owner.
+No material observed regression or speedup/scaling claim from these n1 controls.
+
+Public bootstrap768a0cdff2d8a903d2de64b137671412a9c19f42784c99df626b64bcf911c138;
+no override. Dependency-aware provider/source targets compiled and linked. Final
+response runner45bd129554b594cdc9b182e34273d706f3f742c04b9fa9c2b796780edc742be4;
+source runner8fe8601aeb23747c7cb9115036df0f1fbedf95d92a1dfa90581d1e8d92ed7e08;
+production file036919cfc78a127979a24d662f3ab11f65252aec7963de37c89838503ba780b5.
+Commands, timing, exact outputs, failures and hashes are preserved in
+C:/Sandbox/build/codex_ecs_20261122/A1/cache/backend_response_c93d and adjacent
+backend_response_*.sh transport scripts. Setup failures (array literal syntax,
+opaque-handle import conflict, missing direct import, native clock link) remain
+logged. The first inline comptime-buffer design was rejected by public bootstrap's
+string-read capability; the final factory sizing uses ordinary runtime code,
+without private compiler adoption or a capacity increase.
+
+Same thread01a2046f-fec2-7cd1-bdc9-0a0c6127c6f7, actual Codex PID14544; initial
+free disk340714508288B, no interrupted jobs. All jobs now drained; todo unchanged.
+No browser/reactor, full compiler/generation, sanitizer or hosted run is claimed.
+Those remain ROOT's integrated milestone; L2's large reconstruction limit is
+unchanged. Normal complete-history reconciliation/push follows.
 ### D2 optional browser retirement trace transport (2026-11-23)
 
 Frozen publishedc93ddaabdd961c4be27d825ae4e3bf59575ec303. Read existing diagnostic,
@@ -92729,6 +92824,53 @@ Documentation-only result; no runtime patch/policy adoption, new rebuild or
 passing-test repeat. Original error remains precise evidence for its frozen
 candidate, not a claim that the rejected patch was tested on later main.
 
+### D2 actual optional-trace success and exclusive-output acceptance (2026-11-23)
+
+Frozen published7e46f0250a790023130b05292759716eb31ce133, same D2 thread/PID3157620.
+Existing browser diagnostic/worker boundary/docs and installed Playwright page
+tracing implementation reviewed; no source download, runtime or strict-worker
+edit. Original023d1dee corrected admission now actually ran: all5workers closed,
+zero targets, but5s trace completion timeout/exit1 preserved. Page CDP session
+candidate returned a valid trace once, then another verification missed completion
+after Tracing.end acknowledged. Endpoint change alone was not treated as proved.
+Final driver starts after page navigation settles and before any worker creation;
+new nonempty-event/clock-marker assertions, explicit end/stream events, clock
+correlation and raw buffer statistics remain browser-transport logic only.
+
+Final329fc2e7768a56149577a00d803bfa7087d62e9feff164b1908dd2099cd89b5f
+actually passes:5Playwright closes/5CDP destructions/0live targets, original30s,
+933411bytes/3908events/40category-name pairs, complete JSON/error[]/dataLoss=false.
+Trace SHA69740f5307dbd663fb7af984056492c1f0ba852f45f8e14c89c5b0cac0736a05.
+Matched native clock marker717720627910us/LINUX_CLOCK_MONOTONIC and external
+1795469432693.5413–1795469432694.9778ms bracket:~1.437ms alignment uncertainty;
+all5initialization intervals checked inside external capture. Actual buffer writes
+282624/4194304 plus53248/262144bytes; zero overwrite/discard/full/loss counters,
+no periodic usage sample. This is not a whole-browser memory cap. Category query
+still[] despite real events; requested-category admission must not depend on it.
+Five native initialization events and32postMessage events are available; none of
+PrepareForShutdown/PerformShutdown/WorkerThreadTerminated/ChildThreadTerminated
+was captured. No native-join or inspector-retention remedy inferred. B2/ROOT owns
+production ownership/release; this accepts only the trace transport slice.
+
+Explicit nonempty-path negative returns EEXIST/exit1, no trace start,5closes/0targets,
+cleanup complete; trace hash unchanged. Earlier empty-path negative retained too.
+All fixed bounds remain (4MiB requested buffer/16MiB file/5s trace I/O/30s retirement).
+Existing159.0.8154.6/1255 browser SHA24eb0a14/Playwright1.65.1/Node22.23.5,
+tower-d2-ecs CPU0,2/8GiB; no compiler build/Wasm execution. Work argument only
+read/hash a1f9a66e. Command shape: `PLAYWRIGHT_BROWSERS_PATH=/tmp/tower-home/.cache/ms-playwright TOWER_WORKER_TRACE=.../NEW.trace.json /usr/bin/time -v -o NAME.time timeout --foreground --signal=KILL 120s node playground/scripts/diagnose-worker-retirement.mjs no-wasm build/d2_ecs/browser_retirement/frozen_2013/tower_work_tests.wasm .../NAME.json`.
+Warm installed files/fresh process,n1 each. Wall/CPU/peakKiB: original completion
+failure6.43/1.50/125676; intermediate page capture2.33/2.23/137368; later failed
+pre-navigation capture6.67/1.74/125188; empty-path negative1.53/1.57/125144;
+final capture1.45/1.46/128852; nonempty negative1.79/1.79/125412. All0swaps.
+No runtime speedup or aggregate-tree RSS claim; failed waits/startup capture differ.
+
+Full checked paths/clock/buffer/event inventory and all failed/success/negative
+receipts: build/d2_ecs/worker_trace_7e46f025; detailed extension in
+browser_worker_boundary_48db0f27.md. Actual JSON parsing/assertions, nonempty-file
+hash preservation, full changed-file review, Node syntax/diff checks pass. Strict
+scriptbc41120d/coordinator415a3888/boundary58b90415 unchanged. No broad matrix,
+production-worker acceptance, source download, sanitizer/generation/deployment.
+All owned jobs/browser drained, lock released,127GiB disk/9.8GiB RAM, todo preserved.
 L1 alias merged acceptance: implementationb78af3aa preserved through
 merge2848983552272c754d122f0df3ff2de17a53bbef with complete5caffe04 history.
 Resolved the test-selector conflict by retaining both alias-type-queries and A2
@@ -92748,3 +92890,22 @@ External L1 alias_fields_receipt.json and logs/alias_fields_merged retain exact
 inputs, results and original failures. All owned jobs drained, todo unchanged;
 ROOT portable/LLVM/shared artifact adoption remains pending after publication.
 A2 executable batch reconciliation: implementation995af4d8; requiredff-onlypull refused divergence, fullhistorymerge478353f99080ba37390dc597aa51ae8f3b73df1b/tree8f2037c546bf631f3554736e10adae09681acca5 preserves publishedb8d65c37 and L1modulecondition/inference changes. Rebuilt actual affected6actions43.371wall/47.929CPU/1091920KiB, then15/15admission/query/RootCall32/64x1/4 and two healthy worker1/4 reference/canonical/zeroownership checks pass. The509 manifestentries reflect this merged closure; before/afterpairedmeasurements remain at their originalfreeze, not relabeled. Exactmergedhashes/commands/costs in the same receipt. All ownedjobs drained; ROOTreactor/serviceblockedfinalinstrumentation gates remainpending. This merge did not change the scoped productionbatchhunk or oldstashes/todo.
+A1 fallback publication reconciliation: ba9b0ab1 merged complete b8d65c37 as
+c2ce733c48269e7894c197f9599bd0914ae14ee8 after ordinary ff-only divergence.
+Both histories/journal entries preserved; own producer/tests unchanged. Incoming
+semantic body/declaration/generic changes required one affected dependency refresh:
+4 actions,34.10wall/24.85CPU seconds,1069636KiB peak. All3 focused backend/session
+CTests pass on merged inputs (1.40s). Merged workers1/4 reconstruction remains
+byte-identical to the checked prior canonical, with zero final bytes/grants/lanes;
+independent execution evidence is reused for those identical bytes. Response runner
+76b061be483d4bd99a9ab5d82f2b8239ec0c40ec9efbf6744b37b49848b6e654, source runner
+397004e45fcb5240c6be5f503f81a31c219c0721d3292761963717125c616868. Earlier paired
+performance keeps its c93ddaab boundary; no merged speed claim. All jobs drained;
+normal source push follows, ROOT release/instrumentation remains separate.
+
+D2 trace verification publication: scopedb344e4e4 merged complete publicb8d65c37
+after prescribed ff-only pull detected divergence, preserving both journals.
+Driver/strict/coordinator/boundary/work/browser and every saved JSON hash match.
+Incoming semantic producers/manifests/Tower fixtures are outside this no-Wasm
+execution and remain separately owned/unadopted. Syntax/diff checks pass; no
+repeated browser run or source-identity relabel. Normal main publication only.

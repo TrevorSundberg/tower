@@ -20,7 +20,7 @@ import .library.work_budget_types;
 struct BackendSession {
     target: vector(u8);
     response: vector(u8);
-    response_fallback: u8*; // Borrowed static JSON, separate from owned bytes.
+    response_fallback: u8*; // Borrows the reserved tail until reset/next response.
     backend: Backend*;
     linker: BackendLink*;
     decoder: BackendDecoder*;
@@ -64,7 +64,9 @@ fn backend_json_text(out: vector(u8)*, text: u8*): bool {
 }
 
 export fn backend_session_create(runtime: u8*, length: usize): BackendSession* {
-    var s = alloc(BackendSession, 1);
+    // One owned allocation reserves the bounded denial response as well. The
+    // public descriptor/signatures stay unchanged; only this factory owns it.
+    var s = bits(BackendSession*, alloc(u8, sizeof(BackendSession) + backend_session_failure_capacity()));
     var failed = s == null;
     if failed {
         return null;
@@ -132,35 +134,73 @@ export fn backend_session_failure(s: BackendSession*, error: u8*, offset: usize)
     if !backend_text(&s.response, "{\"status\":\"error\",\"error\":")
         || !backend_json_text(&s.response, error)
         || !backend_text(&s.response, ",\"errorOffset\":")
-        || !backend_decimal(&s.response, convert(u64, offset)) { return backend_session_resource_failure(s); }
+        || !backend_decimal(&s.response, convert(u64, offset)) { return backend_session_resource_failure(s, offset); }
     if s.backend != null && s.backend.resource_error != WorkBudgetError.None {
         var cause = s.backend.resource_error;
         var name = cause == WorkBudgetError.Memory ? "Memory" : cause == WorkBudgetError.Capacity ? "Capacity"
             : cause == WorkBudgetError.Busy ? "Busy" : cause == WorkBudgetError.Stale ? "Stale"
             : cause == WorkBudgetError.Exhausted ? "Exhausted" : "Invalid";
         if !backend_text(&s.response, ",\"resourceError\":") || !backend_json_text(&s.response, name) {
-            return backend_session_resource_failure(s);
+            return backend_session_resource_failure(s, offset);
         }
     }
-    if !backend_text(&s.response, "}") { return backend_session_resource_failure(s); }
+    if !backend_text(&s.response, "}") { return backend_session_resource_failure(s, offset); }
     return s.response.data;
 }
 
-fn backend_session_resource_failure(s: BackendSession*): u8* {
+fn backend_session_failure_prefix(cause: WorkBudgetError): u8* {
+    if cause == WorkBudgetError.Memory {
+        return "{\"status\":\"error\",\"error\":\"Cannot allocate semantic storage\",\"resourceError\":\"Memory\",\"errorOffset\":";
+    }
+    if cause == WorkBudgetError.Capacity {
+        return "{\"status\":\"error\",\"error\":\"Semantic memory budget exceeded\",\"resourceError\":\"Capacity\",\"errorOffset\":";
+    }
+    if cause == WorkBudgetError.Busy {
+        return "{\"status\":\"error\",\"error\":\"Semantic worker admission failed\",\"resourceError\":\"Busy\",\"errorOffset\":";
+    }
+    if cause == WorkBudgetError.Stale {
+        return "{\"status\":\"error\",\"error\":\"Compiler resource request failed\",\"resourceError\":\"Stale\",\"errorOffset\":";
+    }
+    if cause == WorkBudgetError.Exhausted {
+        return "{\"status\":\"error\",\"error\":\"Compiler resource request failed\",\"resourceError\":\"Exhausted\",\"errorOffset\":";
+    }
+    if cause == WorkBudgetError.Invalid {
+        return "{\"status\":\"error\",\"error\":\"Compiler resource request failed\",\"resourceError\":\"Invalid\",\"errorOffset\":";
+    }
+    return "{\"status\":\"error\",\"error\":\"Compiler resource request failed\",\"errorOffset\":";
+}
+
+fn backend_session_failure_capacity(): usize {
+    var longest: usize = 0;
+    for(var cause = convert(u32, WorkBudgetError.None); cause <= convert(u32, WorkBudgetError.Exhausted); cause++) {
+        var length = backend_length(backend_session_failure_prefix(convert(WorkBudgetError, cause)));
+        if length > longest { longest = length; }
+    }
+    // One decimal digit per value bit is a conservative bound, plus '}' and NUL.
+    return longest + sizeof(usize) * 8 + 2;
+}
+
+fn backend_session_resource_failure(s: BackendSession*, offset: usize): u8* {
     s.linker.output.length = 0;
     s.response.length = 0;
-    s.response_fallback = "{\"status\":\"error\",\"error\":\"Compiler resource request failed\"}";
-    if s.backend != null {
-        if s.backend.resource_error == WorkBudgetError.Memory {
-            s.response_fallback = "{\"status\":\"error\",\"error\":\"Cannot allocate semantic storage\",\"resourceError\":\"Memory\"}";
-        }
-        if s.backend.resource_error == WorkBudgetError.Capacity {
-            s.response_fallback = "{\"status\":\"error\",\"error\":\"Semantic memory budget exceeded\",\"resourceError\":\"Capacity\"}";
-        }
-        if s.backend.resource_error == WorkBudgetError.Busy {
-            s.response_fallback = "{\"status\":\"error\",\"error\":\"Semantic worker admission failed\",\"resourceError\":\"Busy\"}";
-        }
+    var cause = s.backend == null ? WorkBudgetError.None : s.backend.resource_error;
+    if cause != WorkBudgetError.None { offset = s.backend.error_offset; }
+    var prefix = backend_session_failure_prefix(cause);
+    var length = backend_length(prefix);
+    var output = bits(u8*, s) + sizeof(BackendSession);
+    copy(output, prefix, length);
+    var digits: u8[sizeof(usize) * 8];
+    var count: usize = 0;
+    loop {
+        digits[count++] = convert(u8, offset % 10) + 48;
+        offset /= 10;
+        if offset == 0 { break; }
     }
+    while count != 0 { output[length++] = digits[--count]; }
+    output[length++] = 125;
+    output[length] = 0;
+    // Publish only the completed JSON. No allocator or mutable global is used.
+    s.response_fallback = output;
     return s.response_fallback;
 }
 
@@ -464,7 +504,7 @@ fn backend_session_foundation_report(s: BackendSession*, profile: ExecutionProfi
     if !backend_text(&s.response, "{\"status\":\"compiled\",\"format\":\"foundation\",\"optimizationProfile\":")
         || !backend_decimal(&s.response, convert(u64, profile)) || !backend_text(&s.response, "}") {
         backend_resource_fail(s.backend, WorkBudgetError.Memory);
-        return backend_session_resource_failure(s);
+        return backend_session_resource_failure(s, s.backend.error_offset);
     }
     return s.response.data;
 }
