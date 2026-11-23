@@ -1791,3 +1791,14 @@ discipline and other body/declaration paths still need their separate ownership
 closures. The scoped query repair does not claim universal failure/race coverage
 or final bootstrap/browser/generation/publication. Durable fixture registration
 is routed to D1; no restarted or replacement A1 session.
+
+## 2026-11-23 bounded late-flow follow-up
+
+Reviewed main82b994886e99b0197a5eb2e38a313c36f4c8760c plus this scoped patch.
+This supersedes the earlier flow readiness/transport findings only; it does not
+close the full campaign audit or change another owner's scope.
+
+| File | Storage, ownership and scheduling conclusion | Evidence / remaining limits |
+| --- | --- | --- |
+| `scaffolding/compiler/semantic_flow.tower` | Entire file and callers reviewed. Stable world-owned flow components, immutable canonical input view, derived source-ordinal index, private kernel fields and existing graph access claims. Idempotent request reserves graph operations before publishing metadata. Ready selection uses task identity, preserving results across waits; shared grants and dispatch join precede graph completion and source-ordered failure selection. No stages to publish. Lowering/evaluation/known publication/module initializers remain mandatory late-boundary prerequisites; only the final wrapper diagnoses cycles. | Focused 26-trial fixture, query-smoke and checked workers1/4 before/after pass; journal records exact inputs. No packed-payload, universal race-freedom or scaling claim. Existing structural/view/vector allocation assertions remain shared-owner work. |
+| `scaffolding/tests/semantic_flow_checks.tower` | Entire new declaration-only fixture reviewed. It calls the production flow implementation, constructs canonical function/evaluation nodes with diagnostic provenance, and uses actual graph grants/states. Counts derive from the mode array and graph capacities. Tests retain input worlds through joins and verify graph/world cleanup. | 13 modes with budgets1/4: replay, waiting, reversed readiness, source errors, admission/finish failures, cancellation and cycles. Standard CMake registration and integrated instrumentation remain pending; exact standalone build/link receipt is in the journal/cache. |

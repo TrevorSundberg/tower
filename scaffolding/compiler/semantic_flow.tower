@@ -8,6 +8,7 @@ import foundation_types;
 import semantic_context;
 import semantic_control;
 import semantic_evaluation;
+import semantic_declarations;
 import semantic_aggregates;
 import semantic_support;
 import semantic_work_ids;
@@ -49,8 +50,23 @@ fn sem_flow_known(c: SemanticContext*, node: void*): bool {
     return true;
 }
 
-fn sem_flow_request(c: SemanticContext*, subject: void*, dependencies: vector(void*)*): void {
+export fn sem_flow_request(c: SemanticContext*, subject: void*, dependencies: vector(void*)*): void {
     if !sem_ok(c) { return; }
+    if !sem_query_check(c, subject, work_ok(&c.queries)) { return; }
+    // The first request owns the complete dependency list. A repeated body
+    // publication must not reset its result, ordinal or sealed access claims.
+    if work_find(&c.queries, subject, FlowQuery, 0) != 0 { return; }
+    var query = work_request(&c.queries, subject, FlowQuery, 0);
+    if !sem_query_check(c, subject, query != 0) { return; }
+    foreach(var dependency_subject in dependencies) {
+        var dependency = work_find(&c.queries, dependency_subject, EvaluationQuery, 0);
+        if !sem_query_check(c, subject, dependency != 0 && work_depend(&c.queries, query, dependency)) { return; }
+    }
+    var domain = convert(u64, SemanticWorkDomain.Compiler);
+    if !sem_query_check(c, subject,
+        work_access(&c.queries, query, domain, convert(u64, SemanticAccess.Flow), c.flow_count, 1, WorkAccessMode.Write)
+        && work_access(&c.queries, query, domain, convert(u64, SemanticAccess.Expression), 0, ~convert(usize, 0), WorkAccessMode.Read)
+        && work_seal(&c.queries, query)) { return; }
     if c.flow_results == null {
         c.flow_results = sem_create(c.program.root);
         sem_require(entity_register(c.flow_results, sizeof(SemanticFlow), alignof(SemanticFlow), 0));
@@ -62,16 +78,6 @@ fn sem_flow_request(c: SemanticContext*, subject: void*, dependencies: vector(vo
     result.ordinal = c.flow_count;
     result.kernel.kind = CompilerKernelKind.Flow;
     result.kernel.payload = bits(void*, result);
-    var query = work_request(&c.queries, subject, FlowQuery, 0);
-    sem_require(query != 0);
-    for(var i: usize = 0; i < dependencies.length; i++) {
-        var dependency = work_find(&c.queries, dependencies.data[i], EvaluationQuery, 0);
-        sem_require(dependency != 0 && work_depend(&c.queries, query, dependency));
-    }
-    var domain = convert(u64, SemanticWorkDomain.Compiler);
-    sem_require(work_access(&c.queries, query, domain, convert(u64, SemanticAccess.Flow), c.flow_count, 1, WorkAccessMode.Write));
-    sem_require(work_access(&c.queries, query, domain, convert(u64, SemanticAccess.Expression), 0, ~convert(usize, 0), WorkAccessMode.Read));
-    sem_require(work_seal(&c.queries, query));
     c.flow_count++;
 }
 
@@ -123,9 +129,36 @@ fn semantic_flow_kernel(result: SemanticFlow*): void {
     result.flow = sem_flow_node(result, sem_get(result.subject).body, 0);
 }
 
-fn sem_flows(c: SemanticContext*): void {
-    if !sem_ok(c) || c.flow_count == 0 { return; }
-    if c.workers.count == 0 && !sem_workers_open(c) { return; }
+fn sem_flow_missing(c: SemanticContext*, result: SemanticFlow*): bool {
+    var function = sem_get(result.subject);
+    var returns = function.type.pointers != 0 || function.type.scalar != SVoid;
+    var signature = sem_aggregate_signature(c, result.subject);
+    returns ||= signature != null && signature.result_parameter != null;
+    return returns && (result.flow & FlowNext) != 0;
+}
+
+fn sem_flow_failure(c: SemanticContext*, result: SemanticFlow*, query: usize): void {
+    if result.invalid_label != null {
+        sem_fail(c, result.invalid_label, "A labeled block must end with jump or return before the next label");
+    } else { if result.excessive_depth != null {
+        sem_fail(c, result.excessive_depth, sem_cat(c, "Foundation control-flow analysis nesting exceeds ",
+            sem_decimal(c, convert(u64, SemanticFlowDepthLimit))));
+    } else { if sem_flow_missing(c, result) {
+        sem_fail(c, result.subject, sem_cat(c, "Function '", sem_cat(c, sem_name(sem_get(result.subject)),
+            "' can finish without returning a value")));
+    } else { if !sem_declaration_failure(c, query) {
+        sem_fail(c, result.subject, "Flow dependency failed without a retained diagnostic");
+    } } } }
+}
+
+// Only the late lifecycle boundary may enter this pump: canonical lowering,
+// evaluation, known publication and module initializers must already be settled.
+// Readiness alone is not permission to move this read-only pass before them.
+export fn sem_flows_pump(c: SemanticContext*): SemanticPumpResult {
+    if !sem_ok(c) { return SemanticPumpResult.Failed; }
+    if !sem_query_check(c, c.program.root, work_ok(&c.queries)) { return SemanticPumpResult.Failed; }
+    if c.flow_count == 0 { return SemanticPumpResult.Complete; }
+    if c.workers.count == 0 && !sem_workers_open(c) { return SemanticPumpResult.Failed; }
     var view = entity_view_open(c.program.root);
     sem_require(view != null);
     defer entity_view_close(view);
@@ -134,7 +167,7 @@ fn sem_flows(c: SemanticContext*): void {
     var terms: void*[2];
     terms[0] = compiler_node_type(c.program.root, CompilerFoundation);
     terms[1] = c.flow_results;
-    var query = entity_view_tables(view, &terms[0], 2);
+    var query = entity_view_tables(view, &terms[0], sizeof(decltype(terms)) / sizeof(void*));
     sem_require(query != null && entity_table_query_count(query) == c.flow_count);
     var jobs: vector(SemanticFlow*);
     vector_init(&jobs);
@@ -155,44 +188,82 @@ fn sem_flows(c: SemanticContext*): void {
     // retain the source ordinal recorded when each dependency query was created.
     for(var i: usize = 0; i < c.flow_count; i++) {
         var result = jobs.data[i];
-        sem_require(work_demand(&c.queries, work_find(&c.queries, result.subject, FlowQuery, 0)));
+        if !sem_query_check(c, result.subject, work_demand(&c.queries, work_find(&c.queries, result.subject, FlowQuery, 0))) {
+            return SemanticPumpResult.Failed;
+        }
     }
-    var next: usize = 0;
-    while next < c.flow_count {
-        var count = c.flow_count - next;
-        if count > SemanticPreparationWindow { count = SemanticPreparationWindow; }
-        for(var i: usize = 0; i < count; i++) {
-            var result = jobs.data[next + i];
-            sem_require(work_take_query(&c.queries, &result.ticket, FlowQuery));
-            sem_require(work_task(&c.queries, result.ticket.task).subject == result.subject);
+    var batch: vector(SemanticFlow*) = default;
+    defer vector_dispose(&batch);
+    sem_require(vector_reserve(&batch, jobs.length < SemanticPreparationWindow ? jobs.length : SemanticPreparationWindow));
+    foreach(var result in &jobs) {
+        var id = work_find(&c.queries, result.subject, FlowQuery, 0);
+        if work_take_task(&c.queries, &result.ticket, id) {
+            batch.data[batch.length++] = result;
+            if batch.length == SemanticPreparationWindow { break; }
         }
+        if !sem_query_check(c, result.subject, work_ok(&c.queries)) { return SemanticPumpResult.Failed; }
+    }
+    if batch.length != 0 {
         var receipt: WorkReservation;
-        var extra = sem_workers_admit(c, count, &receipt);
+        var extra: usize = 0;
+        var error = sem_workers_admit_result(c, batch.length, &receipt, &extra);
         defer sem_workers_release(c, &receipt);
-        sem_require(compiler_kernel_dispatch_admitted(&c.workers, &jobs.data[next], count, extra));
-        for(var i: usize = 0; i < count; i++) {
-            var result = jobs.data[next + i];
-            var function = sem_get(result.subject);
-            var returns = function.type.pointers != 0 || function.type.scalar != SVoid;
-            var signature = sem_aggregate_signature(c, result.subject);
-            returns ||= signature != null && signature.result_parameter != null;
-            var missing = returns && (result.flow & FlowNext) != 0;
-            if result.invalid_label != null {
-                sem_fail(c, result.invalid_label, "A labeled block must end with jump or return before the next label");
-            } else {
-                if result.excessive_depth != null {
-                    sem_fail(c, result.excessive_depth, sem_cat(c, "Foundation control-flow analysis nesting exceeds ",
-                        sem_decimal(c, convert(u64, SemanticFlowDepthLimit))));
-                } else {
-                    if missing {
-                        sem_fail(c, result.subject, sem_cat(c, "Function '", sem_cat(c, sem_name(function),
-                            "' can finish without returning a value")));
-                    }
-                }
-            }
-            sem_require(work_finish(&c.queries, &result.ticket,
-                !missing && result.invalid_label == null && result.excessive_depth == null));
+        if error == WorkBudgetError.None {
+            error = compiler_kernel_dispatch_admitted_result(&c.workers, batch.data, batch.length, extra);
         }
-        next += count;
+        // Dispatch joins every admitted peer before errors invalidate tickets or
+        // release this view. Flow has no staged structural output to publish.
+        if error != WorkBudgetError.None {
+            var message: vector(u8) = default;
+            work_cancel(&c.queries);
+            sem_restore_resource(c, error, &message, sem_get(batch.data[0].subject).start);
+            return SemanticPumpResult.Failed;
+        }
+        foreach(var result in &batch) {
+            if !sem_query_check(c, result.subject, work_finish(&c.queries, &result.ticket,
+                !sem_flow_missing(c, result) && result.invalid_label == null && result.excessive_depth == null)) {
+                return SemanticPumpResult.Failed;
+            }
+        }
+    }
+    // Retain later failed results while an earlier source owner is waiting.
+    // Repeated calls neither take completed queries nor replay their kernels.
+    foreach(var result in &jobs) {
+        var id = work_find(&c.queries, result.subject, FlowQuery, 0);
+        var state = work_task(&c.queries, id).state;
+        if state == WorkState.Succeeded { continue; }
+        if state == WorkState.Failed {
+            sem_flow_failure(c, result, id);
+            return SemanticPumpResult.Failed;
+        }
+        return batch.length != 0 ? SemanticPumpResult.Progress : SemanticPumpResult.Waiting;
+    }
+    return SemanticPumpResult.Complete;
+}
+
+export fn sem_flows(c: SemanticContext*): void {
+    var state = sem_flows_pump(c);
+    while state == SemanticPumpResult.Progress { state = sem_flows_pump(c); }
+    if state != SemanticPumpResult.Waiting { return; }
+    // This caller is the final, quiescent lifecycle boundary; earlier producer
+    // pipelines have already drained. Ordinary pump suspension never diagnoses
+    // a cycle. Select the first source query and preserve graph-walker failures.
+    foreach(var &task in &c.queries.tasks) {
+        if task.query != FlowQuery || task.state == WorkState.Succeeded { continue; }
+        var id = work_find(&c.queries, task.subject, FlowQuery, 0);
+        var cycle: vector(usize) = default;
+        defer vector_dispose(&cycle);
+        var found = work_cycle(&c.queries, id, &cycle);
+        if !sem_query_check(c, task.subject, work_ok(&c.queries)) { return; }
+        var message: u8* = "Flow is waiting for an unfinished compiler query";
+        if found {
+            message = "Flow dependency cycle";
+            for(var i: usize = 0; i < cycle.length; i++) {
+                message = sem_cat(c, message, i == 0 ? ": " : " -> ");
+                message = sem_cat(c, message, sem_decimal(c, convert(u64, sem_get(work_task(&c.queries, cycle.data[i]).subject).start)));
+            }
+        }
+        sem_fail(c, task.subject, message);
+        return;
     }
 }
