@@ -81692,3 +81692,18 @@ and its own symbol boundary closure, B2 nested budget wake/refill, L1 interprete
 storage, L2 constructor/evaluation admission, D1 cross-file staging integration,
 and D2 the existing independent C-reference cost comparison. No extra contexts
 were spawned, and completed windows were replaced in their existing sessions.
+
+B2's nested-lane wake implementation931115b1 arrived during publication
+reconciliation. It changes the shared budget/pool layout, so its additional
+integration is validated separately rather than relabeling the previous binaries.
+Sourcea093bf01f1116babec62daf205945766eaa028d7 retains the earlier tested source
+histories and complete B2 implementation. Its29-action dependency build passes
+in50.83wall/151.59CPU seconds,771340KiB peak. Executable36 trials, query-smoke,
+comptime_flow jobs1/4 exact outputs and the source manifest pass. The added
+unit-admission regression passes in6.59wall/7.95CPU seconds,476304KiB, observing
+nested lane release refill before parent completion and preserving canonical
+output/cancellation cleanup. Final compiler SHA256:
+648fb110dea0260b4f37489f52d0d54a4738344bce93023216c5ba369863491f.
+Logs remain /cache/root_budget_join_a093; all owned processes drained. This
+documentation receipt changes no runtime path. Final milestone gates remain
+pending; source publication is not a browser/runtime deployment receipt.
