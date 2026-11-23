@@ -2672,3 +2672,219 @@ and retain the artifact's source identity. The shipped threaded frontend alone
 does not prove four-worker barrier overlap. Existing worker tests cover object
 ordering, cancellation/drain and deterministic diagnostics; full generation and
 integrated runtime builds remain ROOT-owned. No new audit/test framework is added.
+
+### Bounded publication-readiness review, 2026-11-23
+
+Reviewed main `d8db5f3fc14aced96fadc1b57f9f8fd9715dc100`, including published
+D2 `636f7f9302144ca5bfe7575111dc10f4e884a660`. The initial `f33770ba` review
+was updated for L2 at `afca69b1`, then complete published `53d63157` was merged
+after the final fast-forward-only pull refused divergence. This includes B2's
+module startup and D1's ownership-prerequisite report, preserving all history. This is
+source/receipt review, not release acceptance. No compiler build, policy test,
+sanitizer or browser suite was rerun. Runtime profiling is inapplicable to these
+documentation changes. ROOT owns final assets and deployment; this task pushes
+only the audit and journal. Earlier open-ended waiting instructions do not apply.
+
+Current source trees: scaffolding `9060a66dd5b88788226cbfc2eda17e1f72a119de`,
+compiler `a63ffc4173a3bf3d3932e6fc3ee69aee0a5c14a4`, CMake
+`88e49f4105972ad8d625a61b249213d345d17a7d`. These identify this review's inputs;
+ROOT must freeze and record any later compiler/build changes before final checks.
+
+**Checked public inputs and reusable material.** All 56 actual entries of
+`bootstrap/linux-x64/SHA256SUMS` verify with `sha256sum --check --status`.
+`bootstrap/development.json` is schema 2, host `linux-x64-ubuntu24-llvm19`,
+source base `98ade8ccde255c445797ad51a1a2def0b41c85fb`; its 1,019 source-file
+hashes also describe the accompanying changes, so the base revision alone is
+not its complete source identity. Executable SHA256 is
+`9653f8187a104ca84ab5d8601f336d7e1ed8200206544c70a81415018d623d02`, manifest
+`cf7d84b11d025c708310827c56f3071fa69e36b010ea50dd992855ecc438e896`, checksum list
+`101727e005828458bb8dee9cf0e3f072010496ee2980e1cd18ff82d087ffb461`.
+Reuse this complete public predecessor, including its older scalar-module
+resources; do not replace them with the new consolidated `types.tower`. Its
+LLVM19/system-library dependency still prevents direct execution on this Deck
+host. The supported Docker path works; this is not a standalone portable release.
+
+Live Pages ref is `6f142bef15f58380831ed344ab5eac5c4b3c2840`. The fetched served
+manifest exactly matches that ref, SHA256
+`eb70f5388bee6b7ca318583eddfaa8e9a8a907c642a14a6fde85375ac8b1643c` (saved in
+`build/d2_ecs/readiness_f337/served_manifest.json`). Its publication source is
+`013ae550fdc186e33fdcb755ae1fbfe78bda098d`, build/project/UI source is
+`98ade8ccde255c445797ad51a1a2def0b41c85fb`, compiler tree
+`9703a7c0264660e42831a41636fd6fe457dce1b0`. Build provenance explicitly records
+unchanged `cbcd24a9` implementation/recipe inputs at that later source. This
+review fetched only the manifest, not every asset or hosted behavior. The manifest
+lists 104 assets and advertises LLVM/cross/threads; those flags are not current
+execution receipts. Old build source is reachable from current main.
+
+| Reuse decision | Exact boundary |
+| --- | --- |
+| Public predecessor and its complete resources | Verified above; reusable as bootstrap input, not the final current-source successor. |
+| Historical runtime assets | Preserve the old release and receipts. None of its four complete compiler reactors can establish current acceptance. `tower.wasm` is `5dfa4525e1bb2d8233803fadd0f60f47b8fb5e4b90bf2300a9ffa4b8569b62cd`, threads `a239e4b4503d17fd8f951ea72d2da54d2ba449dc8f07596f9b70efd0f4a4f166`, LLVM `6ec53230a2d78bf49717139973682f6035174029124c4256875674708bdc50be`, compressed cross `cf20fd0a3f4f287b0463d6dceb8659272a10cef69be492c0b0645cff855d7592`. |
+| Third-party libraries, static assets and target support | `third_party`, npm lock and browser transport source have no changes from the old build source. Reuse exact cached vendor artifacts only with matching target, flags, toolchain and input hashes. Preserve CNAME. Target packs may be reused only after matching current generated runtime/support inputs and hashes; unchanged packager source alone is insufficient. Compiler support archives can contain changed Tower memory/runtime objects and must not be copied wholesale on that assumption. |
+| Exact D2 policy/fixture | Unchanged since `636f7f93`: retain 24 focused cases and checker `37039cc10cd0f6c33780e7442fe97afa9fb30d0c1cb2be088f211005832b814f`. No reason to rerun those cases for this prose audit. New provider reports remain a separate requirement. |
+
+**Unit and provider rebuild checklist.** Actual native `.o.d` files in D2's
+`native-coherent-f13c8f6` cache were intersected with changed source paths. They
+are dependency evidence, not fresh binaries. No other worker's cache was read.
+
+| Comparison / units | Required action and evidence gap |
+| --- | --- |
+| `636f7f93` to initial `f33770ba`: ParserNodes | Seven changed producers/consumers: `frontend_pattern`, `frontend_table`, `frontend_world`, `lr_tree`, `parser_nodes`, `parser_state`, `syntax_session_next`. Of the inspected compiler depfiles, only ParserNodes intersects these paths. Refresh its actual native/WASI U/T report and resulting link/export closure. B1's focused parser/regex/query receipts are described below; they do not supply the current browser export. |
+| L2 admission joined at `afca69b1` | Actual depfiles now also invalidate Semantics, Evaluation, Interpreter and query-checks. `host/driver_compile.tower` additionally requires the configured driver consumer. Reconfigure/build through the real targets and let their regenerated depfiles select transitive consumers; do not copy an old ABI object into the new package. A2/L2 contexts or declarations in a depfile can invalidate a consumer without changing its entry file. |
+| B2 startup joined from `53d63157` | `frontend_compilation`, `frontend_modules`, `frontend_units` and the module fixture changed. Actual compiler depfiles intersect ParserNodes, Semantics and frontend-units. Build these consumers and the module-cache registration coherently. B2's startup checks do not provide final current WASI/export/symbol-policy acceptance. |
+| Entities versus the D2 native policy receipt | No changed path intersects the saved Entities depfile. Its exact native object `030ae5b4ec3c21805e92b57a3d9be0baa9cde30fdbf1f5fe400e514d2fd4b57c` and report remain reusable within that target/flags/compiler profile. Semantics `c02fa58100e7a8b0e2d13e2f7def4257e019bce775e6519c971200fcd3001b9e` was checked at `c566caedbde305a14e7a8aa39317add3eca2d71e` and is now historical. Both full reports passed then; logs/status0 are in `generic_policy_b042/publish_retry_1`. |
+| Published `98ade8cc` compiler project to current source | Rebuild the current Tower unit closure: shared `types.tower` changed, and every inspected native compiler depfile includes it. The old project's 22 units are IDE, Interpreter, ParserNodes, syntax-live-cases, parser-format/integration/fixtures, template-build, syntax-host, Semantics, Entities, shared-lifecycle, legacy, UTF8, bytes, host, work-host, Evaluation and four backend units (Wasm/linker/native/Mach-O). Changes also affect host/runtime/driver and backend composition. Unchanged leaf source is not sufficient to reuse an old object across the changed prelude or layout. |
+| Current CMake/package composition | `TowerCompilerUtilities.cmake` additionally links frontend-units and, for browser/parser/work profiles, query-checks. `compiler_project_files.tower` explicitly maps those objects and reads actual depfiles. Parser roots derive from module/work/check flags; browser Interpreter and Semantics have specific entries. Export the final configured link inputs, including generated runtime/source, exact support members, imports, exports and linker arguments. Do not impose the old count of 22 on the new package. |
+
+The served `compiler/project.json` SHA256 is
+`b6afe91447cc05b0bb72a7330b3c816cacc132bb3f965f48de8d9f3c32cb5066`, version 1,
+533 embedded source files, entry `units/compiler_parser_nodes.tower`. Its tower,
+LLVM and cross recipes contain respectively 17/18/19 units and 1004/1046/1049
+exports. None exports the four new generic-result APIs or `entity_attach_result`.
+That is expected for the old package, and is concrete evidence that it cannot
+stand in for the new one. Native reports observe all four generic APIs as
+Semantics U / Entities T. The new WASI closure and export/support identity must
+come from actual objects and link manifests, not guessed additional permissions.
+Keep exact-unit, suffix and truncation rejection. Current policy already has the
+measured WASM Entities table permission; the older tests README sentence saying
+only parser/semantics allow it is historical prose, not the policy authority.
+
+B2's joined `b21bdb2d` receipt reports actual new native imports
+`frontend_module_root_world_size_result`, `frontend_modules_create_result` and
+`frontend_modules_bind_world_result`. Current source exports them from
+`frontend_modules.tower` in ParserNodes; Semantics' frontend-compilation caller
+uses the first, and the separate frontend-units caller uses create/bind. The
+current exact policy does not name these three. ROOT needs the complete current
+undefined/defined reports, exact consumer-unit permissions only where observed,
+negative policy cases and refreshed WASI exports. This audit independently
+confirms the source boundary and missing names, not a newly executed nm/policy
+failure. The four generic-result permissions remain present and unchanged.
+
+D1 `53d63157` also records a production prerequisite, not just a missing test:
+`syntax_origin_copy_staged_result` installs borrowed references whose ordinary
+finalizer releases them. Checked hold failure needs an agreed cancellation
+ownership contract before discard; skipping finalizers leaks buffers and a pin
+does not own history. That protocol is proposed, not implemented. ROOT must close
+the immediate provenance/hold/publication caller boundary and validate cleanup,
+or explicitly leave this acceptance item open. No passing release matrix can
+substitute for the missing contract. D2 makes no out-of-scope production edit.
+
+**Receipt ledger: latest relevant scopes, not one combined pass.**
+
+| Receipt | What it establishes / what remains missing |
+| --- | --- |
+| L1 `9985c385`, input manifest `76fa97e7795561cf5abee9f125c8f240533b54d39b0b84453d3ac210547c5fa6` | Native query/core/constructor passed; `L1/logs/execution_ownership_final_9985`. Later L2/B1 source union is not covered. |
+| A1 `1c9f723dc701fbea2b217784949e1e781375d3f4` | 26 flow trials, query and serial/parallel comptime outputs passed; compiler `8b442c4593f17c90eb10194d2c10d16fe86e1e01583617387ed5bf4b6643e328`. Its semantic provider matches D2's `c02fa581` report. Later admission changes invalidate that provider identity. |
+| B1 `ca286d12751732e60443cb424525baa3e171c08b` | Nine dependency actions, parser/regex/query passed; `pattern_result_final_merge_*`. Earlier measured units outputs and retention remain scoped to their earlier frozen source. No current WASI/parser export receipt is attached. |
+| L2 `aa01512c6476ab1d7eeb6f242c0465b5275814eb` | Twelve dependency actions, storage/query passed in `semantic_admission_*` merged0. Original fixture SIG6/134 and corrected final1 remain recorded. The later union with B1 requires final coherent checks; no final type/browser/instrumentation pass is claimed. |
+| B2 startup `b21bdb2d` and `b2_startup_push_merge_{build,modules}.log` | Focused module checks passed after complete A1/L1 integration and policy636, with the four scoped sources unchanged; original wrong fixture expectation134 is preserved. The receipt explicitly defers the three new module-result import policy checks. D2 reviewed this journal receipt, not remote raw binaries. |
+| D2 WASI/export at `c8019dc44` plus `8cb198038` | Four native and four WASI original/exported unit pairs matched; canonical known-value roundtrip passed. Compiler `c3724363dee165211f08a3ab964fbc2ed9160941031efaa983f48e99429096b6`. Later ParserNodes attachment at `9db1be18` plus `227bf39a` has its own WASI/policy receipt. Neither is the final current-source package. |
+| Supported instrumentation | ROOT executable-query `c944` address/LSan and actual TSan overlap passed; thread package `52f985ecea40a69940716d9021b62d4303cc4d983d507a86d516b19acb0f3468`. Later lease join has address/LSan/concurrency passes but thread package `9331699b552fb128ec4391672f2452321f23591f98632c33b18df91d9595731c` was built, not executed. D1 `ed7f53026` positive native/address receipt and its same-binary timeout followup retain their old scope; current `2f7` type-smoke124 and unstarted instrument campaign are not passes. These receipts do not sanitize the final union. |
+| Browser/hosted | The served old manifest is verified above. D2's Node22.23.5/Playwright1.65.1 install and Chromium launch are OS readiness only. D2 has no current `build/compiler-project/project.json`, threaded test reactor or dist manifest. Current generation hashes, mandatory thread execution, local/hosted behavioral report and workflow/deployment identity remain missing. |
+
+**Minimal final commands for ROOT, pending execution.** Run in its supported
+Linux x64 LLVM19/Docker environment with frozen source, one owned build at a
+time, a fresh native cache and explicit host budgets. Keep logs/raw statuses,
+source/depfile/flags/public-pin/resource/object hashes. These are existing entry
+points, not commands run by this documentation task. No private bootstrap
+override; preserve the normal compiler package before sanitizer scripts copy
+their differently instrumented output into `build/native`.
+
+```sh
+unset TOWER_BOOTSTRAP_COMPILER
+export TOWER_BUILD_JOBS=1 TOWER_COMPILER_JOBS=1
+export TOWER_NATIVE_BUILD=/cache/root-final-clean
+test ! -e "$TOWER_NATIVE_BUILD"
+bash playground/scripts/build-native.sh -DTOWER_COMPILER_JOBS=1 \
+  -DTOWER_WORK_TESTS=ON -DTOWER_BACKEND_TESTS=ON
+cmake --build "$TOWER_NATIVE_BUILD" --parallel 1 --target \
+  tower-work-tests tower-lr-work-tests tower-frontend-tests
+"$TOWER_NATIVE_BUILD/tower-work-tests"
+"$TOWER_NATIVE_BUILD/tower-lr-work-tests" "$PWD/scaffolding" query-smoke
+"$TOWER_NATIVE_BUILD/tower-lr-work-tests" "$PWD/scaffolding" type-smoke
+ctest --test-dir "$TOWER_NATIVE_BUILD" --output-on-failure \
+  -R '^tower-(lr-worker-equivalence|native-units|editor-units|body-continuations)$'
+```
+
+Use existing directly affected storage/constructor/parser/semantic registrations
+for the new union as well; a full source-matched native result is still missing.
+Preserve earlier timeouts and investigate any recurrence rather than weakening
+assertions or counting timeouts/skips as passes. For final predecessor/successor
+unit agreement, the existing `verify_bootstrap_symbols --compare BOOTSTRAP
+SUCCESSOR SCAFFOLDING NATIVE_BUILD LLVM_NM OUTPUT_DIRECTORY [UNIT ...]` records
+IR/object/symbol agreement on its supported targets. Its ordinary `UNIT REPORT
+TARGET` mode checks an actual nm report. Export closure checks use existing
+`compiler_project_units REPOSITORY BUILD OUTPUT OBJECT ...`; select objects from
+the current link manifests and compare original/exported bytes and input hashes.
+Cross-target object agreement is not cross-target execution.
+
+```sh
+bash playground/scripts/build-wasm.sh -DTOWER_IDE_TESTS=ON -DTOWER_COMPILER_JOBS=1
+bash playground/scripts/build-threads.sh -DTOWER_COMPILER_JOBS=1
+tower_llvm_revision=$(git -C third_party/llvm-project rev-parse HEAD)
+export TOWER_LLVM_WASM_BUILD="${TOWER_LLVM_WASM_BUILD:-$HOME/.cache/tower/llvm-wasi-$tower_llvm_revision}"
+TOWER_BROWSER_CROSS=ON bash playground/scripts/build-llvm.sh
+tools=$(bash playground/scripts/build-bootstrap.sh --tools package_targets)
+"$tools/package_targets" "$PWD/build/native/share/tower" "$PWD/scaffolding/targets" \
+  "$(llvm-config-19 --bindir)/clang" "$PWD/build/targets"
+npm run test:ide --prefix playground
+TOWER_REQUIRE_THREADS=1 node --test playground/tests/*.test.mjs
+bash playground/scripts/build-wasm.sh -DTOWER_IDE_TESTS=OFF -DTOWER_COMPILER_JOBS=1
+# Re-export project after the release reactor/IDE export configuration changes.
+tools=$(bash playground/scripts/build-bootstrap.sh --tools package_compiler_project)
+"$tools/package_compiler_project" "$PWD" "$PWD/build/browser-wasi" \
+  "$TOWER_LLVM_WASM_BUILD" "$PWD/build/compiler-project"
+npm run test:compiler --prefix playground
+TOWER_REQUIRE_BACKENDS=1 TOWER_REQUIRE_THREADS=1 npm run build --prefix playground
+npm run test:browser --prefix playground
+npm run test:deployment --prefix playground
+```
+
+The Node suite runs from the repository root because the thread test reads
+`build/` and `scaffolding/` relative to its working directory. This executes the
+two components of `npm test` once each and makes the separate
+`tower-work-tests.wasm` mandatory; shipped `tower-threads.wasm` alone is insufficient.
+Generation receipts must match the final project/IDE export profile.
+The LLVM script exports a project automatically when cross is ON; use its actual
+configured LLVM build directory for the final packager (not a guessed cache).
+Confirm its cached `TOWER_COMPILER_JOBS` value before starting the LLVM build;
+the script does not forward extra command-line CMake options.
+Keep verified vendor libraries; rebuilding Tower-dependent reactors is required,
+rebuilding unchanged LLVM itself is not. `build.mjs` rebuilds the builtin list
+from current source; obsolete `types/` files must not survive into the new dist.
+
+Supported sanitizer commands use distinct caches, after preserving normal assets:
+
+```sh
+export TOWER_NATIVE_BUILD=/cache/root-final-address
+bash playground/scripts/build-native.sh -DTOWER_SANITIZER=address \
+  -DTOWER_COMPILER_JOBS=1 -DTOWER_WORK_TESTS=ON -DTOWER_BACKEND_TESTS=ON
+cmake --build "$TOWER_NATIVE_BUILD" --parallel 1 --target \
+  tower-work-tests tower-lr-work-tests tower-entity-stage-concurrent-tests
+export ASAN_OPTIONS=detect_leaks=1:halt_on_error=1
+"$TOWER_NATIVE_BUILD/tower-work-tests"
+"$TOWER_NATIVE_BUILD/tower-entity-stage-concurrent-tests"
+"$TOWER_NATIVE_BUILD/tower-lr-work-tests" "$PWD/scaffolding" query-smoke
+"$TOWER_NATIVE_BUILD/tower-lr-work-tests" "$PWD/scaffolding" units
+```
+
+Repeat that supported positive path in a separate thread cache with
+`-DTOWER_SANITIZER=thread` and `TSAN_OPTIONS=halt_on_error=1` on a host permitting
+TSan startup. Include affected registered ownership/admission fixtures from
+`scaffolding/tests/README.md`; inspect actual linked Tower objects/runtime and
+`sanitizer-objects.tsv`, not C++ flags alone. The current negative race-control
+link failure on missing buffer providers remains unresolved and its execution
+was explicitly deferred; do not run an altered probe or claim current sensitivity
+from the historical pass. Source-language UBSan and Windows/macOS/browser
+sanitization are unsupported. Serial allocation-failure cases are not threaded
+sanitizer coverage. Passing positive stress tests is not universal race freedom.
+
+Finally ROOT must retain final source/build ancestry on main, exact dist/project/
+resource/test-reactor hashes, successful generation and workflow receipts, and
+the latest Pages/CNAME history. Its publication command remains
+`git push --atomic origin main <deployment-commit>:refs/heads/gh-pages`, followed
+by `node playground/scripts/verify-deployment.mjs https://tower-lang.org/` against
+that exact local dist. Verify the deployed workflow/ref and every served asset;
+the old manifest check in this audit is not that final gate. Implemented portable
+interpretation, target object emission and shared-Wasm transport do not establish
+published acceptance of this current integrated source.

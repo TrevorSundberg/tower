@@ -45,7 +45,8 @@ fn frontend_compile_error(program: SemanticProgram*, message: u8*): void {
     sem_require(bytes_append(&program.error, message, length));
 }
 
-extern fn frontend_module_root_world_size(world: void*, source: u8*, length: usize, environment: void*): void*;
+extern fn frontend_module_root_world_size_result(world: void*, source: u8*, length: usize,
+    environment: void*, error: WorkBudgetError*): void*;
 extern fn compiler_node_world(node: void*): void*;
 
 extern fn frontend_module_finish(module: void*): void;
@@ -77,6 +78,7 @@ extern fn syntax_capture_comments(session: void*, module: void*): void;
 extern fn frontend_module_attach_comments(module: void*, root: void*, base: usize): void;
 
 export fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendSource*, count: usize, environment: void*): void {
+    if program.resource.error != WorkBudgetError.None { return; }
     if count != 0 && sources == null {
         frontend_compile_error(program, "Compilation source array is missing");
         return;
@@ -110,12 +112,18 @@ export fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendS
             program.error_offset = nul;
             break;
         }
-        var module = frontend_module_root_world_size(compiler_node_world(program.root), input.data, input.length, environment);
+        var startup_error = WorkBudgetError.None;
+        var module = frontend_module_root_world_size_result(compiler_node_world(program.root), input.data, input.length,
+            environment, &startup_error);
         if module is null {
-            frontend_compile_error(program, "Module environment belongs to another compiler world or cannot be bound");
+            sem_resource_record(program, startup_error, 0);
             break;
         }
-        sem_require(vector_push(&modules, module));
+        if !vector_push(&modules, module) {
+            frontend_module_destroy(module);
+            sem_resource_record(program, WorkBudgetError.Memory, 0);
+            break;
+        }
         var session = frontend_module_session(module);
         loop {
             var root = syntax_next(session);
@@ -144,6 +152,11 @@ export fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendS
         }
         syntax_capture_comments(session, module);
         frontend_module_finish(module);
+        resource_error = frontend_module_resource_error(module);
+        if resource_error != WorkBudgetError.None {
+            sem_resource_record(program, resource_error, syntax_get_error_offset(session));
+            break;
+        }
         error = frontend_module_error(module);
         failed = error[0] != 0;
         if failed {

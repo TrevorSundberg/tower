@@ -3,8 +3,11 @@ import .compiler.generic_body_types;
 import .compiler.semantic_context_types;
 import .compiler.semantic_program_types;
 import .compiler.foundation_types;
+import .compiler.foundation_tags;
 import .library.work_budget;
 import .library.work_budget_types;
+import .library.work_graph;
+import .library.vector;
 import .library.entity_types;
 import generic_clone_fixture;
 import storage_api;
@@ -27,6 +30,11 @@ extern fn semantic_program_dispose(program: SemanticProgram*): void;
 extern fn sem_context_init(context: SemanticContext*, program: SemanticProgram*): void;
 extern fn sem_context_dispose(context: SemanticContext*): void;
 extern fn sem_resource_record(program: SemanticProgram*, error: WorkBudgetError, offset: usize): void;
+extern fn sem_create_result(parent: void*, error: WorkBudgetError*): void*;
+extern fn sem_attach_result(node: void*, kind: u32, error: WorkBudgetError*): FoundationNode*;
+extern fn sem_layout_discover(context: SemanticContext*, node: void*): usize;
+extern fn sem_layout_execute(context: SemanticContext*): usize;
+extern fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendSource*, count: usize, environment: void*): void;
 
 enum GenericResultOperation: u32 { Begin, Register, Instantiate, Deferred, Count }
 var GenericResultBudgetBytes: usize = 1048576;
@@ -139,6 +147,15 @@ fn generic_result_storage_trial(operation: GenericResultOperation, allowed: usiz
 
 fn generic_result_storage_tests(): void {
     var unlimited = ~convert(usize, 0);
+    var create_calls = semantic_create_storage_trial(unlimited);
+    for(var allowed: usize = 0; allowed < create_calls; allowed++) {
+        semantic_create_storage_trial(allowed);
+    }
+    semantic_attach_storage_trial();
+    var layout_calls = semantic_layout_storage_trial(unlimited);
+    for(var allowed: usize = 0; allowed < layout_calls; allowed++) {
+        semantic_layout_storage_trial(allowed);
+    }
     for(var tag = convert(u32, GenericResultOperation.Begin); tag < convert(u32, GenericResultOperation.Count); tag++) {
         var operation = convert(GenericResultOperation, tag);
         var calls = generic_result_storage_trial(operation, unlimited, false);
@@ -149,9 +166,215 @@ fn generic_result_storage_tests(): void {
     }
     generic_result_admission_tests();
     for(var width: u32 = 4; width <= 8; width *= 2) {
+        var initialize_calls = semantic_initialize_storage_trial(width, unlimited, WorkBudgetError.None);
+        for(var allowed: usize = 0; allowed < initialize_calls; allowed++) {
+            semantic_initialize_storage_trial(width, allowed, WorkBudgetError.Memory);
+        }
+        semantic_initialize_storage_trial(width, unlimited, WorkBudgetError.Capacity);
+        semantic_initialize_storage_trial(width, unlimited, WorkBudgetError.Busy);
+        semantic_initialize_storage_trial(width, unlimited, WorkBudgetError.Exhausted);
         generic_result_lifecycle_trial(width, false);
         generic_result_lifecycle_trial(width, true);
     }
+}
+
+fn semantic_initialize_storage_trial(width: u32, allowed: usize, wanted: WorkBudgetError): usize {
+    var buffers = tower_test_buffer_count();
+    var unlimited = ~convert(usize, 0);
+    var budget: WorkBudget = default;
+    var world: void* = null;
+    utility_check(work_budget_init(&budget, 1, GenericResultBudgetBytes, 1)
+        && compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None,
+        "Root initialization physical owner");
+    var store = bits(EntityStore*, compiler_world_store(world));
+    var root = entity_create(bits(void*, store));
+    var next_id = store.next_id;
+    var view: void* = null;
+    var occupied: WorkReservation = default;
+    if wanted == WorkBudgetError.Exhausted { store.next_id = ~convert(usize, 0); }
+    if wanted == WorkBudgetError.Busy {
+        view = entity_view_open(root);
+        utility_check(view != null, "Root initialization pin");
+    }
+    if wanted == WorkBudgetError.Capacity {
+        utility_check(work_budget_reserve_result(&budget, 0, 0, budget.bytes - budget.used_bytes,
+            &occupied) == WorkBudgetError.None, "Root initialization page pressure");
+    }
+    var program: SemanticProgram = default;
+    var calls = tower_test_buffer_allocations();
+    tower_test_buffer_fail_after(allowed);
+    semantic_initialize(&program, root, width);
+    tower_test_buffer_fail_after(unlimited);
+    calls = tower_test_buffer_allocations() - calls;
+    if wanted == WorkBudgetError.Exhausted { store.next_id = next_id; }
+    if view != null { entity_view_close(view); }
+    if occupied.active {
+        utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None,
+            "Root initialization releases pressure");
+    }
+    utility_check(program.root == root && program.pointer_bytes == width && program.resource.error == wanted,
+        "Root initialization retains its exact per-call admission failure");
+    if wanted == WorkBudgetError.None {
+        utility_check(program.functions.length == 1 && program.functions.data[0] == root,
+            "Successful root initialization publishes one program entry");
+    } else {
+        utility_check(program.functions.length == 0 && program.resource.offset == 0,
+            "Failed root initialization publishes no program entry");
+        var before = tower_test_buffer_allocations();
+        semantic_compile_budget(&program, null, null, 0, "", 0);
+        frontend_compile_sources(&program, null, 1, null);
+        sem_resource_record(&program, WorkBudgetError.Invalid, 37);
+        utility_check(program.resource.error == wanted && program.resource.offset == 0
+            && program.functions.length == 0 && tower_test_buffer_allocations() == before,
+            "Failed root admission stops both compiler entry points without replay or overwriting its cause");
+    }
+    semantic_program_dispose(&program);
+    entity_release(root);
+    utility_check(compiler_world_dispose(world) && budget.live == 0 && budget.used_bytes == 0
+        && budget.used_lanes == 0 && work_budget_dispose(&budget) && tower_test_buffer_count() == buffers,
+        "Root initialization failure retires all payloads, indexes and physical owners");
+    return calls;
+}
+
+fn semantic_create_storage_trial(allowed: usize): usize {
+    var buffers = tower_test_buffer_count();
+    var world = compiler_world_create_workers(1);
+    utility_check(world != null, "Semantic create result world");
+    var store = compiler_world_store(world);
+    var root = entity_create(store);
+    var nodes = entity_store_count(store);
+    var calls = tower_test_buffer_allocations();
+    var error: WorkBudgetError;
+    var unlimited = ~convert(usize, 0);
+    tower_test_buffer_fail_after(allowed);
+    var child = sem_create_result(root, &error);
+    tower_test_buffer_fail_after(unlimited);
+    calls = tower_test_buffer_allocations() - calls;
+    if allowed == unlimited {
+        utility_check(child != null && error == WorkBudgetError.None && entity_child_count(root) == 1,
+            "Semantic create transfers one child to containment");
+    } else {
+        utility_check(child == null && error == WorkBudgetError.Memory && entity_child_count(root) == 0
+            && entity_store_count(store) == nodes,
+            "Semantic create retires its private node when allocation or attachment fails");
+        utility_check(sem_create_result(root, &error) != null && error == WorkBudgetError.None,
+            "Semantic create retries after its failed private allocation drains");
+    }
+    utility_check(sem_create_result(null, &error) == null && error == WorkBudgetError.Invalid,
+        "Semantic create rejects a missing owner without a default-world fallback");
+    entity_release(root);
+    utility_check(compiler_world_dispose(world) && tower_test_buffer_count() == buffers,
+        "Semantic create result releases all owners");
+    return calls;
+}
+
+// Sweep actual production allocator calls across a dependent layout frontier.
+// Fault injection is serial and ends before any healthy kernel execution.
+fn semantic_layout_storage_trial(allowed: usize): usize {
+    var buffers = tower_test_buffer_count();
+    var world = compiler_world_create_workers(1);
+    utility_check(world != null, "Layout storage world");
+    var root = entity_create(compiler_world_store(world));
+    var program: SemanticProgram = default;
+    semantic_initialize(&program, root, 8);
+    var context: SemanticContext = default;
+    sem_context_init(&context, &program);
+    var error: WorkBudgetError;
+    var record = sem_create_result(root, &error);
+    var base = sem_attach_result(record, KType, &error);
+    base.type = { scalar: SStruct, pointer_bytes: program.pointer_bytes, record: record, ..default };
+    base.start = 41;
+    var field_node = sem_create_result(record, &error);
+    var field = sem_attach_result(field_node, KDeclare, &error);
+    field.type = { scalar: SI32, pointer_bytes: program.pointer_bytes, ..default };
+    utility_check(vector_push(&base.items, field_node), "Layout storage field");
+    var subject = sem_create_result(root, &error);
+    var array = sem_attach_result(subject, KType, &error);
+    array.type = { scalar: SArray, pointer_bytes: program.pointer_bytes, record: subject, ..default };
+    array.element = base.type;
+    array.length = 3;
+    array.start = 37;
+    var unlimited = ~convert(usize, 0);
+    var calls = tower_test_buffer_allocations();
+    tower_test_buffer_fail_after(allowed);
+    var query = sem_layout_discover(&context, subject);
+    tower_test_buffer_fail_after(unlimited);
+    calls = tower_test_buffer_allocations() - calls;
+    if allowed == unlimited {
+        utility_check(query != 0 && program.resource.error == WorkBudgetError.None
+            && work_task(&context.queries, query).state != WorkState.Succeeded,
+            "Layout discovery suspends without recursively executing its dependencies");
+        var jobs = context.layout_jobs.length;
+        utility_check(sem_layout_discover(&context, subject) == query && context.layout_jobs.length == jobs
+            && sem_layout_execute(&context) == jobs && work_task(&context.queries, query).state == WorkState.Succeeded
+            && base.size == sizeof(i32) && array.size == array.length * base.size && field.byte_offset == 0,
+            "Dependent layouts publish once and preserve canonical query identity");
+    } else {
+        utility_check(query == 0 && program.resource.error == WorkBudgetError.Memory
+            && (program.resource.offset == array.start || program.resource.offset == base.start)
+            && array.size == 0 && base.size == 0 && context.workers.running == 0,
+            "Layout allocation denial preserves its producer and publishes no sizes");
+        var tasks = context.queries.tasks.length;
+        var before = tower_test_buffer_allocations();
+        utility_check(sem_layout_discover(&context, subject) == 0 && sem_layout_execute(&context) == 0
+            && context.queries.tasks.length == tasks && tower_test_buffer_allocations() == before,
+            "Failed dependent layout admission cannot replay storage or execute a partial frontier");
+    }
+    work_cancel(&context.queries);
+    sem_context_dispose(&context);
+    semantic_program_dispose(&program);
+    entity_release(root);
+    utility_check(compiler_world_dispose(world) && tower_test_buffer_count() == buffers,
+        "Layout admission retires every partial payload, offset vector and graph owner");
+    return calls;
+}
+
+fn semantic_attach_storage_trial(): void {
+    var buffers = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    var world: void* = null;
+    utility_check(work_budget_init(&budget, 1, GenericResultBudgetBytes, 1)
+        && compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None,
+        "Semantic component uses a fully bound world");
+    var root = entity_create(compiler_world_store(world));
+    var occupied: WorkReservation = default;
+    utility_check(work_budget_reserve_result(&budget, 0, 0, budget.bytes - budget.used_bytes,
+        &occupied) == WorkBudgetError.None, "Semantic component page pressure");
+    var error: WorkBudgetError;
+    utility_check(sem_attach_result(root, KType, &error) == null && error == WorkBudgetError.Capacity,
+        "Semantic component preserves physical page Capacity");
+    utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None,
+        "Semantic component page pressure release");
+    var value = sem_attach_result(root, KType, &error);
+    utility_check(value != null && error == WorkBudgetError.None && value.kind == KType,
+        "Semantic component retries with ordinary Foundation initialization");
+    value.start = 37;
+    var child = sem_create_result(root, &error);
+    utility_check(child != null, "Semantic component uninitialized child");
+    var view = entity_view_open(root);
+    utility_check(view != null, "Semantic component caller lifetime pin");
+    utility_check(sem_attach_result(child, KOperand, &error) == null && error == WorkBudgetError.Busy,
+        "A missing component respects structural admission");
+    utility_check(sem_attach_result(root, KOperand, &error) == value && error == WorkBudgetError.None
+        && value.kind == KOperand && value.start == 37,
+        "An owned existing payload write preserves fields under a lifetime pin");
+    entity_view_close(view);
+    utility_check(sem_attach_result(child, KOperand, &error) != null && error == WorkBudgetError.None,
+        "Missing component attachment succeeds after the pin closes");
+    utility_check(sem_attach_result(null, KType, &error) == null && error == WorkBudgetError.Invalid,
+        "Semantic attachment rejects a missing world owner");
+    var custom = sem_create_result(root, &error);
+    var custom_value = semantic_component_attach(child, custom, KType);
+    utility_check(custom_value != null && custom_value != value,
+        "Explicit custom semantic component compatibility remains available");
+    custom_value.start = 83;
+    utility_check(semantic_component_attach(child, custom, KOperand) == custom_value
+        && custom_value.kind == KOperand && custom_value.start == 83,
+        "Custom component reattachment preserves its distinct payload");
+    entity_release(root);
+    utility_check(compiler_world_dispose(world) && budget.live == 0 && budget.used_bytes == 0
+        && budget.used_lanes == 0 && work_budget_dispose(&budget) && tower_test_buffer_count() == buffers,
+        "Semantic component trial retires every payload and budget owner");
 }
 
 // Measure the real context's entity demand before positioning the ID boundary.
@@ -185,11 +408,14 @@ fn generic_result_lifecycle_trial(width: u32, prior_failure: bool): void {
         if prior_failure { sem_resource_record(&program, WorkBudgetError.Capacity, admitted); }
         var next = store.next_id;
         store.next_id = ~convert(usize, 0) - context_nodes - admitted;
+        var boundary = store.next_id;
+        var calls = tower_test_buffer_allocations();
         semantic_compile_budget(&program, null, null, 0, "", sizeof(FoundationNode));
         var wanted = prior_failure ? WorkBudgetError.Capacity : WorkBudgetError.Exhausted;
-        utility_check(store.next_id == ~convert(usize, 0) && program.resource.error == wanted
+        utility_check(store.next_id == (prior_failure ? boundary : ~convert(usize, 0))
+            && (!prior_failure || tower_test_buffer_allocations() == calls) && program.resource.error == wanted
             && program.resource.offset == (prior_failure ? admitted : 0),
-            "Actual semantic lifecycle preserves generic ID failure and the first resource cause");
+            "Actual semantic lifecycle preserves ID failure or stops without replaying an earlier resource failure");
         semantic_program_dispose(&program);
         entity_release(root);
         // Every temporary high-ID owner has now retired; future entities can

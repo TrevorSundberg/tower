@@ -427,9 +427,11 @@ export fn language_document_world(world: void*, environment: void*, source: u8*,
     sem_require(bytes_append(&q.recovered, source, length));
     sem_require(host_text_terminate(&q.recovered));
     q.source = q.recovered.data;
-    var root = entity_create(compiler_world_store(q.world));
-    semantic_initialize(&q.program, root, pointer_bytes);
-    q.semantic = true;
+    if !completion_initialize(q, pointer_bytes) {
+        completion_dispose(q);
+        return null;
+    }
+    var root = q.program.root;
     var complete = completion_parse(q, q.source, mode, false);
     if q.resource_error != WorkBudgetError.None {
         completion_dispose(q);
@@ -440,6 +442,11 @@ export fn language_document_world(world: void*, environment: void*, source: u8*,
     sem_context_init(c, &q.program);
     sem_type_uses_begin(c);
     q.analyzed = true;
+    if !sem_ok(c) {
+        completion_semantic_failed(q);
+        completion_dispose(q);
+        return null;
+    }
     language_grammar_index(q);
     c.source = q.input.data;
     var resource_error = WorkBudgetError.None;

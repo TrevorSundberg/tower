@@ -1173,6 +1173,10 @@ fn sem_declaration_error(c: SemanticContext*, result: SemanticDeclaration*): boo
     foreach(var list in &result.lists) { sem_push(&c.lists, list); }
     vector_dispose(&result.allocations);
     vector_dispose(&result.lists);
+    if !sem_ok(c) {
+        sem_declaration_capture_error(c, result);
+        return true;
+    }
     if result.resource.error == WorkBudgetError.None && result.error.length == 0 { return false; }
     if !c.declaration_isolated { sem_declaration_restore_error(c, result); }
     // Retain the producer diagnostic for later dependent body continuations.
@@ -1449,9 +1453,15 @@ fn sem_declaration_prepare(c: SemanticContext*, result: SemanticDeclaration*): u
         if result.inference_ready {
             // Preserve first-binding interning order before assembling the
             // signature's ordinary parameter-ordered type arguments.
-            foreach(var &type in &result.inference_order) { sem_type_entity(c, type); }
+            foreach(var &type in &result.inference_order) {
+                if sem_type_entity(c, type, call.node) == null { return 0; }
+            }
             arguments = sem_list(c);
-            foreach(var &type in &result.inference_types) { sem_push(arguments, sem_type_entity(c, type)); }
+            foreach(var &type in &result.inference_types) {
+                var entity = sem_type_entity(c, type, call.node);
+                if entity == null { return 0; }
+                sem_push(arguments, entity);
+            }
             vector_dispose(&result.inference_types);
             vector_dispose(&result.inference_order);
             result.inference_ready = false;
@@ -1888,9 +1898,13 @@ export fn sem_declarations_pump(c: SemanticContext*): SemanticPumpResult {
                 success = sem_ok(c);
             }
             if success && result.array_type && result.checked && !result.array_ready {
-                result.array_result = *sem_array_intern(c, &result.array_element, result.array_length);
-                result.array_ready = true;
-                sem_type_use(c, result.subject, &result.array_result);
+                var type = sem_array_intern(c, &result.array_element, result.array_length, result.subject);
+                if type != null {
+                    result.array_result = *type;
+                    sem_type_use(c, result.subject, &result.array_result);
+                    result.array_ready = sem_ok(c);
+                }
+                success = sem_ok(c);
             }
             if success && result.constructor != null { sem_constructor_publish(c, result); }
             // The originating declaration owns layouts created by child type
@@ -1930,9 +1944,19 @@ export fn sem_declarations_pump(c: SemanticContext*): SemanticPumpResult {
             sem_query_observe(c, &result.ticket, &result.query_reads);
             if success && result.layout != null {
                 result.waiting = sem_layout_discover(c, result.layout);
-                sem_require(vector_push(&layouts, result.waiting));
-                sem_require(work_suspend_access(&c.queries, &result.ticket, result.waiting,
-                    convert(u64, SemanticWorkDomain.Compiler), convert(u64, SemanticAccess.Layout), result.waiting, 1, WorkAccessMode.Read));
+                success = result.waiting != 0;
+                if success && !vector_push(&layouts, result.waiting) {
+                    sem_type_resource(c, result.layout, WorkBudgetError.Memory);
+                    success = false;
+                }
+                if !success { sem_declaration_capture_error(c, result); }
+            }
+            if success && result.layout != null {
+                if !work_suspend_access(&c.queries, &result.ticket, result.waiting,
+                    convert(u64, SemanticWorkDomain.Compiler), convert(u64, SemanticAccess.Layout), result.waiting, 1, WorkAccessMode.Read) {
+                    sem_type_resource(c, result.layout, sem_query_error(c));
+                    sem_declaration_capture_error(c, result);
+                }
             } else {
                 if success && result.waiting != 0 {
                     sem_declaration_input(result, result.waiting);
@@ -1947,7 +1971,12 @@ export fn sem_declarations_pump(c: SemanticContext*): SemanticPumpResult {
                                 convert(u64, SemanticWorkDomain.Compiler), convert(u64, SemanticAccess.Layout), layout, 1, WorkAccessMode.Read));
                         } else { sem_require(work_yield(&c.queries, &result.ticket)); }
                     }
-                    else { sem_require(work_finish(&c.queries, &result.ticket, success)); }
+                    else {
+                        if !work_finish(&c.queries, &result.ticket, success) {
+                            sem_type_resource(c, node, sem_query_error(c));
+                            sem_declaration_capture_error(c, result);
+                        }
+                    }
                 }
             }
             if c.program.resource.error != WorkBudgetError.None { vector_dispose(&selected_error); }

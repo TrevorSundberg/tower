@@ -198,7 +198,7 @@ fn generic_resolve_view(a: GenericAnalysis*, view: GenericInfo*, depth: usize): 
     }
     var type = sem_type(a.context, view.annotation);
     if sem_ok(a.context) {
-        view.resolved = sem_type_entity(a.context, type);
+        view.resolved = sem_type_entity(a.context, type, view.annotation);
     }
     a.context.program.error.length = 0;
 }
@@ -375,7 +375,7 @@ fn generic_member(a: GenericAnalysis*, node: void*, source: GenericInfo*, depth:
     generic_info_bind(a, sem_member(node, "field"), node);
 }
 
-fn generic_element(a: GenericAnalysis*, info: GenericInfo*, source: GenericInfo*, depth: usize): void {
+fn generic_element(a: GenericAnalysis*, node: void*, info: GenericInfo*, source: GenericInfo*, depth: usize): void {
     if source == null {
         return;
     }
@@ -414,7 +414,7 @@ fn generic_element(a: GenericAnalysis*, info: GenericInfo*, source: GenericInfo*
         var array = sem_get(type.record);
         type = &array.element;
     }
-    info.resolved = sem_type_entity(a.context, type);
+    info.resolved = sem_type_entity(a.context, type, node);
 }
 
 // Reuse the ordinary checker for concrete subexpressions. Only the temporary
@@ -461,7 +461,8 @@ fn generic_expression_result(a: GenericAnalysis*, source: void*, copy: void*, de
     if value != null {
         var info = generic_info(source, a.component);
         if info != null {
-            info.resolved = sem_type_entity(a.context, &value.type);
+            info.resolved = sem_type_entity(a.context, &value.type, source);
+            if info.resolved == null { return; }
             info.dependent = false;
         }
     }
@@ -515,7 +516,7 @@ fn generic_expression_check(a: GenericAnalysis*, node: void*, expected_type: voi
             if info != null {
                 if result != null {
                     var resolved = sem_get(result);
-                    info.resolved = sem_type_entity(a.context, &resolved.type);
+                    info.resolved = sem_type_entity(a.context, &resolved.type, node);
                 }
             }
         }
@@ -554,7 +555,7 @@ fn generic_value_walk(a: GenericAnalysis*, node: void*, depth: usize): void {
             var source = generic_info(base, a.component);
             if sem_member(node, "index") != null {
                 info = generic_info_add(a, node, node, GenericInfoKind.Index);
-                generic_element(a, info, source, next);
+                generic_element(a, node, info, source, next);
             } else {
                 generic_member(a, node, source, next);
             }
@@ -562,7 +563,7 @@ fn generic_value_walk(a: GenericAnalysis*, node: void*, depth: usize): void {
     }
     if sem_is(node, "CoreLoad") {
         info = generic_info_add(a, node, node, GenericInfoKind.Load);
-        generic_element(a, info, generic_info(sem_member(node, "name"), a.component), next);
+        generic_element(a, node, info, generic_info(sem_member(node, "name"), a.component), next);
     }
     if a.context.program.resource.error != WorkBudgetError.None { return; }
     if sem_is(node, "CoreBinary") {
@@ -589,7 +590,7 @@ fn generic_value_walk(a: GenericAnalysis*, node: void*, depth: usize): void {
                 info = generic_info_add(a, node, node, GenericInfoKind.Value);
                 if left == null && right != null && sem_equal(sem_surface_operator(a.context, node, null), "*") {
                     info.kind = GenericInfoKind.Load;
-                    generic_element(a, info, generic_info(right, a.component), next);
+                    generic_element(a, node, info, generic_info(right, a.component), next);
                 }
                 generic_expression_check(a, node, null, next);
             }
@@ -627,7 +628,7 @@ fn generic_value_walk(a: GenericAnalysis*, node: void*, depth: usize): void {
             generic_info_bind(a, node, name);
         } else {
             info = generic_info_add(a, node, node, GenericInfoKind.Assignment);
-            generic_element(a, info, generic_info(name, a.component), next);
+            generic_element(a, node, info, generic_info(name, a.component), next);
         }
     }
     if sem_is(node, "CoreAssign") {

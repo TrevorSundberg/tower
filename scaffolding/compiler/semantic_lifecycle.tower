@@ -108,14 +108,22 @@ export fn semantic_initialize(program: SemanticProgram*, root: void*, width: u32
     fill(program, 0, step1);
     program.pointer_bytes = width;
     program.root = root;
-    var n: FoundationNode* = sem_attach(root, KProgram);
+    var error: WorkBudgetError;
+    var n = sem_attach_result(root, KProgram, &error);
+    if n == null {
+        sem_resource_record(program, error, 0);
+        return;
+    }
     n.type.scalar = SVoid;
-    sem_push(&program.functions, root);
+    if !vector_push(&program.functions, root) {
+        sem_resource_record(program, WorkBudgetError.Memory, 0);
+    }
     // Named types enter through ordinary source declarations. The interpreter
     // representation tags do not create ambient language names.
 }
 
 export fn semantic_compile_budget(program: SemanticProgram*, roots: void**, bases: usize*, count: usize, source: u8*, component_bytes: usize): void {
+    if program.resource.error != WorkBudgetError.None || program.error.length != 0 { return; }
     var context: SemanticContext;
     var c: SemanticContext* = &context;
     sem_context_init(c, program);

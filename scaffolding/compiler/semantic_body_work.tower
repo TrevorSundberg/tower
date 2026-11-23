@@ -1169,6 +1169,7 @@ fn sem_body_iteration_layouts(c: SemanticContext*, batch: SemanticBodyWork**, co
     defer vector_dispose(&ready);
     sem_body_preparation_select(c, batch, count, failed, SemanticBodyPreparation.ProtocolLayout, &ready);
     foreach(var result in &ready) {
+        if !sem_ok(c) { break; }
         var ticket: WorkTicket = default;
         sem_require(work_take_task(&c.queries, &ticket, result.preparation));
         var plan = &result.iteration_plan;
@@ -1186,6 +1187,12 @@ fn sem_body_iteration_layouts(c: SemanticContext*, batch: SemanticBodyWork**, co
                 continue;
             }
             var layout = sem_layout_discover(c, plan.state_type.record);
+            if layout == 0 {
+                sem_body_hold_error(c, result);
+                result.done = true;
+                if !work_finish(&c.queries, &ticket, false) { sem_type_resource(c, result.subject, sem_query_error(c)); }
+                continue;
+            }
             if work_task(&c.queries, layout).state != WorkState.Succeeded {
                 sem_require(work_suspend(&c.queries, &ticket, layout));
                 continue;
@@ -1750,10 +1757,14 @@ fn sem_body_publish(c: SemanticContext*, result: SemanticBodyWork*): void {
     // All stages in this worker batch have already published. Continuations
     // exclusively own their lexical payloads between dispatches; the compilation
     // owns their storage and reclaims it once checking completes.
-    sem_body_prefix(c, result);
+    if sem_ok(c) { sem_body_prefix(c, result); }
     sem_query_observe(c, &result.ticket, &result.query_reads);
     sem_evaluation_aliases(c, &result.evaluation_aliases);
     sem_type_observations_publish(c, &result.type_observations);
+    if !sem_ok(c) {
+        sem_body_hold_error(c, result);
+        result.done = true;
+    }
     sem_editor_publish(c, &result.editor);
     foreach(var allocation in &result.allocations) {
         sem_push(&c.allocations, allocation);
@@ -1766,7 +1777,7 @@ fn sem_body_publish(c: SemanticContext*, result: SemanticBodyWork*): void {
     c.count += result.count;
     c.surface_expressions ||= result.surface;
     c.has_defer ||= result.has_defer;
-    for(var j: usize = 0; j < result.captures.length; j++) {
+    for(var j: usize = 0; j < result.captures.length && sem_ok(c); j++) {
         if c.defer_bindings == null {
             c.defer_bindings = sem_table(c);
             c.defer_order = sem_list(c);
@@ -1781,9 +1792,9 @@ fn sem_body_publish(c: SemanticContext*, result: SemanticBodyWork*): void {
     for(var j: usize = 0; j < result.evaluations.length; j++) {
         var evaluation = bits(SemanticEvaluation*, result.evaluations.data[j]);
         sem_push(&c.evaluation_jobs, bits(void*, evaluation));
-        sem_evaluation_request(c, evaluation);
+        if sem_ok(c) { sem_evaluation_request(c, evaluation); }
     }
-    if result.flow_dependencies.length != 0 {
+    if sem_ok(c) && result.flow_dependencies.length != 0 {
         sem_flow_request(c, result.subject, &result.flow_dependencies);
     }
     vector_dispose(&result.evaluations);
@@ -2091,6 +2102,7 @@ fn sem_body_inputs(c: SemanticContext*, state: SemanticBodyPipeline*): bool {
             waiting = sem_declaration_layout_waiting(c, type.record);
             if waiting != 0 { break; }
             var layout = sem_layout_discover(c, type.record);
+            if layout == 0 { break; }
             if work_task(&c.queries, layout).state != WorkState.Succeeded {
                 waiting = layout;
                 layouts = true;
@@ -2100,7 +2112,7 @@ fn sem_body_inputs(c: SemanticContext*, state: SemanticBodyPipeline*): bool {
         if !sem_ok(c) {
             sem_body_hold_error(c, result);
             result.done = true;
-            sem_require(work_finish(&c.queries, &ticket, false));
+            if !work_finish(&c.queries, &ticket, false) { sem_type_resource(c, result.subject, sem_query_error(c)); }
         } else {
             if waiting != 0 { sem_require(work_suspend(&c.queries, &ticket, waiting)); }
             else { sem_require(work_finish(&c.queries, &ticket, true)); }

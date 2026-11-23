@@ -97,6 +97,8 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
             || bootstrap_symbol_in("node_string_set syntax_identifier_decode_in_place syntax_node_init syntax_nodes_equal tower_utf8_decode tower_utf8_encode", symbol, length);
     }
     if unit == BootstrapUnit.ParserNodes {
+        // Configured module startup fixtures consume world and unit ownership.
+        if bootstrap_symbol_in("compiler_world_create_result frontend_units_close frontend_units_create_bounded_result", symbol, length) { return true; }
         // Grammar admission retains exact results from the existing entities unit.
         if bootstrap_symbol_in("compiler_world_type_result entity_attach_result entity_component_add_result entity_create_related_result entity_create_result entity_view_open_result", symbol, length) { return true; }
         // Grammar snapshots use the world ledger and the entities arena provider.
@@ -129,6 +131,8 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
             || bootstrap_symbol_in("syntax_host_clear syntax_origin_text tower_node_attach tower_node_get_child_member work_kernel_execute work_thread_retention", symbol, length);
     }
     if unit == BootstrapUnit.Semantics {
+        // Checked semantic admission and module startup retain provider causes.
+        if bootstrap_symbol_in("compiler_world_component_result entity_attach_result entity_component_add_result entity_create_related_result entity_create_result frontend_module_root_world_size_result", symbol, length) { return true; }
         // Generic publication consumes the entities unit's per-call outcomes.
         if bootstrap_symbol_in("entity_stage_open_result entity_stage_publish_result entity_view_open_result", symbol, length) { return true; }
         if bootstrap_symbol_in("generic_begin_result generic_register_result generic_instantiate_result generic_instantiate_deferred_result", symbol, length) { return true; }
