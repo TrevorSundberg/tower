@@ -115,3 +115,29 @@ The command manifest SHA256 is
 ROOT's joined reactor/release adoption remains pending. The earlier service-blocked
 instrumentation gate remains open and was not retried. No final integrated,
 browser, unsupported-host or universal race-freedom claim follows from this batch.
+
+## Merged-source verification
+
+Implementation commit `995af4d8` was merged with published `b8d65c37` using a
+normal history-preserving merge after the required ff-only pull refused
+ordinary divergence. Validated merge `478353f99080ba37390dc597aa51ae8f3b73df1b`,
+tree `8f2037c546bf631f3554736e10adae09681acca5`, includes L1's module-condition
+and inference changes. Their actual semantic import closure changed, so the six
+affected build actions were rebuilt once: 43.371 wall / 47.929 CPU seconds,
+1,091,920 KiB. `merged.sh` then passed all 15 admission selectors (0.574/0.312 s,
+51,760 KiB), query-smoke (4.253/5.808 s, 407,056 KiB), and lifecycle 0
+(2.219/2.096 s, 211,968 KiB). Two healthy samples at workers 1/4 passed the same
+reference/canonical hashes and zero teardown: 0.510/0.452 s, 176,464 KiB and
+0.580/0.572 s, 179,488 KiB. Ledger peaks remain 108,204,099/108,153,811 B.
+These are merged checks, not a replacement for the earlier matched comparison.
+
+Merged executable admission SHA256
+`06359a7f561dc0741bf8320d84870ca0e3def9ff44067667226d7e7ff5dc4ff2`;
+query/lifecycle `16a21160b79386a92b5af07de34954acbb87cb23ea93b9e80f9ead52f59a5aee`;
+profile `9ea85ce2888223ff1191feda74b5da0b287c6eabbbd01a8cf4bfb43cb09a0cce`;
+semantics object `b3fcbecd5e6b3fc67ba1e6861f8784d0433e2b3303a5f4c0da515c860ceb4122`.
+The 141-entry fixture and 368-entry profile manifests were checked after running;
+SHA256 `0e61607668917fd8c88c4927190594c6867e3ecde0be47161fb0a17a6ec13219` and
+`d0fcc246751a2856859306bf2ab18e41002aedb5390905a5701a29d2eb63fc19` respectively.
+All processes exited 0 and drained. Old stashes and unrelated sources remain
+preserved; runtime deployment remains ROOT's separate gate.
