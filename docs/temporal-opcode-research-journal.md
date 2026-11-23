@@ -90540,3 +90540,59 @@ build/d2_ecs/packaging_c8e1d10b/. ROOT's frozen actual eac portable/LLVM/cross/
 project assets, real notices, final bundle checks and hosted verification retain
 separate acceptance. B2 owns actual shared-browser retirement. No real Wasm,
 Node-wide, LLVM, UI, generation or sanitizer matrix was run or claimed here.
+
+## 2026-11-23 B1 complete native fixed point at48db0f27
+
+Frozen published48db0f27b439e9d0c7bb15e6f0c4beb932650e89/tree
+2e5b2c500251119c52423b2e33a836f1e1da44d4 after required pull; one transientDNS
+failure recovered with per-command HTTPS resolution. Own KinmenB CPU0-11/24GiB,
+LLVM19.1.1, Release, outer6/compiler1. Previous jobs drained, tracked tree clean.
+A2 immutable stage registration/fields and L1 named/nullary producer repair are
+included; later numeric/wrapper/backend fixes excluded. No input edit/pull during
+generation. Old f7 cache/receipt and four failed ECS LLVM cases remain untouched.
+
+Fresh documented generation1 built all52 actions from public768 with override
+unset; package/development verification passed. Complete verified gen1/gen2
+packages are explicit successor-test predecessors. Generations2/3 rebuild all52
+actions at identical successor_build path; gen2 complete objects/depfiles/cache
+preserved and checked before clean. ALL34 actual compiler/runtime/helper binaries
+plus4 configure probes match byte-for-byte. ALL53 payloads plusSHA256SUMS match;
+actual memberships also equal the complete earlier f7 lists. No subset, rewriting
+or normalization. Each package provenance retains actual command/predecessor;
+all identify frozencommit and1198 source hashes. Broader1276-file source snapshot
+extracts to exact recorded bytes. Complete source hashes checked around builds.
+
+Compiler gen1=gen2=gen3 SHA0846129d944c2bacafec5ef47aae8630ca26ed5896eba872a721a0e65433d8af.
+Generation3 archive SHA841fc6e4187df718768a79c599c7edcc7f21190f7e53649d45f38256ce42dfbd,
+development.json7121547f81149081fede0ddba4b52f14aacb52eb09da398d70f0eff378765ec6,
+SHA256SUMS2cb987184b7982961b6656c20ee48d25bfe8a3b2106f9e70c232d5db9b33f09a.
+Delivered C:/Sandbox/build/codex_ecs_20261122/B1/current_generation_48db0f27,
+allthree archives/source snapshot/manifests/commands/logs/checks. Archive host
+transfer hashchecked, copied back/extracted to fresh spaced Linux path, allbytes
+andchecksums exact, towerc2276304bytes/mode0755 verified. Adjacent resources,
+LLVM license and original provenance preserved. No publicpin adoption.
+
+Generation wall/CPU/RSS KiB:1=43.14/138.03/1067436;2=35.00/92.39/1061904;
+3=32.26/92.31/1062568. Relocated development plus expected missingClang negative
+passes; restricted standalone unpassed. Verify1=4.62/4.59/190444,
+2=4.68/4.64/190568,3=8.34/8.20/190956. Fresh jobs1 small/large controls .44/.58s,
+CPU.42/.56,RSS187540/238648, exact original objects and executions15/999.
+No compiler warnings/errors or generation inequality; n1costs not speedupclaims.
+
+Actual strict symbol gate initially FAILED: Entities node_match_set_label_result;
+Semantics compiler_world_grammar/entity_component_owner/entity_register_stage_result.
+Inspected metadata/observer/generic lease/stage registration callers and actual
+frozen defined nmproviders. After generation/snapshot completion, added only4
+exact per-unit entries and7 focused fixture calls. No prefix/wildcard or compiler
+change; existing malformed/suffix/truncation/wrong-unit/first-error checks remain.
+One public-built validator+standalone Tower fixture passed; all9 actual native
+policies nowpass, frozen binaries/package rechecked unchanged. Validator repair
+is outside48db frozenmanifest and has independent source.patch/source/tools hashes.
+Originalfailed logs/statuses and oldvalidator preserved. Toolbuild2.70/1.87/226008;
+fixturecompile1.08/1.00/201760, execution<.01s/1684KiB. No runtime cost claim for
+validation-only edit. No extra functional/browser/sanitizer/generation matrix.
+
+Full receipt docs/compiler_generation_48db0f27.md; build/ecs_b1/cache/
+b1_generation_48db0f27 retains all complete builds/depfiles and raw evidence.
+ROOT owns final publicpin/source composition/hosted release; L2 four-case ECS
+LLVM reconstruction and all later in-flight fixes stay independent pending gates.
