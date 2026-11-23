@@ -1115,6 +1115,34 @@ observer waits are test-only; production refill uses the existing pool completio
 signal, armed once by denied lane admission. Run `backend-overlap-calibrated` for
 the accompanying immediate backend handoff and exact object comparison.
 
+`tower-frontend-units-profile RESOURCE_ROOT UNITS WORKERS BODIES [backend] [spread]`
+uses the production native compiler closure. `spread` repeats four body counts
+from one quarter through the requested maximum across units; without it, only
+the final unit has the extra bodies. `backend` exports the generated functions
+and emits unoptimized x86_64-pc-linux-gnu library objects. The older backend
+workload did not export its functions and could emit empty objects; those
+measurements are not useful code-generation evidence. The profile checks exported
+names, known interpreter results (answer and loop body return42), canonical
+Foundation and object hashes. Compare each workload's hashes across worker counts.
+Its explicit byte ceiling is `(UNITS + 1) * DriverUnitRetainedByteLimit`; the
+production driver's configured ceiling is unchanged. Up to32 units/4096 bodies
+are supported, with workers bounded by the current host transport capacity.
+
+For a12-logical-CPU allocation, representative commands use `16 1 32 backend
+spread`, then workers4/12, and repeat with1024 bodies. `1 WORKERS 4096 backend`
+isolates one unit with many independent bodies. Use one warmup and a retained
+sample at each configuration; fresh processes/worlds with warm filesystem caches
+are different from reused parser sessions. Timing includes snapshot/configuration
+and frontend/backend compilation, excluding postjoin reference execution and
+formatting. JSON retains phase0/frontend and phase1/backend spans with thread IDs.
+`kernel_peak` counts overlapping **outer** frontend/backend kernels; nested lane
+limits and `reserved_peak_lanes` are admission ceilings/observations, not measured
+nested leaf execution. `refill_*` measures same-thread reuse before a ready
+frontend starts. `ready_outer_vacancy_ns` integrates unoccupied outer slots only
+while frontend inputs remain unstarted: nested work can occupy those shared lanes,
+so this is an upper bound, not a claim of avoidable idle time. Tail time begins at
+the final frontend start; no single timing or queue width proves useful scaling.
+
 The existing LR query entry also calls `semantic_receipt_checks.tower` and
 `semantic_failure_order_checks.tower` once each. `receipt-smoke` selects just
 these unchanged fixtures: allocation-free typed receipt restoration, diagnostic

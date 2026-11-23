@@ -81692,3 +81692,120 @@ and its own symbol boundary closure, B2 nested budget wake/refill, L1 interprete
 storage, L2 constructor/evaluation admission, D1 cross-file staging integration,
 and D2 the existing independent C-reference cost comparison. No extra contexts
 were spawned, and completed windows were replaced in their existing sessions.
+
+### 2026-11-23 B2: useful compiler scaling within the allocated six cores
+
+Bounded task, production source1f8f7ddd; initial job inventory idle and required
+merge-preserving ff-only pull succeeded. No scheduler/runtime source change is
+justified by this measurement. Extended only the existing Tower frontend_units_profile
+and its README: uneven body prefixes, frontend/backend intervals with thread IDs,
+actual outer overlap, same-thread refill gaps and outer-vacancy upper bounds,
+explicit scaled profile byte limit, canonical/object hashes and known-result checks.
+No new profiling framework, pools, polling, global state or semantic-owner edits.
+
+Important workload correction: the old profile's backend mode used unexported
+functions and produced480-byte empty ELF objects. Initial small observations
+(7680 bytes over16 units) exposed this; they remain in b2_scaling_small_* logs and
+are NOT useful code-generation evidence. Interrupted the initial launch loop,
+let its owned large child drain before editing, and retained the incomplete sample
+without claiming it passed. Backend-mode fixtures now export answer and every
+body, assert export-name presence in bounded ELF bytes, and check answer()==42
+and body_0(36)==42 through the ordinary interpreter. Hash every canonical
+Foundation byte and every object byte after timing. An initial helper identifier
+`match` was reserved; its compile failure is retained, corrected to `matches`.
+The production closure rebuilt once; subsequent profile-only iterations were
+incremental two-action compiles/links, not duplicate compiler/bootstrap matrices.
+
+Frozen setup: Linux x64 WSL2 kernel6.18.33.2, Docker tower-b2-work, CPUs12-23,
+quota12 logical CPUs,24GiB memory. lscpu maps those CPUs to physical cores6-11:
+SIX physical cores with SMT, not twelve cores or whole-machine scaling. B1 CPUs
+were untouched. B1/agent1 containers had only sleep processes at the valid sample
+boundaries; there is no exclusive-whole-host claim. Native Release/O2 compiler
+closure, LLVM19, checked-in bootstrap9653f8187a10; current production compiler
+sources built into the existing harness. Frozen executable SHA256:
+d7592de070617ae1736b8c4332f3a31f1647ba2097e1570a82b200d8572a8571.
+Saved /cache/b2_scaling_exported_profile; initial empty-object baseline is also
+preserved. Resource path/workload path stayed /work/scaffolding/profile_unit.tower.
+Actual module sources use the same /work/scaffolding resources,8-byte target
+pointers, x86_64-pc-linux-gnu library output, backend optimize=false at all widths.
+Objects are independent library compilations, not a linked16-unit executable.
+
+Inputs: small16 ready units repeat8/16/24/32 independent loop bodies; larger16
+repeat256/512/768/1024 bodies; single unit4096 bodies. Every unit also imports
+Tower and has an answer with a staged forward call. Thus16 ready units exceed
+the12-lane cap. One warmup plus ONE retained sample per workers1/4/12, followed
+by one justified8-worker warmup/sample for each16-unit case after12 showed
+increased CPU cost. Fresh processes/worlds, warm filesystem; not warm parser
+sessions. Timed phase includes snapshots/configuration and frontend+backend;
+reference execution/formatting are outside it. Peak RSS is the process high-water
+mark through compilation; full-process wall/CPU/RSS also remain in each log.
+
+| Workload | Workers | Wall s | CPU s | Peak RSS KiB | Actual outer peak | Shared lane peak |
+| --- | --- | --- | --- | --- | --- | --- |
+| small16 | 1 | 18.016 | 17.421 | 437724 | 1 | 1 |
+| small16 | 4 | 6.826 | 24.511 | 780524 | 4 | 4 |
+| small16 | 8 | 5.079 | 33.360 | 1253072 | 8 | 8 |
+| small16 | 12 | 5.493 | 44.265 | 1775840 | 12 | 12 |
+| larger16 | 1 | 28.208 | 27.599 | 1686760 | 1 | 1 |
+| larger16 | 4 | 9.182 | 32.648 | 2014888 | 4 | 4 |
+| larger16 | 8 | 6.595 | 42.624 | 2400000 | 8 | 8 |
+| larger16 | 12 | 7.089 | 58.796 | 2797652 | 12 | 12 |
+| single4096 | 1 | 5.793 | 5.756 | 698108 | 1 | 1 |
+| single4096 | 4 | 4.992 | 5.716 | 720196 | 1 | 4 |
+| single4096 | 12 | 4.917 | 6.105 | 720564 | 1 | 12 |
+
+Actual frontend/backend intervals and distinct thread IDs establish outer
+overlap; these peaks are not queue width. Shared grants stay within requested
+1/4/8/12, with per-parent nested EXTRA ceilings0/3/7/11. Nested leaf execution is
+NOT individually instrumented; reservation peaks and CPU/wall ratios do not
+prove those leaves simultaneously executed. Outer pool limit is min(units,lanes),
+so it stays1 in the single-unit case even when nested grants reach12. Best observed
+16-unit throughput uses8 workers:3.55x small and4.28x larger versus serial.
+Twelve remains profitable versus serial (3.28x/3.98x) but is slower and consumes
+more CPU/RSS than8 in this sample. This supports workload-specific selection,
+not a universal worker cap or a statistically established optimum.
+
+Same-workload canonical/object hashes match across ALL warmups and samples:
+small3797909920181751717 /5812102058794686917 (77440 object bytes),
+larger13997865770159808709 /2065664160384128293 (2109792 bytes),
+single9448338333252003545 /13213760278028976691 (843432 bytes).
+Entity/component counts also match per workload (small304544/351872,
+larger1762784/2147392,single618206/759748). Retained charged bytes stay roughly
+103.43MB /770.71MB /280.58MB, with small known transport-dependent differences.
+All peaks fit explicit profile ceilings4563402752 bytes for16 units and536870912
+for one. These profile limits do not change the driver's production default.
+Additional retained ledger capacity is10/20/40/80MiB at1/4/8/12 in16-unit runs,
+and5MiB in the single-unit runs. This is reported separately from charged buffers;
+it must not be confused with a complete allocator/RSS cap or an allocation count.
+
+Scheduling finding: while unstarted frontend units remain, observed unoccupied
+outer-slot time totals only0.17-5.69ms lane-time across these16-unit samples.
+This is an UPPER BOUND on idle capacity: nested work can legitimately occupy the
+same lanes. Same-thread ready-frontend refill maxima are0.006-1.349ms; the1.349ms
+outlier is larger/8, whose total outer vacancy is only3.535ms. No measured large
+avoidable ready-queue barrier warrants changing frontend_units_step, WorkPool or
+CompilerWork. Their source audit confirms immediate backend-first refill and
+ordered acceptance, with no all-frontend join required for backend dispatch.
+The previous one-shot wake sender/drain/publication contracts remain untouched.
+
+Actionable remaining limit: single4096 improves only1.18x at12. Its sole backend
+kernel takes2.906s of4.917s (about59%), after2.011s frontend. The graph currently
+makes one backend query per complete unit: there is no second ready backend task
+for the outer scheduler to dispatch. Improving that case needs measured per-body
+backend preparation/partitioning with explicit LLVM context ownership and ordered
+publication, not another outer pool or spin loop. Multi-unit work also exhibits
+CPU inflation (small17.42->33.36/44.27s at8/12; larger27.60->42.62/58.80s).
+Per-unit grammar construction, budget-gate contention, memory/SMT costs and eager
+nested pool creation are candidates for phase-level attribution, NOT isolated
+causes established by these aggregate spans. B1 owns grammar reuse; semantic and
+interpreter owners retain their scope. Do not remove joins protecting stages or
+change diagnostic source order based on queue width alone.
+
+Focused regressions: unit-admission passes canonical equality/cancellation/shared
+ceilings with90194ns nested-release refill; backend-overlap-calibrated passes exact
+objects/distinct live threads; legacy frontend-only profile3/4/0 passes real overlap
+and its known result. Logs build/b2_scaling_{admission,backend_overlap,legacy_profile}.log
+and b2_scaling_exported_{small,large,single}_w*_{warmup,sample}.log include full spans.
+All owned jobs drained. Sanitizers, full scaling/bootstrap/browser/generation and
+hosted deployment remain pending ROOT's integrated milestone. No todo edits,
+new agent/session/goal, inbox polling or publication-lease wait.
