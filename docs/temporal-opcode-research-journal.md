@@ -94428,3 +94428,13 @@ they and later lifecycle/T9 execution receipts are preserved outsideea606d32, no
 silently source-reviewed or runtime-adopted here. No repeated checks beyond git
 identity/diff verification; todo unchanged, no owned build/test/lock. Normal main
 push follows; this closes the requested independent review only.
+
+A1 review publication reconciliation: commit a5b6ea07 merged complete published
+fd1725d8 as8c1206605a70d697ffad7507620adc7343786097 after the required ff-only
+pull reported divergence. No conflicts; both journals and all source history
+preserved. Direct comparison of the 24 reviewed transport/caller/control paths
+against frozen f0485e83 is empty. Incoming Tower body/type producers, fixtures,
+CMake registrations and other-owner audits are preserved but excluded from this
+review. No new audit pass or runtime invocation. Todo hash unchanged; container
+has only its idle sleep process, no owned jobs; disk339441037312B free. Diff checks
+pass, ROOT retains deployment and the stated stale-error follow-up.
